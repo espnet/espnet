@@ -26,24 +26,24 @@ class HuggingFaceTransformersEncoder(AbsEncoder):
     """
     Hugging Face Transformers Encoder for Automatic Speech Recognition.
 
-    This class serves as an encoder that utilizes pre-trained models from the 
-    Hugging Face Transformers library for processing input sequences in 
-    automatic speech recognition tasks. It supports optional language token 
-    integration and manages attention masks to ensure effective sequence 
+    This class serves as an encoder that utilizes pre-trained models from the
+    Hugging Face Transformers library for processing input sequences in
+    automatic speech recognition tasks. It supports optional language token
+    integration and manages attention masks to ensure effective sequence
     processing.
 
     Attributes:
-        transformer (transformers.PreTrainedModel): The underlying transformer 
+        transformer (transformers.PreTrainedModel): The underlying transformer
             model for encoding.
-        pretrained_params (dict): A copy of the model's parameters for 
+        pretrained_params (dict): A copy of the model's parameters for
             reloading purposes.
         lang_token_id (int): The token ID for the language token, if used.
 
     Args:
         input_size (int): The size of the input feature vector.
-        model_name_or_path (str): The model identifier from Hugging Face's model 
+        model_name_or_path (str): The model identifier from Hugging Face's model
             hub or a local path to a model.
-        lang_token_id (int, optional): The token ID for the language token to 
+        lang_token_id (int, optional): The token ID for the language token to
             prepend to inputs. Defaults to -1 (disabled).
 
     Raises:
@@ -62,7 +62,7 @@ class HuggingFaceTransformersEncoder(AbsEncoder):
         >>> print(lengths)  # Adjusted input lengths after processing
 
     Note:
-        Ensure that the `transformers` library is installed before using this 
+        Ensure that the `transformers` library is installed before using this
         class. You can install it via `pip install transformers`.
 
     Todo:
@@ -106,20 +106,20 @@ class HuggingFaceTransformersEncoder(AbsEncoder):
 
         This method processes the input tensor through the transformer model,
         optionally prepending a language token if `lang_token_id` is specified.
-        It also generates an attention mask based on the input lengths to 
-        ensure that padding tokens are ignored during the attention 
+        It also generates an attention mask based on the input lengths to
+        ensure that padding tokens are ignored during the attention
         computation.
 
         Args:
-            input (torch.Tensor): The input tensor of shape (batch_size, 
+            input (torch.Tensor): The input tensor of shape (batch_size,
                 sequence_length) containing token IDs.
-            input_lengths (torch.Tensor): A tensor of shape (batch_size,) 
+            input_lengths (torch.Tensor): A tensor of shape (batch_size,)
                 containing the lengths of each input sequence.
 
         Returns:
-            Tuple[torch.Tensor, torch.Tensor]: A tuple where the first element 
-            is the output tensor of shape (batch_size, sequence_length, 
-            hidden_size) from the transformer, and the second element is 
+            Tuple[torch.Tensor, torch.Tensor]: A tuple where the first element
+            is the output tensor of shape (batch_size, sequence_length,
+            hidden_size) from the transformer, and the second element is
             the updated input_lengths tensor.
 
         Examples:
@@ -131,16 +131,16 @@ class HuggingFaceTransformersEncoder(AbsEncoder):
             >>> print(lengths)  # Output: tensor([4])
 
         Note:
-            Ensure that the `transformers` library is installed before 
-            using this method. If the library is not available, an 
-            ImportError will be raised during the initialization of the 
+            Ensure that the `transformers` library is installed before
+            using this method. If the library is not available, an
+            ImportError will be raised during the initialization of the
             encoder.
 
         Raises:
             ImportError: If the `transformers` library is not available.
 
         Todo:
-            Add support for additional configuration options for the 
+            Add support for additional configuration options for the
             transformer model in the future.
         """
 
@@ -170,27 +170,27 @@ class HuggingFaceTransformersEncoder(AbsEncoder):
         """
         Reload the pretrained parameters of the transformer model.
 
-        This method restores the model's parameters to their initial state 
-        that was saved during the initialization of the encoder. It can be 
-        useful for resetting the model's weights to the pretrained values 
+        This method restores the model's parameters to their initial state
+        that was saved during the initialization of the encoder. It can be
+        useful for resetting the model's weights to the pretrained values
         after fine-tuning or training on a specific task.
 
         Example:
-            >>> encoder = HuggingFaceTransformersEncoder(input_size=512, 
+            >>> encoder = HuggingFaceTransformersEncoder(input_size=512,
             ...     model_name_or_path='bert-base-uncased')
             >>> # After some training or modifications
             >>> encoder.reload_pretrained_parameters()
             Pretrained Transformers model parameters reloaded!
 
         Note:
-            Ensure that the `transformers` library is installed to utilize 
-            this functionality. If the model parameters have not been set 
-            (e.g., after initialization), calling this method will reload 
+            Ensure that the `transformers` library is installed to utilize
+            this functionality. If the model parameters have not been set
+            (e.g., after initialization), calling this method will reload
             the parameters to their original pretrained state.
 
         Raises:
-            ValueError: If the pretrained parameters are not set or if 
-            there is a mismatch between the model architecture and the 
+            ValueError: If the pretrained parameters are not set or if
+            there is a mismatch between the model architecture and the
             loaded parameters.
         """
         logging.info("Pretrained Transformers model parameters reloaded!")
@@ -199,8 +199,8 @@ class HuggingFaceTransformersEncoder(AbsEncoder):
         """
         Get the output size of the transformer model.
 
-        This method retrieves the hidden size of the transformer model, which 
-        corresponds to the dimensionality of the output embeddings produced 
+        This method retrieves the hidden size of the transformer model, which
+        corresponds to the dimensionality of the output embeddings produced
         by the model.
 
         Returns:
@@ -215,7 +215,7 @@ class HuggingFaceTransformersEncoder(AbsEncoder):
             768  # For BERT base model
 
         Note:
-            The output size may vary depending on the specific transformer model 
+            The output size may vary depending on the specific transformer model
             architecture being used.
         """
         return self.transformer.config.hidden_size

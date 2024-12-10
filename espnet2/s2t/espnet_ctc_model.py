@@ -200,28 +200,28 @@ class ESPnetS2TCTCModel(AbsESPnetModel):
         Encode input speech.
 
         This method processes the input speech tensor and previous text tensor to generate
-        encoded representations that can be utilized for further processing, such as 
-        training or inference in a speech-to-text model. The method applies various 
+        encoded representations that can be utilized for further processing, such as
+        training or inference in a speech-to-text model. The method applies various
         transformations, including feature extraction, data augmentation, and normalization.
 
         Args:
             speech (torch.Tensor): The input speech tensor of shape (Batch, Length, ...).
-            speech_lengths (torch.Tensor): A tensor containing the lengths of each input 
+            speech_lengths (torch.Tensor): A tensor containing the lengths of each input
                 speech sample in the batch, of shape (Batch,).
-            text_prev (torch.Tensor): The tensor representing the previous text tokens, 
+            text_prev (torch.Tensor): The tensor representing the previous text tokens,
                 of shape (Batch, Length).
-            text_prev_lengths (torch.Tensor): A tensor containing the lengths of each 
+            text_prev_lengths (torch.Tensor): A tensor containing the lengths of each
                 previous text sample in the batch, of shape (Batch,).
-            prefix (torch.Tensor): A tensor representing language and task tokens, 
+            prefix (torch.Tensor): A tensor representing language and task tokens,
                 of shape (Batch, Length=2).
-            prefix_lengths (torch.Tensor): A tensor containing the lengths of each 
+            prefix_lengths (torch.Tensor): A tensor containing the lengths of each
                 prefix in the batch, of shape (Batch,).
 
         Returns:
             Tuple[torch.Tensor, torch.Tensor]: A tuple containing:
-                - encoder_out (torch.Tensor): The encoded output from the encoder, 
+                - encoder_out (torch.Tensor): The encoded output from the encoder,
                     shape (Batch, Encoded_Length, Encoder_Output_Dim).
-                - encoder_out_lens (torch.Tensor): A tensor containing the lengths of 
+                - encoder_out_lens (torch.Tensor): A tensor containing the lengths of
                     the encoded outputs for each sample in the batch, of shape (Batch,).
 
         Examples:
@@ -240,8 +240,8 @@ class ESPnetS2TCTCModel(AbsESPnetModel):
 
         Note:
             The input tensors should be properly padded and have consistent dimensions
-            across the batch to ensure successful processing. The method assumes that 
-            the input lengths are provided and correctly reflect the actual lengths of 
+            across the batch to ensure successful processing. The method assumes that
+            the input lengths are provided and correctly reflect the actual lengths of
             the speech and text inputs.
 
         Raises:
@@ -314,7 +314,7 @@ class ESPnetS2TCTCModel(AbsESPnetModel):
             kwargs (dict): Additional keyword arguments, including "utt_id" which can be used for identification.
 
         Returns:
-            Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]: 
+            Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
                 - A tensor representing the total loss calculated during the forward pass.
                 - A dictionary containing various statistics related to the loss and metrics.
                 - A tensor representing the batch size.
@@ -325,15 +325,15 @@ class ESPnetS2TCTCModel(AbsESPnetModel):
         Examples:
             >>> model = ESPnetS2TCTCModel(...)
             >>> loss, stats, batch_size = model.forward(
-            ...     speech=torch.randn(32, 16000), 
-            ...     speech_lengths=torch.tensor([16000]*32), 
-            ...     text=torch.randint(0, 100, (32, 20)), 
-            ...     text_lengths=torch.tensor([20]*32), 
-            ...     text_prev=torch.randint(0, 100, (32, 20)), 
-            ...     text_prev_lengths=torch.tensor([20]*32), 
-            ...     text_ctc=torch.randint(0, 100, (32, 20)), 
-            ...     text_ctc_lengths=torch.tensor([20]*32), 
-            ...     prefix=torch.tensor([[0, 1]]*32), 
+            ...     speech=torch.randn(32, 16000),
+            ...     speech_lengths=torch.tensor([16000]*32),
+            ...     text=torch.randint(0, 100, (32, 20)),
+            ...     text_lengths=torch.tensor([20]*32),
+            ...     text_prev=torch.randint(0, 100, (32, 20)),
+            ...     text_prev_lengths=torch.tensor([20]*32),
+            ...     text_ctc=torch.randint(0, 100, (32, 20)),
+            ...     text_ctc_lengths=torch.tensor([20]*32),
+            ...     prefix=torch.tensor([[0, 1]]*32),
             ...     prefix_lengths=torch.tensor([2]*32)
             ... )
         """

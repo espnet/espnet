@@ -14,8 +14,8 @@ class DPCLSeparator(AbsSeparator):
     Deep Clustering Separator.
 
     This class implements the Deep Clustering method for source separation,
-    which utilizes recurrent neural networks (RNNs) to estimate masks for 
-    separating audio sources. It is particularly effective for scenarios with 
+    which utilizes recurrent neural networks (RNNs) to estimate masks for
+    separating audio sources. It is particularly effective for scenarios with
     multiple speakers.
 
     References:
@@ -54,6 +54,7 @@ class DPCLSeparator(AbsSeparator):
     Note:
         The `additional` argument in the forward method is not used in this model.
     """
+
     def __init__(
         self,
         input_dim: int,
@@ -122,48 +123,48 @@ class DPCLSeparator(AbsSeparator):
         """
         Forward pass for the DPCLSeparator.
 
-        This method processes the input features through the model and generates 
-        separated outputs for each speaker. It employs a recurrent neural network 
-        to encode the input features and applies K-means clustering to estimate 
+        This method processes the input features through the model and generates
+        separated outputs for each speaker. It employs a recurrent neural network
+        to encode the input features and applies K-means clustering to estimate
         the speaker masks.
 
         Args:
-            input (Union[torch.Tensor, ComplexTensor]): 
-                Encoded feature of shape [B, T, F], where B is the batch size, 
-                T is the number of time frames, and F is the number of frequency 
+            input (Union[torch.Tensor, ComplexTensor]):
+                Encoded feature of shape [B, T, F], where B is the batch size,
+                T is the number of time frames, and F is the number of frequency
                 bins. This can be either a standard tensor or a complex tensor.
-            ilens (torch.Tensor): 
-                Input lengths of shape [Batch], indicating the actual lengths 
+            ilens (torch.Tensor):
+                Input lengths of shape [Batch], indicating the actual lengths
                 of the sequences in the batch.
-            additional (Optional[Dict]): 
-                Other data included in the model. This argument is currently 
+            additional (Optional[Dict]):
+                Other data included in the model. This argument is currently
                 not used in this model.
 
         Returns:
-            Tuple[List[Union[torch.Tensor, ComplexTensor]], torch.Tensor, 
+            Tuple[List[Union[torch.Tensor, ComplexTensor]], torch.Tensor,
                   OrderedDict]:
-                - masked (List[Union[torch.Tensor, ComplexTensor]]): A list 
-                  of tensors of shape [(B, T, N), ...] representing the 
+                - masked (List[Union[torch.Tensor, ComplexTensor]]): A list
+                  of tensors of shape [(B, T, N), ...] representing the
                   separated audio signals for each speaker.
-                - ilens (torch.Tensor): Tensor of shape (B,) containing the 
+                - ilens (torch.Tensor): Tensor of shape (B,) containing the
                   lengths of the input sequences after processing.
-                - others (OrderedDict): Contains additional predicted data, 
+                - others (OrderedDict): Contains additional predicted data,
                   such as:
-                    - 'tf_embedding': learned embedding of all T-F bins 
+                    - 'tf_embedding': learned embedding of all T-F bins
                       of shape (B, T * F, D).
 
         Examples:
             >>> separator = DPCLSeparator(input_dim=80, num_spk=2)
             >>> input_tensor = torch.randn(4, 100, 80)  # Example input
             >>> input_lengths = torch.tensor([100, 100, 80, 60])  # Lengths
-            >>> masked, lengths, others = separator.forward(input_tensor, 
+            >>> masked, lengths, others = separator.forward(input_tensor,
             ...                                             input_lengths)
 
         Note:
             This method currently does not utilize the 'additional' argument.
 
         Raises:
-            ValueError: If the input 'nonlinear' activation function is not 
+            ValueError: If the input 'nonlinear' activation function is not
                         one of 'sigmoid', 'relu', or 'tanh'.
         """
         # if complex spectrum,

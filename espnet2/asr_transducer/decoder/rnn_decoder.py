@@ -13,8 +13,8 @@ class RNNDecoder(AbsDecoder):
     """
     RNN decoder definition for Transducer models.
 
-    This class implements an RNN decoder module used in Transducer models. It 
-    supports both LSTM and GRU architectures and allows for customization of 
+    This class implements an RNN decoder module used in Transducer models. It
+    supports both LSTM and GRU architectures and allows for customization of
     various parameters such as embedding size, hidden size, and dropout rates.
 
     Attributes:
@@ -33,12 +33,12 @@ class RNNDecoder(AbsDecoder):
         vocab_size (int): Vocabulary size.
         embed_size (int, optional): Embedding size. Default is 256.
         hidden_size (int, optional): Hidden size. Default is 256.
-        rnn_type (str, optional): Decoder layers type ('lstm' or 'gru'). 
+        rnn_type (str, optional): Decoder layers type ('lstm' or 'gru').
             Default is 'lstm'.
         num_layers (int, optional): Number of decoder layers. Default is 1.
-        dropout_rate (float, optional): Dropout rate for decoder layers. 
+        dropout_rate (float, optional): Dropout rate for decoder layers.
             Default is 0.0.
-        embed_dropout_rate (float, optional): Dropout rate for embedding layer. 
+        embed_dropout_rate (float, optional): Dropout rate for embedding layer.
             Default is 0.0.
         embed_pad (int, optional): Embedding padding symbol ID. Default is 0.
 
@@ -57,7 +57,7 @@ class RNNDecoder(AbsDecoder):
         out, new_states = decoder.score(label_sequence=[1, 2], states=states)
 
     Note:
-        The decoder supports only 'lstm' and 'gru' as valid RNN types. 
+        The decoder supports only 'lstm' and 'gru' as valid RNN types.
         Attempting to use any other type will raise a ValueError.
 
     Todo:
@@ -112,8 +112,8 @@ class RNNDecoder(AbsDecoder):
         RNN decoder definition for Transducer models.
 
         This module implements an RNN-based decoder for use in Transducer models,
-        utilizing either LSTM or GRU architectures. It is designed to process 
-        label sequences and output decoder states for further processing in 
+        utilizing either LSTM or GRU architectures. It is designed to process
+        label sequences and output decoder states for further processing in
         sequence modeling tasks.
 
         Attributes:
@@ -135,7 +135,7 @@ class RNNDecoder(AbsDecoder):
             rnn_type (str, optional): Type of RNN layers ('lstm' or 'gru'). Default is 'lstm'.
             num_layers (int, optional): Number of decoder layers. Default is 1.
             dropout_rate (float, optional): Dropout rate for decoder layers. Default is 0.0.
-            embed_dropout_rate (float, optional): Dropout rate for embedding layer. 
+            embed_dropout_rate (float, optional): Dropout rate for embedding layer.
                 Default is 0.0.
             embed_pad (int, optional): Padding symbol ID for the embedding layer. Default is 0.
 
@@ -237,8 +237,8 @@ class RNNDecoder(AbsDecoder):
         """
         RNN decoder definition for Transducer models.
 
-        This module implements an RNN-based decoder for Transducer models, allowing for 
-        sequence-to-sequence tasks. The decoder can utilize either LSTM or GRU cells 
+        This module implements an RNN-based decoder for Transducer models, allowing for
+        sequence-to-sequence tasks. The decoder can utilize either LSTM or GRU cells
         and supports multiple layers and dropout for regularization.
 
         Attributes:
@@ -251,7 +251,7 @@ class RNNDecoder(AbsDecoder):
             output_size: Size of the decoder output.
             vocab_size: Size of the vocabulary.
             device: Device (CPU or GPU) on which the model resides.
-            score_cache: Cache for previously computed scores to avoid redundant 
+            score_cache: Cache for previously computed scores to avoid redundant
                 calculations.
 
         Args:
@@ -349,7 +349,7 @@ class RNNDecoder(AbsDecoder):
             >>> decoder.set_device(torch.device('cuda:0'))
 
         Note:
-            The device should be a valid torch.device object, which can be 
+            The device should be a valid torch.device object, which can be
             created using `torch.device('cpu')` or `torch.device('cuda:0')`.
         """
         self.device = device
@@ -379,12 +379,12 @@ class RNNDecoder(AbsDecoder):
             vocab_size (int): Vocabulary size.
             embed_size (int, optional): Embedding size (default is 256).
             hidden_size (int, optional): Hidden size (default is 256).
-            rnn_type (str, optional): Decoder layers type ('lstm' or 'gru', 
+            rnn_type (str, optional): Decoder layers type ('lstm' or 'gru',
                                     default is 'lstm').
             num_layers (int, optional): Number of decoder layers (default is 1).
-            dropout_rate (float, optional): Dropout rate for decoder layers 
+            dropout_rate (float, optional): Dropout rate for decoder layers
                                             (default is 0.0).
-            embed_dropout_rate (float, optional): Dropout rate for embedding layer 
+            embed_dropout_rate (float, optional): Dropout rate for embedding layer
                                                 (default is 0.0).
             embed_pad (int, optional): Embedding padding symbol ID (default is 0).
 
@@ -424,12 +424,12 @@ class RNNDecoder(AbsDecoder):
         Get specified ID state from decoder hidden states.
 
         Args:
-            states: Decoder hidden states. 
+            states: Decoder hidden states.
                     ((N, B, D_dec), (N, B, D_dec) or None)
             idx: State ID to extract.
 
         Returns:
-            Decoder hidden state for given ID. 
+            Decoder hidden state for given ID.
             ((N, 1, D_dec), (N, 1, D_dec) or None)
 
         Examples:

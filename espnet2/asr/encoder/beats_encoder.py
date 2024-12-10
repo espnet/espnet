@@ -99,6 +99,7 @@ class BeatsConfig:
             'finetuned_model': True
         })
     """
+
     def __init__(self, cfg=None):
         self.input_patch_size: int = 16  # patch size of patch embedding
         self.embed_dim: int = 512  # patch embedding dimension
@@ -229,11 +230,11 @@ class BeatsEncoder(AbsEncoder):
             checkpoint, an error might occur.
         max_layer (int, optional): Maximum layer to propagate input through. If
             None, input is propagated through all layers.
-        downsampling_rate (int, optional): Downsampling rate for the encoder. 
+        downsampling_rate (int, optional): Downsampling rate for the encoder.
             Applied if greater than 1. Default is 1.
         adapter_config (str, optional): Path to a config file for the Wav2Vec2
             adapter.
-        use_weighted_representation (bool, optional): If True, use weighted 
+        use_weighted_representation (bool, optional): If True, use weighted
             representations from max_layer. Weights are randomly initialized.
         beats_config (Optional[BeatsConfig], optional): BeatsConfig object. If
             provided, will attempt to override the config in the checkpoint.
@@ -241,11 +242,11 @@ class BeatsEncoder(AbsEncoder):
             for SpecAugment. If provided, SpecAugment will be applied.
         add_positional_information (bool, optional): If True, add learned positional
             embeddings.
-        max_positions (Optional[int], optional): Maximum number of positions for 
+        max_positions (Optional[int], optional): Maximum number of positions for
             positional embeddings. Required if `add_positional_information` is True.
 
     Raises:
-        ImportError: If the `transformers` library is not available and 
+        ImportError: If the `transformers` library is not available and
             adapter_config or add_positional_information is set.
 
     Examples:
@@ -255,7 +256,7 @@ class BeatsEncoder(AbsEncoder):
         >>> audio_representation, output_lens, _ = encoder(features, ilens)
 
     Note:
-        This class is designed to be compatible with the ESPnet framework's 
+        This class is designed to be compatible with the ESPnet framework's
         AbsEncoder interface.
     """
 
@@ -387,36 +388,36 @@ class BeatsEncoder(AbsEncoder):
         """
         Initialize the Beats model parameters.
 
-        This method is intended to be called last in the initialization 
+        This method is intended to be called last in the initialization
         procedure. It performs the following steps:
-        
+
         1. Initializes the Beats encoder parameters.
-        2. If a pretrained checkpoint is provided, loads the weights 
+        2. If a pretrained checkpoint is provided, loads the weights
            from the checkpoint to override the initialized parameters.
 
         The initialization includes:
-        - Applying Xavier normal initialization to the post-extraction 
+        - Applying Xavier normal initialization to the post-extraction
           projection layer (if it exists).
-        - Applying Xavier normal initialization to the patch embedding 
+        - Applying Xavier normal initialization to the patch embedding
           layer.
-        - Calling the custom weight initialization for the encoder 
+        - Calling the custom weight initialization for the encoder
           layers.
-        
-        If a pretrained model state is loaded, it also logs any missing 
+
+        If a pretrained model state is loaded, it also logs any missing
         or unexpected keys between the loaded model and the custom model.
 
         Raises:
-            RuntimeError: If the pretrained weights do not match the 
+            RuntimeError: If the pretrained weights do not match the
             model architecture.
 
         Examples:
             >>> encoder = BeatsEncoder(...)
             >>> encoder.reload_pretrained_parameters()
-            # This will initialize the parameters and load the pretrained 
+            # This will initialize the parameters and load the pretrained
             # weights if available.
 
         Note:
-            Ensure that this method is called after all model layers 
+            Ensure that this method is called after all model layers
             have been initialized to avoid any inconsistencies.
         """
         logging.info("Beats Initialization function called.")
@@ -515,12 +516,12 @@ class BeatsEncoder(AbsEncoder):
 
         Args:
             source (torch.Tensor): A tensor of shape (B, T) where B is the
-                batch size and T is the number of time steps (samples) in 
+                batch size and T is the number of time steps (samples) in
                 each waveform.
 
         Returns:
             torch.Tensor: A tensor of shape (B, F, T') where F is the number
-                of Mel filter bank coefficients (128) and T' is the number 
+                of Mel filter bank coefficients (128) and T' is the number
                 of frames obtained from the original audio after processing.
 
         Examples:
@@ -532,7 +533,7 @@ class BeatsEncoder(AbsEncoder):
         Note:
             - The input waveforms are expected to be in float32 format,
               and the function scales them to int16 format during processing.
-            - The filter bank extraction is performed using Kaldi's fbank 
+            - The filter bank extraction is performed using Kaldi's fbank
               function with a frame length of 25 ms and a frame shift of 10 ms.
         """
         fbanks = []
@@ -554,12 +555,12 @@ class BeatsEncoder(AbsEncoder):
         """
         Get the output size of the BeatsEncoder.
 
-        This function retrieves the output size of the encoder, which is 
-        determined during the initialization based on the configuration 
+        This function retrieves the output size of the encoder, which is
+        determined during the initialization based on the configuration
         provided to the Beats model.
 
         Returns:
-            int: The output size of the encoder, typically equal to the 
+            int: The output size of the encoder, typically equal to the
             encoder embedding dimension defined in the configuration.
 
         Examples:
@@ -569,7 +570,7 @@ class BeatsEncoder(AbsEncoder):
             768  # Assuming the encoder embedding dimension is set to 768
 
         Note:
-            The output size is essential for determining the shape of 
+            The output size is essential for determining the shape of
             the data that flows through subsequent layers of the model.
         """
         return self._output_size
@@ -584,37 +585,37 @@ class BeatsEncoder(AbsEncoder):
         Wrapper for compatibility with ESPnet's AbsEncoder Interface.
 
         This method processes the input tensor and computes audio
-        representations by applying the Beats encoder. It manages 
+        representations by applying the Beats encoder. It manages
         padding and length adjustments for batch processing.
 
         Args:
             xs_pad (torch.Tensor): Input tensor of shape (B, T, D) where
-                B is the batch size, T is the sequence length, and D is 
+                B is the batch size, T is the sequence length, and D is
                 the feature dimension.
-            ilens (torch.Tensor): Tensor of shape (B,) containing the 
+            ilens (torch.Tensor): Tensor of shape (B,) containing the
                 lengths of each sequence in the batch.
-            prev_states (torch.Tensor, optional): Not used in this 
+            prev_states (torch.Tensor, optional): Not used in this
                 implementation. Defaults to None.
 
         Returns:
             Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
-                - audio_representation (torch.Tensor): The output 
+                - audio_representation (torch.Tensor): The output
                   audio representation tensor of shape (B, T, D).
-                - output_lens (torch.Tensor): Tensor of shape (B,) 
+                - output_lens (torch.Tensor): Tensor of shape (B,)
                   containing the lengths of the output sequences.
                 - masks (Optional[torch.Tensor]): Currently set to None.
 
         Note:
-            If `xs_pad` is not provided, this operation can be costly 
-            because it attempts to create a tensor of size maxlen x 
-            maxlen. Therefore, the implementation unsqueezes and 
+            If `xs_pad` is not provided, this operation can be costly
+            because it attempts to create a tensor of size maxlen x
+            maxlen. Therefore, the implementation unsqueezes and
             squeezes tensors to optimize performance.
 
         Examples:
             >>> encoder = BeatsEncoder(...)
             >>> input_tensor = torch.randn(4, 100, 64)  # (B, T, D)
             >>> input_lengths = torch.tensor([100, 90, 80, 70])
-            >>> audio_rep, output_lengths, masks = encoder.forward(input_tensor, 
+            >>> audio_rep, output_lengths, masks = encoder.forward(input_tensor,
             ...                                                   input_lengths)
             >>> print(audio_rep.shape)  # Should be (4, T', D)
             >>> print(output_lengths)    # Should be tensor of lengths
@@ -658,8 +659,8 @@ class BeatsEncoder(AbsEncoder):
             padding_mask (Optional[torch.Tensor]): An optional mask tensor
                 of shape (B, T) indicating the positions of the padding
                 tokens in the input. Default is None.
-            max_layer (Optional[int]): If specified, this determines the 
-                maximum layer from which features should be extracted. If 
+            max_layer (Optional[int]): If specified, this determines the
+                maximum layer from which features should be extracted. If
                 None, features from all layers will be returned.
 
         Returns:
@@ -1137,26 +1138,26 @@ class TransformerSentenceEncoderLayer(nn.Module):
         """
         Wrapper for compatibility with ESPnet's AbsEncoder Interface.
 
-        This method processes input tensors through the encoder to produce audio 
-        representations. It handles padding masks and manages the input tensor 
+        This method processes input tensors through the encoder to produce audio
+        representations. It handles padding masks and manages the input tensor
         shapes to ensure compatibility with the BEATs encoder.
 
         Args:
-            xs_pad (torch.Tensor): A tensor of shape (B, T, D) representing the 
-                padded input sequences, where B is the batch size, T is the 
+            xs_pad (torch.Tensor): A tensor of shape (B, T, D) representing the
+                padded input sequences, where B is the batch size, T is the
                 sequence length, and D is the feature dimension.
-            ilens (torch.Tensor): A tensor of shape (B,) containing the lengths 
+            ilens (torch.Tensor): A tensor of shape (B,) containing the lengths
                 of the input sequences before padding.
-            prev_states (torch.Tensor, optional): Previous hidden states from 
+            prev_states (torch.Tensor, optional): Previous hidden states from
                 the encoder. Default is None.
 
         Returns:
             Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
-                - audio_representation (torch.Tensor): A tensor of shape 
+                - audio_representation (torch.Tensor): A tensor of shape
                 (B, T, D) containing the encoded audio representations.
-                - output_lens (torch.Tensor): A tensor of shape (B,) containing 
+                - output_lens (torch.Tensor): A tensor of shape (B,) containing
                 the lengths of the output sequences.
-                - masks (Optional[torch.Tensor]): This is None as masks are not 
+                - masks (Optional[torch.Tensor]): This is None as masks are not
                 returned in this implementation.
 
         Examples:
@@ -1168,13 +1169,13 @@ class TransformerSentenceEncoderLayer(nn.Module):
             >>> print(output_lens.shape)  # should print: torch.Size([10])
 
         Note:
-            If the input tensor xs_pad is not provided, this function will create 
-            a tensor of size maxlen x maxlen, which can be costly in terms of 
-            computation. To mitigate this, the function squeezes and adjusts 
+            If the input tensor xs_pad is not provided, this function will create
+            a tensor of size maxlen x maxlen, which can be costly in terms of
+            computation. To mitigate this, the function squeezes and adjusts
             the tensor shapes as necessary.
 
         Raises:
-            ValueError: If the input tensor shapes do not match expected 
+            ValueError: If the input tensor shapes do not match expected
             dimensions or if the lengths are invalid.
         """
         residual = x
@@ -1494,7 +1495,7 @@ class MultiheadAttention(nn.Module):
             torch.Size([8, 10, 15])
 
         Note:
-            This method requires that `self.relative_attention_bias` 
+            This method requires that `self.relative_attention_bias`
             is initialized with the appropriate parameters.
         """
         context_position = torch.arange(query_length, dtype=torch.long)[:, None]
@@ -1535,12 +1536,12 @@ class MultiheadAttention(nn.Module):
         interface.
 
         Args:
-            xs_pad (torch.Tensor): A tensor of shape (B, T, D) representing the 
-                padded audio features, where B is the batch size, T is the 
+            xs_pad (torch.Tensor): A tensor of shape (B, T, D) representing the
+                padded audio features, where B is the batch size, T is the
                 sequence length, and D is the feature dimension.
-            ilens (torch.Tensor): A tensor of shape (B,) representing the actual 
+            ilens (torch.Tensor): A tensor of shape (B,) representing the actual
                 lengths of each sequence in the batch.
-            prev_states (torch.Tensor, optional): A tensor containing the previous 
+            prev_states (torch.Tensor, optional): A tensor containing the previous
                 states. Defaults to None.
 
         Returns:
@@ -1553,7 +1554,7 @@ class MultiheadAttention(nn.Module):
 
         Note:
             If `xs_pad` is not provided, the operation can be costly since this
-            function attempts to create a tensor of size maxlen x maxlen. To 
+            function attempts to create a tensor of size maxlen x maxlen. To
             mitigate this, the input tensor is unsqueezed and then squeezed.
 
         Examples:
@@ -1866,24 +1867,24 @@ class MultiheadAttention(nn.Module):
         """
         Apply a sparse mask to the attention weights.
 
-        This method is intended to be a placeholder for potential future 
-        implementations of sparse masking techniques. Currently, it does 
+        This method is intended to be a placeholder for potential future
+        implementations of sparse masking techniques. Currently, it does
         not modify the attention weights.
 
         Args:
-            attn_weights (torch.Tensor): The raw attention weights 
+            attn_weights (torch.Tensor): The raw attention weights
                 with shape (bsz * num_heads, tgt_len, src_len).
             tgt_len (int): The length of the target sequence.
             src_len (int): The length of the source sequence.
             bsz (int): The batch size.
 
         Returns:
-            torch.Tensor: The (unchanged) attention weights with the same shape 
+            torch.Tensor: The (unchanged) attention weights with the same shape
                 as the input `attn_weights`.
 
         Note:
-            This function is a no-op and returns the input weights as is. 
-            It can be extended in the future to implement actual sparse 
+            This function is a no-op and returns the input weights as is.
+            It can be extended in the future to implement actual sparse
             masking logic.
 
         Examples:
@@ -1898,22 +1899,22 @@ def init_bert_params(module):
     """
     Initialize the weights specific to the BERT model.
 
-    This function overrides the default weight initializations based on 
-    the specified arguments for various layer types, including linear, 
-    embedding, and multi-head attention layers. The initialization is done 
-    using a normal distribution with a mean of 0.0 and a standard deviation 
+    This function overrides the default weight initializations based on
+    the specified arguments for various layer types, including linear,
+    embedding, and multi-head attention layers. The initialization is done
+    using a normal distribution with a mean of 0.0 and a standard deviation
     of 0.02.
 
     Args:
-        module (nn.Module): The PyTorch module (e.g., Linear, Embedding, 
+        module (nn.Module): The PyTorch module (e.g., Linear, Embedding,
         MultiheadAttention) whose weights are to be initialized.
 
     Notes:
-        - For linear layers, weights are initialized with a normal 
+        - For linear layers, weights are initialized with a normal
           distribution, and biases are set to zero.
-        - For embedding layers, weights are also initialized with a normal 
+        - For embedding layers, weights are also initialized with a normal
           distribution, and padding indices (if any) are set to zero.
-        - For multi-head attention layers, the weights for query, key, and 
+        - For multi-head attention layers, the weights for query, key, and
           value projections are initialized using the same normal distribution.
 
     Examples:
@@ -1989,8 +1990,8 @@ class GradMultiply(torch.autograd.Function):
         ```
 
     Note:
-        The input tensor `i` to the `forward` method should be a tuple containing the 
-        tensor to be processed and the scaling factor. The `backward` method will return 
+        The input tensor `i` to the `forward` method should be a tuple containing the
+        tensor to be processed and the scaling factor. The `backward` method will return
         the scaled gradient.
 
     Raises:
@@ -2091,23 +2092,23 @@ class SamePad(nn.Module):
     """
     Change input tensor shape according to the kernel size and type of LM.
 
-    This module is designed to adjust the output tensor size based on the 
-    specified kernel size. It is particularly useful for convolutional layers 
+    This module is designed to adjust the output tensor size based on the
+    specified kernel size. It is particularly useful for convolutional layers
     to ensure that the output dimensions match the desired configuration.
 
     Attributes:
-        remove (int): The number of elements to remove from the end of the 
-            tensor during the forward pass. This is determined based on the 
+        remove (int): The number of elements to remove from the end of the
+            tensor during the forward pass. This is determined based on the
             kernel size and whether the padding is causal or not.
 
     Args:
         kernel_size (int): The size of the kernel to be used in the convolution.
-        causal (bool): If True, it indicates that the padding should be 
-            causal, which means that the output will only depend on the 
+        causal (bool): If True, it indicates that the padding should be
+            causal, which means that the output will only depend on the
             current and previous inputs.
 
     Returns:
-        x (torch.Tensor): The adjusted tensor after applying the necessary 
+        x (torch.Tensor): The adjusted tensor after applying the necessary
             padding.
 
     Examples:
@@ -2134,30 +2135,30 @@ class SamePad(nn.Module):
         """
         Forward pass for the Beats encoder.
 
-        This method processes the input tensor through the encoder and returns 
+        This method processes the input tensor through the encoder and returns
         the audio representation along with the output lengths and masks.
 
         Args:
-            xs_pad: A tensor of shape (B, T, D) representing the padded input 
-                features, where B is the batch size, T is the sequence length, 
+            xs_pad: A tensor of shape (B, T, D) representing the padded input
+                features, where B is the batch size, T is the sequence length,
                 and D is the feature dimension.
-            ilens: A tensor of shape (B,) containing the actual lengths of 
+            ilens: A tensor of shape (B,) containing the actual lengths of
                 each sequence in the batch.
-            prev_states: Optional; a tensor representing the previous states 
+            prev_states: Optional; a tensor representing the previous states
                 (not used in this implementation).
 
         Returns:
             Tuple containing:
-                - audio_representation: A tensor of shape (B, T, D) representing 
+                - audio_representation: A tensor of shape (B, T, D) representing
                 the encoded audio features.
-                - output_lens: A tensor of shape (B,) representing the lengths 
+                - output_lens: A tensor of shape (B,) representing the lengths
                 of the output sequences.
                 - masks: None, as no masks are generated in this implementation.
 
         Note:
-            If `xs_pad` is not provided, the operation may be costly as this 
-            function tries to create a tensor of size maxlen x maxlen. 
-            Therefore, the function unsqueezes and then squeezes tensors to 
+            If `xs_pad` is not provided, the operation may be costly as this
+            function tries to create a tensor of size maxlen x maxlen.
+            Therefore, the function unsqueezes and then squeezes tensors to
             manage tensor shapes effectively.
 
         Examples:
@@ -2204,30 +2205,30 @@ class Swish(nn.Module):
         """
         Forward pass for the Beats encoder.
 
-        This method processes the input tensor `xs_pad` and its corresponding 
-        lengths `ilens` to produce audio representations. It is designed to be 
+        This method processes the input tensor `xs_pad` and its corresponding
+        lengths `ilens` to produce audio representations. It is designed to be
         compatible with the AbsEncoder interface in ESPnet.
 
         Args:
-            xs_pad (torch.Tensor): Input tensor of shape (B, T, D), where B is 
-                the batch size, T is the sequence length, and D is the feature 
+            xs_pad (torch.Tensor): Input tensor of shape (B, T, D), where B is
+                the batch size, T is the sequence length, and D is the feature
                 dimension.
-            ilens (torch.Tensor): Tensor of shape (B,) representing the actual 
+            ilens (torch.Tensor): Tensor of shape (B,) representing the actual
                 lengths of the sequences in `xs_pad`.
-            prev_states (torch.Tensor, optional): Optional tensor representing 
+            prev_states (torch.Tensor, optional): Optional tensor representing
                 previous states. Default is None.
 
         Returns:
             Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
-                - audio_representation (torch.Tensor): The output audio 
+                - audio_representation (torch.Tensor): The output audio
                 representation of shape (B, T, D).
-                - output_lens (torch.Tensor): Tensor of shape (B,) containing 
+                - output_lens (torch.Tensor): Tensor of shape (B,) containing
                 the output lengths for each sequence.
                 - masks (Optional[torch.Tensor]): Currently set to None.
 
         Note:
-            If `xs_pad` is not provided, this operation may be costly, as it 
-            attempts to create a tensor of size maxlen x maxlen. Thus, 
+            If `xs_pad` is not provided, this operation may be costly, as it
+            attempts to create a tensor of size maxlen x maxlen. Thus,
             tensors are unsqueezed and then squeezed to optimize performance.
 
         Examples:
@@ -2246,14 +2247,14 @@ class GLU_Linear(nn.Module):
     """
     GLU Linear layer.
 
-    This class implements a Gated Linear Unit (GLU) layer, which is a 
-    variation of a linear layer that uses a gating mechanism. The input 
-    is split into two parts: one part is passed through a linear layer, 
-    and the other part is passed through a non-linear activation function. 
+    This class implements a Gated Linear Unit (GLU) layer, which is a
+    variation of a linear layer that uses a gating mechanism. The input
+    is split into two parts: one part is passed through a linear layer,
+    and the other part is passed through a non-linear activation function.
     The output is the element-wise multiplication of the two parts.
 
     Attributes:
-        glu_type (str): The type of activation function to use for gating. 
+        glu_type (str): The type of activation function to use for gating.
             Options are 'sigmoid', 'swish', 'relu', and 'gelu'.
         output_dim (int): The dimension of the output from the GLU layer.
         linear (nn.Linear): The linear transformation applied to the input.
@@ -2263,7 +2264,7 @@ class GLU_Linear(nn.Module):
         output_dim (int): The number of output features.
         glu_type (str): The activation function used for the GLU gate.
             Defaults to "sigmoid".
-        bias_in_glu (bool): Whether to include a bias term in the linear 
+        bias_in_glu (bool): Whether to include a bias term in the linear
             transformation. Defaults to True.
 
     Examples:
@@ -2274,8 +2275,8 @@ class GLU_Linear(nn.Module):
         torch.Size([32, 64])
 
     Note:
-        The GLU mechanism is particularly useful in tasks such as 
-        natural language processing and speech processing, where 
+        The GLU mechanism is particularly useful in tasks such as
+        natural language processing and speech processing, where
         controlling the flow of information can improve performance.
     """
 
@@ -2366,7 +2367,7 @@ def gelu_accurate(x):
     by avoiding overflow issues in the exponential function.
 
     Args:
-        x (torch.Tensor): The input tensor for which the GELU activation 
+        x (torch.Tensor): The input tensor for which the GELU activation
             needs to be computed.
 
     Returns:
@@ -2492,36 +2493,36 @@ def get_activation_fn(activation: str):
 def quant_noise(module, p, block_size):
     """
     Wraps modules and applies quantization noise to the weights for subsequent
-    quantization with Iterative Product Quantization, as described in "Training 
+    quantization with Iterative Product Quantization, as described in "Training
     with Quantization Noise for Extreme Model Compression".
 
-    This function modifies the behavior of a given module by introducing quantization 
-    noise during training. It randomly drops blocks of weights in the module, which 
+    This function modifies the behavior of a given module by introducing quantization
+    noise during training. It randomly drops blocks of weights in the module, which
     can help improve the robustness of the model to quantization effects.
 
     Args:
-        module (nn.Module): The PyTorch module (e.g., Linear, Embedding, or 
+        module (nn.Module): The PyTorch module (e.g., Linear, Embedding, or
             Conv2d) to which quantization noise will be applied.
-        p (float): The probability of dropping a block of weights. Should be a 
+        p (float): The probability of dropping a block of weights. Should be a
             value between 0 and 1.
-        block_size (int): The size of the blocks for subsequent quantization 
+        block_size (int): The size of the blocks for subsequent quantization
             with iterative product quantization.
 
     Returns:
         nn.Module: The modified module with quantization noise applied.
 
     Raises:
-        AssertionError: If the module type is not supported or if the weights 
-            of the module do not have the correct dimensions with respect to 
+        AssertionError: If the module type is not supported or if the weights
+            of the module do not have the correct dimensions with respect to
             the specified block size.
 
     Note:
         - Module weights must have the right sizes relative to the block size.
         - Only Linear, Embedding, and Conv2d modules are supported.
-        - For more details on how to quantize by blocks with convolutional 
-          weights, see "And the Bit Goes Down: Revisiting the Quantization of 
+        - For more details on how to quantize by blocks with convolutional
+          weights, see "And the Bit Goes Down: Revisiting the Quantization of
           Neural Networks".
-        - This implementation represents a simple form of noise, which consists 
+        - This implementation represents a simple form of noise, which consists
           of randomly dropping blocks.
 
     Examples:

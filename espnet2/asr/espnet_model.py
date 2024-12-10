@@ -494,26 +494,26 @@ class ESPnetASRModel(AbsESPnetModel):
         """
         Collect features from the input speech tensor and its lengths.
 
-        This method extracts features from the input speech signal, which is 
-        useful for various downstream tasks, such as training or inference 
+        This method extracts features from the input speech signal, which is
+        useful for various downstream tasks, such as training or inference
         in automatic speech recognition (ASR) models.
 
         Args:
-            speech: A tensor of shape (Batch, Length, ...) representing the 
+            speech: A tensor of shape (Batch, Length, ...) representing the
                 input speech signals.
-            speech_lengths: A tensor of shape (Batch,) containing the lengths 
+            speech_lengths: A tensor of shape (Batch,) containing the lengths
                 of each speech signal in the batch.
-            text: A tensor of shape (Batch, Length) representing the target 
+            text: A tensor of shape (Batch, Length) representing the target
                 text sequences (not used in feature extraction).
-            text_lengths: A tensor of shape (Batch,) containing the lengths 
+            text_lengths: A tensor of shape (Batch,) containing the lengths
                 of each target text sequence (not used in feature extraction).
-            kwargs: Additional keyword arguments that may be needed for 
+            kwargs: Additional keyword arguments that may be needed for
                 processing.
 
         Returns:
             A dictionary containing:
                 feats: A tensor of extracted features.
-                feats_lengths: A tensor containing the lengths of the extracted 
+                feats_lengths: A tensor containing the lengths of the extracted
                     features for each input in the batch.
 
         Examples:
@@ -648,23 +648,23 @@ class ESPnetASRModel(AbsESPnetModel):
         """
         Compute negative log likelihood (NLL) from transformer decoder output.
 
-        This function computes the negative log likelihood for the given 
-        inputs using the output from the transformer decoder. It is typically 
-        called within the `batchify_nll` function to evaluate the model's 
+        This function computes the negative log likelihood for the given
+        inputs using the output from the transformer decoder. It is typically
+        called within the `batchify_nll` function to evaluate the model's
         performance.
 
         Args:
-            encoder_out: A tensor of shape (Batch, Length, Dim) representing 
+            encoder_out: A tensor of shape (Batch, Length, Dim) representing
                 the output from the encoder.
-            encoder_out_lens: A tensor of shape (Batch,) representing the 
+            encoder_out_lens: A tensor of shape (Batch,) representing the
                 lengths of the encoder outputs.
-            ys_pad: A tensor of shape (Batch, Length) representing the padded 
+            ys_pad: A tensor of shape (Batch, Length) representing the padded
                 target sequences for the decoder.
-            ys_pad_lens: A tensor of shape (Batch,) representing the lengths 
+            ys_pad_lens: A tensor of shape (Batch,) representing the lengths
                 of the target sequences.
 
         Returns:
-            A tensor containing the computed negative log likelihood for each 
+            A tensor containing the computed negative log likelihood for each
             sequence in the batch.
 
         Examples:
@@ -676,8 +676,8 @@ class ESPnetASRModel(AbsESPnetModel):
             >>> nll_values = model.nll(encoder_out, encoder_out_lens, ys_pad, ys_pad_lens)
 
         Note:
-            The `add_sos_eos` function is used internally to add the start 
-            and end of sequence tokens to the target sequences before 
+            The `add_sos_eos` function is used internally to add the start
+            and end of sequence tokens to the target sequences before
             processing.
         """
         ys_in_pad, ys_out_pad = add_sos_eos(ys_pad, self.sos, self.eos, self.ignore_id)
@@ -713,7 +713,7 @@ class ESPnetASRModel(AbsESPnetModel):
         Compute negative log likelihood (NLL) from the transformer decoder.
 
         This function separates the input into batches to avoid out-of-memory
-        (OOM) errors. It processes each batch individually and combines the 
+        (OOM) errors. It processes each batch individually and combines the
         results before returning.
 
         Args:

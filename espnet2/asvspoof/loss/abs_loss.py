@@ -9,27 +9,27 @@ class AbsASVSpoofLoss(torch.nn.Module, ABC):
     """
     Base class for all ASV Spoofing loss modules.
 
-    This abstract base class defines the interface for ASV Spoofing loss 
-    functions. Subclasses must implement the `forward` and `score` 
+    This abstract base class defines the interface for ASV Spoofing loss
+    functions. Subclasses must implement the `forward` and `score`
     methods to compute the loss and score, respectively.
 
     Attributes:
-        name (str): A string representing the name of the loss function, 
+        name (str): A string representing the name of the loss function,
         which will be used as a key in the reporter.
 
     Methods:
         forward(ref, inf) -> torch.Tensor:
             Computes the loss given reference and inferred values.
-        
+
         score(pred) -> torch.Tensor:
             Computes the score based on the predictions.
 
     Raises:
-        NotImplementedError: If the `forward` or `score` methods are not 
+        NotImplementedError: If the `forward` or `score` methods are not
         implemented in the subclass.
 
     Examples:
-        To create a custom loss module, inherit from this class and 
+        To create a custom loss module, inherit from this class and
         implement the `forward` and `score` methods:
 
         ```python
@@ -57,13 +57,13 @@ class AbsASVSpoofLoss(torch.nn.Module, ABC):
         """
         Base class for all ASV Spoofing loss modules.
 
-        This abstract base class defines the structure and interface for ASV 
-        (Automatic Speaker Verification) spoofing loss functions. Subclasses 
-        should implement the `forward` and `score` methods to provide specific 
+        This abstract base class defines the structure and interface for ASV
+        (Automatic Speaker Verification) spoofing loss functions. Subclasses
+        should implement the `forward` and `score` methods to provide specific
         loss calculations and scoring mechanisms.
 
         Attributes:
-            name (str): A string representing the name of the loss module. 
+            name (str): A string representing the name of the loss module.
                         Subclasses must implement this property.
 
         Methods:
@@ -74,7 +74,7 @@ class AbsASVSpoofLoss(torch.nn.Module, ABC):
                 Evaluates the predictions and returns a score tensor.
 
         Raises:
-            NotImplementedError: If `name` property, `forward`, or `score` 
+            NotImplementedError: If `name` property, `forward`, or `score`
                                 methods are not implemented in a subclass.
 
         Examples:
@@ -82,7 +82,7 @@ class AbsASVSpoofLoss(torch.nn.Module, ABC):
             ...     @property
             ...     def name(self):
             ...         return "MyASVSpoofLoss"
-            ...     
+            ...
             ...     def forward(self, ref, inf):
             ...         # Implementation of loss calculation
             ...         return torch.tensor(0.0)  # Example output

@@ -122,7 +122,7 @@ class RWKV(torch.nn.Module):
                 Defaults to 0.0.
 
         Methods:
-            forward(x: torch.Tensor, state: Optional[torch.Tensor]) -> 
+            forward(x: torch.Tensor, state: Optional[torch.Tensor]) ->
                 Tuple[torch.Tensor, Optional[torch.Tensor]]:
                 Compute receptance weighted key value.
 
@@ -132,13 +132,13 @@ class RWKV(torch.nn.Module):
                 - state: Decoder hidden states. Shape: [5 x (B, D_att/size, N)].
 
         Examples:
-            >>> rwkv = RWKV(size=256, linear_size=512, attention_size=128, 
+            >>> rwkv = RWKV(size=256, linear_size=512, attention_size=128,
             ...            context_size=32, block_id=0, num_blocks=1)
             >>> input_tensor = torch.randn(10, 20, 256)  # (B, L, size)
             >>> output, hidden_state = rwkv(input_tensor)
 
         Note:
-            The RWKV module is designed to work within the context of 
+            The RWKV module is designed to work within the context of
             Receptance Weighted Key Value computations for neural network models.
         """
         att, state = self.att(self.layer_norm_att(x), state=state)

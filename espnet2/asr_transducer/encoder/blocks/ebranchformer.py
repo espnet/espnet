@@ -9,10 +9,10 @@ class EBranchformer(torch.nn.Module):
     """
     E-Branchformer block for Transducer encoder.
 
-    This class implements the E-Branchformer module, which is a crucial component 
-    of the Transducer encoder architecture. It incorporates self-attention, 
-    feed-forward networks, and convolutional layers to process input sequences 
-    effectively. 
+    This class implements the E-Branchformer module, which is a crucial component
+    of the Transducer encoder architecture. It incorporates self-attention,
+    feed-forward networks, and convolutional layers to process input sequences
+    effectively.
 
     Reference: https://arxiv.org/pdf/2210.00077.pdf
 
@@ -66,8 +66,8 @@ class EBranchformer(torch.nn.Module):
         e_branchformer.reset_streaming_cache(left_context=10, device=torch.device('cuda'))
 
     Note:
-        The module requires specific instances of self-attention, feed-forward, 
-        convolution, and normalization modules. These modules should be defined 
+        The module requires specific instances of self-attention, feed-forward,
+        convolution, and normalization modules. These modules should be defined
         prior to instantiation of the EBranchformer class.
 
     Todo:
@@ -123,27 +123,27 @@ class EBranchformer(torch.nn.Module):
         """
         Initialize/Reset self-attention and convolution modules cache for streaming.
 
-        This method initializes or resets the cache for the self-attention and 
-        convolution modules to facilitate streaming processing. The cache is used 
-        to store intermediate results from previous frames, allowing the model to 
-        maintain context over longer sequences without having to recompute past 
+        This method initializes or resets the cache for the self-attention and
+        convolution modules to facilitate streaming processing. The cache is used
+        to store intermediate results from previous frames, allowing the model to
+        maintain context over longer sequences without having to recompute past
         information.
 
         Args:
             left_context: Number of previous frames the attention module can see
-                          in current chunk. This parameter controls how much of 
-                          the past context is considered during attention 
+                          in current chunk. This parameter controls how much of
+                          the past context is considered during attention
                           calculations.
-            device: Device to use for cache tensor. This allows the cache to be 
-                    created on the appropriate hardware (CPU or GPU) for 
+            device: Device to use for cache tensor. This allows the cache to be
+                    created on the appropriate hardware (CPU or GPU) for
                     efficient processing.
 
         Examples:
             >>> model = EBranchformer(...)
             >>> model.reset_streaming_cache(left_context=5, device=torch.device('cuda'))
-        
+
         Note:
-            This method should be called before processing a new input chunk to 
+            This method should be called before processing a new input chunk to
             ensure that the cache is properly initialized.
         """
         self.cache = [
@@ -179,40 +179,40 @@ class EBranchformer(torch.nn.Module):
         """
         Encode input sequences using the E-Branchformer module.
 
-        The forward method processes input sequences through various layers, 
-        including self-attention and feed-forward layers, to produce the 
-        output sequences. The method also supports masking for attention 
-        mechanisms and incorporates residual connections for better 
+        The forward method processes input sequences through various layers,
+        including self-attention and feed-forward layers, to produce the
+        output sequences. The method also supports masking for attention
+        mechanisms and incorporates residual connections for better
         gradient flow.
 
         Args:
-            x (torch.Tensor): E-Branchformer input sequences of shape 
-                            (B, T, D_block), where B is the batch size, 
-                            T is the sequence length, and D_block is 
+            x (torch.Tensor): E-Branchformer input sequences of shape
+                            (B, T, D_block), where B is the batch size,
+                            T is the sequence length, and D_block is
                             the dimensionality of the block.
-            pos_enc (torch.Tensor): Positional embedding sequences of shape 
-                                    (B, 2 * (T - 1), D_block), representing 
+            pos_enc (torch.Tensor): Positional embedding sequences of shape
+                                    (B, 2 * (T - 1), D_block), representing
                                     the position of each token in the sequence.
-            mask (torch.Tensor): Source mask of shape (B, T) to specify which 
+            mask (torch.Tensor): Source mask of shape (B, T) to specify which
                                 tokens should be attended to.
-            chunk_mask (Optional[torch.Tensor]): Optional chunk mask of shape 
-                                                (T_2, T_2) to control 
+            chunk_mask (Optional[torch.Tensor]): Optional chunk mask of shape
+                                                (T_2, T_2) to control
                                                 attention within chunks.
 
         Returns:
             Tuple[torch.Tensor, torch.Tensor, torch.Tensor]: A tuple containing:
-                - x (torch.Tensor): E-Branchformer output sequences of shape 
+                - x (torch.Tensor): E-Branchformer output sequences of shape
                                     (B, T, D_block).
                 - mask (torch.Tensor): Source mask of shape (B, T).
-                - pos_enc (torch.Tensor): Positional embedding sequences of shape 
+                - pos_enc (torch.Tensor): Positional embedding sequences of shape
                                         (B, 2 * (T - 1), D_block).
 
         Examples:
-            >>> model = EBranchformer(block_size=256, linear_size=128, 
-            ...                        self_att=self_attention_module, 
-            ...                        feed_forward=feed_forward_module, 
-            ...                        feed_forward_macaron=feed_forward_macaron_module, 
-            ...                        conv_mod=conv_module, 
+            >>> model = EBranchformer(block_size=256, linear_size=128,
+            ...                        self_att=self_attention_module,
+            ...                        feed_forward=feed_forward_module,
+            ...                        feed_forward_macaron=feed_forward_macaron_module,
+            ...                        conv_mod=conv_module,
             ...                        depthwise_conv_mod=depthwise_conv_module)
             >>> input_tensor = torch.randn(32, 10, 256)  # Batch of 32, 10 time steps
             >>> pos_enc = torch.randn(32, 18, 256)  # Positional encodings
@@ -265,7 +265,7 @@ class EBranchformer(torch.nn.Module):
         Encode chunk of input sequence.
 
         This method processes a chunk of the input sequence through the E-Branchformer
-        architecture, incorporating self-attention and feed-forward mechanisms while 
+        architecture, incorporating self-attention and feed-forward mechanisms while
         considering the specified left context for attention.
 
         Args:
@@ -273,7 +273,7 @@ class EBranchformer(torch.nn.Module):
                B is the batch size, T is the sequence length, and D_block is the
                dimensionality of the input features.
             pos_enc: Positional embedding sequences. Shape: (B, 2 * (T - 1), D_block).
-            mask: Source mask. Shape: (B, T_2), used to prevent attention to 
+            mask: Source mask. Shape: (B, T_2), used to prevent attention to
                   certain positions in the input.
             left_context: Number of previous frames the attention module can see
                           in the current chunk. Defaults to 0.
@@ -284,11 +284,11 @@ class EBranchformer(torch.nn.Module):
                 - pos_enc: Positional embedding sequences. Shape: (B, 2 * (T - 1), D_block).
 
         Examples:
-            >>> e_branchformer = EBranchformer(block_size=128, linear_size=256, 
-            ...                                 self_att=my_self_att, 
-            ...                                 feed_forward=my_feed_forward, 
-            ...                                 feed_forward_macaron=my_feed_forward_macaron, 
-            ...                                 conv_mod=my_conv_mod, 
+            >>> e_branchformer = EBranchformer(block_size=128, linear_size=256,
+            ...                                 self_att=my_self_att,
+            ...                                 feed_forward=my_feed_forward,
+            ...                                 feed_forward_macaron=my_feed_forward_macaron,
+            ...                                 conv_mod=my_conv_mod,
             ...                                 depthwise_conv_mod=my_depthwise_conv_mod)
             >>> x = torch.randn(10, 20, 128)  # Batch of 10, sequence length 20
             >>> pos_enc = torch.randn(10, 38, 128)  # Positional encoding for T-1
@@ -296,7 +296,7 @@ class EBranchformer(torch.nn.Module):
             >>> output, pos_enc_out = e_branchformer.chunk_forward(x, pos_enc, mask)
 
         Note:
-            This method maintains a cache for self-attention and convolutional 
+            This method maintains a cache for self-attention and convolutional
             layers to optimize processing of sequential data.
         """
         residual = x

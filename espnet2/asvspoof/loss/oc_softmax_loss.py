@@ -8,24 +8,24 @@ class ASVSpoofOCSoftmaxLoss(AbsASVSpoofLoss):
     Implementation of the One-Class Softmax Loss for ASV Spoofing.
 
     This loss function is designed to differentiate between real and spoofed
-    audio samples in the context of anti-spoofing systems. It utilizes a 
-    one-class softmax approach to handle embeddings from a speaker verification 
+    audio samples in the context of anti-spoofing systems. It utilizes a
+    one-class softmax approach to handle embeddings from a speaker verification
     model.
 
     Attributes:
         weight (float): The weight of the loss. Default is 1.0.
-        feat_dim (int): The dimension of the encoder's output features. 
+        feat_dim (int): The dimension of the encoder's output features.
             Default is 128.
         m_real (float): Margin for real embeddings. Default is 0.5.
         m_fake (float): Margin for fake embeddings. Default is 0.2.
         alpha (float): Scaling factor for the loss. Default is 20.0.
-        center (torch.nn.Parameter): Learnable parameter representing the 
+        center (torch.nn.Parameter): Learnable parameter representing the
             center of the embedding space.
         softplus (torch.nn.Softplus): Softplus activation function.
 
     Args:
         weight (float, optional): Weight of the loss function. Defaults to 1.0.
-        enc_dim (int, optional): Dimension of the encoder's output. 
+        enc_dim (int, optional): Dimension of the encoder's output.
             Defaults to 128.
         m_real (float, optional): Margin for real embeddings. Defaults to 0.5.
         m_fake (float, optional): Margin for fake embeddings. Defaults to 0.2.
@@ -45,8 +45,8 @@ class ASVSpoofOCSoftmaxLoss(AbsASVSpoofLoss):
         >>> print(loss)
 
     Note:
-        The forward method computes the loss based on the provided labels and 
-        embeddings. The score method can be used to obtain the prediction 
+        The forward method computes the loss based on the provided labels and
+        embeddings. The score method can be used to obtain the prediction
         scores for the embeddings.
 
     Todo:
@@ -81,9 +81,9 @@ class ASVSpoofOCSoftmaxLoss(AbsASVSpoofLoss):
         are computed using the learned center and the embeddings.
 
         Args:
-            label (torch.Tensor): Ground truth label tensor of shape 
+            label (torch.Tensor): Ground truth label tensor of shape
                 [Batch, 1]. It indicates whether the input is real or spoofed.
-            emb (torch.Tensor): Encoder embedding output tensor of shape 
+            emb (torch.Tensor): Encoder embedding output tensor of shape
                 [Batch, T, enc_dim]. This is the output from the encoder.
 
         Returns:
@@ -101,8 +101,8 @@ class ASVSpoofOCSoftmaxLoss(AbsASVSpoofLoss):
             >>> print(loss)
 
         Note:
-            The loss computation involves several steps that include 
-            normalizing the embeddings and center, calculating scores, 
+            The loss computation involves several steps that include
+            normalizing the embeddings and center, calculating scores,
             applying a bias, and using the Softplus function.
 
         Todo:
@@ -128,19 +128,19 @@ class ASVSpoofOCSoftmaxLoss(AbsASVSpoofLoss):
         """
         Compute the scores based on the encoder embeddings.
 
-        This method calculates the similarity scores between the input 
-        embeddings and the learned center vector. The scores can be used 
-        to evaluate the confidence of the model's predictions regarding 
+        This method calculates the similarity scores between the input
+        embeddings and the learned center vector. The scores can be used
+        to evaluate the confidence of the model's predictions regarding
         whether the input is real or spoofed.
 
         Args:
-            emb (torch.Tensor): Encoder embedding output of shape 
-                [Batch, T, enc_dim], where `Batch` is the number of samples, 
-                `T` is the sequence length, and `enc_dim` is the dimensionality 
+            emb (torch.Tensor): Encoder embedding output of shape
+                [Batch, T, enc_dim], where `Batch` is the number of samples,
+                `T` is the sequence length, and `enc_dim` is the dimensionality
                 of the embeddings.
 
         Returns:
-            torch.Tensor: A tensor of shape [Batch] containing the computed 
+            torch.Tensor: A tensor of shape [Batch] containing the computed
             similarity scores for each input embedding.
 
         Examples:
@@ -150,12 +150,12 @@ class ASVSpoofOCSoftmaxLoss(AbsASVSpoofLoss):
             >>> print(scores.shape)  # Output: torch.Size([32])
 
         Note:
-            The method normalizes both the input embeddings and the learned 
-            center vector before computing the scores to ensure that the 
+            The method normalizes both the input embeddings and the learned
+            center vector before computing the scores to ensure that the
             scores are computed based on cosine similarity.
 
         Todo:
-            - Implement the score computation logic based on the normalized 
+            - Implement the score computation logic based on the normalized
               embeddings and the center vector.
         """
         emb = torch.mean(emb, dim=1)

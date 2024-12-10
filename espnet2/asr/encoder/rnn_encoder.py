@@ -13,9 +13,9 @@ class RNNEncoder(AbsEncoder):
     """
     RNNEncoder class for sequence-to-sequence models using recurrent neural networks.
 
-    This class implements an RNN-based encoder for processing sequential data, such 
-    as speech signals in automatic speech recognition (ASR) tasks. It allows for 
-    the use of either LSTM or GRU cells and supports bidirectional processing 
+    This class implements an RNN-based encoder for processing sequential data, such
+    as speech signals in automatic speech recognition (ASR) tasks. It allows for
+    the use of either LSTM or GRU cells and supports bidirectional processing
     and projection layers.
 
     Attributes:
@@ -27,15 +27,15 @@ class RNNEncoder(AbsEncoder):
     Args:
         input_size (int): The number of expected features in the input.
         rnn_type (str, optional): Type of RNN ('lstm' or 'gru'). Default is 'lstm'.
-        bidirectional (bool, optional): Whether to use a bidirectional RNN. 
+        bidirectional (bool, optional): Whether to use a bidirectional RNN.
             Default is True.
-        use_projection (bool, optional): Whether to use a projection layer. 
+        use_projection (bool, optional): Whether to use a projection layer.
             Default is True.
         num_layers (int, optional): Number of recurrent layers. Default is 4.
         hidden_size (int, optional): Number of hidden features. Default is 320.
         output_size (int, optional): Number of output features. Default is 320.
         dropout (float, optional): Dropout probability. Default is 0.0.
-        subsample (Sequence[int], optional): Subsampling factors for each layer. 
+        subsample (Sequence[int], optional): Subsampling factors for each layer.
             Default is (2, 2, 1, 1).
 
     Raises:
@@ -51,11 +51,11 @@ class RNNEncoder(AbsEncoder):
         output, lengths, states = encoder(xs_pad, ilens)
 
     Note:
-        This encoder can be easily integrated into larger ASR systems 
+        This encoder can be easily integrated into larger ASR systems
         and supports various configurations based on task requirements.
 
     Todo:
-        - Implement additional functionalities such as saving and loading 
+        - Implement additional functionalities such as saving and loading
         model states.
     """
 

@@ -49,6 +49,7 @@ class TCNSeparatorNomask(AbsSeparator):
     Raises:
         ValueError: If input dimensions do not match the expected shape.
     """
+
     def __init__(
         self,
         input_dim: int,
@@ -100,21 +101,21 @@ class TCNSeparatorNomask(AbsSeparator):
         """
         Forward method for the TCNSeparatorNomask class.
 
-        This method processes the input features through the temporal convolutional 
-        network (TCN) and returns the extracted bottleneck features along with 
-        the input lengths. It can handle both standard tensors and complex tensors 
+        This method processes the input features through the temporal convolutional
+        network (TCN) and returns the extracted bottleneck features along with
+        the input lengths. It can handle both standard tensors and complex tensors
         by taking the absolute value of the complex input.
 
         Args:
-            input (Union[torch.Tensor, ComplexTensor]): Encoded feature tensor 
-                of shape [B, T, N], where B is the batch size, T is the sequence 
+            input (Union[torch.Tensor, ComplexTensor]): Encoded feature tensor
+                of shape [B, T, N], where B is the batch size, T is the sequence
                 length, and N is the feature dimension.
-            ilens (torch.Tensor): A tensor of input lengths of shape [Batch] 
+            ilens (torch.Tensor): A tensor of input lengths of shape [Batch]
                 representing the lengths of each input sequence in the batch.
 
         Returns:
             Tuple[torch.Tensor, torch.Tensor]: A tuple containing:
-                - feats (torch.Tensor): Extracted bottleneck features of shape 
+                - feats (torch.Tensor): Extracted bottleneck features of shape
                 [B, T, bottleneck_dim].
                 - ilens (torch.Tensor): The input lengths tensor of shape [Batch].
 
@@ -127,9 +128,9 @@ class TCNSeparatorNomask(AbsSeparator):
             >>> print(lengths.shape)  # Should print: torch.Size([10])
 
         Note:
-            The method first checks if the input is a complex tensor. If it is, 
-            the absolute value is computed before processing. The features are 
-            transposed to match the expected input shape for the TCN, and the 
+            The method first checks if the input is a complex tensor. If it is,
+            the absolute value is computed before processing. The features are
+            transposed to match the expected input shape for the TCN, and the
             output features are transposed back to the original format.
         """
         # if complex spectrum
@@ -153,17 +154,17 @@ class TCNSeparatorNomask(AbsSeparator):
         """
         Number of speakers.
 
-        This property returns the number of speakers for the separator. 
+        This property returns the number of speakers for the separator.
         In this implementation, it is set to None since the TCNSeparatorNomask
         does not estimate or require speaker information.
 
         Returns:
-            None: Indicates that the number of speakers is not applicable for 
+            None: Indicates that the number of speakers is not applicable for
             this separator.
 
         Note:
-            The value of this property is always None, reflecting the 
-            design of the TCNSeparatorNomask class, which does not perform 
+            The value of this property is always None, reflecting the
+            design of the TCNSeparatorNomask class, which does not perform
             speaker separation.
 
         Examples:

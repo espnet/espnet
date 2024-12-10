@@ -15,15 +15,15 @@ class ImprovedTransformerLayer(nn.Module):
     """
     Container module of the (improved) Transformer proposed in [1].
 
-    This class implements the Improved Transformer Layer as part of the Dual-Path 
-    Transformer Network (DPTNet) architecture. It incorporates a multi-head self-attention 
-    mechanism followed by a feed-forward network, and can utilize various RNN types for 
-    processing the input features. This layer is designed for applications such as 
+    This class implements the Improved Transformer Layer as part of the Dual-Path
+    Transformer Network (DPTNet) architecture. It incorporates a multi-head self-attention
+    mechanism followed by a feed-forward network, and can utilize various RNN types for
+    processing the input features. This layer is designed for applications such as
     end-to-end monaural speech separation.
 
     Reference:
-        Chen, J., Mao, Q., & Liu, D. (2020). Dual-path transformer network: Direct 
-        context-aware modeling for end-to-end monaural speech separation. In Proc. 
+        Chen, J., Mao, Q., & Liu, D. (2020). Dual-path transformer network: Direct
+        context-aware modeling for end-to-end monaural speech separation. In Proc.
         ISCA Interspeech (pp. 2642–2646).
 
     Attributes:
@@ -43,7 +43,7 @@ class ImprovedTransformerLayer(nn.Module):
         hidden_size (int): Dimension of the hidden state.
         dropout (float): Dropout ratio. Default is 0.
         activation (str): Activation function applied at the output of RNN.
-        bidirectional (bool, optional): True for bidirectional Inter-Chunk RNN 
+        bidirectional (bool, optional): True for bidirectional Inter-Chunk RNN
             (Intra-Chunk is always bidirectional).
         norm (str, optional): Type of normalization to use.
 
@@ -110,30 +110,30 @@ class ImprovedTransformerLayer(nn.Module):
 
     def forward(self, x, attn_mask=None):
         """
-        Forward pass through the Improved Transformer Layer.
+            Forward pass through the Improved Transformer Layer.
 
-    This method takes the input tensor `x`, applies self-attention,
-    a feed-forward neural network, and normalization, returning the 
-    transformed output.
+        This method takes the input tensor `x`, applies self-attention,
+        a feed-forward neural network, and normalization, returning the
+        transformed output.
 
-    Args:
-        x (torch.Tensor): Input tensor of shape (batch, seq, input_size).
-        attn_mask (torch.Tensor, optional): Attention mask to prevent
-            attention to certain positions. Default is None.
+        Args:
+            x (torch.Tensor): Input tensor of shape (batch, seq, input_size).
+            attn_mask (torch.Tensor, optional): Attention mask to prevent
+                attention to certain positions. Default is None.
 
-    Returns:
-        torch.Tensor: Output tensor of the same shape as input `x` 
-        after applying the transformer layer.
+        Returns:
+            torch.Tensor: Output tensor of the same shape as input `x`
+            after applying the transformer layer.
 
-    Examples:
-        >>> layer = ImprovedTransformerLayer('LSTM', 128, 4, 64)
-        >>> input_tensor = torch.randn(32, 10, 128)  # (batch, seq, input_size)
-        >>> output_tensor = layer(input_tensor)
-        >>> print(output_tensor.shape)  # Should output: torch.Size([32, 10, 128])
+        Examples:
+            >>> layer = ImprovedTransformerLayer('LSTM', 128, 4, 64)
+            >>> input_tensor = torch.randn(32, 10, 128)  # (batch, seq, input_size)
+            >>> output_tensor = layer(input_tensor)
+            >>> print(output_tensor.shape)  # Should output: torch.Size([32, 10, 128])
 
-    Note:
-        The input tensor `x` should have dimensions corresponding to 
-        (batch size, sequence length, input size).
+        Note:
+            The input tensor `x` should have dimensions corresponding to
+            (batch size, sequence length, input size).
         """
         # (batch, seq, input_size) -> (seq, batch, input_size)
         src = x.permute(1, 0, 2)
@@ -150,64 +150,64 @@ class ImprovedTransformerLayer(nn.Module):
 
 class DPTNet(nn.Module):
     """
-    Dual-path transformer network.
+        Dual-path transformer network.
 
-This implementation of DPTNet is based on the work by J. Chen, Q. Mao, and 
-D. Liu, “Dual-path transformer network: Direct context-aware modeling for 
-end-to-end monaural speech separation,” presented at ISCA Interspeech, 
-2020. It utilizes an improved transformer layer to process input data 
-through a dual-path approach.
+    This implementation of DPTNet is based on the work by J. Chen, Q. Mao, and
+    D. Liu, “Dual-path transformer network: Direct context-aware modeling for
+    end-to-end monaural speech separation,” presented at ISCA Interspeech,
+    2020. It utilizes an improved transformer layer to process input data
+    through a dual-path approach.
 
-Attributes:
-    input_size (int): Dimension of the input feature.
-    hidden_size (int): Dimension of the hidden state.
-    output_size (int): Dimension of the output size.
-    row_transformer (nn.ModuleList): List of transformer layers for row 
-        processing.
-    col_transformer (nn.ModuleList): List of transformer layers for column 
-        processing.
-    output (nn.Sequential): Final output layer consisting of PReLU and 
-        Conv2d.
+    Attributes:
+        input_size (int): Dimension of the input feature.
+        hidden_size (int): Dimension of the hidden state.
+        output_size (int): Dimension of the output size.
+        row_transformer (nn.ModuleList): List of transformer layers for row
+            processing.
+        col_transformer (nn.ModuleList): List of transformer layers for column
+            processing.
+        output (nn.Sequential): Final output layer consisting of PReLU and
+            Conv2d.
 
-Args:
-    rnn_type (str): Select from 'RNN', 'LSTM', and 'GRU'.
-    input_size (int): Dimension of the input feature. Input size must be a 
-        multiple of `att_heads`.
-    hidden_size (int): Dimension of the hidden state.
-    output_size (int): Dimension of the output size.
-    att_heads (int): Number of attention heads.
-    dropout (float): Dropout ratio. Default is 0.
-    activation (str): Activation function applied at the output of RNN.
-    num_layers (int): Number of stacked RNN layers. Default is 1.
-    bidirectional (bool): Whether the RNN layers are bidirectional. Default 
-        is True.
-    norm_type (str): Type of normalization to use after each inter- or 
-        intra-chunk Transformer block.
+    Args:
+        rnn_type (str): Select from 'RNN', 'LSTM', and 'GRU'.
+        input_size (int): Dimension of the input feature. Input size must be a
+            multiple of `att_heads`.
+        hidden_size (int): Dimension of the hidden state.
+        output_size (int): Dimension of the output size.
+        att_heads (int): Number of attention heads.
+        dropout (float): Dropout ratio. Default is 0.
+        activation (str): Activation function applied at the output of RNN.
+        num_layers (int): Number of stacked RNN layers. Default is 1.
+        bidirectional (bool): Whether the RNN layers are bidirectional. Default
+            is True.
+        norm_type (str): Type of normalization to use after each inter- or
+            intra-chunk Transformer block.
 
-Examples:
-    >>> model = DPTNet(
-    ...     rnn_type='LSTM',
-    ...     input_size=256,
-    ...     hidden_size=128,
-    ...     output_size=256,
-    ...     att_heads=4,
-    ...     dropout=0.1,
-    ...     activation='relu',
-    ...     num_layers=2,
-    ...     bidirectional=True,
-    ...     norm_type='gLN'
-    ... )
-    >>> input_tensor = torch.randn(8, 10, 256, 5)  # Batch of 8
-    >>> output_tensor = model(input_tensor)
-    >>> print(output_tensor.shape)
-    torch.Size([8, 256, 10, 5])  # Output shape
+    Examples:
+        >>> model = DPTNet(
+        ...     rnn_type='LSTM',
+        ...     input_size=256,
+        ...     hidden_size=128,
+        ...     output_size=256,
+        ...     att_heads=4,
+        ...     dropout=0.1,
+        ...     activation='relu',
+        ...     num_layers=2,
+        ...     bidirectional=True,
+        ...     norm_type='gLN'
+        ... )
+        >>> input_tensor = torch.randn(8, 10, 256, 5)  # Batch of 8
+        >>> output_tensor = model(input_tensor)
+        >>> print(output_tensor.shape)
+        torch.Size([8, 256, 10, 5])  # Output shape
 
-Note:
-    The input tensor must be of shape (batch, N, dim1, dim2).
+    Note:
+        The input tensor must be of shape (batch, N, dim1, dim2).
 
-Raises:
-    AssertionError: If the provided rnn_type is not one of 'RNN', 'LSTM', 
-        or 'GRU'.
+    Raises:
+        AssertionError: If the provided rnn_type is not one of 'RNN', 'LSTM',
+            or 'GRU'.
     """
 
     def __init__(
@@ -263,33 +263,33 @@ Raises:
 
     def forward(self, input):
         """
-        Perform the forward pass of the DPTNet model.
+            Perform the forward pass of the DPTNet model.
 
-    This method processes the input tensor through the dual-path transformer
-    network. It first applies the transformer on the first dimension and then 
-    on the second dimension, resulting in the output tensor.
+        This method processes the input tensor through the dual-path transformer
+        network. It first applies the transformer on the first dimension and then
+        on the second dimension, resulting in the output tensor.
 
-    Args:
-        input (torch.Tensor): Input tensor of shape (batch, N, dim1, dim2), 
-            where `batch` is the batch size, `N` is the number of features, 
-            `dim1` is the first dimension, and `dim2` is the second dimension.
+        Args:
+            input (torch.Tensor): Input tensor of shape (batch, N, dim1, dim2),
+                where `batch` is the batch size, `N` is the number of features,
+                `dim1` is the first dimension, and `dim2` is the second dimension.
 
-    Returns:
-        torch.Tensor: Output tensor of shape (batch, output_size, dim1, dim2),
-            where `output_size` is the dimension of the output size.
+        Returns:
+            torch.Tensor: Output tensor of shape (batch, output_size, dim1, dim2),
+                where `output_size` is the dimension of the output size.
 
-    Examples:
-        >>> model = DPTNet(rnn_type='LSTM', input_size=256, hidden_size=128, 
-        ...                output_size=10)
-        >>> input_tensor = torch.randn(32, 64, 256, 128)  # Example input
-        >>> output_tensor = model(input_tensor)
-        >>> print(output_tensor.shape)
-        torch.Size([32, 10, 64, 128])
+        Examples:
+            >>> model = DPTNet(rnn_type='LSTM', input_size=256, hidden_size=128,
+            ...                output_size=10)
+            >>> input_tensor = torch.randn(32, 64, 256, 128)  # Example input
+            >>> output_tensor = model(input_tensor)
+            >>> print(output_tensor.shape)
+            torch.Size([32, 10, 64, 128])
 
-    Note:
-        The input tensor must have dimensions that match the expected shape.
-        The model applies the intra-chunk and inter-chunk processes in a loop
-        for the specified number of layers.
+        Note:
+            The input tensor must have dimensions that match the expected shape.
+            The model applies the intra-chunk and inter-chunk processes in a loop
+            for the specified number of layers.
         """
         # input shape: batch, N, dim1, dim2
         # apply Transformer on dim1 first and then dim2
@@ -306,29 +306,29 @@ Raises:
 
     def intra_chunk_process(self, x, layer_index):
         """
-        Processes input tensors through the intra-chunk transformer layer.
+            Processes input tensors through the intra-chunk transformer layer.
 
-    This method reshapes the input tensor for the specified layer index, 
-    applies the intra-chunk transformer processing, and reshapes the output 
-    back to its original dimensions.
+        This method reshapes the input tensor for the specified layer index,
+        applies the intra-chunk transformer processing, and reshapes the output
+        back to its original dimensions.
 
-    Args:
-        x (torch.Tensor): Input tensor of shape (batch, N, chunk_size, n_chunks).
-        layer_index (int): Index of the transformer layer to be used for processing.
+        Args:
+            x (torch.Tensor): Input tensor of shape (batch, N, chunk_size, n_chunks).
+            layer_index (int): Index of the transformer layer to be used for processing.
 
-    Returns:
-        torch.Tensor: Transformed tensor of shape (batch, N, chunk_size, n_chunks).
+        Returns:
+            torch.Tensor: Transformed tensor of shape (batch, N, chunk_size, n_chunks).
 
-    Examples:
-        >>> model = DPTNet('LSTM', 128, 64, 32)
-        >>> input_tensor = torch.randn(10, 16, 32, 4)  # Example input
-        >>> output_tensor = model.intra_chunk_process(input_tensor, 0)
-        >>> output_tensor.shape
-        torch.Size([10, 32, 32, 4])  # Example output shape after processing
+        Examples:
+            >>> model = DPTNet('LSTM', 128, 64, 32)
+            >>> input_tensor = torch.randn(10, 16, 32, 4)  # Example input
+            >>> output_tensor = model.intra_chunk_process(input_tensor, 0)
+            >>> output_tensor.shape
+            torch.Size([10, 32, 32, 4])  # Example output shape after processing
 
-    Note:
-        The input tensor is expected to have four dimensions corresponding 
-        to batch size, number of features, chunk size, and number of chunks.
+        Note:
+            The input tensor is expected to have four dimensions corresponding
+            to batch size, number of features, chunk size, and number of chunks.
         """
         batch, N, chunk_size, n_chunks = x.size()
         x = x.transpose(1, -1).reshape(batch * n_chunks, chunk_size, N)
@@ -338,34 +338,34 @@ Raises:
 
     def inter_chunk_process(self, x, layer_index):
         """
-        Process the output from the intra-chunk transformer layer and apply the 
-    inter-chunk transformer layer.
+            Process the output from the intra-chunk transformer layer and apply the
+        inter-chunk transformer layer.
 
-    This method reshapes the input tensor to allow processing across chunks 
-    using the column transformer defined in the DPTNet architecture.
+        This method reshapes the input tensor to allow processing across chunks
+        using the column transformer defined in the DPTNet architecture.
 
-    Args:
-        x (torch.Tensor): Input tensor of shape (batch, N, chunk_size, n_chunks),
-            where `batch` is the batch size, `N` is the feature dimension,
-            `chunk_size` is the size of each chunk, and `n_chunks` is the 
-            number of chunks.
-        layer_index (int): The index of the current layer being processed.
+        Args:
+            x (torch.Tensor): Input tensor of shape (batch, N, chunk_size, n_chunks),
+                where `batch` is the batch size, `N` is the feature dimension,
+                `chunk_size` is the size of each chunk, and `n_chunks` is the
+                number of chunks.
+            layer_index (int): The index of the current layer being processed.
 
-    Returns:
-        torch.Tensor: Output tensor of shape (batch, N, chunk_size, n_chunks)
-            after applying the column transformer.
+        Returns:
+            torch.Tensor: Output tensor of shape (batch, N, chunk_size, n_chunks)
+                after applying the column transformer.
 
-    Examples:
-        >>> import torch
-        >>> model = DPTNet('LSTM', 128, 64, 32)
-        >>> input_tensor = torch.randn(16, 128, 10, 5)  # batch_size=16
-        >>> output_tensor = model.inter_chunk_process(input_tensor, 0)
-        >>> output_tensor.shape
-        torch.Size([16, 32, 10, 5])
+        Examples:
+            >>> import torch
+            >>> model = DPTNet('LSTM', 128, 64, 32)
+            >>> input_tensor = torch.randn(16, 128, 10, 5)  # batch_size=16
+            >>> output_tensor = model.inter_chunk_process(input_tensor, 0)
+            >>> output_tensor.shape
+            torch.Size([16, 32, 10, 5])
 
-    Note:
-        The input tensor is expected to be in the format (batch, N, chunk_size, 
-        n_chunks) prior to calling this method.
+        Note:
+            The input tensor is expected to be in the format (batch, N, chunk_size,
+            n_chunks) prior to calling this method.
         """
         batch, N, chunk_size, n_chunks = x.size()
         x = x.permute(0, 2, 3, 1).reshape(batch * chunk_size, n_chunks, N)

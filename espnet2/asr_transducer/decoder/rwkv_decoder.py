@@ -15,8 +15,8 @@ class RWKVDecoder(AbsDecoder):
     """
     RWKV decoder module for Transducer models.
 
-    This class implements the RWKV decoder based on the architecture described 
-    in the paper: https://arxiv.org/pdf/2305.13048.pdf. It is designed to work 
+    This class implements the RWKV decoder based on the architecture described
+    in the paper: https://arxiv.org/pdf/2305.13048.pdf. It is designed to work
     with Transducer models for automatic speech recognition tasks.
 
     Attributes:
@@ -63,7 +63,7 @@ class RWKVDecoder(AbsDecoder):
         AssertionError: If the length of the input labels exceeds the context size.
 
     Note:
-        This implementation uses PyTorch and requires the appropriate environment 
+        This implementation uses PyTorch and requires the appropriate environment
         with CUDA support for GPU acceleration if needed.
 
     Todo:
@@ -306,12 +306,12 @@ class RWKVDecoder(AbsDecoder):
         """
         Set GPU device to use.
 
-        This method allows you to specify the device on which the decoder will 
-        operate. It is particularly useful for transferring the model to a 
+        This method allows you to specify the device on which the decoder will
+        operate. It is particularly useful for transferring the model to a
         different GPU or CPU.
 
         Args:
-            device: The device to set (e.g., `torch.device('cuda:0')` or 
+            device: The device to set (e.g., `torch.device('cuda:0')` or
                     `torch.device('cpu')`).
 
         Examples:
@@ -319,7 +319,7 @@ class RWKVDecoder(AbsDecoder):
             >>> decoder.set_device(torch.device('cuda:0'))
 
         Note:
-            Make sure that the device is available and compatible with the 
+            Make sure that the device is available and compatible with the
             current model parameters.
 
         Raises:
@@ -388,20 +388,20 @@ class RWKVDecoder(AbsDecoder):
         """
         One-step forward hypotheses.
 
-        This method processes a batch of hypotheses and computes the decoder's 
-        output for each hypothesis. It takes the last label from each hypothesis 
-        and uses the decoder's inference method to generate the output and 
+        This method processes a batch of hypotheses and computes the decoder's
+        output for each hypothesis. It takes the last label from each hypothesis
+        and uses the decoder's inference method to generate the output and
         update the hidden states.
 
         Args:
-            hyps: A list of Hypothesis objects representing the current hypotheses. 
+            hyps: A list of Hypothesis objects representing the current hypotheses.
                   Each Hypothesis contains a label sequence and decoder state.
 
         Returns:
-            out: The decoder output sequence. Shape is (B, D_dec), where B is the 
+            out: The decoder output sequence. Shape is (B, D_dec), where B is the
                  batch size and D_dec is the dimension of the decoder output.
-            states: The updated decoder hidden states. Shape is [5 x (B, 1, 
-                    D_att/D_dec, N)], where B is the batch size, D_att is the 
+            states: The updated decoder hidden states. Shape is [5 x (B, 1,
+                    D_att/D_dec, N)], where B is the batch size, D_att is the
                     attention dimension, and N is the number of blocks.
 
         Examples:
@@ -411,8 +411,8 @@ class RWKVDecoder(AbsDecoder):
             >>> print(output.shape)  # Should output (1, D_dec)
 
         Note:
-            Ensure that the `create_batch_states` method is compatible with the 
-            structure of the decoder hidden states expected in the inference 
+            Ensure that the `create_batch_states` method is compatible with the
+            structure of the decoder hidden states expected in the inference
             process.
         """
         labels = torch.tensor(
@@ -507,18 +507,18 @@ class RWKVDecoder(AbsDecoder):
         Select ID state from batch of decoder hidden states.
 
         This method extracts the hidden states for a specific index from a batch
-        of decoder hidden states. The hidden states are represented as a list of 
+        of decoder hidden states. The hidden states are represented as a list of
         tensors, where each tensor corresponds to a different aspect of the state.
 
         Args:
-            states: Decoder hidden states. 
-                A list of tensors with shape [5 x (B, 1, D_att/D_dec, N)], 
-                where B is the batch size, D_att is the attention dimension, 
+            states: Decoder hidden states.
+                A list of tensors with shape [5 x (B, 1, D_att/D_dec, N)],
+                where B is the batch size, D_att is the attention dimension,
                 D_dec is the decoder dimension, and N is the number of blocks.
             idx: The index of the state to select from the batch.
 
         Returns:
-            A list of tensors representing the decoder hidden states for the 
+            A list of tensors representing the decoder hidden states for the
             specified index. The shape of each tensor is [1, 1, D_att/D_dec, N].
 
         Examples:
@@ -545,12 +545,12 @@ class RWKVDecoder(AbsDecoder):
         """
         Create batch of decoder hidden states given a list of new states.
 
-        This method takes a list of new states for each hypothesis in the batch and 
-        combines them into a single batch of hidden states. The resulting hidden 
+        This method takes a list of new states for each hypothesis in the batch and
+        combines them into a single batch of hidden states. The resulting hidden
         states can be used for further processing in the decoder.
 
         Args:
-            new_states: A list of new decoder hidden states, where each entry 
+            new_states: A list of new decoder hidden states, where each entry
                 corresponds to a hypothesis and is structured as:
                 [B x [5 x (1, 1, D_att/D_dec, N)]].
 

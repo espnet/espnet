@@ -13,43 +13,44 @@ from espnet.nets.pytorch_backend.rnn.encoders import RNN
 
 class DANSeparator(AbsSeparator):
     """
-    DANSeparator is a Deep Attractor Network for single-microphone speaker 
-separation, which utilizes recurrent neural networks to estimate masks for 
-each speaker in an audio mixture.
+        DANSeparator is a Deep Attractor Network for single-microphone speaker
+    separation, which utilizes recurrent neural networks to estimate masks for
+    each speaker in an audio mixture.
 
-This model is based on the research paper:
-- DEEP ATTRACTOR NETWORK FOR SINGLE-MICROPHONE SPEAKER SEPARATION; 
-  Zhuo Chen et al., 2017; 
-  https://pubmed.ncbi.nlm.nih.gov/29430212/
+    This model is based on the research paper:
+    - DEEP ATTRACTOR NETWORK FOR SINGLE-MICROPHONE SPEAKER SEPARATION;
+      Zhuo Chen et al., 2017;
+      https://pubmed.ncbi.nlm.nih.gov/29430212/
 
-Attributes:
-    num_spk (int): The number of speakers to separate.
+    Attributes:
+        num_spk (int): The number of speakers to separate.
 
-Args:
-    input_dim (int): Input feature dimension.
-    rnn_type (str): Type of RNN, options include 'blstm', 'lstm', etc.
-    num_spk (int): Number of speakers to separate. Default is 2.
-    nonlinear (str): Nonlinear function for mask estimation. Options 
-                     include 'relu', 'tanh', 'sigmoid'. Default is 'tanh'.
-    layer (int): Number of stacked RNN layers. Default is 2.
-    unit (int): Dimension of the hidden state. Default is 512.
-    emb_D (int): Dimension of the attribute vector for one time-frequency bin. 
-                 Default is 40.
-    dropout (float): Dropout ratio. Default is 0.0.
+    Args:
+        input_dim (int): Input feature dimension.
+        rnn_type (str): Type of RNN, options include 'blstm', 'lstm', etc.
+        num_spk (int): Number of speakers to separate. Default is 2.
+        nonlinear (str): Nonlinear function for mask estimation. Options
+                         include 'relu', 'tanh', 'sigmoid'. Default is 'tanh'.
+        layer (int): Number of stacked RNN layers. Default is 2.
+        unit (int): Dimension of the hidden state. Default is 512.
+        emb_D (int): Dimension of the attribute vector for one time-frequency bin.
+                     Default is 40.
+        dropout (float): Dropout ratio. Default is 0.0.
 
-Raises:
-    ValueError: If the nonlinear function is not one of the supported types.
+    Raises:
+        ValueError: If the nonlinear function is not one of the supported types.
 
-Examples:
-    separator = DANSeparator(input_dim=80, num_spk=2, rnn_type='blstm')
-    input_tensor = torch.randn(10, 100, 80)  # Batch of 10, 100 time steps, 80 features
-    ilens = torch.tensor([100] * 10)  # Input lengths for each batch
-    masked, ilens_out, others = separator(input_tensor, ilens)
+    Examples:
+        separator = DANSeparator(input_dim=80, num_spk=2, rnn_type='blstm')
+        input_tensor = torch.randn(10, 100, 80)  # Batch of 10, 100 time steps, 80 features
+        ilens = torch.tensor([100] * 10)  # Input lengths for each batch
+        masked, ilens_out, others = separator(input_tensor, ilens)
 
-    # masked will contain the separated signals for each speaker
-    # ilens_out will contain the lengths of the output signals
-    # others will contain the predicted masks for each speaker
+        # masked will contain the separated signals for each speaker
+        # ilens_out will contain the lengths of the output signals
+        # others will contain the predicted masks for each speaker
     """
+
     def __init__(
         self,
         input_dim: int,
@@ -113,59 +114,59 @@ Examples:
         additional: Optional[Dict] = None,
     ) -> Tuple[List[Union[torch.Tensor, ComplexTensor]], torch.Tensor, OrderedDict]:
         """
-        Forward pass for the Deep Attractor Network (DAN) separator.
+                Forward pass for the Deep Attractor Network (DAN) separator.
 
-This method processes the input audio features and computes the estimated 
-masks for each speaker. It utilizes a recurrent neural network (RNN) to 
-generate embeddings, from which attractors are derived to separate the 
-speakers' contributions in the mixed signal.
+        This method processes the input audio features and computes the estimated
+        masks for each speaker. It utilizes a recurrent neural network (RNN) to
+        generate embeddings, from which attractors are derived to separate the
+        speakers' contributions in the mixed signal.
 
-Args:
-    input (Union[torch.Tensor, ComplexTensor]): 
-        Encoded feature tensor of shape [B, T, F], where B is the batch 
-        size, T is the number of time frames, and F is the number of 
-        frequency bins.
-    ilens (torch.Tensor): 
-        A tensor containing the lengths of the input sequences for each 
-        batch element, shape [Batch].
-    additional (Optional[Dict], optional): 
-        A dictionary containing additional data that may be used in the 
-        model. For example, it may include:
-        - "feature_ref": List of reference spectra of shape 
-          List[(B, T, F)].
+        Args:
+            input (Union[torch.Tensor, ComplexTensor]):
+                Encoded feature tensor of shape [B, T, F], where B is the batch
+                size, T is the number of time frames, and F is the number of
+                frequency bins.
+            ilens (torch.Tensor):
+                A tensor containing the lengths of the input sequences for each
+                batch element, shape [Batch].
+            additional (Optional[Dict], optional):
+                A dictionary containing additional data that may be used in the
+                model. For example, it may include:
+                - "feature_ref": List of reference spectra of shape
+                  List[(B, T, F)].
 
-Returns:
-    Tuple[List[Union[torch.Tensor, ComplexTensor]], torch.Tensor, 
-          OrderedDict]:
-        - masked (List[Union[torch.Tensor, ComplexTensor]]): 
-          A list of tensors, each of shape [(B, T, N), ...], where N 
-          corresponds to the number of speakers.
-        - ilens (torch.Tensor): 
-          A tensor of shape (B,) representing the lengths of the input 
-          sequences.
-        - others (OrderedDict): 
-          A dictionary containing predicted data, such as masks for each 
-          speaker, with the following structure:
-          OrderedDict[
-              'mask_spk1': torch.Tensor(Batch, Frames, Freq),
-              'mask_spk2': torch.Tensor(Batch, Frames, Freq),
-              ...
-              'mask_spkn': torch.Tensor(Batch, Frames, Freq),
-          ]
+        Returns:
+            Tuple[List[Union[torch.Tensor, ComplexTensor]], torch.Tensor,
+                  OrderedDict]:
+                - masked (List[Union[torch.Tensor, ComplexTensor]]):
+                  A list of tensors, each of shape [(B, T, N), ...], where N
+                  corresponds to the number of speakers.
+                - ilens (torch.Tensor):
+                  A tensor of shape (B,) representing the lengths of the input
+                  sequences.
+                - others (OrderedDict):
+                  A dictionary containing predicted data, such as masks for each
+                  speaker, with the following structure:
+                  OrderedDict[
+                      'mask_spk1': torch.Tensor(Batch, Frames, Freq),
+                      'mask_spk2': torch.Tensor(Batch, Frames, Freq),
+                      ...
+                      'mask_spkn': torch.Tensor(Batch, Frames, Freq),
+                  ]
 
-Examples:
-    >>> model = DANSeparator(input_dim=256)
-    >>> input_tensor = torch.randn(10, 100, 256)  # Example input
-    >>> ilens = torch.tensor([100] * 10)  # All sequences are of length 100
-    >>> masked, ilens_out, others = model.forward(input_tensor, ilens)
+        Examples:
+            >>> model = DANSeparator(input_dim=256)
+            >>> input_tensor = torch.randn(10, 100, 256)  # Example input
+            >>> ilens = torch.tensor([100] * 10)  # All sequences are of length 100
+            >>> masked, ilens_out, others = model.forward(input_tensor, ilens)
 
-Note:
-    Ensure that the input feature tensor and ilens are properly 
-    aligned and of correct dimensions.
+        Note:
+            Ensure that the input feature tensor and ilens are properly
+            aligned and of correct dimensions.
 
-Raises:
-    ValueError: If the input nonlinear activation function is not one of 
-    'sigmoid', 'relu', or 'tanh'.
+        Raises:
+            ValueError: If the input nonlinear activation function is not one of
+            'sigmoid', 'relu', or 'tanh'.
         """
         # if complex spectrum,
         if is_complex(input):

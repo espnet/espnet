@@ -32,14 +32,14 @@ else:
 
 class ESPnetDiarizationModel(AbsESPnetModel):
     """
-    ESPnetDiarizationModel is a speaker diarization model that utilizes various 
-    components such as encoders, decoders, and attractors to process speech data. 
-    Depending on the presence of an attractor, it can implement either SA-EEND 
+    ESPnetDiarizationModel is a speaker diarization model that utilizes various
+    components such as encoders, decoders, and attractors to process speech data.
+    Depending on the presence of an attractor, it can implement either SA-EEND
     or EEND-EDA methods for diarization.
 
     For more details on the methodologies used, refer to the following papers:
     - SA-EEND: https://arxiv.org/pdf/1909.06247.pdf
-    - EEND-EDA: https://arxiv.org/pdf/2005.09921.pdf, 
+    - EEND-EDA: https://arxiv.org/pdf/2005.09921.pdf,
     https://arxiv.org/pdf/2106.10654.pdf
 
     Attributes:
@@ -126,29 +126,29 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         """
         Process input speech through the model and compute the loss.
 
-        This method combines the frontend, encoder, and decoder to 
-        calculate the diarization loss. It also computes various 
+        This method combines the frontend, encoder, and decoder to
+        calculate the diarization loss. It also computes various
         statistics related to speaker diarization performance.
 
         Args:
             speech: Tensor of shape (Batch, samples) representing input speech.
-            speech_lengths: Optional; Tensor of shape (Batch,) indicating the 
-                lengths of each input sequence. Default is None, which is 
+            speech_lengths: Optional; Tensor of shape (Batch,) indicating the
+                lengths of each input sequence. Default is None, which is
                 useful for chunk iterators that do not provide lengths.
             spk_labels: Tensor of shape (Batch, ...) containing speaker labels.
-            spk_labels_lengths: Optional; Tensor of shape (Batch,) indicating 
+            spk_labels_lengths: Optional; Tensor of shape (Batch,) indicating
                 the lengths of each speaker label sequence.
             kwargs: Additional arguments; "utt_id" is among the inputs.
 
         Returns:
             Tuple containing:
                 - loss: Computed loss value.
-                - stats: Dictionary of statistics including loss components and 
+                - stats: Dictionary of statistics including loss components and
                     diarization metrics.
                 - weight: Weight of the current batch.
 
         Raises:
-            AssertionError: If the number of speech samples does not match the 
+            AssertionError: If the number of speech samples does not match the
             number of speaker labels.
 
         Examples:
@@ -159,7 +159,7 @@ class ESPnetDiarizationModel(AbsESPnetModel):
             >>> loss, stats, weight = model.forward(speech, speech_lengths, spk_labels)
 
         Note:
-            Ensure that the input tensors are on the same device as the model 
+            Ensure that the input tensors are on the same device as the model
             for proper computation.
         """
         assert speech.shape[0] == spk_labels.shape[0], (speech.shape, spk_labels.shape)
@@ -273,24 +273,24 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         """
         Collects features from the input speech signal.
 
-        This method extracts features from the provided speech input and returns 
-        them along with their lengths. It can also handle speaker labels and their 
+        This method extracts features from the provided speech input and returns
+        them along with their lengths. It can also handle speaker labels and their
         lengths, although they are not mandatory for this operation.
 
         Args:
             speech (torch.Tensor): The input speech signal of shape (Batch, Length).
-            speech_lengths (torch.Tensor): A tensor indicating the lengths of each 
+            speech_lengths (torch.Tensor): A tensor indicating the lengths of each
                 speech signal in the batch, of shape (Batch,).
-            spk_labels (torch.Tensor, optional): A tensor containing speaker labels 
+            spk_labels (torch.Tensor, optional): A tensor containing speaker labels
                 of shape (Batch, ...). Defaults to None.
-            spk_labels_lengths (torch.Tensor, optional): A tensor containing the 
+            spk_labels_lengths (torch.Tensor, optional): A tensor containing the
                 lengths of speaker labels of shape (Batch, ...). Defaults to None.
             **kwargs: Additional keyword arguments for future extensions.
 
         Returns:
             Dict[str, torch.Tensor]: A dictionary containing:
                 - 'feats': Extracted features of shape (Batch, NFrames, Dim).
-                - 'feats_lengths': Lengths of the extracted features of shape 
+                - 'feats_lengths': Lengths of the extracted features of shape
                   (Batch,).
 
         Examples:
@@ -301,8 +301,8 @@ class ESPnetDiarizationModel(AbsESPnetModel):
             >>> print(features['feats'].shape)  # Expected shape: (2, NFrames, Dim)
 
         Note:
-            This function primarily uses the frontend module to process the input 
-            speech and generate features. If no frontend is specified, the 
+            This function primarily uses the frontend module to process the input
+            speech and generate features. If no frontend is specified, the
             raw speech input will be returned as features.
         """
         feats, feats_lengths = self._extract_feats(speech, speech_lengths)
@@ -319,20 +319,20 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         Args:
             speech (torch.Tensor): Input tensor of shape (Batch, Length, ...).
             speech_lengths (torch.Tensor): Lengths of the input sequences, shape (Batch,).
-            bottleneck_feats (torch.Tensor): Optional tensor for enhancement and 
+            bottleneck_feats (torch.Tensor): Optional tensor for enhancement and
                 diarization, shape (Batch, Length, ...).
-            bottleneck_feats_lengths (torch.Tensor): Lengths of the bottleneck features, 
+            bottleneck_feats_lengths (torch.Tensor): Lengths of the bottleneck features,
                 shape (Batch,).
 
         Returns:
             Tuple[torch.Tensor, torch.Tensor]: A tuple containing:
-                - encoder_out (torch.Tensor): Output tensor from the encoder, 
+                - encoder_out (torch.Tensor): Output tensor from the encoder,
                   shape (Batch, Length2, Dim).
-                - encoder_out_lens (torch.Tensor): Lengths of the output sequences, 
+                - encoder_out_lens (torch.Tensor): Lengths of the output sequences,
                   shape (Batch,).
-        
+
         Note:
-            The `autocast` context is used to enable mixed precision 
+            The `autocast` context is used to enable mixed precision
             training if available.
 
         Examples:
@@ -341,7 +341,7 @@ class ESPnetDiarizationModel(AbsESPnetModel):
             >>> speech_lengths = torch.tensor([16000] * 32)  # Lengths of each sample
             >>> bottleneck_feats = torch.randn(32, 100, 40)  # Example bottleneck features
             >>> bottleneck_feats_lengths = torch.tensor([100] * 32)  # Lengths of bottleneck features
-            >>> encoder_out, encoder_out_lens = model.encode(speech, speech_lengths, 
+            >>> encoder_out, encoder_out_lens = model.encode(speech, speech_lengths,
             ... bottleneck_feats, bottleneck_feats_lengths)
         """
         with autocast(False):
@@ -430,13 +430,13 @@ class ESPnetDiarizationModel(AbsESPnetModel):
             length (torch.Tensor): The lengths of each sequence in the batch.
 
         Returns:
-            torch.Tensor: The calculated loss for the given permutation, 
+            torch.Tensor: The calculated loss for the given permutation,
                           of shape (Batch, 1).
 
         Examples:
-            >>> pred = torch.tensor([[[0.1, 0.2], [0.5, 0.6]], 
+            >>> pred = torch.tensor([[[0.1, 0.2], [0.5, 0.6]],
             ...                       [[0.3, 0.4], [0.7, 0.8]]])
-            >>> label = torch.tensor([[[1, 0], [0, 1]], 
+            >>> label = torch.tensor([[[1, 0], [0, 1]],
             ...                        [[0, 1], [1, 0]]])
             >>> length = torch.tensor([2, 2])
             >>> loss = pit_loss_single_permute(pred, label, length)
@@ -455,30 +455,30 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         """
         Calculate the permutation-invariant training (PIT) loss.
 
-        This method computes the PIT loss for a given set of predictions and 
-        corresponding labels by considering all possible permutations of the 
-        labels. The minimum loss across all permutations is returned, along 
+        This method computes the PIT loss for a given set of predictions and
+        corresponding labels by considering all possible permutations of the
+        labels. The minimum loss across all permutations is returned, along
         with the corresponding permutation indices and the permuted labels.
 
         Args:
-            pred (torch.Tensor): The predicted outputs with shape 
+            pred (torch.Tensor): The predicted outputs with shape
                 (Batch, Length, num_output).
-            label (torch.Tensor): The ground truth labels with shape 
+            label (torch.Tensor): The ground truth labels with shape
                 (Batch, Length, num_output).
-            lengths (torch.Tensor): The lengths of the sequences, 
+            lengths (torch.Tensor): The lengths of the sequences,
                 with shape (Batch,).
 
         Returns:
             Tuple[torch.Tensor, torch.Tensor, List[np.ndarray], torch.Tensor]:
                 - loss: The calculated PIT loss.
-                - min_idx: The indices of the minimum loss permutation for each 
+                - min_idx: The indices of the minimum loss permutation for each
                   sample in the batch.
                 - permute_list: A list containing all permutations of labels.
-                - label_permute: The permuted labels corresponding to the 
+                - label_permute: The permuted labels corresponding to the
                   minimum loss.
 
         Note:
-            Credit to https://github.com/hitachi-speech/EEND for the 
+            Credit to https://github.com/hitachi-speech/EEND for the
             implementation of this method.
 
         Examples:
@@ -507,23 +507,23 @@ class ESPnetDiarizationModel(AbsESPnetModel):
 
     def create_length_mask(self, length, max_len, num_output):
         """
-        Creates a length mask tensor for the given input lengths, which is useful in 
-        ensuring that only valid entries in the label tensor are considered during 
+        Creates a length mask tensor for the given input lengths, which is useful in
+        ensuring that only valid entries in the label tensor are considered during
         loss computation.
 
-        This function generates a mask of shape (batch_size, max_len, num_output), 
-        where `max_len` is the maximum length of the sequences in the batch, and 
-        `num_output` is the number of output channels. The mask is populated with 
+        This function generates a mask of shape (batch_size, max_len, num_output),
+        where `max_len` is the maximum length of the sequences in the batch, and
+        `num_output` is the number of output channels. The mask is populated with
         ones for the valid lengths and zeros for the padded lengths.
 
         Args:
-            length (torch.Tensor): A 1D tensor containing the lengths of each 
+            length (torch.Tensor): A 1D tensor containing the lengths of each
                 sequence in the batch.
             max_len (int): The maximum length of the sequences to be considered.
             num_output (int): The number of output channels.
 
         Returns:
-            torch.Tensor: A tensor of shape (batch_size, max_len, num_output) 
+            torch.Tensor: A tensor of shape (batch_size, max_len, num_output)
                 containing the length mask.
 
         Examples:
@@ -551,7 +551,7 @@ class ESPnetDiarizationModel(AbsESPnetModel):
                     [0., 0., 0., 0.]]])
 
         Note:
-            This function assumes that the input tensor `length` is a 1D tensor 
+            This function assumes that the input tensor `length` is a 1D tensor
             containing the lengths of the sequences in the batch.
         """
         batch_size = len(length)
@@ -565,15 +565,15 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         """
         Calculate the attractor loss based on the attractor probabilities.
 
-        The attractor loss is computed using binary cross-entropy loss between 
-        the predicted attractor probabilities and the ground truth attractor labels. 
-        The ground truth labels are created such that all speakers are labeled as 
+        The attractor loss is computed using binary cross-entropy loss between
+        the predicted attractor probabilities and the ground truth attractor labels.
+        The ground truth labels are created such that all speakers are labeled as
         present (1) except for an additional label which is marked as absent (0).
 
         Args:
-            att_prob (torch.Tensor): The predicted attractor probabilities of shape 
+            att_prob (torch.Tensor): The predicted attractor probabilities of shape
                 (Batch, num_spk + 1, 1).
-            label (torch.Tensor): The ground truth labels of shape 
+            label (torch.Tensor): The ground truth labels of shape
                 (Batch, num_spk, 1).
 
         Returns:
@@ -601,17 +601,17 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         """
         Calculate the diarization error for predicted and true labels.
 
-        This method computes various metrics to evaluate the performance of 
-        speaker diarization predictions. It calculates the speech activity 
-        detection error, speaker miss, false alarm, and overall speaker 
+        This method computes various metrics to evaluate the performance of
+        speaker diarization predictions. It calculates the speech activity
+        detection error, speaker miss, false alarm, and overall speaker
         diarization error based on the predicted and ground truth labels.
 
         Args:
-            pred (torch.Tensor): The predicted labels with shape 
+            pred (torch.Tensor): The predicted labels with shape
                 (batch_size, max_len, num_output).
-            label (torch.Tensor): The ground truth labels with shape 
+            label (torch.Tensor): The ground truth labels with shape
                 (batch_size, max_len, num_output).
-            length (torch.Tensor): A tensor containing the actual lengths of 
+            length (torch.Tensor): A tensor containing the actual lengths of
                 each sequence in the batch.
 
         Returns:
@@ -628,7 +628,7 @@ class ESPnetDiarizationModel(AbsESPnetModel):
                 - speaker_error: The total speaker error.
 
         Note:
-            This method credits the implementation to the EEND project 
+            This method credits the implementation to the EEND project
             (https://github.com/hitachi-speech/EEND).
 
         Examples:
@@ -637,8 +637,8 @@ class ESPnetDiarizationModel(AbsESPnetModel):
             >>> length = torch.tensor([2, 2])
             >>> metrics = ESPnetDiarizationModel.calc_diarization_error(pred, label, length)
             >>> print(metrics)
-            (correct, num_frames, speech_scored, speech_miss, 
-             speech_falarm, speaker_scored, speaker_miss, 
+            (correct, num_frames, speech_scored, speech_miss,
+             speech_falarm, speaker_scored, speaker_miss,
              speaker_falarm, speaker_error)
         """
         # Note (jiatong): Credit to https://github.com/hitachi-speech/EEND

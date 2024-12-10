@@ -39,7 +39,7 @@ class FastSelfAttention(torch.nn.Module):
         ValueError: If `size` is not an integer multiple of `attention_heads`.
 
     Examples:
-        >>> fast_attention = FastSelfAttention(size=64, attention_heads=8, 
+        >>> fast_attention = FastSelfAttention(size=64, attention_heads=8,
         ...                                     dropout_rate=0.1)
         >>> xs_pad = torch.randn(32, 10, 64)  # (batch, time, size)
         >>> mask = torch.ones(32, 1, 10)  # Non-padding mask
@@ -47,11 +47,11 @@ class FastSelfAttention(torch.nn.Module):
         >>> print(output.shape)  # Should output: (32, 10, 64)
 
     Note:
-        The implementation uses query-key-value parameter sharing for 
+        The implementation uses query-key-value parameter sharing for
         computational efficiency, treating the value as equal to the query.
 
     Todo:
-        Consider adding support for different input types or integrating 
+        Consider adding support for different input types or integrating
         with additional layers in the ESPnet2 framework.
     """
 
@@ -81,22 +81,22 @@ class FastSelfAttention(torch.nn.Module):
         """
         Initializes the weights of the FastSelfAttention module.
 
-        This method applies the weight initialization strategy defined in the 
-        `init_weights` method to all submodules of the FastSelfAttention instance. 
-        The initialization is done using a normal distribution for the weights 
+        This method applies the weight initialization strategy defined in the
+        `init_weights` method to all submodules of the FastSelfAttention instance.
+        The initialization is done using a normal distribution for the weights
         and zeros for the biases of linear layers.
 
         Note:
-            This function should be called after the model has been instantiated 
+            This function should be called after the model has been instantiated
             to ensure that all weights are initialized correctly.
 
         Examples:
-            >>> attention_layer = FastSelfAttention(size=128, attention_heads=8, 
+            >>> attention_layer = FastSelfAttention(size=128, attention_heads=8,
             ...                                     dropout_rate=0.1)
             >>> attention_layer.espnet_initialization_fn()  # Initialize weights
 
         Raises:
-            ValueError: If the weight initialization process fails or if there 
+            ValueError: If the weight initialization process fails or if there
             are no linear layers in the module.
         """
 
@@ -104,18 +104,18 @@ class FastSelfAttention(torch.nn.Module):
             """
             Initialize weights for neural network layers.
 
-            This method applies weight initialization for layers of the neural 
-            network. Specifically, it initializes the weights of linear layers 
-            using a normal distribution with a mean of 0 and a standard 
-            deviation of 0.02. Additionally, it sets the bias of linear layers 
+            This method applies weight initialization for layers of the neural
+            network. Specifically, it initializes the weights of linear layers
+            using a normal distribution with a mean of 0 and a standard
+            deviation of 0.02. Additionally, it sets the bias of linear layers
             to zero if they exist.
 
             Args:
                 module (torch.nn.Module): The module (layer) to initialize.
 
             Note:
-                This function is typically called during the model's 
-                initialization process to ensure that the weights are 
+                This function is typically called during the model's
+                initialization process to ensure that the weights are
                 appropriately set before training.
 
             Examples:
@@ -124,7 +124,8 @@ class FastSelfAttention(torch.nn.Module):
 
             Raises:
                 ValueError: If the module type is not a recognized layer.
-        """
+            """
+
         if isinstance(module, torch.nn.Linear):
             module.weight.data.normal_(mean=0.0, std=0.02)
         if isinstance(module, torch.nn.Linear) and module.bias is not None:
@@ -134,23 +135,23 @@ class FastSelfAttention(torch.nn.Module):
         """
         Reshape and transpose input tensor for attention score computation.
 
-        This method reshapes the input tensor `x` from a shape of 
-        (batch, time, size) to (batch, n_heads, time, attn_dim) by 
-        splitting the last dimension into the number of attention heads 
-        and the size of each attention head. This transformation is 
+        This method reshapes the input tensor `x` from a shape of
+        (batch, time, size) to (batch, n_heads, time, attn_dim) by
+        splitting the last dimension into the number of attention heads
+        and the size of each attention head. This transformation is
         essential for computing attention scores across multiple heads.
 
         Args:
-            x (torch.Tensor): Input tensor of shape 
-                (batch, time, size), where `size` is equal to 
+            x (torch.Tensor): Input tensor of shape
+                (batch, time, size), where `size` is equal to
                 `n_heads * attn_dim`.
 
         Returns:
-            torch.Tensor: Reshaped tensor of shape 
+            torch.Tensor: Reshaped tensor of shape
                 (batch, n_heads, time, attn_dim).
 
         Examples:
-            >>> attention = FastSelfAttention(size=64, attention_heads=4, 
+            >>> attention = FastSelfAttention(size=64, attention_heads=4,
             ... dropout_rate=0.1)
             >>> x = torch.randn(2, 10, 64)  # (batch, time, size)
             >>> transposed_x = attention.transpose_for_scores(x)
@@ -168,28 +169,28 @@ class FastSelfAttention(torch.nn.Module):
         """
         Compute the forward pass for the FastSelfAttention layer.
 
-        This method performs the forward computation for the FastSelfAttention 
-        layer. It takes input embeddings and computes attention weights to 
+        This method performs the forward computation for the FastSelfAttention
+        layer. It takes input embeddings and computes attention weights to
         produce the output embeddings.
 
         Args:
-            xs_pad (torch.Tensor): Input tensor of shape 
-                (batch, time, size = n_heads * attn_dim), where 
-                'batch' is the number of sequences, 'time' is the 
-                sequence length, and 'size' is the dimensionality 
+            xs_pad (torch.Tensor): Input tensor of shape
+                (batch, time, size = n_heads * attn_dim), where
+                'batch' is the number of sequences, 'time' is the
+                sequence length, and 'size' is the dimensionality
                 of the input embeddings.
-            mask (torch.Tensor): A binary tensor of shape (batch, 1, time), 
-                where non-padding positions are represented by 1 and 
-                padding positions by 0. This mask is used to ignore 
+            mask (torch.Tensor): A binary tensor of shape (batch, 1, time),
+                where non-padding positions are represented by 1 and
+                padding positions by 0. This mask is used to ignore
                 padding tokens during attention calculation.
 
         Returns:
-            torch.Tensor: Output tensor of shape 
-                (batch, time, size), which represents the attention 
+            torch.Tensor: Output tensor of shape
+                (batch, time, size), which represents the attention
                 weighted output embeddings.
 
         Examples:
-            >>> model = FastSelfAttention(size=64, attention_heads=8, 
+            >>> model = FastSelfAttention(size=64, attention_heads=8,
             ... dropout_rate=0.1)
             >>> xs_pad = torch.randn(32, 10, 64)  # batch of 32, seq_len of 10
             >>> mask = torch.ones(32, 1, 10)  # no padding
@@ -198,11 +199,11 @@ class FastSelfAttention(torch.nn.Module):
             torch.Size([32, 10, 64])
 
         Note:
-            The attention mechanism used here is based on the Fastformer 
+            The attention mechanism used here is based on the Fastformer
             architecture which leverages additive attention.
 
         Raises:
-            ValueError: If the input size is not an integer multiple 
+            ValueError: If the input size is not an integer multiple
                 of the number of attention heads.
         """
 

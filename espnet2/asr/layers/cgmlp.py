@@ -92,25 +92,25 @@ class ConvolutionalSpatialGatingUnit(torch.nn.Module):
 
     def espnet_initialization_fn(self):
         """
-        Initializes the weights and biases of the Convolutional Spatial Gating 
-        Unit (CSGU) components using a normal distribution for weights and ones 
+        Initializes the weights and biases of the Convolutional Spatial Gating
+        Unit (CSGU) components using a normal distribution for weights and ones
         for biases.
 
         This method performs the following initializations:
-            - Initializes the convolutional layer's weights with a normal 
+            - Initializes the convolutional layer's weights with a normal
             distribution with mean 0 and standard deviation 1e-6.
             - Initializes the convolutional layer's biases to ones.
-            - If a linear layer is used after the convolution, initializes its 
+            - If a linear layer is used after the convolution, initializes its
             weights similarly and its biases to ones.
 
         Note:
-            This method is typically called after the model's parameters have 
-            been set to ensure that they start from a reasonable point for 
+            This method is typically called after the model's parameters have
+            been set to ensure that they start from a reasonable point for
             training.
 
         Examples:
-            >>> csgu = ConvolutionalSpatialGatingUnit(size=128, kernel_size=3, 
-            ... dropout_rate=0.1, use_linear_after_conv=True, 
+            >>> csgu = ConvolutionalSpatialGatingUnit(size=128, kernel_size=3,
+            ... dropout_rate=0.1, use_linear_after_conv=True,
             ... gate_activation='relu')
             >>> csgu.espnet_initialization_fn()  # Initialize parameters
 
@@ -191,39 +191,39 @@ class ConvolutionalGatingMLP(torch.nn.Module):
     Convolutional Gating MLP (cgMLP) class.
 
     This class implements a Convolutional Gating Multi-Layer Perceptron (cgMLP),
-    which uses a convolutional spatial gating unit to process input features. 
-    The cgMLP is designed to enhance the representation of sequential data by 
+    which uses a convolutional spatial gating unit to process input features.
+    The cgMLP is designed to enhance the representation of sequential data by
     leveraging both linear and convolutional layers.
 
     Attributes:
-        channel_proj1 (torch.nn.Sequential): A sequential model consisting of a 
+        channel_proj1 (torch.nn.Sequential): A sequential model consisting of a
             linear layer followed by a GELU activation.
-        csgu (ConvolutionalSpatialGatingUnit): The convolutional spatial gating 
+        csgu (ConvolutionalSpatialGatingUnit): The convolutional spatial gating
             unit that applies gating mechanisms on the input.
-        channel_proj2 (torch.nn.Linear): A linear layer that projects the output 
+        channel_proj2 (torch.nn.Linear): A linear layer that projects the output
             from the spatial gating unit back to the original size.
 
     Args:
         size (int): The size of the input features.
-        linear_units (int): The number of units in the linear layer before 
+        linear_units (int): The number of units in the linear layer before
             applying the spatial gating unit.
-        kernel_size (int): The size of the convolutional kernel used in the 
+        kernel_size (int): The size of the convolutional kernel used in the
             spatial gating unit.
-        dropout_rate (float): The dropout rate to be applied after the gating 
+        dropout_rate (float): The dropout rate to be applied after the gating
             operation.
-        use_linear_after_conv (bool): If True, applies a linear layer after the 
+        use_linear_after_conv (bool): If True, applies a linear layer after the
             convolutional operation within the spatial gating unit.
-        gate_activation (str): The activation function to use for the gating 
+        gate_activation (str): The activation function to use for the gating
             mechanism. Common options include 'relu', 'sigmoid', or 'identity'.
 
     Returns:
-        torch.Tensor: The output tensor of shape (N, T, D) where N is the batch 
+        torch.Tensor: The output tensor of shape (N, T, D) where N is the batch
             size, T is the sequence length, and D is the feature size.
 
     Examples:
         >>> model = ConvolutionalGatingMLP(size=256, linear_units=512, kernel_size=3,
-        ...                                 dropout_rate=0.1, 
-        ...                                 use_linear_after_conv=True, 
+        ...                                 dropout_rate=0.1,
+        ...                                 use_linear_after_conv=True,
         ...                                 gate_activation='relu')
         >>> input_tensor = torch.randn(10, 20, 256)  # (N, T, D)
         >>> output = model(input_tensor, mask=None)
@@ -231,8 +231,8 @@ class ConvolutionalGatingMLP(torch.nn.Module):
         torch.Size([10, 20, 256])  # Output shape is same as input size
 
     Note:
-        This model is particularly useful in scenarios where capturing spatial 
-        dependencies in sequential data is crucial, such as in speech 
+        This model is particularly useful in scenarios where capturing spatial
+        dependencies in sequential data is crucial, such as in speech
         recognition tasks.
 
     Todo:
@@ -268,28 +268,28 @@ class ConvolutionalGatingMLP(torch.nn.Module):
         Forward method for the Convolutional Gating MLP (cgMLP).
 
         This method processes the input tensor through a series of transformations,
-        including linear projections and convolutional gating. It can optionally 
+        including linear projections and convolutional gating. It can optionally
         incorporate a positional embedding if provided.
 
         Args:
-            x (Union[torch.Tensor, tuple]): 
+            x (Union[torch.Tensor, tuple]):
                 Input tensor of shape (N, T, D) or a tuple containing:
                 - xs_pad (torch.Tensor): Input tensor of shape (N, T, D).
                 - pos_emb (torch.Tensor): Positional embedding tensor of shape (N, T, D).
-            mask (torch.Tensor): 
+            mask (torch.Tensor):
                 A mask tensor used for masking inputs, typically of shape (N, T).
 
         Returns:
-            torch.Tensor or tuple: 
+            torch.Tensor or tuple:
                 If positional embedding is provided, returns a tuple containing:
                 - Output tensor of shape (N, T, size) after processing.
                 - Positional embedding tensor of shape (N, T, D).
                 If no positional embedding is provided, returns only the output tensor.
 
         Examples:
-            >>> model = ConvolutionalGatingMLP(size=128, linear_units=256, 
-            ...                                 kernel_size=3, dropout_rate=0.1, 
-            ...                                 use_linear_after_conv=True, 
+            >>> model = ConvolutionalGatingMLP(size=128, linear_units=256,
+            ...                                 kernel_size=3, dropout_rate=0.1,
+            ...                                 use_linear_after_conv=True,
             ...                                 gate_activation='relu')
             >>> input_tensor = torch.randn(32, 10, 128)  # (N, T, D)
             >>> mask = torch.ones(32, 10)  # (N, T)

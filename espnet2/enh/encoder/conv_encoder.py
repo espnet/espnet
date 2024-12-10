@@ -33,7 +33,7 @@ class ConvEncoder(AbsEncoder):
         >>> ilens = torch.LongTensor([100, 98])
         >>> encoder = ConvEncoder(kernel_size=32, stride=10, channel=16)
         >>> frames, flens = encoder(input_audio, ilens)
-        
+
         >>> splited = encoder.streaming_frame(input_audio)
         >>> sframes = [encoder.forward_streaming(s) for s in splited]
         >>> sframes = torch.cat(sframes, dim=1)
@@ -67,11 +67,11 @@ class ConvEncoder(AbsEncoder):
         """
         Get the output dimension of the ConvEncoder.
 
-        This property returns the number of output channels 
+        This property returns the number of output channels
         produced by the convolutional layer in the encoder.
 
         Returns:
-            int: The output dimension, which corresponds to the 
+            int: The output dimension, which corresponds to the
             number of channels specified during initialization.
 
         Examples:
@@ -79,42 +79,42 @@ class ConvEncoder(AbsEncoder):
             print(encoder.output_dim)  # Output: 16
 
         Note:
-            This property is primarily used to obtain the output 
+            This property is primarily used to obtain the output
             dimension after the convolutional processing of the input.
         """
         return self._output_dim
 
     def forward(self, input: torch.Tensor, ilens: torch.Tensor, fs: int = None):
         """
-        Forward pass of the convolutional encoder.
+            Forward pass of the convolutional encoder.
 
-    This method processes the input mixed speech signal through a 1D convolutional
-    layer, applying ReLU activation and returning the encoded features along with
-    the calculated lengths of the output features.
+        This method processes the input mixed speech signal through a 1D convolutional
+        layer, applying ReLU activation and returning the encoded features along with
+        the calculated lengths of the output features.
 
-    Args:
-        input (torch.Tensor): Mixed speech input of shape [Batch, sample].
-        ilens (torch.Tensor): Lengths of the input sequences of shape [Batch].
-        fs (int, optional): Sampling rate in Hz (not used in current implementation).
+        Args:
+            input (torch.Tensor): Mixed speech input of shape [Batch, sample].
+            ilens (torch.Tensor): Lengths of the input sequences of shape [Batch].
+            fs (int, optional): Sampling rate in Hz (not used in current implementation).
 
-    Returns:
-        feature (torch.Tensor): Encoded mixed feature of shape [Batch, flens, channel],
-            where flens is the calculated output length after processing.
-        flens (torch.Tensor): Lengths of the output features of shape [Batch].
+        Returns:
+            feature (torch.Tensor): Encoded mixed feature of shape [Batch, flens, channel],
+                where flens is the calculated output length after processing.
+            flens (torch.Tensor): Lengths of the output features of shape [Batch].
 
-    Raises:
-        AssertionError: If the input tensor does not have 2 dimensions.
+        Raises:
+            AssertionError: If the input tensor does not have 2 dimensions.
 
-    Examples:
-        >>> input_audio = torch.randn((2, 100))
-        >>> ilens = torch.LongTensor([100, 98])
-        >>> encoder = ConvEncoder(kernel_size=32, stride=10, channel=16)
-        >>> feature, flens = encoder(input_audio, ilens)
-        >>> print(feature.shape)  # Output shape: [Batch, flens, channel]
-        >>> print(flens)  # Output lengths for each batch
+        Examples:
+            >>> input_audio = torch.randn((2, 100))
+            >>> ilens = torch.LongTensor([100, 98])
+            >>> encoder = ConvEncoder(kernel_size=32, stride=10, channel=16)
+            >>> feature, flens = encoder(input_audio, ilens)
+            >>> print(feature.shape)  # Output shape: [Batch, flens, channel]
+            >>> print(flens)  # Output lengths for each batch
 
-    Note:
-        The input tensor is expected to be a single-channel tensor.
+        Note:
+            The input tensor is expected to be a single-channel tensor.
         """
         assert input.dim() == 2, "Currently only support single channel input"
 
@@ -132,30 +132,30 @@ class ConvEncoder(AbsEncoder):
 
     def forward_streaming(self, input: torch.Tensor):
         """
-        Perform the forward pass for streaming input.
+            Perform the forward pass for streaming input.
 
-    This method is designed to handle streaming audio inputs by utilizing the
-    `forward` method. It takes a tensor representing audio data and processes
-    it through the convolutional encoder to produce the output features.
+        This method is designed to handle streaming audio inputs by utilizing the
+        `forward` method. It takes a tensor representing audio data and processes
+        it through the convolutional encoder to produce the output features.
 
-    Args:
-        input (torch.Tensor): Input tensor representing mixed speech with shape
-            [Batch, sample].
+        Args:
+            input (torch.Tensor): Input tensor representing mixed speech with shape
+                [Batch, sample].
 
-    Returns:
-        output (torch.Tensor): Output tensor containing mixed features after
-            encoding with shape [Batch, flens, channel].
+        Returns:
+            output (torch.Tensor): Output tensor containing mixed features after
+                encoding with shape [Batch, flens, channel].
 
-    Examples:
-        >>> encoder = ConvEncoder(kernel_size=32, stride=10, channel=16)
-        >>> input_audio = torch.randn((2, 100))
-        >>> output = encoder.forward_streaming(input_audio)
-        >>> print(output.shape)
-        torch.Size([2, 7, 16])  # Example output shape based on kernel and stride
+        Examples:
+            >>> encoder = ConvEncoder(kernel_size=32, stride=10, channel=16)
+            >>> input_audio = torch.randn((2, 100))
+            >>> output = encoder.forward_streaming(input_audio)
+            >>> print(output.shape)
+            torch.Size([2, 7, 16])  # Example output shape based on kernel and stride
 
-    Note:
-        The `ilens` parameter is not utilized in this method, and it defaults 
-        to a fixed behavior from the `forward` method.
+        Note:
+            The `ilens` parameter is not utilized in this method, and it defaults
+            to a fixed behavior from the `forward` method.
         """
         output, _ = self.forward(input, 0)
         return output
@@ -170,11 +170,11 @@ class ConvEncoder(AbsEncoder):
         streaming input buffer in a real streaming application.
 
         Args:
-            audio (torch.Tensor): Input audio tensor of shape (B, T), where B is 
+            audio (torch.Tensor): Input audio tensor of shape (B, T), where B is
             the batch size and T is the total length of the audio.
 
         Returns:
-            List[torch.Tensor]: A list of chunked audio tensors, each of shape 
+            List[torch.Tensor]: A list of chunked audio tensors, each of shape
             (B, frame_size), where frame_size is determined by the kernel size.
 
         Examples:

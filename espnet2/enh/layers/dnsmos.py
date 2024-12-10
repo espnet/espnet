@@ -59,37 +59,38 @@ def poly1d(coefficients, use_numpy=False):
 
 class DNSMOS_web:
     """
-    A class for evaluating audio quality using the DNSMOS web service.
+        A class for evaluating audio quality using the DNSMOS web service.
 
-This class sends audio data to the DNSMOS web service for quality scoring. It
-requires an authentication key to access the service and supports different
-scoring methods.
+    This class sends audio data to the DNSMOS web service for quality scoring. It
+    requires an authentication key to access the service and supports different
+    scoring methods.
 
-Attributes:
-    auth_key (str): The authentication key used for accessing the web service.
+    Attributes:
+        auth_key (str): The authentication key used for accessing the web service.
 
-Args:
-    auth_key (str): The authentication key for the DNSMOS web service.
+    Args:
+        auth_key (str): The authentication key for the DNSMOS web service.
 
-Methods:
-    __call__(aud, input_fs, fname="", method="p808"):
-        Sends the audio data to the DNSMOS web service and retrieves the score.
+    Methods:
+        __call__(aud, input_fs, fname="", method="p808"):
+            Sends the audio data to the DNSMOS web service and retrieves the score.
 
-Examples:
-    >>> dnsmos = DNSMOS_web(auth_key="your_auth_key")
-    >>> audio_data = np.random.rand(16000 * 5)  # 5 seconds of random audio
-    >>> score = dnsmos(audio_data, input_fs=16000)
-    >>> print(score)
+    Examples:
+        >>> dnsmos = DNSMOS_web(auth_key="your_auth_key")
+        >>> audio_data = np.random.rand(16000 * 5)  # 5 seconds of random audio
+        >>> score = dnsmos(audio_data, input_fs=16000)
+        >>> print(score)
 
-Note:
-    The audio data must be a 1D numpy array or a similar structure, and the
-    sampling frequency must match the expected value (16000 Hz) or be
-    resampled.
+    Note:
+        The audio data must be a 1D numpy array or a similar structure, and the
+        sampling frequency must match the expected value (16000 Hz) or be
+        resampled.
 
-Raises:
-    requests.exceptions.RequestException: If there is an error during the
-        HTTP request to the web service.
+    Raises:
+        requests.exceptions.RequestException: If there is an error during the
+            HTTP request to the web service.
     """
+
     # ported from
     # https://github.com/microsoft/DNS-Challenge/blob/master/DNSMOS/dnsmos.py
     def __init__(self, auth_key):
@@ -120,52 +121,53 @@ Raises:
 
 class DNSMOS_local:
     """
-    A class for estimating Mean Opinion Scores (MOS) for audio signals using local 
-models. This implementation leverages pre-trained models for audio quality 
-assessment based on deep learning.
+        A class for estimating Mean Opinion Scores (MOS) for audio signals using local
+    models. This implementation leverages pre-trained models for audio quality
+    assessment based on deep learning.
 
-Attributes:
-    convert_to_torch (bool): Flag indicating whether to convert models to PyTorch.
-    use_gpu (bool): Flag indicating whether to use GPU for computations.
-    primary_model (torch.nn.Module or ort.InferenceSession): Model for primary 
-        audio processing.
-    p808_model (torch.nn.Module or ort.InferenceSession): Model for P.808 metrics 
-        estimation.
-    spectrogram (torch.nn.Module): Spectrogram transformation module.
-    to_db (torch.nn.Module): Transformation module to convert amplitude to decibels.
+    Attributes:
+        convert_to_torch (bool): Flag indicating whether to convert models to PyTorch.
+        use_gpu (bool): Flag indicating whether to use GPU for computations.
+        primary_model (torch.nn.Module or ort.InferenceSession): Model for primary
+            audio processing.
+        p808_model (torch.nn.Module or ort.InferenceSession): Model for P.808 metrics
+            estimation.
+        spectrogram (torch.nn.Module): Spectrogram transformation module.
+        to_db (torch.nn.Module): Transformation module to convert amplitude to decibels.
 
-Args:
-    primary_model_path (str): Path to the primary model file (ONNX format).
-    p808_model_path (str): Path to the P.808 model file (ONNX format).
-    use_gpu (bool, optional): Flag to enable GPU usage. Default is False.
-    convert_to_torch (bool, optional): Flag to convert models to PyTorch. Default 
-        is False.
+    Args:
+        primary_model_path (str): Path to the primary model file (ONNX format).
+        p808_model_path (str): Path to the P.808 model file (ONNX format).
+        use_gpu (bool, optional): Flag to enable GPU usage. Default is False.
+        convert_to_torch (bool, optional): Flag to convert models to PyTorch. Default
+            is False.
 
-Raises:
-    RuntimeError: If onnx2torch or onnxruntime is not installed when required.
+    Raises:
+        RuntimeError: If onnx2torch or onnxruntime is not installed when required.
 
-Examples:
-    >>> dnsmos = DNSMOS_local('path/to/primary/model', 'path/to/p808/model', 
-    ...                        use_gpu=True, convert_to_torch=True)
-    >>> audio_signal = np.random.rand(16000 * 9)  # Simulated audio signal
-    >>> result = dnsmos(audio_signal, input_fs=16000, is_personalized_MOS=True)
-    >>> print(result)
-    {
-        "OVRL_raw": 3.5,
-        "SIG_raw": 3.8,
-        "BAK_raw": 3.2,
-        "OVRL": 3.6,
-        "SIG": 3.9,
-        "BAK": 3.3,
-        "P808_MOS": 3.7,
-    }
+    Examples:
+        >>> dnsmos = DNSMOS_local('path/to/primary/model', 'path/to/p808/model',
+        ...                        use_gpu=True, convert_to_torch=True)
+        >>> audio_signal = np.random.rand(16000 * 9)  # Simulated audio signal
+        >>> result = dnsmos(audio_signal, input_fs=16000, is_personalized_MOS=True)
+        >>> print(result)
+        {
+            "OVRL_raw": 3.5,
+            "SIG_raw": 3.8,
+            "BAK_raw": 3.2,
+            "OVRL": 3.6,
+            "SIG": 3.9,
+            "BAK": 3.3,
+            "P808_MOS": 3.7,
+        }
 
-Note:
-    The input audio signal should be a 1D numpy array or a torch tensor.
+    Note:
+        The input audio signal should be a 1D numpy array or a torch tensor.
 
-Todo:
-    - Add support for more input formats and additional model architectures.
+    Todo:
+        - Add support for more input formats and additional model architectures.
     """
+
     # ported from
     # https://github.com/microsoft/DNS-Challenge/blob/master/DNSMOS/dnsmos_local.py
     def __init__(
@@ -211,38 +213,38 @@ Todo:
         self, audio, n_mels=120, frame_size=320, hop_length=160, sr=16000, to_db=True
     ):
         """
-        Compute the Mel spectrogram of the given audio signal.
+            Compute the Mel spectrogram of the given audio signal.
 
-    This method calculates the Mel spectrogram for the input audio signal,
-    either using PyTorch or librosa, depending on the configuration of the
-    DNSMOS_local instance.
+        This method calculates the Mel spectrogram for the input audio signal,
+        either using PyTorch or librosa, depending on the configuration of the
+        DNSMOS_local instance.
 
-    Args:
-        audio (torch.Tensor or np.ndarray): The input audio signal.
-        n_mels (int, optional): Number of Mel bands to generate. Defaults to 120.
-        frame_size (int, optional): Size of the FFT window. Defaults to 320.
-        hop_length (int, optional): Number of samples between frames. Defaults to 160.
-        sr (int, optional): Sampling rate of the audio signal. Defaults to 16000.
-        to_db (bool, optional): Whether to convert the Mel spectrogram to dB scale.
-            Defaults to True.
+        Args:
+            audio (torch.Tensor or np.ndarray): The input audio signal.
+            n_mels (int, optional): Number of Mel bands to generate. Defaults to 120.
+            frame_size (int, optional): Size of the FFT window. Defaults to 320.
+            hop_length (int, optional): Number of samples between frames. Defaults to 160.
+            sr (int, optional): Sampling rate of the audio signal. Defaults to 16000.
+            to_db (bool, optional): Whether to convert the Mel spectrogram to dB scale.
+                Defaults to True.
 
-    Returns:
-        np.ndarray or torch.Tensor: The computed Mel spectrogram, transposed.
+        Returns:
+            np.ndarray or torch.Tensor: The computed Mel spectrogram, transposed.
 
-    Examples:
-        >>> import torch
-        >>> audio = torch.randn(16000)  # Simulated audio signal
-        >>> mel_spec = dnsmos_local.audio_melspec(audio)
-        >>> print(mel_spec.shape)
-        (n_frames, n_mels)
+        Examples:
+            >>> import torch
+            >>> audio = torch.randn(16000)  # Simulated audio signal
+            >>> mel_spec = dnsmos_local.audio_melspec(audio)
+            >>> print(mel_spec.shape)
+            (n_frames, n_mels)
 
-    Note:
-        If `self.convert_to_torch` is True, the function uses PyTorch for
-        computations; otherwise, it uses librosa. The output is transposed to
-        match the expected shape.
+        Note:
+            If `self.convert_to_torch` is True, the function uses PyTorch for
+            computations; otherwise, it uses librosa. The output is transposed to
+            match the expected shape.
 
-    Raises:
-        ValueError: If the audio input is not a valid tensor or ndarray.
+        Raises:
+            ValueError: If the audio input is not a valid tensor or ndarray.
         """
         if self.convert_to_torch:
             specgram = self.spectrogram(audio)
@@ -271,38 +273,38 @@ Todo:
 
     def get_polyfit_val(self, sig, bak, ovr, is_personalized_MOS):
         """
-        Calculates polynomial fitting values for the given audio metrics.
+            Calculates polynomial fitting values for the given audio metrics.
 
-    This function uses polynomial regression to compute adjusted values for
-    signal, background, and overall metrics based on input parameters. It 
-    applies different polynomial coefficients depending on whether the 
-    calculation is for personalized Mean Opinion Score (MOS).
+        This function uses polynomial regression to compute adjusted values for
+        signal, background, and overall metrics based on input parameters. It
+        applies different polynomial coefficients depending on whether the
+        calculation is for personalized Mean Opinion Score (MOS).
 
-    Args:
-        sig (float): The signal metric value to be adjusted.
-        bak (float): The background metric value to be adjusted.
-        ovr (float): The overall metric value to be adjusted.
-        is_personalized_MOS (bool): Flag indicating if the calculation is for
-            personalized MOS. If True, personalized coefficients are used.
+        Args:
+            sig (float): The signal metric value to be adjusted.
+            bak (float): The background metric value to be adjusted.
+            ovr (float): The overall metric value to be adjusted.
+            is_personalized_MOS (bool): Flag indicating if the calculation is for
+                personalized MOS. If True, personalized coefficients are used.
 
-    Returns:
-        tuple: A tuple containing the adjusted signal, background, and overall
-        metrics:
-            - sig_poly (float): Adjusted signal metric.
-            - bak_poly (float): Adjusted background metric.
-            - ovr_poly (float): Adjusted overall metric.
+        Returns:
+            tuple: A tuple containing the adjusted signal, background, and overall
+            metrics:
+                - sig_poly (float): Adjusted signal metric.
+                - bak_poly (float): Adjusted background metric.
+                - ovr_poly (float): Adjusted overall metric.
 
-    Examples:
-        >>> dnsmos_local = DNSMOS_local(...)
-        >>> sig_adjusted, bak_adjusted, ovr_adjusted = dnsmos_local.get_polyfit_val(
-        ...     sig=1.5, bak=0.5, ovr=1.0, is_personalized_MOS=True
-        ... )
-        >>> print(sig_adjusted, bak_adjusted, ovr_adjusted)
-        (-0.10, 0.40, 1.15)
+        Examples:
+            >>> dnsmos_local = DNSMOS_local(...)
+            >>> sig_adjusted, bak_adjusted, ovr_adjusted = dnsmos_local.get_polyfit_val(
+            ...     sig=1.5, bak=0.5, ovr=1.0, is_personalized_MOS=True
+            ... )
+            >>> print(sig_adjusted, bak_adjusted, ovr_adjusted)
+            (-0.10, 0.40, 1.15)
 
-    Note:
-        The polynomial coefficients are defined within the function based on 
-        the is_personalized_MOS flag.
+        Note:
+            The polynomial coefficients are defined within the function based on
+            the is_personalized_MOS flag.
         """
         flag = not self.convert_to_torch
         if is_personalized_MOS:

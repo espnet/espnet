@@ -11,8 +11,8 @@ class RelPositionMultiHeadedAttention(torch.nn.Module):
     Multi-Head attention layers with relative positional encoding.
 
     This class implements multi-headed attention with the capability to use
-    relative positional encoding. It allows for efficient attention 
-    computation in tasks such as speech recognition and natural language 
+    relative positional encoding. It allows for efficient attention
+    computation in tasks such as speech recognition and natural language
     processing.
 
     Attributes:
@@ -32,37 +32,37 @@ class RelPositionMultiHeadedAttention(torch.nn.Module):
         num_heads (int): Number of attention heads.
         embed_size (int): Size of the input embeddings.
         dropout_rate (float, optional): Dropout rate for regularization. Default is 0.0.
-        simplified_attention_score (bool, optional): Use simplified attention score 
+        simplified_attention_score (bool, optional): Use simplified attention score
             computation. Default is False.
 
     Methods:
         rel_shift(x: torch.Tensor, left_context: int = 0) -> torch.Tensor:
             Compute relative positional encoding.
 
-        compute_simplified_attention_score(query: torch.Tensor, key: torch.Tensor, 
+        compute_simplified_attention_score(query: torch.Tensor, key: torch.Tensor,
             pos_enc: torch.Tensor, left_context: int = 0) -> torch.Tensor:
             Simplified attention score computation.
 
-        compute_attention_score(query: torch.Tensor, key: torch.Tensor, 
+        compute_attention_score(query: torch.Tensor, key: torch.Tensor,
             pos_enc: torch.Tensor, left_context: int = 0) -> torch.Tensor:
             Attention score computation.
 
-        forward_qkv(query: torch.Tensor, key: torch.Tensor, 
+        forward_qkv(query: torch.Tensor, key: torch.Tensor,
             value: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
             Transform query, key and value.
 
-        forward_attention(value: torch.Tensor, scores: torch.Tensor, 
+        forward_attention(value: torch.Tensor, scores: torch.Tensor,
             mask: torch.Tensor, chunk_mask: Optional[torch.Tensor] = None) -> torch.Tensor:
             Compute attention context vector.
 
-        forward(query: torch.Tensor, key: torch.Tensor, value: torch.Tensor, 
-            pos_enc: torch.Tensor, mask: torch.Tensor, 
+        forward(query: torch.Tensor, key: torch.Tensor, value: torch.Tensor,
+            pos_enc: torch.Tensor, mask: torch.Tensor,
             chunk_mask: Optional[torch.Tensor] = None, left_context: int = 0) -> torch.Tensor:
             Compute scaled dot product attention with relative positional encoding.
 
     Examples:
         # Initialize the attention layer
-        attention_layer = RelPositionMultiHeadedAttention(num_heads=8, 
+        attention_layer = RelPositionMultiHeadedAttention(num_heads=8,
                                                         embed_size=512)
 
         # Example input tensors
@@ -180,26 +180,26 @@ class RelPositionMultiHeadedAttention(torch.nn.Module):
         left_context: int = 0,
     ) -> torch.Tensor:
         """
-        Compute simplified attention scores using query, key, and positional 
+        Compute simplified attention scores using query, key, and positional
         encodings.
 
-        This method computes the attention scores by combining the dot product of 
-        the query and key tensors with a positional encoding that has been shifted 
-        to account for the specified left context. The scores are normalized by 
+        This method computes the attention scores by combining the dot product of
+        the query and key tensors with a positional encoding that has been shifted
+        to account for the specified left context. The scores are normalized by
         the square root of the dimension of the keys.
 
         Reference: https://github.com/k2-fsa/icefall/pull/458
 
         Args:
-            query: Transformed query tensor of shape (B, H, T_1, d_k), where B is 
-                   the batch size, H is the number of heads, T_1 is the length 
+            query: Transformed query tensor of shape (B, H, T_1, d_k), where B is
+                   the batch size, H is the number of heads, T_1 is the length
                    of the query sequence, and d_k is the dimension of each head.
-            key: Transformed key tensor of shape (B, H, T_2, d_k), where T_2 is 
+            key: Transformed key tensor of shape (B, H, T_2, d_k), where T_2 is
                  the length of the key sequence.
-            pos_enc: Positional embedding tensor of shape (B, 2 * T_1 - 1, size), 
-                      which provides positional information for the attention 
+            pos_enc: Positional embedding tensor of shape (B, 2 * T_1 - 1, size),
+                      which provides positional information for the attention
                       mechanism.
-            left_context: An integer representing the number of previous frames to 
+            left_context: An integer representing the number of previous frames to
                           use for current chunk attention computation. Default is 0.
 
         Returns:
@@ -210,7 +210,7 @@ class RelPositionMultiHeadedAttention(torch.nn.Module):
             >>> key = torch.randn(2, 4, 15, 64)    # Example key tensor
             >>> pos_enc = torch.randn(2, 19, 64)   # Example positional encoding
             >>> left_context = 3
-            >>> attention_scores = compute_simplified_attention_score(query, key, 
+            >>> attention_scores = compute_simplified_attention_score(query, key,
             ... pos_enc, left_context)
             >>> attention_scores.shape
             torch.Size([2, 4, 10, 15])  # Shape of attention scores
@@ -346,18 +346,18 @@ class RelPositionMultiHeadedAttention(torch.nn.Module):
             chunk_mask: Optional chunk mask tensor. Shape: (T_1, T_1)
 
         Returns:
-            attn_output: The transformed value weighted by the attention scores. 
+            attn_output: The transformed value weighted by the attention scores.
                           Shape: (B, T_1, H * d_k)
 
         Examples:
             >>> import torch
-            >>> attention_layer = RelPositionMultiHeadedAttention(num_heads=8, 
+            >>> attention_layer = RelPositionMultiHeadedAttention(num_heads=8,
             ...                                                      embed_size=512)
             >>> value = torch.randn(32, 8, 50, 64)  # (B, H, T_2, d_k)
             >>> scores = torch.randn(32, 8, 10, 50)  # (B, H, T_1, T_2)
             >>> mask = torch.ones(32, 50).bool()     # (B, T_2)
             >>> chunk_mask = torch.zeros(10, 10).bool()  # (T_1, T_1)
-            >>> output = attention_layer.forward_attention(value, scores, mask, 
+            >>> output = attention_layer.forward_attention(value, scores, mask,
             ...                                             chunk_mask)
         """
         batch_size = scores.size(0)
@@ -393,34 +393,34 @@ class RelPositionMultiHeadedAttention(torch.nn.Module):
         """
         Compute scaled dot product attention with relative positional encoding.
 
-        This method computes the attention output based on the input query, key, 
-        and value tensors while incorporating relative positional encoding. It 
-        calculates the attention scores and applies a mask to prevent attention 
+        This method computes the attention output based on the input query, key,
+        and value tensors while incorporating relative positional encoding. It
+        calculates the attention scores and applies a mask to prevent attention
         to certain positions as defined by the mask and chunk_mask.
 
         Args:
-            query: Query tensor. Shape (B, T_1, size), where B is the batch size, 
-                   T_1 is the sequence length of the query, and size is the 
+            query: Query tensor. Shape (B, T_1, size), where B is the batch size,
+                   T_1 is the sequence length of the query, and size is the
                    embedding dimension.
-            key: Key tensor. Shape (B, T_2, size), where T_2 is the sequence length 
+            key: Key tensor. Shape (B, T_2, size), where T_2 is the sequence length
                  of the key.
-            value: Value tensor. Shape (B, T_2, size), where T_2 is the sequence 
+            value: Value tensor. Shape (B, T_2, size), where T_2 is the sequence
                    length of the value.
-            pos_enc: Positional embedding tensor. Shape (B, 2 * T_1 - 1, size) 
+            pos_enc: Positional embedding tensor. Shape (B, 2 * T_1 - 1, size)
                       which provides the positional information.
-            mask: Source mask. Shape (B, T_2) used to prevent attention to certain 
+            mask: Source mask. Shape (B, T_2) used to prevent attention to certain
                   positions in the key/value sequences.
-            chunk_mask: Optional chunk mask. Shape (T_1, T_1) used to restrict 
+            chunk_mask: Optional chunk mask. Shape (T_1, T_1) used to restrict
                         attention within chunks.
-            left_context: Number of previous frames to use for current chunk 
+            left_context: Number of previous frames to use for current chunk
                           attention computation. Default is 0.
 
         Returns:
-            Output tensor. Shape (B, T_1, H * d_k), where H is the number of 
+            Output tensor. Shape (B, T_1, H * d_k), where H is the number of
             attention heads and d_k is the dimension of each head.
 
         Examples:
-            >>> attention_layer = RelPositionMultiHeadedAttention(num_heads=8, 
+            >>> attention_layer = RelPositionMultiHeadedAttention(num_heads=8,
             ... embed_size=512)
             >>> query = torch.randn(2, 10, 512)  # Batch of 2, T_1=10
             >>> key = torch.randn(2, 15, 512)    # T_2=15

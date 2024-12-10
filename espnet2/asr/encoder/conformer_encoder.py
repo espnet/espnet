@@ -53,25 +53,25 @@ class ConformerEncoder(AbsEncoder):
     """
     Conformer encoder module for automatic speech recognition.
 
-    This class implements the Conformer encoder, which combines convolutional 
-    neural networks and self-attention mechanisms to process sequential data 
-    such as speech. It is designed to capture both local and global dependencies 
+    This class implements the Conformer encoder, which combines convolutional
+    neural networks and self-attention mechanisms to process sequential data
+    such as speech. It is designed to capture both local and global dependencies
     in the input data effectively.
 
     Attributes:
         output_size (int): Dimension of the output from the encoder.
         embed (torch.nn.Module): Input layer module for feature extraction.
-        normalize_before (bool): Flag indicating if layer normalization is 
+        normalize_before (bool): Flag indicating if layer normalization is
             applied before the first block.
-        encoders (List[EncoderLayer]): List of encoder layers comprising the 
+        encoders (List[EncoderLayer]): List of encoder layers comprising the
             main processing stack.
-        after_norm (LayerNorm): Layer normalization applied after the encoder 
+        after_norm (LayerNorm): Layer normalization applied after the encoder
             stack, if normalize_before is set to False.
-        interctc_layer_idx (List[int]): Indices of layers for intermediate CTC 
+        interctc_layer_idx (List[int]): Indices of layers for intermediate CTC
             outputs.
-        interctc_use_conditioning (bool): Flag to indicate if conditioning on 
+        interctc_use_conditioning (bool): Flag to indicate if conditioning on
             CTC outputs is used.
-        conditioning_layer (Optional[torch.nn.Module]): Conditioning layer for 
+        conditioning_layer (Optional[torch.nn.Module]): Conditioning layer for
             intermediate CTC outputs.
         ctc_trim (bool): Flag indicating if CTC trimming is applied.
 
@@ -79,50 +79,50 @@ class ConformerEncoder(AbsEncoder):
         input_size (int): Input dimension.
         output_size (int): Dimension of attention (default: 256).
         attention_heads (int): Number of heads in multi-head attention (default: 4).
-        linear_units (int): Number of units in position-wise feed-forward 
+        linear_units (int): Number of units in position-wise feed-forward
             layers (default: 2048).
         num_blocks (int): Number of encoder blocks (default: 6).
         dropout_rate (float): Dropout rate for regularization (default: 0.1).
-        positional_dropout_rate (float): Dropout rate after positional encoding 
+        positional_dropout_rate (float): Dropout rate after positional encoding
             (default: 0.1).
-        attention_dropout_rate (float): Dropout rate in attention layers 
+        attention_dropout_rate (float): Dropout rate in attention layers
             (default: 0.0).
-        input_layer (Union[str, torch.nn.Module]): Type of input layer (default: 
+        input_layer (Union[str, torch.nn.Module]): Type of input layer (default:
             "conv2d").
-        normalize_before (bool): Whether to use layer normalization before the 
+        normalize_before (bool): Whether to use layer normalization before the
             first block (default: True).
-        concat_after (bool): Whether to concatenate input and output of the 
+        concat_after (bool): Whether to concatenate input and output of the
             attention layer (default: False).
-        positionwise_layer_type (str): Type of position-wise layer ("linear", 
+        positionwise_layer_type (str): Type of position-wise layer ("linear",
             "conv1d", or "conv1d-linear", default: "linear").
-        positionwise_conv_kernel_size (int): Kernel size for position-wise 
+        positionwise_conv_kernel_size (int): Kernel size for position-wise
             convolution (default: 3).
-        rel_pos_type (str): Type of relative positional encoding ("legacy" or 
+        rel_pos_type (str): Type of relative positional encoding ("legacy" or
             "latest", default: "legacy").
-        pos_enc_layer_type (str): Type of positional encoding layer (default: 
+        pos_enc_layer_type (str): Type of positional encoding layer (default:
             "rel_pos").
-        selfattention_layer_type (str): Type of self-attention layer (default: 
+        selfattention_layer_type (str): Type of self-attention layer (default:
             "rel_selfattn").
         activation_type (str): Activation function type (default: "swish").
-        macaron_style (bool): Whether to use Macaron style for position-wise layers 
+        macaron_style (bool): Whether to use Macaron style for position-wise layers
             (default: False).
-        use_cnn_module (bool): Whether to include convolutional modules (default: 
+        use_cnn_module (bool): Whether to include convolutional modules (default:
             True).
-        zero_triu (bool): Whether to zero the upper triangular part of the 
+        zero_triu (bool): Whether to zero the upper triangular part of the
             attention matrix (default: False).
         cnn_module_kernel (int): Kernel size for convolution modules (default: 31).
         padding_idx (int): Padding index for embedding layers (default: -1).
-        interctc_layer_idx (List[int]): Indices of layers for intermediate CTC 
+        interctc_layer_idx (List[int]): Indices of layers for intermediate CTC
             outputs (default: []).
-        interctc_use_conditioning (bool): Flag to use conditioning on CTC outputs 
+        interctc_use_conditioning (bool): Flag to use conditioning on CTC outputs
             (default: False).
         ctc_trim (bool): Flag to enable CTC trimming (default: False).
-        stochastic_depth_rate (Union[float, List[float]]): Rate for stochastic 
+        stochastic_depth_rate (Union[float, List[float]]): Rate for stochastic
             depth (default: 0.0).
         layer_drop_rate (float): Dropout rate for layers (default: 0.0).
-        max_pos_emb_len (int): Maximum length for positional embeddings 
+        max_pos_emb_len (int): Maximum length for positional embeddings
             (default: 5000).
-        qk_norm (bool): Flag to apply normalization on query-key pairs 
+        qk_norm (bool): Flag to apply normalization on query-key pairs
             (default: False).
         use_flash_attn (bool): Flag to use Flash Attention (default: True).
 
@@ -133,14 +133,14 @@ class ConformerEncoder(AbsEncoder):
         >>> output, olens, _ = encoder(xs_pad, ilens)
 
     Raises:
-        ValueError: If an unknown `rel_pos_type` or `pos_enc_layer_type` is 
+        ValueError: If an unknown `rel_pos_type` or `pos_enc_layer_type` is
             provided.
-        TooShortUttError: If the input sequence length is shorter than the 
+        TooShortUttError: If the input sequence length is shorter than the
             required length for subsampling.
 
     Note:
-        This implementation utilizes various configurations for the input 
-        layers and encoder blocks to optimize performance on different types 
+        This implementation utilizes various configurations for the input
+        layers and encoder blocks to optimize performance on different types
         of input data.
     """
 
@@ -383,7 +383,7 @@ class ConformerEncoder(AbsEncoder):
         output_size method.
 
         This method retrieves the output size of the Conformer encoder. The output
-        size is determined during the initialization of the encoder and represents 
+        size is determined during the initialization of the encoder and represents
         the dimension of the attention mechanism.
 
         Returns:
@@ -420,7 +420,7 @@ class ConformerEncoder(AbsEncoder):
             ilens (torch.Tensor): Input lengths of shape (#batch).
             prev_states (torch.Tensor, optional): Not currently used. Defaults to None.
             ctc (CTC, optional): CTC module for intermediate CTC loss. Defaults to None.
-            return_all_hs (bool, optional): Flag to indicate if all hidden states 
+            return_all_hs (bool, optional): Flag to indicate if all hidden states
                 should be returned. Defaults to False.
 
         Returns:
@@ -430,7 +430,7 @@ class ConformerEncoder(AbsEncoder):
                 - Optional tensor, not currently used (None).
 
         Raises:
-            TooShortUttError: If the input sequence length is too short for 
+            TooShortUttError: If the input sequence length is too short for
                 subsampling layers.
 
         Examples:

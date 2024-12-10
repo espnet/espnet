@@ -18,27 +18,27 @@ def stochastic_depth(input: torch.tensor, p: float, mode: str, training: bool = 
     <https://arxiv.org/abs/1603.09382>`_ used for randomly dropping residual
     branches of residual architectures.
 
-    Stochastic depth helps in training deep networks by randomly skipping 
-    layers during training, which can improve generalization and reduce 
+    Stochastic depth helps in training deep networks by randomly skipping
+    layers during training, which can improve generalization and reduce
     overfitting.
 
     Args:
-        input (Tensor[N, ...]): The input tensor or arbitrary dimensions 
+        input (Tensor[N, ...]): The input tensor or arbitrary dimensions
             with the first one being its batch i.e. a batch with ``N`` rows.
-        p (float): Probability of the input to be zeroed, where `0` means 
+        p (float): Probability of the input to be zeroed, where `0` means
             no dropout and `1` means dropping the entire input.
         mode (str): Specifies the mode of operation, can be either:
             - `"batch"`: Randomly zeroes the entire input tensor.
             - `"row"`: Randomly zeroes selected rows from the batch.
-        training (bool): Indicates whether to apply stochastic depth. 
+        training (bool): Indicates whether to apply stochastic depth.
             If `False`, the input is returned unmodified. Default: `True`.
 
     Returns:
-        Tensor[N, ...]: The randomly zeroed tensor, with the same shape as 
+        Tensor[N, ...]: The randomly zeroed tensor, with the same shape as
         the input.
 
     Raises:
-        ValueError: If `p` is not in the range [0, 1], or if `mode` is not 
+        ValueError: If `p` is not in the range [0, 1], or if `mode` is not
         `"batch"` or `"row"`.
 
     Examples:
@@ -76,9 +76,9 @@ class StochasticDepth(nn.Module):
     """
     Stochastic depth module for randomly dropping residual branches.
 
-    This module implements stochastic depth as described in the paper 
+    This module implements stochastic depth as described in the paper
     "Deep Networks with Stochastic Depth" (https://arxiv.org/abs/1603.09382).
-    It randomly drops entire residual connections during training, which 
+    It randomly drops entire residual connections during training, which
     helps to improve model robustness and reduces overfitting.
 
     Attributes:
@@ -96,7 +96,7 @@ class StochasticDepth(nn.Module):
         >>> output_tensor = sd(input_tensor)  # Apply stochastic depth
 
     Note:
-        Ensure that the model is in training mode when applying this 
+        Ensure that the model is in training mode when applying this
         module to observe the effects of stochastic depth.
     """
 
@@ -111,19 +111,19 @@ class StochasticDepth(nn.Module):
         """
         Perform the forward pass of the Stochastic Depth module.
 
-        This method applies stochastic depth to the input tensor, which randomly 
-        drops residual branches in the architecture during training, as described 
-        in the paper `"Deep Networks with Stochastic Depth" 
-        <https://arxiv.org/abs/1603.09382>`_. The behavior of the module is controlled 
+        This method applies stochastic depth to the input tensor, which randomly
+        drops residual branches in the architecture during training, as described
+        in the paper `"Deep Networks with Stochastic Depth"
+        <https://arxiv.org/abs/1603.09382>`_. The behavior of the module is controlled
         by the drop probability `p` and the specified mode (`"batch"` or `"row"`).
 
         Args:
-            input (Tensor): The input tensor of shape (N, ...), where N is the 
-                            batch size and ... represents any number of additional 
+            input (Tensor): The input tensor of shape (N, ...), where N is the
+                            batch size and ... represents any number of additional
                             dimensions.
 
         Returns:
-            Tensor: The output tensor after applying stochastic depth. The shape 
+            Tensor: The output tensor after applying stochastic depth. The shape
                     of the output tensor will match the input tensor.
 
         Examples:
@@ -135,7 +135,7 @@ class StochasticDepth(nn.Module):
             torch.Size([10, 5])  # Output shape matches input shape
 
         Note:
-            Stochastic depth is only applied during training. If the module is 
+            Stochastic depth is only applied during training. If the module is
             in evaluation mode, the input is returned unchanged.
 
         Raises:
@@ -170,9 +170,9 @@ class DropoutNd(nn.Module):
 
     Args:
         p (float): Dropout probability (default: 0.5).
-        tie (bool): Whether to tie dropout mask across sequence lengths 
+        tie (bool): Whether to tie dropout mask across sequence lengths
             (default: True).
-        transposed (bool): Whether to apply dropout in a transposed manner 
+        transposed (bool): Whether to apply dropout in a transposed manner
             (default: True).
 
     Raises:
@@ -189,6 +189,7 @@ class DropoutNd(nn.Module):
         This module is particularly useful in sequence models where you
         may want to apply dropout independently to each sequence step.
     """
+
     def __init__(self, p: float = 0.5, tie=True, transposed=True):
         """Initialize dropout module.
 
@@ -311,29 +312,29 @@ def Activation(activation=None, size=None, dim=-1):
 
 def get_initializer(name, activation=None):
     """
-    Get the appropriate weight initializer based on the specified name and 
+    Get the appropriate weight initializer based on the specified name and
     activation function.
 
-    This function returns a callable that initializes weights according to 
-    the specified initialization method and takes into account the type of 
-    activation function being used. It supports several initialization 
-    methods including 'uniform', 'normal', 'xavier', 'zero', and 'one'. 
-    If the activation function is not recognized, it raises a 
+    This function returns a callable that initializes weights according to
+    the specified initialization method and takes into account the type of
+    activation function being used. It supports several initialization
+    methods including 'uniform', 'normal', 'xavier', 'zero', and 'one'.
+    If the activation function is not recognized, it raises a
     NotImplementedError.
 
     Args:
-        name (str): The name of the initializer. Supported values are 
+        name (str): The name of the initializer. Supported values are
             'uniform', 'normal', 'xavier', 'zero', and 'one'.
-        activation (str, optional): The activation function to consider for 
-            the initialization. Supported values include 'relu', 'tanh', 
+        activation (str, optional): The activation function to consider for
+            the initialization. Supported values include 'relu', 'tanh',
             'sigmoid', 'gelu', 'swish', and 'linear'. Defaults to None.
 
     Returns:
-        Callable: A callable that initializes weights based on the specified 
+        Callable: A callable that initializes weights based on the specified
         initializer and activation function.
 
     Raises:
-        NotImplementedError: If the specified initializer name or activation 
+        NotImplementedError: If the specified initializer name or activation
         function is not supported.
 
     Examples:
@@ -425,11 +426,11 @@ def LinearActivation(
         >>> linear_layer = LinearActivation(d_input=128, d_output=64,
         ...                                  activation='relu', bias=True)
         >>> output = linear_layer(torch.randn(10, 128))
-        
+
         >>> transposed_layer = LinearActivation(d_input=64, d_output=128,
         ...                                      transposed=True, weight_norm=True)
         >>> output = transposed_layer(torch.randn(10, 64, 1))
-    
+
     Note:
         - The function raises a NotImplementedError if the specified
           activation function is not implemented.
@@ -465,19 +466,19 @@ class SquaredReLU(nn.Module):
     """
     Squared ReLU activation function.
 
-    Applies the squared rectified linear unit (ReLU) activation function to 
-    the input tensor. The Squared ReLU function outputs the square of the 
+    Applies the squared rectified linear unit (ReLU) activation function to
+    the input tensor. The Squared ReLU function outputs the square of the
     input if it is positive and zero otherwise.
 
-    This can be particularly useful in neural networks where a non-linear 
-    activation is required that emphasizes positive values while suppressing 
+    This can be particularly useful in neural networks where a non-linear
+    activation is required that emphasizes positive values while suppressing
     negative ones, effectively allowing for a form of feature amplification.
 
     Args:
         None
 
     Returns:
-        Tensor: The squared output of the ReLU activation function applied 
+        Tensor: The squared output of the ReLU activation function applied
         element-wise to the input tensor.
 
     Examples:
@@ -487,28 +488,29 @@ class SquaredReLU(nn.Module):
         >>> print(output_tensor)
         tensor([0., 0., 4., 9.])
     """
+
     def forward(self, x):
         """
-        Squared ReLU activation function.
+            Squared ReLU activation function.
 
-    Applies the ReLU activation function followed by squaring the output.
-    The function is defined as:
+        Applies the ReLU activation function followed by squaring the output.
+        The function is defined as:
 
-        SquaredReLU(x) = (ReLU(x))^2
+            SquaredReLU(x) = (ReLU(x))^2
 
-    This activation can be useful in scenarios where non-negative outputs are 
-    required, and squaring the output can enhance the gradients for positive 
-    inputs during backpropagation.
+        This activation can be useful in scenarios where non-negative outputs are
+        required, and squaring the output can enhance the gradients for positive
+        inputs during backpropagation.
 
-    Examples:
-        >>> activation = SquaredReLU()
-        >>> input_tensor = torch.tensor([-1.0, 0.0, 1.0, 2.0])
-        >>> output_tensor = activation(input_tensor)
-        >>> print(output_tensor)
-        tensor([0., 0., 1., 4.])
-    
-    Returns:
-        Tensor: The squared ReLU applied to the input tensor.
+        Examples:
+            >>> activation = SquaredReLU()
+            >>> input_tensor = torch.tensor([-1.0, 0.0, 1.0, 2.0])
+            >>> output_tensor = activation(input_tensor)
+            >>> print(output_tensor)
+            tensor([0., 0., 1., 4.])
+
+        Returns:
+            Tensor: The squared ReLU applied to the input tensor.
         """
         return F.relu(x) ** 2
 
@@ -517,14 +519,14 @@ class TransposedLinear(nn.Module):
     """
     Transposed linear module.
 
-    This module performs a linear transformation on the second-to-last dimension 
-    of the input tensor. It assumes that the input tensor has the shape 
-    (B, D, L), where B is the batch size, D is the number of features, and L can 
+    This module performs a linear transformation on the second-to-last dimension
+    of the input tensor. It assumes that the input tensor has the shape
+    (B, D, L), where B is the batch size, D is the number of features, and L can
     be one or more dimensions.
 
     Attributes:
         weight (torch.Parameter): The learnable weight parameter of the module.
-        bias (torch.Parameter or float): The learnable bias parameter or 0.0 if 
+        bias (torch.Parameter or float): The learnable bias parameter or 0.0 if
             bias is not used.
 
     Args:
@@ -544,12 +546,12 @@ class TransposedLinear(nn.Module):
         torch.Size([3, 2, 5])  # Output has 2 features
 
     Note:
-        The weight is initialized using Kaiming uniform initialization, which is 
-        suitable for layers with ReLU activations. If bias is used, it is initialized 
+        The weight is initialized using Kaiming uniform initialization, which is
+        suitable for layers with ReLU activations. If bias is used, it is initialized
         uniformly within a specific bound based on the input dimensions.
 
     Todo:
-        Consider implementing a dedicated CUDA/Triton implementation for 
+        Consider implementing a dedicated CUDA/Triton implementation for
         potential performance improvements.
     """
 
@@ -573,14 +575,14 @@ class TransposedLinear(nn.Module):
         """
         Transposed linear module.
 
-        This module applies a linear transformation on the second-to-last 
-        dimension of the input tensor. It assumes that the input tensor has 
-        the shape (B, D, L), where B is the batch size, D is the number of 
+        This module applies a linear transformation on the second-to-last
+        dimension of the input tensor. It assumes that the input tensor has
+        the shape (B, D, L), where B is the batch size, D is the number of
         features, and L can be one or more additional dimensions.
 
         Attributes:
             weight (torch.Tensor): The learnable weights of the module.
-            bias (torch.Tensor or float): The learnable bias of the module, 
+            bias (torch.Tensor or float): The learnable bias of the module,
                 or 0.0 if no bias is used.
 
         Args:
@@ -614,14 +616,14 @@ class TransposedLN(nn.Module):
     Transposed LayerNorm module.
 
     This module applies Layer Normalization over the second dimension of the input tensor,
-    which is expected to have the shape (B, D, L), where B is the batch size, D is the 
+    which is expected to have the shape (B, D, L), where B is the batch size, D is the
     feature dimension, and L can represent one or more length dimensions.
 
     The implementation includes two modes:
     1. Scalar mode: Normalizes the input using learned scale and shift parameters.
     2. LayerNorm mode: Applies the standard LayerNorm to the input.
 
-    This module is currently not optimized for speed and a dedicated CUDA/Triton 
+    This module is currently not optimized for speed and a dedicated CUDA/Triton
     implementation could provide substantial performance improvements.
 
     Attributes:
@@ -643,7 +645,7 @@ class TransposedLN(nn.Module):
         torch.Size([10, 64, 5])  # Output retains the same shape
 
     Note:
-        This implementation is currently slow. Consider using a more optimized 
+        This implementation is currently slow. Consider using a more optimized
         implementation for performance-critical applications.
 
     Todo:
@@ -665,26 +667,26 @@ class TransposedLN(nn.Module):
         """
         Transposed LayerNorm module.
 
-        This module applies Layer Normalization over the second dimension 
-        (channels) of the input tensor. It assumes the input shape is 
-        (B, D, L), where B is the batch size, D is the number of features 
-        (channels), and L can be one or more additional dimensions. 
+        This module applies Layer Normalization over the second dimension
+        (channels) of the input tensor. It assumes the input shape is
+        (B, D, L), where B is the batch size, D is the number of features
+        (channels), and L can be one or more additional dimensions.
 
-        This implementation may be slow for large inputs, and a dedicated 
-        CUDA/Triton implementation should provide substantial end-to-end 
+        This implementation may be slow for large inputs, and a dedicated
+        CUDA/Triton implementation should provide substantial end-to-end
         speedup.
 
         Attributes:
-            scalar (bool): If True, uses scalar parameters for normalization. 
+            scalar (bool): If True, uses scalar parameters for normalization.
                         If False, uses standard LayerNorm.
             m (Parameter): The mean parameter, used if scalar is True.
-            s (Parameter): The standard deviation parameter, used if scalar 
+            s (Parameter): The standard deviation parameter, used if scalar
                         is True.
             ln (LayerNorm): The LayerNorm module, used if scalar is False.
 
         Args:
             d (int): The number of features (channels) to normalize.
-            scalar (bool): If True, use scalar normalization; if False, 
+            scalar (bool): If True, use scalar normalization; if False,
                         use LayerNorm. Default: True.
 
         Returns:
@@ -696,12 +698,12 @@ class TransposedLN(nn.Module):
             >>> output_tensor = layer_norm(input_tensor)
 
         Note:
-            This module is designed for use with transposed convolutional 
-            architectures where the channel dimension is the second 
+            This module is designed for use with transposed convolutional
+            architectures where the channel dimension is the second
             dimension of the input tensor.
 
         Todo:
-            Consider implementing a faster version using CUDA or Triton 
+            Consider implementing a faster version using CUDA or Triton
             for better performance on larger inputs.
         """
         if self.scalar:
@@ -725,7 +727,7 @@ class Normalization(nn.Module):
     normalization method is determined by the `_name_` parameter during initialization.
 
     Attributes:
-        transposed (bool): Indicates if the normalization is applied on transposed 
+        transposed (bool): Indicates if the normalization is applied on transposed
             input (length dimension is -1 or -2).
         _name_ (str): The type of normalization to apply. Options include:
             'layer', 'instance', 'batch', 'group', 'none'.
@@ -733,13 +735,13 @@ class Normalization(nn.Module):
 
     Args:
         d (int): The number of features (channels) for normalization.
-        transposed (bool, optional): Whether to apply normalization to transposed 
+        transposed (bool, optional): Whether to apply normalization to transposed
             input. Default is False.
         _name_ (str, optional): The name of the normalization type. Default is 'layer'.
         **kwargs: Additional keyword arguments for specific normalization methods.
 
     Raises:
-        NotImplementedError: If an unsupported normalization type is specified in 
+        NotImplementedError: If an unsupported normalization type is specified in
             `_name_`.
 
     Examples:
@@ -750,10 +752,11 @@ class Normalization(nn.Module):
         >>> identity_norm = Normalization(d=64, _name_='none')
 
     Note:
-        The transposed option is particularly useful for working with sequences 
-        or multi-dimensional data where the last dimensions represent time or 
+        The transposed option is particularly useful for working with sequences
+        or multi-dimensional data where the last dimensions represent time or
         length.
     """
+
     def __init__(
         self,
         d,
@@ -857,39 +860,39 @@ class Normalization(nn.Module):
 
     def step(self, x, **kwargs):
         """
-        Apply the normalization step to the input tensor.
+            Apply the normalization step to the input tensor.
 
-    This method applies the normalization operation to the input tensor `x` based
-    on the specified normalization type (layer, instance, batch, group, or none).
-    It handles the transposed state of the tensor as needed and reshapes the 
-    input to apply normalization correctly. The result is returned in the same 
-    shape as the input tensor.
+        This method applies the normalization operation to the input tensor `x` based
+        on the specified normalization type (layer, instance, batch, group, or none).
+        It handles the transposed state of the tensor as needed and reshapes the
+        input to apply normalization correctly. The result is returned in the same
+        shape as the input tensor.
 
-    Args:
-        x (Tensor): The input tensor to be normalized.
-        **kwargs: Additional keyword arguments to be passed to the normalization 
-                layer.
+        Args:
+            x (Tensor): The input tensor to be normalized.
+            **kwargs: Additional keyword arguments to be passed to the normalization
+                    layer.
 
-    Returns:
-        Tensor: The normalized tensor with the same shape as the input.
+        Returns:
+            Tensor: The normalized tensor with the same shape as the input.
 
-    Raises:
-        AssertionError: If the normalization type (_name_) is not one of the 
-                        supported types ("layer", "instance", "batch", "group", 
-                        "none").
+        Raises:
+            AssertionError: If the normalization type (_name_) is not one of the
+                            supported types ("layer", "instance", "batch", "group",
+                            "none").
 
-    Examples:
-        >>> norm_layer = Normalization(d=64, _name_='layer')
-        >>> input_tensor = torch.randn(32, 64)  # Batch of 32 samples, 64 features
-        >>> output_tensor = norm_layer.step(input_tensor)
-        >>> output_tensor.shape
-        torch.Size([32, 64])
+        Examples:
+            >>> norm_layer = Normalization(d=64, _name_='layer')
+            >>> input_tensor = torch.randn(32, 64)  # Batch of 32 samples, 64 features
+            >>> output_tensor = norm_layer.step(input_tensor)
+            >>> output_tensor.shape
+            torch.Size([32, 64])
 
-        >>> group_norm_layer = Normalization(d=64, _name_='group')
-        >>> input_tensor = torch.randn(32, 64)  # Batch of 32 samples, 64 features
-        >>> output_tensor = group_norm_layer.step(input_tensor)
-        >>> output_tensor.shape
-        torch.Size([32, 64])
+            >>> group_norm_layer = Normalization(d=64, _name_='group')
+            >>> input_tensor = torch.randn(32, 64)  # Batch of 32 samples, 64 features
+            >>> output_tensor = group_norm_layer.step(input_tensor)
+            >>> output_tensor.shape
+            torch.Size([32, 64])
         """
         assert self._name_ in ["layer", "instance", "batch", "group", "none"]
         if self.transposed:
@@ -944,6 +947,7 @@ class TSNormalization(nn.Module):
     Raises:
         ValueError: If the input tensor does not have at least 2 dimensions.
     """
+
     def __init__(self, method, horizon):
         super().__init__()
 
@@ -955,12 +959,12 @@ class TSNormalization(nn.Module):
         Time Series Normalization module.
 
         This module normalizes time series data based on the specified method and
-        horizon. The normalization is performed on the input tensor, which is 
-        expected to have a shape of (B, L, D), where B is the batch size, L is 
+        horizon. The normalization is performed on the input tensor, which is
+        expected to have a shape of (B, L, D), where B is the batch size, L is
         the length of the sequence, and D is the number of features.
 
         Attributes:
-            method (str): The normalization method to use. Options are "mean" 
+            method (str): The normalization method to use. Options are "mean"
                         or "last".
             horizon (int): The number of timesteps to consider for normalization.
 
@@ -982,7 +986,7 @@ class TSNormalization(nn.Module):
             >>> print(normalized_last_x.shape)  # Output: torch.Size([10, 20, 3])
 
         Note:
-            Ensure that the input tensor has the correct shape (B, L, D) before 
+            Ensure that the input tensor has the correct shape (B, L, D) before
             using this module.
         """
         # x must be BLD
@@ -997,20 +1001,20 @@ class TSNormalization(nn.Module):
 
 class TSInverseNormalization(nn.Module):
     """
-    TSInverseNormalization is a module that performs the inverse normalization 
-    operation based on the method used during normalization. This is useful in 
-    time series forecasting tasks where the predicted values need to be 
+    TSInverseNormalization is a module that performs the inverse normalization
+    operation based on the method used during normalization. This is useful in
+    time series forecasting tasks where the predicted values need to be
     converted back to the original scale.
 
     Attributes:
-        method (str): The method used for normalization. Can be either 
+        method (str): The method used for normalization. Can be either
             "mean" or "last".
-        normalizer (TSNormalization): An instance of the TSNormalization 
+        normalizer (TSNormalization): An instance of the TSNormalization
             class that holds the scaling factor used during normalization.
 
     Args:
         method (str): The normalization method used, either "mean" or "last".
-        normalizer (TSNormalization): The normalizer object containing the 
+        normalizer (TSNormalization): The normalizer object containing the
             scaling information.
 
     Returns:
@@ -1021,12 +1025,13 @@ class TSInverseNormalization(nn.Module):
         >>> ts_inverse_norm = TSInverseNormalization(method="mean", normalizer=normalizer)
         >>> x_normalized = torch.tensor([[1.0, 2.0], [3.0, 4.0]])
         >>> x_original = ts_inverse_norm(x_normalized)
-        
+
     Note:
         The scaling is only applied if the method is either "mean" or "last".
-        If a different method is provided, the input tensor will be returned 
+        If a different method is provided, the input tensor will be returned
         unchanged.
     """
+
     def __init__(self, method, normalizer):
         super().__init__()
 
@@ -1075,9 +1080,9 @@ class ReversibleInstanceNorm1dInput(nn.Module):
     """
     Reversible Instance Normalization for 1D inputs.
 
-    This module implements reversible instance normalization for 1D inputs. It 
-    computes the mean and standard deviation of the input tensor and normalizes 
-    the input accordingly. The normalization parameters can be reversed to 
+    This module implements reversible instance normalization for 1D inputs. It
+    computes the mean and standard deviation of the input tensor and normalizes
+    the input accordingly. The normalization parameters can be reversed to
     retrieve the original input.
 
     Attributes:
@@ -1087,7 +1092,7 @@ class ReversibleInstanceNorm1dInput(nn.Module):
 
     Args:
         d (int): The number of features in the input tensor.
-        transposed (bool, optional): If True, expects input shape (B, D, L). 
+        transposed (bool, optional): If True, expects input shape (B, D, L).
             Default is False (input shape is (B, L, D)).
 
     Returns:
@@ -1101,12 +1106,13 @@ class ReversibleInstanceNorm1dInput(nn.Module):
         torch.Size([32, 5, 10])
 
     Note:
-        This module is designed to work with transposed and non-transposed 
+        This module is designed to work with transposed and non-transposed
         inputs, allowing flexibility in handling different data formats.
 
     Todo:
         - Implement additional features for handling edge cases in input shapes.
     """
+
     def __init__(self, d, transposed=False):
         super().__init__()
         # BLD if transpoed is False, otherwise BDL
@@ -1118,18 +1124,18 @@ class ReversibleInstanceNorm1dInput(nn.Module):
         ReversibleInstanceNorm1dInput class.
 
         This class applies a reversible instance normalization operation over the input
-        tensor. It computes the mean and standard deviation along the specified 
-        dimensions and normalizes the input accordingly. The normalization is reversible, 
+        tensor. It computes the mean and standard deviation along the specified
+        dimensions and normalizes the input accordingly. The normalization is reversible,
         allowing the original input to be reconstructed later using the stored statistics.
 
         Attributes:
-            transposed (bool): A flag indicating whether the input tensor is in a 
+            transposed (bool): A flag indicating whether the input tensor is in a
                             transposed format (BDL) or not (BLD).
             norm (nn.InstanceNorm1d): The instance normalization layer.
 
         Args:
             d (int): The number of features in the input tensor.
-            transposed (bool): Indicates if the input is in a transposed format. 
+            transposed (bool): Indicates if the input is in a transposed format.
                             Default is False.
 
         Returns:
@@ -1142,7 +1148,7 @@ class ReversibleInstanceNorm1dInput(nn.Module):
             >>> print(output_tensor.shape)  # Output: torch.Size([32, 64, 10])
 
         Note:
-            This normalization is particularly useful in scenarios where maintaining 
+            This normalization is particularly useful in scenarios where maintaining
             the input distribution is critical, such as in reversible networks.
         """
         # Means, stds
@@ -1162,25 +1168,25 @@ class ReversibleInstanceNorm1dInput(nn.Module):
 
 class ReversibleInstanceNorm1dOutput(nn.Module):
     """
-    ReversibleInstanceNorm1dOutput is a module that applies reversible instance 
+    ReversibleInstanceNorm1dOutput is a module that applies reversible instance
     normalization to a 1D input tensor.
 
-    This module takes the output of the `ReversibleInstanceNorm1dInput` class and 
-    reverses the normalization process by applying the stored mean and standard 
-    deviation. This is particularly useful in reversible neural networks where 
+    This module takes the output of the `ReversibleInstanceNorm1dInput` class and
+    reverses the normalization process by applying the stored mean and standard
+    deviation. This is particularly useful in reversible neural networks where
     the original input needs to be recovered after normalization.
 
     Attributes:
         transposed (bool): Indicates if the input tensor is transposed.
         weight (torch.nn.Parameter): Learnable weight parameter for normalization.
         bias (torch.nn.Parameter): Learnable bias parameter for normalization.
-        norm_input (ReversibleInstanceNorm1dInput): Instance of the input normalization 
-            module that contains the mean and standard deviation used during 
+        norm_input (ReversibleInstanceNorm1dInput): Instance of the input normalization
+            module that contains the mean and standard deviation used during
             normalization.
 
     Args:
-        norm_input (ReversibleInstanceNorm1dInput): An instance of 
-            `ReversibleInstanceNorm1dInput` which provides the mean and 
+        norm_input (ReversibleInstanceNorm1dInput): An instance of
+            `ReversibleInstanceNorm1dInput` which provides the mean and
             standard deviation for the normalization.
 
     Returns:
@@ -1194,13 +1200,14 @@ class ReversibleInstanceNorm1dOutput(nn.Module):
         >>> output_tensor = output_layer(normalized_tensor)
 
     Note:
-        The input tensor shape should match the shape expected by the 
-        `ReversibleInstanceNorm1dInput` class, either (B, L, D) or (B, D, L) 
+        The input tensor shape should match the shape expected by the
+        `ReversibleInstanceNorm1dInput` class, either (B, L, D) or (B, D, L)
         depending on the `transposed` attribute.
 
     Todo:
         - Consider implementing additional checks for input shape compatibility.
     """
+
     def __init__(self, norm_input):
         super().__init__()
         self.transposed = norm_input.transposed
@@ -1220,12 +1227,12 @@ class ReversibleInstanceNorm1dOutput(nn.Module):
 
         Attributes:
             transposed (bool): Indicates if the input data is transposed.
-            weight (torch.Tensor): The learnable weight parameter from the input 
+            weight (torch.Tensor): The learnable weight parameter from the input
                 normalization module.
-            bias (torch.Tensor): The learnable bias parameter from the input 
+            bias (torch.Tensor): The learnable bias parameter from the input
                 normalization module.
-            norm_input (ReversibleInstanceNorm1dInput): The input normalization 
-                module which provides the mean and standard deviation for 
+            norm_input (ReversibleInstanceNorm1dInput): The input normalization
+                module which provides the mean and standard deviation for
                 re-scaling.
 
         Args:

@@ -17,25 +17,25 @@ def cauchy_mult_torch(
     Compute the Cauchy kernel multiplication for tensors.
 
     This function computes the Cauchy kernel defined by the input tensors
-    `v`, `z`, and `w`. The computation can be done under the assumption that 
+    `v`, `z`, and `w`. The computation can be done under the assumption that
     `v` and `w` are symmetric (i.e., they contain complex conjugate pairs).
 
     Args:
-        v (torch.Tensor): Input tensor of shape (B, N) representing the first set 
+        v (torch.Tensor): Input tensor of shape (B, N) representing the first set
             of data points.
-        z (torch.Tensor): Input tensor of shape (L) representing the second set 
+        z (torch.Tensor): Input tensor of shape (L) representing the second set
             of data points.
-        w (torch.Tensor): Input tensor of shape (B, N) representing the third 
+        w (torch.Tensor): Input tensor of shape (B, N) representing the third
             set of data points.
-        symmetric (bool, optional): A flag indicating whether `v` and `w` are 
+        symmetric (bool, optional): A flag indicating whether `v` and `w` are
             assumed to contain complex conjugate pairs. Defaults to True.
 
     Returns:
-        torch.Tensor: The result of the Cauchy kernel multiplication with shape 
+        torch.Tensor: The result of the Cauchy kernel multiplication with shape
         (B, L).
 
     Raises:
-        AssertionError: If `symmetric` is True and the last dimension of `v` 
+        AssertionError: If `symmetric` is True and the last dimension of `v`
         is not even.
 
     Examples:
@@ -47,12 +47,12 @@ def cauchy_mult_torch(
         tensor([...])  # Expected output based on the Cauchy kernel computation.
 
     Note:
-        The function utilizes broadcasting to align the shapes of `v`, `z`, 
-        and `w` for computation. Ensure that `v` and `w` have the same last 
+        The function utilizes broadcasting to align the shapes of `v`, `z`,
+        and `w` for computation. Ensure that `v` and `w` have the same last
         dimension size before calling this function.
 
     Todo:
-        - Extend functionality to handle cases where `symmetric` is False 
+        - Extend functionality to handle cases where `symmetric` is False
           and add tests for various input shapes.
     """
     if not symmetric:
@@ -76,25 +76,25 @@ def cauchy_mult_keops(v, z, w):
     """
     Compute the Cauchy product of tensors using Keops for efficient computation.
 
-    This function utilizes the Keops library to perform Cauchy multiplication 
-    on tensors `v`, `z`, and `w`. The operation can be particularly useful in 
-    applications where the Cauchy kernel is needed, such as in machine learning 
+    This function utilizes the Keops library to perform Cauchy multiplication
+    on tensors `v`, `z`, and `w`. The operation can be particularly useful in
+    applications where the Cauchy kernel is needed, such as in machine learning
     and signal processing.
 
     Args:
-        v (torch.Tensor): A tensor of shape (B, N), where B is the batch size 
+        v (torch.Tensor): A tensor of shape (B, N), where B is the batch size
             and N is the number of features.
-        z (torch.Tensor): A tensor of shape (L), where L is the length of the 
+        z (torch.Tensor): A tensor of shape (L), where L is the length of the
             evaluation points.
-        w (torch.Tensor): A tensor of shape (B, N), similar to `v`, which 
+        w (torch.Tensor): A tensor of shape (B, N), similar to `v`, which
             serves as another set of features for the Cauchy multiplication.
 
     Returns:
-        torch.Tensor: A tensor of shape (B, L) representing the result of the 
+        torch.Tensor: A tensor of shape (B, L) representing the result of the
         Cauchy multiplication.
 
     Raises:
-        NotImplementedError: If the shapes of the input tensors do not comply 
+        NotImplementedError: If the shapes of the input tensors do not comply
         with the expected sizes or if CUDA tensors are not used.
 
     Examples:
@@ -105,7 +105,7 @@ def cauchy_mult_keops(v, z, w):
         >>> print(result.shape)    # Output: torch.Size([2, 3])
 
     Note:
-        This function requires the PyKeops library to be installed and properly 
+        This function requires the PyKeops library to be installed and properly
         configured for CUDA support.
 
     Todo:
@@ -134,17 +134,17 @@ def cauchy_mult(v, z, w, symmetric=True):
     Compute the Cauchy multiplication of input tensors.
 
     This function performs Cauchy multiplication of input tensors `v`, `z`, and `w`.
-    It can handle both symmetric and non-symmetric cases, depending on the 
-    value of the `symmetric` parameter. In the symmetric case, it assumes that 
+    It can handle both symmetric and non-symmetric cases, depending on the
+    value of the `symmetric` parameter. In the symmetric case, it assumes that
     the input tensors contain complex conjugate pairs.
 
     Attributes:
-        v (torch.Tensor): A tensor of shape (B, N) where B is the batch size 
+        v (torch.Tensor): A tensor of shape (B, N) where B is the batch size
                         and N is the size of the input.
-        z (torch.Tensor): A tensor of shape (L) where L is the length of the 
+        z (torch.Tensor): A tensor of shape (L) where L is the length of the
                         second input.
         w (torch.Tensor): A tensor of shape (B, N) similar to `v`.
-        symmetric (bool): A flag indicating whether to treat the inputs as 
+        symmetric (bool): A flag indicating whether to treat the inputs as
                         symmetric. Defaults to True.
 
     Args:
@@ -190,23 +190,23 @@ def cauchy_mult(v, z, w, symmetric=True):
 
 class CauchyMultiply(torch.autograd.Function):
     """
-    CauchyMultiply is a PyTorch autograd function that performs the forward and 
-    backward passes for the Cauchy multiplication operation, which is a key 
-    operation in various applications, including signal processing and 
+    CauchyMultiply is a PyTorch autograd function that performs the forward and
+    backward passes for the Cauchy multiplication operation, which is a key
+    operation in various applications, including signal processing and
     machine learning.
 
-    This function is designed to operate on CUDA tensors and supports only 
-    specific input dimensions for efficiency. It computes the multiplication 
+    This function is designed to operate on CUDA tensors and supports only
+    specific input dimensions for efficiency. It computes the multiplication
     using a Cauchy kernel defined by the input tensors.
 
     Attributes:
-        v (torch.Tensor): A tensor of shape (B, N) where B is the batch size and 
+        v (torch.Tensor): A tensor of shape (B, N) where B is the batch size and
                         N is the dimension of the input vectors.
-        z (torch.Tensor): A tensor of shape (L) which represents the points 
+        z (torch.Tensor): A tensor of shape (L) which represents the points
                         at which the Cauchy kernel is evaluated.
-        w (torch.Tensor): A tensor of shape (B, N) similar to v, used in the 
+        w (torch.Tensor): A tensor of shape (B, N) similar to v, used in the
                         Cauchy multiplication.
-        
+
     Args:
         ctx: The context object used to save tensors for backward computation.
         v (torch.Tensor): Input tensor of shape (B, N).
@@ -214,12 +214,12 @@ class CauchyMultiply(torch.autograd.Function):
         w (torch.Tensor): Input tensor of shape (B, N).
 
     Returns:
-        torch.Tensor: The result of the Cauchy multiplication, a tensor of shape 
+        torch.Tensor: The result of the Cauchy multiplication, a tensor of shape
                     (B, L).
 
     Raises:
-        NotImplementedError: If the input tensor sizes do not meet the 
-                            requirements (N must be a power of 2, L must be 
+        NotImplementedError: If the input tensor sizes do not meet the
+                            requirements (N must be a power of 2, L must be
                             a multiple of 32, and all tensors must be on CUDA).
 
     Examples:
@@ -228,45 +228,46 @@ class CauchyMultiply(torch.autograd.Function):
         z = torch.randn(128, device='cuda')     # Points at which to evaluate
         w = torch.randn(2, 64, device='cuda')   # Another tensor of the same size as v
         result = CauchyMultiply.apply(v, z, w)
-        
+
         # Example usage in a backward pass
         dout = torch.randn_like(result)          # Gradient of the output
         dv, _, dw = CauchyMultiply.backward(ctx, dout)
 
     Note:
-        This class is intended for advanced users who are familiar with 
+        This class is intended for advanced users who are familiar with
         PyTorch's autograd functionality and CUDA programming.
 
     Todo:
         - Extend support for additional tensor shapes and dimensions.
     """
+
     @staticmethod
     def forward(ctx, v, z, w):
         """
         Wrap the CUDA method to compute Cauchy multiplication with shape handling.
 
-        This function computes the Cauchy multiplication of input tensors `v`, `z`, 
-        and `w`. It supports both symmetric and non-symmetric configurations. The 
-        inputs are broadcasted to ensure compatible shapes, and the resulting tensor 
+        This function computes the Cauchy multiplication of input tensors `v`, `z`,
+        and `w`. It supports both symmetric and non-symmetric configurations. The
+        inputs are broadcasted to ensure compatible shapes, and the resulting tensor
         is reshaped accordingly.
 
         Args:
-            v (torch.Tensor): A tensor of shape (B, N) where B is the batch size 
+            v (torch.Tensor): A tensor of shape (B, N) where B is the batch size
                 and N is the number of elements in each input vector.
-            z (torch.Tensor): A tensor of shape (L) where L is the number of 
+            z (torch.Tensor): A tensor of shape (L) where L is the number of
                 evaluation points.
             w (torch.Tensor): A tensor of shape (B, N) similar to `v`.
-            symmetric (bool, optional): If True, assumes that `v` and `w` contain 
+            symmetric (bool, optional): If True, assumes that `v` and `w` contain
                 complex conjugate pairs. Defaults to True.
 
         Returns:
-            torch.Tensor: A tensor of shape (B, L) containing the result of the 
+            torch.Tensor: A tensor of shape (B, L) containing the result of the
             Cauchy multiplication.
 
         Raises:
-            AssertionError: If the shapes of `v`, `w`, or `z` are not compatible 
+            AssertionError: If the shapes of `v`, `w`, or `z` are not compatible
             or if `z` does not have the expected shape.
-            NotImplementedError: If `N` or `L` do not meet the specified criteria 
+            NotImplementedError: If `N` or `L` do not meet the specified criteria
             for supported sizes.
 
         Examples:
@@ -297,8 +298,8 @@ class CauchyMultiply(torch.autograd.Function):
         """
         Computes the gradient of the Cauchy multiplication operation.
 
-        This method is part of the CauchyMultiply autograd function. It takes the 
-        saved tensors from the forward pass and computes the gradients of the input 
+        This method is part of the CauchyMultiply autograd function. It takes the
+        saved tensors from the forward pass and computes the gradients of the input
         tensors `v` and `w` based on the output gradient `dout`.
 
         Args:
@@ -312,7 +313,7 @@ class CauchyMultiply(torch.autograd.Function):
                 - dw (torch.Tensor): The gradient of the input tensor `w`.
 
         Raises:
-            NotImplementedError: If the operation is not supported for the given input 
+            NotImplementedError: If the operation is not supported for the given input
             sizes or types.
 
         Examples:
@@ -334,9 +335,9 @@ class CauchyMultiplySymmetric(torch.autograd.Function):
     """
     Perform Cauchy multiplication for symmetric tensors.
 
-    This class implements the forward and backward methods for computing 
-    the Cauchy multiplication of input tensors while leveraging PyTorch's 
-    autograd functionality. The multiplication assumes that the input 
+    This class implements the forward and backward methods for computing
+    the Cauchy multiplication of input tensors while leveraging PyTorch's
+    autograd functionality. The multiplication assumes that the input
     tensors exhibit symmetry, which allows for optimized calculations.
 
     Attributes:
@@ -351,7 +352,7 @@ class CauchyMultiplySymmetric(torch.autograd.Function):
         torch.Tensor: The result of the Cauchy multiplication.
 
     Raises:
-        NotImplementedError: If N is not in supported values or if L exceeds 
+        NotImplementedError: If N is not in supported values or if L exceeds
         the maximum limit or if input tensors are not CUDA compatible.
 
     Examples:
@@ -362,52 +363,53 @@ class CauchyMultiplySymmetric(torch.autograd.Function):
         >>> print(result.shape)  # Should output: (2, 32)
 
     Note:
-        The function currently supports N values that are powers of two 
-        up to 1024. L must be a multiple of 32 and cannot exceed a 
+        The function currently supports N values that are powers of two
+        up to 1024. L must be a multiple of 32 and cannot exceed a
         predefined maximum value.
 
     Todo:
-        - Expand support for additional N values and L sizes in future 
+        - Expand support for additional N values and L sizes in future
         implementations.
     """
+
     @staticmethod
     def forward(ctx, v, z, w):
         """
-        Implements the forward and backward passes for symmetric Cauchy 
+        Implements the forward and backward passes for symmetric Cauchy
         multiplication.
 
-        This class leverages PyTorch's autograd functionality to compute the 
-        Cauchy product of tensors in a symmetric manner. The forward method 
-        computes the result based on the input tensors, while the backward 
+        This class leverages PyTorch's autograd functionality to compute the
+        Cauchy product of tensors in a symmetric manner. The forward method
+        computes the result based on the input tensors, while the backward
         method calculates the gradients for backpropagation.
 
         Attributes:
             None
 
         Args:
-            ctx: The context object that can be used to stash information 
+            ctx: The context object that can be used to stash information
                 for backward computation.
-            v (torch.Tensor): Input tensor of shape (B, N), where B is the 
+            v (torch.Tensor): Input tensor of shape (B, N), where B is the
                 batch size and N is the dimension of the input.
-            z (torch.Tensor): Input tensor of shape (L), where L is the 
+            z (torch.Tensor): Input tensor of shape (L), where L is the
                 dimension of the second input.
             w (torch.Tensor): Input tensor of shape (B, N), similar to v.
 
         Returns:
-            torch.Tensor: The result of the Cauchy multiplication of v, z, 
+            torch.Tensor: The result of the Cauchy multiplication of v, z,
             and w.
 
         Raises:
-            NotImplementedError: If the input sizes do not meet the expected 
+            NotImplementedError: If the input sizes do not meet the expected
             conditions:
-                - N must be a power of two (supported values are [1 << log_n 
+                - N must be a power of two (supported values are [1 << log_n
                 for log_n in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]]).
                 - L must be a multiple of 32.
                 - All tensors must be on CUDA if v is not a CUDA tensor.
 
         Examples:
             To compute the symmetric Cauchy product:
-            
+
             ```python
             import torch
 
@@ -419,7 +421,7 @@ class CauchyMultiplySymmetric(torch.autograd.Function):
             ```
 
         Note:
-            Ensure that the input tensors are properly shaped and on the 
+            Ensure that the input tensors are properly shaped and on the
             correct device (CUDA) before calling the forward method.
 
         Todo:
@@ -469,7 +471,7 @@ class CauchyMultiplySymmetric(torch.autograd.Function):
             >>> w = torch.randn(10, 64, device='cuda')
             >>> cauchy_mul = CauchyMultiply.apply(v, z, w)
             >>> cauchy_mul.backward(torch.ones_like(cauchy_mul))
-        
+
         Note:
             The backward function assumes that the input tensors are CUDA tensors
             and raises an error if they are not.

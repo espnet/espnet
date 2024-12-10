@@ -49,12 +49,13 @@ class DPCLE2ESeparator(AbsSeparator):
 
     Note:
         This separator is designed to work with both real and complex input
-        tensors. Ensure the input features are properly formatted before 
+        tensors. Ensure the input features are properly formatted before
         passing them to the forward method.
 
     Raises:
         ValueError: If an unsupported nonlinear activation function is provided.
     """
+
     def __init__(
         self,
         input_dim: int,
@@ -149,22 +150,22 @@ class DPCLE2ESeparator(AbsSeparator):
         clustering algorithm to estimate the masks for each speaker.
 
         Args:
-            input (Union[torch.Tensor, ComplexTensor]): Encoded feature tensor 
-                of shape [B, T, F] where B is batch size, T is time frames, 
+            input (Union[torch.Tensor, ComplexTensor]): Encoded feature tensor
+                of shape [B, T, F] where B is batch size, T is time frames,
                 and F is the number of frequency bins.
             ilens (torch.Tensor): Tensor of input lengths of shape [Batch].
-            additional (Optional[Dict], optional): Additional information that 
+            additional (Optional[Dict], optional): Additional information that
                 can be passed to the forward method. Defaults to None.
 
         Returns:
-            Tuple[List[Union[torch.Tensor, ComplexTensor]], torch.Tensor, 
+            Tuple[List[Union[torch.Tensor, ComplexTensor]], torch.Tensor,
             OrderedDict]: A tuple containing:
-                - masked (List[Union[torch.Tensor, ComplexTensor]]): List of 
-                  tensors, each of shape (B, T, F) representing the 
+                - masked (List[Union[torch.Tensor, ComplexTensor]]): List of
+                  tensors, each of shape (B, T, F) representing the
                   separated sources [(B, T, N), ...].
-                - ilens (torch.Tensor): Tensor containing the lengths of each 
+                - ilens (torch.Tensor): Tensor containing the lengths of each
                   output in the batch.
-                - others (OrderedDict): Contains additional predicted data, 
+                - others (OrderedDict): Contains additional predicted data,
                   e.g., masks for each speaker:
                     - 'mask_spk1': torch.Tensor(Batch, Frames, Freq),
                     - 'mask_spk2': torch.Tensor(Batch, Frames, Freq),
@@ -178,11 +179,11 @@ class DPCLE2ESeparator(AbsSeparator):
             >>> masked, ilens_out, others = separator.forward(input_tensor, ilens)
 
         Note:
-            The output masks can be applied to the input features to obtain 
+            The output masks can be applied to the input features to obtain
             the estimated sources.
 
         Raises:
-            ValueError: If the input is not a valid tensor or if ilens does 
+            ValueError: If the input is not a valid tensor or if ilens does
             not match the batch size.
         """
 

@@ -38,9 +38,9 @@ class ContextualBlockConformerEncoder(AbsEncoder):
     Contextual Block Conformer encoder module.
 
     This class implements a Conformer encoder utilizing contextual block
-    processing. It supports various configurations for input layers, 
-    attention mechanisms, and normalization strategies. The encoder is 
-    designed to process sequences of variable lengths efficiently, with 
+    processing. It supports various configurations for input layers,
+    attention mechanisms, and normalization strategies. The encoder is
+    designed to process sequences of variable lengths efficiently, with
     support for both training and inference modes.
 
     Attributes:
@@ -53,45 +53,45 @@ class ContextualBlockConformerEncoder(AbsEncoder):
         look_ahead (int): Look-ahead size for block processing.
         init_average (bool): Flag to determine if the initial context is
             an average or max value.
-        ctx_pos_enc (bool): Flag to indicate if positional encoding is 
+        ctx_pos_enc (bool): Flag to indicate if positional encoding is
             applied to context vectors.
 
     Args:
         input_size (int): Dimension of the input features.
         output_size (int, optional): Dimension of attention. Default is 256.
         attention_heads (int, optional): Number of attention heads. Default is 4.
-        linear_units (int, optional): Number of units in the position-wise 
+        linear_units (int, optional): Number of units in the position-wise
             feed forward layer. Default is 2048.
         num_blocks (int, optional): Number of encoder blocks. Default is 6.
         dropout_rate (float, optional): Dropout rate for layers. Default is 0.1.
-        positional_dropout_rate (float, optional): Dropout rate after adding 
+        positional_dropout_rate (float, optional): Dropout rate after adding
             positional encoding. Default is 0.1.
-        attention_dropout_rate (float, optional): Dropout rate for attention 
+        attention_dropout_rate (float, optional): Dropout rate for attention
             layers. Default is 0.0.
         input_layer (Optional[str], optional): Type of input layer. Default is "conv2d".
-        normalize_before (bool, optional): Use layer normalization before the 
+        normalize_before (bool, optional): Use layer normalization before the
             first block. Default is True.
-        concat_after (bool, optional): Concatenate input and output of the 
+        concat_after (bool, optional): Concatenate input and output of the
             attention layer. Default is False.
-        positionwise_layer_type (str, optional): Type of position-wise layer. 
+        positionwise_layer_type (str, optional): Type of position-wise layer.
             Options are "linear" or "conv1d". Default is "linear".
-        positionwise_conv_kernel_size (int, optional): Kernel size for 
+        positionwise_conv_kernel_size (int, optional): Kernel size for
             position-wise convolution. Default is 3.
         macaron_style (bool, optional): Use Macaron-style connections. Default is False.
-        pos_enc_class (type, optional): Class for positional encoding. Default is 
+        pos_enc_class (type, optional): Class for positional encoding. Default is
             StreamPositionalEncoding.
-        selfattention_layer_type (str, optional): Type of self-attention layer. 
+        selfattention_layer_type (str, optional): Type of self-attention layer.
             Default is "rel_selfattn".
         activation_type (str, optional): Type of activation function. Default is "swish".
         use_cnn_module (bool, optional): Use CNN module for convolution. Default is True.
         cnn_module_kernel (int, optional): Kernel size for CNN module. Default is 31.
         padding_idx (int, optional): Padding index for embedding layer. Default is -1.
-        block_size (int, optional): Block size for contextual block processing. 
+        block_size (int, optional): Block size for contextual block processing.
             Default is 40.
         hop_size (int, optional): Hop size for block processing. Default is 16.
         look_ahead (int, optional): Look-ahead size for block processing. Default is 16.
         init_average (bool, optional): Use average for initial context. Default is True.
-        ctx_pos_enc (bool, optional): Use positional encoding for context vectors. 
+        ctx_pos_enc (bool, optional): Use positional encoding for context vectors.
             Default is True.
 
     Examples:
@@ -108,12 +108,12 @@ class ContextualBlockConformerEncoder(AbsEncoder):
         >>> output, olens, _ = encoder(xs_pad, ilens)
 
     Note:
-        Ensure that the input tensor is properly padded according to the 
+        Ensure that the input tensor is properly padded according to the
         specified input length for effective processing.
 
     Raises:
         ValueError: If an unknown input layer type is provided.
-        NotImplementedError: If an unsupported position-wise layer type is 
+        NotImplementedError: If an unsupported position-wise layer type is
             specified.
 
     Todo:
@@ -285,27 +285,27 @@ class ContextualBlockConformerEncoder(AbsEncoder):
         """
         Processes the input tensor through the encoder.
 
-        This method applies the contextual block conformer encoding to the input 
-        tensor, embedding the positions and managing the inference mode. It 
-        distinguishes between training and inference phases to handle input 
+        This method applies the contextual block conformer encoding to the input
+        tensor, embedding the positions and managing the inference mode. It
+        distinguishes between training and inference phases to handle input
         tensors accordingly.
 
         Args:
-            xs_pad: Input tensor of shape (B, L, D) where B is the batch size, 
+            xs_pad: Input tensor of shape (B, L, D) where B is the batch size,
                 L is the sequence length, and D is the feature dimension.
-            ilens: Tensor containing the lengths of the input sequences of 
+            ilens: Tensor containing the lengths of the input sequences of
                 shape (B).
-            prev_states: Optional; a tensor that holds the previous states. 
+            prev_states: Optional; a tensor that holds the previous states.
                 Currently not utilized.
-            is_final: Optional; a boolean indicating if this is the final 
+            is_final: Optional; a boolean indicating if this is the final
                 call in the inference process. Defaults to True.
-            infer_mode: Optional; a boolean indicating whether the model is in 
-                inference mode. If True, it will switch to the inference 
+            infer_mode: Optional; a boolean indicating whether the model is in
+                inference mode. If True, it will switch to the inference
                 forward method; otherwise, it will use the training method.
 
         Returns:
             A tuple containing:
-                - position-embedded tensor of shape (B, L', D) where L' is the 
+                - position-embedded tensor of shape (B, L', D) where L' is the
                   output sequence length.
                 - Tensor of output lengths of shape (B).
                 - Optional; previous state tensor if applicable.
@@ -317,7 +317,7 @@ class ContextualBlockConformerEncoder(AbsEncoder):
             >>> output, olens, _ = encoder.forward(xs_pad, ilens)
 
         Note:
-            This method automatically handles both training and inference 
+            This method automatically handles both training and inference
             scenarios based on the `infer_mode` flag.
 
         Raises:
@@ -337,16 +337,16 @@ class ContextualBlockConformerEncoder(AbsEncoder):
         """
         Perform the forward pass for training and validation.
 
-        This method processes the input tensor through the encoder and returns 
-        the position-embedded output along with the output lengths and an optional 
+        This method processes the input tensor through the encoder and returns
+        the position-embedded output along with the output lengths and an optional
         mask.
 
         Args:
             xs_pad: Input tensor of shape (B, L, D), where B is the batch size,
                 L is the sequence length, and D is the feature dimension.
-            ilens: A tensor of shape (B) containing the lengths of each input 
+            ilens: A tensor of shape (B) containing the lengths of each input
                 sequence in the batch.
-            prev_states: (Optional) A tensor containing previous states. Not used 
+            prev_states: (Optional) A tensor containing previous states. Not used
                 in this implementation.
 
         Returns:
@@ -362,7 +362,7 @@ class ContextualBlockConformerEncoder(AbsEncoder):
             >>> output, output_lengths, _ = model.forward_train(input_tensor, input_lengths)
 
         Note:
-            This method is specifically for training and validation purposes. 
+            This method is specifically for training and validation purposes.
             It utilizes masking to ignore padded values in the input sequences.
 
         Raises:
@@ -517,34 +517,34 @@ class ContextualBlockConformerEncoder(AbsEncoder):
         """
         Perform inference using the forward method of the encoder.
 
-        This method processes the input tensor for inference mode, 
-        handling context vectors and block processing based on the 
-        given input parameters. It is designed to work with the 
-        current state of the model and manage past states for 
+        This method processes the input tensor for inference mode,
+        handling context vectors and block processing based on the
+        given input parameters. It is designed to work with the
+        current state of the model and manage past states for
         continuous processing.
 
         Args:
             xs_pad: Input tensor of shape (B, L, D) where B is the batch size,
-                     L is the length of the sequence, and D is the feature 
+                     L is the length of the sequence, and D is the feature
                      dimension.
-            ilens: Tensor of input lengths of shape (B) indicating the 
+            ilens: Tensor of input lengths of shape (B) indicating the
                     actual lengths of each input sequence in the batch.
-            prev_states: Optional; a dictionary containing the previous 
+            prev_states: Optional; a dictionary containing the previous
                          states for context management during inference.
-                         It can include keys like 'prev_addin', 
-                         'buffer_before_downsampling', 'ilens_buffer', 
+                         It can include keys like 'prev_addin',
+                         'buffer_before_downsampling', 'ilens_buffer',
                          'buffer_after_downsampling', 'n_processed_blocks',
                          and 'past_encoder_ctx'.
-            is_final: A boolean indicating whether this is the final 
-                      inference step. If False, the function prepares 
+            is_final: A boolean indicating whether this is the final
+                      inference step. If False, the function prepares
                       the state for the next input.
 
         Returns:
             A tuple containing:
-                - The output tensor of shape (B, y_length, D), where y_length 
+                - The output tensor of shape (B, y_length, D), where y_length
                   is the length of the output sequence.
                 - A tensor of output lengths of shape (B).
-                - An optional dictionary of next states for continuous 
+                - An optional dictionary of next states for continuous
                   processing.
 
         Examples:
@@ -554,9 +554,9 @@ class ContextualBlockConformerEncoder(AbsEncoder):
             >>> output, lengths, next_states = encoder.forward_infer(xs_pad, ilens)
 
         Note:
-            This method assumes that the encoder is in evaluation mode 
-            (i.e., `model.eval()`). The `prev_states` can be used to 
-            carry over information from previous calls, enabling 
+            This method assumes that the encoder is in evaluation mode
+            (i.e., `model.eval()`). The `prev_states` can be used to
+            carry over information from previous calls, enabling
             streaming or chunked inference.
 
         Raises:

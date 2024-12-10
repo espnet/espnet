@@ -7,9 +7,9 @@ class AbsSpecAug(torch.nn.Module):
     """
     Abstract base class for spectrogram augmentation in speech processing.
 
-    This class serves as a blueprint for implementing various spectrogram 
-    augmentation techniques. The augmentation process is typically part of 
-    a speech recognition pipeline that includes frontend processing, 
+    This class serves as a blueprint for implementing various spectrogram
+    augmentation techniques. The augmentation process is typically part of
+    a speech recognition pipeline that includes frontend processing,
     spectrogram augmentation, normalization, encoding, and decoding.
 
     Attributes:
@@ -20,20 +20,20 @@ class AbsSpecAug(torch.nn.Module):
 
     Returns:
         Tuple[torch.Tensor, Optional[torch.Tensor]]:
-            A tuple containing the augmented spectrogram tensor and 
+            A tuple containing the augmented spectrogram tensor and
             optionally the lengths of the input sequences.
 
     Yields:
         None
 
     Raises:
-        NotImplementedError: If the forward method is not implemented by 
+        NotImplementedError: If the forward method is not implemented by
         the subclass.
 
     Examples:
-        To implement a specific spectrogram augmentation, subclass 
+        To implement a specific spectrogram augmentation, subclass
         AbsSpecAug and define the forward method:
-        
+
         ```python
         class MySpecAug(AbsSpecAug):
             def forward(self, x, x_lengths=None):
@@ -42,11 +42,11 @@ class AbsSpecAug(torch.nn.Module):
         ```
 
     Note:
-        This class is intended to be subclassed, and the forward method 
+        This class is intended to be subclassed, and the forward method
         must be overridden to provide specific augmentation behavior.
 
     Todo:
-        Implement additional methods or properties as needed for specific 
+        Implement additional methods or properties as needed for specific
         augmentation strategies.
     """
 
@@ -56,25 +56,25 @@ class AbsSpecAug(torch.nn.Module):
         """
         Performs the forward pass of the spectrogram augmentation.
 
-        This method takes an input tensor representing the spectrogram and 
-        optionally its lengths. It processes the input through the augmentation 
+        This method takes an input tensor representing the spectrogram and
+        optionally its lengths. It processes the input through the augmentation
         pipeline, returning the augmented spectrogram and the updated lengths.
 
         Args:
-            x (torch.Tensor): A tensor of shape (batch_size, num_channels, 
+            x (torch.Tensor): A tensor of shape (batch_size, num_channels,
                 time_steps) representing the input spectrogram.
             x_lengths (torch.Tensor, optional): A tensor of shape (batch_size,)
-                containing the lengths of each input in the batch. If None, 
+                containing the lengths of each input in the batch. If None,
                 lengths are assumed to be the maximum length of the inputs.
 
         Returns:
-            Tuple[torch.Tensor, Optional[torch.Tensor]]: A tuple where the first 
-            element is the augmented spectrogram tensor of shape 
-            (batch_size, num_channels, time_steps) and the second element is 
+            Tuple[torch.Tensor, Optional[torch.Tensor]]: A tuple where the first
+            element is the augmented spectrogram tensor of shape
+            (batch_size, num_channels, time_steps) and the second element is
             the updated lengths tensor, or None if lengths were not provided.
 
         Raises:
-            NotImplementedError: This method should be implemented in a 
+            NotImplementedError: This method should be implemented in a
             subclass of AbsSpecAug.
 
         Examples:
@@ -86,7 +86,7 @@ class AbsSpecAug(torch.nn.Module):
             >>> print(updated_lengths)  # Should print: tensor([100, 90]) or modified lengths
 
         Note:
-            This method is intended to be overridden in subclasses to provide 
+            This method is intended to be overridden in subclasses to provide
             specific augmentation logic.
         """
         raise NotImplementedError

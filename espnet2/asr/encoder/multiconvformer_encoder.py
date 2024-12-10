@@ -49,12 +49,12 @@ class MultiConvConformerEncoder(AbsEncoder):
     """
     Multiconvformer encoder module for automatic speech recognition (ASR).
 
-    This encoder combines multiple convolutional layers and attention mechanisms 
-    to process input sequences efficiently. It utilizes a variety of configurations 
-    for positional encoding, attention types, and feed-forward layers, making it 
-    versatile for different ASR tasks. 
+    This encoder combines multiple convolutional layers and attention mechanisms
+    to process input sequences efficiently. It utilizes a variety of configurations
+    for positional encoding, attention types, and feed-forward layers, making it
+    versatile for different ASR tasks.
 
-    For detailed information, refer to the paper: 
+    For detailed information, refer to the paper:
     https://arxiv.org/abs/2407.03718.
 
     Attributes:
@@ -105,7 +105,7 @@ class MultiConvConformerEncoder(AbsEncoder):
         output, olens, _ = encoder(xs_pad, ilens)
 
     Note:
-        This encoder is designed for ASR tasks and can be customized with various 
+        This encoder is designed for ASR tasks and can be customized with various
         configurations based on the specific requirements of the task.
 
     Todo:
@@ -351,8 +351,8 @@ class MultiConvConformerEncoder(AbsEncoder):
         """
         Return the output size of the MultiConvConformerEncoder.
 
-        This method provides the dimension of the output from the encoder. The 
-        output size is typically used in subsequent layers of a neural network 
+        This method provides the dimension of the output from the encoder. The
+        output size is typically used in subsequent layers of a neural network
         model, such as in decoders or for classification tasks.
 
         Returns:
@@ -364,7 +364,7 @@ class MultiConvConformerEncoder(AbsEncoder):
             256
 
         Note:
-            The output size is set during the initialization of the encoder 
+            The output size is set during the initialization of the encoder
             and cannot be changed afterwards.
         """
         return self._output_size
@@ -377,40 +377,40 @@ class MultiConvConformerEncoder(AbsEncoder):
         ctc: CTC = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
         """
-        Calculate forward propagation through the MultiConvConformerEncoder.
+            Calculate forward propagation through the MultiConvConformerEncoder.
 
-    This method processes the input tensor through the encoder layers and
-    returns the output tensor along with the corresponding output lengths.
-    The method also handles any necessary subsampling of the input and
-    applies the appropriate embeddings.
+        This method processes the input tensor through the encoder layers and
+        returns the output tensor along with the corresponding output lengths.
+        The method also handles any necessary subsampling of the input and
+        applies the appropriate embeddings.
 
-    Args:
-        xs_pad (torch.Tensor): Input tensor of shape (#batch, L, input_size).
-        ilens (torch.Tensor): Input lengths of shape (#batch).
-        prev_states (torch.Tensor, optional): Previous states, not used currently.
-        ctc (CTC, optional): Connectionist Temporal Classification object, not used
-            currently.
+        Args:
+            xs_pad (torch.Tensor): Input tensor of shape (#batch, L, input_size).
+            ilens (torch.Tensor): Input lengths of shape (#batch).
+            prev_states (torch.Tensor, optional): Previous states, not used currently.
+            ctc (CTC, optional): Connectionist Temporal Classification object, not used
+                currently.
 
-    Returns:
-        Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
-            - Output tensor of shape (#batch, L, output_size).
-            - Output lengths of shape (#batch).
-            - Placeholder for additional output, not used currently (None).
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
+                - Output tensor of shape (#batch, L, output_size).
+                - Output lengths of shape (#batch).
+                - Placeholder for additional output, not used currently (None).
 
-    Raises:
-        TooShortUttError: If the input sequence length is shorter than the 
-            required minimum length for subsampling.
+        Raises:
+            TooShortUttError: If the input sequence length is shorter than the
+                required minimum length for subsampling.
 
-    Examples:
-        >>> encoder = MultiConvConformerEncoder(input_size=80, output_size=256)
-        >>> xs_pad = torch.randn(32, 100, 80)  # Batch of 32, 100 time steps, 80 features
-        >>> ilens = torch.tensor([100] * 32)  # All inputs have length 100
-        >>> output, olens, _ = encoder.forward(xs_pad, ilens)
+        Examples:
+            >>> encoder = MultiConvConformerEncoder(input_size=80, output_size=256)
+            >>> xs_pad = torch.randn(32, 100, 80)  # Batch of 32, 100 time steps, 80 features
+            >>> ilens = torch.tensor([100] * 32)  # All inputs have length 100
+            >>> output, olens, _ = encoder.forward(xs_pad, ilens)
 
-    Note:
-        This method uses the embedding layers and encoder layers defined in the
-        class constructor. It is important to ensure that the input data is 
-        properly preprocessed before calling this method.
+        Note:
+            This method uses the embedding layers and encoder layers defined in the
+            class constructor. It is important to ensure that the input data is
+            properly preprocessed before calling this method.
         """
         masks = (~make_pad_mask(ilens)[:, None, :]).to(xs_pad.device)
 

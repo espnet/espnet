@@ -14,7 +14,7 @@ class OpenAIWhisperEncoder(AbsEncoder):
     Transformer-based Speech Encoder from OpenAI's Whisper Model.
 
     This encoder leverages the Whisper model for speech recognition tasks.
-    It processes audio inputs to generate log-mel spectrograms and encodes 
+    It processes audio inputs to generate log-mel spectrograms and encodes
     them using a series of transformer blocks.
 
     For more information on the Whisper model, visit:
@@ -52,7 +52,7 @@ class OpenAIWhisperEncoder(AbsEncoder):
         >>> print(encoded_output.shape)  # Shape of the encoded output
 
     Note:
-        The Whisper model does not originally use dropout. However, a dropout 
+        The Whisper model does not originally use dropout. However, a dropout
         layer can be specified for regularization during training.
 
     Todo:
@@ -188,25 +188,25 @@ class OpenAIWhisperEncoder(AbsEncoder):
         ilens: torch.Tensor = None,
     ) -> torch.Tensor:
         """
-        Computes the log-mel spectrogram of the input audio tensor using the 
+        Computes the log-mel spectrogram of the input audio tensor using the
         native Whisper training method.
 
-        This method first applies a Short-Time Fourier Transform (STFT) to the 
-        audio input, computes the mel spectrogram using mel filters, and then 
-        transforms the mel spectrogram into a log scale. The resulting log-mel 
+        This method first applies a Short-Time Fourier Transform (STFT) to the
+        audio input, computes the mel spectrogram using mel filters, and then
+        transforms the mel spectrogram into a log scale. The resulting log-mel
         spectrogram is used for further processing in the Whisper encoder.
 
         Args:
-            audio (torch.Tensor): A tensor containing the audio waveform. The 
+            audio (torch.Tensor): A tensor containing the audio waveform. The
                 shape should be (batch_size, num_samples).
-            ilens (torch.Tensor, optional): A tensor containing the lengths of 
-                each audio sample in the batch. If provided, it is used to 
+            ilens (torch.Tensor, optional): A tensor containing the lengths of
+                each audio sample in the batch. If provided, it is used to
                 compute the output lengths. The shape should be (batch_size,).
 
         Returns:
-            torch.Tensor: A tensor containing the log-mel spectrogram of the 
+            torch.Tensor: A tensor containing the log-mel spectrogram of the
                 input audio, with shape (batch_size, n_mels, n_frames).
-            torch.Tensor or None: A tensor containing the output lengths of 
+            torch.Tensor or None: A tensor containing the output lengths of
                 the log-mel spectrogram if `ilens` is provided, otherwise None.
 
         Examples:
@@ -218,7 +218,7 @@ class OpenAIWhisperEncoder(AbsEncoder):
             torch.Size([2, 80, 201])  # Example output shape for n_mels=80
 
         Note:
-            The STFT is computed with a Hann window and the last frame is 
+            The STFT is computed with a Hann window and the last frame is
             removed as per Whisper's implementation.
         """
         window = torch.hann_window(self.win_length).to(audio.device)
@@ -261,17 +261,17 @@ class OpenAIWhisperEncoder(AbsEncoder):
         representation of the audio along with the output lengths.
 
         Args:
-            input (torch.Tensor): A tensor of shape (batch_size, input_size, 
+            input (torch.Tensor): A tensor of shape (batch_size, input_size,
                 time) representing the input audio features.
-            ilens (torch.Tensor, optional): A tensor of shape (batch_size,) 
-                containing the lengths of each input sequence. If not provided, 
+            ilens (torch.Tensor, optional): A tensor of shape (batch_size,)
+                containing the lengths of each input sequence. If not provided,
                 the output lengths will not be computed.
 
         Returns:
             Tuple[torch.Tensor, Optional[torch.Tensor]]: A tuple containing:
-                - A tensor of shape (batch_size, n_frames, output_size) with 
+                - A tensor of shape (batch_size, n_frames, output_size) with
                   the encoded features.
-                - A tensor of shape (batch_size,) with the output lengths, or 
+                - A tensor of shape (batch_size,) with the output lengths, or
                   None if `ilens` was not provided.
 
         Examples:
@@ -280,12 +280,12 @@ class OpenAIWhisperEncoder(AbsEncoder):
             >>> output, output_lengths = encoder.whisper_encode(audio_input)
 
         Note:
-            The input audio tensor should be pre-processed to match the input 
-            requirements of the Whisper model. Ensure that the input size 
+            The input audio tensor should be pre-processed to match the input
+            requirements of the Whisper model. Ensure that the input size
             matches the expected shape for the model.
 
         Raises:
-            ValueError: If the input tensor does not have the correct number of 
+            ValueError: If the input tensor does not have the correct number of
             dimensions or if the lengths tensor is of incorrect shape.
         """
         x = F.gelu(self.encoders.conv1(input))
@@ -334,30 +334,30 @@ class OpenAIWhisperEncoder(AbsEncoder):
         """
         Perform a forward pass through the OpenAI Whisper Encoder.
 
-        This method processes the input audio tensor, applies log-mel 
-        spectrogram transformation, and encodes the features using the 
-        Whisper model. It also handles optional padding/trimming and 
+        This method processes the input audio tensor, applies log-mel
+        spectrogram transformation, and encodes the features using the
+        Whisper model. It also handles optional padding/trimming and
         spec augmentation if enabled.
 
         Args:
-            xs_pad (torch.Tensor): Input audio tensor of shape (B, T, C), where 
-                B is the batch size, T is the sequence length, and C is the 
+            xs_pad (torch.Tensor): Input audio tensor of shape (B, T, C), where
+                B is the batch size, T is the sequence length, and C is the
                 number of channels.
-            ilens (torch.Tensor): Tensor of shape (B,) containing the lengths 
+            ilens (torch.Tensor): Tensor of shape (B,) containing the lengths
                 of the input sequences before padding.
-            prev_states (torch.Tensor, optional): Previous states from the 
+            prev_states (torch.Tensor, optional): Previous states from the
                 encoder, default is None.
 
         Returns:
             Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
                 - Processed audio tensor after encoding of shape (B, T', C).
-                - Output lengths tensor of shape (B,) indicating the lengths 
+                - Output lengths tensor of shape (B,) indicating the lengths
                   of the output sequences.
                 - Optional tensor of None for compatibility with other models.
 
         Note:
-            The input audio tensor may be padded or trimmed to a fixed 
-            length defined by `self.pad_samples` if `self.do_pad_trim` is 
+            The input audio tensor may be padded or trimmed to a fixed
+            length defined by `self.pad_samples` if `self.do_pad_trim` is
             set to True.
 
         Examples:

@@ -67,32 +67,32 @@ class GaussianFourierProjection(nn.Module):
 
     def forward(self, x):
         """
-        Compute the Gaussian Fourier projection of the input tensor.
+            Compute the Gaussian Fourier projection of the input tensor.
 
-    This method projects the input tensor `x` onto a higher-dimensional space
-    using Gaussian Fourier embeddings. The projection is achieved by multiplying
-    the input by learnable weights and applying sine and cosine transformations.
+        This method projects the input tensor `x` onto a higher-dimensional space
+        using Gaussian Fourier embeddings. The projection is achieved by multiplying
+        the input by learnable weights and applying sine and cosine transformations.
 
-    Args:
-        x (torch.Tensor): Input tensor of shape (B, N), where B is the batch size
-                          and N is the input dimension.
+        Args:
+            x (torch.Tensor): Input tensor of shape (B, N), where B is the batch size
+                              and N is the input dimension.
 
-    Returns:
-        torch.Tensor: Output tensor of shape (B, 2 * embedding_size), where
-                      `embedding_size` is the number of dimensions in the
-                      Gaussian Fourier projection.
+        Returns:
+            torch.Tensor: Output tensor of shape (B, 2 * embedding_size), where
+                          `embedding_size` is the number of dimensions in the
+                          Gaussian Fourier projection.
 
-    Examples:
-        >>> import torch
-        >>> gaussian_fourier = GaussianFourierProjection(embedding_size=256)
-        >>> x = torch.randn(10, 1)  # Batch of 10 with 1 dimension
-        >>> output = gaussian_fourier(x)
-        >>> output.shape
-        torch.Size([10, 512])  # 512 = 2 * embedding_size
+        Examples:
+            >>> import torch
+            >>> gaussian_fourier = GaussianFourierProjection(embedding_size=256)
+            >>> x = torch.randn(10, 1)  # Batch of 10 with 1 dimension
+            >>> output = gaussian_fourier(x)
+            >>> output.shape
+            torch.Size([10, 512])  # 512 = 2 * embedding_size
 
-    Note:
-        The weights `W` are initialized with a Gaussian distribution and are
-        not trainable (requires_grad=False).
+        Note:
+            The weights `W` are initialized with a Gaussian distribution and are
+            not trainable (requires_grad=False).
         """
         x_proj = x[:, None] * self.W[None, :] * 2 * np.pi
         return torch.cat([torch.sin(x_proj), torch.cos(x_proj)], dim=-1)
@@ -102,25 +102,25 @@ class Combine(nn.Module):
     """
     Combine information from skip connections.
 
-    This module combines two input tensors using a specified method. The 
-    default method is concatenation, but addition can also be used. It 
-    applies a 1x1 convolution to the first input tensor before combining 
+    This module combines two input tensors using a specified method. The
+    default method is concatenation, but addition can also be used. It
+    applies a 1x1 convolution to the first input tensor before combining
     it with the second input tensor.
 
     Attributes:
-        Conv_0 (nn.Module): A 1x1 convolution layer applied to the first 
+        Conv_0 (nn.Module): A 1x1 convolution layer applied to the first
             input tensor.
-        method (str): The method to combine the inputs. Can be "cat" for 
+        method (str): The method to combine the inputs. Can be "cat" for
             concatenation or "sum" for addition.
 
     Args:
         dim1 (int): The number of input channels for the first tensor.
         dim2 (int): The number of input channels for the second tensor.
-        method (str, optional): The method to combine the inputs. Defaults 
+        method (str, optional): The method to combine the inputs. Defaults
             to "cat".
 
     Returns:
-        torch.Tensor: The combined output tensor after applying the 
+        torch.Tensor: The combined output tensor after applying the
         specified method.
 
     Raises:
@@ -143,41 +143,41 @@ class Combine(nn.Module):
 
     def forward(self, x, y):
         """
-        Combines two inputs using a specified method.
+            Combines two inputs using a specified method.
 
-    This method applies a convolution to the first input `x`, then combines
-    the result with the second input `y` based on the specified method,
-    which can either be concatenation or summation.
+        This method applies a convolution to the first input `x`, then combines
+        the result with the second input `y` based on the specified method,
+        which can either be concatenation or summation.
 
-    Args:
-        x (torch.Tensor): The first input tensor, which is passed through a
-            convolution layer. The shape should be (B, C1, H, W) where B
-            is the batch size, C1 is the number of channels, and H and W are
-            the height and width of the input.
-        y (torch.Tensor): The second input tensor to be combined with the
-            processed `x`. The shape should be (B, C2, H, W) where C2 should
-            match the output channels of the convolution layer.
+        Args:
+            x (torch.Tensor): The first input tensor, which is passed through a
+                convolution layer. The shape should be (B, C1, H, W) where B
+                is the batch size, C1 is the number of channels, and H and W are
+                the height and width of the input.
+            y (torch.Tensor): The second input tensor to be combined with the
+                processed `x`. The shape should be (B, C2, H, W) where C2 should
+                match the output channels of the convolution layer.
 
-    Returns:
-        torch.Tensor: The combined output tensor. If `method` is "cat", the
-        output shape will be (B, C1 + C2, H, W). If `method` is "sum", the
-        output shape will be (B, C1, H, W).
+        Returns:
+            torch.Tensor: The combined output tensor. If `method` is "cat", the
+            output shape will be (B, C1 + C2, H, W). If `method` is "sum", the
+            output shape will be (B, C1, H, W).
 
-    Raises:
-        ValueError: If the specified method is not recognized. 
+        Raises:
+            ValueError: If the specified method is not recognized.
 
-    Examples:
-        >>> combine_layer = Combine(dim1=64, dim2=32, method='cat')
-        >>> x = torch.randn(1, 64, 8, 8)  # (B, C1, H, W)
-        >>> y = torch.randn(1, 32, 8, 8)   # (B, C2, H, W)
-        >>> output = combine_layer(x, y)
-        >>> output.shape
-        torch.Size([1, 96, 8, 8])  # Output shape when method is 'cat'
+        Examples:
+            >>> combine_layer = Combine(dim1=64, dim2=32, method='cat')
+            >>> x = torch.randn(1, 64, 8, 8)  # (B, C1, H, W)
+            >>> y = torch.randn(1, 32, 8, 8)   # (B, C2, H, W)
+            >>> output = combine_layer(x, y)
+            >>> output.shape
+            torch.Size([1, 96, 8, 8])  # Output shape when method is 'cat'
 
-        >>> combine_layer = Combine(dim1=64, dim2=32, method='sum')
-        >>> output = combine_layer(x, y)
-        >>> output.shape
-        torch.Size([1, 64, 8, 8])  # Output shape when method is 'sum'
+            >>> combine_layer = Combine(dim1=64, dim2=32, method='sum')
+            >>> output = combine_layer(x, y)
+            >>> output.shape
+            torch.Size([1, 64, 8, 8])  # Output shape when method is 'sum'
         """
         h = self.Conv_0(x)
         if self.method == "cat":
@@ -192,10 +192,10 @@ class AttnBlockpp(nn.Module):
     """
     Channel-wise self-attention block. Modified from DDPM.
 
-    This class implements a channel-wise self-attention mechanism 
-    that allows the model to focus on different parts of the input 
-    features adaptively. It is designed to work within the NCSN++ 
-    architecture, enhancing the representation capabilities of the 
+    This class implements a channel-wise self-attention mechanism
+    that allows the model to focus on different parts of the input
+    features adaptively. It is designed to work within the NCSN++
+    architecture, enhancing the representation capabilities of the
     model.
 
     Attributes:
@@ -204,14 +204,14 @@ class AttnBlockpp(nn.Module):
         NIN_1 (NIN): Second non-linear transformation layer.
         NIN_2 (NIN): Third non-linear transformation layer.
         NIN_3 (NIN): Fourth non-linear transformation layer.
-        skip_rescale (bool): Flag to determine if output should be 
+        skip_rescale (bool): Flag to determine if output should be
             rescaled.
 
     Args:
         channels (int): Number of input channels.
-        skip_rescale (bool, optional): If True, rescales the output 
+        skip_rescale (bool, optional): If True, rescales the output
             to maintain stability. Defaults to False.
-        init_scale (float, optional): Scale for initializing layers. 
+        init_scale (float, optional): Scale for initializing layers.
             Defaults to 0.0.
 
     Returns:
@@ -241,35 +241,35 @@ class AttnBlockpp(nn.Module):
 
     def forward(self, x):
         """
-        Forward pass for the AttnBlockpp module.
+                Forward pass for the AttnBlockpp module.
 
-This method implements the forward pass for the attention block, which 
-performs channel-wise self-attention on the input tensor. The attention 
-mechanism utilizes query, key, and value representations derived from 
-the input, and combines them to produce an output tensor. The output 
-can be either the original input plus the attention output, or a 
-rescaled version of the sum based on the skip_rescale attribute.
+        This method implements the forward pass for the attention block, which
+        performs channel-wise self-attention on the input tensor. The attention
+        mechanism utilizes query, key, and value representations derived from
+        the input, and combines them to produce an output tensor. The output
+        can be either the original input plus the attention output, or a
+        rescaled version of the sum based on the skip_rescale attribute.
 
-Args:
-    x (torch.Tensor): Input tensor of shape (B, C, H, W), where B is the 
-        batch size, C is the number of channels, H is the height, and 
-        W is the width of the input.
+        Args:
+            x (torch.Tensor): Input tensor of shape (B, C, H, W), where B is the
+                batch size, C is the number of channels, H is the height, and
+                W is the width of the input.
 
-Returns:
-    torch.Tensor: Output tensor of the same shape as the input, 
-        representing the result of the self-attention operation.
+        Returns:
+            torch.Tensor: Output tensor of the same shape as the input,
+                representing the result of the self-attention operation.
 
-Raises:
-    ValueError: If the input tensor does not have the expected shape 
-        or if the number of channels does not match the initialized 
-        parameters.
+        Raises:
+            ValueError: If the input tensor does not have the expected shape
+                or if the number of channels does not match the initialized
+                parameters.
 
-Examples:
-    >>> model = AttnBlockpp(channels=64)
-    >>> input_tensor = torch.randn(8, 64, 32, 32)  # Batch of 8 images
-    >>> output_tensor = model(input_tensor)
-    >>> print(output_tensor.shape)
-    torch.Size([8, 64, 32, 32])
+        Examples:
+            >>> model = AttnBlockpp(channels=64)
+            >>> input_tensor = torch.randn(8, 64, 32, 32)  # Batch of 8 images
+            >>> output_tensor = model(input_tensor)
+            >>> print(output_tensor.shape)
+            torch.Size([8, 64, 32, 32])
         """
         B, C, H, W = x.shape
         h = self.GroupNorm_0(x)
@@ -293,8 +293,8 @@ class Upsample(nn.Module):
     """
     Upsampling layer that increases the spatial dimensions of the input.
 
-    This layer can optionally include a convolution operation after the 
-    upsampling, and it supports different upsampling methods, including 
+    This layer can optionally include a convolution operation after the
+    upsampling, and it supports different upsampling methods, including
     nearest neighbor and FIR (Finite Impulse Response) filters.
 
     Attributes:
@@ -306,11 +306,11 @@ class Upsample(nn.Module):
     Args:
         in_ch (int): Number of input channels.
         out_ch (int, optional): Number of output channels. Defaults to in_ch.
-        with_conv (bool, optional): If True, apply convolution after 
+        with_conv (bool, optional): If True, apply convolution after
             upsampling. Defaults to False.
-        fir (bool, optional): If True, use FIR filters for upsampling. 
+        fir (bool, optional): If True, use FIR filters for upsampling.
             Defaults to False.
-        fir_kernel (tuple, optional): FIR kernel for upsampling. 
+        fir_kernel (tuple, optional): FIR kernel for upsampling.
             Defaults to (1, 3, 3, 1).
 
     Returns:
@@ -324,13 +324,14 @@ class Upsample(nn.Module):
         torch.Size([1, 128, 64, 64])  # Upsampled to 128 channels and doubled size
 
     Note:
-        If `fir` is set to True, the upsampling will use a FIR filter instead 
+        If `fir` is set to True, the upsampling will use a FIR filter instead
         of the default nearest neighbor method.
 
     Raises:
-        ValueError: If the input tensor does not have the expected number of 
+        ValueError: If the input tensor does not have the expected number of
         dimensions.
     """
+
     def __init__(
         self,
         in_ch=None,
@@ -362,49 +363,49 @@ class Upsample(nn.Module):
 
     def forward(self, x):
         """
-        Upsampling layer with optional convolutional layer.
+            Upsampling layer with optional convolutional layer.
 
-    This class implements an upsampling layer that can optionally include a 
-    convolutional operation. It can perform nearest neighbor upsampling or 
-    use a convolutional layer for upsampling, depending on the provided 
-    parameters. 
+        This class implements an upsampling layer that can optionally include a
+        convolutional operation. It can perform nearest neighbor upsampling or
+        use a convolutional layer for upsampling, depending on the provided
+        parameters.
 
-    Attributes:
-        in_ch (int): Number of input channels.
-        out_ch (int): Number of output channels.
-        with_conv (bool): Whether to apply a convolutional layer after 
-            upsampling.
-        fir (bool): Whether to use a FIR filter for upsampling.
-        fir_kernel (tuple): Kernel size for FIR filter.
-    
-    Args:
-        in_ch (int): Number of input channels.
-        out_ch (int): Number of output channels. If None, defaults to in_ch.
-        with_conv (bool): If True, applies a convolutional layer after 
-            upsampling.
-        fir (bool): If True, uses FIR filter for upsampling.
-        fir_kernel (tuple): Kernel size for FIR filter. Defaults to 
-            (1, 3, 3, 1).
+        Attributes:
+            in_ch (int): Number of input channels.
+            out_ch (int): Number of output channels.
+            with_conv (bool): Whether to apply a convolutional layer after
+                upsampling.
+            fir (bool): Whether to use a FIR filter for upsampling.
+            fir_kernel (tuple): Kernel size for FIR filter.
 
-    Returns:
-        Tensor: The upsampled tensor with shape (B, out_ch, H*2, W*2).
-    
-    Examples:
-        >>> upsample_layer = Upsample(in_ch=64, out_ch=128, with_conv=True)
-        >>> x = torch.randn(1, 64, 32, 32)  # Example input
-        >>> output = upsample_layer(x)
-        >>> print(output.shape)
-        torch.Size([1, 128, 64, 64])  # Output shape after upsampling
-    
-    Note:
-        The upsampling method used is determined by the `fir` and 
-        `with_conv` parameters. If `fir` is False, nearest neighbor 
-        upsampling is used. If `fir` is True and `with_conv` is True, 
-        a convolutional layer is applied after FIR upsampling.
-    
-    Raises:
-        ValueError: If the input tensor shape is not compatible with 
-            the expected dimensions.
+        Args:
+            in_ch (int): Number of input channels.
+            out_ch (int): Number of output channels. If None, defaults to in_ch.
+            with_conv (bool): If True, applies a convolutional layer after
+                upsampling.
+            fir (bool): If True, uses FIR filter for upsampling.
+            fir_kernel (tuple): Kernel size for FIR filter. Defaults to
+                (1, 3, 3, 1).
+
+        Returns:
+            Tensor: The upsampled tensor with shape (B, out_ch, H*2, W*2).
+
+        Examples:
+            >>> upsample_layer = Upsample(in_ch=64, out_ch=128, with_conv=True)
+            >>> x = torch.randn(1, 64, 32, 32)  # Example input
+            >>> output = upsample_layer(x)
+            >>> print(output.shape)
+            torch.Size([1, 128, 64, 64])  # Output shape after upsampling
+
+        Note:
+            The upsampling method used is determined by the `fir` and
+            `with_conv` parameters. If `fir` is False, nearest neighbor
+            upsampling is used. If `fir` is True and `with_conv` is True,
+            a convolutional layer is applied after FIR upsampling.
+
+        Raises:
+            ValueError: If the input tensor shape is not compatible with
+                the expected dimensions.
         """
         B, C, H, W = x.shape
         if not self.fir:
@@ -427,7 +428,7 @@ class Downsample(nn.Module):
     This class implements a downsampling operation that reduces the spatial
     dimensions of the input tensor by a factor of two. The downsampling can
     be achieved either through convolution (with optional FIR filtering) or
-    average pooling. 
+    average pooling.
 
     Attributes:
         fir (bool): Indicates whether to use FIR filtering for downsampling.
@@ -438,13 +439,13 @@ class Downsample(nn.Module):
 
     Args:
         in_ch (int, optional): Number of input channels. Defaults to None.
-        out_ch (int, optional): Number of output channels. If None, 
+        out_ch (int, optional): Number of output channels. If None,
             it defaults to `in_ch`.
-        with_conv (bool, optional): If True, applies a convolution after 
+        with_conv (bool, optional): If True, applies a convolution after
             downsampling. Defaults to False.
-        fir (bool, optional): If True, uses FIR filtering for downsampling. 
+        fir (bool, optional): If True, uses FIR filtering for downsampling.
             Defaults to False.
-        fir_kernel (tuple, optional): Kernel used for FIR filtering. 
+        fir_kernel (tuple, optional): Kernel used for FIR filtering.
             Defaults to (1, 3, 3, 1).
 
     Returns:
@@ -465,6 +466,7 @@ class Downsample(nn.Module):
         ValueError: If `fir` is True and `with_conv` is also True, it will
         use a convolutional layer for downsampling.
     """
+
     def __init__(
         self,
         in_ch=None,
@@ -496,48 +498,48 @@ class Downsample(nn.Module):
 
     def forward(self, x):
         """
-        Downsample layer that reduces the spatial dimensions of the input tensor.
+                Downsample layer that reduces the spatial dimensions of the input tensor.
 
-This layer can optionally include a convolution operation and can use either
-standard pooling or a Fourier interpolation method for downsampling. The
-parameters allow for flexibility in kernel selection and whether to use a
-convolutional layer in the downsampling process.
+        This layer can optionally include a convolution operation and can use either
+        standard pooling or a Fourier interpolation method for downsampling. The
+        parameters allow for flexibility in kernel selection and whether to use a
+        convolutional layer in the downsampling process.
 
-Attributes:
-    fir (bool): Indicates whether to use a FIR filter for downsampling.
-    fir_kernel (tuple): Kernel used for the FIR filter.
-    with_conv (bool): Indicates whether to use a convolutional layer.
-    out_ch (int): Number of output channels.
+        Attributes:
+            fir (bool): Indicates whether to use a FIR filter for downsampling.
+            fir_kernel (tuple): Kernel used for the FIR filter.
+            with_conv (bool): Indicates whether to use a convolutional layer.
+            out_ch (int): Number of output channels.
 
-Args:
-    in_ch (int): Number of input channels.
-    out_ch (int, optional): Number of output channels. Defaults to in_ch.
-    with_conv (bool, optional): Whether to include a convolutional layer.
-        Defaults to False.
-    fir (bool, optional): Whether to use FIR downsampling. Defaults to False.
-    fir_kernel (tuple, optional): Kernel for FIR downsampling. Defaults to
-        (1, 3, 3, 1).
+        Args:
+            in_ch (int): Number of input channels.
+            out_ch (int, optional): Number of output channels. Defaults to in_ch.
+            with_conv (bool, optional): Whether to include a convolutional layer.
+                Defaults to False.
+            fir (bool, optional): Whether to use FIR downsampling. Defaults to False.
+            fir_kernel (tuple, optional): Kernel for FIR downsampling. Defaults to
+                (1, 3, 3, 1).
 
-Returns:
-    torch.Tensor: The downsampled output tensor.
+        Returns:
+            torch.Tensor: The downsampled output tensor.
 
-Raises:
-    ValueError: If an invalid downsampling method is specified.
+        Raises:
+            ValueError: If an invalid downsampling method is specified.
 
-Examples:
-    >>> downsample_layer = Downsample(in_ch=64, out_ch=32, with_conv=True)
-    >>> input_tensor = torch.randn(1, 64, 32, 32)
-    >>> output_tensor = downsample_layer(input_tensor)
-    >>> print(output_tensor.shape)
-    torch.Size([1, 32, 16, 16])
+        Examples:
+            >>> downsample_layer = Downsample(in_ch=64, out_ch=32, with_conv=True)
+            >>> input_tensor = torch.randn(1, 64, 32, 32)
+            >>> output_tensor = downsample_layer(input_tensor)
+            >>> print(output_tensor.shape)
+            torch.Size([1, 32, 16, 16])
 
-Note:
-    If `with_conv` is set to True, a convolutional layer is applied after
-    downsampling. If `fir` is True, a FIR filter is used instead of the
-    standard pooling method.
+        Note:
+            If `with_conv` is set to True, a convolutional layer is applied after
+            downsampling. If `fir` is True, a FIR filter is used instead of the
+            standard pooling method.
 
-Todo:
-    - Add support for different pooling methods.
+        Todo:
+            - Add support for different pooling methods.
         """
         B, C, H, W = x.shape
         if not self.fir:
@@ -559,10 +561,10 @@ class ResnetBlockDDPMpp(nn.Module):
     """
     ResBlock adapted from DDPM.
 
-    This class implements a residual block that is adapted from Denoising 
-    Diffusion Probabilistic Models (DDPM). It includes normalization, 
-    convolutional layers, and the option to incorporate temporal embeddings 
-    for conditional processing. The block supports skip connections and 
+    This class implements a residual block that is adapted from Denoising
+    Diffusion Probabilistic Models (DDPM). It includes normalization,
+    convolutional layers, and the option to incorporate temporal embeddings
+    for conditional processing. The block supports skip connections and
     can rescale the output.
 
     Attributes:
@@ -583,18 +585,18 @@ class ResnetBlockDDPMpp(nn.Module):
         act (callable): Activation function to be used (e.g., ReLU).
         in_ch (int): Number of input channels.
         out_ch (int, optional): Number of output channels. Defaults to `in_ch`.
-        temb_dim (int, optional): Dimension of the temporal embedding. 
+        temb_dim (int, optional): Dimension of the temporal embedding.
             Defaults to `None`.
-        conv_shortcut (bool, optional): If `True`, use convolution for 
+        conv_shortcut (bool, optional): If `True`, use convolution for
             shortcut. Defaults to `False`.
         dropout (float, optional): Dropout probability. Defaults to `0.1`.
-        skip_rescale (bool, optional): If `True`, apply rescaling to the 
+        skip_rescale (bool, optional): If `True`, apply rescaling to the
             output. Defaults to `False`.
-        init_scale (float, optional): Scale for weight initialization. 
+        init_scale (float, optional): Scale for weight initialization.
             Defaults to `0.0`.
 
     Returns:
-        Tensor: The output of the residual block after applying 
+        Tensor: The output of the residual block after applying
         the operations.
 
     Examples:
@@ -605,7 +607,7 @@ class ResnetBlockDDPMpp(nn.Module):
         torch.Size([1, 128, 32, 32])
 
     Note:
-        This block is designed to be used within diffusion models where 
+        This block is designed to be used within diffusion models where
         residual learning can enhance performance.
 
     Raises:
@@ -654,40 +656,40 @@ class ResnetBlockDDPMpp(nn.Module):
 
     def forward(self, x, temb=None):
         """
-        Performs a forward pass through the ResNet block.
+            Performs a forward pass through the ResNet block.
 
-    This method applies a series of operations including normalization,
-    convolution, and optional time embedding addition to the input tensor.
-    The output can be either a residual connection or a rescaled output
-    based on the configuration.
+        This method applies a series of operations including normalization,
+        convolution, and optional time embedding addition to the input tensor.
+        The output can be either a residual connection or a rescaled output
+        based on the configuration.
 
-    Args:
-        x (torch.Tensor): Input tensor of shape (B, C, H, W), where B is the
-            batch size, C is the number of channels, H is the height, and W
-            is the width.
-        temb (torch.Tensor, optional): Time embedding tensor of shape (B, T),
-            where T is the dimensionality of the time embedding. If provided,
-            it is added to the output feature maps.
+        Args:
+            x (torch.Tensor): Input tensor of shape (B, C, H, W), where B is the
+                batch size, C is the number of channels, H is the height, and W
+                is the width.
+            temb (torch.Tensor, optional): Time embedding tensor of shape (B, T),
+                where T is the dimensionality of the time embedding. If provided,
+                it is added to the output feature maps.
 
-    Returns:
-        torch.Tensor: Output tensor of shape (B, out_ch, H, W), where
-            out_ch is the number of output channels. The output is computed
-            as either a simple addition of the input and output features or
-            a rescaled sum based on the skip_rescale attribute.
+        Returns:
+            torch.Tensor: Output tensor of shape (B, out_ch, H, W), where
+                out_ch is the number of output channels. The output is computed
+                as either a simple addition of the input and output features or
+                a rescaled sum based on the skip_rescale attribute.
 
-    Examples:
-        >>> model = ResnetBlockDDPMpp(act=nn.ReLU(), in_ch=64, out_ch=128)
-        >>> input_tensor = torch.randn(8, 64, 32, 32)  # Batch of 8
-        >>> output_tensor = model(input_tensor)
-        >>> output_tensor.shape
-        torch.Size([8, 128, 32, 32])
+        Examples:
+            >>> model = ResnetBlockDDPMpp(act=nn.ReLU(), in_ch=64, out_ch=128)
+            >>> input_tensor = torch.randn(8, 64, 32, 32)  # Batch of 8
+            >>> output_tensor = model(input_tensor)
+            >>> output_tensor.shape
+            torch.Size([8, 128, 32, 32])
 
-    Note:
-        If `temb` is provided, it must match the output channel dimension.
+        Note:
+            If `temb` is provided, it must match the output channel dimension.
 
-    Raises:
-        ValueError: If the input tensor's channel dimension does not match
-            the expected dimensions based on the model's configuration.
+        Raises:
+            ValueError: If the input tensor's channel dimension does not match
+                the expected dimensions based on the model's configuration.
         """
         h = self.act(self.GroupNorm_0(x))
         h = self.Conv_0(h)
@@ -755,10 +757,11 @@ class ResnetBlockBigGANpp(nn.Module):
 
     Note:
         Ensure that the input tensor shape matches the expected dimensions based
-        on the `in_ch` parameter. The output tensor will have the shape of 
-        (batch_size, out_ch, height, width) depending on the upsampling or 
+        on the `in_ch` parameter. The output tensor will have the shape of
+        (batch_size, out_ch, height, width) depending on the upsampling or
         downsampling operations performed.
     """
+
     def __init__(
         self,
         act,
@@ -805,38 +808,38 @@ class ResnetBlockBigGANpp(nn.Module):
 
     def forward(self, x, temb=None):
         """
-        Perform a forward pass through the ResNet block.
+            Perform a forward pass through the ResNet block.
 
-    This method takes input tensor `x` and optional time embedding `temb`,
-    processes them through several layers including normalization, 
-    convolution, and activation functions, and applies the appropriate 
-    upsampling or downsampling if specified during initialization.
+        This method takes input tensor `x` and optional time embedding `temb`,
+        processes them through several layers including normalization,
+        convolution, and activation functions, and applies the appropriate
+        upsampling or downsampling if specified during initialization.
 
-    Args:
-        x (torch.Tensor): Input tensor of shape (B, C, H, W) where B is the 
-            batch size, C is the number of channels, H is the height, 
-            and W is the width.
-        temb (torch.Tensor, optional): Time embedding tensor of shape 
-            (B, T) where T is the embedding dimension. Default is None.
+        Args:
+            x (torch.Tensor): Input tensor of shape (B, C, H, W) where B is the
+                batch size, C is the number of channels, H is the height,
+                and W is the width.
+            temb (torch.Tensor, optional): Time embedding tensor of shape
+                (B, T) where T is the embedding dimension. Default is None.
 
-    Returns:
-        torch.Tensor: Output tensor of shape (B, out_ch, H', W') where 
-            H' and W' depend on whether upsampling or downsampling is 
-            performed.
+        Returns:
+            torch.Tensor: Output tensor of shape (B, out_ch, H', W') where
+                H' and W' depend on whether upsampling or downsampling is
+                performed.
 
-    Examples:
-        >>> block = ResnetBlockBigGANpp(act=nn.ReLU(), in_ch=64, out_ch=128)
-        >>> x = torch.randn(8, 64, 32, 32)  # Batch of 8, 64 channels, 32x32
-        >>> output = block(x)
-        >>> output.shape
-        torch.Size([8, 128, 32, 32])  # Output shape
+        Examples:
+            >>> block = ResnetBlockBigGANpp(act=nn.ReLU(), in_ch=64, out_ch=128)
+            >>> x = torch.randn(8, 64, 32, 32)  # Batch of 8, 64 channels, 32x32
+            >>> output = block(x)
+            >>> output.shape
+            torch.Size([8, 128, 32, 32])  # Output shape
 
-    Note:
-        If `up` or `down` is set to True during initialization, the input 
-        tensor will be upsampled or downsampled accordingly.
+        Note:
+            If `up` or `down` is set to True during initialization, the input
+            tensor will be upsampled or downsampled accordingly.
 
-    Raises:
-        ValueError: If the input dimensions do not match the expected shape.
+        Raises:
+            ValueError: If the input dimensions do not match the expected shape.
         """
         h = self.act(self.GroupNorm_0(x))
 

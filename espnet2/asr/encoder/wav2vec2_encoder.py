@@ -21,28 +21,28 @@ class FairSeqWav2Vec2Encoder(AbsEncoder):
     """
     FairSeq Wav2Vec2 encoder module for automatic speech recognition.
 
-    This encoder utilizes a pre-trained Wav2Vec2.0 model from FairSeq to extract 
-    features from audio input. It can be fine-tuned on specific tasks, allowing 
+    This encoder utilizes a pre-trained Wav2Vec2.0 model from FairSeq to extract
+    features from audio input. It can be fine-tuned on specific tasks, allowing
     for flexible and powerful speech recognition capabilities.
 
     Args:
         input_size (int): Input dimension for the encoder.
         w2v_url (str): URL to the Wav2Vec2.0 pretrained model.
-        w2v_dir_path (str, optional): Directory to download the Wav2Vec2.0 
+        w2v_dir_path (str, optional): Directory to download the Wav2Vec2.0
             pretrained model. Defaults to "./".
-        output_size (int, optional): Dimension of the output features after 
+        output_size (int, optional): Dimension of the output features after
             encoding. Defaults to 256.
-        normalize_before (bool, optional): Whether to apply layer normalization 
+        normalize_before (bool, optional): Whether to apply layer normalization
             before the first block. Defaults to False.
-        freeze_finetune_updates (int, optional): Number of updates after which 
+        freeze_finetune_updates (int, optional): Number of updates after which
             the encoder parameters can be fine-tuned. Defaults to 0.
 
     Attributes:
         encoders: The loaded Wav2Vec2 model used for encoding.
-        pretrained_params: A copy of the pretrained model's parameters for 
+        pretrained_params: A copy of the pretrained model's parameters for
             reloading.
         output_layer: An optional linear layer to adjust output dimensions.
-        normalize_before: A flag indicating whether normalization is applied 
+        normalize_before: A flag indicating whether normalization is applied
             before encoding.
         freeze_finetune_updates: The threshold for starting fine-tuning.
 
@@ -60,16 +60,16 @@ class FairSeqWav2Vec2Encoder(AbsEncoder):
         >>> output, olens, _ = encoder(xs_pad, ilens)
 
     Note:
-        Ensure that the FairSeq library is installed properly. You can 
+        Ensure that the FairSeq library is installed properly. You can
         install it using the command:
         `cd ${MAIN_ROOT}/tools && make fairseq.done`.
 
     Raises:
-        Exception: If the FairSeq library is not installed or if the model 
+        Exception: If the FairSeq library is not installed or if the model
         class is not compatible.
 
     Todo:
-        - Explore the option to implement an LSTM for output layer adjustment 
+        - Explore the option to implement an LSTM for output layer adjustment
           if the dimensions do not match.
     """
 
@@ -139,9 +139,9 @@ class FairSeqWav2Vec2Encoder(AbsEncoder):
         """
         Get the output size of the encoder.
 
-        This method returns the dimension of the output produced by the 
-        encoder. It is particularly useful for understanding the shape of 
-        the features that will be passed to subsequent layers in a neural 
+        This method returns the dimension of the output produced by the
+        encoder. It is particularly useful for understanding the shape of
+        the features that will be passed to subsequent layers in a neural
         network.
 
         Returns:
@@ -163,25 +163,25 @@ class FairSeqWav2Vec2Encoder(AbsEncoder):
         """
         Forward pass through the FairSeq Wav2Vec2 Encoder.
 
-        This method takes padded input tensors and their lengths, processes them 
-        through the Wav2Vec2 encoder, and returns the encoded output along with 
+        This method takes padded input tensors and their lengths, processes them
+        through the Wav2Vec2 encoder, and returns the encoded output along with
         the corresponding output lengths and an optional tensor.
 
         Args:
-            xs_pad (torch.Tensor): Input tensor of shape (B, L, D), where B is 
-                the batch size, L is the sequence length, and D is the feature 
+            xs_pad (torch.Tensor): Input tensor of shape (B, L, D), where B is
+                the batch size, L is the sequence length, and D is the feature
                 dimension.
-            ilens (torch.Tensor): Tensor of shape (B,) representing the lengths 
+            ilens (torch.Tensor): Tensor of shape (B,) representing the lengths
                 of each input sequence in the batch.
-            prev_states (torch.Tensor, optional): Previous states (not used in 
+            prev_states (torch.Tensor, optional): Previous states (not used in
                 this implementation). Defaults to None.
 
         Returns:
             Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
-                - A tensor containing the position-embedded output of shape 
-                  (B, T, C), where T is the output sequence length and C is the 
+                - A tensor containing the position-embedded output of shape
+                  (B, T, C), where T is the output sequence length and C is the
                   output dimension.
-                - A tensor of shape (B,) representing the lengths of the output 
+                - A tensor of shape (B,) representing the lengths of the output
                   sequences.
                 - An optional tensor (currently None).
 
@@ -194,11 +194,11 @@ class FairSeqWav2Vec2Encoder(AbsEncoder):
             >>> print(olens)  # Should print the lengths of the output sequences
 
         Note:
-            The method automatically handles fine-tuning of the encoder 
+            The method automatically handles fine-tuning of the encoder
             parameters based on the number of updates.
 
         Raises:
-            RuntimeError: If the encoder fails to process the input due to 
+            RuntimeError: If the encoder fails to process the input due to
             incompatible dimensions or other issues.
 
         Todo:
@@ -241,9 +241,9 @@ class FairSeqWav2Vec2Encoder(AbsEncoder):
         """
         Reload the pretrained parameters into the encoder.
 
-        This method loads the parameters that were initially stored in the 
-        `pretrained_params` attribute back into the encoder model. This is useful 
-        for restoring the original state of the model after fine-tuning or 
+        This method loads the parameters that were initially stored in the
+        `pretrained_params` attribute back into the encoder model. This is useful
+        for restoring the original state of the model after fine-tuning or
         modifications have been made.
 
         Examples:

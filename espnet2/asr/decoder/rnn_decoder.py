@@ -141,9 +141,9 @@ def build_attention_list(
 
 class RNNDecoder(AbsDecoder):
     """
-    RNNDecoder is a recurrent neural network (RNN) based decoder for automatic 
-    speech recognition (ASR). It is designed to convert encoded representations 
-    from an encoder into a sequence of output tokens using attention mechanisms 
+    RNNDecoder is a recurrent neural network (RNN) based decoder for automatic
+    speech recognition (ASR). It is designed to convert encoded representations
+    from an encoder into a sequence of output tokens using attention mechanisms
     and recurrent layers.
 
     Attributes:
@@ -152,7 +152,7 @@ class RNNDecoder(AbsDecoder):
         rnn_type (str): The type of RNN to use, either 'lstm' or 'gru'.
         num_layers (int): The number of recurrent layers in the decoder.
         hidden_size (int): The size of the hidden layers in the RNN.
-        sampling_probability (float): The probability of using sampling during 
+        sampling_probability (float): The probability of using sampling during
             decoding.
         dropout (float): The dropout rate for regularization.
         context_residual (bool): Whether to use context residual connections.
@@ -166,15 +166,15 @@ class RNNDecoder(AbsDecoder):
         rnn_type (str, optional): Type of RNN ('lstm' or 'gru'). Defaults to 'lstm'.
         num_layers (int, optional): Number of layers in the RNN. Defaults to 1.
         hidden_size (int, optional): Size of hidden units. Defaults to 320.
-        sampling_probability (float, optional): Probability for sampling. 
+        sampling_probability (float, optional): Probability for sampling.
             Defaults to 0.0.
         dropout (float, optional): Dropout rate. Defaults to 0.0.
-        context_residual (bool, optional): Use context residual connections. 
+        context_residual (bool, optional): Use context residual connections.
             Defaults to False.
-        replace_sos (bool, optional): Replace the start of sequence token. 
+        replace_sos (bool, optional): Replace the start of sequence token.
             Defaults to False.
         num_encs (int, optional): Number of encoders. Defaults to 1.
-        att_conf (dict, optional): Configuration for attention. Defaults to 
+        att_conf (dict, optional): Configuration for attention. Defaults to
             built-in configuration.
 
     Returns:
@@ -199,12 +199,13 @@ class RNNDecoder(AbsDecoder):
         output, lengths = decoder(hs_pad, hlens, ys_in_pad, ys_in_lens)
 
     Note:
-        This class supports multiple encoders and can be used for multilingual 
+        This class supports multiple encoders and can be used for multilingual
         translation tasks.
 
     Todo:
         - Refactor handling of multiple speakers in future updates.
     """
+
     @typechecked
     def __init__(
         self,
@@ -284,11 +285,11 @@ class RNNDecoder(AbsDecoder):
         to the number of hidden units in the RNN.
 
         Args:
-            hs_pad (torch.Tensor): A tensor of shape (batch_size, hidden_size) 
+            hs_pad (torch.Tensor): A tensor of shape (batch_size, hidden_size)
                 from which the batch size is inferred.
 
         Returns:
-            torch.Tensor: A tensor of shape (batch_size, hidden_size) filled with 
+            torch.Tensor: A tensor of shape (batch_size, hidden_size) filled with
             zeros, which represents the initial hidden state.
 
         Examples:
@@ -299,7 +300,7 @@ class RNNDecoder(AbsDecoder):
             torch.Size([32, 320])  # Assuming hidden_size is 320
 
         Note:
-            This method is primarily used to initialize the hidden state for 
+            This method is primarily used to initialize the hidden state for
             the first step of the decoding process in RNNs.
         """
         return hs_pad.new_zeros(hs_pad.size(0), self.dunits)
@@ -403,7 +404,7 @@ class RNNDecoder(AbsDecoder):
             >>> ys_in_pad = torch.randint(0, 5000, (10, 15))  # Previous outputs
             >>> ys_in_lens = torch.randint(1, 16, (10,))  # Random lengths
             >>> logits, new_lengths = decoder.forward(hs_pad, hlens, ys_in_pad, ys_in_lens)
-        
+
         Note:
             This function handles both single and multi-encoder scenarios. In the
             case of multiple encoders, the attention mechanism will select the
@@ -500,19 +501,19 @@ class RNNDecoder(AbsDecoder):
         Initializes the hidden and cell states for the RNN decoder.
 
         This method prepares the initial states required for the recurrent neural
-        network (RNN) decoder. It supports multiple encoder configurations and 
+        network (RNN) decoder. It supports multiple encoder configurations and
         ensures that the initial states are correctly shaped for processing.
 
         Attributes:
             c_prev (list): A list containing the initial cell states for each RNN layer.
             z_prev (list): A list containing the initial hidden states for each RNN layer.
-            a_prev (list or None): A list containing the initial attention states for each 
+            a_prev (list or None): A list containing the initial attention states for each
                 encoder, or None if there is only one encoder.
-            workspace (tuple): A tuple containing the attention index and the lists of 
+            workspace (tuple): A tuple containing the attention index and the lists of
                 hidden and cell states.
 
         Args:
-            x (torch.Tensor): The input tensor from which to derive the initial states. 
+            x (torch.Tensor): The input tensor from which to derive the initial states.
                 Its shape should be (batch_size, encoder_output_size).
 
         Returns:
@@ -565,24 +566,24 @@ class RNNDecoder(AbsDecoder):
         Calculate the log probabilities of the next token in a sequence.
 
         This method computes the log probabilities of the next token given
-        the previous tokens, the current state, and the encoder outputs. It 
-        uses the recurrent neural network (RNN) to process the input and 
+        the previous tokens, the current state, and the encoder outputs. It
+        uses the recurrent neural network (RNN) to process the input and
         apply attention mechanisms if multiple encoders are utilized.
 
         Args:
-            yseq (torch.Tensor): A tensor containing the sequence of tokens 
+            yseq (torch.Tensor): A tensor containing the sequence of tokens
                 (shape: (T,)) where T is the sequence length.
-            state (dict): A dictionary containing the current state, which 
+            state (dict): A dictionary containing the current state, which
                 includes the previous hidden states and the attention context.
-            x (torch.Tensor): A tensor containing the encoder outputs, where 
-                the shape is (B, E), B is the batch size and E is the 
+            x (torch.Tensor): A tensor containing the encoder outputs, where
+                the shape is (B, E), B is the batch size and E is the
                 encoder output size.
 
         Returns:
             tuple: A tuple containing:
-                - logp (torch.Tensor): Log probabilities of the next token 
+                - logp (torch.Tensor): Log probabilities of the next token
                 (shape: (vocab_size,)).
-                - state (dict): A dictionary containing the updated state 
+                - state (dict): A dictionary containing the updated state
                 with previous hidden states and attention weights.
 
         Examples:
@@ -594,9 +595,9 @@ class RNNDecoder(AbsDecoder):
             >>> print(logp.shape)  # Should output: torch.Size([100])
 
         Note:
-            This method supports both single and multiple encoder modes. In 
-            single encoder mode, the encoder output is directly used. In 
-            multiple encoder mode, attention weights are computed for each 
+            This method supports both single and multiple encoder modes. In
+            single encoder mode, the encoder output is directly used. In
+            multiple encoder mode, attention weights are computed for each
             encoder output.
 
         Raises:

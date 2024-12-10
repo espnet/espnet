@@ -10,33 +10,33 @@ class Predictor(abc.ABC):
     """
     The abstract class for a predictor algorithm.
 
-    This class serves as a base for various predictor algorithms that can be 
-    implemented for different types of stochastic differential equations (SDEs). 
-    The predictor utilizes a score function and the SDE model to update its 
+    This class serves as a base for various predictor algorithms that can be
+    implemented for different types of stochastic differential equations (SDEs).
+    The predictor utilizes a score function and the SDE model to update its
     predictions over time.
 
     Attributes:
         sde: The stochastic differential equation model.
-        rsde: The reverse stochastic differential equation derived from the 
+        rsde: The reverse stochastic differential equation derived from the
             score function.
         score_fn: The function used to compute the score.
-        probability_flow: A boolean indicating if the probability flow is 
+        probability_flow: A boolean indicating if the probability flow is
             utilized.
 
     Args:
         sde: The SDE model to be used.
         score_fn: The score function that will be used for the predictions.
-        probability_flow: (Optional) A boolean indicating whether to use 
+        probability_flow: (Optional) A boolean indicating whether to use
             probability flow (default: False).
 
     Methods:
-        update_fn(x, t, *args): An abstract method that updates the predictor 
+        update_fn(x, t, *args): An abstract method that updates the predictor
             state based on the current state and time.
-        debug_update_fn(x, t, *args): Raises a NotImplementedError indicating 
+        debug_update_fn(x, t, *args): Raises a NotImplementedError indicating
             that the debug update function is not implemented.
 
     Raises:
-        NotImplementedError: If the debug_update_fn is called without 
+        NotImplementedError: If the debug_update_fn is called without
             implementation.
 
     Examples:
@@ -54,65 +54,65 @@ class Predictor(abc.ABC):
     @abc.abstractmethod
     def update_fn(self, x, t, *args):
         """
-        One update of the predictor.
+            One update of the predictor.
 
-    This method computes one update step for the predictor algorithm.
-    It takes the current state and time step as input and returns the
-    updated state along with the mean state, which is useful for 
-    denoising.
+        This method computes one update step for the predictor algorithm.
+        It takes the current state and time step as input and returns the
+        updated state along with the mean state, which is useful for
+        denoising.
 
-    Args:
-        x (torch.Tensor): A PyTorch tensor representing the current state.
-        t (torch.Tensor): A PyTorch tensor representing the current time step.
-        *args: Possibly additional arguments, in particular `y` for OU processes.
+        Args:
+            x (torch.Tensor): A PyTorch tensor representing the current state.
+            t (torch.Tensor): A PyTorch tensor representing the current time step.
+            *args: Possibly additional arguments, in particular `y` for OU processes.
 
-    Returns:
-        tuple: A tuple containing:
-            - x (torch.Tensor): A PyTorch tensor of the next state.
-            - x_mean (torch.Tensor): A PyTorch tensor representing the next state
-              without random noise, useful for denoising.
+        Returns:
+            tuple: A tuple containing:
+                - x (torch.Tensor): A PyTorch tensor of the next state.
+                - x_mean (torch.Tensor): A PyTorch tensor representing the next state
+                  without random noise, useful for denoising.
 
-    Examples:
-        # Example usage:
-        x_current = torch.tensor([[0.0], [1.0]])
-        t_current = torch.tensor([0.1])
-        next_state, next_state_mean = predictor.update_fn(x_current, t_current)
+        Examples:
+            # Example usage:
+            x_current = torch.tensor([[0.0], [1.0]])
+            t_current = torch.tensor([0.1])
+            next_state, next_state_mean = predictor.update_fn(x_current, t_current)
 
-    Note:
-        This method is abstract and must be implemented in subclasses of the
-        Predictor class.
+        Note:
+            This method is abstract and must be implemented in subclasses of the
+            Predictor class.
         """
         pass
 
     def debug_update_fn(self, x, t, *args):
         """
-        Debug update function for the Predictor class.
+            Debug update function for the Predictor class.
 
-    This function is intended for debugging purposes and should be 
-    implemented in subclasses of Predictor to provide specific 
-    functionality. Currently, it raises a NotImplementedError to 
-    indicate that the debug update function has not been defined 
-    for the specific predictor instance.
+        This function is intended for debugging purposes and should be
+        implemented in subclasses of Predictor to provide specific
+        functionality. Currently, it raises a NotImplementedError to
+        indicate that the debug update function has not been defined
+        for the specific predictor instance.
 
-    Args:
-        x: A PyTorch tensor representing the current state.
-        t: A PyTorch tensor representing the current time step.
-        *args: Possibly additional arguments that may be used in 
-            specific implementations.
+        Args:
+            x: A PyTorch tensor representing the current state.
+            t: A PyTorch tensor representing the current time step.
+            *args: Possibly additional arguments that may be used in
+                specific implementations.
 
-    Raises:
-        NotImplementedError: If the debug update function is not 
-            implemented for the predictor.
+        Raises:
+            NotImplementedError: If the debug update function is not
+                implemented for the predictor.
 
-    Examples:
-        # Example usage (will raise NotImplementedError)
-        predictor = SomePredictorClass(...)
-        x, t = torch.randn(1, 3), torch.tensor(0.0)
-        predictor.debug_update_fn(x, t)
-    
-    Note:
-        Subclasses should override this method to provide a 
-        meaningful implementation for debugging.
+        Examples:
+            # Example usage (will raise NotImplementedError)
+            predictor = SomePredictorClass(...)
+            x, t = torch.randn(1, 3), torch.tensor(0.0)
+            predictor.debug_update_fn(x, t)
+
+        Note:
+            Subclasses should override this method to provide a
+            meaningful implementation for debugging.
         """
         raise NotImplementedError(
             f"Debug update function not implemented for predictor {self}."
@@ -123,9 +123,9 @@ class EulerMaruyamaPredictor(Predictor):
     """
     Euler-Maruyama predictor for stochastic differential equations.
 
-    This class implements the Euler-Maruyama method, which is a numerical 
-    method for simulating stochastic differential equations (SDEs). It 
-    predicts the next state based on the current state and the given 
+    This class implements the Euler-Maruyama method, which is a numerical
+    method for simulating stochastic differential equations (SDEs). It
+    predicts the next state based on the current state and the given
     parameters of the SDE.
 
     Args:
@@ -141,7 +141,7 @@ class EulerMaruyamaPredictor(Predictor):
 
     Returns:
         x: A PyTorch tensor of the next state.
-        x_mean: A PyTorch tensor representing the next state without 
+        x_mean: A PyTorch tensor representing the next state without
                  random noise, useful for denoising.
 
     Examples:
@@ -149,12 +149,13 @@ class EulerMaruyamaPredictor(Predictor):
         >>> x_next, x_mean = predictor.update_fn(x_current, t_current)
 
     Note:
-        This predictor is typically used in the context of sampling 
+        This predictor is typically used in the context of sampling
         from a diffusion process.
 
     Raises:
         NotImplementedError: If the update function is not implemented.
     """
+
     def __init__(self, sde, score_fn, probability_flow=False):
         super().__init__(sde, score_fn, probability_flow=probability_flow)
 
@@ -205,50 +206,51 @@ class ReverseDiffusionPredictor(Predictor):
         NotImplementedError: If the update function is called without
             implementing the necessary functionality.
     """
+
     def __init__(self, sde, score_fn, probability_flow=False):
         super().__init__(sde, score_fn, probability_flow=probability_flow)
 
     def update_fn(self, x, t, *args):
         """
-        Predictor for reverse diffusion processes.
+            Predictor for reverse diffusion processes.
 
-    This class implements the update function for reverse diffusion,
-    utilizing a specified stochastic differential equation (SDE) and
-    score function. The reverse diffusion process aims to recover
-    the original data from a noisy version through a learned score
-    function.
-
-    Attributes:
-        sde: A stochastic differential equation object.
-        rsde: A reverse stochastic differential equation object.
-        score_fn: A function that computes the score (gradient of log
-            probability).
-        probability_flow: A boolean indicating whether to use probability
-            flow in the update.
-
-    Args:
-        sde: An instance of the SDE to be used.
-        score_fn: A callable that returns the score function.
-        probability_flow: A boolean flag for enabling probability flow
-            (default: False).
-
-    Returns:
-        x: A PyTorch tensor representing the next state after the update.
-        x_mean: A PyTorch tensor representing the next state without
-            random noise, useful for denoising.
-
-    Examples:
-        >>> predictor = ReverseDiffusionPredictor(sde, score_fn)
-        >>> x_next, x_mean = predictor.update_fn(x_current, t_current)
-
-    Note:
-        This implementation assumes that the input tensor `x` is
-        compatible with the dimensions expected by the SDE and score
+        This class implements the update function for reverse diffusion,
+        utilizing a specified stochastic differential equation (SDE) and
+        score function. The reverse diffusion process aims to recover
+        the original data from a noisy version through a learned score
         function.
 
-    Raises:
-        ValueError: If the input tensor `x` or time step `t` are not
-            of the expected shape or type.
+        Attributes:
+            sde: A stochastic differential equation object.
+            rsde: A reverse stochastic differential equation object.
+            score_fn: A function that computes the score (gradient of log
+                probability).
+            probability_flow: A boolean indicating whether to use probability
+                flow in the update.
+
+        Args:
+            sde: An instance of the SDE to be used.
+            score_fn: A callable that returns the score function.
+            probability_flow: A boolean flag for enabling probability flow
+                (default: False).
+
+        Returns:
+            x: A PyTorch tensor representing the next state after the update.
+            x_mean: A PyTorch tensor representing the next state without
+                random noise, useful for denoising.
+
+        Examples:
+            >>> predictor = ReverseDiffusionPredictor(sde, score_fn)
+            >>> x_next, x_mean = predictor.update_fn(x_current, t_current)
+
+        Note:
+            This implementation assumes that the input tensor `x` is
+            compatible with the dimensions expected by the SDE and score
+            function.
+
+        Raises:
+            ValueError: If the input tensor `x` or time step `t` are not
+                of the expected shape or type.
         """
         f, g = self.rsde.discretize(x, t, *args)
         z = torch.randn_like(x)
@@ -293,33 +295,33 @@ class NonePredictor(Predictor):
 
     def update_fn(self, x, t, *args):
         """
-        One update of the predictor.
+            One update of the predictor.
 
-    This method is responsible for computing the next state of the predictor
-    based on the current state and time step. The behavior of this method is
-    determined by the specific implementation of the predictor class.
+        This method is responsible for computing the next state of the predictor
+        based on the current state and time step. The behavior of this method is
+        determined by the specific implementation of the predictor class.
 
-    Args:
-        x: A PyTorch tensor representing the current state.
-        t: A PyTorch tensor representing the current time step.
-        *args: Possibly additional arguments, in particular `y` for OU processes.
+        Args:
+            x: A PyTorch tensor representing the current state.
+            t: A PyTorch tensor representing the current time step.
+            *args: Possibly additional arguments, in particular `y` for OU processes.
 
-    Returns:
-        A tuple containing:
-            x: A PyTorch tensor of the next state.
-            x_mean: A PyTorch tensor representing the next state without random 
-                    noise, useful for denoising.
+        Returns:
+            A tuple containing:
+                x: A PyTorch tensor of the next state.
+                x_mean: A PyTorch tensor representing the next state without random
+                        noise, useful for denoising.
 
-    Examples:
-        # Example usage:
-        x_current = torch.tensor([[0.0, 0.0]])
-        t_current = torch.tensor([1.0])
-        next_state, next_mean = predictor.update_fn(x_current, t_current)
+        Examples:
+            # Example usage:
+            x_current = torch.tensor([[0.0, 0.0]])
+            t_current = torch.tensor([1.0])
+            next_state, next_mean = predictor.update_fn(x_current, t_current)
 
-    Note:
-        The actual behavior of this method will depend on the specific 
-        implementation of the predictor class (e.g., EulerMaruyamaPredictor 
-        or ReverseDiffusionPredictor).
+        Note:
+            The actual behavior of this method will depend on the specific
+            implementation of the predictor class (e.g., EulerMaruyamaPredictor
+            or ReverseDiffusionPredictor).
         """
         return x, x
 

@@ -39,64 +39,64 @@ class ConformerPostEncoder(AbsPostEncoder):
     """
     Conformer PostEncoder for sequence-to-sequence models.
 
-    This class implements a Conformer encoder module that processes input 
-    sequences using multi-head attention, convolutional layers, and 
-    position-wise feed-forward networks. It is designed to enhance the 
-    performance of speech and language processing tasks by capturing 
+    This class implements a Conformer encoder module that processes input
+    sequences using multi-head attention, convolutional layers, and
+    position-wise feed-forward networks. It is designed to enhance the
+    performance of speech and language processing tasks by capturing
     contextual information effectively.
 
     Attributes:
         output_size (int): The output dimension of the encoder.
-        embed (torch.nn.Sequential): The embedding layer that includes 
+        embed (torch.nn.Sequential): The embedding layer that includes
             positional encoding.
-        normalize_before (bool): Flag to indicate if layer normalization 
+        normalize_before (bool): Flag to indicate if layer normalization
             is applied before the first block.
         encoders (torch.nn.ModuleList): A list of encoder layers.
-        after_norm (torch.nn.LayerNorm): Layer normalization applied after 
+        after_norm (torch.nn.LayerNorm): Layer normalization applied after
             the encoder if normalize_before is True.
 
     Args:
         input_size (int): Input dimension.
         output_size (int): Dimension of attention (default: 256).
-        attention_heads (int): Number of heads in multi-head attention 
+        attention_heads (int): Number of heads in multi-head attention
             (default: 4).
-        linear_units (int): Number of units in position-wise feed forward 
+        linear_units (int): Number of units in position-wise feed forward
             (default: 2048).
         num_blocks (int): Number of decoder blocks (default: 6).
         dropout_rate (float): Dropout rate (default: 0.1).
-        attention_dropout_rate (float): Dropout rate in attention 
+        attention_dropout_rate (float): Dropout rate in attention
             (default: 0.0).
-        positional_dropout_rate (float): Dropout rate after adding 
+        positional_dropout_rate (float): Dropout rate after adding
             positional encoding (default: 0.1).
-        input_layer (Union[str, torch.nn.Module]): Input layer type 
+        input_layer (Union[str, torch.nn.Module]): Input layer type
             (default: "linear").
-        normalize_before (bool): Whether to use layer normalization before 
+        normalize_before (bool): Whether to use layer normalization before
             the first block (default: True).
-        concat_after (bool): Whether to concatenate input and output of 
+        concat_after (bool): Whether to concatenate input and output of
             attention layer (default: False).
-        positionwise_layer_type (str): Type of position-wise layer 
+        positionwise_layer_type (str): Type of position-wise layer
             ("linear", "conv1d", or "conv1d-linear", default: "linear").
-        positionwise_conv_kernel_size (int): Kernel size for position-wise 
+        positionwise_conv_kernel_size (int): Kernel size for position-wise
             convolution (default: 3).
-        rel_pos_type (str): Type of relative positional encoding 
+        rel_pos_type (str): Type of relative positional encoding
             ("legacy" or "latest", default: "legacy").
-        encoder_pos_enc_layer_type (str): Type of encoder positional 
+        encoder_pos_enc_layer_type (str): Type of encoder positional
             encoding layer (default: "rel_pos").
-        encoder_attn_layer_type (str): Type of encoder attention layer 
+        encoder_attn_layer_type (str): Type of encoder attention layer
             (default: "selfattn").
         activation_type (str): Activation function type (default: "swish").
-        macaron_style (bool): Whether to use Macaron style for position-wise 
+        macaron_style (bool): Whether to use Macaron style for position-wise
             layer (default: False).
-        use_cnn_module (bool): Whether to use convolution module 
+        use_cnn_module (bool): Whether to use convolution module
             (default: True).
-        zero_triu (bool): Whether to zero the upper triangular part of the 
+        zero_triu (bool): Whether to zero the upper triangular part of the
             attention matrix (default: False).
-        cnn_module_kernel (int): Kernel size of convolution module 
+        cnn_module_kernel (int): Kernel size of convolution module
             (default: 31).
         padding_idx (int): Padding index for input_layer=embed (default: -1).
 
     Raises:
-        ValueError: If unknown values are provided for `rel_pos_type`, 
+        ValueError: If unknown values are provided for `rel_pos_type`,
             `pos_enc_layer_type`, or `input_layer`.
 
     Examples:
@@ -107,6 +107,7 @@ class ConformerPostEncoder(AbsPostEncoder):
         >>> print(output.shape)  # Should match (batch_size, seq_len, output_size)
         >>> print(output_lengths.shape)  # Should match (batch_size,)
     """
+
     @typechecked
     def __init__(
         self,
@@ -263,21 +264,21 @@ class ConformerPostEncoder(AbsPostEncoder):
         """
         Forward pass through the ConformerPostEncoder.
 
-        This method processes the input tensor through the embedding layer, 
-        followed by multiple encoder layers. It applies masking to handle 
+        This method processes the input tensor through the embedding layer,
+        followed by multiple encoder layers. It applies masking to handle
         padded sequences and normalizes the output if specified.
 
         Args:
-            input (torch.Tensor): The input tensor of shape (batch_size, 
+            input (torch.Tensor): The input tensor of shape (batch_size,
                 sequence_length, feature_dim).
-            input_lengths (torch.Tensor): A tensor of shape (batch_size,) 
+            input_lengths (torch.Tensor): A tensor of shape (batch_size,)
                 containing the lengths of each input sequence before padding.
 
         Returns:
             Tuple[torch.Tensor, torch.Tensor]: A tuple containing:
-                - output (torch.Tensor): The processed output tensor of shape 
+                - output (torch.Tensor): The processed output tensor of shape
                   (batch_size, sequence_length, output_dim).
-                - olens (torch.Tensor): A tensor of shape (batch_size,) 
+                - olens (torch.Tensor): A tensor of shape (batch_size,)
                   representing the lengths of the outputs after processing.
 
         Examples:
@@ -289,13 +290,13 @@ class ConformerPostEncoder(AbsPostEncoder):
             torch.Size([32, 100, 256])  # Assuming output size is 256
 
         Note:
-            The input tensor should be appropriately padded and the 
-            input_lengths should reflect the actual lengths of the 
+            The input tensor should be appropriately padded and the
+            input_lengths should reflect the actual lengths of the
             sequences to ensure correct masking.
 
         Raises:
-            ValueError: If the input tensor's shape does not match the 
-                expected dimensions or if the input_lengths tensor has 
+            ValueError: If the input tensor's shape does not match the
+                expected dimensions or if the input_lengths tensor has
                 an incompatible size.
         """
         xs_pad = input

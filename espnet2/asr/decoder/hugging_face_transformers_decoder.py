@@ -222,44 +222,44 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
         """
         Forward pass of the decoder.
 
-        This method processes the encoded memory from the encoder and the 
-        input tensor to generate token scores before softmax. It can handle 
-        both causal language models and sequence-to-sequence models based on 
+        This method processes the encoded memory from the encoder and the
+        input tensor to generate token scores before softmax. It can handle
+        both causal language models and sequence-to-sequence models based on
         the initialization parameters.
 
         Args:
-            hs_pad (torch.Tensor): Encoded memory from the encoder with shape 
+            hs_pad (torch.Tensor): Encoded memory from the encoder with shape
                 (batch, maxlen_in, feat).
-            hlens (torch.Tensor): Lengths of the encoded sequences with shape 
+            hlens (torch.Tensor): Lengths of the encoded sequences with shape
                 (batch).
-            ys_in_pad (torch.Tensor): Input tensor for the decoder with shape 
+            ys_in_pad (torch.Tensor): Input tensor for the decoder with shape
                 (batch, maxlen_out, #mels).
-            ys_in_lens (torch.Tensor): Lengths of the input sequences with 
+            ys_in_lens (torch.Tensor): Lengths of the input sequences with
                 shape (batch).
 
         Returns:
             Tuple[torch.Tensor, torch.Tensor]: A tuple containing:
-                - x (torch.Tensor): Decoded token scores before softmax with 
+                - x (torch.Tensor): Decoded token scores before softmax with
                   shape (batch, maxlen_out, token).
-                - olens (torch.Tensor): Lengths of the output sequences with 
+                - olens (torch.Tensor): Lengths of the output sequences with
                   shape (batch,).
-        
+
         Examples:
             >>> decoder = HuggingFaceTransformersDecoder(...)
             >>> hs_pad = torch.rand(2, 10, 512)  # Example encoded memory
             >>> hlens = torch.tensor([10, 8])  # Example lengths
             >>> ys_in_pad = torch.rand(2, 5, 80)  # Example input tensor
             >>> ys_in_lens = torch.tensor([5, 4])  # Example lengths
-            >>> scores, lengths = decoder.forward(hs_pad, hlens, ys_in_pad, 
+            >>> scores, lengths = decoder.forward(hs_pad, hlens, ys_in_pad,
             ...                                     ys_in_lens)
-        
+
         Note:
-            This method assumes that the model has been initialized with 
-            appropriate parameters, including whether it is a causal language 
+            This method assumes that the model has been initialized with
+            appropriate parameters, including whether it is a causal language
             model or a sequence-to-sequence model.
 
         Raises:
-            ValueError: If the shapes of the input tensors do not match the 
+            ValueError: If the shapes of the input tensors do not match the
             expected dimensions.
         """
         enc_out = self.linear_in(hs_pad)
@@ -318,13 +318,13 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
         """
         Reloads the pretrained parameters for the decoder and language model head.
 
-        This method is designed to load the previously saved pretrained parameters 
-        for the decoder and its language model head if the `load_pretrained_weights` 
-        attribute is set to True. If loading is skipped, a corresponding log message 
+        This method is designed to load the previously saved pretrained parameters
+        for the decoder and its language model head if the `load_pretrained_weights`
+        attribute is set to True. If loading is skipped, a corresponding log message
         is generated.
 
         Attributes:
-            load_pretrained_weights (bool): Indicates whether to load pretrained 
+            load_pretrained_weights (bool): Indicates whether to load pretrained
                 weights or not.
 
         Raises:
@@ -355,26 +355,26 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
         """
         Adds a prefix and postfix to the encoder output for token input during decoding.
 
-        This method constructs the input for the decoder by concatenating a prefix, 
-        the encoder output, a postfix, and the input token embeddings. It also 
+        This method constructs the input for the decoder by concatenating a prefix,
+        the encoder output, a postfix, and the input token embeddings. It also
         generates the appropriate attention mask for the decoder.
 
         Args:
-            enc_out (torch.Tensor): The encoded output from the encoder. Shape 
+            enc_out (torch.Tensor): The encoded output from the encoder. Shape
                 should be (batch_size, max_length, hidden_size).
-            hlens (torch.Tensor): A tensor containing the lengths of the encoder 
+            hlens (torch.Tensor): A tensor containing the lengths of the encoder
                 outputs for each sample in the batch. Shape should be (batch_size,).
-            ys_in_pad (torch.Tensor): Input tensor representing the target 
+            ys_in_pad (torch.Tensor): Input tensor representing the target
                 sequence. Shape should be (batch_size, max_length_out).
-            ys_in_lens (torch.Tensor): A tensor containing the lengths of the 
+            ys_in_lens (torch.Tensor): A tensor containing the lengths of the
                 input target sequences. Shape should be (batch_size,).
 
         Returns:
             Tuple[dict, torch.Tensor]: A tuple containing:
-                - args (dict): A dictionary of inputs prepared for the decoder, 
+                - args (dict): A dictionary of inputs prepared for the decoder,
                     including 'inputs_embeds' and 'attention_mask'.
-                - no_loss_lengths (torch.Tensor): A tensor containing the lengths 
-                    of the input sequences that will not contribute to the loss 
+                - no_loss_lengths (torch.Tensor): A tensor containing the lengths
+                    of the input sequences that will not contribute to the loss
                     calculation.
 
         Examples:
@@ -384,12 +384,12 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
             >>> hlens = torch.tensor([10, 8])
             >>> ys_in_pad = torch.tensor([[1, 2, 3], [1, 2, 0]])
             >>> ys_in_lens = torch.tensor([3, 2])
-            >>> args, no_loss_lengths = decoder.add_prefix_postfix(enc_out, hlens, 
+            >>> args, no_loss_lengths = decoder.add_prefix_postfix(enc_out, hlens,
             ...                                                  ys_in_pad, ys_in_lens)
 
         Note:
-            The method handles padding on either the left or right side based on 
-            the tokenizer's padding configuration. Ensure that the tokenizer 
+            The method handles padding on either the left or right side based on
+            the tokenizer's padding configuration. Ensure that the tokenizer
             is correctly initialized before calling this method.
         """
         args = {}
@@ -439,23 +439,23 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
         """
         Scores the next token in a sequence given the current input.
 
-        This method computes the score for the next token based on the current 
-        state of the decoder and the input sequence. It utilizes the Hugging Face 
+        This method computes the score for the next token based on the current
+        state of the decoder and the input sequence. It utilizes the Hugging Face
         Transformers framework to perform the necessary computations.
 
         Args:
-            ys (torch.Tensor): The input tensor representing the sequence of 
+            ys (torch.Tensor): The input tensor representing the sequence of
                 tokens (batch_size, sequence_length).
-            state (Any): The current state of the decoder, which may contain 
+            state (Any): The current state of the decoder, which may contain
                 necessary context for scoring.
-            x (torch.Tensor): The encoder outputs from the previous step 
+            x (torch.Tensor): The encoder outputs from the previous step
                 (batch_size, encoder_output_size).
-            speech (torch.Tensor, optional): Optional input tensor representing 
+            speech (torch.Tensor, optional): Optional input tensor representing
                 the speech features, if applicable. Defaults to None.
 
         Returns:
             Tuple[torch.Tensor, None]: A tuple containing:
-                - next_token_scores (torch.Tensor): Log probabilities of the 
+                - next_token_scores (torch.Tensor): Log probabilities of the
                   next token (batch_size * num_beams, vocab_size).
                 - None: Placeholder for future extension (currently unused).
 
@@ -468,7 +468,7 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
             >>> print(scores.shape)  # (1, vocab_size)
 
         Note:
-            This method currently does not implement caching, which could 
+            This method currently does not implement caching, which could
             improve performance for successive calls.
         """
         model_kwargs = {
@@ -502,27 +502,27 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
         """
         Computes the batch scores for a sequence of input tokens.
 
-        This method processes the input sequences and calculates the scores 
+        This method processes the input sequences and calculates the scores
         for the next token predictions based on the encoder outputs.
 
         Args:
-            ys (torch.Tensor): Tensor of shape (batch_size, sequence_length) 
-                containing the input sequences for which scores are to be 
+            ys (torch.Tensor): Tensor of shape (batch_size, sequence_length)
+                containing the input sequences for which scores are to be
                 computed.
-            states (List[Any]): A list of states, which can be used to 
+            states (List[Any]): A list of states, which can be used to
                 maintain information across the decoding steps.
-            xs (torch.Tensor): Tensor of shape (batch_size, feature_size) 
-                representing the encoder outputs for the corresponding 
+            xs (torch.Tensor): Tensor of shape (batch_size, feature_size)
+                representing the encoder outputs for the corresponding
                 sequences.
-            speech (torch.Tensor, optional): Optional tensor representing 
+            speech (torch.Tensor, optional): Optional tensor representing
                 speech inputs. Defaults to None.
 
         Returns:
             Tuple[torch.Tensor, List[Any]]: A tuple containing:
-                - next_token_scores (torch.Tensor): Tensor of shape 
-                  (batch_size, vocab_size) containing the log probabilities 
+                - next_token_scores (torch.Tensor): Tensor of shape
+                  (batch_size, vocab_size) containing the log probabilities
                   of the next tokens.
-                - List[Any]: The updated list of states after processing 
+                - List[Any]: The updated list of states after processing
                   the input sequences.
 
         Examples:
@@ -534,11 +534,11 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
             >>> print(scores.shape)  # Should print: torch.Size([2, vocab_size])
 
         Note:
-            Ensure that the input tensors are properly padded and formatted 
+            Ensure that the input tensors are properly padded and formatted
             before passing them to this method.
 
         Raises:
-            ValueError: If the input tensors have mismatched dimensions or 
+            ValueError: If the input tensors have mismatched dimensions or
                 are not compatible with the model.
         """
         # import pdb;pdb.set_trace()
@@ -571,7 +571,7 @@ def get_hugging_face_model_network(model):
     Transformers library.
 
     Args:
-        model: A Hugging Face model instance from which the network is to 
+        model: A Hugging Face model instance from which the network is to
             be retrieved.
 
     Returns:
@@ -608,19 +608,19 @@ def get_hugging_face_model_lm_head(model):
     Get the language model head from a Hugging Face Transformers model.
 
     This function retrieves the language model head from a given Transformers model.
-    The function checks for the presence of the `lm_head` or `embed_out` attribute 
-    in the model and returns the appropriate head. If neither attribute is found, 
+    The function checks for the presence of the `lm_head` or `embed_out` attribute
+    in the model and returns the appropriate head. If neither attribute is found,
     an exception is raised.
 
     Args:
-        model: A Hugging Face Transformers model instance from which to extract 
+        model: A Hugging Face Transformers model instance from which to extract
             the language model head.
 
     Returns:
         The language model head of the specified model.
 
     Raises:
-        Exception: If neither `lm_head` nor `embed_out` attributes can be found 
+        Exception: If neither `lm_head` nor `embed_out` attributes can be found
             in the model.
 
     Examples:
@@ -630,7 +630,7 @@ def get_hugging_face_model_lm_head(model):
         >>> print(lm_head)  # This will print the language model head of the model.
 
     Note:
-        Ensure that the model is a valid Hugging Face Transformers model instance 
+        Ensure that the model is a valid Hugging Face Transformers model instance
         before calling this function.
     """
     if hasattr(model, "lm_head"):

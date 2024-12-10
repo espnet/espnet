@@ -54,73 +54,73 @@ BEAMFORMER_TYPES = (
 
 class DNN_Beamformer(torch.nn.Module):
     """
-    DNN mask based Beamformer.
+        DNN mask based Beamformer.
 
-This class implements a deep neural network (DNN) based beamformer for 
-enhancing speech signals in multi-channel audio. The beamformer utilizes 
-various algorithms, including MVDR, MPDR, and WPD, and is capable of 
-estimating masks for speech and noise.
+    This class implements a deep neural network (DNN) based beamformer for
+    enhancing speech signals in multi-channel audio. The beamformer utilizes
+    various algorithms, including MVDR, MPDR, and WPD, and is capable of
+    estimating masks for speech and noise.
 
-Citation:
-    Multichannel End-to-end Speech Recognition; T. Ochiai et al., 2017;
-    http://proceedings.mlr.press/v70/ochiai17a/ochiai17a.pdf
+    Citation:
+        Multichannel End-to-end Speech Recognition; T. Ochiai et al., 2017;
+        http://proceedings.mlr.press/v70/ochiai17a/ochiai17a.pdf
 
-Attributes:
-    mask (MaskEstimator): An instance of the MaskEstimator used for 
-        estimating masks for beamforming.
-    ref (AttentionReference or None): An optional attention-based reference 
-        used for beamforming.
-    ref_channel (int): Index of the reference channel for beamforming.
-    use_noise_mask (bool): Flag indicating whether to use noise mask.
-    num_spk (int): Number of speakers to separate.
-    nmask (int): Number of masks to be estimated.
-    beamformer_type (str): Type of beamformer to use (e.g., "mvdr_souden").
-    rtf_iterations (int): Number of iterations for estimating the RTF.
-    mwf_mu (float): Weight for noise suppression in SDW-MWF.
-    btaps (int): Number of taps for WPD beamformer.
-    bdelay (int): Delay for WPD beamformer.
-    eps (float): Small value to avoid division by zero.
-    diagonal_loading (bool): Flag for applying diagonal loading.
-    diag_eps (float): Small value for diagonal loading.
-    mask_flooring (bool): Flag for applying mask flooring.
-    flooring_thres (float): Threshold for mask flooring.
-    use_torch_solver (bool): Flag indicating whether to use Torch solver.
+    Attributes:
+        mask (MaskEstimator): An instance of the MaskEstimator used for
+            estimating masks for beamforming.
+        ref (AttentionReference or None): An optional attention-based reference
+            used for beamforming.
+        ref_channel (int): Index of the reference channel for beamforming.
+        use_noise_mask (bool): Flag indicating whether to use noise mask.
+        num_spk (int): Number of speakers to separate.
+        nmask (int): Number of masks to be estimated.
+        beamformer_type (str): Type of beamformer to use (e.g., "mvdr_souden").
+        rtf_iterations (int): Number of iterations for estimating the RTF.
+        mwf_mu (float): Weight for noise suppression in SDW-MWF.
+        btaps (int): Number of taps for WPD beamformer.
+        bdelay (int): Delay for WPD beamformer.
+        eps (float): Small value to avoid division by zero.
+        diagonal_loading (bool): Flag for applying diagonal loading.
+        diag_eps (float): Small value for diagonal loading.
+        mask_flooring (bool): Flag for applying mask flooring.
+        flooring_thres (float): Threshold for mask flooring.
+        use_torch_solver (bool): Flag indicating whether to use Torch solver.
 
-Args:
-    bidim (int): Input feature dimension.
-    btype (str): Type of DNN architecture (default: "blstmp").
-    blayers (int): Number of layers in the DNN (default: 3).
-    bunits (int): Number of units in each DNN layer (default: 300).
-    bprojs (int): Number of projections (default: 320).
-    num_spk (int): Number of speakers (default: 1).
-    use_noise_mask (bool): Whether to use noise mask (default: True).
-    nonlinear (str): Nonlinear activation function (default: "sigmoid").
-    dropout_rate (float): Dropout rate (default: 0.0).
-    badim (int): Dimension for attention reference (default: 320).
-    ref_channel (int): Index of reference channel (default: -1).
-    beamformer_type (str): Type of beamformer (default: "mvdr_souden").
-    rtf_iterations (int): Number of iterations for RTF estimation (default: 2).
-    mwf_mu (float): Noise suppression weight for SDW-MWF (default: 1.0).
-    eps (float): Small constant to prevent division by zero (default: 1e-6).
-    diagonal_loading (bool): Flag for diagonal loading (default: True).
-    diag_eps (float): Small value for diagonal loading (default: 1e-7).
-    mask_flooring (bool): Flag for applying mask flooring (default: False).
-    flooring_thres (float): Threshold for mask flooring (default: 1e-6).
-    use_torch_solver (bool): Use Torch solver (default: True).
-    use_torchaudio_api (bool): Use torchaudio API (default: False).
-    btaps (int): Number of taps for WPD (default: 5).
-    bdelay (int): Delay for WPD (default: 3).
+    Args:
+        bidim (int): Input feature dimension.
+        btype (str): Type of DNN architecture (default: "blstmp").
+        blayers (int): Number of layers in the DNN (default: 3).
+        bunits (int): Number of units in each DNN layer (default: 300).
+        bprojs (int): Number of projections (default: 320).
+        num_spk (int): Number of speakers (default: 1).
+        use_noise_mask (bool): Whether to use noise mask (default: True).
+        nonlinear (str): Nonlinear activation function (default: "sigmoid").
+        dropout_rate (float): Dropout rate (default: 0.0).
+        badim (int): Dimension for attention reference (default: 320).
+        ref_channel (int): Index of reference channel (default: -1).
+        beamformer_type (str): Type of beamformer (default: "mvdr_souden").
+        rtf_iterations (int): Number of iterations for RTF estimation (default: 2).
+        mwf_mu (float): Noise suppression weight for SDW-MWF (default: 1.0).
+        eps (float): Small constant to prevent division by zero (default: 1e-6).
+        diagonal_loading (bool): Flag for diagonal loading (default: True).
+        diag_eps (float): Small value for diagonal loading (default: 1e-7).
+        mask_flooring (bool): Flag for applying mask flooring (default: False).
+        flooring_thres (float): Threshold for mask flooring (default: 1e-6).
+        use_torch_solver (bool): Use Torch solver (default: True).
+        use_torchaudio_api (bool): Use torchaudio API (default: False).
+        btaps (int): Number of taps for WPD (default: 5).
+        bdelay (int): Delay for WPD (default: 3).
 
-Examples:
-    # Initialize the DNN_Beamformer
-    beamformer = DNN_Beamformer(bidim=128, num_spk=2)
+    Examples:
+        # Initialize the DNN_Beamformer
+        beamformer = DNN_Beamformer(bidim=128, num_spk=2)
 
-    # Forward pass through the beamformer
-    enhanced, ilens, masks = beamformer(data, ilens)
+        # Forward pass through the beamformer
+        enhanced, ilens, masks = beamformer(data, ilens)
 
-Raises:
-    ValueError: If an unsupported beamformer type is provided or if 
-        the number of speakers is less than 1.
+    Raises:
+        ValueError: If an unsupported beamformer type is provided or if
+            the number of speakers is less than 1.
     """
 
     def __init__(
@@ -233,46 +233,46 @@ Raises:
         oracle_masks: Optional[List[torch.Tensor]] = None,
     ) -> Tuple[Union[torch.Tensor, ComplexTensor], torch.LongTensor, torch.Tensor]:
         """
-        DNN_Beamformer forward function.
+            DNN_Beamformer forward function.
 
-    This method performs the forward pass for the DNN-based beamformer, 
-    applying the beamforming process to the input data. It takes in the 
-    data, input lengths, optional power spectra, and oracle masks, and 
-    produces enhanced signals, updated input lengths, and estimated masks.
+        This method performs the forward pass for the DNN-based beamformer,
+        applying the beamforming process to the input data. It takes in the
+        data, input lengths, optional power spectra, and oracle masks, and
+        produces enhanced signals, updated input lengths, and estimated masks.
 
-    Notation:
-        B: Batch
-        C: Channel
-        T: Time or Sequence length
-        F: Frequency
+        Notation:
+            B: Batch
+            C: Channel
+            T: Time or Sequence length
+            F: Frequency
 
-    Args:
-        data (torch.complex64/ComplexTensor): Input tensor of shape (B, T, C, F).
-        ilens (torch.Tensor): Input lengths of shape (B,).
-        powers (List[torch.Tensor] or None): Optional power spectra used for 
-            wMPDR or WPD with shape (B, F, T).
-        oracle_masks (List[torch.Tensor] or None): Optional oracle masks of 
-            shape (B, F, C, T). If provided, these masks will be used instead 
-            of the computed masks.
+        Args:
+            data (torch.complex64/ComplexTensor): Input tensor of shape (B, T, C, F).
+            ilens (torch.Tensor): Input lengths of shape (B,).
+            powers (List[torch.Tensor] or None): Optional power spectra used for
+                wMPDR or WPD with shape (B, F, T).
+            oracle_masks (List[torch.Tensor] or None): Optional oracle masks of
+                shape (B, F, C, T). If provided, these masks will be used instead
+                of the computed masks.
 
-    Returns:
-        enhanced (torch.complex64/ComplexTensor): Enhanced output of shape (B, T, F).
-        ilens (torch.Tensor): Updated input lengths of shape (B,).
-        masks (torch.Tensor): Estimated masks of shape (B, T, C, F).
+        Returns:
+            enhanced (torch.complex64/ComplexTensor): Enhanced output of shape (B, T, F).
+            ilens (torch.Tensor): Updated input lengths of shape (B,).
+            masks (torch.Tensor): Estimated masks of shape (B, T, C, F).
 
-    Examples:
-        >>> data = torch.randn(4, 160, 2, 64, dtype=torch.complex64)
-        >>> ilens = torch.tensor([160, 160, 160, 160])
-        >>> enhanced, ilens, masks = model.forward(data, ilens)
+        Examples:
+            >>> data = torch.randn(4, 160, 2, 64, dtype=torch.complex64)
+            >>> ilens = torch.tensor([160, 160, 160, 160])
+            >>> enhanced, ilens, masks = model.forward(data, ilens)
 
-    Note:
-        The forward method assumes that the input data is complex and that the 
-        beamforming statistics are properly initialized in the DNN_Beamformer 
-        class. If oracle masks are provided, they should have the correct shape 
-        to match the number of channels in the input data.
+        Note:
+            The forward method assumes that the input data is complex and that the
+            beamforming statistics are properly initialized in the DNN_Beamformer
+            class. If oracle masks are provided, they should have the correct shape
+            to match the number of channels in the input data.
 
-    Raises:
-        ValueError: If the specified beamformer type is not supported.
+        Raises:
+            ValueError: If the specified beamformer type is not supported.
         """
         # data (B, T, C, F) -> (B, F, C, T)
         data = data.permute(0, 3, 2, 1)
@@ -455,53 +455,53 @@ Raises:
         spk=0,
     ):
         """
-        Beamforming with the provided statistics.
+            Beamforming with the provided statistics.
 
-    This method applies beamforming techniques using the provided noise and 
-    speech covariance matrices, as well as other optional parameters. The 
-    implementation varies based on the type of beamformer being used, such 
-    as MVDR, MPDR, WPD, and others.
+        This method applies beamforming techniques using the provided noise and
+        speech covariance matrices, as well as other optional parameters. The
+        implementation varies based on the type of beamformer being used, such
+        as MVDR, MPDR, WPD, and others.
 
-    Args:
-        data (torch.complex64/ComplexTensor): 
-            Input tensor of shape (B, F, C, T), where B is the batch size, 
-            F is the number of frequency bins, C is the number of channels, 
-            and T is the time dimension.
-        ilens (torch.Tensor): 
-            A tensor of shape (B,) representing the lengths of the input 
-            sequences.
-        psd_n (torch.complex64/ComplexTensor): 
-            Noise covariance matrix for MVDR (shape: (B, F, C, C)), 
-            observation covariance matrix for MPDR/wMPDR, or stacked 
-            observation covariance for WPD (shape: (B, F, (btaps+1)*C, 
-            (btaps+1)*C)).
-        psd_speech (torch.complex64/ComplexTensor): 
-            Speech covariance matrix (shape: (B, F, C, C)).
-        psd_distortion (torch.complex64/ComplexTensor, optional): 
-            Distortion covariance matrix (shape: (B, F, C, C)).
-        rtf_mat (torch.complex64/ComplexTensor, optional): 
-            RTF matrix (shape: (B, F, C, num_spk)).
-        spk (int, optional): 
-            Speaker index. Default is 0.
+        Args:
+            data (torch.complex64/ComplexTensor):
+                Input tensor of shape (B, F, C, T), where B is the batch size,
+                F is the number of frequency bins, C is the number of channels,
+                and T is the time dimension.
+            ilens (torch.Tensor):
+                A tensor of shape (B,) representing the lengths of the input
+                sequences.
+            psd_n (torch.complex64/ComplexTensor):
+                Noise covariance matrix for MVDR (shape: (B, F, C, C)),
+                observation covariance matrix for MPDR/wMPDR, or stacked
+                observation covariance for WPD (shape: (B, F, (btaps+1)*C,
+                (btaps+1)*C)).
+            psd_speech (torch.complex64/ComplexTensor):
+                Speech covariance matrix (shape: (B, F, C, C)).
+            psd_distortion (torch.complex64/ComplexTensor, optional):
+                Distortion covariance matrix (shape: (B, F, C, C)).
+            rtf_mat (torch.complex64/ComplexTensor, optional):
+                RTF matrix (shape: (B, F, C, num_spk)).
+            spk (int, optional):
+                Speaker index. Default is 0.
 
-    Returns:
-        enhanced (torch.complex64/ComplexTensor): 
-            Enhanced output tensor of shape (B, F, T).
-        ws (torch.complex64/ComplexTensor): 
-            Weight vectors of shape (B, F) or (B, F, (btaps+1)*C).
+        Returns:
+            enhanced (torch.complex64/ComplexTensor):
+                Enhanced output tensor of shape (B, F, T).
+            ws (torch.complex64/ComplexTensor):
+                Weight vectors of shape (B, F) or (B, F, (btaps+1)*C).
 
-    Raises:
-        ValueError: If the beamformer type is not supported.
+        Raises:
+            ValueError: If the beamformer type is not supported.
 
-    Examples:
-        >>> beamformer = DNN_Beamformer(...)
-        >>> enhanced, weights = beamformer.apply_beamforming(data, ilens, psd_n, 
-        ... psd_speech)
+        Examples:
+            >>> beamformer = DNN_Beamformer(...)
+            >>> enhanced, weights = beamformer.apply_beamforming(data, ilens, psd_n,
+            ... psd_speech)
 
-    Note:
-        The implementation of beamforming is contingent upon the specified 
-        beamformer type and may involve various computational techniques to 
-        optimize performance based on the statistics provided.
+        Note:
+            The implementation of beamforming is contingent upon the specified
+            beamformer type and may involve various computational techniques to
+            optimize performance based on the statistics provided.
         """
         # u: (B, C)
         if self.ref_channel < 0:
@@ -671,28 +671,28 @@ Raises:
         """
         Predict masks for beamforming.
 
-        This method takes input data and estimates the masks required for 
-        beamforming based on the learned model parameters. The input data 
+        This method takes input data and estimates the masks required for
+        beamforming based on the learned model parameters. The input data
         should be a complex tensor representing the signals to be processed.
 
         Args:
-            data (torch.complex64/ComplexTensor): 
+            data (torch.complex64/ComplexTensor):
                 Input data of shape (B, T, C, F) where:
                 - B: Batch size
                 - T: Time or sequence length
                 - C: Number of channels
                 - F: Number of frequency bins
-            ilens (torch.Tensor): 
-                Tensor of shape (B,) representing the actual lengths of each 
+            ilens (torch.Tensor):
+                Tensor of shape (B,) representing the actual lengths of each
                 input sequence in the batch.
 
         Returns:
             Tuple[Tuple[torch.Tensor, ...], torch.LongTensor]:
                 A tuple containing:
-                - masks (torch.Tensor): 
-                    Estimated masks of shape (B, T, C, F) used for 
+                - masks (torch.Tensor):
+                    Estimated masks of shape (B, T, C, F) used for
                     beamforming.
-                - ilens (torch.LongTensor): 
+                - ilens (torch.LongTensor):
                     The input lengths tensor of shape (B,).
 
         Examples:
@@ -703,12 +703,12 @@ Raises:
             >>> print(masks[0].shape)  # Should print torch.Size([100, 2, 256])
 
         Note:
-            The input data should be preprocessed and in double precision for 
-            optimal performance. The output masks can then be used for 
+            The input data should be preprocessed and in double precision for
+            optimal performance. The output masks can then be used for
             enhancing the input signals using various beamforming techniques.
 
         Raises:
-            ValueError: If the input data dimensions do not match the expected 
+            ValueError: If the input data dimensions do not match the expected
             shape.
         """
         masks, _ = self.mask(to_float(data.permute(0, 3, 2, 1)), ilens)
@@ -721,27 +721,27 @@ class AttentionReference(torch.nn.Module):
     """
     Attention-based reference for estimating spatial filters.
 
-    This module utilizes an attention mechanism to generate a reference 
-    vector based on the power spectral density (PSD) input. It computes 
-    the attention weights from the input features and outputs a 
+    This module utilizes an attention mechanism to generate a reference
+    vector based on the power spectral density (PSD) input. It computes
+    the attention weights from the input features and outputs a
     normalized reference vector for use in beamforming applications.
 
     Attributes:
-        mlp_psd (torch.nn.Linear): Linear layer for mapping input PSD to 
+        mlp_psd (torch.nn.Linear): Linear layer for mapping input PSD to
             attention features.
-        gvec (torch.nn.Linear): Linear layer for generating the attention 
+        gvec (torch.nn.Linear): Linear layer for generating the attention
             weights.
-        eps (float): Small constant to avoid division by zero in 
+        eps (float): Small constant to avoid division by zero in
             calculations.
 
     Args:
         bidim (int): Input feature dimension of the PSD.
         att_dim (int): Dimension of the attention features.
-        eps (float, optional): Small constant added for numerical stability 
+        eps (float, optional): Small constant added for numerical stability
             (default: 1e-6).
 
     Returns:
-        Tuple[torch.Tensor, torch.LongTensor]: A tuple containing the 
+        Tuple[torch.Tensor, torch.LongTensor]: A tuple containing the
         normalized attention vector and the input lengths.
 
     Examples:
@@ -752,10 +752,11 @@ class AttentionReference(torch.nn.Module):
         >>> print(u.shape)  # Should output (10, 4)
 
     Note:
-        The input `psd_in` should have a shape of (B, F, C, C), where B 
-        is the batch size, F is the number of frequency bins, and C is 
+        The input `psd_in` should have a shape of (B, F, C, C), where B
+        is the batch size, F is the number of frequency bins, and C is
         the number of channels.
     """
+
     def __init__(self, bidim, att_dim, eps=1e-6):
         super().__init__()
         self.mlp_psd = torch.nn.Linear(bidim, att_dim)
@@ -771,9 +772,9 @@ class AttentionReference(torch.nn.Module):
         """
         DNN_Beamformer forward function.
 
-        This method performs the forward pass of the DNN beamformer, applying 
-        beamforming to the input data based on the estimated masks or 
-        provided oracle masks. The method takes into account various 
+        This method performs the forward pass of the DNN beamformer, applying
+        beamforming to the input data based on the estimated masks or
+        provided oracle masks. The method takes into account various
         parameters such as input lengths and power spectral densities.
 
         Notation:
@@ -783,22 +784,22 @@ class AttentionReference(torch.nn.Module):
             F: Frequency
 
         Args:
-            data (torch.complex64/ComplexTensor): Input data of shape 
+            data (torch.complex64/ComplexTensor): Input data of shape
                 (B, T, C, F).
             ilens (torch.Tensor): Input lengths of shape (B,).
-            powers (List[torch.Tensor] or None): Optional. Used for wMPDR or 
+            powers (List[torch.Tensor] or None): Optional. Used for wMPDR or
                 WPD of shape (B, F, T).
-            oracle_masks (List[torch.Tensor] or None): Optional. Oracle masks 
-                of shape (B, F, C, T). If provided, these masks will be 
+            oracle_masks (List[torch.Tensor] or None): Optional. Oracle masks
+                of shape (B, F, C, T). If provided, these masks will be
                 used instead of self.mask.
 
         Returns:
-            Tuple[Union[torch.Tensor, ComplexTensor], torch.LongTensor, 
+            Tuple[Union[torch.Tensor, ComplexTensor], torch.LongTensor,
             torch.Tensor]: A tuple containing:
-                - enhanced (torch.complex64/ComplexTensor): Enhanced output 
+                - enhanced (torch.complex64/ComplexTensor): Enhanced output
                   of shape (B, T, F).
                 - ilens (torch.Tensor): Input lengths of shape (B,).
-                - masks (torch.Tensor): Estimated masks of shape 
+                - masks (torch.Tensor): Estimated masks of shape
                   (B, T, C, F).
 
         Examples:
@@ -808,12 +809,12 @@ class AttentionReference(torch.nn.Module):
             >>> enhanced, ilens, masks = beamformer(data, ilens)
 
         Note:
-            The input `data` can either be a standard PyTorch tensor or a 
-            ComplexTensor. The method performs necessary transformations to 
+            The input `data` can either be a standard PyTorch tensor or a
+            ComplexTensor. The method performs necessary transformations to
             the input data for further processing.
 
         Raises:
-            ValueError: If the provided `beamformer_type` is not supported 
+            ValueError: If the provided `beamformer_type` is not supported
             or if any other invalid input is detected.
         """
         B, _, C = psd_in.size()[:3]

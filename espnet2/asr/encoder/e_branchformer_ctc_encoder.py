@@ -51,41 +51,41 @@ class EBranchformerEncoderLayer(torch.nn.Module):
 
     This layer implements an enhanced version of the E-Branchformer encoder
     layer, incorporating additional cross-attention modules. It is designed
-    to facilitate improved processing of input sequences by integrating 
+    to facilitate improved processing of input sequences by integrating
     both self-attention and convolutional gating mechanisms.
 
     Attributes:
         size (int): The dimension of the model.
-        attn (torch.nn.Module): The attention module, either standard or 
+        attn (torch.nn.Module): The attention module, either standard or
             efficient.
         cgmlp (torch.nn.Module): The Convolutional Gating MLP module.
-        feed_forward (Optional[torch.nn.Module]): The feed-forward module, 
+        feed_forward (Optional[torch.nn.Module]): The feed-forward module,
             if applicable.
-        feed_forward_macaron (Optional[torch.nn.Module]): A macaron-style 
+        feed_forward_macaron (Optional[torch.nn.Module]): A macaron-style
             feed-forward module, if applicable.
-        cross_attn (Optional[torch.nn.Module]): The cross-attention module, 
+        cross_attn (Optional[torch.nn.Module]): The cross-attention module,
             if applicable.
         dropout (torch.nn.Dropout): The dropout layer for regularization.
-        depthwise_conv_fusion (torch.nn.Conv1d): The depthwise convolution 
+        depthwise_conv_fusion (torch.nn.Conv1d): The depthwise convolution
             layer for merging branches.
-        merge_proj (torch.nn.Linear): The linear projection layer for merging 
+        merge_proj (torch.nn.Linear): The linear projection layer for merging
             outputs.
 
     Args:
         size (int): Model dimension.
-        attn (torch.nn.Module): Attention module (self-attention or 
+        attn (torch.nn.Module): Attention module (self-attention or
             efficient attention).
         cgmlp (torch.nn.Module): Convolutional Gating MLP.
         feed_forward (Optional[torch.nn.Module]): Feed-forward module.
-        feed_forward_macaron (Optional[torch.nn.Module]): Macaron-style 
+        feed_forward_macaron (Optional[torch.nn.Module]): Macaron-style
             feed-forward module.
         cross_attn (Optional[torch.nn.Module]): Cross-attention module.
         dropout_rate (float): Dropout probability.
-        merge_conv_kernel (int): Kernel size of the depth-wise conv in the 
+        merge_conv_kernel (int): Kernel size of the depth-wise conv in the
             merge module.
 
     Raises:
-        NotImplementedError: If cache is provided in the forward pass, 
+        NotImplementedError: If cache is provided in the forward pass,
             as this functionality is not implemented.
 
     Examples:
@@ -162,33 +162,33 @@ class EBranchformerEncoderLayer(torch.nn.Module):
         """
         Compute encoded features.
 
-        This method processes the input tensor through the E-Branchformer 
-        encoder layer. It utilizes both self-attention and convolutional 
-        gating mechanisms, merging the results to produce the final 
+        This method processes the input tensor through the E-Branchformer
+        encoder layer. It utilizes both self-attention and convolutional
+        gating mechanisms, merging the results to produce the final
         output tensor.
 
         Args:
-            x_input (Union[Tuple, torch.Tensor]): Input tensor with or 
+            x_input (Union[Tuple, torch.Tensor]): Input tensor with or
                 without positional embedding. It can be:
                 - A tuple containing:
-                    - torch.Tensor: Input tensor of shape 
+                    - torch.Tensor: Input tensor of shape
                     (#batch, time, size).
-                    - torch.Tensor: Positional embedding tensor of shape 
+                    - torch.Tensor: Positional embedding tensor of shape
                     (1, time, size).
-                - A torch.Tensor of shape (#batch, time, size) without 
+                - A torch.Tensor of shape (#batch, time, size) without
                 positional embedding.
-            mask (torch.Tensor): Mask tensor for the input with shape 
+            mask (torch.Tensor): Mask tensor for the input with shape
                 (#batch, 1, time) to indicate valid positions.
-            cache (torch.Tensor, optional): Cache tensor of the input 
-                with shape (#batch, time - 1, size). If provided, 
+            cache (torch.Tensor, optional): Cache tensor of the input
+                with shape (#batch, time - 1, size). If provided,
                 the function raises a NotImplementedError.
-            memory (torch.Tensor, optional): Memory tensor for cross 
+            memory (torch.Tensor, optional): Memory tensor for cross
                 attention, with shape (#batch, memory_time, size).
-            memory_mask (torch.Tensor, optional): Mask for the memory 
+            memory_mask (torch.Tensor, optional): Mask for the memory
                 tensor, with shape (#batch, 1, memory_time).
 
         Returns:
-            Union[Tuple[torch.Tensor, torch.Tensor], torch.Tensor]: 
+            Union[Tuple[torch.Tensor, torch.Tensor], torch.Tensor]:
                 If positional embedding is provided, returns a tuple:
                 - torch.Tensor: Output tensor of shape (#batch, time, size).
                 - torch.Tensor: Positional embedding tensor.
@@ -206,7 +206,7 @@ class EBranchformerEncoderLayer(torch.nn.Module):
             >>> output, output_mask = layer(input_tensor, mask)
 
         Note:
-            The `cache` parameter is not implemented and will raise an error 
+            The `cache` parameter is not implemented and will raise an error
             if provided.
         """
 
@@ -283,7 +283,7 @@ class EBranchformerCTCEncoder(AbsEncoder):
     E-Branchformer encoder module.
 
     This module implements the E-Branchformer encoder which enhances the
-    original encoder with support for additional cross-attention modules 
+    original encoder with support for additional cross-attention modules
     and extra prefix tokens for language and task conditioning.
 
     Attributes:
@@ -305,14 +305,14 @@ class EBranchformerCTCEncoder(AbsEncoder):
             Defaults to 2048.
         cgmlp_conv_kernel (int, optional): The convolutional kernel size in CG-MLP.
             Defaults to 31.
-        use_linear_after_conv (bool, optional): Whether to use a linear layer 
+        use_linear_after_conv (bool, optional): Whether to use a linear layer
             after the convolution. Defaults to False.
         gate_activation (str, optional): The activation function for gating.
             Defaults to "identity".
         num_blocks (int, optional): The number of encoder blocks. Defaults to 12.
         dropout_rate (float, optional): The dropout rate for the encoder.
             Defaults to 0.1.
-        positional_dropout_rate (float, optional): The dropout rate for 
+        positional_dropout_rate (float, optional): The dropout rate for
             positional encodings. Defaults to 0.1.
         attention_dropout_rate (float, optional): The dropout rate for attention.
             Defaults to 0.0.
@@ -339,7 +339,7 @@ class EBranchformerCTCEncoder(AbsEncoder):
             Defaults to 3.
         interctc_layer_idx (list, optional): Indices of layers where intermediate CTC is applied.
             Defaults to None.
-        interctc_use_conditioning (bool, optional): Whether to use conditioning for 
+        interctc_use_conditioning (bool, optional): Whether to use conditioning for
             intermediate CTC. Defaults to False.
         use_cross_attention (bool or list of bool, optional): Whether to use cross attention.
             Defaults to True.
@@ -354,7 +354,7 @@ class EBranchformerCTCEncoder(AbsEncoder):
         >>> ilens = torch.tensor([100] * 32)    # (batch)
         >>> output, olens, _ = encoder(xs_pad, ilens)
         >>> print(output.shape)  # Output shape will be (32, 100, output_size)
-    
+
     Note:
         Ensure that the input size matches the expected dimensionality of the input features.
     """
@@ -657,18 +657,18 @@ class EBranchformerCTCEncoder(AbsEncoder):
             xs_pad (torch.Tensor): Input tensor of shape (#batch, L, input_size).
             ilens (torch.Tensor): Input lengths of shape (#batch).
             prev_states (torch.Tensor, optional): Not currently used.
-            ctc (CTC, optional): Intermediate CTC module for connectionist temporal 
+            ctc (CTC, optional): Intermediate CTC module for connectionist temporal
                 classification.
-            max_layer (int, optional): Maximum layer depth below which InterCTC is 
+            max_layer (int, optional): Maximum layer depth below which InterCTC is
                 applied.
-            prefix_embeds (torch.tensor, optional): Additional embeddings for input 
+            prefix_embeds (torch.tensor, optional): Additional embeddings for input
                 conditioning, shape (batch, 2, output_size).
-            memory (torch.Tensor, optional): Memory tensor for cross-attention, if 
+            memory (torch.Tensor, optional): Memory tensor for cross-attention, if
                 applicable.
             memory_mask (torch.Tensor, optional): Mask for the memory tensor.
 
         Returns:
-            Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]: A tuple 
+            Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]: A tuple
             containing:
                 - Output tensor of shape (#batch, L, output_size).
                 - Output lengths of shape (#batch).

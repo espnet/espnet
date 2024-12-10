@@ -9,8 +9,8 @@ class OnlineAudioProcessor:
     """
     Online processor for Transducer models chunk-by-chunk streaming decoding.
 
-    This class provides an online audio processing module designed to handle 
-    streaming audio input for Transducer models. It processes audio samples 
+    This class provides an online audio processing module designed to handle
+    streaming audio input for Transducer models. It processes audio samples
     chunk-by-chunk and computes features required for speech recognition.
 
     Attributes:
@@ -58,7 +58,7 @@ class OnlineAudioProcessor:
         features, features_length = processor.compute_features(audio_samples, is_final_chunk)
 
     Notes:
-        The input audio samples should be a 1D tensor of shape (S), where S is the 
+        The input audio samples should be a 1D tensor of shape (S), where S is the
         number of audio samples.
 
     Raises:
@@ -98,15 +98,15 @@ class OnlineAudioProcessor:
         """
         Reset cache parameters.
 
-        This method clears the internal cache of samples and features used 
-        during audio processing. It is typically called when starting a new 
+        This method clears the internal cache of samples and features used
+        during audio processing. It is typically called when starting a new
         processing session or when the existing cache needs to be refreshed.
 
         Attributes:
             samples: A tensor that holds the current audio samples.
-            samples_length: A tensor that tracks the length of the current 
+            samples_length: A tensor that tracks the length of the current
                 samples.
-            feats: A tensor that holds the current features extracted from 
+            feats: A tensor that holds the current features extracted from
                 the audio samples.
 
         Args:
@@ -117,16 +117,16 @@ class OnlineAudioProcessor:
 
         Examples:
             # Create an instance of OnlineAudioProcessor
-            processor = OnlineAudioProcessor(feature_extractor, normalization_module, 
-                                              decoding_window, encoder_sub_factor, 
+            processor = OnlineAudioProcessor(feature_extractor, normalization_module,
+                                              decoding_window, encoder_sub_factor,
                                               frontend_conf, device)
-            
+
             # Reset the cache before processing new audio data
             processor.reset_cache()
 
         Note:
-            This method does not take any parameters and does not return 
-            anything. It is primarily for internal use within the 
+            This method does not take any parameters and does not return
+            anything. It is primarily for internal use within the
             OnlineAudioProcessor class.
         """
         self.samples = None
@@ -165,7 +165,7 @@ class OnlineAudioProcessor:
             If `is_final` is set to True and the number of incoming samples is less
             than the required decoding_samples, the method will pad the samples with
             zeros to meet the required length.
-        
+
         Raises:
             ValueError: If the input tensor `samples` is empty.
         """
@@ -256,9 +256,9 @@ class OnlineAudioProcessor:
         """
         Compute features from input samples.
 
-        This method processes the input speech samples to extract features 
-        using the feature extractor module. It also handles normalization 
-        if a normalization module is provided. The function maintains state 
+        This method processes the input speech samples to extract features
+        using the feature extractor module. It also handles normalization
+        if a normalization module is provided. The function maintains state
         between calls, allowing it to work with streaming audio data.
 
         Args:
@@ -270,23 +270,23 @@ class OnlineAudioProcessor:
             feats_length: Features length sequence. (1,)
 
         Examples:
-            >>> processor = OnlineAudioProcessor(feature_extractor, 
-            ...                                    normalization_module, 
-            ...                                    decoding_window=20, 
-            ...                                    encoder_sub_factor=4, 
-            ...                                    frontend_conf=frontend_config, 
+            >>> processor = OnlineAudioProcessor(feature_extractor,
+            ...                                    normalization_module,
+            ...                                    decoding_window=20,
+            ...                                    encoder_sub_factor=4,
+            ...                                    frontend_conf=frontend_config,
             ...                                    device=torch.device('cpu'))
             >>> samples = torch.randn(16000)  # 1 second of audio
-            >>> feats, feats_length = processor.compute_features(samples, 
+            >>> feats, feats_length = processor.compute_features(samples,
             ...                                                  is_final=False)
 
         Note:
-            The method assumes that the feature extractor and normalization 
-            module are already defined and compatible with the expected 
+            The method assumes that the feature extractor and normalization
+            module are already defined and compatible with the expected
             input dimensions.
 
         Raises:
-            ValueError: If the input samples are not of the expected 
+            ValueError: If the input samples are not of the expected
             dimensions or type.
         """
         samples = self.get_current_samples(samples, is_final)

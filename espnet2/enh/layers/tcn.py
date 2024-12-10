@@ -22,9 +22,9 @@ class TemporalConvNet(nn.Module):
     Temporal Convolutional Network for speech separation.
 
     This class implements the Temporal Convolutional Network (TCN) as proposed
-    in Luo et al. "Conv-tasnet: Surpassing ideal time–frequency magnitude 
-    masking for speech separation." The architecture is designed to perform 
-    speech separation by estimating masks for different speakers from a 
+    in Luo et al. "Conv-tasnet: Surpassing ideal time–frequency magnitude
+    masking for speech separation." The architecture is designed to perform
+    speech separation by estimating masks for different speakers from a
     mixture of audio signals.
 
     Attributes:
@@ -60,6 +60,7 @@ class TemporalConvNet(nn.Module):
         >>> est_mask = model(mixture_w)
         >>> print(est_mask.shape)  # Should output: torch.Size([10, 2, 64, 100])
     """
+
     def __init__(
         self,
         N,
@@ -157,20 +158,20 @@ class TemporalConvNet(nn.Module):
         """
         Perform forward pass of the Temporal Convolutional Network.
 
-        This method processes the input mixture of audio signals and estimates 
-        the masks for each speaker using the temporal convolutional network. 
+        This method processes the input mixture of audio signals and estimates
+        the masks for each speaker using the temporal convolutional network.
         The input is expected to be a tensor of shape [M, N, K], where:
         - M is the batch size,
         - N is the number of input channels (filters), and
         - K is the sequence length.
 
         Args:
-            mixture_w (torch.Tensor): A tensor of shape [M, N, K], where M is 
-            the batch size, N is the number of input channels, and K is the 
+            mixture_w (torch.Tensor): A tensor of shape [M, N, K], where M is
+            the batch size, N is the number of input channels, and K is the
             sequence length.
 
         Returns:
-            torch.Tensor: A tensor of shape [M, C, N, K] representing the estimated 
+            torch.Tensor: A tensor of shape [M, C, N, K] representing the estimated
             masks for each speaker, where C is the number of speakers.
 
         Raises:
@@ -243,10 +244,10 @@ class TemporalConvNetInformed(TemporalConvNet):
             pre_mask_nonlinear: Non-linear function before masknet.
             mask_nonlinear: Non-linear function to generate mask.
             i_adapt_layer: Index of the adaptation layer.
-            adapt_layer_type: Type of adaptation layer. 
+            adapt_layer_type: Type of adaptation layer.
                 See espnet2.enh.layers.adapt_layers for options.
             adapt_enroll_dim: Dimensionality of the speaker embedding.
-        
+
         Raises:
             ValueError: If an unsupported mask non-linear function is specified.
 
@@ -275,6 +276,7 @@ class TemporalConvNetInformed(TemporalConvNet):
             enroll_emb = torch.randn(32, 256)    # [M, adapt_enroll_dim]
             output_mask = model(mixture, enroll_emb)
     """
+
     def __init__(
         self,
         N,
@@ -345,20 +347,20 @@ class TemporalConvNetInformed(TemporalConvNet):
         """
         TasNet forward with adaptation layers.
 
-        This method processes the input mixture of waveforms and produces an 
-        estimated mask using a temporal convolutional network. It is designed 
-        to support adaptation layers that allow the model to better handle 
+        This method processes the input mixture of waveforms and produces an
+        estimated mask using a temporal convolutional network. It is designed
+        to support adaptation layers that allow the model to better handle
         variations in the input data based on speaker embeddings.
 
         Args:
-            mixture_w: A tensor of shape [M, N, K], where M is the batch size, 
+            mixture_w: A tensor of shape [M, N, K], where M is the batch size,
                 N is the number of input channels, and K is the sequence length.
-            enroll_emb: A tensor that represents the speaker embedding, with 
-                shape [M, 2*adapt_enroll_dim] if skip connections are used, 
+            enroll_emb: A tensor that represents the speaker embedding, with
+                shape [M, 2*adapt_enroll_dim] if skip connections are used,
                 or [M, adapt_enroll_dim] if not.
 
         Returns:
-            est_mask: A tensor of shape [M, N, K], representing the estimated 
+            est_mask: A tensor of shape [M, N, K], representing the estimated
                 mask for the input mixture.
 
         Raises:
@@ -422,14 +424,14 @@ class TemporalBlock(nn.Module):
     """
     Temporal Block for Temporal Convolutional Network.
 
-    This class implements a temporal block that applies a sequence of operations 
-    including a 1x1 convolution, activation function, normalization, and a 
-    depthwise separable convolution. The block supports skip connections for 
+    This class implements a temporal block that applies a sequence of operations
+    including a 1x1 convolution, activation function, normalization, and a
+    depthwise separable convolution. The block supports skip connections for
     improved feature extraction.
 
     Attributes:
         skip_connection (bool): Indicates if skip connections are used.
-        net (nn.Sequential): Sequential container for the convolutional layers 
+        net (nn.Sequential): Sequential container for the convolutional layers
             and activation functions.
 
     Args:
@@ -448,9 +450,9 @@ class TemporalBlock(nn.Module):
         skip_out (Tensor): Output tensor for skip connections, if used.
 
     Examples:
-        >>> temporal_block = TemporalBlock(64, 128, 32, kernel_size=3, 
-        ...                                  stride=1, padding=1, 
-        ...                                  dilation=1, norm_type='gLN', 
+        >>> temporal_block = TemporalBlock(64, 128, 32, kernel_size=3,
+        ...                                  stride=1, padding=1,
+        ...                                  dilation=1, norm_type='gLN',
         ...                                  causal=False)
         >>> x = torch.randn(10, 64, 100)  # Batch of 10, 64 channels, length 100
         >>> output = temporal_block(x)
@@ -458,9 +460,10 @@ class TemporalBlock(nn.Module):
         torch.Size([10, 128, 100])  # Output shape after convolution
 
     Note:
-        The output length is the same as the input length if padding is 
+        The output length is the same as the input length if padding is
         appropriately set.
     """
+
     def __init__(
         self,
         in_channels,
@@ -522,7 +525,7 @@ class DepthwiseSeparableConv(nn.Module):
     convolution.
 
     Attributes:
-        skip_conv (nn.Conv1d or None): A convolutional layer for skip 
+        skip_conv (nn.Conv1d or None): A convolutional layer for skip
             connections if skip_channels is not None.
 
     Args:
@@ -560,6 +563,7 @@ class DepthwiseSeparableConv(nn.Module):
         >>> skip_out.shape
         torch.Size([10, 8, 50])
     """
+
     def __init__(
         self,
         in_channels,
@@ -644,21 +648,21 @@ class Chomp1d(nn.Module):
     """
     To ensure the output length is the same as the input.
 
-    This module is designed to remove a specific number of elements 
-    from the end of the input tensor along the last dimension, ensuring 
-    that the output length matches the input length minus the specified 
+    This module is designed to remove a specific number of elements
+    from the end of the input tensor along the last dimension, ensuring
+    that the output length matches the input length minus the specified
     chomp size.
 
     Attributes:
-        chomp_size (int): The number of elements to remove from the end 
+        chomp_size (int): The number of elements to remove from the end
             of the input tensor.
 
     Args:
-        chomp_size (int): The number of elements to be removed from the 
+        chomp_size (int): The number of elements to be removed from the
             end of the input tensor.
 
     Returns:
-        torch.Tensor: A tensor of shape [M, H, K] where K is the original 
+        torch.Tensor: A tensor of shape [M, H, K] where K is the original
             length minus chomp_size.
 
     Examples:
@@ -669,13 +673,13 @@ class Chomp1d(nn.Module):
         torch.Size([1, 3, 8])  # [M, H, K] after chomp
 
     Note:
-        The input tensor is expected to have at least chomp_size 
-        elements in the last dimension. If the input tensor's last 
-        dimension is smaller than chomp_size, it will raise an 
+        The input tensor is expected to have at least chomp_size
+        elements in the last dimension. If the input tensor's last
+        dimension is smaller than chomp_size, it will raise an
         error.
 
     Raises:
-        IndexError: If the input tensor's last dimension is less than 
+        IndexError: If the input tensor's last dimension is less than
             chomp_size.
     """
 
@@ -685,38 +689,38 @@ class Chomp1d(nn.Module):
 
     def forward(self, x):
         """
-        Keep this API same with TasNet.
+            Keep this API same with TasNet.
 
-    This method processes the input mixture of audio signals and estimates
-    the masks for each speaker. It performs the forward pass through the 
-    temporal convolutional network defined in the `TemporalConvNet` class.
+        This method processes the input mixture of audio signals and estimates
+        the masks for each speaker. It performs the forward pass through the
+        temporal convolutional network defined in the `TemporalConvNet` class.
 
-    Args:
-        mixture_w: A tensor of shape [M, N, K], where:
-            M (int): Batch size.
-            N (int): Number of input channels (filters).
-            K (int): Length of the input sequence.
+        Args:
+            mixture_w: A tensor of shape [M, N, K], where:
+                M (int): Batch size.
+                N (int): Number of input channels (filters).
+                K (int): Length of the input sequence.
 
-    Returns:
-        est_mask: A tensor of shape [M, C, N, K], where:
-            C (int): Number of speakers.
-            N (int): Number of output channels (filters).
-            K (int): Length of the output sequence.
+        Returns:
+            est_mask: A tensor of shape [M, C, N, K], where:
+                C (int): Number of speakers.
+                N (int): Number of output channels (filters).
+                K (int): Length of the output sequence.
 
-    Raises:
-        ValueError: If the mask non-linear function specified is unsupported.
+        Raises:
+            ValueError: If the mask non-linear function specified is unsupported.
 
-    Examples:
-        >>> model = TemporalConvNet(N=16, B=4, H=8, P=3, X=2, R=2, C=2)
-        >>> mixture = torch.randn(8, 16, 100)  # Example input
-        >>> estimated_mask = model.forward(mixture)
-        >>> print(estimated_mask.shape)
-        torch.Size([8, 2, 16, 100])  # Output shape
+        Examples:
+            >>> model = TemporalConvNet(N=16, B=4, H=8, P=3, X=2, R=2, C=2)
+            >>> mixture = torch.randn(8, 16, 100)  # Example input
+            >>> estimated_mask = model.forward(mixture)
+            >>> print(estimated_mask.shape)
+            torch.Size([8, 2, 16, 100])  # Output shape
 
-    Note:
-        The forward pass includes the bottleneck layer, the temporal
-        convolutional blocks, and the mask generation layers. The output 
-        mask is generated using the specified non-linear activation function.
+        Note:
+            The forward pass includes the bottleneck layer, the temporal
+            convolutional blocks, and the mask generation layers. The output
+            mask is generated using the specified non-linear activation function.
         """
         return x[:, :, : -self.chomp_size].contiguous()
 
@@ -758,7 +762,7 @@ def choose_norm(norm_type, channel_size, shape="BDT"):
             "BN" for Batch Normalization,
             "GN" for Group Normalization.
         channel_size (int): The number of channels to normalize.
-        shape (str, optional): The shape of the input tensor, either "BDT" 
+        shape (str, optional): The shape of the input tensor, either "BDT"
             (Batch, Depth, Time) or "BTD" (Batch, Time, Depth). Defaults to "BDT".
 
     Returns:
@@ -862,29 +866,29 @@ class ChannelwiseLayerNorm(nn.Module):
     @torch.cuda.amp.autocast(enabled=False)
     def forward(self, y):
         """
-        Forward pass of the TemporalConvNet.
+            Forward pass of the TemporalConvNet.
 
-    This method takes an input tensor and processes it through the
-    network layers to estimate the masks for the input mixture.
+        This method takes an input tensor and processes it through the
+        network layers to estimate the masks for the input mixture.
 
-    Args:
-        mixture_w: A tensor of shape [M, N, K], where M is the batch size,
-                   N is the number of input channels, and K is the length
-                   of the input sequence.
+        Args:
+            mixture_w: A tensor of shape [M, N, K], where M is the batch size,
+                       N is the number of input channels, and K is the length
+                       of the input sequence.
 
-    Returns:
-        est_mask: A tensor of shape [M, C, N, K], where C is the number of
-                  speakers, representing the estimated masks for the input
-                  mixture.
+        Returns:
+            est_mask: A tensor of shape [M, C, N, K], where C is the number of
+                      speakers, representing the estimated masks for the input
+                      mixture.
 
-    Raises:
-        ValueError: If an unsupported mask non-linear function is specified.
+        Raises:
+            ValueError: If an unsupported mask non-linear function is specified.
 
-    Examples:
-        >>> model = TemporalConvNet(N=64, B=32, H=128, P=3, X=8, R=3, C=2)
-        >>> mixture = torch.randn(10, 64, 100)  # Batch of 10, 64 channels, length 100
-        >>> masks = model(mixture)
-        >>> print(masks.shape)  # Should output: torch.Size([10, 2, 64, 100])
+        Examples:
+            >>> model = TemporalConvNet(N=64, B=32, H=128, P=3, X=8, R=3, C=2)
+            >>> mixture = torch.randn(10, 64, 100)  # Batch of 10, 64 channels, length 100
+            >>> masks = model(mixture)
+            >>> print(masks.shape)  # Should output: torch.Size([10, 2, 64, 100])
         """
 
         assert y.dim() == 3
@@ -914,12 +918,12 @@ class GlobalLayerNorm(nn.Module):
     Attributes:
         gamma: Learnable parameter for scaling the normalized output.
         beta: Learnable parameter for shifting the normalized output.
-        shape: Defines the shape of the input tensor. 
+        shape: Defines the shape of the input tensor.
                Options are "BDT" (Batch, Depth, Time) or "BTD" (Batch, Time, Depth).
 
     Args:
         channel_size: Number of channels to normalize.
-        shape: Shape of the input tensor, either "BDT" or "BTD". 
+        shape: Shape of the input tensor, either "BDT" or "BTD".
 
     Raises:
         AssertionError: If the shape is not "BDT" or "BTD".
@@ -942,76 +946,76 @@ class GlobalLayerNorm(nn.Module):
 
     def reset_parameters(self):
         """
-        Global Layer Normalization (gLN).
+            Global Layer Normalization (gLN).
 
-    This class implements global layer normalization, which normalizes the 
-    input across both spatial dimensions and batches, making it suitable for 
-    tasks where the input distribution varies across these dimensions.
+        This class implements global layer normalization, which normalizes the
+        input across both spatial dimensions and batches, making it suitable for
+        tasks where the input distribution varies across these dimensions.
 
-    Attributes:
-        gamma: Learnable scale parameter of shape (1, channel_size, 1).
-        beta: Learnable shift parameter of shape (1, channel_size, 1).
-        shape: The shape of the input tensor, either "BDT" or "BTD".
+        Attributes:
+            gamma: Learnable scale parameter of shape (1, channel_size, 1).
+            beta: Learnable shift parameter of shape (1, channel_size, 1).
+            shape: The shape of the input tensor, either "BDT" or "BTD".
 
-    Args:
-        channel_size: The number of channels in the input tensor.
-        shape: The shape of the input tensor, either "BDT" or "BTD".
+        Args:
+            channel_size: The number of channels in the input tensor.
+            shape: The shape of the input tensor, either "BDT" or "BTD".
 
-    Raises:
-        AssertionError: If the shape is not one of "BDT" or "BTD".
+        Raises:
+            AssertionError: If the shape is not one of "BDT" or "BTD".
 
-    Examples:
-        >>> import torch
-        >>> gLN = GlobalLayerNorm(channel_size=10)
-        >>> input_tensor = torch.randn(32, 10, 100)  # [M, N, K]
-        >>> output_tensor = gLN(input_tensor)
-        >>> output_tensor.shape
-        torch.Size([32, 10, 100])
+        Examples:
+            >>> import torch
+            >>> gLN = GlobalLayerNorm(channel_size=10)
+            >>> input_tensor = torch.randn(32, 10, 100)  # [M, N, K]
+            >>> output_tensor = gLN(input_tensor)
+            >>> output_tensor.shape
+            torch.Size([32, 10, 100])
 
-    Note:
-        The forward pass computes the mean and variance of the input tensor 
-        and normalizes it using the learnable parameters gamma and beta.
+        Note:
+            The forward pass computes the mean and variance of the input tensor
+            and normalizes it using the learnable parameters gamma and beta.
 
-    Todo:
-        Add support for different shapes in the forward method.
+        Todo:
+            Add support for different shapes in the forward method.
         """
         self.beta.data.zero_()
 
     @torch.cuda.amp.autocast(enabled=False)
     def forward(self, y):
         """
-        Global Layer Normalization (gLN).
+            Global Layer Normalization (gLN).
 
-    This layer normalizes the input across all dimensions except the batch
-    dimension, applying a learnable scale and shift to the normalized values.
-    
-    Attributes:
-        gamma (torch.nn.Parameter): Learnable scale parameter.
-        beta (torch.nn.Parameter): Learnable shift parameter.
-        shape (str): Defines the input shape arrangement, either 'BDT' or 'BTD'.
-    
-    Args:
-        channel_size (int): The number of channels in the input.
-        shape (str): The shape of the input, either 'BDT' (Batch, Channel, Time)
-                     or 'BTD' (Batch, Time, Channel). Defaults to 'BDT'.
-    
-    Returns:
-        gLN_y: Normalized output tensor with the same shape as the input.
+        This layer normalizes the input across all dimensions except the batch
+        dimension, applying a learnable scale and shift to the normalized values.
 
-    Examples:
-        >>> layer_norm = GlobalLayerNorm(channel_size=64)
-        >>> input_tensor = torch.randn(32, 64, 100)  # [M, N, K]
-        >>> output_tensor = layer_norm(input_tensor)
-        >>> print(output_tensor.shape)
-        torch.Size([32, 64, 100])  # Output shape remains the same
+        Attributes:
+            gamma (torch.nn.Parameter): Learnable scale parameter.
+            beta (torch.nn.Parameter): Learnable shift parameter.
+            shape (str): Defines the input shape arrangement, either 'BDT' or 'BTD'.
 
-    Note:
-        The layer applies the normalization based on the mean and variance
-        calculated across the specified dimensions, ensuring stability and
-        faster convergence during training.
+        Args:
+            channel_size (int): The number of channels in the input.
+            shape (str): The shape of the input, either 'BDT' (Batch, Channel, Time)
+                         or 'BTD' (Batch, Time, Channel). Defaults to 'BDT'.
 
-    Raises:
-        AssertionError: If the shape is not 'BDT' or 'BTD'.
+        Returns:
+            gLN_y: Normalized output tensor with the same shape as the input.
+
+        Examples:
+            >>> layer_norm = GlobalLayerNorm(channel_size=64)
+            >>> input_tensor = torch.randn(32, 64, 100)  # [M, N, K]
+            >>> output_tensor = layer_norm(input_tensor)
+            >>> print(output_tensor.shape)
+            torch.Size([32, 64, 100])  # Output shape remains the same
+
+        Note:
+            The layer applies the normalization based on the mean and variance
+            calculated across the specified dimensions, ensuring stability and
+            faster convergence during training.
+
+        Raises:
+            AssertionError: If the shape is not 'BDT' or 'BTD'.
         """
         if self.shape == "BTD":
             y = y.transpose(1, 2).contiguous()

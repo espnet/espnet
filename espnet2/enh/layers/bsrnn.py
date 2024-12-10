@@ -38,7 +38,7 @@ class BSRNN(nn.Module):
 
     Returns:
         out (torch.Tensor): Output tensor of shape (B, num_spk, T, F, 2).
-        
+
     Examples:
         >>> model = BSRNN(input_dim=481, num_channel=16, num_layer=6)
         >>> input_tensor = torch.randn(8, 100, 481, 2)  # Batch size of 8
@@ -56,6 +56,7 @@ class BSRNN(nn.Module):
     Raises:
         ValueError: If an unsupported normalization type is provided.
     """
+
     # ported from https://github.com/sungwon23/BSRNN
     def __init__(
         self,
@@ -132,41 +133,41 @@ class BSRNN(nn.Module):
 
     def forward(self, x, fs=None):
         """
-        BSRNN forward pass.
+            BSRNN forward pass.
 
-    This method performs the forward pass of the Band-Split RNN (BSRNN),
-    processing the input tensor to produce an output tensor. The input
-    tensor is assumed to have a specific shape and can be optionally
-    truncated based on the sampling rate provided.
+        This method performs the forward pass of the Band-Split RNN (BSRNN),
+        processing the input tensor to produce an output tensor. The input
+        tensor is assumed to have a specific shape and can be optionally
+        truncated based on the sampling rate provided.
 
-    Args:
-        x (torch.Tensor): Input tensor of shape (B, T, F, 2), where B is the
-            batch size, T is the time dimension, F is the frequency dimension,
-            and 2 represents the real and imaginary parts of the complex signal.
-        fs (int, optional): Sampling rate of the input signal. If not None,
-            the input signal will be truncated to only process the effective
-            frequency subbands. If None, the input signal is assumed to be
-            already truncated to only contain effective frequency subbands.
+        Args:
+            x (torch.Tensor): Input tensor of shape (B, T, F, 2), where B is the
+                batch size, T is the time dimension, F is the frequency dimension,
+                and 2 represents the real and imaginary parts of the complex signal.
+            fs (int, optional): Sampling rate of the input signal. If not None,
+                the input signal will be truncated to only process the effective
+                frequency subbands. If None, the input signal is assumed to be
+                already truncated to only contain effective frequency subbands.
 
-    Returns:
-        out (torch.Tensor): Output tensor of shape (B, num_spk, T, F, 2),
-            where num_spk is the number of speakers to be generated.
+        Returns:
+            out (torch.Tensor): Output tensor of shape (B, num_spk, T, F, 2),
+                where num_spk is the number of speakers to be generated.
 
-    Examples:
-        >>> model = BSRNN()
-        >>> input_tensor = torch.randn(8, 100, 481, 2)  # Example input
-        >>> output = model(input_tensor, fs=48000)
-        >>> print(output.shape)
-        torch.Size([8, 1, 100, 481, 2])  # Example output shape
+        Examples:
+            >>> model = BSRNN()
+            >>> input_tensor = torch.randn(8, 100, 481, 2)  # Example input
+            >>> output = model(input_tensor, fs=48000)
+            >>> print(output.shape)
+            torch.Size([8, 1, 100, 481, 2])  # Example output shape
 
-    Note:
-        The input tensor should be formatted correctly to ensure proper
-        processing. The forward pass involves multiple layers of normalization,
-        RNN processing, and a mask decoding step to generate the output.
+        Note:
+            The input tensor should be formatted correctly to ensure proper
+            processing. The forward pass involves multiple layers of normalization,
+            RNN processing, and a mask decoding step to generate the output.
 
-    Raises:
-        ValueError: If the input tensor shape does not match the expected
-            dimensions.
+        Raises:
+            ValueError: If the input tensor shape does not match the expected
+                dimensions.
         """
         z = self.band_split(x, fs=fs)
         B, N, T, K = z.shape
@@ -233,6 +234,7 @@ class BandSplit(nn.Module):
         >>> output = band_split(input_tensor)
         >>> print(output.shape)  # Should be (B, N, T, K')
     """
+
     def __init__(self, input_dim, target_fs=48000, channels=128, norm_type="GN"):
         super().__init__()
         assert input_dim % 2 == 1, input_dim
@@ -265,19 +267,19 @@ class BandSplit(nn.Module):
         BSRNN forward.
 
         Args:
-            x (torch.Tensor): Input tensor of shape (B, T, F, 2), where B is the 
-                batch size, T is the number of time steps, F is the number of 
-                frequency bins, and 2 represents the real and imaginary parts 
+            x (torch.Tensor): Input tensor of shape (B, T, F, 2), where B is the
+                batch size, T is the number of time steps, F is the number of
+                frequency bins, and 2 represents the real and imaginary parts
                 of the complex input.
-            fs (int, optional): Sampling rate of the input signal. If not None, 
-                the input signal will be truncated to only process the effective 
-                frequency subbands. If None, the input signal is assumed to be 
+            fs (int, optional): Sampling rate of the input signal. If not None,
+                the input signal will be truncated to only process the effective
+                frequency subbands. If None, the input signal is assumed to be
                 already truncated to only contain effective frequency subbands.
 
         Returns:
-            out (torch.Tensor): Output tensor of shape (B, num_spk, T, F, 2), 
-                where num_spk is the number of speakers, T is the number of time 
-                steps, F is the number of frequency bins, and 2 represents the 
+            out (torch.Tensor): Output tensor of shape (B, num_spk, T, F, 2),
+                where num_spk is the number of speakers, T is the number of time
+                steps, F is the number of frequency bins, and 2 represents the
                 real and imaginary parts of the output.
 
         Examples:
@@ -315,19 +317,19 @@ class MaskDecoder(nn.Module):
     """
     Mask Decoder for band-split RNN-based speech enhancement.
 
-    This class implements a mask decoder that processes input tensors and 
-    generates the corresponding output masks and residuals. The mask decoder 
-    is a crucial component in the BSRNN architecture, enabling the model to 
+    This class implements a mask decoder that processes input tensors and
+    generates the corresponding output masks and residuals. The mask decoder
+    is a crucial component in the BSRNN architecture, enabling the model to
     enhance speech signals by estimating the mask and residual signals.
 
     Attributes:
         subbands (tuple): The number of frequency subbands.
-        freq_dim (int): Total frequency dimension, should equal the sum of 
+        freq_dim (int): Total frequency dimension, should equal the sum of
             subbands.
         num_spk (int): Number of speakers to generate outputs for.
-        mlp_mask (nn.ModuleList): List of MLPs for generating masks for each 
+        mlp_mask (nn.ModuleList): List of MLPs for generating masks for each
             subband.
-        mlp_residual (nn.ModuleList): List of MLPs for generating residuals for 
+        mlp_residual (nn.ModuleList): List of MLPs for generating residuals for
             each subband.
 
     Args:
@@ -341,7 +343,7 @@ class MaskDecoder(nn.Module):
         None
 
     Examples:
-        >>> decoder = MaskDecoder(freq_dim=481, subbands=(5, 4, 4, 4, 4), 
+        >>> decoder = MaskDecoder(freq_dim=481, subbands=(5, 4, 4, 4, 4),
         ...                        channels=128, num_spk=1)
         >>> input_tensor = torch.randn(10, 16, 20, 5)  # Example input
         >>> masks, residuals = decoder(input_tensor)
@@ -351,6 +353,7 @@ class MaskDecoder(nn.Module):
     Raises:
         AssertionError: If `freq_dim` does not equal the sum of `subbands`.
     """
+
     def __init__(self, freq_dim, subbands, channels=128, num_spk=1, norm_type="GN"):
         super().__init__()
         assert freq_dim == sum(subbands), (freq_dim, subbands)
@@ -381,37 +384,37 @@ class MaskDecoder(nn.Module):
 
     def forward(self, x):
         """
-        BSRNN forward.
+            BSRNN forward.
 
-    This method performs the forward pass of the Band-Split RNN (BSRNN) model,
-    processing the input tensor through the band splitting, RNN layers, and 
-    mask decoding to produce the output tensor.
+        This method performs the forward pass of the Band-Split RNN (BSRNN) model,
+        processing the input tensor through the band splitting, RNN layers, and
+        mask decoding to produce the output tensor.
 
-    Args:
-        x (torch.Tensor): Input tensor of shape (B, T, F, 2), where B is the 
-            batch size, T is the time dimension, F is the frequency dimension,
-            and 2 represents the real and imaginary parts of the complex input.
-        fs (int, optional): Sampling rate of the input signal. If provided, the
-            input signal will be truncated to only process the effective frequency 
-            subbands. If None, the input signal is assumed to be already truncated 
-            to only contain effective frequency subbands.
+        Args:
+            x (torch.Tensor): Input tensor of shape (B, T, F, 2), where B is the
+                batch size, T is the time dimension, F is the frequency dimension,
+                and 2 represents the real and imaginary parts of the complex input.
+            fs (int, optional): Sampling rate of the input signal. If provided, the
+                input signal will be truncated to only process the effective frequency
+                subbands. If None, the input signal is assumed to be already truncated
+                to only contain effective frequency subbands.
 
-    Returns:
-        out (torch.Tensor): Output tensor of shape (B, num_spk, T, F, 2), where 
-            num_spk is the number of speakers, T is the time dimension, F is the 
-            frequency dimension, and 2 represents the real and imaginary parts of 
-            the complex output.
+        Returns:
+            out (torch.Tensor): Output tensor of shape (B, num_spk, T, F, 2), where
+                num_spk is the number of speakers, T is the time dimension, F is the
+                frequency dimension, and 2 represents the real and imaginary parts of
+                the complex output.
 
-    Examples:
-        >>> model = BSRNN(input_dim=481, num_spk=2)
-        >>> input_tensor = torch.randn(8, 100, 481, 2)  # Example input
-        >>> output = model(input_tensor, fs=48000)
-        >>> print(output.shape)  # Output shape will be (8, 2, 100, 481, 2)
+        Examples:
+            >>> model = BSRNN(input_dim=481, num_spk=2)
+            >>> input_tensor = torch.randn(8, 100, 481, 2)  # Example input
+            >>> output = model(input_tensor, fs=48000)
+            >>> print(output.shape)  # Output shape will be (8, 2, 100, 481, 2)
 
-    Note:
-        The input tensor must have the correct shape, and if the sampling rate 
-        (fs) is provided, it should be compatible with the target sampling rate 
-        of the model.
+        Note:
+            The input tensor must have the correct shape, and if the sampling rate
+            (fs) is provided, it should be compatible with the target sampling rate
+            of the model.
         """
         for i in range(len(self.subbands)):
             if i >= x.size(-1):
@@ -470,7 +473,7 @@ def choose_norm(norm_type, channel_size, shape="BDTF"):
 
     Note:
         The normalization layers are designed to be used in deep learning
-        architectures to stabilize and accelerate training by normalizing 
+        architectures to stabilize and accelerate training by normalizing
         the inputs to each layer.
     """
     if norm_type == "cfLN":
@@ -489,44 +492,44 @@ def choose_norm(norm_type, channel_size, shape="BDTF"):
 
 class ChannelwiseLayerNorm(nn.Module):
     """
-    Channel-wise Layer Normalization (cLN).
+        Channel-wise Layer Normalization (cLN).
 
-This layer normalizes the input across the channel dimension. It computes the 
-mean and variance for each channel and applies the normalization to each 
-element of the channel independently. This can help stabilize training and 
-improve convergence in deep learning models.
+    This layer normalizes the input across the channel dimension. It computes the
+    mean and variance for each channel and applies the normalization to each
+    element of the channel independently. This can help stabilize training and
+    improve convergence in deep learning models.
 
-Attributes:
-    gamma (torch.nn.Parameter): Scale parameter for normalization.
-    beta (torch.nn.Parameter): Shift parameter for normalization.
-    shape (str): The expected shape of the input tensor. It can be "BDTF" 
-        (Batch, Depth, Time, Frequency) or "BTFD" (Batch, Time, Frequency, Depth).
+    Attributes:
+        gamma (torch.nn.Parameter): Scale parameter for normalization.
+        beta (torch.nn.Parameter): Shift parameter for normalization.
+        shape (str): The expected shape of the input tensor. It can be "BDTF"
+            (Batch, Depth, Time, Frequency) or "BTFD" (Batch, Time, Frequency, Depth).
 
-Args:
-    channel_size (int): Number of channels to normalize.
-    shape (str, optional): The shape of the input tensor. Defaults to "BDTF".
+    Args:
+        channel_size (int): Number of channels to normalize.
+        shape (str, optional): The shape of the input tensor. Defaults to "BDTF".
 
-Methods:
-    reset_parameters: Resets the parameters of the layer.
-    forward: Applies channel-wise layer normalization to the input tensor.
+    Methods:
+        reset_parameters: Resets the parameters of the layer.
+        forward: Applies channel-wise layer normalization to the input tensor.
 
-Examples:
-    >>> layer_norm = ChannelwiseLayerNorm(channel_size=16)
-    >>> input_tensor = torch.randn(8, 16, 100, 200)  # (B, N, T, K)
-    >>> output_tensor = layer_norm(input_tensor)
-    >>> output_tensor.shape
-    torch.Size([8, 16, 100, 200])  # The shape remains the same.
+    Examples:
+        >>> layer_norm = ChannelwiseLayerNorm(channel_size=16)
+        >>> input_tensor = torch.randn(8, 16, 100, 200)  # (B, N, T, K)
+        >>> output_tensor = layer_norm(input_tensor)
+        >>> output_tensor.shape
+        torch.Size([8, 16, 100, 200])  # The shape remains the same.
 
-Raises:
-    AssertionError: If the input tensor does not have 4 dimensions.
+    Raises:
+        AssertionError: If the input tensor does not have 4 dimensions.
 
-Note:
-    The normalization is performed using the formula:
-        cLN_y = gamma * (y - mean) / sqrt(var + EPS) + beta
-    where mean and var are computed across the channel dimension.
+    Note:
+        The normalization is performed using the formula:
+            cLN_y = gamma * (y - mean) / sqrt(var + EPS) + beta
+        where mean and var are computed across the channel dimension.
 
-Todo:
-    - Implement support for additional shapes if necessary.
+    Todo:
+        - Implement support for additional shapes if necessary.
     """
 
     def __init__(self, channel_size, shape="BDTF"):
@@ -539,69 +542,69 @@ Todo:
 
     def reset_parameters(self):
         """
-        Reset the parameters of the Channelwise Layer Normalization.
+            Reset the parameters of the Channelwise Layer Normalization.
 
-    This method initializes the learnable parameters `gamma` and `beta` of the
-    Channelwise Layer Normalization to their default values. Specifically,
-    `gamma` is set to 1 and `beta` is set to 0. This is typically called
-    when the layer is first created to ensure that the normalization starts
-    with neutral parameters.
+        This method initializes the learnable parameters `gamma` and `beta` of the
+        Channelwise Layer Normalization to their default values. Specifically,
+        `gamma` is set to 1 and `beta` is set to 0. This is typically called
+        when the layer is first created to ensure that the normalization starts
+        with neutral parameters.
 
-    Attributes:
-        gamma (torch.Tensor): Learnable scale parameter, initialized to 1.
-        beta (torch.Tensor): Learnable shift parameter, initialized to 0.
+        Attributes:
+            gamma (torch.Tensor): Learnable scale parameter, initialized to 1.
+            beta (torch.Tensor): Learnable shift parameter, initialized to 0.
 
-    Examples:
-        >>> layer_norm = ChannelwiseLayerNorm(channel_size=128)
-        >>> layer_norm.gamma  # Should be initialized to 1
-        tensor([[[[1.]]]])
-        >>> layer_norm.beta  # Should be initialized to 0
-        tensor([[[[0.]]]])
+        Examples:
+            >>> layer_norm = ChannelwiseLayerNorm(channel_size=128)
+            >>> layer_norm.gamma  # Should be initialized to 1
+            tensor([[[[1.]]]])
+            >>> layer_norm.beta  # Should be initialized to 0
+            tensor([[[[0.]]]])
 
-    Note:
-        This method is automatically called in the `__init__` method of the
-        class.
+        Note:
+            This method is automatically called in the `__init__` method of the
+            class.
         """
         self.beta.data.zero_()
 
     @torch.cuda.amp.autocast(enabled=False)
     def forward(self, y):
         """
-        BSRNN forward.
+            BSRNN forward.
 
-    This method processes the input tensor through the Band-Split RNN model,
-    applying normalization, recurrent layers, and a mask decoder to produce 
-    enhanced audio output.
+        This method processes the input tensor through the Band-Split RNN model,
+        applying normalization, recurrent layers, and a mask decoder to produce
+        enhanced audio output.
 
-    Args:
-        x (torch.Tensor): Input tensor of shape (B, T, F, 2), where B is the 
-            batch size, T is the number of time frames, F is the number of 
-            frequency bins, and the last dimension represents the complex 
-            values (real and imaginary parts).
-        fs (int, optional): Sampling rate of the input signal. If not None, 
-            the input signal will be truncated to only process the effective 
-            frequency subbands. If None, the input signal is assumed to be 
-            already truncated to only contain effective frequency subbands.
+        Args:
+            x (torch.Tensor): Input tensor of shape (B, T, F, 2), where B is the
+                batch size, T is the number of time frames, F is the number of
+                frequency bins, and the last dimension represents the complex
+                values (real and imaginary parts).
+            fs (int, optional): Sampling rate of the input signal. If not None,
+                the input signal will be truncated to only process the effective
+                frequency subbands. If None, the input signal is assumed to be
+                already truncated to only contain effective frequency subbands.
 
-    Returns:
-        out (torch.Tensor): Output tensor of shape (B, num_spk, T, F, 2), 
-            where num_spk is the number of speakers. The output tensor 
-            contains the enhanced audio signal.
+        Returns:
+            out (torch.Tensor): Output tensor of shape (B, num_spk, T, F, 2),
+                where num_spk is the number of speakers. The output tensor
+                contains the enhanced audio signal.
 
-    Examples:
-        >>> model = BSRNN()
-        >>> input_tensor = torch.randn(8, 100, 481, 2)  # Example input
-        >>> output = model(input_tensor, fs=48000)
-        >>> print(output.shape)  # Output shape should be (8, num_spk, 100, F, 2)
+        Examples:
+            >>> model = BSRNN()
+            >>> input_tensor = torch.randn(8, 100, 481, 2)  # Example input
+            >>> output = model(input_tensor, fs=48000)
+            >>> print(output.shape)  # Output shape should be (8, num_spk, 100, F, 2)
 
-    Note:
-        The input tensor should contain complex values represented as 
-        separate real and imaginary components in the last dimension. 
-        The method processes the input through multiple layers, including 
-        normalization and LSTM layers, to generate the final output.
+        Note:
+            The input tensor should contain complex values represented as
+            separate real and imaginary components in the last dimension.
+            The method processes the input through multiple layers, including
+            normalization and LSTM layers, to generate the final output.
 
-    Raises:
-        ValueError: If the input tensor does not have the expected shape.
+        Raises:
+            ValueError: If the input tensor does not have the expected shape.
         """
 
         assert y.dim() == 4
@@ -661,68 +664,68 @@ class ChannelFreqwiseLayerNorm(nn.Module):
 
     def reset_parameters(self):
         """
-        Channel-and-Frequency-wise Layer Normalization (cfLN).
+            Channel-and-Frequency-wise Layer Normalization (cfLN).
 
-    This layer normalizes the input tensor across both the channel and frequency
-    dimensions, allowing for improved training stability and performance in deep
-    learning models. It applies normalization in a way that considers the
-    interdependence between channels and frequencies.
+        This layer normalizes the input tensor across both the channel and frequency
+        dimensions, allowing for improved training stability and performance in deep
+        learning models. It applies normalization in a way that considers the
+        interdependence between channels and frequencies.
 
-    Attributes:
-        gamma (torch.Tensor): Learnable scale parameter of shape [1, N, 1, 1].
-        beta (torch.Tensor): Learnable shift parameter of shape [1, N, 1, 1].
-        shape (str): Specifies the input tensor shape, either "BDTF" or "BTFD".
+        Attributes:
+            gamma (torch.Tensor): Learnable scale parameter of shape [1, N, 1, 1].
+            beta (torch.Tensor): Learnable shift parameter of shape [1, N, 1, 1].
+            shape (str): Specifies the input tensor shape, either "BDTF" or "BTFD".
 
-    Args:
-        channel_size (int): The number of channels in the input tensor.
-        shape (str): The shape of the input tensor. It can be either "BDTF" 
-            (Batch, Depth, Time, Frequency) or "BTFD" (Batch, Time, Frequency, Depth).
-    
-    Examples:
-        >>> layer_norm = ChannelFreqwiseLayerNorm(channel_size=128)
-        >>> input_tensor = torch.randn(32, 128, 50, 50)  # [Batch, Channel, Time, Frequency]
-        >>> output_tensor = layer_norm(input_tensor)
+        Args:
+            channel_size (int): The number of channels in the input tensor.
+            shape (str): The shape of the input tensor. It can be either "BDTF"
+                (Batch, Depth, Time, Frequency) or "BTFD" (Batch, Time, Frequency, Depth).
 
-    Note:
-        The normalization is performed using the formula:
-        gLN_y = γ * (y - mean) / sqrt(var + EPS) + β
-        where mean and var are calculated across the channel and frequency dimensions.
+        Examples:
+            >>> layer_norm = ChannelFreqwiseLayerNorm(channel_size=128)
+            >>> input_tensor = torch.randn(32, 128, 50, 50)  # [Batch, Channel, Time, Frequency]
+            >>> output_tensor = layer_norm(input_tensor)
 
-    Todo:
-        - Add support for additional normalization techniques if needed.
+        Note:
+            The normalization is performed using the formula:
+            gLN_y = γ * (y - mean) / sqrt(var + EPS) + β
+            where mean and var are calculated across the channel and frequency dimensions.
+
+        Todo:
+            - Add support for additional normalization techniques if needed.
         """
         self.beta.data.zero_()
 
     @torch.cuda.amp.autocast(enabled=False)
     def forward(self, y):
         """
-        Channel-and-Frequency-wise Layer Normalization (cfLN).
+            Channel-and-Frequency-wise Layer Normalization (cfLN).
 
-    This class implements a normalization layer that performs normalization
-    across both the channel and frequency dimensions. It helps in stabilizing
-    the training process by reducing internal covariate shift.
+        This class implements a normalization layer that performs normalization
+        across both the channel and frequency dimensions. It helps in stabilizing
+        the training process by reducing internal covariate shift.
 
-    Attributes:
-        gamma (torch.Parameter): Learnable scale parameter of shape [1, N, 1, 1].
-        beta (torch.Parameter): Learnable shift parameter of shape [1, N, 1, 1].
-        shape (str): The shape of the input tensor, either "BDTF" or "BTFD".
+        Attributes:
+            gamma (torch.Parameter): Learnable scale parameter of shape [1, N, 1, 1].
+            beta (torch.Parameter): Learnable shift parameter of shape [1, N, 1, 1].
+            shape (str): The shape of the input tensor, either "BDTF" or "BTFD".
 
-    Args:
-        channel_size (int): The number of channels to normalize.
-        shape (str): The shape of the input tensor, either "BDTF" or "BTFD".
+        Args:
+            channel_size (int): The number of channels to normalize.
+            shape (str): The shape of the input tensor, either "BDTF" or "BTFD".
 
-    Raises:
-        AssertionError: If the shape is not "BDTF" or "BTFD".
+        Raises:
+            AssertionError: If the shape is not "BDTF" or "BTFD".
 
-    Examples:
-        >>> layer_norm = ChannelFreqwiseLayerNorm(channel_size=64)
-        >>> input_tensor = torch.randn(32, 64, 128, 256)  # [M, N, T, K]
-        >>> output_tensor = layer_norm(input_tensor)
-        >>> print(output_tensor.shape)  # Output shape will be [32, 64, 128, 256]
+        Examples:
+            >>> layer_norm = ChannelFreqwiseLayerNorm(channel_size=64)
+            >>> input_tensor = torch.randn(32, 64, 128, 256)  # [M, N, T, K]
+            >>> output_tensor = layer_norm(input_tensor)
+            >>> print(output_tensor.shape)  # Output shape will be [32, 64, 128, 256]
 
-    Note:
-        This implementation uses PyTorch's automatic mixed precision (AMP)
-        for forward pass.
+        Note:
+            This implementation uses PyTorch's automatic mixed precision (AMP)
+            for forward pass.
         """
         if self.shape == "BTFD":
             y = y.moveaxis(-1, 1)

@@ -22,10 +22,10 @@ class HuggingFaceTransformersPostDecoder(AbsPostDecoder):
     """
     Hugging Face Transformers PostDecoder.
 
-    This class is responsible for decoding outputs from a pretrained 
-    Hugging Face Transformers model. It utilizes the transformers 
-    library to load models and tokenizers, and processes input 
-    sequences for downstream tasks in spoken language understanding 
+    This class is responsible for decoding outputs from a pretrained
+    Hugging Face Transformers model. It utilizes the transformers
+    library to load models and tokenizers, and processes input
+    sequences for downstream tasks in spoken language understanding
     (SLU).
 
     Attributes:
@@ -49,7 +49,7 @@ class HuggingFaceTransformersPostDecoder(AbsPostDecoder):
         >>> input_ids, attention_mask, token_type_ids, position_ids = post_decoder.convert_examples_to_features(
         ...     ["Hello, how are you?"], max_seq_length=20
         ... )
-        >>> outputs = post_decoder.forward(input_ids[0], attention_mask[0], 
+        >>> outputs = post_decoder.forward(input_ids[0], attention_mask[0],
         ...                                  token_type_ids[0], position_ids[0])
         >>> print(outputs.shape)
         torch.Size([20, 128])
@@ -94,17 +94,17 @@ class HuggingFaceTransformersPostDecoder(AbsPostDecoder):
         transformation to produce the final output.
 
         Args:
-            transcript_input_ids (torch.LongTensor): The input token IDs 
+            transcript_input_ids (torch.LongTensor): The input token IDs
                 for the transcripts.
-            transcript_attention_mask (torch.LongTensor): The attention mask 
+            transcript_attention_mask (torch.LongTensor): The attention mask
                 to avoid attending to padding tokens.
-            transcript_token_type_ids (torch.LongTensor): Token type IDs 
+            transcript_token_type_ids (torch.LongTensor): Token type IDs
                 to distinguish between different segments.
-            transcript_position_ids (torch.LongTensor): Position IDs to 
+            transcript_position_ids (torch.LongTensor): Position IDs to
                 indicate the position of tokens in the input sequence.
 
         Returns:
-            torch.Tensor: The output tensor after applying the linear 
+            torch.Tensor: The output tensor after applying the linear
             transformation to the model's last hidden state.
 
         Examples:
@@ -113,7 +113,7 @@ class HuggingFaceTransformersPostDecoder(AbsPostDecoder):
             >>> attention_mask = torch.tensor([[1, 1, 1, 1, 1, 1]])
             >>> token_type_ids = torch.tensor([[0, 0, 0, 0, 0, 0]])
             >>> position_ids = torch.tensor([[0, 1, 2, 3, 4, 5]])
-            >>> output = model.forward(input_ids, attention_mask, token_type_ids, 
+            >>> output = model.forward(input_ids, attention_mask, token_type_ids,
             ...                        position_ids)
             >>> print(output.shape)  # Should output the shape of the transformed tensor.
 
@@ -133,14 +133,14 @@ class HuggingFaceTransformersPostDecoder(AbsPostDecoder):
         """
         Get the output size of the post-decoder.
 
-        This method retrieves the size of the output layer of the 
-        Hugging Face Transformers PostDecoder, which is defined during 
-        initialization. The output size is typically used to determine 
-        the dimensionality of the output tensor produced by the forward 
+        This method retrieves the size of the output layer of the
+        Hugging Face Transformers PostDecoder, which is defined during
+        initialization. The output size is typically used to determine
+        the dimensionality of the output tensor produced by the forward
         pass of the model.
 
         Returns:
-            int: The output size specified during the initialization of 
+            int: The output size specified during the initialization of
             the HuggingFaceTransformersPostDecoder.
 
         Examples:
@@ -149,7 +149,7 @@ class HuggingFaceTransformersPostDecoder(AbsPostDecoder):
             128
 
         Note:
-            The output size can be adjusted according to the requirements 
+            The output size can be adjusted according to the requirements
             of the downstream task, such as classification or regression.
         """
         return self.output_size_dim
@@ -168,7 +168,7 @@ class HuggingFaceTransformersPostDecoder(AbsPostDecoder):
                 inputs. Sequences longer than this will be truncated.
 
         Returns:
-            Tuple[List[List[int]], List[List[int]], List[List[int]], 
+            Tuple[List[List[int]], List[List[int]], List[List[int]],
                   List[List[int]], List[int]]:
                 - A list of input IDs for each example.
                 - A list of attention masks for each example.

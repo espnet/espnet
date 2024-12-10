@@ -126,15 +126,15 @@ class Conv1d(torch.nn.Module):
         """
         Initialize/Reset Conv1d cache for streaming.
 
-        This method initializes or resets the cache used for streaming 
-        in the Conv1d module. The cache holds previous frames, allowing 
-        for efficient processing of sequential data in a streaming 
+        This method initializes or resets the cache used for streaming
+        in the Conv1d module. The cache holds previous frames, allowing
+        for efficient processing of sequential data in a streaming
         fashion.
 
         Args:
-            left_context: Number of previous frames the attention module 
+            left_context: Number of previous frames the attention module
                           can see in current chunk (not used here).
-            device: Device to use for cache tensor, which allows for 
+            device: Device to use for cache tensor, which allows for
                     computation on the specified hardware (e.g., CPU or GPU).
 
         Examples:
@@ -144,8 +144,8 @@ class Conv1d(torch.nn.Module):
             torch.Size([1, 64, 2])  # Example shape based on kernel_size=3
 
         Note:
-            The cache is initialized with zeros, and its shape is based 
-            on the input size and kernel size. It is essential for 
+            The cache is initialized with zeros, and its shape is based
+            on the input size and kernel size. It is essential for
             maintaining context in streaming scenarios.
         """
         self.cache = torch.zeros(
@@ -162,27 +162,27 @@ class Conv1d(torch.nn.Module):
         """
         Encode input sequences.
 
-        This method applies a 1D convolution to the input tensor `x`, followed by 
-        optional batch normalization, dropout, and ReLU activation. It processes 
-        the input sequences in a manner that can accommodate causal convolution 
+        This method applies a 1D convolution to the input tensor `x`, followed by
+        optional batch normalization, dropout, and ReLU activation. It processes
+        the input sequences in a manner that can accommodate causal convolution
         if specified.
 
         Args:
-            x: Conv1d input sequences of shape (B, T, D_in), where B is the 
-            batch size, T is the sequence length, and D_in is the input 
+            x: Conv1d input sequences of shape (B, T, D_in), where B is the
+            batch size, T is the sequence length, and D_in is the input
             dimension.
             pos_enc: Positional embedding sequences of shape (B, 2 * (T - 1), D_in).
-            mask: Optional source mask of shape (B, T) that indicates which 
-                elements of `x` should be attended to. 
-            chunk_mask: Optional chunk mask of shape (T_2, T_2) for chunk-based 
+            mask: Optional source mask of shape (B, T) that indicates which
+                elements of `x` should be attended to.
+            chunk_mask: Optional chunk mask of shape (T_2, T_2) for chunk-based
                         processing (not used in this method).
 
         Returns:
-            x: Conv1d output sequences of shape (B, sub(T), D_out), where 
+            x: Conv1d output sequences of shape (B, sub(T), D_out), where
             D_out is the output dimension.
-            mask: Updated source mask of shape (B, T) or (B, sub(T)), 
+            mask: Updated source mask of shape (B, T) or (B, sub(T)),
                 depending on whether padding was applied.
-            pos_enc: Updated positional embedding sequences, with shape 
+            pos_enc: Updated positional embedding sequences, with shape
                     (B, 2 * (T - 1), D_att) or (B, 2 * (sub(T) - 1), D_out),
                     depending on the output dimension.
 
@@ -194,12 +194,12 @@ class Conv1d(torch.nn.Module):
             >>> output, updated_mask, updated_pos_enc = conv1d_layer.forward(x, pos_enc, mask)
 
         Note:
-            The method supports both causal and non-causal convolutions. If 
-            causal is set to True, it modifies the input `x` by padding it 
+            The method supports both causal and non-causal convolutions. If
+            causal is set to True, it modifies the input `x` by padding it
             to preserve the order of the sequences.
 
         Raises:
-            ValueError: If the input tensor `x` or positional embeddings `pos_enc` 
+            ValueError: If the input tensor `x` or positional embeddings `pos_enc`
                         have incompatible dimensions.
         """
         x = x.transpose(1, 2)
@@ -234,26 +234,26 @@ class Conv1d(torch.nn.Module):
         """
         Encode chunk of input sequence.
 
-        This method processes a chunk of input sequences through the Conv1d 
-        module, allowing for the incorporation of previous context via caching. 
-        It is particularly useful for streaming applications where only a 
+        This method processes a chunk of input sequences through the Conv1d
+        module, allowing for the incorporation of previous context via caching.
+        It is particularly useful for streaming applications where only a
         portion of the input is available at a time.
 
         Args:
-            x: Conv1d input sequences. Shape (B, T, D_in) where B is the batch 
+            x: Conv1d input sequences. Shape (B, T, D_in) where B is the batch
                size, T is the sequence length, and D_in is the input dimension.
             pos_enc: Positional embedding sequences. Shape (B, 2 * (T - 1), D_in).
             mask: Source mask. Shape (B, T).
-            left_context: Number of previous frames the attention module can see 
+            left_context: Number of previous frames the attention module can see
                           in current chunk (not used here).
 
         Returns:
-            x: Conv1d output sequences. Shape (B, T, D_out) where D_out is the 
+            x: Conv1d output sequences. Shape (B, T, D_out) where D_out is the
                output dimension.
             pos_enc: Positional embedding sequences. Shape (B, 2 * (T - 1), D_out).
 
         Examples:
-            >>> conv1d_layer = Conv1d(input_size=64, output_size=128, 
+            >>> conv1d_layer = Conv1d(input_size=64, output_size=128,
             ...                        kernel_size=3)
             >>> input_tensor = torch.randn(32, 10, 64)  # (B, T, D_in)
             >>> pos_embedding = torch.randn(32, 18, 64)  # (B, 2*(T-1), D_in)
@@ -263,7 +263,7 @@ class Conv1d(torch.nn.Module):
             ... )
 
         Note:
-            The `left_context` parameter is included for compatibility with 
+            The `left_context` parameter is included for compatibility with
             streaming applications but is not utilized in this implementation.
         """
         x = torch.cat([self.cache, x.transpose(1, 2)], dim=2)
@@ -287,18 +287,18 @@ class Conv1d(torch.nn.Module):
         """
         Create new mask for output sequences.
 
-        This method generates a new mask based on the input mask, which is 
-        adjusted according to the padding and stride properties of the 
-        convolutional layer. The output mask will reflect the dimensions 
+        This method generates a new mask based on the input mask, which is
+        adjusted according to the padding and stride properties of the
+        convolutional layer. The output mask will reflect the dimensions
         of the output sequences after convolution.
 
         Args:
-            mask: Mask of input sequences. Shape: (B, T), where B is the 
+            mask: Mask of input sequences. Shape: (B, T), where B is the
                   batch size and T is the length of the input sequence.
 
         Returns:
-            mask: Mask of output sequences. Shape: (B, sub(T)), where 
-                  sub(T) is the length of the output sequence after 
+            mask: Mask of output sequences. Shape: (B, sub(T)), where
+                  sub(T) is the length of the output sequence after
                   applying the convolution and stride.
 
         Examples:
@@ -311,7 +311,7 @@ class Conv1d(torch.nn.Module):
                     [1, 0]])
 
         Note:
-            The method assumes that the padding has already been set 
+            The method assumes that the padding has already been set
             during the initialization of the Conv1d class.
         """
         if self.padding != 0:
@@ -323,9 +323,9 @@ class Conv1d(torch.nn.Module):
         """
         Create new positional embedding vector.
 
-        This method generates a new positional embedding based on the input 
-        sequences' positional embeddings. It handles padding and applies the 
-        stride to the embeddings to create an output suitable for the 
+        This method generates a new positional embedding based on the input
+        sequences' positional embeddings. It handles padding and applies the
+        stride to the embeddings to create an output suitable for the
         convolutional operation.
 
         Args:
@@ -345,8 +345,8 @@ class Conv1d(torch.nn.Module):
             torch.Size([4, 6, 16])  # Output shape may vary based on padding and stride
 
         Note:
-            The method considers the input's padding and applies the stride to 
-            ensure the output positional embeddings align with the output sequences 
+            The method considers the input's padding and applies the stride to
+            ensure the output positional embeddings align with the output sequences
             generated by the convolutional layer.
         """
         pos_enc_positive = pos_enc[:, : pos_enc.size(1) // 2 + 1, :]

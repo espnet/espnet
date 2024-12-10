@@ -31,39 +31,39 @@ class ESPnetASVSpoofModel(AbsESPnetModel):
     """
     ASV Spoofing Model for Audio Signal Verification
 
-    This class implements a model for Automatic Speaker Verification (ASV) 
-    Spoofing detection. The model processes audio input through a series of 
-    components including a frontend, encoder, decoder, and loss calculation 
+    This class implements a model for Automatic Speaker Verification (ASV)
+    Spoofing detection. The model processes audio input through a series of
+    components including a frontend, encoder, decoder, and loss calculation
     mechanisms.
 
     Attributes:
-        preencoder (Optional[AbsPreEncoder]): An optional pre-encoder for raw 
+        preencoder (Optional[AbsPreEncoder]): An optional pre-encoder for raw
             input data.
         encoder (AbsEncoder): The encoder component that processes features.
-        normalize (Optional[AbsNormalize]): An optional normalization layer for 
+        normalize (Optional[AbsNormalize]): An optional normalization layer for
             feature scaling.
-        frontend (Optional[AbsFrontend]): An optional frontend for feature 
+        frontend (Optional[AbsFrontend]): An optional frontend for feature
             extraction.
-        specaug (Optional[AbsSpecAug]): An optional specification augmentation 
+        specaug (Optional[AbsSpecAug]): An optional specification augmentation
             component.
-        decoder (AbsDecoder): The decoder component that predicts outcomes 
+        decoder (AbsDecoder): The decoder component that predicts outcomes
             based on encoded features.
-        losses (Dict[str, AbsASVSpoofLoss]): A dictionary containing various 
+        losses (Dict[str, AbsASVSpoofLoss]): A dictionary containing various
             loss functions for training.
 
     Args:
-        frontend (Optional[AbsFrontend]): An optional frontend for feature 
+        frontend (Optional[AbsFrontend]): An optional frontend for feature
             extraction.
-        specaug (Optional[AbsSpecAug]): An optional specification augmentation 
+        specaug (Optional[AbsSpecAug]): An optional specification augmentation
             component.
-        normalize (Optional[AbsNormalize]): An optional normalization layer for 
+        normalize (Optional[AbsNormalize]): An optional normalization layer for
             feature scaling.
         encoder (AbsEncoder): The encoder component that processes features.
-        preencoder (Optional[AbsPreEncoder]): An optional pre-encoder for raw 
+        preencoder (Optional[AbsPreEncoder]): An optional pre-encoder for raw
             input data.
-        decoder (AbsDecoder): The decoder component that predicts outcomes 
+        decoder (AbsDecoder): The decoder component that predicts outcomes
             based on encoded features.
-        losses (Dict[str, AbsASVSpoofLoss]): A dictionary containing various 
+        losses (Dict[str, AbsASVSpoofLoss]): A dictionary containing various
             loss functions for training.
 
     Returns:
@@ -77,7 +77,7 @@ class ESPnetASVSpoofModel(AbsESPnetModel):
         >>> loss, stats, weight = model.forward(speech_tensor)
 
     Note:
-        Ensure that the input audio tensor is correctly shaped and matches 
+        Ensure that the input audio tensor is correctly shaped and matches
         the expected dimensions for processing.
 
     Todo:
@@ -115,36 +115,36 @@ class ESPnetASVSpoofModel(AbsESPnetModel):
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """
-        Processes input speech through the model's components and computes the 
+        Processes input speech through the model's components and computes the
         loss.
 
-        This method combines the frontend, encoder, and decoder components of the 
-        ASV Spoofing model to produce predictions and calculate the associated 
-        loss. The output includes the computed loss, statistics, and batch size 
+        This method combines the frontend, encoder, and decoder components of the
+        ASV Spoofing model to produce predictions and calculate the associated
+        loss. The output includes the computed loss, statistics, and batch size
         weight.
 
         Args:
-            speech (torch.Tensor): A tensor containing the speech data with shape 
+            speech (torch.Tensor): A tensor containing the speech data with shape
                 (Batch, samples).
-            speech_lengths (torch.Tensor, optional): A tensor representing the 
-                lengths of each speech sample in the batch. If not provided, 
+            speech_lengths (torch.Tensor, optional): A tensor representing the
+                lengths of each speech sample in the batch. If not provided,
                 defaults to None.
-            label (torch.Tensor, optional): A tensor containing the target labels 
-                for the speech data with shape (Batch, ). This is used for loss 
+            label (torch.Tensor, optional): A tensor containing the target labels
+                for the speech data with shape (Batch, ). This is used for loss
                 computation.
-            **kwargs: Additional keyword arguments, where "utt_id" may be among 
+            **kwargs: Additional keyword arguments, where "utt_id" may be among
                 the inputs.
 
         Returns:
-            Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]: A tuple 
+            Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]: A tuple
             containing:
                 - loss (torch.Tensor): The computed loss for the current batch.
-                - stats (Dict[str, torch.Tensor]): A dictionary with statistical 
+                - stats (Dict[str, torch.Tensor]): A dictionary with statistical
                     metrics, including loss and accuracy.
                 - weight (torch.Tensor): The weight of the current batch.
 
         Raises:
-            AssertionError: If the batch size of speech does not match the 
+            AssertionError: If the batch size of speech does not match the
             batch size of the label.
 
         Examples:
@@ -154,7 +154,7 @@ class ESPnetASVSpoofModel(AbsESPnetModel):
             >>> loss, stats, weight = model.forward(speech_data, label=labels)
 
         Note:
-            Ensure that the `label` tensor is provided during training to compute 
+            Ensure that the `label` tensor is provided during training to compute
             the loss.
         """
         assert speech.shape[0] == label.shape[0], (speech.shape, label.shape)
@@ -252,20 +252,20 @@ class ESPnetASVSpoofModel(AbsESPnetModel):
         the encoder to obtain the encoded outputs.
 
         Args:
-            speech: A tensor of shape (Batch, Length, ...), representing the 
+            speech: A tensor of shape (Batch, Length, ...), representing the
                 input speech waveforms.
-            speech_lengths: A tensor of shape (Batch,), indicating the lengths 
+            speech_lengths: A tensor of shape (Batch,), indicating the lengths
                 of the input speech signals.
 
         Returns:
             A tuple containing:
                 - encoder_out: A tensor of shape (Batch, Length2, Dim), where
                   Length2 is the output length after encoding.
-                - encoder_out_lens: A tensor of shape (Batch,) that contains 
+                - encoder_out_lens: A tensor of shape (Batch,) that contains
                   the lengths of the encoded outputs.
 
         Raises:
-            AssertionError: If the output sizes do not match the expected 
+            AssertionError: If the output sizes do not match the expected
             dimensions.
 
         Examples:
@@ -277,7 +277,7 @@ class ESPnetASVSpoofModel(AbsESPnetModel):
             >>> print(encoder_out_lens.shape)  # Should be (8,)
 
         Note:
-            This method assumes that the model is initialized with appropriate 
+            This method assumes that the model is initialized with appropriate
             frontend and encoder components.
         """
         with autocast(False):

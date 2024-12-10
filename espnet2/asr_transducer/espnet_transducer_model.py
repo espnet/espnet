@@ -31,10 +31,10 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
     """
     ESPnet2 ASR Transducer model.
 
-    This class defines the ESPnet2 ASR Transducer model, which is an end-to-end 
-    automatic speech recognition (ASR) model based on the transducer architecture. 
-    It includes components for encoding speech, decoding sequences, and computing 
-    losses. The model supports auxiliary losses and can utilize K2 pruned loss 
+    This class defines the ESPnet2 ASR Transducer model, which is an end-to-end
+    automatic speech recognition (ASR) model based on the transducer architecture.
+    It includes components for encoding speech, decoding sequences, and computing
+    losses. The model supports auxiliary losses and can utilize K2 pruned loss
     for improved performance.
 
     Attributes:
@@ -118,8 +118,8 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
         ... )
 
     Note:
-        Ensure that all required modules (e.g., AbsFrontend, Encoder, etc.) are 
-        properly implemented and compatible with the expected input shapes and 
+        Ensure that all required modules (e.g., AbsFrontend, Encoder, etc.) are
+        properly implemented and compatible with the expected input shapes and
         data types.
 
     Todo:
@@ -236,16 +236,16 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
         """
         Forward architecture and compute loss(es).
 
-        This method takes the input speech and text sequences, processes them 
-        through the model's architecture, and computes the loss value along with 
-        relevant statistics. It is the core function that integrates the encoder, 
+        This method takes the input speech and text sequences, processes them
+        through the model's architecture, and computes the loss value along with
+        relevant statistics. It is the core function that integrates the encoder,
         decoder, and joint network to produce the final loss output.
 
         Args:
-            speech: Speech sequences with shape (B, S) where B is the batch 
+            speech: Speech sequences with shape (B, S) where B is the batch
                     size and S is the sequence length.
             speech_lengths: Lengths of the speech sequences with shape (B,).
-            text: Label ID sequences with shape (B, L) where L is the maximum 
+            text: Label ID sequences with shape (B, L) where L is the maximum
                   length of the labels.
             text_lengths: Lengths of the label ID sequences with shape (B,).
             kwargs: Additional keyword arguments that may contain "utts_id".
@@ -253,12 +253,12 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
         Returns:
             Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
                 - loss: Main loss value (scalar tensor).
-                - stats: A dictionary containing task statistics such as 
+                - stats: A dictionary containing task statistics such as
                          individual loss components and error rates.
                 - weight: Batch size for scaling purposes.
 
         Raises:
-            AssertionError: If the dimensions of input tensors do not match 
+            AssertionError: If the dimensions of input tensors do not match
                             the expected shapes.
 
         Examples:
@@ -382,13 +382,13 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
         """
         Collect features sequences and features lengths sequences.
 
-        This method processes the input speech data to extract features 
-        and their corresponding lengths. It can either extract actual 
-        features using the model's frontend or return dummy statistics 
+        This method processes the input speech data to extract features
+        and their corresponding lengths. It can either extract actual
+        features using the model's frontend or return dummy statistics
         if configured to do so.
 
         Args:
-            speech: Speech sequences. Shape: (B, S) where B is the batch 
+            speech: Speech sequences. Shape: (B, S) where B is the batch
                     size and S is the sequence length.
             speech_lengths: Speech sequences lengths. Shape: (B,).
             text: Label ID sequences. Shape: (B, L).
@@ -410,9 +410,9 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
             >>> print(output["feats"].shape)  # Expected shape: (32, T, D_feats)
 
         Note:
-            If `extract_feats_in_collect_stats` is set to False, 
-            this method will generate dummy statistics for feats 
-            and feats_lengths, which may not reflect the actual 
+            If `extract_feats_in_collect_stats` is set to False,
+            this method will generate dummy statistics for feats
+            and feats_lengths, which may not reflect the actual
             features extracted from the input speech.
         """
         if self.extract_feats_in_collect_stats:
@@ -437,9 +437,9 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
         """
         ESPnet2 ASR Transducer model.
 
-        This class defines the ESPnet2 ASR Transducer model, which includes an 
-        encoder, decoder, and joint network for automatic speech recognition (ASR) 
-        tasks. The model supports auxiliary losses, data augmentation, and various 
+        This class defines the ESPnet2 ASR Transducer model, which includes an
+        encoder, decoder, and joint network for automatic speech recognition (ASR)
+        tasks. The model supports auxiliary losses, data augmentation, and various
         training configurations.
 
         Attributes:
@@ -450,7 +450,7 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
             normalize (AbsNormalize): Normalization module for feature processing.
             encoder (Encoder): Encoder module for processing speech features.
             decoder (AbsDecoder): Decoder module for generating predictions.
-            joint_network (JointNetwork): Joint Network module for combining encoder 
+            joint_network (JointNetwork): Joint Network module for combining encoder
                                         and decoder outputs.
             transducer_weight (float): Weight of the Transducer loss.
             use_k2_pruned_loss (bool): Whether to use k2 pruned Transducer loss.

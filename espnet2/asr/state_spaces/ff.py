@@ -12,32 +12,32 @@ from espnet2.asr.state_spaces.components import DropoutNd, LinearActivation
 
 class FF(SequenceModule):
     """
-    Implementation of a Feedforward Neural Network (FFN) block in the style of 
+    Implementation of a Feedforward Neural Network (FFN) block in the style of
     Transformers.
 
-    This class defines a feedforward layer that consists of two linear transformations 
-    with an activation function in between, along with optional dropout. It can be 
+    This class defines a feedforward layer that consists of two linear transformations
+    with an activation function in between, along with optional dropout. It can be
     configured to work with both standard and transposed inputs.
 
     Attributes:
-        d_output (int): The dimensionality of the output. If not specified, it 
+        d_output (int): The dimensionality of the output. If not specified, it
             defaults to the input dimension.
         transposed (bool): Indicates whether the input is in transposed format.
-        
+
     Args:
         d_input (int): The dimensionality of the input features.
         expand (int): The expansion factor for the inner linear layer. Default is 2.
-        d_output (int, optional): The dimensionality of the output features. 
+        d_output (int, optional): The dimensionality of the output features.
             Defaults to None, which sets it to d_input.
-        transposed (bool, optional): If True, the input is treated as a 
+        transposed (bool, optional): If True, the input is treated as a
             transposed tensor. Defaults to False.
-        activation (str, optional): The activation function to use in the first 
+        activation (str, optional): The activation function to use in the first
             linear layer. Default is "gelu".
-        initializer (callable, optional): A function to initialize the weights 
+        initializer (callable, optional): A function to initialize the weights
             of the linear layers. Defaults to None.
-        dropout (float, optional): The dropout probability. Defaults to 0.0 (no 
+        dropout (float, optional): The dropout probability. Defaults to 0.0 (no
             dropout).
-        tie_dropout (bool, optional): If True, ties the dropout for both layers. 
+        tie_dropout (bool, optional): If True, ties the dropout for both layers.
             Defaults to False.
 
     Returns:
@@ -51,13 +51,14 @@ class FF(SequenceModule):
         torch.Size([32, 256])
 
     Note:
-        This implementation is derived from the state-spaces library available at 
+        This implementation is derived from the state-spaces library available at
         https://github.com/HazyResearch/state-spaces.
 
     Todo:
         - Consider adding support for other activation functions.
         - Implement weight initialization strategies based on common practices.
     """
+
     def __init__(
         self,
         d_input,
@@ -114,7 +115,7 @@ class FF(SequenceModule):
         through a series of linear transformations, with optional dropout for regularization.
 
         Args:
-            x (torch.Tensor): The input tensor of shape [batch_size, d_input] or 
+            x (torch.Tensor): The input tensor of shape [batch_size, d_input] or
                 [batch_size, d_input, seq_len] if transposed is True.
             *args: Additional positional arguments (not used).
             **kwargs: Additional keyword arguments (not used).
@@ -147,17 +148,17 @@ class FF(SequenceModule):
         """
         Executes a forward step through the Feed-Forward (FF) block.
 
-        This method processes the input tensor `x` through the FF block defined in 
-        the `__init__` method. It applies a series of linear transformations and 
-        activation functions to the input tensor and returns the result along with 
+        This method processes the input tensor `x` through the FF block defined in
+        the `__init__` method. It applies a series of linear transformations and
+        activation functions to the input tensor and returns the result along with
         the current state.
 
         Args:
-            x (torch.Tensor): Input tensor of shape [batch, d_input] or 
+            x (torch.Tensor): Input tensor of shape [batch, d_input] or
                 [batch, d_input, seq_len] depending on the transposed flag.
-            state (Any): The current state to be passed through the network, which is 
+            state (Any): The current state to be passed through the network, which is
                 not modified by this method.
-            **kwargs: Additional keyword arguments that may be used for other 
+            **kwargs: Additional keyword arguments that may be used for other
                 processing, but are not utilized in this method.
 
         Returns:
@@ -172,8 +173,8 @@ class FF(SequenceModule):
             >>> print(output.shape)  # Output shape will be [32, d_output]
 
         Note:
-            The output shape depends on whether the `transposed` attribute is set to 
-            True or False. If `transposed` is True, the input tensor `x` should 
+            The output shape depends on whether the `transposed` attribute is set to
+            True or False. If `transposed` is True, the input tensor `x` should
             have shape [batch, d_input, seq_len].
         """
         # x: [batch, d_input]

@@ -77,22 +77,22 @@ class ConformerConvolution(torch.nn.Module):
 
         This method applies a series of convolution operations on the input tensor
         `x`, potentially using a source mask and a cache for efficient processing.
-        The convolution is performed using a pointwise, depthwise, and another 
+        The convolution is performed using a pointwise, depthwise, and another
         pointwise convolution layer, with optional activation and normalization.
 
         Args:
             x: ConformerConvolution input sequences. Shape (B, T, D_hidden),
             where B is the batch size, T is the sequence length, and
             D_hidden is the number of hidden units.
-            mask: Source mask. Shape (B, T_2). This mask is applied to zero out 
+            mask: Source mask. Shape (B, T_2). This mask is applied to zero out
                 certain positions in the input tensor `x`.
             cache: ConformerConvolution input cache. Shape (1, D_hidden, conv_kernel).
-                This cache is used to store previous outputs for causal 
+                This cache is used to store previous outputs for causal
                 convolutions.
 
         Returns:
             x: ConformerConvolution output sequences. Shape (B, ?, D_hidden),
-            where the second dimension may vary depending on the operations 
+            where the second dimension may vary depending on the operations
             performed.
             cache: ConformerConvolution output cache. Shape (1, D_hidden, conv_kernel).
                 This cache can be used in subsequent calls to maintain state.
@@ -232,10 +232,10 @@ class ConvolutionalSpatialGatingUnit(torch.nn.Module):
 
         Returns:
             Tuple[torch.Tensor, torch.Tensor]:
-                - x: ConvolutionalSpatialGatingUnit output sequences. Shape (B, ?, 
+                - x: ConvolutionalSpatialGatingUnit output sequences. Shape (B, ?,
                 D_hidden), where the second dimension may vary based on the
                 convolution operation.
-                - cache: ConvolutionalSpatialGatingUnit output cache. Shape 
+                - cache: ConvolutionalSpatialGatingUnit output cache. Shape
                 (1, D_hidden, conv_kernel).
 
         Examples:
@@ -275,13 +275,13 @@ class DepthwiseConvolution(torch.nn.Module):
     """
     Depth-wise Convolution module definition.
 
-    This module performs depth-wise convolution, which applies a separate 
-    convolutional filter to each input channel. It is commonly used in 
-    lightweight neural networks to reduce the number of parameters and 
+    This module performs depth-wise convolution, which applies a separate
+    convolutional filter to each input channel. It is commonly used in
+    lightweight neural networks to reduce the number of parameters and
     computations.
 
     Args:
-        size: Initial size to determine the number of channels. 
+        size: Initial size to determine the number of channels.
               The total number of channels will be `size + size`.
         kernel_size: Size of the convolving kernel.
         causal: Whether to use causal convolution (set to True if streaming).
@@ -300,8 +300,8 @@ class DepthwiseConvolution(torch.nn.Module):
         torch.Size([32, 10, 128])  # Output shape depends on padding and input
 
     Note:
-        The input tensor `x` should have shape (B, T, D_hidden), where B is the 
-        batch size, T is the sequence length, and D_hidden is the number of 
+        The input tensor `x` should have shape (B, T, D_hidden), where B is the
+        batch size, T is the sequence length, and D_hidden is the number of
         features (channels).
 
     Raises:

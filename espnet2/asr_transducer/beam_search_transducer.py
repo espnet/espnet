@@ -15,14 +15,14 @@ class Hypothesis:
     """
     Search algorithms for Transducer models.
 
-    This module implements search algorithms for Transducer models, including 
-    the Beam Search algorithm. The `Hypothesis` class defines the default 
+    This module implements search algorithms for Transducer models, including
+    the Beam Search algorithm. The `Hypothesis` class defines the default
     hypothesis structure used in these search algorithms.
 
     Classes:
-        Hypothesis: Represents a single hypothesis with its associated score, 
+        Hypothesis: Represents a single hypothesis with its associated score,
             label sequence, and states.
-        ExtendedHypothesis: An extension of the Hypothesis class that includes 
+        ExtendedHypothesis: An extension of the Hypothesis class that includes
             decoder output and language model scores.
         BeamSearchTransducer: Implements beam search for transducer models.
 
@@ -34,7 +34,7 @@ class Hypothesis:
             lm_state: RNNLM state, can be a tuple of (N, D_lm) or None.
         ExtendedHypothesis:
             dec_out: Decoder output sequence of shape (B, D_dec).
-            lm_score: Log-probabilities of the language model for given labels 
+            lm_score: Log-probabilities of the language model for given labels
                 of shape (vocab_size).
         BeamSearchTransducer:
             decoder: Decoder module used in the beam search.
@@ -56,7 +56,7 @@ class Hypothesis:
         Hypothesis:
             score (float): Total log-probability of the hypothesis.
             yseq (List[int]): Sequence of label IDs.
-            dec_state (Optional[Tuple[torch.Tensor, Optional[torch.Tensor]]]): 
+            dec_state (Optional[Tuple[torch.Tensor, Optional[torch.Tensor]]]):
                 Decoder state.
             lm_state (Optional[Union[Dict[str, Any], List[Any]]]): Language model state.
         ExtendedHypothesis:
@@ -94,7 +94,7 @@ class Hypothesis:
         5
 
     Note:
-        The `Hypothesis` class is designed to store and manage the state of 
+        The `Hypothesis` class is designed to store and manage the state of
         hypotheses during the beam search process.
     """
 
@@ -149,14 +149,14 @@ class BeamSearchTransducer:
     """
     Beam search implementation for Transducer models.
 
-    This class implements a beam search algorithm for transducer models in 
-    automatic speech recognition (ASR). It is designed to work with a decoder 
-    and a joint network module to produce N-best hypotheses from the encoder 
+    This class implements a beam search algorithm for transducer models in
+    automatic speech recognition (ASR). It is designed to work with a decoder
+    and a joint network module to produce N-best hypotheses from the encoder
     output.
 
     Attributes:
         decoder (AbsDecoder): Decoder module for generating sequences.
-        joint_network (JointNetwork): Joint network module that combines 
+        joint_network (JointNetwork): Joint network module that combines
             encoder and decoder outputs.
         beam_size (int): Size of the beam for search.
         lm (Optional[torch.nn.Module]): Language model module for soft fusion.
@@ -195,7 +195,7 @@ class BeamSearchTransducer:
         NotImplementedError: If the specified search type is not supported.
 
     Note:
-        Ensure that the `beam_size` is less than or equal to the vocabulary size 
+        Ensure that the `beam_size` is less than or equal to the vocabulary size
         of the decoder.
     """
 
@@ -338,16 +338,16 @@ class BeamSearchTransducer:
         """
         Sort in-place hypotheses by score or score given sequence length.
 
-        This method sorts a list of hypotheses based on their scores. If 
-        `score_norm` is set to `True`, it normalizes the scores by the 
-        length of the corresponding label sequences. The sorted list 
+        This method sorts a list of hypotheses based on their scores. If
+        `score_norm` is set to `True`, it normalizes the scores by the
+        length of the corresponding label sequences. The sorted list
         will contain only the top `nbest` hypotheses.
 
         Args:
             hyps: A list of `Hypothesis` instances to be sorted.
 
         Returns:
-            List[Hypothesis]: A sorted list of hypotheses, containing only 
+            List[Hypothesis]: A sorted list of hypotheses, containing only
             the top `nbest` hypotheses based on their scores.
 
         Examples:
@@ -359,7 +359,7 @@ class BeamSearchTransducer:
             15.0
 
         Note:
-            The sorting is done in-place, meaning the original list 
+            The sorting is done in-place, meaning the original list
             `hyps` will be modified.
         """
         if self.score_norm:
@@ -500,9 +500,9 @@ class BeamSearchTransducer:
         """
         Beam search implementation without prefix search.
 
-        This method performs a beam search over the output of the encoder 
-        without using prefix search. It evaluates the hypotheses at each 
-        time step, expanding the most promising ones according to the beam 
+        This method performs a beam search over the output of the encoder
+        without using prefix search. It evaluates the hypotheses at each
+        time step, expanding the most promising ones according to the beam
         size and the scores computed from the joint network.
 
         Modified from: https://arxiv.org/pdf/1211.3711.pdf
@@ -520,8 +520,8 @@ class BeamSearchTransducer:
             >>> print(results)  # List of Hypothesis objects with their scores and sequences.
 
         Note:
-            The hypotheses are scored based on both the decoder output and 
-            the language model (if available), and are pruned according 
+            The hypotheses are scored based on both the decoder output and
+            the language model (if available), and are pruned according
             to the beam size at each time step.
         """
         beam_k = min(self.beam_size, (self.vocab_size - 1))
@@ -611,19 +611,19 @@ class BeamSearchTransducer:
         """
         Alignment-length synchronous beam search implementation.
 
-        This method performs a beam search that synchronizes the length of the 
-        generated sequences with the input encoder outputs. The search is 
+        This method performs a beam search that synchronizes the length of the
+        generated sequences with the input encoder outputs. The search is
         based on the algorithm described in the paper:
-        "A Generalized Beam Search Algorithm for Sequence-to-Sequence 
+        "A Generalized Beam Search Algorithm for Sequence-to-Sequence
         Learning" (https://ieeexplore.ieee.org/document/9053040).
 
         Args:
-            enc_out: Encoder output sequences. Shape is (T, D) where T is 
-                    the number of time steps and D is the dimension of 
+            enc_out: Encoder output sequences. Shape is (T, D) where T is
+                    the number of time steps and D is the dimension of
                     the encoder output.
 
         Returns:
-            List[Hypothesis]: A list of N-best hypotheses generated from 
+            List[Hypothesis]: A list of N-best hypotheses generated from
                             the beam search.
 
         Examples:
@@ -714,10 +714,10 @@ class BeamSearchTransducer:
         """
         Time synchronous beam search implementation.
 
-        This method implements a beam search algorithm that operates in a time 
-        synchronous manner. It takes the encoder output sequence and generates 
-        N-best hypotheses based on the joint network's log-probabilities. The 
-        approach allows for multiple symbol expansions at each time step, making 
+        This method implements a beam search algorithm that operates in a time
+        synchronous manner. It takes the encoder output sequence and generates
+        N-best hypotheses based on the joint network's log-probabilities. The
+        approach allows for multiple symbol expansions at each time step, making
         it suitable for scenarios where temporal alignment is critical.
 
         Args:
@@ -736,7 +736,7 @@ class BeamSearchTransducer:
             >>>     print(hyp.yseq, hyp.score)
 
         Note:
-            The method can utilize a language model if one is provided during the 
+            The method can utilize a language model if one is provided during the
             initialization of the `BeamSearchTransducer`.
 
         Raises:
@@ -829,8 +829,8 @@ class BeamSearchTransducer:
         Modified version of Adaptive Expansion Search (mAES).
 
         This method implements a modified version of the Adaptive Expansion
-        Search algorithm for beam search decoding in transducer models. It 
-        utilizes a combination of hypotheses from previous steps and expands 
+        Search algorithm for beam search decoding in transducer models. It
+        utilizes a combination of hypotheses from previous steps and expands
         them based on the current encoder output.
 
         Based on the original Adaptive Expansion Search (AES) as described in

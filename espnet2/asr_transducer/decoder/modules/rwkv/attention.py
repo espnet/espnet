@@ -46,8 +46,8 @@ class WKVLinearAttention(torch.autograd.Function):
         None
 
     Raises:
-        AssertionError: If the length of key exceeds the context size or if the 
-                        batch size multiplied by dimension is not a multiple of 
+        AssertionError: If the length of key exceeds the context size or if the
+                        batch size multiplied by dimension is not a multiple of
                         the minimum of dimension and 32.
 
     Examples:
@@ -69,9 +69,9 @@ class WKVLinearAttention(torch.autograd.Function):
         """
         WKVLinearAttention function forward pass.
 
-        This method computes the forward pass for the WKV linear attention 
-        mechanism, which involves applying time decay and time first vectors 
-        to key and value tensors to produce a weighted output tensor. 
+        This method computes the forward pass for the WKV linear attention
+        mechanism, which involves applying time decay and time first vectors
+        to key and value tensors to produce a weighted output tensor.
 
         Args:
             ctx: The context object to store information for the backward pass.
@@ -85,7 +85,7 @@ class WKVLinearAttention(torch.autograd.Function):
 
         Raises:
             AssertionError: If the length of the key tensor exceeds the context size
-            or if the product of batch size and dimension is not a multiple of 
+            or if the product of batch size and dimension is not a multiple of
             the minimum of dimension or 32.
 
         Examples:
@@ -133,9 +133,9 @@ class WKVLinearAttention(torch.autograd.Function):
         """
         WKVLinearAttention function backward pass.
 
-        This method computes the gradients of the inputs with respect to the 
-        output of the forward pass. It uses the saved tensors from the forward 
-        context to calculate the gradients for the time decay, time first, 
+        This method computes the gradients of the inputs with respect to the
+        output of the forward pass. It uses the saved tensors from the forward
+        context to calculate the gradients for the time decay, time first,
         key, and value tensors.
 
         Args:
@@ -143,9 +143,9 @@ class WKVLinearAttention(torch.autograd.Function):
             grad_output: Output gradient. Shape: (B, U, D_att)
 
         Returns:
-            grad_time_decay: Gradient for channel-wise time decay vector. 
+            grad_time_decay: Gradient for channel-wise time decay vector.
                              Shape: (D_att)
-            grad_time_first: Gradient for channel-wise time first vector. 
+            grad_time_first: Gradient for channel-wise time first vector.
                              Shape: (D_att)
             grad_key: Gradient for key tensor. Shape: (B, U, D_att)
             grad_value: Gradient for value tensor. Shape: (B, U, D_att)
@@ -213,34 +213,34 @@ def load_wkv_kernel(context_size: int) -> None:
     """
     Load WKV CUDA kernel.
 
-    This function loads the WKV (Weighted Key-Value) CUDA kernel for 
-    efficient computation in the RWKV model. The kernel is loaded 
-    using the PyTorch C++ extension loader and requires CUDA 
+    This function loads the WKV (Weighted Key-Value) CUDA kernel for
+    efficient computation in the RWKV model. The kernel is loaded
+    using the PyTorch C++ extension loader and requires CUDA
     support.
 
     Args:
-        context_size: The context size to be used by the WKV kernel. 
-                      It determines the maximum length of the input 
+        context_size: The context size to be used by the WKV kernel.
+                      It determines the maximum length of the input
                       sequences that can be processed.
 
     Raises:
-        ImportError: If the Ninja package is not installed or if 
+        ImportError: If the Ninja package is not installed or if
                      CUDA is not available.
 
     Note:
-        Ensure that the 'ninja' package is installed in your Python 
-        environment to load the WKV kernel. You can install it via 
+        Ensure that the 'ninja' package is installed in your Python
+        environment to load the WKV kernel. You can install it via
         pip: `pip install ninja`.
 
     Examples:
-        To load the WKV kernel with a specific context size, you can 
+        To load the WKV kernel with a specific context size, you can
         use the following code:
 
         ```python
         load_wkv_kernel(context_size=128)
         ```
 
-    This will prepare the WKV kernel for usage in further 
+    This will prepare the WKV kernel for usage in further
     computations related to the RWKV model.
     """
     from torch.utils.cpp_extension import load
@@ -360,24 +360,24 @@ class SelfAttention(torch.nn.Module):
         """
         Reset module parameters.
 
-        This method initializes the parameters of the SelfAttention module 
-        based on the given size and attention configuration. It calculates 
-        decay speeds and initializes time-related parameters that control 
+        This method initializes the parameters of the SelfAttention module
+        based on the given size and attention configuration. It calculates
+        decay speeds and initializes time-related parameters that control
         the attention mechanism within the module.
 
         Args:
             size: Block size, representing the input/output dimension.
-            attention_size: Attention hidden size, determining the number 
+            attention_size: Attention hidden size, determining the number
                             of attention heads.
-            block_id: Block index, indicating the position of this block 
+            block_id: Block index, indicating the position of this block
                        in a larger architecture.
             num_blocks: Total number of blocks in the architecture.
 
         Examples:
-            >>> attention = SelfAttention(size=128, attention_size=64, 
-            ...                           context_size=512, block_id=0, 
+            >>> attention = SelfAttention(size=128, attention_size=64,
+            ...                           context_size=512, block_id=0,
             ...                           num_blocks=4)
-            >>> attention.reset_parameters(size=128, attention_size=64, 
+            >>> attention.reset_parameters(size=128, attention_size=64,
             ...                             block_id=0, num_blocks=4)
         """
         ratio_0_to_1 = block_id / (num_blocks - 1)
@@ -499,7 +499,7 @@ class SelfAttention(torch.nn.Module):
             ctx: The context object for storing information for backward pass.
             time_decay: Channel-wise time decay vector. Shape: (D_att).
             time_first: Channel-wise time first vector. Shape: (D_att).
-            key: Key tensor. Shape: (B, U, D_att), where B is batch size and U is 
+            key: Key tensor. Shape: (B, U, D_att), where B is batch size and U is
                 sequence length.
             value: Value tensor. Shape: (B, U, D_att).
 
@@ -507,8 +507,8 @@ class SelfAttention(torch.nn.Module):
             out: Weighted Key-Value tensor. Shape: (B, U, D_att).
 
         Raises:
-            AssertionError: If the length of the key exceeds the context size or 
-                if the product of batch size and dimension is not a multiple of 
+            AssertionError: If the length of the key exceeds the context size or
+                if the product of batch size and dimension is not a multiple of
                 the minimum of dimension or 32.
 
         Examples:

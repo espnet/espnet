@@ -16,17 +16,17 @@ from espnet2.asr.frontend.abs_frontend import AbsFrontend
 
 class MelSpectrogramTorch(AbsFrontend):
     """
-    MelSpectrogramTorch is a class that computes the Mel-spectrogram of audio 
-    signals using the Torchaudio library. This class is part of the ESPnet2 
-    framework and extends the abstract frontend class AbsFrontend. It provides 
-    functionality to preprocess audio data into Mel-spectrograms, which are 
+    MelSpectrogramTorch is a class that computes the Mel-spectrogram of audio
+    signals using the Torchaudio library. This class is part of the ESPnet2
+    framework and extends the abstract frontend class AbsFrontend. It provides
+    functionality to preprocess audio data into Mel-spectrograms, which are
     commonly used in speech recognition tasks.
 
     Attributes:
         log (bool): Indicates whether to apply logarithmic scaling to the output.
         n_mels (int): The number of Mel frequency bins.
         preemp (bool): Indicates whether to apply pre-emphasis to the input signal.
-        normalize (Optional[str]): Method of normalization. Options include 
+        normalize (Optional[str]): Method of normalization. Options include
             "mn" for mean normalization.
         window_fn (Callable): The window function to apply (Hanning or Hamming).
 
@@ -44,7 +44,7 @@ class MelSpectrogramTorch(AbsFrontend):
         normalize (Optional[str]): Normalization method (default: None).
 
     Returns:
-        Tuple[torch.Tensor, torch.Tensor]: A tuple containing the Mel-spectrogram 
+        Tuple[torch.Tensor, torch.Tensor]: A tuple containing the Mel-spectrogram
         tensor and the tensor of input lengths.
 
     Raises:
@@ -58,7 +58,7 @@ class MelSpectrogramTorch(AbsFrontend):
         >>> mel_spec, mel_length = mel_spectrogram(audio_tensor, input_length)
 
     Note:
-        This implementation utilizes GPU acceleration if available. Ensure that 
+        This implementation utilizes GPU acceleration if available. Ensure that
         the input tensor is on the correct device.
     """
 
@@ -123,9 +123,9 @@ class MelSpectrogramTorch(AbsFrontend):
 
         Returns:
             Tuple[torch.Tensor, torch.Tensor]: A tuple containing:
-                - A 3D tensor of shape (batch_size, n_mels, num_frames) 
+                - A 3D tensor of shape (batch_size, n_mels, num_frames)
                   representing the Mel-spectrogram features.
-                - A 1D tensor of shape (batch_size,) containing the lengths 
+                - A 1D tensor of shape (batch_size,) containing the lengths
                   of the Mel-spectrogram features.
 
         Raises:
@@ -140,7 +140,7 @@ class MelSpectrogramTorch(AbsFrontend):
 
         Note:
             The pre-emphasis step can be enabled or disabled via the constructor
-            parameter `preemp`. The logarithmic scaling can be controlled with 
+            parameter `preemp`. The logarithmic scaling can be controlled with
             the `log` parameter.
         """
         # input check

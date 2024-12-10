@@ -13,19 +13,19 @@ def validate_block_arguments(
     """
     Set of methods to validate encoder architecture.
 
-    This module provides a set of functions to validate the configuration 
-    of various blocks in an encoder architecture, ensuring that all required 
+    This module provides a set of functions to validate the configuration
+    of various blocks in an encoder architecture, ensuring that all required
     parameters are present and correctly defined.
 
     Functions:
         validate_block_arguments(configuration, block_id, previous_block_output):
             Validate block arguments for a given block configuration.
-        
+
         validate_input_block(configuration, body_first_conf, input_size):
             Validate the input block configuration and its output size.
-        
+
         validate_architecture(input_conf, body_conf, input_size):
-            Validate the entire architecture by checking input and body block 
+            Validate the entire architecture by checking input and body block
             configurations.
     """
     block_type = configuration.get("block_type")
@@ -177,24 +177,24 @@ def validate_architecture(
     """
     Validate specified architecture is valid.
 
-    This function ensures that the input block and body blocks of the encoder 
-    architecture conform to the required configurations and constraints. It checks 
-    the input sizes and validates that the output of one block matches the input 
+    This function ensures that the input block and body blocks of the encoder
+    architecture conform to the required configurations and constraints. It checks
+    the input sizes and validates that the output of one block matches the input
     of the subsequent block.
 
     Args:
-        input_conf: A dictionary containing the configuration for the encoder 
+        input_conf: A dictionary containing the configuration for the encoder
             input block.
-        body_conf: A list of dictionaries containing the configurations for the 
+        body_conf: A list of dictionaries containing the configurations for the
             encoder body blocks.
         input_size: An integer representing the size of the encoder input.
 
     Returns:
-        Tuple[int, int]: A tuple containing the output size of the encoder input 
+        Tuple[int, int]: A tuple containing the output size of the encoder input
         block and the output size of the encoder body block.
 
     Raises:
-        ValueError: If there is an output/input size mismatch between blocks or 
+        ValueError: If there is an output/input size mismatch between blocks or
         if the configurations are invalid.
 
     Examples:
@@ -204,7 +204,7 @@ def validate_architecture(
         (64, 128)
 
     Note:
-        The function relies on `validate_input_block` and `validate_block_arguments` 
+        The function relies on `validate_input_block` and `validate_block_arguments`
         to perform the necessary validations on the blocks.
     """
     input_block_osize = validate_input_block(input_conf, body_conf[0], input_size)

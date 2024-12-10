@@ -25,58 +25,58 @@ class PartiallyARInference(torch.nn.Module):
     Mask-CTC-based partially autoregressive inference.
 
     This class implements the partially autoregressive inference using
-    a combination of CTC (Connectionist Temporal Classification) and 
-    a beam search mechanism tailored for handling masked tokens in 
-    the decoding process. It is particularly useful for scenarios 
+    a combination of CTC (Connectionist Temporal Classification) and
+    a beam search mechanism tailored for handling masked tokens in
+    the decoding process. It is particularly useful for scenarios
     where the input data may have uncertain or missing information.
 
     Attributes:
         ctc (CTC): The CTC module for generating probabilities.
-        decoder (AbsDecoder): The decoder module used for sequence 
+        decoder (AbsDecoder): The decoder module used for sequence
             generation.
-        threshold_probability (float): The threshold for determining 
+        threshold_probability (float): The threshold for determining
             whether to mask a token based on its CTC probability.
         sos (int): The start-of-sequence token ID.
         eos (int): The end-of-sequence token ID.
         mask_token (int): The token ID used for masking.
         converter (TokenIDConverter): Converter for token IDs.
-        beam_search (PartiallyARBeamSearch): The beam search 
+        beam_search (PartiallyARBeamSearch): The beam search
             mechanism used for generating hypotheses.
-        max_mask_parallel (int): Maximum number of masks to process 
+        max_mask_parallel (int): Maximum number of masks to process
             simultaneously.
-        primer (List[int]): A list of tokens used to prime the 
+        primer (List[int]): A list of tokens used to prime the
             hypotheses.
 
     Args:
         ctc (CTC): The CTC module for decoding.
         decoder (AbsDecoder): The decoder for generating sequences.
-        threshold_probability (float): The probability threshold for 
+        threshold_probability (float): The probability threshold for
             masking tokens.
-        sos (int, optional): The ID for the start-of-sequence token. 
+        sos (int, optional): The ID for the start-of-sequence token.
             Defaults to None.
-        eos (int, optional): The ID for the end-of-sequence token. 
+        eos (int, optional): The ID for the end-of-sequence token.
             Defaults to None.
-        mask_token (int, optional): The ID for the mask token. 
+        mask_token (int, optional): The ID for the mask token.
             Defaults to None.
-        token_list (List[int], optional): A list of token IDs. 
+        token_list (List[int], optional): A list of token IDs.
             Defaults to None.
-        scorers (Dict[str, ScorerInterface], optional): Scorers for 
+        scorers (Dict[str, ScorerInterface], optional): Scorers for
             evaluating hypotheses. Defaults to None.
-        weights (Dict[str, float], optional): Weights for the scoring 
+        weights (Dict[str, float], optional): Weights for the scoring
             functions. Defaults to None.
-        beam_size (int, optional): The size of the beam for search. 
+        beam_size (int, optional): The size of the beam for search.
             Defaults to 10.
-        max_seq_len (int, optional): The maximum length of the 
+        max_seq_len (int, optional): The maximum length of the
             generated sequence. Defaults to 5.
-        max_mask_parallel (int, optional): The maximum number of 
+        max_mask_parallel (int, optional): The maximum number of
             masks to process in parallel. Defaults to -1 (unlimited).
 
     Returns:
-        List[Hypothesis]: A list of hypotheses generated from the 
+        List[Hypothesis]: A list of hypotheses generated from the
             inference process.
 
     Raises:
-        AssertionError: If any scorer is not an instance of 
+        AssertionError: If any scorer is not an instance of
             MaskParallelScorerInterface.
 
     Examples:
@@ -89,7 +89,7 @@ class PartiallyARInference(torch.nn.Module):
         ...     print(hypo.yseq)
 
     Note:
-        This implementation assumes that the CTC and decoder are 
+        This implementation assumes that the CTC and decoder are
         properly configured for the specific task and data.
     """
 
@@ -145,27 +145,27 @@ class PartiallyARInference(torch.nn.Module):
 
     def set_hyp_primer(self, primer: List[int]):
         """
-        Set the hypothesis primer for the beam search.
+            Set the hypothesis primer for the beam search.
 
-    This method allows users to define a sequence of tokens that will be used
-    as a prefix during the beam search process. The primer can help guide the
-    decoding process towards more relevant hypotheses by providing a starting
-    point.
+        This method allows users to define a sequence of tokens that will be used
+        as a prefix during the beam search process. The primer can help guide the
+        decoding process towards more relevant hypotheses by providing a starting
+        point.
 
-    Args:
-        primer (List[int]): A list of token IDs that will be used as the 
-        initial tokens in the beam search.
+        Args:
+            primer (List[int]): A list of token IDs that will be used as the
+            initial tokens in the beam search.
 
-    Examples:
-        >>> inference = PartiallyARInference(ctc, decoder, threshold_probability)
-        >>> inference.set_hyp_primer([2, 3, 5])
-        >>> print(inference.primer)
-        [2, 3, 5]
+        Examples:
+            >>> inference = PartiallyARInference(ctc, decoder, threshold_probability)
+            >>> inference.set_hyp_primer([2, 3, 5])
+            >>> print(inference.primer)
+            [2, 3, 5]
 
-    Note:
-        The provided primer should be consistent with the token list used in
-        the model. Ensure that the token IDs in the primer are valid before 
-        invoking this method.
+        Note:
+            The provided primer should be consistent with the token list used in
+            the model. Ensure that the token IDs in the primer are valid before
+            invoking this method.
         """
         self.primer = primer
 

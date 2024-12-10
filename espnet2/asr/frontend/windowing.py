@@ -16,11 +16,11 @@ class SlidingWindow(AbsFrontend):
     """
     Sliding Window.
 
-    This class provides a sliding window mechanism over a batched continuous raw 
-    audio tensor. It is designed to be used in conjunction with a pre-encoder 
-    compatible with raw audio data, such as Sinc convolutions. The class currently 
-    does not implement padding, and there are known issues regarding output length 
-    calculation when the audio input is shorter than the specified window length. 
+    This class provides a sliding window mechanism over a batched continuous raw
+    audio tensor. It is designed to be used in conjunction with a pre-encoder
+    compatible with raw audio data, such as Sinc convolutions. The class currently
+    does not implement padding, and there are known issues regarding output length
+    calculation when the audio input is shorter than the specified window length.
     Please note that trailing values are discarded due to the lack of padding.
 
     Attributes:
@@ -38,7 +38,7 @@ class SlidingWindow(AbsFrontend):
         fs: Sampling rate (placeholder for compatibility, not used).
 
     Known Issues:
-        - Output length is calculated incorrectly if audio is shorter than 
+        - Output length is calculated incorrectly if audio is shorter than
         win_length.
         - WARNING: trailing values are discarded - padding not implemented yet.
         - No additional window function is applied to input values.
@@ -84,8 +84,8 @@ class SlidingWindow(AbsFrontend):
         Apply a sliding window on the input tensor.
 
         This method processes a batch of audio input data using a sliding window
-        approach, which allows the model to handle continuous audio signals in 
-        manageable frames. The method outputs the windowed audio along with 
+        approach, which allows the model to handle continuous audio signals in
+        manageable frames. The method outputs the windowed audio along with
         the corresponding lengths of the output sequences.
 
         Args:
@@ -93,16 +93,16 @@ class SlidingWindow(AbsFrontend):
                 - B is the batch size,
                 - T is the length of the input sequence,
                 - C is the number of input channels,
-                - D is the window length (for the case of (B, T*C*D), 
+                - D is the window length (for the case of (B, T*C*D),
                   it is assumed that D=1).
-            input_lengths: A tensor of shape (B,) representing the lengths 
+            input_lengths: A tensor of shape (B,) representing the lengths
                 of each input sequence in the batch.
 
         Returns:
             Tuple[torch.Tensor, torch.Tensor]: A tuple containing:
-                - A tensor of shape (B, T, C, D) representing the 
+                - A tensor of shape (B, T, C, D) representing the
                   windowed output, where D is the window length.
-                - A tensor of shape (B,) representing the output lengths 
+                - A tensor of shape (B,) representing the output lengths
                   for each sequence in the batch.
 
         Examples:
@@ -115,13 +115,13 @@ class SlidingWindow(AbsFrontend):
             >>> print(output_lengths)  # Output lengths based on input lengths
 
         Note:
-            - The method currently does not apply any window function to 
+            - The method currently does not apply any window function to
               the input values.
-            - Trailing values may be discarded due to the absence of padding 
+            - Trailing values may be discarded due to the absence of padding
               implementation.
 
         Raises:
-            ValueError: If the input tensor dimensions do not match the 
+            ValueError: If the input tensor dimensions do not match the
                 expected shape.
         """
         input_size = input.size()
@@ -147,12 +147,12 @@ class SlidingWindow(AbsFrontend):
         """
         Return the output length of the feature dimension D.
 
-        This method provides the length of the output feature dimension D, 
-        which corresponds to the defined window length used in the sliding 
+        This method provides the length of the output feature dimension D,
+        which corresponds to the defined window length used in the sliding
         window operation.
 
         Returns:
-            int: The length of the output feature dimension D, which is equal 
+            int: The length of the output feature dimension D, which is equal
             to the window length (win_length).
 
         Examples:

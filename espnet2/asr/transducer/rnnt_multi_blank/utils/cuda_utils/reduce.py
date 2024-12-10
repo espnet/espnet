@@ -44,8 +44,8 @@ class I_Op(enum.Enum):
     """
     Represents an operation that is performed on the input tensor.
 
-    This enumeration defines two types of operations that can be applied to 
-    the input tensor during processing. The operations are categorized into 
+    This enumeration defines two types of operations that can be applied to
+    the input tensor during processing. The operations are categorized into
     exponential and identity transformations.
 
     Attributes:
@@ -69,8 +69,8 @@ class R_Op(enum.Enum):
     """
     Represents a reduction operation performed on the input tensor.
 
-    This enumeration defines the types of reduction operations that can be 
-    performed during the CUDA kernel execution. The available operations are 
+    This enumeration defines the types of reduction operations that can be
+    performed during the CUDA kernel execution. The available operations are
     as follows:
 
     Attributes:
@@ -89,7 +89,7 @@ class R_Op(enum.Enum):
         ```
 
     Note:
-        This enum is typically used in conjunction with the CTAReduce and 
+        This enum is typically used in conjunction with the CTAReduce and
         other reduction functions to specify the desired reduction behavior.
     """
 
@@ -103,10 +103,10 @@ def CTAReduce(tid: int, x, storage, count: int, R_opid: int):
     CTAReduce performs a CUDA Warp reduction on a given input tensor.
 
     This function implements a device kernel for reducing input values using a
-    specified reduction operation. The data is recursively read from the right 
-    segment and reduced onto the left half, continuing until the warp size is 
-    larger than a given offset. Beyond this offset, warp reduction is performed 
-    using `shfl_down_sync`, effectively halving the reduction space and 
+    specified reduction operation. The data is recursively read from the right
+    segment and reduced onto the left half, continuing until the warp size is
+    larger than a given offset. Beyond this offset, warp reduction is performed
+    using `shfl_down_sync`, effectively halving the reduction space and
     combining the results in each iteration.
 
     Note:
@@ -321,12 +321,12 @@ def ReduceHelper(
     stream,
 ):
     """
-    ReduceHelper is a CUDA Warp reduction kernel helper that performs reductions on 
-    input activation matrices according to specified input and reduction operator IDs. 
+    ReduceHelper is a CUDA Warp reduction kernel helper that performs reductions on
+    input activation matrices according to specified input and reduction operator IDs.
     The results are written to the `output` tensor based on the selected operations.
 
-    This function can execute either a maximum or an additive reduction based on the 
-    specified parameters, while efficiently handling the input shapes that are powers 
+    This function can execute either a maximum or an additive reduction based on the
+    specified parameters, while efficiently handling the input shapes that are powers
     of two.
 
     Note:
@@ -339,16 +339,16 @@ def ReduceHelper(
     Args:
         I_opid (int): Operator ID for input, defined in I_Op enumeration.
         R_opid (int): Operator ID for reduction, defined in R_Op enumeration.
-        acts (torch.Tensor): Flattened activation matrix of shape 
+        acts (torch.Tensor): Flattened activation matrix of shape
             [B * T * U * (V+1)].
-        output (torch.Tensor): Flattened output matrix of shape 
+        output (torch.Tensor): Flattened output matrix of shape
             [B * T * U * (V+1)]. Data will be overwritten.
         num_rows (int): Vocabulary size (including blank token) - V+1.
             Represents the number of threads per block.
-        num_cols (int): Flattened shape of activation matrix, without 
+        num_cols (int): Flattened shape of activation matrix, without
             vocabulary dimension (B * T * U). Represents number of blocks per grid.
-        minus (bool): Flag indicating whether to perform subtraction. If set to 
-            True, calls the _reduce_minus kernel; otherwise, calls the 
+        minus (bool): Flag indicating whether to perform subtraction. If set to
+            True, calls the _reduce_minus kernel; otherwise, calls the
             _reduce_rows kernel.
         stream: CUDA Stream to manage asynchronous execution.
 
@@ -408,13 +408,13 @@ def reduce_exp(acts: torch.Tensor, denom, rows: int, cols: int, minus: bool, str
         cols: Flattened shape of activation matrix, without vocabulary dimension
             (B * T * U). Represents number of blocks per grid.
         minus: Bool flag indicating whether to add or subtract as reduction.
-            If minus is set to True, it calls the _reduce_minus kernel; 
+            If minus is set to True, it calls the _reduce_minus kernel;
             otherwise, it calls the _reduce_rows kernel.
         stream: CUDA Stream for managing execution of kernels.
 
     Returns:
         bool: Returns True upon successful execution of the reduction.
-    
+
     Examples:
         >>> acts = torch.randn((B, T, U, V+1)).flatten()
         >>> denom = torch.zeros((B, T, U, V+1)).flatten()

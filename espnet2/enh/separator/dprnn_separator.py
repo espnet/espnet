@@ -16,9 +16,9 @@ class DPRNNSeparator(AbsSeparator):
     """
     DPRNNSeparator is a Dual-Path RNN (DPRNN) based separator for audio signals.
 
-    This class implements a Dual-Path RNN architecture for separating audio signals 
-    from multiple speakers. It is designed to process complex input features and 
-    output the separated signals for each speaker, along with an optional noise 
+    This class implements a Dual-Path RNN architecture for separating audio signals
+    from multiple speakers. It is designed to process complex input features and
+    output the separated signals for each speaker, along with an optional noise
     estimate.
 
     Attributes:
@@ -30,14 +30,14 @@ class DPRNNSeparator(AbsSeparator):
 
     Args:
         input_dim (int): Input feature dimension.
-        rnn_type (str, optional): Type of RNN to use ('RNN', 'LSTM', 'GRU'). 
+        rnn_type (str, optional): Type of RNN to use ('RNN', 'LSTM', 'GRU').
             Default is 'lstm'.
-        bidirectional (bool, optional): Whether the inter-chunk RNN layers are 
+        bidirectional (bool, optional): Whether the inter-chunk RNN layers are
             bidirectional. Default is True.
         num_spk (int, optional): Number of speakers. Default is 2.
-        predict_noise (bool, optional): Whether to output the estimated noise signal. 
+        predict_noise (bool, optional): Whether to output the estimated noise signal.
             Default is False.
-        nonlinear (str, optional): Nonlinear function for mask estimation. 
+        nonlinear (str, optional): Nonlinear function for mask estimation.
             Choose from 'relu', 'tanh', 'sigmoid'. Default is 'relu'.
         layer (int, optional): Number of stacked RNN layers. Default is 3.
         unit (int, optional): Dimension of the hidden state. Default is 512.
@@ -57,11 +57,12 @@ class DPRNNSeparator(AbsSeparator):
         The `additional` argument in the forward method is not used in this model.
 
     Yields:
-        masked (List[Union[torch.Tensor, ComplexTensor]]): List of separated signals 
+        masked (List[Union[torch.Tensor, ComplexTensor]]): List of separated signals
         for each speaker.
         ilens (torch.Tensor): Input lengths after processing.
         others (OrderedDict): Additional predicted data such as masks for each speaker.
     """
+
     def __init__(
         self,
         input_dim: int,
@@ -124,50 +125,50 @@ class DPRNNSeparator(AbsSeparator):
         additional: Optional[Dict] = None,
     ) -> Tuple[List[Union[torch.Tensor, ComplexTensor]], torch.Tensor, OrderedDict]:
         """
-        Forward pass of the DPRNN Separator.
+            Forward pass of the DPRNN Separator.
 
-    This method processes the input features through the Dual-Path RNN (DPRNN)
-    to estimate the masks for the specified number of speakers. It handles both
-    real and complex input tensors.
+        This method processes the input features through the Dual-Path RNN (DPRNN)
+        to estimate the masks for the specified number of speakers. It handles both
+        real and complex input tensors.
 
-    Args:
-        input (Union[torch.Tensor, ComplexTensor]): Encoded feature tensor of
-            shape [B, T, N], where B is the batch size, T is the number of time
-            frames, and N is the number of frequency bins.
-        ilens (torch.Tensor): Input lengths tensor of shape [Batch], containing
-            the lengths of each input sequence.
-        additional (Optional[Dict]): Additional data included in the model.
-            NOTE: This parameter is not used in this model.
+        Args:
+            input (Union[torch.Tensor, ComplexTensor]): Encoded feature tensor of
+                shape [B, T, N], where B is the batch size, T is the number of time
+                frames, and N is the number of frequency bins.
+            ilens (torch.Tensor): Input lengths tensor of shape [Batch], containing
+                the lengths of each input sequence.
+            additional (Optional[Dict]): Additional data included in the model.
+                NOTE: This parameter is not used in this model.
 
-    Returns:
-        Tuple[List[Union[torch.Tensor, ComplexTensor]], torch.Tensor, 
-               OrderedDict]: A tuple containing:
-            - masked (List[Union[torch.Tensor, ComplexTensor]]): A list of
-              tensors of shape [(B, T, N), ...] where each tensor corresponds
-              to the input multiplied by the estimated mask for each speaker.
-            - ilens (torch.Tensor): The input lengths tensor of shape (B,).
-            - others (OrderedDict): A dictionary containing the predicted masks
-              for each speaker, e.g.:
-                - 'mask_spk1': torch.Tensor(Batch, Frames, Freq),
-                - 'mask_spk2': torch.Tensor(Batch, Frames, Freq),
-                - ...,
-                - 'mask_spkn': torch.Tensor(Batch, Frames, Freq).
+        Returns:
+            Tuple[List[Union[torch.Tensor, ComplexTensor]], torch.Tensor,
+                   OrderedDict]: A tuple containing:
+                - masked (List[Union[torch.Tensor, ComplexTensor]]): A list of
+                  tensors of shape [(B, T, N), ...] where each tensor corresponds
+                  to the input multiplied by the estimated mask for each speaker.
+                - ilens (torch.Tensor): The input lengths tensor of shape (B,).
+                - others (OrderedDict): A dictionary containing the predicted masks
+                  for each speaker, e.g.:
+                    - 'mask_spk1': torch.Tensor(Batch, Frames, Freq),
+                    - 'mask_spk2': torch.Tensor(Batch, Frames, Freq),
+                    - ...,
+                    - 'mask_spkn': torch.Tensor(Batch, Frames, Freq).
 
-    Examples:
-        >>> separator = DPRNNSeparator(input_dim=512, num_spk=2)
-        >>> input_tensor = torch.randn(8, 100, 512)  # Batch of 8, 100 time frames
-        >>> ilens = torch.tensor([100] * 8)  # All sequences are of length 100
-        >>> masked, ilens_out, others = separator.forward(input_tensor, ilens)
-        >>> print(len(masked))  # Should print 2 if num_spk=2
-        >>> print(others.keys())  # Should include 'mask_spk1' and 'mask_spk2'
+        Examples:
+            >>> separator = DPRNNSeparator(input_dim=512, num_spk=2)
+            >>> input_tensor = torch.randn(8, 100, 512)  # Batch of 8, 100 time frames
+            >>> ilens = torch.tensor([100] * 8)  # All sequences are of length 100
+            >>> masked, ilens_out, others = separator.forward(input_tensor, ilens)
+            >>> print(len(masked))  # Should print 2 if num_spk=2
+            >>> print(others.keys())  # Should include 'mask_spk1' and 'mask_spk2'
 
-    Note:
-        This implementation supports both real-valued and complex-valued input
-        tensors. If the input tensor is complex, the magnitude is used for
-        processing.
+        Note:
+            This implementation supports both real-valued and complex-valued input
+            tensors. If the input tensor is complex, the magnitude is used for
+            processing.
 
-    Raises:
-        ValueError: If an unsupported nonlinear activation function is provided.
+        Raises:
+            ValueError: If an unsupported nonlinear activation function is provided.
         """
 
         # if complex spectrum,

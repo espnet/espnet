@@ -30,7 +30,7 @@ class Encoder(torch.nn.Module):
 
     Attributes:
         output_size (int): The size of the encoder output features.
-        dynamic_chunk_training (bool): Flag indicating whether dynamic chunk 
+        dynamic_chunk_training (bool): Flag indicating whether dynamic chunk
             training is enabled.
         short_chunk_threshold (float): The threshold for short chunks.
         short_chunk_size (int): The size of short chunks.
@@ -99,13 +99,13 @@ class Encoder(torch.nn.Module):
         """
         Initialize/Reset encoder cache for streaming.
 
-        This method resets the internal cache of the encoder to prepare for 
-        streaming input processing. It sets the number of previous frames 
-        that the attention module can see based on the specified left context 
+        This method resets the internal cache of the encoder to prepare for
+        streaming input processing. It sets the number of previous frames
+        that the attention module can see based on the specified left context
         and updates the device on which the computation will occur.
 
         Args:
-            left_context: Number of previous frames (AFTER subsampling) the 
+            left_context: Number of previous frames (AFTER subsampling) the
                           attention module can see in current chunk.
             device: Device ID where the cache will be reset.
 
@@ -117,8 +117,8 @@ class Encoder(torch.nn.Module):
             >>> encoder.reset_cache(left_context=32, device=torch.device('cpu'))
 
         Note:
-            This function is particularly useful when processing audio streams 
-            in real-time, allowing the encoder to maintain the necessary context 
+            This function is particularly useful when processing audio streams
+            in real-time, allowing the encoder to maintain the necessary context
             across chunks of input data.
         """
         return self.encoders.reset_streaming_cache(left_context, device)

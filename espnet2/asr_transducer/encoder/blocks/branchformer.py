@@ -10,8 +10,8 @@ class Branchformer(torch.nn.Module):
     Branchformer block for Transducer encoder.
 
     This class implements the Branchformer module, which is designed to enhance
-    the encoding capabilities of a transducer model. It combines self-attention 
-    and convolutional layers while utilizing normalization and dropout for 
+    the encoding capabilities of a transducer model. It combines self-attention
+    and convolutional layers while utilizing normalization and dropout for
     improved performance.
 
     Reference: https://arxiv.org/pdf/2207.02971.pdf
@@ -19,11 +19,11 @@ class Branchformer(torch.nn.Module):
     Attributes:
         self_att (torch.nn.Module): The self-attention module instance.
         conv_mod (torch.nn.Module): The convolution module instance.
-        channel_proj1 (torch.nn.Sequential): A sequential layer for channel 
+        channel_proj1 (torch.nn.Sequential): A sequential layer for channel
             projection.
-        channel_proj2 (torch.nn.Linear): A linear layer for projecting back to 
+        channel_proj2 (torch.nn.Linear): A linear layer for projecting back to
             the original block size.
-        merge_proj (torch.nn.Linear): A linear layer for merging outputs from 
+        merge_proj (torch.nn.Linear): A linear layer for merging outputs from
             attention and convolution.
         norm_self_att (torch.nn.Module): Normalization layer for self-attention.
         norm_mlp (torch.nn.Module): Normalization layer for the MLP.
@@ -31,7 +31,7 @@ class Branchformer(torch.nn.Module):
         dropout (torch.nn.Dropout): Dropout layer for regularization.
         block_size (int): Input/output size.
         linear_size (int): Linear layers' hidden size.
-        cache (Optional[List[torch.Tensor]]): Cache for storing intermediate 
+        cache (Optional[List[torch.Tensor]]): Cache for storing intermediate
             results during streaming.
 
     Args:
@@ -39,7 +39,7 @@ class Branchformer(torch.nn.Module):
         linear_size (int): Linear layers' hidden size.
         self_att (torch.nn.Module): Self-attention module instance.
         conv_mod (torch.nn.Module): Convolution module instance.
-        norm_class (torch.nn.Module, optional): Normalization class. Defaults to 
+        norm_class (torch.nn.Module, optional): Normalization class. Defaults to
             torch.nn.LayerNorm.
         norm_args (Dict, optional): Normalization module arguments. Defaults to {}.
         dropout_rate (float, optional): Dropout rate. Defaults to 0.0.
@@ -103,25 +103,25 @@ class Branchformer(torch.nn.Module):
         """
         Initialize/Reset self-attention and convolution modules cache for streaming.
 
-        This method resets the internal cache used by the self-attention and 
-        convolution modules. It creates new tensors to hold the cached values 
-        for both attention and convolution, which are essential for processing 
+        This method resets the internal cache used by the self-attention and
+        convolution modules. It creates new tensors to hold the cached values
+        for both attention and convolution, which are essential for processing
         streaming data.
 
         Args:
             left_context: Number of previous frames the attention module can see
-                          in the current chunk. This defines how much context 
+                          in the current chunk. This defines how much context
                           is available for attention calculations.
-            device: Device to use for cache tensor. This specifies where the 
+            device: Device to use for cache tensor. This specifies where the
                     cache tensors should be allocated (e.g., CPU or GPU).
 
         Examples:
             >>> model = Branchformer(...)
             >>> model.reset_streaming_cache(left_context=10, device=torch.device('cuda'))
-        
+
         Note:
-            This method should be called whenever the input context changes or 
-            when starting a new streaming session to ensure the cache is 
+            This method should be called whenever the input context changes or
+            when starting a new streaming session to ensure the cache is
             appropriately initialized.
         """
         self.cache = [
@@ -160,14 +160,14 @@ class Branchformer(torch.nn.Module):
             linear_size (int): Linear layers' hidden size.
             self_att (torch.nn.Module): Self-attention module instance.
             conv_mod (torch.nn.Module): Convolution module instance.
-            norm_class (torch.nn.Module, optional): Normalization class, defaults to 
+            norm_class (torch.nn.Module, optional): Normalization class, defaults to
                 torch.nn.LayerNorm.
             norm_args (Dict, optional): Normalization module arguments, defaults to {}.
             dropout_rate (float, optional): Dropout rate, defaults to 0.0.
 
         Methods:
             reset_streaming_cache(left_context: int, device: torch.device) -> None:
-                Initializes or resets the self-attention and convolution modules' cache 
+                Initializes or resets the self-attention and convolution modules' cache
                 for streaming.
 
             forward(
@@ -194,11 +194,11 @@ class Branchformer(torch.nn.Module):
                 self_att=torch.nn.MultiheadAttention(embed_dim=256, num_heads=8),
                 conv_mod=torch.nn.Conv1d(in_channels=256, out_channels=128, kernel_size=3)
             )
-            
+
             x = torch.randn(32, 10, 256)  # (B, T, D_block)
             pos_enc = torch.randn(32, 18, 256)  # (B, 2 * (T - 1), D_block)
             mask = torch.ones(32, 10)  # (B, T)
-            
+
             output, mask_out, pos_enc_out = branchformer.forward(x, pos_enc, mask)
         """
         x1 = x

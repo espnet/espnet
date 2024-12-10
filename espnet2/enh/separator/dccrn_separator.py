@@ -24,15 +24,15 @@ class DCCRNSeparator(AbsSeparator):
     """
     DCCRN Separator for speech separation tasks.
 
-    This class implements the DCCRN (Deep Complex Convolutional Recurrent 
-    Network) architecture for separating mixed audio signals into individual 
+    This class implements the DCCRN (Deep Complex Convolutional Recurrent
+    Network) architecture for separating mixed audio signals into individual
     sources using complex convolutional and recurrent neural networks.
 
     Attributes:
-        use_builtin_complex (bool): Flag to determine whether to use 
+        use_builtin_complex (bool): Flag to determine whether to use
             torch.complex or ComplexTensor for complex operations.
         _num_spk (int): Number of speakers to separate.
-        use_noise_mask (bool): Flag to indicate if noise mask estimation 
+        use_noise_mask (bool): Flag to indicate if noise mask estimation
             should be performed.
         predict_noise (bool): Flag to determine if noise prediction is enabled.
         rnn_units (int): Number of units in the recurrent layers.
@@ -45,22 +45,22 @@ class DCCRNSeparator(AbsSeparator):
     Args:
         input_dim (int): Input dimension.
         num_spk (int, optional): Number of speakers. Defaults to 1.
-        rnn_layer (int, optional): Number of LSTM layers in the CRN. 
+        rnn_layer (int, optional): Number of LSTM layers in the CRN.
             Defaults to 2.
         rnn_units (int, optional): Number of RNN units. Defaults to 256.
-        masking_mode (str, optional): Usage of the estimated mask. 
+        masking_mode (str, optional): Usage of the estimated mask.
             Defaults to "E".
         use_clstm (bool, optional): Whether to use complex LSTM. Defaults to True.
-        bidirectional (bool, optional): Whether to use bidirectional LSTM. 
+        bidirectional (bool, optional): Whether to use bidirectional LSTM.
             Defaults to False.
-        use_cbn (bool, optional): Whether to use complex batch normalization. 
+        use_cbn (bool, optional): Whether to use complex batch normalization.
             Defaults to False.
         kernel_size (int, optional): Convolution kernel size. Defaults to 5.
-        kernel_num (list, optional): Output dimension of each layer of the 
+        kernel_num (list, optional): Output dimension of each layer of the
             encoder. Defaults to [32, 64, 128, 256, 256, 256].
-        use_builtin_complex (bool, optional): Use torch.complex if True, 
+        use_builtin_complex (bool, optional): Use torch.complex if True,
             else ComplexTensor. Defaults to True.
-        use_noise_mask (bool, optional): Whether to estimate the mask of noise. 
+        use_noise_mask (bool, optional): Whether to estimate the mask of noise.
             Defaults to False.
 
     Raises:
@@ -74,10 +74,11 @@ class DCCRNSeparator(AbsSeparator):
         >>> print(masked)  # Output will be a list of tensors for each speaker
 
     Note:
-        This implementation is designed to work with complex-valued inputs and 
-        outputs, and it may require specific versions of PyTorch for optimal 
+        This implementation is designed to work with complex-valued inputs and
+        outputs, and it may require specific versions of PyTorch for optimal
         performance.
     """
+
     def __init__(
         self,
         input_dim: int,
@@ -236,7 +237,7 @@ class DCCRNSeparator(AbsSeparator):
         Forward pass through the DCCRN separator.
 
         This method takes encoded features and performs a forward pass through the
-        network to separate the sources. It applies complex operations and 
+        network to separate the sources. It applies complex operations and
         returns the estimated masks for each speaker.
 
         Args:
@@ -252,7 +253,7 @@ class DCCRNSeparator(AbsSeparator):
             masked (List[Union[torch.Tensor, ComplexTensor]]): A list of masked output
                 tensors, each of shape [(B, T, F), ...] for the separated sources.
             ilens (torch.Tensor): Tensor of shape (B,) containing the input lengths.
-            others (OrderedDict): An ordered dictionary containing predicted masks for 
+            others (OrderedDict): An ordered dictionary containing predicted masks for
                 each speaker, e.g.:
                 OrderedDict[
                     'mask_spk1': torch.Tensor(Batch, Frames, Freq),
@@ -268,8 +269,8 @@ class DCCRNSeparator(AbsSeparator):
             >>> masked, ilens_out, masks = model(input_tensor, ilens)
 
         Note:
-            The method relies on internal operations to reshape and permute tensors 
-            for processing through the encoder, RNN layers, and decoder. 
+            The method relies on internal operations to reshape and permute tensors
+            for processing through the encoder, RNN layers, and decoder.
             It is designed to handle both real and complex tensors.
 
         Raises:
@@ -358,59 +359,59 @@ class DCCRNSeparator(AbsSeparator):
 
     def flatten_parameters(self):
         """
-        Flatten the parameters of the RNN for optimized performance.
+            Flatten the parameters of the RNN for optimized performance.
 
-    This method is specifically useful when using LSTM layers, as it 
-    ensures that the internal states of the LSTM are contiguous in 
-    memory, which can improve the performance of the forward pass.
+        This method is specifically useful when using LSTM layers, as it
+        ensures that the internal states of the LSTM are contiguous in
+        memory, which can improve the performance of the forward pass.
 
-    Note:
-        This method should be called before invoking the forward pass 
-        when using LSTM layers to ensure optimal performance.
+        Note:
+            This method should be called before invoking the forward pass
+            when using LSTM layers to ensure optimal performance.
 
-    Raises:
-        ValueError: If the enhance layer is not an instance of 
-                     nn.LSTM.
+        Raises:
+            ValueError: If the enhance layer is not an instance of
+                         nn.LSTM.
 
-    Examples:
-        >>> model = DCCRNSeparator(input_dim=128, num_spk=2)
-        >>> model.flatten_parameters()
+        Examples:
+            >>> model = DCCRNSeparator(input_dim=128, num_spk=2)
+            >>> model.flatten_parameters()
         """
         if isinstance(self.enhance, nn.LSTM):
             self.enhance.flatten_parameters()
 
     def create_masks(self, mask_tensor: torch.Tensor):
         """
-        Create estimated mask for each speaker.
+            Create estimated mask for each speaker.
 
-    This method processes the output from the decoder to generate masks for 
-    each speaker based on the given mask tensor. The masks can be used to 
-    separate audio signals of multiple speakers.
+        This method processes the output from the decoder to generate masks for
+        each speaker based on the given mask tensor. The masks can be used to
+        separate audio signals of multiple speakers.
 
-    Args:
-        mask_tensor (torch.Tensor): Output of decoder with shape 
-            (B, 2*num_spk, F-1, T). The tensor should contain complex-valued 
-            representations of the estimated masks for each speaker.
+        Args:
+            mask_tensor (torch.Tensor): Output of decoder with shape
+                (B, 2*num_spk, F-1, T). The tensor should contain complex-valued
+                representations of the estimated masks for each speaker.
 
-    Returns:
-        List[Union[torch.Tensor, ComplexTensor]]: A list of estimated masks, 
-        where each mask has the shape (B, T, F) for each speaker.
+        Returns:
+            List[Union[torch.Tensor, ComplexTensor]]: A list of estimated masks,
+            where each mask has the shape (B, T, F) for each speaker.
 
-    Raises:
-        AssertionError: If the shape of `mask_tensor` does not match the 
-        expected dimensions based on the `use_noise_mask` flag.
+        Raises:
+            AssertionError: If the shape of `mask_tensor` does not match the
+            expected dimensions based on the `use_noise_mask` flag.
 
-    Examples:
-        >>> separator = DCCRNSeparator(input_dim=256, num_spk=2)
-        >>> mask_tensor = torch.randn(4, 4, 128, 100)  # Example tensor
-        >>> masks = separator.create_masks(mask_tensor)
-        >>> for mask in masks:
-        ...     print(mask.shape)  # Each mask shape should be (B, T, F)
-    
-    Note:
-        The method checks the number of output channels in the mask tensor 
-        against the expected number of speakers and raises an assertion error 
-        if there is a mismatch.
+        Examples:
+            >>> separator = DCCRNSeparator(input_dim=256, num_spk=2)
+            >>> mask_tensor = torch.randn(4, 4, 128, 100)  # Example tensor
+            >>> masks = separator.create_masks(mask_tensor)
+            >>> for mask in masks:
+            ...     print(mask.shape)  # Each mask shape should be (B, T, F)
+
+        Note:
+            The method checks the number of output channels in the mask tensor
+            against the expected number of speakers and raises an assertion error
+            if there is a mismatch.
         """
         if self.use_noise_mask:
             assert mask_tensor.shape[1] == 2 * (self._num_spk + 1), mask_tensor.shape[1]
@@ -449,38 +450,38 @@ class DCCRNSeparator(AbsSeparator):
         imag: torch.Tensor,
     ):
         """
-        Apply estimated masks to the real and imaginary parts of the noisy spectrum.
+                Apply estimated masks to the real and imaginary parts of the noisy spectrum.
 
-This method processes the estimated masks for each speaker and applies them 
-to the noisy spectrogram, modifying the real and imaginary components based 
-on the specified masking mode. It supports different masking techniques, 
-allowing for flexible enhancement of the input signal.
+        This method processes the estimated masks for each speaker and applies them
+        to the noisy spectrogram, modifying the real and imaginary components based
+        on the specified masking mode. It supports different masking techniques,
+        allowing for flexible enhancement of the input signal.
 
-Args:
-    masks (List[Union[torch.Tensor, ComplexTensor]]): A list of estimated 
-        masks, each with shape (B, T, F), where B is the batch size, T is 
-        the time dimension, and F is the frequency dimension.
-    real (torch.Tensor): The real part of the noisy spectrum with shape 
-        (B, F, T).
-    imag (torch.Tensor): The imaginary part of the noisy spectrum with shape 
-        (B, F, T).
+        Args:
+            masks (List[Union[torch.Tensor, ComplexTensor]]): A list of estimated
+                masks, each with shape (B, T, F), where B is the batch size, T is
+                the time dimension, and F is the frequency dimension.
+            real (torch.Tensor): The real part of the noisy spectrum with shape
+                (B, F, T).
+            imag (torch.Tensor): The imaginary part of the noisy spectrum with shape
+                (B, F, T).
 
-Returns:
-    List[Union[torch.Tensor, ComplexTensor]]: A list of masked outputs, 
-    each with shape (B, T, F).
+        Returns:
+            List[Union[torch.Tensor, ComplexTensor]]: A list of masked outputs,
+            each with shape (B, T, F).
 
-Examples:
-    # Assuming `masks`, `real`, and `imag` are predefined tensors
-    masked_outputs = apply_masks(masks, real, imag)
-    
-    # masked_outputs will contain the processed tensors based on the masks 
-    # applied to the real and imaginary parts of the input spectrum.
+        Examples:
+            # Assuming `masks`, `real`, and `imag` are predefined tensors
+            masked_outputs = apply_masks(masks, real, imag)
 
-Note:
-    The masking modes supported are:
-        - "E": Estimate using the magnitude and phase.
-        - "C": Combine using complex multiplication.
-        - "R": Apply the mask to the real and imaginary parts independently.
+            # masked_outputs will contain the processed tensors based on the masks
+            # applied to the real and imaginary parts of the input spectrum.
+
+        Note:
+            The masking modes supported are:
+                - "E": Estimate using the magnitude and phase.
+                - "C": Combine using complex multiplication.
+                - "R": Apply the mask to the real and imaginary parts independently.
         """
         masked = []
         for i in range(len(masks)):

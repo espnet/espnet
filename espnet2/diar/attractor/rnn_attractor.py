@@ -7,8 +7,8 @@ class RnnAttractor(AbsAttractor):
     """
     RnnAttractor is an encoder-decoder attractor model for speaker diarization.
 
-    This class implements an RNN-based attractor that utilizes LSTM layers for 
-    encoding and decoding speaker embeddings. It is designed to assist in 
+    This class implements an RNN-based attractor that utilizes LSTM layers for
+    encoding and decoding speaker embeddings. It is designed to assist in
     separating different speakers' voices in a mixed audio input.
 
     Attributes:
@@ -16,7 +16,7 @@ class RnnAttractor(AbsAttractor):
         attractor_decoder (torch.nn.LSTM): LSTM layer used for decoding the output.
         dropout_layer (torch.nn.Dropout): Dropout layer for regularization.
         linear_projection (torch.nn.Linear): Linear layer for projecting the output.
-        attractor_grad (bool): Flag to determine whether to allow gradient flow 
+        attractor_grad (bool): Flag to determine whether to allow gradient flow
             through the attractor.
 
     Args:
@@ -24,14 +24,14 @@ class RnnAttractor(AbsAttractor):
         layer (int, optional): Number of LSTM layers. Defaults to 1.
         unit (int, optional): Number of units in each LSTM layer. Defaults to 512.
         dropout (float, optional): Dropout probability for regularization. Defaults to 0.1.
-        attractor_grad (bool, optional): If True, allows gradient flow through 
+        attractor_grad (bool, optional): If True, allows gradient flow through
             the attractor. Defaults to True.
 
     Returns:
         Tuple[torch.Tensor, torch.Tensor]: A tuple containing:
-            - attractor (torch.Tensor): Output attractor of shape 
+            - attractor (torch.Tensor): Output attractor of shape
             [Batch, num_spk + 1, F].
-            - att_prob (torch.Tensor): Attention probabilities of shape 
+            - att_prob (torch.Tensor): Attention probabilities of shape
             [Batch, num_spk + 1, 1].
 
     Examples:
@@ -87,29 +87,29 @@ class RnnAttractor(AbsAttractor):
         """
         Perform the forward pass of the RnnAttractor model.
 
-        This method takes the encoded input, input lengths, and decoder input to 
-        compute the attractor outputs and attention probabilities. It processes 
-        the inputs through the encoder and decoder LSTM layers, applying dropout 
+        This method takes the encoded input, input lengths, and decoder input to
+        compute the attractor outputs and attention probabilities. It processes
+        the inputs through the encoder and decoder LSTM layers, applying dropout
         and linear projection to produce the final outputs.
 
         Args:
-            enc_input (torch.Tensor): 
-                Hidden space of shape [Batch, T, F] where T is the sequence length 
+            enc_input (torch.Tensor):
+                Hidden space of shape [Batch, T, F] where T is the sequence length
                 and F is the feature dimension.
-            ilens (torch.Tensor): 
-                Input lengths of shape [Batch], indicating the actual lengths of 
+            ilens (torch.Tensor):
+                Input lengths of shape [Batch], indicating the actual lengths of
                 the sequences in the batch.
-            dec_input (torch.Tensor): 
-                Decoder input of shape [Batch, num_spk + 1, F] initialized to zeros, 
+            dec_input (torch.Tensor):
+                Decoder input of shape [Batch, num_spk + 1, F] initialized to zeros,
                 where num_spk is the number of speakers.
 
         Returns:
             tuple: A tuple containing:
-                - attractor (torch.Tensor): 
+                - attractor (torch.Tensor):
                     Output attractor of shape [Batch, num_spk + 1, F].
-                - att_prob (torch.Tensor): 
+                - att_prob (torch.Tensor):
                     Attention probabilities of shape [Batch, num_spk + 1, 1].
-        
+
         Examples:
             >>> enc_input = torch.randn(4, 10, 128)  # Batch of 4, seq length 10, 128 features
             >>> ilens = torch.tensor([10, 8, 6, 4])  # Input lengths for each sequence

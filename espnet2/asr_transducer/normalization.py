@@ -13,10 +13,10 @@ def get_normalization(
     """
     Normalization modules for Transducer.
 
-    This module provides various normalization techniques used in 
-    transducer models. It includes basic normalization, layer normalization, 
-    RMS normalization, and scale normalization. The `get_normalization` 
-    function retrieves the appropriate normalization module based on the 
+    This module provides various normalization techniques used in
+    transducer models. It includes basic normalization, layer normalization,
+    RMS normalization, and scale normalization. The `get_normalization`
+    function retrieves the appropriate normalization module based on the
     specified type.
 
     Functions:
@@ -88,8 +88,8 @@ class BasicNorm(torch.nn.Module):
         """
         Compute basic normalization.
 
-        This method applies basic normalization to the input tensor `x` by 
-        computing the scaling factor based on the mean of the squares of the 
+        This method applies basic normalization to the input tensor `x` by
+        computing the scaling factor based on the mean of the squares of the
         input elements and applying it to the input tensor.
 
         Args:
@@ -99,7 +99,7 @@ class BasicNorm(torch.nn.Module):
             - D_hidden is the dimensionality of the hidden states.
 
         Returns:
-            Tensor: Output sequences after applying basic normalization. Shape 
+            Tensor: Output sequences after applying basic normalization. Shape
             (B, T, D_hidden).
 
         Examples:
@@ -108,10 +108,10 @@ class BasicNorm(torch.nn.Module):
             >>> output_tensor = norm(input_tensor)
             >>> output_tensor.shape
             torch.Size([32, 10, 128])
-        
+
         Note:
-            The normalization is performed by scaling the input tensor based on 
-            the computed scales which are derived from the mean of the squares 
+            The normalization is performed by scaling the input tensor based on
+            the computed scales which are derived from the mean of the squares
             of the input tensor.
         """
         scales = (torch.mean(x.pow(2), dim=-1, keepdim=True) + self.eps.exp()) ** -0.5
@@ -125,7 +125,7 @@ class RMSNorm(torch.nn.Module):
 
     This class implements the Root Mean Square Layer Normalization (RMSNorm),
     which normalizes the input using the root mean square of the input values
-    along the specified dimensions. RMSNorm is beneficial for stabilizing 
+    along the specified dimensions. RMSNorm is beneficial for stabilizing
     training and improving model performance.
 
     Reference:
@@ -134,7 +134,7 @@ class RMSNorm(torch.nn.Module):
     Args:
         normalized_shape (int): The expected size of the input tensor for
             normalization.
-        eps (float, optional): A small value added to the denominator for 
+        eps (float, optional): A small value added to the denominator for
             numerical stability. Default is 1e-5.
         partial (float, optional): A value defining the part of the input used
             for RMS statistics. It should be in the range (0, 1). Default is 0.0,
@@ -189,9 +189,9 @@ class RMSNorm(torch.nn.Module):
         Args:
             normalized_shape: Expected size of the input tensor.
             eps: Value added to the denominator for numerical stability. Default is 1e-5.
-            partial: Value defining the part of the input used for RMS stats. If this 
-                value is between 0 and 1, only a portion of the input is used to 
-                compute the RMS statistics. Default is 0.0, which means full input is 
+            partial: Value defining the part of the input used for RMS stats. If this
+                value is between 0 and 1, only a portion of the input is used to
+                compute the RMS statistics. Default is 0.0, which means full input is
                 used.
 
         Attributes:
@@ -234,7 +234,7 @@ class ScaleNorm(torch.nn.Module):
     ScaleNorm module definition.
 
     This module performs scale normalization on the input tensor. The scaling
-    is based on the L2 norm of the input, ensuring that the output has a 
+    is based on the L2 norm of the input, ensuring that the output has a
     consistent scale. This can be useful in various neural network architectures
     where normalization of activations is required.
 

@@ -11,14 +11,14 @@ class Corrector(abc.ABC):
     """
     The abstract class for a corrector algorithm.
 
-    This class serves as a base for implementing various corrector algorithms 
-    used in diffusion models. It requires subclasses to implement the 
-    `update_fn` method, which performs a single update step of the 
+    This class serves as a base for implementing various corrector algorithms
+    used in diffusion models. It requires subclasses to implement the
+    `update_fn` method, which performs a single update step of the
     corrector algorithm.
 
     Attributes:
         rsde: The reverse SDE obtained from the provided score function.
-        score_fn: A function that estimates the score (gradient of log 
+        score_fn: A function that estimates the score (gradient of log
             probability) of the data.
         snr: Signal-to-noise ratio used in the update step.
         n_steps: Number of steps to perform in the update process.
@@ -30,7 +30,7 @@ class Corrector(abc.ABC):
         n_steps: An integer indicating the number of steps for the update.
 
     Raises:
-        NotImplementedError: If the subclass does not implement the 
+        NotImplementedError: If the subclass does not implement the
             `update_fn` method.
 
     Examples:
@@ -127,6 +127,7 @@ class LangevinCorrector(Corrector):
         NotImplementedError: If the score function or SDE is not compatible
         with the Langevin dynamics.
     """
+
     def __init__(self, sde, score_fn, snr, n_steps):
         super().__init__(sde, score_fn, snr, n_steps)
         self.score_fn = score_fn
@@ -135,31 +136,31 @@ class LangevinCorrector(Corrector):
 
     def update_fn(self, x, t, *args):
         """
-        One update of the corrector.
+            One update of the corrector.
 
-    This method performs a single update step of the corrector algorithm,
-    modifying the current state `x` based on the specified time step `t`.
-    The update involves computing the gradient of the score function, 
-    generating noise, and calculating the new state.
+        This method performs a single update step of the corrector algorithm,
+        modifying the current state `x` based on the specified time step `t`.
+        The update involves computing the gradient of the score function,
+        generating noise, and calculating the new state.
 
-    Args:
-        x (torch.Tensor): A PyTorch tensor representing the current state.
-        t (torch.Tensor): A PyTorch tensor representing the current time step.
-        *args: Possibly additional arguments, in particular `y` for OU processes.
+        Args:
+            x (torch.Tensor): A PyTorch tensor representing the current state.
+            t (torch.Tensor): A PyTorch tensor representing the current time step.
+            *args: Possibly additional arguments, in particular `y` for OU processes.
 
-    Returns:
-        tuple: A tuple containing:
-            - x (torch.Tensor): A PyTorch tensor of the next state.
-            - x_mean (torch.Tensor): A PyTorch tensor representing the next state
-              without random noise. Useful for denoising.
+        Returns:
+            tuple: A tuple containing:
+                - x (torch.Tensor): A PyTorch tensor of the next state.
+                - x_mean (torch.Tensor): A PyTorch tensor representing the next state
+                  without random noise. Useful for denoising.
 
-    Examples:
-        >>> corrector = LangevinCorrector(sde, score_fn, snr, n_steps)
-        >>> next_state, denoised_state = corrector.update_fn(current_state, time_step)
+        Examples:
+            >>> corrector = LangevinCorrector(sde, score_fn, snr, n_steps)
+            >>> next_state, denoised_state = corrector.update_fn(current_state, time_step)
 
-    Note:
-        This method is expected to be overridden in subclasses to provide
-        specific update logic based on the corrector algorithm being implemented.
+        Note:
+            This method is expected to be overridden in subclasses to provide
+            specific update logic based on the corrector algorithm being implemented.
         """
         target_snr = self.snr
         for _ in range(self.n_steps):
@@ -178,9 +179,9 @@ class AnnealedLangevinDynamics(Corrector):
     """
     The original annealed Langevin dynamics predictor in NCSN/NCSNv2.
 
-    This class implements the Annealed Langevin Dynamics algorithm as a 
-    corrector for the diffusion sampling process. It is specifically designed 
-    for use with Ornstein-Uhlenbeck (OU) processes, leveraging the score 
+    This class implements the Annealed Langevin Dynamics algorithm as a
+    corrector for the diffusion sampling process. It is specifically designed
+    for use with Ornstein-Uhlenbeck (OU) processes, leveraging the score
     function to iteratively refine the state estimate.
 
     Attributes:
@@ -192,20 +193,20 @@ class AnnealedLangevinDynamics(Corrector):
     Args:
         sde: An instance of a stochastic differential equation (SDE) class,
              specifically expected to be an OU process.
-        score_fn: A callable that computes the score (gradient of the log 
+        score_fn: A callable that computes the score (gradient of the log
                   probability) of the current state.
         snr: A float representing the desired signal-to-noise ratio.
-        n_steps: An integer representing the number of Langevin steps to 
+        n_steps: An integer representing the number of Langevin steps to
                  perform in the update.
 
     Raises:
-        NotImplementedError: If the provided SDE is not an instance of 
+        NotImplementedError: If the provided SDE is not an instance of
                              `sdes.OUVESDE`.
 
     Returns:
         A tuple of two PyTorch tensors:
             - x: The updated state tensor after applying the Langevin dynamics.
-            - x_mean: The denoised state tensor (mean state) without 
+            - x_mean: The denoised state tensor (mean state) without
                        random noise, useful for further processing.
 
     Examples:
@@ -214,8 +215,8 @@ class AnnealedLangevinDynamics(Corrector):
         updated_state, denoised_state = ald_corrector.update_fn(initial_state, time_step)
 
     Note:
-        The algorithm relies on the SDE's ability to compute marginal probabilities 
-        and assumes that the score function is properly defined for the given 
+        The algorithm relies on the SDE's ability to compute marginal probabilities
+        and assumes that the score function is properly defined for the given
         state and time step.
     """
 
@@ -243,13 +244,13 @@ class AnnealedLangevinDynamics(Corrector):
         Args:
             x: A PyTorch tensor representing the current state.
             t: A PyTorch tensor representing the current time step.
-            *args: Possibly additional arguments, in particular `y` for OU 
+            *args: Possibly additional arguments, in particular `y` for OU
                 processes.
 
         Returns:
             A tuple containing:
                 - x: A PyTorch tensor of the next state after the update.
-                - x_mean: A PyTorch tensor representing the next state 
+                - x_mean: A PyTorch tensor representing the next state
                   without random noise, useful for denoising.
 
         Examples:
@@ -261,8 +262,8 @@ class AnnealedLangevinDynamics(Corrector):
 
         Note:
             The update step is influenced by the `score_fn`, which is expected
-            to compute the gradient of the log probability of the data. The 
-            noise added during the update is sampled from a standard normal 
+            to compute the gradient of the log probability of the data. The
+            noise added during the update is sampled from a standard normal
             distribution.
 
         Raises:
@@ -285,38 +286,38 @@ class AnnealedLangevinDynamics(Corrector):
 
 class NoneCorrector(Corrector):
     """
-    NoneCorrector is an implementation of the Corrector class that performs no 
-operations during the update phase. It is essentially a placeholder corrector 
-that can be used in scenarios where no correction is needed.
+        NoneCorrector is an implementation of the Corrector class that performs no
+    operations during the update phase. It is essentially a placeholder corrector
+    that can be used in scenarios where no correction is needed.
 
-Attributes:
-    snr (float): The signal-to-noise ratio, set to 0.
-    n_steps (int): The number of steps, set to 0.
+    Attributes:
+        snr (float): The signal-to-noise ratio, set to 0.
+        n_steps (int): The number of steps, set to 0.
 
-Args:
-    *args: Additional positional arguments (not used).
-    **kwargs: Additional keyword arguments (not used).
+    Args:
+        *args: Additional positional arguments (not used).
+        **kwargs: Additional keyword arguments (not used).
 
-Returns:
-    x (torch.Tensor): The input tensor unchanged.
-    x (torch.Tensor): The input tensor unchanged.
+    Returns:
+        x (torch.Tensor): The input tensor unchanged.
+        x (torch.Tensor): The input tensor unchanged.
 
-Examples:
-    >>> corrector = NoneCorrector()
-    >>> x = torch.tensor([[1.0, 2.0], [3.0, 4.0]])
-    >>> t = torch.tensor([0.5])
-    >>> next_state, next_mean = corrector.update_fn(x, t)
-    >>> print(next_state)
-    tensor([[1.0, 2.0], [3.0, 4.0]])
-    >>> print(next_mean)
-    tensor([[1.0, 2.0], [3.0, 4.0]])
+    Examples:
+        >>> corrector = NoneCorrector()
+        >>> x = torch.tensor([[1.0, 2.0], [3.0, 4.0]])
+        >>> t = torch.tensor([0.5])
+        >>> next_state, next_mean = corrector.update_fn(x, t)
+        >>> print(next_state)
+        tensor([[1.0, 2.0], [3.0, 4.0]])
+        >>> print(next_mean)
+        tensor([[1.0, 2.0], [3.0, 4.0]])
 
-Note:
-    This corrector is useful for situations where a corrector interface is 
-    required but no actual correction is needed.
+    Note:
+        This corrector is useful for situations where a corrector interface is
+        required but no actual correction is needed.
 
-Todo:
-    Implement a logging mechanism to track when this corrector is used.
+    Todo:
+        Implement a logging mechanism to track when this corrector is used.
     """
 
     def __init__(self, *args, **kwargs):
@@ -326,35 +327,35 @@ Todo:
 
     def update_fn(self, x, t, *args):
         """
-        An empty corrector that does nothing.
+            An empty corrector that does nothing.
 
-    This corrector is used when no correction is needed. It simply returns the
-    input state as the output state without any modifications.
+        This corrector is used when no correction is needed. It simply returns the
+        input state as the output state without any modifications.
 
-    Attributes:
-        snr (float): Signal-to-noise ratio, initialized to 0.
-        n_steps (int): Number of steps for the correction process, initialized to 0.
+        Attributes:
+            snr (float): Signal-to-noise ratio, initialized to 0.
+            n_steps (int): Number of steps for the correction process, initialized to 0.
 
-    Args:
-        *args: Additional positional arguments (not used).
-        **kwargs: Additional keyword arguments (not used).
+        Args:
+            *args: Additional positional arguments (not used).
+            **kwargs: Additional keyword arguments (not used).
 
-    Returns:
-        tuple: A tuple containing:
-            - x (torch.Tensor): The input state tensor, unchanged.
-            - x (torch.Tensor): The input state tensor, unchanged.
+        Returns:
+            tuple: A tuple containing:
+                - x (torch.Tensor): The input state tensor, unchanged.
+                - x (torch.Tensor): The input state tensor, unchanged.
 
-    Examples:
-        >>> corrector = NoneCorrector()
-        >>> x = torch.tensor([[1.0, 2.0], [3.0, 4.0]])
-        >>> t = torch.tensor([0.5])
-        >>> updated_x, x_mean = corrector.update_fn(x, t)
-        >>> print(updated_x)
-        tensor([[1., 2.],
-                [3., 4.]])
-        >>> print(x_mean)
-        tensor([[1., 2.],
-                [3., 4.]])
+        Examples:
+            >>> corrector = NoneCorrector()
+            >>> x = torch.tensor([[1.0, 2.0], [3.0, 4.0]])
+            >>> t = torch.tensor([0.5])
+            >>> updated_x, x_mean = corrector.update_fn(x, t)
+            >>> print(updated_x)
+            tensor([[1., 2.],
+                    [3., 4.]])
+            >>> print(x_mean)
+            tensor([[1., 2.],
+                    [3., 4.]])
         """
         return x, x
 

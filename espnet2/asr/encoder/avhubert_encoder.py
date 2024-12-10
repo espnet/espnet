@@ -34,8 +34,8 @@ def conv3x3(in_planes, out_planes, stride=1):
     """
     Create a 3x3 convolutional layer with padding.
 
-    This function returns a 2D convolution layer that uses a kernel size of 
-    3x3 and includes padding to maintain the spatial dimensions of the 
+    This function returns a 2D convolution layer that uses a kernel size of
+    3x3 and includes padding to maintain the spatial dimensions of the
     input. The layer does not include a bias term.
 
     Args:
@@ -44,7 +44,7 @@ def conv3x3(in_planes, out_planes, stride=1):
         stride (int, optional): Stride of the convolution. Default is 1.
 
     Returns:
-        nn.Conv2d: A 2D convolution layer configured with the specified 
+        nn.Conv2d: A 2D convolution layer configured with the specified
         parameters.
 
     Examples:
@@ -63,8 +63,8 @@ def downsample_basic_block(inplanes, outplanes, stride):
     """
     Construct a downsample block for a neural network.
 
-    This function creates a sequential block consisting of a 1x1 convolution 
-    followed by batch normalization. It is typically used in architectures 
+    This function creates a sequential block consisting of a 1x1 convolution
+    followed by batch normalization. It is typically used in architectures
     that require downsampling of feature maps, such as ResNet variants.
 
     Args:
@@ -73,7 +73,7 @@ def downsample_basic_block(inplanes, outplanes, stride):
         stride (int): The stride of the convolution.
 
     Returns:
-        nn.Sequential: A sequential block containing a convolution and 
+        nn.Sequential: A sequential block containing a convolution and
         batch normalization.
 
     Examples:
@@ -131,12 +131,12 @@ def time_masking(xs_pad, min_T=5, max_T=20):
     """
     Mask contiguous frames of audio or video inputs with random lengths.
 
-    This function applies random masking to contiguous frames in the input tensor 
-    `xs_pad`, simulating occlusion in audio or video data. The length of the mask 
+    This function applies random masking to contiguous frames in the input tensor
+    `xs_pad`, simulating occlusion in audio or video data. The length of the mask
     is randomly chosen from the range [min_T, max_T].
 
     Args:
-        xs_pad (torch.Tensor): The input tensor of shape (B, D, L), where B is the 
+        xs_pad (torch.Tensor): The input tensor of shape (B, D, L), where B is the
             batch size, D is the number of features, and L is the sequence length.
         min_T (int, optional): The minimum length of the mask. Default is 5.
         max_T (int, optional): The maximum length of the mask. Default is 20.
@@ -154,7 +154,7 @@ def time_masking(xs_pad, min_T=5, max_T=20):
         The masking is applied independently for each batch element.
 
     Raises:
-        ValueError: If `min_T` or `max_T` is less than 1, or if `min_T` is 
+        ValueError: If `min_T` or `max_T` is less than 1, or if `min_T` is
         greater than `max_T`.
     """
     batch_size = xs_pad.size(0)
@@ -176,9 +176,9 @@ class FairseqAVHubertEncoder(AbsEncoder):
     """
     FairSeq AVHubert pretrained encoder module.
 
-    This class implements a pretrained encoder for audio-visual (AV) 
-    representation learning using the AVHubert model. It extends the 
-    AbsEncoder class and integrates both audio and video modalities 
+    This class implements a pretrained encoder for audio-visual (AV)
+    representation learning using the AVHubert model. It extends the
+    AbsEncoder class and integrates both audio and video modalities
     for feature extraction.
 
     Attributes:
@@ -256,7 +256,7 @@ class FairseqAVHubertEncoder(AbsEncoder):
         output, olens, _ = encoder(inputs, lengths)
 
     Note:
-        The AVHubert model is based on the architecture described in the 
+        The AVHubert model is based on the architecture described in the
         paper: "Self-Supervised Learning of Audio-Visual Representations".
         Ensure to set the correct input shapes for audio and video data.
     """
@@ -536,15 +536,15 @@ class FairseqAVHubertEncoder(AbsEncoder):
 
         Args:
             xs_pad (Dict[str, torch.Tensor]): A dictionary containing:
-                - 'audio' (torch.Tensor): Audio features tensor of shape 
-                  (B, D, L), where B is the batch size, D is the number of 
+                - 'audio' (torch.Tensor): Audio features tensor of shape
+                  (B, D, L), where B is the batch size, D is the number of
                   audio features, and L is the sequence length.
-                - 'video' (torch.Tensor): Video features tensor of shape 
-                  (B, 1, L, H, W), where H is the height and W is the width 
+                - 'video' (torch.Tensor): Video features tensor of shape
+                  (B, 1, L, H, W), where H is the height and W is the width
                   of the video frames.
 
         Returns:
-            torch.Tensor: The fused features tensor. The shape of the 
+            torch.Tensor: The fused features tensor. The shape of the
             returned tensor depends on the fusion method used:
                 - If concatenation, shape will be (B, D * 2, L).
                 - If addition, shape will be (B, D, L).
@@ -561,10 +561,10 @@ class FairseqAVHubertEncoder(AbsEncoder):
             torch.Size([4, 256, 10])  # If concatenation is used
 
         Note:
-            The audio and video features must be preprocessed and 
-            extracted before calling this method. If either audio or 
-            video features are not provided, the method will handle 
-            it gracefully by creating zero tensors for the missing 
+            The audio and video features must be preprocessed and
+            extracted before calling this method. If either audio or
+            video features are not provided, the method will handle
+            it gracefully by creating zero tensors for the missing
             modality.
 
         Raises:
@@ -585,12 +585,12 @@ class FairseqAVHubertEncoder(AbsEncoder):
         Reload the pretrained parameters into the encoder.
 
         This method allows the user to restore the original pretrained
-        parameters of the AVHubert encoder. It is particularly useful in 
-        scenarios where the model has undergone fine-tuning and the user 
+        parameters of the AVHubert encoder. It is particularly useful in
+        scenarios where the model has undergone fine-tuning and the user
         wants to revert to the initial state of the model.
 
         The pretrained parameters are loaded from the `self.pretrained_params`
-        attribute, which is a deep copy of the model's state dictionary at 
+        attribute, which is a deep copy of the model's state dictionary at
         initialization.
 
         Returns:
@@ -1000,15 +1000,15 @@ class SubModel(nn.Module):
     """
     SubModel for audio and video feature extraction in AVHubert.
 
-    This class implements a submodule of the AVHubert model that can 
-    process audio and video features. It uses an optional ResNet for 
+    This class implements a submodule of the AVHubert model that can
+    process audio and video features. It uses an optional ResNet for
     video processing and a linear projection for both modalities.
 
     Attributes:
         resnet (nn.Module or None): ResNet module for video feature extraction.
-        proj (nn.Linear): Linear layer for projecting input features to 
+        proj (nn.Linear): Linear layer for projecting input features to
             the encoder embedding dimension.
-        encoder (TransformerEncoder or None): Transformer encoder for 
+        encoder (TransformerEncoder or None): Transformer encoder for
             further processing of features if specified.
 
     Args:
@@ -1023,13 +1023,14 @@ class SubModel(nn.Module):
         >>> output = sub_model(input_tensor)
 
     Note:
-        The input tensor should have dimensions that match the expected 
+        The input tensor should have dimensions that match the expected
         input shape for the ResNet and the linear projection.
 
     Raises:
-        ValueError: If the input tensor shape does not match the expected 
+        ValueError: If the input tensor shape does not match the expected
         dimensions.
     """
+
     def __init__(self, resnet=None, input_dim=None, cfg=None):
         super().__init__()
         self.resnet = resnet
@@ -1108,19 +1109,20 @@ class AVHubertModel(nn.Module):
     Examples:
         # Create a configuration object
         cfg = AVHubertConfig()
-        
+
         # Build the AVHubert model
         model = AVHubertModel.build_model(cfg)
-        
+
         # Forward pass with dummy audio and video inputs
         audio_input = torch.randn(2, 1, 100)  # Example audio input
         video_input = torch.randn(2, 1, 10, 224, 224)  # Example video input
         features = model.extract_finetune({'audio': audio_input, 'video': video_input})
-    
+
     Note:
         Ensure that the FairSeq library is properly installed to utilize the
         functionalities of this model.
     """
+
     def __init__(self, cfg: AVHubertConfig, **kwargs) -> None:
         super().__init__()
         logger.info(f"HubertModel Config: {cfg}")
@@ -1241,7 +1243,7 @@ class AVHubertModel(nn.Module):
             source (torch.Tensor): Input tensor containing audio or video data.
                 The shape of the tensor should be compatible with the feature
                 extractor corresponding to the specified modality.
-            modality (str): A string that specifies the modality type. 
+            modality (str): A string that specifies the modality type.
                 It should be either "audio" or "video".
 
         Returns:
@@ -1255,7 +1257,7 @@ class AVHubertModel(nn.Module):
             >>> video_features = model.forward_features(video_input, "video")
 
         Note:
-            Ensure that the `modality` parameter matches the type of data in the 
+            Ensure that the `modality` parameter matches the type of data in the
             `source` tensor to avoid runtime errors.
         """
         extractor = eval(f"self.feature_extractor_{modality}")
@@ -1276,21 +1278,21 @@ class AVHubertModel(nn.Module):
         """
         Adjusts the padding mask to match the feature dimensions.
 
-        This method takes the input feature tensor and its associated padding 
-        mask, ensuring that the mask dimensions align with the features. If 
-        the padding mask is longer than the features, the extra elements are 
-        removed. The final mask is reshaped to allow for masking across the 
+        This method takes the input feature tensor and its associated padding
+        mask, ensuring that the mask dimensions align with the features. If
+        the padding mask is longer than the features, the extra elements are
+        removed. The final mask is reshaped to allow for masking across the
         appropriate dimensions.
 
         Args:
-            features (torch.Tensor): The input feature tensor with shape 
-                (B, T, D) where B is the batch size, T is the sequence length, 
+            features (torch.Tensor): The input feature tensor with shape
+                (B, T, D) where B is the batch size, T is the sequence length,
                 and D is the feature dimension.
-            padding_mask (torch.Tensor): The original padding mask with shape 
+            padding_mask (torch.Tensor): The original padding mask with shape
                 (B, L) where L is the length of the original sequence.
 
         Returns:
-            torch.Tensor: A boolean tensor indicating the positions that 
+            torch.Tensor: A boolean tensor indicating the positions that
             should be masked, with shape (B, T).
 
         Examples:
@@ -1316,30 +1318,30 @@ class AVHubertModel(nn.Module):
         """
         Forward AVHubert Pretrain Encoder.
 
-        This method processes audio and video inputs, applies 
-        modality fusion, and passes the features through the 
-        encoder. The function can handle both modalities, with 
-        the option to fine-tune the model. 
+        This method processes audio and video inputs, applies
+        modality fusion, and passes the features through the
+        encoder. The function can handle both modalities, with
+        the option to fine-tune the model.
 
         Args:
             source (dict): A dictionary containing the input tensors.
                 - source['video']: input tensor of shape (B, 1, L, H, W)
                 - source['audio']: input tensor of shape (B, F, L)
-            padding_mask (torch.Tensor, optional): A tensor of shape 
-                (B, L) indicating which elements are padding. 
+            padding_mask (torch.Tensor, optional): A tensor of shape
+                (B, L) indicating which elements are padding.
                 Defaults to None.
-            mask (bool, optional): If True, applies masking to the 
+            mask (bool, optional): If True, applies masking to the
                 input. Defaults to False.
-            ret_conv (bool, optional): If True, returns convolutional 
+            ret_conv (bool, optional): If True, returns convolutional
                 features. Defaults to False.
-            output_layer (int, optional): Specifies which layer's output 
+            output_layer (int, optional): Specifies which layer's output
                 to return. Defaults to None, meaning all layers.
 
         Returns:
             tuple: A tuple containing:
                 - encoded tensor of shape (B, T, D)
                 - padding mask of shape (B, T)
-        
+
         Raises:
             ValueError: If both audio and video sources are None.
 
@@ -1348,9 +1350,9 @@ class AVHubertModel(nn.Module):
             ...     'video': torch.randn(4, 1, 100, 224, 224),
             ...     'audio': torch.randn(4, 80, 100)
             ... }
-            >>> padding_mask = torch.tensor([[0, 1, 1, 0, 0], 
+            >>> padding_mask = torch.tensor([[0, 1, 1, 0, 0],
             ...                                [0, 0, 0, 1, 1]])
-            >>> encoded, mask = model.extract_finetune(source, 
+            >>> encoded, mask = model.extract_finetune(source,
             ...                                         padding_mask)
         """
         src_audio, src_video = source["audio"], source["video"]
@@ -1412,17 +1414,17 @@ class AVHubertModel(nn.Module):
         Forward pass for audio input through the AVHubert model.
 
         This method processes the audio input tensor and extracts
-        features using the audio feature extractor. The features are 
-        computed without tracking gradients to reduce memory usage 
+        features using the audio feature extractor. The features are
+        computed without tracking gradients to reduce memory usage
         during inference.
 
         Args:
-            source_audio (torch.Tensor): Input tensor containing audio data 
-                of shape (B, F, T), where B is the batch size, F is the 
+            source_audio (torch.Tensor): Input tensor containing audio data
+                of shape (B, F, T), where B is the batch size, F is the
                 number of features, and T is the sequence length.
 
         Returns:
-            torch.Tensor: Extracted audio features of shape (B, D, T), where 
+            torch.Tensor: Extracted audio features of shape (B, D, T), where
                 D is the encoder embedding dimension.
 
         Examples:
@@ -1433,8 +1435,8 @@ class AVHubertModel(nn.Module):
             torch.Size([8, 768, 100])  # Assuming encoder_embed_dim is 768
 
         Note:
-            This method is primarily intended for use during inference 
-            and should not be used during training as it does not 
+            This method is primarily intended for use during inference
+            and should not be used during training as it does not
             track gradients.
         """
         with torch.no_grad():
@@ -1483,21 +1485,21 @@ class AVHubertModel(nn.Module):
         """
         Fuse audio and video features using the specified fusion method.
 
-        This method combines audio and video features based on the 
-        configured fusion technique, which can be either concatenation 
-        or addition. It handles cases where one of the modalities may 
+        This method combines audio and video features based on the
+        configured fusion technique, which can be either concatenation
+        or addition. It handles cases where one of the modalities may
         be absent by providing zero tensors of the appropriate shape.
 
         Args:
-            features_audio (torch.Tensor): The audio features tensor with shape 
-                (B, D, L), where B is the batch size, D is the feature dimension, 
+            features_audio (torch.Tensor): The audio features tensor with shape
+                (B, D, L), where B is the batch size, D is the feature dimension,
                 and L is the length of the sequence.
-            features_video (torch.Tensor): The video features tensor with shape 
-                (B, D, L), where B is the batch size, D is the feature dimension, 
-                and L is the length of the sequence. 
+            features_video (torch.Tensor): The video features tensor with shape
+                (B, D, L), where B is the batch size, D is the feature dimension,
+                and L is the length of the sequence.
 
         Returns:
-            torch.Tensor: The fused features tensor, which will have shape 
+            torch.Tensor: The fused features tensor, which will have shape
             determined by the fusion method:
                 - If concatenation is used, the shape will be (B, 2D, L).
                 - If addition is used, the shape will be (B, D, L).
@@ -1546,12 +1548,12 @@ class AVHubertModel(nn.Module):
             padding_mask: A tensor of shape (B, L) indicating padded elements
                 in the input. Elements to be masked should have a value of
                 `True`, while valid elements should have a value of `False`.
-            output_layer: Optional integer specifying which layer's output to 
+            output_layer: Optional integer specifying which layer's output to
                 return. If None, the output from the last layer is returned.
 
         Returns:
             A tuple containing:
-                - The encoded tensor of shape (B, L, D) after processing 
+                - The encoded tensor of shape (B, L, D) after processing
                 through the transformer encoder.
                 - The updated padding mask of shape (B, L).
 
@@ -1562,7 +1564,7 @@ class AVHubertModel(nn.Module):
             >>> encoded_output, updated_mask = model.forward_transformer(input_tensor, padding_mask)
 
         Note:
-            This function assumes that the input has already undergone 
+            This function assumes that the input has already undergone
             necessary preprocessing steps, including modality fusion.
 
         Raises:
@@ -1636,13 +1638,13 @@ class TransformerEncoder(nn.Module):
     """
     Transformer Encoder for AVHubert.
 
-    This class implements a transformer encoder as described in the 
-    AVHubert architecture. It uses multiple layers of transformer 
-    sentence encoder layers and includes optional layer normalization 
+    This class implements a transformer encoder as described in the
+    AVHubert architecture. It uses multiple layers of transformer
+    sentence encoder layers and includes optional layer normalization
     and dropout functionalities.
 
     Args:
-        args: Configuration parameters including dropout rates, 
+        args: Configuration parameters including dropout rates,
             embedding dimensions, and layer settings.
 
     Attributes:
@@ -1663,11 +1665,11 @@ class TransformerEncoder(nn.Module):
     Examples:
         >>> encoder = TransformerEncoder(args)
         >>> output, _ = encoder(input_tensor, padding_mask)
-    
+
     Note:
-        Ensure that FairSeq is properly installed for the transformer 
+        Ensure that FairSeq is properly installed for the transformer
         sentence encoder layers to work correctly.
-    
+
     Raises:
         Exception: If FairSeq is not installed properly.
     """
@@ -1733,7 +1735,7 @@ class TransformerEncoder(nn.Module):
         optional mask.
 
         Args:
-            xs_pad (Dict[str, torch.Tensor]): A dictionary containing input 
+            xs_pad (Dict[str, torch.Tensor]): A dictionary containing input
                 tensors. Expected keys are:
                 - 'video': input tensor of shape (B, 1, L, H, W)
                 - 'audio': input tensor of shape (B, D, L)
@@ -1799,7 +1801,7 @@ class TransformerEncoder(nn.Module):
                 Defaults to None.
 
         Returns:
-            Tuple[torch.Tensor, List[Tuple[torch.Tensor, torch.Tensor]]]: 
+            Tuple[torch.Tensor, List[Tuple[torch.Tensor, torch.Tensor]]]:
                 A tuple containing the output tensor of shape (B, T, C) and a
                 list of tuples containing intermediate layer outputs.
 
@@ -1811,7 +1813,7 @@ class TransformerEncoder(nn.Module):
             >>> x = torch.randn(32, 100, 768)  # Batch of 32 sequences
             >>> padding_mask = torch.zeros(32, 100).bool()
             >>> features, layer_outputs = model.extract_features(x, padding_mask)
-        
+
         Note:
             The output features are subject to layer normalization and dropout
             during training. The padding mask is applied to ignore certain
@@ -1857,7 +1859,7 @@ class TransformerEncoder(nn.Module):
         TransformerEncoder class for the AVHubert model.
 
         This class implements a Transformer encoder that processes input features
-        and applies positional embeddings. It is designed for use within the 
+        and applies positional embeddings. It is designed for use within the
         AVHubert framework for audio-visual tasks.
 
         Attributes:
@@ -1865,7 +1867,7 @@ class TransformerEncoder(nn.Module):
             embedding_dim (int): Dimensionality of the encoder embeddings.
             pos_conv (nn.Conv1d): Convolutional layer for positional embeddings.
             layers (nn.ModuleList): List of transformer layers.
-            layer_norm_first (bool): Indicates if layer normalization is applied 
+            layer_norm_first (bool): Indicates if layer normalization is applied
                                     before the first layer.
             layer_norm (LayerNorm): Layer normalization module.
             layerdrop (float): Probability of dropping a transformer layer.
@@ -1873,7 +1875,7 @@ class TransformerEncoder(nn.Module):
         Methods:
             forward(x, padding_mask=None, layer=None):
                 Forward pass through the encoder.
-            
+
             extract_features(x, padding_mask=None, tgt_layer=None):
                 Extract features from the input tensor.
 
@@ -1897,21 +1899,21 @@ class TransformerEncoder(nn.Module):
         """
         Upgrade a (possibly old) state dict for new versions of fairseq.
 
-        This method is designed to ensure compatibility between old and new 
-        versions of the Fairseq library when loading state dictionaries. It 
-        modifies the keys of the state dictionary as necessary to fit the 
+        This method is designed to ensure compatibility between old and new
+        versions of the Fairseq library when loading state dictionaries. It
+        modifies the keys of the state dictionary as necessary to fit the
         expected format of the current version of the library.
 
         Args:
             state_dict (dict): The state dictionary to be upgraded.
-            name (str): The name of the model or module associated with 
+            name (str): The name of the model or module associated with
                         the state dictionary.
 
         Returns:
             dict: The upgraded state dictionary.
 
         Note:
-            This method may not perform any modifications if the state 
+            This method may not perform any modifications if the state
             dictionary is already compatible with the current version.
 
         Examples:
@@ -1926,8 +1928,8 @@ class BasicBlock(nn.Module):
     """
     Basic building block for ResNet architecture.
 
-    This class implements a basic block used in the ResNet architecture, which 
-    consists of two convolutional layers with batch normalization and ReLU or PReLU 
+    This class implements a basic block used in the ResNet architecture, which
+    consists of two convolutional layers with batch normalization and ReLU or PReLU
     activation functions. The block supports optional downsampling.
 
     Attributes:
@@ -1945,7 +1947,7 @@ class BasicBlock(nn.Module):
         planes (int): Number of output channels.
         stride (int, optional): Stride for the first convolution. Default is 1.
         downsample (nn.Sequential, optional): Downsampling layer. Default is None.
-        relu_type (str, optional): Type of ReLU activation function. 
+        relu_type (str, optional): Type of ReLU activation function.
             Can be "relu" or "prelu". Default is "relu".
 
     Raises:
@@ -1958,6 +1960,7 @@ class BasicBlock(nn.Module):
         >>> output.shape
         torch.Size([1, 128, 16, 16])  # Output shape after downsampling
     """
+
     expansion = 1
 
     def __init__(self, inplanes, planes, stride=1, downsample=None, relu_type="relu"):
@@ -1987,20 +1990,20 @@ class BasicBlock(nn.Module):
         """
         Forward pass through the AVHubert Encoder.
 
-        This method takes input tensors for video and audio, applies 
-        necessary transformations and masking, and returns the output 
+        This method takes input tensors for video and audio, applies
+        necessary transformations and masking, and returns the output
         tensor along with the output lengths and an optional tensor.
 
         Args:
-            xs_pad (Dict[str, torch.Tensor]): 
+            xs_pad (Dict[str, torch.Tensor]):
                 A dictionary containing input tensors. Expected keys are:
                 - 'video': input tensor of shape (B, 1, L, H, W)
                 - 'audio': input tensor of shape (B, D, L)
-            ilens (torch.Tensor): 
-                A tensor of shape (B,) containing the lengths of each 
+            ilens (torch.Tensor):
+                A tensor of shape (B,) containing the lengths of each
                 input sequence.
-            prev_states (torch.Tensor, optional): 
-                Previous states from the encoder, not used in the current 
+            prev_states (torch.Tensor, optional):
+                Previous states from the encoder, not used in the current
                 implementation. Defaults to None.
 
         Returns:
@@ -2011,7 +2014,7 @@ class BasicBlock(nn.Module):
                 - None (placeholder for potential future use).
 
         Raises:
-            ValueError: If neither 'video' nor 'audio' keys are present in 
+            ValueError: If neither 'video' nor 'audio' keys are present in
             the input dictionary.
 
         Examples:
@@ -2046,11 +2049,11 @@ class ResNet(nn.Module):
     """
     ResNet architecture for deep learning applications.
 
-    This class implements a ResNet architecture, which is a deep 
-    convolutional neural network that utilizes residual connections to 
-    facilitate the training of very deep networks. The ResNet is designed 
-    to learn residual mappings with reference to the layer inputs, 
-    rather than learning unreferenced functions. 
+    This class implements a ResNet architecture, which is a deep
+    convolutional neural network that utilizes residual connections to
+    facilitate the training of very deep networks. The ResNet is designed
+    to learn residual mappings with reference to the layer inputs,
+    rather than learning unreferenced functions.
 
     Attributes:
         layer1 (nn.Sequential): The first layer of the ResNet.
@@ -2063,11 +2066,11 @@ class ResNet(nn.Module):
         block (nn.Module): The building block to use for the ResNet.
         layers (list): A list containing the number of blocks in each layer.
         num_classes (int, optional): Number of output classes. Defaults to 1000.
-        relu_type (str, optional): Type of ReLU activation function. 
+        relu_type (str, optional): Type of ReLU activation function.
             Options are 'relu' or 'prelu'. Defaults to 'relu'.
-        gamma_zero (bool, optional): If True, initializes the second 
+        gamma_zero (bool, optional): If True, initializes the second
             batch normalization layer weights to zero. Defaults to False.
-        avg_pool_downsample (bool, optional): If True, uses average pooling 
+        avg_pool_downsample (bool, optional): If True, uses average pooling
             for downsampling. Defaults to False.
 
     Examples:
@@ -2076,6 +2079,7 @@ class ResNet(nn.Module):
         >>> output = model(input_tensor)
         >>> print(output.shape)  # Should output (1, 512)
     """
+
     def __init__(
         self,
         block,
@@ -2135,29 +2139,29 @@ class ResNet(nn.Module):
         """
         Forward AVHubert Encoder.
 
-        This method processes input tensors for both audio and video 
-        modalities through the AVHubert encoder, applying necessary 
+        This method processes input tensors for both audio and video
+        modalities through the AVHubert encoder, applying necessary
         masking and fine-tuning based on the training state.
 
         Args:
-            xs_pad (Dict[str, torch.Tensor]): A dictionary containing input 
+            xs_pad (Dict[str, torch.Tensor]): A dictionary containing input
                 tensors for different modalities. It must include:
                 - 'video': input tensor of shape (B, 1, L, H, W) for video data.
                 - 'audio': input tensor of shape (B, D, L) for audio data.
-            ilens (torch.Tensor): A tensor containing the lengths of each 
+            ilens (torch.Tensor): A tensor containing the lengths of each
                 input sequence, shape (B).
-            prev_states (torch.Tensor, optional): Previous states from the 
+            prev_states (torch.Tensor, optional): Previous states from the
                 encoder, not used in the current implementation.
 
         Returns:
             Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
-                - A tensor of processed features (position embedded) from 
+                - A tensor of processed features (position embedded) from
                   the encoder, shape (B, T, D).
                 - A tensor representing the output lengths, shape (B).
                 - None (not used in the current implementation).
 
         Raises:
-            ValueError: If neither 'video' nor 'audio' keys are present 
+            ValueError: If neither 'video' nor 'audio' keys are present
                 in the input dictionary.
 
         Examples:
@@ -2170,10 +2174,10 @@ class ResNet(nn.Module):
             >>> output_features, output_lengths, _ = model(xs_pad, ilens)
 
         Note:
-            - The method incorporates a masking mechanism for training 
-              data augmentation and adjusts parameters based on the 
+            - The method incorporates a masking mechanism for training
+              data augmentation and adjusts parameters based on the
               fine-tuning state.
-            - Ensure that the input tensor shapes are compatible with 
+            - Ensure that the input tensor shapes are compatible with
               the model configuration.
 
         Todo:
@@ -2192,9 +2196,9 @@ class ResEncoder(nn.Module):
     """
     3D ResNet-based Encoder for audio-visual tasks.
 
-    This class implements a 3D convolutional neural network that processes 
-    input data in the form of videos, extracting features using a ResNet 
-    architecture. It consists of a frontend for initial feature extraction 
+    This class implements a 3D convolutional neural network that processes
+    input data in the form of videos, extracting features using a ResNet
+    architecture. It consists of a frontend for initial feature extraction
     and a trunk that applies residual connections to improve learning.
 
     Attributes:
@@ -2215,14 +2219,15 @@ class ResEncoder(nn.Module):
         torch.Size([8, 512, 10])  # (B, D, T)
 
     Note:
-        The input tensor must be in the shape of (B, C, T, H, W), where 
-        B is the batch size, C is the number of channels, T is the number 
+        The input tensor must be in the shape of (B, C, T, H, W), where
+        B is the batch size, C is the number of channels, T is the number
         of frames, and H and W are the height and width of the frames.
 
     Raises:
-        RuntimeError: If there is an issue loading the weights or 
+        RuntimeError: If there is an issue loading the weights or
         during the forward pass due to incompatible input shapes.
     """
+
     def __init__(self, relu_type, weights):
         super(ResEncoder, self).__init__()
         self.frontend_nout = 64
@@ -2314,31 +2319,31 @@ class ResEncoder(nn.Module):
 
     def threeD_to_2D_tensor(self, x):
         """
-        Reshape a 3D tensor into a 2D tensor for processing.
+            Reshape a 3D tensor into a 2D tensor for processing.
 
-    This method takes a 5-dimensional tensor (batch, channels, time, height, width)
-    and reshapes it into a 4-dimensional tensor (batch*time, channels, height, width).
-    This transformation is useful for passing the data through a 2D convolutional
-    network after extracting features from a 3D input.
+        This method takes a 5-dimensional tensor (batch, channels, time, height, width)
+        and reshapes it into a 4-dimensional tensor (batch*time, channels, height, width).
+        This transformation is useful for passing the data through a 2D convolutional
+        network after extracting features from a 3D input.
 
-    Args:
-        x (torch.Tensor): A tensor of shape (n_batch, n_channels, s_time, sx, sy).
-        
-    Returns:
-        torch.Tensor: A reshaped tensor of shape (n_batch * s_time, n_channels, sx, sy).
+        Args:
+            x (torch.Tensor): A tensor of shape (n_batch, n_channels, s_time, sx, sy).
 
-    Examples:
-        >>> import torch
-        >>> x = torch.randn(2, 3, 4, 5, 6)  # Example input tensor
-        >>> reshaped_x = self.threeD_to_2D_tensor(x)
-        >>> reshaped_x.shape
-        torch.Size([8, 3, 5, 6])  # (2 * 4, 3, 5, 6)
+        Returns:
+            torch.Tensor: A reshaped tensor of shape (n_batch * s_time, n_channels, sx, sy).
 
-    Note:
-        The input tensor must have 5 dimensions; otherwise, an error will occur.
+        Examples:
+            >>> import torch
+            >>> x = torch.randn(2, 3, 4, 5, 6)  # Example input tensor
+            >>> reshaped_x = self.threeD_to_2D_tensor(x)
+            >>> reshaped_x.shape
+            torch.Size([8, 3, 5, 6])  # (2 * 4, 3, 5, 6)
 
-    Raises:
-        ValueError: If the input tensor does not have 5 dimensions.
+        Note:
+            The input tensor must have 5 dimensions; otherwise, an error will occur.
+
+        Raises:
+            ValueError: If the input tensor does not have 5 dimensions.
         """
         n_batch, n_channels, s_time, sx, sy = x.shape
         x = x.transpose(1, 2).contiguous()
@@ -2349,20 +2354,20 @@ class SamePad(nn.Module):
     """
     Applies same padding to the input tensor.
 
-    This class provides a way to ensure that the output tensor 
-    has the same spatial dimensions as the input tensor after 
-    applying a convolution operation with a specified kernel size. 
-    It can be configured for causal padding, which is commonly used 
-    in sequence-to-sequence models where future information should 
+    This class provides a way to ensure that the output tensor
+    has the same spatial dimensions as the input tensor after
+    applying a convolution operation with a specified kernel size.
+    It can be configured for causal padding, which is commonly used
+    in sequence-to-sequence models where future information should
     not be considered.
 
     Attributes:
         kernel_size (int): The size of the convolutional kernel.
-        remove (int): The number of elements to remove from the end 
+        remove (int): The number of elements to remove from the end
             of the output tensor, determined by the kernel size.
 
     Args:
-        kernel_size (int): The size of the kernel for which the padding 
+        kernel_size (int): The size of the kernel for which the padding
             will be calculated.
         causal (bool): If True, applies causal padding. Default is False.
 
@@ -2378,14 +2383,15 @@ class SamePad(nn.Module):
         >>> output_tensor_causal.shape  # Output shape should be (1, 1, 9)
 
     Note:
-        If `kernel_size` is even, the padding will be applied equally 
-        on both sides. If `kernel_size` is odd, one extra element will 
+        If `kernel_size` is even, the padding will be applied equally
+        on both sides. If `kernel_size` is odd, one extra element will
         be removed from the end to maintain the same output size.
 
     Raises:
-        ValueError: If the input tensor does not have the expected 
+        ValueError: If the input tensor does not have the expected
             dimensions.
     """
+
     def __init__(self, kernel_size, causal=False):
         super().__init__()
         if causal:
@@ -2397,30 +2403,30 @@ class SamePad(nn.Module):
         """
         Forward pass for the AVHubert Encoder.
 
-        This method processes the input tensors, applies necessary 
-        transformations, and returns the encoded representations along 
+        This method processes the input tensors, applies necessary
+        transformations, and returns the encoded representations along
         with their respective lengths.
 
         Args:
-            xs_pad (Dict[str, torch.Tensor]): A dictionary containing 
+            xs_pad (Dict[str, torch.Tensor]): A dictionary containing
                 input tensors. It can have the following keys:
                 - 'video': input tensor of shape (B, 1, L, H, W)
                 - 'audio': input tensor of shape (B, D, L)
-            ilens (torch.Tensor): A tensor of shape (B,) representing the 
+            ilens (torch.Tensor): A tensor of shape (B,) representing the
                 input lengths for each batch element.
-            prev_states (torch.Tensor, optional): Not used in the current 
+            prev_states (torch.Tensor, optional): Not used in the current
                 implementation. Defaults to None.
 
         Returns:
             Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
-                - A tensor of shape (B, T, D) representing the encoded 
+                - A tensor of shape (B, T, D) representing the encoded
                   features.
-                - A tensor of shape (B,) containing the lengths of the 
+                - A tensor of shape (B,) containing the lengths of the
                   output sequences.
                 - None, as there are no additional states returned.
 
         Raises:
-            ValueError: If neither 'video' nor 'audio' is present in 
+            ValueError: If neither 'video' nor 'audio' is present in
                 `xs_pad`.
 
         Examples:
@@ -2435,7 +2441,7 @@ class SamePad(nn.Module):
             >>> print(lengths)  # Output lengths for each batch item
 
         Note:
-            Ensure that the input tensors are properly padded and 
+            Ensure that the input tensors are properly padded and
             have the correct dimensions.
         """
         if self.remove > 0:
@@ -2453,14 +2459,14 @@ def index_put(tensor, indices, value):
 
     Args:
         tensor (torch.Tensor): The input tensor to be updated.
-        indices (torch.Tensor): A tensor containing the indices where the value 
+        indices (torch.Tensor): A tensor containing the indices where the value
             should be placed. This tensor should have the same number of dimensions
             as the tensor being modified.
         value (torch.Tensor): The value to assign at the specified indices. This
             should be broadcastable to the shape of the indices.
 
     Returns:
-        torch.Tensor: The updated tensor with values assigned at the specified 
+        torch.Tensor: The updated tensor with values assigned at the specified
         indices.
 
     Examples:
@@ -2473,8 +2479,8 @@ def index_put(tensor, indices, value):
                 [8, 4]])
 
     Note:
-        If the input tensor is an XLA tensor, the function will ensure that 
-        the operation is performed correctly according to XLA tensor handling 
+        If the input tensor is an XLA tensor, the function will ensure that
+        the operation is performed correctly according to XLA tensor handling
         requirements.
 
     Raises:
@@ -2526,10 +2532,10 @@ class GradMultiply(torch.autograd.Function):
     """
     Applies a gradient multiplication operation to a tensor.
 
-    This class implements a custom autograd function that multiplies the 
-    gradients of a tensor by a specified scale factor during the backward 
-    pass. This can be useful for controlling the flow of gradients, 
-    particularly in scenarios like feature extraction where one may want 
+    This class implements a custom autograd function that multiplies the
+    gradients of a tensor by a specified scale factor during the backward
+    pass. This can be useful for controlling the flow of gradients,
+    particularly in scenarios like feature extraction where one may want
     to reduce the contribution of certain features to the overall loss.
 
     Attributes:
@@ -2538,7 +2544,7 @@ class GradMultiply(torch.autograd.Function):
     Methods:
         forward(ctx, x, scale):
             Applies the forward pass of the function.
-        
+
         backward(ctx, grad):
             Applies the backward pass of the function.
 
@@ -2548,7 +2554,7 @@ class GradMultiply(torch.autograd.Function):
 
     Returns:
         torch.Tensor: The input tensor, unchanged during the forward pass.
-    
+
     Examples:
         >>> import torch
         >>> from your_module import GradMultiply
@@ -2558,6 +2564,7 @@ class GradMultiply(torch.autograd.Function):
         >>> output.backward(torch.tensor([1.0, 1.0]))
         >>> print(x.grad)  # Output will be [0.5, 1.0], scaled by 0.5
     """
+
     @staticmethod
     def forward(ctx, x, scale):
         """
@@ -2567,24 +2574,24 @@ class GradMultiply(torch.autograd.Function):
         and returns the encoded outputs along with their respective lengths.
 
         Args:
-            xs_pad (Dict[str, torch.Tensor]): A dictionary containing input 
+            xs_pad (Dict[str, torch.Tensor]): A dictionary containing input
                 tensors. The expected keys are:
                 - 'video': input tensor of shape (B, 1, L, H, W)
                 - 'audio': input tensor of shape (B, D, L)
-            ilens (torch.Tensor): A tensor of shape (B,) representing the 
+            ilens (torch.Tensor): A tensor of shape (B,) representing the
                 input lengths for each batch.
             prev_states (torch.Tensor, optional): Not currently used.
 
         Returns:
             Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
                 A tuple containing:
-                - Encoded tensor of shape (B, T, D), where T is the length of 
+                - Encoded tensor of shape (B, T, D), where T is the length of
                   the output sequence and D is the output dimension.
                 - A tensor containing the output lengths of shape (B,).
                 - An optional tensor, currently set to None.
 
         Raises:
-            ValueError: If neither 'video' nor 'audio' keys are present in 
+            ValueError: If neither 'video' nor 'audio' keys are present in
                 `xs_pad`.
 
         Examples:

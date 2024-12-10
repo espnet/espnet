@@ -14,9 +14,9 @@ class TDSpeakerBeamExtractor(AbsExtractor):
     """
     Time-Domain SpeakerBeam Extractor.
 
-    This class implements a time-domain speaker beam extractor that utilizes a 
-    Temporal Convolutional Network (TCN) for separating audio signals from 
-    different speakers. It supports both speaker embeddings and enrollment audio 
+    This class implements a time-domain speaker beam extractor that utilizes a
+    Temporal Convolutional Network (TCN) for separating audio signals from
+    different speakers. It supports both speaker embeddings and enrollment audio
     for speaker adaptation.
 
     Attributes:
@@ -31,20 +31,20 @@ class TDSpeakerBeamExtractor(AbsExtractor):
         skip_dim (int, optional): Number of skip connection channels (default: 128).
         kernel (int, optional): Kernel size (default: 3).
         causal (bool, optional): Whether to use causal convolution (default: False).
-        norm_type (str, optional): Normalization type; choose from 'BN', 'gLN', 'cLN' 
+        norm_type (str, optional): Normalization type; choose from 'BN', 'gLN', 'cLN'
             (default: 'gLN').
-        pre_nonlinear (str, optional): Nonlinear function before mask estimation; 
+        pre_nonlinear (str, optional): Nonlinear function before mask estimation;
             select from 'prelu', 'relu', 'tanh', 'sigmoid', 'linear' (default: 'prelu').
-        nonlinear (str, optional): Nonlinear function for mask estimation; 
+        nonlinear (str, optional): Nonlinear function for mask estimation;
             select from 'relu', 'tanh', 'sigmoid', 'linear' (default: 'relu').
         i_adapt_layer (int, optional): Index of adaptation layer (default: 7).
-        adapt_layer_type (str, optional): Type of adaptation layer; see 
+        adapt_layer_type (str, optional): Type of adaptation layer; see
             espnet2.enh.layers.adapt_layers for options (default: 'mul').
-        adapt_enroll_dim (int, optional): Dimensionality of the speaker embedding 
+        adapt_enroll_dim (int, optional): Dimensionality of the speaker embedding
             (default: 128).
-        use_spk_emb (bool, optional): Whether to use speaker embeddings as enrollment 
+        use_spk_emb (bool, optional): Whether to use speaker embeddings as enrollment
             (default: False).
-        spk_emb_dim (int, optional): Dimension of input speaker embeddings; only 
+        spk_emb_dim (int, optional): Dimension of input speaker embeddings; only
             used when `use_spk_emb` is True (default: 256).
 
     Raises:
@@ -81,6 +81,7 @@ class TDSpeakerBeamExtractor(AbsExtractor):
             additional=None,
         )
     """
+
     def __init__(
         self,
         input_dim: int,
@@ -189,46 +190,46 @@ class TDSpeakerBeamExtractor(AbsExtractor):
         """
         TD-SpeakerBeam Forward.
 
-        This method processes the input features through the Time-Domain SpeakerBeam 
-        extractor and returns the masked output, input lengths, and additional 
+        This method processes the input features through the Time-Domain SpeakerBeam
+        extractor and returns the masked output, input lengths, and additional
         predicted data such as masks and enrollment embeddings.
 
         Args:
-            input (torch.Tensor or ComplexTensor): 
-                Encoded feature of shape [B, T, N], where B is the batch size, 
+            input (torch.Tensor or ComplexTensor):
+                Encoded feature of shape [B, T, N], where B is the batch size,
                 T is the time dimension, and N is the feature dimension.
-            ilens (torch.Tensor): 
-                Input lengths of shape [Batch] indicating the valid length of 
+            ilens (torch.Tensor):
+                Input lengths of shape [Batch] indicating the valid length of
                 each input feature in the batch.
-            input_aux (torch.Tensor or ComplexTensor): 
-                Encoded auxiliary feature for the target speaker of shape 
-                [B, T, N] or [B, N]. This can be either a speaker embedding or 
+            input_aux (torch.Tensor or ComplexTensor):
+                Encoded auxiliary feature for the target speaker of shape
+                [B, T, N] or [B, N]. This can be either a speaker embedding or
                 enrollment audio.
-            ilens_aux (torch.Tensor): 
-                Input lengths of auxiliary input for the target speaker of shape 
+            ilens_aux (torch.Tensor):
+                Input lengths of auxiliary input for the target speaker of shape
                 [Batch].
-            suffix_tag (str, optional): 
-                Suffix to append to the keys in the `others` dictionary. 
+            suffix_tag (str, optional):
+                Suffix to append to the keys in the `others` dictionary.
                 Defaults to an empty string.
-            additional (None or dict, optional): 
-                Additional parameters not used in this model. 
+            additional (None or dict, optional):
+                Additional parameters not used in this model.
                 Defaults to None.
 
         Returns:
-            Tuple[List[Union[torch.Tensor, ComplexTensor]], torch.Tensor, OrderedDict]: 
+            Tuple[List[Union[torch.Tensor, ComplexTensor]], torch.Tensor, OrderedDict]:
                 A tuple containing:
-                - masked (List[Union(torch.Tensor, ComplexTensor)]): 
+                - masked (List[Union(torch.Tensor, ComplexTensor)]):
                     A list of masked tensors of shape [(B, T, N), ...].
-                - ilens (torch.Tensor): 
+                - ilens (torch.Tensor):
                     The input lengths of shape (B,).
-                - others (OrderedDict): 
+                - others (OrderedDict):
                     A dictionary containing predicted data, e.g., masks:
                     - f'mask{suffix_tag}': torch.Tensor(Batch, Frames, Freq),
-                    - f'enroll_emb{suffix_tag}': 
+                    - f'enroll_emb{suffix_tag}':
                       torch.Tensor(Batch, adapt_enroll_dim/adapt_enroll_dim*2).
 
         Note:
-            When `self.use_spk_emb` is True, `aux_feature` is assumed to be 
+            When `self.use_spk_emb` is True, `aux_feature` is assumed to be
             a speaker embedding; otherwise, it is assumed to be an enrollment audio.
 
         Examples:

@@ -28,36 +28,36 @@ from espnet2.enh.layers.ncsnpp_utils.normalization import ConditionalInstanceNor
 
 def get_act(config):
     """
-    Get activation functions based on the specified configuration.
+        Get activation functions based on the specified configuration.
 
-This function returns a corresponding activation function from the PyTorch
-library based on the input string configuration. Supported activation
-functions include ELU, ReLU, Leaky ReLU, and Swish. If an unsupported
-configuration is provided, a NotImplementedError is raised.
+    This function returns a corresponding activation function from the PyTorch
+    library based on the input string configuration. Supported activation
+    functions include ELU, ReLU, Leaky ReLU, and Swish. If an unsupported
+    configuration is provided, a NotImplementedError is raised.
 
-Args:
-    config (str): The name of the activation function to retrieve. 
-                   Supported values are "elu", "relu", "lrelu", and "swish".
+    Args:
+        config (str): The name of the activation function to retrieve.
+                       Supported values are "elu", "relu", "lrelu", and "swish".
 
-Returns:
-    nn.Module: The corresponding activation function as a PyTorch module.
+    Returns:
+        nn.Module: The corresponding activation function as a PyTorch module.
 
-Raises:
-    NotImplementedError: If the specified activation function is not supported.
+    Raises:
+        NotImplementedError: If the specified activation function is not supported.
 
-Examples:
-    >>> act_fn = get_act("relu")
-    >>> print(act_fn)
-    ReLU()
+    Examples:
+        >>> act_fn = get_act("relu")
+        >>> print(act_fn)
+        ReLU()
 
-    >>> act_fn = get_act("swish")
-    >>> print(act_fn)
-    SiLU()
+        >>> act_fn = get_act("swish")
+        >>> print(act_fn)
+        SiLU()
 
-    >>> act_fn = get_act("unknown")
-    Traceback (most recent call last):
-        ...
-    NotImplementedError: activation function does not exist!
+        >>> act_fn = get_act("unknown")
+        Traceback (most recent call last):
+            ...
+        NotImplementedError: activation function does not exist!
     """
 
     if config == "elu":
@@ -80,7 +80,7 @@ def ncsn_conv1x1(
 
     This function creates a 1x1 convolutional layer with specified parameters
     and initializes its weights and biases. The initialization is scaled by
-    the `init_scale` parameter. If `init_scale` is zero, it defaults to a 
+    the `init_scale` parameter. If `init_scale` is zero, it defaults to a
     very small value to avoid zero initialization.
 
     Args:
@@ -212,18 +212,18 @@ def default_init(scale=1.0):
     """
     Initialize weights using the same method as DDPM.
 
-    This function returns a weight initialization function that uses 
-    variance scaling based on the specified scale. The initialization 
-    method is particularly designed to work well with Deep Denoising 
+    This function returns a weight initialization function that uses
+    variance scaling based on the specified scale. The initialization
+    method is particularly designed to work well with Deep Denoising
     Probabilistic Models (DDPM).
 
     Args:
         scale (float): The scale for the variance scaling initializer.
-            If scale is set to 0, it will be replaced with a small value 
+            If scale is set to 0, it will be replaced with a small value
             (1e-10) to avoid division by zero.
 
     Returns:
-        function: A function that takes a shape as input and returns 
+        function: A function that takes a shape as input and returns
         initialized weights according to the variance scaling method.
 
     Examples:
@@ -231,8 +231,8 @@ def default_init(scale=1.0):
         >>> weights = init_func((64, 128))  # Initialize weights of shape (64, 128)
 
     Note:
-        This function is particularly useful in neural network 
-        architectures where weight initialization can significantly affect 
+        This function is particularly useful in neural network
+        architectures where weight initialization can significantly affect
         the training dynamics.
     """
     scale = 1e-10 if scale == 0 else scale
@@ -253,7 +253,7 @@ class Dense(nn.Module):
     Methods:
         __init__():
             Initializes the Dense layer.
-        
+
     Examples:
         >>> dense_layer = Dense()
         >>> input_tensor = torch.randn(10, 20)  # Batch size of 10, 20 features
@@ -271,19 +271,19 @@ def ddpm_conv1x1(in_planes, out_planes, stride=1, bias=True, init_scale=1.0, pad
     1x1 convolution with DDPM initialization.
 
     This function creates a 1x1 convolutional layer and initializes its weights
-    using the DDPM (Denoising Diffusion Probabilistic Models) method. The 
-    initialization is done by scaling the weights according to a specified 
+    using the DDPM (Denoising Diffusion Probabilistic Models) method. The
+    initialization is done by scaling the weights according to a specified
     scale parameter.
 
     Args:
         in_planes (int): Number of input channels.
         out_planes (int): Number of output channels.
         stride (int, optional): Stride of the convolution. Default is 1.
-        bias (bool, optional): If True, adds a learnable bias to the output. 
+        bias (bool, optional): If True, adds a learnable bias to the output.
             Default is True.
-        init_scale (float, optional): Scale for weight initialization. Default 
+        init_scale (float, optional): Scale for weight initialization. Default
             is 1.0.
-        padding (int, optional): Zero-padding added to both sides of the 
+        padding (int, optional): Zero-padding added to both sides of the
             input. Default is 0.
 
     Returns:
@@ -295,7 +295,7 @@ def ddpm_conv1x1(in_planes, out_planes, stride=1, bias=True, init_scale=1.0, pad
         Conv2d(3, 16, kernel_size=(1, 1), stride=(1, 1), bias=True)
 
     Note:
-        The weights are initialized by calling the `default_init` function 
+        The weights are initialized by calling the `default_init` function
         with the specified `init_scale`. The bias is initialized to zero.
     """
     conv = nn.Conv2d(
@@ -359,8 +359,8 @@ def ddpm_conv3x3(
     """
     3x3 convolution with DDPM initialization.
 
-    This function creates a 3x3 convolutional layer initialized using the 
-    DDPM (Denoising Diffusion Probabilistic Models) method. The weights 
+    This function creates a 3x3 convolutional layer initialized using the
+    DDPM (Denoising Diffusion Probabilistic Models) method. The weights
     are initialized with a scale factor and the biases are set to zero.
 
     Args:
@@ -369,9 +369,9 @@ def ddpm_conv3x3(
         stride (int, optional): Stride of the convolution. Defaults to 1.
         bias (bool, optional): Whether to include a bias term. Defaults to True.
         dilation (int, optional): Dilation rate for the convolution. Defaults to 1.
-        init_scale (float, optional): Scale for weight initialization. 
+        init_scale (float, optional): Scale for weight initialization.
             Defaults to 1.0.
-        padding (int, optional): Padding added to both sides of the input. 
+        padding (int, optional): Padding added to both sides of the input.
             Defaults to 1.
 
     Returns:
@@ -384,8 +384,8 @@ def ddpm_conv3x3(
         torch.Size([1, 32, 64, 64])
 
     Note:
-        The weight initialization is performed using the `default_init` 
-        function defined elsewhere in the codebase, which applies 
+        The weight initialization is performed using the `default_init`
+        function defined elsewhere in the codebase, which applies
         variance scaling to the weights based on the given scale factor.
     """
     conv = nn.Conv2d(
@@ -413,10 +413,10 @@ class CRPBlock(nn.Module):
     Channel Reduction and Pooling Block.
 
     This class implements a CRP (Channel Reduction and Pooling) block that
-    applies a series of 3x3 convolutional layers followed by pooling to 
-    reduce the spatial dimensions of the input tensor while preserving 
-    its channel information. The block can be used as a building 
-    component in neural network architectures, especially in 
+    applies a series of 3x3 convolutional layers followed by pooling to
+    reduce the spatial dimensions of the input tensor while preserving
+    its channel information. The block can be used as a building
+    component in neural network architectures, especially in
     image processing tasks.
 
     Attributes:
@@ -429,7 +429,7 @@ class CRPBlock(nn.Module):
         features (int): Number of input and output features (channels).
         n_stages (int): Number of convolutional stages to apply.
         act (callable, optional): Activation function to use (default: ReLU).
-        maxpool (bool, optional): If True, uses MaxPool; else uses AvgPool 
+        maxpool (bool, optional): If True, uses MaxPool; else uses AvgPool
             (default: True).
 
     Examples:
@@ -447,6 +447,7 @@ class CRPBlock(nn.Module):
     Raises:
         ValueError: If `features` or `n_stages` is not positive.
     """
+
     def __init__(self, features, n_stages, act=nn.ReLU(), maxpool=True):
         super().__init__()
         self.convs = nn.ModuleList()
@@ -462,38 +463,38 @@ class CRPBlock(nn.Module):
 
     def forward(self, x):
         """
-        CRPBlock module for applying convolutional layers with pooling.
+            CRPBlock module for applying convolutional layers with pooling.
 
-    This module implements a series of convolutional layers followed by 
-    a pooling operation. The output of each convolutional layer is added 
-    to the input to form a residual connection.
+        This module implements a series of convolutional layers followed by
+        a pooling operation. The output of each convolutional layer is added
+        to the input to form a residual connection.
 
-    Attributes:
-        convs (nn.ModuleList): List of convolutional layers.
-        n_stages (int): Number of convolutional stages.
-        pool (nn.Module): Pooling layer (MaxPool or AvgPool).
-        act (callable): Activation function applied to the input.
+        Attributes:
+            convs (nn.ModuleList): List of convolutional layers.
+            n_stages (int): Number of convolutional stages.
+            pool (nn.Module): Pooling layer (MaxPool or AvgPool).
+            act (callable): Activation function applied to the input.
 
-    Args:
-        features (int): Number of input and output features for the convolutions.
-        n_stages (int): Number of convolutional stages.
-        act (callable, optional): Activation function to use (default: nn.ReLU).
-        maxpool (bool, optional): If True, use MaxPool; otherwise, use AvgPool 
-                                   (default: True).
+        Args:
+            features (int): Number of input and output features for the convolutions.
+            n_stages (int): Number of convolutional stages.
+            act (callable, optional): Activation function to use (default: nn.ReLU).
+            maxpool (bool, optional): If True, use MaxPool; otherwise, use AvgPool
+                                       (default: True).
 
-    Returns:
-        Tensor: The output tensor after applying the convolutional layers 
-                and pooling operations.
+        Returns:
+            Tensor: The output tensor after applying the convolutional layers
+                    and pooling operations.
 
-    Examples:
-        >>> block = CRPBlock(features=64, n_stages=3)
-        >>> input_tensor = torch.randn(1, 64, 32, 32)
-        >>> output_tensor = block(input_tensor)
-        >>> output_tensor.shape
-        torch.Size([1, 64, 32, 32])
+        Examples:
+            >>> block = CRPBlock(features=64, n_stages=3)
+            >>> input_tensor = torch.randn(1, 64, 32, 32)
+            >>> output_tensor = block(input_tensor)
+            >>> output_tensor.shape
+            torch.Size([1, 64, 32, 32])
 
-    Note:
-        The input tensor must have 4 dimensions (batch size, channels, height, width).
+        Note:
+            The input tensor must have 4 dimensions (batch size, channels, height, width).
         """
         x = self.act(x)
         path = x
@@ -509,8 +510,8 @@ class CondCRPBlock(nn.Module):
     Conditional Residual Processing Block.
 
     This class implements a conditional residual processing block that applies
-    a series of convolutional layers, along with conditional normalization and 
-    pooling operations. It is designed to facilitate enhanced feature extraction 
+    a series of convolutional layers, along with conditional normalization and
+    pooling operations. It is designed to facilitate enhanced feature extraction
     and integration for tasks requiring class-specific adaptations.
 
     Attributes:
@@ -540,17 +541,18 @@ class CondCRPBlock(nn.Module):
 
     Forward:
         The forward method takes an input tensor `x` and a conditional input `y`,
-        applies the activation function, processes the input through the 
+        applies the activation function, processes the input through the
         normalization and convolution layers, and returns the output tensor.
 
     Raises:
-        ValueError: If the input tensor dimensions do not match the expected 
+        ValueError: If the input tensor dimensions do not match the expected
         dimensions.
 
     Note:
         Ensure that the input tensor `x` and the conditional tensor `y` are
         appropriately shaped to match the model's expectations.
     """
+
     def __init__(self, features, n_stages, num_classes, normalizer, act=nn.ReLU()):
         super().__init__()
         self.convs = nn.ModuleList()
@@ -566,32 +568,32 @@ class CondCRPBlock(nn.Module):
 
     def forward(self, x, y):
         """
-        Forward pass through the Conditional CRP Block.
+            Forward pass through the Conditional CRP Block.
 
-    This method applies a series of conditional normalization and convolution 
-    operations to the input tensor `x`, conditioned on the input tensor `y`. 
-    The operations are repeated over a specified number of stages, with 
-    intermediate pooling applied at each stage.
+        This method applies a series of conditional normalization and convolution
+        operations to the input tensor `x`, conditioned on the input tensor `y`.
+        The operations are repeated over a specified number of stages, with
+        intermediate pooling applied at each stage.
 
-    Args:
-        x (torch.Tensor): The input tensor of shape 
-            (batch_size, num_features, height, width).
-        y (torch.Tensor): The conditional input tensor of shape 
-            (batch_size, num_classes).
+        Args:
+            x (torch.Tensor): The input tensor of shape
+                (batch_size, num_features, height, width).
+            y (torch.Tensor): The conditional input tensor of shape
+                (batch_size, num_classes).
 
-    Returns:
-        torch.Tensor: The output tensor of the same shape as `x`, which 
-        incorporates the results of the convolutional operations.
+        Returns:
+            torch.Tensor: The output tensor of the same shape as `x`, which
+            incorporates the results of the convolutional operations.
 
-    Examples:
-        >>> cond_crp_block = CondCRPBlock(features=64, n_stages=3, 
-        ...                                 num_classes=10, 
-        ...                                 normalizer=ConditionalInstanceNorm2dPlus)
-        >>> x = torch.randn(8, 64, 32, 32)  # Batch of 8, 64 features
-        >>> y = torch.randint(0, 10, (8,))   # Random class labels
-        >>> output = cond_crp_block(x, y)
-        >>> output.shape
-        torch.Size([8, 64, 32, 32])
+        Examples:
+            >>> cond_crp_block = CondCRPBlock(features=64, n_stages=3,
+            ...                                 num_classes=10,
+            ...                                 normalizer=ConditionalInstanceNorm2dPlus)
+            >>> x = torch.randn(8, 64, 32, 32)  # Batch of 8, 64 features
+            >>> y = torch.randint(0, 10, (8,))   # Random class labels
+            >>> output = cond_crp_block(x, y)
+            >>> output.shape
+            torch.Size([8, 64, 32, 32])
         """
         x = self.act(x)
         path = x
@@ -608,10 +610,10 @@ class RCUBlock(nn.Module):
     """
     Residual Channel Update Block.
 
-    This block is designed to facilitate residual learning through multiple 
-    convolutional stages. Each stage applies a series of convolutions and 
-    an activation function, with the output being added back to the input 
-    (residual connection). This architecture helps in training deeper 
+    This block is designed to facilitate residual learning through multiple
+    convolutional stages. Each stage applies a series of convolutions and
+    an activation function, with the output being added back to the input
+    (residual connection). This architecture helps in training deeper
     networks by mitigating the vanishing gradient problem.
 
     Attributes:
@@ -620,11 +622,11 @@ class RCUBlock(nn.Module):
         act (callable): The activation function to use, default is ReLU.
 
     Args:
-        features (int): The number of input and output channels for the 
+        features (int): The number of input and output channels for the
             convolutional layers.
         n_blocks (int): The number of blocks in the RCU.
         n_stages (int): The number of stages in each block.
-        act (callable, optional): The activation function to apply. 
+        act (callable, optional): The activation function to apply.
             Defaults to `nn.ReLU()`.
 
     Example:
@@ -637,6 +639,7 @@ class RCUBlock(nn.Module):
     Note:
         The number of input channels must match the `features` argument.
     """
+
     def __init__(self, features, n_blocks, n_stages, act=nn.ReLU()):
         super().__init__()
 
@@ -655,40 +658,40 @@ class RCUBlock(nn.Module):
 
     def forward(self, x):
         """
-        Residual Convolutional Unit Block (RCUBlock).
+            Residual Convolutional Unit Block (RCUBlock).
 
-    This class implements a residual block consisting of multiple stages 
-    of convolutional layers. Each stage applies a specified activation 
-    function and an optional pooling operation to the input tensor. The 
-    output of each stage is added back to the input tensor, allowing for 
-    effective gradient flow and learning.
+        This class implements a residual block consisting of multiple stages
+        of convolutional layers. Each stage applies a specified activation
+        function and an optional pooling operation to the input tensor. The
+        output of each stage is added back to the input tensor, allowing for
+        effective gradient flow and learning.
 
-    Attributes:
-        n_stages (int): The number of convolutional stages in the block.
-        act (callable): The activation function to be applied.
+        Attributes:
+            n_stages (int): The number of convolutional stages in the block.
+            act (callable): The activation function to be applied.
 
-    Args:
-        features (int): Number of input and output features for each 
-            convolutional layer.
-        n_blocks (int): Number of blocks to be used in the RCU.
-        n_stages (int): Number of stages within each block.
-        act (callable, optional): Activation function to use (default: 
-            nn.ReLU()).
+        Args:
+            features (int): Number of input and output features for each
+                convolutional layer.
+            n_blocks (int): Number of blocks to be used in the RCU.
+            n_stages (int): Number of stages within each block.
+            act (callable, optional): Activation function to use (default:
+                nn.ReLU()).
 
-    Examples:
-        >>> rcu_block = RCUBlock(features=64, n_blocks=2, n_stages=3)
-        >>> input_tensor = torch.randn(1, 64, 32, 32)
-        >>> output_tensor = rcu_block(input_tensor)
-        >>> output_tensor.shape
-        torch.Size([1, 64, 32, 32])
+        Examples:
+            >>> rcu_block = RCUBlock(features=64, n_blocks=2, n_stages=3)
+            >>> input_tensor = torch.randn(1, 64, 32, 32)
+            >>> output_tensor = rcu_block(input_tensor)
+            >>> output_tensor.shape
+            torch.Size([1, 64, 32, 32])
 
-    Note:
-        The RCUBlock can be used as a building block for more complex 
-        neural network architectures, especially in tasks such as 
-        image processing or feature extraction in deep learning.
+        Note:
+            The RCUBlock can be used as a building block for more complex
+            neural network architectures, especially in tasks such as
+            image processing or feature extraction in deep learning.
 
-    Raises:
-        ValueError: If n_stages or n_blocks is not a positive integer.
+        Raises:
+            ValueError: If n_stages or n_blocks is not a positive integer.
         """
         for i in range(self.n_blocks):
             residual = x
@@ -738,6 +741,7 @@ class CondRCUBlock(nn.Module):
         ValueError: If the number of features is not positive or if the number of
         blocks or stages is not positive.
     """
+
     def __init__(
         self, features, n_blocks, n_stages, num_classes, normalizer, act=nn.ReLU()
     ):
@@ -764,55 +768,55 @@ class CondRCUBlock(nn.Module):
 
     def forward(self, x, y):
         """
-        Conditional Residual Unit Block.
+            Conditional Residual Unit Block.
 
-    This class implements a conditional residual unit block which applies
-    a series of convolutional layers with normalization and activation. 
-    The block consists of multiple stages, each containing normalization,
-    convolution, and residual connections. It is particularly useful for 
-    tasks where conditioning on additional information (e.g., class labels)
-    is required.
+        This class implements a conditional residual unit block which applies
+        a series of convolutional layers with normalization and activation.
+        The block consists of multiple stages, each containing normalization,
+        convolution, and residual connections. It is particularly useful for
+        tasks where conditioning on additional information (e.g., class labels)
+        is required.
 
-    Attributes:
-        n_blocks (int): The number of blocks in the unit.
-        n_stages (int): The number of stages in each block.
-        act (callable): Activation function to be applied after normalization.
-        normalizer (callable): Normalization function used for conditioning.
+        Attributes:
+            n_blocks (int): The number of blocks in the unit.
+            n_stages (int): The number of stages in each block.
+            act (callable): Activation function to be applied after normalization.
+            normalizer (callable): Normalization function used for conditioning.
 
-    Args:
-        features (int): Number of input and output features for the convolutions.
-        n_blocks (int): Number of residual blocks.
-        n_stages (int): Number of stages in each block.
-        num_classes (int): Number of classes for conditional normalization.
-        normalizer (callable): Normalization layer used for conditioning.
-        act (callable, optional): Activation function (default is nn.ReLU()).
+        Args:
+            features (int): Number of input and output features for the convolutions.
+            n_blocks (int): Number of residual blocks.
+            n_stages (int): Number of stages in each block.
+            num_classes (int): Number of classes for conditional normalization.
+            normalizer (callable): Normalization layer used for conditioning.
+            act (callable, optional): Activation function (default is nn.ReLU()).
 
-    Forward Method:
-        The forward method takes two inputs:
-            x (torch.Tensor): The input tensor of shape (B, C, H, W).
-            y (torch.Tensor): The conditioning tensor of shape (B, num_classes).
+        Forward Method:
+            The forward method takes two inputs:
+                x (torch.Tensor): The input tensor of shape (B, C, H, W).
+                y (torch.Tensor): The conditioning tensor of shape (B, num_classes).
 
-        Returns:
-            torch.Tensor: The output tensor of shape (B, C, H, W) after 
-            applying the conditional residual block.
+            Returns:
+                torch.Tensor: The output tensor of shape (B, C, H, W) after
+                applying the conditional residual block.
 
-    Examples:
-        >>> cond_rcu_block = CondRCUBlock(features=64, n_blocks=2, 
-        ...                                 n_stages=2, num_classes=10, 
-        ...                                 normalizer=some_normalizer)
-        >>> x = torch.randn(8, 64, 32, 32)  # Example input
-        >>> y = torch.randint(0, 10, (8,))   # Example conditioning input
-        >>> output = cond_rcu_block(x, y)
-        >>> print(output.shape)
-        torch.Size([8, 64, 32, 32])
+        Examples:
+            >>> cond_rcu_block = CondRCUBlock(features=64, n_blocks=2,
+            ...                                 n_stages=2, num_classes=10,
+            ...                                 normalizer=some_normalizer)
+            >>> x = torch.randn(8, 64, 32, 32)  # Example input
+            >>> y = torch.randint(0, 10, (8,))   # Example conditioning input
+            >>> output = cond_rcu_block(x, y)
+            >>> print(output.shape)
+            torch.Size([8, 64, 32, 32])
 
-    Note:
-        This block is particularly effective in generative models where 
-        conditioning can significantly improve performance.
+        Note:
+            This block is particularly effective in generative models where
+            conditioning can significantly improve performance.
 
-    Todo:
-        - Implement additional normalization options.
-        - Optimize the block for performance on large models.
+        Todo:
+            - Implement additional normalization options.
+            - Optimize the block for performance on large models.
         """
         for i in range(self.n_blocks):
             residual = x
@@ -864,6 +868,7 @@ class MSFBlock(nn.Module):
     Raises:
         AssertionError: If the input `in_planes` is not a list or tuple.
     """
+
     def __init__(self, in_planes, features):
         super().__init__()
         assert isinstance(in_planes, list) or isinstance(in_planes, tuple)
@@ -875,32 +880,32 @@ class MSFBlock(nn.Module):
 
     def forward(self, xs, shape):
         """
-        Multi-Scale Feature Block for processing multiple input feature maps.
+            Multi-Scale Feature Block for processing multiple input feature maps.
 
-    This block takes a list of input feature maps and applies 3x3 convolutions 
-    to each one, followed by bilinear interpolation to combine them into a 
-    single output feature map.
+        This block takes a list of input feature maps and applies 3x3 convolutions
+        to each one, followed by bilinear interpolation to combine them into a
+        single output feature map.
 
-    Attributes:
-        convs (nn.ModuleList): A list of convolutional layers for each input 
-            feature map.
-        features (int): The number of output feature channels.
+        Attributes:
+            convs (nn.ModuleList): A list of convolutional layers for each input
+                feature map.
+            features (int): The number of output feature channels.
 
-    Args:
-        in_planes (list or tuple): A list or tuple of integers representing 
-            the number of input channels for each feature map.
-        features (int): The number of output feature channels.
+        Args:
+            in_planes (list or tuple): A list or tuple of integers representing
+                the number of input channels for each feature map.
+            features (int): The number of output feature channels.
 
-    Returns:
-        torch.Tensor: A tensor containing the combined output feature map.
+        Returns:
+            torch.Tensor: A tensor containing the combined output feature map.
 
-    Examples:
-        >>> msf_block = MSFBlock([64, 128], features=256)
-        >>> input_tensor1 = torch.randn(1, 64, 32, 32)
-        >>> input_tensor2 = torch.randn(1, 128, 32, 32)
-        >>> output = msf_block([input_tensor1, input_tensor2], shape=(64, 64))
-        >>> output.shape
-        torch.Size([1, 256, 64, 64])
+        Examples:
+            >>> msf_block = MSFBlock([64, 128], features=256)
+            >>> input_tensor1 = torch.randn(1, 64, 32, 32)
+            >>> input_tensor2 = torch.randn(1, 128, 32, 32)
+            >>> output = msf_block([input_tensor1, input_tensor2], shape=(64, 64))
+            >>> output.shape
+            torch.Size([1, 256, 64, 64])
         """
         sums = torch.zeros(xs[0].shape[0], self.features, *shape, device=xs[0].device)
         for i in range(len(self.convs)):
@@ -914,9 +919,9 @@ class CondMSFBlock(nn.Module):
     """
     Conditional Multi-Scale Fusion Block.
 
-    This block is designed for multi-scale feature fusion in a conditional 
-    manner, typically used in tasks such as image generation and enhancement. 
-    It combines multiple input feature maps using convolutions and normalizes 
+    This block is designed for multi-scale feature fusion in a conditional
+    manner, typically used in tasks such as image generation and enhancement.
+    It combines multiple input feature maps using convolutions and normalizes
     them based on class information.
 
     Attributes:
@@ -926,23 +931,23 @@ class CondMSFBlock(nn.Module):
         normalizer (callable): A callable normalization function.
 
     Args:
-        in_planes (list or tuple): A list or tuple containing the number of input 
+        in_planes (list or tuple): A list or tuple containing the number of input
             channels for each input feature map.
         features (int): The number of output features after fusion.
         num_classes (int): The number of classes for conditional normalization.
-        normalizer (callable): A normalization layer or function to be applied 
+        normalizer (callable): A normalization layer or function to be applied
             after convolutions.
 
     Forward:
-        x (list of tensors): List of input feature maps, each of shape 
-            (B, C, H, W), where B is the batch size, C is the number of 
+        x (list of tensors): List of input feature maps, each of shape
+            (B, C, H, W), where B is the batch size, C is the number of
             channels, H is the height, and W is the width.
-        y (tensor): A tensor containing class information, used for 
+        y (tensor): A tensor containing class information, used for
             conditional normalization.
         shape (tuple): The target shape (H, W) for the output feature map.
 
     Returns:
-        tensor: A tensor of shape (B, features, height, width) containing 
+        tensor: A tensor of shape (B, features, height, width) containing
         the fused feature map.
 
     Examples:
@@ -955,13 +960,14 @@ class CondMSFBlock(nn.Module):
         torch.Size([8, 128, 32, 32])
 
     Note:
-        The normalization layers expect the input tensors to be of shape 
-        (B, C, H, W). Ensure that the input tensors are appropriately shaped 
+        The normalization layers expect the input tensors to be of shape
+        (B, C, H, W). Ensure that the input tensors are appropriately shaped
         before passing them to the forward method.
 
     Todo:
         Add support for additional normalization techniques in the future.
     """
+
     def __init__(self, in_planes, features, num_classes, normalizer):
         super().__init__()
         assert isinstance(in_planes, list) or isinstance(in_planes, tuple)
@@ -977,42 +983,42 @@ class CondMSFBlock(nn.Module):
 
     def forward(self, xs, y, shape):
         """
-        Performs the forward pass of the Conditional Residual Block.
+            Performs the forward pass of the Conditional Residual Block.
 
-    This method takes the input tensor `x` and the conditioning tensor `y`,
-    applies normalization, activation, and convolution operations in a 
-    residual manner across multiple blocks and stages. The output is a 
-    combination of the processed input and the residual.
+        This method takes the input tensor `x` and the conditioning tensor `y`,
+        applies normalization, activation, and convolution operations in a
+        residual manner across multiple blocks and stages. The output is a
+        combination of the processed input and the residual.
 
-    Args:
-        x (torch.Tensor): The input tensor of shape (B, C, H, W), where 
-            B is the batch size, C is the number of channels, and 
-            H and W are the height and width of the input.
-        y (torch.Tensor): The conditioning tensor of shape (B, num_classes), 
-            where B is the batch size and num_classes is the number of classes 
-            for conditional normalization.
+        Args:
+            x (torch.Tensor): The input tensor of shape (B, C, H, W), where
+                B is the batch size, C is the number of channels, and
+                H and W are the height and width of the input.
+            y (torch.Tensor): The conditioning tensor of shape (B, num_classes),
+                where B is the batch size and num_classes is the number of classes
+                for conditional normalization.
 
-    Returns:
-        torch.Tensor: The output tensor after applying the forward operations, 
-            with the same shape as the input tensor `x`.
+        Returns:
+            torch.Tensor: The output tensor after applying the forward operations,
+                with the same shape as the input tensor `x`.
 
-    Examples:
-        >>> block = CondRCUBlock(features=64, n_blocks=2, n_stages=2, 
-        ...                       num_classes=10, normalizer=SomeNormalizer)
-        >>> x = torch.randn(8, 64, 32, 32)  # Batch of 8, 64 channels, 32x32
-        >>> y = torch.randint(0, 10, (8,))   # Batch of 8, class indices
-        >>> output = block(x, y)
-        >>> print(output.shape)
-        torch.Size([8, 64, 32, 32])
+        Examples:
+            >>> block = CondRCUBlock(features=64, n_blocks=2, n_stages=2,
+            ...                       num_classes=10, normalizer=SomeNormalizer)
+            >>> x = torch.randn(8, 64, 32, 32)  # Batch of 8, 64 channels, 32x32
+            >>> y = torch.randint(0, 10, (8,))   # Batch of 8, class indices
+            >>> output = block(x, y)
+            >>> print(output.shape)
+            torch.Size([8, 64, 32, 32])
 
-    Note:
-        This block uses conditional normalization, which allows the 
-        model to adapt its parameters based on the class information 
-        provided by the conditioning tensor `y`.
+        Note:
+            This block uses conditional normalization, which allows the
+            model to adapt its parameters based on the class information
+            provided by the conditioning tensor `y`.
 
-    Raises:
-        RuntimeError: If the shapes of the input tensor `x` and 
-            conditioning tensor `y` do not match the expected dimensions.
+        Raises:
+            RuntimeError: If the shapes of the input tensor `x` and
+                conditioning tensor `y` do not match the expected dimensions.
         """
         sums = torch.zeros(xs[0].shape[0], self.features, *shape, device=xs[0].device)
         for i in range(len(self.convs)):
@@ -1027,10 +1033,10 @@ class RefineBlock(nn.Module):
     """
     Refinement block for feature extraction and processing.
 
-    This block is designed to adaptively refine features from multiple 
-    input sources using Residual Convolutional Units (RCU), a Multi-Scale 
-    Feature (MSF) block, and a Conditional Residual Processing (CRP) 
-    block. It allows for the combination of features from different 
+    This block is designed to adaptively refine features from multiple
+    input sources using Residual Convolutional Units (RCU), a Multi-Scale
+    Feature (MSF) block, and a Conditional Residual Processing (CRP)
+    block. It allows for the combination of features from different
     resolutions and enhances them through a series of convolutions.
 
     Attributes:
@@ -1053,11 +1059,12 @@ class RefineBlock(nn.Module):
     Examples:
         >>> refine_block = RefineBlock((64, 128), 256)
         >>> output = refine_block((input_tensor1, input_tensor2), output_shape)
-    
+
     Note:
-        The `start` and `end` flags can be used to customize the behavior 
+        The `start` and `end` flags can be used to customize the behavior
         of the block based on its position in the overall network architecture.
     """
+
     def __init__(
         self, in_planes, features, act=nn.ReLU(), start=False, end=False, maxpool=True
     ):
@@ -1079,35 +1086,35 @@ class RefineBlock(nn.Module):
 
     def forward(self, xs, output_shape):
         """
-        RefineBlock for hierarchical feature refinement in deep networks.
+            RefineBlock for hierarchical feature refinement in deep networks.
 
-    This module refines input features from multiple sources through a series of
-    convolutional layers, pooling operations, and residual connections. It is designed
-    to adaptively fuse features from various input resolutions, enhancing the network's
-    ability to capture complex patterns.
+        This module refines input features from multiple sources through a series of
+        convolutional layers, pooling operations, and residual connections. It is designed
+        to adaptively fuse features from various input resolutions, enhancing the network's
+        ability to capture complex patterns.
 
-    Attributes:
-        n_blocks (int): Number of input feature blocks.
-        adapt_convs (nn.ModuleList): List of Residual Convolutional Units (RCUs)
-            for adapting input features.
-        output_convs (RCUBlock): RCU for producing output features.
-        msf (MSFBlock): Multi-scale feature fusion block, if applicable.
-        crp (CRPBlock): Contextual Refinement Pooling block.
+        Attributes:
+            n_blocks (int): Number of input feature blocks.
+            adapt_convs (nn.ModuleList): List of Residual Convolutional Units (RCUs)
+                for adapting input features.
+            output_convs (RCUBlock): RCU for producing output features.
+            msf (MSFBlock): Multi-scale feature fusion block, if applicable.
+            crp (CRPBlock): Contextual Refinement Pooling block.
 
-    Args:
-        in_planes (list or tuple): A list or tuple of input feature dimensions.
-        features (int): Number of output features for the final layer.
-        act (callable): Activation function to use (default: nn.ReLU).
-        start (bool): Whether this block is at the start of the network (default: False).
-        end (bool): Whether this block is at the end of the network (default: False).
-        maxpool (bool): Whether to use max pooling in CRPBlock (default: True).
+        Args:
+            in_planes (list or tuple): A list or tuple of input feature dimensions.
+            features (int): Number of output features for the final layer.
+            act (callable): Activation function to use (default: nn.ReLU).
+            start (bool): Whether this block is at the start of the network (default: False).
+            end (bool): Whether this block is at the end of the network (default: False).
+            maxpool (bool): Whether to use max pooling in CRPBlock (default: True).
 
-    Examples:
-        >>> refine_block = RefineBlock(in_planes=(64, 128), features=256)
-        >>> input_features = (torch.randn(1, 64, 32, 32), torch.randn(1, 128, 16, 16))
-        >>> output = refine_block(input_features, output_shape=(16, 16))
-        >>> print(output.shape)
-        torch.Size([1, 256, 16, 16])
+        Examples:
+            >>> refine_block = RefineBlock(in_planes=(64, 128), features=256)
+            >>> input_features = (torch.randn(1, 64, 32, 32), torch.randn(1, 128, 16, 16))
+            >>> output = refine_block(input_features, output_shape=(16, 16))
+            >>> print(output.shape)
+            torch.Size([1, 256, 16, 16])
         """
         assert isinstance(xs, tuple) or isinstance(xs, list)
         hs = []
@@ -1174,6 +1181,7 @@ class CondRefineBlock(nn.Module):
     Raises:
         AssertionError: If `xs` is not a tuple or list.
     """
+
     def __init__(
         self,
         in_planes,
@@ -1206,65 +1214,65 @@ class CondRefineBlock(nn.Module):
 
     def forward(self, xs, y, output_shape):
         """
-        Conditional Refine Block for enhancing feature representations.
+            Conditional Refine Block for enhancing feature representations.
 
-    This block is designed to refine features through a combination of
-    conditional residual units and pooling layers. It utilizes multiple 
-    stages of processing, where each stage applies normalization, 
-    convolutions, and an activation function. The block is particularly 
-    useful in conditional settings, allowing the integration of class 
-    information during the refinement process.
+        This block is designed to refine features through a combination of
+        conditional residual units and pooling layers. It utilizes multiple
+        stages of processing, where each stage applies normalization,
+        convolutions, and an activation function. The block is particularly
+        useful in conditional settings, allowing the integration of class
+        information during the refinement process.
 
-    Attributes:
-        n_blocks (int): Number of input blocks.
-        adapt_convs (nn.ModuleList): List of conditional residual units 
-            for each input block.
-        output_convs (CondRCUBlock): Conditional residual unit for output 
-            features.
-        msf (CondMSFBlock): Multi-scale feature block for combining inputs 
-            (if not starting).
-        crp (CondCRPBlock): Conditional Residual Pooling block for refining 
-            features.
+        Attributes:
+            n_blocks (int): Number of input blocks.
+            adapt_convs (nn.ModuleList): List of conditional residual units
+                for each input block.
+            output_convs (CondRCUBlock): Conditional residual unit for output
+                features.
+            msf (CondMSFBlock): Multi-scale feature block for combining inputs
+                (if not starting).
+            crp (CondCRPBlock): Conditional Residual Pooling block for refining
+                features.
 
-    Args:
-        in_planes (tuple or list): Number of input feature planes for 
-            each block.
-        features (int): Number of feature planes for output.
-        num_classes (int): Number of classes for conditional normalization.
-        normalizer (callable): Normalization function to be used in the 
-            conditional residual units.
-        act (nn.Module, optional): Activation function to apply. Defaults 
-            to ReLU.
-        start (bool, optional): If True, skip multi-scale feature block. 
-            Defaults to False.
-        end (bool, optional): If True, apply additional layers at the end. 
-            Defaults to False.
+        Args:
+            in_planes (tuple or list): Number of input feature planes for
+                each block.
+            features (int): Number of feature planes for output.
+            num_classes (int): Number of classes for conditional normalization.
+            normalizer (callable): Normalization function to be used in the
+                conditional residual units.
+            act (nn.Module, optional): Activation function to apply. Defaults
+                to ReLU.
+            start (bool, optional): If True, skip multi-scale feature block.
+                Defaults to False.
+            end (bool, optional): If True, apply additional layers at the end.
+                Defaults to False.
 
-    Returns:
-        Tensor: Refined feature tensor after processing.
+        Returns:
+            Tensor: Refined feature tensor after processing.
 
-    Examples:
-        >>> cond_refine_block = CondRefineBlock(
-        ...     in_planes=(32, 64),
-        ...     features=128,
-        ...     num_classes=10,
-        ...     normalizer=ConditionalInstanceNorm2dPlus
-        ... )
-        >>> x = (torch.randn(1, 32, 64, 64), torch.randn(1, 64, 64, 64))
-        >>> y = torch.randint(0, 10, (1,))
-        >>> output_shape = (128, 32, 32)
-        >>> output = cond_refine_block(x, y, output_shape)
-        >>> output.shape
-        torch.Size([1, 128, 32, 32])
+        Examples:
+            >>> cond_refine_block = CondRefineBlock(
+            ...     in_planes=(32, 64),
+            ...     features=128,
+            ...     num_classes=10,
+            ...     normalizer=ConditionalInstanceNorm2dPlus
+            ... )
+            >>> x = (torch.randn(1, 32, 64, 64), torch.randn(1, 64, 64, 64))
+            >>> y = torch.randint(0, 10, (1,))
+            >>> output_shape = (128, 32, 32)
+            >>> output = cond_refine_block(x, y, output_shape)
+            >>> output.shape
+            torch.Size([1, 128, 32, 32])
 
-    Note:
-        Ensure that the input tensors are compatible with the expected 
-        dimensions, particularly with respect to the number of channels 
-        and spatial dimensions.
+        Note:
+            Ensure that the input tensors are compatible with the expected
+            dimensions, particularly with respect to the number of channels
+            and spatial dimensions.
 
-    Todo:
-        - Add support for additional normalization techniques.
-        - Explore different activation functions to enhance performance.
+        Todo:
+            - Add support for additional normalization techniques.
+            - Explore different activation functions to enhance performance.
         """
         assert isinstance(xs, tuple) or isinstance(xs, list)
         hs = []
@@ -1287,9 +1295,9 @@ class ConvMeanPool(nn.Module):
     """
     Convolutional layer followed by mean pooling.
 
-    This layer applies a convolution operation followed by mean pooling 
-    on the input tensor. The mean pooling is done over the four quadrants 
-    of the input, effectively downsampling the feature map while 
+    This layer applies a convolution operation followed by mean pooling
+    on the input tensor. The mean pooling is done over the four quadrants
+    of the input, effectively downsampling the feature map while
     preserving the learned features.
 
     Attributes:
@@ -1298,12 +1306,12 @@ class ConvMeanPool(nn.Module):
     Args:
         input_dim (int): The number of input channels.
         output_dim (int): The number of output channels.
-        kernel_size (int, optional): The size of the convolutional kernel. 
+        kernel_size (int, optional): The size of the convolutional kernel.
             Defaults to 3.
-        biases (bool, optional): Whether to include a bias term in the 
+        biases (bool, optional): Whether to include a bias term in the
             convolution. Defaults to True.
-        adjust_padding (bool, optional): If True, applies zero padding 
-            before the convolution to maintain the spatial dimensions. 
+        adjust_padding (bool, optional): If True, applies zero padding
+            before the convolution to maintain the spatial dimensions.
             Defaults to False.
 
     Examples:
@@ -1314,9 +1322,10 @@ class ConvMeanPool(nn.Module):
         torch.Size([1, 16, 16, 16])  # Output dimensions after pooling
 
     Note:
-        If `adjust_padding` is set to True, the convolution will be applied 
+        If `adjust_padding` is set to True, the convolution will be applied
         with an additional padding of 1 pixel on the left and top sides.
     """
+
     def __init__(
         self, input_dim, output_dim, kernel_size=3, biases=True, adjust_padding=False
     ):
@@ -1345,34 +1354,34 @@ class ConvMeanPool(nn.Module):
 
     def forward(self, inputs):
         """
-        Forward pass for the Conditional Residual Block.
+            Forward pass for the Conditional Residual Block.
 
-    This method applies the forward operation on the input tensor `x` 
-    and the conditional tensor `y`. It normalizes the input, applies 
-    a series of convolutions, and returns the sum of the shortcut 
-    connection and the output of the convolutions.
+        This method applies the forward operation on the input tensor `x`
+        and the conditional tensor `y`. It normalizes the input, applies
+        a series of convolutions, and returns the sum of the shortcut
+        connection and the output of the convolutions.
 
-    Args:
-        x (torch.Tensor): Input tensor of shape (B, C, H, W), where 
-            B is the batch size, C is the number of channels, 
-            H is the height, and W is the width.
-        y (torch.Tensor): Conditional tensor of shape (B, num_classes).
+        Args:
+            x (torch.Tensor): Input tensor of shape (B, C, H, W), where
+                B is the batch size, C is the number of channels,
+                H is the height, and W is the width.
+            y (torch.Tensor): Conditional tensor of shape (B, num_classes).
 
-    Returns:
-        torch.Tensor: Output tensor of the same shape as input `x`.
+        Returns:
+            torch.Tensor: Output tensor of the same shape as input `x`.
 
-    Note:
-        The number of channels in `x` must match `input_dim`, 
-        and the number of classes in `y` must match `num_classes`.
+        Note:
+            The number of channels in `x` must match `input_dim`,
+            and the number of classes in `y` must match `num_classes`.
 
-    Examples:
-        >>> block = ConditionalResidualBlock(input_dim=64, output_dim=128, 
-        ...                                   num_classes=10)
-        >>> x = torch.randn(8, 64, 32, 32)  # Batch of 8 images
-        >>> y = torch.randint(0, 10, (8,))  # Batch of class labels
-        >>> output = block(x, y)
-        >>> print(output.shape)
-        torch.Size([8, 128, 32, 32])
+        Examples:
+            >>> block = ConditionalResidualBlock(input_dim=64, output_dim=128,
+            ...                                   num_classes=10)
+            >>> x = torch.randn(8, 64, 32, 32)  # Batch of 8 images
+            >>> y = torch.randint(0, 10, (8,))  # Batch of class labels
+            >>> output = block(x, y)
+            >>> print(output.shape)
+            torch.Size([8, 128, 32, 32])
         """
         output = self.conv(inputs)
         output = (
@@ -1394,23 +1403,23 @@ class MeanPoolConv(nn.Module):
     Mean Pooling followed by a Convolutional layer.
 
     This class applies a mean pooling operation on the input tensor, followed
-    by a convolution operation. The mean pooling is performed over a 2x2 
+    by a convolution operation. The mean pooling is performed over a 2x2
     spatial region, which effectively reduces the spatial dimensions by half.
 
     Attributes:
-        conv (nn.Conv2d): The convolutional layer that processes the output 
+        conv (nn.Conv2d): The convolutional layer that processes the output
             from the mean pooling operation.
 
     Args:
         input_dim (int): The number of input channels.
         output_dim (int): The number of output channels.
-        kernel_size (int, optional): The size of the convolutional kernel. 
+        kernel_size (int, optional): The size of the convolutional kernel.
             Default is 3.
-        biases (bool, optional): If True, adds a learnable bias to the 
+        biases (bool, optional): If True, adds a learnable bias to the
             convolutional layer. Default is True.
 
     Returns:
-        Tensor: The output of the convolution after applying mean pooling 
+        Tensor: The output of the convolution after applying mean pooling
         on the input.
 
     Examples:
@@ -1421,11 +1430,12 @@ class MeanPoolConv(nn.Module):
         torch.Size([1, 16, 32, 32])  # Output shape after mean pooling and convolution
 
     Note:
-        The mean pooling operation averages the values in a 2x2 region 
-        across the input tensor, which reduces the spatial dimensions by 
-        a factor of 2. The convolutional layer then processes this pooled 
+        The mean pooling operation averages the values in a 2x2 region
+        across the input tensor, which reduces the spatial dimensions by
+        a factor of 2. The convolutional layer then processes this pooled
         output to produce the final result.
     """
+
     def __init__(self, input_dim, output_dim, kernel_size=3, biases=True):
         super().__init__()
         self.conv = nn.Conv2d(
@@ -1439,40 +1449,40 @@ class MeanPoolConv(nn.Module):
 
     def forward(self, inputs):
         """
-        Performs the forward pass of the Conditional Residual Block.
+            Performs the forward pass of the Conditional Residual Block.
 
-    This method takes an input tensor and a conditional tensor, processes them 
-    through several convolutional layers, applies normalization and activation 
-    functions, and finally returns the output of the residual connection.
+        This method takes an input tensor and a conditional tensor, processes them
+        through several convolutional layers, applies normalization and activation
+        functions, and finally returns the output of the residual connection.
 
-    Args:
-        x (torch.Tensor): The input tensor of shape (B, C, H, W), where:
-            B = batch size
-            C = number of input channels
-            H = height of the input tensor
-            W = width of the input tensor
-        y (torch.Tensor): The conditional tensor of shape (B, num_classes), 
-            which is used for conditional normalization.
+        Args:
+            x (torch.Tensor): The input tensor of shape (B, C, H, W), where:
+                B = batch size
+                C = number of input channels
+                H = height of the input tensor
+                W = width of the input tensor
+            y (torch.Tensor): The conditional tensor of shape (B, num_classes),
+                which is used for conditional normalization.
 
-    Returns:
-        torch.Tensor: The output tensor of the same shape as the input tensor 
-        after applying the conditional residual operations.
+        Returns:
+            torch.Tensor: The output tensor of the same shape as the input tensor
+            after applying the conditional residual operations.
 
-    Examples:
-        >>> block = ConditionalResidualBlock(input_dim=64, output_dim=128, 
-        ...                                   num_classes=10)
-        >>> input_tensor = torch.randn(8, 64, 32, 32)  # Batch of 8 images
-        >>> conditional_tensor = torch.randint(0, 10, (8, 10))  # Batch of labels
-        >>> output = block(input_tensor, conditional_tensor)
-        >>> print(output.shape)  # Output shape should be (8, 128, 32, 32)
+        Examples:
+            >>> block = ConditionalResidualBlock(input_dim=64, output_dim=128,
+            ...                                   num_classes=10)
+            >>> input_tensor = torch.randn(8, 64, 32, 32)  # Batch of 8 images
+            >>> conditional_tensor = torch.randint(0, 10, (8, 10))  # Batch of labels
+            >>> output = block(input_tensor, conditional_tensor)
+            >>> print(output.shape)  # Output shape should be (8, 128, 32, 32)
 
-    Note:
-        The class should be initialized with the appropriate dimensions and 
-        normalization method to ensure proper functionality.
+        Note:
+            The class should be initialized with the appropriate dimensions and
+            normalization method to ensure proper functionality.
 
-    Raises:
-        Exception: If the output dimension does not match the input dimension 
-        and resampling is not None.
+        Raises:
+            Exception: If the output dimension does not match the input dimension
+            and resampling is not None.
         """
         output = inputs
         output = (
@@ -1493,21 +1503,21 @@ class UpsampleConv(nn.Module):
     """
     Upsampling convolution layer.
 
-    This layer performs upsampling on the input tensor using PixelShuffle 
-    after concatenating the input with itself four times. The upsampled 
+    This layer performs upsampling on the input tensor using PixelShuffle
+    after concatenating the input with itself four times. The upsampled
     output is then passed through a convolutional layer.
 
     Attributes:
-        conv (nn.Conv2d): The convolutional layer that processes the output 
+        conv (nn.Conv2d): The convolutional layer that processes the output
             after upsampling.
-        pixelshuffle (nn.PixelShuffle): The layer that performs pixel shuffling 
+        pixelshuffle (nn.PixelShuffle): The layer that performs pixel shuffling
             to upscale the input.
 
     Args:
         input_dim (int): Number of input channels.
         output_dim (int): Number of output channels.
         kernel_size (int, optional): Size of the convolving kernel. Default is 3.
-        biases (bool, optional): If True, adds a learnable bias to the output. 
+        biases (bool, optional): If True, adds a learnable bias to the output.
             Default is True.
 
     Returns:
@@ -1521,14 +1531,15 @@ class UpsampleConv(nn.Module):
         torch.Size([1, 32, 128, 128])
 
     Note:
-        The input tensor is expected to have 4 dimensions: (batch_size, 
-        channels, height, width). The output tensor will have its height and 
+        The input tensor is expected to have 4 dimensions: (batch_size,
+        channels, height, width). The output tensor will have its height and
         width doubled.
 
     Todo:
-        - Consider adding options for different upsampling methods in the 
+        - Consider adding options for different upsampling methods in the
           future.
     """
+
     def __init__(self, input_dim, output_dim, kernel_size=3, biases=True):
         super().__init__()
         self.conv = nn.Conv2d(
@@ -1543,40 +1554,40 @@ class UpsampleConv(nn.Module):
 
     def forward(self, inputs):
         """
-        Forward pass through the Conditional Residual Block.
+            Forward pass through the Conditional Residual Block.
 
-    This method applies a series of normalization, activation, and convolutional 
-    operations to the input tensor `x`. It also incorporates a conditional 
-    input `y` for normalization purposes, allowing the block to learn 
-    class-specific features.
+        This method applies a series of normalization, activation, and convolutional
+        operations to the input tensor `x`. It also incorporates a conditional
+        input `y` for normalization purposes, allowing the block to learn
+        class-specific features.
 
-    Args:
-        x (torch.Tensor): Input tensor of shape (B, C, H, W), where B is the 
-            batch size, C is the number of input channels, H is the height, 
-            and W is the width of the input.
-        y (torch.Tensor): Conditional input tensor of shape (B, num_classes) 
-            used for normalization.
+        Args:
+            x (torch.Tensor): Input tensor of shape (B, C, H, W), where B is the
+                batch size, C is the number of input channels, H is the height,
+                and W is the width of the input.
+            y (torch.Tensor): Conditional input tensor of shape (B, num_classes)
+                used for normalization.
 
-    Returns:
-        torch.Tensor: Output tensor of the same shape as input `x`, 
-            after applying the operations defined in the block.
+        Returns:
+            torch.Tensor: Output tensor of the same shape as input `x`,
+                after applying the operations defined in the block.
 
-    Note:
-        The behavior of the block depends on the `resample` attribute:
-        - If `resample` is "down", the spatial dimensions of the output 
-          are reduced.
-        - If `resample` is None, the input dimensions remain unchanged.
-        - If the output dimensions differ from the input dimensions, a 
-          shortcut connection is applied to match the dimensions.
+        Note:
+            The behavior of the block depends on the `resample` attribute:
+            - If `resample` is "down", the spatial dimensions of the output
+              are reduced.
+            - If `resample` is None, the input dimensions remain unchanged.
+            - If the output dimensions differ from the input dimensions, a
+              shortcut connection is applied to match the dimensions.
 
-    Examples:
-        >>> block = ConditionalResidualBlock(input_dim=64, output_dim=128, 
-        ...                                   num_classes=10)
-        >>> x = torch.randn(8, 64, 32, 32)  # Batch of 8, 64 channels, 32x32
-        >>> y = torch.randint(0, 10, (8,))   # Random class labels for 8 samples
-        >>> output = block(x, y)
-        >>> output.shape
-        torch.Size([8, 128, 32, 32])  # Output shape will be (B, output_dim, H, W)
+        Examples:
+            >>> block = ConditionalResidualBlock(input_dim=64, output_dim=128,
+            ...                                   num_classes=10)
+            >>> x = torch.randn(8, 64, 32, 32)  # Batch of 8, 64 channels, 32x32
+            >>> y = torch.randint(0, 10, (8,))   # Random class labels for 8 samples
+            >>> output = block(x, y)
+            >>> output.shape
+            torch.Size([8, 128, 32, 32])  # Output shape will be (B, output_dim, H, W)
         """
         output = inputs
         output = torch.cat([output, output, output, output], dim=1)
@@ -1590,7 +1601,7 @@ class ConditionalResidualBlock(nn.Module):
 
     This block implements a residual connection with conditional normalization.
     It can be used in various architectures where residual connections and
-    conditioning based on class labels are needed. The block supports 
+    conditioning based on class labels are needed. The block supports
     downsampling, dilation, and different types of activation functions.
 
     Attributes:
@@ -1635,6 +1646,7 @@ class ConditionalResidualBlock(nn.Module):
     Raises:
         Exception: If an invalid resample value is provided.
     """
+
     def __init__(
         self,
         input_dim,
@@ -1689,50 +1701,50 @@ class ConditionalResidualBlock(nn.Module):
 
     def forward(self, x, y):
         """
-        Conditional Residual Block for neural network architectures.
+            Conditional Residual Block for neural network architectures.
 
-    This block implements a residual connection with conditional normalization,
-    which is useful in generative models, particularly in diffusion models.
-    The block can perform downsampling, maintain spatial dimensions, or
-    upsample based on the specified configuration. It uses activation functions
-    and normalization layers to enhance learning and representation.
+        This block implements a residual connection with conditional normalization,
+        which is useful in generative models, particularly in diffusion models.
+        The block can perform downsampling, maintain spatial dimensions, or
+        upsample based on the specified configuration. It uses activation functions
+        and normalization layers to enhance learning and representation.
 
-    Attributes:
-        non_linearity (nn.Module): The activation function to apply.
-        input_dim (int): The number of input channels.
-        output_dim (int): The number of output channels.
-        resample (Union[int, str, None]): The resampling strategy.
-        normalization (callable): The normalization layer to apply.
-        conv1 (nn.Module): The first convolutional layer.
-        normalize1 (nn.Module): The first normalization layer.
-        normalize2 (nn.Module): The second normalization layer.
-        conv2 (nn.Module): The second convolutional layer.
-        shortcut (nn.Module): The shortcut connection for residual learning.
+        Attributes:
+            non_linearity (nn.Module): The activation function to apply.
+            input_dim (int): The number of input channels.
+            output_dim (int): The number of output channels.
+            resample (Union[int, str, None]): The resampling strategy.
+            normalization (callable): The normalization layer to apply.
+            conv1 (nn.Module): The first convolutional layer.
+            normalize1 (nn.Module): The first normalization layer.
+            normalize2 (nn.Module): The second normalization layer.
+            conv2 (nn.Module): The second convolutional layer.
+            shortcut (nn.Module): The shortcut connection for residual learning.
 
-    Args:
-        input_dim (int): Number of input channels.
-        output_dim (int): Number of output channels.
-        num_classes (int): Number of classes for conditional normalization.
-        resample (Union[int, str, None]): Resampling strategy ('down', None).
-        act (nn.Module): Activation function to use (default: nn.ELU()).
-        normalization (callable): Normalization layer to use (default:
-            ConditionalInstanceNorm2dPlus).
-        adjust_padding (bool): Whether to adjust padding (default: False).
-        dilation (Optional[int]): Dilation rate for convolution (default: None).
+        Args:
+            input_dim (int): Number of input channels.
+            output_dim (int): Number of output channels.
+            num_classes (int): Number of classes for conditional normalization.
+            resample (Union[int, str, None]): Resampling strategy ('down', None).
+            act (nn.Module): Activation function to use (default: nn.ELU()).
+            normalization (callable): Normalization layer to use (default:
+                ConditionalInstanceNorm2dPlus).
+            adjust_padding (bool): Whether to adjust padding (default: False).
+            dilation (Optional[int]): Dilation rate for convolution (default: None).
 
-    Returns:
-        torch.Tensor: The output tensor after applying the residual block.
+        Returns:
+            torch.Tensor: The output tensor after applying the residual block.
 
-    Examples:
-        >>> block = ConditionalResidualBlock(input_dim=64, output_dim=128, 
-        ...                                   num_classes=10, resample='down')
-        >>> x = torch.randn(8, 64, 32, 32)  # Batch of 8 images
-        >>> y = torch.randint(0, 10, (8,))  # Batch of 8 class labels
-        >>> output = block(x, y)
-        >>> print(output.shape)  # Output shape should be (8, 128, 16, 16)
+        Examples:
+            >>> block = ConditionalResidualBlock(input_dim=64, output_dim=128,
+            ...                                   num_classes=10, resample='down')
+            >>> x = torch.randn(8, 64, 32, 32)  # Batch of 8 images
+            >>> y = torch.randint(0, 10, (8,))  # Batch of 8 class labels
+            >>> output = block(x, y)
+            >>> print(output.shape)  # Output shape should be (8, 128, 16, 16)
 
-    Raises:
-        Exception: If an invalid resample value is provided.
+        Raises:
+            Exception: If an invalid resample value is provided.
         """
         output = self.normalize1(x, y)
         output = self.non_linearity(output)
@@ -1764,9 +1776,9 @@ class ResidualBlock(nn.Module):
         resample (str or None): If 'down', the block will downsample the input.
         normalization (callable): The normalization layer to use.
         shortcut (nn.Module): The shortcut connection layer.
-        normalize1 (callable): The normalization layer applied before the first 
+        normalize1 (callable): The normalization layer applied before the first
             convolution.
-        normalize2 (callable): The normalization layer applied after the first 
+        normalize2 (callable): The normalization layer applied after the first
             convolution.
 
     Args:
@@ -1774,7 +1786,7 @@ class ResidualBlock(nn.Module):
         output_dim (int): Number of output channels.
         resample (str, optional): 'down' for downsampling, None for no change.
         act (callable, optional): Activation function, default is nn.ELU().
-        normalization (callable, optional): Normalization layer, default is 
+        normalization (callable, optional): Normalization layer, default is
             nn.InstanceNorm2d.
         adjust_padding (bool, optional): If True, adjusts padding for convolutions.
         dilation (int, optional): Dilation rate for convolutions, default is 1.
@@ -1792,6 +1804,7 @@ class ResidualBlock(nn.Module):
         >>> output_tensor.shape
         torch.Size([1, 128, 16, 16])
     """
+
     def __init__(
         self,
         input_dim,
@@ -1846,35 +1859,35 @@ class ResidualBlock(nn.Module):
 
     def forward(self, x):
         """
-        Perform the forward pass of the Residual Block.
+            Perform the forward pass of the Residual Block.
 
-    This method applies the forward operations of the Residual Block, 
-    which includes normalization, non-linearity, convolutional operations, 
-    and adding the shortcut connection.
+        This method applies the forward operations of the Residual Block,
+        which includes normalization, non-linearity, convolutional operations,
+        and adding the shortcut connection.
 
-    Args:
-        x (torch.Tensor): Input tensor of shape (B, C, H, W), where:
-            B = batch size,
-            C = number of input channels,
-            H = height of the input feature map,
-            W = width of the input feature map.
+        Args:
+            x (torch.Tensor): Input tensor of shape (B, C, H, W), where:
+                B = batch size,
+                C = number of input channels,
+                H = height of the input feature map,
+                W = width of the input feature map.
 
-    Returns:
-        torch.Tensor: Output tensor of the same shape as the input tensor.
+        Returns:
+            torch.Tensor: Output tensor of the same shape as the input tensor.
 
-    Note:
-        The output of the block is computed as the sum of the input 
-        tensor and the processed tensor through the block. If the 
-        dimensions of the input and output tensors do not match, 
-        a convolution is applied to the input tensor to adjust its 
-        dimensions before summation.
+        Note:
+            The output of the block is computed as the sum of the input
+            tensor and the processed tensor through the block. If the
+            dimensions of the input and output tensors do not match,
+            a convolution is applied to the input tensor to adjust its
+            dimensions before summation.
 
-    Examples:
-        >>> block = ResidualBlock(input_dim=64, output_dim=128)
-        >>> input_tensor = torch.randn(32, 64, 128, 128)
-        >>> output_tensor = block(input_tensor)
-        >>> print(output_tensor.shape)
-        torch.Size([32, 128, 128, 128])
+        Examples:
+            >>> block = ResidualBlock(input_dim=64, output_dim=128)
+            >>> input_tensor = torch.randn(32, 64, 128, 128)
+            >>> output_tensor = block(input_tensor)
+            >>> print(output_tensor.shape)
+            torch.Size([32, 128, 128, 128])
         """
         output = self.normalize1(x)
         output = self.non_linearity(output)
@@ -1904,11 +1917,11 @@ def _einsum(a, b, c, x, y):
 
 def contract_inner(x, y):
     """
-    Compute the inner product of two tensors along the last axis of x 
+    Compute the inner product of two tensors along the last axis of x
     and the first axis of y.
 
-    This function utilizes Einstein summation convention to compute the 
-    inner product, effectively performing a tensordot operation with 
+    This function utilizes Einstein summation convention to compute the
+    inner product, effectively performing a tensordot operation with
     the specified axes.
 
     Args:
@@ -1916,7 +1929,7 @@ def contract_inner(x, y):
         y (torch.Tensor): The second input tensor of shape (N, ..., P).
 
     Returns:
-        torch.Tensor: The result of the inner product of x and y, 
+        torch.Tensor: The result of the inner product of x and y,
         with shape (N, ..., P).
 
     Examples:
@@ -1927,7 +1940,7 @@ def contract_inner(x, y):
         torch.Size([2, 3, 5])
 
     Note:
-        - The function assumes that the last dimension of `x` and the first 
+        - The function assumes that the last dimension of `x` and the first
           dimension of `y` are compatible for the inner product.
     """
     x_chars = list(string.ascii_lowercase[: len(x.shape)])
@@ -1947,14 +1960,14 @@ class NIN(nn.Module):
     layers.
 
     Attributes:
-        W (torch.nn.Parameter): Weight parameter of the layer, initialized 
+        W (torch.nn.Parameter): Weight parameter of the layer, initialized
             using a default scale.
         b (torch.nn.Parameter): Bias parameter of the layer, initialized to zero.
 
     Args:
         in_dim (int): The number of input dimensions (channels).
         num_units (int): The number of output units (channels).
-        init_scale (float): The initial scale for weight initialization. 
+        init_scale (float): The initial scale for weight initialization.
             Default is 0.1.
 
     Returns:
@@ -1970,6 +1983,7 @@ class NIN(nn.Module):
         The input tensor is permuted before the computation to align with the
         expected dimensions for matrix multiplication.
     """
+
     def __init__(self, in_dim, num_units, init_scale=0.1):
         super().__init__()
         self.W = nn.Parameter(
@@ -1979,34 +1993,34 @@ class NIN(nn.Module):
 
     def forward(self, x):
         """
-        The NIN class implements a Network in Network (NIN) layer for deep learning.
+                The NIN class implements a Network in Network (NIN) layer for deep learning.
 
-This class is a custom PyTorch module that applies a linear transformation
-to the input tensor using learnable parameters. The input tensor is
-expected to be in the shape (batch_size, channels, height, width) and
-is permuted to (batch_size, height, width, channels) before the
-linear transformation is applied. The output is then permuted back to
-the original shape.
+        This class is a custom PyTorch module that applies a linear transformation
+        to the input tensor using learnable parameters. The input tensor is
+        expected to be in the shape (batch_size, channels, height, width) and
+        is permuted to (batch_size, height, width, channels) before the
+        linear transformation is applied. The output is then permuted back to
+        the original shape.
 
-Attributes:
-    W (torch.nn.Parameter): Learnable weight parameter of the layer.
-    b (torch.nn.Parameter): Learnable bias parameter of the layer.
+        Attributes:
+            W (torch.nn.Parameter): Learnable weight parameter of the layer.
+            b (torch.nn.Parameter): Learnable bias parameter of the layer.
 
-Args:
-    in_dim (int): The number of input channels.
-    num_units (int): The number of output channels (units).
-    init_scale (float): Scale for weight initialization. Default is 0.1.
+        Args:
+            in_dim (int): The number of input channels.
+            num_units (int): The number of output channels (units).
+            init_scale (float): Scale for weight initialization. Default is 0.1.
 
-Returns:
-    Tensor: The output tensor after applying the linear transformation.
+        Returns:
+            Tensor: The output tensor after applying the linear transformation.
 
-Examples:
-    >>> import torch
-    >>> model = NIN(in_dim=3, num_units=10)
-    >>> input_tensor = torch.randn(4, 3, 32, 32)  # Batch of 4 images
-    >>> output_tensor = model(input_tensor)
-    >>> output_tensor.shape
-    torch.Size([4, 10, 32, 32])  # Output shape after NIN
+        Examples:
+            >>> import torch
+            >>> model = NIN(in_dim=3, num_units=10)
+            >>> input_tensor = torch.randn(4, 3, 32, 32)  # Batch of 4 images
+            >>> output_tensor = model(input_tensor)
+            >>> output_tensor.shape
+            torch.Size([4, 10, 32, 32])  # Output shape after NIN
         """
         x = x.permute(0, 2, 3, 1)
         y = contract_inner(x, self.W) + self.b
@@ -2017,9 +2031,9 @@ class AttnBlock(nn.Module):
     """
     Channel-wise self-attention block.
 
-    This module implements a channel-wise self-attention mechanism using 
-    normalization and learned linear transformations. It applies 
-    Group Normalization followed by multiple NIN (Network in Network) 
+    This module implements a channel-wise self-attention mechanism using
+    normalization and learned linear transformations. It applies
+    Group Normalization followed by multiple NIN (Network in Network)
     layers to compute the attention weights and the output.
 
     Attributes:
@@ -2043,8 +2057,8 @@ class AttnBlock(nn.Module):
         torch.Size([1, 64, 32, 32])  # Output has the same shape as input
 
     Note:
-        This block assumes that the input tensor has the shape 
-        (B, C, H, W) where B is the batch size, C is the number of 
+        This block assumes that the input tensor has the shape
+        (B, C, H, W) where B is the batch size, C is the number of
         channels, and H and W are the height and width of the feature map.
     """
 
@@ -2058,42 +2072,42 @@ class AttnBlock(nn.Module):
 
     def forward(self, x):
         """
-        Channel-wise self-attention block.
+            Channel-wise self-attention block.
 
-    This module implements a channel-wise self-attention mechanism, which
-    allows the model to focus on different parts of the input feature maps
-    based on their relevance. The block utilizes group normalization and 
-    learnable linear layers (NIN) for transforming the input features.
+        This module implements a channel-wise self-attention mechanism, which
+        allows the model to focus on different parts of the input feature maps
+        based on their relevance. The block utilizes group normalization and
+        learnable linear layers (NIN) for transforming the input features.
 
-    Attributes:
-        GroupNorm_0: Group normalization layer.
-        NIN_0: First learnable linear layer for query transformation.
-        NIN_1: Second learnable linear layer for key transformation.
-        NIN_2: Third learnable linear layer for value transformation.
-        NIN_3: Fourth learnable linear layer for output transformation.
+        Attributes:
+            GroupNorm_0: Group normalization layer.
+            NIN_0: First learnable linear layer for query transformation.
+            NIN_1: Second learnable linear layer for key transformation.
+            NIN_2: Third learnable linear layer for value transformation.
+            NIN_3: Fourth learnable linear layer for output transformation.
 
-    Args:
-        channels (int): Number of input channels.
+        Args:
+            channels (int): Number of input channels.
 
-    Returns:
-        Tensor: The output tensor after applying the attention mechanism.
+        Returns:
+            Tensor: The output tensor after applying the attention mechanism.
 
-    Examples:
-        >>> attn_block = AttnBlock(channels=64)
-        >>> input_tensor = torch.randn(8, 64, 32, 32)  # (batch_size, channels, height, width)
-        >>> output_tensor = attn_block(input_tensor)
-        >>> output_tensor.shape
-        torch.Size([8, 64, 32, 32])
+        Examples:
+            >>> attn_block = AttnBlock(channels=64)
+            >>> input_tensor = torch.randn(8, 64, 32, 32)  # (batch_size, channels, height, width)
+            >>> output_tensor = attn_block(input_tensor)
+            >>> output_tensor.shape
+            torch.Size([8, 64, 32, 32])
 
-    Note:
-        The attention weights are computed using the scaled dot-product
-        attention mechanism, followed by a softmax normalization.
+        Note:
+            The attention weights are computed using the scaled dot-product
+            attention mechanism, followed by a softmax normalization.
 
-    Raises:
-        ValueError: If the input tensor does not have the expected shape.
+        Raises:
+            ValueError: If the input tensor does not have the expected shape.
 
-    Todo:
-        - Consider adding dropout after the attention weights are applied.
+        Todo:
+            - Consider adding dropout after the attention weights are applied.
         """
         B, C, H, W = x.shape
         h = self.GroupNorm_0(x)
@@ -2114,24 +2128,24 @@ class Upsample(nn.Module):
     """
     Upsampling layer with optional convolution.
 
-    This class implements an upsampling operation using nearest neighbor 
-    interpolation, followed by an optional 3x3 convolution. It is designed to 
+    This class implements an upsampling operation using nearest neighbor
+    interpolation, followed by an optional 3x3 convolution. It is designed to
     double the height and width of the input tensor.
 
     Attributes:
-        Conv_0 (nn.Module, optional): A 3x3 convolution layer applied to the 
+        Conv_0 (nn.Module, optional): A 3x3 convolution layer applied to the
             upsampled output if `with_conv` is set to True.
-        with_conv (bool): Indicates whether to apply a convolution after 
+        with_conv (bool): Indicates whether to apply a convolution after
             upsampling.
 
     Args:
-        channels (int): The number of input and output channels for the 
+        channels (int): The number of input and output channels for the
             convolution layer.
-        with_conv (bool): If True, a convolution is applied after the 
+        with_conv (bool): If True, a convolution is applied after the
             upsampling. Defaults to False.
 
     Returns:
-        torch.Tensor: The upsampled tensor, optionally processed by a 
+        torch.Tensor: The upsampled tensor, optionally processed by a
         convolution layer.
 
     Examples:
@@ -2141,10 +2155,11 @@ class Upsample(nn.Module):
         >>> print(output_tensor.shape)  # Output shape: (1, 64, 64, 64)
 
     Note:
-        The input tensor is expected to have a shape of (B, C, H, W), where 
-        B is the batch size, C is the number of channels, H is the height, 
+        The input tensor is expected to have a shape of (B, C, H, W), where
+        B is the batch size, C is the number of channels, H is the height,
         and W is the width.
     """
+
     def __init__(self, channels, with_conv=False):
         super().__init__()
         if with_conv:
@@ -2153,30 +2168,30 @@ class Upsample(nn.Module):
 
     def forward(self, x):
         """
-        Upsample block for increasing the spatial dimensions of the input.
+            Upsample block for increasing the spatial dimensions of the input.
 
-    This module performs upsampling of the input tensor, optionally followed
-    by a 3x3 convolution. It uses nearest neighbor interpolation for upsampling
-    and can include a convolutional layer to refine the output.
+        This module performs upsampling of the input tensor, optionally followed
+        by a 3x3 convolution. It uses nearest neighbor interpolation for upsampling
+        and can include a convolutional layer to refine the output.
 
-    Attributes:
-        Conv_0 (nn.Conv2d): Optional convolutional layer applied after upsampling.
-        with_conv (bool): Flag indicating whether to apply a convolution after
-            upsampling.
+        Attributes:
+            Conv_0 (nn.Conv2d): Optional convolutional layer applied after upsampling.
+            with_conv (bool): Flag indicating whether to apply a convolution after
+                upsampling.
 
-    Args:
-        channels (int): Number of input and output channels for the convolution.
-        with_conv (bool): If True, includes a convolutional layer after the
-            upsampling.
+        Args:
+            channels (int): Number of input and output channels for the convolution.
+            with_conv (bool): If True, includes a convolutional layer after the
+                upsampling.
 
-    Returns:
-        Tensor: The upsampled (and optionally convolved) output tensor.
+        Returns:
+            Tensor: The upsampled (and optionally convolved) output tensor.
 
-    Examples:
-        >>> upsample_layer = Upsample(channels=64, with_conv=True)
-        >>> input_tensor = torch.randn(1, 64, 32, 32)  # Batch of 1, 64 channels
-        >>> output_tensor = upsample_layer(input_tensor)
-        >>> print(output_tensor.shape)  # Output shape should be [1, 64, 64, 64]
+        Examples:
+            >>> upsample_layer = Upsample(channels=64, with_conv=True)
+            >>> input_tensor = torch.randn(1, 64, 32, 32)  # Batch of 1, 64 channels
+            >>> output_tensor = upsample_layer(input_tensor)
+            >>> print(output_tensor.shape)  # Output shape should be [1, 64, 64, 64]
         """
         B, C, H, W = x.shape
         h = F.interpolate(x, (H * 2, W * 2), mode="nearest")
@@ -2189,10 +2204,10 @@ class Downsample(nn.Module):
     """
     Downsample the input tensor using average pooling or convolution.
 
-    This class implements a downsampling layer that reduces the spatial 
-    dimensions of the input tensor. It can perform downsampling using 
-    average pooling or a convolutional layer, depending on the 
-    `with_conv` parameter. When using a convolutional layer, 'SAME' 
+    This class implements a downsampling layer that reduces the spatial
+    dimensions of the input tensor. It can perform downsampling using
+    average pooling or a convolutional layer, depending on the
+    `with_conv` parameter. When using a convolutional layer, 'SAME'
     padding is applied to ensure the output dimensions are halved.
 
     Attributes:
@@ -2203,7 +2218,7 @@ class Downsample(nn.Module):
 
     Args:
         channels (int): Number of input channels.
-        with_conv (bool): If True, uses convolution for downsampling. 
+        with_conv (bool): If True, uses convolution for downsampling.
             Defaults to False.
 
     Returns:
@@ -2216,10 +2231,11 @@ class Downsample(nn.Module):
         >>> print(output_tensor.shape)  # Should be (1, 64, 64, 64)
 
     Note:
-        If `with_conv` is set to True, the input tensor will be padded 
+        If `with_conv` is set to True, the input tensor will be padded
         before applying the convolution. This ensures that the output size
         is consistent with the downsampling operation.
     """
+
     def __init__(self, channels, with_conv=False):
         super().__init__()
         if with_conv:
@@ -2228,41 +2244,41 @@ class Downsample(nn.Module):
 
     def forward(self, x):
         """
-        Downsample the input tensor using average pooling or convolution.
+            Downsample the input tensor using average pooling or convolution.
 
-    This module downsamples the input tensor either by using average pooling 
-    or by applying a 3x3 convolution with a stride of 2. The option to 
-    perform convolution can be enabled during initialization.
+        This module downsamples the input tensor either by using average pooling
+        or by applying a 3x3 convolution with a stride of 2. The option to
+        perform convolution can be enabled during initialization.
 
-    Attributes:
-        with_conv (bool): A flag to determine whether to use convolution for 
-                          downsampling.
+        Attributes:
+            with_conv (bool): A flag to determine whether to use convolution for
+                              downsampling.
 
-    Args:
-        channels (int): The number of input channels.
-        with_conv (bool): If True, uses convolution for downsampling. 
-                          Defaults to False.
+        Args:
+            channels (int): The number of input channels.
+            with_conv (bool): If True, uses convolution for downsampling.
+                              Defaults to False.
 
-    Returns:
-        Tensor: The downsampled tensor of shape (B, C, H//2, W//2), where B is 
-                the batch size, C is the number of channels, H is the height, 
-                and W is the width of the input tensor.
+        Returns:
+            Tensor: The downsampled tensor of shape (B, C, H//2, W//2), where B is
+                    the batch size, C is the number of channels, H is the height,
+                    and W is the width of the input tensor.
 
-    Examples:
-        >>> downsample_layer = Downsample(channels=64, with_conv=True)
-        >>> input_tensor = torch.randn(1, 64, 32, 32)
-        >>> output_tensor = downsample_layer(input_tensor)
-        >>> output_tensor.shape
-        torch.Size([1, 64, 16, 16])
+        Examples:
+            >>> downsample_layer = Downsample(channels=64, with_conv=True)
+            >>> input_tensor = torch.randn(1, 64, 32, 32)
+            >>> output_tensor = downsample_layer(input_tensor)
+            >>> output_tensor.shape
+            torch.Size([1, 64, 16, 16])
 
-    Note:
-        When using convolution for downsampling, the input tensor will be 
-        padded to emulate 'SAME' padding, ensuring that the output tensor 
-        has the correct spatial dimensions.
+        Note:
+            When using convolution for downsampling, the input tensor will be
+            padded to emulate 'SAME' padding, ensuring that the output tensor
+            has the correct spatial dimensions.
 
-    Raises:
-        AssertionError: If the shape of the output tensor does not match the 
-                        expected shape (B, C, H//2, W//2).
+        Raises:
+            AssertionError: If the shape of the output tensor does not match the
+                            expected shape (B, C, H//2, W//2).
         """
         B, C, H, W = x.shape
         # Emulate 'SAME' padding
@@ -2280,9 +2296,9 @@ class ResnetBlockDDPM(nn.Module):
     """
     The ResNet Blocks used in DDPM.
 
-    This class implements a ResNet block specifically designed for 
-    diffusion models. It utilizes convolutional layers, group normalization, 
-    and activation functions to process input tensors. The block supports 
+    This class implements a ResNet block specifically designed for
+    diffusion models. It utilizes convolutional layers, group normalization,
+    and activation functions to process input tensors. The block supports
     optional time embeddings for enhanced feature representation.
 
     Attributes:
@@ -2293,22 +2309,22 @@ class ResnetBlockDDPM(nn.Module):
         GroupNorm_1 (nn.GroupNorm): Second group normalization layer.
         Dropout_0 (nn.Dropout): Dropout layer for regularization.
         Conv_1 (nn.Conv2d): Second convolutional layer.
-        Conv_2 (nn.Conv2d): Convolutional layer for shortcut connection (if 
+        Conv_2 (nn.Conv2d): Convolutional layer for shortcut connection (if
             needed).
         out_ch (int): Number of output channels.
         in_ch (int): Number of input channels.
-        conv_shortcut (bool): Flag to indicate if a convolutional shortcut 
+        conv_shortcut (bool): Flag to indicate if a convolutional shortcut
             should be used.
 
     Args:
         act (callable): Activation function to use.
         in_ch (int): Number of input channels.
-        out_ch (int, optional): Number of output channels. Defaults to 
+        out_ch (int, optional): Number of output channels. Defaults to
             `in_ch`.
-        temb_dim (int, optional): Dimension of the time embedding. If 
+        temb_dim (int, optional): Dimension of the time embedding. If
             provided, a linear layer will be added to process it.
-        conv_shortcut (bool, optional): If True, use a convolutional layer 
-            for the shortcut connection; otherwise, use a learnable linear 
+        conv_shortcut (bool, optional): If True, use a convolutional layer
+            for the shortcut connection; otherwise, use a learnable linear
             layer. Defaults to False.
         dropout (float, optional): Dropout probability. Defaults to 0.1.
 
@@ -2323,11 +2339,11 @@ class ResnetBlockDDPM(nn.Module):
         torch.Size([8, 128, 32, 32])  # Output shape
 
     Note:
-        The output shape will change based on the `out_ch` parameter. 
+        The output shape will change based on the `out_ch` parameter.
         If `out_ch` is not specified, it defaults to `in_ch`.
 
     Raises:
-        AssertionError: If the input tensor does not have the expected 
+        AssertionError: If the input tensor does not have the expected
             number of channels.
     """
 
@@ -2359,53 +2375,53 @@ class ResnetBlockDDPM(nn.Module):
 
     def forward(self, x, temb=None):
         """
-        The ResNet Blocks used in DDPM.
+            The ResNet Blocks used in DDPM.
 
-    This class implements a ResNet block specifically designed for the 
-    Denoising Diffusion Probabilistic Models (DDPM). It consists of 
-    convolutional layers, normalization, activation functions, and 
-    optional temporal embeddings for enhanced feature representation.
+        This class implements a ResNet block specifically designed for the
+        Denoising Diffusion Probabilistic Models (DDPM). It consists of
+        convolutional layers, normalization, activation functions, and
+        optional temporal embeddings for enhanced feature representation.
 
-    Attributes:
-        act (nn.Module): Activation function to be applied.
-        in_ch (int): Number of input channels.
-        out_ch (int): Number of output channels.
-        temb_dim (int, optional): Dimension of the time embedding.
-        conv_shortcut (bool): Whether to use a convolutional shortcut.
-        dropout (float): Dropout rate to apply after the first convolution.
-        GroupNorm_0 (nn.GroupNorm): First group normalization layer.
-        Conv_0 (nn.Conv2d): First convolution layer.
-        Dense_0 (nn.Linear, optional): Dense layer for time embedding.
-        GroupNorm_1 (nn.GroupNorm): Second group normalization layer.
-        Dropout_0 (nn.Dropout): Dropout layer.
-        Conv_1 (nn.Conv2d): Second convolution layer.
-        Conv_2 (nn.Conv2d, optional): Convolution layer for shortcut.
-        NIN_0 (NIN, optional): Network-in-Network layer for shortcut.
-    
-    Args:
-        act (nn.Module): Activation function to use (e.g., nn.ReLU).
-        in_ch (int): Number of input channels.
-        out_ch (int, optional): Number of output channels. Defaults to in_ch.
-        temb_dim (int, optional): Dimension of the temporal embedding.
-        conv_shortcut (bool, optional): Use convolutional shortcut. Defaults to False.
-        dropout (float, optional): Dropout rate. Defaults to 0.1.
-    
-    Returns:
-        Tensor: The output of the ResNet block.
+        Attributes:
+            act (nn.Module): Activation function to be applied.
+            in_ch (int): Number of input channels.
+            out_ch (int): Number of output channels.
+            temb_dim (int, optional): Dimension of the time embedding.
+            conv_shortcut (bool): Whether to use a convolutional shortcut.
+            dropout (float): Dropout rate to apply after the first convolution.
+            GroupNorm_0 (nn.GroupNorm): First group normalization layer.
+            Conv_0 (nn.Conv2d): First convolution layer.
+            Dense_0 (nn.Linear, optional): Dense layer for time embedding.
+            GroupNorm_1 (nn.GroupNorm): Second group normalization layer.
+            Dropout_0 (nn.Dropout): Dropout layer.
+            Conv_1 (nn.Conv2d): Second convolution layer.
+            Conv_2 (nn.Conv2d, optional): Convolution layer for shortcut.
+            NIN_0 (NIN, optional): Network-in-Network layer for shortcut.
 
-    Examples:
-        >>> block = ResnetBlockDDPM(act=nn.ReLU(), in_ch=64, out_ch=128)
-        >>> input_tensor = torch.randn(8, 64, 32, 32)  # (batch_size, channels, height, width)
-        >>> output_tensor = block(input_tensor)
-        >>> output_tensor.shape
-        torch.Size([8, 128, 32, 32])  # Output shape may vary based on the architecture
-    
-    Note:
-        The block uses a combination of convolutional layers, group normalization, 
-        and activation functions to allow for residual learning.
-    
-    Raises:
-        AssertionError: If the input channels do not match the expected number.
+        Args:
+            act (nn.Module): Activation function to use (e.g., nn.ReLU).
+            in_ch (int): Number of input channels.
+            out_ch (int, optional): Number of output channels. Defaults to in_ch.
+            temb_dim (int, optional): Dimension of the temporal embedding.
+            conv_shortcut (bool, optional): Use convolutional shortcut. Defaults to False.
+            dropout (float, optional): Dropout rate. Defaults to 0.1.
+
+        Returns:
+            Tensor: The output of the ResNet block.
+
+        Examples:
+            >>> block = ResnetBlockDDPM(act=nn.ReLU(), in_ch=64, out_ch=128)
+            >>> input_tensor = torch.randn(8, 64, 32, 32)  # (batch_size, channels, height, width)
+            >>> output_tensor = block(input_tensor)
+            >>> output_tensor.shape
+            torch.Size([8, 128, 32, 32])  # Output shape may vary based on the architecture
+
+        Note:
+            The block uses a combination of convolutional layers, group normalization,
+            and activation functions to allow for residual learning.
+
+        Raises:
+            AssertionError: If the input channels do not match the expected number.
         """
         B, C, H, W = x.shape
         assert C == self.in_ch

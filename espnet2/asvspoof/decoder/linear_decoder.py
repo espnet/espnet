@@ -9,8 +9,8 @@ class LinearDecoder(AbsDecoder):
     """
     Linear decoder for speaker diarization.
 
-    This class implements a linear decoder used in the context of speaker 
-    diarization. It is responsible for transforming the encoder's output into 
+    This class implements a linear decoder used in the context of speaker
+    diarization. It is responsible for transforming the encoder's output into
     a suitable representation for further processing or classification.
 
     Attributes:
@@ -32,12 +32,12 @@ class LinearDecoder(AbsDecoder):
 
     Note:
         This class currently contains placeholder TODOs for implementation.
-        The forward method is expected to compute the mean over the time 
+        The forward method is expected to compute the mean over the time
         dimension and apply a linear projection layer.
 
     Raises:
         ValueError: If the input tensor has an incorrect shape.
-    
+
     Todo:
         - Implement the linear projection layer.
         - Compute mean over the time-domain (dimension 1).
@@ -55,26 +55,26 @@ class LinearDecoder(AbsDecoder):
         """
         Perform the forward pass of the LinearDecoder.
 
-        This method takes the encoder output and computes the linear projection 
-        for speaker diarization. It processes the input tensor and utilizes 
-        the specified input lengths to ensure proper handling of variable-length 
+        This method takes the encoder output and computes the linear projection
+        for speaker diarization. It processes the input tensor and utilizes
+        the specified input lengths to ensure proper handling of variable-length
         sequences.
 
         Args:
-            input (torch.Tensor): A tensor representing the hidden space with 
-                shape [Batch, T, F], where Batch is the number of samples, 
+            input (torch.Tensor): A tensor representing the hidden space with
+                shape [Batch, T, F], where Batch is the number of samples,
                 T is the sequence length, and F is the feature dimension.
-            ilens (Optional[torch.Tensor]): A tensor containing the lengths 
-                of the input sequences with shape [Batch]. This is used to 
+            ilens (Optional[torch.Tensor]): A tensor containing the lengths
+                of the input sequences with shape [Batch]. This is used to
                 handle variable-length inputs properly.
 
         Returns:
-            torch.Tensor: The output of the linear projection layer, which 
-            will have shape [Batch, F_out], where F_out is the size of the 
+            torch.Tensor: The output of the linear projection layer, which
+            will have shape [Batch, F_out], where F_out is the size of the
             output features after applying the linear projection.
 
         Raises:
-            ValueError: If the input tensor shape does not match the expected 
+            ValueError: If the input tensor shape does not match the expected
             dimensions or if ilens is not compatible with input.
 
         Examples:
@@ -85,8 +85,8 @@ class LinearDecoder(AbsDecoder):
             >>> print(output.shape)  # Should print: torch.Size([32, F_out])
 
         Note:
-            The actual implementation of the forward pass is yet to be 
-            completed. This includes computing the mean over the time 
+            The actual implementation of the forward pass is yet to be
+            completed. This includes computing the mean over the time
             dimension and applying the projection layer.
         """
         # TODO(checkpoint3): compute mean over time-domain (dimension 1)

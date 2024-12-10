@@ -43,7 +43,7 @@ class AsteroidModel_Converter(AbsSeparator):
 
     Examples:
         Instantiate the model with a pretrained ConvTasNet:
-        
+
         >>> model = AsteroidModel_Converter(
         ...     model_name="ConvTasNet",
         ...     encoder_output_dim=1,
@@ -51,20 +51,21 @@ class AsteroidModel_Converter(AbsSeparator):
         ...     loss_type="si_snr",
         ...     pretrained_path="mpariente/ConvTasNet_WHAM!_sepclean"
         ... )
-        
+
         Process a mixture of audio signals:
-        
+
         >>> mixture = torch.randn(3, 16000)
         >>> output, ilens, masks = model(mixture)
 
         Access the number of speakers:
-        
+
         >>> num_speakers = model.num_spk
 
     Note:
         Ensure that Asteroid is installed. Refer to:
         https://github.com/asteroid-team/asteroid
     """
+
     def __init__(
         self,
         encoder_output_dim: int,
@@ -132,24 +133,24 @@ class AsteroidModel_Converter(AbsSeparator):
         """
         Perform the forward pass of the asteroid models.
 
-        This method takes raw waveform input and processes it through the 
-        model to estimate the source waveforms and additional output data 
+        This method takes raw waveform input and processes it through the
+        model to estimate the source waveforms and additional output data
         such as masks for each speaker.
 
         Args:
-            input (torch.Tensor): Raw waveforms of shape [B, T] where B is the 
+            input (torch.Tensor): Raw waveforms of shape [B, T] where B is the
                 batch size and T is the length of the waveform.
-            ilens (torch.Tensor): Input lengths of shape [B]. This is optional 
+            ilens (torch.Tensor): Input lengths of shape [B]. This is optional
                 and can be None.
-            additional (Dict or None): Additional data to be included in the 
+            additional (Dict or None): Additional data to be included in the
                 model's forward pass, if required.
 
         Returns:
-            Tuple[List[torch.Tensor], torch.Tensor, OrderedDict]: A tuple 
+            Tuple[List[torch.Tensor], torch.Tensor, OrderedDict]: A tuple
             containing:
                 - estimated waveforms as a list of tensors [(B, T), ...]
                 - input lengths as a tensor of shape (B,)
-                - additional predicted data (e.g., masks) as an 
+                - additional predicted data (e.g., masks) as an
                   OrderedDict with keys:
                     - 'mask_spk1': torch.Tensor(Batch, T)
                     - 'mask_spk2': torch.Tensor(Batch, T)
@@ -168,11 +169,11 @@ class AsteroidModel_Converter(AbsSeparator):
             >>> estimated_waveforms, lengths, masks = model.forward(input_waveforms)
 
         Note:
-            The input tensor should have the correct shape, and the model 
+            The input tensor should have the correct shape, and the model
             should be properly initialized before calling this method.
 
         Raises:
-            AssertionError: If the dimensions of the estimated sources do not 
+            AssertionError: If the dimensions of the estimated sources do not
             match the number of speakers.
         """
 
@@ -196,37 +197,37 @@ class AsteroidModel_Converter(AbsSeparator):
         self, input: torch.Tensor, ilens: torch.Tensor = None
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
-        Output with waveforms.
+            Output with waveforms.
 
-    This method processes the input raw waveforms through the model and 
-    returns the estimated source waveforms along with their respective 
-    lengths.
+        This method processes the input raw waveforms through the model and
+        returns the estimated source waveforms along with their respective
+        lengths.
 
-    Args:
-        input (torch.Tensor): Raw waveforms with shape [B, T], where B is the 
-            batch size and T is the length of the waveforms.
-        ilens (torch.Tensor, optional): Input lengths with shape [B]. 
-            Defaults to None.
+        Args:
+            input (torch.Tensor): Raw waveforms with shape [B, T], where B is the
+                batch size and T is the length of the waveforms.
+            ilens (torch.Tensor, optional): Input lengths with shape [B].
+                Defaults to None.
 
-    Returns:
-        Tuple[torch.Tensor, torch.Tensor]: A tuple containing:
-            - estimated Waveforms (List[Union(torch.Tensor)]): A list of 
-              tensors representing the estimated waveforms for each speaker 
-              in the batch.
-            - ilens (torch.Tensor): A tensor representing the input lengths 
-              for the batch.
-    
-    Examples:
-        >>> mixture = torch.randn(3, 16000)  # Example input
-        >>> model = AsteroidModel_Converter(
-        ...     model_name="ConvTasNet",
-        ...     encoder_output_dim=1,
-        ...     num_spk=2,
-        ...     loss_type="si_snr",
-        ...     pretrained_path="mpariente/ConvTasNet_WHAM!_sepclean",
-        ... )
-        >>> output, ilens = model.forward_rawwav(mixture, torch.tensor([16000]*3))
-        >>> print(output[0].shape)  # Output shape for speaker 1
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]: A tuple containing:
+                - estimated Waveforms (List[Union(torch.Tensor)]): A list of
+                  tensors representing the estimated waveforms for each speaker
+                  in the batch.
+                - ilens (torch.Tensor): A tensor representing the input lengths
+                  for the batch.
+
+        Examples:
+            >>> mixture = torch.randn(3, 16000)  # Example input
+            >>> model = AsteroidModel_Converter(
+            ...     model_name="ConvTasNet",
+            ...     encoder_output_dim=1,
+            ...     num_spk=2,
+            ...     loss_type="si_snr",
+            ...     pretrained_path="mpariente/ConvTasNet_WHAM!_sepclean",
+            ... )
+            >>> output, ilens = model.forward_rawwav(mixture, torch.tensor([16000]*3))
+            >>> print(output[0].shape)  # Output shape for speaker 1
         """
         return self.forward(input, ilens)
 

@@ -10,9 +10,9 @@ class Residual(nn.Module):
     """
     Residual connection with constant affine weights.
 
-    This class implements a residual connection that can simulate various types of 
-    residual behaviors including standard residual, no residual, and "constant gates". 
-    The residual connection is parameterized by constant affine weights, allowing for 
+    This class implements a residual connection that can simulate various types of
+    residual behaviors including standard residual, no residual, and "constant gates".
+    The residual connection is parameterized by constant affine weights, allowing for
     flexibility in how the input and output tensors are combined.
 
     Attributes:
@@ -70,19 +70,19 @@ class Residual(nn.Module):
         Compute the output of the residual connection.
 
         This method performs a residual operation based on the input tensors `x`
-        and `y`, scaled by the parameters `alpha` and `beta`. The output is 
-        determined by whether the input `y` is to be transposed or not. The 
-        operation can simulate standard residual connections or other variations 
+        and `y`, scaled by the parameters `alpha` and `beta`. The output is
+        determined by whether the input `y` is to be transposed or not. The
+        operation can simulate standard residual connections or other variations
         based on the values of `alpha` and `beta`.
 
         Args:
             x (torch.Tensor): The input tensor representing the main branch.
             y (torch.Tensor): The input tensor representing the residual branch.
-            transposed (bool): A flag indicating whether to transpose the 
+            transposed (bool): A flag indicating whether to transpose the
                 input tensor `y` before applying the operation.
 
         Returns:
-            torch.Tensor: The resulting tensor after applying the residual 
+            torch.Tensor: The resulting tensor after applying the residual
             connection.
 
         Examples:
@@ -98,7 +98,7 @@ class Residual(nn.Module):
             otherwise, it will return `y` scaled by `beta`.
 
         Raises:
-            ValueError: If the shapes of `x` and `y` do not match the expected 
+            ValueError: If the shapes of `x` and `y` do not match the expected
             dimensions based on `d_input` and `d_model`.
         """
         y = self.beta * y if self.beta != 1.0 else y
@@ -109,26 +109,26 @@ class Affine(Residual):
     """
     Residual connection with learnable scalar multipliers on the main branch.
 
-    This class implements a residual connection that includes learnable 
-    scalar multipliers applied to the input of the residual branch. It 
-    allows for flexibility in how the residual connection is formed, 
-    making it possible to use a single scalar multiplier or one per 
+    This class implements a residual connection that includes learnable
+    scalar multipliers applied to the input of the residual branch. It
+    allows for flexibility in how the residual connection is formed,
+    making it possible to use a single scalar multiplier or one per
     dimension, depending on the `scalar` attribute.
 
     Attributes:
-        scalar (bool): If True, uses a single scalar multiplier; if False, 
+        scalar (bool): If True, uses a single scalar multiplier; if False,
             uses one multiplier per dimension.
-        gamma (float): A scaling factor that influences the initialization 
+        gamma (float): A scaling factor that influences the initialization
             of the affine parameters.
-        affine (torch.nn.Parameter): A learnable parameter representing the 
+        affine (torch.nn.Parameter): A learnable parameter representing the
             scalar multipliers.
 
     Args:
-        *args: Variable length argument list for initializing the parent 
+        *args: Variable length argument list for initializing the parent
             Residual class.
-        scalar (bool, optional): Determines if a single scalar multiplier 
+        scalar (bool, optional): Determines if a single scalar multiplier
             or one per dimension is used. Default is True.
-        gamma (float, optional): The power for scaling initialization. 
+        gamma (float, optional): The power for scaling initialization.
             Default is 0.0.
         **kwargs: Additional keyword arguments for the parent class.
 
@@ -136,8 +136,8 @@ class Affine(Residual):
         None
 
     Examples:
-        >>> affine_layer = Affine(i_layer=1, d_input=4, d_model=4, 
-        ...                       alpha=1.0, beta=1.0, scalar=True, 
+        >>> affine_layer = Affine(i_layer=1, d_input=4, d_model=4,
+        ...                       alpha=1.0, beta=1.0, scalar=True,
         ...                       gamma=0.0)
         >>> x = torch.rand(2, 4)
         >>> y = torch.rand(2, 4)
@@ -145,11 +145,11 @@ class Affine(Residual):
         >>> print(output.shape)  # Output: torch.Size([2, 4])
 
     Note:
-        The multipliers are initialized to scale * layer_num**(-power) 
+        The multipliers are initialized to scale * layer_num**(-power)
         based on the layer number and the provided gamma parameter.
 
     Todo:
-        - Consider adding options for more complex initialization of 
+        - Consider adding options for more complex initialization of
           affine parameters.
     """
 
@@ -167,19 +167,19 @@ class Affine(Residual):
         """
         Computes the forward pass of the affine residual connection.
 
-        This method takes two inputs, `x` and `y`, and computes the output 
-        using the defined affine transformation. If `transposed` is True, 
+        This method takes two inputs, `x` and `y`, and computes the output
+        using the defined affine transformation. If `transposed` is True,
         the learnable parameters are reshaped accordingly.
 
         Args:
             x (torch.Tensor): The input tensor from the previous layer.
-            y (torch.Tensor): The input tensor to be added, typically from 
+            y (torch.Tensor): The input tensor to be added, typically from
                 another branch.
-            transposed (bool): A flag indicating whether to apply the 
+            transposed (bool): A flag indicating whether to apply the
                 transposition to the learnable parameters.
 
         Returns:
-            torch.Tensor: The output tensor after applying the affine 
+            torch.Tensor: The output tensor after applying the affine
             transformation and residual connection.
 
         Examples:
@@ -191,12 +191,12 @@ class Affine(Residual):
             torch.Size([2, 4])
 
         Note:
-            The learnable parameters are initialized based on the layer 
-            index and a specified gamma value, which controls the scaling 
-            factor. 
+            The learnable parameters are initialized based on the layer
+            index and a specified gamma value, which controls the scaling
+            factor.
 
         Raises:
-            ValueError: If the dimensions of `x` and `y` do not match the 
+            ValueError: If the dimensions of `x` and `y` do not match the
             expected input sizes.
         """
         c = self.affine
@@ -209,9 +209,9 @@ class Feedforward(Residual):
     """
     Feedforward residual connection that bypasses input features.
 
-    This class implements a feedforward residual connection where the 
-    input features are directly passed to the output without any scaling. 
-    The main purpose is to allow for a direct pathway in the network, 
+    This class implements a feedforward residual connection where the
+    input features are directly passed to the output without any scaling.
+    The main purpose is to allow for a direct pathway in the network,
     effectively bypassing the residual computation.
 
     Attributes:
@@ -223,7 +223,7 @@ class Feedforward(Residual):
 
     Args:
         *args: Variable length argument list passed to the parent class.
-    
+
     Examples:
         >>> feedforward_layer = Feedforward(i_layer=1, d_input=256, d_model=256)
         >>> x = torch.randn(10, 256)  # Batch of 10, input dimension 256
@@ -233,10 +233,11 @@ class Feedforward(Residual):
         torch.Size([10, 256])  # Output shape matches the input shape
 
     Note:
-        This implementation sets alpha to 0.0, which means the input 
-        features will not be scaled, effectively making it a bypass 
+        This implementation sets alpha to 0.0, which means the input
+        features will not be scaled, effectively making it a bypass
         connection for the input features.
     """
+
     def __init__(self, *args):
         # print("Feedforward extra kwargs", kwargs)
         super().__init__(*args, alpha=0.0, beta=1.0)
@@ -282,6 +283,7 @@ class Highway(Residual):
     Todo:
         - Implement additional features or options for more advanced use cases.
     """
+
     def __init__(self, *args, scaling_correction=False, elemwise=False):
         super().__init__(*args)
         self.scaling_correction = 1.732 if scaling_correction else 1.0
@@ -296,21 +298,21 @@ class Highway(Residual):
         """
         Perform the forward pass of the Highway residual connection.
 
-        This method computes the output of the Highway layer by applying a 
-        learnable transformation to the input tensors `x` and `y`. It utilizes 
-        a gating mechanism, controlled by the sigmoid function, to blend the 
+        This method computes the output of the Highway layer by applying a
+        learnable transformation to the input tensors `x` and `y`. It utilizes
+        a gating mechanism, controlled by the sigmoid function, to blend the
         input tensors based on their learned weights.
 
         Args:
-            x (torch.Tensor): The input tensor to the layer, typically the 
+            x (torch.Tensor): The input tensor to the layer, typically the
                 previous layer's output.
-            y (torch.Tensor): The tensor to be combined with `x`, usually the 
+            y (torch.Tensor): The tensor to be combined with `x`, usually the
                 output of another layer or transformation.
-            transposed (bool, optional): A flag indicating whether the `y` tensor 
+            transposed (bool, optional): A flag indicating whether the `y` tensor
                 should be treated as transposed. Defaults to False.
 
         Returns:
-            torch.Tensor: The output tensor resulting from the combination of 
+            torch.Tensor: The output tensor resulting from the combination of
             `x` and `y` according to the Highway mechanism.
 
         Examples:
@@ -322,7 +324,7 @@ class Highway(Residual):
             torch.Size([10, 64])
 
         Note:
-            The scaling correction can be enabled during the initialization of 
+            The scaling correction can be enabled during the initialization of
             the Highway layer, which will adjust the output accordingly.
         """
         if self.elemwise:
@@ -338,15 +340,15 @@ class DecayResidual(Residual):
     """
     Residual connection that can decay the linear combination depending on depth.
 
-    This class implements a residual connection where the contribution of the 
-    input tensor can decay based on the layer depth. It adjusts the weights of 
-    the residual connection dynamically, allowing for more controlled flow of 
+    This class implements a residual connection where the contribution of the
+    input tensor can decay based on the layer depth. It adjusts the weights of
+    the residual connection dynamically, allowing for more controlled flow of
     information through deeper layers.
 
     Attributes:
-        power (float): The exponent used to compute the decay factor for the 
+        power (float): The exponent used to compute the decay factor for the
             residual connection. A higher power results in faster decay.
-        l2 (bool): If True, uses L2 normalization for the alpha coefficient; 
+        l2 (bool): If True, uses L2 normalization for the alpha coefficient;
             otherwise, uses a linear decay.
 
     Args:
@@ -366,8 +368,8 @@ class DecayResidual(Residual):
         torch.Size([1, 10])
 
     Note:
-        The behavior of this class is influenced by the layer index (i_layer) 
-        at which it is instantiated. As the layer index increases, the effect 
+        The behavior of this class is influenced by the layer index (i_layer)
+        at which it is instantiated. As the layer index increases, the effect
         of the decay will be more pronounced.
 
     Todo:
@@ -382,27 +384,27 @@ class DecayResidual(Residual):
 
     def forward(self, x, y, transposed):
         """
-        Computes the output of the DecayResidual layer, which applies a residual 
-        connection that can decay the linear combination of inputs based on the 
+        Computes the output of the DecayResidual layer, which applies a residual
+        connection that can decay the linear combination of inputs based on the
         layer's depth.
 
         The output is computed as:
             output = alpha * x + beta * y
-        where alpha and beta are determined based on the layer index and the 
-        specified power. The decay factor allows for a controlled blending of 
-        the input tensor `x` and the residual tensor `y`, with the possibility 
+        where alpha and beta are determined based on the layer index and the
+        specified power. The decay factor allows for a controlled blending of
+        the input tensor `x` and the residual tensor `y`, with the possibility
         of scaling down the contribution of the previous layer's output.
 
         Args:
-            x (torch.Tensor): The input tensor to the layer, typically the output 
+            x (torch.Tensor): The input tensor to the layer, typically the output
                 from the previous layer.
-            y (torch.Tensor): The residual tensor, typically the output from a 
+            y (torch.Tensor): The residual tensor, typically the output from a
                 different path in the network.
-            transposed (bool): A flag indicating whether the inputs should be 
+            transposed (bool): A flag indicating whether the inputs should be
                 treated as transposed (e.g., for different dimensions).
 
         Returns:
-            torch.Tensor: The resulting tensor after applying the decay 
+            torch.Tensor: The resulting tensor after applying the decay
                 residual connection.
 
         Examples:
@@ -415,9 +417,9 @@ class DecayResidual(Residual):
             torch.Size([5, 3])
 
         Note:
-            The `power` attribute controls the rate of decay for the 
+            The `power` attribute controls the rate of decay for the
             linear combination, where higher values result in faster decay.
-            
+
         Raises:
             ValueError: If the dimensions of `x` and `y` do not match.
         """

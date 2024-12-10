@@ -14,26 +14,26 @@ class FusedFrontends(AbsFrontend):
     A class to fuse multiple audio frontends for feature extraction.
 
     This class combines multiple audio frontends, such as `DefaultFrontend`
-    and `S3prlFrontend`, into a single module. It allows for the alignment and 
-    projection of features extracted from these frontends using a specified 
-    method. Currently, only linear projection is supported for fusing the 
+    and `S3prlFrontend`, into a single module. It allows for the alignment and
+    projection of features extracted from these frontends using a specified
+    method. Currently, only linear projection is supported for fusing the
     frontends.
 
     Attributes:
         align_method (str): The method used for aligning features. Currently,
             only "linear_projection" is supported.
-        proj_dim (int): The dimension of the projection applied to each 
+        proj_dim (int): The dimension of the projection applied to each
             frontend's output.
         frontends (ModuleList): A list of frontends to combine.
-        gcd (int): The greatest common divisor of the hop lengths of the 
+        gcd (int): The greatest common divisor of the hop lengths of the
             frontends.
         factors (list): The factors for reshaping the output based on hop lengths.
-        projection_layers (ModuleList): A list of linear layers for projecting 
+        projection_layers (ModuleList): A list of linear layers for projecting
             frontend outputs.
 
     Args:
-        frontends (list): A list of dictionaries specifying the frontends to 
-            combine. Each dictionary should include the type of frontend and 
+        frontends (list): A list of dictionaries specifying the frontends to
+            combine. Each dictionary should include the type of frontend and
             its respective parameters.
         align_method (str, optional): The alignment method for feature fusion.
             Defaults to "linear_projection".
@@ -41,7 +41,7 @@ class FusedFrontends(AbsFrontend):
         fs (int, optional): The sampling frequency. Defaults to 16000.
 
     Returns:
-        Tuple[torch.Tensor, torch.Tensor]: The fused feature tensor and the 
+        Tuple[torch.Tensor, torch.Tensor]: The fused feature tensor and the
             lengths of the features.
 
     Raises:
@@ -62,9 +62,10 @@ class FusedFrontends(AbsFrontend):
         output_feats, output_lengths = fused_frontend(input_tensor, input_lengths)
 
     Note:
-        The class is currently limited to using the linear projection alignment 
+        The class is currently limited to using the linear projection alignment
         method. Future implementations may include additional alignment methods.
     """
+
     @typechecked
     def __init__(
         self, frontends=None, align_method="linear_projection", proj_dim=100, fs=16000
@@ -155,12 +156,12 @@ class FusedFrontends(AbsFrontend):
 
     def output_size(self) -> int:
         """
-        Calculates the output size of the fused frontends based on the number of 
+        Calculates the output size of the fused frontends based on the number of
         frontends and the projection dimension.
 
-        The output size is determined by multiplying the number of frontends by the 
-        projection dimension specified during initialization. This value is useful 
-        for determining the shape of the output tensor after processing the input 
+        The output size is determined by multiplying the number of frontends by the
+        projection dimension specified during initialization. This value is useful
+        for determining the shape of the output tensor after processing the input
         through the fused frontends.
 
         Returns:
@@ -179,7 +180,7 @@ class FusedFrontends(AbsFrontend):
             200  # (2 frontends * 100 proj_dim)
 
         Note:
-            The function assumes that the `frontends` attribute is properly initialized 
+            The function assumes that the `frontends` attribute is properly initialized
             and contains valid frontend configurations.
         """
         return len(self.frontends) * self.proj_dim
@@ -193,16 +194,16 @@ class FusedFrontends(AbsFrontend):
         based on the specified alignment method.
 
         Args:
-            input (torch.Tensor): The input audio tensor of shape (batch_size, 
+            input (torch.Tensor): The input audio tensor of shape (batch_size,
                 num_samples).
-            input_lengths (torch.Tensor): A tensor containing the lengths of the 
+            input_lengths (torch.Tensor): A tensor containing the lengths of the
                 input sequences of shape (batch_size,).
 
         Returns:
             Tuple[torch.Tensor, torch.Tensor]: A tuple containing:
-                - A tensor of fused audio features of shape 
+                - A tensor of fused audio features of shape
                 (batch_size, num_frames, output_size).
-                - A tensor of the lengths of the output features of shape 
+                - A tensor of the lengths of the output features of shape
                 (batch_size,).
 
         Raises:
@@ -216,7 +217,7 @@ class FusedFrontends(AbsFrontend):
             >>> print(output_feats.shape)  # Expected output shape: (10, num_frames, output_size)
 
         Note:
-            The current implementation supports only the 'linear_projection' 
+            The current implementation supports only the 'linear_projection'
             alignment method. Future updates may include additional methods.
         """
         # step 0 : get all frontends features

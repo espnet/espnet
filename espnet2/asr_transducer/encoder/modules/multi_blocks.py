@@ -9,8 +9,8 @@ class MultiBlocks(torch.nn.Module):
     """
     MultiBlocks for encoder architecture.
 
-    This class defines a modular approach to building an encoder architecture 
-    composed of multiple blocks. Each block can be independently designed and 
+    This class defines a modular approach to building an encoder architecture
+    composed of multiple blocks. Each block can be independently designed and
     the architecture supports normalization and block dropout functionality.
 
     Attributes:
@@ -21,25 +21,25 @@ class MultiBlocks(torch.nn.Module):
         keep_probs (torch.Tensor): Tensor holding the probabilities for keeping blocks.
 
     Args:
-        block_list (List[torch.nn.Module]): Individual blocks of the encoder 
+        block_list (List[torch.nn.Module]): Individual blocks of the encoder
             architecture.
         output_size (int): Architecture output size.
-        norm_class (torch.nn.Module, optional): Normalization module class. 
+        norm_class (torch.nn.Module, optional): Normalization module class.
             Defaults to torch.nn.LayerNorm.
-        norm_args (Optional[Dict], optional): Normalization module arguments. 
+        norm_args (Optional[Dict], optional): Normalization module arguments.
             Defaults to None.
-        blockdrop_rate (float, optional): Probability threshold for dropping out 
+        blockdrop_rate (float, optional): Probability threshold for dropping out
             each block. Defaults to 0.0.
 
     Methods:
         reset_streaming_cache(left_context: int, device: torch.device) -> None:
             Initializes or resets the encoder streaming cache.
 
-        forward(x: torch.Tensor, pos_enc: torch.Tensor, mask: torch.Tensor, 
+        forward(x: torch.Tensor, pos_enc: torch.Tensor, mask: torch.Tensor,
                 chunk_mask: Optional[torch.Tensor] = None) -> torch.Tensor:
             Forward pass through each block of the encoder architecture.
 
-        chunk_forward(x: torch.Tensor, pos_enc: torch.Tensor, mask: torch.Tensor, 
+        chunk_forward(x: torch.Tensor, pos_enc: torch.Tensor, mask: torch.Tensor,
                     left_context: int = 0) -> torch.Tensor:
             Forward pass through each block for chunk processing.
 
@@ -52,8 +52,8 @@ class MultiBlocks(torch.nn.Module):
         output = multi_blocks(input_tensor, pos_enc_tensor, mask_tensor)
 
     Note:
-        This implementation is designed for use in ASR (Automatic Speech 
-        Recognition) systems where multiple processing blocks can improve 
+        This implementation is designed for use in ASR (Automatic Speech
+        Recognition) systems where multiple processing blocks can improve
         model performance.
 
     Todo:
@@ -83,15 +83,15 @@ class MultiBlocks(torch.nn.Module):
         """
         Initialize or reset the encoder streaming cache.
 
-        This method is used to prepare the encoder for processing new chunks of 
-        input by resetting the internal state of each block in the MultiBlocks 
-        architecture. The `left_context` parameter determines how many previous 
-        frames the attention module can see in the current chunk, which is 
+        This method is used to prepare the encoder for processing new chunks of
+        input by resetting the internal state of each block in the MultiBlocks
+        architecture. The `left_context` parameter determines how many previous
+        frames the attention module can see in the current chunk, which is
         particularly relevant for architectures like Conformer and Branchformer.
 
         Args:
-            left_context (int): Number of previous frames the attention module 
-                can see in the current chunk (used by Conformer and Branchformer 
+            left_context (int): Number of previous frames the attention module
+                can see in the current chunk (used by Conformer and Branchformer
                 block).
             device (torch.device): Device to use for cache tensor.
 
@@ -112,28 +112,28 @@ class MultiBlocks(torch.nn.Module):
         """
         Forward each block of the encoder architecture.
 
-        This method processes the input through a series of blocks defined in 
-        the MultiBlocks architecture. Each block is applied based on a dropout 
-        probability, allowing for stochastic block dropout during training. 
+        This method processes the input through a series of blocks defined in
+        the MultiBlocks architecture. Each block is applied based on a dropout
+        probability, allowing for stochastic block dropout during training.
         The output is then normalized using the specified normalization module.
 
         Args:
-            x: MultiBlocks input sequences. Shape: (B, T, D_block_1), where B is 
-            the batch size, T is the sequence length, and D_block_1 is the 
+            x: MultiBlocks input sequences. Shape: (B, T, D_block_1), where B is
+            the batch size, T is the sequence length, and D_block_1 is the
             dimensionality of the first block.
-            pos_enc: Positional embedding sequences. Shape: (B, T, D_pos), where 
+            pos_enc: Positional embedding sequences. Shape: (B, T, D_pos), where
                     D_pos is the dimensionality of the positional encoding.
-            mask: Source mask. Shape: (B, T), indicating which elements are 
+            mask: Source mask. Shape: (B, T), indicating which elements are
                 valid.
-            chunk_mask: Optional; Chunk mask. Shape: (T_2, T_2), used for 
+            chunk_mask: Optional; Chunk mask. Shape: (T_2, T_2), used for
                         attention masking within chunks.
 
         Returns:
-            x: Output sequences. Shape: (B, T, D_block_N), where D_block_N is 
+            x: Output sequences. Shape: (B, T, D_block_N), where D_block_N is
             the dimensionality of the last block after processing.
 
         Examples:
-            >>> multi_blocks = MultiBlocks(block_list=[block1, block2], 
+            >>> multi_blocks = MultiBlocks(block_list=[block1, block2],
             ...                             output_size=128)
             >>> input_tensor = torch.randn(32, 10, 64)  # Batch size 32, T=10, D=64
             >>> pos_tensor = torch.randn(32, 10, 64)
@@ -141,11 +141,11 @@ class MultiBlocks(torch.nn.Module):
             >>> output = multi_blocks.forward(input_tensor, pos_tensor, mask_tensor)
 
         Note:
-            Ensure that the input dimensions match the expected shapes for 
+            Ensure that the input dimensions match the expected shapes for
             the blocks in the architecture.
 
         Raises:
-            ValueError: If the input tensors do not match the expected 
+            ValueError: If the input tensors do not match the expected
                         dimensions.
         """
         self.keep_probs[:-1].uniform_()
@@ -171,11 +171,11 @@ class MultiBlocks(torch.nn.Module):
         """
         Forward each block of the encoder architecture.
 
-        This method processes the input tensor `x` through each block in the 
-        MultiBlocks architecture, applying the `chunk_forward` method of each 
-        block. It is designed to accommodate the `left_context` parameter, which 
-        specifies how many previous frames the attention module can see in the 
-        current chunk. This is particularly useful for models like Conformer and 
+        This method processes the input tensor `x` through each block in the
+        MultiBlocks architecture, applying the `chunk_forward` method of each
+        block. It is designed to accommodate the `left_context` parameter, which
+        specifies how many previous frames the attention module can see in the
+        current chunk. This is particularly useful for models like Conformer and
         Branchformer.
 
         Args:
@@ -198,8 +198,8 @@ class MultiBlocks(torch.nn.Module):
             torch.Size([32, 10, 128])
 
         Note:
-            This method is typically used in the context of processing sequences 
-            where the attention mechanism needs to consider previous frames for 
+            This method is typically used in the context of processing sequences
+            where the attention mechanism needs to consider previous frames for
             each chunk.
         """
         for block in self.blocks:

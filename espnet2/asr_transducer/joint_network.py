@@ -103,7 +103,7 @@ class JointNetwork(torch.nn.Module):
                 Shape will be (B, T, U, D_out) or (B, T, s_range, D_out).
 
         Examples:
-            >>> joint_network = JointNetwork(output_size=10, encoder_size=20, 
+            >>> joint_network = JointNetwork(output_size=10, encoder_size=20,
             ...                              decoder_size=30)
             >>> enc_out = torch.randn(5, 10, 1, 20)  # Example encoder output
             >>> dec_out = torch.randn(5, 10, 2, 30)  # Example decoder output

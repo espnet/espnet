@@ -36,9 +36,9 @@ class ESPnetSLUModel(ESPnetASRModel):
     """
     CTC-attention hybrid Encoder-Decoder model for spoken language understanding.
 
-    This model combines the CTC (Connectionist Temporal Classification) 
-    and attention mechanisms to process and understand spoken language 
-    inputs. It can handle both speech and text inputs and is suitable 
+    This model combines the CTC (Connectionist Temporal Classification)
+    and attention mechanisms to process and understand spoken language
+    inputs. It can handle both speech and text inputs and is suitable
     for tasks such as speech recognition and natural language understanding.
 
     Attributes:
@@ -80,7 +80,7 @@ class ESPnetSLUModel(ESPnetASRModel):
         joint_network (Optional[torch.nn.Module]): Joint network.
         postdecoder (Optional[AbsPostDecoder]): Post-decoder module.
         deliberationencoder (Optional[AbsPostEncoder]): Deliberation encoder.
-        transcript_token_list (Union[Tuple[str, ...], List[str], None], optional): 
+        transcript_token_list (Union[Tuple[str, ...], List[str], None], optional):
             List of transcript tokens.
         ctc_weight (float, optional): Weight for CTC loss (default: 0.5).
         interctc_weight (float, optional): Weight for intermediate CTC loss (default: 0.0).
@@ -91,7 +91,7 @@ class ESPnetSLUModel(ESPnetASRModel):
         report_wer (bool, optional): Flag to report WER (default: True).
         sym_space (str, optional): Symbol for space (default: "<space>").
         sym_blank (str, optional): Symbol for blank (default: "<blank>").
-        extract_feats_in_collect_stats (bool, optional): Flag to extract features 
+        extract_feats_in_collect_stats (bool, optional): Flag to extract features
             in statistics collection (default: True).
         two_pass (bool, optional): Flag for two-pass decoding (default: False).
         pre_postencoder_norm (bool, optional): Flag for normalization (default: False).
@@ -116,7 +116,7 @@ class ESPnetSLUModel(ESPnetASRModel):
         >>> output = model.forward(speech_tensor, speech_lengths, text_tensor, text_lengths)
 
     Note:
-        The model can be used in both training and inference modes. Ensure to 
+        The model can be used in both training and inference modes. Ensure to
         appropriately set the training flags when using the model.
 
     Raises:
@@ -266,40 +266,40 @@ class ESPnetSLUModel(ESPnetASRModel):
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """
-        Perform a forward pass through the model, including the encoder, 
+        Perform a forward pass through the model, including the encoder,
         decoder, and loss calculation.
 
-        This method processes the input speech and text data, passing them 
-        through the model's encoder and decoder components, and calculates 
-        the corresponding loss values based on the specified weights for 
+        This method processes the input speech and text data, passing them
+        through the model's encoder and decoder components, and calculates
+        the corresponding loss values based on the specified weights for
         CTC and attention losses.
 
         Args:
-            speech: A tensor of shape (Batch, Length, ...) representing the 
+            speech: A tensor of shape (Batch, Length, ...) representing the
                 input speech data.
-            speech_lengths: A tensor of shape (Batch,) containing the lengths 
+            speech_lengths: A tensor of shape (Batch,) containing the lengths
                 of each speech input.
-            text: A tensor of shape (Batch, Length) representing the target 
+            text: A tensor of shape (Batch, Length) representing the target
                 text sequences.
-            text_lengths: A tensor of shape (Batch,) containing the lengths 
+            text_lengths: A tensor of shape (Batch,) containing the lengths
                 of each text input.
-            transcript: (Optional) A tensor representing additional transcript 
+            transcript: (Optional) A tensor representing additional transcript
                 information. Defaults to None.
-            transcript_lengths: (Optional) A tensor of lengths for the 
+            transcript_lengths: (Optional) A tensor of lengths for the
                 transcripts. Defaults to None.
-            kwargs: Additional keyword arguments, where "utt_id" is among the 
+            kwargs: Additional keyword arguments, where "utt_id" is among the
                 inputs.
 
         Returns:
             A tuple containing:
                 - loss: A tensor representing the total loss computed.
-                - stats: A dictionary containing various statistics such as 
+                - stats: A dictionary containing various statistics such as
                     loss values and error rates.
-                - weight: A tensor representing the batch size or weight for 
+                - weight: A tensor representing the batch size or weight for
                     loss computation.
 
         Raises:
-            AssertionError: If the input dimensions do not match or if any 
+            AssertionError: If the input dimensions do not match or if any
                 of the assertions regarding tensor shapes fail.
 
         Examples:
@@ -502,19 +502,19 @@ class ESPnetSLUModel(ESPnetASRModel):
         6. Optionally applies a post-encoder for further processing.
 
         Args:
-            speech: A tensor of shape (Batch, Length, ...) representing the input 
+            speech: A tensor of shape (Batch, Length, ...) representing the input
                 speech data.
-            speech_lengths: A tensor of shape (Batch,) representing the lengths of 
+            speech_lengths: A tensor of shape (Batch,) representing the lengths of
                 the input speech sequences.
             transcript_pad: (Optional) A tensor for padded transcripts, if provided.
-            transcript_pad_lens: (Optional) A tensor representing the lengths of 
+            transcript_pad_lens: (Optional) A tensor representing the lengths of
                 the padded transcripts.
 
         Returns:
             A tuple containing:
-                - encoder_out: A tensor of shape (Batch, Length2, Dim2) 
+                - encoder_out: A tensor of shape (Batch, Length2, Dim2)
                   representing the output from the encoder.
-                - encoder_out_lens: A tensor representing the lengths of the 
+                - encoder_out_lens: A tensor representing the lengths of the
                   encoder outputs.
 
         Examples:

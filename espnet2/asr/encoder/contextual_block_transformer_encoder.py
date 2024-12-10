@@ -33,62 +33,62 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
     """
     Contextual Block Transformer encoder module.
 
-    This class implements a transformer encoder that utilizes contextual block 
-    processing as described in Tsunoo et al. "Transformer ASR with contextual 
+    This class implements a transformer encoder that utilizes contextual block
+    processing as described in Tsunoo et al. "Transformer ASR with contextual
     block processing" (https://arxiv.org/abs/1910.07204).
 
     Attributes:
         output_size (int): The dimension of the output from the encoder.
-        pos_enc: Positional encoding layer used to add positional information 
+        pos_enc: Positional encoding layer used to add positional information
             to the input embeddings.
-        embed: Input layer that transforms the input features into the 
+        embed: Input layer that transforms the input features into the
             appropriate embedding size.
         encoders: A series of contextual block encoder layers.
-        normalize_before (bool): Indicates if layer normalization should be 
+        normalize_before (bool): Indicates if layer normalization should be
             applied before the first encoder block.
         after_norm: Layer normalization applied after the encoder layers.
         block_size (int): Size of the blocks for contextual processing.
         hop_size (int): The step size to move between blocks during processing.
         look_ahead (int): The size of the look-ahead window for processing.
-        init_average (bool): Indicates if the initial context vector should 
+        init_average (bool): Indicates if the initial context vector should
             be an average of the block.
-        ctx_pos_enc (bool): Whether to apply positional encoding to the 
+        ctx_pos_enc (bool): Whether to apply positional encoding to the
             context vectors.
 
     Args:
         input_size (int): Input dimension.
         output_size (int, optional): Dimension of attention (default: 256).
-        attention_heads (int, optional): Number of heads for multi-head 
+        attention_heads (int, optional): Number of heads for multi-head
             attention (default: 4).
-        linear_units (int, optional): Number of units in position-wise 
+        linear_units (int, optional): Number of units in position-wise
             feedforward layer (default: 2048).
         num_blocks (int, optional): Number of encoder blocks (default: 6).
         dropout_rate (float, optional): Dropout rate (default: 0.1).
-        positional_dropout_rate (float, optional): Dropout rate after adding 
+        positional_dropout_rate (float, optional): Dropout rate after adding
             positional encoding (default: 0.1).
-        attention_dropout_rate (float, optional): Dropout rate in attention 
+        attention_dropout_rate (float, optional): Dropout rate in attention
             (default: 0.0).
         input_layer (str, optional): Type of input layer (default: "conv2d").
-        pos_enc_class: Class for positional encoding (default: 
+        pos_enc_class: Class for positional encoding (default:
             StreamPositionalEncoding).
-        normalize_before (bool, optional): Use layer normalization before 
+        normalize_before (bool, optional): Use layer normalization before
             the first block (default: True).
-        concat_after (bool, optional): Concatenate input and output of 
+        concat_after (bool, optional): Concatenate input and output of
             attention layer (default: False).
-        positionwise_layer_type (str, optional): Type of position-wise layer 
+        positionwise_layer_type (str, optional): Type of position-wise layer
             ("linear" or "conv1d", default: "linear").
-        positionwise_conv_kernel_size (int, optional): Kernel size for 
+        positionwise_conv_kernel_size (int, optional): Kernel size for
             position-wise conv1d layer (default: 1).
-        padding_idx (int, optional): Padding index for input_layer=embed 
+        padding_idx (int, optional): Padding index for input_layer=embed
             (default: -1).
-        block_size (int, optional): Block size for contextual processing 
+        block_size (int, optional): Block size for contextual processing
             (default: 40).
         hop_size (int, optional): Hop size for block processing (default: 16).
-        look_ahead (int, optional): Look-ahead size for block processing 
+        look_ahead (int, optional): Look-ahead size for block processing
             (default: 16).
-        init_average (bool, optional): Use average as initial context 
+        init_average (bool, optional): Use average as initial context
             (default: True).
-        ctx_pos_enc (bool, optional): Use positional encoding for context 
+        ctx_pos_enc (bool, optional): Use positional encoding for context
             vectors (default: True).
 
     Examples:
@@ -110,8 +110,8 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
         output, olens, _ = encoder(xs_pad, ilens)
 
     Note:
-        This encoder is specifically designed for automatic speech recognition 
-        (ASR) tasks using transformer architectures with a focus on 
+        This encoder is specifically designed for automatic speech recognition
+        (ASR) tasks using transformer architectures with a focus on
         contextual processing.
 
     Todo:
@@ -474,31 +474,31 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
         """
         Perform inference on input tensor using the encoder.
 
-        This method processes the input tensor during inference. It handles 
-        the previous states and manages the internal buffers required for 
-        block processing. The function is designed to work with a batch size 
-        of one and is intended for use in scenarios where the model is 
+        This method processes the input tensor during inference. It handles
+        the previous states and manages the internal buffers required for
+        block processing. The function is designed to work with a batch size
+        of one and is intended for use in scenarios where the model is
         being used for generating outputs (e.g., decoding).
 
         Args:
-            xs_pad: Input tensor of shape (B, L, D), where B is the batch size, 
+            xs_pad: Input tensor of shape (B, L, D), where B is the batch size,
                      L is the sequence length, and D is the feature dimension.
-            ilens: Tensor containing the lengths of each input sequence 
+            ilens: Tensor containing the lengths of each input sequence
                    in the batch (B).
-            prev_states: Optional tensor containing the previous states for 
-                          maintaining context across calls. If None, the 
+            prev_states: Optional tensor containing the previous states for
+                          maintaining context across calls. If None, the
                           function initializes new state variables.
-            is_final: Boolean indicating if this is the final inference step. 
-                      If True, the function finalizes any state management 
-                      and returns the output tensor. Otherwise, it prepares 
+            is_final: Boolean indicating if this is the final inference step.
+                      If True, the function finalizes any state management
+                      and returns the output tensor. Otherwise, it prepares
                       for the next inference step.
 
         Returns:
             A tuple containing:
-                - Tensor of shape (B, L_out, D) representing the output from 
+                - Tensor of shape (B, L_out, D) representing the output from
                   the encoder, where L_out is the output sequence length.
                 - A tensor containing the output lengths (B).
-                - An optional dictionary with next states for continued 
+                - An optional dictionary with next states for continued
                   processing, or None if this was the final step.
 
         Examples:
@@ -508,7 +508,7 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
             >>> output, output_lengths, next_states = encoder.forward_infer(xs_pad, ilens)
 
         Note:
-            This method assumes a batch size of one. If the input tensor has 
+            This method assumes a batch size of one. If the input tensor has
             a different batch size, an assertion error will be raised.
 
         Raises:

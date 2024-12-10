@@ -12,9 +12,9 @@ class ErrorCalculatorTransducer(object):
     """
     Error Calculator module for Transducer.
 
-    This class calculates Character Error Rate (CER) and Word Error Rate (WER) 
-    for transducer models. It utilizes a decoder module and a joint network 
-    to perform beam search for predictions, and then compares those predictions 
+    This class calculates Character Error Rate (CER) and Word Error Rate (WER)
+    for transducer models. It utilizes a decoder module and a joint network
+    to perform beam search for predictions, and then compares those predictions
     against target sequences to compute error rates.
 
     Attributes:
@@ -129,15 +129,15 @@ class ErrorCalculatorTransducer(object):
         """
         Convert label ID sequences to character sequences.
 
-        This method takes the predicted and target label ID sequences and 
-        converts them into their corresponding character representations 
-        based on the provided token list. It handles special symbols, 
+        This method takes the predicted and target label ID sequences and
+        converts them into their corresponding character representations
+        based on the provided token list. It handles special symbols,
         replacing space symbols with spaces and removing blank symbols.
 
         Args:
-            pred: Prediction label ID sequences. Shape: (B, U), where B is the 
+            pred: Prediction label ID sequences. Shape: (B, U), where B is the
                 batch size and U is the maximum length of predicted sequences.
-            target: Target label ID sequences. Shape: (B, L), where L is the 
+            target: Target label ID sequences. Shape: (B, L), where L is the
                 maximum length of target sequences.
 
         Returns:
@@ -149,7 +149,7 @@ class ErrorCalculatorTransducer(object):
             >>> token_list = ['a', 'b', ' ', '_']
             >>> pred = torch.tensor([[0, 1, 2], [1, 0, 3]])
             >>> target = torch.tensor([[0, 1], [1, 2]])
-            >>> ec_transducer = ErrorCalculatorTransducer(decoder, joint_network, 
+            >>> ec_transducer = ErrorCalculatorTransducer(decoder, joint_network,
             ...                                             token_list, ' ', '_')
             >>> char_pred, char_target = ec_transducer.convert_to_char(pred, target)
             >>> print(char_pred)
@@ -158,8 +158,8 @@ class ErrorCalculatorTransducer(object):
             ['ab', 'a ']
 
         Note:
-            The output character sequences may vary in length based on the 
-            predictions and targets. The '?' in the shape notation indicates 
+            The output character sequences may vary in length based on the
+            predictions and targets. The '?' in the shape notation indicates
             that the length may differ for each sequence.
         """
         char_pred, char_target = [], []
@@ -185,24 +185,24 @@ class ErrorCalculatorTransducer(object):
         """
         Calculate sentence-level Character Error Rate (CER) score.
 
-        This method computes the CER by comparing predicted character 
-        sequences against target character sequences. The CER is defined 
-        as the edit distance between the predicted and target sequences 
+        This method computes the CER by comparing predicted character
+        sequences against target character sequences. The CER is defined
+        as the edit distance between the predicted and target sequences
         divided by the length of the target sequence, ignoring spaces.
 
         Args:
-            char_pred: Prediction character sequences. Shape: (B, ?), where B 
-                is the batch size and ? is the variable length of the 
+            char_pred: Prediction character sequences. Shape: (B, ?), where B
+                is the batch size and ? is the variable length of the
                 predicted sequences.
-            char_target: Target character sequences. Shape: (B, ?), where B 
-                is the batch size and ? is the variable length of the 
+            char_target: Target character sequences. Shape: (B, ?), where B
+                is the batch size and ? is the variable length of the
                 target sequences.
 
         Returns:
             float: Average sentence-level CER score across the batch.
 
         Raises:
-            ZeroDivisionError: If the total length of the target sequences 
+            ZeroDivisionError: If the total length of the target sequences
                 is zero.
 
         Examples:
@@ -213,8 +213,8 @@ class ErrorCalculatorTransducer(object):
             0.25  # Example output based on edit distance calculation
 
         Note:
-            The method uses the `editdistance` library to compute the edit 
-            distance between character sequences. Make sure to have it 
+            The method uses the `editdistance` library to compute the edit
+            distance between character sequences. Make sure to have it
             installed in your environment.
         """
         import editdistance
@@ -258,8 +258,8 @@ class ErrorCalculatorTransducer(object):
 
         Note:
             The WER calculation uses the edit distance algorithm to evaluate
-            the differences between predicted and target sequences. It is 
-            recommended to preprocess the input sequences to ensure consistent 
+            the differences between predicted and target sequences. It is
+            recommended to preprocess the input sequences to ensure consistent
             formatting (e.g., removing extra spaces).
         """
         import editdistance

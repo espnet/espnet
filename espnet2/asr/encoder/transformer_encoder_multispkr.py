@@ -47,31 +47,31 @@ class TransformerEncoder(AbsEncoder):
     Args:
         input_size (int): Input dimension of the features.
         output_size (int, optional): Dimension of attention (default is 256).
-        attention_heads (int, optional): Number of heads in multi-head attention 
+        attention_heads (int, optional): Number of heads in multi-head attention
             (default is 4).
-        linear_units (int, optional): Number of units in the position-wise feed 
+        linear_units (int, optional): Number of units in the position-wise feed
             forward network (default is 2048).
-        num_blocks (int, optional): Number of recognition encoder blocks 
+        num_blocks (int, optional): Number of recognition encoder blocks
             (default is 6).
-        num_blocks_sd (int, optional): Number of speaker-dependent encoder blocks 
+        num_blocks_sd (int, optional): Number of speaker-dependent encoder blocks
             (default is 6).
         dropout_rate (float, optional): Dropout rate (default is 0.1).
-        positional_dropout_rate (float, optional): Dropout rate after adding 
+        positional_dropout_rate (float, optional): Dropout rate after adding
             positional encoding (default is 0.1).
-        attention_dropout_rate (float, optional): Dropout rate in attention 
+        attention_dropout_rate (float, optional): Dropout rate in attention
             (default is 0.0).
         input_layer (str, optional): Type of input layer (default is "conv2d").
-        pos_enc_class: Class for positional encoding (default is 
+        pos_enc_class: Class for positional encoding (default is
             PositionalEncoding).
-        normalize_before (bool, optional): Whether to apply layer normalization 
+        normalize_before (bool, optional): Whether to apply layer normalization
             before the first block (default is True).
-        concat_after (bool, optional): Whether to concatenate input and output of 
+        concat_after (bool, optional): Whether to concatenate input and output of
             attention layer (default is False).
-        positionwise_layer_type (str, optional): Type of position-wise layer 
+        positionwise_layer_type (str, optional): Type of position-wise layer
             ("linear" or "conv1d", default is "linear").
-        positionwise_conv_kernel_size (int, optional): Kernel size for 
+        positionwise_conv_kernel_size (int, optional): Kernel size for
             position-wise conv1d layer (default is 1).
-        padding_idx (int, optional): Padding index for input_layer="embed" 
+        padding_idx (int, optional): Padding index for input_layer="embed"
             (default is -1).
         num_inf (int, optional): Number of inference outputs (default is 1).
 
@@ -89,11 +89,11 @@ class TransformerEncoder(AbsEncoder):
 
     Raises:
         ValueError: If an unknown input layer type is provided.
-        TooShortUttError: If the input tensor is too short for the selected 
+        TooShortUttError: If the input tensor is too short for the selected
             subsampling method.
 
     Note:
-        This encoder is designed for ASR tasks and may require additional 
+        This encoder is designed for ASR tasks and may require additional
         components for full model integration.
     """
 
@@ -242,30 +242,30 @@ class TransformerEncoder(AbsEncoder):
         """
         Process input tensor through the transformer encoder.
 
-        This method takes an input tensor and applies the transformer 
-        encoder layers, producing an output tensor that represents the 
-        encoded features of the input. The method also generates a mask 
+        This method takes an input tensor and applies the transformer
+        encoder layers, producing an output tensor that represents the
+        encoded features of the input. The method also generates a mask
         to identify padded elements in the input tensor.
 
         Args:
-            xs_pad: A tensor of shape (B, L, D) representing the input 
-                sequences, where B is the batch size, L is the sequence 
+            xs_pad: A tensor of shape (B, L, D) representing the input
+                sequences, where B is the batch size, L is the sequence
                 length, and D is the feature dimension.
-            ilens: A tensor of shape (B) containing the lengths of the 
+            ilens: A tensor of shape (B) containing the lengths of the
                 input sequences (without padding).
-            prev_states: An optional tensor for previous states, currently 
+            prev_states: An optional tensor for previous states, currently
                 not used in this implementation.
 
         Returns:
             A tuple containing:
-                - A tensor of shape (B, num_inf, L, D) with the position 
+                - A tensor of shape (B, num_inf, L, D) with the position
                   embedded tensor for each inference output.
-                - A tensor of shape (B, num_inf) with the lengths of the 
+                - A tensor of shape (B, num_inf) with the lengths of the
                   output sequences.
                 - An optional tensor (currently None) for future use.
 
         Raises:
-            TooShortUttError: If the input sequence is too short for the 
+            TooShortUttError: If the input sequence is too short for the
                 selected subsampling method, this error is raised.
 
         Examples:
@@ -275,8 +275,8 @@ class TransformerEncoder(AbsEncoder):
             >>> output, olens, _ = encoder.forward(xs_pad, ilens)
 
         Note:
-            This method assumes that the input sequences have been properly 
-            preprocessed and padded. The encoder will not function correctly 
+            This method assumes that the input sequences have been properly
+            preprocessed and padded. The encoder will not function correctly
             if the input tensor dimensions do not match the expected shapes.
         """
         masks = (~make_pad_mask(ilens)[:, None, :]).to(xs_pad.device)

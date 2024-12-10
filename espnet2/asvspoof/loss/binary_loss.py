@@ -16,7 +16,7 @@ class ASVSpoofBinaryLoss(AbsASVSpoofLoss):
         weight (float): A scalar value to weight the loss. Default is 1.0.
 
     Args:
-        weight (float): A scalar value to weight the loss during training. 
+        weight (float): A scalar value to weight the loss during training.
             Default is 1.0.
 
     Methods:
@@ -98,11 +98,11 @@ class ASVSpoofBinaryLoss(AbsASVSpoofLoss):
         """
         Calculate the score from the prediction tensor.
 
-        This method takes the prediction tensor and returns it directly as the score. 
+        This method takes the prediction tensor and returns it directly as the score.
         The score can be interpreted as the raw output probabilities from the model.
 
         Args:
-            pred (torch.Tensor): The prediction probabilities from the model, 
+            pred (torch.Tensor): The prediction probabilities from the model,
                 expected shape [Batch, 2].
 
         Returns:
@@ -118,7 +118,7 @@ class ASVSpoofBinaryLoss(AbsASVSpoofLoss):
                     [0.4, 0.6]])
 
         Note:
-            The returned score is the same as the input predictions without any 
+            The returned score is the same as the input predictions without any
             further processing.
         """
         return pred

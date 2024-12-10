@@ -57,6 +57,7 @@ class AbsMask(torch.nn.Module, ABC):
         This class should not be instantiated directly. Subclasses must provide
         concrete implementations of the abstract methods.
     """
+
     @property
     @abstractmethod
     def max_num_spk(self) -> int:

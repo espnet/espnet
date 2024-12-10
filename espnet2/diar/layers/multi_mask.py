@@ -17,47 +17,48 @@ class MultiMask(AbsMask):
     Multiple 1x1 convolution layer Module.
 
     This module corresponds to the final 1x1 convolution block and
-    non-linear function in TCNSeparator. It has multiple 1x1 
-    convolution blocks, one of which is selected according to the 
-    specified number of speakers to handle a flexible number of 
+    non-linear function in TCNSeparator. It has multiple 1x1
+    convolution blocks, one of which is selected according to the
+    specified number of speakers to handle a flexible number of
     speakers.
 
     Args:
         input_dim (int): Number of filters in the autoencoder.
-        bottleneck_dim (int, optional): Number of channels in the 
+        bottleneck_dim (int, optional): Number of channels in the
             bottleneck 1x1 convolution block. Defaults to 128.
-        max_num_spk (int, optional): Maximum number of 
-            mask_conv1x1 modules (should be >= maximum number of 
+        max_num_spk (int, optional): Maximum number of
+            mask_conv1x1 modules (should be >= maximum number of
             speakers in the dataset). Defaults to 3.
-        mask_nonlinear (str, optional): Non-linear function to use 
+        mask_nonlinear (str, optional): Non-linear function to use
             for generating masks. Defaults to "relu".
 
     Attributes:
-        max_num_spk (int): The maximum number of speakers supported 
+        max_num_spk (int): The maximum number of speakers supported
             by the model.
-    
+
     Examples:
-        >>> model = MultiMask(input_dim=256, bottleneck_dim=128, 
+        >>> model = MultiMask(input_dim=256, bottleneck_dim=128,
         ...                    max_num_spk=3, mask_nonlinear='relu')
         >>> input_tensor = torch.randn(10, 64, 256)  # (M, K, N)
         >>> ilens = torch.tensor([64] * 10)  # Lengths for each input
         >>> bottleneck_feat = torch.randn(10, 64, 128)  # (M, K, B)
-        >>> masked, ilens_out, others = model(input_tensor, ilens, 
+        >>> masked, ilens_out, others = model(input_tensor, ilens,
         ...                                     bottleneck_feat, num_spk=2)
 
     Raises:
-        ValueError: If an unsupported mask non-linear function is 
+        ValueError: If an unsupported mask non-linear function is
             specified.
 
     Returns:
-        Tuple[List[Union[torch.Tensor, ComplexTensor]], 
+        Tuple[List[Union[torch.Tensor, ComplexTensor]],
                 torch.Tensor, OrderedDict]:
-            - masked (List[Union[torch.Tensor, ComplexTensor]]): 
+            - masked (List[Union[torch.Tensor, ComplexTensor]]):
                 List of masked outputs for each speaker.
             - ilens (torch.Tensor): Lengths of the input sequences.
-            - others (OrderedDict): Additional predicted data, 
+            - others (OrderedDict): Additional predicted data,
                 including masks for each speaker.
     """
+
     def __init__(
         self,
         input_dim: int,
@@ -97,41 +98,41 @@ class MultiMask(AbsMask):
 
         This module corresponds to the final 1x1 conv block and
         non-linear function in TCNSeparator. It consists of multiple
-        1x1 convolution blocks, allowing for flexible handling of a 
+        1x1 convolution blocks, allowing for flexible handling of a
         varying number of speakers.
 
         Attributes:
-            max_num_spk (int): Maximum number of speakers that can be 
+            max_num_spk (int): Maximum number of speakers that can be
                 processed by this module.
-            mask_nonlinear (str): The non-linear activation function used 
+            mask_nonlinear (str): The non-linear activation function used
                 to generate the masks.
 
         Args:
             input_dim (int): Number of filters in the autoencoder.
-            bottleneck_dim (int, optional): Number of channels in the 
+            bottleneck_dim (int, optional): Number of channels in the
                 bottleneck 1x1 convolution block. Defaults to 128.
-            max_num_spk (int, optional): Maximum number of 
-                mask_conv1x1 modules (>= Max number of speakers in the 
+            max_num_spk (int, optional): Maximum number of
+                mask_conv1x1 modules (>= Max number of speakers in the
                 dataset). Defaults to 3.
-            mask_nonlinear (str, optional): Non-linear function to use 
+            mask_nonlinear (str, optional): Non-linear function to use
                 for mask generation. Defaults to "relu".
 
         Examples:
-            >>> multi_mask = MultiMask(input_dim=64, bottleneck_dim=128, 
+            >>> multi_mask = MultiMask(input_dim=64, bottleneck_dim=128,
             ...                          max_num_spk=3, mask_nonlinear="relu")
             >>> input_tensor = torch.randn(10, 128, 64)  # [M, K, N]
             >>> ilens = torch.tensor([64] * 10)  # lengths of the inputs
             >>> bottleneck_feat = torch.randn(10, 64, 128)  # [M, K, B]
-            >>> masked, ilens, others = multi_mask(input_tensor, ilens, 
+            >>> masked, ilens, others = multi_mask(input_tensor, ilens,
             ...                                      bottleneck_feat, num_spk=2)
 
         Raises:
-            ValueError: If an unsupported mask non-linear function is 
+            ValueError: If an unsupported mask non-linear function is
                 specified.
 
         Note:
-            This module is part of the MultiMask package and is intended 
-            for use in speech separation tasks, particularly in scenarios 
+            This module is part of the MultiMask package and is intended
+            for use in speech separation tasks, particularly in scenarios
             involving multiple speakers.
         """
         return self._max_num_spk
@@ -147,29 +148,29 @@ class MultiMask(AbsMask):
         Processes input through the multiple 1x1 convolution layers.
 
         This method applies the forward pass for the MultiMask module, which
-        consists of multiple 1x1 convolution layers that generate masks for 
-        separating audio signals from different speakers. The number of masks 
+        consists of multiple 1x1 convolution layers that generate masks for
+        separating audio signals from different speakers. The number of masks
         generated corresponds to the specified number of speakers.
 
         Args:
-            input: A tensor of shape [M, K, N], where M is the batch size, 
-                   K is the number of frequency bins, and N is the number 
+            input: A tensor of shape [M, K, N], where M is the batch size,
+                   K is the number of frequency bins, and N is the number
                    of time steps.
-            ilens (torch.Tensor): A tensor of shape (M,) containing the 
+            ilens (torch.Tensor): A tensor of shape (M,) containing the
                                   lengths of the input sequences.
-            bottleneck_feat: A tensor of shape [M, K, B], representing the 
-                             bottleneck features, where B is the bottleneck 
+            bottleneck_feat: A tensor of shape [M, K, B], representing the
+                             bottleneck features, where B is the bottleneck
                              dimension.
-            num_spk: An integer indicating the number of speakers 
+            num_spk: An integer indicating the number of speakers
                      (training: oracle, inference: estimated by another module).
 
         Returns:
-            masked (List[Union[torch.Tensor, ComplexTensor]]): A list of tensors 
-            of shape [(M, K, N), ...], where each tensor corresponds to the 
+            masked (List[Union[torch.Tensor, ComplexTensor]]): A list of tensors
+            of shape [(M, K, N), ...], where each tensor corresponds to the
             input masked by the estimated speaker masks.
-            ilens (torch.Tensor): A tensor of shape (M,) containing the 
+            ilens (torch.Tensor): A tensor of shape (M,) containing the
                                   lengths of the input sequences.
-            others (OrderedDict): An ordered dictionary containing additional 
+            others (OrderedDict): An ordered dictionary containing additional
             predicted data, such as masks for each speaker:
                 - 'mask_spk1': torch.Tensor(Batch, Frames, Freq),
                 - 'mask_spk2': torch.Tensor(Batch, Frames, Freq),
@@ -177,7 +178,7 @@ class MultiMask(AbsMask):
                 - 'mask_spkn': torch.Tensor(Batch, Frames, Freq).
 
         Raises:
-            ValueError: If the specified non-linear function for mask 
+            ValueError: If the specified non-linear function for mask
                         generation is unsupported.
 
         Examples:

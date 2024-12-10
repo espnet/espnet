@@ -19,24 +19,24 @@ class TFGridNet(AbsSeparator):
     """
     Offline TFGridNet for speech separation.
 
-    This class implements the TF-GridNet model, which integrates 
-    full- and sub-band modeling for speech separation, as described in 
+    This class implements the TF-GridNet model, which integrates
+    full- and sub-band modeling for speech separation, as described in
     the following references:
-    
+
     [1] Z.-Q. Wang, S. Cornell, S. Choi, Y. Lee, B.-Y. Kim, and S. Watanabe,
     "TF-GridNet: Integrating Full- and Sub-Band Modeling for Speech Separation",
     in arXiv preprint arXiv:2211.12433, 2022.
-    
+
     [2] Z.-Q. Wang, S. Cornell, S. Choi, Y. Lee, B.-Y. Kim, and S. Watanabe,
     "TF-GridNet: Making Time-Frequency Domain Models Great Again for Monaural
     Speaker Separation", in arXiv preprint arXiv:2209.03952, 2022.
 
     Note:
-        The model performs optimally when trained with variance-normalized 
-        mixture input and target signals. For instance, for a mixture 
-        tensor of shape [batch, samples, microphones], normalize it by 
-        dividing with torch.std(mixture, (1, 2)). The same normalization 
-        should be applied to the target signals, especially when not using 
+        The model performs optimally when trained with variance-normalized
+        mixture input and target signals. For instance, for a mixture
+        tensor of shape [batch, samples, microphones], normalize it by
+        dividing with torch.std(mixture, (1, 2)). The same normalization
+        should be applied to the target signals, especially when not using
         scale-invariant loss functions like SI-SDR.
 
     Args:
@@ -49,26 +49,26 @@ class TFGridNet(AbsSeparator):
         n_layers (int): Number of TFGridNet blocks.
         lstm_hidden_units (int): Number of hidden units in LSTM.
         attn_n_head (int): Number of heads in self-attention.
-        attn_approx_qk_dim (int): Approximate dimension of frame-level key and 
+        attn_approx_qk_dim (int): Approximate dimension of frame-level key and
             value tensors.
         emb_dim (int): Embedding dimension.
         emb_ks (int): Kernel size for unfolding and deconvolution (deconv1D).
         emb_hs (int): Hop size for unfolding and deconvolution (deconv1D).
-        activation (str): Activation function to use in the TFGridNet model, 
+        activation (str): Activation function to use in the TFGridNet model,
             e.g., 'relu' or 'elu'.
         eps (float): Small epsilon for normalization layers.
         use_builtin_complex (bool): Whether to use built-in complex type or not.
         ref_channel (int): Reference channel for the input signals, default is -1.
-    
+
     Returns:
-        Tuple[List[torch.Tensor], torch.Tensor, OrderedDict]: 
+        Tuple[List[torch.Tensor], torch.Tensor, OrderedDict]:
             A tuple containing:
-                - enhanced (List[torch.Tensor]): List of mono audio tensors 
+                - enhanced (List[torch.Tensor]): List of mono audio tensors
                   with shape [(B, T), ...] for each source.
                 - ilens (torch.Tensor): Input lengths of shape (B,).
-                - additional (OrderedDict): Currently unused data, returned 
+                - additional (OrderedDict): Currently unused data, returned
                   as part of the output.
-    
+
     Examples:
         >>> model = TFGridNet(n_srcs=2, n_fft=256)
         >>> input_tensor = torch.randn(10, 16000, 1)  # [B, N, M]
@@ -169,10 +169,10 @@ class TFGridNet(AbsSeparator):
 
         Note:
             As outlined in the model documentation, this model works best when
-            trained with variance normalized mixture input and target. For a 
-            mixture of shape [batch, samples, microphones], normalize it by 
-            dividing with `torch.std(mixture, (1, 2))`. The same should be done 
-            for the target signals, especially when not using scale-invariant 
+            trained with variance normalized mixture input and target. For a
+            mixture of shape [batch, samples, microphones], normalize it by
+            dividing with `torch.std(mixture, (1, 2))`. The same should be done
+            for the target signals, especially when not using scale-invariant
             loss functions such as SI-SDR.
         """
         n_samples = input.shape[1]
@@ -211,50 +211,50 @@ class TFGridNet(AbsSeparator):
     @property
     def num_spk(self):
         """
-        Offline TFGridNet
+            Offline TFGridNet
 
-    Reference:
-    [1] Z.-Q. Wang, S. Cornell, S. Choi, Y. Lee, B.-Y. Kim, and S. Watanabe,
-    "TF-GridNet: Integrating Full- and Sub-Band Modeling for Speech Separation",
-    in arXiv preprint arXiv:2211.12433, 2022.
-    [2] Z.-Q. Wang, S. Cornell, S. Choi, Y. Lee, B.-Y. Kim, and S. Watanabe,
-    "TF-GridNet: Making Time-Frequency Domain Models Great Again for Monaural
-    Speaker Separation", in arXiv preprint arXiv:2209.03952, 2022.
+        Reference:
+        [1] Z.-Q. Wang, S. Cornell, S. Choi, Y. Lee, B.-Y. Kim, and S. Watanabe,
+        "TF-GridNet: Integrating Full- and Sub-Band Modeling for Speech Separation",
+        in arXiv preprint arXiv:2211.12433, 2022.
+        [2] Z.-Q. Wang, S. Cornell, S. Choi, Y. Lee, B.-Y. Kim, and S. Watanabe,
+        "TF-GridNet: Making Time-Frequency Domain Models Great Again for Monaural
+        Speaker Separation", in arXiv preprint arXiv:2209.03952, 2022.
 
-    NOTES:
-    As outlined in the Reference, this model works best when trained with variance
-    normalized mixture input and target, e.g., with mixture of shape [batch, samples,
-    microphones], you normalize it by dividing with torch.std(mixture, (1, 2)). You
-    must do the same for the target signals. It is encouraged to do so when not using
-    scale-invariant loss functions such as SI-SDR.
+        NOTES:
+        As outlined in the Reference, this model works best when trained with variance
+        normalized mixture input and target, e.g., with mixture of shape [batch, samples,
+        microphones], you normalize it by dividing with torch.std(mixture, (1, 2)). You
+        must do the same for the target signals. It is encouraged to do so when not using
+        scale-invariant loss functions such as SI-SDR.
 
-    Args:
-        input_dim: placeholder, not used
-        n_srcs: number of output sources/speakers.
-        n_fft: stft window size.
-        stride: stft stride.
-        window: stft window type choose between 'hamming', 'hanning' or None.
-        n_imics: number of microphones channels (only fixed-array geometry supported).
-        n_layers: number of TFGridNet blocks.
-        lstm_hidden_units: number of hidden units in LSTM.
-        attn_n_head: number of heads in self-attention.
-        attn_approx_qk_dim: approximate dimension of frame-level key and value tensors.
-        emb_dim: embedding dimension.
-        emb_ks: kernel size for unfolding and deconv1D.
-        emb_hs: hop size for unfolding and deconv1D.
-        activation: activation function to use in the whole TFGridNet model,
-            you can use any torch supported activation e.g. 'relu' or 'elu'.
-        eps: small epsilon for normalization layers.
-        use_builtin_complex: whether to use builtin complex type or not.
+        Args:
+            input_dim: placeholder, not used
+            n_srcs: number of output sources/speakers.
+            n_fft: stft window size.
+            stride: stft stride.
+            window: stft window type choose between 'hamming', 'hanning' or None.
+            n_imics: number of microphones channels (only fixed-array geometry supported).
+            n_layers: number of TFGridNet blocks.
+            lstm_hidden_units: number of hidden units in LSTM.
+            attn_n_head: number of heads in self-attention.
+            attn_approx_qk_dim: approximate dimension of frame-level key and value tensors.
+            emb_dim: embedding dimension.
+            emb_ks: kernel size for unfolding and deconv1D.
+            emb_hs: hop size for unfolding and deconv1D.
+            activation: activation function to use in the whole TFGridNet model,
+                you can use any torch supported activation e.g. 'relu' or 'elu'.
+            eps: small epsilon for normalization layers.
+            use_builtin_complex: whether to use builtin complex type or not.
 
-    Examples:
-        >>> model = TFGridNet(n_srcs=3, n_fft=256)
-        >>> input_tensor = torch.randn(2, 1000, 1)  # [B, N, M]
-        >>> ilens = torch.tensor([1000, 1000])  # input lengths
-        >>> output, ilens_out, _ = model(input_tensor, ilens)
+        Examples:
+            >>> model = TFGridNet(n_srcs=3, n_fft=256)
+            >>> input_tensor = torch.randn(2, 1000, 1)  # [B, N, M]
+            >>> ilens = torch.tensor([1000, 1000])  # input lengths
+            >>> output, ilens_out, _ = model(input_tensor, ilens)
 
-    Attributes:
-        num_spk: Returns the number of output sources/speakers.
+        Attributes:
+            num_spk: Returns the number of output sources/speakers.
         """
         return self.n_srcs
 
@@ -338,6 +338,7 @@ class GridNetBlock(nn.Module):
     Raises:
         ValueError: If the input tensor does not have 4 dimensions.
     """
+
     def __getitem__(self, key):
         return getattr(self, key)
 
@@ -421,7 +422,7 @@ class GridNetBlock(nn.Module):
         Forward pass for the GridNetBlock.
 
         This method processes the input audio tensor through the model,
-        performing operations such as normalization, encoding, and 
+        performing operations such as normalization, encoding, and
         applying the GridNetBlock layers.
 
         Args:
@@ -437,7 +438,7 @@ class GridNetBlock(nn.Module):
                 - ilens (torch.Tensor): The input lengths, shaped as [B].
                 - additional (OrderedDict): Other data, currently unused in
                   this model, returned in the output.
-        
+
         Examples:
             >>> model = TFGridNet(n_srcs=2, n_fft=128)
             >>> input_tensor = torch.randn(4, 16000, 1)  # [B, N, M]
@@ -446,9 +447,9 @@ class GridNetBlock(nn.Module):
 
         Note:
             The model works best when trained with variance normalized mixture
-            input and target. Normalize input by dividing with 
+            input and target. Normalize input by dividing with
             torch.std(mixture, (1, 2)) and do the same for the target signals.
-            This is encouraged when not using scale-invariant loss functions 
+            This is encouraged when not using scale-invariant loss functions
             such as SI-SDR.
         """
         B, C, old_T, old_Q = x.shape
@@ -537,12 +538,12 @@ class LayerNormalization4D(nn.Module):
     4D Layer Normalization.
 
     This class implements layer normalization for 4-dimensional tensors.
-    It normalizes the input tensor along specified dimensions and scales 
+    It normalizes the input tensor along specified dimensions and scales
     and shifts the result using learnable parameters.
 
     Args:
         input_dimension (int): The size of the input feature dimension.
-        eps (float, optional): A small constant added to the variance for 
+        eps (float, optional): A small constant added to the variance for
             numerical stability. Default is 1e-5.
 
     Raises:
@@ -556,10 +557,11 @@ class LayerNormalization4D(nn.Module):
         torch.Size([10, 64, 32, 32])
 
     Note:
-        The input tensor is expected to have 4 dimensions, where the 
-        dimensions represent batch size, number of channels, height, 
+        The input tensor is expected to have 4 dimensions, where the
+        dimensions represent batch size, number of channels, height,
         and width respectively.
     """
+
     def __init__(self, input_dimension, eps=1e-5):
         super().__init__()
         param_size = [1, input_dimension, 1, 1]
@@ -621,23 +623,23 @@ class LayerNormalization4DCF(nn.Module):
     """
     Layer normalization for 4D tensors with respect to channel and frequency dimensions.
 
-    This layer applies layer normalization across the specified dimensions of the 
-    input tensor. It normalizes the input tensor such that the mean and variance 
-    are computed across the specified dimensions, enabling stable training of deep 
+    This layer applies layer normalization across the specified dimensions of the
+    input tensor. It normalizes the input tensor such that the mean and variance
+    are computed across the specified dimensions, enabling stable training of deep
     learning models.
 
     Attributes:
-        gamma (Parameter): Learnable scale parameter of shape 
+        gamma (Parameter): Learnable scale parameter of shape
             [1, input_dimension[0], 1, input_dimension[1]].
-        beta (Parameter): Learnable shift parameter of shape 
+        beta (Parameter): Learnable shift parameter of shape
             [1, input_dimension[0], 1, input_dimension[1]].
         eps (float): A small value added for numerical stability during normalization.
 
     Args:
         input_dimension (tuple): A tuple specifying the dimensions for normalization.
-            It should have a length of 2, corresponding to the channel and 
+            It should have a length of 2, corresponding to the channel and
             frequency dimensions.
-        eps (float): Small epsilon value to avoid division by zero during 
+        eps (float): Small epsilon value to avoid division by zero during
             normalization. Default is 1e-5.
 
     Raises:
@@ -656,6 +658,7 @@ class LayerNormalization4DCF(nn.Module):
             - T is the time dimension,
             - F is the frequency dimension.
     """
+
     def __init__(self, input_dimension, eps=1e-5):
         super().__init__()
         assert len(input_dimension) == 2

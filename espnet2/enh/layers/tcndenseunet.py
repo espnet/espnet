@@ -9,42 +9,42 @@ is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 
 class Conv2DActNorm(torch.nn.Module):
     """
-    Conv2DActNorm is a building block for a convolutional layer followed by an 
-activation function and instance normalization.
+        Conv2DActNorm is a building block for a convolutional layer followed by an
+    activation function and instance normalization.
 
-This module combines a 2D convolution operation with an activation function 
-and group normalization to form a reusable component in neural networks, 
-particularly for tasks involving image or spectrogram data.
+    This module combines a 2D convolution operation with an activation function
+    and group normalization to form a reusable component in neural networks,
+    particularly for tasks involving image or spectrogram data.
 
-Attributes:
-    layer (torch.nn.Sequential): A sequential container that holds the 
-        convolution, activation, and normalization layers.
+    Attributes:
+        layer (torch.nn.Sequential): A sequential container that holds the
+            convolution, activation, and normalization layers.
 
-Args:
-    in_channels (int): Number of input channels.
-    out_channels (int): Number of output channels.
-    ksz (tuple): Kernel size for the convolution. Default is (3, 3).
-    stride (tuple): Stride for the convolution. Default is (1, 2).
-    padding (tuple): Padding for the convolution. Default is (1, 0).
-    upsample (bool): If True, uses transposed convolution for upsampling. 
-        Default is False.
-    activation (callable): Activation function to use. Default is 
-        torch.nn.ELU.
+    Args:
+        in_channels (int): Number of input channels.
+        out_channels (int): Number of output channels.
+        ksz (tuple): Kernel size for the convolution. Default is (3, 3).
+        stride (tuple): Stride for the convolution. Default is (1, 2).
+        padding (tuple): Padding for the convolution. Default is (1, 0).
+        upsample (bool): If True, uses transposed convolution for upsampling.
+            Default is False.
+        activation (callable): Activation function to use. Default is
+            torch.nn.ELU.
 
-Returns:
-    torch.Tensor: The output tensor after applying convolution, activation, 
-    and normalization.
+    Returns:
+        torch.Tensor: The output tensor after applying convolution, activation,
+        and normalization.
 
-Examples:
-    >>> conv_layer = Conv2DActNorm(1, 16)
-    >>> input_tensor = torch.randn(1, 1, 64, 32)  # (batch, channels, height, width)
-    >>> output_tensor = conv_layer(input_tensor)
-    >>> output_tensor.shape
-    torch.Size([1, 16, 32, 16])  # After convolution and downsampling
+    Examples:
+        >>> conv_layer = Conv2DActNorm(1, 16)
+        >>> input_tensor = torch.randn(1, 1, 64, 32)  # (batch, channels, height, width)
+        >>> output_tensor = conv_layer(input_tensor)
+        >>> output_tensor.shape
+        torch.Size([1, 16, 32, 16])  # After convolution and downsampling
 
-Raises:
-    ValueError: If input parameters are invalid (e.g., negative channel 
-    sizes).
+    Raises:
+        ValueError: If input parameters are invalid (e.g., negative channel
+        sizes).
     """
 
     def __init__(
@@ -76,14 +76,14 @@ Raises:
         Forward pass of the TCNDenseUNet.
 
         Args:
-            tf_rep (torch.Tensor): 4D tensor (multi-channel complex STFT of 
-                mixture) of shape [B, T, C, F] where B is batch size, T is 
-                number of frames, C is the number of microphones, and F is 
+            tf_rep (torch.Tensor): 4D tensor (multi-channel complex STFT of
+                mixture) of shape [B, T, C, F] where B is batch size, T is
+                number of frames, C is the number of microphones, and F is
                 the number of frequencies.
 
         Returns:
-            out (torch.Tensor): Complex 3D tensor representing the monaural STFT 
-                of the targets, with shape [B, T, F] where B is batch size, 
+            out (torch.Tensor): Complex 3D tensor representing the monaural STFT
+                of the targets, with shape [B, T, F] where B is batch size,
                 T is number of frames, and F is number of frequencies.
 
         Examples:
@@ -93,12 +93,12 @@ Raises:
             >>> print(output.shape)  # Should be [4, 10, 2, 257] for 2 speakers
 
         Note:
-            The input tensor should be in the format expected by the model, 
+            The input tensor should be in the format expected by the model,
             which is a multi-channel complex STFT representation.
 
         Raises:
-            AssertionError: If the number of microphone channels in the input 
-            tensor does not match the expected number of microphone channels 
+            AssertionError: If the number of microphone channels in the input
+            tensor does not match the expected number of microphone channels
             specified during model initialization.
         """
         return self.layer(inp)
@@ -106,41 +106,41 @@ Raises:
 
 class FreqWiseBlock(torch.nn.Module):
     """
-    FreqWiseBlock, see iNeuBe paper.
+        FreqWiseBlock, see iNeuBe paper.
 
-Block that applies pointwise 2D convolution over
-STFT-like image tensor on frequency axis.
-The input is assumed to be [batch, image_channels, frames, freq].
+    Block that applies pointwise 2D convolution over
+    STFT-like image tensor on frequency axis.
+    The input is assumed to be [batch, image_channels, frames, freq].
 
-Attributes:
-    bottleneck (Conv2DActNorm): A convolutional layer with activation and
-        normalization for processing input channels.
-    freq_proc (Conv2DActNorm): A convolutional layer with activation and
-        normalization for processing frequency channels.
+    Attributes:
+        bottleneck (Conv2DActNorm): A convolutional layer with activation and
+            normalization for processing input channels.
+        freq_proc (Conv2DActNorm): A convolutional layer with activation and
+            normalization for processing frequency channels.
 
-Args:
-    in_channels (int): Number of input channels (image axis).
-    num_freqs (int): Number of complex frequencies in the input STFT
-        complex image-like tensor.
-    out_channels (int): Number of output channels (image axis).
-    activation (callable): Activation function to use, default is
-        torch.nn.ELU.
+    Args:
+        in_channels (int): Number of input channels (image axis).
+        num_freqs (int): Number of complex frequencies in the input STFT
+            complex image-like tensor.
+        out_channels (int): Number of output channels (image axis).
+        activation (callable): Activation function to use, default is
+            torch.nn.ELU.
 
-Returns:
-    torch.Tensor: The output tensor after applying the frequency-wise
-        processing.
+    Returns:
+        torch.Tensor: The output tensor after applying the frequency-wise
+            processing.
 
-Examples:
-    >>> import torch
-    >>> block = FreqWiseBlock(in_channels=64, num_freqs=128, out_channels=32)
-    >>> input_tensor = torch.randn(10, 64, 100, 128)  # [batch, channels, frames, freq]
-    >>> output_tensor = block(input_tensor)
-    >>> output_tensor.shape
-    torch.Size([10, 32, 100, 128])
+    Examples:
+        >>> import torch
+        >>> block = FreqWiseBlock(in_channels=64, num_freqs=128, out_channels=32)
+        >>> input_tensor = torch.randn(10, 64, 100, 128)  # [batch, channels, frames, freq]
+        >>> output_tensor = block(input_tensor)
+        >>> output_tensor.shape
+        torch.Size([10, 32, 100, 128])
 
-Note:
-    This block is designed to operate on STFT-like tensors, where the
-    frequency axis is processed independently.
+    Note:
+        This block is designed to operate on STFT-like tensors, where the
+        frequency axis is processed independently.
     """
 
     def __init__(self, in_channels, num_freqs, out_channels, activation=torch.nn.ELU):
@@ -155,38 +155,38 @@ Note:
 
     def forward(self, inp):
         """
-        Forward pass for the TCNDenseUNet model.
+            Forward pass for the TCNDenseUNet model.
 
-    This method processes a 4D tensor representing the multi-channel complex 
-    Short-Time Fourier Transform (STFT) of a mixture signal. The output is 
-    a complex 3D tensor representing the monaural STFT of the targets.
+        This method processes a 4D tensor representing the multi-channel complex
+        Short-Time Fourier Transform (STFT) of a mixture signal. The output is
+        a complex 3D tensor representing the monaural STFT of the targets.
 
-    Args:
-        tf_rep (torch.Tensor): 4D tensor (multi-channel complex STFT of mixture)
-            of shape [B, T, C, F] where B is the batch size, T is the number 
-            of frames, C is the number of microphone channels, and F is the 
-            number of frequencies.
+        Args:
+            tf_rep (torch.Tensor): 4D tensor (multi-channel complex STFT of mixture)
+                of shape [B, T, C, F] where B is the batch size, T is the number
+                of frames, C is the number of microphone channels, and F is the
+                number of frequencies.
 
-    Returns:
-        out (torch.Tensor): Complex 3D tensor representing the monaural STFT 
-            of the targets with shape [B, T, F] where B is the batch size, 
-            T is the number of frames, and F is the number of frequencies.
+        Returns:
+            out (torch.Tensor): Complex 3D tensor representing the monaural STFT
+                of the targets with shape [B, T, F] where B is the batch size,
+                T is the number of frames, and F is the number of frequencies.
 
-    Examples:
-        >>> model = TCNDenseUNet(n_spk=2, in_freqs=257, mic_channels=1)
-        >>> mixture = torch.randn(8, 100, 1, 257)  # Batch of 8, 100 frames
-        >>> output = model.forward(mixture)
-        >>> print(output.shape)  # Output shape should be [8, 100, 257]
+        Examples:
+            >>> model = TCNDenseUNet(n_spk=2, in_freqs=257, mic_channels=1)
+            >>> mixture = torch.randn(8, 100, 1, 257)  # Batch of 8, 100 frames
+            >>> output = model.forward(mixture)
+            >>> print(output.shape)  # Output shape should be [8, 100, 257]
 
-    Note:
-        The input tensor is expected to be in the shape [B, T, C, F]. The 
-        function will permute and reshape it accordingly to match the 
-        expected input format of the model.
+        Note:
+            The input tensor is expected to be in the shape [B, T, C, F]. The
+            function will permute and reshape it accordingly to match the
+            expected input format of the model.
 
-    Raises:
-        AssertionError: If the number of microphone channels in the input 
-        tensor does not match the expected number of microphone channels 
-        for the model.
+        Raises:
+            AssertionError: If the number of microphone channels in the input
+            tensor does not match the expected number of microphone channels
+            for the model.
         """
         # bsz, chans, x, y
         out = self.freq_proc(self.bottleneck(inp).permute(0, 3, 2, 1)).permute(
@@ -200,28 +200,28 @@ class DenseBlock(torch.nn.Module):
     """
     Single DenseNet block as used in iNeuBe model.
 
-    This class implements a DenseNet block that consists of multiple 
-    convolutional layers. It processes input tensors assumed to be in 
-    the format [batch, image_channels, frames, freq] and is designed 
+    This class implements a DenseNet block that consists of multiple
+    convolutional layers. It processes input tensors assumed to be in
+    the format [batch, image_channels, frames, freq] and is designed
     for use in the iNeuBe model.
 
     Args:
         in_channels (int): Number of input channels (image axis).
         out_channels (int): Number of output channels (image axis).
-        num_freqs (int): Number of complex frequencies in the input STFT 
-            complex image-like tensor. The input is batch, image_channels, 
+        num_freqs (int): Number of complex frequencies in the input STFT
+            complex image-like tensor. The input is batch, image_channels,
             frames, freqs.
-        pre_blocks (int): Number of dense blocks before point-wise convolution 
+        pre_blocks (int): Number of dense blocks before point-wise convolution
             block over frequency axis (default: 2).
-        freq_proc_blocks (int): Number of frequency axis processing blocks 
+        freq_proc_blocks (int): Number of frequency axis processing blocks
             (default: 1).
-        post_blocks (int): Number of dense blocks after point-wise 
+        post_blocks (int): Number of dense blocks after point-wise
             convolution block over frequency axis (default: 2).
         ksz (tuple): Kernel size used in DenseNet Conv2D layers (default: (3, 3)).
-        activation (callable): Activation function to use in the whole 
-            iNeuBe model. You can use any torch supported activation 
+        activation (callable): Activation function to use in the whole
+            iNeuBe model. You can use any torch supported activation
             (e.g., 'relu' or 'elu') (default: torch.nn.ELU).
-        hid_chans (int): Number of hidden channels in DenseNet Conv2D 
+        hid_chans (int): Number of hidden channels in DenseNet Conv2D
             (default: 32).
 
     Examples:
@@ -245,8 +245,8 @@ class DenseBlock(torch.nn.Module):
         AssertionError: If post_blocks or pre_blocks is less than 1.
 
     Note:
-        The output of this block can be further processed in a network 
-        designed for tasks such as speech enhancement or audio signal 
+        The output of this block can be further processed in a network
+        designed for tasks such as speech enhancement or audio signal
         processing.
     """
 
@@ -319,13 +319,13 @@ class DenseBlock(torch.nn.Module):
         """
         Forward pass through the TCNDenseUNet.
 
-        This method processes the input tensor representing a multi-channel 
-        complex Short-Time Fourier Transform (STFT) of a mixture and produces 
+        This method processes the input tensor representing a multi-channel
+        complex Short-Time Fourier Transform (STFT) of a mixture and produces
         a monaural STFT of the target signals.
 
         Args:
-            tf_rep (torch.Tensor): A 4D tensor representing the multi-channel 
-                complex STFT of the mixture. The expected shape is 
+            tf_rep (torch.Tensor): A 4D tensor representing the multi-channel
+                complex STFT of the mixture. The expected shape is
                 [B, T, C, F] where:
                     B = batch size,
                     T = number of frames,
@@ -333,7 +333,7 @@ class DenseBlock(torch.nn.Module):
                     F = number of frequencies.
 
         Returns:
-            out (torch.Tensor): A complex 3D tensor representing the 
+            out (torch.Tensor): A complex 3D tensor representing the
                 monaural STFT of the targets. The shape is [B, T, F] where:
                     B = batch size,
                     T = number of frames,
@@ -347,12 +347,12 @@ class DenseBlock(torch.nn.Module):
             torch.Size([4, 100, 257])  # Output shape
 
         Note:
-            The input tensor should contain complex values as separate real 
-            and imaginary parts. This function concatenates the real and 
+            The input tensor should contain complex values as separate real
+            and imaginary parts. This function concatenates the real and
             imaginary parts and reshapes them for processing.
 
         Raises:
-            AssertionError: If the number of microphones in the input does 
+            AssertionError: If the number of microphones in the input does
             not match the expected number of microphone channels.
         """
         # batch, channels, frames, freq
@@ -377,9 +377,9 @@ class TCNResBlock(torch.nn.Module):
     """
     Single depth-wise separable TCN block as used in iNeuBe TCN.
 
-    This block implements a depth-wise separable convolution followed by a 
-    point-wise convolution. It applies group normalization and an activation 
-    function to the input features, allowing for efficient processing of 
+    This block implements a depth-wise separable convolution followed by a
+    point-wise convolution. It applies group normalization and an activation
+    function to the input features, allowing for efficient processing of
     temporal data.
 
     Args:
@@ -388,8 +388,8 @@ class TCNResBlock(torch.nn.Module):
         ksz (int, optional): Kernel size. Defaults to 3.
         stride (int, optional): Stride in depth-wise convolution. Defaults to 1.
         dilation (int, optional): Dilation in depth-wise convolution. Defaults to 1.
-        activation (callable, optional): Activation function to use in the whole 
-            iNeuBe model, you can use any torch supported activation 
+        activation (callable, optional): Activation function to use in the whole
+            iNeuBe model, you can use any torch supported activation
             e.g. 'relu' or 'elu'. Defaults to `torch.nn.ELU`.
 
     Examples:
@@ -400,12 +400,12 @@ class TCNResBlock(torch.nn.Module):
         torch.Size([32, 128, 100])  # Output will have the shape of [B, C, F]
 
     Returns:
-        torch.Tensor: Output tensor of shape [B, out_chan, F] where B is the 
-        batch size, out_chan is the number of output channels, and F is the 
+        torch.Tensor: Output tensor of shape [B, out_chan, F] where B is the
+        batch size, out_chan is the number of output channels, and F is the
         number of frames.
 
     Note:
-        The input tensor should be 3D with shape [B, C, F] where B is the 
+        The input tensor should be 3D with shape [B, C, F] where B is the
         batch size, C is the number of channels, and F is the number of frames.
     """
 
@@ -435,30 +435,30 @@ class TCNResBlock(torch.nn.Module):
 
     def forward(self, inp):
         """
-        forward.
+            forward.
 
-    Args:
-        tf_rep (torch.Tensor): 4D tensor (multi-channel complex STFT of mixture)
-            of shape [B, T, C, F], where B is the batch size, T is the number 
-            of frames, C is the number of microphone channels, and F is the 
-            number of frequencies.
+        Args:
+            tf_rep (torch.Tensor): 4D tensor (multi-channel complex STFT of mixture)
+                of shape [B, T, C, F], where B is the batch size, T is the number
+                of frames, C is the number of microphone channels, and F is the
+                number of frequencies.
 
-    Returns:
-        out (torch.Tensor): complex 3D tensor representing the monaural STFT 
-            of the targets, with shape [B, T, F], where B is the batch size, 
-            T is the number of frames, and F is the number of frequencies.
+        Returns:
+            out (torch.Tensor): complex 3D tensor representing the monaural STFT
+                of the targets, with shape [B, T, F], where B is the batch size,
+                T is the number of frames, and F is the number of frequencies.
 
-    Examples:
-        >>> import torch
-        >>> model = TCNDenseUNet()
-        >>> tf_rep = torch.randn(8, 64, 2, 257)  # 8 samples, 64 frames, 2 mics, 257 freqs
-        >>> output = model(tf_rep)
-        >>> print(output.shape)  # Expected output shape: [8, 2, 257]
+        Examples:
+            >>> import torch
+            >>> model = TCNDenseUNet()
+            >>> tf_rep = torch.randn(8, 64, 2, 257)  # 8 samples, 64 frames, 2 mics, 257 freqs
+            >>> output = model(tf_rep)
+            >>> print(output.shape)  # Expected output shape: [8, 2, 257]
 
-    Note:
-        The input tensor must be permuted to match the expected shape before 
-        being passed to this method. The input tensor is assumed to be a 
-        multi-channel complex STFT representation.
+        Note:
+            The input tensor must be permuted to match the expected shape before
+            being passed to this method. The input tensor is assumed to be a
+            multi-channel complex STFT representation.
         """
         # [B, C, F] batch, channels, frames
         return self.layer(inp) + inp
@@ -698,7 +698,7 @@ class TCNDenseUNet(torch.nn.Module):
 
         Returns:
             out (torch.Tensor): A complex 3D tensor representing the monaural
-                STFT of the targets. The shape of the output tensor is 
+                STFT of the targets. The shape of the output tensor is
                 [B, T, F], where:
                 - B is the batch size,
                 - T is the number of frames,

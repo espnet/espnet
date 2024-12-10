@@ -24,20 +24,20 @@ class Hypothesis:
     """
     Default hypothesis definition for Transducer search algorithms.
 
-    This class represents a single hypothesis in the context of Transducer 
-    models during beam search decoding. It includes the score of the 
-    hypothesis, the sequence of tokens generated so far, and the state 
+    This class represents a single hypothesis in the context of Transducer
+    models during beam search decoding. It includes the score of the
+    hypothesis, the sequence of tokens generated so far, and the state
     information for both the decoder and language model.
 
     Attributes:
-        score (float): The score of the hypothesis, which is a cumulative 
+        score (float): The score of the hypothesis, which is a cumulative
             measure of its likelihood.
-        yseq (List[int]): A list of integers representing the generated 
+        yseq (List[int]): A list of integers representing the generated
             token sequence.
-        dec_state (Union[Tuple[torch.Tensor, Optional[torch.Tensor]], 
-            List[Optional[torch.Tensor]], torch.Tensor]): The state of the 
+        dec_state (Union[Tuple[torch.Tensor, Optional[torch.Tensor]],
+            List[Optional[torch.Tensor]], torch.Tensor]): The state of the
             decoder, which may vary depending on the decoder's architecture.
-        lm_state (Union[Dict[str, Any], List[Any]]): The state of the 
+        lm_state (Union[Dict[str, Any], List[Any]]): The state of the
             language model, if applicable. Defaults to None.
 
     Examples:
@@ -368,16 +368,16 @@ class BeamSearchTransducerStreaming:
         """
         Reset the beam search state.
 
-        This method initializes the beam search state by resetting the 
-        hypotheses and beam states. It sets the initial hypotheses with 
-        the blank token and a score of zero, and initializes the decoder's 
+        This method initializes the beam search state by resetting the
+        hypotheses and beam states. It sets the initial hypotheses with
+        the blank token and a score of zero, and initializes the decoder's
         state for the beam size.
 
         Attributes:
-            beam (int): The effective beam size, constrained by the 
+            beam (int): The effective beam size, constrained by the
                 vocabulary size.
             beam_state: The initial state of the decoder for the beam.
-            B (List[Hypothesis]): The list of hypotheses to keep track of 
+            B (List[Hypothesis]): The list of hypotheses to keep track of
                 during the search process.
             cache (dict): A cache for storing intermediate results.
 
@@ -387,8 +387,8 @@ class BeamSearchTransducerStreaming:
             >>> print(beam_search_transducer.B)  # Should show initial hypotheses
 
         Note:
-            This method is called at the beginning of each decoding 
-            session and after final results are obtained to prepare 
+            This method is called at the beginning of each decoding
+            session and after final results are obtained to prepare
             for the next decoding task.
         """
         beam = min(self.beam_size, self.vocab_size)
@@ -408,13 +408,13 @@ class BeamSearchTransducerStreaming:
         """
         Sort hypotheses by score or score given sequence length.
 
-        This method sorts the provided hypotheses based on their scores. 
+        This method sorts the provided hypotheses based on their scores.
         The sorting can be done in two ways:
         - By the raw score (if `score_norm` is False).
         - By the score normalized by the length of the sequence (if `score_norm` is True).
 
         Args:
-            hyps: A list of hypotheses to be sorted. The hypotheses can be of 
+            hyps: A list of hypotheses to be sorted. The hypotheses can be of
                 type `Hypothesis` or `ExtendedHypothesis`.
 
         Returns:
@@ -426,11 +426,11 @@ class BeamSearchTransducerStreaming:
             ...         Hypothesis(score=3.0, yseq=[1, 3], dec_state=...)]
             >>> sorted_hyps = beam_search.sort_nbest(hyps)
             >>> print(sorted_hyps)
-            [Hypothesis(score=5.0, yseq=[1, 2], dec_state=...), 
+            [Hypothesis(score=5.0, yseq=[1, 2], dec_state=...),
              Hypothesis(score=3.0, yseq=[1, 3], dec_state=...)]
 
         Note:
-            The sorting will keep only the top `nbest` hypotheses in the 
+            The sorting will keep only the top `nbest` hypotheses in the
             returned list.
         """
         if self.score_norm:
@@ -446,16 +446,16 @@ class BeamSearchTransducerStreaming:
         """
         Prefix search for NSC and mAES strategies.
 
-        This method performs a prefix search among the given hypotheses to 
-        update their scores based on the encoder output at the current 
-        time step. The search is designed to be efficient by leveraging 
-        the prefix nature of the hypotheses, allowing for effective 
+        This method performs a prefix search among the given hypotheses to
+        update their scores based on the encoder output at the current
+        time step. The search is designed to be efficient by leveraging
+        the prefix nature of the hypotheses, allowing for effective
         pruning and score adjustment.
 
         Args:
-            hyps: A list of ExtendedHypothesis objects representing the 
+            hyps: A list of ExtendedHypothesis objects representing the
                 current hypotheses.
-            enc_out_t: The encoder output tensor for the current time step, 
+            enc_out_t: The encoder output tensor for the current time step,
                 shaped (D_enc,).
 
         Returns:
@@ -468,7 +468,7 @@ class BeamSearchTransducerStreaming:
             >>> updated_hyps = beam_search.prefix_search(current_hyps, enc_out_t)
 
         Note:
-            This implementation is based on the methodology described in 
+            This implementation is based on the methodology described in
             the paper: https://arxiv.org/pdf/1211.3711.pdf
         """
         for j, hyp_j in enumerate(hyps[:-1]):
@@ -557,27 +557,27 @@ class BeamSearchTransducerStreaming:
         """
         Beam search implementation.
 
-        This method performs a standard beam search decoding algorithm for 
-        transducer models, where the search explores multiple possible 
-        hypotheses at each decoding step. The algorithm retains the top 
-        scoring hypotheses for further expansion while discarding less 
-        promising candidates. 
+        This method performs a standard beam search decoding algorithm for
+        transducer models, where the search explores multiple possible
+        hypotheses at each decoding step. The algorithm retains the top
+        scoring hypotheses for further expansion while discarding less
+        promising candidates.
 
-        The implementation is inspired by the method described in the paper 
-        "Connectionist Temporal Classification: Labelling Unsegmented 
+        The implementation is inspired by the method described in the paper
+        "Connectionist Temporal Classification: Labelling Unsegmented
         Sequence Data with Recurrent Neural Networks" (https://arxiv.org/pdf/1211.3711.pdf).
 
         Args:
-            enc_out: Encoder output sequence of shape (T, D), where T is 
-                the number of time steps and D is the dimensionality of the 
+            enc_out: Encoder output sequence of shape (T, D), where T is
+                the number of time steps and D is the dimensionality of the
                 encoder output.
 
         Returns:
-            nbest_hyps: A list of N-best hypotheses generated from the beam 
+            nbest_hyps: A list of N-best hypotheses generated from the beam
                 search process, sorted by their scores in descending order.
 
         Examples:
-            >>> model = BeamSearchTransducerStreaming(decoder, joint_network, 
+            >>> model = BeamSearchTransducerStreaming(decoder, joint_network,
             ...                                       beam_size=5)
             >>> encoder_output = torch.rand(10, model.hidden_size)
             >>> results = model.default_beam_search(encoder_output)
@@ -685,21 +685,21 @@ class BeamSearchTransducerStreaming:
         """
         Time synchronous beam search implementation.
 
-        This method performs a time-synchronous beam search decoding using 
-        the encoder output. It generates N-best hypotheses based on the 
-        provided encoder output sequence. The algorithm follows the 
+        This method performs a time-synchronous beam search decoding using
+        the encoder output. It generates N-best hypotheses based on the
+        provided encoder output sequence. The algorithm follows the
         principles outlined in the research paper:
-        "End-to-End Speech Recognition with Transformer" 
+        "End-to-End Speech Recognition with Transformer"
         (https://ieeexplore.ieee.org/document/9053040).
 
         Args:
-            enc_out: A tensor representing the encoder output sequence 
-                with shape (T, D), where T is the number of time steps 
+            enc_out: A tensor representing the encoder output sequence
+                with shape (T, D), where T is the number of time steps
                 and D is the dimensionality of the output.
 
         Returns:
-            List[Hypothesis]: A list containing the N-best hypotheses, 
-            where each hypothesis includes a sequence of predicted 
+            List[Hypothesis]: A list containing the N-best hypotheses,
+            where each hypothesis includes a sequence of predicted
             tokens and their associated scores.
 
         Examples:
@@ -710,12 +710,12 @@ class BeamSearchTransducerStreaming:
             >>>     print(f'Score: {hyp.score}, Sequence: {hyp.yseq}')
 
         Note:
-            The method supports language model integration if a language model 
-            is provided during the initialization of the decoder. The scoring 
+            The method supports language model integration if a language model
+            is provided during the initialization of the decoder. The scoring
             incorporates language model scores based on the specified parameters.
 
         Raises:
-            ValueError: If the encoder output tensor does not conform to the 
+            ValueError: If the encoder output tensor does not conform to the
             expected shape or dimensions.
         """
         beam = min(self.beam_size, self.vocab_size)
@@ -814,21 +814,21 @@ class BeamSearchTransducerStreaming:
         """
         Alignment-length synchronous beam search implementation.
 
-        This method implements an alignment-length synchronous beam search 
-        algorithm based on the paper available at 
-        https://ieeexplore.ieee.org/document/9053040. The algorithm is 
-        designed to handle decoding in a way that aligns the output sequence 
-        length with the input sequence length, thereby maintaining a 
+        This method implements an alignment-length synchronous beam search
+        algorithm based on the paper available at
+        https://ieeexplore.ieee.org/document/9053040. The algorithm is
+        designed to handle decoding in a way that aligns the output sequence
+        length with the input sequence length, thereby maintaining a
         synchronous relationship during the decoding process.
 
         Args:
-            enc_out: Encoder output sequences. (T, D), where T is the 
-                      number of time steps and D is the dimension of the 
+            enc_out: Encoder output sequences. (T, D), where T is the
+                      number of time steps and D is the dimension of the
                       encoder output.
 
         Returns:
-            List[Hypothesis]: N-best hypotheses, sorted by score, where each 
-                              hypothesis contains a sequence of predicted 
+            List[Hypothesis]: N-best hypotheses, sorted by score, where each
+                              hypothesis contains a sequence of predicted
                               tokens and the associated score.
 
         Examples:
@@ -839,9 +839,9 @@ class BeamSearchTransducerStreaming:
             ...     print(hyp.yseq, hyp.score)
 
         Note:
-            The method utilizes a maximum output length (u_max) to control 
-            the number of tokens that can be generated, and it processes the 
-            encoder outputs in a way that aligns with the length of the 
+            The method utilizes a maximum output length (u_max) to control
+            the number of tokens that can be generated, and it processes the
+            encoder outputs in a way that aligns with the length of the
             predicted sequences.
         """
         beam = min(self.beam_size, self.vocab_size)
@@ -947,23 +947,23 @@ class BeamSearchTransducerStreaming:
         N-step constrained beam search implementation.
 
         This method performs N-step constrained beam search based on the input
-        encoder output sequence. It is designed to efficiently search for the 
-        best hypotheses by constraining the number of steps and utilizing 
-        prefix search techniques. This algorithm is based on and modified 
-        from the paper "https://arxiv.org/pdf/2002.03577.pdf". For any usage 
-        outside ESPnet, please reference ESPnet (b-flo, PR #2444) until further 
+        encoder output sequence. It is designed to efficiently search for the
+        best hypotheses by constraining the number of steps and utilizing
+        prefix search techniques. This algorithm is based on and modified
+        from the paper "https://arxiv.org/pdf/2002.03577.pdf". For any usage
+        outside ESPnet, please reference ESPnet (b-flo, PR #2444) until further
         modifications are made.
 
         Args:
-            enc_out: Encoder output sequence. Shape is (T, D_enc), where T is the 
-                    length of the sequence and D_enc is the dimensionality of 
+            enc_out: Encoder output sequence. Shape is (T, D_enc), where T is the
+                    length of the sequence and D_enc is the dimensionality of
                     the encoder output.
 
         Returns:
-            List[ExtendedHypothesis]: A list of N-best hypotheses sorted by score. 
-                                    Each hypothesis includes the score, the 
-                                    sequence of tokens generated, the decoder 
-                                    state, and any associated language model 
+            List[ExtendedHypothesis]: A list of N-best hypotheses sorted by score.
+                                    Each hypothesis includes the score, the
+                                    sequence of tokens generated, the decoder
+                                    state, and any associated language model
                                     scores.
 
         Examples:
@@ -976,12 +976,12 @@ class BeamSearchTransducerStreaming:
             >>>     print(hyp.yseq, hyp.score)
 
         Note:
-            This implementation may require a language model (LM) for scoring, 
-            which can be provided during initialization of the BeamSearchTransducerStreaming 
+            This implementation may require a language model (LM) for scoring,
+            which can be provided during initialization of the BeamSearchTransducerStreaming
             class.
 
         Raises:
-            NotImplementedError: If an unsupported language model type is used 
+            NotImplementedError: If an unsupported language model type is used
                                 during initialization.
         """
         beam = min(self.beam_size, self.vocab_size)
@@ -1139,19 +1139,19 @@ class BeamSearchTransducerStreaming:
         """
         Perform the modified Adaptive Expansion Search (mAES) for decoding.
 
-        This method implements the modified Adaptive Expansion Search 
-        algorithm, which is based on the work presented in 
-        https://ieeexplore.ieee.org/document/9250505 and incorporates 
+        This method implements the modified Adaptive Expansion Search
+        algorithm, which is based on the work presented in
+        https://ieeexplore.ieee.org/document/9250505 and incorporates
         elements from the N-step Constrained beam search (NSC).
 
         Args:
-            enc_out: Encoder output sequence. Shape (T, D_enc), where T is 
-                the number of time steps and D_enc is the dimension of the 
+            enc_out: Encoder output sequence. Shape (T, D_enc), where T is
+                the number of time steps and D_enc is the dimension of the
                 encoder output.
 
         Returns:
-            List[ExtendedHypothesis]: A list of the N-best hypotheses 
-            generated by the search algorithm, each represented as an 
+            List[ExtendedHypothesis]: A list of the N-best hypotheses
+            generated by the search algorithm, each represented as an
             ExtendedHypothesis instance.
 
         Examples:
@@ -1162,8 +1162,8 @@ class BeamSearchTransducerStreaming:
             >>>     print(hyp.yseq, hyp.score)
 
         Note:
-            This method is designed to be used within a beam search 
-            framework and relies on a well-defined decoder and joint 
+            This method is designed to be used within a beam search
+            framework and relies on a well-defined decoder and joint
             network to compute scores and states for hypotheses.
         """
         beam = min(self.beam_size, self.vocab_size)

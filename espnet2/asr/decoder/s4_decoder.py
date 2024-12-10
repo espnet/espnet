@@ -15,8 +15,8 @@ class S4Decoder(AbsDecoder, BatchScorerInterface):
     """
     S4 decoder module for sequence-to-sequence tasks.
 
-    This class implements the S4 decoder, which is a part of the ESPnet2 ASR 
-    (Automatic Speech Recognition) framework. The decoder processes the 
+    This class implements the S4 decoder, which is a part of the ESPnet2 ASR
+    (Automatic Speech Recognition) framework. The decoder processes the
     encoded input and generates token scores for the output sequence.
 
     Attributes:
@@ -27,32 +27,32 @@ class S4Decoder(AbsDecoder, BatchScorerInterface):
         dropout (float): Dropout rate for regularization.
         embed (torch.nn.Embedding): Embedding layer for input tokens.
         dropout_emb (torch.nn.Dropout): Dropout layer for embeddings.
-        decoder (SequenceModel): Sequence model implementing the core 
+        decoder (SequenceModel): Sequence model implementing the core
             decoding functionality.
-        output (torch.nn.Linear): Linear layer to project decoder outputs 
+        output (torch.nn.Linear): Linear layer to project decoder outputs
             to vocabulary size.
 
     Args:
         vocab_size (int): Size of the output vocabulary.
-        encoder_output_size (int): Dimension of the hidden vector from the 
+        encoder_output_size (int): Dimension of the hidden vector from the
             encoder.
         input_layer (str): Type of input layer (default is "embed").
         dropinp (float): Input dropout rate (default is 0.0).
-        dropout (float): Dropout parameter applied on every residual and 
+        dropout (float): Dropout parameter applied on every residual and
             every layer (default is 0.25).
         prenorm (bool): Flag for using pre-norm vs. post-norm (default is True).
         n_layers (int): Number of layers in the decoder (default is 16).
-        transposed (bool): If True, transposes inputs for each layer 
+        transposed (bool): If True, transposes inputs for each layer
             (default is False).
-        tie_dropout (bool): If True, ties dropout mask across sequences 
+        tie_dropout (bool): If True, ties dropout mask across sequences
             (default is False).
-        n_repeat (int): Number of repetitions of each layer per stage 
+        n_repeat (int): Number of repetitions of each layer per stage
             (default is 1).
         layer (Any): Configuration for layers, must be specified.
         residual (Any): Configuration for residual connections.
         norm (Any): Normalization configuration (e.g., layer vs batch).
         pool (Any): Configuration for pooling layer per stage.
-        track_norms (bool): If True, logs norms of each layer output 
+        track_norms (bool): If True, logs norms of each layer output
             (default is True).
         drop_path (float): Drop rate for stochastic depth (default is 0.0).
 
@@ -67,7 +67,7 @@ class S4Decoder(AbsDecoder, BatchScorerInterface):
             ys_in_lens: torch.Tensor,
             state: Any = None
         ) -> Tuple[torch.Tensor, torch.Tensor]:
-            Processes the input through the decoder and returns the 
+            Processes the input through the decoder and returns the
             decoded token scores and output lengths.
 
         score(ys: torch.Tensor, state: Any, x: torch.Tensor) -> None:
@@ -78,7 +78,7 @@ class S4Decoder(AbsDecoder, BatchScorerInterface):
             states: List[Any],
             xs: torch.Tensor
         ) -> Tuple[torch.Tensor, List[Any]]:
-            Scores a batch of new tokens based on the current states and 
+            Scores a batch of new tokens based on the current states and
             encoder features.
 
     Examples:
@@ -151,18 +151,18 @@ class S4Decoder(AbsDecoder, BatchScorerInterface):
         """
         Initialize the decoder state.
 
-        This method initializes the decoder's internal state using the 
-        specified input tensor. The state is required for processing the 
+        This method initializes the decoder's internal state using the
+        specified input tensor. The state is required for processing the
         input sequences through the decoder.
 
         Args:
-            x (torch.Tensor): Input tensor used to determine the device 
-                for the state initialization. The tensor shape should 
+            x (torch.Tensor): Input tensor used to determine the device
+                for the state initialization. The tensor shape should
                 be compatible with the model's expected input.
 
         Returns:
-            torch.Tensor: The initialized state of the decoder, which is 
-                a default state tensor suitable for starting the decoding 
+            torch.Tensor: The initialized state of the decoder, which is
+                a default state tensor suitable for starting the decoding
                 process.
 
         Examples:
@@ -170,11 +170,11 @@ class S4Decoder(AbsDecoder, BatchScorerInterface):
             >>> input_tensor = torch.randn(1, 10, 512)  # Example input
             >>> state = decoder.init_state(input_tensor)
             >>> state.shape
-            torch.Size([1, <state_dimension>])  # Replace <state_dimension> 
+            torch.Size([1, <state_dimension>])  # Replace <state_dimension>
                                                   # with the actual dimension
 
         Note:
-            The returned state is typically passed to the `forward` method 
+            The returned state is typically passed to the `forward` method
             during decoding.
         """
         return self.decoder.default_state(1, device=x.device)
@@ -247,39 +247,39 @@ class S4Decoder(AbsDecoder, BatchScorerInterface):
         """
         S4 decoder module for sequence-to-sequence tasks.
 
-        This class implements an S4 decoder that can be used for various 
-        sequence generation tasks in neural networks. It leverages a 
-        sequence model and provides methods for both forward decoding 
+        This class implements an S4 decoder that can be used for various
+        sequence generation tasks in neural networks. It leverages a
+        sequence model and provides methods for both forward decoding
         and scoring new token batches.
 
         Args:
-            vocab_size (int): Output dimension, representing the size of the 
+            vocab_size (int): Output dimension, representing the size of the
                 vocabulary.
-            encoder_output_size (int): Dimension of the hidden vector from the 
+            encoder_output_size (int): Dimension of the hidden vector from the
                 encoder.
-            input_layer (str, optional): Type of input layer. Defaults to 
+            input_layer (str, optional): Type of input layer. Defaults to
                 "embed".
-            dropinp (float, optional): Dropout applied to the input layer. 
+            dropinp (float, optional): Dropout applied to the input layer.
                 Defaults to 0.0.
-            dropout (float, optional): Dropout parameter applied on every 
+            dropout (float, optional): Dropout parameter applied on every
                 residual and every layer. Defaults to 0.25.
-            prenorm (bool, optional): Whether to use pre-norm or post-norm. 
+            prenorm (bool, optional): Whether to use pre-norm or post-norm.
                 Defaults to True.
-            n_layers (int, optional): Number of layers in the decoder. 
+            n_layers (int, optional): Number of layers in the decoder.
                 Defaults to 16.
-            transposed (bool, optional): If True, transpose inputs so each 
+            transposed (bool, optional): If True, transpose inputs so each
                 layer receives (batch, dim, length). Defaults to False.
-            tie_dropout (bool, optional): If True, tie dropout mask across 
+            tie_dropout (bool, optional): If True, tie dropout mask across
                 sequences like nn.Dropout1d/nn.Dropout2d. Defaults to False.
-            n_repeat (int, optional): Number of times each layer is repeated 
+            n_repeat (int, optional): Number of times each layer is repeated
                 per stage before applying pooling. Defaults to 1.
             layer (optional): Layer configuration, must be specified.
             residual (optional): Residual configuration.
             norm (optional): Normalization configuration (e.g. layer vs batch).
             pool (optional): Configuration for pooling layer per stage.
-            track_norms (bool, optional): If True, log norms of each layer 
+            track_norms (bool, optional): If True, log norms of each layer
                 output. Defaults to True.
-            drop_path (float, optional): Drop rate for stochastic depth. 
+            drop_path (float, optional): Drop rate for stochastic depth.
                 Defaults to 0.0.
 
         Attributes:
@@ -292,18 +292,18 @@ class S4Decoder(AbsDecoder, BatchScorerInterface):
         Methods:
             init_state(x: torch.Tensor) -> Any:
                 Initializes the state for the decoder.
-            forward(hs_pad: torch.Tensor, hlens: torch.Tensor, 
-                    ys_in_pad: torch.Tensor, ys_in_lens: torch.Tensor, 
+            forward(hs_pad: torch.Tensor, hlens: torch.Tensor,
+                    ys_in_pad: torch.Tensor, ys_in_lens: torch.Tensor,
                     state=None) -> Tuple[torch.Tensor, torch.Tensor]:
                 Performs a forward pass through the decoder.
             score(ys: torch.Tensor, state: Any, x: torch.Tensor):
                 Calculates the score for the given input.
-            batch_score(ys: torch.Tensor, states: List[Any], 
+            batch_score(ys: torch.Tensor, states: List[Any],
                         xs: torch.Tensor) -> Tuple[torch.Tensor, List[Any]]:
                 Scores a batch of new tokens.
 
         Raises:
-            NotImplementedError: If the input layer type is not supported or 
+            NotImplementedError: If the input layer type is not supported or
                 if the score method is called.
 
         Examples:
@@ -336,20 +336,20 @@ class S4Decoder(AbsDecoder, BatchScorerInterface):
 
         This method computes the scores for the next token in a batch of sequences
         given the prefix tokens and their corresponding states. It utilizes the
-        decoder's embedding layer and processes the input through the decoder to 
+        decoder's embedding layer and processes the input through the decoder to
         generate the scores for the next token in the vocabulary.
 
         Args:
-            ys (torch.Tensor): A tensor of shape (n_batch, ylen) containing the 
+            ys (torch.Tensor): A tensor of shape (n_batch, ylen) containing the
                 prefix tokens of type torch.int64.
-            states (List[Any]): A list of states associated with the prefix tokens, 
+            states (List[Any]): A list of states associated with the prefix tokens,
                 which are used for scoring.
-            xs (torch.Tensor): A tensor of shape (n_batch, xlen, n_feat) that 
+            xs (torch.Tensor): A tensor of shape (n_batch, xlen, n_feat) that
                 contains the encoder features corresponding to the prefix tokens.
 
         Returns:
             Tuple[torch.Tensor, List[Any]]: A tuple containing:
-                - A tensor of shape (n_batch, n_vocab) representing the 
+                - A tensor of shape (n_batch, n_vocab) representing the
                   batchified scores for the next token.
                 - A list of next state lists for each prefix token in `ys`.
 
@@ -363,12 +363,12 @@ class S4Decoder(AbsDecoder, BatchScorerInterface):
 
         Note:
             Ensure that the last token in `ys` is used for scoring the next token.
-            This function is designed for batch processing of tokens, and the 
-            implementation assumes that the states are correctly managed across 
+            This function is designed for batch processing of tokens, and the
+            implementation assumes that the states are correctly managed across
             the batch.
 
         Raises:
-            NotImplementedError: If the method is not fully implemented or if 
+            NotImplementedError: If the method is not fully implemented or if
             unsupported state types are provided.
         """
         # merge states

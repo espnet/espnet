@@ -26,8 +26,8 @@ class LinearEncoder(AbsEncoder):
     Linear encoder module for processing input features.
 
     This class implements a linear encoder that can use various input layer types,
-    such as linear layers or convolutional subsampling layers. It applies an 
-    embedding operation to the input tensor and optionally normalizes the output 
+    such as linear layers or convolutional subsampling layers. It applies an
+    embedding operation to the input tensor and optionally normalizes the output
     before passing it to subsequent layers in a neural network.
 
     Attributes:
@@ -46,9 +46,9 @@ class LinearEncoder(AbsEncoder):
         dropout_rate (float, optional): The dropout rate for regularization. Defaults
             to 0.1.
         input_layer (str, optional): The type of input layer to use. Can be one of
-            ['linear', 'conv2d', 'conv2d2', 'conv2d6', 'conv2d8', 'embed']. 
+            ['linear', 'conv2d', 'conv2d2', 'conv2d6', 'conv2d8', 'embed'].
             Defaults to 'conv2d'.
-        normalize_before (bool, optional): Whether to apply layer normalization 
+        normalize_before (bool, optional): Whether to apply layer normalization
             before the first block. Defaults to True.
         padding_idx (int, optional): The index for padding when using an embedding
             layer. Defaults to -1.
@@ -58,12 +58,12 @@ class LinearEncoder(AbsEncoder):
 
     Examples:
         Initialize a linear encoder with a linear input layer:
-        
-            encoder = LinearEncoder(input_size=128, output_size=256, 
+
+            encoder = LinearEncoder(input_size=128, output_size=256,
                                     input_layer='linear')
 
         Forward pass through the encoder:
-        
+
             xs_pad = torch.randn(10, 20, 128)  # (B, L, D)
             ilens = torch.tensor([20] * 10)     # Input lengths
             output, olens, _ = encoder(xs_pad, ilens)
@@ -121,8 +121,8 @@ class LinearEncoder(AbsEncoder):
         """
         Returns the output size of the linear encoder.
 
-        This method provides the dimension of the output produced by the 
-        encoder, which is defined during the initialization of the 
+        This method provides the dimension of the output produced by the
+        encoder, which is defined during the initialization of the
         LinearEncoder class.
 
         Returns:
@@ -143,28 +143,28 @@ class LinearEncoder(AbsEncoder):
         """
         Embed positions in tensor.
 
-        This method processes the input tensor `xs_pad` by applying the 
-        embedding layer defined during the initialization of the LinearEncoder. 
+        This method processes the input tensor `xs_pad` by applying the
+        embedding layer defined during the initialization of the LinearEncoder.
         It also handles padding masks based on the input lengths.
 
         Args:
-            xs_pad (torch.Tensor): Input tensor of shape (B, L, D), where 
-                B is the batch size, L is the sequence length, and D is 
+            xs_pad (torch.Tensor): Input tensor of shape (B, L, D), where
+                B is the batch size, L is the sequence length, and D is
                 the dimension of the input features.
-            ilens (torch.Tensor): A tensor containing the lengths of each 
+            ilens (torch.Tensor): A tensor containing the lengths of each
                 input sequence in the batch. Shape (B).
-            prev_states (torch.Tensor, optional): Not used currently. Defaults 
+            prev_states (torch.Tensor, optional): Not used currently. Defaults
                 to None.
 
         Returns:
-            Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]: 
+            Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
                 A tuple containing:
                 - The position-embedded tensor of shape (B, L, output_size).
                 - A tensor representing the output lengths of shape (B).
                 - An optional tensor which is currently set to None.
 
         Raises:
-            TooShortUttError: If the input tensor is too short for the 
+            TooShortUttError: If the input tensor is too short for the
                 subsampling method being used.
 
         Examples:

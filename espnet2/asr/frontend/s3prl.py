@@ -167,22 +167,22 @@ class S3prlFrontend(AbsFrontend):
         """
         Forward pass of the S3prlFrontend class.
 
-        This method processes the input tensor and its lengths through the 
-        upstream model to extract features. Depending on the configuration, 
-        it can return features from a specific layer, multiple layers, or apply 
+        This method processes the input tensor and its lengths through the
+        upstream model to extract features. Depending on the configuration,
+        it can return features from a specific layer, multiple layers, or apply
         tiling to the representations.
 
         Args:
-            input (torch.Tensor): Input tensor containing audio data. The shape 
+            input (torch.Tensor): Input tensor containing audio data. The shape
                 should be (batch_size, seq_len, feature_dim).
-            input_lengths (torch.Tensor): Lengths of the input sequences. The 
+            input_lengths (torch.Tensor): Lengths of the input sequences. The
                 shape should be (batch_size,).
 
         Returns:
             Tuple[torch.Tensor, torch.Tensor]: A tuple containing:
-                - feats (torch.Tensor): The extracted features after processing 
+                - feats (torch.Tensor): The extracted features after processing
                   through the upstream model.
-                - feats_lens (torch.Tensor): The lengths of the extracted 
+                - feats_lens (torch.Tensor): The lengths of the extracted
                   features.
 
         Examples:
@@ -192,11 +192,11 @@ class S3prlFrontend(AbsFrontend):
             >>> features, lengths = frontend.forward(input_tensor, input_lengths)
 
         Note:
-            The input audio data should be sampled at 16 kHz for compatibility 
+            The input audio data should be sampled at 16 kHz for compatibility
             with the upstream models.
 
         Raises:
-            AssertionError: If the input feature shape is not (batch_size, 
+            AssertionError: If the input feature shape is not (batch_size,
             seq_len, feature_dim).
         """
         feats, feats_lens = self.upstream(input, input_lengths)
@@ -234,12 +234,12 @@ class S3prlFrontend(AbsFrontend):
             Pretrained S3PRL frontend model parameters reloaded!
 
         Note:
-            Ensure that the `reload_pretrained_parameters` method is called 
-            when the model is in a valid state and after it has been initialized 
+            Ensure that the `reload_pretrained_parameters` method is called
+            when the model is in a valid state and after it has been initialized
             with pretrained parameters.
 
         Raises:
-            RuntimeError: If the model's state cannot be reloaded due to 
+            RuntimeError: If the model's state cannot be reloaded due to
             incompatible shapes or other issues related to the model's architecture.
         """
         logging.info("Pretrained S3PRL frontend model parameters reloaded!")

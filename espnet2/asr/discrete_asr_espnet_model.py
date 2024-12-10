@@ -29,86 +29,86 @@ else:
 
 class ESPnetDiscreteASRModel(ESPnetMTModel):
     """
-    ESPnetDiscreteASRModel is an encoder-decoder model for automatic speech 
-recognition (ASR) that leverages discrete tokens. It integrates various 
-components such as frontend, encoder, decoder, and optionally CTC for 
-improved performance. 
+        ESPnetDiscreteASRModel is an encoder-decoder model for automatic speech
+    recognition (ASR) that leverages discrete tokens. It integrates various
+    components such as frontend, encoder, decoder, and optionally CTC for
+    improved performance.
 
-Attributes:
-    vocab_size (int): The size of the vocabulary used for decoding.
-    token_list (List[str]): A list of tokens corresponding to the vocabulary.
-    frontend (AbsFrontend): An optional frontend for feature extraction.
-    specaug (AbsSpecAug): An optional data augmentation technique.
-    preencoder (AbsPreEncoder): An optional preencoder for raw input data.
-    encoder (AbsEncoder): The encoder component of the model.
-    postencoder (AbsPostEncoder): An optional postencoder for additional processing.
-    decoder (AbsDecoder): The decoder component of the model.
-    ctc (CTC): An optional CTC module for training.
-    ctc_weight (float): Weight for the CTC loss in the combined loss function.
-    interctc_weight (float): Weight for the intermediate CTC loss.
-    ignore_id (int): Token ID to ignore in the loss calculation.
-    length_normalized_loss (bool): If True, normalize the loss by length.
-    report_bleu (bool): If True, report BLEU score during training.
-    sym_space (str): Symbol representing space in the token list.
-    sym_blank (str): Symbol representing blank in the token list.
-    blank_id (int): The ID of the blank token.
-    error_calculator (ASRErrorCalculator): Calculates error metrics like CER and WER.
+    Attributes:
+        vocab_size (int): The size of the vocabulary used for decoding.
+        token_list (List[str]): A list of tokens corresponding to the vocabulary.
+        frontend (AbsFrontend): An optional frontend for feature extraction.
+        specaug (AbsSpecAug): An optional data augmentation technique.
+        preencoder (AbsPreEncoder): An optional preencoder for raw input data.
+        encoder (AbsEncoder): The encoder component of the model.
+        postencoder (AbsPostEncoder): An optional postencoder for additional processing.
+        decoder (AbsDecoder): The decoder component of the model.
+        ctc (CTC): An optional CTC module for training.
+        ctc_weight (float): Weight for the CTC loss in the combined loss function.
+        interctc_weight (float): Weight for the intermediate CTC loss.
+        ignore_id (int): Token ID to ignore in the loss calculation.
+        length_normalized_loss (bool): If True, normalize the loss by length.
+        report_bleu (bool): If True, report BLEU score during training.
+        sym_space (str): Symbol representing space in the token list.
+        sym_blank (str): Symbol representing blank in the token list.
+        blank_id (int): The ID of the blank token.
+        error_calculator (ASRErrorCalculator): Calculates error metrics like CER and WER.
 
-Args:
-    vocab_size (int): Size of the vocabulary.
-    token_list (Union[Tuple[str, ...], List[str]]): List of tokens.
-    frontend (Optional[AbsFrontend]): Frontend component.
-    specaug (Optional[AbsSpecAug]): SpecAugment component.
-    preencoder (Optional[AbsPreEncoder]): Preencoder component.
-    encoder (AbsEncoder): Encoder component.
-    postencoder (Optional[AbsPostEncoder]): Postencoder component.
-    decoder (AbsDecoder): Decoder component.
-    ctc (Optional[CTC]): CTC component.
-    ctc_weight (float): Weight for CTC loss (default 0.5).
-    interctc_weight (float): Weight for intermediate CTC loss (default 0.0).
-    src_vocab_size (int): Source vocabulary size (default 0).
-    src_token_list (Union[Tuple[str, ...], List[str]]): Source token list (default []).
-    ignore_id (int): ID to ignore in loss calculation (default -1).
-    lsm_weight (float): Label smoothing weight (default 0.0).
-    length_normalized_loss (bool): Normalize loss by length (default False).
-    report_bleu (bool): Report BLEU score (default True).
-    sym_space (str): Symbol for space (default "<space>").
-    sym_blank (str): Symbol for blank (default "<blank>").
-    patch_size (int): Patch size for model (default 1).
-    extract_feats_in_collect_stats (bool): Extract features during statistics collection (default True).
-    share_decoder_input_output_embed (bool): Share decoder input/output embedding (default False).
-    share_encoder_decoder_input_embed (bool): Share encoder/decoder input embedding (default False).
+    Args:
+        vocab_size (int): Size of the vocabulary.
+        token_list (Union[Tuple[str, ...], List[str]]): List of tokens.
+        frontend (Optional[AbsFrontend]): Frontend component.
+        specaug (Optional[AbsSpecAug]): SpecAugment component.
+        preencoder (Optional[AbsPreEncoder]): Preencoder component.
+        encoder (AbsEncoder): Encoder component.
+        postencoder (Optional[AbsPostEncoder]): Postencoder component.
+        decoder (AbsDecoder): Decoder component.
+        ctc (Optional[CTC]): CTC component.
+        ctc_weight (float): Weight for CTC loss (default 0.5).
+        interctc_weight (float): Weight for intermediate CTC loss (default 0.0).
+        src_vocab_size (int): Source vocabulary size (default 0).
+        src_token_list (Union[Tuple[str, ...], List[str]]): Source token list (default []).
+        ignore_id (int): ID to ignore in loss calculation (default -1).
+        lsm_weight (float): Label smoothing weight (default 0.0).
+        length_normalized_loss (bool): Normalize loss by length (default False).
+        report_bleu (bool): Report BLEU score (default True).
+        sym_space (str): Symbol for space (default "<space>").
+        sym_blank (str): Symbol for blank (default "<blank>").
+        patch_size (int): Patch size for model (default 1).
+        extract_feats_in_collect_stats (bool): Extract features during statistics collection (default True).
+        share_decoder_input_output_embed (bool): Share decoder input/output embedding (default False).
+        share_encoder_decoder_input_embed (bool): Share encoder/decoder input embedding (default False).
 
-Returns:
-    Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]: A tuple containing the 
-    total loss, a dictionary of statistics, and the batch size.
+    Returns:
+        Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]: A tuple containing the
+        total loss, a dictionary of statistics, and the batch size.
 
-Raises:
-    AssertionError: If the input lengths are inconsistent or invalid.
+    Raises:
+        AssertionError: If the input lengths are inconsistent or invalid.
 
-Examples:
-    model = ESPnetDiscreteASRModel(
-        vocab_size=5000,
-        token_list=["<blank>", "<space>", "hello", "world"],
-        frontend=None,
-        specaug=None,
-        preencoder=None,
-        encoder=my_encoder,
-        postencoder=None,
-        decoder=my_decoder,
-        ctc=my_ctc,
-    )
+    Examples:
+        model = ESPnetDiscreteASRModel(
+            vocab_size=5000,
+            token_list=["<blank>", "<space>", "hello", "world"],
+            frontend=None,
+            specaug=None,
+            preencoder=None,
+            encoder=my_encoder,
+            postencoder=None,
+            decoder=my_decoder,
+            ctc=my_ctc,
+        )
 
-    loss, stats, batch_size = model(
-        text=torch.randint(0, 5000, (32, 10)),
-        text_lengths=torch.randint(1, 11, (32,)),
-        src_text=torch.randint(0, 5000, (32, 10)),
-        src_text_lengths=torch.randint(1, 11, (32,))
-    )
+        loss, stats, batch_size = model(
+            text=torch.randint(0, 5000, (32, 10)),
+            text_lengths=torch.randint(1, 11, (32,)),
+            src_text=torch.randint(0, 5000, (32, 10)),
+            src_text_lengths=torch.randint(1, 11, (32,))
+        )
 
-Note:
-    This model supports optional components for various stages of processing,
-    allowing for flexibility in architecture design.
+    Note:
+        This model supports optional components for various stages of processing,
+        allowing for flexibility in architecture design.
     """
 
     @typechecked
@@ -319,27 +319,27 @@ Note:
         """
         Frontend + Encoder. Note that this method is used by mt_inference.py.
 
-        This method processes the input source text through a series of layers 
-        including the frontend, preencoder (if applicable), and the main encoder 
+        This method processes the input source text through a series of layers
+        including the frontend, preencoder (if applicable), and the main encoder
         to produce the encoded output and its lengths.
 
         Args:
-            src_text: A tensor of shape (Batch, Length, ...), representing the 
+            src_text: A tensor of shape (Batch, Length, ...), representing the
                 input source text sequences.
-            src_text_lengths: A tensor of shape (Batch,), containing the lengths 
+            src_text_lengths: A tensor of shape (Batch,), containing the lengths
                 of the source text sequences.
 
         Returns:
             A tuple containing:
-                - encoder_out: A tensor of shape (Batch, Length2, Dim2), representing 
+                - encoder_out: A tensor of shape (Batch, Length2, Dim2), representing
                   the encoded output from the encoder.
-                - encoder_out_lens: A tensor of shape (Batch,), containing the lengths 
+                - encoder_out_lens: A tensor of shape (Batch,), containing the lengths
                   of the encoded output sequences.
 
         Note:
-            - This method assumes that the input text has already been processed 
+            - This method assumes that the input text has already been processed
               to a suitable format for encoding.
-            - The method can perform data augmentation if the model is in training 
+            - The method can perform data augmentation if the model is in training
               mode and a spec augmentation instance is provided.
 
         Examples:

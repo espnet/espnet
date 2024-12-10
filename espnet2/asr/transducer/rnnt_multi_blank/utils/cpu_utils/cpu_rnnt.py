@@ -39,12 +39,12 @@ from espnet2.asr.transducer.rnnt_multi_blank.utils import global_constants
 
 def log_sum_exp(a: torch.Tensor, b: torch.Tensor):
     """
-    Computes the log of the sum of exponentials of input tensors with safety 
+    Computes the log of the sum of exponentials of input tensors with safety
     checks for infinite values.
 
-    This function handles cases where either input tensor may contain 
-    infinite values by returning the non-infinite tensor directly. It computes 
-    the log-sum-exp in a numerically stable manner by utilizing the properties 
+    This function handles cases where either input tensor may contain
+    infinite values by returning the non-infinite tensor directly. It computes
+    the log-sum-exp in a numerically stable manner by utilizing the properties
     of logarithms and exponentials.
 
     Args:
@@ -85,7 +85,7 @@ def log_sum_exp(a: torch.Tensor, b: torch.Tensor):
 
 class CpuRNNT_index:
     """
-    Class to compute the CPU-based index for RNNT (Recurrent Neural Network 
+    Class to compute the CPU-based index for RNNT (Recurrent Neural Network
     Transducer) operations, mimicking pointer indexing as done in CUDA kernels.
 
     This class facilitates the mapping of target samples to flattened tensors,
@@ -119,10 +119,11 @@ class CpuRNNT_index:
         53  # Example output based on given parameters
 
     Note:
-        The index computation is designed to emulate the memory access patterns 
-        of CUDA kernels on the CPU, which is essential for performance in RNNT 
+        The index computation is designed to emulate the memory access patterns
+        of CUDA kernels on the CPU, which is essential for performance in RNNT
         training and inference.
     """
+
     def __init__(
         self, U: int, maxU: int, minibatch: int, alphabet_size: int, batch_first: bool
     ):
@@ -162,25 +163,25 @@ class CpuRNNT_metadata:
     """
     Metadata for CPU-based RNNT loss calculation.
 
-        This class holds the working space memory and initializes the log 
+        This class holds the working space memory and initializes the log
         probabilities for the RNNT model during loss computation.
 
         Args:
             T: Length of the acoustic sequence (without padding).
             U: Length of the target sequence (without padding).
             workspace: Working space memory for the CPU.
-            bytes_used: Number of bytes currently used for indexing the 
+            bytes_used: Number of bytes currently used for indexing the
                 working space memory. Generally starts at 0.
             blank: Index of the blank token in the vocabulary.
             labels: Ground truth padded labels matrix of shape [B, U].
-            log_probs: Log probabilities / activation matrix of flattened 
+            log_probs: Log probabilities / activation matrix of flattened
                 shape [B, T, U, V+1].
             idx: An instance of CpuRNNT_index for indexing purposes.
 
         Attributes:
             alphas: Memory for the forward variable (alpha) calculations.
             betas: Memory for the backward variable (beta) calculations.
-            log_probs2: Memory for storing log probabilities of blank and 
+            log_probs2: Memory for storing log probabilities of blank and
                 label tokens.
 
         Examples:
@@ -203,6 +204,7 @@ class CpuRNNT_metadata:
         Todo:
             Consider adding error handling for invalid input shapes or types.
     """
+
     def __init__(
         self,
         T: int,
@@ -335,25 +337,26 @@ class LogSoftmaxGradModification(Function):
         This class should be used as a part of a neural network model where
         log softmax activation and its gradient are needed.
     """
+
     @staticmethod
     def forward(ctx, acts, clamp):
         """
         Compute the forward pass for the LogSoftmax gradient modification.
 
-        This method applies the log-softmax operation on the input activations 
-        and clamps the output values to prevent overflow or underflow during 
+        This method applies the log-softmax operation on the input activations
+        and clamps the output values to prevent overflow or underflow during
         backpropagation. The clamping value is defined by the `clamp` parameter.
 
         Args:
-            ctx: Context object that can be used to store information for 
+            ctx: Context object that can be used to store information for
                 the backward pass.
             acts (torch.Tensor): Input tensor containing activation values.
-            clamp (float): A non-negative float that specifies the clamping 
-                range for the output. If `clamp` is less than 0, a 
+            clamp (float): A non-negative float that specifies the clamping
+                range for the output. If `clamp` is less than 0, a
                 ValueError will be raised.
 
         Returns:
-            torch.Tensor: The output tensor after applying the log-softmax 
+            torch.Tensor: The output tensor after applying the log-softmax
             operation and clamping.
 
         Raises:
@@ -367,7 +370,7 @@ class LogSoftmaxGradModification(Function):
             tensor([[0.0000, 0.6931, 1.0986]])
 
         Note:
-            The clamping is performed to avoid numerical issues during 
+            The clamping is performed to avoid numerical issues during
             gradient computation.
         """
         if clamp < 0:
@@ -486,6 +489,7 @@ class CPURNNT:
     Returns:
         global_constants.RNNTStatus: Status of the RNNT computation.
     """
+
     def __init__(
         self,
         minibatch: int,
@@ -549,50 +553,50 @@ class CPURNNT:
         bytes_used: int,
     ):
         """
-        Computes the cost and gradients for the RNNT loss on the CPU.
+            Computes the cost and gradients for the RNNT loss on the CPU.
 
-    This method utilizes the log probabilities of the model outputs to compute
-    the forward and backward variables (alphas and betas) and subsequently
-    calculates the gradients for the RNNT loss. It also manages the necessary
-    workspace memory for the computations.
+        This method utilizes the log probabilities of the model outputs to compute
+        the forward and backward variables (alphas and betas) and subsequently
+        calculates the gradients for the RNNT loss. It also manages the necessary
+        workspace memory for the computations.
 
-    Args:
-        log_probs (torch.Tensor): A tensor containing the log probabilities of shape
-            [B, T, U, V+1], where B is the batch size, T is the length of the
-            acoustic sequence, U is the length of the target sequence, and V is the
-            vocabulary size.
-        grad (torch.Tensor): A tensor to store the computed gradients of shape
-            [B, T, U, V+1].
-        labels (torch.Tensor): A tensor containing the ground truth labels of shape
-            [B, U].
-        mb (int): The current minibatch index.
-        T (int): The length of the acoustic sequence (not padded).
-        U (int): The length of the target sequence (not padded).
-        bytes_used (int): The number of bytes currently used in the workspace memory.
+        Args:
+            log_probs (torch.Tensor): A tensor containing the log probabilities of shape
+                [B, T, U, V+1], where B is the batch size, T is the length of the
+                acoustic sequence, U is the length of the target sequence, and V is the
+                vocabulary size.
+            grad (torch.Tensor): A tensor to store the computed gradients of shape
+                [B, T, U, V+1].
+            labels (torch.Tensor): A tensor containing the ground truth labels of shape
+                [B, U].
+            mb (int): The current minibatch index.
+            T (int): The length of the acoustic sequence (not padded).
+            U (int): The length of the target sequence (not padded).
+            bytes_used (int): The number of bytes currently used in the workspace memory.
 
-    Returns:
-        float: The negative log likelihood of the RNNT loss for the given
-        minibatch.
+        Returns:
+            float: The negative log likelihood of the RNNT loss for the given
+            minibatch.
 
-    Examples:
-        >>> log_probs = torch.randn(2, 10, 5, 6)  # Example log probabilities
-        >>> grad = torch.zeros_like(log_probs)
-        >>> labels = torch.randint(0, 5, (2, 5))  # Example labels
-        >>> cpurnnt = CPURNNT(minibatch=2, maxT=10, maxU=5, alphabet_size=6,
-        ...                   workspace=torch.zeros(1024), blank=0,
-        ...                   fastemit_lambda=0.5, clamp=1.0,
-        ...                   num_threads=1, batch_first=True)
-        >>> loss = cpurnnt.cost_and_grad_kernel(log_probs, grad, labels, 0, 10, 5, 0)
-        >>> print(loss)  # Output the loss value
+        Examples:
+            >>> log_probs = torch.randn(2, 10, 5, 6)  # Example log probabilities
+            >>> grad = torch.zeros_like(log_probs)
+            >>> labels = torch.randint(0, 5, (2, 5))  # Example labels
+            >>> cpurnnt = CPURNNT(minibatch=2, maxT=10, maxU=5, alphabet_size=6,
+            ...                   workspace=torch.zeros(1024), blank=0,
+            ...                   fastemit_lambda=0.5, clamp=1.0,
+            ...                   num_threads=1, batch_first=True)
+            >>> loss = cpurnnt.cost_and_grad_kernel(log_probs, grad, labels, 0, 10, 5, 0)
+            >>> print(loss)  # Output the loss value
 
-    Note:
-        This method is designed for use in the context of the RNNT loss
-        calculation and assumes that the input tensors are correctly shaped
-        and pre-allocated.
+        Note:
+            This method is designed for use in the context of the RNNT loss
+            calculation and assumes that the input tensors are correctly shaped
+            and pre-allocated.
 
-    Raises:
-        ValueError: If the input tensors have incorrect dimensions or
-        incompatible shapes.
+        Raises:
+            ValueError: If the input tensors have incorrect dimensions or
+            incompatible shapes.
         """
         idx = CpuRNNT_index(
             U, self.maxU_, self.minibatch_, self.alphabet_size_, self.batch_first
@@ -624,38 +628,38 @@ class CPURNNT:
         self, log_probs: torch.Tensor, T: int, U: int, alphas: torch.Tensor
     ):
         """
-        Compute the probability of the forward variable alpha.
+            Compute the probability of the forward variable alpha.
 
-    This method calculates the forward probabilities (alphas) for the RNNT
-    (Recurrent Neural Network Transducer) given the log probabilities of the
-    outputs. It fills the `alphas` tensor with the computed values, which are
-    used in the computation of the RNNT loss.
+        This method calculates the forward probabilities (alphas) for the RNNT
+        (Recurrent Neural Network Transducer) given the log probabilities of the
+        outputs. It fills the `alphas` tensor with the computed values, which are
+        used in the computation of the RNNT loss.
 
-    Args:
-        log_probs: A flattened tensor of shape [B, T, U, V+1] representing
-            the log probabilities of the model outputs. B is the batch size,
-            T is the length of the acoustic sequence (not padded), U is the
-            length of the target sequence (not padded), and V is the size of
-            the vocabulary.
-        T: Length of the acoustic sequence T (not padded).
-        U: Length of the target sequence U (not padded).
-        alphas: A tensor of shape [B, T, U] that serves as the working space
-            memory for the alpha values.
+        Args:
+            log_probs: A flattened tensor of shape [B, T, U, V+1] representing
+                the log probabilities of the model outputs. B is the batch size,
+                T is the length of the acoustic sequence (not padded), U is the
+                length of the target sequence (not padded), and V is the size of
+                the vocabulary.
+            T: Length of the acoustic sequence T (not padded).
+            U: Length of the target sequence U (not padded).
+            alphas: A tensor of shape [B, T, U] that serves as the working space
+                memory for the alpha values.
 
-    Returns:
-        Loglikelihood of the forward variable alpha.
+        Returns:
+            Loglikelihood of the forward variable alpha.
 
-    Examples:
-        >>> log_probs = torch.randn(1, 5, 3, 4)  # Example log probabilities
-        >>> T = 5  # Length of acoustic sequence
-        >>> U = 3  # Length of target sequence
-        >>> alphas = torch.zeros(1, T, U)  # Initialize alphas
-        >>> log_likelihood = cpurnnt.compute_alphas(log_probs, T, U, alphas)
-        >>> print(log_likelihood)  # Loglikelihood of the forward variable
+        Examples:
+            >>> log_probs = torch.randn(1, 5, 3, 4)  # Example log probabilities
+            >>> T = 5  # Length of acoustic sequence
+            >>> U = 3  # Length of target sequence
+            >>> alphas = torch.zeros(1, T, U)  # Initialize alphas
+            >>> log_likelihood = cpurnnt.compute_alphas(log_probs, T, U, alphas)
+            >>> print(log_likelihood)  # Loglikelihood of the forward variable
 
-    Note:
-        The computation is performed in-place on the `alphas` tensor, which
-        should be allocated beforehand with the appropriate shape.
+        Note:
+            The computation is performed in-place on the `alphas` tensor, which
+            should be allocated beforehand with the appropriate shape.
         """
 
         idx = CpuRNNT_index(
@@ -695,46 +699,46 @@ class CPURNNT:
         logll: torch.Tensor,
     ):
         """
-        Compute the backward variable beta and gradients of the activation matrix.
+            Compute the backward variable beta and gradients of the activation matrix.
 
-    This function calculates the backward variable (beta) and the gradients 
-    of the activation matrix with respect to the log-likelihood of the forward 
-    variable. The results are used in training the RNNT model by updating the 
-    gradients based on the computed values.
+        This function calculates the backward variable (beta) and the gradients
+        of the activation matrix with respect to the log-likelihood of the forward
+        variable. The results are used in training the RNNT model by updating the
+        gradients based on the computed values.
 
-    Args:
-        grad: Working space memory of flattened shape [B, T, U, V+1], which 
-              will be updated in place with gradients.
-        log_probs: Activation tensor of flattened shape [B, T, U, V+1], which 
-                   contains the log probabilities for each time step and target 
-                   label.
-        T: Length of the acoustic sequence T (not padded).
-        U: Length of the target sequence U (not padded).
-        alphas: Working space memory for alpha of shape [B, T, U], which 
-                stores the forward variable probabilities.
-        betas: Working space memory for beta of shape [B, T, U], which 
-               will store the computed backward variable probabilities.
-        labels: Ground truth label tensor of shape [B, U] representing the 
-                target sequences.
-        logll: Log-likelihood of the forward variable, which is used to 
-                normalize the gradients.
+        Args:
+            grad: Working space memory of flattened shape [B, T, U, V+1], which
+                  will be updated in place with gradients.
+            log_probs: Activation tensor of flattened shape [B, T, U, V+1], which
+                       contains the log probabilities for each time step and target
+                       label.
+            T: Length of the acoustic sequence T (not padded).
+            U: Length of the target sequence U (not padded).
+            alphas: Working space memory for alpha of shape [B, T, U], which
+                    stores the forward variable probabilities.
+            betas: Working space memory for beta of shape [B, T, U], which
+                   will store the computed backward variable probabilities.
+            labels: Ground truth label tensor of shape [B, U] representing the
+                    target sequences.
+            logll: Log-likelihood of the forward variable, which is used to
+                    normalize the gradients.
 
-    Returns:
-        Loglikelihood of the forward variable and in-place updates to the grad 
-        tensor.
+        Returns:
+            Loglikelihood of the forward variable and in-place updates to the grad
+            tensor.
 
-    Examples:
-        >>> grad = torch.zeros((batch_size, max_T, max_U, vocab_size))
-        >>> log_probs = torch.randn((batch_size, max_T, max_U, vocab_size))
-        >>> alphas = torch.zeros((batch_size, max_T, max_U))
-        >>> betas = torch.zeros((batch_size, max_T, max_U))
-        >>> labels = torch.randint(0, vocab_size, (batch_size, max_U))
-        >>> logll = torch.tensor(0.0)
-        >>> loglikelihood = compute_betas_and_grads(grad, log_probs, T, U, alphas, betas, labels, logll)
+        Examples:
+            >>> grad = torch.zeros((batch_size, max_T, max_U, vocab_size))
+            >>> log_probs = torch.randn((batch_size, max_T, max_U, vocab_size))
+            >>> alphas = torch.zeros((batch_size, max_T, max_U))
+            >>> betas = torch.zeros((batch_size, max_T, max_U))
+            >>> labels = torch.randint(0, vocab_size, (batch_size, max_U))
+            >>> logll = torch.tensor(0.0)
+            >>> loglikelihood = compute_betas_and_grads(grad, log_probs, T, U, alphas, betas, labels, logll)
 
-    Note:
-        This method is intended for internal use within the RNNT training 
-        process and should not be called directly in user code.
+        Note:
+            This method is intended for internal use within the RNNT training
+            process and should not be called directly in user code.
         """
 
         idx = CpuRNNT_index(
@@ -797,31 +801,31 @@ class CPURNNT:
         """
         Computes the cost and gradients for the RNNT loss on CPU.
 
-        This function calculates the RNNT loss for a batch of sequences, storing 
-        the computed gradients in the provided gradient tensor. The loss is 
-        computed using the forward and backward probabilities (alphas and betas) 
-        and is scaled according to the FastEmit regularization factor. The 
-        function iterates over each example in the minibatch, calling the 
+        This function calculates the RNNT loss for a batch of sequences, storing
+        the computed gradients in the provided gradient tensor. The loss is
+        computed using the forward and backward probabilities (alphas and betas)
+        and is scaled according to the FastEmit regularization factor. The
+        function iterates over each example in the minibatch, calling the
         `cost_and_grad_kernel` to perform the necessary calculations.
 
         Args:
-            log_probs (torch.Tensor): Log probabilities tensor of shape 
-                [B, T, U, V+1], where B is the batch size, T is the length of 
-                the acoustic sequence, U is the length of the target sequence, 
+            log_probs (torch.Tensor): Log probabilities tensor of shape
+                [B, T, U, V+1], where B is the batch size, T is the length of
+                the acoustic sequence, U is the length of the target sequence,
                 and V is the vocabulary size (including blank).
-            grads (torch.Tensor): Tensor to store the computed gradients of 
+            grads (torch.Tensor): Tensor to store the computed gradients of
                 shape [B, T, U, V+1].
-            costs (torch.Tensor): Tensor to store the computed costs for each 
+            costs (torch.Tensor): Tensor to store the computed costs for each
                 example in the minibatch of shape [B].
-            flat_labels (torch.Tensor): Ground truth labels in a flattened 
+            flat_labels (torch.Tensor): Ground truth labels in a flattened
                 tensor of shape [B, U].
-            label_lengths (torch.Tensor): Lengths of each label sequence in 
+            label_lengths (torch.Tensor): Lengths of each label sequence in
                 the minibatch of shape [B].
-            input_lengths (torch.Tensor): Lengths of each input sequence in 
+            input_lengths (torch.Tensor): Lengths of each input sequence in
                 the minibatch of shape [B].
 
         Returns:
-            global_constants.RNNTStatus: The status of the RNNT computation, 
+            global_constants.RNNTStatus: The status of the RNNT computation,
                 indicating success or failure.
 
         Examples:
@@ -832,16 +836,16 @@ class CPURNNT:
             >>> label_lengths = torch.tensor([3, 3])      # Lengths of labels
             >>> input_lengths = torch.tensor([5, 5])       # Lengths of inputs
             >>> rnnt = CPURNNT(...)                        # Initialize CPURNNT
-            >>> status = rnnt.cost_and_grad(log_probs, grads, costs, 
-            ...                               flat_labels, label_lengths, 
+            >>> status = rnnt.cost_and_grad(log_probs, grads, costs,
+            ...                               flat_labels, label_lengths,
             ...                               input_lengths)
 
         Note:
-            Ensure that the input tensors are properly shaped and contain valid 
+            Ensure that the input tensors are properly shaped and contain valid
             data before calling this function.
 
         Raises:
-            ValueError: If the dimensions of the input tensors do not match 
+            ValueError: If the dimensions of the input tensors do not match
             expected shapes or if any tensor contains invalid values.
         """
         # // per minibatch memory
@@ -883,29 +887,29 @@ class CPURNNT:
         """
         Computes the forward score for a batch of input sequences using the RNNT loss.
 
-        This method calculates the log likelihood of the forward variable (alpha) 
-        for each sequence in the minibatch based on the provided log probabilities 
+        This method calculates the log likelihood of the forward variable (alpha)
+        for each sequence in the minibatch based on the provided log probabilities
         and labels. The results are stored in the `costs` tensor.
 
         Args:
-            log_probs (torch.Tensor): A tensor of shape [B, T, U, V+1] containing 
-                the log probabilities for each token in the vocabulary at each 
-                time step, where B is the batch size, T is the length of the 
-                acoustic sequence, U is the length of the target sequence, and 
+            log_probs (torch.Tensor): A tensor of shape [B, T, U, V+1] containing
+                the log probabilities for each token in the vocabulary at each
+                time step, where B is the batch size, T is the length of the
+                acoustic sequence, U is the length of the target sequence, and
                 V is the size of the vocabulary (excluding the blank token).
-            costs (torch.Tensor): A tensor of shape [B] where the computed negative 
+            costs (torch.Tensor): A tensor of shape [B] where the computed negative
                 log likelihoods will be stored for each sequence in the minibatch.
-            flat_labels (torch.Tensor): A tensor containing the ground truth labels 
-                for each sequence in the minibatch, padded to the maximum target 
+            flat_labels (torch.Tensor): A tensor containing the ground truth labels
+                for each sequence in the minibatch, padded to the maximum target
                 length.
-            label_lengths (torch.Tensor): A tensor containing the actual lengths of 
+            label_lengths (torch.Tensor): A tensor containing the actual lengths of
                 the labels for each sequence in the minibatch.
-            input_lengths (torch.Tensor): A tensor containing the lengths of the 
+            input_lengths (torch.Tensor): A tensor containing the lengths of the
                 input sequences for each sequence in the minibatch.
 
         Returns:
-            global_constants.RNNTStatus: A status indicator indicating the success 
-            or failure of the computation. 
+            global_constants.RNNTStatus: A status indicator indicating the success
+            or failure of the computation.
 
         Examples:
             >>> log_probs = torch.randn(2, 5, 4, 3)  # Example log probabilities
@@ -913,7 +917,7 @@ class CPURNNT:
             >>> flat_labels = torch.tensor([[1, 2], [1, 3]])  # Example labels
             >>> label_lengths = torch.tensor([2, 2])  # Lengths of labels
             >>> input_lengths = torch.tensor([5, 5])  # Lengths of inputs
-            >>> rnnt.score_forward(log_probs, costs, flat_labels, 
+            >>> rnnt.score_forward(log_probs, costs, flat_labels,
             ...                    label_lengths, input_lengths)
             >>> print(costs)  # Should contain the negative log likelihoods
         """

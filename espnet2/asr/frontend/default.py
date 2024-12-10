@@ -16,10 +16,10 @@ from espnet.nets.pytorch_backend.frontends.frontend import Frontend
 
 class DefaultFrontend(AbsFrontend):
     """
-    DefaultFrontend is a conventional frontend structure for automatic speech 
-    recognition (ASR). It processes audio signals through a series of transformations, 
-    including Short-Time Fourier Transform (STFT), Weighted Prediction Error (WPE), 
-    Minimum Variance Distortionless Response (MVDR) beamforming, power spectrum 
+    DefaultFrontend is a conventional frontend structure for automatic speech
+    recognition (ASR). It processes audio signals through a series of transformations,
+    including Short-Time Fourier Transform (STFT), Weighted Prediction Error (WPE),
+    Minimum Variance Distortionless Response (MVDR) beamforming, power spectrum
     calculation, and finally converts to Log-Mel filterbanks.
 
     The processing flow is as follows:
@@ -38,16 +38,16 @@ class DefaultFrontend(AbsFrontend):
         win_length (Optional[int]): Length of the window (default is None).
         hop_length (int): Number of samples between frames (default is 128).
         window (Optional[str]): Window function (default is "hann").
-        center (bool): If True, pads input such that the frame is centered at 
+        center (bool): If True, pads input such that the frame is centered at
             the original time index (default is True).
         normalized (bool): If True, normalize the output of STFT (default is False).
-        onesided (bool): If True, returns only the positive frequency components 
+        onesided (bool): If True, returns only the positive frequency components
             (default is True).
         n_mels (int): Number of Mel bands to generate (default is 80).
         fmin (Optional[int]): Minimum frequency (default is None).
         fmax (Optional[int]): Maximum frequency (default is None).
         htk (bool): If True, use HTK formula for Mel filterbank (default is False).
-        frontend_conf (Optional[dict]): Configuration for the frontend model (default 
+        frontend_conf (Optional[dict]): Configuration for the frontend model (default
             is a copy of Frontend's default kwargs).
         apply_stft (bool): Flag to apply STFT (default is True).
 
@@ -67,8 +67,8 @@ class DefaultFrontend(AbsFrontend):
         features, lengths = frontend(input_tensor, input_lengths)
 
     Note:
-        Ensure that the input tensor has the correct shape and type before 
-        processing. The input should be a 2D tensor of shape (batch_size, 
+        Ensure that the input tensor has the correct shape and type before
+        processing. The input should be a 2D tensor of shape (batch_size,
         num_samples).
 
     Todo:
@@ -135,9 +135,9 @@ class DefaultFrontend(AbsFrontend):
         """
         Return the output size of the frontend.
 
-        This method returns the number of Mel frequency bands that are 
-        produced by the frontend's log-mel layer. The output size is 
-        typically determined by the `n_mels` parameter set during 
+        This method returns the number of Mel frequency bands that are
+        produced by the frontend's log-mel layer. The output size is
+        typically determined by the `n_mels` parameter set during
         initialization.
 
         Returns:
@@ -149,8 +149,8 @@ class DefaultFrontend(AbsFrontend):
             40
 
         Note:
-            This method is particularly useful for determining the shape 
-            of the output tensor after feature extraction, especially 
+            This method is particularly useful for determining the shape
+            of the output tensor after feature extraction, especially
             in the context of downstream tasks such as ASR.
         """
         return self.n_mels
@@ -163,8 +163,8 @@ class DefaultFrontend(AbsFrontend):
 
         This method processes the input tensor through various stages of the
         frontend pipeline, which includes domain conversion via Short-Time
-        Fourier Transform (STFT), optional speech enhancement, channel 
-        selection for multi-channel input, and transformation to Log-Mel 
+        Fourier Transform (STFT), optional speech enhancement, channel
+        selection for multi-channel input, and transformation to Log-Mel
         features.
 
         Args:
@@ -177,12 +177,12 @@ class DefaultFrontend(AbsFrontend):
 
         Returns:
             Tuple[torch.Tensor, torch.Tensor]: A tuple containing:
-                - torch.Tensor: The extracted features of shape 
+                - torch.Tensor: The extracted features of shape
                   (Batch, Length, Dim), where Dim is the number of Mel bands.
                 - torch.Tensor: The lengths of the extracted features.
 
         Raises:
-            AssertionError: If the dimensions of the input STFT do not meet 
+            AssertionError: If the dimensions of the input STFT do not meet
             the expected requirements.
 
         Examples:
@@ -198,7 +198,7 @@ class DefaultFrontend(AbsFrontend):
             a complex tensor.
 
         Todo:
-            Consider adding support for more frontend processing options 
+            Consider adding support for more frontend processing options
             in future releases.
         """
         # 1. Domain-conversion: e.g. Stft: time -> time-freq

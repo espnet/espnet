@@ -39,15 +39,15 @@ class BaseTransformerDecoder(
     input handling, and forward propagation methods required for decoding.
 
     Attributes:
-        embed (torch.nn.Sequential): Input embedding layer, which can be an 
+        embed (torch.nn.Sequential): Input embedding layer, which can be an
             embedding layer followed by positional encoding or a linear layer.
-        after_norm (LayerNorm): Layer normalization applied before the first 
+        after_norm (LayerNorm): Layer normalization applied before the first
             decoder block if `normalize_before` is set to True.
-        output_layer (torch.nn.Linear): Output layer that maps decoder outputs 
+        output_layer (torch.nn.Linear): Output layer that maps decoder outputs
             to the vocabulary size, if `use_output_layer` is True.
-        _output_size_bf_softmax (int): Dimension of the output before applying 
+        _output_size_bf_softmax (int): Dimension of the output before applying
             softmax, set to the attention dimension.
-        decoders (List[DecoderLayer]): List of decoder layers (to be set by 
+        decoders (List[DecoderLayer]): List of decoder layers (to be set by
             inheritance).
         batch_ids (torch.Tensor): Tensor containing batch IDs for processing.
 
@@ -55,13 +55,13 @@ class BaseTransformerDecoder(
         vocab_size (int): The size of the output vocabulary.
         encoder_output_size (int): The dimension of the encoder's output.
         dropout_rate (float, optional): Dropout rate for regularization. Default is 0.1.
-        positional_dropout_rate (float, optional): Dropout rate for positional encoding. 
+        positional_dropout_rate (float, optional): Dropout rate for positional encoding.
             Default is 0.1.
         input_layer (str, optional): Type of input layer ('embed' or 'linear'). Default is 'embed'.
         use_output_layer (bool, optional): Whether to use an output layer. Default is True.
-        pos_enc_class (Type[PositionalEncoding], optional): Class for positional encoding. 
+        pos_enc_class (Type[PositionalEncoding], optional): Class for positional encoding.
             Default is PositionalEncoding.
-        normalize_before (bool, optional): Whether to apply layer normalization before the 
+        normalize_before (bool, optional): Whether to apply layer normalization before the
             first decoder block. Default is True.
 
     Examples:
@@ -85,7 +85,7 @@ class BaseTransformerDecoder(
         ValueError: If `input_layer` is not 'embed' or 'linear'.
 
     Note:
-        This class should be inherited by specific transformer decoder 
+        This class should be inherited by specific transformer decoder
         implementations to provide concrete decoder layer configurations.
     """
 
@@ -153,12 +153,12 @@ class BaseTransformerDecoder(
             hs_pad (torch.Tensor): Encoded memory with shape (batch, maxlen_in, feat).
             hlens (torch.Tensor): Lengths of the encoded sequences with shape (batch).
             ys_in_pad (torch.Tensor): Input token IDs with shape (batch, maxlen_out).
-                If `input_layer` is "embed", it represents token IDs; otherwise, 
+                If `input_layer` is "embed", it represents token IDs; otherwise,
                 it should be a tensor of shape (batch, maxlen_out, #mels).
             ys_in_lens (torch.Tensor): Lengths of the input sequences with shape (batch).
             return_hs (bool, optional): Whether to return the last hidden output
                 before the output layer. Defaults to False.
-            return_all_hs (bool, optional): Whether to return all hidden 
+            return_all_hs (bool, optional): Whether to return all hidden
                 intermediate states. Defaults to False.
 
         Returns:
@@ -175,11 +175,11 @@ class BaseTransformerDecoder(
             >>> output_scores, output_lengths = decoder.forward(hs_pad, hlens, ys_in_pad, ys_in_lens)
 
         Note:
-            Ensure that the input tensors are appropriately padded and have the 
+            Ensure that the input tensors are appropriately padded and have the
             correct dimensions as described in the arguments.
 
         Raises:
-            ValueError: If the shapes of input tensors do not match the expected 
+            ValueError: If the shapes of input tensors do not match the expected
             dimensions or if any input is malformed.
         """
         tgt = ys_in_pad
@@ -276,29 +276,29 @@ class BaseTransformerDecoder(
         """
         Compute the score for a given input sequence.
 
-        This method performs a single step of scoring for the input 
-        sequence `ys` based on the provided state and encoder output `x`. 
+        This method performs a single step of scoring for the input
+        sequence `ys` based on the provided state and encoder output `x`.
         It can optionally return the hidden state if requested.
 
         Args:
-            ys (torch.Tensor): Input token ids, shape (maxlen_out), 
+            ys (torch.Tensor): Input token ids, shape (maxlen_out),
                 of type int64.
-            state (List[torch.Tensor]): Cached states for the decoder 
+            state (List[torch.Tensor]): Cached states for the decoder
                 from previous steps.
-            x (torch.Tensor): Encoded memory, shape (1, maxlen_in, feat), 
+            x (torch.Tensor): Encoded memory, shape (1, maxlen_in, feat),
                 of type float32.
-            return_hs (bool, optional): If True, the hidden state 
-                corresponding to the input tokens will be returned. 
+            return_hs (bool, optional): If True, the hidden state
+                corresponding to the input tokens will be returned.
                 Defaults to False.
 
         Returns:
             Tuple[torch.Tensor, List[torch.Tensor]]:
-                - logp (torch.Tensor): Log probabilities of the next token, 
+                - logp (torch.Tensor): Log probabilities of the next token,
                   shape (vocab_size).
                 - state (List[torch.Tensor]): Updated state after scoring.
 
         Examples:
-            >>> decoder = TransformerDecoder(vocab_size=5000, 
+            >>> decoder = TransformerDecoder(vocab_size=5000,
             ... encoder_output_size=256)
             >>> ys = torch.tensor([1, 2, 3])  # Example token ids
             >>> state = [None]  # Initial state
@@ -306,8 +306,8 @@ class BaseTransformerDecoder(
             >>> logp, new_state = decoder.score(ys, state, x)
 
         Note:
-            This method is typically used in the decoding process to 
-            compute the next token's probability given the previous 
+            This method is typically used in the decoding process to
+            compute the next token's probability given the previous
             tokens and the encoder output.
         """
         ys_mask = subsequent_mask(len(ys), device=x.device).unsqueeze(0)
@@ -340,25 +340,25 @@ class BaseTransformerDecoder(
         """
         Score new token batch.
 
-        This method computes the scores for the next token based on the input 
-        tokens, the current states, and the encoder features. It can return 
+        This method computes the scores for the next token based on the input
+        tokens, the current states, and the encoder features. It can return
         hidden states if requested.
 
         Args:
-            ys (torch.Tensor): A tensor of shape (n_batch, ylen) containing 
+            ys (torch.Tensor): A tensor of shape (n_batch, ylen) containing
                 the prefix tokens in int64 format.
-            states (List[Any]): A list of states for the prefix tokens, where 
+            states (List[Any]): A list of states for the prefix tokens, where
                 each state corresponds to the current state of the decoder.
-            xs (torch.Tensor): A tensor of shape (n_batch, xlen, n_feat) 
-                representing the encoder features that generated the prefix 
+            xs (torch.Tensor): A tensor of shape (n_batch, xlen, n_feat)
+                representing the encoder features that generated the prefix
                 tokens.
 
-            return_hs (bool, optional): If True, the method will return the 
+            return_hs (bool, optional): If True, the method will return the
                 hidden states along with the scores. Defaults to False.
 
         Returns:
             Tuple[torch.Tensor, List[Any]]: A tuple containing:
-                - A tensor of shape (n_batch, n_vocab) representing the 
+                - A tensor of shape (n_batch, n_vocab) representing the
                   scores for the next token.
                 - A list of next state lists for the prefix tokens.
 
@@ -371,11 +371,11 @@ class BaseTransformerDecoder(
             >>> print(scores.shape)  # Should print: torch.Size([2, 100])
 
         Note:
-            Ensure that the input tensors are properly shaped and that the 
+            Ensure that the input tensors are properly shaped and that the
             states list matches the expected format for the decoder.
 
         Raises:
-            ValueError: If the dimensions of the input tensors do not match 
+            ValueError: If the dimensions of the input tensors do not match
             the expected shapes.
         """
         # merge states
@@ -423,28 +423,28 @@ class BaseTransformerDecoder(
         efficient decoding during beam search or similar scenarios.
 
         Args:
-            tgt: Input token ids, int64 of shape 
+            tgt: Input token ids, int64 of shape
                 (n_mask * n_beam, maxlen_out).
-            tgt_mask: Input token mask of shape 
+            tgt_mask: Input token mask of shape
                 (n_mask * n_beam, maxlen_out).
                 The data type should be torch.uint8 for PyTorch versions < 1.2
                 and torch.bool for PyTorch versions >= 1.2.
             tgt_lengths: Lengths of the input sequences, shape (n_mask * n_beam,).
-            memory: Encoded memory from the encoder, float32 of shape 
+            memory: Encoded memory from the encoder, float32 of shape
                 (batch, maxlen_in, feat).
-            cache: Cached output list for each decoder layer, which can be 
-                used to store previous hidden states and facilitate efficient 
+            cache: Cached output list for each decoder layer, which can be
+                used to store previous hidden states and facilitate efficient
                 decoding.
 
         Returns:
             Tuple[torch.Tensor, List[torch.Tensor]]:
-                - y: Output token scores, float32 of shape 
+                - y: Output token scores, float32 of shape
                   (n_mask * n_beam, maxlen_out, vocab_size).
-                - cache: Updated cache containing hidden states for each 
+                - cache: Updated cache containing hidden states for each
                   decoder layer.
 
         Examples:
-            >>> decoder = TransformerDecoder(vocab_size=1000, 
+            >>> decoder = TransformerDecoder(vocab_size=1000,
             ... encoder_output_size=512)
             >>> tgt = torch.randint(0, 1000, (2, 10))  # 2 sequences of length 10
             >>> tgt_mask = torch.ones((2, 10), dtype=torch.bool)
@@ -456,7 +456,7 @@ class BaseTransformerDecoder(
 
         Note:
             This method is particularly useful in scenarios where decoding
-            needs to be efficient, such as during beam search or when 
+            needs to be efficient, such as during beam search or when
             generating sequences with partial context.
         """
         x = self.embed(tgt)  # (n_mask * n_beam, maxlen_out, D)
@@ -498,27 +498,27 @@ class BaseTransformerDecoder(
         Score a batch of new tokens in a partially autoregressive manner.
 
         This method evaluates a batch of token sequences and returns their scores
-        along with the updated states. It is specifically designed for use in 
-        scenarios where the sequences are generated in a partially autoregressive 
+        along with the updated states. It is specifically designed for use in
+        scenarios where the sequences are generated in a partially autoregressive
         manner.
 
         Args:
-            ys (torch.Tensor): Tensor of shape (n_mask * n_beam, ylen) containing 
-                the token sequences for which scores are to be computed. Each 
+            ys (torch.Tensor): Tensor of shape (n_mask * n_beam, ylen) containing
+                the token sequences for which scores are to be computed. Each
                 element is an integer representing a token ID.
-            states (List[Any]): A list of states for the scorer, where each state 
+            states (List[Any]): A list of states for the scorer, where each state
                 corresponds to a prefix of tokens in `ys`.
-            xs (torch.Tensor): Tensor of shape (n_batch, xlen, n_feat) representing 
-                the encoder features that are used to generate the scores for 
+            xs (torch.Tensor): Tensor of shape (n_batch, xlen, n_feat) representing
+                the encoder features that are used to generate the scores for
                 the sequences in `ys`.
-            yseq_lengths (torch.Tensor): Tensor of shape (n_mask * n_beam,) 
-                containing the lengths of the sequences in `ys`, used to create 
+            yseq_lengths (torch.Tensor): Tensor of shape (n_mask * n_beam,)
+                containing the lengths of the sequences in `ys`, used to create
                 the appropriate attention masks.
 
         Returns:
-            Tuple[torch.Tensor, List[Any]]: A tuple where the first element is 
-            a tensor of shape (n_mask * n_beam, n_vocab) containing the 
-            scores for the next token in the sequence, and the second element 
+            Tuple[torch.Tensor, List[Any]]: A tuple where the first element is
+            a tensor of shape (n_mask * n_beam, n_vocab) containing the
+            scores for the next token in the sequence, and the second element
             is a list of updated states for each sequence in `ys`.
 
         Examples:
@@ -526,12 +526,12 @@ class BaseTransformerDecoder(
             >>> states = [None, None]
             >>> xs = torch.randn(2, 10, 256)  # Example encoder features
             >>> yseq_lengths = torch.tensor([3, 3])
-            >>> scores, updated_states = batch_score_partially_AR(ys, states, xs, 
+            >>> scores, updated_states = batch_score_partially_AR(ys, states, xs,
             ...                                                  yseq_lengths)
 
         Note:
-            This method requires that the lengths in `yseq_lengths` are consistent 
-            with the sequences in `ys`. It also assumes that the appropriate 
+            This method requires that the lengths in `yseq_lengths` are consistent
+            with the sequences in `ys`. It also assumes that the appropriate
             padding has been applied to `ys` and `xs`.
         """
         # merge states
@@ -561,49 +561,49 @@ class TransformerDecoder(BaseTransformerDecoder):
     """
     Transformer Decoder for sequence-to-sequence tasks.
 
-    This class implements a Transformer decoder architecture, which is 
-    designed to work in conjunction with a Transformer encoder. The decoder 
-    generates sequences based on the encoded representations from the 
-    encoder, using mechanisms such as multi-head attention and feed-forward 
+    This class implements a Transformer decoder architecture, which is
+    designed to work in conjunction with a Transformer encoder. The decoder
+    generates sequences based on the encoded representations from the
+    encoder, using mechanisms such as multi-head attention and feed-forward
     networks.
 
     Args:
-        vocab_size (int): The size of the vocabulary, representing the number 
+        vocab_size (int): The size of the vocabulary, representing the number
             of unique tokens in the output.
-        encoder_output_size (int): The dimension of the output from the 
+        encoder_output_size (int): The dimension of the output from the
             encoder, which the decoder will attend to.
-        attention_heads (int, optional): The number of attention heads to use 
+        attention_heads (int, optional): The number of attention heads to use
             in the multi-head attention mechanism. Default is 4.
-        linear_units (int, optional): The number of units in the position-wise 
+        linear_units (int, optional): The number of units in the position-wise
             feed-forward layer. Default is 2048.
-        num_blocks (int, optional): The number of decoder blocks (layers) to 
+        num_blocks (int, optional): The number of decoder blocks (layers) to
             stack. Default is 6.
-        dropout_rate (float, optional): The dropout rate for regularization. 
+        dropout_rate (float, optional): The dropout rate for regularization.
             Default is 0.1.
-        positional_dropout_rate (float, optional): The dropout rate for 
+        positional_dropout_rate (float, optional): The dropout rate for
             positional encoding. Default is 0.1.
-        self_attention_dropout_rate (float, optional): The dropout rate 
+        self_attention_dropout_rate (float, optional): The dropout rate
             applied to the self-attention mechanism. Default is 0.0.
-        src_attention_dropout_rate (float, optional): The dropout rate applied 
+        src_attention_dropout_rate (float, optional): The dropout rate applied
             to the source attention mechanism. Default is 0.0.
-        input_layer (str, optional): The type of input layer to use; either 
-            'embed' for embedding layer or 'linear' for a linear layer. 
+        input_layer (str, optional): The type of input layer to use; either
+            'embed' for embedding layer or 'linear' for a linear layer.
             Default is 'embed'.
-        use_output_layer (bool, optional): Whether to use an output layer 
+        use_output_layer (bool, optional): Whether to use an output layer
             for final token scoring. Default is True.
-        pos_enc_class (type, optional): The class to use for positional 
-            encoding, e.g., PositionalEncoding or ScaledPositionalEncoding. 
+        pos_enc_class (type, optional): The class to use for positional
+            encoding, e.g., PositionalEncoding or ScaledPositionalEncoding.
             Default is PositionalEncoding.
-        normalize_before (bool, optional): Whether to apply layer normalization 
+        normalize_before (bool, optional): Whether to apply layer normalization
             before the first decoder block. Default is True.
-        concat_after (bool, optional): Whether to concatenate the input and 
-            output of the attention layer before applying an additional 
+        concat_after (bool, optional): Whether to concatenate the input and
+            output of the attention layer before applying an additional
             linear layer. Default is False.
-        layer_drop_rate (float, optional): The dropout rate for layer 
+        layer_drop_rate (float, optional): The dropout rate for layer
             dropping. Default is 0.0.
-        qk_norm (bool, optional): Whether to apply normalization to the 
+        qk_norm (bool, optional): Whether to apply normalization to the
             query-key dot product in attention. Default is False.
-        use_flash_attn (bool, optional): Whether to use flash attention for 
+        use_flash_attn (bool, optional): Whether to use flash attention for
             improved performance. Default is True.
 
     Examples:
@@ -621,14 +621,15 @@ class TransformerDecoder(BaseTransformerDecoder):
         >>> output, olens = decoder(hs_pad, hlens, ys_in_pad, ys_in_lens)
 
     Note:
-        The decoder expects the encoder's output to be passed in as 
+        The decoder expects the encoder's output to be passed in as
         `hs_pad`, along with the lengths of those sequences in `hlens`.
-        The `ys_in_pad` contains the input tokens for the decoder, and 
+        The `ys_in_pad` contains the input tokens for the decoder, and
         `ys_in_lens` provides the lengths of those input sequences.
 
     Raises:
         ValueError: If the `input_layer` argument is not 'embed' or 'linear'.
     """
+
     @typechecked
     def __init__(
         self,
@@ -708,77 +709,77 @@ class LightweightConvolutionTransformerDecoder(BaseTransformerDecoder):
     """
     Lightweight Convolution Transformer Decoder.
 
-    This class implements a transformer decoder that utilizes lightweight 
-    convolution layers in its architecture. It is designed for tasks 
-    such as automatic speech recognition (ASR) and can be used as a 
+    This class implements a transformer decoder that utilizes lightweight
+    convolution layers in its architecture. It is designed for tasks
+    such as automatic speech recognition (ASR) and can be used as a
     part of larger neural network models.
 
     Attributes:
         vocab_size (int): The size of the vocabulary.
         encoder_output_size (int): The output dimension of the encoder.
-        attention_heads (int): The number of attention heads for multi-head 
+        attention_heads (int): The number of attention heads for multi-head
             attention.
-        linear_units (int): The number of units in the position-wise feed 
+        linear_units (int): The number of units in the position-wise feed
             forward layer.
         num_blocks (int): The number of decoder blocks in the architecture.
         dropout_rate (float): The dropout rate to apply to layers.
-        positional_dropout_rate (float): The dropout rate for positional 
+        positional_dropout_rate (float): The dropout rate for positional
             encodings.
-        self_attention_dropout_rate (float): The dropout rate for self 
+        self_attention_dropout_rate (float): The dropout rate for self
             attention.
-        src_attention_dropout_rate (float): The dropout rate for source 
+        src_attention_dropout_rate (float): The dropout rate for source
             attention.
-        input_layer (str): The type of input layer to use ('embed' or 
+        input_layer (str): The type of input layer to use ('embed' or
             'linear').
-        use_output_layer (bool): Flag indicating whether to use an output 
+        use_output_layer (bool): Flag indicating whether to use an output
             layer.
         pos_enc_class: The class used for positional encoding.
-        normalize_before (bool): Whether to apply layer normalization before 
+        normalize_before (bool): Whether to apply layer normalization before
             the first block.
-        concat_after (bool): Whether to concatenate the input and output of 
+        concat_after (bool): Whether to concatenate the input and output of
             the attention layer.
-        conv_wshare (int): The number of shared weights for convolutional 
+        conv_wshare (int): The number of shared weights for convolutional
             layers.
-        conv_kernel_length (Sequence[int]): A sequence specifying the kernel 
+        conv_kernel_length (Sequence[int]): A sequence specifying the kernel
             length for each convolutional layer.
         conv_usebias (bool): Whether to use bias in convolutional layers.
 
     Args:
         vocab_size (int): The size of the vocabulary.
         encoder_output_size (int): The output dimension of the encoder.
-        attention_heads (int, optional): The number of attention heads. 
+        attention_heads (int, optional): The number of attention heads.
             Defaults to 4.
-        linear_units (int, optional): The number of units in the 
+        linear_units (int, optional): The number of units in the
             position-wise feed forward layer. Defaults to 2048.
-        num_blocks (int, optional): The number of decoder blocks. 
+        num_blocks (int, optional): The number of decoder blocks.
             Defaults to 6.
         dropout_rate (float, optional): The dropout rate. Defaults to 0.1.
-        positional_dropout_rate (float, optional): The dropout rate for 
+        positional_dropout_rate (float, optional): The dropout rate for
             positional encodings. Defaults to 0.1.
-        self_attention_dropout_rate (float, optional): The dropout rate 
+        self_attention_dropout_rate (float, optional): The dropout rate
             for self-attention. Defaults to 0.0.
-        src_attention_dropout_rate (float, optional): The dropout rate for 
+        src_attention_dropout_rate (float, optional): The dropout rate for
             source attention. Defaults to 0.0.
-        input_layer (str, optional): The type of input layer ('embed' or 
+        input_layer (str, optional): The type of input layer ('embed' or
             'linear'). Defaults to 'embed'.
-        use_output_layer (bool, optional): Flag indicating whether to use an 
+        use_output_layer (bool, optional): Flag indicating whether to use an
             output layer. Defaults to True.
-        pos_enc_class: The class used for positional encoding. Defaults to 
+        pos_enc_class: The class used for positional encoding. Defaults to
             PositionalEncoding.
-        normalize_before (bool, optional): Whether to apply layer normalization 
+        normalize_before (bool, optional): Whether to apply layer normalization
             before the first block. Defaults to True.
-        concat_after (bool, optional): Whether to concatenate the input and 
+        concat_after (bool, optional): Whether to concatenate the input and
             output of the attention layer. Defaults to False.
-        conv_wshare (int, optional): The number of shared weights for 
+        conv_wshare (int, optional): The number of shared weights for
             convolutional layers. Defaults to 4.
-        conv_kernel_length (Sequence[int], optional): A sequence specifying 
-            the kernel length for each convolutional layer. Defaults to 
+        conv_kernel_length (Sequence[int], optional): A sequence specifying
+            the kernel length for each convolutional layer. Defaults to
             (11, 11, 11, 11, 11, 11).
-        conv_usebias (bool, optional): Whether to use bias in convolutional 
+        conv_usebias (bool, optional): Whether to use bias in convolutional
             layers. Defaults to False.
 
     Raises:
-        ValueError: If the length of `conv_kernel_length` does not match 
+        ValueError: If the length of `conv_kernel_length` does not match
             `num_blocks`.
 
     Examples:
@@ -790,12 +791,13 @@ class LightweightConvolutionTransformerDecoder(BaseTransformerDecoder):
         ... )
         >>> input_tensor = torch.randint(0, 5000, (32, 10))  # (batch, seq_len)
         >>> output, olens = decoder.forward(input_tensor, hlens=None, ys_in_pad=input_tensor, ys_in_lens=None)
-    
+
     Note:
-        This implementation is suitable for both training and inference 
-        scenarios. The `forward` method is used to process the input data 
+        This implementation is suitable for both training and inference
+        scenarios. The `forward` method is used to process the input data
         through the decoder layers.
     """
+
     @typechecked
     def __init__(
         self,
@@ -861,33 +863,33 @@ class LightweightConvolution2DTransformerDecoder(BaseTransformerDecoder):
     """
     Lightweight Convolution 2D Transformer Decoder.
 
-    This class implements a transformer decoder that utilizes lightweight 
-    2D convolutions in its architecture. It inherits from the 
-    BaseTransformerDecoder class and is designed to facilitate 
+    This class implements a transformer decoder that utilizes lightweight
+    2D convolutions in its architecture. It inherits from the
+    BaseTransformerDecoder class and is designed to facilitate
     sequence-to-sequence tasks, such as automatic speech recognition.
 
     Attributes:
         vocab_size (int): Size of the vocabulary.
         encoder_output_size (int): Dimension of the encoder's output.
-        attention_heads (int): Number of attention heads in multi-head 
+        attention_heads (int): Number of attention heads in multi-head
             attention.
-        linear_units (int): Number of units in position-wise feed forward 
+        linear_units (int): Number of units in position-wise feed forward
             networks.
         num_blocks (int): Number of decoder blocks.
         dropout_rate (float): Dropout rate applied in various layers.
         positional_dropout_rate (float): Dropout rate for positional encoding.
         self_attention_dropout_rate (float): Dropout rate for self-attention.
-        src_attention_dropout_rate (float): Dropout rate for source 
+        src_attention_dropout_rate (float): Dropout rate for source
             attention.
         input_layer (str): Type of input layer ('embed' or 'linear').
         use_output_layer (bool): Flag to indicate if output layer is used.
         pos_enc_class: Class used for positional encoding.
-        normalize_before (bool): Flag to indicate if normalization is applied 
+        normalize_before (bool): Flag to indicate if normalization is applied
             before the first block.
-        concat_after (bool): Flag to indicate if concatenation is applied 
+        concat_after (bool): Flag to indicate if concatenation is applied
             after attention.
         conv_wshare (int): Number of shared weights for convolution.
-        conv_kernel_length (Sequence[int]): Lengths of convolution kernels 
+        conv_kernel_length (Sequence[int]): Lengths of convolution kernels
             for each block.
         conv_usebias (bool): Flag to indicate if bias is used in convolutions.
 
@@ -895,35 +897,35 @@ class LightweightConvolution2DTransformerDecoder(BaseTransformerDecoder):
         vocab_size (int): Size of the vocabulary.
         encoder_output_size (int): Dimension of the encoder's output.
         attention_heads (int, optional): Number of attention heads. Default is 4.
-        linear_units (int, optional): Number of units in position-wise feed 
+        linear_units (int, optional): Number of units in position-wise feed
             forward networks. Default is 2048.
         num_blocks (int, optional): Number of decoder blocks. Default is 6.
         dropout_rate (float, optional): Dropout rate. Default is 0.1.
-        positional_dropout_rate (float, optional): Dropout rate for 
+        positional_dropout_rate (float, optional): Dropout rate for
             positional encoding. Default is 0.1.
-        self_attention_dropout_rate (float, optional): Dropout rate for 
+        self_attention_dropout_rate (float, optional): Dropout rate for
             self-attention. Default is 0.0.
-        src_attention_dropout_rate (float, optional): Dropout rate for 
+        src_attention_dropout_rate (float, optional): Dropout rate for
             source attention. Default is 0.0.
         input_layer (str, optional): Type of input layer ('embed' or 'linear').
             Default is 'embed'.
-        use_output_layer (bool, optional): Flag to indicate if output layer 
+        use_output_layer (bool, optional): Flag to indicate if output layer
             is used. Default is True.
-        pos_enc_class: Class used for positional encoding. Default is 
+        pos_enc_class: Class used for positional encoding. Default is
             PositionalEncoding.
-        normalize_before (bool, optional): Flag to indicate if normalization 
+        normalize_before (bool, optional): Flag to indicate if normalization
             is applied before the first block. Default is True.
-        concat_after (bool, optional): Flag to indicate if concatenation is 
+        concat_after (bool, optional): Flag to indicate if concatenation is
             applied after attention. Default is False.
-        conv_wshare (int, optional): Number of shared weights for convolution. 
+        conv_wshare (int, optional): Number of shared weights for convolution.
             Default is 4.
-        conv_kernel_length (Sequence[int], optional): Lengths of convolution 
+        conv_kernel_length (Sequence[int], optional): Lengths of convolution
             kernels for each block. Default is (11, 11, 11, 11, 11, 11).
-        conv_usebias (bool, optional): Flag to indicate if bias is used in 
+        conv_usebias (bool, optional): Flag to indicate if bias is used in
             convolutions. Default is False.
 
     Raises:
-        ValueError: If the length of conv_kernel_length does not match 
+        ValueError: If the length of conv_kernel_length does not match
             num_blocks.
 
     Examples:
@@ -939,6 +941,7 @@ class LightweightConvolution2DTransformerDecoder(BaseTransformerDecoder):
         >>> ys_in_lens = torch.tensor([20] * 32)  # Lengths of the output
         >>> output, olens = decoder(hs_pad, hlens, ys_in_pad, ys_in_lens)
     """
+
     @typechecked
     def __init__(
         self,
@@ -1006,15 +1009,15 @@ class DynamicConvolutionTransformerDecoder(BaseTransformerDecoder):
 
     This class implements a dynamic convolution mechanism in the Transformer
     decoder architecture, allowing for adaptive convolutional operations
-    within the decoder layers. It is designed to facilitate improved 
+    within the decoder layers. It is designed to facilitate improved
     performance in tasks such as automatic speech recognition (ASR).
 
     Attributes:
         vocab_size (int): Size of the vocabulary for output tokens.
         encoder_output_size (int): Size of the encoder's output features.
-        attention_heads (int): Number of attention heads for multi-head 
+        attention_heads (int): Number of attention heads for multi-head
             attention.
-        linear_units (int): Number of units in the position-wise feed 
+        linear_units (int): Number of units in the position-wise feed
             forward layer.
         num_blocks (int): Number of decoder blocks to stack.
         dropout_rate (float): Dropout rate for regularization.
@@ -1025,50 +1028,50 @@ class DynamicConvolutionTransformerDecoder(BaseTransformerDecoder):
         use_output_layer (bool): Flag to determine if an output layer is used.
         pos_enc_class: Class for positional encoding.
         normalize_before (bool): Flag for normalization before the first block.
-        concat_after (bool): Flag for concatenation of attention inputs and 
+        concat_after (bool): Flag for concatenation of attention inputs and
             outputs.
         conv_wshare (int): Number of shared weights for dynamic convolution.
-        conv_kernel_length (Sequence[int]): Length of the convolution kernels 
+        conv_kernel_length (Sequence[int]): Length of the convolution kernels
             for each block.
         conv_usebias (bool): Flag to use bias in convolution operations.
 
     Args:
         vocab_size (int): Size of the vocabulary for output tokens.
         encoder_output_size (int): Size of the encoder's output features.
-        attention_heads (int, optional): Number of attention heads for 
+        attention_heads (int, optional): Number of attention heads for
             multi-head attention. Defaults to 4.
-        linear_units (int, optional): Number of units in the position-wise 
+        linear_units (int, optional): Number of units in the position-wise
             feed forward layer. Defaults to 2048.
-        num_blocks (int, optional): Number of decoder blocks to stack. 
+        num_blocks (int, optional): Number of decoder blocks to stack.
             Defaults to 6.
-        dropout_rate (float, optional): Dropout rate for regularization. 
+        dropout_rate (float, optional): Dropout rate for regularization.
             Defaults to 0.1.
-        positional_dropout_rate (float, optional): Dropout rate for positional 
+        positional_dropout_rate (float, optional): Dropout rate for positional
             encoding. Defaults to 0.1.
-        self_attention_dropout_rate (float, optional): Dropout rate for 
+        self_attention_dropout_rate (float, optional): Dropout rate for
             self-attention. Defaults to 0.0.
-        src_attention_dropout_rate (float, optional): Dropout rate for 
+        src_attention_dropout_rate (float, optional): Dropout rate for
             source attention. Defaults to 0.0.
-        input_layer (str, optional): Type of input layer ('embed' or 
+        input_layer (str, optional): Type of input layer ('embed' or
             'linear'). Defaults to 'embed'.
-        use_output_layer (bool, optional): Flag to determine if an output 
+        use_output_layer (bool, optional): Flag to determine if an output
             layer is used. Defaults to True.
-        pos_enc_class: Class for positional encoding. Defaults to 
+        pos_enc_class: Class for positional encoding. Defaults to
             PositionalEncoding.
-        normalize_before (bool, optional): Flag for normalization before the 
+        normalize_before (bool, optional): Flag for normalization before the
             first block. Defaults to True.
-        concat_after (bool, optional): Flag for concatenation of attention 
+        concat_after (bool, optional): Flag for concatenation of attention
             inputs and outputs. Defaults to False.
-        conv_wshare (int, optional): Number of shared weights for dynamic 
+        conv_wshare (int, optional): Number of shared weights for dynamic
             convolution. Defaults to 4.
-        conv_kernel_length (Sequence[int], optional): Length of the 
-            convolution kernels for each block. Defaults to (11, 11, 11, 
+        conv_kernel_length (Sequence[int], optional): Length of the
+            convolution kernels for each block. Defaults to (11, 11, 11,
             11, 11, 11).
-        conv_usebias (bool, optional): Flag to use bias in convolution 
+        conv_usebias (bool, optional): Flag to use bias in convolution
             operations. Defaults to False.
 
     Raises:
-        ValueError: If `conv_kernel_length` does not match the number of 
+        ValueError: If `conv_kernel_length` does not match the number of
             blocks.
 
     Examples:
@@ -1085,14 +1088,15 @@ class DynamicConvolutionTransformerDecoder(BaseTransformerDecoder):
         >>> output, olens = decoder(hs_pad, hlens, ys_in_pad, ys_in_lens)
 
     Note:
-        The dynamic convolution allows for varying kernel sizes and shared 
-        weights across different decoder layers, enhancing model flexibility 
+        The dynamic convolution allows for varying kernel sizes and shared
+        weights across different decoder layers, enhancing model flexibility
         and capacity.
 
     Todo:
         - Implement additional features for attention mechanisms.
         - Explore integration with other types of layers and modules.
     """
+
     @typechecked
     def __init__(
         self,
@@ -1168,7 +1172,7 @@ class DynamicConvolution2DTransformerDecoder(BaseTransformerDecoder):
         encoder_output_size (int): The output dimension from the encoder.
         attention_heads (int, optional): The number of attention heads.
             Defaults to 4.
-        linear_units (int, optional): The number of units in the 
+        linear_units (int, optional): The number of units in the
             position-wise feed-forward layer. Defaults to 2048.
         num_blocks (int, optional): The number of decoder blocks.
             Defaults to 6.
@@ -1179,7 +1183,7 @@ class DynamicConvolution2DTransformerDecoder(BaseTransformerDecoder):
             for self-attention. Defaults to 0.0.
         src_attention_dropout_rate (float, optional): The dropout rate
             for source attention. Defaults to 0.0.
-        input_layer (str, optional): Type of input layer, either 'embed' 
+        input_layer (str, optional): Type of input layer, either 'embed'
             or 'linear'. Defaults to 'embed'.
         use_output_layer (bool, optional): Whether to use an output layer.
             Defaults to True.
@@ -1187,18 +1191,18 @@ class DynamicConvolution2DTransformerDecoder(BaseTransformerDecoder):
             PositionalEncoding.
         normalize_before (bool, optional): Whether to apply layer normalization
             before the first block. Defaults to True.
-        concat_after (bool, optional): Whether to concatenate the input and 
+        concat_after (bool, optional): Whether to concatenate the input and
             output of the attention layer. Defaults to False.
-        conv_wshare (int, optional): The number of shared weights for 
+        conv_wshare (int, optional): The number of shared weights for
             convolution. Defaults to 4.
-        conv_kernel_length (Sequence[int], optional): The lengths of the 
-            convolution kernels for each block. Defaults to (11, 11, 11, 
+        conv_kernel_length (Sequence[int], optional): The lengths of the
+            convolution kernels for each block. Defaults to (11, 11, 11,
             11, 11, 11).
-        conv_usebias (bool, optional): Whether to use bias in the 
+        conv_usebias (bool, optional): Whether to use bias in the
             convolution layers. Defaults to False.
 
     Raises:
-        ValueError: If the length of `conv_kernel_length` does not match 
+        ValueError: If the length of `conv_kernel_length` does not match
         `num_blocks`.
 
     Examples:
@@ -1218,6 +1222,7 @@ class DynamicConvolution2DTransformerDecoder(BaseTransformerDecoder):
         This decoder is designed to work with the corresponding encoder
         that provides the necessary context through the `hs_pad` input.
     """
+
     @typechecked
     def __init__(
         self,
@@ -1283,53 +1288,53 @@ class TransformerMDDecoder(BaseTransformerDecoder):
     """
     Transformer decoder with multi-dimensional attention.
 
-    This class implements a Transformer decoder that integrates 
-    multi-dimensional attention capabilities. It extends the 
-    BaseTransformerDecoder class and allows the incorporation 
-    of speech attention, enabling enhanced performance in 
+    This class implements a Transformer decoder that integrates
+    multi-dimensional attention capabilities. It extends the
+    BaseTransformerDecoder class and allows the incorporation
+    of speech attention, enabling enhanced performance in
     speech-related tasks.
 
     Attributes:
-        use_speech_attn (bool): Flag indicating whether to use 
+        use_speech_attn (bool): Flag indicating whether to use
             speech attention in the decoding process.
 
     Args:
         vocab_size (int): Size of the vocabulary for output tokens.
-        encoder_output_size (int): Dimensionality of the encoder's 
+        encoder_output_size (int): Dimensionality of the encoder's
             output.
-        attention_heads (int): Number of attention heads for multi-head 
+        attention_heads (int): Number of attention heads for multi-head
             attention (default: 4).
-        linear_units (int): Number of units in the position-wise feed 
+        linear_units (int): Number of units in the position-wise feed
             forward layer (default: 2048).
         num_blocks (int): Number of decoder blocks (default: 6).
-        dropout_rate (float): Dropout rate applied to the layers 
+        dropout_rate (float): Dropout rate applied to the layers
             (default: 0.1).
-        positional_dropout_rate (float): Dropout rate applied to 
+        positional_dropout_rate (float): Dropout rate applied to
             positional encoding (default: 0.1).
-        self_attention_dropout_rate (float): Dropout rate for self 
+        self_attention_dropout_rate (float): Dropout rate for self
             attention (default: 0.0).
-        src_attention_dropout_rate (float): Dropout rate for source 
+        src_attention_dropout_rate (float): Dropout rate for source
             attention (default: 0.0).
-        input_layer (str): Type of input layer; either "embed" or 
+        input_layer (str): Type of input layer; either "embed" or
             "linear" (default: "embed").
-        use_output_layer (bool): Flag indicating whether to use an 
+        use_output_layer (bool): Flag indicating whether to use an
             output layer (default: True).
-        pos_enc_class: Class for positional encoding (default: 
+        pos_enc_class: Class for positional encoding (default:
             PositionalEncoding).
-        normalize_before (bool): Flag indicating whether to apply 
+        normalize_before (bool): Flag indicating whether to apply
             layer normalization before the first block (default: True).
-        concat_after (bool): Flag indicating whether to concatenate 
+        concat_after (bool): Flag indicating whether to concatenate
             attention layer's input and output (default: False).
-        use_speech_attn (bool): Flag indicating whether to use speech 
+        use_speech_attn (bool): Flag indicating whether to use speech
             attention (default: True).
 
     Returns:
-        Tuple[torch.Tensor, torch.Tensor]: Tuple containing the decoded 
-        token scores before softmax and the lengths of the output 
+        Tuple[torch.Tensor, torch.Tensor]: Tuple containing the decoded
+        token scores before softmax and the lengths of the output
         sequences.
 
     Examples:
-        >>> decoder = TransformerMDDecoder(vocab_size=1000, 
+        >>> decoder = TransformerMDDecoder(vocab_size=1000,
         ...                                  encoder_output_size=512)
         >>> hs_pad = torch.randn(32, 10, 512)  # (batch, maxlen_in, feat)
         >>> hlens = torch.tensor([10] * 32)  # (batch)
@@ -1338,14 +1343,15 @@ class TransformerMDDecoder(BaseTransformerDecoder):
         >>> output, olens = decoder(hs_pad, hlens, ys_in_pad, ys_in_lens)
 
     Note:
-        This decoder is particularly useful for tasks that involve 
-        processing both text and speech inputs, enabling better 
+        This decoder is particularly useful for tasks that involve
+        processing both text and speech inputs, enabling better
         context understanding and more accurate outputs.
 
     Raises:
-        ValueError: If the `input_layer` argument is not one of 
+        ValueError: If the `input_layer` argument is not one of
             "embed" or "linear".
     """
+
     @typechecked
     def __init__(
         self,
@@ -1416,32 +1422,32 @@ class TransformerMDDecoder(BaseTransformerDecoder):
         """
         Forward pass of the TransformerMDDecoder.
 
-        This method performs the forward pass of the TransformerMDDecoder, 
-        processing the encoded memory and input token sequences to produce 
+        This method performs the forward pass of the TransformerMDDecoder,
+        processing the encoded memory and input token sequences to produce
         decoded token scores. It can also utilize speech features if provided.
 
         Args:
             hs_pad (torch.Tensor): Encoded memory, shape (batch, maxlen_in, feat).
             hlens (torch.Tensor): Lengths of the encoder outputs, shape (batch).
             ys_in_pad (torch.Tensor): Input token IDs, shape (batch, maxlen_out).
-                If `input_layer` is "embed", otherwise, input tensor shape is 
+                If `input_layer` is "embed", otherwise, input tensor shape is
                 (batch, maxlen_out, #mels).
             ys_in_lens (torch.Tensor): Lengths of the input sequences, shape (batch).
-            speech (torch.Tensor, optional): Encoded speech features, 
+            speech (torch.Tensor, optional): Encoded speech features,
                 shape (batch, maxlen_in, feat). Defaults to None.
-            speech_lens (torch.Tensor, optional): Lengths of the speech 
+            speech_lens (torch.Tensor, optional): Lengths of the speech
                 sequences, shape (batch). Defaults to None.
-            return_hs (bool, optional): If True, return the last hidden 
+            return_hs (bool, optional): If True, return the last hidden
                 state corresponding to the output. Defaults to False.
 
         Returns:
             Tuple[torch.Tensor, torch.Tensor]: A tuple containing:
-                - x (torch.Tensor): Decoded token scores before softmax, 
-                  shape (batch, maxlen_out, vocab_size) if 
+                - x (torch.Tensor): Decoded token scores before softmax,
+                  shape (batch, maxlen_out, vocab_size) if
                   `use_output_layer` is True.
-                - olens (torch.Tensor): Lengths of the output sequences, 
+                - olens (torch.Tensor): Lengths of the output sequences,
                   shape (batch,).
-        
+
         Examples:
             >>> hs_pad = torch.randn(32, 50, 256)  # Example memory tensor
             >>> hlens = torch.randint(1, 51, (32,))
@@ -1451,7 +1457,7 @@ class TransformerMDDecoder(BaseTransformerDecoder):
             >>> output, output_lengths = decoder(hs_pad, hlens, ys_in_pad, ys_in_lens)
 
         Note:
-            If `speech` is provided, the decoder will leverage the speech 
+            If `speech` is provided, the decoder will leverage the speech
             attention mechanism for enhanced decoding performance.
         """
         tgt = ys_in_pad
@@ -1513,29 +1519,29 @@ class TransformerMDDecoder(BaseTransformerDecoder):
         Forward one step through the decoder.
 
         This method performs a single step of decoding, where the model
-        generates the next token based on the current input tokens, the 
-        encoded memory from the encoder, and optionally, speech features 
-        and their masks. The output is the predicted token and updated cache 
+        generates the next token based on the current input tokens, the
+        encoded memory from the encoder, and optionally, speech features
+        and their masks. The output is the predicted token and updated cache
         for future decoding steps.
 
         Args:
-            tgt: Input token IDs, of shape (batch, maxlen_out), 
+            tgt: Input token IDs, of shape (batch, maxlen_out),
                  where each entry is an integer representing a token.
             tgt_mask: Input token mask of shape (batch, maxlen_out).
-                      It can be of dtype torch.uint8 in PyTorch 1.2- 
+                      It can be of dtype torch.uint8 in PyTorch 1.2-
                       or dtype torch.bool in PyTorch 1.2+.
-            memory: Encoded memory from the encoder, of shape 
+            memory: Encoded memory from the encoder, of shape
                     (batch, maxlen_in, feat).
-            memory_mask: (Optional) Mask for the memory, of shape 
+            memory_mask: (Optional) Mask for the memory, of shape
                          (batch, 1, maxlen_in).
-            speech: (Optional) Encoded speech features, of shape 
+            speech: (Optional) Encoded speech features, of shape
                     (batch, maxlen_in, feat).
-            speech_mask: (Optional) Mask for the speech, of shape 
+            speech_mask: (Optional) Mask for the speech, of shape
                          (batch, 1, maxlen_in).
-            cache: (Optional) Cached output list from previous steps, 
+            cache: (Optional) Cached output list from previous steps,
                    of shape (batch, max_time_out-1, size).
-            return_hs: Whether to return the hidden state corresponding 
-                        to the input tokens, useful for debugging or 
+            return_hs: Whether to return the hidden state corresponding
+                        to the input tokens, useful for debugging or
                         further processing.
 
         Returns:
@@ -1543,17 +1549,17 @@ class TransformerMDDecoder(BaseTransformerDecoder):
                 - y: Output token scores, of shape (batch, maxlen_out, token).
                      This is the log probabilities of the next token.
                 - cache: Updated cache for future decoding steps.
-        
+
         Examples:
             >>> tgt = torch.tensor([[1, 2, 3], [4, 5, 6]])
             >>> tgt_mask = torch.tensor([[1, 1, 1], [1, 1, 0]])
             >>> memory = torch.rand(2, 10, 512)  # Random memory
             >>> output, new_cache = decoder.forward_one_step(tgt, tgt_mask, memory)
-        
+
         Note:
-            Ensure that the input tensor dimensions are compatible with 
-            the model's expectations. The `speech` and `speech_mask` 
-            parameters are optional and should only be provided if 
+            Ensure that the input tensor dimensions are compatible with
+            the model's expectations. The `speech` and `speech_mask`
+            parameters are optional and should only be provided if
             speech features are being used in the decoding process.
         """
         x = self.embed(tgt)
@@ -1596,23 +1602,23 @@ class TransformerMDDecoder(BaseTransformerDecoder):
         """
         Calculate the score for a given sequence and update the state.
 
-        This method computes the log probability of the next token in the 
-        sequence based on the provided input features and updates the 
+        This method computes the log probability of the next token in the
+        sequence based on the provided input features and updates the
         internal state of the decoder.
 
         Args:
             ys (torch.Tensor): The input token IDs of shape (n_tokens,).
             state (List[torch.Tensor]): The cached state of the decoder.
-            x (torch.Tensor): The encoder output features of shape 
+            x (torch.Tensor): The encoder output features of shape
                 (1, input_length, feature_dim).
-            speech (torch.Tensor, optional): The encoded speech features of 
+            speech (torch.Tensor, optional): The encoded speech features of
                 shape (1, input_length, feature_dim). Defaults to None.
 
         Returns:
             Tuple[torch.Tensor, List[torch.Tensor]]:
-                - logp (torch.Tensor): The log probability of the next token 
+                - logp (torch.Tensor): The log probability of the next token
                   of shape (vocab_size,).
-                - state (List[torch.Tensor]): The updated state of the 
+                - state (List[torch.Tensor]): The updated state of the
                   decoder.
 
         Examples:
@@ -1622,7 +1628,7 @@ class TransformerMDDecoder(BaseTransformerDecoder):
             >>> logp, updated_state = decoder.score(ys, state, x)
 
         Note:
-            The method can handle optional speech features if provided. 
+            The method can handle optional speech features if provided.
             This is useful for tasks that involve speech input.
         """
         ys_mask = subsequent_mask(len(ys), device=x.device).unsqueeze(0)
@@ -1646,19 +1652,19 @@ class TransformerMDDecoder(BaseTransformerDecoder):
         Score new token batch.
 
         Args:
-            ys (torch.Tensor): A tensor of shape (n_batch, ylen) containing 
+            ys (torch.Tensor): A tensor of shape (n_batch, ylen) containing
                 the prefix tokens as int64.
-            states (List[Any]): A list of scorer states corresponding to 
+            states (List[Any]): A list of scorer states corresponding to
                 the prefix tokens.
-            xs (torch.Tensor): A tensor of shape (n_batch, xlen, n_feat) 
+            xs (torch.Tensor): A tensor of shape (n_batch, xlen, n_feat)
                 representing the encoder features that generate `ys`.
-            speech (torch.Tensor, optional): A tensor of shape (n_batch, 
-                s_len, n_feat) representing the encoded speech features. 
+            speech (torch.Tensor, optional): A tensor of shape (n_batch,
+                s_len, n_feat) representing the encoded speech features.
                 Defaults to None.
 
         Returns:
             tuple[torch.Tensor, List[Any]]: A tuple containing:
-                - A tensor of shape (n_batch, n_vocab) representing the 
+                - A tensor of shape (n_batch, n_vocab) representing the
                   batchified scores for the next token.
                 - A list of next state lists for `ys`.
 
@@ -1669,9 +1675,9 @@ class TransformerMDDecoder(BaseTransformerDecoder):
             >>> xs = torch.rand(2, 15, 256)  # Example encoder features
             >>> logp, next_states = decoder.batch_score(ys, states, xs)
             >>> print(logp.shape)  # Output: torch.Size([2, 5000])
-        
+
         Note:
-            This method performs batch scoring for the next tokens 
+            This method performs batch scoring for the next tokens
             given the input sequences and their corresponding states.
             It supports optional speech features to be used during scoring.
         """

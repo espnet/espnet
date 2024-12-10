@@ -8,34 +8,34 @@ from espnet.nets.scorer_interface import ScorerInterface
 
 class AbsDecoder(torch.nn.Module, ScorerInterface, ABC):
     """
-    Abstract base class for ASR (Automatic Speech Recognition) decoders in the ESPnet2 
-    framework. This class defines the interface for decoders that process the hidden 
-    states of an encoder and generate output sequences. It inherits from 
-    `torch.nn.Module` and `ScorerInterface`, providing a foundation for various 
+    Abstract base class for ASR (Automatic Speech Recognition) decoders in the ESPnet2
+    framework. This class defines the interface for decoders that process the hidden
+    states of an encoder and generate output sequences. It inherits from
+    `torch.nn.Module` and `ScorerInterface`, providing a foundation for various
     decoder implementations.
 
     Attributes:
         None
 
     Args:
-        hs_pad (torch.Tensor): A tensor of shape (batch_size, max_time, num_units) 
+        hs_pad (torch.Tensor): A tensor of shape (batch_size, max_time, num_units)
             containing the padded hidden states from the encoder.
-        hlens (torch.Tensor): A tensor of shape (batch_size,) representing the lengths 
+        hlens (torch.Tensor): A tensor of shape (batch_size,) representing the lengths
             of the hidden state sequences (before padding).
-        ys_in_pad (torch.Tensor): A tensor of shape (batch_size, max_target_length) 
+        ys_in_pad (torch.Tensor): A tensor of shape (batch_size, max_target_length)
             containing the padded input target sequences (e.g., ground truth labels).
-        ys_in_lens (torch.Tensor): A tensor of shape (batch_size,) representing the 
+        ys_in_lens (torch.Tensor): A tensor of shape (batch_size,) representing the
             lengths of the input target sequences (before padding).
 
     Returns:
         Tuple[torch.Tensor, torch.Tensor]: A tuple containing:
-            - logits (torch.Tensor): A tensor of shape (batch_size, max_target_length, 
+            - logits (torch.Tensor): A tensor of shape (batch_size, max_target_length,
             num_classes) representing the output logits for each target token.
-            - attentions (torch.Tensor): A tensor of shape (batch_size, max_target_length, 
+            - attentions (torch.Tensor): A tensor of shape (batch_size, max_target_length,
             max_time) representing the attention weights.
 
     Raises:
-        NotImplementedError: If the forward method is called directly on an instance 
+        NotImplementedError: If the forward method is called directly on an instance
         of AbsDecoder without being overridden by a subclass.
 
     Examples:
@@ -47,10 +47,11 @@ class AbsDecoder(torch.nn.Module, ScorerInterface, ABC):
         >>> logits, attentions = decoder(hs_pad, hlens, ys_in_pad, ys_in_lens)
 
     Note:
-        This class should not be instantiated directly. It is intended to be subclassed 
-        by specific decoder implementations that provide concrete behavior in the 
+        This class should not be instantiated directly. It is intended to be subclassed
+        by specific decoder implementations that provide concrete behavior in the
         `forward` method.
     """
+
     @abstractmethod
     def forward(
         self,
@@ -64,7 +65,7 @@ class AbsDecoder(torch.nn.Module, ScorerInterface, ABC):
 
         This method takes encoded sequences and target sequences as input and
         computes the output of the decoder. It is an abstract method that must
-        be implemented by subclasses of AbsDecoder. The method processes the 
+        be implemented by subclasses of AbsDecoder. The method processes the
         input tensors, typically representing hidden states and target sequences,
         and returns the output tensors along with any relevant state information.
 

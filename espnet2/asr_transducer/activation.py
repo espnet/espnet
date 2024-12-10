@@ -20,16 +20,16 @@ def get_activation(
     """
     Return the specified activation function as a PyTorch module.
 
-    This function provides a way to obtain various activation functions 
-    based on the specified type. It supports standard activations such 
-    as ReLU, Tanh, and others, as well as custom formulations like 
-    FTSwish, Mish, Smish, and Swish. The parameters can be adjusted 
+    This function provides a way to obtain various activation functions
+    based on the specified type. It supports standard activations such
+    as ReLU, Tanh, and others, as well as custom formulations like
+    FTSwish, Mish, Smish, and Swish. The parameters can be adjusted
     to customize the behavior of certain activation functions.
 
     Args:
-        activation_type (str): The type of activation function to return. 
-            Options include: 'ftswish', 'hardtanh', 'leaky_relu', 
-            'mish', 'relu', 'selu', 'smish', 'swish', 'tanh', 
+        activation_type (str): The type of activation function to return.
+            Options include: 'ftswish', 'hardtanh', 'leaky_relu',
+            'mish', 'relu', 'selu', 'smish', 'swish', 'tanh',
             'identity'.
         ftswish_threshold (float): Threshold value for FTSwish activation formulation.
         ftswish_mean_shift (float): Mean shifting value for FTSwish activation formulation.
@@ -43,7 +43,7 @@ def get_activation(
         swish_beta (float): Beta value for Swish variant formulation.
 
     Returns:
-        torch.nn.Module: A PyTorch activation function module corresponding to the 
+        torch.nn.Module: A PyTorch activation function module corresponding to the
         specified activation_type.
 
     Raises:
@@ -60,8 +60,8 @@ def get_activation(
         tensor([-0.0000, 0.0000, 1.0000])
 
     Note:
-        Ensure that the chosen activation function is compatible with 
-        your model architecture. For custom functions like FTSwish, 
+        Ensure that the chosen activation function is compatible with
+        your model architecture. For custom functions like FTSwish,
         additional parameters may be required for proper behavior.
     """
     torch_version = V(torch.__version__)
@@ -107,18 +107,18 @@ class FTSwish(torch.nn.Module):
     FTSwish(x) = x * sigmoid(x) + threshold
                   where FTSwish(x) < 0 = threshold.
 
-    This activation function is designed to provide a smooth transition 
-    for values below a specified threshold, allowing for improved 
-    gradient flow during training. It can be particularly useful in 
+    This activation function is designed to provide a smooth transition
+    for values below a specified threshold, allowing for improved
+    gradient flow during training. It can be particularly useful in
     neural networks for tasks such as speech recognition.
 
     Reference: https://arxiv.org/abs/1812.06247
 
     Args:
-        threshold (float): Threshold value for FTSwish activation 
+        threshold (float): Threshold value for FTSwish activation
             formulation. Must be less than 0.
-        mean_shift (float): Mean shifting value for FTSwish activation 
-            formulation. Applied only if not equal to 0 (disabled by 
+        mean_shift (float): Mean shifting value for FTSwish activation
+            formulation. Applied only if not equal to 0 (disabled by
             default).
 
     Examples:
@@ -160,23 +160,23 @@ class FTSwish(torch.nn.Module):
 
         Args:
             activation_type (str): The type of activation function to retrieve.
-            ftswish_threshold (float): Threshold value for FTSwish activation 
+            ftswish_threshold (float): Threshold value for FTSwish activation
                 formulation (default: -0.2).
-            ftswish_mean_shift (float): Mean shifting value for FTSwish 
+            ftswish_mean_shift (float): Mean shifting value for FTSwish
                 activation (default: 0.0).
             hardtanh_min_val (int): Minimum value for HardTanh (default: -1.0).
             hardtanh_max_val (int): Maximum value for HardTanh (default: 1.0).
-            leakyrelu_neg_slope (float): Negative slope for LeakyReLU 
+            leakyrelu_neg_slope (float): Negative slope for LeakyReLU
                 (default: 0.01).
             smish_alpha (float): Alpha value for Smish activation (default: 1.0).
             smish_beta (float): Beta value for Smish activation (default: 1.0).
             softplus_beta (float): Beta value for softplus in Mish (default: 1.0).
-            softplus_threshold (int): Threshold for softplus in Mish 
+            softplus_threshold (int): Threshold for softplus in Mish
                 (default: 20).
             swish_beta (float): Beta value for Swish (default: 1.0).
 
         Returns:
-            torch.nn.Module: The specified activation function as a 
+            torch.nn.Module: The specified activation function as a
             PyTorch module.
 
         Examples:
@@ -187,7 +187,7 @@ class FTSwish(torch.nn.Module):
             ValueError: If the specified activation type is not supported.
 
         Note:
-            Ensure that the input tensor is of type torch.Tensor when 
+            Ensure that the input tensor is of type torch.Tensor when
             using the activation functions.
         """
         x = (x * torch.sigmoid(x)) + self.threshold
@@ -204,14 +204,14 @@ class Mish(torch.nn.Module):
     Mish activation definition.
 
     The Mish activation function is defined as:
-    
+
         Mish(x) = x * tanh(softplus(x))
-    
+
     Where softplus is defined as:
-    
+
         softplus(x) = log(1 + exp(x))
 
-    This activation function has been shown to improve the performance of deep 
+    This activation function has been shown to improve the performance of deep
     neural networks in various tasks.
 
     Reference: https://arxiv.org/abs/1908.08681.
@@ -219,10 +219,10 @@ class Mish(torch.nn.Module):
     Args:
         softplus_beta (float): Beta value for the softplus activation formulation.
             Typically, this should satisfy the condition 0 < softplus_beta < 2.
-        softplus_threshold (float): Values above this threshold revert to a linear 
-            function. Typically, it should satisfy the condition 10 < 
+        softplus_threshold (float): Values above this threshold revert to a linear
+            function. Typically, it should satisfy the condition 10 <
             softplus_threshold < 20.
-        use_builtin (bool): Flag to indicate whether to use the built-in PyTorch 
+        use_builtin (bool): Flag to indicate whether to use the built-in PyTorch
             Mish activation function if available (introduced in PyTorch 1.9).
 
     Examples:
@@ -233,11 +233,11 @@ class Mish(torch.nn.Module):
         tensor([-0.3133, 0.0000, 0.7311])
 
     Note:
-        The Mish activation is continuously differentiable and non-monotonic, 
+        The Mish activation is continuously differentiable and non-monotonic,
         which can lead to better training dynamics.
 
     Raises:
-        AssertionError: If `softplus_beta` is not in the valid range or if 
+        AssertionError: If `softplus_beta` is not in the valid range or if
         `softplus_threshold` is not in the valid range.
     """
 
@@ -263,10 +263,10 @@ class Mish(torch.nn.Module):
         """
         Activation functions for Transducer models.
 
-        This module provides various activation functions, including FTSwish, 
-        Mish, Smish, and Swish, which can be utilized in neural network 
-        architectures. The activation functions are implemented as subclasses 
-        of `torch.nn.Module` and can be instantiated with configurable 
+        This module provides various activation functions, including FTSwish,
+        Mish, Smish, and Swish, which can be utilized in neural network
+        architectures. The activation functions are implemented as subclasses
+        of `torch.nn.Module` and can be instantiated with configurable
         parameters.
 
         Classes:
@@ -288,7 +288,7 @@ class Mish(torch.nn.Module):
             activation_function = get_activation("mish", softplus_beta=1.0)
             output_tensor = activation_function(input_tensor)
             print(output_tensor)
-                """
+        """
         return self.mish(x)
 
 
@@ -296,12 +296,12 @@ class Smish(torch.nn.Module):
     """
     Activation functions for Transducer models.
 
-    This module provides various activation functions, including FTSwish, 
-    Mish, Smish, and Swish, suitable for use in transducer models. Each 
-    activation function is defined as a class that inherits from 
+    This module provides various activation functions, including FTSwish,
+    Mish, Smish, and Swish, suitable for use in transducer models. Each
+    activation function is defined as a class that inherits from
     torch.nn.Module, allowing for seamless integration into PyTorch models.
 
-    The main function, `get_activation`, returns the desired activation 
+    The main function, `get_activation`, returns the desired activation
     function based on the provided type and parameters.
 
     Attributes:
@@ -312,23 +312,23 @@ class Smish(torch.nn.Module):
 
     Args:
         activation_type (str): The type of activation function to retrieve.
-        ftswish_threshold (float): Threshold value for FTSwish activation 
+        ftswish_threshold (float): Threshold value for FTSwish activation
             formulation (default: -0.2).
-        ftswish_mean_shift (float): Mean shifting value for FTSwish 
+        ftswish_mean_shift (float): Mean shifting value for FTSwish
             activation (default: 0.0).
         hardtanh_min_val (float): Minimum value for HardTanh (default: -1.0).
         hardtanh_max_val (float): Maximum value for HardTanh (default: 1.0).
-        leakyrelu_neg_slope (float): Negative slope for LeakyReLU 
+        leakyrelu_neg_slope (float): Negative slope for LeakyReLU
             (default: 0.01).
         smish_alpha (float): Alpha value for Smish activation (default: 1.0).
         smish_beta (float): Beta value for Smish activation (default: 1.0).
         softplus_beta (float): Beta value for softplus in Mish (default: 1.0).
-        softplus_threshold (int): Threshold for softplus in Mish 
+        softplus_threshold (int): Threshold for softplus in Mish
             (default: 20).
         swish_beta (float): Beta value for Swish (default: 1.0).
 
     Returns:
-        torch.nn.Module: The specified activation function as a 
+        torch.nn.Module: The specified activation function as a
         PyTorch module.
 
     Examples:
@@ -339,7 +339,7 @@ class Smish(torch.nn.Module):
         ValueError: If the specified activation type is not supported.
 
     Note:
-        Ensure that the input tensor is of type torch.Tensor when 
+        Ensure that the input tensor is of type torch.Tensor when
         using the activation functions.
     """
 
@@ -359,12 +359,12 @@ class Smish(torch.nn.Module):
         """
         Activation functions for Transducer models.
 
-        This module provides various activation functions, including FTSwish, 
-        Mish, Smish, and Swish, suitable for use in transducer models. Each 
-        activation function is defined as a class that inherits from 
+        This module provides various activation functions, including FTSwish,
+        Mish, Smish, and Swish, suitable for use in transducer models. Each
+        activation function is defined as a class that inherits from
         torch.nn.Module, allowing for seamless integration into PyTorch models.
 
-        The main function, `get_activation`, returns the desired activation 
+        The main function, `get_activation`, returns the desired activation
         function based on the provided type and parameters.
 
         Attributes:
@@ -375,23 +375,23 @@ class Smish(torch.nn.Module):
 
         Args:
             activation_type (str): The type of activation function to retrieve.
-            ftswish_threshold (float): Threshold value for FTSwish activation 
+            ftswish_threshold (float): Threshold value for FTSwish activation
                 formulation (default: -0.2).
-            ftswish_mean_shift (float): Mean shifting value for FTSwish 
+            ftswish_mean_shift (float): Mean shifting value for FTSwish
                 activation (default: 0.0).
             hardtanh_min_val (int): Minimum value for HardTanh (default: -1.0).
             hardtanh_max_val (int): Maximum value for HardTanh (default: 1.0).
-            leakyrelu_neg_slope (float): Negative slope for LeakyReLU 
+            leakyrelu_neg_slope (float): Negative slope for LeakyReLU
                 (default: 0.01).
             smish_alpha (float): Alpha value for Smish activation (default: 1.0).
             smish_beta (float): Beta value for Smish activation (default: 1.0).
             softplus_beta (float): Beta value for softplus in Mish (default: 1.0).
-            softplus_threshold (int): Threshold for softplus in Mish 
+            softplus_threshold (int): Threshold for softplus in Mish
                 (default: 20).
             swish_beta (float): Beta value for Swish (default: 1.0).
 
         Returns:
-            torch.nn.Module: The specified activation function as a 
+            torch.nn.Module: The specified activation function as a
             PyTorch module.
 
         Examples:
@@ -402,7 +402,7 @@ class Smish(torch.nn.Module):
             ValueError: If the specified activation type is not supported.
 
         Note:
-            Ensure that the input tensor is of type torch.Tensor when 
+            Ensure that the input tensor is of type torch.Tensor when
             using the activation functions.
         """
         return self.smish(x)
@@ -483,23 +483,23 @@ class Swish(torch.nn.Module):
 
         Args:
             activation_type (str): The type of activation function to retrieve.
-            ftswish_threshold (float): Threshold value for FTSwish activation 
+            ftswish_threshold (float): Threshold value for FTSwish activation
                 formulation (default: -0.2).
-            ftswish_mean_shift (float): Mean shifting value for FTSwish 
+            ftswish_mean_shift (float): Mean shifting value for FTSwish
                 activation (default: 0.0).
             hardtanh_min_val (int): Minimum value for HardTanh (default: -1.0).
             hardtanh_max_val (int): Maximum value for HardTanh (default: 1.0).
-            leakyrelu_neg_slope (float): Negative slope for LeakyReLU 
+            leakyrelu_neg_slope (float): Negative slope for LeakyReLU
                 (default: 0.01).
             smish_alpha (float): Alpha value for Smish activation (default: 1.0).
             smish_beta (float): Beta value for Smish activation (default: 1.0).
             softplus_beta (float): Beta value for softplus in Mish (default: 1.0).
-            softplus_threshold (int): Threshold for softplus in Mish 
+            softplus_threshold (int): Threshold for softplus in Mish
                 (default: 20).
             swish_beta (float): Beta value for Swish (default: 1.0).
 
         Returns:
-            torch.nn.Module: The specified activation function as a 
+            torch.nn.Module: The specified activation function as a
             PyTorch module.
 
         Examples:
@@ -510,7 +510,7 @@ class Swish(torch.nn.Module):
             ValueError: If the specified activation type is not supported.
 
         Note:
-            Ensure that the input tensor is of type torch.Tensor when 
+            Ensure that the input tensor is of type torch.Tensor when
             using the activation functions.
         """
         return self.swish(x)

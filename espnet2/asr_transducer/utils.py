@@ -59,10 +59,10 @@ def check_short_utt(sub_factor: int, size: int) -> Tuple[bool, int]:
     Examples:
         >>> check_short_utt(2, 2)
         (True, 7)
-        
+
         >>> check_short_utt(4, 6)
         (True, 7)
-        
+
         >>> check_short_utt(6, 12)
         (False, -1)
 
@@ -97,14 +97,14 @@ def get_convinput_module_parameters(
 
     Args:
         input_size: Module input size.
-        last_conv_size: Last convolution size for module output size 
+        last_conv_size: Last convolution size for module output size
             computation.
         subsampling_factor: Total subsampling factor.
         is_vgg: Whether the module type is VGG-like. Defaults to True.
 
     Returns:
         A tuple containing:
-            - First MaxPool2D kernel size or second Conv2D kernel size 
+            - First MaxPool2D kernel size or second Conv2D kernel size
               and stride.
             - output_size: Convolution module output size.
 
@@ -116,8 +116,8 @@ def get_convinput_module_parameters(
         ((3, 2), 12)
 
     Note:
-        The output size is computed based on the input size and the 
-        specified subsampling factor. For VGG-like architectures, 
+        The output size is computed based on the input size and the
+        specified subsampling factor. For VGG-like architectures,
         the calculation may differ from standard convolutional networks.
     """
     if is_vgg:
@@ -150,10 +150,10 @@ def make_chunk_mask(
     """
     Create a chunk mask for the subsequent steps.
 
-    This function generates a boolean mask tensor indicating which 
-    frames can be attended to based on the chunking strategy defined 
-    by the `chunk_size` and `num_left_chunks`. The resulting mask 
-    tensor has a shape of (size, size), where `size` is the total 
+    This function generates a boolean mask tensor indicating which
+    frames can be attended to based on the chunking strategy defined
+    by the `chunk_size` and `num_left_chunks`. The resulting mask
+    tensor has a shape of (size, size), where `size` is the total
     number of frames.
 
     Reference:
@@ -162,14 +162,14 @@ def make_chunk_mask(
     Args:
         size: Size of the source mask.
         chunk_size: Number of frames in each chunk.
-        num_left_chunks: Number of left chunks that the attention 
-                         module can see. A null or negative value 
+        num_left_chunks: Number of left chunks that the attention
+                         module can see. A null or negative value
                          means full context.
         device: The device for the mask tensor (e.g., 'cpu' or 'cuda').
 
     Returns:
-        mask: A boolean tensor of shape (size, size) representing 
-              the chunk mask, where `True` indicates frames that can 
+        mask: A boolean tensor of shape (size, size) representing
+              the chunk mask, where `True` indicates frames that can
               be attended to, and `False` indicates masked frames.
 
     Examples:
@@ -239,38 +239,38 @@ def get_transducer_task_io(
     """
     Get Transducer loss I/O.
 
-    This function prepares the input and target sequences required for 
-    calculating the Transducer loss. It processes the provided label 
-    sequences and encoder output lengths, handling padding and 
+    This function prepares the input and target sequences required for
+    calculating the Transducer loss. It processes the provided label
+    sequences and encoder output lengths, handling padding and
     blank symbol insertion as necessary.
 
     Args:
-        labels: Label ID sequences. Shape: (B, L) where B is the batch size 
+        labels: Label ID sequences. Shape: (B, L) where B is the batch size
                 and L is the maximum label length.
-        encoder_out_lens: Encoder output lengths. Shape: (B,) indicating 
+        encoder_out_lens: Encoder output lengths. Shape: (B,) indicating
                            the length of the encoder output for each sequence.
-        ignore_id: Padding symbol ID, which will be ignored in the labels. 
+        ignore_id: Padding symbol ID, which will be ignored in the labels.
                    Default is -1.
-        blank_id: Blank symbol ID, which is prepended to the decoder input. 
+        blank_id: Blank symbol ID, which is prepended to the decoder input.
                   Default is 0.
 
     Returns:
-        decoder_in: Decoder inputs. Shape: (B, U) where U is the maximum 
+        decoder_in: Decoder inputs. Shape: (B, U) where U is the maximum
                      number of tokens after prepending the blank symbol.
-        target: Target label ID sequences. Shape: (B, U) where U is the 
-                number of valid tokens in each batch after ignoring 
+        target: Target label ID sequences. Shape: (B, U) where U is the
+                number of valid tokens in each batch after ignoring
                 the padding symbols.
-        t_len: Time lengths of the encoder outputs. Shape: (B,) where each 
-               entry corresponds to the length of the encoder output for 
+        t_len: Time lengths of the encoder outputs. Shape: (B,) where each
+               entry corresponds to the length of the encoder output for
                the respective input sequence.
-        u_len: Lengths of the target label sequences. Shape: (B,) where each 
-               entry corresponds to the number of valid tokens in the target 
+        u_len: Lengths of the target label sequences. Shape: (B,) where each
+               entry corresponds to the number of valid tokens in the target
                sequence.
 
     Examples:
         >>> labels = torch.tensor([[1, 2, 3, -1], [1, -1, -1, -1]])
         >>> encoder_out_lens = torch.tensor([4, 1])
-        >>> decoder_in, target, t_len, u_len = get_transducer_task_io(labels, 
+        >>> decoder_in, target, t_len, u_len = get_transducer_task_io(labels,
         ... encoder_out_lens)
         >>> print(decoder_in)
         tensor([[0, 1, 2, 3],
@@ -284,11 +284,11 @@ def get_transducer_task_io(
         tensor([3, 1])
 
     Note:
-        The function assumes that the input tensors are on the same device 
+        The function assumes that the input tensors are on the same device
         (CPU or GPU).
 
     Raises:
-        ValueError: If the input tensors have incompatible shapes or if 
+        ValueError: If the input tensors have incompatible shapes or if
                     there are invalid IDs in the label sequences.
     """
 

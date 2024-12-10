@@ -129,29 +129,29 @@ class StatelessDecoder(AbsDecoder):
         states: Optional[Any] = None,
     ) -> Tuple[torch.Tensor, None]:
         """
-        Stateless decoder definition for Transducer models.
+            Stateless decoder definition for Transducer models.
 
-    This module implements a stateless Transducer decoder for ASR (Automatic Speech 
-    Recognition) models. It is designed to work with label sequences and provides 
-    methods for scoring and processing these sequences efficiently.
+        This module implements a stateless Transducer decoder for ASR (Automatic Speech
+        Recognition) models. It is designed to work with label sequences and provides
+        methods for scoring and processing these sequences efficiently.
 
-    Attributes:
-        output_size (int): Size of the output embeddings.
-        vocab_size (int): Size of the vocabulary.
-        device (torch.device): The device (CPU or GPU) where the model is located.
-        score_cache (dict): A cache to store computed scores for label sequences.
+        Attributes:
+            output_size (int): Size of the output embeddings.
+            vocab_size (int): Size of the vocabulary.
+            device (torch.device): The device (CPU or GPU) where the model is located.
+            score_cache (dict): A cache to store computed scores for label sequences.
 
-    Args:
-        vocab_size (int): Output size of the decoder.
-        embed_size (int, optional): Size of the embedding layer. Default is 256.
-        embed_dropout_rate (float, optional): Dropout rate for the embedding layer. 
-            Default is 0.0.
-        embed_pad (int, optional): Padding symbol ID for embeddings. Default is 0.
+        Args:
+            vocab_size (int): Output size of the decoder.
+            embed_size (int, optional): Size of the embedding layer. Default is 256.
+            embed_dropout_rate (float, optional): Dropout rate for the embedding layer.
+                Default is 0.0.
+            embed_pad (int, optional): Padding symbol ID for embeddings. Default is 0.
 
-    Examples:
-        decoder = StatelessDecoder(vocab_size=1000, embed_size=256)
-        label_sequence = [1, 2, 3]
-        output, _ = decoder.score(label_sequence)
+        Examples:
+            decoder = StatelessDecoder(vocab_size=1000, embed_size=256)
+            label_sequence = [1, 2, 3]
+            output, _ = decoder.score(label_sequence)
         """
         str_labels = "_".join(map(str, label_sequence))
 
@@ -175,17 +175,17 @@ class StatelessDecoder(AbsDecoder):
         """
         One-step forward hypotheses.
 
-        This method computes the output sequences for a batch of hypotheses by 
-        using the last label of each hypothesis. It processes the input in 
+        This method computes the output sequences for a batch of hypotheses by
+        using the last label of each hypothesis. It processes the input in
         parallel to enhance efficiency.
 
         Args:
             hyps: A list of Hypothesis objects containing the label sequences.
 
         Returns:
-            out: Decoder output sequences. Shape (B, D_dec), where B is the batch 
+            out: Decoder output sequences. Shape (B, D_dec), where B is the batch
                 size and D_dec is the dimension of the decoder output.
-            states: Decoder hidden states. Always returns None as this 
+            states: Decoder hidden states. Always returns None as this
                 implementation does not maintain hidden states.
 
         Examples:
@@ -195,7 +195,7 @@ class StatelessDecoder(AbsDecoder):
             >>> print(output.shape)  # Output: torch.Size([2, 256])
 
         Note:
-            The method assumes that the Hypothesis objects are well-formed 
+            The method assumes that the Hypothesis objects are well-formed
             and contain valid label sequences.
         """
         labels = torch.tensor(
@@ -231,22 +231,22 @@ class StatelessDecoder(AbsDecoder):
         """
         Stateless decoder definition for Transducer models.
 
-        This module defines a StatelessDecoder class, which is a stateless 
-        Transducer decoder used in automatic speech recognition systems. 
-        It inherits from the AbsDecoder class and implements methods for 
+        This module defines a StatelessDecoder class, which is a stateless
+        Transducer decoder used in automatic speech recognition systems.
+        It inherits from the AbsDecoder class and implements methods for
         forward decoding and state management.
 
         Attributes:
             output_size (int): The output size of the decoder.
             vocab_size (int): The size of the vocabulary.
             device (torch.device): The device on which the model is allocated.
-            score_cache (dict): A cache for storing computed scores to avoid 
+            score_cache (dict): A cache for storing computed scores to avoid
                 redundant calculations.
 
         Args:
             vocab_size (int): Output size.
             embed_size (int, optional): Embedding size. Defaults to 256.
-            embed_dropout_rate (float, optional): Dropout rate for embedding layer. 
+            embed_dropout_rate (float, optional): Dropout rate for embedding layer.
                 Defaults to 0.0.
             embed_pad (int, optional): Embed/Blank symbol ID. Defaults to 0.
 
@@ -270,8 +270,8 @@ class StatelessDecoder(AbsDecoder):
             batch_output, _ = decoder.batch_score(hyps)
 
         Note:
-            The decoder does not maintain state across different calls, 
-            hence it is stateless. This means that the `init_state` 
+            The decoder does not maintain state across different calls,
+            hence it is stateless. This means that the `init_state`
             method always returns None.
 
         Todo:
@@ -283,8 +283,8 @@ class StatelessDecoder(AbsDecoder):
         """
         Stateless decoder definition for Transducer models.
 
-        This module implements a stateless Transducer decoder, which is part of the 
-        ESPnet2 library. It is designed for use in automatic speech recognition tasks 
+        This module implements a stateless Transducer decoder, which is part of the
+        ESPnet2 library. It is designed for use in automatic speech recognition tasks
         using transducer models.
 
         Attributes:
@@ -296,7 +296,7 @@ class StatelessDecoder(AbsDecoder):
         Args:
             vocab_size (int): Output size.
             embed_size (int, optional): Embedding size. Default is 256.
-            embed_dropout_rate (float, optional): Dropout rate for the embedding layer. 
+            embed_dropout_rate (float, optional): Dropout rate for the embedding layer.
                 Default is 0.0.
             embed_pad (int, optional): Embed/Blank symbol ID. Default is 0.
 
@@ -332,18 +332,18 @@ class StatelessDecoder(AbsDecoder):
         """
         Create decoder hidden states.
 
-        This method is responsible for creating and managing the hidden states 
-        for the decoder. The hidden states are typically used to maintain 
+        This method is responsible for creating and managing the hidden states
+        for the decoder. The hidden states are typically used to maintain
         information across decoding steps in a sequence-to-sequence model.
 
         Args:
-            new_states: A list of new decoder hidden states, where each entry 
-                         is of type Optional[torch.Tensor]. The expected shape 
-                         is [N x None], where N is the number of states to be 
+            new_states: A list of new decoder hidden states, where each entry
+                         is of type Optional[torch.Tensor]. The expected shape
+                         is [N x None], where N is the number of states to be
                          created.
 
         Returns:
-            None: This method does not return any value, as it modifies the 
+            None: This method does not return any value, as it modifies the
             internal state of the decoder.
 
         Examples:
@@ -353,12 +353,12 @@ class StatelessDecoder(AbsDecoder):
             >>> # States are now created and managed internally.
 
         Note:
-            This function does not actually store the states; it is intended 
-            to be implemented in a derived class to handle state management 
+            This function does not actually store the states; it is intended
+            to be implemented in a derived class to handle state management
             according to specific requirements.
 
         Raises:
-            ValueError: If the input `new_states` does not conform to the 
+            ValueError: If the input `new_states` does not conform to the
             expected format.
         """
         return None

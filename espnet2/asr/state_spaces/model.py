@@ -16,8 +16,8 @@ class SequenceModel(SequenceModule):
     """
     Isotropic deep sequence model backbone, inspired by ResNets and Transformers.
 
-    The SequenceModel class implements a generic transformation from 
-    (batch, length, d_input) to (batch, length, d_output). This model can be 
+    The SequenceModel class implements a generic transformation from
+    (batch, length, d_input) to (batch, length, d_output). This model can be
     configured with various parameters to adjust its architecture and behavior.
 
     Attributes:
@@ -28,13 +28,13 @@ class SequenceModel(SequenceModule):
         layers (nn.ModuleList): List of sequential residual blocks.
         norm (nn.Module): Normalization layer applied at the end, if specified.
         d_output (int): Dimensionality of the output features.
-        
+
     Args:
         d_model (int): The dimensionality of the model input.
         n_layers (int): Number of layers in the model. Default is 1.
         transposed (bool): If True, transposes the input shape. Default is False.
         dropout (float): Dropout rate applied on each residual connection. Default is 0.0.
-        tie_dropout (bool): If True, ties dropout mask across sequence like 
+        tie_dropout (bool): If True, ties dropout mask across sequence like
             nn.Dropout1d/nn.Dropout2d. Default is False.
         prenorm (bool): If True, applies normalization before the layer. Default is True.
         n_repeat (int): Number of times each layer is repeated before pooling. Default is 1.
@@ -48,7 +48,7 @@ class SequenceModel(SequenceModule):
 
     Returns:
         tuple: A tuple containing:
-            - outputs (torch.Tensor): The output tensor of shape 
+            - outputs (torch.Tensor): The output tensor of shape
               (batch, length, d_output).
             - next_states (list): The updated states after processing through layers.
 
@@ -63,7 +63,7 @@ class SequenceModel(SequenceModule):
         torch.Size([32, 10, d_output])  # d_output depends on layer configuration
 
     Note:
-        This model can be used for various sequence modeling tasks such as 
+        This model can be used for various sequence modeling tasks such as
         automatic speech recognition (ASR) and other sequence-based applications.
 
     Todo:
@@ -154,15 +154,15 @@ class SequenceModel(SequenceModule):
 
     def forward(self, inputs, *args, state=None, **kwargs):
         """
-        Forward pass for the SequenceModel, which processes the input tensor 
+        Forward pass for the SequenceModel, which processes the input tensor
         through the defined layers and applies normalization if specified.
 
-        This method assumes that the input tensor is shaped as 
-        (batch, sequence, dim) and applies dropout, layers, and normalization 
+        This method assumes that the input tensor is shaped as
+        (batch, sequence, dim) and applies dropout, layers, and normalization
         sequentially.
 
         Args:
-            inputs (torch.Tensor): The input tensor of shape 
+            inputs (torch.Tensor): The input tensor of shape
                 (batch, sequence, dim).
             *args: Additional positional arguments passed to each layer.
             state (list, optional): A list of previous states for each layer.
@@ -171,13 +171,13 @@ class SequenceModel(SequenceModule):
 
         Returns:
             tuple: A tuple containing:
-                - outputs (torch.Tensor): The output tensor after processing, 
+                - outputs (torch.Tensor): The output tensor after processing,
                   shaped as (batch, sequence, d_output).
-                - next_states (list): A list of states for each layer after 
+                - next_states (list): A list of states for each layer after
                   processing.
 
         Raises:
-            ValueError: If the input tensor does not match the expected 
+            ValueError: If the input tensor does not match the expected
             shape.
 
         Examples:
@@ -186,8 +186,8 @@ class SequenceModel(SequenceModule):
             >>> outputs, states = model(inputs)
 
         Note:
-            The method tracks the norms of outputs at each layer if 
-            `track_norms` is set to True, which can be accessed via 
+            The method tracks the norms of outputs at each layer if
+            `track_norms` is set to True, which can be accessed via
             the `metrics` attribute after the forward pass.
         """
         # Inputs assumed to be (batch, sequence, dim)
@@ -257,6 +257,7 @@ class SequenceModel(SequenceModule):
             Consider refactoring this method to be a static method if it
             does not rely on instance-specific data.
         """
+
         # Slightly hacky way to implement this in a curried manner
         # (so that the function can be extracted from an instance)
         # Somewhat more sound may be to turn this into a
@@ -275,37 +276,37 @@ class SequenceModel(SequenceModule):
         """
         Generate the default state for each layer in the sequence model.
 
-        This method creates an initial state for each layer based on the specified 
-        batch shape and device. The default state can be used as a starting point 
+        This method creates an initial state for each layer based on the specified
+        batch shape and device. The default state can be used as a starting point
         for processing inputs through the model.
 
         Args:
-            *batch_shape: Variable length argument for the shape of the batch. 
-                        This should typically represent the dimensions of the 
-                        input sequence excluding the last dimension, which is 
+            *batch_shape: Variable length argument for the shape of the batch.
+                        This should typically represent the dimensions of the
+                        input sequence excluding the last dimension, which is
                         the feature dimension.
-            device (torch.device, optional): The device on which to create the 
-                                            state tensors. If not specified, 
+            device (torch.device, optional): The device on which to create the
+                                            state tensors. If not specified,
                                             the default device will be used.
 
         Returns:
-            list: A list containing the default state tensors for each layer. 
-                Each tensor's shape is determined by the layer's internal 
+            list: A list containing the default state tensors for each layer.
+                Each tensor's shape is determined by the layer's internal
                 state configuration and the provided batch shape.
 
         Examples:
             >>> model = SequenceModel(d_model=128, n_layers=3)
-            >>> default_states = model.default_state(10, 20)  # For a batch size of 10 
+            >>> default_states = model.default_state(10, 20)  # For a batch size of 10
             >>> print([state.shape for state in default_states])
             [torch.Size([10, ...]), torch.Size([10, ...]), torch.Size([10, ...])]
 
         Note:
-            The shapes of the returned state tensors depend on the individual 
-            layer configurations and the specified batch shape. Each layer may 
+            The shapes of the returned state tensors depend on the individual
+            layer configurations and the specified batch shape. Each layer may
             have a different state shape based on its design.
 
         Raises:
-            ValueError: If the batch shape is invalid or incompatible with the 
+            ValueError: If the batch shape is invalid or incompatible with the
                         model's architecture.
         """
         return [
@@ -318,19 +319,19 @@ class SequenceModel(SequenceModule):
 
         This method applies each layer of the sequence model to the input
         tensor `x` and updates the hidden states. It is typically used in
-        scenarios where the model needs to process input sequentially, 
+        scenarios where the model needs to process input sequentially,
         such as in recurrent architectures or during inference.
 
         Args:
             x (torch.Tensor): Input tensor of shape (batch_size, d_input).
-            state (list): List of previous states for each layer, or None 
+            state (list): List of previous states for each layer, or None
                 if no state is to be used.
-            **kwargs: Additional keyword arguments passed to each layer's 
+            **kwargs: Additional keyword arguments passed to each layer's
                 step method.
 
         Returns:
             tuple: A tuple containing:
-                - torch.Tensor: The output tensor after processing through 
+                - torch.Tensor: The output tensor after processing through
                   all layers of shape (batch_size, d_output).
                 - list: Updated list of states for each layer.
 
@@ -341,7 +342,7 @@ class SequenceModel(SequenceModule):
             >>> output, next_state = model.step(input_tensor, initial_state)
 
         Note:
-            This method is designed to work with the assumption that 
+            This method is designed to work with the assumption that
             the input `x` is formatted as (batch_size, d_input).
         """
         # Apply layers

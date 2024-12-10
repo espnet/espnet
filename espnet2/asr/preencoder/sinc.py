@@ -19,22 +19,22 @@ class LightweightSincConvs(AbsPreEncoder):
     """
     Lightweight Sinc Convolutions for end-to-end speech recognition.
 
-    This class implements lightweight Sinc convolutions to process raw audio input 
-    directly for speech recognition, as described in the paper "Lightweight 
-    End-to-End Speech Recognition from Raw Audio Data Using Sinc-Convolutions" 
-    by Kürzinger et al. (https://arxiv.org/abs/2010.07597). 
+    This class implements lightweight Sinc convolutions to process raw audio input
+    directly for speech recognition, as described in the paper "Lightweight
+    End-to-End Speech Recognition from Raw Audio Data Using Sinc-Convolutions"
+    by Kürzinger et al. (https://arxiv.org/abs/2010.07597).
 
-    The architecture processes audio through a series of convolutional blocks 
-    that utilize Sinc filters, followed by normalization and pooling layers. 
-    To integrate this pre-encoder in your model, specify `preencoder: sinc` 
-    and use `frontend: sliding_window` in your YAML configuration file. 
+    The architecture processes audio through a series of convolutional blocks
+    that utilize Sinc filters, followed by normalization and pooling layers.
+    To integrate this pre-encoder in your model, specify `preencoder: sinc`
+    and use `frontend: sliding_window` in your YAML configuration file.
     The data flow is as follows:
 
     Frontend (SlidingWindow) -> SpecAug -> Normalization ->
     Pre-encoder (LightweightSincConvs) -> Encoder -> Decoder
 
-    This method performs data augmentation in the time domain, contrasting 
-    with the spectral domain approach of the default frontend. For visualizing 
+    This method performs data augmentation in the time domain, contrasting
+    with the spectral domain approach of the default frontend. For visualizing
     the learned Sinc filters, utilize `plot_sinc_filters.py`.
 
     Attributes:
@@ -56,7 +56,7 @@ class LightweightSincConvs(AbsPreEncoder):
         scale_type (str): Filter-bank initialization scale type. Defaults to "mel".
 
     Raises:
-        NotImplementedError: If the specified dropout or activation type is not 
+        NotImplementedError: If the specified dropout or activation type is not
         supported.
 
     Examples:
@@ -77,7 +77,7 @@ class LightweightSincConvs(AbsPreEncoder):
         output_tensor, lengths = sinc_preencoder(input_tensor, input_lengths)
 
     Note:
-        This class relies on PyTorch and is designed to be compatible with 
+        This class relies on PyTorch and is designed to be compatible with
         ESPnet's architecture for speech processing.
 
     Todo:
@@ -252,15 +252,15 @@ class LightweightSincConvs(AbsPreEncoder):
             ... )
             >>> print(lsc_block)
             Sequential(
-              (depthwise): Conv1d(64, 128, kernel_size=(5,), stride=(1,), 
+              (depthwise): Conv1d(64, 128, kernel_size=(5,), stride=(1,),
               groups=64)
               (activation): LeakyReLU(negative_slope=0.01)
-              (batchnorm): BatchNorm1d(128, eps=1e-05, momentum=0.1, 
+              (batchnorm): BatchNorm1d(128, eps=1e-05, momentum=0.1,
               affine=True, track_running_stats=True)
               (avgpool): AvgPool1d(kernel_size=2, stride=2, padding=0)
               (dropout): Dropout(p=0.15, inplace=False)
             )
-        
+
         Note:
             The use of depthwise separable convolutions allows for a more
             efficient network structure by reducing the number of parameters
@@ -301,7 +301,7 @@ class LightweightSincConvs(AbsPreEncoder):
         This function initializes the sinc filters used in the Lightweight
         Sinc Convolutions by setting their values based on the filterbank
         initialization. It also sets the weights and biases of all BatchNorm
-        layers in the model to ensure that they start with a neutral effect 
+        layers in the model to ensure that they start with a neutral effect
         during training.
 
         The initialization process involves the following steps:
@@ -335,9 +335,9 @@ class LightweightSincConvs(AbsPreEncoder):
         """
         Apply Lightweight Sinc Convolutions.
 
-        This method processes the input tensor using lightweight Sinc 
-        convolutions, transforming the input audio features into output 
-        features suitable for subsequent layers in the neural network. 
+        This method processes the input tensor using lightweight Sinc
+        convolutions, transforming the input audio features into output
+        features suitable for subsequent layers in the neural network.
 
         The input tensor should be formatted as (B, T, C_in, D_in), where:
         - B: Batch size
@@ -346,13 +346,13 @@ class LightweightSincConvs(AbsPreEncoder):
         - D_in: Feature dimension (should be 400 for current implementation)
 
         The output tensor will be shaped as (B, T, C_out * D_out), where:
-        - C_out: Number of output channels, as specified during 
+        - C_out: Number of output channels, as specified during
           initialization
         - D_out: Output feature dimension, which is 1 in this case.
 
         Note:
-            The current implementation only supports D_in=400, leading 
-            to D_out=1. For multichannel input, C_out will be the 
+            The current implementation only supports D_in=400, leading
+            to D_out=1. For multichannel input, C_out will be the
             product of the initialized out_channels and C_in.
 
         Args:
@@ -373,7 +373,7 @@ class LightweightSincConvs(AbsPreEncoder):
             torch.Size([8, 100, 256])  # Example output shape
 
         Raises:
-            ValueError: If the input tensor does not have the expected 
+            ValueError: If the input tensor does not have the expected
             shape.
         """
         # Transform input data:
@@ -416,9 +416,9 @@ class SpatialDropout(torch.nn.Module):
     """
     Spatial dropout module.
 
-    This module applies dropout to the entire channels of input tensors 
-    with shape (B, C, D), where B is the batch size, C is the number of 
-    channels, and D is the dimension of the data. This is particularly useful 
+    This module applies dropout to the entire channels of input tensors
+    with shape (B, C, D), where B is the batch size, C is the number of
+    channels, and D is the dimension of the data. This is particularly useful
     for regularizing deep learning models by preventing overfitting.
 
     Attributes:
@@ -426,13 +426,13 @@ class SpatialDropout(torch.nn.Module):
         shape: The shape of the input tensors after permutation.
 
     Args:
-        dropout_probability (float): Probability of an element being 
+        dropout_probability (float): Probability of an element being
             zeroed. Default is 0.15.
-        shape (Optional[Union[tuple, list]]): The desired shape of the 
+        shape (Optional[Union[tuple, list]]): The desired shape of the
             input tensors. Default is (0, 2, 1).
 
     Examples:
-        >>> spatial_dropout = SpatialDropout(dropout_probability=0.2, 
+        >>> spatial_dropout = SpatialDropout(dropout_probability=0.2,
         ...                                    shape=(0, 2, 1))
         >>> input_tensor = torch.randn(10, 3, 5)  # Example input
         >>> output_tensor = spatial_dropout(input_tensor)
@@ -440,8 +440,8 @@ class SpatialDropout(torch.nn.Module):
         torch.Size([10, 3, 5])
 
     Note:
-        The input tensor should be of shape (B, C, D). The shape 
-        parameter determines how the dimensions are permuted before 
+        The input tensor should be of shape (B, C, D). The shape
+        parameter determines how the dimensions are permuted before
         applying dropout.
 
     Raises:

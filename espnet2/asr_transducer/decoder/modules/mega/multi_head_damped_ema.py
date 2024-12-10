@@ -16,25 +16,25 @@ class MultiHeadDampedEMA(torch.nn.Module):
     """
     Multi-head Damped Exponential Moving Average (EMA) module for MEGA block.
 
-    This module implements a multi-head damped EMA mechanism, which is commonly 
-    used in attention mechanisms for sequence processing. The design is based 
-    on modifications from the Fairseq library and has been adapted to follow 
+    This module implements a multi-head damped EMA mechanism, which is commonly
+    used in attention mechanisms for sequence processing. The design is based
+    on modifications from the Fairseq library and has been adapted to follow
     the conventions set forth in the Hugging Face Transformers library.
 
     Attributes:
-        damping_factor (torch.nn.Parameter): Parameter representing the damping 
+        damping_factor (torch.nn.Parameter): Parameter representing the damping
             factor for the EMA.
-        decay_factor (torch.nn.Parameter): Parameter representing the decay factor 
+        decay_factor (torch.nn.Parameter): Parameter representing the decay factor
             for the EMA.
-        ema_expansion_matrix (torch.nn.Parameter): Parameter for the EMA expansion 
+        ema_expansion_matrix (torch.nn.Parameter): Parameter for the EMA expansion
             matrix.
-        kernel_projection_matrix (torch.nn.Parameter): Parameter for the kernel 
+        kernel_projection_matrix (torch.nn.Parameter): Parameter for the kernel
             projection matrix.
-        residual_weight (torch.nn.Parameter): Parameter representing the residual 
+        residual_weight (torch.nn.Parameter): Parameter representing the residual
             weight.
-        scaling (float): Scaling factor computed as the square root of the 
+        scaling (float): Scaling factor computed as the square root of the
             inverse of the number of heads.
-        truncation_length (Optional[int]): Maximum length for truncation, if 
+        truncation_length (Optional[int]): Maximum length for truncation, if
             specified.
         activation (torch.nn.Module): Activation function to apply to the output.
         num_heads (int): Number of attention heads used in the module.
@@ -42,9 +42,9 @@ class MultiHeadDampedEMA(torch.nn.Module):
     Args:
         size (int): The size of the module.
         num_heads (int, optional): The number of attention heads. Defaults to 4.
-        activation (torch.nn.Module, optional): The activation function type. 
+        activation (torch.nn.Module, optional): The activation function type.
             Defaults to ReLU.
-        truncation_length (Optional[int], optional): The maximum length for 
+        truncation_length (Optional[int], optional): The maximum length for
             truncation. Defaults to None.
 
     Examples:
@@ -57,7 +57,7 @@ class MultiHeadDampedEMA(torch.nn.Module):
         ValueError: If the input tensor does not have the expected shape.
 
     Note:
-        The implementation includes methods for computing EMA coefficients, 
+        The implementation includes methods for computing EMA coefficients,
         resetting parameters, and applying the EMA in a forward pass.
 
     Todo:
@@ -105,13 +105,13 @@ class MultiHeadDampedEMA(torch.nn.Module):
 
         This method initializes the parameters of the MultiHeadDampedEMA module
         using a normal distribution. It sets the damping and decay factors,
-        the EMA expansion matrix, the kernel projection matrix, and the 
+        the EMA expansion matrix, the kernel projection matrix, and the
         residual weight.
 
         Args:
             val: Initialization value for the parameters.
             std1: Standard deviation for the damping and decay factors.
-            std2: Standard deviation for the kernel projection matrix 
+            std2: Standard deviation for the kernel projection matrix
                   and residual weight.
 
         Examples:
@@ -120,7 +120,7 @@ class MultiHeadDampedEMA(torch.nn.Module):
 
         Note:
             The parameters are initialized in-place, and this function
-            does not return any value. Use this method to reinitialize 
+            does not return any value. Use this method to reinitialize
             the model parameters, especially before training.
         """
         with torch.no_grad():
@@ -144,11 +144,11 @@ class MultiHeadDampedEMA(torch.nn.Module):
 
         This method computes the damping factor and the previous timestep weight,
         which are essential for the exponential moving average (EMA) calculations.
-        The damping factor represents the P-th order coefficient, while the 
+        The damping factor represents the P-th order coefficient, while the
         previous timestep weight represents the Q-th order coefficient.
 
         Returns:
-            Tuple[torch.Tensor, torch.Tensor]: 
+            Tuple[torch.Tensor, torch.Tensor]:
                 - damping_factor: Damping factor / P-th order coefficient.
                                 Shape: (size, num_heads, 1)
                 - prev_timestep_weight: Previous timestep weight / Q-th order coefficient.
@@ -161,9 +161,9 @@ class MultiHeadDampedEMA(torch.nn.Module):
             >>> print(prev_weight.shape)  # Output: torch.Size([10, 4, 1])
 
         Note:
-            The damping factor is computed using a sigmoid function applied to the 
-            `damping_factor` parameter, and the previous timestep weight is computed 
-            using the formula: 
+            The damping factor is computed using a sigmoid function applied to the
+            `damping_factor` parameter, and the previous timestep weight is computed
+            using the formula:
             `prev_timestep_weight = 1.0 - damping_factor * decay_factor`.
         """
         self._coeffs = None
@@ -179,17 +179,17 @@ class MultiHeadDampedEMA(torch.nn.Module):
         """
         Compute EMA kernel / Vandermonde product.
 
-        This method calculates the Exponential Moving Average (EMA) kernel using 
-        the damped factors and the EMA expansion matrix. The resulting kernel 
-        represents the effect of applying the EMA over a sequence of specified 
+        This method calculates the Exponential Moving Average (EMA) kernel using
+        the damped factors and the EMA expansion matrix. The resulting kernel
+        represents the effect of applying the EMA over a sequence of specified
         length.
 
         Args:
             length: The sequence length for which to compute the EMA kernel.
 
         Returns:
-            torch.Tensor: The EMA kernel / Vandermonde product, shaped 
-            (size, L), where 'size' corresponds to the module size and 'L' 
+            torch.Tensor: The EMA kernel / Vandermonde product, shaped
+            (size, L), where 'size' corresponds to the module size and 'L'
             corresponds to the input sequence length.
 
         Examples:
@@ -199,8 +199,8 @@ class MultiHeadDampedEMA(torch.nn.Module):
             torch.Size([10, 5])
 
         Note:
-            The EMA kernel is computed based on the current damping factors and 
-            expansion matrix. This is crucial for the operation of the EMA 
+            The EMA kernel is computed based on the current damping factors and
+            expansion matrix. This is crucial for the operation of the EMA
             mechanism in the model.
         """
         self._kernel = None
@@ -220,18 +220,18 @@ class MultiHeadDampedEMA(torch.nn.Module):
         """
         Get EMA coefficients.
 
-        This method retrieves the damping factor and the previous timestep weight 
-        coefficients used in the exponential moving average (EMA) calculations. 
-        The coefficients are computed using the sigmoid activation function applied 
+        This method retrieves the damping factor and the previous timestep weight
+        coefficients used in the exponential moving average (EMA) calculations.
+        The coefficients are computed using the sigmoid activation function applied
         to the damping and decay factors.
 
-        If the coefficients have not been computed yet, this method will call 
+        If the coefficients have not been computed yet, this method will call
         `compute_ema_coefficients()` to generate them.
 
         Returns:
-            Tuple[torch.Tensor, torch.Tensor]: 
+            Tuple[torch.Tensor, torch.Tensor]:
                 - Damping factor / P-th order coefficient. Shape: (size, num_heads, 1)
-                - Previous timestep weight / Q-th order coefficient. Shape: 
+                - Previous timestep weight / Q-th order coefficient. Shape:
                   (size, num_heads, 1)
 
         Examples:
@@ -252,21 +252,21 @@ class MultiHeadDampedEMA(torch.nn.Module):
         Perform exponential moving average for a single step.
 
         This method computes the exponential moving average (EMA) for the given
-        input tensor `x` at a single time step. It utilizes the current state 
+        input tensor `x` at a single time step. It utilizes the current state
         of the EMA to update the new state and generate the output sequence.
 
         Args:
-            x: MultiHeadDampedEMA input sequences. Shape: (B, D, 1), where B is the 
+            x: MultiHeadDampedEMA input sequences. Shape: (B, D, 1), where B is the
                batch size and D is the dimension of the input.
-            state: Optional; MultiHeadDampedEMA state from the previous step. 
-                   Shape: (B, D, num_heads). If not provided, the EMA is computed 
+            state: Optional; MultiHeadDampedEMA state from the previous step.
+                   Shape: (B, D, num_heads). If not provided, the EMA is computed
                    without incorporating any prior state.
 
         Returns:
-            out: MultiHeadDamped output sequences. Shape: (B, 1, D), representing 
+            out: MultiHeadDamped output sequences. Shape: (B, 1, D), representing
                  the output after applying the EMA to the input sequences.
-            new_state: MultiHeadDampedEMA state for the current step. Shape: 
-                       (B, D, num_heads), which can be used in subsequent EMA 
+            new_state: MultiHeadDampedEMA state for the current step. Shape:
+                       (B, D, num_heads), which can be used in subsequent EMA
                        computations.
 
         Examples:
@@ -276,7 +276,7 @@ class MultiHeadDampedEMA(torch.nn.Module):
             >>> output, new_state = ema_module.ema_one_step(input_tensor, initial_state)
 
         Note:
-            The output `out` is computed by applying the EMA to the input `x` 
+            The output `out` is computed by applying the EMA to the input `x`
             and adding the contribution from the previous state if provided.
         """
         damping_factor, prev_timestep_weight = self.get_ema_coefficients()
@@ -301,8 +301,8 @@ class MultiHeadDampedEMA(torch.nn.Module):
         """
         Compute multi-dimensional damped EMA.
 
-        This method computes the multi-dimensional damped Exponential Moving 
-        Average (EMA) for the input sequences using the current state and 
+        This method computes the multi-dimensional damped Exponential Moving
+        Average (EMA) for the input sequences using the current state and
         optionally applies a mask to the input.
 
         Args:
@@ -310,15 +310,15 @@ class MultiHeadDampedEMA(torch.nn.Module):
                - L is the sequence length,
                - B is the batch size,
                - D is the feature dimension.
-            mask: Optional sequence mask. Shape (B, 1, L). A mask can be used 
+            mask: Optional sequence mask. Shape (B, 1, L). A mask can be used
                   to ignore certain time steps in the input sequence.
-            state: Optional MultiHeadDampedEMA state. Shape (B, D, num_heads), 
+            state: Optional MultiHeadDampedEMA state. Shape (B, D, num_heads),
                    where num_heads is the number of attention heads.
 
         Returns:
             Tuple[torch.Tensor, Optional[torch.Tensor]]:
                 - x: MultiHeadDampedEMA output sequence. Shape (B, L, D).
-                - new_state: MultiHeadDampedEMA state. Shape (B, D, num_heads) 
+                - new_state: MultiHeadDampedEMA state. Shape (B, D, num_heads)
                   or None if state was not provided.
 
         Examples:
@@ -328,9 +328,9 @@ class MultiHeadDampedEMA(torch.nn.Module):
             >>> output, new_state = model(input_tensor, mask=mask_tensor)
 
         Note:
-            If `mask` is provided, the input tensor `x` will have masked 
-            elements set to zero before processing. If `state` is not provided, 
-            the method will compute the output without using any previous 
+            If `mask` is provided, the input tensor `x` will have masked
+            elements set to zero before processing. If `state` is not provided,
+            the method will compute the output without using any previous
             state information.
         """
         length = x.size(0)

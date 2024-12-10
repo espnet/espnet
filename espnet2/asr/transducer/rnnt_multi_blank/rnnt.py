@@ -51,38 +51,38 @@ def rnnt_loss_cpu(
     """
     Calculate the RNNT loss using a CPU implementation.
 
-    This function serves as a wrapper to compute the RNNT loss for a given 
-    set of activations and labels on the CPU. The implementation is based on 
+    This function serves as a wrapper to compute the RNNT loss for a given
+    set of activations and labels on the CPU. The implementation is based on
     the work by HawkAaron in the warp-transducer repository.
 
     Args:
-        acts: Activation tensor of shape [B, T, U, V+1], where B is the 
-            batch size, T is the time dimension, U is the target sequence 
+        acts: Activation tensor of shape [B, T, U, V+1], where B is the
+            batch size, T is the time dimension, U is the target sequence
             length, and V is the vocabulary size.
-        labels: Ground truth labels of shape [B, U], where U is the 
+        labels: Ground truth labels of shape [B, U], where U is the
             target sequence length.
-        input_lengths: A tensor of shape [B] representing the lengths of 
+        input_lengths: A tensor of shape [B] representing the lengths of
             the acoustic sequences.
-        label_lengths: A tensor of shape [B] representing the lengths of 
+        label_lengths: A tensor of shape [B] representing the lengths of
             the target sequences.
-        costs: A tensor of shape [B] initialized to zero, where the computed 
+        costs: A tensor of shape [B] initialized to zero, where the computed
             costs will be stored.
-        grads: A tensor of shape [B, T, U, V+1] initialized to zero, where 
+        grads: A tensor of shape [B, T, U, V+1] initialized to zero, where
             the computed gradients will be stored.
-        blank_label: An integer indicating the index of the blank token 
+        blank_label: An integer indicating the index of the blank token
             in the vocabulary.
-        fastemit_lambda: A float scaling factor for FastEmit regularization, 
+        fastemit_lambda: A float scaling factor for FastEmit regularization,
             which can improve the efficiency of streaming ASR.
-        clamp: A float value that, when set to a value >= 0.0, will clamp 
+        clamp: A float value that, when set to a value >= 0.0, will clamp
             the gradients to the range [-clamp, clamp].
-        num_threads: An integer specifying the number of threads to use 
+        num_threads: An integer specifying the number of threads to use
             for OpenMP parallelization.
 
     Returns:
         bool: Returns True if the computation was successful.
 
     Raises:
-        RuntimeError: If the working space memory allocation fails or if 
+        RuntimeError: If the working space memory allocation fails or if
         the RNNT status indicates an error during computation.
 
     Examples:
@@ -97,8 +97,8 @@ def rnnt_loss_cpu(
         >>> clamp = 1.0
         >>> num_threads = 4
 
-        >>> rnnt_loss_cpu(acts, labels, input_lengths, label_lengths, 
-        ...                costs, grads, blank_label, fastemit_lambda, 
+        >>> rnnt_loss_cpu(acts, labels, input_lengths, label_lengths,
+        ...                costs, grads, blank_label, fastemit_lambda,
         ...                clamp, num_threads)
     """
 
@@ -192,35 +192,35 @@ def rnnt_loss_gpu(
     """
     Wrapper method for accessing GPU RNNT loss.
 
-    This function computes the Recurrent Neural Network Transducer (RNNT) loss 
-    using GPU acceleration. The CUDA implementation is ported from 
+    This function computes the Recurrent Neural Network Transducer (RNNT) loss
+    using GPU acceleration. The CUDA implementation is ported from
     [HawkAaron/warp-transducer](https://github.com/HawkAaron/warp-transducer).
 
     Args:
-        acts: Activation tensor of shape [B, T, U, V+1], where B is the 
-            batch size, T is the time dimension, U is the target length, 
+        acts: Activation tensor of shape [B, T, U, V+1], where B is the
+            batch size, T is the time dimension, U is the target length,
             and V is the number of classes excluding the blank label.
         labels: Ground truth labels of shape [B, U].
-        input_lengths: Lengths of the acoustic sequence as a vector of 
+        input_lengths: Lengths of the acoustic sequence as a vector of
             integers of shape [B].
-        label_lengths: Lengths of the target sequence as a vector of 
+        label_lengths: Lengths of the target sequence as a vector of
             integers of shape [B].
         costs: Zero vector of length [B] where costs will be set.
-        grads: Zero tensor of shape [B, T, U, V+1] where the gradient 
+        grads: Zero tensor of shape [B, T, U, V+1] where the gradient
             will be set.
         blank_label: Index of the blank token in the vocabulary.
-        fastemit_lambda: Float scaling factor for FastEmit regularization. 
+        fastemit_lambda: Float scaling factor for FastEmit regularization.
             Refer to the FastEmit paper for more details.
-        clamp: Float value. When set to value >= 0.0, it clamps the 
+        clamp: Float value. When set to value >= 0.0, it clamps the
             gradient to [-clamp, clamp].
-        num_threads: Number of threads for OpenMP. If negative, it will 
+        num_threads: Number of threads for OpenMP. If negative, it will
             use the number of available CPU cores.
 
     Returns:
         bool: Returns True if the operation was successful.
 
     Raises:
-        RuntimeError: If there is an invalid parameter passed when calculating 
+        RuntimeError: If there is an invalid parameter passed when calculating
             workspace memory or if forward scores cannot be calculated.
 
     Examples:
@@ -230,12 +230,12 @@ def rnnt_loss_gpu(
         >>> label_lengths = torch.randint(1, 11, (16,)).cuda()  # Example lengths
         >>> costs = torch.zeros(16).cuda()  # Costs initialization
         >>> grads = torch.zeros(16, 50, 30, 21).cuda()  # Gradients initialization
-        >>> rnnt_loss_gpu(acts, labels, input_lengths, label_lengths, costs, 
-        ...                grads, blank_label=29, fastemit_lambda=0.5, 
+        >>> rnnt_loss_gpu(acts, labels, input_lengths, label_lengths, costs,
+        ...                grads, blank_label=29, fastemit_lambda=0.5,
         ...                clamp=0.1, num_threads=4)
 
     Note:
-        This function requires the CUDA-enabled version of PyTorch and 
+        This function requires the CUDA-enabled version of PyTorch and
         the appropriate GPU resources.
     """
 
@@ -336,7 +336,7 @@ def multiblank_rnnt_loss_gpu(
     Wrapper method for accessing GPU Multi-blank RNNT loss.
 
     This function computes the RNNT loss for models that utilize a multi-blank
-    approach, as described in the paper: 
+    approach, as described in the paper:
     https://arxiv.org/pdf/2211.03541.pdf. It is a CUDA implementation
     ported from the Warp Transducer framework.
 
@@ -377,7 +377,7 @@ def multiblank_rnnt_loss_gpu(
         >>> big_blank_durations = [2, 4, 8]
         >>> result = multiblank_rnnt_loss_gpu(
         ...     acts, labels, input_lengths, label_lengths,
-        ...     costs, grads, blank_label=0, 
+        ...     costs, grads, blank_label=0,
         ...     big_blank_durations=big_blank_durations,
         ...     fastemit_lambda=0.1, clamp=0.1,
         ...     num_threads=4, sigma=0.5

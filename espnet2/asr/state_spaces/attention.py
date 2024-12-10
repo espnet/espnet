@@ -13,9 +13,9 @@ class MultiHeadedAttention(SequenceModule):
     """
     Multi-Head Attention layer inheriting from SequenceModule.
 
-    This module implements a Multi-Head Attention mechanism that allows the model 
-    to jointly attend to information from different representation subspaces at 
-    different positions. It returns an additional dummy state and includes a 
+    This module implements a Multi-Head Attention mechanism that allows the model
+    to jointly attend to information from different representation subspaces at
+    different positions. It returns an additional dummy state and includes a
     step function for autoregressive inference.
 
     Attributes:
@@ -55,7 +55,7 @@ class MultiHeadedAttention(SequenceModule):
         >>> print(output.shape)  # Output shape: (32, 10, 512)
 
     Note:
-        The input features should be divisible by the number of heads to ensure 
+        The input features should be divisible by the number of heads to ensure
         even distribution of dimensions across the heads.
 
     Todo:
@@ -81,25 +81,25 @@ class MultiHeadedAttention(SequenceModule):
         """
         Transform query, key, and value tensors for multi-headed attention.
 
-        This method projects the input query, key, and value tensors into multiple 
-        heads. The resulting tensors are reshaped to facilitate parallel attention 
+        This method projects the input query, key, and value tensors into multiple
+        heads. The resulting tensors are reshaped to facilitate parallel attention
         computations across different heads.
 
         Args:
-            query (torch.Tensor): Query tensor of shape 
+            query (torch.Tensor): Query tensor of shape
                 (#batch, time1, size).
-            key (torch.Tensor): Key tensor of shape 
+            key (torch.Tensor): Key tensor of shape
                 (#batch, time2, size).
-            value (torch.Tensor): Value tensor of shape 
+            value (torch.Tensor): Value tensor of shape
                 (#batch, time2, size).
 
         Returns:
             tuple: A tuple containing three tensors:
-                - torch.Tensor: Transformed query tensor of shape 
+                - torch.Tensor: Transformed query tensor of shape
                   (#batch, n_head, time1, d_k).
-                - torch.Tensor: Transformed key tensor of shape 
+                - torch.Tensor: Transformed key tensor of shape
                   (#batch, n_head, time2, d_k).
-                - torch.Tensor: Transformed value tensor of shape 
+                - torch.Tensor: Transformed value tensor of shape
                   (#batch, n_head, time2, d_k).
 
         Examples:
@@ -184,20 +184,20 @@ class MultiHeadedAttention(SequenceModule):
         Compute scaled dot product attention.
 
         This method calculates the scaled dot product attention using the provided
-        query, memory (keys and values), and an optional mask. If memory is not 
+        query, memory (keys and values), and an optional mask. If memory is not
         provided, the query is used as the memory.
 
         Args:
-            query (torch.Tensor): Query tensor of shape 
+            query (torch.Tensor): Query tensor of shape
                 (#batch, time1, size).
-            memory (torch.Tensor, optional): Memory tensor (keys and values) of 
+            memory (torch.Tensor, optional): Memory tensor (keys and values) of
                 shape (#batch, time2, size). If None, query is used as memory.
-            mask (torch.Tensor, optional): Mask tensor of shape 
-                (#batch, 1, time2) or (#batch, time1, time2) to 
+            mask (torch.Tensor, optional): Mask tensor of shape
+                (#batch, 1, time2) or (#batch, time1, time2) to
                 prevent attention to certain positions.
 
         Returns:
-            torch.Tensor: Output tensor of shape (#batch, time1, d_model) 
+            torch.Tensor: Output tensor of shape (#batch, time1, d_model)
                 representing the attention context vector.
             None: This method also returns None as an additional dummy state.
 
@@ -210,9 +210,9 @@ class MultiHeadedAttention(SequenceModule):
             >>> output, _ = mha(query, memory=key_value)  # Cross-attention
 
         Note:
-            The attention mechanism applies a softmax operation on the 
-            attention scores, which are computed as the dot product of 
-            the query and key matrices. The scores are scaled by the 
+            The attention mechanism applies a softmax operation on the
+            attention scores, which are computed as the dot product of
+            the query and key matrices. The scores are scaled by the
             square root of the dimension of the key vectors.
         """
         # self-attention
@@ -226,10 +226,10 @@ class MultiHeadedAttention(SequenceModule):
         """
         Multi-Head Attention layer inheriting SequenceModule.
 
-        This module implements the Multi-Head Attention mechanism, which allows 
-        the model to focus on different parts of the input sequence simultaneously. 
-        In comparison to the default Multi-Head Attention module in ESPnet, this 
-        module returns an additional dummy state and includes a step function for 
+        This module implements the Multi-Head Attention mechanism, which allows
+        the model to focus on different parts of the input sequence simultaneously.
+        In comparison to the default Multi-Head Attention module in ESPnet, this
+        module returns an additional dummy state and includes a step function for
         autoregressive inference.
 
         Attributes:
@@ -257,8 +257,8 @@ class MultiHeadedAttention(SequenceModule):
             AssertionError: If `n_feat` is not divisible by `n_head`.
 
         Note:
-            The `step` function is intended for use in autoregressive scenarios 
-            where the output from the previous step is used as input for the 
+            The `step` function is intended for use in autoregressive scenarios
+            where the output from the previous step is used as input for the
             current step.
         """
         if memory is None:

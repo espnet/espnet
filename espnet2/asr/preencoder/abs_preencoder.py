@@ -42,7 +42,7 @@ class AbsPreEncoder(torch.nn.Module, ABC):
             def output_size(self) -> int:
                 return 128  # Example output size
 
-            def forward(self, input: torch.Tensor, input_lengths: torch.Tensor) -> 
+            def forward(self, input: torch.Tensor, input_lengths: torch.Tensor) ->
             Tuple[torch.Tensor, torch.Tensor]:
                 # Implement the encoding logic here
                 encoded_output = input  # Placeholder for actual encoding
@@ -53,14 +53,15 @@ class AbsPreEncoder(torch.nn.Module, ABC):
         This class is not intended to be instantiated directly. Instead, it
         serves as a blueprint for other pre-encoder implementations.
     """
+
     @abstractmethod
     def output_size(self) -> int:
         """
         Computes the output size of the pre-encoder.
 
-        This method is intended to be implemented by subclasses of 
-        AbsPreEncoder to provide the specific output size after 
-        processing the input tensor. The output size is typically 
+        This method is intended to be implemented by subclasses of
+        AbsPreEncoder to provide the specific output size after
+        processing the input tensor. The output size is typically
         determined based on the architecture of the encoder.
 
         Returns:
@@ -78,7 +79,7 @@ class AbsPreEncoder(torch.nn.Module, ABC):
             print(encoder.output_size())  # Output: 128
 
         Note:
-            This method must be overridden in any concrete subclass of 
+            This method must be overridden in any concrete subclass of
             AbsPreEncoder to ensure proper functionality.
         """
         raise NotImplementedError
@@ -90,25 +91,25 @@ class AbsPreEncoder(torch.nn.Module, ABC):
         """
         Performs the forward pass of the pre-encoder module.
 
-        This method takes an input tensor and its corresponding lengths, 
-        processes the input through the pre-encoder network, and returns 
+        This method takes an input tensor and its corresponding lengths,
+        processes the input through the pre-encoder network, and returns
         the encoded output along with the updated lengths.
 
         Args:
-            input (torch.Tensor): The input tensor to be processed, typically of 
+            input (torch.Tensor): The input tensor to be processed, typically of
                 shape (batch_size, sequence_length, input_size).
-            input_lengths (torch.Tensor): A tensor containing the lengths of 
+            input_lengths (torch.Tensor): A tensor containing the lengths of
                 each input sequence in the batch, of shape (batch_size,).
 
         Returns:
             Tuple[torch.Tensor, torch.Tensor]: A tuple containing:
-                - output (torch.Tensor): The encoded output tensor, typically of 
+                - output (torch.Tensor): The encoded output tensor, typically of
                 shape (batch_size, output_size).
-                - output_lengths (torch.Tensor): A tensor containing the lengths 
+                - output_lengths (torch.Tensor): A tensor containing the lengths
                 of the output sequences, of shape (batch_size,).
 
         Raises:
-            NotImplementedError: If the method is called directly on the 
+            NotImplementedError: If the method is called directly on the
                 abstract class.
 
         Examples:

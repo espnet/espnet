@@ -44,38 +44,39 @@ class GPURNNT:
     """
     Helper class to launch the CUDA Kernels to compute the Transducer Loss.
 
-        This class is responsible for computing the RNNT (Recurrent Neural 
-        Network Transducer) loss and its gradients using CUDA kernels. It 
-        manages workspace memory and handles input activations to efficiently 
+        This class is responsible for computing the RNNT (Recurrent Neural
+        Network Transducer) loss and its gradients using CUDA kernels. It
+        manages workspace memory and handles input activations to efficiently
         compute both the loss and the gradients.
 
         Args:
             minibatch: Int representing the batch size.
-            maxT: The maximum possible acoustic sequence length. Represents T 
+            maxT: The maximum possible acoustic sequence length. Represents T
                 in the logprobs tensor.
-            maxU: The maximum possible target sequence length. Represents U 
+            maxU: The maximum possible target sequence length. Represents U
                 in the logprobs tensor.
-            alphabet_size: The vocabulary dimension V+1 (inclusive of RNNT 
+            alphabet_size: The vocabulary dimension V+1 (inclusive of RNNT
                 blank).
-            workspace: An allocated chunk of memory that will be sliced off 
+            workspace: An allocated chunk of memory that will be sliced off
                 and reshaped into required blocks used as working memory.
-            blank: Index of the RNNT blank token in the vocabulary. Generally 
+            blank: Index of the RNNT blank token in the vocabulary. Generally
                 the first or last token in the vocab.
-            fastemit_lambda: Float scaling factor for FastEmit regularization. 
-                Refer to FastEmit: Low-latency Streaming ASR with 
+            fastemit_lambda: Float scaling factor for FastEmit regularization.
+                Refer to FastEmit: Low-latency Streaming ASR with
                 Sequence-level Emission Regularization.
-            clamp: Float value. When set to value >= 0.0, will clamp the 
+            clamp: Float value. When set to value >= 0.0, will clamp the
                 gradient to [-clamp, clamp].
             num_threads: Number of OMP threads to launch.
             stream: Numba Cuda Stream.
 
         Examples:
             >>> workspace = torch.zeros((minibatch, maxT * maxU * (alphabet_size + 1)))
-            >>> gpu_rnnt = GPURNNT(minibatch=32, maxT=100, maxU=50, 
-            ...                    alphabet_size=29, workspace=workspace, 
-            ...                    blank=0, fastemit_lambda=0.5, clamp=0.1, 
+            >>> gpu_rnnt = GPURNNT(minibatch=32, maxT=100, maxU=50,
+            ...                    alphabet_size=29, workspace=workspace,
+            ...                    blank=0, fastemit_lambda=0.5, clamp=0.1,
             ...                    num_threads=4, stream=cuda.stream())
     """
+
     def __init__(
         self,
         minibatch: int,
@@ -137,7 +138,7 @@ class GPURNNT:
 
         This method calculates the log softmax of the input activation tensor
         `acts`, which is expected to be a tensor of shape [B, T, U, V+1]. The
-        results are stored in the `denom` tensor, which should be initialized 
+        results are stored in the `denom` tensor, which should be initialized
         as a zero tensor of the same shape as `acts`.
 
         Args:
@@ -194,9 +195,9 @@ class GPURNNT:
         """
         Compute both the loss and the gradients.
 
-        This method computes the negative log likelihood costs and the gradients 
-        for the RNNT model during training or evaluation. It performs the forward 
-        pass through the RNNT computation graph, calculating both alphas and 
+        This method computes the negative log likelihood costs and the gradients
+        for the RNNT model during training or evaluation. It performs the forward
+        pass through the RNNT computation graph, calculating both alphas and
         betas, which are used to derive the gradients and costs.
 
         Args:
@@ -204,16 +205,16 @@ class GPURNNT:
                 activation matrix, where B is the batch size, T is the maximum
                 acoustic sequence length, U is the maximum target sequence length,
                 and V is the vocabulary size.
-            grads: An optional flattened tensor of the same shape as `acts`, 
-                initialized to zero, to store gradients. If not provided, 
+            grads: An optional flattened tensor of the same shape as `acts`,
+                initialized to zero, to store gradients. If not provided,
                 gradients will not be computed.
-            costs: A zero vector of length B that will be updated in place 
+            costs: A zero vector of length B that will be updated in place
                 with the log probability costs.
-            labels: A flattened matrix of labels of shape [B, U], representing 
+            labels: A flattened matrix of labels of shape [B, U], representing
                 the target sequences for each batch.
-            label_lengths: A vector of length B that contains the original 
+            label_lengths: A vector of length B that contains the original
                 lengths of the target sequences.
-            input_lengths: A vector of length B that contains the original 
+            input_lengths: A vector of length B that contains the original
                 lengths of the acoustic sequences.
 
         Updates:
@@ -232,16 +233,16 @@ class GPURNNT:
             >>> labels = torch.tensor([[1, 2, 3, 0, 0], [2, 3, 0, 0, 0]])  # Example labels
             >>> label_lengths = torch.tensor([3, 2])  # Lengths of each label
             >>> input_lengths = torch.tensor([10, 10])  # Lengths of each input
-            >>> status = compute_cost_and_score(acts, grads, costs, labels, 
+            >>> status = compute_cost_and_score(acts, grads, costs, labels,
                                                 label_lengths, input_lengths)
             >>> print(status)  # Check the status of the operation
 
         Note:
-            Ensure that the input tensors are properly shaped and initialized 
+            Ensure that the input tensors are properly shaped and initialized
             before calling this method.
 
         Raises:
-            ValueError: If the shapes of the input tensors do not match the 
+            ValueError: If the shapes of the input tensors do not match the
             expected dimensions.
         """
 
@@ -444,7 +445,7 @@ class GPURNNT:
             >>> pad_labels = torch.tensor([[1, 2, 3], [1, 2, 3]])
             >>> label_lengths = torch.tensor([3, 3])
             >>> input_lengths = torch.tensor([5, 5])
-            >>> result = model.score_forward(acts, costs, pad_labels, 
+            >>> result = model.score_forward(acts, costs, pad_labels,
             ...                               label_lengths, input_lengths)
             >>> print(costs)  # Updated costs after calling score_forward
         """
@@ -503,17 +504,17 @@ class MultiblankGPURNNT(GPURNNT):
     """
     Helper class to launch the CUDA Kernels to compute Multi-blank Transducer Loss.
 
-    This class extends the GPURNNT class to accommodate multi-blank RNNTs. It utilizes 
-    CUDA kernels to efficiently compute both the loss and gradients required for 
-    training multi-blank transducers as described in the paper 
+    This class extends the GPURNNT class to accommodate multi-blank RNNTs. It utilizes
+    CUDA kernels to efficiently compute both the loss and gradients required for
+    training multi-blank transducers as described in the paper
     (https://arxiv.org/pdf/2211.03541).
 
     Attributes:
-        sigma (float): Hyper-parameter related to the logit-normalization method in 
+        sigma (float): Hyper-parameter related to the logit-normalization method in
             training multi-blank transducers.
-        num_big_blanks (int): Number of big blank symbols the model has, excluding 
+        num_big_blanks (int): Number of big blank symbols the model has, excluding
             the standard blank symbol.
-        big_blank_workspace (torch.Tensor): Allocated memory for multi-blank related 
+        big_blank_workspace (torch.Tensor): Allocated memory for multi-blank related
             computations.
 
     Args:
@@ -554,6 +555,7 @@ class MultiblankGPURNNT(GPURNNT):
         The `compute_cost_and_score` method computes both the loss and gradients.
         Ensure that all input tensors are properly initialized before calling methods.
     """
+
     def __init__(
         self,
         sigma: float,
@@ -793,31 +795,31 @@ class MultiblankGPURNNT(GPURNNT):
         """
         Computes the cost and gradients of the activation tensor.
 
-        This function checks for the validity of the input tensors and then 
-        computes the cost and gradients by calling the internal method 
-        `compute_cost_and_score`. The inputs include the activation tensor, 
-        gradients tensor, costs tensor, padded labels, label lengths, and 
+        This function checks for the validity of the input tensors and then
+        computes the cost and gradients by calling the internal method
+        `compute_cost_and_score`. The inputs include the activation tensor,
+        gradients tensor, costs tensor, padded labels, label lengths, and
         input lengths.
 
         Args:
-            acts (torch.Tensor): A flattened tensor of shape [B, T, U, V+1] 
+            acts (torch.Tensor): A flattened tensor of shape [B, T, U, V+1]
                 representing the activation matrix.
-            grads (torch.Tensor): A flattened tensor of the same shape as 
+            grads (torch.Tensor): A flattened tensor of the same shape as
                 `acts`, which will be updated in place with gradients.
-            costs (torch.Tensor): A zero vector of length B that will be 
+            costs (torch.Tensor): A zero vector of length B that will be
                 updated in place with the log probability costs.
             pad_labels (torch.Tensor): A flattened matrix of labels of shape [B, U].
-            label_lengths (torch.Tensor): A vector of length B that contains 
+            label_lengths (torch.Tensor): A vector of length B that contains
                 the original lengths of the acoustic sequences.
-            input_lengths (torch.Tensor): A vector of length B that contains 
+            input_lengths (torch.Tensor): A vector of length B that contains
                 the original lengths of the target sequences.
 
         Returns:
-            global_constants.RNNTStatus: An enum indicating either a successful 
+            global_constants.RNNTStatus: An enum indicating either a successful
             RNNT operation or failure due to invalid input.
 
         Raises:
-            global_constants.RNNTStatus.RNNT_STATUS_INVALID_VALUE: If any 
+            global_constants.RNNTStatus.RNNT_STATUS_INVALID_VALUE: If any
             of the input tensors are None.
 
         Examples:
@@ -827,11 +829,11 @@ class MultiblankGPURNNT(GPURNNT):
             >>> pad_labels = torch.randint(0, 10, (4, 5))  # Padded labels
             >>> label_lengths = torch.tensor([5, 4, 5, 3])  # Lengths of labels
             >>> input_lengths = torch.tensor([10, 10, 10, 10])  # Input lengths
-            >>> result = model.cost_and_grad(acts, grads, costs, pad_labels, 
+            >>> result = model.cost_and_grad(acts, grads, costs, pad_labels,
                                               label_lengths, input_lengths)
 
         Note:
-            Ensure that all tensors are on the same device (CPU or GPU) to 
+            Ensure that all tensors are on the same device (CPU or GPU) to
             avoid runtime errors.
         """
         if (
@@ -891,7 +893,7 @@ class MultiblankGPURNNT(GPURNNT):
             >>> pad_labels = torch.tensor([[1, 2, 3], [1, 0, 0]])
             >>> label_lengths = torch.tensor([3, 1])
             >>> input_lengths = torch.tensor([10, 10])
-            >>> status = model.score_forward(acts, costs, pad_labels, 
+            >>> status = model.score_forward(acts, costs, pad_labels,
                                              label_lengths, input_lengths)
             >>> print(costs)  # Updated costs tensor after the call
 

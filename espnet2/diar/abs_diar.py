@@ -56,6 +56,7 @@ class AbsDiarization(torch.nn.Module, ABC):
     Todo:
         Implement specific diarization models that inherit from this class.
     """
+
     # @abstractmethod
     # def output_size(self) -> int:
     #     raise NotImplementedError
@@ -67,30 +68,30 @@ class AbsDiarization(torch.nn.Module, ABC):
         ilens: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor, OrderedDict]:
         """
-        Defines the forward method for the AbsDiarization class, which is an abstract 
+        Defines the forward method for the AbsDiarization class, which is an abstract
         base class for speaker diarization models.
 
-        This method is intended to process input tensors and their respective lengths 
-        to produce output tensors along with additional information in an 
-        OrderedDict. The specific implementation of this method must be provided by 
+        This method is intended to process input tensors and their respective lengths
+        to produce output tensors along with additional information in an
+        OrderedDict. The specific implementation of this method must be provided by
         subclasses that inherit from AbsDiarization.
 
         Args:
-            input (torch.Tensor): A tensor containing the input data to be processed, 
+            input (torch.Tensor): A tensor containing the input data to be processed,
                 typically representing audio features.
-            ilens (torch.Tensor): A tensor containing the lengths of the input data 
-                sequences, which is used to inform the model about the valid portion 
+            ilens (torch.Tensor): A tensor containing the lengths of the input data
+                sequences, which is used to inform the model about the valid portion
                 of each sequence.
 
         Returns:
             Tuple[torch.Tensor, torch.Tensor, OrderedDict]: A tuple consisting of:
                 - A tensor representing the output of the model.
                 - A tensor representing the lengths of the output sequences.
-                - An OrderedDict containing additional information relevant to the 
+                - An OrderedDict containing additional information relevant to the
                 processing, such as speaker embeddings or intermediate features.
 
         Raises:
-            NotImplementedError: This method must be implemented in a subclass, and 
+            NotImplementedError: This method must be implemented in a subclass, and
                 calling it directly from this base class will raise this exception.
 
         Examples:
@@ -113,28 +114,28 @@ class AbsDiarization(torch.nn.Module, ABC):
         """
         Performs the forward pass of the model using raw waveform input.
 
-        This method is an abstract implementation that must be overridden in 
-        subclasses of `AbsDiarization`. It processes the raw audio waveform 
-        tensor along with its corresponding lengths tensor, and returns the 
+        This method is an abstract implementation that must be overridden in
+        subclasses of `AbsDiarization`. It processes the raw audio waveform
+        tensor along with its corresponding lengths tensor, and returns the
         model's outputs.
 
         Args:
-            input (torch.Tensor): A tensor representing the raw audio waveform, 
+            input (torch.Tensor): A tensor representing the raw audio waveform,
                 typically of shape (batch_size, num_samples).
-            ilens (torch.Tensor): A tensor containing the lengths of the input 
+            ilens (torch.Tensor): A tensor containing the lengths of the input
                 audio waveforms, typically of shape (batch_size,).
 
         Returns:
             Tuple[torch.Tensor, torch.Tensor, OrderedDict]: A tuple containing:
-                - A tensor with the model's output features (shape: 
+                - A tensor with the model's output features (shape:
                 (batch_size, num_features)).
-                - A tensor with the predicted lengths (shape: 
+                - A tensor with the predicted lengths (shape:
                 (batch_size,)).
-                - An ordered dictionary containing additional information 
+                - An ordered dictionary containing additional information
                 regarding the forward pass.
 
         Raises:
-            NotImplementedError: If the method is not implemented in the 
+            NotImplementedError: If the method is not implemented in the
             subclass.
 
         Examples:
@@ -143,10 +144,10 @@ class AbsDiarization(torch.nn.Module, ABC):
             >>> lengths = torch.tensor([16000, 16000])  # Example lengths
             >>> output_features, predicted_lengths, extra_info = model.forward_rawwav(
             ...     raw_audio, lengths)
-        
+
         Note:
-            This method is expected to handle audio data directly, 
-            and subclasses should implement the logic for processing the 
+            This method is expected to handle audio data directly,
+            and subclasses should implement the logic for processing the
             raw audio input accordingly.
         """
         raise NotImplementedError

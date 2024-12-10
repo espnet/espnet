@@ -55,6 +55,7 @@ class NavieComplexLSTM(nn.Module):
     Todo:
         Implement support for multi-layer LSTMs and dropout.
     """
+
     def __init__(
         self,
         input_size,
@@ -98,42 +99,42 @@ class NavieComplexLSTM(nn.Module):
 
     def forward(self, inputs):
         """
-        Computes the forward pass of the NavieComplexLSTM.
+            Computes the forward pass of the NavieComplexLSTM.
 
-    This method takes complex-valued input and processes it through two 
-    separate LSTM layers for the real and imaginary parts. It then combines 
-    the outputs to produce the final complex output.
+        This method takes complex-valued input and processes it through two
+        separate LSTM layers for the real and imaginary parts. It then combines
+        the outputs to produce the final complex output.
 
-    Args:
-        inputs (Union[torch.Tensor, List[torch.Tensor]]): A tensor or a list 
-            containing the real and imaginary parts of the input. If a tensor, 
-            it should be of shape (seq_len, batch_size, input_size) where 
-            input_size is the total number of input features (real + imaginary). 
-            If a list, it should contain two tensors: the first for the real 
-            part and the second for the imaginary part.
+        Args:
+            inputs (Union[torch.Tensor, List[torch.Tensor]]): A tensor or a list
+                containing the real and imaginary parts of the input. If a tensor,
+                it should be of shape (seq_len, batch_size, input_size) where
+                input_size is the total number of input features (real + imaginary).
+                If a list, it should contain two tensors: the first for the real
+                part and the second for the imaginary part.
 
-    Returns:
-        List[torch.Tensor]: A list containing two tensors: the processed real 
-        and imaginary parts. Each tensor will have the shape 
-        (seq_len, batch_size, output_size) where output_size is determined 
-        by the hidden size and whether projection_dim is set.
+        Returns:
+            List[torch.Tensor]: A list containing two tensors: the processed real
+            and imaginary parts. Each tensor will have the shape
+            (seq_len, batch_size, output_size) where output_size is determined
+            by the hidden size and whether projection_dim is set.
 
-    Examples:
-        >>> lstm = NavieComplexLSTM(input_size=4, hidden_size=4)
-        >>> real_input = torch.randn(10, 2, 2)  # (seq_len, batch_size, real_dim)
-        >>> imag_input = torch.randn(10, 2, 2)  # (seq_len, batch_size, imag_dim)
-        >>> outputs = lstm([real_input, imag_input])
-        >>> real_out, imag_out = outputs
-        >>> print(real_out.shape)  # Should match (10, 2, output_size)
-        >>> print(imag_out.shape)  # Should match (10, 2, output_size)
+        Examples:
+            >>> lstm = NavieComplexLSTM(input_size=4, hidden_size=4)
+            >>> real_input = torch.randn(10, 2, 2)  # (seq_len, batch_size, real_dim)
+            >>> imag_input = torch.randn(10, 2, 2)  # (seq_len, batch_size, imag_dim)
+            >>> outputs = lstm([real_input, imag_input])
+            >>> real_out, imag_out = outputs
+            >>> print(real_out.shape)  # Should match (10, 2, output_size)
+            >>> print(imag_out.shape)  # Should match (10, 2, output_size)
 
-    Note:
-        The input size must be divisible by 2, as it expects the real and 
-        imaginary parts to be interleaved.
+        Note:
+            The input size must be divisible by 2, as it expects the real and
+            imaginary parts to be interleaved.
 
-    Raises:
-        ValueError: If the input dimensions do not match the expected 
-        input shape or if the input size is not divisible by 2.
+        Raises:
+            ValueError: If the input dimensions do not match the expected
+            input shape or if the input size is not divisible by 2.
         """
         if isinstance(inputs, list):
             real, imag = inputs
@@ -152,29 +153,29 @@ class NavieComplexLSTM(nn.Module):
 
     def flatten_parameters(self):
         """
-        Flatten the parameters of the LSTM layers for efficient training.
+            Flatten the parameters of the LSTM layers for efficient training.
 
-    This method is particularly useful for optimizing the performance of LSTM
-    layers when using packed sequences, as it allows the LSTMs to use a single
-    contiguous memory block for their weights.
+        This method is particularly useful for optimizing the performance of LSTM
+        layers when using packed sequences, as it allows the LSTMs to use a single
+        contiguous memory block for their weights.
 
-    The method calls `flatten_parameters()` on both the real and imaginary
-    LSTM layers to ensure their parameters are properly flattened.
+        The method calls `flatten_parameters()` on both the real and imaginary
+        LSTM layers to ensure their parameters are properly flattened.
 
-    Attributes:
-        real_lstm (nn.LSTM): The real-valued LSTM layer.
-        imag_lstm (nn.LSTM): The imaginary-valued LSTM layer.
+        Attributes:
+            real_lstm (nn.LSTM): The real-valued LSTM layer.
+            imag_lstm (nn.LSTM): The imaginary-valued LSTM layer.
 
-    Examples:
-        >>> model = NavieComplexLSTM(input_size=4, hidden_size=8)
-        >>> model.flatten_parameters()
+        Examples:
+            >>> model = NavieComplexLSTM(input_size=4, hidden_size=8)
+            >>> model.flatten_parameters()
 
-    Note:
-        This method should be called before training when using packed sequences
-        to ensure optimal performance.
+        Note:
+            This method should be called before training when using packed sequences
+            to ensure optimal performance.
 
-    Raises:
-        RuntimeError: If the LSTM layers have not been properly initialized.
+        Raises:
+            RuntimeError: If the LSTM layers have not been properly initialized.
         """
         self.real_lstm.flatten_parameters()
 
@@ -188,19 +189,19 @@ def complex_cat(inputs, axis):
     specified axis, and returns a single complex-valued tensor.
 
     Attributes:
-        inputs (list): A list of complex-valued tensors, where each tensor is 
+        inputs (list): A list of complex-valued tensors, where each tensor is
             expected to have an even number of channels (real and imaginary parts).
-        axis (int): The axis along which to concatenate the real and imaginary 
+        axis (int): The axis along which to concatenate the real and imaginary
             parts.
 
     Args:
         inputs (list of torch.Tensor): A list containing complex-valued tensors.
-        axis (int): The axis along which to concatenate the real and imaginary 
+        axis (int): The axis along which to concatenate the real and imaginary
             parts.
 
     Returns:
-        torch.Tensor: A single complex-valued tensor formed by concatenating the 
-            real and imaginary parts of the input tensors along the specified 
+        torch.Tensor: A single complex-valued tensor formed by concatenating the
+            real and imaginary parts of the input tensors along the specified
             axis.
 
     Examples:
@@ -214,9 +215,9 @@ def complex_cat(inputs, axis):
                 [3., 4., 7., 8.],
                 [1., 2., 5., 6.],
                 [3., 4., 7., 8.]])
-    
+
     Note:
-        The input tensors must have the same shape along all dimensions 
+        The input tensors must have the same shape along all dimensions
         except for the specified axis.
     """
     real, imag = [], []
@@ -246,10 +247,10 @@ class ComplexConv2d(nn.Module):
         stride (tuple): Stride of the convolution.
         padding (tuple): Padding applied to the input.
         causal (bool): If True, applies causal padding on the time dimension.
-        groups (int): Number of blocked connections from input channels to 
+        groups (int): Number of blocked connections from input channels to
             output channels.
         dilation (int): Spacing between kernel elements.
-        complex_axis (int): Axis along which the real and imaginary parts are 
+        complex_axis (int): Axis along which the real and imaginary parts are
             concatenated.
 
     Args:
@@ -259,15 +260,15 @@ class ComplexConv2d(nn.Module):
         stride (tuple, optional): Stride of the convolution (default: (1, 1)).
         padding (tuple, optional): Padding applied to the input (default: (0, 0)).
         dilation (int, optional): Spacing between kernel elements (default: 1).
-        groups (int, optional): Number of blocked connections from input channels 
+        groups (int, optional): Number of blocked connections from input channels
             to output channels (default: 1).
-        causal (bool, optional): If True, applies causal padding on the time dimension 
+        causal (bool, optional): If True, applies causal padding on the time dimension
             (default: True).
-        complex_axis (int, optional): Axis along which the real and imaginary parts 
+        complex_axis (int, optional): Axis along which the real and imaginary parts
             are concatenated (default: 1).
 
     Returns:
-        torch.Tensor: Output tensor containing concatenated real and imaginary 
+        torch.Tensor: Output tensor containing concatenated real and imaginary
         parts after convolution.
 
     Examples:
@@ -283,6 +284,7 @@ class ComplexConv2d(nn.Module):
         B is the batch size, C is the number of channels (real + imag),
         D is the height, and T is the width of the input.
     """
+
     def __init__(
         self,
         in_channels,
@@ -340,33 +342,33 @@ class ComplexConv2d(nn.Module):
 
     def forward(self, inputs):
         """
-        Forward pass for the ComplexConv2d layer.
+            Forward pass for the ComplexConv2d layer.
 
-    This method performs the forward computation of the complex convolution
-    layer, applying separate convolutions for the real and imaginary parts of
-    the input. The results from the real and imaginary convolutions are then
-    combined to produce the final output.
+        This method performs the forward computation of the complex convolution
+        layer, applying separate convolutions for the real and imaginary parts of
+        the input. The results from the real and imaginary convolutions are then
+        combined to produce the final output.
 
-    Args:
-        inputs (torch.Tensor): Input tensor of shape [B, C, D, T], where
-            C represents the complex channels (real and imaginary), B is the
-            batch size, D is the depth, and T is the time dimension.
+        Args:
+            inputs (torch.Tensor): Input tensor of shape [B, C, D, T], where
+                C represents the complex channels (real and imaginary), B is the
+                batch size, D is the depth, and T is the time dimension.
 
-    Returns:
-        torch.Tensor: Output tensor of the same shape as the input, after
-        applying the complex convolution operation.
+        Returns:
+            torch.Tensor: Output tensor of the same shape as the input, after
+            applying the complex convolution operation.
 
-    Note:
-        If `self.padding[1]` is not zero and `self.causal` is True, the input
-        is padded on the left side of the time dimension. Otherwise, it is
-        padded symmetrically.
+        Note:
+            If `self.padding[1]` is not zero and `self.causal` is True, the input
+            is padded on the left side of the time dimension. Otherwise, it is
+            padded symmetrically.
 
-    Examples:
-        >>> conv = ComplexConv2d(in_channels=4, out_channels=8, kernel_size=(3, 3))
-        >>> input_tensor = torch.randn(1, 4, 10, 10)  # Example input
-        >>> output = conv(input_tensor)
-        >>> output.shape
-        torch.Size([1, 8, 10, 10])  # Output shape after convolution
+        Examples:
+            >>> conv = ComplexConv2d(in_channels=4, out_channels=8, kernel_size=(3, 3))
+            >>> input_tensor = torch.randn(1, 4, 10, 10)  # Example input
+            >>> output = conv(input_tensor)
+            >>> output.shape
+            torch.Size([1, 8, 10, 10])  # Output shape after convolution
         """
         if self.padding[1] != 0 and self.causal:
             inputs = F.pad(inputs, [self.padding[1], 0, 0, 0])
@@ -404,9 +406,9 @@ class ComplexConvTranspose2d(nn.Module):
     """
     ComplexConvTranspose2d.
 
-        This module performs a 2D transposed convolution operation on complex 
-        inputs, which are expected to be represented as two channels: 
-        real and imaginary. The input channels and output channels are 
+        This module performs a 2D transposed convolution operation on complex
+        inputs, which are expected to be represented as two channels:
+        real and imaginary. The input channels and output channels are
         expected to be double the size (real + imag).
 
         Attributes:
@@ -415,11 +417,11 @@ class ComplexConvTranspose2d(nn.Module):
             kernel_size (tuple): Size of the convolution kernel.
             stride (tuple): Stride of the convolution.
             padding (tuple): Padding added to both sides of the input.
-            output_padding (tuple): Additional size added to one side of the 
+            output_padding (tuple): Additional size added to one side of the
                                     output shape.
-            causal (bool): If True, pads the left side of the time dimension 
+            causal (bool): If True, pads the left side of the time dimension
                            for causal convolutions.
-            complex_axis (int): The axis along which to split the complex 
+            complex_axis (int): The axis along which to split the complex
                                 input into real and imaginary parts.
             groups (int): Number of groups for grouped convolution.
 
@@ -429,17 +431,17 @@ class ComplexConvTranspose2d(nn.Module):
             kernel_size (tuple, optional): Size of the convolution kernel.
             stride (tuple, optional): Stride of the convolution.
             padding (tuple, optional): Padding added to both sides of the input.
-            output_padding (tuple, optional): Additional size added to one side 
+            output_padding (tuple, optional): Additional size added to one side
                                                of the output shape.
-            causal (bool, optional): If True, pads the left side of the time 
+            causal (bool, optional): If True, pads the left side of the time
                                       dimension for causal convolutions.
-            complex_axis (int, optional): The axis along which to split the 
-                                           complex input into real and 
+            complex_axis (int, optional): The axis along which to split the
+                                           complex input into real and
                                            imaginary parts.
             groups (int, optional): Number of groups for grouped convolution.
 
         Returns:
-            torch.Tensor: The output tensor containing concatenated real and 
+            torch.Tensor: The output tensor containing concatenated real and
                           imaginary parts after transposed convolution.
 
         Examples:
@@ -452,9 +454,10 @@ class ComplexConvTranspose2d(nn.Module):
             torch.Size([1, 16, 20, 20])  # Output shape after transposed conv
 
         Note:
-            The input tensor must be structured such that the real and 
+            The input tensor must be structured such that the real and
             imaginary parts are split along the complex axis.
     """
+
     def __init__(
         self,
         in_channels,
@@ -508,42 +511,42 @@ class ComplexConvTranspose2d(nn.Module):
 
     def forward(self, inputs):
         """
-        Applies the complex transposed convolution to the input tensor.
+            Applies the complex transposed convolution to the input tensor.
 
-    This method takes an input tensor, splits it into real and imaginary
-    parts, and then applies the complex transposed convolution operation
-    to these parts separately. The results are then combined to form the
-    output tensor.
+        This method takes an input tensor, splits it into real and imaginary
+        parts, and then applies the complex transposed convolution operation
+        to these parts separately. The results are then combined to form the
+        output tensor.
 
-    Args:
-        inputs (torch.Tensor or tuple or list): The input tensor containing
-            real and imaginary components, which can be in the form of a
-            single tensor or a tuple/list of two tensors.
+        Args:
+            inputs (torch.Tensor or tuple or list): The input tensor containing
+                real and imaginary components, which can be in the form of a
+                single tensor or a tuple/list of two tensors.
 
-    Returns:
-        torch.Tensor: A tensor that contains the output of the complex
-        transposed convolution, with the same format as the input (real and
-        imaginary parts concatenated).
+        Returns:
+            torch.Tensor: A tensor that contains the output of the complex
+            transposed convolution, with the same format as the input (real and
+            imaginary parts concatenated).
 
-    Examples:
-        >>> import torch
-        >>> conv_transpose = ComplexConvTranspose2d(4, 8, kernel_size=(3, 3))
-        >>> input_tensor = torch.randn(1, 8, 10, 10)  # Batch size of 1
-        >>> output = conv_transpose(input_tensor)
-        >>> output.shape
-        torch.Size([1, 16, 12, 12])  # Adjusted dimensions after transposed conv
+        Examples:
+            >>> import torch
+            >>> conv_transpose = ComplexConvTranspose2d(4, 8, kernel_size=(3, 3))
+            >>> input_tensor = torch.randn(1, 8, 10, 10)  # Batch size of 1
+            >>> output = conv_transpose(input_tensor)
+            >>> output.shape
+            torch.Size([1, 16, 12, 12])  # Adjusted dimensions after transposed conv
 
-    Note:
-        The input tensor is expected to be of shape [B, C, H, W] where B is
-        the batch size, C is the number of channels (real + imaginary), H is
-        the height, and W is the width.
+        Note:
+            The input tensor is expected to be of shape [B, C, H, W] where B is
+            the batch size, C is the number of channels (real + imaginary), H is
+            the height, and W is the width.
 
-    Raises:
-        ValueError: If the input tensor does not have the correct number of
-        channels (must be even, as they represent real and imaginary parts).
+        Raises:
+            ValueError: If the input tensor does not have the correct number of
+            channels (must be even, as they represent real and imaginary parts).
 
-    Todo:
-        - Add support for different padding modes in the future.
+        Todo:
+            - Add support for different padding modes in the future.
         """
         if isinstance(inputs, torch.Tensor):
             real, imag = torch.chunk(inputs, 2, self.complex_axis)
@@ -582,33 +585,33 @@ class ComplexBatchNorm(torch.nn.Module):
     """
     Applies Batch Normalization over a complex input.
 
-    This layer normalizes the input based on the mean and variance of 
-    the batch. It operates on complex-valued data by separately 
-    normalizing the real and imaginary parts. The layer supports 
+    This layer normalizes the input based on the mean and variance of
+    the batch. It operates on complex-valued data by separately
+    normalizing the real and imaginary parts. The layer supports
     learnable affine parameters.
 
     Attributes:
         num_features (int): Number of features in the input (real + imag).
-        eps (float): A small constant added to the denominator for 
+        eps (float): A small constant added to the denominator for
             numerical stability.
         momentum (float): Momentum for the running mean and variance.
         affine (bool): If True, this layer has learnable parameters.
-        track_running_stats (bool): If True, this layer tracks 
+        track_running_stats (bool): If True, this layer tracks
             running statistics.
-        complex_axis (int): The axis along which the complex parts 
+        complex_axis (int): The axis along which the complex parts
             are separated.
 
     Args:
         num_features (int): Number of features in the input (real + imag).
-        eps (float, optional): A small constant added to the denominator 
+        eps (float, optional): A small constant added to the denominator
             for numerical stability. Defaults to 1e-5.
-        momentum (float, optional): Momentum for the running mean and 
+        momentum (float, optional): Momentum for the running mean and
             variance. Defaults to 0.1.
-        affine (bool, optional): If True, this layer has learnable 
+        affine (bool, optional): If True, this layer has learnable
             parameters. Defaults to True.
-        track_running_stats (bool, optional): If True, this layer 
+        track_running_stats (bool, optional): If True, this layer
             tracks running statistics. Defaults to True.
-        complex_axis (int, optional): The axis along which the complex 
+        complex_axis (int, optional): The axis along which the complex
             parts are separated. Defaults to 1.
 
     Examples:
@@ -618,13 +621,14 @@ class ComplexBatchNorm(torch.nn.Module):
         >>> output = layer(input_tensor)
 
     Note:
-        The layer normalizes the real and imaginary parts separately and 
+        The layer normalizes the real and imaginary parts separately and
         supports affine transformation for learnable parameters.
 
     Raises:
-        AssertionError: If the input dimensions are not compatible with 
+        AssertionError: If the input dimensions are not compatible with
             the expected dimensions.
     """
+
     def __init__(
         self,
         num_features,
@@ -676,29 +680,29 @@ class ComplexBatchNorm(torch.nn.Module):
 
     def reset_running_stats(self):
         """
-        Reset the running statistics of the batch normalization.
+            Reset the running statistics of the batch normalization.
 
-    This method sets the running mean and running variance to their initial
-    values, which are zeros for the running mean and ones for the running 
-    variance. It also resets the count of batches tracked.
+        This method sets the running mean and running variance to their initial
+        values, which are zeros for the running mean and ones for the running
+        variance. It also resets the count of batches tracked.
 
-    Attributes:
-        RMr (torch.Tensor): Running mean for the real part.
-        RMi (torch.Tensor): Running mean for the imaginary part.
-        RVrr (torch.Tensor): Running variance for the real-real part.
-        RVri (torch.Tensor): Running variance for the real-imaginary part.
-        RVii (torch.Tensor): Running variance for the imaginary-imaginary part.
-        num_batches_tracked (torch.Tensor): Count of batches processed.
+        Attributes:
+            RMr (torch.Tensor): Running mean for the real part.
+            RMi (torch.Tensor): Running mean for the imaginary part.
+            RVrr (torch.Tensor): Running variance for the real-real part.
+            RVri (torch.Tensor): Running variance for the real-imaginary part.
+            RVii (torch.Tensor): Running variance for the imaginary-imaginary part.
+            num_batches_tracked (torch.Tensor): Count of batches processed.
 
-    Note:
-        This method is typically called when you want to reinitialize the
-        statistics, for instance, at the start of a new training phase.
+        Note:
+            This method is typically called when you want to reinitialize the
+            statistics, for instance, at the start of a new training phase.
 
-    Examples:
-        >>> batch_norm = ComplexBatchNorm(num_features=4)
-        >>> batch_norm.reset_running_stats()
-        >>> print(batch_norm.RMr)  # Should print a tensor of zeros
-        >>> print(batch_norm.RVrr)  # Should print a tensor of ones
+        Examples:
+            >>> batch_norm = ComplexBatchNorm(num_features=4)
+            >>> batch_norm.reset_running_stats()
+            >>> print(batch_norm.RMr)  # Should print a tensor of zeros
+            >>> print(batch_norm.RVrr)  # Should print a tensor of ones
         """
         if self.track_running_stats:
             self.RMr.zero_()
@@ -710,32 +714,32 @@ class ComplexBatchNorm(torch.nn.Module):
 
     def reset_parameters(self):
         """
-        Resets the parameters of the ComplexBatchNorm layer.
+            Resets the parameters of the ComplexBatchNorm layer.
 
-    This method resets the running statistics (mean and variance) to their
-    initial values and initializes the learnable parameters (weights and
-    biases) if affine transformation is enabled. The weights are initialized
-    to ensure that the transformation is valid (e.g., positive-definite for
-    covariance).
+        This method resets the running statistics (mean and variance) to their
+        initial values and initializes the learnable parameters (weights and
+        biases) if affine transformation is enabled. The weights are initialized
+        to ensure that the transformation is valid (e.g., positive-definite for
+        covariance).
 
-    Attributes:
-        Br (torch.nn.Parameter): Bias for the real part.
-        Bi (torch.nn.Parameter): Bias for the imaginary part.
-        Wrr (torch.nn.Parameter): Weight for the real-real part.
-        Wri (torch.nn.Parameter): Weight for the real-imaginary part.
-        Wii (torch.nn.Parameter): Weight for the imaginary-imaginary part.
+        Attributes:
+            Br (torch.nn.Parameter): Bias for the real part.
+            Bi (torch.nn.Parameter): Bias for the imaginary part.
+            Wrr (torch.nn.Parameter): Weight for the real-real part.
+            Wri (torch.nn.Parameter): Weight for the real-imaginary part.
+            Wii (torch.nn.Parameter): Weight for the imaginary-imaginary part.
 
-    Note:
-        This method should be called after the initialization of the layer to
-        ensure all parameters are set to their starting values.
+        Note:
+            This method should be called after the initialization of the layer to
+            ensure all parameters are set to their starting values.
 
-    Examples:
-        >>> batch_norm = ComplexBatchNorm(num_features=4)
-        >>> batch_norm.reset_parameters()
-        >>> print(batch_norm.Wrr)
-        tensor([1., 1., 1., 1.])
-        >>> print(batch_norm.Br)
-        tensor([0., 0., 0., 0.])
+        Examples:
+            >>> batch_norm = ComplexBatchNorm(num_features=4)
+            >>> batch_norm.reset_parameters()
+            >>> print(batch_norm.Wrr)
+            tensor([1., 1., 1., 1.])
+            >>> print(batch_norm.Br)
+            tensor([0., 0., 0., 0.])
         """
         if self.affine:
             self.Br.data.zero_()
@@ -750,38 +754,38 @@ class ComplexBatchNorm(torch.nn.Module):
 
     def forward(self, inputs):
         """
-        Applies the complex batch normalization to the input tensor.
+            Applies the complex batch normalization to the input tensor.
 
-    This method performs batch normalization on the input tensor, which is 
-    expected to be in a complex format, where the real and imaginary parts 
-    are concatenated along a specified axis. The method computes the mean 
-    and variance for both the real and imaginary parts and normalizes the 
-    inputs accordingly. If the layer is in training mode and tracking 
-    running statistics, it updates the running mean and variance.
+        This method performs batch normalization on the input tensor, which is
+        expected to be in a complex format, where the real and imaginary parts
+        are concatenated along a specified axis. The method computes the mean
+        and variance for both the real and imaginary parts and normalizes the
+        inputs accordingly. If the layer is in training mode and tracking
+        running statistics, it updates the running mean and variance.
 
-    Args:
-        inputs (torch.Tensor): A tensor containing the input data with 
-            shape (..., 2 * num_features) where the last dimension 
-            contains the real and imaginary parts.
+        Args:
+            inputs (torch.Tensor): A tensor containing the input data with
+                shape (..., 2 * num_features) where the last dimension
+                contains the real and imaginary parts.
 
-    Returns:
-        torch.Tensor: The normalized output tensor, which has the same 
-            shape as the input tensor.
+        Returns:
+            torch.Tensor: The normalized output tensor, which has the same
+                shape as the input tensor.
 
-    Raises:
-        AssertionError: If the dimensions of the real and imaginary parts 
-            do not match or if the input tensor does not have the correct 
-            number of features.
+        Raises:
+            AssertionError: If the dimensions of the real and imaginary parts
+                do not match or if the input tensor does not have the correct
+                number of features.
 
-    Examples:
-        >>> batch_norm = ComplexBatchNorm(num_features=4)
-        >>> input_tensor = torch.randn(10, 8)  # 10 samples, 4 real + 4 imag
-        >>> output = batch_norm(input_tensor)
+        Examples:
+            >>> batch_norm = ComplexBatchNorm(num_features=4)
+            >>> input_tensor = torch.randn(10, 8)  # 10 samples, 4 real + 4 imag
+            >>> output = batch_norm(input_tensor)
 
-    Note:
-        This method uses the `momentum` parameter for updating running 
-        statistics if the layer is in training mode. If `momentum` is 
-        set to None, a cumulative moving average is used instead.
+        Note:
+            This method uses the `momentum` parameter for updating running
+            statistics if the layer is in training mode. If `momentum` is
+            set to None, a cumulative moving average is used instead.
         """
         xr, xi = torch.chunk(inputs, 2, axis=self.complex_axis)
         exponential_average_factor = 0.0
@@ -886,45 +890,45 @@ class ComplexBatchNorm(torch.nn.Module):
 
     def extra_repr(self):
         """
-        Class for applying complex batch normalization to complex-valued inputs.
+            Class for applying complex batch normalization to complex-valued inputs.
 
-    This class implements complex batch normalization, which normalizes both the
-    real and imaginary parts of the input. It maintains running statistics for
-    training and evaluation modes.
+        This class implements complex batch normalization, which normalizes both the
+        real and imaginary parts of the input. It maintains running statistics for
+        training and evaluation modes.
 
-    Attributes:
-        num_features (int): The number of features in the input (real + imag).
-        eps (float): A value added to the denominator for numerical stability.
-        momentum (float): The value used for the running_mean and running_var
-            computation.
-        affine (bool): If True, this module has learnable parameters.
-        track_running_stats (bool): If True, tracks the running mean and variance.
-        complex_axis (int): The axis along which the complex parts are split.
+        Attributes:
+            num_features (int): The number of features in the input (real + imag).
+            eps (float): A value added to the denominator for numerical stability.
+            momentum (float): The value used for the running_mean and running_var
+                computation.
+            affine (bool): If True, this module has learnable parameters.
+            track_running_stats (bool): If True, tracks the running mean and variance.
+            complex_axis (int): The axis along which the complex parts are split.
 
-    Args:
-        num_features (int): Number of features (real + imag) in the input.
-        eps (float, optional): Default is 1e-5.
-        momentum (float, optional): Default is 0.1.
-        affine (bool, optional): Default is True.
-        track_running_stats (bool, optional): Default is True.
-        complex_axis (int, optional): Default is 1.
+        Args:
+            num_features (int): Number of features (real + imag) in the input.
+            eps (float, optional): Default is 1e-5.
+            momentum (float, optional): Default is 0.1.
+            affine (bool, optional): Default is True.
+            track_running_stats (bool, optional): Default is True.
+            complex_axis (int, optional): Default is 1.
 
-    Methods:
-        reset_running_stats(): Resets the running mean and variance.
-        reset_parameters(): Resets learnable parameters and running stats.
-        forward(inputs): Applies complex batch normalization to the input.
+        Methods:
+            reset_running_stats(): Resets the running mean and variance.
+            reset_parameters(): Resets learnable parameters and running stats.
+            forward(inputs): Applies complex batch normalization to the input.
 
-    Examples:
-        >>> batch_norm = ComplexBatchNorm(num_features=4)
-        >>> input_tensor = torch.randn(2, 4, 10)  # (batch_size, features, time)
-        >>> output_tensor = batch_norm(input_tensor)
+        Examples:
+            >>> batch_norm = ComplexBatchNorm(num_features=4)
+            >>> input_tensor = torch.randn(2, 4, 10)  # (batch_size, features, time)
+            >>> output_tensor = batch_norm(input_tensor)
 
-    Note:
-        The `forward` method will compute batch normalization for the real and
-        imaginary parts of the input tensor separately.
+        Note:
+            The `forward` method will compute batch normalization for the real and
+            imaginary parts of the input tensor separately.
 
-    Todo:
-        - Add support for additional features if required.
+        Todo:
+            - Add support for additional features if required.
         """
         return (
             "{num_features}, eps={eps}, momentum={momentum}, affine={affine}, "

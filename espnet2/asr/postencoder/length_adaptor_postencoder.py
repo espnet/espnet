@@ -17,45 +17,45 @@ class LengthAdaptorPostEncoder(AbsPostEncoder):
     """
     Length Adaptor PostEncoder.
 
-    This class implements a Length Adaptor PostEncoder which is a component 
-    designed to adapt the length of input sequences through convolutional 
-    layers, based on the specified parameters. It is particularly useful in 
+    This class implements a Length Adaptor PostEncoder which is a component
+    designed to adapt the length of input sequences through convolutional
+    layers, based on the specified parameters. It is particularly useful in
     asynchronous speech recognition systems where input lengths may vary.
 
     Attributes:
         embed (torch.nn.Sequential): The embedding layer for input processing.
         out_sz (int): The output size of the encoder.
-        length_adaptor (torch.nn.Sequential): The sequential layers for length 
+        length_adaptor (torch.nn.Sequential): The sequential layers for length
             adaptation.
-        length_adaptor_ratio (int): The ratio by which input lengths are 
+        length_adaptor_ratio (int): The ratio by which input lengths are
             adjusted.
-        return_int_enc (bool): A flag to determine if the integer encoding should 
+        return_int_enc (bool): A flag to determine if the integer encoding should
             be returned.
 
     Args:
         input_size (int): The size of the input features.
-        length_adaptor_n_layers (int, optional): The number of convolutional 
+        length_adaptor_n_layers (int, optional): The number of convolutional
             layers in the length adaptor. Defaults to 0.
-        input_layer (Optional[str], optional): Type of input layer ('linear' or 
+        input_layer (Optional[str], optional): Type of input layer ('linear' or
             None). Defaults to None.
-        output_size (Optional[int], optional): The size of the output features 
+        output_size (Optional[int], optional): The size of the output features
             if input_layer is 'linear'. Defaults to None.
-        dropout_rate (float, optional): The dropout rate for regularization. 
+        dropout_rate (float, optional): The dropout rate for regularization.
             Defaults to 0.1.
-        return_int_enc (bool, optional): Whether to return integer encoding. 
+        return_int_enc (bool, optional): Whether to return integer encoding.
             Defaults to False.
 
     Returns:
-        Tuple[torch.Tensor, torch.Tensor]: The adapted input tensor and the 
+        Tuple[torch.Tensor, torch.Tensor]: The adapted input tensor and the
         updated lengths of the input sequences.
 
     Raises:
-        TooShortUttError: If the input sequence length is shorter than the 
+        TooShortUttError: If the input sequence length is shorter than the
             required length for subsampling.
 
     Examples:
-        >>> post_encoder = LengthAdaptorPostEncoder(input_size=128, 
-        ...                                          length_adaptor_n_layers=2, 
+        >>> post_encoder = LengthAdaptorPostEncoder(input_size=128,
+        ...                                          length_adaptor_n_layers=2,
         ...                                          output_size=256)
         >>> input_tensor = torch.randn(10, 50, 128)  # (batch_size, seq_len, features)
         >>> input_lengths = torch.tensor([50] * 10)  # Lengths of each input
@@ -64,7 +64,7 @@ class LengthAdaptorPostEncoder(AbsPostEncoder):
         >>> print(new_lengths)  # Updated lengths after adaptation
 
     Note:
-        This implementation follows the design described in the paper 
+        This implementation follows the design described in the paper
         "Length Adaptor for End-to-End ASR" (ACL 2021).
 
     Todo:
@@ -123,34 +123,34 @@ class LengthAdaptorPostEncoder(AbsPostEncoder):
         adaptor, and returns the transformed input along with updated lengths.
 
         Args:
-            input (torch.Tensor): Input tensor of shape (batch_size, 
+            input (torch.Tensor): Input tensor of shape (batch_size,
                                   input_size, sequence_length).
-            input_lengths (torch.Tensor): Tensor of shape (batch_size,) 
-                                           containing the lengths of each 
+            input_lengths (torch.Tensor): Tensor of shape (batch_size,)
+                                           containing the lengths of each
                                            input sequence.
 
         Returns:
             Tuple[torch.Tensor, torch.Tensor]: A tuple containing:
-                - output (torch.Tensor): Transformed output tensor of shape 
-                                         (batch_size, output_size, 
+                - output (torch.Tensor): Transformed output tensor of shape
+                                         (batch_size, output_size,
                                          new_sequence_length).
-                - output_lengths (torch.Tensor): Updated lengths of the output 
+                - output_lengths (torch.Tensor): Updated lengths of the output
                                                    sequences.
 
         Raises:
-            TooShortUttError: If the input sequence is shorter than the 
+            TooShortUttError: If the input sequence is shorter than the
                               required length for subsampling.
 
         Examples:
-            >>> encoder = LengthAdaptorPostEncoder(input_size=128, 
+            >>> encoder = LengthAdaptorPostEncoder(input_size=128,
             ...                                     length_adaptor_n_layers=2)
             >>> input_tensor = torch.randn(10, 128, 20)  # batch_size=10
             >>> input_lengths = torch.tensor([20] * 10)  # all sequences have length 20
             >>> output, output_lengths = encoder.forward(input_tensor, input_lengths)
 
         Note:
-            The length adaptor reduces the sequence length by a factor of 
-            `2 ** length_adaptor_n_layers`. Ensure that the input sequences 
+            The length adaptor reduces the sequence length by a factor of
+            `2 ** length_adaptor_n_layers`. Ensure that the input sequences
             are sufficiently long to avoid raising the TooShortUttError.
         """
         if input.size(1) < self.length_adaptor_ratio:

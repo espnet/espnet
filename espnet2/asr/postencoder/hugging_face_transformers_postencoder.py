@@ -181,8 +181,8 @@ class HuggingFaceTransformersPostEncoder(AbsPostEncoder):
         """
         Hugging Face Transformers PostEncoder.
 
-        This class serves as a post-encoder that utilizes pre-trained models from 
-        Hugging Face's Transformers library to process input sequences. It includes 
+        This class serves as a post-encoder that utilizes pre-trained models from
+        Hugging Face's Transformers library to process input sequences. It includes
         functionalities for length adaptation and handling language token embeddings.
 
         Attributes:
@@ -190,21 +190,21 @@ class HuggingFaceTransformersPostEncoder(AbsPostEncoder):
             lang_token_embed: The embedding for the language token, if applicable.
             pretrained_params: A deep copy of the transformer model's state dictionary.
             use_inputs_embeds: A boolean indicating whether to use input embeddings.
-            extend_attention_mask: A boolean indicating whether to extend the 
+            extend_attention_mask: A boolean indicating whether to extend the
                 attention mask.
-            linear_in: A linear layer to project input features to the transformer's 
+            linear_in: A linear layer to project input features to the transformer's
                 hidden size.
             length_adaptor: A sequential model for length adaptation.
-            length_adaptor_ratio: The ratio of input length to output length 
+            length_adaptor_ratio: The ratio of input length to output length
                 after adaptation.
 
         Args:
             input_size (int): The size of the input features.
-            model_name_or_path (str): The model name or path to the pre-trained 
+            model_name_or_path (str): The model name or path to the pre-trained
                 model.
-            length_adaptor_n_layers (int, optional): Number of convolutional layers 
+            length_adaptor_n_layers (int, optional): Number of convolutional layers
                 for length adaptation. Defaults to 0.
-            lang_token_id (int, optional): The token ID for the language token. 
+            lang_token_id (int, optional): The token ID for the language token.
                 Defaults to -1.
 
         Raises:
@@ -212,7 +212,7 @@ class HuggingFaceTransformersPostEncoder(AbsPostEncoder):
 
         Examples:
             >>> post_encoder = HuggingFaceTransformersPostEncoder(
-            ...     input_size=128, 
+            ...     input_size=128,
             ...     model_name_or_path='bert-base-uncased'
             ... )
             >>> input_tensor = torch.rand(2, 128, 128)  # Batch of 2
@@ -220,7 +220,7 @@ class HuggingFaceTransformersPostEncoder(AbsPostEncoder):
             >>> output, output_lengths = post_encoder.forward(input_tensor, input_lengths)
 
         Note:
-            The forward method expects input tensors of shape (batch_size, seq_len, 
+            The forward method expects input tensors of shape (batch_size, seq_len,
             input_size) and input_lengths of shape (batch_size,).
         """
         if input.size(1) < self.length_adaptor_ratio:
@@ -277,25 +277,25 @@ class HuggingFaceTransformersPostEncoder(AbsPostEncoder):
         Reloads the pretrained parameters of the Hugging Face Transformers model.
 
         This method restores the parameters of the transformer model to their initial
-        state as defined when the instance of `HuggingFaceTransformersPostEncoder` 
-        was created. This can be useful when you want to reset the model's weights 
+        state as defined when the instance of `HuggingFaceTransformersPostEncoder`
+        was created. This can be useful when you want to reset the model's weights
         to the pretrained values after fine-tuning or any modification.
 
         Example:
             >>> post_encoder = HuggingFaceTransformersPostEncoder(
-            ...     input_size=128, 
+            ...     input_size=128,
             ...     model_name_or_path='bert-base-uncased'
             ... )
             >>> # Fine-tuning or modifying the model parameters...
             >>> post_encoder.reload_pretrained_parameters()  # Reloads pretrained params
 
         Note:
-            Ensure that the model has been initialized and pretrained parameters 
-            are stored before calling this method, or it will reload with 
+            Ensure that the model has been initialized and pretrained parameters
+            are stored before calling this method, or it will reload with
             the last saved state.
 
         Raises:
-            RuntimeError: If the model is not properly initialized or the 
+            RuntimeError: If the model is not properly initialized or the
             pretrained parameters are not available.
         """
         logging.info("Pretrained Transformers model parameters reloaded!")

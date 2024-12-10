@@ -78,16 +78,16 @@ class ConditionalBatchNorm2d(nn.Module):
     """
     Conditional Batch Normalization layer.
 
-    This layer applies batch normalization conditionally based on the class 
-    labels provided. It allows for learning different scaling and shifting 
-    parameters for different classes, which can be useful in tasks where 
+    This layer applies batch normalization conditionally based on the class
+    labels provided. It allows for learning different scaling and shifting
+    parameters for different classes, which can be useful in tasks where
     the input data can be categorized into distinct classes.
 
     Attributes:
         num_features (int): Number of features (channels) in the input tensor.
         bias (bool): Whether to include bias parameters in the normalization.
         bn (nn.BatchNorm2d): Batch normalization layer without affine parameters.
-        embed (nn.Embedding): Embedding layer to learn scaling and bias 
+        embed (nn.Embedding): Embedding layer to learn scaling and bias
             parameters based on class labels.
 
     Args:
@@ -107,15 +107,16 @@ class ConditionalBatchNorm2d(nn.Module):
         >>> output = batch_norm(x, y)
 
     Note:
-        The scaling and bias parameters are initialized randomly. The 
-        scaling parameters are initialized to a normal distribution with 
-        mean 1 and standard deviation 0.02, while the bias parameters 
+        The scaling and bias parameters are initialized randomly. The
+        scaling parameters are initialized to a normal distribution with
+        mean 1 and standard deviation 0.02, while the bias parameters
         are initialized to zero.
 
     Raises:
-        ValueError: If the input tensor dimensions do not match the expected 
+        ValueError: If the input tensor dimensions do not match the expected
             shape for batch normalization.
     """
+
     def __init__(self, num_features, num_classes, bias=True):
         super().__init__()
         self.num_features = num_features
@@ -133,40 +134,40 @@ class ConditionalBatchNorm2d(nn.Module):
 
     def forward(self, x, y):
         """
-        Applies the conditional batch normalization to the input tensor.
+            Applies the conditional batch normalization to the input tensor.
 
-    This method normalizes the input tensor `x` using batch normalization
-    and applies a conditional scaling and shifting based on the class
-    embeddings indexed by `y`. If bias is enabled, the method retrieves
-    both scale (`gamma`) and bias (`beta`) parameters from the embedding
-    layer and applies them to the normalized output.
+        This method normalizes the input tensor `x` using batch normalization
+        and applies a conditional scaling and shifting based on the class
+        embeddings indexed by `y`. If bias is enabled, the method retrieves
+        both scale (`gamma`) and bias (`beta`) parameters from the embedding
+        layer and applies them to the normalized output.
 
-    Args:
-        x (torch.Tensor): The input tensor of shape (N, C, H, W), where N
-            is the batch size, C is the number of channels, H is the height,
-            and W is the width.
-        y (torch.Tensor): The tensor containing class indices of shape (N,)
-            for which the normalization parameters will be conditioned.
+        Args:
+            x (torch.Tensor): The input tensor of shape (N, C, H, W), where N
+                is the batch size, C is the number of channels, H is the height,
+                and W is the width.
+            y (torch.Tensor): The tensor containing class indices of shape (N,)
+                for which the normalization parameters will be conditioned.
 
-    Returns:
-        torch.Tensor: The output tensor after applying conditional batch
-        normalization, having the same shape as the input tensor `x`.
+        Returns:
+            torch.Tensor: The output tensor after applying conditional batch
+            normalization, having the same shape as the input tensor `x`.
 
-    Examples:
-        >>> c_bn = ConditionalBatchNorm2d(num_features=64, num_classes=10)
-        >>> input_tensor = torch.randn(32, 64, 8, 8)  # Batch of 32 images
-        >>> class_indices = torch.randint(0, 10, (32,))  # Random class indices
-        >>> output_tensor = c_bn(input_tensor, class_indices)
-        >>> output_tensor.shape
-        torch.Size([32, 64, 8, 8])
+        Examples:
+            >>> c_bn = ConditionalBatchNorm2d(num_features=64, num_classes=10)
+            >>> input_tensor = torch.randn(32, 64, 8, 8)  # Batch of 32 images
+            >>> class_indices = torch.randint(0, 10, (32,))  # Random class indices
+            >>> output_tensor = c_bn(input_tensor, class_indices)
+            >>> output_tensor.shape
+            torch.Size([32, 64, 8, 8])
 
-    Note:
-        The `y` tensor must contain valid class indices within the range
-        [0, num_classes - 1].
+        Note:
+            The `y` tensor must contain valid class indices within the range
+            [0, num_classes - 1].
 
-    Raises:
-        RuntimeError: If the input tensor `x` does not have the expected
-        shape or if the class indices `y` are out of bounds.
+        Raises:
+            RuntimeError: If the input tensor `x` does not have the expected
+            shape or if the class indices `y` are out of bounds.
         """
         out = self.bn(x)
         if self.bias:
@@ -184,9 +185,9 @@ class ConditionalInstanceNorm2d(nn.Module):
     """
     Applies Conditional Instance Normalization over a 4D input.
 
-    ConditionalInstanceNorm2d normalizes the input tensor based on the 
-    instance statistics and the provided class condition. It uses an 
-    embedding layer to learn the scaling and shifting parameters 
+    ConditionalInstanceNorm2d normalizes the input tensor based on the
+    instance statistics and the provided class condition. It uses an
+    embedding layer to learn the scaling and shifting parameters
     conditioned on the class label.
 
     Attributes:
@@ -220,6 +221,7 @@ class ConditionalInstanceNorm2d(nn.Module):
     Raises:
         RuntimeError: If the number of classes is less than or equal to zero.
     """
+
     def __init__(self, num_features, num_classes, bias=True):
         super().__init__()
         self.num_features = num_features
@@ -239,32 +241,32 @@ class ConditionalInstanceNorm2d(nn.Module):
 
     def forward(self, x, y):
         """
-        Applies Conditional Instance Normalization to the input tensor.
+            Applies Conditional Instance Normalization to the input tensor.
 
-    This method performs instance normalization on the input tensor `x`
-    conditioned on the class labels `y`. If bias is enabled, it also applies
-    learned scaling (gamma) and shifting (beta) parameters based on the
-    class labels.
+        This method performs instance normalization on the input tensor `x`
+        conditioned on the class labels `y`. If bias is enabled, it also applies
+        learned scaling (gamma) and shifting (beta) parameters based on the
+        class labels.
 
-    Args:
-        x (torch.Tensor): Input tensor of shape (N, C, H, W) where N is the
-            batch size, C is the number of channels, H is the height, and W
-            is the width.
-        y (torch.Tensor): Class labels of shape (N,) where each entry is an
-            integer representing the class index corresponding to the input
-            tensor.
+        Args:
+            x (torch.Tensor): Input tensor of shape (N, C, H, W) where N is the
+                batch size, C is the number of channels, H is the height, and W
+                is the width.
+            y (torch.Tensor): Class labels of shape (N,) where each entry is an
+                integer representing the class index corresponding to the input
+                tensor.
 
-    Returns:
-        torch.Tensor: The output tensor after applying conditional instance
-        normalization. The output has the same shape as the input tensor.
+        Returns:
+            torch.Tensor: The output tensor after applying conditional instance
+            normalization. The output has the same shape as the input tensor.
 
-    Examples:
-        >>> model = ConditionalInstanceNorm2d(num_features=64, num_classes=10)
-        >>> x = torch.randn(8, 64, 32, 32)  # Batch of 8 images
-        >>> y = torch.randint(0, 10, (8,))  # Random class labels
-        >>> output = model(x, y)
-        >>> print(output.shape)
-        torch.Size([8, 64, 32, 32])  # Output shape matches input shape
+        Examples:
+            >>> model = ConditionalInstanceNorm2d(num_features=64, num_classes=10)
+            >>> x = torch.randn(8, 64, 32, 32)  # Batch of 8 images
+            >>> y = torch.randint(0, 10, (8,))  # Random class labels
+            >>> output = model(x, y)
+            >>> print(output.shape)
+            torch.Size([8, 64, 32, 32])  # Output shape matches input shape
         """
         h = self.instance_norm(x)
         if self.bias:
@@ -282,17 +284,17 @@ class ConditionalVarianceNorm2d(nn.Module):
     """
     Conditional Variance Normalization layer.
 
-    This layer normalizes the input tensor based on its variance, 
-    conditioned on class embeddings. The normalization is performed 
-    by scaling the input tensor using learnable parameters that are 
+    This layer normalizes the input tensor based on its variance,
+    conditioned on class embeddings. The normalization is performed
+    by scaling the input tensor using learnable parameters that are
     dependent on the class of the input.
 
     Attributes:
         num_features (int): The number of features (channels) in the input.
-        bias (bool): A flag indicating whether to include bias in the 
-            normalization. If True, the layer will use an embedding 
+        bias (bool): A flag indicating whether to include bias in the
+            normalization. If True, the layer will use an embedding
             to learn the scale.
-        embed (nn.Embedding): An embedding layer to map class indices 
+        embed (nn.Embedding): An embedding layer to map class indices
             to scale parameters.
 
     Args:
@@ -318,9 +320,10 @@ class ConditionalVarianceNorm2d(nn.Module):
         for numerical stability during the normalization.
 
     Raises:
-        ValueError: If the input tensor does not have the expected number of 
+        ValueError: If the input tensor does not have the expected number of
             dimensions.
     """
+
     def __init__(self, num_features, num_classes, bias=False):
         super().__init__()
         self.num_features = num_features
@@ -330,39 +333,39 @@ class ConditionalVarianceNorm2d(nn.Module):
 
     def forward(self, x, y):
         """
-        Apply the Conditional Variance Normalization to the input tensor.
+            Apply the Conditional Variance Normalization to the input tensor.
 
-    This method computes the variance of the input tensor `x` across 
-    the spatial dimensions (height and width), normalizes `x` using 
-    the computed variance, and scales the normalized tensor using the 
-    embeddings obtained from the class indices `y`. The embeddings are 
-    used to control the scaling factor for the normalized output.
+        This method computes the variance of the input tensor `x` across
+        the spatial dimensions (height and width), normalizes `x` using
+        the computed variance, and scales the normalized tensor using the
+        embeddings obtained from the class indices `y`. The embeddings are
+        used to control the scaling factor for the normalized output.
 
-    Args:
-        x (torch.Tensor): The input tensor of shape 
-            (N, C, H, W), where N is the batch size, C is the number of 
-            channels, H is the height, and W is the width.
-        y (torch.Tensor): The tensor of class indices of shape 
-            (N,) that determines the scaling factors for each input in 
-            the batch.
+        Args:
+            x (torch.Tensor): The input tensor of shape
+                (N, C, H, W), where N is the batch size, C is the number of
+                channels, H is the height, and W is the width.
+            y (torch.Tensor): The tensor of class indices of shape
+                (N,) that determines the scaling factors for each input in
+                the batch.
 
-    Returns:
-        torch.Tensor: The output tensor of shape (N, C, H, W) after 
-        applying the Conditional Variance Normalization.
+        Returns:
+            torch.Tensor: The output tensor of shape (N, C, H, W) after
+            applying the Conditional Variance Normalization.
 
-    Examples:
-        >>> import torch
-        >>> model = ConditionalVarianceNorm2d(num_features=64, num_classes=10)
-        >>> x = torch.randn(8, 64, 32, 32)  # A batch of 8 images
-        >>> y = torch.randint(0, 10, (8,))  # Random class indices for batch
-        >>> output = model(x, y)
-        >>> print(output.shape)
-        torch.Size([8, 64, 32, 32])
+        Examples:
+            >>> import torch
+            >>> model = ConditionalVarianceNorm2d(num_features=64, num_classes=10)
+            >>> x = torch.randn(8, 64, 32, 32)  # A batch of 8 images
+            >>> y = torch.randint(0, 10, (8,))  # Random class indices for batch
+            >>> output = model(x, y)
+            >>> print(output.shape)
+            torch.Size([8, 64, 32, 32])
 
-    Note:
-        The variance is computed with a small constant added to avoid 
-        division by zero. The output will have the same shape as the 
-        input tensor.
+        Note:
+            The variance is computed with a small constant added to avoid
+            division by zero. The output will have the same shape as the
+            input tensor.
         """
         vars = torch.var(x, dim=(2, 3), keepdim=True)
         h = x / torch.sqrt(vars + 1e-5)
@@ -376,21 +379,21 @@ class VarianceNorm2d(nn.Module):
     """
     Variance Normalization layer for 2D inputs.
 
-    This layer normalizes the input tensor by its variance. It scales the 
-    normalized output using learnable parameters. This can help stabilize 
-    training and improve model performance by controlling the variance of 
+    This layer normalizes the input tensor by its variance. It scales the
+    normalized output using learnable parameters. This can help stabilize
+    training and improve model performance by controlling the variance of
     the activations.
 
     Attributes:
         num_features (int): The number of input features (channels).
-        bias (bool): If True, includes a bias term. Not currently used in 
+        bias (bool): If True, includes a bias term. Not currently used in
             this implementation.
-        alpha (nn.Parameter): Learnable scaling parameter initialized from 
+        alpha (nn.Parameter): Learnable scaling parameter initialized from
             a normal distribution with mean 1 and standard deviation 0.02.
 
     Args:
         num_features (int): Number of features (channels) in the input.
-        bias (bool, optional): Whether to include a bias term. Defaults to 
+        bias (bool, optional): Whether to include a bias term. Defaults to
             False.
 
     Returns:
@@ -404,10 +407,11 @@ class VarianceNorm2d(nn.Module):
         torch.Size([10, 64, 32, 32])
 
     Note:
-        The variance is computed over the spatial dimensions (height and 
-        width) of the input tensor. A small constant (1e-5) is added to 
+        The variance is computed over the spatial dimensions (height and
+        width) of the input tensor. A small constant (1e-5) is added to
         avoid division by zero.
     """
+
     def __init__(self, num_features, bias=False):
         super().__init__()
         self.num_features = num_features
@@ -417,32 +421,32 @@ class VarianceNorm2d(nn.Module):
 
     def forward(self, x):
         """
-        Applies the variance normalization to the input tensor.
+            Applies the variance normalization to the input tensor.
 
-    This method computes the variance of the input tensor `x` along the spatial
-    dimensions (height and width) and normalizes the input by dividing it by the 
-    square root of the variance (plus a small epsilon for numerical stability).
-    It then scales the normalized output using the learnable parameter `alpha`.
+        This method computes the variance of the input tensor `x` along the spatial
+        dimensions (height and width) and normalizes the input by dividing it by the
+        square root of the variance (plus a small epsilon for numerical stability).
+        It then scales the normalized output using the learnable parameter `alpha`.
 
-    Args:
-        x (torch.Tensor): Input tensor of shape (N, C, H, W) where:
-            N = batch size,
-            C = number of channels,
-            H = height of the feature map,
-            W = width of the feature map.
+        Args:
+            x (torch.Tensor): Input tensor of shape (N, C, H, W) where:
+                N = batch size,
+                C = number of channels,
+                H = height of the feature map,
+                W = width of the feature map.
 
-    Returns:
-        torch.Tensor: The normalized output tensor of the same shape as the input.
+        Returns:
+            torch.Tensor: The normalized output tensor of the same shape as the input.
 
-    Examples:
-        >>> model = VarianceNorm2d(num_features=3)
-        >>> input_tensor = torch.randn(2, 3, 4, 4)  # Batch size of 2, 3 channels
-        >>> output_tensor = model(input_tensor)
-        >>> output_tensor.shape
-        torch.Size([2, 3, 4, 4])
+        Examples:
+            >>> model = VarianceNorm2d(num_features=3)
+            >>> input_tensor = torch.randn(2, 3, 4, 4)  # Batch size of 2, 3 channels
+            >>> output_tensor = model(input_tensor)
+            >>> output_tensor.shape
+            torch.Size([2, 3, 4, 4])
 
-    Note:
-        The normalization is performed per channel independently.
+        Note:
+            The normalization is performed per channel independently.
         """
         vars = torch.var(x, dim=(2, 3), keepdim=True)
         h = x / torch.sqrt(vars + 1e-5)
@@ -492,6 +496,7 @@ class ConditionalNoneNorm2d(nn.Module):
     Todo:
         - Implement additional normalization techniques as required.
     """
+
     def __init__(self, num_features, num_classes, bias=True):
         super().__init__()
         self.num_features = num_features
@@ -508,36 +513,36 @@ class ConditionalNoneNorm2d(nn.Module):
 
     def forward(self, x, y):
         """
-        Applies the Conditional None Normalization to the input tensor.
+            Applies the Conditional None Normalization to the input tensor.
 
-    This method normalizes the input tensor `x` based on the class 
-    embeddings obtained from the input tensor `y`. If the `bias` 
-    attribute is set to True, it uses two separate embeddings for scale 
-    (gamma) and bias (beta). If `bias` is False, it only applies the 
-    scale.
+        This method normalizes the input tensor `x` based on the class
+        embeddings obtained from the input tensor `y`. If the `bias`
+        attribute is set to True, it uses two separate embeddings for scale
+        (gamma) and bias (beta). If `bias` is False, it only applies the
+        scale.
 
-    Args:
-        x (torch.Tensor): Input tensor of shape (N, C, H, W), where
-            N is the batch size, C is the number of features, H is the
-            height, and W is the width.
-        y (torch.Tensor): Class indices of shape (N,) used to index the
-            embedding layer.
+        Args:
+            x (torch.Tensor): Input tensor of shape (N, C, H, W), where
+                N is the batch size, C is the number of features, H is the
+                height, and W is the width.
+            y (torch.Tensor): Class indices of shape (N,) used to index the
+                embedding layer.
 
-    Returns:
-        torch.Tensor: The output tensor after applying Conditional None 
-        Normalization, with the same shape as the input tensor `x`.
+        Returns:
+            torch.Tensor: The output tensor after applying Conditional None
+            Normalization, with the same shape as the input tensor `x`.
 
-    Examples:
-        >>> model = ConditionalNoneNorm2d(num_features=64, num_classes=10)
-        >>> x = torch.randn(8, 64, 32, 32)  # Batch of 8 images
-        >>> y = torch.randint(0, 10, (8,))  # Random class indices
-        >>> output = model(x, y)
-        >>> print(output.shape)  # Should be torch.Size([8, 64, 32, 32])
+        Examples:
+            >>> model = ConditionalNoneNorm2d(num_features=64, num_classes=10)
+            >>> x = torch.randn(8, 64, 32, 32)  # Batch of 8 images
+            >>> y = torch.randint(0, 10, (8,))  # Random class indices
+            >>> output = model(x, y)
+            >>> print(output.shape)  # Should be torch.Size([8, 64, 32, 32])
 
-    Note:
-        This normalization technique does not change the input tensor 
-        shape, and it is particularly useful for tasks where 
-        conditioning on class information is necessary.
+        Note:
+            This normalization technique does not change the input tensor
+            shape, and it is particularly useful for tasks where
+            conditioning on class information is necessary.
         """
         if self.bias:
             gamma, beta = self.embed(y).chunk(2, dim=-1)
@@ -560,7 +565,7 @@ class NoneNorm2d(nn.Module):
 
     Attributes:
         num_features (int): The number of input features (channels).
-        bias (bool): Whether to use bias in the layer. This is not used in 
+        bias (bool): Whether to use bias in the layer. This is not used in
             this implementation.
 
     Args:
@@ -581,51 +586,52 @@ class NoneNorm2d(nn.Module):
     Note:
         This layer is primarily used in models where normalization is optional.
     """
+
     def __init__(self, num_features, bias=True):
         super().__init__()
 
     def forward(self, x):
         """
-        Applies the normalization transformation to the input tensor.
+            Applies the normalization transformation to the input tensor.
 
-    This method takes an input tensor `x` and a condition tensor `y` to 
-    perform normalization. The specific type of normalization applied 
-    depends on the initialization of the instance. If `bias` is enabled, 
-    the output will be adjusted with learned scaling (`gamma`) and 
-    shifting (`beta`) parameters derived from the embedding of `y`.
+        This method takes an input tensor `x` and a condition tensor `y` to
+        perform normalization. The specific type of normalization applied
+        depends on the initialization of the instance. If `bias` is enabled,
+        the output will be adjusted with learned scaling (`gamma`) and
+        shifting (`beta`) parameters derived from the embedding of `y`.
 
-    Args:
-        x (torch.Tensor): The input tensor of shape (N, C, H, W), where 
-            N is the batch size, C is the number of channels, and 
-            H and W are the height and width of the input feature maps.
-        y (torch.Tensor): The condition tensor of shape (N,) that contains 
-            class indices for the embedding layer. The indices must be in 
-            the range [0, num_classes).
+        Args:
+            x (torch.Tensor): The input tensor of shape (N, C, H, W), where
+                N is the batch size, C is the number of channels, and
+                H and W are the height and width of the input feature maps.
+            y (torch.Tensor): The condition tensor of shape (N,) that contains
+                class indices for the embedding layer. The indices must be in
+                the range [0, num_classes).
 
-    Returns:
-        torch.Tensor: The output tensor after applying the normalization 
-        operation, with the same shape as the input tensor `x`.
+        Returns:
+            torch.Tensor: The output tensor after applying the normalization
+            operation, with the same shape as the input tensor `x`.
 
-    Examples:
-        >>> model = ConditionalInstanceNorm2d(num_features=64, num_classes=10)
-        >>> x = torch.randn(8, 64, 32, 32)  # Batch of 8 images
-        >>> y = torch.randint(0, 10, (8,))   # Random class indices
-        >>> output = model(x, y)
-        >>> print(output.shape)
-        torch.Size([8, 64, 32, 32])
+        Examples:
+            >>> model = ConditionalInstanceNorm2d(num_features=64, num_classes=10)
+            >>> x = torch.randn(8, 64, 32, 32)  # Batch of 8 images
+            >>> y = torch.randint(0, 10, (8,))   # Random class indices
+            >>> output = model(x, y)
+            >>> print(output.shape)
+            torch.Size([8, 64, 32, 32])
 
-    Note:
-        The output may differ depending on the values of `x` and `y`, 
-        as well as the learned parameters from the embedding layer.
+        Note:
+            The output may differ depending on the values of `x` and `y`,
+            as well as the learned parameters from the embedding layer.
 
-    Raises:
-        RuntimeError: If the input tensor `x` and condition tensor `y` 
-        have incompatible shapes or if any of the operations within 
-        the method fail.
+        Raises:
+            RuntimeError: If the input tensor `x` and condition tensor `y`
+            have incompatible shapes or if any of the operations within
+            the method fail.
 
-    Todo:
-        - Add support for additional normalization techniques.
-        - Implement unit tests to validate the forward method.
+        Todo:
+            - Add support for additional normalization techniques.
+            - Implement unit tests to validate the forward method.
         """
         return x
 
@@ -662,7 +668,7 @@ class InstanceNorm2dPlus(nn.Module):
         torch.Size([10, 64, 32, 32])
 
     Note:
-        The normalization is performed per-instance, meaning that each 
+        The normalization is performed per-instance, meaning that each
         instance in the batch is normalized independently.
 
     Raises:
@@ -672,6 +678,7 @@ class InstanceNorm2dPlus(nn.Module):
         Consider extending the functionality to include other normalization
         techniques in future iterations.
     """
+
     def __init__(self, num_features, bias=True):
         super().__init__()
         self.num_features = num_features
@@ -688,37 +695,37 @@ class InstanceNorm2dPlus(nn.Module):
 
     def forward(self, x):
         """
-        Applies the Conditional Instance Normalization operation.
+            Applies the Conditional Instance Normalization operation.
 
-    This method normalizes the input tensor `x` using instance normalization,
-    followed by a conditional scaling and shifting based on the class 
-    embeddings obtained from the input `y`. The normalization is computed 
-    using the statistics of the input tensor, and the scaling and shifting 
-    parameters are learned through the embedding layer.
+        This method normalizes the input tensor `x` using instance normalization,
+        followed by a conditional scaling and shifting based on the class
+        embeddings obtained from the input `y`. The normalization is computed
+        using the statistics of the input tensor, and the scaling and shifting
+        parameters are learned through the embedding layer.
 
-    Args:
-        x (torch.Tensor): Input tensor of shape (N, C, H, W), where N is the 
-            batch size, C is the number of channels, H is the height, and W 
-            is the width.
-        y (torch.Tensor): Class labels tensor of shape (N,) containing 
-            class indices corresponding to each input in the batch.
+        Args:
+            x (torch.Tensor): Input tensor of shape (N, C, H, W), where N is the
+                batch size, C is the number of channels, H is the height, and W
+                is the width.
+            y (torch.Tensor): Class labels tensor of shape (N,) containing
+                class indices corresponding to each input in the batch.
 
-    Returns:
-        torch.Tensor: The normalized output tensor with the same shape as 
-            input `x`.
+        Returns:
+            torch.Tensor: The normalized output tensor with the same shape as
+                input `x`.
 
-    Examples:
-        >>> model = ConditionalInstanceNorm2dPlus(num_features=64, num_classes=10)
-        >>> x = torch.randn(8, 64, 32, 32)  # Batch of 8 images
-        >>> y = torch.randint(0, 10, (8,))  # Random class indices for the batch
-        >>> output = model(x, y)
-        >>> print(output.shape)
-        torch.Size([8, 64, 32, 32])
+        Examples:
+            >>> model = ConditionalInstanceNorm2dPlus(num_features=64, num_classes=10)
+            >>> x = torch.randn(8, 64, 32, 32)  # Batch of 8 images
+            >>> y = torch.randint(0, 10, (8,))  # Random class indices for the batch
+            >>> output = model(x, y)
+            >>> print(output.shape)
+            torch.Size([8, 64, 32, 32])
 
-    Note:
-        The instance normalization is computed over the spatial dimensions of 
-        the input tensor, and the class embeddings are used to adjust the 
-        output through learned parameters.
+        Note:
+            The instance normalization is computed over the spatial dimensions of
+            the input tensor, and the class embeddings are used to adjust the
+            output through learned parameters.
         """
         means = torch.mean(x, dim=(2, 3))
         m = torch.mean(means, dim=-1, keepdim=True)
@@ -770,10 +777,11 @@ class ConditionalInstanceNorm2dPlus(nn.Module):
         The input tensor `x` is expected to have the shape
         (batch_size, num_features, height, width). The class labels `y`
         should have the shape (batch_size,).
-    
+
     Todo:
         - Add support for additional normalization techniques.
     """
+
     def __init__(self, num_features, num_classes, bias=True):
         super().__init__()
         self.num_features = num_features
@@ -795,41 +803,41 @@ class ConditionalInstanceNorm2dPlus(nn.Module):
 
     def forward(self, x, y):
         """
-        Applies the Conditional Instance Normalization operation.
+            Applies the Conditional Instance Normalization operation.
 
-    This method performs Conditional Instance Normalization on the input tensor
-    `x` based on the class label `y`. The operation normalizes the input tensor
-    using the instance normalization technique and applies learnable scaling
-    and shifting parameters based on the class embedding.
+        This method performs Conditional Instance Normalization on the input tensor
+        `x` based on the class label `y`. The operation normalizes the input tensor
+        using the instance normalization technique and applies learnable scaling
+        and shifting parameters based on the class embedding.
 
-    Args:
-        x (torch.Tensor): The input tensor of shape (N, C, H, W) where:
-            - N is the batch size,
-            - C is the number of channels,
-            - H is the height,
-            - W is the width.
-        y (torch.Tensor): The class label tensor of shape (N,) where each element
-            corresponds to the class index for the respective input in `x`.
+        Args:
+            x (torch.Tensor): The input tensor of shape (N, C, H, W) where:
+                - N is the batch size,
+                - C is the number of channels,
+                - H is the height,
+                - W is the width.
+            y (torch.Tensor): The class label tensor of shape (N,) where each element
+                corresponds to the class index for the respective input in `x`.
 
-    Returns:
-        torch.Tensor: The output tensor after applying Conditional Instance
-        Normalization, with the same shape as the input tensor `x`.
+        Returns:
+            torch.Tensor: The output tensor after applying Conditional Instance
+            Normalization, with the same shape as the input tensor `x`.
 
-    Examples:
-        >>> norm_layer = ConditionalInstanceNorm2dPlus(num_features=64, num_classes=10)
-        >>> input_tensor = torch.randn(8, 64, 32, 32)  # Example input
-        >>> class_labels = torch.randint(0, 10, (8,))  # Random class labels
-        >>> output_tensor = norm_layer(input_tensor, class_labels)
-        >>> print(output_tensor.shape)  # Should be [8, 64, 32, 32]
+        Examples:
+            >>> norm_layer = ConditionalInstanceNorm2dPlus(num_features=64, num_classes=10)
+            >>> input_tensor = torch.randn(8, 64, 32, 32)  # Example input
+            >>> class_labels = torch.randint(0, 10, (8,))  # Random class labels
+            >>> output_tensor = norm_layer(input_tensor, class_labels)
+            >>> print(output_tensor.shape)  # Should be [8, 64, 32, 32]
 
-    Note:
-        The input tensor `x` must have 4 dimensions, and the class label `y`
-        must be a 1-dimensional tensor with class indices ranging from 0 to
-        num_classes - 1.
+        Note:
+            The input tensor `x` must have 4 dimensions, and the class label `y`
+            must be a 1-dimensional tensor with class indices ranging from 0 to
+            num_classes - 1.
 
-    Raises:
-        IndexError: If the class index in `y` is out of bounds for the embedding
-        layer.
+        Raises:
+            IndexError: If the class index in `y` is out of bounds for the embedding
+            layer.
         """
         means = torch.mean(x, dim=(2, 3))
         m = torch.mean(means, dim=-1, keepdim=True)

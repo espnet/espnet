@@ -38,12 +38,12 @@ class NCSNpp(nn.Module):
     """
     NCSN++ model, adapted from the score SDE implementation.
 
-    This class implements the NCSN++ model as described in the following 
+    This class implements the NCSN++ model as described in the following
     repositories:
     - https://github.com/yang-song/score_sde
     - https://github.com/sp-uhh/sgmse
 
-    The model utilizes a U-Net architecture with residual blocks and 
+    The model utilizes a U-Net architecture with residual blocks and
     attention mechanisms, suitable for score-based generative modeling.
 
     Attributes:
@@ -359,26 +359,26 @@ class NCSNpp(nn.Module):
 
     def pad_spec(self, Y):
         """
-        Pads the input tensor along the time dimension to ensure that its size 
-    is a multiple of 64. This is useful for maintaining consistent input 
-    dimensions for further processing.
+            Pads the input tensor along the time dimension to ensure that its size
+        is a multiple of 64. This is useful for maintaining consistent input
+        dimensions for further processing.
 
-    Args:
-        Y (torch.Tensor): The input tensor to be padded. It is expected to 
-            have a shape of (batch_size, channels, height, width), where 
-            the height corresponds to the time dimension.
+        Args:
+            Y (torch.Tensor): The input tensor to be padded. It is expected to
+                have a shape of (batch_size, channels, height, width), where
+                the height corresponds to the time dimension.
 
-    Returns:
-        torch.Tensor: The padded tensor with the same shape as Y, but with 
-            the time dimension adjusted to be a multiple of 64.
+        Returns:
+            torch.Tensor: The padded tensor with the same shape as Y, but with
+                the time dimension adjusted to be a multiple of 64.
 
-    Examples:
-        >>> import torch
-        >>> pad_spec = NCSNpp().pad_spec
-        >>> Y = torch.randn(8, 4, 16, 16)  # A tensor with time dimension 16
-        >>> padded_Y = pad_spec(Y)
-        >>> padded_Y.shape
-        torch.Size([8, 4, 64, 16])  # Padded to next multiple of 64
+        Examples:
+            >>> import torch
+            >>> pad_spec = NCSNpp().pad_spec
+            >>> Y = torch.randn(8, 4, 16, 16)  # A tensor with time dimension 16
+            >>> padded_Y = pad_spec(Y)
+            >>> padded_Y.shape
+            torch.Size([8, 4, 64, 16])  # Padded to next multiple of 64
         """
         T = Y.size(3)
         if T % 64 != 0:
@@ -392,23 +392,23 @@ class NCSNpp(nn.Module):
         """
         Perform a forward pass through the NCSN++ model.
 
-        This method takes the input tensor `x` and a tensor representing the 
-        time conditioning information `time_cond`, and computes the output 
-        of the NCSN++ model by processing the input through a series of 
-        neural network layers. The method supports conditional inputs and 
+        This method takes the input tensor `x` and a tensor representing the
+        time conditioning information `time_cond`, and computes the output
+        of the NCSN++ model by processing the input through a series of
+        neural network layers. The method supports conditional inputs and
         can be used for both training and inference.
 
         Args:
-            x (torch.Tensor): A complex tensor of shape (B, 2, H, W), where 
-                B is the batch size, H is the height, and W is the width of 
-                the input image. The tensor contains real and imaginary parts 
+            x (torch.Tensor): A complex tensor of shape (B, 2, H, W), where
+                B is the batch size, H is the height, and W is the width of
+                the input image. The tensor contains real and imaginary parts
                 in the first two channels.
-            time_cond (torch.Tensor): A tensor of shape (B, T) representing 
-                the time conditioning values, where T is the number of 
+            time_cond (torch.Tensor): A tensor of shape (B, T) representing
+                the time conditioning values, where T is the number of
                 timesteps.
 
         Returns:
-            torch.Tensor: A complex tensor of shape (B, 1, H, W) representing 
+            torch.Tensor: A complex tensor of shape (B, 1, H, W) representing
             the output of the NCSN++ model after processing the input.
 
         Raises:
@@ -422,8 +422,8 @@ class NCSNpp(nn.Module):
             >>> print(output.shape)  # Output shape should be (8, 1, 256, 256)
 
         Note:
-            The input tensor `x` should be prepared such that the first 
-            channel contains the real part and the second channel contains 
+            The input tensor `x` should be prepared such that the first
+            channel contains the real part and the second channel contains
             the imaginary part of the complex input.
         """
         # timestep/noise_level embedding; only for continuous training

@@ -11,13 +11,13 @@ from espnet2.asr.frontend.abs_frontend import AbsFrontend
 
 class WhisperFrontend(AbsFrontend):
     """
-    WhisperFrontend is a speech representation frontend that utilizes the outputs 
-    from OpenAI's Whisper model to convert audio signals into log-mel spectrograms 
+    WhisperFrontend is a speech representation frontend that utilizes the outputs
+    from OpenAI's Whisper model to convert audio signals into log-mel spectrograms
     and encoded features.
 
-    This class inherits from AbsFrontend and is designed to work with audio data 
-    processed through the Whisper model. The Whisper model is capable of handling 
-    speech recognition tasks and this frontend allows users to extract meaningful 
+    This class inherits from AbsFrontend and is designed to work with audio data
+    processed through the Whisper model. The Whisper model is capable of handling
+    speech recognition tasks and this frontend allows users to extract meaningful
     features from audio inputs.
 
     For more information on the Whisper model, please visit:
@@ -36,9 +36,9 @@ class WhisperFrontend(AbsFrontend):
     Args:
         whisper_model (str): The name of the Whisper model to use (default: "small").
         fs (Union[int, str]): The sampling frequency of the audio (default: 16000).
-        freeze_weights (bool): Whether to freeze the weights of the Whisper model 
+        freeze_weights (bool): Whether to freeze the weights of the Whisper model
             during feature extraction (default: True).
-        download_dir (Optional[str]): Directory to download the Whisper model if not 
+        download_dir (Optional[str]): Directory to download the Whisper model if not
             available locally (default: None).
 
     Returns:
@@ -58,7 +58,7 @@ class WhisperFrontend(AbsFrontend):
         features, lengths = frontend(audio_tensor, input_lengths)
 
     Note:
-        The Whisper model only supports audio sampled at 16 kHz. Using a different 
+        The Whisper model only supports audio sampled at 16 kHz. Using a different
         sampling rate will result in a warning.
 
     Todo:
@@ -280,21 +280,21 @@ class WhisperFrontend(AbsFrontend):
         self, input: torch.Tensor, input_lengths: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
-        Processes the input audio tensor and computes the log-mel spectrogram 
+        Processes the input audio tensor and computes the log-mel spectrogram
         followed by encoding through the Whisper model.
 
         Args:
-            input (torch.Tensor): The input audio tensor with shape (B, T), 
+            input (torch.Tensor): The input audio tensor with shape (B, T),
                 where B is the batch size and T is the number of time steps.
-            input_lengths (torch.Tensor): A tensor of shape (B,) containing 
+            input_lengths (torch.Tensor): A tensor of shape (B,) containing
                 the lengths of each input sequence.
 
         Returns:
             Tuple[torch.Tensor, torch.Tensor]: A tuple containing:
-                - feats (torch.Tensor): The encoded features from the Whisper 
-                  model with shape (B, D, L'), where D is the feature dimension 
+                - feats (torch.Tensor): The encoded features from the Whisper
+                  model with shape (B, D, L'), where D is the feature dimension
                   and L' is the output sequence length.
-                - feats_lens (torch.Tensor): A tensor of shape (B,) containing 
+                - feats_lens (torch.Tensor): A tensor of shape (B,) containing
                   the lengths of the encoded features.
 
         Examples:
@@ -306,7 +306,7 @@ class WhisperFrontend(AbsFrontend):
             >>> print(lengths)  # Output lengths for each batch
 
         Note:
-            The `freeze_weights` attribute determines whether the weights of 
+            The `freeze_weights` attribute determines whether the weights of
             the Whisper model should be frozen during the forward pass.
         """
         feats, feats_lens = self.log_mel_spectrogram(input, input_lengths)

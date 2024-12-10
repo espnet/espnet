@@ -20,44 +20,44 @@ def prepare_beamformer_stats(
     """
     Prepare necessary statistics for constructing the specified beamformer.
 
-    This function computes the necessary statistics needed for various types 
-    of beamformers. It takes the input signal, speech masks, noise masks, and 
-    additional parameters to calculate power spectral densities (PSD) for 
+    This function computes the necessary statistics needed for various types
+    of beamformers. It takes the input signal, speech masks, noise masks, and
+    additional parameters to calculate power spectral densities (PSD) for
     speech and noise, which are essential for beamforming algorithms.
 
     Args:
-        signal (torch.complex64): 
-            Input signal of shape (..., F, C, T) where F is the number of 
-            frequency bins, C is the number of channels, and T is the number 
+        signal (torch.complex64):
+            Input signal of shape (..., F, C, T) where F is the number of
+            frequency bins, C is the number of channels, and T is the number
             of time frames.
-        masks_speech (List[torch.Tensor]): 
+        masks_speech (List[torch.Tensor]):
             A list of masks for all speech sources, each of shape (..., F, C, T).
-        mask_noise (torch.Tensor): 
+        mask_noise (torch.Tensor):
             Noise mask of shape (..., F, C, T).
-        powers (List[torch.Tensor], optional): 
-            Powers for all speech sources of shape (..., F, T) used for wMPDR 
+        powers (List[torch.Tensor], optional):
+            Powers for all speech sources of shape (..., F, T) used for wMPDR
             or WPD beamformers. Defaults to None.
-        beamformer_type (str, optional): 
-            Type of beamformer to be used. It can be one of the pre-defined 
+        beamformer_type (str, optional):
+            Type of beamformer to be used. It can be one of the pre-defined
             types. Defaults to "mvdr".
-        bdelay (int, optional): 
+        bdelay (int, optional):
             Delay factor used for WPD beamformer. Defaults to 3.
-        btaps (int, optional): 
+        btaps (int, optional):
             Number of filter taps used for WPD beamformer. Defaults to 5.
-        eps (torch.Tensor, optional): 
+        eps (torch.Tensor, optional):
             A small constant to avoid division by zero. Defaults to 1e-6.
 
     Returns:
-        beamformer_stats (dict): 
-            A dictionary containing all necessary statistics such as "psd_n", 
-            "psd_speech", and "psd_distortion". The exact contents depend on 
+        beamformer_stats (dict):
+            A dictionary containing all necessary statistics such as "psd_n",
+            "psd_speech", and "psd_distortion". The exact contents depend on
             the beamformer type.
-    
+
     Note:
-        * When `masks_speech` is a tensor or a single-element list, all 
+        * When `masks_speech` is a tensor or a single-element list, all
           returned statistics are tensors.
-        * When `masks_speech` is a multi-element list, some returned 
-          statistics can be a list, e.g., "psd_n" for MVDR, "psd_speech" 
+        * When `masks_speech` is a multi-element list, some returned
+          statistics can be a list, e.g., "psd_n" for MVDR, "psd_speech"
           and "psd_distortion".
 
     Examples:
@@ -208,17 +208,17 @@ def get_rtf(
         mode (str): One of ("power", "evd").
             - "power": Uses the power method for RTF computation.
             - "evd": Uses eigenvalue decomposition for RTF computation.
-        reference_vector (torch.Tensor or int): 
-            A tensor of shape (..., C) or a scalar representing the reference 
+        reference_vector (torch.Tensor or int):
+            A tensor of shape (..., C) or a scalar representing the reference
             channel for the RTF computation.
-        iterations (int): Number of iterations for the power method. 
+        iterations (int): Number of iterations for the power method.
             This parameter is ignored if mode is "evd".
-        diagonal_loading (bool): Whether to add a small constant to the diagonal 
+        diagonal_loading (bool): Whether to add a small constant to the diagonal
             of the noise covariance matrix to improve numerical stability.
         diag_eps (float): Small constant added for diagonal loading.
 
     Returns:
-        rtf (torch.complex64): The computed relative transfer function with shape 
+        rtf (torch.complex64): The computed relative transfer function with shape
         (..., F, C).
 
     Raises:
@@ -283,7 +283,7 @@ def get_mvdr_vector(
     Returns:
         beamform_vector (torch.complex64):
             The computed MVDR beamforming vector with shape (..., F, C).
-    
+
     Examples:
         >>> psd_s = torch.randn(10, 4, 2, 2, dtype=torch.complex64)
         >>> psd_n = torch.randn(10, 4, 2, 2, dtype=torch.complex64)
@@ -367,6 +367,8 @@ def get_mvdr_vector_with_rtf(
 
 
 def apply_beamforming_vector(
+    beamform_vector: torch.Tensor, mix: torch.Tensor
+) -> torch.Tensor:
     """
     Apply the beamforming vector to the mixed signal.
 
@@ -395,8 +397,6 @@ def apply_beamforming_vector(
         The operation is performed as follows:
         output = sum(conjugate(beamform_vector) * mix, axis=-2)
     """
-    beamform_vector: torch.Tensor, mix: torch.Tensor
-) -> torch.Tensor:
     # (..., C) x (..., C, T) -> (..., T)
     es = torch.einsum("...c,...ct->...t", beamform_vector.conj(), mix)
     return es
@@ -490,10 +490,10 @@ def get_sdw_mwf_vector(
             A larger value leads to more noise reduction at the expense of more
             speech distortion. The plain MWF is obtained with `denoising_weight = 1`.
         approx_low_rank_psd_speech (bool):
-            Whether to replace original input psd_speech with its low-rank 
+            Whether to replace original input psd_speech with its low-rank
             approximation as in [2].
         iterations (int):
-            Number of iterations in power method, only used when 
+            Number of iterations in power method, only used when
             `approx_low_rank_psd_speech = True`.
         diagonal_loading (bool):
             Whether to add a tiny term to the diagonal of psd_n.
@@ -642,34 +642,34 @@ def get_rtf_matrix(
     eps: float = 1e-8,
 ):
     """
-    Calculate the RTF matrix with each column being the relative transfer 
+    Calculate the RTF matrix with each column being the relative transfer
     function of the corresponding source.
 
-    This function computes the relative transfer function (RTF) for each 
-    speech source given their respective power spectral density (PSD) 
-    matrices. The resulting RTF matrix normalizes the transfer functions 
+    This function computes the relative transfer function (RTF) for each
+    speech source given their respective power spectral density (PSD)
+    matrices. The resulting RTF matrix normalizes the transfer functions
     with respect to a specified reference channel.
 
     Args:
-        psd_speeches (list): A list of speech covariance matrices, where 
+        psd_speeches (list): A list of speech covariance matrices, where
             each matrix has shape (..., F, C, C).
-        psd_noises (list): A list of noise covariance matrices, where each 
+        psd_noises (list): A list of noise covariance matrices, where each
             matrix has shape (..., F, C, C).
-        diagonal_loading (bool): Whether to add a small constant to the 
-            diagonal of the noise covariance matrices to improve numerical 
+        diagonal_loading (bool): Whether to add a small constant to the
+            diagonal of the noise covariance matrices to improve numerical
             stability. Defaults to True.
-        ref_channel (int): The index of the reference channel used for 
+        ref_channel (int): The index of the reference channel used for
             normalization. Defaults to 0.
-        rtf_iterations (int): Number of iterations for computing the RTF 
+        rtf_iterations (int): Number of iterations for computing the RTF
             using the power method. Defaults to 3.
-        diag_eps (float): A small value added for diagonal loading to avoid 
+        diag_eps (float): A small value added for diagonal loading to avoid
             singular matrices. Defaults to 1e-7.
-        eps (float): A small constant to avoid division by zero in 
+        eps (float): A small constant to avoid division by zero in
             calculations. Defaults to 1e-8.
 
     Returns:
-        torch.Tensor: The RTF matrix with shape (..., F, C) where each 
-            column corresponds to the relative transfer function of a 
+        torch.Tensor: The RTF matrix with shape (..., F, C) where each
+            column corresponds to the relative transfer function of a
             different speech source.
 
     Examples:
@@ -680,7 +680,7 @@ def get_rtf_matrix(
         torch.Size([1, 8, 2, 3])  # (Batch, Frequency, Channels, Sources)
 
     Raises:
-        AssertionError: If either `psd_speeches` or `psd_noises` is not a 
+        AssertionError: If either `psd_speeches` or `psd_noises` is not a
         list or if their lengths do not match.
     """
     assert isinstance(psd_speeches, list) and isinstance(psd_noises, list)
@@ -732,7 +732,7 @@ def get_lcmv_vector_with_rtf(
 
     Returns:
         beamform_vector (torch.complex64): (..., F, C)
-    
+
     Examples:
         >>> psd_n = torch.randn(2, 5, 3, 3, dtype=torch.complex64)
         >>> rtf_mat = torch.randn(2, 5, 3, 4, dtype=torch.complex64)
@@ -759,7 +759,7 @@ def generalized_eigenvalue_decomposition(a: torch.Tensor, b: torch.Tensor, eps=1
     Solves the generalized eigenvalue decomposition through Cholesky decomposition.
 
     The function computes the generalized eigenvalue decomposition defined by:
-    
+
         a @ e_vec = e_val * b @ e_vec
 
     It performs Cholesky decomposition on matrix `b`:
@@ -782,7 +782,7 @@ def generalized_eigenvalue_decomposition(a: torch.Tensor, b: torch.Tensor, eps=1
     Args:
         a: A complex Hermitian or real symmetric matrix whose eigenvalues and
            eigenvectors will be computed. Shape: (..., C, C).
-        b: A complex Hermitian or real symmetric definite positive matrix. 
+        b: A complex Hermitian or real symmetric definite positive matrix.
            Shape: (..., C, C).
         eps: A small constant added for numerical stability (default: 1e-6).
 
@@ -814,20 +814,20 @@ def gev_phase_correction(vector):
     """
     Phase correction to reduce distortions due to phase inconsistencies.
 
-    This function applies a phase correction to a beamforming vector to reduce 
-    distortions caused by inconsistencies in the phase across different frequency 
-    bins. The correction is achieved by computing the phase of the product of the 
+    This function applies a phase correction to a beamforming vector to reduce
+    distortions caused by inconsistencies in the phase across different frequency
+    bins. The correction is achieved by computing the phase of the product of the
     current and the previous frequency bin's beamforming vector.
 
-    This function is particularly useful in beamforming applications where 
+    This function is particularly useful in beamforming applications where
     maintaining consistent phase information is critical for performance.
 
     Args:
-        vector (torch.Tensor): Beamforming vector with shape (..., F, C), where 
+        vector (torch.Tensor): Beamforming vector with shape (..., F, C), where
             F is the number of frequency bins and C is the number of channels.
 
     Returns:
-        torch.Tensor: Phase corrected beamforming vectors with the same shape 
+        torch.Tensor: Phase corrected beamforming vectors with the same shape
         as the input vector.
 
     Examples:
@@ -852,20 +852,20 @@ def blind_analytic_normalization(ws, psd_noise, eps=1e-8):
     """
     Blind analytic normalization (BAN) for post-filtering.
 
-    This function normalizes the beamformer vector using the Blind Analytic 
-    Normalization technique, which helps in post-filtering by reducing noise 
+    This function normalizes the beamformer vector using the Blind Analytic
+    Normalization technique, which helps in post-filtering by reducing noise
     and enhancing the signal quality.
 
     Args:
-        ws (torch.complex64): 
+        ws (torch.complex64):
             Beamformer vector of shape (..., F, C).
-        psd_noise (torch.complex64): 
+        psd_noise (torch.complex64):
             Noise power spectral density (PSD) matrix of shape (..., F, C, C).
-        eps (float): 
+        eps (float):
             A small constant to avoid division by zero. Default is 1e-8.
 
     Returns:
-        ws_ban (torch.complex64): 
+        ws_ban (torch.complex64):
             Normalized beamformer vector of shape (..., F).
 
     Examples:
@@ -904,26 +904,26 @@ def get_gev_vector(
         E. Warsitz and R. Haeb-Umbach, 2007.
 
     Args:
-        psd_noise (torch.complex64): 
+        psd_noise (torch.complex64):
             Noise covariance matrix of shape (..., F, C, C).
-        psd_speech (torch.complex64): 
+        psd_speech (torch.complex64):
             Speech covariance matrix of shape (..., F, C, C).
-        mode (str): 
-            Method to compute the eigenvalue decomposition, either "power" 
+        mode (str):
+            Method to compute the eigenvalue decomposition, either "power"
             or "evd". Default is "power".
-        reference_vector (torch.Tensor or int): 
+        reference_vector (torch.Tensor or int):
             A reference vector of shape (..., C) or a scalar index.
-        iterations (int): 
+        iterations (int):
             Number of iterations for the power method. Default is 3.
-        diagonal_loading (bool): 
+        diagonal_loading (bool):
             If True, adds a tiny term to the diagonal of psd_noise.
-        diag_eps (float): 
+        diag_eps (float):
             Regularization parameter for diagonal loading.
-        eps (float): 
+        eps (float):
             Small constant to avoid division by zero.
 
     Returns:
-        beamform_vector (torch.complex64): 
+        beamform_vector (torch.complex64):
             The resulting GEV beamformer vector of shape (..., F, C).
 
     Raises:
@@ -988,11 +988,11 @@ def signal_framing(
     indices: List = None,
 ) -> torch.Tensor:
     """
-    Expand `signal` into several frames, with each frame of length 
+    Expand `signal` into several frames, with each frame of length
     `frame_length`.
 
-    This function takes a 1D or multi-dimensional signal and divides it into 
-    overlapping frames. The frames can be created with optional padding, and 
+    This function takes a 1D or multi-dimensional signal and divides it into
+    overlapping frames. The frames can be created with optional padding, and
     the resulting tensor can be indexed based on provided indices.
 
     Args:
@@ -1000,21 +1000,21 @@ def signal_framing(
         frame_length (int): Length of each frame.
         frame_step (int): Step size for selecting frames.
         bdelay (int): Delay for WPD (Weighted Power Distortionless Response).
-        do_padding (bool): Whether to pad the input signal at the beginning 
+        do_padding (bool): Whether to pad the input signal at the beginning
                            of the time dimension.
         pad_value (int): Value to fill in the padding.
-        indices (List, optional): Specific indices to select frames. If None, 
+        indices (List, optional): Specific indices to select frames. If None,
                                    indices will be automatically calculated.
 
     Returns:
-        torch.Tensor: 
-            If `do_padding` is True, returns a tensor of shape (..., T, 
-            frame_length); otherwise, returns a tensor of shape (..., 
+        torch.Tensor:
+            If `do_padding` is True, returns a tensor of shape (..., T,
+            frame_length); otherwise, returns a tensor of shape (...,
             T - bdelay - frame_length + 2, frame_length).
-    
+
     Examples:
         >>> signal = torch.tensor([1, 2, 3, 4, 5])
-        >>> framed_signal = signal_framing(signal, frame_length=3, 
+        >>> framed_signal = signal_framing(signal, frame_length=3,
         ... frame_step=1, bdelay=1, do_padding=True)
         >>> print(framed_signal)
         tensor([[0, 0, 1],
@@ -1024,8 +1024,8 @@ def signal_framing(
                 [3, 4, 5]])
 
     Note:
-        The input signal can be complex. In such cases, the function 
-        will separately handle the real and imaginary parts before 
+        The input signal can be complex. In such cases, the function
+        will separately handle the real and imaginary parts before
         reconstructing the complex output.
     """
     frame_length2 = frame_length - 1
@@ -1082,41 +1082,41 @@ def get_covariances(
     get_vector: bool = False,
 ) -> torch.Tensor:
     """
-    Calculates the power normalized spatio-temporal covariance matrix 
+    Calculates the power normalized spatio-temporal covariance matrix
     of the framed signal.
 
-    This function computes the covariance matrix for a given complex 
-    short-time Fourier transform (STFT) signal. The covariance is 
-    normalized by a weighting factor that is provided as an inverse 
-    power input. It can return either the full correlation matrix or 
+    This function computes the covariance matrix for a given complex
+    short-time Fourier transform (STFT) signal. The covariance is
+    normalized by a weighting factor that is provided as an inverse
+    power input. It can return either the full correlation matrix or
     a correlation vector, depending on the `get_vector` flag.
 
     Args:
-        Y (torch.Tensor): 
-            Complex STFT signal with shape (B, F, C, T), where B is the 
-            batch size, F is the number of frequency bins, C is the 
+        Y (torch.Tensor):
+            Complex STFT signal with shape (B, F, C, T), where B is the
+            batch size, F is the number of frequency bins, C is the
             number of channels, and T is the number of time frames.
-        inverse_power (torch.Tensor): 
-            Weighting factor with shape (B, F, T) used for normalizing 
+        inverse_power (torch.Tensor):
+            Weighting factor with shape (B, F, T) used for normalizing
             the covariance matrix.
-        bdelay (int): 
+        bdelay (int):
             Delay for WPD (Weighted Power Distortionless response).
-        btaps (int): 
+        btaps (int):
             Number of filter taps used in the computation.
-        get_vector (bool, optional): 
-            If True, returns the correlation vector in addition to the 
+        get_vector (bool, optional):
+            If True, returns the correlation vector in addition to the
             covariance matrix. Defaults to False.
 
     Returns:
-        torch.Tensor: 
-            If `get_vector` is False, returns the correlation matrix with 
-            shape (B, F, (btaps + 1) * C, (btaps + 1) * C). If 
-            `get_vector` is True, returns a tuple containing the 
-            correlation matrix and the correlation vector with shape 
+        torch.Tensor:
+            If `get_vector` is False, returns the correlation matrix with
+            shape (B, F, (btaps + 1) * C, (btaps + 1) * C). If
+            `get_vector` is True, returns a tuple containing the
+            correlation matrix and the correlation vector with shape
             (B, F, btaps + 1, C, C).
 
     Raises:
-        AssertionError: If the dimensions of `inverse_power` do not match 
+        AssertionError: If the dimensions of `inverse_power` do not match
         those of `Y`.
 
     Examples:
@@ -1126,7 +1126,7 @@ def get_covariances(
         >>> cov_matrix.shape
         torch.Size([2, 4, 12, 12])  # (B, F, (btaps + 1) * C, (btaps + 1) * C)
 
-        >>> cov_matrix, cov_vector = get_covariances(Y, inverse_power, 
+        >>> cov_matrix, cov_vector = get_covariances(Y, inverse_power,
         ...     bdelay=1, btaps=2, get_vector=True)
         >>> cov_vector.shape
         torch.Size([2, 4, 3, 3])  # (B, F, btaps + 1, C, C)
@@ -1315,9 +1315,9 @@ def get_WPD_filter_with_rtf(
             Speech covariance matrix (..., F, C, C).
         psd_noise (torch.complex64):
             Noise covariance matrix (..., F, C, C).
-        iterations (int): 
+        iterations (int):
             Number of iterations in the power method.
-        reference_vector (torch.Tensor or int): 
+        reference_vector (torch.Tensor or int):
             Reference vector shape (..., C) or scalar.
         diagonal_loading (bool):
             Whether to add a tiny term to the diagonal of psd_n.
@@ -1327,15 +1327,15 @@ def get_WPD_filter_with_rtf(
             Small constant to prevent division by zero.
 
     Returns:
-        beamform_vector (torch.complex64): 
+        beamform_vector (torch.complex64):
             Beamforming vector shape (..., F, C).
-    
+
     Examples:
         >>> psd_observed_bar = torch.randn(2, 256, 10, 10, dtype=torch.complex64)
         >>> psd_speech = torch.randn(2, 256, 10, 10, dtype=torch.complex64)
         >>> psd_noise = torch.randn(2, 256, 10, 10, dtype=torch.complex64)
-        >>> beamform_vector = get_WPD_filter_with_rtf(psd_observed_bar, 
-        ...                                             psd_speech, 
+        >>> beamform_vector = get_WPD_filter_with_rtf(psd_observed_bar,
+        ...                                             psd_speech,
         ...                                             psd_noise)
         >>> beamform_vector.shape
         torch.Size([2, 256, 10])
@@ -1381,22 +1381,22 @@ def perform_WPD_filtering(
     """
     Perform WPD filtering.
 
-    This function applies the Weighted Power minimization Distortionless 
-    response (WPD) filtering to a complex Short-Time Fourier Transform (STFT) 
-    signal. The WPD filter is designed to enhance the signal by reducing noise 
+    This function applies the Weighted Power minimization Distortionless
+    response (WPD) filtering to a complex Short-Time Fourier Transform (STFT)
+    signal. The WPD filter is designed to enhance the signal by reducing noise
     while preserving the desired speech signal.
 
     Args:
-        filter_matrix (torch.Tensor): 
-            Filter matrix with shape (B, F, (btaps + 1) * C), where B is the 
-            batch size, F is the number of frequency bins, and C is the number 
+        filter_matrix (torch.Tensor):
+            Filter matrix with shape (B, F, (btaps + 1) * C), where B is the
+            batch size, F is the number of frequency bins, and C is the number
             of channels.
-        Y (torch.Tensor): 
-            Complex STFT signal with shape (B, F, C, T), where T is the number 
+        Y (torch.Tensor):
+            Complex STFT signal with shape (B, F, C, T), where T is the number
             of time frames.
 
     Returns:
-        enhanced (torch.complex64): 
+        enhanced (torch.complex64):
             Enhanced signal with shape (B, F, T).
 
     Examples:
@@ -1422,32 +1422,32 @@ def perform_WPD_filtering(
 
 def tik_reg(mat, reg: float = 1e-8, eps: float = 1e-8):
     """
-    Perform Tikhonov regularization (only modifying real part).
+        Perform Tikhonov regularization (only modifying real part).
 
-This function adds a regularization term to the input matrix to stabilize 
-inverse calculations, particularly in situations where the matrix may be 
-ill-conditioned. It works specifically for complex matrices, modifying 
-only the real part while keeping the imaginary part unchanged.
+    This function adds a regularization term to the input matrix to stabilize
+    inverse calculations, particularly in situations where the matrix may be
+    ill-conditioned. It works specifically for complex matrices, modifying
+    only the real part while keeping the imaginary part unchanged.
 
-Args:
-    mat (torch.complex64): 
-        Input matrix of shape (..., C, C) to be regularized.
-    reg (float): 
-        Regularization factor that determines the strength of the 
-        regularization applied.
-    eps (float): 
-        Small constant added to avoid division by zero.
+    Args:
+        mat (torch.complex64):
+            Input matrix of shape (..., C, C) to be regularized.
+        reg (float):
+            Regularization factor that determines the strength of the
+            regularization applied.
+        eps (float):
+            Small constant added to avoid division by zero.
 
-Returns:
-    ret (torch.complex64): 
-        Regularized matrix of shape (..., C, C), where the real part 
-        has been modified by the regularization term.
-    
-Examples:
-    >>> import torch
-    >>> mat = torch.randn(2, 3, 3, dtype=torch.complex64)  # Example input
-    >>> reg_mat = tik_reg(mat, reg=0.1, eps=1e-8)  # Applying Tikhonov regularization
-    >>> print(reg_mat.shape)  # Output shape will be (2, 3, 3)
+    Returns:
+        ret (torch.complex64):
+            Regularized matrix of shape (..., C, C), where the real part
+            has been modified by the regularization term.
+
+    Examples:
+        >>> import torch
+        >>> mat = torch.randn(2, 3, 3, dtype=torch.complex64)  # Example input
+        >>> reg_mat = tik_reg(mat, reg=0.1, eps=1e-8)  # Applying Tikhonov regularization
+        >>> print(reg_mat.shape)  # Output shape will be (2, 3, 3)
     """
     # Add eps
     C = mat.size(-1)

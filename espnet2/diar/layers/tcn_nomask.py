@@ -17,13 +17,13 @@ class TemporalConvNet(nn.Module):
     """
     Temporal Convolutional Network for speech separation.
 
-    This class implements the Temporal Convolutional Network (TCN) as proposed in 
-    Luo et al. in the paper "Conv-tasnet: Surpassing ideal time–frequency magnitude 
-    masking for speech separation". The TCN is designed to process time-series data 
+    This class implements the Temporal Convolutional Network (TCN) as proposed in
+    Luo et al. in the paper "Conv-tasnet: Surpassing ideal time–frequency magnitude
+    masking for speech separation". The TCN is designed to process time-series data
     and is utilized in the context of speech separation tasks.
 
     Attributes:
-        network: A sequential container comprising layer normalization, 
+        network: A sequential container comprising layer normalization,
                  a bottleneck convolution, and multiple temporal blocks.
 
     Args:
@@ -34,12 +34,12 @@ class TemporalConvNet(nn.Module):
         X (int): Number of convolutional blocks in each repeat.
         R (int): Number of repeats of the block structure.
         norm_type (str): Normalization type, can be 'BN', 'gLN', or 'cLN'.
-        causal (bool): If True, applies causal convolutions; otherwise, applies 
+        causal (bool): If True, applies causal convolutions; otherwise, applies
                        non-causal convolutions.
 
     Returns:
-        bottleneck_feature: A tensor of shape [M, B, K] where M is the batch size, 
-                           B is the number of bottleneck channels, and K is the 
+        bottleneck_feature: A tensor of shape [M, B, K] where M is the batch size,
+                           B is the number of bottleneck channels, and K is the
                            length of the input sequences.
 
     Examples:
@@ -50,12 +50,13 @@ class TemporalConvNet(nn.Module):
         torch.Size([10, 16, 100])  # Output shape after processing
 
     Note:
-        The output length will remain consistent with the input length if 
+        The output length will remain consistent with the input length if
         appropriate padding is used.
 
     Raises:
         ValueError: If `norm_type` is not one of 'BN', 'gLN', or 'cLN'.
     """
+
     def __init__(self, N, B, H, P, X, R, norm_type="gLN", causal=False):
         """Basic Module of tasnet.
 
@@ -103,16 +104,16 @@ class TemporalConvNet(nn.Module):
         """
         Forward pass for the TemporalConvNet.
 
-        This method processes the input mixture of waveforms through the 
+        This method processes the input mixture of waveforms through the
         temporal convolutional network to produce bottleneck features.
 
         Args:
-            mixture_w (torch.Tensor): Input tensor of shape [M, N, K], 
-            where M is the batch size, N is the number of filters, 
+            mixture_w (torch.Tensor): Input tensor of shape [M, N, K],
+            where M is the batch size, N is the number of filters,
             and K is the sequence length.
 
         Returns:
-            torch.Tensor: Output tensor of shape [M, B, K], where B is 
+            torch.Tensor: Output tensor of shape [M, B, K], where B is
             the number of channels in the bottleneck layer.
 
         Examples:
@@ -123,7 +124,7 @@ class TemporalConvNet(nn.Module):
             torch.Size([16, 32, 100])  # Expected output shape
 
         Note:
-            Ensure that the input tensor is properly shaped as specified 
+            Ensure that the input tensor is properly shaped as specified
             to avoid dimension errors during processing.
         """
         return self.network(mixture_w)  # [M, N, K] -> [M, B, K]
@@ -170,6 +171,7 @@ class TemporalBlock(nn.Module):
     Todo:
         - Investigate padding requirements for different kernel sizes.
     """
+
     def __init__(
         self,
         in_channels,
@@ -233,7 +235,7 @@ class DepthwiseSeparableConv(nn.Module):
         padding (int): Padding added to both sides of the input.
         dilation (int): Dilation factor for the convolution.
         norm_type (str): Type of normalization to use ('gLN', 'cLN', 'BN').
-        causal (bool): If True, applies causal convolution (output at time t 
+        causal (bool): If True, applies causal convolution (output at time t
                        does not depend on future time steps).
 
     Attributes:
@@ -245,8 +247,8 @@ class DepthwiseSeparableConv(nn.Module):
                          convolution.
 
     Examples:
-        >>> model = DepthwiseSeparableConv(in_channels=64, out_channels=128, 
-        ...                                  kernel_size=3, stride=1, padding=1, 
+        >>> model = DepthwiseSeparableConv(in_channels=64, out_channels=128,
+        ...                                  kernel_size=3, stride=1, padding=1,
         ...                                  dilation=1, norm_type='gLN', causal=False)
         >>> input_tensor = torch.randn(32, 64, 100)  # Batch of 32, 64 channels, 100 length
         >>> output_tensor = model(input_tensor)
@@ -254,14 +256,15 @@ class DepthwiseSeparableConv(nn.Module):
         torch.Size([32, 128, 100])  # Output will have 128 channels
 
     Note:
-        The depthwise convolution is performed with `groups` set to 
-        `in_channels` to achieve depthwise separability. If `causal` is 
-        set to True, a Chomp layer is used to ensure the output length 
+        The depthwise convolution is performed with `groups` set to
+        `in_channels` to achieve depthwise separability. If `causal` is
+        set to True, a Chomp layer is used to ensure the output length
         matches the input length.
 
     Raises:
         ValueError: If an unsupported normalization type is specified.
     """
+
     def __init__(
         self,
         in_channels,
@@ -302,21 +305,21 @@ class DepthwiseSeparableConv(nn.Module):
         """
         Forward pass for the TemporalConvNet.
 
-        This method takes the input tensor `mixture_w` and passes it through the 
-        temporal convolution network to extract bottleneck features. The expected 
-        input shape is [M, N, K], where M is the batch size, N is the number of 
-        filters in the autoencoder, and K is the sequence length. The output will 
-        be of shape [M, B, K], where B is the number of channels in the bottleneck 
+        This method takes the input tensor `mixture_w` and passes it through the
+        temporal convolution network to extract bottleneck features. The expected
+        input shape is [M, N, K], where M is the batch size, N is the number of
+        filters in the autoencoder, and K is the sequence length. The output will
+        be of shape [M, B, K], where B is the number of channels in the bottleneck
         1x1-conv block.
 
         Args:
-            mixture_w: A tensor of shape [M, N, K], representing the input 
-                       mixture signal, where M is the batch size, N is the 
+            mixture_w: A tensor of shape [M, N, K], representing the input
+                       mixture signal, where M is the batch size, N is the
                        number of channels, and K is the length of the signal.
 
         Returns:
-            bottleneck_feature: A tensor of shape [M, B, K], representing the 
-                                extracted bottleneck features after passing 
+            bottleneck_feature: A tensor of shape [M, B, K], representing the
+                                extracted bottleneck features after passing
                                 through the network.
 
         Examples:
@@ -327,7 +330,7 @@ class DepthwiseSeparableConv(nn.Module):
             torch.Size([10, 32, 100])  # Output shape should match [M, B, K]
 
         Note:
-            Ensure that the input tensor `mixture_w` is correctly shaped 
+            Ensure that the input tensor `mixture_w` is correctly shaped
             according to the specifications to avoid dimension mismatch errors.
         """
         return self.net(x)
@@ -372,20 +375,20 @@ class Chomp1d(nn.Module):
         """
         To ensure the output length is the same as the input.
 
-        This module removes a specified number of elements from the end of the 
-        input tensor along the last dimension, ensuring that the output has the 
+        This module removes a specified number of elements from the end of the
+        input tensor along the last dimension, ensuring that the output has the
         same length as the original input minus the `chomp_size`.
 
         Attributes:
-            chomp_size (int): The number of elements to remove from the end of the 
+            chomp_size (int): The number of elements to remove from the end of the
                 input tensor.
 
         Args:
-            chomp_size: The number of elements to be removed from the end of the 
+            chomp_size: The number of elements to be removed from the end of the
                 input tensor.
 
         Returns:
-            A tensor of shape [M, H, K] where K is the original length minus 
+            A tensor of shape [M, H, K] where K is the original length minus
             `chomp_size`.
 
         Examples:
@@ -396,12 +399,12 @@ class Chomp1d(nn.Module):
             torch.Size([10, 5, 18])  # [M, H, K]
 
         Note:
-            This module is typically used in conjunction with causal convolutions 
-            to ensure that the output length matches the expected dimensions for 
+            This module is typically used in conjunction with causal convolutions
+            to ensure that the output length matches the expected dimensions for
             further processing in a network.
 
         Raises:
-            ValueError: If `chomp_size` is negative or greater than the input 
+            ValueError: If `chomp_size` is negative or greater than the input
                 length.
         """
         return x[:, :, : -self.chomp_size].contiguous()
@@ -415,7 +418,7 @@ def check_nonlinear(nolinear_type):
     accepted types. If the type is not supported, it raises a ValueError.
 
     Args:
-        nonlinear_type (str): The type of nonlinear function to check. 
+        nonlinear_type (str): The type of nonlinear function to check.
             Accepted values are "softmax" and "relu".
 
     Raises:
@@ -482,9 +485,9 @@ class ChannelwiseLayerNorm(nn.Module):
     """
     Channel-wise Layer Normalization (cLN).
 
-    This layer normalizes the input across the channel dimension. 
-    It uses learnable parameters gamma and beta to scale and shift the 
-    normalized output. This is particularly useful in various 
+    This layer normalizes the input across the channel dimension.
+    It uses learnable parameters gamma and beta to scale and shift the
+    normalized output. This is particularly useful in various
     neural network architectures to stabilize the learning process.
 
     Attributes:
@@ -495,7 +498,7 @@ class ChannelwiseLayerNorm(nn.Module):
         channel_size (int): The number of channels in the input tensor.
 
     Methods:
-        reset_parameters: Resets the parameters gamma and beta to their 
+        reset_parameters: Resets the parameters gamma and beta to their
             initial values.
         forward: Applies channel-wise normalization to the input tensor.
 
@@ -506,7 +509,7 @@ class ChannelwiseLayerNorm(nn.Module):
         >>> print(output_tensor.shape)  # Output: torch.Size([32, 64, 100])
 
     Note:
-        The input tensor must have three dimensions: (batch_size, 
+        The input tensor must have three dimensions: (batch_size,
         channel_size, sequence_length).
     """
 
@@ -518,33 +521,33 @@ class ChannelwiseLayerNorm(nn.Module):
 
     def reset_parameters(self):
         """
-        Channel-wise Layer Normalization (cLN).
+            Channel-wise Layer Normalization (cLN).
 
-    This class implements channel-wise layer normalization, which normalizes
-    the input tensor along the channel dimension. The normalization is 
-    achieved by computing the mean and variance for each channel across the 
-    batch and sequence dimensions. The normalized output is scaled and 
-    shifted using learnable parameters gamma and beta.
+        This class implements channel-wise layer normalization, which normalizes
+        the input tensor along the channel dimension. The normalization is
+        achieved by computing the mean and variance for each channel across the
+        batch and sequence dimensions. The normalized output is scaled and
+        shifted using learnable parameters gamma and beta.
 
-    Attributes:
-        gamma (nn.Parameter): Learnable scaling parameter of shape (1, N, 1).
-        beta (nn.Parameter): Learnable shifting parameter of shape (1, N, 1).
+        Attributes:
+            gamma (nn.Parameter): Learnable scaling parameter of shape (1, N, 1).
+            beta (nn.Parameter): Learnable shifting parameter of shape (1, N, 1).
 
-    Args:
-        channel_size (int): The number of channels (N) in the input tensor.
+        Args:
+            channel_size (int): The number of channels (N) in the input tensor.
 
-    Examples:
-        >>> layer_norm = ChannelwiseLayerNorm(channel_size=64)
-        >>> input_tensor = torch.randn(32, 64, 100)  # [M, N, K]
-        >>> output_tensor = layer_norm(input_tensor)  # Output shape: [32, 64, 100]
+        Examples:
+            >>> layer_norm = ChannelwiseLayerNorm(channel_size=64)
+            >>> input_tensor = torch.randn(32, 64, 100)  # [M, N, K]
+            >>> output_tensor = layer_norm(input_tensor)  # Output shape: [32, 64, 100]
 
-    Note:
-        The normalization is applied to the input tensor using the formula:
-        cLN_y = gamma * (y - mean) / sqrt(var + EPS) + beta, where mean and
-        var are computed for each channel.
+        Note:
+            The normalization is applied to the input tensor using the formula:
+            cLN_y = gamma * (y - mean) / sqrt(var + EPS) + beta, where mean and
+            var are computed for each channel.
 
-    Todo:
-        Add more initialization options for gamma and beta if necessary.
+        Todo:
+            Add more initialization options for gamma and beta if necessary.
         """
         self.beta.data.zero_()
 
@@ -583,7 +586,7 @@ class GlobalLayerNorm(nn.Module):
     Global Layer Normalization (gLN).
 
     This module applies global layer normalization to the input tensor.
-    It normalizes the input across all channels and spatial dimensions, 
+    It normalizes the input across all channels and spatial dimensions,
     ensuring that the output has a mean of zero and a variance of one.
 
     Attributes:

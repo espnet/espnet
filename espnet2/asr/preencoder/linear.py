@@ -16,18 +16,18 @@ class LinearProjection(AbsPreEncoder):
     """
     Linear Projection Preencoder.
 
-    This class implements a linear projection preencoder, which is used in 
-    automatic speech recognition (ASR) tasks. It transforms input features 
-    from one dimension to another using a linear layer followed by dropout 
-    for regularization. The output of this layer is suitable for further 
+    This class implements a linear projection preencoder, which is used in
+    automatic speech recognition (ASR) tasks. It transforms input features
+    from one dimension to another using a linear layer followed by dropout
+    for regularization. The output of this layer is suitable for further
     processing in ASR models.
 
     Attributes:
-        output_dim (int): The dimension of the output features after 
+        output_dim (int): The dimension of the output features after
             projection.
-        linear_out (torch.nn.Linear): The linear transformation layer that 
+        linear_out (torch.nn.Linear): The linear transformation layer that
             projects the input features to the output dimension.
-        dropout (torch.nn.Dropout): The dropout layer applied to the input 
+        dropout (torch.nn.Dropout): The dropout layer applied to the input
             features for regularization.
 
     Args:
@@ -38,7 +38,7 @@ class LinearProjection(AbsPreEncoder):
     Returns:
         Tuple[torch.Tensor, torch.Tensor]: A tuple containing:
             - output (torch.Tensor): The projected output features.
-            - input_lengths (torch.Tensor): The lengths of the input sequences 
+            - input_lengths (torch.Tensor): The lengths of the input sequences
             (unchanged).
 
     Examples:
@@ -51,11 +51,11 @@ class LinearProjection(AbsPreEncoder):
         torch.Size([32, 10, 64])  # Output shape is (batch_size, seq_len, output_size)
 
     Note:
-        This preencoder does not maintain any state across forward passes, 
+        This preencoder does not maintain any state across forward passes,
         which makes it suitable for use in stateless models.
 
     Todo:
-        - Add support for different activation functions or additional layers 
+        - Add support for different activation functions or additional layers
         if needed.
     """
 
@@ -74,23 +74,23 @@ class LinearProjection(AbsPreEncoder):
         """
         Perform the forward pass of the LinearProjection module.
 
-        This method applies a linear transformation followed by dropout to the 
-        input tensor. The output is a transformed tensor along with the original 
+        This method applies a linear transformation followed by dropout to the
+        input tensor. The output is a transformed tensor along with the original
         input lengths, which are unchanged.
 
         Args:
-            input (torch.Tensor): The input tensor of shape (batch_size, 
+            input (torch.Tensor): The input tensor of shape (batch_size,
                 input_size) containing the data to be processed.
-            input_lengths (torch.Tensor): A tensor containing the lengths of 
-                each input sequence in the batch. This should have shape 
+            input_lengths (torch.Tensor): A tensor containing the lengths of
+                each input sequence in the batch. This should have shape
                 (batch_size,).
 
         Returns:
             Tuple[torch.Tensor, torch.Tensor]: A tuple containing:
-                - output (torch.Tensor): The output tensor after applying 
-                  linear transformation and dropout, of shape 
+                - output (torch.Tensor): The output tensor after applying
+                  linear transformation and dropout, of shape
                   (batch_size, output_size).
-                - input_lengths (torch.Tensor): The unchanged input lengths 
+                - input_lengths (torch.Tensor): The unchanged input lengths
                   tensor.
 
         Examples:
@@ -102,7 +102,7 @@ class LinearProjection(AbsPreEncoder):
             >>> print(lengths.shape)  # should be (32,)
 
         Note:
-            The dropout layer is applied during training mode only. If the model 
+            The dropout layer is applied during training mode only. If the model
             is in evaluation mode, dropout will not be applied.
         """
         output = self.linear_out(self.dropout(input))
@@ -112,9 +112,9 @@ class LinearProjection(AbsPreEncoder):
         """
         Returns the output size of the linear projection.
 
-        This method retrieves the output dimension set during the initialization of 
-        the LinearProjection instance. The output size corresponds to the number of 
-        output features produced by the linear transformation applied in the 
+        This method retrieves the output dimension set during the initialization of
+        the LinearProjection instance. The output size corresponds to the number of
+        output features produced by the linear transformation applied in the
         forward pass.
 
         Returns:
@@ -127,7 +127,7 @@ class LinearProjection(AbsPreEncoder):
             print(output_size)  # Output: 64
 
         Note:
-            This method does not take any arguments and simply returns the 
+            This method does not take any arguments and simply returns the
             pre-defined output dimension.
         """
         return self.output_dim

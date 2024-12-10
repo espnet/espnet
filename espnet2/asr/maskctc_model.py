@@ -40,10 +40,10 @@ class MaskCTCModel(ESPnetASRModel):
     """
     Hybrid CTC/Masked LM Encoder-Decoder model (Mask-CTC).
 
-    This model combines Connectionist Temporal Classification (CTC) and 
-    Masked Language Modeling (MLM) to perform automatic speech recognition 
-    tasks. It utilizes an encoder-decoder architecture where the encoder 
-    processes the input speech, and the decoder predicts the output tokens 
+    This model combines Connectionist Temporal Classification (CTC) and
+    Masked Language Modeling (MLM) to perform automatic speech recognition
+    tasks. It utilizes an encoder-decoder architecture where the encoder
+    processes the input speech, and the decoder predicts the output tokens
     using both CTC and MLM loss functions.
 
     Attributes:
@@ -75,7 +75,7 @@ class MaskCTCModel(ESPnetASRModel):
         sym_space (str): Token representing space (default: "<space>").
         sym_blank (str): Token representing blank (default: "<blank>").
         sym_mask (str): Token representing mask (default: "<mask>").
-        extract_feats_in_collect_stats (bool): If True, extract features during 
+        extract_feats_in_collect_stats (bool): If True, extract features during
             statistics collection (default: True).
 
     Examples:
@@ -102,9 +102,9 @@ class MaskCTCModel(ESPnetASRModel):
         ...     sym_mask="<mask>",
         ...     extract_feats_in_collect_stats=True
         ... )
-        
+
     Note:
-        This model is designed for tasks where both CTC and MLM are beneficial, 
+        This model is designed for tasks where both CTC and MLM are beneficial,
         such as in noisy speech recognition or when the input data is limited.
 
     Raises:
@@ -193,28 +193,28 @@ class MaskCTCModel(ESPnetASRModel):
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """
-        Process input through the model's frontend, encoder, and decoder, and 
+        Process input through the model's frontend, encoder, and decoder, and
         compute the associated loss.
 
-        This method takes speech and text input, processes them through the 
-        model's architecture, and calculates the CTC and MLM losses. The output 
-        includes the total loss, statistics for loss and accuracy, and the 
+        This method takes speech and text input, processes them through the
+        model's architecture, and calculates the CTC and MLM losses. The output
+        includes the total loss, statistics for loss and accuracy, and the
         batch size.
 
         Args:
-            speech (torch.Tensor): Input speech tensor of shape 
+            speech (torch.Tensor): Input speech tensor of shape
                 (Batch, Length, ...).
-            speech_lengths (torch.Tensor): Lengths of the input speech tensor 
+            speech_lengths (torch.Tensor): Lengths of the input speech tensor
                 of shape (Batch,).
-            text (torch.Tensor): Input text tensor of shape 
+            text (torch.Tensor): Input text tensor of shape
                 (Batch, Length).
-            text_lengths (torch.Tensor): Lengths of the input text tensor 
+            text_lengths (torch.Tensor): Lengths of the input text tensor
                 of shape (Batch,).
-        
+
         Returns:
             Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
                 - Total loss for the batch.
-                - A dictionary containing statistics such as CTC loss, 
+                - A dictionary containing statistics such as CTC loss,
                   MLM loss, and accuracies.
                 - Batch size for data-parallel processing.
 
@@ -230,7 +230,7 @@ class MaskCTCModel(ESPnetASRModel):
             >>> loss, stats, batch_size = model.forward(speech, speech_lengths, text, text_lengths)
 
         Note:
-            This function assumes that the input speech and text tensors 
+            This function assumes that the input speech and text tensors
             are properly preprocessed and padded to the same batch size.
 
         Todo:
@@ -359,21 +359,21 @@ class MaskCTCModel(ESPnetASRModel):
 
         This method is intended to be implemented in subclasses to provide
         the functionality for calculating the NLL based on the encoder outputs,
-        lengths, and the target sequences. This function is currently not 
+        lengths, and the target sequences. This function is currently not
         implemented and raises a NotImplementedError.
 
         Args:
-            encoder_out (torch.Tensor): The output from the encoder, typically of 
+            encoder_out (torch.Tensor): The output from the encoder, typically of
                 shape (Batch, Length, Features).
-            encoder_out_lens (torch.Tensor): The lengths of the encoder outputs, 
+            encoder_out_lens (torch.Tensor): The lengths of the encoder outputs,
                 of shape (Batch,).
-            ys_pad (torch.Tensor): The padded target sequences, of shape 
+            ys_pad (torch.Tensor): The padded target sequences, of shape
                 (Batch, Length).
-            ys_pad_lens (torch.Tensor): The lengths of the target sequences, 
+            ys_pad_lens (torch.Tensor): The lengths of the target sequences,
                 of shape (Batch,).
 
         Returns:
-            torch.Tensor: The negative log-likelihood value for the given 
+            torch.Tensor: The negative log-likelihood value for the given
             encoder outputs and target sequences.
 
         Raises:
@@ -385,7 +385,7 @@ class MaskCTCModel(ESPnetASRModel):
             >>> encoder_output_lengths = torch.randint(1, 100, (32,))
             >>> target_sequences = torch.randint(0, model.vocab_size, (32, 50))
             >>> target_lengths = torch.randint(1, 50, (32,))
-            >>> nll_value = model.nll(encoder_output, encoder_output_lengths, 
+            >>> nll_value = model.nll(encoder_output, encoder_output_lengths,
             ...                        target_sequences, target_lengths)
         """
         raise NotImplementedError
@@ -401,24 +401,24 @@ class MaskCTCModel(ESPnetASRModel):
         """
         Batchify the negative log likelihood (NLL) computation.
 
-        This method takes the encoded outputs and targets, and splits them into 
-        smaller batches for the computation of the negative log likelihood. This 
-        is useful for efficiently processing large datasets that may not fit 
+        This method takes the encoded outputs and targets, and splits them into
+        smaller batches for the computation of the negative log likelihood. This
+        is useful for efficiently processing large datasets that may not fit
         into memory all at once.
 
         Args:
-            encoder_out (torch.Tensor): The output from the encoder, shaped 
+            encoder_out (torch.Tensor): The output from the encoder, shaped
                 (Batch, Length, Features).
-            encoder_out_lens (torch.Tensor): The lengths of each sequence in 
+            encoder_out_lens (torch.Tensor): The lengths of each sequence in
                 the encoder output, shaped (Batch,).
             ys_pad (torch.Tensor): The target sequences, shaped (Batch, Length).
-            ys_pad_lens (torch.Tensor): The lengths of each target sequence, 
+            ys_pad_lens (torch.Tensor): The lengths of each target sequence,
                 shaped (Batch,).
-            batch_size (int, optional): The size of each batch to process. 
+            batch_size (int, optional): The size of each batch to process.
                 Defaults to 100.
 
         Returns:
-            torch.Tensor: A tensor containing the computed negative log 
+            torch.Tensor: A tensor containing the computed negative log
             likelihoods for each batch.
 
         Raises:
@@ -429,7 +429,7 @@ class MaskCTCModel(ESPnetASRModel):
             >>> encoder_out_lens = torch.randint(1, 50, (200,))
             >>> ys_pad = torch.randint(0, 100, (200, 30))  # Example target
             >>> ys_pad_lens = torch.randint(1, 30, (200,))
-            >>> nll_values = model.batchify_nll(encoder_out, encoder_out_lens, 
+            >>> nll_values = model.batchify_nll(encoder_out, encoder_out_lens,
             ...                                   ys_pad, ys_pad_lens, batch_size=50)
         """
         raise NotImplementedError
@@ -439,10 +439,10 @@ class MaskCTCInference(torch.nn.Module):
     """
     Mask-CTC-based non-autoregressive inference.
 
-    This class implements a non-autoregressive inference method for the 
-    Mask-CTC model. It utilizes the CTC probabilities and a masked language 
-    model to iteratively predict masked tokens in the output sequence. 
-    The inference process leverages a greedy CTC decoding followed by a 
+    This class implements a non-autoregressive inference method for the
+    Mask-CTC model. It utilizes the CTC probabilities and a masked language
+    model to iteratively predict masked tokens in the output sequence.
+    The inference process leverages a greedy CTC decoding followed by a
     series of updates to refine the predictions for masked tokens.
 
     Attributes:
@@ -456,12 +456,12 @@ class MaskCTCInference(torch.nn.Module):
     Args:
         asr_model (MaskCTCModel): The Mask-CTC model used for inference.
         n_iterations (int): The number of iterations for iterative decoding.
-        threshold_probability (float): The threshold probability for masking 
+        threshold_probability (float): The threshold probability for masking
             tokens during inference.
 
     Examples:
         >>> model = MaskCTCModel(...)
-        >>> inference = MaskCTCInference(model, n_iterations=5, 
+        >>> inference = MaskCTCInference(model, n_iterations=5,
                                           threshold_probability=0.5)
         >>> enc_out = torch.randn(1, 10, model.vocab_size)  # Example encoder output
         >>> hypotheses = inference(enc_out)
@@ -471,7 +471,7 @@ class MaskCTCInference(torch.nn.Module):
         This implementation requires that the CTC output be in log probabilities.
 
     Raises:
-        ValueError: If `n_iterations` or `threshold_probability` are not 
+        ValueError: If `n_iterations` or `threshold_probability` are not
             positive values.
     """
 
@@ -525,29 +525,29 @@ class MaskCTCInference(torch.nn.Module):
         Perform Mask-CTC inference.
 
         This method executes the Mask-CTC inference process using the given
-        encoded outputs from the speech recognition model. It performs greedy 
-        decoding with the CTC outputs and iteratively refines the predictions 
+        encoded outputs from the speech recognition model. It performs greedy
+        decoding with the CTC outputs and iteratively refines the predictions
         for masked tokens using the masked language model (MLM) decoder.
 
         Args:
-            enc_out: A tensor of shape (1, Length, ...) containing the encoded 
-                      outputs from the CTC model. The first dimension is 
+            enc_out: A tensor of shape (1, Length, ...) containing the encoded
+                      outputs from the CTC model. The first dimension is
                       artificially added for batch compatibility.
 
         Returns:
-            A list of Hypothesis objects representing the predicted sequences 
+            A list of Hypothesis objects representing the predicted sequences
             from the inference process.
 
         Examples:
             >>> enc_out = torch.randn(1, 100, 256)  # Example encoded output
-            >>> inference_model = MaskCTCInference(asr_model, n_iterations=5, 
+            >>> inference_model = MaskCTCInference(asr_model, n_iterations=5,
             ...                                      threshold_probability=0.5)
             >>> hypotheses = inference_model(enc_out)
             >>> print(hypotheses)
 
         Note:
-            The inference process involves applying a threshold on the CTC 
-            probabilities to determine which tokens to mask and iteratively 
+            The inference process involves applying a threshold on the CTC
+            probabilities to determine which tokens to mask and iteratively
             filling in these masked tokens using the MLM decoder.
 
         Todo:

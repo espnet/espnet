@@ -48,7 +48,7 @@ def build_main_parameters(
 
     This function constructs the main parameters required for the encoder
     architecture of a Transducer model, allowing customization of various
-    components such as activation functions, normalization types, and 
+    components such as activation functions, normalization types, and
     dropout rates.
 
     Args:
@@ -56,7 +56,7 @@ def build_main_parameters(
         conv_mod_act_type: X-former convolution module activation type.
         pos_enc_dropout_rate: Positional encoding dropout rate.
         pos_enc_max_len: Positional encoding maximum length.
-        simplified_att_score: Whether to use simplified attention score 
+        simplified_att_score: Whether to use simplified attention score
                               computation.
         norm_type: X-former normalization module type.
         conv_mod_norm_type: Conformer convolution module normalization type.
@@ -65,16 +65,16 @@ def build_main_parameters(
         blockdrop_rate: Probability threshold of dropping out each encoder block.
         dynamic_chunk_training: Whether to use dynamic chunk training.
         short_chunk_threshold: Threshold for dynamic chunk selection.
-        short_chunk_size: Minimum number of frames during dynamic chunk 
+        short_chunk_size: Minimum number of frames during dynamic chunk
                           training.
-        num_left_chunks: Number of left chunks the attention module can see. 
+        num_left_chunks: Number of left chunks the attention module can see.
                          (null or negative value means full context)
         **activation_parameters: Parameters of the activation functions.
                                  (See espnet2/asr_transducer/activation.py)
 
     Returns:
-        dict: Main encoder parameters including activation functions, 
-              dropout rates, normalization configurations, and other 
+        dict: Main encoder parameters including activation functions,
+              dropout rates, normalization configurations, and other
               settings required for the encoder.
 
     Examples:
@@ -130,14 +130,14 @@ def build_positional_encoding(
     """
     Build positional encoding block.
 
-    This function creates a positional encoding module, which is used in 
-    transformer architectures to inject information about the position of 
-    tokens in the input sequence. The positional encoding helps the model 
+    This function creates a positional encoding module, which is used in
+    transformer architectures to inject information about the position of
+    tokens in the input sequence. The positional encoding helps the model
     understand the order of tokens.
 
     Args:
         block_size: Input/output size of the positional encoding.
-        configuration: A dictionary containing the positional encoding 
+        configuration: A dictionary containing the positional encoding
                        configuration parameters.
 
     Returns:
@@ -206,32 +206,32 @@ def build_branchformer_block(
     Build Branchformer block.
 
     This function constructs a Branchformer block, which is a component of
-    the encoder architecture in the Transducer model. The Branchformer 
-    block leverages attention mechanisms and convolutional layers to 
+    the encoder architecture in the Transducer model. The Branchformer
+    block leverages attention mechanisms and convolutional layers to
     process input data efficiently.
 
     Args:
-        configuration: A list of dictionaries containing the configuration 
-                       for the Branchformer block. Each dictionary must 
+        configuration: A list of dictionaries containing the configuration
+                       for the Branchformer block. Each dictionary must
                        include the keys:
                        - hidden_size: Size of the hidden layer.
                        - linear_size: Size of the linear layer.
-                       - conv_mod_kernel_size: Kernel size for the convolutional 
+                       - conv_mod_kernel_size: Kernel size for the convolutional
                          module.
                        - dropout_rate: Dropout rate for the block.
                        - heads: Number of attention heads (optional, default is 4).
                        - att_dropout_rate: Dropout rate for attention (optional).
                        - norm_eps: Epsilon value for normalization (optional).
                        - norm_partial: Partial value for normalization (optional).
-        main_params: A dictionary containing the main parameters for the 
+        main_params: A dictionary containing the main parameters for the
                      encoder, including:
-                     - conv_mod_norm_type: Type of normalization for the 
+                     - conv_mod_norm_type: Type of normalization for the
                        convolution module.
-                     - simplified_att_score: Boolean indicating if simplified 
+                     - simplified_att_score: Boolean indicating if simplified
                        attention scoring is used.
 
     Returns:
-        Branchformer: A callable function that returns a Branchformer block 
+        Branchformer: A callable function that returns a Branchformer block
                       when invoked.
 
     Examples:
@@ -302,20 +302,20 @@ def build_conformer_block(
     """
     Build Conformer block.
 
-    This function constructs a Conformer block based on the provided 
-    configuration and main parameters. The Conformer architecture 
-    integrates convolutional layers and attention mechanisms to 
+    This function constructs a Conformer block based on the provided
+    configuration and main parameters. The Conformer architecture
+    integrates convolutional layers and attention mechanisms to
     capture both local and global dependencies in the input data.
 
     Args:
-        configuration: A list of dictionaries containing Conformer 
-                       block configuration settings. Each dictionary 
-                       should include keys such as "hidden_size", 
-                       "linear_size", "pos_wise_dropout_rate", and 
+        configuration: A list of dictionaries containing Conformer
+                       block configuration settings. Each dictionary
+                       should include keys such as "hidden_size",
+                       "linear_size", "pos_wise_dropout_rate", and
                        "conv_mod_kernel_size".
-        main_params: A dictionary containing encoder main parameters, 
-                     which are used to configure the various components 
-                     of the Conformer block, including activation functions 
+        main_params: A dictionary containing encoder main parameters,
+                     which are used to configure the various components
+                     of the Conformer block, including activation functions
                      and normalization settings.
 
     Returns:
@@ -401,21 +401,21 @@ def build_conv1d_block(
     for processing sequential data.
 
     Args:
-        configuration: A list of dictionaries where each dictionary contains 
-                       the configuration parameters for the Conv1d block. 
+        configuration: A list of dictionaries where each dictionary contains
+                       the configuration parameters for the Conv1d block.
                        Expected keys include:
                        - input_size: Size of the input features.
                        - output_size: Size of the output features.
                        - kernel_size: Size of the convolutional kernel.
                        - stride: Stride of the convolution (default is 1).
                        - dilation: Dilation factor (default is 1).
-                       - groups: Number of groups for grouped convolution 
+                       - groups: Number of groups for grouped convolution
                                  (default is 1).
                        - bias: Whether to include a bias term (default is True).
                        - relu: Whether to apply ReLU activation (default is True).
-                       - batch_norm: Whether to include batch normalization 
+                       - batch_norm: Whether to include batch normalization
                                      (default is False).
-        causal: A boolean indicating whether the convolution should be causal. 
+        causal: A boolean indicating whether the convolution should be causal.
                 If True, the convolution will not include future time steps.
 
     Returns:
@@ -462,22 +462,22 @@ def build_ebranchformer_block(
     """
     Build E-Branchformer block.
 
-    This function constructs an E-Branchformer block, which is part of the 
-    encoder architecture for transducers. It utilizes various configurations 
+    This function constructs an E-Branchformer block, which is part of the
+    encoder architecture for transducers. It utilizes various configurations
     and main parameters to create a functional block for encoding input data.
 
     Args:
-        configuration: A list of dictionaries containing the E-Branchformer 
-            block configuration parameters such as `hidden_size`, `linear_size`, 
-            `dropout_rate`, `pos_wise_dropout_rate`, `conv_mod_kernel_size`, 
-            `heads`, `att_dropout_rate`, `depth_conv_kernel_size`, `norm_eps`, 
+        configuration: A list of dictionaries containing the E-Branchformer
+            block configuration parameters such as `hidden_size`, `linear_size`,
+            `dropout_rate`, `pos_wise_dropout_rate`, `conv_mod_kernel_size`,
+            `heads`, `att_dropout_rate`, `depth_conv_kernel_size`, `norm_eps`,
             and `norm_partial`.
-        main_params: A dictionary containing the main encoder parameters, 
-            including activation functions, normalization types, and dropout 
+        main_params: A dictionary containing the main encoder parameters,
+            including activation functions, normalization types, and dropout
             rates.
 
     Returns:
-        EBranchformer: A callable that constructs an E-Branchformer block 
+        EBranchformer: A callable that constructs an E-Branchformer block
             function when invoked.
 
     Examples:

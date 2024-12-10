@@ -14,8 +14,8 @@ class SkiMSeparator(AbsSeparator):
     Skipping Memory (SkiM) Separator for speech separation tasks.
 
     This class implements the Skipping Memory (SkiM) Separator, which is designed
-    for separating multiple speakers' audio from a mixed input. It utilizes 
-    memory-augmented neural networks to enhance the separation quality. 
+    for separating multiple speakers' audio from a mixed input. It utilizes
+    memory-augmented neural networks to enhance the separation quality.
 
     Args:
         input_dim (int): Input feature dimension.
@@ -23,20 +23,20 @@ class SkiMSeparator(AbsSeparator):
         num_spk (int): Number of target speakers. Default is 2.
         predict_noise (bool): Whether to predict noise in addition to speakers.
             Default is False.
-        nonlinear (str): The nonlinear function for mask estimation. Must be 
+        nonlinear (str): The nonlinear function for mask estimation. Must be
             one of 'relu', 'tanh', or 'sigmoid'. Default is 'relu'.
         layer (int): Number of SkiM blocks. Default is 3.
         unit (int): Dimension of the hidden state. Default is 512.
         segment_size (int): Segmentation size for splitting long features.
             Default is 20.
         dropout (float): Dropout ratio. Default is 0.0.
-        mem_type (str): Memory type for SegLSTM processing. Can be 'hc', 'h', 
+        mem_type (str): Memory type for SegLSTM processing. Can be 'hc', 'h',
             'c', 'id', or None. Default is 'hc'.
-        seg_overlap (bool): Whether the segmentation will reserve 50% overlap 
+        seg_overlap (bool): Whether the segmentation will reserve 50% overlap
             for adjacent segments. Default is False.
 
     Raises:
-        ValueError: If an unsupported `mem_type` or `nonlinear` function is 
+        ValueError: If an unsupported `mem_type` or `nonlinear` function is
         provided.
 
     Examples:
@@ -47,7 +47,7 @@ class SkiMSeparator(AbsSeparator):
         >>> print(len(masked))  # Should be equal to num_spk
 
     Note:
-        The `additional` argument in the `forward` method is not used in this 
+        The `additional` argument in the `forward` method is not used in this
         model but is kept for compatibility with the interface.
 
     Attributes:
@@ -108,46 +108,46 @@ class SkiMSeparator(AbsSeparator):
         additional: Optional[Dict] = None,
     ) -> Tuple[List[Union[torch.Tensor, ComplexTensor]], torch.Tensor, OrderedDict]:
         """
-        Forward pass of the SkiMSeparator.
+            Forward pass of the SkiMSeparator.
 
-    This method processes the input features and returns the separated outputs 
-    along with the input lengths and additional predicted data. The separation 
-    is performed using the Skipping Memory (SkiM) mechanism.
+        This method processes the input features and returns the separated outputs
+        along with the input lengths and additional predicted data. The separation
+        is performed using the Skipping Memory (SkiM) mechanism.
 
-    Args:
-        input (Union[torch.Tensor, ComplexTensor]): Encoded feature tensor of 
-            shape [B, T, N], where B is the batch size, T is the time dimension, 
-            and N is the number of features.
-        ilens (torch.Tensor): A tensor containing the lengths of the input 
-            sequences, shape [Batch].
-        additional (Optional[Dict], optional): Additional data included in the 
-            model. Note that this parameter is not used in this model. Default 
-            is None.
+        Args:
+            input (Union[torch.Tensor, ComplexTensor]): Encoded feature tensor of
+                shape [B, T, N], where B is the batch size, T is the time dimension,
+                and N is the number of features.
+            ilens (torch.Tensor): A tensor containing the lengths of the input
+                sequences, shape [Batch].
+            additional (Optional[Dict], optional): Additional data included in the
+                model. Note that this parameter is not used in this model. Default
+                is None.
 
-    Returns:
-        Tuple[List[Union[torch.Tensor, ComplexTensor]], torch.Tensor, 
-        OrderedDict]: A tuple containing:
-            - masked (List[Union[torch.Tensor, ComplexTensor]]): A list of 
-              tensors representing the masked outputs for each speaker, 
-              each of shape [(B, T, N), ...].
-            - ilens (torch.Tensor): A tensor containing the input lengths 
-              of shape (B,).
-            - others (OrderedDict): An ordered dictionary of additional 
-              predicted data, including masks for each speaker:
-                - 'mask_spk1': torch.Tensor(Batch, Frames, Freq),
-                - 'mask_spk2': torch.Tensor(Batch, Frames, Freq),
-                - ...,
-                - 'mask_spkn': torch.Tensor(Batch, Frames, Freq).
+        Returns:
+            Tuple[List[Union[torch.Tensor, ComplexTensor]], torch.Tensor,
+            OrderedDict]: A tuple containing:
+                - masked (List[Union[torch.Tensor, ComplexTensor]]): A list of
+                  tensors representing the masked outputs for each speaker,
+                  each of shape [(B, T, N), ...].
+                - ilens (torch.Tensor): A tensor containing the input lengths
+                  of shape (B,).
+                - others (OrderedDict): An ordered dictionary of additional
+                  predicted data, including masks for each speaker:
+                    - 'mask_spk1': torch.Tensor(Batch, Frames, Freq),
+                    - 'mask_spk2': torch.Tensor(Batch, Frames, Freq),
+                    - ...,
+                    - 'mask_spkn': torch.Tensor(Batch, Frames, Freq).
 
-    Examples:
-        >>> separator = SkiMSeparator(input_dim=128, num_spk=2)
-        >>> input_tensor = torch.randn(10, 50, 128)  # [Batch, Time, Features]
-        >>> ilens = torch.tensor([50] * 10)  # All sequences of length 50
-        >>> masked, lengths, others = separator.forward(input_tensor, ilens)
+        Examples:
+            >>> separator = SkiMSeparator(input_dim=128, num_spk=2)
+            >>> input_tensor = torch.randn(10, 50, 128)  # [Batch, Time, Features]
+            >>> ilens = torch.tensor([50] * 10)  # All sequences of length 50
+            >>> masked, lengths, others = separator.forward(input_tensor, ilens)
 
-    Note:
-        The `additional` argument is included for compatibility with other 
-        models but is not utilized in this implementation.
+        Note:
+            The `additional` argument is included for compatibility with other
+            models but is not utilized in this implementation.
         """
 
         # if complex spectrum,
@@ -179,22 +179,22 @@ class SkiMSeparator(AbsSeparator):
         """
         Process input frames in a streaming manner.
 
-        This method performs the forward pass for streaming audio input, 
-        allowing for real-time processing of audio frames. It computes 
-        the masks for each target speaker based on the provided input 
+        This method performs the forward pass for streaming audio input,
+        allowing for real-time processing of audio frames. It computes
+        the masks for each target speaker based on the provided input
         frames and maintains the state for continuous processing.
 
         Args:
-            input_frame (torch.Tensor): Input audio frames with shape 
+            input_frame (torch.Tensor): Input audio frames with shape
                 [Batch, Time, Features].
-            states (Optional): Optional states to maintain across 
+            states (Optional): Optional states to maintain across
                 successive calls. Default is None.
 
         Returns:
-            masked (List[Union[torch.Tensor, ComplexTensor]]): List of 
+            masked (List[Union[torch.Tensor, ComplexTensor]]): List of
                 masked audio frames for each target speaker.
             states: Updated states for subsequent calls.
-            others (OrderedDict): Additional predicted data, such as 
+            others (OrderedDict): Additional predicted data, such as
                 masks for each speaker:
                 - 'mask_spk1': torch.Tensor(Batch, 1, Freq)
                 - 'mask_spk2': torch.Tensor(Batch, 1, Freq)
@@ -207,8 +207,8 @@ class SkiMSeparator(AbsSeparator):
             >>> masked, states, others = separator.forward_streaming(input_frames)
 
         Note:
-            This method is designed for use in scenarios where the 
-            audio data is processed in small segments rather than all 
+            This method is designed for use in scenarios where the
+            audio data is processed in small segments rather than all
             at once. It is particularly useful for real-time applications.
 
         Raises:

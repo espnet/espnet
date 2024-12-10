@@ -8,30 +8,30 @@ from typeguard import typechecked
 
 class CTC(torch.nn.Module):
     """
-    Connectionist Temporal Classification (CTC) module for sequence-to-sequence 
+    Connectionist Temporal Classification (CTC) module for sequence-to-sequence
     tasks.
 
-    This module implements the CTC loss function, which is commonly used in 
-    automatic speech recognition and other sequence prediction tasks where 
+    This module implements the CTC loss function, which is commonly used in
+    automatic speech recognition and other sequence prediction tasks where
     the alignment between input and output sequences is unknown.
 
     Args:
         odim (int): Dimension of outputs (vocabulary size).
         encoder_output_size (int): Number of encoder projection units.
         dropout_rate (float, optional): Dropout rate (0.0 ~ 1.0). Default is 0.0.
-        ctc_type (str, optional): Type of CTC loss to use. Options are 
+        ctc_type (str, optional): Type of CTC loss to use. Options are
             "builtin", "builtin2", "gtnctc", or "brctc". Default is "builtin".
-        reduce (bool, optional): Whether to reduce the CTC loss into a scalar. 
+        reduce (bool, optional): Whether to reduce the CTC loss into a scalar.
             Default is True.
-        ignore_nan_grad (Optional[bool], optional): If set to True, NaN gradients 
+        ignore_nan_grad (Optional[bool], optional): If set to True, NaN gradients
             are ignored. This is kept for backward compatibility. Default is None.
-        zero_infinity (bool, optional): Whether to zero infinite losses and the 
+        zero_infinity (bool, optional): Whether to zero infinite losses and the
             associated gradients. Default is True.
-        brctc_risk_strategy (str, optional): Risk strategy for Bayes Risk CTC. 
+        brctc_risk_strategy (str, optional): Risk strategy for Bayes Risk CTC.
             Default is "exp".
-        brctc_group_strategy (str, optional): Group strategy for Bayes Risk CTC. 
+        brctc_group_strategy (str, optional): Group strategy for Bayes Risk CTC.
             Default is "end".
-        brctc_risk_factor (float, optional): Risk factor for Bayes Risk CTC. 
+        brctc_risk_factor (float, optional): Risk factor for Bayes Risk CTC.
             Default is 0.0.
 
     Raises:
@@ -47,8 +47,8 @@ class CTC(torch.nn.Module):
         >>> loss = ctc(hs_pad, hlens, ys_pad, ys_lens)
 
     Note:
-        The "builtin" and "builtin2" types use PyTorch's built-in CTC loss 
-        implementation, while "gtnctc" and "brctc" require additional libraries 
+        The "builtin" and "builtin2" types use PyTorch's built-in CTC loss
+        implementation, while "gtnctc" and "brctc" require additional libraries
         for their respective functionalities.
 
     Todo:
@@ -232,27 +232,27 @@ class CTC(torch.nn.Module):
         """
         Calculate the Connectionist Temporal Classification (CTC) loss.
 
-        This method computes the CTC loss given the padded hidden state 
-        sequences and the corresponding target sequences. It handles various 
-        types of CTC losses based on the `ctc_type` specified during 
+        This method computes the CTC loss given the padded hidden state
+        sequences and the corresponding target sequences. It handles various
+        types of CTC losses based on the `ctc_type` specified during
         initialization.
 
         Args:
-            hs_pad (torch.Tensor): A batch of padded hidden state sequences 
-                with shape (B, Tmax, D), where B is the batch size, 
-                Tmax is the maximum sequence length, and D is the number 
+            hs_pad (torch.Tensor): A batch of padded hidden state sequences
+                with shape (B, Tmax, D), where B is the batch size,
+                Tmax is the maximum sequence length, and D is the number
                 of features.
-            hlens (torch.Tensor): A tensor containing the lengths of the 
+            hlens (torch.Tensor): A tensor containing the lengths of the
                 hidden state sequences with shape (B).
-            ys_pad (torch.Tensor): A batch of padded character ID sequences 
-                with shape (B, Lmax), where Lmax is the maximum target 
+            ys_pad (torch.Tensor): A batch of padded character ID sequences
+                with shape (B, Lmax), where Lmax is the maximum target
                 sequence length.
-            ys_lens (torch.Tensor): A tensor containing the lengths of the 
+            ys_lens (torch.Tensor): A tensor containing the lengths of the
                 character sequences with shape (B).
 
         Returns:
-            torch.Tensor: The computed CTC loss as a tensor. The loss is 
-            returned in the same device and data type as the input hidden 
+            torch.Tensor: The computed CTC loss as a tensor. The loss is
+            returned in the same device and data type as the input hidden
             states.
 
         Examples:
@@ -265,7 +265,7 @@ class CTC(torch.nn.Module):
             >>> print(loss)
 
         Note:
-            Ensure that the input tensors are appropriately padded and 
+            Ensure that the input tensors are appropriately padded and
             have the correct shapes as specified in the arguments.
 
         Raises:
@@ -299,18 +299,18 @@ class CTC(torch.nn.Module):
         """
         Compute the softmax of frame activations.
 
-        This method applies the softmax function to the output of the linear 
-        layer, converting raw logits into probabilities. It is particularly 
-        useful for interpreting the model's output in the context of 
+        This method applies the softmax function to the output of the linear
+        layer, converting raw logits into probabilities. It is particularly
+        useful for interpreting the model's output in the context of
         classification tasks.
 
         Args:
-            hs_pad (torch.Tensor): A 3D tensor of shape (B, Tmax, eprojs) 
-                where B is the batch size, Tmax is the maximum time steps, 
+            hs_pad (torch.Tensor): A 3D tensor of shape (B, Tmax, eprojs)
+                where B is the batch size, Tmax is the maximum time steps,
                 and eprojs is the number of encoder projection units.
 
         Returns:
-            torch.Tensor: A 3D tensor of shape (B, Tmax, odim) containing the 
+            torch.Tensor: A 3D tensor of shape (B, Tmax, odim) containing the
             softmax probabilities for each output dimension (odim).
 
         Examples:
@@ -325,18 +325,18 @@ class CTC(torch.nn.Module):
         """
         Computes the log softmax of frame activations.
 
-        This function applies the log softmax function to the output of the 
+        This function applies the log softmax function to the output of the
         CTC layer, transforming the raw scores (logits) into log-probabilities.
-        The log softmax function is particularly useful in the context of 
+        The log softmax function is particularly useful in the context of
         neural networks as it helps in numerical stability during training.
 
         Args:
-            hs_pad (torch.Tensor): A 3D tensor of shape (B, Tmax, eprojs), 
-                where B is the batch size, Tmax is the maximum time steps, 
+            hs_pad (torch.Tensor): A 3D tensor of shape (B, Tmax, eprojs),
+                where B is the batch size, Tmax is the maximum time steps,
                 and eprojs is the number of encoder projection units.
 
         Returns:
-            torch.Tensor: A 3D tensor of shape (B, Tmax, odim) after applying 
+            torch.Tensor: A 3D tensor of shape (B, Tmax, odim) after applying
             the log softmax function, where odim is the dimension of outputs.
 
         Examples:
@@ -347,7 +347,7 @@ class CTC(torch.nn.Module):
             torch.Size([2, 3, 10])
 
         Note:
-            The output of this function can be used as input to the CTC loss 
+            The output of this function can be used as input to the CTC loss
             function to compute the loss during training.
         """
         return F.log_softmax(self.ctc_lo(hs_pad), dim=2)
@@ -356,20 +356,20 @@ class CTC(torch.nn.Module):
         """
         Compute the argmax of frame activations.
 
-        This method applies the CTC linear layer to the input tensor and 
-        computes the argmax across the output dimension. The input should 
-        be a 3D tensor representing the batch of padded hidden state 
+        This method applies the CTC linear layer to the input tensor and
+        computes the argmax across the output dimension. The input should
+        be a 3D tensor representing the batch of padded hidden state
         sequences.
 
         Args:
-            hs_pad (torch.Tensor): A 3D tensor of shape (B, Tmax, eprojs), 
-                where B is the batch size, Tmax is the maximum sequence 
-                length, and eprojs is the number of encoder projection 
+            hs_pad (torch.Tensor): A 3D tensor of shape (B, Tmax, eprojs),
+                where B is the batch size, Tmax is the maximum sequence
+                length, and eprojs is the number of encoder projection
                 units.
 
         Returns:
-            torch.Tensor: A 2D tensor of shape (B, Tmax) containing the 
-                indices of the maximum values along the output dimension 
+            torch.Tensor: A 2D tensor of shape (B, Tmax) containing the
+                indices of the maximum values along the output dimension
                 for each time step.
 
         Examples:
@@ -380,7 +380,7 @@ class CTC(torch.nn.Module):
             torch.Size([4, 5])  # Output shape will be (B, Tmax)
 
         Note:
-            This function is useful for decoding the predicted output 
+            This function is useful for decoding the predicted output
             sequences from the model after training.
         """
         return torch.argmax(self.ctc_lo(hs_pad), dim=2)

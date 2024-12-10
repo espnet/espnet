@@ -38,63 +38,63 @@ class LongformerEncoder(ConformerEncoder):
     """
     Longformer Self-Attention Conformer Encoder Module.
 
-    This class implements a Longformer-based encoder for automatic speech 
-    recognition (ASR). It leverages self-attention mechanisms to handle 
+    This class implements a Longformer-based encoder for automatic speech
+    recognition (ASR). It leverages self-attention mechanisms to handle
     long sequences efficiently.
 
     Attributes:
         _output_size (int): The output dimension of the encoder.
         embed (torch.nn.Module): The embedding layer that processes input.
-        normalize_before (bool): Flag indicating if normalization is applied 
+        normalize_before (bool): Flag indicating if normalization is applied
             before the first block.
         encoders (List[EncoderLayer]): A list of encoder layers.
-        after_norm (LayerNorm): Layer normalization applied after encoding if 
+        after_norm (LayerNorm): Layer normalization applied after encoding if
             normalize_before is True.
-        interctc_layer_idx (List[int]): Indices of layers used for intermediate 
+        interctc_layer_idx (List[int]): Indices of layers used for intermediate
             CTC loss.
-        interctc_use_conditioning (bool): Flag indicating if conditioning 
+        interctc_use_conditioning (bool): Flag indicating if conditioning
             is used for intermediate CTC outputs.
 
     Args:
         input_size (int): Input dimension.
         output_size (int): Dimension of attention. Default is 256.
         attention_heads (int): The number of heads in multi-head attention.
-        linear_units (int): Number of units in position-wise feed forward. 
+        linear_units (int): Number of units in position-wise feed forward.
             Default is 2048.
         num_blocks (int): Number of encoder blocks. Default is 6.
         dropout_rate (float): Dropout rate. Default is 0.1.
-        positional_dropout_rate (float): Dropout rate for positional encoding. 
+        positional_dropout_rate (float): Dropout rate for positional encoding.
             Default is 0.1.
         attention_dropout_rate (float): Dropout rate in attention. Default is 0.0.
-        input_layer (Union[str, torch.nn.Module]): Type of input layer. Default 
+        input_layer (Union[str, torch.nn.Module]): Type of input layer. Default
             is "conv2d".
-        normalize_before (bool): Whether to apply layer normalization before the 
+        normalize_before (bool): Whether to apply layer normalization before the
             first block. Default is True.
-        concat_after (bool): Whether to concatenate input and output of attention 
+        concat_after (bool): Whether to concatenate input and output of attention
             layers. Default is False.
-        positionwise_layer_type (str): Type of position-wise layer. Default is 
+        positionwise_layer_type (str): Type of position-wise layer. Default is
             "linear".
-        positionwise_conv_kernel_size (int): Kernel size for position-wise conv1d. 
+        positionwise_conv_kernel_size (int): Kernel size for position-wise conv1d.
             Default is 3.
-        rel_pos_type (str): Type of relative positional encoding. Default is 
+        rel_pos_type (str): Type of relative positional encoding. Default is
             "legacy".
-        encoder_pos_enc_layer_type (str): Encoder positional encoding layer type. 
+        encoder_pos_enc_layer_type (str): Encoder positional encoding layer type.
             Default is "abs_pos".
-        encoder_attn_layer_type (str): Encoder attention layer type. Default is 
+        encoder_attn_layer_type (str): Encoder attention layer type. Default is
             "lf_selfattn".
         activation_type (str): Activation function type. Default is "swish".
-        macaron_style (bool): Whether to use Macaron style for position-wise layers. 
+        macaron_style (bool): Whether to use Macaron style for position-wise layers.
             Default is False.
         use_cnn_module (bool): Whether to use a convolution module. Default is True.
-        zero_triu (bool): Whether to zero the upper triangular part of the attention 
+        zero_triu (bool): Whether to zero the upper triangular part of the attention
             matrix. Default is False.
         cnn_module_kernel (int): Kernel size of the convolution module. Default is 31.
         padding_idx (int): Padding index for embedding layer. Default is -1.
-        attention_windows (list): Layer-wise attention window sizes for Longformer 
+        attention_windows (list): Layer-wise attention window sizes for Longformer
             self-attention.
-        attention_dilation (list): Layer-wise attention dilation sizes for Longformer 
+        attention_dilation (list): Layer-wise attention dilation sizes for Longformer
             self-attention.
-        attention_mode (str): Implementation mode for Longformer self-attention. 
+        attention_mode (str): Implementation mode for Longformer self-attention.
             Default is "sliding_chunks". More details in
             https://github.com/allenai/longformer
 
@@ -118,7 +118,7 @@ class LongformerEncoder(ConformerEncoder):
         >>> output, olens, _ = encoder(xs_pad, ilens)
 
     Note:
-        The Longformer architecture is particularly effective for handling long 
+        The Longformer architecture is particularly effective for handling long
         sequences due to its efficient attention mechanism.
 
     Todo:
@@ -340,7 +340,7 @@ class LongformerEncoder(ConformerEncoder):
 
         This method returns the output dimension of the Longformer encoder,
         which is defined during the initialization of the encoder. The output
-        size is crucial for ensuring that the subsequent layers in the model 
+        size is crucial for ensuring that the subsequent layers in the model
         receive the correct input dimensions.
 
         Returns:
@@ -364,18 +364,18 @@ class LongformerEncoder(ConformerEncoder):
         """
         Calculate forward propagation through the Longformer encoder.
 
-        This method processes the input tensor through the Longformer encoder 
-        layers and returns the output tensor along with the output lengths 
+        This method processes the input tensor through the Longformer encoder
+        layers and returns the output tensor along with the output lengths
         and optional intermediate hidden states.
 
         Args:
-            xs_pad (torch.Tensor): Input tensor of shape 
+            xs_pad (torch.Tensor): Input tensor of shape
                 (#batch, L, input_size).
-            ilens (torch.Tensor): Tensor of input lengths with shape 
+            ilens (torch.Tensor): Tensor of input lengths with shape
                 (#batch).
             prev_states (torch.Tensor): Previous states (not used currently).
             ctc (CTC): CTC module for intermediate CTC loss computation.
-            return_all_hs (bool): Flag indicating whether to return all 
+            return_all_hs (bool): Flag indicating whether to return all
                 hidden states.
 
         Returns:
@@ -385,7 +385,7 @@ class LongformerEncoder(ConformerEncoder):
                 - Optional tensor (currently not used).
 
         Raises:
-            TooShortUttError: If the input sequence is too short for the 
+            TooShortUttError: If the input sequence is too short for the
                 subsampling layer.
 
         Examples:
@@ -395,7 +395,7 @@ class LongformerEncoder(ConformerEncoder):
             >>> output, olens, _ = model.forward(xs_pad, ilens)
 
         Note:
-            The `prev_states` parameter is reserved for future use and 
+            The `prev_states` parameter is reserved for future use and
             currently does not influence the forward pass.
         """
 

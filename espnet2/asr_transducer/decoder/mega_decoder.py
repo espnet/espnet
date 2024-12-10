@@ -47,32 +47,32 @@ class MEGADecoder(AbsDecoder):
             Defaults to 128.
         v_size (int, optional): Value size for attention module. Defaults to 1024.
         num_heads (int, optional): Number of EMA heads. Defaults to 4.
-        rel_pos_bias_type (str, optional): Type of relative position bias in 
+        rel_pos_bias_type (str, optional): Type of relative position bias in
             attention module. Defaults to "simple".
-        max_positions (int, optional): Maximum number of position for 
+        max_positions (int, optional): Maximum number of position for
             RelativePositionBias. Defaults to 2048.
-        truncation_length (Optional[int], optional): Maximum length for truncation 
+        truncation_length (Optional[int], optional): Maximum length for truncation
             in EMA module. Defaults to None.
-        normalization_type (str, optional): Normalization layer type. Defaults to 
+        normalization_type (str, optional): Normalization layer type. Defaults to
             "layer_norm".
-        normalization_args (Dict, optional): Normalization layer arguments. 
+        normalization_args (Dict, optional): Normalization layer arguments.
             Defaults to an empty dictionary.
-        activation_type (str, optional): Activation function type. Defaults to 
+        activation_type (str, optional): Activation function type. Defaults to
             "swish".
-        activation_args (Dict, optional): Activation function arguments. 
+        activation_args (Dict, optional): Activation function arguments.
             Defaults to an empty dictionary.
-        chunk_size (int, optional): Chunk size for attention computation 
+        chunk_size (int, optional): Chunk size for attention computation
             (-1 = full context). Defaults to -1.
         num_blocks (int, optional): Number of MEGA blocks. Defaults to 4.
-        dropout_rate (float, optional): Dropout rate for MEGA internal modules. 
+        dropout_rate (float, optional): Dropout rate for MEGA internal modules.
             Defaults to 0.0.
-        embed_dropout_rate (float, optional): Dropout rate for embedding layer. 
+        embed_dropout_rate (float, optional): Dropout rate for embedding layer.
             Defaults to 0.0.
-        att_dropout_rate (float, optional): Dropout rate for the attention module. 
+        att_dropout_rate (float, optional): Dropout rate for the attention module.
             Defaults to 0.0.
-        ema_dropout_rate (float, optional): Dropout rate for the EMA module. 
+        ema_dropout_rate (float, optional): Dropout rate for the EMA module.
             Defaults to 0.0.
-        ffn_dropout_rate (float, optional): Dropout rate for the feed-forward module. 
+        ffn_dropout_rate (float, optional): Dropout rate for the feed-forward module.
             Defaults to 0.0.
         embed_pad (int, optional): Embedding padding symbol ID. Defaults to 0.
 
@@ -188,13 +188,13 @@ class MEGADecoder(AbsDecoder):
         """
         MEGA decoder module.
 
-        This class implements the MEGA decoder as described in the paper 
+        This class implements the MEGA decoder as described in the paper
         "MEGA: A New Decoder for ASR" (https://arxiv.org/pdf/2209.10655.pdf).
 
         Attributes:
             embed: Embedding layer for input sequences.
             dropout_embed: Dropout layer applied to the embedding output.
-            mega_blocks: A list of MEGA blocks, each containing a MEGA 
+            mega_blocks: A list of MEGA blocks, each containing a MEGA
                 module and a Normalized Positionwise Feed Forward module.
             final_norm: Final normalization layer applied to the output.
             vocab_size: Size of the vocabulary.
@@ -365,13 +365,13 @@ class MEGADecoder(AbsDecoder):
         """
         Set GPU device to use.
 
-        This method allows the user to specify the GPU device on which the 
-        MEGADecoder will run. It is important for managing the device 
+        This method allows the user to specify the GPU device on which the
+        MEGADecoder will run. It is important for managing the device
         placement of tensors and operations in PyTorch.
 
         Args:
-            device: The device to set for the decoder. This should be a 
-                torch.device object representing the desired GPU or CPU 
+            device: The device to set for the decoder. This should be a
+                torch.device object representing the desired GPU or CPU
                 device.
 
         Examples:
@@ -380,8 +380,8 @@ class MEGADecoder(AbsDecoder):
             >>> decoder.set_device(torch.device('cpu'))      # Use CPU
 
         Note:
-            Ensure that the specified device is available and valid in your 
-            PyTorch installation. You can check available devices using 
+            Ensure that the specified device is available and valid in your
+            PyTorch installation. You can check available devices using
             `torch.cuda.is_available()` and `torch.cuda.device_count()`.
         """
         self.device = device
@@ -465,18 +465,18 @@ class MEGADecoder(AbsDecoder):
         """
         One-step forward hypotheses.
 
-        This method processes a batch of hypotheses and computes the decoder 
-        output for each hypothesis in the batch. It retrieves the last label 
+        This method processes a batch of hypotheses and computes the decoder
+        output for each hypothesis in the batch. It retrieves the last label
         from each hypothesis and creates a corresponding batch of states.
 
         Args:
-            hyps: A list of Hypothesis objects, each containing the current 
+            hyps: A list of Hypothesis objects, each containing the current
                   label sequence and decoder state.
 
         Returns:
-            out: A tensor containing the decoder output sequence for each 
+            out: A tensor containing the decoder output sequence for each
                  hypothesis in the batch, shape (B, D_dec).
-            states: A list of dictionaries containing the updated decoder 
+            states: A list of dictionaries containing the updated decoder
                     hidden states for each hypothesis.
 
         Examples:
@@ -548,13 +548,13 @@ class MEGADecoder(AbsDecoder):
         """
         Select ID state from batch of decoder hidden states.
 
-        This method retrieves the hidden states for a specific index from a batch 
-        of decoder states. It extracts the `ema_state`, `prev_key`, and `prev_value` 
+        This method retrieves the hidden states for a specific index from a batch
+        of decoder states. It extracts the `ema_state`, `prev_key`, and `prev_value`
         for each block in the decoder.
 
         Args:
-            states: Decoder hidden states. A list of dictionaries, where each 
-                dictionary contains the states for a specific block. Each dictionary 
+            states: Decoder hidden states. A list of dictionaries, where each
+                dictionary contains the states for a specific block. Each dictionary
                 should have the keys:
                 - "ema_state": Tensor containing the EMA state for the block.
                 - "prev_key": Tensor containing the previous key for the block.
@@ -562,16 +562,16 @@ class MEGADecoder(AbsDecoder):
             idx: The index of the state to select from each block's hidden states.
 
         Returns:
-            A list of dictionaries, where each dictionary contains the selected 
-            hidden states for the given index. The structure is the same as the 
-            input states but only contains the states corresponding to the specified 
+            A list of dictionaries, where each dictionary contains the selected
+            hidden states for the given index. The structure is the same as the
+            input states but only contains the states corresponding to the specified
             index.
 
         Examples:
             >>> states = [
-            ...     {"ema_state": torch.randn(5, 4), "prev_key": torch.randn(1, 1, 4), 
+            ...     {"ema_state": torch.randn(5, 4), "prev_key": torch.randn(1, 1, 4),
             ...      "prev_value": torch.randn(1, 1, 4)},
-            ...     {"ema_state": torch.randn(5, 4), "prev_key": torch.randn(1, 1, 4), 
+            ...     {"ema_state": torch.randn(5, 4), "prev_key": torch.randn(1, 1, 4),
             ...      "prev_value": torch.randn(1, 1, 4)},
             ... ]
             >>> idx = 2
@@ -594,20 +594,20 @@ class MEGADecoder(AbsDecoder):
         """
         Stack query or key states with different lengths.
 
-        This method takes a list of query or key states, which may have 
-        different lengths, and stacks them into a tensor of shape 
-        (num_states, max_len, dim). The shorter states are padded with 
+        This method takes a list of query or key states, which may have
+        different lengths, and stacks them into a tensor of shape
+        (num_states, max_len, dim). The shorter states are padded with
         zeros to match the length of the longest state in the list.
 
         Args:
-            state_list: List of query or key states, where each state is 
+            state_list: List of query or key states, where each state is
                 a tensor of shape (length, dim).
             dim: The size of the last dimension of each state tensor.
 
         Returns:
-            new_state: A tensor containing stacked query/key states with 
-            shape (num_states, max_len, dim), where num_states is the 
-            number of states in the input list and max_len is the length 
+            new_state: A tensor containing stacked query/key states with
+            shape (num_states, max_len, dim), where num_states is the
+            number of states in the input list and max_len is the length
             of the longest state.
 
         Examples:
@@ -632,36 +632,36 @@ class MEGADecoder(AbsDecoder):
         """
         Create batch of decoder hidden states given a list of new states.
 
-        This method constructs a new batch of decoder hidden states from a 
-        list of individual states for each block. It aggregates the states 
-        across the batch dimension, allowing for efficient processing of 
+        This method constructs a new batch of decoder hidden states from a
+        list of individual states for each block. It aggregates the states
+        across the batch dimension, allowing for efficient processing of
         hypotheses during inference.
 
         Args:
-            new_states: A list containing decoder hidden states, where each 
-                element is a list of dictionaries representing the states 
-                for each block in the decoder. The structure is 
-                [B x [N x Dict]], where B is the batch size and N is the 
+            new_states: A list containing decoder hidden states, where each
+                element is a list of dictionaries representing the states
+                for each block in the decoder. The structure is
+                [B x [N x Dict]], where B is the batch size and N is the
                 number of blocks.
 
         Returns:
-            A list of dictionaries representing the aggregated decoder hidden 
-            states for each block. The structure is [N x Dict], where N 
+            A list of dictionaries representing the aggregated decoder hidden
+            states for each block. The structure is [N x Dict], where N
             is the number of blocks.
 
         Examples:
             >>> new_states = [
-            ...     [{'ema_state': torch.tensor([[0.1, 0.2]]), 
-            ...       'prev_key': torch.tensor([[0.3]]), 
+            ...     [{'ema_state': torch.tensor([[0.1, 0.2]]),
+            ...       'prev_key': torch.tensor([[0.3]]),
             ...       'prev_value': torch.tensor([[0.4]])}],
-            ...     [{'ema_state': torch.tensor([[0.5, 0.6]]), 
-            ...       'prev_key': torch.tensor([[0.7]]), 
+            ...     [{'ema_state': torch.tensor([[0.5, 0.6]]),
+            ...       'prev_key': torch.tensor([[0.7]]),
             ...       'prev_value': torch.tensor([[0.8]])}]
             ... ]
             >>> batch_states = decoder.create_batch_states(new_states)
             >>> print(batch_states)
-            [{'ema_state': tensor([[0.1, 0.2], [0.5, 0.6]]), 
-              'prev_key': tensor([[0.3], [0.7]]), 
+            [{'ema_state': tensor([[0.1, 0.2], [0.5, 0.6]]),
+              'prev_key': tensor([[0.3], [0.7]]),
               'prev_value': tensor([[0.4], [0.8]])}]
         """
         return [

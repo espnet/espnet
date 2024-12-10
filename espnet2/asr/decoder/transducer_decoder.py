@@ -11,15 +11,15 @@ from espnet2.asr.transducer.beam_search_transducer import ExtendedHypothesis, Hy
 
 class TransducerDecoder(AbsDecoder):
     """
-    TransducerDecoder is an (RNN-)Transducer decoder module that processes sequences 
-    of input labels and produces corresponding output sequences. It is designed to 
+    TransducerDecoder is an (RNN-)Transducer decoder module that processes sequences
+    of input labels and produces corresponding output sequences. It is designed to
     work with recurrent neural networks (RNNs), specifically LSTM or GRU architectures.
 
     Attributes:
         embed (torch.nn.Embedding): Embedding layer for input label sequences.
         dropout_embed (torch.nn.Dropout): Dropout layer applied to the embeddings.
         decoder (torch.nn.ModuleList): List of RNN layers (LSTM or GRU).
-        dropout_dec (torch.nn.ModuleList): List of dropout layers applied to the RNN 
+        dropout_dec (torch.nn.ModuleList): List of dropout layers applied to the RNN
             outputs.
         dlayers (int): Number of decoder layers.
         dunits (int): Number of decoder units per layer.
@@ -43,12 +43,12 @@ class TransducerDecoder(AbsDecoder):
         init_state(batch_size): Initialize the hidden states of the decoder.
         rnn_forward(sequence, state): Perform a forward pass through the RNN layers.
         forward(labels): Process input label sequences to produce decoder outputs.
-        score(hyp, cache): Compute decoder output and hidden states for a single 
+        score(hyp, cache): Compute decoder output and hidden states for a single
             hypothesis.
-        batch_score(hyps, dec_states, cache, use_lm): Compute decoder outputs for a 
+        batch_score(hyps, dec_states, cache, use_lm): Compute decoder outputs for a
             batch of hypotheses.
         select_state(states, idx): Retrieve the hidden state for a specified index.
-        create_batch_states(states, new_states, check_list=None): Create batch hidden 
+        create_batch_states(states, new_states, check_list=None): Create batch hidden
             states from new states.
 
     Examples:
@@ -75,7 +75,7 @@ class TransducerDecoder(AbsDecoder):
         dec_out, new_state, label = decoder.score(hyp, cache={})
 
     Note:
-        The decoder requires input sequences to be properly padded and tokenized 
+        The decoder requires input sequences to be properly padded and tokenized
         according to the model's vocabulary.
 
     Todo:
@@ -128,14 +128,14 @@ class TransducerDecoder(AbsDecoder):
         """
         Set GPU device to use.
 
-        This method updates the device attribute of the TransducerDecoder 
-        instance, allowing the model to operate on the specified GPU or 
-        CPU. It is important to set the device correctly to ensure that 
+        This method updates the device attribute of the TransducerDecoder
+        instance, allowing the model to operate on the specified GPU or
+        CPU. It is important to set the device correctly to ensure that
         all tensor operations are performed on the desired hardware.
 
         Args:
             device: A torch.device object representing the device to be used.
-                This can be a CPU or a specific GPU device (e.g., 
+                This can be a CPU or a specific GPU device (e.g.,
                 torch.device("cuda:0") for the first GPU).
 
         Examples:
@@ -145,7 +145,7 @@ class TransducerDecoder(AbsDecoder):
             cuda:0
 
         Note:
-            Ensure that the specified device is available on the system. 
+            Ensure that the specified device is available on the system.
             Use `torch.cuda.is_available()` to check if CUDA is supported.
 
         Raises:
@@ -159,15 +159,15 @@ class TransducerDecoder(AbsDecoder):
         """
         Initialize decoder states.
 
-        This method creates and initializes the hidden states for the decoder. 
-        The hidden states are essential for the operation of the recurrent 
-        neural network (RNN) used in the transducer decoder. Depending on 
-        the type of RNN (LSTM or GRU), the method will return either a tuple 
-        containing both hidden states and cell states (for LSTM) or just 
+        This method creates and initializes the hidden states for the decoder.
+        The hidden states are essential for the operation of the recurrent
+        neural network (RNN) used in the transducer decoder. Depending on
+        the type of RNN (LSTM or GRU), the method will return either a tuple
+        containing both hidden states and cell states (for LSTM) or just
         the hidden states (for GRU).
 
         Args:
-            batch_size: The number of sequences in a batch. This determines 
+            batch_size: The number of sequences in a batch. This determines
                 the size of the hidden states.
 
         Returns:
@@ -188,8 +188,8 @@ class TransducerDecoder(AbsDecoder):
             torch.Size([num_layers, 32, 320])  # Only for LSTM
 
         Note:
-            This method should be called before the decoder is used for 
-            generating predictions, ensuring that the initial hidden states 
+            This method should be called before the decoder is used for
+            generating predictions, ensuring that the initial hidden states
             are set correctly for each batch of sequences.
         """
         h_n = torch.zeros(
@@ -216,9 +216,7 @@ class TransducerDecoder(AbsDecoder):
         sequence: torch.Tensor,
         state: Tuple[torch.Tensor, Optional[torch.Tensor]],
     ) -> Tuple[torch.Tensor, Tuple[torch.Tensor, Optional[torch.Tensor]]]:
-        """
-        
-        """
+        """ """
         h_prev, c_prev = state
         h_next, c_next = self.init_state(sequence.size(0))
 
@@ -246,17 +244,17 @@ class TransducerDecoder(AbsDecoder):
         """
         Encode source label sequences.
 
-        This method processes the input label sequences through the decoder 
-        network, applying embedding and RNN transformations to generate 
+        This method processes the input label sequences through the decoder
+        network, applying embedding and RNN transformations to generate
         the decoder output sequences.
 
         Args:
-            labels: Label ID sequences. Shape (B, L), where B is the batch 
+            labels: Label ID sequences. Shape (B, L), where B is the batch
                     size and L is the sequence length.
 
         Returns:
-            dec_out: Decoder output sequences. Shape (B, T, U, D_dec), where 
-                     T is the output length, U is the number of units, 
+            dec_out: Decoder output sequences. Shape (B, T, U, D_dec), where
+                     T is the output length, U is the number of units,
                      and D_dec is the dimension of the decoder.
 
         Examples:
@@ -267,7 +265,7 @@ class TransducerDecoder(AbsDecoder):
             torch.Size([32, T, U, D_dec])  # Shape will depend on T and U
 
         Note:
-            Ensure that the input labels are properly padded and contain 
+            Ensure that the input labels are properly padded and contain
             valid IDs as per the embedding layer configuration.
         """
         init_state = self.init_state(labels.size(0))
@@ -289,15 +287,15 @@ class TransducerDecoder(AbsDecoder):
         on the last label in the hypothesis.
 
         Args:
-            hyp: The hypothesis containing the label sequence and current 
+            hyp: The hypothesis containing the label sequence and current
                  decoder state.
-            cache: A dictionary that stores pairs of (dec_out, state) for 
+            cache: A dictionary that stores pairs of (dec_out, state) for
                    each label sequence to avoid redundant computations.
 
         Returns:
-            dec_out: The decoder output sequence for the current label. 
+            dec_out: The decoder output sequence for the current label.
                       Shape: (1, D_dec)
-            new_state: The updated decoder hidden states after processing 
+            new_state: The updated decoder hidden states after processing
                        the input. Shape: ((N, 1, D_dec), (N, 1, D_dec))
             label: The label ID for the language model. Shape: (1,)
 
@@ -311,7 +309,7 @@ class TransducerDecoder(AbsDecoder):
             in its sequence.
 
         Raises:
-            KeyError: If the hypothesis label sequence is not found in the 
+            KeyError: If the hypothesis label sequence is not found in the
                        cache and fails to generate a new output.
         """
         label = torch.full((1, 1), hyp.yseq[-1], dtype=torch.long, device=self.device)
@@ -338,33 +336,33 @@ class TransducerDecoder(AbsDecoder):
         """
         One-step forward hypotheses.
 
-        This method processes a batch of hypotheses, performing a one-step 
-        forward pass through the decoder for each hypothesis. It leverages 
+        This method processes a batch of hypotheses, performing a one-step
+        forward pass through the decoder for each hypothesis. It leverages
         a cache to avoid redundant computations, improving efficiency.
 
         Args:
-            hyps: A list of hypotheses to score, which can be either 
+            hyps: A list of hypotheses to score, which can be either
                 `Hypothesis` or `ExtendedHypothesis` instances.
-            dec_states: Current decoder hidden states. This is a tuple 
-                containing two tensors: ((N, B, D_dec), (N, B, D_dec)), 
-                where N is the number of layers, B is the batch size, 
+            dec_states: Current decoder hidden states. This is a tuple
+                containing two tensors: ((N, B, D_dec), (N, B, D_dec)),
+                where N is the number of layers, B is the batch size,
                 and D_dec is the number of decoder units.
-            cache: A dictionary mapping label sequence strings to 
-                tuples of decoder output sequences and hidden states. 
-                This is used to store and retrieve previously computed 
+            cache: A dictionary mapping label sequence strings to
+                tuples of decoder output sequences and hidden states.
+                This is used to store and retrieve previously computed
                 results for efficiency.
-            use_lm: A boolean indicating whether to compute label ID 
+            use_lm: A boolean indicating whether to compute label ID
                 sequences for the language model (LM).
 
         Returns:
-            dec_out: The decoder output sequences for the batch. 
-                Shape: (B, D_dec), where B is the batch size and 
+            dec_out: The decoder output sequences for the batch.
+                Shape: (B, D_dec), where B is the batch size and
                 D_dec is the number of decoder units.
-            dec_states: Updated decoder hidden states. This is a tuple 
-                containing the new states for each hypothesis: 
+            dec_states: Updated decoder hidden states. This is a tuple
+                containing the new states for each hypothesis:
                 ((N, B, D_dec), (N, B, D_dec)).
-            lm_labels: Label ID sequences for the language model. 
-                Shape: (B,), where B is the batch size. If `use_lm` is 
+            lm_labels: Label ID sequences for the language model.
+                Shape: (B,), where B is the batch size. If `use_lm` is
                 False, this will be None.
 
         Examples:
@@ -378,12 +376,12 @@ class TransducerDecoder(AbsDecoder):
             >>> print(dec_out.shape)  # (B, D_dec)
 
         Note:
-            The method assumes that all hypotheses in the input list 
-            have been initialized properly and that their sequences 
+            The method assumes that all hypotheses in the input list
+            have been initialized properly and that their sequences
             are valid.
 
         Raises:
-            ValueError: If the provided hypotheses or states are invalid 
+            ValueError: If the provided hypotheses or states are invalid
             or do not match the expected dimensions.
         """
         final_batch = len(hyps)
@@ -436,24 +434,24 @@ class TransducerDecoder(AbsDecoder):
         """
         Get specified ID state from decoder hidden states.
 
-        This method retrieves the decoder hidden state for a specified index 
-        from the provided decoder hidden states. It is particularly useful in 
-        scenarios where multiple hypotheses are being processed in parallel, 
-        and you need to extract the hidden state corresponding to a specific 
+        This method retrieves the decoder hidden state for a specified index
+        from the provided decoder hidden states. It is particularly useful in
+        scenarios where multiple hypotheses are being processed in parallel,
+        and you need to extract the hidden state corresponding to a specific
         hypothesis.
 
         Args:
-            states: Decoder hidden states. 
-                A tuple containing two tensors: 
-                ((N, B, D_dec), (N, B, D_dec)), where N is the number of layers, 
+            states: Decoder hidden states.
+                A tuple containing two tensors:
+                ((N, B, D_dec), (N, B, D_dec)), where N is the number of layers,
                 B is the batch size, and D_dec is the dimension of the decoder.
-            idx: State ID to extract. This is the index of the hidden state 
+            idx: State ID to extract. This is the index of the hidden state
                 that you wish to retrieve from the decoder states.
 
         Returns:
-            A tuple containing the decoder hidden state for the given ID. 
+            A tuple containing the decoder hidden state for the given ID.
             The output will be in the shape:
-            ((N, 1, D_dec), (N, 1, D_dec)) for LSTM, or 
+            ((N, 1, D_dec), (N, 1, D_dec)) for LSTM, or
             ((N, 1, D_dec), None) for GRU.
 
         Examples:

@@ -22,9 +22,9 @@ class NormalizedPositionwiseFeedForward(torch.nn.Module):
     Args:
         size (int): Input/Output size.
         hidden_size (int): Hidden size.
-        normalization (torch.nn.Module, optional): Normalization module (default: 
+        normalization (torch.nn.Module, optional): Normalization module (default:
             torch.nn.LayerNorm).
-        activation (torch.nn.Module, optional): Activation function (default: 
+        activation (torch.nn.Module, optional): Activation function (default:
             torch.nn.ReLU).
         dropout_rate (float, optional): Dropout rate (default: 0.0).
 
@@ -71,15 +71,15 @@ class NormalizedPositionwiseFeedForward(torch.nn.Module):
         """
         Reset module parameters.
 
-        This method initializes the weights and biases of the linear layers in 
-        the NormalizedPositionwiseFeedForward module. The weights are initialized 
-        using a normal distribution with a specified mean and standard deviation, 
+        This method initializes the weights and biases of the linear layers in
+        the NormalizedPositionwiseFeedForward module. The weights are initialized
+        using a normal distribution with a specified mean and standard deviation,
         while the biases are initialized to a constant value.
 
         Args:
-            val: Initialization value for biases and the mean of the weight 
+            val: Initialization value for biases and the mean of the weight
                 initialization (default is 0.0).
-            std: Standard deviation for the normal distribution used to 
+            std: Standard deviation for the normal distribution used to
                 initialize the weights (default is 0.02).
 
         Examples:
@@ -87,7 +87,7 @@ class NormalizedPositionwiseFeedForward(torch.nn.Module):
             >>> ff.reset_parameters(val=0.1, std=0.01)
 
         Note:
-            This method should be called if you want to reinitialize the 
+            This method should be called if you want to reinitialize the
             parameters of the model after it has been created or modified.
         """
         torch.nn.init.normal_(self.linear1.weight, mean=val, std=std)
@@ -100,11 +100,11 @@ class NormalizedPositionwiseFeedForward(torch.nn.Module):
         """
         Compute feed-forward module.
 
-        This method applies a two-layer feed-forward network with 
-        residual connections and normalization. It first passes the input 
-        through a linear layer followed by an activation function, 
-        applies dropout, and then passes the result through a second 
-        linear layer. The input is added back to the output (residual 
+        This method applies a two-layer feed-forward network with
+        residual connections and normalization. It first passes the input
+        through a linear layer followed by an activation function,
+        applies dropout, and then passes the result through a second
+        linear layer. The input is added back to the output (residual
         connection), and finally, the result is normalized.
 
         Args:
@@ -123,8 +123,8 @@ class NormalizedPositionwiseFeedForward(torch.nn.Module):
             >>> print(output_tensor.shape)  # Should output: torch.Size([32, 10, 512])
 
         Note:
-            The activation function and normalization module can be 
-            customized during the initialization of the 
+            The activation function and normalization module can be
+            customized during the initialization of the
             NormalizedPositionwiseFeedForward object.
         """
         residual = x

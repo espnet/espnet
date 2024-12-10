@@ -17,7 +17,7 @@ class FeedForward(torch.nn.Module):
 
     Based/Modified from https://github.com/BlinkDL/RWKV-LM/blob/main/RWKV-v4/src/model.py
 
-    Some variables are renamed according to 
+    Some variables are renamed according to
     https://github.com/huggingface/transformers/blob/main/src/transformers/models/rwkv/modeling_rwkv.py.
 
     Attributes:
@@ -38,7 +38,7 @@ class FeedForward(torch.nn.Module):
         reset_parameters(size: int, block_id: int, num_blocks: int) -> None:
             Reset module parameters based on block size and index.
 
-        forward(x: torch.Tensor, state: Optional[List[torch.Tensor]] = None) 
+        forward(x: torch.Tensor, state: Optional[List[torch.Tensor]] = None)
         -> Tuple[torch.Tensor, Optional[List[torch.Tensor]]]:
             Compute channel mixing for the input sequences.
 
@@ -51,7 +51,7 @@ class FeedForward(torch.nn.Module):
         ValueError: If the input tensor shape is incorrect.
 
     Note:
-        This module is part of the RWKV architecture, which is designed for 
+        This module is part of the RWKV architecture, which is designed for
         efficient sequence modeling tasks.
     """
 
@@ -78,9 +78,9 @@ class FeedForward(torch.nn.Module):
         """
         Reset module parameters.
 
-        This method initializes the parameters of the FeedForward module based on the 
-        provided size, block_id, and the total number of blocks in the architecture. 
-        The parameters are set using a power function of a time weight tensor, which 
+        This method initializes the parameters of the FeedForward module based on the
+        provided size, block_id, and the total number of blocks in the architecture.
+        The parameters are set using a power function of a time weight tensor, which
         helps in controlling the influence of different time steps during training.
 
         Args:
@@ -89,8 +89,8 @@ class FeedForward(torch.nn.Module):
             num_blocks: The total number of blocks in the architecture.
 
         Note:
-            The time mixing parameters are initialized using a ratio that scales 
-            according to the block index, which helps in managing the temporal 
+            The time mixing parameters are initialized using a ratio that scales
+            according to the block index, which helps in managing the temporal
             dynamics of the model.
 
         Examples:
@@ -115,14 +115,14 @@ class FeedForward(torch.nn.Module):
         Feed-forward (channel mixing) module for RWKV block.
 
         This module is based on and modified from the implementation found at
-        https://github.com/BlinkDL/RWKV-LM/blob/main/RWKV-v4/src/model.py. Some variables 
-        have been renamed according to the Hugging Face Transformers implementation at 
+        https://github.com/BlinkDL/RWKV-LM/blob/main/RWKV-v4/src/model.py. Some variables
+        have been renamed according to the Hugging Face Transformers implementation at
         https://github.com/huggingface/transformers/blob/main/src/transformers/models/rwkv/modeling_rwkv.py.
 
         Attributes:
             time_shift (torch.nn.ZeroPad2d): A zero padding layer for time shifting.
             time_mix_key (torch.nn.Parameter): Parameter for mixing keys over time.
-            time_mix_receptance (torch.nn.Parameter): Parameter for mixing receptance 
+            time_mix_receptance (torch.nn.Parameter): Parameter for mixing receptance
                 over time.
             proj_key (torch.nn.Linear): Linear transformation for keys.
             proj_value (torch.nn.Linear): Linear transformation for values.
@@ -139,12 +139,12 @@ class FeedForward(torch.nn.Module):
             reset_parameters(size: int, block_id: int, num_blocks: int) -> None:
                 Resets the parameters of the FeedForward module.
 
-            forward(x: torch.Tensor, state: Optional[List[torch.Tensor]] = None) -> 
+            forward(x: torch.Tensor, state: Optional[List[torch.Tensor]] = None) ->
                 Tuple[torch.Tensor, Optional[List[torch.Tensor]]]:
                 Computes the channel mixing operation.
 
         Returns:
-            Tuple[torch.Tensor, Optional[List[torch.Tensor]]]: 
+            Tuple[torch.Tensor, Optional[List[torch.Tensor]]]:
                 - x: FeedForward output sequences with shape (B, U, size).
                 - state: Updated decoder hidden state, shape [5 x (B, 1, size, N)].
 
@@ -154,11 +154,11 @@ class FeedForward(torch.nn.Module):
             >>> output, state = ff.forward(input_tensor)
 
         Note:
-            The `state` parameter is optional. If provided, it should contain the 
+            The `state` parameter is optional. If provided, it should contain the
             decoder hidden state for the current block.
 
         Raises:
-            ValueError: If the input tensor dimensions do not match the expected 
+            ValueError: If the input tensor dimensions do not match the expected
             size.
         """
         shifted_x = (

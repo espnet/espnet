@@ -7,10 +7,10 @@ class ASVSpoofAMSoftmaxLoss(AbsASVSpoofLoss):
     """
     Adaptive Margin Softmax Loss for ASV Spoofing.
 
-    This class implements the Adaptive Margin Softmax loss function designed 
-    for Automatic Speaker Verification (ASV) spoofing tasks. The loss is based 
-    on a binary classification framework where the model learns to differentiate 
-    between genuine and spoofed audio samples. 
+    This class implements the Adaptive Margin Softmax loss function designed
+    for Automatic Speaker Verification (ASV) spoofing tasks. The loss is based
+    on a binary classification framework where the model learns to differentiate
+    between genuine and spoofed audio samples.
 
     Attributes:
         weight (float): A scaling factor for the loss. Default is 1.0.
@@ -39,7 +39,7 @@ class ASVSpoofAMSoftmaxLoss(AbsASVSpoofLoss):
 
     Note:
         The input embeddings should be in the shape [Batch, T, enc_dim], where
-        Batch is the number of samples, T is the sequence length, and enc_dim 
+        Batch is the number of samples, T is the sequence length, and enc_dim
         is the dimension of the encoder output.
 
     Raises:
@@ -67,15 +67,15 @@ class ASVSpoofAMSoftmaxLoss(AbsASVSpoofLoss):
         Compute the forward pass of the ASVSpoofAMSoftmaxLoss.
 
         This method computes the loss for the given input embeddings and labels
-        using an angular margin softmax approach. The embeddings are normalized 
-        and compared against learned class centers to produce logits, which are 
+        using an angular margin softmax approach. The embeddings are normalized
+        and compared against learned class centers to produce logits, which are
         then used to compute the binary cross-entropy loss.
 
         Args:
             label (torch.Tensor): Ground truth labels with shape [Batch, 1],
                 where each label is either 0 or 1.
-            emb (torch.Tensor): Encoder embedding output with shape 
-                [Batch, T, enc_dim], where T is the sequence length and 
+            emb (torch.Tensor): Encoder embedding output with shape
+                [Batch, T, enc_dim], where T is the sequence length and
                 enc_dim is the dimension of the embeddings.
 
         Returns:
@@ -90,8 +90,8 @@ class ASVSpoofAMSoftmaxLoss(AbsASVSpoofLoss):
             >>> print(loss)
 
         Note:
-            The input `emb` is averaged across the time dimension before 
-            normalization. The learned class centers are also normalized 
+            The input `emb` is averaged across the time dimension before
+            normalization. The learned class centers are also normalized
             prior to computing the logits.
         """
         batch_size = emb.shape[0]
@@ -122,12 +122,12 @@ class ASVSpoofAMSoftmaxLoss(AbsASVSpoofLoss):
         scores.
 
         Args:
-            emb (torch.Tensor): Encoder embedding output of shape 
-                                [Batch, T, enc_dim]. The embeddings are 
+            emb (torch.Tensor): Encoder embedding output of shape
+                                [Batch, T, enc_dim]. The embeddings are
                                 averaged across the time dimension (T).
 
         Returns:
-            torch.Tensor: The prediction scores of shape [Batch]. This tensor 
+            torch.Tensor: The prediction scores of shape [Batch]. This tensor
                            contains the scores for each input sample.
 
         Examples:
@@ -137,7 +137,7 @@ class ASVSpoofAMSoftmaxLoss(AbsASVSpoofLoss):
             >>> print(scores.shape)  # Output: torch.Size([32])
 
         Note:
-            The embeddings must be computed using the same model and settings 
+            The embeddings must be computed using the same model and settings
             as the one used during training for the scores to be meaningful.
         """
         emb = torch.mean(emb, dim=1)

@@ -16,9 +16,9 @@ class RNNSeparator(AbsSeparator):
     """
     RNN-based separator for audio source separation.
 
-    This class implements a Recurrent Neural Network (RNN) based separator 
-    for separating audio signals from multiple speakers. The model can 
-    estimate noise signals in addition to speaker masks. 
+    This class implements a Recurrent Neural Network (RNN) based separator
+    for separating audio signals from multiple speakers. The model can
+    estimate noise signals in addition to speaker masks.
 
     Attributes:
         num_spk (int): Number of speakers.
@@ -29,7 +29,7 @@ class RNNSeparator(AbsSeparator):
         rnn_type (str): Type of RNN to use. Options include 'blstm', 'lstm', etc.
         num_spk (int): Number of speakers. Default is 2.
         predict_noise (bool): If True, outputs estimated noise signal. Default is False.
-        nonlinear (str): Nonlinear function for mask estimation. Options are 
+        nonlinear (str): Nonlinear function for mask estimation. Options are
                          'relu', 'tanh', 'sigmoid'. Default is 'sigmoid'.
         layer (int): Number of stacked RNN layers. Default is 3.
         unit (int): Dimension of the hidden state. Default is 512.
@@ -50,12 +50,13 @@ class RNNSeparator(AbsSeparator):
         # Accessing the masks for each speaker
         mask_spk1 = others['mask_spk1']
         mask_spk2 = others['mask_spk2']
-        
+
         # Forward streaming
         streaming_output, states, others_stream = separator.forward_streaming(
             input_frame=torch.randn(10, 1, 512)
         )
     """
+
     def __init__(
         self,
         input_dim: int,
@@ -122,29 +123,29 @@ class RNNSeparator(AbsSeparator):
         the estimated masks to the input to separate the speakers.
 
         Args:
-            input (Union[torch.Tensor, ComplexTensor]): 
-                Encoded feature tensor of shape [B, T, N], where B is the 
-                batch size, T is the number of time frames, and N is the 
+            input (Union[torch.Tensor, ComplexTensor]):
+                Encoded feature tensor of shape [B, T, N], where B is the
+                batch size, T is the number of time frames, and N is the
                 number of features.
-            ilens (torch.Tensor): 
-                A tensor containing the lengths of the input sequences 
+            ilens (torch.Tensor):
+                A tensor containing the lengths of the input sequences
                 for each batch, shape [Batch].
-            additional (Optional[Dict]): 
-                A dictionary containing other data included in the model. 
+            additional (Optional[Dict]):
+                A dictionary containing other data included in the model.
                 NOTE: This argument is not used in this model.
 
         Returns:
-            Tuple[List[Union[torch.Tensor, ComplexTensor]], torch.Tensor, 
-                  OrderedDict]: 
+            Tuple[List[Union[torch.Tensor, ComplexTensor]], torch.Tensor,
+                  OrderedDict]:
                 A tuple containing:
-                - masked (List[Union[torch.Tensor, ComplexTensor]]): 
-                    A list of tensors where each tensor has shape 
-                    (B, T, N) corresponding to the separated signals for 
+                - masked (List[Union[torch.Tensor, ComplexTensor]]):
+                    A list of tensors where each tensor has shape
+                    (B, T, N) corresponding to the separated signals for
                     each speaker.
-                - ilens (torch.Tensor): 
-                    A tensor containing the lengths of the output sequences, 
+                - ilens (torch.Tensor):
+                    A tensor containing the lengths of the output sequences,
                     shape (B,).
-                - others (OrderedDict): 
+                - others (OrderedDict):
                     A dictionary containing predicted data such as masks:
                     - 'mask_spk1': torch.Tensor(Batch, Frames, Freq),
                     - 'mask_spk2': torch.Tensor(Batch, Frames, Freq),
@@ -160,8 +161,8 @@ class RNNSeparator(AbsSeparator):
             >>> print(masks.keys())  # Should show keys for masks of each speaker
 
         Note:
-            The input can be either a real-valued tensor or a complex tensor. 
-            If the input is complex, the absolute value will be used as the 
+            The input can be either a real-valued tensor or a complex tensor.
+            If the input is complex, the absolute value will be used as the
             feature for the RNN.
 
         Raises:
@@ -204,20 +205,20 @@ class RNNSeparator(AbsSeparator):
         """
         Perform the forward pass for streaming input.
 
-        This method processes a single frame of input data, allowing for 
-        streaming capabilities in the RNN separator. It computes the output 
+        This method processes a single frame of input data, allowing for
+        streaming capabilities in the RNN separator. It computes the output
         masks for each speaker, as well as any predicted noise.
 
         Args:
             input_frame (torch.Tensor): The input frame with shape [B, 1, N],
                 where B is the batch size and N is the number of features.
-            states (Optional): The hidden states of the RNN, used for 
-                maintaining context across frames. If None, initializes new 
+            states (Optional): The hidden states of the RNN, used for
+                maintaining context across frames. If None, initializes new
                 states.
 
         Returns:
-            masked (List[Union[torch.Tensor, ComplexTensor]]): List of tensors 
-                where each tensor has shape [B, 1, N] representing the 
+            masked (List[Union[torch.Tensor, ComplexTensor]]): List of tensors
+                where each tensor has shape [B, 1, N] representing the
                 separated signals for each speaker.
             states: Updated hidden states of the RNN for the next frame.
             others (OrderedDict): Contains predicted data, such as masks:
@@ -237,7 +238,7 @@ class RNNSeparator(AbsSeparator):
             >>> masks, states, others = separator.forward_streaming(input_frame)
 
         Note:
-            This method is designed for real-time processing of audio streams 
+            This method is designed for real-time processing of audio streams
             and is optimized for low-latency applications.
         """
         # input_frame # B, 1, N

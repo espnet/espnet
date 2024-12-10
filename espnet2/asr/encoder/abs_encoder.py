@@ -22,10 +22,10 @@ class AbsEncoder(torch.nn.Module, ABC):
             with additional state information.
 
     Args:
-        xs_pad (torch.Tensor): Padded input tensor of shape (batch_size, seq_len, 
+        xs_pad (torch.Tensor): Padded input tensor of shape (batch_size, seq_len,
             feature_dim).
         ilens (torch.Tensor): Lengths of the input sequences of shape (batch_size,).
-        prev_states (torch.Tensor, optional): Previous hidden states, if applicable. 
+        prev_states (torch.Tensor, optional): Previous hidden states, if applicable.
             Defaults to None.
 
     Returns:
@@ -35,7 +35,7 @@ class AbsEncoder(torch.nn.Module, ABC):
             - Optional: New hidden states tensor if applicable.
 
     Raises:
-        NotImplementedError: If the derived class does not implement the abstract 
+        NotImplementedError: If the derived class does not implement the abstract
             methods.
 
     Examples:
@@ -50,11 +50,12 @@ class AbsEncoder(torch.nn.Module, ABC):
         encoder = MyEncoder()
         output_size = encoder.output_size()
         encoded_output, output_lengths, new_states = encoder(xs_pad, ilens)
-        
+
     Note:
         This class is not intended to be instantiated directly. Instead, it should
         be subclassed to create specific encoder implementations.
     """
+
     @abstractmethod
     def output_size(self) -> int:
         """
@@ -97,8 +98,8 @@ class AbsEncoder(torch.nn.Module, ABC):
         producing the output along with the corresponding hidden states.
 
         This method takes a padded sequence of input tensors, their lengths, and
-        optionally the previous hidden states. It outputs a tuple containing the 
-        encoded representations, the final hidden states, and optionally the 
+        optionally the previous hidden states. It outputs a tuple containing the
+        encoded representations, the final hidden states, and optionally the
         attention weights if applicable.
 
         Args:
@@ -106,7 +107,7 @@ class AbsEncoder(torch.nn.Module, ABC):
                 containing the padded input sequences.
             ilens (torch.Tensor): A tensor of shape (batch_size,) that contains the
                 actual lengths of the input sequences before padding.
-            prev_states (torch.Tensor, optional): A tensor of shape (num_layers, 
+            prev_states (torch.Tensor, optional): A tensor of shape (num_layers,
                 batch_size, hidden_dim) containing the previous hidden states for
                 recurrent architectures. Defaults to None.
 
@@ -129,7 +130,7 @@ class AbsEncoder(torch.nn.Module, ABC):
             >>> outputs, hidden_states, _ = encoder(xs_pad, ilens)
 
         Note:
-            The behavior of this method will depend on the specific implementation 
+            The behavior of this method will depend on the specific implementation
             in subclasses of AbsEncoder.
         """
         raise NotImplementedError

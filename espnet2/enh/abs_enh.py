@@ -54,6 +54,7 @@ class AbsEnhancement(torch.nn.Module, ABC):
         - Implement additional methods as needed for specific enhancement
         tasks.
     """
+
     # @abstractmethod
     # def output_size(self) -> int:
     #     raise NotImplementedError
@@ -67,35 +68,35 @@ class AbsEnhancement(torch.nn.Module, ABC):
         """
         Computes the forward pass of the enhancement model.
 
-        This method takes an input tensor and its corresponding lengths and 
-        produces an output tensor along with updated lengths and additional 
-        information encapsulated in an OrderedDict. The specific 
-        implementation of this method should be provided in a derived class 
+        This method takes an input tensor and its corresponding lengths and
+        produces an output tensor along with updated lengths and additional
+        information encapsulated in an OrderedDict. The specific
+        implementation of this method should be provided in a derived class
         that inherits from `AbsEnhancement`.
 
         Args:
-            input (torch.Tensor): The input tensor representing the audio signal 
-                to be enhanced. It is expected to have a shape of (batch_size, 
+            input (torch.Tensor): The input tensor representing the audio signal
+                to be enhanced. It is expected to have a shape of (batch_size,
                 num_channels, signal_length).
-            ilens (torch.Tensor): A tensor containing the lengths of the input 
+            ilens (torch.Tensor): A tensor containing the lengths of the input
                 sequences. It should have a shape of (batch_size,).
 
         Returns:
             Tuple[torch.Tensor, torch.Tensor, OrderedDict]: A tuple containing:
                 - output (torch.Tensor): The enhanced audio signal tensor.
-                - olens (torch.Tensor): A tensor with the lengths of the 
+                - olens (torch.Tensor): A tensor with the lengths of the
                 output sequences.
-                - info (OrderedDict): An OrderedDict containing any additional 
+                - info (OrderedDict): An OrderedDict containing any additional
                 information generated during the forward pass.
 
         Raises:
-            NotImplementedError: If this method is called directly from the 
+            NotImplementedError: If this method is called directly from the
                 abstract class without an overriding implementation in a subclass.
 
         Examples:
-            >>> model = MyEnhancementModel()  # Assume MyEnhancementModel 
+            >>> model = MyEnhancementModel()  # Assume MyEnhancementModel
             >>> input_tensor = torch.randn(10, 1, 16000)  # Example input
-            >>> ilens = torch.tensor([16000] * 10)  # All sequences have 
+            >>> ilens = torch.tensor([16000] * 10)  # All sequences have
             >>> output, olens, info = model.forward(input_tensor, ilens)
         """
         raise NotImplementedError
@@ -107,23 +108,23 @@ class AbsEnhancement(torch.nn.Module, ABC):
         """
         Computes the forward pass for raw waveform input in the enhancement model.
 
-        This method processes the input raw waveform tensor and its corresponding 
-        lengths to produce the enhanced output, which can be further utilized for 
+        This method processes the input raw waveform tensor and its corresponding
+        lengths to produce the enhanced output, which can be further utilized for
         tasks such as speech enhancement or signal processing.
 
         Args:
-            input (torch.Tensor): A tensor containing the raw waveform input data. 
+            input (torch.Tensor): A tensor containing the raw waveform input data.
                                 The shape should be (batch_size, sequence_length).
-            ilens (torch.Tensor): A tensor containing the lengths of the input 
+            ilens (torch.Tensor): A tensor containing the lengths of the input
                                 sequences. The shape should be (batch_size,).
 
         Returns:
-            Tuple[torch.Tensor, torch.Tensor, OrderedDict]: 
+            Tuple[torch.Tensor, torch.Tensor, OrderedDict]:
                 A tuple containing:
                     - output (torch.Tensor): The enhanced output waveform tensor.
-                    - output_lengths (torch.Tensor): A tensor containing the lengths 
+                    - output_lengths (torch.Tensor): A tensor containing the lengths
                     of the output sequences.
-                    - extras (OrderedDict): A dictionary containing any additional 
+                    - extras (OrderedDict): A dictionary containing any additional
                     information or metrics computed during the forward pass.
 
         Raises:

@@ -15,68 +15,69 @@ is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 
 class ConformerSeparator(AbsSeparator):
     """
-    ConformerSeparator is a neural network module that performs source separation 
-using the Conformer architecture. It processes audio features and estimates 
-masks for multiple speakers, optionally predicting noise as well.
+        ConformerSeparator is a neural network module that performs source separation
+    using the Conformer architecture. It processes audio features and estimates
+    masks for multiple speakers, optionally predicting noise as well.
 
-Attributes:
-    num_spk (int): The number of speakers to separate.
-    predict_noise (bool): Flag indicating whether to predict the noise signal.
+    Attributes:
+        num_spk (int): The number of speakers to separate.
+        predict_noise (bool): Flag indicating whether to predict the noise signal.
 
-Args:
-    input_dim (int): Input feature dimension.
-    num_spk (int, optional): Number of speakers. Defaults to 2.
-    predict_noise (bool, optional): Whether to output the estimated noise signal. 
-        Defaults to False.
-    adim (int, optional): Dimension of attention. Defaults to 384.
-    aheads (int, optional): The number of heads in multi-head attention. Defaults to 4.
-    layers (int, optional): The number of transformer blocks. Defaults to 6.
-    linear_units (int, optional): The number of units in position-wise feed forward. 
-        Defaults to 1536.
-    positionwise_layer_type (str, optional): Type of position-wise layer. Defaults to 
-        "linear".
-    positionwise_conv_kernel_size (int, optional): Kernel size of position-wise 
-        convolutional layer. Defaults to 1.
-    normalize_before (bool, optional): Whether to use layer normalization before the 
-        first block. Defaults to False.
-    concat_after (bool, optional): Whether to concatenate attention layer's input 
-        and output. Defaults to False.
-    dropout_rate (float, optional): Dropout rate. Defaults to 0.1.
-    input_layer (Union[str, torch.nn.Module], optional): Input layer type. Defaults to 
-        "linear".
-    positional_dropout_rate (float, optional): Dropout rate after adding positional 
-        encoding. Defaults to 0.1.
-    attention_dropout_rate (float, optional): Dropout rate in attention. Defaults to 0.1.
-    nonlinear (str, optional): Nonlinear function for mask estimation. Options are 
-        'relu', 'tanh', 'sigmoid'. Defaults to 'relu'.
-    conformer_pos_enc_layer_type (str, optional): Encoder positional encoding layer 
-        type. Defaults to "rel_pos".
-    conformer_self_attn_layer_type (str, optional): Encoder attention layer type. 
-        Defaults to "rel_selfattn".
-    conformer_activation_type (str, optional): Encoder activation function type. 
-        Defaults to "swish".
-    use_macaron_style_in_conformer (bool, optional): Whether to use macaron style 
-        for position-wise layer. Defaults to True.
-    use_cnn_in_conformer (bool, optional): Whether to use convolution module. 
-        Defaults to True.
-    conformer_enc_kernel_size (int, optional): Kernel size of convolution module. 
-        Defaults to 7.
-    padding_idx (int, optional): Padding index for input_layer=embed. Defaults to -1.
+    Args:
+        input_dim (int): Input feature dimension.
+        num_spk (int, optional): Number of speakers. Defaults to 2.
+        predict_noise (bool, optional): Whether to output the estimated noise signal.
+            Defaults to False.
+        adim (int, optional): Dimension of attention. Defaults to 384.
+        aheads (int, optional): The number of heads in multi-head attention. Defaults to 4.
+        layers (int, optional): The number of transformer blocks. Defaults to 6.
+        linear_units (int, optional): The number of units in position-wise feed forward.
+            Defaults to 1536.
+        positionwise_layer_type (str, optional): Type of position-wise layer. Defaults to
+            "linear".
+        positionwise_conv_kernel_size (int, optional): Kernel size of position-wise
+            convolutional layer. Defaults to 1.
+        normalize_before (bool, optional): Whether to use layer normalization before the
+            first block. Defaults to False.
+        concat_after (bool, optional): Whether to concatenate attention layer's input
+            and output. Defaults to False.
+        dropout_rate (float, optional): Dropout rate. Defaults to 0.1.
+        input_layer (Union[str, torch.nn.Module], optional): Input layer type. Defaults to
+            "linear".
+        positional_dropout_rate (float, optional): Dropout rate after adding positional
+            encoding. Defaults to 0.1.
+        attention_dropout_rate (float, optional): Dropout rate in attention. Defaults to 0.1.
+        nonlinear (str, optional): Nonlinear function for mask estimation. Options are
+            'relu', 'tanh', 'sigmoid'. Defaults to 'relu'.
+        conformer_pos_enc_layer_type (str, optional): Encoder positional encoding layer
+            type. Defaults to "rel_pos".
+        conformer_self_attn_layer_type (str, optional): Encoder attention layer type.
+            Defaults to "rel_selfattn".
+        conformer_activation_type (str, optional): Encoder activation function type.
+            Defaults to "swish".
+        use_macaron_style_in_conformer (bool, optional): Whether to use macaron style
+            for position-wise layer. Defaults to True.
+        use_cnn_in_conformer (bool, optional): Whether to use convolution module.
+            Defaults to True.
+        conformer_enc_kernel_size (int, optional): Kernel size of convolution module.
+            Defaults to 7.
+        padding_idx (int, optional): Padding index for input_layer=embed. Defaults to -1.
 
-Raises:
-    ValueError: If the specified nonlinear function is not supported.
+    Raises:
+        ValueError: If the specified nonlinear function is not supported.
 
-Examples:
-    >>> separator = ConformerSeparator(input_dim=128, num_spk=2)
-    >>> input_features = torch.randn(10, 50, 128)  # (Batch, Time, Features)
-    >>> ilens = torch.tensor([50] * 10)  # Input lengths for each sample
-    >>> masked, ilens_out, masks = separator(input_features, ilens)
-    >>> print(len(masks))  # Should be 2 if num_spk is 2
+    Examples:
+        >>> separator = ConformerSeparator(input_dim=128, num_spk=2)
+        >>> input_features = torch.randn(10, 50, 128)  # (Batch, Time, Features)
+        >>> ilens = torch.tensor([50] * 10)  # Input lengths for each sample
+        >>> masked, ilens_out, masks = separator(input_features, ilens)
+        >>> print(len(masks))  # Should be 2 if num_spk is 2
 
-Note:
-    This module assumes that the input features are either real-valued tensors or 
-    complex tensors.
+    Note:
+        This module assumes that the input features are either real-valued tensors or
+        complex tensors.
     """
+
     def __init__(
         self,
         input_dim: int,
@@ -203,7 +204,7 @@ Note:
                 in this implementation.
 
         Returns:
-            Tuple[List[Union[torch.Tensor, ComplexTensor]], torch.Tensor, 
+            Tuple[List[Union[torch.Tensor, ComplexTensor]], torch.Tensor,
             OrderedDict]: A tuple containing:
                 - masked (List[Union[torch.Tensor, ComplexTensor]]): A list of
                   tensors representing the separated audio signals for each

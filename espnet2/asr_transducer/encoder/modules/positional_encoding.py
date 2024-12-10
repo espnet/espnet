@@ -11,23 +11,23 @@ class RelPositionalEncoding(torch.nn.Module):
     """
     Relative positional encoding module for sequence processing.
 
-    This module implements relative positional encoding, which enhances the 
-    performance of attention mechanisms in sequence models by providing 
-    contextual information about the position of elements in the input 
+    This module implements relative positional encoding, which enhances the
+    performance of attention mechanisms in sequence models by providing
+    contextual information about the position of elements in the input
     sequences.
 
     Attributes:
         size (int): The dimensionality of the positional encoding.
         pe (torch.Tensor): The computed positional encodings.
-        dropout (torch.nn.Dropout): The dropout layer applied to the positional 
+        dropout (torch.nn.Dropout): The dropout layer applied to the positional
             encodings.
 
     Args:
-        size (int): Module size, representing the dimensionality of the 
+        size (int): Module size, representing the dimensionality of the
             positional encoding.
-        max_len (int): Maximum length of input sequences for which positional 
+        max_len (int): Maximum length of input sequences for which positional
             encodings will be computed.
-        dropout_rate (float, optional): Dropout rate applied to the output 
+        dropout_rate (float, optional): Dropout rate applied to the output
             positional encodings. Default is 0.0.
 
     Methods:
@@ -49,8 +49,8 @@ class RelPositionalEncoding(torch.nn.Module):
         print(pos_enc.shape)  # Output shape will be (B, 2 * (T - 1), ?)
 
     Note:
-        The `extend_pe` method should be called before computing the forward 
-        pass to ensure the positional encodings are appropriately sized for 
+        The `extend_pe` method should be called before computing the forward
+        pass to ensure the positional encodings are appropriately sized for
         the input.
 
     Todo:
@@ -75,14 +75,14 @@ class RelPositionalEncoding(torch.nn.Module):
         """
         Positional encoding modules.
 
-        This module implements relative positional encoding, which is commonly used 
-        in transformer architectures to provide information about the position of 
+        This module implements relative positional encoding, which is commonly used
+        in transformer architectures to provide information about the position of
         tokens in a sequence.
 
         Attributes:
             size (int): The size of the positional encoding.
             pe (torch.Tensor): The tensor holding the positional encodings.
-            dropout (torch.nn.Dropout): The dropout layer applied to the positional 
+            dropout (torch.nn.Dropout): The dropout layer applied to the positional
                 encodings.
 
         Args:
@@ -108,7 +108,7 @@ class RelPositionalEncoding(torch.nn.Module):
             pos_enc = rel_pos_enc(input_tensor, left_context=10)
 
         Note:
-            The `extend_pe` method is called internally in the `forward` method to 
+            The `extend_pe` method is called internally in the `forward` method to
             ensure the positional encodings are updated based on the input tensor.
 
         Todo:
@@ -147,19 +147,19 @@ class RelPositionalEncoding(torch.nn.Module):
         """
         Compute positional encoding.
 
-        This method generates the positional encoding for the input sequences, 
-        utilizing relative positional encoding to enhance the model's ability 
+        This method generates the positional encoding for the input sequences,
+        utilizing relative positional encoding to enhance the model's ability
         to attend to previous elements in the input.
 
         Args:
-            x: Input sequences of shape (B, T, ?), where B is the batch size, 
+            x: Input sequences of shape (B, T, ?), where B is the batch size,
             T is the sequence length, and ? represents any additional dimensions.
-            left_context: Number of previous frames the attention module can see 
-                        in the current chunk. This is used to determine the size 
+            left_context: Number of previous frames the attention module can see
+                        in the current chunk. This is used to determine the size
                         of the positional encoding.
 
         Returns:
-            pos_enc: Positional embedding sequences of shape (B, 2 * (T - 1), ?), 
+            pos_enc: Positional embedding sequences of shape (B, 2 * (T - 1), ?),
                     which incorporates both positive and negative positional encodings.
 
         Examples:
@@ -170,8 +170,8 @@ class RelPositionalEncoding(torch.nn.Module):
             torch.Size([10, 39, 128])  # Output shape will vary based on left_context
 
         Note:
-            The method uses the `extend_pe` function to ensure that the positional 
-            encodings are correctly sized for the input sequences before applying 
+            The method uses the `extend_pe` function to ensure that the positional
+            encodings are correctly sized for the input sequences before applying
             the dropout.
 
         Raises:

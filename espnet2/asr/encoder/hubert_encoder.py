@@ -29,65 +29,65 @@ class TorchAudioHuBERTPretrainEncoder(AbsEncoder):
     """
     Torch Audio HuBERT encoder module for speech representation learning.
 
-    This class implements the HuBERT encoder, a model designed for 
-    self-supervised speech representation learning. The encoder uses 
-    convolutional layers followed by transformer blocks, allowing for 
+    This class implements the HuBERT encoder, a model designed for
+    self-supervised speech representation learning. The encoder uses
+    convolutional layers followed by transformer blocks, allowing for
     efficient processing of audio input.
 
     Args:
-        extractor_mode (str): Operation mode of the feature extractor. 
+        extractor_mode (str): Operation mode of the feature extractor.
             Valid values are "group_norm" or "layer_norm".
-        extractor_conv_layer_config (List[List[int]]): Configuration of 
-            convolution layers in feature extractor. List of 
+        extractor_conv_layer_config (List[List[int]]): Configuration of
+            convolution layers in feature extractor. List of
             convolution configurations, i.e. [[output_channel, kernel_size, stride], ...].
-        extractor_conv_bias (bool): Whether to include a bias term for each 
+        extractor_conv_bias (bool): Whether to include a bias term for each
             convolution operation.
         encoder_embed_dim (int): The dimension of embedding in the encoder.
-        encoder_projection_dropout (float): The dropout probability applied 
+        encoder_projection_dropout (float): The dropout probability applied
             after projecting the input feature to "encoder_embed_dim".
         encoder_pos_conv_kernel (int): Kernel size of convolutional positional embeddings.
-        encoder_pos_conv_groups (int): Number of groups for convolutional 
+        encoder_pos_conv_groups (int): Number of groups for convolutional
             positional embeddings.
         encoder_num_layers (int): Number of self-attention layers in the transformer block.
         encoder_num_heads (int): Number of heads in the self-attention layers.
-        encoder_attention_dropout (float): Dropout probability applied after 
+        encoder_attention_dropout (float): Dropout probability applied after
             softmax in the self-attention layer.
-        encoder_ff_interm_features (int): Dimension of hidden features in the 
+        encoder_ff_interm_features (int): Dimension of hidden features in the
             feedforward layer.
-        encoder_ff_interm_dropout (float): Dropout probability applied in the 
+        encoder_ff_interm_dropout (float): Dropout probability applied in the
             feedforward layer.
-        encoder_dropout (float): Dropout probability applied at the end of the 
+        encoder_dropout (float): Dropout probability applied at the end of the
             feedforward layer.
-        encoder_layer_norm_first (bool): Control the order of layer norm in 
-            the transformer layer and each encoder layer. If True, layer norm 
+        encoder_layer_norm_first (bool): Control the order of layer norm in
+            the transformer layer and each encoder layer. If True, layer norm
             is applied before features are fed to encoder layers.
         encoder_layer_drop (float): Probability to drop each encoder layer during training.
-        mask_prob (float): Probability for each token to be chosen as the start 
+        mask_prob (float): Probability for each token to be chosen as the start
             of the span to be masked.
-        mask_selection (str): Method for choosing the mask length. Options: 
+        mask_selection (str): Method for choosing the mask length. Options:
             [static, uniform, normal, poisson].
         mask_other (float): Secondary mask argument for more complex distributions.
         mask_length (int): Lengths of the mask.
         no_mask_overlap (bool): Whether to allow masks to overlap.
         mask_min_space (int): Minimum space between spans if no overlap is enabled.
         mask_channel_prob (float): Probability of replacing a feature with 0.
-        mask_channel_selection (str): Method for choosing the mask length for 
+        mask_channel_selection (str): Method for choosing the mask length for
             channel masking. Options: [static, uniform, normal, poisson].
         mask_channel_other (float): Secondary mask argument for channel masking.
-        mask_channel_length (int): Minimum space between spans for channel 
+        mask_channel_length (int): Minimum space between spans for channel
             masking if no overlap is enabled.
         no_mask_channel_overlap (bool): Whether to allow channel masks to overlap.
-        mask_channel_min_space (int): Minimum space between spans for channel 
+        mask_channel_min_space (int): Minimum space between spans for channel
             masking if no overlap is enabled.
         skip_masked (bool): If True, skip computing losses over masked frames.
         skip_nomask (bool): If True, skip computing losses over unmasked frames.
         num_classes (int): The number of classes in the labels.
         final_dim (int): Dimension to project final representations and targets.
-        feature_grad_mult (Optional[float]): Factor to scale the convolutional 
-            feature extraction layer gradients. The scale factor does not affect 
+        feature_grad_mult (Optional[float]): Factor to scale the convolutional
+            feature extraction layer gradients. The scale factor does not affect
             the forward pass.
         finetuning (bool): Whether to fine-tune the model with ASR or other tasks.
-        freeze_encoder_updates (int): Number of steps to freeze the encoder 
+        freeze_encoder_updates (int): Number of steps to freeze the encoder
             parameters in ASR fine-tuning.
 
     Hubert specific Args:
@@ -100,7 +100,7 @@ class TorchAudioHuBERTPretrainEncoder(AbsEncoder):
         >>> output = encoder(input_tensor)  # Forward pass
 
     Note:
-        Ensure that torchaudio is installed and properly configured for 
+        Ensure that torchaudio is installed and properly configured for
         using the HuBERT model.
 
     Raises:
@@ -211,12 +211,12 @@ class TorchAudioHuBERTPretrainEncoder(AbsEncoder):
         """
         Get the output size of the encoder.
 
-        This method returns the dimension of the output 
-        from the encoder, which corresponds to the 
+        This method returns the dimension of the output
+        from the encoder, which corresponds to the
         embedding dimension used in the model.
 
         Returns:
-            int: The output size (dimension of the encoder 
+            int: The output size (dimension of the encoder
             output).
 
         Examples:
@@ -237,25 +237,25 @@ class TorchAudioHuBERTPretrainEncoder(AbsEncoder):
         """
         Forward pass for the Hubert Pretrain Encoder.
 
-        This method processes the input tensor through the Hubert pretraining 
-        model. It handles both pretraining and fine-tuning modes, depending on 
+        This method processes the input tensor through the Hubert pretraining
+        model. It handles both pretraining and fine-tuning modes, depending on
         the state of the model.
 
         Args:
-            xs_pad (torch.Tensor): Input tensor of shape (B, L, D), where B is 
-                the batch size, L is the sequence length, and D is the feature 
+            xs_pad (torch.Tensor): Input tensor of shape (B, L, D), where B is
+                the batch size, L is the sequence length, and D is the feature
                 dimension.
-            ilens (torch.Tensor): A tensor of shape (B,) representing the 
+            ilens (torch.Tensor): A tensor of shape (B,) representing the
                 lengths of each input sequence in the batch.
-            ys_pad (torch.Tensor, optional): Target tensor of shape (B, L_y, D) 
+            ys_pad (torch.Tensor, optional): Target tensor of shape (B, L_y, D)
                 for training. Defaults to None.
-            ys_pad_length (torch.Tensor, optional): A tensor of shape (B,) 
+            ys_pad_length (torch.Tensor, optional): A tensor of shape (B,)
                 representing the lengths of each target sequence. Defaults to None.
-            prev_states (torch.Tensor, optional): Not used in the current version. 
+            prev_states (torch.Tensor, optional): Not used in the current version.
                 Defaults to None.
 
         Returns:
-            Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]: A tuple 
+            Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]: A tuple
             containing:
                 - The position-embedded output tensor.
                 - A tensor representing the mask.
@@ -268,9 +268,9 @@ class TorchAudioHuBERTPretrainEncoder(AbsEncoder):
             >>> output, mask, _ = encoder.forward(input_tensor, input_lengths)
 
         Note:
-            - If the model is in fine-tuning mode, the method will skip certain 
+            - If the model is in fine-tuning mode, the method will skip certain
               computations based on the specified flags.
-            - Ensure that the input tensor and its lengths are correctly formatted 
+            - Ensure that the input tensor and its lengths are correctly formatted
               to avoid runtime errors.
         """
 
@@ -373,8 +373,8 @@ class FairseqHubertEncoder(AbsEncoder):
     """
     FairSeq Hubert encoder module for loading pretrained weights and fine-tuning.
 
-    This class provides an interface for using the Hubert encoder architecture 
-    from FairSeq, enabling loading of pretrained models and fine-tuning for 
+    This class provides an interface for using the Hubert encoder architecture
+    from FairSeq, enabling loading of pretrained models and fine-tuning for
     various tasks, particularly Automatic Speech Recognition (ASR).
 
     Args:
@@ -382,14 +382,14 @@ class FairseqHubertEncoder(AbsEncoder):
         hubert_url (str): URL to download the Hubert pretrained model.
         hubert_dir_path (str): Directory to save the downloaded model.
         output_size (int): Dimension of the output from the encoder.
-        normalize_before (bool): Whether to apply layer normalization before 
+        normalize_before (bool): Whether to apply layer normalization before
             the first block of the encoder.
-        freeze_finetune_updates (int): Number of updates to freeze all layers 
-            except the output layer before tuning the entire model. 
+        freeze_finetune_updates (int): Number of updates to freeze all layers
+            except the output layer before tuning the entire model.
             Necessary to prevent overfitting.
         dropout_rate (float): Dropout rate applied in the encoder.
         activation_dropout (float): Dropout rate applied in activation functions.
-        attention_dropout (float): Dropout rate applied in the attention 
+        attention_dropout (float): Dropout rate applied in the attention
             mechanism.
 
     Hubert-specific Args:
@@ -403,7 +403,7 @@ class FairseqHubertEncoder(AbsEncoder):
         >>> outputs, olens, _ = encoder(xs_pad, ilens)
 
     Note:
-        Ensure that the FairSeq library is installed and properly configured 
+        Ensure that the FairSeq library is installed and properly configured
         to use this module.
     """
 
@@ -547,7 +547,7 @@ class FairseqHubertEncoder(AbsEncoder):
         which is crucial for understanding the model's representation capacity.
 
         Returns:
-            int: The output size of the encoder, typically representing the 
+            int: The output size of the encoder, typically representing the
             dimensionality of the final layer.
 
         Examples:
@@ -572,25 +572,25 @@ class FairseqHubertEncoder(AbsEncoder):
 
         This method processes the input tensor through the Hubert encoder,
         returning the position-embedded tensor along with a mask. The behavior
-        of the method depends on whether the model is in finetuning mode or 
+        of the method depends on whether the model is in finetuning mode or
         not.
 
         Args:
-            xs_pad (torch.Tensor): Input tensor of shape (B, L, D) where B is 
-                the batch size, L is the sequence length, and D is the 
+            xs_pad (torch.Tensor): Input tensor of shape (B, L, D) where B is
+                the batch size, L is the sequence length, and D is the
                 feature dimension.
-            ilens (torch.Tensor): A tensor containing the lengths of the input 
+            ilens (torch.Tensor): A tensor containing the lengths of the input
                 sequences of shape (B).
-            ys_pad (torch.Tensor, optional): Target tensor of shape (B, T, C), 
-                where T is the target sequence length and C is the number of 
+            ys_pad (torch.Tensor, optional): Target tensor of shape (B, T, C),
+                where T is the target sequence length and C is the number of
                 classes. Default is None.
-            ys_pad_length (torch.Tensor, optional): Lengths of the target 
+            ys_pad_length (torch.Tensor, optional): Lengths of the target
                 sequences. Default is None.
-            prev_states (torch.Tensor, optional): Placeholder for previous 
+            prev_states (torch.Tensor, optional): Placeholder for previous
                 states. Not used in the current implementation. Default is None.
 
         Returns:
-            Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]: A tuple 
+            Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]: A tuple
             containing:
                 - Position embedded tensor of shape (B, T, D).
                 - A tensor containing the lengths of the outputs of shape (B).
@@ -611,7 +611,7 @@ class FairseqHubertEncoder(AbsEncoder):
             >>> print(outputs[1])  # Output lengths
 
         Raises:
-            ValueError: If `ys_pad` is None when not in finetuning mode and 
+            ValueError: If `ys_pad` is None when not in finetuning mode and
             `_pretraining_forward` is called.
         """
         masks = make_pad_mask(ilens).to(xs_pad.device)
@@ -654,14 +654,14 @@ class FairseqHubertEncoder(AbsEncoder):
         """
         Reloads the pretrained parameters into the Hubert model.
 
-        This method loads the parameters stored in `self.pretrained_params` 
-        back into the Hubert pretraining model. This can be useful when you 
-        want to reset the model to its initial state after fine-tuning or 
+        This method loads the parameters stored in `self.pretrained_params`
+        back into the Hubert pretraining model. This can be useful when you
+        want to reset the model to its initial state after fine-tuning or
         experimentation.
 
         It performs the following steps:
             1. Loads the state dictionary from `self.pretrained_params`.
-            2. Logs a message indicating that the pretrained parameters 
+            2. Logs a message indicating that the pretrained parameters
             have been reloaded.
 
         Examples:
@@ -670,12 +670,12 @@ class FairseqHubertEncoder(AbsEncoder):
             Pretrained Hubert model parameters reloaded!
 
         Note:
-            The `strict` argument is set to `False` to allow loading of 
-            parameters that may not match exactly, which can be useful 
+            The `strict` argument is set to `False` to allow loading of
+            parameters that may not match exactly, which can be useful
             if some layers were added or modified.
 
         Raises:
-            RuntimeError: If the state dictionary cannot be loaded 
+            RuntimeError: If the state dictionary cannot be loaded
             due to a mismatch in parameters.
         """
         logging.info("Pretrained Hubert model parameters reloaded!")
@@ -830,7 +830,7 @@ class FairseqHubertPretrainEncoder(AbsEncoder):
 
         This method returns the dimension of the output from the encoder,
         which corresponds to the embedding dimension used in the model.
-        
+
         Returns:
             int: The output size (embedding dimension) of the encoder.
 
@@ -856,29 +856,29 @@ class FairseqHubertPretrainEncoder(AbsEncoder):
         """
         Forward pass for the Hubert Pretrain Encoder.
 
-        This method processes the input tensor through the Hubert encoder. 
-        Depending on whether the model is in finetuning or pretraining mode, 
+        This method processes the input tensor through the Hubert encoder.
+        Depending on whether the model is in finetuning or pretraining mode,
         it directs the input to the appropriate forward function.
 
         Args:
-            xs_pad (torch.Tensor): Input tensor of shape (B, L, D), where 
-                B is the batch size, L is the sequence length, and D is 
+            xs_pad (torch.Tensor): Input tensor of shape (B, L, D), where
+                B is the batch size, L is the sequence length, and D is
                 the feature dimension.
-            ilens (torch.Tensor): Input lengths tensor of shape (B), 
+            ilens (torch.Tensor): Input lengths tensor of shape (B),
                 containing the actual lengths of the input sequences.
-            ys_pad (torch.Tensor, optional): Target tensor of shape 
-                (B, L_y, D), where L_y is the length of the target sequences. 
+            ys_pad (torch.Tensor, optional): Target tensor of shape
+                (B, L_y, D), where L_y is the length of the target sequences.
                 This is only used in pretraining mode. Default is None.
-            ys_pad_length (torch.Tensor, optional): Lengths of the target 
+            ys_pad_length (torch.Tensor, optional): Lengths of the target
                 sequences, used only in pretraining mode. Default is None.
-            prev_states (torch.Tensor, optional): Placeholder for previous 
+            prev_states (torch.Tensor, optional): Placeholder for previous
                 states, not utilized in the current implementation. Default is None.
 
         Returns:
             Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
                 A tuple containing:
                 - position embedded tensor (B, T, D)
-                - mask tensor indicating the number of valid elements in the 
+                - mask tensor indicating the number of valid elements in the
                   output (B)
                 - Optional tensor for additional outputs, currently None.
 
@@ -891,7 +891,7 @@ class FairseqHubertPretrainEncoder(AbsEncoder):
             >>> output = encoder.forward(xs_pad, ilens, ys_pad, ys_pad_length)
 
         Note:
-            The method will return different outputs based on the finetuning 
+            The method will return different outputs based on the finetuning
             state of the model.
         """
         self.cast_mask_emb()
@@ -910,25 +910,25 @@ class FairseqHubertPretrainEncoder(AbsEncoder):
         """
         Cast the mask embedding to half precision if using AMP.
 
-        This method checks if automatic mixed precision (AMP) is enabled and 
-        casts the mask embedding parameter of the encoder to half precision 
-        (float16) if it is not already in that format. This is particularly 
-        useful for improving performance and reducing memory usage during 
+        This method checks if automatic mixed precision (AMP) is enabled and
+        casts the mask embedding parameter of the encoder to half precision
+        (float16) if it is not already in that format. This is particularly
+        useful for improving performance and reducing memory usage during
         training on compatible hardware.
 
         Note:
-            This method is typically called during the forward pass of the 
-            encoder to ensure that the mask embedding is in the correct 
+            This method is typically called during the forward pass of the
+            encoder to ensure that the mask embedding is in the correct
             format for mixed precision training.
 
         Raises:
-            TypeError: If the encoder's mask embedding is not a torch 
+            TypeError: If the encoder's mask embedding is not a torch
                 Parameter.
 
         Examples:
-            If `self.use_amp` is True and the mask embedding is not in 
+            If `self.use_amp` is True and the mask embedding is not in
             half precision, this method will convert it:
-            
+
             >>> encoder = FairseqHubertPretrainEncoder(...)
             >>> encoder.use_amp = True
             >>> encoder.cast_mask_emb()  # Mask embedding is cast to half precision.
@@ -977,7 +977,7 @@ def download_hubert(model_url, dir_path):
 
     This function checks if the model already exists in the specified directory. If
     it does not exist, it downloads the model from the provided URL and saves it
-    to the specified path, ensuring that the directory structure is created if 
+    to the specified path, ensuring that the directory structure is created if
     necessary.
 
     Args:
@@ -993,7 +993,7 @@ def download_hubert(model_url, dir_path):
 
     Examples:
         >>> model_path = download_hubert(
-        ...     "https://example.com/hubert_model.pt", 
+        ...     "https://example.com/hubert_model.pt",
         ...     "./models/hubert"
         ... )
         >>> print(model_path)

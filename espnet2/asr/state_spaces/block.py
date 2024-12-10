@@ -69,7 +69,7 @@ class SequenceResidualBlock(SequenceModule):
 
     Note:
         Ensure that the input tensor shape matches (batch, length, d_input).
-    
+
     Raises:
         ValueError: If the input tensor dimensions do not match expected shape.
     """
@@ -142,165 +142,165 @@ class SequenceResidualBlock(SequenceModule):
     @property
     def d_output(self):
         """
-        Residual block wrapper for black box layer.
+            Residual block wrapper for black box layer.
 
-    This class implements a residual block that wraps around a black box layer,
-    allowing for a flexible and configurable transformation of input sequences.
-    The block supports various configurations for normalization, pooling, and
-    residual connections, enabling advanced architectures in sequence modeling.
+        This class implements a residual block that wraps around a black box layer,
+        allowing for a flexible and configurable transformation of input sequences.
+        The block supports various configurations for normalization, pooling, and
+        residual connections, enabling advanced architectures in sequence modeling.
 
-    Attributes:
-        d_input (int): Input feature dimension.
-        i_layer (int, optional): Layer index for certain residuals like Decay.
-        prenorm (bool): Indicates if normalization should be applied before 
-            the black box layer.
-        dropout (float): Dropout rate for the black box module.
-        tie_dropout (bool): If True, ties dropout mask across sequence.
-        transposed (bool): If True, transposes inputs to (batch, dim, length).
-        layer (nn.Module): Configured black box module.
-        residual (nn.Module, optional): Configured residual function.
-        norm (Normalization, optional): Normalization layer.
-        pool (Pooling, optional): Pooling layer per stage.
-        drop_path (StochasticDepth, optional): Stochastic depth for dropout.
+        Attributes:
+            d_input (int): Input feature dimension.
+            i_layer (int, optional): Layer index for certain residuals like Decay.
+            prenorm (bool): Indicates if normalization should be applied before
+                the black box layer.
+            dropout (float): Dropout rate for the black box module.
+            tie_dropout (bool): If True, ties dropout mask across sequence.
+            transposed (bool): If True, transposes inputs to (batch, dim, length).
+            layer (nn.Module): Configured black box module.
+            residual (nn.Module, optional): Configured residual function.
+            norm (Normalization, optional): Normalization layer.
+            pool (Pooling, optional): Pooling layer per stage.
+            drop_path (StochasticDepth, optional): Stochastic depth for dropout.
 
-    Args:
-        d_input (int): Input feature dimension.
-        i_layer (int, optional): Layer index for specific residual configurations.
-        prenorm (bool): If True, applies normalization before the black box layer.
-        dropout (float): Dropout probability for the black box module.
-        tie_dropout (bool): If True, ties the dropout mask across sequences.
-        transposed (bool): If True, transposes inputs for the layer.
-        layer (dict, optional): Configuration for the black box module.
-        residual (dict, optional): Configuration for the residual function.
-        norm (dict, optional): Configuration for normalization.
-        pool (dict, optional): Configuration for pooling layer.
-        drop_path (float): Drop ratio for stochastic depth.
+        Args:
+            d_input (int): Input feature dimension.
+            i_layer (int, optional): Layer index for specific residual configurations.
+            prenorm (bool): If True, applies normalization before the black box layer.
+            dropout (float): Dropout probability for the black box module.
+            tie_dropout (bool): If True, ties the dropout mask across sequences.
+            transposed (bool): If True, transposes inputs for the layer.
+            layer (dict, optional): Configuration for the black box module.
+            residual (dict, optional): Configuration for the residual function.
+            norm (dict, optional): Configuration for normalization.
+            pool (dict, optional): Configuration for pooling layer.
+            drop_path (float): Drop ratio for stochastic depth.
 
-    Returns:
-        tuple: A tuple containing the output tensor and the updated state.
+        Returns:
+            tuple: A tuple containing the output tensor and the updated state.
 
-    Examples:
-        >>> block = SequenceResidualBlock(d_input=128, dropout=0.1)
-        >>> input_tensor = torch.randn(32, 10, 128)  # (batch, length, features)
-        >>> output, state = block(input_tensor)
+        Examples:
+            >>> block = SequenceResidualBlock(d_input=128, dropout=0.1)
+            >>> input_tensor = torch.randn(32, 10, 128)  # (batch, length, features)
+            >>> output, state = block(input_tensor)
 
-    Note:
-        - The block can be configured to use various normalization and 
-          residual options.
-        - Ensure that the dimensions of the input tensor match d_input.
+        Note:
+            - The block can be configured to use various normalization and
+              residual options.
+            - Ensure that the dimensions of the input tensor match d_input.
 
-    Raises:
-        ValueError: If the provided configurations are incompatible.
+        Raises:
+            ValueError: If the provided configurations are incompatible.
         """
         return self.pool.d_output if self.pool is not None else self.d_residual
 
     @property
     def d_state(self):
         """
-        Residual state dimension property for the SequenceResidualBlock class.
+                Residual state dimension property for the SequenceResidualBlock class.
 
-This property retrieves the state dimension from the underlying black box layer
-within the SequenceResidualBlock. The state dimension is typically utilized for 
-maintaining the hidden states across time steps in sequential models.
+        This property retrieves the state dimension from the underlying black box layer
+        within the SequenceResidualBlock. The state dimension is typically utilized for
+        maintaining the hidden states across time steps in sequential models.
 
-Returns:
-    int: The dimension of the state from the black box layer.
+        Returns:
+            int: The dimension of the state from the black box layer.
 
-Examples:
-    >>> block = SequenceResidualBlock(d_input=128, layer={'type': 'some_layer'})
-    >>> state_dim = block.d_state
-    >>> print(state_dim)
-    128  # Assuming the layer's output state dimension is 128
+        Examples:
+            >>> block = SequenceResidualBlock(d_input=128, layer={'type': 'some_layer'})
+            >>> state_dim = block.d_state
+            >>> print(state_dim)
+            128  # Assuming the layer's output state dimension is 128
 
-Note:
-    This property assumes that the underlying layer has a defined `d_state` 
-    attribute. If the layer does not define `d_state`, an AttributeError 
-    will be raised.
+        Note:
+            This property assumes that the underlying layer has a defined `d_state`
+            attribute. If the layer does not define `d_state`, an AttributeError
+            will be raised.
         """
         return self.layer.d_state
 
     @property
     def state_to_tensor(self):
         """
-        Converts the internal state of the layer to a tensor format.
+                Converts the internal state of the layer to a tensor format.
 
-This property provides a tensor representation of the current state
-of the layer, which can be useful for various operations, such as 
-logging, visualization, or further processing. The specific format 
-of the tensor is determined by the underlying black box layer's 
-implementation.
+        This property provides a tensor representation of the current state
+        of the layer, which can be useful for various operations, such as
+        logging, visualization, or further processing. The specific format
+        of the tensor is determined by the underlying black box layer's
+        implementation.
 
-Returns:
-    torch.Tensor: A tensor representation of the layer's state.
+        Returns:
+            torch.Tensor: A tensor representation of the layer's state.
 
-Examples:
-    # Assuming `block` is an instance of SequenceResidualBlock
-    state_tensor = block.state_to_tensor
-    print(state_tensor.shape)  # Output will depend on the layer's state
+        Examples:
+            # Assuming `block` is an instance of SequenceResidualBlock
+            state_tensor = block.state_to_tensor
+            print(state_tensor.shape)  # Output will depend on the layer's state
         """
         return self.layer.state_to_tensor
 
     def default_state(self, *args, **kwargs):
         """
-        Return the default state for the black box layer.
+            Return the default state for the black box layer.
 
-    This method serves as a wrapper to retrieve the default state
-    from the underlying black box layer. It can be useful for
-    initializing the state before processing input data through
-    the forward pass.
+        This method serves as a wrapper to retrieve the default state
+        from the underlying black box layer. It can be useful for
+        initializing the state before processing input data through
+        the forward pass.
 
-    Args:
-        *args: Variable length argument list to be passed to the 
-            underlying layer's default_state method.
-        **kwargs: Arbitrary keyword arguments to be passed to the 
-            underlying layer's default_state method.
+        Args:
+            *args: Variable length argument list to be passed to the
+                underlying layer's default_state method.
+            **kwargs: Arbitrary keyword arguments to be passed to the
+                underlying layer's default_state method.
 
-    Returns:
-        The default state of the black box layer.
+        Returns:
+            The default state of the black box layer.
 
-    Examples:
-        >>> block = SequenceResidualBlock(d_input=128)
-        >>> state = block.default_state()
-        >>> print(state)  # Prints the initialized state from the layer
+        Examples:
+            >>> block = SequenceResidualBlock(d_input=128)
+            >>> state = block.default_state()
+            >>> print(state)  # Prints the initialized state from the layer
 
-    Note:
-        Ensure that the black box layer is properly initialized
-        before calling this method, as it relies on the layer's
-        configuration.
+        Note:
+            Ensure that the black box layer is properly initialized
+            before calling this method, as it relies on the layer's
+            configuration.
         """
         return self.layer.default_state(*args, **kwargs)
 
     def forward(self, x, state=None, **kwargs):
         """
-        Performs a forward pass through the sequence residual block.
+            Performs a forward pass through the sequence residual block.
 
-    This method applies the defined transformations to the input tensor `x`.
-    It processes the input through normalization (if configured), a black box
-    layer, optional residual connections, and pooling (if configured).
+        This method applies the defined transformations to the input tensor `x`.
+        It processes the input through normalization (if configured), a black box
+        layer, optional residual connections, and pooling (if configured).
 
-    Args:
-        x (torch.Tensor): Input tensor of shape (batch, length, d_input).
-        state (optional): State information for the black box layer.
-        **kwargs: Additional keyword arguments passed to the black box layer.
+        Args:
+            x (torch.Tensor): Input tensor of shape (batch, length, d_input).
+            state (optional): State information for the black box layer.
+            **kwargs: Additional keyword arguments passed to the black box layer.
 
-    Returns:
-        tuple: A tuple containing:
-            - y (torch.Tensor): Output tensor after transformations.
-              Shape is (batch, length, d_output).
-            - state: Updated state information from the black box layer.
+        Returns:
+            tuple: A tuple containing:
+                - y (torch.Tensor): Output tensor after transformations.
+                  Shape is (batch, length, d_output).
+                - state: Updated state information from the black box layer.
 
-    Examples:
-        >>> block = SequenceResidualBlock(d_input=128)
-        >>> input_tensor = torch.randn(32, 10, 128)  # (batch, length, d_input)
-        >>> output, new_state = block.forward(input_tensor)
+        Examples:
+            >>> block = SequenceResidualBlock(d_input=128)
+            >>> input_tensor = torch.randn(32, 10, 128)  # (batch, length, d_input)
+            >>> output, new_state = block.forward(input_tensor)
 
-    Note:
-        The method applies pre-norm and post-norm based on the configuration.
-        If `prenorm` is set to True, normalization is applied before the
-        black box layer; otherwise, it is applied afterward.
+        Note:
+            The method applies pre-norm and post-norm based on the configuration.
+            If `prenorm` is set to True, normalization is applied before the
+            black box layer; otherwise, it is applied afterward.
 
-    Raises:
-        ValueError: If the input tensor `x` does not have the expected shape.
+        Raises:
+            ValueError: If the input tensor `x` does not have the expected shape.
         """
         y = x
 
@@ -327,40 +327,40 @@ Examples:
 
     def step(self, x, state, **kwargs):
         """
-        Performs a single step of the residual block transformation.
+            Performs a single step of the residual block transformation.
 
-    This method applies the transformation for a single input sample
-    in the context of the SequenceResidualBlock. It includes the
-    application of normalization, a black box layer, residual
-    connections, and pooling.
+        This method applies the transformation for a single input sample
+        in the context of the SequenceResidualBlock. It includes the
+        application of normalization, a black box layer, residual
+        connections, and pooling.
 
-    Args:
-        x (torch.Tensor): Input tensor of shape (batch, length, d_input).
-        state (Any): State information from previous layers, which may be
-            required for the black box layer.
-        **kwargs: Additional keyword arguments to be passed to the black box
-            layer.
+        Args:
+            x (torch.Tensor): Input tensor of shape (batch, length, d_input).
+            state (Any): State information from previous layers, which may be
+                required for the black box layer.
+            **kwargs: Additional keyword arguments to be passed to the black box
+                layer.
 
-    Returns:
-        tuple: A tuple containing:
-            - y (torch.Tensor): The transformed output tensor of shape
-              (batch, length, d_output).
-            - state (Any): Updated state information after processing the
-              input.
+        Returns:
+            tuple: A tuple containing:
+                - y (torch.Tensor): The transformed output tensor of shape
+                  (batch, length, d_output).
+                - state (Any): Updated state information after processing the
+                  input.
 
-    Examples:
-        >>> block = SequenceResidualBlock(d_input=128, layer=my_layer_config)
-        >>> x = torch.randn(32, 10, 128)  # (batch_size, seq_length, d_input)
-        >>> initial_state = block.default_state()
-        >>> output, updated_state = block.step(x, initial_state)
+        Examples:
+            >>> block = SequenceResidualBlock(d_input=128, layer=my_layer_config)
+            >>> x = torch.randn(32, 10, 128)  # (batch_size, seq_length, d_input)
+            >>> initial_state = block.default_state()
+            >>> output, updated_state = block.step(x, initial_state)
 
-    Note:
-        Ensure that the dimensions of the input tensor match the expected
-        input feature dimension `d_input` defined during initialization.
+        Note:
+            Ensure that the dimensions of the input tensor match the expected
+            input feature dimension `d_input` defined during initialization.
 
-    Raises:
-        ValueError: If the input tensor `x` does not have the expected
-        shape or if the state is incompatible with the layer's requirements.
+        Raises:
+            ValueError: If the input tensor `x` does not have the expected
+            shape or if the state is incompatible with the layer's requirements.
         """
         y = x
 

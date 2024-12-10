@@ -12,8 +12,8 @@ def is_list(x):
     """
     Determine if the input is a list-like object.
 
-    This function checks whether the provided input `x` is an instance of 
-    a sequence (like a list or tuple) but not a string. It is useful for 
+    This function checks whether the provided input `x` is an instance of
+    a sequence (like a list or tuple) but not a string. It is useful for
     differentiating between sequence types in various data processing tasks.
 
     Args:
@@ -37,27 +37,27 @@ def is_list(x):
 
 def is_dict(x):
     """
-    Determines whether the given object is a dictionary-like structure.
+        Determines whether the given object is a dictionary-like structure.
 
-This function checks if the provided input is an instance of a dictionary or 
-any mapping type. It can be useful for type-checking when working with 
-configuration data or other collections.
+    This function checks if the provided input is an instance of a dictionary or
+    any mapping type. It can be useful for type-checking when working with
+    configuration data or other collections.
 
-Args:
-    x: The object to check.
+    Args:
+        x: The object to check.
 
-Returns:
-    bool: True if the object is a dictionary-like structure, False otherwise.
+    Returns:
+        bool: True if the object is a dictionary-like structure, False otherwise.
 
-Examples:
-    >>> is_dict({'key': 'value'})
-    True
-    >>> is_dict(['item1', 'item2'])
-    False
-    >>> is_dict(None)
-    False
-    >>> is_dict({'key1': 1, 'key2': 2})
-    True
+    Examples:
+        >>> is_dict({'key': 'value'})
+        True
+        >>> is_dict(['item1', 'item2'])
+        False
+        >>> is_dict(None)
+        False
+        >>> is_dict({'key1': 1, 'key2': 2})
+        True
     """
     return isinstance(x, Mapping)
 
@@ -66,20 +66,20 @@ def to_dict(x, recursive=True):
     """
     Convert a Sequence or Mapping object to a dictionary.
 
-    This function takes an input object `x`, which can be a list, tuple, 
-    dictionary, or any other type. If `x` is a list or tuple, it is 
-    converted to a dictionary with indices as keys. If `x` is a dictionary, 
-    its values are recursively converted to dictionaries if `recursive` is 
-    set to True. If `x` is neither a list nor a dictionary, it is returned 
+    This function takes an input object `x`, which can be a list, tuple,
+    dictionary, or any other type. If `x` is a list or tuple, it is
+    converted to a dictionary with indices as keys. If `x` is a dictionary,
+    its values are recursively converted to dictionaries if `recursive` is
+    set to True. If `x` is neither a list nor a dictionary, it is returned
     unchanged.
 
     Args:
         x (Sequence or Mapping): The input object to be converted.
-        recursive (bool): If True, recursively convert nested 
+        recursive (bool): If True, recursively convert nested
             dictionaries/lists. Default is True.
 
     Returns:
-        dict: A dictionary representation of the input object, 
+        dict: A dictionary representation of the input object,
             or the input itself if it is neither a list nor a dictionary.
 
     Examples:
@@ -96,7 +96,7 @@ def to_dict(x, recursive=True):
         {'a': 1, 'b': {'c': 2}}
 
     Note:
-        The function distinguishes between lists, dictionaries, and other 
+        The function distinguishes between lists, dictionaries, and other
         types to ensure appropriate conversion.
 
     Raises:
@@ -117,15 +117,15 @@ def to_list(x, recursive=False):
     """
     Convert an object to a list.
 
-    This function converts the input object to a list format. If the input 
-    is already a sequence (e.g., list, tuple, or ListConfig), it is returned 
-    as is. If the input is a non-sequence object and `recursive` is set to 
-    False, the object is wrapped in a list. If `recursive` is True, the 
+    This function converts the input object to a list format. If the input
+    is already a sequence (e.g., list, tuple, or ListConfig), it is returned
+    as is. If the input is a non-sequence object and `recursive` is set to
+    False, the object is wrapped in a list. If `recursive` is True, the
     function will convert each element of the input sequence to a list.
 
     Args:
         x (Any): The object to convert to a list.
-        recursive (bool): If True, apply conversion recursively to elements 
+        recursive (bool): If True, apply conversion recursively to elements
                           of the input sequence. Defaults to False.
 
     Returns:
@@ -146,10 +146,10 @@ def to_list(x, recursive=False):
 
         >>> to_list("not a sequence")
         ["not a sequence"]
-    
+
     Note:
-        This function treats strings as non-sequence objects. If the input 
-        is a string, it will be wrapped in a list regardless of the 
+        This function treats strings as non-sequence objects. If the input
+        is a string, it will be wrapped in a list regardless of the
         `recursive` parameter.
     """
     if is_list(x):
@@ -211,33 +211,33 @@ def instantiate(registry, config, *args, partial=False, wrap=None, **kwargs):
     """
     Instantiate a registered module from the given configuration.
 
-    This function retrieves a callable from the provided registry using the 
-    configuration dictionary. It can either directly instantiate the object 
-    or return a partial function that can be called later. The configuration 
-    dictionary should contain a key '_name_' which indicates the target 
+    This function retrieves a callable from the provided registry using the
+    configuration dictionary. It can either directly instantiate the object
+    or return a partial function that can be called later. The configuration
+    dictionary should contain a key '_name_' which indicates the target
     callable to instantiate.
 
     Args:
-        registry (dict): A dictionary mapping names to functions or target 
+        registry (dict): A dictionary mapping names to functions or target
             paths (e.g. {'model': 'models.SequenceModel'}).
-        config (dict or str): A configuration dictionary that must contain 
-            a '_name_' key to specify which element of the registry to use, 
+        config (dict or str): A configuration dictionary that must contain
+            a '_name_' key to specify which element of the registry to use,
             along with any additional keyword arguments for the target constructor.
-        *args: Additional positional arguments to override the config and 
+        *args: Additional positional arguments to override the config and
             be passed to the target constructor.
-        partial (bool, optional): If True, returns a partial object instead 
+        partial (bool, optional): If True, returns a partial object instead
             of instantiating it. Defaults to False.
-        wrap (Callable, optional): A function to wrap the target class, 
+        wrap (Callable, optional): A function to wrap the target class,
             e.g., an EMA optimizer or a task wrapper. Defaults to None.
-        **kwargs: Additional keyword arguments to override the config 
+        **kwargs: Additional keyword arguments to override the config
             and be passed to the target constructor.
 
     Returns:
-        object: The instantiated object if `partial` is False, 
+        object: The instantiated object if `partial` is False,
             otherwise a partial object.
 
     Raises:
-        NotImplementedError: If the target retrieved from the registry is 
+        NotImplementedError: If the target retrieved from the registry is
             neither a string nor a callable.
 
     Examples:
@@ -257,7 +257,7 @@ def instantiate(registry, config, *args, partial=False, wrap=None, **kwargs):
         partial_optimizer = instantiate(registry, optimizer_config, partial=True)
 
     Note:
-        Ensure that the '_name_' key in the config is correctly set to match 
+        Ensure that the '_name_' key in the config is correctly set to match
         the keys in the registry.
 
     Todo:
@@ -324,7 +324,7 @@ def get_class(registry, _name_):
         ... }
         >>> MyClass = get_class(registry, 'MyClass')
         >>> instance = MyClass()
-        
+
     Note:
         Ensure that the registry is populated with valid class paths before calling
         this function.
@@ -336,18 +336,18 @@ def omegaconf_filter_keys(d, fn=None):
     """
     Filter keys from a nested OmegaConf dictionary based on a given function.
 
-    This function recursively traverses a nested OmegaConf structure (i.e., 
-    `DictConfig` or `ListConfig`) and retains only those keys for which the 
-    provided function `fn` returns `True`. If no function is provided, all keys 
+    This function recursively traverses a nested OmegaConf structure (i.e.,
+    `DictConfig` or `ListConfig`) and retains only those keys for which the
+    provided function `fn` returns `True`. If no function is provided, all keys
     are retained.
 
     Args:
         d (Union[DictConfig, ListConfig]): The input OmegaConf structure to filter.
-        fn (Callable[[str], bool], optional): A function that takes a key (string) 
+        fn (Callable[[str], bool], optional): A function that takes a key (string)
             and returns a boolean. Defaults to a function that always returns True.
 
     Returns:
-        Union[DictConfig, ListConfig]: A new OmegaConf structure containing only 
+        Union[DictConfig, ListConfig]: A new OmegaConf structure containing only
         the keys for which `fn(key)` is True.
 
     Examples:
@@ -362,8 +362,8 @@ def omegaconf_filter_keys(d, fn=None):
         {'a': 1, 'b': 2, 'c': {'d': 3, 'e': 4}}
 
     Note:
-        This function is particularly useful when working with complex 
-        configuration files, allowing selective access to relevant parameters 
+        This function is particularly useful when working with complex
+        configuration files, allowing selective access to relevant parameters
         based on specific criteria.
     """
     if fn is None:

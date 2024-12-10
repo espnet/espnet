@@ -34,11 +34,11 @@ class ConvInput(torch.nn.Module):
         >>> output, mask = conv_input(input_tensor)
 
     Raises:
-        ValueError: If `conv_size` does not match the expected format based on 
+        ValueError: If `conv_size` does not match the expected format based on
                     whether `vgg_like` is True or False.
 
     Note:
-        The architecture is designed to handle both VGG-like structures and 
+        The architecture is designed to handle both VGG-like structures and
         standard convolutional structures based on the input parameters.
     """
 
@@ -109,26 +109,26 @@ class ConvInput(torch.nn.Module):
         """
         ConvInput block for Transducer encoder.
 
-        This module defines a convolutional input layer for the Transducer encoder. It 
-        processes input sequences through convolutional layers and may apply subsampling 
+        This module defines a convolutional input layer for the Transducer encoder. It
+        processes input sequences through convolutional layers and may apply subsampling
         and pooling operations depending on the specified configuration.
 
         Attributes:
             subsampling_factor (int): The factor by which the input is subsampled.
             vgg_like (bool): Indicates whether a VGG-like architecture is used.
-            output_size (Optional[int]): The output dimension of the block. If None, 
+            output_size (Optional[int]): The output dimension of the block. If None,
                 it will be determined based on the convolutional output.
 
         Args:
             input_size (int): Size of the input feature vector.
-            conv_size (Union[int, Tuple]): Size of the convolutional layers. If using 
-                a VGG-like network, should be a tuple specifying sizes for two 
+            conv_size (Union[int, Tuple]): Size of the convolutional layers. If using
+                a VGG-like network, should be a tuple specifying sizes for two
                 convolutional layers.
-            subsampling_factor (int, optional): Factor by which to subsample the input. 
+            subsampling_factor (int, optional): Factor by which to subsample the input.
                 Default is 4.
-            vgg_like (bool, optional): Whether to use a VGG-like architecture. Default 
+            vgg_like (bool, optional): Whether to use a VGG-like architecture. Default
                 is True.
-            output_size (Optional[int], optional): The desired output dimension. If 
+            output_size (Optional[int], optional): The desired output dimension. If
                 None, it is inferred from the convolutional layers.
 
         Examples:
@@ -140,9 +140,9 @@ class ConvInput(torch.nn.Module):
 
         Returns:
             Tuple[torch.Tensor, Optional[torch.Tensor]]:
-                - x (torch.Tensor): Output sequences after convolution. Shape is 
+                - x (torch.Tensor): Output sequences after convolution. Shape is
                 (B, sub(T), D_out).
-                - mask (Optional[torch.Tensor]): Mask of the output sequences. Shape is 
+                - mask (Optional[torch.Tensor]): Mask of the output sequences. Shape is
                 (B, 1, sub(T)) if mask is provided, otherwise None.
 
         Raises:

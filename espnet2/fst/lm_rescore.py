@@ -13,26 +13,26 @@ def remove_repeated_and_leq(tokens: List[int], blank_id: int = 0):
     """
     Generate a valid token sequence by removing repetitions and blanks.
 
-    This function processes a sequence of tokens by first removing 
-    consecutive repeated tokens, then filtering out any tokens that 
-    are less than or equal to the specified blank ID. The resulting 
-    sequence can be utilized as input for a transformer decoder or 
+    This function processes a sequence of tokens by first removing
+    consecutive repeated tokens, then filtering out any tokens that
+    are less than or equal to the specified blank ID. The resulting
+    sequence can be utilized as input for a transformer decoder or
     a neural language model.
 
-    This method is chosen over alternatives such as tokenizing word 
-    sequences with a tokenizer, composing word sequences with 
-    `L_inv.fst`, or using a CTC topology, as it does not require 
-    additional objects like a tokenizer or finite state transducer 
+    This method is chosen over alternatives such as tokenizing word
+    sequences with a tokenizer, composing word sequences with
+    `L_inv.fst`, or using a CTC topology, as it does not require
+    additional objects like a tokenizer or finite state transducer
     (FST).
 
     Args:
         tokens (List[int]): A list of token integers to process.
-        blank_id (int, optional): The threshold for blank tokens. Tokens 
-            less than or equal to this value will be removed. Defaults 
+        blank_id (int, optional): The threshold for blank tokens. Tokens
+            less than or equal to this value will be removed. Defaults
             to 0.
 
     Returns:
-        List[int]: A new list of tokens with repetitions and blanks 
+        List[int]: A new list of tokens with repetitions and blanks
         removed.
 
     Examples:
@@ -114,34 +114,34 @@ def compute_am_scores_and_lm_scores(
     specific formats required by the underlying k2 library.
 
     Args:
-      lats: 
-        An FsaVec output from `k2.intersect_dense_pruned`. It must contain 
+      lats:
+        An FsaVec output from `k2.intersect_dense_pruned`. It must contain
         the attribute `lm_scores`.
-      word_fsas_with_epsilon_loops: 
-        An FsaVec representing the n-best list, which has been processed by 
+      word_fsas_with_epsilon_loops:
+        An FsaVec representing the n-best list, which has been processed by
         `k2.add_epsilon_self_loops`.
-      path_to_seq_map: 
-        A 1-D tensor of type `torch.int32`. Each entry `i` indicates which 
-        sequence the i-th Fsa in `word_fsas_with_epsilon_loops` belongs to. 
-        The size of this tensor must match the number of arcs in 
+      path_to_seq_map:
+        A 1-D tensor of type `torch.int32`. Each entry `i` indicates which
+        sequence the i-th Fsa in `word_fsas_with_epsilon_loops` belongs to.
+        The size of this tensor must match the number of arcs in
         `word_fsas_with_epsilon_loops`.
-      device: 
-        A string specifying the device to perform computations on (default: 
-        "cuda"). It can be set to "cpu" or "cuda" based on the available 
+      device:
+        A string specifying the device to perform computations on (default:
+        "cuda"). It can be set to "cpu" or "cuda" based on the available
         hardware.
-      batch_size: 
-        An integer that defines the batch size for processing the n-best 
-        list when intersecting with `lats`. This can be adjusted to avoid 
+      batch_size:
+        An integer that defines the batch size for processing the n-best
+        list when intersecting with `lats`. This can be adjusted to avoid
         GPU out-of-memory errors.
 
     Returns:
-      A tuple containing two 1-D tensors: the first tensor represents the 
-      AM scores, and the second tensor represents the LM scores for each 
-      path in the n-best list. Both tensors will have a size equal to the 
+      A tuple containing two 1-D tensors: the first tensor represents the
+      AM scores, and the second tensor represents the LM scores for each
+      path in the n-best list. Both tensors will have a size equal to the
       number of FSAs in `word_fsas_with_epsilon_loops`.
 
     Raises:
-      AssertionError: If the `k2` module is not installed or if the 
+      AssertionError: If the `k2` module is not installed or if the
       input `lats` does not have the correct shape.
 
     Examples:
@@ -153,7 +153,7 @@ def compute_am_scores_and_lm_scores(
       ... )
 
     Note:
-      Ensure that the k2 library is properly installed and configured before 
+      Ensure that the k2 library is properly installed and configured before
       using this function.
     """
     assert (

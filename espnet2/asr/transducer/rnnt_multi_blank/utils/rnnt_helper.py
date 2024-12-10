@@ -43,13 +43,13 @@ def log_sum_exp(a: float, b: float):
     """
     Calculate the log of the sum of exponentials of two input values.
 
-    This function efficiently computes the logarithm of the sum of the 
-    exponentials of two floating-point numbers, `a` and `b`, while 
-    handling cases of negative infinity as defined in the 
+    This function efficiently computes the logarithm of the sum of the
+    exponentials of two floating-point numbers, `a` and `b`, while
+    handling cases of negative infinity as defined in the
     `global_constants` module.
 
-    This implementation is designed for use in CUDA kernels, thus it 
-    uses the `@cuda.jit` decorator for Just-In-Time compilation. The 
+    This implementation is designed for use in CUDA kernels, thus it
+    uses the `@cuda.jit` decorator for Just-In-Time compilation. The
     function is also inlined for performance optimization.
 
     Args:
@@ -70,8 +70,8 @@ def log_sum_exp(a: float, b: float):
         >>> print(result)  # Output will be 4.0, as -inf is ignored.
 
     Note:
-        The function assumes that inputs are valid floating-point numbers 
-        and uses constants defined in `global_constants` to handle edge 
+        The function assumes that inputs are valid floating-point numbers
+        and uses constants defined in `global_constants` to handle edge
         cases effectively.
     """
     if a == global_constants.FP32_NEG_INF:
@@ -92,15 +92,15 @@ def div_up(x: int, y: int):
     Computes the ceiling division of two integers.
 
     This function takes two integers, `x` and `y`, and returns the result of
-    dividing `x` by `y`, rounding up to the nearest whole number. This is useful 
-    in scenarios where you want to ensure that the result of a division operation 
-    does not fall short of the intended number of groups or buckets, especially 
+    dividing `x` by `y`, rounding up to the nearest whole number. This is useful
+    in scenarios where you want to ensure that the result of a division operation
+    does not fall short of the intended number of groups or buckets, especially
     in applications like batching or memory allocation.
 
     Args:
-        x (int): The numerator, an integer value that represents the total 
+        x (int): The numerator, an integer value that represents the total
                 number to be divided.
-        y (int): The denominator, a positive integer value by which to divide 
+        y (int): The denominator, a positive integer value by which to divide
                 `x`. It must not be zero.
 
     Returns:
@@ -120,8 +120,8 @@ def div_up(x: int, y: int):
         0
 
     Note:
-        This function is designed to be used in CUDA kernels and is decorated 
-        with @cuda.jit for that purpose. Ensure that this function is called 
+        This function is designed to be used in CUDA kernels and is decorated
+        with @cuda.jit for that purpose. Ensure that this function is called
         within a proper CUDA context.
     """
     return (x + y - 1) // y
@@ -199,9 +199,9 @@ def identity(x):
     """
     Identity function for use in CUDA kernels.
 
-    This function returns the input value as-is. It is typically used in scenarios 
-    where an operation requires a function but no transformation of the input is 
-    needed. This is especially useful in neural network architectures or during 
+    This function returns the input value as-is. It is typically used in scenarios
+    where an operation requires a function but no transformation of the input is
+    needed. This is especially useful in neural network architectures or during
     computation graphs where identity mappings are required.
 
     Args:
@@ -220,7 +220,7 @@ def identity(x):
         -3.2
 
     Note:
-        This function is compiled to run on CUDA devices using Numba, making it 
+        This function is compiled to run on CUDA devices using Numba, making it
         suitable for GPU-based computations.
     """
     return x
@@ -331,20 +331,20 @@ def log_plus(p1: float, p2: float):
 @cuda.jit(device=True, inline=True)
 def copy_data_1d(source: torch.Tensor, dest: torch.Tensor, idx: int):
     """
-    Copies a single element from a source tensor to a destination tensor at the 
+    Copies a single element from a source tensor to a destination tensor at the
     specified index.
 
-    This function is intended for use in CUDA kernels to facilitate data 
-    manipulation between tensors. It assumes that both `source` and `dest` are 
-    1-dimensional tensors and that the provided index is within the bounds of 
+    This function is intended for use in CUDA kernels to facilitate data
+    manipulation between tensors. It assumes that both `source` and `dest` are
+    1-dimensional tensors and that the provided index is within the bounds of
     these tensors.
 
     Args:
-        source (torch.Tensor): The source tensor from which to copy data. It must 
+        source (torch.Tensor): The source tensor from which to copy data. It must
             be a 1-dimensional tensor.
-        dest (torch.Tensor): The destination tensor where data will be copied. 
+        dest (torch.Tensor): The destination tensor where data will be copied.
             It must also be a 1-dimensional tensor.
-        idx (int): The index at which to copy the data from the source tensor 
+        idx (int): The index at which to copy the data from the source tensor
             to the destination tensor.
 
     Examples:
@@ -355,7 +355,7 @@ def copy_data_1d(source: torch.Tensor, dest: torch.Tensor, idx: int):
         >>> print(dest_tensor)  # Output: tensor([0.0, 2.0, 0.0])
 
     Note:
-        This function should be called within a CUDA kernel and is not intended 
+        This function should be called within a CUDA kernel and is not intended
         for direct invocation in Python code.
     """
     dest[idx] = source[idx]
@@ -368,10 +368,10 @@ def compute_costs_data(
     """
     Compute the costs for the RNN Transducer model.
 
-    This CUDA kernel computes the costs for the RNN Transducer model by 
-    copying data from the source tensor to the destination tensor, 
-    modifying the destination values based on a given `fastemit_lambda`. 
-    The computed costs are the negative values of the source tensor 
+    This CUDA kernel computes the costs for the RNN Transducer model by
+    copying data from the source tensor to the destination tensor,
+    modifying the destination values based on a given `fastemit_lambda`.
+    The computed costs are the negative values of the source tensor
     scaled by the factor (1 + `fastemit_lambda`).
 
     Args:
@@ -390,7 +390,7 @@ def compute_costs_data(
         >>> print(dest_tensor)  # Should output modified values based on source
 
     Note:
-        This function is designed to run on a CUDA device. Ensure that 
+        This function is designed to run on a CUDA device. Ensure that
         the input tensors are on the GPU.
     """
     block = cuda.blockIdx.x
@@ -408,12 +408,12 @@ def get_workspace_size(
     maxT: int, maxU: int, minibatch: int, gpu: bool
 ) -> Tuple[Optional[int], global_constants.RNNTStatus]:
     """
-    Calculate the required workspace size for the RNNT (Recurrent Neural Network 
+    Calculate the required workspace size for the RNNT (Recurrent Neural Network
     Transducer) model based on input parameters.
 
-    This function computes the amount of memory needed for the RNNT model to 
-    perform forward and backward passes during training or inference, considering 
-    both CPU and GPU execution environments. It takes into account the maximum 
+    This function computes the amount of memory needed for the RNNT model to
+    perform forward and backward passes during training or inference, considering
+    both CPU and GPU execution environments. It takes into account the maximum
     sequence lengths, the number of tokens, and the size of the minibatch.
 
     Attributes:
@@ -429,12 +429,12 @@ def get_workspace_size(
         gpu (bool): Flag indicating if the calculations should be done for GPU.
 
     Returns:
-        Tuple[Optional[int], global_constants.RNNTStatus]: A tuple containing the 
-        computed workspace size in bytes (or None if invalid) and the status of 
+        Tuple[Optional[int], global_constants.RNNTStatus]: A tuple containing the
+        computed workspace size in bytes (or None if invalid) and the status of
         the operation.
 
     Raises:
-        ValueError: If any of the input parameters (minibatch, maxT, maxU) are 
+        ValueError: If any of the input parameters (minibatch, maxT, maxU) are
         less than or equal to zero.
 
     Examples:
@@ -443,8 +443,8 @@ def get_workspace_size(
         >>> print(status)  # Expected output: RNNT_STATUS_SUCCESS
 
     Note:
-        The calculated workspace size is essential for memory management in 
-        deep learning applications to avoid runtime errors related to memory 
+        The calculated workspace size is essential for memory management in
+        deep learning applications to avoid runtime errors related to memory
         allocation.
     """
     if minibatch <= 0 or maxT <= 0 or maxU <= 0:

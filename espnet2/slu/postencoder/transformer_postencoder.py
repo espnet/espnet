@@ -27,48 +27,48 @@ class TransformerPostEncoder(AbsPostEncoder):
     """
     Transformer encoder module for sequence-to-sequence tasks.
 
-    This module implements a transformer encoder as part of the post-encoder 
-    architecture for various sequence-to-sequence tasks. It consists of a 
-    stack of encoder layers, each employing multi-head attention and 
+    This module implements a transformer encoder as part of the post-encoder
+    architecture for various sequence-to-sequence tasks. It consists of a
+    stack of encoder layers, each employing multi-head attention and
     position-wise feed-forward networks.
 
     Attributes:
         output_size (int): The dimension of the output features.
-        embed (torch.nn.Sequential): The embedding layer that includes 
-            linear transformation, normalization, dropout, and positional 
+        embed (torch.nn.Sequential): The embedding layer that includes
+            linear transformation, normalization, dropout, and positional
             encoding.
-        encoders (torch.nn.ModuleList): A list of encoder layers that 
+        encoders (torch.nn.ModuleList): A list of encoder layers that
             process the input embeddings.
-        after_norm (LayerNorm, optional): Layer normalization applied after 
+        after_norm (LayerNorm, optional): Layer normalization applied after
             the encoder layers if `normalize_before` is True.
 
     Args:
         input_size (int): The dimensionality of the input features.
-        output_size (int): The dimensionality of the output features 
+        output_size (int): The dimensionality of the output features
             (default: 256).
-        attention_heads (int): The number of heads in the multi-head 
+        attention_heads (int): The number of heads in the multi-head
             attention (default: 4).
-        linear_units (int): The number of units in the position-wise feed 
+        linear_units (int): The number of units in the position-wise feed
             forward layer (default: 2048).
         num_blocks (int): The number of encoder blocks (default: 6).
         dropout_rate (float): Dropout rate applied to layers (default: 0.1).
-        positional_dropout_rate (float): Dropout rate after adding 
+        positional_dropout_rate (float): Dropout rate after adding
             positional encoding (default: 0.1).
-        attention_dropout_rate (float): Dropout rate applied within the 
+        attention_dropout_rate (float): Dropout rate applied within the
             attention layers (default: 0.0).
-        input_layer (Optional[str]): Type of input layer; either "linear" 
+        input_layer (Optional[str]): Type of input layer; either "linear"
             or "None" (default: "linear").
-        pos_enc_class: Class for positional encoding; typically 
+        pos_enc_class: Class for positional encoding; typically
             PositionalEncoding or ScaledPositionalEncoding.
-        normalize_before (bool): Whether to apply layer normalization before 
+        normalize_before (bool): Whether to apply layer normalization before
             the first encoder block (default: True).
-        concat_after (bool): If True, concatenates input and output of the 
+        concat_after (bool): If True, concatenates input and output of the
             attention layer, followed by a linear transformation (default: False).
-        positionwise_layer_type (str): Type of position-wise layer; 
+        positionwise_layer_type (str): Type of position-wise layer;
             "linear", "conv1d", or "conv1d-linear" (default: "linear").
-        positionwise_conv_kernel_size (int): Kernel size for position-wise 
+        positionwise_conv_kernel_size (int): Kernel size for position-wise
             convolutional layer (default: 1).
-        padding_idx (int): Padding index for the input layer when 
+        padding_idx (int): Padding index for the input layer when
             `input_layer` is "embed" (default: -1).
 
     Examples:
@@ -86,12 +86,12 @@ class TransformerPostEncoder(AbsPostEncoder):
         >>> print(olens.shape)   # (B,)
 
     Note:
-        The input tensor `xs_pad` should be padded appropriately, and the 
+        The input tensor `xs_pad` should be padded appropriately, and the
         lengths of the sequences should be provided in `ilens`.
 
     Raises:
         ValueError: If an unknown `input_layer` type is specified.
-        NotImplementedError: If an unsupported `positionwise_layer_type` 
+        NotImplementedError: If an unsupported `positionwise_layer_type`
             is specified.
     """
 
@@ -178,13 +178,13 @@ class TransformerPostEncoder(AbsPostEncoder):
         """
         Return the output size of the TransformerPostEncoder.
 
-        This method provides the dimension of the output from the encoder 
-        layers. The output size is defined during the initialization of the 
-        TransformerPostEncoder class and remains constant throughout its 
+        This method provides the dimension of the output from the encoder
+        layers. The output size is defined during the initialization of the
+        TransformerPostEncoder class and remains constant throughout its
         lifetime.
 
         Returns:
-            int: The output size, which corresponds to the dimension of the 
+            int: The output size, which corresponds to the dimension of the
             attention layer.
 
         Examples:

@@ -52,22 +52,22 @@ def logp(
     Compute the sum of log probability from the activation tensor
     and its denominator.
 
-    This function calculates the log probability for a given batch, 
-    acoustic timestep, target timestep, and vocabulary token index. 
-    It sums the log probabilities of the activations with the corresponding 
+    This function calculates the log probability for a given batch,
+    acoustic timestep, target timestep, and vocabulary token index.
+    It sums the log probabilities of the activations with the corresponding
     denominator for normalization, returning the result.
 
     Args:
-        denom: Tensor of shape [B, T, U] flattened. Represents the 
-            denominator of the log probabilities activation tensor across 
+        denom: Tensor of shape [B, T, U] flattened. Represents the
+            denominator of the log probabilities activation tensor across
             the entire vocabulary.
-        acts: Tensor of shape [B, T, U, V+1] flattened. Represents the 
+        acts: Tensor of shape [B, T, U, V+1] flattened. Represents the
             log probabilities activation tensor.
-        maxT: The maximum possible acoustic sequence length. Represents T 
+        maxT: The maximum possible acoustic sequence length. Represents T
             in the log probabilities tensor.
-        maxU: The maximum possible target sequence length. Represents U 
+        maxU: The maximum possible target sequence length. Represents U
             in the log probabilities tensor.
-        alphabet_size: The vocabulary dimension V+1 (inclusive of RNNT 
+        alphabet_size: The vocabulary dimension V+1 (inclusive of RNNT
             blank).
         mb: Batch indexer.
         t: Acoustic sequence timestep indexer.
@@ -83,10 +83,10 @@ def logp(
         >>> acts = torch.tensor([[[[0.5, 0.5], [0.3, 0.7]], [[0.6, 0.4], [0.2, 0.8]]]])
         >>> result = logp(denom, acts, maxT=2, maxU=2, alphabet_size=2, mb=0, t=0, u=0, v=1)
         >>> print(result)  # Output: the computed log probability value.
-    
+
     Note:
-        This function is intended to be used in CUDA kernels and is 
-        decorated with @cuda.jit for JIT compilation. It is optimized for 
+        This function is intended to be used in CUDA kernels and is
+        decorated with @cuda.jit for JIT compilation. It is optimized for
         performance in GPU environments.
     """
 
@@ -113,8 +113,8 @@ def compute_alphas_kernel(
     Compute alpha (forward variable) probabilities over the transduction step.
 
     This kernel computes the forward probabilities for the RNNT (Recurrent Neural
-    Network Transducer) model. It updates the `alphas` tensor, which holds the 
-    forward variable scores, and the `llForward` tensor, which holds the log-likelihood 
+    Network Transducer) model. It updates the `alphas` tensor, which holds the
+    forward variable scores, and the `llForward` tensor, which holds the log-likelihood
     of the forward pass.
 
     Args:
@@ -151,7 +151,7 @@ def compute_alphas_kernel(
     Examples:
         To compute forward variables for a batch of transcriptions, you can
         call the kernel as follows:
-        
+
         ```python
         compute_alphas_kernel[blocks_per_grid, threads_per_block](
             acts, denom, alphas, llForward, xlen, ylen, mlabels,
@@ -160,7 +160,7 @@ def compute_alphas_kernel(
         ```
 
     Note:
-        This function should be called from a CUDA kernel context, and proper 
+        This function should be called from a CUDA kernel context, and proper
         grid and block dimensions should be set based on the input tensor sizes.
     """
 
@@ -243,10 +243,10 @@ def compute_betas_kernel(
     """
     Compute beta (backward variable) probabilities over the transduction step.
 
-    This kernel computes the backward variable probabilities (betas) for each 
-    sample in the minibatch during the transduction process. It leverages the 
-    log probabilities from the activation tensor and the denominator tensor to 
-    compute the betas, which are essential for backpropagation in RNN-T models. 
+    This kernel computes the backward variable probabilities (betas) for each
+    sample in the minibatch during the transduction process. It leverages the
+    log probabilities from the activation tensor and the denominator tensor to
+    compute the betas, which are essential for backpropagation in RNN-T models.
 
     Args:
         acts: Tensor of shape [B, T, U, V+1] flattened.
@@ -284,12 +284,12 @@ def compute_betas_kernel(
         the required tensors and then invoke the kernel:
 
         ```python
-        compute_betas_kernel(acts, denom, betas, llBackward, xlen, ylen, 
+        compute_betas_kernel(acts, denom, betas, llBackward, xlen, ylen,
                              mlabels, minibatch, maxT, maxU, alphabet_size, blank_)
         ```
 
     Note:
-        This kernel is intended to be executed on a CUDA-enabled GPU and 
+        This kernel is intended to be executed on a CUDA-enabled GPU and
         requires appropriate configuration for thread and block sizes.
     """
 
@@ -420,7 +420,7 @@ def compute_grad_kernel(
 
     Examples:
         To invoke this kernel, set up the required tensors and launch the kernel:
-        
+
         ```python
         compute_grad_kernel[blocks_per_grid, threads_per_block](
             grads, acts, denom, alphas, betas, logll,
@@ -555,31 +555,31 @@ def compute_multiblank_alphas_kernel(
     num_big_blanks: int,
 ):
     """
-    Compute alpha (forward variable) probabilities for multi-blank transducer 
+    Compute alpha (forward variable) probabilities for multi-blank transducer
     loss (https://arxiv.org/pdf/2211.03541).
 
     This kernel computes the forward variable probabilities for a multi-blank
-    transducer model, incorporating logit under-normalization to stabilize 
+    transducer model, incorporating logit under-normalization to stabilize
     training with blank tokens of variable duration.
 
     Args:
         acts: Tensor of shape [B, T, U, V + 1 + num_big_blanks] flattened.
             Represents the log probabilities activation tensor.
-        denom: Tensor of shape [B, T, U] flattened. Represents the denominator 
+        denom: Tensor of shape [B, T, U] flattened. Represents the denominator
             of the log probabilities activation tensor across the entire vocabulary.
         sigma: Hyper-parameter for logit under-normalization technique for training
             multi-blank transducers.
-        alphas: Zero tensor of shape [B, T, U]. Will be updated inside the kernel 
+        alphas: Zero tensor of shape [B, T, U]. Will be updated inside the kernel
             with the forward variable probabilities.
-        llForward: Zero tensor of shape [B]. Represents the log-likelihood of the 
-            forward pass. Returned as the forward pass loss that is reduced by 
+        llForward: Zero tensor of shape [B]. Represents the log-likelihood of the
+            forward pass. Returned as the forward pass loss that is reduced by
             the optimizer.
-        xlen: Vector of length B which contains the actual acoustic sequence 
+        xlen: Vector of length B which contains the actual acoustic sequence
             lengths in the padded activation tensor.
-        ylen: Vector of length B which contains the actual target sequence 
+        ylen: Vector of length B which contains the actual target sequence
             lengths in the padded activation tensor.
-        mlabels: Matrix of shape [B, U+1] (+1 here is due to <SOS> token 
-            - usually the RNNT blank). The matrix contains the padded target 
+        mlabels: Matrix of shape [B, U+1] (+1 here is due to <SOS> token
+            - usually the RNNT blank). The matrix contains the padded target
             transcription that must be predicted.
         minibatch: Int representing the batch size.
         maxT: The maximum possible acoustic sequence length.
@@ -612,14 +612,14 @@ def compute_multiblank_alphas_kernel(
         >>> blank_ = 0
         >>> big_blank_duration = torch.tensor([1, 2])
         >>> num_big_blanks = 2
-        >>> compute_multiblank_alphas_kernel(acts, denom, sigma, alphas, 
-        ...                                     llForward, xlen, ylen, 
-        ...                                     mlabels, minibatch, maxT, 
-        ...                                     maxU, alphabet_size, blank_, 
+        >>> compute_multiblank_alphas_kernel(acts, denom, sigma, alphas,
+        ...                                     llForward, xlen, ylen,
+        ...                                     mlabels, minibatch, maxT,
+        ...                                     maxU, alphabet_size, blank_,
         ...                                     big_blank_duration, num_big_blanks)
 
     Note:
-        This kernel is designed to be executed on a CUDA device and requires 
+        This kernel is designed to be executed on a CUDA device and requires
         proper configuration for grid and block sizes when launched.
     """
 
@@ -801,53 +801,53 @@ def compute_multiblank_betas_kernel(
     num_big_blanks: int,
 ):
     """
-    Compute beta (backward variable) probabilities for multi-blank transducer loss.
+        Compute beta (backward variable) probabilities for multi-blank transducer loss.
 
-This function computes the beta values, which are essential for calculating the
-backward probabilities in the multi-blank transducer model. The computation
-follows the principles outlined in the paper (https://arxiv.org/pdf/2211.03541),
-utilizing logit under-normalization.
+    This function computes the beta values, which are essential for calculating the
+    backward probabilities in the multi-blank transducer model. The computation
+    follows the principles outlined in the paper (https://arxiv.org/pdf/2211.03541),
+    utilizing logit under-normalization.
 
-Attributes:
-    acts (torch.Tensor): A tensor of shape [B, T, U, V + 1 + num-big-blanks] 
-        flattened, representing the logprobs activation tensor.
-    denom (torch.Tensor): A tensor of shape [B, T, U] flattened, representing 
-        the denominator of the logprobs activation tensor across the entire vocabulary.
-    sigma (float): Hyper-parameter for logit under-normalization technique 
-        for training multi-blank transducers.
-    betas (torch.Tensor): A zero tensor of shape [B, T, U] which will be 
-        updated with the backward variable probabilities.
-    llBackward (torch.Tensor): A zero tensor of shape [B] representing the 
-        log-likelihood of the backward pass, returned as the backward pass loss 
-        that is reduced by the optimizer.
-    xlen (torch.Tensor): A vector of length B that contains the actual 
-        acoustic sequence lengths in the padded activation tensor.
-    ylen (torch.Tensor): A vector of length B that contains the actual 
-        target sequence lengths in the padded activation tensor.
-    mlabels (torch.Tensor): A matrix of shape [B, U+1] containing the 
-        padded target transcription that must be predicted.
-    minibatch (int): An integer representing the batch size.
-    maxT (int): The maximum possible acoustic sequence length.
-    maxU (int): The maximum possible target sequence length.
-    alphabet_size (int): The vocabulary dimension V+1 (inclusive of RNNT blank).
-    blank_ (int): The index of the RNNT standard blank token in the vocabulary.
-    big_blank_duration (torch.Tensor): A vector of supported big blank durations 
-        of the model.
-    num_big_blanks (int): The number of big blanks in the model.
+    Attributes:
+        acts (torch.Tensor): A tensor of shape [B, T, U, V + 1 + num-big-blanks]
+            flattened, representing the logprobs activation tensor.
+        denom (torch.Tensor): A tensor of shape [B, T, U] flattened, representing
+            the denominator of the logprobs activation tensor across the entire vocabulary.
+        sigma (float): Hyper-parameter for logit under-normalization technique
+            for training multi-blank transducers.
+        betas (torch.Tensor): A zero tensor of shape [B, T, U] which will be
+            updated with the backward variable probabilities.
+        llBackward (torch.Tensor): A zero tensor of shape [B] representing the
+            log-likelihood of the backward pass, returned as the backward pass loss
+            that is reduced by the optimizer.
+        xlen (torch.Tensor): A vector of length B that contains the actual
+            acoustic sequence lengths in the padded activation tensor.
+        ylen (torch.Tensor): A vector of length B that contains the actual
+            target sequence lengths in the padded activation tensor.
+        mlabels (torch.Tensor): A matrix of shape [B, U+1] containing the
+            padded target transcription that must be predicted.
+        minibatch (int): An integer representing the batch size.
+        maxT (int): The maximum possible acoustic sequence length.
+        maxU (int): The maximum possible target sequence length.
+        alphabet_size (int): The vocabulary dimension V+1 (inclusive of RNNT blank).
+        blank_ (int): The index of the RNNT standard blank token in the vocabulary.
+        big_blank_duration (torch.Tensor): A vector of supported big blank durations
+            of the model.
+        num_big_blanks (int): The number of big blanks in the model.
 
-Updates:
-    This kernel in-place updates the following inputs:
-    - betas: backward variable scores.
-    - llBackward: log-likelihood of the backward variable.
+    Updates:
+        This kernel in-place updates the following inputs:
+        - betas: backward variable scores.
+        - llBackward: log-likelihood of the backward variable.
 
-Examples:
-    >>> compute_multiblank_betas_kernel(acts, denom, sigma, betas, llBackward, 
-    ...                                   xlen, ylen, mlabels, minibatch, 
-    ...                                   maxT, maxU, alphabet_size, blank_, 
-    ...                                   big_blank_duration, num_big_blanks)
+    Examples:
+        >>> compute_multiblank_betas_kernel(acts, denom, sigma, betas, llBackward,
+        ...                                   xlen, ylen, mlabels, minibatch,
+        ...                                   maxT, maxU, alphabet_size, blank_,
+        ...                                   big_blank_duration, num_big_blanks)
 
-Note:
-    This kernel must be launched with B blocks, where each block has U threads.
+    Note:
+        This kernel must be launched with B blocks, where each block has U threads.
     """
 
     # // launch B blocks, each block has U threads
@@ -1015,35 +1015,35 @@ def compute_multiblank_grad_kernel(
     """
     Compute gradients for multi-blank transducer loss.
 
-    This kernel computes the gradients of the log likelihood for a multi-blank 
-    transducer model. The multi-blank approach allows for variable-length 
-    blanks in the target sequence, which can improve the performance of ASR 
+    This kernel computes the gradients of the log likelihood for a multi-blank
+    transducer model. The multi-blank approach allows for variable-length
+    blanks in the target sequence, which can improve the performance of ASR
     models in scenarios with high variability in speech patterns.
 
     Args:
         grads: Zero Tensor of shape [B, T, U, V + 1 + num_big_blanks].
-            Updated by this kernel to contain the gradients of this batch 
+            Updated by this kernel to contain the gradients of this batch
             of samples.
         acts: Tensor of shape [B, T, U, V + 1 + num_big_blanks] flattened.
             Represents the log probabilities activation tensor.
-        denom: Tensor of shape [B, T, U] flattened. Represents the 
-            denominator of the log probabilities activation tensor across 
+        denom: Tensor of shape [B, T, U] flattened. Represents the
+            denominator of the log probabilities activation tensor across
             the entire vocabulary.
-        sigma: Hyper-parameter for logit-under normalization technique for 
+        sigma: Hyper-parameter for logit-under normalization technique for
             training multi-blank transducers.
         alphas: Alpha variable, contains forward probabilities.
             A tensor of shape [B, T, U].
         betas: Beta variable, contains backward probabilities.
             A tensor of shape [B, T, U].
-        logll: Log-likelihood of the forward variable, represented as a 
-            vector of shape [B]. Represents the log-likelihood of the 
+        logll: Log-likelihood of the forward variable, represented as a
+            vector of shape [B]. Represents the log-likelihood of the
             forward pass.
-        xlen: Vector of length B containing the actual acoustic sequence 
+        xlen: Vector of length B containing the actual acoustic sequence
             lengths in the padded activation tensor.
-        ylen: Vector of length B containing the actual target sequence 
+        ylen: Vector of length B containing the actual target sequence
             lengths in the padded activation tensor.
-        mlabels: Matrix of shape [B, U+1] (+1 here is due to <SOS> token 
-            - usually the RNNT blank). The matrix contains the padded target 
+        mlabels: Matrix of shape [B, U+1] (+1 here is due to <SOS> token
+            - usually the RNNT blank). The matrix contains the padded target
             transcription that must be predicted.
         minibatch: Int representing the batch size.
         maxT: The maximum possible acoustic sequence length.
@@ -1053,10 +1053,10 @@ def compute_multiblank_grad_kernel(
         alphabet_size: The vocabulary dimension V+1 (inclusive of RNNT blank).
         blank_: Index of the RNNT blank token in the vocabulary.
             Generally the first or last token in the vocabulary.
-        fastemit_lambda: Float scaling factor for FastEmit regularization. 
-            Refer to FastEmit: Low-latency Streaming ASR with Sequence-level 
+        fastemit_lambda: Float scaling factor for FastEmit regularization.
+            Refer to FastEmit: Low-latency Streaming ASR with Sequence-level
             Emission Regularization.
-        clamp: Float value. When set to value >= 0.0, will clamp the 
+        clamp: Float value. When set to value >= 0.0, will clamp the
             gradient to [-clamp, clamp].
         big_blank_durations: Vector of supported big blank durations of the model.
         num_big_blanks: Number of big blanks of the model.
@@ -1066,10 +1066,10 @@ def compute_multiblank_grad_kernel(
         - grads: Gradients with respect to the log likelihood (logll).
 
     Examples:
-        To call this kernel, you would typically set up the necessary tensors 
-        and invoke it within a CUDA context, ensuring that the dimensions 
+        To call this kernel, you would typically set up the necessary tensors
+        and invoke it within a CUDA context, ensuring that the dimensions
         are aligned with the batch and sequence lengths:
-        
+
         ```
         compute_multiblank_grad_kernel[blocks_per_grid, threads_per_block](
             grads, acts, denom, sigma, alphas, betas, logll, xlen, ylen,
@@ -1079,7 +1079,7 @@ def compute_multiblank_grad_kernel(
         ```
 
     Note:
-        Ensure that all tensors are allocated and transferred to the GPU 
+        Ensure that all tensors are allocated and transferred to the GPU
         before invoking this kernel to avoid runtime errors.
     """
 

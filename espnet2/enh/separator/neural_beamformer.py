@@ -11,89 +11,90 @@ from espnet2.enh.separator.abs_separator import AbsSeparator
 
 class NeuralBeamformer(AbsSeparator):
     """
-    NeuralBeamformer is a neural network-based separator that performs speech 
-enhancement using a combination of dereverberation and beamforming techniques. 
-It extends the functionality of the AbsSeparator class and incorporates 
-Deep Neural Network (DNN) methods for both dereverberation and beamforming.
+        NeuralBeamformer is a neural network-based separator that performs speech
+    enhancement using a combination of dereverberation and beamforming techniques.
+    It extends the functionality of the AbsSeparator class and incorporates
+    Deep Neural Network (DNN) methods for both dereverberation and beamforming.
 
-Attributes:
-    num_spk (int): The number of speakers to separate.
-    loss_type (str): The type of loss function used for training. Supported 
-        types include "mask_mse", "spectrum", "spectrum_log", and "magnitude".
-    use_beamformer (bool): Flag indicating whether to use beamforming.
-    use_wpe (bool): Flag indicating whether to use dereverberation via WPE.
-    shared_power (bool): Indicates if speech powers should be shared between 
-        WPE and beamforming.
+    Attributes:
+        num_spk (int): The number of speakers to separate.
+        loss_type (str): The type of loss function used for training. Supported
+            types include "mask_mse", "spectrum", "spectrum_log", and "magnitude".
+        use_beamformer (bool): Flag indicating whether to use beamforming.
+        use_wpe (bool): Flag indicating whether to use dereverberation via WPE.
+        shared_power (bool): Indicates if speech powers should be shared between
+            WPE and beamforming.
 
-Args:
-    input_dim (int): The dimension of the input feature.
-    num_spk (int, optional): Number of speakers to separate. Defaults to 1.
-    loss_type (str, optional): Loss function type. Defaults to "mask_mse".
-    use_wpe (bool, optional): Use WPE for dereverberation. Defaults to False.
-    wnet_type (str, optional): Type of WPE network. Defaults to "blstmp".
-    wlayers (int, optional): Number of WPE network layers. Defaults to 3.
-    wunits (int, optional): Number of units in WPE network layers. Defaults to 300.
-    wprojs (int, optional): Number of projections in WPE. Defaults to 320.
-    wdropout_rate (float, optional): Dropout rate for WPE. Defaults to 0.0.
-    taps (int, optional): Number of taps for WPE. Defaults to 5.
-    delay (int, optional): Delay for WPE. Defaults to 3.
-    use_dnn_mask_for_wpe (bool, optional): Use DNN for WPE mask estimation. 
-        Defaults to True.
-    wnonlinear (str, optional): Nonlinearity type for WPE. Defaults to "crelu".
-    multi_source_wpe (bool, optional): Use multi-source WPE. Defaults to True.
-    wnormalization (bool, optional): Normalize WPE outputs. Defaults to False.
-    use_beamformer (bool, optional): Use beamformer. Defaults to True.
-    bnet_type (str, optional): Type of beamformer network. Defaults to "blstmp".
-    blayers (int, optional): Number of beamformer network layers. Defaults to 3.
-    bunits (int, optional): Number of units in beamformer network layers. 
-        Defaults to 300.
-    bprojs (int, optional): Number of projections in beamformer. Defaults to 320.
-    badim (int, optional): Dimensionality of beamformer input. Defaults to 320.
-    ref_channel (int, optional): Reference channel for beamforming. Defaults to -1.
-    use_noise_mask (bool, optional): Use noise mask in beamforming. Defaults to True.
-    bnonlinear (str, optional): Nonlinearity type for beamformer. Defaults to "sigmoid".
-    beamformer_type (str, optional): Type of beamformer. Defaults to "mvdr_souden".
-    rtf_iterations (int, optional): Number of iterations for RTF. Defaults to 2.
-    bdropout_rate (float, optional): Dropout rate for beamformer. Defaults to 0.0.
-    shared_power (bool, optional): Share speech powers between WPE and beamforming. 
-        Defaults to True.
-    use_torchaudio_api (bool, optional): Use Torchaudio API. Defaults to False.
-    diagonal_loading (bool, optional): Use diagonal loading for stability. Defaults to True.
-    diag_eps_wpe (float, optional): Epsilon for WPE diagonal loading. Defaults to 1e-7.
-    diag_eps_bf (float, optional): Epsilon for beamformer diagonal loading. 
-        Defaults to 1e-7.
-    mask_flooring (bool, optional): Apply mask flooring. Defaults to False.
-    flooring_thres_wpe (float, optional): Threshold for WPE flooring. Defaults to 1e-6.
-    flooring_thres_bf (float, optional): Threshold for beamformer flooring. 
-        Defaults to 1e-6.
-    use_torch_solver (bool, optional): Use Torch solver for computations. 
-        Defaults to True.
+    Args:
+        input_dim (int): The dimension of the input feature.
+        num_spk (int, optional): Number of speakers to separate. Defaults to 1.
+        loss_type (str, optional): Loss function type. Defaults to "mask_mse".
+        use_wpe (bool, optional): Use WPE for dereverberation. Defaults to False.
+        wnet_type (str, optional): Type of WPE network. Defaults to "blstmp".
+        wlayers (int, optional): Number of WPE network layers. Defaults to 3.
+        wunits (int, optional): Number of units in WPE network layers. Defaults to 300.
+        wprojs (int, optional): Number of projections in WPE. Defaults to 320.
+        wdropout_rate (float, optional): Dropout rate for WPE. Defaults to 0.0.
+        taps (int, optional): Number of taps for WPE. Defaults to 5.
+        delay (int, optional): Delay for WPE. Defaults to 3.
+        use_dnn_mask_for_wpe (bool, optional): Use DNN for WPE mask estimation.
+            Defaults to True.
+        wnonlinear (str, optional): Nonlinearity type for WPE. Defaults to "crelu".
+        multi_source_wpe (bool, optional): Use multi-source WPE. Defaults to True.
+        wnormalization (bool, optional): Normalize WPE outputs. Defaults to False.
+        use_beamformer (bool, optional): Use beamformer. Defaults to True.
+        bnet_type (str, optional): Type of beamformer network. Defaults to "blstmp".
+        blayers (int, optional): Number of beamformer network layers. Defaults to 3.
+        bunits (int, optional): Number of units in beamformer network layers.
+            Defaults to 300.
+        bprojs (int, optional): Number of projections in beamformer. Defaults to 320.
+        badim (int, optional): Dimensionality of beamformer input. Defaults to 320.
+        ref_channel (int, optional): Reference channel for beamforming. Defaults to -1.
+        use_noise_mask (bool, optional): Use noise mask in beamforming. Defaults to True.
+        bnonlinear (str, optional): Nonlinearity type for beamformer. Defaults to "sigmoid".
+        beamformer_type (str, optional): Type of beamformer. Defaults to "mvdr_souden".
+        rtf_iterations (int, optional): Number of iterations for RTF. Defaults to 2.
+        bdropout_rate (float, optional): Dropout rate for beamformer. Defaults to 0.0.
+        shared_power (bool, optional): Share speech powers between WPE and beamforming.
+            Defaults to True.
+        use_torchaudio_api (bool, optional): Use Torchaudio API. Defaults to False.
+        diagonal_loading (bool, optional): Use diagonal loading for stability. Defaults to True.
+        diag_eps_wpe (float, optional): Epsilon for WPE diagonal loading. Defaults to 1e-7.
+        diag_eps_bf (float, optional): Epsilon for beamformer diagonal loading.
+            Defaults to 1e-7.
+        mask_flooring (bool, optional): Apply mask flooring. Defaults to False.
+        flooring_thres_wpe (float, optional): Threshold for WPE flooring. Defaults to 1e-6.
+        flooring_thres_bf (float, optional): Threshold for beamformer flooring.
+            Defaults to 1e-6.
+        use_torch_solver (bool, optional): Use Torch solver for computations.
+            Defaults to True.
 
-Returns:
-    Tuple[List[Union[torch.Tensor, ComplexTensor]], torch.Tensor, OrderedDict]:
-        - enhanced speech (single-channel): List of enhanced tensors.
-        - output lengths: Lengths of the output tensors.
-        - other predicted data: An OrderedDict containing various masks and 
-          dereverberated outputs.
+    Returns:
+        Tuple[List[Union[torch.Tensor, ComplexTensor]], torch.Tensor, OrderedDict]:
+            - enhanced speech (single-channel): List of enhanced tensors.
+            - output lengths: Lengths of the output tensors.
+            - other predicted data: An OrderedDict containing various masks and
+              dereverberated outputs.
 
-Raises:
-    ValueError: If an unsupported loss type is provided during initialization.
+    Raises:
+        ValueError: If an unsupported loss type is provided during initialization.
 
-Examples:
-    >>> model = NeuralBeamformer(input_dim=257, num_spk=2)
-    >>> mixed_speech = torch.randn(4, 100, 2, 257, dtype=torch.complex64)
-    >>> ilens = torch.tensor([100, 100, 100, 100])
-    >>> enhanced, output_lengths, masks = model(mixed_speech, ilens)
+    Examples:
+        >>> model = NeuralBeamformer(input_dim=257, num_spk=2)
+        >>> mixed_speech = torch.randn(4, 100, 2, 257, dtype=torch.complex64)
+        >>> ilens = torch.tensor([100, 100, 100, 100])
+        >>> enhanced, output_lengths, masks = model(mixed_speech, ilens)
 
-Note:
-    The additional argument in the forward method is not utilized in this 
-    implementation.
+    Note:
+        The additional argument in the forward method is not utilized in this
+        implementation.
 
-Todo:
-    - Extend support for additional loss types.
-    - Implement functionality for shared power when using WPE and beamforming 
-      simultaneously.
+    Todo:
+        - Extend support for additional loss types.
+        - Implement functionality for shared power when using WPE and beamforming
+          simultaneously.
     """
+
     def __init__(
         self,
         input_dim: int,
@@ -217,26 +218,26 @@ Todo:
         """
         Perform the forward pass of the NeuralBeamformer model.
 
-        This method processes the input mixed speech and returns the enhanced 
-        speech along with other predicted data. It handles both training and 
+        This method processes the input mixed speech and returns the enhanced
+        speech along with other predicted data. It handles both training and
         inference modes, estimating masks during training for memory efficiency.
 
         Args:
-            input (torch.complex64/ComplexTensor): 
-                Mixed speech tensor of shape 
+            input (torch.complex64/ComplexTensor):
+                Mixed speech tensor of shape
                 [Batch, Frames, Channel, Freq] or [Batch, Frames, Freq].
-            ilens (torch.Tensor): 
+            ilens (torch.Tensor):
                 Tensor of input lengths with shape [Batch].
-            additional (Dict or None): 
+            additional (Dict or None):
                 Additional data included in the model (not used in this model).
 
         Returns:
-            Tuple: 
-                - enhanced speech (single-channel): 
+            Tuple:
+                - enhanced speech (single-channel):
                     List[torch.complex64/ComplexTensor]
-                - output lengths: 
+                - output lengths:
                     torch.Tensor
-                - other predicted data: 
+                - other predicted data:
                     OrderedDict[
                         'dereverb1': ComplexTensor(Batch, Frames, Channel, Freq),
                         'mask_dereverb1': torch.Tensor(Batch, Frames, Channel, Freq),
@@ -254,8 +255,8 @@ Todo:
             >>> enhanced, output_lengths, other_data = model.forward(mixed_speech, lengths)
 
         Note:
-            The method estimates masks only during training for memory 
-            efficiency. In inference mode, it performs enhancement without 
+            The method estimates masks only during training for memory
+            efficiency. In inference mode, it performs enhancement without
             mask estimation.
 
         Raises:

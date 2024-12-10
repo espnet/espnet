@@ -12,16 +12,16 @@ class BayesRiskCTC(torch.nn.Module):
     """
     Implements Bayes Risk CTC (Connectionist Temporal Classification).
 
-    This class computes the Bayes Risk CTC loss, which incorporates 
-    risk strategies to improve the training of neural networks for 
+    This class computes the Bayes Risk CTC loss, which incorporates
+    risk strategies to improve the training of neural networks for
     sequence-to-sequence tasks, such as automatic speech recognition (ASR).
-    
+
     Attributes:
-        risk_strategy (str): Strategy for calculating risk. Options are 
-            "exp" for exponential risk or "exp_rel" for relative 
+        risk_strategy (str): Strategy for calculating risk. Options are
+            "exp" for exponential risk or "exp_rel" for relative
             exponential risk.
-        group_strategy (str): Strategy for grouping tokens. Options are 
-            "end" to consider the last token of each sequence or 
+        group_strategy (str): Strategy for grouping tokens. Options are
+            "end" to consider the last token of each sequence or
             "end_mean" to average over the groups.
         risk_factor (float): A scaling factor for the risk value.
 
@@ -31,13 +31,13 @@ class BayesRiskCTC(torch.nn.Module):
         risk_factor (float): Risk factor to apply. Defaults to 0.0.
 
     Returns:
-        torch.Tensor: The computed Bayes Risk CTC loss for the input 
+        torch.Tensor: The computed Bayes Risk CTC loss for the input
         sequences.
 
     Raises:
-        AssertionError: If an unknown risk_strategy or group_strategy 
+        AssertionError: If an unknown risk_strategy or group_strategy
         is provided.
-        NotImplementedError: If a user-defined group strategy is used 
+        NotImplementedError: If a user-defined group strategy is used
         that is not implemented.
 
     Examples:
@@ -48,12 +48,13 @@ class BayesRiskCTC(torch.nn.Module):
         >>> ylens = torch.randint(1, 11, (5,))  # (B,)
         >>> loss = model(nnet_output, ys_pad, hlens, ylens)
         >>> print(loss)
-    
+
     Note:
-        The input `nnet_output` must be in the shape (B, T, C) where 
-        B is the batch size, T is the time dimension, and C is the 
+        The input `nnet_output` must be in the shape (B, T, C) where
+        B is the batch size, T is the time dimension, and C is the
         number of classes.
     """
+
     def __init__(self, risk_strategy="exp", group_strategy="end", risk_factor=0.0):
         super().__init__()
 
@@ -132,27 +133,27 @@ class BayesRiskCTC(torch.nn.Module):
         """
         Compute the core forward pass for the Bayes Risk CTC.
 
-        This method calculates the loss for the given neural network outputs 
-        using the Bayes Risk CTC framework. It involves building a dense 
-        FSA from the network outputs and intersecting it with CTC graphs to 
+        This method calculates the loss for the given neural network outputs
+        using the Bayes Risk CTC framework. It involves building a dense
+        FSA from the network outputs and intersecting it with CTC graphs to
         derive the forward and backward scores.
 
         Args:
-            nnet_output (torch.Tensor): The neural network output of shape 
-                (B, T, C) where B is the batch size, T is the time steps, 
+            nnet_output (torch.Tensor): The neural network output of shape
+                (B, T, C) where B is the batch size, T is the time steps,
                 and C is the number of classes.
             ys (list): A list of target sequences (padded) for the batch.
-            hlens (torch.Tensor): A tensor of shape (B,) containing the lengths 
+            hlens (torch.Tensor): A tensor of shape (B,) containing the lengths
                 of each sequence in the batch.
-            ylens (torch.Tensor): A tensor of shape (B,) containing the lengths 
+            ylens (torch.Tensor): A tensor of shape (B,) containing the lengths
                 of each target sequence.
 
         Returns:
-            torch.Tensor: A tensor containing the computed loss for each 
+            torch.Tensor: A tensor containing the computed loss for each
             example in the batch.
 
         Raises:
-            NotImplementedError: If a custom group strategy is used that 
+            NotImplementedError: If a custom group strategy is used that
             is not implemented.
 
         Examples:
@@ -165,7 +166,7 @@ class BayesRiskCTC(torch.nn.Module):
             >>> print(loss)
 
         Note:
-            Ensure that the input tensors are on the same device as the 
+            Ensure that the input tensors are on the same device as the
             neural network output for correct computations.
         """
         # (1) Find the shape
@@ -343,35 +344,35 @@ class BayesRiskCTC(torch.nn.Module):
         """
         Finds the indices of (b, t, u, d) for each arc and state.
 
-        This function processes the input data structures to extract 
-        relevant indices that correspond to the arcs in the CTC graph 
-        and the states in the dense FSA vector. It performs several 
-        computations to ensure that the indices are accurately mapped 
+        This function processes the input data structures to extract
+        relevant indices that correspond to the arcs in the CTC graph
+        and the states in the dense FSA vector. It performs several
+        computations to ensure that the indices are accurately mapped
         from the ragged lattice.
 
         Args:
-            ragged_lat (k2.Fsa): The ragged lattice representing the 
+            ragged_lat (k2.Fsa): The ragged lattice representing the
                 lattice structure.
-            ctc_graph (k2.Fsa): The CTC graph containing the arcs 
+            ctc_graph (k2.Fsa): The CTC graph containing the arcs
                 and their structure.
-            dense_fsa_vec (k2.DenseFsaVec): The dense FSA vector 
+            dense_fsa_vec (k2.DenseFsaVec): The dense FSA vector
                 that holds the neural network output.
-            arc_map_a (torch.Tensor): A mapping tensor for arcs in 
+            arc_map_a (torch.Tensor): A mapping tensor for arcs in
                 the CTC graph.
-            arc_map_b (torch.Tensor): A mapping tensor for arcs in 
+            arc_map_b (torch.Tensor): A mapping tensor for arcs in
                 the dense FSA vector.
 
         Returns:
             tuple: A tuple containing two elements:
-                - (torch.Tensor, torch.Tensor, torch.Tensor, 
-                  torch.Tensor): The arc indices corresponding to 
+                - (torch.Tensor, torch.Tensor, torch.Tensor,
+                  torch.Tensor): The arc indices corresponding to
                   the CTC graph arcs.
-                - (torch.Tensor, torch.Tensor, torch.Tensor, 
-                  torch.Tensor): The state indices corresponding 
+                - (torch.Tensor, torch.Tensor, torch.Tensor,
+                  torch.Tensor): The state indices corresponding
                   to the states in the CTC graph.
 
         Examples:
-            Given a ragged lattice and corresponding CTC graph and 
+            Given a ragged lattice and corresponding CTC graph and
             dense FSA vector, the function can be used as follows:
 
             >>> arc_indices, state_indices = find_all_index(
@@ -379,12 +380,12 @@ class BayesRiskCTC(torch.nn.Module):
             ... )
 
         Note:
-            This function is intended for internal use within the 
-            BayesRiskCTC implementation and should not be called 
+            This function is intended for internal use within the
+            BayesRiskCTC implementation and should not be called
             directly by users.
 
         Todo:
-            Implement additional error handling for invalid input 
+            Implement additional error handling for invalid input
             types or shapes.
         """
         # This function finds the index of (b, t, u, d) for each arc and each state
@@ -452,24 +453,24 @@ class BayesRiskCTC(torch.nn.Module):
         """
         Finds the minimum lengths of the hypotheses and their padded forms.
 
-        This function processes the padded sequences of hypotheses and their 
-        corresponding lengths to determine the minimum length required for each 
-        hypothesis. The minimum length is calculated by considering consecutive 
-        tokens and counting repetitions. The function returns a list of the 
+        This function processes the padded sequences of hypotheses and their
+        corresponding lengths to determine the minimum length required for each
+        hypothesis. The minimum length is calculated by considering consecutive
+        tokens and counting repetitions. The function returns a list of the
         processed hypotheses and a tensor containing the minimum lengths.
 
         Args:
-            ys_pad (torch.Tensor): A tensor of shape (B, T) where B is the batch 
-                size and T is the maximum sequence length. Each row contains the 
+            ys_pad (torch.Tensor): A tensor of shape (B, T) where B is the batch
+                size and T is the maximum sequence length. Each row contains the
                 padded hypothesis sequences.
-            ylens (torch.Tensor): A tensor of shape (B,) containing the actual 
+            ylens (torch.Tensor): A tensor of shape (B,) containing the actual
                 lengths of each hypothesis sequence.
 
         Returns:
             tuple: A tuple containing:
-                - list: A list of processed hypotheses where each hypothesis is 
+                - list: A list of processed hypotheses where each hypothesis is
                   represented as a list of integers.
-                - torch.Tensor: A tensor of shape (B,) containing the minimum 
+                - torch.Tensor: A tensor of shape (B,) containing the minimum
                   lengths for each hypothesis.
 
         Examples:
@@ -482,8 +483,8 @@ class BayesRiskCTC(torch.nn.Module):
             tensor([3, 4])
 
         Note:
-            The minimum length is calculated by counting each token and 
-            considering repetitions. For example, if a token repeats, it adds 
+            The minimum length is calculated by counting each token and
+            considering repetitions. For example, if a token repeats, it adds
             to the minimum length.
         """
         device = ys_pad.device
@@ -515,9 +516,9 @@ def log_substraction_exp(a, b):
     """
     Numerically stable computation of log(a.exp() - b.exp()).
 
-    This function computes the logarithm of the difference between 
-    the exponentials of two tensors in a numerically stable way to 
-    prevent overflow or underflow issues that can occur when directly 
+    This function computes the logarithm of the difference between
+    the exponentials of two tensors in a numerically stable way to
+    prevent overflow or underflow issues that can occur when directly
     calculating the exponentials of large or small values.
 
     The computation is performed as follows:
@@ -532,13 +533,13 @@ def log_substraction_exp(a, b):
 
     Returns:
         torch.Tensor: A tensor containing the result of log(exp(a) - exp(b)).
-    
+
     Examples:
         >>> a = torch.tensor([1.0, 2.0, float('-inf')])
         >>> b = torch.tensor([0.5, 1.5, float('-inf')])
         >>> log_substraction_exp(a, b)
         tensor([0.3133, 0.3133, -inf])
-    
+
     Note:
         This function assumes that the input tensors are of the same shape.
         If they are not, broadcasting rules will apply.

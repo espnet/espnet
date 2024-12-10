@@ -23,52 +23,52 @@ class MLMDecoder(AbsDecoder):
     """
     Masked LM Decoder definition for sequence-to-sequence models.
 
-    This class implements a masked language model decoder that utilizes 
-    multi-head attention and position-wise feed-forward networks. It is 
-    designed to handle the decoding of sequences while incorporating 
+    This class implements a masked language model decoder that utilizes
+    multi-head attention and position-wise feed-forward networks. It is
+    designed to handle the decoding of sequences while incorporating
     positional encodings and normalization techniques.
 
     Attributes:
-        embed (torch.nn.Sequential): The embedding layer that converts input token 
+        embed (torch.nn.Sequential): The embedding layer that converts input token
             IDs to embeddings. Can be an embedding layer or a linear layer.
-        normalize_before (bool): Indicates whether to apply normalization before 
+        normalize_before (bool): Indicates whether to apply normalization before
             the decoder layers.
-        after_norm (LayerNorm, optional): Layer normalization applied after the 
+        after_norm (LayerNorm, optional): Layer normalization applied after the
             decoder layers if normalize_before is True.
-        output_layer (torch.nn.Linear, optional): Linear layer for output if 
+        output_layer (torch.nn.Linear, optional): Linear layer for output if
             use_output_layer is True.
-        decoders (torch.nn.ModuleList): A list of decoder layers that process the 
+        decoders (torch.nn.ModuleList): A list of decoder layers that process the
             input embeddings and produce output scores.
 
     Args:
         vocab_size (int): Size of the vocabulary, including a mask token.
         encoder_output_size (int): Size of the encoder output features.
         attention_heads (int, optional): Number of attention heads. Defaults to 4.
-        linear_units (int, optional): Number of units in the feed-forward layers. 
+        linear_units (int, optional): Number of units in the feed-forward layers.
             Defaults to 2048.
         num_blocks (int, optional): Number of decoder layers. Defaults to 6.
-        dropout_rate (float, optional): Dropout rate for regularization. Defaults 
+        dropout_rate (float, optional): Dropout rate for regularization. Defaults
             to 0.1.
-        positional_dropout_rate (float, optional): Dropout rate for positional 
+        positional_dropout_rate (float, optional): Dropout rate for positional
             encodings. Defaults to 0.1.
-        self_attention_dropout_rate (float, optional): Dropout rate for self 
+        self_attention_dropout_rate (float, optional): Dropout rate for self
             attention. Defaults to 0.0.
-        src_attention_dropout_rate (float, optional): Dropout rate for source 
+        src_attention_dropout_rate (float, optional): Dropout rate for source
             attention. Defaults to 0.0.
-        input_layer (str, optional): Type of input layer, either "embed" or 
+        input_layer (str, optional): Type of input layer, either "embed" or
             "linear". Defaults to "embed".
-        use_output_layer (bool, optional): Whether to use an output layer. 
+        use_output_layer (bool, optional): Whether to use an output layer.
             Defaults to True.
-        pos_enc_class (type, optional): Class for positional encoding. Defaults to 
+        pos_enc_class (type, optional): Class for positional encoding. Defaults to
             PositionalEncoding.
-        normalize_before (bool, optional): Whether to normalize inputs before 
+        normalize_before (bool, optional): Whether to normalize inputs before
             passing them to decoder layers. Defaults to True.
-        concat_after (bool, optional): Whether to concatenate inputs after 
+        concat_after (bool, optional): Whether to concatenate inputs after
             attention. Defaults to False.
 
     Returns:
         Tuple[torch.Tensor, torch.Tensor]: A tuple containing:
-            - x (torch.Tensor): Decoded token scores before softmax 
+            - x (torch.Tensor): Decoded token scores before softmax
             (batch, maxlen_out, vocab_size) if use_output_layer is True.
             - olens (torch.Tensor): Lengths of the output sequences (batch,).
 
@@ -84,14 +84,15 @@ class MLMDecoder(AbsDecoder):
         >>> output, output_lengths = decoder(hs_pad, hlens, ys_in_pad, ys_in_lens)
 
     Note:
-        This decoder is typically used in conjunction with an encoder in 
-        sequence-to-sequence models for tasks such as automatic speech 
+        This decoder is typically used in conjunction with an encoder in
+        sequence-to-sequence models for tasks such as automatic speech
         recognition (ASR) and machine translation.
 
     Todo:
-        - Implement additional features such as attention masking and 
+        - Implement additional features such as attention masking and
         alternative normalization techniques.
     """
+
     @typechecked
     def __init__(
         self,
@@ -165,30 +166,30 @@ class MLMDecoder(AbsDecoder):
         """
         Forward decoder.
 
-        This method performs the forward pass of the masked language model 
-        decoder. It takes the encoded memory from the encoder, input token 
-        ids, and their respective lengths to produce decoded token scores 
+        This method performs the forward pass of the masked language model
+        decoder. It takes the encoded memory from the encoder, input token
+        ids, and their respective lengths to produce decoded token scores
         before softmax and the output lengths.
 
         Args:
-            hs_pad (torch.Tensor): 
-                Encoded memory, shape (batch, maxlen_in, feat) with dtype 
+            hs_pad (torch.Tensor):
+                Encoded memory, shape (batch, maxlen_in, feat) with dtype
                 float32.
-            hlens (torch.Tensor): 
+            hlens (torch.Tensor):
                 Lengths of the encoded memory, shape (batch).
-            ys_in_pad (torch.Tensor): 
-                Input token ids, shape (batch, maxlen_out) with dtype int64. 
-                If `input_layer` is set to "embed", this should be a tensor of 
-                token ids; otherwise, it should be a tensor of shape 
+            ys_in_pad (torch.Tensor):
+                Input token ids, shape (batch, maxlen_out) with dtype int64.
+                If `input_layer` is set to "embed", this should be a tensor of
+                token ids; otherwise, it should be a tensor of shape
                 (batch, maxlen_out, #mels).
-            ys_in_lens (torch.Tensor): 
+            ys_in_lens (torch.Tensor):
                 Lengths of the input sequences, shape (batch).
 
         Returns:
-            Tuple[torch.Tensor, torch.Tensor]: 
+            Tuple[torch.Tensor, torch.Tensor]:
                 A tuple containing:
-                - x (torch.Tensor): Decoded token scores before softmax, 
-                  shape (batch, maxlen_out, token), only if 
+                - x (torch.Tensor): Decoded token scores before softmax,
+                  shape (batch, maxlen_out, token), only if
                   `use_output_layer` is True.
                 - olens (torch.Tensor): Output lengths, shape (batch,).
 
@@ -201,8 +202,8 @@ class MLMDecoder(AbsDecoder):
             >>> output, output_lengths = decoder.forward(hs_pad, hlens, ys_in_pad, ys_in_lens)
 
         Note:
-            Ensure that the input tensor shapes are consistent with the 
-            specified dimensions, and that the model has been properly 
+            Ensure that the input tensor shapes are consistent with the
+            specified dimensions, and that the model has been properly
             initialized before calling this method.
 
         Raises:

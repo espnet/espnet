@@ -22,7 +22,7 @@ class RelativePositionBias(torch.nn.Module):
 
     Classes:
         - RelativePositionBias: Computes relative position bias for sequences.
-        - RotaryRelativePositionBias: Computes rotary positional embeddings for 
+        - RotaryRelativePositionBias: Computes rotary positional embeddings for
         sequences.
 
     Attributes:
@@ -45,10 +45,10 @@ class RelativePositionBias(torch.nn.Module):
         """
         Reset module parameters.
 
-        This method initializes the parameters of the RelativePositionBias 
-        module using a normal distribution with the specified mean and 
-        standard deviation. It is typically called during the initialization 
-        of the module to ensure that the parameters are set to a reasonable 
+        This method initializes the parameters of the RelativePositionBias
+        module using a normal distribution with the specified mean and
+        standard deviation. It is typically called during the initialization
+        of the module to ensure that the parameters are set to a reasonable
         starting point.
 
         Args:
@@ -62,7 +62,7 @@ class RelativePositionBias(torch.nn.Module):
             tensor([...])  # Normal distribution values around 0.5 with std 0.1
 
         Note:
-            This method can be called multiple times to reinitialize the 
+            This method can be called multiple times to reinitialize the
             parameters if needed.
         """
         torch.nn.init.normal_(self.relative_position_bias, mean=val, std=std)
@@ -127,8 +127,8 @@ class RotaryRelativePositionBias(torch.nn.Module):
     RotaryRelativePositionBias module definition.
 
     This module computes rotary relative position biases using sinusoidal
-    positional embeddings. It is designed to enhance the performance of 
-    transformer models by providing a mechanism to capture relative 
+    positional embeddings. It is designed to enhance the performance of
+    transformer models by providing a mechanism to capture relative
     positional information.
 
     Args:
@@ -150,7 +150,7 @@ class RotaryRelativePositionBias(torch.nn.Module):
         >>> print(output_bias.shape)  # Output shape will be (10, 10)
 
     Note:
-        This module is based on research and implementations from 
+        This module is based on research and implementations from
         Facebook Research's MEGA project.
 
     Raises:
@@ -179,23 +179,23 @@ class RotaryRelativePositionBias(torch.nn.Module):
         """
         Reset module parameters.
 
-        This method initializes the parameters of the RotaryRelativePositionBias 
-        module (alpha and beta) using a normal distribution. The mean and standard 
-        deviation of the distribution can be specified via the parameters `val` 
+        This method initializes the parameters of the RotaryRelativePositionBias
+        module (alpha and beta) using a normal distribution. The mean and standard
+        deviation of the distribution can be specified via the parameters `val`
         and `std`.
 
         Args:
-            val: Initialization value (mean of the normal distribution). 
+            val: Initialization value (mean of the normal distribution).
                 Defaults to 0.0.
-            std: Standard deviation of the normal distribution. 
+            std: Standard deviation of the normal distribution.
                 Defaults to 0.02.
 
         Examples:
             >>> rrp_bias = RotaryRelativePositionBias(size=128, max_positions=2048)
             >>> rrp_bias.reset_parameters(val=0.1, std=0.01)
-        
+
         Note:
-            This method is typically called during the initialization of the 
+            This method is typically called during the initialization of the
             module to ensure that parameters are set to reasonable starting values.
         """
         torch.nn.init.normal_(self.alpha, mean=val, std=std)
@@ -210,9 +210,9 @@ class RotaryRelativePositionBias(torch.nn.Module):
         RotaryRelativePositionBias module definition.
 
         This module implements rotary relative positional bias using sinusoidal
-        embeddings. The embeddings are generated based on the specified maximum 
-        number of positions and the size of the embeddings. This technique helps 
-        to capture the relative positions of tokens in a sequence, enhancing the 
+        embeddings. The embeddings are generated based on the specified maximum
+        number of positions and the size of the embeddings. This technique helps
+        to capture the relative positions of tokens in a sequence, enhancing the
         model's understanding of spatial relationships.
 
         Attributes:
@@ -225,7 +225,7 @@ class RotaryRelativePositionBias(torch.nn.Module):
 
         Args:
             size (int): Module embedding size.
-            max_positions (int, optional): Maximum number of relative positions. 
+            max_positions (int, optional): Maximum number of relative positions.
                 Defaults to 2048.
 
         Methods:
@@ -249,7 +249,7 @@ class RotaryRelativePositionBias(torch.nn.Module):
 
         Note:
             The sinusoidal embeddings are calculated using sine and cosine functions,
-            which allows the model to effectively represent relative positions in a 
+            which allows the model to effectively represent relative positions in a
             continuous manner.
 
         Todo:

@@ -14,9 +14,9 @@ class VGGRNNEncoder(AbsEncoder):
     """
     VGGRNNEncoder class for sequence-to-sequence modeling using VGG and RNN.
 
-    This encoder combines VGG-based feature extraction with a recurrent neural 
-    network (RNN) architecture. It is designed to process sequences of 
-    input features and produce a sequence of output features, which can be 
+    This encoder combines VGG-based feature extraction with a recurrent neural
+    network (RNN) architecture. It is designed to process sequences of
+    input features and produce a sequence of output features, which can be
     used for various tasks such as automatic speech recognition (ASR).
 
     Attributes:
@@ -24,7 +24,7 @@ class VGGRNNEncoder(AbsEncoder):
         rnn_type (str): Type of RNN used, can be 'lstm' or 'gru'.
         bidirectional (bool): If True, the RNN will be bidirectional.
         use_projection (bool): If True, a projection layer will be used.
-        
+
     Args:
         input_size (int): The number of expected features in the input.
         rnn_type (str, optional): The type of RNN to use ('lstm' or 'gru').
@@ -116,9 +116,9 @@ class VGGRNNEncoder(AbsEncoder):
         """
         Get the output size of the encoder.
 
-        This method returns the number of output features produced by the 
-        encoder, which is set during the initialization of the VGGRNNEncoder 
-        class. The output size is crucial for determining the dimensionality 
+        This method returns the number of output features produced by the
+        encoder, which is set during the initialization of the VGGRNNEncoder
+        class. The output size is crucial for determining the dimensionality
         of the data passed to subsequent layers in a neural network.
 
         Returns:
@@ -130,8 +130,8 @@ class VGGRNNEncoder(AbsEncoder):
             print(output_size)  # Output: 256
 
         Note:
-            The output size is defined during the instantiation of the 
-            VGGRNNEncoder class and can be used to ensure compatibility 
+            The output size is defined during the instantiation of the
+            VGGRNNEncoder class and can be used to ensure compatibility
             with subsequent layers.
         """
         return self._output_size
@@ -145,19 +145,19 @@ class VGGRNNEncoder(AbsEncoder):
         """
         Processes input tensors through the VGGRNNEncoder.
 
-        This method takes padded input sequences and their corresponding lengths, 
-        along with previous states, and passes them through the encoder 
-        modules. It returns the processed output, updated input lengths, 
+        This method takes padded input sequences and their corresponding lengths,
+        along with previous states, and passes them through the encoder
+        modules. It returns the processed output, updated input lengths,
         and the current states of the RNN.
 
         Args:
             xs_pad (torch.Tensor): Padded input tensor of shape (T, N, D),
-                where T is the sequence length, N is the batch size, and D 
+                where T is the sequence length, N is the batch size, and D
                 is the input feature dimension.
-            ilens (torch.Tensor): Tensor containing the actual lengths of 
+            ilens (torch.Tensor): Tensor containing the actual lengths of
                 each sequence in the batch of shape (N,).
-            prev_states (torch.Tensor, optional): Previous states of the 
-                RNN, default is None. If None, initializes states to None 
+            prev_states (torch.Tensor, optional): Previous states of the
+                RNN, default is None. If None, initializes states to None
                 for each encoder module.
 
         Returns:
@@ -173,11 +173,11 @@ class VGGRNNEncoder(AbsEncoder):
             >>> output, updated_ilens, states = encoder.forward(xs_pad, ilens)
 
         Note:
-            The output tensor will have the same number of features as 
+            The output tensor will have the same number of features as
             specified in the output_size attribute of the encoder.
 
         Raises:
-            AssertionError: If the length of prev_states does not match 
+            AssertionError: If the length of prev_states does not match
             the number of encoder modules.
         """
         if prev_states is None:

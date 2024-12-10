@@ -23,11 +23,11 @@ class MEGA(torch.nn.Module):
     """
     Moving Average Equipped Gated Attention (MEGA) block definition.
 
-    Based/modified from 
+    Based/modified from
     https://github.com/facebookresearch/mega/blob/main/fairseq/modules/
     moving_average_gated_attention.py
 
-    Most variables are renamed according to 
+    Most variables are renamed according to
     https://github.com/huggingface/transformers/blob/main/src/transformers/models/
     mega/modeling_mega.py.
 
@@ -225,12 +225,12 @@ class MEGA(torch.nn.Module):
             >>> attn_weights = mega.softmax_attention(query, key)
 
         Note:
-            The MEGA module is designed for efficient attention computation 
-            with moving averages, making it suitable for tasks in natural 
+            The MEGA module is designed for efficient attention computation
+            with moving averages, making it suitable for tasks in natural
             language processing and other sequential data applications.
 
         Todo:
-            Implement support for additional activation functions and 
+            Implement support for additional activation functions and
             normalization layers as needed.
         """
         length = key.size(2)
@@ -267,10 +267,10 @@ class MEGA(torch.nn.Module):
         """
         Moving Average Equipped Gated Attention (MEGA) block definition.
 
-        Based/modified from 
+        Based/modified from
         https://github.com/facebookresearch/mega/blob/main/fairseq/modules/moving_average_gated_attention.py
 
-        Most variables are renamed according to 
+        Most variables are renamed according to
         https://github.com/huggingface/transformers/blob/main/src/transformers/models/mega/modeling_mega.py.
 
         Attributes:

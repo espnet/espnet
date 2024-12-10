@@ -38,63 +38,63 @@ class ESPnetEnhancementModel(AbsESPnetModel):
     or separate audio signals in different conditions.
 
     Attributes:
-        encoder (AbsEncoder): The waveform encoder to convert waveforms 
+        encoder (AbsEncoder): The waveform encoder to convert waveforms
             to feature representations.
-        separator (Optional[AbsSeparator]): The separator that enhances 
+        separator (Optional[AbsSeparator]): The separator that enhances
             or separates the feature representations.
-        decoder (AbsDecoder): The waveform decoder to convert features 
+        decoder (AbsDecoder): The waveform decoder to convert features
             back to waveforms.
-        mask_module (Optional[AbsMask]): The mask module for converting 
-            features to masks, used for compatibility with joint speaker 
+        mask_module (Optional[AbsMask]): The mask module for converting
+            features to masks, used for compatibility with joint speaker
             diarization.
-        loss_wrappers (Optional[List[AbsLossWrapper]]): A list of loss 
-            wrappers that contain criteria for loss calculation and 
+        loss_wrappers (Optional[List[AbsLossWrapper]]): A list of loss
+            wrappers that contain criteria for loss calculation and
             corresponding weights.
-        flexible_numspk (bool): If True, allows the model to predict 
+        flexible_numspk (bool): If True, allows the model to predict
             a variable number of speakers in its output.
 
     Args:
-        encoder: waveform encoder that converts waveforms to feature 
+        encoder: waveform encoder that converts waveforms to feature
             representations.
-        separator: separator that enhances or separates the feature 
+        separator: separator that enhances or separates the feature
             representations.
-        decoder: waveform decoder that converts the feature back to 
+        decoder: waveform decoder that converts the feature back to
             waveforms.
         mask_module: mask module that converts the feature to masks.
-            NOTE: Only used for compatibility with joint speaker 
+            NOTE: Only used for compatibility with joint speaker
             diarization.
-        loss_wrappers: list of loss wrappers, each containing a criterion 
-            for loss calculation and the corresponding loss weight. 
-            The losses will be calculated in the order of the list and 
+        loss_wrappers: list of loss wrappers, each containing a criterion
+            for loss calculation and the corresponding loss weight.
+            The losses will be calculated in the order of the list and
             summed up.
-        stft_consistency: (deprecated, kept for compatibility) whether 
+        stft_consistency: (deprecated, kept for compatibility) whether
             to compute the TF-domain loss while enforcing STFT consistency.
-            NOTE: STFT consistency is now always used for frequency-domain 
+            NOTE: STFT consistency is now always used for frequency-domain
             spectrum losses.
         loss_type: (deprecated, kept for compatibility) loss type.
-        mask_type: (deprecated, kept for compatibility) mask type in 
+        mask_type: (deprecated, kept for compatibility) mask type in
             TF-domain model.
-        flexible_numspk: whether to allow the model to predict a variable 
+        flexible_numspk: whether to allow the model to predict a variable
             number of speakers in its output.
-        extract_feats_in_collect_stats: used for determining whether 
+        extract_feats_in_collect_stats: used for determining whether
             to skip model building in the collect_stats stage.
-        normalize_variance: whether to normalize the signal variance 
+        normalize_variance: whether to normalize the signal variance
             before model forward, and revert it back after.
-        normalize_variance_per_ch: whether to normalize the signal 
+        normalize_variance_per_ch: whether to normalize the signal
             variance for each channel instead of the whole signal.
-            NOTE: normalize_variance and normalize_variance_per_ch 
+            NOTE: normalize_variance and normalize_variance_per_ch
             cannot be True at the same time.
-        categories: list of all possible categories of minibatches 
+        categories: list of all possible categories of minibatches
             (order matters!).
-            NOTE: this will be used to convert category index to the 
+            NOTE: this will be used to convert category index to the
             corresponding name for logging in forward_loss.
-        category_weights: list of weights for each category, used to set 
+        category_weights: list of weights for each category, used to set
             loss weights for batches of different categories.
-        always_forward_in_48k: whether to always upsample the input speech 
-            to 48kHz for forward, and then downsample to the original 
+        always_forward_in_48k: whether to always upsample the input speech
+            to 48kHz for forward, and then downsample to the original
             sample rate for loss calculation.
-            NOTE: this can be useful to train a model capable of handling 
-            various sampling rates while unifying bandwidth extension 
+            NOTE: this can be useful to train a model capable of handling
+            various sampling rates while unifying bandwidth extension
             and speech enhancement.
 
     Examples:
@@ -240,48 +240,48 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """
-        Frontend + Encoder + Decoder + Calc loss.
+            Frontend + Encoder + Decoder + Calc loss.
 
-    This method processes the mixed speech signal through the encoder, 
-    separator, and decoder, and computes the loss based on the predicted 
-    output and reference signals.
+        This method processes the mixed speech signal through the encoder,
+        separator, and decoder, and computes the loss based on the predicted
+        output and reference signals.
 
-    Args:
-        speech_mix: Tensor of shape (Batch, samples) or 
-                    (Batch, samples, channels) representing the mixed speech 
-                    input.
-        speech_mix_lengths: Tensor of shape (Batch,), default is None for 
-                            chunk iterator, as the chunk-iterator does not 
-                            return the speech lengths. See in 
-                            espnet2/iterators/chunk_iter_factory.py.
-        kwargs: Additional keyword arguments; "utt_id" is among the inputs. 
-                It should include reference speech signals in the form of 
-                `speech_ref1`, `speech_ref2`, etc.
+        Args:
+            speech_mix: Tensor of shape (Batch, samples) or
+                        (Batch, samples, channels) representing the mixed speech
+                        input.
+            speech_mix_lengths: Tensor of shape (Batch,), default is None for
+                                chunk iterator, as the chunk-iterator does not
+                                return the speech lengths. See in
+                                espnet2/iterators/chunk_iter_factory.py.
+            kwargs: Additional keyword arguments; "utt_id" is among the inputs.
+                    It should include reference speech signals in the form of
+                    `speech_ref1`, `speech_ref2`, etc.
 
-    Returns:
-        Tuple containing:
-            - loss: Computed loss value as a tensor.
-            - stats: A dictionary of statistics from the loss computation.
-            - weight: A tensor representing the weight for the loss.
+        Returns:
+            Tuple containing:
+                - loss: Computed loss value as a tensor.
+                - stats: A dictionary of statistics from the loss computation.
+                - weight: A tensor representing the weight for the loss.
 
-    Raises:
-        AssertionError: If no reference speech signals are provided in `kwargs`.
+        Raises:
+            AssertionError: If no reference speech signals are provided in `kwargs`.
 
-    Examples:
-        >>> model = ESPnetEnhancementModel(...)
-        >>> speech_mix = torch.randn(2, 16000)  # Example mixed speech
-        >>> speech_mix_lengths = torch.tensor([16000, 16000])  # Lengths
-        >>> speech_ref1 = torch.randn(2, 16000)  # Reference signal for speaker 1
-        >>> loss, stats, weight = model.forward(
-                speech_mix, 
-                speech_mix_lengths, 
-                speech_ref1=speech_ref1
-            )
+        Examples:
+            >>> model = ESPnetEnhancementModel(...)
+            >>> speech_mix = torch.randn(2, 16000)  # Example mixed speech
+            >>> speech_mix_lengths = torch.tensor([16000, 16000])  # Lengths
+            >>> speech_ref1 = torch.randn(2, 16000)  # Reference signal for speaker 1
+            >>> loss, stats, weight = model.forward(
+                    speech_mix,
+                    speech_mix_lengths,
+                    speech_ref1=speech_ref1
+                )
 
-    Note:
-        Ensure that the input speech mix and reference signals are properly 
-        shaped and that the number of reference signals matches the expected 
-        number of speakers in the model.
+        Note:
+            Ensure that the input speech mix and reference signals are properly
+            shaped and that the number of reference signals matches the expected
+            number of speakers in the model.
         """
         # reference speech signal of each speaker
         assert "speech_ref1" in kwargs, "At least 1 reference signal input is required."
@@ -477,30 +477,30 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         fs: Optional[int] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """
-        Enhances the input speech mixture by applying the encoder, separator, 
+        Enhances the input speech mixture by applying the encoder, separator,
         and decoder, returning the enhanced speech along with the features.
 
         Args:
-            speech_mix: A tensor of shape (Batch, samples) or 
-                (Batch, samples, channels) representing the input 
+            speech_mix: A tensor of shape (Batch, samples) or
+                (Batch, samples, channels) representing the input
                 speech mixture.
-            speech_lengths: A tensor of shape (Batch,) representing the 
+            speech_lengths: A tensor of shape (Batch,) representing the
                 lengths of the input speech mixtures.
-            additional: An optional dictionary containing additional 
-                information required for processing, such as the number 
+            additional: An optional dictionary containing additional
+                information required for processing, such as the number
                 of speakers.
-            fs: An optional integer representing the sampling frequency 
+            fs: An optional integer representing the sampling frequency
                 of the input signal.
 
         Returns:
             A tuple containing:
-                - speech_pre: A tensor representing the enhanced speech 
+                - speech_pre: A tensor representing the enhanced speech
                   output.
-                - feature_mix: A tensor representing the features of the 
+                - feature_mix: A tensor representing the features of the
                   input speech mixture.
-                - feature_pre: A tensor representing the features of the 
+                - feature_pre: A tensor representing the features of the
                   enhanced speech.
-        
+
         Examples:
             >>> model = ESPnetEnhancementModel(...)
             >>> speech_mix = torch.randn(8, 16000)  # Example batch of 8
@@ -563,60 +563,60 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         fs: Optional[int] = None,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """
-        Calculates the loss for the enhanced speech outputs.
+            Calculates the loss for the enhanced speech outputs.
 
-    This method computes the loss between the predicted enhanced speech
-    signals and the reference signals using various criteria defined in
-    the loss wrappers. It supports calculating losses for noise and 
-    dereverberated signals if provided.
+        This method computes the loss between the predicted enhanced speech
+        signals and the reference signals using various criteria defined in
+        the loss wrappers. It supports calculating losses for noise and
+        dereverberated signals if provided.
 
-    Args:
-        speech_pre: The predicted enhanced speech signals of shape
-            (Batch, num_speaker, samples) or (Batch, samples).
-        speech_lengths: A tensor containing the lengths of the input 
-            speech signals, shape (Batch,).
-        feature_mix: The feature representation of the mixed speech signals.
-        feature_pre: A list containing the features of the predicted 
-            enhanced signals.
-        others: An ordered dictionary containing additional information 
-            required for loss computation.
-        speech_ref: A list of reference speech signals for each speaker,
-            shape (Batch, num_speaker, samples).
-        noise_ref: An optional list of reference noise signals, 
-            shape (Batch, num_noise_type, samples).
-        dereverb_speech_ref: An optional list of dereverberated reference 
-            speech signals, shape (Batch, num_speaker, samples).
-        category: An optional tensor indicating the category of the input 
-            batch.
-        num_spk: An optional integer specifying the number of speakers 
-            (if not using the model's internal count).
-        fs: An optional integer specifying the sampling frequency.
+        Args:
+            speech_pre: The predicted enhanced speech signals of shape
+                (Batch, num_speaker, samples) or (Batch, samples).
+            speech_lengths: A tensor containing the lengths of the input
+                speech signals, shape (Batch,).
+            feature_mix: The feature representation of the mixed speech signals.
+            feature_pre: A list containing the features of the predicted
+                enhanced signals.
+            others: An ordered dictionary containing additional information
+                required for loss computation.
+            speech_ref: A list of reference speech signals for each speaker,
+                shape (Batch, num_speaker, samples).
+            noise_ref: An optional list of reference noise signals,
+                shape (Batch, num_noise_type, samples).
+            dereverb_speech_ref: An optional list of dereverberated reference
+                speech signals, shape (Batch, num_speaker, samples).
+            category: An optional tensor indicating the category of the input
+                batch.
+            num_spk: An optional integer specifying the number of speakers
+                (if not using the model's internal count).
+            fs: An optional integer specifying the sampling frequency.
 
-    Returns:
-        A tuple containing:
-            - loss: A tensor representing the total computed loss.
-            - stats: A dictionary containing statistics for the computed loss.
-            - weight: A tensor representing the weight of the loss.
+        Returns:
+            A tuple containing:
+                - loss: A tensor representing the total computed loss.
+                - stats: A dictionary containing statistics for the computed loss.
+                - weight: A tensor representing the weight of the loss.
 
-    Raises:
-        ValueError: If there are missing reference signals for loss 
-            computation or if the noise or dereverberated references 
-            are required but not provided.
-        AttributeError: If the loss tensor does not require gradients 
-            during training.
+        Raises:
+            ValueError: If there are missing reference signals for loss
+                computation or if the noise or dereverberated references
+                are required but not provided.
+            AttributeError: If the loss tensor does not require gradients
+                during training.
 
-    Examples:
-        >>> loss, stats, weight = model.forward_loss(
-        ...     speech_pre, speech_lengths, feature_mix, feature_pre,
-        ...     others, speech_ref, noise_ref, dereverb_speech_ref,
-        ...     category, num_spk, fs
-        ... )
+        Examples:
+            >>> loss, stats, weight = model.forward_loss(
+            ...     speech_pre, speech_lengths, feature_mix, feature_pre,
+            ...     others, speech_ref, noise_ref, dereverb_speech_ref,
+            ...     category, num_spk, fs
+            ... )
 
-    Note:
-        Ensure that the provided references match the expected input 
-        dimensions for loss computation. The method also handles 
-        categorization and weights for the losses based on the input 
-        category.
+        Note:
+            Ensure that the provided references match the expected input
+            dimensions for loss computation. The method also handles
+            categorization and weights for the losses based on the input
+            category.
         """
         # for calculating loss on estimated noise signals
         if getattr(self.separator, "predict_noise", False):
@@ -948,25 +948,25 @@ class ESPnetEnhancementModel(AbsESPnetModel):
 
         This method takes a list of tensors (typically outputs from a neural
         network) and reorders them according to a provided permutation. This is
-        useful in scenarios where the output tensors need to be matched to a 
-        specific order after processing, such as in speech enhancement or 
+        useful in scenarios where the output tensors need to be matched to a
+        specific order after processing, such as in speech enhancement or
         separation tasks.
 
         Args:
-            nn_output: List[torch.Tensor(Batch, ...)], length of 
-                nn_output must equal num_spk. Each tensor in the list 
+            nn_output: List[torch.Tensor(Batch, ...)], length of
+                nn_output must equal num_spk. Each tensor in the list
                 corresponds to the output for a specific speaker.
             perm: (Batch, num_spk) or List[torch.Tensor(num_spk)]
                 This specifies the permutation indices to reorder the outputs.
 
         Returns:
             nn_output_new: List[torch.Tensor(Batch, ...)]
-                The reordered list of tensors according to the specified 
+                The reordered list of tensors according to the specified
                 permutation.
 
         Examples:
             >>> import torch
-            >>> output = [torch.tensor([[1, 2], [3, 4]]), 
+            >>> output = [torch.tensor([[1, 2], [3, 4]]),
             ...           torch.tensor([[5, 6], [7, 8]])]
             >>> perm = torch.tensor([[1, 0], [0, 1]])  # swap speakers
             >>> sorted_output = ESPnetEnhancementModel.sort_by_perm(output, perm)
@@ -1011,15 +1011,15 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         data-parallel training.
 
         Args:
-            speech_mix: A tensor representing the mixed speech input of shape 
+            speech_mix: A tensor representing the mixed speech input of shape
                 (Batch, samples) or (Batch, samples, channels).
-            speech_mix_lengths: A tensor of shape (Batch,) representing the 
+            speech_mix_lengths: A tensor of shape (Batch,) representing the
                 lengths of the mixed speech input.
 
         Returns:
             A dictionary containing:
                 - feats: The collected features, same as `speech_mix`.
-                - feats_lengths: The lengths of the collected features, same 
+                - feats_lengths: The lengths of the collected features, same
                   as `speech_mix_lengths`.
 
         Examples:

@@ -15,7 +15,7 @@ class MemLSTM(nn.Module):
     Memory LSTM (MemLSTM) for the SkiM model.
 
     This class implements the MemLSTM layer used in the SkiM model described in
-    "SkiM: Skipping Memory LSTM for Low-Latency Real-Time Continuous Speech 
+    "SkiM: Skipping Memory LSTM for Low-Latency Real-Time Continuous Speech
     Separation" (https://arxiv.org/abs/2201.10800).
 
     Attributes:
@@ -31,21 +31,21 @@ class MemLSTM(nn.Module):
     Args:
         hidden_size (int): Dimension of the hidden state.
         dropout (float, optional): Dropout ratio. Default is 0.
-        bidirectional (bool, optional): Whether the LSTM layers are 
+        bidirectional (bool, optional): Whether the LSTM layers are
             bidirectional. Default is False.
-        mem_type (str, optional): Controls how the hidden (or cell) state 
-            of SegLSTM will be processed by MemLSTM. Options are 'hc', 
+        mem_type (str, optional): Controls how the hidden (or cell) state
+            of SegLSTM will be processed by MemLSTM. Options are 'hc',
             'h', 'c', or 'id'. Default is 'hc'.
-        norm_type (str, optional): Normalization type. Options are 'gLN' 
+        norm_type (str, optional): Normalization type. Options are 'gLN'
             or 'cLN'. Default is 'cLN'.
 
     Raises:
-        AssertionError: If `mem_type` is not one of the supported types 
+        AssertionError: If `mem_type` is not one of the supported types
             ('hc', 'h', 'c', 'id').
 
     Examples:
-        >>> mem_lstm = MemLSTM(hidden_size=128, dropout=0.1, 
-        ...                     bidirectional=True, mem_type='hc', 
+        >>> mem_lstm = MemLSTM(hidden_size=128, dropout=0.1,
+        ...                     bidirectional=True, mem_type='hc',
         ...                     norm_type='gLN')
         >>> hc = (torch.randn(2, 32, 128), torch.randn(2, 32, 128))  # (h, c)
         >>> output = mem_lstm(hc, S=4)  # S is the number of segments
@@ -101,61 +101,61 @@ class MemLSTM(nn.Module):
 
     def extra_repr(self) -> str:
         """
-        Returns a string representation of the MemLSTM module's configuration.
+            Returns a string representation of the MemLSTM module's configuration.
 
-    This method provides information about the memory type and whether the 
-    LSTM layers are bidirectional, which is useful for debugging and logging 
-    purposes.
+        This method provides information about the memory type and whether the
+        LSTM layers are bidirectional, which is useful for debugging and logging
+        purposes.
 
-    Attributes:
-        mem_type (str): The type of memory used by the MemLSTM. Can be one of 
-            'hc', 'h', 'c', or 'id'.
-        bidirectional (bool): Indicates if the LSTM layers are bidirectional.
+        Attributes:
+            mem_type (str): The type of memory used by the MemLSTM. Can be one of
+                'hc', 'h', 'c', or 'id'.
+            bidirectional (bool): Indicates if the LSTM layers are bidirectional.
 
-    Returns:
-        str: A string summarizing the configuration of the MemLSTM.
+        Returns:
+            str: A string summarizing the configuration of the MemLSTM.
 
-    Examples:
-        >>> mem_lstm = MemLSTM(hidden_size=128, bidirectional=True, mem_type='hc')
-        >>> print(mem_lstm.extra_repr())
-        'Mem_type: hc, bidirectional: True'
+        Examples:
+            >>> mem_lstm = MemLSTM(hidden_size=128, bidirectional=True, mem_type='hc')
+            >>> print(mem_lstm.extra_repr())
+            'Mem_type: hc, bidirectional: True'
         """
         return f"Mem_type: {self.mem_type}, bidirectional: {self.bidirectional}"
 
     def forward(self, hc, S):
         """
-        Forward pass for the MemLSTM layer.
+            Forward pass for the MemLSTM layer.
 
-    This method processes the hidden and cell states from the SegLSTM and
-    applies the MemLSTM transformation based on the specified memory type.
-    The function handles both identity mode and different memory types ('hc',
-    'h', 'c') to compute the new hidden and cell states.
+        This method processes the hidden and cell states from the SegLSTM and
+        applies the MemLSTM transformation based on the specified memory type.
+        The function handles both identity mode and different memory types ('hc',
+        'h', 'c') to compute the new hidden and cell states.
 
-    Args:
-        hc (tuple): A tuple containing the hidden and cell states from SegLSTM.
-            Each state should have the shape (d, B*S, H), where:
-            - d: number of directions (1 for unidirectional, 2 for bidirectional)
-            - B: batch size
-            - S: number of segments
-            - H: hidden size
-        S (int): Number of segments in the SegLSTM.
+        Args:
+            hc (tuple): A tuple containing the hidden and cell states from SegLSTM.
+                Each state should have the shape (d, B*S, H), where:
+                - d: number of directions (1 for unidirectional, 2 for bidirectional)
+                - B: batch size
+                - S: number of segments
+                - H: hidden size
+            S (int): Number of segments in the SegLSTM.
 
-    Returns:
-        tuple: A tuple containing the updated hidden and cell states.
-            The shape will be (B*S, d, H) for each state.
+        Returns:
+            tuple: A tuple containing the updated hidden and cell states.
+                The shape will be (B*S, d, H) for each state.
 
-    Note:
-        If `self.mem_type` is set to 'id', the function returns the input
-        hidden and cell states unchanged. If `self.bidirectional` is False,
-        the output will be modified for causal processing.
+        Note:
+            If `self.mem_type` is set to 'id', the function returns the input
+            hidden and cell states unchanged. If `self.bidirectional` is False,
+            the output will be modified for causal processing.
 
-    Examples:
-        >>> mem_lstm = MemLSTM(hidden_size=128, mem_type='hc')
-        >>> h = torch.randn(2, 10, 128)  # Example hidden state
-        >>> c = torch.randn(2, 10, 128)  # Example cell state
-        >>> hc = (h, c)
-        >>> S = 5  # Example number of segments
-        >>> output_hc = mem_lstm.forward(hc, S)
+        Examples:
+            >>> mem_lstm = MemLSTM(hidden_size=128, mem_type='hc')
+            >>> h = torch.randn(2, 10, 128)  # Example hidden state
+            >>> c = torch.randn(2, 10, 128)  # Example cell state
+            >>> hc = (h, c)
+            >>> S = 5  # Example number of segments
+            >>> output_hc = mem_lstm.forward(hc, S)
         """
         # hc = (h, c), tuple of hidden and cell states from SegLSTM
         # shape of h and c: (d, B*S, H)
@@ -205,19 +205,19 @@ class MemLSTM(nn.Module):
 
         This method computes the next hidden and cell states given the current
         hidden and cell states. It processes the input based on the memory type
-        specified during the initialization of the MemLSTM class. 
+        specified during the initialization of the MemLSTM class.
 
         Args:
-            hc (tuple): A tuple containing the current hidden state (h) and cell 
-                state (c). The shapes are expected to be (d, B, H), where d is 
-                the number of directions (1 for unidirectional, 2 for 
+            hc (tuple): A tuple containing the current hidden state (h) and cell
+                state (c). The shapes are expected to be (d, B, H), where d is
+                the number of directions (1 for unidirectional, 2 for
                 bidirectional), B is the batch size, and H is the hidden size.
-            state (list): A list containing the hidden states for the LSTM layers, 
+            state (list): A list containing the hidden states for the LSTM layers,
                 which should match the structure defined during the initialization.
 
         Returns:
-            tuple: A tuple containing the updated hidden and cell states 
-                (hc) and the updated state list. The shapes of the hidden and 
+            tuple: A tuple containing the updated hidden and cell states
+                (hc) and the updated state list. The shapes of the hidden and
                 cell states will remain (d, B, H).
 
         Note:
@@ -263,23 +263,23 @@ class SegLSTM(nn.Module):
     """
     The Seg-LSTM of SkiM.
 
-    This class implements the Segmented Long Short-Term Memory (Seg-LSTM) 
-    model as part of the SkiM architecture for low-latency real-time 
-    continuous speech separation. It processes input features in segments 
+    This class implements the Segmented Long Short-Term Memory (Seg-LSTM)
+    model as part of the SkiM architecture for low-latency real-time
+    continuous speech separation. It processes input features in segments
     and maintains hidden states for the LSTM.
 
     Args:
-        input_size (int): Dimension of the input feature. The input 
+        input_size (int): Dimension of the input feature. The input
             should have shape (batch, seq_len, input_size).
         hidden_size (int): Dimension of the hidden state.
         dropout (float, optional): Dropout ratio. Default is 0.
-        bidirectional (bool, optional): Whether the LSTM layers are 
+        bidirectional (bool, optional): Whether the LSTM layers are
             bidirectional. Default is False.
-        norm_type (str, optional): Normalization type, either 'gLN' 
+        norm_type (str, optional): Normalization type, either 'gLN'
             or 'cLN'. 'cLN' is for causal implementation.
 
     Returns:
-        output (torch.Tensor): The processed output of shape 
+        output (torch.Tensor): The processed output of shape
             (batch, seq_len, input_size).
         (h, c) (tuple): The hidden and cell states of the LSTM.
 
@@ -291,7 +291,7 @@ class SegLSTM(nn.Module):
         >>> print(output.shape)  # Should print: torch.Size([4, 10, 16])
 
     Note:
-        In the first input to the SkiM block, the hidden (h) and cell (c) 
+        In the first input to the SkiM block, the hidden (h) and cell (c)
         states are initialized to zero.
     """
 
@@ -319,42 +319,42 @@ class SegLSTM(nn.Module):
 
     def forward(self, input, hc):
         """
-        Performs a forward pass of the SegLSTM model.
+            Performs a forward pass of the SegLSTM model.
 
-    This method takes the hidden and cell states from the previous
-    SegLSTM layer and processes them through the MemLSTM, applying
-    necessary transformations based on the specified memory type.
+        This method takes the hidden and cell states from the previous
+        SegLSTM layer and processes them through the MemLSTM, applying
+        necessary transformations based on the specified memory type.
 
-    Args:
-        hc (tuple): A tuple containing hidden and cell states from
-            the previous layer. Each of shape (d, B*S, H), where:
-            - d: number of directions (1 or 2 for bidirectional)
-            - B: batch size
-            - S: number of segments
-            - H: hidden state size
-        S (int): Number of segments in the SegLSTM.
+        Args:
+            hc (tuple): A tuple containing hidden and cell states from
+                the previous layer. Each of shape (d, B*S, H), where:
+                - d: number of directions (1 or 2 for bidirectional)
+                - B: batch size
+                - S: number of segments
+                - H: hidden state size
+            S (int): Number of segments in the SegLSTM.
 
-    Returns:
-        tuple: A tuple containing the updated hidden and cell states.
-            The shapes depend on the `mem_type` configuration and may
-            vary as follows:
-            - If `mem_type` is 'id', returns the input `hc`.
-            - Otherwise, returns transformed hidden and cell states of
-              shape (B*S, d, H).
+        Returns:
+            tuple: A tuple containing the updated hidden and cell states.
+                The shapes depend on the `mem_type` configuration and may
+                vary as follows:
+                - If `mem_type` is 'id', returns the input `hc`.
+                - Otherwise, returns transformed hidden and cell states of
+                  shape (B*S, d, H).
 
-    Raises:
-        AssertionError: If the `mem_type` is not one of the allowed values.
+        Raises:
+            AssertionError: If the `mem_type` is not one of the allowed values.
 
-    Examples:
-        >>> model = SegLSTM(input_size=16, hidden_size=11)
-        >>> hc = (torch.zeros(1, 3, 11), torch.zeros(1, 3, 11))  # Example states
-        >>> S = 2  # Number of segments
-        >>> output = model.forward(hc, S)
-    
-    Note:
-        This method handles both bidirectional and unidirectional
-        configurations. If the model is configured for causal
-        processing, the output states will be adjusted accordingly.
+        Examples:
+            >>> model = SegLSTM(input_size=16, hidden_size=11)
+            >>> hc = (torch.zeros(1, 3, 11), torch.zeros(1, 3, 11))  # Example states
+            >>> S = 2  # Number of segments
+            >>> output = model.forward(hc, S)
+
+        Note:
+            This method handles both bidirectional and unidirectional
+            configurations. If the model is configured for causal
+            processing, the output states will be adjusted accordingly.
         """
         # input shape: B, T, H
 
@@ -380,62 +380,62 @@ class SegLSTM(nn.Module):
 
 class SkiM(nn.Module):
     """
-    Skipping Memory Net (SkiM) for low-latency real-time continuous speech separation.
+        Skipping Memory Net (SkiM) for low-latency real-time continuous speech separation.
 
-This class implements the SkiM model as described in the paper:
-"SkiM: Skipping Memory LSTM for Low-Latency Real-Time Continuous Speech 
-Separation" (https://arxiv.org/abs/2201.10800).
+    This class implements the SkiM model as described in the paper:
+    "SkiM: Skipping Memory LSTM for Low-Latency Real-Time Continuous Speech
+    Separation" (https://arxiv.org/abs/2201.10800).
 
-Attributes:
-    input_size (int): Dimension of the input feature.
-    hidden_size (int): Dimension of the hidden state.
-    output_size (int): Dimension of the output size.
-    dropout (float): Dropout ratio. Default is 0.
-    num_blocks (int): Number of basic SkiM blocks.
-    segment_size (int): Segmentation size for splitting long features.
-    bidirectional (bool): Whether the RNN layers are bidirectional.
-    mem_type (str or None): Controls whether the hidden (or cell) state 
-        of SegLSTM will be processed by MemLSTM. Options are 'hc', 'h', 
-        'c', 'id', or None. In 'id' mode, both hidden and cell states 
-        will be identically returned. When mem_type is None, the MemLSTM 
-        will be removed.
-    norm_type (str): Normalization type; can be 'gLN' or 'cLN'. cLN 
-        is for causal implementation.
-    seg_overlap (bool): Whether the segmentation will reserve 50% overlap 
-        for adjacent segments. Default is False.
+    Attributes:
+        input_size (int): Dimension of the input feature.
+        hidden_size (int): Dimension of the hidden state.
+        output_size (int): Dimension of the output size.
+        dropout (float): Dropout ratio. Default is 0.
+        num_blocks (int): Number of basic SkiM blocks.
+        segment_size (int): Segmentation size for splitting long features.
+        bidirectional (bool): Whether the RNN layers are bidirectional.
+        mem_type (str or None): Controls whether the hidden (or cell) state
+            of SegLSTM will be processed by MemLSTM. Options are 'hc', 'h',
+            'c', 'id', or None. In 'id' mode, both hidden and cell states
+            will be identically returned. When mem_type is None, the MemLSTM
+            will be removed.
+        norm_type (str): Normalization type; can be 'gLN' or 'cLN'. cLN
+            is for causal implementation.
+        seg_overlap (bool): Whether the segmentation will reserve 50% overlap
+            for adjacent segments. Default is False.
 
-Args:
-    input_size (int): Dimension of the input feature.
-    hidden_size (int): Dimension of the hidden state.
-    output_size (int): Dimension of the output size.
-    dropout (float): Dropout ratio. Default is 0.
-    num_blocks (int): Number of basic SkiM blocks.
-    segment_size (int): Segmentation size for splitting long features.
-    bidirectional (bool): Whether the RNN layers are bidirectional.
-    mem_type (str or None): Controls whether the hidden (or cell) state 
-        of SegLSTM will be processed by MemLSTM.
-    norm_type (str): Normalization type; can be 'gLN' or 'cLN'.
-    seg_overlap (bool): Whether to reserve 50% overlap for adjacent segments.
+    Args:
+        input_size (int): Dimension of the input feature.
+        hidden_size (int): Dimension of the hidden state.
+        output_size (int): Dimension of the output size.
+        dropout (float): Dropout ratio. Default is 0.
+        num_blocks (int): Number of basic SkiM blocks.
+        segment_size (int): Segmentation size for splitting long features.
+        bidirectional (bool): Whether the RNN layers are bidirectional.
+        mem_type (str or None): Controls whether the hidden (or cell) state
+            of SegLSTM will be processed by MemLSTM.
+        norm_type (str): Normalization type; can be 'gLN' or 'cLN'.
+        seg_overlap (bool): Whether to reserve 50% overlap for adjacent segments.
 
-Examples:
-    >>> model = SkiM(
-    ...     input_size=16,
-    ...     hidden_size=11,
-    ...     output_size=16,
-    ...     dropout=0.0,
-    ...     num_blocks=4,
-    ...     segment_size=20,
-    ...     bidirectional=False,
-    ...     mem_type="hc",
-    ...     norm_type="cLN",
-    ...     seg_overlap=False,
-    ... )
-    >>> input_tensor = torch.randn(3, 100, 16)
-    >>> output = model(input_tensor)
+    Examples:
+        >>> model = SkiM(
+        ...     input_size=16,
+        ...     hidden_size=11,
+        ...     output_size=16,
+        ...     dropout=0.0,
+        ...     num_blocks=4,
+        ...     segment_size=20,
+        ...     bidirectional=False,
+        ...     mem_type="hc",
+        ...     norm_type="cLN",
+        ...     seg_overlap=False,
+        ... )
+        >>> input_tensor = torch.randn(3, 100, 16)
+        >>> output = model(input_tensor)
 
-Note:
-    This implementation is designed for continuous speech separation 
-    tasks with a focus on low-latency processing.
+    Note:
+        This implementation is designed for continuous speech separation
+        tasks with a focus on low-latency processing.
     """
 
     def __init__(
@@ -499,35 +499,35 @@ Note:
 
     def forward(self, input):
         """
-        Forward pass of the MemLSTM module.
+            Forward pass of the MemLSTM module.
 
-    This method takes the hidden and cell states from a SegLSTM and processes
-    them through the MemLSTM layer, returning the updated hidden and cell 
-    states. The method supports various memory types to control how the 
-    hidden and cell states are processed.
+        This method takes the hidden and cell states from a SegLSTM and processes
+        them through the MemLSTM layer, returning the updated hidden and cell
+        states. The method supports various memory types to control how the
+        hidden and cell states are processed.
 
-    Args:
-        hc (tuple): A tuple containing the hidden state (h) and cell state (c) 
-            from the SegLSTM. Both should have the shape (d, B*S, H), where 
-            d is the number of directions, B is the batch size, S is the number 
-            of segments, and H is the hidden size.
-        S (int): The number of segments in the SegLSTM.
+        Args:
+            hc (tuple): A tuple containing the hidden state (h) and cell state (c)
+                from the SegLSTM. Both should have the shape (d, B*S, H), where
+                d is the number of directions, B is the batch size, S is the number
+                of segments, and H is the hidden size.
+            S (int): The number of segments in the SegLSTM.
 
-    Returns:
-        tuple: A tuple containing the updated hidden state (h) and cell state 
-        (c) after processing through the MemLSTM. If the memory type is "id", 
-        the original states are returned without modification.
+        Returns:
+            tuple: A tuple containing the updated hidden state (h) and cell state
+            (c) after processing through the MemLSTM. If the memory type is "id",
+            the original states are returned without modification.
 
-    Note:
-        For the causal setup (non-bidirectional), the method adjusts the 
-        hidden and cell states to ensure causality.
+        Note:
+            For the causal setup (non-bidirectional), the method adjusts the
+            hidden and cell states to ensure causality.
 
-    Examples:
-        >>> mem_lstm = MemLSTM(hidden_size=64, mem_type='hc')
-        >>> h = torch.randn(2, 3, 64)  # Example hidden state
-        >>> c = torch.randn(2, 3, 64)  # Example cell state
-        >>> hc = (h, c)
-        >>> updated_hc = mem_lstm.forward(hc, S=3)
+        Examples:
+            >>> mem_lstm = MemLSTM(hidden_size=64, mem_type='hc')
+            >>> h = torch.randn(2, 3, 64)  # Example hidden state
+            >>> c = torch.randn(2, 3, 64)  # Example cell state
+            >>> hc = (h, c)
+            >>> updated_hc = mem_lstm.forward(hc, S=3)
         """
         # input shape: B, T (S*K), D
         B, T, D = input.shape
@@ -575,26 +575,26 @@ Note:
         """
         Process a single frame of input in a streaming manner.
 
-        This method updates the internal state of the SkiM model based on the 
-        provided input frame and the current states. It allows the model to 
-        handle streaming inputs efficiently by maintaining memory across 
+        This method updates the internal state of the SkiM model based on the
+        provided input frame and the current states. It allows the model to
+        handle streaming inputs efficiently by maintaining memory across
         segments.
 
         Args:
-            input_frame (torch.Tensor): The input frame of shape (B, 1, N), 
+            input_frame (torch.Tensor): The input frame of shape (B, 1, N),
                 where B is the batch size and N is the feature dimension.
-            states (dict): A dictionary containing the current states of the 
+            states (dict): A dictionary containing the current states of the
                 model, including the current step and segment states.
 
         Returns:
-            output (torch.Tensor): The processed output of shape (B, 1, D), 
+            output (torch.Tensor): The processed output of shape (B, 1, D),
                 where D is the output feature dimension.
-            states (dict): The updated states dictionary, which includes the 
+            states (dict): The updated states dictionary, which includes the
                 current step and updated segment states.
 
         Note:
-            The `states` dictionary is initialized if not provided. It keeps 
-            track of the current step and segment-level states for each 
+            The `states` dictionary is initialized if not provided. It keeps
+            track of the current step and segment-level states for each
             block.
 
         Examples:
@@ -604,7 +604,7 @@ Note:
             >>> output, states = model.forward_stream(input_frame, states)
 
         Todo:
-            - Consider optimizing memory usage when dealing with long 
+            - Consider optimizing memory usage when dealing with long
               sequences.
         """
         # input_frame # B, 1, N
