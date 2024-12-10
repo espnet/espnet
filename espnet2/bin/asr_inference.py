@@ -65,6 +65,10 @@ ListOfHypothesis = List[
     ]
 ]
 
+logger = logging.getLogger(__name__)
+# NOTE(shikhar): We use contextual logging here because
+# RTF calculation looks for "INFO: " as a prefix in the logs.
+
 
 class Speech2Text:
     """Speech2Text class
@@ -157,7 +161,7 @@ class Speech2Text:
         asr_model.to(dtype=getattr(torch, dtype)).eval()
 
         if quantize_asr_model:
-            logging.info("Use quantized asr model for decoding.")
+            logger.info("Use quantized asr model for decoding.")
 
             asr_model = torch.quantization.quantize_dynamic(
                 asr_model, qconfig_spec=qconfig_spec, dtype=quantize_dtype
@@ -180,7 +184,7 @@ class Speech2Text:
             )
 
             if quantize_lm:
-                logging.info("Use quantized lm for decoding.")
+                logger.info("Use quantized lm for decoding.")
 
                 lm = torch.quantization.quantize_dynamic(
                     lm, qconfig_spec=qconfig_spec, dtype=quantize_dtype
@@ -337,7 +341,7 @@ class Speech2Text:
                     raise NotImplementedError(
                         "BeamSearchTimeSync with batching is not yet supported."
                     )
-                logging.info("BeamSearchTimeSync implementation is selected.")
+                logger.info("BeamSearchTimeSync implementation is selected.")
 
                 scorers["ctc"] = asr_model.ctc
                 beam_search = BeamSearchTimeSync(
@@ -371,14 +375,14 @@ class Speech2Text:
                         if streaming:
                             beam_search.__class__ = BatchBeamSearchOnlineSim
                             beam_search.set_streaming_config(asr_train_config)
-                            logging.info(
+                            logger.info(
                                 "BatchBeamSearchOnlineSim implementation is selected."
                             )
                         else:
                             beam_search.__class__ = BatchBeamSearch
-                            logging.info("BatchBeamSearch implementation is selected.")
+                            logger.info("BatchBeamSearch implementation is selected.")
                     else:
-                        logging.warning(
+                        logger.warning(
                             f"As non-batch scorers {non_batch} are found, "
                             f"fall back to non-batch implementation."
                         )
@@ -387,8 +391,8 @@ class Speech2Text:
             for scorer in scorers.values():
                 if isinstance(scorer, torch.nn.Module):
                     scorer.to(device=device, dtype=getattr(torch, dtype)).eval()
-            logging.info(f"Beam_search: {beam_search}")
-            logging.info(f"Decoding device={device}, dtype={dtype}")
+            logger.info(f"Beam_search: {beam_search}")
+            logger.info(f"Decoding device={device}, dtype={dtype}")
 
         # 5. [Optional] Build Text converter: e.g. bpe-sym -> Text
         if token_type is None:
@@ -466,7 +470,7 @@ class Speech2Text:
                 beam_search.set_hyp_primer(
                     list(converter.tokenizer.tokenizer.convert_tokens_to_ids(a1))
                 )
-        logging.info(f"Text tokenizer: {tokenizer}")
+        logger.info(f"Text tokenizer: {tokenizer}")
 
         self.asr_model = asr_model
         self.asr_train_args = asr_train_args
@@ -513,7 +517,7 @@ class Speech2Text:
         # lengths: (1,)
         lengths = speech.new_full([1], dtype=torch.long, fill_value=speech.size(1))
         batch = {"speech": speech, "speech_lengths": lengths}
-        logging.info("speech length: " + str(speech.size(1)))
+        logger.info("speech length: " + str(speech.size(1)))
 
         # a. To device
         batch = to_device(batch, device=self.device)
