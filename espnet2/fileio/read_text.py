@@ -10,16 +10,36 @@ from typeguard import typechecked
 
 @typechecked
 def read_2columns_text(path: Union[Path, str]) -> Dict[str, str]:
-    """Read a text file having 2 columns as dict object.
+    """
+        Read a text file having 2 columns as dict object.
+
+    This function reads a text file where each line contains two columns,
+    separated by whitespace. The first column is treated as the key and the
+    second column as the value. It returns a dictionary mapping each key
+    to its corresponding value. If duplicate keys are found, a RuntimeError
+    is raised.
+
+    Args:
+        path (Union[Path, str]): The path to the text file to be read.
+
+    Returns:
+        Dict[str, str]: A dictionary containing key-value pairs from the
+        text file.
+
+    Raises:
+        RuntimeError: If a duplicate key is found in the text file.
 
     Examples:
-        wav.scp:
+        Given a file named `wav.scp` with the following content:
             key1 /some/path/a.wav
             key2 /some/path/b.wav
 
-        >>> read_2columns_text('wav.scp')
-        {'key1': '/some/path/a.wav', 'key2': '/some/path/b.wav'}
+        The function can be called as follows:
+            >>> read_2columns_text('wav.scp')
+            {'key1': '/some/path/a.wav', 'key2': '/some/path/b.wav'}
 
+    Note:
+        The function expects the text file to be encoded in UTF-8.
     """
 
     data = {}
@@ -41,20 +61,52 @@ def read_2columns_text(path: Union[Path, str]) -> Dict[str, str]:
 def read_multi_columns_text(
     path: Union[Path, str], return_unsplit: bool = False
 ) -> Tuple[Dict[str, List[str]], Optional[Dict[str, str]]]:
-    """Read a text file having 2 or more columns as dict object.
+    """
+    Read a text file having 2 or more columns as dict object.
+
+    This function reads a text file where each line contains a key followed
+    by one or more values separated by whitespace. The function returns a
+    dictionary where the keys are the first column values, and the values
+    are lists of strings representing the remaining columns. Optionally,
+    it can also return the unsplit raw values.
+
+    Args:
+        path (Union[Path, str]): The path to the text file to be read.
+        return_unsplit (bool): If True, return a second dictionary with
+            unsplit values (default is False).
+
+    Returns:
+        Tuple[Dict[str, List[str]], Optional[Dict[str, str]]]: A tuple
+        containing:
+            - A dictionary where keys are the first column values and
+              values are lists of strings for the remaining columns.
+            - An optional dictionary with the unsplit raw values if
+              return_unsplit is True; otherwise, None.
+
+    Raises:
+        RuntimeError: If a key is duplicated in the input file.
 
     Examples:
-        wav.scp:
+        Given a file 'wav.scp' with the following content:
             key1 /some/path/a1.wav /some/path/a2.wav
-            key2 /some/path/b1.wav /some/path/b2.wav  /some/path/b3.wav
+            key2 /some/path/b1.wav /some/path/b2.wav /some/path/b3.wav
             key3 /some/path/c1.wav
-            ...
 
         >>> read_multi_columns_text('wav.scp')
         {'key1': ['/some/path/a1.wav', '/some/path/a2.wav'],
-         'key2': ['/some/path/b1.wav', '/some/path/b2.wav', '/some/path/b3.wav'],
+         'key2': ['/some/path/b1.wav', '/some/path/b2.wav',
+                  '/some/path/b3.wav'],
          'key3': ['/some/path/c1.wav']}
 
+        If return_unsplit is True:
+        >>> read_multi_columns_text('wav.scp', return_unsplit=True)
+        ({'key1': ['/some/path/a1.wav', '/some/path/a2.wav'],
+          'key2': ['/some/path/b1.wav', '/some/path/b2.wav',
+                   '/some/path/b3.wav'],
+          'key3': ['/some/path/c1.wav']},
+         {'key1': '/some/path/a1.wav /some/path/a2.wav',
+          'key2': '/some/path/b1.wav /some/path/b2.wav /some/path/b3.wav',
+          'key3': '/some/path/c1.wav'})
     """
 
     data = {}
@@ -86,14 +138,48 @@ def read_multi_columns_text(
 def load_num_sequence_text(
     path: Union[Path, str], loader_type: str = "csv_int"
 ) -> Dict[str, List[Union[float, int]]]:
-    """Read a text file indicating sequences of number
+    """
+        Load a text file indicating sequences of numbers.
+
+    This function reads a text file where each line contains a key followed by a
+    sequence of numbers. The numbers can be either integers or floats depending on
+    the specified loader type. The function returns a dictionary where the keys are
+    the first elements of each line and the values are lists of numbers parsed from
+    the corresponding lines.
+
+    Args:
+        path (Union[Path, str]): The path to the text file to be read.
+        loader_type (str): The format of the numbers in the file. Supported values
+            are:
+            - "text_int": Space-separated integers
+            - "text_float": Space-separated floats
+            - "csv_int": Comma-separated integers
+            - "csv_float": Comma-separated floats
+
+    Returns:
+        Dict[str, List[Union[float, int]]]: A dictionary mapping keys to lists of
+        numbers parsed from the text file.
+
+    Raises:
+        ValueError: If an unsupported loader_type is specified.
 
     Examples:
-        key1 1 2 3
-        key2 34 5 6
+        Assuming the content of 'text' file is:
+            key1 1 2 3
+            key2 34 5 6
 
         >>> d = load_num_sequence_text('text')
-        >>> np.testing.assert_array_equal(d["key1"], np.array([1, 2, 3]))
+        >>> print(d)
+        {'key1': [1, 2, 3], 'key2': [34, 5, 6]}
+
+        For floating point numbers:
+        Assuming the content of 'text_float' file is:
+            key1 1.0 2.5 3.3
+            key2 34.1 5.6 6.2
+
+        >>> d = load_num_sequence_text('text_float', loader_type='text_float')
+        >>> print(d)
+        {'key1': [1.0, 2.5, 3.3], 'key2': [34.1, 5.6, 6.2]}
     """
     if loader_type == "text_int":
         delimiter = " "
@@ -130,14 +216,47 @@ def load_num_sequence_text(
 
 @typechecked
 def read_label(path: Union[Path, str]) -> Dict[str, List[List[Union[str, float, int]]]]:
-    """Read a text file indicating sequences of number
+    """
+        Read a text file indicating sequences of numbers or labels.
+
+    This function reads a text file where each line consists of a key followed
+    by a sequence of associated values. The values are expected to be in the
+    format of start time, end time, and label for each segment. The output
+    is a dictionary where each key maps to a list of lists containing the
+    parsed information.
+
+    Attributes:
+        path (Union[Path, str]): The file path of the text file to be read.
+
+    Args:
+        path: A string or Path object representing the path to the text file.
+
+    Returns:
+        Dict[str, List[List[Union[str, float, int]]]]:
+            A dictionary where each key corresponds to a sequence of
+            labels and associated timing information, with the values
+            being lists of lists that contain the start time, end time,
+            and label.
 
     Examples:
-        key1 start_time_1 end_time_1 phone_1 start_time_2 end_time_2 phone_2 ....\n
-        key2 start_time_1 end_time_1 phone_1 \n
+        Given a file 'label.txt' with the following content:
+            key1 0.1 0.2 "啊" 0.3 0.4 "喔"
+            key2 0.5 0.6 "哦"
 
-        >>> d = load_num_sequence_text('label')
-        >>> np.testing.assert_array_equal(d["key1"], [0.1, 0.2, "啊"]))
+        The function can be used as follows:
+            >>> d = read_label('label.txt')
+            >>> print(d)
+            {'key1': [['0.1', '0.2', '啊'], ['0.3', '0.4', '喔']],
+             'key2': [['0.5', '0.6', '哦']]}
+
+    Note:
+        The input file must be formatted correctly, with each line
+        starting with a unique key followed by the respective data.
+
+    Raises:
+        FileNotFoundError: If the specified file does not exist.
+        IndexError: If a line in the file does not contain enough values
+                    to be parsed correctly.
     """
     label = open(path, "r", encoding="utf-8")
 
@@ -156,28 +275,52 @@ def read_label(path: Union[Path, str]) -> Dict[str, List[List[Union[str, float, 
 
 
 class RandomTextReader(collections.abc.Mapping):
-    """Reader class for random access to text.
+    """
+    Reader class for random access to text.
 
-    Simple text reader for non-pair text data (for unsupervised ASR)
-        Instead of loading the whole text into memory (often large for UASR),
-        the reader consumes text which stores in byte-offset of each text file
-        and randomly selected unpaired text from it for training using mmap.
+    This class provides a simple text reader for non-pair text data,
+    particularly useful for unsupervised automatic speech recognition (ASR).
+    Instead of loading the entire text into memory (which can be large for
+    unsupervised ASR), the reader uses memory mapping (mmap) to access text
+    stored in byte-offsets within each text file. This allows for random
+    selection of unpaired text for training.
+
+    Attributes:
+        text_mm (mmap): Memory-mapped object for the text file.
+        scp_mm (mmap): Memory-mapped object for the SCP file.
+        first_line_offset (int): The byte offset of the first line in the SCP file.
+        max_num_digits (int): The maximum number of digits per line in the SCP file.
+        stride (int): The total number of bytes per line in the SCP file.
+        num_lines (int): The total number of lines in the text file.
+
+    Args:
+        text_and_scp (str): A string containing the paths to the text file and
+            the SCP file, separated by a hyphen (e.g., "text.txt-scp.txt").
 
     Examples:
-        text
+        Suppose you have a text file with the following content:
             text1line
             text2line
             text3line
-        scp
+
+        And an SCP file that looks like this:
             11
             00000000000000000010
             00000000110000000020
             00000000210000000030
-        scp explanation
-            (number of digits per int value)
-            (text start at bytes 0 and end at bytes 10 (including "\n"))
-            (text start at bytes 11 and end at bytes 20 (including "\n"))
-            (text start at bytes 21 and end at bytes 30 (including "\n"))
+
+        You can create an instance of the RandomTextReader like this:
+        >>> reader = RandomTextReader("text.txt-scp.txt")
+        Then, you can access random lines from the text:
+        >>> random_line = reader[0]  # Access a random line
+
+    Note:
+        The SCP file format must follow the specified structure for the reader
+        to function correctly.
+
+    Raises:
+        AssertionError: If the SCP file does not contain valid data or if
+        the number of bytes is not consistent.
     """
 
     @typechecked
@@ -239,4 +382,52 @@ class RandomTextReader(collections.abc.Mapping):
         return None
 
     def keys(self):
+        """
+            Reader class for random access to text.
+
+        This class provides a simple text reader for non-paired text data, which is
+        useful for unsupervised automatic speech recognition (ASR). Instead of loading
+        the entire text into memory (which can be large for UASR), the reader utilizes
+        memory-mapped files to efficiently access text stored in byte offsets. This
+        allows for random selection of unpaired text for training.
+
+        Attributes:
+            text_mm (mmap): Memory-mapped object for the text file.
+            scp_mm (mmap): Memory-mapped object for the SCP file.
+            first_line_offset (int): Offset of the first line in the SCP file.
+            max_num_digits (int): Maximum number of digits in the SCP file.
+            stride (int): The number of bytes for each line in the SCP file.
+            num_lines (int): The total number of lines in the text file.
+
+        Args:
+            text_and_scp (str): A string containing the paths to the text file and
+                the SCP file, separated by a hyphen (e.g., 'text.txt-scp.txt').
+
+        Examples:
+            Given a text file with lines:
+                text1line
+                text2line
+                text3line
+
+            And a corresponding SCP file:
+                11
+                00000000000000000010
+                00000000110000000020
+                00000000210000000030
+
+            You can create a RandomTextReader instance and access lines as follows:
+
+            >>> reader = RandomTextReader('text.txt-scp.txt')
+            >>> print(reader[0])  # Outputs one of the text lines randomly
+            >>> print(len(reader))  # Outputs 3, the number of text lines
+
+        Note:
+            The SCP file format requires that the number of bytes specified for each
+            line in the SCP file corresponds correctly to the lines in the text file.
+
+        Raises:
+            AssertionError: If the maximum number of digits read from the SCP file is
+                less than or equal to zero or if the number of text bytes is not
+                divisible by the stride.
+        """
         return None
