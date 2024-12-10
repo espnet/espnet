@@ -517,28 +517,28 @@ class EnhS2TTask(AbsTask):
     @typechecked
     def build_collate_fn(cls, args: argparse.Namespace, train: bool) -> Callable[
         """
-        Builds a collate function for preparing batches of data during training or 
+        Builds a collate function for preparing batches of data during training or
     evaluation.
 
-    This method creates a collate function that takes a collection of tuples 
-    containing the data samples and their associated metadata. The function 
+    This method creates a collate function that takes a collection of tuples
+    containing the data samples and their associated metadata. The function
     will pad the input data appropriately based on the specified padding values.
 
     Args:
-        args (argparse.Namespace): The command-line arguments containing 
+        args (argparse.Namespace): The command-line arguments containing
             configuration settings for the task.
-        train (bool): A flag indicating whether the collate function is being 
+        train (bool): A flag indicating whether the collate function is being
             built for training (True) or evaluation (False).
 
     Returns:
-        Callable[[Collection[Tuple[str, Dict[str, np.ndarray]]]], 
+        Callable[[Collection[Tuple[str, Dict[str, np.ndarray]]]],
                  Tuple[List[str], Dict[str, torch.Tensor]]]:
-            A collate function that processes input data and prepares it for 
+            A collate function that processes input data and prepares it for
             batching.
 
     Note:
-        The padding values are set such that float values are padded with 
-        `0.0` and integer values are padded with `-1`. The integer value `0` 
+        The padding values are set such that float values are padded with
+        `0.0` and integer values are padded with `-1`. The integer value `0`
         is reserved for the CTC-blank symbol.
 
     Examples:

@@ -362,22 +362,22 @@ class HubertTask(AbsTask):
     @typechecked
     def build_collate_fn(cls, args: argparse.Namespace, train: bool) -> Callable[
         """
-        Builds a collate function for processing batches of data during training or 
+        Builds a collate function for processing batches of data during training or
     evaluation.
 
-    This method constructs a callable that will be used to collate a batch of 
-    data into a format suitable for the model. It takes into account various 
+    This method constructs a callable that will be used to collate a batch of
+    data into a format suitable for the model. It takes into account various
     configurations related to the data, such as sampling rate and padding.
 
     Args:
-        args (argparse.Namespace): The command-line arguments containing various 
-            configurations, including `frontend_conf`, `collate_fn_conf`, and 
+        args (argparse.Namespace): The command-line arguments containing various
+            configurations, including `frontend_conf`, `collate_fn_conf`, and
             `encoder_conf`.
-        train (bool): A flag indicating whether the collate function is being 
+        train (bool): A flag indicating whether the collate function is being
             built for training or evaluation.
 
     Returns:
-        Callable[[Collection[Tuple[str, Dict[str, np.ndarray]]]], 
+        Callable[[Collection[Tuple[str, Dict[str, np.ndarray]]]],
                  Tuple[List[str], Dict[str, torch.Tensor]]]:
             A callable that collates a batch of data.
 
@@ -394,7 +394,7 @@ class HubertTask(AbsTask):
         >>> print(batch_data)
 
     Note:
-        The function assumes a default sampling rate of 16000 Hz if not 
+        The function assumes a default sampling rate of 16000 Hz if not
         specified in the `frontend_conf`.
 
     Todo:

@@ -263,27 +263,27 @@ class ASVSpoofTask(AbsTask):
         """
         Builds a collate function for batching data during training or evaluation.
 
-        This method returns a callable that can be used to collate a list of 
-        samples into a batch. The collate function is designed to handle the 
+        This method returns a callable that can be used to collate a list of
+        samples into a batch. The collate function is designed to handle the
         specific input format required for the ASVSpoofTask.
 
         Args:
-            args (argparse.Namespace): The parsed arguments containing task 
+            args (argparse.Namespace): The parsed arguments containing task
                 configurations.
-            train (bool): A flag indicating whether the collate function is 
+            train (bool): A flag indicating whether the collate function is
                 being built for training or evaluation.
 
         Returns:
             Callable[[Collection[Tuple[str, Dict[str, np.ndarray]]],
                      Tuple[List[str], Dict[str, torch.Tensor]]]]:
-                A collate function that takes a collection of tuples, each 
-                containing a sample identifier and a dictionary of feature 
-                arrays, and returns a tuple of a list of identifiers and a 
+                A collate function that takes a collection of tuples, each
+                containing a sample identifier and a dictionary of feature
+                arrays, and returns a tuple of a list of identifiers and a
                 dictionary of tensors.
 
         Note:
-            The function uses `CommonCollateFn` to handle padding and batching 
-            of the input data. The integer value `-1` is reserved for CTC-blank 
+            The function uses `CommonCollateFn` to handle padding and batching
+            of the input data. The integer value `-1` is reserved for CTC-blank
             symbols, and `0.0` is used for float padding.
 
         Examples:

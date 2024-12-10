@@ -495,22 +495,22 @@ class ASRTask(AbsTask):
         """
         Build a collate function for the ASR task.
 
-    This method constructs a collate function that can be used to process a 
-    batch of data during training or evaluation. The collate function handles 
+    This method constructs a collate function that can be used to process a
+    batch of data during training or evaluation. The collate function handles
     padding of sequences to ensure uniform input sizes for the model.
 
     Args:
-        args (argparse.Namespace): The command line arguments parsed from the 
+        args (argparse.Namespace): The command line arguments parsed from the
             configuration.
-        train (bool): A flag indicating whether the collate function is being 
+        train (bool): A flag indicating whether the collate function is being
             built for training or evaluation.
 
     Returns:
-        Callable[[Collection[Tuple[str, Dict[str, np.ndarray]]]], 
+        Callable[[Collection[Tuple[str, Dict[str, np.ndarray]]]],
                  Tuple[List[str], Dict[str, torch.Tensor]]]:
-            A callable that takes a collection of tuples (where each tuple 
-            contains a string identifier and a dictionary of numpy arrays) 
-            and returns a tuple containing a list of string identifiers and 
+            A callable that takes a collection of tuples (where each tuple
+            contains a string identifier and a dictionary of numpy arrays)
+            and returns a tuple containing a list of string identifiers and
             a dictionary of tensors.
 
     Examples:

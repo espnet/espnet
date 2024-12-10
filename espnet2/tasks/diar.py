@@ -255,21 +255,21 @@ class DiarizationTask(AbsTask):
         """
         Builds a collate function for batching data during training or evaluation.
 
-    This method constructs a callable that takes a collection of tuples, each 
-    containing a string and a dictionary of NumPy arrays, and returns a tuple 
-    of a list of strings and a dictionary of PyTorch tensors. The collate 
-    function is designed to handle variable-length input sequences by padding 
+    This method constructs a callable that takes a collection of tuples, each
+    containing a string and a dictionary of NumPy arrays, and returns a tuple
+    of a list of strings and a dictionary of PyTorch tensors. The collate
+    function is designed to handle variable-length input sequences by padding
     them to a uniform length.
 
     Args:
-        args (argparse.Namespace): The command-line arguments containing the 
+        args (argparse.Namespace): The command-line arguments containing the
             configuration for the task.
-        train (bool): A flag indicating whether the function is being called 
+        train (bool): A flag indicating whether the function is being called
             during training or evaluation.
 
     Returns:
-        Callable[[Collection[Tuple[str, Dict[str, np.ndarray]]], 
-        Tuple[List[str], Dict[str, torch.Tensor]]]: A collate function that 
+        Callable[[Collection[Tuple[str, Dict[str, np.ndarray]]],
+        Tuple[List[str], Dict[str, torch.Tensor]]]: A collate function that
         processes the input data into a batched format.
 
     Note:
