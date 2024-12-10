@@ -147,6 +147,49 @@ preprocessor_choices = ClassChoices(
 
 
 class S2TTask(AbsTask):
+    """
+        S2TTask is a task class for Sequence-to-Text (S2T) modeling, inheriting from
+    AbsTask. This class provides methods for setting up the S2T task, including
+    argument parsing, model building, and preprocessing functionalities.
+
+    Attributes:
+        num_optimizers (int): Number of optimizers to be used for training.
+        class_choices_list (list): A list of class choices for various components
+            like frontend, model, encoder, etc.
+        trainer (Trainer): The trainer class used for training the model.
+
+    Args:
+        parser (argparse.ArgumentParser): Argument parser instance for adding
+            task-related arguments.
+
+    Returns:
+        Callable: A collate function for data loading.
+
+    Yields:
+        None
+
+    Raises:
+        RuntimeError: If `token_list` is not of type str or list.
+
+    Examples:
+        # To add task-specific arguments to a parser
+        import argparse
+        parser = argparse.ArgumentParser()
+        S2TTask.add_task_arguments(parser)
+
+        # To build a model using parsed arguments
+        args = parser.parse_args()
+        model = S2TTask.build_model(args)
+
+    Note:
+        If you need to modify train() or eval() procedures, change the Trainer
+        class here.
+
+    Todo:
+        Consider adding additional error handling for argument parsing and model
+        building processes.
+    """
+
     # If you need more than one optimizers, change this value
     num_optimizers: int = 1
 
@@ -173,6 +216,32 @@ class S2TTask(AbsTask):
 
     @classmethod
     def add_task_arguments(cls, parser: argparse.ArgumentParser):
+        """
+            Adds task-related command-line arguments to the provided argument parser.
+
+        This method extends the argument parser with specific arguments that are
+        required for the S2TTask. These include options for tokenization,
+        initialization methods, input size, and various preprocessing settings.
+
+        Args:
+            parser (argparse.ArgumentParser): The argument parser to which task
+                arguments will be added.
+
+        Raises:
+            Exception: Raises an exception if there are issues with adding
+                arguments.
+
+        Examples:
+            >>> import argparse
+            >>> parser = argparse.ArgumentParser()
+            >>> S2TTask.add_task_arguments(parser)
+            >>> args = parser.parse_args()
+            >>> print(args.token_list)  # Output will depend on the command line input.
+
+        Note:
+            The method modifies the argument parser in place and does not return
+            any value.
+        """
         group = parser.add_argument_group(description="Task related")
 
         # NOTE(kamo): add_arguments(..., required=True) can't be used
@@ -324,6 +393,40 @@ class S2TTask(AbsTask):
         [Collection[Tuple[str, Dict[str, np.ndarray]]]],
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
+        """
+                Build a collate function for preparing batches of data during training or
+        inference.
+
+        This method constructs a callable that can be used to collate a list of
+        samples into a batch. It pads the sequences appropriately and prepares
+        them for processing by the model.
+
+        Args:
+            args (argparse.Namespace): The parsed command line arguments that
+                influence the collate function behavior.
+            train (bool): A flag indicating whether the collate function is
+                intended for training or inference.
+
+        Returns:
+            Callable[[Collection[Tuple[str, Dict[str, np.ndarray]]],
+            Tuple[List[str], Dict[str, torch.Tensor]]]]:
+                A function that takes a collection of tuples (each containing a
+                string identifier and a dictionary of NumPy arrays) and returns
+                a tuple containing a list of identifiers and a dictionary of
+                padded tensors.
+
+        Examples:
+            >>> collate_fn = S2TTask.build_collate_fn(args, train=True)
+            >>> batch_data = collate_fn(data_list)
+            >>> print(batch_data)
+
+        Note:
+            The function reserves the integer value 0 for the CTC-blank symbol
+            during padding.
+
+        Todo:
+            Add support for more advanced padding strategies if needed.
+        """
         # NOTE(kamo): int value = 0 is reserved by CTC-blank symbol
         return CommonCollateFn(float_pad_value=0.0, int_pad_value=-1)
 
@@ -332,6 +435,47 @@ class S2TTask(AbsTask):
     def build_preprocess_fn(
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
+        """
+        Build a preprocessing function based on the provided arguments.
+
+        This method creates a callable preprocessing function that is used to
+        transform the input data according to the specified preprocessor class.
+        If preprocessing is enabled, it initializes the specified preprocessor
+        with the provided configuration parameters.
+
+        Args:
+            args (argparse.Namespace): The command-line arguments containing
+                configurations for preprocessing.
+            train (bool): A flag indicating whether the preprocessing is for
+                training or evaluation.
+
+        Returns:
+            Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
+                A preprocessing function that takes a string and a dictionary
+                of numpy arrays and returns a dictionary of numpy arrays, or
+                None if preprocessing is not enabled.
+
+        Raises:
+            Exception: If there is an error during the initialization of the
+                preprocessor.
+
+        Examples:
+            To use the preprocessing function in training:
+
+            ```python
+            args = parser.parse_args()
+            preprocess_fn = S2TTask.build_preprocess_fn(args, train=True)
+            processed_data = preprocess_fn("input_text", {"feature": np.array([...])})
+            ```
+
+            To use the preprocessing function in evaluation:
+
+            ```python
+            args = parser.parse_args()
+            preprocess_fn = S2TTask.build_preprocess_fn(args, train=False)
+            processed_data = preprocess_fn("input_text", {"feature": np.array([...])})
+            ```
+        """
         if args.use_preprocessor:
             try:
                 _ = getattr(args, "preprocessor")
@@ -380,6 +524,30 @@ class S2TTask(AbsTask):
     def required_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
+        """
+            Get the required data names for the task.
+
+        This method returns the data names that are required for training or
+        inference based on the provided flags.
+
+        Args:
+            train (bool): A flag indicating whether the data is for training.
+                          Defaults to True.
+            inference (bool): A flag indicating whether the data is for
+                              inference. Defaults to False.
+
+        Returns:
+            Tuple[str, ...]: A tuple containing the names of the required data
+                             items. For training, it returns ('speech', 'text');
+                             for inference, it returns ('speech',).
+
+        Examples:
+            >>> S2TTask.required_data_names(train=True, inference=False)
+            ('speech', 'text')
+
+            >>> S2TTask.required_data_names(train=False, inference=True)
+            ('speech',)
+        """
         if not inference:
             retval = ("speech", "text")
         else:
@@ -392,6 +560,37 @@ class S2TTask(AbsTask):
     def optional_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
+        """
+            Returns the names of optional data inputs for the task.
+
+        This method provides a list of optional data names that can be used during
+        training or inference. The optional data names include tokens from previous
+        time steps and multiple speaker tokens if available.
+
+        Args:
+            train (bool): A flag indicating whether the method is called during
+                training. Defaults to True.
+            inference (bool): A flag indicating whether the method is called during
+                inference. Defaults to False.
+
+        Returns:
+            Tuple[str, ...]: A tuple containing the names of optional data inputs.
+
+        Examples:
+            >>> optional_names = S2TTask.optional_data_names(train=True)
+            >>> print(optional_names)
+            ('text_prev', 'text_ctc', 'text_spk2', 'text_spk3', 'text_spk4')
+
+        Note:
+            The maximum number of reference tokens is set to 4. Thus, the method
+            generates names for up to four speakers.
+
+        Logging:
+            Logs the optional data names for debugging purposes.
+
+        Raises:
+            None
+        """
         MAX_REFERENCE_NUM = 4
 
         retval = ["text_prev", "text_ctc"] + [
@@ -405,6 +604,38 @@ class S2TTask(AbsTask):
     @classmethod
     @typechecked
     def build_model(cls, args: argparse.Namespace):
+        """
+                Builds the model for the S2T task based on the provided arguments.
+
+        This method initializes the components of the model, including the frontend,
+        data augmentation, normalization layer, encoder, prompt encoder, and CTC.
+        It also handles the token list and initializes the model parameters based on
+        the specified initialization method.
+
+        Args:
+            args (argparse.Namespace): The parsed arguments containing model and task
+                configuration options.
+
+        Returns:
+            AbsESPnetModel: An instance of the model built according to the specified
+                configurations.
+
+        Raises:
+            RuntimeError: If the token list is not provided as a string or list.
+
+        Examples:
+            # Example of using the build_model method
+            import argparse
+
+            parser = argparse.ArgumentParser()
+            # Assume necessary arguments are added to the parser here
+            args = parser.parse_args()
+            model = S2TTask.build_model(args)
+
+        Note:
+            The token list can be provided as a file path or directly as a list. If
+            provided as a file path, it will be read and converted to a list of tokens.
+        """
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
                 token_list = [line.rstrip() for line in f]

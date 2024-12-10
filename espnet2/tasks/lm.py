@@ -45,6 +45,51 @@ model_choices = ClassChoices(
 
 
 class LMTask(AbsTask):
+    """
+        LMTask is a class that handles the language modeling tasks in the ESPnet2
+    framework. It extends the AbsTask class and provides methods for argument
+    parsing, model building, data preprocessing, and collation of data for
+    training and evaluation.
+
+    Attributes:
+        num_optimizers (int): The number of optimizers to be used (default is 1).
+        class_choices_list (list): A list of ClassChoices instances for models
+            and language models.
+        trainer (Trainer): The Trainer class to be used for training and
+            evaluation.
+
+    Args:
+        parser (argparse.ArgumentParser): The argument parser to which task
+            related arguments will be added.
+
+    Returns:
+        argparse.ArgumentParser: The updated argument parser with task related
+            arguments.
+
+    Yields:
+        Callable: A function that collates data for training or evaluation.
+
+    Raises:
+        RuntimeError: If the token_list is not of type str or dict.
+
+    Examples:
+        # To add task arguments to a parser
+        parser = argparse.ArgumentParser()
+        LMTask.add_task_arguments(parser)
+
+        # To build a model
+        args = parser.parse_args()
+        model = LMTask.build_model(args)
+
+    Note:
+        If you need to modify the training or evaluation procedures, you can
+        change the Trainer class assigned to the 'trainer' attribute.
+
+    Todo:
+        Implement additional features for improved model training and
+        evaluation.
+    """
+
     # If you need more than one optimizers, change this value
     num_optimizers: int = 1
 
@@ -61,6 +106,39 @@ class LMTask(AbsTask):
     @classmethod
     @typechecked
     def add_task_arguments(cls, parser: argparse.ArgumentParser):
+        """
+            Adds command-line arguments specific to the language modeling task.
+
+        This method configures the argument parser with options relevant to the
+        language modeling task, including token lists, initialization methods,
+        and preprocessing options. It allows users to specify various parameters
+        that control the behavior of the task during execution.
+
+        Args:
+            parser (argparse.ArgumentParser): The argument parser to which the
+                task-related arguments will be added.
+
+        Returns:
+            argparse.ArgumentParser: The updated argument parser with task
+                arguments included.
+
+        Examples:
+            >>> import argparse
+            >>> parser = argparse.ArgumentParser()
+            >>> LMTask.add_task_arguments(parser)
+            >>> args = parser.parse_args(["--token_list", "path/to/token_list.txt"])
+            >>> print(args.token_list)
+            path/to/token_list.txt
+
+        Note:
+            The `--token_list` argument is crucial for mapping integer IDs to
+            tokens. The initialization method can be chosen from a predefined
+            set of options. Additionally, preprocessing options can be enabled
+            or disabled.
+
+        Todo:
+            - Consider adding more preprocessing options in the future.
+        """
         # NOTE(kamo): Use '_' instead of '-' to avoid confusion
         group = parser.add_argument_group(description="Task related")
 
@@ -143,6 +221,44 @@ class LMTask(AbsTask):
         [Collection[Tuple[str, Dict[str, np.ndarray]]]],
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
+        """
+        Builds a collate function for batching data.
+
+        This method constructs a callable that collates a batch of data
+        samples into a single tensor, ensuring that the sequences are
+        properly padded to the same length. The resulting batch will
+        include both the tokenized text and corresponding feature tensors.
+
+        Args:
+            args (argparse.Namespace): The command-line arguments containing
+                configuration options for the task.
+            train (bool): A flag indicating whether the collate function
+                is being built for training or evaluation.
+
+        Returns:
+            Callable[[Collection[Tuple[str, Dict[str, np.ndarray]]]],
+                     Tuple[List[str], Dict[str, torch.Tensor]]]:
+                A function that takes a collection of samples and returns
+                a tuple containing a list of texts and a dictionary of
+                tensors.
+
+        Examples:
+            >>> collate_fn = LMTask.build_collate_fn(args, train=True)
+            >>> batch_samples = [
+            ...     ("sample1", {"feature": np.array([1, 2, 3])}),
+            ...     ("sample2", {"feature": np.array([4, 5])}),
+            ... ]
+            >>> texts, features = collate_fn(batch_samples)
+            >>> print(texts)
+            ['sample1', 'sample2']
+            >>> print(features)
+            {'feature': tensor([[1, 2, 3],
+                                 [4, 5, 0]])}  # Example padded tensor
+
+        Note:
+            This method uses the CommonCollateFn for the actual
+            implementation of the collate functionality.
+        """
         return CommonCollateFn(int_pad_value=0)
 
     @classmethod
@@ -150,6 +266,48 @@ class LMTask(AbsTask):
     def build_preprocess_fn(
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
+        """
+            Builds a preprocessing function based on the provided arguments.
+
+        This method checks if preprocessing is enabled and returns a
+        CommonPreprocessor instance configured with the specified parameters.
+        If preprocessing is not enabled, it returns None.
+
+        Args:
+            cls: The class reference (usually the class itself).
+            args (argparse.Namespace): The namespace containing command-line
+                arguments.
+            train (bool): A flag indicating whether the preprocessing is for
+                training or evaluation.
+
+        Returns:
+            Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
+                A callable preprocessing function if preprocessing is enabled,
+                otherwise None.
+
+        Examples:
+            To create a preprocessing function for training:
+
+            >>> args = argparse.Namespace(use_preprocessor=True, token_type='bpe',
+            ... token_list='tokens.txt', bpemodel='model.bpe',
+            ... cleaner='tacotron', g2p=None, non_linguistic_symbols=None)
+            >>> preprocess_fn = LMTask.build_preprocess_fn(args, train=True)
+            >>> output = preprocess_fn("sample text", {"key": np.array([1, 2, 3])})
+
+            If preprocessing is disabled:
+
+            >>> args.use_preprocessor = False
+            >>> preprocess_fn = LMTask.build_preprocess_fn(args, train=True)
+            >>> assert preprocess_fn is None
+
+        Note:
+            This method relies on the CommonPreprocessor class for
+            preprocessing tasks, which should be defined elsewhere in the
+            codebase.
+
+        Todo:
+            Consider adding more preprocessing options in the future.
+        """
         if args.use_preprocessor:
             retval = CommonPreprocessor(
                 train=train,
@@ -168,6 +326,31 @@ class LMTask(AbsTask):
     def required_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
+        """
+            Returns the required data names for the task.
+
+        This method specifies the data names that are essential for the
+        training or inference of the language model task. By default, it
+        returns a tuple containing the string "text", which indicates
+        that text data is required.
+
+        Args:
+            train (bool, optional): A flag indicating whether the method is
+                called for training. Defaults to True.
+            inference (bool, optional): A flag indicating whether the method
+                is called for inference. Defaults to False.
+
+        Returns:
+            Tuple[str, ...]: A tuple of required data names. In this case,
+            it will return ("text",).
+
+        Examples:
+            >>> LMTask.required_data_names(train=True)
+            ('text',)
+
+            >>> LMTask.required_data_names(inference=True)
+            ('text',)
+        """
         retval = ("text",)
         return retval
 
@@ -175,6 +358,31 @@ class LMTask(AbsTask):
     def optional_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
+        """
+            Returns the optional data names required by the task.
+
+        This method returns a tuple of optional data names that the task may use
+        during training or inference. By default, it returns an empty tuple,
+        indicating that there are no optional data names.
+
+        Args:
+            train (bool): Indicates whether the data is for training. Default is
+                True.
+            inference (bool): Indicates whether the data is for inference.
+                Default is False.
+
+        Returns:
+            Tuple[str, ...]: A tuple containing the names of optional data.
+
+        Examples:
+            >>> optional_names = LMTask.optional_data_names()
+            >>> print(optional_names)
+            ()  # Returns an empty tuple by default
+
+        Note:
+            This method can be overridden in subclasses to specify additional
+            optional data names.
+        """
         retval = ()
         return retval
 
@@ -183,6 +391,43 @@ class LMTask(AbsTask):
     def build_model(
         cls, args: argparse.Namespace
     ) -> Union[ESPnetLanguageModel, ESPnetMultitaskLanguageModel]:
+        """
+                Builds and initializes the language model based on the provided arguments.
+
+        This method constructs a language model using the specified model type and
+        configuration parameters. It handles the creation of both the language model
+        and the ESPnet model, initializing them with the appropriate parameters.
+
+        Args:
+            args (argparse.Namespace): The parsed command line arguments containing
+                model configuration options, including the token list and model type.
+
+        Returns:
+            Union[ESPnetLanguageModel, ESPnetMultitaskLanguageModel]: An instance of
+            the selected language model class.
+
+        Raises:
+            RuntimeError: If the token_list is not provided as a string or list.
+
+        Examples:
+            To build a model with a token list specified:
+
+                import argparse
+
+                parser = argparse.ArgumentParser()
+                parser.add_argument('--token_list', type=str, required=True)
+                parser.add_argument('--lm', type=str, default='seq_rnn')
+                parser.add_argument('--model', type=str, default='lm')
+                args = parser.parse_args()
+
+                model = LMTask.build_model(args)
+
+        Note:
+            This method assumes that the token list is either a path to a file
+            containing the tokens or a list of tokens. The vocabulary size is
+            derived from the token list, which is essential for initializing
+            the language model correctly.
+        """
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
                 token_list = [line.rstrip() for line in f]

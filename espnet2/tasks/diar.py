@@ -95,6 +95,53 @@ attractor_choices = ClassChoices(
 
 
 class DiarizationTask(AbsTask):
+    """
+        DiarizationTask is a task class for speaker diarization that extends the
+    abstract task class (AbsTask). It encapsulates the necessary configurations,
+    model building, and data handling required for training and evaluating a
+    diarization model.
+
+    Attributes:
+        num_optimizers (int): The number of optimizers to use.
+        class_choices_list (list): List of available class choices for task
+            configurations, including frontend, specaug, normalization, encoder,
+            decoder, label aggregator, and attractor.
+        trainer (Trainer): The trainer class to use for training and evaluation.
+
+    Args:
+        parser (argparse.ArgumentParser): The argument parser to which the task
+            related arguments will be added.
+
+    Returns:
+        None
+
+    Yields:
+        None
+
+    Raises:
+        None
+
+    Examples:
+        To add task-specific arguments to a parser, use:
+
+            parser = argparse.ArgumentParser()
+            DiarizationTask.add_task_arguments(parser)
+
+        To build a model, first parse the arguments and then call:
+
+            args = parser.parse_args()
+            model = DiarizationTask.build_model(args)
+
+    Note:
+        This class requires the definition of various components including
+        frontends, encoders, decoders, and others as specified in the
+        class_choices_list.
+
+    Todo:
+        - Extend support for more data processing options.
+        - Improve error handling and input validation.
+    """
+
     # If you need more than one optimizer, change this value
     num_optimizers: int = 1
 
@@ -121,6 +168,36 @@ class DiarizationTask(AbsTask):
 
     @classmethod
     def add_task_arguments(cls, parser: argparse.ArgumentParser):
+        """
+            Adds task-related arguments to the argument parser for the DiarizationTask.
+
+        This method extends the provided argument parser by adding various
+        command-line arguments related to the diarization task. These arguments
+        include configurations for the number of speakers, initialization methods,
+        input size, and model configurations, as well as preprocessing options.
+
+        Args:
+            parser (argparse.ArgumentParser): The argument parser to which the
+                task-related arguments will be added.
+
+        Examples:
+            >>> import argparse
+            >>> parser = argparse.ArgumentParser()
+            >>> DiarizationTask.add_task_arguments(parser)
+            >>> args = parser.parse_args(["--num_spk", "2", "--init", "xavier_uniform"])
+
+        Note:
+            Ensure that the argument parser is properly initialized before calling
+            this method.
+
+        Raises:
+            ValueError: If an invalid argument is provided or if there are
+                conflicting options.
+
+        Todo:
+            - Add more specific argument descriptions and validation checks
+              as needed in future iterations.
+        """
         group = parser.add_argument_group(description="Task related")
 
         group.add_argument(
@@ -175,7 +252,39 @@ class DiarizationTask(AbsTask):
     @classmethod
     @typechecked
     def build_collate_fn(cls, args: argparse.Namespace, train: bool) -> Callable[
-        [Collection[Tuple[str, Dict[str, np.ndarray]]]],
+        """
+        Builds a collate function for batching data during training or evaluation.
+
+    This method constructs a callable that takes a collection of tuples, each 
+    containing a string and a dictionary of NumPy arrays, and returns a tuple 
+    of a list of strings and a dictionary of PyTorch tensors. The collate 
+    function is designed to handle variable-length input sequences by padding 
+    them to a uniform length.
+
+    Args:
+        args (argparse.Namespace): The command-line arguments containing the 
+            configuration for the task.
+        train (bool): A flag indicating whether the function is being called 
+            during training or evaluation.
+
+    Returns:
+        Callable[[Collection[Tuple[str, Dict[str, np.ndarray]]], 
+        Tuple[List[str], Dict[str, torch.Tensor]]]: A collate function that 
+        processes the input data into a batched format.
+
+    Note:
+        The integer value `0` is reserved for the CTC-blank symbol.
+
+    Examples:
+        >>> collate_fn = DiarizationTask.build_collate_fn(args, train=True)
+        >>> batch = collate_fn([("utt1", {"feature": np.array([1, 2])}),
+        ...                     ("utt2", {"feature": np.array([3])})])
+        >>> print(batch)
+        (['utt1', 'utt2'], {'feature': tensor([[1, 2],
+                                               [3, 0]])})
+        """[
+            Collection[Tuple[str, Dict[str, np.ndarray]]]
+        ],
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
         # NOTE(kamo): int value = 0 is reserved by CTC-blank symbol
@@ -186,6 +295,33 @@ class DiarizationTask(AbsTask):
     def build_preprocess_fn(
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
+        """
+        Build a preprocessing function based on the task arguments.
+
+        This method constructs a preprocessing function that applies
+        transformations to the input data if the `--use_preprocessor`
+        argument is set to True. If not, it returns None.
+
+        Args:
+            args (argparse.Namespace): The parsed command line arguments.
+            train (bool): A flag indicating whether the function is being
+                built for training or evaluation.
+
+        Returns:
+            Optional[Callable[[str, Dict[str, np.array]],
+            Dict[str, np.ndarray]]]: A preprocessing function that takes
+            the input data and returns the processed output, or None
+            if preprocessing is not to be applied.
+
+        Examples:
+            >>> args = argparse.Namespace(use_preprocessor=True)
+            >>> preprocess_fn = DiarizationTask.build_preprocess_fn(args, train=True)
+            >>> output = preprocess_fn("input.wav", {"feature": np.array([1, 2, 3])})
+
+        Note:
+            The preprocessing function can be modified to include more
+            arguments in the future.
+        """
         if args.use_preprocessor:
             # FIXME (jiatong): add more argument here
             retval = CommonPreprocessor(train=train)
@@ -197,6 +333,35 @@ class DiarizationTask(AbsTask):
     def required_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
+        """
+            Get the required data names for the DiarizationTask.
+
+        This method returns the names of the data that are required for training
+        or inference in the diarization task. The output varies based on whether
+        the task is in inference mode or not.
+
+        Args:
+            train (bool, optional): A flag indicating whether the task is in
+                training mode. Defaults to True.
+            inference (bool, optional): A flag indicating whether the task is
+                in inference mode. Defaults to False.
+
+        Returns:
+            Tuple[str, ...]: A tuple containing the names of the required data.
+                If not in inference mode, it returns ("speech", "spk_labels").
+                If in inference mode, it returns ("speech",).
+
+        Examples:
+            >>> DiarizationTask.required_data_names(train=True, inference=False)
+            ('speech', 'spk_labels')
+
+            >>> DiarizationTask.required_data_names(train=False, inference=True)
+            ('speech',)
+
+        Note:
+            The method is designed to return the appropriate data names based on
+            the mode of operation (training or inference).
+        """
         if not inference:
             retval = ("speech", "spk_labels")
         else:
@@ -208,6 +373,49 @@ class DiarizationTask(AbsTask):
     def optional_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
+        """
+            Class for handling the diarization task within the ESPnet framework.
+
+        This class extends the abstract task class `AbsTask` and provides
+        methods for managing various components required for diarization
+        including the frontend, spec augmentation, normalization, encoder,
+        decoder, and attractor. It also handles the configuration of these
+        components through command-line arguments and builds the model based
+        on the provided configuration.
+
+        Attributes:
+            num_optimizers (int): Number of optimizers used in training.
+            class_choices_list (List[ClassChoices]): List of class choices for
+                various components of the diarization task.
+            trainer (Trainer): Trainer class used for training and evaluation.
+
+        Args:
+            parser (argparse.ArgumentParser): The argument parser to which
+                task-related arguments will be added.
+
+        Returns:
+            Tuple[str, ...]: Required data names based on the mode of operation.
+
+        Yields:
+            Callable[[str, Dict[str, np.ndarray]], Dict[str, np.ndarray]]:
+            A function that preprocesses the input data.
+
+        Raises:
+            ValueError: If any configuration parameter is invalid.
+
+        Examples:
+            # To add task-related arguments to the parser
+            DiarizationTask.add_task_arguments(parser)
+
+            # To build the model from command line arguments
+            model = DiarizationTask.build_model(args)
+
+            # To get required data names
+            data_names = DiarizationTask.required_data_names(train=True)
+
+            # To get optional data names
+            optional_data_names = DiarizationTask.optional_data_names(train=True)
+        """
         # (Note: jiatong): no optional data names for now
         retval = ()
         return retval
@@ -215,6 +423,49 @@ class DiarizationTask(AbsTask):
     @classmethod
     @typechecked
     def build_model(cls, args: argparse.Namespace) -> ESPnetDiarizationModel:
+        """
+                Builds the ESPnetDiarizationModel based on the provided configuration.
+
+        This method constructs a diarization model by initializing its components
+        such as frontend, data augmentation, normalization, label aggregator,
+        encoder, decoder, and attractor based on the arguments provided.
+
+        Args:
+            args (argparse.Namespace): The arguments namespace containing
+                configuration options for model building.
+
+        Returns:
+            ESPnetDiarizationModel: An instance of the ESPnetDiarizationModel
+                constructed with the specified configurations.
+
+        Examples:
+            >>> import argparse
+            >>> args = argparse.Namespace(
+            ...     input_size=128,
+            ...     frontend='default',
+            ...     frontend_conf={},
+            ...     specaug=None,
+            ...     normalize='utterance_mvn',
+            ...     label_aggregator='label_aggregator',
+            ...     encoder='transformer',
+            ...     encoder_conf={},
+            ...     decoder='linear',
+            ...     decoder_conf={},
+            ...     attractor=None,
+            ...     model_conf={}
+            ... )
+            >>> model = DiarizationTask.build_model(args)
+            >>> print(type(model))
+            <class 'espnet2.diar.espnet_model.ESPnetDiarizationModel'>
+
+        Note:
+            This method assumes that the necessary classes for frontend,
+            specaug, normalize, label aggregator, encoder, decoder, and
+            attractor are properly registered in their respective class choices.
+
+        Todo:
+            - Improve error handling for unsupported configurations.
+        """
 
         # 1. frontend
         if args.input_size is None:

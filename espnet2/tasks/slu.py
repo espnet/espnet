@@ -184,6 +184,62 @@ postdecoder_choices = ClassChoices(
 
 
 class SLUTask(ASRTask):
+    """
+        SLUTask is a task class for Speech Language Understanding (SLU) that extends
+    the ASRTask class. It handles the configuration and construction of SLU
+    models, preprocesses the input data, and manages the training and evaluation
+    process.
+
+    Attributes:
+        num_optimizers (int): Number of optimizers used in training.
+        class_choices_list (list): List of class choices for various components
+            such as frontend, encoder, decoder, etc.
+        trainer (Trainer): Trainer class for managing the training process.
+
+    Methods:
+        add_task_arguments(parser: argparse.ArgumentParser):
+            Adds task-related arguments to the argument parser.
+
+        build_preprocess_fn(args: argparse.Namespace, train: bool) -> Optional[Callable]:
+            Constructs a preprocessing function based on the provided arguments.
+
+        required_data_names(train: bool = True, inference: bool = False) -> Tuple[str, ...]:
+            Returns the names of the required data for the task.
+
+        optional_data_names(train: bool = True, inference: bool = False) -> Tuple[str, ...]:
+            Returns the names of the optional data for the task.
+
+        build_model(args: argparse.Namespace) -> ESPnetSLUModel:
+            Builds and initializes the SLU model based on the given arguments.
+
+    Examples:
+        To add task arguments, you can do the following:
+        ```python
+        parser = argparse.ArgumentParser()
+        SLUTask.add_task_arguments(parser)
+        ```
+
+        To build a preprocessing function:
+        ```python
+        args = parser.parse_args()
+        preprocess_fn = SLUTask.build_preprocess_fn(args, train=True)
+        ```
+
+        To create an SLU model:
+        ```python
+        model = SLUTask.build_model(args)
+        ```
+
+    Note:
+        The SLUTask class can be customized by modifying the class_choices_list
+        or overriding methods such as `build_model` or `add_task_arguments`.
+
+    Todo:
+        - Implement more advanced error handling for argument parsing and model
+          building.
+        - Add support for additional frontend or backend components as needed.
+    """
+
     # If you need more than one optimizers, change this value
     num_optimizers: int = 1
 
@@ -216,6 +272,38 @@ class SLUTask(ASRTask):
 
     @classmethod
     def add_task_arguments(cls, parser: argparse.ArgumentParser):
+        """
+                Add task-specific arguments to the given argument parser.
+
+        This method is responsible for adding command-line arguments related to the
+        task configuration, such as token lists, model initialization methods, and
+        various preprocessor options. The arguments added will allow the user to
+        customize the behavior of the SLU task during execution.
+
+        Args:
+            parser (argparse.ArgumentParser): The argument parser instance to which
+                the task-related arguments will be added.
+
+        Examples:
+            To add task arguments for an SLU task, you can use the following code:
+
+            ```python
+            import argparse
+            from your_package import SLUTask
+
+            parser = argparse.ArgumentParser()
+            SLUTask.add_task_arguments(parser)
+            args = parser.parse_args()
+            ```
+
+        Note:
+            This method uses the `NestedDictAction` to allow for nested configuration
+            dictionaries for certain arguments.
+
+        Todo:
+            - Consider refactoring to make argument addition more modular or
+              configurable.
+        """
         group = parser.add_argument_group(description="Task related")
 
         # NOTE(kamo): add_arguments(..., required=True) can't be used
@@ -375,6 +463,47 @@ class SLUTask(ASRTask):
     def build_preprocess_fn(
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
+        """
+        Build a preprocessing function based on the provided arguments.
+
+        This method constructs a preprocessing function that is used to
+        prepare the input data for training or inference. If preprocessing
+        is enabled via the `args.use_preprocessor` flag, it initializes an
+        instance of `SLUPreprocessor` with the appropriate configurations.
+
+        Args:
+            args (argparse.Namespace): The command-line arguments parsed by
+                argparse, containing configurations for preprocessing.
+            train (bool): A flag indicating whether the function is being
+                built for training (`True`) or inference (`False`).
+
+        Returns:
+            Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
+                A callable function that takes a string and a dictionary
+                of numpy arrays as input, returning a dictionary of
+                processed numpy arrays. If preprocessing is not enabled,
+                returns `None`.
+
+        Examples:
+            To build a preprocessing function for training:
+
+            ```python
+            args = parser.parse_args()
+            preprocess_fn = SLUTask.build_preprocess_fn(args, train=True)
+            ```
+
+            To build a preprocessing function for inference:
+
+            ```python
+            args = parser.parse_args()
+            preprocess_fn = SLUTask.build_preprocess_fn(args, train=False)
+            ```
+
+        Note:
+            The preprocessing function is utilized to handle tasks such as
+            tokenization, noise reduction, and other data preparation steps
+            as specified by the command-line arguments.
+        """
         if args.use_preprocessor:
             retval = SLUPreprocessor(
                 train=train,
@@ -407,6 +536,53 @@ class SLUTask(ASRTask):
     def required_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
+        """
+            Defines the SLUTask class for building and training a Spoken Language
+        Understanding (SLU) model.
+
+        This class is a subclass of ASRTask and manages various components
+        involved in SLU, including data preprocessing, model building, and
+        argument parsing.
+
+        Attributes:
+            num_optimizers (int): Number of optimizers to use. Default is 1.
+            class_choices_list (list): List of class choices for various
+                components (frontend, encoder, decoder, etc.).
+            trainer (Trainer): The Trainer class used for training the model.
+
+        Args:
+            train (bool): Indicates if the data is for training. Default is True.
+            inference (bool): Indicates if the data is for inference. Default is
+                False.
+
+        Returns:
+            Tuple[str, ...]: A tuple of required data names based on the
+            training or inference mode.
+
+        Examples:
+            To get required data names for training:
+
+            >>> SLUTask.required_data_names(train=True)
+            ('speech', 'text')
+
+            To get required data names for inference:
+
+            >>> SLUTask.required_data_names(inference=True)
+            ('speech',)
+
+        Note:
+            The method distinguishes between training and inference modes to
+            specify the required data. During training, both 'speech' and
+            'text' data are needed, whereas during inference, only 'speech'
+            data is required.
+
+        Raises:
+            ValueError: If an invalid argument is passed to any method.
+
+        Todo:
+            - Implement additional features for handling different model
+            architectures.
+        """
         if not inference:
             retval = ("speech", "text")
         else:
@@ -418,12 +594,87 @@ class SLUTask(ASRTask):
     def optional_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
+        """
+            SLUTask is a class that encapsulates the task-related configurations
+        and methods for Speech Language Understanding (SLU) using an ASR model.
+
+        Attributes:
+            num_optimizers (int): The number of optimizers to be used during training.
+            class_choices_list (list): A list of class choices for various components
+                like frontend, encoder, decoder, etc.
+            trainer (Trainer): The class to be used for training procedures.
+
+        Methods:
+            add_task_arguments(parser: argparse.ArgumentParser): Adds task-related
+                arguments to the provided argument parser.
+            build_preprocess_fn(args: argparse.Namespace, train: bool) -> Optional[Callable]:
+                Builds a preprocessing function based on the provided arguments.
+            required_data_names(train: bool = True, inference: bool = False) -> Tuple[str, ...]:
+                Returns the required data names based on the training and inference modes.
+            optional_data_names(train: bool = True, inference: bool = False) -> Tuple[str, ...]:
+                Returns the optional data names.
+            build_model(args: argparse.Namespace) -> ESPnetSLUModel:
+                Builds and returns an instance of the ESPnetSLUModel based on the
+                provided arguments.
+
+        Examples:
+            To add task arguments:
+
+            >>> parser = argparse.ArgumentParser()
+            >>> SLUTask.add_task_arguments(parser)
+
+            To build a model:
+
+            >>> args = parser.parse_args()
+            >>> model = SLUTask.build_model(args)
+
+        Note:
+            The class supports a variety of configurations for frontends,
+            encoders, decoders, and other components necessary for SLU tasks.
+        """
         retval = ("transcript",)
         return retval
 
     @classmethod
     @typechecked
     def build_model(cls, args: argparse.Namespace) -> ESPnetSLUModel:
+        """
+                Builds the SLU model based on the provided arguments.
+
+        This method constructs the SLU model by configuring various components
+        such as the frontend, encoder, decoder, and additional layers based on
+        the parameters defined in the `args` namespace. It reads token lists
+        from files if provided and initializes the model accordingly.
+
+        Attributes:
+            args (argparse.Namespace): Command line arguments containing model
+            configurations and options.
+
+        Args:
+            args (argparse.Namespace): The command line arguments containing
+            configuration options for building the model.
+
+        Returns:
+            ESPnetSLUModel: An instance of the SLU model constructed with the
+            specified configurations.
+
+        Raises:
+            RuntimeError: If `token_list` or `transcript_token_list` is not
+            a string or a list.
+
+        Examples:
+            >>> import argparse
+            >>> args = argparse.Namespace(
+            ...     token_list="path/to/token_list.txt",
+            ...     transcript_token_list="path/to/transcript_token_list.txt",
+            ...     input_size=None,
+            ...     frontend="default",
+            ...     encoder="conformer",
+            ...     decoder="transformer",
+            ...     model_conf={},
+            ... )
+            >>> model = SLUTask.build_model(args)
+        """
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
                 token_list = [line.rstrip() for line in f]

@@ -190,6 +190,53 @@ diar_attributes = [
 
 
 class EnhS2TTask(AbsTask):
+    """
+    A task class for enhancing speech-to-text (S2T) tasks, which includes
+    functionalities for speech enhancement, automatic speech recognition (ASR),
+    and potentially other subtasks such as diarization and speech translation.
+
+    This class inherits from AbsTask and provides methods for adding task
+    arguments, building collate functions, preprocessing data, and creating
+    models for the various subtasks involved in speech enhancement and
+    recognition.
+
+    Attributes:
+        num_optimizers (int): Number of optimizers used for training.
+        class_choices_list (List): A list of class choices for model components
+            including encoders, decoders, and other task-specific components.
+
+    Methods:
+        add_task_arguments(parser: argparse.ArgumentParser): Adds task-specific
+            arguments to the provided argument parser.
+        build_collate_fn(args: argparse.Namespace, train: bool) -> Callable:
+            Builds a collate function for data loading.
+        build_preprocess_fn(args: argparse.Namespace, train: bool) -> Optional[Callable]:
+            Builds a preprocessing function based on provided arguments.
+        required_data_names(train: bool = True, inference: bool = False) -> Tuple[str, ...]:
+            Returns the names of required data for training or inference.
+        optional_data_names(train: bool = True, inference: bool = False) -> Tuple[str, ...]:
+            Returns the names of optional data for training or inference.
+        build_model(args: argparse.Namespace) -> ESPnetEnhS2TModel:
+            Constructs the ESPnetEnhS2TModel using the provided configuration.
+
+    Examples:
+        # To add task arguments
+        parser = argparse.ArgumentParser()
+        EnhS2TTask.add_task_arguments(parser)
+
+        # To build a model
+        args = parser.parse_args()
+        model = EnhS2TTask.build_model(args)
+
+    Note:
+        The class can be extended or modified to include additional
+        functionalities or support for more subtasks as needed.
+
+    Todo:
+        - Add more detailed logging for model building steps.
+        - Implement unit tests for each method to ensure functionality.
+    """
+
     # If you need more than one optimizers, change this value
     num_optimizers: int = 1
 
@@ -250,6 +297,42 @@ class EnhS2TTask(AbsTask):
 
     @classmethod
     def add_task_arguments(cls, parser: argparse.ArgumentParser):
+        """
+            Adds task-specific arguments to the provided argument parser.
+
+        This method configures the argument parser to accept various command-line
+        arguments related to the enhancement, ASR, speech translation, and
+        diarization tasks. It groups the arguments into task-related and
+        preprocess-related categories.
+
+        Args:
+            cls: The class type, typically `EnhS2TTask`.
+            parser (argparse.ArgumentParser): The argument parser to which the
+                task arguments will be added.
+
+        Examples:
+            To add task arguments to an argument parser, you can use the method
+            as follows:
+
+            ```python
+            import argparse
+            from your_package import EnhS2TTask
+
+            parser = argparse.ArgumentParser()
+            EnhS2TTask.add_task_arguments(parser)
+            args = parser.parse_args()
+            ```
+
+        Note:
+            The method defines several argument groups, allowing for organized
+            command-line interface (CLI) management of task configurations.
+            Ensure that the required libraries and dependencies are installed
+            for argument parsing and type checking.
+
+        Raises:
+            ValueError: If an invalid argument is provided that does not match
+                the expected types or choices.
+        """
         group = parser.add_argument_group(description="Task related")
 
         group.add_argument(
@@ -433,7 +516,40 @@ class EnhS2TTask(AbsTask):
     @classmethod
     @typechecked
     def build_collate_fn(cls, args: argparse.Namespace, train: bool) -> Callable[
-        [Collection[Tuple[str, Dict[str, np.ndarray]]]],
+        """
+        Builds a collate function for preparing batches of data during training or 
+    evaluation.
+
+    This method creates a collate function that takes a collection of tuples 
+    containing the data samples and their associated metadata. The function 
+    will pad the input data appropriately based on the specified padding values.
+
+    Args:
+        args (argparse.Namespace): The command-line arguments containing 
+            configuration settings for the task.
+        train (bool): A flag indicating whether the collate function is being 
+            built for training (True) or evaluation (False).
+
+    Returns:
+        Callable[[Collection[Tuple[str, Dict[str, np.ndarray]]]], 
+                 Tuple[List[str], Dict[str, torch.Tensor]]]:
+            A collate function that processes input data and prepares it for 
+            batching.
+
+    Note:
+        The padding values are set such that float values are padded with 
+        `0.0` and integer values are padded with `-1`. The integer value `0` 
+        is reserved for the CTC-blank symbol.
+
+    Examples:
+        >>> collate_fn = EnhS2TTask.build_collate_fn(args, train=True)
+        >>> batch_data = collate_fn([("id1", {"feature": np.array([1, 2])}),
+                                      ("id2", {"feature": np.array([3])})])
+        >>> print(batch_data)
+        (['id1', 'id2'], {'feature': tensor([[1, 2], [3, -1]])})
+        """[
+            Collection[Tuple[str, Dict[str, np.ndarray]]]
+        ],
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
         # NOTE(kamo): int value = 0 is reserved by CTC-blank symbol
@@ -444,6 +560,38 @@ class EnhS2TTask(AbsTask):
     def build_preprocess_fn(
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
+        """
+        Builds a preprocessing function based on the provided arguments and training
+        state.
+
+        This method creates a callable function that will preprocess the input data
+        according to the specified subtask series. If the `use_preprocessor` argument
+        is set to True, the appropriate preprocessing strategy is chosen based on
+        the presence of subtasks like "st" (speech translation) or "diar"
+        (diarization).
+
+        Args:
+            args (argparse.Namespace): Command line arguments that specify various
+                configurations for the preprocessing.
+            train (bool): A flag indicating whether the preprocessing function is
+                being built for training or evaluation.
+
+        Returns:
+            Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
+                A callable preprocessing function that processes the input data,
+                or None if preprocessing is not enabled.
+
+        Examples:
+            >>> args = argparse.Namespace()
+            >>> args.use_preprocessor = True
+            >>> args.subtask_series = ['enh', 'asr']
+            >>> preprocess_fn = EnhS2TTask.build_preprocess_fn(args, train=True)
+            >>> result = preprocess_fn('input_file.wav', {'key': np.array([1, 2, 3])})
+
+        Note:
+            The returned function will vary depending on the specified
+            subtask series and preprocessing configurations.
+        """
         if args.use_preprocessor:
             if "st" in args.subtask_series:
                 retval = MutliTokenizerCommonPreprocessor(
@@ -492,6 +640,30 @@ class EnhS2TTask(AbsTask):
     def required_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
+        """
+            Returns the required data names for the task.
+
+        The required data names depend on whether the task is in inference mode.
+        If not in inference mode, the required data names include the speech
+        input and the first reference speech. In inference mode, only the speech
+        input is required.
+
+        Args:
+            train (bool): A flag indicating if the task is in training mode.
+                Default is True.
+            inference (bool): A flag indicating if the task is in inference mode.
+                Default is False.
+
+        Returns:
+            Tuple[str, ...]: A tuple of required data names.
+
+        Examples:
+            >>> required_data_names()
+            ('speech', 'speech_ref1')
+
+            >>> required_data_names(inference=True)
+            ('speech',)
+        """
         if not inference:
             retval = ("speech", "speech_ref1")
         else:
@@ -503,6 +675,37 @@ class EnhS2TTask(AbsTask):
     def optional_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
+        """
+            Returns a tuple of optional data names that can be used in the task.
+
+        The method constructs a list of optional data names based on the training
+        and inference flags. It includes standard references such as "text",
+        "dereverb_ref1", and dynamically adds multiple references for speech,
+        noise, and speaker text based on the defined maximum number of references.
+
+        Args:
+            train (bool): A flag indicating whether the task is in training mode.
+                Defaults to True.
+            inference (bool): A flag indicating whether the task is in inference
+                mode. Defaults to False.
+
+        Returns:
+            Tuple[str, ...]: A tuple containing the names of optional data
+            attributes.
+
+        Examples:
+            >>> optional_names = EnhS2TTask.optional_data_names(train=True)
+            >>> print(optional_names)
+            ('text', 'dereverb_ref1', 'speech_ref2', 'speech_ref3', ...)
+
+            >>> optional_names = EnhS2TTask.optional_data_names(inference=True)
+            >>> print(optional_names)
+            ('text', 'dereverb_ref1', 'speech_ref1', ...)
+
+        Note:
+            The maximum number of speech and noise references is defined by
+            the constant `MAX_REFERENCE_NUM`, which is set to 100.
+        """
         retval = ["text", "dereverb_ref1"]
         st = 2 if "speech_ref1" in retval else 1
         retval += ["speech_ref{}".format(n) for n in range(st, MAX_REFERENCE_NUM + 1)]
@@ -515,6 +718,41 @@ class EnhS2TTask(AbsTask):
     @classmethod
     @typechecked
     def build_model(cls, args: argparse.Namespace) -> ESPnetEnhS2TModel:
+        """
+                Builds the enhancement speech-to-text (S2T) model based on the provided
+        configuration arguments. This method constructs submodels for each specified
+        subtask in the order of `subtask_series`, and initializes the main model.
+
+        Args:
+            args (argparse.Namespace): The argument namespace containing model
+                configuration and other necessary parameters.
+
+        Returns:
+            ESPnetEnhS2TModel: An instance of the enhancement S2T model configured
+                according to the specified arguments.
+
+        Raises:
+            ValueError: If a subtask specified in `subtask_series` is not supported.
+
+        Examples:
+            >>> import argparse
+            >>> args = argparse.Namespace(
+            ...     model_conf={'some_model_param': 'value'},
+            ...     subtask_series=['enh', 'asr'],
+            ...     enh_model_conf={'enh_param': 'value'},
+            ...     asr_model_conf={'asr_param': 'value'},
+            ...     # ... other required arguments
+            ... )
+            >>> model = EnhS2TTask.build_model(args)
+            >>> print(model)
+
+        Note:
+            Ensure that all required arguments are provided in `args` to avoid
+            initialization errors.
+
+        Todo:
+            - Implement better error handling for missing parameters.
+        """
 
         # Build submodels in the order of subtask_series
         model_conf = args.model_conf.copy()

@@ -97,6 +97,66 @@ model_choices = ClassChoices(
 
 
 class HubertTask(AbsTask):
+    """
+    HubertTask is a task class for training and evaluating HuBERT models in
+    speech processing tasks. It inherits from AbsTask and provides methods
+    to add task-specific arguments, build collate functions, preprocess data,
+    and construct the model architecture based on the given configurations.
+
+    This class supports various components, including frontends,
+    spec augmentation, normalization, pre-encoders, and encoders. It allows
+    customization through command-line arguments and facilitates easy
+    integration with different model architectures.
+
+    Attributes:
+        num_optimizers (int): The number of optimizers used in the task.
+        class_choices_list (list): A list of available class choices for
+            task components (frontend, specaug, normalize, preencoder,
+            encoder, model).
+        trainer (Trainer): The trainer class used for training and evaluation.
+
+    Args:
+        parser (argparse.ArgumentParser): The argument parser instance to
+            which task-specific arguments will be added.
+
+    Returns:
+        None
+
+    Yields:
+        None
+
+    Raises:
+        RuntimeError: If the token list is not a string or a list.
+
+    Examples:
+        To use HubertTask, you can initialize it and add task arguments as follows:
+
+        ```python
+        import argparse
+        from espnet2.tasks.hubert import HubertTask
+
+        parser = argparse.ArgumentParser(description="HuBERT Task Example")
+        HubertTask.add_task_arguments(parser)
+        args = parser.parse_args()
+        ```
+
+        You can then build the model based on the parsed arguments:
+
+        ```python
+        model = HubertTask.build_model(args)
+        ```
+
+    Note:
+        The original HuBERT work is detailed in the paper:
+        https://arxiv.org/pdf/2106.07447.pdf
+        The implementation can be found in Fairseq:
+        https://github.com/pytorch/fairseq/tree/master/examples/hubert
+
+    Todo:
+        - Add support for additional model architectures.
+        - Enhance error handling for argument parsing.
+    """
+
     # If you need more than one optimizers, change this value
     num_optimizers: int = 1
 
@@ -121,6 +181,36 @@ class HubertTask(AbsTask):
 
     @classmethod
     def add_task_arguments(cls, parser: argparse.ArgumentParser):
+        """
+            Adds task-specific arguments to the provided argument parser.
+
+        This method defines and adds various command-line arguments related to
+        the task and preprocessing. It organizes the arguments into groups for
+        clarity and ease of use. The added arguments include configurations for
+        token lists, initialization methods, input sizes, and various preprocessing
+        options.
+
+        Args:
+            cls: The class itself (HubertTask).
+            parser (argparse.ArgumentParser): The argument parser to which the
+                task-related arguments will be added.
+
+        Examples:
+            To add task arguments to a parser, you can do the following:
+
+            ```python
+            import argparse
+            from hubert_task import HubertTask
+
+            parser = argparse.ArgumentParser()
+            HubertTask.add_task_arguments(parser)
+            args = parser.parse_args()
+            ```
+
+        Note:
+            The method modifies the parser in place and does not return a value.
+            It is expected to be called as a class method.
+        """
         group = parser.add_argument_group(description="Task related")
 
         # NOTE(kamo): add_arguments(..., required=True) can't be used
@@ -271,7 +361,47 @@ class HubertTask(AbsTask):
     @classmethod
     @typechecked
     def build_collate_fn(cls, args: argparse.Namespace, train: bool) -> Callable[
-        [Collection[Tuple[str, Dict[str, np.ndarray]]]],
+        """
+        Builds a collate function for processing batches of data during training or 
+    evaluation.
+
+    This method constructs a callable that will be used to collate a batch of 
+    data into a format suitable for the model. It takes into account various 
+    configurations related to the data, such as sampling rate and padding.
+
+    Args:
+        args (argparse.Namespace): The command-line arguments containing various 
+            configurations, including `frontend_conf`, `collate_fn_conf`, and 
+            `encoder_conf`.
+        train (bool): A flag indicating whether the collate function is being 
+            built for training or evaluation.
+
+    Returns:
+        Callable[[Collection[Tuple[str, Dict[str, np.ndarray]]]], 
+                 Tuple[List[str], Dict[str, torch.Tensor]]]:
+            A callable that collates a batch of data.
+
+    Examples:
+        >>> from argparse import Namespace
+        >>> args = Namespace(
+        ...     frontend_conf={"fs": 16000},
+        ...     encoder_conf={},
+        ...     collate_fn_conf={"label_downsampling": 1, "pad": True}
+        ... )
+        >>> collate_fn = HubertTask.build_collate_fn(args, train=True)
+        >>> batch_data = collate_fn([("sample1", {"feature": np.array([1.0])}),
+        ...                            ("sample2", {"feature": np.array([2.0])})])
+        >>> print(batch_data)
+
+    Note:
+        The function assumes a default sampling rate of 16000 Hz if not 
+        specified in the `frontend_conf`.
+
+    Todo:
+        - Consider adding support for additional collate configurations.
+        """[
+            Collection[Tuple[str, Dict[str, np.ndarray]]]
+        ],
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
 
@@ -312,6 +442,37 @@ class HubertTask(AbsTask):
     def build_preprocess_fn(
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
+        """
+                Builds a preprocessing function for the HubertTask.
+
+        This function returns a callable that preprocesses the input data
+        according to the specified configuration. If preprocessing is not
+        enabled, it returns None.
+
+        Args:
+            args (argparse.Namespace): The arguments namespace containing the
+                preprocessing configurations.
+            train (bool): A flag indicating whether the preprocessing is for
+                training or not.
+
+        Returns:
+            Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
+                A preprocessing function that takes a string and a dictionary
+                of numpy arrays and returns a dictionary of numpy arrays, or
+                None if preprocessing is not enabled.
+
+        Examples:
+            # To build a preprocessing function for training
+            preprocess_fn = HubertTask.build_preprocess_fn(args, train=True)
+
+            # To use the preprocessing function
+            processed_data = preprocess_fn("input_file.wav", {"key": np.array([])})
+
+        Note:
+            The preprocessing function applies various transformations such as
+            tokenization, text cleaning, and volume normalization based on the
+            provided arguments.
+        """
         if args.use_preprocessor:
             retval = CommonPreprocessor(
                 train=train,
@@ -339,6 +500,32 @@ class HubertTask(AbsTask):
     def required_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
+        """
+            Returns the names of the required data for the Hubert task.
+
+        This method determines the required data names based on whether the task
+        is in training or inference mode. In training mode, both 'speech' and
+        'text' data are required. In inference mode, only 'speech' data is
+        needed.
+
+        Args:
+            train (bool): A flag indicating if the task is in training mode.
+                Default is True.
+            inference (bool): A flag indicating if the task is in inference mode.
+                Default is False.
+
+        Returns:
+            Tuple[str, ...]: A tuple containing the names of the required data.
+                If not in inference mode, returns ("speech", "text"). If in
+                inference mode, returns ("speech",).
+
+        Examples:
+            >>> HubertTask.required_data_names(train=True, inference=False)
+            ('speech', 'text')
+
+            >>> HubertTask.required_data_names(train=False, inference=True)
+            ('speech',)
+        """
         if not inference:
             retval = ("speech", "text")
         else:
@@ -350,6 +537,64 @@ class HubertTask(AbsTask):
     def optional_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
+        """
+            A task for training and evaluating Hubert models, inheriting from AbsTask.
+
+        This class encapsulates methods for adding task-specific arguments, building
+        data collators and preprocessors, and constructing the model. It also defines
+        the required and optional data names needed for training and inference.
+
+        Attributes:
+            num_optimizers (int): The number of optimizers to be used for training.
+            class_choices_list (list): List of class choices for different components
+                of the model, such as frontend, specaug, normalize, preencoder,
+                encoder, and model.
+            trainer (Trainer): The class used for training and evaluation procedures.
+
+        Args:
+            parser (argparse.ArgumentParser): The argument parser to which task
+                related arguments will be added.
+
+        Returns:
+            None
+
+        Yields:
+            None
+
+        Raises:
+            RuntimeError: If the token list is neither a string nor a list.
+
+        Examples:
+            To add task arguments to a parser:
+            ```python
+            parser = argparse.ArgumentParser()
+            HubertTask.add_task_arguments(parser)
+            ```
+
+            To build a collate function for training:
+            ```python
+            collate_fn = HubertTask.build_collate_fn(args, train=True)
+            ```
+
+            To build a preprocessor function:
+            ```python
+            preprocess_fn = HubertTask.build_preprocess_fn(args, train=True)
+            ```
+
+            To construct a model:
+            ```python
+            model = HubertTask.build_model(args)
+            ```
+
+        Note:
+            The class supports multiple configurations for frontend, specaug,
+            normalization, preencoder, encoder, and model, which can be specified
+            through command line arguments.
+
+        Todo:
+            - Implement additional validation for input parameters.
+            - Add more detailed logging for model building process.
+        """
         retval = ()
         return retval
 
@@ -358,6 +603,42 @@ class HubertTask(AbsTask):
     def build_model(
         cls, args: argparse.Namespace
     ) -> Union[HubertPretrainModel, TorchAudioHubertPretrainModel]:
+        """
+        Builds and initializes the model based on provided arguments.
+
+        This method constructs a Hubert model, including various components
+        such as the frontend, data augmentation, normalization, pre-encoder,
+        and encoder, using the configuration specified in the input arguments.
+
+        Args:
+            args (argparse.Namespace): The namespace containing configuration
+                parameters for building the model.
+
+        Returns:
+            Union[HubertPretrainModel, TorchAudioHubertPretrainModel]:
+                An instance of the Hubert model specified in the configuration.
+
+        Raises:
+            RuntimeError: If the `token_list` argument is not of type str or list.
+
+        Examples:
+            >>> args = argparse.Namespace(
+            ...     token_list="path/to/token_list.txt",
+            ...     input_size=None,
+            ...     num_classes=10,
+            ...     frontend="default",
+            ...     frontend_conf={"fs": 16000},
+            ...     specaug=None,
+            ...     normalize="utterance_mvn",
+            ...     preencoder=None,
+            ...     encoder="hubert_pretrain",
+            ...     model="fairseq",
+            ...     model_conf={},
+            ...     init="xavier_uniform"
+            ... )
+            >>> model = HubertTask.build_model(args)
+            >>> print(model)
+        """
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
                 token_list = [line.rstrip() for line in f]

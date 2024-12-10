@@ -206,6 +206,55 @@ preprocessor_choices = ClassChoices(
 
 
 class ASRTask(AbsTask):
+    """
+    Automatic Speech Recognition (ASR) Task.
+
+    This class defines the ASR task and contains methods for handling the task
+    configuration, model building, data preprocessing, and argument parsing.
+
+    Attributes:
+        num_optimizers (int): Number of optimizers to use for training.
+        class_choices_list (list): List of class choices for various components
+            of the ASR system, including frontend, encoder, decoder, etc.
+        trainer (Trainer): Trainer class for managing the training process.
+
+    Methods:
+        add_task_arguments(parser: argparse.ArgumentParser): Adds arguments
+            specific to the ASR task to the provided argument parser.
+        build_collate_fn(args: argparse.Namespace, train: bool) -> Callable:
+            Builds a collate function for batching data during training or
+            evaluation.
+        build_preprocess_fn(args: argparse.Namespace, train: bool) -> Optional[Callable]:
+            Builds a preprocessing function based on the specified arguments.
+        required_data_names(train: bool = True, inference: bool = False) -> Tuple[str, ...]:
+            Returns the names of required data for the ASR task.
+        optional_data_names(train: bool = True, inference: bool = False) -> Tuple[str, ...]:
+            Returns the names of optional data for the ASR task.
+        build_model(args: argparse.Namespace) -> ESPnetASRModel:
+            Constructs and returns an instance of the ASR model based on the
+            provided configuration arguments.
+
+    Examples:
+        To create an ASR task and add arguments:
+
+        ```python
+        parser = argparse.ArgumentParser()
+        ASRTask.add_task_arguments(parser)
+        args = parser.parse_args()
+        ```
+
+        To build the model:
+
+        ```python
+        model = ASRTask.build_model(args)
+        ```
+
+    Note:
+        This class is intended to be used as part of the ESPnet framework for
+        speech processing tasks. Ensure that the necessary components are
+        installed and configured before using this class.
+    """
+
     # If you need more than one optimizers, change this value
     num_optimizers: int = 1
 
@@ -236,6 +285,39 @@ class ASRTask(AbsTask):
 
     @classmethod
     def add_task_arguments(cls, parser: argparse.ArgumentParser):
+        """
+            Adds task-related command-line arguments to the provided argument parser.
+
+        This method defines various arguments required for configuring the ASR task.
+        It adds options for token mapping, initialization methods, input size, CTC
+        configuration, joint network configuration, preprocessing options, and more.
+
+        Args:
+            parser (argparse.ArgumentParser): The argument parser to which the
+                task-related arguments will be added.
+
+        Examples:
+            To add task arguments to a parser, use the following code:
+
+            ```python
+            import argparse
+            from your_module import ASRTask
+
+            parser = argparse.ArgumentParser()
+            ASRTask.add_task_arguments(parser)
+            args = parser.parse_args()
+            ```
+
+        Note:
+            This method modifies the parser in place and is intended to be called
+            during the argument parsing setup of the ASR task.
+
+        Raises:
+            Any exceptions raised by the underlying methods for argument addition.
+
+        Todo:
+            - Consider adding more options for future task configurations.
+        """
         group = parser.add_argument_group(description="Task related")
 
         # NOTE(kamo): add_arguments(..., required=True) can't be used
@@ -410,7 +492,40 @@ class ASRTask(AbsTask):
     @classmethod
     @typechecked
     def build_collate_fn(cls, args: argparse.Namespace, train: bool) -> Callable[
-        [Collection[Tuple[str, Dict[str, np.ndarray]]]],
+        """
+        Build a collate function for the ASR task.
+
+    This method constructs a collate function that can be used to process a 
+    batch of data during training or evaluation. The collate function handles 
+    padding of sequences to ensure uniform input sizes for the model.
+
+    Args:
+        args (argparse.Namespace): The command line arguments parsed from the 
+            configuration.
+        train (bool): A flag indicating whether the collate function is being 
+            built for training or evaluation.
+
+    Returns:
+        Callable[[Collection[Tuple[str, Dict[str, np.ndarray]]]], 
+                 Tuple[List[str], Dict[str, torch.Tensor]]]:
+            A callable that takes a collection of tuples (where each tuple 
+            contains a string identifier and a dictionary of numpy arrays) 
+            and returns a tuple containing a list of string identifiers and 
+            a dictionary of tensors.
+
+    Examples:
+        >>> collate_fn = ASRTask.build_collate_fn(args, train=True)
+        >>> batch_data = [
+        ...     ("audio1", {"feature": np.array([1.0, 2.0])}),
+        ...     ("audio2", {"feature": np.array([3.0, 4.0])}),
+        ... ]
+        >>> identifiers, tensor_dict = collate_fn(batch_data)
+
+    Note:
+        The int value 0 is reserved by the CTC-blank symbol.
+        """[
+            Collection[Tuple[str, Dict[str, np.ndarray]]]
+        ],
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
         # NOTE(kamo): int value = 0 is reserved by CTC-blank symbol
@@ -421,6 +536,50 @@ class ASRTask(AbsTask):
     def build_preprocess_fn(
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
+        """
+        Builds a preprocessing function based on the provided arguments.
+
+        This method constructs a preprocessing function that applies
+        the specified preprocessor to the input data. The preprocessor
+        can be customized through the command-line arguments, allowing
+        for different tokenization and data cleaning strategies.
+
+        Args:
+            args (argparse.Namespace): The command-line arguments containing
+                the configuration for the preprocessor and other settings.
+            train (bool): A flag indicating whether the function is being
+                built for training or inference.
+
+        Returns:
+            Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
+                A callable function that takes a string and a dictionary
+                as input and returns a dictionary of preprocessed data.
+                Returns None if preprocessing is not enabled.
+
+        Raises:
+            Exception: Raises an exception if there is an error when
+                retrieving or instantiating the preprocessor class.
+
+        Examples:
+            To use this function, you would typically call it in the context
+            of an ASR task setup:
+
+            ```python
+            preprocess_fn = ASRTask.build_preprocess_fn(args, train=True)
+            processed_data = preprocess_fn("sample.wav", {"text": "hello"})
+            ```
+
+            If preprocessing is not needed, it will return None:
+
+            ```python
+            preprocess_fn = ASRTask.build_preprocess_fn(args, train=False)
+            assert preprocess_fn is None
+            ```
+
+        Note:
+            Ensure that the `--use_preprocessor` argument is set to True
+            to enable preprocessing.
+        """
         if args.use_preprocessor:
             try:
                 _ = getattr(args, "preprocessor")
@@ -478,6 +637,32 @@ class ASRTask(AbsTask):
     def required_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
+        """
+            Retrieves the required data names for the ASR task based on the mode of
+        operation (training or inference).
+
+        This method returns a tuple containing the names of the required data. If
+        the task is in inference mode, it returns only the 'speech' data name.
+        Otherwise, it returns both 'speech' and 'text'.
+
+        Args:
+            train (bool): Indicates whether the task is in training mode.
+                          Default is True.
+            inference (bool): Indicates whether the task is in inference mode.
+                              Default is False.
+
+        Returns:
+            Tuple[str, ...]: A tuple of required data names. If not in inference,
+                             returns ("speech", "text"). If in inference, returns
+                             ("speech",).
+
+        Examples:
+            >>> ASRTask.required_data_names(train=True, inference=False)
+            ('speech', 'text')
+
+            >>> ASRTask.required_data_names(train=True, inference=True)
+            ('speech',)
+        """
         if not inference:
             retval = ("speech", "text")
         else:
@@ -489,6 +674,32 @@ class ASRTask(AbsTask):
     def optional_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
+        """
+            Returns a tuple of optional data names used in the ASR task.
+
+        This method generates a list of optional data names based on whether the
+        task is for training or inference. The optional data names can include
+        speaker-specific text references and prompts.
+
+        Attributes:
+            MAX_REFERENCE_NUM (int): The maximum number of reference speakers.
+
+        Args:
+            train (bool): A flag indicating whether the task is for training.
+                Default is True.
+            inference (bool): A flag indicating whether the task is for inference.
+                Default is False.
+
+        Returns:
+            Tuple[str, ...]: A tuple containing the optional data names.
+
+        Examples:
+            >>> ASRTask.optional_data_names(train=True, inference=False)
+            ('text_spk2', 'text_spk3', 'text_spk4', 'prompt')
+
+            >>> ASRTask.optional_data_names(train=False, inference=True)
+            ()
+        """
         MAX_REFERENCE_NUM = 4
 
         retval = ["text_spk{}".format(n) for n in range(2, MAX_REFERENCE_NUM + 1)]
@@ -501,6 +712,39 @@ class ASRTask(AbsTask):
     @classmethod
     @typechecked
     def build_model(cls, args: argparse.Namespace) -> ESPnetASRModel:
+        """
+        Build and initialize an ASR model based on the provided arguments.
+
+        This method constructs the ASR model by sequentially creating
+        components such as frontend, encoder, postencoder, and decoder
+        according to the specified configurations in the `args` parameter.
+        The method also handles token list initialization and the
+        optional integration of a joint network for transducer models.
+
+        Args:
+            args (argparse.Namespace): The command line arguments parsed
+                into a namespace, which include configurations for the
+                model components.
+
+        Returns:
+            ESPnetASRModel: An instance of the ASR model configured as
+                per the provided arguments.
+
+        Raises:
+            RuntimeError: If the token_list is neither a string nor a list.
+
+        Examples:
+            >>> args = argparse.Namespace()
+            >>> args.token_list = "path/to/token_list.txt"
+            >>> args.input_size = None
+            >>> model = ASRTask.build_model(args)
+            >>> print(model)
+
+        Note:
+            The method assumes that the necessary classes for each
+            component (e.g., frontend, encoder, decoder) have been
+            defined and registered in the respective class choices.
+        """
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
                 token_list = [line.rstrip() for line in f]

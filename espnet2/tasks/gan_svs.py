@@ -135,7 +135,61 @@ svs_choices = ClassChoices(
 
 
 class GANSVSTask(AbsTask):
-    """GAN-based Singing-voice-synthesis task."""
+    """
+    GAN-based Singing-voice-synthesis task.
+
+    This class implements a task for singing voice synthesis using Generative
+    Adversarial Networks (GANs). It manages the configurations for various
+    components including feature extraction, normalization, and model building.
+
+    Attributes:
+        num_optimizers (int): The number of optimizers required for GAN training.
+        class_choices_list (List[ClassChoices]): List of available class choices
+            for various components in the task.
+        trainer (Type[GANTrainer]): The trainer class used for this task.
+
+    Methods:
+        add_task_arguments(parser: argparse.ArgumentParser):
+            Adds task-specific arguments to the provided argument parser.
+
+        build_collate_fn(args: argparse.Namespace, train: bool) -> Callable:
+            Builds a collate function for processing batches of data.
+
+        build_preprocess_fn(args: argparse.Namespace, train: bool) -> Optional[Callable]:
+            Builds a preprocessing function based on the provided arguments.
+
+        required_data_names(train: bool = True, inference: bool = False) -> Tuple[str, ...]:
+            Returns a tuple of required data names based on training or inference mode.
+
+        optional_data_names(train: bool = True, inference: bool = False) -> Tuple[str, ...]:
+            Returns a tuple of optional data names based on training or inference mode.
+
+        build_model(args: argparse.Namespace) -> ESPnetGANSVSModel:
+            Builds and returns an instance of the ESPnetGANSVSModel based on
+            the provided arguments.
+
+        build_optimizers(args: argparse.Namespace, model: ESPnetGANSVSModel) -> List[torch.optim.Optimizer]:
+            Builds and returns a list of optimizers for training the model.
+
+    Examples:
+        # To add task arguments
+        parser = argparse.ArgumentParser()
+        GANSVSTask.add_task_arguments(parser)
+
+        # To build a model
+        args = parser.parse_args()
+        model = GANSVSTask.build_model(args)
+
+        # To build optimizers
+        optimizers = GANSVSTask.build_optimizers(args, model)
+
+    Note:
+        This task is designed to work with various feature extraction methods,
+        normalization techniques, and SVS models.
+
+    Todo:
+        - Check new names for class choices and configurations.
+    """
 
     # GAN requires two optimizers
     num_optimizers: int = 2
@@ -170,6 +224,42 @@ class GANSVSTask(AbsTask):
     @classmethod
     @typechecked
     def add_task_arguments(cls, parser: argparse.ArgumentParser):
+        """
+        Adds task-related arguments to the provided argument parser.
+
+        This method defines command-line arguments specific to the GAN-based
+        Singing-voice-synthesis (SVS) task, including configurations for model
+        parameters, preprocessing options, and feature extraction settings.
+
+        Args:
+            cls: The class itself, used for adding class-specific arguments.
+            parser (argparse.ArgumentParser): The argument parser to which the
+                task-related arguments will be added.
+
+        Examples:
+            To add task arguments to a parser:
+
+            ```python
+            import argparse
+            from gansvs_task import GANSVSTask
+
+            parser = argparse.ArgumentParser()
+            GANSVSTask.add_task_arguments(parser)
+            args = parser.parse_args()
+            ```
+
+        Note:
+            This method automatically appends argument groups for various
+            configurable components like postfrontend, score extractor,
+            and normalization options.
+
+        Raises:
+            ValueError: If there is an issue with the provided argument
+                configurations.
+
+        Todo:
+            - Ensure all required arguments are validated.
+        """
         # NOTE(kamo): Use '_' instead of '-' to avoid confusion
         group = parser.add_argument_group(description="Task related")
 
@@ -262,6 +352,41 @@ class GANSVSTask(AbsTask):
         [Collection[Tuple[str, Dict[str, np.ndarray]]]],
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
+        """
+            Builds a collate function for processing batches of data during training or
+        evaluation.
+
+        This method constructs a callable that takes a collection of tuples, where
+        each tuple consists of a string (usually the file path or identifier) and a
+        dictionary containing NumPy arrays representing various features. The
+        callable returns a tuple containing a list of strings and a dictionary of
+        PyTorch tensors, appropriately padded for batch processing.
+
+        Args:
+            args (argparse.Namespace): The argument namespace containing configurations
+                for the task.
+            train (bool): A flag indicating whether the collate function is being
+                built for training or evaluation.
+
+        Returns:
+            Callable[[Collection[Tuple[str, Dict[str, np.ndarray]]],
+            Tuple[List[str], Dict[str, torch.Tensor]]]: A collate function that
+            can be used to process batches of data.
+
+        Examples:
+            >>> collate_fn = GANSVSTask.build_collate_fn(args, train=True)
+            >>> batch = [
+            ...     ("file1", {"feature1": np.array([1, 2]), "feature2": np.array([3])}),
+            ...     ("file2", {"feature1": np.array([4]), "feature2": np.array([5, 6])}),
+            ... ]
+            >>> file_ids, tensors = collate_fn(batch)
+            >>> print(file_ids)  # Output: ['file1', 'file2']
+            >>> print(tensors)   # Output: {'feature1': tensor(...), 'feature2': tensor(...)}
+
+        Note:
+            This function utilizes the CommonCollateFn for handling padding of
+            sequences and other necessary adjustments for batching.
+        """
         return CommonCollateFn(
             float_pad_value=0.0,
             int_pad_value=0,
@@ -273,6 +398,41 @@ class GANSVSTask(AbsTask):
     def build_preprocess_fn(
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
+        """
+            Builds a preprocessing function for the GAN-based Singing-voice-synthesis task.
+
+        This function creates a callable that preprocesses input data based on the
+        provided arguments. If preprocessing is enabled, it initializes an instance
+        of the `SVSPreprocessor` with the specified configurations. If preprocessing
+        is not enabled, it returns `None`.
+
+        Args:
+            cls: The class reference.
+            args (argparse.Namespace): Command-line arguments containing configuration
+                options for preprocessing.
+            train (bool): A flag indicating whether the function is being called
+                for training or not.
+
+        Returns:
+            Optional[Callable[[str, Dict[str, np.ndarray]], Dict[str, np.ndarray]]]:
+                A callable that preprocesses the input data, or `None` if
+                preprocessing is not enabled.
+
+        Examples:
+            >>> args = argparse.Namespace()
+            >>> args.use_preprocessor = True
+            >>> args.token_type = "phn"
+            >>> args.token_list = "path/to/token_list.txt"
+            >>> preprocess_fn = GANSVSTask.build_preprocess_fn(args, train=True)
+            >>> processed_data = preprocess_fn("input_text", {"feature": np.array([])})
+
+        Note:
+            The `SVSPreprocessor` requires specific configurations to function
+            correctly. Ensure that the necessary arguments are provided.
+
+        Todo:
+            - Consider adding more options for preprocessing customization.
+        """
         if args.use_preprocessor:
             retval = SVSPreprocessor(
                 train=train,
@@ -294,6 +454,32 @@ class GANSVSTask(AbsTask):
     def required_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
+        """
+            Returns the required data names for the GAN-based Singing-voice-synthesis task.
+
+        The method returns a tuple of required data names based on whether the task
+        is in training or inference mode. The required data names differ in the
+        inference mode where the 'singing' data is not required.
+
+        Args:
+            train (bool): A flag indicating if the task is in training mode. Default
+                is True.
+            inference (bool): A flag indicating if the task is in inference mode.
+                Default is False.
+
+        Returns:
+            Tuple[str, ...]: A tuple containing the names of the required data. The
+            names will be:
+                - In training mode: ("text", "singing", "score", "label")
+                - In inference mode: ("text", "score", "label")
+
+        Examples:
+            >>> GANSVSTask.required_data_names(train=True, inference=False)
+            ('text', 'singing', 'score', 'label')
+
+            >>> GANSVSTask.required_data_names(train=False, inference=True)
+            ('text', 'score', 'label')
+        """
         if not inference:
             retval = ("text", "singing", "score", "label")
         else:
@@ -305,6 +491,32 @@ class GANSVSTask(AbsTask):
     def optional_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
+        """
+            Returns the optional data names used in the GAN-based Singing-voice-synthesis
+        task.
+
+        The returned names depend on whether the task is in training or inference mode.
+        In training mode, optional data names include speaker embeddings, durations,
+        pitch, energy, speaker IDs, language IDs, features, and ying. In inference mode,
+        the optional data names include speaker embeddings, singing, pitch, durations,
+        speaker IDs, and language IDs.
+
+        Args:
+            train (bool): Indicates whether the task is in training mode. Default is
+                True.
+            inference (bool): Indicates whether the task is in inference mode. Default
+                is False.
+
+        Returns:
+            Tuple[str, ...]: A tuple containing the names of optional data.
+
+        Examples:
+            >>> GANSVSTask.optional_data_names(train=True, inference=False)
+            ('spembs', 'durations', 'pitch', 'energy', 'sids', 'lids', 'feats', 'ying')
+
+            >>> GANSVSTask.optional_data_names(train=False, inference=True)
+            ('spembs', 'singing', 'pitch', 'durations', 'sids', 'lids')
+        """
         if not inference:
             retval = (
                 "spembs",
@@ -324,6 +536,41 @@ class GANSVSTask(AbsTask):
     @classmethod
     @typechecked
     def build_model(cls, args: argparse.Namespace) -> ESPnetGANSVSModel:
+        """
+        Builds the ESPnet GANSVS model based on the provided arguments.
+
+        This method configures the model by creating necessary components such as
+        feature extractors, normalization layers, and the main SVS model. It reads
+        the token list from a file or directly from the arguments and initializes
+        the model components according to the specified configurations.
+
+        Args:
+            args (argparse.Namespace): The arguments containing model
+                configurations, feature extractor types, and other relevant
+                parameters.
+
+        Returns:
+            ESPnetGANSVSModel: An instance of the ESPnet GANSVS model configured
+                with the specified components.
+
+        Raises:
+            RuntimeError: If `token_list` is neither a string nor a valid list.
+
+        Examples:
+            >>> from argparse import Namespace
+            >>> args = Namespace(
+            ...     token_list="path/to/token_list.txt",
+            ...     odim=None,
+            ...     feats_extract="linear_spectrogram",
+            ...     feats_extract_conf={"hop_length": 256},
+            ...     postfrontend="s3prl",
+            ...     postfrontend_conf={"some_param": "value"},
+            ...     normalize="global_mvn",
+            ...     model_conf={"additional_param": "value"}
+            ... )
+            >>> model = GANSVSTask.build_model(args)
+            >>> print(model)
+        """
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
                 token_list = [line.rstrip() for line in f]
@@ -457,6 +704,35 @@ class GANSVSTask(AbsTask):
         args: argparse.Namespace,
         model: ESPnetGANSVSModel,
     ) -> List[torch.optim.Optimizer]:
+        """
+        Builds the optimizers for the GAN-based Singing-voice-synthesis model.
+
+        This method creates two optimizers: one for the generator and one for
+        the discriminator of the GAN model. It retrieves the optimizer classes
+        based on the specified arguments and initializes them with the model's
+        parameters.
+
+        Args:
+            args (argparse.Namespace): The arguments containing optimizer
+                configurations and settings.
+            model (ESPnetGANSVSModel): The ESPnet GAN-based Singing-voice-synthesis
+                model for which the optimizers are to be created.
+
+        Returns:
+            List[torch.optim.Optimizer]: A list containing the generator and
+                discriminator optimizers.
+
+        Raises:
+            ValueError: If the specified optimizer class is not recognized.
+            RuntimeError: If `fairscale` is required but not installed.
+
+        Examples:
+            >>> from espnet2.gan_svs.espnet_model import ESPnetGANSVSModel
+            >>> args = ...  # Arguments containing optimizer configurations
+            >>> model = ESPnetGANSVSModel(...)  # Model initialization
+            >>> optimizers = GANSVSTask.build_optimizers(args, model)
+            >>> assert len(optimizers) == 2  # Ensure two optimizers are created
+        """
         # check
         assert hasattr(model.svs, "generator")
         assert hasattr(model.svs, "discriminator")
