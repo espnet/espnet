@@ -21,10 +21,7 @@ log "$0 $*"
 . ./path.sh
 . ./cmd.sh
 
-if [ $# -ne 0 ]; then
-    log "Error: No positional arguments are required."
-    exit 2
-fi
+FOLD=${1:-1}
 
 if [ -z "${ESC50}" ]; then
     log "Fill the value of 'ESC50' of db.sh"
@@ -44,6 +41,17 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     mkdir -p data/{train,valid,test}
     python3 local/data_prep.py ${ESC50}
     for x in test valid train; do
+        for f in text wav.scp utt2spk; do
+            sort data/${x}/${f} -o data/${x}/${f}
+        done
+        utils/utt2spk_to_spk2utt.pl data/${x}/utt2spk > "data/${x}/spk2utt"
+        utils/validate_data_dir.sh --no-feats data/${x} || exit 1
+    done
+
+    # Prepare data for 5-fold cross-validation
+    echo "Preparing data for fold ${FOLD}"
+    python3 local/data_prep_multi_folds.py ${ESC50} ${FOLD}
+    for x in val${FOLD} train${FOLD}; do
         for f in text wav.scp utt2spk; do
             sort data/${x}/${f} -o data/${x}/${f}
         done
