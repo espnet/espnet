@@ -15,6 +15,64 @@ is_torch_1_10_plus = V(torch.__version__) >= V("1.10.0")
 
 
 class Stft(torch.nn.Module, InversibleInterface):
+    """
+        Stft is a PyTorch module for computing the Short-Time Fourier Transform (STFT)
+    and its inverse. It provides an efficient implementation for transforming time-domain
+    signals into the frequency domain, supporting multi-channel inputs.
+
+    Attributes:
+        n_fft (int): Number of FFT points.
+        win_length (int): Length of the window. If None, defaults to n_fft.
+        hop_length (int): Number of samples between each STFT frame.
+        window (str): Type of window to apply. Must be a valid PyTorch window function.
+        center (bool): If True, pads the input signal to ensure that the frames are centered.
+        normalized (bool): If True, normalizes the output by the window length.
+        onesided (bool): If True, returns a one-sided spectrum.
+
+    Args:
+        n_fft (int): Number of FFT points (default: 512).
+        win_length (Optional[int]): Length of the window (default: None).
+        hop_length (int): Number of samples between frames (default: 128).
+        window (Optional[str]): Type of window (default: "hann").
+        center (bool): Center the signal before processing (default: True).
+        normalized (bool): Normalize the output (default: False).
+        onesided (bool): Return one-sided spectrum (default: True).
+
+    Returns:
+        Tuple[torch.Tensor, Optional[torch.Tensor]]:
+            output: The STFT output tensor of shape
+                    (Batch, Frames, Freq, 2) or
+                    (Batch, Frames, Channels, Freq, 2).
+            ilens: Optional tensor indicating the lengths of the input signals.
+
+    Yields:
+        None
+
+    Raises:
+        ValueError: If the specified window is not implemented in PyTorch.
+        NotImplementedError: If called in training mode on devices not supporting
+        the training mode with librosa.
+
+    Examples:
+        # Create an instance of Stft
+        stft = Stft(n_fft=1024, hop_length=256)
+
+        # Compute the STFT
+        input_tensor = torch.randn(8, 16000)  # Batch of 8 audio samples
+        output, ilens = stft(input_tensor)
+
+        # Compute the inverse STFT
+        reconstructed_wavs, ilens = stft.inverse(output, ilens)
+
+    Note:
+        The STFT implementation is compatible with librosa's STFT regarding
+        padding and scaling. Note that it differs from scipy.signal.stft.
+
+    Todo:
+        - Add support for additional window types.
+        - Implement further optimizations for the inverse STFT process.
+    """
+
     @typechecked
     def __init__(
         self,
@@ -41,6 +99,30 @@ class Stft(torch.nn.Module, InversibleInterface):
         self.window = window
 
     def extra_repr(self):
+        """
+            Returns a string representation of the STFT parameters for logging.
+
+        This method provides a summary of the key parameters used in the STFT
+        (Short-Time Fourier Transform) configuration. The output is useful for
+        debugging and understanding the current setup of the STFT instance.
+
+        Attributes:
+            n_fft (int): The number of FFT points.
+            win_length (int): The length of each windowed segment.
+            hop_length (int): The number of samples between successive frames.
+            center (bool): Whether to pad the input signal on both sides.
+            normalized (bool): Whether to normalize the output.
+            onesided (bool): Whether to return a one-sided spectrum.
+
+        Returns:
+            str: A string representation of the STFT parameters.
+
+        Examples:
+            >>> stft = Stft(n_fft=1024, win_length=512, hop_length=256)
+            >>> print(stft.extra_repr())
+            n_fft=1024, win_length=512, hop_length=256, center=True,
+            normalized=False, onesided=True
+        """
         return (
             f"n_fft={self.n_fft}, "
             f"win_length={self.win_length}, "
@@ -53,14 +135,36 @@ class Stft(torch.nn.Module, InversibleInterface):
     def forward(
         self, input: torch.Tensor, ilens: torch.Tensor = None
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
-        """STFT forward function.
+        """
+        STFT forward function.
+
+        Computes the Short-Time Fourier Transform (STFT) of the input tensor.
 
         Args:
-            input: (Batch, Nsamples) or (Batch, Nsample, Channels)
-            ilens: (Batch)
-        Returns:
-            output: (Batch, Frames, Freq, 2) or (Batch, Frames, Channels, Freq, 2)
+            input: A tensor of shape (Batch, Nsamples) or
+                   (Batch, Nsample, Channels) representing the audio signal.
+            ilens: An optional tensor of shape (Batch) that specifies the length
+                   of each input signal. If provided, it will be used to mask
+                   the output.
 
+        Returns:
+            output: A tuple containing:
+                - A tensor of shape (Batch, Frames, Freq, 2) or
+                  (Batch, Frames, Channels, Freq, 2) representing the STFT
+                  output in the format of real and imaginary components.
+                - An optional tensor of shape (Batch) that contains the
+                  lengths of the output signals after STFT.
+
+        Note:
+            The output tensor contains the STFT results with real and
+            imaginary parts represented in the last dimension. The input
+            tensor can be either a single channel or multi-channel audio
+            signal.
+
+        Examples:
+            >>> stft_layer = Stft(n_fft=512, hop_length=128)
+            >>> audio_input = torch.randn(10, 16000)  # 10 samples, 16000 audio length
+            >>> output, output_lengths = stft_layer(audio_input)
         """
         bs = input.size(0)
         if input.dim() == 3:
@@ -178,14 +282,33 @@ class Stft(torch.nn.Module, InversibleInterface):
     def inverse(
         self, input: Union[torch.Tensor, ComplexTensor], ilens: torch.Tensor = None
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
-        """Inverse STFT.
+        """
+        Inverse STFT.
+
+        This function computes the inverse Short-Time Fourier Transform (iSTFT)
+        of the given input tensor, which can be a standard tensor or a complex
+        tensor. The inverse STFT is used to reconstruct the time-domain signal
+        from its frequency-domain representation.
 
         Args:
-            input: Tensor(batch, T, F, 2) or ComplexTensor(batch, T, F)
-            ilens: (batch,)
+            input: A tensor of shape (batch, T, F, 2) representing the complex
+                STFT output, or a ComplexTensor of shape (batch, T, F).
+            ilens: A tensor of shape (batch,) containing the lengths of the
+                original signals. If provided, it will be used to set the
+                output lengths accordingly.
+
         Returns:
-            wavs: (batch, samples)
-            ilens: (batch,)
+            Tuple[torch.Tensor, Optional[torch.Tensor]]:
+                - wavs: A tensor of shape (batch, samples) containing the
+                  reconstructed time-domain waveforms.
+                - ilens: A tensor of shape (batch,) containing the lengths
+                  of the reconstructed signals.
+
+        Examples:
+            >>> stft_layer = Stft()
+            >>> input_tensor = torch.randn(2, 100, 64, 2)  # Example STFT output
+            >>> lengths = torch.tensor([100, 80])  # Example input lengths
+            >>> reconstructed_wavs, output_lengths = stft_layer.inverse(input_tensor, lengths)
         """
         input = to_complex(input)
 

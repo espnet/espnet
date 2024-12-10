@@ -25,15 +25,34 @@ def create_adapter(
     adapter: str,
     adapter_conf: dict,
 ):
-    """Create adapter for the base model.
+    """
+        Definition of the low-rank adaptation (LoRA) for large models.
 
+    References:
+        1. LoRA: Low-Rank Adaptation of Large Language Models
+           (https://arxiv.org/pdf/2106.09685.pdf)
+        2. https://github.com/microsoft/LoRA.git
+        3. https://github.com/huggingface/peft/blob/main/src/peft/tuners/lora.py
 
     Args:
         model (torch.nn.Module): Base model to be adapted.
-        adapter_type (str): Name of adapter
-        adapter_conf (dict): Configuration for the adapter
-            e.g.  {"rank": 8, "alpha": 8, ...} for lora
+        adapter (str): Name of the adapter to create. Supported types include
+            "lora" and "houlsby".
+        adapter_conf (dict): Configuration for the adapter. For example,
+            {"rank": 8, "alpha": 8} for the LoRA adapter.
 
+    Raises:
+        AssertionError: If the specified adapter type is not supported.
+
+    Examples:
+        >>> import torch
+        >>> model = SomeModel()  # Replace with an actual model instance
+        >>> adapter_conf = {"rank": 8, "alpha": 8}
+        >>> create_adapter(model, "lora", adapter_conf)
+
+    Note:
+        The function will invoke the corresponding adapter creation function based
+        on the adapter type specified.
     """
     assert adapter in create_adapter_fn_table, f"Adapter {adapter} is not supported."
     create_adapter_fn = create_adapter_fn_table[adapter]
