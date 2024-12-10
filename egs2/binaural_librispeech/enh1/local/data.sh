@@ -136,7 +136,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         log "Using noise files from: $NOISE_DIR"
         log "Saving noisy audio files to: $AUDIO_NOISY_DIR"
 
-        python local/create_noisy_speech.py "$AUDIO_DIR" "$NOISE_DIR" "$AUDIO_NOISY_DIR" 4
+        python local/create_noisy_speech.py "$AUDIO_DIR" "$NOISE_DIR" "$AUDIO_NOISY_DIR" ${nj}
     fi
 fi
 
