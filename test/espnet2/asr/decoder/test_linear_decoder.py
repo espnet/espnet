@@ -1,5 +1,6 @@
 import pytest
 import torch
+
 from espnet2.asr.decoder.linear_decoder import LinearDecoder
 
 
