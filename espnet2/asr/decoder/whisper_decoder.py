@@ -9,6 +9,38 @@ from espnet.nets.scorer_interface import BatchScorerInterface
 
 
 class ExpandedTokenEmbedding(torch.nn.Module):
+    """
+    ExpandedTokenEmbedding is a PyTorch module that extends the functionality of a 
+    given embedding layer by adding additional token embeddings. This class is 
+    designed to accommodate scenarios where the vocabulary size needs to be 
+    expanded while maintaining the original embeddings.
+
+    Attributes:
+        ori_emb (torch.nn.Embedding): The original embedding layer.
+        add_emb (torch.nn.Embedding): The additional embedding layer for new tokens.
+        num_embeddings (int): Total number of embeddings after expansion.
+
+    Args:
+        ori_emebedding (torch.nn.Embedding): The original embedding layer to extend.
+        additional_size (int): The number of additional embeddings to add.
+
+    Returns:
+        torch.Tensor: The concatenated weights of the original and additional 
+        embeddings.
+
+    Examples:
+        >>> original_embedding = torch.nn.Embedding(10, 5)  # 10 tokens, 5 dimensions
+        >>> expanded_embedding = ExpandedTokenEmbedding(original_embedding, 5)
+        >>> expanded_embedding.num_embeddings
+        15  # Original 10 plus 5 additional tokens
+
+    Note:
+        The additional embeddings are initialized with the same mean and standard 
+        deviation as the original embeddings.
+
+    Raises:
+        ValueError: If the original embedding is not of type torch.nn.Embedding.
+    """
     def __init__(self, ori_emebedding, additional_size):
         super().__init__()
         self.ori_emb = ori_emebedding
@@ -24,9 +56,77 @@ class ExpandedTokenEmbedding(torch.nn.Module):
 
     @property
     def weight(self):
+        """
+        Returns the concatenated weights of the original and additional embeddings.
+
+    The `weight` property returns a tensor that combines the weights from the
+    original embedding and the additional embedding, allowing for an expanded
+    token representation.
+
+    Attributes:
+        weight (torch.Tensor): A tensor of shape (num_embeddings, embedding_dim)
+            containing the concatenated weights of the original and additional
+            embeddings.
+
+    Returns:
+        torch.Tensor: The combined weights of the original and additional
+            embeddings.
+
+    Examples:
+        >>> ori_embedding = torch.nn.Embedding(10, 5)  # original embedding
+        >>> expanded_embedding = ExpandedTokenEmbedding(ori_embedding, 5)
+        >>> combined_weights = expanded_embedding.weight
+        >>> combined_weights.shape
+        torch.Size([15, 5])  # 10 original + 5 additional embeddings
+
+    Note:
+        The additional embedding weights are initialized using the mean and
+        standard deviation of the original embedding weights.
+        """
         return torch.cat([self.ori_emb.weight, self.add_emb.weight], dim=0)
 
     def forward(self, input):
+        """
+        Forward decoder.
+
+        This method performs the forward pass of the decoder, taking encoded 
+        memory and input token IDs to produce token scores. The output can be 
+        used for further processing such as computing loss or for generating 
+        predictions.
+
+        Args:
+            hs_pad: Encoded memory, a float32 tensor of shape 
+                (batch, maxlen_in, feat) representing the features from 
+                the encoder.
+            hlens: A tensor of shape (batch) containing the lengths of the 
+                encoded sequences in `hs_pad`.
+            ys_in_pad: Input token IDs, an int64 tensor of shape 
+                (batch, maxlen_out). This represents the input tokens for 
+                the decoder. If `input_layer` is set to "embed", this 
+                should be a tensor of token IDs. In other cases, it can 
+                be a tensor of shape (batch, maxlen_out, #mels).
+            ys_in_lens: A tensor of shape (batch) containing the lengths of 
+                the input sequences in `ys_in_pad`.
+
+        Returns:
+            tuple: A tuple containing:
+                - x: Decoded token scores before softmax, a tensor of shape 
+                  (batch, maxlen_out, token) if `use_output_layer` is 
+                  True.
+                - olens: A tensor of shape (batch,) containing the lengths of 
+                  the output sequences.
+
+        Examples:
+            >>> hs_pad = torch.randn(2, 10, 512)  # (batch, maxlen_in, feat)
+            >>> hlens = torch.tensor([10, 8])  # (batch)
+            >>> ys_in_pad = torch.tensor([[1, 2, 3], [1, 2, 0]])  # (batch, maxlen_out)
+            >>> ys_in_lens = torch.tensor([3, 2])  # (batch)
+            >>> x, olens = decoder.forward(hs_pad, hlens, ys_in_pad, ys_in_lens)
+
+        Note:
+            Ensure that the input tensors are appropriately sized and 
+            formatted as per the expected shapes to avoid runtime errors.
+        """
         return torch.nn.functional.embedding(
             input,
             self.weight,
@@ -39,9 +139,65 @@ class ExpandedTokenEmbedding(torch.nn.Module):
 
 
 class OpenAIWhisperDecoder(AbsDecoder, BatchScorerInterface):
-    """Transformer-based Speech-to-Text Decoder from OpenAI's Whisper Model:
+    """
+    OpenAIWhisperDecoder is a transformer-based decoder for speech-to-text tasks 
+    using OpenAI's Whisper model. It inherits from AbsDecoder and implements 
+    BatchScorerInterface for scoring functionality.
 
-    URL: https://github.com/openai/whisper
+    This decoder is designed to process encoded audio features and produce 
+    token predictions based on a given vocabulary size. It allows for 
+    customization through various parameters, including dropout rates and 
+    model selection.
+
+    Attributes:
+        decoders (torch.nn.Module): The decoder network loaded from the Whisper model.
+        load_origin_token_embedding (bool): Flag to indicate whether to load 
+            original token embeddings when expanding vocabulary.
+
+    Args:
+        vocab_size (int): The size of the vocabulary for the model.
+        encoder_output_size (int): The size of the encoder output features.
+        dropout_rate (float, optional): Dropout rate to apply in the decoder. 
+            Defaults to 0.0.
+        whisper_model (str, optional): The specific Whisper model to use (e.g., 
+            "small"). Defaults to "small".
+        download_dir (Optional[str], optional): Directory to download the Whisper 
+            model if not already present. Defaults to None.
+        load_origin_token_embedding (bool, optional): If True, load original 
+            token embeddings when vocabulary is expanded. Defaults to False.
+
+    Returns:
+        Tuple[torch.Tensor, torch.Tensor]: A tuple containing:
+            - x (torch.Tensor): Decoded token scores before softmax 
+            (batch, maxlen_out, token).
+            - olens (torch.Tensor): Lengths of the output sequences (batch,).
+
+    Yields:
+        None
+
+    Raises:
+        AssertionError: If the specified whisper_model is not available.
+        Exception: If the Whisper model fails to load due to installation issues.
+
+    Examples:
+        # Initialize the decoder
+        decoder = OpenAIWhisperDecoder(vocab_size=50000, encoder_output_size=512)
+
+        # Forward pass through the decoder
+        hs_pad = torch.rand(16, 100, 512)  # Simulated encoder output
+        hlens = torch.tensor([100] * 16)    # Lengths of the input sequences
+        ys_in_pad = torch.randint(0, 50000, (16, 50))  # Simulated token ids
+        ys_in_lens = torch.tensor([50] * 16)  # Lengths of the output sequences
+
+        x, olens = decoder(hs_pad, hlens, ys_in_pad, ys_in_lens)
+
+    Note:
+        The Whisper model architecture does not use dropout by default. 
+        If a dropout rate is specified, it will be applied during training.
+
+    Todo:
+        Implement cache mechanism for improved performance during 
+        incremental decoding.
     """
 
     @typechecked
@@ -114,22 +270,43 @@ class OpenAIWhisperDecoder(AbsDecoder, BatchScorerInterface):
         ys_in_pad: torch.Tensor,
         ys_in_lens: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Forward decoder.
+        """
+        Forward decoder.
+
+        This method takes the encoded memory and input token ids to produce the 
+        decoded token scores before applying softmax.
 
         Args:
-            hs_pad: encoded memory, float32  (batch, maxlen_in, feat)
-            hlens: (batch)
-            ys_in_pad:
-                input token ids, int64 (batch, maxlen_out)
-                if input_layer == "embed"
-                input tensor (batch, maxlen_out, #mels) in the other cases
-            ys_in_lens: (batch)
-        Returns:
-            (tuple): tuple containing:
+            hs_pad (torch.Tensor): Encoded memory with shape 
+                (batch, maxlen_in, feat) of type float32.
+            hlens (torch.Tensor): Lengths of the encoded memory, shape (batch).
+            ys_in_pad (torch.Tensor): Input token ids with shape 
+                (batch, maxlen_out) of type int64. This could either be 
+                token ids if input_layer is "embed", or a tensor 
+                (batch, maxlen_out, #mels) in other scenarios.
+            ys_in_lens (torch.Tensor): Lengths of the input tokens, shape (batch).
 
-            x: decoded token score before softmax (batch, maxlen_out, token)
-                if use_output_layer is True,
-            olens: (batch, )
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]: A tuple containing:
+                - x (torch.Tensor): Decoded token scores before softmax with shape 
+                  (batch, maxlen_out, token) if use_output_layer is True.
+                - olens (torch.Tensor): Lengths of the output tokens, shape (batch,).
+        
+        Examples:
+            >>> hs_pad = torch.rand(32, 10, 512)  # Example encoded memory
+            >>> hlens = torch.tensor([10] * 32)    # Example lengths
+            >>> ys_in_pad = torch.randint(0, 100, (32, 20))  # Example token ids
+            >>> ys_in_lens = torch.tensor([20] * 32)  # Example lengths
+            >>> decoder = OpenAIWhisperDecoder(vocab_size=100, encoder_output_size=512)
+            >>> scores, output_lengths = decoder.forward(hs_pad, hlens, ys_in_pad, ys_in_lens)
+
+        Note:
+            The method uses the decoder's token embedding and positional 
+            embedding, followed by dropout and block processing through the 
+            decoder layers.
+
+        Raises:
+            ValueError: If the input tensor dimensions do not match the expected shapes.
         """
         tgt, memory = ys_in_pad, hs_pad
         tgt = (
@@ -160,21 +337,41 @@ class OpenAIWhisperDecoder(AbsDecoder, BatchScorerInterface):
         *,
         cache: List[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, List[torch.Tensor]]:
-        """Forward one step.
+        """
+        Forward one step in the decoding process of the OpenAI Whisper model.
+
+        This method computes the output for a single decoding step using the 
+        provided target tokens and the encoded memory. It also manages the 
+        positional embeddings and applies the necessary transformations through 
+        the decoder blocks.
 
         Args:
-            tgt: input token ids, int64 (batch, maxlen_out)
-            tgt_mask: input token mask,  (batch, maxlen_out)
-                      dtype=torch.uint8 in PyTorch 1.2-
-                      dtype=torch.bool in PyTorch 1.2+ (include 1.2)
-            memory: encoded memory, float32  (batch, maxlen_in, feat)
-            cache: cached output list of (batch, max_time_out-1, size)
+            tgt (torch.Tensor): Input token ids, of shape (batch, maxlen_out).
+            tgt_mask (torch.Tensor): Input token mask, of shape (batch, maxlen_out).
+                The dtype should be torch.uint8 for PyTorch versions < 1.2 
+                and torch.bool for PyTorch 1.2 and above.
+            memory (torch.Tensor): Encoded memory, of shape (batch, maxlen_in, feat).
+            cache (List[torch.Tensor], optional): Cached output list of shape 
+                (batch, max_time_out-1, size). Defaults to None.
+
         Returns:
-            y, cache: NN output value and cache per `self.decoders`.
-            y.shape` is (batch, maxlen_out, token)
-        NOTE (Shih-Lun):
-            cache implementation is ignored for now
-            for simplicity & correctness
+            Tuple[torch.Tensor, List[torch.Tensor]]:
+                - torch.Tensor: Neural network output value, of shape 
+                  (batch, maxlen_out, token).
+                - List[torch.Tensor]: Updated cache, currently returns None 
+                  as cache implementation is ignored for simplicity.
+
+        Note:
+            The cache implementation is not utilized in this version for 
+            simplicity and correctness.
+
+        Examples:
+            >>> decoder = OpenAIWhisperDecoder(vocab_size=1000, 
+            ...                                   encoder_output_size=512)
+            >>> tgt = torch.randint(0, 1000, (32, 10))  # Example input
+            >>> tgt_mask = torch.ones((32, 10), dtype=torch.bool)
+            >>> memory = torch.rand((32, 20, 512))  # Example memory
+            >>> output, cache = decoder.forward_one_step(tgt, tgt_mask, memory)
         """
         x = (
             self.decoders.token_embedding(tgt)
@@ -198,7 +395,39 @@ class OpenAIWhisperDecoder(AbsDecoder, BatchScorerInterface):
         return y, None
 
     def score(self, ys, state, x):
-        """Score."""
+        """
+        Score the token predictions based on the input sequence and current state.
+
+        This method computes the log probabilities of the next token given the 
+        previous tokens and the encoded memory from the encoder. It uses the 
+        `forward_one_step` method to perform a single decoding step and 
+        returns the resulting log probabilities along with the updated state.
+
+        Args:
+            ys (torch.Tensor): A tensor of shape (1, ylen) containing the input 
+                token IDs, where `ylen` is the length of the token sequence.
+            state (Any): The current state used for caching previous computations.
+            x (torch.Tensor): A tensor of shape (1, xlen, feat) representing the 
+                encoded memory, where `xlen` is the length of the encoder output 
+                and `feat` is the feature dimension.
+
+        Returns:
+            Tuple[torch.Tensor, Any]: A tuple containing:
+                - logp (torch.Tensor): A tensor of shape (n_vocab,) with the 
+                log probabilities of the next token.
+                - state (Any): The updated state after processing the input.
+
+        Examples:
+            >>> decoder = OpenAIWhisperDecoder(vocab_size=50000, encoder_output_size=256)
+            >>> ys = torch.tensor([1, 2, 3])  # example token sequence
+            >>> state = None  # initial state
+            >>> x = torch.randn(1, 10, 256)  # example encoder output
+            >>> logp, new_state = decoder.score(ys, state, x)
+
+        Note:
+            The input `ys` must have at least one token, and the shape of `x` 
+            should match the expected input format for the encoder's output.
+        """
         logp, state = self.forward_one_step(
             ys.unsqueeze(0), torch.empty(0), x.unsqueeze(0), cache=state  # dummy mask
         )
@@ -207,19 +436,37 @@ class OpenAIWhisperDecoder(AbsDecoder, BatchScorerInterface):
     def batch_score(
         self, ys: torch.Tensor, states: List[Any], xs: torch.Tensor
     ) -> Tuple[torch.Tensor, List[Any]]:
-        """Score new token batch.
+        """
+        Score new token batch using the decoder.
+
+        This method computes the scores for the next token predictions based on the 
+        provided prefix tokens and encoder features. It is designed for batch 
+        processing, allowing multiple sequences to be scored simultaneously.
 
         Args:
-            ys (torch.Tensor): torch.int64 prefix tokens (n_batch, ylen).
-            states (List[Any]): Scorer states for prefix tokens.
-            xs (torch.Tensor):
-                The encoder feature that generates ys (n_batch, xlen, n_feat).
+            ys (torch.Tensor): A tensor of shape (n_batch, ylen) containing the 
+                prefix tokens in int64 format.
+            states (List[Any]): A list containing the scorer states for the prefix 
+                tokens, used for maintaining the state across batches.
+            xs (torch.Tensor): A tensor of shape (n_batch, xlen, n_feat) representing 
+                the encoder features that generate the prefix tokens.
 
         Returns:
-            tuple[torch.Tensor, List[Any]]: Tuple of
-                batchfied scores for next token with shape of `(n_batch, n_vocab)`
-                and next state list for ys.
+            Tuple[torch.Tensor, List[Any]]: A tuple containing:
+                - A tensor of shape (n_batch, n_vocab) with the batchified scores 
+                for the next token.
+                - A list of next state for the prefix tokens (ys).
 
+        Examples:
+            >>> decoder = OpenAIWhisperDecoder(vocab_size=50000, encoder_output_size=512)
+            >>> ys = torch.tensor([[1, 2, 3], [1, 2, 4]])  # Example prefix tokens
+            >>> states = [None, None]  # Example states for each batch
+            >>> xs = torch.rand(2, 100, 512)  # Example encoder features
+            >>> logp, new_states = decoder.batch_score(ys, states, xs)
+            >>> print(logp.shape)  # Output: torch.Size([2, 50000])
+
+        Note:
+            The method currently ignores the cached state for simplicity.
         """
         # batch decoding, dummy mask is passed
         logp, states = self.forward_one_step(ys, torch.empty(0), xs, cache=None)

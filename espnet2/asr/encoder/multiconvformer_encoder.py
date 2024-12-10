@@ -46,46 +46,71 @@ from espnet.nets.pytorch_backend.transformer.subsampling import (
 
 
 class MultiConvConformerEncoder(AbsEncoder):
-    """Multiconvformer encoder module.
-    Link to the paper: https://arxiv.org/abs/2407.03718
+    """
+    Multiconvformer encoder module for automatic speech recognition (ASR).
+
+    This encoder combines multiple convolutional layers and attention mechanisms 
+    to process input sequences efficiently. It utilizes a variety of configurations 
+    for positional encoding, attention types, and feed-forward layers, making it 
+    versatile for different ASR tasks. 
+
+    For detailed information, refer to the paper: 
+    https://arxiv.org/abs/2407.03718.
+
+    Attributes:
+        _output_size (int): The output dimension of the encoder.
 
     Args:
         input_size (int): Input dimension.
-        output_size (int): Dimension of attention.
-        attention_heads (int): The number of heads of multi head attention.
-        linear_units (int): The number of units of position-wise feed forward.
-        num_blocks (int): The number of decoder blocks.
-        dropout_rate (float): Dropout rate.
-        positional_dropout_rate (float): Dropout rate after adding positional encoding.
-        attention_dropout_rate (float): Dropout rate in attention.
-        cgmlp_linear_units (int): The number of units used in CGMLP block.
-        multicgmlp_type (str): "sum", "weighted_sum", "concat" or "concat_fusion".
-        multicgmlp_kernel_sizes (str): Comma seperated list of kernel sizes.
-        multicgmlp_merge_conv_kernel (int): The number of kernels used in depthwise
-            convolution fusion in MultiCGMLP.
-        use_linear_after_conv (bool): Whether to use a linear layer after MultiCGMLP.
-        gate_activation (str): The activation function used in CGMLP gating.
-        input_layer (Union[str, torch.nn.Module]): Input layer type.
-        normalize_before (bool): Whether to use layer_norm before the first block.
-        concat_after (bool): Whether to concat attention layer's input and output.
-            If True, additional linear will be applied.
-            i.e. x -> x + linear(concat(x, att(x)))
-            If False, no additional linear will be applied. i.e. x -> x + att(x)
-        positionwise_layer_type (str): "linear", "conv1d", or "conv1d-linear".
-        positionwise_conv_kernel_size (int): Kernel size of positionwise conv1d layer.
-        rel_pos_type (str): Whether to use the latest relative positional encoding or
-            the legacy one. The legacy relative positional encoding will be deprecated
-            in the future. More Details can be found in
-            https://github.com/espnet/espnet/pull/2816.
-        encoder_pos_enc_layer_type (str): Encoder positional encoding layer type.
-        encoder_attn_layer_type (str): Encoder attention layer type.
-        activation_type (str): Encoder activation function type.
-        macaron_style (bool): Whether to use macaron style for positionwise layer.
-        use_cnn_module (bool): Whether to use convolution module.
-        zero_triu (bool): Whether to zero the upper triangular part of attention matrix.
-        cnn_module_kernel (int): Kernerl size of convolution module.
-        padding_idx (int): Padding idx for input_layer=embed.
+        output_size (int): Dimension of attention. Default is 256.
+        attention_heads (int): The number of heads for multi-head attention. Default is 4.
+        linear_units (int): Number of units for position-wise feed forward. Default is 2048.
+        num_blocks (int): Number of encoder blocks. Default is 6.
+        dropout_rate (float): Dropout rate. Default is 0.1.
+        positional_dropout_rate (float): Dropout rate after adding positional encoding. Default is 0.1.
+        attention_dropout_rate (float): Dropout rate in attention. Default is 0.0.
+        cgmlp_linear_units (int): Number of units in CGMLP block. Default is 2048.
+        multicgmlp_type (str): Type of CGMLP ("sum", "weighted_sum", "concat", "concat_fusion"). Default is "concat_fusion".
+        multicgmlp_kernel_sizes (Union[int, str]): Comma-separated list of kernel sizes. Default is "7,15,23,31".
+        multicgmlp_merge_conv_kernel (int): Number of kernels for depthwise convolution fusion. Default is 31.
+        use_linear_after_conv (bool): Use a linear layer after MultiCGMLP. Default is False.
+        gate_activation (str): Activation function for CGMLP gating. Default is "identity".
+        input_layer (Union[str, torch.nn.Module]): Type of input layer. Default is "conv2d".
+        normalize_before (bool): Use layer normalization before the first block. Default is True.
+        concat_after (bool): Concatenate attention input and output. Default is False.
+        positionwise_layer_type (str): Type of positionwise layer ("linear", "conv1d", or "conv1d-linear"). Default is "linear".
+        positionwise_conv_kernel_size (int): Kernel size of positionwise conv1d layer. Default is 3.
+        rel_pos_type (str): Type of relative positional encoding ("legacy" or "latest"). Default is "legacy".
+        encoder_pos_enc_layer_type (str): Encoder positional encoding layer type. Default is "rel_pos".
+        encoder_attn_layer_type (str): Encoder attention layer type. Default is "rel_selfattn".
+        activation_type (str): Activation function type. Default is "swish".
+        macaron_style (bool): Use macaron style for positionwise layer. Default is False.
+        use_cnn_module (bool): Use convolution module. Default is True.
+        zero_triu (bool): Zero the upper triangular part of attention matrix. Default is False.
+        cnn_module_kernel (int): Kernel size of convolution module. Default is unspecified.
+        padding_idx (int): Padding index for input_layer="embed". Default is -1.
+        interctc_layer_idx (List[int]): Indices for intermediate CTC layers. Default is empty list.
+        interctc_use_conditioning (bool): Use conditioning for intermediate CTC. Default is False.
+        stochastic_depth_rate (Union[float, List[float]]): Rate for stochastic depth. Default is 0.0.
+        layer_drop_rate (float): Drop rate for layers. Default is 0.0.
+        max_pos_emb_len (int): Maximum positional embedding length. Default is 5000.
 
+    Examples:
+        # Create an instance of the encoder
+        encoder = MultiConvConformerEncoder(input_size=128)
+
+        # Forward propagation
+        xs_pad = torch.randn(32, 100, 128)  # Example input (batch_size, seq_len, input_size)
+        ilens = torch.tensor([100] * 32)  # Example input lengths
+        output, olens, _ = encoder(xs_pad, ilens)
+
+    Note:
+        This encoder is designed for ASR tasks and can be customized with various 
+        configurations based on the specific requirements of the task.
+
+    Todo:
+        - Consider adding more configurable parameters for flexibility.
+        - Update the documentation for any new features added in the future.
     """
 
     @typechecked
@@ -323,6 +348,25 @@ class MultiConvConformerEncoder(AbsEncoder):
         self.conditioning_layer = None
 
     def output_size(self) -> int:
+        """
+        Return the output size of the MultiConvConformerEncoder.
+
+        This method provides the dimension of the output from the encoder. The 
+        output size is typically used in subsequent layers of a neural network 
+        model, such as in decoders or for classification tasks.
+
+        Returns:
+            int: The output size of the encoder, defined during initialization.
+
+        Examples:
+            >>> encoder = MultiConvConformerEncoder(input_size=128, output_size=256)
+            >>> encoder.output_size()
+            256
+
+        Note:
+            The output size is set during the initialization of the encoder 
+            and cannot be changed afterwards.
+        """
         return self._output_size
 
     def forward(
@@ -332,18 +376,41 @@ class MultiConvConformerEncoder(AbsEncoder):
         prev_states: torch.Tensor = None,
         ctc: CTC = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
-        """Calculate forward propagation.
+        """
+        Calculate forward propagation through the MultiConvConformerEncoder.
 
-        Args:
-            xs_pad (torch.Tensor): Input tensor (#batch, L, input_size).
-            ilens (torch.Tensor): Input length (#batch).
-            prev_states (torch.Tensor): Not to be used now.
+    This method processes the input tensor through the encoder layers and
+    returns the output tensor along with the corresponding output lengths.
+    The method also handles any necessary subsampling of the input and
+    applies the appropriate embeddings.
 
-        Returns:
-            torch.Tensor: Output tensor (#batch, L, output_size).
-            torch.Tensor: Output length (#batch).
-            torch.Tensor: Not to be used now.
+    Args:
+        xs_pad (torch.Tensor): Input tensor of shape (#batch, L, input_size).
+        ilens (torch.Tensor): Input lengths of shape (#batch).
+        prev_states (torch.Tensor, optional): Previous states, not used currently.
+        ctc (CTC, optional): Connectionist Temporal Classification object, not used
+            currently.
 
+    Returns:
+        Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
+            - Output tensor of shape (#batch, L, output_size).
+            - Output lengths of shape (#batch).
+            - Placeholder for additional output, not used currently (None).
+
+    Raises:
+        TooShortUttError: If the input sequence length is shorter than the 
+            required minimum length for subsampling.
+
+    Examples:
+        >>> encoder = MultiConvConformerEncoder(input_size=80, output_size=256)
+        >>> xs_pad = torch.randn(32, 100, 80)  # Batch of 32, 100 time steps, 80 features
+        >>> ilens = torch.tensor([100] * 32)  # All inputs have length 100
+        >>> output, olens, _ = encoder.forward(xs_pad, ilens)
+
+    Note:
+        This method uses the embedding layers and encoder layers defined in the
+        class constructor. It is important to ensure that the input data is 
+        properly preprocessed before calling this method.
         """
         masks = (~make_pad_mask(ilens)[:, None, :]).to(xs_pad.device)
 

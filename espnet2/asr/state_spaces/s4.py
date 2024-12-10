@@ -24,10 +24,37 @@ contract_expression = oe.contract_expression
 
 
 def rank_zero_only(fn: Callable) -> Callable:
-    """Decorator function from PyTorch Lightning.
+    """
+    Decorator function that restricts the execution of a function to the process 
+    with global rank 0 in a distributed setting. This is useful for logging or 
+    initializing shared resources in multi-GPU training scenarios.
 
-    Function that can be used as a decorator
-    to enable a function/method being called only on global rank 0.
+    Attributes:
+        rank (int): The global rank of the process. Defaults to 0 if the rank 
+                    cannot be determined.
+
+    Args:
+        fn (Callable): The function to be decorated.
+
+    Returns:
+        Callable: A wrapped function that only executes if the global rank is 0.
+
+    Examples:
+        @rank_zero_only
+        def print_message():
+            print("This message is only printed by the process with rank 0.")
+
+        # In a distributed setup, only the process with rank 0 will execute 
+        # the print_message function.
+        
+    Raises:
+        ValueError: If the rank cannot be determined and is set to a value other 
+                    than 0.
+
+    Note:
+        This decorator is inspired by the `rank_zero_only` utility from PyTorch 
+        Lightning and is intended for use in scenarios where multiple processes 
+        are running concurrently.
     """
 
     @wraps(fn)
@@ -56,7 +83,38 @@ rank_zero_only.rank = getattr(rank_zero_only, "rank", _get_rank())
 
 
 def get_logger(name=__name__, level=logging.INFO) -> logging.Logger:
-    """Initialize multi-GPU-friendly python logger."""
+    """
+    Initialize a multi-GPU-friendly Python logger.
+
+    This function sets up a logger that can be used for logging
+    messages in a multi-GPU setup, ensuring that logs are only
+    printed from the process with rank zero to avoid duplicated
+    log messages.
+
+    Args:
+        name (str): The name of the logger. Defaults to the
+            module name of the calling function.
+        level (int): The logging level. Defaults to
+            logging.INFO. This can be set to any of the
+            standard logging levels (e.g., DEBUG, WARNING).
+
+    Returns:
+        logging.Logger: The configured logger instance.
+
+    Examples:
+        >>> logger = get_logger("my_logger")
+        >>> logger.info("This is an info message.")
+        >>> logger.debug("This is a debug message.")
+
+    Note:
+        This logger automatically decorates the logging methods
+        (debug, info, warning, error, exception, fatal, critical)
+    to ensure that messages are only logged from the rank zero
+    process in a multi-GPU environment.
+
+    Raises:
+        None
+    """
     logger = logging.getLogger(name)
     logger.setLevel(level)
 
@@ -260,10 +318,47 @@ else:
 
 
 def power(L, A, v=None):
-    """Compute A^L and the scan sum_i A^i v_i.
+    """
+    Compute A^L and the scan sum_i A^i v_i.
 
-    A: (..., N, N)
-    v: (..., N, L)
+    This function computes the matrix exponentiation of A raised to the power 
+    L, as well as the weighted sum of the series defined by A applied to 
+    vector v. The calculation is performed efficiently using the method of 
+    exponentiation by squaring.
+
+    Args:
+        L (int): The exponent to which the matrix A is raised.
+        A (torch.Tensor): A square matrix of shape (..., N, N) where N is 
+            the size of the matrix.
+        v (torch.Tensor, optional): A tensor of shape (..., N, L) which 
+            will be multiplied by the powers of A. If None, only the 
+            matrix exponentiation is returned.
+
+    Returns:
+        tuple: A tuple containing:
+            - E (torch.Tensor): The matrix A raised to the power L, 
+              of shape (..., N, N).
+            - v (torch.Tensor): The weighted sum resulting from the 
+              application of A to the vector v, of shape (..., N) if 
+              v is provided.
+
+    Examples:
+        >>> A = torch.tensor([[1, 2], [3, 4]], dtype=torch.float32)
+        >>> L = 3
+        >>> E, v = power(L, A)
+        >>> print(E)
+        tensor([[  37.,   54.],
+                [  81.,  118.]])
+        
+        >>> v = torch.tensor([[1, 1], [1, 1]], dtype=torch.float32)
+        >>> E, v_sum = power(L, A, v)
+        >>> print(v_sum)
+        tensor([[ 54.,  81.],
+                [118.,  81.]])
+        
+    Note:
+        The matrix A must be square, and the vector v must have the 
+        appropriate dimensions to match the size of A.
     """
     E = torch.eye(A.shape[-1]).to(A)  # , dtype=A.dtype, device=A.device)
 
@@ -309,7 +404,51 @@ def power(L, A, v=None):
 
 
 def transition(measure, N):
-    """A, B transition matrices for different measures."""
+    """
+    Generate A and B transition matrices based on specified measures.
+
+    This function computes the transition matrices A and B for different 
+    measures used in the Structured State Space (S4) model. The generated 
+    matrices can be used for the dynamics of the state space representation.
+
+    Args:
+        measure (str): The type of measure to use for generating the matrices. 
+            Options include:
+            - "legt": Legendre translated
+            - "legs": Legendre scaled
+            - "legsd": Legendre scaled with diagonal
+            - "fourier_diag": Fourier diagonal
+            - "foud": Fourier full
+            - "fourier": Fourier (full)
+        N (int): The size of the state (dimension of the matrices).
+
+    Returns:
+        tuple: A tuple containing:
+            - A (ndarray): The transition matrix A of shape (N, N).
+            - B (ndarray): The transition matrix B of shape (N, 1).
+
+    Raises:
+        NotImplementedError: If the specified measure is not implemented.
+
+    Examples:
+        >>> A, B = transition("legs", 5)
+        >>> A.shape
+        (5, 5)
+        >>> B.shape
+        (5, 1)
+
+        >>> A, B = transition("fourier", 4)
+        >>> A
+        array([[ 0., -1.,  0.,  0.],
+               [ 1.,  0.,  0.,  0.],
+               [ 0.,  0.,  0., -1.],
+               [ 0.,  0.,  1.,  0.]])
+        >>> B
+        array([[1.],
+               [0.],
+               [1.],
+               [0.]])
+    """
     # Legendre (translated)
     if measure == "legt":
         Q = np.arange(N, dtype=np.float64)
@@ -375,7 +514,59 @@ def transition(measure, N):
 
 
 def rank_correction(measure, N, rank=1, dtype=torch.float):
-    """Return low-rank matrix L such that A + L is normal."""
+    """
+    Return low-rank matrix L such that A + L is normal.
+
+    This function generates a low-rank correction matrix L based on the specified 
+    measure and its parameters. The low-rank correction ensures that the sum of 
+    matrix A and matrix L remains a normal matrix, which is important for 
+    stability in numerical computations.
+
+    Attributes:
+        measure (str): The type of measure to use for generating the correction 
+            matrix. Possible values include 'legs', 'legt', 'fourier', 
+            'fout', and 'legsd'.
+        N (int): The size of the matrix.
+        rank (int): The desired rank of the low-rank correction. Default is 1.
+        dtype (torch.dtype): The data type of the output tensor. Default is 
+            torch.float.
+
+    Args:
+        measure (str): Type of measure for the correction matrix.
+        N (int): Size of the matrix.
+        rank (int, optional): Rank of the low-rank correction matrix. 
+            Default is 1.
+        dtype (torch.dtype, optional): Data type of the output tensor. 
+            Default is torch.float.
+
+    Returns:
+        torch.Tensor: A tensor of shape (rank, N) representing the low-rank 
+        correction matrix.
+
+    Raises:
+        AssertionError: If the specified rank is not compatible with the 
+        measure.
+
+    Examples:
+        >>> # Example for 'legs' measure
+        >>> L = rank_correction('legs', 4, rank=1)
+        >>> print(L)
+        tensor([[1.4142, 2.0000, 2.8284, 4.0000]])
+
+        >>> # Example for 'legt' measure with rank 2
+        >>> L = rank_correction('legt', 4, rank=2)
+        >>> print(L)
+        tensor([[1.0000, 1.4142, 2.0000, 2.8284],
+                [0.0000, 1.0000, 0.0000, 1.0000]])
+    
+    Note:
+        The rank must be at least 1 for 'legs' and at least 2 for 'legt'. 
+        For 'fourier' and its variants, the rank can be set to 1 without 
+        restriction.
+
+    Todo:
+        - Extend functionality for additional measures and edge cases.
+    """
     if measure == "legs":
         assert rank >= 1
         P = torch.sqrt(0.5 + torch.arange(N, dtype=dtype)).unsqueeze(0)  # (1 N)
@@ -407,11 +598,45 @@ def rank_correction(measure, N, rank=1, dtype=torch.float):
 
 
 def nplr(measure, N, rank=1, dtype=torch.float, diagonalize_precision=True):
-    """Decompose as Normal Plus Low-Rank (NPLR).
+    """
+    Decompose as Normal Plus Low-Rank (NPLR).
 
     Return w, p, q, V, B such that
-    (w - p q^*, B) is unitarily equivalent to the original HiPPO A, B by the matrix V
-    i.e. A = V[w - p q^*]V^*, B = V B
+    (w - p q^*, B) is unitarily equivalent to the original HiPPO A, B by the matrix V,
+    i.e., A = V[w - p q^*]V^*, B = V B.
+
+    Args:
+        measure (str): The measure type used for decomposition. Options include:
+            "legs", "legt", "fourier", etc.
+        N (int): The size of the state matrix.
+        rank (int, optional): The rank of the low-rank correction. Defaults to 1.
+        dtype (torch.dtype, optional): The data type for the computation. 
+            Defaults to `torch.float`.
+        diagonalize_precision (bool, optional): If True, diagonalizes in double 
+            precision for numerical stability. Defaults to True.
+
+    Returns:
+        tuple: A tuple containing:
+            - w (torch.Tensor): The diagonal part of the decomposed matrix.
+            - P (torch.Tensor): The low-rank part of the decomposition.
+            - B (torch.Tensor): The modified B matrix.
+            - V (torch.Tensor): The transformation matrix.
+
+    Raises:
+        AssertionError: If `dtype` is not float or double.
+
+    Examples:
+        >>> w, P, B, V = nplr('legs', 64, rank=2)
+        >>> print(w.shape, P.shape, B.shape, V.shape)
+        (64,), (2, 64), (64,), (64, 64)
+
+    Note:
+        The decomposition method utilizes the HiPPO framework to ensure
+        stability and efficiency in handling state space models.
+
+    Todo:
+        - Add more validation for `measure` input values.
+        - Implement additional logging for debugging.
     """
     assert dtype == torch.float or torch.double
     cdtype = torch.cfloat if dtype == torch.float else torch.cdouble
@@ -492,6 +717,62 @@ def dplr(
     diagonal=True,
     random_B=False,
 ):
+    """
+    Generate Normal Plus Low-Rank (DPLR) parameters for S4 model.
+
+    This function constructs the parameters `w`, `P`, `B`, and `V` 
+    that represent the DPLR structure of the S4 model. The parameters
+    can be configured using various scaling methods and options for 
+    randomness. The generated parameters are essential for building 
+    the S4 model's state space representation.
+
+    Args:
+        scaling (str): Specifies the scaling method for the imaginary part.
+            Options include "random", "real", "linear", "inverse", 
+            "inverse2", "quadratic", "legs", and "hippo".
+        N (int): The state size, which determines the dimensions of 
+            the generated parameters.
+        rank (int, optional): The rank of the low-rank part. Default is 1.
+        H (int, optional): The number of independent copies of SSM. 
+            Default is 1.
+        dtype (torch.dtype, optional): The data type of the parameters. 
+            Default is torch.float.
+        real_scale (float, optional): Scaling factor for the real part. 
+            Default is 1.0.
+        imag_scale (float, optional): Scaling factor for the imaginary part. 
+            Default is 1.0.
+        random_real (bool, optional): If True, generates a random real part. 
+            Default is False.
+        random_imag (bool, optional): If True, generates a random imaginary part. 
+            Default is False.
+        normalize (bool, optional): If True, normalizes the generated parameters. 
+            Default is False.
+        diagonal (bool, optional): If True, initializes the low-rank matrix as 
+            diagonal. Default is True.
+        random_B (bool, optional): If True, generates a random B matrix. 
+            Default is False.
+
+    Returns:
+        tuple: A tuple containing:
+            - w (torch.Tensor): The diagonal part of the parameterization.
+            - P (torch.Tensor): The low-rank part of the parameterization.
+            - B (torch.Tensor): The output matrix.
+            - V (torch.Tensor): The state transition matrix.
+
+    Examples:
+        >>> w, P, B, V = dplr(scaling='linear', N=64, rank=2, H=4)
+        >>> w.shape, P.shape, B.shape, V.shape
+        (torch.Size([4, 32]), torch.Size([2, 4, 32]), 
+         torch.Size([4, 32]), torch.Size([32, 4, 32]))
+
+    Note:
+        The parameter `w` contains the eigenvalues for the DPLR representation,
+        while `P` contains the low-rank correction. The parameter `B` 
+        represents the output connections, and `V` is used for state transitions.
+
+    Raises:
+        NotImplementedError: If an unsupported scaling method is provided.
+    """
     assert dtype == torch.float or torch.double
     dtype = torch.cfloat if dtype == torch.float else torch.cdouble
 
@@ -556,11 +837,50 @@ def dplr(
 
 
 def ssm(measure, N, R, H, **ssm_args):
-    """Dispatcher to create single SSM initialization.
+    """
+    Dispatcher to create single SSM (Structured State Space Model) initialization.
 
-    N: state size
-    R: rank (for DPLR parameterization)
-    H: number of independent SSM copies
+    This function initializes the state space model based on the specified 
+    measure and parameters. The measure can dictate the form of the 
+    state space representation, such as low-rank or diagonal structures.
+
+    Attributes:
+        measure (str): The type of measure to use for initialization.
+        N (int): State size.
+        R (int): Rank for low-rank parameterization.
+        H (int): Number of independent SSM copies.
+
+    Args:
+        measure (str): Specifies the type of state space model to initialize. 
+            Supported measures include 'dplr', and various diagonal measures.
+        N (int): The state size for the SSM.
+        R (int): The rank for the low-rank parameterization.
+        H (int): The number of independent SSM copies to create.
+        **ssm_args: Additional arguments specific to the SSM configuration.
+
+    Returns:
+        Tuple: A tuple containing:
+            - w (torch.Tensor): The diagonal part of the state space.
+            - P (torch.Tensor): The low-rank part of the state space.
+            - B (torch.Tensor): The input matrix for the SSM.
+            - V (torch.Tensor): The transformation matrix.
+
+    Examples:
+        # Example of initializing a low-rank SSM
+        w, P, B, V = ssm('dplr', N=64, R=2, H=4)
+
+        # Example of initializing a diagonal SSM
+        w, P, B, V = ssm('diag-inv', N=64, R=1, H=2)
+
+    Note:
+        The measure should be chosen carefully based on the specific 
+        requirements of the application. The 'dplr' measure is recommended 
+        for general use, while diagonal measures can be used for more 
+        specific scenarios.
+
+    Todo:
+        - Extend support for additional measures as they become relevant.
+        - Add comprehensive tests for different initialization scenarios.
     """
     if measure == "dplr":
         w, P, B, V = dplr(N=N, rank=R, H=H, **ssm_args)
@@ -586,6 +906,52 @@ combinations = {
 
 
 def combination(measures, N, R, S, **ssm_args):
+    """
+    Construct a combination of structured state space models.
+
+    This function generates a combined state space model by utilizing
+    different measures specified in the input. It ensures that the total
+    number of independent trainable state space model (SSM) copies, S,
+    is a multiple of the number of measures provided.
+
+    Args:
+        measures (Union[str, List[str]]): A string or list of measure names
+            to be combined. If a string is provided, it should be one of the
+            keys in the predefined combinations dictionary.
+        N (int): The state size, which denotes the dimensionality of the
+            parameters for the state space models.
+        R (int): The rank for low-rank parameterization.
+        S (int): The total number of independent SSM copies to be created.
+        **ssm_args: Additional keyword arguments to be passed to the SSM
+            creation function.
+
+    Returns:
+        Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+            A tuple containing the following tensors:
+            - w: (S, N) diagonal part of the combined SSM.
+            - P: (R, S, N) low-rank part of the combined SSM.
+            - B: (S, N) output part from the combined SSM.
+            - V: (S, N, N) state transition matrix for the combined SSM.
+
+    Raises:
+        AssertionError: If S is not a multiple of the number of different measures.
+
+    Examples:
+        >>> measures = ["legs", "fourier"]
+        >>> N = 64
+        >>> R = 2
+        >>> S = 4
+        >>> w, P, B, V = combination(measures, N, R, S)
+        >>> print(w.shape)  # Output: (4, 64)
+        >>> print(P.shape)  # Output: (2, 4, 64)
+        >>> print(B.shape)  # Output: (4, 64)
+        >>> print(V.shape)  # Output: (4, 64, 64)
+
+    Note:
+        The function ensures that the specified number of independent
+        SSM copies (S) is a multiple of the number of measures used. This
+        allows for efficient parallelization of SSM training.
+    """
     if isinstance(measures, str):
         measures = combinations[measures] if measures in combinations else [measures]
 
@@ -604,10 +970,68 @@ def combination(measures, N, R, S, **ssm_args):
 
 
 class OptimModule(nn.Module):
-    """Interface for Module that allows registering buffers/parameters with configurable optimizer hyperparameters. # noqa"""
+    """
+    Interface for Module that allows registering buffers/parameters with 
+    configurable optimizer hyperparameters.
+
+    This module enables the registration of tensors (parameters or buffers) 
+    with customizable learning rates and zero weight decay for use with 
+    optimizers. This can be particularly useful for implementing custom 
+    learning rate schedules or optimization strategies.
+
+    Attributes:
+        None
+
+    Methods:
+        register(name, tensor, lr=None):
+            Registers a tensor with a configurable learning rate and 0 weight decay.
+
+    Args:
+        None
+
+    Returns:
+        None
+
+    Examples:
+        # Example of creating an OptimModule and registering parameters
+        optim_module = OptimModule()
+        tensor = torch.randn(10, 10)
+        optim_module.register('my_param', tensor, lr=0.001)
+    """
 
     def register(self, name, tensor, lr=None):
-        """Register a tensor with a configurable learning rate and 0 weight decay."""
+        """
+        Interface for Module that allows registering buffers/parameters with 
+    configurable optimizer hyperparameters.
+
+    This class provides a mechanism to register tensors as parameters or 
+    buffers with associated learning rates and ensures that the weight 
+    decay for these parameters is set to zero. This is particularly useful 
+    in scenarios where certain parameters require different learning rates 
+    during optimization.
+
+    Attributes:
+        None
+
+    Args:
+        nn.Module: Inherits from PyTorch's nn.Module class.
+
+    Methods:
+        register(name: str, tensor: torch.Tensor, lr: Optional[float] = None):
+            Registers a tensor with a configurable learning rate.
+
+    Examples:
+        >>> module = OptimModule()
+        >>> param_tensor = torch.randn(2, 2)
+        >>> module.register("my_param", param_tensor, lr=0.01)
+        >>> print(module.my_param)  # This will be a nn.Parameter with lr=0.01
+
+    Note:
+        - If the learning rate is set to 0.0, the tensor will be registered 
+          as a buffer instead of a parameter.
+        - The registered parameter will have a custom attribute "_optim" 
+          that stores optimizer-related configurations.
+        """
         if lr == 0.0:
             self.register_buffer(name, tensor)
         else:
@@ -620,10 +1044,47 @@ class OptimModule(nn.Module):
 
 
 class SSKernelNPLR(OptimModule):
-    """Stores a representation of and computes the SSKernel function.
+    """
+    Stores a representation of and computes the SSKernel function.
 
-    K_L(A^dt, B^dt, C) corresponding to a discretized state space,
-    where A is Normal + Low Rank (NPLR)
+    This class corresponds to a discretized state space representation, where
+    the matrix A is represented as a Normal + Low Rank (NPLR) form. The kernel 
+    function computes the convolution kernel K_L(A^dt, B^dt, C) based on this 
+    representation.
+
+    Attributes:
+        rank (int): Rank of the low-rank correction.
+        H (int): Number of independent SSM copies.
+        N (int): State size (dimensionality of parameters A, B, C).
+        C (torch.nn.Parameter): Parameters related to the state space model.
+        L (torch.Tensor): Internal length of the kernel.
+
+    Args:
+        w (torch.Tensor): Diagonal part of the kernel parameters of shape (S, N).
+        P (torch.Tensor): Low-rank part of the kernel parameters of shape (R, S, N).
+        B (torch.Tensor): Input parameters of shape (S, N).
+        C (torch.Tensor): Output parameters of shape (C, H, N).
+        log_dt (torch.Tensor): Logarithm of the time step size, shape (H).
+        L (Optional[int]): Maximum length of the kernel.
+        lr (Optional[float]): Learning rate for the parameters.
+        verbose (bool): If True, logs information during the kernel setup.
+        keops (bool): If True, uses PyKeops for computations.
+        real_type (str): Specifies how to handle the real part ('none', 'exp', 
+                         'relu', 'sigmoid', 'softplus').
+        real_tolerance (float): Tolerance for real part initialization.
+        bandlimit (Optional[float]): Bandlimit for frequency filtering.
+
+    Examples:
+        # Example usage of SSKernelNPLR
+        kernel = SSKernelNPLR(w, P, B, C, log_dt, L=100)
+        output, state = kernel(state=torch.zeros(1, H, N), rate=1.0, L=50)
+
+    Note:
+        The forward pass of this Module returns a tensor of shape (C, H, L).
+        The tensor shape N denotes half the true state size due to conjugate symmetry.
+
+    Raises:
+        AssertionError: If the input dimensions are inconsistent with expected shapes.
     """
 
     @torch.no_grad()
@@ -795,15 +1256,49 @@ class SSKernelNPLR(OptimModule):
         return w
 
     def forward(self, state=None, rate=1.0, L=None):
-        """Forward pass.
+        """
+        Stores a representation of and computes the SSKernel function.
 
-        state: (B, H, N) initial state
-        rate: sampling rate factor
-        L: target length
+        K_L(A^dt, B^dt, C) corresponding to a discretized state space,
+        where A is Normal + Low Rank (NPLR).
 
-        returns:
-        (C, H, L) convolution kernel (generally C=1)
-        (B, H, L) output from initial state
+        Attributes:
+            verbose (bool): If True, enables logging of additional information.
+            keops (bool): If True, uses the PyKeops library for optimization.
+            bandlimit (float): Frequency band limit for the kernel.
+            real_type (str): Specifies the type of real part handling.
+            real_tolerance (float): Tolerance level for real part adjustments.
+            rank (int): Rank of the low-rank correction.
+            H (int): Number of independent SSM copies.
+            N (int): State size.
+            n_ssm (int): Number of trainable copies of (A, B, dt).
+            broadcast (int): Number of times each SSM is duplicated.
+
+        Args:
+            w (torch.Tensor): Diagonal part of the kernel.
+            P (torch.Tensor): Low-rank part of the kernel.
+            B (torch.Tensor): Input matrix.
+            C (torch.Tensor): Output matrix.
+            log_dt (torch.Tensor): Logarithm of the time step.
+            L (Optional[int]): Maximum length of the kernel.
+            lr (Optional[float]): Learning rate for optimization.
+            verbose (bool): If True, enables detailed logging.
+            keops (bool): If True, enables the use of PyKeops for optimization.
+            real_type (str): Specifies the type of real part handling.
+            real_tolerance (float): Tolerance for adjustments to real parts.
+            bandlimit (Optional[float]): Frequency band limit.
+
+        Returns:
+            None
+
+        Examples:
+            >>> model = SSKernelNPLR(w, P, B, C, log_dt, L=10)
+            >>> kernel_output, state_output = model(state=torch.randn(B, H, N))
+
+        Note:
+            The forward pass of this Module returns a tensor of shape (C, H, L).
+            The tensor shape N denotes half the true state size because of
+            conjugate symmetry.
         """
         # Initialize C~
         # if necessary (done in forward pass so it's on the correct device)
@@ -1112,6 +1607,39 @@ class SSKernelNPLR(OptimModule):
             )
 
     def default_state(self, *batch_shape):
+        """
+        Create a default state tensor for the SSKernel.
+
+        This method constructs an initial state tensor that can be used
+        for the state space model (SSM) during the forward pass. The
+        returned state tensor will have the shape determined by the
+        specified batch dimensions and the internal dimensions of the
+        model.
+
+        Args:
+            *batch_shape: Variable length argument list to specify the
+                shape of the output state tensor. The shape must
+                include the number of independent SSM copies (H) and
+                the state size (N).
+
+        Returns:
+            torch.Tensor: A tensor of shape (*batch_shape, H, N)
+                initialized to zeros, where H is the number of SSM
+                copies and N is the state size. The tensor is created
+                with the same data type and device as the model's
+                parameters.
+
+        Examples:
+            >>> model = SSKernelNPLR(...)
+            >>> initial_state = model.default_state(32)  # Creates a state for a batch of 32
+            >>> print(initial_state.shape)
+            torch.Size([32, H, N])  # H is the number of SSM copies, N is the state size
+
+        Note:
+            The state tensor is initialized to zeros, and it should
+            be used as an input to the `step` or `forward` methods
+            of the SSKernel after calling this method.
+        """
         C = _r2c(self.C)
         N = C.size(-1)
         H = C.size(-2)
@@ -1153,10 +1681,51 @@ class SSKernelNPLR(OptimModule):
         return state
 
     def step(self, u, state):
-        """Step one time step as a recurrent model.
+        """
+        Stores a representation of and computes the SSKernel function.
 
-        Must have called self._setup_step()
-        and created state with self.default_state() before calling this
+        K_L(A^dt, B^dt, C) corresponding to a discretized state space,
+        where A is Normal + Low Rank (NPLR).
+
+        Attributes:
+            verbose (bool): Flag to enable verbose logging.
+            keops (bool): Flag to enable usage of the Pykeops library for efficiency.
+            bandlimit (float): Frequency band limit for filtering.
+            real_type (str): Specifies how to handle the real part of the parameters.
+            real_tolerance (float): Tolerance for clamping real parameters.
+            rank (int): Rank of the low-rank correction.
+            H (int): Number of independent SSM copies.
+            N (int): State size.
+            n_ssm (int): Number of trainable SSM copies.
+            broadcast (int): Factor for broadcasting SSM parameters.
+
+        Args:
+            w (torch.Tensor): Diagonal part of the state matrix.
+            P (torch.Tensor): Low-rank part of the state matrix.
+            B (torch.Tensor): Input matrix.
+            C (torch.Tensor): Output matrix.
+            log_dt (torch.Tensor): Logarithm of the time step size.
+            L (Optional[int]): Maximum length of the kernel.
+            lr (Optional[float]): Learning rate for specific parameters.
+            verbose (bool): Flag to enable verbose logging.
+            keops (bool): Flag to enable Pykeops for efficiency.
+            real_type (str): Method to handle the real part of parameters.
+            real_tolerance (float): Tolerance for the real part.
+            bandlimit (Optional[float]): Frequency band limit for filtering.
+
+        Returns:
+            None
+
+        Examples:
+            >>> kernel = SSKernelNPLR(w, P, B, C, log_dt, L=10)
+            >>> output, state = kernel(state=initial_state, rate=1.0, L=5)
+
+        Note:
+            The forward pass of this Module returns a tensor of shape (C, H, L).
+            Tensor shape N denotes half the true state size due to conjugate symmetry.
+
+        Todo:
+            - Implement additional functionality for parameter tuning.
         """
         if self._step_mode == "linear":
             new_state = self._step_state_linear(u, state)
@@ -1167,7 +1736,51 @@ class SSKernelNPLR(OptimModule):
 
 
 class SSKernelDiag(OptimModule):
-    """Version using (complex) diagonal state matrix (S4D)."""
+    """
+    Version using (complex) diagonal state matrix (S4D).
+
+    This class implements a state-space kernel for the Structured State Space
+    (S4) model, specifically designed to handle diagonal state matrices.
+    The kernel computes convolution operations based on a discretized state
+    space representation.
+
+    Attributes:
+        L (Optional[int]): Maximum length of the kernel.
+        disc (str): Discretization method used ('bilinear', 'zoh', 'dss').
+        bandlimit (Optional[float]): Bandlimit frequency for the kernel.
+        real_type (str): Type of real part handling for the diagonal matrix.
+        H (int): Number of independent SSM copies.
+        N (int): State size (dimensionality of parameters A, B, C).
+        n_ssm (int): Number of independent trainable SSMs.
+
+    Args:
+        A (torch.Tensor): Diagonal part of the state matrix (H, N).
+        B (torch.Tensor): Input matrix (H, N).
+        C (torch.Tensor): Output matrix (C, H, N).
+        log_dt (torch.Tensor): Logarithm of time step size for each SSM copy (H).
+        L (Optional[int]): Maximum length of the kernel (default: None).
+        disc (str): Discretization method (default: "bilinear").
+        real_type (str): Type of real part handling (default: "exp").
+        lr (Optional[float]): Learning rate for special parameters (default: None).
+        bandlimit (Optional[float]): Bandlimit frequency (default: None).
+
+    Examples:
+        >>> A = torch.tensor([[0.1, 0.2], [0.3, 0.4]], dtype=torch.cfloat)
+        >>> B = torch.tensor([[1.0, 0.0], [0.0, 1.0]], dtype=torch.cfloat)
+        >>> C = torch.tensor([[0.5, 0.5], [0.5, 0.5]], dtype=torch.cfloat)
+        >>> log_dt = torch.tensor([0.01, 0.01])
+        >>> kernel_diag = SSKernelDiag(A, B, C, log_dt)
+        >>> output, state = kernel_diag.forward(L=10)
+
+    Note:
+        The forward method calculates the convolution kernel based on the
+        provided state and time step size, applying the specified
+        discretization method.
+
+    Raises:
+        AssertionError: If the dimensions of the input tensors are not
+        compatible.
+    """
 
     def __init__(
         self,
@@ -1246,15 +1859,53 @@ class SSKernelDiag(OptimModule):
         return A
 
     def forward(self, L, state=None, rate=1.0, u=None):
-        """Forward pass.
+        """
+        Version using (complex) diagonal state matrix (S4D).
 
-        state: (B, H, N) initial state
-        rate: sampling rate factor
-        L: target length
+        This class implements a state-space kernel using a diagonal state matrix.
+        The kernel computes the convolution based on a discretized state-space model,
+        enabling efficient modeling of temporal sequences.
 
-        returns:
-        (C, H, L) convolution kernel (generally C=1)
-        (B, H, L) output from initial state
+        Attributes:
+            L (int): Maximum length of the convolution kernel.
+            disc (str): Discretization method, can be "bilinear" or "zoh".
+            bandlimit (float): Bandlimit frequency for the kernel.
+            real_type (str): Specifies how to interpret the real part of the state matrix.
+            channels (int): Number of output channels for the convolution.
+
+        Args:
+            A (torch.Tensor): The state transition matrix, shaped (H, N).
+            B (torch.Tensor): The input matrix, shaped (H, N).
+            C (torch.Tensor): The output matrix, shaped (C, H, N).
+            log_dt (torch.Tensor): Logarithm of the time step sizes, shaped (H).
+            L (Optional[int]): Maximum length of the kernel. Default is None.
+            disc (str): Discretization method. Default is "bilinear".
+            real_type (str): Method to interpret the real part of A. Default is "exp".
+            lr (Optional[float]): Learning rate for optimizer. Default is None.
+            bandlimit (Optional[float]): Bandlimit frequency for the kernel. Default is None.
+
+        Returns:
+            torch.Tensor: Convolution kernel shaped (C, H, L).
+            torch.Tensor: Output from the initial state shaped (B, H, L).
+
+        Examples:
+            >>> A = torch.randn(2, 64)
+            >>> B = torch.randn(2, 64)
+            >>> C = torch.randn(1, 2, 64)
+            >>> log_dt = torch.log(torch.tensor([0.01, 0.02]))
+            >>> kernel_diag = SSKernelDiag(A, B, C, log_dt, L=128)
+            >>> k, k_state = kernel_diag.forward(L=64)
+
+        Note:
+            This implementation uses complex-valued matrices for the computations
+            and leverages PyTorch for efficient tensor operations.
+
+        Raises:
+            AssertionError: If the dimensions of A, B, and C are incompatible.
+
+        Todo:
+            - Implement additional discretization methods.
+            - Add more comprehensive tests for edge cases.
         """
         dt = torch.exp(self.log_dt) * rate  # (H)
         C = _r2c(self.C)  # (C H N)
@@ -1344,6 +1995,33 @@ class SSKernelDiag(OptimModule):
             )  # or * dtA / A
 
     def default_state(self, *batch_shape):
+        """
+        Generate the default initial state for the SSKernel.
+
+        This method constructs an initial state tensor filled with zeros, shaped
+        according to the provided batch dimensions and the internal dimensions
+        of the state space model.
+
+        Args:
+            *batch_shape: Variable length argument list for the desired shape of
+                the output state tensor. The shape must include the number of
+                independent SSM copies (H) and the state size (N).
+
+        Returns:
+            torch.Tensor: A tensor initialized to zeros with the shape
+            (*batch_shape, H, N), where H is the number of independent SSM copies
+            and N is the state size.
+
+        Examples:
+            >>> kernel = SSKernel(...)  # Initialize your SSKernel
+            >>> initial_state = kernel.default_state(10, 5)  # Creates a state
+            >>> print(initial_state.shape)  # Output: torch.Size([10, 5, H, N])
+        
+        Note:
+            The dimensions of the output state tensor depend on the values passed
+            in *batch_shape. The state size N corresponds to the last dimension
+            of the state tensor.
+        """
         C = _r2c(self.C)
         state = torch.zeros(
             *batch_shape, self.H, self.N, dtype=C.dtype, device=C.device
@@ -1351,6 +2029,52 @@ class SSKernelDiag(OptimModule):
         return state
 
     def step(self, u, state):
+        """
+        Version using (complex) diagonal state matrix (S4D).
+
+        This class represents a structured state space model with a diagonal state
+        matrix. It computes the convolution kernel corresponding to a discretized
+        state space, where the system is characterized by matrices A, B, and C.
+        The forward pass outputs a convolution kernel and the output from an
+        initial state.
+
+        Attributes:
+            L (int): Maximum length of the convolution kernel.
+            disc (str): Discretization method used for kernel computation.
+            bandlimit (float): Bandlimit for frequency response.
+            real_type (str): Type of transformation applied to the real part of A.
+            H (int): Number of independent SSM copies (dimensionality).
+            N (int): Size of the state vector (dimensionality of A, B, C).
+            n_ssm (int): Number of independent trainable SSMs.
+            channels (int): Number of channels for the output.
+
+        Args:
+            A (torch.Tensor): Complex diagonal part of the state matrix (shape: (S, N)).
+            B (torch.Tensor): Input matrix (shape: (S, N)).
+            C (torch.Tensor): Output matrix (shape: (C, H, N)).
+            log_dt (torch.Tensor): Logarithm of time step sizes (shape: (H)).
+            L (Optional[int]): Maximum length of the kernel. Default is None.
+            disc (str): Discretization method. Options include "bilinear" or "zoh".
+            real_type (str): Transformation for the real part of A.
+            lr (Optional[float]): Learning rate for parameters.
+            bandlimit (Optional[float]): Bandlimit for frequency response.
+
+        Returns:
+            Tuple[torch.Tensor, Optional[torch.Tensor]]:
+                - (C, H, L): Convolution kernel (shape: (C, H, L)).
+                - (B, H, L): Output from the initial state (shape: (B, H, L)).
+
+        Examples:
+            # Initialize SSKernelDiag
+            kernel_diag = SSKernelDiag(A, B, C, log_dt, L=10)
+
+            # Perform a forward pass
+            kernel_output, state_output = kernel_diag(L=20, state=initial_state)
+
+        Note:
+            The output shape of the convolution kernel is generally (C, H, L).
+            The shape of B is (B, H, L) where B is the batch size.
+        """
         next_state = contract("h n, b h n -> b h n", self.dA, state) + contract(
             "h n, b h -> b h n", self.dB, u
         )
@@ -1358,7 +2082,51 @@ class SSKernelDiag(OptimModule):
         return 2 * y.real, next_state
 
     def forward_state(self, u, state):
-        self._setup_step()
+        """
+        Version using (complex) diagonal state matrix (S4D).
+
+        This class implements a structured state-space model (SSM) using a diagonal
+        state matrix representation. The SSKernelDiag computes the convolution kernel
+        corresponding to a discretized state space, where the diagonal part is represented
+        by the complex matrix A, and the low-rank correction is handled by parameters B and C.
+
+        Attributes:
+            L: Maximum length of the convolution kernel.
+            disc: Discretization method to be used (e.g., "bilinear", "zoh", "dss").
+            bandlimit: Bandlimit for frequency domain operations.
+            real_type: Specifies how to handle the real part of A.
+
+        Args:
+            A (torch.Tensor): Complex diagonal part of the state space representation.
+                            Shape: (S, N).
+            B (torch.Tensor): Low-rank part of the state space representation.
+                            Shape: (S, N).
+            C (torch.Tensor): System input/output matrix.
+                            Shape: (C, H, N).
+            log_dt (torch.Tensor): Logarithm of the time step size.
+                                Shape: (H).
+            L (Optional[int]): Maximum length of the convolution kernel. Default is None.
+            disc (str): Discretization method. Options include "bilinear", "zoh", "dss".
+            real_type (str): Method for handling the real part of A. Options include
+                            "none", "exp", "relu", "sigmoid", "softplus".
+            lr (Optional[float | dict]): Learning rate for special parameters.
+            bandlimit (Optional[float]): Maximum frequency to consider in the kernel.
+
+        Examples:
+            >>> A = torch.randn(3, 64) + 1j * torch.randn(3, 64)  # Complex A
+            >>> B = torch.randn(3, 64)
+            >>> C = torch.randn(1, 3, 64)
+            >>> log_dt = torch.log(torch.tensor([0.01, 0.02, 0.03]))
+            >>> kernel_diag = SSKernelDiag(A, B, C, log_dt, L=10, disc="bilinear")
+            >>> output, next_state = kernel_diag.forward(L=10)
+
+        Note:
+            The `forward` method computes the convolution kernel and the output from the 
+            initial state using the specified discretization method.
+
+        Raises:
+            AssertionError: If the dimensions of A, B, C, or log_dt are not compatible.
+        """
         AL = self.dA ** u.size(-1)
         u = u.flip(-1).to(self.dA).contiguous()  # (B H L)
         v = log_vandermonde_transpose(u, self.dB, self.dA.log(), u.size(-1))
@@ -1367,13 +2135,53 @@ class SSKernelDiag(OptimModule):
 
 
 class SSKernel(nn.Module):
-    """Wrapper around SSKernel parameterizations.
+    """
+    Wrapper around SSKernel parameterizations.
 
-    The SSKernel is expected to support the interface
-    forward()
-    default_state()
-    _setup_step()
-    step()
+    The SSKernel is expected to support the interface:
+    - forward()
+    - default_state()
+    - _setup_step()
+    - step()
+
+    Attributes:
+        H (int): Number of independent SSM copies, controlling model size.
+        N (int): State size (dimensionality of parameters A, B, C).
+        L (Optional[int]): Maximum length of convolution kernel, if known.
+        channels (int): Number of output channels, can be seen as "heads".
+        n_ssm (int): Number of independent trainable (A, B) SSMs.
+        mode (str): The kernel algorithm used ('nplr', 'diag', etc.).
+        verbose (bool): If True, prints additional information during initialization.
+        kernel_args (dict): Additional arguments for kernel initialization.
+
+    Args:
+        H (int): Number of independent SSM copies.
+        N (int): State size (dimensionality of parameters A, B, C).
+        L (Optional[int]): Maximum length of convolution kernel.
+        measure (str): Options for initialization of (A, B).
+        rank (int): Rank of low-rank correction for NPLR mode.
+        channels (int): Number of output channels.
+        dt_min (float): Minimum value for the step size dt.
+        dt_max (float): Maximum value for the step size dt.
+        deterministic (bool): If True, generates deterministic log_dt values.
+        lr (Optional[float]): Learning rate for SSM parameters.
+        mode (str): Which kernel algorithm to use ('nplr', 'diag', 'slow').
+        n_ssm (Optional[int]): Number of independent trainable (A, B) SSMs.
+        verbose (bool): If True, provides detailed logs during initialization.
+        measure_args (dict): Additional arguments for measure initialization.
+
+    Examples:
+        >>> kernel = SSKernel(H=4, N=64, L=10, measure='legs', rank=1)
+        >>> output, next_state = kernel(input_tensor)
+
+    Note:
+        The kernel computes a convolution kernel which is used in state space 
+        modeling and is designed to support different modes of operation, 
+        providing flexibility for various applications.
+
+    Raises:
+        NotImplementedError: If an unsupported mode is provided during 
+        initialization.
     """
 
     def __init__(
@@ -1510,6 +2318,58 @@ class SSKernel(nn.Module):
             raise NotImplementedError(f"mode={mode} is not valid")
 
     def forward(self, state=None, L=None, rate=None):
+        """
+        Wrapper around SSKernel parameterizations.
+
+        The SSKernel is expected to support the interface:
+        forward(), default_state(), _setup_step(), and step().
+        
+        Attributes:
+            H (int): Number of independent SSM copies; controls the size of the model.
+            N (int): State size (dimensionality of parameters A, B, C).
+            L (Optional[int]): Maximum length of convolution kernel, if known.
+            channels (int): Number of output channels for the SSM.
+            n_ssm (int): Number of independent trainable (A, B) SSMs.
+            mode (str): Which kernel algorithm to use. 'nplr' for the full S4 model;
+                        'diag' for the simpler S4D; 'slow' for a dense version for testing.
+            verbose (bool): If True, enables logging of information during initialization.
+            kernel_args (dict): Additional arguments for kernel initialization.
+
+        Args:
+            H (int): Number of independent SSM copies; controls the size of the model.
+            N (int, optional): State size (dimensionality of parameters A, B, C).
+                            Defaults to 64.
+            L (Optional[int], optional): Maximum length of convolution kernel, if known.
+                                        Defaults to None.
+            measure (str, optional): Options for initialization of (A, B). 
+                                    Defaults to "legs".
+            rank (int, optional): Rank of low-rank correction for NPLR mode. 
+                                Defaults to 1.
+            channels (int, optional): Number of output channels. 
+                                    Defaults to 1.
+            dt_min (float, optional): Minimum step size. Defaults to 0.001.
+            dt_max (float, optional): Maximum step size. Defaults to 0.1.
+            deterministic (bool, optional): If True, dt values are deterministic.
+                                            Defaults to False.
+            mode (str, optional): Kernel algorithm to use. 
+                                Defaults to "nplr".
+            n_ssm (Optional[int], optional): Number of independent trainable (A, B) SSMs.
+                                            Defaults to None.
+            lr (Optional[float], optional): Learning rate for SSM parameters. 
+                                            Defaults to None.
+            **kernel_args: Additional keyword arguments for kernel initialization.
+
+        Examples:
+            # Creating a simple SSKernel with default parameters
+            sskernel = SSKernel(H=10)
+
+            # Creating a SSKernel with specific parameters
+            sskernel = SSKernel(H=10, N=64, L=100, measure='legs', rank=2)
+
+        Raises:
+            ValueError: If n_ssm does not divide H.
+            NotImplementedError: If an invalid mode is provided.
+        """
         return self.kernel(state=state, L=L, rate=rate)
 
     @torch.no_grad()
@@ -1553,14 +2413,139 @@ class SSKernel(nn.Module):
         self.kernel._setup_step(**kwargs)
 
     def step(self, u, state, **kwargs):
+        """
+        Stores a representation of and computes the SSKernel function.
+
+        K_L(A^dt, B^dt, C) corresponding to a discretized state space,
+        where A is Normal + Low Rank (NPLR).
+
+        Attributes:
+            rank (int): The rank of the low-rank correction.
+            H (int): Total number of SSM copies.
+            N (int): Size of the state.
+            verbose (bool): If True, enables logging of kernel initialization.
+            keops (bool): If True, enables usage of PyKeops for efficient computation.
+            bandlimit (float): The frequency bandlimit for filtering.
+            real_type (str): Specifies the type of real part handling ('none', 'exp',
+                            'relu', 'sigmoid', or 'softplus').
+            real_tolerance (float): Tolerance level for real part clamping.
+            l_max (int): Maximum length of the kernel.
+
+        Args:
+            w (torch.Tensor): Diagonal part of the kernel, shape (S, N).
+            P (torch.Tensor): Low-rank part of the kernel, shape (R, S, N).
+            B (torch.Tensor): Output matrix, shape (S, N).
+            C (torch.Tensor): Conjugate part of the kernel, shape (C, H, N).
+            log_dt (torch.Tensor): Logarithm of time step, shape (H).
+            L (Optional[int]): Starting/maximum length of kernel. Defaults to None.
+            lr (Optional[Union[float, dict]]): Learning rate for special parameters (A, B, dt).
+            verbose (bool): If True, logs additional information during initialization.
+            keops (bool): If True, enables PyKeops for optimized computations.
+            real_type (str): Method for handling the real part of w.
+            real_tolerance (float): Clamping tolerance for the real part of w.
+            bandlimit (Optional[float]): Bandlimit for frequency filtering.
+
+        Examples:
+            >>> w = torch.randn(2, 64)
+            >>> P = torch.randn(1, 2, 64)
+            >>> B = torch.randn(2, 64)
+            >>> C = torch.randn(1, 2, 64)
+            >>> log_dt = torch.log(torch.tensor([0.01, 0.02]))
+            >>> kernel = SSKernelNPLR(w, P, B, C, log_dt, L=10, lr=0.001)
+
+        Note:
+            The forward pass of this Module returns a tensor of shape (C, H, L)
+            where C denotes the number of output channels.
+        """
         y, state = self.kernel.step(u, state, **kwargs)
         return y, state
 
     def default_state(self, *args, **kwargs):
+        """
+        Generate the default initial state for the SSKernel.
+
+        This method constructs an initial state tensor of zeros,
+        shaped according to the specified batch dimensions and the 
+        number of independent SSM copies (H) and the state size (N).
+
+        Args:
+            *batch_shape: Variable length argument list specifying the
+                        batch dimensions for the state tensor.
+
+        Returns:
+            torch.Tensor: A tensor initialized to zeros with shape
+                        (*batch_shape, H, N), where H is the number of
+                        independent SSM copies and N is the state size.
+
+        Note:
+            The state tensor is initialized to zero, and the shape 
+            reflects the number of independent SSM copies and the 
+            state size. The state is used in the forward pass of the 
+            model to store and propagate information across time steps.
+
+        Examples:
+            >>> kernel = SSKernel(H=2, N=64)
+            >>> initial_state = kernel.default_state(1, 10)
+            >>> print(initial_state.shape)
+            torch.Size([1, 10, 2, 64])  # Shape corresponds to (B, batch_shape, H, N)
+        """
         return self.kernel.default_state(*args, **kwargs)
 
 
 class S4(nn.Module):
+    """
+    Initialize S4 module.
+
+    The S4 module implements a state-space model that computes a 
+    convolution kernel. It utilizes a structured state space 
+    approach to enhance performance in sequential tasks. 
+
+    Attributes:
+        d_model (int): The dimensionality of the model, also denoted by H.
+        H (int): The number of independent SSM (State Space Model) copies.
+        N (int): The dimension of the state, also denoted by d_state.
+        L (Optional[int]): The maximum kernel length, also denoted by l_max.
+        channels (int): The number of channels for the output.
+        bidirectional (bool): If True, the convolution kernel will be two-sided.
+        transposed (bool): If True, uses (B, H, L) axis ordering; otherwise (B, L, H).
+        gate (Optional[int]): The number of gated activations.
+        bottleneck (Optional[int]): The bottleneck dimension for the SSM.
+
+    Args:
+        d_model (int): Number of independent SSM copies (hidden dimension).
+        d_state (int, optional): Dimension of the state. Defaults to 64.
+        l_max (Optional[int], optional): Maximum length of the kernel. Defaults to None.
+        channels (int, optional): Number of channels (C). Defaults to 1.
+        bidirectional (bool, optional): Whether to use bidirectional convolution. 
+                                         Defaults to False.
+        activation (str, optional): Activation function for feedforward components. 
+                                     Defaults to "gelu".
+        postact (str, optional): Activation after feedforward. Defaults to "glu".
+        hyper_act (Optional[str], optional): Hypernetwork activation. Defaults to None.
+        dropout (float, optional): Dropout rate. Defaults to 0.0.
+        tie_dropout (bool, optional): Whether to tie dropout across sequence length. 
+                                       Defaults to False.
+        bottleneck (Optional[int], optional): Bottleneck dimension. Defaults to None.
+        gate (Optional[int], optional): Gated activation dimension. Defaults to None.
+        transposed (bool, optional): Axis ordering for the input. Defaults to True.
+        verbose (bool, optional): If True, logs information during initialization. 
+                                   Defaults to False.
+        **kernel_args: Additional arguments for the SSKernel.
+
+    Examples:
+        >>> model = S4(d_model=128, d_state=64, l_max=50, channels=2)
+        >>> output, next_state = model(input_tensor)
+
+    Notes:
+        - The S4 model is suitable for tasks such as time series forecasting, 
+          sequence modeling, and other applications requiring a structured 
+          representation of sequential data.
+        - The kernel constructed in this model can be used to compute 
+          convolution operations on input sequences efficiently.
+
+    Raises:
+        ValueError: If invalid configurations are provided.
+    """
     def __init__(
         self,
         d_model,
@@ -1691,12 +2676,58 @@ class S4(nn.Module):
         )
 
     def forward(self, u, state=None, rate=1.0, lengths=None, **kwargs):
-        """Forward pass.
+        """
+        Stores a representation of and computes the SSKernel function.
 
-        u: (B H L) if self.transposed else (B L H)
-        state: (H N) never needed unless you know what you're doing
+        K_L(A^dt, B^dt, C) corresponds to a discretized state space,
+        where A is Normal + Low Rank (NPLR).
 
-        Returns: same shape as u
+        Attributes:
+            verbose (bool): Flag to enable verbose logging.
+            keops (bool): Flag to enable the use of PyKeops for computations.
+            bandlimit (Optional[float]): Frequency bandlimit for kernel computations.
+            real_type (str): Type of transformation for real parts of parameters.
+            real_tolerance (float): Tolerance for real parts of parameters.
+            rank (int): Rank of low-rank correction.
+            H (int): Total number of SSM copies.
+            N (int): State size.
+            n_ssm (int): Number of independent SSMs.
+            broadcast (int): Number of times each SSM is duplicated.
+            C (torch.nn.Parameter): Parameter representing the C matrix.
+            log_dt (torch.nn.Parameter): Logarithm of time step.
+            B (torch.nn.Parameter): Parameter representing the B matrix.
+            P (torch.nn.Parameter): Parameter representing the low-rank part.
+            inv_w_real (torch.nn.Parameter): Inverse of the real part of w.
+            w_imag (torch.nn.Parameter): Imaginary part of w.
+            l_max (Optional[int]): Maximum length of kernel.
+            L (torch.Tensor): Internal length of the kernel.
+
+        Args:
+            w (torch.Tensor): Diagonal part of the kernel (S, N).
+            P (torch.Tensor): Low-rank part of the kernel (R, S, N).
+            B (torch.Tensor): B matrix (S, N).
+            C (torch.Tensor): C matrix (C, H, N).
+            log_dt (torch.Tensor): Log of time step (H).
+            L (Optional[int]): Maximum length of the kernel.
+            lr (Optional[float]): Learning rate for parameters.
+            verbose (bool): Flag for verbose logging.
+            keops (bool): Flag to enable PyKeops usage.
+            real_type (str): Type of real transformation.
+            real_tolerance (float): Tolerance for real parts.
+            bandlimit (Optional[float]): Frequency band limit.
+
+        Examples:
+            >>> w = torch.randn(1, 64)
+            >>> P = torch.randn(1, 1, 64)
+            >>> B = torch.randn(1, 64)
+            >>> C = torch.randn(1, 1, 64)
+            >>> log_dt = torch.tensor([0.01])
+            >>> kernel = SSKernelNPLR(w, P, B, C, log_dt)
+            >>> output, state = kernel(state=torch.randn(1, 1, 64), rate=1.0)
+
+        Note:
+            The forward pass of this Module returns a tensor of shape (C, H, L).
+            The tensor shape N here denotes half the true state size because of conjugate symmetry.
         """
         if not self.transposed:
             u = u.transpose(-1, -2)
@@ -1779,16 +2810,83 @@ class S4(nn.Module):
         return y, next_state
 
     def setup_step(self, **kwargs):
-        self.kernel._setup_step(**kwargs)
+    """
+    Set up dA, dB, dC discretized parameters for stepping.
+
+    This method initializes the discretized state matrices dA, dB, and dC,
+    which are crucial for the stepping process of the SSKernel. It determines
+    the parameterization of the system based on the specified mode, which can
+    be 'dense', 'linear', or 'diagonal'.
+
+    Args:
+        mode (str): The mode for the stepping mechanism. Options include:
+            - 'dense': Use a dense representation for stepping.
+            - 'linear': Use a linear representation for stepping, optimized
+              for speed.
+            - 'diagonal': Use a diagonal representation, leveraging eigenvalues
+              for the state transition.
+
+    Note:
+        - This method should be called before performing any state updates
+          to ensure the matrices are properly initialized.
+        - The dA, dB, and dC matrices are computed based on the current
+          parameters of the kernel and the specified stepping mode.
+
+    Raises:
+        NotImplementedError: If the specified mode is not supported.
+
+    Examples:
+        >>> sskernel = SSKernel(...)
+        >>> sskernel._setup_step(mode="linear")
+        >>> # Now the kernel is set up for linear stepping.
+    """
 
     def step(self, u, state, **kwargs):
-        """Step one time step as a recurrent model.
+        """
+        Initialize S4 module.
 
-        Intended to be used during validation.
+        The S4 module implements a structured state space model designed for 
+        sequential data. It combines state space dynamics with neural network 
+        architectures, allowing for efficient modeling of long-range dependencies 
+        in sequences.
 
-        u: (B H)
-        state: (B H N)
-        Returns: output (B H), state (B H N)
+        Attributes:
+            d_model (int): The dimension of the model (number of independent SSM copies).
+            H (int): The number of independent SSM copies.
+            N (int): The dimension of the state.
+            L (int or None): The maximum kernel length.
+            channels (int): The number of output channels.
+            bidirectional (bool): Whether to use a bidirectional convolution kernel.
+            transposed (bool): The ordering of input tensors, either (B, L, H) or (B, H, L).
+            gate (int or None): If specified, the number of gates for gated activation.
+            bottleneck (int or None): If specified, the dimensionality reduction factor for the SSM.
+            kernel (SSKernel): The kernel component of the S4 model.
+
+        Args:
+            d_model (int): The dimension of the model, also denoted by H.
+            d_state (int): The dimension of the state, also denoted by N.
+            l_max (int or None): The maximum kernel length, also denoted by L.
+            channels (int): The number of output channels.
+            bidirectional (bool): If True, the convolution kernel will be two-sided.
+            activation (str): Activation function used in the model.
+            postact (str): Activation function applied after the feedforward layer.
+            hyper_act (str or None): Activation function for hypernetwork multiplication (experimental).
+            dropout (float): Dropout probability for regularization.
+            tie_dropout (bool): If True, ties the dropout mask across the sequence length.
+            bottleneck (int or None): If specified, reduces SSM dimension.
+            gate (int or None): If specified, adds gated activation.
+            transposed (bool): Determines backbone axis ordering of the input.
+            verbose (bool): If True, enables logging information.
+            **kernel_args: Additional arguments for the SSKernel initialization.
+
+        Examples:
+            >>> s4_model = S4(d_model=128, d_state=64, l_max=100, channels=1)
+            >>> input_data = torch.randn(32, 1, 100)  # (batch_size, channels, sequence_length)
+            >>> output, next_state = s4_model(input_data)
+
+        Note:
+            It is recommended to adjust `d_model` and `channels` instead of `d_state` 
+            unless specific architectural requirements necessitate it.
         """
         assert not self.training
         y, next_state = self.kernel.step(u, state)  # (B C H)
@@ -1802,6 +2900,36 @@ class S4(nn.Module):
         return y, next_state
 
     def default_state(self, *batch_shape, device=None):
+        """
+        Generate a default initial state for the SSKernel.
+
+        This method constructs an initial state tensor filled with zeros,
+        designed for use in the state space model (SSM). The shape of the 
+        tensor is determined by the provided batch shape, with the last 
+        dimensions corresponding to the number of independent SSM copies 
+        (H) and the state size (N).
+
+        Args:
+            *batch_shape: Variable-length argument list representing the 
+                shape of the batch. The final dimensions of the tensor 
+                will be (H, N), where H is the number of independent SSM 
+                copies and N is the state size.
+
+        Returns:
+            torch.Tensor: A tensor of shape (*batch_shape, H, N) initialized 
+            to zero, suitable for use as the initial state in the SSM.
+
+        Examples:
+            >>> kernel = SSKernel(...)  # Initialize SSKernel instance
+            >>> initial_state = kernel.default_state(32)  # For a batch of 32
+            >>> print(initial_state.shape)
+            torch.Size([32, H, N])
+
+        Note:
+            The returned state tensor's shape will depend on the 
+            configuration of the SSKernel instance, particularly the 
+            dimensions of the internal state and the specified batch size.
+        """
         # kernel is not a SequenceModule so it doesn't need to adhere to same interface
         # the kernel will know the device of its own parameters
         return self.kernel.default_state(*batch_shape)

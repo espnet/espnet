@@ -21,7 +21,77 @@ warnings.filterwarnings("ignore", category=UserWarning)
 
 
 class PartiallyARInference(torch.nn.Module):
-    """Mask-CTC-based partially autoregressive inference"""
+    """
+    Mask-CTC-based partially autoregressive inference.
+
+    This class implements the partially autoregressive inference using
+    a combination of CTC (Connectionist Temporal Classification) and 
+    a beam search mechanism tailored for handling masked tokens in 
+    the decoding process. It is particularly useful for scenarios 
+    where the input data may have uncertain or missing information.
+
+    Attributes:
+        ctc (CTC): The CTC module for generating probabilities.
+        decoder (AbsDecoder): The decoder module used for sequence 
+            generation.
+        threshold_probability (float): The threshold for determining 
+            whether to mask a token based on its CTC probability.
+        sos (int): The start-of-sequence token ID.
+        eos (int): The end-of-sequence token ID.
+        mask_token (int): The token ID used for masking.
+        converter (TokenIDConverter): Converter for token IDs.
+        beam_search (PartiallyARBeamSearch): The beam search 
+            mechanism used for generating hypotheses.
+        max_mask_parallel (int): Maximum number of masks to process 
+            simultaneously.
+        primer (List[int]): A list of tokens used to prime the 
+            hypotheses.
+
+    Args:
+        ctc (CTC): The CTC module for decoding.
+        decoder (AbsDecoder): The decoder for generating sequences.
+        threshold_probability (float): The probability threshold for 
+            masking tokens.
+        sos (int, optional): The ID for the start-of-sequence token. 
+            Defaults to None.
+        eos (int, optional): The ID for the end-of-sequence token. 
+            Defaults to None.
+        mask_token (int, optional): The ID for the mask token. 
+            Defaults to None.
+        token_list (List[int], optional): A list of token IDs. 
+            Defaults to None.
+        scorers (Dict[str, ScorerInterface], optional): Scorers for 
+            evaluating hypotheses. Defaults to None.
+        weights (Dict[str, float], optional): Weights for the scoring 
+            functions. Defaults to None.
+        beam_size (int, optional): The size of the beam for search. 
+            Defaults to 10.
+        max_seq_len (int, optional): The maximum length of the 
+            generated sequence. Defaults to 5.
+        max_mask_parallel (int, optional): The maximum number of 
+            masks to process in parallel. Defaults to -1 (unlimited).
+
+    Returns:
+        List[Hypothesis]: A list of hypotheses generated from the 
+            inference process.
+
+    Raises:
+        AssertionError: If any scorer is not an instance of 
+            MaskParallelScorerInterface.
+
+    Examples:
+        >>> ctc = CTC(...)
+        >>> decoder = AbsDecoder(...)
+        >>> inference = PartiallyARInference(ctc, decoder, 0.5, sos=1, eos=2)
+        >>> enc_out = torch.randn(1, 10, 20)  # Example encoder output
+        >>> hypotheses = inference(enc_out)
+        >>> for hypo in hypotheses:
+        ...     print(hypo.yseq)
+
+    Note:
+        This implementation assumes that the CTC and decoder are 
+        properly configured for the specific task and data.
+    """
 
     def __init__(
         self,
@@ -74,10 +144,88 @@ class PartiallyARInference(torch.nn.Module):
         self.primer = []
 
     def set_hyp_primer(self, primer: List[int]):
+        """
+        Set the hypothesis primer for the beam search.
+
+    This method allows users to define a sequence of tokens that will be used
+    as a prefix during the beam search process. The primer can help guide the
+    decoding process towards more relevant hypotheses by providing a starting
+    point.
+
+    Args:
+        primer (List[int]): A list of token IDs that will be used as the 
+        initial tokens in the beam search.
+
+    Examples:
+        >>> inference = PartiallyARInference(ctc, decoder, threshold_probability)
+        >>> inference.set_hyp_primer([2, 3, 5])
+        >>> print(inference.primer)
+        [2, 3, 5]
+
+    Note:
+        The provided primer should be consistent with the token list used in
+        the model. Ensure that the token IDs in the primer are valid before 
+        invoking this method.
+        """
         self.primer = primer
 
     def forward(self, enc_out: torch.Tensor, *args, **kwargs) -> List[Hypothesis]:
-        """Perform Semi-AR inference"""
+        """
+        Mask-CTC-based partially autoregressive inference.
+
+        This class implements a partially autoregressive inference mechanism using
+        a Mask-CTC approach. It utilizes a CTC decoder and beam search to generate
+        hypotheses from the encoded outputs while handling masked tokens.
+
+        Attributes:
+            ctc (CTC): The CTC model used for generating token probabilities.
+            decoder (AbsDecoder): The decoder responsible for generating output sequences.
+            mask_token (int): The token ID representing the mask.
+            threshold_probability (float): The threshold for determining confident tokens.
+            sos (int): The start-of-sequence token ID.
+            eos (int): The end-of-sequence token ID.
+            max_seq_len (int): The maximum length of generated sequences.
+            max_mask_parallel (int): The maximum number of masks to process in parallel.
+            primer (List[int]): A list of initial tokens to prepend to hypotheses.
+
+        Args:
+            ctc (CTC): The CTC model.
+            decoder (AbsDecoder): The decoder.
+            threshold_probability (float): Probability threshold for masking.
+            sos (int, optional): Start-of-sequence token ID. Defaults to None.
+            eos (int, optional): End-of-sequence token ID. Defaults to None.
+            mask_token (int, optional): Mask token ID. Defaults to None.
+            token_list (List[int], optional): List of token IDs. Defaults to None.
+            scorers (Dict[str, ScorerInterface], optional): Scorers for beam search.
+                Defaults to None.
+            weights (Dict[str, float], optional): Weights for different components.
+                Defaults to None.
+            beam_size (int, optional): Size of the beam for beam search. Defaults to 10.
+            max_seq_len (int, optional): Maximum sequence length for output. Defaults to 5.
+            max_mask_parallel (int, optional): Max number of masks processed in parallel.
+                Defaults to -1.
+
+        Returns:
+            List[Hypothesis]: A list of hypotheses generated from the input encoding.
+
+        Raises:
+            AssertionError: If any scorer is not an instance of MaskParallelScorerInterface.
+
+        Examples:
+            >>> ctc_model = CTC(...)
+            >>> decoder_model = AbsDecoder(...)
+            >>> inference = PartiallyARInference(ctc=ctc_model, decoder=decoder_model,
+            ...                                   threshold_probability=0.5)
+            >>> enc_out = torch.randn(1, 100, 512)  # Example encoder output
+            >>> hypotheses = inference(enc_out)
+            >>> for hypo in hypotheses:
+            ...     print(hypo.yseq)  # Print the generated sequences
+
+        Note:
+            This implementation is based on the research from
+            https://arxiv.org/abs/2309.14922 and may have specific requirements
+            related to the input data and model configuration.
+        """
         # greedy ctc outputs
         enc_out = enc_out.unsqueeze(0)
         ctc_probs, ctc_ids = torch.exp(self.ctc.log_softmax(enc_out)).max(dim=-1)

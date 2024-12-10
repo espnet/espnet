@@ -46,20 +46,61 @@ from espnet.nets.pytorch_backend.transformer.subsampling import (
 
 
 class EBranchformerEncoderLayer(torch.nn.Module):
-    """E-Branchformer encoder layer module.
+    """
+    E-Branchformer encoder layer module.
 
-    Compared to the original encoder layer in e_branchformer_encoder.py,
-    this variant supports additional cross-attention modules.
+    This layer implements an enhanced version of the E-Branchformer encoder
+    layer, incorporating additional cross-attention modules. It is designed
+    to facilitate improved processing of input sequences by integrating 
+    both self-attention and convolutional gating mechanisms.
+
+    Attributes:
+        size (int): The dimension of the model.
+        attn (torch.nn.Module): The attention module, either standard or 
+            efficient.
+        cgmlp (torch.nn.Module): The Convolutional Gating MLP module.
+        feed_forward (Optional[torch.nn.Module]): The feed-forward module, 
+            if applicable.
+        feed_forward_macaron (Optional[torch.nn.Module]): A macaron-style 
+            feed-forward module, if applicable.
+        cross_attn (Optional[torch.nn.Module]): The cross-attention module, 
+            if applicable.
+        dropout (torch.nn.Dropout): The dropout layer for regularization.
+        depthwise_conv_fusion (torch.nn.Conv1d): The depthwise convolution 
+            layer for merging branches.
+        merge_proj (torch.nn.Linear): The linear projection layer for merging 
+            outputs.
 
     Args:
-        size (int): model dimension
-        attn: standard self-attention or efficient attention
-        cgmlp: ConvolutionalGatingMLP
-        feed_forward: feed-forward module, optional
-        feed_forward_macaron: macaron-style feed-forward module, optional
-        cross_attn: cross attention module
-        dropout_rate (float): dropout probability
-        merge_conv_kernel (int): kernel size of the depth-wise conv in merge module
+        size (int): Model dimension.
+        attn (torch.nn.Module): Attention module (self-attention or 
+            efficient attention).
+        cgmlp (torch.nn.Module): Convolutional Gating MLP.
+        feed_forward (Optional[torch.nn.Module]): Feed-forward module.
+        feed_forward_macaron (Optional[torch.nn.Module]): Macaron-style 
+            feed-forward module.
+        cross_attn (Optional[torch.nn.Module]): Cross-attention module.
+        dropout_rate (float): Dropout probability.
+        merge_conv_kernel (int): Kernel size of the depth-wise conv in the 
+            merge module.
+
+    Raises:
+        NotImplementedError: If cache is provided in the forward pass, 
+            as this functionality is not implemented.
+
+    Examples:
+        >>> encoder_layer = EBranchformerEncoderLayer(
+        ...     size=256,
+        ...     attn=MultiHeadedAttention(4, 256, 0.1),
+        ...     cgmlp=ConvolutionalGatingMLP(256, 2048, 31, 0.1),
+        ...     feed_forward=None,
+        ...     feed_forward_macaron=None,
+        ...     cross_attn=None,
+        ...     dropout_rate=0.1
+        ... )
+        >>> x_input = torch.randn(32, 10, 256)  # (batch, time, size)
+        >>> mask = torch.ones(32, 1, 10)  # (batch, 1, time)
+        >>> output, output_mask = encoder_layer(x_input, mask)
     """
 
     def __init__(
@@ -118,17 +159,55 @@ class EBranchformerEncoderLayer(torch.nn.Module):
         memory=None,
         memory_mask=None,
     ):
-        """Compute encoded features.
+        """
+        Compute encoded features.
+
+        This method processes the input tensor through the E-Branchformer 
+        encoder layer. It utilizes both self-attention and convolutional 
+        gating mechanisms, merging the results to produce the final 
+        output tensor.
 
         Args:
-            x_input (Union[Tuple, torch.Tensor]): Input tensor w/ or w/o pos emb.
-                - w/ pos emb: Tuple of tensors [(#batch, time, size), (1, time, size)].
-                - w/o pos emb: Tensor (#batch, time, size).
-            mask (torch.Tensor): Mask tensor for the input (#batch, 1, time).
-            cache (torch.Tensor): Cache tensor of the input (#batch, time - 1, size).
+            x_input (Union[Tuple, torch.Tensor]): Input tensor with or 
+                without positional embedding. It can be:
+                - A tuple containing:
+                    - torch.Tensor: Input tensor of shape 
+                    (#batch, time, size).
+                    - torch.Tensor: Positional embedding tensor of shape 
+                    (1, time, size).
+                - A torch.Tensor of shape (#batch, time, size) without 
+                positional embedding.
+            mask (torch.Tensor): Mask tensor for the input with shape 
+                (#batch, 1, time) to indicate valid positions.
+            cache (torch.Tensor, optional): Cache tensor of the input 
+                with shape (#batch, time - 1, size). If provided, 
+                the function raises a NotImplementedError.
+            memory (torch.Tensor, optional): Memory tensor for cross 
+                attention, with shape (#batch, memory_time, size).
+            memory_mask (torch.Tensor, optional): Mask for the memory 
+                tensor, with shape (#batch, 1, memory_time).
+
         Returns:
-            torch.Tensor: Output tensor (#batch, time, size).
-            torch.Tensor: Mask tensor (#batch, time).
+            Union[Tuple[torch.Tensor, torch.Tensor], torch.Tensor]: 
+                If positional embedding is provided, returns a tuple:
+                - torch.Tensor: Output tensor of shape (#batch, time, size).
+                - torch.Tensor: Positional embedding tensor.
+                Otherwise, returns:
+                - torch.Tensor: Output tensor of shape (#batch, time, size).
+                - torch.Tensor: Mask tensor of shape (#batch, time).
+
+        Raises:
+            NotImplementedError: If `cache` is not None.
+
+        Examples:
+            >>> layer = EBranchformerEncoderLayer(...)
+            >>> input_tensor = torch.randn(2, 10, 256)  # (batch, time, size)
+            >>> mask = torch.ones(2, 1, 10)  # (batch, 1, time)
+            >>> output, output_mask = layer(input_tensor, mask)
+
+        Note:
+            The `cache` parameter is not implemented and will raise an error 
+            if provided.
         """
 
         if cache is not None:
@@ -200,12 +279,84 @@ class EBranchformerEncoderLayer(torch.nn.Module):
 
 
 class EBranchformerCTCEncoder(AbsEncoder):
-    """E-Branchformer encoder module.
+    """
+    E-Branchformer encoder module.
 
-    Compared to the original encoder in e_branchformer_encoder.py,
-    this variant supports additional cross-attention modules.
-    Additionally, it supports extra prefix tokens for the input.
-    This is useful for language and task conditioning.
+    This module implements the E-Branchformer encoder which enhances the
+    original encoder with support for additional cross-attention modules 
+    and extra prefix tokens for language and task conditioning.
+
+    Attributes:
+        _output_size (int): The output size of the encoder.
+
+    Args:
+        input_size (int): The dimensionality of the input features.
+        output_size (int, optional): The dimensionality of the output features.
+            Defaults to 256.
+        attention_heads (int, optional): The number of attention heads.
+            Defaults to 4.
+        attention_layer_type (str, optional): The type of attention layer to use.
+            Defaults to "rel_selfattn".
+        pos_enc_layer_type (str, optional): The type of positional encoding.
+            Defaults to "rel_pos".
+        rel_pos_type (str, optional): The type of relative position encoding.
+            Defaults to "latest".
+        cgmlp_linear_units (int, optional): The number of linear units in CG-MLP.
+            Defaults to 2048.
+        cgmlp_conv_kernel (int, optional): The convolutional kernel size in CG-MLP.
+            Defaults to 31.
+        use_linear_after_conv (bool, optional): Whether to use a linear layer 
+            after the convolution. Defaults to False.
+        gate_activation (str, optional): The activation function for gating.
+            Defaults to "identity".
+        num_blocks (int, optional): The number of encoder blocks. Defaults to 12.
+        dropout_rate (float, optional): The dropout rate for the encoder.
+            Defaults to 0.1.
+        positional_dropout_rate (float, optional): The dropout rate for 
+            positional encodings. Defaults to 0.1.
+        attention_dropout_rate (float, optional): The dropout rate for attention.
+            Defaults to 0.0.
+        input_layer (str or torch.nn.Module, optional): The type of input layer.
+            Defaults to "conv2d8".
+        zero_triu (bool, optional): Whether to zero out the upper triangular part
+            of the attention matrix. Defaults to False.
+        padding_idx (int, optional): The index used for padding in embeddings.
+            Defaults to -1.
+        layer_drop_rate (float, optional): The dropout rate for layers.
+            Defaults to 0.0.
+        max_pos_emb_len (int, optional): The maximum length for positional embeddings.
+            Defaults to 5000.
+        use_ffn (bool, optional): Whether to use feed-forward networks. Defaults to False.
+        macaron_ffn (bool, optional): Whether to use macaron-style feed-forward networks.
+            Defaults to False.
+        ffn_activation_type (str, optional): The activation function for feed-forward networks.
+            Defaults to "swish".
+        linear_units (int, optional): The number of linear units in feed-forward networks.
+            Defaults to 2048.
+        positionwise_layer_type (str, optional): The type of position-wise layer.
+            Defaults to "linear".
+        merge_conv_kernel (int, optional): The kernel size for merging convolutions.
+            Defaults to 3.
+        interctc_layer_idx (list, optional): Indices of layers where intermediate CTC is applied.
+            Defaults to None.
+        interctc_use_conditioning (bool, optional): Whether to use conditioning for 
+            intermediate CTC. Defaults to False.
+        use_cross_attention (bool or list of bool, optional): Whether to use cross attention.
+            Defaults to True.
+        use_flash_attn (bool, optional): Whether to use flash attention. Defaults to False.
+
+    Returns:
+        None: Initializes the E-Branchformer encoder.
+
+    Examples:
+        >>> encoder = EBranchformerCTCEncoder(input_size=80)
+        >>> xs_pad = torch.randn(32, 100, 80)  # (batch, length, input_size)
+        >>> ilens = torch.tensor([100] * 32)    # (batch)
+        >>> output, olens, _ = encoder(xs_pad, ilens)
+        >>> print(output.shape)  # Output shape will be (32, 100, output_size)
+    
+    Note:
+        Ensure that the input size matches the expected dimensionality of the input features.
     """
 
     @typechecked
@@ -465,6 +616,22 @@ class EBranchformerCTCEncoder(AbsEncoder):
         self.conditioning_layer = None
 
     def output_size(self) -> int:
+        """
+        Get the output size of the encoder.
+
+        This method returns the size of the output tensor generated by the
+        encoder. The output size is determined during the initialization of
+        the encoder and is typically set to the number of units in the
+        final layer of the model.
+
+        Returns:
+            int: The output size of the encoder.
+
+        Examples:
+            >>> encoder = EBranchformerCTCEncoder(input_size=128, output_size=256)
+            >>> encoder.output_size()
+            256
+        """
         return self._output_size
 
     def forward(
@@ -478,18 +645,47 @@ class EBranchformerCTCEncoder(AbsEncoder):
         memory=None,
         memory_mask=None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
-        """Calculate forward propagation.
+        """
+        Calculate forward propagation.
+
+        This method computes the forward pass of the E-Branchformer CTC encoder,
+        processing the input tensor through multiple encoder layers and applying
+        any specified cross-attention mechanisms. The method handles padding,
+        applies dropout, and manages various input configurations.
 
         Args:
-            xs_pad (torch.Tensor): Input tensor (#batch, L, input_size).
-            ilens (torch.Tensor): Input length (#batch).
-            prev_states (torch.Tensor): Not to be used now.
-            ctc (CTC): Intermediate CTC module.
-            max_layer (int): Layer depth below which InterCTC is applied.
+            xs_pad (torch.Tensor): Input tensor of shape (#batch, L, input_size).
+            ilens (torch.Tensor): Input lengths of shape (#batch).
+            prev_states (torch.Tensor, optional): Not currently used.
+            ctc (CTC, optional): Intermediate CTC module for connectionist temporal 
+                classification.
+            max_layer (int, optional): Maximum layer depth below which InterCTC is 
+                applied.
+            prefix_embeds (torch.tensor, optional): Additional embeddings for input 
+                conditioning, shape (batch, 2, output_size).
+            memory (torch.Tensor, optional): Memory tensor for cross-attention, if 
+                applicable.
+            memory_mask (torch.Tensor, optional): Mask for the memory tensor.
+
         Returns:
-            torch.Tensor: Output tensor (#batch, L, output_size).
-            torch.Tensor: Output length (#batch).
-            torch.Tensor: Not to be used now.
+            Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]: A tuple 
+            containing:
+                - Output tensor of shape (#batch, L, output_size).
+                - Output lengths of shape (#batch).
+                - Placeholder tensor, currently not used.
+
+        Raises:
+            TooShortUttError: If the input tensor is too short for subsampling.
+
+        Examples:
+            >>> encoder = EBranchformerCTCEncoder(input_size=256, output_size=512)
+            >>> input_tensor = torch.randn(8, 100, 256)  # Batch of 8, 100 timesteps
+            >>> input_lengths = torch.tensor([100] * 8)  # All inputs are 100 long
+            >>> output, output_lengths, _ = encoder.forward(input_tensor, input_lengths)
+
+        Note:
+            The method supports multiple input configurations, including prefix
+            embeddings for enhanced language and task conditioning.
         """
 
         masks = (~make_pad_mask(ilens)[:, None, :]).to(xs_pad.device)

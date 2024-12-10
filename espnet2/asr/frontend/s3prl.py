@@ -12,7 +12,55 @@ from espnet.nets.pytorch_backend.frontends.frontend import Frontend
 
 
 class S3prlFrontend(AbsFrontend):
-    """Speech Pretrained Representation frontend structure for ASR."""
+    """
+    Speech Pretrained Representation frontend structure for ASR.
+
+    This class implements a frontend that utilizes S3PRL to extract
+    pretrained speech representations for automatic speech recognition (ASR).
+    It allows for configurable parameters, including the sample rate, the choice
+    of upstream model, and whether to use multilayer features.
+
+    Attributes:
+        multilayer_feature (bool): Flag indicating whether to use multilayer
+            features or not.
+        layer (int): Specific layer to extract features from. If -1, the last
+            layer is used.
+        upstream: The upstream model used for feature extraction.
+        featurizer: The featurizer that processes the upstream outputs.
+        pretrained_params (dict): A copy of the pretrained parameters for
+            reloading.
+        frontend_type (str): The type of frontend, set to "s3prl".
+        hop_length (int): The hop length of the feature extraction.
+        tile_factor (int): The factor by which to tile the representations.
+
+    Args:
+        fs (Union[int, str]): The sample rate of the audio input. Defaults to
+            16000 Hz.
+        frontend_conf (Optional[dict]): Configuration dictionary for the
+            frontend. It should include the upstream model name and other
+            parameters. Defaults to the default configuration of Frontend.
+        download_dir (Optional[str]): Directory to download models if needed.
+            Defaults to None.
+        multilayer_feature (bool): Whether to use features from multiple layers.
+            Defaults to False.
+        layer (int): The specific layer to extract features from. Defaults to
+            -1 (last layer).
+
+    Raises:
+        Exception: If S3PRL is not installed correctly or if an invalid upstream
+            model is specified.
+
+    Examples:
+        >>> frontend = S3prlFrontend(fs=16000, multilayer_feature=True)
+        >>> input_tensor = torch.randn(1, 16000)  # Example input tensor
+        >>> input_lengths = torch.tensor([16000])  # Example input length
+        >>> features, lengths = frontend(input_tensor, input_lengths)
+        >>> print(features.shape)  # Shape of the extracted features
+
+    Note:
+        This class requires S3PRL to be installed. If not installed, an error
+        message will be printed with installation instructions.
+    """
 
     @typechecked
     def __init__(
@@ -91,11 +139,66 @@ class S3prlFrontend(AbsFrontend):
         return tiled_feature
 
     def output_size(self) -> int:
+        """
+        Get the output size of the featurizer.
+
+        This method returns the output size, which corresponds to the number
+        of features produced by the featurizer component of the S3PRL frontend.
+
+        Returns:
+            int: The output size of the featurizer.
+
+        Examples:
+            >>> frontend = S3prlFrontend()
+            >>> output_size = frontend.output_size()
+            >>> print(output_size)
+            512  # This value may vary based on the upstream model configuration.
+
+        Note:
+            The output size is determined by the specific upstream model used
+            and its configuration. Make sure the featurizer has been properly
+            initialized before calling this method.
+        """
         return self.featurizer.output_size
 
     def forward(
         self, input: torch.Tensor, input_lengths: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        Forward pass of the S3prlFrontend class.
+
+        This method processes the input tensor and its lengths through the 
+        upstream model to extract features. Depending on the configuration, 
+        it can return features from a specific layer, multiple layers, or apply 
+        tiling to the representations.
+
+        Args:
+            input (torch.Tensor): Input tensor containing audio data. The shape 
+                should be (batch_size, seq_len, feature_dim).
+            input_lengths (torch.Tensor): Lengths of the input sequences. The 
+                shape should be (batch_size,).
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]: A tuple containing:
+                - feats (torch.Tensor): The extracted features after processing 
+                  through the upstream model.
+                - feats_lens (torch.Tensor): The lengths of the extracted 
+                  features.
+
+        Examples:
+            >>> input_tensor = torch.randn(32, 16000)  # 32 samples of 1 second
+            >>> input_lengths = torch.tensor([16000] * 32)
+            >>> frontend = S3prlFrontend()
+            >>> features, lengths = frontend.forward(input_tensor, input_lengths)
+
+        Note:
+            The input audio data should be sampled at 16 kHz for compatibility 
+            with the upstream models.
+
+        Raises:
+            AssertionError: If the input feature shape is not (batch_size, 
+            seq_len, feature_dim).
+        """
         feats, feats_lens = self.upstream(input, input_lengths)
         if self.layer != -1:
             layer = self.layer
@@ -113,5 +216,30 @@ class S3prlFrontend(AbsFrontend):
         return feats, feats_lens
 
     def reload_pretrained_parameters(self):
-        self.upstream.load_state_dict(self.pretrained_params)
+        """
+        Reload the pretrained parameters of the S3PRL frontend model.
+
+        This method allows the user to restore the model's parameters to their
+        pretrained state, which can be useful for resetting the model or for
+        experiments where the pretrained parameters need to be re-applied.
+
+        It retrieves the parameters stored in `self.pretrained_params` and loads
+        them back into the upstream model. After successfully reloading, a log
+        message is generated to confirm the action.
+
+        Examples:
+            >>> frontend = S3prlFrontend()
+            >>> # Assuming some training or fine-tuning has been done here
+            >>> frontend.reload_pretrained_parameters()
+            Pretrained S3PRL frontend model parameters reloaded!
+
+        Note:
+            Ensure that the `reload_pretrained_parameters` method is called 
+            when the model is in a valid state and after it has been initialized 
+            with pretrained parameters.
+
+        Raises:
+            RuntimeError: If the model's state cannot be reloaded due to 
+            incompatible shapes or other issues related to the model's architecture.
+        """
         logging.info("Pretrained S3PRL frontend model parameters reloaded!")

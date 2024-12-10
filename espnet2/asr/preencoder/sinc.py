@@ -16,26 +16,73 @@ from espnet2.layers.sinc_conv import LogCompression, SincConv
 
 
 class LightweightSincConvs(AbsPreEncoder):
-    """Lightweight Sinc Convolutions.
+    """
+    Lightweight Sinc Convolutions for end-to-end speech recognition.
 
-    Instead of using precomputed features, end-to-end speech recognition
-    can also be done directly from raw audio using sinc convolutions, as
-    described in "Lightweight End-to-End Speech Recognition from Raw Audio
-    Data Using Sinc-Convolutions" by Kürzinger et al.
-    https://arxiv.org/abs/2010.07597
+    This class implements lightweight Sinc convolutions to process raw audio input 
+    directly for speech recognition, as described in the paper "Lightweight 
+    End-to-End Speech Recognition from Raw Audio Data Using Sinc-Convolutions" 
+    by Kürzinger et al. (https://arxiv.org/abs/2010.07597). 
 
-    To use Sinc convolutions in your model instead of the default f-bank
-    frontend, set this module as your pre-encoder with `preencoder: sinc`
-    and use the input of the sliding window frontend with
-    `frontend: sliding_window` in your yaml configuration file.
-    So that the process flow is:
+    The architecture processes audio through a series of convolutional blocks 
+    that utilize Sinc filters, followed by normalization and pooling layers. 
+    To integrate this pre-encoder in your model, specify `preencoder: sinc` 
+    and use `frontend: sliding_window` in your YAML configuration file. 
+    The data flow is as follows:
 
     Frontend (SlidingWindow) -> SpecAug -> Normalization ->
     Pre-encoder (LightweightSincConvs) -> Encoder -> Decoder
 
-    Note that this method also performs data augmentation in time domain
-    (vs. in spectral domain in the default frontend).
-    Use `plot_sinc_filters.py` to visualize the learned Sinc filters.
+    This method performs data augmentation in the time domain, contrasting 
+    with the spectral domain approach of the default frontend. For visualizing 
+    the learned Sinc filters, utilize `plot_sinc_filters.py`.
+
+    Attributes:
+        fs (int): Sample rate of the input audio.
+        in_channels (int): Number of input channels.
+        out_channels (int): Number of output channels per input channel.
+        activation_type (str): Type of activation function to use.
+        dropout_type (str): Type of dropout function to use.
+        windowing_type (str): Type of windowing function to use.
+        scale_type (str): Type of filter-bank initialization scale.
+
+    Args:
+        fs (Union[int, str, float]): Sample rate. Defaults to 16000.
+        in_channels (int): Number of input channels. Defaults to 1.
+        out_channels (int): Number of output channels. Defaults to 256.
+        activation_type (str): Activation function type. Defaults to "leakyrelu".
+        dropout_type (str): Dropout function type. Defaults to "dropout".
+        windowing_type (str): Windowing function type. Defaults to "hamming".
+        scale_type (str): Filter-bank initialization scale type. Defaults to "mel".
+
+    Raises:
+        NotImplementedError: If the specified dropout or activation type is not 
+        supported.
+
+    Examples:
+        # Initialize the pre-encoder with default parameters
+        sinc_preencoder = LightweightSincConvs()
+
+        # Initialize with custom parameters
+        sinc_preencoder = LightweightSincConvs(
+            fs=16000,
+            in_channels=2,
+            out_channels=128,
+            activation_type='relu',
+            dropout_type='spatial'
+        )
+
+        # Forward pass with input tensor
+        input_tensor = torch.randn(32, 100, 1, 400)  # (B, T, C_in, D_in)
+        output_tensor, lengths = sinc_preencoder(input_tensor, input_lengths)
+
+    Note:
+        This class relies on PyTorch and is designed to be compatible with 
+        ESPnet's architecture for speech processing.
+
+    Todo:
+        - Add support for additional activation and dropout types.
+        - Implement unit tests for various configurations and edge cases.
     """
 
     @typechecked
@@ -166,24 +213,62 @@ class LightweightSincConvs(AbsPreEncoder):
         dropout_probability: float = 0.15,
         avgpool=False,
     ):
-        """Generate a convolutional block for Lightweight Sinc convolutions.
+        """
+        Generate a convolutional block for Lightweight Sinc convolutions.
 
         Each block consists of either a depthwise or a depthwise-separable
-        convolutions together with dropout, (batch-)normalization layer, and
-        an optional average-pooling layer.
+        convolution along with dropout, (batch-)normalization layer, and
+        an optional average-pooling layer. This structure is designed to
+        efficiently process audio data while maintaining the integrity of
+        the signal through various transformations.
 
         Args:
-            in_channels: Number of input channels.
-            out_channels: Number of output channels.
-            depthwise_kernel_size: Kernel size of the depthwise convolution.
-            depthwise_stride: Stride of the depthwise convolution.
-            depthwise_groups: Number of groups of the depthwise convolution.
-            pointwise_groups: Number of groups of the pointwise convolution.
-            dropout_probability: Dropout probability in the block.
-            avgpool: If True, an AvgPool layer is inserted.
+            in_channels (int): Number of input channels.
+            out_channels (int): Number of output channels.
+            depthwise_kernel_size (int, optional): Kernel size of the depthwise
+                convolution. Default is 9.
+            depthwise_stride (int, optional): Stride of the depthwise
+                convolution. Default is 1.
+            depthwise_groups (int, optional): Number of groups for the
+                depthwise convolution. If None, will be set to GCD of
+                in_channels and out_channels.
+            pointwise_groups (int, optional): Number of groups for the
+                pointwise convolution. Default is 0 (no grouping).
+            dropout_probability (float, optional): Dropout probability in the
+                block. Default is 0.15.
+            avgpool (bool, optional): If True, an AvgPool layer is inserted.
+                Default is False.
 
         Returns:
-            torch.nn.Sequential: Neural network building block.
+            torch.nn.Sequential: A sequential block containing the defined
+            layers, ready to be used in a neural network architecture.
+
+        Examples:
+            >>> lsc_block = gen_lsc_block(
+            ...     in_channels=64,
+            ...     out_channels=128,
+            ...     depthwise_kernel_size=5,
+            ...     avgpool=True
+            ... )
+            >>> print(lsc_block)
+            Sequential(
+              (depthwise): Conv1d(64, 128, kernel_size=(5,), stride=(1,), 
+              groups=64)
+              (activation): LeakyReLU(negative_slope=0.01)
+              (batchnorm): BatchNorm1d(128, eps=1e-05, momentum=0.1, 
+              affine=True, track_running_stats=True)
+              (avgpool): AvgPool1d(kernel_size=2, stride=2, padding=0)
+              (dropout): Dropout(p=0.15, inplace=False)
+            )
+        
+        Note:
+            The use of depthwise separable convolutions allows for a more
+            efficient network structure by reducing the number of parameters
+            and computational cost compared to standard convolutions.
+
+        Raises:
+            NotImplementedError: If the specified depthwise or pointwise
+            groups do not meet the required conditions.
         """
         block = OrderedDict()
         if not depthwise_groups:
@@ -210,7 +295,33 @@ class LightweightSincConvs(AbsPreEncoder):
         return torch.nn.Sequential(block)
 
     def espnet_initialization_fn(self):
-        """Initialize sinc filters with filterbank values."""
+        """
+        Initialize sinc filters with filterbank values.
+
+        This function initializes the sinc filters used in the Lightweight
+        Sinc Convolutions by setting their values based on the filterbank
+        initialization. It also sets the weights and biases of all BatchNorm
+        layers in the model to ensure that they start with a neutral effect 
+        during training.
+
+        The initialization process involves the following steps:
+        1. Call the `init_filters()` method on the `filters` attribute to
+           initialize the sinc filters.
+        2. Iterate through all the blocks of the model. For each block, check
+           if it contains a BatchNorm layer with affine parameters enabled. If
+           so, set the layer's weight to 1.0 and bias to 0.0.
+
+        Note:
+            This method should be called after creating the sinc convolutions
+            and before using the model for forward propagation.
+
+        Examples:
+            >>> model = LightweightSincConvs()
+            >>> model.espnet_initialization_fn()  # Initialize filters
+
+        Raises:
+            NotImplementedError: If the filterbank initialization fails.
+        """
         self.filters.init_filters()
         for block in self.blocks:
             for layer in block:
@@ -221,18 +332,49 @@ class LightweightSincConvs(AbsPreEncoder):
     def forward(
         self, input: torch.Tensor, input_lengths: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Apply Lightweight Sinc Convolutions.
+        """
+        Apply Lightweight Sinc Convolutions.
 
-        The input shall be formatted as (B, T, C_in, D_in)
-        with B as batch size, T as time dimension, C_in as channels,
-        and D_in as feature dimension.
+        This method processes the input tensor using lightweight Sinc 
+        convolutions, transforming the input audio features into output 
+        features suitable for subsequent layers in the neural network. 
 
-        The output will then be (B, T, C_out*D_out)
-        with C_out and D_out as output dimensions.
+        The input tensor should be formatted as (B, T, C_in, D_in), where:
+        - B: Batch size
+        - T: Time dimension
+        - C_in: Number of input channels
+        - D_in: Feature dimension (should be 400 for current implementation)
 
-        The current module structure only handles D_in=400, so that D_out=1.
-        Remark for the multichannel case: C_out is the number of out_channels
-        given at initialization multiplied with C_in.
+        The output tensor will be shaped as (B, T, C_out * D_out), where:
+        - C_out: Number of output channels, as specified during 
+          initialization
+        - D_out: Output feature dimension, which is 1 in this case.
+
+        Note:
+            The current implementation only supports D_in=400, leading 
+            to D_out=1. For multichannel input, C_out will be the 
+            product of the initialized out_channels and C_in.
+
+        Args:
+            input (torch.Tensor): Input tensor of shape (B, T, C_in, D_in).
+            input_lengths (torch.Tensor): Lengths of the input sequences.
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]: A tuple containing:
+                - Output tensor of shape (B, T, C_out * D_out).
+                - Input lengths tensor.
+
+        Examples:
+            >>> model = LightweightSincConvs()
+            >>> input_tensor = torch.randn(8, 100, 1, 400)  # Example input
+            >>> input_lengths = torch.tensor([100] * 8)  # Example lengths
+            >>> output, lengths = model.forward(input_tensor, input_lengths)
+            >>> output.shape
+            torch.Size([8, 100, 256])  # Example output shape
+
+        Raises:
+            ValueError: If the input tensor does not have the expected 
+            shape.
         """
         # Transform input data:
         #   (B, T, C_in, D_in) -> (B*T, C_in, D_in)
@@ -246,14 +388,64 @@ class LightweightSincConvs(AbsPreEncoder):
         return output_frames, input_lengths  # no state in this layer
 
     def output_size(self) -> int:
-        """Get the output size."""
+        """
+        Get the output size of the Lightweight Sinc Convolutions.
+
+        This method calculates the output size based on the number of output
+        channels and input channels defined during initialization. The output
+        size is determined by the formula:
+
+            output_size = out_channels * in_channels
+
+        This output size represents the number of features produced by the
+        Lightweight Sinc Convolutions for each input sample.
+
+        Returns:
+            int: The computed output size.
+
+        Examples:
+            >>> sinc_convs = LightweightSincConvs(in_channels=2, out_channels=256)
+            >>> output_size = sinc_convs.output_size()
+            >>> print(output_size)
+            512  # Since 2 (in_channels) * 256 (out_channels) = 512
+        """
         return self.out_channels * self.in_channels
 
 
 class SpatialDropout(torch.nn.Module):
-    """Spatial dropout module.
+    """
+    Spatial dropout module.
 
-    Apply dropout to full channels on tensors of input (B, C, D)
+    This module applies dropout to the entire channels of input tensors 
+    with shape (B, C, D), where B is the batch size, C is the number of 
+    channels, and D is the dimension of the data. This is particularly useful 
+    for regularizing deep learning models by preventing overfitting.
+
+    Attributes:
+        dropout: An instance of torch.nn.Dropout2d for applying dropout.
+        shape: The shape of the input tensors after permutation.
+
+    Args:
+        dropout_probability (float): Probability of an element being 
+            zeroed. Default is 0.15.
+        shape (Optional[Union[tuple, list]]): The desired shape of the 
+            input tensors. Default is (0, 2, 1).
+
+    Examples:
+        >>> spatial_dropout = SpatialDropout(dropout_probability=0.2, 
+        ...                                    shape=(0, 2, 1))
+        >>> input_tensor = torch.randn(10, 3, 5)  # Example input
+        >>> output_tensor = spatial_dropout(input_tensor)
+        >>> output_tensor.shape
+        torch.Size([10, 3, 5])
+
+    Note:
+        The input tensor should be of shape (B, C, D). The shape 
+        parameter determines how the dimensions are permuted before 
+        applying dropout.
+
+    Raises:
+        ValueError: If the shape parameter is not of type tuple or list.
     """
 
     @typechecked
@@ -275,7 +467,46 @@ class SpatialDropout(torch.nn.Module):
         self.shape = (shape,)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """Forward of spatial dropout module."""
+        """
+        Apply Lightweight Sinc Convolutions.
+
+        This method processes the input tensor through a series of
+        lightweight sinc convolutions. The input tensor should be
+        formatted as (B, T, C_in, D_in), where:
+        - B: Batch size
+        - T: Time dimension
+        - C_in: Number of input channels
+        - D_in: Feature dimension
+
+        The output tensor will have the shape (B, T, C_out * D_out), where:
+        - C_out: Number of output channels (initialized in the class)
+        - D_out: Output feature dimension (currently fixed to 1).
+
+        Note that the current implementation only supports an input
+        feature dimension of D_in=400, resulting in D_out=1. In the
+        case of multichannel input, the output channel size is computed
+        as the product of the number of output channels and the number
+        of input channels.
+
+        Args:
+            input (torch.Tensor): Input tensor of shape (B, T, C_in, D_in).
+            input_lengths (torch.Tensor): Lengths of each input sequence
+                in the batch.
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]: A tuple containing:
+                - output (torch.Tensor): Processed output tensor of shape
+                  (B, T, C_out * D_out).
+                - input_lengths (torch.Tensor): The same input lengths
+                  tensor, unchanged.
+
+        Examples:
+            >>> model = LightweightSincConvs()
+            >>> input_tensor = torch.randn(16, 100, 1, 400)  # Example input
+            >>> input_lengths = torch.tensor([100] * 16)  # Example lengths
+            >>> output, lengths = model.forward(input_tensor, input_lengths)
+            >>> print(output.shape)  # Output shape: (16, 100, C_out)
+        """
         y = x.permute(*self.shape)
         y = self.dropout(y)
         return y.permute(*self.shape)

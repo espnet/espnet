@@ -36,28 +36,87 @@ from espnet.nets.pytorch_backend.transformer.subsampling import (
 
 
 class TransformerEncoder(AbsEncoder):
-    """Transformer encoder module.
+    """
+    Transformer encoder module for processing sequential data.
+
+    This class implements a Transformer encoder architecture as defined in the 
+    original Transformer model. It utilizes multi-head self-attention and 
+    position-wise feed-forward networks to encode input sequences.
+
+    Attributes:
+        output_size (int): The dimension of the output embeddings.
+        embed (torch.nn.Module): The embedding layer to process input sequences.
+        normalize_before (bool): Flag indicating if normalization should occur 
+            before the first encoder block.
+        encoders (torch.nn.ModuleList): A list of encoder layers.
+        after_norm (torch.nn.LayerNorm): Layer normalization applied after 
+            processing if normalize_before is True.
+        interctc_layer_idx (List[int]): Indices of layers for intermediate CTC 
+            outputs.
+        interctc_use_conditioning (bool): Flag indicating if conditioning from 
+            CTC outputs should be applied.
 
     Args:
-        input_size: input dim
-        output_size: dimension of attention
-        attention_heads: the number of heads of multi head attention
-        linear_units: the number of units of position-wise feed forward
-        num_blocks: the number of decoder blocks
-        dropout_rate: dropout rate
-        attention_dropout_rate: dropout rate in attention
-        positional_dropout_rate: dropout rate after adding positional encoding
-        input_layer: input layer type
-        pos_enc_class: PositionalEncoding or ScaledPositionalEncoding
-        normalize_before: whether to use layer_norm before the first block
-        concat_after: whether to concat attention layer's input and output
-            if True, additional linear will be applied.
-            i.e. x -> x + linear(concat(x, att(x)))
-            if False, no additional linear will be applied.
-            i.e. x -> x + att(x)
-        positionwise_layer_type: linear of conv1d
-        positionwise_conv_kernel_size: kernel size of positionwise conv1d layer
-        padding_idx: padding_idx for input_layer=embed
+        input_size (int): Input dimension size.
+        output_size (int, optional): Dimension of the attention output. Defaults 
+            to 256.
+        attention_heads (int, optional): Number of attention heads. Defaults to 4.
+        linear_units (int, optional): Number of units in position-wise feed 
+            forward. Defaults to 2048.
+        num_blocks (int, optional): Number of encoder blocks. Defaults to 6.
+        dropout_rate (float, optional): Dropout rate for regularization. 
+            Defaults to 0.1.
+        positional_dropout_rate (float, optional): Dropout rate for positional 
+            encoding. Defaults to 0.1.
+        attention_dropout_rate (float, optional): Dropout rate in attention 
+            layers. Defaults to 0.0.
+        input_layer (Optional[str], optional): Type of input layer. Defaults to 
+            "conv2d".
+        pos_enc_class: Positional encoding class (e.g., PositionalEncoding).
+        normalize_before (bool, optional): Whether to apply layer normalization 
+            before the first block. Defaults to True.
+        concat_after (bool, optional): If True, applies additional linear layer 
+            after attention. Defaults to False.
+        positionwise_layer_type (str, optional): Type of position-wise layer 
+            ("linear" or "conv1d"). Defaults to "linear".
+        positionwise_conv_kernel_size (int, optional): Kernel size for 
+            position-wise conv1d layer. Defaults to 1.
+        padding_idx (int, optional): Padding index for embedding layer. Defaults 
+            to -1.
+        interctc_layer_idx (List[int], optional): Indices for intermediate CTC 
+            layers. Defaults to [].
+        interctc_use_conditioning (bool, optional): Whether to use conditioning 
+            from CTC outputs. Defaults to False.
+        layer_drop_rate (float, optional): Rate for dropping layers. Defaults to 
+            0.0.
+        qk_norm (bool, optional): Whether to use normalization for query-key 
+            pairs. Defaults to False.
+        use_flash_attn (bool, optional): Whether to utilize flash attention. 
+            Defaults to True.
+
+    Examples:
+        # Initialize the Transformer encoder
+        encoder = TransformerEncoder(
+            input_size=128,
+            output_size=256,
+            attention_heads=4,
+            num_blocks=6,
+            dropout_rate=0.1,
+        )
+
+        # Forward pass through the encoder
+        xs_pad = torch.rand(10, 50, 128)  # (Batch size, Sequence length, Input size)
+        ilens = torch.tensor([50] * 10)   # Lengths of the input sequences
+        output, olens, _ = encoder(xs_pad, ilens)
+
+    Note:
+        Ensure the input sequences are properly padded and the lengths are 
+        accurately specified to avoid errors during processing.
+
+    Raises:
+        ValueError: If an unknown input_layer type is provided.
+        TooShortUttError: If the input sequence is too short for the selected 
+            subsampling method.
     """
 
     @typechecked
@@ -193,6 +252,22 @@ class TransformerEncoder(AbsEncoder):
         self.conditioning_layer = None
 
     def output_size(self) -> int:
+        """
+        Return the output size of the Transformer encoder.
+
+        This method retrieves the size of the output dimension of the encoder.
+        The output size is typically used in subsequent layers of the model
+        or for other configurations that depend on the dimensionality of the
+        encoder's output.
+
+        Returns:
+            int: The output size of the encoder.
+
+        Examples:
+            >>> encoder = TransformerEncoder(input_size=512, output_size=256)
+            >>> encoder.output_size()
+            256
+        """
         return self._output_size
 
     def forward(

@@ -29,6 +29,49 @@ else:
 
 
 class PITLossWrapper(AbsLossWrapper):
+    """
+    Wrapper for Permutation Invariant Training (PIT) loss.
+
+    This class wraps a given loss function to compute the permutation invariant 
+    loss for multi-reference scenarios. It takes multiple inferences and 
+    references, calculates all possible permutations, and returns the minimum 
+    loss along with the optimal permutation.
+
+    Attributes:
+        criterion_fn (Callable): The loss function to be used for computing 
+            the loss for each reference-inference pair.
+        num_ref (int): The number of reference signals.
+
+    Args:
+        criterion_fn (Callable): A callable loss function that takes 
+            inference and reference tensors along with their lengths.
+        num_ref (int): The number of reference signals for the PIT loss 
+            computation.
+
+    Returns:
+        Tuple[torch.Tensor, torch.Tensor]: A tuple containing the mean 
+        minimum loss across all batches and the optimal permutation indices.
+
+    Raises:
+        AssertionError: If the dimensions of the input tensors do not match 
+        the expected shapes.
+
+    Examples:
+        >>> import torch
+        >>> criterion = SomeLossFunction()  # Replace with an actual loss function
+        >>> pit_loss_wrapper = PITLossWrapper(criterion_fn=criterion, num_ref=2)
+        >>> inf = torch.randn(5, 2, 10)  # (batch, num_inf, features)
+        >>> inf_lens = torch.tensor([10] * 5)  # (batch,)
+        >>> ref = torch.randn(5, 2, 10)  # (batch, num_ref, features)
+        >>> ref_lens = torch.tensor([10] * 5)  # (batch,)
+        >>> loss, opt_perm = pit_loss_wrapper(inf, inf_lens, ref, ref_lens)
+        >>> print(loss, opt_perm)
+
+    Note:
+        The loss function used should be capable of handling the inputs as 
+        defined in the `forward` method. Ensure that the number of 
+        inferences equals the number of references for proper functionality.
+    """
     def __init__(self, criterion_fn: Callable, num_ref: int):
         super().__init__()
         self.criterion_fn = criterion_fn
@@ -42,15 +85,49 @@ class PITLossWrapper(AbsLossWrapper):
         ref_lens: torch.Tensor,
         others: Dict = None,
     ):
-        """PITLoss Wrapper function. Similar to espnet2/enh/loss/wrapper/pit_solver.py
+        """
+        Computes the Permutation Invariant Training (PIT) loss using a provided 
+        criterion function for multiple references.
+
+        This method takes in inference and reference tensors, along with their 
+        lengths, and computes the optimal permutation of the references to 
+        minimize the loss. The PIT loss is particularly useful in scenarios 
+        where the order of references may vary, such as in speech separation tasks.
 
         Args:
-            inf: Iterable[torch.Tensor], (batch, num_inf, ...)
-            inf_lens: Iterable[torch.Tensor], (batch, num_inf, ...)
-            ref: Iterable[torch.Tensor], (batch, num_ref, ...)
-            ref_lens: Iterable[torch.Tensor], (batch, num_ref, ...)
-            permute_inf: If true, permute the inference and inference_lens according to
-                the optimal permutation.
+            inf (torch.Tensor): Inference tensor of shape (batch, num_inf, ...).
+            inf_lens (torch.Tensor): Lengths of the inference tensors, shape 
+                (batch, num_inf).
+            ref (torch.Tensor): Reference tensor of shape (batch, num_ref, ...).
+            ref_lens (torch.Tensor): Lengths of the reference tensors, shape 
+                (batch, num_ref).
+            others (Dict, optional): Additional keyword arguments that may be 
+                required by the criterion function.
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]: A tuple containing:
+                - The mean of the minimum losses across the batch.
+                - The optimal permutation of the references as a tensor of shape 
+                (batch_size, num_ref).
+
+        Raises:
+            AssertionError: If the number of references does not match the shapes 
+            of the input tensors.
+
+        Examples:
+            >>> inf = torch.rand(2, 3, 10)  # Example inference
+            >>> inf_lens = torch.tensor([[10, 9, 8], [10, 10, 10]])
+            >>> ref = torch.rand(2, 2, 10)  # Example references
+            >>> ref_lens = torch.tensor([[10, 9], [10, 10]])
+            >>> pit_loss_wrapper = PITLossWrapper(criterion_fn=some_loss_function, 
+            ...                                    num_ref=2)
+            >>> loss, optimal_perm = pit_loss_wrapper.forward(inf, inf_lens, ref, ref_lens)
+            >>> print(loss, optimal_perm)
+
+        Note:
+            Ensure that the number of references (num_ref) specified during 
+            initialization matches the second dimension of the inference and 
+            reference tensors.
         """
         assert (
             self.num_ref
@@ -99,6 +176,9 @@ class PITLossWrapper(AbsLossWrapper):
 
     @classmethod
     def permutate(self, perm, *args):
+        """
+        
+        """
         ret = []
         batch_size = None
         num_ref = None
@@ -119,7 +199,93 @@ class PITLossWrapper(AbsLossWrapper):
 
 
 class ESPnetASRModel(SingleESPnetASRModel):
-    """CTC-attention hybrid Encoder-Decoder model"""
+    """
+    ESPnetASRModel is a hybrid CTC-attention Encoder-Decoder model for automatic
+    speech recognition (ASR). This model combines the strengths of Connectionist
+    Temporal Classification (CTC) and attention mechanisms, enabling it to handle
+    different types of input sequences effectively.
+
+    Attributes:
+        num_inf (int): The number of inferences (outputs) from the model.
+        num_ref (int): The number of references (ground truth sequences).
+        pit_ctc (PITLossWrapper): A wrapper for calculating the Permutation Invariant 
+            Training (PIT) loss with CTC.
+
+    Args:
+        vocab_size (int): The size of the vocabulary.
+        token_list (Union[Tuple[str, ...], List[str]]): List of tokens in the 
+            vocabulary.
+        frontend (Optional[AbsFrontend]): Frontend processing component.
+        specaug (Optional[AbsSpecAug]): SpecAugment component for data augmentation.
+        normalize (Optional[AbsNormalize]): Normalization layer.
+        preencoder (Optional[AbsPreEncoder]): Pre-encoder component.
+        encoder (AbsEncoder): The encoder component of the model.
+        postencoder (Optional[AbsPostEncoder]): Post-encoder component.
+        decoder (Optional[AbsDecoder]): The decoder component of the model.
+        ctc (CTC): The CTC component for loss calculation.
+        joint_network (Optional[torch.nn.Module]): Joint network component.
+        ctc_weight (float): Weight for the CTC loss in the combined loss. Defaults to 0.5.
+        interctc_weight (float): Weight for the inter-CTC loss. Defaults to 0.0.
+        ignore_id (int): The token ID to ignore during loss calculation. Defaults to -1.
+        lsm_weight (float): Label smoothing weight. Defaults to 0.0.
+        length_normalized_loss (bool): Whether to use length-normalized loss. Defaults to False.
+        report_cer (bool): Whether to report Character Error Rate (CER). Defaults to True.
+        report_wer (bool): Whether to report Word Error Rate (WER). Defaults to True.
+        sym_space (str): Symbol for space token. Defaults to "<space>".
+        sym_blank (str): Symbol for blank token in CTC. Defaults to "<blank>".
+        sym_sos (str): Symbol for start of sequence. Defaults to "<sos/eos>".
+        sym_eos (str): Symbol for end of sequence. Defaults to "<sos/eos>".
+        extract_feats_in_collect_stats (bool): Whether to extract features in 
+            collecting statistics. Defaults to True.
+        lang_token_id (int): Language token ID. Defaults to -1.
+        num_inf (int): Number of inferences (outputs) from the model. Defaults to 1.
+        num_ref (int): Number of references (ground truth sequences). Defaults to 1.
+
+    Raises:
+        AssertionError: If `ctc_weight` is not in the range (0.0, 1.0] or if 
+            `interctc_weight` is not equal to 0.0.
+        AssertionError: If `num_inf` is not equal to `num_ref`.
+
+    Examples:
+        # Create an instance of ESPnetASRModel
+        model = ESPnetASRModel(
+            vocab_size=1000,
+            token_list=["<blank>", "<space>", "<sos/eos>"] + list("abcdefghijklmnopqrstuvwxyz"),
+            frontend=None,
+            specaug=None,
+            normalize=None,
+            preencoder=None,
+            encoder=my_encoder,
+            postencoder=None,
+            decoder=my_decoder,
+            ctc=my_ctc,
+            joint_network=None,
+            ctc_weight=0.5,
+            interctc_weight=0.0,
+            ignore_id=-1,
+            lsm_weight=0.0,
+            length_normalized_loss=False,
+            report_cer=True,
+            report_wer=True,
+            sym_space="<space>",
+            sym_blank="<blank>",
+            sym_sos="<sos/eos>",
+            sym_eos="<sos/eos>",
+            extract_feats_in_collect_stats=True,
+            lang_token_id=-1,
+            num_inf=1,
+            num_ref=1,
+        )
+
+        # Forward pass through the model
+        loss, stats, weight = model.forward(
+            speech=my_speech_tensor,
+            speech_lengths=my_speech_lengths_tensor,
+            text=my_text_tensor,
+            text_lengths=my_text_lengths_tensor,
+            utt_id="example_id"
+        )
+    """
 
     @typechecked
     def __init__(
@@ -199,14 +365,44 @@ class ESPnetASRModel(SingleESPnetASRModel):
         text_lengths: torch.Tensor,
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
-        """Frontend + Encoder + Decoder + Calc loss
+        """
+        Forward pass of the ESPnetASRModel, which processes the input speech data
+        through the frontend, encoder, and decoder, and calculates the loss based 
+        on the provided references. This method supports multiple references for 
+        enhanced performance in speech recognition tasks.
 
         Args:
-            speech: (Batch, Length, ...)
-            speech_lengths: (Batch, )
-            text: (Batch, Length)
-            text_lengths: (Batch,)
-            kwargs: "utt_id" is among the input.
+            speech (torch.Tensor): Input speech tensor of shape (Batch, Length, ...).
+            speech_lengths (torch.Tensor): Lengths of the input speech tensor of shape (Batch,).
+            text (torch.Tensor): Target text tensor of shape (Batch, Length).
+            text_lengths (torch.Tensor): Lengths of the target text tensor of shape (Batch,).
+            **kwargs: Additional keyword arguments. Must include "utt_id" and may include 
+                references for additional speakers, e.g., "text_spk1", "text_spk1_lengths", etc.
+
+        Returns:
+            Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
+                - loss: Computed loss value for the batch.
+                - stats: Dictionary containing various statistics from the model, such as 
+                  loss values and accuracy metrics.
+                - weight: The batch size for further processing.
+
+        Raises:
+            AssertionError: If the dimensions of input tensors do not match as expected.
+
+        Examples:
+            >>> model = ESPnetASRModel(...)
+            >>> speech = torch.randn(4, 100, 80)  # Batch of 4, Length 100, 80 features
+            >>> speech_lengths = torch.tensor([100, 90, 80, 70])
+            >>> text = torch.randint(0, 30, (4, 20))  # Batch of 4, Length 20
+            >>> text_lengths = torch.tensor([20, 18, 15, 12])
+            >>> loss, stats, weight = model.forward(speech, speech_lengths, text, text_lengths, 
+            ...                                       utt_id='utt1', text_spk1=text, 
+            ...                                       text_spk1_lengths=text_lengths)
+
+        Note:
+            Ensure that the input tensors are properly padded and have the correct
+            dimensions. The `text` and `text_lengths` should match the batch size
+            of the `speech` and `speech_lengths` tensors.
         """
         assert text_lengths.dim() == 1, text_lengths.shape
         # Check that batch_size is unified

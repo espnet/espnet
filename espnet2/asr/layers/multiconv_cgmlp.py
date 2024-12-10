@@ -13,7 +13,73 @@ from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 
 
 class MultiConvolutionalSpatialGatingUnit(torch.nn.Module):
-    """Multi Convolutional Spatial Gating Unit (M-CSGU)."""
+    """
+    Multi Convolutional Spatial Gating Unit (M-CSGU).
+
+    This class implements a multi-convolutional spatial gating unit that 
+    applies several convolutional layers to input data and merges the outputs 
+    based on the specified architecture type. It can be used as a building 
+    block in advanced neural network architectures, particularly in 
+    applications involving speech and audio processing.
+
+    Attributes:
+        norm (LayerNorm): Layer normalization applied to the input channels.
+        arch_type (str): Type of architecture for merging convolutions 
+            ('sum', 'weighted_sum', 'concat', or 'concat_fusion').
+        convs (ModuleList): List of convolutional layers applied to the input.
+        use_non_linear (bool): Flag indicating whether to apply a 
+            non-linear activation after convolution.
+        kernel_prob_gen (Sequential): Module to generate kernel probabilities 
+            for weighted sum architecture.
+        depthwise_conv_fusion (Conv1d): Convolution layer for concatenation 
+            fusion architecture.
+        linear (Linear): Optional linear layer applied after convolutions.
+        model_act: Activation function for the output.
+        act: Activation function for gating.
+        dropout (Dropout): Dropout layer for regularization.
+
+    Args:
+        size (int): Total number of input channels, which will be split in half.
+        arch_type (str): Type of architecture for merging convolutions.
+        kernel_sizes (str): Comma-separated string of kernel sizes for 
+            convolutional layers.
+        merge_conv_kernel (int): Kernel size for the depthwise convolution 
+            in concatenation fusion.
+        use_non_linear (bool): Whether to apply a non-linear activation 
+            after convolution.
+        dropout_rate (float): Dropout rate for regularization.
+        use_linear_after_conv (bool): Whether to apply a linear layer 
+            after convolutions.
+        activation: Activation function to be used in the model.
+        gate_activation (str): Activation function to be applied to the gating.
+
+    Returns:
+        out (torch.Tensor): Output tensor with shape (N, T, D/2).
+
+    Raises:
+        NotImplementedError: If an unknown architecture type is specified.
+
+    Examples:
+        >>> mcs_gating_unit = MultiConvolutionalSpatialGatingUnit(
+        ...     size=64,
+        ...     arch_type='sum',
+        ...     kernel_sizes='3,5',
+        ...     merge_conv_kernel=3,
+        ...     use_non_linear=True,
+        ...     dropout_rate=0.1,
+        ...     use_linear_after_conv=True,
+        ...     activation=torch.nn.ReLU(),
+        ...     gate_activation='sigmoid'
+        ... )
+        >>> input_tensor = torch.randn(10, 20, 64)  # (N, T, D)
+        >>> output_tensor = mcs_gating_unit(input_tensor)
+        >>> output_tensor.shape
+        torch.Size([10, 20, 32])  # Output shape is (N, T, D/2)
+
+    Note:
+        The input tensor should have an even number of channels, as it is 
+        split into two halves for processing.
+    """
 
     def __init__(
         self,
@@ -108,6 +174,38 @@ class MultiConvolutionalSpatialGatingUnit(torch.nn.Module):
         self.dropout = torch.nn.Dropout(dropout_rate)
 
     def espnet_initialization_fn(self):
+        """
+        Initializes the weights and biases of the convolutional layers.
+
+        This method applies a normal distribution initialization to the weights 
+        of each convolutional layer and sets the biases to ones. It also handles 
+        the initialization for any additional linear layers present in the 
+        MultiConvolutionalSpatialGatingUnit.
+
+        The initialization strategy used is as follows:
+            - Convolutional weights are initialized using a normal distribution 
+            with a standard deviation of 1e-6.
+            - Biases are initialized to one.
+
+        This method is typically called after the model has been created to 
+        ensure that the parameters are initialized appropriately before training.
+
+        Examples:
+            >>> mcs_gu = MultiConvolutionalSpatialGatingUnit(size=64, 
+            ...     arch_type='sum', kernel_sizes='3,5', merge_conv_kernel=3, 
+            ...     use_non_linear=True, dropout_rate=0.1, 
+            ...     use_linear_after_conv=True, activation=torch.nn.ReLU(), 
+            ...     gate_activation='sigmoid')
+            >>> mcs_gu.espnet_initialization_fn()  # Initialize parameters
+
+        Note:
+            Ensure that this method is called after creating an instance of the 
+            MultiConvolutionalSpatialGatingUnit and before starting training.
+
+        Raises:
+            NotImplementedError: If the architecture type does not match any 
+            known configuration.
+        """
         for conv in self.convs:
             torch.nn.init.normal_(conv.weight, std=1e-6)
             torch.nn.init.ones_(conv.bias)
@@ -119,14 +217,43 @@ class MultiConvolutionalSpatialGatingUnit(torch.nn.Module):
             torch.nn.init.ones_(self.linear.bias)
 
     def forward(self, x, gate_add=None):
-        """Forward method
+        """
+        Perform the forward pass of the MultiConvolutionalSpatialGatingUnit.
+
+        This method takes an input tensor and processes it through multiple
+        convolutional layers, applying spatial gating mechanisms based on the
+        specified architecture type. The output is then modulated by a gating
+        mechanism, which can include an optional additive gate.
 
         Args:
-            x (torch.Tensor): (N, T, D)
-            gate_add (torch.Tensor): (N, T, D/2)
+            x (torch.Tensor): Input tensor of shape (N, T, D), where N is the
+                batch size, T is the sequence length, and D is the number of
+                input channels.
+            gate_add (torch.Tensor, optional): Tensor of shape (N, T, D/2) to
+                be added to the output after gating. If None, no addition is
+                performed.
 
         Returns:
-            out (torch.Tensor): (N, T, D/2)
+            out (torch.Tensor): Output tensor of shape (N, T, D/2) after
+                applying convolutions, gating, and dropout.
+
+        Examples:
+            >>> model = MultiConvolutionalSpatialGatingUnit(size=64, arch_type='sum',
+            ...     kernel_sizes='3,5', merge_conv_kernel=3, use_non_linear=True,
+            ...     dropout_rate=0.1, use_linear_after_conv=True,
+            ...     activation=torch.nn.ReLU(), gate_activation='sigmoid')
+            >>> x = torch.randn(32, 10, 64)  # Example input
+            >>> output = model.forward(x)
+            >>> print(output.shape)  # Should output: torch.Size([32, 10, 32])
+
+        Note:
+            The input tensor is expected to be split into real and imaginary
+            components, with the imaginary part undergoing normalization and
+            convolution operations. The output tensor represents the gated
+            product of the real component and the processed imaginary component.
+
+        Todo:
+            - Parallelize the convolution computation for improved performance.
         """
         x_r, x_i = x.chunk(2, dim=-1)
 
@@ -170,7 +297,72 @@ class MultiConvolutionalSpatialGatingUnit(torch.nn.Module):
 
 
 class MultiConvolutionalGatingMLP(torch.nn.Module):
-    """Convolutional Gating MLP (cgMLP)."""
+    """
+    Convolutional Gating MLP (cgMLP).
+
+    This class implements a multi-convolutional gating mechanism for MLPs,
+    extending the capabilities of traditional MLPs with convolutional gating 
+    units (CSGUs). It can utilize various architectures to combine features 
+    from multiple convolutions and apply gating mechanisms for enhanced 
+    performance in tasks such as speech recognition.
+
+    Attributes:
+        channel_proj1 (torch.nn.Sequential): A sequential layer projecting 
+            input features to a higher-dimensional space with a GELU activation.
+        csgu (MultiConvolutionalSpatialGatingUnit): An instance of the 
+            MultiConvolutionalSpatialGatingUnit class that performs the 
+            convolutional gating.
+        channel_proj2 (torch.nn.Linear): A linear layer that projects the 
+            output back to the original size.
+
+    Args:
+        size (int): The dimensionality of the input features.
+        linear_units (int): The number of linear units in the first projection.
+        arch_type (str): The architecture type for the convolutional gating, 
+            can be 'sum', 'weighted_sum', 'concat', or 'concat_fusion'.
+        kernel_sizes (str): A comma-separated string specifying the sizes of 
+            the convolutional kernels to be used.
+        merge_conv_kernel (int): The kernel size for merging convolutions, 
+            applicable in 'concat_fusion' architecture.
+        use_non_linear (bool): Whether to apply non-linear activation after 
+            convolution.
+        dropout_rate (float): The dropout rate to be applied.
+        use_linear_after_conv (bool): Whether to apply a linear layer after 
+            the convolutional layers.
+        activation: The activation function to use for the model.
+        gate_activation (str): The activation function to use for gating; 
+            typically 'identity' or other activation functions.
+
+    Returns:
+        torch.Tensor: The output tensor with the same dimensionality as the 
+            input features after passing through the MLP.
+
+    Examples:
+        >>> model = MultiConvolutionalGatingMLP(
+        ...     size=256,
+        ...     linear_units=512,
+        ...     arch_type='sum',
+        ...     kernel_sizes='3,5',
+        ...     merge_conv_kernel=3,
+        ...     use_non_linear=True,
+        ...     dropout_rate=0.1,
+        ...     use_linear_after_conv=True,
+        ...     activation=torch.nn.GELU(),
+        ...     gate_activation='identity'
+        ... )
+        >>> input_tensor = torch.randn(10, 256)  # Batch of 10 samples
+        >>> output = model(input_tensor)
+        >>> output.shape
+        torch.Size([10, 256])
+
+    Note:
+        The implementation assumes that the input tensor has the correct 
+        dimensions and types. Ensure that the input tensor shape is 
+        compatible with the expected input size.
+
+    Raises:
+        NotImplementedError: If an unsupported architecture type is provided.
+    """
 
     def __init__(
         self,
@@ -207,6 +399,39 @@ class MultiConvolutionalGatingMLP(torch.nn.Module):
         self.channel_proj2 = torch.nn.Linear(linear_units // 2, size)
 
     def forward(self, x, mask=None):
+        """
+        Forward pass for the MultiConvolutionalGatingMLP.
+
+        This method computes the output of the MultiConvolutionalGatingMLP
+        by applying a series of linear transformations followed by the
+        MultiConvolutionalSpatialGatingUnit (M-CSGU). The input is processed
+        through the channel projection layers and the spatial gating unit to
+        produce the final output.
+
+        Args:
+            x (Union[torch.Tensor, tuple]): Input tensor of shape (N, T, D) or 
+                a tuple containing the input tensor and positional embedding.
+            mask (torch.Tensor, optional): An optional mask tensor to apply 
+                attention. Default is None.
+
+        Returns:
+            torch.Tensor or tuple: The output tensor of shape (N, T, D) or a 
+            tuple containing the output tensor and positional embedding if 
+            provided.
+
+        Examples:
+            >>> model = MultiConvolutionalGatingMLP(size=128, linear_units=256, 
+            ... arch_type='sum', kernel_sizes='3,5', merge_conv_kernel=3, 
+            ... use_non_linear=True, dropout_rate=0.1, use_linear_after_conv=True, 
+            ... activation=torch.nn.GELU(), gate_activation='relu')
+            >>> input_tensor = torch.randn(32, 10, 128)  # (N, T, D)
+            >>> output = model(input_tensor)
+            >>> print(output.shape)  # Output: (32, 10, 128)
+
+        Note:
+            The input tensor `x` should have a shape compatible with the 
+            specified size parameter during initialization.
+        """
         if isinstance(x, tuple):
             xs_pad, pos_emb = x
         else:

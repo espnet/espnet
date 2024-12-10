@@ -35,7 +35,107 @@ else:
 
 
 class ESPnetASRModel(AbsESPnetModel):
-    """CTC-attention hybrid Encoder-Decoder model"""
+    """
+    CTC-attention hybrid Encoder-Decoder model.
+
+    This class implements a hybrid model for automatic speech recognition (ASR)
+    that combines Connectionist Temporal Classification (CTC) and attention-based
+    decoding. It processes audio input through various components such as
+    front-end processing, encoding, and decoding, with the option to utilize
+    auxiliary CTC for intermediate layers.
+
+    Attributes:
+        vocab_size (int): The size of the vocabulary.
+        token_list (List[str]): List of tokens in the vocabulary.
+        frontend (AbsFrontend): Frontend feature extraction module.
+        specaug (AbsSpecAug): SpecAugment data augmentation module.
+        normalize (AbsNormalize): Normalization module for features.
+        preencoder (AbsPreEncoder): Pre-encoder for raw input data.
+        encoder (AbsEncoder): Main encoder for processing features.
+        postencoder (AbsPostEncoder): Post-encoder for further processing.
+        decoder (AbsDecoder): Decoder for generating output sequences.
+        ctc (CTC): CTC loss module.
+        joint_network (torch.nn.Module): Joint network for transducer models.
+        aux_ctc (Optional[dict]): Auxiliary CTC configuration for intermediate layers.
+        ctc_weight (float): Weight for CTC loss.
+        interctc_weight (float): Weight for intermediate CTC loss.
+        ignore_id (int): ID to ignore in loss calculations.
+        lsm_weight (float): Weight for label smoothing.
+        length_normalized_loss (bool): Flag for length normalization in loss.
+        report_cer (bool): Flag to report character error rate.
+        report_wer (bool): Flag to report word error rate.
+        sym_space (str): Symbol representing space in text.
+        sym_blank (str): Symbol representing blank in CTC.
+        transducer_multi_blank_durations (List): Multi-blank durations for transducer.
+        transducer_multi_blank_sigma (float): Sigma for multi-blank transducer.
+        sym_sos (str): Symbol representing start of sequence.
+        sym_eos (str): Symbol representing end of sequence.
+        extract_feats_in_collect_stats (bool): Flag for feature extraction in stats.
+        lang_token_id (Optional[torch.Tensor]): Language token ID for multilingual models.
+
+    Args:
+        vocab_size (int): Size of the vocabulary.
+        token_list (Union[Tuple[str, ...], List[str]]): List of tokens.
+        frontend (Optional[AbsFrontend]): Frontend feature extractor.
+        specaug (Optional[AbsSpecAug]): SpecAugment module.
+        normalize (Optional[AbsNormalize]): Normalization module.
+        preencoder (Optional[AbsPreEncoder]): Pre-encoder module.
+        encoder (AbsEncoder): Encoder module.
+        postencoder (Optional[AbsPostEncoder]): Post-encoder module.
+        decoder (Optional[AbsDecoder]): Decoder module.
+        ctc (CTC): CTC loss module.
+        joint_network (Optional[torch.nn.Module]): Joint network for transducer models.
+        aux_ctc (Optional[dict]): Auxiliary CTC configuration.
+        ctc_weight (float): Weight for CTC loss.
+        interctc_weight (float): Weight for intermediate CTC loss.
+        ignore_id (int): ID to ignore in loss calculations.
+        lsm_weight (float): Weight for label smoothing.
+        length_normalized_loss (bool): Flag for length normalization in loss.
+        report_cer (bool): Flag to report character error rate.
+        report_wer (bool): Flag to report word error rate.
+        sym_space (str): Symbol representing space.
+        sym_blank (str): Symbol representing blank.
+        transducer_multi_blank_durations (List): Multi-blank durations for transducer.
+        transducer_multi_blank_sigma (float): Sigma for multi-blank transducer.
+        sym_sos (str): Symbol for start of sequence.
+        sym_eos (str): Symbol for end of sequence.
+        extract_feats_in_collect_stats (bool): Flag for feature extraction in stats.
+        lang_token_id (int): Language token ID for multilingual models.
+
+    Returns:
+        None
+
+    Examples:
+        # Creating an instance of the model
+        model = ESPnetASRModel(
+            vocab_size=5000,
+            token_list=["<blank>", "<space>", "a", "b", "c"],
+            frontend=None,
+            specaug=None,
+            normalize=None,
+            preencoder=None,
+            encoder=my_encoder,
+            postencoder=None,
+            decoder=my_decoder,
+            ctc=my_ctc,
+            joint_network=None,
+            ctc_weight=0.5,
+            interctc_weight=0.0,
+            ignore_id=-1,
+            lsm_weight=0.1,
+            length_normalized_loss=False,
+            report_cer=True,
+            report_wer=True,
+            sym_space="<space>",
+            sym_blank="<blank>",
+            transducer_multi_blank_durations=[],
+            transducer_multi_blank_sigma=0.05,
+            sym_sos="<sos>",
+            sym_eos="<eos>",
+            extract_feats_in_collect_stats=True,
+            lang_token_id=-1,
+        )
+    """
 
     @typechecked
     def __init__(
@@ -209,14 +309,44 @@ class ESPnetASRModel(AbsESPnetModel):
         text_lengths: torch.Tensor,
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
-        """Frontend + Encoder + Decoder + Calc loss
+        """
+        Frontend + Encoder + Decoder + Calculate loss.
+
+        This method processes the input speech and text data through the
+        various components of the ASR model, including the frontend,
+        encoder, decoder, and loss calculation.
 
         Args:
-            speech: (Batch, Length, ...)
-            speech_lengths: (Batch, )
-            text: (Batch, Length)
-            text_lengths: (Batch,)
-            kwargs: "utt_id" is among the input.
+            speech: A tensor of shape (Batch, Length, ...) representing the
+                input speech signals.
+            speech_lengths: A tensor of shape (Batch,) containing the lengths
+                of the input speech signals.
+            text: A tensor of shape (Batch, Length) representing the target
+                text sequences.
+            text_lengths: A tensor of shape (Batch,) containing the lengths
+                of the target text sequences.
+            kwargs: Additional keyword arguments, which may include
+                "utt_id" for identifying utterances.
+
+        Returns:
+            A tuple containing:
+                - loss: A tensor representing the computed loss for the batch.
+                - stats: A dictionary containing various statistics, such as
+                    loss and accuracy metrics.
+                - weight: A tensor representing the batch size.
+
+        Raises:
+            AssertionError: If the dimensions of the input tensors are not
+                as expected.
+
+        Examples:
+            >>> model = ESPnetASRModel(...)
+            >>> speech_tensor = torch.randn(4, 16000)  # 4 samples, 16000 length
+            >>> speech_lengths = torch.tensor([16000, 16000, 16000, 16000])
+            >>> text_tensor = torch.tensor([[1, 2, 3], [1, 2, 3], [1, 2, 3], [1, 2, 3]])
+            >>> text_lengths = torch.tensor([3, 3, 3, 3])
+            >>> loss, stats, weight = model.forward(speech_tensor, speech_lengths,
+            ...                                      text_tensor, text_lengths)
         """
         assert text_lengths.dim() == 1, text_lengths.shape
         # Check that batch_size is unified
@@ -361,17 +491,77 @@ class ESPnetASRModel(AbsESPnetModel):
         text_lengths: torch.Tensor,
         **kwargs,
     ) -> Dict[str, torch.Tensor]:
+        """
+        Collect features from the input speech tensor and its lengths.
+
+        This method extracts features from the input speech signal, which is 
+        useful for various downstream tasks, such as training or inference 
+        in automatic speech recognition (ASR) models.
+
+        Args:
+            speech: A tensor of shape (Batch, Length, ...) representing the 
+                input speech signals.
+            speech_lengths: A tensor of shape (Batch,) containing the lengths 
+                of each speech signal in the batch.
+            text: A tensor of shape (Batch, Length) representing the target 
+                text sequences (not used in feature extraction).
+            text_lengths: A tensor of shape (Batch,) containing the lengths 
+                of each target text sequence (not used in feature extraction).
+            kwargs: Additional keyword arguments that may be needed for 
+                processing.
+
+        Returns:
+            A dictionary containing:
+                feats: A tensor of extracted features.
+                feats_lengths: A tensor containing the lengths of the extracted 
+                    features for each input in the batch.
+
+        Examples:
+            >>> model = ESPnetASRModel(...)
+            >>> speech = torch.randn(2, 16000)  # Example speech tensor
+            >>> speech_lengths = torch.tensor([16000, 15000])  # Lengths of the signals
+            >>> text = torch.tensor([[1, 2, 3], [4, 5, 6]])  # Example target texts
+            >>> text_lengths = torch.tensor([3, 3])  # Lengths of target texts
+            >>> features = model.collect_feats(speech, speech_lengths, text, text_lengths)
+            >>> print(features["feats"].shape)  # Should print the shape of extracted features
+        """
         feats, feats_lengths = self._extract_feats(speech, speech_lengths)
         return {"feats": feats, "feats_lengths": feats_lengths}
 
     def encode(
         self, speech: torch.Tensor, speech_lengths: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Frontend + Encoder. Note that this method is used by asr_inference.py
+        """
+        Frontend + Encoder. Note that this method is used by asr_inference.py
+
+        This method processes the input speech through the frontend and encoder
+        to extract features and produce encoder outputs along with their lengths.
 
         Args:
-            speech: (Batch, Length, ...)
-            speech_lengths: (Batch, )
+            speech: A tensor of shape (Batch, Length, ...), representing the
+                input speech signals.
+            speech_lengths: A tensor of shape (Batch,), representing the lengths
+                of each speech input in the batch.
+
+        Returns:
+            A tuple containing:
+                - encoder_out: A tensor of shape (Batch, Length2, Dim2),
+                  representing the output from the encoder.
+                - encoder_out_lens: A tensor of shape (Batch,), representing
+                  the lengths of the encoder outputs.
+
+        Note:
+            This method performs feature extraction, data augmentation, and
+            normalization if specified. It also supports optional pre-encoding
+            and post-encoding steps.
+
+        Examples:
+            >>> speech = torch.randn(4, 16000)  # 4 samples of 1 second
+            >>> speech_lengths = torch.tensor([16000, 16000, 16000, 16000])
+            >>> model = ESPnetASRModel(...)  # Initialize the model
+            >>> encoder_out, encoder_out_lens = model.encode(speech, speech_lengths)
+            >>> print(encoder_out.shape)  # Output shape may vary
+            >>> print(encoder_out_lens)   # Lengths of encoder outputs
         """
         with autocast(False):
             # 1. Extract feats
@@ -455,15 +645,40 @@ class ESPnetASRModel(AbsESPnetModel):
         ys_pad: torch.Tensor,
         ys_pad_lens: torch.Tensor,
     ) -> torch.Tensor:
-        """Compute negative log likelihood(nll) from transformer-decoder
+        """
+        Compute negative log likelihood (NLL) from transformer decoder output.
 
-        Normally, this function is called in batchify_nll.
+        This function computes the negative log likelihood for the given 
+        inputs using the output from the transformer decoder. It is typically 
+        called within the `batchify_nll` function to evaluate the model's 
+        performance.
 
         Args:
-            encoder_out: (Batch, Length, Dim)
-            encoder_out_lens: (Batch,)
-            ys_pad: (Batch, Length)
-            ys_pad_lens: (Batch,)
+            encoder_out: A tensor of shape (Batch, Length, Dim) representing 
+                the output from the encoder.
+            encoder_out_lens: A tensor of shape (Batch,) representing the 
+                lengths of the encoder outputs.
+            ys_pad: A tensor of shape (Batch, Length) representing the padded 
+                target sequences for the decoder.
+            ys_pad_lens: A tensor of shape (Batch,) representing the lengths 
+                of the target sequences.
+
+        Returns:
+            A tensor containing the computed negative log likelihood for each 
+            sequence in the batch.
+
+        Examples:
+            >>> encoder_out = torch.rand(32, 50, 512)  # Example encoder output
+            >>> encoder_out_lens = torch.randint(1, 51, (32,))  # Example lengths
+            >>> ys_pad = torch.randint(0, 100, (32, 20))  # Example target sequences
+            >>> ys_pad_lens = torch.randint(1, 21, (32,))  # Example target lengths
+            >>> model = ESPnetASRModel(...)  # Initialize your model here
+            >>> nll_values = model.nll(encoder_out, encoder_out_lens, ys_pad, ys_pad_lens)
+
+        Note:
+            The `add_sos_eos` function is used internally to add the start 
+            and end of sequence tokens to the target sequences before 
+            processing.
         """
         ys_in_pad, ys_out_pad = add_sos_eos(ys_pad, self.sos, self.eos, self.ignore_id)
         ys_in_lens = ys_pad_lens + 1
@@ -494,18 +709,41 @@ class ESPnetASRModel(AbsESPnetModel):
         ys_pad_lens: torch.Tensor,
         batch_size: int = 100,
     ):
-        """Compute negative log likelihood(nll) from transformer-decoder
+        """
+        Compute negative log likelihood (NLL) from the transformer decoder.
 
-        To avoid OOM, this fuction seperate the input into batches.
-        Then call nll for each batch and combine and return results.
+        This function separates the input into batches to avoid out-of-memory
+        (OOM) errors. It processes each batch individually and combines the 
+        results before returning.
+
         Args:
-            encoder_out: (Batch, Length, Dim)
-            encoder_out_lens: (Batch,)
-            ys_pad: (Batch, Length)
-            ys_pad_lens: (Batch,)
-            batch_size: int, samples each batch contain when computing nll,
-                        you may change this to avoid OOM or increase
-                        GPU memory usage
+            encoder_out: Tensor of shape (Batch, Length, Dim) representing the
+                output of the encoder.
+            encoder_out_lens: Tensor of shape (Batch,) containing the lengths of
+                each output sequence from the encoder.
+            ys_pad: Tensor of shape (Batch, Length) representing the padded
+                target sequences.
+            ys_pad_lens: Tensor of shape (Batch,) containing the lengths of
+                each target sequence.
+            batch_size: Integer specifying the number of samples in each batch
+                during the NLL computation. Adjust this to manage memory usage
+                effectively.
+
+        Returns:
+            Tensor containing the computed negative log likelihood for each
+            sample in the batch, with shape (Batch,).
+
+        Examples:
+            >>> encoder_out = torch.randn(300, 50, 256)  # Example encoder output
+            >>> encoder_out_lens = torch.randint(1, 51, (300,))
+            >>> ys_pad = torch.randint(0, 100, (300, 40))  # Example target
+            >>> ys_pad_lens = torch.randint(1, 41, (300,))
+            >>> model = ESPnetASRModel(...)  # Initialize model parameters
+            >>> nll = model.batchify_nll(encoder_out, encoder_out_lens, ys_pad, ys_pad_lens)
+
+        Note:
+            The batch size can be adjusted to accommodate different hardware
+            configurations and avoid memory issues during processing.
         """
         total_num = encoder_out.size(0)
         if total_num <= batch_size:

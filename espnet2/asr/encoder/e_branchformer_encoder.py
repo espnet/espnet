@@ -51,16 +51,60 @@ from espnet.nets.pytorch_backend.transformer.subsampling import (
 
 
 class EBranchformerEncoderLayer(torch.nn.Module):
-    """E-Branchformer encoder layer module.
+    """
+    E-Branchformer encoder layer module.
+
+    This module implements the E-Branchformer encoder layer, which combines 
+    self-attention and Convolutional Gating MLP for improved performance in 
+    speech recognition tasks. The architecture is designed to efficiently 
+    merge features from different branches.
+
+    Reference:
+        Kwangyoun Kim, Felix Wu, Yifan Peng, Jing Pan,
+        Prashant Sridhar, Kyu J. Han, Shinji Watanabe,
+        "E-Branchformer: Branchformer with Enhanced merging
+        for speech recognition," in SLT 2022.
+
+    Attributes:
+        size (int): The model dimension.
+        attn (torch.nn.Module): The self-attention mechanism used.
+        cgmlp (torch.nn.Module): The Convolutional Gating MLP module.
+        feed_forward (Optional[torch.nn.Module]): The feed-forward module.
+        feed_forward_macaron (Optional[torch.nn.Module]): The macaron-style 
+            feed-forward module.
+        dropout (torch.nn.Dropout): Dropout layer for regularization.
+        depthwise_conv_fusion (torch.nn.Conv1d): Depth-wise convolution for 
+            merging branches.
+        merge_proj (torch.nn.Linear): Linear layer for merging the outputs.
 
     Args:
-        size (int): model dimension
-        attn: standard self-attention or efficient attention
-        cgmlp: ConvolutionalGatingMLP
-        feed_forward: feed-forward module, optional
-        feed_forward: macaron-style feed-forward module, optional
-        dropout_rate (float): dropout probability
-        merge_conv_kernel (int): kernel size of the depth-wise conv in merge module
+        size (int): Model dimension.
+        attn (torch.nn.Module): Self-attention or efficient attention module.
+        cgmlp (torch.nn.Module): Convolutional Gating MLP.
+        feed_forward (Optional[torch.nn.Module]): Feed-forward module.
+        feed_forward_macaron (Optional[torch.nn.Module]): Macaron-style 
+            feed-forward module.
+        dropout_rate (float): Dropout probability.
+        merge_conv_kernel (int): Kernel size of the depth-wise conv in 
+            merge module.
+
+    Returns:
+        None
+
+    Examples:
+        >>> encoder_layer = EBranchformerEncoderLayer(
+        ...     size=256,
+        ...     attn=MultiHeadedAttention(4, 256, 0.0),
+        ...     cgmlp=ConvolutionalGatingMLP(256, 2048, 31, 0.1),
+        ...     feed_forward=PositionwiseFeedForward(256, 2048, 0.1),
+        ...     feed_forward_macaron=PositionwiseFeedForward(256, 2048, 0.1),
+        ...     dropout_rate=0.1,
+        ...     merge_conv_kernel=3
+        ... )
+
+        >>> x_input = torch.randn(32, 10, 256)  # (batch_size, time, size)
+        >>> mask = torch.ones(32, 1, 10)  # (batch_size, 1, time)
+        >>> output, output_mask = encoder_layer(x_input, mask)
     """
 
     def __init__(
@@ -106,17 +150,48 @@ class EBranchformerEncoderLayer(torch.nn.Module):
         self.merge_proj = torch.nn.Linear(size + size, size)
 
     def forward(self, x_input, mask, cache=None):
-        """Compute encoded features.
+        """
+        Compute encoded features.
+
+        This method processes the input tensor through the E-Branchformer 
+        encoder layer. It utilizes multi-headed attention and convolutional 
+        gating MLP for feature extraction and merging.
 
         Args:
-            x_input (Union[Tuple, torch.Tensor]): Input tensor w/ or w/o pos emb.
-                - w/ pos emb: Tuple of tensors [(#batch, time, size), (1, time, size)].
-                - w/o pos emb: Tensor (#batch, time, size).
-            mask (torch.Tensor): Mask tensor for the input (#batch, 1, time).
-            cache (torch.Tensor): Cache tensor of the input (#batch, time - 1, size).
+            x_input (Union[Tuple, torch.Tensor]): Input tensor with or without 
+                positional embeddings. It can be:
+                - With positional embeddings: A tuple of tensors 
+                  [(#batch, time, size), (1, time, size)].
+                - Without positional embeddings: A tensor of shape 
+                  (#batch, time, size).
+            mask (torch.Tensor): Mask tensor for the input of shape 
+                (#batch, 1, time).
+            cache (Optional[torch.Tensor]): Cache tensor of the input with shape 
+                (#batch, time - 1, size). If provided, it is currently not 
+                implemented.
+
         Returns:
-            torch.Tensor: Output tensor (#batch, time, size).
-            torch.Tensor: Mask tensor (#batch, time).
+            Tuple[torch.Tensor, torch.Tensor]: A tuple containing:
+                - Output tensor of shape (#batch, time, size).
+                - Mask tensor of shape (#batch, time).
+
+        Raises:
+            NotImplementedError: If `cache` is not None, as this feature is 
+                not yet implemented.
+
+        Examples:
+            >>> encoder_layer = EBranchformerEncoderLayer(size=256, 
+            ...     attn=some_attention_module, cgmlp=some_cgmlp_module, 
+            ...     feed_forward=some_feed_forward_module, 
+            ...     feed_forward_macaron=some_macaron_module, 
+            ...     dropout_rate=0.1)
+            >>> x_input = torch.randn(32, 10, 256)  # Batch of 32, time 10
+            >>> mask = torch.ones(32, 1, 10)
+            >>> output, mask = encoder_layer(x_input, mask)
+
+        Note:
+            Ensure that the input tensor and mask dimensions are compatible 
+            for proper processing.
         """
 
         if cache is not None:
@@ -182,7 +257,102 @@ class EBranchformerEncoderLayer(torch.nn.Module):
 
 
 class EBranchformerEncoder(AbsEncoder):
-    """E-Branchformer encoder module."""
+    """
+    E-Branchformer encoder module for speech recognition.
+
+    This module implements the E-Branchformer architecture as described in the 
+    paper "E-Branchformer: Branchformer with Enhanced merging for speech 
+    recognition," presented at SLT 2022. It leverages multiple layers of 
+    attention and Convolutional Gating MLPs to encode input speech features.
+
+    Attributes:
+        _output_size (int): The dimensionality of the output features.
+        embed (torch.nn.Module): The embedding layer for input features.
+        encoders (torch.nn.ModuleList): A list of EBranchformerEncoderLayer 
+            instances that make up the encoder.
+        after_norm (LayerNorm): Layer normalization applied to the final output.
+        interctc_layer_idx (list): Indices of layers where intermediate CTC 
+            outputs are calculated.
+        interctc_use_conditioning (bool): Flag indicating whether to use 
+            conditioning for CTC outputs.
+
+    Args:
+        input_size (int): The dimensionality of input features.
+        output_size (int, optional): The dimensionality of output features. 
+            Defaults to 256.
+        attention_heads (int, optional): The number of attention heads. 
+            Defaults to 4.
+        attention_layer_type (str, optional): Type of attention layer to use. 
+            Options include 'selfattn', 'rel_selfattn', etc. Defaults to 
+            'rel_selfattn'.
+        pos_enc_layer_type (str, optional): Type of positional encoding. 
+            Defaults to 'rel_pos'.
+        rel_pos_type (str, optional): Type of relative positional encoding. 
+            Defaults to 'latest'.
+        cgmlp_linear_units (int, optional): The number of linear units in the 
+            Convolutional Gating MLP. Defaults to 2048.
+        cgmlp_conv_kernel (int, optional): Kernel size for the convolutional 
+            layers in CGMLP. Defaults to 31.
+        use_linear_after_conv (bool, optional): Whether to apply a linear 
+            transformation after convolution in CGMLP. Defaults to False.
+        gate_activation (str, optional): Activation function used in gating. 
+            Defaults to 'identity'.
+        num_blocks (int, optional): Number of encoder blocks. Defaults to 12.
+        dropout_rate (float, optional): Dropout probability. Defaults to 0.1.
+        positional_dropout_rate (float, optional): Dropout probability for 
+            positional encodings. Defaults to 0.1.
+        attention_dropout_rate (float, optional): Dropout probability for 
+            attention. Defaults to 0.0.
+        input_layer (str or None, optional): Type of input layer. Options 
+            include 'conv2d', 'linear', etc. Defaults to 'conv2d'.
+        zero_triu (bool, optional): Whether to zero out the upper triangular 
+            part of the attention matrix. Defaults to False.
+        padding_idx (int, optional): Padding index for embedding layers. 
+            Defaults to -1.
+        layer_drop_rate (float, optional): Dropout rate for individual layers. 
+            Defaults to 0.0.
+        max_pos_emb_len (int, optional): Maximum length for positional 
+            embeddings. Defaults to 5000.
+        use_ffn (bool, optional): Whether to use feed-forward networks. 
+            Defaults to False.
+        macaron_ffn (bool, optional): Whether to use macaron-style feed-forward 
+            networks. Defaults to False.
+        ffn_activation_type (str, optional): Activation function for feed-forward 
+            networks. Defaults to 'swish'.
+        linear_units (int, optional): Number of linear units in the feed-forward 
+            networks. Defaults to 2048.
+        positionwise_layer_type (str, optional): Type of positionwise layer. 
+            Defaults to 'linear'.
+        merge_conv_kernel (int, optional): Kernel size for merging 
+            convolutional layers. Defaults to 3.
+        interctc_layer_idx (list, optional): Indices for intermediate CTC layers. 
+            Defaults to None.
+        interctc_use_conditioning (bool, optional): Whether to use conditioning 
+            for intermediate CTC. Defaults to False.
+        qk_norm (bool, optional): Whether to use normalization for query-key 
+            vectors. Defaults to False.
+        use_flash_attn (bool, optional): Whether to use flash attention. 
+            Defaults to True.
+
+    Returns:
+        None
+
+    Examples:
+        >>> encoder = EBranchformerEncoder(input_size=80, output_size=256)
+        >>> xs_pad = torch.randn(32, 100, 80)  # (batch_size, seq_length, input_size)
+        >>> ilens = torch.randint(1, 100, (32,))  # (batch_size)
+        >>> output, olens, _ = encoder(xs_pad, ilens)
+        >>> print(output.shape)  # Expected: (32, 100, 256)
+
+    Note:
+        The implementation includes various input layer types and attention 
+        mechanisms, providing flexibility in configuring the encoder for 
+        different tasks and datasets.
+
+    Raises:
+        ValueError: If unknown types for positional encoding or attention layer 
+        types are provided.
+    """
 
     @typechecked
     def __init__(
@@ -436,6 +606,21 @@ class EBranchformerEncoder(AbsEncoder):
         self.conditioning_layer = None
 
     def output_size(self) -> int:
+        """
+        Retrieve the output size of the E-Branchformer encoder.
+
+        This method returns the size of the output features produced by the
+        encoder, which is essential for configuring downstream tasks such as
+        classification or sequence generation.
+
+        Returns:
+            int: The output size of the encoder.
+
+        Examples:
+            >>> encoder = EBranchformerEncoder(input_size=128, output_size=256)
+            >>> encoder.output_size()
+            256
+        """
         return self._output_size
 
     def forward(
@@ -446,18 +631,49 @@ class EBranchformerEncoder(AbsEncoder):
         ctc: CTC = None,
         max_layer: int = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
-        """Calculate forward propagation.
+        """
+        Compute encoded features.
+
+        This method processes the input tensor through the E-Branchformer 
+        encoder layer, applying multi-headed attention and convolutional 
+        gating MLP operations. It can handle inputs with or without 
+        positional embeddings and returns the encoded output along with 
+        the mask.
 
         Args:
-            xs_pad (torch.Tensor): Input tensor (#batch, L, input_size).
-            ilens (torch.Tensor): Input length (#batch).
-            prev_states (torch.Tensor): Not to be used now.
-            ctc (CTC): Intermediate CTC module.
-            max_layer (int): Layer depth below which InterCTC is applied.
+            x_input (Union[Tuple, torch.Tensor]): Input tensor with or 
+                without positional embeddings.
+                - If with positional embeddings: Tuple of tensors 
+                  [(#batch, time, size), (1, time, size)].
+                - If without positional embeddings: Tensor of shape 
+                  (#batch, time, size).
+            mask (torch.Tensor): Mask tensor for the input of shape 
+                (#batch, 1, time).
+            cache (Optional[torch.Tensor]): Cache tensor of the input of 
+                shape (#batch, time - 1, size). If provided, caching is 
+                expected to be handled, but this is currently not 
+                implemented.
+
         Returns:
-            torch.Tensor: Output tensor (#batch, L, output_size).
-            torch.Tensor: Output length (#batch).
-            torch.Tensor: Not to be used now.
+            Union[Tuple[torch.Tensor, Optional[torch.Tensor]], torch.Tensor]: 
+                Output tensor of shape (#batch, time, size) and 
+                the mask tensor of shape (#batch, time). If positional 
+                embeddings are provided, returns a tuple containing 
+                the output tensor and positional embeddings.
+
+        Raises:
+            NotImplementedError: If `cache` is not None, as caching 
+                functionality is not implemented yet.
+
+        Examples:
+            >>> encoder_layer = EBranchformerEncoderLayer(...)
+            >>> x_input = torch.randn(32, 10, 256)  # Example input
+            >>> mask = torch.ones(32, 1, 10)  # Example mask
+            >>> output, mask_out = encoder_layer(x_input, mask)
+
+        Note:
+            Ensure that the input tensor and mask are correctly 
+            formatted to avoid dimension mismatch errors.
         """
 
         masks = (~make_pad_mask(ilens)[:, None, :]).to(xs_pad.device)

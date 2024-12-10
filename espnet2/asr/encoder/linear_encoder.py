@@ -22,16 +22,55 @@ from espnet.nets.pytorch_backend.transformer.subsampling import (
 
 
 class LinearEncoder(AbsEncoder):
-    """Linear encoder module.
+    """
+    Linear encoder module for processing input features.
+
+    This class implements a linear encoder that can use various input layer types,
+    such as linear layers or convolutional subsampling layers. It applies an 
+    embedding operation to the input tensor and optionally normalizes the output 
+    before passing it to subsequent layers in a neural network.
+
+    Attributes:
+        _output_size (int): The dimension of the output features.
+        embed (torch.nn.Module): The embedding layer, which can be a linear layer,
+            convolutional subsampling, or embedding layer.
+        normalize_before (bool): Flag indicating whether to apply layer normalization
+            before the first block.
+        after_norm (LayerNorm): Layer normalization applied to the output if
+            normalize_before is True.
 
     Args:
-        input_size: input dim
-        output_size: dimension of attention
-        linear_units: the number of units of position-wise feed forward
-        dropout_rate: dropout rate
-        input_layer: input layer type
-        normalize_before: whether to use layer_norm before the first block
-        padding_idx: padding_idx for input_layer=embed
+        input_size (int): The dimension of the input features.
+        output_size (int, optional): The dimension of the output features. Defaults
+            to 256.
+        dropout_rate (float, optional): The dropout rate for regularization. Defaults
+            to 0.1.
+        input_layer (str, optional): The type of input layer to use. Can be one of
+            ['linear', 'conv2d', 'conv2d2', 'conv2d6', 'conv2d8', 'embed']. 
+            Defaults to 'conv2d'.
+        normalize_before (bool, optional): Whether to apply layer normalization 
+            before the first block. Defaults to True.
+        padding_idx (int, optional): The index for padding when using an embedding
+            layer. Defaults to -1.
+
+    Raises:
+        ValueError: If an unknown input_layer type is specified.
+
+    Examples:
+        Initialize a linear encoder with a linear input layer:
+        
+            encoder = LinearEncoder(input_size=128, output_size=256, 
+                                    input_layer='linear')
+
+        Forward pass through the encoder:
+        
+            xs_pad = torch.randn(10, 20, 128)  # (B, L, D)
+            ilens = torch.tensor([20] * 10)     # Input lengths
+            output, olens, _ = encoder(xs_pad, ilens)
+
+    Note:
+        The encoder expects the input tensor to be of shape (B, L, D) where B is
+        the batch size, L is the sequence length, and D is the input dimension.
     """
 
     @typechecked
@@ -79,6 +118,20 @@ class LinearEncoder(AbsEncoder):
             self.after_norm = LayerNorm(output_size)
 
     def output_size(self) -> int:
+        """
+        Returns the output size of the linear encoder.
+
+        This method provides the dimension of the output produced by the 
+        encoder, which is defined during the initialization of the 
+        LinearEncoder class.
+
+        Returns:
+            int: The output size of the encoder.
+
+        Examples:
+            encoder = LinearEncoder(input_size=128, output_size=256)
+            size = encoder.output_size()  # size will be 256
+        """
         return self._output_size
 
     def forward(
@@ -87,14 +140,40 @@ class LinearEncoder(AbsEncoder):
         ilens: torch.Tensor,
         prev_states: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
-        """Embed positions in tensor.
+        """
+        Embed positions in tensor.
+
+        This method processes the input tensor `xs_pad` by applying the 
+        embedding layer defined during the initialization of the LinearEncoder. 
+        It also handles padding masks based on the input lengths.
 
         Args:
-            xs_pad: input tensor (B, L, D)
-            ilens: input length (B)
-            prev_states: Not to be used now.
+            xs_pad (torch.Tensor): Input tensor of shape (B, L, D), where 
+                B is the batch size, L is the sequence length, and D is 
+                the dimension of the input features.
+            ilens (torch.Tensor): A tensor containing the lengths of each 
+                input sequence in the batch. Shape (B).
+            prev_states (torch.Tensor, optional): Not used currently. Defaults 
+                to None.
+
         Returns:
-            position embedded tensor and mask
+            Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]: 
+                A tuple containing:
+                - The position-embedded tensor of shape (B, L, output_size).
+                - A tensor representing the output lengths of shape (B).
+                - An optional tensor which is currently set to None.
+
+        Raises:
+            TooShortUttError: If the input tensor is too short for the 
+                subsampling method being used.
+
+        Examples:
+            >>> encoder = LinearEncoder(input_size=128, output_size=256)
+            >>> xs_pad = torch.randn(10, 20, 128)  # Batch of 10, 20 timesteps, 128 features
+            >>> ilens = torch.tensor([20, 20, 20, 20, 20, 20, 20, 20, 20, 20])  # All lengths are 20
+            >>> output, olens, _ = encoder.forward(xs_pad, ilens)
+            >>> print(output.shape)  # Should be (10, 20, 256)
+            >>> print(olens.shape)  # Should be (10,)
         """
         masks = (~make_pad_mask(ilens)[:, None, :]).to(xs_pad.device)
 

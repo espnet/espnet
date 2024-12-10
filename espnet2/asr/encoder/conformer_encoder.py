@@ -50,38 +50,98 @@ from espnet.nets.pytorch_backend.transformer.subsampling import (
 
 
 class ConformerEncoder(AbsEncoder):
-    """Conformer encoder module.
+    """
+    Conformer encoder module for automatic speech recognition.
+
+    This class implements the Conformer encoder, which combines convolutional 
+    neural networks and self-attention mechanisms to process sequential data 
+    such as speech. It is designed to capture both local and global dependencies 
+    in the input data effectively.
+
+    Attributes:
+        output_size (int): Dimension of the output from the encoder.
+        embed (torch.nn.Module): Input layer module for feature extraction.
+        normalize_before (bool): Flag indicating if layer normalization is 
+            applied before the first block.
+        encoders (List[EncoderLayer]): List of encoder layers comprising the 
+            main processing stack.
+        after_norm (LayerNorm): Layer normalization applied after the encoder 
+            stack, if normalize_before is set to False.
+        interctc_layer_idx (List[int]): Indices of layers for intermediate CTC 
+            outputs.
+        interctc_use_conditioning (bool): Flag to indicate if conditioning on 
+            CTC outputs is used.
+        conditioning_layer (Optional[torch.nn.Module]): Conditioning layer for 
+            intermediate CTC outputs.
+        ctc_trim (bool): Flag indicating if CTC trimming is applied.
 
     Args:
         input_size (int): Input dimension.
-        output_size (int): Dimension of attention.
-        attention_heads (int): The number of heads of multi head attention.
-        linear_units (int): The number of units of position-wise feed forward.
-        num_blocks (int): The number of decoder blocks.
-        dropout_rate (float): Dropout rate.
-        attention_dropout_rate (float): Dropout rate in attention.
-        positional_dropout_rate (float): Dropout rate after adding positional encoding.
-        input_layer (Union[str, torch.nn.Module]): Input layer type.
-        normalize_before (bool): Whether to use layer_norm before the first block.
-        concat_after (bool): Whether to concat attention layer's input and output.
-            If True, additional linear will be applied.
-            i.e. x -> x + linear(concat(x, att(x)))
-            If False, no additional linear will be applied. i.e. x -> x + att(x)
-        positionwise_layer_type (str): "linear", "conv1d", or "conv1d-linear".
-        positionwise_conv_kernel_size (int): Kernel size of positionwise conv1d layer.
-        rel_pos_type (str): Whether to use the latest relative positional encoding or
-            the legacy one. The legacy relative positional encoding will be deprecated
-            in the future. More Details can be found in
-            https://github.com/espnet/espnet/pull/2816.
-        encoder_pos_enc_layer_type (str): Encoder positional encoding layer type.
-        encoder_attn_layer_type (str): Encoder attention layer type.
-        activation_type (str): Encoder activation function type.
-        macaron_style (bool): Whether to use macaron style for positionwise layer.
-        use_cnn_module (bool): Whether to use convolution module.
-        zero_triu (bool): Whether to zero the upper triangular part of attention matrix.
-        cnn_module_kernel (int): Kernerl size of convolution module.
-        padding_idx (int): Padding idx for input_layer=embed.
+        output_size (int): Dimension of attention (default: 256).
+        attention_heads (int): Number of heads in multi-head attention (default: 4).
+        linear_units (int): Number of units in position-wise feed-forward 
+            layers (default: 2048).
+        num_blocks (int): Number of encoder blocks (default: 6).
+        dropout_rate (float): Dropout rate for regularization (default: 0.1).
+        positional_dropout_rate (float): Dropout rate after positional encoding 
+            (default: 0.1).
+        attention_dropout_rate (float): Dropout rate in attention layers 
+            (default: 0.0).
+        input_layer (Union[str, torch.nn.Module]): Type of input layer (default: 
+            "conv2d").
+        normalize_before (bool): Whether to use layer normalization before the 
+            first block (default: True).
+        concat_after (bool): Whether to concatenate input and output of the 
+            attention layer (default: False).
+        positionwise_layer_type (str): Type of position-wise layer ("linear", 
+            "conv1d", or "conv1d-linear", default: "linear").
+        positionwise_conv_kernel_size (int): Kernel size for position-wise 
+            convolution (default: 3).
+        rel_pos_type (str): Type of relative positional encoding ("legacy" or 
+            "latest", default: "legacy").
+        pos_enc_layer_type (str): Type of positional encoding layer (default: 
+            "rel_pos").
+        selfattention_layer_type (str): Type of self-attention layer (default: 
+            "rel_selfattn").
+        activation_type (str): Activation function type (default: "swish").
+        macaron_style (bool): Whether to use Macaron style for position-wise layers 
+            (default: False).
+        use_cnn_module (bool): Whether to include convolutional modules (default: 
+            True).
+        zero_triu (bool): Whether to zero the upper triangular part of the 
+            attention matrix (default: False).
+        cnn_module_kernel (int): Kernel size for convolution modules (default: 31).
+        padding_idx (int): Padding index for embedding layers (default: -1).
+        interctc_layer_idx (List[int]): Indices of layers for intermediate CTC 
+            outputs (default: []).
+        interctc_use_conditioning (bool): Flag to use conditioning on CTC outputs 
+            (default: False).
+        ctc_trim (bool): Flag to enable CTC trimming (default: False).
+        stochastic_depth_rate (Union[float, List[float]]): Rate for stochastic 
+            depth (default: 0.0).
+        layer_drop_rate (float): Dropout rate for layers (default: 0.0).
+        max_pos_emb_len (int): Maximum length for positional embeddings 
+            (default: 5000).
+        qk_norm (bool): Flag to apply normalization on query-key pairs 
+            (default: False).
+        use_flash_attn (bool): Flag to use Flash Attention (default: True).
 
+    Examples:
+        >>> encoder = ConformerEncoder(input_size=80, output_size=256)
+        >>> xs_pad = torch.randn(32, 100, 80)  # Batch of 32, 100 time steps, 80 features
+        >>> ilens = torch.tensor([100] * 32)    # All inputs are of length 100
+        >>> output, olens, _ = encoder(xs_pad, ilens)
+
+    Raises:
+        ValueError: If an unknown `rel_pos_type` or `pos_enc_layer_type` is 
+            provided.
+        TooShortUttError: If the input sequence length is shorter than the 
+            required length for subsampling.
+
+    Note:
+        This implementation utilizes various configurations for the input 
+        layers and encoder blocks to optimize performance on different types 
+        of input data.
     """
 
     @typechecked
@@ -319,6 +379,25 @@ class ConformerEncoder(AbsEncoder):
         self.ctc_trim = ctc_trim
 
     def output_size(self) -> int:
+        """
+        output_size method.
+
+        This method retrieves the output size of the Conformer encoder. The output
+        size is determined during the initialization of the encoder and represents 
+        the dimension of the attention mechanism.
+
+        Returns:
+            int: The output size of the encoder.
+
+        Examples:
+            >>> encoder = ConformerEncoder(input_size=128, output_size=256)
+            >>> encoder.output_size()
+            256
+
+        Note:
+            This method is primarily used to obtain the output size for subsequent
+            layers or operations in a neural network pipeline.
+        """
         return self._output_size
 
     def forward(
@@ -329,20 +408,42 @@ class ConformerEncoder(AbsEncoder):
         ctc: CTC = None,
         return_all_hs: bool = False,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
-        """Calculate forward propagation.
+        """
+        Calculate forward propagation through the Conformer encoder.
+
+        This method performs the forward pass for the Conformer encoder, which
+        includes embedding the input, applying several encoder layers, and
+        optionally returning all hidden states.
 
         Args:
-            xs_pad (torch.Tensor): Input tensor (#batch, L, input_size).
-            ilens (torch.Tensor): Input length (#batch).
-            prev_states (torch.Tensor): Not to be used now.
-            ctc (CTC): ctc module for intermediate CTC loss
-            return_all_hs (bool): whether to return all hidden states
+            xs_pad (torch.Tensor): Input tensor of shape (#batch, L, input_size).
+            ilens (torch.Tensor): Input lengths of shape (#batch).
+            prev_states (torch.Tensor, optional): Not currently used. Defaults to None.
+            ctc (CTC, optional): CTC module for intermediate CTC loss. Defaults to None.
+            return_all_hs (bool, optional): Flag to indicate if all hidden states 
+                should be returned. Defaults to False.
 
         Returns:
-            torch.Tensor: Output tensor (#batch, L, output_size).
-            torch.Tensor: Output length (#batch).
-            torch.Tensor: Not to be used now.
+            Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
+                - Output tensor of shape (#batch, L, output_size).
+                - Output lengths of shape (#batch).
+                - Optional tensor, not currently used (None).
 
+        Raises:
+            TooShortUttError: If the input sequence length is too short for 
+                subsampling layers.
+
+        Examples:
+            >>> encoder = ConformerEncoder(input_size=80)
+            >>> xs_pad = torch.randn(32, 100, 80)  # Batch of 32, 100 time steps
+            >>> ilens = torch.full((32,), 100)  # All sequences are of length 100
+            >>> output, olens, _ = encoder.forward(xs_pad, ilens)
+            >>> print(output.shape)  # Output shape will be (#batch, L, output_size)
+            >>> print(olens.shape)  # Output lengths shape will be (#batch)
+
+        Note:
+            This method modifies the input tensor and should be used with caution
+            when handling gradient computations.
         """
         masks = (~make_pad_mask(ilens)[:, None, :]).to(xs_pad.device)
 

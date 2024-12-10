@@ -34,33 +34,91 @@ from espnet.nets.pytorch_backend.transformer.subsampling_without_posenc import (
 
 
 class ContextualBlockConformerEncoder(AbsEncoder):
-    """Contextual Block Conformer encoder module.
+    """
+    Contextual Block Conformer encoder module.
+
+    This class implements a Conformer encoder utilizing contextual block
+    processing. It supports various configurations for input layers, 
+    attention mechanisms, and normalization strategies. The encoder is 
+    designed to process sequences of variable lengths efficiently, with 
+    support for both training and inference modes.
+
+    Attributes:
+        output_size (int): Dimension of the output features.
+        pos_enc (torch.nn.Module): Positional encoding layer.
+        normalize_before (bool): Flag indicating if normalization occurs
+            before the first block.
+        block_size (int): Size of the blocks for contextual processing.
+        hop_size (int): Size of the hops between blocks.
+        look_ahead (int): Look-ahead size for block processing.
+        init_average (bool): Flag to determine if the initial context is
+            an average or max value.
+        ctx_pos_enc (bool): Flag to indicate if positional encoding is 
+            applied to context vectors.
 
     Args:
-        input_size: input dim
-        output_size: dimension of attention
-        attention_heads: the number of heads of multi head attention
-        linear_units: the number of units of position-wise feed forward
-        num_blocks: the number of decoder blocks
-        dropout_rate: dropout rate
-        attention_dropout_rate: dropout rate in attention
-        positional_dropout_rate: dropout rate after adding positional encoding
-        input_layer: input layer type
-        pos_enc_class: PositionalEncoding or ScaledPositionalEncoding
-        normalize_before: whether to use layer_norm before the first block
-        concat_after: whether to concat attention layer's input and output
-            if True, additional linear will be applied.
-            i.e. x -> x + linear(concat(x, att(x)))
-            if False, no additional linear will be applied.
-            i.e. x -> x + att(x)
-        positionwise_layer_type: linear of conv1d
-        positionwise_conv_kernel_size: kernel size of positionwise conv1d layer
-        padding_idx: padding_idx for input_layer=embed
-        block_size: block size for contextual block processing
-        hop_Size: hop size for block processing
-        look_ahead: look-ahead size for block_processing
-        init_average: whether to use average as initial context (otherwise max values)
-        ctx_pos_enc: whether to use positional encoding to the context vectors
+        input_size (int): Dimension of the input features.
+        output_size (int, optional): Dimension of attention. Default is 256.
+        attention_heads (int, optional): Number of attention heads. Default is 4.
+        linear_units (int, optional): Number of units in the position-wise 
+            feed forward layer. Default is 2048.
+        num_blocks (int, optional): Number of encoder blocks. Default is 6.
+        dropout_rate (float, optional): Dropout rate for layers. Default is 0.1.
+        positional_dropout_rate (float, optional): Dropout rate after adding 
+            positional encoding. Default is 0.1.
+        attention_dropout_rate (float, optional): Dropout rate for attention 
+            layers. Default is 0.0.
+        input_layer (Optional[str], optional): Type of input layer. Default is "conv2d".
+        normalize_before (bool, optional): Use layer normalization before the 
+            first block. Default is True.
+        concat_after (bool, optional): Concatenate input and output of the 
+            attention layer. Default is False.
+        positionwise_layer_type (str, optional): Type of position-wise layer. 
+            Options are "linear" or "conv1d". Default is "linear".
+        positionwise_conv_kernel_size (int, optional): Kernel size for 
+            position-wise convolution. Default is 3.
+        macaron_style (bool, optional): Use Macaron-style connections. Default is False.
+        pos_enc_class (type, optional): Class for positional encoding. Default is 
+            StreamPositionalEncoding.
+        selfattention_layer_type (str, optional): Type of self-attention layer. 
+            Default is "rel_selfattn".
+        activation_type (str, optional): Type of activation function. Default is "swish".
+        use_cnn_module (bool, optional): Use CNN module for convolution. Default is True.
+        cnn_module_kernel (int, optional): Kernel size for CNN module. Default is 31.
+        padding_idx (int, optional): Padding index for embedding layer. Default is -1.
+        block_size (int, optional): Block size for contextual block processing. 
+            Default is 40.
+        hop_size (int, optional): Hop size for block processing. Default is 16.
+        look_ahead (int, optional): Look-ahead size for block processing. Default is 16.
+        init_average (bool, optional): Use average for initial context. Default is True.
+        ctx_pos_enc (bool, optional): Use positional encoding for context vectors. 
+            Default is True.
+
+    Examples:
+        >>> encoder = ContextualBlockConformerEncoder(
+        ...     input_size=80,
+        ...     output_size=256,
+        ...     attention_heads=4,
+        ...     num_blocks=6,
+        ...     block_size=40,
+        ...     hop_size=16
+        ... )
+        >>> xs_pad = torch.randn(10, 50, 80)  # (B, L, D)
+        >>> ilens = torch.tensor([50] * 10)  # Input lengths
+        >>> output, olens, _ = encoder(xs_pad, ilens)
+
+    Note:
+        Ensure that the input tensor is properly padded according to the 
+        specified input length for effective processing.
+
+    Raises:
+        ValueError: If an unknown input layer type is provided.
+        NotImplementedError: If an unsupported position-wise layer type is 
+            specified.
+
+    Todo:
+        - Implement more robust error handling.
+        - Add unit tests for various configurations.
     """
 
     @typechecked
@@ -198,6 +256,22 @@ class ContextualBlockConformerEncoder(AbsEncoder):
         self.ctx_pos_enc = ctx_pos_enc
 
     def output_size(self) -> int:
+        """
+        Return the output size of the Contextual Block Conformer Encoder.
+
+        This method retrieves the dimensionality of the output tensor produced by
+        the encoder. The output size is set during the initialization of the
+        ContextualBlockConformerEncoder instance and is used in various parts of
+        the model to ensure consistency in tensor shapes.
+
+        Returns:
+            int: The output size of the encoder.
+
+        Examples:
+            >>> encoder = ContextualBlockConformerEncoder(input_size=128)
+            >>> encoder.output_size()
+            256
+        """
         return self._output_size
 
     def forward(
@@ -208,17 +282,46 @@ class ContextualBlockConformerEncoder(AbsEncoder):
         is_final=True,
         infer_mode=False,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
-        """Embed positions in tensor.
+        """
+        Processes the input tensor through the encoder.
+
+        This method applies the contextual block conformer encoding to the input 
+        tensor, embedding the positions and managing the inference mode. It 
+        distinguishes between training and inference phases to handle input 
+        tensors accordingly.
 
         Args:
-            xs_pad: input tensor (B, L, D)
-            ilens: input length (B)
-            prev_states: Not to be used now.
-            infer_mode: whether to be used for inference. This is used to
-                distinguish between forward_train (train and validate) and
-                forward_infer (decode).
+            xs_pad: Input tensor of shape (B, L, D) where B is the batch size, 
+                L is the sequence length, and D is the feature dimension.
+            ilens: Tensor containing the lengths of the input sequences of 
+                shape (B).
+            prev_states: Optional; a tensor that holds the previous states. 
+                Currently not utilized.
+            is_final: Optional; a boolean indicating if this is the final 
+                call in the inference process. Defaults to True.
+            infer_mode: Optional; a boolean indicating whether the model is in 
+                inference mode. If True, it will switch to the inference 
+                forward method; otherwise, it will use the training method.
+
         Returns:
-            position embedded tensor and mask
+            A tuple containing:
+                - position-embedded tensor of shape (B, L', D) where L' is the 
+                  output sequence length.
+                - Tensor of output lengths of shape (B).
+                - Optional; previous state tensor if applicable.
+
+        Examples:
+            >>> encoder = ContextualBlockConformerEncoder(input_size=128)
+            >>> xs_pad = torch.randn(10, 50, 128)  # Batch of 10 sequences
+            >>> ilens = torch.tensor([50] * 10)  # All sequences of length 50
+            >>> output, olens, _ = encoder.forward(xs_pad, ilens)
+
+        Note:
+            This method automatically handles both training and inference 
+            scenarios based on the `infer_mode` flag.
+
+        Raises:
+            ValueError: If an unknown state is provided in `prev_states`.
         """
         if self.training or not infer_mode:
             return self.forward_train(xs_pad, ilens, prev_states)
@@ -231,14 +334,39 @@ class ContextualBlockConformerEncoder(AbsEncoder):
         ilens: torch.Tensor,
         prev_states: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
-        """Embed positions in tensor.
+        """
+        Perform the forward pass for training and validation.
+
+        This method processes the input tensor through the encoder and returns 
+        the position-embedded output along with the output lengths and an optional 
+        mask.
 
         Args:
-            xs_pad: input tensor (B, L, D)
-            ilens: input length (B)
-            prev_states: Not to be used now.
+            xs_pad: Input tensor of shape (B, L, D), where B is the batch size,
+                L is the sequence length, and D is the feature dimension.
+            ilens: A tensor of shape (B) containing the lengths of each input 
+                sequence in the batch.
+            prev_states: (Optional) A tensor containing previous states. Not used 
+                in this implementation.
+
         Returns:
-            position embedded tensor and mask
+            A tuple containing:
+                - position embedded tensor of shape (B, L, D).
+                - A tensor of output lengths of shape (B).
+                - An optional mask tensor, currently set to None.
+
+        Examples:
+            >>> model = ContextualBlockConformerEncoder(...)
+            >>> input_tensor = torch.randn(32, 100, 256)  # Batch of 32
+            >>> input_lengths = torch.tensor([100] * 32)  # All sequences of length 100
+            >>> output, output_lengths, _ = model.forward_train(input_tensor, input_lengths)
+
+        Note:
+            This method is specifically for training and validation purposes. 
+            It utilizes masking to ignore padded values in the input sequences.
+
+        Raises:
+            ValueError: If the input tensor dimensions are not as expected.
         """
         masks = (~make_pad_mask(ilens)[:, None, :]).to(xs_pad.device)
 
@@ -386,14 +514,53 @@ class ContextualBlockConformerEncoder(AbsEncoder):
         prev_states: torch.Tensor = None,
         is_final: bool = True,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
-        """Embed positions in tensor.
+        """
+        Perform inference using the forward method of the encoder.
+
+        This method processes the input tensor for inference mode, 
+        handling context vectors and block processing based on the 
+        given input parameters. It is designed to work with the 
+        current state of the model and manage past states for 
+        continuous processing.
 
         Args:
-            xs_pad: input tensor (B, L, D)
-            ilens: input length (B)
-            prev_states: Not to be used now.
+            xs_pad: Input tensor of shape (B, L, D) where B is the batch size,
+                     L is the length of the sequence, and D is the feature 
+                     dimension.
+            ilens: Tensor of input lengths of shape (B) indicating the 
+                    actual lengths of each input sequence in the batch.
+            prev_states: Optional; a dictionary containing the previous 
+                         states for context management during inference.
+                         It can include keys like 'prev_addin', 
+                         'buffer_before_downsampling', 'ilens_buffer', 
+                         'buffer_after_downsampling', 'n_processed_blocks',
+                         and 'past_encoder_ctx'.
+            is_final: A boolean indicating whether this is the final 
+                      inference step. If False, the function prepares 
+                      the state for the next input.
+
         Returns:
-            position embedded tensor and mask
+            A tuple containing:
+                - The output tensor of shape (B, y_length, D), where y_length 
+                  is the length of the output sequence.
+                - A tensor of output lengths of shape (B).
+                - An optional dictionary of next states for continuous 
+                  processing.
+
+        Examples:
+            >>> encoder = ContextualBlockConformerEncoder(...)
+            >>> xs_pad = torch.randn(1, 100, 256)  # Example input
+            >>> ilens = torch.tensor([100])         # Lengths
+            >>> output, lengths, next_states = encoder.forward_infer(xs_pad, ilens)
+
+        Note:
+            This method assumes that the encoder is in evaluation mode 
+            (i.e., `model.eval()`). The `prev_states` can be used to 
+            carry over information from previous calls, enabling 
+            streaming or chunked inference.
+
+        Raises:
+            AssertionError: If the batch size of `xs_pad` is not equal to 1.
         """
         if prev_states is None:
             prev_addin = None
