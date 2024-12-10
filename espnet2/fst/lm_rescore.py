@@ -10,17 +10,37 @@ except (ImportError, ModuleNotFoundError):
 
 
 def remove_repeated_and_leq(tokens: List[int], blank_id: int = 0):
-    """Generate valid token sequence.
+    """
+    Generate a valid token sequence by removing repetitions and blanks.
 
-    Result may be used as input of transformer decoder and neural language model.
-    Fristly, remove repeated token from a "token alignment" seqs;
-    Then remove blank symbols.
+    This function processes a sequence of tokens by first removing 
+    consecutive repeated tokens, then filtering out any tokens that 
+    are less than or equal to the specified blank ID. The resulting 
+    sequence can be utilized as input for a transformer decoder or 
+    a neural language model.
 
-    This fuction may be replaced by tokenizing word_seqs with tokenizer
-    or composeing word_seqs_fsas with L_inv.fst
-    or composing token_seqs with ctc_topo.
-    Current method is slelected other than previous three methods
-    because it won't need an extra object, i.e. tokenizer, L.fst or ctc_topo.
+    This method is chosen over alternatives such as tokenizing word 
+    sequences with a tokenizer, composing word sequences with 
+    `L_inv.fst`, or using a CTC topology, as it does not require 
+    additional objects like a tokenizer or finite state transducer 
+    (FST).
+
+    Args:
+        tokens (List[int]): A list of token integers to process.
+        blank_id (int, optional): The threshold for blank tokens. Tokens 
+            less than or equal to this value will be removed. Defaults 
+            to 0.
+
+    Returns:
+        List[int]: A new list of tokens with repetitions and blanks 
+        removed.
+
+    Examples:
+        >>> remove_repeated_and_leq([1, 2, 2, 3, 0, 4, 0])
+        [1, 2, 3, 4]
+
+        >>> remove_repeated_and_leq([0, 1, 1, 0, 2, 3], blank_id=1)
+        [2, 3]
     """
     new_tokens = []
     previous = None
@@ -85,27 +105,56 @@ def compute_am_scores_and_lm_scores(
     device: str = "cuda",
     batch_size: int = 500,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
-    """Compute AM and LM scores of n-best lists (represented as word_fsas).
+    """
+    Compute Acoustic Model (AM) and Language Model (LM) scores for n-best lists.
+
+    This function computes the AM and LM scores for a given n-best list of
+    hypotheses represented as finite state acceptors (FSAs). The input FSAs
+    are expected to have been processed appropriately and must adhere to
+    specific formats required by the underlying k2 library.
 
     Args:
-      lats:
-        An FsaVec, which is the output of `k2.intersect_dense_pruned`.
-        It must have the attribute `lm_scores`.
-      word_fsas_with_epsilon_loops:
-        An FsaVec representing a n-best list. Note that it has been processed
-        by `k2.add_epsilon_self_loops`.
-      path_to_seq_map:
-        A 1-D torch.Tensor with dtype torch.int32. path_to_seq_map[i] indicates
-        which sequence the i-th Fsa in word_fsas_with_epsilon_loops belongs to.
-        path_to_seq_map.numel() == word_fsas_with_epsilon_loops.arcs.dim0().
-      batch_size:
-        Batchify the n-best list when intersecting with inverted_lats.
-        You could tune this to avoid GPU OOM issue or increase the GPU usage.
+      lats: 
+        An FsaVec output from `k2.intersect_dense_pruned`. It must contain 
+        the attribute `lm_scores`.
+      word_fsas_with_epsilon_loops: 
+        An FsaVec representing the n-best list, which has been processed by 
+        `k2.add_epsilon_self_loops`.
+      path_to_seq_map: 
+        A 1-D tensor of type `torch.int32`. Each entry `i` indicates which 
+        sequence the i-th Fsa in `word_fsas_with_epsilon_loops` belongs to. 
+        The size of this tensor must match the number of arcs in 
+        `word_fsas_with_epsilon_loops`.
+      device: 
+        A string specifying the device to perform computations on (default: 
+        "cuda"). It can be set to "cpu" or "cuda" based on the available 
+        hardware.
+      batch_size: 
+        An integer that defines the batch size for processing the n-best 
+        list when intersecting with `lats`. This can be adjusted to avoid 
+        GPU out-of-memory errors.
+
     Returns:
-      Return a tuple of (1-D torch.Tensor, 1-D torch.Tensor) containing
-      the AM and LM scores of each path.
-      `am_scores.numel() == word_fsas_with_epsilon_loops.shape[0]`
-      `lm_scores.numel() == word_fsas_with_epsilon_loops.shape[0]`
+      A tuple containing two 1-D tensors: the first tensor represents the 
+      AM scores, and the second tensor represents the LM scores for each 
+      path in the n-best list. Both tensors will have a size equal to the 
+      number of FSAs in `word_fsas_with_epsilon_loops`.
+
+    Raises:
+      AssertionError: If the `k2` module is not installed or if the 
+      input `lats` does not have the correct shape.
+
+    Examples:
+      >>> lats = k2.Fsa(...)
+      >>> word_fsas = k2.Fsa(...)
+      >>> path_to_seq_map = torch.tensor([...], dtype=torch.int32)
+      >>> am_scores, lm_scores = compute_am_scores_and_lm_scores(
+      ...     lats, word_fsas, path_to_seq_map
+      ... )
+
+    Note:
+      Ensure that the k2 library is properly installed and configured before 
+      using this function.
     """
     assert (
         k2 is not None
@@ -171,9 +220,51 @@ def nbest_am_lm_scores(
     device: str = "cuda",
     batch_size: int = 500,
 ):
-    """Compute am scores with word_seqs
+    """
+    Compute acoustic model (AM) scores and language model (LM) scores for 
+    n-best paths from the provided lattice.
 
-    Compatible with both ctc_decoding or TLG decoding.
+    This function computes the AM scores and LM scores based on the 
+    n-best paths generated from the input lattice. It is compatible with 
+    both CTC decoding and TLG decoding methods.
+
+    Args:
+        lats (k2.Fsa): An FSA (finite-state acceptor) representing the 
+            lattice containing the paths from which scores will be computed.
+        num_paths (int): The number of n-best paths to compute from the 
+            input lattice.
+        device (str, optional): The device to perform computations on 
+            (default is "cuda"). It can be set to "cpu" for CPU 
+            computations.
+        batch_size (int, optional): The size of batches to process during 
+            the computation to manage memory usage (default is 500).
+
+    Returns:
+        Tuple[torch.Tensor, torch.Tensor, List[List[int]], 
+        torch.Tensor, torch.Tensor, torch.Tensor]: A tuple containing:
+            - am_scores: A 1-D tensor of acoustic model scores for each path.
+            - lm_scores: A 1-D tensor of language model scores for each path 
+              (may be None if not applicable).
+            - token_ids: A list of lists containing token IDs for each path 
+              after removing repeated tokens and blank tokens.
+            - new2old: A tensor mapping new token IDs to their original IDs.
+            - path_to_seq_map: A tensor mapping paths to sequences.
+            - seq_to_path_splits: A tensor representing the splits of 
+              sequences to paths.
+
+    Raises:
+        AssertionError: If `k2` is not installed or if the input lattice is 
+            not valid.
+
+    Examples:
+        >>> am_scores, lm_scores, token_ids, new2old, path_to_seq_map, \
+        ... seq_to_path_splits = nbest_am_lm_scores(lats, num_paths=10)
+        >>> print(am_scores.shape)  # Output: torch.Size([10])
+        >>> print(len(token_ids))    # Output: 10
+
+    Note:
+        The `k2` library must be installed for this function to work. 
+        Follow the installation instructions in 'tools/installers'.
     """
     assert (
         k2 is not None
