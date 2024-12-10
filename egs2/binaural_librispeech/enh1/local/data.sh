@@ -152,7 +152,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 
     for subset in "${subsets[@]}"; do
         mkdir -p "data/${subset}"  # Ensure the directory exists for each subset
-        grep -e "${subset}" "data/wav.scp" > "data/${subset}/wav.scp" || true  # Continue even if no matches found
+        grep -e "${subset}" "data/wav.scp" | sort -u > "data/${subset}/wav.scp" || true  # Continue even if no matches found
 
         # Copy matching lines from utt2spk based on wav.scp
         awk '{print $1}' "data/${subset}/wav.scp" | grep -Ff - "data/utt2spk" > "data/${subset}/utt2spk" || true
