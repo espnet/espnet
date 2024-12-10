@@ -8,6 +8,7 @@ from typeguard import typechecked
 
 from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
+from espnet2.asr.decoder.linear_decoder import LinearDecoder
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
@@ -110,6 +111,7 @@ class ESPnetASRModel(AbsESPnetModel):
             )
 
         self.use_transducer_decoder = joint_network is not None
+        self.use_linear_decoder = isinstance(decoder, LinearDecoder)
 
         self.error_calculator = None
 
@@ -155,6 +157,12 @@ class ESPnetASRModel(AbsESPnetModel):
                     self.error_calculator = ErrorCalculator(
                         token_list, sym_space, sym_blank, report_cer, report_wer
                     )
+        elif self.use_linear_decoder:
+            assert ctc_weight == 0.0, "CTC is not supported with LinearDecoder."
+            self.decoder = decoder
+            self.criterion_classif = torch.nn.CrossEntropyLoss(
+                ignore_index=ignore_id, label_smoothing=lsm_weight
+            )
         else:
             # we set self.decoder = None in the CTC mode since
             # self.decoder parameters were never used and PyTorch complained
@@ -243,6 +251,7 @@ class ESPnetASRModel(AbsESPnetModel):
         loss_att, acc_att, cer_att, wer_att = None, None, None, None
         loss_ctc, cer_ctc = None, None
         loss_transducer, cer_transducer, wer_transducer = None, None, None
+        loss_classif, acc_classif = None, None
         stats = dict()
 
         # 1. CTC branch
@@ -325,8 +334,13 @@ class ESPnetASRModel(AbsESPnetModel):
             stats["cer_transducer"] = cer_transducer
             stats["wer_transducer"] = wer_transducer
 
+        elif self.use_linear_decoder:
+            # 2b. Linear decoder branch for classification tasks
+            loss, acc = self._calc_classif_loss(encoder_out, encoder_out_lens, text)
+            stats["loss"] = loss
+            stats["acc"] = acc
         else:
-            # 2b. Attention decoder branch
+            # 2c. Attention decoder branch
             if self.ctc_weight != 1.0:
                 loss_att, acc_att, cer_att, wer_att = self._calc_att_loss(
                     encoder_out, encoder_out_lens, text, text_lengths
@@ -672,3 +686,31 @@ class ESPnetASRModel(AbsESPnetModel):
         loss_ctc = self.ctc(encoder_out, encoder_out_lens, text, text_lengths)
         self.ctc.reduce = do_reduce
         return loss_ctc
+
+    def _calc_classif_loss(
+        self,
+        encoder_out: torch.Tensor,
+        encoder_out_lens: torch.Tensor,
+        labels: torch.Tensor,
+    ):
+        """Compute classification loss.
+        Args:
+            encoder_out: Encoder output sequences. (B, T, D_enc)
+            encoder_out_lens: Encoder output sequences lengths. (B,)
+            labels: Label ID sequences. (B, 1)
+        Return:
+            loss_classif: Classification loss value.
+            acc_classif: Classification accuracy.
+        """
+        # Calc classification loss
+        assert labels.dim() == 2, labels.shape
+        assert labels.shape[1] == 1, labels.shape
+        logits = self.decoder(encoder_out, encoder_out_lens)  # (B, n_class + 3)
+        logits = logits[:, 2:-1]  # remove blank, unk and sos/eos # (B, n_class)
+        # We do not want unk/seos/blank, just class
+        assert logits.shape[1] == self.vocab_size - 3, logits.shape
+        # Shift up labels to remove blank and unk.
+        labels = labels - 2
+        loss_classif = self.criterion_classif(logits, labels.squeeze(-1))
+        acc_classif = th_accuracy(logits, labels, ignore_label=self.ignore_id)
+        return loss_classif, acc_classif
