@@ -629,32 +629,32 @@ class OnReIm(nn.Module):
         """
         DCUNet model for complex spectrogram processing.
 
-        This implementation is based on the architecture described in 
-        the paper "Speech Enhancement with Score-Based Generative Models 
-        in the Complex STFT Domain". It leverages deep learning techniques 
-        for audio signal processing, specifically focusing on 
+        This implementation is based on the architecture described in
+        the paper "Speech Enhancement with Score-Based Generative Models
+        in the Complex STFT Domain". It leverages deep learning techniques
+        for audio signal processing, specifically focusing on
         complex-valued input tensors.
 
         Args:
-            dcunet_architecture (str): The architecture to use for the 
+            dcunet_architecture (str): The architecture to use for the
                 DCUNet model. Default is "DilDCUNet-v2".
             dcunet_time_embedding (str): The type of time embedding to use.
                 Options are "gfp" for Gaussian Fourier Projection or "ds"
                 for Diffusion Step embedding. Default is "gfp".
-            dcunet_temb_layers_global (int): Number of global time embedding 
+            dcunet_temb_layers_global (int): Number of global time embedding
                 layers. Default is 2.
-            dcunet_temb_layers_local (int): Number of local time embedding 
+            dcunet_temb_layers_local (int): Number of local time embedding
                 layers. Default is 1.
-            dcunet_temb_activation (str): Activation function for time 
+            dcunet_temb_activation (str): Activation function for time
                 embedding layers. Default is "silu".
-            dcunet_time_embedding_complex (bool): Whether to use complex 
+            dcunet_time_embedding_complex (bool): Whether to use complex
                 time embedding. Default is False.
-            dcunet_fix_length (str): Method to handle input length. Options 
+            dcunet_fix_length (str): Method to handle input length. Options
                 are "pad" or "trim". Default is "pad".
             dcunet_mask_bound (str): Mask bounding option. Default is "none".
-            dcunet_norm_type (str): Type of normalization to apply. 
+            dcunet_norm_type (str): Type of normalization to apply.
                 Default is "bN".
-            dcunet_activation (str): Activation function for the model. 
+            dcunet_activation (str): Activation function for the model.
                 Default is "relu".
             embed_dim (int): Dimensionality of the embedding. Default is 128.
 
@@ -670,14 +670,14 @@ class OnReIm(nn.Module):
             torch.Size([4, 1, 257, 256])
 
         Note:
-            This model expects the input tensor shape to be 
-            (batch, nfreqs, time), where `nfreqs - 1` is divisible 
-            by the frequency strides of the encoders and 
+            This model expects the input tensor shape to be
+            (batch, nfreqs, time), where `nfreqs - 1` is divisible
+            by the frequency strides of the encoders and
             `time - 1` is divisible by the time strides of the encoders.
 
         Raises:
             TypeError: If input tensor dimensions are incompatible.
-            NotImplementedError: If an unsupported architecture or 
+            NotImplementedError: If an unsupported architecture or
                 mask bounding is specified.
         """
         return torch_complex_from_reim(self.re_module(x.real), self.im_module(x.imag))
