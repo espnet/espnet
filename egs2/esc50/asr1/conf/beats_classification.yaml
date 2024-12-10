@@ -9,7 +9,7 @@ optim_conf:
 accum_grad: 1
 
 batch_size: 60 # 300 sec (5 sec per sample) # 1600 samples in train set ==> 1600/60 = 27 steps per epoch
-max_epoch: 2962 # originally 80K steps, @27 steps per epoch ~3k
+max_epoch: 2962 # originally 80K steps, @27 steps per epoch ~2962
 
 
 scheduler: CosineAnnealingWarmupRestarts

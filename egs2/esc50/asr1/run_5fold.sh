@@ -8,8 +8,7 @@ set -o pipefail
 asr_config=conf/beats_classification.yaml
 asr_speech_fold_length=1000 # 6.25 sec, because audio is 5 sec each.
 
-# inference_model=valid.acc.ave_5best.pth
-inference_model=latest.pth
+inference_model=valid.acc.best.pth
 
 n_folds=5 # This runs all 5 folds in parallel, take care.
 
@@ -32,7 +31,7 @@ for fold in $(seq 1 $n_folds); do
         --max_wav_duration 6 \
         --feats_normalize utterance_mvn\
         --inference_nj 8 \
-        --inference_asr_model latest.pth\
+        --inference_asr_model ${inference_model} \
         --asr_config "${asr_config}" \
         --train_set "${train_set}" \
         --valid_set "${valid_set}" \
@@ -42,6 +41,7 @@ done
 wait
 
 # Average the accuracies of all folds.
+# Please ensure that the RESULTS.md file is empty before running this script.
 total_sum=0
 total_count=0
 for i in $(seq 1 $n_folds); do
