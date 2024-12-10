@@ -8,13 +8,52 @@ from espnet2.samplers.abs_sampler import AbsSampler
 
 
 class SortedBatchSampler(AbsSampler):
-    """BatchSampler with sorted samples by length.
+    """
+    BatchSampler with sorted samples by length.
+
+    This sampler is designed to create batches of samples sorted by their
+    lengths. It can sort samples either in ascending or descending order
+    within a batch and allows for sorting of batches as well.
+
+    Attributes:
+        batch_size (int): The size of each batch.
+        shape_file (str): Path to the file containing the shape information
+            for each sample.
+        sort_in_batch (str): Defines the sorting order for samples within
+            each batch. Can be 'descending', 'ascending', or None.
+        sort_batch (str): Defines the sorting order for the batches. Can be
+            'ascending' or 'descending'.
+        drop_last (bool): If True, drop the last batch if it is smaller than
+            the batch size.
 
     Args:
-        batch_size:
-        shape_file:
-        sort_in_batch: 'descending', 'ascending' or None.
-        sort_batch:
+        batch_size (int): The size of each batch. Must be greater than 0.
+        shape_file (str): Path to the file containing the shape information
+            for each sample.
+        sort_in_batch (str): 'descending', 'ascending' or None for sorting
+            samples within each batch.
+        sort_batch (str): 'ascending' or 'descending' for sorting the batches.
+        drop_last (bool): If True, the last batch will be dropped if it has
+            fewer than batch_size samples.
+
+    Raises:
+        ValueError: If `sort_in_batch` or `sort_batch` is not one of the
+            expected values.
+        RuntimeError: If no samples or batches are found.
+
+    Examples:
+        >>> sampler = SortedBatchSampler(batch_size=32, shape_file='shapes.csv',
+        ...                               sort_in_batch='ascending',
+        ...                               sort_batch='descending')
+        >>> for batch in sampler:
+        ...     print(batch)
+
+    Note:
+        The shape file should be a CSV file where each line corresponds to a
+        sample and contains its length.
+
+    Todo:
+        - Add functionality to handle different file formats for shape_file.
     """
 
     @typechecked

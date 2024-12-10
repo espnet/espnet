@@ -24,10 +24,90 @@ from espnet2.samplers.abs_sampler import AbsSampler
 
 
 def round_down(num, divisor):
+    """
+        Round down a number to the nearest multiple of a specified divisor.
+
+    This function takes a number and reduces it to the nearest lower multiple of the
+    given divisor. This is particularly useful in scenarios where you need to ensure
+    that a quantity is evenly divisible by another.
+
+    Args:
+        num (int or float): The number to be rounded down.
+        divisor (int or float): The divisor to which the number should be rounded down.
+
+    Returns:
+        int or float: The largest integer or float less than or equal to `num` that
+        is divisible by `divisor`.
+
+    Examples:
+        >>> round_down(10, 3)
+        9
+        >>> round_down(10.5, 2)
+        10.0
+        >>> round_down(15, 5)
+        15
+
+    Note:
+        If the `divisor` is zero, this function will raise a ZeroDivisionError.
+    """
     return num - (num % divisor)
 
 
 class CategoryBalancedSampler(AbsSampler):
+    """
+        Sampler that maintains an equal distribution of categories (i.e., classes)
+    within each minibatch. If the batch size is smaller than the number of
+    classes, all samples in the minibatch will belong to different classes.
+
+    The `key_file` is a text file that describes each sample name. It should be
+    formatted as follows:
+
+        utterance_id_a
+        utterance_id_b
+        utterance_id_c
+
+    The first column is referred to, so a 'shape file' can also be used, which
+    has the following format:
+
+        utterance_id_a 100,80
+        utterance_id_b 400,80
+        utterance_id_c 512,80
+
+    Attributes:
+        batch_size (int): The size of each batch.
+        min_batch_size (int): The minimum size of each batch. Default is 1.
+        drop_last (bool): Whether to drop the last batch if it's smaller than
+            batch_size. Default is False.
+        category2utt_file (Optional[str]): Path to the file mapping categories
+            to utterances.
+        epoch (int): The epoch number for seeding the random number generator.
+
+    Args:
+        batch_size (int): The size of the minibatch.
+        min_batch_size (int, optional): Minimum size of the minibatch. Default is 1.
+        drop_last (bool, optional): If True, drop the last batch if it's smaller
+            than batch_size. Default is False.
+        category2utt_file (str, optional): Path to the file mapping categories
+            to utterances. Must be provided.
+        epoch (int, optional): The epoch number for random seed. Default is 1.
+        **kwargs: Additional keyword arguments for customization.
+
+    Returns:
+        Iterator[Tuple[str, ...]]: An iterator that yields batches of utterances.
+
+    Examples:
+        >>> sampler = CategoryBalancedSampler(batch_size=4, category2utt_file='path/to/file.txt')
+        >>> for batch in sampler:
+        ...     print(batch)
+
+    Note:
+        The random seed is initialized based on the provided epoch number to ensure
+        reproducibility across different runs.
+
+    Todo:
+        - Add support for handling class imbalance.
+    """
+
     @typechecked
     def __init__(
         self,
