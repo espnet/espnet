@@ -13,17 +13,34 @@ def get_random_segments(
     x_lengths: torch.Tensor,
     segment_size: int,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
-    """Get random segments.
+    """
+        Function to get random segments from an input tensor.
+
+    This function extracts random segments of a specified size from the input tensor,
+    ensuring that the segments do not exceed the lengths provided in the `x_lengths` tensor.
 
     Args:
-        x (Tensor): Input tensor (B, C, T).
-        x_lengths (Tensor): Length tensor (B,).
-        segment_size (int): Segment size.
+        x (torch.Tensor): Input tensor of shape (B, C, T), where B is the batch size,
+            C is the number of channels, and T is the length of the input.
+        x_lengths (torch.Tensor): Length tensor of shape (B,), indicating the valid
+            lengths of each input tensor in the batch.
+        segment_size (int): Size of the segment to be extracted from the input tensor.
 
     Returns:
-        Tensor: Segmented tensor (B, C, segment_size).
-        Tensor: Start index tensor (B,).
+        Tuple[torch.Tensor, torch.Tensor]: A tuple containing:
+            - Tensor: Segmented tensor of shape (B, C, segment_size).
+            - Tensor: Start index tensor of shape (B,), indicating the starting
+              indices of the segments in the input tensor.
 
+    Examples:
+        >>> x = torch.randn(4, 2, 10)  # Example input tensor (B=4, C=2, T=10)
+        >>> x_lengths = torch.tensor([10, 9, 8, 7])  # Valid lengths for each input
+        >>> segment_size = 5
+        >>> segments, start_idxs = get_random_segments(x, x_lengths, segment_size)
+        >>> segments.shape
+        torch.Size([4, 2, 5])
+        >>> start_idxs.shape
+        torch.Size([4])
     """
     batches = x.shape[0]
     max_start_idx = x_lengths - segment_size
@@ -41,16 +58,38 @@ def get_segments(
     start_idxs: torch.Tensor,
     segment_size: int,
 ) -> torch.Tensor:
-    """Get segments.
+    """
+        Function to get random segments.
+
+    This function retrieves random segments from a given tensor based on specified
+    segment sizes and their respective lengths. The output consists of both the
+    segmented tensor and the starting indices of these segments.
 
     Args:
-        x (Tensor): Input tensor (B, C, T).
-        start_idxs (Tensor): Start index tensor (B,).
-        segment_size (int): Segment size.
+        x (torch.Tensor): Input tensor of shape (B, C, T) where:
+            - B: Batch size
+            - C: Number of channels
+            - T: Length of the sequence
+        x_lengths (torch.Tensor): Length tensor of shape (B,) indicating the valid
+            lengths of each input tensor in the batch.
+        segment_size (int): The size of the segments to be extracted from the
+            input tensor.
 
     Returns:
-        Tensor: Segmented tensor (B, C, segment_size).
+        Tuple[torch.Tensor, torch.Tensor]: A tuple containing:
+            - Tensor: Segmented tensor of shape (B, C, segment_size).
+            - Tensor: Start index tensor of shape (B,) representing the starting
+              indices of each segment.
 
+    Examples:
+        >>> x = torch.randn(4, 2, 10)  # A batch of 4 samples, 2 channels, 10 length
+        >>> x_lengths = torch.tensor([10, 8, 10, 5])  # Lengths of each sample
+        >>> segment_size = 5
+        >>> segments, start_idxs = get_random_segments(x, x_lengths, segment_size)
+        >>> segments.shape
+        torch.Size([4, 2, 5])  # Segmented tensor shape
+        >>> start_idxs.shape
+        torch.Size([4])  # Start index tensor shape
     """
     b, c, _ = x.size()
     segments = x.new_zeros(b, c, segment_size)

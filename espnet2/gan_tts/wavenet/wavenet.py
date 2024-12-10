@@ -17,7 +17,64 @@ from espnet2.gan_tts.wavenet.residual_block import Conv1d1x1, ResidualBlock
 
 
 class WaveNet(torch.nn.Module):
-    """WaveNet with global conditioning."""
+    """
+        WaveNet with global conditioning.
+
+    This class implements a WaveNet model that can be used for generating audio
+    signals with global conditioning. It is built using residual blocks and
+    dilated convolutions.
+
+    This code is modified from
+    https://github.com/kan-bayashi/ParallelWaveGAN.
+
+    Attributes:
+        layers (int): Number of residual block layers.
+        stacks (int): Number of stacks, i.e., dilation cycles.
+        kernel_size (int): Kernel size of dilated convolution.
+        base_dilation (int): Base dilation factor.
+        use_first_conv (bool): Whether to use the first convolution layers.
+        use_last_conv (bool): Whether to use the last convolution layers.
+        scale_skip_connect (bool): Whether to scale the skip connection outputs.
+
+    Args:
+        in_channels (int): Number of input channels.
+        out_channels (int): Number of output channels.
+        kernel_size (int): Kernel size of dilated convolution.
+        layers (int): Number of residual block layers.
+        stacks (int): Number of stacks i.e., dilation cycles.
+        base_dilation (int): Base dilation factor.
+        residual_channels (int): Number of channels in residual conv.
+        gate_channels (int): Number of channels in gated conv.
+        skip_channels (int): Number of channels in skip conv.
+        aux_channels (int): Number of channels for local conditioning feature.
+        global_channels (int): Number of channels for global conditioning feature.
+        dropout_rate (float): Dropout rate. 0.0 means no dropout applied.
+        bias (bool): Whether to use bias parameter in conv layer.
+        use_weight_norm (bool): Whether to use weight norm. If set to true, it will
+            be applied to all of the conv layers.
+        use_first_conv (bool): Whether to use the first conv layers.
+        use_last_conv (bool): Whether to use the last conv layers.
+        scale_residual (bool): Whether to scale the residual outputs.
+        scale_skip_connect (bool): Whether to scale the skip connection outputs.
+
+    Returns:
+        Tensor: Output tensor (B, out_channels, T) if use_last_conv else
+            (B, residual_channels, T).
+
+    Examples:
+        # Create a WaveNet instance
+        wavenet = WaveNet(in_channels=1, out_channels=1, layers=30, stacks=3)
+
+        # Generate a random input tensor
+        input_tensor = torch.randn(1, 1, 100)
+
+        # Perform forward propagation
+        output_tensor = wavenet(input_tensor)
+
+    Note:
+        The `forward` method accepts optional masks and conditioning features for
+        local and global conditioning.
+    """
 
     def __init__(
         self,
@@ -119,19 +176,33 @@ class WaveNet(torch.nn.Module):
         c: Optional[torch.Tensor] = None,
         g: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
-        """Calculate forward propagation.
+        """
+        Calculate forward propagation.
+
+        This method performs the forward pass through the WaveNet model. It takes
+        an input tensor and optional conditioning features, and returns the output
+        tensor after processing through the residual blocks and any specified
+        convolutional layers.
 
         Args:
-            x (Tensor): Input noise signal (B, 1, T) if use_first_conv else
-                (B, residual_channels, T).
-            x_mask (Optional[Tensor]): Mask tensor (B, 1, T).
-            c (Optional[Tensor]): Local conditioning features (B, aux_channels, T).
-            g (Optional[Tensor]): Global conditioning features (B, global_channels, 1).
+            x (Tensor): Input noise signal of shape (B, 1, T) if
+                `use_first_conv` is True, else shape (B, residual_channels, T).
+            x_mask (Optional[Tensor]): Mask tensor of shape (B, 1, T) to apply
+                masking during the forward pass.
+            c (Optional[Tensor]): Local conditioning features of shape
+                (B, aux_channels, T).
+            g (Optional[Tensor]): Global conditioning features of shape
+                (B, global_channels, 1).
 
         Returns:
-            Tensor: Output tensor (B, out_channels, T) if use_last_conv else
-                (B, residual_channels, T).
+            Tensor: Output tensor of shape (B, out_channels, T) if
+                `use_last_conv` is True, else shape (B, residual_channels, T).
 
+        Examples:
+            >>> model = WaveNet()
+            >>> input_tensor = torch.randn(8, 1, 100)  # Batch size 8, T=100
+            >>> output = model(input_tensor)
+            >>> print(output.shape)  # Should match the expected output shape
         """
         # encode to hidden representation
         if self.use_first_conv:
@@ -153,7 +224,26 @@ class WaveNet(torch.nn.Module):
         return x
 
     def remove_weight_norm(self):
-        """Remove weight normalization module from all of the layers."""
+        """
+        Remove weight normalization module from all of the layers.
+
+        This method traverses through all layers of the WaveNet model and removes
+        the weight normalization applied to the convolutional layers. It is useful
+        for reducing the model size and complexity during inference or when weight
+        normalization is no longer needed.
+
+        Note:
+            This operation is irreversible; once weight normalization is removed,
+            it cannot be reapplied unless explicitly done so again.
+
+        Examples:
+            >>> wavenet = WaveNet(use_weight_norm=True)
+            >>> wavenet.remove_weight_norm()  # Weight normalization is removed.
+
+        Raises:
+            ValueError: If a layer does not have weight normalization applied,
+            this exception is caught and logged.
+        """
 
         def _remove_weight_norm(m: torch.nn.Module):
             try:
@@ -165,7 +255,24 @@ class WaveNet(torch.nn.Module):
         self.apply(_remove_weight_norm)
 
     def apply_weight_norm(self):
-        """Apply weight normalization module from all of the layers."""
+        """
+        Apply weight normalization module to all convolutional layers.
+
+        This method applies weight normalization to all `Conv1d` and `Conv2d`
+        layers in the WaveNet model. Weight normalization helps in stabilizing
+        the training process and can lead to faster convergence.
+
+        It uses the `torch.nn.utils.weight_norm` function to apply the weight
+        normalization. The application is logged for debugging purposes.
+
+        Note:
+            This method should be called after the model's layers have been
+            initialized.
+
+        Examples:
+            >>> model = WaveNet(use_weight_norm=True)
+            >>> model.apply_weight_norm()  # This will apply weight normalization
+        """
 
         def _apply_weight_norm(m: torch.nn.Module):
             if isinstance(m, torch.nn.Conv1d) or isinstance(m, torch.nn.Conv2d):

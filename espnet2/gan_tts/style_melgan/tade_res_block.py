@@ -13,7 +13,32 @@ import torch
 
 
 class TADELayer(torch.nn.Module):
-    """TADE Layer module."""
+    """
+        StyleMelGAN's TADEResBlock Modules.
+
+    This code is modified from https://github.com/kan-bayashi/ParallelWaveGAN.
+
+    Attributes:
+        in_channels (int): Number of input channels.
+        aux_channels (int): Number of auxiliary channels.
+        kernel_size (int): Kernel size for convolution layers.
+        bias (bool): Whether to use bias in convolution layers.
+        upsample_factor (int): Factor by which to upsample the input.
+        upsample_mode (str): Mode of upsampling (e.g., 'nearest').
+
+    Examples:
+        # Create an instance of TADELayer
+        tade_layer = TADELayer(in_channels=64, aux_channels=80)
+
+        # Forward pass through TADELayer
+        output, aux = tade_layer(torch.randn(1, 64, 100), torch.randn(1, 80, 50))
+
+        # Create an instance of TADEResBlock
+        tade_res_block = TADEResBlock(in_channels=64, aux_channels=80)
+
+        # Forward pass through TADEResBlock
+        output, aux = tade_res_block(torch.randn(1, 64, 100), torch.randn(1, 80, 50))
+    """
 
     def __init__(
         self,
@@ -87,7 +112,43 @@ class TADELayer(torch.nn.Module):
 
 
 class TADEResBlock(torch.nn.Module):
-    """TADEResBlock module."""
+    """
+        TADEResBlock module for the StyleMelGAN architecture.
+
+    This module implements a residual block that incorporates two TADE layers for
+    style-based mel-spectrogram generation. It processes input and auxiliary
+    tensors to produce an output tensor while applying gated convolutions and
+    upsampling. This design is adapted from the original ParallelWaveGAN code.
+
+    Attributes:
+        tade1 (TADELayer): The first TADE layer in the residual block.
+        gated_conv1 (Conv1d): The first gated convolution layer.
+        tade2 (TADELayer): The second TADE layer in the residual block.
+        gated_conv2 (Conv1d): The second gated convolution layer.
+        upsample (Upsample): Upsampling layer for the output tensor.
+        gated_function (Callable): The gating function applied in the block.
+
+    Args:
+        in_channels (int): Number of input channels. Default is 64.
+        aux_channels (int): Number of auxiliary channels. Default is 80.
+        kernel_size (int): Size of the convolutional kernel. Default is 9.
+        dilation (int): Dilation rate for the second gated convolution. Default is 2.
+        bias (bool): Whether to use a bias parameter in convolutions. Default is True.
+        upsample_factor (int): Factor by which to upsample the output. Default is 2.
+        upsample_mode (str): Mode of upsampling (e.g., 'nearest'). Default is 'nearest'.
+        gated_function (str): Type of gated function ('softmax' or 'sigmoid').
+            Default is 'softmax'.
+
+    Raises:
+        ValueError: If an unsupported gated_function type is provided.
+
+    Examples:
+        >>> res_block = TADEResBlock(in_channels=64, aux_channels=80)
+        >>> x = torch.randn(1, 64, 100)  # Input tensor
+        >>> c = torch.randn(1, 80, 50)    # Auxiliary tensor
+        >>> output, aux = res_block(x, c)
+        >>> print(output.shape)  # Output shape will be (1, 64, 200)
+    """
 
     def __init__(
         self,

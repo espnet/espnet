@@ -17,6 +17,48 @@ from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 
 
 class VarianceLoss(torch.nn.Module):
+    """
+        VarianceLoss is a PyTorch module that computes the variance loss for JETS,
+    which includes duration, pitch, and energy predictions. It allows for masking
+    of padded sequences and supports weighted masking to adjust the loss based on
+    the importance of different input elements.
+
+    Attributes:
+        use_masking (bool): Flag indicating whether to apply masking to the loss
+            calculation.
+        use_weighted_masking (bool): Flag indicating whether to use weighted
+            masking in the loss calculation.
+        mse_criterion (torch.nn.MSELoss): Mean Squared Error loss function.
+        duration_criterion (DurationPredictorLoss): Duration prediction loss
+            function.
+
+    Args:
+        use_masking (bool): Whether to apply masking for padded part in loss
+            calculation. Defaults to True.
+        use_weighted_masking (bool): Whether to apply weighted masking in loss
+            calculation. Defaults to False.
+
+    Returns:
+        Tuple[torch.Tensor, torch.Tensor, torch.Tensor]: The calculated loss values
+            for duration, pitch, and energy predictions.
+
+    Examples:
+        >>> variance_loss = VarianceLoss(use_masking=True, use_weighted_masking=False)
+        >>> d_outs = torch.randn(2, 5)  # Example duration outputs
+        >>> ds = torch.randint(1, 6, (2, 5))  # Example durations
+        >>> p_outs = torch.randn(2, 5, 1)  # Example pitch outputs
+        >>> ps = torch.randn(2, 5, 1)  # Example target pitch
+        >>> e_outs = torch.randn(2, 5, 1)  # Example energy outputs
+        >>> es = torch.randn(2, 5, 1)  # Example target energy
+        >>> ilens = torch.tensor([5, 5])  # Example input lengths
+        >>> duration_loss, pitch_loss, energy_loss = variance_loss(d_outs, ds, p_outs, ps, e_outs, es, ilens)
+
+    Note:
+        The variance loss is specifically designed for the JETS framework in
+        ESPnet2 and should be used in conjunction with other components of the
+        JETS model.
+    """
+
     @typechecked
     def __init__(self, use_masking: bool = True, use_weighted_masking: bool = False):
         """Initialize JETS variance loss module.
@@ -49,10 +91,17 @@ class VarianceLoss(torch.nn.Module):
         es: torch.Tensor,
         ilens: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-        """Calculate forward propagation.
+        """
+        Calculate forward propagation.
+
+        This method computes the variance loss for the duration, pitch, and
+        energy predictors based on the provided outputs and targets. It applies
+        masking to ignore padded parts of the input during loss calculation if
+        specified.
 
         Args:
-            d_outs (LongTensor): Batch of outputs of duration predictor (B, T_text).
+            d_outs (LongTensor): Batch of outputs of duration predictor
+                (B, T_text).
             ds (LongTensor): Batch of durations (B, T_text).
             p_outs (Tensor): Batch of outputs of pitch predictor (B, T_text, 1).
             ps (Tensor): Batch of target token-averaged pitch (B, T_text, 1).
@@ -61,10 +110,21 @@ class VarianceLoss(torch.nn.Module):
             ilens (LongTensor): Batch of the lengths of each input (B,).
 
         Returns:
-            Tensor: Duration predictor loss value.
-            Tensor: Pitch predictor loss value.
-            Tensor: Energy predictor loss value.
+            Tuple[Tensor, Tensor, Tensor, Tensor]: A tuple containing the
+            duration predictor loss value, pitch predictor loss value, and
+            energy predictor loss value.
 
+        Examples:
+            >>> variance_loss = VarianceLoss(use_masking=True)
+            >>> d_outs = torch.randn(2, 5)
+            >>> ds = torch.randint(1, 10, (2, 5))
+            >>> p_outs = torch.randn(2, 5, 1)
+            >>> ps = torch.randn(2, 5, 1)
+            >>> e_outs = torch.randn(2, 5, 1)
+            >>> es = torch.randn(2, 5, 1)
+            >>> ilens = torch.tensor([5, 5])
+            >>> losses = variance_loss(d_outs, ds, p_outs, ps, e_outs, es, ilens)
+            >>> print(losses)
         """
         # apply mask to remove padded part
         if self.use_masking:
@@ -105,7 +165,35 @@ class VarianceLoss(torch.nn.Module):
 
 
 class ForwardSumLoss(torch.nn.Module):
-    """Forwardsum loss described at https://openreview.net/forum?id=0NQwnnwAORi"""
+    """
+        Forwardsum loss described at https://openreview.net/forum?id=0NQwnnwAORi
+
+    This module computes the forwardsum loss for a batch of input sequences.
+    The forwardsum loss is particularly useful in tasks where the alignment
+    between input and target sequences is crucial, such as in speech
+    recognition or text-to-speech systems.
+
+    Attributes:
+        None
+
+    Args:
+        log_p_attn (Tensor): Batch of log probability of attention matrix
+            (B, T_feats, T_text).
+        ilens (Tensor): Batch of the lengths of each input (B,).
+        olens (Tensor): Batch of the lengths of each target (B,).
+        blank_prob (float): Blank symbol probability. Default is e^-1.
+
+    Returns:
+        Tensor: forwardsum loss value.
+
+    Examples:
+        >>> model = ForwardSumLoss()
+        >>> log_p_attn = torch.randn(4, 10, 20)  # Example log probabilities
+        >>> ilens = torch.tensor([10, 9, 8, 7])   # Input lengths
+        >>> olens = torch.tensor([5, 4, 3, 2])    # Output lengths
+        >>> loss = model(log_p_attn, ilens, olens)
+        >>> print(loss)
+    """
 
     def __init__(self):
         """Initialize forwardsum loss module."""
@@ -118,18 +206,29 @@ class ForwardSumLoss(torch.nn.Module):
         olens: torch.Tensor,
         blank_prob: float = np.e**-1,
     ) -> torch.Tensor:
-        """Calculate forward propagation.
+        """
+                Forwardsum loss described at https://openreview.net/forum?id=0NQwnnwAORi
+
+        Attributes:
+            None
 
         Args:
             log_p_attn (Tensor): Batch of log probability of attention matrix
                 (B, T_feats, T_text).
             ilens (Tensor): Batch of the lengths of each input (B,).
             olens (Tensor): Batch of the lengths of each target (B,).
-            blank_prob (float): Blank symbol probability.
+            blank_prob (float): Blank symbol probability. Default is e^-1.
 
         Returns:
             Tensor: forwardsum loss value.
 
+        Examples:
+            >>> model = ForwardSumLoss()
+            >>> log_p_attn = torch.randn(2, 5, 4)  # Example log probabilities
+            >>> ilens = torch.tensor([4, 3])
+            >>> olens = torch.tensor([3, 2])
+            >>> loss = model(log_p_attn, ilens, olens)
+            >>> print(loss)
         """
         B = log_p_attn.size(0)
 

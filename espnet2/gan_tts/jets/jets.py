@@ -40,14 +40,70 @@ AVAILABLE_DISCRIMINATORS = {
 
 
 class JETS(AbsGANTTS):
-    """JETS module (generator + discriminator).
+    """
+        JETS module (generator + discriminator).
 
     This is a module of JETS described in `JETS: Jointly Training FastSpeech2
-    and HiFi-GAN for End to End Text to Speech'_.
+    and HiFi-GAN for End to End Text to Speech`_.
 
     .. _`JETS: Jointly Training FastSpeech2 and HiFi-GAN for End to End Text to Speech`
-        : https://arxiv.org/abs/2203.16852
+       : https://arxiv.org/abs/2203.16852
 
+    Attributes:
+        generator (JETSGenerator): Instance of the generator class.
+        discriminator: Instance of the discriminator class.
+        generator_adv_loss: Generator adversarial loss instance.
+        discriminator_adv_loss: Discriminator adversarial loss instance.
+        feat_match_loss: Feature match loss instance.
+        mel_loss: Mel spectrogram loss instance.
+        var_loss: Variance loss instance.
+        forwardsum_loss: Forward sum loss instance.
+        lambda_adv (float): Loss scaling coefficient for adversarial loss.
+        lambda_mel (float): Loss scaling coefficient for mel spectrogram loss.
+        lambda_feat_match (float): Loss scaling coefficient for feat match loss.
+        lambda_var (float): Loss scaling coefficient for variance loss.
+        lambda_align (float): Loss scaling coefficient for alignment loss.
+        cache_generator_outputs (bool): Whether to cache generator outputs.
+        plot_pred_mos (bool): Whether to plot predicted MOS during training.
+        fs (int): Sampling rate for saving waveform during inference.
+
+    Args:
+        idim (int): Input vocabulary size.
+        odim (int): Acoustic feature dimension. The actual output channels will
+            be 1 since JETS is the end-to-end text-to-wave model but for the
+            compatibility odim is used to indicate the acoustic feature dimension.
+        sampling_rate (int): Sampling rate, not used for training but will
+            be referred to when saving waveform during inference.
+        generator_type (str): Type of the generator.
+        generator_params (Dict[str, Any]): Parameter dictionary for generator.
+        discriminator_type (str): Type of the discriminator.
+        discriminator_params (Dict[str, Any]): Parameter dictionary for discriminator.
+        generator_adv_loss_params (Dict[str, Any]): Parameter dictionary for
+            generator adversarial loss.
+        discriminator_adv_loss_params (Dict[str, Any]): Parameter dictionary for
+            discriminator adversarial loss.
+        feat_match_loss_params (Dict[str, Any]): Parameter dictionary for feature
+            match loss.
+        mel_loss_params (Dict[str, Any]): Parameter dictionary for mel loss.
+        lambda_adv (float): Loss scaling coefficient for adversarial loss.
+        lambda_mel (float): Loss scaling coefficient for mel spectrogram loss.
+        lambda_feat_match (float): Loss scaling coefficient for feature match loss.
+        lambda_var (float): Loss scaling coefficient for variance loss.
+        lambda_align (float): Loss scaling coefficient for alignment loss.
+        cache_generator_outputs (bool): Whether to cache generator outputs.
+        plot_pred_mos (bool): Whether to plot predicted MOS during training.
+        mos_pred_tool (str): MOS prediction tool name.
+
+    Examples:
+        # Example of initializing the JETS module
+        jets = JETS(idim=100, odim=80)
+
+        # Example of performing a forward pass
+        output = jets.forward(text, text_lengths, feats, feats_lengths, speech,
+                              speech_lengths)
+
+    Raises:
+        NotImplementedError: If the specified MOS prediction tool is not supported.
     """
 
     @typechecked
@@ -329,19 +385,25 @@ class JETS(AbsGANTTS):
         forward_generator: bool = True,
         **kwargs,
     ) -> Dict[str, Any]:
-        """Perform generator forward.
+        """
+        Perform generator forward.
+
+        This method handles the forward pass of the JETS model, performing
+        either generator or discriminator operations based on the provided
+        parameters.
 
         Args:
-            text (Tensor): Text index tensor (B, T_text).
-            text_lengths (Tensor): Text length tensor (B,).
-            feats (Tensor): Feature tensor (B, T_feats, aux_channels).
-            feats_lengths (Tensor): Feature length tensor (B,).
-            speech (Tensor): Speech waveform tensor (B, T_wav).
-            speech_lengths (Tensor): Speech length tensor (B,).
-            sids (Optional[Tensor]): Speaker index tensor (B,) or (B, 1).
-            spembs (Optional[Tensor]): Speaker embedding tensor (B, spk_embed_dim).
-            lids (Optional[Tensor]): Language index tensor (B,) or (B, 1).
-            forward_generator (bool): Whether to forward generator.
+            text (Tensor): Text index tensor of shape (B, T_text).
+            text_lengths (Tensor): Text length tensor of shape (B,).
+            feats (Tensor): Feature tensor of shape (B, T_feats, aux_channels).
+            feats_lengths (Tensor): Feature length tensor of shape (B,).
+            speech (Tensor): Speech waveform tensor of shape (B, T_wav).
+            speech_lengths (Tensor): Speech length tensor of shape (B,).
+            sids (Optional[Tensor]): Speaker index tensor of shape (B,) or (B, 1).
+            spembs (Optional[Tensor]): Speaker embedding tensor of shape
+                (B, spk_embed_dim).
+            lids (Optional[Tensor]): Language index tensor of shape (B,) or (B, 1).
+            forward_generator (bool): Whether to forward through the generator.
 
         Returns:
             Dict[str, Any]:
@@ -350,6 +412,17 @@ class JETS(AbsGANTTS):
                 - weight (Tensor): Weight tensor to summarize losses.
                 - optim_idx (int): Optimizer index (0 for G and 1 for D).
 
+        Examples:
+            >>> text = torch.tensor([[1, 2, 3]])
+            >>> text_lengths = torch.tensor([3])
+            >>> feats = torch.randn(1, 10, 80)
+            >>> feats_lengths = torch.tensor([10])
+            >>> speech = torch.randn(1, 16000)
+            >>> speech_lengths = torch.tensor([16000])
+            >>> output = model.forward(text, text_lengths, feats, feats_lengths,
+            ...                         speech, speech_lengths)
+            >>> print(output['loss'].shape)
+            torch.Size([])
         """
         if forward_generator:
             return self._forward_generator(

@@ -50,7 +50,8 @@ else:
 
 
 class VITS(AbsGANTTS):
-    """VITS module (generator + discriminator).
+    """
+        VITS module for GAN-TTS task.
 
     This is a module of VITS described in `Conditional Variational Autoencoder
     with Adversarial Learning for End-to-End Text-to-Speech`_.
@@ -58,6 +59,67 @@ class VITS(AbsGANTTS):
     .. _`Conditional Variational Autoencoder with Adversarial Learning for End-to-End
         Text-to-Speech`: https://arxiv.org/abs/2006.04558
 
+    Attributes:
+        generator (VITSGenerator): The generator module for the VITS model.
+        discriminator (HiFiGANMultiScaleMultiPeriodDiscriminator): The discriminator
+            module for the VITS model.
+        generator_adv_loss (GeneratorAdversarialLoss): Loss function for generator
+            adversarial loss.
+        discriminator_adv_loss (DiscriminatorAdversarialLoss): Loss function for
+            discriminator adversarial loss.
+        feat_match_loss (FeatureMatchLoss): Loss function for feature matching.
+        mel_loss (MelSpectrogramLoss): Loss function for mel spectrogram.
+        kl_loss (KLDivergenceLoss): Loss function for KL divergence.
+        lambda_adv (float): Coefficient for adversarial loss scaling.
+        lambda_mel (float): Coefficient for mel loss scaling.
+        lambda_feat_match (float): Coefficient for feature match loss scaling.
+        lambda_dur (float): Coefficient for duration loss scaling.
+        lambda_kl (float): Coefficient for KL divergence loss scaling.
+        cache_generator_outputs (bool): Flag to indicate whether to cache generator
+            outputs.
+        fs (int): Sampling rate for saving waveform during inference.
+        plot_pred_mos (bool): Flag to indicate whether to plot predicted MOS during
+            training.
+        predictor (Optional[torch.nn.Module]): MOS predictor module, if plotting is
+            enabled.
+
+    Args:
+        idim (int): Input vocabulary size.
+        odim (int): Acoustic feature dimension. The actual output channels will be 1
+            since VITS is the end-to-end text-to-wave model but for compatibility
+            odim is used to indicate the acoustic feature dimension.
+        sampling_rate (int): Sampling rate, not used for training but will be
+            referred to in saving waveform during inference.
+        generator_type (str): Type of generator to use.
+        generator_params (Dict[str, Any]): Parameter dictionary for the generator.
+        discriminator_type (str): Type of discriminator to use.
+        discriminator_params (Dict[str, Any]): Parameter dictionary for the discriminator.
+        generator_adv_loss_params (Dict[str, Any]): Parameter dictionary for generator
+            adversarial loss.
+        discriminator_adv_loss_params (Dict[str, Any]): Parameter dictionary for
+            discriminator adversarial loss.
+        feat_match_loss_params (Dict[str, Any]): Parameter dictionary for feature match
+            loss.
+        mel_loss_params (Dict[str, Any]): Parameter dictionary for mel loss.
+        lambda_adv (float): Loss scaling coefficient for adversarial loss.
+        lambda_mel (float): Loss scaling coefficient for mel spectrogram loss.
+        lambda_feat_match (float): Loss scaling coefficient for feature match loss.
+        lambda_dur (float): Loss scaling coefficient for duration loss.
+        lambda_kl (float): Loss scaling coefficient for KL divergence loss.
+        cache_generator_outputs (bool): Whether to cache generator outputs.
+        plot_pred_mos (bool): Whether to plot predicted MOS during training.
+        mos_pred_tool (str): MOS prediction tool name.
+
+    Examples:
+        # Initialize the VITS model
+        model = VITS(idim=256, odim=80)
+
+        # Forward pass through the model
+        outputs = model.forward(text_tensor, text_lengths, feats_tensor,
+                                feats_lengths, speech_tensor, speech_lengths)
+
+        # Inference
+        wav, att_w, duration = model.inference(text_tensor)
     """
 
     @typechecked

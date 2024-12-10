@@ -16,15 +16,41 @@ from espnet2.gan_tts.wavenet import WaveNet
 
 
 class ResidualAffineCouplingBlock(torch.nn.Module):
-    """Residual affine coupling block module.
+    """
+        Residual affine coupling block module.
 
-    This is a module of residual affine coupling block, which used as "Flow" in
-    `Conditional Variational Autoencoder with Adversarial Learning for End-to-End
-    Text-to-Speech`_.
+    This module implements a residual affine coupling block, which is used as
+    "Flow" in `Conditional Variational Autoencoder with Adversarial Learning
+    for End-to-End Text-to-Speech`_.
 
     .. _`Conditional Variational Autoencoder with Adversarial Learning for End-to-End
-        Text-to-Speech`: https://arxiv.org/abs/2006.04558
+       Text-to-Speech`: https://arxiv.org/abs/2006.04558
 
+    Attributes:
+        flows (ModuleList): A list of residual affine coupling layers and flip flows.
+
+    Args:
+        in_channels (int): Number of input channels. Defaults to 192.
+        hidden_channels (int): Number of hidden channels. Defaults to 192.
+        flows (int): Number of flows. Defaults to 4.
+        kernel_size (int): Kernel size for WaveNet. Defaults to 5.
+        base_dilation (int): Base dilation factor for WaveNet. Defaults to 1.
+        layers (int): Number of layers of WaveNet. Defaults to 4.
+        global_channels (int): Number of global channels. Defaults to -1.
+        dropout_rate (float): Dropout rate. Defaults to 0.0.
+        use_weight_norm (bool): Whether to use weight normalization in WaveNet.
+            Defaults to True.
+        bias (bool): Whether to use bias parameters in WaveNet. Defaults to True.
+        use_only_mean (bool): Whether to estimate only mean. Defaults to True.
+
+    Examples:
+        >>> block = ResidualAffineCouplingBlock()
+        >>> x = torch.randn(1, 192, 100)  # (B, in_channels, T)
+        >>> x_mask = torch.ones(1, 192, 100)  # (B, in_channels, T)
+        >>> output = block(x, x_mask)
+
+    Raises:
+        ValueError: If the input tensor does not match the expected dimensions.
     """
 
     def __init__(
@@ -86,17 +112,37 @@ class ResidualAffineCouplingBlock(torch.nn.Module):
         g: Optional[torch.Tensor] = None,
         inverse: bool = False,
     ) -> torch.Tensor:
-        """Calculate forward propagation.
+        """
+        Calculate forward propagation.
+
+        This method computes the forward pass through the residual affine coupling
+        block. It can operate in both normal and inverse modes, depending on the
+        `inverse` flag. When `inverse` is set to `True`, it performs the inverse
+        operation of the flow.
 
         Args:
-            x (Tensor): Input tensor (B, in_channels, T).
-            x_lengths (Tensor): Length tensor (B,).
-            g (Optional[Tensor]): Global conditioning tensor (B, global_channels, 1).
-            inverse (bool): Whether to inverse the flow.
+            x (Tensor): Input tensor of shape (B, in_channels, T), where B is the
+                batch size, in_channels is the number of input channels, and T is
+                the sequence length.
+            x_mask (Tensor): A mask tensor of shape (B, in_channels, T) that
+                indicates valid input values (1 for valid, 0 for masked).
+            g (Optional[Tensor]): Global conditioning tensor of shape
+                (B, global_channels, 1). This is used for conditioning the flow.
+            inverse (bool): A flag indicating whether to perform the inverse flow
+                operation. Defaults to False.
 
         Returns:
-            Tensor: Output tensor (B, in_channels, T).
+            Tensor: Output tensor of shape (B, in_channels, T) after applying the
+                coupling block. If `inverse` is False, the output is the transformed
+                tensor; otherwise, it is the original tensor reconstructed from the
+                inverse flow.
 
+        Examples:
+            >>> block = ResidualAffineCouplingBlock()
+            >>> x = torch.randn(8, 192, 100)  # Example input
+            >>> x_mask = torch.ones(8, 192, 100)  # Example mask
+            >>> output = block.forward(x, x_mask)
+            >>> output_inverse = block.forward(output, x_mask, inverse=True)
         """
         if not inverse:
             for flow in self.flows:
@@ -108,7 +154,49 @@ class ResidualAffineCouplingBlock(torch.nn.Module):
 
 
 class ResidualAffineCouplingLayer(torch.nn.Module):
-    """Residual affine coupling layer."""
+    """
+        Residual affine coupling layer for use in Conditional Variational Autoencoder
+    with Adversarial Learning for End-to-End Text-to-Speech.
+
+    This layer is a component of the VITS model and implements the residual affine
+    coupling mechanism. It processes input tensors to learn a mapping from input
+    to output while maintaining the ability to invert the transformation.
+
+    Attributes:
+        half_channels (int): Half of the input channels.
+        use_only_mean (bool): Flag to determine if only the mean is estimated.
+
+    Args:
+        in_channels (int): Number of input channels (must be divisible by 2).
+        hidden_channels (int): Number of hidden channels for the WaveNet.
+        kernel_size (int): Kernel size for the WaveNet convolution.
+        base_dilation (int): Base dilation factor for the WaveNet.
+        layers (int): Number of layers in the WaveNet.
+        stacks (int): Number of stacks in the WaveNet.
+        global_channels (int): Number of global conditioning channels.
+        dropout_rate (float): Dropout rate applied to the WaveNet.
+        use_weight_norm (bool): Flag to use weight normalization in the WaveNet.
+        bias (bool): Flag to include bias parameters in the WaveNet.
+        use_only_mean (bool): Flag to determine if only the mean is estimated.
+
+    Returns:
+        Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]: If `inverse` is
+        False, returns the output tensor and the log-determinant tensor for
+        negative log-likelihood (NLL). If `inverse` is True, returns the
+        output tensor only.
+
+    Examples:
+        >>> layer = ResidualAffineCouplingLayer(in_channels=192)
+        >>> x = torch.randn(1, 192, 10)  # Batch size 1, 192 channels, length 10
+        >>> x_mask = torch.ones(1, 1, 10)  # No masking
+        >>> output, logdet = layer(x, x_mask)  # Forward pass
+        >>> inverse_output = layer(output, x_mask, inverse=True)  # Inverse pass
+
+    Note:
+        This implementation is based on the VITS model and follows the
+        architecture outlined in the paper:
+        https://arxiv.org/abs/2006.04558.
+    """
 
     def __init__(
         self,
@@ -193,18 +281,33 @@ class ResidualAffineCouplingLayer(torch.nn.Module):
         g: Optional[torch.Tensor] = None,
         inverse: bool = False,
     ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
-        """Calculate forward propagation.
+        """
+        Calculate forward propagation.
+
+        This method performs the forward pass of the residual affine coupling
+        layer. Depending on the `inverse` flag, it can either apply the flow
+        or its inverse.
 
         Args:
-            x (Tensor): Input tensor (B, in_channels, T).
-            x_lengths (Tensor): Length tensor (B,).
-            g (Optional[Tensor]): Global conditioning tensor (B, global_channels, 1).
-            inverse (bool): Whether to inverse the flow.
+            x (Tensor): Input tensor of shape (B, in_channels, T).
+            x_mask (Tensor): Length tensor of shape (B,).
+            g (Optional[Tensor]): Global conditioning tensor of shape
+                (B, global_channels, 1). Default is None.
+            inverse (bool): If True, apply the inverse flow. Default is False.
 
         Returns:
-            Tensor: Output tensor (B, in_channels, T).
-            Tensor: Log-determinant tensor for NLL (B,) if not inverse.
+            Union[Tensor, Tuple[Tensor, Tensor]]:
+                - If `inverse` is False: Output tensor of shape (B, in_channels, T).
+                  Additionally, returns a tensor of log-determinants for NLL
+                  of shape (B,).
+                - If `inverse` is True: Output tensor of shape (B, in_channels, T).
 
+        Examples:
+            >>> layer = ResidualAffineCouplingLayer()
+            >>> x = torch.randn(8, 192, 100)  # Example input
+            >>> x_mask = torch.ones(8, 1, 100)  # Example mask
+            >>> output = layer.forward(x, x_mask)
+            >>> inverse_output = layer.forward(x, x_mask, inverse=True)
         """
         xa, xb = x.split(x.size(1) // 2, dim=1)
         h = self.input_conv(xa) * x_mask
