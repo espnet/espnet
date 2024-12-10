@@ -51,7 +51,7 @@ encoder_conf:
     # (iter3) and update the path below
     beats_ckpt_path: /compute/babel-13-33/sbharad2/models/BEATs/BEATs_iter3.pt
     # values from Appendix A.1 of the BEATs paper
-    fbank_mean: 11.72215 
+    fbank_mean: 11.72215
     fbank_std: 10.60431
     beats_config:
         layer_wise_gradient_decay_ratio: 0.2
