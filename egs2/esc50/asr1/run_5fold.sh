@@ -11,7 +11,7 @@ asr_speech_fold_length=1000 # 6.25 sec, because audio is 5 sec each.
 # inference_model=valid.acc.ave_5best.pth
 inference_model=latest.pth
 
-n_folds=5
+n_folds=5 # This runs all 5 folds in parallel, take care.
 
 # NOTE(shikhar): Abusing variable lang to store fold number.
 for fold in $(seq 1 $n_folds); do
