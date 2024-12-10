@@ -24,28 +24,75 @@ from espnet.nets.pytorch_backend.transformer.repeat import repeat
 
 
 class TransformerPostEncoder(AbsPostEncoder):
-    """Transformer encoder module.
+    """
+    Transformer encoder module for sequence-to-sequence tasks.
+
+    This module implements a transformer encoder as part of the post-encoder 
+    architecture for various sequence-to-sequence tasks. It consists of a 
+    stack of encoder layers, each employing multi-head attention and 
+    position-wise feed-forward networks.
+
+    Attributes:
+        output_size (int): The dimension of the output features.
+        embed (torch.nn.Sequential): The embedding layer that includes 
+            linear transformation, normalization, dropout, and positional 
+            encoding.
+        encoders (torch.nn.ModuleList): A list of encoder layers that 
+            process the input embeddings.
+        after_norm (LayerNorm, optional): Layer normalization applied after 
+            the encoder layers if `normalize_before` is True.
 
     Args:
-        input_size: input dim
-        output_size: dimension of attention
-        attention_heads: the number of heads of multi head attention
-        linear_units: the number of units of position-wise feed forward
-        num_blocks: the number of decoder blocks
-        dropout_rate: dropout rate
-        attention_dropout_rate: dropout rate in attention
-        positional_dropout_rate: dropout rate after adding positional encoding
-        input_layer: input layer type
-        pos_enc_class: PositionalEncoding or ScaledPositionalEncoding
-        normalize_before: whether to use layer_norm before the first block
-        concat_after: whether to concat attention layer's input and output
-            if True, additional linear will be applied.
-            i.e. x -> x + linear(concat(x, att(x)))
-            if False, no additional linear will be applied.
-            i.e. x -> x + att(x)
-        positionwise_layer_type: linear of conv1d
-        positionwise_conv_kernel_size: kernel size of positionwise conv1d layer
-        padding_idx: padding_idx for input_layer=embed
+        input_size (int): The dimensionality of the input features.
+        output_size (int): The dimensionality of the output features 
+            (default: 256).
+        attention_heads (int): The number of heads in the multi-head 
+            attention (default: 4).
+        linear_units (int): The number of units in the position-wise feed 
+            forward layer (default: 2048).
+        num_blocks (int): The number of encoder blocks (default: 6).
+        dropout_rate (float): Dropout rate applied to layers (default: 0.1).
+        positional_dropout_rate (float): Dropout rate after adding 
+            positional encoding (default: 0.1).
+        attention_dropout_rate (float): Dropout rate applied within the 
+            attention layers (default: 0.0).
+        input_layer (Optional[str]): Type of input layer; either "linear" 
+            or "None" (default: "linear").
+        pos_enc_class: Class for positional encoding; typically 
+            PositionalEncoding or ScaledPositionalEncoding.
+        normalize_before (bool): Whether to apply layer normalization before 
+            the first encoder block (default: True).
+        concat_after (bool): If True, concatenates input and output of the 
+            attention layer, followed by a linear transformation (default: False).
+        positionwise_layer_type (str): Type of position-wise layer; 
+            "linear", "conv1d", or "conv1d-linear" (default: "linear").
+        positionwise_conv_kernel_size (int): Kernel size for position-wise 
+            convolutional layer (default: 1).
+        padding_idx (int): Padding index for the input layer when 
+            `input_layer` is "embed" (default: -1).
+
+    Examples:
+        >>> encoder = TransformerPostEncoder(
+        ...     input_size=128,
+        ...     output_size=256,
+        ...     attention_heads=4,
+        ...     linear_units=2048,
+        ...     num_blocks=6
+        ... )
+        >>> xs_pad = torch.rand(10, 20, 128)  # (B, L, D)
+        >>> ilens = torch.tensor([20] * 10)    # (B)
+        >>> output, olens = encoder(xs_pad, ilens)
+        >>> print(output.shape)  # (B, L, output_size)
+        >>> print(olens.shape)   # (B,)
+
+    Note:
+        The input tensor `xs_pad` should be padded appropriately, and the 
+        lengths of the sequences should be provided in `ilens`.
+
+    Raises:
+        ValueError: If an unknown `input_layer` type is specified.
+        NotImplementedError: If an unsupported `positionwise_layer_type` 
+            is specified.
     """
 
     @typechecked
@@ -128,6 +175,23 @@ class TransformerPostEncoder(AbsPostEncoder):
             self.after_norm = LayerNorm(output_size)
 
     def output_size(self) -> int:
+        """
+        Return the output size of the TransformerPostEncoder.
+
+        This method provides the dimension of the output from the encoder 
+        layers. The output size is defined during the initialization of the 
+        TransformerPostEncoder class and remains constant throughout its 
+        lifetime.
+
+        Returns:
+            int: The output size, which corresponds to the dimension of the 
+            attention layer.
+
+        Examples:
+            >>> transformer = TransformerPostEncoder(input_size=128, output_size=256)
+            >>> transformer.output_size()
+            256
+        """
         return self._output_size
 
     def forward(
@@ -136,14 +200,45 @@ class TransformerPostEncoder(AbsPostEncoder):
         ilens: torch.Tensor,
         prev_states: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
-        """Embed positions in tensor.
+        """
+        Process the input tensor through the Transformer encoder.
+
+        This method applies position embedding, processes the input through
+        multiple encoder layers, and optionally normalizes the output.
 
         Args:
-            xs_pad: input tensor (B, L, D)
-            ilens: input length (B)
-            prev_states: Not to be used now.
+            xs_pad (torch.Tensor): Input tensor of shape (B, L, D), where B
+                is the batch size, L is the sequence length, and D is the
+                dimension of the input features.
+            ilens (torch.Tensor): Tensor containing the lengths of each input
+                sequence in the batch of shape (B).
+            prev_states (torch.Tensor, optional): Previous states (not used
+                currently). Default is None.
+
         Returns:
-            position embedded tensor and mask
+            Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
+                - Processed tensor of shape (B, L, D) after embedding and
+                  encoding.
+                - Tensor containing the output lengths of each sequence in the
+                  batch of shape (B).
+                - Optional tensor (not used currently) for any additional
+                  states.
+
+        Examples:
+            >>> model = TransformerPostEncoder(input_size=128)
+            >>> xs_pad = torch.randn(32, 50, 128)  # Batch of 32 sequences
+            >>> ilens = torch.tensor([50] * 32)  # All sequences of length 50
+            >>> output, olens = model.forward(xs_pad, ilens)
+            >>> print(output.shape)  # Output shape should be (32, 50, 256)
+            >>> print(olens.shape)  # Output lengths shape should be (32,)
+
+        Note:
+            This method expects the input tensor to be padded. Ensure that
+            the `ilens` tensor accurately reflects the lengths of the sequences
+            in `xs_pad`.
+
+        Raises:
+            ValueError: If `ilens` is not a tensor or has an unexpected shape.
         """
         masks = (~make_pad_mask(ilens)[:, None, :]).to(xs_pad.device)
 

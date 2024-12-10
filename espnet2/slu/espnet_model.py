@@ -33,7 +33,95 @@ else:
 
 
 class ESPnetSLUModel(ESPnetASRModel):
-    """CTC-attention hybrid Encoder-Decoder model"""
+    """
+    CTC-attention hybrid Encoder-Decoder model for spoken language understanding.
+
+    This model combines the CTC (Connectionist Temporal Classification) 
+    and attention mechanisms to process and understand spoken language 
+    inputs. It can handle both speech and text inputs and is suitable 
+    for tasks such as speech recognition and natural language understanding.
+
+    Attributes:
+        blank_id (int): ID for the blank token in CTC.
+        sos (int): Start of sequence token ID.
+        eos (int): End of sequence token ID.
+        vocab_size (int): Size of the vocabulary.
+        ignore_id (int): ID of the token to ignore in loss calculations.
+        ctc_weight (float): Weight for the CTC loss.
+        interctc_weight (float): Weight for the intermediate CTC loss.
+        token_list (List[str]): List of tokens.
+        transcript_token_list (Optional[List[str]]): List of transcript tokens.
+        two_pass (bool): Flag for using two-pass decoding.
+        pre_postencoder_norm (bool): Flag for normalization in pre/post-encoder.
+        frontend (Optional[AbsFrontend]): Frontend feature extractor.
+        specaug (Optional[AbsSpecAug]): SpecAugment module for data augmentation.
+        normalize (Optional[AbsNormalize]): Normalization module.
+        preencoder (Optional[AbsPreEncoder]): Pre-encoder module.
+        postencoder (Optional[AbsPostEncoder]): Post-encoder module.
+        postdecoder (Optional[AbsPostDecoder]): Post-decoder module.
+        encoder (AbsEncoder): Main encoder module.
+        decoder (Optional[AbsDecoder]): Decoder module.
+        ctc (CTC): CTC module.
+        joint_network (Optional[torch.nn.Module]): Joint network for transducer.
+        deliberationencoder (Optional[AbsPostEncoder]): Deliberation encoder.
+        error_calculator (Optional[ErrorCalculator]): Error calculator for metrics.
+
+    Args:
+        vocab_size (int): Size of the vocabulary.
+        token_list (Union[Tuple[str, ...], List[str]]): List of tokens.
+        frontend (Optional[AbsFrontend]): Frontend feature extractor.
+        specaug (Optional[AbsSpecAug]): SpecAugment module.
+        normalize (Optional[AbsNormalize]): Normalization module.
+        preencoder (Optional[AbsPreEncoder]): Pre-encoder module.
+        encoder (AbsEncoder): Encoder module.
+        postencoder (Optional[AbsPostEncoder]): Post-encoder module.
+        decoder (AbsDecoder): Decoder module.
+        ctc (CTC): CTC module.
+        joint_network (Optional[torch.nn.Module]): Joint network.
+        postdecoder (Optional[AbsPostDecoder]): Post-decoder module.
+        deliberationencoder (Optional[AbsPostEncoder]): Deliberation encoder.
+        transcript_token_list (Union[Tuple[str, ...], List[str], None], optional): 
+            List of transcript tokens.
+        ctc_weight (float, optional): Weight for CTC loss (default: 0.5).
+        interctc_weight (float, optional): Weight for intermediate CTC loss (default: 0.0).
+        ignore_id (int, optional): ID to ignore in loss calculations (default: -1).
+        lsm_weight (float, optional): Label smoothing weight (default: 0.0).
+        length_normalized_loss (bool, optional): Flag for length normalization (default: False).
+        report_cer (bool, optional): Flag to report CER (default: True).
+        report_wer (bool, optional): Flag to report WER (default: True).
+        sym_space (str, optional): Symbol for space (default: "<space>").
+        sym_blank (str, optional): Symbol for blank (default: "<blank>").
+        extract_feats_in_collect_stats (bool, optional): Flag to extract features 
+            in statistics collection (default: True).
+        two_pass (bool, optional): Flag for two-pass decoding (default: False).
+        pre_postencoder_norm (bool, optional): Flag for normalization (default: False).
+
+    Returns:
+        None: Initializes the model parameters.
+
+    Examples:
+        >>> model = ESPnetSLUModel(
+        ...     vocab_size=100,
+        ...     token_list=["<blank>", "<space>", "hello", "world"],
+        ...     frontend=None,
+        ...     specaug=None,
+        ...     normalize=None,
+        ...     preencoder=None,
+        ...     encoder=my_encoder,
+        ...     postencoder=None,
+        ...     decoder=my_decoder,
+        ...     ctc=my_ctc,
+        ...     joint_network=None
+        ... )
+        >>> output = model.forward(speech_tensor, speech_lengths, text_tensor, text_lengths)
+
+    Note:
+        The model can be used in both training and inference modes. Ensure to 
+        appropriately set the training flags when using the model.
+
+    Raises:
+        AssertionError: If `ctc_weight` or `interctc_weight` is out of range.
+    """
 
     @typechecked
     def __init__(
@@ -177,14 +265,52 @@ class ESPnetSLUModel(ESPnetASRModel):
         transcript_lengths: torch.Tensor = None,
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
-        """Frontend + Encoder + Decoder + Calc loss
+        """
+        Perform a forward pass through the model, including the encoder, 
+        decoder, and loss calculation.
+
+        This method processes the input speech and text data, passing them 
+        through the model's encoder and decoder components, and calculates 
+        the corresponding loss values based on the specified weights for 
+        CTC and attention losses.
 
         Args:
-            speech: (Batch, Length, ...)
-            speech_lengths: (Batch, )
-            text: (Batch, Length)
-            text_lengths: (Batch,)
-            kwargs: "utt_id" is among the input.
+            speech: A tensor of shape (Batch, Length, ...) representing the 
+                input speech data.
+            speech_lengths: A tensor of shape (Batch,) containing the lengths 
+                of each speech input.
+            text: A tensor of shape (Batch, Length) representing the target 
+                text sequences.
+            text_lengths: A tensor of shape (Batch,) containing the lengths 
+                of each text input.
+            transcript: (Optional) A tensor representing additional transcript 
+                information. Defaults to None.
+            transcript_lengths: (Optional) A tensor of lengths for the 
+                transcripts. Defaults to None.
+            kwargs: Additional keyword arguments, where "utt_id" is among the 
+                inputs.
+
+        Returns:
+            A tuple containing:
+                - loss: A tensor representing the total loss computed.
+                - stats: A dictionary containing various statistics such as 
+                    loss values and error rates.
+                - weight: A tensor representing the batch size or weight for 
+                    loss computation.
+
+        Raises:
+            AssertionError: If the input dimensions do not match or if any 
+                of the assertions regarding tensor shapes fail.
+
+        Examples:
+            >>> model = ESPnetSLUModel(...)
+            >>> speech_data = torch.randn(32, 16000)  # Batch of 32 samples
+            >>> speech_lengths = torch.tensor([16000] * 32)  # All lengths 16000
+            >>> text_data = torch.randint(0, 100, (32, 20))  # Batch of texts
+            >>> text_lengths = torch.tensor([20] * 32)  # All lengths 20
+            >>> loss, stats, weight = model.forward(
+            ...     speech_data, speech_lengths, text_data, text_lengths
+            ... )
         """
         assert text_lengths.dim() == 1, text_lengths.shape
         # Check that batch_size is unified
@@ -308,6 +434,52 @@ class ESPnetSLUModel(ESPnetASRModel):
         transcript_lengths: torch.Tensor = None,
         **kwargs,
     ) -> Dict[str, torch.Tensor]:
+        """
+        Extract features from the input speech tensor.
+
+        This method processes the input speech tensor to extract relevant
+        features and their corresponding lengths, returning them in a
+        dictionary format. It is typically used in the context of speech
+        recognition tasks to prepare input data for the model.
+
+        Args:
+            speech: A tensor of shape (Batch, Length, ...) representing
+                the speech data.
+            speech_lengths: A tensor of shape (Batch,) containing the
+                lengths of the speech sequences.
+            text: A tensor of shape (Batch, Length) representing the
+                corresponding text data (not used in feature extraction).
+            text_lengths: A tensor of shape (Batch,) containing the
+                lengths of the text sequences (not used in feature
+                extraction).
+            transcript: An optional tensor representing the transcript
+                (default: None).
+            transcript_lengths: An optional tensor representing the lengths
+                of the transcripts (default: None).
+            kwargs: Additional keyword arguments for future extension.
+
+        Returns:
+            A dictionary containing:
+                - "feats": The extracted features tensor.
+                - "feats_lengths": The lengths of the extracted features.
+
+        Examples:
+            >>> model = ESPnetSLUModel(...)
+            >>> speech_tensor = torch.randn(4, 16000)  # 4 samples, 1 second each
+            >>> speech_lengths = torch.tensor([16000, 15000, 14000, 13000])
+            >>> text_tensor = torch.tensor([[1, 2, 3], [1, 2, 3], [1, 2, 3], [1, 2, 3]])
+            >>> text_lengths = torch.tensor([3, 3, 3, 3])
+            >>> result = model.collect_feats(speech_tensor, speech_lengths, text_tensor, text_lengths)
+            >>> print(result['feats'].shape)
+            torch.Size([4, ...])  # Shape depends on the feature extraction method
+            >>> print(result['feats_lengths'])
+            tensor([...])  # Lengths of the extracted features
+
+        Note:
+            This method primarily utilizes the `_extract_feats` function
+            to perform the actual feature extraction from the input speech
+            data.
+        """
         feats, feats_lengths = self._extract_feats(speech, speech_lengths)
         return {"feats": feats, "feats_lengths": feats_lengths}
 
@@ -318,11 +490,41 @@ class ESPnetSLUModel(ESPnetASRModel):
         transcript_pad: torch.Tensor = None,
         transcript_pad_lens: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Frontend + Encoder. Note that this method is used by asr_inference.py
+        """
+        Processes the input speech through the frontend and encoder.
+
+        This method performs the following steps:
+        1. Extracts features from the input speech.
+        2. Applies data augmentation if specified and in training mode.
+        3. Normalizes the features.
+        4. Passes the features through the pre-encoder (if applicable).
+        5. Feeds the processed features into the encoder.
+        6. Optionally applies a post-encoder for further processing.
 
         Args:
-            speech: (Batch, Length, ...)
-            speech_lengths: (Batch, )
+            speech: A tensor of shape (Batch, Length, ...) representing the input 
+                speech data.
+            speech_lengths: A tensor of shape (Batch,) representing the lengths of 
+                the input speech sequences.
+            transcript_pad: (Optional) A tensor for padded transcripts, if provided.
+            transcript_pad_lens: (Optional) A tensor representing the lengths of 
+                the padded transcripts.
+
+        Returns:
+            A tuple containing:
+                - encoder_out: A tensor of shape (Batch, Length2, Dim2) 
+                  representing the output from the encoder.
+                - encoder_out_lens: A tensor representing the lengths of the 
+                  encoder outputs.
+
+        Examples:
+            >>> model = ESPnetSLUModel(vocab_size=5000, token_list=['<blank>', '<sos>', '<eos>'], ...)
+            >>> speech_data = torch.randn(2, 16000)  # Example speech data
+            >>> speech_lengths = torch.tensor([16000, 15000])  # Lengths of the examples
+            >>> encoder_out, encoder_out_lens = model.encode(speech_data, speech_lengths)
+
+        Note:
+            This method is primarily used during inference in ASR tasks.
         """
         with autocast(False):
             # 1. Extract feats
