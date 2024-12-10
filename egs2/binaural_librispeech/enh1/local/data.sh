@@ -155,7 +155,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         grep -e "${subset}" "data/wav.scp" | sort -u > "data/${subset}/wav.scp" || true  # Continue even if no matches found
 
         # Copy matching lines from utt2spk based on wav.scp
-        awk '{print $1}' "data/${subset}/wav.scp" | grep -Ff - "data/utt2spk" > "data/${subset}/utt2spk" || true
+        awk '{print $1}' "data/${subset}/wav.scp" | grep -Ff - "data/utt2spk" | sort -u > "data/${subset}/utt2spk" || true
 
         for f in data/*.scp; do
             [ "$f" = "data/wav.scp" ] || utils/filter_scp.pl "data/${subset}/wav.scp" "$f" > "data/${subset}/$(basename "$f")"
