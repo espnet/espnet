@@ -90,6 +90,7 @@ MUST_C=downloads
 MUSTARD=
 MUSTARD_PLUS=
 NSC=
+MYST=downloads
 NIT_SONG070=
 JMD=downloads
 JSSS=downloads
@@ -221,6 +222,9 @@ SPRING_INX=downloads
 VOXCELEB=
 KSPONSPEECH=
 HIFITTS=downloads
+CLOTHO_V2=downloads
+AUDIOCAPS=
+CLOTHO_CHATGPT_MIXUP=
 
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then
