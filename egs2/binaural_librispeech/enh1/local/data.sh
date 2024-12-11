@@ -158,7 +158,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
         fi
     else
         log "MUSAN noise data already exists at ${musan}, copying to '${cdir}/downloads/musan'"
-        # Create 
+        # Create
         mkdir -p "${cdir}/downloads/musan"
         ln -s "${musan}" "${cdir}/downloads/musan"
 
