@@ -70,7 +70,16 @@ class LinearDecoder(AbsDecoder):
         return output
 
     def score(self, ys, state, x):
-        """Classify x."""
+        """Classify x.
+        Args:
+            ys: Not used
+            state: Not used
+            x: (T, D). this should be a single sample without
+                any padding ie batch size=1.
+        Returns:
+            logp: log probabilities over (n_classes,)
+            state: None
+        Assumes that x is a single unpadded sequence."""
         hs_len = torch.tensor([x.shape[0]], dtype=torch.long).to(x.device)
         logits = self.forward(
             x.unsqueeze(0),

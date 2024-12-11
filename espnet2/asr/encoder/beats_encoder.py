@@ -38,7 +38,7 @@ except ImportError:
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.specaug.specaug import SpecAug
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask, roll_tensor
 
 if V(torch.__version__) >= V("1.6.0"):
     from torch.cuda.amp import autocast
@@ -149,6 +149,7 @@ class BeatsEncoder(AbsEncoder):
         max_positions: Optional[int] = None,
         fbank_mean: float = 15.41663,
         fbank_std: float = 6.55582,
+        roll_augment: bool = False,
     ) -> None:
         super().__init__()
 
@@ -156,6 +157,7 @@ class BeatsEncoder(AbsEncoder):
         self.fbank_std = fbank_std
         self.max_layer = max_layer
         self.beats_ckpt_path = beats_ckpt_path
+        self.roll_augment = roll_augment
 
         # Four cases for loading Beats config:
         # 1. No checkpoint and no config: Default config
@@ -342,7 +344,7 @@ class BeatsEncoder(AbsEncoder):
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
         """Wrapper for compatibility with ESPnets' AbsEncoder Interface.
         Args:
-            xs_pad: (B, T, D)
+            xs_pad: (B, T)
             ilens: (B,)
             prev_states: None
         Returns:
@@ -350,7 +352,8 @@ class BeatsEncoder(AbsEncoder):
             output_lens: (B,)
             masks: None
         """
-
+        if self.roll_augment and self.training:
+            xs_pad = roll_tensor(xs_pad.unsqueeze(-1), ilens).squeeze(-1)
         # NOTE(shikhar): If xs is not provided then the operation is costly,
         # because this function tries to create a tensor of size maxlen x maxlen.
         # Therfore, we unsqueeze and then squeeze tensors.
@@ -358,8 +361,7 @@ class BeatsEncoder(AbsEncoder):
             lengths=ilens, xs=xs_pad.unsqueeze(-1).unsqueeze(-1), length_dim=1
         ).to(xs_pad.device)
         # Adjust shapes to be compatible with Beats code
-        xs_pad, mask = xs_pad.squeeze(-1).squeeze(-1), mask.squeeze(-1).squeeze(-1)
-        # masks = None
+        mask = mask.squeeze(-1).squeeze(-1)
         audio_representation, mask = self.extract_features(
             xs_pad,
             mask,
