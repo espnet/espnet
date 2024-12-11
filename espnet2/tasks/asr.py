@@ -25,6 +25,7 @@ from espnet2.asr.decoder.transformer_decoder import (
 from espnet2.asr.decoder.whisper_decoder import OpenAIWhisperDecoder
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.encoder.avhubert_encoder import FairseqAVHubertEncoder
+from espnet2.asr.encoder.beats_encoder import BeatsEncoder
 from espnet2.asr.encoder.branchformer_encoder import BranchformerEncoder
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
 from espnet2.asr.encoder.contextual_block_conformer_encoder import (
@@ -96,7 +97,7 @@ frontend_choices = ClassChoices(
         s3prl=S3prlFrontend,
         fused=FusedFrontends,
         whisper=WhisperFrontend,
-    ),
+    ),  # If setting this to none, please make sure to provide input_size in the config.
     type_check=AbsFrontend,
     default="default",
 )
@@ -159,6 +160,7 @@ encoder_choices = ClassChoices(
         e_branchformer=EBranchformerEncoder,
         avhubert=FairseqAVHubertEncoder,
         multiconv_conformer=MultiConvConformerEncoder,
+        beats=BeatsEncoder,
     ),
     type_check=AbsEncoder,
     default="rnn",
@@ -258,6 +260,7 @@ class ASRTask(AbsTask):
                 "xavier_normal",
                 "kaiming_uniform",
                 "kaiming_normal",
+                "normal",
                 None,
             ],
         )

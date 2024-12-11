@@ -1,11 +1,12 @@
 import os
 import random
 import sys
-import librosa
-import soundfile as sf
-import numpy as np
-from tqdm import tqdm
 from multiprocessing import Pool
+
+import librosa
+import numpy as np
+import soundfile as sf
+from tqdm import tqdm
 
 
 def set_seed(seed):
@@ -17,6 +18,7 @@ def set_seed(seed):
     print(f"Setting {seed=} for generation of noisy data.")
     random.seed(seed)
     np.random.seed(seed)
+
 
 import librosa
 import numpy as np
@@ -63,7 +65,7 @@ def process_audio_file(args):
 
     # Load the audio file
     audio, sr = librosa.load(audio_path, sr=None, mono=False)
-    if sr <16000:
+    if sr < 16000:
         print(f"read file with {audio_path=} with {sr=} < 16000, skipping...")
         return
 
@@ -71,7 +73,6 @@ def process_audio_file(args):
 
     if sr_noise != sr:
         noise = librosa.resample(noise, orig_sr=sr_noise, target_sr=sr)
-
 
     # Generate a random SNR between -10 and 20
     snr_db = random.uniform(-10, 20)
@@ -130,7 +131,9 @@ def process_audio_files(audio_dir, noise_dir, output_dir, n_jobs, seed: int = 42
 
 if __name__ == "__main__":
     if len(sys.argv) < 5:
-        print("Usage: python create_noisy_speech.py <audio_dir> <noise_dir> <output_dir> <n_jobs> <seed>")
+        print(
+            "Usage: python create_noisy_speech.py <audio_dir> <noise_dir> <output_dir> <n_jobs> <seed>"
+        )
         sys.exit(1)
 
     # Get directories from command-line arguments

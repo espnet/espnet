@@ -101,7 +101,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
             rm -rf "${cdir}/downloads/.cache/huggingface/BinauralLibriSpeech/"
             # Move "BinauralLibriSpeech" up one level to "/downloads"
             mv "${cdir}/downloads/data/BinauralLibriSpeech" "${cdir}/downloads"
-            # Remove the now-empty "data" folder 
+            # Remove the now-empty "data" folder
             rmdir "${cdir}/downloads/data"
             # Extract data
             log "Extracting data..."
@@ -173,7 +173,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     NOISE_DIR="${musan}/noise"
     AUDIO_NOISY_DIR="${AUDIO_DIR}_noisy"
     log "stage 1: Simulate noisy data"
-    # Check if noisy data already exists 
+    # Check if noisy data already exists
     if [ -d "$AUDIO_NOISY_DIR" ]; then
         log "Noisy data already exists in: $AUDIO_NOISY_DIR"
         log "Verifying integrity of existing noisy data files..."
