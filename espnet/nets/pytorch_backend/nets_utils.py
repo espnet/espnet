@@ -3,7 +3,7 @@
 """Network related utility tools."""
 
 import logging
-from typing import Dict
+from typing import Dict, Optional
 
 import numpy as np
 import torch
@@ -639,3 +639,34 @@ def trim_by_ctc_posterior(
         pos_emb = pos_emb[:, : h.size(1)]
 
     return h, masks, pos_emb
+
+
+def roll_tensor(
+    x: torch.Tensor, lengths: torch.Tensor, roll_amounts: Optional[torch.Tensor] = None
+) -> torch.Tensor:
+    """Left-roll tensor x by roll_amounts, only within lengths.
+    Args:
+        x: input tensor (B, T, D)
+        lengths: lengths of each sequence (B,)
+        roll_amounts: random shift amounts (B,). If None, random shift
+            amounts are generated.
+    Returns:
+        rolled_x: rolled tensor (B, T, D)
+    Useful to apply roll augmentation to the input, while considering
+    the input length for each sample.
+    """
+    B, T, D = x.shape
+
+    indices = torch.arange(T).unsqueeze(0).expand(B, T).to(x.device)  # (B, T)
+    lengths = lengths.unsqueeze(1)  # (B, 1)
+
+    if roll_amounts is None:
+        roll_amounts = torch.randint(0, lengths.max(), (B,), device=x.device)
+    roll_indices = (indices - roll_amounts.unsqueeze(1)) % lengths  # (B, T)
+    roll_indices = roll_indices.unsqueeze(2).expand(-1, -1, D)  # (B, T, D)
+
+    mask = indices < lengths  # (B, T), True if position is valid
+    rolled_x = torch.empty_like(x)
+    rolled_x[mask] = x.gather(1, roll_indices)[mask]
+    rolled_x[~mask] = x[~mask]
+    return rolled_x
