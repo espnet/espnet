@@ -14,7 +14,7 @@ find "$DATA_DIR" -type f -name "*.tar.gz" | while read -r file; do
     echo "Extracting $file..."
 
     # Extract the .tar.gz file to the same directory as the archive
-    tar -xzf "$file" -C "$(dirname "$file")" --exclude='._*' 
+    tar -xzf "$file" -C "$(dirname "$file")" --exclude='._*'
 
     # Delete the .tar.gz file after extraction
     rm "$file"

@@ -18,6 +18,11 @@ def set_seed(seed):
     random.seed(seed)
     np.random.seed(seed)
 
+import librosa
+import numpy as np
+import soundfile as sf
+from tqdm import tqdm
+
 
 # Function to add noise to an audio file
 def add_noise(audio, noise, snr_db):
@@ -31,8 +36,8 @@ def add_noise(audio, noise, snr_db):
         np.array: The noisy audio signal.
     """
     # Calculate RMS (Root Mean Square) of both audio and noise
-    rms_audio = np.sqrt(np.mean(audio ** 2))
-    rms_noise = np.sqrt(np.mean(noise ** 2))
+    rms_audio = np.sqrt(np.mean(audio**2))
+    rms_noise = np.sqrt(np.mean(noise**2))
 
     # Adjust noise level to match the desired SNR
     snr = 10 ** (snr_db / 20)  # Convert dB to linear scale
@@ -41,13 +46,16 @@ def add_noise(audio, noise, snr_db):
     # Ensure noise and audio have the same length
     len_audio = audio.shape[-1]
     if len(noise) < len_audio:
-        noise = np.tile(scaled_noise, int(np.ceil(len_audio / len(scaled_noise))))[:len_audio]
+        noise = np.tile(scaled_noise, int(np.ceil(len_audio / len(scaled_noise))))[
+            :len_audio
+        ]
     else:
         noise = scaled_noise[:len_audio]
 
     # Add noise to the audio signal
     noisy_audio = audio + noise
     return noisy_audio
+
 
 # Function to process a single audio file
 def process_audio_file(args):
@@ -95,16 +103,18 @@ def process_audio_files(audio_dir, noise_dir, output_dir, n_jobs, seed: int = 42
     noise_files = []
     for root, _, files in os.walk(noise_dir):
         for file in files:
-            if file.endswith(('.wav', '.flac')):
+            if file.endswith((".wav", ".flac")):
                 noise_files.append(os.path.join(root, file))
 
     # Collect all audio files and crate args for function
     args = []
     for root, _, files in os.walk(audio_dir):
         for file in files:
-            if file.endswith('.flac'):  # Extend with other audio formats if needed
+            if file.endswith(".flac"):  # Extend with other audio formats if needed
                 noise_file = random.choice(noise_files)
-                args.append((os.path.join(root, file), noise_file, output_dir, audio_dir))
+                args.append(
+                    (os.path.join(root, file), noise_file, output_dir, audio_dir)
+                )
 
     # Use multiprocessing to process audio files
     pool = Pool(processes=n_jobs)
@@ -118,7 +128,7 @@ def process_audio_files(audio_dir, noise_dir, output_dir, n_jobs, seed: int = 42
     print("Finished generating noisy speech.")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     if len(sys.argv) < 5:
         print("Usage: python create_noisy_speech.py <audio_dir> <noise_dir> <output_dir> <n_jobs> <seed>")
         sys.exit(1)
