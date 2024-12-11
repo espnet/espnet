@@ -19,7 +19,7 @@ test_sets=test-clean
     --ngpu 1 \
     --ref_num 1 \
     --ref_channel 1 \
-    --enh_config conf/tuning/train_enh_beamformer_mvdr.yaml \
+    --enh_config conf/train.yaml \
     --use_dereverb_ref false \
     --use_noise_ref false \
     --inference_model "valid.loss.best.pth" \

@@ -14,9 +14,6 @@ val_scheduler_criterion:
 - loss
 best_model_criterion:
 -   - valid
-    - si_snr
-    - max
--   - valid
     - loss
     - min
 keep_nbest_models: 1
@@ -53,7 +50,7 @@ separator_conf:
     bunits: 512
     bprojs: 512
     badim: 320
-    ref_channel: 3
+    ref_channel: 1
     use_noise_mask: True
     beamformer_type: mvdr_souden
     bdropout_rate: 0.0

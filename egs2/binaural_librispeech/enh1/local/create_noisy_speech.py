@@ -5,7 +5,18 @@ import librosa
 import soundfile as sf
 import numpy as np
 from tqdm import tqdm
-from multiprocessing import Pool, cpu_count
+from multiprocessing import Pool
+
+
+def set_seed(seed):
+    """
+    Set random seed for reproducibility.
+    Args:
+        seed (int): The seed value to use.
+    """
+    print(f"Setting {seed=} for generation of noisy data.")
+    random.seed(seed)
+    np.random.seed(seed)
 
 
 # Function to add noise to an audio file
@@ -45,10 +56,14 @@ def process_audio_file(args):
     # Load the audio file
     audio, sr = librosa.load(audio_path, sr=None, mono=False)
     if sr <16000:
-        print(f"read file with {audio_path=} with {sr=}, skipping...")
+        print(f"read file with {audio_path=} with {sr=} < 16000, skipping...")
         return
 
-    noise, _ = librosa.load(noise_file, sr=sr)
+    noise, sr_noise = librosa.load(noise_file)
+
+    if sr_noise != sr:
+        noise = librosa.resample(noise, orig_sr=sr_noise, target_sr=sr)
+
 
     # Generate a random SNR between -10 and 20
     snr_db = random.uniform(-10, 20)
@@ -69,7 +84,10 @@ def process_audio_file(args):
 
 
 # Function to process audio files
-def process_audio_files(audio_dir, noise_dir, output_dir, n_jobs):
+def process_audio_files(audio_dir, noise_dir, output_dir, n_jobs, seed: int = 42):
+    # Set seed
+    set_seed(seed)
+
     # Ensure output directory exists
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
@@ -102,7 +120,7 @@ def process_audio_files(audio_dir, noise_dir, output_dir, n_jobs):
 
 if __name__ == '__main__':
     if len(sys.argv) < 5:
-        print("Usage: python create_noisy_speech.py <audio_dir> <noise_dir> <output_dir> <n_jobs>")
+        print("Usage: python create_noisy_speech.py <audio_dir> <noise_dir> <output_dir> <n_jobs> <seed>")
         sys.exit(1)
 
     # Get directories from command-line arguments
@@ -110,6 +128,7 @@ if __name__ == '__main__':
     noise_dir = sys.argv[2]
     output_dir = sys.argv[3]
     n_jobs = int(sys.argv[4])
+    seed = int(sys.argv[5])
 
     # Process the audio files
-    process_audio_files(audio_dir, noise_dir, output_dir, n_jobs)
+    process_audio_files(audio_dir, noise_dir, output_dir, n_jobs, seed)
