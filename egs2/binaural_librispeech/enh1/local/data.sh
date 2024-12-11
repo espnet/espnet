@@ -78,7 +78,7 @@ log "Binaural LibriSpeech data preparation"
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "stage 0: Downloading BinauralLibriSpeech"
     # Download and extract BinauralLibriSpeech data
-    if [! -e "${binaural_librispeech}" ]; then
+    if [ ! -e "${binaural_librispeech}" ]; then
         if [ -d "${cdir}/downloads/BinauralLibriSpeech/${binaural_librispeech_subset}" ]; then
             log "Binaural LibriSpeech data already exists in: ${cdir}/downloads/BinauralLibriSpeech."
             log "Skipping download.."

@@ -19,12 +19,12 @@ if [ -e "$output_clean_scp" ] || [ -e "$output_noisy_scp" ] || [ -e "$output_utt
     echo "wav.scp, spk1.scp and utt2spk file already exists. Skipping..."
 else
     # Create or clear the output SCP files and utt2spk file
-    > "$output_clean_scp"
-    > "$output_noisy_scp"
-    > "$output_utt2spk"
+    : > "$output_clean_scp"
+    : > "$output_noisy_scp"
+    : > "$output_utt2spk"
+
 
     # Initialize counters
-    found_files=0
     processed_files=0
 
     # Count total .flac files for progress tracking
@@ -65,8 +65,8 @@ else
         fi
     done
 
-    if [ ${processed_files} -ne ${total_files} ]; then
-        echo "Error: the total number of processed files (=${processed_files}) does not match the total number of files (=${total_files})."
+    if [ ${processed_files} -ne ${n_files} ]; then
+        echo "Error: the total number of processed files (=${processed_files}) does not match the total number of files (=${n_files})."
         exit 1
     fi
 
@@ -76,6 +76,6 @@ fi
 
 found_files=$(find $noisy_data_directory -iname "*.flac" | wc -l)
 if [ ${found_files} -ne ${n_files} ]; then
-    echo "Error: the total number of noisy files (=${found_files}) does not match the number of clean audio files (${total_files})."
+    echo "Error: the total number of noisy files (=${found_files}) does not match the number of clean audio files (${n_files})."
     exit 1
 fi
