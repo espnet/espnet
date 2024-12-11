@@ -64,7 +64,7 @@ else
             done
         fi
     done
-    
+
     if [ ${processed_files} -ne ${total_files} ]; then
         echo "Error: the total number of processed files (=${processed_files}) does not match the total number of files (=${total_files})."
         exit 1
