@@ -122,11 +122,11 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
                 exit 1
             fi
         else
-            log "Binaural LibriSpeech data already exists at ${binaural_librispeech}, copying to '${cdir}/downloads/BinauralLibriSpeech'"
+            log "Binaural LibriSpeech data already exists at ${binaural_librispeech}, creating symlink '${cdir}/downloads/BinauralLibriSpeech'"
             # Copy BinauralLibriSpeech to user directory in case of permission issues.
             mkdir -p "${cdir}/downloads/BinauralLibriSpeech"
             log "Using Binaural Librispeech version: ${binaural_librispeech_subset}"
-            rsync -r -P "${binaural_librispeech}/${binaural_librispeech_subset}" "${cdir}/downloads/BinauralLibriSpeech"
+            ln -s "${binaural_librispeech}" "${cdir}/downloads/BinauralLibriSpeech"
             # Verify dataset entegrity
             log "Verifying integrity of existing data..."
             n_files=$(find ${cdir}/downloads/BinauralLibriSpeech/${binaural_librispeech_subset} -iname "*.flac" | wc -l)
@@ -158,9 +158,9 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
         fi
     else
         log "MUSAN noise data already exists at ${musan}, copying to '${cdir}/downloads/musan'"
-        # Copy Musan to user directory in case of permission issues.
+        # Create 
         mkdir -p "${cdir}/downloads/musan"
-        rsync -r -P "${musan}/noise" "${cdir}/downloads/musan/"
+        ln -s "${musan}" "${cdir}/downloads/musan"
 
     fi
     # Set paths to downloads
