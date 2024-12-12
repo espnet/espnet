@@ -3,7 +3,7 @@ import re
 import sys
 
 
-def generate_data_files(target_root, edacc_root):
+def generate_data_files(target_root, edacc_root, segmented_audio_path, segment_length=1883):
 
     for x in ["dev", "test"]:
         # output file directory
@@ -26,6 +26,12 @@ def generate_data_files(target_root, edacc_root):
                 with open(utt2spk, "r") as utt2spk:
                     for line in utt2spk:
                         utter, spk = line.strip().split()
+                        # process utter for C30
+                        if "C30" in utter and int(utter[-9:]) >= 387:
+                            new_number = int(utter[-9:]) - 387
+                            utter = "EDACC-C30_P2-" + f"{new_number:09d}"
+                        elif "C30" in utter and int(utter[-9:]) < 387:
+                            utter = utter.replace("C30", "C30_P1")
                         utter_spk_map[utter] = spk
                         utt2spk_out.write(f"{utter_spk_map[utter]}-{utter} {spk}\n")
 
@@ -35,6 +41,12 @@ def generate_data_files(target_root, edacc_root):
                 with open(text, "r") as text:
                     for line in text:
                         utter, txt = line.strip().split(maxsplit=1)
+                        # process utter for C30
+                        if "C30" in utter and int(utter[-9:]) >= 387:
+                            new_number = int(utter[-9:]) - 387
+                            utter = "EDACC-C30_P2-" + f"{new_number:09d}"
+                        elif "C30" in utter and int(utter[-9:]) < 387:
+                            utter = utter.replace("C30", "C30_P1")
                         text_out.write(f"{utter_spk_map[utter]}-{utter} {txt}\n")
 
         # process segments and wav.scp
@@ -43,11 +55,24 @@ def generate_data_files(target_root, edacc_root):
             if os.path.exists(segments):
                 with open(segments, "r") as segments:
                     for line in segments:
-                        utter, wavID, others = line.strip().split(maxsplit=2)
+                        utter, wavID, start, end = line.strip().split()
+                        # process utter for C30
+                        if "C30" in utter and int(utter[-9:]) >= 387:
+                            new_number = int(utter[-9:]) - 387
+                            utter = "EDACC-C30_P2-" + f"{new_number:09d}"
+                            wavID = wavID.replace("C30", "C30_P2")
+                            start = f"{float(start) - segment_length:.2f}"
+                            end = f"{float(end) - segment_length:.2f}"
+                            audio_path = os.path.join(segmented_audio_path, f"{wavID}.wav")
+                        elif "C30" in utter and int(utter[-9:]) < 387:
+                            utter = utter.replace("C30", "C30_P1")
+                            wavID = wavID.replace("C30", "C30_P1")
+                            audio_path = os.path.join(segmented_audio_path, f"{wavID}.wav")
+                        else:
+                            audio_path = os.path.join(edacc_root, 'data', f"{wavID}.wav")
                         seg_out.write(
-                            f"{utter_spk_map[utter]}-{utter} {wavID} {others}\n"
+                            f"{utter_spk_map[utter]}-{utter} {wavID} {start} {end}\n"
                         )
-                        audio_path = os.path.join(edacc_root, "data", f"{wavID}.wav")
                         if os.path.exists(audio_path) and wavID not in wavID_set:
                             scp_out.write(f"{wavID} {audio_path}\n")
                             wavID_set.add(wavID)
@@ -55,13 +80,14 @@ def generate_data_files(target_root, edacc_root):
 
 if __name__ == "__main__":
 
-    if len(sys.argv) != 3:
+    if len(sys.argv) != 4:
         print(
-            "Usage: python data_prep.py [edacc download directory] [target directory]"
+            "Usage: python data_prep.py [edacc download directory] [target directory] [large audio path]"
         )
         sys.exit(1)
 
     edacc_root = sys.argv[1]  # the dir should be "downloads/edacc_v1.0"
     target_root = sys.argv[2]  # the dir should be "data"
-
-    generate_data_files(target_root, edacc_root)
+    segmented_audio_path = sys.argv[3]  # should be "downloads/edacc_v1.0/data/segmentation"
+    generate_data_files(target_root, edacc_root, segmented_audio_path, segment_length=1883)
+    # print("data prep script completed successfully.")
