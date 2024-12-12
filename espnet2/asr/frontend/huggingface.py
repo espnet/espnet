@@ -4,10 +4,10 @@ from typing import Optional, Tuple, Union
 
 import humanfriendly
 import torch
+import torch.share
 from typeguard import typechecked
 
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
-import torch.share
 
 
 class HuggingFaceFrontend(AbsFrontend):

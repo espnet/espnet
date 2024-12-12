@@ -5,6 +5,7 @@ from espnet2.asr.frontend.huggingface import HuggingFaceFrontend
 
 pytest.importorskip("transformers", minversion="4.43.0")
 
+
 @pytest.mark.parametrize(
     "model, fs",
     [
