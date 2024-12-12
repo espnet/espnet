@@ -11,8 +11,7 @@ def prepare_scp(clean_dir, noisy_dir, output_clean_scp, output_noisy_scp):
             split_path_clean = os.path.join(clean_dir, split)
             split_path_noisy = os.path.join(noisy_dir, split)
 
-            if os.path.isdir(split_path_clean) \
-                and os.path.isdir(split_path_noisy):
+            if os.path.isdir(split_path_clean) and os.path.isdir(split_path_noisy):
                 for speaker in os.listdir(split_path_clean):
                     speaker_path_clean = os.path.join(split_path_clean, speaker)
                     speaker_path_noisy = os.path.join(split_path_noisy, speaker)
@@ -28,8 +27,7 @@ def prepare_scp(clean_dir, noisy_dir, output_clean_scp, output_noisy_scp):
                                 speaker_path_noisy, chapter
                             )
 
-                            if os.path.isdir(chapter_path_clean) \
-                                and os.path.isdir(
+                            if os.path.isdir(chapter_path_clean) and os.path.isdir(
                                 chapter_path_noisy
                             ):
                                 for utterance in glob.glob(
@@ -56,20 +54,16 @@ if __name__ == "__main__":
         description="Prepare SCP files for the enh1 task in ESPnet."
     )
     parser.add_argument(
-        "clean_data_directory", type=str, 
-        help="Path to the clean data directory."
+        "clean_data_directory", type=str, help="Path to the clean data directory."
     )
     parser.add_argument(
-        "noisy_data_directory", type=str, 
-        help="Path to the noisy data directory."
+        "noisy_data_directory", type=str, help="Path to the noisy data directory."
     )
     parser.add_argument(
-        "output_clean_scp", type=str, 
-        help="Output path for the clean SCP file."
+        "output_clean_scp", type=str, help="Output path for the clean SCP file."
     )
     parser.add_argument(
-        "output_noisy_scp", type=str, 
-        help="Output path for the noisy SCP file."
+        "output_noisy_scp", type=str, help="Output path for the noisy SCP file."
     )
 
     args = parser.parse_args()
