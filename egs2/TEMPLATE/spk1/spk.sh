@@ -81,12 +81,15 @@ spf_args=            # Parameters for spoofing
 
 # Embedding averaging related
 embed_avg=false    # Apply embedding averaging in inference
-embed_avg_args=   # Arguments for embedding averaging
+embed_avg_args=    # Arguments for embedding averaging
 
 # Use pseudomos scores
 pseudomos=false   # Use pseudomos scores for training
 train_utt2pmos=   # absolue path to utt2pmos file, required if pseudomos is true
 valid_utt2pmos=   # absolue path to utt2pmos file, required if pseudomos is true
+
+# use precomputed feats
+precomputed_feats=false        # Use precomputed features for training
 
 # Label related
 no_labels=false    # No labels for inference
@@ -404,6 +407,15 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
                 cp data/${dset}/trial4.scp "${data_feats}/${dset}"
             fi
 
+            if "${precomputed_feats}"; then
+                cp data/${dset}/feats1.scp "${data_feats}/${dset}/feats1.scp"
+                cp data/${dset}/feats2.scp "${data_feats}/${dset}/feats2.scp"
+                if "${embed_avg}"; then
+                    cp data/${dset}/feats3.scp "${data_feats}/${dset}/feats3.scp"
+                    cp data/${dset}/feats4.scp "${data_feats}/${dset}/feats4.scp"
+                fi
+            fi
+
             echo "${feats_type}" > "${data_feats}/${dset}/feats_type"
             echo "multi_${audio_format}" > "${data_feats}/${dset}/audio_format"
 
@@ -529,6 +541,27 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             spf_args+=" --valid_data_path_and_name_and_type "${valid_utt2pmos}",pmos_labels,text"
         fi
 
+    fi
+
+    if "${precomputed_feats}"; then
+        # check that ${_spk_train_dir}/feats.scp exists
+        if [ ! -f "${_spk_train_dir}/feats.scp" ]; then
+            log "Error: ${_spk_train_dir}/feats.scp does not exist. Please set precomputed_feats to false or provide the correct path to the precomputed features."
+            exit 1
+        else
+            spf_args+=" --train_data_path_and_name_and_type ${_spk_train_dir}/feats.scp,frame_feats,npy"
+        fi
+        # check that ${_spk_valid_dir}/feats1.scp exists
+        if [ ! -f "${_spk_valid_dir}/feats1.scp" ]; then
+            log "Not validating with precomputed features."
+        else
+            spf_args+=" --valid_data_path_and_name_and_type ${_spk_valid_dir}/feats1.scp,frame_feats1,npy"
+            spf_args+=" --valid_data_path_and_name_and_type ${_spk_valid_dir}/feats2.scp,frame_feats2,npy"
+            if "${embed_avg}"; then
+                spf_args+=" --valid_data_path_and_name_and_type ${_spk_valid_dir}/feats3.scp,frame_feats3,npy"
+                spf_args+=" --valid_data_path_and_name_and_type ${_spk_valid_dir}/feats4.scp,frame_feats4,npy"
+            fi
+        fi
     fi
 
     # if embed_avg is enabled, then also add trial3 and trial4 arguments for valid

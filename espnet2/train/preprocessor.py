@@ -2245,7 +2245,7 @@ class SpkPreprocessor(CommonPreprocessor):
             if self.spf2label is not None:
                 int_label = self.spf2label[data["spf_labels"]]
                 data["spf_labels"] = np.asarray([int_label], dtype=np.int64)
-            if data["pmos_labels"] is not None:
+            if "pmos_labels" in data:
                 data["pmos_labels"] = np.asarray([data["pmos_labels"]], dtype=np.float32)
         else:
             data["spk_labels"] = np.asarray([int(data["spk_labels"])])
@@ -2259,7 +2259,6 @@ class SpkPreprocessor(CommonPreprocessor):
     def __call__(
         self, uid: str, data: Dict[str, Union[str, np.ndarray]]
     ) -> Dict[str, np.ndarray]:
-
         data = self._text_process(data)
         data = self._speech_process(data)
         return data

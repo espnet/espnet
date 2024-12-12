@@ -79,6 +79,10 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         # make trials for dev set
         log "Making the dev trial compatible with ESPnet"
         python local/convert_trial.py --trial "${data_dir_prefix}/asvspoof5_data/ASVspoof5.dev.trial.txt" --enroll ${trg_dir}/dev/enroll.txt  --scp ${trg_dir}/dev/wav.scp --out ${trg_dir}/dev --task dev
+        # sort files
+        for x in "trial.scp" "trial2.scp" "trial3.scp" "trial4.scp" "trial_label"; do
+            sort ${trg_dir}/dev/${x} -o ${trg_dir}/dev/${x}
+        done
     else
         log "${trg_dir}/dev exists. Skip making Kaldi style files for dev"
     fi
@@ -163,7 +167,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     for x in "asvspoof5_train" "dev"; do
         if [ ! -d "${utmos_pseudomos_dir}/${x}" ]; then   
             mkdir -p ${utmos_pseudomos_dir}/${x}
-            python3 pyscripts/utils/evaluate_pseudomos.py "${data_dir_prefix}/spk1/data/${x}/wav.scp" --outdir ${utmos_pseudomos_dir}/${x} --batchsize 2
+            python3 pyscripts/utils/evaluate_pseudomos.py "${data_dir_prefix}/spk1/data/${x}/wav.scp" --outdir ${utmos_pseudomos_dir}/${x} --batchsize 4
         
         else
             log "${utmos_pseudomos_dir}/${x} exists. Skip computing UTMOS pseudomos scores."
@@ -181,6 +185,37 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         # sort files
         sort ${trg_dir}/${x}/utt2pmos -o ${trg_dir}/${x}/utt2pmos
     done
+
+    for x in "asvspoof5_train" "dev"; do
+        if [ ! -d "${trg_dir}/${x}/frame_features" ]; then
+            log "Computing frame features for ${x}"
+            python3 local/eval_pmos.py "${data_dir_prefix}/spk1/data/${x}/wav.scp" --outdir ${trg_dir}/${x} --batchsize 4
+        else
+            log "Frame features for ${x} exists. Skip computing it."
+        fi
+    done
+
+    # make feats.scp for train
+    if [ ! -f "${trg_dir}/asvspoof5_train/feats.scp" ]; then
+        log "Creating feats.scp for asvspoof5_train"
+        python3 local/make_feats_scp.py --input_dir ${trg_dir}/asvspoof5_train/frame_features --output_file ${trg_dir}/asvspoof5_train/feats.scp
+        # sort files
+        sort ${trg_dir}/asvspoof5_train/feats.scp -o ${trg_dir}/asvspoof5_train/feats.scp
+    else
+        log "feats.scp for asvspoof5_train exists. Skip creating it."
+    fi
+
+    # make feats.scp for dev
+    if [ ! -f "${trg_dir}/dev/feats.scp" ]; then
+        log "Creating feats.scp for dev"
+        python3 local/make_feats_scp.py --input_dir ${trg_dir}/dev/frame_features --output_dir ${trg_dir}/dev --trial "${data_dir_prefix}/asvspoof5_data/ASVspoof5.dev.trial.txt" --enroll ${trg_dir}/dev/enroll.txt --task dev
+        # sort files
+        for x in "feats" "feats1" "feats2" "feats3" "feats4"; do
+            sort ${trg_dir}/dev/${x}.scp -o ${trg_dir}/dev/${x}.scp
+        done
+    else
+        log "feats.scp for dev exists. Skip creating it."
+    fi
 
     log "Stage 4, DONE."
 fi

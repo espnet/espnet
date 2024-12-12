@@ -23,6 +23,7 @@ from espnet2.spk.encoder.ecapa_tdnn_encoder import EcapaTdnnEncoder
 from espnet2.spk.encoder.identity_encoder import IdentityEncoder
 from espnet2.spk.encoder.rawnet3_encoder import RawNet3Encoder
 from espnet2.spk.encoder.ska_tdnn_encoder import SkaTdnnEncoder
+from espnet2.spk.encoder.txf_ska_tdnn_encoder import TxfSkaTdnnEncoder
 from espnet2.spk.encoder.xvector_encoder import XvectorEncoder
 from espnet2.spk.espnet_model import ESPnetSpeakerModel
 from espnet2.spk.loss.aamsoftmax import AAMSoftmax
@@ -95,6 +96,7 @@ encoder_choices = ClassChoices(
         mfaconformer=MfaConformerEncoder,
         rawnet3=RawNet3Encoder,
         ska_tdnn=SkaTdnnEncoder,
+        txf_ska_tdnn=TxfSkaTdnnEncoder,
         xvector=XvectorEncoder,
     ),
     type_check=AbsEncoder,
@@ -332,6 +334,8 @@ class SpeakerTask(AbsTask):
         # the test utterance. speech1 to speech3 are for enrollment.
 
         # spf_labels are required for SASV task
+
+        # frame_feats: precomputed features for the speech data
         retval = (
             "speech2",
             "speech3",
@@ -341,6 +345,11 @@ class SpeakerTask(AbsTask):
             "task_tokens",
             "spf_labels",
             "pmos_labels",
+            "frame_feats",
+            "frame_feats1",
+            "frame_feats2",
+            "frame_feats3",
+            "frame_feats4"
         )
 
         return retval

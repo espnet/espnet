@@ -73,9 +73,14 @@ class ESPnetSpeakerModel(AbsESPnetModel):
         pmos_labels: Optional[torch.Tensor] = None,
         task_tokens: Optional[torch.Tensor] = None,
         extract_embd: bool = False,
+        precomp_frame_feats: Optional[torch.Tensor] = None,
+        precomp_frame_feats_lengths: Optional[torch.Tensor] = None,
+        return_attention_weights: bool = False,
         **kwargs,
     ) -> Union[
-        Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor], torch.Tensor
+        Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor],
+        Tuple[torch.Tensor, Dict[str, torch.Tensor]],
+        torch.Tensor
     ]:
         """Feed-forward through encoder layers and aggregate into utterance-level
 
@@ -91,6 +96,8 @@ class ESPnetSpeakerModel(AbsESPnetModel):
             task_tokens: (Batch, )
             spf_labels: (Batch, )
             pmos_labels: (Batch, )
+            precomp_frame_feats: (Batch, frames, feats)
+            precomp_frame_feats_lengths: (Batch,)
             one-hot spoofing labels used in the train phase
             task tokens used in case of token-based trainings
         """
@@ -106,11 +113,18 @@ class ESPnetSpeakerModel(AbsESPnetModel):
             )
         batch_size = speech.shape[0]
 
+
+        if precomp_frame_feats is None or precomp_frame_feats_lengths is None:
+            precomp_frame_feats = kwargs.get("frame_feats", None)
+            precomp_frame_feats_lengths = kwargs.get("frame_feats_lengths", None)
+
         # 1. extract low-level feats (e.g., mel-spectrogram or MFCC)
         # Will do nothing for raw waveform-based models (e.g., RawNets)
         feats, _ = self.extract_feats(speech, None)
 
-        frame_level_feats = self.encode_frame(feats)
+        frame_level_feats = self.encode_frame(feats, precomp_frame_feats, precomp_frame_feats_lengths)
+        if isinstance(frame_level_feats, tuple):
+            frame_level_feats, attention_weights = frame_level_feats
 
         # 2. aggregation into utterance-level
         utt_level_feat = self.pooling(frame_level_feats, task_tokens)
@@ -118,8 +132,11 @@ class ESPnetSpeakerModel(AbsESPnetModel):
         # 3. (optionally) go through further projection(s)
         spk_embd = self.project_spk_embd(utt_level_feat)
 
-        if extract_embd:
+        if extract_embd and not return_attention_weights:
             return spk_embd
+        elif extract_embd and return_attention_weights:
+            assert attention_weights is not None, "Attention weights are None, cannot return"
+            return spk_embd, attention_weights
 
         # 4. calculate loss
         loss_names = self.loss_names
@@ -184,8 +201,11 @@ class ESPnetSpeakerModel(AbsESPnetModel):
 
         return feats, feat_lengths
 
-    def encode_frame(self, feats: torch.Tensor) -> torch.Tensor:
-        frame_level_feats = self.encoder(feats)
+    def encode_frame(self, feats: torch.Tensor, precomp_frame_feats: torch.Tensor, precomp_frame_feats_lengths: torch.Tensor) -> torch.Tensor:
+        if precomp_frame_feats is not None:
+            frame_level_feats = self.encoder(feats, precomp_frame_feats, precomp_frame_feats_lengths)
+        else:
+            frame_level_feats = self.encoder(feats)
 
         return frame_level_feats
 

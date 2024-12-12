@@ -1,0 +1,89 @@
+# SKA_mel
+
+# Frontend
+frontend: melspec_torch
+frontend_conf:
+    preemp: true
+    n_fft: 512
+    log: true
+    win_length: 400
+    hop_length: 160
+    n_mels: 80
+    normalize: mn
+
+# Encoder
+encoder: ska_tdnn
+encoder_conf:
+  model_scale: 8
+  ndim: 1024
+  ska_dim: 128
+  output_size: 1536
+
+# Pooling
+pooling: chn_attn_stat
+
+# Projector
+projector: ska_tdnn
+projector_conf:
+  output_size: 192
+
+# Preprocessor
+preprocessor: spk
+preprocessor_conf:
+  target_duration: 3.0  # seconds
+  sample_rate: 16000
+  num_eval: 1
+  noise_apply_prob: 0.5
+  noise_info:
+  - [1.0, 'dump/raw/musan_noise.scp', [1, 1], [0, 15]]
+  rir_apply_prob: 0.5
+  rir_scp: dump/raw/rirs.scp
+
+# Model config
+model_conf:
+  extract_feats_in_collect_stats: false
+
+# Loss
+loss:
+  - name: mse # pmos loss
+    type: pmos
+    loss_weight: 1.0
+
+# Training related
+max_epoch: 40
+num_att_plot: 0
+num_workers: 8
+cudnn_deterministic: False
+cudnn_benchmark: True
+drop_last_iter: True
+iterator_type: binary_task_category
+valid_iterator_type: sequence
+shuffle_within_batch: False
+log_interval: 100
+batch_size: 32
+valid_batch_size: 32
+use_amp: True
+keep_nbest_models: 3
+grad_clip: 9999
+best_model_criterion:
+- - valid
+  - a_dcf
+  - min
+num_iters_per_epoch: 1000
+
+# Optimizer
+optim: adam
+optim_conf:
+  lr: 0.001
+  weight_decay: 0.00005
+  amsgrad: False
+
+# Scheduler
+scheduler: CosineAnnealingWarmupRestarts
+scheduler_conf:
+  first_cycle_steps: 11740 # equal to 10 epochs
+  cycle_mult: 1.0
+  max_lr: 1.0e-4
+  min_lr: 1.0e-6
+  warmup_steps: 300
+  gamma: 0.75

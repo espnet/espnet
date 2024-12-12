@@ -4,7 +4,7 @@ set -u
 set -o pipefail
 
 
-spk_config=conf/train_SKA_mel_spk_spf_pmos.yaml
+spk_config=conf/train_txfSKA_mel.yaml
 
 train_set="asvspoof5_train"
 valid_set="dev"
@@ -15,7 +15,7 @@ skip_train=false
 feats_type="raw"
 
 ngpu=1
-nj=8
+nj=4
 speed_perturb_factors=
 audio_format=flac
 inference_model=valid.a_dcf.best.pth
@@ -23,12 +23,16 @@ pretrained_model=9epoch.pth
 ignore_init_mismatch=true
 
 cos_sim=true
+
 multi_task=true
 sasv_task=true
 embed_avg=true
+
 no_labels=true
-pseudomos=true
-train_utt2pmos=/home/user/espnet/egs2/asvspoof5/spk1/data/asvspoof5_train/utt2pmos
+
+pseudomos=false
+
+precomputed_feats=true
 
 ./spk.sh \
     --feats_type ${feats_type} \
@@ -51,5 +55,5 @@ train_utt2pmos=/home/user/espnet/egs2/asvspoof5/spk1/data/asvspoof5_train/utt2pm
     --embed_avg ${embed_avg} \
     --no_labels ${no_labels} \
     --pseudomos ${pseudomos} \
-    --train_utt2pmos ${train_utt2pmos} \
+    --precomputed_feats ${precomputed_feats} \
     "$@"
