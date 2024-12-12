@@ -205,6 +205,7 @@ class RNNDecoder(AbsDecoder):
             batch_size,
             self.output_size,
             device=self.device,
+            dtype=self.embed.weight.dtype,
         )
 
         if self.dtype == "lstm":
@@ -213,6 +214,7 @@ class RNNDecoder(AbsDecoder):
                 batch_size,
                 self.output_size,
                 device=self.device,
+                dtype=self.embed.weight.dtype,
             )
 
             return (h_n, c_n)

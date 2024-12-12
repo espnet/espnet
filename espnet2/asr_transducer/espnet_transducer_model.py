@@ -6,6 +6,7 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import torch
 from packaging.version import parse as V
+from torchaudio.functional import rnnt_loss
 from typeguard import typechecked
 
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
@@ -164,6 +165,8 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
         speech_lengths: torch.Tensor,
         text: torch.Tensor,
         text_lengths: torch.Tensor,
+        return_encoder_states: bool = False,
+        return_decoder_states: bool = False,
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Forward architecture and compute loss(es).
@@ -281,7 +284,15 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
         # force_gatherable: to-device and to-tensor if scalar for DataParallel
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
 
-        return loss, stats, weight
+        return_list = [loss, stats, weight]
+
+        if return_encoder_states:
+            return_list.append(encoder_out)
+
+        if return_decoder_states:
+            return_list.append(decoder_out)
+
+        return return_list
 
     def collect_feats(
         self,
@@ -523,6 +534,7 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
                 rnnt_type=loss_type,
                 reduction=reduction,
                 return_grad=True,
+                delay_penalty=self.fastemit_lambda,
             )
 
         ranges = k2.get_rnnt_prune_ranges(
@@ -540,6 +552,21 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
 
         joint_out = self.joint_network(am_pruned, lm_pruned, no_projection=True)
 
+        # want to dump these to file
+        # import random
+        # if random.randint(0, 100)==0:
+        #     print('saving!')
+        #     import os
+        #     import pickle
+        #     outdir = '/home/jovyan/data/nhirschkind/joint_outputs'
+        #     existing_files = [int(x) for x in os.listdir(outdir)]
+        #     # if len(existing_files)==0:
+        #     new_fname = '0'
+        #     # else:
+        #     #     new_fname = str(max(existing_files) + 1)
+        #     with open(os.path.join(outdir, new_fname), 'wb') as openf:
+        #         pickle.dump(joint_out.detach().cpu().numpy(), openf)
+
         with autocast(False):
             pruned_loss = k2.rnnt_loss_pruned(
                 joint_out.float(),
@@ -549,6 +576,7 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
                 boundary,
                 rnnt_type=loss_type,
                 reduction=reduction,
+                delay_penalty=self.fastemit_lambda,
             )
 
         loss_transducer = (
