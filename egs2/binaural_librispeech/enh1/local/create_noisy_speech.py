@@ -17,13 +17,6 @@ def set_seed(seed):
     """
     print(f"Setting {seed=} for generation of noisy data.")
     random.seed(seed)
-    np.random.seed(seed)
-
-
-import librosa
-import numpy as np
-import soundfile as sf
-from tqdm import tqdm
 
 
 # Function to add noise to an audio file
@@ -48,9 +41,8 @@ def add_noise(audio, noise, snr_db):
     # Ensure noise and audio have the same length
     len_audio = audio.shape[-1]
     if len(noise) < len_audio:
-        noise = np.tile(scaled_noise, int(np.ceil(len_audio / len(scaled_noise))))[
-            :len_audio
-        ]
+        noise = np.tile(scaled_noise, 
+                        int(np.ceil(len_audio / len(scaled_noise))))[:len_audio]
     else:
         noise = scaled_noise[:len_audio]
 
@@ -93,7 +85,8 @@ def process_audio_file(args):
 
 
 # Function to process audio files
-def process_audio_files(audio_dir, noise_dir, output_dir, n_jobs, seed: int = 42):
+def process_audio_files(audio_dir, noise_dir, output_dir, n_jobs, 
+                        seed: int = 42):
     # Set seed
     set_seed(seed)
 
@@ -111,16 +104,20 @@ def process_audio_files(audio_dir, noise_dir, output_dir, n_jobs, seed: int = 42
     args = []
     for root, _, files in os.walk(audio_dir):
         for file in files:
-            if file.endswith(".flac"):  # Extend with other audio formats if needed
+            if file.endswith(".flac"):  
                 noise_file = random.choice(noise_files)
                 args.append(
-                    (os.path.join(root, file), noise_file, output_dir, audio_dir)
+                    (os.path.join(root, file), 
+                     noise_file, 
+                     output_dir, 
+                     audio_dir)
                 )
 
     # Use multiprocessing to process audio files
     pool = Pool(processes=n_jobs)
 
-    for _ in tqdm(pool.imap(func=process_audio_file, iterable=args), total=len(args)):
+    for _ in tqdm(pool.imap(func=process_audio_file, iterable=args), 
+                  total=len(args)):
         pass
 
     pool.close()
@@ -132,7 +129,8 @@ def process_audio_files(audio_dir, noise_dir, output_dir, n_jobs, seed: int = 42
 if __name__ == "__main__":
     if len(sys.argv) < 5:
         print(
-            "Usage: python create_noisy_speech.py <audio_dir> <noise_dir> <output_dir> <n_jobs> <seed>"
+            "Usage: python create_noisy_speech.py <audio_dir> <noise_dir>" 
+            " <output_dir> <n_jobs> <seed>"
         )
         sys.exit(1)
 
