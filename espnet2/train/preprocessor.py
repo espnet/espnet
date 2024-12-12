@@ -1955,8 +1955,8 @@ class SpkPreprocessor(CommonPreprocessor):
         super().__init__(train, rir_scp=rir_scp, rir_apply_prob=rir_apply_prob)
 
         self.embed_avg = embed_avg
-        self.spk2label = None      # a dictionary that maps string speaker label to int
-        self.spf2label = None      # a dictionary that maps string spoof label to int
+        self.spk2label = None  # a dictionary that maps string speaker label to int
+        self.spf2label = None  # a dictionary that maps string spoof label to int
         self.utt2pmoslabel = None  # a dictionary that maps string uttID to float pmos
         self.sample_rate = sample_rate
         self.target_duration = int(target_duration * sample_rate)
@@ -2246,7 +2246,9 @@ class SpkPreprocessor(CommonPreprocessor):
                 int_label = self.spf2label[data["spf_labels"]]
                 data["spf_labels"] = np.asarray([int_label], dtype=np.int64)
             if "pmos_labels" in data:
-                data["pmos_labels"] = np.asarray([data["pmos_labels"]], dtype=np.float32)
+                data["pmos_labels"] = np.asarray(
+                    [data["pmos_labels"]], dtype=np.float32
+                )
         else:
             data["spk_labels"] = np.asarray([int(data["spk_labels"])])
 

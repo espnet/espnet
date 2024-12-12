@@ -337,21 +337,24 @@ class cwSKAttention(nn.Module):
         V = (attention_weights * feats).sum(0)
         return V
 
+
 class PositionalEncoding(torch.nn.Module):
-    ''' Position Encoding from Attention Is All You Need Paper '''
+    """Position Encoding from Attention Is All You Need Paper"""
 
     def __init__(self, d_model, max_len=512):
         super().__init__()
 
         # Initialize a tensor to hold the positional encodings
-        pe          = torch.zeros(max_len, d_model)
+        pe = torch.zeros(max_len, d_model)
 
         # Create a tensor representing the positions (0 to max_len-1)
-        position    = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
+        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
 
         # Calculate the division term for the sine and cosine functions
         # This term creates a series of values that decrease geometrically, used to generate varying frequencies for positional encodings
-        div_term    = torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model))
+        div_term = torch.exp(
+            torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model)
+        )
 
         # Compute the positional encodings using sine and cosine functions
         pe[:, 0::2] = torch.sin(position * div_term)
@@ -362,32 +365,45 @@ class PositionalEncoding(torch.nn.Module):
         self.register_buffer("pe", pe)
 
     def forward(self, x):
-      return x + self.pe[:, :x.size(1)]
+        return x + self.pe[:, : x.size(1)]
+
 
 class DualInputTransformerLayer(nn.Module):
-    ''' Transformer Layer with dual input support '''
+    """Transformer Layer with dual input support"""
 
-    def __init__(self, d_model, attention_heads, ff_dim=2048, attention_dropout_rate=0.1, dropout_rate=0.1):
+    def __init__(
+        self,
+        d_model,
+        attention_heads,
+        ff_dim=2048,
+        attention_dropout_rate=0.1,
+        dropout_rate=0.1,
+    ):
         super().__init__()
-    
+
         # Multi-Head Self-Attention Layer
-        self.self_attn = nn.MultiheadAttention(embed_dim=d_model,
-                                                num_heads=attention_heads,
-                                                dropout=attention_dropout_rate,
-                                                batch_first=True)
+        self.self_attn = nn.MultiheadAttention(
+            embed_dim=d_model,
+            num_heads=attention_heads,
+            dropout=attention_dropout_rate,
+            batch_first=True,
+        )
         # Multi-Head Cross-Attention Layer
-        self.cross_attn = nn.MultiheadAttention(embed_dim=d_model,
-                                                num_heads=attention_heads,
-                                                dropout=attention_dropout_rate,
-                                                batch_first=True)
+        self.cross_attn = nn.MultiheadAttention(
+            embed_dim=d_model,
+            num_heads=attention_heads,
+            dropout=attention_dropout_rate,
+            batch_first=True,
+        )
 
         # Position-wise Feed-Forward Layer
         self.feed_forward = nn.Sequential(
             nn.Linear(d_model, ff_dim),
             nn.ReLU(),
             nn.Dropout(dropout_rate),
-            nn.Linear(ff_dim, d_model))
-        
+            nn.Linear(ff_dim, d_model),
+        )
+
         # Layer Normalization
         self.layer_norm1 = nn.LayerNorm(d_model)
         self.layer_norm2 = nn.LayerNorm(d_model)
@@ -397,9 +413,9 @@ class DualInputTransformerLayer(nn.Module):
         self.dropout1 = nn.Dropout(dropout_rate)
         self.dropout2 = nn.Dropout(dropout_rate)
         self.dropout3 = nn.Dropout(dropout_rate)
-    
+
     def padmask(self, padded_input, input_lengths=None):
-        """ Create a mask to identify non-padding positions.
+        """Create a mask to identify non-padding positions.
 
         Args:
             padded_input: The input tensor with padding, shape (N, T, ...)
@@ -409,10 +425,14 @@ class DualInputTransformerLayer(nn.Module):
             A mask tensor with shape (N, T), where padding positions are marked with 1 and non-padding positions are marked with 0.
         """
         N, T, _ = padded_input.shape
-        mask = torch.ones((N, T), dtype=torch.bool, device=padded_input.device) # Initialize mask with True
+        mask = torch.ones(
+            (N, T), dtype=torch.bool, device=padded_input.device
+        )  # Initialize mask with True
         if input_lengths is not None:
             for i in range(N):
-                mask[i, :input_lengths[i]] = False       # Set non-padding positions to False
+                mask[i, : input_lengths[i]] = (
+                    False  # Set non-padding positions to False
+                )
         else:
             raise ValueError("input_lengths must be provided")
 
@@ -423,28 +443,34 @@ class DualInputTransformerLayer(nn.Module):
         residual = x
 
         # Self-Attention
-        self_attn_output , self_attn_weights = self.self_attn(query=x,
-                                                                key=x,
-                                                                value=x,
-                                                                key_padding_mask=None,
-                                                                need_weights=True,
-                                                                attn_mask=None,
-                                                                average_attn_weights=True,
-                                                                is_causal=False)
+        self_attn_output, self_attn_weights = self.self_attn(
+            query=x,
+            key=x,
+            value=x,
+            key_padding_mask=None,
+            need_weights=True,
+            attn_mask=None,
+            average_attn_weights=True,
+            is_causal=False,
+        )
         self_attn_output = self.dropout1(self_attn_output)
         x = self.layer_norm1(residual + self_attn_output)
         residual = x
 
         # Cross-Attention
-        cross_attn_key_mask = self.padmask(padded_input=precomp_x, input_lengths=precomp_x_lengths)
-        cross_attn_output , cross_attn_weights = self.cross_attn(query=x,
-                                                                key=precomp_x,
-                                                                value=precomp_x,
-                                                                key_padding_mask=cross_attn_key_mask,
-                                                                need_weights=True,
-                                                                attn_mask=None,
-                                                                average_attn_weights=True,
-                                                                is_causal=False)
+        cross_attn_key_mask = self.padmask(
+            padded_input=precomp_x, input_lengths=precomp_x_lengths
+        )
+        cross_attn_output, cross_attn_weights = self.cross_attn(
+            query=x,
+            key=precomp_x,
+            value=precomp_x,
+            key_padding_mask=cross_attn_key_mask,
+            need_weights=True,
+            attn_mask=None,
+            average_attn_weights=True,
+            is_causal=False,
+        )
         cross_attn_output = self.dropout2(cross_attn_output)
         x = self.layer_norm2(residual + cross_attn_output)
         residual = x
@@ -456,25 +482,36 @@ class DualInputTransformerLayer(nn.Module):
 
         return x, self_attn_weights, cross_attn_weights
 
-class SingleInputTransformerLayer(nn.Module):
-    ''' Transformer Layer with single input support '''
 
-    def __init__(self, d_model, attention_heads, ff_dim=2048, attention_dropout_rate=0.1, dropout_rate=0.1):
+class SingleInputTransformerLayer(nn.Module):
+    """Transformer Layer with single input support"""
+
+    def __init__(
+        self,
+        d_model,
+        attention_heads,
+        ff_dim=2048,
+        attention_dropout_rate=0.1,
+        dropout_rate=0.1,
+    ):
         super().__init__()
-    
+
         # Multi-Head Self-Attention Layer
-        self.self_attn = nn.MultiheadAttention(embed_dim=d_model,
-                                                num_heads=attention_heads,
-                                                dropout=attention_dropout_rate,
-                                                batch_first=True)
+        self.self_attn = nn.MultiheadAttention(
+            embed_dim=d_model,
+            num_heads=attention_heads,
+            dropout=attention_dropout_rate,
+            batch_first=True,
+        )
 
         # Position-wise Feed-Forward Layer
         self.feed_forward = nn.Sequential(
             nn.Linear(d_model, ff_dim),
             nn.ReLU(),
             nn.Dropout(dropout_rate),
-            nn.Linear(ff_dim, d_model))
-        
+            nn.Linear(ff_dim, d_model),
+        )
+
         # Layer Normalization
         self.layer_norm1 = nn.LayerNorm(d_model)
         self.layer_norm2 = nn.LayerNorm(d_model)
@@ -488,14 +525,16 @@ class SingleInputTransformerLayer(nn.Module):
         residual = x
 
         # Self-Attention
-        self_attn_output , self_attn_weights = self.self_attn(query=x,
-                                                                key=x,
-                                                                value=x,
-                                                                key_padding_mask=None,
-                                                                need_weights=True,
-                                                                attn_mask=None,
-                                                                average_attn_weights=True,
-                                                                is_causal=False)
+        self_attn_output, self_attn_weights = self.self_attn(
+            query=x,
+            key=x,
+            value=x,
+            key_padding_mask=None,
+            need_weights=True,
+            attn_mask=None,
+            average_attn_weights=True,
+            is_causal=False,
+        )
         self_attn_output = self.dropout1(self_attn_output)
         x = self.layer_norm1(residual + self_attn_output)
         residual = self_attn_output
@@ -506,6 +545,7 @@ class SingleInputTransformerLayer(nn.Module):
         x = self.layer_norm2(residual + feed_forward_output)
 
         return x, self_attn_weights
+
 
 class TxfSkaTdnnEncoder(AbsEncoder):
     """SKA-TDNN encoder with transformer layers.
@@ -527,17 +567,17 @@ class TxfSkaTdnnEncoder(AbsEncoder):
         model_scale: int = 8,
         skablock: str = "ResBlock",
         ska_dim: int = 128,
-        output_size: int = 1536, 
-        oned_module: str = "tdnn", # 1dmodule can take: transfromer, tdnn
-        precomp_input_stage = "none", # precomp_input_stage can take: oned, none
-        precomp_dim: int = 2048, # dimension of the precomputed frame-level features
-        num_blocks: int = 6, # number of transformer blocks
-        d_model: int = 512, # dimension of the model
-        attention_heads: int = 8, # number of attention heads
-        ff_dim: int = 2048, # dimension of the feedforward network model
-        attention_dropout_rate: float = 0.1, # dropout rate for the attention layer
-        dropout_rate: float = 0.1, # dropout rate for the model
-        max_len: int = 512, # maximum length of the input sequence
+        output_size: int = 1536,
+        oned_module: str = "tdnn",  # 1dmodule can take: transfromer, tdnn
+        precomp_input_stage="none",  # precomp_input_stage can take: oned, none
+        precomp_dim: int = 2048,  # dimension of the precomputed frame-level features
+        num_blocks: int = 6,  # number of transformer blocks
+        d_model: int = 512,  # dimension of the model
+        attention_heads: int = 8,  # number of attention heads
+        ff_dim: int = 2048,  # dimension of the feedforward network model
+        attention_dropout_rate: float = 0.1,  # dropout rate for the attention layer
+        dropout_rate: float = 0.1,  # dropout rate for the model
+        max_len: int = 512,  # maximum length of the input sequence
         **kwargs,
     ):
         super().__init__()
@@ -554,13 +594,17 @@ class TxfSkaTdnnEncoder(AbsEncoder):
 
         self.oned_module = oned_module
         if self.oned_module != "tdnn" and self.oned_module != "transformer":
-            raise ValueError(f"unsupported oned_module, got: {self.oned_module}, should be tdnn or transformer")
-        
+            raise ValueError(
+                f"unsupported oned_module, got: {self.oned_module}, should be tdnn or transformer"
+            )
+
         self.precomp_input_stage = precomp_input_stage
         if self.precomp_input_stage != "none" and self.precomp_input_stage != "oned":
-            raise ValueError(f"unsupported precomp_input_stage, got: {precomp_input_stage}, should be none or oned")     
+            raise ValueError(
+                f"unsupported precomp_input_stage, got: {precomp_input_stage}, should be none or oned"
+            )
 
-        self.precomp_dim = precomp_dim       
+        self.precomp_dim = precomp_dim
 
         self.frt_conv1 = nn.Conv2d(
             1, ska_dim, kernel_size=(3, 3), stride=(2, 1), padding=1
@@ -592,45 +636,67 @@ class TxfSkaTdnnEncoder(AbsEncoder):
             )
             self.bn1 = nn.BatchNorm1d(ndim)
 
-            self.tdnn_layer1 = block(ndim, ndim, kernel_size=3, dilation=2, scale=model_scale)
-            self.tdnn_layer2 = block(ndim, ndim, kernel_size=3, dilation=3, scale=model_scale)
-            self.tdnn_layer3 = block(ndim, ndim, kernel_size=3, dilation=4, scale=model_scale)
+            self.tdnn_layer1 = block(
+                ndim, ndim, kernel_size=3, dilation=2, scale=model_scale
+            )
+            self.tdnn_layer2 = block(
+                ndim, ndim, kernel_size=3, dilation=3, scale=model_scale
+            )
+            self.tdnn_layer3 = block(
+                ndim, ndim, kernel_size=3, dilation=4, scale=model_scale
+            )
             self.tdnn_layer4 = nn.Conv1d(3 * ndim, output_size, kernel_size=1)
 
         elif self.oned_module == "transformer":
-            self.positional_encoding = PositionalEncoding(d_model=d_model, max_len=max_len)
+            self.positional_encoding = PositionalEncoding(
+                d_model=d_model, max_len=max_len
+            )
 
-            self.x_embedding_conv = nn.Conv1d(in_channels=(ska_dim * input_size // 4),
-                                        out_channels=d_model,
-                                        kernel_size=3,
-                                        stride=1,
-                                        padding=1)
-            self.precomp_embedding_conv = nn.Conv1d(in_channels=precomp_dim,
-                                            out_channels=d_model,
-                                                kernel_size=3,
-                                                stride=2,
-                                                padding=1)
+            self.x_embedding_conv = nn.Conv1d(
+                in_channels=(ska_dim * input_size // 4),
+                out_channels=d_model,
+                kernel_size=3,
+                stride=1,
+                padding=1,
+            )
+            self.precomp_embedding_conv = nn.Conv1d(
+                in_channels=precomp_dim,
+                out_channels=d_model,
+                kernel_size=3,
+                stride=2,
+                padding=1,
+            )
 
         if self.oned_module == "transformer" and self.precomp_input_stage == "oned":
-            self.transformer_layers = nn.ModuleList([
-                DualInputTransformerLayer(d_model=d_model,
-                                attention_heads=attention_heads,
-                                ff_dim=ff_dim,
-                                attention_dropout_rate=attention_dropout_rate,
-                                dropout_rate=dropout_rate)
-                for _ in range(num_blocks)
-            ])
+            self.transformer_layers = nn.ModuleList(
+                [
+                    DualInputTransformerLayer(
+                        d_model=d_model,
+                        attention_heads=attention_heads,
+                        ff_dim=ff_dim,
+                        attention_dropout_rate=attention_dropout_rate,
+                        dropout_rate=dropout_rate,
+                    )
+                    for _ in range(num_blocks)
+                ]
+            )
         elif self.oned_module == "transformer" and self.precomp_input_stage == "none":
-            self.transformer_layers = nn.ModuleList([
-                SingleInputTransformerLayer(d_model=d_model,
-                                attention_heads=attention_heads,
-                                ff_dim=ff_dim,
-                                attention_dropout_rate=attention_dropout_rate,
-                                dropout_rate=dropout_rate)
-                for _ in range(num_blocks)
-            ])
+            self.transformer_layers = nn.ModuleList(
+                [
+                    SingleInputTransformerLayer(
+                        d_model=d_model,
+                        attention_heads=attention_heads,
+                        ff_dim=ff_dim,
+                        attention_dropout_rate=attention_dropout_rate,
+                        dropout_rate=dropout_rate,
+                    )
+                    for _ in range(num_blocks)
+                ]
+            )
         else:
-            raise ValueError(f"unsupported oned_module and precomp_input_stage combination, got: {self.oned_module} and {self.precomp_input_stage}, should be transformer and oned or none")
+            raise ValueError(
+                f"unsupported oned_module and precomp_input_stage combination, got: {self.oned_module} and {self.precomp_input_stage}, should be transformer and oned or none"
+            )
         self.transformer_final_layer = nn.Linear(d_model, output_size)
 
         self._output_size = output_size
@@ -638,44 +704,57 @@ class TxfSkaTdnnEncoder(AbsEncoder):
     def output_size(self) -> int:
         return self._output_size
 
-    def forward(self, x: torch.Tensor, precomp_x: torch.Tensor = None, precomp_x_lengths: torch.Tensor = None):
+    def forward(
+        self,
+        x: torch.Tensor,
+        precomp_x: torch.Tensor = None,
+        precomp_x_lengths: torch.Tensor = None,
+    ):
         if self.precomp_input_stage != "none":
             if precomp_x is None:
-                raise ValueError("Precomputed frame-level features are required for this encoder")
+                raise ValueError(
+                    "Precomputed frame-level features are required for this encoder"
+                )
             precomp_x_dim = precomp_x.size()[-1]
         x = x.permute(0, 2, 1)  # (B, T, F) -> (B, F, T)
         x = x.unsqueeze(1)  # (B, F, T) -> (B, 1, F, T)
 
         # the fcwSKA block
-        x = self.frt_conv1(x) # (B, 1, F, T) -> (B, ska_dim, F/2, T)
+        x = self.frt_conv1(x)  # (B, 1, F, T) -> (B, ska_dim, F/2, T)
         x = self.relu(x)
         x = self.frt_bn1(x)
         x = self.frt_block1(x)
         x = self.frt_block2(x)
-        x = self.frt_conv2(x) # (B, ska_dim, F/2, T) -> (B, ska_dim, F/4, T/2)
+        x = self.frt_conv2(x)  # (B, ska_dim, F/2, T) -> (B, ska_dim, F/4, T/2)
         x = self.relu(x)
         x = self.frt_bn2(x)
-        x = x.reshape((x.size()[0], -1, x.size()[-1])) # (B, ska_dim, F/4, T/2) -> (B, ska_dim*F/4, T/2)
+        x = x.reshape(
+            (x.size()[0], -1, x.size()[-1])
+        )  # (B, ska_dim, F/4, T/2) -> (B, ska_dim*F/4, T/2)
 
         if self.oned_module == "tdnn":
             if self.precomp_input_stage == "none":
-                x = self.conv1(x) # (B, ska_dim*F/4, T/2) -> (B, ndim, T/2)
+                x = self.conv1(x)  # (B, ska_dim*F/4, T/2) -> (B, ndim, T/2)
                 x = self.relu(x)
                 x = self.bn1(x)
                 x1 = self.tdnn_layer1(x)
                 x2 = self.tdnn_layer2(x + x1)
                 x3 = self.tdnn_layer3(x + x1 + x2)
-                x = self.tdnn_layer4(torch.cat((x1, x2, x3), dim=1)) # (B, 3*ndim, T/2) -> (B, output_size, T/2)
+                x = self.tdnn_layer4(
+                    torch.cat((x1, x2, x3), dim=1)
+                )  # (B, 3*ndim, T/2) -> (B, output_size, T/2)
                 x = self.relu(x)
                 return x
 
             elif self.precomp_input_stage == "oned":
-                raise NotImplementedError("Precomputed frame-level features are not supported for TDNN module")
-        
+                raise NotImplementedError(
+                    "Precomputed frame-level features are not supported for TDNN module"
+                )
+
         elif self.oned_module == "transformer":
             attn_weights = {}
-            x = self.x_embedding_conv(x) # (B, ska_dim*F/4, T/2) -> (B, d_model, T/2)
-            x = x.permute(0, 2, 1) # (B, d_model, T/2) -> (B, T/2, d_model)
+            x = self.x_embedding_conv(x)  # (B, ska_dim*F/4, T/2) -> (B, d_model, T/2)
+            x = x.permute(0, 2, 1)  # (B, d_model, T/2) -> (B, T/2, d_model)
             x = self.positional_encoding(x)
 
             if self.precomp_input_stage == "none":
@@ -683,25 +762,41 @@ class TxfSkaTdnnEncoder(AbsEncoder):
                     x, self_attn_weights = layer(x)
                     attn_weights[f"layer_{i}_self_attn"] = self_attn_weights
 
-                x = self.transformer_final_layer(x) # (B, T/2, d_model) -> (B, T/2, output_size)
-                x = x.permute(0, 2, 1) # (B, T/2, output_size) -> (B, output_size, T/2)
+                x = self.transformer_final_layer(
+                    x
+                )  # (B, T/2, d_model) -> (B, T/2, output_size)
+                x = x.permute(0, 2, 1)  # (B, T/2, output_size) -> (B, output_size, T/2)
                 return x, attn_weights
             elif self.precomp_input_stage == "oned":
-                precomp_x = precomp_x.permute(0, 2, 1)  # (B, T_feat, precomp_dim) -> (B, precomp_dim, T_feat)
-                precomp_x = self.precomp_embedding_conv(precomp_x) # (B, precomp_dim, T_feat) -> (B, d_model, T_feat/2)
-                precomp_x = precomp_x.permute(0, 2, 1)  # (B, d_model, T_feat/2) -> (B, T_feat/2, d_model)
+                precomp_x = precomp_x.permute(
+                    0, 2, 1
+                )  # (B, T_feat, precomp_dim) -> (B, precomp_dim, T_feat)
+                precomp_x = self.precomp_embedding_conv(
+                    precomp_x
+                )  # (B, precomp_dim, T_feat) -> (B, d_model, T_feat/2)
+                precomp_x = precomp_x.permute(
+                    0, 2, 1
+                )  # (B, d_model, T_feat/2) -> (B, T_feat/2, d_model)
                 precomp_x = self.positional_encoding(precomp_x)
 
                 for i, layer in enumerate(self.transformer_layers):
-                    x, self_attn_weights, cross_attn_weights = layer(x, precomp_x, precomp_x_lengths)
+                    x, self_attn_weights, cross_attn_weights = layer(
+                        x, precomp_x, precomp_x_lengths
+                    )
                     attn_weights[f"layer_{i}_self_attn"] = self_attn_weights
                     attn_weights[f"layer_{i}_cross_attn"] = cross_attn_weights
 
-                x = self.transformer_final_layer(x) # (B, T/2, d_model) -> (B, T/2, output_size)
-                x = x.permute(0, 2, 1) # (B, T/2, output_size) -> (B, output_size, T/2)
+                x = self.transformer_final_layer(
+                    x
+                )  # (B, T/2, d_model) -> (B, T/2, output_size)
+                x = x.permute(0, 2, 1)  # (B, T/2, output_size) -> (B, output_size, T/2)
                 return x, attn_weights
             else:
-                raise ValueError(f"unsupported precomp_input_stage, got: {self.precomp_input_stage}, should be none or oned")
-                
+                raise ValueError(
+                    f"unsupported precomp_input_stage, got: {self.precomp_input_stage}, should be none or oned"
+                )
+
         else:
-            raise ValueError(f"unsupported oned_module, got: {self.oned_module}, should be tdnn or transformer")
+            raise ValueError(
+                f"unsupported oned_module, got: {self.oned_module}, should be tdnn or transformer"
+            )

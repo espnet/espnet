@@ -80,7 +80,7 @@ class ESPnetSpeakerModel(AbsESPnetModel):
     ) -> Union[
         Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor],
         Tuple[torch.Tensor, Dict[str, torch.Tensor]],
-        torch.Tensor
+        torch.Tensor,
     ]:
         """Feed-forward through encoder layers and aggregate into utterance-level
 
@@ -113,7 +113,6 @@ class ESPnetSpeakerModel(AbsESPnetModel):
             )
         batch_size = speech.shape[0]
 
-
         if precomp_frame_feats is None or precomp_frame_feats_lengths is None:
             precomp_frame_feats = kwargs.get("frame_feats", None)
             precomp_frame_feats_lengths = kwargs.get("frame_feats_lengths", None)
@@ -122,7 +121,9 @@ class ESPnetSpeakerModel(AbsESPnetModel):
         # Will do nothing for raw waveform-based models (e.g., RawNets)
         feats, _ = self.extract_feats(speech, None)
 
-        frame_level_feats = self.encode_frame(feats, precomp_frame_feats, precomp_frame_feats_lengths)
+        frame_level_feats = self.encode_frame(
+            feats, precomp_frame_feats, precomp_frame_feats_lengths
+        )
         if isinstance(frame_level_feats, tuple):
             frame_level_feats, attention_weights = frame_level_feats
 
@@ -135,7 +136,9 @@ class ESPnetSpeakerModel(AbsESPnetModel):
         if extract_embd and not return_attention_weights:
             return spk_embd
         elif extract_embd and return_attention_weights:
-            assert attention_weights is not None, "Attention weights are None, cannot return"
+            assert (
+                attention_weights is not None
+            ), "Attention weights are None, cannot return"
             return spk_embd, attention_weights
 
         # 4. calculate loss
@@ -149,13 +152,18 @@ class ESPnetSpeakerModel(AbsESPnetModel):
                 assert spf_labels is not None, "spf_labels is None, cannot compute loss"
                 labels.append(spf_labels)
             elif loss_names[i] == "pmos":
-                assert pmos_labels is not None, "pmos_labels is None, cannot compute loss"
+                assert (
+                    pmos_labels is not None
+                ), "pmos_labels is None, cannot compute loss"
                 labels.append(pmos_labels)
             else:
                 raise NotImplementedError(f"Loss name {loss_names[i]} is not supported")
-            
+
         assert len(self.loss) == len(labels), "Number of losses and labels do not match"
-        losses = [loss_fn(spk_embd, label.squeeze()) for loss_fn, label in zip(self.loss, labels)]
+        losses = [
+            loss_fn(spk_embd, label.squeeze())
+            for loss_fn, label in zip(self.loss, labels)
+        ]
 
         # calculate weighted sum of losses
         if self.loss_weights is not None:
@@ -164,14 +172,13 @@ class ESPnetSpeakerModel(AbsESPnetModel):
             loss = sum(losses)
 
         # Prepare stats dictionary
-        stats = {f"{name}_loss": loss.detach() 
-                for name, loss in zip(loss_names, losses)}
+        stats = {
+            f"{name}_loss": loss.detach() for name, loss in zip(loss_names, losses)
+        }
         stats["loss"] = loss.detach()
 
         # Make gathered results
-        loss, stats, weight = force_gatherable(
-            (loss, stats, batch_size), loss.device
-        )
+        loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
         return loss, stats, weight
 
     def extract_feats(
@@ -201,9 +208,16 @@ class ESPnetSpeakerModel(AbsESPnetModel):
 
         return feats, feat_lengths
 
-    def encode_frame(self, feats: torch.Tensor, precomp_frame_feats: torch.Tensor, precomp_frame_feats_lengths: torch.Tensor) -> torch.Tensor:
+    def encode_frame(
+        self,
+        feats: torch.Tensor,
+        precomp_frame_feats: torch.Tensor,
+        precomp_frame_feats_lengths: torch.Tensor,
+    ) -> torch.Tensor:
         if precomp_frame_feats is not None:
-            frame_level_feats = self.encoder(feats, precomp_frame_feats, precomp_frame_feats_lengths)
+            frame_level_feats = self.encoder(
+                feats, precomp_frame_feats, precomp_frame_feats_lengths
+            )
         else:
             frame_level_feats = self.encoder(feats)
 

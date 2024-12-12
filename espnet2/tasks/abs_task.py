@@ -24,24 +24,24 @@ from typeguard import typechecked
 
 from espnet import __version__
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
+from espnet2.iterators.binary_task_category_iter_factory import (
+    BinaryTaskCategoryIterFactory,
+)
 from espnet2.iterators.category_chunk_iter_factory import CategoryChunkIterFactory
 from espnet2.iterators.category_iter_factory import CategoryIterFactory
 from espnet2.iterators.chunk_iter_factory import ChunkIterFactory
 from espnet2.iterators.multiple_iter_factory import MultipleIterFactory
 from espnet2.iterators.sequence_iter_factory import SequenceIterFactory
-from espnet2.iterators.binary_task_category_iter_factory import (
-    BinaryTaskCategoryIterFactory,
-)
 from espnet2.layers.create_adapter import create_adapter
 from espnet2.main_funcs.collect_stats import collect_stats
 from espnet2.optimizers.optim_groups import configure_optimizer
 from espnet2.optimizers.sgd import SGD
-from espnet2.samplers.build_batch_sampler import BATCH_TYPES, build_batch_sampler
-from espnet2.samplers.category_balanced_sampler import CategoryBalancedSampler
-from espnet2.samplers.unsorted_batch_sampler import UnsortedBatchSampler
 from espnet2.samplers.binary_task_category_balanced_sampler import (
     BinaryTaskCategoryBalancedSampler,
 )
+from espnet2.samplers.build_batch_sampler import BATCH_TYPES, build_batch_sampler
+from espnet2.samplers.category_balanced_sampler import CategoryBalancedSampler
+from espnet2.samplers.unsorted_batch_sampler import UnsortedBatchSampler
 from espnet2.schedulers.cosine_anneal_warmup_restart import (
     CosineAnnealingWarmupRestarts,
 )

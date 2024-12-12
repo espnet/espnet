@@ -165,10 +165,10 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     log "Computing UTMOS pseudomos scores"
 
     for x in "asvspoof5_train" "dev"; do
-        if [ ! -d "${utmos_pseudomos_dir}/${x}" ]; then   
+        if [ ! -d "${utmos_pseudomos_dir}/${x}" ]; then
             mkdir -p ${utmos_pseudomos_dir}/${x}
             python3 pyscripts/utils/evaluate_pseudomos.py "${data_dir_prefix}/spk1/data/${x}/wav.scp" --outdir ${utmos_pseudomos_dir}/${x} --batchsize 4
-        
+
         else
             log "${utmos_pseudomos_dir}/${x} exists. Skip computing UTMOS pseudomos scores."
         fi

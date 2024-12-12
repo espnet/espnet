@@ -3,10 +3,12 @@ Source code from:
 https://github.com/clovaai/voxceleb_trainer/blob/master/tuneThreshold.py
 """
 
-from operator import itemgetter
 from dataclasses import dataclass
+from operator import itemgetter
+
 import numpy
 from sklearn import metrics
+
 
 @dataclass
 class SASVCostModel:
@@ -17,6 +19,7 @@ class SASVCostModel:
     Cmiss: float = 1
     Cfa_asv: float = 10
     Cfa_cm: float = 10
+
 
 def tuneThresholdfromScore(scores, labels, target_fa, target_fr=None):
     fpr, tpr, thresholds = metrics.roc_curve(labels, scores, pos_label=1)

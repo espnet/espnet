@@ -14,11 +14,12 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 import torch.optim
-from torch.nn.utils.rnn import pad_sequence
 from a_dcf import a_dcf
+from torch.nn.utils.rnn import pad_sequence
 from tqdm import tqdm
 from typeguard import typechecked
 
+from espnet2.spk.spk_utils import plot_attention_weights
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.train.distributed_utils import DistributedOption
 from espnet2.train.reporter import SubReporter
@@ -29,7 +30,6 @@ from espnet2.utils.eer import (
     SASVCostModel,
     tuneThresholdfromScore,
 )
-from espnet2.spk.spk_utils import plot_attention_weights
 
 if torch.distributed.is_available():
     from torch.distributed import ReduceOp
@@ -116,9 +116,9 @@ class SpkTrainer(Trainer):
                 assert "speech4" in batch
                 embed_avg = True
 
-            if 'frame_feats1' and 'frame_feats2' in batch:
+            if "frame_feats1" and "frame_feats2" in batch:
                 precomputed_feats = True
-                if 'frame_feats3' and 'frame_feats4' in batch:
+                if "frame_feats3" and "frame_feats4" in batch:
                     embed_avg = True
             else:
                 precomputed_feats = False
@@ -157,7 +157,21 @@ class SpkTrainer(Trainer):
                             to_device(_speech4, "cuda" if ngpu > 0 else "cpu")
                         )
             elif embed_avg and precomputed_feats:
-                for _utt_id, _speech, _speech2, _speech3, _speech4, _feats1, _feats2, _feats3, _feats4, _feats1_lengths, _feats2_lengths, _feats3_lengths, _feats4_lengths in zip(
+                for (
+                    _utt_id,
+                    _speech,
+                    _speech2,
+                    _speech3,
+                    _speech4,
+                    _feats1,
+                    _feats2,
+                    _feats3,
+                    _feats4,
+                    _feats1_lengths,
+                    _feats2_lengths,
+                    _feats3_lengths,
+                    _feats4_lengths,
+                ) in zip(
                     utt_id,
                     batch["speech"],
                     batch["speech2"],
@@ -170,8 +184,8 @@ class SpkTrainer(Trainer):
                     batch["frame_feats1_lengths"],
                     batch["frame_feats2_lengths"],
                     batch["frame_feats3_lengths"],
-                    batch["frame_feats4_lengths"]
-                ):  
+                    batch["frame_feats4_lengths"],
+                ):
                     _utt_id_1, _utt_id_2 = _utt_id.split("*")
                     # speech, speech2 and speech3 are enrollment utterances for the speaker whose
                     # speakerid is _utt_id_1 and speech4 is the test utterance
@@ -222,14 +236,22 @@ class SpkTrainer(Trainer):
                             to_device(_feats4_lengths, "cuda" if ngpu > 0 else "cpu")
                         )
             elif not embed_avg and precomputed_feats:
-                for _utt_id, _speech, _speech2, _feats1, _feats2, _feats1_lengths, _feats2_lengths in zip(
+                for (
+                    _utt_id,
+                    _speech,
+                    _speech2,
+                    _feats1,
+                    _feats2,
+                    _feats1_lengths,
+                    _feats2_lengths,
+                ) in zip(
                     utt_id,
                     batch["speech"],
                     batch["speech2"],
                     batch["frame_feats1"],
                     batch["frame_feats2"],
                     batch["frame_feats1_lengths"],
-                    batch["frame_feats2_lengths"]
+                    batch["frame_feats2_lengths"],
                 ):
                     _utt_id_1, _utt_id_2 = _utt_id.split("*")
                     if _utt_id_1 not in utt_id_list:
@@ -272,7 +294,11 @@ class SpkTrainer(Trainer):
 
             assert len(utt_id_list) == len(speech_list)
             if precomputed_feats:
-                assert len(utt_id_list) == len(precomp_feats_list) == len(precomp_feats_lengths_list)
+                assert (
+                    len(utt_id_list)
+                    == len(precomp_feats_list)
+                    == len(precomp_feats_lengths_list)
+                )
 
             # extract speaker embeddings.
             n_utt = len(utt_id_list)
@@ -289,7 +315,11 @@ class SpkTrainer(Trainer):
                     _feats = pad_sequence(_feats, batch_first=True, padding_value=0.0)
                     _feats = to_device(_feats, "cuda" if ngpu > 0 else "cpu")
                     _feats_lengths = precomp_feats_lengths_list[ii : ii + bs]
-                    _feats_lengths = torch.tensor(_feats_lengths, dtype=torch.int32, device="cuda" if ngpu > 0 else "cpu")
+                    _feats_lengths = torch.tensor(
+                        _feats_lengths,
+                        dtype=torch.int32,
+                        device="cuda" if ngpu > 0 else "cpu",
+                    )
 
                 if task_token is None:
                     task_tokens = None
@@ -298,7 +328,7 @@ class SpkTrainer(Trainer):
                         task_token.repeat(_speechs.size(0)),
                         "cuda" if ngpu > 0 else "cpu",
                     ).unsqueeze(1)
-                
+
                 if not precomputed_feats:
                     spk_embds = model(
                         speech=_speechs,
@@ -314,12 +344,11 @@ class SpkTrainer(Trainer):
                         task_tokens=task_tokens,
                         precomp_frame_feats=_feats,
                         precomp_frame_feats_lengths=_feats_lengths,
-                        return_attention_weights=True
+                        return_attention_weights=True,
                     )
                 attention_weights = attn_weights
                 spk_embds = F.normalize(spk_embds, p=2, dim=1)
                 spk_embds = spk_embds.view(org_shape[0], org_shape[1], -1)
-
 
                 for _utt_id, _spk_embd in zip(_utt_ids, spk_embds):
                     if embed_avg:
@@ -344,7 +373,7 @@ class SpkTrainer(Trainer):
             del speech_list
             del precomp_feats_list
             del precomp_feats_lengths_list
-        
+
         torch.cuda.empty_cache()
 
         # Compute the average embedding for each speaker
@@ -522,7 +551,9 @@ class SpkTrainer(Trainer):
 
             # save attention weights plot
             if attention_weights is not None:
-                plot_attention_weights(attention_weights, save_dir=f"{output_dir}/attention_plots")
+                plot_attention_weights(
+                    attention_weights, save_dir=f"{output_dir}/attention_plots"
+                )
 
             reporter.register(
                 stats=dict(

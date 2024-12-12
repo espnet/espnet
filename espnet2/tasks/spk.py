@@ -349,7 +349,7 @@ class SpeakerTask(AbsTask):
             "frame_feats1",
             "frame_feats2",
             "frame_feats3",
-            "frame_feats4"
+            "frame_feats4",
         )
 
         return retval
@@ -417,7 +417,7 @@ class SpeakerTask(AbsTask):
                     nclasses=nclasses,
                     **loss_conf,
                 )
-            else: # mse has no classes
+            else:  # mse has no classes
                 loss = loss_class(
                     nout=projector_output_size,
                     **loss_conf,

@@ -4,8 +4,9 @@
 # <utt_id> <absolute_path_to_npy_file>
 
 
-import os
 import argparse
+import os
+
 from tqdm import tqdm
 
 
@@ -13,8 +14,12 @@ def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--input_dir", type=str, help="Input directory")
     parser.add_argument("--output_dir", type=str, help="Output directory")
-    parser.add_argument("--trial", type=str, required=True, help="path to the trial file")
-    parser.add_argument("--enroll", type=str, required=True, help="path to the enrollment file")
+    parser.add_argument(
+        "--trial", type=str, required=True, help="path to the trial file"
+    )
+    parser.add_argument(
+        "--enroll", type=str, required=True, help="path to the enrollment file"
+    )
     parser.add_argument("--task", type=str, required=True, help="Task: dev or eval")
     return parser.parse_args()
 
@@ -32,8 +37,10 @@ def main():
             for file in tqdm(files):
                 if file.endswith(".npy"):
                     utt_id = file.split(".")[0]
-                    f_feats.write(f"{utt_id} {os.path.abspath(os.path.join(root, file))}\n")
-    
+                    f_feats.write(
+                        f"{utt_id} {os.path.abspath(os.path.join(root, file))}\n"
+                    )
+
     print("feats.scp file created successfully!")
 
     # read the enroll file
@@ -43,7 +50,7 @@ def main():
     # read the trial file
     with open(trial_file, "r") as f:
         lines_trial_org = f.readlines()
-    
+
     # create a dictionary of feats.scp file
     scp_dict = {}
     with open(os.path.join(output_dir, "feats.scp"), "r") as f:
@@ -66,12 +73,12 @@ def main():
             enroll_utt.extend([enroll_utt[-1]] * (3 - len(enroll_utt)))
         enroll_dict[speakerID] = enroll_utt
 
-    
     # make feats1.scp, feats2.scp, feats3.scp, feats4.scp
     with open(os.path.join(output_dir, "feats1.scp"), "w") as f_feats1, open(
-        os.path.join(output_dir, "feats2.scp"), "w") as f_feats2, open(
-            os.path.join(output_dir, "feats3.scp"), "w") as f_feats3, open(
-                os.path.join(output_dir, "feats4.scp"), "w") as f_feats4:
+        os.path.join(output_dir, "feats2.scp"), "w"
+    ) as f_feats2, open(os.path.join(output_dir, "feats3.scp"), "w") as f_feats3, open(
+        os.path.join(output_dir, "feats4.scp"), "w"
+    ) as f_feats4:
         for tr in lines_trial_org:
             if args.task == "dev":
                 enrolled_speaker, test_utt, label = tr.strip().split()

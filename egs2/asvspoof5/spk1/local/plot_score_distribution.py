@@ -7,11 +7,12 @@
 # <enrollment_id> <test_id> <score> <class>
 
 import sys
+from dataclasses import dataclass
 
 import matplotlib.pyplot as plt
 import numpy as np
 from a_dcf import a_dcf
-from dataclasses import dataclass
+
 
 @dataclass
 class SASVCostModel:
@@ -22,6 +23,7 @@ class SASVCostModel:
     Cmiss: float = 1
     Cfa_asv: float = 10
     Cfa_cm: float = 10
+
 
 def plot_distribution(score_file, metadata_file):
     # compute the a-dcf
@@ -69,7 +71,11 @@ def plot_distribution(score_file, metadata_file):
     # the spoofingtypes are: A09, A10, A11, A12, A13, A14, A15, A16
     # we will plot the distribution of scores for each spoofingtype, on a single plot
     for spoofingtype in ["A09", "A10", "A11", "A12", "A13", "A14", "A15", "A16"]:
-        spoofingtype_scores = scores[np.array([spoofingtype_dict[utt_id] == spoofingtype for utt_id in data[:, 1]])]
+        spoofingtype_scores = scores[
+            np.array(
+                [spoofingtype_dict[utt_id] == spoofingtype for utt_id in data[:, 1]]
+            )
+        ]
         plt.hist(spoofingtype_scores, bins=100, alpha=0.3, label=spoofingtype)
     # add the accept threshold
     plt.axvline(x=threshold, color="k", linestyle="--", label="accept threshold")
@@ -79,7 +85,6 @@ def plot_distribution(score_file, metadata_file):
     plt.title("Distribution of SASV scores for a-DCF: {:.3f} with A12".format(adcf))
     # save the plot
     plt.savefig("distribution_spoofingtypes.png")
-
 
 
 if __name__ == "__main__":
