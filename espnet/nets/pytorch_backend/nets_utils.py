@@ -642,14 +642,20 @@ def trim_by_ctc_posterior(
 
 
 def roll_tensor(
-    x: torch.Tensor, lengths: torch.Tensor, roll_amounts: Optional[torch.Tensor] = None
+    x: torch.Tensor,
+    lengths: torch.Tensor,
+    roll_amounts: Optional[torch.Tensor] = None,
+    fixed_intervals: Optional[int] = None,
 ) -> torch.Tensor:
-    """Left-roll tensor x by roll_amounts, only within lengths.
+    """Left-roll tensor x by roll_amounts, only within lengths and
+        optionally quantized.
     Args:
         x: input tensor (B, T, D)
         lengths: lengths of each sequence (B,)
         roll_amounts: random shift amounts (B,). If None, random shift
             amounts are generated.
+        fixed_intervals: if not None, roll_amounts are quantized to
+            multiples of this.
     Returns:
         rolled_x: rolled tensor (B, T, D)
     Useful to apply roll augmentation to the input, while considering
@@ -662,6 +668,8 @@ def roll_tensor(
 
     if roll_amounts is None:
         roll_amounts = torch.randint(0, lengths.max(), (B,), device=x.device)
+    if fixed_intervals is not None:
+        roll_amounts = (roll_amounts // fixed_intervals) * fixed_intervals
     roll_indices = (indices - roll_amounts.unsqueeze(1)) % lengths  # (B, T)
     roll_indices = roll_indices.unsqueeze(2).expand(-1, -1, D)  # (B, T, D)
 

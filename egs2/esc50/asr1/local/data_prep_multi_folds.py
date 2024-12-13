@@ -13,12 +13,17 @@ from pathlib import Path
 import pandas as pd
 from torch.utils.data import random_split
 
-if len(sys.argv) != 3:
+if len(sys.argv) < 2:
     print(len(sys.argv))
-    print("Usage: python data_prep.py [ESC-50_root] [FOLD] where FOLD is optional")
+    print(
+        "Usage: python data_prep.py [ESC-50_root] [FOLD] [ROOT] where "
+        "FOLD and ROOT are optional"
+    )
     sys.exit(1)
+
 esc_root = sys.argv[1]
-fold_num = int(sys.argv[2]) if len(sys.argv) == 3 else 1
+fold_num = int(sys.argv[2]) if len(sys.argv) > 2 else 1
+data_prep_root = sys.argv[3] if len(sys.argv) == 4 else "."
 
 meta_data = pd.read_csv(Path(esc_root, "meta", "esc50.csv"))
 
@@ -36,10 +41,14 @@ print(
 
 dir_dict = split_df
 for x in dir_dict:
-    os.makedirs(os.path.join("data", x), exist_ok=True)
-    with open(os.path.join("data", x, "wav.scp"), "w") as wav_scp_f, open(
-        os.path.join("data", x, "utt2spk"), "w"
-    ) as utt2spk_f, open(os.path.join("data", x, "text"), "w") as text_f:
+    os.makedirs(os.path.join(data_prep_root, "data", x), exist_ok=True)
+    with open(
+        os.path.join(data_prep_root, "data", x, "wav.scp"), "w"
+    ) as wav_scp_f, open(
+        os.path.join(data_prep_root, "data", x, "utt2spk"), "w"
+    ) as utt2spk_f, open(
+        os.path.join(data_prep_root, "data", x, "text"), "w"
+    ) as text_f:
         filename = dir_dict[x]["filename"].values.tolist()
         label = dir_dict[x]["target"].values.tolist()
         for line_count in range(len(filename)):

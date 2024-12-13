@@ -181,13 +181,14 @@ def test_trim_by_ctc_posterior():
 
 
 @pytest.mark.parametrize(
-    "x, lengths, roll_amounts, expected_output",
+    "x, lengths, roll_amounts, fixed_intervals, expected_output",
     [
         # Basic left shift
         (
             torch.tensor([[[1], [2], [3], [0]], [[1], [2], [0], [0]]]),
             torch.tensor([3, 2]),
             torch.tensor([1, 1]),
+            None,
             torch.tensor([[[3], [1], [2], [0]], [[2], [1], [0], [0]]]),
         ),
         # Full shift (cyclic shift)
@@ -195,6 +196,7 @@ def test_trim_by_ctc_posterior():
             torch.tensor([[[1], [2], [3], [0]], [[1], [2], [0], [0]]]),
             torch.tensor([3, 2]),
             torch.tensor([3, 2]),
+            None,
             torch.tensor([[[1], [2], [3], [0]], [[1], [2], [0], [0]]]),
         ),
         # Zero shift
@@ -202,6 +204,7 @@ def test_trim_by_ctc_posterior():
             torch.tensor([[[1], [2], [3], [0]], [[1], [2], [0], [0]]]),
             torch.tensor([3, 2]),
             torch.tensor([0, 0]),
+            None,
             torch.tensor([[[1], [2], [3], [0]], [[1], [2], [0], [0]]]),
         ),
         # Edge case: negative shift (shift right)
@@ -209,6 +212,7 @@ def test_trim_by_ctc_posterior():
             torch.tensor([[[1], [2], [3], [0]], [[1], [2], [0], [0]]]),
             torch.tensor([3, 2]),
             torch.tensor([-1, -1]),
+            None,
             torch.tensor([[[2], [3], [1], [0]], [[2], [1], [0], [0]]]),
         ),
         # Edge case: shift larger than length
@@ -216,6 +220,7 @@ def test_trim_by_ctc_posterior():
             torch.tensor([[[1], [2], [3], [0]], [[1], [2], [0], [0]]]),
             torch.tensor([3, 2]),
             torch.tensor([5, 5]),
+            None,
             torch.tensor([[[2], [3], [1], [0]], [[2], [1], [0], [0]]]),
         ),
         # Last dimension greater than 1
@@ -228,6 +233,7 @@ def test_trim_by_ctc_posterior():
             ),
             torch.tensor([3, 2]),
             torch.tensor([1, 1]),
+            None,
             torch.tensor(
                 [
                     [[3, 300], [1, 100], [2, 200], [0, -1]],
@@ -235,8 +241,16 @@ def test_trim_by_ctc_posterior():
                 ]
             ),
         ),
+        # Quantized shift
+        (
+            torch.tensor([[[1], [2], [3], [4]], [[1], [2], [3], [4]]]),
+            torch.tensor([4, 4]),
+            torch.tensor([3, 2]),
+            2,
+            torch.tensor([[[3], [4], [1], [2]], [[3], [4], [1], [2]]]),
+        ),
     ],
 )
-def test_roll_tensor(x, lengths, roll_amounts, expected_output):
-    output = roll_tensor(x, lengths, roll_amounts)
+def test_roll_tensor(x, lengths, roll_amounts, fixed_intervals, expected_output):
+    output = roll_tensor(x, lengths, roll_amounts, fixed_intervals)
     assert torch.allclose(output, expected_output)

@@ -706,8 +706,7 @@ class ESPnetASRModel(AbsESPnetModel):
         assert labels.dim() == 2, labels.shape
         assert labels.shape[1] == 1, labels.shape
         logits = self.decoder(encoder_out, encoder_out_lens)  # (B, n_class + 3)
-        logits = logits[:, 2:-1]  # remove blank, unk and sos/eos # (B, n_class)
-        # We do not want unk/seos/blank, just class
+        # logits = logits[:, 2:-1]  # remove blank, unk and sos/eos # (B, n_class)
         assert logits.shape[1] == self.vocab_size - 3, logits.shape
         # Shift up labels to remove blank and unk.
         labels = labels - 2
