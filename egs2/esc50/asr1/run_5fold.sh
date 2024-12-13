@@ -12,17 +12,33 @@ inference_model=valid.acc.best.pth
 
 n_folds=5 # This runs all 5 folds in parallel, take care.
 
+datadir=/compute/babel-13-33/sbharad2/datadir
+expdir=/compute/babel-13-33/sbharad2/expdir
+dumpdir=/compute/babel-13-33/sbharad2/dumpdir
+
+# expdir=/scratch/sbharad2/expdir
+# dumpdir=/scratch/sbharad2/dumpdir
+# datadir=/scratch/sbharad2/datadir
+
+mkdir -p ${expdir}
+mkdir -p ${dumpdir}
+mkdir -p ${datadir}
+
+mynametag=quantized_roll16k.maxlr1e-4.minlr5e-6.warm3h.fold
+
 # NOTE(shikhar): Abusing variable lang to store fold number.
 for fold in $(seq 1 $n_folds); do
     train_set="train${fold}"
     valid_set="val${fold}"
     test_set="val${fold}"
     ./asr.sh \
-        --asr_tag "fold${fold}" \
-        --local_data_opts "${fold}" \
+        --expdir ${expdir} \
+        --dumpdir ${dumpdir} \
+        --local_data_opts "${fold} ${datadir}" \
+        --asr_tag "${mynametag}${fold}" \
         --lang "${fold}" \
         --ngpu 1 \
-        --stage 1 \
+        --stage 11 \
         --inference_args "--ctc_weight 0.0 --maxlenratio -1" \
         --token_type word \
         --asr_speech_fold_length ${asr_speech_fold_length} \
@@ -45,7 +61,7 @@ wait
 total_sum=0
 total_count=0
 for i in $(seq 1 $n_folds); do
-    values=$(grep "val${i}" exp/asr_fold${i}/RESULTS.md | head -n 1 | awk -F'|' '{print $(NF-1)}')
+    values=$(grep "val${i}" ${expdir}/asr_${mynametag}${i}/RESULTS.md | head -n 1 | awk -F'|' '{print $(NF-1)}')
     for value in $values; do
         total_sum=$(echo "$total_sum + $value" | bc)
         total_count=$((total_count + 1))

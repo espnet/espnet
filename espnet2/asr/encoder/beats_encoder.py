@@ -150,6 +150,7 @@ class BeatsEncoder(AbsEncoder):
         fbank_mean: float = 15.41663,
         fbank_std: float = 6.55582,
         roll_augment: bool = False,
+        roll_interval: int = 1600,
     ) -> None:
         super().__init__()
 
@@ -158,6 +159,7 @@ class BeatsEncoder(AbsEncoder):
         self.max_layer = max_layer
         self.beats_ckpt_path = beats_ckpt_path
         self.roll_augment = roll_augment
+        self.roll_interval = roll_interval
 
         # Four cases for loading Beats config:
         # 1. No checkpoint and no config: Default config
@@ -353,7 +355,10 @@ class BeatsEncoder(AbsEncoder):
             masks: None
         """
         if self.roll_augment and self.training:
-            xs_pad = roll_tensor(xs_pad.unsqueeze(-1), ilens).squeeze(-1)
+            # rolls quantized to 100 ms
+            xs_pad = roll_tensor(
+                xs_pad.unsqueeze(-1), ilens, fixed_intervals=self.roll_interval
+            ).squeeze(-1)
         # NOTE(shikhar): If xs is not provided then the operation is costly,
         # because this function tries to create a tensor of size maxlen x maxlen.
         # Therfore, we unsqueeze and then squeeze tensors.

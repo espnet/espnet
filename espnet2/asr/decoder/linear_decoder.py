@@ -25,7 +25,8 @@ class LinearDecoder(AbsDecoder):
         super().__init__()
 
         self.input_dim = encoder_output_size
-        self.output_dim = vocab_size
+        assert vocab_size > 3, "Invalid vocab size, must be > 3."
+        self.output_dim = vocab_size - 3
         self.linear_out = torch.nn.Linear(self.input_dim, self.output_dim)
         assert pooling in [
             "mean",
@@ -64,9 +65,13 @@ class LinearDecoder(AbsDecoder):
 
         # Fix blank, unk and sos/eos to -inf
         # This ensure that they are never selected at inference.
-        output[:, 0] = float("-inf")
-        output[:, 1] = float("-inf")
-        output[:, -1] = float("-inf")
+        # minf_tensor = torch.tensor(float("-inf"), device=output.device)
+        # minf_tensor = minf_tensor.expand(*(output.shape[:-1]), 1)
+        # output = torch.cat([minf_tensor, minf_tensor, output, minf_tensor], dim=-1)
+
+        # output[:, 0] = float("-inf")
+        # output[:, 1] = float("-inf")
+        # output[:, -1] = float("-inf")
         return output
 
     def score(self, ys, state, x):
@@ -86,6 +91,10 @@ class LinearDecoder(AbsDecoder):
             hs_len,
         )
         logp = torch.nn.functional.log_softmax(logits, dim=-1)
+        # Fix blank, unk and sos/eos to -inf
+        minf_tensor = torch.tensor(float("-inf"), device=logp.device)
+        minf_tensor = minf_tensor.expand(*(logp.shape[:-1]), 1)
+        logp = torch.cat([minf_tensor, minf_tensor, logp, minf_tensor], dim=-1)
         return logp.squeeze(0), None
 
     def output_size(self) -> int:
