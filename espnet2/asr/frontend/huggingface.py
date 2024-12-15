@@ -55,9 +55,17 @@ class HuggingFaceFrontend(AbsFrontend):
     def forward(
         self, inputs: torch.Tensor, input_lengths: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """
-        Inputs will follow ESPNet conventions which are padded tensors,
-        but we need to re-convert to numpy and re-encode with the HF processor.
+        """Wrapper for the transformers forward pass. Inputs are converted
+        to numpy and re-encoded with the transformers processor.
+        
+        Args:
+            input: Input (B, L) single channel waveform.
+            input_lengths: Input lengths within batch.
+
+        Returns:
+            Tensor: Output with dimensions (B, T, D), T is the processed length,
+                D is the feature dimension.
+            Tensor: Output lengths within batch.
         """
         with torch.no_grad():
             # Re-obtain jagged inputs to feed into the HF processor
