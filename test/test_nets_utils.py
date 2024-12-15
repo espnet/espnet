@@ -2,7 +2,11 @@
 import pytest
 import torch
 
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask, trim_by_ctc_posterior
+from espnet.nets.pytorch_backend.nets_utils import (
+    make_pad_mask,
+    roll_tensor,
+    trim_by_ctc_posterior,
+)
 
 test_cases = [
     # lengths, xs, length_dim, maxlen
@@ -174,3 +178,79 @@ def test_trim_by_ctc_posterior():
     assert torch.all(torch.eq(h_hat, h[:, :8]))
     assert torch.all(torch.eq(masks_hat, masks[:, :, :8]))
     assert torch.all(torch.eq(pos_emb_hat, pos_emb[:, 2:17]))
+
+
+@pytest.mark.parametrize(
+    "x, lengths, roll_amounts, fixed_intervals, expected_output",
+    [
+        # Basic left shift
+        (
+            torch.tensor([[[1], [2], [3], [0]], [[1], [2], [0], [0]]]),
+            torch.tensor([3, 2]),
+            torch.tensor([1, 1]),
+            None,
+            torch.tensor([[[3], [1], [2], [0]], [[2], [1], [0], [0]]]),
+        ),
+        # Full shift (cyclic shift)
+        (
+            torch.tensor([[[1], [2], [3], [0]], [[1], [2], [0], [0]]]),
+            torch.tensor([3, 2]),
+            torch.tensor([3, 2]),
+            None,
+            torch.tensor([[[1], [2], [3], [0]], [[1], [2], [0], [0]]]),
+        ),
+        # Zero shift
+        (
+            torch.tensor([[[1], [2], [3], [0]], [[1], [2], [0], [0]]]),
+            torch.tensor([3, 2]),
+            torch.tensor([0, 0]),
+            None,
+            torch.tensor([[[1], [2], [3], [0]], [[1], [2], [0], [0]]]),
+        ),
+        # Edge case: negative shift (shift right)
+        (
+            torch.tensor([[[1], [2], [3], [0]], [[1], [2], [0], [0]]]),
+            torch.tensor([3, 2]),
+            torch.tensor([-1, -1]),
+            None,
+            torch.tensor([[[2], [3], [1], [0]], [[2], [1], [0], [0]]]),
+        ),
+        # Edge case: shift larger than length
+        (
+            torch.tensor([[[1], [2], [3], [0]], [[1], [2], [0], [0]]]),
+            torch.tensor([3, 2]),
+            torch.tensor([5, 5]),
+            None,
+            torch.tensor([[[2], [3], [1], [0]], [[2], [1], [0], [0]]]),
+        ),
+        # Last dimension greater than 1
+        (
+            torch.tensor(
+                [
+                    [[1, 100], [2, 200], [3, 300], [0, -1]],
+                    [[1, 100], [2, 200], [0, -1], [0, -1]],
+                ]
+            ),
+            torch.tensor([3, 2]),
+            torch.tensor([1, 1]),
+            None,
+            torch.tensor(
+                [
+                    [[3, 300], [1, 100], [2, 200], [0, -1]],
+                    [[2, 200], [1, 100], [0, -1], [0, -1]],
+                ]
+            ),
+        ),
+        # Quantized shift
+        (
+            torch.tensor([[[1], [2], [3], [4]], [[1], [2], [3], [4]]]),
+            torch.tensor([4, 4]),
+            torch.tensor([3, 2]),
+            2,
+            torch.tensor([[[3], [4], [1], [2]], [[3], [4], [1], [2]]]),
+        ),
+    ],
+)
+def test_roll_tensor(x, lengths, roll_amounts, fixed_intervals, expected_output):
+    output = roll_tensor(x, lengths, roll_amounts, fixed_intervals)
+    assert torch.allclose(output, expected_output)
