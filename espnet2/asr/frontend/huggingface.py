@@ -57,7 +57,7 @@ class HuggingFaceFrontend(AbsFrontend):
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Wrapper for the transformers forward pass. Inputs are converted
         to numpy and re-encoded with the transformers processor.
-        
+
         Args:
             input: Input (B, L) single channel waveform.
             input_lengths: Input lengths within batch.
