@@ -5,13 +5,12 @@ set -e
 set -u
 set -o pipefail
 
-fs=22050
-n_fft=1024
-n_shift=256
-win_length=12000
+fs=44100
+n_fft=2048
+n_shift=512
 
 opts=
-if [ "${fs}" -eq 22050 ]; then
+if [ "${fs}" -eq 44100 ]; then
     # To suppress recreation, specify wav format
     opts="--audio_format wav "
 else
@@ -45,3 +44,20 @@ g2p=g2p_en_no_space # Include no word separator
     --test_sets "${test_sets}" \
     --srctexts "data/${train_set}/text" \
     ${opts} "$@"
+
+# ./run.sh \
+#     --stage 2 \
+#     --use_sid true \
+#     --ngpu 4 \
+#     --fs 44100 \
+#     --n_fft 2048 \
+#     --n_shift 512 \
+#     --win_length null \
+#     --dumpdir dump/44k \
+#     --expdir exp/44k \
+#     --tts_task gan_tts \
+#     --feats_extract linear_spectrogram \
+#     --feats_normalize none \
+#     --train_config ./conf/tuning/train_full_band_multi_spk_vits.yaml \
+#     --inference_config ./conf/tuning/decode_vits.yaml \
+#     --inference_model latest.pth

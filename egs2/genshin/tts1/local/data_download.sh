@@ -44,8 +44,8 @@ download_and_extract() {
     local lang=$1
     local file_name="Genshin5.1_${lang}.7z"
     
-    if [ -d "${download_dir}/Genshin5.1-${lang}" ]; then
-        echo "Directory Genshin5.1-${lang} already exists. Skipping..."
+    if [ -d "${download_dir}/Genshin-${lang}" ]; then
+        echo "Directory Genshin-${lang} already exists. Skipping..."
         return 0
     fi
     
@@ -58,10 +58,10 @@ download_and_extract() {
         if 7za x "${file_name} -mmt256"; then
             echo "Successfully extracted ${file_name}"
             case $lang in
-                CN) mv "'中文'""Genshin5.1-${lang}";;
-                EN) mv "'英语'""Genshin5.1-${lang}";;
-                JP) mv "'日语'""Genshin5.1-${lang}";;
-                KR) mv "'韩语'""Genshin5.1-${lang}";;
+                CN) mv "'中文 - Chinese'""Genshin-${lang}";;
+                EN) mv "'英语 - English'""Genshin-${lang}";;
+                JP) mv "'日语 - Japanese'""Genshin-${lang}";;
+                KR) mv "'韩语 - Korean'""Genshin-${lang}";;
                 *) echo "Unknown language code: $lang" ;;
             esac
             # rm "${file_name}"

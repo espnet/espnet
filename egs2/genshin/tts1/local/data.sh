@@ -14,7 +14,7 @@ SECONDS=0
 stage=-2
 stop_stage=1
 lang='EN'
-nj=32
+nj=64
 
 help_message=$(cat << EOF
 Usage: $0 [--stage <stage>] [--stop-stage <stop_stage>] [--lang <lang>] [--nj <nj>]
@@ -81,7 +81,7 @@ fi
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     log "Stage -1: Preprocess Data"
-    python local/data_process.py "${db_root}/Genshin_${lang}"
+    python local/data_process.py "${db_root}/Genshin-${lang}"
 fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then

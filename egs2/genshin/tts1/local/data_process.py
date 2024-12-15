@@ -88,17 +88,110 @@ def get_audio_duration(file_path: str) -> float:
         print(f"Error getting duration for {file_path}: {str(e)}")
         return 0.0
 
+def convert_audio_format(file_path: str, dry_run: bool = False) -> tuple[str, bool]:
+    """Convert audio to mono 44.1kHz WAV format"""
+    try:
+        if not os.path.exists(file_path):
+            print(f"File not found: {file_path}")
+            return file_path, False
+
+        if file_path.lower().endswith('.wav'):
+            try:
+                import soundfile as sf
+                data, sample_rate = sf.read(file_path)
+                
+                needs_conversion = False
+                
+                if len(data.shape) > 1 and data.shape[1] > 1:
+                    needs_conversion = True
+                    print(f"File needs mono conversion: {os.path.basename(file_path)}")
+                
+                if sample_rate != 44100:
+                    needs_conversion = True
+                    print(f"File needs resampling: {os.path.basename(file_path)} (current: {sample_rate}Hz)")
+                
+                if not needs_conversion:
+                    print(f"File already in correct format: {os.path.basename(file_path)}")
+                    return file_path, False
+                    
+                if dry_run:
+                    print(f"[Preview] Would convert: {file_path}")
+                    print(f"         (current: channels={data.shape[1] if len(data.shape)>1 else 1}, "
+                          f"sample rate={sample_rate}Hz)")
+                    return file_path, True
+                
+                if len(data.shape) > 1 and data.shape[1] > 1:
+                    data = data.mean(axis=1)
+                
+                if sample_rate != 44100:
+                    from scipy import signal
+                    new_length = int(len(data) * 44100 / sample_rate)
+                    data = signal.resample(data, new_length)
+                
+                sf.write(file_path, data, 44100)
+                print(f"Converted: {os.path.basename(file_path)}")
+                return file_path, True
+                
+            except Exception as e:
+                print(f"Error processing WAV file with soundfile: {str(e)}")
+                pass
+        
+        audio = AudioSegment.from_file(file_path)
+        
+        if audio.channels > 1:
+            audio = audio.set_channels(1)
+            print(f"Converting to mono: {os.path.basename(file_path)}")
+            
+        if audio.frame_rate != 44100:
+            audio = audio.set_frame_rate(44100)
+            print(f"Resampling: {os.path.basename(file_path)} -> 44100Hz")
+            
+        new_path = str(Path(file_path).with_suffix('.wav'))
+        
+        if (file_path == new_path and 
+            audio.channels == 1 and 
+            audio.frame_rate == 44100):
+            return file_path, False
+            
+        if dry_run:
+            print(f"[Preview] Would convert: {file_path} -> {new_path}")
+            print(f"         (mono: {audio.channels == 1}, "
+                  f"sample rate: {audio.frame_rate}Hz)")
+            return new_path, True
+            
+        audio.export(new_path, format='wav')
+        
+        if file_path != new_path:
+            os.remove(file_path)
+            
+        print(f"Converted: {os.path.basename(file_path)} -> "
+              f"{os.path.basename(new_path)}")
+        return new_path, True
+        
+    except Exception as e:
+        print(f"Error converting {file_path}: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return file_path, False
+
+
 def process_audio_file(args) -> tuple:
     """Process a single audio file and return if it should be removed"""
     file_path, dry_run = args
+    
+    file_path, _ = convert_audio_format(file_path, dry_run)
+    
     duration = get_audio_duration(file_path)
     if duration < 1.0:
         if dry_run:
-            print(f"[Preview] Would remove short audio: {file_path} (duration: {duration:.2f}s)")
+            print(f"[Preview] Would remove short audio: {file_path} "
+                  f"(duration: {duration:.2f}s)")
         else:
             try:
                 os.remove(file_path)
-                print(f"Removed short audio: {file_path} (duration: {duration:.2f}s)")
+                os.remove(file_path.replace('.wav', '.lab'))
+                print(f"Removed short audio: {file_path} "
+                      f"(duration: {duration:.2f}s)")
             except Exception as e:
                 print(f"Error removing {file_path}: {str(e)}")
         return file_path, True
@@ -139,17 +232,16 @@ def remove_specific_folders(target_folder: str, dry_run: bool = False) -> None:
         print(f"Error during folder removal: {str(e)}")
 
 def rename_speaker_folders(target_folder: str, dry_run: bool = False) -> None:
-    """Remove trailing '1' or '_1' from speaker folder names and merge contents if necessary"""
-    print("\n=== Removing trailing '1' or '_1' from speaker folders ===")
+    """Remove trailing '{num}', '-{num}', or '_{num}' from speaker folder names and merge contents if necessary"""
+    print("\n=== Removing trailing '{num}', '-{num}', or '_{num}' from speaker folders ===")
     try:
+        pattern = re.compile(r'[_-]?(\d+)$')
         for root, dirs, _ in os.walk(target_folder, topdown=False):
             for dir_name in dirs:
-                if dir_name.endswith('1') or dir_name.endswith('_1'):
+                match = pattern.search(dir_name)
+                if match:
                     old_path = os.path.join(root, dir_name)
-                    if dir_name.endswith('_1'):
-                        new_name = dir_name[:-2]
-                    else:
-                        new_name = dir_name[:-1]
+                    new_name = dir_name[:match.start()]
                     new_path = os.path.join(root, new_name)
                     
                     if dry_run:
