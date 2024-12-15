@@ -13,7 +13,7 @@ def test_forward_backward(vocab_size, encoder_output_size, pooling):
     x = torch.randn(2, 10, encoder_output_size, requires_grad=True)
     x_len = torch.randint(1, 10, [2], dtype=torch.long)
     logits = decoder(x, x_len)
-    assert logits.shape == (2, vocab_size), logits.shape
+    assert logits.shape == (2, vocab_size - 3), logits.shape
     logits.sum().backward()
 
 

@@ -4,8 +4,8 @@ import torch
 
 from espnet.nets.pytorch_backend.nets_utils import (
     make_pad_mask,
-    trim_by_ctc_posterior,
     roll_tensor,
+    trim_by_ctc_posterior,
 )
 
 test_cases = [
