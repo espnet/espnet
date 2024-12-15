@@ -5,40 +5,31 @@ set -e
 set -u
 set -o pipefail
 
-asr_config=conf/beats_classification.yaml
 asr_speech_fold_length=1000 # 6.25 sec, because audio is 5 sec each.
-
 inference_model=valid.acc.best.pth
 
-n_folds=5 # This runs all 5 folds in parallel, take care.
-
-datadir=/compute/babel-13-33/sbharad2/datadir
-expdir=/compute/babel-13-33/sbharad2/expdir
-dumpdir=/compute/babel-13-33/sbharad2/dumpdir
-
-# expdir=/scratch/sbharad2/expdir
-# dumpdir=/scratch/sbharad2/dumpdir
-# datadir=/scratch/sbharad2/datadir
 
 mkdir -p ${expdir}
 mkdir -p ${dumpdir}
 mkdir -p ${datadir}
 
-mynametag=quantized_roll16k.maxlr1e-4.minlr5e-6.warm3h.fold
+n_folds=5 # This runs all 5 folds in parallel, take care.
 
-# NOTE(shikhar): Abusing variable lang to store fold number.
+asr_config=conf/beats_classification.yaml
+
+mynametag=fast.fold
+
+# # NOTE(shikhar): Abusing variable lang to store fold number.
 for fold in $(seq 1 $n_folds); do
     train_set="train${fold}"
     valid_set="val${fold}"
     test_set="val${fold}"
     ./asr.sh \
-        --expdir ${expdir} \
-        --dumpdir ${dumpdir} \
         --local_data_opts "${fold} ${datadir}" \
         --asr_tag "${mynametag}${fold}" \
         --lang "${fold}" \
         --ngpu 1 \
-        --stage 11 \
+        --stage 15 \
         --inference_args "--ctc_weight 0.0 --maxlenratio -1" \
         --token_type word \
         --asr_speech_fold_length ${asr_speech_fold_length} \
@@ -72,6 +63,7 @@ done
 if [ $total_count -gt 0 ]; then
     average=$(echo "scale=2; $total_sum / $total_count" | bc)
     echo "Avg. acc: $(echo "100 - $average" | bc)"
+    echo "Over $total_count folds."
 else
     echo "No values found."
 fi

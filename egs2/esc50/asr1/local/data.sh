@@ -39,15 +39,19 @@ fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "stage 2: Data Preparation"
-    # mkdir -p data/{train,valid,test}
-    # python3 local/data_prep.py ${ESC50}
-    # for x in test valid train; do
-    #     for f in text wav.scp utt2spk; do
-    #         sort data/${x}/${f} -o data/${x}/${f}
-    #     done
-    #     utils/utt2spk_to_spk2utt.pl data/${x}/utt2spk > "data/${x}/spk2utt"
-    #     utils/validate_data_dir.sh --no-feats data/${x} || exit 1
-    # done
+
+    if [ ${FOLD} -le 1 ] && [ ${FOLD} -ge 1 ]; then
+        # Keep the code from SLU, FOLD 1 is default
+        mkdir -p data/{train,valid,test}
+        python3 local/data_prep.py ${ESC50}
+        for x in test valid train; do
+            for f in text wav.scp utt2spk; do
+                sort data/${x}/${f} -o data/${x}/${f}
+            done
+            utils/utt2spk_to_spk2utt.pl data/${x}/utt2spk > "data/${x}/spk2utt"
+            utils/validate_data_dir.sh --no-feats data/${x} || exit 1
+        done
+    fi
 
     # Prepare data for 5-fold cross-validation
     echo "Preparing data for fold ${FOLD}"
