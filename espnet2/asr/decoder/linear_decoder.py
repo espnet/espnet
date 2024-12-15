@@ -31,7 +31,6 @@ class LinearDecoder(AbsDecoder):
         self.dropout = None
         if dropout != 0.0:
             self.dropout = torch.nn.Dropout(p=dropout)
-        # self.output_dim = vocab_size
         self.linear_out = torch.nn.Linear(self.input_dim, self.output_dim)
         assert pooling in [
             "mean",
@@ -68,17 +67,7 @@ class LinearDecoder(AbsDecoder):
         elif self.pooling == "CLS":
             input_feature = hs_pad[:, 0, :]
 
-        output = self.linear_out(input_feature)  # Get logits
-
-        # Fix blank, unk and sos/eos to -inf
-        # This ensure that they are never selected at inference.
-        # minf_tensor = torch.tensor(float("-inf"), device=output.device)
-        # minf_tensor = minf_tensor.expand(*(output.shape[:-1]), 1)
-        # output = torch.cat([minf_tensor, minf_tensor, output, minf_tensor], dim=-1)
-
-        # output[:, 0] = float("-inf")
-        # output[:, 1] = float("-inf")
-        # output[:, -1] = float("-inf")
+        output = self.linear_out(input_feature)
         return output
 
     def score(self, ys, state, x):
