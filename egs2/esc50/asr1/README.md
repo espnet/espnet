@@ -21,7 +21,7 @@ Fine-tuning for one run needs 1 GPU with 33 GB memory and runs for ~4.5 hours on
 ## Trained checkpoints
 All trained checkpoints are available at:
 * Fold-1: https://huggingface.co/shikhar7ssu/BEATs-ESC-FinetunedFold1 94.2
-* Fold-2: https://huggingface.co/shikhar7ssu/BEATs-ESC-FinetunedFold2 97.0 
+* Fold-2: https://huggingface.co/shikhar7ssu/BEATs-ESC-FinetunedFold2 97.0
 * Fold-3: https://huggingface.co/shikhar7ssu/BEATs-ESC-FinetunedFold3 94.7
 * Fold-4: https://huggingface.co/shikhar7ssu/BEATs-ESC-FinetunedFold4 96.2
 * Fold-5: https://huggingface.co/shikhar7ssu/BEATs-ESC-FinetunedFold5 91.7
@@ -149,6 +149,3 @@ We also observe that top confusion in fold-5 are from the class `helicopter`, wh
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
 |org/val5|400|5520|99.2|0.8|0.0|0.0|0.8|8.3|
-
-
-
