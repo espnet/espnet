@@ -20,6 +20,7 @@ class LinearDecoder(AbsDecoder):
         vocab_size: int,
         encoder_output_size: int,
         pooling: str = "CLS",
+        dropout: float = 0.0,
     ):
         """Initialize the module."""
         super().__init__()
@@ -54,6 +55,8 @@ class LinearDecoder(AbsDecoder):
         """
 
         mask = make_pad_mask(lengths=hlens, xs=hs_pad, length_dim=1).to(hs_pad.device)
+        if self.dropout is not None:
+            hs_pad = self.dropout(hs_pad)
         if self.pooling == "mean":
             unmasked_entries = (~mask).to(dtype=hs_pad.dtype)
             input_feature = (hs_pad * unmasked_entries).sum(dim=1)

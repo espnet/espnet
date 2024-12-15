@@ -133,6 +133,9 @@ class BeatsEncoder(AbsEncoder):
         add_positional_information: Add learned positional embeddings.
         max_positions: Maximum number of positions for positional embeddings.
             Required if `add_positional_information` is True.
+        roll_augment: Apply roll augmentation to the input.
+        roll_interval: Interval for roll augmentation. All rolling is
+            quantized to this interval.
     """
 
     def __init__(
@@ -355,7 +358,6 @@ class BeatsEncoder(AbsEncoder):
             masks: None
         """
         if self.roll_augment and self.training:
-            # rolls quantized to 100 ms
             xs_pad = roll_tensor(
                 xs_pad.unsqueeze(-1), ilens, fixed_intervals=self.roll_interval
             ).squeeze(-1)

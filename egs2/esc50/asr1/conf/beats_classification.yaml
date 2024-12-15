@@ -2,22 +2,21 @@ token_type: word
 
 optim: adamw
 optim_conf:
-    lr: 3.0e-5
+    lr: 1.0e-4
     weight_decay: 1.0e-2
     betas: [0.9, 0.98]
 
 accum_grad: 1
 
-batch_size: 60 # 300 sec (5 sec per sample) # 1600 samples in train set ==> 1600/60 = 27 steps per epoch
-max_epoch: 2962 # originally 80K steps, @27 steps per epoch ~2962
-
+batch_size: 128 # 12.5 steps per epoch with 1600 samples
+max_epoch: 1000
 
 scheduler: CosineAnnealingWarmupRestarts
 scheduler_conf:
-    first_cycle_steps: 80000 # Only one cycle, so this is last epoch step
-    warmup_steps: 8000 # paper mentions epochs??!
-    max_lr: 3.0e-5
-    min_lr: 0
+    first_cycle_steps: 6000
+    warmup_steps: 300
+    max_lr: 1.0e-4
+    min_lr: 5.0e-6
 
 # BEATs implementation takes care of generating mel spectrogram, normalization and specaug
 frontend: none
@@ -25,10 +24,10 @@ input_size: 1 # important to set input_size to 1 if frontend is none
 normalize: none # BEATs code does global mean and variance normalization
 
 # Initialization for the decoder
-init: normal
+init: xavier_normal
 
 model_conf:
-    ctc_weight: 0.0  # No CTC, only attention branch
+    ctc_weight: 0.0  # No CTC, no attention.
     lsm_weight: 0.1  # label smoothing weight
     length_normalized_loss: true
 
@@ -40,7 +39,7 @@ best_model_criterion:
 -   - valid
     - acc
     - max
-keep_nbest_models: 5
+keep_nbest_models: 1
 use_amp: false  # whether to use automatic mixed precision
 num_att_plot: 0
 num_workers: 2 # dataloader workers
@@ -50,28 +49,28 @@ encoder_conf:
     # Please download the BEATs model from https://github.com/microsoft/unilm/tree/master/beats
     # (iter3) and update the path below
     beats_ckpt_path: /compute/babel-13-33/sbharad2/models/BEATs/BEATs_iter3.pt
-    # values from Appendix A.1 of the BEATs paper
+    # Most values from Appendix A.1 of the BEATs paper or tuned on fold 5. 
+    # Please also check the README.md
     fbank_mean: 11.72215
     fbank_std: 10.60431
     beats_config:
-        layer_wise_gradient_decay_ratio: 0.2
+        layer_wise_gradient_decay_ratio: 0.2    
         encoder_layerdrop: 0.1
         dropout: 0.0
-    # TODO(shikhar): specaug = 0.2 ??, roll augmentation???
     specaug_config:
-        apply_freq_mask: false # true
-        freq_mask_width_range:
-        - 0
-        - 64
-        num_freq_mask: 2
+        apply_time_warp: true
+        apply_freq_mask: false
         apply_time_mask: true
         time_mask_width_ratio_range:
         - 0
-        - 0.12
-        num_time_mask: 5
+        - 0.06
+        num_time_mask: 1
+    roll_augment: true
+    roll_interval: 16000 # 1 second, only 5 possible augmentations per sample
     use_weighted_representation: false
 
 # Simple linear decoder for classification.
 decoder: linear_decoder
 decoder_conf:
     pooling: mean
+    dropout: 0.1
