@@ -12,6 +12,7 @@ handler.setLevel(logging.INFO)
 formatter = logging.Formatter("{asctime} ({name}:{lineno}) {message}", style='{')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
+THRESHOLD_LONGEST_SEGMENT = 90.0
 
 def encode_segment_id(segment_id: int) -> str:
     # encode segment id as 3-digit string, e.g. 32 -> '032'
@@ -196,33 +197,42 @@ def segment_wav_rttm(
                         f"wav duration: {curr_spk_end_time - last_segment_end_time}"
                     )
 
-                    soundfile.write(segment_wav_path, wav[int(last_segment_end_time * sr):int(curr_spk_end_time * sr)], sr)
-                    with open(segment_rttm_path, "w") as f:
-                        f.writelines(segment_rttm_entries)
+                    wav_duration = curr_spk_end_time - last_segment_end_time
+                    if wav_duration < THRESHOLD_LONGEST_SEGMENT:
+                        soundfile.write(segment_wav_path, wav[int(last_segment_end_time * sr):int(curr_spk_end_time * sr)], sr)
+                        with open(segment_rttm_path, "w") as f:
+                            f.writelines(segment_rttm_entries)
+                        segmented_wav_ids.append(f"{wav_id}_{encode_segment_id(segment_id)}")
+                        segment_id += 1
                     
                     # Clear the segment_rttm_entries
                     segment_rttm_entries = []
-                    segmented_wav_ids.append(f"{wav_id}_{encode_segment_id(segment_id)}")
-                    segment_id += 1
                     last_segment_end_time = curr_spk_end_time
                 
                 line_id += 1
 
-            if curr_spk_end_time - last_segment_end_time > 0:
-                # Process the last segment, which is less than duration
-                if len(segment_rttm_entries) == 0:
-                    # No speaker in this duration, skip
-                    continue
+            # FIX @ 2024-12-05: since the tail 
+            # Drop tail now, ensure all the segments are over the duration
+            # Reason for dropping the tail: 
+            # Some rttm is longer than wav, e.g. TS3007c in the train set, wav 2420s, rttm 2429.86s (this is a label error, but the label before the tail is correct)
+            # If need to keep the tail, set the duration to at least 20s. 
 
-                segment_wav_path = os.path.join(output_segment_wavs_dir, f"{wav_id}_{encode_segment_id(segment_id)}.wav")
-                segment_rttm_path = os.path.join(output_segment_rttms_dir, f"{wav_id}_{encode_segment_id(segment_id)}.rttm")
+            ### UNCOMMENT IF NEED TO KEEP THE TAIL!!!
+            # if curr_spk_end_time - last_segment_end_time > 0:
+            #     # Process the last segment, which is less than duration
+            #     if len(segment_rttm_entries) == 0:
+            #         # No speaker in this duration, skip
+            #         continue
 
-                soundfile.write(segment_wav_path, wav[int(last_segment_end_time * sr):], sr)
-                with open(segment_rttm_path, "w") as f:
-                    f.writelines(segment_rttm_entries)
+            #     segment_wav_path = os.path.join(output_segment_wavs_dir, f"{wav_id}_{encode_segment_id(segment_id)}.wav")
+            #     segment_rttm_path = os.path.join(output_segment_rttms_dir, f"{wav_id}_{encode_segment_id(segment_id)}.rttm")
+
+            #     soundfile.write(segment_wav_path, wav[int(last_segment_end_time * sr):], sr)
+            #     with open(segment_rttm_path, "w") as f:
+            #         f.writelines(segment_rttm_entries)
                 
-                segmented_wav_ids.append(f"{wav_id}_{encode_segment_id(segment_id)}")
-                segment_id += 1
+            #     segmented_wav_ids.append(f"{wav_id}_{encode_segment_id(segment_id)}")
+            #     segment_id += 1
 
 
     # Write segmented wav file list to a txt file. 

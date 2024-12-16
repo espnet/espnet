@@ -37,7 +37,17 @@ if_mini=false
 # Default is only_words, as vocal sounds are subjectively labeled.
 sound_type=only_words
 
+# Number of speakers in each wav file
+# Options: 
+# - 4: Most of AMI wav files contain 4 speakers, hence, for the fixed number of speakers trainig, 
+#      if specifies 4, will remove wav files that are not with 4 speakers in
+# - None: Using full AMI dataset (including wav files with 3 or 5 speakers) for training
 num_spk=4
+
+# Segment duration, in seconds
+# The `duration` is not the actual length of the segment, but the minimum
+# length threshold when considering splitting the wav files. 
+duration=20
 
 . utils/parse_options.sh || exit 1;
 
@@ -55,9 +65,11 @@ set -o pipefail
 
 log "data preparation started"
 
+### ================= Download AMI diarization setup files ================= ###
 # AMI corpus for speaker diarization setup from gihub : 
-#   https://github.com/pyannote/AMI-diarization-setup/tree/main
+# https://github.com/pyannote/AMI-diarization-setup/tree/main
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ] ; then
+    log "Start downloading AMI-diarization-setup from github"
     # This is a fork created by Qingzheng Wang, mainly modified the database.yml, 
     # to adapt to ESPNet's directory setting
     URL=https://github.com/Qingzheng-Wang/AMI-diarization-setup.git
@@ -68,9 +80,11 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ] ; then
     fi
 fi
 
+### ======================== Download AMI dataset ========================= ###
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ] ; then
     # download data to `downloads`, the downloaded data should be 
     # specified with `mic_type` and `if_mini`, default is `ihm` and `false`.
+    log "Start downloading AMI data"
     if [ ${mic_type} == "ihm" ]; then
         if [ ${if_mini} == false ]; then
             chmod +x ./${setup_dir}/pyannote/download_ami.sh
@@ -95,7 +109,10 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ] ; then
     log "AMI data with mic_type ${mic_type} and if_mini ${if_mini} successfully downloaded"
 fi
 
+
+### ===================== Segment and Alignment ======================== ###
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ] ; then
+    log "Start segmenting the dataset"
     # Split wav files to short segments, and generate corresponding RTTM files. 
     mkdir -p segmented_dataset/
 
@@ -106,13 +123,14 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ] ; then
         --if_mini ${if_mini} \
         --sound_type ${sound_type} \
         --segment_output_dir ./segmented_dataset \
-        --duration 20
+        --duration ${duration}
     
     log "Successfully segmented the dataset"
 fi
 
+### ==================== Prepare Kaldi-style files ==================== ###
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] ; then
-    # Create Kaldi-style files
+    log "Start preparing Kaldi-style files"
     mkdir -p data/
 
     python3 local/prepare_kaldi_files.py \

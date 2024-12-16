@@ -46,21 +46,25 @@ def prepare_kaldi_files(
     for wav_id in wav_ids:
         rttm_path = rttm_path_template.format(uri=wav_id)
         
-        ### ======== Detect wav files with more or less than 4 speakers ======== ###
-        unique_speaker_set = set()
-        with open(rttm_path, "r") as f:
-            for line_id, line in enumerate(f):
-                sps = re.split(" +", line.rstrip())
-                assert len(sps) == 10, f"Error in {rttm_path} at line {line_id + 1}"
+        ### ======== Determine whether to use this wav file according to num_spk ======== ###
+        if num_spk != "None": # If "None", we use the full dataset, otherwise, reject files with more or less than 4 speakers
+            
+            unique_speaker_set = set()
+            with open(rttm_path, "r") as f:
+                # Count the number of unique speakers in the rttm file
+                for line_id, line in enumerate(f):
+                    sps = re.split(" +", line.rstrip())
+                    assert len(sps) == 10, f"Error in {rttm_path} at line {line_id + 1}"
 
-                label_type, wav_id, channel, spk_start_time, spk_duration, _, _, spk_id, _, _ = sps
-                assert label_type == "SPEAKER", f"Error in {rttm_path} at line {line_id + 1}"
+                    label_type, wav_id, channel, spk_start_time, spk_duration, _, _, spk_id, _, _ = sps
+                    assert label_type == "SPEAKER", f"Error in {rttm_path} at line {line_id + 1}"
 
-                unique_speaker_set.add(spk_id)
-        
-        if num_spk == "4" and len(unique_speaker_set) != 4:
-            continue # For num_spk == 4, since there are several files in ami that with 
-                     # 3 or 5 speakers, we choose to neglect these files. 
+                    unique_speaker_set.add(spk_id)
+            
+            ## Skip the wav files with more or less than 4 speakers
+            if num_spk == "4" and len(unique_speaker_set) != 4:
+                continue # For num_spk == 4, since there are several files in ami that with 
+                         # 3 or 5 speakers, we choose to neglect these files. 
 
         ### ======================= Prepare segments, utt2spk ================== ###
         with open(rttm_path, "r") as f:
