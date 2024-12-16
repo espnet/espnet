@@ -15,7 +15,7 @@ from espnet2.gan_svs.vits import VITS
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.svs.abs_svs import AbsSVS
-from espnet2.svs.discrete.discrete_acoustic import Discrete_Acoustic
+from espnet2.svs.discrete.toksing import TokSing
 from espnet2.svs.discrete_svs_espnet_model import ESPnetDiscreteSVSModel
 from espnet2.svs.espnet_model import ESPnetSVSModel
 from espnet2.svs.feats_extract.score_feats_extract import (
@@ -127,7 +127,7 @@ svs_choices = ClassChoices(
         naive_rnn=NaiveRNN,
         naive_rnn_dp=NaiveRNNDP,
         xiaoice=XiaoiceSing,
-        discrete_acoustic=Discrete_Acoustic,
+        toksing=TokSing,
         # xiaoice_noDP=XiaoiceSing_noDP,
         vits=VITS,
         joint_score2wav=JointScore2Wav,

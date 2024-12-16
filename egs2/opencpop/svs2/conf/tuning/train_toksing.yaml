@@ -4,7 +4,7 @@
 #                  SVS MODEL SETTING                     #
 ##########################################################
 model_type: discrete_svs
-svs: discrete_acoustic           # model architecture
+svs: toksing           # model architecture
 svs_conf:                        # keyword arguments for the selected model
     midi_dim: 129                # midi embedding range (note number + silence)
     duration_dim: 512            # duration embedding range

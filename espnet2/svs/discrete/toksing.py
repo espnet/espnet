@@ -157,7 +157,7 @@ class Decoder(torch.nn.Module):
         return x, x_mask
 
 
-class Discrete_Acoustic(AbsSVS):
+class TokSing(AbsSVS):
     """XiaoiceSing module for Singing Voice Synthesis.
 
     This is a module of XiaoiceSing. A high-quality singing voice synthesis system which
@@ -705,7 +705,8 @@ class Discrete_Acoustic(AbsSVS):
         discrete_token: torch.Tensor = None,
         discrete_token_lengths: torch.Tensor = None,
         discrete_token_lengths_frame: torch.Tensor = None,
-        flag_IsValid=False,
+        flag_IsValid: bool = False,
+        flag_RL: bool = False,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Calculate forward propagation.
 
@@ -736,6 +737,8 @@ class Discrete_Acoustic(AbsSVS):
             discrete_token (LongTensor): Batch of padded discrete tokens (B, T_frame).
             discrete_token_lengths (LongTensor): Batch of the lengths of padded slur (B, ).
             joint_training (bool): Whether to perform joint training with vocoder.
+            flag_IsValid (bool): Whether it is valid set.
+            falg_RL (bool): Whether to perform reinforcement learning.
 
         Returns:
             Tensor: Loss scalar value.
@@ -754,7 +757,7 @@ class Discrete_Acoustic(AbsSVS):
         else:
             label = label["score"]
             midi = melody["score"]
-            duration_ = duration["lab"]
+            duration_ = duration["score_syb"]
             label_lengths = label_lengths["score"]
             midi_lengths = melody_lengths["score"]
             duration_lengths = duration_lengths["lab"]
@@ -980,10 +983,12 @@ class Discrete_Acoustic(AbsSVS):
         if joint_training:
             return loss, stats, after_outs if after_outs is not None else before_outs
         else:
-            if flag_IsValid is False:
-                return loss, stats, weight
-            else:
+            if flag_IsValid:
                 return loss, stats, weight, after_outs[:, : olens.max()], ys, olens
+            elif flag_RL:
+                return loss, stats, weight, after_outs[:, : olens.max()]
+            else:
+                return loss, stats, weight
 
     def inference(
         self,
@@ -1031,7 +1036,7 @@ class Discrete_Acoustic(AbsSVS):
         if joint_training:
             duration_ = duration["lab"]
         else:
-            duration_ = duration["score_phn"]
+            duration_ = duration["score_syb"]
         ds = duration["lab"]
 
         label_emb = self.phone_encode_layer(label)

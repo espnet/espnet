@@ -134,11 +134,13 @@ class ESPnetSVSModel(AbsESPnetModel):
             Tensor: Weight tensor to summarize losses.
         """
         with autocast(False):
-            # Extract features
+            # 1. Extract performacne features (actual features) in frame wise
+            #    and normalize
             if self.feats_extract is not None and feats is None:
+                # spec feature (frame level)
                 feats, feats_lengths = self.feats_extract(
                     singing, singing_lengths
-                )  # singing to spec feature (frame level)
+                )  
 
             # Extract auxiliary features
             # melody : 128 note pitch
@@ -146,7 +148,7 @@ class ESPnetSVSModel(AbsESPnetModel):
             #   input-> phone-id seqence
             #   output -> frame level(take mode from window) or syllable level
 
-            # cut length
+            # align length between feats and duration
             for i in range(feats.size(0)):
                 dur_len = sum(duration_phn[i])
                 if feats_lengths[i] > dur_len:
@@ -165,6 +167,35 @@ class ESPnetSVSModel(AbsESPnetModel):
                             duration_phn[i][end] = new
             feats = feats[:, : feats_lengths.max()]
 
+            if self.pitch_extract is not None and pitch is None:
+                pitch, pitch_lengths = self.pitch_extract(
+                    input=singing,
+                    input_lengths=singing_lengths,
+                    feats_lengths=feats_lengths,
+                )
+
+            if self.energy_extract is not None and energy is None:
+                energy, energy_lengths = self.energy_extract(
+                    singing,
+                    singing_lengths,
+                    feats_lengths=feats_lengths,
+                )
+
+            if self.ying_extract is not None and ying is None:
+                ying, ying_lengths = self.ying_extract(
+                    singing,
+                    singing_lengths,
+                    feats_lengths=feats_lengths,
+                )
+
+            if self.normalize is not None:
+                feats, feats_lengths = self.normalize(feats, feats_lengths)
+            if self.pitch_normalize is not None:
+                pitch, pitch_lengths = self.pitch_normalize(pitch, pitch_lengths)
+            if self.energy_normalize is not None:
+                energy, energy_lengths = self.energy_normalize(energy, energy_lengths)
+
+            # 2. Obtain score features in frame/syllabel wise
             if isinstance(self.score_feats_extract, FrameScoreFeats):
                 (
                     label_lab,
@@ -226,35 +257,6 @@ class ESPnetSVSModel(AbsESPnetModel):
                 slur = slur[:, : slur_lengths.max()]
             else:
                 raise RuntimeError("Cannot understand score_feats extract type")
-
-            if self.pitch_extract is not None and pitch is None:
-                pitch, pitch_lengths = self.pitch_extract(
-                    input=singing,
-                    input_lengths=singing_lengths,
-                    feats_lengths=feats_lengths,
-                )
-
-            if self.energy_extract is not None and energy is None:
-                energy, energy_lengths = self.energy_extract(
-                    singing,
-                    singing_lengths,
-                    feats_lengths=feats_lengths,
-                )
-
-            if self.ying_extract is not None and ying is None:
-                ying, ying_lengths = self.ying_extract(
-                    singing,
-                    singing_lengths,
-                    feats_lengths=feats_lengths,
-                )
-
-            # Normalize
-            if self.normalize is not None:
-                feats, feats_lengths = self.normalize(feats, feats_lengths)
-            if self.pitch_normalize is not None:
-                pitch, pitch_lengths = self.pitch_normalize(pitch, pitch_lengths)
-            if self.energy_normalize is not None:
-                energy, energy_lengths = self.energy_normalize(energy, energy_lengths)
 
         # Make batch for svs inputs
         batch = dict(
