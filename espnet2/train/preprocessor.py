@@ -2542,23 +2542,31 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         task_identifier = self.special_token(task_identifier)
 
         n_conditions = len(task.conditions)
+        n_targets = len(task.targets)
         if self.encoder_decoder_format:
-            new_data["enc_seq"] = np.concatenate(
-                [sos_eos] + [task_identifier] + seqs[:n_conditions] + [sos_eos], axis=0
-            ).reshape(-1, self.codec_token_in_use)[: self.n_ctx]
-            new_data["dec_seq"] = np.concatenate(
-                [sos_eos] + seqs[n_conditions:] + [sos_eos], axis=0
-            ).reshape(-1, self.codec_token_in_use)[: self.n_ctx]
+            raise NotImplementedError('encoder decoder is not supported yet')
         else:
-            new_data["dec_seq"] = np.concatenate(
-                [sos_eos] + [task_identifier] + seqs + [sos_eos], axis=0
-            ).reshape(-1, self.codec_token_in_use)[: self.n_ctx]
+            # NOTE(Jinchuan): insert task identifier and sos token
+            # To preserve the text ability of LLM, we should ensure there is no extra
+            # prefix tokens, so that the first token is a real token. 
+            # If so, we can only put task identifier after "conditions".
+            # A special case is when there is no conditions, i.e., pure text LLM task,
+            # then there is no task identifier as this is condition-free generation.
+            if n_conditions > 0:
+                seqs.insert(n_conditions, task_identifier)
+            seqs.append(sos_eos)
+
+            # NOTE(Jinchuan): also remove modality identifier of the first data item
+            # to avoid unwanted prefix.
+            seqs[0] = seqs[0][self.codec_token_in_use:]
+
+            new_data["dec_seq"] = np.concatenate(seqs, axis=0
+            ).reshape(-1, self.codec_token_in_use)[:self.n_ctx]
         
         if np.isin(self.unk, new_data["dec_seq"]):
             raise ValueError(f"Unknown token is in the decoder seq. UID: {uid}")
 
-        prefix_len = sum([len(seq) for seq in seqs[:n_conditions]])
-        prefix_len = prefix_len // self.codec_token_in_use + 2
+        prefix_len = sum([len(seq) for seq in seqs[:-(n_targets + 1)]]) / self.codec_token_in_use
         new_data["prefix_len"] = np.array([prefix_len])
 
         # (4) continuous features
@@ -2576,16 +2584,6 @@ class SpeechLMPreprocessor(AbsPreprocessor):
             conti_emb, start, end = conti_feat
             new_conti_feats.append((conti_emb, start + bias, end + bias))
         new_data["conti_feats"] = new_conti_feats
-
-        # (5) entries that are not included in sequences
-        for name, modality in self.extra_names_and_modalities:
-            if name not in data:
-                continue
-
-            # Currently it's not under good maintainance.
-            raise NotImplementedError
-            value = self.modality_specific_processing(data[name], modality)[0]
-            new_data = self.process_extra_entries(new_data, value, name)
 
         # self.diagnose(new_data) # For debug. Enable this to check the sequence format
 

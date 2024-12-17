@@ -120,6 +120,9 @@ class HFTransformerDecoder(AbsTransformer):
         torch.nn.init.normal_(lm_head.weight, mean=0, std=std)
         lm_head.weight[start:end] = self.lm_head.weight
 
+        # The input padding vector should still be 0 vector
+        emb.weight[0] = 0
+
         # clean up the original embeddings
         self.model.set_input_embeddings(None)
         del self.lm_head, self.emb
