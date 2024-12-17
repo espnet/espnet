@@ -16,7 +16,7 @@ HF_OBJ = {
     "EleutherAI/pythia": [GPTNeoXModel, GPTNeoXForCausalLM],
     "Qwen/Qwen2": [AutoModel, AutoModelForCausalLM],
     "allenai/OLMo": [AutoModel, AutoModelForCausalLM],
-    "meta-llama/Meta-Llama-3.1": [AutoModel, AutoModelForCausalLM],
+    "meta-llama/Llama-3.": [AutoModel, AutoModelForCausalLM],
     "HuggingFaceTB/SmolLM": [AutoModel, AutoModelForCausalLM],
     "facebook/opt": [AutoModel, AutoModelForCausalLM],
 }
@@ -29,6 +29,7 @@ class HFTransformerDecoder(AbsTransformer):
         hf_model_tag: str,
         token_bias: dict,
         attention_choice: str = "sdpa",
+        activation_checkpointing: bool = False,
         n_ctx: int = 8192,
     ):
         super(HFTransformerDecoder, self).__init__()
@@ -54,6 +55,9 @@ class HFTransformerDecoder(AbsTransformer):
             attn_implementation=attention_choice,
         )
         self.emb = self.model.get_input_embeddings()
+
+        if activation_checkpointing:
+            self.model.gradient_checkpointing_enable()
 
         self.kv_cache = None
         self.use_cache = False

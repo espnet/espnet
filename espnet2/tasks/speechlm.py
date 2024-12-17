@@ -390,7 +390,7 @@ class SpeechLMTask(AbsTask):
         if args.init is not None:
             initialize(model, args.init)
         # skip this when using HF transformers
-        elif args.corelm_conf.get("hf_model_tag", None) is None:
+        elif args.transformer_conf.get("hf_model_tag", None) is None:
             for m in model.modules():
                 if isinstance(m, torch.nn.Linear):
                     torch.nn.init.normal_(m.weight, mean=0.0, std=0.02)
