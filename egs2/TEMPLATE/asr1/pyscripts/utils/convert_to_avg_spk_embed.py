@@ -112,14 +112,14 @@ if __name__ == "__main__":
     print(os.path.dirname(utt_embed_path))
     shutil.copy(
         utt_embed_path,
-        f"{os.path.dirname(utt_embed_path)}/os.path.filename(utt_embed_path).bak",
+        f"{os.path.dirname(utt_embed_path)}/{os.path.basename(utt_embed_path)}.bak",
     )
 
     utt2spk_embed = []
     with open(args.utt_embed_path) as f:
         for line in f.readlines():
             utt, spk_embed = line.split()
-            utt2spk_embed.append((utt, spk_embed_paths[spk_id]))
+            utt2spk_embed.append((utt, spk_embed_paths[spkid]))
 
     with open(args.utt_embed_path, "w") as f:
         for utt, spk_embed in utt2spk_embed:
