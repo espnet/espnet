@@ -1,6 +1,6 @@
 # README
 
-The AMI corpus is a multimodal dataset consisting of 100 hours of meeting recordings. Each meeting session lasts approximately 30 minutes. This document provides an overview of the data processing steps, training procedures for EEND [[1]][1] and EEND-EDA [[2]][2], and includes example training results.
+The AMI corpus is a multimodal dataset consisting of 100 hours of meeting recordings. Each meeting session lasts approximately 30 minutes. This document provides an overview of the data processing steps, training procedures for EEND [1][1] and EEND-EDA [[2]][2], and includes example training results.
 
 ## Data Processing
 
@@ -112,7 +112,7 @@ qingzhew@andrew.cmu.edu
 
 ## References
 
-[1]: https://arxiv.org/pdf/1909.06247	"Fujita, Yusuke, et al. End-to-end neural speaker diarization with self-attention. 2019 IEEE Automatic Speech Recognition and Understanding Workshop (ASRU). IEEE, 2019."
+1: https://arxiv.org/pdf/1909.06247	"Fujita, Yusuke, et al. End-to-end neural speaker diarization with self-attention. 2019 IEEE Automatic Speech Recognition and Understanding Workshop (ASRU). IEEE, 2019."
 [2]: https://arxiv.org/pdf/2106.10654	"Horiguchi, Shota, et al. Encoder-decoder based attractors for end-to-end neural diarization. IEEE/ACM Transactions on Audio, Speech, and Language Processing 30 (2022): 1493-1507."
 [3]: https://arxiv.org/pdf/2012.14952	"Landini, Federico, et al. Bayesian hmm clustering of x-vector sequences (vbx) in speaker diarization: theory, implementation and analysis on standard tasks. Computer Speech &amp; Language 71 (2022): 101254."
 [4]: https://github.com/BUTSpeechFIT/AMI-diarization-setup	"BUT SpeechFIT. AMI-Diarization-Setup. GitHub, https://github.com/BUTSpeechFIT/AMI-diarization-setup. Accessed 18 Dec. 2024."
