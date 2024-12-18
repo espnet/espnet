@@ -82,7 +82,7 @@ The data processing script is located at `local/data.sh`, which contains the fol
 
 ## Training Workflow and Configurations
 
-We provide training examples for both EEND and EEND-EDA, with their corresponding run scripts located in `run.sh`and `run_eda.sh`. For both models, we adhere to the input and model configurations outlined in paper [[2]][2].
+We provide training examples for both EEND and EEND-EDA, with their corresponding run scripts located in `run.sh`and `run_eda.sh`. For both models, we adhere to the input and model configurations outlined in paper [[2]].
 
 **Configurations**:
 
