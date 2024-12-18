@@ -33,6 +33,8 @@ setup_dir=ami_diarization_setup
 mic_type=ihm
 if_mini=false
 sound_type=only_words
+duration=20
+min_wav_duration=0.0 # set to 0.0 to use all data, don't filter out short utterances
 
 ./diar.sh \
     --collar 0.0 \
@@ -49,6 +51,8 @@ sound_type=only_words
         --mic_type ${mic_type} 
         --if_mini ${if_mini} 
         --sound_type ${sound_type}
+        --duration ${duration}
     " \
     --num_spk "${num_spk}"\
+    --min_wav_duration "${min_wav_duration}"\
     "$@"

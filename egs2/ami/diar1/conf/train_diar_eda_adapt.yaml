@@ -1,13 +1,30 @@
-#    This config file is for the EEND-EDA adaptation stage (training on flexible number of speakers).
+#    The initial version of this file is copied from egs2/librimix/diar1/conf/train_diar_eda.yaml
+#    This config file is for EEND-EDA pre-training stage (training on fixed number of speakers).
 #    For the details about EEND-EDA, refer to the following papers:
 #    EEND-EDA: https://arxiv.org/pdf/2005.09921.pdf, https://arxiv.org/pdf/2106.10654.pdf
 
+input_size: 322 # 23 * 15 - 23, - 23 because the tasks/diar will add 23 back
+
 # network architecture
+model_conf:
+    diar_weight: 1.0
+    attractor_weight: 1.0
+    context_size: 7 # 7 frames are concatenated on each frame
+    subsampling: 10 # subsample the input features by 10
+
+frontend: default
+frontend_conf:
+    fs: 8k
+    n_fft: 200 # 25ms
+    win_length: 200 # 25ms
+    hop_length: 80 # 10ms
+    n_mels: 23
+
 # encoder related
 encoder: transformer
 encoder_conf:
     input_layer: "linear"
-    num_blocks: 1
+    num_blocks: 4
     linear_units: 512
     dropout_rate: 0.1
     output_size: 256  # dimension of attention
@@ -22,18 +39,19 @@ attractor_conf:
     dropout: 0.1
     attractor_grad: True
 
-
-# minibatch related
-batch_type: folded
-batch_size: 1
-
 # optimization related
 optim: adam
-accum_grad: 10
+# accum_grad: 10
 grad_clip: 5
-max_epoch: 50
+max_epoch: 5
 optim_conf:
     lr: 0.0001
+
+# minibatch related
+batch_type: unsorted
+batch_size: 64
+valid_batch_type: unsorted
+valid_batch_size: 64
 
 # others:
 best_model_criterion:
@@ -41,6 +59,13 @@ best_model_criterion:
    - acc
    - max
 keep_nbest_models: 10
+
+# batch_type: numel
+# batch_bins: 15000000
+# accum_grad: 4
+patience: none
+# The initialization method for model parameters
+init: xavier_uniform
 
 specaug: specaug
 specaug_conf:
