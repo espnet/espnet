@@ -1,6 +1,6 @@
 # README
 
-The AMI corpus is a multimodal dataset consisting of 100 hours of meeting recordings. Each meeting session lasts approximately 30 minutes. This document provides an overview of the data processing steps, training procedures for EEND [1][1] and EEND-EDA [[2]][2], and includes example training results.
+The AMI corpus is a multimodal dataset consisting of 100 hours of meeting recordings. Each meeting session lasts approximately 30 minutes. This document provides an overview of the data processing steps, training procedures for EEND [[1]] and EEND-EDA [[2]], and includes example training results.
 
 ## Data Processing
 
@@ -8,7 +8,7 @@ The data processing script is located at `local/data.sh`, which contains the fol
 
 - **Stage 1: Cloning the Setup Files for the AMI Dataset** 
 
-  In this recipe, we use the dataset partition and RTTMs provided by the paper [[3]][3]. The official GitHub repository containing the AMI setup files is available [[4]][4]. Additionally, we rely on a pyannote fork [[5]][5], which provides train/dev/test set partitions, data protocols, and data download scripts. Our setup builds upon the pyannote fork [[5]][5], but with the following modifications:
+  In this recipe, we use the dataset partition and RTTMs provided by the paper [[3]]. The official GitHub repository containing the AMI setup files is available [[4]]. Additionally, we rely on a pyannote fork [[5]], which provides train/dev/test set partitions, data protocols, and data download scripts. Our setup builds upon the pyannote fork [[5]], but with the following modifications:
 
   - **Removal of 2-Channel Audio Files in the Training Set** 
 
@@ -18,7 +18,7 @@ The data processing script is located at `local/data.sh`, which contains the fol
 
     The `database.yml` configuration file specifies the paths for RTTM files and audio recordings. To ensure compatibility with ESPNet's directory structure, we modify the paths in this file.
 
-  These modifications to the setup files are included in the fork [[6]][6]. At this stage, we proceed by cloning this fork.
+  These modifications to the setup files are included in the fork [[6]]. At this stage, we proceed by cloning this fork.
 
 - **Stage 2: Donwloading AMI Dataset**
 
@@ -112,9 +112,21 @@ qingzhew@andrew.cmu.edu
 
 ## References
 
-[1]: https://arxiv.org/pdf/1909.06247	"a"
+[1]: https://arxiv.org/pdf/1909.06247	"Fujita, Yusuke, et al. End-to-end neural speaker diarization with self-attention. 2019 IEEE Automatic Speech Recognition and Understanding Workshop (ASRU). IEEE, 2019."
 [2]: https://arxiv.org/pdf/2106.10654	"Horiguchi, Shota, et al. Encoder-decoder based attractors for end-to-end neural diarization. IEEE/ACM Transactions on Audio, Speech, and Language Processing 30 (2022): 1493-1507."
 [3]: https://arxiv.org/pdf/2012.14952	"Landini, Federico, et al. Bayesian hmm clustering of x-vector sequences (vbx) in speaker diarization: theory, implementation and analysis on standard tasks. Computer Speech &amp; Language 71 (2022): 101254."
 [4]: https://github.com/BUTSpeechFIT/AMI-diarization-setup	"BUT SpeechFIT. AMI-Diarization-Setup. GitHub, https://github.com/BUTSpeechFIT/AMI-diarization-setup. Accessed 18 Dec. 2024."
 [5]: https://github.com/pyannote/AMI-diarization-setup/tree/main	"pyannote. GitHub, 2024, https://github.com/pyannote/AMI-diarization-setup/tree/main. Accessed 18 Dec. 2024."
 [6]: https://github.com/Qingzheng-Wang/AMI-diarization-setup	"Wang, Qingzheng. AMI-diarization-setup. GitHub, 2024, https://github.com/Qingzheng-Wang/AMI-diarization-setup. Accessed 18 Dec. 2024."
+
+[[1]] Fujita, Yusuke, et al. End-to-end neural speaker diarization with self-attention. 2019 IEEE Automatic Speech Recognition and Understanding Workshop (ASRU). IEEE, 2019.
+
+[[2]] Horiguchi, Shota, et al. Encoder-decoder based attractors for end-to-end neural diarization. IEEE/ACM Transactions on Audio, Speech, and Language Processing 30 (2022): 1493-1507.
+
+[[3]] Landini, Federico, et al. Bayesian hmm clustering of x-vector sequences (vbx) in speaker diarization: theory, implementation and analysis on standard tasks. Computer Speech &amp; Language 71 (2022): 101254.
+
+[[4]] BUT SpeechFIT. AMI-Diarization-Setup. GitHub, https://github.com/BUTSpeechFIT/AMI-diarization-setup. Accessed 18 Dec. 2024.
+
+[[5]] pyannote. GitHub, 2024, https://github.com/pyannote/AMI-diarization-setup/tree/main. Accessed 18 Dec. 2024.
+
+[[6]] Wang, Qingzheng. AMI-diarization-setup. GitHub, 2024, https://github.com/Qingzheng-Wang/AMI-diarization-setup. Accessed 18 Dec. 2024.
