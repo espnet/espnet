@@ -4,18 +4,24 @@
 # and set the environment variable for the extra tools installed by tools/installers/*.sh.
 # This file is mainly sourced in egs2/*/*/path.sh. e.g. egs2/mini_an4/asr1/path.sh
 
-if [ -n "${BASH_VERSION:-}" ]; then
-    # shellcheck disable=SC2046
-    TOOL_DIR="$( cd $( dirname ${BASH_SOURCE[0]} ) >/dev/null 2>&1 && pwd )"
-elif [ -n "${ZSH_VERSION:-}" ]; then
-    # shellcheck disable=SC2046,SC2296
-    TOOL_DIR="$( cd $( dirname ${(%):-%N} ) >/dev/null 2>&1 && pwd )"
+if [ -z ${TOOL_DIR+x} ]; then
+    if [ -n "${BASH_VERSION:-}" ]; then
+        # shellcheck disable=SC2046
+        TOOL_DIR="$( cd $( dirname ${BASH_SOURCE[0]} ) >/dev/null 2>&1 && pwd )"
+    elif [ -n "${ZSH_VERSION:-}" ]; then
+        # shellcheck disable=SC2046,SC2296
+        TOOL_DIR="$( cd $( dirname ${(%):-%N} ) >/dev/null 2>&1 && pwd )"
+    else
+        # If POSIX sh, there are no ways to get the script path if it is sourced,
+        # so you must source this script at espnet/tools/
+        #   cd tools
+        #   . ./extra_path.sh
+        TOOL_DIR="$(pwd)"
+    fi
 else
-    # If POSIX sh, there are no ways to get the script path if it is sourced,
-    # so you must source this script at espnet/tools/
-    #   cd tools
-    #   . ./extra_path.sh
-    TOOL_DIR="$(pwd)"
+    # For custom locations of TOOL_DIR without need to remove the 
+    # <root>/tools need (Such as when using docker or devcontainers).
+    echo "Using custom TOOL_DIR located at: ${TOOL_DIR}."
 fi
 
 KALDI_ROOT="${TOOL_DIR}"/kaldi
