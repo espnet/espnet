@@ -20,7 +20,7 @@ decode_config_spk3="conf/decode_diar_eda_spk3.yaml"
 decode_config_spk4="conf/decode_diar_eda_spk4.yaml"
 decode_config_spk5="conf/decode_diar_eda_spk5.yaml"
 
-pretrain_stage=true
+pretrain_stage=true # must be true
 adapt_stage=true
 inference_stage=true
 
@@ -47,7 +47,6 @@ if [[ ${pretrain_stage} == "true" ]]; then
         --inference_config "${decode_config_spk4}" \
         --inference_nj 5 \
         --local_data_opts "\
-            --stage 3 \
             --setup_dir ${setup_dir} \
             --num_spk 4 \
             --duration ${duration} \
