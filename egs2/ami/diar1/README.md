@@ -22,31 +22,31 @@ The data processing script is located at `local/data.sh`, which contains the fol
 
 - **Stage 2: Donwloading AMI Dataset**
 
-  There are various types of datasets based on the protocols provided in Stage 1. To determine which dataset type to use, the following three conditions should be specified:
+   There are various types of datasets based on the protocols provided in Stage 1. To determine which dataset type to use, the following three conditions should be specified:
 
-  - `mic_type`: There are two microphone types:
+   - `mic_type`: There are two microphone types:
 
-    1. `ihm` (Individual Headset Microphone): Each participant uses a personal headset microphone. 
-    2. `sdm` (Single Distant Microphone): A single microphone captures audio from all participants in the room.
-  - `if_mini`: Specify this option to indicate whether to use the mini subset of the corresponding full dataset.
-  - `sound_type`: Specify the type of sounds to be annotated in the RTTM files. There are three options provided: 
-    1. `only_words`: Annotate only spoken words.
-    2. `word_and_vocalsounds`: Annotate both spoken words and vocal sounds (e.g., laughter, coughing). This could only be used when `mic_type` is `ihm`.
-    3. `None`: Use this option when working with the mini dataset. The `sound_type` should be set to `None` in this case.
-
-  Therefore, there are five types of datasets: 
-
-  - **Type 1**: Use recordings with `mic_type` set to `ihm`, annotate with `only_words`, and use the full dataset (set `if_mini` to false).
-
-  - **Type 2**: Use recordings with `mic_type` set to `ihm`, annotate with `only_words`, and use the subset dataset (set `if_mini` to true).
-
-  - **Type 3**: Use recordings with `mic_type` set to `ihm`, annotate with `word_and_vocalsounds`, and use the full dataset (set `if_mini` to false).
-
-  - **Type 4**: Use recordings with `mic_type` set to `sdm`, annotate with `only_words`, and use the full dataset (set `if_mini` to false).
-
-  - **Type 5**: Use recordings with `mic_type` set to `sdm`, annotate with `only_words`, and use the subset dataset (set `if_mini` to true).
-
-  To determine which dataset type to use, the conditions can be set in the `run.sh` (or `run_eda.sh` for EEND-EDA) script. Once the dataset type is determined, the dataset download script is used to download the corresponding audio files. By default, dataset type 1 is selected.
+     1. `ihm` (Individual Headset Microphone): Each participant uses a personal headset microphone. 
+     2. `sdm` (Single Distant Microphone): A single microphone captures audio from all participants in the room.
+   - `if_mini`: Specify this option to indicate whether to use the mini subset of the corresponding full dataset.
+   - `sound_type`: Specify the type of sounds to be annotated in the RTTM files. There are three options provided: 
+     1. `only_words`: Annotate only spoken words.
+     2. `word_and_vocalsounds`: Annotate both spoken words and vocal sounds (e.g., laughter, coughing). This could only be used when `mic_type` is `ihm`.
+     3. `None`: Use this option when working with the mini dataset. The `sound_type` should be set to `None` in this case.
+   
+   Therefore, there are five types of datasets: 
+   
+   - **Type 1**: Use recordings with `mic_type` set to `ihm`, annotate with `only_words`, and use the full dataset (set `if_mini` to false).
+   
+   - **Type 2**: Use recordings with `mic_type` set to `ihm`, annotate with `only_words`, and use the subset dataset (set `if_mini` to true).
+   
+   - **Type 3**: Use recordings with `mic_type` set to `ihm`, annotate with `word_and_vocalsounds`, and use the full dataset (set `if_mini` to false).
+   
+   - **Type 4**: Use recordings with `mic_type` set to `sdm`, annotate with `only_words`, and use the full dataset (set `if_mini` to false).
+   
+   - **Type 5**: Use recordings with `mic_type` set to `sdm`, annotate with `only_words`, and use the subset dataset (set `if_mini` to true).
+   
+   To determine which dataset type to use, the conditions can be set in the `run.sh` (or `run_eda.sh` for EEND-EDA) script. Once the dataset type is determined, the dataset download script is used to download the corresponding audio files. By default, dataset type 1 is selected.
 
 - **Stage 3: Audio Segmentation**
 
