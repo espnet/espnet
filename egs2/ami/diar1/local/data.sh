@@ -12,7 +12,7 @@ log() {
 }
 
 # Stage control variables
-stage=2 # Start from 0 if you need to start from data preparation
+stage=3 # Start from 0 if you need to start from data preparation
 stop_stage=100
 
 # Directory for AMI diarization setup
@@ -41,7 +41,8 @@ sound_type=only_words
 # Options: 
 # - 4: Most of AMI wav files contain 4 speakers, hence, for the fixed number of speakers trainig, 
 #      if specifies 4, will remove wav files that are not with 4 speakers in
-# - None: Using full AMI dataset (including wav files with 3 or 5 speakers) for training
+# - 3
+# - 5
 num_spk=4
 
 # Segment duration, in seconds
@@ -136,7 +137,16 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] ; then
     python3 local/prepare_kaldi_files.py \
         --kaldi_files_base_dir ./data \
         --num_spk ${num_spk} \
-        --segmented_dataset_dir ./segmented_dataset
+        --segmented_dataset_dir ./segmented_dataset \
+        --ami_setup_base_dir ./${setup_dir}
+
+    if [ ${num_spk} -eq 3 ] || [ ${num_spk} -eq 5 ]; then
+        # Since there is no or few test or dev set for 3 or 5 speakers,
+        # and our main goal for num_spk == 3 or 5 is to adapt the model trained with 4 spks, 
+        # we directly use the train set as test and dev set
+        cp data/train/* data/dev/
+        cp data/train/* data/test/
+    fi
 
     # converts the utt2spk file to spk2utt file
     for dir in data/test data/train data/dev; do
