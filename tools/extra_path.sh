@@ -19,7 +19,7 @@ if [ -z ${TOOL_DIR+x} ]; then
         TOOL_DIR="$(pwd)"
     fi
 else
-    # For custom locations of TOOL_DIR without need to remove the 
+    # For custom locations of TOOL_DIR without need to remove the
     # <root>/tools need (Such as when using docker or devcontainers).
     echo "Using custom TOOL_DIR located at: ${TOOL_DIR}."
 fi
