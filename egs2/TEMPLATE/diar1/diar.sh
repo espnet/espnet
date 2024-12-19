@@ -23,8 +23,8 @@ min() {
 SECONDS=0
 
 # General configuration
-stage=1                 # Processes starts from the specified stage.
-stop_stage=10000        # Processes is stopped at the specified stage.
+stage=0                 # Processes starts from the specified stage.
+stop_stage=10           # Processes is stopped at the specified stage.
 skip_data_prep=false    # Skip data preparation stages
 skip_train=false        # Skip training stages
 skip_eval=false         # Skip decoding and evaluation stages
@@ -55,7 +55,7 @@ diar_config= # Config for diar model training.
 diar_args=   # Arguments for diar model training, e.g., "--max_epoch 10".
              # Note that it will overwrite args in diar config.
 feats_normalize=global_mvn # Normalizaton layer type.
-num_spk=2    # Number of speakers in the input audio
+num_spk=     # Number of speakers in the input audio
 
 # diar related
 inference_config= # Config for diar model inference
@@ -70,6 +70,7 @@ hf_repo=
 collar=0         # collar for der scoring
 frame_shift=128  # frame shift to convert frame-level label into real time
                  # this should be aligned with frontend feature extraction
+subsampling=1    # subsampling factor for scoring
 
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=       # Name of training set.
@@ -546,7 +547,7 @@ if ! "${skip_eval}"; then
             mkdir -p "${_dir}"
 
             scripts/utils/score_der.sh ${_dir} ${_inf_dir}/diarize.scp ${_data}/rttm \
-                --collar ${collar} --fs ${fs} --frame_shift ${frame_shift}
+                --collar ${collar} --fs ${fs} --frame_shift ${frame_shift} --subsampling ${subsampling}
         done
 
         # Show results in Markdown syntax
