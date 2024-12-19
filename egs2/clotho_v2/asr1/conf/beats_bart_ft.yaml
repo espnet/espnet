@@ -1,0 +1,85 @@
+batch_type: folded
+unused_parameters: true
+batch_size: 64
+accum_grad: 2
+max_epoch: 8
+grad_clip: 1
+patience: none
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+keep_nbest_models: 5
+use_amp: false  # whether to use automatic mixed precision
+num_att_plot: 0
+num_workers: 2 # dataloader workers
+
+# BEATs implementation takes care of generating mel spectrogram, normalization and specaug
+frontend: none
+input_size: 1 # important to set input_size to 1 if frontend is none
+normalize: none # BEATs code does global mean and variance normalization
+
+freeze_param: [
+    "encoder.encoder",
+    "encoder.layer_norm",
+    "encoder.patch_embedding",
+    "encoder.post_extract_proj",
+]
+
+encoder: beats
+encoder_conf:
+    # Please download the BEATs model from https://github.com/microsoft/unilm/tree/master/beats
+    # (iter3+, Beats finetuned model 1) and update the path below
+    beats_ckpt_path: /compute/babel-13-33/sbharad2/models/BEATs/BEATs_iter3_plus_AS2M_finetuned_on_AS2M_cpt1.pt
+    specaug_config:
+        apply_freq_mask: true
+        freq_mask_width_range:
+        - 0
+        - 64
+        num_freq_mask: 2
+        apply_time_mask: true
+        time_mask_width_ratio_range:
+        - 0
+        - 0.12
+        num_time_mask: 5
+    adapter_config: conf/wav2vec2_conformer_config.json
+    downsampling_rate: 3 # CNN downsampling over beats encoder
+    max_layer: 10 # 0 based index
+    use_weighted_representation: false
+    add_positional_information: true
+    max_positions: 1024 # These many positional embeddings will be learned
+
+# Pleae note that the decoder is not the standard BART-base,
+# but a custom one whose config is defined in the file below
+decoder: hugging_face_transformers
+decoder_conf:
+    model_name_or_path: facebook/bart-base
+    overriding_architecture_config: conf/bart_decoder_config.json
+    load_pretrained_weights: false
+    separate_lm_head: true
+
+# Initialization does not matter we use a pre-trained model
+init: normal
+
+token_type: hugging_face
+
+# Loss, optimizer, scheduler
+model_conf:
+    ctc_weight: 0.0  # No CTC, only attention branch
+    lsm_weight: 0.1  # label smoothing weight
+    length_normalized_loss: true
+    # BART Dictionary customizations
+    ignore_id: 1
+    sym_blank: "<pad>"
+    sym_sos: "<s>"
+    sym_eos: "</s>"
+    sym_space: "Ġ"
+
+optim: adamw
+optim_conf:
+    lr: 0.00002 # 2e-5
+    weight_decay: 0.001 # 1e-3
+
+scheduler: warmuplr
+scheduler_conf:
+    warmup_steps: 1000 #1k

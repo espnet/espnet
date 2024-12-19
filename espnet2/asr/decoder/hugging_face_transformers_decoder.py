@@ -6,13 +6,15 @@
 
 import copy
 import logging
-from typing import Any, List, Tuple
+import os
+from typing import Any, List, Optional, Tuple, Union
 
 import torch
 import torch.nn.functional as F
 from typeguard import typechecked
 
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
+from espnet.asr.asr_utils import get_model_conf
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 
 try:
@@ -43,20 +45,69 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
         causal_lm: bool = False,
         prefix: str = "",
         postfix: str = "",
+        overriding_architecture_config: Optional[Union[str, dict]] = {},
+        load_pretrained_weights: bool = True,
+        separate_lm_head: bool = False,
     ):
+        """
+        Initializes the HuggingFaceTransformersDecoder.
+
+        Args:
+            vocab_size (int): The size of the vocabulary.
+            encoder_output_size (int): The size of the encoder output.
+            model_name_or_path (str): The name or path of the pre-trained
+                 Transformers model.
+            causal_lm (bool, optional): Whether to use a causal language
+                model. Defaults to False. This overrides the
+                model_name_or_path if provided.
+            prefix (str, optional): Prefix to be added to the input
+                tokens. Defaults to "".
+            postfix (str, optional): Postfix to be added to the input
+                tokens. Defaults to "".
+            overriding_architecture_config (str or dict, optional): Path to the
+                configuration json file or the json dictionary itself. Defaults
+                to None. If this is set, it can be used to override the
+                default decoder configuration.
+            load_pretrained_weights (bool): Whether to load the pre-trained
+                weights. Defaults to True.
+            separate_lm_head (bool): True ensures that the language model
+                head is not shared with the input token embeddings. When False,
+                the original structure is kept, ie, if the original Transformers
+                implementation has tying of weights, it is retained. Defaults
+                to False.
+
+        Raises:
+            ImportError: If the `transformers` library is not available.
+            Exception: If the word embeddings attribute cannot be found in
+                the model.
+        """
         super().__init__()
 
         if not is_transformers_available:
             raise ImportError(
-                "`transformers` is not available. Please install it via `pip install"
-                " transformers` or `cd /path/to/espnet/tools && . ./activate_python.sh"
+                "`transformers` is not available. Please install it "
+                "via `pip install"
+                " transformers` or `cd /path/to/espnet/tools "
+                "&& . ./activate_python.sh"
                 " && ./installers/install_transformers.sh`."
+            )
+
+        self.load_pretrained_weights = load_pretrained_weights
+        self.separate_lm_head = separate_lm_head
+
+        self.overriding_architecture_config = overriding_architecture_config
+        if isinstance(overriding_architecture_config, str):
+            # It is path to a json config file
+            self.overriding_architecture_config = vars(
+                get_model_conf(model_path="", conf_path=overriding_architecture_config)
             )
 
         self.causal_lm = causal_lm
 
         if self.causal_lm:
-            model = AutoModelForCausalLM.from_pretrained(model_name_or_path)
+            model = AutoModelForCausalLM.from_pretrained(
+                model_name_or_path, **self.overriding_architecture_config
+            )
             self.decoder = get_hugging_face_model_network(model)
 
             if hasattr(self.decoder, "word_embeddings"):
@@ -87,7 +138,9 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
                 tokenizer.encode(postfix, return_tensors="pt").long()
             ).detach()
         else:
-            model = AutoModelForSeq2SeqLM.from_pretrained(model_name_or_path)
+            model = AutoModelForSeq2SeqLM.from_pretrained(
+                model_name_or_path, **self.overriding_architecture_config
+            )
 
             if hasattr(model, "model"):
                 self.decoder = model.model.decoder
@@ -96,7 +149,10 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
 
         model.resize_token_embeddings(vocab_size)
 
-        self.lm_head = get_hugging_face_model_lm_head(model)
+        if self.separate_lm_head:
+            self.lm_head = copy.deepcopy(get_hugging_face_model_lm_head(model))
+        else:
+            self.lm_head = get_hugging_face_model_lm_head(model)
 
         self.model_name_or_path = model_name_or_path
 
@@ -184,12 +240,17 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
         return x, ys_in_lens
 
     def reload_pretrained_parameters(self):
-        self.decoder.load_state_dict(self.decoder_pretrained_params)
+        if self.load_pretrained_weights:
+            self.decoder.load_state_dict(self.decoder_pretrained_params)
+            logging.info("Loaded pretrained Transformers decoder parameters!")
 
-        if self.lm_head_pretrained_params is not None:
-            self.lm_head.load_state_dict(self.lm_head_pretrained_params)
-
-        logging.info("Pretrained Transformers model parameters reloaded!")
+            if self.lm_head_pretrained_params is not None:
+                self.lm_head.load_state_dict(self.lm_head_pretrained_params)
+                logging.info("Loaded pretrained Transformers LM head parameters!")
+        else:
+            logging.info(
+                "Skipping the loading of pretrained Transformer model parameters!"
+            )
 
     def add_prefix_postfix(self, enc_out, hlens, ys_in_pad, ys_in_lens):
         args = {}
@@ -249,7 +310,7 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
             **model_inputs,
             return_dict=True,
             output_attentions=False,
-            output_hidden_states=False
+            output_hidden_states=False,
         )
         next_token_logits = outputs.logits[:, -1, :]
         next_token_scores = torch.nn.functional.log_softmax(
@@ -275,7 +336,7 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
             **model_inputs,
             return_dict=True,
             output_attentions=False,
-            output_hidden_states=False
+            output_hidden_states=False,
         )
         next_token_logits = outputs.logits[:, -1, :]
         next_token_scores = torch.nn.functional.log_softmax(

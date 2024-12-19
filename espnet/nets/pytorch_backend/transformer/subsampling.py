@@ -473,17 +473,19 @@ class Conv2dSubsampling8(torch.nn.Module):
             torch.nn.Conv2d(odim, odim, 3, 2),
             torch.nn.ReLU(),
         )
-        self.out = torch.nn.Sequential(
-            torch.nn.Linear(odim * ((((idim - 1) // 2 - 1) // 2 - 1) // 2), odim),
-            pos_enc if pos_enc is not None else PositionalEncoding(odim, dropout_rate),
+        self.out = torch.nn.Linear(odim * ((((idim - 1) // 2 - 1) // 2 - 1) // 2), odim)
+        self.pos_enc = (
+            pos_enc if pos_enc is not None else PositionalEncoding(odim, dropout_rate)
         )
 
-    def forward(self, x, x_mask):
+    def forward(self, x, x_mask, prefix_embeds=None):
         """Subsample x.
 
         Args:
             x (torch.Tensor): Input tensor (#batch, time, idim).
             x_mask (torch.Tensor): Input mask (#batch, 1, time).
+            prefix_embeds (torch.Tensor or None): Prefix token embeddings
+                (#batch, prefix_len, odim).
 
         Returns:
             torch.Tensor: Subsampled tensor (#batch, time', odim),
@@ -496,6 +498,26 @@ class Conv2dSubsampling8(torch.nn.Module):
         x = self.conv(x)
         b, c, t, f = x.size()
         x = self.out(x.transpose(1, 2).contiguous().view(b, t, c * f))
-        if x_mask is None:
-            return x, None
-        return x, x_mask[:, :, :-2:2][:, :, :-2:2][:, :, :-2:2]
+        if x_mask is not None:
+            x_mask = x_mask[:, :, :-2:2][:, :, :-2:2][:, :, :-2:2]
+
+        if prefix_embeds is not None:
+            x = torch.cat([prefix_embeds, x], dim=1)
+            if x_mask is not None:
+                x_mask = torch.cat(
+                    [
+                        torch.ones(
+                            x_mask.shape[0],
+                            1,
+                            prefix_embeds.size(1),
+                            dtype=x_mask.dtype,
+                            device=x_mask.device,
+                        ),
+                        x_mask,
+                    ],
+                    dim=-1,
+                )
+
+        x = self.pos_enc(x)
+
+        return x, x_mask

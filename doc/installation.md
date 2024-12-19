@@ -4,7 +4,7 @@
 - Python 3.7+
 - gcc 4.9+ for PyTorch1.10.2+
 
-(If you'll use an anaconda environment at the installation step2,
+(If you'll use a conda environment at the installation step2,
 the following packages are installed using conda, so you can skip them.)
 
 - cmake3 for some extensions
@@ -136,9 +136,9 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
 
         ```sh
         $ cd <espnet-root>/tools
-        $ ./setup_anaconda.sh [output-dir-name|default=venv] [conda-env-name|default=root] [python-version|default=none]
+        $ ./setup_miniforge.sh [output-dir-name|default=venv] [conda-env-name|default=root] [python-version|default=none]
         # e.g.
-        $ ./setup_anaconda.sh miniconda espnet 3.8
+        $ ./setup_miniforge.sh miniconda espnet 3.8
         ```
 
         This script tries to create a new miniconda if the output directory doesn't exist.
@@ -147,9 +147,9 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
         ```sh
         $ cd <espnet-root>/tools
         $ CONDA_ROOT=${${CONDA_PREFIX}/../..  # CONDA_PREFIX is an environment variable set by ${CONDA_ROOT}/etc/profile.d/conda.sh
-        $ ./setup_anaconda.sh ${CONDA_ROOT} [conda-env-name] [python-version]
+        $ ./setup_miniforge.sh ${CONDA_ROOT} [conda-env-name] [python-version]
         # e.g.
-        $ ./setup_anaconda.sh ${CONDA_ROOT} espnet 3.8
+        $ ./setup_miniforge.sh ${CONDA_ROOT} espnet 3.8
         ```
 
     - Option B) Setup venv from the system Python
@@ -230,7 +230,7 @@ e.g.
   environment, e.g.,
     ```sh
     cd <espnet-root>/tools
-    bash -c ". activate_python.sh; conda install -c anaconda cmake"
+    bash -c ". activate_python.sh; conda install cmake"
     ```
 
 ### Check installation

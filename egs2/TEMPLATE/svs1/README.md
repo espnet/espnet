@@ -20,6 +20,7 @@ This is a template of SVS recipe for ESPnet2.
     - [XiaoiceSing training](#xiaoicesing-training)
     - [Diffsinger training](#diffsinger-training)
     - [VISinger (1+2) training](#visinger-12-training)
+    - [VISinger 2 Plus training](#visinger-2-plus-training)
     - [Singing Tacotron training](#singing-tacotron-training)
     - [Multi-speaker model with speaker ID embedding training](#multi-speaker-model-with-speaker-id-embedding-training)
     - [Multi-language model with language ID embedding training](#multi-language-model-with-language-id-embedding-training)
@@ -363,6 +364,30 @@ Second, check "train_config" (default `conf/train.yaml`, you can also use `--tra
     --inference_model latest.pth \
     --write_collected_feats true
 
+```
+
+### VISinger 2 Plus training
+VISinger 2 has been accepted at SLT 2024. To use the pretrained model, you can download it from [here](https://huggingface.co/yifengyu/svs_train_visinger2plus_mert_raw_phn_None_zh_200epoch).
+
+To train the model, you can select multiple configurations to train on either the ACESinger or Opencpop dataset. The default setting in `train_visinger2_plus_hubert.yaml` uses `hubert_large_ll60k` as the pretrained SSL model. To switch the SSL model, you can modify the configuration by uncommenting the lines for MERT or Chinese Hubert.
+```sh
+./run.sh \
+    --stage 1 \
+    --stop_stage 8 \
+    --ngpu 1 \
+    --fs 24000 \
+    --n_fft 2048 \
+    --n_shift 480 \
+    --win_length 2048 \
+    --dumpdir dump/24k \
+    --expdir exp/24k \
+    --svs_task gan_svs \
+    --feats_extract fbank \
+    --feats_normalize none \
+    --train_config ./conf/tuning/train_visinger2_plus_hubert.yaml \
+    --inference_config ./conf/tuning/decode_vits.yaml \
+    --inference_model latest.pth \
+    --write_collected_feats false
 ```
 
 ### Singing Tacotron training

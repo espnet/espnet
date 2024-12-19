@@ -32,6 +32,8 @@ loss_conf:
   scale: 15
 
 optim: adam
+optim_conf:
+    lr: 0.005
 num_att_plot: 0
 
 max_epoch: 1
@@ -39,6 +41,7 @@ num_iters_per_epoch: 1
 iterator_type: category
 valid_iterator_type: sequence
 batch_size: 2
+batch_type: unsorted
 best_model_criterion:
 - - valid
   - eer
