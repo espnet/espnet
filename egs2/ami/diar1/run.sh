@@ -34,7 +34,7 @@ mic_type=ihm
 if_mini=false
 sound_type=only_words
 duration=20
-min_wav_duration=0.0 # set to 0.0 to use all data, don't filter out short utterances
+min_wav_duration=0.0 # set to 0.0 to use all data, don't filter out short utterances.
 
 ./diar.sh \
     --collar 0.0 \
