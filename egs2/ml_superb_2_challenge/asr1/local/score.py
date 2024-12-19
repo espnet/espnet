@@ -87,6 +87,7 @@ reference_text = [line.split(' ', 1)[1]for line in reference_text]
 dirs = os.listdir(args.exp_dir)
 for directory in dirs:
     if 'decode_asr' in directory:
+        print(directory)
         hypothesis_text = open(f"{args.exp_dir}/{directory}/org/dev/text").readlines()
         hypothesis_text = [line.split(' ', 1)[1] for line in hypothesis_text]
 
