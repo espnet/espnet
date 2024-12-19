@@ -24,13 +24,17 @@ pretrain_stage=true # must be true
 adapt_stage=true
 inference_stage=true
 
-# options for /local/data/sh
+# Arguments for /local/data.sh
 setup_dir=ami_diarization_setup
 mic_type=ihm
 if_mini=false
 sound_type=only_words
 duration=20
 min_wav_duration=0.0 # set to 0.0 to use all data, don't filter out short utterances
+
+# Arguments for scoring
+scoring_frame_shift=80 # frame shift for scoring, which is same as the frame shift in the model.
+scoring_subsampling=10 # subsampling factor for scoring, which is same as the subsampling factor in the model.
 
 dumpdir=dump_eda
 expdir=exp_eda
@@ -147,5 +151,7 @@ if [[ ${inference_stage} == "true" ]]; then
         --diar_tag "train_diar_eda_raw_spk4"\
         --stage 6 \
         --stop_stage 9 \
+        --frame_shift "${scoring_frame_shift}"\
+        --subsampling "${scoring_subsampling}"\
         "$@"
 fi
