@@ -13,7 +13,7 @@ encoder_conf:
 model_conf:
     ctc_weight: 1.0
     extract_feats_in_collect_stats: false
-    
+
 use_amp: true
 unused_parameters: false
 freeze_param: ["frontend.upstream"]
@@ -66,4 +66,4 @@ specaug_conf:
     num_time_mask: 10
 
 num_iters_per_epoch: 10000 # number of iterations per epoch
-max_epoch: 20   
+max_epoch: 20
