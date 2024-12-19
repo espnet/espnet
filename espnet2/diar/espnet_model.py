@@ -52,6 +52,8 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         attractor: Optional[AbsAttractor],
         diar_weight: float = 1.0,
         attractor_weight: float = 1.0,
+        context_size: int = 7, 
+        subsampling: int = 10,
     ):
 
         super().__init__()
@@ -65,6 +67,8 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         self.attractor_weight = attractor_weight
         self.attractor = attractor
         self.decoder = decoder
+        self.context_size = context_size
+        self.subsampling = subsampling
 
         if self.attractor is not None:
             self.decoder = None
@@ -132,6 +136,7 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         spk_labels, spk_labels_lengths = self.label_aggregator(
             spk_labels, spk_labels_lengths
         )
+        spk_labels, spk_labels_lengths = self._subsample(spk_labels, spk_labels_lengths, subsampling=self.subsampling)
 
         # If encoder uses conv* as input_layer (i.e., subsampling),
         # the sequence length of 'pred' might be slighly less than the
@@ -230,6 +235,10 @@ class ESPnetDiarizationModel(AbsESPnetModel):
             if self.normalize is not None:
                 feats, feats_lengths = self.normalize(feats, feats_lengths)
 
+            # splice and subsample
+            feats = self._splice_feats(feats, context_size=self.context_size) 
+            feats, feats_lengths = self._subsample(feats, feats_lengths, subsampling=self.subsampling) 
+
             # 4. Forward encoder
             # feats: (Batch, Length, Dim)
             # -> encoder_out: (Batch, Length2, Dim)
@@ -288,6 +297,33 @@ class ESPnetDiarizationModel(AbsESPnetModel):
             # No frontend and no feature extract
             feats, feats_lengths = speech, speech_lengths
         return feats, feats_lengths
+    
+    def _splice_feats(self, feats, context_size=7):
+        """Splice feats
+        Args:
+            feats: (Batch, Length, Dim)
+            context_size: int
+        Returns:
+            spliced_feats: (Batch, Length, Dim * (2 * context_size + 1))
+        """
+        batch_size, seq_len, feat_dim = feats.shape
+        feats_pad = F.pad(feats, (0, 0, context_size, context_size), 'constant')
+        spliced_feats = feats_pad.unfold(1, context_size * 2 + 1, 1).permute(0, 1, 3, 2).reshape(batch_size, seq_len, -1)
+        return spliced_feats
+    
+    def _subsample(self, x, x_lengths, subsampling=10):
+        """Subsample feats or labels
+        Args:
+            x: (Batch, Length, Dim), feats or labels
+            x_lengths: (Batch,)
+            subsampling: int
+        Returns:
+            subsampled_x: (Batch, Length // subsampling + 1, Dim)
+            subsampled_x_lengths: (Batch,)
+        """
+        subsampled_x = x[:, ::subsampling, :]
+        subsampled_x_lengths = torch.ceil(x_lengths.float() / subsampling).int()
+        return subsampled_x, subsampled_x_lengths
 
     def pit_loss_single_permute(self, pred, label, length):
         bce_loss = torch.nn.BCEWithLogitsLoss(reduction="none")
