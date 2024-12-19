@@ -48,7 +48,6 @@ def calculate_acc(hyps, refs):
 
 
 def score(references, lids, hyps):
-    # utts: zip of (reference lid tag + " " + reference transcript, hyp lid tag + " " + hyp text)
     all_cers = []
     all_accs = []
     remove_space_langs = ["[cmn]", "[jpn]", "[tha]", "[yue]"]
