@@ -3,8 +3,18 @@
 
 """GTN CTC implementation."""
 
-import gtn
+import logging
+
 import torch
+
+try:
+    import gtn
+except ImportError:
+    logging.error(
+         "`gtn` is not installed. "
+         "Please install via `pip install gtn`."
+     )
+     raise
 
 
 class GTNCTCLossFunction(torch.autograd.Function):
