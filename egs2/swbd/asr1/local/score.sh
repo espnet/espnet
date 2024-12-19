@@ -20,7 +20,7 @@ fi
 
 asr_expdir=$1
 
-hubscr=${KALDI_ROOT}/tools/sctk/bin/hubscr.pl
+hubscr=${MAIN_ROOT}/tools/sctk/bin/hubscr.pl
 [ ! -f ${hubscr} ] && echo "Cannot find scoring program at $hubscr" && exit 1;
 hubdir=$(dirname ${hubscr})
 
@@ -42,7 +42,7 @@ for dir in ${asr_expdir}/decode_*/${name}/score_wer; do
             hyp=${dir}/hyp.trn
             # The WER seems to be lower without converting stm
             #trn2stm.py --orig-stm ${data}/stm ${ref} ${stm}
-            trn2ctm.py ${hyp} ${ctm}
+            ${MAIN_ROOT}/utils/trn2ctm.py ${hyp} ${ctm}
 
     fi
 

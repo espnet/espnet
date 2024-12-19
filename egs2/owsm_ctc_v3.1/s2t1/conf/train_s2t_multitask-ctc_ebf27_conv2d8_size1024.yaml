@@ -1,0 +1,111 @@
+# 64 NVIDIA A100 GPUs (40GB)
+# Total training time: 300 hours
+preprocessor: s2t_ctc
+preprocessor_conf:
+    na_symbol: "<na>"
+    speech_length: 30
+    speech_init_silence: 30
+    text_prev_apply_prob: 0.5
+    lang_apply_prob: 0.5
+    nolang_symbol: "<nolang>"
+
+frontend_conf:
+    n_fft: 512
+    win_length: 400
+    hop_length: 160
+
+specaug: specaug
+specaug_conf:
+    apply_time_warp: false
+    time_warp_window: 5
+    time_warp_mode: bicubic
+    apply_freq_mask: true
+    freq_mask_width_range:
+    - 0
+    - 27
+    num_freq_mask: 2
+    apply_time_mask: true
+    time_mask_width_ratio_range:
+    - 0.
+    - 0.05
+    num_time_mask: 10
+
+encoder: e_branchformer_ctc
+encoder_conf:
+    output_size: 1024
+    attention_heads: 16
+    attention_layer_type: selfattn
+    pos_enc_layer_type: abs_pos
+    rel_pos_type: latest
+    cgmlp_linear_units: 4096
+    cgmlp_conv_kernel: 31
+    use_linear_after_conv: false
+    gate_activation: identity
+    num_blocks: 27
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    attention_dropout_rate: 0.1
+    input_layer: conv2d8
+    layer_drop_rate: 0.0
+    linear_units: 4096
+    positionwise_layer_type: linear
+    use_ffn: true
+    macaron_ffn: true
+    merge_conv_kernel: 31
+    interctc_layer_idx: [6, 12, 15, 21]
+    interctc_use_conditioning: true
+    use_cross_attention: [0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1,]
+    use_flash_attn: true    # flash attn
+
+promptencoder: transformer
+promptencoder_conf:
+    output_size: 512
+    attention_heads: 8
+    linear_units: 2048
+    num_blocks: 4
+    use_flash_attn: true
+
+model: espnet_ctc
+model_conf:
+    interctc_weight: 0.8
+    sym_na: "<na>"
+    ctc_asr_only: [true, true, true, false, false]
+
+optim: adamw
+optim_conf:
+    lr: 2.0e-04
+    betas:
+    - 0.9
+    - 0.98
+    eps: 1.0e-06
+    weight_decay: 0.0
+scheduler: piecewiselinearwarmuplr
+scheduler_conf:
+    warmup_steps_list: [0, 30000, 60000]
+    warmup_lr_list: [0., 5.0e-05, 2.0e-04]
+
+# 4 samples per GPU
+batch_type: unsorted
+batch_size: 256
+accum_grad: 1
+num_iters_per_epoch: 15000
+max_epoch: 45
+patience: none
+init: none
+best_model_criterion:
+-   - valid
+    - cer_ctc
+    - min
+-   - valid
+    - loss_ctc
+    - min
+-   - valid
+    - total_count
+    - max
+keep_nbest_models: 5
+nbest_averaging_interval: 5     # average ckpt every 5 epochs
+use_amp: true
+num_workers: 4
+unused_parameters: false
+seed: 2024
+num_att_plot: 0     # set to 0 due to flash_attn

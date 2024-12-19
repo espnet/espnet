@@ -67,4 +67,4 @@ $ npm run docs:dev
 
 ## Deploy
 
-When your PR is merged into `master` branch, our [CI](https://github.com/espnet/espnet/blob/master/.github/workflows/doc.yml) will automatically deploy your sphinx html into https://espnet.github.io/espnet/.
+When your PR is merged into `master` branch, our [CI](https://github.com/espnet/espnet/blob/master/.github/workflows/publish_doc.yml) will automatically deploy your sphinx html into https://espnet.github.io/espnet/.
