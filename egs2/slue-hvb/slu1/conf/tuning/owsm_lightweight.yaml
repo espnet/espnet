@@ -1,0 +1,85 @@
+# network architecture
+
+optim: adam
+optim_conf:
+    lr: 0.001
+scheduler: warmuplr     # pytorch v1.1.0+ required #Tune warmup steps
+scheduler_conf:
+    warmup_steps: 1000
+max_epoch: 27
+batch_size: 320
+
+normalize: global_mvn
+normalize_conf:
+    stats_file: /scratch/bbjs/arora1/new_download_espnet_egs2/harpervalley/slu1_superb_onlyda/owsm_v3.1_ebf/exp/s2t_stats_raw_bpe50000/train/feats_stats.npz
+
+encoder: e_branchformer
+encoder_conf:
+    output_size: 1024
+    attention_heads: 16
+    attention_layer_type: selfattn
+    pos_enc_layer_type: abs_pos
+    rel_pos_type: latest
+    cgmlp_linear_units: 4096
+    cgmlp_conv_kernel: 31
+    use_linear_after_conv: false
+    gate_activation: identity
+    num_blocks: 18
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    attention_dropout_rate: 0.1
+    input_layer: conv2d
+    layer_drop_rate: 0.0
+    linear_units: 4096
+    positionwise_layer_type: linear
+    use_ffn: true
+    macaron_ffn: true
+    merge_conv_kernel: 31
+
+freeze_param: [
+"encoder"
+]
+
+frontend: default
+frontend_conf:
+    n_fft: 512
+    win_length: 400
+    hop_length: 160
+    fs: 16k
+specaug: specaug
+specaug_conf:
+    apply_time_warp: false
+    time_warp_window: 5
+    time_warp_mode: bicubic
+    apply_freq_mask: true
+    freq_mask_width_range:
+    - 0
+    - 27
+    num_freq_mask: 2
+    apply_time_mask: true
+    time_mask_width_ratio_range:
+    - 0.0
+    - 0.05
+    num_time_mask: 10
+
+model_conf:
+    ctc_weight: 0.0
+    lsm_weight: 0.1
+    length_normalized_loss: false
+    superb_setup_encoder: true
+    num_class: 18
+    weighted_sum: true
+    superb_da: true
+    ssl_input_size: 1024
+    extract_feats_in_collect_stats: false   # Note: "False" means during collect stats (stage 10), generating dummy stats files rather than extract_feats by forward frontend.
+unused_parameters: true
+
+best_model_criterion:
+-   - valid
+    - loss
+    - min
+keep_nbest_models: 10
+
+init_param: [
+    "/scratch/bbjs/arora1/new_download_espnet_egs2/harpervalley/slu1_superb_onlyda/owsm_v3.1_ebf/exp/s2t_train_s2t_ebf_conv2d_size1024_e18_d18_piecewise_lr2e-4_warmup60k_flashattn_raw_bpe50000/valid.total_count.ave_5best.till45epoch.pth:encoder:encoder",
+]
