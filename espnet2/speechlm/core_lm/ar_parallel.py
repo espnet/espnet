@@ -83,8 +83,12 @@ class ARParallelLM(AbsCoreLM):
         x = x.unsqueeze(2) + self.head_emb.weight.tile(1, 1, 1, 1)[:, :, : self.nq]
 
         # lm logits
-        logits = self.lm_head(x[:, :, :1])
-        aux_logits = self.aux_lm_head(x[:, :, 1:]) if self.nq > 1 else None
+        # NOTE(Jinchuan): lm_head and aux_lm_head are not applied in the corelm forward
+        # but in the loss modules, so that we can use fused kernel to reduce memory
+        # consumption. We still host the lm_head and aux_lm_head in the corelm forward
+        # so they can be used in infernece.
+        logits = x[:, :, :1]
+        aux_logits = x[:, :, 1:] if self.nq > 1 else None
 
         return (logits, aux_logits), target
 

@@ -254,6 +254,12 @@ class SpeechLMTask(AbsTask):
             default=dict(),
             help="The config of using time mask"
         )
+        group.add_argument(
+            "--ce_loss_use_liger_kernel",
+            type=str2bool,
+            default=False,
+            help="If true, ce_loss is based on liger_kernel"
+        )
 
         for class_choices in cls.class_choices_list:
             # Append --<name> and --<name>_conf.
@@ -379,6 +385,9 @@ class SpeechLMTask(AbsTask):
             token_bias=token_bias.copy(),
             loss_region=args.loss_region,
             modality_weights=args.modality_weights,
+            lm_head=corelm.lm_head,
+            aux_lm_head=corelm.aux_lm_head,
+            use_liger_kernel=args.ce_loss_use_liger_kernel,
         )
         kwargs.update(criterion=criterion)
 

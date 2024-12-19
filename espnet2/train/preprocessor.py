@@ -2567,7 +2567,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
             raise ValueError(f"Unknown token is in the decoder seq. UID: {uid}")
 
         prefix_len = sum([len(seq) for seq in seqs[:-(n_targets + 1)]]) / self.codec_token_in_use
-        new_data["prefix_len"] = np.array([prefix_len])
+        new_data["prefix_len"] = np.array([prefix_len]).astype(np.int64)
 
         # (4) continuous features
         new_conti_feats = []
