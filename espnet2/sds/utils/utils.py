@@ -1,4 +1,6 @@
 import numpy as np
+
+
 def int2float(sound):
     """
     Taken from https://github.com/snakers4/silero-vad

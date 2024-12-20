@@ -3,12 +3,13 @@
 from typing import Any, Literal, Optional
 
 import torch
-# import torch._dynamo.config
-# import torch._inductor.config
+from tqdm import tqdm
 
 from espnet2.sds.end_to_end.mini_omni.litgpt.model import GPT
 from espnet2.sds.end_to_end.mini_omni.utils.snac_utils import layershift, snac_config
-from tqdm import tqdm
+
+# import torch._dynamo.config
+# import torch._inductor.config
 
 
 def multinomial_num_samples_1(probs: torch.Tensor) -> torch.Tensor:
@@ -318,7 +319,9 @@ def generate(
             text_end = True
 
         for i in range(7):
-            tokens_A[i] = tokens_A[i].clone() + shift + i * snac_config.padded_vocab_size
+            tokens_A[i] = (
+                tokens_A[i].clone() + shift + i * snac_config.padded_vocab_size
+            )
         token_T = token_T.clone()
         input_pos = input_pos.add_(1)
 
@@ -380,7 +383,9 @@ def generate_TA_BATCH(
     for i in range(7):
         tokens_A[i] = tokens_A[i].clone() + shift + i * snac_config.padded_vocab_size
         model_input_ids[i].append(tokens_A[i].clone().to(device).to(torch.int32))
-        model_input_ids[i].append(torch.tensor([layershift(snac_config.end_of_audio, i)], device=device))
+        model_input_ids[i].append(
+            torch.tensor([layershift(snac_config.end_of_audio, i)], device=device)
+        )
         model_input_ids[i] = torch.stack(model_input_ids[i])
 
     model_input_ids[-1].append(token_T.clone().to(torch.int32))
@@ -416,7 +421,9 @@ def generate_TA_BATCH(
 
         model_input_ids = [[] for i in range(8)]
         for i in range(7):
-            tokens_A[i] = tokens_A[i].clone() + shift + i * snac_config.padded_vocab_size
+            tokens_A[i] = (
+                tokens_A[i].clone() + shift + i * snac_config.padded_vocab_size
+            )
             model_input_ids[i].append(tokens_A[i].clone().to(device).to(torch.int32))
             model_input_ids[i].append(
                 torch.tensor([layershift(snac_config.end_of_audio, i)], device=device)

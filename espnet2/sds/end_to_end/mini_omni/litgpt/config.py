@@ -73,7 +73,7 @@ class Config:
     tie_word_embeddings: bool = False
 
     # setting for mini-omni
-    text_vocab_size:int = 152000
+    text_vocab_size: int = 152000
     cat_audio_vocab_size: int = 29120
     audio_vocab_size: int = 4160
     whisper_adapter_dim: int = 768
@@ -162,7 +162,9 @@ class Config:
     @property
     def mlp_class(self) -> Type:
         # `self.mlp_class_name` cannot be the type to keep the config serializable
-        return getattr(espnet2.sds.end_to_end.mini_omni.litgpt.model, self.mlp_class_name)
+        return getattr(
+            espnet2.sds.end_to_end.mini_omni.litgpt.model, self.mlp_class_name
+        )
 
     @property
     def norm_class(self) -> Type:

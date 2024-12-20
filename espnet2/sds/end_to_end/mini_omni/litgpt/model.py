@@ -12,6 +12,7 @@ from typing import Any, Optional, Tuple
 import torch
 import torch.nn as nn
 from typing_extensions import Self
+
 from espnet2.sds.end_to_end.mini_omni.litgpt.config import Config
 
 
@@ -44,7 +45,9 @@ class GPT(nn.Module):
                         config.n_embd, eps=config.norm_eps
                     ),
                     post_adapter_audio_lm_head=nn.Linear(
-                        config.n_embd, config.cat_audio_vocab_size, bias=config.lm_head_bias
+                        config.n_embd,
+                        config.cat_audio_vocab_size,
+                        bias=config.lm_head_bias,
                     ),
                 )
             )
@@ -177,7 +180,6 @@ class GPT(nn.Module):
         for block in self.transformer.h:
             x = block(x, cos, sin, mask, input_pos)
 
-
         text_vocab_size = self.config.text_vocab_size
         audio_vocab_size = self.config.audio_vocab_size
 
@@ -197,7 +199,14 @@ class GPT(nn.Module):
         else:
             xa = []
             for i in range(7):
-                xa.append(x_ori[..., text_vocab_size + audio_vocab_size * i : text_vocab_size + audio_vocab_size * (i + 1)])
+                xa.append(
+                    x_ori[
+                        ...,
+                        text_vocab_size
+                        + audio_vocab_size * i : text_vocab_size
+                        + audio_vocab_size * (i + 1),
+                    ]
+                )
 
         return xa, xt
 
@@ -455,8 +464,12 @@ class LLaMAMLP(nn.Module):
 class whisperMLP(nn.Module):
     def __init__(self, config: Config) -> None:
         super().__init__()
-        self.fc_1 = nn.Linear(config.whisper_adapter_dim, config.intermediate_size, bias=config.bias)
-        self.fc_2 = nn.Linear(config.whisper_adapter_dim, config.intermediate_size, bias=config.bias)
+        self.fc_1 = nn.Linear(
+            config.whisper_adapter_dim, config.intermediate_size, bias=config.bias
+        )
+        self.fc_2 = nn.Linear(
+            config.whisper_adapter_dim, config.intermediate_size, bias=config.bias
+        )
         self.proj = nn.Linear(config.intermediate_size, config.n_embd, bias=config.bias)
 
         self.config = config

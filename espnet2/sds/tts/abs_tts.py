@@ -14,5 +14,3 @@ class AbsTTS(torch.nn.Module, ABC):
         text: str,
     ):
         raise NotImplementedError
-
-    

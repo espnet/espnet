@@ -3,15 +3,22 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-import numpy as np
-import nltk
 import math
 import sys
-from fractions import Fraction
 import warnings
 from collections import Counter
-from nltk.translate.bleu_score import modified_precision, closest_ref_length, brevity_penalty, SmoothingFunction
-import warnings
+from fractions import Fraction
+
+import nltk
+import numpy as np
+from nltk.translate.bleu_score import (
+    SmoothingFunction,
+    brevity_penalty,
+    closest_ref_length,
+    modified_precision,
+)
+
+
 def corpus_bleu(
     list_of_references,
     hypotheses,
@@ -19,7 +26,7 @@ def corpus_bleu(
     smoothing_function=None,
     auto_reweigh=False,
     averaging_mode="geometric",
-    no_length_penalty=False
+    no_length_penalty=False,
 ):
     """
     Calculate a single corpus-level BLEU score (aka. system-level BLEU) for all
@@ -100,13 +107,15 @@ def corpus_bleu(
         ref_lengths += closest_ref_length(references, hyp_len)
 
     # Calculate corpus-level brevity penalty.
-    if no_length_penalty and averaging_mode == 'geometric':
+    if no_length_penalty and averaging_mode == "geometric":
         bp = 1.0
-    elif no_length_penalty and averaging_mode == 'arithmetic':
+    elif no_length_penalty and averaging_mode == "arithmetic":
         bp = 0.0
     else:
         assert not no_length_penalty
-        assert averaging_mode != 'arithmetic', 'Not sure how to apply length penalty when aurithmetic mode'
+        assert (
+            averaging_mode != "arithmetic"
+        ), "Not sure how to apply length penalty when aurithmetic mode"
         bp = brevity_penalty(ref_lengths, hyp_lengths)
 
     # Uniformly re-weighting based on maximum hypothesis lengths if largest
@@ -155,17 +164,24 @@ def sentence_bleu(
     smoothing_function=None,
     auto_reweigh=False,
     averaging_mode="geometric",
-    no_length_penalty=False
+    no_length_penalty=False,
 ):
     return corpus_bleu(
-        [references], [hypothesis], weights, smoothing_function, auto_reweigh, averaging_mode, no_length_penalty
+        [references],
+        [hypothesis],
+        weights,
+        smoothing_function,
+        auto_reweigh,
+        averaging_mode,
+        no_length_penalty,
     )
+
 
 def get_target_sequences(manifest, ground_truth, to_take=1000):
     import json
     import pathlib
 
-    with open(ground_truth, 'r') as fin:
+    with open(ground_truth, "r") as fin:
         original_continuations = json.loads(fin.read())
 
     sequence2length = [(k, v[0]) for k, v in original_continuations.items()]
@@ -175,73 +191,81 @@ def get_target_sequences(manifest, ground_truth, to_take=1000):
     to_take_sequences = set(v[0] for v in sequence2length[:to_take])
     to_take_ids = []
 
-    with open(manifest, 'r') as f:
+    with open(manifest, "r") as f:
         f.readline()
 
         for i, line in enumerate(f.readlines()):
             seq_id = line.split()[0]
-            seq_id = pathlib.Path(seq_id).name.split('__')[0]
+            seq_id = pathlib.Path(seq_id).name.split("__")[0]
 
             if seq_id in to_take_sequences:
                 to_take_ids.append(i)
 
-    print(f'Took {len(to_take_ids)} ids')
+    print(f"Took {len(to_take_ids)} ids")
     return set(to_take_ids)
+
 
 def get_self_bleu(utterances, averaging_mode, weights):
     self_bleu = []
 
     for i in range(len(utterances)):
         hypo = utterances[i]
-        rest = utterances[:i] + utterances[i+1:]
+        rest = utterances[:i] + utterances[i + 1 :]
 
-        self_bleu.append(sentence_bleu(rest, hypo, weights,
-                         no_length_penalty=True, averaging_mode=averaging_mode))
+        self_bleu.append(
+            sentence_bleu(
+                rest,
+                hypo,
+                weights,
+                no_length_penalty=True,
+                averaging_mode=averaging_mode,
+            )
+        )
 
     return self_bleu
 
 
 def get_self_bleu2_arithmetic(utterances):
     weights = (0.5, 0.5)  # equal weight for unigrams and bigrams
-    return get_self_bleu(utterances, averaging_mode='arithmetic', weights=weights)
+    return get_self_bleu(utterances, averaging_mode="arithmetic", weights=weights)
 
 
 def get_self_bleu2_geometric(utterances):
     weights = (0.5, 0.5)
-    return get_self_bleu(utterances, averaging_mode='geometric', weights=weights)
+    return get_self_bleu(utterances, averaging_mode="geometric", weights=weights)
 
 
 def get_auto_bleu2_arithmetic(utterances):
     weights = (0.5, 0.5)
-    return [auto_bleu(u, mean_mode='arithmetic', weights=weights) for u in utterances]
+    return [auto_bleu(u, mean_mode="arithmetic", weights=weights) for u in utterances]
 
 
 def get_auto_bleu2_geometric(utterances):
     weights = (0.5, 0.5)
-    return [auto_bleu(u, mean_mode='geometric', weights=weights) for u in utterances]
+    return [auto_bleu(u, mean_mode="geometric", weights=weights) for u in utterances]
 
 
 def get_auto_bleu3_geometric(utterances):
-    weights = (1./3, 1./3, 1./3)
-    return [auto_bleu(u, mean_mode='geometric', weights=weights) for u in utterances]
+    weights = (1.0 / 3, 1.0 / 3, 1.0 / 3)
+    return [auto_bleu(u, mean_mode="geometric", weights=weights) for u in utterances]
 
 
 def get_auto_bleu3_arithmetic(utterances):
-    weights = (1./3, 1./3, 1./3)
-    return [auto_bleu(u, mean_mode='arithmetic', weights=weights) for u in utterances]
+    weights = (1.0 / 3, 1.0 / 3, 1.0 / 3)
+    return [auto_bleu(u, mean_mode="arithmetic", weights=weights) for u in utterances]
 
 
 def get_self_bleu3_arithmetic(utterances):
-    weights = (1./3, 1./3, 1./3)
-    return get_self_bleu(utterances, averaging_mode='arithmetic', weights=weights)
+    weights = (1.0 / 3, 1.0 / 3, 1.0 / 3)
+    return get_self_bleu(utterances, averaging_mode="arithmetic", weights=weights)
 
 
 def get_self_bleu3_geometric(utterances):
-    weights = (1./3, 1./3, 1./3)
-    return get_self_bleu(utterances, averaging_mode='geometric', weights=weights)
+    weights = (1.0 / 3, 1.0 / 3, 1.0 / 3)
+    return get_self_bleu(utterances, averaging_mode="geometric", weights=weights)
 
 
-def auto_bleu(sentence, weights, mean_mode='arithmetic'):
+def auto_bleu(sentence, weights, mean_mode="arithmetic"):
     if len(sentence) <= 1:
         return 0
 
@@ -249,23 +273,25 @@ def auto_bleu(sentence, weights, mean_mode='arithmetic'):
 
     bleu_n = np.zeros([N])
     for n in range(N):
-        targ_ngrams = list(nltk.ngrams(sentence, n+1))
+        targ_ngrams = list(nltk.ngrams(sentence, n + 1))
         for p in range(len(targ_ngrams)):
             left = sentence[:p]
-            right = sentence[(p+n+1):]
-            rest_ngrams = list(nltk.ngrams(left, n+1)) + \
-                list(nltk.ngrams(right, n+1))
+            right = sentence[(p + n + 1) :]
+            rest_ngrams = list(nltk.ngrams(left, n + 1)) + list(
+                nltk.ngrams(right, n + 1)
+            )
             # compute the nb of matching ngrams
             bleu_n[n] += targ_ngrams[p] in rest_ngrams
         bleu_n[n] /= len(targ_ngrams)  # average them to get a proportion
 
     weights = np.array(weights)
-    if mean_mode == 'arithmetic':
+    if mean_mode == "arithmetic":
         return (bleu_n * weights).sum()
-    elif mean_mode == 'geometric':
-        return (bleu_n ** weights).prod()
+    elif mean_mode == "geometric":
+        return (bleu_n**weights).prod()
     else:
-        raise ValueError(f'Unknown agggregation mode {mean_mode}')
+        raise ValueError(f"Unknown agggregation mode {mean_mode}")
+
 
 def run_f(task_params):
     f, terms = task_params

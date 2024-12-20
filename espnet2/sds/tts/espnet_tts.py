@@ -1,12 +1,15 @@
-from espnet2.bin.tts_inference import Text2Speech
-from espnet2.utils.types import str_or_none
-from espnet2.sds.tts.abs_tts import AbsTTS
-from espnet_model_zoo.downloader import ModelDownloader
+import glob
 import os
+
 import numpy as np
 import torch
+from espnet_model_zoo.downloader import ModelDownloader
 from typeguard import typechecked
-import glob
+
+from espnet2.bin.tts_inference import Text2Speech
+from espnet2.sds.tts.abs_tts import AbsTTS
+from espnet2.utils.types import str_or_none
+
 
 class ESPnetTTSModel(AbsTTS):
     """ESPnet TTS."""
@@ -14,9 +17,9 @@ class ESPnetTTSModel(AbsTTS):
     @typechecked
     def __init__(
         self,
-        tag = 'kan-bayashi/ljspeech_vits',
+        tag="kan-bayashi/ljspeech_vits",
         device="cuda",
-    ): 
+    ):
         super().__init__()
         vocoder_tag = "none"
         self.d = ModelDownloader()
@@ -46,12 +49,19 @@ class ESPnetTTSModel(AbsTTS):
             with open(spk2sid) as f:
                 lines = [line.strip() for line in f.readlines()]
             sid2spk = {int(line.split()[1]): line.split()[0] for line in lines}
-            
+
             # randomly select speaker
             self.sids = np.array(np.random.randint(1, len(sid2spk)))
         if self.text2speech.use_spembs:
             import kaldiio
-            xvector_ark = [p for p in glob.glob(f"{model_dir}/../../dump/**/spk_xvector.ark", recursive=True) if "tr" in p][0]
+
+            xvector_ark = [
+                p
+                for p in glob.glob(
+                    f"{model_dir}/../../dump/**/spk_xvector.ark", recursive=True
+                )
+                if "tr" in p
+            ][0]
             xvectors = {k: v for k, v in kaldiio.load_ark(xvector_ark)}
             spks = list(xvectors.keys())
 
@@ -59,13 +69,18 @@ class ESPnetTTSModel(AbsTTS):
             random_spk_idx = np.random.randint(0, len(spks))
             spk = spks[random_spk_idx]
             self.spembs = xvectors[spk]
-    
+
     def warmup(self):
         with torch.no_grad():
             wav = self.text2speech("Sid", sids=self.sids, spembs=self.spembs)["wav"]
-    
-    def forward(self,transcript):
+
+    def forward(self, transcript):
         with torch.no_grad():
-            audio_chunk = self.text2speech(transcript, sids=self.sids, spembs=self.spembs)["wav"].view(-1).cpu().numpy()
+            audio_chunk = (
+                self.text2speech(transcript, sids=self.sids, spembs=self.spembs)["wav"]
+                .view(-1)
+                .cpu()
+                .numpy()
+            )
             audio_chunk = (audio_chunk * 32768).astype(np.int16)
             return (self.text2speech.fs, audio_chunk)

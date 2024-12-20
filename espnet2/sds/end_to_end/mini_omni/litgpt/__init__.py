@@ -2,8 +2,9 @@
 
 import logging
 import re
-from litgpt.model import GPT  # needs to be imported before config
+
 from litgpt.config import Config
+from litgpt.model import GPT  # needs to be imported before config
 from litgpt.tokenizer import Tokenizer
 
 # Suppress excessive warnings, see https://github.com/pytorch/pytorch/issues/111632

@@ -1,8 +1,11 @@
-from espnet2.sds.tts.abs_tts import AbsTTS
 import os
+
 import numpy as np
-from typeguard import typechecked
 import torch
+from typeguard import typechecked
+
+from espnet2.sds.tts.abs_tts import AbsTTS
+
 
 class ChatTTSModel(AbsTTS):
     """ChaTTS Model"""
@@ -11,7 +14,7 @@ class ChatTTSModel(AbsTTS):
     def __init__(
         self,
         device="cuda",
-    ): 
+    ):
         super().__init__()
         try:
             import ChatTTS
@@ -20,13 +23,13 @@ class ChatTTSModel(AbsTTS):
             raise e
         self.text2speech = ChatTTS.Chat()
         self.text2speech.load(compile=False)
-    
+
     def warmup(self):
         with torch.no_grad():
-            wav=self.text2speech.infer(["Sid"])[0]
-    
-    def forward(self,transcript):
+            wav = self.text2speech.infer(["Sid"])[0]
+
+    def forward(self, transcript):
         with torch.no_grad():
-            audio_chunk=self.text2speech.infer([transcript])[0]
+            audio_chunk = self.text2speech.infer([transcript])[0]
             audio_chunk = (audio_chunk * 32768).astype(np.int16)
             return (24000, audio_chunk)

@@ -1,6 +1,7 @@
-import torch
 import time
+
 import numpy as np
+import torch
 
 
 class SnacConfig:
@@ -9,7 +10,7 @@ class SnacConfig:
     end_of_audio = 4097
 
 
-snac_config = SnacConfig()    
+snac_config = SnacConfig()
 
 
 def get_time_str():
@@ -20,18 +21,18 @@ def get_time_str():
 def layershift(input_id, layer, stride=4160, shift=152000):
     return input_id + shift + layer * stride
 
-    
+
 def generate_audio_data(snac_tokens, snacmodel, device=None):
     audio = reconstruct_tensors(snac_tokens, device)
     with torch.inference_mode():
-        audio=[torch.clamp(k, max=4095) for k in audio]
+        audio = [torch.clamp(k, max=4095) for k in audio]
         audio_hat = snacmodel.decode(audio)
     audio_data = audio_hat.cpu().numpy().astype(np.float64) * 32768.0
     audio_data = audio_data.astype(np.int16)
     audio_data = audio_data.tobytes()
     return audio_data
 
-    
+
 def get_snac(list_output, index, nums_generate):
 
     snac = []
@@ -144,4 +145,3 @@ def reconstruct_tensors(flattened_output, device=None):
             ]
 
     return codes
-

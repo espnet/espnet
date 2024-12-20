@@ -31,8 +31,8 @@ import yaml
 from lightning.fabric.loggers import CSVLogger, TensorBoardLogger
 from lightning.fabric.strategies import FSDPStrategy
 from lightning.fabric.utilities.load import _lazy_load as lazy_load
-from lightning.pytorch.loggers import WandbLogger
 from lightning.pytorch.cli import instantiate_class
+from lightning.pytorch.loggers import WandbLogger
 from torch.serialization import normalize_storage_type
 from typing_extensions import Self
 
