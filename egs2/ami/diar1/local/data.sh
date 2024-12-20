@@ -53,7 +53,7 @@ duration=20
 . utils/parse_options.sh || exit 1;
 
 if [ -z "${AMI}" ]; then
-    log "Fill the value of 'AMI' of db.sh"
+    log "Fill the value of 'AMI' of db.sh, typically AMI=downloads"
     exit 1
 fi
 mkdir -p ${AMI}
