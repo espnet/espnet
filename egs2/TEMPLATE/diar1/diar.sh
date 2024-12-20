@@ -545,9 +545,7 @@ if ! "${skip_eval}"; then
             _inf_dir="${diar_exp}/diarized_${dset}"
             _dir="${diar_exp}/diarized_${dset}/scoring"
             mkdir -p "${_dir}"
-
-            scripts/utils/score_der.sh ${_dir} ${_inf_dir}/diarize.scp ${_data}/rttm \
-                --collar ${collar} --fs ${fs} --frame_shift ${frame_shift} --subsampling ${subsampling}
+            scripts/utils/score_der.sh ${_dir} ${_inf_dir}/diarize.scp ${_data}/rttm ${collar} ${fs} ${frame_shift} ${subsampling}
         done
 
         # Show results in Markdown syntax
