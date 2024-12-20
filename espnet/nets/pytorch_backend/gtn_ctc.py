@@ -3,18 +3,12 @@
 
 """GTN CTC implementation."""
 
-import logging
-
 import torch
 
 try:
     import gtn
-except ImportError:
-    logging.error(
-         "`gtn` is not installed. "
-         "Please install via `pip install gtn`."
-     )
-     raise
+except ModuleNotFoundError:
+    raise RuntimeError("Please install gtn. Run `YOUR_ESPNET_ROOT/tools/installers/install_gtn.sh`")
 
 
 class GTNCTCLossFunction(torch.autograd.Function):
