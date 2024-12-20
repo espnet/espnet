@@ -14,7 +14,6 @@ monolingual_asr_config=conf/train_asr.yaml
 inference_config=conf/decode_asr.yaml
 
 ./asr.sh \
-    --stage 13 \
     --audio_format "wav" \
     --use_lm false \
     --feats_normalize utt_mvn \
