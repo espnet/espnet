@@ -8,7 +8,9 @@ import torch
 try:
     import gtn
 except ModuleNotFoundError:
-    raise RuntimeError("Please install gtn. Run `YOUR_ESPNET_ROOT/tools/installers/install_gtn.sh`")
+    raise RuntimeError(
+        "Please install gtn. Run `YOUR_ESPNET_ROOT/tools/installers/install_gtn.sh`"
+    )
 
 
 class GTNCTCLossFunction(torch.autograd.Function):
