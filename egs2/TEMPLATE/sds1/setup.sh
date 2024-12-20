@@ -32,10 +32,15 @@ fi
 
 targets=""
 
-
+# Copy
+for f in local; do
+    target="${dir}"/../../TEMPLATE/slu1/"${f}"
+    cp -r "${target}" "${dir}"
+    targets+="${dir}/${target} "
+done
 
 # Symlinks to TEMPLATE
-for f in app.py; do
+for f in app.py path.sh; do
     target=../../TEMPLATE/sds1/"${f}"
     ln -sf "${target}" "${dir}"
     targets+="${dir}/${target} "

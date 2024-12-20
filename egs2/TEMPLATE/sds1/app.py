@@ -15,6 +15,7 @@ from espnet2.sds.eval.LLM_Metrics import perplexity, vert, bert_score, DialoGPT_
 from espnet2.sds.utils.chat import Chat
 from espnet2.sds.end_to_end.mini_omni_e2e import MiniOmniE2EModel
 import argparse
+import torch
 
 access_token = os.environ.get("HF_TOKEN")
 ASR_name=None
@@ -182,12 +183,44 @@ def handle_E2E_selection():
     client.warmup()
     
 
-for _ in handle_selection(TTS_name):
-    continue
-for _ in handle_ASR_selection(ASR_name):
-    continue
-for _ in handle_LLM_selection(LLM_name):
-    continue
+def start_warmup():
+    global client
+    for opt in ASR_options:
+        if opt==ASR_name:
+            continue
+        print(opt)
+        for _ in handle_ASR_selection(opt):
+            continue
+    for opt in LLM_options:
+        if opt==LLM_name:
+            continue
+        print(opt)
+        for _ in handle_LLM_selection(opt):
+            continue
+    for opt in TTS_options:
+        if opt==TTS_name:
+            continue
+        print(opt)
+        for _ in handle_selection(opt):
+            continue
+    handle_E2E_selection()
+    client=None
+    for _ in handle_selection(TTS_name):
+        continue
+    for _ in handle_ASR_selection(ASR_name):
+        continue
+    for _ in handle_LLM_selection(LLM_name):
+        continue
+    dummy_input = torch.randn(
+            (3000),
+            dtype=getattr(torch, "float16"),
+            device="cpu",
+    ).cpu().numpy()
+    dummy_text="This is dummy text"
+    for opt in Eval_options:
+        handle_eval_selection(opt, dummy_input, dummy_text, dummy_input, dummy_text)
+
+start_warmup()
 vad_model=WebrtcVADModel()
 
 callback = gr.CSVLogger()
