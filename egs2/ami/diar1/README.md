@@ -80,7 +80,7 @@ The data processing script is located at `local/data.sh`, which contains the fol
 
   The placeholder utterances for missing speakers are added as entries in the `segments` file with the missing speaker ID, a start time of 0, and an end time of 1 sample (i.e., 1 / sampling rate in seconds). The end time is set to 1 sample instead of 0 due to restrictions in the subsequent stages of `diar`, which require the end time to be greater than the start time. However, this single sample will not affect the labels in later stages, as the audio will be subsampled from 16 kHz to 8 kHz, effectively reducing one sample to 0. Additionally, the placeholder utterances are added to the `utt2spk` file to maintain a consistent mapping between speakers and their corresponding utterances. 
 
-## Training Workflow and Configurations
+## Training Setup, Configurations, and Performance Evaluation
 
 We provide training examples for both EEND and EEND-EDA, with their corresponding run scripts located in `run.sh`and `run_eda.sh`. For both models, we adhere to the input and model configurations outlined in paper [[2]].
 
@@ -90,14 +90,17 @@ We provide training examples for both EEND and EEND-EDA, with their correspondin
   - Use ESPNet's default frontend to extract features. The sampling rate is 8000 Hz, with a frame length of 25 ms and a frame shift of 10 ms. The frontend extracts 23 log-scaled Mel-filterbanks. 
   - Follow the frame concatenation and subsampling strategy described in paper [[2]]. Each frame is concatenated with the preceding and following 7 frames, followed by subsampling with a factor of 10. As a result, a 345-dimensional acoustic feature (23 × 15) is extracted for each 100 ms.
   - Training and testing are performed exclusively on data with 4 speakers.
+  - Use 4 layer stacked Transformer encoder, each outputs 256-dimensional frame-wise embeddings. 
   - The training process spans 500 epochs.
   - Detailed configurations are defined in `conf/train_diar.yaml`.
-  - The inference stage configuration is located in `conf/decode_diar.yaml`. When scoring the inference results, follow the same frame concatenation and subsampling strategy used in the training stage. 
+  - The inference stage configuration is located in `conf/decode_diar.yaml`. When scoring the inference results, apply the same subsampling factor of 10 used during the training stage to scale the timestamps in the estimated RTTM file, aligning them with the original audio timeline.
 - **EEND-EDA**:
   - Use the same feature extraction, frame concatenation, subsampling strategy, and configuration as used in EEND's experiment.
+  - Use 4 layer stacked Transformer encoder, each outputs 256-dimensional frame-wise embeddings. 
+  - Use the ESPNet' standard rnn attractor (LSTM) with hidden size of 256. 
   - Initial training uses data with 4 speakers for 500 epochs, following `conf/train_diar_eda.yaml`.
   - Adaptation involves fine-tuning the model using data with 3 and 5 speakers for 20 epochs respectively, using `conf/train_diar_eda_adapt.yaml`.
-  - Inferencing and scoring are conducted on 4-speaker data, with the configuration specified in `conf/decode_diar_eda_spk4.yaml`.
+  - Inferencing and scoring are conducted on 4-speaker data, with the configuration specified in `conf/decode_diar_eda_spk4.yaml`. As with EEND, the subsampling factor of 10 is used to scale up timestamps in the estimated RTTM file to match the original audio timeline during scoring.
 
 **Results**:
 
