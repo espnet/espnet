@@ -22,7 +22,6 @@ class SpeechLMInferenceOptions:
     maxlenratio: float = 0.0
     minlenratio: float = 0.0
     eos: int = 5
-    start: int = 1
     masks: Dict[str, torch.Tensor] = None
     nq: int = None
     aux_start: int = 0

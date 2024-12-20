@@ -14,7 +14,6 @@ from espnet2.speechlm.core_lm.abs_core_lm import SpeechLMInferenceOptions
 from espnet2.speechlm.core_lm.ar_parallel import ARParallelLM
 from espnet2.speechlm.net_utils import (
     logits_to_tokens,
-    beam_search_selection,
     modality_index_to_mask,
     install_continuous_features,
 )
@@ -100,14 +99,14 @@ class ARDelayLM(ARParallelLM):
         # (1) initialization
         self.decoders.init()
 
-        # (2) splice-interleave-split
-        prefix = prefix.expand(opts.nbest, -1, -1)
-        start = torch.Tensor([opts.start] + [0 for _ in range(prefix.size(2) - 1)])
-        start = start.tile(opts.nbest, 1, 1).long().to(opts.device)
-        suffix = suffix.expand(opts.nbest, -1, -1)
-        full_seq_delay = self.delay_interleave(torch.cat([prefix, start, suffix], dim=1))
-        prefix = full_seq_delay[:, :prefix.size(1)]
-        suffix = full_seq_delay[:, prefix.size(1):]
+        # (2) splice-interleave-split and prefill
+        full_seq_delay = self.delay_interleave(torch.cat([prefix, suffix], dim=1))
+        full_seq_delay = full_seq_delay.expand(opts.nbest, -1, -1)
+
+        prelen = prefix.size(1)
+        prefix = full_seq_delay[:, :prelen - 1]
+        prev_tok = full_seq_delay[:, prelen - 1: prelen]
+        suffix = full_seq_delay[:, prelen - 1:]
 
         prefix_emb = self.emb(prefix).sum(dim=2)
         prefix_emb = install_continuous_features(prefix_emb, conti_feats * opts.nbest)
@@ -132,20 +131,18 @@ class ARDelayLM(ARParallelLM):
             maxlen = int(inference_length) + (self.nq - 1)
 
         if opts.search_algo == "teacher_force":
-            minlen = suffix.size(1) - 1 # -1 due to next-token-prediction shift
-            maxlen = suffix.size(1) - 1
+            minlen = suffix.size(1)
+            maxlen = suffix.size(1)
 
         logging.info(f"maxlen={maxlen}, minlen={minlen}, reflen={suffix.size(1)}")
 
         generated = {"token": [], "score": []}
-        n_hypo = opts.beam_size if opts.search_algo == "beam_search" else opts.nbest
-        finish_idx = torch.Tensor([-1]).expand(n_hypo).long().to(opts.device)
-        prev_tok = start
-        modality_index = start[:, 0, 0]
-        mask = modality_index_to_mask(modality_index, opts)
+        finish_idx = torch.Tensor([-1]).expand(opts.nbest).long().to(opts.device)
+        # initially, modality is unknown
+        mask = opts.masks['unknown'].tile(opts.nbest, 1, 1, 1)
+        modality_index = prev_tok[:, :, 0].flatten() * 0
         
         for step in range(1, maxlen + 1):
-            
             if step < self.nq:
                 prev_tok = torch.cat(
                     [prev_tok[:, :, :step], suffix[:, step : step + 1, step:]], dim=2
@@ -170,14 +167,9 @@ class ARDelayLM(ARParallelLM):
                 mask,
                 allow_eos=step >= minlen - (self.nq - 1)
             )
-            if opts.search_algo == "beam_search":
-                gen_tok, gen_score, finish_idx = beam_search_selection(
-                    gen_token_idx=gen_tok,
-                    gen_token_score=gen_score,
-                    generated=generated,
-                    finish_idx=finish_idx,
-                    model=self.decoders,
-                )
+
+            if step == 1: # TODO: temp code, remove it
+                gen_tok = gen_tok * 0 + 34
 
             if opts.search_algo == "teacher_force":
                 prev_tok = suffix[:, step: step + 1]
@@ -235,15 +227,5 @@ class ARDelayLM(ARParallelLM):
             gen_tokens.append(gen_token_seq[b][: finish_idx[b] - 1])
             gen_scores.append(gen_score_seq[b][: finish_idx[b] - 1])
             assert not torch.any(gen_tokens[-1].eq(opts.eos))
-        
-        # for beam search, only return one hypothesis with highest posterior
-        if opts.search_algo == "beam_search":
-            best_hypo, best_score = gen_tokens[0], gen_scores[0]
-            for gen_token, gen_score in zip(gen_tokens, gen_scores):
-                if gen_score.sum() > best_score.sum():
-                    best_hypo = gen_token
-                    best_score = gen_score
-            gen_tokens = [best_hypo]
-            gen_scores = [best_score]
         
         return gen_tokens, gen_scores

@@ -93,7 +93,7 @@ def logits_to_tokens(
     """
     assert logits.dim() == 4
     search_algo = search_algo if search_algo is not None else opts.search_algo
-    neg_inf = torch.finfo(logits.dtype).min
+    neg_inf = -1e20
 
     # (1) Apply mask
     if nq_level is not None:

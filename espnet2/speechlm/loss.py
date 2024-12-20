@@ -2,11 +2,12 @@ import torch
 import logging
 from espnet2.speechlm.net_utils import length_mask
 
-# try:
-# from liger_kernel.transformers import LigerFusedLinearCrossEntropyLoss
-from liger_kernel.transformers import LigerCrossEntropyLoss
-# except:
-#     LigerFusedLinearCrossEntropyLoss = None
+try:
+    from liger_kernel.transformers import LigerFusedLinearCrossEntropyLoss
+    from liger_kernel.transformers import LigerCrossEntropyLoss
+except:
+    LigerFusedLinearCrossEntropyLoss = None
+    LigerCrossEntropyLoss = None
 
 class SpeechLMCrossEntropyLoss(torch.nn.Module):
     def __init__(
@@ -156,9 +157,9 @@ class SpeechLMCrossEntropyLoss(torch.nn.Module):
         
         # remove loss over condition sequences
         if self.loss_region == "target":
-            prefix_mask = ~length_mask(prefix_len, maxlen=targets.size(1)).unsqueeze(2)
+            prefix_mask = ~length_mask(prefix_len - 1, maxlen=targets.size(1)).unsqueeze(2)
             ce_loss = torch.where(prefix_mask, ce_loss, 0.0)
-            weight = (seq_len - prefix_len).sum().float()
+            weight = (seq_len - prefix_len + 1).sum().float()
         else:
             weight = seq_len.sum().float()
         

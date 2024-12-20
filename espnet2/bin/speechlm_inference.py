@@ -78,6 +78,12 @@ class SpeechLM:
         # (2) predict mask
         self.inference_nq = model.corelm.nq if inference_nq is None else inference_nq
         predict_masks = dict()
+
+        # initially, no modality is known
+        mask = torch.ones(self.inference_nq, len(self.token_list)).to(device).bool()
+        mask[0, 32: 64] = False
+        predict_masks['unknown'] = mask
+
         for modality in set(self.modalities):
             if modality == "spk":  # never predict "spk" modality
                 continue
@@ -122,7 +128,6 @@ class SpeechLM:
             predict_masks[modality_idx] = mask
 
         # (3) inference options
-        start_modality = self.modalities[len(self.task.conditions)]
         self.inference_opts = SpeechLMInferenceOptions(
             device=device,
             search_algo=search_algo,
@@ -134,7 +139,6 @@ class SpeechLM:
             maxlenratio=maxlenratio,
             minlenratio=minlenratio,
             eos=train_args.token_list.index("<sos/eos>"),
-            start=train_args.token_list.index(f"<{start_modality}_start/end>"),
             masks=predict_masks,
             nq=self.inference_nq,
             aux_start=self.token_bias["codec"][0] if "codec" in self.token_bias else 0,
@@ -165,6 +169,7 @@ class SpeechLM:
     def __call__(self, data: Dict) -> List:
         """Run SpeechLM inference"""
 
+        # NOTE(Jinchuan): directly called outside so it's still the raw data
         if not "dec_seq" in data:
             data = self.preprocessor(data)
 
@@ -178,7 +183,7 @@ class SpeechLM:
             prefix=dec_seq[:, :prefix_len],
             opts=self.inference_opts,
             conti_feats=conti_feats,
-            suffix=dec_seq[:, prefix_len + 1 :],
+            suffix=dec_seq[:, prefix_len:],
             inference_length=inference_length,
         )
 
@@ -186,6 +191,13 @@ class SpeechLM:
         retval = [[] for _ in self.modalities]
         prefix = dec_seq[0, :prefix_len]
 
+        if prefix_len > 0:
+            first_modality = torch.zeros(1, self.inference_nq).to(self.device).long()
+            first_modality_id = self.task.conditions[0][1]
+            first_modality_id = self.token_list.index(f"<{first_modality_id}_start/end>")
+            first_modality[:, 0] = first_modality_id
+            prefix = torch.cat([first_modality, prefix[:-1]])
+        
         segments = self.parse_sequence(prefix)
         if len(segments) != len(self.task.conditions):
             raise ValueError("Invalid Condition segments")
@@ -194,10 +206,7 @@ class SpeechLM:
             retval[idx].append(segment)
 
         # (3) record the generated segments
-        start = self.inference_opts.start
-        start = torch.Tensor([start] * self.inference_nq).view(1, -1).to(self.device)
         for gen_token in gen_tokens:
-            gen_token = torch.cat([start.long(), gen_token], dim=0)
             segments = self.parse_sequence(gen_token)
 
             if len(segments) != len(self.task.targets):
