@@ -43,12 +43,12 @@ attractor_conf:
 # optimization related
 optim: adam
 grad_clip: 5
-max_epoch: 5
+max_epoch: 500
 optim_conf:
     lr: 0.002
 scheduler: warmuplr
 scheduler_conf:
-    warmup_steps: 30000
+    warmup_steps: 3000
 
 # minibatch related
 batch_type: unsorted

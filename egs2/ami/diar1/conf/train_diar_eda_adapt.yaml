@@ -43,9 +43,9 @@ attractor_conf:
 optim: adam
 # accum_grad: 10
 grad_clip: 5
-max_epoch: 5
+max_epoch: 20
 optim_conf:
-    lr: 0.0001
+    lr: 0.00001
 
 # minibatch related
 batch_type: unsorted
