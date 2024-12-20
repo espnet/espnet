@@ -168,7 +168,7 @@ Qingzheng Wang
 
 qingzhew@andrew.cmu.edu
 
-Thanks to Professor Shinji Watanabe's guidance!
+Thanks to **Professor Shinji Watanabe** for his guidance!
 
 ## References
 
