@@ -1,10 +1,2 @@
 fs: 8000
 num_spk: 5
-segment_size: 20
-hop_size: 10
-
-train_config: conf/train_diar_eda_adapt.yaml
-model_file: exp_eda/spk5/diar_train_diar_eda_raw_spk5/latest.pth
-batch_size: 1
-num_workers: 1
-ngpu: 1

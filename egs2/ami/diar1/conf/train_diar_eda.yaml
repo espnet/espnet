@@ -48,7 +48,7 @@ optim_conf:
     lr: 0.002
 scheduler: warmuplr
 scheduler_conf:
-    warmup_steps: 3000
+    warmup_steps: 30000
 
 # minibatch related
 batch_type: unsorted
