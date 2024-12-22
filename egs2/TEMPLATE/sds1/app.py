@@ -3,21 +3,23 @@ import os
 import shutil
 
 import torch
+from pyscripts.utils.dialog_eval.ASR_WER import handle_espnet_ASR_WER
+from pyscripts.utils.dialog_eval.LLM_Metrics import (
+    DialoGPT_perplexity,
+    bert_score,
+    perplexity,
+    vert,
+)
+from pyscripts.utils.dialog_eval.TTS_intelligibility import (
+    handle_espnet_TTS_intelligibility,
+)
+from pyscripts.utils.dialog_eval.TTS_speech_quality import TTS_psuedomos
 
 from espnet2.sds.asr.espnet_asr import ESPnetASRModel
 from espnet2.sds.asr.owsm_asr import OWSMModel
 from espnet2.sds.asr.owsm_ctc_asr import OWSMCTCModel
 from espnet2.sds.asr.whisper_asr import WhisperASRModel
 from espnet2.sds.end_to_end.mini_omni_e2e import MiniOmniE2EModel
-from espnet2.sds.eval.ASR_WER import handle_espnet_ASR_WER
-from espnet2.sds.eval.LLM_Metrics import (
-    DialoGPT_perplexity,
-    bert_score,
-    perplexity,
-    vert,
-)
-from espnet2.sds.eval.TTS_intelligibility import handle_espnet_TTS_intelligibility
-from espnet2.sds.eval.TTS_speech_quality import TTS_psuedomos
 from espnet2.sds.llm.hugging_face_llm import HuggingFaceLLM
 from espnet2.sds.tts.chat_tts import ChatTTSModel
 from espnet2.sds.tts.espnet_tts import ESPnetTTSModel

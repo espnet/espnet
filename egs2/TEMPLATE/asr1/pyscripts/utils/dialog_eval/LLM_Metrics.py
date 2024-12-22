@@ -2,15 +2,14 @@ from multiprocessing import Pool
 
 import numpy as np
 import torch
-from scipy.stats import gmean
-from sklearn.metrics.pairwise import cosine_similarity
-from transformers import AutoModel, AutoModelForCausalLM, AutoTokenizer
-
-from espnet2.sds.eval.vert import (
+from pyscripts.utils.dialog_eval.vert import (
     get_auto_bleu2_geometric,
     get_self_bleu2_geometric,
     run_f,
 )
+from scipy.stats import gmean
+from sklearn.metrics.pairwise import cosine_similarity
+from transformers import AutoModel, AutoModelForCausalLM, AutoTokenizer
 
 
 def perplexity(LLM_Output):
