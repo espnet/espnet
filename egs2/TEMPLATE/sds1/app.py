@@ -33,6 +33,9 @@ LLM_options = []
 TTS_options = []
 Eval_options = []
 upload_to_hub = None
+ASR_curr_name = None
+LLM_curr_name = None
+TTS_curr_name = None
 
 
 def read_args():
@@ -145,8 +148,13 @@ total_response_arr = []
 
 
 def handle_selection(option):
+    global TTS_curr_name
+    if TTS_curr_name is not None:
+        if option == TTS_curr_name:
+            return
     yield gr.Textbox(visible=False), gr.Textbox(visible=False), gr.Audio(visible=False)
     global text2speech
+    TTS_curr_name = option
     tag = option
     if tag == "ChatTTS":
         text2speech = ChatTTSModel()
@@ -157,18 +165,28 @@ def handle_selection(option):
 
 
 def handle_LLM_selection(option):
+    global LLM_curr_name
+    if LLM_curr_name is not None:
+        if option == LLM_curr_name:
+            return
     yield gr.Textbox(visible=False), gr.Textbox(visible=False), gr.Audio(visible=False)
     global LM_pipe
+    LLM_curr_name = option
     LM_pipe = HuggingFaceLLM(access_token=access_token, tag=option)
     LM_pipe.warmup()
     yield gr.Textbox(visible=True), gr.Textbox(visible=True), gr.Audio(visible=True)
 
 
 def handle_ASR_selection(option):
-    yield gr.Textbox(visible=False), gr.Textbox(visible=False), gr.Audio(visible=False)
+    global ASR_curr_name
     if option == "librispeech_asr":
         option = "espnet/simpleoier_librispeech_asr_train_asr_conformer7_wavlm_large_raw_en_bpe5000_sp"
+    if ASR_curr_name is not None:
+        if option == ASR_curr_name:
+            return
+    yield gr.Textbox(visible=False), gr.Textbox(visible=False), gr.Audio(visible=False)
     global s2t
+    ASR_curr_name = option
     if option == "espnet/owsm_v3.1_ebf":
         s2t = OWSMModel()
     elif (
@@ -266,6 +284,12 @@ def handle_type_selection(option, TTS_radio, ASR_radio, LLM_radio):
         text2speech = None
         s2t = None
         LM_pipe = None
+        global ASR_curr_name
+        global LLM_curr_name
+        global TTS_curr_name
+        ASR_curr_name = None
+        LLM_curr_name = None
+        TTS_curr_name = None
         handle_E2E_selection()
         yield (
             gr.Radio(visible=False),
@@ -282,8 +306,9 @@ def handle_type_selection(option, TTS_radio, ASR_radio, LLM_radio):
 
 def handle_E2E_selection():
     global client
-    client = MiniOmniE2EModel()
-    client.warmup()
+    if client is None:
+        client = MiniOmniE2EModel()
+        client.warmup()
 
 
 def start_warmup():
@@ -444,7 +469,7 @@ import json
 import time
 
 
-def transcribe(stream, new_chunk, option, asr_option):
+def transcribe(stream, new_chunk, TTS_option, ASR_option, LLM_option, type_option):
     sr, y = new_chunk
     global text_str
     global chat
@@ -462,6 +487,20 @@ def transcribe(stream, new_chunk, option, asr_option):
     global LLM_response_arr
     global total_response_arr
     if stream is None:
+        # Handle user refresh
+        for (
+            _,
+            _,
+            _,
+            _,
+            asr_output_box,
+            text_box,
+            audio_box,
+            _,
+            _,
+        ) in handle_type_selection(type_option, TTS_option, ASR_option, LLM_option):
+            gr.Info("The models are being reloaded due to a browser refresh.")
+            yield (stream, asr_output_box, text_box, audio_box, gr.Audio(visible=False))
         stream = y
         chat.init_chat(
             {
@@ -723,7 +762,7 @@ with gr.Blocks(
     )
     user_audio.stream(
         transcribe,
-        inputs=[state, user_audio, radio, ASR_radio],
+        inputs=[state, user_audio, radio, ASR_radio, LLM_radio, type_radio],
         outputs=[state, output_asr_text, output_text, output_audio, output_audio1],
     ).then(
         lambda *args: callback.flag(list(args)), [user_audio], None, preprocess=False
