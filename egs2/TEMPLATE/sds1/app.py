@@ -15,16 +15,7 @@ from pyscripts.utils.dialog_eval.TTS_intelligibility import (
 )
 from pyscripts.utils.dialog_eval.TTS_speech_quality import TTS_psuedomos
 
-from espnet2.sds.asr.espnet_asr import ESPnetASRModel
-from espnet2.sds.asr.owsm_asr import OWSMModel
-from espnet2.sds.asr.owsm_ctc_asr import OWSMCTCModel
-from espnet2.sds.asr.whisper_asr import WhisperASRModel
-from espnet2.sds.end_to_end.mini_omni_e2e import MiniOmniE2EModel
-from espnet2.sds.llm.hugging_face_llm import HuggingFaceLLM
-from espnet2.sds.tts.chat_tts import ChatTTSModel
-from espnet2.sds.tts.espnet_tts import ESPnetTTSModel
-from espnet2.sds.utils.chat import Chat
-from espnet2.sds.vad.webrtc_vad import WebrtcVADModel
+from espnet2.sds.espnet_model import ESPnetSDSModelInterface
 
 access_token = os.environ.get("HF_TOKEN")
 ASR_name = None
@@ -35,9 +26,7 @@ LLM_options = []
 TTS_options = []
 Eval_options = []
 upload_to_hub = None
-ASR_curr_name = None
-LLM_curr_name = None
-TTS_curr_name = None
+dialogue_model = None
 
 
 def read_args():
@@ -50,6 +39,7 @@ def read_args():
     global TTS_options
     global Eval_options
     global upload_to_hub
+    global dialogue_model
     parser = argparse.ArgumentParser(
         description="Run the app with HF_TOKEN as a command-line argument."
     )
@@ -110,6 +100,9 @@ def read_args():
     TTS_options = args.tts_options.split(",")
     Eval_options = args.eval_options.split(",")
     upload_to_hub = args.upload_to_hub
+    dialogue_model = ESPnetSDSModelInterface(
+        ASR_name, LLM_name, TTS_name, "Cascaded", access_token
+    )
 
 
 read_args()
@@ -122,20 +115,6 @@ nltk.download("averaged_perceptron_tagger_eng")
 import gradio as gr
 import numpy as np
 
-chat = Chat(2)
-chat.init_chat(
-    {
-        "role": "system",
-        "content": "You are a helpful and friendly AI assistant. The user is talking to you with their voice and you should respond in a conversational style. You are polite, respectful, and aim to provide concise and complete responses of less than 15 words.",
-    }
-)
-user_role = "user"
-
-text2speech = None
-s2t = None
-LM_pipe = None
-client = None
-
 latency_ASR = 0.0
 latency_LM = 0.0
 latency_TTS = 0.0
@@ -147,62 +126,6 @@ audio_output = None
 audio_output1 = None
 LLM_response_arr = []
 total_response_arr = []
-
-
-def handle_selection(option):
-    global TTS_curr_name
-    if TTS_curr_name is not None:
-        if option == TTS_curr_name:
-            return
-    yield gr.Textbox(visible=False), gr.Textbox(visible=False), gr.Audio(visible=False)
-    global text2speech
-    TTS_curr_name = option
-    tag = option
-    if tag == "ChatTTS":
-        text2speech = ChatTTSModel()
-    else:
-        text2speech = ESPnetTTSModel(tag)
-    text2speech.warmup()
-    yield gr.Textbox(visible=True), gr.Textbox(visible=True), gr.Audio(visible=True)
-
-
-def handle_LLM_selection(option):
-    global LLM_curr_name
-    if LLM_curr_name is not None:
-        if option == LLM_curr_name:
-            return
-    yield gr.Textbox(visible=False), gr.Textbox(visible=False), gr.Audio(visible=False)
-    global LM_pipe
-    LLM_curr_name = option
-    LM_pipe = HuggingFaceLLM(access_token=access_token, tag=option)
-    LM_pipe.warmup()
-    yield gr.Textbox(visible=True), gr.Textbox(visible=True), gr.Audio(visible=True)
-
-
-def handle_ASR_selection(option):
-    global ASR_curr_name
-    if option == "librispeech_asr":
-        option = "espnet/simpleoier_librispeech_asr_train_asr_conformer7_wavlm_large_raw_en_bpe5000_sp"
-    if ASR_curr_name is not None:
-        if option == ASR_curr_name:
-            return
-    yield gr.Textbox(visible=False), gr.Textbox(visible=False), gr.Audio(visible=False)
-    global s2t
-    ASR_curr_name = option
-    if option == "espnet/owsm_v3.1_ebf":
-        s2t = OWSMModel()
-    elif (
-        option
-        == "espnet/simpleoier_librispeech_asr_train_asr_conformer7_wavlm_large_raw_en_bpe5000_sp"
-    ):
-        s2t = ESPnetASRModel(tag=option)
-    elif option == "whisper":
-        s2t = WhisperASRModel()
-    else:
-        s2t = OWSMCTCModel(tag=option)
-
-    s2t.warmup()
-    yield gr.Textbox(visible=True), gr.Textbox(visible=True), gr.Audio(visible=True)
 
 
 def handle_eval_selection(
@@ -247,99 +170,33 @@ def handle_eval_selection_E2E(option, TTS_audio_output, LLM_Output):
         yield (None, perplexity(LLM_Output.replace("\n", " ")) + vert(LLM_response_arr))
 
 
-def handle_type_selection(option, TTS_radio, ASR_radio, LLM_radio):
-    global client
-    global LM_pipe
-    global s2t
-    global text2speech
-    yield (
-        gr.Radio(visible=False),
-        gr.Radio(visible=False),
-        gr.Radio(visible=False),
-        gr.Radio(visible=False),
-        gr.Textbox(visible=False),
-        gr.Textbox(visible=False),
-        gr.Audio(visible=False),
-        gr.Radio(visible=False),
-        gr.Radio(visible=False),
-    )
-    if option == "Cascaded":
-        client = None
-        for _ in handle_selection(TTS_radio):
-            continue
-        for _ in handle_ASR_selection(ASR_radio):
-            continue
-        for _ in handle_LLM_selection(LLM_radio):
-            continue
-        yield (
-            gr.Radio(visible=True),
-            gr.Radio(visible=True),
-            gr.Radio(visible=True),
-            gr.Radio(visible=False),
-            gr.Textbox(visible=True),
-            gr.Textbox(visible=True),
-            gr.Audio(visible=True),
-            gr.Radio(visible=True, interactive=True),
-            gr.Radio(visible=False),
-        )
-    else:
-        text2speech = None
-        s2t = None
-        LM_pipe = None
-        global ASR_curr_name
-        global LLM_curr_name
-        global TTS_curr_name
-        ASR_curr_name = None
-        LLM_curr_name = None
-        TTS_curr_name = None
-        handle_E2E_selection()
-        yield (
-            gr.Radio(visible=False),
-            gr.Radio(visible=False),
-            gr.Radio(visible=False),
-            gr.Radio(visible=True),
-            gr.Textbox(visible=True),
-            gr.Textbox(visible=True),
-            gr.Audio(visible=True),
-            gr.Radio(visible=False),
-            gr.Radio(visible=True, interactive=True),
-        )
-
-
-def handle_E2E_selection():
-    global client
-    if client is None:
-        client = MiniOmniE2EModel()
-        client.warmup()
-
-
 def start_warmup():
-    global client
+    global dialogue_model
     for opt in ASR_options:
         if opt == ASR_name:
             continue
         print(opt)
-        for _ in handle_ASR_selection(opt):
+        for _ in dialogue_model.handle_ASR_selection(opt):
             continue
     for opt in LLM_options:
         if opt == LLM_name:
             continue
         print(opt)
-        for _ in handle_LLM_selection(opt):
+        for _ in dialogue_model.handle_LLM_selection(opt):
             continue
     for opt in TTS_options:
         if opt == TTS_name:
             continue
         print(opt)
-        for _ in handle_selection(opt):
+        for _ in dialogue_model.handle_TTS_selection(opt):
             continue
-    handle_E2E_selection()
-    client = None
-    for _ in handle_selection(TTS_name):
+    dialogue_model.handle_E2E_selection()
+    dialogue_model.client = None
+    for _ in dialogue_model.handle_TTS_selection(TTS_name):
         continue
-    for _ in handle_ASR_selection(ASR_name):
+    for _ in dialogue_model.handle_ASR_selection(ASR_name):
         continue
-    for _ in handle_LLM_selection(LLM_name):
+    for _ in dialogue_model.handle_LLM_selection(LLM_name):
         continue
     dummy_input = (
         torch.randn(
@@ -356,7 +213,6 @@ def start_warmup():
 
 
 start_warmup()
-vad_model = WebrtcVADModel()
 
 callback = gr.CSVLogger()
 start_record_time = None
@@ -383,16 +239,6 @@ def get_ip(request: gr.Request):
     else:
         ip = request.client.host
     return ip
-
-
-def vote_last_response(vote_type, request: gr.Request):
-    with open("save_dict.json", "a") as fout:
-        data = {
-            "tstamp": round(time.time(), 4),
-            "type": vote_type,
-            "ip": get_ip(request),
-        }
-        fout.write(json.dumps(data) + "\n")
 
 
 def natural_vote1_last_response(request: gr.Request):
@@ -500,61 +346,45 @@ def transcribe(stream, new_chunk, TTS_option, ASR_option, LLM_option, type_optio
             audio_box,
             _,
             _,
-        ) in handle_type_selection(type_option, TTS_option, ASR_option, LLM_option):
+        ) in dialogue_model.handle_type_selection(
+            type_option, TTS_option, ASR_option, LLM_option
+        ):
             gr.Info("The models are being reloaded due to a browser refresh.")
             yield (stream, asr_output_box, text_box, audio_box, gr.Audio(visible=False))
         stream = y
-        chat.init_chat(
-            {
-                "role": "system",
-                "content": "You are a helpful and friendly AI assistant. You are polite, respectful, and aim to provide concise and complete responses of less than 15 words.",
-            }
-        )
         text_str = ""
         audio_output = None
         audio_output1 = None
     else:
         stream = np.concatenate((stream, y))
-    orig_sr = sr
-    sr = 16000
-    if client is not None:
-        array = vad_model(y, orig_sr, binary=True)
-    else:
-        array = vad_model(y, orig_sr)
-
-    if array is not None:
-        print("VAD: end of speech detected")
-        start_time = time.time()
-        if client is not None:
-            (text_str, audio_output) = client(array, orig_sr)
-            asr_output_str = ""
-            latency_TTS = time.time() - start_time
-        else:
-            prompt = s2t(array)
-            if len(prompt.strip().split()) < 2:
-                text_str1 = text_str
-                yield (stream, asr_output_str, text_str1, audio_output, audio_output1)
-                return
-
-            asr_output_str = prompt
-            total_response_arr.append(prompt.replace("\n", " "))
-            start_LM_time = time.time()
-            latency_ASR = start_LM_time - start_time
-            chat.append({"role": user_role, "content": prompt})
-            chat_messages = chat.to_list()
-            generated_text = LM_pipe(chat_messages)
-            start_TTS_time = time.time()
-            latency_LM = start_TTS_time - start_LM_time
-
-            chat.append({"role": "assistant", "content": generated_text})
-            text_str = generated_text
-            LLM_response_arr.append(text_str.replace("\n", " "))
-            total_response_arr.append(text_str.replace("\n", " "))
-            audio_output = text2speech(text_str)
-            latency_TTS = time.time() - start_TTS_time
-        audio_output1 = (orig_sr, stream)
-        stream = y
+    (
+        asr_output_str,
+        text_str,
+        audio_output,
+        audio_output1,
+        latency_ASR,
+        latency_LM,
+        latency_TTS,
+        change,
+    ) = dialogue_model(
+        y,
+        sr,
+        stream,
+        asr_output_str,
+        text_str,
+        audio_output,
+        audio_output1,
+        latency_ASR,
+        latency_LM,
+        latency_TTS,
+    )
     text_str1 = text_str
+    if change:
+        print("Output changed")
+        if asr_output_str != "":
+            total_response_arr.append(asr_output_str.replace("\n", " "))
+        LLM_response_arr.append(text_str.replace("\n", " "))
+        total_response_arr.append(text_str.replace("\n", " "))
     if (text_str != "") and (start_record_time is None):
         start_record_time = time.time()
     elif start_record_time is not None:
@@ -770,17 +600,17 @@ with gr.Blocks(
         lambda *args: callback.flag(list(args)), [user_audio], None, preprocess=False
     )
     radio.change(
-        fn=handle_selection,
+        fn=dialogue_model.handle_TTS_selection,
         inputs=[radio],
         outputs=[output_asr_text, output_text, output_audio],
     )
     LLM_radio.change(
-        fn=handle_LLM_selection,
+        fn=dialogue_model.handle_LLM_selection,
         inputs=[LLM_radio],
         outputs=[output_asr_text, output_text, output_audio],
     )
     ASR_radio.change(
-        fn=handle_ASR_selection,
+        fn=dialogue_model.handle_ASR_selection,
         inputs=[ASR_radio],
         outputs=[output_asr_text, output_text, output_audio],
     )
@@ -795,7 +625,7 @@ with gr.Blocks(
         outputs=[eval_radio_E2E, output_eval_text],
     )
     type_radio.change(
-        fn=handle_type_selection,
+        fn=dialogue_model.handle_type_selection,
         inputs=[type_radio, radio, ASR_radio, LLM_radio],
         outputs=[
             radio,
