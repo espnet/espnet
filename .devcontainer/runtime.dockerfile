@@ -1,0 +1,73 @@
+FROM ubuntu:latest AS main_builder
+LABEL maintainer "Nelson Yalta <nyalta21@gmail.com>"
+
+ENV DOCKER_BUILT_VER=20.0.0
+ENV NUM_BUILD_CORES=12
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && \
+    apt-get -y install --no-install-recommends \
+        automake \
+        autoconf \
+        apt-utils \
+        bc \
+        build-essential \
+        ca-certificates \
+        cmake \
+        curl \
+        flac \
+        ffmpeg \
+        gawk \
+        gfortran \
+        gpg-agent \
+        libboost-all-dev \
+        libffi-dev \
+        libncurses5-dev \
+        libtool \
+        libbz2-dev \
+        liblzma-dev \
+        libsndfile1-dev \
+        patch \
+        software-properties-common \
+        sox \
+        subversion \
+        unzip \
+        wget \
+        zip \
+        zlib1g-dev \
+        && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Latest version of git
+ENV TZ=Etc/UTC
+RUN add-apt-repository ppa:git-core/ppa -y && \
+    apt update && \
+    apt install -y --no-install-recommends git-all && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN git clone --depth 1 https://github.com/kaldi-asr/kaldi /opt/kaldi
+
+RUN wget --tries=3 -nv "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh" -O miniconda.sh && \
+    bash miniconda.sh -b -p /opt/miniconda && \
+    /opt/miniconda/bin/conda config --prepend channels https://software.repos.intel.com/python/conda/ && \
+    rm miniconda.sh
+
+WORKDIR /
+
+FROM main_builder AS espnet1
+# # Using kaldi pre-built binaries
+RUN cd /opt/kaldi/tools &&  \
+    echo "" > extras/check_dependencies.sh && \
+    chmod +x extras/check_dependencies.sh &&  \
+    cd /opt/kaldi && \
+    wget --tries=3 -nv https://github.com/espnet/kaldi-bin/releases/download/v0.0.1/ubuntu16-featbin.tar.gz && \
+    tar -xf ./ubuntu16-featbin.tar.gz && \
+    cp featbin/* src/featbin/ && \
+    rm -rf featbin && \
+    rm -f ubuntu16-featbin.tar.gz
+
+WORKDIR /
+
+ENV PATH=/opt/miniconda/bin:${PATH}
