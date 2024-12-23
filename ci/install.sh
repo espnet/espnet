@@ -48,7 +48,6 @@ python3 -m pip install "hacking>=2.0.0" "flake8>=3.7.8"
 # install espnet
 python3 -m pip install -e ".[test]"
 python3 -m pip install -e ".[doc]"
-python3 -m pip install protobuf==4.21.1
 
 # log
 python3 -m pip freeze
