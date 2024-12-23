@@ -90,7 +90,8 @@ class Config:
             assert self.n_embd % self.n_head == 0
             self.head_size = self.n_embd // self.n_head
 
-        # vocab size should be a power of 2 to be optimal on hardware. compute the closest value
+        # vocab size should be a power of 2 to be optimal on
+        # hardware. compute the closest value
         if self.padded_vocab_size is None:
             self.padded_vocab_size = find_multiple(
                 self.vocab_size, self.padding_multiple
@@ -150,7 +151,8 @@ class Config:
 
     @classmethod
     def from_checkpoint(cls, path: Path, **kwargs: Any) -> Self:
-        """Automatically load `model_config.yaml` and if it doesn't exist - a matching config from `litgpt/config.py`."""
+        """Automatically load `model_config.yaml` and if it doesn't
+        exist - a matching config from `litgpt/config.py`."""
         if (config_path := path / "model_config.yaml").is_file():
             return cls.from_file(config_path, **kwargs)
         if (model_name := path.name) in name_to_config:

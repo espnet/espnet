@@ -402,7 +402,8 @@ class OmniInference:
         self.device = device
         if not os.path.exists(ckpt_dir):
             print(
-                f"checkpoint directory {ckpt_dir} not found, downloading from huggingface"
+                f"checkpoint directory {ckpt_dir} not found,"
+                " downloading from huggingface"
             )
             download_model(ckpt_dir)
         (
@@ -443,13 +444,15 @@ class OmniInference:
         T = input_ids[0].size(1)
         device = input_ids[0].device
 
-        assert (
-            max_returned_tokens > T
-        ), f"max_returned_tokens {max_returned_tokens} should be greater than audio length {T}"
+        assert max_returned_tokens > T, (
+            f"max_returned_tokens {max_returned_tokens} should be"
+            " greater than audio length {T}"
+        )
 
         if model.max_seq_length < max_returned_tokens - 1:
             raise NotImplementedError(
-                f"max_seq_length {model.max_seq_length} needs to be >= {max_returned_tokens - 1}"
+                f"max_seq_length {model.max_seq_length} needs to be"
+                " >= {max_returned_tokens - 1}"
             )
 
         input_pos = torch.tensor([T], device=device)
@@ -623,10 +626,8 @@ def test_infer():
                     print(f"input: {test_audio_transcripts[step]}")
                     print(f"output: {text}")
                     step += 1
-                    print(
-                        "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
-                    )
-                except:
+                    print("+++++++++++++++++++++++++++++++++++++++++++++++++++++")
+                except Exception:
                     print(f"[error] failed to process {path}")
             print("===============================================================")
 

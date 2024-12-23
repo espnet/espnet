@@ -91,8 +91,10 @@ class Tokenizer:
             config = json.load(fp)
         if "add_bos_token" in config:
             return config["add_bos_token"]
-        # if `add_bos_token` isn't in the config file, but LLaMA tokenizer is used - return True.
-        # ex: https://huggingface.co/stabilityai/StableBeluga2/blob/main/tokenizer_config.json#L2
+        # if `add_bos_token` isn't in the config file, but LLaMA
+        # tokenizer is used - return True.
+        # ex: https://huggingface.co/stabilityai/StableBeluga2/blob/
+        # main/tokenizer_config.json#L2
         return config.get("tokenizer_class") == "LlamaTokenizer"
 
     def encode(

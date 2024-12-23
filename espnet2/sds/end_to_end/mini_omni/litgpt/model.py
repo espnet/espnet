@@ -1,6 +1,7 @@
 # Copyright Lightning AI. Licensed under the Apache License 2.0, see LICENSE file.
 
-"""Full definition of a decoder-only transformer-based language model, all of it in this single file.
+"""Full definition of a decoder-only transformer-based language
+model, all of it in this single file.
 
 Based on the nanoGPT implementation: https://github.com/karpathy/nanoGPT and
 https://github.com/EleutherAI/gpt-neox/tree/main/megatron/model.
@@ -71,8 +72,10 @@ class GPT(nn.Module):
     @max_seq_length.setter
     def max_seq_length(self, value: int) -> None:
         """
-        When doing inference, the sequences used might be shorter than the model's context length.
-        This allows setting a smaller number to avoid allocating unused memory
+        When doing inference, the sequences used might be shorter
+        than the model's context length.
+        This allows setting a smaller number to avoid allocating
+        unused memory
         """
         if value > self.config.block_size:
             raise ValueError(
@@ -87,7 +90,9 @@ class GPT(nn.Module):
         # override
         elif value != self.cos.size(0):
             self.cos, self.sin = self.rope_cache(device=self.cos.device)
-        # the mask and kv cache size will get updated on `set_kv_cache`. we cannot update it here because we don't know
+        # the mask and kv cache size will get updated on
+        # `set_kv_cache`. we cannot update it here because we don't
+        # know
         # if the kv cache is expected
 
     def reset_parameters(self) -> None:
@@ -125,7 +130,8 @@ class GPT(nn.Module):
         T = input_ids[0].size(1)
         if self.max_seq_length < T:
             raise ValueError(
-                f"Cannot forward sequence of length {T}, max seq length is only {self.max_seq_length}."
+                f"Cannot forward sequence of length {T}, "
+                "max seq length is only {self.max_seq_length}."
             )
 
         if input_pos is not None:  # use the kv cache
@@ -248,8 +254,10 @@ class GPT(nn.Module):
                 )
 
         if self.mask_cache is None or self.mask_cache.size(3) != max_seq_length:
-            # passing `attn_mask` to SDPA disables the flash implementation. since we only need the mask
-            # for the kv-cache support (only during inference), we only create it in that situation
+            # passing `attn_mask` to SDPA disables the flash
+            # implementation. since we only need the mask
+            # for the kv-cache support (only during inference), we
+            # only create it in that situation
             self.mask_cache = build_mask_cache(max_seq_length, device)
 
     def clear_kv_cache(self) -> None:
@@ -287,21 +295,6 @@ class Block(nn.Module):
         mask: Optional[torch.Tensor] = None,
         input_pos: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
-        """
-        Non-parallel residual       Parallel residual
-           ┌─ x                     ┌─ x ────────────┐             Note: if `shared_attention_norm` is True,
-           │  ↓                     │  ↓             ↓                   the output from `norm_1` is reused
-           │  norm_1                │  norm_1  ───►  norm_2
-           │  ↓                     │  ↓             ↓
-           │  attn                  │  attn          mlp
-           │  ↓                     │  ↓             │
-        ┌─ └► +                     └► + ◄───────────┘
-        │     norm_2
-        │     ↓
-        │     mlp
-        │     ↓
-        └───► +
-        """
 
         x_normed = self.norm_1(x)
         attention_output = self.attn(x_normed, cos, sin, mask, input_pos)
@@ -322,7 +315,8 @@ class CausalSelfAttention(nn.Module):
         # key, query, value projections for all heads, but in a batch
         self.attn = nn.Linear(config.n_embd, shape, bias=config.add_qkv_bias)
         # output projection
-        # if `head_size` is explicitly specified in the config, `n_emd` might not be equal to `head_size * n_head`
+        # if `head_size` is explicitly specified in the config,
+        # `n_emd` might not be equal to `head_size * n_head`
         self.proj = nn.Linear(
             config.head_size * config.n_head, config.n_embd, bias=config.bias
         )
@@ -345,7 +339,8 @@ class CausalSelfAttention(nn.Module):
 
         qkv = self.attn(x)
 
-        # assemble into a number of query groups to support MHA, MQA and GQA together (see `config.n_query_groups`)
+        # assemble into a number of query groups to support MHA, MQA
+        # and GQA together (see `config.n_query_groups`)
         q_per_kv = self.config.n_head // self.config.n_query_groups
         total_qkv = q_per_kv + 2  # each group has 1+ queries, 1 key, and 1 value
         qkv = qkv.view(
@@ -358,7 +353,8 @@ class CausalSelfAttention(nn.Module):
 
         # maybe repeat k and v if for the non multi-head attention cases
         # training: flash attention requires it
-        # inference: multi-query would require a full kv cache so avoid it to limit its memory usage
+        # inference: multi-query would require a full kv cache so
+        # avoid it to limit its memory usage
         if self.config.n_query_groups != self.config.n_head and (
             input_pos is None or self.config.n_query_groups != 1
         ):
@@ -502,7 +498,9 @@ class LLaMAMoE(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
-        Derived from: https://github.com/mistralai/mistral-src/blob/b46d6/moe_one_file_ref.py#L203-L219
+        Derived from:
+        https://github.com/mistralai/mistral-src/blob/b46d6/
+        moe_one_file_ref.py#L203-L219
         See also figure 1 in https://arxiv.org/abs/2211.15841
         """
         B, T, C = (
@@ -534,9 +532,13 @@ def build_rope_cache(
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """Enhanced Transformer with Rotary Position Embedding.
 
-    Derived from: https://github.com/labmlai/annotated_deep_learning_paper_implementations/blob/master/labml_nn/
+    Derived from: https://github.com/labmlai/
+    annotated_deep_learning_paper_implementations/blob/master/
+    labml_nn/
     transformers/rope/__init__.py. MIT License:
-    https://github.com/labmlai/annotated_deep_learning_paper_implementations/blob/master/license.
+    https://github.com/labmlai/
+    annotated_deep_learning_paper_implementations/blob/
+    master/license.
     """
     # $\Theta = {\theta_i = 10000^{\frac{2(i-1)}{d}}, i \in [1, 2, ..., \frac{d}{2}]}$
     theta = 1.0 / (base ** (torch.arange(0, n_elem, 2, device=device).float() / n_elem))
@@ -601,7 +603,8 @@ def build_mask_cache(
 class RMSNorm(torch.nn.Module):
     """Root Mean Square Layer Normalization.
 
-    Derived from https://github.com/bzhangGo/rmsnorm/blob/master/rmsnorm_torch.py. BSD 3-Clause License:
+    Derived from https://github.com/bzhangGo/rmsnorm/blob/master/
+    rmsnorm_torch.py. BSD 3-Clause License:
     https://github.com/bzhangGo/rmsnorm/blob/master/LICENSE.
     """
 

@@ -15,7 +15,11 @@ class ESPnetASRModel(AbsASR):
     @typechecked
     def __init__(
         self,
-        tag="espnet/simpleoier_librispeech_asr_train_asr_conformer7_wavlm_large_raw_en_bpe5000_sp",
+        tag=(
+            "espnet/"
+            "simpleoier_librispeech_asr_train_asr_conformer7_"
+            "wavlm_large_raw_en_bpe5000_sp"
+        ),
         device="cuda",
     ):
         super().__init__()

@@ -1,12 +1,6 @@
 import time
 from contextlib import contextmanager
 
-try:
-    import gradio as gr
-except Exception as e:
-    print("Error: Gradio is not properly installed.")
-    raise e
-
 import torch
 from packaging.version import parse as V
 from typeguard import typechecked
@@ -37,6 +31,11 @@ class ESPnetSDSModelInterface(AbsESPnetModel):
 
     @typechecked
     def __init__(self, ASR_option, LLM_option, TTS_option, type_option, access_token):
+        try:
+            import gradio as gr
+        except Exception as e:
+            print("Error: Gradio is not properly installed.")
+            raise e
         super().__init__()
         self.TTS_option = TTS_option
         self.ASR_option = ASR_option

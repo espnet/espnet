@@ -14,7 +14,8 @@ from espnet2.sds.end_to_end.mini_omni.utils.snac_utils import layershift, snac_c
 
 def multinomial_num_samples_1(probs: torch.Tensor) -> torch.Tensor:
     if torch._dynamo.is_compiling():
-        # Faster alternative to `torch.multinomial(probs, num_samples=1)` that is also CUDAGraph friendly
+        # Faster alternative to `torch.multinomial(probs,
+        # num_samples=1)` that is also CUDAGraph friendly
         distribution = torch.empty_like(probs).exponential_(1)
         return torch.argmax(probs / distribution, dim=-1, keepdim=True)
     return torch.multinomial(probs, num_samples=1)
@@ -24,7 +25,8 @@ def sample_top_p(logits: torch.Tensor, top_p: float) -> torch.Tensor:
     sorted_logits, sorted_indices = torch.sort(logits, descending=False)
     cumulative_probs = sorted_logits.softmax(dim=-1).cumsum(dim=-1)
     # Example:
-    # sorted_probs=[0.1, 0.15, 0.2, 0.25, 0.3] -> sorted_cumprobs=[0.1, 0.25, 0.45, 0.7, 1.0]
+    # sorted_probs=[0.1, 0.15, 0.2, 0.25, 0.3] ->
+    # sorted_cumprobs=[0.1, 0.25, 0.45, 0.7, 1.0]
     # sorted_indices_to_remove = [1, 1, 0, 0, 0] if top_p=0.7
     sorted_indices_to_remove = cumulative_probs <= (1 - top_p)
     # Keep at least 1 token always to prevent the case where no token is selected
@@ -55,7 +57,8 @@ def sample(
     if temperature > 0.0 or top_p > 0.0:
         if temperature > 0.0:
             logits = logits / temperature
-        # optionally crop the logits to smallest set of logits with a cumulative probability above top_p
+        # optionally crop the logits to smallest set of logits with
+        # a cumulative probability above top_p
         if top_p < 1.0:
             logits = sample_top_p(logits, top_p)
         probs = torch.nn.functional.softmax(logits, dim=-1)
@@ -191,21 +194,31 @@ def generate(
     # print("eos_id_t:", eos_id_t)
     # print("pad_id:", pad_id)
     """
-    Takes a conditioning sequence (prompt) as input and continues to generate as many tokens as requested.
-    The implementation of this function is modified from A. Karpathy's nanoGPT.
+    Takes a conditioning sequence (prompt) as input and continues to
+    generate as many tokens as requested.
+    The implementation of this function is modified from A.
+    Karpathy's nanoGPT.
 
     Args:
         model: The model to use.
         prompt: Tensor of shape (T) with indices of the prompt sequence.
-        max_returned_tokens: The maximum number of tokens to return (given plus generated).
+        max_returned_tokens: The maximum number of tokens to return
+         (given plus generated).
         temperature: Scales the predicted logits by 1 / temperature.
-        top_k: If specified, only sample among the tokens with the k highest probabilities.
-        top_p: If specified, it represents the cumulative probability threshold to consider in the sampling process.
-            In top-p sampling, the next token is sampled from the highest probability tokens
-            whose cumulative probability exceeds the threshold `top_p`. When specified,
-            it must be `0 <= top_p <= 1`. Here, `top_p=0` is equivalent
-            to sampling the most probable token, while `top_p=1` samples from the whole distribution.
-            It can be used in conjunction with `top_k` and `temperature` with the following order
+        top_k: If specified, only sample among the tokens with the k
+        highest probabilities.
+        top_p: If specified, it represents the cumulative
+        probability threshold to consider in the sampling process.
+            In top-p sampling, the next token is sampled from the
+            highest probability tokens
+            whose cumulative probability exceeds the threshold
+            `top_p`. When specified,
+            it must be `0 <= top_p <= 1`. Here, `top_p=0` is
+            equivalent
+            to sampling the most probable token, while `top_p=1`
+            samples from the whole distribution.
+            It can be used in conjunction with `top_k` and
+            `temperature` with the following order
             of application:
 
             1. `top_k` sampling
@@ -214,18 +227,24 @@ def generate(
 
             For more details, see https://arxiv.org/abs/1904.09751
             or https://huyenchip.com/2024/01/16/sampling.html#top_p
-        eos_id: If specified, stop generating any more token once the <eos> token is triggered.
-        include_prompt: If true (default) prepends the prompt (after applying the prompt style) to the output.
+        eos_id: If specified, stop generating any more token once
+        the <eos> token is triggered.
+        include_prompt: If true (default) prepends the prompt (after
+        applying the prompt style) to the output.
     """
     T = input_ids[0].size(0)
     device = input_ids[0].device
     assert max_returned_tokens > T
     if model.max_seq_length < max_returned_tokens - 1:
-        # rolling the kv cache based on the `input_pos` value would be necessary. However, doing so would introduce a
-        # data dependency on the `input_pos` tensor and impact model compilation. Since this setting is uncommon, we do
-        # not support it to avoid negatively impacting the overall speed
+        # rolling the kv cache based on the `input_pos` value would
+        # be necessary. However, doing so would introduce a
+        # data dependency on the `input_pos` tensor and impact model
+        # compilation. Since this setting is uncommon, we do
+        # not support it to avoid negatively impacting the overall
+        # speed
         raise NotImplementedError(
-            f"max_seq_length {model.max_seq_length} needs to be >= {max_returned_tokens - 1}"
+            f"max_seq_length {model.max_seq_length} needs to be >=
+            {max_returned_tokens - 1}"
         )
 
     for input_id in input_ids:
@@ -355,7 +374,8 @@ def generate_TA_BATCH(
     assert max_returned_tokens > T
     if model.max_seq_length < max_returned_tokens - 1:
         raise NotImplementedError(
-            f"max_seq_length {model.max_seq_length} needs to be >= {max_returned_tokens - 1}"
+            f"max_seq_length {model.max_seq_length} needs to "
+            f"be >= {max_returned_tokens - 1}"
         )
 
     input_pos = torch.tensor([T], device=device)

@@ -61,7 +61,8 @@ def find_resume_path(
         return resume_path
     if resume is True and resume_path is None:
         raise FileNotFoundError(
-            f"You passed `--resume=True`, but no checkpont file was found in `--out_dir={out_dir}`."
+            f"You passed `--resume=True`, but no checkpont file was "
+            "found in `--out_dir={out_dir}`."
         )
     return resume_path
 
@@ -111,7 +112,10 @@ def check_valid_checkpoint_dir(
         if all(files.values()):
             # we're good
             return
-        problem = f" is missing the files: {[f for f, exists in files.items() if not exists]!r}"
+        problem = (
+            f" is missing the files: "
+            f"{[f for f, exists in files.items() if not exists]!r}"
+        )
     else:
         problem = " is not a checkpoint directory"
 
@@ -126,7 +130,8 @@ def check_valid_checkpoint_dir(
     if verbose:
         error_message = (
             f"checkpoint_dir {str(checkpoint_dir.absolute())!r}{problem}."
-            "\nFind download instructions at https://github.com/Lightning-AI/litgpt/blob/main/tutorials\n"
+            "\nFind download instructions at "
+            "https://github.com/Lightning-AI/litgpt/blob/main/tutorials\n"
             f"{extra}\nSee all download options by running:\n litgpt download"
         )
         print(error_message, file=sys.stderr)
@@ -200,7 +205,8 @@ class SavingProxyForTensor:
     def __reduce_ex__(self, protocol_version):
         if protocol_version != self.protocol_version:
             raise RuntimeError(
-                f"Unexpected protocol version: expected {self.protocol_version}, got {protocol_version}"
+                f"Unexpected protocol version: expected "
+                f"{self.protocol_version}, got {protocol_version}"
             )
         return self.reduce_ret_fn, self.reduce_args
 
@@ -245,7 +251,9 @@ class IncrementalPyTorchPickler(pickle.Pickler):
                 if storage.data_ptr() in self.storage_dtypes:
                     if storage_dtype != self.storage_dtypes[storage.data_ptr()]:
                         raise RuntimeError(
-                            "Cannot save multiple tensors or storages that view the same data as different types"
+                            "Cannot save multiple tensors or "
+                            "storages that view the same data as "
+                            "different types"
                         )
                 else:
                     self.storage_dtypes[storage.data_ptr()] = storage_dtype
@@ -312,9 +320,12 @@ def chunked_cross_entropy(
     chunk_size: int = 128,
     ignore_index: int = -100,
 ) -> torch.Tensor:
-    # with large max_sequence_lengths, the beginning of `backward` allocates a large memory chunk which can dominate
-    # the memory usage in fine-tuning settings with low number of parameters.
-    # as a workaround hack, the cross entropy computation is chunked to force it to deallocate on the go, reducing
+    # with large max_sequence_lengths, the beginning of `backward`
+    # allocates a large memory chunk which can dominate
+    # the memory usage in fine-tuning settings with low number of
+    # parameters.
+    # as a workaround hack, the cross entropy computation is chunked
+    # to force it to deallocate on the go, reducing
     # the memory spike's magnitude
 
     # lm_head was chunked (we are fine-tuning)
@@ -367,8 +378,10 @@ def chunked_cross_entropy(
     ]
     non_masked_elems = (targets != ignore_index).sum()
     # [non_masked_elems div note]:
-    #   max(1, non_masked_elems) would be more ergonomic to avoid a division by zero. However that
-    #   results in a python int which is then passed back to torch division. By using the
+    #   max(1, non_masked_elems) would be more ergonomic to avoid a
+    # division by zero. However that
+    #   results in a python int which is then passed back to torch
+    # division. By using the
     #   `x.maximum(torch.ones_like(x))` pattern we avoid a cudaStreamSynchronize.
     return torch.cat(loss_chunks).sum() / non_masked_elems.maximum(
         torch.ones_like(non_masked_elems)
@@ -385,7 +398,8 @@ def map_old_state_dict_weights(state_dict: Dict, mapping: Mapping, prefix: str) 
 
 
 def get_default_supported_precision(training: bool) -> str:
-    """Return default precision that is supported by the hardware: either `bf16` or `16`.
+    """Return default precision that is supported by the hardware:
+    either `bf16` or `16`.
 
     Args:
         training: `-mixed` or `-true` version of the precision to use
@@ -433,10 +447,14 @@ def estimate_flops(model: "GPT", training: bool) -> int:
         * https://ar5iv.labs.arxiv.org/html/2205.05198#A1
         * https://ar5iv.labs.arxiv.org/html/2204.02311#A2
     """
-    # using all parameters for this is a naive over estimation because not all model parameters actually contribute to
-    # this FLOP computation (e.g. embedding, norm). For this reason, the result will be higher by a fixed percentage
-    # (~10%) compared to the measured FLOPs, making those lower but more realistic.
-    # For a proper estimate, this needs a more fine-grained calculation as in Appendix A of the paper.
+    # using all parameters for this is a naive over estimation
+    # because not all model parameters actually contribute to
+    # this FLOP computation (e.g. embedding, norm). For this reason,
+    # the result will be higher by a fixed percentage
+    # (~10%) compared to the measured FLOPs, making those lower but
+    # more realistic.
+    # For a proper estimate, this needs a more fine-grained
+    # calculation as in Appendix A of the paper.
     n_trainable_params = num_parameters(model, requires_grad=True)
     trainable_flops = flops_per_param(
         model.max_seq_length,
@@ -464,7 +482,8 @@ class CycleIterator:
         [1, 2, 3, 1, 2]
 
     Note:
-        Unlike ``itertools.cycle``, this iterator does not cache the values of the iterable.
+        Unlike ``itertools.cycle``, this iterator does not cache the
+        values of the iterable.
     """
 
     def __init__(self, iterable: Iterable) -> None:
@@ -487,7 +506,8 @@ class CycleIterator:
 
 
 def copy_config_files(source_dir: Path, out_dir: Path) -> None:
-    """Copies the specified configuration and tokenizer files into the output directory."""
+    """Copies the specified configuration and tokenizer files into
+    the output directory."""
 
     config_files = ["config.json", "generation_config.json", "model_config.yaml"]
     tokenizer_files = ["tokenizer.json", "tokenizer.model", "tokenizer_config.json"]
@@ -508,7 +528,8 @@ def CLI(*args: Any, **kwargs: Any) -> Any:
 
 
 def capture_hparams() -> Dict[str, Any]:
-    """Captures the local variables ('hyperparameters') from where this function gets called."""
+    """Captures the local variables ('hyperparameters') from where
+    this function gets called."""
     caller_frame = inspect.currentframe().f_back
     locals_of_caller = caller_frame.f_locals
     hparams = {}
@@ -523,7 +544,8 @@ def capture_hparams() -> Dict[str, Any]:
 
 
 def save_hyperparameters(function: callable, checkpoint_dir: Path) -> None:
-    """Captures the CLI parameters passed to `function` without running `function` and saves them to the checkpoint."""
+    """Captures the CLI parameters passed to `function` without
+    running `function` and saves them to the checkpoint."""
     from jsonargparse import capture_parser
 
     # TODO: Make this more robust
@@ -583,7 +605,8 @@ def choose_logger(
     if logger_name == "wandb":
         return WandbLogger(project=name, resume=resume, **kwargs)
     raise ValueError(
-        f"`--logger_name={logger_name}` is not a valid option. Choose from 'csv', 'tensorboard', 'wandb'."
+        f"`--logger_name={logger_name}` is not a valid option."
+        " Choose from 'csv', 'tensorboard', 'wandb'."
     )
 
 
