@@ -1,8 +1,13 @@
 import argparse
 import os
 import shutil
+import time
 
+import gradio as gr
+import nltk
+import numpy as np
 import torch
+from huggingface_hub import HfApi
 from pyscripts.utils.dialog_eval.ASR_WER import handle_espnet_ASR_WER
 from pyscripts.utils.dialog_eval.human_feedback import (
     natural_vote1_last_response,
@@ -116,14 +121,8 @@ def read_args():
 
 
 read_args()
-from huggingface_hub import HfApi
-
 api = HfApi()
-import nltk
-
 nltk.download("averaged_perceptron_tagger_eng")
-import gradio as gr
-import numpy as np
 
 latency_ASR = 0.0
 latency_LM = 0.0
@@ -145,7 +144,11 @@ def handle_eval_selection(
     global total_response_arr
     yield (option, gr.Textbox(visible=True))
     if option == "Latency":
-        text = f"ASR Latency: {latency_ASR:.2f}\nLLM Latency: {latency_LM:.2f}\nTTS Latency: {latency_TTS:.2f}"
+        text = (
+            f"ASR Latency: {latency_ASR:.2f}\n"
+            f"LLM Latency: {latency_LM:.2f}\n"
+            f"TTS Latency: {latency_TTS:.2f}"
+        )
         yield (None, text)
     elif option == "TTS Intelligibility":
         yield (None, handle_espnet_TTS_intelligibility(TTS_audio_output, LLM_Output))
@@ -223,7 +226,6 @@ def start_warmup():
 
 
 start_warmup()
-
 callback = gr.CSVLogger()
 start_record_time = None
 enable_btn = gr.Button(interactive=True, visible=True)
@@ -236,9 +238,6 @@ def flash_buttons():
         "",
         "",
     ) + btn_updates
-
-
-import time
 
 
 def transcribe(stream, new_chunk, TTS_option, ASR_option, LLM_option, type_option):
@@ -315,7 +314,10 @@ def transcribe(stream, new_chunk, TTS_option, ASR_option, LLM_option, type_optio
         current_record_time = time.time()
         if current_record_time - start_record_time > 300:
             gr.Info(
-                "Conversations are limited to 5 minutes. The session will restart in approximately 60 seconds. Please wait for the demo to reset. Close this message once you have read it.",
+                "Conversations are limited to 5 minutes. "
+                "The session will restart in approximately 60 seconds. "
+                "Please wait for the demo to reset. "
+                "Close this message once you have read it.",
                 duration=None,
             )
             yield stream, gr.Textbox(visible=False), gr.Textbox(

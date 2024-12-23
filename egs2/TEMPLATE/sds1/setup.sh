@@ -33,11 +33,10 @@ fi
 targets=""
 
 # Copy
-for f in local; do
-    target="${dir}"/../../TEMPLATE/slu1/"${f}"
-    cp -r "${target}" "${dir}"
-    targets+="${dir}/${target} "
-done
+target="${dir}"/../../TEMPLATE/slu1/local""
+cp -r "${target}" "${dir}"
+targets+="${dir}/${target} "
+
 
 # Symlinks to TEMPLATE
 for f in app.py path.sh pyscripts; do
