@@ -40,7 +40,7 @@ for f in local; do
 done
 
 # Symlinks to TEMPLATE
-for f in app.py path.sh; do
+for f in app.py path.sh pyscripts; do
     target=../../TEMPLATE/sds1/"${f}"
     ln -sf "${target}" "${dir}"
     targets+="${dir}/${target} "
