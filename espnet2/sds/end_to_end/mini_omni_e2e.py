@@ -5,11 +5,16 @@ import tempfile
 
 import numpy as np
 import torch
-from huggingface_hub import snapshot_download
-from pydub import AudioSegment
 from typeguard import typechecked
 
 from espnet2.sds.end_to_end.abs_e2e import AbsE2E
+
+try:
+    from pydub import AudioSegment
+
+    is_pydub_available = True
+except ImportError:
+    is_pydub_available = False
 
 
 class MiniOmniE2EModel(AbsE2E):
@@ -20,10 +25,26 @@ class MiniOmniE2EModel(AbsE2E):
         self,
         device="cuda",
     ):
+        if not is_pydub_available:
+            raise ImportError("Error: Pydub is not properly installed.")
+        try:
+            from huggingface_hub import snapshot_download
+        except Exception as e:
+            print("Error: Huggingface_hub is not properly installed.")
+            raise e
+        try:
+            from espnet2.sds.end_to_end.mini_omni.inference import OmniInference
+        except Exception as e:
+            print(
+                "Error: Dependencies not properly installed."
+                "Check https://huggingface.co/spaces/gradio/"
+                "omni-mini/blob/main/requirements.txt"
+            )
+            raise e
+
         super().__init__()
         repo_id = "gpt-omni/mini-omni"
         snapshot_download(repo_id, local_dir="./checkpoint", revision="main")
-        from espnet2.sds.end_to_end.mini_omni.inference import OmniInference
 
         self.client = OmniInference("./checkpoint", "cuda")
         self.stream_stride = 4

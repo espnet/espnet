@@ -1,5 +1,4 @@
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 from typeguard import typechecked
 
 from espnet2.sds.llm.abs_llm import AbsLLM
@@ -15,6 +14,15 @@ class HuggingFaceLLM(AbsLLM):
         tag="meta-llama/Llama-3.2-1B-Instruct",
         device="cuda",
     ):
+        try:
+            from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
+        except Exception as e:
+            print(
+                "`transformers` is not available. Please install it via `pip install"
+                " transformers` or `cd /path/to/espnet/tools && . ./activate_python.sh"
+                " && ./installers/install_transformers.sh`."
+            )
+            raise e
         super().__init__()
         LM_tokenizer = AutoTokenizer.from_pretrained(tag, token=access_token)
         LM_model = AutoModelForCausalLM.from_pretrained(

@@ -26,16 +26,21 @@ else:
         yield
 
 
+try:
+    import gradio as gr
+
+    is_gradio_available = True
+except ImportError:
+    is_gradio_available = False
+
+
 class ESPnetSDSModelInterface(AbsESPnetModel):
     """Web Interface for Spoken Dialog System models"""
 
     @typechecked
     def __init__(self, ASR_option, LLM_option, TTS_option, type_option, access_token):
-        try:
-            import gradio as gr
-        except Exception as e:
-            print("Error: Gradio is not properly installed.")
-            raise e
+        if not is_gradio_available:
+            raise ImportError("Error: Gradio is not properly installed.")
         super().__init__()
         self.TTS_option = TTS_option
         self.ASR_option = ASR_option

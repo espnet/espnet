@@ -10,9 +10,10 @@ from espnet2.sds.vad.abs_vad import AbsVAD
 
 try:
     import webrtcvad
-except Exception as e:
-    print("Error: WebRTC is not properly installed.")
-    raise e
+
+    is_webrtcvad_available = True
+except ImportError:
+    is_webrtcvad_available = False
 
 
 class WebrtcVADModel(AbsVAD):
@@ -27,6 +28,8 @@ class WebrtcVADModel(AbsVAD):
         max_speech_ms=float("inf"),
         target_sr=16000,
     ):
+        if not is_webrtcvad_available:
+            raise ImportError("Error: webrtcvad is not properly installed.")
         super().__init__()
         self.vad_output = None
         self.vad_bin_output = None
