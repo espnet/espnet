@@ -33,14 +33,82 @@ from espnet.nets.pytorch_backend.transformer.encoder import (
 
 
 class ProDiff(AbsTTS):
-    """ProDiff module.
+    """
+        ProDiff module.
 
     This is a module of ProDiff described in `ProDiff: Progressive Fast Diffusion Model
     for High-Quality Text-to-Speech`_.
 
     .. _`ProDiff: Progressive Fast Diffusion Model for High-Quality Text-to-Speech`:
-        https://arxiv.org/abs/2207.06389
+       https://arxiv.org/abs/2207.06389
 
+    Attributes:
+        idim (int): Dimension of the inputs.
+        odim (int): Dimension of the outputs.
+        eos (int): End of sequence token index.
+        reduction_factor (int): Reduction factor for output features.
+        encoder_type (str): Type of encoder used ("transformer" or "conformer").
+        decoder_type (str): Type of decoder used ("transformer" or "conformer").
+        stop_gradient_from_pitch_predictor (bool): If True, stop gradient from pitch
+            predictor to encoder.
+        stop_gradient_from_energy_predictor (bool): If True, stop gradient from energy
+            predictor to encoder.
+        use_scaled_pos_enc (bool): If True, use scaled positional encoding.
+        use_gst (bool): If True, use global style token.
+
+    Args:
+        idim (int): Dimension of the inputs.
+        odim (int): Dimension of the outputs.
+        adim (int, optional): Dimension of the hidden states. Defaults to 384.
+        aheads (int, optional): Number of attention heads. Defaults to 4.
+        elayers (int, optional): Number of encoder layers. Defaults to 6.
+        eunits (int, optional): Number of encoder hidden units. Defaults to 1536.
+        postnet_layers (int, optional): Number of postnet layers. Defaults to 0.
+        postnet_chans (int, optional): Number of postnet channels. Defaults to 512.
+        postnet_filts (int, optional): Kernel size of postnet. Defaults to 5.
+        postnet_dropout_rate (float, optional): Dropout rate in postnet. Defaults to 0.5.
+        positionwise_layer_type (str, optional): Type of positionwise layer. Defaults to "conv1d".
+        positionwise_conv_kernel_size (int, optional): Kernel size for positionwise conv. Defaults to 1.
+        use_scaled_pos_enc (bool, optional): Use trainable scaled positional encoding. Defaults to True.
+        use_batch_norm (bool, optional): Use batch normalization in encoder prenet. Defaults to True.
+        encoder_normalize_before (bool, optional): Normalize before encoder block. Defaults to True.
+        encoder_concat_after (bool, optional): Concatenate attention layer's input and output in encoder.
+            Defaults to False.
+        reduction_factor (int, optional): Reduction factor. Defaults to 1.
+        encoder_type (str, optional): Encoder type ("transformer" or "conformer"). Defaults to "transformer".
+        decoder_type (str, optional): Decoder type ("diffusion"). Defaults to "diffusion".
+        transformer_enc_dropout_rate (float, optional): Dropout rate in encoder. Defaults to 0.1.
+        transformer_enc_positional_dropout_rate (float, optional): Dropout after positional encoding.
+            Defaults to 0.1.
+        transformer_enc_attn_dropout_rate (float, optional): Dropout in encoder self-attention. Defaults to 0.1.
+        # Additional parameters omitted for brevity...
+
+    Returns:
+        None: This function does not return anything but initializes the model.
+
+    Examples:
+        # Initialize the ProDiff model
+        model = ProDiff(idim=80, odim=80)
+
+        # Forward propagation
+        text = torch.randint(0, 100, (32, 50))  # Example text input
+        text_lengths = torch.tensor([50] * 32)  # Example lengths
+        feats = torch.randn(32, 100, 80)  # Example feature input
+        feats_lengths = torch.tensor([100] * 32)  # Example feature lengths
+        durations = torch.randint(1, 20, (32, 51))  # Example durations
+        durations_lengths = torch.tensor([51] * 32)  # Example duration lengths
+        pitch = torch.randn(32, 51, 1)  # Example pitch input
+        pitch_lengths = torch.tensor([51] * 32)  # Example pitch lengths
+        energy = torch.randn(32, 51, 1)  # Example energy input
+        energy_lengths = torch.tensor([51] * 32)  # Example energy lengths
+
+        loss, stats, weight = model(text, text_lengths, feats, feats_lengths,
+                                     durations, durations_lengths, pitch,
+                                     pitch_lengths, energy, energy_lengths)
+
+    Note:
+        The ProDiff model is based on the FastSpeech2 architecture and includes
+        several predictors and a denoiser decoder to enhance the TTS performance.
     """
 
     @typechecked
@@ -468,7 +536,8 @@ class ProDiff(AbsTTS):
         lids: Optional[torch.Tensor] = None,
         joint_training: bool = False,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
-        """Calculate forward propagation.
+        """
+                Calculate forward propagation.
 
         Args:
             text (LongTensor): Batch of padded token ids (B, T_text).
@@ -487,10 +556,27 @@ class ProDiff(AbsTTS):
             joint_training (bool): Whether to perform joint training with vocoder.
 
         Returns:
-            Tensor: Loss scalar value.
-            Dict: Statistics to be monitored.
-            Tensor: Weight value if not joint training else model outputs.
+            Tuple[Tensor, Dict[str, torch.Tensor], Tensor]: A tuple containing:
+                - Tensor: Loss scalar value.
+                - Dict: Statistics to be monitored.
+                - Tensor: Weight value if not joint training else model outputs.
 
+        Examples:
+            >>> text = torch.randint(0, 100, (2, 10))  # Batch of text
+            >>> text_lengths = torch.tensor([10, 9])
+            >>> feats = torch.randn(2, 20, 80)  # Batch of features
+            >>> feats_lengths = torch.tensor([20, 20])
+            >>> durations = torch.randint(1, 10, (2, 11))
+            >>> durations_lengths = torch.tensor([11, 11])
+            >>> pitch = torch.randn(2, 11, 1)
+            >>> pitch_lengths = torch.tensor([11, 11])
+            >>> energy = torch.randn(2, 11, 1)
+            >>> energy_lengths = torch.tensor([11, 11])
+            >>> loss, stats, weight = model.forward(text, text_lengths, feats,
+            ...                                     feats_lengths, durations,
+            ...                                     durations_lengths, pitch,
+            ...                                     pitch_lengths, energy,
+            ...                                     energy_lengths)
         """
         text = text[:, : text_lengths.max()]  # for data-parallel
         feats = feats[:, : feats_lengths.max()]  # for data-parallel

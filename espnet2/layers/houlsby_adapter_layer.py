@@ -11,6 +11,38 @@ except ImportError:
 
 
 class Houlsby_Adapter(nn.Module):
+    """
+    Implements the Houlsby Adapter mechanism for model adaptation.
+
+    The Houlsby Adapter is a lightweight module that allows for efficient
+    parameterization of the model by adding a bottleneck layer between the
+    input and output layers. It can be utilized to adapt pre-trained models
+    to specific tasks without requiring full retraining.
+
+    Attributes:
+        bottleneck (int): The size of the bottleneck layer.
+        houlsby_adapter (nn.Sequential): The sequential model containing
+            the linear layers and activation function.
+
+    Args:
+        input_size (int): The size of the input features.
+        bottleneck (int): The size of the bottleneck layer.
+
+    Returns:
+        torch.Tensor: The output of the adapter, which has the same size as
+        the input.
+
+    Examples:
+        >>> adapter = Houlsby_Adapter(input_size=768, bottleneck=32)
+        >>> input_tensor = torch.randn(10, 768)  # Batch size of 10
+        >>> output_tensor = adapter(input_tensor)
+        >>> output_tensor.shape
+        torch.Size([10, 768])
+
+    Raises:
+        ValueError: If input_size or bottleneck is not a positive integer.
+    """
+
     def __init__(
         self,
         input_size: int,
@@ -25,6 +57,31 @@ class Houlsby_Adapter(nn.Module):
         )
 
     def forward(self, x):
+        """
+            Applies the Houlsby Adapter to the input tensor.
+
+        This method processes the input tensor `x` through the Houlsby Adapter,
+        which consists of a linear layer followed by a GELU activation and another
+        linear layer. The purpose of the adapter is to reduce the dimensionality
+        of the input before passing it through the final layer, enabling
+        efficient parameter usage in the model.
+
+        Args:
+            x (torch.Tensor): The input tensor to be processed. The expected shape
+                is (batch_size, input_size).
+
+        Returns:
+            torch.Tensor: The output tensor after applying the Houlsby Adapter.
+            The output shape will be the same as the input shape (batch_size,
+            input_size).
+
+        Examples:
+            >>> adapter = Houlsby_Adapter(input_size=768, bottleneck=32)
+            >>> input_tensor = torch.randn(10, 768)  # Batch of 10 samples
+            >>> output_tensor = adapter(input_tensor)
+            >>> output_tensor.shape
+            torch.Size([10, 768])
+        """
         return self.houlsby_adapter(x)
 
 

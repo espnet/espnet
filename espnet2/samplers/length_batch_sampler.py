@@ -7,6 +7,70 @@ from espnet2.samplers.abs_sampler import AbsSampler
 
 
 class LengthBatchSampler(AbsSampler):
+    """
+        LengthBatchSampler is a sampler that creates batches of data based on the
+    length of sequences. It groups sequences such that the total number of
+    bins (or the total length) in each batch does not exceed a specified
+    limit, allowing for efficient processing of variable-length inputs.
+
+    Attributes:
+        batch_bins (int): The maximum number of bins allowed in each batch.
+        shape_files (Union[Tuple[str, ...], List[str]]): A list or tuple of
+            file paths that contain the shape information of the sequences.
+        sort_in_batch (str): Determines the sorting order of sequences within
+            each batch ('ascending' or 'descending').
+        sort_batch (str): Determines the sorting order of the batches ('ascending'
+            or 'descending').
+        drop_last (bool): If True, drop the last incomplete batch.
+        batch_list (List[Tuple[str, ...]]): A list of tuples, each containing
+            keys representing sequences in a batch.
+
+    Args:
+        batch_bins (int): Maximum number of bins allowed in each batch.
+        shape_files (Union[Tuple[str, ...], List[str]]): Paths to files
+            containing shape information.
+        min_batch_size (int, optional): Minimum number of sequences in a
+            batch. Defaults to 1.
+        sort_in_batch (str, optional): Sorting order of sequences within
+            each batch. Defaults to 'descending'.
+        sort_batch (str, optional): Sorting order of the batches. Defaults
+            to 'ascending'.
+        drop_last (bool, optional): If True, drop the last incomplete
+            batch. Defaults to False.
+        padding (bool, optional): If True, padding is applied to the
+            sequences. Defaults to True.
+
+    Returns:
+        None
+
+    Raises:
+        ValueError: If `sort_batch` or `sort_in_batch` is not 'ascending'
+            or 'descending'.
+        RuntimeError: If keys are mismatched between shape files or if
+            no batches can be created.
+
+    Examples:
+        # Create a LengthBatchSampler instance
+        sampler = LengthBatchSampler(
+            batch_bins=1000,
+            shape_files=("shape1.txt", "shape2.txt"),
+            min_batch_size=2,
+            sort_in_batch="ascending",
+            sort_batch="descending"
+        )
+
+        # Iterate through the batches
+        for batch in sampler:
+            print(batch)
+
+    Note:
+        This sampler is particularly useful in scenarios involving
+        variable-length sequences, such as in speech processing tasks.
+
+    Todo:
+        - Consider adding functionality for different padding strategies.
+    """
+
     @typechecked
     def __init__(
         self,

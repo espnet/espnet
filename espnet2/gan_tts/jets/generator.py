@@ -34,7 +34,129 @@ from espnet.nets.pytorch_backend.transformer.encoder import (
 
 
 class JETSGenerator(torch.nn.Module):
-    """Generator module in JETS."""
+    """
+        Generator module in JETS.
+
+    This class implements the JETS generator for GAN-based text-to-speech
+    synthesis. It integrates various components such as encoders, decoders,
+    predictors, and a HiFi-GAN generator to produce high-quality waveforms
+    from input text and auxiliary features.
+
+    Attributes:
+        segment_size (int): The segment size for random windowed discriminator.
+        upsample_factor (int): The product of upsampling scales.
+        idim (int): Dimension of the inputs.
+        odim (int): Dimension of the outputs.
+        reduction_factor (int): Reduction factor for the model.
+        encoder_type (str): Type of encoder used ("transformer" or "conformer").
+        decoder_type (str): Type of decoder used ("transformer" or "conformer").
+        stop_gradient_from_pitch_predictor (bool): Flag to stop gradients from
+            pitch predictor.
+        stop_gradient_from_energy_predictor (bool): Flag to stop gradients from
+            energy predictor.
+        use_scaled_pos_enc (bool): Whether to use scaled positional encoding.
+        use_gst (bool): Whether to use global style token.
+
+    Args:
+        idim (int): Dimension of the inputs.
+        odim (int): Dimension of the outputs.
+        adim (int): Attention dimension (default: 256).
+        aheads (int): Number of attention heads (default: 2).
+        elayers (int): Number of encoder layers (default: 4).
+        eunits (int): Number of encoder hidden units (default: 1024).
+        dlayers (int): Number of decoder layers (default: 4).
+        dunits (int): Number of decoder hidden units (default: 1024).
+        positionwise_layer_type (str): Type of positionwise layer (default: "conv1d").
+        positionwise_conv_kernel_size (int): Kernel size for positionwise conv (default: 1).
+        use_scaled_pos_enc (bool): Whether to use scaled positional encoding (default: True).
+        use_batch_norm (bool): Whether to use batch normalization (default: True).
+        encoder_normalize_before (bool): Normalize before encoder block (default: True).
+        decoder_normalize_before (bool): Normalize before decoder block (default: True).
+        encoder_concat_after (bool): Concatenate input and output in encoder (default: False).
+        decoder_concat_after (bool): Concatenate input and output in decoder (default: False).
+        reduction_factor (int): Reduction factor (default: 1).
+        encoder_type (str): Encoder type ("transformer" or "conformer").
+        decoder_type (str): Decoder type ("transformer" or "conformer").
+        transformer_enc_dropout_rate (float): Dropout rate in encoder (default: 0.1).
+        transformer_enc_positional_dropout_rate (float): Positional dropout rate (default: 0.1).
+        transformer_enc_attn_dropout_rate (float): Attention dropout rate in encoder (default: 0.1).
+        transformer_dec_dropout_rate (float): Dropout rate in decoder (default: 0.1).
+        transformer_dec_positional_dropout_rate (float): Positional dropout rate in decoder (default: 0.1).
+        transformer_dec_attn_dropout_rate (float): Attention dropout rate in decoder (default: 0.1).
+        conformer_rel_pos_type (str): Relative pos encoding type in conformer (default: "legacy").
+        conformer_pos_enc_layer_type (str): Pos encoding layer type in conformer (default: "rel_pos").
+        conformer_self_attn_layer_type (str): Self-attention layer type in conformer (default: "rel_selfattn").
+        conformer_activation_type (str): Activation function type in conformer (default: "swish").
+        use_macaron_style_in_conformer (bool): Whether to use macaron style FFN (default: True).
+        use_cnn_in_conformer (bool): Whether to use CNN in conformer (default: True).
+        zero_triu (bool): Whether to use zero triu in self-attention (default: False).
+        conformer_enc_kernel_size (int): Kernel size of encoder conformer (default: 7).
+        conformer_dec_kernel_size (int): Kernel size of decoder conformer (default: 31).
+        duration_predictor_layers (int): Number of duration predictor layers (default: 2).
+        duration_predictor_chans (int): Number of duration predictor channels (default: 384).
+        duration_predictor_kernel_size (int): Kernel size of duration predictor (default: 3).
+        duration_predictor_dropout_rate (float): Dropout rate in duration predictor (default: 0.1).
+        energy_predictor_layers (int): Number of energy predictor layers (default: 2).
+        energy_predictor_chans (int): Number of energy predictor channels (default: 384).
+        energy_predictor_kernel_size (int): Kernel size of energy predictor (default: 3).
+        energy_predictor_dropout (float): Dropout rate in energy predictor (default: 0.5).
+        energy_embed_kernel_size (int): Kernel size of energy embedding (default: 9).
+        energy_embed_dropout (float): Dropout rate for energy embedding (default: 0.5).
+        stop_gradient_from_energy_predictor (bool): Stop gradient from energy predictor (default: False).
+        pitch_predictor_layers (int): Number of pitch predictor layers (default: 2).
+        pitch_predictor_chans (int): Number of pitch predictor channels (default: 384).
+        pitch_predictor_kernel_size (int): Kernel size of pitch predictor (default: 3).
+        pitch_predictor_dropout (float): Dropout rate in pitch predictor (default: 0.5).
+        pitch_embed_kernel_size (int): Kernel size of pitch embedding (default: 9).
+        pitch_embed_dropout (float): Dropout rate for pitch embedding (default: 0.5).
+        stop_gradient_from_pitch_predictor (bool): Stop gradient from pitch predictor (default: False).
+        spks (Optional[int]): Number of speakers (default: None).
+        langs (Optional[int]): Number of languages (default: None).
+        spk_embed_dim (Optional[int]): Speaker embedding dimension (default: None).
+        spk_embed_integration_type (str): Integration type for speaker embedding (default: "add").
+        use_gst (bool): Whether to use global style token (default: False).
+        gst_tokens (int): Number of GST embeddings (default: 10).
+        gst_heads (int): Number of heads in GST multihead attention (default: 4).
+        gst_conv_layers (int): Number of conv layers in GST (default: 6).
+        gst_conv_chans_list (Sequence[int]): List of number of channels of conv layers in GST (default: [32, 32, 64, 64, 128, 128]).
+        gst_conv_kernel_size (int): Kernel size of conv layers in GST (default: 3).
+        gst_conv_stride (int): Stride size of conv layers in GST (default: 2).
+        gst_gru_layers (int): Number of GRU layers in GST (default: 1).
+        gst_gru_units (int): Number of GRU units in GST (default: 128).
+        init_type (str): Initialization type for transformer parameters (default: "xavier_uniform").
+        init_enc_alpha (float): Initial value of alpha in scaled pos encoding of encoder (default: 1.0).
+        init_dec_alpha (float): Initial value of alpha in scaled pos encoding of decoder (default: 1.0).
+        use_masking (bool): Whether to apply masking for padded parts in loss calculation (default: False).
+        use_weighted_masking (bool): Whether to apply weighted masking in loss calculation (default: False).
+        generator_out_channels (int): Number of output channels (default: 1).
+        generator_channels (int): Number of hidden representation channels (default: 512).
+        generator_global_channels (int): Number of global conditioning channels (default: -1).
+        generator_kernel_size (int): Kernel size for initial and final conv layer (default: 7).
+        generator_upsample_scales (List[int]): List of upsampling scales (default: [8, 8, 2, 2]).
+        generator_upsample_kernel_sizes (List[int]): List of kernel sizes for upsample layers (default: [16, 16, 4, 4]).
+        generator_resblock_kernel_sizes (List[int]): List of kernel sizes for residual blocks (default: [3, 7, 11]).
+        generator_resblock_dilations (List[List[int]]): List of dilations for residual blocks (default: [[1, 3, 5], [1, 3, 5], [1, 3, 5]]).
+        generator_use_additional_convs (bool): Whether to use additional conv layers in residual blocks (default: True).
+        generator_bias (bool): Whether to add bias parameter in convolution layers (default: True).
+        generator_nonlinear_activation (str): Activation function module name (default: "LeakyReLU").
+        generator_nonlinear_activation_params (Dict[str, Any]): Hyperparameters for activation function (default: {"negative_slope": 0.1}).
+        generator_use_weight_norm (bool): Whether to use weight norm in convolution layers (default: True).
+
+    Examples:
+        generator = JETSGenerator(idim=40, odim=80)
+        waveform, bin_loss, log_p_attn, z_start_idxs, d_outs, ds, p_outs, ps, e_outs, es = generator(
+            text, text_lengths, feats, feats_lengths, pitch, pitch_lengths, energy, energy_lengths
+        )
+
+    Note:
+        The model can be initialized with different configurations based on the
+        requirements of the TTS task. Make sure to check the compatibility of
+        the encoder and decoder types.
+
+    Todo:
+        - Add support for additional predictor types.
+        - Optimize the integration methods for embeddings.
+    """
 
     def __init__(
         self,
@@ -521,7 +643,12 @@ class JETSGenerator(torch.nn.Module):
         torch.Tensor,
         torch.Tensor,
     ]:
-        """Calculate forward propagation.
+        """
+        Calculate forward propagation.
+
+        This method computes the forward pass for the JETS generator module,
+        processing the input text and feature tensors, and returning the
+        generated waveform along with various other outputs.
 
         Args:
             text (Tensor): Text index tensor (B, T_text).
@@ -538,16 +665,27 @@ class JETSGenerator(torch.nn.Module):
 
         Returns:
             Tensor: Waveform tensor (B, 1, segment_size * upsample_factor).
-            Tensor: Binarization loss ().
+            Tensor: Binarization loss.
             Tensor: Log probability attention matrix (B, T_feats, T_text).
             Tensor: Segments start index tensor (B,).
-            Tensor: predicted duration (B, T_text).
-            Tensor: ground-truth duration obtained from an alignment module (B, T_text).
-            Tensor: predicted pitch (B, T_text,1).
-            Tensor: ground-truth averaged pitch (B, T_text, 1).
-            Tensor: predicted energy (B, T_text, 1).
-            Tensor: ground-truth averaged energy (B, T_text, 1).
+            Tensor: Predicted duration (B, T_text).
+            Tensor: Ground-truth duration from alignment module (B, T_text).
+            Tensor: Predicted pitch (B, T_text, 1).
+            Tensor: Ground-truth averaged pitch (B, T_text, 1).
+            Tensor: Predicted energy (B, T_text, 1).
+            Tensor: Ground-truth averaged energy (B, T_text, 1).
 
+        Examples:
+            >>> text = torch.tensor([[1, 2, 3], [4, 5, 0]])
+            >>> text_lengths = torch.tensor([3, 2])
+            >>> feats = torch.rand(2, 10, 80)
+            >>> feats_lengths = torch.tensor([10, 10])
+            >>> pitch = torch.rand(2, 3, 1)
+            >>> pitch_lengths = torch.tensor([3, 3])
+            >>> energy = torch.rand(2, 3, 1)
+            >>> energy_lengths = torch.tensor([3, 3])
+            >>> output = model.forward(text, text_lengths, feats, feats_lengths,
+            ...                        pitch, pitch_lengths, energy, energy_lengths)
         """
         text = text[:, : text_lengths.max()]  # for data-parallel
         feats = feats[:, : feats_lengths.max()]  # for data-parallel

@@ -26,7 +26,70 @@ else:
 
 
 class ESPnetTTSModel(AbsESPnetModel):
-    """ESPnet model for text-to-speech task."""
+    """
+        ESPnet model for text-to-speech task.
+
+    This class implements a text-to-speech (TTS) model using the ESPnet framework.
+    It provides methods for forward propagation, feature extraction, and inference
+    to generate speech from text input.
+
+    Attributes:
+        feats_extract (Optional[AbsFeatsExtract]): Feature extraction module for
+            audio.
+        pitch_extract (Optional[AbsFeatsExtract]): Feature extraction module for
+            pitch.
+        energy_extract (Optional[AbsFeatsExtract]): Feature extraction module for
+            energy.
+        normalize (Optional[AbsNormalize and InversibleInterface]): Normalization
+            module for audio features.
+        pitch_normalize (Optional[AbsNormalize and InversibleInterface]):
+            Normalization module for pitch features.
+        energy_normalize (Optional[AbsNormalize and InversibleInterface]):
+            Normalization module for energy features.
+        tts (AbsTTS): Main TTS module that generates speech from features.
+
+    Args:
+        feats_extract (Optional[AbsFeatsExtract]): Feature extraction module for
+            audio.
+        pitch_extract (Optional[AbsFeatsExtract]): Feature extraction module for
+            pitch.
+        energy_extract (Optional[AbsFeatsExtract]): Feature extraction module for
+            energy.
+        normalize (Optional[AbsNormalize and InversibleInterface]): Normalization
+            module for audio features.
+        pitch_normalize (Optional[AbsNormalize and InversibleInterface]):
+            Normalization module for pitch features.
+        energy_normalize (Optional[AbsNormalize and InversibleInterface]):
+            Normalization module for energy features.
+        tts (AbsTTS): Main TTS module that generates speech from features.
+
+    Returns:
+        None: The constructor does not return any value.
+
+    Examples:
+        Initialize the ESPnet TTS model:
+            >>> model = ESPnetTTSModel(feats_extract=my_feats_extract,
+            ...                         pitch_extract=my_pitch_extract,
+            ...                         energy_extract=my_energy_extract,
+            ...                         normalize=my_normalize,
+            ...                         pitch_normalize=my_pitch_normalize,
+            ...                         energy_normalize=my_energy_normalize,
+            ...                         tts=my_tts)
+
+        Forward pass through the model:
+            >>> loss, stats, weight = model.forward(text, text_lengths, speech,
+            ...                                      speech_lengths)
+
+        Feature extraction:
+            >>> feats_dict = model.collect_feats(text, text_lengths, speech,
+            ...                                    speech_lengths)
+
+        Inference:
+            >>> output_dict = model.inference(text, speech=speech)
+
+    Raises:
+        RuntimeError: If required arguments are missing during inference.
+    """
 
     @typechecked
     def __init__(
@@ -66,29 +129,42 @@ class ESPnetTTSModel(AbsESPnetModel):
         lids: Optional[torch.Tensor] = None,
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
-        """Caclualte outputs and return the loss tensor.
+        """
+        Calculate outputs and return the loss tensor.
+
+        This method processes input tensors representing text and speech,
+        extracts necessary features, normalizes them if required, and
+        computes the loss alongside any relevant statistics.
 
         Args:
             text (Tensor): Text index tensor (B, T_text).
             text_lengths (Tensor): Text length tensor (B,).
             speech (Tensor): Speech waveform tensor (B, T_wav).
             speech_lengths (Tensor): Speech length tensor (B,).
-            duration (Optional[Tensor]): Duration tensor.
-            duration_lengths (Optional[Tensor]): Duration length tensor (B,).
-            pitch (Optional[Tensor]): Pitch tensor.
+            durations (Optional[Tensor]): Duration tensor (B,).
+            durations_lengths (Optional[Tensor]): Duration length tensor (B,).
+            pitch (Optional[Tensor]): Pitch tensor (B,).
             pitch_lengths (Optional[Tensor]): Pitch length tensor (B,).
-            energy (Optional[Tensor]): Energy tensor.
+            energy (Optional[Tensor]): Energy tensor (B,).
             energy_lengths (Optional[Tensor]): Energy length tensor (B,).
             spembs (Optional[Tensor]): Speaker embedding tensor (B, D).
             sids (Optional[Tensor]): Speaker ID tensor (B, 1).
             lids (Optional[Tensor]): Language ID tensor (B, 1).
-            kwargs: "utt_id" is among the input.
+            kwargs: Additional arguments; "utt_id" is among the input.
 
         Returns:
             Tensor: Loss scalar tensor.
             Dict[str, float]: Statistics to be monitored.
             Tensor: Weight tensor to summarize losses.
 
+        Examples:
+            >>> model = ESPnetTTSModel(...)
+            >>> text = torch.tensor([[1, 2, 3], [4, 5, 6]])
+            >>> text_lengths = torch.tensor([3, 3])
+            >>> speech = torch.randn(2, 16000)  # Example speech data
+            >>> speech_lengths = torch.tensor([16000, 16000])
+            >>> loss, stats, weights = model.forward(text, text_lengths, speech,
+            ...                                      speech_lengths)
         """
         with autocast(False):
             # Extract features
@@ -232,21 +308,46 @@ class ESPnetTTSModel(AbsESPnetModel):
         energy: Optional[torch.Tensor] = None,
         **decode_config,
     ) -> Dict[str, torch.Tensor]:
-        """Caclualte features and return them as a dict.
+        """
+        Calculate features and return them as a dict.
+
+        This method performs inference using the text input and optionally
+        uses other auxiliary features such as speech waveform, speaker
+        embeddings, speaker IDs, language IDs, durations, pitch, and energy.
+        It prepares the input for the text-to-speech model and returns the
+        output dictionary containing generated features.
 
         Args:
             text (Tensor): Text index tensor (T_text).
-            speech (Tensor): Speech waveform tensor (T_wav).
+            speech (Optional[Tensor]): Speech waveform tensor (T_wav).
             spembs (Optional[Tensor]): Speaker embedding tensor (D,).
             sids (Optional[Tensor]): Speaker ID tensor (1,).
             lids (Optional[Tensor]): Language ID tensor (1,).
-            durations (Optional[Tensor): Duration tensor.
-            pitch (Optional[Tensor): Pitch tensor.
-            energy (Optional[Tensor): Energy tensor.
+            durations (Optional[Tensor]): Duration tensor.
+            pitch (Optional[Tensor]): Pitch tensor.
+            energy (Optional[Tensor]): Energy tensor.
+            **decode_config: Additional decoding configuration options.
 
         Returns:
-            Dict[str, Tensor]: Dict of outputs.
+            Dict[str, Tensor]: Dictionary of outputs, which may include
+            generated features such as "feat_gen" and any other relevant
+            outputs from the TTS model.
 
+        Raises:
+            RuntimeError: If 'speech' is required but not provided when
+            using teacher forcing.
+
+        Examples:
+            >>> model = ESPnetTTSModel(...)
+            >>> text_tensor = torch.tensor([[1, 2, 3]])
+            >>> output = model.inference(text_tensor)
+            >>> print(output.keys())
+            dict_keys(['feat_gen', ...])
+
+        Note:
+            If normalization is applied to the features, the inverse
+            normalization is also performed on the generated features
+            before returning them.
         """
         input_dict = dict(text=text)
         if decode_config["use_teacher_forcing"] or getattr(self.tts, "use_gst", False):

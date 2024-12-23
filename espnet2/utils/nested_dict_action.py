@@ -5,7 +5,12 @@ import yaml
 
 
 class NestedDictAction(argparse.Action):
-    """Action class to append items to dict object.
+    """
+        Action class to append items to a dictionary object.
+
+    This class extends the `argparse.Action` to allow the user to pass
+    configuration options in a nested dictionary format via command-line
+    arguments. It supports both key-value pairs and YAML strings.
 
     Examples:
         >>> parser = argparse.ArgumentParser()
@@ -20,6 +25,35 @@ class NestedDictAction(argparse.Action):
         >>> parser.parse_args(['--conf', '{d: 5, e: 9}'])
         Namespace(conf={'d': 5, 'e': 9})
 
+    Attributes:
+        _syntax (str): Syntax for using the action in command-line arguments.
+
+    Args:
+        option_strings (list): The option strings for the action.
+        dest (str): The name of the attribute to be added to the namespace.
+        nargs (int or str, optional): The number of command-line arguments
+            that should be consumed.
+        default (dict, optional): The default value for the destination.
+        choices (list, optional): The allowable choices for the argument.
+        required (bool, optional): Whether or not the action is required.
+        help (str, optional): The help text for the argument.
+        metavar (str, optional): A name for the argument in usage messages.
+
+    Raises:
+        argparse.ArgumentTypeError: If the value cannot be interpreted as a
+            dictionary.
+        argparse.ArgumentError: If the value cannot be interpreted as a
+            dictionary when using YAML.
+
+    Note:
+        The values can be specified in the following formats:
+          - {key}={value}
+          - {key}.{subkey}={value}
+          - {key: value, ...} (Python dict syntax)
+          - {key: value, ...} (YAML syntax)
+
+    Todo:
+        - Enhance error messages for better user guidance.
     """
 
     _syntax = """Syntax:

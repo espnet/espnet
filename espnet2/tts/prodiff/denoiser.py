@@ -37,18 +37,39 @@ def noise_scheduler(
     max_beta: float = 0.01,
     s: float = 0.008,
 ) -> torch.Tensor:
-    """Noise Scheduler.
+    """
+        Noise Scheduler.
+
+    This function generates a noise schedule based on the specified type of
+    scheduler. The noise schedule can be linear, cosine, or vpsde, and it
+    returns a tensor representing the noise values at each time step.
 
     Args:
-        sched_type (str): type of scheduler.
-        timesteps (int): numbern of time steps.
+        sched_type (str): Type of scheduler. Options are "linear", "cosine",
+            and "vpsde".
+        timesteps (int): Number of time steps.
         min_beta (float, optional): Minimum beta. Defaults to 0.0.
         max_beta (float, optional): Maximum beta. Defaults to 0.01.
         s (float, optional): Scheduler intersection. Defaults to 0.008.
 
     Returns:
-        tensor: Noise.
+        torch.Tensor: Tensor containing noise values for each time step.
 
+    Raises:
+        NotImplementedError: If an unsupported scheduler type is provided.
+
+    Examples:
+        >>> noise = noise_scheduler("linear", 100)
+        >>> print(noise.shape)
+        torch.Size([100])
+
+        >>> noise = noise_scheduler("cosine", 100)
+        >>> print(noise.shape)
+        torch.Size([100])
+
+        >>> noise = noise_scheduler("vpsde", 100, min_beta=0.1, max_beta=0.2)
+        >>> print(noise.shape)
+        torch.Size([100])
     """
     if sched_type == "linear":
         scheduler = np.linspace(1e-6, 0.01, timesteps)
@@ -75,30 +96,103 @@ def noise_scheduler(
 
 
 class Mish(nn.Module):
-    """Mish Activation Function.
+    """
+        Mish Activation Function.
 
     Introduced in `Mish: A Self Regularized Non-Monotonic Activation Function`_.
 
     .. _Mish: A Self Regularized Non-Monotonic Activation Function:
        https://arxiv.org/abs/1908.08681
 
+    The Mish activation function is a smooth, non-monotonic function that can
+    potentially improve the performance of deep learning models. It is defined
+    as:
+
+        Mish(x) = x * tanh(softplus(x))
+
+    Attributes:
+        None
+
+    Args:
+        x (torch.Tensor): Input tensor.
+
+    Returns:
+        torch.Tensor: Output tensor after applying the Mish activation function.
+
+    Examples:
+        >>> import torch
+        >>> mish = Mish()
+        >>> input_tensor = torch.tensor([-1.0, 0.0, 1.0])
+        >>> output_tensor = mish(input_tensor)
+        >>> print(output_tensor)
+        tensor([-0.3031, 0.0000, 0.8651])
     """
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """Calculate forward propagation.
+        """
+            Mish Activation Function.
+
+        Introduced in `Mish: A Self Regularized Non-Monotonic Activation Function`_.
+
+        This activation function is a smooth, non-monotonic function that has shown
+        improved performance in various deep learning tasks compared to traditional
+        activation functions like ReLU or Swish.
+
+        .. _Mish: A Self Regularized Non-Monotonic Activation Function:
+           https://arxiv.org/abs/1908.08681
+
+        Attributes:
+            None
 
         Args:
-            x (torch.Tensor): Input tensor.
+            None
 
         Returns:
-            torch.Tensor: Output tensor.
+            torch.Tensor: Output tensor after applying the Mish activation function.
 
+        Examples:
+            >>> import torch
+            >>> mish = Mish()
+            >>> input_tensor = torch.tensor([-1.0, 0.0, 1.0])
+            >>> output_tensor = mish(input_tensor)
+            >>> print(output_tensor)
+            tensor([-0.3039, 0.0000, 0.8651])
         """
         return x * torch.tanh(F.softplus(x))
 
 
 class ResidualBlock(nn.Module):
-    """Residual Block for Diffusion Denoiser."""
+    """
+        Residual Block for Diffusion Denoiser.
+
+    This class implements a residual block used in the diffusion denoiser
+    architecture. It consists of a convolutional layer, linear projection,
+    and several activation functions, facilitating the transformation of
+    input tensors through skip connections and conditioning inputs.
+
+    Attributes:
+        conv (nn.Conv1d): 1D convolutional layer for processing input channels.
+        diff_proj (nn.Linear): Linear projection for diffusion step.
+        cond_proj (nn.Conv1d): Convolutional layer for conditioning inputs.
+        out_proj (nn.Conv1d): Convolutional layer for output processing.
+
+    Args:
+        adim (int): Size of dimensions.
+        channels (int): Number of channels.
+        dilation (int): Size of dilations.
+
+    Returns:
+        Union[torch.Tensor, torch.Tensor]: Tuple of output tensor and skip connection.
+
+    Examples:
+        >>> block = ResidualBlock(adim=256, channels=64, dilation=2)
+        >>> x = torch.randn(1, 64, 100)  # Input tensor
+        >>> condition = torch.randn(1, 256, 100)  # Conditioning tensor
+        >>> step = torch.randn(1, 256)  # Diffusion step
+        >>> output, skip = block(x, condition, step)
+        >>> print(output.shape, skip.shape)
+        (torch.Size([1, 64, 100]), torch.Size([1, 128, 100]))
+    """
 
     def __init__(
         self,
@@ -125,7 +219,13 @@ class ResidualBlock(nn.Module):
     def forward(
         self, x: torch.Tensor, condition: torch.Tensor, step: torch.Tensor
     ) -> Union[torch.Tensor, torch.Tensor]:
-        """Calculate forward propagation.
+        """
+        Calculate forward propagation.
+
+        This method performs the forward pass of the Residual Block,
+        incorporating the input tensor, conditioning tensor, and the
+        diffusion step tensor. The output consists of a residual and a
+        skip connection.
 
         Args:
             x (torch.Tensor): Input tensor.
@@ -133,8 +233,20 @@ class ResidualBlock(nn.Module):
             step (torch.Tensor): Number of diffusion step.
 
         Returns:
-            Union[torch.Tensor, torch.Tensor]: Output tensor.
+            Union[torch.Tensor, torch.Tensor]: A tuple containing:
+                - Output tensor (residual)
+                - Skip connection tensor.
 
+        Examples:
+            >>> block = ResidualBlock(adim=128, channels=256, dilation=2)
+            >>> x = torch.randn(32, 256, 100)  # Batch of 32, 256 channels, 100 time steps
+            >>> condition = torch.randn(32, 128, 100)  # Conditioning tensor
+            >>> step = torch.randn(32, 1)  # Diffusion step
+            >>> output, skip = block(x, condition, step)
+            >>> output.shape
+            torch.Size([32, 256, 100])
+            >>> skip.shape
+            torch.Size([32, 256, 100])
         """
         step = self.diff_proj(step).unsqueeze(-1)
         condition = self.cond_proj(condition)
@@ -148,9 +260,61 @@ class ResidualBlock(nn.Module):
 
 
 class SpectogramDenoiser(nn.Module):
-    """Spectogram Denoiser.
+    """
+        Spectogram Denoiser.
 
-    Ref: https://arxiv.org/pdf/2207.06389.pdf.
+    This class implements a denoiser for spectrograms using a diffusion model.
+    It leverages residual blocks and noise scheduling to effectively reduce noise
+    in audio signals.
+
+    Reference:
+        https://arxiv.org/pdf/2207.06389.pdf
+
+    Attributes:
+        idim (int): Dimension of the inputs.
+        timesteps (int): Number of timesteps for the diffusion process.
+        scale (int): Timescale for the diffusion process.
+        num_layers (int): Number of layers in the denoising model.
+        channels (int): Number of channels for each layer.
+        in_proj (nn.Conv1d): Convolutional layer for input projection.
+        denoiser_pos (PositionalEncoding): Positional encoding for denoiser.
+        denoiser_mlp (nn.Sequential): Multi-layer perceptron for denoising.
+        denoiser_res (nn.ModuleList): List of residual blocks for denoising.
+        skip_proj (nn.Conv1d): Convolutional layer for skip connection projection.
+        feats_out (nn.Conv1d): Convolutional layer for output feature projection.
+        betas (torch.Tensor): Beta values for noise scheduling.
+        alphas_cumulative (torch.Tensor): Cumulative product of alpha values.
+        min_alphas_cumulative (torch.Tensor): Minimum cumulative alpha values.
+
+    Args:
+        idim (int): Dimension of the inputs.
+        adim (int, optional): Dimension of the hidden states. Defaults to 256.
+        layers (int, optional): Number of layers. Defaults to 20.
+        channels (int, optional): Number of channels of each layer. Defaults to 256.
+        cycle_length (int, optional): Cycle length of the diffusion. Defaults to 1.
+        timesteps (int, optional): Number of timesteps of the diffusion.
+            Defaults to 200.
+        timescale (int, optional): Number of timescale. Defaults to 1.
+        max_beta (float, optional): Maximum beta value for scheduler.
+            Defaults to 40.0.
+        scheduler (str, optional): Type of noise scheduler. Defaults to "vpsde".
+        dropout_rate (float, optional): Dropout rate. Defaults to 0.05.
+
+    Returns:
+        torch.Tensor: Denoised output tensor.
+
+    Examples:
+        >>> model = SpectogramDenoiser(idim=80)
+        >>> input_tensor = torch.randn(16, 80, 100)  # (batch, idim, time)
+        >>> output_tensor = model(input_tensor)
+
+    Raises:
+        NotImplementedError: If an unsupported noise scheduler type is provided.
+
+    Note:
+        The denoiser can be used in both training and inference modes. During
+        inference, it generates denoised output from noisy input using a
+        reverse diffusion process.
     """
 
     def __init__(
@@ -221,18 +385,31 @@ class SpectogramDenoiser(nn.Module):
         masks: Optional[torch.Tensor] = None,
         is_inference: bool = False,
     ) -> torch.Tensor:
-        """Calculate forward propagation.
+        """
+        Calculate forward propagation.
+
+        This method performs the forward pass of the Spectrogram Denoiser.
+        Depending on the value of `is_inference`, it either performs
+        inference or the denoising process using the provided input and
+        conditioning tensors.
 
         Args:
-            xs (torch.Tensor): Phoneme-encoded tensor (#batch, time, dims)
+            xs (torch.Tensor): Phoneme-encoded tensor (#batch, time, dims).
             ys (Optional[torch.Tensor], optional): Mel-based reference
                 tensor (#batch, time, mels). Defaults to None.
             masks (Optional[torch.Tensor], optional): Mask tensor (#batch, time).
                 Defaults to None.
+            is_inference (bool, optional): Flag to indicate inference mode.
+                Defaults to False.
 
         Returns:
             torch.Tensor: Output tensor (#batch, time, dims).
 
+        Examples:
+            >>> model = SpectogramDenoiser(idim=80)
+            >>> phoneme_encoded = torch.randn(32, 100, 80)  # Example input
+            >>> output = model.forward(phoneme_encoded)  # Denoising
+            >>> output_inference = model.forward(phoneme_encoded, is_inference=True)
         """
         if is_inference:
             return self.inference(xs)
@@ -254,16 +431,29 @@ class SpectogramDenoiser(nn.Module):
     def forward_denoise(
         self, xs_noisy: torch.Tensor, step: torch.Tensor, condition: torch.Tensor
     ) -> torch.Tensor:
-        """Calculate forward for denoising diffusion.
+        """
+            Calculate forward for denoising diffusion.
+
+        This method processes the noisy input tensor using the denoising
+        diffusion technique, leveraging conditioning information to enhance
+        the output quality.
 
         Args:
-            xs_noisy (torch.Tensor): Input tensor.
-            step (torch.Tensor): Number of step.
-            condition (torch.Tensor): Conditioning tensor.
+            xs_noisy (torch.Tensor): Input tensor containing noisy data.
+            step (torch.Tensor): Number of diffusion steps, which indicates
+                the level of noise in the input.
+            condition (torch.Tensor): Conditioning tensor that provides additional
+                context to the denoising process.
 
         Returns:
-            torch.Tensor: Denoised tensor.
+            torch.Tensor: Denoised tensor, which has been processed to reduce
+                noise and improve signal quality.
 
+        Examples:
+            >>> xs_noisy = torch.randn(10, 256)  # Example noisy input
+            >>> step = torch.tensor([5] * 10)    # Example diffusion step
+            >>> condition = torch.randn(10, 256)  # Example conditioning input
+            >>> denoised_output = model.forward_denoise(xs_noisy, step, condition)
         """
         xs_noisy = xs_noisy.squeeze(1)
         condition = condition.transpose(1, 2)
@@ -291,16 +481,59 @@ class SpectogramDenoiser(nn.Module):
         steps: torch.Tensor,
         noise: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
-        """Calculate diffusion process during training.
+        """
+            Spectogram Denoiser.
+
+        This class implements a denoising model for spectrograms using a diffusion
+        process. The model is designed to work with noisy spectrogram inputs and
+        generate cleaner outputs, effectively removing noise while preserving
+        relevant features.
+
+        Reference:
+            - https://arxiv.org/pdf/2207.06389.pdf
+
+        Attributes:
+            idim (int): Dimension of the inputs.
+            timesteps (int): Number of timesteps for the diffusion process.
+            scale (int): Timescale for the model.
+            num_layers (int): Number of layers in the model.
+            channels (int): Number of channels in each layer.
+            in_proj (nn.Conv1d): Input projection layer.
+            denoiser_pos (PositionalEncoding): Positional encoding for denoising.
+            denoiser_mlp (nn.Sequential): Multi-layer perceptron for denoising.
+            denoiser_res (nn.ModuleList): List of residual blocks for denoising.
+            skip_proj (nn.Conv1d): Skip connection projection layer.
+            feats_out (nn.Conv1d): Output projection layer for features.
+            betas (torch.Tensor): Noise schedule for the diffusion process.
+            alphas_cumulative (torch.Tensor): Cumulative product of alphas.
+            min_alphas_cumulative (torch.Tensor): Minimum cumulative product of alphas.
 
         Args:
-            xs_ref (torch.Tensor): Input tensor.
-            steps (torch.Tensor): Number of step.
-            noise (Optional[torch.Tensor], optional): Noise tensor. Defaults to None.
+            idim (int): Dimension of the inputs.
+            adim (int, optional): Dimension of the hidden states. Defaults to 256.
+            layers (int, optional): Number of layers. Defaults to 20.
+            channels (int, optional): Number of channels of each layer. Defaults to 256.
+            cycle_length (int, optional): Cycle length of the diffusion. Defaults to 1.
+            timesteps (int, optional): Number of timesteps of the diffusion.
+                Defaults to 200.
+            timescale (int, optional): Number of timescale. Defaults to 1.
+            max_beta (float, optional): Maximum beta value for scheduler.
+                Defaults to 40.0.
+            scheduler (str, optional): Type of noise scheduler. Defaults to "vpsde".
+            dropout_rate (float, optional): Dropout rate. Defaults to 0.05.
 
         Returns:
-            torch.Tensor: Output tensor.
+            torch.Tensor: Output tensor of the denoising process.
 
+        Examples:
+            >>> model = SpectogramDenoiser(idim=128)
+            >>> noisy_input = torch.randn(32, 128, 100)  # (batch_size, dims, time)
+            >>> denoised_output = model(noisy_input)
+
+        Note:
+            This model utilizes a diffusion process for denoising and can be
+            adapted to various noise schedules and configurations based on
+            the task requirements.
         """
         # here goes norm_spec if does something
         batch_size = xs_ref.shape[0]
@@ -319,14 +552,26 @@ class SpectogramDenoiser(nn.Module):
         return xs_noisy
 
     def inference(self, condition: torch.Tensor) -> torch.Tensor:
-        """Calculate forward during inference.
+        """
+            Calculate forward during inference.
+
+        This method implements the inference process of the Spectogram Denoiser.
+        It generates a noisy tensor and iteratively denoises it using the provided
+        conditioning tensor, following the reverse diffusion process.
 
         Args:
             condition (torch.Tensor): Conditioning tensor (batch, time, dims).
 
         Returns:
-            torch.Tensor: Output tensor.
+            torch.Tensor: Output tensor, which is the denoised result after
+            processing through the model.
 
+        Examples:
+            >>> denoiser = SpectogramDenoiser(idim=80)
+            >>> condition = torch.randn(32, 100, 80)  # Example conditioning input
+            >>> output = denoiser.inference(condition)
+            >>> print(output.shape)
+            torch.Size([32, 100, 80])
         """
         batch = condition.shape[0]
         device = condition.device

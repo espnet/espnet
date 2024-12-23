@@ -3,22 +3,48 @@ import torch
 
 
 class SineGen(torch.nn.Module):
-    """Definition of sine generator
+    """
+    Definition of a sine generator for audio synthesis.
 
-    SineGen(samp_rate, harmonic_num = 0,
-            sine_amp = 0.1, noise_std = 0.003,
-            voiced_threshold = 0,
-            flag_for_pulse=False)
+    This class implements a sine wave generator that can produce
+    harmonic sine waves and corresponding unvoiced/voiced (U/V) signals
+    based on the provided fundamental frequency (F0) values. It can also
+    introduce Gaussian noise to the generated waveforms.
 
-    sample_rate: sampling rate in Hz
-    harmonic_num: number of harmonic overtones (default 0)
-    sine_amp: amplitude of sine-wavefrom (default 0.1)
-    noise_std: std of Gaussian noise (default 0.003)
-    voiced_thoreshold: F0 threshold for U/V classification (default 0)
-    flag_for_pulse: this SinGen is used inside PulseGen (default False)
+    Attributes:
+        sine_amp (float): Amplitude of the sine waveform (default: 0.1).
+        noise_std (float): Standard deviation of Gaussian noise (default: 0.003).
+        harmonic_num (int): Number of harmonic overtones (default: 0).
+        dim (int): Dimension of the output, equal to harmonic_num + 1.
+        sampling_rate (int): Sampling rate in Hz.
+        voiced_threshold (float): F0 threshold for U/V classification (default: 0).
+        flag_for_pulse (bool): Indicates if the generator is used in pulse mode
+            (default: False).
 
-    Note: when flag_for_pulse is True, the first time step of a voiced
-        segment is always sin(np.pi) or cos(0)
+    Args:
+        sample_rate (int): Sampling rate in Hz.
+        harmonic_num (int, optional): Number of harmonic overtones (default: 0).
+        sine_amp (float, optional): Amplitude of sine waveform (default: 0.1).
+        noise_std (float, optional): Standard deviation of Gaussian noise
+            (default: 0.003).
+        voiced_threshold (float, optional): F0 threshold for U/V classification
+            (default: 0).
+        flag_for_pulse (bool, optional): Flag indicating if the SinGen is used
+            inside PulseGen (default: False).
+
+    Note:
+        When flag_for_pulse is True, the first time step of a voiced segment
+        is always sin(np.pi) or cos(0).
+
+    Examples:
+        >>> sine_gen = SineGen(sample_rate=16000, harmonic_num=3)
+        >>> f0 = torch.tensor([[[440.0]]])  # Example F0 input
+        >>> sine_waves, uv, noise = sine_gen(f0)
+        >>> print(sine_waves.shape)  # Output shape: (1, length, dim)
+        >>> print(uv.shape)          # Output shape: (1, length, 1)
+
+    Raises:
+        ValueError: If the provided sample_rate is not a positive integer.
     """
 
     def __init__(
@@ -109,13 +135,39 @@ class SineGen(torch.nn.Module):
         return sines
 
     def forward(self, f0):
-        """Forward SineGen.
+        """
+        Forward SineGen.
 
-        sine_tensor, uv = forward(f0)
-        input F0: tensor(batchsize=1, length, dim=1)
-                  f0 for unvoiced steps should be 0
-        output sine_tensor: tensor(batchsize=1, length, dim)
-        output uv: tensor(batchsize=1, length, 1)
+        Computes the sine waveforms and the voiced/unvoiced (uv) signal
+        based on the input fundamental frequency (F0).
+
+        Args:
+            f0 (torch.Tensor): A tensor of shape (batchsize, length, dim=1)
+                representing the input F0 values. The F0 for unvoiced steps
+                should be set to 0.
+
+        Returns:
+            tuple: A tuple containing:
+                - sine_tensor (torch.Tensor): A tensor of shape
+                  (batchsize, length, dim) representing the generated sine
+                  waveforms.
+                - uv (torch.Tensor): A tensor of shape (batchsize, length, 1)
+                  indicating voiced/unvoiced segments.
+
+        Examples:
+            >>> sine_gen = SineGen(samp_rate=44100, harmonic_num=2)
+            >>> f0_input = torch.tensor([[[440.0]]])  # Example F0 input
+            >>> sine_wave, uv_signal, noise = sine_gen.forward(f0_input)
+            >>> print(sine_wave.shape)  # Output: torch.Size([1, length, 1])
+            >>> print(uv_signal.shape)   # Output: torch.Size([1, length, 1])
+
+        Note:
+            The F0 input tensor should have a last dimension of size 1, where
+            unvoiced F0 values must be set to 0.
+
+        Raises:
+            ValueError: If the input tensor shape does not match
+            (batchsize, length, dim).
         """
         with torch.no_grad():
             f0_buf = torch.zeros(f0.shape[0], f0.shape[1], self.dim, device=f0.device)

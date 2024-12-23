@@ -45,7 +45,116 @@ from espnet2.gan_tts.vits.residual_coupling import ResidualAffineCouplingBlock
 
 
 class VISingerGenerator(torch.nn.Module):
-    """Generator module in VISinger."""
+    """
+    Generator module in VISinger.
+
+    This module implements the VISinger generator for singing voice synthesis
+    as described in `VISinger: Variational Inference with Adversarial Learning
+    for End-to-End Singing Voice Synthesis`_.
+
+    This generator can be configured with various parameters for the text
+    encoder, decoder, and additional features such as speaker and language
+    embeddings.
+
+    Attributes:
+        aux_channels (int): Number of acoustic feature channels.
+        hidden_channels (int): Number of hidden channels.
+        generator_type (str): Type of generator to use for the model.
+        segment_size (int): Segment size for the decoder.
+        sample_rate (int): Sample rate of the audio.
+        hop_length (int): Number of samples between successive frames in STFT.
+        use_avocodo (bool): Whether to use Avocodo model in the generator.
+        use_flow (bool): Whether to use flow in the generator.
+        use_phoneme_predictor (bool): Whether to use phoneme predictor in the model.
+        text_encoder (TextEncoder): The text encoder module.
+        decoder (Union[UHiFiGANGenerator, HiFiGANGenerator, AvocodoGenerator,
+            VISinger2VocoderGenerator]): The vocoder generator module.
+        posterior_encoder (PosteriorEncoder): The posterior encoder module.
+        flow (Optional[ResidualAffineCouplingBlock]): The flow module, if used.
+        duration_predictor (DurationPredictor): The duration predictor module.
+        lr (LengthRegulator): The length regulator module.
+        phoneme_predictor (Optional[PhonemePredictor]): The phoneme predictor.
+        f0_decoder (Decoder): The pitch decoder module.
+        prior_decoder (PriorDecoder): The prior decoder module.
+
+    Args:
+        vocabs (int): Input vocabulary size.
+        aux_channels (int): Number of acoustic feature channels.
+        hidden_channels (int): Number of hidden channels.
+        spks (Optional[int]): Number of speakers.
+        langs (Optional[int]): Number of languages.
+        spk_embed_dim (Optional[int]): Speaker embedding dimension.
+        global_channels (int): Number of global conditioning channels.
+        segment_size (int): Segment size for decoder.
+        text_encoder_attention_heads (int): Number of heads in text encoder.
+        text_encoder_ffn_expand (int): Expansion ratio of FFN in text encoder.
+        text_encoder_blocks (int): Number of blocks in text encoder.
+        text_encoder_positionwise_layer_type (str): Position-wise layer type in text encoder.
+        text_encoder_positionwise_conv_kernel_size (int): Convolution kernel size in text encoder.
+        text_encoder_positional_encoding_layer_type (str): Positional encoding layer type.
+        text_encoder_self_attention_layer_type (str): Self-attention layer type.
+        text_encoder_activation_type (str): Activation function type in text encoder.
+        text_encoder_normalize_before (bool): Normalize before self-attention in text encoder.
+        text_encoder_dropout_rate (float): Dropout rate in text encoder.
+        text_encoder_positional_dropout_rate (float): Positional dropout rate in text encoder.
+        text_encoder_attention_dropout_rate (float): Attention dropout rate in text encoder.
+        text_encoder_conformer_kernel_size (int): Conformer kernel size in text encoder.
+        use_macaron_style_in_text_encoder (bool): Use macaron style FFN in text encoder.
+        use_conformer_conv_in_text_encoder (bool): Use convolution in text encoder.
+        decoder_kernel_size (int): Decoder kernel size.
+        decoder_channels (int): Number of decoder initial channels.
+        decoder_downsample_scales (List[int]): List of downsampling scales in decoder.
+        decoder_downsample_kernel_sizes (List[int]): List of kernel sizes for downsampling layers.
+        decoder_upsample_scales (List[int]): List of upsampling scales in decoder.
+        decoder_upsample_kernel_sizes (List[int]): List of kernel sizes for upsampling layers.
+        decoder_resblock_kernel_sizes (List[int]): List of kernel sizes for resblocks in decoder.
+        decoder_resblock_dilations (List[List[int]]): List of dilations for resblocks in decoder.
+        use_avocodo (bool): Whether to use Avocodo model in the generator.
+        projection_filters (List[int]): List of projection filter sizes.
+        projection_kernels (List[int]): List of projection kernel sizes.
+        n_harmonic (int): Number of harmonic components.
+        use_weight_norm_in_decoder (bool): Apply weight normalization in decoder.
+        posterior_encoder_kernel_size (int): Posterior encoder kernel size.
+        posterior_encoder_layers (int): Number of layers in posterior encoder.
+        posterior_encoder_stacks (int): Number of stacks in posterior encoder.
+        posterior_encoder_base_dilation (int): Base dilation in posterior encoder.
+        posterior_encoder_dropout_rate (float): Dropout rate in posterior encoder.
+        use_weight_norm_in_posterior_encoder (bool): Apply weight normalization in posterior encoder.
+        flow_flows (int): Number of flows in flow.
+        flow_kernel_size (int): Kernel size in flow.
+        flow_base_dilation (int): Base dilation in flow.
+        flow_layers (int): Number of layers in flow.
+        flow_dropout_rate (float): Dropout rate in flow.
+        use_weight_norm_in_flow (bool): Apply weight normalization in flow.
+        use_only_mean_in_flow (bool): Use only mean in flow.
+        generator_type (str): Type of generator to use for the model.
+        vocoder_generator_type (str): Type of vocoder generator to use for the model.
+        fs (int): Sample rate of the audio.
+        hop_length (int): Number of samples between successive frames in STFT.
+        win_length (Optional[int]): Window size of the STFT.
+        n_fft (int): Length of the FFT window.
+        use_phoneme_predictor (bool): Whether to use phoneme predictor in the model.
+        expand_f0_method (str): Method used to expand F0. Use "repeat" or "interpolation".
+        hubert_channels (Union[int, None]): Number of channels in the Hubert model.
+
+    Examples:
+        >>> generator = VISingerGenerator(vocabs=100, aux_channels=513)
+        >>> text = torch.randint(0, 100, (8, 50))
+        >>> text_lengths = torch.tensor([50] * 8)
+        >>> feats = torch.randn(8, 100, 513)
+        >>> feats_lengths = torch.tensor([100] * 8)
+        >>> output = generator(text, text_lengths, feats, feats_lengths)
+
+    Note:
+        This implementation is based on the VITS architecture and utilizes
+        various advanced techniques for improved singing voice synthesis.
+
+    Raises:
+        ValueError: If an unsupported vocoder generator type is provided.
+
+    Todo:
+        - Add deterministic version as an option.
+    """
 
     @typechecked
     def __init__(

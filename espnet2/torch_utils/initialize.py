@@ -11,16 +11,44 @@ from typeguard import typechecked
 
 @typechecked
 def initialize(model: torch.nn.Module, init: str):
-    """Initialize weights of a neural network module.
+    """
+        Initialize weights of a neural network module.
 
-    Parameters are initialized using the given method or distribution.
-
-    Custom initialization routines can be implemented into submodules
-    as function `espnet_initialization_fn` within the custom module.
+    Parameters are initialized using the given method or distribution. Custom
+    initialization routines can be implemented into submodules as function
+    `espnet_initialization_fn` within the custom module.
 
     Args:
-        model: Target.
-        init: Method of initialization.
+        model (torch.nn.Module): The neural network module whose weights are to be
+            initialized.
+        init (str): The method of initialization. Supported options include:
+            - "chainer": Implements the chainer initialization method.
+            - "xavier_uniform": Initializes weights using Xavier uniform distribution.
+            - "xavier_normal": Initializes weights using Xavier normal distribution.
+            - "kaiming_uniform": Initializes weights using Kaiming uniform
+              distribution.
+            - "kaiming_normal": Initializes weights using Kaiming normal
+              distribution.
+            - "normal": Initializes weights using a normal distribution with mean
+              0 and standard deviation 0.02.
+
+    Raises:
+        ValueError: If an unknown initialization method is provided.
+        NotImplementedError: If the data dimensions do not match any expected
+            patterns during initialization.
+
+    Examples:
+        >>> import torch
+        >>> model = torch.nn.Linear(10, 5)
+        >>> initialize(model, 'xavier_uniform')
+        >>> initialize(model, 'chainer')
+
+    Note:
+        This function modifies the model in place and does not return a new
+        instance.
+
+    Todo:
+        - Hacking s3prl_frontend and wav2vec2encoder initialization.
     """
 
     if init == "chainer":

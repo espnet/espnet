@@ -9,7 +9,59 @@ from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 
 
 class Decoder(torch.nn.Module):
-    """Pitch or Mel decoder module in VISinger 2."""
+    """
+    Pitch or Mel decoder module in VISinger 2.
+
+    This class implements a decoder used in the VISinger 2 model for pitch or Mel
+    synthesis. It employs attention mechanisms and various configurations to adapt
+    to different architectures and requirements.
+
+    Attributes:
+        prenet (torch.nn.Conv1d): The initial convolutional layer to process input.
+        decoder (Encoder): The main encoder block which utilizes attention.
+        proj (torch.nn.Conv1d): The final projection layer to generate output.
+        global_conv (torch.nn.Conv1d, optional): Convolutional layer for global
+            conditioning if global_channels > 0.
+
+    Args:
+        out_channels (int): The output dimension of the module.
+        attention_dim (int): The dimension of the attention mechanism.
+        attention_heads (int): The number of attention heads.
+        linear_units (int): The number of units in the linear layer.
+        blocks (int): The number of encoder blocks.
+        pw_layer_type (str): The type of position-wise layer to use.
+        pw_conv_kernel_size (int): The kernel size of the position-wise
+            convolutional layer.
+        pos_enc_layer_type (str): The type of positional encoding layer to use.
+        self_attention_layer_type (str): The type of self-attention layer to use.
+        activation_type (str): The type of activation function to use.
+        normalize_before (bool): Whether to normalize the data before the
+            position-wise layer or after.
+        use_macaron_style (bool): Whether to use the macaron style or not.
+        use_conformer_conv (bool): Whether to use Conformer style conv or not.
+        conformer_kernel_size (int): The kernel size of the conformer
+            convolutional layer.
+        dropout_rate (float): The dropout rate to use.
+        positional_dropout_rate (float): The positional dropout rate to use.
+        attention_dropout_rate (float): The attention dropout rate to use.
+        global_channels (int): The number of channels to use for global
+            conditioning.
+
+    Returns:
+        None
+
+    Examples:
+        decoder = Decoder(out_channels=256, attention_dim=128)
+        output, mask = decoder(input_tensor, input_lengths, global_tensor)
+
+    Note:
+        The Decoder is designed to work in conjunction with the Encoder and
+        other components of the VISinger 2 architecture.
+
+    Todo:
+        - Implement additional configurations for different types of
+          attention mechanisms.
+    """
 
     @typechecked
     def __init__(
@@ -88,16 +140,34 @@ class Decoder(torch.nn.Module):
             self.global_conv = torch.nn.Conv1d(global_channels, attention_dim, 1)
 
     def forward(self, x, x_lengths, g=None):
-        """Forward pass of the Decoder.
+        """
+            Forward pass of the Decoder.
+
+        This method processes the input tensor through the decoder and generates
+        the output tensor and the corresponding output mask. It handles both
+        regular and global conditioning inputs.
 
         Args:
-            x (Tensor): Input tensor (B, 2 + attention_dim, T).
-            x_lengths (Tensor): Length tensor (B,).
-            g (Tensor, optional): Global conditioning tensor (B, global_channels, 1).
+            x (Tensor): Input tensor of shape (B, 2 + attention_dim, T).
+            x_lengths (Tensor): Length tensor of shape (B,).
+            g (Tensor, optional): Global conditioning tensor of shape
+                                  (B, global_channels, 1).
 
         Returns:
-            Tensor: Output tensor (B, 1, T).
-            Tensor: Output mask (B, 1, T).
+            Tuple[Tensor, Tensor]: A tuple containing:
+                - Output tensor of shape (B, 1, T).
+                - Output mask of shape (B, 1, T).
+
+        Examples:
+            >>> decoder = Decoder()
+            >>> x = torch.randn(8, 194, 100)  # Example input
+            >>> x_lengths = torch.tensor([100] * 8)  # All sequences are of length 100
+            >>> output, mask = decoder(x, x_lengths)
+
+        Note:
+            The input tensor 'x' must include the attention dimension plus 2
+            additional channels. The optional global conditioning tensor 'g' can
+            be used to enhance the output if provided.
         """
 
         x_mask = (

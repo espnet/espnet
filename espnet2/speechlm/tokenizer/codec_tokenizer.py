@@ -10,15 +10,77 @@ from espnet2.speechlm.tokenizer.abs_tokenizer import AbsTokenizer
 
 
 class CodecTokenizer(AbsTokenizer):
-    """Codec Tokenizer implementation
+    """
+        CodecTokenizer is a tokenizer implementation for various audio codecs.
+
+    This class provides methods for encoding and decoding audio waveforms using
+    different codec implementations. It supports both discrete and continuous
+    tokenization, allowing for flexible audio processing in speech language
+    models.
 
     Use cases:
-        - use encode and decode for discrete (de)tokenization
-        - use encode_continuous and decode_continuous for continuous
-          (de)tokenization
-        - use forward and detokenization for discrete (de)tokenization
-          with flatten sequence style, which is more friendly for
-          speechlm task
+        - Use `encode` and `decode` for discrete (de)tokenization.
+        - Use `encode_continuous` and `decode_continuous` for continuous
+          (de)tokenization.
+        - Use `forward` and `detokenize` for discrete (de)tokenization with
+          flatten sequence style, which is more friendly for speechlm tasks.
+
+    Attributes:
+        codec_choice (str): The chosen codec implementation.
+        device (str): The device for model computation (e.g., "cpu" or "cuda").
+        dump_audio (bool): Flag to indicate whether to dump the audio during
+            processing.
+        n_codebook (int): The number of codec codebooks.
+        size_codebook (int): The dimension of codebooks.
+        sample_rate (int): The sample rate the model was trained on.
+        subsample (int): The subsample rate, a.k.a., frame shift.
+
+    Args:
+        codec_choice (str): The codec implementation to use. Options include
+            "ESPnet", "DAC", "EnCodec", and "inhouse".
+        codec_fs (int): The sample rate for the codec.
+        device (str, optional): The device to run the model on. Defaults to "cpu".
+        dump_audio (bool, optional): Whether to dump the audio during processing.
+            Defaults to False.
+        checkpoint_path (str, optional): Path to the model checkpoint file.
+            Defaults to None.
+        config_path (str, optional): Path to the model configuration file.
+            Defaults to None.
+        max_token_per_frame (int, optional): Maximum number of tokens per frame.
+            Defaults to 32.
+
+    Raises:
+        ValueError: If an unsupported codec choice is provided.
+        ImportError: If the required codec library is not installed.
+
+    Examples:
+        To initialize the CodecTokenizer and encode/decode audio waveforms:
+
+        ```python
+        device = "cuda:0"
+        codec = CodecTokenizer(
+            codec_choice="ESPnet",
+            codec_fs=16000,
+            device=device,
+            dump_audio=True,
+            checkpoint_path="path/to/checkpoint.pth",
+            config_path="path/to/config.yaml",
+        )
+
+        # Encode audio
+        waveform = torch.randn(1, 1, 16000)  # Example waveform
+        codes = codec.encode(waveform)
+
+        # Decode audio
+        reconstructed_waveform = codec.decode(codes)
+        ```
+
+    Note:
+        The `encode` and `decode` methods are designed to work with audio tensors
+        in specific shapes. Ensure the input tensors are formatted correctly.
+
+    Todo:
+        - Add support for additional codecs as needed.
     """
 
     def __init__(
@@ -123,11 +185,28 @@ class CodecTokenizer(AbsTokenizer):
 
     def encode(self, wavs):
         """
-        Convert audio waveforms into codec codes
-        Input:
-            wavs (torch.Tensor): float tensor in shape [B, 1, n_sample],
-        Output:
-            codes (torch.Tensor): Int tensor in shape [B, T, n_codebook]
+        Convert audio waveforms into codec codes.
+
+        Args:
+            wavs (torch.Tensor): A float tensor of shape [B, 1, n_sample],
+                where B is the batch size and n_sample is the number of audio
+                samples.
+
+        Returns:
+            torch.Tensor: An integer tensor of shape [B, T, n_codebook],
+                where T is the number of time frames produced by the encoding.
+
+        Raises:
+            AssertionError: If the input tensor does not have 3 dimensions or
+                if the second dimension is not equal to 1.
+
+        Examples:
+            >>> import torch
+            >>> codec = CodecTokenizer(codec_choice="ESPnet", codec_fs=16000)
+            >>> wavs = torch.randn(2, 1, 32000)  # Example batch of audio
+            >>> codes = codec.encode(wavs)
+            >>> print(codes.shape)
+            torch.Size([2, T, n_codebook])
         """
         assert wavs.dim() == 3 and wavs.size(1) == 1
 
@@ -153,11 +232,33 @@ class CodecTokenizer(AbsTokenizer):
 
     def encode_continuous(self, wavs):
         """
-        Convert audio waveforms into continuous codec encoding results
-        Input:
-            wavs (torch.Tensor): float tensor in shape [B, 1, n_sample],
-        Output:
-            z (torch.Tensor): float tensor in shape [B, T, D]
+        Convert audio waveforms into continuous codec encoding results.
+
+        This method processes the input audio waveforms and converts them into
+        continuous codec representations. The shape of the input tensor should
+        be [B, 1, n_sample], where B is the batch size, and n_sample is the
+        number of samples in the audio waveform. The output tensor will have
+        the shape [B, T, D], where T is the number of time frames and D is
+        the dimensionality of the continuous representation.
+
+        Args:
+            wavs (torch.Tensor): A float tensor of shape [B, 1, n_sample]
+                representing the audio waveforms to be encoded.
+
+        Returns:
+            torch.Tensor: A float tensor of shape [B, T, D] containing the
+            continuous codec encoding results.
+
+        Raises:
+            NotImplementedError: If the codec choice is not supported.
+
+        Examples:
+            >>> import torch
+            >>> codec = CodecTokenizer(codec_choice="ESPnet", codec_fs=16000)
+            >>> wavs = torch.randn(2, 1, 32000)  # Example input
+            >>> continuous_encoding = codec.encode_continuous(wavs)
+            >>> print(continuous_encoding.shape)
+            torch.Size([2, T, D])  # T and D depend on the codec implementation
         """
 
         if self.codec_choice == "ESPnet":
@@ -176,10 +277,21 @@ class CodecTokenizer(AbsTokenizer):
     def decode(self, codes):
         """
         Recover the waveform from the codes.
-        Input:
-            codes (torch.Tensor): Int tensor in shape [B, T, n_codebook]
-        Output:
-            waveform (torch.Tensor): float tensor in shape [B, n_sample]
+
+        Args:
+            codes (torch.Tensor): Int tensor in shape [B, T, n_codebook].
+
+        Returns:
+            waveform (torch.Tensor): float tensor in shape [B, n_sample].
+
+        Raises:
+            NotImplementedError: If the codec_choice is not supported.
+
+        Examples:
+            >>> tokenizer = CodecTokenizer(codec_choice="ESPnet", codec_fs=16000)
+            >>> codes = torch.randint(0, 256, (2, 10, 8))  # Example codes
+            >>> waveform = tokenizer.decode(codes)
+            >>> print(waveform.shape)  # Output shape: [2, n_sample]
         """
         if self.codec_choice == "ESPnet":
             codes = codes.permute(2, 0, 1)
@@ -205,12 +317,31 @@ class CodecTokenizer(AbsTokenizer):
 
     def decode_continuous(self, z):
         """
-        Recover the waveform from the continuous representations of codec
-        Input:
-            z (torch.Tensor): Float tensor in shape [B, T, D], codec
-              continuous representations
-        Output:
-            waveform (torch.Tensor): float tensor in shape [B, n_sample]
+                Recover the waveform from the continuous representations of codec.
+
+        This method takes continuous representations (also known as latent
+        variables) produced by the codec and reconstructs the audio waveform.
+        It is particularly useful for processing audio data in a continuous
+        form rather than discrete tokens.
+
+        Args:
+            z (torch.Tensor): Float tensor in shape [B, T, D], where B is the
+            batch size, T is the number of time steps, and D is the dimension
+            of the codec continuous representations.
+
+        Returns:
+            waveform (torch.Tensor): Float tensor in shape [B, n_sample],
+            representing the reconstructed audio waveform.
+
+        Raises:
+            NotImplementedError: If the codec choice is not supported.
+
+        Examples:
+            >>> # Assuming 'codec' is an instance of CodecTokenizer
+            >>> z = torch.randn(2, 100, 512)  # Example continuous representations
+            >>> waveform = codec.decode_continuous(z)
+            >>> print(waveform.shape)
+            torch.Size([2, n_sample])  # n_sample will depend on the codec used
         """
         if self.codec_choice == "ESPnet":
             z = z.transpose(1, 2)
@@ -227,12 +358,35 @@ class CodecTokenizer(AbsTokenizer):
 
     def forward(self, wavs):
         """
-        Convert audio waveforms into flatten codec codes and resynthesis the audio
-        Input:
-            wavs (torch.Tensor): float tensor in shape [B, 1, n_sample],
-        Output:
-            codes (torch.Tensor): Int tensor in shape [B, T * n_codebook],
-            resyn_audio (torch.Tensor): float tensor in shape [B, n_samples]
+        Convert audio waveforms into flatten codec codes and resynthesize the audio.
+
+        This method processes input audio waveforms to generate a flattened
+        representation of codec codes while optionally resynthesizing the audio.
+        It combines encoding and decoding in a single step, which is particularly
+        useful for speech-related tasks.
+
+        Args:
+            wavs (torch.Tensor): Float tensor in shape [B, 1, n_sample], where B
+                is the batch size and n_sample is the number of audio samples.
+
+        Returns:
+            Tuple[torch.Tensor, Optional[torch.Tensor]]:
+                - codes (torch.Tensor): Int tensor in shape [B, T * n_codebook],
+                  representing the flattened codec codes.
+                - resyn_audio (torch.Tensor or None): Float tensor in shape
+                  [B, n_samples] if `self.dump_audio` is True, containing the
+                  resynthesized audio waveforms; otherwise, it returns None.
+
+        Examples:
+            >>> codec = CodecTokenizer(codec_choice="ESPnet", codec_fs=16000)
+            >>> wavs = torch.randn(2, 1, 16000)  # Example input tensor
+            >>> codes, resyn_audio = codec.forward(wavs)
+            >>> print(codes.shape)  # Should print shape [2, T * n_codebook]
+            >>> print(resyn_audio.shape)  # Shape depends on the decoding
+
+        Note:
+            The method modifies the input codes by adding a shift based on the
+            number of codebooks and their sizes before flattening them.
         """
         codes = self.encode(wavs)
 
@@ -249,13 +403,31 @@ class CodecTokenizer(AbsTokenizer):
 
     def detokenize(self, codes, n_codebook=None):
         """
-        Convert flatten codec codes into resynthesis the audio
-        Input:
+        Convert flatten codec codes into resynthesis the audio.
+
+        Args:
             codes (torch.Tensor): int tensor in shape [B, T * n_codebook],
-                or [T * n_codebook]
-        Output:
+                or [T * n_codebook]. The flattened codec codes to be
+                converted back into audio.
+            n_codebook (int, optional): The number of codebooks used for
+                encoding. If not provided, the default number of codebooks
+                from the instance will be used.
+
+        Returns:
             waveform (torch.Tensor): float tensor in shape [B, n_sample],
-                or [n_sample]
+                or [n_sample]. The resynthesized audio waveform from the
+                provided codec codes.
+
+        Raises:
+            AssertionError: If the total number of tokens is not divisible
+            by the number of codebooks.
+
+        Examples:
+            >>> codec = CodecTokenizer(codec_choice="ESPnet", codec_fs=16000)
+            >>> flatten_codes = torch.randint(0, 256, (1, 32))  # Example codes
+            >>> audio_waveform = codec.detokenize(flatten_codes)
+            >>> print(audio_waveform.shape)
+            torch.Size([1, n_sample])
         """
 
         has_batch = codes.dim() == 2

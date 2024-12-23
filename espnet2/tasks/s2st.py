@@ -231,6 +231,57 @@ loss_choices = ClassChoices(
 
 
 class S2STTask(STTask):
+    """
+    A task class for Sequence-to-Sequence Translation (S2ST).
+
+    This class defines a task for sequence-to-sequence translation that
+    leverages various model components, including frontends, encoders,
+    decoders, and synthesizers. It facilitates the configuration and
+    construction of the necessary components for training and evaluation.
+
+    Attributes:
+        num_optimizers (int): The number of optimizers used in the task.
+        class_choices_list (list): A list of available class choices for
+            various components of the task.
+        trainer (Trainer): The trainer class used for training.
+
+    Methods:
+        add_task_arguments(parser: argparse.ArgumentParser):
+            Adds task-related arguments to the argument parser.
+        build_collate_fn(args: argparse.Namespace, train: bool) -> Callable:
+            Builds a collate function for data batching.
+        build_preprocess_fn(args: argparse.Namespace, train: bool) -> Optional[Callable]:
+            Builds a preprocessing function for input data.
+        required_data_names(train: bool = True, inference: bool = False) -> Tuple[str, ...]:
+            Returns the names of required data for training or inference.
+        optional_data_names(train: bool = True, inference: bool = False) -> Tuple[str, ...]:
+            Returns the names of optional data for training or inference.
+        build_model(args: argparse.Namespace) -> ESPnetS2STModel:
+            Constructs and initializes the ESPnet S2ST model based on the provided arguments.
+        build_vocoder_from_file(vocoder_config_file: Union[Path, str] = None,
+            vocoder_file: Union[Path, str] = None,
+            model: Optional[ESPnetS2STModel] = None,
+            device: str = "cpu"):
+            Builds a vocoder from the provided configuration and model.
+
+    Examples:
+        To add task arguments:
+            parser = argparse.ArgumentParser()
+            S2STTask.add_task_arguments(parser)
+
+        To build a model:
+            args = parser.parse_args()
+            model = S2STTask.build_model(args)
+
+    Note:
+        This class is designed to be extended for specific S2ST tasks
+        with additional configurations and components as needed.
+
+    Todo:
+        - Implement additional logging and error handling for model
+          construction.
+    """
+
     # If you need more than one optimizers, change this value
     num_optimizers: int = 1
 
@@ -269,6 +320,34 @@ class S2STTask(STTask):
 
     @classmethod
     def add_task_arguments(cls, parser: argparse.ArgumentParser):
+        """
+        Add task-specific arguments to the argument parser.
+
+        This method defines various command-line arguments for configuring
+        the S2STTask model. The arguments cover aspects related to task
+        types, token lists, dimensions, CTC configurations, and preprocessing
+        options. The method groups the arguments logically to enhance user
+        experience during command-line execution.
+
+        Args:
+            parser (argparse.ArgumentParser): The argument parser to which
+                the task-related arguments will be added.
+
+        Examples:
+            To run the S2STTask with specific configurations, you might use:
+
+            ```bash
+            python train.py --s2st_type translatotron --odim 256 --asr_ctc True
+            ```
+
+        Note:
+            Ensure that the argument parser is initialized before calling
+            this method. The arguments defined here will be available
+            when the script is executed.
+
+        Raises:
+            ValueError: If the provided configurations are invalid.
+        """
         group = parser.add_argument_group(description="Task related")
         group.add_argument(
             "--s2st_type",
@@ -489,6 +568,34 @@ class S2STTask(STTask):
         [Collection[Tuple[str, Dict[str, np.ndarray]]]],
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
+        """
+        Builds a collate function for data loading in training or evaluation.
+
+        This function prepares a collate function that is used to merge a list of
+        samples into a batch. It handles padding of sequences in the batch to ensure
+        they are of equal length. This is particularly useful when working with
+        variable-length sequences in tasks such as speech translation.
+
+        Args:
+            args (argparse.Namespace): The parsed arguments from the command line.
+            train (bool): A flag indicating whether the collate function is for
+                training or evaluation.
+
+        Returns:
+            Callable[[Collection[Tuple[str, Dict[str, np.ndarray]]],
+            Tuple[List[str], Dict[str, torch.Tensor]]]]:
+                A collate function that takes a collection of tuples containing
+                data and returns a tuple containing the batch data.
+
+        Note:
+            The padding values are defined as follows:
+                - Float padding value is set to 0.0.
+                - Integer padding value is set to -1 (reserved for CTC-blank symbol).
+
+        Examples:
+            >>> collate_fn = S2STTask.build_collate_fn(args, train=True)
+            >>> batch_data = collate_fn(data_list)
+        """
         # NOTE(kamo): int value = 0 is reserved by CTC-blank symbol
         return CommonCollateFn(float_pad_value=0.0, int_pad_value=-1)
 
@@ -497,6 +604,40 @@ class S2STTask(STTask):
     def build_preprocess_fn(
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
+        """
+        Builds a preprocessing function based on the provided arguments.
+
+        This function returns a callable that processes input data according to the
+        specified preprocessing configurations. It handles various token types,
+        token lists, and applies necessary text cleaning and non-linguistic symbol
+        handling based on the arguments provided.
+
+        Args:
+            args (argparse.Namespace): The parsed arguments containing configuration
+                for preprocessing.
+            train (bool): A flag indicating whether the function is being used
+                for training or evaluation.
+
+        Returns:
+            Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
+                A function that takes a string and a dictionary of numpy arrays
+                as input and returns a dictionary of numpy arrays after
+                preprocessing, or None if preprocessing is not to be used.
+
+        Note:
+            If `args.use_preprocessor` is set to False, this function will return
+            None, indicating that no preprocessing should be applied.
+
+        Examples:
+            To build a preprocessing function for training data:
+            >>> preprocess_fn = S2STTask.build_preprocess_fn(args, train=True)
+            >>> processed_data = preprocess_fn("sample_text", {"src_speech": np.array([1.0, 2.0])})
+
+            If preprocessing is not to be applied:
+            >>> args.use_preprocessor = False
+            >>> preprocess_fn = S2STTask.build_preprocess_fn(args, train=True)
+            >>> assert preprocess_fn is None
+        """
         if args.src_token_type == "none":
             args.src_token_type = None
         if args.unit_token_list is None:
@@ -554,6 +695,32 @@ class S2STTask(STTask):
     def required_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
+        """
+            Returns the required data names for the S2ST task.
+
+        The required data names vary depending on whether the task is in
+        inference mode or training mode. In training mode, both source
+        and target speech data are required, while in inference mode,
+        only the source speech data is needed.
+
+        Args:
+            train (bool): A flag indicating whether the task is in training
+                mode. Defaults to True.
+            inference (bool): A flag indicating whether the task is in
+                inference mode. Defaults to False.
+
+        Returns:
+            Tuple[str, ...]: A tuple containing the names of the required
+            data. It returns ("src_speech", "tgt_speech") for training
+            mode and ("src_speech",) for inference mode.
+
+        Examples:
+            >>> S2STTask.required_data_names(train=True, inference=False)
+            ('src_speech', 'tgt_speech')
+
+            >>> S2STTask.required_data_names(train=False, inference=True)
+            ('src_speech',)
+        """
         if not inference:
             retval = ("src_speech", "tgt_speech")
         else:
@@ -565,6 +732,32 @@ class S2STTask(STTask):
     def optional_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
+        """
+            Retrieves the optional data names for the S2ST task.
+
+        This method returns a tuple of optional data names that can be utilized
+        during training or inference for the S2ST task. The data names returned
+        vary depending on whether the task is in inference mode or not.
+
+        Args:
+            train (bool): Indicates if the task is in training mode. Default is
+                True.
+            inference (bool): Indicates if the task is in inference mode. Default
+                is False.
+
+        Returns:
+            Tuple[str, ...]: A tuple containing the optional data names. The
+            names returned are:
+            - If not in inference mode: ("src_text", "tgt_text")
+            - If in inference mode: ("tgt_speech",)
+
+        Examples:
+            >>> S2STTask.optional_data_names(train=True, inference=False)
+            ('src_text', 'tgt_text')
+
+            >>> S2STTask.optional_data_names(train=True, inference=True)
+            ('tgt_speech',)
+        """
         if not inference:
             retval = ("src_text", "tgt_text")
         else:
@@ -574,6 +767,37 @@ class S2STTask(STTask):
     @classmethod
     @typechecked
     def build_model(cls, args: argparse.Namespace) -> ESPnetS2STModel:
+        """
+            Builds the S2ST model based on the provided arguments.
+
+        This method constructs the ESPnetS2STModel by configuring various
+        components such as the frontend, encoders, decoders, synthesizers, and
+        loss functions according to the specified command-line arguments.
+
+        Args:
+            args (argparse.Namespace): The command-line arguments containing
+                configuration settings for the model components.
+
+        Returns:
+            ESPnetS2STModel: The constructed speech-to-speech translation model.
+
+        Raises:
+            RuntimeError: If the provided token list is not a string or list.
+
+        Examples:
+            >>> import argparse
+            >>> args = argparse.Namespace()
+            >>> args.tgt_token_list = 'path/to/tgt_token_list.txt'
+            >>> args.src_token_list = 'path/to/src_token_list.txt'
+            >>> model = S2STTask.build_model(args)
+
+        Note:
+            The function expects that the necessary configuration files and token
+            lists are accessible and correctly formatted.
+
+        Todo:
+            - Consider adding more validation for input arguments.
+        """
         if args.tgt_token_list is not None:
             if isinstance(args.tgt_token_list, str):
                 with open(args.tgt_token_list, encoding="utf-8") as f:
@@ -838,6 +1062,47 @@ class S2STTask(STTask):
         model: Optional[ESPnetS2STModel] = None,
         device: str = "cpu",
     ):
+        """
+                Builds a vocoder from a specified configuration file or a pretrained model file.
+
+        This method is responsible for creating a vocoder that can be used for
+        speech synthesis. If a vocoder file is provided, it loads the vocoder
+        from that file. If not, it constructs a vocoder using the Griffin-Lim
+        algorithm based on the configuration file.
+
+        Args:
+            vocoder_config_file (Union[Path, str], optional): The path to the
+                configuration file for the vocoder. This file should be in YAML
+                format and specify parameters such as 'n_fft', 'n_shift', and 'fs'.
+            vocoder_file (Union[Path, str], optional): The path to the pretrained
+                vocoder model file. This should be a `.pkl` file if using
+                Parallel WaveGAN.
+            model (Optional[ESPnetS2STModel], optional): An instance of the
+                ESPnetS2STModel that provides necessary configurations for the
+                vocoder.
+            device (str, optional): The device to which the vocoder model will be
+                moved. Default is "cpu".
+
+        Returns:
+            Union[None, Spectrogram2Waveform, ParallelWaveGANPretrainedVocoder]:
+            Returns an instance of the vocoder if successfully built, otherwise
+            returns None.
+
+        Raises:
+            ValueError: If the provided vocoder file format is not supported.
+
+        Examples:
+            # Building a vocoder using a configuration file
+            vocoder = S2STTask.build_vocoder_from_file(
+                vocoder_config_file="path/to/vocoder_config.yaml"
+            )
+
+            # Building a vocoder from a pretrained model
+            vocoder = S2STTask.build_vocoder_from_file(
+                vocoder_file="path/to/vocoder_model.pkl",
+                vocoder_config_file="path/to/vocoder_config.yaml"
+            )
+        """
         # NOTE(jiatong): this is essentially the same as TTSTask
         # Build vocoder
         if vocoder_file is None:

@@ -18,7 +18,40 @@ from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder as EncoderPren
 
 
 class NaiveRNNLoss(torch.nn.Module):
-    """Loss function module for Tacotron2."""
+    """
+        NaiveRNNLoss is a loss function module for Tacotron2 that computes the
+    L1 and mean square error (MSE) losses based on the model's outputs and
+    target features. It allows for optional masking of padded parts in
+    the loss calculation, which can help improve training efficiency
+    and accuracy.
+
+    Attributes:
+        use_masking (bool): Whether to apply masking for padded parts in
+            loss calculation.
+        use_weighted_masking (bool): Whether to apply weighted masking
+            in loss calculation.
+        l1_criterion (torch.nn.L1Loss): L1 loss criterion.
+        mse_criterion (torch.nn.MSELoss): MSE loss criterion.
+
+    Args:
+        use_masking (bool): Flag to indicate if masking should be applied
+            to the padded parts of the inputs.
+        use_weighted_masking (bool): Flag to indicate if weighted masking
+            should be applied during loss calculation.
+
+    Returns:
+        Tuple[Tensor, Tensor]: A tuple containing:
+            - L1 loss value (Tensor).
+            - Mean square error loss value (Tensor).
+
+    Examples:
+        loss_fn = NaiveRNNLoss(use_masking=True, use_weighted_masking=False)
+        l1_loss, mse_loss = loss_fn(after_outs, before_outs, ys, olens)
+
+    Raises:
+        ValueError: If both `use_masking` and `use_weighted_masking`
+            are True, or if they are both False.
+    """
 
     def __init__(self, use_masking=True, use_weighted_masking=False):
         """Initialize Tactoron2 loss module.
@@ -43,17 +76,43 @@ class NaiveRNNLoss(torch.nn.Module):
         # self._register_load_state_dict_pre_hook(self._load_state_dict_pre_hook)
 
     def forward(self, after_outs, before_outs, ys, olens):
-        """Calculate forward propagation.
+        """
+        Calculate forward propagation.
+
+        This method computes the L1 and mean square error (MSE) losses
+        between the predicted outputs (after and before postnet) and
+        the target features, applying optional masking for padded
+        elements based on the specified parameters.
 
         Args:
-            after_outs (Tensor): Batch of outputs after postnets (B, Lmax, odim).
-            before_outs (Tensor): Batch of outputs before postnets (B, Lmax, odim).
+            after_outs (Tensor): Batch of outputs after postnets
+                (B, Lmax, odim).
+            before_outs (Tensor): Batch of outputs before postnets
+                (B, Lmax, odim).
             ys (Tensor): Batch of padded target features (B, Lmax, odim).
             olens (LongTensor): Batch of the lengths of each target (B,).
 
         Returns:
             Tensor: L1 loss value.
             Tensor: Mean square error loss value.
+
+        Examples:
+            >>> loss_module = NaiveRNNLoss(use_masking=True)
+            >>> after_outs = torch.randn(4, 10, 80)  # Example output
+            >>> before_outs = torch.randn(4, 10, 80)  # Example output
+            >>> ys = torch.randn(4, 10, 80)  # Example target
+            >>> olens = torch.tensor([10, 10, 8, 6])  # Example lengths
+            >>> l1_loss, mse_loss = loss_module(after_outs, before_outs, ys, olens)
+            >>> print(l1_loss, mse_loss)
+
+        Note:
+            The masking process is only applied if `use_masking`
+            is set to True. If `use_weighted_masking` is True,
+            the losses are weighted based on the mask.
+
+        Raises:
+            AssertionError: If `olens` is not properly defined or if
+            `use_masking` and `use_weighted_masking` are both True.
         """
         # make mask and apply it
         if self.use_masking:
@@ -82,11 +141,91 @@ class NaiveRNNLoss(torch.nn.Module):
 
 
 class NaiveRNN(AbsSVS):
-    """NaiveRNN-SVS module.
+    """
+        NaiveRNN-SVS module.
 
-    This is an implementation of naive RNN for singing voice synthesis
+    This is an implementation of naive RNN for singing voice synthesis.
     The features are processed directly over time-domain from music score and
-    predict the singing voice features
+    predict the singing voice features.
+
+    Attributes:
+        idim (int): Dimension of the label inputs.
+        odim (int): Dimension of the outputs.
+        midi_dim (int): Dimension of the midi inputs.
+        embed_dim (int): Dimension of the token embedding.
+        eprenet_conv_layers (int): Number of prenet conv layers.
+        eprenet_conv_chans (int): Number of prenet conv filter channels.
+        eprenet_conv_filts (int): Number of prenet conv filter size.
+        elayers (int): Number of encoder layers.
+        eunits (int): Number of encoder hidden units.
+        ebidirectional (bool): If bidirectional in encoder.
+        midi_embed_integration_type (str): How to integrate midi information,
+            ("add" or "cat").
+        dlayers (int): Number of decoder lstm layers.
+        dunits (int): Number of decoder lstm units.
+        dbidirectional (bool): If bidirectional in decoder.
+        postnet_layers (int): Number of postnet layers.
+        postnet_chans (int): Number of postnet filter channels.
+        postnet_filts (int): Number of postnet filter size.
+        use_batch_norm (bool): Whether to use batch normalization.
+        reduction_factor (int): Reduction factor.
+        spks (Optional[int]): Number of speakers.
+        langs (Optional[int]): Number of languages.
+        spk_embed_dim (Optional[int]): Speaker embedding dimension.
+        spk_embed_integration_type (str): How to integrate speaker embedding.
+        eprenet_dropout_rate (float): Prenet dropout rate.
+        edropout_rate (float): Encoder dropout rate.
+        ddropout_rate (float): Decoder dropout rate.
+        postnet_dropout_rate (float): Postnet dropout rate.
+        init_type (str): How to initialize transformer parameters.
+        use_masking (bool): Whether to mask padded part in loss calculation.
+        use_weighted_masking (bool): Whether to apply weighted masking in loss
+            calculation.
+        loss_type (str): Loss function type ("L1", "L2", or "L1+L2").
+
+    Args:
+        idim (int): Dimension of the label inputs.
+        odim (int): Dimension of the outputs.
+        midi_dim (int): Dimension of the midi inputs.
+        embed_dim (int): Dimension of the token embedding.
+        eprenet_conv_layers (int): Number of prenet conv layers.
+        eprenet_conv_filts (int): Number of prenet conv filter size.
+        eprenet_conv_chans (int): Number of prenet conv filter channels.
+        elayers (int): Number of encoder layers.
+        eunits (int): Number of encoder hidden units.
+        ebidirectional (bool): If bidirectional in encoder.
+        midi_embed_integration_type (str): How to integrate midi information,
+            ("add" or "cat").
+        dlayers (int): Number of decoder lstm layers.
+        dunits (int): Number of decoder lstm units.
+        dbidirectional (bool): If bidirectional in decoder.
+        postnet_layers (int): Number of postnet layers.
+        postnet_filts (int): Number of postnet filter size.
+        postnet_chans (int): Number of postnet filter channels.
+        use_batch_norm (bool): Whether to use batch normalization.
+        reduction_factor (int): Reduction factor.
+        spks (Optional[int]): Number of speakers.
+        langs (Optional[int]): Number of languages.
+        spk_embed_dim (Optional[int]): Speaker embedding dimension.
+        spk_embed_integration_type (str): How to integrate speaker embedding.
+        eprenet_dropout_rate (float): Prenet dropout rate.
+        edropout_rate (float): Encoder dropout rate.
+        ddropout_rate (float): Decoder dropout rate.
+        postnet_dropout_rate (float): Postnet dropout rate.
+        init_type (str): How to initialize transformer parameters.
+        use_masking (bool): Whether to mask padded part in loss calculation.
+        use_weighted_masking (bool): Whether to apply weighted masking in loss
+            calculation.
+        loss_type (str): Loss function type ("L1", "L2", or "L1+L2").
+
+    Examples:
+        # Example usage:
+        naive_rnn = NaiveRNN(idim=80, odim=80)
+        text = torch.randint(0, 10, (32, 50))
+        text_lengths = torch.randint(1, 50, (32,))
+        feats = torch.randn(32, 100, 80)
+        feats_lengths = torch.randint(1, 100, (32,))
+        output = naive_rnn(text, text_lengths, feats, feats_lengths)
     """
 
     @typechecked
@@ -343,42 +482,59 @@ class NaiveRNN(AbsSVS):
         lids: Optional[torch.Tensor] = None,
         flag_IsValid=False,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
-        """Calculate forward propagation.
+        """
+                Calculate forward propagation.
+
+        This method computes the forward pass of the NaiveRNN model, taking the input
+        text and various associated features to produce the output predictions. The
+        forward method handles the integration of different input types, applies
+        masking if necessary, and calculates the loss based on the predicted and
+        target features.
 
         Args:
             text (LongTensor): Batch of padded character ids (B, Tmax).
             text_lengths (LongTensor): Batch of lengths of each input batch (B,).
             feats (Tensor): Batch of padded target features (B, Lmax, odim).
             feats_lengths (LongTensor): Batch of the lengths of each target (B,).
-            label (Optional[Dict]): key is "lab" or "score";
-                value (LongTensor): Batch of padded label ids (B, Tmax).
-            label_lengths (Optional[Dict]): key is "lab" or "score";
-                value (LongTensor): Batch of the lengths of padded label ids (B, ).
-            melody (Optional[Dict]): key is "lab" or "score";
-                value (LongTensor): Batch of padded melody (B, Tmax).
-            melody_lengths (Optional[Dict]): key is "lab" or "score";
-                value (LongTensor): Batch of the lengths of padded melody (B, ).
-            pitch (FloatTensor): Batch of padded f0 (B, Tmax).
-            pitch_lengths (LongTensor): Batch of the lengths of padded f0 (B, ).
-            duration (Optional[Dict]): key is "lab", "score";
-                value (LongTensor): Batch of padded duration (B, Tmax).
-            duration_lengths (Optional[Dict]): key is "lab" or "score";
-                value (LongTensor): Batch of the lengths of padded duration (B, ).
+            label (Optional[Dict]): Key is "lab" or "score"; value (LongTensor):
+                Batch of padded label ids (B, Tmax).
+            label_lengths (Optional[Dict]): Key is "lab" or "score"; value (LongTensor):
+                Batch of the lengths of padded label ids (B,).
+            melody (Optional[Dict]): Key is "lab" or "score"; value (LongTensor):
+                Batch of padded melody (B, Tmax).
+            melody_lengths (Optional[Dict]): Key is "lab" or "score"; value (LongTensor):
+                Batch of the lengths of padded melody (B,).
+            pitch (Optional[FloatTensor]): Batch of padded f0 (B, Tmax).
+            pitch_lengths (Optional[LongTensor]): Batch of the lengths of padded f0 (B,).
+            duration (Optional[Dict]): Key is "lab", "score"; value (LongTensor):
+                Batch of padded duration (B, Tmax).
+            duration_lengths (Optional[Dict]): Key is "lab" or "score"; value (LongTensor):
+                Batch of the lengths of padded duration (B,).
             slur (LongTensor): Batch of padded slur (B, Tmax).
-            slur_lengths (LongTensor): Batch of the lengths of padded slur (B, ).
+            slur_lengths (LongTensor): Batch of the lengths of padded slur (B,).
             spembs (Optional[Tensor]): Batch of speaker embeddings (B, spk_embed_dim).
             sids (Optional[Tensor]): Batch of speaker IDs (B, 1).
             lids (Optional[Tensor]): Batch of language IDs (B, 1).
-
-        GS Fix:
-            arguements from forward func. V.S. **batch from espnet_model.py
-            label == durations ｜ phone sequence
-            melody -> pitch sequence
+            flag_IsValid (bool): Flag indicating if the operation is for validation.
 
         Returns:
-            Tensor: Loss scalar value.
-            Dict: Statistics to be monitored.
-            Tensor: Weight value if not joint training else model outputs.
+            Tuple[Tensor, Dict[str, torch.Tensor], torch.Tensor]: A tuple containing:
+                - Tensor: Loss scalar value.
+                - Dict: Statistics to be monitored.
+                - Tensor: Weight value if not joint training else model outputs.
+
+        GS Fix:
+            Arguments from forward function versus batch from espnet_model.py:
+            label == durations | phone sequence
+            melody -> pitch sequence
+
+        Examples:
+            >>> model = NaiveRNN(...)
+            >>> loss, stats, weight = model.forward(text, text_lengths, feats, feats_lengths)
+
+        Note:
+            Ensure that the input tensors are properly padded and have matching lengths
+            for successful execution.
         """
         label = label["lab"]
         midi = melody["lab"]
