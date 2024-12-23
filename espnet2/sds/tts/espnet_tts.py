@@ -3,7 +3,6 @@ import os
 
 import numpy as np
 import torch
-from espnet_model_zoo.downloader import ModelDownloader
 from typeguard import typechecked
 
 from espnet2.bin.tts_inference import Text2Speech
@@ -20,6 +19,11 @@ class ESPnetTTSModel(AbsTTS):
         tag="kan-bayashi/ljspeech_vits",
         device="cuda",
     ):
+        try:
+            from espnet_model_zoo.downloader import ModelDownloader
+        except Exception as e:
+            print("Error: espnet_model_zoo is not properly installed.")
+            raise e
         super().__init__()
         vocoder_tag = "none"
         self.d = ModelDownloader()
