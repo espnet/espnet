@@ -62,7 +62,7 @@ def main():
     for n in range(args.nj):
         this_results = all_results[n::args.nj]
         output_dir = Path(str(args.output_dir) + f"_split{n}")
-        data_name = output_dir.stem
+        data_name = str(output_dir.name).replace('.jsonl', '')
         _ = pool.apply_async(dump_one_split, args=(this_results, data_name, output_dir))
     pool.close()
     pool.join()

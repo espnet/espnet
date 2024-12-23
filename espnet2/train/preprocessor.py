@@ -2541,30 +2541,17 @@ class SpeechLMPreprocessor(AbsPreprocessor):
             task_identifier = "<unkown_task_identifer>"
         task_identifier = self.special_token(task_identifier)
 
-        n_conditions = len(task.conditions)
         n_targets = len(task.targets)
         if self.encoder_decoder_format:
             raise NotImplementedError('encoder decoder is not supported yet')
         else:
-            # NOTE(Jinchuan): insert task identifier and sos token
-            # To preserve the text ability of LLM, we should ensure there is no extra
-            # prefix tokens, so that the first token is a real token. 
-            # If so, we can only put task identifier after "conditions".
-            # A special case is when there is no conditions, i.e., pure text LLM task,
-            # then there is no task identifier as this is condition-free generation.
-            if n_conditions > 0:
-                seqs.insert(n_conditions, task_identifier)
-            seqs.append(sos_eos)
+            seqs = [sos_eos] + [task_identifier] + seqs + [sos_eos]
+            seqs = np.concatenate(seqs, axis=0).reshape(-1, self.codec_token_in_use)[:self.n_ctx]
 
-            # NOTE(Jinchuan): also remove modality identifier of the first data item
-            # to avoid unwanted prefix.
-            seqs[0] = seqs[0][self.codec_token_in_use:]
-
-            new_data["dec_seq"] = np.concatenate(seqs, axis=0
-            ).reshape(-1, self.codec_token_in_use)[:self.n_ctx]
-        
-        if np.isin(self.unk, new_data["dec_seq"]):
-            raise ValueError(f"Unknown token is in the decoder seq. UID: {uid}")
+            # NOTE(Jinchuan): remove these special tokens to full preserve text LLM format.
+            if task_name == "textlm":
+                seqs = seqs[3:]
+            new_data["dec_seq"] = seqs
 
         prefix_len = sum([len(seq) for seq in seqs[:-(n_targets + 1)]]) / self.codec_token_in_use
         new_data["prefix_len"] = np.array([prefix_len]).astype(np.int64)
@@ -2584,6 +2571,10 @@ class SpeechLMPreprocessor(AbsPreprocessor):
             conti_emb, start, end = conti_feat
             new_conti_feats.append((conti_emb, start + bias, end + bias))
         new_data["conti_feats"] = new_conti_feats
+
+        # finally, sanity check
+        if np.isin(self.unk, new_data["dec_seq"]):
+            raise ValueError(f"Unknown token is in the decoder seq. UID: {uid}")
 
         # self.diagnose(new_data) # For debug. Enable this to check the sequence format
 

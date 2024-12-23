@@ -1,16 +1,12 @@
 # Model
 transformer: huggingface
 transformer_conf:
-    hf_model_tag: HuggingFaceTB/SmolLM2-360M
+    hf_model_tag: meta-llama/Llama-3.2-1B
     activation_checkpointing: true
     
-corelm: ar_multiscale
+corelm: ar_delay
 corelm_conf:
     share_emb: false
-    qk_norm: true
-    l_att_unit: 512
-    l_head: 4
-    l_layer: 4
 
 # loss
 modality_weights: {

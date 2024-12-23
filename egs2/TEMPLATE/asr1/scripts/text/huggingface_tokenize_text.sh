@@ -17,11 +17,11 @@ log() {
 SECONDS=0
 stage=1
 stop_stage=1
-data_dir=/mnt/home/jinchuat/data/multilingual_cc_news
-output_dir=dump/raw_textlm_cc_whole
-tokenizer_tag=HuggingFaceTB/SmolLM-1.7B
+data_dir=/mnt/home/jinchuat/data/matrix
+output_dir=dump/raw_textlm_matrix_whole_llama
+tokenizer_tag=meta-llama/Llama-3.2-1B
 max_len=8000
-nj=6
+nj=4
 
 log "$0 $*"
 . utils/parse_options.sh

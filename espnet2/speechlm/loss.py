@@ -157,6 +157,7 @@ class SpeechLMCrossEntropyLoss(torch.nn.Module):
         
         # remove loss over condition sequences
         if self.loss_region == "target":
+            prefix_len = torch.clip(prefix_len, min=1) # in case conditions don't exist
             prefix_mask = ~length_mask(prefix_len - 1, maxlen=targets.size(1)).unsqueeze(2)
             ce_loss = torch.where(prefix_mask, ce_loss, 0.0)
             weight = (seq_len - prefix_len + 1).sum().float()

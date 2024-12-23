@@ -1,7 +1,8 @@
 # Model
 transformer: huggingface
 transformer_conf:
-    hf_model_tag: HuggingFaceTB/SmolLM-360M
+    hf_model_tag: HuggingFaceTB/SmolLM2-360M
+    activation_checkpointing: true
     
 corelm: ar_delay
 corelm_conf:
@@ -19,32 +20,12 @@ loss_region: whole
 
 # General Dataloader configuration
 batch_type: numel
-batch_bins: 12000
+batch_bins: 16000
 num_iters_per_epoch: 10000
 max_epoch: 60
 num_workers: 6
 drop_last_iter: true
 log_interval: 1000
-
-# optimization
-optim: adamw
-grad_clip: 5
-accum_grad: 1
-use_amp: true
-num_att_plot: 0
-optim_conf:
-    lr: 0.001
-    betas:
-        - 0.9
-        - 0.95
-scheduler: warmuplr
-scheduler_conf:
-    warmup_steps: 8000
-
-best_model_criterion:
--   - valid
-    - total_count
-    - max
 
 # Data preprocessing
 codec_token_per_frame: 9
@@ -58,3 +39,8 @@ asr_time_mask_config:
     - 0.
     - 0.05
     num_mask: 10
+
+# deepspeed
+use_deepspeed: true
+deepspeed_config: conf/deepspeed_ddp.json
+deepspeed_step_sync: false
