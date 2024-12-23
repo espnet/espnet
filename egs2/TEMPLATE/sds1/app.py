@@ -334,7 +334,13 @@ def transcribe(stream, new_chunk, TTS_option, ASR_option, LLM_option, type_optio
             chat.buffer = [
                 {
                     "role": "system",
-                    "content": "You are a helpful and friendly AI assistant. You are polite, respectful, and aim to provide concise and complete responses of less than 15 words.",
+                    "content": (
+                        "You are a helpful and friendly AI "
+                        "assistant. "
+                        "You are polite, respectful, and aim to "
+                        "provide concise and complete responses of "
+                        "less than 15 words."
+                    ),
                 }
             ]
             text_str = ""
@@ -397,7 +403,10 @@ with gr.Blocks(
                 )
             with gr.Row():
                 feedback_btn = gr.Button(
-                    value="Please provide your feedback after each system response below.",
+                    value=(
+                        "Please provide your feedback "
+                        "after each system response below."
+                    ),
                     visible=True,
                     interactive=False,
                     elem_id="button",
@@ -468,7 +477,15 @@ with gr.Blocks(
         privacy_text = gr.Textbox(
             label="Privacy Notice",
             interactive=False,
-            value="By using this demo, you acknowledge that interactions with this dialog system are collected for research and improvement purposes. The data will only be used to enhance the performance and understanding of the system. If you have any concerns about data collection, please discontinue use.",
+            value=(
+                "By using this demo, you acknowledge that"
+                "interactions with this dialog system are collected "
+                "for research and improvement purposes. The data "
+                "will only be used to enhance the performance and "
+                "understanding of the system. If you have any "
+                "concerns about data collection, please discontinue "
+                "use."
+            ),
         )
 
     btn_list = [

@@ -68,7 +68,8 @@ def corpus_bleu(
     >>> (score1 + score2) / 2 # doctest: +ELLIPSIS
     0.6223...
 
-    :param list_of_references: a corpus of lists of reference sentences, w.r.t. hypotheses
+    :param list_of_references: a corpus of lists of reference
+    sentences, w.r.t. hypotheses
     :type list_of_references: list(list(list(str)))
     :param hypotheses: a list of hypothesis sentences
     :type hypotheses: list(list(str))

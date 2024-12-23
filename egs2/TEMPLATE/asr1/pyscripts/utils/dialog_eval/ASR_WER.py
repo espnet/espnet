@@ -101,4 +101,11 @@ def handle_espnet_ASR_WER(ASR_audio_output, ASR_transcript):
         + dict1["whisper_cer_replace"]
         + dict1["whisper_cer_equal"]
     )
-    return f"ESPnet WER: {espnet_wer*100:.2f}\nESPnet CER: {espnet_cer*100:.2f}\nOWSM WER: {owsm_wer*100:.2f}\nOWSM CER: {owsm_cer*100:.2f}\nWhisper WER: {whisper_wer*100:.2f}\nWhisper CER: {whisper_cer*100:.2f}"
+    return (
+        f"ESPnet WER: {espnet_wer*100:.2f}\n"
+        "ESPnet CER: {espnet_cer*100:.2f}\n"
+        "OWSM WER: {owsm_wer*100:.2f}\n"
+        "OWSM CER: {owsm_cer*100:.2f}\n"
+        "Whisper WER: {whisper_wer*100:.2f}\n"
+        "Whisper CER: {whisper_cer*100:.2f}"
+    )

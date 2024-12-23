@@ -33,7 +33,7 @@ fi
 targets=""
 
 # Copy
-target="${dir}"/../../TEMPLATE/slu1/local""
+target="${dir}"/../../TEMPLATE/slu1/local
 cp -r "${target}" "${dir}"
 targets+="${dir}/${target} "
 

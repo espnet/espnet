@@ -1,8 +1,12 @@
 import time
 from contextlib import contextmanager
-from typing import Dict, List, Optional, Tuple, Union
 
-import gradio as gr
+try:
+    import gradio as gr
+except Exception as e:
+    print("Error: Gradio is not properly installed.")
+    raise e
+
 import torch
 from packaging.version import parse as V
 from typeguard import typechecked
@@ -51,7 +55,13 @@ class ESPnetSDSModelInterface(AbsESPnetModel):
         self.chat.init_chat(
             {
                 "role": "system",
-                "content": "You are a helpful and friendly AI assistant. The user is talking to you with their voice and you should respond in a conversational style. You are polite, respectful, and aim to provide concise and complete responses of less than 15 words.",
+                "content": (
+                    "You are a helpful and friendly AI "
+                    "assistant. "
+                    "You are polite, respectful, and aim to "
+                    "provide concise and complete responses of "
+                    "less than 15 words."
+                ),
             }
         )
         self.user_role = "user"
@@ -86,7 +96,11 @@ class ESPnetSDSModelInterface(AbsESPnetModel):
 
     def handle_ASR_selection(self, option):
         if option == "librispeech_asr":
-            option = "espnet/simpleoier_librispeech_asr_train_asr_conformer7_wavlm_large_raw_en_bpe5000_sp"
+            option = (
+                "espnet/"
+                "simpleoier_librispeech_asr_train_asr_conformer7"
+                "_wavlm_large_raw_en_bpe5000_sp"
+            )
         if self.ASR_curr_name is not None:
             if option == self.ASR_curr_name:
                 return
@@ -96,9 +110,10 @@ class ESPnetSDSModelInterface(AbsESPnetModel):
         self.ASR_curr_name = option
         if option == "espnet/owsm_v3.1_ebf":
             self.s2t = OWSMModel()
-        elif (
-            option
-            == "espnet/simpleoier_librispeech_asr_train_asr_conformer7_wavlm_large_raw_en_bpe5000_sp"
+        elif option == (
+            "espnet/"
+            "simpleoier_librispeech_asr_train_asr_conformer7"
+            "_wavlm_large_raw_en_bpe5000_sp"
         ):
             self.s2t = ESPnetASRModel(tag=option)
         elif option == "whisper":

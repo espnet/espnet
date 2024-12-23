@@ -18,14 +18,12 @@ def perplexity(LLM_Output):
     except Exception as e:
         print("Error: evaluate is not properly installed.")
         raise e
-    # import pdb;pdb.set_trace()
     perplexity = evaluate.load("perplexity", module_type="metric")
     results = perplexity.compute(model_id="gpt2", predictions=[LLM_Output])
     return f"Perplexity: {results['mean_perplexity']:.2f}\n"
 
 
 def vert(LLM_response_arr):
-    # import pdb;pdb.set_trace()
     terms = [x.strip().split() for x in LLM_response_arr]
 
     tasks = [
@@ -49,7 +47,6 @@ def vert(LLM_response_arr):
 
 
 def bert_score(total_response_arr):
-    # import pdb;pdb.set_trace()
     def cosine_similarity_context_response(context, response, model, tokenizer):
         # Tokenize and encode both context and response
         context_inputs = tokenizer(context, return_tensors="pt", truncation=True)
@@ -83,10 +80,10 @@ def bert_score(total_response_arr):
 
 
 def DialoGPT_perplexity(user_utterance, response):
-    # import pdb;pdb.set_trace()
     def evaluate_response_with_dialoGPT(context, response, model, tokenizer):
         """
-        Evaluate the appropriateness of a response based on the given context using DialoGPT.
+        Evaluate the appropriateness of a response based on the
+        given context using DialoGPT.
 
         Args:
             context (str): The dialogue context (previous conversation).

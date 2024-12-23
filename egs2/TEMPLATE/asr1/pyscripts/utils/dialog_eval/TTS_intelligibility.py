@@ -23,7 +23,6 @@ def handle_espnet_TTS_intelligibility(TTS_audio_output, LLM_Output):
             use_gpu=True,
         ),
     }
-    # import pdb;pdb.set_trace()
     dict1 = score_modules_espnet["module"](
         score_modules_espnet["args"],
         int2float(TTS_audio_output[1]),
@@ -57,7 +56,6 @@ def handle_espnet_TTS_intelligibility(TTS_audio_output, LLM_Output):
             use_gpu=True,
         ),
     }
-    # import pdb;pdb.set_trace()
     dict1 = score_modules_owsm["module"](
         score_modules_owsm["args"],
         int2float(TTS_audio_output[1]),
@@ -79,7 +77,6 @@ def handle_espnet_TTS_intelligibility(TTS_audio_output, LLM_Output):
             use_gpu=True,
         ),
     }
-    # import pdb;pdb.set_trace()
     dict1 = score_modules_whisper["module"](
         score_modules_whisper["args"],
         int2float(TTS_audio_output[1]),
@@ -104,4 +101,11 @@ def handle_espnet_TTS_intelligibility(TTS_audio_output, LLM_Output):
         + dict1["whisper_cer_replace"]
         + dict1["whisper_cer_equal"]
     )
-    return f"ESPnet WER: {espnet_wer*100:.2f}\nESPnet CER: {espnet_cer*100:.2f}\nOWSM WER: {owsm_wer*100:.2f}\nOWSM CER: {owsm_cer*100:.2f}\nWhisper WER: {whisper_wer*100:.2f}\nWhisper CER: {whisper_cer*100:.2f}"
+    return (
+        f"ESPnet WER: {espnet_wer*100:.2f}\n"
+        "ESPnet CER: {espnet_cer*100:.2f}\n"
+        "OWSM WER: {owsm_wer*100:.2f}\n"
+        "OWSM CER: {owsm_cer*100:.2f}\n"
+        "Whisper WER: {whisper_wer*100:.2f}\n"
+        "Whisper CER: {whisper_cer*100:.2f}"
+    )

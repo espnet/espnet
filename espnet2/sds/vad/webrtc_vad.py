@@ -61,7 +61,7 @@ class WebrtcVADModel(AbsVAD):
             self.vad_bin_output.append(speech)
         else:
             vad_curr = False
-        if self.vad_output is not None and vad_curr == False:
+        if self.vad_output is not None and vad_curr is False:
             array = torch.cat(self.vad_output).cpu().numpy()
             duration_ms = len(array) / self.target_sr * 1000
             if not (
