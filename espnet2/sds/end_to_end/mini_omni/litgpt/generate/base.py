@@ -243,8 +243,8 @@ def generate(
         # not support it to avoid negatively impacting the overall
         # speed
         raise NotImplementedError(
-            f"max_seq_length {model.max_seq_length} needs to be >=
-            {max_returned_tokens - 1}"
+            f"max_seq_length {model.max_seq_length} needs to be >="
+            f"{max_returned_tokens - 1}"
         )
 
     for input_id in input_ids:
