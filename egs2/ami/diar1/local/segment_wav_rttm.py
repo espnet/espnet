@@ -361,7 +361,7 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-### segment train
+# Segment train set
 segment_wav_rttm(
     args.ami_diarization_config,
     args.mic_type,
@@ -371,7 +371,7 @@ segment_wav_rttm(
     args.segment_output_dir,
     float(args.duration),
 )
-### segment dev
+# Segment dev set
 segment_wav_rttm(
     args.ami_diarization_config,
     args.mic_type,
@@ -381,7 +381,7 @@ segment_wav_rttm(
     args.segment_output_dir,
     float(args.duration),
 )
-### segment test
+# Segment test set
 segment_wav_rttm(
     args.ami_diarization_config,
     args.mic_type,
