@@ -3,8 +3,12 @@
 # Copyright 2021 Johns Hopkins University (Jiatong Shi)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-utils/parse_options.sh || exit 1
+collar=0.0
+frame_shift=128
+fs=8000
+subsampling=1
 
+. ./utils/parse_options.sh || exit 1
 
 if [ $# -lt 3 ]; then
     echo "Usage: $0 <scoring_dir> <infer_scp> <gt_label>";
@@ -14,10 +18,6 @@ fi
 scoring_dir=$1  # scoring directory
 infer_scp=$2    # inference scp from diar_inference
 gt_label=$3     # ground truth rttm
-collar=$4
-fs=$5
-frame_shift=$6
-subsampling=$7
 
 echo "Scoring at ${scoring_dir}"
 mkdir -p $scoring_dir || exit 1;
