@@ -67,7 +67,7 @@ def prepare_kaldi_files(
         ]  # the corresponding full wav_id before split, e.g., wav_id ES2002a_002, full_wav_id ES2002a
         rttm_path_full = full_rttm_path_template.format(uri_full=wav_id_full)
 
-        ### ======== Count the unique number of speakers in the original rttm (before split) ======== ###
+        # ======== Count the unique number of speakers in the original rttm (before split) ========
         # Count the number of unique speakers in the rttm file (before split)
         if wav_id_full not in unique_speaker_all:
             unique_speaker_set = set()
@@ -100,7 +100,7 @@ def prepare_kaldi_files(
         if len(unique_speaker_all[wav_id_full]) != num_spk:
             continue
 
-        ### ======================= Prepare segments, utt2spk ================== ###
+        # ======================= Prepare segments, utt2spk ==================
         spk_in_segment = set()
         with open(rttm_path, "r") as f:
             f.seek(0)
@@ -151,7 +151,7 @@ def prepare_kaldi_files(
                         )
                         utt2spk_entries.append(f"{utt_id} {spk_id}\n")
 
-        ### ====================== Prepare wav.scp ============================== ###
+        # ====================== Prepare wav.scp ==============================
         wav_path = wav_path_template.format(uri=wav_id)
         wavscp_entries.append(f"{wav_id} {wav_path}\n")
 
@@ -196,7 +196,7 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-### prepare train
+# Prepare train set
 prepare_kaldi_files(
     "train",
     args.kaldi_files_base_dir,
@@ -204,7 +204,7 @@ prepare_kaldi_files(
     args.segmented_dataset_dir,
     args.ami_setup_base_dir,
 )
-### prepare dev
+# Prepare dev set
 prepare_kaldi_files(
     "dev",
     args.kaldi_files_base_dir,
@@ -212,7 +212,7 @@ prepare_kaldi_files(
     args.segmented_dataset_dir,
     args.ami_setup_base_dir,
 )
-### prepare test
+# Prepare test set
 prepare_kaldi_files(
     "test",
     args.kaldi_files_base_dir,

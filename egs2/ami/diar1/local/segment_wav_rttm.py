@@ -69,7 +69,7 @@ def segment_wav_rttm(
             The segmented wav files will have a duration greater than or equal to
             this value.
     """
-    ### ======================= Load config file ======================= ###
+    # ======================= Load config file =======================
     logger.info(f"Start segmenting {dataset_type} dataset")
 
     if if_mini == "true":
@@ -127,7 +127,7 @@ def segment_wav_rttm(
         for line in f:
             wav_ids.append(line.strip())
 
-    ### =============== Segment each wav and corresponding rttm file =============== ###
+    # =============== Segment each wav and corresponding rttm file ===============
     for wav_id in tqdm(wav_ids, desc=f"{dataset_type} dataset"):
 
         wav_path = wav_path_template.format(uri=wav_id)
@@ -293,7 +293,7 @@ def segment_wav_rttm(
             # Some rttm is longer than wav, e.g. TS3007c in the train set, wav 2420s, rttm 2429.86s (this is a label error, but the label before the tail is correct)
             # If need to keep the tail, set the duration to at least 20s.
 
-            ### UNCOMMENT IF NEED TO KEEP THE TAIL!!!
+            # UNCOMMENT IF NEED TO KEEP THE TAIL!!!
             # if curr_spk_end_time - last_segment_end_time > 0:
             #     # Process the last segment, which is less than duration
             #     if len(segment_rttm_entries) == 0:

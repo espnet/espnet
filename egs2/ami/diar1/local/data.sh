@@ -66,7 +66,7 @@ set -o pipefail
 
 log "data preparation started"
 
-### ================= Download AMI diarization setup files ================= ###
+# ================= Download AMI diarization setup files =================
 # AMI corpus for speaker diarization setup from gihub :
 # https://github.com/pyannote/AMI-diarization-setup/tree/main
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ] ; then
@@ -81,9 +81,9 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ] ; then
     fi
 fi
 
-### ======================== Download AMI dataset ========================= ###
+# ======================== Download AMI dataset =========================
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ] ; then
-    # download data to `downloads`, the downloaded data should be
+    # Download data to `downloads`, the downloaded data should be
     # specified with `mic_type` and `if_mini`, default is `ihm` and `false`.
     log "Start downloading AMI data"
     if [ ${mic_type} == "ihm" ]; then
@@ -111,7 +111,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ] ; then
 fi
 
 
-### ===================== Segment and Alignment ======================== ###
+# ===================== Segment and Alignment ========================
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ] ; then
     log "Start segmenting the dataset"
     # Split wav files to short segments, and generate corresponding RTTM files.
@@ -129,7 +129,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ] ; then
     log "Successfully segmented the dataset"
 fi
 
-### ==================== Prepare Kaldi-style files ==================== ###
+# ==================== Prepare Kaldi-style files ====================
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] ; then
     log "Start preparing Kaldi-style files"
     mkdir -p data/
@@ -148,7 +148,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] ; then
         cp data/train/* data/test/
     fi
 
-    # converts the utt2spk file to spk2utt file
+    # Convert the utt2spk file to spk2utt file
     for dir in data/test data/train data/dev; do
         utils/utt2spk_to_spk2utt.pl $dir/utt2spk > $dir/spk2utt
         sort $dir/utt2spk -o $dir/utt2spk
