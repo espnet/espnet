@@ -100,7 +100,7 @@ def prepare_kaldi_files(
                     unique_speaker_set.add(spk_id)
             unique_speaker_all[wav_id_full] = unique_speaker_set
 
-        ## Skip the wav files with more or less than num_spk speakers
+        # Skip the wav files with more or less than num_spk speakers
         if len(unique_speaker_all[wav_id_full]) != num_spk:
             continue
 
