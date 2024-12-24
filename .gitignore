@@ -33,7 +33,9 @@ test_spm.model
 *.swp
 *.nfs*
 constraints.txt
+
 out/config.yaml
+
 # recipe related
 egs*/*/*/data*
 egs*/*/*/db
@@ -52,6 +54,7 @@ egs*/*/*/.cache*
 egs*/*/*/pretrained_models*
 egs*/fisher_callhome_spanish/*/local/mapping*
 egs2/test/*
+
 # tools related
 tools/chainer
 tools/bin
