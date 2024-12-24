@@ -229,15 +229,26 @@ class SLSTM(nn.Module):
     Expects input as convolutional layout.
     """
 
-    def __init__(self, dimension: int, num_layers: int = 2, skip: bool = True):
+    def __init__(
+        self,
+        dimension: int,
+        num_layers: int = 2,
+        skip: bool = True,
+        bidirectional: bool = False,
+    ):
         super().__init__()
         self.skip = skip
-        self.lstm = nn.LSTM(dimension, dimension, num_layers)
+        self.bidirectional = bidirectional
+        self.lstm = nn.LSTM(
+            dimension, dimension, num_layers, bidirectional=bidirectional
+        )
 
     def forward(self, x):
         x = x.permute(2, 0, 1)
         y, _ = self.lstm(x)
         if self.skip:
+            if self.bidirectional:
+                x = x.repeat(1, 1, 2)
             y = y + x
         y = y.permute(1, 2, 0)
         return y
@@ -369,6 +380,7 @@ class SEANetEncoder(nn.Module):
         true_skip: bool = False,
         compress: int = 2,
         lstm: int = 2,
+        bidirectional_lstm: bool = False,
     ):
         super().__init__()
         self.channels = channels
@@ -432,7 +444,12 @@ class SEANetEncoder(nn.Module):
             mult *= 2
 
         if lstm:
-            model += [SLSTM(mult * n_filters, num_layers=lstm)]
+            model += [
+                SLSTM(
+                    mult * n_filters, num_layers=lstm, bidirectional=bidirectional_lstm
+                )
+            ]
+            mult = mult * 2 if bidirectional_lstm else mult
 
         model += [
             act(**activation_params),
