@@ -19,10 +19,10 @@ stop_stage=100
 setup_dir=ami_diarization_setup # Previous name was FOLDER
 
 # Microphone type
-# Options: 
-# - ihm (individual headset mic) 
+# Options:
+# - ihm (individual headset mic)
 # - sdm (single distant mic)
-mic_type=ihm 
+mic_type=ihm
 
 # Mini dataset flag
 # If true, download ami_${data_type}_mini, a subset of the full dataset
@@ -38,8 +38,8 @@ if_mini=false
 sound_type=only_words
 
 # Number of speakers in each wav file
-# Options: 
-# - 4: Most of AMI wav files contain 4 speakers, hence, for the fixed number of speakers trainig, 
+# Options:
+# - 4: Most of AMI wav files contain 4 speakers, hence, for the fixed number of speakers trainig,
 #      if specifies 4, will remove wav files that are not with 4 speakers in
 # - 3
 # - 5
@@ -47,7 +47,7 @@ num_spk=4
 
 # Segment duration, in seconds
 # The `duration` is not the actual length of the segment, but the minimum
-# length threshold when considering splitting the wav files. 
+# length threshold when considering splitting the wav files.
 duration=20
 
 . utils/parse_options.sh || exit 1;
@@ -67,11 +67,11 @@ set -o pipefail
 log "data preparation started"
 
 ### ================= Download AMI diarization setup files ================= ###
-# AMI corpus for speaker diarization setup from gihub : 
+# AMI corpus for speaker diarization setup from gihub :
 # https://github.com/pyannote/AMI-diarization-setup/tree/main
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ] ; then
     log "Start downloading AMI-diarization-setup from github"
-    # This is a fork created by Qingzheng Wang, mainly modified the database.yml, 
+    # This is a fork created by Qingzheng Wang, mainly modified the database.yml,
     # to adapt to ESPNet's directory setting
     URL=https://github.com/Qingzheng-Wang/AMI-diarization-setup.git
     # our fork
@@ -83,7 +83,7 @@ fi
 
 ### ======================== Download AMI dataset ========================= ###
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ] ; then
-    # download data to `downloads`, the downloaded data should be 
+    # download data to `downloads`, the downloaded data should be
     # specified with `mic_type` and `if_mini`, default is `ihm` and `false`.
     log "Start downloading AMI data"
     if [ ${mic_type} == "ihm" ]; then
@@ -94,8 +94,8 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ] ; then
             chmod +x ./${setup_dir}/pyannote/download_ami_mini.sh
             ./${setup_dir}/pyannote/download_ami_mini.sh ${AMI}
         fi
-    elif [ ${mic_type} == "sdm" ]; then 
-        if [ ${if_mini} == false ]; then 
+    elif [ ${mic_type} == "sdm" ]; then
+        if [ ${if_mini} == false ]; then
             chmod +x ./${setup_dir}/pyannote/download_ami_sdm.sh
             ./${setup_dir}/pyannote/download_ami_sdm.sh ${AMI}
         else
@@ -114,7 +114,7 @@ fi
 ### ===================== Segment and Alignment ======================== ###
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ] ; then
     log "Start segmenting the dataset"
-    # Split wav files to short segments, and generate corresponding RTTM files. 
+    # Split wav files to short segments, and generate corresponding RTTM files.
     mkdir -p segmented_dataset/
 
     log "Start segmenting the dataset"
@@ -125,7 +125,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ] ; then
         --sound_type ${sound_type} \
         --segment_output_dir ./segmented_dataset \
         --duration ${duration}
-    
+
     log "Successfully segmented the dataset"
 fi
 
@@ -142,7 +142,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] ; then
 
     if [ ${num_spk} -eq 3 ] || [ ${num_spk} -eq 5 ]; then
         # Since there is no or few test or dev set for 3 or 5 speakers,
-        # and our main goal for num_spk == 3 or 5 is to adapt the model trained with 4 spks, 
+        # and our main goal for num_spk == 3 or 5 is to adapt the model trained with 4 spks,
         # we directly use the train set as test and dev set
         cp data/train/* data/dev/
         cp data/train/* data/test/
