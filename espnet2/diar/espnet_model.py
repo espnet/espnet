@@ -331,6 +331,8 @@ class ESPnetDiarizationModel(AbsESPnetModel):
             subsampled_x: (Batch, Length // subsampling + 1, Dim)
             subsampled_x_lengths: (Batch,)
         """
+        if subsampling == 1:
+            return x, x_lengths
         subsampled_x = x[:, ::subsampling, :]
         subsampled_x_lengths = torch.ceil(x_lengths.float() / subsampling).int()
         return subsampled_x, subsampled_x_lengths
