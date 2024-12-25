@@ -3,7 +3,7 @@ import argparse
 import logging
 import sys
 from pathlib import Path
-from typing import Optional, Sequence, Tuple, Union
+from typing import Optional, Sequence, Tuple, Union, List
 
 import numpy as np
 import torch
@@ -12,6 +12,8 @@ from typeguard import typechecked
 
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.tasks.cls import CLSTask
+from espnet2.text.build_tokenizer import build_tokenizer
+from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
@@ -28,7 +30,7 @@ class Classification:
         >>> classification_model = Classification("classification_config.yml", "classification_model.pth")
         >>> audio, rate = soundfile.read("speech.wav")
         >>> classification_model(audio)
-        prediction_result (int)
+        prediction_result (int, or list of ints)
     """
 
     @typechecked
@@ -50,16 +52,22 @@ class Classification:
         self.classification_train_args = classification_train_args
         self.device = device
         self.dtype = dtype
+        self.token_id_converter = TokenIDConverter(
+            token_list=classification_train_args.token_list
+        )
 
     @torch.no_grad()
     @typechecked
-    def __call__(self, speech: Union[torch.Tensor, np.ndarray]) -> float:
+    def __call__(
+        self, speech: Union[torch.Tensor, np.ndarray]
+    ) -> Tuple[List[int], torch.Tensor, str]:
         """Inference
 
         Args:
-            data: Input speech data
-        Returns:
-            [prediction, scores]
+            speech: Input speech data
+        Returns: Tuple of
+            prediction: list of ints
+            scores: tensor of float, (num_classes,) corresponding to each class' probability
         """
 
         # Input as audio signal
@@ -75,16 +83,21 @@ class Classification:
 
         # To device
         batch = to_device(batch, device=self.device)
+        scores = self.classification_model.score(**batch)  # (1, num_classes)
 
-        # TODO(checkpoint 4): Forward feature extraction and encoder etc.
-
-        if "oc_softmax_loss" in self.asvspoof_model.losses:
-            pass  # TODO(exercise2): use loss score function to estimate score
+        # scores would be a tensor of shape (batch_size, num_classes) representing probabilities.
+        if self.classification_model.classification_type == "multi-class":
+            prediction = [torch.argmax(scores, dim=-1).item()]  # list (1,)
+        elif self.classification_model.classification_type == "multi-label":
+            prediction = scores > 0.5  # Fixed threshold, (1, num_labels)
+            # list (num_labels,)
+            prediction = torch.nonzero(prediction.squeeze(0)).squeeze(-1).tolist()
         else:
-            pass  # TODO(checkpoint 4): Pass the encoder result to decoder
-
-        # TODO(checkpoint 4): return the prediction score
-        return None
+            raise NotImplementedError(
+                f"Unsupported classification type: {self.classification_model.classification_type}"
+            )
+        prediction_string = " ".join(self.token_id_converter.ids2tokens(prediction))
+        return prediction, scores.squeeze(0), prediction_string
 
 
 @typechecked
@@ -101,16 +114,15 @@ def inference(
     classification_train_config: Optional[str],
     classification_model_file: Optional[str],
     allow_variable_data_keys: bool,
+    output_all_probabilities: bool,
 ):
-    if batch_size > 1:
-        raise NotImplementedError("batch decoding is not implemented")
-    if ngpu > 1:
-        raise NotImplementedError("only single GPU decoding is supported")
 
     logging.basicConfig(
         level=log_level,
         format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
     )
+    if batch_size > 1:
+        raise NotImplementedError("batch decoding is not implemented for batch size >1")
 
     if ngpu >= 1:
         device = "cuda"
@@ -146,8 +158,7 @@ def inference(
         inference=True,
     )
 
-    # 7 .Start for-loop
-    # FIXME(kamo): The output format should be discussed about
+    # 4. Inference
     with DatadirWriter(output_dir) as writer:
         for keys, batch in loader:
             assert isinstance(batch, dict), type(batch)
@@ -156,23 +167,31 @@ def inference(
             assert len(keys) == _bs, f"{len(keys)} != {_bs}"
             batch = {k: v[0] for k, v in batch.items() if not k.endswith("_lengths")}
 
-            # N-best list of (text, token, token_int, hyp_object)
             try:
-                score = speech_anti_spoof(**batch)
+                predictions, scores, prediction_string = classification(**batch)
+                if not output_all_probabilities:
+                    scores_reduced = [scores[pred].item() for pred in predictions]
+                    scores = scores_reduced
+                else:
+                    scores = scores.tolist()
+
             except TooShortUttError as e:
                 logging.warning(f"Utterance {keys} {e}")
-                score = 0
+                predictions = [-1]
+                scores = [0]
+                prediction_string = ""
 
             # Only supporting batch_size==1
             key = keys[0]
-
             # Create a directory: outdir/{n}best_recog
             result_writer = writer["prediction"]
-
             # Write the result to each file
-            result_writer["score"][key] = str(score)
-
-            logging.info("processed {}: score {}".format(key, score))
+            result_writer["score"][key] = " ".join(
+                [str(score) for score in scores]
+            )
+            result_writer["token"][key] = " ".join([str(pred) for pred in predictions])
+            result_writer["text"][key] = prediction_string
+            logging.info("processed {}: prediction {}".format(key, prediction_string))
 
 
 def get_parser():
@@ -238,6 +257,12 @@ def get_parser():
         "--classification_model_file",
         type=str,
         help="Classification model parameter file",
+    )
+    group.add_argument(
+        "--output_all_probabilities",
+        type=str2bool,
+        default=False,
+        help="Output scores for all classes",
     )
 
     return parser

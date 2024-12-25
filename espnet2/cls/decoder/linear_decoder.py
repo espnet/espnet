@@ -8,7 +8,7 @@ from typing import Tuple
 import torch
 from typeguard import typechecked
 
-from espnet2.asr.decoder.abs_decoder import AbsDecoder
+from espnet2.cls.decoder.abs_decoder import AbsDecoder
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 
 
@@ -26,8 +26,7 @@ class LinearDecoder(AbsDecoder):
         super().__init__()
 
         self.input_dim = encoder_output_size
-        assert vocab_size > 3, "Invalid vocab size, must be > 3."
-        self.output_dim = vocab_size - 3
+        self.output_dim = vocab_size  # No special symbols
         self.dropout = None
         if dropout != 0.0:
             self.dropout = torch.nn.Dropout(p=dropout)
@@ -43,8 +42,6 @@ class LinearDecoder(AbsDecoder):
         self,
         hs_pad: torch.Tensor,
         hlens: torch.Tensor,
-        ys_in_pad: torch.Tensor = None,
-        ys_in_lens: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Args:
@@ -78,21 +75,17 @@ class LinearDecoder(AbsDecoder):
             x: (T, D). this should be a single sample without
                 any padding ie batch size=1.
         Returns:
-            logp: log probabilities over (n_classes,)
+            ret1: logits over (n_classes,)
             state: None
         Assumes that x is a single unpadded sequence.
         """
+        assert len(x.shape) == 2, x.shape
         hs_len = torch.tensor([x.shape[0]], dtype=torch.long).to(x.device)
         logits = self.forward(
             x.unsqueeze(0),
             hs_len,
         )
-        logp = torch.nn.functional.log_softmax(logits, dim=-1)
-        # Fix blank, unk and sos/eos to -inf
-        minf_tensor = torch.tensor(float("-inf"), device=logp.device)
-        minf_tensor = minf_tensor.expand(*(logp.shape[:-1]), 1)
-        logp = torch.cat([minf_tensor, minf_tensor, logp, minf_tensor], dim=-1)
-        return logp.squeeze(0), None
+        return logits.squeeze(0), None
 
     def output_size(self) -> int:
         """Get the output size."""
