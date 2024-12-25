@@ -49,7 +49,7 @@ fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "stage 2: Data preparation"
-    
+
     # deal with too large wav file in data folder
     audio_path="${EDACC}/edacc_v1.0/data/EDACC-C30.wav"
     output_dir="${EDACC}/edacc_v1.0/data/segmentation"
@@ -59,7 +59,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         # segment at 1883 second
         ffmpeg -i "$audio_path" -ss 0 -t 1883 "$output_dir/EDACC-C30_P1.wav"
         ffmpeg -i "$audio_path" -ss 1883 -c copy "$output_dir/EDACC-C30_P2.wav"
-        
+
         echo "Audio file successfully split into:"
         echo " - $output_dir/EDACC-C30_P1.wav"
         echo " - $output_dir/EDACC-C30_P2.wav"
@@ -73,14 +73,14 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
     # split the too long test utterance used for decoding section, the alignment is based on CTC segmentation tool
     python3 local/truncate_test.py "data/test"
-        
+
     # # make training data from dev, as original data has no training data
-    # utils/subset_data_dir.sh --first data/dev 5000 "data/${train_set}" 
+    # utils/subset_data_dir.sh --first data/dev 5000 "data/${train_set}"
     # n=$(($(wc -l < data/dev/segments) - 5000))
     # utils/subset_data_dir.sh --last data/dev ${n} "data/${valid_set}"
-    
+
     # make training data from dev, as original data has no training data
-    utils/subset_data_dir.sh --utt-list data/train_utterlist data/dev "data/${train_set}" 
+    utils/subset_data_dir.sh --utt-list data/train_utterlist data/dev "data/${train_set}"
     utils/subset_data_dir.sh --utt-list data/valid_utterlist data/dev "data/${valid_set}"
 
     # make a sub test set from test set
@@ -96,7 +96,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
     # Validate data
     for x in ${partitions}; do
-        utils/validate_data_dir.sh --no-feats "data/${x}" 
+        utils/validate_data_dir.sh --no-feats "data/${x}"
     done
 fi
 
