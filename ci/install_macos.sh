@@ -13,7 +13,7 @@ ${CXX:-g++} -v
     # To skip error
     mkdir -p kaldi/egs/wsj/s5/utils && touch kaldi/egs/wsj/s5/utils/parse_options.sh
     if ${USE_CONDA}; then
-        ./setup_anaconda.sh venv espnet ${ESPNET_PYTHON_VERSION}
+        ./setup_miniforge.sh venv espnet ${ESPNET_PYTHON_VERSION}
         # To install via pip instead of conda
     else
         ./setup_venv.sh "$(command -v python3)" venv

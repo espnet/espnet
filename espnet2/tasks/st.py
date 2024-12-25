@@ -507,6 +507,10 @@ class STTask(AbsTask):
             except Exception as e:
                 raise e
 
+            text_name = ["text", "src_text"]
+            if "text_name" in args.preprocessor_conf:
+                text_name = args.preprocessor_conf.pop("text_name")
+
             retval = MutliTokenizerCommonPreprocessor(
                 train=train,
                 token_type=[args.token_type, args.src_token_type],
@@ -523,8 +527,7 @@ class STTask(AbsTask):
                 noise_db_range=getattr(args, "noise_db_range", "13_15"),
                 short_noise_thres=getattr(args, "short_noise_thres", 0.5),
                 speech_volume_normalize=getattr(args, "speech_volume_normalize", None),
-                speech_name="speech",
-                text_name=["text", "src_text"],
+                text_name=text_name,
                 **getattr(args, "preprocessor_conf", {}),
             )
         else:

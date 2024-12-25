@@ -470,25 +470,30 @@ For Transducer loss computation during training, we rely by default on a fork of
 
 **Note:** We made available FastEmit regularization [[Yu et al., 2021]](https://arxiv.org/pdf/2010.11148) during loss computation. To enable it, `fastemit_lambda` need to be set in `model_conf`:
 
-    model_conf:
-      fastemit_lambda: Regularization parameter for FastEmit. (float, default = 0.0)
+```yaml
+model_conf:
+  fastemit_lambda: Regularization parameter for FastEmit. (float, default = 0.0)
+```
 
 Optionnaly, we also support training with the Pruned RNN-T loss [[Kuang et al. 2022]](https://arxiv.org/pdf/2206.13236.pdf) made available in the [k2](https://github.com/k2-fsa/k2) toolkit. To use it, the parameter `use_k2_pruned_loss` should be set to `True` in `model_conf`. From here, the loss computation can be controlled by setting the following parameters through `k2_pruned_loss_args` in `model_conf`:
 
-    model_conf:
-      use_k2_pruned_loss: True
-      k2_pruned_loss_args:
-        prune_range: How many tokens by frame are used compute the pruned loss. (int, default = 5)
-        simple_loss_scaling: The weight to scale the simple loss after warm-up. (float, default = 0.5)
-        lm_scale: The scale factor to smooth the LM part. (float, default = 0.0)
-        am_scale: The scale factor to smooth the AM part. (float, default = 0.0)
-        loss_type: Define the type of path to take for loss computation, either 'regular', 'smoothed' or 'constrained'. (str, default = "regular")
+```yaml
+model_conf:
+  use_k2_pruned_loss: True
+  k2_pruned_loss_args:
+    prune_range: How many tokens by frame are used compute the pruned loss. (int, default = 5)
+    simple_loss_scaling: The weight to scale the simple loss after warm-up. (float, default = 0.5)
+    lm_scale: The scale factor to smooth the LM part. (float, default = 0.0)
+    am_scale: The scale factor to smooth the AM part. (float, default = 0.0)
+    loss_type: Define the type of path to take for loss computation, either 'regular', 'smoothed' or 'constrained'. (str, default = "regular")
+```
 
 **Note:** Because the number of tokens emitted by timestep can be restricted during training with this version, we also make available the parameter `validation_nstep`. It let the users apply similar constraints during the validation process, when reporting CER or/and WER:
 
-    model_conf:
-      validation_nstep: Maximum number of symbol expansions at each time step when reporting CER or/and WER using mAES.
-
+```yaml
+model_conf:
+  validation_nstep: Maximum number of symbol expansions at each time step when reporting CER or/and WER using mAES.
+```
 For more information, see section Inference and "modified Adaptive Expansion Search" algorithm.
 
 ### Architecture
@@ -506,36 +511,38 @@ It is similar to the custom encoder in ESPnet1, meaning we don't need to set the
 
 The first and second configurations are optional. If needed, the following parameters can be modified in each configuration:
 
-    main_conf:
-      pos_wise_act_type: Conformer position-wise feed-forward activation type. (str, default = "swish")
-      conv_mod_act_type: Conformer convolution module activation type. (str, default = "swish")
-      pos_enc_dropout_rate: Dropout rate for the positional encoding layer, if used. (float, default = 0.0)
-      pos_enc_max_len: Positional encoding maximum length. (int, default = 5000)
-      simplified_att_score: Whether to use simplified attention score computation. (bool, default = False)
-      norm_type: X-former normalization module type. (str, default = "layer_norm")
-      conv_mod_norm_type: Branchformer convolution module normalization type. (str, default = "layer_norm")
-      after_norm_eps: Epsilon value for the final normalization module. (float, default = 1e-05 or 0.25 for BasicNorm)
-      after_norm_partial: Partial value for the final normalization module, if norm_type = 'rms_norm'. (float, default = -1.0)
-      blockdrop_rate: Probability threshold of dropping out each encoder block. (float, default = 0.0)
-      # For more information on the parameters below, please refer to espnet2/asr_transducer/activation.py
-      ftswish_threshold: Threshold value for FTSwish activation formulation.
-      ftswish_mean_shift: Mean shifting value for FTSwish activation formulation.
-      hardtanh_min_val: Minimum value of the linear region range for HardTanh activation. (float, default = -1.0)
-      hardtanh_max_val: Maximum value of the linear region range for HardTanh. (float, default = 1.0)
-      leakyrelu_neg_slope: Negative slope value for LeakyReLU activation formulation.
-      smish_alpha: Alpha value for Smish variant activation fomulation. (float, default = 1.0)
-      smish_beta: Beta value for Smish variant activation formulation. (float, default = 1.0)
-      softplus_beta: Beta value for softplus activation formulation in Mish activation. (float, default = 1.0)
-      softplus_threshold: Values above this revert to a linear function in Mish activation. (int, default = 20)
-      swish_beta: Beta value for E-Swish activation formulation. (float, default = 20)
+```yaml
+main_conf:
+  pos_wise_act_type: Conformer position-wise feed-forward activation type. (str, default = "swish")
+  conv_mod_act_type: Conformer convolution module activation type. (str, default = "swish")
+  pos_enc_dropout_rate: Dropout rate for the positional encoding layer, if used. (float, default = 0.0)
+  pos_enc_max_len: Positional encoding maximum length. (int, default = 5000)
+  simplified_att_score: Whether to use simplified attention score computation. (bool, default = False)
+  norm_type: X-former normalization module type. (str, default = "layer_norm")
+  conv_mod_norm_type: Branchformer convolution module normalization type. (str, default = "layer_norm")
+  after_norm_eps: Epsilon value for the final normalization module. (float, default = 1e-05 or 0.25 for BasicNorm)
+  after_norm_partial: Partial value for the final normalization module, if norm_type = 'rms_norm'. (float, default = -1.0)
+  blockdrop_rate: Probability threshold of dropping out each encoder block. (float, default = 0.0)
+  # For more information on the parameters below, please refer to espnet2/asr_transducer/activation.py
+  ftswish_threshold: Threshold value for FTSwish activation formulation.
+  ftswish_mean_shift: Mean shifting value for FTSwish activation formulation.
+  hardtanh_min_val: Minimum value of the linear region range for HardTanh activation. (float, default = -1.0)
+  hardtanh_max_val: Maximum value of the linear region range for HardTanh. (float, default = 1.0)
+  leakyrelu_neg_slope: Negative slope value for LeakyReLU activation formulation.
+  smish_alpha: Alpha value for Smish variant activation fomulation. (float, default = 1.0)
+  smish_beta: Beta value for Smish variant activation formulation. (float, default = 1.0)
+  softplus_beta: Beta value for softplus activation formulation in Mish activation. (float, default = 1.0)
+  softplus_threshold: Values above this revert to a linear function in Mish activation. (int, default = 20)
+  swish_beta: Beta value for E-Swish activation formulation. (float, default = 20)
 
-    input_conf:
-      block_type: Input block type, either "conv2d" or "vgg". (str, default = "conv2d")
-      conv_size: Convolution output size. For "vgg", the two convolution outputs can be controlled by passing a tuple. (int, default = 256)
-      subsampling_factor: Subsampling factor of the input block, either 2 (only conv2d), 4 or 6. (int, default = 4)
+input_conf:
+  block_type: Input block type, either "conv2d" or "vgg". (str, default = "conv2d")
+  conv_size: Convolution output size. For "vgg", the two convolution outputs can be controlled by passing a tuple. (int, default = 256)
+  subsampling_factor: Subsampling factor of the input block, either 2 (only conv2d), 4 or 6. (int, default = 4)
+```
 
 The only mandatory configuration is `body_conf`, defining the encoder body architecture block by block. Each block has its own set of mandatory and optional parameters depending on the type, defined by `block_type`:
-
+```yaml
     # Branchformer
     - block_type: branchformer
       hidden_size: Hidden (and output) dimension. (int)
@@ -588,6 +595,7 @@ The only mandatory configuration is `body_conf`, defining the encoder body archi
       conv_mod_norm_partial (optional): Partial value for the ConvolutionalSpatialGatingUnit module normalization, if conv_norm_type = 'rms_norm'. (float, default = -1.0)
       dropout_rate (optional): Dropout rate for some intermediate layers. (float, default = 0.0)
       att_dropout_rate (optional): Dropout rate for the attention module. (float, default = 0.0)
+```
 
 In addition, each block has a parameter `num_blocks` to build **N** times the defined block (int, default = 1). This is useful if you want to use a group of blocks sharing the same parameters without writing each configuration.
 
@@ -626,33 +634,34 @@ encoder_conf:
 For the decoder, four types of blocks are available: stateless ('stateless'), RNN ('rnn'), MEGA ('mega') or RWKV ('rwkv'). Contrary to the encoder, the parameters are shared across the blocks, meaning we only define one block in the configuration.
 The type of the stack of blocks is defined by passing the corresponding type string to the parameter `decoder`. The internal parts are defined through the field `decoder_conf` containing the following controlable parameters:
 
-    decoder_conf:
-      embed_size: Size of the embedding layer (int, default = 256).
-      num_blocks: Number of decoder blocks/layers (int, default = 4 for MEGA or 1 for RNN).
-      rnn_type (RNN only): Type of RNN cells (int, default = "lstm").
-      hidden_size (RNN only): Size of the hidden layers (int, default = 256).
-      block_size (MEGA/RWKV only): Size of the block's input/output (int, default = 512).
-      linear_size (MEGA/RWKV only): Feed-Forward module hidden size (int, default = 1024).
-      attention_size (RWKV only): Hidden-size of the attention module. (int, default = None).
-      context_size (RWKV only): Context size for the WKV kernel module (int, default = 1024).
-      qk_size (MEGA only): Shared query and key size for attention module (int, default = 128).
-      v_size (MEGA only): Value size for attention module (int, default = 1024).
-      chunk_size (MEGA only): Chunk size for attention computation (int, default = -1, i.e. full context).
-      num_heads (MEGA only): Number of EMA heads (int, default = 4).
-      rel_pos_bias (MEGA only): Type of relative position bias in attention module (str, default = "simple").
-      max_positions (MEGA only): Maximum number of position for RelativePositionBias (int, default = 2048).
-      truncation_length (MEGA only): Maximum length for truncation in EMA module (int, default = None).
-      normalization_type (MEGA/RWKV only): Normalization layer type (str, default = "layer_norm").
-      normalization_args (MEGA/RKWV only): Normalization layer arguments (dict, default = {}).
-      activation_type (MEGA only): Activation function type (str, default = "swish").
-      activation_args (MEGA only): Activation function arguments (dict, default = {}).
-      rescale_every (RWKV only): Whether to rescale input every N blocks during inference (int, default = 0)
-      dropout_rate (excl. RWKV): Dropout rate for main block modules (float, default = 0.0).
-      embed_dropout_rate: Dropout rate for embedding layer (float, default = 0.0).
-      att_dropout_rate (MEGA/RWKV only): Dropout rate for the attention module.
-      ema_dropout_rate (MEGA only): Dropout rate for the EMA module.
-      ffn_dropout_rate (MEGA/RWKV only): Dropout rate for the feed-forward module.
-
+```yaml
+decoder_conf:
+  embed_size: Size of the embedding layer (int, default = 256).
+  num_blocks: Number of decoder blocks/layers (int, default = 4 for MEGA or 1 for RNN).
+  rnn_type (RNN only): Type of RNN cells (int, default = "lstm").
+  hidden_size (RNN only): Size of the hidden layers (int, default = 256).
+  block_size (MEGA/RWKV only): Size of the block's input/output (int, default = 512).
+  linear_size (MEGA/RWKV only): Feed-Forward module hidden size (int, default = 1024).
+  attention_size (RWKV only): Hidden-size of the attention module. (int, default = None).
+  context_size (RWKV only): Context size for the WKV kernel module (int, default = 1024).
+  qk_size (MEGA only): Shared query and key size for attention module (int, default = 128).
+  v_size (MEGA only): Value size for attention module (int, default = 1024).
+  chunk_size (MEGA only): Chunk size for attention computation (int, default = -1, i.e. full context).
+  num_heads (MEGA only): Number of EMA heads (int, default = 4).
+  rel_pos_bias (MEGA only): Type of relative position bias in attention module (str, default = "simple").
+  max_positions (MEGA only): Maximum number of position for RelativePositionBias (int, default = 2048).
+  truncation_length (MEGA only): Maximum length for truncation in EMA module (int, default = None).
+  normalization_type (MEGA/RWKV only): Normalization layer type (str, default = "layer_norm").
+  normalization_args (MEGA/RKWV only): Normalization layer arguments (dict, default = {}).
+  activation_type (MEGA only): Activation function type (str, default = "swish").
+  activation_args (MEGA only): Activation function arguments (dict, default = {}).
+  rescale_every (RWKV only): Whether to rescale input every N blocks during inference (int, default = 0)
+  dropout_rate (excl. RWKV): Dropout rate for main block modules (float, default = 0.0).
+  embed_dropout_rate: Dropout rate for embedding layer (float, default = 0.0).
+  att_dropout_rate (MEGA/RWKV only): Dropout rate for the attention module.
+  ema_dropout_rate (MEGA only): Dropout rate for the EMA module.
+  ffn_dropout_rate (MEGA/RWKV only): Dropout rate for the feed-forward module.
+```
 
 **Example 1: RNN decoder.**
 
@@ -705,12 +714,14 @@ We also support multi-task learning with two auxiliary tasks: CTC and cross-entr
 
 where the losses (L_*) are respectively, in order: The Transducer loss, the CTC loss and the LM loss. Lambda values define their respective contribution to the total loss. Each task can be parameterized using the following options, passed to `model_conf`:
 
-    model_conf:
-      transducer_weight: Weight of the Transducer loss (float, default = 1.0)
-      auxiliary_ctc_weight: Weight of the CTC loss. (float, default = 0.0)
-      auxiliary_ctc_dropout_rate: Dropout rate for the CTC loss inputs. (float, default = 0.0)
-      auxiliary_lm_loss_weight: Weight of the LM loss. (float, default = 0.2)
-      auxiliary_lm_loss_smoothing: Smoothing rate for LM loss. If > 0, label smoothing is enabled. (float, default = 0.0)
+```yaml
+model_conf:
+  transducer_weight: Weight of the Transducer loss (float, default = 1.0)
+  auxiliary_ctc_weight: Weight of the CTC loss. (float, default = 0.0)
+  auxiliary_ctc_dropout_rate: Dropout rate for the CTC loss inputs. (float, default = 0.0)
+  auxiliary_lm_loss_weight: Weight of the LM loss. (float, default = 0.2)
+  auxiliary_lm_loss_smoothing: Smoothing rate for LM loss. If > 0, label smoothing is enabled. (float, default = 0.0)
+```
 
 **Note:** We do not support other auxiliary tasks in ESPnet2 yet.
 
@@ -725,19 +736,23 @@ Various decoding algorithms are also available for Transducer by setting `search
 
 The algorithms share two parameters to control the beam size (`beam_size`) and the partial/final hypotheses normalization (`score_norm`). In addition, three algorithms have specific parameters:
 
-    # Time-synchronous decoding
-    search_type: tsd
-    max_sym_exp : Number of maximum symbol expansions at each time step. (int > 1, default = 3)
-
-    # Alignement-Length Synchronous decoding
-    search_type: alsd
-    u_max: Maximum expected target sequence length. (int, default = 50)
-
-    # modified Adaptive Expansion Search
-    search_type: maes
-    nstep: Number of maximum expansion steps at each time step (int, default = 2)
-    expansion_gamma: Number of additional candidates in expanded hypotheses selection. (int, default = 2)
-    expansion_beta: Allowed logp difference for prune-by-value method. (float, default = 2.3)
+- Time-synchronous decoding
+```yaml
+search_type: tsd
+max_sym_exp : Number of maximum symbol expansions at each time step. (int > 1, default = 3)
+```
+- Alignement-Length Synchronous decoding
+```yaml
+search_type: alsd
+u_max: Maximum expected target sequence length. (int, default = 50)
+```
+- Modified Adaptive Expansion Search
+```yaml
+search_type: maes
+nstep: Number of maximum expansion steps at each time step (int, default = 2)
+expansion_gamma: Number of additional candidates in expanded hypotheses selection. (int, default = 2)
+expansion_beta: Allowed logp difference for prune-by-value method. (float, default = 2.3)
+```
 
 ***Note:*** Except for the default algorithm, the described parameters are used to control the performance and decoding speed. The optimal values for each parameter are task-dependent; a high value will typically increase decoding time to focus on performance while a low value will improve decoding time at the expense of performance.
 
@@ -755,17 +770,20 @@ To train a streaming model, the parameter `dynamic_chunk_training` should be set
 
 All these parameters can be configured through `main_conf`, introduced in the Encoder section:
 
-    dynamic_chunk_training: Whether to train streaming model with dynamic chunks. (bool, default = False)
-    short_chunk_threshold: Chunk length threshold (in percent) for dynamic chunk selection. (int, default = 0.75)
-    short_chunk_size: Minimum number of frames during dynamic chunk training. (int, default = 25)
-    num_left_chunks: The number of left chunks the attention module can see during training, where the actual size is defined by `short_chunk_threshold` and `short_chunk_size`. (int, default = 0, i.e. full context)
-
+```yaml
+dynamic_chunk_training: Whether to train streaming model with dynamic chunks. (bool, default = False)
+short_chunk_threshold: Chunk length threshold (in percent) for dynamic chunk selection. (int, default = 0.75)
+short_chunk_size: Minimum number of frames during dynamic chunk training. (int, default = 25)
+num_left_chunks: The number of left chunks the attention module can see during training, where the actual size is defined by `short_chunk_threshold` and `short_chunk_size`. (int, default = 0, i.e. full context)
+```
 #### Decoding
 
 To perform chunk-by-chunk inference, the parameter `streaming` should be set to True in the decoding configuration (otherwise, offline decoding will be performed). Two parameters are available to control the decoding process:
 
-    decoding_window: The input audio length, in milliseconds, to process during decoding. (int, default = 640)
-    left_context: Number of previous frames (AFTER subsampling) the attention module can see in current chunk. (int, default = 32)
+```yaml
+decoding_window: The input audio length, in milliseconds, to process during decoding. (int, default = 640)
+left_context: Number of previous frames (AFTER subsampling) the attention module can see in current chunk. (int, default = 32)
+```
 
 ***Note:*** All search algorithms but ALSD are available with chunk-by-chunk inference.
 
