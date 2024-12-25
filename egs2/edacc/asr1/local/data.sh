@@ -71,7 +71,8 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     # prepare the date in Kaldi style, output will be "dev" folder and "test" folder in "data" folder
     python3 local/data_prep.py "${EDACC}/edacc_v1.0" "data" "${output_dir}"
 
-    # # split the too long test utterance used for decoding section if necessary, the alignment is based on CTC segmentation tool
+    # # split the too long test utterance used for decoding section if necessary, 
+    # # the alignment is based on CTC segmentation tool
     # python3 local/truncate_test.py "data/test"
 
     # # make training data from dev, as original data has no training data

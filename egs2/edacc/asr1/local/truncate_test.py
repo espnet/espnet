@@ -84,7 +84,9 @@ if __name__ == "__main__":
 
     test_dir = sys.argv[1]
 
-    # Example input: specify utterance splits, below is an example, the text should be filled according to the split, and it's possible to add more utterances
+    # Example input: specify utterance splits, below is an example,
+    # the text should be filled according to the split,
+    # and it's possible to add more utterances
     utterance_splits = {
         "EDACC-C34-A-EDACC-C34-000000008": [
             (
