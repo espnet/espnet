@@ -182,13 +182,11 @@ class MultiHeadedAttention(nn.Module):
                 k,
                 v,
                 mask.unsqueeze(1) if mask is not None else None,
-                dropout_p=self.dropout_rate if self.training else 0.0
-            )   # (batch, head, time1, d_k)
+                dropout_p=self.dropout_rate if self.training else 0.0,
+            )  # (batch, head, time1, d_k)
 
-            out = out.transpose(1, 2)   # (batch, time1, head, d_k)
-            out = out.reshape(
-                out.shape[0], out.shape[1], -1
-            )      # (batch, time1, d_model)
+            out = out.transpose(1, 2)  # (batch, time1, head, d_k)
+            out = out.reshape(out.shape[0], out.shape[1], -1)  # (batch, time1, d_model)
             return self.linear_out(out)  # (batch, time1, d_model)
 
         # Use Flash Attention implementation
