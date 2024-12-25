@@ -1,7 +1,7 @@
 import os
+import random
 import re
 import sys
-import random
 
 
 def generate_data_files(
