@@ -52,8 +52,8 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         attractor: Optional[AbsAttractor],
         diar_weight: float = 1.0,
         attractor_weight: float = 1.0,
-        context_size: int = 7,
-        subsampling: int = 10,
+        context_size: int = 0,
+        subsampling: int = 1,
     ):
 
         super().__init__()
@@ -302,7 +302,7 @@ class ESPnetDiarizationModel(AbsESPnetModel):
             feats, feats_lengths = speech, speech_lengths
         return feats, feats_lengths
 
-    def _splice_feats(self, feats, context_size=7):
+    def _splice_feats(self, feats, context_size=0):
         """Splice feats
         Args:
             feats: (Batch, Length, Dim)
@@ -310,6 +310,8 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         Returns:
             spliced_feats: (Batch, Length, Dim * (2 * context_size + 1))
         """
+        if context_size == 0:
+            return feats
         batch_size, seq_len, feat_dim = feats.shape
         feats_pad = F.pad(feats, (0, 0, context_size, context_size), "constant")
         spliced_feats = (
@@ -319,7 +321,7 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         )
         return spliced_feats
 
-    def _subsample(self, x, x_lengths, subsampling=10):
+    def _subsample(self, x, x_lengths, subsampling=1):
         """Subsample feats or labels
         Args:
             x: (Batch, Length, Dim), feats or labels
