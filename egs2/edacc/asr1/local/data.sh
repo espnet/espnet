@@ -17,6 +17,7 @@ stop_stage=100
 train_set="dev_train"
 valid_set="dev_non_train"
 test_set="test"
+sub_test_set="test_sub"
 
 log "$0 $*"
 . utils/parse_options.sh
@@ -36,7 +37,7 @@ if [ -z "${EDACC}" ]; then
     exit 1
 fi
 
-partitions="${train_set} ${valid_set} ${test_set}"
+partitions="${train_set} ${valid_set} ${test_set} ${sub_test_set}"
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     if [ ! -e "${EDACC}/edacc_v1.0/README.txt" ]; then
@@ -70,12 +71,20 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     # prepare the date in Kaldi style, output will be "dev" folder and "test" folder in "data" folder
     python3 local/data_prep.py "${EDACC}/edacc_v1.0" "data" "${output_dir}"
 
+    # split the too long test utterance used for decoding section, the alignment is based on CTC segmentation tool
+    python3 local/truncate_test.py "data/test"
         
+    # # make training data from dev, as original data has no training data
+    # utils/subset_data_dir.sh --first data/dev 5000 "data/${train_set}" 
+    # n=$(($(wc -l < data/dev/segments) - 5000))
+    # utils/subset_data_dir.sh --last data/dev ${n} "data/${valid_set}"
+    
     # make training data from dev, as original data has no training data
-    utils/subset_data_dir.sh --first data/dev 5000 "data/${train_set}" 
-    n=$(($(wc -l < data/dev/segments) - 5000))
-    utils/subset_data_dir.sh --last data/dev ${n} "data/${valid_set}"
+    utils/subset_data_dir.sh --utt-list data/train_utterlist data/dev "data/${train_set}" 
+    utils/subset_data_dir.sh --utt-list data/valid_utterlist data/dev "data/${valid_set}"
 
+    # make a sub test set from test set
+    utils/subset_data_dir.sh --first data/test 500 "data/${sub_test_set}"
 
     # sort the data, and make utt2spk to spk2utt
     for x in ${partitions}; do

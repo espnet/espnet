@@ -1,9 +1,16 @@
 import os
 import re
 import sys
+import random
 
 
-def generate_data_files(target_root, edacc_root, segmented_audio_path, segment_length=1883):
+def generate_data_files(
+    target_root,
+    edacc_root,
+    segmented_audio_path,
+    utter_number,
+    segment_length=1883,
+):
 
     for x in ["dev", "test"]:
         # output file directory
@@ -21,6 +28,7 @@ def generate_data_files(target_root, edacc_root, segmented_audio_path, segment_l
 
         # process utt2spk
         utter_spk_map = {}
+        utt_list = []
         with open(utt2spk_out, "w") as utt2spk_out:
             if os.path.exists(utt2spk):
                 with open(utt2spk, "r") as utt2spk:
@@ -34,6 +42,24 @@ def generate_data_files(target_root, edacc_root, segmented_audio_path, segment_l
                             utter = utter.replace("C30", "C30_P1")
                         utter_spk_map[utter] = spk
                         utt2spk_out.write(f"{utter_spk_map[utter]}-{utter} {spk}\n")
+                        utt_list.append(utter)
+
+        if x == "dev":
+            random.seed(42)
+            random.shuffle(utt_list)
+            # select some utterances for training
+            train_utter_list = utt_list[:utter_number]
+            train_utterlist_path = os.path.join(target_root, "train_utterlist")
+            with open(train_utterlist_path, "w") as f:
+                for utter in train_utter_list:
+                    f.write(f"{utter_spk_map[utter]}-{utter}\n")
+
+            # select rest of utterances for validation
+            valid_utter_list = utt_list[utter_number:]
+            valid_utterlist_path = os.path.join(target_root, "valid_utterlist")
+            with open(valid_utterlist_path, "w") as f:
+                for utter in valid_utter_list:
+                    f.write(f"{utter_spk_map[utter]}-{utter}\n")
 
         # process text
         with open(text_out, "w") as text_out:
@@ -63,13 +89,19 @@ def generate_data_files(target_root, edacc_root, segmented_audio_path, segment_l
                             wavID = wavID.replace("C30", "C30_P2")
                             start = f"{float(start) - segment_length:.2f}"
                             end = f"{float(end) - segment_length:.2f}"
-                            audio_path = os.path.join(segmented_audio_path, f"{wavID}.wav")
+                            audio_path = os.path.join(
+                                segmented_audio_path, f"{wavID}.wav"
+                            )
                         elif "C30" in utter and int(utter[-9:]) < 387:
                             utter = utter.replace("C30", "C30_P1")
                             wavID = wavID.replace("C30", "C30_P1")
-                            audio_path = os.path.join(segmented_audio_path, f"{wavID}.wav")
+                            audio_path = os.path.join(
+                                segmented_audio_path, f"{wavID}.wav"
+                            )
                         else:
-                            audio_path = os.path.join(edacc_root, 'data', f"{wavID}.wav")
+                            audio_path = os.path.join(
+                                edacc_root, "data", f"{wavID}.wav"
+                            )
                         seg_out.write(
                             f"{utter_spk_map[utter]}-{utter} {wavID} {start} {end}\n"
                         )
@@ -88,6 +120,14 @@ if __name__ == "__main__":
 
     edacc_root = sys.argv[1]  # the dir should be "downloads/edacc_v1.0"
     target_root = sys.argv[2]  # the dir should be "data"
-    segmented_audio_path = sys.argv[3]  # should be "downloads/edacc_v1.0/data/segmentation"
-    generate_data_files(target_root, edacc_root, segmented_audio_path, segment_length=1883)
+    segmented_audio_path = sys.argv[
+        3
+    ]  # should be "downloads/edacc_v1.0/data/segmentation"
+    generate_data_files(
+        target_root,
+        edacc_root,
+        segmented_audio_path,
+        segment_length=1883,
+        utter_number=5000,
+    )
     # print("data prep script completed successfully.")
