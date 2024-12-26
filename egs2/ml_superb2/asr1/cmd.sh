@@ -1,1 +1,1 @@
-/work/hdd/bbjs/chen26/espnet_mlsuperb_pr/egs2/TEMPLATE/asr1/cmd.sh
+../../TEMPLATE/asr1/cmd.sh
