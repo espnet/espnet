@@ -77,9 +77,7 @@ def truncate_test_set(test_dir, utterance_splits):
                     new_end,
                     _,
                 ) in utterance_splits[utter]:
-                    new_segment.append(
-                        f"{new_utter} {id} {new_start} {new_end}\n"
-                    )
+                    new_segment.append(f"{new_utter} {id} {new_start} {new_end}\n")
             else:
                 new_segment.append(line)
 
