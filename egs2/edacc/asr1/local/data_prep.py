@@ -24,7 +24,10 @@ def generate_data_files(
         segments = os.path.join(edacc_root, x, "segments")
         utt2spk = os.path.join(edacc_root, x, "utt2spk")
 
-        os.makedirs(os.path.join(target_root, x), exist_ok=True)
+        os.makedirs(
+            os.path.join(target_root, x),
+            exist_ok=True,
+        )
 
         # process utt2spk
         utter_spk_map = {}
@@ -41,7 +44,9 @@ def generate_data_files(
                         elif "C30" in utter and int(utter[-9:]) < 387:
                             utter = utter.replace("C30", "C30_P1")
                         utter_spk_map[utter] = spk
-                        utt2spk_out.write(f"{utter_spk_map[utter]}-{utter} {spk}\n")
+                        utt2spk_out.write(
+                            f"{utter_spk_map[utter]}-{utter} {spk}\n"
+                        )
                         utt_list.append(utter)
 
         if x == "dev":
@@ -66,14 +71,19 @@ def generate_data_files(
             if os.path.exists(text):
                 with open(text, "r") as text:
                     for line in text:
-                        utter, txt = line.strip().split(maxsplit=1)
+                        (
+                            utter,
+                            txt,
+                        ) = line.strip().split(maxsplit=1)
                         # process utter for C30
                         if "C30" in utter and int(utter[-9:]) >= 387:
                             new_number = int(utter[-9:]) - 387
                             utter = "EDACC-C30_P2-" + f"{new_number:09d}"
                         elif "C30" in utter and int(utter[-9:]) < 387:
                             utter = utter.replace("C30", "C30_P1")
-                        text_out.write(f"{utter_spk_map[utter]}-{utter} {txt}\n")
+                        text_out.write(
+                            f"{utter_spk_map[utter]}-{utter} {txt}\n"
+                        )
 
         # process segments and wav.scp
         wavID_set = set()
@@ -81,7 +91,12 @@ def generate_data_files(
             if os.path.exists(segments):
                 with open(segments, "r") as segments:
                     for line in segments:
-                        utter, wavID, start, end = line.strip().split()
+                        (
+                            utter,
+                            wavID,
+                            start,
+                            end,
+                        ) = line.strip().split()
                         # process utter for C30
                         if "C30" in utter and int(utter[-9:]) >= 387:
                             new_number = int(utter[-9:]) - 387
@@ -90,22 +105,29 @@ def generate_data_files(
                             start = f"{float(start) - segment_length:.2f}"
                             end = f"{float(end) - segment_length:.2f}"
                             audio_path = os.path.join(
-                                segmented_audio_path, f"{wavID}.wav"
+                                segmented_audio_path,
+                                f"{wavID}.wav",
                             )
                         elif "C30" in utter and int(utter[-9:]) < 387:
                             utter = utter.replace("C30", "C30_P1")
                             wavID = wavID.replace("C30", "C30_P1")
                             audio_path = os.path.join(
-                                segmented_audio_path, f"{wavID}.wav"
+                                segmented_audio_path,
+                                f"{wavID}.wav",
                             )
                         else:
                             audio_path = os.path.join(
-                                edacc_root, "data", f"{wavID}.wav"
+                                edacc_root,
+                                "data",
+                                f"{wavID}.wav",
                             )
                         seg_out.write(
                             f"{utter_spk_map[utter]}-{utter} {wavID} {start} {end}\n"
                         )
-                        if os.path.exists(audio_path) and wavID not in wavID_set:
+                        if (
+                            os.path.exists(audio_path)
+                            and wavID not in wavID_set
+                        ):
                             scp_out.write(f"{wavID} {audio_path}\n")
                             wavID_set.add(wavID)
 
@@ -114,7 +136,8 @@ if __name__ == "__main__":
 
     if len(sys.argv) != 4:
         print(
-            "Usage: python data_prep.py [edacc download directory] [target directory] [large audio path]"
+            "Usage: python data_prep.py [edacc download directory]"
+            "[target directory] [large audio path]"
         )
         sys.exit(1)
 

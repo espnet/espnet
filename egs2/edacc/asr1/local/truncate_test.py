@@ -6,12 +6,14 @@ import wave
 
 def truncate_test_set(test_dir, utterance_splits):
     """
-    Truncate specified utterances in a Kaldi test set directory and reorganize the folder.
+    Truncate specified utterances in a Kaldi test set directory.
 
     Args:
         test_dir (str): Path to the Kaldi test set directory.
-        utterance_splits (dict): A dictionary where keys are original utterance IDs, and values are lists of tuples,
-                                 each containing (new_utterance_id, start_time, end_time).
+        utterance_splits (dict):
+            A dictionary where keys are original utterance IDs,
+            and values are lists of tuples, each containing
+            (new_utterance_id, start_time, end_time).
 
     Returns:
         None
@@ -41,7 +43,12 @@ def truncate_test_set(test_dir, utterance_splits):
         for line in text_file_input:
             utter, _ = line.strip().split(maxsplit=1)
             if utter in utterance_splits:
-                for new_utter, _, _, new_txt in utterance_splits[utter]:
+                for (
+                    new_utter,
+                    _,
+                    _,
+                    new_txt,
+                ) in utterance_splits[utter]:
                     new_text.append(f"{new_utter} {new_txt}\n")
             else:
                 new_text.append(line)
@@ -50,7 +57,12 @@ def truncate_test_set(test_dir, utterance_splits):
         for line in utt2spk_file_input:
             utter, spk = line.strip().split()
             if utter in utterance_splits:
-                for new_utter, _, _, _ in utterance_splits[utter]:
+                for (
+                    new_utter,
+                    _,
+                    _,
+                    _,
+                ) in utterance_splits[utter]:
                     new_utt2spk.append(f"{new_utter} {spk}\n")
             else:
                 new_utt2spk.append(line)
@@ -59,8 +71,15 @@ def truncate_test_set(test_dir, utterance_splits):
         for line in segment_file_input:
             utter, id, start, end = line.strip().split()
             if utter in utterance_splits:
-                for new_utter, new_start, new_end, _ in utterance_splits[utter]:
-                    new_segment.append(f"{new_utter} {id} {new_start} {new_end}\n")
+                for (
+                    new_utter,
+                    new_start,
+                    new_end,
+                    _,
+                ) in utterance_splits[utter]:
+                    new_segment.append(
+                        f"{new_utter} {id} {new_start} {new_end}\n"
+                    )
             else:
                 new_segment.append(line)
 
