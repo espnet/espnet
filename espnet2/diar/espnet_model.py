@@ -52,8 +52,8 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         attractor: Optional[AbsAttractor],
         diar_weight: float = 1.0,
         attractor_weight: float = 1.0,
-        context_size: int = 0,
-        subsampling: int = 1,
+        context_size: int = 0, 
+        subsampling: int = 1, 
     ):
 
         super().__init__()
