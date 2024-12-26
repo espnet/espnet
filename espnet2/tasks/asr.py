@@ -6,6 +6,7 @@ import numpy as np
 import torch
 from typeguard import typechecked
 
+from espnet2.asr.align_refine_model import AlignRefineModel
 from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.asr.decoder.hugging_face_transformers_decoder import (  # noqa: H301
@@ -124,6 +125,7 @@ model_choices = ClassChoices(
     "model",
     classes=dict(
         espnet=ESPnetASRModel,
+        align_refine_model=AlignRefineModel,
         maskctc=MaskCTCModel,
         pit_espnet=PITESPnetModel,
     ),
