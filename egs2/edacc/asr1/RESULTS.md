@@ -35,4 +35,3 @@ Before running the recipe, please download version 1.0 from https://datashare.ed
 |---|---|---|---|---|---|---|---|---|
 |decode_asr_asr_model_valid.acc.ave/test|9300|206542|53.4|29.4|17.2|8.8|55.4|87.3|
 |decode_asr_asr_model_valid.acc.ave/test_sub|500|10566|59.8|23.8|16.4|8.0|48.2|83.6|
-
