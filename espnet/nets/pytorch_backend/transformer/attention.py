@@ -164,7 +164,7 @@ class MultiHeadedAttention(nn.Module):
                 When set to `True`, `Linear` layers are computed only for the first
                 batch. This is useful to reduce the memory usage during decoding
                 when the batch size is #beam_size x #mask_count, which can be large.
-                Typically, in single waveform inference of PAR, `Linear` layers 
+                Typically, in single waveform inference of PAR, `Linear` layers
                 should not be computed for all batches for source-attention.
 
         Returns:
