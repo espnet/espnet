@@ -81,7 +81,7 @@ fi
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     log "Stage -1: Preprocess Data"
-    python local/data_process.py "${db_root}/Genshin-${lang}"
+    python local/data_process.py "${db_root}/Genshin-${lang}" --remove-short-speaker 1200 --resample-audio 44100
 fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
@@ -129,7 +129,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
             utt_id="${spk_normalized}-${base_name}"
             
             if [ -f "${lab_file}" ] && [ -s "${lab_file}" ]; then
-                text_content=$(cat "${lab_file}" | tr -s " " | sed "s/^ *//;s/ *$//")
+                text_content=$(cat "${lab_file}" | tr -s " " | sed "s/^ *//;s/ *$//" | tr -cd '[:print:][:space:]')
                 
                 if [ ! -z "${text_content}" ]; then
                     abs_wav_path=$(readlink -f "${wav_file}")

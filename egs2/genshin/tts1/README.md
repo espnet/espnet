@@ -13,26 +13,40 @@ See the following pages before asking the question:
 - [ESPnet2 Tutorial](https://espnet.github.io/espnet/espnet2_tutorial.html)
 - [ESPnet2 TTS FAQ](../../TEMPLATE/tts1/README.md#faq)
 
-# RESULTS
+# INITIAL RESULTS
 
-## espnet/egs2/genshin/tts1/exp/44k/tts_train_full_band_multi_spk_vits_raw_phn_tacotron_g2p_en_no_space
-
-Model: 
+Model: VITS
 
 ## Environments
-- date: 
+- date: `Thu Dec 26 08:10:09 UTC 2024`
 - python version: `3.11.10 (main, Oct  3 2024, 07:29:13) [GCC 11.2.0]`
-- espnet version: 
+- espnet version: `espnet 202412`
 - pytorch version: `pytorch 2.5.1`
-- Git hash: `6b5c6230a794aa4a5df872be69e417a3fbfe821b`
-  - Commit date: 
+- Git hash: `0fa63ed0a4dae8ac19fd489ff1a14a9b8a98dd64`
+  - Commit date: `Thu Dec 26 07:30:35 2024 +0000`
 
 ### MCD
 
+Average: 7.8015 _ 2.1567
+
 ### F0 RMSE
+
+
 
 ### Pseudo MOS
 
+Average: 2.5120 _ 0.7532
+
 ### CER(with whisper medium)
 
+
+
 ### WER(with whisper medium)
+
+
+
+## Pretrained Models
+
+### espnet/egs2/genshin/tts1/exp/44k/tts_train_full_band_multi_spk_vits_raw_phn_tacotron_g2p_en_no_space
+
+- https://huggingface.co/WhaleDolphin/Genshin-vits-espnet2
