@@ -37,6 +37,7 @@ def main():
     all_lines = []
     for line in open(args.input_path, "r", encoding="utf-8", errors="ignore"):
         all_lines.append(line)
+    logging.info(f"Done reading file: {args.input_path}")
 
     all_chunks = []
     chunk_count, chunk_size = 0, 1000
@@ -47,7 +48,7 @@ def main():
         chunk_count += 1
 
     # build tokenizer and process function
-    tokenizer = AutoTokenizer.from_pretrained(args.tokenizer_tag)
+    tokenizer = AutoTokenizer.from_pretrained(args.tokenizer_tag, use_fast=True)
     process_fn = partial(process_chunk, tokenizer, args.max_len)
 
     # multi-process processing

@@ -17,8 +17,8 @@ log() {
 SECONDS=0
 stage=1
 stop_stage=1
-data_dir=/mnt/home/jinchuat/data/matrix
-output_dir=dump/raw_textlm_matrix_whole_llama
+data_dir=/mnt/home/jinchuat/data/data_1222
+output_dir=dump/raw_textlm_data_1222_llama
 tokenizer_tag=meta-llama/Llama-3.2-1B
 max_len=8000
 nj=4
@@ -30,7 +30,12 @@ log "$0 $*"
 . ./cmd.sh
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
-    for file_path in `find ${data_dir} -name *.jsonl`; do
+    all_files=""
+    for n in `seq 1 127`; do
+        all_files+="${data_dir}/$(echo $n | awk '{printf "%05d.jsonl", $1}') "
+    done
+
+    for file_path in ${all_files}; do
         file_name=$(basename ${file_path})
         file_name=${file_name%.jsonl}
 
