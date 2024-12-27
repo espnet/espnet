@@ -85,10 +85,49 @@ def score(references, lids, hyps):
     print(f"CER Standard Deviation: {statistics.stdev(all_cers)}")
     print(f"WORST 15 Lang CER: {sum(all_cers[0:15]) / 15}")
 
+def score_dialect(references, lids, hyps):
+    all_cers = []
+    all_accs = []
+    remove_space_langs = ["[cmn]", "[jpn]", "[tha]", "[yue]"]
+    langs = list(set(lids))
+    for lang in langs:
+        lang_cers = []
+        lang_acc_hyps = []
+        lang_acc_refs = []
+        for ref, lid, hyp in zip(references, lids, hyps):
+            if lid == lang:
+                if lang in remove_space_langs:
+                    remove_spaces = True
+                else:
+                    remove_spaces = False
+
+                # hyp/ref format is [iso] this is an utt
+                lang_cer = normalize_and_calculate_cer(
+                    ref[5:].strip(), hyp[5:].strip(), remove_spaces
+                )
+
+                # guard against empty reference
+                if lang_cer < 0:
+                    continue
+
+                lang_cers.append(lang_cer)
+                lang_acc_hyps.append(hyp[0:5])
+                lang_acc_refs.append(lid)
+
+        all_accs.append(calculate_acc(lang_acc_hyps, lang_acc_refs))
+        all_cers.append(sum(lang_cers) / len(lang_cers))  # average CER of a language
+
+    all_cers.sort(reverse=True)
+    print(f"DIALECT LID ACCURACY: {sum(all_accs) / len(all_accs)}")
+    print(f"DIALECT CER: {sum(all_cers) / len(all_cers)}")
 
 reference_text = open("data/dev/text").readlines()
 reference_lids = [line.split()[1] for line in reference_text]
 reference_text = [line.split(" ", 1)[1] for line in reference_text]
+
+dialect_reference_text = open("data/dialect_dev/text").readlines()
+dialect_reference_lids = [line.split()[1] for line in dialect_reference_text]
+dialect_reference_text = [line.split(" ", 1)[1] for line in dialect_reference_text]
 
 dirs = os.listdir(args.exp_dir)
 for directory in dirs:
@@ -99,3 +138,9 @@ for directory in dirs:
 
         assert len(hypothesis_text) == len(reference_text) == len(reference_lids)
         score(reference_text, reference_lids, hypothesis_text)
+
+        dialect_hypothesis_text = open(f"{args.exp_dir}/{directory}/org/dev_dialect/text").readlines()
+        dialect_hypothesis_text = [line.split(" ", 1)[1] for line in dialect_hypothesis_text]
+
+        assert len(dialect_hypothesis_text) == len(dialect_reference_text) == len(dialect_reference_lids)
+        score_dialect(dialect_reference_text, dialect_reference_lids, dialect_hypothesis_text)
