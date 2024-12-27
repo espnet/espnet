@@ -9,6 +9,7 @@
 
 mkdir -p data/train
 mkdir -p data/dev
+mkdir -p data/dev_dialect
 mkdir -p data/raw_audio
 mkdir -p data/local
 
