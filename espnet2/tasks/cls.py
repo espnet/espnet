@@ -1,16 +1,16 @@
 import argparse
-from inspect import signature
 import logging
+from inspect import signature
+from typing import Callable, Collection, Dict, List, Optional, Tuple
+
 import numpy as np
 import torch
 from typeguard import typechecked
-from typing import Callable, Collection, Dict, List, Optional, Tuple
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
-
 from espnet2.asr.encoder.beats_encoder import BeatsEncoder
-from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
+from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
 from espnet2.asr.frontend.fused import FusedFrontends
@@ -21,11 +21,9 @@ from espnet2.asr.preencoder.linear import LinearProjection
 from espnet2.asr.preencoder.sinc import LightweightSincConvs
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.asr.specaug.specaug import SpecAug
-
 from espnet2.cls.decoder.abs_decoder import AbsDecoder
 from espnet2.cls.decoder.linear_decoder import LinearDecoder
 from espnet2.cls.espnet_model import ESPnetClassificationModel
-
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN

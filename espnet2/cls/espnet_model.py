@@ -3,12 +3,12 @@
 
 from contextlib import contextmanager
 from functools import partial
-from typing import Dict, Optional, Tuple, Union, List
+from typing import Dict, List, Optional, Tuple, Union
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from packaging.version import parse as V
-
 from torcheval.metrics import functional as EvalFunction
 from typeguard import typechecked
 
@@ -16,9 +16,7 @@ from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
-
 from espnet2.cls.decoder.abs_decoder import AbsDecoder
-
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel

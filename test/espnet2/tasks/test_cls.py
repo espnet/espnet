@@ -1,9 +1,9 @@
 from argparse import Namespace
 
+import numpy as np
 import pytest
 
 from espnet2.tasks.cls import CLSTask
-import numpy as np
 
 
 def test_add_arguments():

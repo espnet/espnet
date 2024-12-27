@@ -1,7 +1,6 @@
 import pytest
 import torch
 
-
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
 from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
 from espnet2.cls.decoder.linear_decoder import LinearDecoder

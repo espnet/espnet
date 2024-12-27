@@ -3,7 +3,7 @@ import argparse
 import logging
 import sys
 from pathlib import Path
-from typing import Optional, Sequence, Tuple, Union, List
+from typing import List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
@@ -186,9 +186,7 @@ def inference(
             # Create a directory: outdir/{n}best_recog
             result_writer = writer["prediction"]
             # Write the result to each file
-            result_writer["score"][key] = " ".join(
-                [str(score) for score in scores]
-            )
+            result_writer["score"][key] = " ".join([str(score) for score in scores])
             result_writer["token"][key] = " ".join([str(pred) for pred in predictions])
             result_writer["text"][key] = prediction_string
             logging.info("processed {}: prediction {}".format(key, prediction_string))
