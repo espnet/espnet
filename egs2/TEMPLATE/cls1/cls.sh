@@ -50,7 +50,7 @@ cls_tag=    # Suffix to the result dir for cls model training.
 cls_config= # Config for cls model training.
 cls_args=   # Arguments for cls model training, e.g., "--max_epoch 10".
              # Note that it will overwrite args in cls config.
-feats_normalize=global_mvn # Normalizaton layer type.
+feats_normalize=utt_mvn # Normalizaton layer type.
 
 # cls related
 inference_config= # Config for cls model inference
@@ -63,7 +63,7 @@ train_set=       # Name of training set.
 valid_set=       # Name of development set.
 test_sets=       # Names of evaluation sets. Multiple items can be specified.
 
-text_classes=   # TODO(shikhar): fill
+text_classes=data/text
 token_list=data/token_list
 
 help_message=$(cat << EOF
@@ -89,19 +89,20 @@ Options:
     --audio_format     # Audio format: wav, flac, wav.ark, flac.ark  (default="${audio_format}").
     --fs               # Sampling rate (default="${fs}").
     # cls model related
-    --cls_tag        # Suffix to the result dir for clsization model training (default="${cls_tag}").
-    --cls_config     # Config for clsization model training (default="${cls_config}").
-    --cls_args       # Arguments for clsization model training, e.g., "--max_epoch 10" (default="${cls_args}").
+    --cls_tag        # Suffix to the result dir for classification model training (default="${cls_tag}").
+    --cls_config     # Config for classification model training (default="${cls_config}").
+    --cls_args       # Arguments for classification model training, e.g., "--max_epoch 10" (default="${cls_args}").
                       # Note that it will overwrite args in cls config.
     --feats_normalize # Normalizaton layer type (default="${feats_normalize}").
     # cls related
     --inference_config # Config for cls model inference
-    --inference_model  # clsization model path for inference (default="${inference_model}").
+    --inference_model  # classification model path for inference (default="${inference_model}").
     --inference_tag    # Suffix to the inference dir for cls model inference
     # [Task dependent] Set the datadir name created by local/data.sh
     --train_set               # Name of training set (required).
     --valid_set               # Name of development set (required).
     --test_sets               # Names of evaluation sets (required).
+    --text_classes            # Path to the text file containing classes (default="${text_classes}").
 EOF
 )
 
@@ -157,19 +158,17 @@ cls_exp="${expdir}/cls_${cls_tag}"
 if ! "${skip_data_prep}"; then
     if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         log "Stage 1: Data preparation for data/${train_set}, data/${valid_set}, etc."
-        # [Task dependent] Need to create data.sh for new corpus
         local/data.sh ${local_data_opts}
     fi
 
     if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
-
         log "Stage 2: Format wav.scp: data/ -> ${data_feats}"
-
         # ====== Recreating "wav.scp" ======
-        # Kaldi-wav.scp, which can describe the file path with unix-pipe, like "cat /some/path |",
+        # Kaldi-wav.scp, which can describe the file path 
+        # with unix-pipe, like "cat /some/path |",
         # shouldn't be used in training process.
         # "format_wav_scp.sh" dumps such pipe-style-wav to real audio file
-        # and also it can also change the audio-format and sampling rate.
+        # and it can also change the audio-format and sampling rate.
         # If nothing is need, then format_wav_scp.sh does nothing:
         # i.e. the input file format and rate is same as the output.
         for dset in "${train_set}" "${valid_set}" ${test_sets}; do
@@ -183,7 +182,6 @@ if ! "${skip_data_prep}"; then
 
             # Note(jiatong): default use raw as feats_type, see more types in other TEMPLATE recipes
             echo "raw" > "${data_feats}/${dset}/feats_type"
-
         done
     fi
 
@@ -192,13 +190,13 @@ if ! "${skip_data_prep}"; then
         ${python} -m espnet2.bin.tokenize_text --token_type "word" \
             --input "${text_classes}" --output "${token_list}" \
             --field 2- --write_vocabulary true --add_symbol "<unk>:-1"
+            # unk is just a dummy symbol for compatibility, 
+            # we ensure that it is not used in the cls model
     fi
 else
     log "Skip the data preparation stages"
 fi
 
-
-# ========================== Data preparation is done here. ==========================
 
 if ! "${skip_train}"; then
     if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
@@ -329,17 +327,16 @@ if ! "${skip_train}"; then
         # shellcheck disable=SC2086
         ${python} -m espnet2.bin.launch \
             --cmd "${cuda_cmd} --name ${jobname}" \
-            --log "${cls_exp}"/train.log \
+            --log "${cls_exp}/train.log" \
             --ngpu "${ngpu}" \
             --num_nodes "${num_nodes}" \
-            --init_file_prefix "${cls_exp}"/.dist_init_ \
+            --init_file_prefix "${cls_exp}/.dist_init_" \
             --multiprocessing_distributed true -- \
             ${python} -m espnet2.bin.cls_train \
                 --use_preprocessor true \
                 --resume true \
                 --output_dir "${cls_exp}" \
                 ${_opts} ${cls_args}
-
     fi
 else
     log "Skip the training stages"
@@ -357,8 +354,8 @@ if ! "${skip_eval}"; then
             _ngpu=0
         fi
 
-        log "Generate '${cls_exp}/run_cls.sh'. You can resume the process from stage 6 using this script"
-        mkdir -p "${cls_exp}"; echo "${run_args} --stage 6 \"\$@\"; exit \$?" > "${cls_exp}/run_cls.sh"; chmod +x "${cls_exp}/run_cls.sh"
+        log "Generate '${cls_exp}/run.sh'. You can resume the process from stage 6 using this script"
+        mkdir -p "${cls_exp}"; echo "${run_args} --stage 6 \"\$@\"; exit \$?" > "${cls_exp}/run.sh"; chmod +x "${cls_exp}/run.sh"
         _opts=
 
         if [ -n "${inference_config}" ]; then
@@ -392,8 +389,8 @@ if ! "${skip_eval}"; then
                     --ngpu "${_ngpu}" \
                     --data_path_and_name_and_type "${_data}/${_scp},speech,${_type}" \
                     --key_file "${_logdir}"/keys.JOB.scp \
-                    --cls_train_config "${cls_exp}"/config.yaml \
-                    --cls_model_file "${cls_exp}"/"${inference_model}" \
+                    --cls_train_config "${cls_exp}/config.yaml" \
+                    --cls_model_file "${cls_exp}/${inference_model}" \
                     --output_dir "${_logdir}"/output.JOB \
                     ${_opts} || { cat $(grep -l -i error "${_logdir}"/cls_inference.*.log) ; exit 1; }
 
@@ -420,7 +417,6 @@ if ! "${skip_eval}"; then
 
         scripts/utils/show_cls_result.sh "${cls_exp}" > "${cls_exp}"/RESULTS.md
         cat "${cls_exp}"/RESULTS.md
-
     fi
 else
     log "Skip the evaluation stages"

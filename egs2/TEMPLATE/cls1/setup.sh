@@ -41,16 +41,8 @@ done
 
 
 # Symlinks to TEMPLATE
-for f in asvspoof.sh path.sh db.sh scripts pyscripts; do
+for f in cls.sh path.sh db.sh scripts pyscripts steps utils; do
     target=../../TEMPLATE/cls1/"${f}"
-    ln -sf "${target}" "${dir}"
-    targets+="${dir}/${target} "
-done
-
-
-# Symlinks to Kaldi
-for f in steps utils; do
-    target=../../../tools/kaldi/egs/wsj/s5/"${f}"
     ln -sf "${target}" "${dir}"
     targets+="${dir}/${target} "
 done
