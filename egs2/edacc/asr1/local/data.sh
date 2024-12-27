@@ -70,7 +70,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-    log "stage 3: Data preparation -- prepare kaldi files, generate ${train_set}, 
+    log "stage 3: Data preparation -- prepare kaldi files, generate ${train_set},
     ${valid_set}, ${test_set}, ${sub_test_set}"
 
     # prepare the date in Kaldi style, output will be "dev" folder and "test" folder in "data" folder
