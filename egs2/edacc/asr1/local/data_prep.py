@@ -44,7 +44,9 @@ def generate_data_files(
                         elif "C30" in utter and int(utter[-9:]) < 387:
                             utter = utter.replace("C30", "C30_P1")
                         utter_spk_map[utter] = spk
-                        utt2spk_out.write(f"{utter_spk_map[utter]}-{utter} {spk}\n")
+                        utt2spk_out.write(
+                            f"{utter_spk_map[utter]}-{utter} {spk}\n"
+                        )
                         utt_list.append(utter)
 
         if x == "dev":
@@ -79,7 +81,9 @@ def generate_data_files(
                             utter = "EDACC-C30_P2-" + f"{new_number:09d}"
                         elif "C30" in utter and int(utter[-9:]) < 387:
                             utter = utter.replace("C30", "C30_P1")
-                        text_out.write(f"{utter_spk_map[utter]}-{utter} {txt}\n")
+                        text_out.write(
+                            f"{utter_spk_map[utter]}-{utter} {txt}\n"
+                        )
 
         # process segments and wav.scp
         wavID_set = set()
@@ -120,7 +124,10 @@ def generate_data_files(
                         seg_out.write(
                             f"{utter_spk_map[utter]}-{utter} {wavID} {start} {end}\n"
                         )
-                        if os.path.exists(audio_path) and wavID not in wavID_set:
+                        if (
+                            os.path.exists(audio_path)
+                            and wavID not in wavID_set
+                        ):
                             scp_out.write(f"{wavID} {audio_path}\n")
                             wavID_set.add(wavID)
 
@@ -146,4 +153,3 @@ if __name__ == "__main__":
         segment_length=1883,
         utter_number=5000,
     )
-    # print("data prep script completed successfully.")

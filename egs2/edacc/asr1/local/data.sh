@@ -48,7 +48,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
-    log "stage 2: Data preparation"
+    log "stage 2: Data preparation -- preprocess large wav files"
 
     # deal with too large wav file in data folder
     audio_path="${EDACC}/edacc_v1.0/data/EDACC-C30.wav"
@@ -67,18 +67,18 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         echo "File $audio_path not found. Please check the file path."
         exit 1
     fi
+fi
+
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
+    log "stage 3: Data preparation -- prepare kaldi files, generate ${train_set}, 
+    ${valid_set}, ${test_set}, ${sub_test_set}"
 
     # prepare the date in Kaldi style, output will be "dev" folder and "test" folder in "data" folder
     python3 local/data_prep.py "${EDACC}/edacc_v1.0" "data" "${output_dir}"
 
-    # # split the too long test utterance used for decoding section if necessary,
+    # # (optional) split the too long test utterance used for decoding section if necessary,
     # # the alignment is based on CTC segmentation tool
     # python3 local/truncate_test.py "data/test"
-
-    # # make training data from dev, as original data has no training data
-    # utils/subset_data_dir.sh --first data/dev 5000 "data/${train_set}"
-    # n=$(($(wc -l < data/dev/segments) - 5000))
-    # utils/subset_data_dir.sh --last data/dev ${n} "data/${valid_set}"
 
     # make training data from dev, as original data has no training data
     utils/subset_data_dir.sh --utt-list data/train_utterlist data/dev "data/${train_set}"
