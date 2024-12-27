@@ -85,6 +85,7 @@ def score(references, lids, hyps):
     print(f"CER Standard Deviation: {statistics.stdev(all_cers)}")
     print(f"WORST 15 Lang CER: {sum(all_cers[0:15]) / 15}")
 
+
 def score_dialect(references, lids, hyps):
     all_cers = []
     all_accs = []
@@ -121,6 +122,7 @@ def score_dialect(references, lids, hyps):
     print(f"DIALECT LID ACCURACY: {sum(all_accs) / len(all_accs)}")
     print(f"DIALECT CER: {sum(all_cers) / len(all_cers)}")
 
+
 reference_text = open("data/dev/text").readlines()
 reference_lids = [line.split()[1] for line in reference_text]
 reference_text = [line.split(" ", 1)[1] for line in reference_text]
@@ -139,8 +141,18 @@ for directory in dirs:
         assert len(hypothesis_text) == len(reference_text) == len(reference_lids)
         score(reference_text, reference_lids, hypothesis_text)
 
-        dialect_hypothesis_text = open(f"{args.exp_dir}/{directory}/org/dev_dialect/text").readlines()
-        dialect_hypothesis_text = [line.split(" ", 1)[1] for line in dialect_hypothesis_text]
+        dialect_hypothesis_text = open(
+            f"{args.exp_dir}/{directory}/org/dev_dialect/text"
+        ).readlines()
+        dialect_hypothesis_text = [
+            line.split(" ", 1)[1] for line in dialect_hypothesis_text
+        ]
 
-        assert len(dialect_hypothesis_text) == len(dialect_reference_text) == len(dialect_reference_lids)
-        score_dialect(dialect_reference_text, dialect_reference_lids, dialect_hypothesis_text)
+        assert (
+            len(dialect_hypothesis_text)
+            == len(dialect_reference_text)
+            == len(dialect_reference_lids)
+        )
+        score_dialect(
+            dialect_reference_text, dialect_reference_lids, dialect_hypothesis_text
+        )
