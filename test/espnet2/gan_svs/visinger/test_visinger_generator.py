@@ -245,6 +245,7 @@ def test_vits_generator_forward(model_dict):
     assert output.size(1) == inputs["feats"].size(2) * model.upsample_factor
 
 
+@pytest.mark.execution_timeout(5)
 @pytest.mark.skipif(
     "1.6" in torch.__version__,
     reason="group conv in pytorch 1.6 has an issue. "
