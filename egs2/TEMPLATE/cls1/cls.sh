@@ -164,7 +164,7 @@ if ! "${skip_data_prep}"; then
     if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         log "Stage 2: Format wav.scp: data/ -> ${data_feats}"
         # ====== Recreating "wav.scp" ======
-        # Kaldi-wav.scp, which can describe the file path 
+        # Kaldi-wav.scp, which can describe the file path
         # with unix-pipe, like "cat /some/path |",
         # shouldn't be used in training process.
         # "format_wav_scp.sh" dumps such pipe-style-wav to real audio file
@@ -190,7 +190,7 @@ if ! "${skip_data_prep}"; then
         ${python} -m espnet2.bin.tokenize_text --token_type "word" \
             --input "${text_classes}" --output "${token_list}" \
             --field 2- --write_vocabulary true --add_symbol "<unk>:-1"
-            # unk is just a dummy symbol for compatibility, 
+            # unk is just a dummy symbol for compatibility,
             # we ensure that it is not used in the cls model
     fi
 else

@@ -1,6 +1,6 @@
+import numpy as np
 import pytest
 import torch
-import numpy as np
 from scipy import stats
 from sklearn import metrics
 
