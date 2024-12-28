@@ -88,13 +88,14 @@ class ESPnetClassificationModel(AbsESPnetModel):
         Args:
             speech: (Batch, samples)
             speech_lengths: (Batch, )
-            label: (Batch, )
+            label: (Batch, Length)
             label_lengths: (Batch, )
         Returns:
             loss: (1,)
             stats: dict
             weight
         """
+        assert len(label.shape) == 2, label.shape
         assert speech.shape[0] == label.shape[0], (speech.shape, label.shape)
         batch_size = speech.shape[0]
 
@@ -229,19 +230,21 @@ class ESPnetClassificationModel(AbsESPnetModel):
     def setup_metrics_(self):
         if self.classification_type == "multi-class":
             return {
-                "accuracy": partial(
-                    EvalFunction.multiclass_accuracy,
-                    average="micro",
+                "acc": EvalFunction.multiclass_accuracy,
+                "macro_precision": partial(
+                    EvalFunction.multiclass_precision,
+                    average="macro",
                     num_classes=self.vocab_size,
-                )
+                ),
             }
         elif self.classification_type == "multi-label":
             return {
+                "acc": partial(EvalFunction.multilabel_accuracy, criteria="hamming"),
                 "mAP": partial(
                     EvalFunction.multilabel_auprc,
                     average="macro",
                     num_labels=self.vocab_size,
-                )
+                ),
             }
 
 

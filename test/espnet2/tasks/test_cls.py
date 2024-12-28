@@ -44,16 +44,14 @@ def test_required_data_names(inference):
     retval = CLSTask.required_data_names(True, inference)
     assert "speech" in retval
     if not inference:
-        assert "speech_lengths" in retval
         assert "label" in retval
-        assert "label_lengths" in retval
 
 
 @pytest.mark.parametrize("inference", [True, False])
 def test_optional_data_names(inference):
     retval = CLSTask.optional_data_names(True, inference)
-    if inference:
-        assert "speech_lengths" in retval
+    assert "speech_lengths" in retval
+    assert "label_lengths" in retval
 
 
 def get_dummy_namespace():
@@ -99,10 +97,10 @@ def test_build_preprocess_fn():
 
     preprocess = CLSTask.build_preprocess_fn(args, True)
     data = {}
-    data["text"] = "class4 class2"
+    data["label"] = "class4 class2"
     data_preprocessed = preprocess._text_process(data)
-    assert "text" in data_preprocessed
-    assert np.all(data_preprocessed["text"] == np.array([3, 1]))
+    assert "label" in data_preprocessed
+    assert np.all(data_preprocessed["label"] == np.array([3, 1]))
 
 
 def test_build_collate_fn():

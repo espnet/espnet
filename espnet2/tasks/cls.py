@@ -140,6 +140,16 @@ class CLSTask(AbsTask):
         )
 
         group.add_argument(
+            "--token_type",
+            type=str,
+            default="word",
+            choices=["word"],
+            help="The text will be tokenized by words. This is not a"
+            " real parameter, just for compatibility with abs_task.py"
+            " while creating tokenizer.",
+        )
+
+        group.add_argument(
             "--init",
             type=lambda x: str_or_none(x.lower()),
             default=None,
@@ -201,7 +211,7 @@ class CLSTask(AbsTask):
         if args.use_preprocessor:
             valid_args = signature(CommonPreprocessor.__init__).parameters
             filtered_args = {k: v for k, v in vars(args).items() if k in valid_args}
-            retval = CommonPreprocessor(train=train, **filtered_args)
+            retval = CommonPreprocessor(train=train, text_name="label", **filtered_args)
         else:
             retval = None
         return retval
@@ -211,7 +221,7 @@ class CLSTask(AbsTask):
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
         if not inference:
-            retval = ("speech", "speech_lengths", "label", "label_lengths")
+            retval = ("speech", "label")
         else:
             # Inference mode
             retval = ("speech",)
@@ -221,11 +231,7 @@ class CLSTask(AbsTask):
     def optional_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
-        if not inference:
-            retval = ()
-        else:
-            # Inference mode
-            retval = ("speech_lengths",)
+        retval = ("speech_lengths", "label_lengths")
         return retval
 
     @classmethod
