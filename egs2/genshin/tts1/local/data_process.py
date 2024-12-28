@@ -7,7 +7,6 @@ from pydub import AudioSegment
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-# Define folders to be removed
 FOLDERS_TO_REMOVE = [
     '其它语音 - Others',
     '带变量语音 - Placeholder',
@@ -15,7 +14,6 @@ FOLDERS_TO_REMOVE = [
     '#Unknown'
 ]
 
-# Supported audio formats
 AUDIO_EXTENSIONS = {'.mp3', '.wav', '.ogg', '.m4a', '.flac'}
 
 def has_chinese(text: str) -> bool:
@@ -23,20 +21,18 @@ def has_chinese(text: str) -> bool:
     return any('\u4e00' <= char <= '\u9fff' for char in text)
 
 def clean_name(text: str) -> str:
-    # Only keep letters, numbers and spaces
     cleaned = re.sub(r'[^a-zA-Z0-9\s]', '', text)
-    # Remove extra spaces and strip
     cleaned = ' '.join(cleaned.split())
     return cleaned
 
 def convert_to_pinyin(text: str) -> str:
     try:
         pinyin_list = pypinyin.lazy_pinyin(text, strict=False)
-        # Join and clean the pinyin result
         pinyin = ''.join(word.capitalize() for word in pinyin_list)
         return clean_name(pinyin)
     except Exception as e:
-        print(f"Error converting pinyin for '{text}': {str(e)}")
+        msg = f"Error converting pinyin for '{text}': {str(e)}"
+        print(msg)
         return clean_name(text)
 
 def safe_remove_folder(folder_path: str, dry_run: bool = False) -> bool:
@@ -68,7 +64,9 @@ def safe_rename(old_path: str, new_path: str) -> bool:
             counter += 1
         
         os.rename(old_path, new_path)
-        print(f"Renamed successfully: {os.path.basename(old_path)} -> {os.path.basename(new_path)}")
+        old_name = os.path.basename(old_path)
+        new_name = os.path.basename(new_path)
+        print(f"Renamed successfully: {old_name} -> {new_name}")
         return True
         
     except PermissionError:
@@ -83,7 +81,7 @@ def get_audio_duration(file_path: str) -> float:
     """Get duration of audio file in seconds"""
     try:
         audio = AudioSegment.from_file(file_path)
-        return len(audio) / 1000.0  # Convert milliseconds to seconds
+        return len(audio) / 1000.0
     except Exception as e:
         print(f"Error getting duration for {file_path}: {str(e)}")
         return 0.0
@@ -102,23 +100,26 @@ def convert_audio_format(file_path: str, dry_run: bool = False) -> tuple[str, bo
                 data, sample_rate = sf.read(file_path)
                 
                 needs_conversion = False
+                base_name = os.path.basename(file_path)
                 
                 if len(data.shape) > 1 and data.shape[1] > 1:
                     needs_conversion = True
-                    print(f"File needs mono conversion: {os.path.basename(file_path)}")
+                    print(f"File needs mono conversion: {base_name}")
                 
                 if sample_rate != resample_audio:
                     needs_conversion = True
-                    print(f"File needs resampling: {os.path.basename(file_path)} (current: {sample_rate}Hz)")
+                    msg = f"File needs resampling: {base_name}"
+                    print(f"{msg} (current: {sample_rate}Hz)")
                 
                 if not needs_conversion:
-                    # print(f"File already in correct format: {os.path.basename(file_path)}")
                     return file_path, False
                     
                 if dry_run:
                     print(f"[Preview] Would convert: {file_path}")
-                    print(f"         (current: channels={data.shape[1] if len(data.shape)>1 else 1}, "
+                    channels = data.shape[1] if len(data.shape) > 1 else 1
+                    msg = (f"         (current: channels={channels}, "
                           f"sample rate={sample_rate}Hz)")
+                    print(msg)
                     return file_path, True
                 
                 if len(data.shape) > 1 and data.shape[1] > 1:
@@ -130,22 +131,25 @@ def convert_audio_format(file_path: str, dry_run: bool = False) -> tuple[str, bo
                     data = signal.resample(data, new_length)
                 
                 sf.write(file_path, data, resample_audio)
-                print(f"Converted: {os.path.basename(file_path)}")
+                print(f"Converted: {base_name}")
                 return file_path, True
                 
             except Exception as e:
-                print(f"Error processing WAV file with soundfile: {str(e)}")
+                msg = f"Error processing WAV file with soundfile: {str(e)}"
+                print(msg)
                 pass
         
         audio = AudioSegment.from_file(file_path)
+        base_name = os.path.basename(file_path)
         
         if audio.channels > 1:
             audio = audio.set_channels(1)
-            print(f"Converting to mono: {os.path.basename(file_path)}")
+            print(f"Converting to mono: {base_name}")
             
         if audio.frame_rate != resample_audio:
             audio = audio.set_frame_rate(resample_audio)
-            print(f"Resampling: {os.path.basename(file_path)} -> {resample_audio}Hz")
+            msg = f"Resampling: {base_name} -> {resample_audio}Hz"
+            print(msg)
             
         new_path = str(Path(file_path).with_suffix('.wav'))
         
@@ -156,8 +160,9 @@ def convert_audio_format(file_path: str, dry_run: bool = False) -> tuple[str, bo
             
         if dry_run:
             print(f"[Preview] Would convert: {file_path} -> {new_path}")
-            print(f"         (mono: {audio.channels == 1}, "
+            msg = (f"         (mono: {audio.channels == 1}, "
                   f"sample rate: {audio.frame_rate}Hz)")
+            print(msg)
             return new_path, True
             
         audio.export(new_path, format='wav')
@@ -165,8 +170,9 @@ def convert_audio_format(file_path: str, dry_run: bool = False) -> tuple[str, bo
         if file_path != new_path:
             os.remove(file_path)
             
-        print(f"Converted: {os.path.basename(file_path)} -> "
-              f"{os.path.basename(new_path)}")
+        old_name = os.path.basename(file_path)
+        new_name = os.path.basename(new_path)
+        print(f"Converted: {old_name} -> {new_name}")
         return new_path, True
         
     except Exception as e:
@@ -175,11 +181,9 @@ def convert_audio_format(file_path: str, dry_run: bool = False) -> tuple[str, bo
         traceback.print_exc()
         return file_path, False
 
-
 def process_audio_file(args) -> tuple:
     """Process a single audio file and return if it should be removed"""
     file_path, dry_run = args
-
     global resample_audio
     
     if resample_audio > 0:
@@ -188,21 +192,27 @@ def process_audio_file(args) -> tuple:
     duration = get_audio_duration(file_path)
     if duration < 1.0:
         if dry_run:
-            print(f"[Preview] Would remove short audio: {file_path} "
+            msg = (f"[Preview] Would remove short audio: {file_path} "
                   f"(duration: {duration:.2f}s)")
+            print(msg)
         else:
             try:
                 os.remove(file_path)
                 os.remove(file_path.replace('.wav', '.lab'))
-                print(f"Removed short audio: {file_path} "
+                msg = (f"Removed short audio: {file_path} "
                       f"(duration: {duration:.2f}s)")
+                print(msg)
             except Exception as e:
                 print(f"Error removing {file_path}: {str(e)}")
         return file_path, True, 0
     return file_path, False, duration
 
-def remove_short_audio_files(target_folder: str, dry_run: bool = False, remove_short_speaker: int = -1, resample_audio: int = -1) -> bool:
-    """Remove audio files shorter than 1 second"""
+def remove_short_audio_files(
+    target_folder: str, 
+    dry_run: bool = False, 
+    remove_short_speaker: int = -1, 
+    resample_audio: int = -1
+) -> bool:
     print("\n=== Removing audio files shorter than 1 second ===")
     
     audio_files = []
@@ -217,13 +227,13 @@ def remove_short_audio_files(target_folder: str, dry_run: bool = False, remove_s
         
     print(f"Processing {len(audio_files)} audio files...")
     
-    # Process files in parallel
     with ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
         results = list(executor.map(process_audio_file, audio_files))
     
     removed_count = sum(1 for _, removed, _ in results if removed)
     total_duration = sum(duration for _, _, duration in results)
-    print(f"\nProcessed {len(audio_files)} files, removed {removed_count} short audio files")
+    msg = f"\nProcessed {len(audio_files)} files, removed {removed_count}"
+    print(f"{msg} short audio files")
     if total_duration < remove_short_speaker:
         return True
     return False
@@ -240,8 +250,11 @@ def remove_specific_folders(target_folder: str, dry_run: bool = False) -> None:
         print(f"Error during folder removal: {str(e)}")
 
 def rename_speaker_folders(target_folder: str, dry_run: bool = False) -> None:
-    """Remove trailing '{num}', '-{num}', or '_{num}' from speaker folder names and merge contents if necessary"""
-    print("\n=== Removing trailing '{num}', '-{num}', or '_{num}' from speaker folders ===")
+    """
+        Remove trailing '{num}', '-{num}', or '_{num}' 
+        from speaker folder names and merge contents if necessary
+    """
+    print("\n=== Removing trailing numbers from speaker folders ===")
     try:
         pattern = re.compile(r'[_-]?(\d+)$')
         for root, dirs, _ in os.walk(target_folder, topdown=False):
@@ -256,18 +269,23 @@ def rename_speaker_folders(target_folder: str, dry_run: bool = False) -> None:
                         print(f"[Preview] Will rename: {dir_name} -> {new_name}")
                     else:
                         if os.path.exists(new_path):
-                            # Merge contents
                             for item in os.listdir(old_path):
-                                shutil.move(os.path.join(old_path, item), new_path)
+                                src = os.path.join(old_path, item)
+                                shutil.move(src, new_path)
                             shutil.rmtree(old_path)
-                            print(f"Merged and removed folder: {old_path} -> {new_path}")
+                            msg = f"Merged and removed folder: {old_path} -> {new_path}"
+                            print(msg)
                         else:
                             safe_rename(old_path, new_path)
                         
     except Exception as e:
         print(f"Error processing speaker folders: {str(e)}")
 
-def rename_folders_to_pinyin(target_folder: str, remove_short_speaker: int = -1, dry_run: bool = False) -> None:
+def rename_folders_to_pinyin(
+    target_folder: str, 
+    remove_short_speaker: int = -1, 
+    dry_run: bool = False
+) -> None:
     try:
         if not os.path.exists(target_folder):
             print(f"Target folder does not exist: {target_folder}")
@@ -284,7 +302,8 @@ def rename_folders_to_pinyin(target_folder: str, remove_short_speaker: int = -1,
                     new_name = convert_to_pinyin(dir_name)
                     
                     if not new_name:
-                        print(f"Skipping {dir_name}: name would be empty after cleaning")
+                        msg = f"Skipping {dir_name}: name would be empty after cleaning"
+                        print(msg)
                         continue
                         
                     new_path = os.path.join(root, new_name)
@@ -295,7 +314,11 @@ def rename_folders_to_pinyin(target_folder: str, remove_short_speaker: int = -1,
                         safe_rename(old_path, new_path)
 
                 dir_path = os.path.join(root, dir_name)
-                if(remove_short_audio_files(dir_path, dry_run, remove_short_speaker)):
+                if remove_short_audio_files(
+                    dir_path, 
+                    dry_run, 
+                    remove_short_speaker
+                ):
                     if remove_short_speaker > 0:
                         print(f"Removed short audio files in {dir_name}")
                         safe_remove_folder(dir_path, dry_run)
@@ -303,8 +326,13 @@ def rename_folders_to_pinyin(target_folder: str, remove_short_speaker: int = -1,
     except Exception as e:
         print(f"Error processing folder: {str(e)}")
 
-def rename_files_underscore_to_dash(target_folder: str, dry_run: bool = False) -> None:
-    """Replace underscores with dashes in all file and folder names"""
+def rename_files_underscore_to_dash(
+    target_folder: str, 
+    dry_run: bool = False
+) -> None:
+    """
+    Replace underscores with dashes in all file and folder names
+    """
     print("\n=== Converting underscores to dashes in names ===")
     try:
         for root, dirs, files in os.walk(target_folder, topdown=False):
@@ -315,7 +343,8 @@ def rename_files_underscore_to_dash(target_folder: str, dry_run: bool = False) -
                     new_path = os.path.join(root, new_name)
                     
                     if dry_run:
-                        print(f"[Preview] Will rename file: {file_name} -> {new_name}")
+                        msg = f"[Preview] Will rename file: {file_name} -> {new_name}"
+                        print(msg)
                     else:
                         safe_rename(old_path, new_path)
             
@@ -326,7 +355,8 @@ def rename_files_underscore_to_dash(target_folder: str, dry_run: bool = False) -
                     new_path = os.path.join(root, new_name)
                     
                     if dry_run:
-                        print(f"[Preview] Will rename directory: {dir_name} -> {new_name}")
+                        msg = f"[Preview] Will rename directory: {dir_name} -> {new_name}"
+                        print(msg)
                     else:
                         safe_rename(old_path, new_path)
                         
@@ -335,21 +365,40 @@ def rename_files_underscore_to_dash(target_folder: str, dry_run: bool = False) -
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Process audio folders: remove specific folders, convert Chinese names to Pinyin, and remove short audio files'
+        description='Process audio folders: remove specific folders, '
+        'convert Chinese names to Pinyin, and remove short audio files'
     )
     parser.add_argument('target_folder', help='Target folder path to process')
-    parser.add_argument('--dry-run', action='store_true', help='Preview mode, no actual changes')
-    parser.add_argument('--remove-short-speaker', type=int, default=-1, help='Remove audio files shorter than the specified duration in seconds')
-    parser.add_argument('--resample-audio', type=int, default=-1, help='Convert audio files to specified sample rate(Hz')
+    parser.add_argument(
+        '--dry-run',
+        action='store_true',
+        help='Preview mode, no actual changes'
+    )
+    parser.add_argument(
+        '--remove-short-speaker',
+        type=int,
+        default=-1,
+        help='Remove audio files shorter than the specified duration in seconds'
+    )
+    parser.add_argument(
+        '--resample-audio',
+        type=int,
+        default=-1,
+        help='Convert audio files to specified sample rate(Hz)'
+    )
     
     args = parser.parse_args()
-    global resample_audio 
+    global resample_audio
     resample_audio = args.resample_audio
     
     print(f"Start processing folder: {args.target_folder}")
     print(f"Mode: {'Preview' if args.dry_run else 'Execute'}")
     
-    rename_folders_to_pinyin(args.target_folder, args.remove_short_speaker, args.dry_run)
+    rename_folders_to_pinyin(
+        args.target_folder,
+        args.remove_short_speaker,
+        args.dry_run
+    )
     rename_speaker_folders(args.target_folder, args.dry_run)
     rename_files_underscore_to_dash(args.target_folder, args.dry_run)
     
