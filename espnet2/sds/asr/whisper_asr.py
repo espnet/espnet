@@ -16,7 +16,20 @@ class WhisperASRModel(AbsASR):
         self,
         tag="large",
         device="cuda",
+        dtype: str = "float16",
     ):
+        """
+        Args:
+        tag (str, optional):
+            The Whisper model tag
+        device (str, optional):
+            The computation device for running inference.
+            Defaults to "cuda".
+            Common options include "cuda" or "cpu".
+        dtype (str, optional):
+            The floating-point precision to use.
+            Defaults to "float16".
+        """
         super().__init__()
         try:
             import whisper
@@ -29,23 +42,41 @@ class WhisperASRModel(AbsASR):
             raise e
         self.s2t = whisper.load_model(tag, device=device)
         self.device = device
+        self.dtype = dtype
 
     def warmup(self):
+        """
+        Perform a single forward pass with dummy input to
+        pre-load and warm up the model.
+        """
         with torch.no_grad():
             dummy_input = (
                 torch.randn(
                     (3000),
-                    dtype=getattr(torch, "float16"),
+                    dtype=getattr(torch, self.dtype),
                     device="cpu",
                 )
                 .cpu()
                 .numpy()
             )
-            res = self.s2t.transcribe(torch.tensor(dummy_input).float(), beam_size=1)[
+            _ = self.s2t.transcribe(torch.tensor(dummy_input).float(), beam_size=1)[
                 "text"
             ]
 
     def forward(self, array):
+        """
+        Perform a forward pass on the given audio data, returning the transcribed text prompt.
+
+        Args:
+            array (np.ndarray):
+                The input audio data to be transcribed.
+                Typically a NumPy array.
+
+        Returns:
+            str:
+                The transcribed text from the audio input,
+                as returned by the Whisper ASR model.
+        """
         with torch.no_grad():
             prompt = self.s2t.transcribe(torch.tensor(array).float(), beam_size=1)[
                 "text"

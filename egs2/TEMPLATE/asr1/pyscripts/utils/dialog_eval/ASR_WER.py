@@ -1,7 +1,61 @@
+from typing import Tuple
+
+import numpy as np
+
 from espnet2.sds.utils.utils import int2float
 
 
-def handle_espnet_ASR_WER(ASR_audio_output, ASR_transcript):
+def handle_espnet_ASR_WER(
+    ASR_audio_output: Tuple[int, np.ndarray], ASR_transcript: str
+) -> str:
+    """
+    Compute and return Word Error Rate (WER) and Character Error Rate (CER) metrics
+    for multiple judge ASR systems (ESPnet, OWSM, Whisper) using the Versa library.
+
+    This function performs the following:
+        1. Imports necessary metrics and setup functions from Versa.
+        2. Prepares configuration arguments for each ASR system (ESPnet, OWSM, Whisper).
+        3. Runs the Levenshtein-based WER/CER calculations.
+        4. Returns a formatted string summarizing WER and CER
+        results for reference produced by each ASR system.
+
+    Args:
+        ASR_audio_output (tuple):
+            A tuple where:
+                - The first element is the frame rate.
+                - The second element is the audio signal (NumPy array).
+        ASR_transcript (str):
+            The transcript produced by the ASR model in the cascaded
+            conversational AI pipeline.
+
+    Returns:
+        str:
+            A formatted string showing the WER and CER percentages
+            for ESPnet, OWSM, and Whisper. Example output:
+
+            "ESPnet WER: 10.50
+             ESPnet CER: 7.20
+             OWSM WER: 11.30
+             OWSM CER: 8.00
+             Whisper WER: 9.25
+             Whisper CER: 6.50"
+
+    Raises:
+        ImportError:
+            If Versa is not installed or cannot be imported.
+
+    Example:
+        >>> asr_audio_output = (16000, audio_array)
+        >>> asr_transcript = "This is the ASR transcript."
+        >>> result = handle_espnet_ASR_WER(asr_audio_output, asr_transcript)
+        >>> print(result)
+        "ESPnet WER: 10.50
+         ESPnet CER: 7.20
+         OWSM WER: 11.30
+         OWSM CER: 8.00
+         Whisper WER: 9.25
+         Whisper CER: 6.50"
+    """
     try:
         from versa import (
             espnet_levenshtein_metric,
@@ -103,9 +157,9 @@ def handle_espnet_ASR_WER(ASR_audio_output, ASR_transcript):
     )
     return (
         f"ESPnet WER: {espnet_wer*100:.2f}\n"
-        "ESPnet CER: {espnet_cer*100:.2f}\n"
-        "OWSM WER: {owsm_wer*100:.2f}\n"
-        "OWSM CER: {owsm_cer*100:.2f}\n"
-        "Whisper WER: {whisper_wer*100:.2f}\n"
-        "Whisper CER: {whisper_cer*100:.2f}"
+        f"ESPnet CER: {espnet_cer*100:.2f}\n"
+        f"OWSM WER: {owsm_wer*100:.2f}\n"
+        f"OWSM CER: {owsm_cer*100:.2f}\n"
+        f"Whisper WER: {whisper_wer*100:.2f}\n"
+        f"Whisper CER: {whisper_cer*100:.2f}"
     )

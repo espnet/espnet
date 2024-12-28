@@ -1,7 +1,46 @@
+from typing import Tuple
+
+import numpy as np
+
 from espnet2.sds.utils.utils import int2float
 
 
-def TTS_psuedomos(TTS_audio_output):
+def TTS_psuedomos(TTS_audio_output: Tuple[int, np.ndarray]) -> str:
+    """
+    Compute and return speech quality metrics
+    for the given synthesized audio output
+    using the Versa library.
+
+    Args:
+        TTS_audio_output (Tuple[int, np.ndarray]):
+            A tuple containing:
+                - The first element (int): The frame rate of the audio.
+                - The second element (np.ndarray): The audio signal,
+                typically a NumPy array.
+
+    Returns:
+        str:
+            A formatted string containing each metric name
+            and its corresponding score, for example:
+
+            utmos: 3.54
+            dnsmos: 3.47
+            plcmos: 3.62
+            sheet_ssqa: 4.03
+
+    Raises:
+        ImportError:
+            If the Versa library is not installed or cannot be imported.
+
+    Example:
+        >>> tts_audio_output = (16000, audio_array)
+        >>> result = TTS_psuedomos(tts_audio_output)
+        >>> print(result)
+        utmos: 3.54
+        dnsmos: 3.47
+        plcmos: 3.62
+        sheet_ssqa: 4.03
+    """
     try:
         from versa import (
             pseudo_mos_metric,

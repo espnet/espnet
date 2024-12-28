@@ -141,17 +141,22 @@ def handle_eval_selection(
     option, TTS_audio_output, LLM_Output, ASR_audio_output, ASR_transcript
 ):
     """
-    Handles the evaluation of a selected metric based on user input and provided outputs.
+    Handles the evaluation of a selected metric based on
+    user input and provided outputs.
 
-    This function evaluates different aspects of a casacaded conversational AI pipeline, such as:
-    Latency, TTS intelligibility, TTS speech quality, ASR WER, and text dialog metrics.
-    It is designed to integrate with Gradio via multiple yield statements,
+    This function evaluates different aspects of a
+    casacaded conversational AI pipeline, such as:
+    Latency, TTS intelligibility, TTS speech quality,
+    ASR WER, and text dialog metrics.
+    It is designed to integrate with Gradio via
+    multiple yield statements,
     allowing updates to be displayed in real time.
 
     Parameters:
     ----------
     option : str
-        The evaluation metric selected by the user. Supported options include:
+        The evaluation metric selected by the user.
+        Supported options include:
         - "Latency"
         - "TTS Intelligibility"
         - "TTS Speech Quality"
@@ -169,12 +174,17 @@ def handle_eval_selection(
     Returns:
     -------
     str
-        A string representation of the evaluation results. The specific result depends on the selected evaluation metric:
+        A string representation of the evaluation results.
+        The specific result depends on the selected evaluation metric:
         - "Latency": Latencies of ASR, LLM, and TTS modules.
-        - "TTS Intelligibility": A range of scores indicating how intelligible the TTS audio output is based on different reference ASR models.
-        - "TTS Speech Quality": A range of scores representing the speech quality of the TTS audio output.
-        - "ASR WER": The Word Error Rate (WER) of the ASR output based on different judge ASR models.
-        - "Text Dialog Metrics": A combination of perplexity, diversity metrics, and relevance scores for the dialog.
+        - "TTS Intelligibility": A range of scores indicating how intelligible
+        the TTS audio output is based on different reference ASR models.
+        - "TTS Speech Quality": A range of scores representing the
+        speech quality of the TTS audio output.
+        - "ASR WER": The Word Error Rate (WER) of the ASR output
+        based on different judge ASR models.
+        - "Text Dialog Metrics": A combination of perplexity,
+        diversity metrics, and relevance scores for the dialog.
 
     Raises:
     ------
@@ -221,23 +231,30 @@ def handle_eval_selection(
                 ASR_transcript.replace("\n", " "), LLM_Output.replace("\n", " ")
             ),
         )
+    elif option is None:
+        return
     else:
         raise ValueError(f"Unknown option: {option}")
 
 
 def handle_eval_selection_E2E(option, TTS_audio_output, LLM_Output):
     """
-    Handles the evaluation of a selected metric based on user input and provided outputs.
+    Handles the evaluation of a selected metric based on user input
+    and provided outputs.
 
-    This function evaluates different aspects of an E2E conversational AI model, such as:
-    Latency, TTS intelligibility, TTS speech quality, and text dialog metrics.
-    It is designed to integrate with Gradio via multiple yield statements,
+    This function evaluates different aspects of an E2E
+    conversational AI model, such as:
+    Latency, TTS intelligibility, TTS speech quality, and
+    text dialog metrics.
+    It is designed to integrate with Gradio via
+    multiple yield statements,
     allowing updates to be displayed in real time.
 
     Parameters:
     ----------
     option : str
-        The evaluation metric selected by the user. Supported options include:
+        The evaluation metric selected by the user.
+        Supported options include:
         - "Latency"
         - "TTS Intelligibility"
         - "TTS Speech Quality"
@@ -250,11 +267,15 @@ def handle_eval_selection_E2E(option, TTS_audio_output, LLM_Output):
     Returns:
     -------
     str
-        A string representation of the evaluation results. The specific result depends on the selected evaluation metric:
+        A string representation of the evaluation results.
+        The specific result depends on the selected evaluation metric:
         - "Latency": Latency of the entire system.
-        - "TTS Intelligibility": A range of scores indicating how intelligible the TTS audio output is based on different reference ASR models.
-        - "TTS Speech Quality": A range of scores representing the speech quality of the TTS audio output.
-        - "Text Dialog Metrics": A combination of perplexity and diversity metrics for the dialog.
+        - "TTS Intelligibility": A range of scores indicating how intelligible the
+        TTS audio output is based on different reference ASR models.
+        - "TTS Speech Quality": A range of scores representing the
+         speech quality of the TTS audio output.
+        - "Text Dialog Metrics": A combination of perplexity and
+        diversity metrics for the dialog.
 
     Raises:
     ------
@@ -283,6 +304,8 @@ def handle_eval_selection_E2E(option, TTS_audio_output, LLM_Output):
         yield (None, TTS_psuedomos(TTS_audio_output))
     elif option == "Text Dialog Metrics":
         yield (None, perplexity(LLM_Output.replace("\n", " ")) + vert(LLM_response_arr))
+    elif option is None:
+        return
     else:
         raise ValueError(f"Unknown option: {option}")
 
