@@ -86,12 +86,12 @@ fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "Stage 0: Data preparation"
-    
+
     mkdir -p data/train
 
     tmpdir=$(mktemp -d)
     trap 'rm -rf ${tmpdir}' EXIT
-    
+
     wav_scp=${tmpdir}/wav.scp
     utt2spk=${tmpdir}/utt2spk
     text=${tmpdir}/text
@@ -99,11 +99,11 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     : > "${wav_scp}"
     : > "${utt2spk}"
     : > "${text}"
-    
+
     log "Creating speaker list..."
     find -L "${db_root}/Genshin-${lang}" -mindepth 1 -maxdepth 1 -type d -print0 | \
         xargs -0 -I{} basename {} | sort > "${tmpdir}/speakers.list"
-    
+
     log "Processing speakers..."
     total_speakers=$(wc -l < "${tmpdir}/speakers.list")
     log "Total number of speakers: ${total_speakers}"
@@ -115,22 +115,22 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
         local wav_scp_spk="${tmpdir}/wav_${spk_normalized}.scp"
         local utt2spk_spk="${tmpdir}/utt2spk_${spk_normalized}"
         local text_spk="${tmpdir}/text_${spk_normalized}"
-        
+
         : > "${wav_scp_spk}"
         : > "${utt2spk_spk}"
         : > "${text_spk}"
 
         log "Processing speaker ${spk}..."
-        
+
         find "${spk_dir}" -name "*.wav" -print0 | while IFS= read -r -d $'\0' wav_file; do
             lab_file="${wav_file%.*}.lab"
             base_name=$(basename "${wav_file}" .wav | tr -s " " "_" | tr -c "a-zA-Z0-9_-" "_" | sed 's/_*$//')
 
             utt_id="${spk_normalized}-${base_name}"
-            
+
             if [ -f "${lab_file}" ] && [ -s "${lab_file}" ]; then
                 text_content=$(cat "${lab_file}" | tr -s " " | sed "s/^ *//;s/ *$//" | tr -cd '[:print:][:space:]')
-                
+
                 if [ ! -z "${text_content}" ]; then
                     abs_wav_path=$(readlink -f "${wav_file}")
                     echo "${utt_id} ${abs_wav_path}" >> "${wav_scp_spk}"
@@ -172,11 +172,11 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     for f in wav.scp utt2spk text spk2utt; do
         n=$(wc -l < data/train/$f)
         log "Number of lines in $f: $n"
-    done  
+    done
 
     local/sort_by_id.pl "data/train/utt2spk" > "data/train/utt2spk.tmp"
     mv "data/train/utt2spk.tmp" "data/train/utt2spk"
-    
+
     utils/fix_data_dir.sh data/train
     utils/validate_data_dir.sh --no-feats data/train || {
         log "Data validation failed"
@@ -188,29 +188,29 @@ fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "Stage 1: Split data into training, development and evaluation sets"
-    
+
     total_utts=$(wc -l < data/train/wav.scp)
-    
+
     dev_eval_size=$(( total_utts / 10 ))
     dev_size=$(( dev_eval_size / 2 ))
     eval_size=$(( dev_eval_size - dev_size ))
-    
+
     log "Total utterances: ${total_utts}"
     log "Dev set size: ${dev_size}"
     log "Eval set size: ${eval_size}"
-    
+
     utils/subset_data_dir.sh data/train ${dev_eval_size} data/deveval
-    
+
     utils/subset_data_dir.sh data/deveval ${eval_size} data/${eval_set}
     utils/subset_data_dir.sh data/deveval ${dev_size} data/${train_dev}
-    
+
     n=$(( total_utts - dev_eval_size ))
     utils/subset_data_dir.sh data/train ${n} data/${train_set}
-    
+
     for dset in ${train_set} ${train_dev} ${eval_set}; do
         utils/fix_data_dir.sh data/${dset}
         utils/validate_data_dir.sh --no-feats data/${dset}
-        
+
         num_utts=$(wc -l < data/${dset}/wav.scp)
         num_spks=$(wc -l < data/${dset}/spk2utt)
         log "Successfully prepared ${dset} (${num_utts} utterances, ${num_spks} speakers)"

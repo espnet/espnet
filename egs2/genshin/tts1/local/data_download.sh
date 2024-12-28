@@ -43,16 +43,16 @@ declare -A urls=(
 download_and_extract() {
     local lang=$1
     local file_name="Genshin5.1_${lang}.7z"
-    
+
     if [ -d "${download_dir}/Genshin-${lang}" ]; then
         echo "Directory Genshin-${lang} already exists. Skipping..."
         return 0
     fi
-    
+
     echo "Downloading ${lang} dataset..."
     if wget -c "${urls[$lang]}" -O "${download_dir}/${file_name}"; then
         echo "Successfully downloaded ${file_name}"
-        
+
         echo "Extracting ${file_name}..."
         cd "${download_dir}"
         if 7za x "${file_name} -mmt256"; then
