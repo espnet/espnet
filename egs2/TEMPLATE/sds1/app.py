@@ -55,12 +55,7 @@ def parse_args():
     global Eval_options
     global upload_to_hub
     global dialogue_model
-    parser = argparse.ArgumentParser(
-        description="Run the app with HF_TOKEN as a command-line argument."
-    )
-    parser.add_argument(
-        "--HF_TOKEN", required=True, help="Provide the Hugging Face token."
-    )
+    parser = argparse.ArgumentParser(description="Run the app.")
     parser.add_argument(
         "--asr_options",
         required=True,
@@ -106,7 +101,6 @@ def parse_args():
         help="Hugging Face dataset to upload user data",
     )
     args = parser.parse_args()
-    access_token = args.HF_TOKEN
     ASR_name = args.default_asr_model
     LLM_name = args.default_llm_model
     TTS_name = args.default_tts_model
@@ -114,6 +108,24 @@ def parse_args():
     LLM_options = args.llm_options.split(",")
     TTS_options = args.tts_options.split(",")
     Eval_options = args.eval_options.split(",")
+    if ASR_name not in ASR_options:
+        print(
+            "Changing default ASR model since it is "
+            + "not in the possible ASR options"
+        )
+        ASR_name = ASR_options[0]
+    if TTS_name not in TTS_options:
+        print(
+            "Changing default TTS model since it is "
+            + "not in the possible TTS options"
+        )
+        TTS_name = TTS_options[0]
+    if LLM_name not in LLM_options:
+        print(
+            "Changing default LLM model since it is "
+            + "not in the possible LLM options"
+        )
+        LLM_name = LLM_options[0]
     upload_to_hub = args.upload_to_hub
     dialogue_model = ESPnetSDSModelInterface(
         ASR_name, LLM_name, TTS_name, "Cascaded", access_token
