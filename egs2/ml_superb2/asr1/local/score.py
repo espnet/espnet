@@ -24,7 +24,7 @@ def remove_punctuation(sentence):
 
 
 def normalize_and_calculate_cer(ref, hyp, remove_spaces):
-    '''
+    """
     Calculates CER given normalized hyp and ref.
     Normalization removes all punctuation and uppercases all text.
     For Chinese, Thai, and Japanese, we remove spaces too.
@@ -33,7 +33,7 @@ def normalize_and_calculate_cer(ref, hyp, remove_spaces):
     I'll be going to the CMU campus. -> ILL BE GOING TO THE CMU CAMPUS
     ill be going to the see them you campus -> ILL BE GOING TO THE SEE THEM YOU CAMPUS
      我想去餐厅 我非常饿 -> 我想去餐厅我非常饿
-    '''
+    """
 
     if remove_spaces:
         hyp = re.sub(r"\s", "", hyp)
@@ -92,9 +92,9 @@ def score(references, lids, hyps):
 
     all_cers.sort(reverse=True)
     lid = round(sum(all_accs) / len(all_accs), 2)
-    cer_res = round(sum(all_cers) / len(all_cers),2)
-    std = round(statistics.stdev(all_cers),2)
-    worst = round(sum(all_cers[0:15]) / 15,2)
+    cer_res = round(sum(all_cers) / len(all_cers), 2)
+    std = round(statistics.stdev(all_cers), 2)
+    worst = round(sum(all_cers[0:15]) / 15, 2)
 
     print(f"LID ACCURACY: {lid}")
     print(f"AVERAGE CER: {cer_res}")
@@ -102,6 +102,7 @@ def score(references, lids, hyps):
     print(f"WORST 15 Lang CER: {worst}")
 
     return lid, cer_res, worst, std
+
 
 def score_dialect(references, lids, hyps):
     all_cers = []
@@ -153,19 +154,25 @@ dialect_reference_text = [line.split(" ", 1)[1] for line in dialect_reference_te
 
 dirs = os.listdir(args.exp_dir)
 
-with open(f"{args.exp_dir}/challenge_results.md", 'w') as out_f:
+with open(f"{args.exp_dir}/challenge_results.md", "w") as out_f:
     out_f.write("# RESULTS\n\n")
     out_f.write("## args.exp_dir\n\n")
-    out_f.write("|decode_dir|Standard CER|Standard LID|Worst 15 CER|CER StD|Dialect CER|Dialect LID|\n")
+    out_f.write(
+        "|decode_dir|Standard CER|Standard LID|Worst 15 CER|CER StD|Dialect CER|Dialect LID|\n"
+    )
     out_f.write("|---|---|---|---|---|---|---|\n")
     for directory in dirs:
         if "decode_asr" in directory:
             print(directory)
-            hypothesis_text = open(f"{args.exp_dir}/{directory}/org/dev/text").readlines()
+            hypothesis_text = open(
+                f"{args.exp_dir}/{directory}/org/dev/text"
+            ).readlines()
             hypothesis_text = [line.split(" ", 1)[1] for line in hypothesis_text]
 
             assert len(hypothesis_text) == len(reference_text) == len(reference_lids)
-            lid, cer_res, worst, std = score(reference_text, reference_lids, hypothesis_text)
+            lid, cer_res, worst, std = score(
+                reference_text, reference_lids, hypothesis_text
+            )
 
             dialect_hypothesis_text = open(
                 f"{args.exp_dir}/{directory}/dev_dialect/text"
@@ -183,4 +190,6 @@ with open(f"{args.exp_dir}/challenge_results.md", 'w') as out_f:
                 dialect_reference_text, dialect_reference_lids, dialect_hypothesis_text
             )
 
-            out_f.write(f"{directory}|{cer_res}|{lid}|{worst}|{std}|{dialect_cer}|{dialect_lid}|\n")
+            out_f.write(
+                f"{directory}|{cer_res}|{lid}|{worst}|{std}|{dialect_cer}|{dialect_lid}|\n"
+            )
