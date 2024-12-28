@@ -173,7 +173,7 @@ class MultiHeadedAttention(nn.Module):
         """
 
         # Use PyTorch's Scaled Dot Product Attention implementation
-        if self.use_sdpa:
+        if getattr(self, "use_sdpa", False):
             q, k, v = self.forward_qkv(query, key, value, expand_kv)
 
             # The shape of mask must be broadcastable to the shape of attention weights
