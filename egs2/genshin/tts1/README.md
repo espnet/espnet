@@ -1,6 +1,6 @@
 # GENSHIN RECIPE
 
-This is recipe for the multi-language and multi-speaker TTS model with dubbing corpus of video game Genshin Impact. The default recipe is EN, you can change it in local/data.sh. 
+This is recipe for the multi-language and multi-speaker TTS model with dubbing corpus of video game Genshin Impact. The default recipe is EN, you can change it in local/data.sh.
 
 You can also use this recipe for ACGN game dubbing dataset gathered by [AI Hobbyist](https://github.com/AI-Hobbyist).
 
