@@ -54,7 +54,7 @@ encoder_conf:
     fbank_mean: 11.72215
     fbank_std: 10.60431
     beats_config:
-        layer_wise_gradient_decay_ratio: 0.2    
+        layer_wise_gradient_decay_ratio: 0.2
         encoder_layerdrop: 0.1
         dropout: 0.0
     specaug_config:

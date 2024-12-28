@@ -1,14 +1,15 @@
+import os
+import string
 from argparse import ArgumentParser
 from pathlib import Path
+
 import numpy as np
-import os
 import pytest
-import string
 import soundfile
 import torch
 import yaml
 
-from espnet2.bin.cls_inference import Classification, get_parser, main, inference
+from espnet2.bin.cls_inference import Classification, get_parser, inference, main
 from espnet2.tasks.cls import CLSTask
 
 
