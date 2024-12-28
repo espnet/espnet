@@ -7,7 +7,7 @@ This is a recipe to reproduce the baseline model for the [Interspeech 2024 ML-SU
 The baseline uses frozen SSL features from [MMS 1B](https://www.jmlr.org/papers/v25/23-1318.html), which are input into a 2-layer Transformer trained using CTC loss. It takes roughly 2 days to train on a single H100 GPU.
 
 
-The challenge will use a custom scoring script, which considers worst language performance and CER standard deviation in addition to the typical multilingual ASR metrics of language identification accuracy and ASR CER. The exact implementation can be found in `local/score.py`.
+The challenge will use a custom scoring script, which considers worst language performance and CER standard deviation in addition to the typical multilingual ASR metrics of language identification accuracy and ASR CER. The exact implementation can be found in `local/score.py`, which also creates a `challenge_results.md` under your experimental directory with scores that correspond to the challenge system.
 
 ## RESULTS
 
