@@ -415,6 +415,7 @@ def transcribe(stream, new_chunk, TTS_option, ASR_option, LLM_option, type_optio
         latency_ASR,
         latency_LM,
         latency_TTS,
+        stream,
         change,
     ) = dialogue_model(
         y,
@@ -458,18 +459,7 @@ def transcribe(stream, new_chunk, TTS_option, ASR_option, LLM_option, type_optio
                     repo_type="dataset",
                     token=access_token,
                 )
-            dialogue_model.chat.buffer = [
-                {
-                    "role": "system",
-                    "content": (
-                        "You are a helpful and friendly AI "
-                        "assistant. "
-                        "You are polite, respectful, and aim to "
-                        "provide concise and complete responses of "
-                        "less than 15 words."
-                    ),
-                }
-            ]
+            dialogue_model.chat.buffer = []
             text_str = ""
             audio_output = None
             audio_output1 = None

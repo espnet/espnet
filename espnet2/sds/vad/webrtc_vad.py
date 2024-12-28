@@ -1,4 +1,5 @@
 import os
+from typing import Optional
 
 import librosa
 import numpy as np
@@ -22,12 +23,42 @@ class WebrtcVADModel(AbsVAD):
     @typechecked
     def __init__(
         self,
-        speakup_threshold=12,
-        continue_threshold=10,
-        min_speech_ms=500,
-        max_speech_ms=float("inf"),
-        target_sr=16000,
+        speakup_threshold: int = 12,
+        continue_threshold: int = 10,
+        min_speech_ms: int = 500,
+        max_speech_ms: float = float("inf"),
+        target_sr: int = 16000,
     ):
+        """
+        This class uses WebRTC VAD to detect speech
+        in an audio stream.
+
+        Args:
+            speakup_threshold (int, optional):
+                The threshold for detecting the start of speech.
+            continue_threshold (int, optional):
+                The threshold for continuing speech detection.
+            min_speech_ms (int, optional):
+                The minimum duration (in milliseconds) for a valid
+                speech segment. Defaults to 500 ms.
+            max_speech_ms (float, optional):
+                The maximum duration (in milliseconds) for a valid
+                speech segment. Defaults to infinity.
+            target_sr (int, optional):
+                The target sampling rate for resampling the input
+                audio. Defaults to 16000 Hz.
+
+        Attributes:
+            vad_output (Optional[list]):
+                Stores the speech segments detected as
+                floating-point tensors.
+            vad_bin_output (Optional[list]):
+                Stores the speech segments detected as binary audio.
+
+        Raises:
+            ImportError:
+                If the required `webrtcvad` library is not installed.
+        """
         if not is_webrtcvad_available:
             raise ImportError("Error: webrtcvad is not properly installed.")
         super().__init__()
@@ -42,7 +73,29 @@ class WebrtcVADModel(AbsVAD):
     def warmup(self):
         return
 
-    def forward(self, speech, sample_rate, binary=False):
+    def forward(
+        self,
+        speech: np.ndarray,
+        sample_rate: int,
+        binary: bool = False,
+    ) -> Optional[np.ndarray]:
+        """
+        Process an audio stream and detect speech using WebRTC VAD.
+
+        Args:
+            speech:
+                The raw audio stream in 16-bit PCM format.
+            sample_rate (int):
+                The sampling rate of the input audio.
+            binary (bool, optional):
+                If True, returns the binary audio output instead of the
+                resampled float array. Defaults to False.
+
+        Returns:
+            Optional[np.ndarray]:
+                The detected speech segment as a NumPy array
+                (float or binary audio), or None if no valid segment is found.
+        """
         audio_int16 = np.frombuffer(speech, dtype=np.int16)
         audio_float32 = int2float(audio_int16)
         audio_float32 = librosa.resample(

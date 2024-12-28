@@ -14,8 +14,8 @@ class WhisperASRModel(AbsASR):
     @typechecked
     def __init__(
         self,
-        tag="large",
-        device="cuda",
+        tag: str = "large",
+        device: str = "cuda",
         dtype: str = "float16",
     ):
         """
@@ -63,9 +63,10 @@ class WhisperASRModel(AbsASR):
                 "text"
             ]
 
-    def forward(self, array):
+    def forward(self, array: np.ndarray) -> str:
         """
-        Perform a forward pass on the given audio data, returning the transcribed text prompt.
+        Perform a forward pass on the given audio data,
+        returning the transcribed text prompt.
 
         Args:
             array (np.ndarray):

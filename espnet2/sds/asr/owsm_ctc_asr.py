@@ -62,9 +62,10 @@ class OWSMCTCModel(AbsASR):
             speech = librosa.util.fix_length(dummy_input, size=(16000 * 30))
             _ = self.s2t(speech)
 
-    def forward(self, array):
+    def forward(self, array: np.ndarray) -> str:
         """
-        Perform a forward pass on the given audio data, returning the transcribed text prompt.
+        Perform a forward pass on the given audio data,
+        returning the transcribed text prompt.
 
         Args:
             array (np.ndarray):

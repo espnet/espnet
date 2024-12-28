@@ -1,6 +1,8 @@
 import time
 from contextlib import contextmanager
+from typing import Optional, Tuple
 
+import numpy as np
 import torch
 from packaging.version import parse as V
 from typeguard import typechecked
@@ -35,10 +37,39 @@ except ImportError:
 
 
 class ESPnetSDSModelInterface(AbsESPnetModel):
-    """Web Interface for Spoken Dialog System models"""
+    """
+    Web Interface for Spoken Dialog System models
+
+    This class provides a unified interface to integrate ASR, TTS, and LLM modules
+    for cascaded spoken dialog systems as well as also
+    supports E2E spoken dialog systems.
+    It supports real-time interactions,
+    including VAD (Voice Activity Detection) based conversation management.
+    """
 
     @typechecked
-    def __init__(self, ASR_option, LLM_option, TTS_option, type_option, access_token):
+    def __init__(
+        self,
+        ASR_option: str,
+        LLM_option: str,
+        TTS_option: str,
+        type_option: str,
+        access_token: str,
+    ):
+        """
+        Args:
+            ASR_option (str):
+                The selected ASR model option to use for speech-to-text
+                processing.
+            LLM_option (str):
+                The selected LLM model option for generating text responses.
+            TTS_option (str):
+                The selected TTS model option for text-to-speech synthesis.
+            type_option (str):
+                The type of SDS interaction to perform (e.g., cascaded or E2E).
+            access_token (str):
+                The access token for accessing models hosted on Hugging Face.
+        """
         if not is_gradio_available:
             raise ImportError("Error: Gradio is not properly installed.")
         super().__init__()
@@ -70,7 +101,20 @@ class ESPnetSDSModelInterface(AbsESPnetModel):
         )
         self.user_role = "user"
 
-    def handle_TTS_selection(self, option):
+    def handle_TTS_selection(self, option: str):
+        """
+        Handles the selection and initialization of a Text-to-Speech (TTS) model.
+
+        This method dynamically loads the selected TTS model based
+        on the provided option.
+        If the selected model is already active, it avoids reloading to save resources.
+        The method temporarily removes the visibility of Gradio outputs during the
+        initialization process to indicate progress.
+
+        Args:
+            option (str):
+                The name of the TTS model to load.
+        """
         if self.TTS_curr_name is not None:
             if option == self.TTS_curr_name:
                 return
@@ -86,7 +130,20 @@ class ESPnetSDSModelInterface(AbsESPnetModel):
         self.text2speech.warmup()
         yield gr.Textbox(visible=True), gr.Textbox(visible=True), gr.Audio(visible=True)
 
-    def handle_LLM_selection(self, option):
+    def handle_LLM_selection(self, option: str):
+        """
+        Handles the selection and initialization of a LLM.
+
+        This method dynamically loads the selected LLM based
+        on the provided option.
+        If the selected model is already active, it avoids reloading to save resources.
+        The method temporarily removes the visibility of Gradio outputs during the
+        initialization process to indicate progress.
+
+        Args:
+            option (str):
+                The name of the LLM to load.
+        """
         if self.LLM_curr_name is not None:
             if option == self.LLM_curr_name:
                 return
@@ -98,7 +155,20 @@ class ESPnetSDSModelInterface(AbsESPnetModel):
         self.LM_pipe.warmup()
         yield gr.Textbox(visible=True), gr.Textbox(visible=True), gr.Audio(visible=True)
 
-    def handle_ASR_selection(self, option):
+    def handle_ASR_selection(self, option: str):
+        """
+        Handles the selection and initialization of ASR model.
+
+        This method dynamically loads the selected ASR based
+        on the provided option.
+        If the selected model is already active, it avoids reloading to save resources.
+        The method temporarily removes the visibility of Gradio outputs during the
+        initialization process to indicate progress.
+
+        Args:
+            option (str):
+                The name of the ASR to load.
+        """
         if option == "librispeech_asr":
             option = (
                 "espnet/"
@@ -120,8 +190,8 @@ class ESPnetSDSModelInterface(AbsESPnetModel):
             "_wavlm_large_raw_en_bpe5000_sp"
         ):
             self.s2t = ESPnetASRModel(tag=option)
-        elif option == "whisper":
-            self.s2t = WhisperASRModel()
+        elif "whisper" in option:
+            self.s2t = WhisperASRModel(tag=option.replace("whisper-", ""))
         else:
             self.s2t = OWSMCTCModel(tag=option)
 
@@ -129,11 +199,37 @@ class ESPnetSDSModelInterface(AbsESPnetModel):
         yield gr.Textbox(visible=True), gr.Textbox(visible=True), gr.Audio(visible=True)
 
     def handle_E2E_selection(self):
+        """
+        Handles the selection and initialization of E2E model Mini-Omni.
+
+        This method dynamically loads the E2E spoken dialog model.
+        If the model is already active, it avoids reloading to save resources.
+        """
         if self.client is None:
             self.client = MiniOmniE2EModel()
             self.client.warmup()
 
-    def handle_type_selection(self, option, TTS_radio, ASR_radio, LLM_radio):
+    def handle_type_selection(
+        self, option: str, TTS_radio: str, ASR_radio: str, LLM_radio: str
+    ):
+        """
+        Handles the selection of the spoken dialogue model type (Cascaded or E2E)
+        and dynamically updates the interface based on the selected option.
+
+        This method manages the initialization of ASR, TTS, and LLM models
+        for Cascaded systems or switches to an End-to-End system.
+        The Gradio interface components are updated accordingly.
+
+        Args:
+            option (str):
+                The selected spoken dialogue system.
+            TTS_radio (str):
+                The selected TTS model for the Cascaded system.
+            ASR_radio (str):
+                The selected ASR model for the Cascaded system.
+            LLM_radio (str):
+                The selected LLM model for the Cascaded system.
+        """
         yield (
             gr.Radio(visible=False),
             gr.Radio(visible=False),
@@ -186,17 +282,48 @@ class ESPnetSDSModelInterface(AbsESPnetModel):
 
     def forward(
         self,
-        y,
-        sr,
-        stream,
-        asr_output_str,
-        text_str,
-        audio_output,
-        audio_output1,
-        latency_ASR,
-        latency_LM,
-        latency_TTS,
+        y: np.ndarray,
+        sr: int,
+        stream: np.ndarray,
+        asr_output_str: Optional[str],
+        text_str: Optional[str],
+        audio_output: Optional[Tuple[int, np.ndarray]],
+        audio_output1: Optional[Tuple[int, np.ndarray]],
+        latency_ASR: float,
+        latency_LM: float,
+        latency_TTS: float,
     ):
+        """
+        Processes audio input to generate ASR, LLM, and TTS outputs
+        while calculating latencies.
+
+        This method handles both Cascaded and End-to-End setups.
+
+        Args:
+            y: Input audio array.
+            sr : Sampling rate of the input audio.
+            stream : The current audio stream buffer.
+            asr_output_str : Previously generated ASR output string.
+            text_str : Previously generated LLM text response.
+            audio_output : Previously generated TTS audio output.
+            audio_output1 (): Placeholder for audio stream.
+            latency_ASR (float): Latency for ASR processing.
+            latency_LM (float): Latency for LLM processing.
+            latency_TTS (float): Latency for TTS processing.
+
+        Returns:
+            Tuple[str, str, Optional[Tuple[int, np.ndarray]],
+            Optional[Tuple[int, np.ndarray]], float, float, float, bool]:
+                - Updated ASR output string.
+                - Updated LLM-generated text.
+                - Updated TTS audio output.
+                - Updated user audio stream output.
+                - ASR latency.
+                - LLM latency.
+                - TTS latency.
+                - Update audio stream
+                - Change flag indicating if output was updated.
+        """
         orig_sr = sr
         sr = 16000
         if self.client is not None:
@@ -222,6 +349,7 @@ class ESPnetSDSModelInterface(AbsESPnetModel):
                         latency_ASR,
                         latency_LM,
                         latency_TTS,
+                        stream,
                         change,
                     )
 
@@ -249,6 +377,7 @@ class ESPnetSDSModelInterface(AbsESPnetModel):
             latency_ASR,
             latency_LM,
             latency_TTS,
+            stream,
             change,
         )
 

@@ -1,5 +1,6 @@
 import glob
 import os
+from typing import Tuple
 
 import numpy as np
 import torch
@@ -16,9 +17,30 @@ class ESPnetTTSModel(AbsTTS):
     @typechecked
     def __init__(
         self,
-        tag="kan-bayashi/ljspeech_vits",
-        device="cuda",
+        tag: str = "kan-bayashi/ljspeech_vits",
+        device: str = "cuda",
     ):
+        """
+        A class to initialize and manage a ESPnet's
+        pre-trained text-to-speech (TTS) model.
+
+        This class:
+        1. Downloads and sets up a pre-trained TTS model using the ESPnet Model Zoo.
+        2. Supports various TTS configurations, including multi speaker TTS
+        using speaker embeddings and speaker IDs.
+
+        Args:
+            tag (str, optional):
+                The model tag for the pre-trained TTS model.
+                Defaults to "kan-bayashi/ljspeech_vits".
+            device (str, optional):
+                The computation device for running inference.
+                Defaults to "cuda".
+
+        Raises:
+            ImportError:
+                If the required `espnet_model_zoo` library is not installed.
+        """
         try:
             from espnet_model_zoo.downloader import ModelDownloader
         except Exception as e:
@@ -75,10 +97,29 @@ class ESPnetTTSModel(AbsTTS):
             self.spembs = xvectors[spk]
 
     def warmup(self):
+        """
+        Perform a single forward pass with dummy input to
+        pre-load and warm up the model.
+        """
         with torch.no_grad():
-            wav = self.text2speech("Sid", sids=self.sids, spembs=self.spembs)["wav"]
+            _ = self.text2speech("Sid", sids=self.sids, spembs=self.spembs)["wav"]
 
-    def forward(self, transcript):
+    def forward(self, transcript: str) -> Tuple[int, np.ndarray]:
+        """
+        Converts a text transcript into an audio waveform
+        using a pre-trained ESPnet-TTS model.
+
+        Args:
+            transcript (str):
+                The input text to be converted into speech.
+
+        Returns:
+            Tuple[int, np.ndarray]:
+                A tuple containing:
+                - The sample rate of the audio (int).
+                - The generated audio waveform as a
+                NumPy array of type `int16`.
+        """
         with torch.no_grad():
             audio_chunk = (
                 self.text2speech(transcript, sids=self.sids, spembs=self.spembs)["wav"]

@@ -64,7 +64,8 @@ class OWSMModel(AbsASR):
 
     def forward(self, array: np.ndarray) -> str:
         """
-        Perform a forward pass on the given audio data, returning the transcribed text prompt.
+        Perform a forward pass on the given audio data,
+        returning the transcribed text prompt.
 
         Args:
             array (np.ndarray):

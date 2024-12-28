@@ -2,6 +2,7 @@ import base64
 import io
 import os
 import tempfile
+from typing import Tuple
 
 import numpy as np
 import torch
@@ -23,8 +24,22 @@ class MiniOmniE2EModel(AbsE2E):
     @typechecked
     def __init__(
         self,
-        device="cuda",
+        device: str = "cuda",
+        dtype: str = "float16",
     ):
+        """
+        A class to initialize and manage the OmniInference client
+        for end-to-end dialogue systems.
+
+        Args:
+            device (Literal["cuda", "cpu"], optional):
+                The device to run the inference on. Defaults to "cuda".
+
+        Raises:
+            ImportError:
+                If required dependencies (Pydub, Huggingface Hub,
+                or OmniInference) are not installed.
+        """
         if not is_pydub_available:
             raise ImportError("Error: Pydub is not properly installed.")
         try:
@@ -53,12 +68,17 @@ class MiniOmniE2EModel(AbsE2E):
         self.OUT_RATE = 24000
         self.OUT_SAMPLE_WIDTH = 2
         self.device = device
+        self.dtype = dtype
 
     def warmup(self):
+        """
+        Perform a single forward pass with dummy input to
+        pre-load and warm up the model.
+        """
         dummy_input = (
             torch.randn(
                 (3000),
-                dtype=getattr(torch, "float16"),
+                dtype=getattr(torch, self.dtype),
                 device="cpu",
             )
             .cpu()
@@ -86,9 +106,30 @@ class MiniOmniE2EModel(AbsE2E):
             audio_generator = self.client.run_AT_batch_stream(
                 f.name, stream_stride, max_tokens
             )
-        ans = [k for k in audio_generator]
+        _ = [k for k in audio_generator]
 
-    def forward(self, array, orig_sr):
+    def forward(
+        self,
+        array: np.ndarray,
+        orig_sr: int,
+    ) -> Tuple[str, bytes]:
+        """
+        Processes audio input to generate synthesized speech
+        and the corresponding text response.
+
+        Args:
+            array (np.ndarray):
+                The input audio array to be processed.
+            orig_sr (int):
+                The sample rate of the input audio.
+
+        Returns:
+            Tuple[str, bytes]:
+                A tuple containing:
+                - `text_str` (str): The generated text response.
+                - `audio_output` (bytes): The synthesized speech
+                as an MP3 byte stream.
+        """
         audio_buffer = io.BytesIO()
         segment = AudioSegment(
             array.tobytes(),
