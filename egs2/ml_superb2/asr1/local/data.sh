@@ -16,3 +16,4 @@ mkdir -p data/local
 python local/download.py
 utils/fix_data_dir.sh data/train
 utils/fix_data_dir.sh data/dev
+utils/fix_data_dir.sh data/dev_dialect
