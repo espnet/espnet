@@ -346,24 +346,42 @@ def start_warmup():
     and ready for execution, avoiding delays during runtime.
     """
     global dialogue_model
-    for opt in ASR_options:
-        if opt == ASR_name:
-            continue
-        print(opt)
-        for _ in dialogue_model.handle_ASR_selection(opt):
-            continue
-    for opt in LLM_options:
-        if opt == LLM_name:
-            continue
-        print(opt)
-        for _ in dialogue_model.handle_LLM_selection(opt):
-            continue
-    for opt in TTS_options:
-        if opt == TTS_name:
-            continue
-        print(opt)
-        for _ in dialogue_model.handle_TTS_selection(opt):
-            continue
+    global ASR_options
+    global LLM_options
+    global TTS_options
+    global ASR_name
+    global LLM_name
+    global TTS_name
+    for opt_count in range(len(ASR_options)):
+        opt = ASR_options[opt_count]
+        try:
+            for _ in dialogue_model.handle_ASR_selection(opt):
+                continue
+        except:
+            print("Removing " + opt + " from ASR options since it cannot be loaded.")
+            ASR_options = ASR_options[:opt_count] + ASR_options[(opt_count + 1) :]
+            if opt == ASR_name:
+                ASR_name = ASR_options[0]
+    for opt_count in range(len(LLM_options)):
+        opt = LLM_options[opt_count]
+        try:
+            for _ in dialogue_model.handle_LLM_selection(opt):
+                continue
+        except:
+            print("Removing " + opt + " from LLM options since it cannot be loaded.")
+            LLM_options = LLM_options[:opt_count] + LLM_options[(opt_count + 1) :]
+            if opt == LLM_name:
+                LLM_name = LLM_options[0]
+    for opt_count in range(len(TTS_options)):
+        opt = TTS_options[opt_count]
+        try:
+            for _ in dialogue_model.handle_TTS_selection(opt):
+                continue
+        except:
+            print("Removing " + opt + " from TTS options since it cannot be loaded.")
+            TTS_options = TTS_options[:opt_count] + TTS_options[(opt_count + 1) :]
+            if opt == TTS_name:
+                TTS_name = TTS_options[0]
     dialogue_model.handle_E2E_selection()
     dialogue_model.client = None
     for _ in dialogue_model.handle_TTS_selection(TTS_name):

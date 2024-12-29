@@ -184,16 +184,12 @@ class ESPnetSDSModelInterface(AbsESPnetModel):
         self.ASR_curr_name = option
         if option == "espnet/owsm_v3.1_ebf":
             self.s2t = OWSMModel()
-        elif option == (
-            "espnet/"
-            "simpleoier_librispeech_asr_train_asr_conformer7"
-            "_wavlm_large_raw_en_bpe5000_sp"
-        ):
-            self.s2t = ESPnetASRModel(tag=option)
+        elif "owsm_ctc" in option:
+            self.s2t = OWSMCTCModel(tag=option)
         elif "whisper" in option:
             self.s2t = WhisperASRModel(tag=option.replace("whisper-", ""))
         else:
-            self.s2t = OWSMCTCModel(tag=option)
+            self.s2t = ESPnetASRModel(tag=option)
 
         self.s2t.warmup()
         yield gr.Textbox(visible=True), gr.Textbox(visible=True), gr.Audio(visible=True)
