@@ -110,7 +110,8 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
 
     process_speaker() {
         local spk=$1
-        local spk_normalized=$(echo "${spk}" | tr -s " " "_" | tr -c "a-zA-Z0-9_-" "_" | sed 's/_*$//')
+        local spk_normalized
+        spk_normalized=$(echo "${spk}" | tr -s " " "_" | tr -c "a-zA-Z0-9_-" "_" | sed 's/_*$//')
         local spk_dir="${db_root}/Genshin-${lang}/${spk}"
         local wav_scp_spk="${tmpdir}/wav_${spk_normalized}.scp"
         local utt2spk_spk="${tmpdir}/utt2spk_${spk_normalized}"
@@ -129,9 +130,9 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
             utt_id="${spk_normalized}-${base_name}"
 
             if [ -f "${lab_file}" ] && [ -s "${lab_file}" ]; then
-                text_content=$(cat "${lab_file}" | tr -s " " | sed "s/^ *//;s/ *$//" | tr -cd '[:print:][:space:]')
+                text_content=$(tr -s " " < "${lab_file}" | sed "s/^ *//;s/ *$//" | tr -cd '[:print:][:space:]')
 
-                if [ ! -z "${text_content}" ]; then
+                if [ -n "${text_content}" ]; then
                     abs_wav_path=$(readlink -f "${wav_file}")
                     echo "${utt_id} ${abs_wav_path}" >> "${wav_scp_spk}"
                     echo "${utt_id} ${spk_normalized}" >> "${utt2spk_spk}"
