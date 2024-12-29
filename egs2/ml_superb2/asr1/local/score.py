@@ -192,5 +192,6 @@ with open(f"{args.exp_dir}/challenge_results.md", "w") as out_f:
             )
 
             out_f.write(
-                f"{directory}|{cer_res}|{lid}|{worst}|{std}|{dialect_cer}|{dialect_lid}|\n"
+                f"{directory}|{cer_res}|{lid}|{worst}"
+                +f"|{std}|{dialect_cer}|{dialect_lid}|\n"
             )
