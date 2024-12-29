@@ -357,7 +357,7 @@ def start_warmup():
         try:
             for _ in dialogue_model.handle_ASR_selection(opt):
                 continue
-        except:
+        except Exception:
             print("Removing " + opt + " from ASR options since it cannot be loaded.")
             ASR_options = ASR_options[:opt_count] + ASR_options[(opt_count + 1) :]
             if opt == ASR_name:
@@ -367,7 +367,7 @@ def start_warmup():
         try:
             for _ in dialogue_model.handle_LLM_selection(opt):
                 continue
-        except:
+        except Exception:
             print("Removing " + opt + " from LLM options since it cannot be loaded.")
             LLM_options = LLM_options[:opt_count] + LLM_options[(opt_count + 1) :]
             if opt == LLM_name:
@@ -377,7 +377,7 @@ def start_warmup():
         try:
             for _ in dialogue_model.handle_TTS_selection(opt):
                 continue
-        except:
+        except Exception:
             print("Removing " + opt + " from TTS options since it cannot be loaded.")
             TTS_options = TTS_options[:opt_count] + TTS_options[(opt_count + 1) :]
             if opt == TTS_name:
