@@ -2,6 +2,7 @@ import argparse
 import os
 import shutil
 import time
+from typing import Generator, Optional, Tuple
 
 import gradio as gr
 import nltk
@@ -32,6 +33,10 @@ from pyscripts.utils.dialog_eval.TTS_speech_quality import TTS_psuedomos
 
 from espnet2.sds.espnet_model import ESPnetSDSModelInterface
 
+# ------------------------
+# Hyperparameters
+# ------------------------
+
 access_token = os.environ.get("HF_TOKEN")
 ASR_name = None
 LLM_name = None
@@ -42,6 +47,25 @@ TTS_options = []
 Eval_options = []
 upload_to_hub = None
 dialogue_model = None
+
+latency_ASR = 0.0
+latency_LM = 0.0
+latency_TTS = 0.0
+
+text_str = ""
+asr_output_str = ""
+vad_output = None
+audio_output = None
+audio_output1 = None
+LLM_response_arr = []
+total_response_arr = []
+callback = gr.CSVLogger()
+start_record_time = None
+enable_btn = gr.Button(interactive=True, visible=True)
+
+# ------------------------
+# Function Definitions
+# ------------------------
 
 
 def parse_args():
@@ -132,25 +156,12 @@ def parse_args():
     )
 
 
-parse_args()
-api = HfApi()
-nltk.download("averaged_perceptron_tagger_eng")
-
-latency_ASR = 0.0
-latency_LM = 0.0
-latency_TTS = 0.0
-
-text_str = ""
-asr_output_str = ""
-vad_output = None
-audio_output = None
-audio_output1 = None
-LLM_response_arr = []
-total_response_arr = []
-
-
 def handle_eval_selection(
-    option, TTS_audio_output, LLM_Output, ASR_audio_output, ASR_transcript
+    option: str,
+    TTS_audio_output: str,
+    LLM_Output: str,
+    ASR_audio_output: str,
+    ASR_transcript: str,
 ):
     """
     Handles the evaluation of a selected metric based on
@@ -249,7 +260,11 @@ def handle_eval_selection(
         raise ValueError(f"Unknown option: {option}")
 
 
-def handle_eval_selection_E2E(option, TTS_audio_output, LLM_Output):
+def handle_eval_selection_E2E(
+    option: str,
+    TTS_audio_output: str,
+    LLM_Output: str,
+):
     """
     Handles the evaluation of a selected metric based on user input
     and provided outputs.
@@ -323,6 +338,13 @@ def handle_eval_selection_E2E(option, TTS_audio_output, LLM_Output):
 
 
 def start_warmup():
+    """
+    Initializes and warms up the dialogue and evaluation model.
+
+    This function is designed to ensure that all
+    components of the dialogue model are pre-loaded
+    and ready for execution, avoiding delays during runtime.
+    """
     global dialogue_model
     for opt in ASR_options:
         if opt == ASR_name:
@@ -364,22 +386,60 @@ def start_warmup():
         handle_eval_selection(opt, dummy_input, dummy_text, dummy_input, dummy_text)
 
 
-start_warmup()
-callback = gr.CSVLogger()
-start_record_time = None
-enable_btn = gr.Button(interactive=True, visible=True)
-
-
 def flash_buttons():
+    """
+    Enables human feedback buttons after displaying system output.
+    """
     btn_updates = (enable_btn,) * 8
-    print(enable_btn)
     yield (
         "",
         "",
     ) + btn_updates
 
 
-def transcribe(stream, new_chunk, TTS_option, ASR_option, LLM_option, type_option):
+def transcribe(
+    stream: np.ndarray,
+    new_chunk: Tuple[int, np.ndarray],
+    TTS_option: str,
+    ASR_option: str,
+    LLM_option: str,
+    type_option: str,
+):
+    """
+    Processes and transcribes an audio stream in real-time.
+
+    This function handles the transcription of audio input
+    and its transformation through a cascaded
+    or E2E conversational AI system.
+    It dynamically updates the transcription, text generation,
+    and synthesized speech output, while managing global states and latencies.
+
+    Args:
+        stream: The current audio stream buffer.
+            `None` if the stream is being reset (e.g., after user refresh).
+        new_chunk: A tuple containing:
+            - `sr`: Sample rate of the new audio chunk.
+            - `y`: New audio data chunk.
+        TTS_option: Selected TTS model option.
+        ASR_option: Selected ASR model option.
+        LLM_option: Selected LLM model option.
+        type_option: Type of system ("Cascaded" or "E2E").
+
+    Yields:
+        Tuple[Optional[np.ndarray], Optional[str], Optional[str],
+        Optional[Tuple[int, np.ndarray]], Optional[Tuple[int, np.ndarray]]]:
+            A tuple containing:
+            - Updated stream buffer.
+            - ASR output text.
+            - Generated LLM output text.
+            - Audio output as a tuple of sample rate and audio waveform.
+            - User input audio as a tuple of sample rate and audio waveform.
+
+    Notes:
+        - Resets the session if the transcription exceeds 5 minutes.
+        - Updates the Gradio interface elements dynamically.
+        - Manages latencies.
+    """
     sr, y = new_chunk
     global text_str
     global chat
@@ -489,6 +549,14 @@ def transcribe(stream, new_chunk, TTS_option, ASR_option, LLM_option, type_optio
     yield (stream, asr_output_str, text_str1, audio_output, audio_output1)
 
 
+# ------------------------
+# Executable Script
+# ------------------------
+
+parse_args()
+api = HfApi()
+nltk.download("averaged_perceptron_tagger_eng")
+start_warmup()
 with gr.Blocks(
     title="E2E Spoken Dialog System",
 ) as demo:
@@ -922,5 +990,4 @@ with gr.Blocks(
         None,
         preprocess=False,
     )
-
 demo.launch(share=True)
