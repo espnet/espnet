@@ -117,9 +117,11 @@ def calc_metrics_from_textfiles(
 
     stats = calculate_multilabel_stats(all_pred_scores, all_gt_scores)
     return {
-        "mean_acc": np.mean([stat["acc"] for stat in stats]),
-        "mAP": np.mean([stat["AP"] for stat in stats]),
-        "mean_auc": np.mean([stat["auc"] for stat in stats]),
+        "mean_acc": np.mean([stat["acc"] for stat in stats]) * 100,
+        "mAP": np.mean([stat["AP"] for stat in stats]) * 100,
+        "mean_auc": np.mean([stat["auc"] for stat in stats]) * 100,
+        "n_labels": len(stats),
+        "n_instances": all_gt_scores.shape[0],
     }
 
 
@@ -166,4 +168,4 @@ if __name__ == "__main__":
         args.token_list,
     )
     for key, value in metrics.items():
-        print("{} {}: {:0.2f}".format(args.pred_score_file, key, 100 * value))
+        print("{} {} {:0.2f}".format(args.pred_score_file, key, value))

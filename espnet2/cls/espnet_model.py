@@ -49,6 +49,7 @@ class ESPnetClassificationModel(AbsESPnetModel):
         decoder: AbsDecoder,
         classification_type="multi-class",
         lsm_weight: float = 0.0,
+        mixup_augmentation: bool = False,
     ):
         super().__init__()
         self.vocab_size = vocab_size
@@ -71,6 +72,7 @@ class ESPnetClassificationModel(AbsESPnetModel):
             raise ValueError(
                 "Valid classification types are 'multi-label' and 'multi-class'"
             )
+        self.mixup_augmentation = mixup_augmentation
         self.metric_functions = self.setup_metrics_()
 
     def forward(
@@ -96,6 +98,19 @@ class ESPnetClassificationModel(AbsESPnetModel):
         assert len(label.shape) == 2, label.shape
         assert speech.shape[0] == label.shape[0], (speech.shape, label.shape)
         batch_size = speech.shape[0]
+        onehot_ = label_to_onehot(
+            label, label_lengths, self.vocab_size, self.classification_type
+        )
+        if self.training and self.mixup_augmentation:
+            assert (
+                self.classification_type == "multi-label"
+            ), "Mixup is only for multi-label classification"
+            if speech_lengths.min() != speech_lengths.max():
+                logger.warning(
+                    "Mixup is not recommended for variable length input. "
+                    "It may not work as expected."
+                )
+            speech, onehot_ = mixup_augment(speech, onehot_)
 
         # 1. Encoder
         encoder_out, encoder_out_lens = self.encode(speech, speech_lengths)
@@ -103,14 +118,10 @@ class ESPnetClassificationModel(AbsESPnetModel):
         # 2. Decoder
         logits = self.decoder(encoder_out, encoder_out_lens)
 
-        onehot_ = label_to_onehot(
-            label, label_lengths, self.vocab_size, self.classification_type
-        )
         # 3. Compute loss and acc
         loss = self.classification_loss(logits, onehot_)
 
         pred = self.classification_function(logits)
-
         stats = {"loss": loss.detach()}
         for metric_name, metric_fn in self.metric_functions.items():
             target = (
@@ -238,6 +249,7 @@ class ESPnetClassificationModel(AbsESPnetModel):
         elif self.classification_type == "multi-label":
             return {
                 "acc": partial(EvalFunction.multilabel_accuracy, criteria="hamming"),
+                # acc is usually high if data is imabalanced
                 "mAP": partial(
                     EvalFunction.multilabel_auprc,
                     average="macro",
@@ -278,3 +290,22 @@ def label_to_onehot(
         raise ValueError(
             "Valid classification types are 'multi-label' and 'multi-class'"
         )
+
+
+def mixup_augment(speech: torch.Tensor, onehot: torch.Tensor):
+    """Mixup augmentation for multi-label classification
+
+    Args:
+        speech: (Batch, Length, Dim)
+        onehot: (Batch, Dim)
+    Returns:
+        speech: (Batch, Length, Dim)
+        onehot: (Batch, Dim)
+    """
+    batch_size = speech.size(0)
+    perm = torch.randperm(batch_size).to(speech.device)
+    # mixup_lambda = torch.rand(batch_size, 1, 1)
+    mixup_lambda = torch.tensor(0.8, device=speech.device)
+    speech = mixup_lambda * speech + (1 - mixup_lambda) * speech[perm]
+    onehot = mixup_lambda * onehot + (1 - mixup_lambda) * onehot[perm]
+    return speech, onehot
