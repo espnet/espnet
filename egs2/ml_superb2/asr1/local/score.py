@@ -158,8 +158,8 @@ with open(f"{args.exp_dir}/challenge_results.md", "w") as out_f:
     out_f.write("# RESULTS\n\n")
     out_f.write("## args.exp_dir\n\n")
     out_f.write(
-        "|decode_dir|Standard CER|Standard LID|"+
-          "Worst 15 CER|CER StD|Dialect CER|Dialect LID|\n"
+        "|decode_dir|Standard CER|Standard LID|"
+        + "Worst 15 CER|CER StD|Dialect CER|Dialect LID|\n"
     )
     out_f.write("|---|---|---|---|---|---|---|\n")
     for directory in dirs:
@@ -193,5 +193,5 @@ with open(f"{args.exp_dir}/challenge_results.md", "w") as out_f:
 
             out_f.write(
                 f"{directory}|{cer_res}|{lid}|{worst}"
-                +f"|{std}|{dialect_cer}|{dialect_lid}|\n"
+                + f"|{std}|{dialect_cer}|{dialect_lid}|\n"
             )
