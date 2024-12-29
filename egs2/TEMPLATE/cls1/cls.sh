@@ -32,6 +32,7 @@ skip_eval=false      # Skip decoding and evaluation stages
 ngpu=1               # The number of gpus ("0" uses cpu, otherwise use gpu).
 num_nodes=1          # The number of nodes
 nj=32                # The number of parallel jobs.
+datadir=data         # Directory to save data from Stage 1.
 dumpdir=dump         # Directory to dump features.
 inference_nj=4      # The number of parallel jobs in decoding.
 gpu_inference=false  # Whether to perform gpu decoding.
@@ -44,18 +45,20 @@ local_data_opts= # The options given to local/data.sh.
 # Feature extraction related
 audio_format=flac    # Audio format: wav, flac, wav.ark, flac.ark.
 fs=16k               # Sampling rate.
+speech_fold_length=160000 # The length of the speech input to the cls model.
+label_fold_length=1   # fold_length for labels during CLS training. Set to 1 for multi-class classification.
 
 # cls model related
 cls_tag=    # Suffix to the result dir for cls model training.
 cls_config= # Config for cls model training.
 cls_args=   # Arguments for cls model training, e.g., "--max_epoch 10".
              # Note that it will overwrite args in cls config.
-feats_normalize=utt_mvn # Normalizaton layer type.
+feats_normalize=uttmvn # Normalizaton layer type.
 
-# cls related
-inference_config= # Config for cls model inference
+# cls inference related
 inference_model=valid.acc.best.pth
 inference_tag=    # Suffix to the inference dir for cls model inference
+output_all_probabilities=true
 
 
 # [Task dependent] Set the datadir name created by local/data.sh
@@ -63,8 +66,7 @@ train_set=       # Name of training set.
 valid_set=       # Name of development set.
 test_sets=       # Names of evaluation sets. Multiple items can be specified.
 
-text_classes=data/text
-token_list=data/token_list
+text_classes=   # Path to the text file containing all classes.
 
 help_message=$(cat << EOF
 Usage: $0 --train-set <train_set_name> --valid-set <valid_set_name> --test_sets <test_set_names>
@@ -80,6 +82,7 @@ Options:
     --nj             # The number of parallel jobs (default="${nj}").
     --inference_nj   # The number of parallel jobs in inference (default="${inference_nj}").
     --gpu_inference  # Whether to use gpu for inference (default="${gpu_inference}").
+    --datadir        # Directory to save data from Stage 1 (default="${datadir}").
     --dumpdir        # Directory to dump features (default="${dumpdir}").
     --expdir         # Directory to save experiments (default="${expdir}").
     --python         # Specify python to execute espnet commands (default="${python}").
@@ -88,16 +91,18 @@ Options:
     # Feature extraction related
     --audio_format     # Audio format: wav, flac, wav.ark, flac.ark  (default="${audio_format}").
     --fs               # Sampling rate (default="${fs}").
+    --speech_fold_length # The length of the speech input to the cls model (default="${speech_fold_length}").
+    --label_fold_length  # fold_length for labels during CLS training (default="${label_fold_length}").
     # cls model related
     --cls_tag        # Suffix to the result dir for classification model training (default="${cls_tag}").
     --cls_config     # Config for classification model training (default="${cls_config}").
     --cls_args       # Arguments for classification model training, e.g., "--max_epoch 10" (default="${cls_args}").
                       # Note that it will overwrite args in cls config.
     --feats_normalize # Normalizaton layer type (default="${feats_normalize}").
-    # cls related
-    --inference_config # Config for cls model inference
+    # cls inference related
     --inference_model  # classification model path for inference (default="${inference_model}").
     --inference_tag    # Suffix to the inference dir for cls model inference
+    --output_all_probabilities # Output all probabilities in the inference stage (default="${output_all_probabilities}").
     # [Task dependent] Set the datadir name created by local/data.sh
     --train_set               # Name of training set (required).
     --valid_set               # Name of development set (required).
@@ -136,33 +141,33 @@ if [ -z "${cls_tag}" ]; then
     else
         cls_tag="train"
     fi
-fi
-
-if [ -z "${inference_tag}" ]; then
-    if [ -n "${inference_config}" ]; then
-        inference_tag="$(basename "${inference_config}" .yaml)"
-    else
-        inference_tag=inference
+    if [ -n "${cls_args}" ]; then
+        cls_tag+="$(echo "${cls_args}" | sed -e "s/--/\_/g" -e "s/[ |=/]//g")"
     fi
 fi
 
-[ -z "${text_classes}" ] && text_classes="${data_feats}/org/${train_set}/text"
+if [ -z "${inference_tag}" ]; then
+    inference_tag=inference
+fi
+
+[ -z "${text_classes}" ] && text_classes="${data_feats}/${train_set}/text"
 
 # The directory used for collect-stats mode
 cls_stats_dir="${expdir}/cls_stats_${fs}"
 # The directory used for training commands
 cls_exp="${expdir}/cls_${cls_tag}"
+token_list=${datadir}/token_list
 
 # ========================== Main stages start from here. ==========================
 
 if ! "${skip_data_prep}"; then
     if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
-        log "Stage 1: Data preparation for data/${train_set}, data/${valid_set}, etc."
-        local/data.sh ${local_data_opts}
+        log "Stage 1: Data preparation for ${datadir}/${train_set}, ${datadir}/${valid_set}, etc."
+        local/data.sh ${datadir} ${local_data_opts} 
     fi
 
     if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
-        log "Stage 2: Format wav.scp: data/ -> ${data_feats}"
+        log "Stage 2: Format wav.scp: ${datadir}/ -> ${data_feats}"
         # ====== Recreating "wav.scp" ======
         # Kaldi-wav.scp, which can describe the file path 
         # with unix-pipe, like "cat /some/path |",
@@ -172,13 +177,13 @@ if ! "${skip_data_prep}"; then
         # If nothing is need, then format_wav_scp.sh does nothing:
         # i.e. the input file format and rate is same as the output.
         for dset in "${train_set}" "${valid_set}" ${test_sets}; do
-            utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}/${dset}"
+            utils/copy_data_dir.sh --validate_opts --non-print "${datadir}/${dset}" "${data_feats}/${dset}"
             rm -f ${data_feats}/${dset}/{wav.scp,reco2file_and_channel}
 
             # shellcheck disable=SC2086
             scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
                 --audio-format "${audio_format}" --fs "${fs}"  \
-                "data/${dset}/wav.scp" "${data_feats}/${dset}"
+                "${datadir}/${dset}/wav.scp" "${data_feats}/${dset}"
 
             # Note(jiatong): default use raw as feats_type, see more types in other TEMPLATE recipes
             echo "raw" > "${data_feats}/${dset}/feats_type"
@@ -258,6 +263,7 @@ if ! "${skip_train}"; then
         ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
             ${python} -m espnet2.bin.cls_train \
                 --collect_stats true \
+                --token_type "word" \
                 --use_preprocessor true \
                 --train_data_path_and_name_and_type "${_cls_train_dir}/${_scp},speech,${_type}" \
                 --train_data_path_and_name_and_type "${_cls_train_dir}/text,label,text" \
@@ -266,6 +272,7 @@ if ! "${skip_train}"; then
                 --train_shape_file "${_logdir}/train.JOB.scp" \
                 --valid_shape_file "${_logdir}/valid.JOB.scp" \
                 --output_dir "${_logdir}/stats.JOB" \
+                --token_list "${token_list}" \
                 ${_opts} ${cls_args} || { cat $(grep -l -i error "${_logdir}"/stats.*.log) ; exit 1; }
 
         # 4. Aggregate shape files
@@ -308,10 +315,16 @@ if ! "${skip_train}"; then
         _opts+="--train_data_path_and_name_and_type ${_cls_train_dir}/${_scp},speech,${_type} "
         _opts+="--train_data_path_and_name_and_type ${_cls_train_dir}/text,label,text "
         _opts+="--train_shape_file ${cls_stats_dir}/train/speech_shape "
+        _opts+="--train_shape_file ${cls_stats_dir}/train/label_shape "
 
         _opts+="--valid_data_path_and_name_and_type ${_cls_valid_dir}/${_scp},speech,${_type} "
         _opts+="--valid_data_path_and_name_and_type ${_cls_valid_dir}/text,label,text "
         _opts+="--valid_shape_file ${cls_stats_dir}/valid/speech_shape "
+        _opts+="--valid_shape_file ${cls_stats_dir}/valid/label_shape "
+        _opts+="--token_list ${token_list} "
+        _opts+="--token_type word "
+        _opts+="--fold_length ${speech_fold_length} "
+        _opts+="--fold_length ${label_fold_length} "
 
         log "Generate '${cls_exp}/run.sh'. You can resume the process from stage 5 using this script"
         mkdir -p "${cls_exp}"; echo "${run_args} --stage 5 \"\$@\"; exit \$?" > "${cls_exp}/run.sh"; chmod +x "${cls_exp}/run.sh"
@@ -358,10 +371,6 @@ if ! "${skip_eval}"; then
         mkdir -p "${cls_exp}"; echo "${run_args} --stage 6 \"\$@\"; exit \$?" > "${cls_exp}/run.sh"; chmod +x "${cls_exp}/run.sh"
         _opts=
 
-        if [ -n "${inference_config}" ]; then
-            _opts+="--config ${inference_config} "
-        fi
-
         for dset in "${valid_set}" ${test_sets}; do
             _data="${data_feats}/${dset}"
             _dir="${cls_exp}/cls_${dset}"
@@ -382,23 +391,25 @@ if ! "${skip_eval}"; then
             utils/split_scp.pl "${key_file}" ${split_scps}
 
             # 2. Submit inference jobs
-            log "cls started... log: '${_logdir}/cls_inference.*.log'"
+            log "cls inference started... log: '${_logdir}/cls_inference.*.log'"
             # shellcheck disable=SC2046,SC2086
             ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/cls_inference.JOB.log \
                 ${python} -m espnet2.bin.cls_inference \
                     --ngpu "${_ngpu}" \
                     --data_path_and_name_and_type "${_data}/${_scp},speech,${_type}" \
                     --key_file "${_logdir}"/keys.JOB.scp \
-                    --cls_train_config "${cls_exp}/config.yaml" \
-                    --cls_model_file "${cls_exp}/${inference_model}" \
+                    --classification_train_config "${cls_exp}/config.yaml" \
+                    --classification_model_file "${cls_exp}/${inference_model}" \
                     --output_dir "${_logdir}"/output.JOB \
+                    --output_all_probabilities ${output_all_probabilities} \
                     ${_opts} || { cat $(grep -l -i error "${_logdir}"/cls_inference.*.log) ; exit 1; }
 
             # 3. Concatenates the output files from each jobs
-            for i in $(seq "${_nj}"); do
-                cat "${_logdir}/output.${i}/prediction/score"
-            done | LC_ALL=C sort -k1 > "${_dir}/score"
-
+            for f in score text; do
+                for i in $(seq "${_nj}"); do
+                    cat "${_logdir}/output.${i}/prediction/${f}"
+                done | LC_ALL=C sort -k1 > "${_dir}/${f}"
+            done
         done
     fi
 
@@ -411,8 +422,11 @@ if ! "${skip_eval}"; then
             _inf_dir="${cls_exp}/cls_${dset}"
             _dir="${cls_exp}/cls_${dset}/scoring"
             mkdir -p "${_dir}"
-
-            python3 pyscripts/utils/cls_score.py -g "${_data}/text" -p "${_inf_dir}/score" > "${_dir}"/eer
+            python3 pyscripts/utils/cls_score.py \
+                -gtxt "${_data}/text" \
+                -ptxt "${_inf_dir}/text" \
+                -pscore "${_inf_dir}/score" \
+                -tok "${token_list}" > "${_dir}"/metrics
         done
 
         scripts/utils/show_cls_result.sh "${cls_exp}" > "${cls_exp}"/RESULTS.md

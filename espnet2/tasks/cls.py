@@ -29,6 +29,7 @@ from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.torch_utils.initialize import initialize
+from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
 from espnet2.train.preprocessor import CommonPreprocessor
@@ -96,6 +97,14 @@ decoder_choices = ClassChoices(
     type_check=AbsDecoder,
     default="linear",
 )
+model_choices = ClassChoices(
+    "model",
+    classes=dict(
+        espnet=ESPnetClassificationModel,
+    ),
+    type_check=AbsESPnetModel,
+    default="espnet",
+)
 
 
 class CLSTask(AbsTask):
@@ -116,6 +125,8 @@ class CLSTask(AbsTask):
         encoder_choices,
         # --decoder and --decoder_conf
         decoder_choices,
+        # --model and --model_conf
+        model_choices,
     ]
 
     # If you need to modify train() or eval() procedures, change Trainer class here
@@ -177,13 +188,13 @@ class CLSTask(AbsTask):
             default=True,
             help="Apply preprocessing to data or not",
         )
-        group.add_argument(
-            "--classification_type",
-            type=str,
-            default="multi-class",
-            help="Classification Type: multi-class or multi-label. "
-            "Multi-label with vocab_size=1 is equivalent to binary classification",
-        )
+        # group.add_argument(
+        #     "--classification_type",
+        #     type=str,
+        #     default="multi-class",
+        #     help="Classification Type: multi-class or multi-label. "
+        #     "Multi-label with vocab_size=1 is equivalent to binary classification",
+        # )
 
         for class_choices in cls.class_choices_list:
             # Append --<name> and --<name>_conf.
@@ -290,9 +301,6 @@ class CLSTask(AbsTask):
         decoder_class = decoder_choices.get_class(args.decoder)
 
         n_classes = len(args.token_list) - 1  # -1 for <unk>
-        logger.info(
-            f"Setting {args.classification_type} classification with {n_classes} classes."
-        )
 
         decoder = decoder_class(
             n_classes,
@@ -310,7 +318,7 @@ class CLSTask(AbsTask):
             preencoder=preencoder,
             encoder=encoder,
             decoder=decoder,
-            classification_type=args.classification_type,
+            **args.model_conf,
         )
 
         # 7. Initialize

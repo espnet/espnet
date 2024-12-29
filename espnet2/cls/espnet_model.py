@@ -48,8 +48,8 @@ class ESPnetClassificationModel(AbsESPnetModel):
         encoder: AbsEncoder,
         decoder: AbsDecoder,
         classification_type="multi-class",
+        lsm_weight: float = 0.0,
     ):
-
         super().__init__()
         self.vocab_size = vocab_size
         self.token_list = token_list.copy()
@@ -66,7 +66,7 @@ class ESPnetClassificationModel(AbsESPnetModel):
             self.classification_loss = nn.BCEWithLogitsLoss()
         elif classification_type == "multi-class":
             self.classification_function = partial(F.softmax, dim=-1)
-            self.classification_loss = nn.CrossEntropyLoss()
+            self.classification_loss = nn.CrossEntropyLoss(label_smoothing=lsm_weight)
         else:
             raise ValueError(
                 "Valid classification types are 'multi-label' and 'multi-class'"
