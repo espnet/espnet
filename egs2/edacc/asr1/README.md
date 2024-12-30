@@ -39,7 +39,7 @@ Before running the recipe, please download version 1.0 from https://datashare.ed
 
 # Specification:
 
-1. [truncate_test.py](local/truncate_test.py) used in [data.sh](local/data.sh) is used for splitting too long segment in test set if possible and it is optional, you should provide the information of utterances you want to split, and the rules of how to split, including the text and time alignment (These information could be obtained in advance by CTC segmentation tool). An example is provided here:
+1. [truncate_test.py](local/truncate_test.py) used in [data.sh](local/data.sh) is used for splitting too long segment in test set if possible and it is optional, you should provide the information of utterances you want to split, and the rules of how to split, including the text and time alignment (These information could be obtained in advance by CTC segmentation tool). An example is provided below:
 
 ```
 # Example input: specify utterance splits
