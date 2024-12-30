@@ -10,15 +10,12 @@ set -o pipefail
 test_set="test test_sub"
 train_set="dev_train"
 valid_set="dev_non_train"
-nbpe=3884 # 3884 vocabulary size of bpe could cover all the sentence in the edacc dataset
+nbpe=500 
 asr_config=conf/train_asr_wavlm_transformer.yaml
-# asr_config=conf/train_asr_transformer_finetune.yaml
 inference_config=conf/decode_asr.yaml
 
+
 ./asr.sh \
-    --nj 32 \
-    --inference_nj 2 \
-    --gpu_inference true \
     --use_lm false \
     --lang en \
     --ngpu 1 \
