@@ -381,10 +381,6 @@ class CTCSegmentation:
         }
         # As the parameter ctc_index_duration vetoes the other
         if self.time_stamps == "fixed":
-            # Initialize the value, if not yet available
-            if self.samples_to_frames_ratio is None:
-                ratio = self.estimate_samples_to_frames_ratio()
-                self.samples_to_frames_ratio = ratio
             index_duration = self.samples_to_frames_ratio / self.fs
         else:
             assert self.time_stamps == "auto"
@@ -393,35 +389,12 @@ class CTCSegmentation:
         timing_cfg["index_duration"] = index_duration
         return timing_cfg
 
-    def estimate_samples_to_frames_ratio(self, speech_len=215040):
-        """Determine the ratio of encoded frames to sample points.
-
-        This method helps to determine the time a single encoded frame occupies.
-        As the sample rate already gave the number of samples, only the ratio
-        of samples per encoded CTC frame are needed. This function estimates them by
-        doing one inference, which is only needed once.
-
-        Args:
-            speech_len: Length of randomly generated speech vector for single
-                inference. Default: 215040.
-
-        Returns:
-            samples_to_frames_ratio: Estimated ratio.
-        """
-        random_input = torch.rand(speech_len)
-        lpz = self.get_lpz(random_input)
-        lpz_len = lpz.shape[0]
-        # Most frontends (DefaultFrontend, SlidingWindow) discard trailing data
-        lpz_len = lpz_len + 1
-        samples_to_frames_ratio = speech_len // lpz_len
-        return samples_to_frames_ratio
-
     @torch.no_grad()
     def get_lpz(self, speech: Union[torch.Tensor, np.ndarray]):
         """Obtain CTC posterior log probabilities for given speech data.
 
         Args:
-            speech: Speech audio input.
+            speech: Speech input.
 
         Returns:
             lpz: Numpy vector with CTC log posterior probabilities.
@@ -460,6 +433,8 @@ class CTCSegmentation:
         speech = torch.tensor(np.array(buffer_list)).to(getattr(torch, self.dtype))
         buffer_frames = int(frames_per_sec * buffer_len_in_secs)
         context_frames = int(frames_per_sec * context_len_in_secs)
+
+        valid_speech_samples = speech.size(0) * chunk_len
 
         unmerged = []
         for idx in range(0, speech.size(0), batch_size):
@@ -501,18 +476,21 @@ class CTCSegmentation:
             if isinstance(enc, tuple):
                 enc, intermediate_outs = enc
 
-            # enc: (B, T, D)
-            enc = enc[
-                :, :buffer_frames
-            ]  # NOTE(yifan): IMPORTANT: it might be longer due to padding in conv
-            batched_log_p = self.ctc.log_softmax(enc).detach()  # (B, T, V)
-            valid_log_p = batched_log_p[:, context_frames:-context_frames].reshape(
-                -1, batched_log_p.size(-1)
-            )  # (T', V)
-            unmerged.append(valid_log_p)
+            # enc: (B, T, D), T is 376 in the default setup
+            # The first two frames are language and task symbols
+            enc = enc[:, 2:]  # (B, T', D), T'=buffer_frames-1
 
-        lpz = torch.cat(unmerged, dim=0).cpu().numpy()  # (time, V)
-        return lpz
+            # Remove left and right context
+            enc = enc[:, context_frames:-context_frames]
+
+            batched_log_p = self.ctc.log_softmax(enc).detach()  # (B, T'', V)
+
+            unmerged.append(
+                batched_log_p.reshape(-1, batched_log_p.size(-1)).cpu()
+            )
+
+        lpz = torch.cat(unmerged, dim=0).numpy()  # (time, V)
+        return lpz, valid_speech_samples
 
     def _split_text(self, text):
         """Convert text to list and extract utterance IDs."""
@@ -580,23 +558,33 @@ class CTCSegmentation:
                 ``get_segments()`` in order to obtain alignments.
         """
         config = self.config
+        
         # Update timing parameters, if needed
         if speech_len is not None:
             lpz_len = lpz.shape[0]
             timing_cfg = self.get_timing_config(speech_len, lpz_len)
             config.set(**timing_cfg)
+
         # `text` is needed in the form of a list.
         utt_ids, text = self._split_text(text)
+        
         # Obtain utterance & label sequence from text
         if self.text_converter == "tokenize":
+            def _tokenize(text):
+                text = self.preprocess_fn.text_cleaner(text)
+                tokens = self.preprocess_fn.tokenizer.text2tokens(text)
+                text_ints = self.preprocess_fn.token_id_converter.tokens2ids(tokens)
+                text_ints = np.array(text_ints, dtype=np.int64)
+                return text_ints
+
             # list of str --tokenize--> list of np.array
-            token_list = [
-                self.preprocess_fn("<dummy>", {"text": utt})["text"] for utt in text
-            ]
+            token_list = [_tokenize(utt) for utt in text]
+
             # filter out any instances of the <unk> token
             unk = config.char_list.index("<unk>")
             token_list = [utt[utt != unk] for utt in token_list]
             ground_truth_mat, utt_begin_indices = prepare_token_list(config, token_list)
+        
         else:
             assert self.text_converter == "classic"
             text = [self.preprocess_fn.text_cleaner(utt) for utt in text]
@@ -605,6 +593,7 @@ class CTCSegmentation:
             ]
             token_list = [utt.replace("<unk>", "") for utt in token_list]
             ground_truth_mat, utt_begin_indices = prepare_text(config, token_list)
+        
         task = CTCSegmentationTask(
             config=config,
             name=name,
@@ -678,9 +667,9 @@ class CTCSegmentation:
         if fs is not None:
             self.set_config(fs=fs)
         # Get log CTC posterior probabilities
-        lpz = self.get_lpz(speech)
+        lpz, valid_speech_samples = self.get_lpz(speech)
         # Conflate text & lpz & config as a segmentation task object
-        task = self.prepare_segmentation_task(text, lpz, name, speech.shape[0])
+        task = self.prepare_segmentation_task(text, lpz, name, valid_speech_samples)
         # Apply CTC segmentation
         segments = self.get_segments(task)
         task.set(**segments)
