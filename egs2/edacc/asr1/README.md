@@ -10,35 +10,32 @@ Before running the recipe, please download version 1.0 from https://datashare.ed
 
 ## Environments
 
-- date: `Wed Dec 25 13:14:09 EST 2024`
+- date: `Sat Dec 28 14:03:02 EST 2024`
 - python version: `3.10.15 (main, Oct  3 2024, 07:27:34) [GCC 11.2.0]`
 - espnet version: `espnet 202409`
 - pytorch version: `pytorch 2.0.1`
-- Git hash: `70d2c9cd76ea066fe5c84d148799b6c94e58f57c`
-  - Commit date: `Thu Dec 12 00:28:13 2024 -0500`
+- Git hash: `998c33ce02c364c24d54a8d349343eccbe3b3ccc`
+  - Commit date: `Fri Dec 27 23:28:43 2024 +0000`
 
-## exp/asr_train_asr_wavlm_transformer_raw_en_bpe3884_sp
+## exp/asr_train_asr_wavlm_transformer_500_finetune7_raw_en_bpe500_sp
 
 ### WER
 
-| dataset                                     | Snt  | Wrd    | Corr | Sub  | Del  | Ins | Err  | S.Err |
-| ------------------------------------------- | ---- | ------ | ---- | ---- | ---- | --- | ---- | ----- |
-| decode_asr_asr_model_valid.acc.ave/test     | 9300 | 163389 | 56.1 | 31.3 | 12.6 | 7.6 | 51.5 | 87.3  |
-| decode_asr_asr_model_valid.acc.ave/test_sub | 500  | 8402   | 62.0 | 26.2 | 11.8 | 6.4 | 44.3 | 83.6  |
+| dataset                                 | Snt  | Wrd    | Corr | Sub  | Del  | Ins | Err  | S.Err |
+| --------------------------------------- | ---- | ------ | ---- | ---- | ---- | --- | ---- | ----- |
+| decode_asr_asr_model_valid.acc.ave/test | 9300 | 163389 | 59.5 | 29.1 | 11.4 | 6.7 | 47.2 | 88.3  |
 
 ### CER
 
-| dataset                                     | Snt  | Wrd    | Corr | Sub  | Del  | Ins | Err  | S.Err |
-| ------------------------------------------- | ---- | ------ | ---- | ---- | ---- | --- | ---- | ----- |
-| decode_asr_asr_model_valid.acc.ave/test     | 9300 | 792343 | 68.9 | 13.5 | 17.7 | 8.3 | 39.4 | 87.3  |
-| decode_asr_asr_model_valid.acc.ave/test_sub | 500  | 41048  | 73.4 | 10.7 | 15.9 | 6.8 | 33.3 | 83.6  |
+| dataset                                 | Snt  | Wrd    | Corr | Sub  | Del  | Ins | Err  | S.Err |
+| --------------------------------------- | ---- | ------ | ---- | ---- | ---- | --- | ---- | ----- |
+| decode_asr_asr_model_valid.acc.ave/test | 9300 | 792343 | 76.0 | 11.0 | 13.0 | 8.3 | 32.3 | 88.3  |
 
 ### TER
 
-| dataset                                     | Snt  | Wrd    | Corr | Sub  | Del  | Ins | Err  | S.Err |
-| ------------------------------------------- | ---- | ------ | ---- | ---- | ---- | --- | ---- | ----- |
-| decode_asr_asr_model_valid.acc.ave/test     | 9300 | 206542 | 54.1 | 29.0 | 16.9 | 9.2 | 55.1 | 87.3  |
-| decode_asr_asr_model_valid.acc.ave/test_sub | 500  | 10566  | 59.8 | 23.8 | 16.4 | 8.0 | 48.2 | 83.6  |
+| dataset                                 | Snt  | Wrd    | Corr | Sub  | Del  | Ins  | Err  | S.Err |
+| --------------------------------------- | ---- | ------ | ---- | ---- | ---- | ---- | ---- | ----- |
+| decode_asr_asr_model_valid.acc.ave/test | 9300 | 268438 | 62.1 | 26.2 | 11.6 | 12.2 | 50.1 | 88.3  |
 
 # Specification:
 
