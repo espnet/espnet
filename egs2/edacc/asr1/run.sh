@@ -10,7 +10,7 @@ set -o pipefail
 test_set="test test_sub"
 train_set="dev_train"
 valid_set="dev_non_train"
-nbpe=500 
+nbpe=500
 asr_config=conf/train_asr_wavlm_transformer.yaml
 inference_config=conf/decode_asr.yaml
 
