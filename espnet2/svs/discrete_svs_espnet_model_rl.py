@@ -5,6 +5,8 @@
 
 """Singing-voice-synthesis ESPnet model."""
 
+import logging
+
 from contextlib import contextmanager
 from distutils.version import LooseVersion
 from typing import Dict, Optional, Tuple
@@ -378,18 +380,58 @@ class ESPnetDiscreteRLSVSModel(ESPnetSVSModel):
                 discrete_token_lengths=discrete_token_lengths,
                 discrete_token_lengths_frame=origin_discrete_token_lengths,
             )
+        
+        # RL preparation
         if self.ref_svs is not None:
             batch.update(flag_RL=True)
 
         pos_idx = kwargs["pos_idx"] # [B_pos,T, nq]
+        B, T, nq, S = pos_idx.size()
+        pos_idx = pos_idx.permute(0, 3, 1, 2).reshape(B * S, T, nq)
+        # logging.info(f'pos_idx: {pos_idx.shape}')
+        
         neg_idx = kwargs["neg_idx"] # [B_neg, T, nq]
-        all_idx = pad_and_concat([pos_idx, neg_idx], dim=0) # [B_pos + B_neg, T, nq]
-        pos_length = kwargs["pos_length"] # [B_pos]
-        neg_length = kwargs["neg_length"] # [B_neg]
-        all_length = torch.cat([pos_length, neg_length], dim=0) # [B_pos + B_neg]
+        B, T, nq, S = neg_idx.size()
+        neg_idx = neg_idx.permute(0, 3, 1, 2).reshape(B * S, T, nq)
+        # logging.info(f'neg_idx: {neg_idx.shape}')
+
         n_pos = len(pos_idx)
         n_neg = len(neg_idx)
+
+        all_idx = pad_and_concat([pos_idx, neg_idx]) # [B_pos + B_neg, T, nq]
+
+        pos_length = kwargs["pos_idx_lengths"] # [B_pos]
+        assert len(pos_idx) % len(pos_length) == 0, (len(pos_idx), len(pos_length))
+        pos_ratio = int(len(pos_idx) / len(pos_length))
+        pos_length = pos_length.repeat_interleave(pos_ratio, dim=0)
+
+        neg_length = kwargs["neg_idx_lengths"] # [B_neg]
+        assert len(neg_idx) % len(neg_length) == 0, (len(neg_idx), len(neg_length))
+        neg_ratio = int(len(neg_idx) / len(neg_length))
+        neg_length = neg_length.repeat_interleave(neg_ratio, dim=0)
+
+        all_length = torch.cat([pos_length, neg_length]) # [B_pos + B_neg]
         assert n_neg % n_pos == 0, (n_neg, n_pos)
+
+        fixed_modules = [
+            "phone_encode_layer",
+            "midi_encode_layer",
+            "duration_encode_layer",
+            "encoder",
+        ]
+        for fix_module_name in fixed_modules:
+            for name, module in self.svs.named_modules():
+                if name.startswith(fix_module_name + ".") or name == fix_module_name: 
+                    module.eval()
+
+        # logging.info(f'batch: {batch}')
+        for key, value in batch.items():
+            if key == "pitch":
+                continue
+            if isinstance(value, torch.Tensor):
+                logging.info(f'{key}: {value.shape} {value}')
+        # for name, module in self.svs.named_modules():
+        #     print(f"{name}: training={module.training}")
 
         _, stats, weight, policy_logits = self.svs(**batch)
         stats["svs_loss"] = stats.pop("loss")

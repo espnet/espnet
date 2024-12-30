@@ -17,6 +17,7 @@ from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.svs.abs_svs import AbsSVS
 from espnet2.svs.discrete.toksing import TokSing
 from espnet2.svs.discrete_svs_espnet_model import ESPnetDiscreteSVSModel
+from espnet2.svs.discrete_svs_espnet_model_rl import ESPnetDiscreteRLSVSModel
 from espnet2.svs.espnet_model import ESPnetSVSModel
 from espnet2.svs.feats_extract.score_feats_extract import (
     FrameScoreFeats,
@@ -142,6 +143,7 @@ model_type_choices = ClassChoices(
     classes=dict(
         svs=ESPnetSVSModel,
         discrete_svs=ESPnetDiscreteSVSModel,
+        discrete_svs_rl=ESPnetDiscreteRLSVSModel,
     ),
     type_check=AbsESPnetModel,
     default="svs",
@@ -343,6 +345,8 @@ class SVSTask(AbsTask):
                 "feats",
                 "ying",
                 "discrete_token",
+                "pos_idx",
+                "neg_idx",
             )
         else:
             # Inference mode
@@ -354,6 +358,7 @@ class SVSTask(AbsTask):
                 "sids",
                 "lids",
                 "discrete_token",
+                "samples",
             )
         return retval
 
@@ -375,6 +380,15 @@ class SVSTask(AbsTask):
         vocab_size = len(token_list)
         logging.info(f"Vocabulary size: {vocab_size }")
 
+        kwargs = dict()
+
+        is_rl = False
+        raw_model_type = args.model_type
+        items = args.model_type.split("_")
+        if items[-1] == "rl":
+            is_rl = True
+            raw_model_type = "_".join(items[:-1])
+
         # 1. feats_extract
         if args.odim is None:
             # Extract features in the model
@@ -388,9 +402,10 @@ class SVSTask(AbsTask):
             feats_extract = None
             odim = args.odim
 
-        if args.model_type == "discrete_svs":
+        if raw_model_type == "discrete_svs":
             odim = args.nclusters
             discrete_token_layers = args.discrete_token_layers
+            kwargs.update(discrete_token_layers=discrete_token_layers)
 
         # 2. Normalization layer
         if args.normalize is not None:
@@ -401,7 +416,7 @@ class SVSTask(AbsTask):
 
         # 3. SVS
         svs_class = svs_choices.get_class(args.svs)
-        if args.model_type == "discrete_svs":
+        if raw_model_type == "discrete_svs":
             svs = svs_class(
                 idim=vocab_size,
                 odim=odim,
@@ -410,7 +425,24 @@ class SVSTask(AbsTask):
             )
         else:
             svs = svs_class(idim=vocab_size, odim=odim, **args.svs_conf)
-
+        kwargs.update(svs=svs)
+        
+        # 3.1 Ref SVS for RL
+        if is_rl:
+            ref_svs_class = svs_choices.get_class(args.svs)
+            if raw_model_type == "discrete_svs":
+                ref_svs = ref_svs_class(
+                    idim=vocab_size,
+                    odim=odim,
+                    discrete_token_layers=discrete_token_layers,
+                    **args.svs_conf,
+                )
+            else:
+                ref_svs = ref_svs_class(idim=vocab_size, odim=odim, **args.svs_conf)
+            ref_svs.requires_grad_(False)
+            ref_svs.eval()
+            kwargs.update(ref_svs=ref_svs)
+        
         # 4. Extra components
         score_feats_extract = None
         pitch_extract = None
@@ -469,43 +501,25 @@ class SVSTask(AbsTask):
                 args.energy_normalize
             )
             energy_normalize = energy_normalize_class(**args.energy_normalize_conf)
-        if getattr(args, "discrete_token_layers", None) is not None:
-            discrete_token_layers = args.discrete_token_layers
+
+        kwargs.update(text_extract=score_feats_extract)
+        kwargs.update(feats_extract=feats_extract)
+        kwargs.update(score_feats_extract=score_feats_extract)
+        kwargs.update(label_extract=score_feats_extract)
+        kwargs.update(duration_extract=score_feats_extract)
+        kwargs.update(pitch_extract=pitch_extract)
+        kwargs.update(energy_extract=energy_extract)
+        kwargs.update(ying_extract=ying_extract)
+        kwargs.update(normalize=normalize)
+        kwargs.update(pitch_normalize=pitch_normalize)
+        kwargs.update(energy_normalize=energy_normalize)
 
         # 5. Build model
-        if args.model_type == "svs":
-            model = ESPnetSVSModel(
-                text_extract=score_feats_extract,
-                feats_extract=feats_extract,
-                score_feats_extract=score_feats_extract,
-                label_extract=score_feats_extract,
-                pitch_extract=pitch_extract,
-                ying_extract=ying_extract,
-                duration_extract=score_feats_extract,
-                energy_extract=energy_extract,
-                normalize=normalize,
-                pitch_normalize=pitch_normalize,
-                energy_normalize=energy_normalize,
-                svs=svs,
-                **args.model_conf,
-            )
-        elif args.model_type == "discrete_svs":
-            model = ESPnetDiscreteSVSModel(
-                text_extract=score_feats_extract,
-                feats_extract=feats_extract,
-                score_feats_extract=score_feats_extract,
-                label_extract=score_feats_extract,
-                pitch_extract=pitch_extract,
-                ying_extract=ying_extract,
-                duration_extract=score_feats_extract,
-                energy_extract=energy_extract,
-                normalize=normalize,
-                pitch_normalize=pitch_normalize,
-                energy_normalize=energy_normalize,
-                discrete_token_layers=discrete_token_layers,
-                svs=svs,
-                **args.model_conf,
-            )
+        model_class = model_type_choices.get_class(args.model_type)
+        model = model_class(
+            **kwargs,
+            **args.model_conf, 
+        )
         return model
 
     @classmethod

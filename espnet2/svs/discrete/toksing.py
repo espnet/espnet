@@ -158,17 +158,9 @@ class Decoder(torch.nn.Module):
 
 
 class TokSing(AbsSVS):
-    """XiaoiceSing module for Singing Voice Synthesis.
+    """ TokSing: Singing Voice Synthesis based on Discrete Tokens
 
-    This is a module of XiaoiceSing. A high-quality singing voice synthesis system which
-    employs an integrated network for spectrum, F0 and duration modeling. It follows the
-    main architecture of FastSpeech while proposing some singing-specific design:
-        1) Add features from musical score (e.g.note pitch and length)
-        2) Add a residual connection in F0 prediction to attenuate off-key issues
-        3) The duration of all the phonemes in a musical note is accumulated to
-        calculate the syllable duration loss for rhythm enhancement (syllable loss)
-    .. _`XiaoiceSing: A High-Quality and Integrated Singing Voice Synthesis System`:
-        https://arxiv.org/pdf/2006.06261.pdf
+        paper link: https://arxiv.org/abs/2406.08416
     """
 
     def __init__(
@@ -738,7 +730,7 @@ class TokSing(AbsSVS):
             discrete_token_lengths (LongTensor): Batch of the lengths of padded slur (B, ).
             joint_training (bool): Whether to perform joint training with vocoder.
             flag_IsValid (bool): Whether it is valid set.
-            falg_RL (bool): Whether to perform reinforcement learning.
+            falg_RL (bool): Whether to perform reinforcement learning. (RL will use model in infer mode.)
 
         Returns:
             Tensor: Loss scalar value.
@@ -795,21 +787,47 @@ class TokSing(AbsSVS):
 
         # forward duration predictor and length regulator
         d_masks = make_pad_mask(label_lengths).to(input_emb.device)
-        d_outs = self.duration_predictor(hs, d_masks)  # (B, T_text)
+        hs = hs.masked_fill(d_masks.unsqueeze(-1), 0.0)
+        logging.info(f'd_masks({d_masks.shape}): {d_masks}')
+        logging.info(f'ds({ds.shape}): {ds}')
 
-        hs = self.length_regulator(hs, ds)  # (B, T_feats, adim)
+        # NOTE(Yuxun): if using RL, infer mode will be used.
+        if flag_RL:
+            d_outs = self.duration_predictor.inference(hs, d_masks)  # (B, T_text)
+            d_outs_int = torch.floor(d_outs + 0.5).to(dtype=torch.long)  # (B, T_text)
+            logging.info(f'd_outs_int: {d_outs_int} {torch.sum(d_outs_int, dim=1)}')
+            hs = self.length_regulator(hs, d_outs_int)
+        else:
+            d_outs = self.duration_predictor(hs, d_masks)  # (B, T_text)
+            hs = self.length_regulator(hs, ds)  # (B, T_feats, adim)
+
         if self.predict_pitch:
-            hs_pitch_in = self.proj_pitch(midi_emb)
-            hs_pitch = self.length_regulator(hs_pitch_in, ds)
-            log_f0_outs, _ = self.f0_predictor(
-                (hs + hs_pitch).transpose(1, 2), discrete_token_lengths_frame
-            )
-            # log_f0_outs, _ = self.f0_predictor(hs.transpose(1, 2), discrete_token_lengths_frame)
-            log_f0_outs = log_f0_outs.transpose(1, 2)
-            log_f0_outs = torch.max(
-                log_f0_outs, torch.zeros_like(log_f0_outs).to(log_f0_outs)
-            )
-            hs = hs + self.lf0_mapping(log_f0)
+            # NOTE(Yuxun): if using RL, infer mode will be used.
+            if not flag_RL:
+                hs_pitch_in = self.proj_pitch(midi_emb)
+                hs_pitch = self.length_regulator(hs_pitch_in, ds)
+                log_f0_outs, _ = self.f0_predictor(
+                    (hs + hs_pitch).transpose(1, 2), discrete_token_lengths_frame
+                )
+                # log_f0_outs, _ = self.f0_predictor(hs.transpose(1, 2), discrete_token_lengths_frame)
+                log_f0_outs = log_f0_outs.transpose(1, 2)
+                log_f0_outs = torch.max(
+                    log_f0_outs, torch.zeros_like(log_f0_outs).to(log_f0_outs)
+                )
+                hs = hs + self.lf0_mapping(log_f0)
+            else:
+                hs_pitch_in = self.proj_pitch(midi_emb)
+                hs_pitch = self.length_regulator(hs_pitch_in, d_outs_int)
+                discrete_token_lengths_frame = torch.Tensor([hs.size(1)]).to(hs.device).to(dtype=torch.long)
+                log_f0_outs, _ = self.f0_predictor(
+                    (hs + hs_pitch).transpose(1, 2),
+                    discrete_token_lengths_frame
+                )
+                log_f0_outs = log_f0_outs.transpose(1, 2)
+                log_f0_outs = torch.max(
+                    log_f0_outs, torch.zeros_like(log_f0_outs).to(log_f0_outs)
+                )
+                hs = hs + self.lf0_mapping(log_f0_outs)
 
         # forward decoder
         if self.use_discrete_token:
@@ -825,6 +843,7 @@ class TokSing(AbsSVS):
             )
         else:
             olens_in = olens
+        logging.info(f'olen: {olens_in}')
         h_masks = self._source_mask(olens_in)
 
         if self.discrete_token_layers > 1 and self.sep:
@@ -1043,6 +1062,13 @@ class TokSing(AbsSVS):
         midi_emb = self.midi_encode_layer(midi)
         duration_emb = self.duration_encode_layer(duration_)
         input_emb = label_emb + midi_emb + duration_emb
+        logging.info(f'label({label.shape}): {label}')
+        logging.info(f'midi({midi.shape}): {midi}')
+        logging.info(f'duration_({duration_.shape}): {duration_}')
+        logging.info(f'label_emb({label_emb.shape}): {label_emb}')
+        logging.info(f'midi_emb({midi_emb.shape}): {midi_emb}')
+        logging.info(f'duration_emb({duration_emb.shape}): {duration_emb}')
+        logging.info(f'input_emb({input_emb.shape}): {input_emb}')
 
         x_masks = None  # self._source_mask(label_lengths)
         hs, _ = self.encoder(input_emb, x_masks)  # (B, T_text, adim)
@@ -1060,16 +1086,13 @@ class TokSing(AbsSVS):
         # integrate speaker embedding
         if self.spk_embed_dim is not None:
             hs = self._integrate_with_spk_embed(hs, spembs)
+        logging.info(f'hs({hs.shape}): {hs}')
 
         # forward duration predictor and length regulator
         d_masks = None  # make_pad_mask(label_lengths).to(input_emb.device)
         d_outs = self.duration_predictor.inference(hs, d_masks)  # (B, T_text)
         d_outs_int = torch.floor(d_outs + 0.5).to(dtype=torch.long)  # (B, T_text)
-
-        logging.info(f"ds: {ds}")
-        logging.info(f"ds.shape: {ds.shape}")
-        logging.info(f"d_outs: {d_outs}")
-        logging.info(f"d_outs.shape: {d_outs.shape}")
+        logging.info(f'd_outs_int ({torch.sum(d_outs_int, axis=1)}): {d_outs_int}')
 
         # use duration model output
         hs = self.length_regulator(hs, d_outs_int)  # (B, T_feats, adim)
@@ -1105,7 +1128,6 @@ class TokSing(AbsSVS):
                 .view(zs.size(0), -1, self.odim)
                 .to(ds.device)
             )
-
         else:
             zs, _ = self.decoder(hs, h_masks)  # (B, T_feats, adim)
             # (B, T_feats, odim), (B, T_feats, 1), (B, T_feats, 1)
@@ -1133,6 +1155,16 @@ class TokSing(AbsSVS):
             # print(after_outs.shape, flush=True)
 
         if self.use_discrete_token:
+            # after_outs input as [B, T, V]
+
+            token_prob = torch.sigmoid(after_outs)
+            token_prob = token_prob / token_prob.sum(dim=-1, keepdim=True)
+            # Case 1. sample tokens from distribution
+            # V = token_prob.size(2)
+            # sample_token = torch.multinomial(token_prob.view(-1, V), 1, replacement=True)
+            # sample_token = sample_token.view(1, -1, 1) # [B=1, T, S]
+            # Case 2. sample
+            logits = after_outs
             after_outs = torch.argmax(after_outs, dim=2).unsqueeze(2)
             # if self.codec_codebook > 0:
             #     shift = torch.arange(self.codec_codebook).view(1, 1, -1) * self.odim
@@ -1154,7 +1186,8 @@ class TokSing(AbsSVS):
                 prob=None,
                 att_w=None,
                 pitch=f0.squeeze(-1),
-            )  # outs, probs, att_ws, pitch_outs
+                logits=logits,
+            )  # outs, probs, att_ws, pitch_outs, logits
         else:
             return dict(
                 feat_gen=after_outs[0], prob=None, att_w=None

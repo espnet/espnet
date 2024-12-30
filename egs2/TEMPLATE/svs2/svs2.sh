@@ -124,6 +124,13 @@ inference_model=valid.loss.best.pth # Model path for decoding.
 vocoder_file=none  # Vocoder parameter file, If set to none, Griffin-Lim will be used.
 download_model=""   # Download a model from Model Zoo and use it for decoding.
 
+# RL related
+prep_rl_data=false
+sample_data=false
+samples_num=10
+train_rl=false
+rl_dir=${dumpdir}/"rl"
+
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=""     # Name of training set.
 valid_set=""     # Name of validation set used for monitoring/tuning network training.
@@ -1076,6 +1083,17 @@ if ! "${skip_train}"; then
 
         _opts+="--discrete_token_layers ${discrete_token_layers} "
         _opts+="--nclusters ${nclusters} "
+        
+        if "${train_rl}"; then
+            _opts+="--train_data_path_and_name_and_type ${rl_dir}/${train_set}/neg_samples_idx,neg_idx,npy "
+            _opts+="--train_data_path_and_name_and_type ${rl_dir}/${train_set}/pos_samples_idx,pos_idx,npy "
+            _opts+="--train_shape_file ${rl_dir}/${train_set}/pos_idx_shape "
+            _opts+="--train_shape_file ${rl_dir}/${train_set}/neg_idx_shape "
+            _opts+="--valid_data_path_and_name_and_type ${rl_dir}/${valid_set}/pos_samples_idx,pos_idx,npy "
+            _opts+="--valid_data_path_and_name_and_type ${rl_dir}/${valid_set}/neg_samples_idx,neg_idx,npy "
+            _opts+="--valid_shape_file ${rl_dir}/${valid_set}/pos_idx_shape "
+            _opts+="--valid_shape_file ${rl_dir}/${valid_set}/neg_idx_shape "
+        fi
 
         # shellcheck disable=SC2086
         ${python} -m espnet2.bin.launch \
@@ -1189,9 +1207,22 @@ if ! "${skip_eval}"; then
                 _ex_opts+="--data_path_and_name_and_type ${_data}/utt2lid,lids,text_int "
             fi
 
+            # Add discrete config
             _opts+="--discrete_token_layers ${discrete_token_layers} "
             _opts+="--mix_type ${mix_type} "
 
+            # Add RL config
+            _ex_opts+="--prep_rl_data ${prep_rl_data} "
+            if "${prep_rl_data}"; then
+                if "${sample_data}"; then
+                    # RL data prep substaeg 1
+                    _ex_opts+="--sample_data ${sample_data} "
+                    _ex_opts+="--samples_num ${samples_num} "
+                else
+                    # RL data prep substaeg 2
+                    _ex_opts+="--data_path_and_name_and_type ${_dir}/idx_tmp/samples_idx.scp,samples,npy "
+                fi
+            fi
 
             # 0. Copy feats_type
             cp "${_data}/feats_type" "${_dir}/feats_type"
@@ -1225,43 +1256,75 @@ if ! "${skip_eval}"; then
                     ${_opts} ${_ex_opts} ${inference_args}
 
             # 4. Concatenates the output files from each jobs
-            mkdir -p "${_dir}"/{norm,denorm,wav}
+            if "${prep_rl_data}"; then
+                if "${sample_data}"; then
+                    mkdir -p "${_dir}"/samples_tmp
+                    for i in $(seq "${_nj}"); do
+                        cat "${_logdir}/output.${i}/samples_tmp/samples_idx.scp"
+                    done | LC_ALL=C sort -k1 > "${_dir}/samples_tmp/samples_idx.scp"
+                    for i in $(seq "${_nj}"); do
+                        cat "${_logdir}/output.${i}/samples_tmp/samples_shape"
+                    done | LC_ALL=C sort -k1 > "${_dir}/samples_tmp/samples_shape"
+                else
+                    _tgt_path="${rl_dir}/${dset}/samples"
+                    mkdir -p ${_tgt_path}
+                    for i in $(seq "${_nj}"); do
+                        while read -r key src_path; do
+                            echo "${key} $(pwd)/${src_path}"
+                        done < "${_logdir}/output.${i}/idx/samples_idx.scp"
+                    done | LC_ALL=C sort -k1 > "${_tgt_path}/samples_idx.scp"
+                    mkdir -p "${_tgt_path}"/wavs
+                    for i in $(seq "${_nj}"); do
+                        while read -r key src_wav; do
+                            filename=$(basename "${src_wav}")
+                            tgt_wav="$(pwd)/${_tgt_path}/wavs/${filename}"
+                            mv "${src_wav}" "${tgt_wav}"
+                            echo "${key} ${tgt_wav}"
+                        done < "${_logdir}/output.${i}/wav/wav.scp"
+                    done | LC_ALL=C sort -k1 > "${_tgt_path}/wav.scp"
+                    # for i in $(seq "${_nj}"); do
+                    #     rm -rf "${_logdir}/output.${i}"/wav
+                    # done
+                fi
+            else
+                mkdir -p "${_dir}"/{norm,denorm,wav}
 
-            if [ ${svs_task} == svs ]; then
-                for i in $(seq "${_nj}"); do
-                    cat "${_logdir}/output.${i}/norm/feats.scp"
-                done | LC_ALL=C sort -k1 > "${_dir}/norm/feats.scp"
-                #for i in $(seq "${_nj}"); do
-                #    cat "${_logdir}/output.${i}/denorm/feats.scp"
-                #done | LC_ALL=C sort -k1 > "${_dir}/denorm/feats.scp"
-            fi
+                if [ ${svs_task} == svs ]; then
+                    for i in $(seq "${_nj}"); do
+                        cat "${_logdir}/output.${i}/norm/feats.scp"
+                    done | LC_ALL=C sort -k1 > "${_dir}/norm/feats.scp"
+                    #for i in $(seq "${_nj}"); do
+                    #    cat "${_logdir}/output.${i}/denorm/feats.scp"
+                    #done | LC_ALL=C sort -k1 > "${_dir}/denorm/feats.scp"
+                fi
 
-            for i in $(seq "${_nj}"); do
-                 cat "${_logdir}/output.${i}/speech_shape/speech_shape"
-            done | LC_ALL=C sort -k1 > "${_dir}/speech_shape"
-            for i in $(seq "${_nj}"); do
-                mv -u "${_logdir}/output.${i}"/wav/*.wav "${_dir}"/wav
-                rm -rf "${_logdir}/output.${i}"/wav
-            done
-            if [ -e "${_logdir}/output.${_nj}/att_ws" ]; then
-                mkdir -p "${_dir}"/att_ws
                 for i in $(seq "${_nj}"); do
-                     cat "${_logdir}/output.${i}/durations/durations"
-                done | LC_ALL=C sort -k1 > "${_dir}/durations"
+                    cat "${_logdir}/output.${i}/speech_shape/speech_shape"
+                done | LC_ALL=C sort -k1 > "${_dir}/speech_shape"
                 for i in $(seq "${_nj}"); do
-                     cat "${_logdir}/output.${i}/focus_rates/focus_rates"
-                done | LC_ALL=C sort -k1 > "${_dir}/focus_rates"
-                for i in $(seq "${_nj}"); do
-                    mv -u "${_logdir}/output.${i}"/att_ws/*.png "${_dir}"/att_ws
-                    rm -rf "${_logdir}/output.${i}"/att_ws
+                    mv -u "${_logdir}/output.${i}"/wav/*.wav "${_dir}"/wav
+                    rm -rf "${_logdir}/output.${i}"/wav
                 done
-            fi
-            if [ -e "${_logdir}/output.${_nj}/probs" ]; then
-                mkdir -p "${_dir}"/probs
-                for i in $(seq "${_nj}"); do
-                    mv -u "${_logdir}/output.${i}"/probs/*.png "${_dir}"/probs
-                    rm -rf "${_logdir}/output.${i}"/probs
-                done
+                if [ -e "${_logdir}/output.${_nj}/att_ws" ]; then
+                    mkdir -p "${_dir}"/att_ws
+                    for i in $(seq "${_nj}"); do
+                        cat "${_logdir}/output.${i}/durations/durations"
+                    done | LC_ALL=C sort -k1 > "${_dir}/durations"
+                    for i in $(seq "${_nj}"); do
+                        cat "${_logdir}/output.${i}/focus_rates/focus_rates"
+                    done | LC_ALL=C sort -k1 > "${_dir}/focus_rates"
+                    for i in $(seq "${_nj}"); do
+                        mv -u "${_logdir}/output.${i}"/att_ws/*.png "${_dir}"/att_ws
+                        rm -rf "${_logdir}/output.${i}"/att_ws
+                    done
+                fi
+                if [ -e "${_logdir}/output.${_nj}/probs" ]; then
+                    mkdir -p "${_dir}"/probs
+                    for i in $(seq "${_nj}"); do
+                        mv -u "${_logdir}/output.${i}"/probs/*.png "${_dir}"/probs
+                        rm -rf "${_logdir}/output.${i}"/probs
+                    done
+                fi
             fi
         done
     fi

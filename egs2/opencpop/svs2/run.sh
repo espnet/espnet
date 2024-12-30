@@ -6,7 +6,7 @@ set -u
 set -o pipefail
 
 # spectrogram-related arguments
-fs=24000
+fs=16000
 fmin=80
 fmax=7600
 n_fft=2048

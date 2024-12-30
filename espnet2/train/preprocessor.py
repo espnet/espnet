@@ -1542,6 +1542,8 @@ class SVSPreprocessor(AbsPreprocessor):
             4: [0.05, 0.1, 0.5, 1],
         },
         discrete_token_name: str = "discrete_token",
+        pos_sample_name: str = "pos_idx",
+        neg_sample_name: str = "neg_idx",
     ):
         super().__init__(train)
         self.train = train
@@ -1555,6 +1557,8 @@ class SVSPreprocessor(AbsPreprocessor):
         self.phn_seg = phn_seg
         self.time_shift = hop_length / fs
         self.discrete_token_name = discrete_token_name
+        self.pos_sample_name = pos_sample_name
+        self.neg_sample_name = neg_sample_name
         if token_type is not None:
             if token_list is None:
                 raise ValueError("token_list is required if token_type is not None")
@@ -1680,6 +1684,12 @@ class SVSPreprocessor(AbsPreprocessor):
                 tokens = self.tokenizer.text2tokens(text)
                 _text_ints = self.token_id_converter.tokens2ids(tokens)
                 data[self.text_name] = np.array(_text_ints, dtype=np.int64)
+            
+        if self.pos_sample_name in data and self.neg_sample_name in data:
+            if len(data[self.pos_sample_name].shape) == 2:
+                data[self.pos_sample_name] = np.expand_dims(data[self.pos_sample_name], axis=1)
+            if len(data[self.neg_sample_name].shape) == 2:
+                data[self.neg_sample_name] = np.expand_dims(data[self.neg_sample_name], axis=1)
 
         return data
 
