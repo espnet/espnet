@@ -17,7 +17,7 @@ Before running the recipe, please download version 1.0 from https://datashare.ed
 - Git hash: `998c33ce02c364c24d54a8d349343eccbe3b3ccc`
   - Commit date: `Fri Dec 27 23:28:43 2024 +0000`
 
-## exp/asr_train_asr_wavlm_transformer_500_finetune7_raw_en_bpe500_sp
+## exp/asr_train_asr_wavlm_transformer_raw_en_bpe500_sp
 
 ### WER
 
