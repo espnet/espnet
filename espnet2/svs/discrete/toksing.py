@@ -788,14 +788,11 @@ class TokSing(AbsSVS):
         # forward duration predictor and length regulator
         d_masks = make_pad_mask(label_lengths).to(input_emb.device)
         hs = hs.masked_fill(d_masks.unsqueeze(-1), 0.0)
-        logging.info(f'd_masks({d_masks.shape}): {d_masks}')
-        logging.info(f'ds({ds.shape}): {ds}')
 
         # NOTE(Yuxun): if using RL, infer mode will be used.
         if flag_RL:
             d_outs = self.duration_predictor.inference(hs, d_masks)  # (B, T_text)
             d_outs_int = torch.floor(d_outs + 0.5).to(dtype=torch.long)  # (B, T_text)
-            logging.info(f'd_outs_int: {d_outs_int} {torch.sum(d_outs_int, dim=1)}')
             hs = self.length_regulator(hs, d_outs_int)
         else:
             d_outs = self.duration_predictor(hs, d_masks)  # (B, T_text)
@@ -818,6 +815,7 @@ class TokSing(AbsSVS):
             else:
                 hs_pitch_in = self.proj_pitch(midi_emb)
                 hs_pitch = self.length_regulator(hs_pitch_in, d_outs_int)
+                # NOTE(Yuxun): sync lengths with lengths of inference feats
                 discrete_token_lengths_frame = torch.Tensor([hs.size(1)]).to(hs.device).to(dtype=torch.long)
                 log_f0_outs, _ = self.f0_predictor(
                     (hs + hs_pitch).transpose(1, 2),
@@ -828,6 +826,7 @@ class TokSing(AbsSVS):
                     log_f0_outs, torch.zeros_like(log_f0_outs).to(log_f0_outs)
                 )
                 hs = hs + self.lf0_mapping(log_f0_outs)
+        logging.info(f'hs: {hs.shape}')
 
         # forward decoder
         if self.use_discrete_token:
@@ -843,7 +842,6 @@ class TokSing(AbsSVS):
             )
         else:
             olens_in = olens
-        logging.info(f'olen: {olens_in}')
         h_masks = self._source_mask(olens_in)
 
         if self.discrete_token_layers > 1 and self.sep:
@@ -901,101 +899,108 @@ class TokSing(AbsSVS):
             after_outs = self.dpos_linear_projection(after_outs)
             # print(after_outs.shape, flush=True)
 
-        # modifiy mod part of groundtruth
-        if self.reduction_factor > 1:
-            assert feats_lengths.ge(
-                self.reduction_factor
-            ).all(), "Output length must be greater than or equal to reduction factor."
-            olens = feats_lengths.new(
-                [olen - olen % self.reduction_factor for olen in feats_lengths]
+        if flag_RL:
+            # NOTE(Yuxun): Length of feats, pitch in inference will be different with gt ones.
+            loss = torch.tensor(0).to(after_outs.device)
+            stats = dict(
+                loss=loss,
             )
-            max_olen = max(olens)
-            ys = feats[:, :max_olen]
-            if self.loss_function == "XiaoiceSing2":
-                log_f0 = log_f0[:, :max_olen]
-                vuv = vuv[:, :max_olen]
         else:
-            if self.use_discrete_token:
-                ys = discrete_token
-                if self.codec_codebook > 0:
-                    shift = (
-                        torch.arange(self.codec_codebook).view(1, 1, -1) * self.odim
-                    ).to(ds.device)
-                    ys = (
-                        discrete_token.view(batch_size, -1, self.codec_codebook) - shift
-                    )
-                    ys = ys.flatten(start_dim=1)
-                olens = discrete_token_lengths
+            # modifiy mod part of groundtruth
+            if self.reduction_factor > 1:
+                assert feats_lengths.ge(
+                    self.reduction_factor
+                ).all(), "Output length must be greater than or equal to reduction factor."
+                olens = feats_lengths.new(
+                    [olen - olen % self.reduction_factor for olen in feats_lengths]
+                )
+                max_olen = max(olens)
+                ys = feats[:, :max_olen]
+                if self.loss_function == "XiaoiceSing2":
+                    log_f0 = log_f0[:, :max_olen]
+                    vuv = vuv[:, :max_olen]
             else:
-                ys = feats
-                olens = feats_lengths
+                if self.use_discrete_token:
+                    ys = discrete_token
+                    if self.codec_codebook > 0:
+                        shift = (
+                            torch.arange(self.codec_codebook).view(1, 1, -1) * self.odim
+                        ).to(ds.device)
+                        ys = (
+                            discrete_token.view(batch_size, -1, self.codec_codebook) - shift
+                        )
+                        ys = ys.flatten(start_dim=1)
+                    olens = discrete_token_lengths
+                else:
+                    ys = feats
+                    olens = feats_lengths
 
-        ilens = label_lengths
-        if self.predict_pitch:
-            out_loss, duration_loss, pitch_loss = self.criterion(
-                after_outs,
-                before_outs,
-                d_outs,
-                ys,
-                ds,
-                ilens,
-                olens,
-                log_f0_outs,
-                log_f0,
-                pitch_lengths,
-            )
-        else:
-            if self.loss_function == "FastSpeech1":
-                out_loss, duration_loss = self.criterion(
-                    after_outs, before_outs, d_outs, ys, ds, ilens, olens
+            ilens = label_lengths
+            if self.predict_pitch:
+                out_loss, duration_loss, pitch_loss = self.criterion(
+                    after_outs,
+                    before_outs,
+                    d_outs,
+                    ys,
+                    ds,
+                    ilens,
+                    olens,
+                    log_f0_outs,
+                    log_f0,
+                    pitch_lengths,
                 )
-            elif self.loss_function == "XiaoiceSing2":
-                out_loss, duration_loss, pitch_loss, vuv_loss = self.criterion(
-                    after_outs=after_outs,
-                    before_outs=before_outs,
-                    d_outs=d_outs,
-                    p_outs=log_f0_outs,
-                    v_outs=vuv_outs,
-                    ys=ys,
-                    ds=ds,
-                    ps=log_f0,
-                    vs=vuv,
-                    ilens=ilens,
-                    olens=olens,
-                    loss_type=self.loss_type,
+            else:
+                if self.loss_function == "FastSpeech1":
+                    out_loss, duration_loss = self.criterion(
+                        after_outs, before_outs, d_outs, ys, ds, ilens, olens
+                    )
+                elif self.loss_function == "XiaoiceSing2":
+                    out_loss, duration_loss, pitch_loss, vuv_loss = self.criterion(
+                        after_outs=after_outs,
+                        before_outs=before_outs,
+                        d_outs=d_outs,
+                        p_outs=log_f0_outs,
+                        v_outs=vuv_outs,
+                        ys=ys,
+                        ds=ds,
+                        ps=log_f0,
+                        vs=vuv,
+                        ilens=ilens,
+                        olens=olens,
+                        loss_type=self.loss_type,
+                    )
+
+            out_loss = out_loss * self.lambda_out
+            duration_loss = duration_loss * self.lambda_dur
+            loss = out_loss + duration_loss
+            stats = dict(out_loss=out_loss.item(), duration_loss=duration_loss.item())
+            if self.loss_function == "XiaoiceSing2" or self.predict_pitch:
+                pitch_loss = pitch_loss * self.lambda_pitch
+                stats["pitch_loss"] = pitch_loss.item()
+                loss += pitch_loss
+            if self.loss_function == "XiaoiceSing2":
+                vuv_loss = vuv_loss * self.lambda_vuv
+                stats["vuv_loss"] = vuv_loss.item()
+                loss += vuv_loss
+            stats["loss"] = loss.item()
+
+            if self.use_discrete_token:
+                gen_token = torch.argmax(after_outs, dim=2)
+                token_mask = make_non_pad_mask(discrete_token_lengths).to(ds.device)
+                acc = (
+                    (gen_token == discrete_token) * token_mask
+                ).sum().item() / discrete_token_lengths.sum().item()
+                stats["acc"] = acc
+
+            # report extra information
+            if self.encoder_type == "transformer" and self.use_scaled_pos_enc:
+                stats.update(
+                    encoder_alpha=self.encoder.embed[-1].alpha.data.item(),
                 )
-
-        out_loss = out_loss * self.lambda_out
-        duration_loss = duration_loss * self.lambda_dur
-        loss = out_loss + duration_loss
-        stats = dict(out_loss=out_loss.item(), duration_loss=duration_loss.item())
-        if self.loss_function == "XiaoiceSing2" or self.predict_pitch:
-            pitch_loss = pitch_loss * self.lambda_pitch
-            stats["pitch_loss"] = pitch_loss.item()
-            loss += pitch_loss
-        if self.loss_function == "XiaoiceSing2":
-            vuv_loss = vuv_loss * self.lambda_vuv
-            stats["vuv_loss"] = vuv_loss.item()
-            loss += vuv_loss
-        stats["loss"] = loss.item()
-
-        if self.use_discrete_token:
-            gen_token = torch.argmax(after_outs, dim=2)
-            token_mask = make_non_pad_mask(discrete_token_lengths).to(ds.device)
-            acc = (
-                (gen_token == discrete_token) * token_mask
-            ).sum().item() / discrete_token_lengths.sum().item()
-            stats["acc"] = acc
-
-        # report extra information
-        if self.encoder_type == "transformer" and self.use_scaled_pos_enc:
-            stats.update(
-                encoder_alpha=self.encoder.embed[-1].alpha.data.item(),
-            )
-        if self.decoder_type == "transformer" and self.use_scaled_pos_enc:
-            stats.update(
-                decoder_alpha=self.decoder.embed[-1].alpha.data.item(),
-            )
+            if self.decoder_type == "transformer" and self.use_scaled_pos_enc:
+                stats.update(
+                    decoder_alpha=self.decoder.embed[-1].alpha.data.item(),
+                )
 
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
 
@@ -1005,7 +1010,7 @@ class TokSing(AbsSVS):
             if flag_IsValid:
                 return loss, stats, weight, after_outs[:, : olens.max()], ys, olens
             elif flag_RL:
-                return loss, stats, weight, after_outs[:, : olens.max()]
+                return loss, stats, weight, after_outs
             else:
                 return loss, stats, weight
 
@@ -1062,13 +1067,6 @@ class TokSing(AbsSVS):
         midi_emb = self.midi_encode_layer(midi)
         duration_emb = self.duration_encode_layer(duration_)
         input_emb = label_emb + midi_emb + duration_emb
-        logging.info(f'label({label.shape}): {label}')
-        logging.info(f'midi({midi.shape}): {midi}')
-        logging.info(f'duration_({duration_.shape}): {duration_}')
-        logging.info(f'label_emb({label_emb.shape}): {label_emb}')
-        logging.info(f'midi_emb({midi_emb.shape}): {midi_emb}')
-        logging.info(f'duration_emb({duration_emb.shape}): {duration_emb}')
-        logging.info(f'input_emb({input_emb.shape}): {input_emb}')
 
         x_masks = None  # self._source_mask(label_lengths)
         hs, _ = self.encoder(input_emb, x_masks)  # (B, T_text, adim)
@@ -1086,13 +1084,11 @@ class TokSing(AbsSVS):
         # integrate speaker embedding
         if self.spk_embed_dim is not None:
             hs = self._integrate_with_spk_embed(hs, spembs)
-        logging.info(f'hs({hs.shape}): {hs}')
 
         # forward duration predictor and length regulator
         d_masks = None  # make_pad_mask(label_lengths).to(input_emb.device)
         d_outs = self.duration_predictor.inference(hs, d_masks)  # (B, T_text)
         d_outs_int = torch.floor(d_outs + 0.5).to(dtype=torch.long)  # (B, T_text)
-        logging.info(f'd_outs_int ({torch.sum(d_outs_int, axis=1)}): {d_outs_int}')
 
         # use duration model output
         hs = self.length_regulator(hs, d_outs_int)  # (B, T_feats, adim)

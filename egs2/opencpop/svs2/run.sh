@@ -36,7 +36,7 @@ valid_set=dev
 test_sets="test"
 
 train_config=conf/tuning/train_naive_rnn_dp.yaml
-inference_config=conf/tuning/decode_rnn.yaml
+inference_config=conf/tuning/decode.yaml
 
 # text related processing arguments
 g2p=none

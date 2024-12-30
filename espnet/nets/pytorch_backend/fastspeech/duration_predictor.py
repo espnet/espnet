@@ -7,6 +7,7 @@
 """Duration predictor related modules."""
 
 import torch
+import logging
 
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 
@@ -69,6 +70,9 @@ class DurationPredictor(torch.nn.Module):
         xs = xs.transpose(1, -1)  # (B, idim, Tmax)
         for f in self.conv:
             xs = f(xs)  # (B, C, Tmax)
+            # NOTE(Yuxun): eliminate effect of padding
+            if x_masks is not None:
+                xs = xs.masked_fill(x_masks.unsqueeze(1), 0.0)
 
         # NOTE: calculate in log domain
         xs = self.linear(xs.transpose(1, -1)).squeeze(-1)  # (B, Tmax)

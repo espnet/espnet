@@ -386,14 +386,14 @@ class ESPnetDiscreteRLSVSModel(ESPnetSVSModel):
             batch.update(flag_RL=True)
 
         pos_idx = kwargs["pos_idx"] # [B_pos,T, nq]
+        # logging.info(f'pos_idx({pos_idx[1].shape}): {pos_idx[1]}')
         B, T, nq, S = pos_idx.size()
         pos_idx = pos_idx.permute(0, 3, 1, 2).reshape(B * S, T, nq)
-        # logging.info(f'pos_idx: {pos_idx.shape}')
+        # logging.info(f'pos_idx({pos_idx.shape}): {pos_idx}')
         
         neg_idx = kwargs["neg_idx"] # [B_neg, T, nq]
         B, T, nq, S = neg_idx.size()
         neg_idx = neg_idx.permute(0, 3, 1, 2).reshape(B * S, T, nq)
-        # logging.info(f'neg_idx: {neg_idx.shape}')
 
         n_pos = len(pos_idx)
         n_neg = len(neg_idx)
@@ -418,20 +418,18 @@ class ESPnetDiscreteRLSVSModel(ESPnetSVSModel):
             "midi_encode_layer",
             "duration_encode_layer",
             "encoder",
+            "f0_predictor,"
+            "duration_predictor"
         ]
         for fix_module_name in fixed_modules:
             for name, module in self.svs.named_modules():
                 if name.startswith(fix_module_name + ".") or name == fix_module_name: 
                     module.eval()
-
-        # logging.info(f'batch: {batch}')
-        for key, value in batch.items():
-            if key == "pitch":
-                continue
-            if isinstance(value, torch.Tensor):
-                logging.info(f'{key}: {value.shape} {value}')
-        # for name, module in self.svs.named_modules():
-        #     print(f"{name}: training={module.training}")
+            if self.ref_svs is not None:
+                for name, module in self.ref_svs.named_modules():
+                    if name.startswith(fix_module_name + ".") or name == fix_module_name: 
+                        module.eval()
+                
 
         _, stats, weight, policy_logits = self.svs(**batch)
         stats["svs_loss"] = stats.pop("loss")
@@ -441,10 +439,10 @@ class ESPnetDiscreteRLSVSModel(ESPnetSVSModel):
         else:
             ref_logits = None
 
-        if policy_logits.size() == 3:
-            policy_logits = policy_logits.unsequeeze(2) # [B, T, V] -> [B, T, nq, V]
-        if ref_logits.size() == 3:
-            ref_logits = ref_logits.unsequeeze(2) # [B, T, V] -> [B, T, nq, V]
+        if len(policy_logits.size()) == 3:
+            policy_logits = policy_logits.unsqueeze(2) # [B, T, V] -> [B, T, nq, V]
+        if len(ref_logits.size()) == 3:
+            ref_logits = ref_logits.unsqueeze(2) # [B, T, V] -> [B, T, nq, V]
 
         loss_rl, stats_rl = self.loss_rl(
             policy_logits,
@@ -840,10 +838,12 @@ class ESPnetDiscreteRLSVSModel(ESPnetSVSModel):
         # nq = discrete token layer
         # (1) mask for pad
         mask = make_non_pad_mask(all_length).to(all_length.device)
+        mask = mask.unsqueeze(-1)
         pos_ratio = len(all_length) // n_pos - 1
 
         # (2) logp, summed to utterance level
         # pos policy
+        policy_logits = torch.repeat_interleave(policy_logits, repeats=n_pos // policy_logits.shape[0], dim=0)
         pos_policy_logp = torch.gather(
             policy_logits.log_softmax(-1), dim=3, index=all_idx[:n_pos].unsqueeze(3)
         ).squeeze(3) # [B_pos + B_neg, T, nq]
@@ -852,12 +852,13 @@ class ESPnetDiscreteRLSVSModel(ESPnetSVSModel):
         # neg policy
         policy_logits = policy_logits.tile(pos_ratio) # [B_pos -> B_pos + B_neg, T, nq, V]
         neg_policy_logp = torch.gather(
-            policy_logits.log_softmax(-1), dim=3, index=all_idx[:n_pos].unsqueeze(3)
+            policy_logits.log_softmax(-1), dim=3, index=all_idx[n_pos:].unsqueeze(3)
         ).squeeze(3) # [B_pos + B_neg, T, nq]
         neg_policy_logp = (neg_policy_logp * mask[:n_pos]).sum(dim=(1, 2))
 
         if ref_logits is not None:
             # pos ref
+            ref_logits = torch.repeat_interleave(ref_logits, repeats=n_pos // ref_logits.shape[0], dim=0)
             pos_ref_logp = torch.gather(
                 ref_logits.log_softmax(-1), dim=3, index=all_idx[n_pos:].unsqueeze(3)
             ).squeeze(3) # [B_pos + B_neg, T, nq]

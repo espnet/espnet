@@ -440,7 +440,6 @@ class SVSTask(AbsTask):
             else:
                 ref_svs = ref_svs_class(idim=vocab_size, odim=odim, **args.svs_conf)
             ref_svs.requires_grad_(False)
-            ref_svs.eval()
             kwargs.update(ref_svs=ref_svs)
         
         # 4. Extra components
