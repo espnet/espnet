@@ -485,9 +485,7 @@ class CTCSegmentation:
 
             batched_log_p = self.ctc.log_softmax(enc).detach()  # (B, T'', V)
 
-            unmerged.append(
-                batched_log_p.reshape(-1, batched_log_p.size(-1)).cpu()
-            )
+            unmerged.append(batched_log_p.reshape(-1, batched_log_p.size(-1)).cpu())
 
         lpz = torch.cat(unmerged, dim=0).numpy()  # (time, V)
         return lpz, valid_speech_samples
@@ -558,7 +556,7 @@ class CTCSegmentation:
                 ``get_segments()`` in order to obtain alignments.
         """
         config = self.config
-        
+
         # Update timing parameters, if needed
         if speech_len is not None:
             lpz_len = lpz.shape[0]
@@ -567,9 +565,10 @@ class CTCSegmentation:
 
         # `text` is needed in the form of a list.
         utt_ids, text = self._split_text(text)
-        
+
         # Obtain utterance & label sequence from text
         if self.text_converter == "tokenize":
+
             def _tokenize(text):
                 text = self.preprocess_fn.text_cleaner(text)
                 tokens = self.preprocess_fn.tokenizer.text2tokens(text)
@@ -584,7 +583,7 @@ class CTCSegmentation:
             unk = config.char_list.index("<unk>")
             token_list = [utt[utt != unk] for utt in token_list]
             ground_truth_mat, utt_begin_indices = prepare_token_list(config, token_list)
-        
+
         else:
             assert self.text_converter == "classic"
             text = [self.preprocess_fn.text_cleaner(utt) for utt in text]
@@ -593,7 +592,7 @@ class CTCSegmentation:
             ]
             token_list = [utt.replace("<unk>", "") for utt in token_list]
             ground_truth_mat, utt_begin_indices = prepare_text(config, token_list)
-        
+
         task = CTCSegmentationTask(
             config=config,
             name=name,
