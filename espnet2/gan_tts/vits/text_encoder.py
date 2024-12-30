@@ -17,17 +17,51 @@ from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 
 
 class TextEncoder(torch.nn.Module):
-    """Text encoder module in VITS.
+    """
+        Text encoder module in VITS.
 
-    This is a module of text encoder described in `Conditional Variational Autoencoder
-    with Adversarial Learning for End-to-End Text-to-Speech`_.
-
-    Instead of the relative positional Transformer, we use conformer architecture as
-    the encoder module, which contains additional convolution layers.
+    This module implements a text encoder as described in `Conditional Variational
+    Autoencoder with Adversarial Learning for End-to-End Text-to-Speech`_.
+    Instead of using a relative positional Transformer, it employs a conformer
+    architecture, which incorporates additional convolution layers.
 
     .. _`Conditional Variational Autoencoder with Adversarial Learning for End-to-End
         Text-to-Speech`: https://arxiv.org/abs/2006.04558
 
+    Attributes:
+        attention_dim (int): Dimension of the attention mechanism.
+        emb (torch.nn.Embedding): Embedding layer for input indices.
+        encoder (Encoder): Encoder module implementing the conformer architecture.
+        proj (torch.nn.Conv1d): Convolution layer for projecting outputs.
+
+    Args:
+        vocabs (int): Vocabulary size.
+        attention_dim (int): Attention dimension.
+        attention_heads (int): Number of attention heads.
+        linear_units (int): Number of linear units in positionwise layers.
+        blocks (int): Number of encoder blocks.
+        positionwise_layer_type (str): Type of positionwise layer.
+        positionwise_conv_kernel_size (int): Kernel size for positionwise layers.
+        positional_encoding_layer_type (str): Type of positional encoding layer.
+        self_attention_layer_type (str): Type of self-attention layer.
+        activation_type (str): Type of activation function.
+        normalize_before (bool): If True, applies LayerNorm before attention.
+        use_macaron_style (bool): If True, uses macaron style components.
+        use_conformer_conv (bool): If True, uses conformer convolution layers.
+        conformer_kernel_size (int): Kernel size for conformer convolution.
+        dropout_rate (float): Dropout rate for layers.
+        positional_dropout_rate (float): Dropout rate for positional encoding.
+        attention_dropout_rate (float): Dropout rate for attention layers.
+
+    Examples:
+        >>> encoder = TextEncoder(vocabs=5000)
+        >>> input_tensor = torch.randint(0, 5000, (32, 100))  # (B, T_text)
+        >>> input_lengths = torch.randint(1, 101, (32,))  # (B,)
+        >>> outputs = encoder(input_tensor, input_lengths)
+        >>> encoded, mean, logs, mask = outputs
+
+    Raises:
+        ValueError: If the input tensor or lengths are not valid.
     """
 
     def __init__(
@@ -106,18 +140,36 @@ class TextEncoder(torch.nn.Module):
         x: torch.Tensor,
         x_lengths: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-        """Calculate forward propagation.
+        """
+                Calculate forward propagation through the TextEncoder module.
+
+        This method takes input tensors, applies an embedding layer, and passes the
+        result through an encoder, ultimately returning the encoded hidden
+        representation, projected mean, projected scale, and the mask tensor.
 
         Args:
-            x (Tensor): Input index tensor (B, T_text).
-            x_lengths (Tensor): Length tensor (B,).
+            x (Tensor): Input index tensor with shape (B, T_text), where B is the batch
+                size and T_text is the length of the input text.
+            x_lengths (Tensor): Length tensor with shape (B,), representing the actual
+                lengths of the sequences in the batch.
 
         Returns:
-            Tensor: Encoded hidden representation (B, attention_dim, T_text).
-            Tensor: Projected mean tensor (B, attention_dim, T_text).
-            Tensor: Projected scale tensor (B, attention_dim, T_text).
-            Tensor: Mask tensor for input tensor (B, 1, T_text).
+            Tuple[Tensor, Tensor, Tensor, Tensor]: A tuple containing:
+                - Tensor: Encoded hidden representation with shape (B, attention_dim, T_text).
+                - Tensor: Projected mean tensor with shape (B, attention_dim, T_text).
+                - Tensor: Projected scale tensor with shape (B, attention_dim, T_text).
+                - Tensor: Mask tensor for input tensor with shape (B, 1, T_text).
 
+        Examples:
+            >>> encoder = TextEncoder(vocabs=1000)
+            >>> input_tensor = torch.randint(0, 1000, (32, 10))  # Batch of 32, length 10
+            >>> input_lengths = torch.tensor([10] * 32)  # All sequences are of length 10
+            >>> output = encoder.forward(input_tensor, input_lengths)
+            >>> encoded_representation, projected_mean, projected_scale, mask = output
+            >>> print(encoded_representation.shape)  # Output: (32, attention_dim, 10)
+            >>> print(projected_mean.shape)  # Output: (32, attention_dim, 10)
+            >>> print(projected_scale.shape)  # Output: (32, attention_dim, 10)
+            >>> print(mask.shape)  # Output: (32, 1, 10)
         """
         x = self.emb(x) * math.sqrt(self.attention_dim)
         x_mask = (

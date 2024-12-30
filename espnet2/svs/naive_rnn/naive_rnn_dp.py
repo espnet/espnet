@@ -23,12 +23,85 @@ from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder as EncoderPren
 
 
 class NaiveRNNDP(AbsSVS):
-    """NaiveRNNDP-SVS module.
+    """
+        NaiveRNNDP-SVS module.
 
-    This is an implementation of naive RNN with duration prediction
-    for singing voice synthesis
-    The features are processed directly over time-domain from music score and
-    predict the singing voice features
+    This class implements a naive RNN with duration prediction for singing voice
+    synthesis (SVS). The features are processed directly over the time domain from
+    music scores to predict the singing voice features.
+
+    Attributes:
+        idim (int): Dimension of the label inputs.
+        odim (int): Dimension of the outputs.
+        midi_dim (int): Dimension of the MIDI inputs.
+        duration_dim (int): Dimension of the duration inputs.
+        eunits (int): Number of encoder hidden units.
+        reduction_factor (int): Reduction factor for output features.
+        midi_embed_integration_type (str): Method for integrating MIDI information.
+
+    Args:
+        idim (int): Dimension of the label inputs.
+        odim (int): Dimension of the outputs.
+        midi_dim (int): Dimension of the MIDI inputs.
+        embed_dim (int): Dimension of the token embedding.
+        eprenet_conv_layers (int): Number of prenet convolution layers.
+        eprenet_conv_chans (int): Number of prenet convolution filter channels.
+        eprenet_conv_filts (int): Number of prenet convolution filter sizes.
+        elayers (int): Number of encoder layers.
+        eunits (int): Number of encoder hidden units.
+        ebidirectional (bool): If True, use a bidirectional encoder.
+        midi_embed_integration_type (str): How to integrate MIDI information
+            ("add" or "cat").
+        dlayers (int): Number of decoder LSTM layers.
+        dunits (int): Number of decoder LSTM units.
+        dbidirectional (bool): If True, use a bidirectional decoder.
+        postnet_layers (int): Number of postnet layers.
+        postnet_chans (int): Number of postnet filter channels.
+        postnet_filts (int): Number of postnet filter sizes.
+        use_batch_norm (bool): Whether to use batch normalization.
+        duration_predictor_layers (int): Number of duration predictor layers.
+        duration_predictor_chans (int): Number of duration predictor channels.
+        duration_predictor_kernel_size (int): Kernel size of the duration predictor.
+        duration_predictor_dropout_rate (float): Dropout rate in the duration predictor.
+        reduction_factor (int): Reduction factor.
+        spks (Optional[int]): Number of speakers. If > 1, assume speaker IDs will
+            be provided.
+        langs (Optional[int]): Number of languages. If > 1, assume language IDs will
+            be provided.
+        spk_embed_dim (Optional[int]): Speaker embedding dimension. If > 0, assume
+            speaker embeddings will be provided.
+        spk_embed_integration_type (str): How to integrate speaker embedding.
+        eprenet_dropout_rate (float): Prenet dropout rate.
+        edropout_rate (float): Encoder dropout rate.
+        ddropout_rate (float): Decoder dropout rate.
+        postnet_dropout_rate (float): Postnet dropout rate.
+        init_type (str): Method for initializing parameters.
+        use_masking (bool): Whether to mask padded parts in loss calculation.
+        use_weighted_masking (bool): Whether to apply weighted masking in loss
+            calculation.
+
+    Examples:
+        # Initialize the model
+        model = NaiveRNNDP(idim=256, odim=80, midi_dim=129)
+
+        # Forward pass with dummy data
+        text = torch.randint(0, 256, (8, 50))  # (batch_size, text_length)
+        text_lengths = torch.tensor([50] * 8)   # All sequences are of length 50
+        feats = torch.randn(8, 100, 80)          # (batch_size, max_feat_length, odim)
+        feats_lengths = torch.tensor([100] * 8)  # All sequences are of length 100
+
+        loss, stats, outputs = model(text, text_lengths, feats, feats_lengths)
+
+        # Inference
+        output = model.inference(text)
+
+    Note:
+        This implementation is part of the ESPnet framework and is designed for
+        singing voice synthesis tasks.
+
+    Todo:
+        - Extend functionality for multilingual support.
+        - Optimize model for faster inference times.
     """
 
     @typechecked
@@ -336,7 +409,14 @@ class NaiveRNNDP(AbsSVS):
         joint_training: bool = False,
         flag_IsValid=False,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
-        """Calculate forward propagation.
+        """
+        Calculate forward propagation.
+
+        This method performs the forward pass of the NaiveRNNDP model,
+        taking the input text, feature data, and various optional inputs
+        to compute the model's outputs and loss values. The forward pass
+        includes encoding of inputs, duration prediction, length
+        regulation, and final output generation.
 
         Args:
             text (LongTensor): Batch of padded character ids (B, Tmax).
@@ -363,16 +443,25 @@ class NaiveRNNDP(AbsSVS):
             sids (Optional[Tensor]): Batch of speaker IDs (B, 1).
             lids (Optional[Tensor]): Batch of language IDs (B, 1).
             joint_training (bool): Whether to perform joint training with vocoder.
+            flag_IsValid (bool): Flag indicating whether it's validation stage.
+
+        Returns:
+            Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
+                - Tensor: Loss scalar value.
+                - Dict: Statistics to be monitored.
+                - Tensor: Weight value if not joint training else model outputs.
 
         GS Fix:
-            arguements from forward func. V.S. **batch from espnet_model.py
+            Arguments from forward function vs. batch from espnet_model.py
             label == durations | phone sequence
             melody -> pitch sequence
 
-        Returns:
-            Tensor: Loss scalar value.
-            Dict: Statistics to be monitored.
-            Tensor: Weight value if not joint training else model outputs.
+        Examples:
+            >>> text = torch.randint(0, 100, (32, 50))  # 32 batches, 50 max length
+            >>> text_lengths = torch.randint(1, 51, (32,))
+            >>> feats = torch.randn(32, 100, 80)  # 32 batches, 100 max length, 80 features
+            >>> feats_lengths = torch.randint(1, 101, (32,))
+            >>> outputs = model.forward(text, text_lengths, feats, feats_lengths)
         """
         if joint_training:
             label = label
@@ -528,26 +617,41 @@ class NaiveRNNDP(AbsSVS):
         joint_training: bool = False,
         use_teacher_forcing: torch.Tensor = False,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
-        """Calculate forward propagation.
+        """
+        Calculate forward propagation for inference.
+
+        This method processes the input data to generate singing voice
+        features based on the provided text and other parameters. It uses
+        the trained model to produce outputs in an inference mode.
 
         Args:
             text (LongTensor): Batch of padded character ids (Tmax).
             feats (Tensor): Batch of padded target features (Lmax, odim).
-            label (Optional[Dict]): key is "lab" or "score";
+            label (Optional[Dict]): Key is "lab" or "score";
                 value (LongTensor): Batch of padded label ids (Tmax).
-            melody (Optional[Dict]): key is "lab" or "score";
+            melody (Optional[Dict]): Key is "lab" or "score";
                 value (LongTensor): Batch of padded melody (Tmax).
             pitch (FloatTensor): Batch of padded f0 (Tmax).
-            duration (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
+            duration (Optional[Dict]): Key is "lab", "score_phn" or "score_syb";
                 value (LongTensor): Batch of padded duration (Tmax).
             slur (LongTensor): Batch of padded slur (B, Tmax).
             spembs (Optional[Tensor]): Batch of speaker embeddings (spk_embed_dim).
             sids (Optional[Tensor]): Batch of speaker IDs (1).
             lids (Optional[Tensor]): Batch of language IDs (1).
+            joint_training (bool): Whether to perform joint training with vocoder.
+            use_teacher_forcing (torch.Tensor): Flag indicating if teacher forcing
+                is used during inference.
 
         Returns:
             Dict[str, Tensor]: Output dict including the following items:
                 * feat_gen (Tensor): Output sequence of features (T_feats, odim).
+
+        Examples:
+            >>> text = torch.tensor([[1, 2, 3], [1, 2, 0]])
+            >>> feats = torch.rand(5, 256)
+            >>> output = model.inference(text, feats)
+            >>> print(output['feat_gen'].shape)
+            torch.Size([5, odim])
         """
         label = label["score"]
         midi = melody["score"]

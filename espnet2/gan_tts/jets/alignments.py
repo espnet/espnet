@@ -10,10 +10,37 @@ from scipy.stats import betabinom
 
 
 class AlignmentModule(nn.Module):
-    """Alignment Learning Framework proposed for parallel TTS models in:
+    """
+    Alignment Learning Framework proposed for parallel TTS models in:
 
     https://arxiv.org/abs/2108.10447
 
+    This module computes the alignment loss between text and acoustic features,
+    facilitating effective training of Text-to-Speech (TTS) models using
+    attention mechanisms.
+
+    Attributes:
+        cache_prior (bool): Whether to cache beta-binomial prior.
+        _cache (dict): A cache to store precomputed prior values for efficiency.
+        t_conv1 (nn.Conv1d): 1D convolution layer for text features.
+        t_conv2 (nn.Conv1d): 1D convolution layer for text features.
+        f_conv1 (nn.Conv1d): 1D convolution layer for acoustic features.
+        f_conv2 (nn.Conv1d): 1D convolution layer for acoustic features.
+        f_conv3 (nn.Conv1d): 1D convolution layer for acoustic features.
+
+    Args:
+        adim (int): Dimension of attention.
+        odim (int): Dimension of feats.
+        cache_prior (bool): Whether to cache beta-binomial prior.
+
+    Examples:
+        >>> alignment_module = AlignmentModule(adim=256, odim=80)
+        >>> text = torch.randn(4, 10, 256)  # Batch of 4, 10 time steps, adim=256
+        >>> feats = torch.randn(4, 20, 80)   # Batch of 4, 20 time steps, odim=80
+        >>> text_lengths = torch.tensor([10, 10, 10, 10])
+        >>> feats_lengths = torch.tensor([20, 20, 20, 20])
+        >>> log_p_attn = alignment_module(text, feats, text_lengths, feats_lengths)
+        >>> print(log_p_attn.shape)  # Output shape: (4, 20, 10)
     """
 
     def __init__(self, adim, odim, cache_prior=True):
@@ -37,18 +64,35 @@ class AlignmentModule(nn.Module):
         self.f_conv3 = nn.Conv1d(adim, adim, kernel_size=1, padding=0)
 
     def forward(self, text, feats, text_lengths, feats_lengths, x_masks=None):
-        """Calculate alignment loss.
+        """
+            Calculate alignment loss.
+
+        This method computes the log probability of the attention matrix based on
+        the input text embeddings and acoustic features. It performs several
+        convolutional operations on the input tensors and computes a score based
+        on the Euclidean distance between the features and the text embeddings.
+        The resulting score is masked if a mask tensor is provided, and a beta-
+        binomial prior is added to the log probabilities before returning the
+        final result.
 
         Args:
             text (Tensor): Batched text embedding (B, T_text, adim).
             feats (Tensor): Batched acoustic feature (B, T_feats, odim).
             text_lengths (Tensor): Text length tensor (B,).
             feats_lengths (Tensor): Feature length tensor (B,).
-            x_masks (Tensor): Mask tensor (B, T_text).
+            x_masks (Tensor, optional): Mask tensor (B, T_text). Defaults to None.
 
         Returns:
             Tensor: Log probability of attention matrix (B, T_feats, T_text).
 
+        Examples:
+            >>> text = torch.randn(2, 5, 256)  # Batch of 2, T_text=5, adim=256
+            >>> feats = torch.randn(2, 10, 80)  # Batch of 2, T_feats=10, odim=80
+            >>> text_lengths = torch.tensor([5, 3])  # Lengths of each text
+            >>> feats_lengths = torch.tensor([10, 8])  # Lengths of each feature
+            >>> model = AlignmentModule(adim=256, odim=80)
+            >>> log_p_attn = model.forward(text, feats, text_lengths, feats_lengths)
+            >>> print(log_p_attn.shape)  # Should print: torch.Size([2, 10, 5])
         """
         text = text.transpose(1, 2)
         text = F.relu(self.t_conv1(text))
@@ -155,18 +199,34 @@ def _monotonic_alignment_search(log_p_attn):
 
 
 def viterbi_decode(log_p_attn, text_lengths, feats_lengths):
-    """Extract duration from an attention probability matrix
+    """
+    Extract duration from an attention probability matrix.
+
+    This function computes the token durations from the given log probability
+    attention matrix using the Viterbi algorithm. It extracts the most likely
+    durations for each token based on the attention probabilities.
 
     Args:
         log_p_attn (Tensor): Batched log probability of attention
             matrix (B, T_feats, T_text).
         text_lengths (Tensor): Text length tensor (B,).
-        feats_legnths (Tensor): Feature length tensor (B,).
+        feats_lengths (Tensor): Feature length tensor (B,).
 
     Returns:
         Tensor: Batched token duration extracted from `log_p_attn` (B, T_text).
-        Tensor: Binarization loss tensor ().
+        Tensor: Binarization loss tensor.
 
+    Examples:
+        >>> log_p_attn = torch.randn(2, 5, 10)  # Example attention matrix
+        >>> text_lengths = torch.tensor([10, 8])  # Lengths of each text
+        >>> feats_lengths = torch.tensor([5, 4])  # Lengths of each feature
+        >>> durations, loss = viterbi_decode(log_p_attn, text_lengths, feats_lengths)
+        >>> print(durations.shape)  # Should print: torch.Size([2, 10])
+
+    Note:
+        The Viterbi algorithm is used to find the most likely sequence of
+        states in a hidden Markov model, which in this case relates to the
+        alignment between text and features.
     """
     B = log_p_attn.size(0)
     T_text = log_p_attn.size(2)
@@ -207,7 +267,14 @@ def _average_by_duration(ds, xs, text_lengths, feats_lengths):
 
 
 def average_by_duration(ds, xs, text_lengths, feats_lengths):
-    """Average frame-level features into token-level according to durations
+    """
+        Average frame-level features into token-level according to durations.
+
+    This function takes in token durations and corresponding feature sequences to
+    compute the average feature for each token based on the specified durations.
+    It is particularly useful in tasks where features need to be aggregated
+    according to their corresponding token lengths, such as in text-to-speech
+    applications.
 
     Args:
         ds (Tensor): Batched token duration (B, T_text).
@@ -216,8 +283,19 @@ def average_by_duration(ds, xs, text_lengths, feats_lengths):
         feats_lengths (Tensor): Feature length tensor (B,).
 
     Returns:
-        Tensor: Batched feature averaged according to the token duration (B, T_text).
+        Tensor: Batched feature averaged according to the token duration
+        (B, T_text).
 
+    Examples:
+        >>> ds = torch.tensor([[2, 3], [1, 4]])
+        >>> xs = torch.tensor([[1.0, 2.0, 3.0, 4.0, 5.0],
+        ...                     [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0]])
+        >>> text_lengths = torch.tensor([2, 2])
+        >>> feats_lengths = torch.tensor([5, 8])
+        >>> result = average_by_duration(ds, xs, text_lengths, feats_lengths)
+        >>> print(result)
+        tensor([[2.5000, 4.0000],
+                [1.0000, 6.0000]])
     """
     device = ds.device
     args = [ds, xs, text_lengths, feats_lengths]

@@ -37,7 +37,105 @@ else:
 
 
 class ESPnetS2STModel(AbsESPnetModel):
-    """ESPnet speech-to-speech translation model"""
+    """
+    ESPnet speech-to-speech translation model.
+
+    This class implements a speech-to-speech translation (S2ST) model that can
+    handle various types of input and output features. The model can be
+    configured with different frontends, encoders, decoders, and loss functions
+    to support diverse speech translation tasks.
+
+    Attributes:
+        sos (int): Start-of-sequence token index for target vocabulary.
+        eos (int): End-of-sequence token index for target vocabulary.
+        src_sos (int): Start-of-sequence token index for source vocabulary.
+        src_eos (int): End-of-sequence token index for source vocabulary.
+        unit_sos (int): Start-of-sequence token index for unit vocabulary.
+        unit_eos (int): End-of-sequence token index for unit vocabulary.
+        tgt_vocab_size (int): Size of the target vocabulary.
+        src_vocab_size (int): Size of the source vocabulary.
+        unit_vocab_size (int): Size of the unit vocabulary.
+        ignore_id (int): Index to ignore during loss computation.
+        tgt_token_list (list): List of tokens for target language.
+        src_token_list (list): List of tokens for source language.
+        unit_token_list (list): List of tokens for unit representation.
+        s2st_type (str): Type of the S2ST model (e.g., "translatotron").
+        frontend (AbsFrontend): Frontend processing module.
+        tgt_feats_extract (AbsTgtFeatsExtract): Target feature extraction module.
+        specaug (AbsSpecAug): Spectral augmentation module.
+        src_normalize (AbsNormalize): Normalization module for source features.
+        tgt_normalize (AbsNormalize): Normalization module for target features.
+        preencoder (AbsPreEncoder): Pre-encoder module for raw input data.
+        postencoder (AbsPostEncoder): Post-encoder module for additional processing.
+        encoder (AbsEncoder): Encoder module for feature extraction.
+        asr_decoder (AbsDecoder): ASR decoder module.
+        st_decoder (AbsDecoder): ST decoder module.
+        aux_attention (AbsS2STAuxAttention): Auxiliary attention mechanism.
+        unit_encoder (AbsEncoder): Encoder module for unit representation.
+        synthesizer (AbsSynthesizer): Synthesizer module for generating output.
+        asr_ctc (CTC): CTC loss module for ASR.
+        st_ctc (CTC): CTC loss module for ST.
+        losses (dict): Dictionary of loss functions for different tasks.
+        extract_feats_in_collect_stats (bool): Flag to indicate feature extraction
+            during statistics collection.
+
+    Args:
+        s2st_type (str): Type of the S2ST model.
+        frontend (Optional[AbsFrontend]): Frontend processing module.
+        tgt_feats_extract (Optional[AbsTgtFeatsExtract]): Target feature extraction module.
+        specaug (Optional[AbsSpecAug]): Spectral augmentation module.
+        src_normalize (Optional[AbsNormalize]): Normalization module for source features.
+        tgt_normalize (Optional[AbsNormalize]): Normalization module for target features.
+        preencoder (Optional[AbsPreEncoder]): Pre-encoder module for raw input data.
+        encoder (AbsEncoder): Encoder module for feature extraction.
+        postencoder (Optional[AbsPostEncoder]): Post-encoder module for additional processing.
+        asr_decoder (Optional[AbsDecoder]): ASR decoder module.
+        st_decoder (Optional[AbsDecoder]): ST decoder module.
+        aux_attention (Optional[AbsS2STAuxAttention]): Auxiliary attention mechanism.
+        unit_encoder (Optional[AbsEncoder]): Encoder module for unit representation.
+        synthesizer (Optional[AbsSynthesizer]): Synthesizer module for generating output.
+        asr_ctc (Optional[CTC]): CTC loss module for ASR.
+        st_ctc (Optional[CTC]): CTC loss module for ST.
+        losses (Dict[str, AbsS2STLoss]): Dictionary of loss functions for different tasks.
+        tgt_vocab_size (Optional[int]): Size of the target vocabulary.
+        tgt_token_list (Optional[Union[Tuple[str, ...], List[str]]]): List of tokens for
+            target language.
+        src_vocab_size (Optional[int]): Size of the source vocabulary.
+        src_token_list (Optional[Union[Tuple[str, ...], List[str]]]): List of tokens for
+            source language.
+        unit_vocab_size (Optional[int]): Size of the unit vocabulary.
+        unit_token_list (Optional[Union[Tuple[str, ...], List[str]]]): List of tokens for
+            unit representation.
+        ignore_id (int): Index to ignore during loss computation.
+        report_cer (bool): Flag to report character error rate.
+        report_wer (bool): Flag to report word error rate.
+        report_bleu (bool): Flag to report BLEU score.
+        sym_space (str): Symbol representing space.
+        sym_blank (str): Symbol representing blank.
+        extract_feats_in_collect_stats (bool): Flag to indicate feature extraction
+            during statistics collection.
+
+    Raises:
+        AssertionError: If certain configurations are not met.
+
+    Examples:
+        # Create an instance of the ESPnetS2STModel
+        model = ESPnetS2STModel(
+            s2st_type="translatotron",
+            frontend=my_frontend,
+            tgt_feats_extract=my_tgt_feats_extract,
+            ...
+        )
+
+        # Forward pass through the model
+        loss, stats, weight = model(
+            src_speech=my_src_speech,
+            src_speech_lengths=my_src_speech_lengths,
+            tgt_speech=my_tgt_speech,
+            tgt_speech_lengths=my_tgt_speech_lengths,
+            ...
+        )
+    """
 
     @typechecked
     def __init__(
@@ -153,6 +251,62 @@ class ESPnetS2STModel(AbsESPnetModel):
         lids: Optional[torch.Tensor] = None,  # TODO(Jiatong)
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
+        """
+        Perform the forward pass of the speech-to-speech translation model.
+
+        This method takes the source and target speech along with optional
+        text representations, processes them through the model, and returns
+        the computed loss, statistics, and batch size.
+
+        Args:
+            src_speech (torch.Tensor): Source speech tensor of shape
+                (Batch, Length, ...).
+            src_speech_lengths (torch.Tensor): Lengths of source speech
+                sequences of shape (Batch,).
+            tgt_speech (torch.Tensor): Target speech tensor of shape
+                (Batch, Length, ...).
+            tgt_speech_lengths (torch.Tensor): Lengths of target speech
+                sequences of shape (Batch,).
+            tgt_text (Optional[torch.Tensor], optional): Target text tensor
+                of shape (Batch, Length, ...). Defaults to None.
+            tgt_text_lengths (Optional[torch.Tensor], optional): Lengths of
+                target text sequences of shape (Batch,). Defaults to None.
+            src_text (Optional[torch.Tensor], optional): Source text tensor
+                of shape (Batch, Length, ...). Defaults to None.
+            src_text_lengths (Optional[torch.Tensor], optional): Lengths of
+                source text sequences of shape (Batch,). Defaults to None.
+            spembs (Optional[torch.Tensor], optional): Speaker embeddings
+                tensor. Defaults to None.
+            sids (Optional[torch.Tensor], optional): Speaker IDs tensor.
+                Defaults to None.
+            lids (Optional[torch.Tensor], optional): Language IDs tensor.
+                Defaults to None.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
+            A tuple containing:
+                - loss (torch.Tensor): The computed loss for the batch.
+                - stats (Dict[str, torch.Tensor]): A dictionary of
+                  statistics, including losses and accuracies.
+                - weight (torch.Tensor): The batch size for DataParallel
+                  compatibility.
+
+        Raises:
+            ValueError: If the specified speech lengths do not match
+            the batch size or if an unsupported s2st type is encountered.
+
+        Examples:
+            >>> model = ESPnetS2STModel(...)
+            >>> loss, stats, weight = model.forward(
+            ...     src_speech, src_speech_lengths, tgt_speech,
+            ...     tgt_speech_lengths, tgt_text, tgt_text_lengths
+            ... )
+
+        Note:
+            The method includes various checks to ensure that the input
+            dimensions are consistent and raises assertions if they are not.
+        """
         # TODO(jiatong): add comments etc.
 
         assert (
@@ -671,6 +825,53 @@ class ESPnetS2STModel(AbsESPnetModel):
         forward_window: int = 3,
         use_teacher_forcing: bool = False,
     ) -> Dict[str, torch.Tensor]:
+        """
+        Run inference for the speech-to-speech translation model.
+
+        This method takes input speech and generates the corresponding output
+        speech features. The method utilizes the encoder and synthesizer to
+        produce the output based on the specified model type.
+
+        Args:
+            src_speech (torch.Tensor): Input source speech tensor.
+            src_speech_lengths (Optional[torch.Tensor]): Lengths of the source
+                speech tensor.
+            tgt_speech (Optional[torch.Tensor]): Target speech tensor (for
+                feature extraction).
+            tgt_speech_lengths (Optional[torch.Tensor]): Lengths of the target
+                speech tensor.
+            spembs (Optional[torch.Tensor]): Speaker embeddings.
+            sids (Optional[torch.Tensor]): Speaker IDs.
+            lids (Optional[torch.Tensor]): Language IDs.
+            threshold (float): Threshold for synthesizer output. Default is 0.5.
+            minlenratio (float): Minimum length ratio for output. Default is 0.0.
+            maxlenratio (float): Maximum length ratio for output. Default is 10.0.
+            use_att_constraint (bool): Flag to use attention constraint.
+                Default is False.
+            backward_window (int): Number of frames to consider backward. Default
+                is 1.
+            forward_window (int): Number of frames to consider forward. Default
+                is 3.
+            use_teacher_forcing (bool): Flag to use teacher forcing during
+                inference. Default is False.
+
+        Returns:
+            Dict[str, torch.Tensor]: A dictionary containing generated features
+            and any additional output data, including:
+                - 'feat_gen': Generated features.
+                - 'feat_gen_denorm': Denormalized generated features if
+                  normalization was applied.
+
+        Raises:
+            ValueError: If an unsupported s2st type is encountered.
+
+        Examples:
+            >>> model.inference(src_speech, src_speech_lengths)
+            {
+                'feat_gen': <tensor>,
+                'feat_gen_denorm': <tensor>
+            }
+        """
 
         # 0. Target feature extract
         # NOTE(jiatong): only for teaching-forcing in spectrogram
@@ -743,6 +944,47 @@ class ESPnetS2STModel(AbsESPnetModel):
         tgt_speech_lengths: torch.Tensor,
         **kwargs,
     ) -> Dict[str, torch.Tensor]:
+        """
+        Collects features from source and target speech tensors for analysis.
+
+        This method extracts features from the provided source and target speech
+        tensors. If `extract_feats_in_collect_stats` is set to `True`, it performs
+        feature extraction; otherwise, it generates dummy statistics.
+
+        Attributes:
+            extract_feats_in_collect_stats (bool): Determines whether to extract
+            features or generate dummy stats.
+
+        Args:
+            src_speech (torch.Tensor): Source speech tensor of shape (Batch, Length).
+            src_speech_lengths (torch.Tensor): Lengths of source speech tensor of shape (Batch,).
+            tgt_speech (torch.Tensor): Target speech tensor of shape (Batch, Length).
+            tgt_speech_lengths (torch.Tensor): Lengths of target speech tensor of shape (Batch,).
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            Dict[str, torch.Tensor]: A dictionary containing extracted features and
+            their lengths. The keys are:
+                - "src_feats": Extracted source features.
+                - "src_feats_lengths": Lengths of the source features.
+                - "tgt_feats": Extracted target features (if applicable).
+                - "tgt_feats_lengths": Lengths of the target features (if applicable).
+
+        Examples:
+            >>> src_speech = torch.randn(2, 16000)  # Example source speech
+            >>> src_lengths = torch.tensor([16000, 15000])  # Example lengths
+            >>> tgt_speech = torch.randn(2, 16000)  # Example target speech
+            >>> tgt_lengths = torch.tensor([16000, 15000])  # Example lengths
+            >>> features = model.collect_feats(src_speech, src_lengths, tgt_speech, tgt_lengths)
+            >>> print(features["src_feats"].shape)  # Output: torch.Size([2, N, D])
+
+        Note:
+            If `extract_feats_in_collect_stats` is `False`, this method will log a
+            warning and return the original speech tensors as dummy statistics.
+
+        Raises:
+            AssertionError: If the input tensors do not match the expected dimensions.
+        """
         if self.extract_feats_in_collect_stats:
             src_feats, src_feats_lengths = self._extract_feats(
                 src_speech, src_speech_lengths
@@ -783,11 +1025,38 @@ class ESPnetS2STModel(AbsESPnetModel):
         return_all_hs: bool = False,
         **kwargs,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Frontend + Encoder. Note that this method is used by st_inference.py
+        """
+                Encode the input speech using the frontend and encoder components of the model.
+
+        This method performs several preprocessing steps, including feature extraction,
+        data augmentation, and normalization before passing the processed features to the
+        encoder. It can return intermediate hidden states if requested.
 
         Args:
-            speech: (Batch, Length, ...)
-            speech_lengths: (Batch, )
+            speech: A tensor of shape (Batch, Length, ...) representing the input speech.
+            speech_lengths: A tensor of shape (Batch,) representing the lengths of each
+                input sequence in the batch.
+            return_all_hs: A boolean indicating whether to return all hidden states from
+                the encoder. Defaults to False.
+            **kwargs: Additional keyword arguments to be passed to the encoder.
+
+        Returns:
+            A tuple containing:
+                - encoder_out: A tensor of shape (Batch, Length2, Dim2) representing the
+                  encoded output.
+                - encoder_out_lens: A tensor of shape (Batch,) representing the lengths
+                  of the encoded sequences.
+                - inter_encoder_out (optional): Intermediate hidden states from the encoder
+                  if return_all_hs is True.
+
+        Examples:
+            >>> model = ESPnetS2STModel(...)
+            >>> speech = torch.randn(8, 16000)  # Example input (8 samples, 1 second each)
+            >>> speech_lengths = torch.tensor([16000] * 8)  # Lengths of the input
+            >>> encoder_out, encoder_out_lens = model.encode(speech, speech_lengths)
+
+        Note:
+            This method is used by the speech-to-speech translation inference process.
         """
         with autocast(False):
             # 1. Extract feats

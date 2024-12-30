@@ -143,6 +143,57 @@ loss_choices = ClassChoices(
 
 
 class SpeakerTask(AbsTask):
+    """
+        SpeakerTask is a class that defines a speaker recognition task in the ESPnet2
+    framework. It inherits from AbsTask and encapsulates methods for managing
+    training and inference, handling data processing, and building the model
+    architecture.
+
+    Attributes:
+        num_optimizers (int): The number of optimizers used in the task.
+        class_choices_list (list): A list of ClassChoices instances for various
+            components such as frontend, specaug, normalize, encoder, pooling,
+            projector, preprocessor, and loss.
+        trainer (Trainer): The trainer class associated with this task.
+
+    Methods:
+        add_task_arguments(parser: argparse.ArgumentParser):
+            Adds task-specific arguments to the provided argument parser.
+
+        build_collate_fn(args: argparse.Namespace, train: bool) -> Callable:
+            Constructs a collate function based on the provided arguments.
+
+        build_preprocess_fn(args: argparse.Namespace, train: bool) -> Optional[Callable]:
+            Constructs a preprocessing function based on the provided arguments.
+
+        required_data_names(train: bool = True, inference: bool = False) -> Tuple[str, ...]:
+            Returns a tuple of required data names based on the training or inference mode.
+
+        optional_data_names(train: bool = True, inference: bool = False) -> Tuple[str, ...]:
+            Returns a tuple of optional data names based on the training or inference mode.
+
+        build_model(args: argparse.Namespace) -> ESPnetSpeakerModel:
+            Constructs and returns an ESPnetSpeakerModel based on the provided arguments.
+
+    Examples:
+        To add task arguments to a parser:
+            import argparse
+            parser = argparse.ArgumentParser()
+            SpeakerTask.add_task_arguments(parser)
+
+        To build a model:
+            args = parser.parse_args()
+            model = SpeakerTask.build_model(args)
+
+    Note:
+        This class requires the ESPnet2 library and is designed for speaker
+        recognition tasks.
+
+    Todo:
+        - Consider adding support for additional loss functions and preprocessing
+          methods in the future.
+    """
+
     num_optimizers: int = 1
 
     class_choices_list = [
@@ -160,6 +211,28 @@ class SpeakerTask(AbsTask):
 
     @classmethod
     def add_task_arguments(cls, parser: argparse.ArgumentParser):
+        """
+                Adds task-related arguments to the provided argument parser.
+
+        This method is used to define various command-line arguments that are
+        specific to the speaker task. The arguments include options for
+        initialization methods, preprocessing settings, input size, target
+        duration, and speaker-related configurations.
+
+        Args:
+            parser (argparse.ArgumentParser): The argument parser instance to
+                which the task arguments will be added.
+
+        Examples:
+            >>> import argparse
+            >>> parser = argparse.ArgumentParser()
+            >>> SpeakerTask.add_task_arguments(parser)
+            >>> args = parser.parse_args()
+
+        Note:
+            The method dynamically adds arguments based on the choices defined
+            in the class-level `class_choices_list`.
+        """
         group = parser.add_argument_group(description="Task related")
 
         group.add_argument(
@@ -250,6 +323,37 @@ class SpeakerTask(AbsTask):
         [Collection[Tuple[str, Dict[str, np.ndarray]]]],
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
+        """
+            Builds a collate function for processing batches of data during training or
+        inference.
+
+        This method constructs a collate function that will be used by a data loader
+        to collate data samples into a batch. The collate function is responsible for
+        ensuring that all samples in the batch are appropriately padded and organized
+        for model input.
+
+        Args:
+            args (argparse.Namespace): The command-line arguments containing various
+                configurations for the task.
+            train (bool): A flag indicating whether the function is being called in
+                training mode. This can affect the way data is collated.
+
+        Returns:
+            Callable[[Collection[Tuple[str, Dict[str, np.ndarray]]]],
+                     Tuple[List[str], Dict[str, torch.Tensor]]]:
+                A callable that takes a collection of data samples and returns a
+                tuple containing a list of keys and a dictionary of batched tensors.
+
+        Examples:
+            >>> from espnet2.tasks.speaker_task import SpeakerTask
+            >>> args = argparse.Namespace(use_preprocessor=True, ...)
+            >>> collate_fn = SpeakerTask.build_collate_fn(args, train=True)
+            >>> batch = collate_fn(data_samples)
+
+        Note:
+            The function utilizes CommonCollateFn to handle the actual collating
+            logic, which can be customized based on specific requirements.
+        """
         return CommonCollateFn()
 
     @classmethod
@@ -257,6 +361,43 @@ class SpeakerTask(AbsTask):
     def build_preprocess_fn(
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
+        """
+        Builds a preprocessing function based on the provided arguments.
+
+        This function constructs a callable that processes input data
+        according to the specified preprocessing class, which can be
+        configured for training or inference.
+
+        Args:
+            args (argparse.Namespace): Command-line arguments containing
+                preprocessing configuration.
+            train (bool): A flag indicating whether the function is
+                being built for training or inference.
+
+        Returns:
+            Optional[Callable[[str, Dict[str, np.array]],
+            Dict[str, np.ndarray]]]: A preprocessing function that takes
+            a file path and a dictionary of features, returning a
+            processed dictionary of features. If preprocessing is not
+            enabled, returns None.
+
+        Examples:
+            >>> args = argparse.Namespace(use_preprocessor=True,
+            ...                            preprocessor='spk',
+            ...                            spk2utt='path/to/spk2utt',
+            ...                            preprocessor_conf={})
+            >>> preprocess_fn = SpeakerTask.build_preprocess_fn(args, train=True)
+            >>> processed_data = preprocess_fn('path/to/audio.wav',
+            ...                                  {'feature': np.array([...])})
+
+        Note:
+            The actual preprocessing class is selected based on the
+            `args.preprocessor` attribute. Make sure the specified
+            preprocessor is available in the choices.
+
+        Todo:
+            Implement additional preprocessing options as required.
+        """
         if args.use_preprocessor:
             if train:
                 retval = preprocessor_choices.get_class(args.preprocessor)(
@@ -278,6 +419,29 @@ class SpeakerTask(AbsTask):
     def required_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
+        """
+            Returns the required data names for training or inference.
+
+        This method provides the necessary data names based on the task mode.
+        For training, it typically includes the speech data and speaker labels,
+        while for inference, it usually only includes the speech data.
+
+        Args:
+            train (bool, optional): A flag indicating whether the mode is training.
+                Defaults to True.
+            inference (bool, optional): A flag indicating whether the mode is
+                inference. Defaults to False.
+
+        Returns:
+            Tuple[str, ...]: A tuple containing the required data names.
+
+        Examples:
+            >>> SpeakerTask.required_data_names(train=True)
+            ('speech', 'spk_labels')
+
+            >>> SpeakerTask.required_data_names(train=False)
+            ('speech',)
+        """
         if train:
             retval = ("speech", "spk_labels")
         else:
@@ -289,6 +453,51 @@ class SpeakerTask(AbsTask):
     def optional_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
+        """
+            A task for speaker recognition and related operations.
+
+        This class extends the `AbsTask` class and provides methods to handle
+        various aspects of speaker recognition tasks, including model building,
+        preprocessing, and argument parsing.
+
+        Attributes:
+            num_optimizers (int): The number of optimizers to use.
+            class_choices_list (List[ClassChoices]): List of available class choices
+                for various components such as frontend, encoder, and loss.
+            trainer (Type[Trainer]): The trainer class for the task.
+
+        Args:
+            parser (argparse.ArgumentParser): The argument parser instance to add
+                task-related arguments.
+
+        Returns:
+            None
+
+        Yields:
+            None
+
+        Raises:
+            None
+
+        Examples:
+            To add task-related arguments to a parser:
+
+            >>> import argparse
+            >>> parser = argparse.ArgumentParser()
+            >>> SpeakerTask.add_task_arguments(parser)
+
+            To build a model based on provided arguments:
+
+            >>> args = parser.parse_args()
+            >>> model = SpeakerTask.build_model(args)
+
+        Note:
+            This task supports optional components for frontend, normalization,
+            encoding, pooling, projection, and loss functions.
+
+        Todo:
+            Implement model configuration loading from `model_conf` when it exists.
+        """
         # When calculating EER, we need trials where each trial has two
         # utterances. speech2 corresponds to the second utterance of each
         # trial pair in the validation/inference phase.
@@ -299,6 +508,41 @@ class SpeakerTask(AbsTask):
     @classmethod
     @typechecked
     def build_model(cls, args: argparse.Namespace) -> ESPnetSpeakerModel:
+        """
+                Builds the speaker model based on the provided arguments.
+
+        This method constructs an `ESPnetSpeakerModel` by utilizing various components
+        such as frontend, spec augmentation, normalization, encoder, pooling, projector,
+        and loss functions. The components are instantiated based on the specified
+        arguments, and their configurations.
+
+        Args:
+            args (argparse.Namespace): The arguments containing configurations for
+                model components including frontend, specaug, normalize, encoder,
+                pooling, projector, and loss.
+
+        Returns:
+            ESPnetSpeakerModel: An instance of the constructed speaker model.
+
+        Examples:
+            >>> args = argparse.Namespace()
+            >>> args.frontend = "default"
+            >>> args.specaug = "specaug"
+            >>> args.normalize = "global_mvn"
+            >>> args.encoder = "ecapa_tdnn"
+            >>> args.pooling = "mean"
+            >>> args.projector = "rawnet3"
+            >>> args.loss = "aamsoftmax"
+            >>> args.spk_num = 10
+            >>> model = SpeakerTask.build_model(args)
+
+        Note:
+            This method assumes that all necessary configurations are provided in the
+            `args` namespace. It will raise an error if required arguments are missing.
+
+        Todo:
+            - Implement handling for model_conf when available.
+        """
 
         if args.frontend is not None:
             frontend_class = frontend_choices.get_class(args.frontend)

@@ -10,6 +10,58 @@ from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
 
 
 class TransformerLM(AbsLM):
+    """
+        Transformer Language Model (TransformerLM) for generating and scoring tokens
+    based on input sequences. This model is built upon the Transformer architecture
+    and extends the abstract language model class.
+
+    Attributes:
+        embed (nn.Embedding): Embedding layer for input tokens.
+        encoder (Encoder): Transformer encoder that processes the input embeddings.
+        decoder (nn.Linear): Linear layer that maps encoder outputs to token scores.
+
+    Args:
+        vocab_size (int): Size of the vocabulary.
+        pos_enc (str, optional): Type of positional encoding ('sinusoidal' or None).
+        embed_unit (int, optional): Dimensionality of the embeddings. Default is 128.
+        att_unit (int, optional): Dimensionality of the attention mechanism. Default is 256.
+        head (int, optional): Number of attention heads. Default is 2.
+        unit (int, optional): Dimensionality of the linear layers. Default is 1024.
+        layer (int, optional): Number of layers in the encoder. Default is 4.
+        dropout_rate (float, optional): Dropout rate for layers. Default is 0.1.
+        positional_dropout_rate (float, optional): Dropout rate for positional encodings.
+            Default is 0.1.
+        attention_dropout_rate (float, optional): Dropout rate for attention weights.
+            Default is 0.1.
+
+    Raises:
+        ValueError: If an unknown positional encoding option is provided.
+
+    Examples:
+        # Create a TransformerLM model
+        model = TransformerLM(vocab_size=10000, pos_enc='sinusoidal')
+
+        # Forward pass
+        input_ids = torch.randint(0, 10000, (32, 20))  # Batch of 32 sequences
+        output, _ = model(input_ids, None)
+
+        # Scoring a new token
+        new_token = torch.tensor([5])  # Example token
+        state = None  # Initial state
+        scores, new_state = model.score(new_token, state, output)
+
+        # Batch scoring
+        batch_tokens = torch.randint(0, 10000, (16, 10))  # Batch of 16 sequences
+        states = [None] * 16  # Initial states for each sequence
+        batch_scores, new_states = model.batch_score(batch_tokens, states, output)
+
+    Note:
+        This model assumes input sequences are padded with a token index of 0.
+
+    Todo:
+        - Add support for more advanced positional encoding options.
+    """
+
     def __init__(
         self,
         vocab_size: int,
@@ -55,12 +107,32 @@ class TransformerLM(AbsLM):
         return ys_mask.unsqueeze(-2) & m
 
     def forward(self, input: torch.Tensor, hidden: None) -> Tuple[torch.Tensor, None]:
-        """Compute LM loss value from buffer sequences.
+        """
+        Compute LM loss value from buffer sequences.
+
+        This method processes input tensor through embedding, encoder, and
+        decoder layers to produce the output tensor representing the
+        predicted next tokens.
 
         Args:
-            input (torch.Tensor): Input ids. (batch, len)
-            hidden (torch.Tensor): Target ids. (batch, len)
+            input (torch.Tensor): Input ids. Shape: (batch, len).
+            hidden (None): This argument is not used in the current implementation.
 
+        Returns:
+            Tuple[torch.Tensor, None]: A tuple containing:
+                - Output tensor of shape (batch, len, vocab_size) representing
+                  the predicted token probabilities for each input token.
+                - None, as the hidden state is not used.
+
+        Examples:
+            >>> model = TransformerLM(vocab_size=1000)
+            >>> input_tensor = torch.randint(0, 1000, (32, 10))  # (batch, len)
+            >>> output, _ = model.forward(input_tensor, None)
+            >>> print(output.shape)  # Should output: torch.Size([32, 10, 1000])
+
+        Note:
+            The `hidden` argument is maintained for compatibility with
+            other models but is not utilized in this method.
         """
         x = self.embed(input)
         mask = self._target_mask(input)
@@ -71,18 +143,31 @@ class TransformerLM(AbsLM):
     def score(
         self, y: torch.Tensor, state: Any, x: torch.Tensor
     ) -> Tuple[torch.Tensor, Any]:
-        """Score new token.
+        """
+            Score new token.
+
+        This method computes the score for a new token based on the provided
+        prefix tokens and the current state of the model. It takes the prefix
+        tokens and generates a score for the next possible token in the
+        vocabulary.
 
         Args:
             y (torch.Tensor): 1D torch.int64 prefix tokens.
-            state: Scorer state for prefix tokens
-            x (torch.Tensor): encoder feature that generates ys.
+            state: Scorer state for prefix tokens.
+            x (torch.Tensor): Encoder feature that generates ys.
 
         Returns:
-            tuple[torch.Tensor, Any]: Tuple of
-                torch.float32 scores for next token (vocab_size)
-                and next state for ys
+            tuple[torch.Tensor, Any]: A tuple containing:
+                - torch.float32 scores for the next token (shape: vocab_size).
+                - Next state for ys.
 
+        Examples:
+            >>> model = TransformerLM(vocab_size=1000)
+            >>> prefix_tokens = torch.tensor([1, 2, 3])
+            >>> state = None  # or some valid state
+            >>> encoder_features = torch.randn(1, 10, 256)  # Example features
+            >>> scores, next_state = model.score(prefix_tokens, state, encoder_features)
+            >>> print(scores.shape)  # Output: torch.Size([1000])
         """
         y = y.unsqueeze(0)
         h, _, cache = self.encoder.forward_one_step(
@@ -95,19 +180,44 @@ class TransformerLM(AbsLM):
     def batch_score(
         self, ys: torch.Tensor, states: List[Any], xs: torch.Tensor
     ) -> Tuple[torch.Tensor, List[Any]]:
-        """Score new token batch.
+        """
+            Score new token batch.
+
+        This method computes the scores for a batch of prefix tokens by processing
+        the input sequences through the transformer model. It merges the states of
+        the prefix tokens and utilizes the encoder to produce the output scores.
+
+        Attributes:
+            None
 
         Args:
-            ys (torch.Tensor): torch.int64 prefix tokens (n_batch, ylen).
-            states (List[Any]): Scorer states for prefix tokens.
+            ys (torch.Tensor):
+                A tensor of shape (n_batch, ylen) containing the prefix tokens,
+                represented as torch.int64.
+            states (List[Any]):
+                A list of scorer states corresponding to each prefix token in the batch.
             xs (torch.Tensor):
-                The encoder feature that generates ys (n_batch, xlen, n_feat).
+                A tensor of shape (n_batch, xlen, n_feat) representing the encoder
+                features that generate the scores for the prefix tokens.
 
         Returns:
-            tuple[torch.Tensor, List[Any]]: Tuple of
-                batchfied scores for next token with shape of `(n_batch, vocab_size)`
-                and next state list for ys.
+            tuple[torch.Tensor, List[Any]]:
+                A tuple containing:
+                    - A tensor of shape (n_batch, vocab_size) with the batchified scores
+                      for the next token.
+                    - A list of next state lists for each prefix token in the batch.
 
+        Examples:
+            >>> model = TransformerLM(vocab_size=1000)
+            >>> ys = torch.randint(0, 1000, (32, 10))  # Example prefix tokens
+            >>> states = [None] * 32  # Initial states for the batch
+            >>> xs = torch.randn(32, 15, 256)  # Example encoder features
+            >>> scores, next_states = model.batch_score(ys, states, xs)
+
+        Note:
+            Ensure that the shapes of the input tensors are consistent with the
+            model's architecture. The input tensors should be appropriately padded
+            to match the expected dimensions.
         """
         # merge states
         n_batch = len(ys)

@@ -16,7 +16,36 @@ from espnet2.tts.feats_extract.log_mel_fbank import LogMelFbank
 
 
 class GeneratorAdversarialLoss(torch.nn.Module):
-    """Generator adversarial loss module."""
+    """
+    Generator adversarial loss module.
+
+    This module computes the adversarial loss for the generator in a GAN
+    setting. The loss can be calculated using either Mean Squared Error (MSE)
+    or Hinge loss based on the specified configuration during initialization.
+
+    Attributes:
+        average_by_discriminators (bool): Whether to average the loss by
+            the number of discriminators.
+        criterion (callable): Loss function used for computing the adversarial
+            loss, either MSE or Hinge.
+
+    Args:
+        average_by_discriminators (bool): Whether to average the loss by
+            the number of discriminators.
+        loss_type (str): Loss type, either "mse" or "hinge".
+
+    Returns:
+        Tensor: Generator adversarial loss value.
+
+    Examples:
+        >>> loss_fn = GeneratorAdversarialLoss(loss_type="mse")
+        >>> outputs = [torch.tensor([0.5]), torch.tensor([0.8])]
+        >>> loss = loss_fn(outputs)
+        >>> print(loss)
+
+    Raises:
+        AssertionError: If an unsupported loss_type is provided.
+    """
 
     def __init__(
         self,
@@ -43,16 +72,28 @@ class GeneratorAdversarialLoss(torch.nn.Module):
         self,
         outputs: Union[List[List[torch.Tensor]], List[torch.Tensor], torch.Tensor],
     ) -> torch.Tensor:
-        """Calcualate generator adversarial loss.
+        """
+        Calculate generator adversarial loss.
+
+        This method computes the adversarial loss for the generator based on the
+        outputs received from the discriminator(s). The loss is calculated using
+        either mean squared error (MSE) or hinge loss, depending on the specified
+        loss type during initialization.
 
         Args:
-            outputs (Union[List[List[Tensor]], List[Tensor], Tensor]): Discriminator
-                outputs, list of discriminator outputs, or list of list of discriminator
-                outputs..
+            outputs (Union[List[List[Tensor]], List[Tensor], Tensor]):
+                Discriminator outputs, which can be provided as a list of
+                discriminator outputs, a list of lists of discriminator
+                outputs, or a single tensor.
 
         Returns:
-            Tensor: Generator adversarial loss value.
+            Tensor: The calculated generator adversarial loss value.
 
+        Examples:
+            >>> loss_fn = GeneratorAdversarialLoss(loss_type="mse")
+            >>> outputs = [torch.tensor([0.5]), torch.tensor([0.3])]
+            >>> loss = loss_fn(outputs)
+            >>> print(loss)  # Outputs the loss value
         """
         if isinstance(outputs, (tuple, list)):
             adv_loss = 0.0
@@ -76,7 +117,36 @@ class GeneratorAdversarialLoss(torch.nn.Module):
 
 
 class DiscriminatorAdversarialLoss(torch.nn.Module):
-    """Discriminator adversarial loss module."""
+    """
+        Discriminator adversarial loss module.
+
+    This module computes the adversarial loss for the discriminator in a GAN setup.
+    It can handle both "mse" and "hinge" loss types and allows for averaging across
+    multiple discriminators.
+
+    Attributes:
+        average_by_discriminators (bool): Whether to average the loss by the number
+            of discriminators.
+        loss_type (str): Loss type, either "mse" or "hinge".
+
+    Args:
+        average_by_discriminators (bool): Whether to average the loss by the number
+            of discriminators.
+        loss_type (str): Loss type, "mse" or "hinge".
+
+    Returns:
+        Tuple[torch.Tensor, torch.Tensor]: Discriminator real loss value and
+        discriminator fake loss value.
+
+    Examples:
+        >>> discriminator_loss = DiscriminatorAdversarialLoss(loss_type='hinge')
+        >>> outputs_hat = [torch.tensor([0.9, 0.1]), torch.tensor([0.8, 0.2])]
+        >>> outputs = [torch.tensor([1.0, 0.0]), torch.tensor([1.0, 0.0])]
+        >>> real_loss, fake_loss = discriminator_loss(outputs_hat, outputs)
+
+    Raises:
+        AssertionError: If the provided loss_type is not "mse" or "hinge".
+    """
 
     def __init__(
         self,
@@ -106,20 +176,32 @@ class DiscriminatorAdversarialLoss(torch.nn.Module):
         outputs_hat: Union[List[List[torch.Tensor]], List[torch.Tensor], torch.Tensor],
         outputs: Union[List[List[torch.Tensor]], List[torch.Tensor], torch.Tensor],
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Calcualate discriminator adversarial loss.
+        """
+        Calculate discriminator adversarial loss.
+
+        This method computes the adversarial loss for the discriminator by
+        comparing the outputs from the generator and the ground truth outputs.
+        The loss is computed separately for real and fake outputs based on the
+        specified loss type (MSE or hinge).
 
         Args:
-            outputs_hat (Union[List[List[Tensor]], List[Tensor], Tensor]): Discriminator
-                outputs, list of discriminator outputs, or list of list of discriminator
-                outputs calculated from generator.
-            outputs (Union[List[List[Tensor]], List[Tensor], Tensor]): Discriminator
-                outputs, list of discriminator outputs, or list of list of discriminator
-                outputs calculated from groundtruth.
+            outputs_hat (Union[List[List[Tensor]], List[Tensor], Tensor]):
+                Discriminator outputs, list of discriminator outputs, or list
+                of list of discriminator outputs calculated from the generator.
+            outputs (Union[List[List[Tensor]], List[Tensor], Tensor]):
+                Discriminator outputs, list of discriminator outputs, or list
+                of list of discriminator outputs calculated from the ground truth.
 
         Returns:
-            Tensor: Discriminator real loss value.
-            Tensor: Discriminator fake loss value.
+            Tuple[torch.Tensor, torch.Tensor]: A tuple containing the
+            discriminator real loss value and the discriminator fake loss value.
 
+        Examples:
+            >>> discriminator_loss = DiscriminatorAdversarialLoss()
+            >>> real_outputs = [torch.tensor([[0.9], [0.8]])]
+            >>> fake_outputs = [torch.tensor([[0.2], [0.1]])]
+            >>> real_loss, fake_loss = discriminator_loss(fake_outputs, real_outputs)
+            >>> print(real_loss, fake_loss)
         """
         if isinstance(outputs, (tuple, list)):
             real_loss = 0.0
@@ -154,7 +236,39 @@ class DiscriminatorAdversarialLoss(torch.nn.Module):
 
 
 class FeatureMatchLoss(torch.nn.Module):
-    """Feature matching loss module."""
+    """
+        Feature matching loss module.
+
+    This module calculates the feature matching loss used in generative adversarial
+    networks (GANs) to ensure that the generated outputs have similar features to
+    the ground truth outputs. The loss can be averaged across layers and
+    discriminators, and it can optionally include the final outputs of the
+    discriminators for loss calculation.
+
+    Attributes:
+        average_by_layers (bool): Whether to average the loss by the number of layers.
+        average_by_discriminators (bool): Whether to average the loss by the number
+            of discriminators.
+        include_final_outputs (bool): Whether to include the final output of each
+            discriminator for loss calculation.
+
+    Args:
+        average_by_layers (bool): Whether to average the loss by the number of layers.
+        average_by_discriminators (bool): Whether to average the loss by the number
+            of discriminators.
+        include_final_outputs (bool): Whether to include the final output of each
+            discriminator for loss calculation.
+
+    Returns:
+        Tensor: Feature matching loss value.
+
+    Examples:
+        >>> feature_match_loss = FeatureMatchLoss()
+        >>> feats_hat = [torch.randn(2, 80, 100), torch.randn(2, 80, 100)]
+        >>> feats = [torch.randn(2, 80, 100), torch.randn(2, 80, 100)]
+        >>> loss = feature_match_loss(feats_hat, feats)
+        >>> print(loss)
+    """
 
     def __init__(
         self,
@@ -183,19 +297,16 @@ class FeatureMatchLoss(torch.nn.Module):
         feats_hat: Union[List[List[torch.Tensor]], List[torch.Tensor]],
         feats: Union[List[List[torch.Tensor]], List[torch.Tensor]],
     ) -> torch.Tensor:
-        """Calculate feature matching loss.
+        """
+                Calculate generator adversarial loss.
 
         Args:
-            feats_hat (Union[List[List[Tensor]], List[Tensor]]): List of list of
-                discriminator outputs or list of discriminator outputs calcuated
-                from generator's outputs.
-            feats (Union[List[List[Tensor]], List[Tensor]]): List of list of
-                discriminator outputs or list of discriminator outputs calcuated
-                from groundtruth..
+            outputs (Union[List[List[Tensor]], List[Tensor], Tensor]): Discriminator
+                outputs, list of discriminator outputs, or list of list of discriminator
+                outputs.
 
         Returns:
-            Tensor: Feature matching loss value.
-
+            Tensor: Generator adversarial loss value.
         """
         feat_match_loss = 0.0
         for i, (feats_hat_, feats_) in enumerate(zip(feats_hat, feats)):
@@ -215,7 +326,45 @@ class FeatureMatchLoss(torch.nn.Module):
 
 
 class MelSpectrogramLoss(torch.nn.Module):
-    """Mel-spectrogram loss."""
+    """
+        Mel-spectrogram loss module.
+
+    This module computes the loss between the generated and ground truth
+    mel-spectrograms. It can operate in either L1 loss or MSE loss mode.
+
+    Attributes:
+        wav_to_mel (LogMelFbank): An instance of the LogMelFbank class used to
+            convert waveforms to mel-spectrograms.
+
+    Args:
+        fs (int): Sampling rate. Defaults to 22050.
+        n_fft (int): FFT points. Defaults to 1024.
+        hop_length (int): Hop length. Defaults to 256.
+        win_length (Optional[int]): Window length. If None, defaults to
+            win_length = n_fft.
+        window (str): Window type. Defaults to "hann".
+        n_mels (int): Number of Mel basis. Defaults to 80.
+        fmin (Optional[int]): Minimum frequency for Mel. Defaults to 0.
+        fmax (Optional[int]): Maximum frequency for Mel. If None, defaults to
+            fs / 2.
+        center (bool): Whether to use center window. Defaults to True.
+        normalized (bool): Whether to use normalized one. Defaults to False.
+        onesided (bool): Whether to use onesided one. Defaults to True.
+        log_base (Optional[float]): Log base value. Defaults to 10.0.
+
+    Examples:
+        # Initialize the MelSpectrogramLoss
+        loss_fn = MelSpectrogramLoss()
+
+        # Calculate the loss
+        y_hat = torch.randn(1, 1, 16000)  # Example generated waveform
+        y = torch.randn(1, 1, 16000)      # Example groundtruth waveform
+        loss = loss_fn(y_hat, y)
+
+    Note:
+        This loss can be used for training generative models in tasks like
+        text-to-speech or audio synthesis.
+    """
 
     def __init__(
         self,
@@ -272,19 +421,32 @@ class MelSpectrogramLoss(torch.nn.Module):
         spec: Optional[torch.Tensor] = None,
         use_mse: bool = False,
     ) -> torch.Tensor:
-        """Calculate Mel-spectrogram loss.
+        """
+            Calculate Mel-spectrogram loss.
 
         Args:
             y_hat (Tensor): Generated waveform tensor (B, 1, T).
             y (Tensor): Groundtruth waveform tensor (B, 1, T).
             spec (Optional[Tensor]): Groundtruth linear amplitude spectrum tensor
-                (B, T, n_fft // 2 + 1).  if provided, use it instead of groundtruth
+                (B, T, n_fft // 2 + 1). If provided, use it instead of groundtruth
                 waveform.
-            use_l2 (bool): Whether to use mse_loss instead of l1
+            use_mse (bool): Whether to use mse_loss instead of l1.
 
         Returns:
             Tensor: Mel-spectrogram loss value.
 
+        Examples:
+            >>> loss_fn = MelSpectrogramLoss()
+            >>> y_hat = torch.randn(2, 1, 16000)  # Generated waveform
+            >>> y = torch.randn(2, 1, 16000)      # Groundtruth waveform
+            >>> loss = loss_fn(y_hat, y)
+            >>> print(loss)
+
+        Note:
+            This loss can be used in training neural networks for tasks such as
+            speech synthesis, where the objective is to minimize the difference
+            between the generated audio and the target audio in the Mel-spectrogram
+            domain.
         """
         mel_hat, _ = self.wav_to_mel(y_hat.squeeze(1))
         if spec is None:
