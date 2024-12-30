@@ -1541,6 +1541,7 @@ class SVSPreprocessor(AbsPreprocessor):
             3: [0.1, 0.5, 1],
             4: [0.05, 0.1, 0.5, 1],
         },
+        discrete_token_name: str = "discrete_token",
     ):
         super().__init__(train)
         self.train = train
@@ -1553,6 +1554,7 @@ class SVSPreprocessor(AbsPreprocessor):
         self.singing_volume_normalize = singing_volume_normalize
         self.phn_seg = phn_seg
         self.time_shift = hop_length / fs
+        self.discrete_token_name = discrete_token_name
         if token_type is not None:
             if token_list is None:
                 raise ValueError("token_list is required if token_type is not None")

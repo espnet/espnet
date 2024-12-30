@@ -33,7 +33,7 @@ pitch_extract=dio
 
 ./svs.sh \
     --lang jp \
-    --local_data_opts "--stage 0" \
+    --local_data_opts "--stage 2" \
     --feats_type raw \
     --pitch_extract "${pitch_extract}" \
     --fs "${fs}" \
