@@ -23,9 +23,9 @@ class HuggingFaceFrontend(AbsFrontend):
     ):
         try:
             from transformers import (
+                AutoConfig,
                 AutoFeatureExtractor,
                 AutoModel,
-                AutoConfig,
                 EncodecFeatureExtractor,
                 WhisperFeatureExtractor,
             )
