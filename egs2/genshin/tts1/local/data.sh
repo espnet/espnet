@@ -74,17 +74,17 @@ train_set=tr_no_dev
 train_dev=dev
 eval_set=eval1
 
-if [ ${stage} -le -2 ] && [ ${stop_stage} -ge -2 ]; then
+if [ "${stage}" -le -2 ] && [ "${stop_stage}" -ge -2 ]; then
     log "Stage -2: Data download"
     bash local/data_download.sh "${db_root}" "${lang}"
 fi
 
-if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
+if [ "${stage}" -le -1 ] && [ "${stop_stage}" -ge -1 ]; then
     log "Stage -1: Preprocess Data"
     python local/data_process.py "${db_root}/Genshin-${lang}" --remove-short-speaker 1200 --resample-audio 44100
 fi
 
-if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
+if [ "${stage}" -le 0 ] && [ "${stop_stage}" -ge 0 ]; then
     log "Stage 0: Data preparation"
 
     mkdir -p data/train
@@ -187,7 +187,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     rm -rf data/train/.backup
 fi
 
-if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
+if [ "${stage}" -le 1 ] && [ "${stop_stage}" -ge 1 ]; then
     log "Stage 1: Split data into training, development and evaluation sets"
 
     total_utts=$(wc -l < data/train/wav.scp)
