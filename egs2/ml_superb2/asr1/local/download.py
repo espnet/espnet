@@ -54,9 +54,9 @@ ids = ds["dev_dialect"]["id"]
 
 for idx, text in zip(ids, texts):
     # replace with dialect lid for ms_speech
-    if 'ms_speech' in idx:
-        lid = idx.split('_')[2]
-        text = text.replace('[hin]', f'[{lid}]')
+    if "ms_speech" in idx:
+        lid = idx.split("_")[2]
+        text = text.replace("[hin]", f"[{lid}]")
     dialect_text_out.write(f"{idx} {text.strip().replace('[org_jpn]', '[jpn]')}\n")
     dialect_utt_out.write(f"{idx} {idx}\n")
     dialect_wav_out.write(f"{idx} data/raw_audio/{idx}.wav\n")
@@ -68,9 +68,9 @@ for lid in lids:
     if lid != "org_jpn":
         nlsyms_out.write(f"[{lid.strip()}]\n")
 
-#ds["train"].map(save_audio_to_disk)
-#ds["dev"].map(save_audio_to_disk)
-#ds["dev_dialect"].map(save_audio_to_disk)
+# ds["train"].map(save_audio_to_disk)
+# ds["dev"].map(save_audio_to_disk)
+# ds["dev_dialect"].map(save_audio_to_disk)
 
 train_text_out.close()
 train_wav_out.close()
