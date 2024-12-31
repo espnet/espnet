@@ -20,6 +20,7 @@ def test_frontend_backward(model, fs):
         model,
         fs=fs,
         download_dir="./hf_cache",
+        load_pretrained=False,
     )
     wavs = torch.randn(2, fs, requires_grad=True)
     lengths = torch.LongTensor([fs, fs])

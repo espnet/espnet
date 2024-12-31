@@ -19,11 +19,13 @@ class HuggingFaceFrontend(AbsFrontend):
         model,
         fs: Union[int, str] = 16000,
         download_dir: Optional[str] = None,
+        load_pretrained: bool = True,
     ):
         try:
             from transformers import (
                 AutoFeatureExtractor,
                 AutoModel,
+                AutoConfig,
                 EncodecFeatureExtractor,
                 WhisperFeatureExtractor,
             )
@@ -31,7 +33,11 @@ class HuggingFaceFrontend(AbsFrontend):
             raise ImportError("Please install `transformers`")
 
         super().__init__()
-        self.encoder = AutoModel.from_pretrained(model, cache_dir=download_dir)
+        if load_pretrained:
+            self.encoder = AutoModel.from_pretrained(model, cache_dir=download_dir)
+        else:
+            config = AutoConfig.from_pretrained(model, cache_dir=download_dir)
+            self.encoder = AutoModel.from_config(config)
         self.processor = AutoFeatureExtractor.from_pretrained(
             model, cache_dir=download_dir
         )
