@@ -1,3 +1,11 @@
+# Copyright 2024
+# Licensed under the MIT License
+# For details, see: https://github.com/gpt-omni/mini-omni?tab=MIT-1-ov-file#readme
+
+# This code is borrowed from the following sources:
+# 1. https://github.com/gpt-omni/mini-omni
+# 2. https://huggingface.co/spaces/gradio/omni-mini/tree/main
+
 import time
 
 import numpy as np
