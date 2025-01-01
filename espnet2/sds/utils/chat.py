@@ -1,3 +1,10 @@
+# Copyright 2024
+# Licensed under the Apache-2.0 license
+# For details, see: http://www.apache.org/licenses/
+
+# This code is adapted from the following sources:
+# 1. https://github.com/huggingface/speech-to-speech
+
 from typing import Dict, List
 
 
