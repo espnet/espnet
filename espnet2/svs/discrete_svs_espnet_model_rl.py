@@ -418,18 +418,19 @@ class ESPnetDiscreteRLSVSModel(ESPnetSVSModel):
             "midi_encode_layer",
             "duration_encode_layer",
             "encoder",
-            "f0_predictor,"
+            "f0_predictor",
             "duration_predictor"
         ]
         for fix_module_name in fixed_modules:
             for name, module in self.svs.named_modules():
                 if name.startswith(fix_module_name + ".") or name == fix_module_name: 
                     module.eval()
+                    for param in module.parameters():
+                        param.requires_grad = False
             if self.ref_svs is not None:
                 for name, module in self.ref_svs.named_modules():
                     if name.startswith(fix_module_name + ".") or name == fix_module_name: 
                         module.eval()
-                
 
         _, stats, weight, policy_logits = self.svs(**batch)
         stats["svs_loss"] = stats.pop("loss")

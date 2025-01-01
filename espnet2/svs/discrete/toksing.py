@@ -826,7 +826,6 @@ class TokSing(AbsSVS):
                     log_f0_outs, torch.zeros_like(log_f0_outs).to(log_f0_outs)
                 )
                 hs = hs + self.lf0_mapping(log_f0_outs)
-        logging.info(f'hs: {hs.shape}')
 
         # forward decoder
         if self.use_discrete_token:

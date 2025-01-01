@@ -49,7 +49,7 @@ sample_data=true
 samples_num=10
 rl_data="dump/rl"
 select_metrics="spk_similarity"
-use_reflm=true
+use_refsvs=true
 
 pretrain_checkpoint="exp/svs_train_toksing_raw_phn_none_zh/valid.loss.best.pth"
 
@@ -249,18 +249,12 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "Stage 2: train model with RL"
     
     train_rl=true
-    use_reflm=true
-    if ${use_reflm}; then
+    use_refsvs=true
+    if ${use_refsvs}; then
         rl_train_args+=" --init_param ${pretrain_checkpoint}:svs:svs ${pretrain_checkpoint}:svs:ref_svs "
     else
         rl_train_args+=" --init_param ${pretrain_checkpoint}:svs:svs "
     fi
-    # rl_train_args+=" --freeze_param midi_encode_layer "
-    # rl_train_args+=" --freeze_param duration_encode_layer "
-    # rl_train_args+=" --freeze_param f0_predictor "
-    # rl_train_args+=" --freeze_param proj_pitch "
-    # rl_train_args+=" --freeze_param encoder "
-    # rl_train_args+=" --freeze_param duration_predictor "
     ./svs2.sh \
             --lang zh \
             --stage 7 \
