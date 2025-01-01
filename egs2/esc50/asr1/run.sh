@@ -8,11 +8,6 @@ set -o pipefail
 asr_speech_fold_length=1000 # 6.25 sec, because audio is 5 sec each.
 inference_model=valid.acc.best.pth
 
-
-mkdir -p ${expdir}
-mkdir -p ${dumpdir}
-mkdir -p ${datadir}
-
 n_folds=5 # This runs all 5 folds in parallel, take care.
 
 asr_config=conf/beats_classification.yaml
@@ -25,7 +20,7 @@ for fold in $(seq 1 $n_folds); do
     valid_set="val${fold}"
     test_set="val${fold}"
     ./asr.sh \
-        --local_data_opts "${fold} ${datadir}" \
+        --local_data_opts "${fold}" \
         --asr_tag "${mynametag}${fold}" \
         --lang "${fold}" \
         --ngpu 1 \
@@ -52,7 +47,7 @@ wait
 total_sum=0
 total_count=0
 for i in $(seq 1 $n_folds); do
-    values=$(grep "val${i}" ${expdir}/asr_${mynametag}${i}/RESULTS.md | head -n 1 | awk -F'|' '{print $(NF-1)}')
+    values=$(grep "val${i}" exp/asr_${mynametag}${i}/RESULTS.md | head -n 1 | awk -F'|' '{print $(NF-1)}')
     for value in $values; do
         total_sum=$(echo "$total_sum + $value" | bc)
         total_count=$((total_count + 1))
