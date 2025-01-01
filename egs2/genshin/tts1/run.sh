@@ -37,6 +37,10 @@ g2p=g2p_en_no_space # Include no word separator
     --cleaner tacotron \
     --max_wav_duration 60 \
     --g2p "${g2p}" \
+    --tts_task gan_tts \
+    --use_sid true \
+    --feats_extract linear_spectrogram \
+    --feats_normalize none \
     --train_config "${train_config}" \
     --inference_config "${inference_config}" \
     --train_set "${train_set}" \
