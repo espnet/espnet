@@ -3,8 +3,8 @@
 This can be used for classification tasks from sequence input.
 """
 
-from typing import Tuple
 import logging
+from typing import Tuple
 
 import torch
 from typeguard import typechecked
