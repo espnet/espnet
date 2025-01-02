@@ -76,3 +76,45 @@ def test_single_channel_model(
         "spk_labels_lengths": ilens,
     }
     loss, stats, weight = diar_model(**kwargs)
+
+@pytest.mark.parametrize(
+    "frontend, encoder, decoder, label_aggregator",
+    [(frontend, encoder, decoder, label_aggregator)],
+)
+@pytest.mark.parametrize("training", [True, False])
+@pytest.mark.parametrize("attractor", [rnn_attractor, None])
+def test_model_with_context_concat_and_subsampling(
+    label_aggregator,
+    frontend,
+    encoder,
+    decoder,
+    attractor,
+    training,
+):
+    inputs = torch.randn(2, 300)
+    ilens = torch.LongTensor([300, 200])
+    spk_labels = torch.randint(high=2, size=(2, 300, 2))
+    diar_model = ESPnetDiarizationModel(
+        label_aggregator=label_aggregator,
+        attractor=attractor,
+        encoder=encoder,
+        decoder=decoder,
+        frontend=frontend,
+        specaug=None,
+        normalize=None,
+        context_size=7, 
+        subsampling=10
+    )
+
+    if training:
+        diar_model.train()
+    else:
+        diar_model.eval()
+
+    kwargs = {
+        "speech": inputs,
+        "speech_lengths": ilens,
+        "spk_labels": spk_labels,
+        "spk_labels_lengths": ilens,
+    }
+    loss, stats, weight = diar_model(**kwargs)
