@@ -1,6 +1,6 @@
 # The initial version of this file is copied from egs2/librimix/diar1/conf/train_diar_eda.yaml
 # This config file is for EEND-EDA pre-training stage (training on data with 4 speakers).
-# The training time is about 1 day on a single V100-32GB GPU. 
+# The training time is about 1 day on a single V100-32GB GPU.
 # For the details about EEND-EDA, refer to the following papers:
 # EEND-EDA: https://arxiv.org/pdf/2005.09921.pdf, https://arxiv.org/pdf/2106.10654.pdf
 
