@@ -103,7 +103,6 @@ class WebrtcVADModel(AbsVAD):
         )
         vad_count = 0
         chunk_size = int(320 * sample_rate / 16000)
-        print(chunk_size)
         for i in range(int(len(speech) / chunk_size)):
             vad = webrtcvad.Vad()
             vad.set_mode(3)
