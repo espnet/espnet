@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-mindepth=0
-maxdepth=10
 
 . utils/parse_options.sh
 

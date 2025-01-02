@@ -1159,7 +1159,7 @@ if ! "${skip_scoring}"; then
         _score_config=${versa_config}
         _gt_file=${_data}/wav_test.scp
 
-        _nj=$(( ${inference_nj} < $(wc -l < ${_pred_file}) ? ${inference_nj} : $(wc -l < ${_pred_file}) ))
+        _nj=$(( inference_nj < $(wc -l < "${_pred_file}") ? inference_nj : $(wc -l < "${_pred_file}") ))
 
         _split_files=""
         for n in $(seq ${_nj}); do
