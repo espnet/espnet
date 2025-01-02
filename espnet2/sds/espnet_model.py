@@ -239,6 +239,7 @@ class ESPnetSDSModelInterface(AbsESPnetModel):
         )
         if option == "Cascaded":
             self.client = None
+            self.type_option = "Cascaded"
             for _ in self.handle_TTS_selection(TTS_radio):
                 continue
             for _ in self.handle_ASR_selection(ASR_radio):
@@ -257,6 +258,7 @@ class ESPnetSDSModelInterface(AbsESPnetModel):
                 gr.Radio(visible=False),
             )
         else:
+            self.type_option = "E2E"
             self.text2speech = None
             self.s2t = None
             self.LM_pipe = None
