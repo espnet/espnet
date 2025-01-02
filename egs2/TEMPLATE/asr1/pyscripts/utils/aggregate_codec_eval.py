@@ -113,6 +113,7 @@ def aggregate_results(logdir: str, scoredir: str, nj: int) -> None:
             f2.write("{}_cer {}\n".format(error_rate_tag, cer))
     logging.info("Done.")
 
+
 def main() -> None:
     """Run main function."""
     parser = get_parser()
