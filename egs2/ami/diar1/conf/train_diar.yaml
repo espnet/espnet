@@ -1,6 +1,6 @@
 # The initial version is copy from egs2/librimix/diar1/conf/train_diar.yaml
 # This config file is for SA-EEND.
-# The training time is about 23 hours on a single V100-32GB GPU. 
+# The training time is about 23 hours on a single V100-32GB GPU.
 # For the details about SA-EEND, refer to the following paper:
 # SA-EEND: https://arxiv.org/pdf/1909.06247.pdf
 
