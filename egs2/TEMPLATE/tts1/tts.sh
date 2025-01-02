@@ -1146,7 +1146,7 @@ if ! "${skip_scoring}"; then
                 --gt_text ${_data}/text \
                 --gpu_inference ${gpu_inference} \
                 ${_gen_dir}/wav/wav.scp ${_gen_dir}/scoring/eval_wer
-            
+
             log "Finished WER evaluation, results are in ${_gen_dir}/scoring/eval_wer"
         fi
 
