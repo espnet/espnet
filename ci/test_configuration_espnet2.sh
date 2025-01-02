@@ -84,7 +84,7 @@ if python3 -c 'import torch as t; from packaging.version import parse as L; asse
     done
 
     for f in egs2/*/tts1/conf/train*.yaml; do
-        if [[ "$f" == *"train_vits"* ]]; then
+        if [[ "$f" == *"train_vits.yaml"* ]]; then
             ${python} -m espnet2.bin.gan_tts_train --config "${f}" --iterator_type none --normalize none --dry_run true --output_dir out --token_list dummy_token_list
         else
             ${python} -m espnet2.bin.tts_train --config "${f}" --iterator_type none --normalize none --dry_run true --output_dir out --token_list dummy_token_list
