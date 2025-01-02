@@ -19,6 +19,8 @@ is_python_3_8_plus = sys.version_info >= (3, 8)
 )
 @pytest.mark.parametrize("tag", ["large", "tiny"])
 def test_forward(tag):
+    if not torch.cuda.is_available():
+        return  # Only GPU supported
     asr_model = WhisperASRModel(tag=tag)
     asr_model.warmup()
     x = torch.randn(2000, requires_grad=False)

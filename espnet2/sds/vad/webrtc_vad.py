@@ -102,10 +102,14 @@ class WebrtcVADModel(AbsVAD):
             audio_float32, orig_sr=sample_rate, target_sr=self.target_sr
         )
         vad_count = 0
-        for i in range(int(len(speech) / 960)):
+        chunk_size = int(320 * sample_rate / 16000)
+        print(chunk_size)
+        for i in range(int(len(speech) / chunk_size)):
             vad = webrtcvad.Vad()
             vad.set_mode(3)
-            if vad.is_speech(speech[i * 960 : (i + 1) * 960].tobytes(), sample_rate):
+            if vad.is_speech(
+                speech[i * chunk_size : (i + 1) * chunk_size].tobytes(), sample_rate
+            ):
                 vad_count += 1
         if self.vad_output is None and vad_count > self.speakup_threshold:
             vad_curr = True

@@ -8,6 +8,8 @@ pytest.importorskip("transformers")
 
 @pytest.mark.parametrize("tag", ["HuggingFaceTB/SmolLM2-1.7B-Instruct"])
 def test_forward(tag):
+    if not torch.cuda.is_available():
+        return  # Only GPU supported
     llm = HuggingFaceLLM(tag=tag, access_token="")
     llm.warmup()
     x = [

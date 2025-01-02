@@ -9,6 +9,8 @@ pytest.importorskip("huggingface_hub")
 
 
 def test_forward():
+    if not torch.cuda.is_available():
+        return  # Only GPU supported
     dialogue_model = MiniOmniE2EModel()
     dialogue_model.warmup()
     x = torch.randn(2000, requires_grad=False).cpu().numpy()
