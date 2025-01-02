@@ -77,6 +77,33 @@ def test_single_channel_model(
     }
     loss, stats, weight = diar_model(**kwargs)
 
+frontend = DefaultFrontend(
+    n_fft=32,
+    win_length=32,
+    hop_length=16,
+    n_mels=10,
+)
+
+encoder = TransformerEncoder(
+    input_size=50,
+    input_layer="linear",
+    num_blocks=1,
+    linear_units=32,
+    output_size=16,
+    attention_heads=2,
+)
+
+decoder = LinearDecoder(
+    num_spk=2,
+    encoder_output_size=encoder.output_size(),
+)
+
+rnn_attractor = RnnAttractor(unit=16, encoder_output_size=encoder.output_size())
+
+label_aggregator = LabelAggregate(
+    win_length=32,
+    hop_length=16,
+)
 
 @pytest.mark.parametrize(
     "frontend, encoder, decoder, label_aggregator",
@@ -103,7 +130,7 @@ def test_model_with_context_concat_and_subsampling(
         frontend=frontend,
         specaug=None,
         normalize=None,
-        context_size=7,
+        context_size=2,
         subsampling=10,
     )
 
