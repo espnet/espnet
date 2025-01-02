@@ -77,6 +77,7 @@ def test_single_channel_model(
     }
     loss, stats, weight = diar_model(**kwargs)
 
+
 @pytest.mark.parametrize(
     "frontend, encoder, decoder, label_aggregator",
     [(frontend, encoder, decoder, label_aggregator)],
@@ -102,8 +103,8 @@ def test_model_with_context_concat_and_subsampling(
         frontend=frontend,
         specaug=None,
         normalize=None,
-        context_size=7, 
-        subsampling=10
+        context_size=7,
+        subsampling=10,
     )
 
     if training:
