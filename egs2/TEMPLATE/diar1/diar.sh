@@ -55,7 +55,7 @@ diar_config= # Config for diar model training.
 diar_args=   # Arguments for diar model training, e.g., "--max_epoch 10".
              # Note that it will overwrite args in diar config.
 feats_normalize=global_mvn # Normalizaton layer type.
-num_spk=     # Number of speakers in the input audio
+num_spk=2    # Number of speakers in the input audio
 
 # diar related
 inference_config= # Config for diar model inference
