@@ -163,7 +163,7 @@ token_list=${datadir}/token_list
 if ! "${skip_data_prep}"; then
     if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         log "Stage 1: Data preparation for ${datadir}/${train_set}, ${datadir}/${valid_set}, etc."
-        local/data.sh ${datadir} ${local_data_opts} 
+        local/data.sh ${datadir} ${local_data_opts}
     fi
 
     if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
