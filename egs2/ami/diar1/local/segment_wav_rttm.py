@@ -1,4 +1,6 @@
 # Segment the WAV files and corresponding RTTM files in the dataset.
+# Author: Qingzheng Wang @ CMU INI, 2024
+
 import argparse
 import logging
 import os

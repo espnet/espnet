@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # The initial version of this file is copied from librimix/diar1/local/data.sh
+# Author: Qingzheng Wang @ CMU INI, 2024
 
 . ./path.sh || exit 1;
 . ./cmd.sh || exit 1;

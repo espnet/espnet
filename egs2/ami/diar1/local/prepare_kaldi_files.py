@@ -1,4 +1,6 @@
 # Prepare Kaldi-style data directory for AMI diarization task
+# Author: Qingzheng Wang @ CMU INI, 2024
+
 import argparse
 import os
 import re
