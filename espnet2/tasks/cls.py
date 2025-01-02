@@ -188,13 +188,6 @@ class CLSTask(AbsTask):
             default=True,
             help="Apply preprocessing to data or not",
         )
-        # group.add_argument(
-        #     "--classification_type",
-        #     type=str,
-        #     default="multi-class",
-        #     help="Classification Type: multi-class or multi-label. "
-        #     "Multi-label with vocab_size=1 is equivalent to binary classification",
-        # )
 
         for class_choices in cls.class_choices_list:
             # Append --<name> and --<name>_conf.

@@ -7,7 +7,11 @@ from sklearn import metrics
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
 from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
 from espnet2.cls.decoder.linear_decoder import LinearDecoder
-from espnet2.cls.espnet_model import ESPnetClassificationModel, label_to_onehot
+from espnet2.cls.espnet_model import (
+    ESPnetClassificationModel,
+    label_to_onehot,
+    mixup_augment,
+)
 
 
 @pytest.mark.parametrize("encoder_arch", [TransformerEncoder, ConformerEncoder])
@@ -282,3 +286,15 @@ def test_metrics_multiclass():
     )
     acc = np.mean([stat["acc"] for stat in stats_official_ast])
     assert np.isclose(acc, stats_espnet_cls["acc"].item(), atol=1e-4)
+
+
+def test_mixup_augment():
+    speech = torch.randn(7, 11)
+    label = torch.tensor(
+        [[1, 0, 0], [0, 1, 0], [0, 0, 1], [1, 1, 0], [1, 1, 1], [0, 0, 0], [1, 0, 1]]
+    )
+    old_speech_shape = speech.shape
+    old_label_shape = label.shape
+    speech, label = mixup_augment(speech, label, 0.5)
+    assert speech.shape == old_speech_shape
+    assert label.shape == old_label_shape

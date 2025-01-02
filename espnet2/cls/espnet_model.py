@@ -5,6 +5,7 @@ from contextlib import contextmanager
 from functools import partial
 from typing import Dict, List, Optional, Tuple, Union
 
+import logging
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -28,6 +29,9 @@ else:
     @contextmanager
     def autocast(enabled=True):
         yield
+
+
+logger = logging.getLogger(__name__)
 
 
 class ESPnetClassificationModel(AbsESPnetModel):
@@ -61,6 +65,7 @@ class ESPnetClassificationModel(AbsESPnetModel):
         self.encoder = encoder
         self.decoder = decoder
         self.classification_type = classification_type
+        self.lsm_weight = lsm_weight
         if classification_type == "multi-label":
             # Also includes binary classification
             self.classification_function = F.sigmoid
@@ -99,7 +104,11 @@ class ESPnetClassificationModel(AbsESPnetModel):
         assert speech.shape[0] == label.shape[0], (speech.shape, label.shape)
         batch_size = speech.shape[0]
         onehot_ = label_to_onehot(
-            label, label_lengths, self.vocab_size, self.classification_type
+            label,
+            label_lengths,
+            self.vocab_size,
+            self.classification_type,
+            lsm_weight=self.lsm_weight if self.training else 0.0,
         )
         if self.training and self.mixup_augmentation:
             assert (
@@ -110,7 +119,7 @@ class ESPnetClassificationModel(AbsESPnetModel):
                     "Mixup is not recommended for variable length input. "
                     "It may not work as expected."
                 )
-            speech, onehot_ = mixup_augment(speech, onehot_)
+            speech, onehot_ = mixup_augment(speech, onehot_, mixup_prob=0.8)
 
         # 1. Encoder
         encoder_out, encoder_out_lens = self.encode(speech, speech_lengths)
@@ -263,6 +272,7 @@ def label_to_onehot(
     label_lengths: torch.Tensor,
     vocab_size: int,
     classification_type: str,
+    lsm_weight: float = 0.0,
 ) -> torch.Tensor:
     """Convert label to onehot.
     Args
@@ -270,6 +280,7 @@ def label_to_onehot(
         label_lengths: (Batch,) only used in asserts
         vocab_size: int
         classification_type: str "multi-class" or "multi-label"
+        lsm_weight: float, label smoothing weight
     Returns
         onehot: (Batch, Length, vocab_size)
     """
@@ -285,27 +296,39 @@ def label_to_onehot(
         onehot = onehot[:, :-1]  # Remove dummy column
         onehot = onehot.view(label.size(0), -1, vocab_size)
         onehot = onehot.sum(dim=1)
-        return onehot.float()
+        onehot = onehot.float()
+        if lsm_weight > 0.0:
+            onehot = onehot * (1 - 2 * lsm_weight) + lsm_weight
+        return onehot
     else:
         raise ValueError(
             "Valid classification types are 'multi-label' and 'multi-class'"
         )
 
 
-def mixup_augment(speech: torch.Tensor, onehot: torch.Tensor):
+def mixup_augment(speech: torch.Tensor, onehot: torch.Tensor, mixup_prob: float):
     """Mixup augmentation for multi-label classification
 
     Args:
         speech: (Batch, Length, Dim)
-        onehot: (Batch, Dim)
+        onehot: (Batch, n_classes)
+        mixup_prob: Apply mixup with this probability
     Returns:
         speech: (Batch, Length, Dim)
-        onehot: (Batch, Dim)
+        onehot: (Batch, n_classes)
     """
     batch_size = speech.size(0)
+    assert onehot.size(0) == batch_size
+    apply_augmentation = torch.rand((batch_size), device=speech.device) < mixup_prob
+    mix_lambda = (
+        torch.distributions.Beta(10, 25)
+        .sample(sample_shape=(batch_size, 1))
+        .to(speech.device)
+    )
     perm = torch.randperm(batch_size).to(speech.device)
-    # mixup_lambda = torch.rand(batch_size, 1, 1)
-    mixup_lambda = torch.tensor(0.8, device=speech.device)
-    speech = mixup_lambda * speech + (1 - mixup_lambda) * speech[perm]
-    onehot = mixup_lambda * onehot + (1 - mixup_lambda) * onehot[perm]
+    identity_perm = torch.arange(batch_size, device=speech.device)
+    perm[~apply_augmentation] = identity_perm[~apply_augmentation]
+    # speech = speech - speech.mean(dim=1, keepdim=True)
+    speech = mix_lambda * speech + (1 - mix_lambda) * speech[perm]
+    onehot = mix_lambda * onehot + (1 - mix_lambda) * onehot[perm]
     return speech, onehot
