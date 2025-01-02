@@ -1,11 +1,11 @@
 # Copyright 2024 WAVLab (Carnegie Mellon University)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+import logging
 from contextlib import contextmanager
 from functools import partial
 from typing import Dict, List, Optional, Tuple, Union
 
-import logging
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
