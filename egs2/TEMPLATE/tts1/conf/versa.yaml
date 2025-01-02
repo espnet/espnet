@@ -1,0 +1,46 @@
+# pesq related metrics
+# -- pesq: perceptual evaluation of speech quality
+- name: pesq
+
+# stoi related metrics
+# -- stoi: short-time objective intelligibility
+- name: stoi
+
+# mcd f0 related metrics
+#  -- mcd: mel cepstral distortion
+#  -- f0_corr: f0 correlation
+#  -- f0_rmse: f0 root mean square error
+- name: mcd_f0
+  f0min: 40
+  f0max: 800
+  mcep_shift: 5
+  mcep_fftl: 1024
+  mcep_dim: 39
+  mcep_alpha: 0.466
+  seq_mismatch_tolerance: 0.1
+  power_threshold: -20
+  dtw: false
+
+# pseudo subjective metrics
+# -- utmos: UT-MOS score
+# -- dnsmos: DNS-MOS score
+# -- plcmos: PLC-MOS score
+# -- aecmos: AEC-MOS score
+- name: pseudo_mos
+  predictor_types: ["utmos", "dnsmos", "plcmos", "singmos"]
+  predictor_args:
+    utmos:
+      fs: 16000
+    dnsmos:
+      fs: 16000
+    plcmos:
+      fs: 16000
+    singmos:
+      fs: 16000
+
+# speaker related metrics
+# -- spk_similarity: speaker cosine similarity
+#                    model tag can be any ESPnet-SPK huggingface repo at 
+#                    https://huggingface.co/espnet
+- name: speaker
+  model_tag: default
