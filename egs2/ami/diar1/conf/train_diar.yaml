@@ -1,7 +1,8 @@
 # The initial version is copy from egs2/librimix/diar1/conf/train_diar.yaml
-#    This config file is for SA-EEND.
-#    For the details about SA-EEND, refer to the following paper:
-#    SA-EEND: https://arxiv.org/pdf/1909.06247.pdf
+# This config file is for SA-EEND.
+# The training time is about 23 hours on a single V100-32GB GPU. 
+# For the details about SA-EEND, refer to the following paper:
+# SA-EEND: https://arxiv.org/pdf/1909.06247.pdf
 
 input_size: 322 # 23 * 15 - 23, - 23 because the tasks/diar will add 23 back
 num_workers: 0
@@ -40,6 +41,7 @@ batch_type: unsorted
 batch_size: 64
 valid_batch_type: unsorted
 valid_batch_size: 16
+patience: none
 
 # optimization related
 optim: adam
@@ -59,8 +61,7 @@ best_model_criterion:
    - max
 keep_nbest_models: 10
 
-patience: none
-# The initialization method for model parameters
+# initialization method for model parameters
 init: xavier_uniform
 
 specaug: specaug
