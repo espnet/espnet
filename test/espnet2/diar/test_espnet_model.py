@@ -77,6 +77,7 @@ def test_single_channel_model(
     }
     loss, stats, weight = diar_model(**kwargs)
 
+
 frontend = DefaultFrontend(
     n_fft=32,
     win_length=32,
@@ -104,6 +105,7 @@ label_aggregator = LabelAggregate(
     win_length=32,
     hop_length=16,
 )
+
 
 @pytest.mark.parametrize(
     "frontend, encoder, decoder, label_aggregator",
