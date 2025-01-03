@@ -34,6 +34,13 @@ The script will look for the ref/hyp under this structure:
                     - text # hyp file for dialect dev set
             - challenge_results.md # generated results file
 ```
+The script can be used directly with the following:
+```
+  python local/score.py --exp_dir <your model folder as shown above>
+  # example
+  python local/score.py --exp_dir exp/asr_train_asr_raw_char
+```
+
 You can also use the scoring functions `score()` and `score_dialect()`for the standard/dialect sets directly, which will normalize the text and calculate the challenge metrics for you.
 Both functions have the following input parameters:
 ```
