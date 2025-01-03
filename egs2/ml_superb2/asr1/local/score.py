@@ -91,10 +91,10 @@ def score(references, lids, hyps):
         all_cers.append(sum(lang_cers) / len(lang_cers))  # average CER of a language
 
     all_cers.sort(reverse=True)
-    lid = round(sum(all_accs) / len(all_accs), 2)
-    cer_res = round(sum(all_cers) / len(all_cers), 2)
-    std = round(statistics.stdev(all_cers), 2)
-    worst = round(sum(all_cers[0:15]) / 15, 2)
+    lid = round(sum(all_accs) / len(all_accs) * 100, 1)
+    cer_res = round(sum(all_cers) / len(all_cers) * 100, 1)
+    std = round(statistics.stdev(all_cers) * 100, 1)
+    worst = round(sum(all_cers[0:15]) / 15 * 100, 1)
 
     print(f"LID ACCURACY: {lid}")
     print(f"AVERAGE CER: {cer_res}")
@@ -136,8 +136,8 @@ def score_dialect(references, lids, hyps):
         all_accs.append(calculate_acc(lang_acc_hyps, lang_acc_refs))
         all_cers.append(sum(lang_cers) / len(lang_cers))  # average CER of a language
 
-    cer_res = round(sum(all_accs) / len(all_accs), 2)
-    lid = round(sum(all_cers) / len(all_cers), 2)
+    cer_res = round(sum(all_accs) / len(all_accs) * 100, 1)
+    lid = round(sum(all_cers) / len(all_cers) * 100, 1)
     print(f"DIALECT LID ACCURACY: {cer_res}")
     print(f"DIALECT CER: {lid}")
 

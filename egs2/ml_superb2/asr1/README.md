@@ -25,4 +25,4 @@ The challenge will use a custom scoring script, which considers worst language p
 
 |decode_dir|Standard CER|Standard LID|Worst 15 CER|CER StD|Dialect CER|Dialect LID|
 |---|---|---|---|---|---|---|
-decode_asr_asr_model_valid.loss.ave|0.24|0.74|0.71|0.26|0.54|0.33|
+decode_asr_asr_model_valid.loss.ave|24.0|74.0|71.0|25.5|54.0|32.7|
