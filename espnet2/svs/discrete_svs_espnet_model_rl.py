@@ -836,6 +836,8 @@ class ESPnetDiscreteRLSVSModel(ESPnetSVSModel):
             all_length (torch.Tensor): length of logits. (B_pos + B_neg)
             n_pos (torch.Tensor): number of positive. (B_pos,)
         """
+        assert policy_logits.size(1) == ref_logits.size(1), f"policy({policy_logits.shape}) != ref({ref_logits.shape}) on T"
+        assert policy_logits.size(1) == all_idx.size(1), f"policy({policy_logits.shape}) != all_idx({all_idx.shape}) on T"
         # nq = discrete token layer
         # (1) mask for pad
         mask = make_non_pad_mask(all_length).to(all_length.device)

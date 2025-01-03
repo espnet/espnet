@@ -75,13 +75,13 @@ optim_conf:           # keyword arguments for selected optimizer
 ##########################################################
 #num_iters_per_epoch: 500    # number of iterations per epoch
 # max_epoch: 500              # number of epochs
-max_epoch: 300
+max_epoch: 20
 grad_clip: 1.0              # gradient clipping norm
 grad_noise: false           # whether to use gradient noise injection
-accum_grad: 1               # gradient accumulation
+accum_grad: 100               # gradient accumulation
 
 batch_type: sorted
-batch_size: 2
+batch_size: 64
 
 sort_in_batch: descending   # how to sort data in making batch
 sort_batch: descending      # how to sort created batches

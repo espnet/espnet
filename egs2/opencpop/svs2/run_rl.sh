@@ -29,10 +29,10 @@ preset_layer=none
 preset_token=none
 
 # set
-train_set=debug_train
+train_set=tr_no_dev
 valid_set=dev
+test_sets="dev test"
 select_sets="${valid_set} ${train_set}"
-# test_sets="test"
 
 # config
 train_config=conf/tuning/train_naive_rnn_dp.yaml
@@ -43,27 +43,30 @@ g2p=none
 cleaner=none
 pitch_extract=dio
 
+# infer
+gpu_inference=true
+
 # rl related
-prep_rl_data=true
-sample_data=true
+prep_rl_data=false
+sample_data=false
 samples_num=10
 rl_data="dump/rl"
 select_metrics="spk_similarity"
-use_refsvs=true
+use_refsvs=false
 
 pretrain_checkpoint="exp/svs_train_toksing_raw_phn_none_zh/valid.loss.best.pth"
 
 versa_path="/data7/tyx/versa"
 
-stage=2
+stage=1
 stop_stage=2
-
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "Stage 1: Prepare dataset for training"
     
-    sub_stage=4
+    sub_stage=1
     sub_stop_stage=4
+    train_config=config/tuning/train_toksing.yaml
 
     if [ ${sub_stage} -le 1 ] && [ ${sub_stop_stage} -ge 1 ]; then
         log "substage 1.1: get sample idx"
@@ -90,6 +93,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
             --preset_token ${preset_token} \
             --train_config "${train_config}" \
             --inference_config "${inference_config}" \
+            --gpu_inference ${gpu_inference} \
             --train_set "${train_set}" \
             --valid_set "${valid_set}" \
             --test_sets "${select_sets}" \
@@ -134,6 +138,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
             --preset_token ${preset_token} \
             --train_config "${train_config}" \
             --inference_config "${inference_config}" \
+            --gpu_inference ${gpu_inference} \
             --train_set "${train_set}" \
             --valid_set "${valid_set}" \
             --test_sets "${select_sets}" \
@@ -248,8 +253,10 @@ fi
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "Stage 2: train model with RL"
     
+    prep_rl_data=false
     train_rl=true
     use_refsvs=true
+    train_config=config/tuning/train_dpo.yaml
     if ${use_refsvs}; then
         rl_train_args+=" --init_param ${pretrain_checkpoint}:svs:svs ${pretrain_checkpoint}:svs:ref_svs "
     else
@@ -277,7 +284,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             --inference_config "${inference_config}" \
             --train_set "${train_set}" \
             --valid_set "${valid_set}" \
-            --test_sets "${select_sets}" \
+            --test_sets "${test_sets}" \
             --score_feats_extract "${score_feats_extract}" \
             --srctexts "data/${train_set}/text" \
             --RVQ_layers "${RVQ_layers}" \

@@ -288,7 +288,7 @@ class SingingGenerate:
                     input_feat = output_dict["feat_gen_denorm"]
 
                 if kwargs.get("samples", None) is not None:
-                    input_feat = kwargs["samples"]
+                    input_feat = kwargs["samples"].to(self.device)
 
                 logging.info(f"type: {self.mix_type}")
                 logging.info(f"layer: {self.discrete_token_layers}")
@@ -588,6 +588,8 @@ def inference(
             # RL data prep substage 1: get sample idx
             if output_dict.get("logits") is not None and sample_data:
                 logits = output_dict["logits"][0]
+                f0 = output_dict["pitch"]
+                assert f0.size(0) * discrete_token_layers == logits.size(0), f"Mismatch between logits({logits.shape}) and f0({f0.shape}) in {idx}."
                 token_prob = torch.softmax(logits, dim=-1)
                 # [T, V]
                 token_sampled = torch.multinomial(token_prob, samples_num, replacement=True)

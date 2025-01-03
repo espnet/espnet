@@ -699,6 +699,7 @@ class TokSing(AbsSVS):
         discrete_token_lengths_frame: torch.Tensor = None,
         flag_IsValid: bool = False,
         flag_RL: bool = False,
+        **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Calculate forward propagation.
 

@@ -43,6 +43,9 @@ g2p=none
 cleaner=none
 pitch_extract=dio
 
+# infer
+gpu_inference=true
+
 ./svs2.sh \
     --lang zh \
     --stage 1 \
@@ -63,6 +66,7 @@ pitch_extract=dio
     --preset_token ${preset_token} \
     --train_config "${train_config}" \
     --inference_config "${inference_config}" \
+    --gpu_inference "${gpu_inference}" \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \

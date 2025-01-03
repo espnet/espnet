@@ -1220,7 +1220,7 @@ if ! "${skip_eval}"; then
                     _ex_opts+="--samples_num ${samples_num} "
                 else
                     # RL data prep substaeg 2
-                    _ex_opts+="--data_path_and_name_and_type ${_dir}/idx_tmp/samples_idx.scp,samples,npy "
+                    _ex_opts+="--data_path_and_name_and_type ${_dir}/samples_tmp/samples_idx.scp,samples,npy "
                 fi
             fi
 
@@ -1258,6 +1258,7 @@ if ! "${skip_eval}"; then
             # 4. Concatenates the output files from each jobs
             if "${prep_rl_data}"; then
                 if "${sample_data}"; then
+                    # rl data preparation substage 1 (generate samples_tmp/samples_*.scp)
                     mkdir -p "${_dir}"/samples_tmp
                     for i in $(seq "${_nj}"); do
                         cat "${_logdir}/output.${i}/samples_tmp/samples_idx.scp"
@@ -1266,19 +1267,22 @@ if ! "${skip_eval}"; then
                         cat "${_logdir}/output.${i}/samples_tmp/samples_shape"
                     done | LC_ALL=C sort -k1 > "${_dir}/samples_tmp/samples_shape"
                 else
+                    # rl data preparation substage 2 (generate samples)
                     _tgt_path="${rl_dir}/${dset}/samples"
                     mkdir -p ${_tgt_path}
                     for i in $(seq "${_nj}"); do
                         while read -r key src_path; do
                             echo "${key} $(pwd)/${src_path}"
-                        done < "${_logdir}/output.${i}/idx/samples_idx.scp"
+                        done < "${_logdir}/output.${i}/samples_tmp/samples_idx.scp"
                     done | LC_ALL=C sort -k1 > "${_tgt_path}/samples_idx.scp"
                     mkdir -p "${_tgt_path}"/wavs
                     for i in $(seq "${_nj}"); do
                         while read -r key src_wav; do
                             filename=$(basename "${src_wav}")
                             tgt_wav="$(pwd)/${_tgt_path}/wavs/${filename}"
-                            mv "${src_wav}" "${tgt_wav}"
+                            if [ -e ${src_wav} ]; then
+                                mv "${src_wav}" "${tgt_wav}"
+                            fi
                             echo "${key} ${tgt_wav}"
                         done < "${_logdir}/output.${i}/wav/wav.scp"
                     done | LC_ALL=C sort -k1 > "${_tgt_path}/wav.scp"
