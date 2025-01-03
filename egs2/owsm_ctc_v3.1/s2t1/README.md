@@ -122,7 +122,7 @@ text = s2t.decode_long_batched_buffered(
 print(text)
 ```
 
-### Example for CTC forced alignment using `ctc-segmentation`
+### Example of CTC forced alignment using `ctc-segmentation`
 
 CTC segmentation can be efficiently applied to audio of an arbitrary length.
 
@@ -132,17 +132,17 @@ from espnet2.bin.s2t_ctc_align import CTCSegmentation
 from espnet_model_zoo.downloader import ModelDownloader
 
 
-## Please download model first
+# Download model first
 d = ModelDownloader()
-downloaded = d.download_and_unpack("espnet/owsm_ctc_v3.1_1B")
+downloaded = d.download_and_unpack("espnet/owsm_ctc_v3.2_ft_1B")   # "espnet/owsm_ctc_v3.1_1B"
 
 aligner = CTCSegmentation(
     **downloaded,
     fs=16000,
     ngpu=1,
-    batch_size=16,    # batched parallel decoding; reduce it if your GPU memory is smaller
+    batch_size=32,    # batched parallel decoding; reduce it if your GPU memory is smaller
     kaldi_style_text=True,
-    time_stamps="fixed",
+    time_stamps="auto",     # "auto" can be more accurate than "fixed" when converting token index to timestamp
     lang_sym="<eng>",
     task_sym="<asr>",
     context_len_in_secs=2,  # left and right context in buffered decoding

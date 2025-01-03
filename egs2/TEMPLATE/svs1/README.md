@@ -367,7 +367,7 @@ Second, check "train_config" (default `conf/train.yaml`, you can also use `--tra
 ```
 
 ### VISinger 2 Plus training
-VISinger 2 has been accepted at SLT 2024. To use the pretrained model, you can download it from [here](https://huggingface.co/yifengyu/svs_train_visinger2plus_mert_raw_phn_None_zh_200epoch).
+VISinger 2 Plus has been accepted at SLT 2024. To use the pretrained model, you can download it from [here](https://huggingface.co/yifengyu/svs_train_visinger2plus_mert_raw_phn_None_zh_200epoch). The model was trained using the **OpenCpop** dataset. Alternatively, you can choose the multi-singer **ACE-OpenCpop** dataset by downloading the model from [here](https://huggingface.co/yifengyu/svs_train_visinger2plus_mert_raw_phn_None_zh_200epoch_acesinger).
 
 To train the model, you can select multiple configurations to train on either the ACESinger or Opencpop dataset. The default setting in `train_visinger2_plus_hubert.yaml` uses `hubert_large_ll60k` as the pretrained SSL model. To switch the SSL model, you can modify the configuration by uncommenting the lines for MERT or Chinese Hubert.
 ```sh
