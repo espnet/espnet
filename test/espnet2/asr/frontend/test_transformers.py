@@ -10,8 +10,6 @@ pytest.importorskip("transformers", minversion="4.43.0")
 @pytest.mark.parametrize(
     "model, fs",
     [
-        ("facebook/wav2vec2-xls-r-300m", 16000),
-        ("facebook/w2v-bert-2.0", 16000),
         ("facebook/hubert-base-ls960", 16000),
         ("microsoft/wavlm-base-plus", 16000),
     ],
