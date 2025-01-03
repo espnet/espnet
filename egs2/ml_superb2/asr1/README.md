@@ -21,11 +21,11 @@ uttid02 [langid2] this is a sample text2
 The script will look for the ref/hyp under this structure:
 ```
     root/
-      - data/dev # kaldi style folder 
+      - data/dev # kaldi style folder
             - text # ref file for standard dev set
-      - data/dev_dialect # kaldi style folder 
+      - data/dev_dialect # kaldi style folder
             - text # ref file for dialect dev set
-            
+
       - exp/asr_train_asr_raw_char # your model folder
             - decode_asr_asr_model_valid.loss.ave # inference results
                 - org/dev

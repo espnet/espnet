@@ -7,6 +7,7 @@ import unicodedata
 
 from jiwer import cer
 
+
 def remove_punctuation(sentence):
     new_sentence = ""
     for char in sentence:
@@ -71,7 +72,9 @@ def score(references, lids, hyps):
                     remove_spaces = False
 
                 if len(ref) == 0 or len(lid) == 0 or len(hyp) == 0:
-                    raise Exception(f"You have an empty utterance somewhere! {ref, lid, hyp}")
+                    raise Exception(
+                        f"You have an empty utterance somewhere! {ref, lid, hyp}"
+                    )
 
                 # hyp/ref format is [iso] this is an utt
                 lang_cer = normalize_and_calculate_cer(
@@ -121,7 +124,9 @@ def score_dialect(references, lids, hyps):
                     remove_spaces = False
 
                 if len(ref) == 0 or len(lid) == 0 or len(hyp) == 0:
-                    raise Exception(f"You have an empty utterance somewhere! {ref, lid, hyp}")
+                    raise Exception(
+                        f"You have an empty utterance somewhere! {ref, lid, hyp}"
+                    )
 
                 # hyp/ref format is [iso] this is an utt
                 lang_cer = normalize_and_calculate_cer(
@@ -146,25 +151,26 @@ def score_dialect(references, lids, hyps):
 
     return cer_res, lid
 
-'''
+
+"""
     We assume that the reference and hypothesis are stored in the kaldi style:
         uttid00 [langid0] this is a sample text
         uttid01 [langid1] this is a sample text1
         uttid02 [langid2] this is a sample text2
     The script will look for the ref/hyp under this structure:
     root/
-      - data/dev # kaldi style folder 
+      - data/dev # kaldi style folder
             - text # ref file for standard dev set
-      - data/dev_dialect # kaldi style folder 
+      - data/dev_dialect # kaldi style folder
             - text # ref file for dialect dev set
-            
+
       - exp/asr_train_asr_raw_char # your model folder
             - decode_asr_asr_model_valid.loss.ave # inference results
                 - org/dev
                     - text # hyp file for standard dev set
                 - dev_dialect
                     - text # hyp file for dialect dev set
-'''
+"""
 
 if __name__ == "__main__":
 
@@ -197,7 +203,9 @@ if __name__ == "__main__":
                 ).readlines()
                 hypothesis_text = [line.split(" ", 1)[1] for line in hypothesis_text]
 
-                assert len(hypothesis_text) == len(reference_text) == len(reference_lids)
+                assert (
+                    len(hypothesis_text) == len(reference_text) == len(reference_lids)
+                )
                 lid, cer_res, worst, std = score(
                     reference_text, reference_lids, hypothesis_text
                 )
@@ -215,7 +223,9 @@ if __name__ == "__main__":
                     == len(dialect_reference_lids)
                 )
                 dialect_cer, dialect_lid = score_dialect(
-                    dialect_reference_text, dialect_reference_lids, dialect_hypothesis_text
+                    dialect_reference_text,
+                    dialect_reference_lids,
+                    dialect_hypothesis_text,
                 )
 
                 out_f.write(
