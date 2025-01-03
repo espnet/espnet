@@ -94,7 +94,7 @@ We provide training examples for both EEND and EEND-EDA, with their correspondin
   - The training process spans 500 epochs.
   - The training was conducted on a V100 GPU with 32GB of memory and took approximately one day to complete.
   - Detailed configurations are defined in `conf/train_diar.yaml`.
-  - The inference stage configuration is located in `conf/decode_diar.yaml`. When scoring the inference results, apply the same subsampling factor of 10 used during the training stage to scale the timestamps in the estimated RTTM file, aligning them with the original audio timeline. The inference stage is performed on the CPU using the entire test audio without segmentation or hopping. 
+  - The inference stage configuration is located in `conf/decode_diar.yaml`. When scoring the inference results, apply the same subsampling factor of 10 used during the training stage to scale the timestamps in the estimated RTTM file, aligning them with the original audio timeline. The inference stage is performed on the CPU using the entire test audio without segmentation or hopping.
 - **EEND-EDA**:
   - Use the same feature extraction, frame concatenation, subsampling strategy, and configuration as used in EEND's experiment.
   - Use 4 layer stacked Transformer encoder, each outputs 256-dimensional frame-wise embeddings.
