@@ -7,11 +7,6 @@ import unicodedata
 
 from jiwer import cer
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--exp_dir")
-args = parser.parse_args()
-
-
 def remove_punctuation(sentence):
     new_sentence = ""
     for char in sentence:
@@ -59,6 +54,7 @@ def calculate_acc(hyps, refs):
 
 
 def score(references, lids, hyps):
+    assert len(references) == len(lids) == len(hyps)
     all_cers = []
     all_accs = []
     remove_space_langs = ["[cmn]", "[jpn]", "[tha]", "[yue]"]
@@ -73,6 +69,9 @@ def score(references, lids, hyps):
                     remove_spaces = True
                 else:
                     remove_spaces = False
+
+                if len(ref) == 0 or len(lid) == 0 or len(hyp) == 0:
+                    raise Exception(f"You have an empty utterance somewhere! {ref, lid, hyp}")
 
                 # hyp/ref format is [iso] this is an utt
                 lang_cer = normalize_and_calculate_cer(
@@ -105,6 +104,7 @@ def score(references, lids, hyps):
 
 
 def score_dialect(references, lids, hyps):
+    assert len(references) == len(lids) == len(hyps)
     all_cers = []
     all_accs = []
     remove_space_langs = ["[cmn]", "[jpn]", "[tha]", "[yue]"]
@@ -119,6 +119,9 @@ def score_dialect(references, lids, hyps):
                     remove_spaces = True
                 else:
                     remove_spaces = False
+
+                if len(ref) == 0 or len(lid) == 0 or len(hyp) == 0:
+                    raise Exception(f"You have an empty utterance somewhere! {ref, lid, hyp}")
 
                 # hyp/ref format is [iso] this is an utt
                 lang_cer = normalize_and_calculate_cer(
@@ -143,55 +146,79 @@ def score_dialect(references, lids, hyps):
 
     return cer_res, lid
 
+'''
+    We assume that the reference and hypothesis are stored in the kaldi style:
+        uttid00 [langid0] this is a sample text
+        uttid01 [langid1] this is a sample text1
+        uttid02 [langid2] this is a sample text2
+    The script will look for the ref/hyp under this structure:
+    root/
+      - data/dev # kaldi style folder 
+            - text # ref file for standard dev set
+      - data/dev_dialect # kaldi style folder 
+            - text # ref file for dialect dev set
+            
+      - exp/asr_train_asr_raw_char # your model folder
+            - decode_asr_asr_model_valid.loss.ave # inference results
+                - org/dev
+                    - text # hyp file for standard dev set
+                - dev_dialect
+                    - text # hyp file for dialect dev set
+'''
 
-reference_text = open("data/dev/text").readlines()
-reference_lids = [line.split()[1] for line in reference_text]
-reference_text = [line.split(" ", 1)[1] for line in reference_text]
+if __name__ == "__main__":
 
-dialect_reference_text = open("data/dev_dialect/text").readlines()
-dialect_reference_lids = [line.split()[1] for line in dialect_reference_text]
-dialect_reference_text = [line.split(" ", 1)[1] for line in dialect_reference_text]
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--exp_dir")
+    args = parser.parse_args()
+    reference_text = open("data/dev/text").readlines()
+    reference_lids = [line.split()[1] for line in reference_text]
+    reference_text = [line.split(" ", 1)[1] for line in reference_text]
 
-dirs = os.listdir(args.exp_dir)
+    dialect_reference_text = open("data/dev_dialect/text").readlines()
+    dialect_reference_lids = [line.split()[1] for line in dialect_reference_text]
+    dialect_reference_text = [line.split(" ", 1)[1] for line in dialect_reference_text]
 
-with open(f"{args.exp_dir}/challenge_results.md", "w") as out_f:
-    out_f.write("# RESULTS\n\n")
-    out_f.write("## args.exp_dir\n\n")
-    out_f.write(
-        "|decode_dir|Standard CER|Standard LID|"
-        + "Worst 15 CER|CER StD|Dialect CER|Dialect LID|\n"
-    )
-    out_f.write("|---|---|---|---|---|---|---|\n")
-    for directory in dirs:
-        if "decode_asr" in directory:
-            print(directory)
-            hypothesis_text = open(
-                f"{args.exp_dir}/{directory}/org/dev/text"
-            ).readlines()
-            hypothesis_text = [line.split(" ", 1)[1] for line in hypothesis_text]
+    dirs = os.listdir(args.exp_dir)
 
-            assert len(hypothesis_text) == len(reference_text) == len(reference_lids)
-            lid, cer_res, worst, std = score(
-                reference_text, reference_lids, hypothesis_text
-            )
+    with open(f"{args.exp_dir}/challenge_results.md", "w") as out_f:
+        out_f.write("# RESULTS\n\n")
+        out_f.write("## args.exp_dir\n\n")
+        out_f.write(
+            "|decode_dir|Standard CER|Standard LID|"
+            + "Worst 15 CER|CER StD|Dialect CER|Dialect LID|\n"
+        )
+        out_f.write("|---|---|---|---|---|---|---|\n")
+        for directory in dirs:
+            if "decode_asr" in directory:
+                print(directory)
+                hypothesis_text = open(
+                    f"{args.exp_dir}/{directory}/org/dev/text"
+                ).readlines()
+                hypothesis_text = [line.split(" ", 1)[1] for line in hypothesis_text]
 
-            dialect_hypothesis_text = open(
-                f"{args.exp_dir}/{directory}/dev_dialect/text"
-            ).readlines()
-            dialect_hypothesis_text = [
-                line.split(" ", 1)[1] for line in dialect_hypothesis_text
-            ]
+                assert len(hypothesis_text) == len(reference_text) == len(reference_lids)
+                lid, cer_res, worst, std = score(
+                    reference_text, reference_lids, hypothesis_text
+                )
 
-            assert (
-                len(dialect_hypothesis_text)
-                == len(dialect_reference_text)
-                == len(dialect_reference_lids)
-            )
-            dialect_cer, dialect_lid = score_dialect(
-                dialect_reference_text, dialect_reference_lids, dialect_hypothesis_text
-            )
+                dialect_hypothesis_text = open(
+                    f"{args.exp_dir}/{directory}/dev_dialect/text"
+                ).readlines()
+                dialect_hypothesis_text = [
+                    line.split(" ", 1)[1] for line in dialect_hypothesis_text
+                ]
 
-            out_f.write(
-                f"{directory}|{cer_res}|{lid}|{worst}"
-                + f"|{std}|{dialect_cer}|{dialect_lid}|\n"
-            )
+                assert (
+                    len(dialect_hypothesis_text)
+                    == len(dialect_reference_text)
+                    == len(dialect_reference_lids)
+                )
+                dialect_cer, dialect_lid = score_dialect(
+                    dialect_reference_text, dialect_reference_lids, dialect_hypothesis_text
+                )
+
+                out_f.write(
+                    f"{directory}|{cer_res}|{lid}|{worst}"
+                    + f"|{std}|{dialect_cer}|{dialect_lid}|\n"
+                )
