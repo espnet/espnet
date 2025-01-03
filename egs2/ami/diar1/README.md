@@ -171,9 +171,11 @@ We provide training examples for both EEND and EEND-EDA, with their correspondin
 
 Qingzheng Wang
 
+Carnegie Mellon University
+
 qingzhew@andrew.cmu.edu
 
-Thanks to **Professor Shinji Watanabe** for his guidance!
+Thanks to Professor **Shinji Watanabe** for his guidance!
 
 ## References
 
