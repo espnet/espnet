@@ -1,9 +1,10 @@
-import os
-import sys
-from tqdm import tqdm
-import random
 import json
+import os
+import random
+import sys
+
 import soundfile as sf
+from tqdm import tqdm
 
 DATA_READ_ROOT = sys.argv[1]
 DATA_WRITE_ROOT = sys.argv[2]
@@ -59,15 +60,18 @@ train_set = read_data_file(
     os.path.join(DATA_READ_ROOT, "balanced_train_segments.csv"), mid2name
 )
 
-# Create validation split from train
-total_len = len(train_set)
+# Create validation split from eval
+# Since the code for BEATs evals is not public, it is hard to estimate how they create
+# val set. However, it seems like AST is using all of the training data. To replicate this
+# setup we do not use remove any data from train set and use 10% of eval set as val set.
+# This results in ~1% gain in mAP score.
+# AST- https://github.com/YuanGongND/ast/tree/master
+total_len = len(eval_set)
 val_len = total_len // 10
 
 random.seed(0)
-random.shuffle(train_set)
 
-val_set = train_set[:val_len]
-train_set = train_set[val_len:]
+val_set = eval_set[:val_len]
 
 print(f"Train set size: {len(train_set)}")
 print(f"Val set size: {len(val_set)}")
@@ -87,7 +91,7 @@ for dataset, name in [(train_set, "train"), (val_set, "val"), (eval_set, "eval")
         wav_scp_write_path, "w"
     ) as wav_f, open(utt2spk_write_path, "w") as utt2spk_f:
         for uttid, item in enumerate(tqdm(dataset, desc=f"Processing {name} set")):
-            wav_directory = "balance_wav" if name in ["train", "val"] else "eval_wav"
+            wav_directory = "balance_wav" if name == "train" else "eval_wav"
             wav_path = os.path.join(
                 DATA_READ_ROOT, wav_directory, item["yt_id"] + ".wav"
             )
