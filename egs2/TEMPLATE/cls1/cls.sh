@@ -48,6 +48,10 @@ fs=16k               # Sampling rate.
 speech_fold_length=160000 # The length of the speech input to the cls model.
 label_fold_length=1   # fold_length for labels during CLS training. Set to 1 for multi-class classification.
 
+# data preprpocessing related
+min_wav_duration=0.1 # Minimum duration in seconds to use in training
+max_wav_duration=30  # Maximum duration in seconds to use in training
+
 # cls model related
 cls_tag=    # Suffix to the result dir for cls model training.
 cls_config= # Config for cls model training.
@@ -93,6 +97,8 @@ Options:
     --fs               # Sampling rate (default="${fs}").
     --speech_fold_length # The length of the speech input to the cls model (default="${speech_fold_length}").
     --label_fold_length  # fold_length for labels during CLS training (default="${label_fold_length}").
+    --min_wav_duration   # Minimum duration in seconds to use in training (default="${min_wav_duration}").
+    --max_wav_duration   # Maximum duration in seconds to use in training (default="${max_wav_duration}").
     # cls model related
     --cls_tag        # Suffix to the result dir for classification model training (default="${cls_tag}").
     --cls_config     # Config for classification model training (default="${cls_config}").
@@ -190,8 +196,49 @@ if ! "${skip_data_prep}"; then
         done
     fi
 
+
     if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-        log "Stage 3: Generate token_list covering all classes from ${text_classes}"
+        log "Stage 3: Modify long/short data"
+
+        # NOTE(kamo): Not applying to test_sets to keep original data
+        for dset in "${train_set}" "${valid_set}"; do
+            # Remove short utterances
+            _feats_type="$(<${data_feats}/${dset}/feats_type)" #must be raw
+            if [ "${_feats_type}" != raw ]; then
+                log "feats_type is not raw: ${_feats_type}"
+                exit 1
+            fi
+
+            _fs=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
+            _min_length=$(python3 -c "print(int(${min_wav_duration} * ${_fs}))")
+            _max_length=$(python3 -c "print(int(${max_wav_duration} * ${_fs}))")
+            # keep copy of original utt2num_samples and wav.scp
+            cp "${data_feats}/${dset}/utt2num_samples" "${data_feats}/${dset}/utt2num_samples.org"
+            cp "${data_feats}/${dset}/wav.scp" "${data_feats}/${dset}/wav.org.scp"
+
+            # utt2num_samples is created by format_wav_scp.sh
+            <"${data_feats}/${dset}/utt2num_samples.org" \
+                awk -v min_length="${_min_length}" -v max_length="${_max_length}" \
+                    '{ if ($2 > min_length && $2 < max_length ) print $0; }' \
+                    >"${data_feats}/${dset}/utt2num_samples"
+            <"${data_feats}/${dset}/wav.org.scp" \
+                utils/filter_scp.pl "${data_feats}/${dset}/utt2num_samples"  \
+                >"${data_feats}/${dset}/wav.scp"
+            # Remove empty text
+            # shellcheck disable=SC2068
+            <"${data_feats}/${dset}/text" \
+                awk ' { if( NF != 1 ) print $0; } ' >"${data_feats}/${dset}/text"
+            # fix_data_dir.sh leaves only utts which exist in all files
+            utils/fix_data_dir.sh "${data_feats}/${dset}"
+            # Report the change in the number of utterances
+            _org_num_utts=$(wc -l "${data_feats}/${dset}/wav.org.scp" | awk '{print $1}')
+            _new_num_utts=$(wc -l "${data_feats}/${dset}/wav.scp" | awk '{print $1}')
+            log "Filtered ${dset}: ${_new_num_utts} remain out of ${_org_num_utts}!"
+        done
+    fi
+
+    if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
+        log "Stage 4: Generate token_list covering all classes from ${text_classes}"
         ${python} -m espnet2.bin.tokenize_text --token_type "word" \
             --input "${text_classes}" --output "${token_list}" \
             --field 2- --write_vocabulary true --add_symbol "<unk>:-1"
@@ -204,10 +251,10 @@ fi
 
 
 if ! "${skip_train}"; then
-    if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
+    if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         _cls_train_dir="${data_feats}/${train_set}"
         _cls_valid_dir="${data_feats}/${valid_set}"
-        log "Stage 4: cls collect stats: train_set=${_cls_train_dir}, valid_set=${_cls_valid_dir}"
+        log "Stage 5: cls collect stats: train_set=${_cls_train_dir}, valid_set=${_cls_valid_dir}"
 
         _opts=
         if [ -n "${cls_config}" ]; then
@@ -285,10 +332,10 @@ if ! "${skip_train}"; then
 
     fi
 
-    if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
+    if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
         _cls_train_dir="${data_feats}/${train_set}"
         _cls_valid_dir="${data_feats}/${valid_set}"
-        log "Stage 5: cls Training: train_set=${_cls_train_dir}, valid_set=${_cls_valid_dir}"
+        log "Stage 6: cls Training: train_set=${_cls_train_dir}, valid_set=${_cls_valid_dir}"
 
         _opts=
         if [ -n "${cls_config}" ]; then
@@ -356,8 +403,8 @@ else
 fi
 
 if ! "${skip_eval}"; then
-    if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
-        log "Stage 6: Predict with models: training_dir=${cls_exp}"
+    if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
+        log "Stage 7: Predict with models: training_dir=${cls_exp}"
 
         if ${gpu_inference}; then
             _cmd=${cuda_cmd}
@@ -413,8 +460,8 @@ if ! "${skip_eval}"; then
         done
     fi
 
-    if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
-        log "Stage 7: Scoring"
+    if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
+        log "Stage 8: Scoring"
         _cmd=${decode_cmd}
 
         for dset in "${valid_set}" ${test_sets}; do
