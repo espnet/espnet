@@ -1,8 +1,9 @@
-import sys
-import pandas as pd
-from plumbum import local, FG
-from pathlib import Path
 import random
+import sys
+from pathlib import Path
+
+import pandas as pd
+from plumbum import FG, local
 
 sox = local["sox"]
 local["mkdir"]["-p", "data/cbi/wav"]()

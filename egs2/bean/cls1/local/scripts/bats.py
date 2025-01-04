@@ -1,6 +1,6 @@
 import pandas as pd
+from plumbum import FG, local
 from sklearn.model_selection import train_test_split
-from plumbum import local, FG
 
 local["mkdir"]["-p", "data/egyptian_fruit_bats"]()
 (
