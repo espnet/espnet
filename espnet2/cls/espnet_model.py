@@ -119,7 +119,7 @@ class ESPnetClassificationModel(AbsESPnetModel):
                     "Mixup is not recommended for variable length input. "
                     "It may not work as expected."
                 )
-            speech, onehot_ = mixup_augment(speech, onehot_, mixup_prob=0.8)
+            speech, onehot_ = mixup_augment(speech, onehot_, mixup_prob=1.0)
 
         # 1. Encoder
         encoder_out, encoder_out_lens = self.encode(speech, speech_lengths)
@@ -321,7 +321,7 @@ def mixup_augment(speech: torch.Tensor, onehot: torch.Tensor, mixup_prob: float)
     assert onehot.size(0) == batch_size
     apply_augmentation = torch.rand((batch_size), device=speech.device) < mixup_prob
     mix_lambda = (
-        torch.distributions.Beta(10, 25)
+        torch.distributions.Beta(0.8, 0.8)
         .sample(sample_shape=(batch_size, 1))
         .to(speech.device)
     )
