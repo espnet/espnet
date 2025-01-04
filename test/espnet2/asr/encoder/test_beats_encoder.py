@@ -11,7 +11,7 @@ def test_override_beats_config():
     if not is_torch_1_12_1_plus:
         return
 
-    beats_config = BeatsConfig(cfg={"encoder_layers": 2})
+    beats_config = {"encoder_layers": 2}
     beats_model = BeatsEncoder(
         input_size=1,
         beats_config=beats_config,
@@ -37,7 +37,7 @@ def test_forward_pass(
     if not is_torch_1_12_1_plus:
         return
 
-    beats_config = BeatsConfig(cfg={"encoder_layers": 2})  # Smaller model
+    beats_config = {"encoder_layers": 2}  # Smaller model
     beats_model = BeatsEncoder(
         input_size=1,
         beats_config=beats_config,
@@ -46,7 +46,7 @@ def test_forward_pass(
         add_positional_information=add_positional_information,
         max_positions=max_positions,
     )
-    x = torch.randn((2, 32_000, 1))  # B,T,1
+    x = torch.randn((2, 32_000))  # B,T
     x_lens = torch.LongTensor([16_000, 24_000])
     output_rep, output_len, _ = beats_model(x, x_lens)
 
@@ -85,7 +85,7 @@ def test_backward_pass(
     if not is_torch_1_12_1_plus:
         return
 
-    beats_config = BeatsConfig(cfg={"encoder_layers": 2})  # Smaller model
+    beats_config = {"encoder_layers": 2}  # Smaller model
     beats_model = BeatsEncoder(
         input_size=1,
         beats_config=beats_config,
@@ -94,7 +94,7 @@ def test_backward_pass(
         add_positional_information=add_positional_information,
         max_positions=max_positions,
     )
-    x = torch.randn((2, 32_000, 1), requires_grad=True)  # B,T,1
+    x = torch.randn((2, 32_000), requires_grad=True)  # B,T
     x_lens = torch.LongTensor([16_000, 24_000])
     output_rep, output_len, _ = beats_model(x, x_lens)
 
