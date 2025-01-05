@@ -4,6 +4,12 @@ from plumbum import local, FG
 from pathlib import Path
 import random
 
+DATA_READ_ROOT = sys.argv[1]
+DATA_WRITE_ROOT = sys.argv[2]
+
+random.seed(42)
+df = pd.read_csv(os.path.join(DATA_READ_ROOT, "train.csv"))
+
 sox = local["sox"]
 local["mkdir"]["-p", "data/cbi/wav"]()
 (
@@ -14,8 +20,6 @@ local["mkdir"]["-p", "data/cbi/wav"]()
 )
 local["unzip"]["data/cbi/birdsong-recognition.zip", "-d", "data/cbi/"] & FG
 
-random.seed(42)
-df = pd.read_csv("data/cbi/train.csv")
 all_recordist = df.recordist.unique()
 
 random.shuffle(all_recordist)

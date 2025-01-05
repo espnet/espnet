@@ -3,14 +3,14 @@ import sys
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
-data_read_location = sys.argv[1]
-data_write_location = sys.argv[2]
+DATA_READ_ROOT = sys.argv[1]
+DATA_WRITE_ROOT = sys.argv[2]
 
-df = pd.read_csv(os.path.join(data_read_location, "annotations.csv"))
+df = pd.read_csv(os.path.join(DATA_READ_ROOT, "annotations.csv"))
 df = df.apply(
     lambda r: pd.Series(
         {
-            "path": os.path.join(data_read_location, r["path"]),
+            "path": os.path.join(DATA_READ_ROOT, r["path"]),
             "label": r["species"].replace(" ", "_"),
         }
     ),
@@ -48,9 +48,9 @@ split2df = {
     "watkins.test": df_test,
 }
 for split, df in split2df.items():
-    text_path = os.path.join(data_write_location, split, "text")
-    wav_path = os.path.join(data_write_location, split, "wav.scp")
-    utt2spk_path = os.path.join(data_write_location, split, "utt2spk")
+    text_path = os.path.join(DATA_WRITE_ROOT, split, "text")
+    wav_path = os.path.join(DATA_WRITE_ROOT, split, "wav.scp")
+    utt2spk_path = os.path.join(DATA_WRITE_ROOT, split, "utt2spk")
     os.makedirs(os.path.dirname(text_path), exist_ok=True)
     with open(text_path, "w") as text_f, open(wav_path, "w") as wav_f, open(
         utt2spk_path, "w"

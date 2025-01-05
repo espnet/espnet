@@ -19,13 +19,15 @@ log "$0 $*"
 . ./cmd.sh
 
 DATA_PREP_ROOT=${1:-"."}
-DATASETS=${2:-"watkins"} # bats cbi humbugdb dogs"}
+DATASETS=${2:-""} #watkins bats cbi humbugdb dogs"}
+echo ${DATASETS}
 
 if [ -z "${BEAN}" ]; then
     log "Fill the value of 'BEAN' in db.sh"
     exit 1
 fi
 
+# Watkins
 if [[ "${DATASETS}" == *"watkins"* ]]; then
     log "Processing watkins"
     WATKINS_LOCATION="${DATA_PREP_ROOT}/downloads/watkins"
@@ -46,6 +48,28 @@ if [[ "${DATASETS}" == *"watkins"* ]]; then
     python local/scripts/watkins.py ${WATKINS_LOCATION} ${DATA_PREP_ROOT}
 fi
 
+
+# Bats
+if [[ "${DATASETS}" == *"bats"* ]]; then
+    log "Processing bats"
+    BATS_LOCATION="${DATA_PREP_ROOT}/downloads/bats"
+    if [ "${BEAN}" == "downloads" ]; then
+        if [ -f "${DATA_PREP_ROOT}/downloads/bats/download.done" ]; then
+            log "Skip downloading because download.done exists"
+        else
+            log "Downloading"
+            wget https://storage.googleapis.com/ml-bioacoustics-datasets/egyptian_fruit_bats.zip -P ${DATA_PREP_ROOT}/downloads
+            unzip ${DATA_PREP_ROOT}/downloads/egyptian_fruit_bats.zip -d ${BATS_LOCATION}
+            rm ${DATA_PREP_ROOT}/downloads/egyptian_fruit_bats.zip
+            touch "${BATS_LOCATION}/download.done"
+        fi
+    else
+        log "Using data from the provided location: ${BEANS}/bats"
+        BATS_LOCATION="${BEANS}/bats"
+    fi
+    python local/scripts/bats.py ${BATS_LOCATION} ${DATA_PREP_ROOT}
+fi
+
 for dataset in ${DATASETS}; do
     for x in ${dataset}.dev ${dataset}.train ${dataset}.test; do
         for f in text wav.scp utt2spk; do
@@ -60,29 +84,9 @@ for dataset in ${DATASETS}; do
     done
 done
 
+
 log "Successfully finished. [elapsed=${SECONDS}s]"
 
-
-
-
-# #bats
-# local["mkdir"]["-p", "data/egyptian_fruit_bats"]()
-# (
-#     local["wget"][
-#         "https://storage.googleapis.com/ml-bioacoustics-datasets/egyptian_fruit_bats.zip",
-#         "-P",
-#         "data/egyptian_fruit_bats",
-#     ]
-#     & FG
-# )
-# (
-#     local["unzip"][
-#         "data/egyptian_fruit_bats/egyptian_fruit_bats.zip",
-#         "-d",
-#         "data/egyptian_fruit_bats/",
-#     ]
-#     & FG
-# )
 
 # #cbi
 # local["mkdir"]["-p", "data/cbi/wav"]()
