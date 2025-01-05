@@ -19,15 +19,14 @@ log "$0 $*"
 . ./cmd.sh
 
 DATA_PREP_ROOT=${1:-"."}
-DATASETS=${2:-""} #watkins bats cbi humbugdb dogs"}
-echo ${DATASETS}
+DATASETS=${2:-"watkins bats cbi humbugdb dogs"}
 
 if [ -z "${BEAN}" ]; then
     log "Fill the value of 'BEAN' in db.sh"
     exit 1
 fi
 
-# Watkins
+# Watkins-Whales
 if [[ "${DATASETS}" == *"watkins"* ]]; then
     log "Processing watkins"
     WATKINS_LOCATION="${DATA_PREP_ROOT}/downloads/watkins"
@@ -42,8 +41,8 @@ if [[ "${DATASETS}" == *"watkins"* ]]; then
             touch "${WATKINS_LOCATION}/download.done"
         fi
     else
-        log "Using data from the provided location: ${BEANS}/watkins"
-        WATKINS_LOCATION="${BEANS}/watkins"
+        log "Using data from the provided location: ${BEAN}/watkins"
+        WATKINS_LOCATION="${BEAN}/watkins"
     fi
     python local/scripts/watkins.py ${WATKINS_LOCATION} ${DATA_PREP_ROOT}
 fi
@@ -64,8 +63,8 @@ if [[ "${DATASETS}" == *"bats"* ]]; then
             touch "${BATS_LOCATION}/download.done"
         fi
     else
-        log "Using data from the provided location: ${BEANS}/bats"
-        BATS_LOCATION="${BEANS}/bats"
+        log "Using data from the provided location: ${BEAN}/bats"
+        BATS_LOCATION="${BEAN}/bats"
     fi
     python local/scripts/bats.py ${BATS_LOCATION} ${DATA_PREP_ROOT}
 fi
@@ -87,8 +86,8 @@ if [[ "${DATASETS}" == *"cbi"* ]]; then
             touch "${CBI_LOCATION}/download.done"
         fi
     else
-        log "Using data from the provided location: ${BEANS}/cbi"
-        CBI_LOCATION="${BEANS}/cbi"
+        log "Using data from the provided location: ${BEAN}/cbi"
+        CBI_LOCATION="${BEAN}/cbi"
     fi
     python local/scripts/cbi.py ${CBI_LOCATION} ${DATA_PREP_ROOT}
 fi
@@ -112,8 +111,8 @@ if [[ "${DATASETS}" == *"humbugdb"* ]]; then
             touch "${HUMBUGDB_LOCATION}/download.done"
         fi
     else
-        log "Using data from the provided location: ${BEANS}/humbugdb"
-        HUMBUGDB_LOCATION="${BEANS}/humbugdb"
+        log "Using data from the provided location: ${BEAN}/humbugdb"
+        HUMBUGDB_LOCATION="${BEAN}/humbugdb"
     fi
     python local/scripts/humbugdb.py ${HUMBUGDB_LOCATION} ${DATA_PREP_ROOT}
 fi
@@ -131,11 +130,23 @@ if [[ "${DATASETS}" == *"dogs"* ]]; then
             wget https://storage.googleapis.com/ml-bioacoustics-datasets/dog_barks.zip -P ${DATA_PREP_ROOT}/downloads
             unzip ${DATA_PREP_ROOT}/downloads/dog_barks.zip -d ${DOGS_LOCATION}
             rm ${DATA_PREP_ROOT}/downloads/dog_barks.zip
+            # Change to mono channel
+            audio_dir="${DOGS_LOCATION}/audio"
+            mkdir -p "${audio_dir}.tmp"
+            mv "${audio_dir}"/* "${audio_dir}.tmp/"
+            for file in "$audio_dir".tmp/*; do
+                filename=$(basename "$file")
+                set +e # don't care about few corrupt files
+                sox "$file" -c 1 "${audio_dir}/${filename}"
+                set -e
+            done
+            rm -r "${audio_dir}.tmp"
+            
             touch "${DOGS_LOCATION}/download.done"
         fi
     else
-        log "Using data from the provided location: ${BEANS}/dogs"
-        DOGS_LOCATION="${BEANS}/dogs"
+        log "Using data from the provided location: ${BEAN}/dogs"
+        DOGS_LOCATION="${BEAN}/dogs"
     fi
     python local/scripts/dogs.py ${DOGS_LOCATION} ${DATA_PREP_ROOT}
 fi

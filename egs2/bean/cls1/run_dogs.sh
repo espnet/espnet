@@ -12,7 +12,7 @@ cls_config=conf/beats_dogs.yaml
 
 timestamp=$(date "+%Y%m%d.%H%M%S")
 mynametag=dogs.${timestamp}
-storage_dir=/compute/babel-11-13/sbharad2/beats_run/bean
+storage_dir=/compute/babel-11-13/sbharad2/beats_run/bean.dogs
 mkdir -p "${storage_dir}"
 
 ./cls.sh \
@@ -23,7 +23,7 @@ mkdir -p "${storage_dir}"
     --expdir "${storage_dir}/exp" \
     --feats_normalize uttmvn \
     --stage 1 \
-    --stop_stage 8 \
+    --stop_stage 10 \
     --ngpu 1 \
     --gpu_inference true \
     --nj 10 \
