@@ -215,7 +215,8 @@ def test_metrics_multilabel():
     target = torch.randint(0, 2, (batch_size, n_classes))
 
     # The additional tensors ensure that all class values are present in the targets.
-    # This is necessary to avoid a ZeroDivisionError in the official implementation of AST.
+    # This is necessary to avoid a ZeroDivisionError
+    # in the official implementation of AST.
     preds_additional = torch.tensor(
         [
             [0.2, 0.3, 0.5, 0.1, 0.3, 0.5, 0.2],

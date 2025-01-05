@@ -41,6 +41,7 @@ class Classification:
         device: str = "cpu",
         batch_size: int = 1,
         dtype: str = "float32",
+        max_wav_duration: Optional[int] = None,
     ):
 
         classification_model, classification_train_args = CLSTask.build_model_from_file(
@@ -55,6 +56,7 @@ class Classification:
         self.token_id_converter = TokenIDConverter(
             token_list=classification_train_args.token_list
         )
+        self.max_wav_duration = max_wav_duration
 
     @torch.no_grad()
     @typechecked
@@ -67,7 +69,8 @@ class Classification:
             speech: Input speech data
         Returns: Tuple of
             prediction: list of ints
-            scores: tensor of float, (num_classes,) corresponding to each class' probability
+            scores: tensor of float, (num_classes,) corresponding to each class'
+                probability
         """
 
         # Input as audio signal
@@ -78,6 +81,12 @@ class Classification:
         speech = speech.unsqueeze(0).to(getattr(torch, self.dtype))
         # lengths: (1,)
         lengths = speech.new_full([1], dtype=torch.long, fill_value=speech.size(1))
+
+        # Truncate the input audio if it exceeds the maximum duration
+        if self.max_wav_duration and speech.size(1) > self.max_wav_duration:
+            speech = speech[:, : self.max_wav_duration]
+            lengths = torch.tensor([self.max_wav_duration], dtype=torch.long)
+
         batch = {"speech": speech, "speech_lengths": lengths}
         logging.info("speech length: " + str(speech.size(1)))
 
@@ -85,7 +94,8 @@ class Classification:
         batch = to_device(batch, device=self.device)
         scores = self.classification_model.score(**batch)  # (1, num_classes)
 
-        # scores would be a tensor of shape (batch_size, num_classes) representing probabilities.
+        # scores would be a tensor of shape (batch_size, num_classes)
+        # representing probabilities.
         if self.classification_model.classification_type == "multi-class":
             prediction = [torch.argmax(scores, dim=-1).item()]  # list (1,)
         elif self.classification_model.classification_type == "multi-label":
@@ -94,7 +104,8 @@ class Classification:
             prediction = torch.nonzero(prediction.squeeze(0)).squeeze(-1).tolist()
         else:
             raise NotImplementedError(
-                f"Unsupported classification type: {self.classification_model.classification_type}"
+                "Unsupported classification type: "
+                f"{self.classification_model.classification_type}"
             )
         prediction_string = " ".join(self.token_id_converter.ids2tokens(prediction))
         return prediction, scores.squeeze(0), prediction_string
@@ -115,6 +126,7 @@ def inference(
     classification_model_file: Optional[str],
     allow_variable_data_keys: bool,
     output_all_probabilities: bool,
+    max_wav_duration: Optional[int],
 ):
 
     logging.basicConfig(
@@ -138,6 +150,7 @@ def inference(
         classification_model_file=classification_model_file,
         device=device,
         dtype=dtype,
+        max_wav_duration=max_wav_duration,
     )
     classification = Classification(**classification_kwargs)
 
@@ -261,6 +274,12 @@ def get_parser():
         type=str2bool,
         default=False,
         help="Output scores for all classes",
+    )
+    group.add_argument(
+        "--max_wav_duration",
+        type=int,
+        default=None,
+        help="Maximum duration of input audio in number of samples",
     )
 
     return parser
