@@ -48,6 +48,7 @@ audio_format=flac    # Audio format: wav, flac, wav.ark, flac.ark.
 fs=16k               # Sampling rate.
 speech_fold_length=160000 # The length of the speech input to the cls model.
 label_fold_length=1   # fold_length for labels during CLS training. Set to 1 for multi-class classification.
+cls_stats_dir=      # The directory used for collect-stats mode.
 
 # data preprpocessing related
 min_wav_duration=0.1 # Minimum duration in seconds to use in training
@@ -65,6 +66,7 @@ inference_model=valid.acc.best.pth
 inference_tag=    # Suffix to the inference dir for cls model inference
 output_all_probabilities=true
 
+hf_repo=        # Huggingface repo name
 
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=       # Name of training set.
@@ -98,6 +100,7 @@ Options:
     --fs               # Sampling rate (default="${fs}").
     --speech_fold_length # The length of the speech input to the cls model (default="${speech_fold_length}").
     --label_fold_length  # fold_length for labels during CLS training (default="${label_fold_length}").
+    --cls_stats_dir   # The directory used for collect-stats mode (default="${cls_stats_dir}").
     --min_wav_duration   # Minimum duration in seconds to use in training (default="${min_wav_duration}").
     --max_wav_duration   # Maximum duration in seconds to use in training (default="${max_wav_duration}").
     # cls model related
@@ -110,6 +113,8 @@ Options:
     --inference_model  # classification model path for inference (default="${inference_model}").
     --inference_tag    # Suffix to the inference dir for cls model inference
     --output_all_probabilities # Output all probabilities in the inference stage (default="${output_all_probabilities}").
+    # Huggingface related
+    --hf_repo        # Huggingface repo name (default="${hf_repo}").
     # [Task dependent] Set the datadir name created by local/data.sh
     --train_set               # Name of training set (required).
     --valid_set               # Name of development set (required).
@@ -160,7 +165,9 @@ fi
 [ -z "${text_classes}" ] && text_classes="${data_feats}/${train_set}/text"
 
 # The directory used for collect-stats mode
-cls_stats_dir="${expdir}/cls_stats_${fs}"
+if [ -z "${cls_stats_dir}" ]; then
+    cls_stats_dir="${expdir}/cls_stats_${fs}"
+fi
 # The directory used for training commands
 cls_exp="${expdir}/cls_${cls_tag}"
 token_list=${datadir}/token_list
@@ -493,7 +500,7 @@ else
 fi
 
 if ! "${skip_upload}"; then
-    packed_model="${cls_exp}/${cls_exp##*/}_${inference_cls_model%.*}.zip"
+    packed_model="${cls_exp}/${cls_exp##*/}_${inference_model%.*}.zip"
     if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
         log "Stage 9: Pack models for uploading to huggingface: ${cls_exp}"
         _opts=
@@ -501,13 +508,14 @@ if ! "${skip_upload}"; then
             _opts+="--option ${cls_stats_dir}/train/feats_stats.npz "
         fi
         # shellcheck disable=SC2086
-        ${python} -m espnet2.bin.pack asr \
-            --asr_train_config "${cls_exp}"/config.yaml \
-            --asr_model_file "${cls_exp}"/"${inference_cls_model}" \
+        ${python} -m espnet2.bin.pack cls \
+            --classification_train_config "${cls_exp}"/config.yaml \
+            --classification_model_file "${cls_exp}"/"${inference_model}" \
             ${_opts} \
             --option "${cls_exp}"/RESULTS.md \
             --option "${cls_exp}"/images \
-            --outpath "${packed_model}"
+            --option "${token_list}" \
+            --outpath "${packed_model}" 
     fi
 
     if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
@@ -516,7 +524,7 @@ if ! "${skip_upload}"; then
             log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace, follow the following steps described here https://github.com/espnet/espnet/blob/master/CONTRIBUTING.md#132-espnet2-recipes" && \
         exit 1
         if [ ! -f "${packed_model}" ]; then
-            log "ERROR: ${packed_model} does not exist. Please run stage 9 first."
+            log "ERROR: ${packed_model} does not exist. Please run previous stage first."
             exit 1
         fi
 
@@ -535,9 +543,9 @@ if ! "${skip_upload}"; then
             _creator_name="$(whoami)"
             _checkout=""
         fi
-        # /some/where/espnet/egs2/foo/asr1/ -> foo/asr1
+        # /some/where/espnet/egs2/foo/cls1/ -> foo/cls1
         _task="$(pwd | rev | cut -d/ -f2 | rev)"
-        # foo/asr1 -> foo
+        # foo/cls1 -> foo
         _corpus="${_task%/*}"
         _model_name="${_creator_name}/${_corpus}_$(basename ${packed_model} .zip)"
 
@@ -548,6 +556,7 @@ if ! "${skip_upload}"; then
         hf_task=classification
         # shellcheck disable=SC2034
         espnet_task=CLS
+        lang=en
         # shellcheck disable=SC2034
         task_exp=${cls_exp}
         eval "echo \"$(cat scripts/utils/TEMPLATE_HF_Readme.md)\"" > "${dir_repo}"/README.md
@@ -560,7 +569,6 @@ if ! "${skip_upload}"; then
         fi
         git push
         cd ${this_folder}
-
     fi
 else
     log "Skip the upload stages"
