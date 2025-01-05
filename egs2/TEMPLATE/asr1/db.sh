@@ -19,6 +19,7 @@ AS20K=
 AS2M=
 AUDIOSET=
 ASVSpoof_CMD=
+BEAN=downloads
 BIBLETTS=downloads
 CORAAL=downloads
 COVOST2=
