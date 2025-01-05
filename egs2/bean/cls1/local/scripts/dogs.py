@@ -1,34 +1,17 @@
+import os
 import sys
-from pathlib import Path
-
 import pandas as pd
-from plumbum import FG, local
 from sklearn.model_selection import train_test_split
 
-local["mkdir"]["-p", "data/dogs/wav"]()
-(
-    local["wget"][
-        "-O",
-        "data/dogs/dog_barks.zip",
-        "https://storage.googleapis.com/ml-bioacoustics-datasets/dog_barks.zip",
-    ]
-    & FG
-)
-local["unzip"]["data/dogs/dog_barks.zip", "-d", "data/dogs/"] & FG
+DATA_READ_ROOT = sys.argv[1]
+DATA_WRITE_ROOT = sys.argv[2]
 
-df = pd.read_csv("data/dogs/annotations.csv")
+df = pd.read_csv(os.path.join(DATA_READ_ROOT, "annotations.csv"))
 
 
 def convert(row):
-    src_path = Path("data/dogs/audio") / row["filename"]
-    tgt_path = Path("data/dogs/wav") / (Path(row["filename"]).stem + ".wav")
-
-    print(f"Converting {src_path} ...", file=sys.stderr)
-
-    local["sox"][src_path, "-r 44100", "-R", tgt_path]()
-
-    new_row = pd.Series({"path": tgt_path, "label": row["name"]})
-
+    filepath = os.path.join(DATA_READ_ROOT, "audio", f"{row['filename']}")
+    new_row = pd.Series({"path": filepath, "label": str(row["name"]).replace(" ", "_")})
     return new_row
 
 
@@ -53,7 +36,22 @@ df_train_low = df_train_low.sort_index()
 df_valid = df_valid.sort_index()
 df_test = df_test.sort_index()
 
-df_train.to_csv("data/dogs/annotations.train.csv")
-df_train_low.to_csv("data/dogs/annotations.train-low.csv")
-df_valid.to_csv("data/dogs/annotations.valid.csv")
-df_test.to_csv("data/dogs/annotations.test.csv")
+split2df = {
+    "dogs.dev": df_valid,
+    "dogs.train": df_train,
+    "dogs.train-low": df_train_low,
+    "dogs.test": df_test,
+}
+for split, df in split2df.items():
+    text_path = os.path.join(DATA_WRITE_ROOT, split, "text")
+    wav_path = os.path.join(DATA_WRITE_ROOT, split, "wav.scp")
+    utt2spk_path = os.path.join(DATA_WRITE_ROOT, split, "utt2spk")
+    os.makedirs(os.path.dirname(text_path), exist_ok=True)
+    with open(text_path, "w") as text_f, open(wav_path, "w") as wav_f, open(
+        utt2spk_path, "w"
+    ) as utt2spk_f:
+        for index, row in df.iterrows():
+            uttid = f"{split}-{index}"
+            print(f"{uttid} {row['path']}", file=wav_f)
+            print(f"{uttid} {row['label']}", file=text_f)
+            print(f"{uttid} dummy", file=utt2spk_f)

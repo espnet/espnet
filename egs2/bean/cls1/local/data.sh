@@ -70,6 +70,7 @@ if [[ "${DATASETS}" == *"bats"* ]]; then
     python local/scripts/bats.py ${BATS_LOCATION} ${DATA_PREP_ROOT}
 fi
 
+
 # CBI-Birds
 if [[ "${DATASETS}" == *"cbi"* ]]; then
     log "Processing cbi"
@@ -91,6 +92,7 @@ if [[ "${DATASETS}" == *"cbi"* ]]; then
     fi
     python local/scripts/cbi.py ${CBI_LOCATION} ${DATA_PREP_ROOT}
 fi
+
 
 # Humbugdb-Mosquito
 if [[ "${DATASETS}" == *"humbugdb"* ]]; then
@@ -116,6 +118,29 @@ if [[ "${DATASETS}" == *"humbugdb"* ]]; then
     python local/scripts/humbugdb.py ${HUMBUGDB_LOCATION} ${DATA_PREP_ROOT}
 fi
 
+
+# Dogs
+if [[ "${DATASETS}" == *"dogs"* ]]; then
+    log "Processing dogs"
+    DOGS_LOCATION="${DATA_PREP_ROOT}/downloads/dogs"
+    if [ "${BEAN}" == "downloads" ]; then
+        if [ -f "${DATA_PREP_ROOT}/downloads/dogs/download.done" ]; then
+            log "Skip downloading because download.done exists"
+        else
+            log "Downloading"
+            wget https://storage.googleapis.com/ml-bioacoustics-datasets/dog_barks.zip -P ${DATA_PREP_ROOT}/downloads
+            unzip ${DATA_PREP_ROOT}/downloads/dog_barks.zip -d ${DOGS_LOCATION}
+            rm ${DATA_PREP_ROOT}/downloads/dog_barks.zip
+            touch "${DOGS_LOCATION}/download.done"
+        fi
+    else
+        log "Using data from the provided location: ${BEANS}/dogs"
+        DOGS_LOCATION="${BEANS}/dogs"
+    fi
+    python local/scripts/dogs.py ${DOGS_LOCATION} ${DATA_PREP_ROOT}
+fi
+
+
 for dataset in ${DATASETS}; do
     for x in ${dataset}.dev ${dataset}.train ${dataset}.test; do
         for f in text wav.scp utt2spk; do
@@ -132,42 +157,3 @@ done
 
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
-
-
-# #humbugdb
-# (
-#     local["git"][
-#         "clone", "https://github.com/HumBug-Mosquito/HumBugDB.git", "data/HumBugDB"
-#     ]
-#     & FG
-# )
-
-# for i in [1, 2, 3, 4]:
-#     (
-#         local["wget"][
-#             "-O",
-#             f"data/HumBugDB/humbugdb_neurips_2021_{i}.zip",
-#             f"https://zenodo.org/record/4904800/files/humbugdb_neurips_2021_{i}.zip?download=1",
-#         ]
-#         & FG
-#     )
-#     (
-#         local["unzip"][
-#             f"data/HumBugDB/humbugdb_neurips_2021_{i}.zip",
-#             "-d",
-#             "data/HumBugDB/data/audio/",
-#         ]
-#         & FG
-#     )
-
-# #dogs
-# local["mkdir"]["-p", "data/dogs/wav"]()
-# (
-#     local["wget"][
-#         "-O",
-#         "data/dogs/dog_barks.zip",
-#         "https://storage.googleapis.com/ml-bioacoustics-datasets/dog_barks.zip",
-#     ]
-#     & FG
-# )
-# local["unzip"]["data/dogs/dog_barks.zip", "-d", "data/dogs/"] & FG

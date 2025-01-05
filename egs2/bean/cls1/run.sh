@@ -12,4 +12,6 @@ set -o pipefail
 
 # ./run_cbi.sh
 
-./run_humbugdb.sh
+# ./run_humbugdb.sh
+
+./run_dogs.sh
