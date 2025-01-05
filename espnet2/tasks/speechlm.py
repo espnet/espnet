@@ -400,6 +400,11 @@ class SpeechLMTask(AbsTask):
                         torch.nn.init.zeros_(m.bias)
                 elif isinstance(m, torch.nn.Embedding):
                     torch.nn.init.normal_(m.weight, mean=0.0, std=0.02)
+        
+        # 5. if use deepspeed, also save the config
+        if args.deepspeed_config is not None:
+            ds_config_dict = json.load(open(args.deepspeed_config))
+            setattr(args, "ds_config_dict", ds_config_dict)
 
         return model
     
