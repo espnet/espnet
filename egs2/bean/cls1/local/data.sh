@@ -80,7 +80,7 @@ if [[ "${DATASETS}" == *"cbi"* ]]; then
         else
             log "Downloading"
             pip install kaggle==1.5.12
-            kaggle competitions download -p ${DATA_PREP_ROOT}/downloads birdsong-recognition 
+            kaggle competitions download -p ${DATA_PREP_ROOT}/downloads birdsong-recognition
             unzip ${DATA_PREP_ROOT}/downloads/birdsong-recognition.zip -d ${CBI_LOCATION}
             rm ${DATA_PREP_ROOT}/downloads/birdsong-recognition.zip
             touch "${CBI_LOCATION}/download.done"
