@@ -26,7 +26,77 @@ except ImportError:
 
 
 class UHiFiGANGenerator(torch.nn.Module):
-    """UHiFiGAN generator module."""
+    """
+    UHiFiGAN generator module.
+
+    This class implements a Unet-based generator for the HiFi-GAN model.
+    It is designed to perform high-fidelity audio synthesis based on input
+    mel-spectrograms and additional conditioning information. The architecture
+    is inspired by existing implementations in the HiFi-GAN and ParallelWaveGAN
+    repositories.
+
+    This code is based on:
+        - https://github.com/jik876/hifi-gan
+        - https://github.com/kan-bayashi/ParallelWaveGAN
+
+    Attributes:
+        input_conv (nn.Sequential): Initial convolutional layer.
+        downsamples (nn.ModuleList): List of downsampling layers.
+        downsamples_mrf (nn.ModuleList): List of multi-resolution
+            feature extraction layers for downsampling.
+        hidden_conv (nn.Conv1d): Hidden convolutional layer.
+        upsamples (nn.ModuleList): List of upsampling layers.
+        upsamples_mrf (nn.ModuleList): List of multi-resolution
+            feature extraction layers for upsampling.
+        output_conv (nn.ModuleList): Final convolutional layers.
+        global_conv (nn.Conv1d): Global conditioning layer if global channels
+            are specified.
+
+    Args:
+        in_channels (int): Number of input channels.
+        out_channels (int): Number of output channels.
+        channels (int): Number of hidden representation channels.
+        global_channels (int): Number of global conditioning channels.
+        kernel_size (int): Kernel size of initial and final conv layer.
+        downsample_scales (tuple): List of downsampling scales.
+        downsample_kernel_sizes (tuple): List of kernel sizes for downsampling
+            layers.
+        upsample_scales (tuple): List of upsampling scales.
+        upsample_kernel_sizes (tuple): List of kernel sizes for upsampling layers.
+        resblock_kernel_sizes (tuple): List of kernel sizes for residual blocks.
+        resblock_dilations (list): List of dilation lists for residual blocks.
+        projection_filters (list): List of projection filters.
+        projection_kernels (list): List of projection kernel sizes.
+        dropout (float): Dropout rate.
+        use_additional_convs (bool): Whether to use additional conv layers
+            in residual blocks.
+        bias (bool): Whether to add bias parameter in convolution layers.
+        nonlinear_activation (str): Activation function module name.
+        nonlinear_activation_params (dict): Hyperparameters for activation function.
+        use_causal_conv (bool): Whether to use causal structure.
+        use_weight_norm (bool): Whether to use weight normalization.
+        use_avocodo (bool): Whether to use Avocodo structure for output.
+
+    Raises:
+        ImportError: If the required modules from `parallel_wavegan` are not
+        installed.
+
+    Examples:
+        >>> generator = UHiFiGANGenerator()
+        >>> c = torch.randn(1, 80, 100)  # Example input tensor
+        >>> f0 = torch.randn(1, 1, 100)   # Example f0 tensor
+        >>> excitation = torch.randn(1, 512, 100)  # Example excitation tensor
+        >>> output = generator(c, f0, excitation)
+        >>> print(output.shape)  # Output tensor shape
+
+    Note:
+        The model is based on the HiFi-GAN architecture, which is optimized
+        for high-quality audio generation. The initialization of weights follows
+        the official implementation.
+
+    Todo:
+        - Add support for additional input modalities.
+    """
 
     @typechecked
     def __init__(
@@ -322,16 +392,33 @@ class UHiFiGANGenerator(torch.nn.Module):
     def forward(
         self, c=None, f0=None, excitation=None, g: Optional[torch.Tensor] = None
     ):
-        """Calculate forward propagation.
+        """
+        Calculate forward propagation.
+
+        This method performs the forward pass of the UHiFiGAN generator. It
+        takes input tensors, processes them through the network layers, and
+        returns the output tensor.
 
         Args:
             c (Tensor): Input tensor (B, in_channels, T).
             f0 (Tensor): Input tensor (B, 1, T).
             excitation (Tensor): Input tensor (B, frame_len, T).
+            g (Optional[Tensor]): Global conditioning tensor (B, global_channels, T).
+                This is optional and can be provided to enhance the input tensor
+                `c`.
 
         Returns:
-            Tensor: Output tensor (B, out_channels, T).
+            Tensor: Output tensor (B, out_channels, T). This tensor represents the
+            generated audio signal.
 
+        Examples:
+            >>> generator = UHiFiGANGenerator()
+            >>> c = torch.randn(2, 80, 100)  # Example input tensor
+            >>> f0 = torch.randn(2, 1, 100)   # Example f0 tensor
+            >>> excitation = torch.randn(2, 256, 100)  # Example excitation tensor
+            >>> output = generator.forward(c, f0, excitation)
+            >>> print(output.shape)
+            torch.Size([2, 1, 100])  # Output shape matches the expected output tensor
         """
         # logging.warn(f'c:{c.shape}')
         # logging.warn(f'f0:{f0.shape}')
@@ -408,11 +495,27 @@ class UHiFiGANGenerator(torch.nn.Module):
             return self.output_conv(hidden_mel)
 
     def reset_parameters(self):
-        """Reset parameters.
+        """
+        Reset parameters.
 
         This initialization follows the official implementation manner.
-        https://github.com/jik876/hifi-gan/blob/master/models.py
+        The weights of convolutional layers are initialized with a normal
+        distribution having a mean of 0.0 and a standard deviation of 0.01.
+        This method is called during the initialization of the generator
+        to ensure that all parameters are set to a reasonable starting
+        point for training.
 
+        This method applies to all layers of type `Conv1d` and
+        `ConvTranspose1d`.
+
+        Example:
+            >>> generator = UHiFiGANGenerator()
+            >>> generator.reset_parameters()  # Resets the weights of the model
+
+        Note:
+            This function is part of the initialization routine and should
+            be called after defining the model architecture but before
+            training the model.
         """
 
         def _reset_parameters(m):
@@ -423,7 +526,23 @@ class UHiFiGANGenerator(torch.nn.Module):
         self.apply(_reset_parameters)
 
     def remove_weight_norm(self):
-        """Remove weight normalization module from all of the layers."""
+        """
+        Remove weight normalization from all convolutional layers.
+
+        This method traverses all layers of the UHiFiGANGenerator and removes
+        weight normalization if it has been applied. It is useful when weight
+        normalization is no longer needed, for instance, when switching to a
+        different training phase or during inference.
+
+        Note:
+            This function will log a message each time weight normalization
+            is removed from a layer. If a layer does not have weight normalization,
+            a ValueError is caught and ignored.
+
+        Examples:
+            >>> generator = UHiFiGANGenerator(use_weight_norm=True)
+            >>> generator.remove_weight_norm()  # Removes weight norm from layers.
+        """
 
         def _remove_weight_norm(m):
             try:
@@ -435,7 +554,24 @@ class UHiFiGANGenerator(torch.nn.Module):
         self.apply(_remove_weight_norm)
 
     def apply_weight_norm(self):
-        """Apply weight normalization module from all of the layers."""
+        """
+        Apply weight normalization module from all of the layers.
+
+        This method iterates through all layers of the model and applies weight
+        normalization to each layer that is an instance of `torch.nn.Conv1d` or
+        `torch.nn.ConvTranspose1d`. Weight normalization can help stabilize the
+        training of neural networks by normalizing the weights during forward
+        propagation.
+
+        Note:
+            Weight normalization is beneficial for improving convergence speed
+            and can lead to better overall performance in some cases.
+
+        Example:
+            >>> generator = UHiFiGANGenerator(use_weight_norm=True)
+            >>> generator.apply_weight_norm()
+            # This will apply weight normalization to all convolutional layers.
+        """
 
         def _apply_weight_norm(m):
             if isinstance(m, torch.nn.Conv1d) or isinstance(
@@ -447,11 +583,33 @@ class UHiFiGANGenerator(torch.nn.Module):
         self.apply(_apply_weight_norm)
 
     def register_stats(self, stats):
-        """Register stats for de-normalization as buffer.
+        """
+        Register stats for de-normalization as buffer.
+
+        This method loads statistical data from a specified file and registers
+        them as buffers for normalization purposes. The file can be either in
+        HDF5 or NumPy format, containing mean and scale values for
+        de-normalization.
 
         Args:
             stats (str): Path of statistics file (".npy" or ".h5").
+                The file should contain two arrays: mean and scale.
 
+        Raises:
+            AssertionError: If the file does not have a valid extension
+                (".h5" or ".npy").
+
+        Examples:
+            >>> generator = UHiFiGANGenerator()
+            >>> generator.register_stats("path/to/stats.npy")
+            Successfully registered stats as buffer.
+            >>> generator.register_stats("path/to/stats.h5")
+            Successfully registered stats as buffer.
+
+        Note:
+            The mean and scale values are expected to be one-dimensional
+            arrays. The method reshapes them into a suitable format for
+            registration as buffers.
         """
         assert stats.endswith(".h5") or stats.endswith(".npy")
         if stats.endswith(".h5"):
@@ -465,15 +623,39 @@ class UHiFiGANGenerator(torch.nn.Module):
         logging.info("Successfully registered stats as buffer.")
 
     def inference(self, excitation=None, f0=None, c=None, normalize_before=False):
-        """Perform inference.
+        """
+        Perform inference using the UHiFiGAN generator.
+
+        This method takes the input tensors for excitation, fundamental frequency
+        (f0), and conditioning (c), and performs a forward pass through the
+        UHiFiGAN generator. It outputs a generated waveform tensor.
 
         Args:
-            c (Union[Tensor, ndarray]): Input tensor (T, in_channels).
-            normalize_before (bool): Whether to perform normalization.
+            c (Union[Tensor, ndarray]): Input tensor (T, in_channels). This tensor
+                represents the conditioning information used during inference.
+            excitation (Union[Tensor, ndarray], optional): Input tensor for
+                excitation (T, frame_len). This tensor is used to control the
+                excitation signal in the generation process.
+            f0 (Union[Tensor, ndarray], optional): Input tensor for fundamental
+                frequency (T, 1). This tensor provides information about the
+                pitch of the audio to be generated.
+            normalize_before (bool, optional): Whether to perform normalization
+                before the inference. Defaults to False.
 
         Returns:
-            Tensor: Output tensor (T ** prod(upsample_scales), out_channels).
+            Tensor: Output tensor of shape (T ** prod(upsample_scales),
+            out_channels), representing the generated audio waveform.
 
+        Examples:
+            >>> generator = UHiFiGANGenerator()
+            >>> excitation = torch.randn(1, 80, 256)  # Example excitation
+            >>> f0 = torch.randn(1, 1, 256)            # Example f0
+            >>> c = torch.randn(256, 80)                # Example conditioning
+            >>> output = generator.inference(excitation, f0, c)
+
+        Note:
+            The input tensors can be either PyTorch tensors or NumPy arrays. If
+            they are not tensors, they will be converted to tensors before processing.
         """
         # print(len(c))
         # logging.info(f'len(c):{len(c)}')

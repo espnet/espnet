@@ -39,7 +39,65 @@ codec_choices = ClassChoices(
 
 
 class GANCodecTask(AbsTask):
-    """GAN-based neural codec task."""
+    """
+        GANCodecTask is a class for implementing a GAN-based neural codec task.
+
+    This class extends the AbsTask class and provides functionalities for
+    training and building a GAN-based codec model. It supports configuration
+    of various codec types and their respective parameters. The task utilizes
+    the GANTrainer for optimization and training processes.
+
+    Attributes:
+        num_optimizers (int): The number of optimizers required for GAN training.
+        class_choices_list (list): A list of codec class choices available for
+            this task.
+        trainer (type): The trainer class used for this task, which is GANTrainer.
+
+    Args:
+        parser (argparse.ArgumentParser): The argument parser instance used to
+            define the command-line arguments for the task.
+
+    Returns:
+        Callable: A function that processes input data for training or inference.
+
+    Yields:
+        None
+
+    Raises:
+        ValueError: If the specified optimizer is not valid.
+
+    Examples:
+        To use this class, one might create an argument parser and add task
+        arguments as follows:
+
+        ```python
+        import argparse
+        from espnet2.tasks.gan_codec import GANCodecTask
+
+        parser = argparse.ArgumentParser(description="GAN Codec Task")
+        GANCodecTask.add_task_arguments(parser)
+        args = parser.parse_args()
+        ```
+
+        After setting up the arguments, you can build a model:
+
+        ```python
+        model = GANCodecTask.build_model(args)
+        ```
+
+        To create optimizers for training:
+
+        ```python
+        optimizers = GANCodecTask.build_optimizers(args, model)
+        ```
+
+    Note:
+        This class requires the presence of specific codec implementations
+        such as SoundStream, Encodec, DAC, and FunCodec.
+
+    Todo:
+        - Add more error handling and logging for better debugging.
+    """
 
     # GAN requires two optimizers
     num_optimizers: int = 2
@@ -56,6 +114,38 @@ class GANCodecTask(AbsTask):
     @classmethod
     @typechecked
     def add_task_arguments(cls, parser: argparse.ArgumentParser):
+        """
+            Adds command-line arguments specific to the GANCodecTask.
+
+        This method defines the arguments related to the task and preprocessing
+        settings. It also allows for adding codec-specific arguments through the
+        class choices defined in `class_choices_list`.
+
+        Args:
+            parser (argparse.ArgumentParser): The argument parser instance to which
+                the task-specific arguments will be added.
+
+        Examples:
+            To use this method, you can initialize an argument parser and call
+            the `add_task_arguments` method:
+
+            ```python
+            import argparse
+            from gan_codec_task import GANCodecTask
+
+            parser = argparse.ArgumentParser()
+            GANCodecTask.add_task_arguments(parser)
+            args = parser.parse_args()
+            ```
+
+        Note:
+            The `--print_config` mode cannot be used with `required=True` in the
+            `add_arguments` method, so this has been handled appropriately.
+
+        Raises:
+            argparse.ArgumentError: If there is an issue with adding the arguments
+                to the parser.
+        """
         # NOTE(kamo): Use '_' instead of '-' to avoid confusion
         group = parser.add_argument_group(description="Task related")
 
@@ -89,6 +179,43 @@ class GANCodecTask(AbsTask):
         [Collection[Tuple[str, Dict[str, np.ndarray]]]],
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
+        """
+            Build a collate function for the GANCodecTask.
+
+        This method creates a callable function that collates a batch of data
+        samples. The collate function is used to process a collection of
+        tuples, where each tuple consists of a string identifier and a
+        dictionary of numpy arrays. The collate function returns a tuple
+        containing a list of string identifiers and a dictionary of
+        PyTorch tensors.
+
+        Args:
+            args (argparse.Namespace): Command line arguments containing
+                configuration options for the task.
+            train (bool): A flag indicating whether the function is being
+                called during training or evaluation.
+
+        Returns:
+            Callable[[Collection[Tuple[str, Dict[str, np.ndarray]]],
+                      Tuple[List[str], Dict[str, torch.Tensor]]]]:
+                A function that collates data into a format suitable for
+                model input.
+
+        Examples:
+            >>> args = argparse.Namespace()
+            >>> args.some_arg = 'value'
+            >>> collate_fn = GANCodecTask.build_collate_fn(args, train=True)
+            >>> batch = [('sample1', {'data': np.array([1, 2, 3])}),
+            ...          ('sample2', {'data': np.array([4, 5, 6])})]
+            >>> identifiers, tensors = collate_fn(batch)
+            >>> print(identifiers)  # Output: ['sample1', 'sample2']
+            >>> print(tensors)      # Output: {'data': tensor([[1, 2, 3], [4, 5, 6]])}
+
+        Note:
+            This method relies on the CommonCollateFn class for its
+            implementation, which handles the specifics of padding and
+            converting numpy arrays to PyTorch tensors.
+        """
         return CommonCollateFn(
             float_pad_value=0.0,
             int_pad_value=0,
@@ -99,6 +226,41 @@ class GANCodecTask(AbsTask):
     def build_preprocess_fn(
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
+        """
+            Builds a preprocessing function based on the task arguments.
+
+        This method checks if preprocessing is enabled in the arguments and
+        constructs a `CommonPreprocessor` if it is. If not, it returns None.
+
+        Args:
+            cls: The class type of the calling object.
+            args (argparse.Namespace): The arguments namespace containing task
+                configuration options.
+            train (bool): A flag indicating whether the function is being built
+                for training or not.
+
+        Returns:
+            Optional[Callable[[str, Dict[str, np.ndarray]], Dict[str, np.ndarray]]]:
+                A preprocessing function that takes a string and a dictionary
+                of numpy arrays, and returns a dictionary of numpy arrays, or
+                None if preprocessing is not enabled.
+
+        Examples:
+            >>> from argparse import Namespace
+            >>> args = Namespace(use_preprocessor=True, iterator_type='chunk',
+            ... chunk_length=16000)
+            >>> preprocess_fn = GANCodecTask.build_preprocess_fn(args, train=True)
+            >>> audio_data = {"audio": np.random.rand(16000)}
+            >>> processed_data = preprocess_fn("audio", audio_data)
+
+        Note:
+            The preprocessing function is designed to work with single-channel
+            audio data only.
+
+        Todo:
+            - Consider adding more preprocessing options based on future
+              requirements.
+        """
         if args.use_preprocessor:
             # additional check for chunk iterator, to use short utterance in training
             if args.iterator_type == "chunk":
@@ -122,6 +284,31 @@ class GANCodecTask(AbsTask):
     def required_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
+        """
+        Returns the required data names for the GAN codec task.
+
+        This method provides the necessary data names based on the mode of
+        operation, which can be either training or inference. In this
+        implementation, the required data name is "audio" for both modes.
+
+        Args:
+            train (bool): Indicates if the data is for training. Defaults to
+                True.
+            inference (bool): Indicates if the data is for inference.
+                Defaults to False.
+
+        Returns:
+            Tuple[str, ...]: A tuple containing the required data names.
+            In this case, it returns ("audio",) for both training and
+            inference modes.
+
+        Examples:
+            >>> GANCodecTask.required_data_names(train=True, inference=False)
+            ('audio',)
+
+            >>> GANCodecTask.required_data_names(train=False, inference=True)
+            ('audio',)
+        """
         if not inference:
             retval = ("audio",)
         else:
@@ -133,11 +320,66 @@ class GANCodecTask(AbsTask):
     def optional_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
+        """
+            Returns the optional data names used in the GAN codec task.
+
+        This method can be overridden by subclasses to specify any optional data
+        names that the task may utilize. By default, it returns an empty tuple,
+        indicating that no optional data names are defined.
+
+        Args:
+            train (bool): Indicates whether the task is in training mode. Default is
+                True.
+            inference (bool): Indicates whether the task is in inference mode.
+                Default is False.
+
+        Returns:
+            Tuple[str, ...]: A tuple of optional data names used in the task.
+
+        Examples:
+            >>> optional_data = GANCodecTask.optional_data_names()
+            >>> print(optional_data)
+            ()  # This will output an empty tuple by default.
+
+        Note:
+            This method is a class method and can be called directly on the
+            class without creating an instance.
+        """
         return ()
 
     @classmethod
     @typechecked
     def build_model(cls, args: argparse.Namespace) -> ESPnetGANCodecModel:
+        """
+        Builds and returns an ESPnetGANCodecModel instance.
+
+        This method constructs the model by first selecting the appropriate
+        codec class based on the `codec` argument and then initializing
+        an `ESPnetGANCodecModel` instance using the selected codec and
+        additional configuration provided in `model_conf`.
+
+        Args:
+            args (argparse.Namespace): The parsed command line arguments,
+                containing model configuration and codec information.
+
+        Returns:
+            ESPnetGANCodecModel: An instance of the ESPnetGANCodecModel
+                initialized with the specified codec and model configurations.
+
+        Raises:
+            ValueError: If the codec class cannot be found based on the
+                provided `args.codec`.
+
+        Examples:
+            >>> import argparse
+            >>> parser = argparse.ArgumentParser()
+            >>> parser.add_argument("--codec", type=str, default="soundstream")
+            >>> parser.add_argument("--model_conf", type=dict, default={})
+            >>> args = parser.parse_args()
+            >>> model = GANCodecTask.build_model(args)
+            >>> print(type(model))
+            <class 'espnet2.gan_codec.espnet_model.ESPnetGANCodecModel'>
+        """
 
         # 1. Codec
         codec_class = codec_choices.get_class(args.codec)
@@ -156,6 +398,39 @@ class GANCodecTask(AbsTask):
         args: argparse.Namespace,
         model: ESPnetGANCodecModel,
     ) -> List[torch.optim.Optimizer]:
+        """
+            Builds optimizers for the generator and discriminator of the GAN model.
+
+        This method initializes two optimizers: one for the generator and one for
+        the discriminator, based on the specified optimization algorithms. It checks
+        if the model has the required components and raises appropriate errors if
+        any of the optimizers are not found.
+
+        Args:
+            args (argparse.Namespace): The command-line arguments containing
+                optimizer configurations and flags.
+            model (ESPnetGANCodecModel): The GAN codec model which contains
+                generator and discriminator components.
+
+        Returns:
+            List[torch.optim.Optimizer]: A list containing the optimizers for
+            both the generator and discriminator.
+
+        Raises:
+            ValueError: If the specified optimizer class for the generator or
+            discriminator is not valid.
+            RuntimeError: If the fairscale library is required but not installed.
+
+        Examples:
+            >>> from argparse import Namespace
+            >>> args = Namespace(optim='Adam', optim_conf={'lr': 0.001},
+            ...                  optim2='SGD', optim2_conf={'lr': 0.01},
+            ...                  sharded_ddp=False)
+            >>> model = ESPnetGANCodecModel(...)  # Assuming model is created properly
+            >>> optimizers = GANCodecTask.build_optimizers(args, model)
+            >>> len(optimizers)  # Should return 2
+            2
+        """
         # check
         assert hasattr(model.codec, "generator")
         assert hasattr(model.codec, "discriminator")

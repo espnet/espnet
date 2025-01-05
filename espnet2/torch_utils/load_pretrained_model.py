@@ -10,12 +10,39 @@ def filter_state_dict(
     dst_state: Dict[str, Union[float, torch.Tensor]],
     src_state: Dict[str, Union[float, torch.Tensor]],
 ):
-    """Filter name, size mismatch instances between dicts.
+    """
+        Filter name, size mismatch instances between two state dictionaries.
+
+    This function compares two state dictionaries, `dst_state` and `src_state`,
+    and filters out any entries from `src_state` that either do not exist in
+    `dst_state` or have a size mismatch. The filtered state dictionary containing
+    only the matching entries is returned.
 
     Args:
-        dst_state: reference state dict for filtering
-        src_state: target state dict for filtering
+        dst_state (Dict[str, Union[float, torch.Tensor]]): Reference state
+            dictionary for filtering.
+        src_state (Dict[str, Union[float, torch.Tensor]]): Target state
+            dictionary for filtering.
 
+    Returns:
+        Dict[str, Union[float, torch.Tensor]]: A new dictionary containing
+        only the entries from `src_state` that match the keys and sizes
+        of `dst_state`.
+
+    Raises:
+        None
+
+    Examples:
+        >>> dst = {'layer1.weight': torch.zeros(2, 2), 'layer2.weight': torch.zeros(3, 3)}
+        >>> src = {'layer1.weight': torch.ones(2, 2), 'layer2.weight': torch.ones(2, 2)}
+        >>> filtered = filter_state_dict(dst, src)
+        >>> filtered
+        {'layer1.weight': tensor([[1., 1.],
+                                   [1., 1.]])}
+
+    Note:
+        This function is primarily used when loading pretrained models to ensure
+        compatibility between the source and destination state dictionaries.
     """
     match_state = {}
     for key, value in src_state.items():
@@ -42,10 +69,23 @@ def load_pretrained_model(
     ignore_init_mismatch: bool,
     map_location: str = "cpu",
 ):
-    """Load a model state and set it to the model.
+    """
+        Load a model state and set it to the model.
+
+    This function loads a pretrained model's state dictionary from a specified file
+    and applies it to the provided model. It supports various configurations for
+    selecting source and destination keys, as well as excluding certain keys.
 
     Args:
-        init_param: <file_path>:<src_key>:<dst_key>:<exclude_Keys>
+        init_param: A string formatted as <file_path>:<src_key>:<dst_key>:<exclude_Keys>.
+            - file_path: Path to the pretrained model file.
+            - src_key: The key in the source state dictionary to load.
+            - dst_key: The key in the model to which the state should be loaded.
+            - exclude_Keys: A comma-separated list of keys to exclude from loading.
+        model: The model instance (torch.nn.Module) to which the state will be applied.
+        ignore_init_mismatch: A boolean indicating whether to ignore mismatches
+            during initialization.
+        map_location: The location to map the model parameters (default is "cpu").
 
     Examples:
         >>> load_pretrained_model("somewhere/model.pth", model)

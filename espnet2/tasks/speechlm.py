@@ -58,6 +58,60 @@ model_choices = ClassChoices(
 
 
 class SpeechLMTask(AbsTask):
+    """
+        SpeechLMTask is a class for handling tasks related to Speech Language Modeling
+    within the ESPnet framework. It provides methods to define, preprocess, and
+    collate data for training and evaluation of speech language models.
+
+    Attributes:
+        num_optimizers (int): The number of optimizers used in the task.
+        class_choices_list (List[ClassChoices]): A list of class choices for core
+            language models, tokenizers, and models.
+        trainer (Trainer): The trainer class used for training the models.
+
+    Args:
+        parser (argparse.ArgumentParser): The argument parser to which task-related
+            arguments will be added.
+
+    Returns:
+        argparse.ArgumentParser: The updated argument parser with task-related
+            arguments.
+
+    Yields:
+        None
+
+    Raises:
+        RuntimeError: If the `token_list` or `token_bias` arguments are not
+            provided in the expected format.
+
+    Examples:
+        To add task arguments to an argument parser:
+
+            parser = argparse.ArgumentParser()
+            SpeechLMTask.add_task_arguments(parser)
+
+        To build a collate function for batching:
+
+            collate_fn = SpeechLMTask.build_collate_fn(args, train=True)
+
+        To build a preprocessing function:
+
+            preprocess_fn = SpeechLMTask.build_preprocess_fn(args, train=True)
+
+        To build the model:
+
+            model = SpeechLMTask.build_model(args)
+
+    Note:
+        This class is a subclass of AbsTask and assumes that the necessary
+        configurations and classes for the core language model, tokenizer, and
+        model have been defined.
+
+    Todo:
+        - Implement additional methods for more complex training and evaluation
+            procedures if necessary.
+    """
+
     # If you need more than one optimizers, change this value
     num_optimizers: int = 1
 
@@ -77,6 +131,39 @@ class SpeechLMTask(AbsTask):
     @classmethod
     @typechecked
     def add_task_arguments(cls, parser: argparse.ArgumentParser):
+        """
+        Adds task-specific arguments to the argument parser.
+
+        This method is responsible for adding all necessary command line
+        arguments related to the task configuration, including token lists,
+        initialization methods, and preprocessor options. It groups the
+        arguments logically for better organization and user experience.
+
+        Args:
+            cls: The class type of the current task.
+            parser (argparse.ArgumentParser): The argument parser instance
+                to which the arguments will be added.
+
+        Returns:
+            argparse.ArgumentParser: The updated argument parser instance.
+
+        Examples:
+            >>> import argparse
+            >>> parser = argparse.ArgumentParser()
+            >>> SpeechLMTask.add_task_arguments(parser)
+            >>> args = parser.parse_args(["--token_list", "tokens.txt"])
+            >>> print(args.token_list)
+            tokens.txt
+
+        Note:
+            The arguments `--token_list` and `--token_bias` are required
+            for task execution. The method ensures that the correct
+            configurations are passed in for the SpeechLM task.
+
+        Todo:
+            Extend this method to include additional arguments for future
+            task features if necessary.
+        """
         # NOTE(kamo): Use '_' instead of '-' to avoid confusion
         group = parser.add_argument_group(description="Task related")
 
@@ -182,6 +269,39 @@ class SpeechLMTask(AbsTask):
         [Collection[Tuple[str, Dict[str, np.ndarray]]]],
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
+        """
+        Build a collate function for batching input data.
+
+        This method constructs a collate function that takes a collection of
+        input data tuples and combines them into a batch. The collate function
+        will pad sequences and convert them into tensors for processing by
+        the model.
+
+        Args:
+            args (argparse.Namespace): The arguments parsed from command line,
+                which includes configurations such as token_list.
+            train (bool): A flag indicating whether the function is being
+                called for training or not.
+
+        Returns:
+            Callable[[Collection[Tuple[str, Dict[str, np.ndarray]]]],
+            Tuple[List[str], Dict[str, torch.Tensor]]]: A collate function
+            that can be used to batch data during training or evaluation.
+
+        Examples:
+            >>> from espnet2.tasks.speechlm import SpeechLMTask
+            >>> parser = argparse.ArgumentParser()
+            >>> SpeechLMTask.add_task_arguments(parser)
+            >>> args = parser.parse_args(["--token_list", "token_list.txt"])
+            >>> collate_fn = SpeechLMTask.build_collate_fn(args, train=True)
+            >>> batch = collate_fn([("id1", {"data": np.array([1, 2, 3])}),
+            ...                      ("id2", {"data": np.array([4, 5])})])
+            >>> print(batch)
+
+        Note:
+            The token list should include a "<pad>" token for padding
+            sequences.
+        """
         int_pad = args.token_list.index("<pad>")
         return CommonCollateFn(int_pad_value=int_pad)
 
@@ -190,6 +310,49 @@ class SpeechLMTask(AbsTask):
     def build_preprocess_fn(
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
+        """
+        Builds the preprocessing function for the SpeechLM task.
+
+        This function constructs a preprocessing function that is used to prepare
+        input data for the SpeechLM model. It takes task-specific arguments to
+        configure the preprocessing behavior, such as tokenization and cleaning.
+
+        Args:
+            cls: The class reference for the SpeechLMTask.
+            args (argparse.Namespace): Command line arguments containing the
+                configuration for the task.
+            train (bool): A flag indicating whether the function is being built
+                for training or evaluation.
+
+        Returns:
+            Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
+                A preprocessing function that takes a string and a dictionary
+                of numpy arrays and returns a dictionary of numpy arrays.
+
+        Examples:
+            >>> from argparse import Namespace
+            >>> args = Namespace(
+            ...     token_list='path/to/token_list.txt',
+            ...     token_bias='path/to/token_bias.json',
+            ...     encoder_decoder_format=False,
+            ...     bpemodel='path/to/bpemodel',
+            ...     non_linguistic_symbols='path/to/non_linguistic_symbols.txt',
+            ...     cleaner='tacotron',
+            ...     g2p='method',
+            ...     codec_token_per_frame=1,
+            ...     codec_token_in_use=None,
+            ...     speaker_prompt_length=150
+            ... )
+            >>> preprocess_fn = SpeechLMTask.build_preprocess_fn(args, train=True)
+            >>> result = preprocess_fn("input_text", {"key": np.array([1, 2, 3])})
+
+        Note:
+            This function will always use the SpeechLMPreprocessor for its
+            preprocessing needs, ensuring consistency across the task.
+
+        Todo:
+            - Add more preprocessing options in the future if necessary.
+        """
 
         # (Jinchuan) SpeechLM task will always use the preprocess_fn
         retval = SpeechLMPreprocessor(
@@ -211,6 +374,33 @@ class SpeechLMTask(AbsTask):
     def required_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
+        """
+            Returns the required data names for the SpeechLMTask.
+
+        This method provides a tuple of required data names that are necessary
+        for the SpeechLMTask. The names returned by this method are typically
+        used during the training and inference phases to identify the data
+        that the task expects.
+
+        Args:
+            train (bool): A flag indicating if the data is for training.
+                          Defaults to True.
+            inference (bool): A flag indicating if the data is for inference.
+                              Defaults to False.
+
+        Returns:
+            Tuple[str, ...]: A tuple containing the required data names.
+
+        Examples:
+            >>> required_names = SpeechLMTask.required_data_names()
+            >>> print(required_names)
+            ('dec_seq',)
+
+        Note:
+            The returned names can be used in data loading and processing
+            functions to ensure that the correct data is being utilized
+            for the task.
+        """
         retval = ("dec_seq",)
         return retval
 
@@ -218,12 +408,76 @@ class SpeechLMTask(AbsTask):
     def optional_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
+        """
+            Returns the optional data names required for the SpeechLM task.
+
+        This method provides a tuple of optional data names that can be utilized
+        during the training and inference processes of the SpeechLM task. These
+        data names can be used for various purposes such as managing input data
+        and facilitating model training or evaluation.
+
+        Args:
+            train (bool): A flag indicating whether the function is called during
+                training. Default is True.
+            inference (bool): A flag indicating whether the function is called
+                during inference. Default is False.
+
+        Returns:
+            Tuple[str, ...]: A tuple containing the optional data names.
+                Typically includes 'enc_seq' and 'prefix_len'.
+
+        Examples:
+            >>> optional_data = SpeechLMTask.optional_data_names()
+            >>> print(optional_data)
+            ('enc_seq', 'prefix_len')
+        """
         retval = ("enc_seq", "prefix_len")
         return retval
 
     @classmethod
     @typechecked
     def build_model(cls, args: argparse.Namespace) -> Union[AbsESPnetModel]:
+        """
+        Builds and initializes the speech language model based on the provided
+        arguments.
+
+        This method is responsible for constructing the core language model
+        and the overall model using the specified configurations. It also
+        handles the initialization of model parameters based on the selected
+        initialization method.
+
+        Args:
+            args (argparse.Namespace): The parsed command-line arguments
+                containing model configurations, token list, token bias,
+                and other parameters necessary for building the model.
+
+        Returns:
+            Union[AbsESPnetModel]: An instance of the speech language model
+                that has been built and initialized.
+
+        Raises:
+            RuntimeError: If `token_list` is not of type `str` or `list`,
+                or if `token_bias` is not of type `str` or `dict`.
+
+        Examples:
+            >>> from argparse import Namespace
+            >>> args = Namespace(
+            ...     token_list="path/to/token_list.txt",
+            ...     token_bias="path/to/token_bias.json",
+            ...     corelm="valle",
+            ...     model="espnet",
+            ...     init="xavier_uniform",
+            ...     corelm_conf={},
+            ...     model_conf={}
+            ... )
+            >>> model = SpeechLMTask.build_model(args)
+            >>> print(type(model))
+            <class 'espnet2.train.abs_espnet_model.AbsESPnetModel'>
+
+        Note:
+            Ensure that the token list and token bias files are correctly
+            formatted and accessible before calling this method.
+        """
 
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:

@@ -8,13 +8,35 @@ def add_optimizer_hooks(
     bias_weight_decay=False,
     normalization_weight_decay=False,
 ):
-    """Set zero weight decay for some params
+    """
+        Set zero weight decay for certain model parameters.
 
-    Set weight_decay=0.0 for parameters in model.no_weight_decay, for parameters with
-    attribute _no_weight_decay==True, for bias parameters if bias_weight_decay==False,
-    for normalization parameters if normalization_weight_decay==False
+    This function configures the weight decay for parameters in the given model.
+    It sets `weight_decay=0.0` for parameters that meet any of the following
+    criteria:
+    - Parameters in `model.no_weight_decay`.
+    - Parameters with the attribute `_no_weight_decay==True`.
+    - Bias parameters if `bias_weight_decay` is `False`.
+    - Normalization parameters if `normalization_weight_decay` is `False`.
 
-    See: https://discuss.pytorch.org/t/weight-decay-only-for-weights-of-nn-linear-and-nn-conv/114348 # noqa
+    For more information on weight decay behavior, refer to the following
+    discussion:
+    https://discuss.pytorch.org/t/weight-decay-only-for-weights-of-nn-linear-and-nn-conv/114348
+
+    Args:
+        model (nn.Module): The model whose parameters are to be configured.
+        bias_weight_decay (bool, optional): If `False`, bias parameters will have
+            zero weight decay. Defaults to `False`.
+        normalization_weight_decay (bool, optional): If `False`, normalization
+            parameters will have zero weight decay. Defaults to `False`.
+
+    Examples:
+        >>> import torch.nn as nn
+        >>> model = nn.Sequential(nn.Linear(10, 5), nn.BatchNorm1d(5))
+        >>> add_optimizer_hooks(model, bias_weight_decay=True, normalization_weight_decay=False)
+
+    Note:
+        This function modifies the parameters of the model in place.
     """
     # Separate out all parameters to those that will and won't experience regularizing
     # weight decay
@@ -46,6 +68,43 @@ def add_optimizer_hooks(
 
 def configure_optimizer(model, optim_class, optim_conf, weight_decay_conf):
     # Set zero weight decay for some params
+    """
+        Configure an optimizer for the given model with specified hyperparameters.
+
+    This function sets up the optimizer by separating model parameters into those that
+    should and should not have weight decay applied. It allows for special hyperparameters
+    to be defined for certain parameters while maintaining a consistent configuration for
+    the overall optimizer.
+
+    Args:
+        model (nn.Module): The PyTorch model whose parameters will be optimized.
+        optim_class (type): The optimizer class (e.g., torch.optim.SGD) to instantiate.
+        optim_conf (dict): A dictionary of keyword arguments to pass to the optimizer
+            constructor (e.g., learning rate, momentum).
+        weight_decay_conf (dict): A dictionary with keys 'bias_weight_decay' and
+            'normalization_weight_decay' that determine whether to apply weight decay
+            to bias and normalization layers.
+
+    Returns:
+        torch.optim.Optimizer: An instance of the configured optimizer.
+
+    Examples:
+        >>> import torch.optim as optim
+        >>> model = MyModel()
+        >>> optimizer = configure_optimizer(
+        ...     model,
+        ...     optim.SGD,
+        ...     {'lr': 0.01, 'momentum': 0.9},
+        ...     {'bias_weight_decay': False, 'normalization_weight_decay': True}
+        ... )
+
+    Note:
+        This function modifies the parameters of the model to include a special attribute
+        "_optim" that indicates optimizer settings for individual parameters.
+
+    Raises:
+        ValueError: If the optimizer class does not accept the provided configuration.
+    """
     add_optimizer_hooks(
         model,
         **weight_decay_conf,

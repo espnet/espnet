@@ -43,10 +43,16 @@ from espnet.nets.pytorch_backend.transformer.subsampling import (
 
 
 class MfaConformerEncoder(AbsEncoder):
-    """Conformer encoder module for MFA-Conformer.
+    """
+    Conformer encoder module for MFA-Conformer.
 
-    Paper: Y. Zhang et al., ``Mfa-conformer: Multi-scale feature aggregation
+    This module implements a Conformer encoder as described in the paper:
+    Y. Zhang et al., ``Mfa-conformer: Multi-scale feature aggregation
     conformer for automatic speaker verification,'' in Proc. INTERSPEECH, 2022.
+
+    Attributes:
+        _output_size (int): The output size of the encoder, calculated as
+            output_size multiplied by num_blocks.
 
     Args:
         input_size (int): Input dimension.
@@ -63,7 +69,7 @@ class MfaConformerEncoder(AbsEncoder):
         positionwise_conv_kernel_size (int): Kernel size of positionwise conv1d layer.
         rel_pos_type (str): Whether to use the latest relative positional encoding or
             the legacy one. The legacy relative positional encoding will be deprecated
-            in the future. More Details can be found in
+            in the future. More details can be found in
             https://github.com/espnet/espnet/pull/2816.
         encoder_pos_enc_layer_type (str): Encoder positional encoding layer type.
         encoder_attn_layer_type (str): Encoder attention layer type.
@@ -71,9 +77,21 @@ class MfaConformerEncoder(AbsEncoder):
         macaron_style (bool): Whether to use macaron style for positionwise layer.
         use_cnn_module (bool): Whether to use convolution module.
         zero_triu (bool): Whether to zero the upper triangular part of attention matrix.
-        cnn_module_kernel (int): Kernerl size of convolution module.
-        padding_idx (int): Padding idx for input_layer=embed.
+        cnn_module_kernel (int): Kernel size of convolution module.
+        padding_idx (int): Padding index for input_layer=embed.
 
+    Examples:
+        >>> encoder = MfaConformerEncoder(input_size=80, output_size=256)
+        >>> input_tensor = torch.randn(32, 100, 80)  # (batch, seq_len, input_size)
+        >>> output_tensor = encoder(input_tensor)
+        >>> output_tensor.shape
+        torch.Size([32, 100, 1536])  # (batch, seq_len, output_size * num_blocks)
+
+    Raises:
+        ValueError: If an unknown value is provided for `rel_pos_type`,
+            `pos_enc_layer_type`, `input_layer`, or `selfattention_layer_type`.
+        NotImplementedError: If the `positionwise_layer_type` is not supported.
+        ValueError: If the length of `stochastic_depth_rate` does not match `num_blocks`.
     """
 
     @typechecked
@@ -280,20 +298,59 @@ class MfaConformerEncoder(AbsEncoder):
         self.ln = LayerNorm(output_size * num_blocks)
 
     def output_size(self) -> int:
+        """
+            output_size (int): The output size of the encoder, calculated as the
+        product of the output size per block and the number of blocks in the
+        encoder. This value represents the dimension of the output tensor
+        produced by the encoder after processing the input.
+
+        Returns:
+            int: The computed output size of the encoder.
+
+        Examples:
+            >>> encoder = MfaConformerEncoder(input_size=128, output_size=256,
+            ...                                 num_blocks=6)
+            >>> encoder.output_size()
+            1536  # 256 * 6
+
+        Note:
+            This property is useful for determining the shape of the output
+            tensor when the encoder processes input data.
+        """
         return self._output_size
 
     def forward(
         self,
         x: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
-        """Calculate forward propagation.
+        """
+        Calculate forward propagation.
+
+        This method computes the forward pass of the MfaConformerEncoder,
+        taking an input tensor and passing it through the embedding layer
+        and a series of encoder layers, producing an output tensor.
 
         Args:
-            x (torch.Tensor): Input tensor (#batch, L, input_size).
+            x (torch.Tensor): Input tensor of shape (#batch, L, input_size).
 
         Returns:
-            torch.Tensor: Output tensor (#batch, L, output_size).
+            Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
+                - Output tensor of shape (#batch, L, output_size).
+                - Intermediate outputs for each encoder layer.
 
+        Raises:
+            NotImplementedError: If the input layer type is not supported.
+
+        Examples:
+            >>> encoder = MfaConformerEncoder(input_size=128)
+            >>> input_tensor = torch.randn(32, 100, 128)  # 32 batches, 100 length
+            >>> output = encoder.forward(input_tensor)
+            >>> print(output.shape)
+            torch.Size([32, 100, 1536])  # Assuming output_size is 256 and num_blocks is 6
+
+        Note:
+            The method assumes the input tensor is compatible with the defined
+            input layer type (e.g., Conv2d subsampling layers).
         """
         masks = None
 

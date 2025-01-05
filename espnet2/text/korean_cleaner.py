@@ -4,6 +4,44 @@ import re
 
 
 class KoreanCleaner:
+    """
+        KoreanCleaner is a utility class for normalizing Korean text by converting
+    numbers and English letters to their corresponding Korean representations.
+
+    This class contains methods to normalize numbers to Korean words and to
+    convert English letters to their phonetic Korean equivalents.
+
+    Methods:
+        - normalize_text: Strips the input text and normalizes both numbers and
+          English text.
+        - _normalize_numbers: Converts digits to their Korean word representations.
+        - _normalize_english_text: Converts English letters to their Korean phonetic
+          equivalents.
+
+    Examples:
+        >>> cleaner = KoreanCleaner()
+        >>> cleaner.normalize_text("Hello 123")
+        '헬로에이치 일 이 삼'
+
+        >>> cleaner.normalize_text("My number is 456.")
+        '마이 넘버 이 사 육.'
+
+        >>> cleaner.normalize_text("2023 is the year.")
+        '이 공 이 삼 년은 더 년이다.'
+
+    Attributes:
+        None
+
+    Args:
+        text (str): The input text to be normalized.
+
+    Returns:
+        str: The normalized text after converting numbers and English letters.
+
+    Raises:
+        None
+    """
+
     @classmethod
     def _normalize_numbers(cls, text):
         number_to_kor = {
@@ -68,6 +106,37 @@ class KoreanCleaner:
 
     @classmethod
     def normalize_text(cls, text):
+        """
+                Normalize the input text by stripping whitespace, converting numbers to their
+        Korean equivalents, and transforming English letters to their Korean phonetic
+        representations.
+
+        This method processes the input string through several stages to ensure that
+        numbers and English text are appropriately normalized for further use.
+
+        Attributes:
+            None
+
+        Args:
+            text (str): The input string that needs to be normalized.
+
+        Returns:
+            str: The normalized string after processing.
+
+        Examples:
+            >>> KoreanCleaner.normalize_text("Hello 123")
+            '에이치이이영삼'
+
+            >>> KoreanCleaner.normalize_text("  Test 456 ")
+            '티이영사사'
+
+        Note:
+            The normalization includes:
+                - Stripping leading and trailing whitespace.
+                - Converting digits to Korean words (e.g., '1' to '일').
+                - Converting uppercase English letters to their Korean phonetic
+                  representations (e.g., 'A' to '에이').
+        """
         # stage 0 : text strip
         text = text.strip()
 

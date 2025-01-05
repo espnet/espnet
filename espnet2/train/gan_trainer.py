@@ -45,29 +45,138 @@ except ImportError:
 
 @dataclasses.dataclass
 class GANTrainerOptions(TrainerOptions):
-    """Trainer option dataclass for GANTrainer."""
+    """
+        Trainer option dataclass for GANTrainer.
+
+    This class encapsulates the options that are specific to the GAN training
+    process, inheriting from TrainerOptions. The options defined here include
+    parameters that control the behavior of the generator and discriminator during
+    training.
+
+    Attributes:
+        generator_first (bool): Indicates whether to update the generator first
+            during training.
+        skip_discriminator_prob (float): The probability of skipping the
+            discriminator update step. If this value is greater than 0, the
+            discriminator will be updated with this probability.
+
+    Examples:
+        To create an instance of GANTrainerOptions with specific settings:
+
+        ```python
+        options = GANTrainerOptions(generator_first=True, skip_discriminator_prob=0.1)
+        ```
+
+        This instance indicates that the generator should be updated first, and
+        the discriminator update will be skipped with a probability of 0.1.
+    """
 
     generator_first: bool
     skip_discriminator_prob: float
 
 
 class GANTrainer(Trainer):
-    """Trainer for GAN-based training.
+    """
+        Trainer module for GAN-based training.
 
-    If you'd like to use this trainer, the model must inherit
-    espnet.train.abs_gan_espnet_model.AbsGANESPnetModel.
+    This class implements a trainer specifically designed for Generative Adversarial
+    Networks (GANs). It is intended to be used with models that inherit from
+    espnet.train.abs_gan_espnet_model.AbsGANESPnetModel. The GANTrainer manages the
+    training process, including forward and backward passes for both the generator
+    and discriminator networks.
 
+    Attributes:
+        generator_first (bool): Indicates whether to update the generator first.
+        skip_discriminator_prob (float): Probability of skipping the discriminator step.
+
+    Args:
+        args (argparse.Namespace): Command line arguments parsed by argparse.
+
+    Returns:
+        TrainerOptions: An instance of GANTrainerOptions containing the parsed options.
+
+    Raises:
+        NotImplementedError: If certain options (accum_grad > 1 or grad_noise) are used.
+
+    Examples:
+        To train a GAN using this trainer, you can create a model instance and call
+        the training methods as follows:
+
+        ```python
+        trainer = GANTrainer()
+        trainer.train_one_epoch(model, iterator, optimizers, schedulers, scaler,
+                                reporter, summary_writer, options, distributed_option)
+        ```
+
+        You can also validate the model with:
+
+        ```python
+        trainer.validate_one_epoch(model, iterator, reporter, options,
+                                    distributed_option)
+        ```
+
+    Note:
+        The GANTrainer requires a model that implements specific interfaces to handle
+        the GAN training process correctly.
+
+    Todo:
+        - Support for additional options such as accum_grad > 1 and grad_noise in
+          GAN-based training.
     """
 
     @classmethod
     @typechecked
     def build_options(cls, args: argparse.Namespace) -> TrainerOptions:
-        """Build options consumed by train(), eval(), and plot_attention()."""
+        """
+        Build options consumed by train(), eval(), and plot_attention().
+
+        This method constructs a set of options for the GANTrainer based on
+        the provided command-line arguments. It creates an instance of
+        GANTrainerOptions, which includes parameters specifically for GAN
+        training.
+
+        Args:
+            args (argparse.Namespace): The command-line arguments parsed.
+
+        Returns:
+            TrainerOptions: An instance of GANTrainerOptions populated with
+            the specified arguments.
+
+        Examples:
+            >>> import argparse
+            >>> parser = argparse.ArgumentParser()
+            >>> parser.add_argument('--generator_first', type=str2bool, default=False)
+            >>> parser.add_argument('--skip_discriminator_prob', type=float, default=0.0)
+            >>> args = parser.parse_args()
+            >>> options = GANTrainer.build_options(args)
+            >>> print(options.generator_first)
+            False
+            >>> print(options.skip_discriminator_prob)
+            0.0
+        """
         return build_dataclass(GANTrainerOptions, args)
 
     @classmethod
     def add_arguments(cls, parser: argparse.ArgumentParser):
-        """Add additional arguments for GAN-trainer."""
+        """
+            Add additional arguments for GAN-trainer.
+
+        This method extends the command-line argument parser with specific options
+        for the GANTrainer. It allows the user to specify whether to update the
+        generator first and the probability of skipping the discriminator step.
+
+        Args:
+            parser (argparse.ArgumentParser): The argument parser to which the
+                arguments will be added.
+
+        Examples:
+            >>> import argparse
+            >>> parser = argparse.ArgumentParser()
+            >>> GANTrainer.add_arguments(parser)
+            >>> args = parser.parse_args(["--generator_first", "True"])
+            >>> print(args.generator_first)  # Output: True
+            >>> print(args.skip_discriminator_prob)  # Output: 0.0 (default)
+        """
         parser.add_argument(
             "--generator_first",
             type=str2bool,
@@ -95,7 +204,56 @@ class GANTrainer(Trainer):
         options: GANTrainerOptions,
         distributed_option: DistributedOption,
     ) -> bool:
-        """Train one epoch."""
+        """
+        Train one epoch.
+
+        This method performs a single epoch of training for the GAN model.
+        It handles the forward and backward passes for both the generator and
+        discriminator, applying optimizations and logging the training
+        statistics.
+
+        Args:
+            model (torch.nn.Module): The GAN model to be trained.
+            iterator (Iterable[Tuple[List[str], Dict[str, torch.Tensor]]]):
+                An iterable that provides batches of data for training.
+            optimizers (Sequence[torch.optim.Optimizer]): A sequence of
+                optimizers for the generator and discriminator.
+            schedulers (Sequence[Optional[AbsScheduler]]): A sequence of
+                schedulers for adjusting the learning rate.
+            scaler (Optional[GradScaler]): A GradScaler for mixed precision
+                training.
+            reporter (SubReporter): An object for reporting training
+                statistics.
+            summary_writer: A writer for logging summaries (e.g., TensorBoard).
+            options (GANTrainerOptions): The options for the GAN training
+                process.
+            distributed_option (DistributedOption): Options for distributed
+                training.
+
+        Returns:
+            bool: True if all steps in the epoch were invalid (i.e., no valid
+            updates were made), otherwise False.
+
+        Raises:
+            NotImplementedError: If certain options like `accum_grad` or
+            `grad_noise` are set to unsupported values.
+
+        Examples:
+            >>> options = GANTrainerOptions(generator_first=True,
+            ...                              skip_discriminator_prob=0.1)
+            >>> result = GANTrainer.train_one_epoch(model, iterator,
+            ...                                      optimizers, schedulers,
+            ...                                      scaler, reporter,
+            ...                                      summary_writer, options,
+            ...                                      distributed_option)
+
+        Note:
+            This method assumes that the model has a forward method that
+            returns a dictionary containing the loss and statistics.
+
+        Todo:
+            - Support for `accum_grad > 1` and `grad_noise`.
+        """
 
         grad_noise = options.grad_noise
         accum_grad = options.accum_grad

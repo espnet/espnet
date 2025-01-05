@@ -13,9 +13,55 @@ from espnet2.gan_codec.soundstream.soundstream import SoundStream
 
 class Encodec(SoundStream):
     """
-    Encodec Model: https://arxiv.org/abs/2210.13438
-    The key differences between this and SoundStream are the discriminator
-    and loss balancer. Check SoundStream model for many details
+    Encodec Model for audio encoding and decoding.
+
+    This model is based on the SoundStream architecture with modifications to
+    the discriminator and loss balancer. It is designed for efficient audio
+    encoding and reconstruction tasks.
+
+    For more details, refer to the paper:
+    https://arxiv.org/abs/2210.13438
+
+    Attributes:
+        discriminator (EncodecDiscriminator): The discriminator component of
+            the model.
+
+    Args:
+        sampling_rate (int): The sampling rate of the audio. Default is 24000.
+        generator_params (Dict[str, Any]): Parameters for the generator model.
+        discriminator_params (Dict[str, Any]): Parameters for the discriminator
+            model.
+        generator_adv_loss_params (Dict[str, Any]): Parameters for the generator
+            adversarial loss.
+        discriminator_adv_loss_params (Dict[str, Any]): Parameters for the
+            discriminator adversarial loss.
+        use_feat_match_loss (bool): Whether to use feature matching loss.
+            Default is True.
+        feat_match_loss_params (Dict[str, Any]): Parameters for feature matching
+            loss.
+        use_mel_loss (bool): Whether to use mel loss. Default is True.
+        mel_loss_params (Dict[str, Any]): Parameters for mel loss.
+        use_dual_decoder (bool): Whether to use dual decoding mechanism.
+            Default is True.
+        lambda_quantization (float): Weight for quantization loss. Default is
+            1.0.
+        lambda_reconstruct (float): Weight for reconstruction loss. Default is
+            1.0.
+        lambda_commit (float): Weight for commitment loss. Default is 1.0.
+        lambda_adv (float): Weight for adversarial loss. Default is 1.0.
+        lambda_feat_match (float): Weight for feature matching loss. Default is
+            2.0.
+        lambda_mel (float): Weight for mel loss. Default is 45.0.
+        cache_generator_outputs (bool): Whether to cache generator outputs.
+            Default is False.
+        use_loss_balancer (bool): Whether to use loss balancing. Default is
+            False.
+        balance_ema_decay (float): Exponential moving average decay for loss
+            balancing. Default is 0.99.
+
+    Examples:
+        # Creating an instance of the Encodec model
+        model = Encodec(sampling_rate=24000, use_feat_match_loss=True)
     """
 
     def __init__(
@@ -127,7 +173,51 @@ class Encodec(SoundStream):
 
 
 class EncodecDiscriminator(torch.nn.Module):
-    """Encodec Discriminator with only Multi-Scale STFT discriminator module"""
+    """
+        Encodec Discriminator with only Multi-Scale STFT discriminator module.
+
+    This class implements the Encodec Discriminator, which utilizes a
+    Multi-Scale Short-Time Fourier Transform (STFT) for analyzing the
+    input signals. It is designed to work in conjunction with the
+    Encodec model for adversarial training.
+
+    Attributes:
+        msstft (MultiScaleSTFTDiscriminator): The Multi-Scale STFT
+            discriminator module.
+
+    Args:
+        msstft_discriminator_params (Dict[str, Any]): A dictionary of
+            parameters for initializing the Multi-Scale STFT discriminator
+            with the following keys:
+            - in_channels (int): Number of input channels.
+            - out_channels (int): Number of output channels.
+            - filters (int): Number of filters in convolutions.
+            - norm (str): Normalization choice of Convolutional layers.
+            - n_ffts (Sequence[int]): Size of FFT for each scale.
+            - hop_lengths (Sequence[int]): Length of hop between STFT windows
+                for each scale.
+            - win_lengths (Sequence[int]): Window size for each scale.
+            - activation (str): Activation function choice of convolutional
+                layer.
+            - activation_params (Dict[str, Any]): Parameters for the
+                activation function.
+
+    Examples:
+        >>> discriminator = EncodecDiscriminator()
+        >>> input_tensor = torch.randn(8, 1, 1024)  # Batch size of 8, 1 channel, 1024 samples
+        >>> outputs = discriminator(input_tensor)
+        >>> print(len(outputs))  # Number of scales
+        >>> print(len(outputs[0]))  # Number of outputs for the first scale
+
+    Returns:
+        List[List[Tensor]]: A list of lists of each discriminator output,
+        which consists of each layer output tensors. Only one discriminator
+        is used here, but the output is structured as a list of lists for
+        consistency.
+
+    Raises:
+        ValueError: If any of the parameters are invalid during initialization.
+    """
 
     def __init__(
         self,
@@ -163,16 +253,41 @@ class EncodecDiscriminator(torch.nn.Module):
         self.msstft = MultiScaleSTFTDiscriminator(**msstft_discriminator_params)
 
     def forward(self, x: torch.Tensor) -> List[List[torch.Tensor]]:
-        """Calculate forward propagation.
+        """
+            Encodec Discriminator with only Multi-Scale STFT discriminator module.
+
+        This class implements the Encodec Discriminator, which utilizes a
+        Multi-Scale Short-Time Fourier Transform (STFT) for evaluating
+        the quality of generated audio signals. The discriminator aims
+        to distinguish between real and generated audio, contributing to
+        the adversarial training process.
+
+        Attributes:
+            msstft (MultiScaleSTFTDiscriminator): The multi-scale STFT
+                discriminator instance used for feature extraction.
 
         Args:
-            x (Tensor): Input noise signal (B, 1, T).
+            msstft_discriminator_params (Dict[str, Any]): Parameters for the
+                Multi-Scale STFT Discriminator, including:
+                - in_channels (int): Number of input channels.
+                - out_channels (int): Number of output channels.
+                - filters (int): Number of filters in convolutions.
+                - norm (str): Normalization choice for convolutional layers.
+                - n_ffts (Sequence[int]): Sizes of FFT for each scale.
+                - hop_lengths (Sequence[int]): Length of hop between STFT
+                    windows for each scale.
+                - win_lengths (Sequence[int]): Window sizes for each scale.
+                - activation (str): Activation function choice for
+                    convolutional layers.
+                - activation_params (Dict[str, Any]): Parameters for the
+                    activation function.
 
-        Returns:
-            List[List[Tensor]]: List of list of each discriminator outputs,
-                which consists of each layer output tensors. Only one
-                discriminator here, but still make it as List of List for
-                consistency.
+        Examples:
+            >>> discriminator = EncodecDiscriminator()
+            >>> input_signal = torch.randn(8, 1, 16000)  # Batch of 8, 1 channel, 16000 samples
+            >>> outputs = discriminator(input_signal)
+            >>> print(len(outputs))  # Number of scales
+            >>> print(len(outputs[0]))  # Number of layers in the first scale
         """
 
         msstft_out = self.msstft(x)

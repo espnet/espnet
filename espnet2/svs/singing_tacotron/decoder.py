@@ -15,23 +15,83 @@ from espnet.nets.pytorch_backend.tacotron2.decoder import Postnet, Prenet, ZoneO
 
 
 def decoder_init(m):
-    """Initialize decoder parameters."""
+    """
+        Initialize decoder parameters.
+
+    This function initializes the parameters of the decoder. Specifically, it applies
+    Xavier uniform initialization to the weights of Conv1d layers in the decoder model
+    using the "tanh" gain.
+
+    Args:
+        m (torch.nn.Module): The module (layer) whose parameters are to be initialized.
+
+    Raises:
+        ValueError: If the input module is not an instance of torch.nn.Module.
+
+    Examples:
+        >>> layer = torch.nn.Conv1d(in_channels=1, out_channels=1, kernel_size=3)
+        >>> decoder_init(layer)
+        >>> print(layer.weight)  # Initialized weights
+    """
     if isinstance(m, torch.nn.Conv1d):
         torch.nn.init.xavier_uniform_(m.weight, torch.nn.init.calculate_gain("tanh"))
 
 
 class Decoder(torch.nn.Module):
-    """Decoder module of Spectrogram prediction network.
+    """
+        Decoder module of Spectrogram prediction network.
 
-    This is a module of decoder of Spectrogram prediction network in Singing Tacotron,
-    which described in `https://arxiv.org/pdf/2202.07907v1.pdf`_.
-    The decoder generates the sequence of
-    features from the sequence of the hidden states.
+    This is a module of the decoder of the Spectrogram prediction network in Singing
+    Tacotron, which is described in `Singing-Tacotron: Global Duration Control Attention
+    and Dynamic Filter for End-to-end Singing Voice Synthesis`_.
 
     .. _`Singing-Tacotron: Global Duration Control Attention and Dynamic
     Filter for End-to-end Singing Voice Synthesis`:
        https://arxiv.org/pdf/2202.07907v1.pdf
 
+    Attributes:
+        idim (int): Dimension of the inputs.
+        odim (int): Dimension of the outputs.
+        att (torch.nn.Module): Instance of the attention class.
+        output_activation_fn (torch.nn.Module or None): Activation function for outputs.
+        cumulate_att_w (bool): Whether to cumulate previous attention weight.
+        use_concate (bool): Whether to concatenate encoder embedding with decoder LSTM
+            outputs.
+        reduction_factor (int): Reduction factor.
+
+    Args:
+        idim (int): Dimension of the inputs.
+        odim (int): Dimension of the outputs.
+        att (torch.nn.Module): Instance of attention class.
+        dlayers (int, optional): The number of decoder LSTM layers. Defaults to 2.
+        dunits (int, optional): The number of decoder LSTM units. Defaults to 1024.
+        prenet_layers (int, optional): The number of prenet layers. Defaults to 2.
+        prenet_units (int, optional): The number of prenet units. Defaults to 256.
+        postnet_layers (int, optional): The number of postnet layers. Defaults to 5.
+        postnet_chans (int, optional): The number of postnet filter channels. Defaults to
+            512.
+        postnet_filts (int, optional): The number of postnet filter size. Defaults to 5.
+        output_activation_fn (torch.nn.Module, optional): Activation function for outputs.
+        cumulate_att_w (bool, optional): Whether to cumulate previous attention weight.
+            Defaults to True.
+        use_batch_norm (bool, optional): Whether to use batch normalization. Defaults to
+            True.
+        use_concate (bool, optional): Whether to concatenate encoder embedding with
+            decoder LSTM outputs. Defaults to True.
+        dropout_rate (float, optional): Dropout rate. Defaults to 0.5.
+        zoneout_rate (float, optional): Zoneout rate. Defaults to 0.1.
+        reduction_factor (int, optional): Reduction factor. Defaults to 1.
+
+    Examples:
+        decoder = Decoder(idim=80, odim=80, att=some_attention_instance)
+        output, before_out, logits, att_ws = decoder(hs, hlens, trans_token, ys)
+
+    Note:
+        The `forward` computation is performed in a teacher-forcing manner.
+
+    Raises:
+        ValueError: If the dimensions of input tensors do not match the expected
+            dimensions.
     """
 
     def __init__(
@@ -144,14 +204,40 @@ class Decoder(torch.nn.Module):
         return init_hs
 
     def forward(self, hs, hlens, trans_token, ys):
-        """Calculate forward propagation.
+        """
+                Singing Tacotron decoder related modules.
+
+        This module implements the Decoder class for the Singing Tacotron model, which
+        generates sequences of features from sequences of hidden states.
+
+        Attributes:
+            idim (int): Dimension of the inputs.
+            odim (int): Dimension of the outputs.
+            att (torch.nn.Module): Instance of the attention class.
+            output_activation_fn (torch.nn.Module, optional): Activation function for outputs.
+            cumulate_att_w (bool): Whether to cumulate previous attention weight.
+            use_concate (bool): Whether to concatenate encoder embedding with decoder LSTM outputs.
+            reduction_factor (int): Reduction factor.
 
         Args:
-            hs (Tensor): Batch of the sequences of padded hidden states (B, Tmax, idim).
-            hlens (LongTensor): Batch of lengths of each input batch (B,).
-            trans_token (Tensor): Global transition token for duration (B x Tmax x 1)
-            ys (Tensor):
-                Batch of the sequences of padded target features (B, Lmax, odim).
+            idim (int): Dimension of the inputs.
+            odim (int): Dimension of the outputs.
+            att (torch.nn.Module): Instance of attention class.
+            dlayers (int, optional): The number of decoder LSTM layers.
+            dunits (int, optional): The number of decoder LSTM units.
+            prenet_layers (int, optional): The number of prenet layers.
+            prenet_units (int, optional): The number of prenet units.
+            postnet_layers (int, optional): The number of postnet layers.
+            postnet_filts (int, optional): The number of postnet filter size.
+            postnet_chans (int, optional): The number of postnet filter channels.
+            output_activation_fn (torch.nn.Module, optional): Activation function for outputs.
+            cumulate_att_w (bool, optional): Whether to cumulate previous attention weight.
+            use_batch_norm (bool, optional): Whether to use batch normalization.
+            use_concate (bool, optional): Whether to concatenate encoder embedding with
+                decoder LSTM outputs.
+            dropout_rate (float, optional): Dropout rate.
+            zoneout_rate (float, optional): Zoneout rate.
+            reduction_factor (int, optional): Reduction factor.
 
         Returns:
             Tensor: Batch of output tensors after postnet (B, Lmax, odim).
@@ -162,6 +248,10 @@ class Decoder(torch.nn.Module):
         Note:
             This computation is performed in teacher-forcing manner.
 
+        Examples:
+            decoder = Decoder(idim=80, odim=80, att=attention_instance)
+            output, before_output, logits, att_weights = decoder.forward(hs, hlens,
+            trans_token, ys)
         """
         # thin out frames (B, Lmax, odim) ->  (B, Lmax/r, odim)
         if self.reduction_factor > 1:
@@ -249,7 +339,8 @@ class Decoder(torch.nn.Module):
         backward_window=1,
         forward_window=3,
     ):
-        """Generate the sequence of features given the sequences of characters.
+        """
+        Generate the sequence of features given the sequences of characters.
 
         Args:
             h (Tensor): Input sequence of encoder hidden states (T, C).
@@ -258,7 +349,7 @@ class Decoder(torch.nn.Module):
             minlenratio (float, optional): Minimum length ratio.
                 If set to 1.0 and the length of input is 10,
                 the minimum length of outputs will be 10 * 1 = 10.
-            minlenratio (float, optional): Minimum length ratio.
+            maxlenratio (float, optional): Maximum length ratio.
                 If set to 10 and the length of input is 10,
                 the maximum length of outputs will be 10 * 10 = 100.
             use_att_constraint (bool):
@@ -267,13 +358,22 @@ class Decoder(torch.nn.Module):
                 Whether to apply dynamic filter introduced in `Singing Tacotron`_.
             backward_window (int): Backward window size in attention constraint.
             forward_window (int): Forward window size in attention constraint.
+
         Returns:
             Tensor: Output sequence of features (L, odim).
             Tensor: Output sequence of stop probabilities (L,).
             Tensor: Attention weights (L, T).
+
         Note:
             This computation is performed in auto-regressive manner.
+
+        Examples:
+            >>> h = torch.randn(50, 256)  # Example hidden states
+            >>> trans_token = torch.randn(50, 1)  # Example transition token
+            >>> outs, probs, att_ws = decoder.inference(h, trans_token)
+
         .. _`Deep Voice 3`: https://arxiv.org/abs/1710.07654
+        .. _`Singing Tacotron`: https://arxiv.org/pdf/2202.07907v1.pdf
         """
         # setup
         assert len(h.size()) == 2

@@ -8,7 +8,58 @@ from espnet.nets.pytorch_backend.conformer.encoder import Encoder
 
 
 class PhonemePredictor(torch.nn.Module):
-    """Phoneme Predictor module in VISinger."""
+    """
+        Phoneme Predictor module in VISinger.
+
+    This module is designed to predict phonemes from input features using a deep
+    learning model. It utilizes an encoder structure to process the input and
+    outputs phoneme predictions.
+
+    Attributes:
+        phoneme_predictor (Encoder): The encoder used for phoneme prediction.
+        linear1 (Linear): The linear layer for mapping the output to the vocabulary size.
+
+    Args:
+        vocabs (int): The number of vocabulary.
+        hidden_channels (int): The number of hidden channels.
+        attention_dim (int): The number of attention dimension.
+        attention_heads (int): The number of attention heads.
+        linear_units (int): The number of linear units.
+        blocks (int): The number of encoder blocks.
+        positionwise_layer_type (str): The type of position-wise layer.
+        positionwise_conv_kernel_size (int): The size of position-wise convolution kernel.
+        positional_encoding_layer_type (str): The type of positional encoding layer.
+        self_attention_layer_type (str): The type of self-attention layer.
+        activation_type (str): The type of activation function.
+        normalize_before (bool): Whether to apply normalization before the position-wise
+                                 layer or not.
+        use_macaron_style (bool): Whether to use macaron style or not.
+        use_conformer_conv (bool): Whether to use Conformer convolution or not.
+        conformer_kernel_size (int): The size of Conformer kernel.
+        dropout_rate (float): The dropout rate.
+        positional_dropout_rate (float): The dropout rate for positional encoding.
+        attention_dropout_rate (float): The dropout rate for attention.
+
+    Examples:
+        # Create a PhonemePredictor instance
+        predictor = PhonemePredictor(vocabs=50)
+
+        # Forward pass with random input and mask
+        input_tensor = torch.randn(32, 192, 100)  # (Batch, Dim, Length)
+        input_mask = torch.ones(32, 100)           # (Batch, Length)
+        output = predictor(input_tensor, input_mask)
+        print(output.shape)  # Should output (100, 32, 50)
+
+    Raises:
+        ValueError: If any of the arguments are invalid (e.g., negative values).
+
+    Note:
+        This module requires PyTorch and is designed to be used within the ESPnet
+        framework.
+
+    Todo:
+        - Implement additional evaluation metrics for phoneme prediction accuracy.
+    """
 
     @typechecked
     def __init__(
@@ -81,15 +132,39 @@ class PhonemePredictor(torch.nn.Module):
         self.linear1 = torch.nn.Linear(hidden_channels, vocabs)
 
     def forward(self, x, x_mask):
-        """Perform forward propagation.
+        """
+            Perform forward propagation through the Phoneme Predictor.
+
+        This method takes an input tensor and its corresponding mask, processes them
+        through the phoneme predictor encoder, and returns the predicted phoneme
+        probabilities.
 
         Args:
-            x (Tensor): The input tensor of shape (B, dim, length).
-            x_mask (Tensor): The mask tensor for the input tensor of shape (B, length).
+            x (Tensor): The input tensor of shape (B, dim, length), where B is the
+                        batch size, dim is the number of features, and length is
+                        the sequence length.
+            x_mask (Tensor): The mask tensor for the input tensor of shape (B, length),
+                             used to ignore padding in the input during processing.
 
         Returns:
-            Tensor: The predicted phoneme tensor of shape (length, B, vocab_size).
+            Tensor: The predicted phoneme tensor of shape (length, B, vocab_size),
+                    where vocab_size is the number of phoneme classes. The tensor
+                    contains log probabilities for each phoneme at each position
+                    in the input sequence.
 
+        Examples:
+            >>> model = PhonemePredictor(vocabs=50)
+            >>> input_tensor = torch.rand(32, 128, 100)  # (B, dim, length)
+            >>> input_mask = torch.ones(32, 100)          # (B, length)
+            >>> output = model.forward(input_tensor, input_mask)
+            >>> print(output.shape)  # Output: (100, 32, 50)
+
+        Note:
+            Ensure that the input tensor and mask are properly aligned and that the
+            mask has the correct shape to avoid issues during processing.
+
+        Raises:
+            ValueError: If the dimensions of the input tensor and mask do not match.
         """
 
         x = x * x_mask

@@ -19,6 +19,27 @@ except (ImportError, ModuleNotFoundError):
 
 
 class NOTE(object):
+    """
+    This class to represent musical notes with associated metadata.
+
+    Attributes:
+        lyric (str): The lyric associated with the note.
+        midi (int): The MIDI pitch value of the note.
+        st (float): The start time of the note in seconds.
+        et (float): The end time of the note in seconds.
+
+    Examples:
+        >>> note = NOTE("hello", 60, 0.0, 0.5)
+        >>> print(note.lyric)
+        hello
+        >>> print(note.midi)
+        60
+        >>> print(note.st)
+        0.0
+        >>> print(note.et)
+        0.5
+    """
+
     def __init__(self, lyric, midi, st, et):
         self.lyric = lyric
         self.midi = midi
@@ -27,17 +48,44 @@ class NOTE(object):
 
 
 class XMLReader(collections.abc.Mapping):
-    """Reader class for 'xml.scp'.
+    """
+    Reader class for 'xml.scp'.
+
+    This class allows reading XML files corresponding to musical scores.
+    Each key in the 'xml.scp' file maps to a specific XML file, which can be
+    parsed to extract musical information such as tempo and notes.
+
+    Attributes:
+        fname (Union[Path, str]): The file name or path to the 'xml.scp' file.
+        dtype (type): The data type for note representation, default is np.int16.
+        data (dict): A dictionary containing the mapping of keys to XML file paths.
+
+    Args:
+        fname (Union[Path, str]): Path to the 'xml.scp' file.
+        dtype (type): Data type for note representation (default: np.int16).
+
+    Returns:
+        None
 
     Examples:
-        key1 /some/path/a.xml
-        key2 /some/path/b.xml
-        key3 /some/path/c.xml
-        key4 /some/path/d.xml
-        ...
+        Given the following entries in 'xml.scp':
+            key1 /some/path/a.xml
+            key2 /some/path/b.xml
+            key3 /some/path/c.xml
+            key4 /some/path/d.xml
 
-        >>> reader = XMLScpReader('xml.scp')
+        You can access the tempo and note list as follows:
+
+        >>> reader = XMLReader('xml.scp')
         >>> tempo, note_list = reader['key1']
+
+    Raises:
+        AssertionError: If the music21 package is not available.
+
+    Note:
+        Ensure that the music21 library is installed to use this class.
+        If it's not installed, follow the instructions to install the Muskit
+        modules via (cd tools && make muskit.done).
     """
 
     @typechecked
@@ -119,6 +167,31 @@ class XMLReader(collections.abc.Mapping):
         return tempo, notes_list
 
     def get_path(self, key):
+        """
+            Retrieve the file path associated with a given key.
+
+        This method accesses the internal data dictionary to return the
+        path of the XML or MIDI file associated with the provided key.
+
+        Args:
+            key (str): The key for which the file path is to be retrieved.
+
+        Returns:
+            str: The file path corresponding to the provided key.
+
+        Raises:
+            KeyError: If the key is not found in the data dictionary.
+
+        Examples:
+            >>> reader = XMLReader('xml.scp')
+            >>> path = reader.get_path('key1')
+            >>> print(path)
+            /some/path/a.xml
+
+        Note:
+            Ensure that the key exists in the data before calling this method
+            to avoid a KeyError.
+        """
         return self.data[key]
 
     def __contains__(self, item):
@@ -131,11 +204,63 @@ class XMLReader(collections.abc.Mapping):
         return iter(self.data)
 
     def keys(self):
+        """
+            Reader class for 'xml.scp'.
+
+        This class reads XML files specified in a key-value format from an input
+        file (xml.scp). Each key corresponds to a path of an XML file, and the
+        class provides methods to access the tempo and a list of notes for each
+        key.
+
+        Attributes:
+            fname (Union[Path, str]): The path to the input file containing keys
+                and their corresponding XML file paths.
+            dtype (type): The data type for notes, default is numpy.int16.
+            data (dict): A dictionary containing the mapping of keys to XML file
+                paths.
+
+        Args:
+            fname (Union[Path, str]): The path to the 'xml.scp' file.
+            dtype (type, optional): The data type for notes. Defaults to np.int16.
+
+        Returns:
+            Tuple[int, List[NOTE]]: The tempo as an integer and a list of NOTE
+            objects.
+
+        Raises:
+            AssertionError: If the music21 package cannot be imported.
+
+        Examples:
+            key1 /some/path/a.xml
+            key2 /some/path/b.xml
+            key3 /some/path/c.xml
+            key4 /some/path/d.xml
+            ...
+
+            >>> reader = XMLReader('xml.scp')
+            >>> tempo, note_list = reader['key1']
+        """
         return self.data.keys()
 
 
 class XMLWriter:
-    """Writer class for 'midi.scp'
+    """
+    Writer class for 'midi.scp'.
+
+    This class is responsible for writing XML representations of musical
+    scores to specified files and maintaining a corresponding SCP (score
+    control protocol) file that maps keys to file paths.
+
+    Attributes:
+        dir (Path): The output directory where XML files will be stored.
+        fscp (TextIOWrapper): The file object for writing the SCP file.
+        data (dict): A dictionary that maps keys to their corresponding XML
+            file paths.
+
+    Args:
+        outdir (Union[Path, str]): The directory where XML files will be
+            saved.
+        scpfile (Union[Path, str]): The path of the SCP file to be written.
 
     Examples:
         key1 /some/path/a.musicxml
@@ -144,10 +269,18 @@ class XMLWriter:
         key4 /some/path/d.musicxml
         ...
 
-        >>> writer = XMLScpWriter('./data/', './data/xml.scp')
+        >>> writer = XMLWriter('./data/', './data/xml.scp')
         >>> writer['aa'] = xml_obj
         >>> writer['bb'] = xml_obj
 
+    Raises:
+        AssertionError: If the value provided does not contain exactly four
+            elements (lyrics, notes, segmentations, and tempo) when using
+            the __setitem__ method.
+
+    Note:
+        Ensure that the music21 library is installed, as it is required for
+        creating and writing XML files.
     """
 
     @typechecked
@@ -195,6 +328,31 @@ class XMLWriter:
         self.data[key] = str(xml_path)
 
     def get_path(self, key):
+        """
+        Retrieve the file path associated with a given key.
+
+        This method returns the path to the XML file that corresponds to
+        the specified key in the internal data dictionary.
+
+        Args:
+            key (str): The key whose associated file path is to be retrieved.
+
+        Returns:
+            str: The file path associated with the given key.
+
+        Raises:
+            KeyError: If the key does not exist in the data dictionary.
+
+        Examples:
+            >>> writer = XMLWriter('./data/', './data/xml.scp')
+            >>> writer['example'] = xml_obj
+            >>> path = writer.get_path('example')
+            >>> print(path)  # Output: ./data/example.musicxml
+
+        Note:
+            Ensure that the key exists in the data dictionary before calling
+            this method to avoid a KeyError.
+        """
         return self.data[key]
 
     def __enter__(self):
@@ -204,11 +362,69 @@ class XMLWriter:
         self.close()
 
     def close(self):
+        """
+        Writer class for 'midi.scp'.
+
+            This class allows for writing MusicXML files and generating a corresponding
+            SCP (script) file that maps keys to their respective MusicXML file paths.
+            The data is organized in a way that facilitates easy access and storage.
+
+            Attributes:
+                dir (Path): The directory where MusicXML files will be stored.
+                fscp (TextIOWrapper): The file handle for the SCP file.
+                data (dict): A dictionary mapping keys to their corresponding MusicXML paths.
+
+            Args:
+                outdir (Union[Path, str]): The output directory for MusicXML files.
+                scpfile (Union[Path, str]): The path for the SCP file to be created.
+
+            Examples:
+                key1 /some/path/a.musicxml
+                key2 /some/path/b.musicxml
+                key3 /some/path/c.musicxml
+                key4 /some/path/d.musicxml
+                ...
+
+                >>> writer = XMLWriter('./data/', './data/xml.scp')
+                >>> writer['aa'] = xml_obj
+                >>> writer['bb'] = xml_obj
+
+            Raises:
+                AssertionError: If the provided value tuple does not contain exactly four
+                elements when using `__setitem__`.
+
+            Note:
+                The XML values provided to `__setitem__` should include lyrics, notes,
+                segmentations, and tempo, in that order.
+        """
         self.fscp.close()
 
 
 class MIDReader(collections.abc.Mapping):
-    """Reader class for 'mid.scp'.
+    """
+    Reader class for 'mid.scp'.
+
+    This class reads MIDI files and extracts the tempo and note sequences
+    from them. The data is organized in a key-value format, where each key
+    corresponds to a path of a MIDI file.
+
+    Attributes:
+        fname (Union[Path, str]): The filename or path of the 'mid.scp' file.
+        dtype (type): The data type to be used for the MIDI values (default: np.int16).
+        add_rest (bool): A flag to indicate whether to add rest notes to the
+            note sequence (default: True).
+        data (dict): A dictionary containing the key-value pairs from the
+            'mid.scp' file.
+
+    Args:
+        fname (Union[Path, str]): The path to the 'mid.scp' file.
+        add_rest (bool, optional): Whether to include rest notes in the
+            output. Defaults to True.
+        dtype (type, optional): The data type for MIDI values. Defaults to np.int16.
+
+    Returns:
+        tuple: A tuple containing the tempo (int) and a list of NOTE objects
+            representing the notes in the MIDI file.
 
     Examples:
         key1 /some/path/a.mid
@@ -217,8 +433,17 @@ class MIDReader(collections.abc.Mapping):
         key4 /some/path/d.mid
         ...
 
-        >>> reader = XMLScpReader('mid.scp')
+        >>> reader = MIDReader('mid.scp')
         >>> tempo, note_list = reader['key1']
+
+    Raises:
+        AssertionError: If the miditoolkit package is not available or if the
+            tempo changes are not correctly identified in the MIDI file.
+
+    Note:
+        The MIDI files do not contain explicit rest notes; however, the
+        `add_rest` option allows the insertion of implicit rest notes based on
+        the timing of the notes.
     """
 
     @typechecked
@@ -263,6 +488,30 @@ class MIDReader(collections.abc.Mapping):
         return tempo, notes_list
 
     def get_path(self, key):
+        """
+            Retrieve the file path associated with the given key.
+
+        This method returns the file path for the specified key in the
+        mapping. The key must exist in the internal data structure.
+
+        Args:
+            key (str): The key for which to retrieve the file path.
+
+        Returns:
+            str: The file path associated with the provided key.
+
+        Raises:
+            KeyError: If the key is not found in the data.
+
+        Examples:
+            >>> reader = MIDReader('mid.scp')
+            >>> path = reader.get_path('key1')
+            >>> print(path)  # Output: /some/path/a.mid
+
+        Note:
+            Ensure that the key exists in the mapping before calling
+            this method to avoid a KeyError.
+        """
         return self.data[key]
 
     def __contains__(self, item):
@@ -275,11 +524,74 @@ class MIDReader(collections.abc.Mapping):
         return iter(self.data)
 
     def keys(self):
+        """
+            Reader class for 'mid.scp'.
+
+        This class provides functionality to read MIDI files and extract
+        relevant musical information, including tempo and note sequences.
+        It can read a mapping of keys to MIDI file paths from a specified
+        file, allowing easy access to the MIDI data.
+
+        Attributes:
+            fname (Union[Path, str]): The path to the 'mid.scp' file.
+            dtype (type): The data type for note representation (default: np.int16).
+            add_rest (bool): Indicates whether to add rest notes into the note
+                sequence (default: True).
+            data (dict): A dictionary mapping keys to MIDI file paths.
+
+        Args:
+            fname (Union[Path, str]): The path to the 'mid.scp' file.
+            add_rest (bool, optional): Whether to include rest notes in the output.
+                Defaults to True.
+            dtype (type, optional): The data type for note representation.
+                Defaults to np.int16.
+
+        Returns:
+            tempo (int): The tempo of the MIDI file.
+            notes_list (list): A list of NOTE objects representing the notes.
+
+        Examples:
+            >>> reader = MIDReader('mid.scp')
+            >>> tempo, note_list = reader['key1']
+            >>> print(tempo)
+            120
+            >>> print(note_list)
+            [<__main__.NOTE object at 0x...>, <__main__.NOTE object at 0x...>, ...]
+
+        Raises:
+            AssertionError: If the miditoolkit package is not installed or if
+                the MIDI file cannot be parsed.
+
+        Note:
+            The MIDReader class uses the miditoolkit package to parse MIDI files.
+            Ensure that the package is installed for proper functionality.
+
+        Todo:
+            - Implement support for additional MIDI file formats.
+            - Add more robust error handling for MIDI parsing.
+        """
         return self.data.keys()
 
 
 class SingingScoreReader(collections.abc.Mapping):
-    """Reader class for 'score.scp'.
+    """
+    Reader class for 'score.scp'.
+
+    This class provides an interface to read singing scores from a
+    specified file. The file should contain paths to JSON files that
+    represent the musical scores.
+
+    Attributes:
+        fname (Union[Path, str]): The file name or path of the 'score.scp' file.
+        dtype (type): The data type for numerical values (default: np.int16).
+        data (dict): A dictionary mapping keys to file paths read from 'score.scp'.
+
+    Args:
+        fname (Union[Path, str]): The path to the 'score.scp' file.
+        dtype (type, optional): The data type for numerical values (default: np.int16).
+
+    Returns:
+        dict: The content of the JSON file corresponding to the key.
 
     Examples:
         key1 /some/path/score.json
@@ -288,9 +600,16 @@ class SingingScoreReader(collections.abc.Mapping):
         key4 /some/path/score.json
         ...
 
-        >>> reader = SoundScpReader('score.scp')
+        >>> reader = SingingScoreReader('score.scp')
         >>> score = reader['key1']
 
+    Raises:
+        FileNotFoundError: If the specified JSON file does not exist.
+        KeyError: If the specified key is not found in the data.
+
+    Note:
+        Ensure that the 'score.scp' file is properly formatted with valid paths
+        to the JSON files.
     """
 
     @typechecked
@@ -309,6 +628,27 @@ class SingingScoreReader(collections.abc.Mapping):
         return score
 
     def get_path(self, key):
+        """
+        Retrieve the file path associated with the given key.
+
+        This method returns the path of the file stored in the internal
+        data dictionary for the specified key.
+
+        Args:
+            key (str): The key whose associated file path is to be retrieved.
+
+        Returns:
+            str: The file path associated with the given key.
+
+        Examples:
+            >>> reader = XMLReader('xml.scp')
+            >>> path = reader.get_path('key1')
+            >>> print(path)
+            /some/path/a.xml
+
+        Raises:
+            KeyError: If the key is not found in the data dictionary.
+        """
         return self.data[key]
 
     def __contains__(self, item):
@@ -321,11 +661,62 @@ class SingingScoreReader(collections.abc.Mapping):
         return iter(self.data)
 
     def keys(self):
+        """
+            Reader class for 'score.scp'.
+
+        This class allows for reading singing scores stored in JSON format.
+        Each score contains a tempo and a list of notes, where each note has
+        attributes such as start time, end time, lyric, MIDI pitch, and phoneme.
+
+        Attributes:
+            fname (Union[Path, str]): The path to the score file.
+            dtype (type): The data type for the score values, default is np.int16.
+            data (dict): A dictionary mapping keys to file paths.
+
+        Args:
+            fname (Union[Path, str]): The path to the score file.
+            dtype (type): The data type for the score values, default is np.int16.
+
+        Returns:
+            dict: A dictionary representation of the singing score.
+
+        Examples:
+            key1 /some/path/score.json
+            key2 /some/path/score.json
+            key3 /some/path/score.json
+            key4 /some/path/score.json
+            ...
+
+            >>> reader = SingingScoreReader('score.scp')
+            >>> score = reader['key1']
+
+        Raises:
+            FileNotFoundError: If the specified file does not exist.
+            KeyError: If the key is not found in the score file.
+
+        Note:
+            Ensure that the score JSON files are structured correctly to avoid
+            loading errors.
+        """
         return self.data.keys()
 
 
 class SingingScoreWriter:
-    """Writer class for 'score.scp'
+    """
+        Writer class for 'score.scp'.
+
+    This class allows for writing musical scores to a specified output directory
+    and maintaining a corresponding SCP file that maps keys to score file paths.
+    The scores are saved in JSON format.
+
+    Attributes:
+        dir (Path): The directory where score files will be written.
+        fscp (TextIOWrapper): The file handle for the SCP file.
+        data (dict): A dictionary to store the mapping of keys to score file paths.
+
+    Args:
+        outdir (Union[Path, str]): The output directory for the score files.
+        scpfile (Union[Path, str]): The path to the SCP file to be created.
 
     Examples:
         key1 /some/path/score.json
@@ -338,6 +729,27 @@ class SingingScoreWriter:
         >>> writer['aa'] = score_obj
         >>> writer['bb'] = score_obj
 
+    Methods:
+        __setitem__(key: str, value: dict): Saves a score under the specified key.
+        get_path(key): Returns the file path associated with the given key.
+        __enter__(): Supports the use of the context manager.
+        __exit__(exc_type, exc_val, exc_tb): Cleans up by closing the SCP file.
+        close(): Closes the SCP file.
+
+    Note:
+        The score should be a dictionary with the following structure:
+
+        {
+            "tempo": bpm,
+            "item_list": a subset of ["st", "et", "lyric", "midi", "phn"],
+            "note": [
+                [start_time1, end_time1, lyric1, midi1, phn1],
+                [start_time2, end_time2, lyric2, midi2, phn2],
+                ...
+            ]
+        }
+
+        The items in each note correspond to the "item_list".
     """
 
     @typechecked
@@ -379,6 +791,62 @@ class SingingScoreWriter:
         self.data[key] = str(score_path)
 
     def get_path(self, key):
+        """
+            Writer class for 'score.scp'.
+
+        This class is responsible for writing score data to a specified directory
+        and maintaining a mapping between keys and their corresponding file paths.
+
+        Attributes:
+            dir (Path): The output directory for the score files.
+            fscp (TextIOWrapper): The file handle for the SCP file.
+            data (dict): A dictionary mapping keys to their respective file paths.
+
+        Args:
+            outdir (Union[Path, str]): The output directory where score files will
+                be stored.
+            scpfile (Union[Path, str]): The path to the SCP file that will be
+                created or written to.
+
+        Examples:
+            key1 /some/path/score.json
+            key2 /some/path/score.json
+            key3 /some/path/score.json
+            key4 /some/path/score.json
+            ...
+
+            >>> writer = SingingScoreWriter('./data/', './data/score.scp')
+            >>> writer['aa'] = score_obj
+            >>> writer['bb'] = score_obj
+
+        Methods:
+            __setitem__(key: str, value: dict):
+                Writes the score data as a JSON file and updates the SCP mapping.
+            get_path(key):
+                Returns the file path associated with the given key.
+            __enter__():
+                Enables the use of the class in a context manager.
+            __exit__(exc_type, exc_val, exc_tb):
+                Closes the file handle upon exiting the context manager.
+            close():
+                Closes the SCP file handle.
+
+        Note:
+            The score data should be structured as follows:
+            {
+                "tempo": bpm,
+                "item_list": a subset of ["st", "et", "lyric", "midi", "phn"],
+                "note": [
+                    [start_time1, end_time1, lyric1, midi1, phn1],
+                    [start_time2, end_time2, lyric2, midi2, phn2],
+                    ...
+                ]
+            }
+            The items in each note correspond to the "item_list".
+
+        Raises:
+            OSError: If the output directory cannot be created or accessed.
+        """
         return self.data[key]
 
     def __enter__(self):
@@ -388,4 +856,61 @@ class SingingScoreWriter:
         self.close()
 
     def close(self):
+        """
+        Writer class for 'score.scp'.
+
+            This class allows writing singing score data to a specified directory
+            and maintaining a corresponding 'scp' file for easy access to the
+            written scores.
+
+            Attributes:
+                dir (Path): The directory where score files will be saved.
+                fscp (TextIOWrapper): The file object for the 'scp' file.
+                data (dict): A dictionary to store paths of written scores.
+
+            Args:
+                outdir (Union[Path, str]): The output directory for score files.
+                scpfile (Union[Path, str]): The path to the 'scp' file.
+
+            Examples:
+                key1 /some/path/score.json
+                key2 /some/path/score.json
+                key3 /some/path/score.json
+                key4 /some/path/score.json
+                ...
+
+                >>> writer = SingingScoreWriter('./data/', './data/score.scp')
+                >>> writer['aa'] = score_obj
+                >>> writer['bb'] = score_obj
+
+            Methods:
+                __setitem__(key: str, value: dict):
+                    Writes the score data to a JSON file and updates the 'scp' file.
+
+                get_path(key):
+                    Returns the path of the score file associated with the given key.
+
+                __enter__():
+                    Allows the use of the context manager.
+
+                __exit__(exc_type, exc_val, exc_tb):
+                    Closes the file when exiting the context manager.
+
+                close():
+                    Closes the 'scp' file.
+
+            Note:
+                The score should be a dictionary structured as follows:
+                {
+                    "tempo": bpm,
+                    "item_list": a subset of ["st", "et", "lyric", "midi", "phn"],
+                    "note": [
+                        [start_time1, end_time1, lyric1, midi1, phn1],
+                        [start_time2, end_time2, lyric2, midi2, phn2],
+                        ...
+                    ]
+                }
+
+                The items in each note correspond to the "item_list".
+        """
         self.fscp.close()

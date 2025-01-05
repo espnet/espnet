@@ -17,23 +17,68 @@ DEFAULT_EXCLUDED_KEY_PREFIXES = ("utt2category", "utt2fs")
 
 
 class ChunkIterFactory(AbsIterFactory):
-    """Creates chunks from a sequence
+    """
+        Creates chunks from a sequence.
+
+    This class implements a chunk iterator factory that generates chunks from
+    a sequence dataset. It supports varying chunk lengths and can discard
+    short samples based on user-defined parameters.
 
     Examples:
         >>> batches = [["id1"], ["id2"], ...]
         >>> batch_size = 128
         >>> chunk_length = 1000
-        >>> iter_factory = ChunkIterFactory(dataset, batches, batch_size, chunk_length)
+        >>> iter_factory = ChunkIterFactory(dataset, batches, batch_size,
+        ...                                  chunk_length)
         >>> it = iter_factory.build_iter(epoch)
         >>> for ids, batch in it:
         ...     ...
 
-    - The number of mini-batches are varied in each epochs and
-      we can't get the number in advance
-      because IterFactory doesn't be given to the length information.
-    - Since the first reason, "num_iters_per_epoch" can't be implemented
-      for this iterator. Instead of it, "num_samples_per_epoch" is implemented.
+    Notes:
+        - The number of mini-batches varies in each epoch, and it is not
+          possible to know the count in advance because the IterFactory
+          does not receive length information.
+        - Due to this, `num_iters_per_epoch` cannot be implemented for this
+          iterator. Instead, `num_samples_per_epoch` is implemented.
 
+    Attributes:
+        batch_size (int): The size of each mini-batch.
+        chunk_lengths (List[int]): List of valid chunk lengths.
+        chunk_shift_ratio (float): The ratio for shifting chunks.
+        chunk_max_abs_length (int): Maximum absolute length of chunks.
+        num_cache_chunks (int): Number of cached chunks for processing.
+        excluded_key_pattern (str): Regex pattern for excluding keys
+            from length consistency checks.
+        discard_short_samples (bool): Whether to discard samples shorter
+            than the shortest chunk length.
+        default_fs (Optional[int]): Default sampling frequency used to
+            decide the chunk length.
+        collate_fn (Optional[callable]): Function for collating batches.
+
+    Args:
+        dataset (Any): The dataset to iterate over.
+        batches (Union[AbsSampler, Sequence[Sequence[Any]]]): Batches to process.
+        chunk_length (Union[int, str]): Length of chunks or a string specifying
+            multiple lengths.
+        chunk_shift_ratio (float, optional): Default is 0.5.
+        num_cache_chunks (int, optional): Default is 1024.
+        num_samples_per_epoch (Optional[int], optional): Default is None.
+        seed (int, optional): Default is 0.
+        shuffle (bool, optional): Default is False.
+        num_workers (int, optional): Default is 0.
+        collate_fn (Optional[callable], optional): Default is None.
+        pin_memory (bool, optional): Default is False.
+        excluded_key_prefixes (Optional[List[str]], optional): Default is None.
+        discard_short_samples (bool, optional): Default is True.
+        default_fs (Optional[int], optional): Default is None.
+        chunk_max_abs_length (Optional[int], optional): Default is None.
+
+    Raises:
+        ValueError: If chunk_length is empty or not in the expected format.
+
+    Yields:
+        Iterator[Tuple[List[str], Dict[str, torch.Tensor]]]: A generator yielding
+        tuples of IDs and batches of tensors.
     """
 
     @typechecked
@@ -133,6 +178,39 @@ class ChunkIterFactory(AbsIterFactory):
         epoch: int,
         shuffle: Optional[bool] = None,
     ) -> Iterator[Tuple[List[str], Dict[str, torch.Tensor]]]:
+        """
+        Builds an iterator that generates chunks from the dataset.
+
+        This method creates an iterator for the dataset, yielding chunks of data
+        based on the specified parameters such as chunk length and shift ratio.
+        It supports varying chunk lengths and can shuffle the data if required.
+
+        Args:
+            epoch (int): The current epoch number, used for random state
+                initialization.
+            shuffle (Optional[bool]): If True, shuffles the data before
+                yielding. If None, uses the default shuffle setting from
+                the instance.
+
+        Yields:
+            Iterator[Tuple[List[str], Dict[str, torch.Tensor]]]: A tuple
+            containing a list of IDs and a dictionary of tensors for the
+            corresponding batch.
+
+        Raises:
+            RuntimeError: If the sequences in the batch do not have the same
+            length, excluding those that match the excluded key patterns.
+
+        Examples:
+            >>> iter_factory = ChunkIterFactory(dataset, batches, 128, 1000)
+            >>> for ids, batch in iter_factory.build_iter(epoch=1):
+            ...     print(ids, batch)
+
+        Note:
+            The iterator maintains a cache of chunks to efficiently yield
+            mini-batches. It handles cases where chunks need to be generated
+            with overlapping segments for data augmentation.
+        """
         per_sample_loader = self.per_sample_iter_factory.build_iter(epoch, shuffle)
 
         if shuffle is None:
@@ -262,6 +340,38 @@ class ChunkIterFactory(AbsIterFactory):
                     )
 
     def prepare_for_collate(self, id_list, batches):
+        """
+        Prepares the data for collation by converting tensors to numpy arrays.
+
+        This method takes a list of IDs and corresponding batches, and converts
+        the tensors in the batches to numpy arrays. It is typically used before
+        batching the data together for further processing.
+
+        Args:
+            id_list (List[str]): A list of identifiers for the data samples.
+            batches (Dict[str, List[torch.Tensor]]): A dictionary where keys are
+                the names of the data fields and values are lists of tensors
+                corresponding to those fields.
+
+        Returns:
+            List[Tuple[str, Dict[str, np.ndarray]]]: A list of tuples where each
+            tuple contains an identifier and a dictionary of numpy arrays
+            representing the data for that identifier.
+
+        Examples:
+            >>> id_list = ['id1', 'id2']
+            >>> batches = {
+            ...     'feature1': [torch.tensor([[1, 2], [3, 4]]),
+            ...                   torch.tensor([[5, 6], [7, 8]])],
+            ...     'feature2': [torch.tensor([1]), torch.tensor([2])]
+            ... }
+            >>> result = prepare_for_collate(id_list, batches)
+            >>> print(result)
+            [
+                ('id1', {'feature1': array([[1, 2], [3, 4]]), 'feature2': array([1])}),
+                ('id2', {'feature1': array([[5, 6], [7, 8]]), 'feature2': array([2])})
+            ]
+        """
         return [
             (id_, {k: vs[i].numpy() for k, vs in batches.items()})
             for i, id_ in enumerate(id_list)
