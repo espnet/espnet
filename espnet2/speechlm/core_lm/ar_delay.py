@@ -23,8 +23,7 @@ class ARDelayLM(ARParallelLM):
     def forward(
         self,
         dec_seq: torch.Tensor,
-        prefix_len: torch.Tensor = None,
-        conti_feats: Tuple = None,
+        loss_mask: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, Dict, torch.Tensor]:
         """ARDelayLM forward for training.
 
@@ -33,21 +32,22 @@ class ARDelayLM(ARParallelLM):
 
         Args:
             dec_seq (LongTensor): Batch of decoder sequences (B, T, nq).
-            prefix_len (LongTensor): Lengths of condition part in dec_seq (B,).
-            conti_feats (dict or None): continuous features.
+            loss_mask (LongTensor): Lengths of condition part in dec_seq (B, T, nq).
         """
 
-        dec_seq_delay = self.delay_interleave(dec_seq=dec_seq)
+        dec_seq_delay, loss_mask = self.delay_interleave(
+            dec_seq=dec_seq, loss_mask=loss_mask
+        )
 
         return super().forward(
             dec_seq=dec_seq_delay,
-            prefix_len=prefix_len,
-            conti_feats=conti_feats,
+            loss_mask=loss_mask,
         )
 
     def delay_interleave(
         self,
         dec_seq: torch.Tensor,
+        loss_mask: torch.Tensor,
         pad: int = 0,
     ):
         B, T, nq = dec_seq.size()
@@ -57,11 +57,13 @@ class ARDelayLM(ARParallelLM):
             )
             * pad
         )
+        ret_loss_mask = retval.clone().detach()
 
         for n in range(self.nq):
             retval[:, n : n + T, n] = dec_seq[:, :, n]
+            ret_loss_mask[:, n : n + T, n] = loss_mask[:, :, n]
 
-        return retval
+        return retval, ret_loss_mask
 
     def inverse_delay_interleave(
         self,
@@ -167,9 +169,6 @@ class ARDelayLM(ARParallelLM):
                 mask,
                 allow_eos=step >= minlen - (self.nq - 1)
             )
-
-            if step == 1: # TODO: temp code, remove it
-                gen_tok = gen_tok * 0 + 34
 
             if opts.search_algo == "teacher_force":
                 prev_tok = suffix[:, step: step + 1]

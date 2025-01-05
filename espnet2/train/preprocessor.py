@@ -2384,11 +2384,11 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         token_bias: Dict,
         train: bool = True,
         encoder_decoder_format: Optional[bool] = False,
+        loss_region: str = 'whole',
+        audio_modality: str = 'codec_ssl',
         # codec related:
         codec_token_per_frame: int = 1,
         codec_token_in_use: Optional[int] = None,
-        # codec_ssl related:
-        codec_ssl_corrupt_prob: float = 0.0,
         # tokenizer related: Phone & BPE
         unk_symbol: Optional[str] = "<unk>",
         space_symbol: Optional[str] = "<space>",
@@ -2414,6 +2414,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         self.token_bias = token_bias.copy()
         self.train = train
         self.encoder_decoder_format = encoder_decoder_format
+        self.audio_modality = audio_modality
         self.n_ctx = n_ctx - codec_token_in_use  # in case this is delay interleave
         self.inter_segment_pad = inter_segment_pad
         self.pad = token_list.index("<pad>")
@@ -2425,6 +2426,9 @@ class SpeechLMPreprocessor(AbsPreprocessor):
 
         self.modalities = speechlm_definitions.MODALITIES
         self.tasks = speechlm_definitions.SPEECHLM_TASKS
+
+        assert loss_region in ["whole", "target"]
+        self.loss_region = loss_region
 
         self.converter = TokenIDConverter(
             token_list=token_list,
@@ -2470,9 +2474,6 @@ class SpeechLMPreprocessor(AbsPreprocessor):
             assert codec_token_in_use <= codec_token_per_frame
         self.codec_token_in_use = codec_token_in_use
 
-        # Codec ssl
-        self.codec_ssl_corrupt_prob = codec_ssl_corrupt_prob
-
         # speaker prompt
         self.speaker_prompt_length = speaker_prompt_length
         self.pad_speaker_prompt = pad_speaker_prompt
@@ -2494,45 +2495,49 @@ class SpeechLMPreprocessor(AbsPreprocessor):
     def __call__(
         self, uid: str, data: Dict[str, Union[str, np.ndarray]]
     ) -> Dict[str, Union[np.ndarray, List]]:
-        new_data = {}
+        new_data = dict()
 
         # (1) task parsing
         task_name = uid.strip().split(" ")[0]
         task = self.tasks[task_name]
 
-        # (2) get exact tokenized value based on all data triplets
-        seqs, conti_feats = [], []
-        
-        cache = {triplet[:2]: None for triplet in task.data_triplets}
-        cache["task_name"] = task_name
+        data_tuples = [] # tuple of (name, modality, content, role, target)
+        if task_name in ["text_dialogue", "audio_dialogue"]:
+            for idx, (role, modality, content) in enumerate(data['dialogue']):
+                name = str(idx)
+                target = role == "<assistant_output>"
+                data_tuples.append((name, modality, role, content, target))
+        else:
+            for idx, (name, modality, _) in enumerate(task.data_triplets):
+                content = data[name]
+                role = None
+                target = idx >= task.n_conditions
+                data_tuples.append((name, modality, role, content, target))
 
-        inference_length = -1
-        for idx, triplet in enumerate(task.data_triplets):
-            name, modality, _type = triplet
+        # (2) modality-specific processing. 
+        seqs, loss_masks = [], []
+        cache = dict(task_name=task_name)
+        for idx, data_tuple in enumerate(data_tuples):
+            name, modality, role, content, target = data_tuple
+            target = True if self.loss_region == "whole" else target
 
-            value, conti_feat = self.modality_specific_processing(
-                data[name], 
-                modality,
-                cache,
-            )
+            value, _ = self.modality_specific_processing(content, modality, cache)
 
-            if name == task.fixed_length_key:
-                inference_length = value.shape[0] / self.codec_token_in_use
+            # NOTE(Jinchuan): when the role is set, like in post-training, we
+            # add this role token.
+            if role is not None:
+                role = self.special_token(role)
+                value = np.concatenate([role, value])
 
-            if idx != len(task.data_triplets) - 1  and self.inter_segment_pad > 0:
+            # NOTE(Jinchuan): specifically design for delay interleave: after the
+            # interleave, there is still no overlap between consecutive segments.
+            if idx != len(data_tuples) - 1  and self.inter_segment_pad > 0:
                 pad = np.tile(self.special_token("<pad>"), self.inter_segment_pad)
                 value = np.concatenate([value, pad], axis=0)
 
-            cache[(name, modality)] = value
             seqs.append(value)
-
-            if triplet in task.targets and conti_feat is not None:
-                raise ValueError("Continuous feats can only be the condition")
-            conti_feats.append(conti_feat)
+            loss_masks.append(value * 0 + int(target))
         
-        # used for fixed-length inference.
-        new_data["inference_length"] = np.array([inference_length]).astype(np.int64)
-
         # (3) splice
         sos_eos = self.special_token("<sos/eos>")
         if task.use_task_identifier:
@@ -2541,35 +2546,30 @@ class SpeechLMPreprocessor(AbsPreprocessor):
             task_identifier = "<unkown_task_identifer>"
         task_identifier = self.special_token(task_identifier)
 
-        n_targets = len(task.targets)
         if self.encoder_decoder_format:
             raise NotImplementedError('encoder decoder is not supported yet')
         else:
             seqs = [sos_eos] + [task_identifier] + seqs + [sos_eos]
-            seqs = np.concatenate(seqs, axis=0).reshape(-1, self.codec_token_in_use)[:self.n_ctx]
+            dec_seq = np.concatenate(seqs, axis=0).reshape(-1, self.codec_token_in_use)
+
+            special_loss_mask = np.zeros_like(sos_eos) + int(self.loss_region == "whole")
+            loss_masks = [special_loss_mask] * 2 + loss_masks + [special_loss_mask]
+            loss_mask = np.concatenate(loss_masks, axis=0).reshape(dec_seq.shape)
+            loss_mask[dec_seq == 0] = 0
+
+            dec_seq, loss_mask = dec_seq[:self.n_ctx], loss_mask[:self.n_ctx]
 
             # NOTE(Jinchuan): remove these special tokens to full preserve text LLM format.
+            # the first three token: <sos> <task_id> <modality_id>
             if task_name == "textlm":
-                seqs = seqs[3:]
-            new_data["dec_seq"] = seqs
+                dec_seq = dec_seq[3:]
+                loss_mask = loss_mask[3:]
 
-        prefix_len = sum([len(seq) for seq in seqs[:-(n_targets + 1)]]) / self.codec_token_in_use
-        new_data["prefix_len"] = np.array([prefix_len]).astype(np.int64)
+        new_data["dec_seq"] = dec_seq
+        new_data["loss_mask"] = loss_mask
 
         # (4) continuous features
         new_conti_feats = []
-        for idx, conti_feat in enumerate(conti_feats, 1):
-            if conti_feat is None:
-                continue
-
-            if self.encoder_decoder_format:
-                raise NotImplementedError
-            else:
-                prev_segs = [sos_eos] + [task_identifier] + seqs[: idx - 1]
-
-            bias = sum(len(seg) for seg in prev_segs) // self.codec_token_in_use
-            conti_emb, start, end = conti_feat
-            new_conti_feats.append((conti_emb, start + bias, end + bias))
         new_data["conti_feats"] = new_conti_feats
 
         # finally, sanity check
@@ -2577,26 +2577,6 @@ class SpeechLMPreprocessor(AbsPreprocessor):
             raise ValueError(f"Unknown token is in the decoder seq. UID: {uid}")
 
         # self.diagnose(new_data) # For debug. Enable this to check the sequence format
-
-        return new_data
-
-    def process_extra_entries(self, new_data, value, name):
-        # Used in DPO: find the negative examples
-        if name == "sampled.scp":
-            prefix_len = new_data["prefix_len"]
-            prefix = new_data["dec_seq"][: prefix_len.item()]
-            sampled_seq = np.concatenate(
-                [
-                    prefix.flatten(),
-                    value,
-                    self.special_token("<sos/eos>"),
-                ]
-            ).reshape(-1, self.codec_token_in_use)
-
-            max_len = int(len(new_data["dec_seq"]) * 1.3)  # to avoid overly long seq
-            new_data["sampled_seq"] = sampled_seq[:max_len]
-        else:
-            raise NotImplementedError
 
         return new_data
 
@@ -2618,19 +2598,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
             value = value[:, :self.codec_token_in_use]
 
             if modality == "spk":
-                all_modalities = [x[1] for x in cache.keys()]
-                if not (("codec" in all_modalities) ^ ("codec_ssl" in all_modalities)):
-                    raise ValueError(
-                        "Cannot build speaker prompt. "
-                        "There should be one and only one out of codec or codec_ssl "
-                        "modality in the task tempalte. "
-                )
-                
-                if "codec_ssl" in all_modalities:
-                    value = value + self.token_bias["ssl"][0]
-                else:
-                    value = value + self.token_bias["codec"][0]
-
+                # speaker prompt has a fixed length
                 if len(value) > self.speaker_prompt_length:
                     start = random.randint(
                         0, len(value) - self.speaker_prompt_length - 1
@@ -2645,10 +2613,20 @@ class SpeechLMPreprocessor(AbsPreprocessor):
                         constant_values=self.pad,
                     )
             
-            elif modality == "codec":
-                value = value + self.token_bias["codec"][0]
+                modality = self.audio_modality
+            
+            assert modality == self.audio_modality
+
+            if modality == 'codec_ssl':
+                token_bias = self.token_bias['ssl'][0]
             else:
-                value = value + self.token_bias["ssl"][0]
+                token_bias = self.token_bias['codec'][0]
+                
+            value = np.where(
+                value == self.pad,
+                self.pad,
+                value + token_bias
+            )
             
             conti_feat = None
 
@@ -2698,24 +2676,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
 
         # continuous modalities
         elif modality in ["text_emb"]:
-            if value.ndim != 2:
-                raise ValueError(f"Text embedding should have size of [T, D]")
-
-            conti_emb = value.copy()
-
-            value = self.special_token(f"<pad>")
-            # NOTE(Jinchuan) add extra paddings of (self.codec_token_in_use - 1) so there
-            # is no overlap between tokens and continuous embeddings when using
-            # delay interleave.
-            value_len = conti_emb.shape[0] + self.codec_token_in_use - 1
-            value = np.tile(value, value_len)
-
-            # embedidngs, start, end
-            conti_feat = (
-                conti_emb,
-                self.codec_token_in_use,
-                self.codec_token_in_use + conti_emb.shape[0],
-            )
+            raise NotImplementedError
 
         else:
             raise NotImplementedError
@@ -2733,30 +2694,17 @@ class SpeechLMPreprocessor(AbsPreprocessor):
 
     def diagnose(self, data):
         """Only for debug"""
-        enc_seq = data.get("enc_seq", None)
-        dec_seq = data.get("dec_seq", None)
-        sampled_seq = data.get("sampled_seq", None)
-        prefix_len = data.get("prefix_len")
+        dec_seq = data.get("dec_seq")
+        loss_mask = data.get("loss_mask")
 
         logging.warning(f"Diagnose in preprocessor ...")
-        logging.warning(f"Prefix length: {prefix_len}")
         for name, seq in [
-            ("encoder", enc_seq),
-            ("decoder", dec_seq),
-            ("sampled_seq", sampled_seq),
+            ("decoder", zip(dec_seq, loss_mask)),
         ]:
-            if seq is None:
-                continue
             logging.warning(f"{name} ...")
-            for idx, patch in enumerate(seq):
+            for idx, (patch, patch_loss_mask) in enumerate(seq):
                 patch = patch.tolist()
                 patch_str = ", ".join(self.converter.ids2tokens(patch))
-                logging.warning(f"Patch: {idx} -> {patch_str}")
-
-        conti_feats = data.get("conti_feats")
-        for idx, conti_feat in enumerate(conti_feats):
-            conti_emb, start, end, part = conti_feat
-            assert len(conti_emb) == end - start
-            logging.warning(f"{idx}-th conti feats on {part}, range [{start}, {end})")
+                logging.warning(f"Patch: {idx} -> {patch_str} {patch_loss_mask}")
 
         raise ValueError("End of Diagnose")

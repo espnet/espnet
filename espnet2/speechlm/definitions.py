@@ -26,9 +26,13 @@ MODALITIES["bool"] = Modality()
 MODALITIES["video_ssl"] = Modality()
 MODALITIES["svs_lb"] = Modality()
 
+# continuous
 MODALITIES["wav"] = Modality(discrete=False)
 MODALITIES["text_emb"] = Modality(discrete=False)
 MODALITIES["ssl_feat"] = Modality(discrete=False)
+
+# dialogue
+MODALITIES["dialogue"] = Modality()
 
 # END OF MODALITY DEFINITION #
 
@@ -45,6 +49,14 @@ class SpeechLMTaskTemplate:
     def data_triplets(self):
         all_entries = self.conditions + self.targets
         return all_entries
+    
+    @property
+    def n_conditions(self):
+        return len(self.conditions)
+    
+    @property
+    def n_targets(self):
+        return len(self.targets)
 
     @property
     def data_triplets_string(self):
@@ -202,6 +214,15 @@ SPEECHLM_TASKS["ag_codecssl"] = SpeechLMTaskTemplate(
     targets=[("wav.scp", "codec_ssl", "kaldi_ark")],
 )
 
+SPEECHLM_TASKS["text_dialogue"] = SpeechLMTaskTemplate(
+    conditions=[],
+    targets=[("dialogue", "dialogue", "dialogue_json")],
+)
+
+SPEECHLM_TASKS["audio_dialogue"] = SpeechLMTaskTemplate(
+    conditions=[],
+    targets=[("dialogue", "dialogue", "dialogue_json")],
+)
 
 # END OF TASK DEFINITION #
 
@@ -223,6 +244,9 @@ special_tokens = [
     "<sos/eos>",
     "<local_sos/eos>",
     "<unkown_task_identifer>",
+    "<system_prompt>",
+    "<user_input>",
+    "<assistant_output>",
 ]
 
 

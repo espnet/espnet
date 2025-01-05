@@ -222,12 +222,6 @@ class SpeechLMTask(AbsTask):
             help="Number of codec codes in exact use",
         )
         group.add_argument(
-            "--codec_ssl_corrupt_prob",
-            type=float,
-            default=0.0,
-            help="The prob of changing SSL tokens to pad_id in codec_ssl modality",
-        )
-        group.add_argument(
             "--loss_region",
             type=str,
             choices=["whole", "target"],
@@ -292,6 +286,7 @@ class SpeechLMTask(AbsTask):
             token_list=args.token_list,
             token_bias=args.token_bias,
             encoder_decoder_format=args.encoder_decoder_format,
+            loss_region=args.loss_region,
             subword_model=args.subword_model,
             subword_model_type=args.subword_choice,
             non_linguistic_symbols=args.non_linguistic_symbols,
@@ -299,7 +294,6 @@ class SpeechLMTask(AbsTask):
             g2p_type=args.g2p,
             codec_token_per_frame=args.codec_token_per_frame,
             codec_token_in_use=args.codec_token_in_use,
-            codec_ssl_corrupt_prob=args.codec_ssl_corrupt_prob,
             speaker_prompt_length=args.speaker_prompt_length,
             pad_speaker_prompt=args.pad_speaker_prompt,
             n_ctx=args.corelm_conf.get("n_ctx", 8192),
@@ -383,7 +377,6 @@ class SpeechLMTask(AbsTask):
             pad=token_list.index("<pad>"),
             vocab_size=len(token_list),
             token_bias=token_bias.copy(),
-            loss_region=args.loss_region,
             modality_weights=args.modality_weights,
             lm_head=corelm.lm_head,
             aux_lm_head=corelm.aux_lm_head,

@@ -35,24 +35,20 @@ class ESPnetSpeechLMModel(AbsESPnetModel):
     def forward(
         self,
         dec_seq: torch.Tensor,
-        dec_seq_lengths: torch.Tensor,
-        prefix_len: torch.Tensor,
+        loss_mask: torch.Tensor,
         conti_feats,
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
-        prefix_len = prefix_len.squeeze(1)
 
-        logits, targets = self.corelm(
+        logits, targets, loss_mask = self.corelm(
             dec_seq,
-            prefix_len,
-            conti_feats,
+            loss_mask,
         )
 
         loss, stats, weight = self.criterion(
             logits, 
-            targets, 
-            prefix_len,
-            dec_seq_lengths,
+            targets,
+            loss_mask,
         )
         loss, stats, weight = force_gatherable((loss, stats, weight), loss.device)
         return loss, stats, weight

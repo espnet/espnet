@@ -1,6 +1,7 @@
 import torch
 import logging
 from espnet2.speechlm.net_utils import length_mask
+import torch.distributed
 
 try:
     from liger_kernel.transformers import LigerFusedLinearCrossEntropyLoss
@@ -15,7 +16,6 @@ class SpeechLMCrossEntropyLoss(torch.nn.Module):
         pad,
         vocab_size,
         token_bias,
-        loss_region,
         modality_weights,
         lm_head: torch.nn.Linear = None,
         aux_lm_head: torch.nn.Linear = None,
@@ -29,7 +29,6 @@ class SpeechLMCrossEntropyLoss(torch.nn.Module):
         super().__init__()
 
         self.pad = pad
-        self.loss_region = loss_region
         self.use_aux_ce_loss = "codec" in token_bias
         self.use_liger_kernel = use_liger_kernel
 
@@ -85,8 +84,7 @@ class SpeechLMCrossEntropyLoss(torch.nn.Module):
         self, 
         logits: torch.Tensor,
         targets: torch.Tensor, 
-        prefix_len: torch.Tensor,
-        seq_len: torch.Tensor,
+        loss_mask: torch.Tensor,
     ):
         # NOTE(Jinchuan): keep the weight on the correct device in the first forward.
         # We don't want to keep the weights registered as model parameters as they 
@@ -104,10 +102,6 @@ class SpeechLMCrossEntropyLoss(torch.nn.Module):
             assert logits.size()[:2] == aux_logits.size()[:2]
             assert logits.size(2) + aux_logits.size(2) == targets.size(2)
         
-        assert prefix_len.size() == seq_len.size()
-        assert torch.all(seq_len > prefix_len)
-        assert prefix_len.dim() == 1
-
         # element-wise loss
         _targets = targets[:, :, :1].flatten()
         if self.use_liger_kernel:
@@ -128,6 +122,7 @@ class SpeechLMCrossEntropyLoss(torch.nn.Module):
         ce_loss = ce_loss.view(B, T, 1)
 
         if aux_logits is not None:
+            torch.set_printoptions(sci_mode=False, threshold=1e9)
             _targets = targets[:, :, 1:].flatten()
             assert torch.all(torch.logical_or(
                 _targets == self.pad,
@@ -155,20 +150,14 @@ class SpeechLMCrossEntropyLoss(torch.nn.Module):
 
             ce_loss = torch.cat([ce_loss, aux_ce_loss], dim=2)
         
-        # remove loss over condition sequences
-        if self.loss_region == "target":
-            prefix_len = torch.clip(prefix_len, min=1) # in case conditions don't exist
-            prefix_mask = ~length_mask(prefix_len - 1, maxlen=targets.size(1)).unsqueeze(2)
-            ce_loss = torch.where(prefix_mask, ce_loss, 0.0)
-            weight = (seq_len - prefix_len + 1).sum().float()
-        else:
-            weight = seq_len.sum().float()
-        
+        ce_loss = ce_loss * loss_mask
+        weight = (targets[..., 0] != self.pad).float().sum()
+
         ce_loss = ce_loss.sum() / weight
         stats = {"ce_loss": ce_loss.clone().detach(), "weight": weight.clone().detach()}
 
         # logging, if not training
-        if not self.training:
+        if True:
             logits = logits if self.use_liger_kernel else self.lm_head(logits)
             acc = logits.argmax(-1) == targets[:, :, :1]
             if aux_logits is not None:
@@ -176,21 +165,18 @@ class SpeechLMCrossEntropyLoss(torch.nn.Module):
                 aux_acc = aux_logits.argmax(-1) == targets[:, :, 1:] - self.aux_start
                 acc = torch.cat([acc, aux_acc], dim=2)
             
-            mask = targets.ne(self.pad)
-            if self.loss_region == "target":
-                mask = torch.logical_and(mask, prefix_mask)
-            acc = torch.where(mask, acc, False)
+            acc = torch.where(loss_mask.bool(), acc, False)
 
-            acc_all = acc.float().sum() / mask.float().sum()
+            acc_all = acc.float().sum() / loss_mask.float().sum()
             stats["acc_all"] = acc_all.clone().detach()
             
             for idx in range(targets.size(2)):
-                layer_weight = mask[:, :, idx].float().sum()
+                layer_weight = loss_mask[:, :, idx].float().sum()
                 if layer_weight == 0:
                     stats[f"acc_layer{idx}"] = 0.0
                 else:
                     layer_acc = acc[:, :, idx:idx+1].float().sum() 
-                    layer_acc = layer_acc / mask[:, :, idx:idx + 1].float().sum()
+                    layer_acc = layer_acc / loss_mask[:, :, idx:idx + 1].float().sum()
                     stats[f"acc_layer{idx}"] = layer_acc.clone().detach()
         
         return ce_loss, stats, weight

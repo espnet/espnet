@@ -59,24 +59,21 @@ class ARParallelLM(AbsCoreLM):
     def forward(
         self,
         dec_seq: torch.Tensor,
-        prefix_len: torch.Tensor = None,
-        conti_feats: Tuple = None,
+        loss_mask: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, Dict, torch.Tensor]:
         """Auto-Regresive LM forward for training
 
         Args:
             dec_seq (LongTensor): Batch of decoder sequences (B, T, nq).
-            prefix_len (LongTensor): Lengths of condition part in dec_seq (B,).
-            conti_feats (dict or None): continuous features.
+            loss_mask (LongTensor): Lengths of condition part in dec_seq (B, T, nq).
         """
         assert dec_seq.dim() == 3
 
-        target = dec_seq[:, 1:]
+        targets, loss_mask = dec_seq[:, 1:], loss_mask[:, 1:]
         x = dec_seq[:, :-1]
 
         # input embedding
         x = self.emb(x).sum(dim=2)
-        x = install_continuous_features(x, conti_feats)
 
         # transformer output
         x = self.decoders(x)
@@ -90,7 +87,7 @@ class ARParallelLM(AbsCoreLM):
         logits = x[:, :, :1]
         aux_logits = x[:, :, 1:] if self.nq > 1 else None
 
-        return (logits, aux_logits), target
+        return (logits, aux_logits), targets, loss_mask
 
     @torch.no_grad()
     def inference(
