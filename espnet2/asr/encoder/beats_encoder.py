@@ -267,6 +267,7 @@ class BeatsEncoder(AbsEncoder):
             self.cross_embed_positions = BartLearnedPositionalEmbedding(
                 max_positions, learned_pos_dim
             )
+        self.min_input_length_at_16khz = 3200
 
     def reload_pretrained_parameters(self):
         """Initialization function for Beats.
@@ -384,6 +385,17 @@ class BeatsEncoder(AbsEncoder):
         max_layer: Optional[int] = None,
     ):
         """Extract features from raw audio."""
+
+        if source.size(1) < self.min_input_length_at_16khz:
+            logging.warning(
+                f"Input shape: {source.shape}. This is less than"
+                f" the minimum size of {self.min_input_length_at_16khz}."
+            )
+            # repeat the input to make it at least min_length
+            source = torch.cat(
+                [source] * (self.min_input_length_at_16khz // source.size(1) + 1), dim=1
+            )
+
         with autocast(False):
             fbank = self.preprocess(source)
 

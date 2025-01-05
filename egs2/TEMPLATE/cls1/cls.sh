@@ -29,6 +29,7 @@ stop_stage=10000     # Processes is stopped at the specified stage.
 skip_data_prep=false # Skip data preparation stages
 skip_train=false     # Skip training stages
 skip_eval=false      # Skip decoding and evaluation stages
+skip_upload=true     # Skip uploading to huggingface
 ngpu=1               # The number of gpus ("0" uses cpu, otherwise use gpu).
 num_nodes=1          # The number of nodes
 nj=32                # The number of parallel jobs.
@@ -50,7 +51,7 @@ label_fold_length=1   # fold_length for labels during CLS training. Set to 1 for
 
 # data preprpocessing related
 min_wav_duration=0.1 # Minimum duration in seconds to use in training
-max_wav_duration=30  # Maximum duration in seconds to use in training
+max_wav_duration=  # Maximum duration in seconds to use in training
 
 # cls model related
 cls_tag=    # Suffix to the result dir for cls model training.
@@ -196,7 +197,13 @@ if ! "${skip_data_prep}"; then
         done
     fi
 
-
+    # if max_wav_duration is not set skip stage 3
+    if [ -z "${max_wav_duration}" ]; then
+        log "max_wav_duration is not set, skipping stage 3 (Modify long/short data)"
+        if [ ${stage} -le 3 ]; then
+            stage=4
+        fi
+    fi
     if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         log "Stage 3: Modify long/short data"
 
@@ -224,10 +231,6 @@ if ! "${skip_data_prep}"; then
             <"${data_feats}/${dset}/wav.org.scp" \
                 utils/filter_scp.pl "${data_feats}/${dset}/utt2num_samples"  \
                 >"${data_feats}/${dset}/wav.scp"
-            # Remove empty text
-            # shellcheck disable=SC2068
-            <"${data_feats}/${dset}/text" \
-                awk ' { if( NF != 1 ) print $0; } ' >"${data_feats}/${dset}/text"
             # fix_data_dir.sh leaves only utts which exist in all files
             utils/fix_data_dir.sh "${data_feats}/${dset}"
             # Report the change in the number of utterances
@@ -417,6 +420,12 @@ if ! "${skip_eval}"; then
         log "Generate '${cls_exp}/run.sh'. You can resume the process from stage 6 using this script"
         mkdir -p "${cls_exp}"; echo "${run_args} --stage 6 \"\$@\"; exit \$?" > "${cls_exp}/run.sh"; chmod +x "${cls_exp}/run.sh"
         _opts=
+        if [ "${max_wav_duration}" ]; then
+            _fs=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
+            max_wav_duration_in_samples=$(python3 -c "print(int(${max_wav_duration} * ${_fs}))")
+            echo "WARNING: Inference with max_wav_duration set to ${max_wav_duration_in_samples} at ${fs} Hz!"
+            _opts+="--max_wav_duration ${max_wav_duration_in_samples} "
+        fi
 
         for dset in "${valid_set}" ${test_sets}; do
             _data="${data_feats}/${dset}"
@@ -481,6 +490,80 @@ if ! "${skip_eval}"; then
     fi
 else
     log "Skip the evaluation stages"
+fi
+
+if ! "${skip_upload}"; then
+    packed_model="${cls_exp}/${cls_exp##*/}_${inference_cls_model%.*}.zip"
+    if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
+        log "Stage 9: Pack models for uploading to huggingface: ${cls_exp}"
+        _opts=
+        if [ "${feats_normalize}" = global_mvn ]; then
+            _opts+="--option ${cls_stats_dir}/train/feats_stats.npz "
+        fi
+        # shellcheck disable=SC2086
+        ${python} -m espnet2.bin.pack asr \
+            --asr_train_config "${cls_exp}"/config.yaml \
+            --asr_model_file "${cls_exp}"/"${inference_cls_model}" \
+            ${_opts} \
+            --option "${cls_exp}"/RESULTS.md \
+            --option "${cls_exp}"/images \
+            --outpath "${packed_model}"
+    fi
+
+    if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
+        log "Stage 10: Upload to huggingface"
+        [ -z "${hf_repo}" ] && \
+            log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace, follow the following steps described here https://github.com/espnet/espnet/blob/master/CONTRIBUTING.md#132-espnet2-recipes" && \
+        exit 1
+        if [ ! -f "${packed_model}" ]; then
+            log "ERROR: ${packed_model} does not exist. Please run stage 9 first."
+            exit 1
+        fi
+
+        gitlfs=$(git lfs --version 2> /dev/null || true)
+        [ -z "${gitlfs}" ] && \
+            log "ERROR: You need to install git-lfs first" && \
+            exit 1
+
+        dir_repo=${expdir}/hf_${hf_repo//"/"/"_"}
+        [ ! -d "${dir_repo}" ] && git clone https://huggingface.co/${hf_repo} ${dir_repo}
+
+        if command -v git &> /dev/null; then
+            _creator_name="$(git config user.name)"
+            _checkout="git checkout $(git show -s --format=%H)"
+        else
+            _creator_name="$(whoami)"
+            _checkout=""
+        fi
+        # /some/where/espnet/egs2/foo/asr1/ -> foo/asr1
+        _task="$(pwd | rev | cut -d/ -f2 | rev)"
+        # foo/asr1 -> foo
+        _corpus="${_task%/*}"
+        _model_name="${_creator_name}/${_corpus}_$(basename ${packed_model} .zip)"
+
+        # copy files in ${dir_repo}
+        unzip -o ${packed_model} -d ${dir_repo}
+        # Generate description file
+        # shellcheck disable=SC2034
+        hf_task=classification
+        # shellcheck disable=SC2034
+        espnet_task=CLS
+        # shellcheck disable=SC2034
+        task_exp=${cls_exp}
+        eval "echo \"$(cat scripts/utils/TEMPLATE_HF_Readme.md)\"" > "${dir_repo}"/README.md
+
+        this_folder=${PWD}
+        cd ${dir_repo}
+        if [ -n "$(git status --porcelain)" ]; then
+            git add .
+            git commit -m "Update model"
+        fi
+        git push
+        cd ${this_folder}
+
+    fi
+else
+    log "Skip the upload stages"
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"

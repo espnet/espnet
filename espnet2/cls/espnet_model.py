@@ -10,8 +10,14 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from packaging.version import parse as V
-from torcheval.metrics import functional as EvalFunction
 from typeguard import typechecked
+
+try:
+    from torcheval.metrics import functional as EvalFunction
+
+    is_torcheval_available = True
+except ImportError:
+    is_torcheval_available = False
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
@@ -56,6 +62,12 @@ class ESPnetClassificationModel(AbsESPnetModel):
         mixup_augmentation: bool = False,
     ):
         super().__init__()
+        if not is_torcheval_available:
+            raise ImportError(
+                "`torcheval` is not available. Please install it "
+                "via `pip install torcheval` in your environment."
+                "More info at: `https://pytorch.org/torcheval/stable/`"
+            )
         self.vocab_size = vocab_size
         self.token_list = token_list.copy()
         self.frontend = frontend
