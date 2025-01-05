@@ -141,7 +141,7 @@ if [[ "${DATASETS}" == *"dogs"* ]]; then
                 set -e
             done
             rm -r "${audio_dir}.tmp"
-            
+
             touch "${DOGS_LOCATION}/download.done"
         fi
     else
