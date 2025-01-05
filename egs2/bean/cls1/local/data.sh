@@ -70,6 +70,28 @@ if [[ "${DATASETS}" == *"bats"* ]]; then
     python local/scripts/bats.py ${BATS_LOCATION} ${DATA_PREP_ROOT}
 fi
 
+# CBI-Birds
+if [[ "${DATASETS}" == *"cbi"* ]]; then
+    log "Processing cbi"
+    CBI_LOCATION="${DATA_PREP_ROOT}/downloads/cbi"
+    if [ "${BEAN}" == "downloads" ]; then
+        if [ -f "${DATA_PREP_ROOT}/downloads/cbi/download.done" ]; then
+            log "Skip downloading because download.done exists"
+        else
+            log "Downloading"
+            pip install kaggle==1.5.12
+            kaggle competitions download -p ${DATA_PREP_ROOT}/downloads birdsong-recognition 
+            unzip ${DATA_PREP_ROOT}/downloads/birdsong-recognition.zip -d ${CBI_LOCATION}
+            rm ${DATA_PREP_ROOT}/downloads/birdsong-recognition.zip
+            touch "${CBI_LOCATION}/download.done"
+        fi
+    else
+        log "Using data from the provided location: ${BEANS}/cbi"
+        CBI_LOCATION="${BEANS}/cbi"
+    fi
+    python local/scripts/cbi.py ${CBI_LOCATION} ${DATA_PREP_ROOT}
+fi
+
 for dataset in ${DATASETS}; do
     for x in ${dataset}.dev ${dataset}.train ${dataset}.test; do
         for f in text wav.scp utt2spk; do
@@ -87,16 +109,6 @@ done
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
 
-
-# #cbi
-# local["mkdir"]["-p", "data/cbi/wav"]()
-# (
-#     local["kaggle"][
-#         "competitions", "download", "-p", "data/cbi", "birdsong-recognition"
-#     ]
-#     & FG
-# )
-# local["unzip"]["data/cbi/birdsong-recognition.zip", "-d", "data/cbi/"] & FG
 
 # #humbugdb
 # (

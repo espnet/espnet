@@ -8,4 +8,6 @@ set -o pipefail
 
 # ./run_watkins.sh
 
-./run_bats.sh
+# ./run_bats.sh
+
+./run_cbi.sh
