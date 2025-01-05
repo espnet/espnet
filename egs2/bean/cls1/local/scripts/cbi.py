@@ -1,8 +1,9 @@
-import sys
-import pandas as pd
-from plumbum import local, FG
-from pathlib import Path
 import random
+import sys
+from pathlib import Path
+
+import pandas as pd
+from plumbum import FG, local
 
 DATA_READ_ROOT = sys.argv[1]
 DATA_WRITE_ROOT = sys.argv[2]

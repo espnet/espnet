@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from plumbum import local, FG
+from plumbum import FG, local
 from sklearn.model_selection import train_test_split
 
 (

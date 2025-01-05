@@ -1,7 +1,8 @@
 import sys
-import pandas as pd
-from plumbum import local, FG
 from pathlib import Path
+
+import pandas as pd
+from plumbum import FG, local
 from sklearn.model_selection import train_test_split
 
 local["mkdir"]["-p", "data/dogs/wav"]()
