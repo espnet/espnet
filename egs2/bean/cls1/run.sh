@@ -10,4 +10,6 @@ set -o pipefail
 
 # ./run_bats.sh
 
-./run_cbi.sh
+# ./run_cbi.sh
+
+./run_humbugdb.sh

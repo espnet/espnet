@@ -1,35 +1,15 @@
+import os
+import sys
 import numpy as np
 import pandas as pd
-from plumbum import FG, local
 from sklearn.model_selection import train_test_split
 
-(
-    local["git"][
-        "clone", "https://github.com/HumBug-Mosquito/HumBugDB.git", "data/HumBugDB"
-    ]
-    & FG
+DATA_READ_ROOT = sys.argv[1]
+DATA_WRITE_ROOT = sys.argv[2]
+
+df = pd.read_csv(
+    os.path.join(DATA_READ_ROOT, "data", "metadata", "neurips_2021_zenodo_0_0_1.csv")
 )
-
-for i in [1, 2, 3, 4]:
-    (
-        local["wget"][
-            "-O",
-            f"data/HumBugDB/humbugdb_neurips_2021_{i}.zip",
-            f"https://zenodo.org/record/4904800/files/humbugdb_neurips_2021_{i}.zip?download=1",
-        ]
-        & FG
-    )
-    (
-        local["unzip"][
-            f"data/HumBugDB/humbugdb_neurips_2021_{i}.zip",
-            "-d",
-            "data/HumBugDB/data/audio/",
-        ]
-        & FG
-    )
-
-
-df = pd.read_csv("data/HumBugDB/data/metadata/neurips_2021_zenodo_0_0_1.csv")
 df.species = df.species.fillna("non-mosquito")
 
 # collapse infrequent labels to "others"
@@ -39,10 +19,10 @@ df.species.replace(to_remove, "others", inplace=True)
 
 
 def convert(row):
+    filepath = os.path.join(DATA_READ_ROOT, "data", "audio", f"{row['id']}.wav")
     new_row = pd.Series(
-        {"path": f"data/HumBugDB/data/audio/{row['id']}.wav", "label": row["species"]}
+        {"path": filepath, "label": str(row["species"]).replace(" ", "_")}
     )
-
     return new_row
 
 
@@ -68,7 +48,22 @@ df_train_low = df_train_low.sort_index()
 df_valid = df_valid.sort_index()
 df_test = df_test.sort_index()
 
-df_train.to_csv("data/HumBugDB/data/metadata/train.csv")
-df_train_low.to_csv("data/HumBugDB/data/metadata/train-low.csv")
-df_valid.to_csv("data/HumBugDB/data/metadata/valid.csv")
-df_test.to_csv("data/HumBugDB/data/metadata/test.csv")
+split2df = {
+    "humbugdb.dev": df_valid,
+    "humbugdb.train": df_train,
+    "humbugdb.train-low": df_train_low,
+    "humbugdb.test": df_test,
+}
+for split, df in split2df.items():
+    text_path = os.path.join(DATA_WRITE_ROOT, split, "text")
+    wav_path = os.path.join(DATA_WRITE_ROOT, split, "wav.scp")
+    utt2spk_path = os.path.join(DATA_WRITE_ROOT, split, "utt2spk")
+    os.makedirs(os.path.dirname(text_path), exist_ok=True)
+    with open(text_path, "w") as text_f, open(wav_path, "w") as wav_f, open(
+        utt2spk_path, "w"
+    ) as utt2spk_f:
+        for index, row in df.iterrows():
+            uttid = f"{split}-{index}"
+            print(f"{uttid} {row['path']}", file=wav_f)
+            print(f"{uttid} {row['label']}", file=text_f)
+            print(f"{uttid} dummy", file=utt2spk_f)

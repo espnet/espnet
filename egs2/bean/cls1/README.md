@@ -1,0 +1,1 @@
+cbi requirement: download kaggle api key and pur in ~/.kaggle/kaggle.json with permission set to chmod 600 and accept competition conditions- [Cornell Birdcall Identification-Kaggle](https://www.kaggle.com/competitions/birdsong-recognition)

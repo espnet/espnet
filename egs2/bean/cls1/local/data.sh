@@ -92,6 +92,30 @@ if [[ "${DATASETS}" == *"cbi"* ]]; then
     python local/scripts/cbi.py ${CBI_LOCATION} ${DATA_PREP_ROOT}
 fi
 
+# Humbugdb-Mosquito
+if [[ "${DATASETS}" == *"humbugdb"* ]]; then
+    log "Processing humbugdb"
+    HUMBUGDB_LOCATION="${DATA_PREP_ROOT}/downloads/humbugdb"
+    if [ "${BEAN}" == "downloads" ]; then
+        if [ -f "${DATA_PREP_ROOT}/downloads/humbugdb/download.done" ]; then
+            log "Skip downloading because download.done exists"
+        else
+            log "Downloading"
+            git clone https://github.com/HumBug-Mosquito/HumBugDB.git ${HUMBUGDB_LOCATION}
+            for i in 1 2 3 4; do
+                wget -O ${DATA_PREP_ROOT}/downloads/humbugdb_neurips_2021_${i}.zip https://zenodo.org/record/4904800/files/humbugdb_neurips_2021_${i}.zip?download=1
+                unzip ${DATA_PREP_ROOT}/downloads/humbugdb_neurips_2021_${i}.zip -d ${HUMBUGDB_LOCATION}/data/audio
+                rm ${DATA_PREP_ROOT}/downloads/humbugdb_neurips_2021_${i}.zip
+            done
+            touch "${HUMBUGDB_LOCATION}/download.done"
+        fi
+    else
+        log "Using data from the provided location: ${BEANS}/humbugdb"
+        HUMBUGDB_LOCATION="${BEANS}/humbugdb"
+    fi
+    python local/scripts/humbugdb.py ${HUMBUGDB_LOCATION} ${DATA_PREP_ROOT}
+fi
+
 for dataset in ${DATASETS}; do
     for x in ${dataset}.dev ${dataset}.train ${dataset}.test; do
         for f in text wav.scp utt2spk; do
