@@ -27,7 +27,8 @@ class Classification:
 
     Examples:
         >>> import soundfile
-        >>> classification_model = Classification("classification_config.yml", "classification_model.pth")
+        >>> classification_model =
+            Classification("classification_config.yml", "classification_model.pth")
         >>> audio, rate = soundfile.read("speech.wav")
         >>> classification_model(audio)
         prediction_result (int, or list of ints)
