@@ -23,7 +23,7 @@ mkdir -p "${storage_dir}"
     --expdir "${storage_dir}/exp" \
     --feats_normalize uttmvn \
     --stage 1 \
-    --stop_stage 7 \
+    --stop_stage 10 \
     --ngpu 1 \
     --gpu_inference true \
     --nj 10 \
