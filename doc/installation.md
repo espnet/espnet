@@ -146,7 +146,7 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
 
         ```sh
         $ cd <espnet-root>/tools
-        $ CONDA_ROOT=${${CONDA_PREFIX}/../..  # CONDA_PREFIX is an environment variable set by ${CONDA_ROOT}/etc/profile.d/conda.sh
+        $ CONDA_ROOT=${CONDA_PREFIX}/../..  # CONDA_PREFIX is an environment variable set by ${CONDA_ROOT}/etc/profile.d/conda.sh
         $ ./setup_miniforge.sh ${CONDA_ROOT} [conda-env-name] [python-version]
         # e.g.
         $ ./setup_miniforge.sh ${CONDA_ROOT} espnet 3.8
