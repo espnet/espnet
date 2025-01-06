@@ -1,7 +1,11 @@
 import os
+import ffmpeg
 import random
 import sys
 from pathlib import Path
+from tqdm import tqdm
+
+tqdm.pandas()
 
 import pandas as pd
 
@@ -29,10 +33,15 @@ def convert(row):
     filepath = os.path.join(
         DATA_READ_ROOT, "train_audio", row["ebird_code"], row["filename"]
     )
-
+    wav_filepath = filepath.replace(".mp3", ".wav").replace(
+        "train_audio", "train_audio_wav"
+    )
+    os.makedirs(os.path.dirname(wav_filepath), exist_ok=True)
+    # Convert MP3 to WAV
+    ffmpeg.input(filepath).output(wav_filepath, ac=1).run(quiet=True)
     new_row = pd.Series(
         {
-            "path": filepath,
+            "path": wav_filepath,
             "label": str(row["ebird_code"]).replace(" ", "_"),
             "split": split,
         }
@@ -40,7 +49,8 @@ def convert(row):
     return new_row
 
 
-df = df.apply(convert, axis=1)
+print("Converting audio files to WAV format")
+df = df.progress_apply(convert, axis=1)
 
 split2df = {
     "cbi.dev": df[df.split == "valid"],
