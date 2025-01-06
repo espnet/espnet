@@ -59,14 +59,15 @@ pretrain_checkpoint="exp/svs_train_toksing_raw_phn_none_zh/valid.loss.best.pth"
 versa_path="/data7/tyx/versa"
 
 stage=1
-stop_stage=2
+stop_stage=3
+train_tag=""
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "Stage 1: Prepare dataset for training"
     
     sub_stage=1
     sub_stop_stage=4
-    train_config=config/tuning/train_toksing.yaml
+    train_config=conf/tuning/train_toksing.yaml
 
     if [ ${sub_stage} -le 1 ] && [ ${sub_stop_stage} -ge 1 ]; then
         log "substage 1.1: get sample idx"
@@ -250,13 +251,15 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     fi
 fi
 
+train_config=conf/tuning/train_dpo.yaml
+train_tag=""
+
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "Stage 2: train model with RL"
     
     prep_rl_data=false
     train_rl=true
     use_refsvs=true
-    train_config=config/tuning/train_dpo.yaml
     if ${use_refsvs}; then
         rl_train_args+=" --init_param ${pretrain_checkpoint}:svs:svs ${pretrain_checkpoint}:svs:ref_svs "
     else
@@ -297,6 +300,59 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             --ngpu 1 \
             --train_rl "${train_rl}" \
             --train_args "${rl_train_args}" \
+            --tag "${train_tag}" \
             "$@"
 
 fi
+
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
+    log "Stage 3: infer model with RL"
+    
+    prep_rl_data=false
+    train_rl=false
+    use_refsvs=true
+    if ${use_refsvs}; then
+        rl_train_args+=" --init_param ${pretrain_checkpoint}:svs:svs ${pretrain_checkpoint}:svs:ref_svs "
+    else
+        rl_train_args+=" --init_param ${pretrain_checkpoint}:svs:svs "
+    fi
+    ./svs2.sh \
+            --lang zh \
+            --stage 8 \
+            --stop_stage 8 \
+            --local_data_opts "--stage 0" \
+            --feats_type raw \
+            --pitch_extract "${pitch_extract}" \
+            --fs "${fs}" \
+            --fmax "${fmax}" \
+            --fmin "${fmin}" \
+            --n_fft "${n_fft}" \
+            --n_shift "${n_shift}" \
+            --win_length "${win_length}" \
+            --token_type phn \
+            --g2p ${g2p} \
+            --cleaner ${cleaner} \
+            --preset_layer ${preset_layer} \
+            --preset_token ${preset_token} \
+            --train_config "${train_config}" \
+            --inference_config "${inference_config}" \
+            --train_set "${train_set}" \
+            --valid_set "${valid_set}" \
+            --test_sets "${test_sets}" \
+            --score_feats_extract "${score_feats_extract}" \
+            --srctexts "data/${train_set}/text" \
+            --RVQ_layers "${RVQ_layers}" \
+            --kmeans_opts "--batch_bins 4800000" \
+            --kmeans_feature "${kmeans_feature}" \
+            --multi_token "${multi_token}" \
+            --mix_type "${mix_type}" \
+            --nclusters "${nclusters}" \
+            --RVQ_layers "${RVQ_layers}" \
+            --ngpu 1 \
+            --train_rl "${train_rl}" \
+            --train_args "${rl_train_args}" \
+            --tag "${train_tag}" \
+            "$@"
+
+fi
+

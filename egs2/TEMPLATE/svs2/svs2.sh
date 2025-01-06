@@ -1273,7 +1273,7 @@ if ! "${skip_eval}"; then
                     for i in $(seq "${_nj}"); do
                         while read -r key src_path; do
                             echo "${key} $(pwd)/${src_path}"
-                        done < "${_logdir}/output.${i}/samples_tmp/samples_idx.scp"
+                        done < "${_logdir}/output.${i}/samples/samples_idx.scp"
                     done | LC_ALL=C sort -k1 > "${_tgt_path}/samples_idx.scp"
                     mkdir -p "${_tgt_path}"/wavs
                     for i in $(seq "${_nj}"); do

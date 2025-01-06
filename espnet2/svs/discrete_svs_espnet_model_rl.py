@@ -459,6 +459,120 @@ class ESPnetDiscreteRLSVSModel(ESPnetSVSModel):
 
         return loss, stats, weight
 
+    def loss_rl(
+        self,
+        policy_logits: torch.Tensor,
+        ref_logits: torch.Tensor,
+        all_idx: torch.Tensor,
+        all_length: torch.Tensor,
+        n_pos: torch.Tensor,
+    ):
+        """Compute Reinforcement Learning loss
+        
+            pos_logits (torch.Tensor): the policy logits of positive
+                sequences. (B_pos, T, nq, V)
+            ref_logits (torch.Tensor): the policy logits of positive
+                sequences. (B_pos, T, nq, V)
+            all_idx (torch.Tensor): index of positive + negative. (B_pos + B_neg, T, nq)
+            all_length (torch.Tensor): length of logits. (B_pos + B_neg)
+            n_pos (torch.Tensor): number of positive. (B_pos,)
+        """
+        assert policy_logits.size(1) == ref_logits.size(1), f"policy({policy_logits.shape}) != ref({ref_logits.shape}) on T"
+        assert policy_logits.size(1) == all_idx.size(1), f"policy({policy_logits.shape}) != all_idx({all_idx.shape}) on T"
+        # nq = discrete token layer
+        # (1) mask for pad
+        mask = make_non_pad_mask(all_length).to(all_length.device)
+        mask = mask.unsqueeze(-1)
+        pos_ratio = len(all_length) // n_pos - 1
+
+        # (2) logp, summed to utterance level
+        # pos policy
+        policy_logits = torch.repeat_interleave(policy_logits, repeats=n_pos // policy_logits.shape[0], dim=0)
+        pos_policy_logp = torch.gather(
+            policy_logits.log_softmax(-1), dim=3, index=all_idx[:n_pos].unsqueeze(3)
+        ).squeeze(3) # [B_pos + B_neg, T, nq]
+        pos_policy_logp = (pos_policy_logp * mask[:n_pos]).sum(dim=(1, 2))
+
+        # neg policy
+        policy_logits = policy_logits.tile(pos_ratio) # [B_pos -> B_pos + B_neg, T, nq, V]
+        neg_policy_logp = torch.gather(
+            policy_logits.log_softmax(-1), dim=3, index=all_idx[n_pos:].unsqueeze(3)
+        ).squeeze(3) # [B_pos + B_neg, T, nq]
+        neg_policy_logp = (neg_policy_logp * mask[:n_pos]).sum(dim=(1, 2))
+
+        if ref_logits is not None:
+            # pos ref
+            ref_logits = torch.repeat_interleave(ref_logits, repeats=n_pos // ref_logits.shape[0], dim=0)
+            pos_ref_logp = torch.gather(
+                ref_logits.log_softmax(-1), dim=3, index=all_idx[n_pos:].unsqueeze(3)
+            ).squeeze(3) # [B_pos + B_neg, T, nq]
+            pos_ref_logp = (pos_ref_logp * mask[n_pos:]).sum(dim=(1, 2))
+
+            # neg ref
+            ref_logits = ref_logits.tile(pos_ratio) # [B_pos -> B_pos + B_neg, T, nq, V]
+            neg_ref_logp = torch.gather(
+                ref_logits.log_softmax(-1), dim=3, index=all_idx[n_pos:].unsqueeze(3)
+            ).squeeze(3)  # [B_pos + B_neg, T, nq]
+            neg_ref_logp = (neg_ref_logp * mask[n_pos:]).sum(dim=(1, 2))  # [B_pos + B_neg]
+        else:
+            pos_ref_logp = torch.zeros_like(pos_policy_logp)
+            neg_ref_logp = torch.zeros_like(neg_policy_logp)
+        
+        # (3) length narmalize
+        if self.length_norm:
+            nq = all_idx.size(-1)
+            pos_policy_logp = pos_policy_logp / all_length[:n_pos] / nq
+            neg_policy_logp = neg_policy_logp / all_length[n_pos:] / nq
+            pos_ref_logp = pos_ref_logp / all_length[:n_pos] / nq
+            neg_ref_logp = neg_ref_logp / all_length[n_pos:] / nq
+
+        # (4) loss computation
+        loss_rl, stats = self.compute_loss(
+            pos_policy_logp = pos_policy_logp.tile(pos_ratio),
+            neg_policy_logp = neg_policy_logp,
+            pos_ref_logp = pos_ref_logp.tile(pos_ratio),
+            neg_ref_logp = neg_ref_logp,
+        )
+        return loss_rl.mean(), stats
+
+    def compute_loss(
+        self,
+        pos_policy_logp: torch.Tensor,
+        neg_policy_logp: torch.Tensor,
+        pos_ref_logp: torch.Tensor,
+        neg_ref_logp: torch.Tensor,
+    ):
+        """Compute exactly the DPO-series loss"""
+        logits = (pos_policy_logp - neg_policy_logp) - (pos_ref_logp - neg_ref_logp)
+
+        if self.algo == "dpo":
+            loss = -F.logsigmoid(logits * self.beta)
+
+        elif self.algo == "simpo":
+            loss = -F.logsigmoid(logits * self.beta - self.reward_margin)
+
+        else:
+            raise NotImplementedError(f"{self.algo} is not supported yet")
+
+        pos_reward = pos_policy_logp - pos_ref_logp
+        neg_reward = neg_policy_logp - neg_ref_logp
+        acc = (pos_reward > neg_reward).float()
+
+        stats = {
+            "loss_rl": loss,
+            "pos_reward": pos_reward,
+            "neg_reward": neg_reward,
+            "reward_gap": pos_reward - neg_reward,
+            "reward_acc": acc,
+            "pos_policy_logp": pos_policy_logp,
+            "neg_policy_logp": neg_policy_logp,
+            "pos_ref_logp": pos_ref_logp,
+            "neg_ref_logp": neg_ref_logp,
+        }
+        stats = {k: v.detach().mean() for k, v in stats.items()}
+
+        return loss, stats
+
     def collect_feats(
         self,
         text: torch.Tensor,
@@ -817,117 +931,3 @@ class ESPnetDiscreteRLSVSModel(ESPnetSVSModel):
             output_dict.update(feat_gen_denorm=feat_gen_denorm)
         """
         return output_dict
-
-    def loss_rl(
-        self,
-        policy_logits: torch.Tensor,
-        ref_logits: torch.Tensor,
-        all_idx: torch.Tensor,
-        all_length: torch.Tensor,
-        n_pos: torch.Tensor,
-    ):
-        """Compute Reinforcement Learning loss
-        
-            pos_logits (torch.Tensor): the policy logits of positive
-                sequences. (B_pos, T, nq, V)
-            ref_logits (torch.Tensor): the policy logits of positive
-                sequences. (B_pos, T, nq, V)
-            all_idx (torch.Tensor): index of positive + negative. (B_pos + B_neg, T, nq)
-            all_length (torch.Tensor): length of logits. (B_pos + B_neg)
-            n_pos (torch.Tensor): number of positive. (B_pos,)
-        """
-        assert policy_logits.size(1) == ref_logits.size(1), f"policy({policy_logits.shape}) != ref({ref_logits.shape}) on T"
-        assert policy_logits.size(1) == all_idx.size(1), f"policy({policy_logits.shape}) != all_idx({all_idx.shape}) on T"
-        # nq = discrete token layer
-        # (1) mask for pad
-        mask = make_non_pad_mask(all_length).to(all_length.device)
-        mask = mask.unsqueeze(-1)
-        pos_ratio = len(all_length) // n_pos - 1
-
-        # (2) logp, summed to utterance level
-        # pos policy
-        policy_logits = torch.repeat_interleave(policy_logits, repeats=n_pos // policy_logits.shape[0], dim=0)
-        pos_policy_logp = torch.gather(
-            policy_logits.log_softmax(-1), dim=3, index=all_idx[:n_pos].unsqueeze(3)
-        ).squeeze(3) # [B_pos + B_neg, T, nq]
-        pos_policy_logp = (pos_policy_logp * mask[:n_pos]).sum(dim=(1, 2))
-
-        # neg policy
-        policy_logits = policy_logits.tile(pos_ratio) # [B_pos -> B_pos + B_neg, T, nq, V]
-        neg_policy_logp = torch.gather(
-            policy_logits.log_softmax(-1), dim=3, index=all_idx[n_pos:].unsqueeze(3)
-        ).squeeze(3) # [B_pos + B_neg, T, nq]
-        neg_policy_logp = (neg_policy_logp * mask[:n_pos]).sum(dim=(1, 2))
-
-        if ref_logits is not None:
-            # pos ref
-            ref_logits = torch.repeat_interleave(ref_logits, repeats=n_pos // ref_logits.shape[0], dim=0)
-            pos_ref_logp = torch.gather(
-                ref_logits.log_softmax(-1), dim=3, index=all_idx[n_pos:].unsqueeze(3)
-            ).squeeze(3) # [B_pos + B_neg, T, nq]
-            pos_ref_logp = (pos_ref_logp * mask[n_pos:]).sum(dim=(1, 2))
-
-            # neg ref
-            ref_logits = ref_logits.tile(pos_ratio) # [B_pos -> B_pos + B_neg, T, nq, V]
-            neg_ref_logp = torch.gather(
-                ref_logits.log_softmax(-1), dim=3, index=all_idx[n_pos:].unsqueeze(3)
-            ).squeeze(3)  # [B_pos + B_neg, T, nq]
-            neg_ref_logp = (neg_ref_logp * mask[n_pos:]).sum(dim=(1, 2))  # [B_pos + B_neg]
-        else:
-            pos_ref_logp = torch.zeros_like(pos_policy_logp)
-            neg_ref_logp = torch.zeros_like(neg_policy_logp)
-        
-        # (3) length narmalize
-        if self.length_norm:
-            nq = all_idx.size(-1)
-            pos_policy_logp = pos_policy_logp / all_length[:n_pos] / nq
-            neg_policy_logp = neg_policy_logp / all_length[n_pos:] / nq
-            pos_ref_logp = pos_ref_logp / all_length[:n_pos] / nq
-            neg_ref_logp = neg_ref_logp / all_length[n_pos:] / nq
-
-        # (4) loss computation
-        loss_rl, stats = self.compute_loss(
-            pos_policy_logp = pos_policy_logp.tile(pos_ratio),
-            neg_policy_logp = neg_policy_logp,
-            pos_ref_logp = pos_ref_logp.tile(pos_ratio),
-            neg_ref_logp = neg_ref_logp,
-        )
-        return loss_rl.mean(), stats
-
-    def compute_loss(
-        self,
-        pos_policy_logp: torch.Tensor,
-        neg_policy_logp: torch.Tensor,
-        pos_ref_logp: torch.Tensor,
-        neg_ref_logp: torch.Tensor,
-    ):
-        """Compute exactly the DPO-series loss"""
-        logits = (pos_policy_logp - neg_policy_logp) - (pos_ref_logp - neg_ref_logp)
-
-        if self.algo == "dpo":
-            loss = -F.logsigmoid(logits * self.beta)
-
-        elif self.algo == "simpo":
-            loss = -F.logsigmoid(logits * self.beta - self.reward_margin)
-
-        else:
-            raise NotImplementedError(f"{self.algo} is not supported yet")
-
-        pos_reward = pos_policy_logp - pos_ref_logp
-        neg_reward = neg_policy_logp - neg_ref_logp
-        acc = (pos_reward > neg_reward).float()
-
-        stats = {
-            "loss_rl": loss,
-            "pos_reward": pos_reward,
-            "neg_reward": neg_reward,
-            "reward_gap": pos_reward - neg_reward,
-            "reward_acc": acc,
-            "pos_policy_logp": pos_policy_logp,
-            "neg_policy_logp": neg_policy_logp,
-            "pos_ref_logp": pos_ref_logp,
-            "neg_ref_logp": neg_ref_logp,
-        }
-        stats = {k: v.detach().mean() for k, v in stats.items()}
-
-        return loss, stats
