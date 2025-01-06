@@ -3,6 +3,7 @@
 This can be used for classification tasks from sequence input.
 """
 
+import logging
 from typing import Tuple
 
 import torch
@@ -24,6 +25,10 @@ class LinearDecoder(AbsDecoder):
     ):
         """Initialize the module."""
         super().__init__()
+        logging.warning(
+            "Using Linear Decoder which is meant to be used for "
+            "classification tasks only."
+        )
 
         self.input_dim = encoder_output_size
         assert vocab_size > 3, "Invalid vocab size, must be > 3."

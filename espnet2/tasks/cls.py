@@ -202,7 +202,8 @@ class CLSTask(AbsTask):
     ]:
         # NOTE(kamo): int value = 0 is reserved by CTC-blank symbol
         # NOTE(shikhar): Please ensure pad value is -1 for integer values.
-        # This is important for generating one-hot vectors for multi-label classification.
+        # This is important for generating one-hot vectors for
+        # multi-label classification.
         return CommonCollateFn(float_pad_value=0.0, int_pad_value=-1)
 
     @classmethod

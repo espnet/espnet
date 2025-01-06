@@ -20,13 +20,13 @@ log "$0 $*"
 
 DATA_PREP_ROOT=${1:-"."}
 
-if [ -z "${AS20K}" ]; then
-    log "Fill the value of 'AS20K' of db.sh"
+if [ -z "${AUDIOSET}" ]; then
+    log "Fill the value of 'AUDIOSET' of db.sh"
     exit 1
 fi
 
 mkdir -p ${DATA_PREP_ROOT}
-python3 local/data_prep_as20k.py ${AS20K} ${DATA_PREP_ROOT}
+python3 local/data_prep_as20k.py ${AUDIOSET} ${DATA_PREP_ROOT}
 
 for x in val eval train; do
     for f in text wav.scp utt2spk; do
