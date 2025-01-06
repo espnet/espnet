@@ -12,6 +12,14 @@ DATA_WRITE_ROOT = sys.argv[2]
 
 def read_data_file(filename, mid2name):
     data = []
+    if "unbalanced_train_segments" in filename:
+        wav_directory = "unbalanced_wav"
+    elif "balanced_train_segments" in filename:
+        wav_directory = "balance_wav"
+    elif "eval_segments" in filename:
+        wav_directory = "eval_wav"
+    else:
+        raise ValueError("Unknown data file")
     with open(filename, "r") as file:
         lines = file.readlines()
         for line in tqdm(lines, desc="Reading data files"):
@@ -31,6 +39,7 @@ def read_data_file(filename, mid2name):
                     "start_seconds": start_seconds,
                     "end_seconds": end_seconds,
                     "labels": labels,
+                    "wav_directory": wav_directory,
                 }
             )
     return data
@@ -59,6 +68,10 @@ eval_set = read_data_file(os.path.join(DATA_READ_ROOT, "eval_segments.csv"), mid
 train_set = read_data_file(
     os.path.join(DATA_READ_ROOT, "unbalanced_train_segments.csv"), mid2name
 )
+train_set_bal = read_data_file(
+    os.path.join(DATA_READ_ROOT, "balanced_train_segments.csv"), mid2name
+)
+train_set = train_set + train_set_bal
 
 # Create validation split from eval
 # Since the code for BEATs evals is not public, it is hard to estimate how they create
@@ -66,19 +79,18 @@ train_set = read_data_file(
 # setup we do not use remove any data from train set and use 10% of eval set as val set.
 # This results in ~1% gain in mAP score.
 # AST- https://github.com/YuanGongND/ast/tree/master
+random.seed(42)
+random.shuffle(eval_set)
 total_len = len(eval_set)
 val_len = total_len // 10
-
-random.seed(0)
-
 val_set = eval_set[:val_len]
 
 print(f"Train set size: {len(train_set)}")
 print(f"Val set size: {len(val_set)}")
 print(f"Eval set size: {len(eval_set)}")
 
-missing_wav_file = 0
 for dataset, name in [(train_set, "train"), (val_set, "val"), (eval_set, "eval")]:
+    missing_wav_file = 0
     text_write_path = os.path.join(DATA_WRITE_ROOT, name, "text")
     wav_scp_write_path = os.path.join(DATA_WRITE_ROOT, name, "wav.scp")
     utt2spk_write_path = os.path.join(DATA_WRITE_ROOT, name, "utt2spk")
@@ -91,7 +103,7 @@ for dataset, name in [(train_set, "train"), (val_set, "val"), (eval_set, "eval")
         wav_scp_write_path, "w"
     ) as wav_f, open(utt2spk_write_path, "w") as utt2spk_f:
         for uttid, item in enumerate(tqdm(dataset, desc=f"Processing {name} set")):
-            wav_directory = "balance_wav" if name == "train" else "eval_wav"
+            wav_directory=item["wav_directory"]
             wav_path = os.path.join(
                 DATA_READ_ROOT, wav_directory, item["yt_id"] + ".wav"
             )
