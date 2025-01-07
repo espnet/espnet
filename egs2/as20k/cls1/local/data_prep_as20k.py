@@ -64,7 +64,7 @@ train_set = read_data_file(
 Create validation split from eval
 Since the code for BEATs evals is not public, it is hard to estimate
 how they create val set. However, it seems like AST is using all of the
-training data. To replicate this setup we do not use remove any data 
+training data. To replicate this setup we do not use remove any data
 from train set and use 10% of eval set as val set. This results in ~1%
 gain in mAP score. AST- https://github.com/YuanGongND/ast/tree/master
 """
