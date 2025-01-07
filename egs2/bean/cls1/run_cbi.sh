@@ -29,7 +29,7 @@ mkdir -p "${storage_dir}"
     --nj 10 \
     --speech_fold_length 160000 \
     --label_fold_length 5 \
-    --max_wav_duration 10 \
+    --max_wav_duration 12 \
     --inference_nj 1 \
     --inference_model valid.acc.best.pth \
     --cls_config "${cls_config}" \

@@ -37,8 +37,8 @@ def convert(row):
         "train_audio", "train_audio_wav"
     )
     os.makedirs(os.path.dirname(wav_filepath), exist_ok=True)
-    # Convert MP3 to WAV
-    ffmpeg.input(filepath).output(wav_filepath, ac=1).run(quiet=True)
+    # Convert MP3 to WAV and trim to 10 seconds
+    ffmpeg.input(filepath).output(wav_filepath, t=10, ac=1).run(quiet=True)
     new_row = pd.Series(
         {
             "path": wav_filepath,

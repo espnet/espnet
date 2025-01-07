@@ -298,6 +298,7 @@ def label_to_onehot(
     """
     if classification_type == "multi-class":
         assert label_lengths.max() == 1, "Only one label per sample"
+        assert label.max() < vocab_size, (label.max(), vocab_size)
         return F.one_hot(label.squeeze(-1), vocab_size).float()
     elif classification_type == "multi-label":
         assert (
