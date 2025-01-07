@@ -60,12 +60,15 @@ train_set = read_data_file(
     os.path.join(DATA_READ_ROOT, "balanced_train_segments.csv"), mid2name
 )
 
-# Create validation split from eval
-# Since the code for BEATs evals is not public, it is hard to estimate how they create
-# val set. However, it seems like AST is using all of the training data. To replicate this
-# setup we do not use remove any data from train set and use 10% of eval set as val set.
-# This results in ~1% gain in mAP score.
-# AST- https://github.com/YuanGongND/ast/tree/master
+"""
+Create validation split from eval
+Since the code for BEATs evals is not public, it is hard to estimate
+how they create val set. However, it seems like AST is using all of the
+training data. To replicate this setup we do not use remove any data 
+from train set and use 10% of eval set as val set. This results in ~1%
+gain in mAP score. AST- https://github.com/YuanGongND/ast/tree/master
+"""
+
 total_len = len(eval_set)
 val_len = total_len // 10
 
