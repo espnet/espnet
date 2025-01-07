@@ -69,7 +69,8 @@ class ARParallelLM(AbsCoreLM):
         """
         assert dec_seq.dim() == 3
 
-        targets, loss_mask = dec_seq[:, 1:], loss_mask[:, 1:]
+        targets = dec_seq[:, 1:]
+        loss_mask = loss_mask[:, 1:] if loss_mask is not None else None
         x = dec_seq[:, :-1]
 
         # input embedding

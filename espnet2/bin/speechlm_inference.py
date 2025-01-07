@@ -190,13 +190,6 @@ class SpeechLM:
         # (2) record the prefix segments
         retval = [[] for _ in self.modalities]
         prefix = dec_seq[0, :prefix_len]
-
-        if prefix_len > 0:
-            first_modality = torch.zeros(1, self.inference_nq).to(self.device).long()
-            first_modality_id = self.task.conditions[0][1]
-            first_modality_id = self.token_list.index(f"<{first_modality_id}_start/end>")
-            first_modality[:, 0] = first_modality_id
-            prefix = torch.cat([first_modality, prefix[:-1]])
         
         segments = self.parse_sequence(prefix)
         if len(segments) != len(self.task.conditions):

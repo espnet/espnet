@@ -2572,6 +2572,10 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         new_conti_feats = []
         new_data["conti_feats"] = new_conti_feats
 
+        # (5) prefix_len, as inference legacy. temp code
+        prefix_len = sum(len(seg) for seg in seqs[:-2]) // self.codec_token_in_use
+        new_data["prefix_len"] = np.array([prefix_len])
+
         # finally, sanity check
         if np.isin(self.unk, new_data["dec_seq"]):
             raise ValueError(f"Unknown token is in the decoder seq. UID: {uid}")
@@ -2613,11 +2617,11 @@ class SpeechLMPreprocessor(AbsPreprocessor):
                         constant_values=self.pad,
                     )
             
-                modality = self.audio_modality
+                bias_modality = self.audio_modality
+            else:
+                bias_modality = modality
             
-            assert modality == self.audio_modality
-
-            if modality == 'codec_ssl':
+            if bias_modality == 'codec_ssl':
                 token_bias = self.token_bias['ssl'][0]
             else:
                 token_bias = self.token_bias['codec'][0]
@@ -2705,6 +2709,6 @@ class SpeechLMPreprocessor(AbsPreprocessor):
             for idx, (patch, patch_loss_mask) in enumerate(seq):
                 patch = patch.tolist()
                 patch_str = ", ".join(self.converter.ids2tokens(patch))
-                logging.warning(f"Patch: {idx} -> {patch_str} {patch_loss_mask}")
+                logging.warning(f"Patch: {idx} -> {patch} {patch_str} {patch_loss_mask}")
 
         raise ValueError("End of Diagnose")

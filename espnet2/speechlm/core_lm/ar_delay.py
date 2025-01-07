@@ -47,7 +47,7 @@ class ARDelayLM(ARParallelLM):
     def delay_interleave(
         self,
         dec_seq: torch.Tensor,
-        loss_mask: torch.Tensor,
+        loss_mask: torch.Tensor = None,
         pad: int = 0,
     ):
         B, T, nq = dec_seq.size()
@@ -57,11 +57,12 @@ class ARDelayLM(ARParallelLM):
             )
             * pad
         )
-        ret_loss_mask = retval.clone().detach()
+        ret_loss_mask = retval.clone().detach() if loss_mask is not None else None
 
         for n in range(self.nq):
             retval[:, n : n + T, n] = dec_seq[:, :, n]
-            ret_loss_mask[:, n : n + T, n] = loss_mask[:, :, n]
+            if ret_loss_mask is not None:
+                ret_loss_mask[:, n : n + T, n] = loss_mask[:, :, n]
 
         return retval, ret_loss_mask
 
@@ -102,7 +103,7 @@ class ARDelayLM(ARParallelLM):
         self.decoders.init()
 
         # (2) splice-interleave-split and prefill
-        full_seq_delay = self.delay_interleave(torch.cat([prefix, suffix], dim=1))
+        full_seq_delay, _ = self.delay_interleave(torch.cat([prefix, suffix], dim=1))
         full_seq_delay = full_seq_delay.expand(opts.nbest, -1, -1)
 
         prelen = prefix.size(1)
