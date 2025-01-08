@@ -12,7 +12,7 @@ cls_config=conf/beats_dogs.yaml
 
 timestamp=$(date "+%Y%m%d.%H%M%S")
 mynametag=dogs.${timestamp}
-storage_dir=/compute/babel-11-13/sbharad2/beats_run/bean.dogs
+storage_dir=./
 mkdir -p "${storage_dir}"
 
 ./cls.sh \

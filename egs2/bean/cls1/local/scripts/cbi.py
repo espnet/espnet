@@ -2,12 +2,11 @@ import os
 import ffmpeg
 import random
 import sys
+import pandas as pd
 from pathlib import Path
 from tqdm import tqdm
 
 tqdm.pandas()
-
-import pandas as pd
 
 DATA_READ_ROOT = sys.argv[1]
 DATA_WRITE_ROOT = sys.argv[2]

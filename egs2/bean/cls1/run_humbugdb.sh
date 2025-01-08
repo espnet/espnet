@@ -12,7 +12,7 @@ cls_config=conf/beats_humbugdb.yaml
 
 timestamp=$(date "+%Y%m%d.%H%M%S")
 mynametag=humbugdb.${timestamp}
-storage_dir=/compute/babel-11-13/sbharad2/beats_run/bean.humbugdb
+storage_dir=./
 mkdir -p "${storage_dir}"
 
 ./cls.sh \

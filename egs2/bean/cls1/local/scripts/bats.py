@@ -2,7 +2,6 @@ import os
 import sys
 
 import pandas as pd
-from plumbum import FG, local
 from sklearn.model_selection import train_test_split
 
 DATA_READ_ROOT = sys.argv[1]
