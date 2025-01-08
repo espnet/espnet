@@ -1,10 +1,10 @@
 import os
 import random
 import sys
-import pandas as pd
 from pathlib import Path
 
 import ffmpeg
+import pandas as pd
 from tqdm import tqdm
 
 tqdm.pandas()

@@ -1,7 +1,8 @@
 import argparse
+import logging
 import os
 import warnings
-import logging
+
 import numpy as np
 from scipy import stats
 from sklearn import metrics

@@ -1,6 +1,6 @@
 # Benchmark of Animal Sounds Recipe
 This recipe implements the audio classification task with a BEATs encoder and linear layer decoder model on the [The Benchmark of Animal Sounds (BEAN)](https://arxiv.org/abs/2210.12300).
-The data processing code is adapted from https://github.com/earthspecies/beans 
+The data processing code is adapted from https://github.com/earthspecies/beans
 
 # Training Details and Requirements
 Most of the datasets complete within 5 hours and on a single L40 gpu.
