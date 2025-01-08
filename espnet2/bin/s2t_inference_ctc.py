@@ -793,12 +793,12 @@ class Speech2TextGreedySearch:
                     torch.tensor(cur_speech, dtype=getattr(torch, self.dtype))
                 )
 
-                cur_text_prev = self.converter.tokens2ids(self.tokenizer.text2tokens(cur_text_prev))
+                cur_text_prev = self.converter.tokens2ids(
+                    self.tokenizer.text2tokens(cur_text_prev)
+                )
                 if self.s2t_model.na in cur_text_prev:
                     cur_text_prev = [self.s2t_model.na]
-                all_text_prev.append(
-                    torch.tensor(cur_text_prev, dtype=torch.long)
-                )
+                all_text_prev.append(torch.tensor(cur_text_prev, dtype=torch.long))
 
                 cur_lang_id = self.converter.token2id[cur_lang_sym]
                 cur_task_id = self.converter.token2id[cur_task_sym]
@@ -826,18 +826,19 @@ class Speech2TextGreedySearch:
                     else:
                         buffer_list.append(cur_buffer)
                 buffer_list = [
-                    torch.tensor(x, dtype=getattr(torch, self.dtype)) for x in buffer_list
+                    torch.tensor(x, dtype=getattr(torch, self.dtype))
+                    for x in buffer_list
                 ]
 
                 n_chunks.append(len(buffer_list))
                 all_speech.extend(buffer_list)
 
-                cur_text_prev = self.converter.tokens2ids(self.tokenizer.text2tokens(cur_text_prev))
+                cur_text_prev = self.converter.tokens2ids(
+                    self.tokenizer.text2tokens(cur_text_prev)
+                )
                 if self.s2t_model.na in cur_text_prev:
                     cur_text_prev = [self.s2t_model.na]
-                all_text_prev.append(
-                    torch.tensor(cur_text_prev, dtype=torch.long)
-                )
+                all_text_prev.append(torch.tensor(cur_text_prev, dtype=torch.long))
                 for _ in range(len(buffer_list) - 1):
                     all_text_prev.append(
                         torch.tensor([self.s2t_model.na], dtype=torch.long)
@@ -847,7 +848,8 @@ class Speech2TextGreedySearch:
                 cur_task_id = self.converter.token2id[cur_task_sym]
                 all_prefix.extend(
                     [
-                        torch.tensor([cur_lang_id, cur_task_id], dtype=torch.long) for _ in buffer_list
+                        torch.tensor([cur_lang_id, cur_task_id], dtype=torch.long)
+                        for _ in buffer_list
                     ]
                 )
 
@@ -892,15 +894,13 @@ class Speech2TextGreedySearch:
         predictions = []
         start = 0
         for n_chunk in n_chunks:
-            cur_outputs = outputs[start:start + n_chunk]
+            cur_outputs = outputs[start : start + n_chunk]
 
             if len(cur_outputs) == 1:
                 # short-form audio
                 token_int = cur_outputs[0]
             else:
-                token_int = cur_outputs[
-                    :, :buffer_frames
-                ][
+                token_int = cur_outputs[:, :buffer_frames][
                     :, context_frames:-context_frames
                 ].reshape(-1)
 
@@ -912,14 +912,20 @@ class Speech2TextGreedySearch:
             predictions.append(text_nospecial)
 
             start += n_chunk
-        
+
         return predictions
 
     @torch.no_grad()
     @typechecked
     def batch_decode(
         self,
-        speech: Union[str, Path, torch.Tensor, np.ndarray, List[Union[str, Path, torch.Tensor, np.ndarray]]],
+        speech: Union[
+            str,
+            Path,
+            torch.Tensor,
+            np.ndarray,
+            List[Union[str, Path, torch.Tensor, np.ndarray]],
+        ],
         batch_size: int = 16,
         context_len_in_secs: float = 4,
         text_prev: Union[str, List[str]] = "<na>",
@@ -981,9 +987,7 @@ class Speech2TextGreedySearch:
             if isinstance(enc, tuple):
                 enc = enc[0]
 
-            all_outputs.append(
-                self.s2t_model.ctc.argmax(enc)  # (B, T)
-            )
+            all_outputs.append(self.s2t_model.ctc.argmax(enc))  # (B, T)
 
         all_outputs = torch.cat(all_outputs)
 
