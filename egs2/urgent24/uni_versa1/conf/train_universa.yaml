@@ -62,7 +62,7 @@ frontend: default
 ########################
 max_epoch: 100
 batch_type: sorted
-batch_size: 64
+batch_size: 16
 grad_clip: -1             # gradient clipping norm
 grad_noise: false         # whether to use gradient noise injection
 sort_in_batch: descending # how to sort data in making batch

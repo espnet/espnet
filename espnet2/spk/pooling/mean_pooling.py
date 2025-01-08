@@ -23,16 +23,16 @@ class MeanPooling(AbsPooling):
         """Forward.
 
         Args:
-            x (torch.Tensor): Input tensor (#batch, time, size).
+            x (torch.Tensor): Input tensor (#batch, size, time).
             task_tokens (torch.Tensor): Task tokens (#batch, size).
             mask (torch.Tensor): Mask tensor (#batch, time).
         """
         if task_tokens is not None:
             raise ValueError("MeanPooling is not adequate for task_tokens")
         if self.use_masking and mask is not None:
-            x = x.masked_fill(mask.unsqueeze(-1), 0)
-            x = torch.sum(x, dim=1)
-            x = x / (torch.sum(~mask, dim=1, keepdim=True) + 1e-6)
+            x = x.masked_fill(mask.unsqueeze(1), 0)
+            x = torch.sum(x, dim=-1)
+            x = x / (torch.sum(~mask, dim=-1, keepdim=True) + 1e-6)
         else:
             x = torch.mean(x, dim=-1)
 

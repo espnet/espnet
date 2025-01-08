@@ -256,6 +256,8 @@ def main():
             with Path(args.scp).open("r") as fscp:
                 for line in tqdm(fscp):
                     uttid, wavpath = line.strip().split(None, 1)
+                    if wavpath == "None":
+                        wavpath = None
 
                     # B.a. Without segments and using pipe inputs
                     if wavpath.endswith("|"):
@@ -269,7 +271,7 @@ def main():
                             with BytesIO(f.read()) as g:
                                 wave, rate = soundfile.read(g)
                         subtypes = None
-
+                    
                     # B.b Without segments and not using pipe
                     else:
                         if args.multi_columns_input:

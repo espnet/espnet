@@ -5,8 +5,9 @@
 
 import logging
 from contextlib import contextmanager
-from typing import Dict, Optional, Sequence, Tuple, Union
+from typing import Dict, List, Optional, Sequence, Tuple, Union
 
+import numpy as np
 import torch
 import torch.nn.functional as F
 from packaging.version import parse as V
@@ -311,12 +312,12 @@ class UniversaBase(AbsUniversa):
         audio_enc_mask = make_pad_mask(audio_enc_lengths).to(audio_enc.device)
         if self.multi_branch:
             for i in range(self.metric_size):
-                pooling_output = self.pooling[i](audio_enc, mask=audio_enc_mask)
-                # print("pooling_output, audio_enc_mask", pooling_output, audio_enc_mask)
+                pooling_output = self.pooling[i](
+                    audio_enc.permute(0, 2, 1), mask=audio_enc_mask
+                )
                 with autocast(False):
                     # skip numeric stability with float16
                     pred_metric = self.projector[i](pooling_output)
-                # print("pred_metric", pred_metric)
                 metric_loss = 0.0
                 # NOTE(jiatong): we use > instead of != to handle the case
                 # where the metric_pad_value is not 0
@@ -333,13 +334,14 @@ class UniversaBase(AbsUniversa):
                     )
                     metric_loss = metric_loss + metric_l1_loss
                     stats[self.id2metric[i] + "_l1"] = metric_l1_loss.detach()
-                    # print("final_metrics[i] and final_metric_mask", final_metrics[i], final_metric_mask, flush=True)
                 metric_loss = metric_loss * self.loss_weights[i]
                 stats[self.id2metric[i] + "_overall"] = metric_loss.detach()
                 loss = loss + metric_loss
             stats["loss"] = loss.detach()
         else:
-            pooling_output = self.pooling(audio_enc, mask=audio_enc_mask)
+            pooling_output = self.pooling(
+                audio_enc.permute(0, 2, 1), mask=audio_enc_mask
+            )
             with autocast(False):
                 # skip numeric stability with float16
                 pred_metric = self.projector(pooling_output)
@@ -440,7 +442,7 @@ class UniversaBase(AbsUniversa):
         ref_text: Optional[torch.Tensor] = None,
         ref_text_lengths: Optional[torch.Tensor] = None,
         **kwargs,
-    ) -> Dict[str, torch.Tensor]:
+    ) -> Dict[str, Union[np.array, torch.Tensor]]:
         """Return predicted output as a dict.
 
         Args:
@@ -463,19 +465,50 @@ class UniversaBase(AbsUniversa):
         )
 
         # 2. Multi-branch pooling and projectors
+
         audio_enc_mask = make_pad_mask(audio_enc_lengths).to(audio_enc.device)
         if self.multi_branch:
             pred_metrics = []
             for i in range(self.metric_size):
-                pooling_output = self.pooling[i](audio_enc, mask=audio_enc_mask)
-                # print("pooling_output, audio_enc_mask", pooling_output, audio_enc_mask)
+                pooling_output = self.pooling[i](
+                    audio_enc.permute(0, 2, 1), mask=audio_enc_mask
+                )
                 with autocast(False):
                     # skip numeric stability with float16
                     pred_metric = self.projector[i](pooling_output)
                 pred_metrics.append(pred_metric)
         else:
-            pooling_output = self.pooling(audio_enc, mask=audio_enc_mask)
+            pooling_output = self.pooling(
+                audio_enc.permute(0, 2, 1), mask=audio_enc_mask
+            )
             with autocast(False):
                 # skip numeric stability with float16
-                pred_metric = self.projector(pooling_output)
-        return pred_metric
+                pred_metrics = self.projector(pooling_output)
+        pred_metrics = self._inference_decoration(pred_metrics)
+        return pred_metrics
+
+    @typechecked
+    def _inference_decoration(
+        self,
+        pred_metrics: Union[torch.Tensor, List[torch.Tensor]],
+    ) -> Dict[str, Union[np.array, torch.Tensor]]:
+        """Decorate the predicted metrics.
+
+        Args:
+            pred_metrics (torch.Tensor, List[torch.Tensor]): Predicted metrics tensor.
+
+        Returns:
+            Dict[str, Union[np.array, torch.Tensor]]: Decorated predicted metrics.
+
+        """
+        if self.multi_branch:
+            pred_metrics = {
+                self.id2metric[i]: pred_metrics[i].detach().cpu().numpy()
+                for i in range(self.metric_size)
+            }
+        else:
+            pred_metrics = {
+                self.id2metric[i]: pred_metrics[:, i].detach().cpu().numpy()
+                for i in range(self.metric_size)
+            }
+        return pred_metrics

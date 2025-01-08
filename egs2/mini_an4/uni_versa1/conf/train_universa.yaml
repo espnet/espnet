@@ -60,8 +60,8 @@ frontend: default
 ########################
 # Training parameters  #
 ########################
-num_iters_per_epoch: 1
-max_epoch: 1
+num_iters_per_epoch: 2
+max_epoch: 100
 batch_type: sorted
 batch_size: 2
 grad_clip: -1             # gradient clipping norm
@@ -80,8 +80,7 @@ unused_parameters: false   # needed for multi gpu case
 # Optimizer
 optim: adam
 optim_conf:
-  lr: 0.001
-  weight_decay: 0.0
+  lr: 0.01
 
 # Scheduler
 scheduler: exponentiallr

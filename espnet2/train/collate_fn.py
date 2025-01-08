@@ -308,6 +308,11 @@ class UniversaCollateFn(CommonCollateFn):
                 lens = torch.tensor([d[key].shape[0] for d in data], dtype=torch.long)
                 output[key + "_lengths"] = lens
 
+        if data[0].get("metrics") is None:
+            # For inference
+            output = (uttids, output)
+            return output
+
         metrics_data = [d["metrics"] for d in data]
         output_metrics = {}
         for metric in self.metrics_list:
