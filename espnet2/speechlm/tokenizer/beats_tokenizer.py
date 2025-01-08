@@ -12,13 +12,15 @@
 # --------------------------------------------------------
 
 import logging
+from typing import Dict, Optional
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.nn import LayerNorm
 import torchaudio.compliance.kaldi as ta_kaldi
-from typing import Optional, Dict
-from espnet2.asr.encoder.beats_encoder import BeatsEncoder, BeatsConfig
+from torch.nn import LayerNorm
+
+from espnet2.asr.encoder.beats_encoder import BeatsConfig, BeatsEncoder
 
 logger = logging.getLogger(__name__)
 
