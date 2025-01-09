@@ -1,6 +1,8 @@
+from pathlib import Path
+
 import pytest
 import torch
-from pathlib import Path
+
 from espnet2.speechlm.tokenizer.codec_tokenizer import CodecTokenizer
 
 
