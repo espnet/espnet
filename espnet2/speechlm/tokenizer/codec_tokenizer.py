@@ -5,8 +5,13 @@
 
 import numpy as np
 import torch
-
+import yaml
+from inspect import signature
 from espnet2.speechlm.tokenizer.abs_tokenizer import AbsTokenizer
+from espnet2.speechlm.tokenizer.beats_tokenizer import (
+    BeatsTokenizer,
+    BeatsTokenizerConfig,
+)
 
 
 class CodecTokenizer(AbsTokenizer):
@@ -118,6 +123,23 @@ class CodecTokenizer(AbsTokenizer):
             self.size_codebook = 1024
             self.subsample = 320
 
+        elif self.codec_choice == "beats":
+            beats_config = None
+            if config_path:
+                with open(config_path, "r") as f:
+                    beats_config = yaml.safe_load(f)
+            print(beats_config, "Beats config")
+            valid_args = signature(BeatsTokenizer.__init__).parameters
+            remaining_args = {k: v for k, v in beats_config.items() if k in valid_args}
+            self.codec = BeatsTokenizer(
+                beats_tokenizer_ckpt_path=checkpoint_path,
+                tokenizer_config=beats_config,
+                **remaining_args,
+            )
+            self.n_codebook = 1
+            self.size_codebook = self.codec.quantize.num_tokens
+            self.sample_rate = 16000
+            self.subsample = 320
         else:
             raise ValueError(f"Codec {codec_choice} is not supported")
 
@@ -146,6 +168,14 @@ class CodecTokenizer(AbsTokenizer):
         elif self.codec_choice == "inhouse":
             codes = self.codec.encode(wavs).permute(1, 2, 0)
 
+        elif self.codec_choice == "beats":
+            wav_in = wavs.squeeze(1)
+            # Assume no padding, all wavs are full length
+            wav_len = torch.LongTensor([wav_in.size(1)] * wav_in.size(0)).to(
+                wav_in.device
+            )
+            codes = self.codec.encode(xs_pad=wav_in, ilens=wav_len).unsqueeze(-1)
+
         else:
             raise NotImplementedError
 
@@ -169,7 +199,9 @@ class CodecTokenizer(AbsTokenizer):
             z = z.transpose(1, 2)
 
         else:
-            raise NotImplementedError
+            raise NotImplementedError(
+                f"Codec {self.codec_choice} does not support `encode_continuous`."
+            )
 
         return z
 
@@ -199,7 +231,9 @@ class CodecTokenizer(AbsTokenizer):
             return wav
 
         else:
-            raise NotImplementedError
+            raise NotImplementedError(
+                f"Codec {self.codec_choice} does not support `decode`."
+            )
 
         return waveform
 
@@ -221,7 +255,9 @@ class CodecTokenizer(AbsTokenizer):
             waveform = self.codec.decode(z).squeeze(1)
 
         else:
-            raise NotImplementedError
+            raise NotImplementedError(
+                f"Codec {self.codec_choice} does not support `decode_continuous`."
+            )
 
         return waveform
 
