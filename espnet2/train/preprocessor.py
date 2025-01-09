@@ -1732,15 +1732,15 @@ class SVSPreprocessor(AbsPreprocessor):
                 tokens = self.tokenizer.text2tokens(text)
                 _text_ints = self.token_id_converter.tokens2ids(tokens)
                 data[self.text_name] = np.array(_text_ints, dtype=np.int64)
+                # Infer case of music score  
+                if "label" not in data: 
+                    data["label"] = np.array(_text_ints, dtype=np.int64)
             
         if self.pos_sample_name in data and self.neg_sample_name in data:
             if len(data[self.pos_sample_name].shape) == 2:
                 data[self.pos_sample_name] = np.expand_dims(data[self.pos_sample_name], axis=1)
             if len(data[self.neg_sample_name].shape) == 2:
                 data[self.neg_sample_name] = np.expand_dims(data[self.neg_sample_name], axis=1)
-                # Infer case of music score  
-                if "label" not in data: 
-                    data["label"] = np.array(_text_ints, dtype=np.int64)
         return data
 
 
