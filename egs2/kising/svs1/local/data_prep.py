@@ -16,6 +16,9 @@ except ModuleNotFoundError as error:
         "pydub needed for audio segmentation" "use pip to install pydub"
     ) from error
 
+                # Infer case of music score  
+                if "label" not in data: 
+                    data["label"] = np.array(_text_ints, dtype=np.int64)
 
 try:
     import pretty_midi
@@ -211,15 +214,15 @@ def get_info_from_partitions(
                     onset_time=0,
                     stop_time=lyrics[lyric_index].time - partition_start,
                     pitch=0,
-                    lyric="<AP>",
-                    phn="<AP>",
+                    lyric="SP",
+                    phn="SP",
                 )
             )
             current_phns.append(
                 Phoneme(
                     start_time=0,
                     stop_time=lyrics[lyric_index].time - partition_start,
-                    symbol="<AP>",
+                    symbol="SP",
                 )
             )
 
@@ -301,15 +304,15 @@ def get_info_from_partitions(
                     onset_time=notes[lyric_index - 1].end - partition_start,
                     stop_time=partition_end - partition_start,
                     pitch=0,
-                    lyric="<SP>",
-                    phn="<SP>",
+                    lyric="SP",
+                    phn="SP",
                 )
             )
             current_phns.append(
                 Phoneme(
                     start_time=notes[lyric_index - 1].end - partition_start,
                     stop_time=partition_end - partition_start,
-                    symbol="<SP>",
+                    symbol="SP",
                 )
             )
 
@@ -375,7 +378,7 @@ def process_dataset(args):
                 dataset = testset
             else:
                 dataset = trainset
-            dataset.utt2spk += [(segid, singer) for segid in segids]
+            dataset.utt2spk += [(segid, "kising_" + singer) for segid in segids]
             dataset.utt2wav += list(zip(segids, filenames))
             dataset.utt2text += [
                 (segid, *[phn.symbol for phn in phns])

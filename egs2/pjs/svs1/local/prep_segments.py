@@ -79,9 +79,6 @@ def make_segment(file_id, labels, threshold=30, sil=["pau", "br", "sil"]):
     segment = SegInfo()
     for i in range(len(labels)):
         label = labels[i]
-        # replace wrong phoneme with correct one
-        if "46" in file_id and label.label_id == "o" and labels[i - 1].label_id == "o":
-            label.label_id = "i"
         # add missing phonemes
         if "64" in file_id and i == 34:
             segment.add(label.start, 8.237, "o")

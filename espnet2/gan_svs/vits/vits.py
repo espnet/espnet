@@ -985,7 +985,8 @@ class VITS(AbsGANSVS):
         label = label["lab"]
         melody = melody["lab"]
         score_dur = duration["score_syb"]
-        gt_dur = duration["lab"]
+        if "lab" in duration:
+            gt_dur = duration["lab"]
         text = text[None]
         text_lengths = torch.tensor(
             [text.size(1)],

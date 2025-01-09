@@ -94,7 +94,7 @@ def process_subset(src_data, subset, check_func, fs, wav_dump):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Prepare Data for Oniku Database")
+    parser = argparse.ArgumentParser(description="Prepare Data for Namine Database")
     parser.add_argument("src_data", type=str, help="source data directory")
     parser.add_argument("train", type=str, help="train set")
     parser.add_argument("dev", type=str, help="development set")

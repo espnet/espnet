@@ -22,6 +22,8 @@ import torch
 import torch.nn.functional as F
 from typeguard import typechecked
 
+import logging
+
 from espnet2.gan_svs.avocodo import AvocodoGenerator
 from espnet2.gan_svs.uhifigan import UHiFiGANGenerator
 from espnet2.gan_svs.uhifigan.sine_generator import SineGen

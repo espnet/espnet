@@ -84,7 +84,7 @@ def make_segment(file_id, tempo, notes, threshold, sil=["P", "B"]):
         # fix errors in dataset
         # remove wrong note
         if "64" in file_id:
-            if i in [18, 24, 25]:
+            if i in [18, 24]:
                 continue
             # correct duration
             if i == 21:

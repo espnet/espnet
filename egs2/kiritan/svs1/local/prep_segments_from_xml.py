@@ -193,9 +193,9 @@ def make_segment(file_id, tempo, notes, threshold, sil=["P", "B"]):
         # add pause (split)
         if len(segment.segs) and (
             ("18" in file_id and note.lyric == "ど" and notes[i - 1].lyric == "す")
+            or ("21" in file_id and (note.lyric == "ぜっ" or note.lyric == "きっ"))
             or ("28" in file_id and i > 0 and notes[i - 1].lyric == "しょ")
             or ("42" in file_id and note.lyric == "し" and notes[i - 1].lyric == "い")
-            or ("21" in file_id and (note.lyric == "ぜっ" or note.lyric == "きっ"))
         ):
             segments.extend(segment.split(threshold=threshold))
             segment = SegInfo()

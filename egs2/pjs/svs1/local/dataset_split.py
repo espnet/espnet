@@ -78,18 +78,18 @@ def process_subset(src_data, subset, check_func, fs, wav_dump):
             continue
         if folder == "background_noise":
             continue
-        utt_id = folder
+        utt_id = UTT_PREFIX + "_" + folder[3:]
 
         cmd = "sox {}_song.wav -c 1 -t wavpcm -b 16 -r {} {}_bits16.wav".format(
             os.path.join(src_data, folder, folder),
             fs,
-            os.path.join(wav_dump, folder),
+            os.path.join(wav_dump, utt_id),
         )
         os.system(cmd)
 
         wavscp.write(
             "{} {}\n".format(
-                utt_id, os.path.join(wav_dump, "{}_bits16.wav".format(folder))
+                utt_id, os.path.join(wav_dump, "{}_bits16.wav".format(utt_id))
             )
         )
         utt2spk.write("{} {}\n".format(utt_id, UTT_PREFIX))

@@ -41,50 +41,50 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "The KISING data should be downloaded"
 
     log "automatically download from google drive"
-    ./local/download_wget.sh "1Wi8luF2QF6jsXYnO78uiWqZGJrtGuXb_" "${KISING}/kising-v2.zip"
-    ./local/download_wget.sh "1VX8Fbu-Etv94LZHx928VJ12jfP8MEBNz" "${KISING}/kising-v2-original.zip"
+    # ./local/download_google_drive.sh "1Wi8luF2QF6jsXYnO78uiWqZGJrtGuXb_" "${KISING}/kising-v2.zip"
+    # ./local/download_google_drive.sh "1VX8Fbu-Etv94LZHx928VJ12jfP8MEBNz" "${KISING}/kising-v2-original.zip"
 
-    unzip "${KISING}/kising-v2.zip" -d "${KISING}/KISING"
-    unzip "${KISING}/kising-v2-original.zip" -d "${KISING}/KISING"
-    mv "${KISING}/KISING/clean" "${KISING}/KISING/original"
+    # unzip "${KISING}/kising-v2.zip" -d "${KISING}/KISING"
+    # unzip "${KISING}/kising-v2-original.zip" -d "${KISING}/KISING"
+    # mv "${KISING}/KISING/clean" "${KISING}/KISING/original"
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage 1: Data preparaion "
 
-    mkdir -p "${KISING}/KISING/all"
+    mkdir -p "${KISING}/KISING"
 
-    # Resample files to sampling rate fs, single channel, 16 bits
-    for song_folder in "${KISING}/KISING/kising-v2"/*; do
-        # Skip if song_folder ends with -unseg or is between 436 and 440
-        if [[ "${song_folder}" == *-unseg ]]; then
-            continue
-        fi
-        song_id=$(basename "${song_folder}")
-        song="${song_id%%-*}"
-        if [[ "${song}" -ge 436 ]] && [[ "${song}" -le 440 ]]; then
-            continue
-        fi
-        mkdir -p "${KISING}/KISING/all/${song_id}"
-        for file in "${song_folder}"/*.wav; do
-            filename=$(basename ${file})
-            sox ${file} -r ${fs} -b 16 -c 1 "${KISING}/KISING/all/${song_id}/${filename}"
-        done
-        cp -r "${song_folder}"/*.mid "${KISING}/KISING/all/${song_id}"
-    done
-    for file in "${KISING}/KISING/original"/*.wav; do
-        filename=$(basename ${file})
-        song_id=$(echo ${filename} | cut -c 1-3) # e.g., 421_all.wav -> 421
-        if [[ ${filename} == *part2.wav ]]; then
-            song_id=${song_id}-2 # e.g., 441-unseg-part2.wav -> 441-2
-        fi
-        mkdir -p "${KISING}/KISING/all/${song_id}"
-        sox ${file} -r ${fs} -b 16 -c 1 "${KISING}/KISING/all/${song_id}/${song_id}-original.wav"
-    done
+    # # Resample files to sampling rate fs, single channel, 16 bits
+    # for song_folder in "${KISING}/KISING/kising-v2"/*; do
+    #     # Skip if song_folder ends with -unseg or is between 436 and 440
+    #     if [[ "${song_folder}" == *-unseg ]]; then
+    #         continue
+    #     fi
+    #     song_id=$(basename "${song_folder}")
+    #     song="${song_id%%-*}"
+    #     if [[ "${song}" -ge 436 ]] && [[ "${song}" -le 440 ]]; then
+    #         continue
+    #     fi
+    #     mkdir -p "${KISING}/KISING/all/${song_id}"
+    #     for file in "${song_folder}"/*.wav; do
+    #         filename=$(basename ${file})
+    #         sox ${file} -r ${fs} -b 16 -c 1 "${KISING}/KISING/all/${song_id}/${filename}"
+    #     done
+    #     cp -r "${song_folder}"/*.mid "${KISING}/KISING/all/${song_id}"
+    # done
+    # for file in "${KISING}/KISING/original"/*.wav; do
+    #     filename=$(basename ${file})
+    #     song_id=$(echo ${filename} | cut -c 1-3) # e.g., 421_all.wav -> 421
+    #     if [[ ${filename} == *part2.wav ]]; then
+    #         song_id=${song_id}-2 # e.g., 441-unseg-part2.wav -> 441-2
+    #     fi
+    #     mkdir -p "${KISING}/KISING/all/${song_id}"
+    #     sox ${file} -r ${fs} -b 16 -c 1 "${KISING}/KISING/all/${song_id}/${song_id}-original.wav"
+    # done
 
     mkdir -p wav_dump
     # we convert the music score to xml format
-    python local/data_prep.py "${KISING}/KISING/all" \
+    python local/data_prep.py "${KISING}/KISING" \
         --wav_dumpdir wav_dump \
         --dataset ${dataset}
     for src_data in train test; do
