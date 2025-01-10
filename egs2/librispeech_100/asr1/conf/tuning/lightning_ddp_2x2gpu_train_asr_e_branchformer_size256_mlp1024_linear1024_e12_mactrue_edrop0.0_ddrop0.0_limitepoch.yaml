@@ -1,0 +1,120 @@
+# Trained with A40 (48 GB) x 4 GPUs.
+encoder: e_branchformer
+encoder_conf:
+    output_size: 256
+    attention_heads: 4
+    attention_layer_type: rel_selfattn
+    pos_enc_layer_type: rel_pos
+    rel_pos_type: latest
+    cgmlp_linear_units: 1024
+    cgmlp_conv_kernel: 31
+    use_linear_after_conv: false
+    gate_activation: identity
+    num_blocks: 12
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    attention_dropout_rate: 0.1
+    input_layer: conv2d
+    layer_drop_rate: 0.0
+    linear_units: 1024
+    positionwise_layer_type: linear
+    use_ffn: true
+    macaron_ffn: true
+    merge_conv_kernel: 31
+
+decoder: transformer
+decoder_conf:
+    attention_heads: 4
+    linear_units: 2048
+    num_blocks: 6
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    self_attention_dropout_rate: 0.1
+    src_attention_dropout_rate: 0.1
+    layer_drop_rate: 0.0
+
+model_conf:
+    ctc_weight: 0.3
+    lsm_weight: 0.1
+    length_normalized_loss: false
+
+frontend_conf:
+    n_fft: 512
+    win_length: 400
+    hop_length: 160
+
+seed: 2022
+init: none
+num_workers: 4
+batch_type: numel
+batch_bins: 64000000
+num_iters_per_epoch: 435    # originally 621 per peoch
+
+### The following args are NOT used by the lightning trainer
+# accum_grad: 1
+# max_epoch: 100
+# patience: none
+# best_model_criterion:
+# -   - valid
+#     - acc
+#     - max
+# keep_nbest_models: 10
+# use_amp: true
+
+optim: adam
+optim_conf:
+    lr: 0.002
+    weight_decay: 0.000001
+scheduler: warmuplr
+scheduler_conf:
+    warmup_steps: 15000
+
+specaug: specaug
+specaug_conf:
+    apply_time_warp: true
+    time_warp_window: 5
+    time_warp_mode: bicubic
+    apply_freq_mask: true
+    freq_mask_width_range:
+    - 0
+    - 27
+    num_freq_mask: 2
+    apply_time_mask: true
+    time_mask_width_ratio_range:
+    - 0.
+    - 0.05
+    num_time_mask: 5
+
+use_wandb: true
+wandb_project: ESPnet_ASRTASK
+wandb_name: ls100h_ddp_2x2gpu_e_branchformer_size256_mlp1024_linear1024_e12_mactrue_edrop0.0_ddrop0.0_limitepoch
+
+use_tensorboard: true
+
+#### newly added configs for lightning trainer
+lightning_conf:
+    #### args that are passed directly to the trainer
+    accelerator: gpu
+    precision: bf16-mixed
+    # max_steps: 675000
+    max_epochs: 100
+    accumulate_grad_batches: 1
+    # val_check_interval: 1000       # batches, not global step (needs to consider gradient accumulation)
+    check_val_every_n_epoch: 1
+    log_every_n_steps: 100
+    gradient_clip_val: 1.0
+
+    #### args used for other purposes
+    strategy: ddp
+    strategy_conf:
+        gradient_as_bucket_view: true
+        find_unused_parameters: false
+        ddp_comm_hook: bf16_compress_hook
+
+    best_model_criterion:
+    -   - valid/acc     # metric to monitor
+        - max           # max or min
+        - 10            # number of best models to keep
+    -   - step
+        - max
+        - 10
