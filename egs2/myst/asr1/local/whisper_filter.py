@@ -29,33 +29,18 @@ class WhisperDataset():
         
         datasets = []
         for split in data_paths.keys():
-            if data_args and hasattr(data_args, "use_speed_perturb") and data_args.use_speed_perturb:
-                for sp_rate in np.arange(data_args.sp_low, data_args.sp_high+0.1, 0.1):
-                    if sp_rate == 1.0:
-                        continue
-                    datasets.append(self.create_dataset(data_paths[split], sp_rate=sp_rate))
-            
-            if data_args and hasattr(data_args, "use_vtlp") and data_args.use_vtlp:
-                for vtlp_rate in np.arange(data_args.vtlp_low, data_args.vtlp_high+0.1, 0.1):
-                    if vtlp_rate == 1.0:
-                        continue
-                    datasets.append(self.create_dataset(data_paths[split], vtlp_rate=vtlp_rate))
-            
-            if data_args and hasattr(data_args, "use_pitch_perturb") and data_args.use_pitch_perturb:
-                for n in range(2):
-                    datasets.append(self.create_dataset(data_paths[split], pitch_level=data_args.pitch_level))
-            
+
             datasets.append(self.create_dataset(data_paths[split]))
             
         self.data = concatenate_datasets(datasets)
     
-    def create_dataset(self, data_path, sp_rate=1.0, vtlp_rate=1.0, pitch_level=0.0):
+    def create_dataset(self, data_path):
 
         audio_dict = self._load_audio_path(data_path['scp_path'])
         label_dict = self._load_label(data_path['text_label'])
         assert len(audio_dict) == len(label_dict), "label and sample size mismatch"
 
-        paired_dict = {"utt_id": [], "audio": [], "sentence": [], "sp_rate": [], "vtlp_rate": [], "pitch_level": []}
+        paired_dict = {"utt_id": [], "audio": [], "sentence": []}
 
         # prepare dictionary for huggingface dataset
         for i in range(len(audio_dict)):
@@ -64,16 +49,6 @@ class WhisperDataset():
             paired_dict["utt_id"].append(utt)
             paired_dict["audio"].append(audio_path)
             paired_dict["sentence"].append(label)
-
-            paired_dict["sp_rate"].append(sp_rate)
-            paired_dict["vtlp_rate"].append(vtlp_rate)
-
-            if pitch_level != 0.0:
-                used_pitch_level = np.random.choice(np.arange(-pitch_level, pitch_level+1.0, 1.0))
-            else:
-                used_pitch_level = pitch_level
-                
-            paired_dict["pitch_level"].append(used_pitch_level)
         
         dataset = Dataset.from_dict(paired_dict).cast_column("audio", Audio())
         
