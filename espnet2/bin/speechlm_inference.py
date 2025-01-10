@@ -316,7 +316,6 @@ def inference(
     minlenratio: float = 0.0,
     maxlenratio: float = 10.0,
     inference_nq: Optional[int] = 1,
-    codec_ssl_corrupt_prob: float = 0.0,
     fixed_length: bool = False,
     # offline tokenizers
     codec_conf: dict = None,
@@ -373,8 +372,6 @@ def inference(
             f"While you are inference with {inference_nq}. "
         )
         speechlm.train_args.codec_token_in_use = inference_nq
-    if codec_ssl_corrupt_prob != speechlm.train_args.codec_ssl_corrupt_prob:
-        speechlm.train_args.codec_ssl_corrupt_prob = codec_ssl_corrupt_prob
     loader = SpeechLMTask.build_streaming_iterator(
         data_path_and_name_and_type,
         dtype=dtype,
@@ -595,14 +592,6 @@ def get_parser():
         type=int,
         default=None,
         help="nq in inference stage",
-    )
-    group.add_argument(
-        "--codec_ssl_corrupt_prob",
-        type=float,
-        default=0.0,
-        help="the prob of corrputing ssl tokens in codec_ssl modality in sequence level "
-        "1.0 means no ssl tokens in use; 0.0 means use ssl tokens "
-        "This is only applied to the prefix sequence",
     )
     group.add_argument(
         "--fixed_length",

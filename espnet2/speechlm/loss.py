@@ -29,7 +29,7 @@ class SpeechLMCrossEntropyLoss(torch.nn.Module):
         super().__init__()
 
         self.pad = pad
-        self.use_aux_ce_loss = "codec" in token_bias
+        self.use_aux_ce_loss = aux_lm_head is not None
         self.use_liger_kernel = use_liger_kernel
 
         # (1) parse the weights of tokens
