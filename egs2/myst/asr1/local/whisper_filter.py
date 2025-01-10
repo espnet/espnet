@@ -7,6 +7,8 @@
 # 3. Remove utterances longer than 30 seconds in training and development
 # 4. Normalize text {<no_signal> digits into to the same format}
 
+#NOTE: This requires a few additional packages (apart from those installed from the transformers installation procedure from espnet, name evaluate and datasets)
+
 import os
 import sys
 import argparse
