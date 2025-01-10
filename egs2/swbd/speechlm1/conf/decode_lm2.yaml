@@ -1,0 +1,4 @@
+search_algo: greedy_search
+# search_algo: teacher_force
+maxlenratio: 1.0
+minlenratio: 0.03

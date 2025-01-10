@@ -79,7 +79,7 @@ class ARParallelLM(AbsCoreLM):
 
         # transformer output
         x = self.decoders(x, pos_id=pos_id)
-        assert 1 == 2
+        # assert 1 == 2
         x = x.unsqueeze(2) + self.head_emb.weight.tile(1, 1, 1, 1)[:, :, : self.nq]
 
         # lm logits
