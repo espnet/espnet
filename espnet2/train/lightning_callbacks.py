@@ -44,6 +44,9 @@ class AverageCheckpointsCallback(Callback):
 
                 avg_ckpt_path = (
                     Path(self.output_dir)
-                    / f"{ckpt_callback.monitor.replace('/', '.')}.ave_{len(checkpoints)}best.pth"
+                    / (
+                        ckpt_callback.monitor.replace('/', '.') +
+                       f".ave_{len(checkpoints)}best.pth"
+                    )
                 )
                 torch.save(new_avg_state_dict, avg_ckpt_path)

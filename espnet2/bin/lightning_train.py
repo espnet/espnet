@@ -136,7 +136,8 @@ def main():
                 mode=mode,  # "min" or "max"
                 dirpath=args.output_dir,
                 save_last=False,
-                # Add monitor to filename to avoid overwriting when multiple metrics are used
+                # Add monitor to filename to avoid overwriting
+                # when multiple metrics are used
                 filename="epoch{epoch}_step{step}_" + monitor.replace("/", "."),
                 auto_insert_metric_name=False,
                 save_on_train_epoch_end=False,

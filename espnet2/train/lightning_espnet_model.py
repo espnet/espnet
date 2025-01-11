@@ -80,7 +80,8 @@ class LitESPnetModel(L.LightningModule):
             "optimizer": optimizer,
             "lr_scheduler": {
                 "scheduler": scheduler,
-                "interval": "step",  # assuming lr scheduler is updated per step (not epoch)
+                # assuming lr scheduler is updated per step (not epoch)
+                "interval": "step",
             },
         }
 
