@@ -112,7 +112,6 @@ class ARDelayLM(ARParallelLM):
         suffix = full_seq_delay[:, prelen - 1:]
 
         prefix_emb = self.emb(prefix).sum(dim=2)
-        prefix_emb = install_continuous_features(prefix_emb, conti_feats * opts.nbest)
         _ = self.decoders(prefix_emb)
 
         # (3) auto-regressive loop
@@ -146,14 +145,10 @@ class ARDelayLM(ARParallelLM):
         modality_index = prev_tok[:, :, 0].flatten() * 0
         
         for step in range(1, maxlen + 1):
-            if step < self.nq:
-                prev_tok = torch.cat(
-                    [prev_tok[:, :, :step], suffix[:, step : step + 1, step:]], dim=2
-                )
-            
             # (3.2) AR model prediction
             prev_emb = self.emb(prev_tok).sum(dim=2)
             h = self.decoders(prev_emb)
+
             h = h.unsqueeze(2) + self.head_emb.weight.tile(1, 1, 1, 1)[:, :, : self.nq]
             logits = self.lm_head(h[:, :, :1])  # [B, 1, nq, V]
             if self.aux_lm_head is not None:
@@ -170,6 +165,13 @@ class ARDelayLM(ARParallelLM):
                 mask,
                 allow_eos=step >= minlen - (self.nq - 1)
             )
+
+            # NOTE(Jinchuan): Due to delay interleave, the first predictions
+            # are replaced by PAD. Especially, when step == 1, the prediction
+            # is the modality identifier.
+            if step < self.nq + 1:
+                pad_start = max(1, step - 1)
+                gen_tok[:, :, pad_start:] = 0
 
             if opts.search_algo == "teacher_force":
                 prev_tok = suffix[:, step: step + 1]
@@ -227,5 +229,5 @@ class ARDelayLM(ARParallelLM):
             gen_tokens.append(gen_token_seq[b][: finish_idx[b] - 1])
             gen_scores.append(gen_score_seq[b][: finish_idx[b] - 1])
             assert not torch.any(gen_tokens[-1].eq(opts.eos))
-        
+
         return gen_tokens, gen_scores
