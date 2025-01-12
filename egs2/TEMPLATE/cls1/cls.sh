@@ -515,7 +515,7 @@ if ! "${skip_upload}"; then
             --option "${cls_exp}"/RESULTS.md \
             --option "${cls_exp}"/images \
             --option "${token_list}" \
-            --outpath "${packed_model}" 
+            --outpath "${packed_model}"
     fi
 
     if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
