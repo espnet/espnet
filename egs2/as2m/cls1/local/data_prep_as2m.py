@@ -2,9 +2,10 @@ import json
 import os
 import random
 import sys
-
+import numpy as np
 import soundfile as sf
 from tqdm import tqdm
+import numpy as np
 
 DATA_READ_ROOT = sys.argv[1]
 DATA_WRITE_ROOT = sys.argv[2]
@@ -63,6 +64,21 @@ def read_mid2name_map(mid2name_file):
     return mid2name
 
 
+def generate_sampling_weights(train_set, mid2name):
+    label_count = {name: 0 for name in mid2name.values()}
+    for item in train_set:
+        for label in item["labels"]:
+            label_count[label] += 1
+    label_weight = {
+        name: 1000.0 / (count + 0.01) for name, count in label_count.items()
+    }
+    instance_wise_sampling_weights = np.zeros(len(train_set))
+    for idx, item in enumerate(train_set):
+        for label in item["labels"]:
+            instance_wise_sampling_weights[idx] += label_weight[label]
+    return instance_wise_sampling_weights
+
+
 mid2name = read_mid2name_map(os.path.join(DATA_READ_ROOT, "class_labels_indices.csv"))
 eval_set = read_data_file(os.path.join(DATA_READ_ROOT, "eval_segments.csv"), mid2name)
 train_set = read_data_file(
@@ -89,6 +105,8 @@ print(f"Train set size: {len(train_set)}")
 print(f"Val set size: {len(val_set)}")
 print(f"Eval set size: {len(eval_set)}")
 
+data_sampling_weights = generate_sampling_weights(train_set, mid2name)
+
 for dataset, name in [(train_set, "train"), (val_set, "val"), (eval_set, "eval")]:
     missing_wav_file = 0
     text_write_path = os.path.join(DATA_WRITE_ROOT, name, "text")
@@ -98,12 +116,17 @@ for dataset, name in [(train_set, "train"), (val_set, "val"), (eval_set, "eval")
     os.makedirs(os.path.dirname(text_write_path), exist_ok=True)
     os.makedirs(os.path.dirname(wav_scp_write_path), exist_ok=True)
     os.makedirs(os.path.dirname(utt2spk_write_path), exist_ok=True)
+    sample_weight_f = (
+        open(os.path.join(DATA_WRITE_ROOT, "utt2weight"), "w")
+        if name == "train"
+        else None
+    )
 
     with open(text_write_path, "w") as text_f, open(
         wav_scp_write_path, "w"
     ) as wav_f, open(utt2spk_write_path, "w") as utt2spk_f:
         for uttid, item in enumerate(tqdm(dataset, desc=f"Processing {name} set")):
-            wav_directory=item["wav_directory"]
+            wav_directory = item["wav_directory"]
             wav_path = os.path.join(
                 DATA_READ_ROOT, wav_directory, item["yt_id"] + ".wav"
             )
@@ -114,4 +137,9 @@ for dataset, name in [(train_set, "train"), (val_set, "val"), (eval_set, "eval")
             print(f"as20k-{name}-{uttid} {text}", file=text_f)
             print(f"as20k-{name}-{uttid} {wav_path}", file=wav_f)
             print(f"as20k-{name}-{uttid} dummy", file=utt2spk_f)
+            if sample_weight_f:
+                print(
+                    f"as20k-{name}-{uttid} {data_sampling_weights[uttid]}",
+                    file=sample_weight_f,
+                )
     print(f"Missing {missing_wav_file} wav files in {name} set.")

@@ -6,14 +6,13 @@ set -u
 set -o pipefail
 
 train_set="train"
-valid_set="val"
+valid_set="eval"
 test_sets="eval"
 cls_config=conf/beats_cls.yaml
 
 timestamp=$(date "+%Y%m%d.%H%M%S")
-mynametag=${timestamp}
-
-storage_dir=./ # change this to where you have space, if needed
+mynametag=balanced.unfrozen-beats_iter3p2m.${timestamp}
+storage_dir=/compute/babel-11-13/sbharad2/beats_run/as2m_balanced_dynamic # change this to where you have space, if needed
 mkdir -p "${storage_dir}"
 
 ./cls.sh \
@@ -22,8 +21,8 @@ mkdir -p "${storage_dir}"
     --dumpdir "${storage_dir}/dump" \
     --expdir "${storage_dir}/exp" \
     --feats_normalize uttmvn \
-    --stage 1 \
-    --stop_stage 7 \
+    --stage 5 \
+    --stop_stage 10 \
     --ngpu 8 \
     --gpu_inference true \
     --nj 10 \

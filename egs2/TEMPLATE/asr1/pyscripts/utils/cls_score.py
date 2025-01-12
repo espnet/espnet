@@ -1,4 +1,5 @@
 import argparse
+import logging
 import os
 import warnings
 
@@ -62,7 +63,12 @@ def calculate_multilabel_stats(output, target):
         )
 
         # AUC
-        auc = metrics.roc_auc_score(target[:, k], output[:, k], average=None)
+        n_examples_in_class = np.sum(target[:, k])
+        if n_examples_in_class == 0:
+            auc = 0.0  # this should not occur in normal case.
+            logging.warning("No positive example in class %d" % k)
+        else:
+            auc = metrics.roc_auc_score(target[:, k], output[:, k], average=None)
 
         # Precisions, recalls
         (precisions, recalls, thresholds) = metrics.precision_recall_curve(
