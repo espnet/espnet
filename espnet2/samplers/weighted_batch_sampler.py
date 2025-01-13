@@ -36,7 +36,7 @@ class WeightedBatchSampler(AbsSampler):
         return (
             f"{self.__class__.__name__}("
             f"N-batch={self.n_batches}, "
-            f"batch_size={self.batch_size}, "
+            f"batch_size={self.batch_size}) "
         )
 
     def generate_batch_list_(self) -> List[Tuple[str, ...]]:

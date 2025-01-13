@@ -1,16 +1,16 @@
 unused_parameters: true
 init: xavier_normal
 
-# batch_type: folded
 batch_type: weighted
-utt2weight_file: /compute/babel-11-13/sbharad2/beats_run/as2m_balanced_static/data/utt2weight
-shuffle_within_batch: false
+utt2weight_file: /compute/babel-11-13/sbharad2/beats_run/as2m_balanced_dynamic/data/utt2weight
+
+valid_batch_type: folded
 # Need large batch size to get good estimate
 valid_batch_size: 1200
-batch_size: 640 # over 8gpus, 3191 batches on 2M, 6315 batches
-max_epoch: 8 # 16 # 50k steps
+batch_size: 320 # over 8gpus, 6315 batches over 2m examples --> 3157.5 steps per epoch
+max_epoch: 16 # 50k steps, 8
 
-accum_grad: 1
+accum_grad: 2
 grad_clip: 1
 
 optim: adamw
@@ -35,13 +35,6 @@ keep_nbest_models: 1
 use_amp: false  # whether to use automatic mixed precision
 num_att_plot: 0
 num_workers: 2 # dataloader workers
-
-# freeze_param: [
-#       "encoder.encoder",
-#       "encoder.layer_norm",
-#       "encoder.patch_embedding",
-#       "encoder.post_extract_proj",
-# ]
 
 # BEATs implementation takes care of generating mel spectrogram, normalization and specaug
 frontend: none
