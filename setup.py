@@ -55,6 +55,7 @@ requirements = {
         "pillow==9.5.0",
         "wandb",
         "tensorboard>=1.14",
+        "lightning",
     ],
     # recipe: The modules actually are not invoked in the main module of espnet,
     #         but are invoked for the python scripts in each recipe
