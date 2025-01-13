@@ -2,10 +2,10 @@ import json
 import os
 import random
 import sys
+
 import numpy as np
 import soundfile as sf
 from tqdm import tqdm
-import numpy as np
 
 DATA_READ_ROOT = sys.argv[1]
 DATA_WRITE_ROOT = sys.argv[2]

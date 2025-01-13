@@ -9,9 +9,12 @@
 # Note audioset is a multi-label dataset
 
 import argparse
+import csv
 import json
+import os
+import sys
+
 import numpy as np
-import sys, os, csv
 
 
 def make_index_dict(label_csv):

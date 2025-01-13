@@ -1,6 +1,7 @@
 import math
-import numpy as np
 from typing import Iterator, List, Optional, Sequence, Tuple, Union
+
+import numpy as np
 from typeguard import typechecked
 
 from espnet2.fileio.read_text import load_num_sequence_text
