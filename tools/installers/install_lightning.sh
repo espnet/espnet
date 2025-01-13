@@ -47,7 +47,7 @@ fi
 
 cat >> lightning_constraints.txt << EOF
 torch==${torch_version}
-lightning==${lightning_version}
+lightning>=${lightning_version},<${lightning_version}.99
 EOF
 
 python3 -m pip install -c lightning_constraints.txt lightning
