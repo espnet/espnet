@@ -286,6 +286,7 @@ class UniversaCollateFn(CommonCollateFn):
         for key in data[0]:
             if key == "metrics":
                 continue
+
             # NOTE(kamo):
             # Each models, which accepts these values finally, are responsible
             # to repaint the pad_value to the desired value for each tasks.

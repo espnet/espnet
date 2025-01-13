@@ -502,13 +502,13 @@ class UniversaBase(AbsUniversa):
 
         """
         if self.multi_branch:
-            pred_metrics = {
+            results = {
                 self.id2metric[i]: pred_metrics[i].detach().cpu().numpy()
                 for i in range(self.metric_size)
             }
         else:
-            pred_metrics = {
+            results = {
                 self.id2metric[i]: pred_metrics[:, i].detach().cpu().numpy()
                 for i in range(self.metric_size)
             }
-        return pred_metrics
+        return results

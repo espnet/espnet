@@ -137,7 +137,6 @@ class SoundScpReader(collections.abc.Mapping):
 
     def __getitem__(self, key) -> Tuple[int, np.ndarray]:
         wavs = self.data[key]
-        print("wavs and key", wavs, key, flush=True)
 
         array, rate = soundfile_read(
             wavs,

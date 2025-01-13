@@ -53,7 +53,7 @@ def collect_stats(
 
                 # 1. Write shape file
                 for name in batch:
-                    # Skip lengths and metrics (for universa only)
+                    # Skip lengths and metrics (for universa only (jiatong))
                     if name.endswith("_lengths") or name == "metrics":
                         continue
                     for i, (key, data) in enumerate(zip(keys, batch[name])):

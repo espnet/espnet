@@ -2743,6 +2743,8 @@ class UniversaProcessor(AbsPreprocessor):
         # for padding of chunk iterator, working when > 0
         min_sample_size: int = -1,
         audio_pad_value: Union[float, int] = 0.0,
+        # for silence audio (reserved for missing reference)
+        empty_audio_length: int = 8000,
     ):
         super().__init__(train)
         self.train = train
@@ -2752,6 +2754,7 @@ class UniversaProcessor(AbsPreprocessor):
         self.text_name = text_name
         self.audio_volume_normalize = audio_volume_normalize
         self.force_single_channel = force_single_channel
+        self.empty_audio_length = empty_audio_length
 
         if token_type is not None:
             if token_list is None:
@@ -2813,6 +2816,13 @@ class UniversaProcessor(AbsPreprocessor):
     ) -> Dict[str, Union[str, np.ndarray, Dict[str, float]]]:
         for name in [self.audio_name, self.ref_audio_name]:
             if name in data:
+
+                # NOTE(jiatong): an empty silence audio for None audio
+                audio = data[name]
+                if audio is None and name == self.ref_audio_name:
+                    audio = np.zeros(self.empty_audio_length)
+                    data[name] = audio
+
                 if self.train:
                     audio = data[name]
 
