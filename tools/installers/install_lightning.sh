@@ -29,17 +29,17 @@ echo "[INFO] torch_version=${torch_version}"
 # Determine the version of lightning
 # See: https://lightning.ai/docs/pytorch/stable/versioning.html#compatibility-matrix
 if $(pt_plus 2.2.0); then
-    lightning_version=2.5.0
+    lightning_version=2.5
 elif $(pt_plus 2.1.0); then
-    lightning_version=2.4.0
+    lightning_version=2.4
 elif $(pt_plus 2.0.0); then
-    lightning_version=2.3.0
+    lightning_version=2.3
 elif $(pt_plus 1.13.0); then
-    lightning_version=2.2.0
+    lightning_version=2.2
 elif $(pt_plus 1.12.0); then
-    lightning_version=2.1.0
+    lightning_version=2.1
 elif $(pt_plus 1.11.0); then
-    lightning_version=2.0.0
+    lightning_version=2.0
 else
     echo "[ERROR] Our supported lightning requires pytorch>=1.11.0"
     exit 1;
