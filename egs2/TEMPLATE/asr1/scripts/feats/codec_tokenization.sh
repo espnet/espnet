@@ -28,8 +28,8 @@ dump_audio=false
 file_name=
 src_dir=
 tgt_dir=
-checkpoint_path=null
-config_path=null
+checkpoint_path=
+config_path=
 cuda_cmd=utils/run.pl
 
 log "$0 $*"
@@ -41,6 +41,12 @@ log "$0 $*"
 if [ $# -ne 0 ]; then
     echo "Usage: $0 --src_dir <src_dir> --tgt_dir <tgt_dir> --file_name wav.scp --codec_choice DAC"
     exit 0
+fi
+
+# If src_dir and tgt_dir are same then it will overwrite
+# the files in src_dir so give warning
+if [ ${src_dir} == ${tgt_dir} ]; then
+    log "src_dir and tgt_dir are same. This script will overwrite the files in src_dir."
 fi
 
 # TODO (Jinchuan): check the installation of the used codec models
@@ -67,6 +73,13 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     done
     # shellcheck disable=SC2086
     utils/split_scp.pl ${src_dir}/${file_name}.scp ${split_scps} || exit 1;
+    _opts=""
+    if [ ${config_path} ]; then
+        _opts+="--config_path ${config_path} "
+    fi
+    if [ ${checkpoint_path} ]; then
+        _opts+="--checkpoint_path ${checkpoint_path} "
+    fi
 
     wav_wspecifier="ark,scp:${output_dir}/${file_name}_resyn_${codec_choice}.JOB.ark,${output_dir}/${file_name}_resyn_${codec_choice}.JOB.scp"
     code_wspecifier="ark,scp:${output_dir}/${file_name}_codec_${codec_choice}.JOB.ark,${output_dir}/${file_name}_codec_${codec_choice}.JOB.scp"
@@ -80,8 +93,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
             --rank JOB \
             --vocab_file ${tgt_dir}/token_lists/codec_token_list \
             --wav_wspecifier ${wav_wspecifier} \
-            --checkpoint_path ${checkpoint_path} \
-            --config_path ${config_path} \
+            ${_opts} \
             "scp:${_logdir}/${file_name}.JOB.scp" ${code_wspecifier} || exit 1;
 
     for n in $(seq ${_nj}); do

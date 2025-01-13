@@ -162,4 +162,5 @@ if __name__ == "__main__":
     parser = get_parser()
     args = parser.parse_args()
     args = vars(args)
+    logger.info(args)
     dump_codec(**args)
