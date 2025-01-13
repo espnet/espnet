@@ -3,6 +3,7 @@ from pathlib import Path
 
 import lightning as L
 import torch
+import torch.distributed
 
 from espnet2.tasks.abs_task import optim_classes, scheduler_classes
 from espnet2.tasks.asr import ASRTask
@@ -32,16 +33,15 @@ class LitESPnetModel(L.LightningModule):
     def _sync2skip(self, flag_skip):
         # see https://github.com/Lightning-AI/lightning/issues/5243#issuecomment-1552650013
         # gathering a tensor across all workers and then reduce it using or
-        world_size = torch_dist.get_world_size()
-        torch_dist.barrier()
+        world_size = torch.distributed.get_world_size()
+        torch.distributed.barrier()
         # now gather
         result = [torch.zeros_like(flag_skip) for _ in range(world_size)]
-        torch_dist.all_gather(result, flag_skip)
+        torch.distributed.all_gather(result, flag_skip)
         any_invalid = torch.sum(torch.stack(result)).bool().item()
         return any_invalid
 
     def _check_nan_inf_loss(self, loss, batch_id):
-
         mask_nan_inf = torch.logical_or(torch.isnan(loss), ~torch.isfinite(loss))
         if torch.any(mask_nan_inf):
             # if any is invalid then we must flag this to all DDP processes
@@ -55,7 +55,7 @@ class LitESPnetModel(L.LightningModule):
         if any_invalid:
             if self.nan_countdown >= 100:
                 raise RuntimeError(
-                    "Too many NaNs loss iterations encountered, stopping !"
+                    "Too many NaNs loss iterations encountered, stopping!"
                 )
             logging.warning(
                 f"NaN loss in batch {batch_id} of epoch {self.current_epoch}, "
