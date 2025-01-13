@@ -1,6 +1,7 @@
 import argparse
 import copy
 import importlib
+import logging
 from pathlib import Path
 
 import lightning as L
@@ -51,6 +52,9 @@ def main():
     parser = get_parser(task_class)
     args = parser.parse_args(remaining_args)
     args.task = task_args.task
+
+    # Set logging level
+    logging.getLogger("lightning").setLevel(getattr(logging, args.log_level))
 
     # Set random seed
     L.seed_everything(args.seed)

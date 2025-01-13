@@ -10,6 +10,9 @@ from espnet2.tasks.asr import ASRTask
 from espnet2.train.distributed_utils import DistributedOption
 from espnet2.utils.yaml_no_alias_safe_dump import yaml_no_alias_safe_dump
 
+
+logger = logging.getLogger("lightning")
+
 task_choices = {
     "asr": ASRTask,
 }
@@ -29,9 +32,6 @@ class LitESPnetModel(L.LightningModule):
                 "w", encoding="utf-8"
             ) as f:
                 yaml_no_alias_safe_dump(vars(args), f, indent=4, sort_keys=False)
-
-            # Print model summary
-            logging.info(f"Model structure:\n{str(self.model)}")
 
     def _sync2skip(self, flag_skip):
         # see below:
@@ -61,7 +61,7 @@ class LitESPnetModel(L.LightningModule):
                 raise RuntimeError(
                     "Too many NaNs loss iterations encountered, stopping!"
                 )
-            logging.warning(
+            logger.warning(
                 f"NaN loss in batch {batch_id} of epoch {self.current_epoch}, "
                 f"skipping the whole batch across all workers."
             )
