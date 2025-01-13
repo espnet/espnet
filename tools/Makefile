@@ -125,7 +125,7 @@ ifeq ($(strip $(USE_CONDA)),)
 else
 	. ./activate_python.sh && conda install -y lightning -c conda-forge
 endif
-    touch lightning.done
+	touch lightning.done
 
 # NOTE(kamo): conda_packages is not necessary for installation of espnet, but add it the dependencies just in case.
 espnet.done: pytorch.done conda_packages.done lightning.done
