@@ -23,15 +23,19 @@ class LitESPnetModel(L.LightningModule):
         self.task_class = task_choices[args.task]
         self.model = self.task_class.build_model(args=args)
 
-        # Save config to make it compatible with ESPnet inference
         if self.global_rank == 0:
+            # Save config to make it compatible with ESPnet inference
             with (Path(args.output_dir) / "config.yaml").open(
                 "w", encoding="utf-8"
             ) as f:
                 yaml_no_alias_safe_dump(vars(args), f, indent=4, sort_keys=False)
 
+            # Print model summary
+            logging.info(f"Model structure:\n{str(self.model)}")
+
     def _sync2skip(self, flag_skip):
-        # see https://github.com/Lightning-AI/lightning/issues/5243#issuecomment-1552650013
+        # see below: 
+        # https://github.com/Lightning-AI/lightning/issues/5243#issuecomment-1552650013
         # gathering a tensor across all workers and then reduce it using or
         world_size = torch.distributed.get_world_size()
         torch.distributed.barrier()
@@ -49,8 +53,8 @@ class LitESPnetModel(L.LightningModule):
         else:
             flag_skip = torch.zeros((), device=loss.device, dtype=torch.bool)
 
-        # sub-optimal but will do,
-        # till they fix it in https://github.com/Lightning-AI/lightning/issues/5243#issuecomment-1552650013
+        # sub-optimal but will do, till they fix it in 
+        # https://github.com/Lightning-AI/lightning/issues/5243#issuecomment-1552650013
         any_invalid = self._sync2skip(flag_skip)
         if any_invalid:
             if self.nan_countdown >= 100:
