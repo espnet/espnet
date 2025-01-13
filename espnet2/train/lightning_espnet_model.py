@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 
 import lightning as L
@@ -7,7 +8,6 @@ from espnet2.tasks.abs_task import optim_classes, scheduler_classes
 from espnet2.tasks.asr import ASRTask
 from espnet2.train.distributed_utils import DistributedOption
 from espnet2.utils.yaml_no_alias_safe_dump import yaml_no_alias_safe_dump
-import logging
 
 task_choices = {
     "asr": ASRTask,
