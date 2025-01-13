@@ -271,7 +271,7 @@ def main():
                             with BytesIO(f.read()) as g:
                                 wave, rate = soundfile.read(g)
                         subtypes = None
-                    
+
                     # B.b Without segments and not using pipe
                     else:
                         if args.multi_columns_input:

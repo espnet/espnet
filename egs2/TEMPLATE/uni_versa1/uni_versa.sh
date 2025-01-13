@@ -332,7 +332,7 @@ if ! "${skip_data_prep}"; then
                 python pyscripts/utils/align_wav_keys.py \
                     "${data_feats}${_suf}/${dset}/wav.scp" \
                     "${data_feats}${_suf}/${dset}/ref_wav.scp" \
-                    "${data_feats}${_suf}/${dset}/ref_wav.tmp" 
+                    "${data_feats}${_suf}/${dset}/ref_wav.tmp"
 
                 sort -o "${data_feats}${_suf}/${dset}/ref_wav.tmp" "${data_feats}${_suf}/${dset}/ref_wav.tmp"
                 mv "${data_feats}${_suf}/${dset}/ref_wav.tmp" "${data_feats}${_suf}/${dset}/ref_wav.scp"
