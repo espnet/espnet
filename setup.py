@@ -30,6 +30,7 @@ requirements = {
         "protobuf",
         "hydra-core",
         "opt-einsum",
+        "lightning",
         # ASR
         "sentencepiece==0.2.0",
         "ctc-segmentation>=1.6.6",
