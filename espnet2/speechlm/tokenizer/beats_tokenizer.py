@@ -22,8 +22,6 @@ from torch.nn import LayerNorm
 
 from espnet2.asr.encoder.beats_encoder import BeatsConfig, BeatsEncoder
 
-logger = logging.getLogger(__name__)
-
 
 class BeatsTokenizerConfig(BeatsConfig):
     def __init__(self, cfg=None):
@@ -49,7 +47,7 @@ class BeatsTokenizer(BeatsEncoder):
         fbank_std: float = 6.55582,
     ) -> None:
         if beats_tokenizer_ckpt_path is None:
-            logger.warning(
+            logging.warning(
                 "No checkpoint path provided!!"
                 "We will encode audio using a randomly initialized model."
             )
@@ -84,6 +82,7 @@ class BeatsTokenizer(BeatsEncoder):
 
     def reload_pretrained_parameters(self):
         super().reload_pretrained_parameters()
+        logging.info("Beats Tokenizer initialization function called.")
         if self.loaded_state_dict_ is not None:
             load_info = self.load_state_dict(
                 self.loaded_state_dict_["model"], strict=False

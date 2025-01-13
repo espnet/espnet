@@ -128,14 +128,18 @@ class CodecTokenizer(AbsTokenizer):
             if config_path:
                 with open(config_path, "r") as f:
                     beats_config = yaml.safe_load(f)
-            print(beats_config, "Beats config")
             valid_args = signature(BeatsTokenizer.__init__).parameters
-            remaining_args = {k: v for k, v in beats_config.items() if k in valid_args}
+            remaining_args = (
+                {k: v for k, v in beats_config.items() if k in valid_args}
+                if beats_config
+                else {}
+            )
             self.codec = BeatsTokenizer(
                 beats_tokenizer_ckpt_path=checkpoint_path,
                 tokenizer_config=beats_config,
                 **remaining_args,
             )
+            self.codec.eval()
             self.n_codebook = 1
             self.size_codebook = self.codec.quantize.num_tokens
             self.sample_rate = 16000
@@ -170,6 +174,10 @@ class CodecTokenizer(AbsTokenizer):
 
         elif self.codec_choice == "beats":
             wav_in = wavs.squeeze(1)
+            if wav_in.max() > 1.0 or wav_in.min() < -1.0:
+                # Beats expects input in range [-1, 1]
+                wav_in = wav_in.to(torch.float32)
+                wav_in = wav_in / 2**15
             # Assume no padding, all wavs are full length
             wav_len = torch.LongTensor([wav_in.size(1)] * wav_in.size(0)).to(
                 wav_in.device
