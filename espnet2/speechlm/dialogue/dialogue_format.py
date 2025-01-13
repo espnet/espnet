@@ -20,8 +20,8 @@ class Dialogue:
         modality: str,
         content: str,
     ):
-        if role not in ["<system_prompt>", "<user_input>", "<assistant_output>"]:
-            raise ValueError(f"Role can only be <system_prompt>, <user_input> or <assistant_output>: {role}")
+        if role not in ["system", "user", "assistant"]:
+            raise ValueError(f"Role can only be system, user or assistant: {role}")
     
         if modality not in MODALITIES:
             raise ValueError(f"unrecognized modality: {modality}")
@@ -29,7 +29,30 @@ class Dialogue:
         self.segments.append([role, modality, content])
     
     def to_list(self):
-        return self.segments.copy()
+        retval = []
+
+        for role, modality, content in self.segments:
+            # Change role to a ESPnet-SLM special token
+            if role == "system":
+                role = "<system_prompt>"
+            elif role == "user":
+                role = "<user_input>"
+            elif role == "assistant":
+                role = "<assistant_output>"
+            else:
+                raise ValueError(f"Invalid role: {role}")
+            
+            retval.append([role, modality, content])
+
+        return retval
+    
+    def to_str(self):
+        string = ""
+        for segment in self.segments:
+            role, _, content = segment
+            string += f"{role}: {content}\n"
+
+        return string.strip()
 
 class DialogueDataset:
     def __init__(self, task):
