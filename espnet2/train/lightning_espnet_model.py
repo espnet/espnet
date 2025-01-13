@@ -34,7 +34,7 @@ class LitESPnetModel(L.LightningModule):
             logging.info(f"Model structure:\n{str(self.model)}")
 
     def _sync2skip(self, flag_skip):
-        # see below: 
+        # see below:
         # https://github.com/Lightning-AI/lightning/issues/5243#issuecomment-1552650013
         # gathering a tensor across all workers and then reduce it using or
         world_size = torch.distributed.get_world_size()
@@ -53,7 +53,7 @@ class LitESPnetModel(L.LightningModule):
         else:
             flag_skip = torch.zeros((), device=loss.device, dtype=torch.bool)
 
-        # sub-optimal but will do, till they fix it in 
+        # sub-optimal but will do, till they fix it in
         # https://github.com/Lightning-AI/lightning/issues/5243#issuecomment-1552650013
         any_invalid = self._sync2skip(flag_skip)
         if any_invalid:
