@@ -30,6 +30,7 @@ requirements = {
         "protobuf",
         "hydra-core",
         "opt-einsum",
+        "lightning",
         # ASR
         "sentencepiece==0.1.97",
         "ctc-segmentation>=1.6.6",
@@ -55,7 +56,6 @@ requirements = {
         "pillow==9.5.0",
         "wandb",
         "tensorboard>=1.14",
-        "lightning",
     ],
     # recipe: The modules actually are not invoked in the main module of espnet,
     #         but are invoked for the python scripts in each recipe
