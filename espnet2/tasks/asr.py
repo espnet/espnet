@@ -191,6 +191,8 @@ decoder_choices = ClassChoices(
         hugging_face_transformers=HuggingFaceTransformersDecoder,
         s4=S4Decoder,
         linear_decoder=LinearDecoder,
+        # This decoder is only meant for classification tasks.
+        # TODO(shikhar): Move classification to cls1 task completely.
     ),
     type_check=AbsDecoder,
     default=None,

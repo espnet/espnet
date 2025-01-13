@@ -225,6 +225,7 @@ HIFITTS=downloads
 CLOTHO_V2=downloads
 AUDIOCAPS=
 CLOTHO_CHATGPT_MIXUP=
+EDACC=downloads
 
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then
