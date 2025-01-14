@@ -121,7 +121,7 @@ skip_scoring=false # Skip scoring stages.
 skip_wer=false # Skip WER evaluation.
 whisper_tag=medium # Whisper model tag.
 whisper_dir=local/whisper # Whisper model directory.
-cleaner=whisper_en # Text cleaner for whisper model.
+eval_cleaner=whisper_en # Text cleaner for whisper model.
 hyp_cleaner=whisper_en # Text cleaner for hypothesis.
 versa_config=conf/versa.yaml # VERSA evaluation configuration.
 
@@ -211,7 +211,7 @@ Options:
     --skip_wer          # Skip WER evaluation (default="${skip_wer}").
     --whisper_tag       # Whisper model tag (default="${whisper_tag}").
     --whisper_dir       # Whisper model directory (default="${whisper_dir}").
-    --cleaner           # Text cleaner for whisper model (default="${cleaner}").
+    --eval_cleaner           # Text cleaner for whisper model (default="${eval_cleaner}").
     --hyp_cleaner       # Text cleaner for hypothesis (default="${hyp_cleaner}").
     --versa_config      # VERSA evaluation configuration (default="${versa_config}").
 
@@ -1139,7 +1139,7 @@ if ! "${skip_scoring}"; then
             ./scripts/utils/evaluate_asr.sh \
                 --whisper_tag ${whisper_tag} \
                 --whisper_dir ${whisper_dir} \
-                --cleaner ${cleaner} \
+                --eval_cleaner ${eval_cleaner} \
                 --hyp_cleaner ${hyp_cleaner} \
                 --inference_nj ${inference_nj} \
                 --nj ${nj} \
