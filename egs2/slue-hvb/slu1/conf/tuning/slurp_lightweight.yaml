@@ -1,0 +1,74 @@
+# network architecture
+
+optim: adam
+optim_conf:
+    lr: 0.01
+scheduler: warmuplr     # pytorch v1.1.0+ required #Tune warmup steps
+scheduler_conf:
+    warmup_steps: 1000
+max_epoch: 50
+batch_size: 320
+
+encoder: conformer
+encoder_conf:
+    output_size: 512
+    attention_heads: 8
+    linear_units: 2048
+    num_blocks: 12
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    attention_dropout_rate: 0.1
+    input_layer: conv2d
+    normalize_before: true
+    macaron_style: true
+    rel_pos_type: latest
+    pos_enc_layer_type: rel_pos
+    selfattention_layer_type: rel_selfattn
+    activation_type: swish
+    use_cnn_module: true
+    cnn_module_kernel: 31
+
+freeze_param: [
+"encoder"
+]
+
+frontend: default
+frontend_conf:
+    fs: 16k
+specaug: specaug
+specaug_conf:
+    apply_time_warp: true
+    time_warp_window: 5
+    time_warp_mode: bicubic
+    apply_freq_mask: true
+    freq_mask_width_range:
+    - 0
+    - 30
+    num_freq_mask: 2
+    apply_time_mask: true
+    time_mask_width_range:
+    - 0
+    - 40
+    num_time_mask: 2
+
+model_conf:
+    ctc_weight: 0.0
+    lsm_weight: 0.1
+    length_normalized_loss: false
+    superb_setup_encoder: true
+    num_class: 18
+    weighted_sum: true
+    superb_da: true
+    ssl_input_size: 512
+    extract_feats_in_collect_stats: false   # Note: "False" means during collect stats (stage 10), generating dummy stats files rather than extract_feats by forward frontend.
+unused_parameters: true
+
+best_model_criterion:
+-   - valid
+    - loss
+    - min
+keep_nbest_models: 10
+
+init_param: [
+    "/scratch/bbjs/arora1/espnet_slue_PR/espnet/egs2/slue-hvb/slu1_superb/slurp_entity_conformer/exp/asr_train_asr_conformer_e12_d6_size512_lr1e-3_warmup35k_raw_en_word/valid.acc.ave_10best.pth:encoder:encoder",
+]

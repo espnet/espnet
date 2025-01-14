@@ -75,6 +75,7 @@ from espnet2.asr_transducer.joint_network import JointNetwork
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
+from espnet2.slu.postencoder.conformer_full_postencoder import ConformerFullPostEncoder
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.torch_utils.initialize import initialize
@@ -168,11 +169,22 @@ encoder_choices = ClassChoices(
     type_check=AbsEncoder,
     default="rnn",
 )
+prepostencoder_choices = ClassChoices(
+    name="prepostencoder",
+    classes=dict(
+        sinc=LightweightSincConvs,
+        linear=LinearProjection,
+    ),
+    type_check=AbsPreEncoder,
+    default=None,
+    optional=True,
+)
 postencoder_choices = ClassChoices(
     name="postencoder",
     classes=dict(
         hugging_face_transformers=HuggingFaceTransformersPostEncoder,
         length_adaptor=LengthAdaptorPostEncoder,
+        conformer_full=ConformerFullPostEncoder,
     ),
     type_check=AbsPostEncoder,
     default=None,
@@ -229,6 +241,8 @@ class ASRTask(AbsTask):
         preencoder_choices,
         # --encoder and --encoder_conf
         encoder_choices,
+        # --prepostencoder and --prepostencoder_conf
+        prepostencoder_choices,
         # --postencoder and --postencoder_conf
         postencoder_choices,
         # --decoder and --decoder_conf
@@ -573,7 +587,14 @@ class ASRTask(AbsTask):
 
         # 5. Post-encoder block
         # NOTE(kan-bayashi): Use getattr to keep the compatibility
-        encoder_output_size = encoder.output_size()
+        # encoder_output_size = encoder.output_size()
+        if getattr(args, "prepostencoder", None) is not None:
+            prepostencoder_class = prepostencoder_choices.get_class(args.prepostencoder)
+            prepostencoder = prepostencoder_class(**args.prepostencoder_conf)
+            encoder_output_size = prepostencoder.output_size()
+        else:
+            prepostencoder = None
+            encoder_output_size = encoder.output_size()
         if getattr(args, "postencoder", None) is not None:
             postencoder_class = postencoder_choices.get_class(args.postencoder)
             postencoder = postencoder_class(
@@ -621,6 +642,8 @@ class ASRTask(AbsTask):
             model_class = model_choices.get_class(args.model)
         except AttributeError:
             model_class = model_choices.get_class("espnet")
+        if "prepostencoder" in args.model_conf:
+            args.model_conf["prepostencoder"] = prepostencoder
         model = model_class(
             vocab_size=vocab_size,
             frontend=frontend,
