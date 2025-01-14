@@ -195,3 +195,19 @@ def test_Speech2TextGreedy_longform(s2t_config_file):
         context_len_in_secs=1,
     )
     assert isinstance(result, str)
+
+
+@pytest.mark.execution_timeout(5)
+def test_Speech2TextGreedy_batchdecode(s2t_config_file):
+    speech2text = Speech2TextGreedySearch(
+        s2t_train_config=s2t_config_file,
+    )
+    result = speech2text.batch_decode(
+        [
+            np.random.randn(1000),
+            np.random.randn(7000),
+        ],
+        batch_size=2,
+        context_len_in_secs=1,
+    )
+    assert isinstance(result[0], str) and isinstance(result[1], str)

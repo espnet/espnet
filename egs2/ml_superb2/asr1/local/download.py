@@ -68,9 +68,9 @@ for lid in lids:
     if lid != "org_jpn":
         nlsyms_out.write(f"[{lid.strip()}]\n")
 
-# ds["train"].map(save_audio_to_disk)
-# ds["dev"].map(save_audio_to_disk)
-# ds["dev_dialect"].map(save_audio_to_disk)
+ds["train"].map(save_audio_to_disk)
+ds["dev"].map(save_audio_to_disk)
+ds["dev_dialect"].map(save_audio_to_disk)
 
 train_text_out.close()
 train_wav_out.close()
