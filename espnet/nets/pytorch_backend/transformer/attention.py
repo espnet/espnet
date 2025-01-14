@@ -239,7 +239,6 @@ class MultiHeadedAttention(nn.Module):
                 else:
                     del key_nonpad_mask
                     q, k, v = self.forward_qkv(query, key, value)
-                    del query, key, value
 
                     out = flash_attn_func(
                         q.transpose(1, 2),
