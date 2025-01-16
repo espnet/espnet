@@ -1,0 +1,93 @@
+nohup: ignoring input
+2025-01-13T13:47:49 (svs.sh:211:main) ./svs.sh --lang zh --local_data_opts --stage 1 --feats_type raw --fs 24000 --fmax 22050 --fmin 0 --n_fft 2048 --n_shift 256 --win_length 2048 --token_type phn --g2p None --cleaner none --train_config conf/train.yaml --inference_config conf/decode.yaml --train_set tr_no_dev --valid_set dev --test_sets dev eval --score_feats_extract syllable_score_feats --srctexts data/tr_no_dev/text --audio_format wav --fs 24000 --n_shift 256 --win_length 2048 --stage 1 --stop_stage 4
+2025-01-13T13:47:50 (svs.sh:313:main) Stage 1: Data preparation for data/tr_no_dev, data/dev, etc.
+2025-01-13T13:47:51 (data.sh:27:main) local/data.sh --stage 1 --fs 24000 --g2p None
+2025-01-13T13:47:51 (data.sh:51:main) stage 1: Dataset split 
+sox WARN rate: rate clipped 17 samples; decrease volume?
+sox WARN dither: dither clipped 17 samples; decrease volume?
+/data5/arllan/miniconda/envs/espnetenv/lib/python3.10/site-packages/music21/stream/base.py:3689: Music21DeprecationWarning: .flat is deprecated.  Call .flatten() instead
+  return self.iter().getElementsByClass(classFilterList)
+sox WARN rate: rate clipped 113 samples; decrease volume?
+sox WARN dither: dither clipped 98 samples; decrease volume?
+utils/fix_data_dir.sh: file data/tr_no_dev/utt2spk is not in sorted order or not unique, sorting it
+utils/fix_data_dir.sh: file data/tr_no_dev/spk2utt is not in sorted order or not unique, sorting it
+utils/fix_data_dir.sh: file data/tr_no_dev/text is not in sorted order or not unique, sorting it
+utils/fix_data_dir.sh: file data/tr_no_dev/wav.scp is not in sorted order or not unique, sorting it
+utils/fix_data_dir.sh: file data/tr_no_dev/label is not in sorted order or not unique, sorting it
+utils/fix_data_dir.sh: file data/tr_no_dev/score.scp is not in sorted order or not unique, sorting it
+fix_data_dir.sh: kept 2406 utterances out of 2436
+fix_data_dir.sh: old files are kept in data/tr_no_dev/.backup
+utils/fix_data_dir.sh: file data/dev/utt2spk is not in sorted order or not unique, sorting it
+utils/fix_data_dir.sh: file data/dev/spk2utt is not in sorted order or not unique, sorting it
+utils/fix_data_dir.sh: file data/dev/text is not in sorted order or not unique, sorting it
+utils/fix_data_dir.sh: file data/dev/wav.scp is not in sorted order or not unique, sorting it
+utils/fix_data_dir.sh: file data/dev/label is not in sorted order or not unique, sorting it
+utils/fix_data_dir.sh: file data/dev/score.scp is not in sorted order or not unique, sorting it
+fix_data_dir.sh: kept 105 utterances out of 133
+fix_data_dir.sh: old files are kept in data/dev/.backup
+utils/fix_data_dir.sh: file data/eval/utt2spk is not in sorted order or not unique, sorting it
+utils/fix_data_dir.sh: file data/eval/spk2utt is not in sorted order or not unique, sorting it
+utils/fix_data_dir.sh: file data/eval/text is not in sorted order or not unique, sorting it
+utils/fix_data_dir.sh: file data/eval/wav.scp is not in sorted order or not unique, sorting it
+utils/fix_data_dir.sh: file data/eval/label is not in sorted order or not unique, sorting it
+utils/fix_data_dir.sh: file data/eval/score.scp is not in sorted order or not unique, sorting it
+fix_data_dir.sh: kept 148 utterances out of 158
+fix_data_dir.sh: old files are kept in data/eval/.backup
+2025-01-13T13:49:58 (data.sh:65:main) Successfully finished. [elapsed=127s]
+2025-01-13T13:49:58 (svs.sh:329:main) Stage 2: Format wav.scp: data/ -> dump/raw/
+utils/copy_data_dir.sh: copied data from data/tr_no_dev to dump/raw/org/tr_no_dev
+utils/validate_data_dir.sh: Successfully validated data-directory dump/raw/org/tr_no_dev
+fix_data_dir.sh: kept all 2406 utterances.
+fix_data_dir.sh: old files are kept in dump/raw/org/tr_no_dev/.backup
+2025-01-13T13:49:59 (format_wav_scp.sh:46:main) scripts/audio/format_wav_scp.sh --nj 32 --cmd run.pl --audio-format wav --fs 24000 data/tr_no_dev/wav.scp dump/raw/org/tr_no_dev
+2025-01-13T13:50:00 (format_wav_scp.sh:118:main) [info]: without segments
+2025-01-13T13:50:01 (format_wav_scp.sh:153:main) Successfully finished. [elapsed=2s]
+2025-01-13T13:50:01 (format_score_scp.sh:33:main) scripts/audio/format_score_scp.sh --nj 32 --cmd run.pl data/tr_no_dev/score.scp dump/raw/org/tr_no_dev
+2025-01-13T13:50:02 (format_score_scp.sh:92:main) [info]: without segments
+2025-01-13T13:50:03 (format_score_scp.sh:116:main) Successfully finished. [elapsed=2s]
+utils/copy_data_dir.sh: copied data from data/dev to dump/raw/org/dev
+utils/validate_data_dir.sh: Successfully validated data-directory dump/raw/org/dev
+fix_data_dir.sh: kept all 105 utterances.
+fix_data_dir.sh: old files are kept in dump/raw/org/dev/.backup
+2025-01-13T13:50:04 (format_wav_scp.sh:46:main) scripts/audio/format_wav_scp.sh --nj 32 --cmd run.pl --audio-format wav --fs 24000 data/dev/wav.scp dump/raw/org/dev
+2025-01-13T13:50:04 (format_wav_scp.sh:118:main) [info]: without segments
+2025-01-13T13:50:06 (format_wav_scp.sh:153:main) Successfully finished. [elapsed=2s]
+2025-01-13T13:50:06 (format_score_scp.sh:33:main) scripts/audio/format_score_scp.sh --nj 32 --cmd run.pl data/dev/score.scp dump/raw/org/dev
+2025-01-13T13:50:07 (format_score_scp.sh:92:main) [info]: without segments
+2025-01-13T13:50:08 (format_score_scp.sh:116:main) Successfully finished. [elapsed=2s]
+utils/copy_data_dir.sh: copied data from data/dev to dump/raw/org/dev
+utils/validate_data_dir.sh: Successfully validated data-directory dump/raw/org/dev
+fix_data_dir.sh: kept all 105 utterances.
+fix_data_dir.sh: old files are kept in dump/raw/org/dev/.backup
+2025-01-13T13:50:08 (format_wav_scp.sh:46:main) scripts/audio/format_wav_scp.sh --nj 32 --cmd run.pl --audio-format wav --fs 24000 data/dev/wav.scp dump/raw/org/dev
+2025-01-13T13:50:09 (format_wav_scp.sh:118:main) [info]: without segments
+2025-01-13T13:50:11 (format_wav_scp.sh:153:main) Successfully finished. [elapsed=3s]
+2025-01-13T13:50:11 (format_score_scp.sh:33:main) scripts/audio/format_score_scp.sh --nj 32 --cmd run.pl data/dev/score.scp dump/raw/org/dev
+2025-01-13T13:50:12 (format_score_scp.sh:92:main) [info]: without segments
+2025-01-13T13:50:12 (format_score_scp.sh:116:main) Successfully finished. [elapsed=1s]
+utils/copy_data_dir.sh: copied data from data/eval to dump/raw/eval
+utils/validate_data_dir.sh: Successfully validated data-directory dump/raw/eval
+fix_data_dir.sh: kept all 148 utterances.
+fix_data_dir.sh: old files are kept in dump/raw/eval/.backup
+2025-01-13T13:50:13 (format_wav_scp.sh:46:main) scripts/audio/format_wav_scp.sh --nj 32 --cmd run.pl --audio-format wav --fs 24000 data/eval/wav.scp dump/raw/eval
+2025-01-13T13:50:14 (format_wav_scp.sh:118:main) [info]: without segments
+2025-01-13T13:50:15 (format_wav_scp.sh:153:main) Successfully finished. [elapsed=2s]
+2025-01-13T13:50:15 (format_score_scp.sh:33:main) scripts/audio/format_score_scp.sh --nj 32 --cmd run.pl data/eval/score.scp dump/raw/eval
+2025-01-13T13:50:16 (format_score_scp.sh:92:main) [info]: without segments
+2025-01-13T13:50:17 (format_score_scp.sh:116:main) Successfully finished. [elapsed=2s]
+2025-01-13T13:50:17 (svs.sh:368:main) Stage 2+: sid extract: data/ -> dump/raw/
+2025-01-13T13:50:17 (svs.sh:424:main) Stage 3: Remove long/short data: dump/raw/org -> dump/raw
+utils/copy_data_dir.sh: copied data from dump/raw/org/tr_no_dev to dump/raw/tr_no_dev
+utils/validate_data_dir.sh: Successfully validated data-directory dump/raw/tr_no_dev
+fix_data_dir.sh: kept all 2406 utterances.
+fix_data_dir.sh: old files are kept in dump/raw/tr_no_dev/.backup
+utils/copy_data_dir.sh: copied data from dump/raw/org/dev to dump/raw/dev
+utils/validate_data_dir.sh: Successfully validated data-directory dump/raw/dev
+fix_data_dir.sh: kept all 105 utterances.
+fix_data_dir.sh: old files are kept in dump/raw/dev/.backup
+2025-01-13T13:50:19 (svs.sh:466:main) Stage 4: Generate token_list from data/tr_no_dev/text
+/data5/arllan/miniconda/envs/espnetenv/bin/python3 /data5/arllan/espnet/espnet2/bin/tokenize_text.py --token_type phn -f 2- --input dump/raw/srctexts --output data/token_list/phn_None_zh/tokens.txt --non_linguistic_symbols none --cleaner none --g2p None --write_vocabulary true --add_symbol '<blank>:0' --add_symbol '<unk>:1' --add_symbol '<sos/eos>:-1'
+2025-01-13 13:50:27,556 (tokenize_text:173) INFO: OOV rate = 0.0 %
+2025-01-13T13:50:28 (svs.sh:1159:main) Skip the packing stage
+2025-01-13T13:50:28 (svs.sh:1216:main) Skip the uploading to HuggingFace stage
+2025-01-13T13:50:28 (svs.sh:1219:main) Successfully finished. [elapsed=159s]

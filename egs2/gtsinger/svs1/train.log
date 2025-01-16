@@ -1,0 +1,1848 @@
+# python3 -m espnet2.bin.gan_svs_train --use_preprocessor true --token_type phn --token_list data/token_list/phn_None_zh/tokens.txt --non_linguistic_symbols none --cleaner none --g2p None --fs 24000 --normalize none --resume true --init_param --ignore_init_mismatch false --fold_length 150 --fold_length 204800 --output_dir exp/svs_train_raw_phn_None_zh --config conf/train.yaml --score_feats_extract syllable_score_feats --score_feats_extract_conf fs=24000 --score_feats_extract_conf n_fft=2048 --score_feats_extract_conf win_length=2048 --score_feats_extract_conf hop_length=256 --feats_extract fbank --feats_extract_conf n_fft=2048 --feats_extract_conf hop_length=256 --feats_extract_conf win_length=2048 --pitch_extract dio --ying_extract None --feats_extract_conf fs=24000 --feats_extract_conf fmin=0 --feats_extract_conf fmax=22050 --feats_extract_conf n_mels=80 --pitch_extract_conf fs=24000 --pitch_extract_conf n_fft=2048 --pitch_extract_conf hop_length=256 --pitch_extract_conf f0max=810 --pitch_extract_conf f0min=80 --train_data_path_and_name_and_type dump/raw/tr_no_dev/text,text,text --train_data_path_and_name_and_type dump/raw/tr_no_dev/wav.scp,singing,sound --train_data_path_and_name_and_type dump/raw/tr_no_dev/label,label,duration --train_data_path_and_name_and_type dump/raw/tr_no_dev/score.scp,score,score --train_shape_file exp/svs_stats_raw_phn_None_zh/train/text_shape.phn --train_shape_file exp/svs_stats_raw_phn_None_zh/train/singing_shape --valid_data_path_and_name_and_type dump/raw/dev/text,text,text --valid_data_path_and_name_and_type dump/raw/dev/wav.scp,singing,sound --valid_data_path_and_name_and_type dump/raw/dev/label,label,duration --valid_data_path_and_name_and_type dump/raw/dev/score.scp,score,score --valid_shape_file exp/svs_stats_raw_phn_None_zh/valid/text_shape.phn --valid_shape_file exp/svs_stats_raw_phn_None_zh/valid/singing_shape --train_data_path_and_name_and_type exp/svs_stats_raw_phn_None_zh/train/collect_feats/pitch.scp,pitch,npy --valid_data_path_and_name_and_type exp/svs_stats_raw_phn_None_zh/valid/collect_feats/pitch.scp,pitch,npy --train_data_path_and_name_and_type exp/svs_stats_raw_phn_None_zh/train/collect_feats/feats.scp,feats,npy --valid_data_path_and_name_and_type exp/svs_stats_raw_phn_None_zh/valid/collect_feats/feats.scp,feats,npy --train_data_path_and_name_and_type dump/raw/tr_no_dev/utt2sid,sids,text_int --valid_data_path_and_name_and_type dump/raw/dev/utt2sid,sids,text_int --ngpu 1 --multiprocessing_distributed True 
+# Started at Thu Jan  9 18:28:09 UTC 2025
+#
+/data5/arllan/miniconda/envs/espnetenv/bin/python3 /data5/arllan/espnet/espnet2/bin/gan_svs_train.py --use_preprocessor true --token_type phn --token_list data/token_list/phn_None_zh/tokens.txt --non_linguistic_symbols none --cleaner none --g2p None --fs 24000 --normalize none --resume true --init_param --ignore_init_mismatch false --fold_length 150 --fold_length 204800 --output_dir exp/svs_train_raw_phn_None_zh --config conf/train.yaml --score_feats_extract syllable_score_feats --score_feats_extract_conf fs=24000 --score_feats_extract_conf n_fft=2048 --score_feats_extract_conf win_length=2048 --score_feats_extract_conf hop_length=256 --feats_extract fbank --feats_extract_conf n_fft=2048 --feats_extract_conf hop_length=256 --feats_extract_conf win_length=2048 --pitch_extract dio --ying_extract None --feats_extract_conf fs=24000 --feats_extract_conf fmin=0 --feats_extract_conf fmax=22050 --feats_extract_conf n_mels=80 --pitch_extract_conf fs=24000 --pitch_extract_conf n_fft=2048 --pitch_extract_conf hop_length=256 --pitch_extract_conf f0max=810 --pitch_extract_conf f0min=80 --train_data_path_and_name_and_type dump/raw/tr_no_dev/text,text,text --train_data_path_and_name_and_type dump/raw/tr_no_dev/wav.scp,singing,sound --train_data_path_and_name_and_type dump/raw/tr_no_dev/label,label,duration --train_data_path_and_name_and_type dump/raw/tr_no_dev/score.scp,score,score --train_shape_file exp/svs_stats_raw_phn_None_zh/train/text_shape.phn --train_shape_file exp/svs_stats_raw_phn_None_zh/train/singing_shape --valid_data_path_and_name_and_type dump/raw/dev/text,text,text --valid_data_path_and_name_and_type dump/raw/dev/wav.scp,singing,sound --valid_data_path_and_name_and_type dump/raw/dev/label,label,duration --valid_data_path_and_name_and_type dump/raw/dev/score.scp,score,score --valid_shape_file exp/svs_stats_raw_phn_None_zh/valid/text_shape.phn --valid_shape_file exp/svs_stats_raw_phn_None_zh/valid/singing_shape --train_data_path_and_name_and_type exp/svs_stats_raw_phn_None_zh/train/collect_feats/pitch.scp,pitch,npy --valid_data_path_and_name_and_type exp/svs_stats_raw_phn_None_zh/valid/collect_feats/pitch.scp,pitch,npy --train_data_path_and_name_and_type exp/svs_stats_raw_phn_None_zh/train/collect_feats/feats.scp,feats,npy --valid_data_path_and_name_and_type exp/svs_stats_raw_phn_None_zh/valid/collect_feats/feats.scp,feats,npy --train_data_path_and_name_and_type dump/raw/tr_no_dev/utt2sid,sids,text_int --valid_data_path_and_name_and_type dump/raw/dev/utt2sid,sids,text_int --ngpu 1 --multiprocessing_distributed True
+Failed to import Flash Attention, using ESPnet default: No module named 'flash_attn'
+Vocabulary size: 62
+/data5/arllan/miniconda/envs/espnetenv/lib/python3.10/site-packages/librosa/util/decorators.py:88: UserWarning: Empty filters detected in mel frequency basis. Some channels will produce empty responses. Try increasing your sampling rate (and fmax) or reducing n_mels.
+  return f(*args, **kwargs)
+encoder self-attention layer type = relative self-attention
+/data5/arllan/miniconda/envs/espnetenv/lib/python3.10/site-packages/torch/nn/utils/weight_norm.py:28: UserWarning: torch.nn.utils.weight_norm is deprecated in favor of torch.nn.utils.parametrizations.weight_norm.
+  warnings.warn("torch.nn.utils.weight_norm is deprecated in favor of torch.nn.utils.parametrizations.weight_norm.")
+encoder self-attention layer type = relative self-attention
+encoder self-attention layer type = relative self-attention
+encoder self-attention layer type = relative self-attention
+args:Namespace(config='conf/train.yaml', print_config=False, log_level='INFO', drop_last_iter=False, dry_run=False, iterator_type='sequence', valid_iterator_type=None, output_dir='exp/svs_train_raw_phn_None_zh', ngpu=1, seed=777, num_workers=4, num_att_plot=3, dist_backend='nccl', dist_init_method='env://', dist_world_size=None, dist_rank=None, local_rank=0, dist_master_addr=None, dist_master_port=None, dist_launcher=None, multiprocessing_distributed=False, unused_parameters=True, sharded_ddp=False, use_deepspeed=False, deepspeed_config=None, cudnn_enabled=True, cudnn_benchmark=False, cudnn_deterministic=False, use_tf32=False, collect_stats=False, write_collected_feats=False, max_epoch=200, patience=None, val_scheduler_criterion=('valid', 'loss'), early_stopping_criterion=('valid', 'loss', 'min'), best_model_criterion=[['train', 'total_count', 'max']], keep_nbest_models=10, nbest_averaging_interval=0, grad_clip=-1, grad_clip_type=2.0, grad_noise=False, accum_grad=1, no_forward_run=False, resume=True, train_dtype='float32', use_amp=False, log_interval=50, use_matplotlib=True, use_tensorboard=True, create_graph_in_tensorboard=False, use_wandb=False, wandb_project=None, wandb_id=None, wandb_entity=None, wandb_name=None, wandb_model_log_interval=-1, detect_anomaly=False, use_adapter=False, adapter='lora', save_strategy='all', adapter_conf={}, pretrain_path=None, init_param=[], ignore_init_mismatch=False, freeze_param=[], num_iters_per_epoch=1000, batch_size=4, valid_batch_size=None, batch_bins=1000000, valid_batch_bins=None, category_sample_size=10, train_shape_file=['exp/svs_stats_raw_phn_None_zh/train/text_shape.phn', 'exp/svs_stats_raw_phn_None_zh/train/singing_shape'], valid_shape_file=['exp/svs_stats_raw_phn_None_zh/valid/text_shape.phn', 'exp/svs_stats_raw_phn_None_zh/valid/singing_shape'], batch_type='sorted', valid_batch_type=None, fold_length=[150, 204800], sort_in_batch='descending', shuffle_within_batch=False, sort_batch='descending', multiple_iterator=False, chunk_length=500, chunk_shift_ratio=0.5, num_cache_chunks=1024, chunk_excluded_key_prefixes=[], chunk_default_fs=None, chunk_max_abs_length=None, chunk_discard_short_samples=True, train_data_path_and_name_and_type=[('dump/raw/tr_no_dev/text', 'text', 'text'), ('dump/raw/tr_no_dev/wav.scp', 'singing', 'sound'), ('dump/raw/tr_no_dev/label', 'label', 'duration'), ('dump/raw/tr_no_dev/score.scp', 'score', 'score'), ('exp/svs_stats_raw_phn_None_zh/train/collect_feats/pitch.scp', 'pitch', 'npy'), ('exp/svs_stats_raw_phn_None_zh/train/collect_feats/feats.scp', 'feats', 'npy'), ('dump/raw/tr_no_dev/utt2sid', 'sids', 'text_int')], valid_data_path_and_name_and_type=[('dump/raw/dev/text', 'text', 'text'), ('dump/raw/dev/wav.scp', 'singing', 'sound'), ('dump/raw/dev/label', 'label', 'duration'), ('dump/raw/dev/score.scp', 'score', 'score'), ('exp/svs_stats_raw_phn_None_zh/valid/collect_feats/pitch.scp', 'pitch', 'npy'), ('exp/svs_stats_raw_phn_None_zh/valid/collect_feats/feats.scp', 'feats', 'npy'), ('dump/raw/dev/utt2sid', 'sids', 'text_int')], multi_task_dataset=False, allow_variable_data_keys=False, max_cache_size=0.0, max_cache_fd=32, allow_multi_rates=False, valid_max_cache_size=None, exclude_weight_decay=False, exclude_weight_decay_conf={}, optim='adamw', optim_conf={'lr': 0.0002, 'betas': [0.8, 0.99], 'eps': 1e-09, 'weight_decay': 0.0}, scheduler='exponentiallr', scheduler_conf={'gamma': 0.998}, optim2='adamw', optim2_conf={'lr': 0.0002, 'betas': [0.8, 0.99], 'eps': 1e-09, 'weight_decay': 0.0}, scheduler2='exponentiallr', scheduler2_conf={'gamma': 0.998}, generator_first=False, skip_discriminator_prob=0.0, input_size=None, token_list=['<blank>', '<unk>', 'i', 'e', 'd', 'AP', 'uo', 'sh', 'ai', 'l', 'n', 'h', 'u', 'x', 'j', 'b', 'ian', 'zh', 'm', 'z', 'g', 'en', 'an', 'q', 'eng', 'ing', 'iou', 'uei', 't', 'ao', 'ou', 'r', 'a', 'iang', 'ang', 'ei', 'ong', 'k', 'f', 'ie', 'iao', 'ch', 'v', 'in', 'c', 'uang', 'uan', 's', 'van', 'p', 've', 'SP', 'uen', 'ua', 'ia', 'iong', 'o', 'uai', 'vn', 'er', 'w', '<sos/eos>'], odim=None, model_conf={}, use_preprocessor=True, token_type='phn', bpemodel=None, non_linguistic_symbols=None, cleaner=None, g2p=None, fs=24000, postfrontend=None, postfrontend_conf={}, score_feats_extract='syllable_score_feats', score_feats_extract_conf={'fs': 24000, 'n_fft': 2048, 'win_length': 2048, 'hop_length': 256}, feats_extract='fbank', feats_extract_conf={'n_fft': 2048, 'hop_length': 256, 'win_length': 2048, 'fs': 24000, 'fmin': 0, 'fmax': 22050, 'n_mels': 80}, normalize=None, normalize_conf={}, svs='vits', svs_conf={'generator_type': 'visinger2', 'vocoder_generator_type': 'visinger2', 'generator_params': {'hidden_channels': 192, 'spks': 2, 'global_channels': 512, 'segment_size': 20, 'text_encoder_attention_heads': 2, 'text_encoder_ffn_expand': 4, 'text_encoder_blocks': 6, 'text_encoder_positionwise_layer_type': 'conv1d', 'text_encoder_positionwise_conv_kernel_size': 3, 'text_encoder_positional_encoding_layer_type': 'rel_pos', 'text_encoder_self_attention_layer_type': 'rel_selfattn', 'text_encoder_activation_type': 'swish', 'text_encoder_normalize_before': True, 'text_encoder_dropout_rate': 0.1, 'text_encoder_positional_dropout_rate': 0.0, 'text_encoder_attention_dropout_rate': 0.1, 'use_macaron_style_in_text_encoder': True, 'use_conformer_conv_in_text_encoder': False, 'text_encoder_conformer_kernel_size': -1, 'decoder_kernel_size': 7, 'decoder_channels': 512, 'decoder_upsample_scales': [8, 8, 2, 2], 'decoder_upsample_kernel_sizes': [16, 16, 4, 4], 'decoder_resblock_kernel_sizes': [3, 7, 11], 'decoder_resblock_dilations': [[1, 3, 5], [1, 3, 5], [1, 3, 5]], 'use_weight_norm_in_decoder': True, 'posterior_encoder_kernel_size': 3, 'posterior_encoder_layers': 8, 'posterior_encoder_stacks': 1, 'posterior_encoder_base_dilation': 1, 'posterior_encoder_dropout_rate': 0.0, 'use_weight_norm_in_posterior_encoder': True, 'flow_flows': -1, 'flow_kernel_size': 5, 'flow_base_dilation': 1, 'flow_layers': 4, 'flow_dropout_rate': 0.0, 'use_weight_norm_in_flow': True, 'use_only_mean_in_flow': True, 'use_phoneme_predictor': False, 'hubert_channels': None, 'vocabs': 62, 'aux_channels': 80, 'generator_type': 'visinger2', 'vocoder_generator_type': 'visinger2', 'fs': 24000, 'hop_length': 256, 'win_length': 2048, 'n_fft': 2048}, 'discriminator_type': 'visinger2', 'discriminator_params': {'scales': 1, 'scale_downsample_pooling': 'AvgPool1d', 'scale_downsample_pooling_params': {'kernel_size': 4, 'stride': 2, 'padding': 2}, 'scale_discriminator_params': {'in_channels': 1, 'out_channels': 1, 'kernel_sizes': [15, 41, 5, 3], 'channels': 128, 'max_downsample_channels': 1024, 'max_groups': 256, 'bias': True, 'downsample_scales': [4, 4, 4, 4], 'nonlinear_activation': 'LeakyReLU', 'nonlinear_activation_params': {'negative_slope': 0.1}, 'use_weight_norm': True, 'use_spectral_norm': False}, 'follow_official_norm': False, 'periods': [2, 3, 5, 7, 11], 'period_discriminator_params': {'in_channels': 1, 'out_channels': 1, 'kernel_sizes': [5, 3], 'channels': 32, 'downsample_scales': [3, 3, 3, 3, 1], 'max_downsample_channels': 1024, 'bias': True, 'nonlinear_activation': 'LeakyReLU', 'nonlinear_activation_params': {'negative_slope': 0.1}, 'use_weight_norm': True, 'use_spectral_norm': False}, 'multi_freq_disc_params': {'hidden_channels': [256, 256, 256, 256, 256], 'domain': 'double', 'mel_scale': True, 'divisors': [32, 16, 8, 4, 2, 1, 1], 'strides': [1, 2, 1, 2, 1, 2, 1], 'sample_rate': 24000, 'hop_lengths': [60, 120, 180, 240, 300, 360]}}, 'generator_adv_loss_params': {'average_by_discriminators': False, 'loss_type': 'mse'}, 'discriminator_adv_loss_params': {'average_by_discriminators': False, 'loss_type': 'mse'}, 'feat_match_loss_params': {'average_by_discriminators': False, 'average_by_layers': False, 'include_final_outputs': True}, 'mel_loss_params': {'fs': 24000, 'n_fft': 2048, 'hop_length': 256, 'win_length': 2048, 'window': 'hann', 'n_mels': 80, 'fmin': 0, 'fmax': 22050, 'log_base': None}, 'lambda_adv': 1.0, 'lambda_mel': 45.0, 'lambda_feat_match': 2.0, 'lambda_dur': 0.1, 'lambda_pitch': 10.0, 'lambda_phoneme': 1.0, 'lambda_kl': 1.0, 'sampling_rate': 24000, 'cache_generator_outputs': True}, pitch_extract='dio', pitch_extract_conf={'use_token_averaged_f0': False, 'use_log_f0': False, 'fs': 24000, 'n_fft': 2048, 'hop_length': 256, 'f0max': 810, 'f0min': 80}, pitch_normalize=None, pitch_normalize_conf={}, ying_extract=None, ying_extract_conf={}, energy_extract=None, energy_extract_conf={}, energy_normalize=None, energy_normalize_conf={}, required=['output_dir', 'token_list'], version='202409', distributed=False)
+pytorch.version=2.3.0+cu121, cuda.available=True, cudnn.version=8902, cudnn.benchmark=False, cudnn.deterministic=False
+Model structure:
+ESPnetGANSVSModel(
+  (text_extract): SyllableScoreFeats(win_length=2048, hop_length=256, center=True, )
+  (feats_extract): LogMelFbank(
+    (stft): Stft(n_fft=2048, win_length=2048, hop_length=256, center=True, normalized=False, onesided=True)
+    (logmel): LogMel(sr=24000, n_fft=2048, n_mels=80, fmin=0, fmax=22050, htk=False)
+  )
+  (score_feats_extract): SyllableScoreFeats(win_length=2048, hop_length=256, center=True, )
+  (label_extract): SyllableScoreFeats(win_length=2048, hop_length=256, center=True, )
+  (pitch_extract): Dio()
+  (duration_extract): SyllableScoreFeats(win_length=2048, hop_length=256, center=True, )
+  (svs): VITS(
+    (generator): VISingerGenerator(
+      (text_encoder): TextEncoder(
+        (encoder): Encoder(
+          (embed): Sequential(
+            (0): RelPositionalEncoding(
+              (dropout): Dropout(p=0.0, inplace=False)
+            )
+          )
+          (encoders): MultiSequential(
+            (0): EncoderLayer(
+              (self_attn): RelPositionMultiHeadedAttention(
+                (linear_q): Linear(in_features=192, out_features=192, bias=True)
+                (linear_k): Linear(in_features=192, out_features=192, bias=True)
+                (linear_v): Linear(in_features=192, out_features=192, bias=True)
+                (linear_out): Linear(in_features=192, out_features=192, bias=True)
+                (dropout): Dropout(p=0.1, inplace=False)
+                (q_norm): Identity()
+                (k_norm): Identity()
+                (linear_pos): Linear(in_features=192, out_features=192, bias=False)
+              )
+              (feed_forward): MultiLayeredConv1d(
+                (w_1): Conv1d(192, 768, kernel_size=(3,), stride=(1,), padding=(1,))
+                (w_2): Conv1d(768, 192, kernel_size=(3,), stride=(1,), padding=(1,))
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+              (feed_forward_macaron): MultiLayeredConv1d(
+                (w_1): Conv1d(192, 768, kernel_size=(3,), stride=(1,), padding=(1,))
+                (w_2): Conv1d(768, 192, kernel_size=(3,), stride=(1,), padding=(1,))
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+              (norm_ff): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (norm_mha): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (norm_ff_macaron): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (dropout): Dropout(p=0.1, inplace=False)
+            )
+            (1): EncoderLayer(
+              (self_attn): RelPositionMultiHeadedAttention(
+                (linear_q): Linear(in_features=192, out_features=192, bias=True)
+                (linear_k): Linear(in_features=192, out_features=192, bias=True)
+                (linear_v): Linear(in_features=192, out_features=192, bias=True)
+                (linear_out): Linear(in_features=192, out_features=192, bias=True)
+                (dropout): Dropout(p=0.1, inplace=False)
+                (q_norm): Identity()
+                (k_norm): Identity()
+                (linear_pos): Linear(in_features=192, out_features=192, bias=False)
+              )
+              (feed_forward): MultiLayeredConv1d(
+                (w_1): Conv1d(192, 768, kernel_size=(3,), stride=(1,), padding=(1,))
+                (w_2): Conv1d(768, 192, kernel_size=(3,), stride=(1,), padding=(1,))
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+              (feed_forward_macaron): MultiLayeredConv1d(
+                (w_1): Conv1d(192, 768, kernel_size=(3,), stride=(1,), padding=(1,))
+                (w_2): Conv1d(768, 192, kernel_size=(3,), stride=(1,), padding=(1,))
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+              (norm_ff): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (norm_mha): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (norm_ff_macaron): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (dropout): Dropout(p=0.1, inplace=False)
+            )
+            (2): EncoderLayer(
+              (self_attn): RelPositionMultiHeadedAttention(
+                (linear_q): Linear(in_features=192, out_features=192, bias=True)
+                (linear_k): Linear(in_features=192, out_features=192, bias=True)
+                (linear_v): Linear(in_features=192, out_features=192, bias=True)
+                (linear_out): Linear(in_features=192, out_features=192, bias=True)
+                (dropout): Dropout(p=0.1, inplace=False)
+                (q_norm): Identity()
+                (k_norm): Identity()
+                (linear_pos): Linear(in_features=192, out_features=192, bias=False)
+              )
+              (feed_forward): MultiLayeredConv1d(
+                (w_1): Conv1d(192, 768, kernel_size=(3,), stride=(1,), padding=(1,))
+                (w_2): Conv1d(768, 192, kernel_size=(3,), stride=(1,), padding=(1,))
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+              (feed_forward_macaron): MultiLayeredConv1d(
+                (w_1): Conv1d(192, 768, kernel_size=(3,), stride=(1,), padding=(1,))
+                (w_2): Conv1d(768, 192, kernel_size=(3,), stride=(1,), padding=(1,))
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+              (norm_ff): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (norm_mha): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (norm_ff_macaron): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (dropout): Dropout(p=0.1, inplace=False)
+            )
+            (3): EncoderLayer(
+              (self_attn): RelPositionMultiHeadedAttention(
+                (linear_q): Linear(in_features=192, out_features=192, bias=True)
+                (linear_k): Linear(in_features=192, out_features=192, bias=True)
+                (linear_v): Linear(in_features=192, out_features=192, bias=True)
+                (linear_out): Linear(in_features=192, out_features=192, bias=True)
+                (dropout): Dropout(p=0.1, inplace=False)
+                (q_norm): Identity()
+                (k_norm): Identity()
+                (linear_pos): Linear(in_features=192, out_features=192, bias=False)
+              )
+              (feed_forward): MultiLayeredConv1d(
+                (w_1): Conv1d(192, 768, kernel_size=(3,), stride=(1,), padding=(1,))
+                (w_2): Conv1d(768, 192, kernel_size=(3,), stride=(1,), padding=(1,))
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+              (feed_forward_macaron): MultiLayeredConv1d(
+                (w_1): Conv1d(192, 768, kernel_size=(3,), stride=(1,), padding=(1,))
+                (w_2): Conv1d(768, 192, kernel_size=(3,), stride=(1,), padding=(1,))
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+              (norm_ff): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (norm_mha): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (norm_ff_macaron): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (dropout): Dropout(p=0.1, inplace=False)
+            )
+            (4): EncoderLayer(
+              (self_attn): RelPositionMultiHeadedAttention(
+                (linear_q): Linear(in_features=192, out_features=192, bias=True)
+                (linear_k): Linear(in_features=192, out_features=192, bias=True)
+                (linear_v): Linear(in_features=192, out_features=192, bias=True)
+                (linear_out): Linear(in_features=192, out_features=192, bias=True)
+                (dropout): Dropout(p=0.1, inplace=False)
+                (q_norm): Identity()
+                (k_norm): Identity()
+                (linear_pos): Linear(in_features=192, out_features=192, bias=False)
+              )
+              (feed_forward): MultiLayeredConv1d(
+                (w_1): Conv1d(192, 768, kernel_size=(3,), stride=(1,), padding=(1,))
+                (w_2): Conv1d(768, 192, kernel_size=(3,), stride=(1,), padding=(1,))
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+              (feed_forward_macaron): MultiLayeredConv1d(
+                (w_1): Conv1d(192, 768, kernel_size=(3,), stride=(1,), padding=(1,))
+                (w_2): Conv1d(768, 192, kernel_size=(3,), stride=(1,), padding=(1,))
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+              (norm_ff): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (norm_mha): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (norm_ff_macaron): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (dropout): Dropout(p=0.1, inplace=False)
+            )
+            (5): EncoderLayer(
+              (self_attn): RelPositionMultiHeadedAttention(
+                (linear_q): Linear(in_features=192, out_features=192, bias=True)
+                (linear_k): Linear(in_features=192, out_features=192, bias=True)
+                (linear_v): Linear(in_features=192, out_features=192, bias=True)
+                (linear_out): Linear(in_features=192, out_features=192, bias=True)
+                (dropout): Dropout(p=0.1, inplace=False)
+                (q_norm): Identity()
+                (k_norm): Identity()
+                (linear_pos): Linear(in_features=192, out_features=192, bias=False)
+              )
+              (feed_forward): MultiLayeredConv1d(
+                (w_1): Conv1d(192, 768, kernel_size=(3,), stride=(1,), padding=(1,))
+                (w_2): Conv1d(768, 192, kernel_size=(3,), stride=(1,), padding=(1,))
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+              (feed_forward_macaron): MultiLayeredConv1d(
+                (w_1): Conv1d(192, 768, kernel_size=(3,), stride=(1,), padding=(1,))
+                (w_2): Conv1d(768, 192, kernel_size=(3,), stride=(1,), padding=(1,))
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+              (norm_ff): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (norm_mha): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (norm_ff_macaron): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (dropout): Dropout(p=0.1, inplace=False)
+            )
+          )
+          (after_norm): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+        )
+        (emb_phone): Embedding(62, 256)
+        (emb_pitch): Embedding(129, 128)
+        (emb_slur): Embedding(2, 64)
+        (emb_dur): Linear(in_features=1, out_features=64, bias=True)
+        (pre_net): Linear(in_features=512, out_features=192, bias=True)
+        (pre_dur_net): Linear(in_features=512, out_features=192, bias=True)
+        (proj): Conv1d(192, 192, kernel_size=(1,), stride=(1,))
+        (proj_pitch): Conv1d(128, 192, kernel_size=(1,), stride=(1,))
+      )
+      (decoder): VISinger2VocoderGenerator(
+        (input_conv): Conv1d(192, 512, kernel_size=(7,), stride=(1,), padding=(3,))
+        (downs): ModuleList(
+          (0-1): 2 x Conv1d(66, 66, kernel_size=(4,), stride=(2,), padding=(2,))
+          (2-3): 2 x Conv1d(66, 66, kernel_size=(16,), stride=(8,), padding=(8,))
+        )
+        (blocks_downs): ModuleList(
+          (0-3): 4 x ResidualBlock(
+            (convs1): ModuleList(
+              (0): Sequential(
+                (0): LeakyReLU(negative_slope=0.1)
+                (1): Conv1d(66, 66, kernel_size=(3,), stride=(1,), padding=(1,))
+              )
+              (1): Sequential(
+                (0): LeakyReLU(negative_slope=0.1)
+                (1): Conv1d(66, 66, kernel_size=(3,), stride=(1,), padding=(3,), dilation=(3,))
+              )
+            )
+          )
+        )
+        (concat_pre): Conv1d(578, 512, kernel_size=(3,), stride=(1,), padding=(1,))
+        (concat_conv): ModuleList(
+          (0): Conv1d(322, 256, kernel_size=(3,), stride=(1,), padding=(1,))
+          (1): Conv1d(194, 128, kernel_size=(3,), stride=(1,), padding=(1,))
+          (2): Conv1d(130, 64, kernel_size=(3,), stride=(1,), padding=(1,))
+          (3): Conv1d(98, 32, kernel_size=(3,), stride=(1,), padding=(1,))
+        )
+        (upsamples): ModuleList(
+          (0): Sequential(
+            (0): LeakyReLU(negative_slope=0.1)
+            (1): ConvTranspose1d(512, 256, kernel_size=(16,), stride=(8,), padding=(4,))
+          )
+          (1): Sequential(
+            (0): LeakyReLU(negative_slope=0.1)
+            (1): ConvTranspose1d(256, 128, kernel_size=(16,), stride=(8,), padding=(4,))
+          )
+          (2): Sequential(
+            (0): LeakyReLU(negative_slope=0.1)
+            (1): ConvTranspose1d(128, 64, kernel_size=(4,), stride=(2,), padding=(1,))
+          )
+          (3): Sequential(
+            (0): LeakyReLU(negative_slope=0.1)
+            (1): ConvTranspose1d(64, 32, kernel_size=(4,), stride=(2,), padding=(1,))
+          )
+        )
+        (blocks): ModuleList(
+          (0): ResidualBlock(
+            (convs1): ModuleList(
+              (0): Sequential(
+                (0): LeakyReLU(negative_slope=0.1)
+                (1): Conv1d(256, 256, kernel_size=(3,), stride=(1,), padding=(1,))
+              )
+              (1): Sequential(
+                (0): LeakyReLU(negative_slope=0.1)
+                (1): Conv1d(256, 256, kernel_size=(3,), stride=(1,), padding=(3,), dilation=(3,))
+              )
+              (2): Sequential(
+                (0): LeakyReLU(negative_slope=0.1)
+                (1): Conv1d(256, 256, kernel_size=(3,), stride=(1,), padding=(5,), dilation=(5,))
+              )
+            )
+            (convs2): ModuleList(
+              (0-2): 3 x Sequential(
+                (0): LeakyReLU(negative_slope=0.1)
+                (1): Conv1d(256, 256, kernel_size=(3,), stride=(1,), padding=(1,))
+              )
+            )
+          )
+          (1): ResidualBlock(
+            (convs1): ModuleList(
+              (0): Sequential(
+                (0): LeakyReLU(negative_slope=0.1)
+                (1): Conv1d(256, 256, kernel_size=(7,), stride=(1,), padding=(3,))
+              )
+              (1): Sequential(
+                (0): LeakyReLU(negative_slope=0.1)
+                (1): Conv1d(256, 256, kernel_size=(7,), stride=(1,), padding=(9,), dilation=(3,))
+              )
+              (2): Sequential(
+                (0): LeakyReLU(negative_slope=0.1)
+                (1): Conv1d(256, 256, kernel_size=(7,), stride=(1,), padding=(15,), dilation=(5,))
+              )
+            )
+            (convs2): ModuleList(
+              (0-2): 3 x Sequential(
+                (0): LeakyReLU(negative_slope=0.1)
+                (1): Conv1d(256, 256, kernel_size=(7,), stride=(1,), padding=(3,))
+              )
+            )
+          )
+          (2): ResidualBlock(
+            (convs1): ModuleList(
+              (0): Sequential(
+                (0): LeakyReLU(negative_slope=0.1)
+                (1): Conv1d(256, 256, kernel_size=(11,), stride=(1,), padding=(5,))
+              )
+              (1): Sequential(
+                (0): LeakyReLU(negative_slope=0.1)
+                (1): Conv1d(256, 256, kernel_size=(11,), stride=(1,), padding=(15,), dilation=(3,))
+              )
+              (2): Sequential(
+                (0): LeakyReLU(negative_slope=0.1)
+                (1): Conv1d(256, 256, kernel_size=(11,), stride=(1,), padding=(25,), dilation=(5,))
+              )
+            )
+            (convs2): ModuleList(
+              (0-2): 3 x Sequential(
+                (0): LeakyReLU(negative_slope=0.1)
+                (1): Conv1d(256, 256, kernel_size=(11,), stride=(1,), padding=(5,))
+              )
+            )
+          )
+          (3): ResidualBlock(
+            (convs1): ModuleList(
+              (0): Sequential(
+                (0): LeakyReLU(negative_slope=0.1)
+                (1): Conv1d(128, 128, kernel_size=(3,), stride=(1,), padding=(1,))
+              )
+              (1): Sequential(
+                (0): LeakyReLU(negative_slope=0.1)
+                (1): Conv1d(128, 128, kernel_size=(3,), stride=(1,), padding=(3,), dilation=(3,))
+              )
+              (2): Sequential(
+                (0): LeakyReLU(negative_slope=0.1)
+                (1): Conv1d(128, 128, kernel_size=(3,), stride=(1,), padding=(5,), dilation=(5,))
+              )
+            )
+            (convs2): ModuleList(
+              (0-2): 3 x Sequential(
+                (0): LeakyReLU(negative_slope=0.1)
+                (1): Conv1d(128, 128, kernel_size=(3,), stride=(1,), padding=(1,))
+              )
+            )
+          )
+          (4): ResidualBlock(
+            (convs1): ModuleList(
+              (0): Sequential(
+                (0): LeakyReLU(negative_slope=0.1)
+                (1): Conv1d(128, 128, kernel_size=(7,), stride=(1,), padding=(3,))
+              )
+              (1): Sequential(
+                (0): LeakyReLU(negative_slope=0.1)
+                (1): Conv1d(128, 128, kernel_size=(7,), stride=(1,), padding=(9,), dilation=(3,))
+              )
+              (2): Sequential(
+                (0): LeakyReLU(negative_slope=0.1)
+                (1): Conv1d(128, 128, kernel_size=(7,), stride=(1,), padding=(15,), dilation=(5,))
+              )
+            )
+            (convs2): ModuleList(
+              (0-2): 3 x Sequential(
+                (0): LeakyReLU(negative_slope=0.1)
+                (1): Conv1d(128, 128, kernel_size=(7,), stride=(1,), padding=(3,))
+              )
+            )
+          )
+          (5): ResidualBlock(
+            (convs1): ModuleList(
+              (0): Sequential(
+                (0): LeakyReLU(negative_slope=0.1)
+                (1): Conv1d(128, 128, kernel_size=(11,), stride=(1,), padding=(5,))
+              )
+              (1): Sequential(
+                (0): LeakyReLU(negative_slope=0.1)
+                (1): Conv1d(128, 128, kernel_size=(11,), stride=(1,), padding=(15,), dilation=(3,))
+              )
+              (2): Sequential(
+                (0): LeakyReLU(negative_slope=0.1)
+                (1): Conv1d(128, 128, kernel_size=(11,), stride=(1,), padding=(25,), dilation=(5,))
+              )
+            )
+            (convs2): ModuleList(
+              (0-2): 3 x Sequential(
+                (0): LeakyReLU(negative_slope=0.1)
+                (1): Conv1d(128, 128, kernel_size=(11,), stride=(1,), padding=(5,))
+              )
+            )
+          )
+          (6): ResidualBlock(
+            (convs1): ModuleList(
+              (0): Sequential(
+                (0): LeakyReLU(negative_slope=0.1)
+                (1): Conv1d(64, 64, kernel_size=(3,), stride=(1,), padding=(1,))
+              )
+              (1): Sequential(
+                (0): LeakyReLU(negative_slope=0.1)
+                (1): Conv1d(64, 64, kernel_size=(3,), stride=(1,), padding=(3,), dilation=(3,))
+              )
+              (2): Sequential(
+                (0): LeakyReLU(negative_slope=0.1)
+                (1): Conv1d(64, 64, kernel_size=(3,), stride=(1,), padding=(5,), dilation=(5,))
+              )
+            )
+            (convs2): ModuleList(
+              (0-2): 3 x Sequential(
+                (0): LeakyReLU(negative_slope=0.1)
+                (1): Conv1d(64, 64, kernel_size=(3,), stride=(1,), padding=(1,))
+              )
+            )
+          )
+          (7): ResidualBlock(
+            (convs1): ModuleList(
+              (0): Sequential(
+                (0): LeakyReLU(negative_slope=0.1)
+                (1): Conv1d(64, 64, kernel_size=(7,), stride=(1,), padding=(3,))
+              )
+              (1): Sequential(
+                (0): LeakyReLU(negative_slope=0.1)
+                (1): Conv1d(64, 64, kernel_size=(7,), stride=(1,), padding=(9,), dilation=(3,))
+              )
+              (2): Sequential(
+                (0): LeakyReLU(negative_slope=0.1)
+                (1): Conv1d(64, 64, kernel_size=(7,), stride=(1,), padding=(15,), dilation=(5,))
+              )
+            )
+            (convs2): ModuleList(
+              (0-2): 3 x Sequential(
+                (0): LeakyReLU(negative_slope=0.1)
+                (1): Conv1d(64, 64, kernel_size=(7,), stride=(1,), padding=(3,))
+              )
+            )
+          )
+          (8): ResidualBlock(
+            (convs1): ModuleList(
+              (0): Sequential(
+                (0): LeakyReLU(negative_slope=0.1)
+                (1): Conv1d(64, 64, kernel_size=(11,), stride=(1,), padding=(5,))
+              )
+              (1): Sequential(
+                (0): LeakyReLU(negative_slope=0.1)
+                (1): Conv1d(64, 64, kernel_size=(11,), stride=(1,), padding=(15,), dilation=(3,))
+              )
+              (2): Sequential(
+                (0): LeakyReLU(negative_slope=0.1)
+                (1): Conv1d(64, 64, kernel_size=(11,), stride=(1,), padding=(25,), dilation=(5,))
+              )
+            )
+            (convs2): ModuleList(
+              (0-2): 3 x Sequential(
+                (0): LeakyReLU(negative_slope=0.1)
+                (1): Conv1d(64, 64, kernel_size=(11,), stride=(1,), padding=(5,))
+              )
+            )
+          )
+          (9): ResidualBlock(
+            (convs1): ModuleList(
+              (0): Sequential(
+                (0): LeakyReLU(negative_slope=0.1)
+                (1): Conv1d(32, 32, kernel_size=(3,), stride=(1,), padding=(1,))
+              )
+              (1): Sequential(
+                (0): LeakyReLU(negative_slope=0.1)
+                (1): Conv1d(32, 32, kernel_size=(3,), stride=(1,), padding=(3,), dilation=(3,))
+              )
+              (2): Sequential(
+                (0): LeakyReLU(negative_slope=0.1)
+                (1): Conv1d(32, 32, kernel_size=(3,), stride=(1,), padding=(5,), dilation=(5,))
+              )
+            )
+            (convs2): ModuleList(
+              (0-2): 3 x Sequential(
+                (0): LeakyReLU(negative_slope=0.1)
+                (1): Conv1d(32, 32, kernel_size=(3,), stride=(1,), padding=(1,))
+              )
+            )
+          )
+          (10): ResidualBlock(
+            (convs1): ModuleList(
+              (0): Sequential(
+                (0): LeakyReLU(negative_slope=0.1)
+                (1): Conv1d(32, 32, kernel_size=(7,), stride=(1,), padding=(3,))
+              )
+              (1): Sequential(
+                (0): LeakyReLU(negative_slope=0.1)
+                (1): Conv1d(32, 32, kernel_size=(7,), stride=(1,), padding=(9,), dilation=(3,))
+              )
+              (2): Sequential(
+                (0): LeakyReLU(negative_slope=0.1)
+                (1): Conv1d(32, 32, kernel_size=(7,), stride=(1,), padding=(15,), dilation=(5,))
+              )
+            )
+            (convs2): ModuleList(
+              (0-2): 3 x Sequential(
+                (0): LeakyReLU(negative_slope=0.1)
+                (1): Conv1d(32, 32, kernel_size=(7,), stride=(1,), padding=(3,))
+              )
+            )
+          )
+          (11): ResidualBlock(
+            (convs1): ModuleList(
+              (0): Sequential(
+                (0): LeakyReLU(negative_slope=0.1)
+                (1): Conv1d(32, 32, kernel_size=(11,), stride=(1,), padding=(5,))
+              )
+              (1): Sequential(
+                (0): LeakyReLU(negative_slope=0.1)
+                (1): Conv1d(32, 32, kernel_size=(11,), stride=(1,), padding=(15,), dilation=(3,))
+              )
+              (2): Sequential(
+                (0): LeakyReLU(negative_slope=0.1)
+                (1): Conv1d(32, 32, kernel_size=(11,), stride=(1,), padding=(25,), dilation=(5,))
+              )
+            )
+            (convs2): ModuleList(
+              (0-2): 3 x Sequential(
+                (0): LeakyReLU(negative_slope=0.1)
+                (1): Conv1d(32, 32, kernel_size=(11,), stride=(1,), padding=(5,))
+              )
+            )
+          )
+        )
+        (output_conv): Sequential(
+          (0): LeakyReLU(negative_slope=0.01)
+          (1): Conv1d(32, 1, kernel_size=(7,), stride=(1,), padding=(3,))
+          (2): Tanh()
+        )
+        (global_conv): Conv1d(512, 512, kernel_size=(1,), stride=(1,))
+      )
+      (dec_harm): Generator_Harm(
+        (prenet): Conv1d(192, 192, kernel_size=(3,), stride=(1,), padding=(1,))
+        (net): ConvReluNorm(
+          (conv_layers): ModuleList(
+            (0-7): 8 x Conv1d(192, 192, kernel_size=(3,), stride=(1,), padding=(1,))
+          )
+          (norm_layers): ModuleList(
+            (0-7): 8 x LayerNorm()
+          )
+          (relu_drop): Sequential(
+            (0): ReLU()
+            (1): Dropout(p=0.1, inplace=False)
+          )
+          (proj): Conv1d(192, 192, kernel_size=(1,), stride=(1,))
+        )
+        (postnet): Conv1d(192, 65, kernel_size=(3,), stride=(1,), padding=(1,))
+      )
+      (dec_noise): Generator_Noise(
+        (istft_pre): Conv1d(192, 192, kernel_size=(3,), stride=(1,), padding=(1,))
+        (net): ConvReluNorm(
+          (conv_layers): ModuleList(
+            (0-7): 8 x Conv1d(192, 192, kernel_size=(3,), stride=(1,), padding=(1,))
+          )
+          (norm_layers): ModuleList(
+            (0-7): 8 x LayerNorm()
+          )
+          (relu_drop): Sequential(
+            (0): ReLU()
+            (1): Dropout(p=0.1, inplace=False)
+          )
+          (proj): Conv1d(192, 192, kernel_size=(1,), stride=(1,))
+        )
+        (istft_amplitude): Conv1d(192, 1025, kernel_size=(1,), stride=(1,))
+      )
+      (sin_prenet): Conv1d(1, 66, kernel_size=(3,), stride=(1,), padding=(1,))
+      (posterior_encoder): PosteriorEncoder(
+        (input_conv): Conv1d(80, 192, kernel_size=(1,), stride=(1,))
+        (encoder): WaveNet(
+          (conv_layers): ModuleList(
+            (0-7): 8 x ResidualBlock(
+              (conv): Conv1d(192, 384, kernel_size=(3,), stride=(1,), padding=(1,))
+              (conv1x1_glo): Conv1d1x1(512, 384, kernel_size=(1,), stride=(1,), bias=False)
+              (conv1x1_out): Conv1d1x1(192, 384, kernel_size=(1,), stride=(1,))
+            )
+          )
+        )
+        (proj): Conv1d(192, 384, kernel_size=(1,), stride=(1,))
+      )
+      (f0_prenet): Conv1d(1, 194, kernel_size=(3,), stride=(1,), padding=(1,))
+      (energy_prenet): Conv1d(1, 194, kernel_size=(3,), stride=(1,), padding=(1,))
+      (mel_prenet): Conv1d(80, 194, kernel_size=(3,), stride=(1,), padding=(1,))
+      (duration_predictor): DurationPredictor(
+        (drop): Dropout(p=0.5, inplace=False)
+        (conv_1): Conv1d(192, 256, kernel_size=(3,), stride=(1,), padding=(1,))
+        (norm_1): LayerNorm((256,), eps=1e-12, elementwise_affine=True)
+        (conv_2): Conv1d(256, 256, kernel_size=(3,), stride=(1,), padding=(1,))
+        (norm_2): LayerNorm((256,), eps=1e-12, elementwise_affine=True)
+        (conv_3): Conv1d(256, 256, kernel_size=(3,), stride=(1,), padding=(1,))
+        (norm_3): LayerNorm((256,), eps=1e-12, elementwise_affine=True)
+        (proj): Conv1d(256, 2, kernel_size=(1,), stride=(1,))
+        (conv): Conv1d(512, 192, kernel_size=(1,), stride=(1,))
+      )
+      (lr): LengthRegulator()
+      (f0_decoder): Decoder(
+        (prenet): Conv1d(194, 192, kernel_size=(3,), stride=(1,), padding=(1,))
+        (decoder): Encoder(
+          (embed): Sequential(
+            (0): RelPositionalEncoding(
+              (dropout): Dropout(p=0.0, inplace=False)
+            )
+          )
+          (encoders): MultiSequential(
+            (0): EncoderLayer(
+              (self_attn): RelPositionMultiHeadedAttention(
+                (linear_q): Linear(in_features=192, out_features=192, bias=True)
+                (linear_k): Linear(in_features=192, out_features=192, bias=True)
+                (linear_v): Linear(in_features=192, out_features=192, bias=True)
+                (linear_out): Linear(in_features=192, out_features=192, bias=True)
+                (dropout): Dropout(p=0.1, inplace=False)
+                (q_norm): Identity()
+                (k_norm): Identity()
+                (linear_pos): Linear(in_features=192, out_features=192, bias=False)
+              )
+              (feed_forward): MultiLayeredConv1d(
+                (w_1): Conv1d(192, 768, kernel_size=(3,), stride=(1,), padding=(1,))
+                (w_2): Conv1d(768, 192, kernel_size=(3,), stride=(1,), padding=(1,))
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+              (feed_forward_macaron): MultiLayeredConv1d(
+                (w_1): Conv1d(192, 768, kernel_size=(3,), stride=(1,), padding=(1,))
+                (w_2): Conv1d(768, 192, kernel_size=(3,), stride=(1,), padding=(1,))
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+              (norm_ff): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (norm_mha): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (norm_ff_macaron): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (dropout): Dropout(p=0.1, inplace=False)
+            )
+            (1): EncoderLayer(
+              (self_attn): RelPositionMultiHeadedAttention(
+                (linear_q): Linear(in_features=192, out_features=192, bias=True)
+                (linear_k): Linear(in_features=192, out_features=192, bias=True)
+                (linear_v): Linear(in_features=192, out_features=192, bias=True)
+                (linear_out): Linear(in_features=192, out_features=192, bias=True)
+                (dropout): Dropout(p=0.1, inplace=False)
+                (q_norm): Identity()
+                (k_norm): Identity()
+                (linear_pos): Linear(in_features=192, out_features=192, bias=False)
+              )
+              (feed_forward): MultiLayeredConv1d(
+                (w_1): Conv1d(192, 768, kernel_size=(3,), stride=(1,), padding=(1,))
+                (w_2): Conv1d(768, 192, kernel_size=(3,), stride=(1,), padding=(1,))
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+              (feed_forward_macaron): MultiLayeredConv1d(
+                (w_1): Conv1d(192, 768, kernel_size=(3,), stride=(1,), padding=(1,))
+                (w_2): Conv1d(768, 192, kernel_size=(3,), stride=(1,), padding=(1,))
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+              (norm_ff): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (norm_mha): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (norm_ff_macaron): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (dropout): Dropout(p=0.1, inplace=False)
+            )
+            (2): EncoderLayer(
+              (self_attn): RelPositionMultiHeadedAttention(
+                (linear_q): Linear(in_features=192, out_features=192, bias=True)
+                (linear_k): Linear(in_features=192, out_features=192, bias=True)
+                (linear_v): Linear(in_features=192, out_features=192, bias=True)
+                (linear_out): Linear(in_features=192, out_features=192, bias=True)
+                (dropout): Dropout(p=0.1, inplace=False)
+                (q_norm): Identity()
+                (k_norm): Identity()
+                (linear_pos): Linear(in_features=192, out_features=192, bias=False)
+              )
+              (feed_forward): MultiLayeredConv1d(
+                (w_1): Conv1d(192, 768, kernel_size=(3,), stride=(1,), padding=(1,))
+                (w_2): Conv1d(768, 192, kernel_size=(3,), stride=(1,), padding=(1,))
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+              (feed_forward_macaron): MultiLayeredConv1d(
+                (w_1): Conv1d(192, 768, kernel_size=(3,), stride=(1,), padding=(1,))
+                (w_2): Conv1d(768, 192, kernel_size=(3,), stride=(1,), padding=(1,))
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+              (norm_ff): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (norm_mha): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (norm_ff_macaron): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (dropout): Dropout(p=0.1, inplace=False)
+            )
+            (3): EncoderLayer(
+              (self_attn): RelPositionMultiHeadedAttention(
+                (linear_q): Linear(in_features=192, out_features=192, bias=True)
+                (linear_k): Linear(in_features=192, out_features=192, bias=True)
+                (linear_v): Linear(in_features=192, out_features=192, bias=True)
+                (linear_out): Linear(in_features=192, out_features=192, bias=True)
+                (dropout): Dropout(p=0.1, inplace=False)
+                (q_norm): Identity()
+                (k_norm): Identity()
+                (linear_pos): Linear(in_features=192, out_features=192, bias=False)
+              )
+              (feed_forward): MultiLayeredConv1d(
+                (w_1): Conv1d(192, 768, kernel_size=(3,), stride=(1,), padding=(1,))
+                (w_2): Conv1d(768, 192, kernel_size=(3,), stride=(1,), padding=(1,))
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+              (feed_forward_macaron): MultiLayeredConv1d(
+                (w_1): Conv1d(192, 768, kernel_size=(3,), stride=(1,), padding=(1,))
+                (w_2): Conv1d(768, 192, kernel_size=(3,), stride=(1,), padding=(1,))
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+              (norm_ff): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (norm_mha): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (norm_ff_macaron): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (dropout): Dropout(p=0.1, inplace=False)
+            )
+            (4): EncoderLayer(
+              (self_attn): RelPositionMultiHeadedAttention(
+                (linear_q): Linear(in_features=192, out_features=192, bias=True)
+                (linear_k): Linear(in_features=192, out_features=192, bias=True)
+                (linear_v): Linear(in_features=192, out_features=192, bias=True)
+                (linear_out): Linear(in_features=192, out_features=192, bias=True)
+                (dropout): Dropout(p=0.1, inplace=False)
+                (q_norm): Identity()
+                (k_norm): Identity()
+                (linear_pos): Linear(in_features=192, out_features=192, bias=False)
+              )
+              (feed_forward): MultiLayeredConv1d(
+                (w_1): Conv1d(192, 768, kernel_size=(3,), stride=(1,), padding=(1,))
+                (w_2): Conv1d(768, 192, kernel_size=(3,), stride=(1,), padding=(1,))
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+              (feed_forward_macaron): MultiLayeredConv1d(
+                (w_1): Conv1d(192, 768, kernel_size=(3,), stride=(1,), padding=(1,))
+                (w_2): Conv1d(768, 192, kernel_size=(3,), stride=(1,), padding=(1,))
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+              (norm_ff): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (norm_mha): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (norm_ff_macaron): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (dropout): Dropout(p=0.1, inplace=False)
+            )
+            (5): EncoderLayer(
+              (self_attn): RelPositionMultiHeadedAttention(
+                (linear_q): Linear(in_features=192, out_features=192, bias=True)
+                (linear_k): Linear(in_features=192, out_features=192, bias=True)
+                (linear_v): Linear(in_features=192, out_features=192, bias=True)
+                (linear_out): Linear(in_features=192, out_features=192, bias=True)
+                (dropout): Dropout(p=0.1, inplace=False)
+                (q_norm): Identity()
+                (k_norm): Identity()
+                (linear_pos): Linear(in_features=192, out_features=192, bias=False)
+              )
+              (feed_forward): MultiLayeredConv1d(
+                (w_1): Conv1d(192, 768, kernel_size=(3,), stride=(1,), padding=(1,))
+                (w_2): Conv1d(768, 192, kernel_size=(3,), stride=(1,), padding=(1,))
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+              (feed_forward_macaron): MultiLayeredConv1d(
+                (w_1): Conv1d(192, 768, kernel_size=(3,), stride=(1,), padding=(1,))
+                (w_2): Conv1d(768, 192, kernel_size=(3,), stride=(1,), padding=(1,))
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+              (norm_ff): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (norm_mha): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (norm_ff_macaron): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (dropout): Dropout(p=0.1, inplace=False)
+            )
+          )
+          (after_norm): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+        )
+        (proj): Conv1d(192, 1, kernel_size=(1,), stride=(1,))
+        (global_conv): Conv1d(512, 192, kernel_size=(1,), stride=(1,))
+      )
+      (mel_decoder): Decoder(
+        (prenet): Conv1d(194, 192, kernel_size=(3,), stride=(1,), padding=(1,))
+        (decoder): Encoder(
+          (embed): Sequential(
+            (0): RelPositionalEncoding(
+              (dropout): Dropout(p=0.0, inplace=False)
+            )
+          )
+          (encoders): MultiSequential(
+            (0): EncoderLayer(
+              (self_attn): RelPositionMultiHeadedAttention(
+                (linear_q): Linear(in_features=192, out_features=192, bias=True)
+                (linear_k): Linear(in_features=192, out_features=192, bias=True)
+                (linear_v): Linear(in_features=192, out_features=192, bias=True)
+                (linear_out): Linear(in_features=192, out_features=192, bias=True)
+                (dropout): Dropout(p=0.1, inplace=False)
+                (q_norm): Identity()
+                (k_norm): Identity()
+                (linear_pos): Linear(in_features=192, out_features=192, bias=False)
+              )
+              (feed_forward): MultiLayeredConv1d(
+                (w_1): Conv1d(192, 768, kernel_size=(3,), stride=(1,), padding=(1,))
+                (w_2): Conv1d(768, 192, kernel_size=(3,), stride=(1,), padding=(1,))
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+              (feed_forward_macaron): MultiLayeredConv1d(
+                (w_1): Conv1d(192, 768, kernel_size=(3,), stride=(1,), padding=(1,))
+                (w_2): Conv1d(768, 192, kernel_size=(3,), stride=(1,), padding=(1,))
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+              (norm_ff): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (norm_mha): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (norm_ff_macaron): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (dropout): Dropout(p=0.1, inplace=False)
+            )
+            (1): EncoderLayer(
+              (self_attn): RelPositionMultiHeadedAttention(
+                (linear_q): Linear(in_features=192, out_features=192, bias=True)
+                (linear_k): Linear(in_features=192, out_features=192, bias=True)
+                (linear_v): Linear(in_features=192, out_features=192, bias=True)
+                (linear_out): Linear(in_features=192, out_features=192, bias=True)
+                (dropout): Dropout(p=0.1, inplace=False)
+                (q_norm): Identity()
+                (k_norm): Identity()
+                (linear_pos): Linear(in_features=192, out_features=192, bias=False)
+              )
+              (feed_forward): MultiLayeredConv1d(
+                (w_1): Conv1d(192, 768, kernel_size=(3,), stride=(1,), padding=(1,))
+                (w_2): Conv1d(768, 192, kernel_size=(3,), stride=(1,), padding=(1,))
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+              (feed_forward_macaron): MultiLayeredConv1d(
+                (w_1): Conv1d(192, 768, kernel_size=(3,), stride=(1,), padding=(1,))
+                (w_2): Conv1d(768, 192, kernel_size=(3,), stride=(1,), padding=(1,))
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+              (norm_ff): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (norm_mha): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (norm_ff_macaron): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (dropout): Dropout(p=0.1, inplace=False)
+            )
+            (2): EncoderLayer(
+              (self_attn): RelPositionMultiHeadedAttention(
+                (linear_q): Linear(in_features=192, out_features=192, bias=True)
+                (linear_k): Linear(in_features=192, out_features=192, bias=True)
+                (linear_v): Linear(in_features=192, out_features=192, bias=True)
+                (linear_out): Linear(in_features=192, out_features=192, bias=True)
+                (dropout): Dropout(p=0.1, inplace=False)
+                (q_norm): Identity()
+                (k_norm): Identity()
+                (linear_pos): Linear(in_features=192, out_features=192, bias=False)
+              )
+              (feed_forward): MultiLayeredConv1d(
+                (w_1): Conv1d(192, 768, kernel_size=(3,), stride=(1,), padding=(1,))
+                (w_2): Conv1d(768, 192, kernel_size=(3,), stride=(1,), padding=(1,))
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+              (feed_forward_macaron): MultiLayeredConv1d(
+                (w_1): Conv1d(192, 768, kernel_size=(3,), stride=(1,), padding=(1,))
+                (w_2): Conv1d(768, 192, kernel_size=(3,), stride=(1,), padding=(1,))
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+              (norm_ff): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (norm_mha): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (norm_ff_macaron): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (dropout): Dropout(p=0.1, inplace=False)
+            )
+            (3): EncoderLayer(
+              (self_attn): RelPositionMultiHeadedAttention(
+                (linear_q): Linear(in_features=192, out_features=192, bias=True)
+                (linear_k): Linear(in_features=192, out_features=192, bias=True)
+                (linear_v): Linear(in_features=192, out_features=192, bias=True)
+                (linear_out): Linear(in_features=192, out_features=192, bias=True)
+                (dropout): Dropout(p=0.1, inplace=False)
+                (q_norm): Identity()
+                (k_norm): Identity()
+                (linear_pos): Linear(in_features=192, out_features=192, bias=False)
+              )
+              (feed_forward): MultiLayeredConv1d(
+                (w_1): Conv1d(192, 768, kernel_size=(3,), stride=(1,), padding=(1,))
+                (w_2): Conv1d(768, 192, kernel_size=(3,), stride=(1,), padding=(1,))
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+              (feed_forward_macaron): MultiLayeredConv1d(
+                (w_1): Conv1d(192, 768, kernel_size=(3,), stride=(1,), padding=(1,))
+                (w_2): Conv1d(768, 192, kernel_size=(3,), stride=(1,), padding=(1,))
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+              (norm_ff): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (norm_mha): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (norm_ff_macaron): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (dropout): Dropout(p=0.1, inplace=False)
+            )
+            (4): EncoderLayer(
+              (self_attn): RelPositionMultiHeadedAttention(
+                (linear_q): Linear(in_features=192, out_features=192, bias=True)
+                (linear_k): Linear(in_features=192, out_features=192, bias=True)
+                (linear_v): Linear(in_features=192, out_features=192, bias=True)
+                (linear_out): Linear(in_features=192, out_features=192, bias=True)
+                (dropout): Dropout(p=0.1, inplace=False)
+                (q_norm): Identity()
+                (k_norm): Identity()
+                (linear_pos): Linear(in_features=192, out_features=192, bias=False)
+              )
+              (feed_forward): MultiLayeredConv1d(
+                (w_1): Conv1d(192, 768, kernel_size=(3,), stride=(1,), padding=(1,))
+                (w_2): Conv1d(768, 192, kernel_size=(3,), stride=(1,), padding=(1,))
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+              (feed_forward_macaron): MultiLayeredConv1d(
+                (w_1): Conv1d(192, 768, kernel_size=(3,), stride=(1,), padding=(1,))
+                (w_2): Conv1d(768, 192, kernel_size=(3,), stride=(1,), padding=(1,))
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+              (norm_ff): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (norm_mha): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (norm_ff_macaron): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (dropout): Dropout(p=0.1, inplace=False)
+            )
+            (5): EncoderLayer(
+              (self_attn): RelPositionMultiHeadedAttention(
+                (linear_q): Linear(in_features=192, out_features=192, bias=True)
+                (linear_k): Linear(in_features=192, out_features=192, bias=True)
+                (linear_v): Linear(in_features=192, out_features=192, bias=True)
+                (linear_out): Linear(in_features=192, out_features=192, bias=True)
+                (dropout): Dropout(p=0.1, inplace=False)
+                (q_norm): Identity()
+                (k_norm): Identity()
+                (linear_pos): Linear(in_features=192, out_features=192, bias=False)
+              )
+              (feed_forward): MultiLayeredConv1d(
+                (w_1): Conv1d(192, 768, kernel_size=(3,), stride=(1,), padding=(1,))
+                (w_2): Conv1d(768, 192, kernel_size=(3,), stride=(1,), padding=(1,))
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+              (feed_forward_macaron): MultiLayeredConv1d(
+                (w_1): Conv1d(192, 768, kernel_size=(3,), stride=(1,), padding=(1,))
+                (w_2): Conv1d(768, 192, kernel_size=(3,), stride=(1,), padding=(1,))
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+              (norm_ff): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (norm_mha): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (norm_ff_macaron): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (dropout): Dropout(p=0.1, inplace=False)
+            )
+          )
+          (after_norm): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+        )
+        (proj): Conv1d(192, 80, kernel_size=(1,), stride=(1,))
+        (global_conv): Conv1d(512, 192, kernel_size=(1,), stride=(1,))
+      )
+      (prior_decoder): PriorDecoder(
+        (prenet): Conv1d(194, 192, kernel_size=(3,), stride=(1,), padding=(1,))
+        (decoder): Encoder(
+          (embed): Sequential(
+            (0): RelPositionalEncoding(
+              (dropout): Dropout(p=0.0, inplace=False)
+            )
+          )
+          (encoders): MultiSequential(
+            (0): EncoderLayer(
+              (self_attn): RelPositionMultiHeadedAttention(
+                (linear_q): Linear(in_features=192, out_features=192, bias=True)
+                (linear_k): Linear(in_features=192, out_features=192, bias=True)
+                (linear_v): Linear(in_features=192, out_features=192, bias=True)
+                (linear_out): Linear(in_features=192, out_features=192, bias=True)
+                (dropout): Dropout(p=0.1, inplace=False)
+                (q_norm): Identity()
+                (k_norm): Identity()
+                (linear_pos): Linear(in_features=192, out_features=192, bias=False)
+              )
+              (feed_forward): MultiLayeredConv1d(
+                (w_1): Conv1d(192, 768, kernel_size=(3,), stride=(1,), padding=(1,))
+                (w_2): Conv1d(768, 192, kernel_size=(3,), stride=(1,), padding=(1,))
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+              (feed_forward_macaron): MultiLayeredConv1d(
+                (w_1): Conv1d(192, 768, kernel_size=(3,), stride=(1,), padding=(1,))
+                (w_2): Conv1d(768, 192, kernel_size=(3,), stride=(1,), padding=(1,))
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+              (norm_ff): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (norm_mha): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (norm_ff_macaron): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (dropout): Dropout(p=0.1, inplace=False)
+            )
+            (1): EncoderLayer(
+              (self_attn): RelPositionMultiHeadedAttention(
+                (linear_q): Linear(in_features=192, out_features=192, bias=True)
+                (linear_k): Linear(in_features=192, out_features=192, bias=True)
+                (linear_v): Linear(in_features=192, out_features=192, bias=True)
+                (linear_out): Linear(in_features=192, out_features=192, bias=True)
+                (dropout): Dropout(p=0.1, inplace=False)
+                (q_norm): Identity()
+                (k_norm): Identity()
+                (linear_pos): Linear(in_features=192, out_features=192, bias=False)
+              )
+              (feed_forward): MultiLayeredConv1d(
+                (w_1): Conv1d(192, 768, kernel_size=(3,), stride=(1,), padding=(1,))
+                (w_2): Conv1d(768, 192, kernel_size=(3,), stride=(1,), padding=(1,))
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+              (feed_forward_macaron): MultiLayeredConv1d(
+                (w_1): Conv1d(192, 768, kernel_size=(3,), stride=(1,), padding=(1,))
+                (w_2): Conv1d(768, 192, kernel_size=(3,), stride=(1,), padding=(1,))
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+              (norm_ff): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (norm_mha): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (norm_ff_macaron): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (dropout): Dropout(p=0.1, inplace=False)
+            )
+            (2): EncoderLayer(
+              (self_attn): RelPositionMultiHeadedAttention(
+                (linear_q): Linear(in_features=192, out_features=192, bias=True)
+                (linear_k): Linear(in_features=192, out_features=192, bias=True)
+                (linear_v): Linear(in_features=192, out_features=192, bias=True)
+                (linear_out): Linear(in_features=192, out_features=192, bias=True)
+                (dropout): Dropout(p=0.1, inplace=False)
+                (q_norm): Identity()
+                (k_norm): Identity()
+                (linear_pos): Linear(in_features=192, out_features=192, bias=False)
+              )
+              (feed_forward): MultiLayeredConv1d(
+                (w_1): Conv1d(192, 768, kernel_size=(3,), stride=(1,), padding=(1,))
+                (w_2): Conv1d(768, 192, kernel_size=(3,), stride=(1,), padding=(1,))
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+              (feed_forward_macaron): MultiLayeredConv1d(
+                (w_1): Conv1d(192, 768, kernel_size=(3,), stride=(1,), padding=(1,))
+                (w_2): Conv1d(768, 192, kernel_size=(3,), stride=(1,), padding=(1,))
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+              (norm_ff): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (norm_mha): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (norm_ff_macaron): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (dropout): Dropout(p=0.1, inplace=False)
+            )
+            (3): EncoderLayer(
+              (self_attn): RelPositionMultiHeadedAttention(
+                (linear_q): Linear(in_features=192, out_features=192, bias=True)
+                (linear_k): Linear(in_features=192, out_features=192, bias=True)
+                (linear_v): Linear(in_features=192, out_features=192, bias=True)
+                (linear_out): Linear(in_features=192, out_features=192, bias=True)
+                (dropout): Dropout(p=0.1, inplace=False)
+                (q_norm): Identity()
+                (k_norm): Identity()
+                (linear_pos): Linear(in_features=192, out_features=192, bias=False)
+              )
+              (feed_forward): MultiLayeredConv1d(
+                (w_1): Conv1d(192, 768, kernel_size=(3,), stride=(1,), padding=(1,))
+                (w_2): Conv1d(768, 192, kernel_size=(3,), stride=(1,), padding=(1,))
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+              (feed_forward_macaron): MultiLayeredConv1d(
+                (w_1): Conv1d(192, 768, kernel_size=(3,), stride=(1,), padding=(1,))
+                (w_2): Conv1d(768, 192, kernel_size=(3,), stride=(1,), padding=(1,))
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+              (norm_ff): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (norm_mha): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (norm_ff_macaron): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (dropout): Dropout(p=0.1, inplace=False)
+            )
+            (4): EncoderLayer(
+              (self_attn): RelPositionMultiHeadedAttention(
+                (linear_q): Linear(in_features=192, out_features=192, bias=True)
+                (linear_k): Linear(in_features=192, out_features=192, bias=True)
+                (linear_v): Linear(in_features=192, out_features=192, bias=True)
+                (linear_out): Linear(in_features=192, out_features=192, bias=True)
+                (dropout): Dropout(p=0.1, inplace=False)
+                (q_norm): Identity()
+                (k_norm): Identity()
+                (linear_pos): Linear(in_features=192, out_features=192, bias=False)
+              )
+              (feed_forward): MultiLayeredConv1d(
+                (w_1): Conv1d(192, 768, kernel_size=(3,), stride=(1,), padding=(1,))
+                (w_2): Conv1d(768, 192, kernel_size=(3,), stride=(1,), padding=(1,))
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+              (feed_forward_macaron): MultiLayeredConv1d(
+                (w_1): Conv1d(192, 768, kernel_size=(3,), stride=(1,), padding=(1,))
+                (w_2): Conv1d(768, 192, kernel_size=(3,), stride=(1,), padding=(1,))
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+              (norm_ff): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (norm_mha): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (norm_ff_macaron): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (dropout): Dropout(p=0.1, inplace=False)
+            )
+            (5): EncoderLayer(
+              (self_attn): RelPositionMultiHeadedAttention(
+                (linear_q): Linear(in_features=192, out_features=192, bias=True)
+                (linear_k): Linear(in_features=192, out_features=192, bias=True)
+                (linear_v): Linear(in_features=192, out_features=192, bias=True)
+                (linear_out): Linear(in_features=192, out_features=192, bias=True)
+                (dropout): Dropout(p=0.1, inplace=False)
+                (q_norm): Identity()
+                (k_norm): Identity()
+                (linear_pos): Linear(in_features=192, out_features=192, bias=False)
+              )
+              (feed_forward): MultiLayeredConv1d(
+                (w_1): Conv1d(192, 768, kernel_size=(3,), stride=(1,), padding=(1,))
+                (w_2): Conv1d(768, 192, kernel_size=(3,), stride=(1,), padding=(1,))
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+              (feed_forward_macaron): MultiLayeredConv1d(
+                (w_1): Conv1d(192, 768, kernel_size=(3,), stride=(1,), padding=(1,))
+                (w_2): Conv1d(768, 192, kernel_size=(3,), stride=(1,), padding=(1,))
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+              (norm_ff): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (norm_mha): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (norm_ff_macaron): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+              (dropout): Dropout(p=0.1, inplace=False)
+            )
+          )
+          (after_norm): LayerNorm((192,), eps=1e-12, elementwise_affine=True)
+        )
+        (proj): Conv1d(192, 384, kernel_size=(1,), stride=(1,))
+        (conv): Conv1d(512, 192, kernel_size=(1,), stride=(1,))
+      )
+      (global_emb): Embedding(2, 512)
+      (dropout): Dropout(p=0.2, inplace=False)
+    )
+    (discriminator): VISinger2Discriminator(
+      (msd): HiFiGANMultiScaleDiscriminator(
+        (discriminators): ModuleList(
+          (0): HiFiGANScaleDiscriminator(
+            (layers): ModuleList(
+              (0): Sequential(
+                (0): Conv1d(1, 128, kernel_size=(15,), stride=(1,), padding=(7,))
+                (1): LeakyReLU(negative_slope=0.1)
+              )
+              (1): Sequential(
+                (0): Conv1d(128, 128, kernel_size=(41,), stride=(4,), padding=(20,), groups=4)
+                (1): LeakyReLU(negative_slope=0.1)
+              )
+              (2): Sequential(
+                (0): Conv1d(128, 256, kernel_size=(41,), stride=(4,), padding=(20,), groups=16)
+                (1): LeakyReLU(negative_slope=0.1)
+              )
+              (3): Sequential(
+                (0): Conv1d(256, 512, kernel_size=(41,), stride=(4,), padding=(20,), groups=64)
+                (1): LeakyReLU(negative_slope=0.1)
+              )
+              (4): Sequential(
+                (0): Conv1d(512, 1024, kernel_size=(41,), stride=(4,), padding=(20,), groups=256)
+                (1): LeakyReLU(negative_slope=0.1)
+              )
+              (5): Sequential(
+                (0): Conv1d(1024, 1024, kernel_size=(5,), stride=(1,), padding=(2,))
+                (1): LeakyReLU(negative_slope=0.1)
+              )
+              (6): Conv1d(1024, 1, kernel_size=(3,), stride=(1,), padding=(1,))
+            )
+          )
+        )
+      )
+      (mpd): HiFiGANMultiPeriodDiscriminator(
+        (discriminators): ModuleList(
+          (0-4): 5 x HiFiGANPeriodDiscriminator(
+            (convs): ModuleList(
+              (0): Sequential(
+                (0): Conv2d(1, 32, kernel_size=(5, 1), stride=(3, 1), padding=(2, 0))
+                (1): LeakyReLU(negative_slope=0.1)
+              )
+              (1): Sequential(
+                (0): Conv2d(32, 128, kernel_size=(5, 1), stride=(3, 1), padding=(2, 0))
+                (1): LeakyReLU(negative_slope=0.1)
+              )
+              (2): Sequential(
+                (0): Conv2d(128, 512, kernel_size=(5, 1), stride=(3, 1), padding=(2, 0))
+                (1): LeakyReLU(negative_slope=0.1)
+              )
+              (3): Sequential(
+                (0): Conv2d(512, 1024, kernel_size=(5, 1), stride=(3, 1), padding=(2, 0))
+                (1): LeakyReLU(negative_slope=0.1)
+              )
+              (4): Sequential(
+                (0): Conv2d(1024, 1024, kernel_size=(5, 1), stride=(1, 1), padding=(2, 0))
+                (1): LeakyReLU(negative_slope=0.1)
+              )
+            )
+            (output_conv): Conv2d(1024, 1, kernel_size=(2, 1), stride=(1, 1), padding=(1, 0))
+          )
+        )
+      )
+      (mfd): MultiFrequencyDiscriminator(
+        (stfts): ModuleList(
+          (0-5): 6 x TorchSTFT(
+            (mel_scale): MelScale()
+          )
+        )
+        (discriminators): ModuleList(
+          (0-4): 5 x BaseFrequenceDiscriminator(
+            (discriminators): ModuleList(
+              (0): Sequential(
+                (0): LeakyReLU(negative_slope=0.2, inplace=True)
+                (1): ReflectionPad2d((1, 1, 1, 1))
+                (2): Conv2d(2, 8, kernel_size=(3, 3), stride=(1, 1))
+              )
+              (1): Sequential(
+                (0): LeakyReLU(negative_slope=0.2, inplace=True)
+                (1): ReflectionPad2d((1, 1, 1, 1))
+                (2): Conv2d(8, 16, kernel_size=(3, 3), stride=(2, 2))
+              )
+              (2): Sequential(
+                (0): LeakyReLU(negative_slope=0.2, inplace=True)
+                (1): ReflectionPad2d((1, 1, 1, 1))
+                (2): Conv2d(16, 32, kernel_size=(3, 3), stride=(1, 1))
+              )
+              (3): Sequential(
+                (0): LeakyReLU(negative_slope=0.2, inplace=True)
+                (1): ReflectionPad2d((1, 1, 1, 1))
+                (2): Conv2d(32, 64, kernel_size=(3, 3), stride=(2, 2))
+              )
+              (4): Sequential(
+                (0): LeakyReLU(negative_slope=0.2, inplace=True)
+                (1): ReflectionPad2d((1, 1, 1, 1))
+                (2): Conv2d(64, 128, kernel_size=(3, 3), stride=(1, 1))
+              )
+              (5): Sequential(
+                (0): LeakyReLU(negative_slope=0.2, inplace=True)
+                (1): ReflectionPad2d((1, 1, 1, 1))
+                (2): Conv2d(128, 256, kernel_size=(3, 3), stride=(2, 2))
+              )
+              (6): Sequential(
+                (0): Identity()
+                (1): ReflectionPad2d((1, 1, 1, 1))
+                (2): Conv2d(256, 1, kernel_size=(3, 3), stride=(1, 1))
+              )
+            )
+          )
+        )
+      )
+    )
+    (generator_adv_loss): GeneratorAdversarialLoss()
+    (discriminator_adv_loss): DiscriminatorAdversarialLoss()
+    (feat_match_loss): FeatureMatchLoss()
+    (mel_loss): MelSpectrogramLoss(
+      (wav_to_mel): LogMelFbank(
+        (stft): Stft(n_fft=2048, win_length=2048, hop_length=256, center=True, normalized=False, onesided=True)
+        (logmel): LogMel(sr=24000, n_fft=2048, n_mels=80, fmin=0, fmax=22050, htk=False)
+      )
+    )
+    (kl_loss): KLDivergenceLossWithoutFlow()
+    (ctc_loss): CTCLoss()
+    (mse_loss): MSELoss()
+    (adaptive_pool): AdaptiveAvgPool1d(output_size=1)
+  )
+)
+
+Model summary:
+    Class Name: ESPnetGANSVSModel
+    Total Number of model parameters: 119.93 M
+    Number of trainable parameters: 119.93 M (100.0%)
+    Size: 479.71 MB
+    Type: torch.float32
+Optimizer:
+AdamW (
+Parameter Group 0
+    amsgrad: False
+    betas: [0.8, 0.99]
+    capturable: False
+    differentiable: False
+    eps: 1e-09
+    foreach: None
+    fused: None
+    initial_lr: 0.0002
+    lr: 0.0002
+    maximize: False
+    weight_decay: 0.0
+)
+Scheduler: <torch.optim.lr_scheduler.ExponentialLR object at 0x7f7b986a8340>
+Optimizer2:
+AdamW (
+Parameter Group 0
+    amsgrad: False
+    betas: [0.8, 0.99]
+    capturable: False
+    differentiable: False
+    eps: 1e-09
+    foreach: None
+    fused: None
+    initial_lr: 0.0002
+    lr: 0.0002
+    maximize: False
+    weight_decay: 0.0
+)
+Scheduler2: <torch.optim.lr_scheduler.ExponentialLR object at 0x7f7b986a8400>
+Saving the configuration in exp/svs_train_raw_phn_None_zh/config.yaml
+[train] dataset:
+ESPnetDataset(
+  text: {"path": "dump/raw/tr_no_dev/text", "type": "text"}
+  singing: {"path": "dump/raw/tr_no_dev/wav.scp", "type": "sound"}
+  label: {"path": "dump/raw/tr_no_dev/label", "type": "duration"}
+  score: {"path": "dump/raw/tr_no_dev/score.scp", "type": "score"}
+  pitch: {"path": "exp/svs_stats_raw_phn_None_zh/train/collect_feats/pitch.scp", "type": "npy"}
+  feats: {"path": "exp/svs_stats_raw_phn_None_zh/train/collect_feats/feats.scp", "type": "npy"}
+  sids: {"path": "dump/raw/tr_no_dev/utt2sid", "type": "text_int"}
+  preprocess: <espnet2.train.preprocessor.SVSPreprocessor object at 0x7f7b807b7880>)
+[train] Batch sampler: SortedBatchSampler(N-batch=601, batch_size=4, shape_file=exp/svs_stats_raw_phn_None_zh/train/text_shape.phn, sort_in_batch=descending, sort_batch=descending)
+[train] mini-batch sizes summary: N-batch=601, mean=4.0, min=4, max=5
+[valid] dataset:
+ESPnetDataset(
+  text: {"path": "dump/raw/dev/text", "type": "text"}
+  singing: {"path": "dump/raw/dev/wav.scp", "type": "sound"}
+  label: {"path": "dump/raw/dev/label", "type": "duration"}
+  score: {"path": "dump/raw/dev/score.scp", "type": "score"}
+  pitch: {"path": "exp/svs_stats_raw_phn_None_zh/valid/collect_feats/pitch.scp", "type": "npy"}
+  feats: {"path": "exp/svs_stats_raw_phn_None_zh/valid/collect_feats/feats.scp", "type": "npy"}
+  sids: {"path": "dump/raw/dev/utt2sid", "type": "text_int"}
+  preprocess: <espnet2.train.preprocessor.SVSPreprocessor object at 0x7f7b807b7df0>)
+[valid] Batch sampler: SortedBatchSampler(N-batch=26, batch_size=4, shape_file=exp/svs_stats_raw_phn_None_zh/valid/text_shape.phn, sort_in_batch=descending, sort_batch=descending)
+[valid] mini-batch sizes summary: N-batch=26, mean=4.0, min=4, max=5
+[plot_att] dataset:
+ESPnetDataset(
+  text: {"path": "dump/raw/dev/text", "type": "text"}
+  singing: {"path": "dump/raw/dev/wav.scp", "type": "sound"}
+  label: {"path": "dump/raw/dev/label", "type": "duration"}
+  score: {"path": "dump/raw/dev/score.scp", "type": "score"}
+  pitch: {"path": "exp/svs_stats_raw_phn_None_zh/valid/collect_feats/pitch.scp", "type": "npy"}
+  feats: {"path": "exp/svs_stats_raw_phn_None_zh/valid/collect_feats/feats.scp", "type": "npy"}
+  sids: {"path": "dump/raw/dev/utt2sid", "type": "text_int"}
+  preprocess: <espnet2.train.preprocessor.SVSPreprocessor object at 0x7f7b806183a0>)
+[plot_att] Batch sampler: UnsortedBatchSampler(N-batch=105, batch_size=1, key_file=exp/svs_stats_raw_phn_None_zh/valid/text_shape.phn, 
+[plot_att] mini-batch sizes summary: N-batch=3, mean=1.0, min=1, max=1
+1/200epoch started
+/data5/arllan/miniconda/envs/espnetenv/lib/python3.10/site-packages/torch/nn/modules/conv.py:306: UserWarning: Plan failed with a cudnnException: CUDNN_BACKEND_EXECUTION_PLAN_DESCRIPTOR: cudnnFinalize Descriptor Failed cudnn_status: CUDNN_STATUS_NOT_SUPPORTED (Triggered internally at ../aten/src/ATen/native/cudnn/Conv_v8.cpp:919.)
+  return F.conv1d(input, weight, bias, self.stride,
+/data5/arllan/miniconda/envs/espnetenv/lib/python3.10/site-packages/torch/nn/modules/conv.py:456: UserWarning: Plan failed with a cudnnException: CUDNN_BACKEND_EXECUTION_PLAN_DESCRIPTOR: cudnnFinalize Descriptor Failed cudnn_status: CUDNN_STATUS_NOT_SUPPORTED (Triggered internally at ../aten/src/ATen/native/cudnn/Conv_v8.cpp:919.)
+  return F.conv2d(input, weight, bias, self.stride,
+/data5/arllan/miniconda/envs/espnetenv/lib/python3.10/site-packages/torch/autograd/graph.py:744: UserWarning: Plan failed with a cudnnException: CUDNN_BACKEND_EXECUTION_PLAN_DESCRIPTOR: cudnnFinalize Descriptor Failed cudnn_status: CUDNN_STATUS_NOT_SUPPORTED (Triggered internally at ../aten/src/ATen/native/cudnn/Conv_v8.cpp:919.)
+  return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [0,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [1,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [2,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [3,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [4,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [5,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [6,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [7,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [8,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [9,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [10,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [11,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [12,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [13,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [14,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [15,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [16,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [17,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [18,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [19,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [20,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [21,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [22,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [23,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [24,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [25,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [26,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [27,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [28,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [29,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [30,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [31,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [96,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [97,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [98,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [99,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [100,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [101,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [102,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [103,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [104,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [105,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [106,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [107,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [108,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [109,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [110,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [111,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [112,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [113,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [114,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [115,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [116,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [117,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [118,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [119,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [120,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [121,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [122,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [123,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [124,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [125,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [126,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [127,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [32,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [33,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [34,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [35,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [36,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [37,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [38,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [39,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [40,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [41,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [42,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [43,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [44,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [45,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [46,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [47,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [48,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [49,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [50,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [51,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [52,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [53,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [54,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [55,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [56,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [57,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [58,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [59,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [60,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [61,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [62,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [63,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [0,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [1,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [2,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [3,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [4,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [5,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [6,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [7,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [8,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [9,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [10,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [11,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [12,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [13,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [14,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [15,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [16,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [17,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [18,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [19,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [20,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [21,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [22,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [23,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [24,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [25,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [26,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [27,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [28,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [29,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [30,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [31,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [64,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [65,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [66,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [67,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [68,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [69,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [70,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [71,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [72,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [73,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [74,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [75,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [76,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [77,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [78,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [79,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [80,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [81,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [82,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [83,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [84,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [85,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [86,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [87,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [88,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [89,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [90,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [91,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [92,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [93,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [94,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [3,0,0], thread: [95,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [32,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [33,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [34,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [35,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [36,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [37,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [38,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [39,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [40,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [41,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [42,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [43,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [44,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [45,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [46,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [47,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [48,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [49,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [50,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [51,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [52,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [53,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [54,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [55,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [56,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [57,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [58,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [59,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [60,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [61,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [62,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [63,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [64,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [65,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [66,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [67,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [68,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [69,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [70,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [71,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [72,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [73,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [74,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [75,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [76,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [77,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [78,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [79,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [80,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [81,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [82,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [83,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [84,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [85,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [86,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [87,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [88,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [89,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [90,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [91,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [92,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [93,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [94,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [2,0,0], thread: [95,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [64,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [65,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [66,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [67,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [68,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [69,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [70,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [71,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [72,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [73,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [74,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [75,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [76,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [77,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [78,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [79,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [80,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [81,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [82,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [83,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [84,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [85,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [86,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [87,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [88,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [89,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [90,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [91,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [92,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [93,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [94,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [95,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [96,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [97,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [98,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [99,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [100,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [101,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [102,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [103,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [104,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [105,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [106,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [107,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [108,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [109,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [110,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [111,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [112,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [113,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [114,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [115,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [116,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [117,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [118,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [119,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [120,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [121,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [122,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [123,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [124,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [125,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [126,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [127,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [0,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [1,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [2,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [3,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [4,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [5,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [6,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [7,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [8,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [9,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [10,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [11,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [12,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [13,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [14,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [15,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [16,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [17,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [18,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [19,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [20,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [21,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [22,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [23,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [24,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [25,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [26,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [27,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [28,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [29,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [30,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [31,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [32,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [33,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [34,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [35,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [36,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [37,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [38,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [39,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [40,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [41,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [42,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [43,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [44,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [45,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [46,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [47,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [48,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [49,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [50,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [51,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [52,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [53,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [54,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [55,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [56,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [57,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [58,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [59,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [60,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [61,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [62,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [1,0,0], thread: [63,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [64,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [65,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [66,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [67,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [68,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [69,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [70,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [71,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [72,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [73,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [74,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [75,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [76,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [77,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [78,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [79,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [80,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [81,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [82,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [83,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [84,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [85,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [86,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [87,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [88,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [89,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [90,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [91,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [92,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [93,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [94,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [95,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [0,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [1,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [2,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [3,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [4,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [5,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [6,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [7,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [8,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [9,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [10,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [11,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [12,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [13,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [14,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [15,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [16,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [17,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [18,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [19,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [20,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [21,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [22,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [23,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [24,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [25,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [26,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [27,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [28,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [29,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [30,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [31,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [96,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [97,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [98,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [99,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [100,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [101,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [102,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [103,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [104,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [105,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [106,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [107,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [108,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [109,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [110,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [111,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [112,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [113,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [114,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [115,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [116,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [117,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [118,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [119,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [120,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [121,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [122,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [123,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [124,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [125,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [126,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [127,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [32,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [33,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [34,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [35,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [36,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [37,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [38,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [39,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [40,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [41,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [42,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [43,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [44,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [45,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [46,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [47,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [48,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [49,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [50,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [51,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [52,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [53,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [54,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [55,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [56,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [57,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [58,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [59,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [60,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [61,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [62,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+../aten/src/ATen/native/cuda/Indexing.cu:1236: indexSelectSmallIndex: block: [0,0,0], thread: [63,0,0] Assertion `srcIndex < srcSelectDimSize` failed.
+Traceback (most recent call last):
+  File "/data5/arllan/miniconda/envs/espnetenv/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/data5/arllan/miniconda/envs/espnetenv/lib/python3.10/runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "/data5/arllan/espnet/espnet2/bin/gan_svs_train.py", line 22, in <module>
+    main()
+  File "/data5/arllan/espnet/espnet2/bin/gan_svs_train.py", line 18, in main
+    GANSVSTask.main(cmd=cmd)
+  File "/data5/arllan/espnet/espnet2/tasks/abs_task.py", line 1210, in main
+    cls.main_worker(args)
+  File "/data5/arllan/espnet/espnet2/tasks/abs_task.py", line 1568, in main_worker
+    cls.trainer.run(
+  File "/data5/arllan/espnet/espnet2/train/trainer.py", line 317, in run
+    all_steps_are_invalid = cls.train_one_epoch(
+  File "/data5/arllan/espnet/espnet2/train/gan_trainer.py", line 176, in train_one_epoch
+    retval = model(forward_generator=turn == "generator", **batch)
+  File "/data5/arllan/miniconda/envs/espnetenv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/data5/arllan/miniconda/envs/espnetenv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data5/arllan/espnet/espnet2/gan_svs/espnet_model.py", line 343, in forward
+    return self.svs(**batch)
+  File "/data5/arllan/miniconda/envs/espnetenv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/data5/arllan/miniconda/envs/espnetenv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data5/arllan/espnet/espnet2/gan_svs/vits/vits.py", line 522, in forward
+    return self._forward_discrminator(
+  File "/data5/arllan/espnet/espnet2/gan_svs/vits/vits.py", line 871, in _forward_discrminator
+    outs = self.generator(
+  File "/data5/arllan/miniconda/envs/espnetenv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/data5/arllan/miniconda/envs/espnetenv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data5/arllan/espnet/espnet2/gan_svs/vits/generator.py", line 551, in forward
+    x, x_mask, dur_input, x_pitch = self.text_encoder(
+  File "/data5/arllan/miniconda/envs/espnetenv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/data5/arllan/miniconda/envs/espnetenv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data5/arllan/espnet/espnet2/gan_svs/vits/text_encoder.py", line 175, in forward
+    make_non_pad_mask(phone_lengths)
+  File "/data5/arllan/espnet/espnet/nets/pytorch_backend/nets_utils.py", line 350, in make_non_pad_mask
+    return ~make_pad_mask(lengths, xs, length_dim)
+  File "/data5/arllan/espnet/espnet/nets/pytorch_backend/nets_utils.py", line 168, in make_pad_mask
+    return _make_pad_mask_traceable(lengths, xs, length_dim, maxlen)
+  File "/data5/arllan/espnet/espnet/nets/pytorch_backend/nets_utils.py", line 248, in _make_pad_mask_traceable
+    mask = torch.ones(maxlen + 1, maxlen + 1, dtype=torch.bool, device=device)
+RuntimeError: CUDA error: device-side assert triggered
+CUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be incorrect.
+For debugging consider passing CUDA_LAUNCH_BLOCKING=1.
+Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+
+# Accounting: time=23 threads=1
+# Ended (code 1) at Thu Jan  9 18:28:32 UTC 2025, elapsed time 23 seconds
