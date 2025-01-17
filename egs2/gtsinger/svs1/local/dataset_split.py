@@ -149,8 +149,7 @@ def process_pho_info(filepath):
     return label_info, pho_info
 
 
-def process_score_info(notes, label_pho_info, utt_id, label = None):
-    word_text_list = []
+def process_score_info(notes, label_pho_info, utt_id):
     score_notes = []
     phnes = []
     labelind = 0
@@ -158,7 +157,6 @@ def process_score_info(notes, label_pho_info, utt_id, label = None):
         # Divide songs by 'P' (pause) or 'B' (breath) or GlottalStop
         # fix errors in dataset
         # remove rest note
-        word_text_list.append(notes[i].lyric)
         if notes[i].lyric == "—":
             score_notes[-1][1] = notes[i].et
         if notes[i].lyric == "P":
@@ -170,19 +168,13 @@ def process_score_info(notes, label_pho_info, utt_id, label = None):
             for j in range(len(phonemes)):
                 if labelind >= len(label_pho_info): #error
                     print("error.....mismatch(label and score) in ", utt_id)
-                    print(notes[i].lyric, " phonemes=",phonemes, "j=", j)
-                    print("labelind=",labelind)
-                    print(utt_id)
-                    print(label_pho_info)
-                    print(label)
                     exit(1)
                 phonemes[j] = label_pho_info[labelind]
                 labelind += 1
-            #print(notes[i].lyric, "   ", phonemes)
             score_notes.append([notes[i].st, notes[i].et, notes[i].lyric, notes[i].midi, "_".join(phonemes)]) 
             phnes.extend(phonemes)
     
-    return score_notes, word_text_list, phnes
+    return score_notes, phnes
 
 
 def process_json_to_pho_score(basepath, tempo, notes):
@@ -194,14 +186,10 @@ def process_json_to_pho_score(basepath, tempo, notes):
     else :
         label_info, pho_info = process_pho_info(basepath + '.TextGrid')
 
-    score_notes, word_text_list, phnes = process_score_info(notes, pho_info, utt_id, label_info)
+    score_notes, phnes = process_score_info(notes, pho_info, utt_id)
 
     if len(pho_info) != len(phnes): #error
         print("erro....mismatch(label and score) in ", utt_id)
-        print("-----------label_info=")
-        print(label_info)
-        print("-----------score_notes=")
-        print(score_notes)
         exit(1)
     else: #check score and label
         sign = True
@@ -211,22 +199,13 @@ def process_json_to_pho_score(basepath, tempo, notes):
             if pho_info[i] != phnes[i]:
                 f = True
                 if sign:
-                    print(utt_id)
-                    print(pho_info)
-                    print(label_info)
-                    print(word_text_list)
                     sign = False
                 print("mismatch in {} [{}]: {} != {}".format(utt_id, i, pho_info[i], phnes[i]))
         if f == True:
-            print("-----------label_info=")
-            print(label_info)
-            print("-----------score_notes=")
-            print(score_notes)
             exit(1)
     
     return " ".join(label_info), \
             " ".join(pho_info), \
-            " ".join(word_text_list), \
             dict(tempo=tempo, item_list=["st", "et", "lyric", "midi", "phn"], note=score_notes) 
 
 
@@ -271,16 +250,14 @@ def process_subset(src_data, subset, check_func, fs, wav_dump, score_dump):
     scorescp = open(os.path.join(subset, "score.scp"), "r", encoding="utf-8")
     score_writer = SingingScoreWriter(score_dump, os.path.join(subset, "score.scp.tmp"))
     text = open(os.path.join(subset, "text"), "w", encoding="utf-8")
-    word_text = open(os.path.join(subset, "wordtext"), "w", encoding="utf-8")
     for xml_line in scorescp:
         xmlline = xml_line.strip().split(" ")
         tempo, tempo_info = reader[xmlline[0]] 
         basepath = os.path.splitext(xmlline[1])[0] 
-        label_info, text_info, word_text_info, score_info = process_json_to_pho_score(basepath, tempo, tempo_info)
+        label_info, text_info, score_info = process_json_to_pho_score(basepath, tempo, tempo_info)
 
         label_scp.write("{} {}\n".format(xmlline[0], label_info))
         text.write("{} {}\n".format(xmlline[0], text_info))
-        word_text.write("{} {}\n".format(xmlline[0], word_text_info))
         score_writer[xmlline[0]] = score_info 
 
 
