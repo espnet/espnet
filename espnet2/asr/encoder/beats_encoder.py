@@ -103,6 +103,17 @@ class BeatsConfig:
         self.predictor_dropout: float = 0.1  # dropout probability for the predictor
         self.predictor_class: int = 527  # target class number for the predictor
 
+        # Decoder parameters
+        self.decoder_embed_dim: int = (
+            768  # decoder embedding dimension, audiomae is 512
+        )
+        self.decoder_pos_trainable: bool = False
+        self.decoder_attention_heads: int = 12
+        self.decoder_mlp_ratio: float = 4.0  # MLP to transformer dimension ratio
+        self.decoder_layers: int = 2  # number of decoder layers
+        self.codebook_vocab_size: int = 1024  # targets vectors in codebook
+        self.mask_ratio = 0.75  # masking ratio for pre-training
+
         if cfg is not None:
             self.update(cfg)
 
@@ -147,6 +158,7 @@ class BeatsEncoder(AbsEncoder):
         specaug_config: Optional[Dict] = None,
         add_positional_information: bool = False,
         max_positions: Optional[int] = None,
+        is_pretraining: Optional[bool] = False,
     ) -> None:
         super().__init__()
 
@@ -259,6 +271,11 @@ class BeatsEncoder(AbsEncoder):
                 max_positions, learned_pos_dim
             )
 
+        self.is_pretraining = is_pretraining
+        self.mask_ratio = config.mask_ratio
+        if is_pretraining:
+            assert config.mask_ratio > 0.0, "mask_ratio must be > 0.0 for pretraining."
+
     def reload_pretrained_parameters(self):
         """Initialization function for Beats.
 
@@ -357,14 +374,52 @@ class BeatsEncoder(AbsEncoder):
         ).to(xs_pad.device)
         # Adjust shapes to be compatible with Beats code
         xs_pad, mask = xs_pad.squeeze(-1).squeeze(-1), mask.squeeze(-1).squeeze(-1)
-        # masks = None
-        audio_representation, mask = self.extract_features(
+
+        audio_representation, mask, restore_ids, kept_mask = self.extract_features(
             xs_pad,
             mask,
             max_layer=self.max_layer,
         )
         output_lens = (~mask).sum(-1)
+
+        if self.is_pretraining:
+            return audio_representation, restore_ids, kept_mask
+
         return audio_representation, output_lens, None
+
+    def mask_sequence(self, x, padding_mask):
+        """
+        Perform per-sample random masking by per-sample shuffling.
+        Per-sample shuffling is done by argsort random noise.
+        x: [N, L, D], sequence
+        padding_mask: [N, L], padding mask for x seq.
+        """
+        # TODO: !!This function is tested for sequences of full length only!!!
+        N, L, D = x.shape  # batch, length, dim
+        len_keep = int(L * (1 - self.mask_ratio))
+
+        noise = torch.rand(N, L, device=x.device)  # noise in [0, 1]]
+        # TODO: padded positions should be last, set their noise to inf
+
+        # sort noise for each sample
+        ids_shuffle = torch.argsort(
+            noise, dim=1
+        )  # ascend: small is keep, large is remove
+        ids_restore = torch.argsort(ids_shuffle, dim=1)
+
+        # keep the first subset
+        ids_keep = ids_shuffle[:, :len_keep]
+        x_masked = torch.gather(x, dim=1, index=ids_keep.unsqueeze(-1).repeat(1, 1, D))
+
+        # generate the binary mask: 1 is keep, 0 is remove
+        mask = torch.zeros([N, L], device=x.device)
+        mask[:, :len_keep] = 1
+        # unshuffle to get the binary mask
+        mask = torch.gather(mask, dim=1, index=ids_restore)
+
+        # kept positions now occupy first len_keep positions
+        padding_mask = padding_mask[:, :len_keep]
+        return x_masked, padding_mask, ids_restore, mask
 
     def extract_features(
         self,
@@ -396,6 +451,19 @@ class BeatsEncoder(AbsEncoder):
             features = self.post_extract_proj(features)
 
         features = self.dropout_input(features)
+
+        restore_ids = None
+        kept_mask = None
+        if self.is_pretraining:
+            assert (
+                max_layer is None
+            ), "During pretraining max_layer should be set to None!"
+            # kept_mask: 1 - kept, 0 - removed [full length as features]
+            # features, padding_mask will be shortened
+            features, padding_mask, restore_ids, kept_mask = self.mask_sequence(
+                features, padding_mask
+            )
+
         features, layer_results = self.encoder(
             features, padding_mask=padding_mask, layer=max_layer
         )
@@ -440,7 +508,90 @@ class BeatsEncoder(AbsEncoder):
         if self.cross_embed_positions is not None:
             features = features + self.cross_embed_positions(features)
 
-        return features, padding_mask
+        return features, padding_mask, restore_ids, kept_mask
+
+
+class BeatsPretrainingPredictor(nn.Module):
+    def __init__(self, beats_config: BeatsConfig):
+        # Unclear rn (but should be minimal impact)
+        # 1. Do they shuffle before encoding masked embeddings?
+        # 2. Do they add positional information before passing to decoder (as in MAE)?
+        super().__init__()
+
+        self.decoder_embed = nn.Linear(
+            beats_config.encoder_embed_dim, beats_config.decoder_embed_dim, bias=True
+        )
+        self.mask_token = nn.Parameter(
+            torch.zeros(1, 1, beats_config.decoder_embed_dim)
+        )
+        self.decoder_blocks = nn.ModuleList(
+            [
+                TransformerSentenceEncoderLayer(
+                    embedding_dim=beats_config.decoder_embed_dim,
+                    ffn_embedding_dim=beats_config.encoder_ffn_embed_dim,
+                    num_attention_heads=beats_config.encoder_attention_heads,
+                    dropout=beats_config.dropout,
+                    attention_dropout=beats_config.attention_dropout,
+                    activation_dropout=beats_config.activation_dropout,
+                    activation_fn=beats_config.activation_fn,
+                    layer_norm_first=beats_config.layer_norm_first,
+                    deep_norm=beats_config.deep_norm,
+                    has_relative_attention_bias=beats_config.relative_position_embedding,
+                    num_buckets=beats_config.num_buckets,
+                    max_distance=beats_config.max_distance,
+                    gru_rel_pos=beats_config.gru_rel_pos,
+                    encoder_layers=beats_config.decoder_layers,
+                )
+                for i in range(beats_config.decoder_layers)
+            ]
+        )
+        self.decoder_norm = nn.LayerNorm(beats_config.decoder_embed_dim)
+        self.decoder_pred = nn.Linear(
+            beats_config.decoder_embed_dim, beats_config.codebook_vocab_size, bias=True
+        )
+        self.initialize()
+
+    def initialize(self):
+        torch.nn.init.normal_(self.mask_token, std=0.02)
+
+    def forward(
+        self,
+        audio_representation: torch.Tensor,  # B,T_small,D
+        patch_len: torch.Tensor,  # B (1>=x>=T_large)
+        restore_ids: torch.Tensor,  # B,T_large,D
+    ):
+        padding_mask = make_pad_mask(lengths=patch_len.tolist()).to(
+            audio_representation.device
+        )
+        x = self.decoder_embed(audio_representation)
+        mask_tokens = self.mask_token.repeat(
+            x.shape[0], restore_ids.shape[1] - x.shape[1], 1
+        )
+        x = torch.cat([x, mask_tokens], dim=1)
+        # unshuffle
+        x = torch.gather(
+            x, dim=1, index=restore_ids.unsqueeze(-1).repeat(1, 1, x.shape[2])
+        )
+
+        # x = x + self.decoder_pos_embed TODO
+        pos_bias = None
+
+        # ===========================#
+        # B x T x D -> T x B x D
+        x = x.transpose(0, 1)
+        for blk in self.decoder_blocks:
+            x, _, pos_bias = blk(
+                x,
+                self_attn_padding_mask=padding_mask,
+                need_weights=False,
+                pos_bias=pos_bias,
+            )
+        x = x.transpose(0, 1)
+        # T x B x D -> B x T x D
+        # ===========================#
+        x = self.decoder_norm(x)
+        pred = self.decoder_pred(x)
+        return pred
 
 
 class TransformerEncoder(nn.Module):
