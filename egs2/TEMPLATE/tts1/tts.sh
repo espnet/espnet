@@ -1139,12 +1139,13 @@ if ! "${skip_scoring}"; then
             ./scripts/utils/evaluate_asr.sh \
                 --whisper_tag ${whisper_tag} \
                 --whisper_dir ${whisper_dir} \
-                --eval_cleaner ${eval_cleaner} \
+                --cleaner ${eval_cleaner} \
                 --hyp_cleaner ${hyp_cleaner} \
                 --inference_nj ${inference_nj} \
                 --nj ${nj} \
                 --gt_text ${_data}/text \
                 --gpu_inference ${gpu_inference} \
+                --stop_stage 3 \
                 ${_gen_dir}/wav/wav.scp ${_gen_dir}/scoring/eval_wer
 
             log "Finished WER evaluation, results are in ${_gen_dir}/scoring/eval_wer"
