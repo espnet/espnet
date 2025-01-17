@@ -412,8 +412,8 @@ class BeatsEncoder(AbsEncoder):
         x_masked = torch.gather(x, dim=1, index=ids_keep.unsqueeze(-1).repeat(1, 1, D))
 
         # generate the binary mask: 1 is keep, 0 is remove
-        mask = torch.zeros([N, L], device=x.device)
-        mask[:, :len_keep] = 1
+        mask = torch.zeros([N, L], device=x.device, dtype=torch.bool)
+        mask[:, :len_keep] = True
         # unshuffle to get the binary mask
         mask = torch.gather(mask, dim=1, index=ids_restore)
 
