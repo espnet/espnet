@@ -21,8 +21,6 @@ g2p=pypinyin_g2p_phone_without_prosody
 
 #--    raise NotImplementedError(f"Not supported: g2p_type={g2p_type}")
 #--    NotImplementedError: Not supported: g2p_type=None
-#g2p_type='phonetisaurus'  # 或者其他支持的类型
-
 
 log "$0 $*"
 
@@ -35,9 +33,9 @@ fi
 
 mkdir -p ${GTSINGER}
 
-train_set="tr_no_dev" #可能表示这是不包含开发集的训练数据，即仅用于训练模型的数据
-train_dev="dev" #表示开发集(验证集)，用于调整模型的超参数和监控模型的性能
-recog_set="eval" #评估集(测试集)，通常是用于最终模型测试的数据，用来衡量模型在未见过的数据上的表现
+train_set="tr_no_dev" #not include the development set, solely used for training the model
+train_dev="dev"       #development/validation set, used to adjust the model's performance
+recog_set="eval"      #evaluation/test set, used for final model testing
 test_sets="dev eval"
 
 
@@ -63,6 +61,4 @@ fi
 
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
-
-# ./run.sh --stage 1 --stop_stage 1
 
