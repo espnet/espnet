@@ -26,7 +26,6 @@ class BeatsPretrainModel(AbsESPnetModel):
         decoder: nn.Module,
         ignore_id: int = -1,
         label_smoothing: float = 0.1,
-        **kwargs,
     ):
         super().__init__()
         self.ignore_id = ignore_id
@@ -41,7 +40,6 @@ class BeatsPretrainModel(AbsESPnetModel):
         logger.info(
             f"Initialized BeatsPretrainModel with ignore_id={ignore_id}, "
             f"label_smoothing={label_smoothing}, encoder={encoder}, decoder={decoder}"
-            f" and kwargs={kwargs}"
         )
 
     def forward(

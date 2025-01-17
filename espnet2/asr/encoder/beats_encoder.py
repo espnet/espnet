@@ -512,12 +512,14 @@ class BeatsEncoder(AbsEncoder):
 
 
 class BeatsPretrainingPredictor(nn.Module):
-    def __init__(self, beats_config: BeatsConfig):
+    def __init__(self, beats_config: Optional[BeatsConfig] = None):
         # Unclear rn (but should be minimal impact)
         # 1. Do they shuffle before encoding masked embeddings?
         # 2. Do they add positional information before passing to decoder (as in MAE)?
         super().__init__()
-
+        beats_config = BeatsConfig(
+            vars(beats_config) if beats_config else None
+        )  # use default config if None, else override
         self.decoder_embed = nn.Linear(
             beats_config.encoder_embed_dim, beats_config.decoder_embed_dim, bias=True
         )
