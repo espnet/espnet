@@ -190,7 +190,7 @@ class MultiHeadedAttention(nn.Module):
             return self.linear_out(out)  # (batch, time1, d_model)
 
         # Use Flash Attention implementation
-        if self.training and self.use_flash_attn:
+        if self.use_flash_attn:
             try:
                 # In the causal case, the last row will be the key mask
                 key_nonpad_mask = mask[:, -1, :]  # (#batch, time2)
@@ -239,7 +239,6 @@ class MultiHeadedAttention(nn.Module):
                 else:
                     del key_nonpad_mask
                     q, k, v = self.forward_qkv(query, key, value)
-                    del query, key, value
 
                     out = flash_attn_func(
                         q.transpose(1, 2),
@@ -255,9 +254,10 @@ class MultiHeadedAttention(nn.Module):
                     return out
 
             except Exception as e:
-                if self.training:
-                    logging.warning(f"Flash attn has exception: {e}")
-                pass
+                logging.warning(
+                    f"Flash Attention failed, falling back to default attention: {e}"
+                )
+                self.use_flash_attn = False
 
         # Fall back to the default implementation
         q, k, v = self.forward_qkv(query, key, value, expand_kv)
