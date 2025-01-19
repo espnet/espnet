@@ -587,7 +587,7 @@ if ! "${skip_eval}"; then
         done
 
         # 5. Show results
-        echo "Result saved at "${_scoredir}/avg_result.txt"
+        echo "Result saved at ${_scoredir}/avg_result.txt"
         cat "${_scoredir}/avg_result.txt"
 
     fi
