@@ -79,6 +79,9 @@ class AdapterForSoundScpReader(collections.abc.Mapping):
             elif isinstance(retval[1], int) and isinstance(retval[0], np.ndarray):
                 # Extended ark format case
                 array, rate = retval
+            # NOTE(jiatong): for missing audio cases
+            elif retval[0] is None or retval[1] is None:
+                array, rate = None, self.rate
             else:
                 raise RuntimeError(
                     f"Unexpected type: {type(retval[0])}, {type(retval[1])}"
@@ -93,7 +96,7 @@ class AdapterForSoundScpReader(collections.abc.Mapping):
             self.rate = rate
             # Multichannel wave fie
             # array: (NSample, Channel) or (Nsample)
-            if self.dtype is not None:
+            if self.dtype is not None and array is not None:
                 array = array.astype(self.dtype)
 
         else:
@@ -103,7 +106,8 @@ class AdapterForSoundScpReader(collections.abc.Mapping):
             if self.dtype is not None:
                 array = array.astype(self.dtype)
 
-        assert isinstance(array, np.ndarray), type(array)
+        if array is not None:
+            assert isinstance(array, np.ndarray), type(array)
         return array
 
 
@@ -583,13 +587,31 @@ class ESPnetDataset(AbsDataset):
                 value = loader[uid]
                 if isinstance(value, (list)):
                     value = np.array(value)
+                if value is None:
+                    # NOTE(jiatong): keep None for none value
+                    # Currently for missing audio's case in uni_versa task
+                    value = None
+                    assert (
+                        self.preprocess is not None
+                    ), "Preprocessing must be presented when value is None"
                 if not isinstance(
-                    value, (np.ndarray, torch.Tensor, str, numbers.Number, tuple, dict)
+                    value,
+                    (
+                        np.ndarray,
+                        torch.Tensor,
+                        str,
+                        numbers.Number,
+                        tuple,
+                        dict,
+                        type(None),
+                    ),
                 ):
                     raise TypeError(
                         (
                             "Must be ndarray, torch.Tensor, "
-                            "str,  Number, tuple or dict: {}".format(type(value))
+                            "str,  Number, tuple, Nonetype, or dict: {}".format(
+                                type(value)
+                            )
                         )
                     )
             except Exception:
