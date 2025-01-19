@@ -2497,7 +2497,7 @@ class S2TCTCPreprocessor(CommonPreprocessor):
                         # First two tokens are <lang> and <task>
                         # NOTE: must copy the array
                         data["prefix"] = copy.deepcopy(text_ints[:2])
-                        if np.random.uniform() > self.lang_apply_prob:
+                        if self.train and np.random.uniform() > self.lang_apply_prob:
                             data["prefix"][0] = self.nolang
 
                     elif name == self.text_ctc_name:
