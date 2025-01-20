@@ -44,7 +44,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "stage 2: Data preparation"
     original_dir="${OGI_KIDS}"
     data_dir="./data"
-    
+
     #First prepare all spon data without considering segment length
     local/ogi_spon_all_data_prepare.sh $original_dir/ $data_dir/
     log "stage 2: Data preparation completed."

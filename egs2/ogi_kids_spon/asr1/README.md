@@ -7,7 +7,7 @@ Then, edit 'OGI_KIDS' in `db.sh` and locate unzipped dataset as follows:
 
 ```bash
 $ vim db.sh
-OGI_KIDS=/path/to/ogi_kids 
+OGI_KIDS=/path/to/ogi_kids
 
 ```
 

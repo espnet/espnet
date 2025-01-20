@@ -7,7 +7,7 @@ Then, edit 'CMU_KIDS' in `db.sh` and locate unzipped dataset as follows:
 
 ```bash
 $ vim db.sh
-CMU_KIDS=/path/to/cmu_kids 
+CMU_KIDS=/path/to/cmu_kids
 
 $ tree -L 2 /path/to/cmu_kids
 /path/to/cmu_kids
@@ -72,7 +72,7 @@ Model: https://huggingface.co/wangpuupup/cmukids_wavlm_conformer_bpe900
 |decode_asr_asr_model_valid.acc.best/test|754|9046|97.4|1.0|1.6|0.1|2.7|5.4|
 
 ## exp/asr_train_asr_wavlm_transformer_raw_en_bpe5000_sp
-Model: https://huggingface.co/wangpuupup/cmukids_wavlm_transformer_bpe5000  
+Model: https://huggingface.co/wangpuupup/cmukids_wavlm_transformer_bpe5000
 bpe model is from espnet/myst_wavlm_aed_transformer
 ### WER
 
@@ -93,7 +93,7 @@ bpe model is from espnet/myst_wavlm_aed_transformer
 |decode_asr_asr_model_valid.acc.best/test|754|7212|98.5|0.6|0.9|0.4|1.9|4.8|
 
 ## exp/asr_train_asr_wavlm_conformer_raw_en_bpe5000_sp
-Model: https://huggingface.co/wangpuupup/cmukids_wavlm_conformer_bpe5000  
+Model: https://huggingface.co/wangpuupup/cmukids_wavlm_conformer_bpe5000
 bpe model is from espnet/myst_wavlm_aed_transformer
 ### WER
 
