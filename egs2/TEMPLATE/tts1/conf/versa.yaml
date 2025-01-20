@@ -1,3 +1,22 @@
+# Word error rate / character error rate with ESPnet ASR model.
+# More model_tag can be from the ESPnet huggingface https://huggingface.co/espnet .
+# The default model is `espnet/simpleoier_librispeech_asr_train_asr_conformer7_wavlm_large_raw_en_bpe5000_sp`.
+# NOTE(jiatong): further aggregation are necessary for corpus-level WER/CER
+# --espnet_hyp_text: the hypothesis from ESPnet ASR decoding
+# --ref_text: reference text (after cleaner)
+# --espnet_wer_delete: delete errors
+# --espnet_wer_insert: insertion errors
+# --espnet_wer_replace: replacement errors
+# --espnet_wer_equal: correct matching words/character counts
+# --espnet_cer_delete: delete errors
+# --espnet_cer_insert: insertion errors
+# --espnet_cer_replace: replacement errors
+# --espnet_cer_equal: correct matching words/character counts
+- name: espnet_wer
+  model_tag: default
+  beam_size: 5
+  text_cleaner: whisper_basic
+
 # pesq related metrics
 # -- pesq: perceptual evaluation of speech quality
 - name: pesq

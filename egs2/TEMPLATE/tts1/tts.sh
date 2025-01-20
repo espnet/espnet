@@ -1135,21 +1135,6 @@ if ! "${skip_scoring}"; then
         _gen_dir=${tts_exp}/${inference_tag}/${test_sets}
         log "Stage 9: Scoring: TTS scoring via versa logs on ${_gen_dir}"
         _data=${data_feats}/${test_sets}
-        if ! ${skip_wer}; then
-            ./scripts/utils/evaluate_asr.sh \
-                --whisper_tag ${whisper_tag} \
-                --whisper_dir ${whisper_dir} \
-                --cleaner ${eval_cleaner} \
-                --hyp_cleaner ${hyp_cleaner} \
-                --inference_nj ${inference_nj} \
-                --nj ${nj} \
-                --gt_text ${_data}/text \
-                --gpu_inference ${gpu_inference} \
-                --stop_stage 3 \
-                ${_gen_dir}/wav/wav.scp ${_gen_dir}/scoring/eval_wer
-
-            log "Finished WER evaluation, results are in ${_gen_dir}/scoring/eval_wer"
-        fi
 
         log "Scoring TTS evaluation via VERSA, using default ${versa_config}. You can visit https://github.com/shinjiwlab/versa?tab=readme-ov-file#list-of-metrics for more supported metrics."
         _opts=
