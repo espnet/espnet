@@ -461,6 +461,20 @@ class AbsTask(ABC):
             type=str,
             help="deepspeed training config",
         )
+        group.add_argument(
+            "--gradient_as_bucket_view",
+            default=True,
+            type=str2bool,
+            help="Enable gradient_as_bucket_view in DDP",
+        )
+        group.add_argument(
+            "--ddp_comm_hook",
+            default=None,
+            type=str_or_none,
+            choices=["none", "fp16_compress_hook", "bf16_compress_hook"],
+            help="DDP communication hook from "
+            "torch.distributed.algorithms.ddp_comm_hooks.default_hooks",
+        )
 
         group = parser.add_argument_group("cudnn mode related")
         group.add_argument(
