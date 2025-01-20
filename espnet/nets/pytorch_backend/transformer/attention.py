@@ -203,13 +203,14 @@ class MultiHeadedAttention(nn.Module):
                     query_nonpad_mask = key_nonpad_mask
 
                 if key_nonpad_mask.eq(0).any():
+                    # Use variable length implementation if padded
                     q, indices_q, cu_seqlens_q, max_seqlen_q = unpad_input(
                         query, query_nonpad_mask
-                    )
+                    )[:4]
                     k, indices_k, cu_seqlens_k, max_seqlen_k = unpad_input(
                         key, key_nonpad_mask
-                    )
-                    v, _, _, _ = unpad_input(value, key_nonpad_mask)
+                    )[:4]
+                    v, _, _, _ = unpad_input(value, key_nonpad_mask)[:4]
 
                     q = self.linear_q(q).reshape(-1, self.h, self.d_k)
                     k = self.linear_k(k).reshape(-1, self.h, self.d_k)
@@ -237,6 +238,8 @@ class MultiHeadedAttention(nn.Module):
                     return out
 
                 else:
+                    # Use fixed length implementation if not padded,
+                    # which is faster than the variable length implementation
                     del key_nonpad_mask
                     q, k, v = self.forward_qkv(query, key, value)
 
