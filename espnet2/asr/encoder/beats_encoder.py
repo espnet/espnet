@@ -38,7 +38,7 @@ except ImportError:
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.specaug.specaug import SpecAug
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask, roll_tensor
 
 if V(torch.__version__) >= V("1.6.0"):
     from torch.cuda.amp import autocast
@@ -144,6 +144,9 @@ class BeatsEncoder(AbsEncoder):
         add_positional_information: Add learned positional embeddings.
         max_positions: Maximum number of positions for positional embeddings.
             Required if `add_positional_information` is True.
+        roll_augment: Apply roll augmentation to the input.
+        roll_interval: Interval for roll augmentation. All rolling is
+            quantized to this interval.
     """
 
     def __init__(
@@ -154,18 +157,24 @@ class BeatsEncoder(AbsEncoder):
         downsampling_rate: int = 1,
         adapter_config: str = "",
         use_weighted_representation: bool = False,
-        beats_config: Optional[BeatsConfig] = None,
+        beats_config: Optional[Dict] = None,
         specaug_config: Optional[Dict] = None,
         add_positional_information: bool = False,
         max_positions: Optional[int] = None,
+        fbank_mean: float = 15.41663,
+        fbank_std: float = 6.55582,
+        roll_augment: bool = False,
+        roll_interval: int = 1600,
         is_pretraining: Optional[bool] = False,
     ) -> None:
         super().__init__()
 
-        self.fbank_mean = 15.41663
-        self.fbank_std = 6.55582
+        self.fbank_mean = fbank_mean
+        self.fbank_std = fbank_std
         self.max_layer = max_layer
         self.beats_ckpt_path = beats_ckpt_path
+        self.roll_augment = roll_augment
+        self.roll_interval = roll_interval
 
         # Four cases for loading Beats config:
         # 1. No checkpoint and no config: Default config
@@ -196,7 +205,7 @@ class BeatsEncoder(AbsEncoder):
             logging.info(f"Loaded Beats pretrained config from {beats_ckpt_path}.")
             config = BeatsConfig(self.loaded_state_dict_["cfg"])
         if beats_config is not None:
-            config.update(vars(beats_config))
+            config.update(beats_config)
             logging.info("Overriding Beats config with user-provided config.")
 
         self.specaug = None
@@ -309,7 +318,7 @@ class BeatsEncoder(AbsEncoder):
                 f" in your custom model: {load_info.missing_keys}. "
                 f"Follwing keys could not be loaded from the pretrained"
                 f"checkpoint: {load_info.unexpected_keys}."
-                "It is expected to have 'predictor' listed above if you are"
+                "It is expected to have 'predictor' listed above if you are "
                 "fine-tuning with only the Beats backbone."
             )
 
@@ -357,7 +366,7 @@ class BeatsEncoder(AbsEncoder):
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
         """Wrapper for compatibility with ESPnets' AbsEncoder Interface.
         Args:
-            xs_pad: (B, T, D)
+            xs_pad: (B, T)
             ilens: (B,)
             prev_states: None
         Returns:
@@ -365,7 +374,10 @@ class BeatsEncoder(AbsEncoder):
             output_lens: (B,)
             masks: None
         """
-
+        if self.roll_augment and self.training:
+            xs_pad = roll_tensor(
+                xs_pad.unsqueeze(-1), ilens, fixed_intervals=self.roll_interval
+            ).squeeze(-1)
         # NOTE(shikhar): If xs is not provided then the operation is costly,
         # because this function tries to create a tensor of size maxlen x maxlen.
         # Therfore, we unsqueeze and then squeeze tensors.
