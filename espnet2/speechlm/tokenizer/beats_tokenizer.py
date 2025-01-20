@@ -19,15 +19,26 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchaudio.compliance.kaldi as ta_kaldi
 from torch.nn import LayerNorm
+from packaging.version import parse as V
+
+if V(torch.__version__) >= V("1.6.0"):
+    from torch.cuda.amp import autocast
+else:
+    # Nothing to do if torch<1.6.0
+    @contextmanager
+    def autocast(enabled=True):
+        yield
+
 
 from espnet2.asr.encoder.beats_encoder import BeatsConfig, BeatsEncoder
+from espnet2.speechlm.tokenizer.random_tokenizer import RandomProjectionQuantizer
 
 
 class BeatsTokenizerConfig(BeatsConfig):
     def __init__(self, cfg=None):
         super().__init__(cfg)
         # quantizer
-        self.quant_n: int = 1024  # codebook number in quantizer
+        self.quant_n: int = 1024  # number of vec in quantizer coebook
         self.quant_dim: int = 256  # codebook dimension in quantizer
         if cfg is not None:
             self.update(cfg)
@@ -37,6 +48,7 @@ class BeatsTokenizerConfig(BeatsConfig):
 
 
 class BeatsTokenizer(BeatsEncoder):
+    # Note: Note tested with espnet trainer. Only use with dump_codec.py
     def __init__(
         self,
         beats_tokenizer_ckpt_path: str = None,
@@ -165,3 +177,95 @@ class EmbeddingEMA(nn.Module):
 
 def l2norm(t):
     return F.normalize(t, p=2, dim=-1)
+
+
+class BeatsRandomTokenizer(nn.Module):
+    # Note: Note tested with espnet trainer. Only use with dump_codec.py
+    def __init__(
+        self,
+        tokenizer_config: Optional[Dict] = None,
+        fbank_mean: float = 15.41663,
+        fbank_std: float = 6.55582,
+        seed: int = 42,
+    ) -> None:
+        super().__init__()
+        self.fbank_mean = fbank_mean
+        self.fbank_std = fbank_std
+
+        config = BeatsTokenizerConfig(tokenizer_config)
+        self.config = config
+        self.generator = torch.Generator()
+        self.generator.manual_seed(seed)
+        self.layer_norm = LayerNorm(config.embed_dim, elementwise_affine=False)
+        self.patch_embedding = nn.Conv2d(
+            1,
+            config.embed_dim,
+            kernel_size=config.input_patch_size,
+            stride=config.input_patch_size,
+            bias=config.conv_bias,
+        )
+        self.random_projection_quantizer = RandomProjectionQuantizer(
+            config.embed_dim,
+            codebook_size=config.quant_n,
+            codebook_dim=config.quant_dim,
+            seed=seed,
+        )
+        self._initialize()
+
+    def _initialize(self):
+        logging.info("Beats Random Tokenizer initialization function called.")
+        torch.nn.init.xavier_normal_(
+            self.patch_embedding.weight, generator=self.generator
+        )
+        self.patch_embedding.weight.requires_grad = False
+        if self.patch_embedding.bias is not None:
+            torch.nn.init.constant_(self.patch_embedding.bias, 0)
+            self.patch_embedding.bias.requires_grad = False
+
+    def frontend(
+        self,
+        source: torch.Tensor,
+    ) -> torch.Tensor:
+        """Preprocess raw audio."""
+        fbanks = []
+        for waveform in source:
+            waveform = waveform.unsqueeze(0) * 2**15  # float32 to int16
+            fbank = ta_kaldi.fbank(
+                waveform,
+                num_mel_bins=128,
+                sample_frequency=16000,
+                frame_length=25,
+                frame_shift=10,
+            )
+            fbanks.append(fbank)
+        fbank = torch.stack(fbanks, dim=0)
+        fbank = (fbank - self.fbank_mean) / (2 * self.fbank_std)
+        return fbank
+
+    @torch.no_grad()
+    def forward(self, xs_pad: torch.Tensor):
+        """
+        Args:
+            xs_pad (torch.Tensor): Input tensor (B, T).
+        """
+        with autocast(False):
+            fbank = self.frontend(xs_pad)
+        fbank = fbank.unsqueeze(1).float()
+        features = self.patch_embedding(fbank)
+        features = features.reshape(features.shape[0], features.shape[1], -1)
+        features = features.transpose(1, 2)
+        features = self.layer_norm(features)
+        print(features[0, :5, :5])
+        embed_ind = self.random_projection_quantizer(features)
+        return embed_ind
+
+    @torch.no_grad()
+    def encode(
+        self,
+        xs_pad: torch.Tensor,
+        ilens: Optional[torch.Tensor] = None,
+    ):
+        # TODO: Add ilens support for batched data
+        assert xs_pad.size(0) == 1, "Batch size must be 1."
+        embed_ind = self(xs_pad)
+        return embed_ind

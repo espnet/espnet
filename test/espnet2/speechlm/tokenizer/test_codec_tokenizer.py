@@ -18,17 +18,23 @@ def tokenizer_config_yaml(tmp_path: Path):
     return config_file
 
 
-def test_codec_tokenizer_init(tokenizer_config_yaml):
+@pytest.mark.parametrize("tokenization_model", ["beats", "beats_random"])
+def test_codec_tokenizer_init(tokenizer_config_yaml, tokenization_model):
     tokenizer = CodecTokenizer(
-        codec_choice="beats", codec_fs=16000, config_path=tokenizer_config_yaml
+        codec_choice=tokenization_model,
+        codec_fs=16000,
+        config_path=tokenizer_config_yaml,
     )
     assert tokenizer is not None
 
 
-def test_encode(tokenizer_config_yaml):
+@pytest.mark.parametrize("tokenization_model", ["beats", "beats_random"])
+def test_encode(tokenizer_config_yaml, tokenization_model):
     tokenizer = CodecTokenizer(
-        codec_choice="beats", codec_fs=16000, config_path=tokenizer_config_yaml
+        codec_choice=tokenization_model,
+        codec_fs=16000,
+        config_path=tokenizer_config_yaml,
     )
-    wav_in = torch.randn(2, 1, 16000)
+    wav_in = torch.randn(1, 1, 16000)
     output = tokenizer.encode(wav_in)
     assert output is not None

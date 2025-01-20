@@ -8,12 +8,11 @@ from torch.linalg import vector_norm
 
 
 class RandomProjectionQuantizer(nn.Module):
-    def __init__(self, dim, codebook_size, codebook_dim, norm=True, seed=None):
+    def __init__(self, dim, codebook_size, codebook_dim, norm=True, seed=42):
         super().__init__()
         # Create a local generator for reproducibility
         self.generator = torch.Generator()
-        if seed is not None:
-            self.generator.manual_seed(seed)
+        self.generator.manual_seed(seed)
 
         # Random projection layer
         self.random_projection = nn.Linear(dim, codebook_dim, bias=False)
