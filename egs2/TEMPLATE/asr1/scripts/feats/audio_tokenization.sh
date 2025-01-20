@@ -17,7 +17,7 @@ python=python3      # Specify python to execute espnet commands.
 codec_choice=beats  # Audio Tokenizer Options: beats
 codec_fs=16000
 code_writeformat=text # ark or text
-batch_size=3
+batch_size=1        # BEATs Audio tokenizaiton supports only batch_size=1
 bias=0
 dump_audio=false
 file_name=
@@ -74,14 +74,14 @@ if [ ${checkpoint_path} ]; then
 fi
 
 wav_wspecifier="ark,scp:${output_dir}/${file_name}_resyn_${codec_choice}.JOB.ark,${output_dir}/${file_name}_resyn_${codec_choice}.JOB.scp"
-if [ ${codec_writeformat} == "ark" ]; then
+if [ ${code_writeformat} == "ark" ]; then
     code_wspecifier="ark,scp:${output_dir}/${file_name}_codec_${codec_choice}.JOB.ark,${output_dir}/${file_name}_codec_${codec_choice}.JOB.scp"
     _combine_filetype=scp
-elif [ ${codec_writeformat} == "text" ]; then
+elif [ ${code_writeformat} == "text" ]; then
     code_wspecifier="ark,t:${output_dir}/${file_name}_codec_${codec_choice}.JOB.txt"
     _combine_filetype=txt
 else
-    echo "Error: Unsupported codec_writeformat=${codec_writeformat}"
+    echo "Error: Unsupported code_writeformat=${code_writeformat}"
     exit 1
 fi
 
