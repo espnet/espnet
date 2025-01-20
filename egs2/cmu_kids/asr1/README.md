@@ -32,6 +32,7 @@ $ tree -L 2 /path/to/cmu_kids
   - Commit date: `Tue Jan 14 20:06:15 2025 -0500`
 
 ## exp/asr_train_asr_wavlm_transformer_raw_en_bpe900_sp
+Model: https://huggingface.co/wangpuupup/cmukids_wavlm_transformer_bpe900
 ### WER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
@@ -51,6 +52,7 @@ $ tree -L 2 /path/to/cmu_kids
 |decode_asr_asr_model_valid.acc.best/test|754|9046|98.4|0.4|1.1|0.7|2.3|6.6|
 
 ## exp/asr_train_asr_wavlm_conformer_raw_en_bpe900_sp
+Model: https://huggingface.co/wangpuupup/cmukids_wavlm_conformer_bpe900
 ### WER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
@@ -70,7 +72,8 @@ $ tree -L 2 /path/to/cmu_kids
 |decode_asr_asr_model_valid.acc.best/test|754|9046|97.4|1.0|1.6|0.1|2.7|5.4|
 
 ## exp/asr_train_asr_wavlm_transformer_raw_en_bpe5000_sp
-## bpe model is from espnet/myst_wavlm_aed_transformer
+Model: https://huggingface.co/wangpuupup/cmukids_wavlm_transformer_bpe5000
+bpe model is from espnet/myst_wavlm_aed_transformer
 ### WER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
@@ -90,6 +93,8 @@ $ tree -L 2 /path/to/cmu_kids
 |decode_asr_asr_model_valid.acc.best/test|754|7212|98.5|0.6|0.9|0.4|1.9|4.8|
 
 ## exp/asr_train_asr_wavlm_conformer_raw_en_bpe5000_sp
+Model: https://huggingface.co/wangpuupup/cmukids_wavlm_conformer_bpe5000
+bpe model is from espnet/myst_wavlm_aed_transformer
 ### WER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
