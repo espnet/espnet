@@ -1195,7 +1195,7 @@ if ! "${skip_scoring}"; then
                 --io soundfile \
                 ${_opts} 2>&1;
 
-        python pyscripts/utils/aggregate_versa_eval.py \
+        python pyscripts/utils/aggregate_eval.py \
             --logdir ${_eval_dir} \
             --scoredir ${_eval_dir} \
             --nj ${_nj}
