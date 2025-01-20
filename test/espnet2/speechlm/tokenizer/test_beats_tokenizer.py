@@ -2,9 +2,9 @@ import pytest
 import torch
 
 from espnet2.speechlm.tokenizer.beats_tokenizer import (
+    BeatsRandomTokenizer,
     BeatsTokenizer,
     BeatsTokenizerConfig,
-    BeatsRandomTokenizer,
 )
 
 

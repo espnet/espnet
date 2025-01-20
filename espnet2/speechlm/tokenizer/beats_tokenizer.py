@@ -18,8 +18,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchaudio.compliance.kaldi as ta_kaldi
-from torch.nn import LayerNorm
 from packaging.version import parse as V
+from torch.nn import LayerNorm
 
 if V(torch.__version__) >= V("1.6.0"):
     from torch.cuda.amp import autocast

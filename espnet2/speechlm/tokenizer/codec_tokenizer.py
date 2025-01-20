@@ -11,9 +11,9 @@ import yaml
 
 from espnet2.speechlm.tokenizer.abs_tokenizer import AbsTokenizer
 from espnet2.speechlm.tokenizer.beats_tokenizer import (
+    BeatsRandomTokenizer,
     BeatsTokenizer,
     BeatsTokenizerConfig,
-    BeatsRandomTokenizer,
 )
 
 
