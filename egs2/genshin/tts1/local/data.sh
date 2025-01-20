@@ -200,6 +200,8 @@ if [ "${stage}" -le 1 ] && [ "${stop_stage}" -ge 1 ]; then
     log "Dev set size: ${dev_size}"
     log "Eval set size: ${eval_size}"
 
+    export PERL_SEED=42
+
     utils/subset_data_dir.sh data/train ${dev_eval_size} data/deveval
 
     utils/subset_data_dir.sh data/deveval ${eval_size} data/${eval_set}
