@@ -56,7 +56,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 
     if $sph2wav; then
         log "Converting .sph to .wav"
-        
+
         # Loop over each split (train, dev, test)
         for x in train dev test; do
             mkdir -p data/${x}/wav
@@ -67,7 +67,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
             while IFS=' ' read -r uttID wavCmd; do
                 # Extract the .sph file path from wavCmd
                 sphFile=$(echo $wavCmd | sed -e 's/.*sph2pipe -f wav -p -c 1 //; s/|$//')
-                
+
                 # Define the new .wav file path
                 wavFile="data/${x}/wav/${uttID}.wav"
 
