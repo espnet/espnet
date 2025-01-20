@@ -51,7 +51,7 @@ sort_batch: descending
 batch_type: numel
 batch_bins: 16000000
 accum_grad: 4
-max_epoch: 20
+max_epoch: 60
 patience: none
 init: none
 best_model_criterion:

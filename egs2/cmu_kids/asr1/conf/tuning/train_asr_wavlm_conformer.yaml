@@ -58,14 +58,14 @@ sort_batch: descending
 batch_type: numel
 batch_bins: 16000000
 accum_grad: 4
-max_epoch: 70
+max_epoch: 60
 patience: none
 init: none
 best_model_criterion:
 -   - valid
     - acc
     - max
-keep_nbest_models: 10
+keep_nbest_models: 4
 
 use_amp: true
 cudnn_deterministic: false
