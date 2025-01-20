@@ -86,7 +86,8 @@ class SPHFile(object):
             self._rawbytes = content
             self._content = numpy.frombuffer(content, dtype=np_format)
             if self._format["sample_byte_format"] == "10":
-                # deal with big-endian data-files as wav is going to expect little-endian
+                # deal with big-endian data-files
+                # as wav is going to expect little-endian
                 self._content = self._content.byteswap()
 
     _format = _content = None
