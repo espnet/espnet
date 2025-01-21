@@ -21,7 +21,7 @@ def combine(args):
             for token in tokens:
                 lis.extend(dic[token][idx][:minlen])
         elif args.mix_type == "frame":
-            for i in range(l):
+            for i in range(minlen):
                 for token in tokens:
                     lis.append(dic[token][idx][i])
         f.write("{} {}\n".format(idx, " ".join(str(v) for v in lis)))

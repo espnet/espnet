@@ -17,7 +17,6 @@ from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.svs.abs_svs import AbsSVS
 from espnet2.svs.discrete.toksing import TokSing
 from espnet2.svs.discrete_svs_espnet_model import ESPnetDiscreteSVSModel
-from espnet2.svs.discrete_svs_espnet_model_rl import ESPnetDiscreteRLSVSModel
 from espnet2.svs.espnet_model import ESPnetSVSModel
 from espnet2.svs.feats_extract.score_feats_extract import (
     FrameScoreFeats,
@@ -143,7 +142,6 @@ model_type_choices = ClassChoices(
     classes=dict(
         svs=ESPnetSVSModel,
         discrete_svs=ESPnetDiscreteSVSModel,
-        discrete_svs_rl=ESPnetDiscreteRLSVSModel,
     ),
     type_check=AbsESPnetModel,
     default="svs",
@@ -345,8 +343,6 @@ class SVSTask(AbsTask):
                 "feats",
                 "ying",
                 "discrete_token",
-                "pos_idx",
-                "neg_idx",
             )
         else:
             # Inference mode
@@ -358,7 +354,6 @@ class SVSTask(AbsTask):
                 "sids",
                 "lids",
                 "discrete_token",
-                "samples",
             )
         return retval
 
@@ -382,13 +377,7 @@ class SVSTask(AbsTask):
 
         kwargs = dict()
 
-        is_rl = False
         raw_model_type = args.model_type
-        items = args.model_type.split("_")
-        if items[-1] == "rl":
-            is_rl = True
-            raw_model_type = "_".join(items[:-1])
-
         # 1. feats_extract
         if args.odim is None:
             # Extract features in the model
@@ -426,21 +415,6 @@ class SVSTask(AbsTask):
         else:
             svs = svs_class(idim=vocab_size, odim=odim, **args.svs_conf)
         kwargs.update(svs=svs)
-        
-        # 3.1 Ref SVS for RL
-        if is_rl:
-            ref_svs_class = svs_choices.get_class(args.svs)
-            if raw_model_type == "discrete_svs":
-                ref_svs = ref_svs_class(
-                    idim=vocab_size,
-                    odim=odim,
-                    discrete_token_layers=discrete_token_layers,
-                    **args.svs_conf,
-                )
-            else:
-                ref_svs = ref_svs_class(idim=vocab_size, odim=odim, **args.svs_conf)
-            ref_svs.requires_grad_(False)
-            kwargs.update(ref_svs=ref_svs)
         
         # 4. Extra components
         score_feats_extract = None
