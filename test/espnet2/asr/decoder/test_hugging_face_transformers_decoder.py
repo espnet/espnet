@@ -45,6 +45,45 @@ def test_reload_pretrained_parameters():
     assert torch.equal(saved_param, new_param)
 
 
+@pytest.mark.execution_timeout(30)
+def test_skip_reload_pretrained_parameters():
+    decoder = HuggingFaceTransformersDecoder(
+        5000, 32, "akreal/tiny-random-mbart", load_pretrained_weights=False
+    )
+    # 1. Parameters loaded from hf in init should not be zero.
+    # 2. After zeroing them out they should remain zero post reloading.
+    saved_param = decoder.parameters().__next__().detach().clone()
+    decoder.parameters().__next__().data *= 0
+    zeroed_param = decoder.parameters().__next__().detach().clone()
+    assert not torch.equal(saved_param, zeroed_param)
+
+    decoder.reload_pretrained_parameters()
+    param_after_maybe_reloading = decoder.parameters().__next__().detach().clone()
+    assert torch.equal(
+        param_after_maybe_reloading, zeroed_param
+    )  # Reloading should be skipped
+
+
+@pytest.mark.execution_timeout(30)
+def test_override_hf_decoder_config():
+    overriding_architecture_config = {"d_model": 8, "ignore_mismatched_sizes": True}
+    decoder = HuggingFaceTransformersDecoder(
+        5000,
+        32,
+        "akreal/tiny-random-mbart",
+        overriding_architecture_config=overriding_architecture_config,
+    )
+    assert decoder.decoder.embed_tokens.weight.shape == (5000, 8)
+
+    # Check that without overriding embedding matrix has shape=(5000, 32)
+    decoder = HuggingFaceTransformersDecoder(
+        5000,
+        32,
+        "akreal/tiny-random-mbart",
+    )
+    assert decoder.decoder.embed_tokens.weight.shape == (5000, 16)
+
+
 @pytest.mark.parametrize(
     "model_name_or_path",
     [

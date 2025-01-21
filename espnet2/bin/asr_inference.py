@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import copy
 import logging
 import sys
 from distutils.version import LooseVersion
@@ -63,6 +64,10 @@ ListOfHypothesis = List[
         Union[Hypothesis, ExtTransHypothesis, TransHypothesis],
     ]
 ]
+
+logger = logging.getLogger(__name__)
+# NOTE(shikhar): We use contextual logging here because
+# RTF calculation looks for "INFO: " as a prefix in the logs.
 
 
 class Speech2Text:
@@ -156,7 +161,7 @@ class Speech2Text:
         asr_model.to(dtype=getattr(torch, dtype)).eval()
 
         if quantize_asr_model:
-            logging.info("Use quantized asr model for decoding.")
+            logger.info("Use quantized asr model for decoding.")
 
             asr_model = torch.quantization.quantize_dynamic(
                 asr_model, qconfig_spec=qconfig_spec, dtype=quantize_dtype
@@ -179,7 +184,7 @@ class Speech2Text:
             )
 
             if quantize_lm:
-                logging.info("Use quantized lm for decoding.")
+                logger.info("Use quantized lm for decoding.")
 
                 lm = torch.quantization.quantize_dynamic(
                     lm, qconfig_spec=qconfig_spec, dtype=quantize_dtype
@@ -244,21 +249,27 @@ class Speech2Text:
 
             if decoder.causal_lm:
                 hugging_face_model = AutoModelForCausalLM.from_pretrained(
-                    decoder.model_name_or_path
+                    decoder.model_name_or_path, **decoder.overriding_architecture_config
                 )
 
                 hugging_face_model.resize_token_embeddings(decoder.lm_head.out_features)
 
                 transformer = get_hugging_face_model_network(hugging_face_model)
                 transformer.load_state_dict(decoder.decoder.state_dict())
-
-                lm_head = get_hugging_face_model_lm_head(hugging_face_model)
+                if decoder.separate_lm_head:
+                    lm_head = copy.deepcopy(
+                        get_hugging_face_model_lm_head(hugging_face_model)
+                    )
+                else:
+                    lm_head = get_hugging_face_model_lm_head(hugging_face_model)
                 lm_head.load_state_dict(decoder.lm_head.state_dict())
             else:
                 hugging_face_model = AutoModelForSeq2SeqLM.from_pretrained(
-                    decoder.model_name_or_path
+                    decoder.model_name_or_path, **decoder.overriding_architecture_config
                 )
 
+                if decoder.separate_lm_head:
+                    hugging_face_model.lm_head = copy.deepcopy(decoder.lm_head)
                 hugging_face_model.lm_head.load_state_dict(decoder.lm_head.state_dict())
 
                 if hasattr(hugging_face_model, "model"):
@@ -330,7 +341,7 @@ class Speech2Text:
                     raise NotImplementedError(
                         "BeamSearchTimeSync with batching is not yet supported."
                     )
-                logging.info("BeamSearchTimeSync implementation is selected.")
+                logger.info("BeamSearchTimeSync implementation is selected.")
 
                 scorers["ctc"] = asr_model.ctc
                 beam_search = BeamSearchTimeSync(
@@ -364,14 +375,14 @@ class Speech2Text:
                         if streaming:
                             beam_search.__class__ = BatchBeamSearchOnlineSim
                             beam_search.set_streaming_config(asr_train_config)
-                            logging.info(
+                            logger.info(
                                 "BatchBeamSearchOnlineSim implementation is selected."
                             )
                         else:
                             beam_search.__class__ = BatchBeamSearch
-                            logging.info("BatchBeamSearch implementation is selected.")
+                            logger.info("BatchBeamSearch implementation is selected.")
                     else:
-                        logging.warning(
+                        logger.warning(
                             f"As non-batch scorers {non_batch} are found, "
                             f"fall back to non-batch implementation."
                         )
@@ -380,8 +391,8 @@ class Speech2Text:
             for scorer in scorers.values():
                 if isinstance(scorer, torch.nn.Module):
                     scorer.to(device=device, dtype=getattr(torch, dtype)).eval()
-            logging.info(f"Beam_search: {beam_search}")
-            logging.info(f"Decoding device={device}, dtype={dtype}")
+            logger.info(f"Beam_search: {beam_search}")
+            logger.info(f"Decoding device={device}, dtype={dtype}")
 
         # 5. [Optional] Build Text converter: e.g. bpe-sym -> Text
         if token_type is None:
@@ -459,7 +470,7 @@ class Speech2Text:
                 beam_search.set_hyp_primer(
                     list(converter.tokenizer.tokenizer.convert_tokens_to_ids(a1))
                 )
-        logging.info(f"Text tokenizer: {tokenizer}")
+        logger.info(f"Text tokenizer: {tokenizer}")
 
         self.asr_model = asr_model
         self.asr_train_args = asr_train_args
@@ -506,7 +517,7 @@ class Speech2Text:
         # lengths: (1,)
         lengths = speech.new_full([1], dtype=torch.long, fill_value=speech.size(1))
         batch = {"speech": speech, "speech_lengths": lengths}
-        logging.info("speech length: " + str(speech.size(1)))
+        logger.info("speech length: " + str(speech.size(1)))
 
         # a. To device
         batch = to_device(batch, device=self.device)

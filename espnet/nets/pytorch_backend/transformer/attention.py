@@ -18,7 +18,7 @@ try:
     from flash_attn import flash_attn_func, flash_attn_varlen_func
     from flash_attn.bert_padding import pad_input, unpad_input
 except Exception as e:
-    print(f"Failed to import Flash Attention, using ESPnet default: {e}")
+    logging.warning(f"Failed to import Flash Attention, using ESPnet default: {e}")
 
 
 class MultiHeadedAttention(nn.Module):
@@ -32,6 +32,7 @@ class MultiHeadedAttention(nn.Module):
         use_flash_attn (bool): Use flash_attn implementation.
         causal (bool): Apply causal attention.
         cross_attn (bool): Cross attention instead of self attention.
+        use_sdpa (bool): Use PyTorch's scaled dot product attention.
 
     """
 
@@ -44,9 +45,12 @@ class MultiHeadedAttention(nn.Module):
         use_flash_attn=False,
         causal=False,
         cross_attn=False,
+        use_sdpa=False,
     ):
         """Construct an MultiHeadedAttention object."""
+
         super(MultiHeadedAttention, self).__init__()
+
         assert n_feat % n_head == 0
         # We assume d_v always equals d_k
         self.d_k = n_feat // n_head
@@ -68,6 +72,8 @@ class MultiHeadedAttention(nn.Module):
         self.use_flash_attn = use_flash_attn
         self.causal = causal  # only used with flash_attn
         self.cross_attn = cross_attn  # only used with flash_attn
+
+        self.use_sdpa = use_sdpa
 
     def forward_qkv(self, query, key, value, expand_kv=False):
         """Transform query, key and value.
@@ -155,17 +161,36 @@ class MultiHeadedAttention(nn.Module):
             mask (torch.Tensor): Mask tensor (#batch, 1, time2) or
                 (#batch, time1, time2).
             expand_kv (bool): Used only for partially autoregressive (PAR) decoding.
-        When set to `True`, `Linear` layers are computed only for the first batch.
-        This is useful to reduce the memory usage during decoding when the batch size is
-        #beam_size x #mask_count, which can be very large. Typically, in single waveform
-        inference of PAR, `Linear` layers should not be computed for all batches
-        for source-attention.
+                When set to `True`, `Linear` layers are computed only for the first
+                batch. This is useful to reduce the memory usage during decoding
+                when the batch size is #beam_size x #mask_count, which can be large.
+                Typically, in single waveform inference of PAR, `Linear` layers
+                should not be computed for all batches for source-attention.
 
         Returns:
             torch.Tensor: Output tensor (#batch, time1, d_model).
 
         """
-        if self.training and self.use_flash_attn:
+
+        # Use PyTorch's Scaled Dot Product Attention implementation
+        if getattr(self, "use_sdpa", False):
+            q, k, v = self.forward_qkv(query, key, value, expand_kv)
+
+            # The shape of mask must be broadcastable to the shape of attention weights
+            out = torch.nn.functional.scaled_dot_product_attention(
+                q,
+                k,
+                v,
+                mask.unsqueeze(1) if mask is not None else None,
+                dropout_p=self.dropout_rate if self.training else 0.0,
+            )  # (batch, head, time1, d_k)
+
+            out = out.transpose(1, 2)  # (batch, time1, head, d_k)
+            out = out.reshape(out.shape[0], out.shape[1], -1)  # (batch, time1, d_model)
+            return self.linear_out(out)  # (batch, time1, d_model)
+
+        # Use Flash Attention implementation
+        if self.use_flash_attn:
             try:
                 # In the causal case, the last row will be the key mask
                 key_nonpad_mask = mask[:, -1, :]  # (#batch, time2)
@@ -214,7 +239,6 @@ class MultiHeadedAttention(nn.Module):
                 else:
                     del key_nonpad_mask
                     q, k, v = self.forward_qkv(query, key, value)
-                    del query, key, value
 
                     out = flash_attn_func(
                         q.transpose(1, 2),
@@ -228,12 +252,14 @@ class MultiHeadedAttention(nn.Module):
                     out = out.reshape(out.shape[0], out.shape[1], -1)
                     out = self.linear_out(out)
                     return out
-            except Exception as e:
-                if self.training:
-                    import logging
 
-                    logging.warning(f"Flash attn has exception: {e}")
-                pass
+            except Exception as e:
+                logging.warning(
+                    f"Flash Attention failed, falling back to default attention: {e}"
+                )
+                self.use_flash_attn = False
+
+        # Fall back to the default implementation
         q, k, v = self.forward_qkv(query, key, value, expand_kv)
         scores = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(self.d_k)
         return self.forward_attention(v, scores, mask)

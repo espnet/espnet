@@ -1525,10 +1525,8 @@ class AbsTask(ABC):
                     else:
                         project = args.wandb_project
 
-                    if args.wandb_name is None:
-                        name = str(Path(".").resolve()).replace("/", "_")
-                    else:
-                        name = args.wandb_name
+                    # Wandb server generates a random name, if args.wandb_name is None
+                    name = args.wandb_name
 
                     wandb.init(
                         entity=args.wandb_entity,
@@ -1541,7 +1539,7 @@ class AbsTask(ABC):
                     wandb.config.update(args)
                 else:
                     # wandb also supports grouping for distributed training,
-                    # but we only logs aggregated data,
+                    # but we only log aggregated data,
                     # so it's enough to perform on rank0 node.
                     args.use_wandb = False
 
