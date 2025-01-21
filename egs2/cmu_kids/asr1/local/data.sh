@@ -61,7 +61,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         for x in train dev test; do
             mkdir -p data/${x}/wav
             # Initialize a new wav.scp file
-            > data/${x}/wav.scp.new
+            true > data/${x}/wav.scp.new
 
             # Process each utterance in the wav.scp file
             while IFS=' ' read -r uttID wavCmd; do
