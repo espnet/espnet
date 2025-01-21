@@ -305,7 +305,9 @@ class SingingGenerate:
                     #     feat = input_feat[:, i].unsqueeze(1)
                     #     feat = feat[:: (rs // 20)]
                     #     feat_dict[rs] = feat
-                    #     # logging.info(f'{rs}({feat.shape}): {feat_dict[rs].squeeze(1)}')
+                    #     logging.info(
+                    #        f'{rs}({feat.shape}): {feat_dict[rs].squeeze(1)}'
+                    #     )
                     # input_feat = feat_dict
                 if "pitch" in output_dict and output_dict["pitch"] is not None:
                     assert len(output_dict["pitch"].shape) == 1, "pitch shape must be (T,)."

@@ -18,7 +18,7 @@ spk_embed_tag=espnet_spk
 data=
 output=
 
-log "$0 $@" # Print the command line for logging
+log "$0 $*" # Print the command line for logging
 
 if [ -f path.sh ]; then . ./path.sh; fi
 . parse_options.sh || exit 1

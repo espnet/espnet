@@ -67,7 +67,8 @@ class USTReader(collections.abc.Mapping):
         prepitch = -1
         st = 0
         for note in part:
-            # NOTE(Yuxun): UST length represents number of ticks which means 1/480th of a quarter note.
+            # NOTE(Yuxun): UST length represents number of ticks
+            # which means 1/480th of a quarter note.
             dur = note.length / 8.0 / tempo # ust_dur = (length / 480) * (60 / tempo)
             pitch = note.notenum
             if not note.isR():  # silence label

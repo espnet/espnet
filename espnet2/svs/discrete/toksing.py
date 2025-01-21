@@ -700,7 +700,6 @@ class TokSing(AbsSVS):
         discrete_token_lengths: torch.Tensor = None,
         discrete_token_lengths_frame: torch.Tensor = None,
         flag_IsValid: bool = False,
-        flag_RL: bool = False,
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Calculate forward propagation.
@@ -734,8 +733,6 @@ class TokSing(AbsSVS):
                 discrete tokens (B, ).
             joint_training (bool): Whether to perform joint training with vocoder.
             flag_IsValid (bool): Whether it is valid set.
-            falg_RL (bool): Whether to perform reinforcement learning.
-                (RL will use model in infer mode.)
 
         Returns:
             Tensor: Loss scalar value.
@@ -794,42 +791,20 @@ class TokSing(AbsSVS):
         d_masks = make_pad_mask(label_lengths).to(input_emb.device)
         hs = hs.masked_fill(d_masks.unsqueeze(-1), 0.0)
 
-        # NOTE(Yuxun): if using RL, infer mode will be used.
-        if flag_RL:
-            d_outs = self.duration_predictor.inference(hs, d_masks)  # (B, T_text)
-            d_outs_int = torch.floor(d_outs + 0.5).to(dtype=torch.long)  # (B, T_text)
-            hs = self.length_regulator(hs, d_outs_int)
-        else:
-            d_outs = self.duration_predictor(hs, d_masks)  # (B, T_text)
-            hs = self.length_regulator(hs, ds)  # (B, T_feats, adim)
+        d_outs = self.duration_predictor(hs, d_masks)  # (B, T_text)
+        hs = self.length_regulator(hs, ds)  # (B, T_feats, adim)
 
         if self.predict_pitch:
-            # NOTE(Yuxun): if using RL, infer mode will be used.
-            if not flag_RL:
-                hs_pitch_in = self.proj_pitch(midi_emb)
-                hs_pitch = self.length_regulator(hs_pitch_in, ds)
-                log_f0_outs, _ = self.f0_predictor(
-                    (hs + hs_pitch).transpose(1, 2), discrete_token_lengths_frame
-                )
-                log_f0_outs = log_f0_outs.transpose(1, 2)
-                log_f0_outs = torch.max(
-                    log_f0_outs, torch.zeros_like(log_f0_outs).to(log_f0_outs)
-                )
-                hs = hs + self.lf0_mapping(log_f0)
-            else:
-                hs_pitch_in = self.proj_pitch(midi_emb)
-                hs_pitch = self.length_regulator(hs_pitch_in, d_outs_int)
-                # NOTE(Yuxun): sync lengths with lengths of inference feats
-                discrete_token_lengths_frame = torch.Tensor([hs.size(1)]).to(hs.device).to(dtype=torch.long)
-                log_f0_outs, _ = self.f0_predictor(
-                    (hs + hs_pitch).transpose(1, 2),
-                    discrete_token_lengths_frame
-                )
-                log_f0_outs = log_f0_outs.transpose(1, 2)
-                log_f0_outs = torch.max(
-                    log_f0_outs, torch.zeros_like(log_f0_outs).to(log_f0_outs)
-                )
-                hs = hs + self.lf0_mapping(log_f0_outs)
+            hs_pitch_in = self.proj_pitch(midi_emb)
+            hs_pitch = self.length_regulator(hs_pitch_in, ds)
+            log_f0_outs, _ = self.f0_predictor(
+                (hs + hs_pitch).transpose(1, 2), discrete_token_lengths_frame
+            )
+            log_f0_outs = log_f0_outs.transpose(1, 2)
+            log_f0_outs = torch.max(
+                log_f0_outs, torch.zeros_like(log_f0_outs).to(log_f0_outs)
+            )
+            hs = hs + self.lf0_mapping(log_f0)
 
         # forward decoder
         if self.use_discrete_token:
@@ -902,108 +877,101 @@ class TokSing(AbsSVS):
             after_outs = self.dpos_linear_projection(after_outs)
             # print(after_outs.shape, flush=True)
 
-        if flag_RL:
-            # NOTE(Yuxun): Length of feats, pitch in inference will be different with gt ones.
-            loss = torch.tensor(0).to(after_outs.device)
-            stats = dict(
-                loss=loss,
+        # modifiy mod part of groundtruth
+        if self.reduction_factor > 1:
+            assert feats_lengths.ge(
+                self.reduction_factor
+            ).all(), "Output length must be greater than or equal to reduction factor."
+            olens = feats_lengths.new(
+                [olen - olen % self.reduction_factor for olen in feats_lengths]
+            )
+            max_olen = max(olens)
+            ys = feats[:, :max_olen]
+            if self.loss_function == "XiaoiceSing2":
+                log_f0 = log_f0[:, :max_olen]
+                vuv = vuv[:, :max_olen]
+        else:
+            if self.use_discrete_token:
+                ys = discrete_token
+                if self.codec_codebook > 0:
+                    shift = (
+                        torch.arange(self.codec_codebook).view(1, 1, -1) * self.odim
+                    ).to(ds.device)
+                    ys = (
+                        discrete_token.view(batch_size, -1, self.codec_codebook) - shift
+                    )
+                    ys = ys.flatten(start_dim=1)
+                olens = discrete_token_lengths
+            else:
+                ys = feats
+                olens = feats_lengths
+
+        ilens = label_lengths
+        if self.predict_pitch:
+            out_loss, duration_loss, pitch_loss = self.criterion(
+                after_outs,
+                before_outs,
+                d_outs,
+                ys,
+                ds,
+                ilens,
+                olens,
+                log_f0_outs,
+                log_f0,
+                pitch_lengths,
             )
         else:
-            # modifiy mod part of groundtruth
-            if self.reduction_factor > 1:
-                assert feats_lengths.ge(
-                    self.reduction_factor
-                ).all(), "Output length must be greater than or equal to reduction factor."
-                olens = feats_lengths.new(
-                    [olen - olen % self.reduction_factor for olen in feats_lengths]
+            if self.loss_function == "FastSpeech1":
+                out_loss, duration_loss = self.criterion(
+                    after_outs, before_outs, d_outs, ys, ds, ilens, olens
                 )
-                max_olen = max(olens)
-                ys = feats[:, :max_olen]
-                if self.loss_function == "XiaoiceSing2":
-                    log_f0 = log_f0[:, :max_olen]
-                    vuv = vuv[:, :max_olen]
-            else:
-                if self.use_discrete_token:
-                    ys = discrete_token
-                    if self.codec_codebook > 0:
-                        shift = (
-                            torch.arange(self.codec_codebook).view(1, 1, -1) * self.odim
-                        ).to(ds.device)
-                        ys = (
-                            discrete_token.view(batch_size, -1, self.codec_codebook) - shift
-                        )
-                        ys = ys.flatten(start_dim=1)
-                    olens = discrete_token_lengths
-                else:
-                    ys = feats
-                    olens = feats_lengths
-
-            ilens = label_lengths
-            if self.predict_pitch:
-                out_loss, duration_loss, pitch_loss = self.criterion(
-                    after_outs,
-                    before_outs,
-                    d_outs,
-                    ys,
-                    ds,
-                    ilens,
-                    olens,
-                    log_f0_outs,
-                    log_f0,
-                    pitch_lengths,
+            elif self.loss_function == "XiaoiceSing2":
+                out_loss, duration_loss, pitch_loss, vuv_loss = self.criterion(
+                    after_outs=after_outs,
+                    before_outs=before_outs,
+                    d_outs=d_outs,
+                    p_outs=log_f0_outs,
+                    v_outs=vuv_outs,
+                    ys=ys,
+                    ds=ds,
+                    ps=log_f0,
+                    vs=vuv,
+                    ilens=ilens,
+                    olens=olens,
+                    loss_type=self.loss_type,
                 )
-            else:
-                if self.loss_function == "FastSpeech1":
-                    out_loss, duration_loss = self.criterion(
-                        after_outs, before_outs, d_outs, ys, ds, ilens, olens
-                    )
-                elif self.loss_function == "XiaoiceSing2":
-                    out_loss, duration_loss, pitch_loss, vuv_loss = self.criterion(
-                        after_outs=after_outs,
-                        before_outs=before_outs,
-                        d_outs=d_outs,
-                        p_outs=log_f0_outs,
-                        v_outs=vuv_outs,
-                        ys=ys,
-                        ds=ds,
-                        ps=log_f0,
-                        vs=vuv,
-                        ilens=ilens,
-                        olens=olens,
-                        loss_type=self.loss_type,
-                    )
 
-            out_loss = out_loss * self.lambda_out
-            duration_loss = duration_loss * self.lambda_dur
-            loss = out_loss + duration_loss
-            stats = dict(out_loss=out_loss.item(), duration_loss=duration_loss.item())
-            if self.loss_function == "XiaoiceSing2" or self.predict_pitch:
-                pitch_loss = pitch_loss * self.lambda_pitch
-                stats["pitch_loss"] = pitch_loss.item()
-                loss += pitch_loss
-            if self.loss_function == "XiaoiceSing2":
-                vuv_loss = vuv_loss * self.lambda_vuv
-                stats["vuv_loss"] = vuv_loss.item()
-                loss += vuv_loss
-            stats["loss"] = loss.item()
+        out_loss = out_loss * self.lambda_out
+        duration_loss = duration_loss * self.lambda_dur
+        loss = out_loss + duration_loss
+        stats = dict(out_loss=out_loss.item(), duration_loss=duration_loss.item())
+        if self.loss_function == "XiaoiceSing2" or self.predict_pitch:
+            pitch_loss = pitch_loss * self.lambda_pitch
+            stats["pitch_loss"] = pitch_loss.item()
+            loss += pitch_loss
+        if self.loss_function == "XiaoiceSing2":
+            vuv_loss = vuv_loss * self.lambda_vuv
+            stats["vuv_loss"] = vuv_loss.item()
+            loss += vuv_loss
+        stats["loss"] = loss.item()
 
-            if self.use_discrete_token:
-                gen_token = torch.argmax(after_outs, dim=2)
-                token_mask = make_non_pad_mask(discrete_token_lengths).to(ds.device)
-                acc = (
-                    (gen_token == discrete_token) * token_mask
-                ).sum().item() / discrete_token_lengths.sum().item()
-                stats["acc"] = acc
+        if self.use_discrete_token:
+            gen_token = torch.argmax(after_outs, dim=2)
+            token_mask = make_non_pad_mask(discrete_token_lengths).to(ds.device)
+            acc = (
+                (gen_token == discrete_token) * token_mask
+            ).sum().item() / discrete_token_lengths.sum().item()
+            stats["acc"] = acc
 
-            # report extra information
-            if self.encoder_type == "transformer" and self.use_scaled_pos_enc:
-                stats.update(
-                    encoder_alpha=self.encoder.embed[-1].alpha.data.item(),
-                )
-            if self.decoder_type == "transformer" and self.use_scaled_pos_enc:
-                stats.update(
-                    decoder_alpha=self.decoder.embed[-1].alpha.data.item(),
-                )
+        # report extra information
+        if self.encoder_type == "transformer" and self.use_scaled_pos_enc:
+            stats.update(
+                encoder_alpha=self.encoder.embed[-1].alpha.data.item(),
+            )
+        if self.decoder_type == "transformer" and self.use_scaled_pos_enc:
+            stats.update(
+                decoder_alpha=self.decoder.embed[-1].alpha.data.item(),
+            )
 
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
 
@@ -1012,8 +980,6 @@ class TokSing(AbsSVS):
         else:
             if flag_IsValid:
                 return loss, stats, weight, after_outs[:, : olens.max()], ys, olens
-            elif flag_RL:
-                return loss, stats, weight, after_outs
             else:
                 return loss, stats, weight
 

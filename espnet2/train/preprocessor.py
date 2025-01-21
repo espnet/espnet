@@ -1673,7 +1673,7 @@ class SVSPreprocessor(AbsPreprocessor):
             data["slur"] = slur
 
         # Infer case of music score  
-        if self.midi_name in data and not self.label_name in data:
+        if self.midi_name in data and self.label_name not in data:
             # Load score info
             tempo, syb_info = data[self.midi_name]
             phn_cnt = []

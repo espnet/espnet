@@ -1,1 +1,0 @@
-../../TEMPLATE/svs2/svs2.sh

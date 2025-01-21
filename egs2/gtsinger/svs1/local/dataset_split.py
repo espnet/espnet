@@ -201,7 +201,7 @@ def process_json_to_pho_score(basepath, tempo, notes):
                 if sign:
                     sign = False
                 print("mismatch in {} [{}]: {} != {}".format(utt_id, i, pho_info[i], phnes[i]))
-        if f == True:
+        if f is True:
             exit(1)
     
     return " ".join(label_info), \
