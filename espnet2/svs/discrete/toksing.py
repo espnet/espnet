@@ -1123,11 +1123,6 @@ class TokSing(AbsSVS):
 
             token_prob = torch.sigmoid(after_outs)
             token_prob = token_prob / token_prob.sum(dim=-1, keepdim=True)
-            # Case 1. sample tokens from distribution
-            # V = token_prob.size(2)
-            # sample_token = torch.multinomial(token_prob.view(-1, V), 1, replacement=True)
-            # sample_token = sample_token.view(1, -1, 1) # [B=1, T, S]
-            # Case 2. sample
             logits = after_outs
             after_outs = torch.argmax(after_outs, dim=2).unsqueeze(2)
             # if self.codec_codebook > 0:
