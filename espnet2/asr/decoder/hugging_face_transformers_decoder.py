@@ -14,7 +14,6 @@ import torch.nn.functional as F
 from typeguard import typechecked
 
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
-from espnet.asr.asr_utils import get_model_conf
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 
 try:
@@ -367,3 +366,35 @@ def get_hugging_face_model_lm_head(model):
         raise Exception("Can not find the LM head attribute")
 
     return lm_head
+
+
+def get_model_conf(model_path, conf_path=None):
+    """Get model config information by reading a model config file (model.json).
+
+    Args:
+        model_path (str): Model path.
+        conf_path (str): Optional model config path.
+
+    Returns:
+        list[int, int, dict[str, Any]]: Config information loaded from json file.
+    
+    NOTE(shikhar): We copy this function from espnet/asr/asr_utils.py to avoid 
+    changing logger silently. See https://github.com/espnet/espnet/issues/6022
+    """
+    import argparse
+    import json
+    if conf_path is None:
+        model_conf = os.path.dirname(model_path) + "/model.json"
+    else:
+        model_conf = conf_path
+    with open(model_conf, "rb") as f:
+        logging.info("reading a config file from " + model_conf)
+        confs = json.load(f)
+    if isinstance(confs, dict):
+        # for lm
+        args = confs
+        return argparse.Namespace(**args)
+    else:
+        # for asr, tts, mt
+        idim, odim, args = confs
+        return idim, odim, argparse.Namespace(**args)
