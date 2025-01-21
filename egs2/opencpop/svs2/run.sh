@@ -11,7 +11,7 @@ fmin=80
 fmax=7600
 n_fft=2048
 n_shift=320
-win_length=1200
+win_length=1280
 score_feats_extract=syllable_score_feats   # frame_score_feats | syllable_score_feats
 
 kmeans_feature="wavlm_large/6" # split with '/'
@@ -33,7 +33,7 @@ preset_token=none
 
 train_set=tr_no_dev
 valid_set=dev
-test_sets="test"
+test_sets="dev eval"
 
 train_config=conf/tuning/train_naive_rnn_dp.yaml
 inference_config=conf/tuning/decode.yaml

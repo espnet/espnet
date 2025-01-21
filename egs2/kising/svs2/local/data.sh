@@ -54,7 +54,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     mkdir -p "${KISING}/KISING"
 
-    # # Resample files to sampling rate fs, single channel, 16 bits
+    # Resample files to sampling rate fs, single channel, 16 bits
     # for song_folder in "${KISING}/KISING/kising-v2"/*; do
     #     # Skip if song_folder ends with -unseg or is between 436 and 440
     #     if [[ "${song_folder}" == *-unseg ]]; then
@@ -84,7 +84,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     mkdir -p wav_dump
     # we convert the music score to xml format
-    python local/data_prep.py "${KISING}/KISING" \
+    python local/data_prep.py "${KISING}/KISING/all" \
         --wav_dumpdir wav_dump \
         --dataset ${dataset}
     for src_data in train test; do

@@ -33,7 +33,7 @@ preset_token=none
 
 train_set=tr_no_dev
 valid_set=dev
-test_sets="dev test"
+test_sets="dev eval"
 
 train_config=conf/tuning/train_naive_rnn_dp.yaml
 inference_config=conf/tuning/decode.yaml

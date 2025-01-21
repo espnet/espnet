@@ -507,7 +507,9 @@ class TokSing(AbsSVS):
                             num_blocks=dlayers,
                             input_layer=None,
                             dropout_rate=transformer_dec_dropout_rate,
-                            positional_dropout_rate=transformer_dec_positional_dropout_rate,
+                            positional_dropout_rate=(
+                                transformer_dec_positional_dropout_rate
+                            ),
                             attention_dropout_rate=transformer_dec_attn_dropout_rate,
                             pos_enc_class=pos_enc_class,
                             normalize_before=decoder_normalize_before,
@@ -728,10 +730,12 @@ class TokSing(AbsSVS):
             sids (Optional[Tensor]): Batch of speaker IDs (B, 1).
             lids (Optional[Tensor]): Batch of language IDs (B, 1).
             discrete_token (LongTensor): Batch of padded discrete tokens (B, T_frame).
-            discrete_token_lengths (LongTensor): Batch of the lengths of padded slur (B, ).
+            discrete_token_lengths (LongTensor): Batch of the lengths of padded 
+                discrete tokens (B, ).
             joint_training (bool): Whether to perform joint training with vocoder.
             flag_IsValid (bool): Whether it is valid set.
-            falg_RL (bool): Whether to perform reinforcement learning. (RL will use model in infer mode.)
+            falg_RL (bool): Whether to perform reinforcement learning.
+                (RL will use model in infer mode.)
 
         Returns:
             Tensor: Loss scalar value.
@@ -807,7 +811,6 @@ class TokSing(AbsSVS):
                 log_f0_outs, _ = self.f0_predictor(
                     (hs + hs_pitch).transpose(1, 2), discrete_token_lengths_frame
                 )
-                # log_f0_outs, _ = self.f0_predictor(hs.transpose(1, 2), discrete_token_lengths_frame)
                 log_f0_outs = log_f0_outs.transpose(1, 2)
                 log_f0_outs = torch.max(
                     log_f0_outs, torch.zeros_like(log_f0_outs).to(log_f0_outs)
@@ -1101,7 +1104,6 @@ class TokSing(AbsSVS):
                 (hs + hs_pitch).transpose(1, 2),
                 torch.Tensor([hs.size(1)]).to(hs.device).to(dtype=torch.long),
             )
-            # log_f0_outs, _ = self.f0_predictor(hs.transpose(1, 2), torch.Tensor([hs.size(1)]).to(hs.device).to(dtype=torch.long))
             log_f0_outs = log_f0_outs.transpose(1, 2)
             log_f0_outs = torch.max(
                 log_f0_outs, torch.zeros_like(log_f0_outs).to(log_f0_outs)

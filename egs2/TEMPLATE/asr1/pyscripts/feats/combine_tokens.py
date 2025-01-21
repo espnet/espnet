@@ -15,11 +15,11 @@ def combine(args):
         dic[token] = load_num_sequence_text(path, "text_int")
     f = open(args.dir + args.target, "w")
     for idx in dic[tokens[0]].keys():
-        l = min([len(dic[token][idx]) for token in tokens])
+        minlen = min([len(dic[token][idx]) for token in tokens])
         lis = []
         if args.mix_type == "sequence":
             for token in tokens:
-                lis.extend(dic[token][idx][:l])
+                lis.extend(dic[token][idx][:minlen])
         elif args.mix_type == "frame":
             for i in range(l):
                 for token in tokens:

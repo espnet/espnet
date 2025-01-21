@@ -132,7 +132,8 @@ class ESPnetDiscreteSVSModel(ESPnetSVSModel):
             sids (Optional[Tensor]): Speaker ID tensor (B, 1).
             lids (Optional[Tensor]): Language ID tensor (B, 1).
             discrete_token (Optional[Tensor]): Discrete token tensor (B, T_frame).
-            discrete_token_lengths (Optional[Tensor]): Discrete token length tensor (B,).
+            discrete_token_lengths (Optional[Tensor]): Discrete token length
+                tensor (B,).
             kwargs: "utt_id" is among the input.
 
         Returns:
@@ -178,7 +179,6 @@ class ESPnetDiscreteSVSModel(ESPnetSVSModel):
                         else:  # stop
                             delta -= duration_phn[i][end] - new
                             duration_phn[i][end] = new
-            #            discrete_token = discrete_token[:, : discrete_token_lengths.max()]
 
             if self.pitch_extract is not None and pitch is None:
                 pitch, pitch_lengths = self.pitch_extract(
@@ -413,7 +413,8 @@ class ESPnetDiscreteSVSModel(ESPnetSVSModel):
             sids (Optional[Tensor]): Speaker ID tensor (B, 1).
             lids (Optional[Tensor]): Language ID tensor (B, 1).
             discrete_token (Optional[Tensor]): Discrete tokens tensor (B, T_frame)
-            discrete_token_lengths (Optional[Tensor]): Discrete tokens lengths tensor (B,)
+            discrete_token_lengths (Optional[Tensor]): Discrete tokens lengths 
+                tensor (B,)
 
         Returns:
             Dict[str, Tensor]: Dict of features.

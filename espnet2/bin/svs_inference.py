@@ -302,15 +302,11 @@ class SingingGenerate:
                 if self.discrete_token_layers > 1:
                     # NOTE(Yuxun): vocoder can only accept 'frame' type, [T, L]
                     if self.mix_type == "frame":
-                        # logging.info(f'src frame({input_feat.shape}) {input_feat.squeeze(1)}')
                         input_feat = input_feat.view(-1, self.discrete_token_layers)
-                        # input_feat = input_feat.T
-                        # logging.info(f'tgt frame({input_feat.shape}) {input_feat}')
                     elif self.mix_type == "sequence":
                         input_feat = input_feat.view(
                             self.discrete_token_layers, -1
                         ).transpose(0, 1)
-                    # logging.info(f'svs_infer({input_feat.shape}): {input_feat}')
 
                     # NOTE(Yuxun): codes below for singomd
                     # feat_dict = {}

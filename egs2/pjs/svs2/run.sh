@@ -14,32 +14,28 @@ n_shift=320
 win_length=1280
 score_feats_extract=syllable_score_feats   # frame_score_feats | syllable_score_feats
 
+# kmeans related
 kmeans_feature="wavlm_large/6" # split with '/'
-# "multi/wavlm6+large6"
-# "wavlm_large/6" | "encodec/1" | "xls_r_300m/6", use model_type/layer_index
-multi_token= # "hubert_large_ll60k_128_6_RVQ_0 wavlm_large_128_6_RVQ_0 wavlm_large_128_23_RVQ_0"
-# "wavlm_large_128_6 hubert_large_ll60k_128_6"
-# "wavlm_large_128_6 wavlm_large_128_23"
-# "wavlm_large_128_6 hubert_large_ll60k_128_6"
-# "wavlm_large_128_6_RVQ_0 wavlm_large_128_6_RVQ_1 wavlm_large_128_6_RVQ_2 wavlm_large_128_6_RVQ_3"
-# "wavlm_large_1024_6_RVQ_0 wavlm_large_1024_6_RVQ_1 wavlm_large_1024_6_RVQ_2 wavlm_large_1024_6_RVQ_3 wavlm_large_1024_6_RVQ_4 wavlm_large_1024_6_RVQ_5 wavlm_large_1024_6_RVQ_6 wavlm_large_1024_6_RVQ_7"
-# "wavlm_large_1024_6 xls_r_330m_1024_6", use prepared 'model_type_nclusters_layer_index' tokens
-mix_type="frame"
-# frame | sequencee
+                               # multi_token: "multi/wavlm6+large6"
+                               # single token: "wavlm_large/6" | "encodec/1" | "xls_r_300m/6", use model_type/layer_index
+multi_token="" # concat with ' ', use prepared 'model_type_nclusters_layer_index' tokens
+               # e.g. "hubert_large_ll60k_128_6_RVQ_0 wavlm_large_128_6_RVQ_0 wavlm_large_128_23_RVQ_0"
+mix_type="frame" # frame | sequencee
 nclusters=128
 RVQ_layers=2
+km_dir="" # use other pretrained kmeans model
 preset_layer=none
 preset_token=none
 
 train_set=tr_no_dev
 valid_set=dev
-test_sets="dev test"
+test_sets="dev eval"
 
-train_config=conf/tuning/train_naive_rnn_dp.yaml
+train_config=conf/tuning/train_toksing.yaml
 inference_config=conf/tuning/decode.yaml
 
 # text related processing arguments
-g2p=none
+g2p=pyopenjtalk
 cleaner=none
 pitch_extract=dio
 
@@ -73,6 +69,7 @@ gpu_inference=true
     --score_feats_extract "${score_feats_extract}" \
     --srctexts "data/${train_set}/text" \
     --RVQ_layers "${RVQ_layers}" \
+    --km_dir "${km_dir}" \
     --kmeans_opts "--batch_bins 4800000" \
     --kmeans_feature "${kmeans_feature}" \
     --multi_token "${multi_token}" \

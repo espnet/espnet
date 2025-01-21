@@ -89,6 +89,7 @@ portion=1.0
 nclusters=2000              # The number of clusters for discrete tokenss
 storage_save_mode=true      # Save storage on SSL feature extraction
                             # If true, feature extraction and kmeans clustering on the fly
+km_dir=""
 
 # Tokenization related
 oov="<unk>"         # Out of vocabulary symbol.
@@ -310,7 +311,7 @@ else
         kmeans_feature_conf="{type=encodec,conf={fs=48000,bandwidth=12,multilayer_feature=False,layer=${layer},download_path=${encodec_url}}}"
     elif [ ${kmeans_feature_type} != "multi" ]; then
         s3prl_conf="{upstream=${kmeans_feature_type}}"
-        kmeans_feature_conf="{type=s3prl,conf={s3prl_conf=${s3prl_conf},download_dir=ckpt,multilayer_feature=False,layer=${layer}}}"
+        kmeans_feature_conf="{type=s3prl,conf={s3prl_conf=${s3prl_conf},multilayer_feature=False,layer=${layer}}}"
     fi
 fi
 if [ ${kmeans_feature_type} = "multi" ]; then
@@ -326,7 +327,9 @@ else
     else
         token_file=token_${kmeans_feature_type}_${nclusters}_${layer}
     fi
-    km_dir="${expdir}"/kmeans/$(echo "${kmeans_feature}" | tr "/" "_")_${nclusters}clusters
+    if [ -z ${km_dir} ]; then
+        km_dir="${expdir}"/kmeans/$(echo "${kmeans_feature}" | tr "/" "_")_${nclusters}clusters
+    fi
 fi
 
 if [ "$preset_layer" != none  ]; then
@@ -635,7 +638,7 @@ if ! "${skip_data_prep}"; then
                     _dump_dir="${data_extract}/${kmeans_feature_type}/layer${layer}/${dset}"
                 fi
                 token_files=""
-                if [ ${RVQ_layers} = 1 ]; then
+                if [ ${RVQ_layers} -eq 1 ]; then
                     cp "${_dump_dir}/pseudo_labels_km${nclusters}.txt" "${data_feats}/${dset}/${token_file}"
                     token_files="${token_file}"
                 else

@@ -51,21 +51,21 @@ prep_rl_data=false
 sample_data=false
 samples_num=10
 rl_data="dump/rl"
-select_metrics="spk_similarity"
+select_metrics="singmos"
 use_refsvs=false
 
 pretrain_checkpoint="exp/svs_train_toksing_raw_phn_none_zh/valid.loss.best.pth"
 
 versa_path="/data7/tyx/versa"
 
-stage=1
+stage=2
 stop_stage=3
-train_tag=""
+train_tag=
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "Stage 1: Prepare dataset for training"
     
-    sub_stage=1
+    sub_stage=4
     sub_stop_stage=4
     train_config=conf/tuning/train_toksing.yaml
 
@@ -184,6 +184,8 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         if [ ! -e versa ]; then
             ln -s ${versa_path} versa
         fi
+        # local env
+        conda activate versa
         for dset in ${select_sets}; do
             # Metrics
             src_dir="$(pwd)/${rl_data}/${dset}/samples"
@@ -209,9 +211,20 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
                     --output_file ${tgt_dir}/eval_${metric}.txt \
                     --use_gpu true
                     cd ..
+                elif [ ${metric} == "singmos" ]; then
+                    cd versa
+                    python versa/bin/scorer.py \
+                    --score_config egs/separate_metrics/pseudo_mos.yaml \
+                    --pred ${src_dir}/wav.scp \
+                    --gt ${src_dir}/wav_gt.scp \
+                    --output_file ${tgt_dir}/eval_${metric}.txt \
+                    --use_gpu true
+                    cd ..
                 fi
             done
         done
+        # local env
+        conda activate espnet
     fi
     
     if [ ${sub_stage} -le 4 ] && [ ${sub_stop_stage} -ge 4 ]; then
@@ -251,8 +264,17 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     fi
 fi
 
-train_config=conf/tuning/train_dpo.yaml
+train_config=conf/tuning/rl/train_dpo.v1.yaml
 train_tag=""
+# tag
+if [ -n "${train_config}" ]; then
+    train_tag="$(basename "${train_config}" .yaml)"
+fi
+if [ -n "${select_metrics}" ];then
+    metrics_format=$(echo "${select_metrics}" | tr ' ' '#')
+    train_tag+="#${metrics_format}"
+fi
+
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "Stage 2: train model with RL"
@@ -285,6 +307,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             --preset_token ${preset_token} \
             --train_config "${train_config}" \
             --inference_config "${inference_config}" \
+            --gpu_inference ${gpu_inference} \
             --train_set "${train_set}" \
             --valid_set "${valid_set}" \
             --test_sets "${test_sets}" \
@@ -306,20 +329,15 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-    log "Stage 3: infer model with RL"
+    log "Stage 3: infer model with RL and evaluate"
     
     prep_rl_data=false
     train_rl=false
-    use_refsvs=true
-    if ${use_refsvs}; then
-        rl_train_args+=" --init_param ${pretrain_checkpoint}:svs:svs ${pretrain_checkpoint}:svs:ref_svs "
-    else
-        rl_train_args+=" --init_param ${pretrain_checkpoint}:svs:svs "
-    fi
+    rl_train_args=""
     ./svs2.sh \
             --lang zh \
             --stage 8 \
-            --stop_stage 8 \
+            --stop_stage 9 \
             --local_data_opts "--stage 0" \
             --feats_type raw \
             --pitch_extract "${pitch_extract}" \
@@ -336,6 +354,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
             --preset_token ${preset_token} \
             --train_config "${train_config}" \
             --inference_config "${inference_config}" \
+            --gpu_inference ${gpu_inference} \
             --train_set "${train_set}" \
             --valid_set "${valid_set}" \
             --test_sets "${test_sets}" \

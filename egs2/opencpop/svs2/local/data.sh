@@ -51,6 +51,10 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         utils/utt2spk_to_spk2utt.pl < data/${src_data}/utt2spk > data/${src_data}/spk2utt
         utils/fix_data_dir.sh --utt_extra_files "label score.scp" data/${src_data}
     done
+    if [ -e data/eval ];then
+        rm -r data/eval
+    fi
+    mv data/test data/eval
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
@@ -68,5 +72,4 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
     utils/fix_data_dir.sh --utt_extra_files "label score.scp" data/tr_no_dev
     utils/fix_data_dir.sh --utt_extra_files "label score.scp" data/dev
-
 fi
