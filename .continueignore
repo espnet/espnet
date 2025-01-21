@@ -1,0 +1,9 @@
+.git/
+.github/
+egs/
+egs2/
+ci/
+test_utils/
+tools/
+utils/
+
