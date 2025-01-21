@@ -377,12 +377,13 @@ def get_model_conf(model_path, conf_path=None):
 
     Returns:
         list[int, int, dict[str, Any]]: Config information loaded from json file.
-    
-    NOTE(shikhar): We copy this function from espnet/asr/asr_utils.py to avoid 
+
+    NOTE(shikhar): We copy this function from espnet/asr/asr_utils.py to avoid
     changing logger silently. See https://github.com/espnet/espnet/issues/6022
     """
     import argparse
     import json
+
     if conf_path is None:
         model_conf = os.path.dirname(model_path) + "/model.json"
     else:
