@@ -274,13 +274,14 @@ class Trainer:
 
                 # Register DDP communication hook
                 if trainer_options.ddp_comm_hook is not None:
-                    import torch.distributed.algorithms.ddp_comm_hooks.default_hooks
+                    from torch.distributed.algorithms.ddp_comm_hooks.default_hooks import fp16_compress_hook, bf16_compress_hook
+                    _hooks = {
+                        "fp16_compress_hook": fp16_compress_hook,
+                        "bf16_compress_hook": bf16_compress_hook,
+                    }
                     dp_model.register_comm_hook(
                         None, 
-                        getattr(
-                            torch.distributed.algorithms.ddp_comm_hooks.default_hooks,
-                            trainer_options.ddp_comm_hook
-                        )
+                        _hooks[trainer_options.ddp_comm_hook],
                     )
                     logging.info(
                         f"Registered DDP communication hook: "
