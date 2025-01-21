@@ -8,6 +8,7 @@ from typing import Dict, Optional, Tuple
 
 import torch
 
+
 def pad_and_concat(tensor_list, pad_id=0):
     """pad a list of torch.Tensor with shape [B_n, T_n, ...]
     in T dimension and then concat in B dimension
@@ -34,4 +35,3 @@ def pad_and_concat(tensor_list, pad_id=0):
         count += B
 
     return retval
-

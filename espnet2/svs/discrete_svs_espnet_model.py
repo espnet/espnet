@@ -145,11 +145,9 @@ class ESPnetDiscreteSVSModel(ESPnetSVSModel):
             # 1. Extract performacne features (actual features) in frame wise
             #    and normalize
             if self.feats_extract is not None and feats is None:
-                # spec feature (frame level) 
+                # spec feature (frame level)
                 # not used in discrete token
-                feats, feats_lengths = self.feats_extract(
-                    singing, singing_lengths
-                )
+                feats, feats_lengths = self.feats_extract(singing, singing_lengths)
 
             # Extract auxiliary features
             # melody : 128 note pitch
@@ -413,7 +411,7 @@ class ESPnetDiscreteSVSModel(ESPnetSVSModel):
             sids (Optional[Tensor]): Speaker ID tensor (B, 1).
             lids (Optional[Tensor]): Language ID tensor (B, 1).
             discrete_token (Optional[Tensor]): Discrete tokens tensor (B, T_frame)
-            discrete_token_lengths (Optional[Tensor]): Discrete tokens lengths 
+            discrete_token_lengths (Optional[Tensor]): Discrete tokens lengths
                 tensor (B,)
 
         Returns:

@@ -50,7 +50,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     # We use a pre-defined split (see details in local/dataset_split.py)"
     python local/dataset_split.py ${GTSINGER} \
         data/${train_set} data/${train_dev} data/${recog_set} --fs ${fs}
-    
+
     for x in ${train_set} ${train_dev} ${recog_set}; do
         src_data=data/${x}
         mv ${src_data}/score.scp.tmp ${src_data}/score.scp
@@ -61,4 +61,3 @@ fi
 
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
-

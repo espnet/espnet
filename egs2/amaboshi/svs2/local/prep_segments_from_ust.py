@@ -90,9 +90,21 @@ def make_segment(file_id, tempo, notes, threshold, sil=["P", "B"]):
         # add pause (split)
         elif (
             (note.lyric is not None and note.lyric[0] in ["・", "’"])
-            or ("hana" in file_id and notes[i].lyric == "’う" and notes[i - 1].lyric == "の")
-            or ("yuki" in file_id and notes[i].lyric == "わ" and notes[i - 1].lyric == "も")
-            or ("yuki" in file_id and notes[i].lyric == "わ" and notes[i - 1].lyric == "こ")
+            or (
+                "hana" in file_id
+                and notes[i].lyric == "’う"
+                and notes[i - 1].lyric == "の"
+            )
+            or (
+                "yuki" in file_id
+                and notes[i].lyric == "わ"
+                and notes[i - 1].lyric == "も"
+            )
+            or (
+                "yuki" in file_id
+                and notes[i].lyric == "わ"
+                and notes[i - 1].lyric == "こ"
+            )
         ):
             if len(segment.segs) > 0:
                 segments.extend(segment.split(threshold=threshold))

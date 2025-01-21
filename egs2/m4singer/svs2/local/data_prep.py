@@ -36,14 +36,15 @@ def load_midi(args, uid, song_name):
 
 def check_split(phns, index_phn):
     # NOTE(Yuxun): fix single syllabel
-    if (phns[index_phn - 1] == "i"
-        or (phns[index_phn - 1] == "ia") 
+    if (
+        phns[index_phn - 1] == "i"
+        or (phns[index_phn - 1] == "ia")
         or (phns[index_phn - 1] == "ian")
         or (phns[index_phn - 1] == "iang")
         or (phns[index_phn - 1] == "iao")
         or (phns[index_phn - 1] == "ie")
         or (phns[index_phn - 1] == "in")
-        or (phns[index_phn - 1] == "ing") 
+        or (phns[index_phn - 1] == "ing")
         or (phns[index_phn - 1] == "io")
         or (phns[index_phn - 1] == "iou")
         or (phns[index_phn - 1] == "iong")
@@ -160,7 +161,7 @@ def process_utterance(
     # load tempo from midi
     uid = name.encode("unicode_escape").decode().replace("\\u", "#U")
     # NOTE(Yuxun): Please check directory name in m4singer
-    song_name = name[: name.rindex("#")] # zh case
+    song_name = name[: name.rindex("#")]  # zh case
     # song_name = uid[: uid.rindex("#")] # unicode case
     uid = uid.replace(" ", "+")
 

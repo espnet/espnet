@@ -138,9 +138,7 @@ class ESPnetSVSModel(AbsESPnetModel):
             #    and normalize
             if self.feats_extract is not None and feats is None:
                 # spec feature (frame level)
-                feats, feats_lengths = self.feats_extract(
-                    singing, singing_lengths
-                )  
+                feats, feats_lengths = self.feats_extract(singing, singing_lengths)
 
             # Extract auxiliary features
             # melody : 128 note pitch
