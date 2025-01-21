@@ -214,16 +214,14 @@ class SingingGenerate:
 
         # prepare batch
         if isinstance(text, Dict):
-            # dataset infer: text = dict(label=text["label"], score=text["score"]) 
-            # music score infer: text = dict(text=text["text"], score=text["score"]) 
+            # dataset infer: text = dict(label=text["label"], score=text["score"])
+            # music score infer: text = dict(text=text["text"], score=text["score"])
             infer_data = dict(score=text["score"])
             if "label" in text:
                 infer_data["label"] = text["label"]
             else:
                 infer_data["text"] = text["text"]
-            data = self.preprocess_fn(
-                "<dummy>", infer_data
-            )
+            data = self.preprocess_fn("<dummy>", infer_data)
             label = data["label"]
             midi = data["midi"]
             duration_phn = data["duration_phn"]
@@ -308,7 +306,9 @@ class SingingGenerate:
                     #     # logging.info(f'{rs}({feat.shape}): {feat_dict[rs].squeeze(1)}')
                     # input_feat = feat_dict
                 if "pitch" in output_dict and output_dict["pitch"] is not None:
-                    assert len(output_dict["pitch"].shape) == 1, "pitch shape must be (T,)."
+                    assert (
+                        len(output_dict["pitch"].shape) == 1
+                    ), "pitch shape must be (T,)."
                     wav = self.vocoder(input_feat, output_dict["pitch"])
                 else:
                     # print("VOC",input_feat)
@@ -626,7 +626,7 @@ def inference(
                     singingGenerate.fs,
                     "PCM_16",
                 )
-        
+
     # remove files if those are not included in output dict
     if output_dict.get("feat_gen") is None:
         shutil.rmtree(output_dir / "norm")

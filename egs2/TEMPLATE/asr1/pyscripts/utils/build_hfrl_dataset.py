@@ -10,6 +10,7 @@ import logging
 import os
 import sys
 from pathlib import Path
+
 import numpy as np
 
 from espnet2.fileio.npy_scp import NpyScpWriter
@@ -83,15 +84,15 @@ def main():
 
     samples_dict = dict()
     # sample_dict = {
-        # utt_name: {
-            # sample_name: {
-                # modality: value
+    # utt_name: {
+    # sample_name: {
+    # modality: value
     # }}}
-    data_dict = dict() 
+    data_dict = dict()
     # data_dict = {
-        # utt_name: {
-            # metric: {
-                # sample_name: value
+    # utt_name: {
+    # metric: {
+    # sample_name: value
     # }}}
     samples_keys = []
     # (1) get all filenames
@@ -180,7 +181,7 @@ def main():
             for example in examples:
                 feat_list.append(example[key])
             feat = np.stack(feat_list, axis=1)
-            pos_examples[key] = feat # [T, K]
+            pos_examples[key] = feat  # [T, K]
             pos_shape[utt_name][key] = [feat.shape[0]]
         examples = [v for k, v in sample_dict.items() if k in neg_examples]
         neg_examples = {}
@@ -190,7 +191,7 @@ def main():
             for example in examples:
                 feat_list.append(example[key])
             feat = np.stack(feat_list, axis=1)
-            neg_examples[key] = feat # [T, K]
+            neg_examples[key] = feat  # [T, K]
             neg_shape[utt_name][key] = [feat.shape[0]]
 
         chosen_dict[utt_name] = dict()
@@ -202,28 +203,38 @@ def main():
     if not os.path.exists(pos_npy_dir):
         os.makedirs(os.path.join(args.output_dir, "eval_metrics", pos_name))
     pos_writers = [
-        NpyScpWriter(pos_npy_dir, os.path.join(args.output_dir, f"pos_samples_{name}")) for name in samples_keys
+        NpyScpWriter(pos_npy_dir, os.path.join(args.output_dir, f"pos_samples_{name}"))
+        for name in samples_keys
     ]
     pos_shape_writers = [
-        open(os.path.join(args.output_dir, f"pos_{name}_shape"), "w") for name in samples_keys
+        open(os.path.join(args.output_dir, f"pos_{name}_shape"), "w")
+        for name in samples_keys
     ]
     neg_npy_dir = os.path.join(args.output_dir, "eval_metrics", neg_name)
     if not os.path.exists(neg_npy_dir):
         os.makedirs(os.path.join(args.output_dir, "eval_metrics", neg_name))
     neg_writers = [
-        NpyScpWriter(neg_npy_dir, os.path.join(args.output_dir, f"neg_samples_{name}")) for name in samples_keys
+        NpyScpWriter(neg_npy_dir, os.path.join(args.output_dir, f"neg_samples_{name}"))
+        for name in samples_keys
     ]
     neg_shape_writers = [
-        open(os.path.join(args.output_dir, f"neg_{name}_shape"), "w") for name in samples_keys
+        open(os.path.join(args.output_dir, f"neg_{name}_shape"), "w")
+        for name in samples_keys
     ]
-    for key, pos_writer, neg_writer, pos_shape_writer, neg_shape_writer in zip(samples_keys, pos_writers, neg_writers, pos_shape_writers, neg_shape_writers):
+    for key, pos_writer, neg_writer, pos_shape_writer, neg_shape_writer in zip(
+        samples_keys, pos_writers, neg_writers, pos_shape_writers, neg_shape_writers
+    ):
         for utt_name, content in chosen_dict.items():
             pos_samples = content[pos_name][key]
             neg_samples = content[neg_name][key]
             pos_writer[utt_name] = pos_samples
             neg_writer[utt_name] = neg_samples
-            pos_shape_writer.write("{} {}\n".format(utt_name, ",".join(map(str, pos_shape[utt_name][key]))))
-            neg_shape_writer.write("{} {}\n".format(utt_name, ",".join(map(str, neg_shape[utt_name][key]))))
+            pos_shape_writer.write(
+                "{} {}\n".format(utt_name, ",".join(map(str, pos_shape[utt_name][key])))
+            )
+            neg_shape_writer.write(
+                "{} {}\n".format(utt_name, ",".join(map(str, neg_shape[utt_name][key])))
+            )
     logging.info(f"Save selected samples file {args.output_dir}")
 
 

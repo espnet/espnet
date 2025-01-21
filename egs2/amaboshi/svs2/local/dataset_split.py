@@ -76,7 +76,7 @@ def process_subset(src_data, subset, check_func, fs, wav_dump, score_dump):
         if not check_func(folder):
             continue
         # NOTE(Yuxun): name of data directory may include blank space
-        folder = folder.replace(' ', '_')
+        folder = folder.replace(" ", "_")
         utt_id = "{}_{}".format(UTT_PREFIX, pack_zero(folder))
 
         cmd = "sox {}.wav -c 1 -t wavpcm -b 16 -r {} {}_bits16.wav".format(
@@ -96,9 +96,11 @@ def process_subset(src_data, subset, check_func, fs, wav_dump, score_dump):
             os.path.join(src_data, folder, "{}.lab".format(folder))
         )
         label_scp.write("{} {}\n".format(utt_id, label_info))
-        ust_scp.write("{} {}\n".format(
-            utt_id, os.path.join(src_data, folder, "{}.ust".format(folder))
-        ))
+        ust_scp.write(
+            "{} {}\n".format(
+                utt_id, os.path.join(src_data, folder, "{}.ust".format(folder))
+            )
+        )
 
 
 if __name__ == "__main__":
@@ -119,6 +121,12 @@ if __name__ == "__main__":
     if not os.path.exists(args.wav_dump):
         os.makedirs(args.wav_dump)
 
-    process_subset(args.src_data, args.train, train_check, args.fs, args.wav_dump, args.score_dump)
-    process_subset(args.src_data, args.dev, dev_check, args.fs, args.wav_dump, args.score_dump)
-    process_subset(args.src_data, args.test, test_check, args.fs, args.wav_dump, args.score_dump)
+    process_subset(
+        args.src_data, args.train, train_check, args.fs, args.wav_dump, args.score_dump
+    )
+    process_subset(
+        args.src_data, args.dev, dev_check, args.fs, args.wav_dump, args.score_dump
+    )
+    process_subset(
+        args.src_data, args.test, test_check, args.fs, args.wav_dump, args.score_dump
+    )

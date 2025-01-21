@@ -33,7 +33,7 @@ combine_path=""
 zh_datasets="acesinger opencpop kising m4singer"
 jp_datasets="amaboshi kiritan oniku_kurumi_utagoe_db ofuton_p_utagoe_db namine_ritsu_utagoe_db itako pjs"
 datasets="${zh_datasets} ${jp_datasets}"
-# datasets can be chonsen: 
+# datasets can be chonsen:
 # - dataset(zh): opencpop acesinger kising m4singer
 # - dataset(jp): ameboshi kiritan oniku_kurumi_utagoe_db ofuton_p_utagoe_db namine_ritsu_utagoe_db itako pjs
 for dataset in ${datasets}; do

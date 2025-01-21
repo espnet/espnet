@@ -39,7 +39,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     #   |_ ACE_phonemes
     #   |_ svs.sh
     #   |_ ...
-    # 
+    #
     #  NOTICE[IMPORTANT]: You need to add __init__.py to every directory including ACE_phonemes and its sub-directories.
 fi
 

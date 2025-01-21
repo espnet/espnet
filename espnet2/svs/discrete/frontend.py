@@ -156,7 +156,7 @@ class EnCodecFrontend(AbsFrontend):
         # For the 24 kHz model, supported bandwidths are 1.5kbps (n_q = 2),
         # 3 kbps (n_q = 4), 6 kbps (n_q = 8) and 12 kbps (n_q =16) and 24kbps (n_q=32).
         # For the 48 kHz model, only 3, 6, 12, and 24 kbps are supported.
-        # The number of codebooks for each is half that of the 24 kHz model 
+        # The number of codebooks for each is half that of the 24 kHz model
         # as the frame rate is twice as much.
         self.n_q = {
             24000: {1.5: 2, 3: 4, 6: 8, 12: 16, 24: 32},

@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
+import argparse
 import os
 import re
 import sys
-import argparse
+
+from ACE_phonemes.main import pinyin_to_phoneme
 
 from espnet2.fileio.read_text import read_label
 from espnet2.fileio.score_scp import SingingScoreReader, SingingScoreWriter
-from ACE_phonemes.main import pinyin_to_phoneme
 from espnet2.text.build_tokenizer import build_tokenizer
 
 """Process origin phoneme in music score using ACE-phoneme"""
@@ -29,10 +30,31 @@ zh_datasets = [
     "kising",
 ]
 
-heads_list = ['b', 'z', 'l', 'sh', 'p', 'd',
-              'm', 'x', 's', 'y', 'r', 'f', 
-              'n', 'h', 'c', 'j', 'zh', 'ch',
-              't', 'g', 'q', 'w', 'k']
+heads_list = [
+    "b",
+    "z",
+    "l",
+    "sh",
+    "p",
+    "d",
+    "m",
+    "x",
+    "s",
+    "y",
+    "r",
+    "f",
+    "n",
+    "h",
+    "c",
+    "j",
+    "zh",
+    "ch",
+    "t",
+    "g",
+    "q",
+    "w",
+    "k",
+]
 
 
 def load_customed_dic(file):
@@ -57,41 +79,61 @@ def check_language(dataset):
 
 
 def fix_phns(
-    key, 
-    lyric, 
-    org_phns, 
-    pro_phns, 
-    index, 
-    labels, 
+    key,
+    lyric,
+    org_phns,
+    pro_phns,
+    index,
+    labels,
     lang,
-    phn_seg = {
+    phn_seg={
         1: [1],
         2: [0.25, 1],
         3: [0.1, 0.5, 1],
         4: [0.05, 0.1, 0.5, 1],
-    }
+    },
 ):
     new_labels = []
     if len(org_phns) == len(pro_phns):
         for i in range(len(org_phns)):
             if org_phns[i] != pro_phns[i]:
-                print("Warning: Mismatch in syllable [{}]-> ace: {} and org: {}, {}-th phoneme {} vs {} in {}".format(
-                        lyric, "_".join(pro_phns), "_".join(org_phns), i, pro_phns[i], org_phns[i], key
-                ))
-            new_labels.append([labels[index][0], labels[index][1], convert_phn_with_lang(pro_phns[i], lang)])
+                print(
+                    "Warning: Mismatch in syllable [{}]-> ace: {} and org: {}, {}-th phoneme {} vs {} in {}".format(
+                        lyric,
+                        "_".join(pro_phns),
+                        "_".join(org_phns),
+                        i,
+                        pro_phns[i],
+                        org_phns[i],
+                        key,
+                    )
+                )
+            new_labels.append(
+                [
+                    labels[index][0],
+                    labels[index][1],
+                    convert_phn_with_lang(pro_phns[i], lang),
+                ]
+            )
             index += 1
     else:
-        print("Warning: Different length in syllable [{}]-> ace: {} and org: {} in {}".format(lyric, pro_phns, org_phns, key))
+        print(
+            "Warning: Different length in syllable [{}]-> ace: {} and org: {} in {}".format(
+                lyric, pro_phns, org_phns, key
+            )
+        )
         st = float(labels[index][0])
-        index += len(org_phns) 
+        index += len(org_phns)
         ed = float(labels[index - 1][1])
-        tot_dur = (ed - st)
+        tot_dur = ed - st
         phn_num = len(pro_phns)
         pre_seg = 0
         for i in range(len(pro_phns)):
             phn_ruled_dur = (phn_seg[phn_num][i] - pre_seg) * tot_dur
             pre_seg = phn_seg[phn_num][i]
-            new_labels.append([st, st + phn_ruled_dur, convert_phn_with_lang(pro_phns[i], lang)])
+            new_labels.append(
+                [st, st + phn_ruled_dur, convert_phn_with_lang(pro_phns[i], lang)]
+            )
             st += phn_ruled_dur
     return index, new_labels
 
@@ -101,16 +143,16 @@ def convert_phn_with_lang(phn, lang):
 
 
 def convert(
-    key, 
-    score, 
-    labels, 
-    phn_seg = {
+    key,
+    score,
+    labels,
+    phn_seg={
         1: [1],
         2: [0.25, 1],
         3: [0.1, 0.5, 1],
         4: [0.05, 0.1, 0.5, 1],
     },
-    sli = ["AP", "SP"],
+    sli=["AP", "SP"],
 ):
     aux_ace_dict = load_customed_dic(args.aux_ace_dict)
     aux_ace_tails_dict = load_customed_dic(args.aux_ace_tails_dict)
@@ -137,15 +179,15 @@ def convert(
     # note[1]: lyrics: "zh"; note: 61
     # note[2]: lyrics: "i"; note: 65
     # Here using pre_head_phn to concat 'zh'(pre_head_phn) with 'i'(current phn) to get ace_phns
-    pre_head_phn = None 
+    pre_head_phn = None
 
     for i in range(len(score)):
         lyric = score[i][2].replace("_", "")
 
-        if lyric in sli: # silence case
+        if lyric in sli:  # silence case
             new_labels.append([labels[index][0], labels[index][1], lyric])
             continue
-        elif lyric in ["-", "—"]: # slur case
+        elif lyric in ["-", "—"]:  # slur case
             phn = new_labels[-1][2]
             score[i][4] = phn
             new_labels.append([labels[index][0], labels[index][1], phn])
@@ -167,9 +209,14 @@ def convert(
             lyric = "".join(org_phns)
 
             if pre_head_phn is None:
-                if lyric in aux_ace_dict: 
+                if lyric in aux_ace_dict:
                     lyric = aux_ace_dict[lyric][0]
-            if i != 0 and dataset == "kising" and len(prev_lyrics := score[i-1][2].split("_")) == 2 and prev_lyrics[-1] == lyric:
+            if (
+                i != 0
+                and dataset == "kising"
+                and len(prev_lyrics := score[i - 1][2].split("_")) == 2
+                and prev_lyrics[-1] == lyric
+            ):
                 pro_phns = [tokenizer(prev_lyrics[0] + lyric)[-1]]
             else:
                 pro_phns = tokenizer(lyric)
@@ -178,28 +225,40 @@ def convert(
         set_phn_type = 0
         if pre_head_phn is not None:
             lyric = pre_head_phn + lyric
-            if lyric in aux_ace_dict: 
+            if lyric in aux_ace_dict:
                 lyric = aux_ace_dict[lyric][0]
             pro_phns = tokenizer(lyric)
             set_phn_type = 2
-            print("Warning: Concat {}+{}->{} in {}".format(pre_head_phn, org_lyric, lyric, key))
+            print(
+                "Warning: Concat {}+{}->{} in {}".format(
+                    pre_head_phn, org_lyric, lyric, key
+                )
+            )
         elif pro_phns == "pinyin not found" and lyric in heads_list:
             if dataset == "kising":
                 if lyric in heads_list:
                     pre_head_phn = lyric
                     set_phn_type = 1
-                    print("Warning: set previous head phoneme {} in {}".format(pre_head_phn, key))
+                    print(
+                        "Warning: set previous head phoneme {} in {}".format(
+                            pre_head_phn, key
+                        )
+                    )
                     continue
-                
+
         if pro_phns == "pinyin not found":
-            raise ValueError(f"lyric: \"{lyric}\" is not supported in ACE_phonemes and org_phns: {org_phns} in {key}")
+            raise ValueError(
+                f'lyric: "{lyric}" is not supported in ACE_phonemes and org_phns: {org_phns} in {key}'
+            )
 
         if set_phn_type == 0:
             score_phns = []
             for phn in pro_phns:
                 score_phns.append(convert_phn_with_lang(phn, lang))
             score[i][4] = "_".join(score_phns)
-            index, tmp_labels = fix_phns(key, lyric, org_phns, pro_phns, index, labels, lang, phn_seg)
+            index, tmp_labels = fix_phns(
+                key, lyric, org_phns, pro_phns, index, labels, lang, phn_seg
+            )
             new_labels.extend(tmp_labels)
         elif set_phn_type == 2:
             assert len(pro_phns) == 2
@@ -207,7 +266,9 @@ def convert(
             org_phns.extend(score[i][4].split("_"))
             score[i - 1][4] = convert_phn_with_lang(pro_phns[0], lang)
             score[i][4] = convert_phn_with_lang(pro_phns[1], lang)
-            index, tmp_labels = fix_phns(key, lyric, org_phns, pro_phns, index, labels, lang, phn_seg)
+            index, tmp_labels = fix_phns(
+                key, lyric, org_phns, pro_phns, index, labels, lang, phn_seg
+            )
             new_labels.extend(tmp_labels)
         if set_phn_type != 1:
             pre_head_phn = None
@@ -246,16 +307,19 @@ if __name__ == "__main__":
     args = get_parser().parse_args()
     reader = SingingScoreReader(os.path.join(args.scp, "score.scp"))
     writer = SingingScoreWriter(
-        args.score_dump,
-        os.path.join(args.scp, "score.scp.tmp")
+        args.score_dump, os.path.join(args.scp, "score.scp.tmp")
     )
     labels = read_label(os.path.join(args.scp, "label"))
     lablel_writer = open(os.path.join(args.scp, "label.tmp"), "w", encoding="utf-8")
     text_writer = open(os.path.join(args.scp, "text.tmp"), "w", encoding="utf-8")
-    utt2lang_writer = open(os.path.join(args.scp, "utt2lang.tmp"), "w", encoding="utf-8")
+    utt2lang_writer = open(
+        os.path.join(args.scp, "utt2lang.tmp"), "w", encoding="utf-8"
+    )
     for key in labels:
         score = reader[key]
-        score["note"], new_labels = convert(key, score["note"], labels[key], sli=args.silence)
+        score["note"], new_labels = convert(
+            key, score["note"], labels[key], sli=args.silence
+        )
 
         dataset = key.split("_")[0]
         lang = check_language(dataset)
@@ -267,5 +331,5 @@ if __name__ == "__main__":
         for st, ed, phn in new_labels:
             lablel_writer.write(f"{st} {ed} {phn} ")
             text_writer.write(f"{phn} ")
-        lablel_writer.write('\n')
-        text_writer.write('\n')
+        lablel_writer.write("\n")
+        text_writer.write("\n")

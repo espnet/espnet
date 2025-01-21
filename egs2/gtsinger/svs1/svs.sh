@@ -1068,11 +1068,11 @@ if ! "${skip_eval}"; then
     if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
         log "Stage 8: Scoring"
 
-        for dset in ${test_sets}; do 
-            _data="${data_feats}/${dset}" 
-            _gt_wavscp="${_data}/wav.scp"  
+        for dset in ${test_sets}; do
+            _data="${data_feats}/${dset}"
+            _gt_wavscp="${_data}/wav.scp"
             _dir="${svs_exp}/${inference_tag}/${dset}"
-            _gen_wavdir="${_dir}/wav"       
+            _gen_wavdir="${_dir}/wav"
 
 
             # Objective Evaluation - MCD

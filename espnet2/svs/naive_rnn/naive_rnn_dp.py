@@ -388,7 +388,7 @@ class NaiveRNNDP(AbsSVS):
             sids (Optional[Tensor]): Batch of speaker IDs (B, 1).
             lids (Optional[Tensor]): Batch of language IDs (B, 1).
             discrete_token (LongTensor): Batch of padded discrete tokens (B, T_frame).
-            discrete_token_lengths (LongTensor): Batch of the lengths of padded 
+            discrete_token_lengths (LongTensor): Batch of the lengths of padded
                 discrete tokens (B, ).
             joint_training (bool): Whether to perform joint training with vocoder.
 

@@ -83,7 +83,10 @@ def process_subset(src_data, subset, check_func, fs, wav_dump):
 
         wavscp.write(
             "{} {}\n".format(
-                utt_id, os.path.join(wav_dump, "{}_bits16.wav".format("{}_{}".format(UTT_PREFIX, folder)))
+                utt_id,
+                os.path.join(
+                    wav_dump, "{}_bits16.wav".format("{}_{}".format(UTT_PREFIX, folder))
+                ),
             )
         )
         utt2spk.write("{} {}\n".format(utt_id, UTT_PREFIX))

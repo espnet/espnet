@@ -17,7 +17,7 @@ try:
 except (ImportError, ModuleNotFoundError):
     miditoolkit = None
 try:
-    import utaufile# for CI import
+    import utaufile  # for CI import
 except (ImportError, ModuleNotFoundError):
     utaufile = None
 
@@ -28,6 +28,7 @@ class NOTE(object):
         self.midi = midi
         self.st = st
         self.et = et
+
 
 class USTReader(collections.abc.Mapping):
     """Reader class for 'ust.scp'.
@@ -68,7 +69,7 @@ class USTReader(collections.abc.Mapping):
         st = 0
         for note in part:
             # NOTE(Yuxun): UST length represents number of ticks which means 1/480th of a quarter note.
-            dur = note.length / 8.0 / tempo # ust_dur = (length / 480) * (60 / tempo)
+            dur = note.length / 8.0 / tempo  # ust_dur = (length / 480) * (60 / tempo)
             pitch = note.notenum
             if not note.isR():  # silence label
                 lr = note.lyric
@@ -99,7 +100,6 @@ class USTReader(collections.abc.Mapping):
         while notes_list[-1].lyric == "P":
             notes_list.pop()
         return tempo, notes_list
-
 
     def get_path(self, key):
         return self.data[key]

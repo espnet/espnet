@@ -158,9 +158,9 @@ class Decoder(torch.nn.Module):
 
 
 class TokSing(AbsSVS):
-    """ TokSing: Singing Voice Synthesis based on Discrete Tokens
+    """TokSing: Singing Voice Synthesis based on Discrete Tokens
 
-        paper link: https://arxiv.org/abs/2406.08416
+    paper link: https://arxiv.org/abs/2406.08416
     """
 
     def __init__(
@@ -730,7 +730,7 @@ class TokSing(AbsSVS):
             sids (Optional[Tensor]): Batch of speaker IDs (B, 1).
             lids (Optional[Tensor]): Batch of language IDs (B, 1).
             discrete_token (LongTensor): Batch of padded discrete tokens (B, T_frame).
-            discrete_token_lengths (LongTensor): Batch of the lengths of padded 
+            discrete_token_lengths (LongTensor): Batch of the lengths of padded
                 discrete tokens (B, ).
             joint_training (bool): Whether to perform joint training with vocoder.
             flag_IsValid (bool): Whether it is valid set.
@@ -820,10 +820,11 @@ class TokSing(AbsSVS):
                 hs_pitch_in = self.proj_pitch(midi_emb)
                 hs_pitch = self.length_regulator(hs_pitch_in, d_outs_int)
                 # NOTE(Yuxun): sync lengths with lengths of inference feats
-                discrete_token_lengths_frame = torch.Tensor([hs.size(1)]).to(hs.device).to(dtype=torch.long)
+                discrete_token_lengths_frame = (
+                    torch.Tensor([hs.size(1)]).to(hs.device).to(dtype=torch.long)
+                )
                 log_f0_outs, _ = self.f0_predictor(
-                    (hs + hs_pitch).transpose(1, 2),
-                    discrete_token_lengths_frame
+                    (hs + hs_pitch).transpose(1, 2), discrete_token_lengths_frame
                 )
                 log_f0_outs = log_f0_outs.transpose(1, 2)
                 log_f0_outs = torch.max(
@@ -913,7 +914,9 @@ class TokSing(AbsSVS):
             if self.reduction_factor > 1:
                 assert feats_lengths.ge(
                     self.reduction_factor
-                ).all(), "Output length must be greater than or equal to reduction factor."
+                ).all(), (
+                    "Output length must be greater than or equal to reduction factor."
+                )
                 olens = feats_lengths.new(
                     [olen - olen % self.reduction_factor for olen in feats_lengths]
                 )
@@ -930,7 +933,8 @@ class TokSing(AbsSVS):
                             torch.arange(self.codec_codebook).view(1, 1, -1) * self.odim
                         ).to(ds.device)
                         ys = (
-                            discrete_token.view(batch_size, -1, self.codec_codebook) - shift
+                            discrete_token.view(batch_size, -1, self.codec_codebook)
+                            - shift
                         )
                         ys = ys.flatten(start_dim=1)
                     olens = discrete_token_lengths
