@@ -36,7 +36,7 @@ def get_base_parser():
     return parser
 
 
-def get_parser(task_class = None):
+def get_parser(task_class=None):
     if task_class is None:
         parser = get_base_parser()
     else:
