@@ -26,7 +26,7 @@ jobs:
             echo "is_doc=false" >> "$GITHUB_OUTPUT"
           fi
 
-  generate_and_deplay_doc:
+  generate_and_deploy_doc:
     runs-on: ubuntu-latest
     needs: get_labels
     if: |
@@ -63,35 +63,3 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./dist
-
-  generate_doc:
-    runs-on: ubuntu-latest
-    needs: get_labels
-    if: |
-      github.event_name != 'push' ||
-        (github.event.pull_request.draft == false && needs.get_labels.outputs.is_doc == 'true')
-    steps:
-      - uses: actions/checkout@master
-      - uses: actions/cache@v1
-        with:
-          path: ~/.cache/pip
-          key: pip-${{ hashFiles('**/setup.py') }}
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-          architecture: "x64"
-      - name: check OS
-        run: cat /etc/os-release
-      - name: install dependencies
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -qq -y cmake python3-dev git pandoc ffmpeg bc nodejs npm
-      - name: install espnet
-        env:
-          ESPNET_PYTHON_VERSION: 3.10
-          TH_VERSION: 2.0.1
-          CHAINER_VERSION: 6.0.0
-          USE_CONDA: false
-        run: ./ci/install.sh
-      - name: generate doc
-        run: ./ci/doc.sh
