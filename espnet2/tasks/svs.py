@@ -415,7 +415,7 @@ class SVSTask(AbsTask):
         else:
             svs = svs_class(idim=vocab_size, odim=odim, **args.svs_conf)
         kwargs.update(svs=svs)
-        
+
         # 4. Extra components
         score_feats_extract = None
         pitch_extract = None
@@ -491,7 +491,7 @@ class SVSTask(AbsTask):
         model_class = model_type_choices.get_class(args.model_type)
         model = model_class(
             **kwargs,
-            **args.model_conf, 
+            **args.model_conf,
         )
         return model
 

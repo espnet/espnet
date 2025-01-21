@@ -1,6 +1,7 @@
 import argparse
 import os
 import shutil
+
 from espnet2.fileio.read_text import read_label
 
 
@@ -37,9 +38,15 @@ if __name__ == "__main__":
     text = open(os.path.join(args.src_data, "text"), "r", encoding="utf-8")
 
     label_writer = open(os.path.join(args.src_data, "label.tmp"), "w", encoding="utf-8")
-    score_writer = open(os.path.join(args.src_data, "score.scp.tmp"), "w", encoding="utf-8")
-    utt2spk_writer = open(os.path.join(args.src_data, "utt2spk.tmp"), "w", encoding="utf-8")
-    wavscp_writer = open(os.path.join(args.src_data, "wav.scp.tmp"), "w", encoding="utf-8")
+    score_writer = open(
+        os.path.join(args.src_data, "score.scp.tmp"), "w", encoding="utf-8"
+    )
+    utt2spk_writer = open(
+        os.path.join(args.src_data, "utt2spk.tmp"), "w", encoding="utf-8"
+    )
+    wavscp_writer = open(
+        os.path.join(args.src_data, "wav.scp.tmp"), "w", encoding="utf-8"
+    )
     text_writer = open(os.path.join(args.src_data, "text.tmp"), "w", encoding="utf-8")
 
     write_file(wavscp, wavscp_writer, utt_key)

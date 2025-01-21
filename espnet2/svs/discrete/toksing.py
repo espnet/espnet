@@ -158,9 +158,9 @@ class Decoder(torch.nn.Module):
 
 
 class TokSing(AbsSVS):
-    """ TokSing: Singing Voice Synthesis based on Discrete Tokens
+    """TokSing: Singing Voice Synthesis based on Discrete Tokens
 
-        paper link: https://arxiv.org/abs/2406.08416
+    paper link: https://arxiv.org/abs/2406.08416
     """
 
     def __init__(
@@ -729,7 +729,7 @@ class TokSing(AbsSVS):
             sids (Optional[Tensor]): Batch of speaker IDs (B, 1).
             lids (Optional[Tensor]): Batch of language IDs (B, 1).
             discrete_token (LongTensor): Batch of padded discrete tokens (B, T_frame).
-            discrete_token_lengths (LongTensor): Batch of the lengths of padded 
+            discrete_token_lengths (LongTensor): Batch of the lengths of padded
                 discrete tokens (B, ).
             joint_training (bool): Whether to perform joint training with vocoder.
             flag_IsValid (bool): Whether it is valid set.
