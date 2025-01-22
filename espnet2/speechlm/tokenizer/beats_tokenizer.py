@@ -194,8 +194,6 @@ class BeatsRandomTokenizer(nn.Module):
 
         config = BeatsTokenizerConfig(tokenizer_config)
         self.config = config
-        self.generator = torch.Generator()
-        self.generator.manual_seed(seed)
         self.layer_norm = LayerNorm(config.embed_dim, elementwise_affine=False)
         self.patch_embedding = nn.Conv2d(
             1,
@@ -210,13 +208,14 @@ class BeatsRandomTokenizer(nn.Module):
             codebook_dim=config.quant_dim,
             seed=seed,
         )
-        self._initialize()
+        self._initialize(seed)
 
-    def _initialize(self):
+    def _initialize(self, seed):
         logging.info("Beats Random Tokenizer initialization function called.")
-        torch.nn.init.xavier_normal_(
-            self.patch_embedding.weight, generator=self.generator
-        )
+        original_rng_state = torch.get_rng_state()
+        torch.manual_seed(seed)
+        torch.nn.init.xavier_normal_(self.patch_embedding.weight)
+        torch.set_rng_state(original_rng_state)
         self.patch_embedding.weight.requires_grad = False
         if self.patch_embedding.bias is not None:
             torch.nn.init.constant_(self.patch_embedding.bias, 0)

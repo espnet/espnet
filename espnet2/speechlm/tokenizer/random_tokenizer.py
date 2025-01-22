@@ -10,13 +10,12 @@ from torch.linalg import vector_norm
 class RandomProjectionQuantizer(nn.Module):
     def __init__(self, dim, codebook_size, codebook_dim, norm=True, seed=42):
         super().__init__()
-        # Create a local generator for reproducibility
-        self.generator = torch.Generator()
-        self.generator.manual_seed(seed)
-
+        # Seed locally for reproducibility
+        original_rng_state = torch.get_rng_state()
+        torch.manual_seed(seed)
         # Random projection layer
         self.random_projection = nn.Linear(dim, codebook_dim, bias=False)
-        nn.init.xavier_uniform_(self.random_projection.weight, generator=self.generator)
+        nn.init.xavier_uniform_(self.random_projection.weight)
 
         self.maybe_norm = (
             nn.LayerNorm(codebook_dim, elementwise_affine=False)
@@ -24,9 +23,8 @@ class RandomProjectionQuantizer(nn.Module):
             else nn.Identity()
         )
         # Codebook initialized with the local generator
-        self.codebook = nn.Parameter(
-            torch.randn(codebook_size, codebook_dim, generator=self.generator)
-        )
+        self.codebook = nn.Parameter(torch.randn(codebook_size, codebook_dim))
+        torch.set_rng_state(original_rng_state)
         self.random_projection.weight.requires_grad = False
         self.codebook.requires_grad = False
 
