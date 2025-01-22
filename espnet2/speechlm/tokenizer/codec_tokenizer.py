@@ -142,6 +142,7 @@ class CodecTokenizer(AbsTokenizer):
                 tokenizer_config=beats_config,
                 **remaining_args,
             )
+            self.codec = self.codec.to(device)
             self.codec.eval()
             self.n_codebook = 1
             self.size_codebook = self.codec.quantize.num_tokens
@@ -164,6 +165,7 @@ class CodecTokenizer(AbsTokenizer):
                 tokenizer_config=beats_config,
                 **remaining_args,
             )
+            self.codec = self.codec.to(device)
             self.codec.eval()
             self.n_codebook = 1
             self.size_codebook = self.codec.config.quant_n
