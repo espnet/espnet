@@ -84,7 +84,9 @@ class BeatsPretrainModel(AbsESPnetModel):
         # logits (Batch, n_patch, codebook_size)
         logits = self.decoder(unmasked_patch_emb, target_lengths, restore_ids)
 
-        loss, acc_mask, acc_unmask = self._calc_beats_loss(logits, ~kept_mask, target)
+        loss, acc_mask, acc_unmask = self._calc_beats_loss(
+            logits, ~kept_mask, target - 1
+        )  # target - 1 because of unk token at 0th position
 
         stats = dict(
             loss=loss.detach(),
@@ -101,13 +103,16 @@ class BeatsPretrainModel(AbsESPnetModel):
         self,
         speech: torch.Tensor,
         speech_lengths: torch.Tensor,
-        text: torch.Tensor,
-        text_lengths: torch.Tensor,
+        target: torch.Tensor,
+        target_lengths: torch.Tensor,
         **kwargs,
     ) -> Dict[str, torch.Tensor]:
+        old_is_pretraining = self.encoder.is_pretraining
         self.encoder.is_pretraining = False
-        feats, feats_lengths, _ = self.encoder._extract_feats(speech, speech_lengths)
-        self.encoder.is_pretraining = True
+        # for data-parallel
+        speech = speech[:, : speech_lengths.max()]
+        feats, feats_lengths = self.encoder.preprocess(speech)
+        self.encoder.is_pretraining = old_is_pretraining
         return {"feats": feats, "feats_lengths": feats_lengths}
 
     def _calc_beats_loss(
