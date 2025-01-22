@@ -97,9 +97,8 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
         self.overriding_architecture_config = overriding_architecture_config
         if isinstance(overriding_architecture_config, str):
             # It is path to a json config file
-            self.overriding_architecture_config = vars(
-                get_model_conf(model_path="", conf_path=overriding_architecture_config)
-            )
+            self.overriding_architecture_config = read_json_config(
+                                                overriding_architecture_config)
 
         self.causal_lm = causal_lm
 
@@ -368,34 +367,16 @@ def get_hugging_face_model_lm_head(model):
     return lm_head
 
 
-def get_model_conf(model_path, conf_path=None):
-    """Get model config information by reading a model config file (model.json).
-
+def read_json_config(conf_path):
+    """Read a json model config information.
     Args:
-        model_path (str): Model path.
-        conf_path (str): Optional model config path.
-
+        conf_path (str): Config path.
     Returns:
-        list[int, int, dict[str, Any]]: Config information loaded from json file.
-
-    NOTE(shikhar): We copy this function from espnet/asr/asr_utils.py to avoid
-    changing logger silently. See https://github.com/espnet/espnet/issues/6022
+        dict[str, Any]: Config information loaded from json file.
     """
-    import argparse
     import json
-
-    if conf_path is None:
-        model_conf = os.path.dirname(model_path) + "/model.json"
-    else:
-        model_conf = conf_path
-    with open(model_conf, "rb") as f:
-        logging.info("reading a config file from " + model_conf)
+    with open(conf_path, "rb") as f:
+        logging.info("Reading config file from " + conf_path)
         confs = json.load(f)
-    if isinstance(confs, dict):
-        # for lm
-        args = confs
-        return argparse.Namespace(**args)
-    else:
-        # for asr, tts, mt
-        idim, odim, args = confs
-        return idim, odim, argparse.Namespace(**args)
+    assert isinstance(confs, dict)
+    return confs
