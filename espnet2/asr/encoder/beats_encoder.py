@@ -341,6 +341,7 @@ class BeatsEncoder(AbsEncoder):
     ) -> torch.Tensor:
         """Preprocess raw audio."""
         fbanks = []
+        fbank_lens = []
         for waveform in source:
             waveform = waveform.unsqueeze(0) * 2**15  # float32 to int16
             fbank = ta_kaldi.fbank(
@@ -351,9 +352,11 @@ class BeatsEncoder(AbsEncoder):
                 frame_shift=10,
             )
             fbanks.append(fbank)
+            fbank_lens.append(fbank.shape[0])
         fbank = torch.stack(fbanks, dim=0)
         fbank = (fbank - self.fbank_mean) / (2 * self.fbank_std)
-        return fbank
+        fbank_lens = torch.tensor(fbank_lens).to(fbank.device)
+        return fbank, fbank_lens
 
     def output_size(self) -> int:
         return self._output_size
@@ -441,7 +444,7 @@ class BeatsEncoder(AbsEncoder):
     ):
         """Extract features from raw audio."""
         with autocast(False):
-            fbank = self.preprocess(source)
+            fbank, _ = self.preprocess(source)
 
             if self.specaug is not None and self.training:
                 fbank = self.specaug(fbank)[0]
@@ -524,13 +527,13 @@ class BeatsEncoder(AbsEncoder):
 
 
 class BeatsPretrainingPredictor(nn.Module):
-    def __init__(self, beats_config: Optional[BeatsConfig] = None):
+    def __init__(self, beats_config: Optional[Dict] = None):
         # Unclear rn (but should be minimal impact)
         # 1. Do they shuffle before encoding masked embeddings?
         # 2. Do they add positional information before passing to decoder (as in MAE)?
         super().__init__()
         beats_config = BeatsConfig(
-            vars(beats_config) if beats_config else None
+            beats_config
         )  # use default config if None, else override
         self.decoder_embed = nn.Linear(
             beats_config.encoder_embed_dim, beats_config.decoder_embed_dim, bias=True

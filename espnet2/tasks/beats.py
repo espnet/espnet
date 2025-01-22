@@ -163,9 +163,8 @@ class BeatsTask(AbsTask):
         beats_config = args.encoder_conf.pop("beats_config", None)
         if beats_config:
             assert (
-                beats_config.codebook_vocab_size == n_codebook_vectors
-            ), f"The provided token list length ({n_codebook_vectors}) and the codebook "
-            f"vocab size ({beats_config.codebook_vocab_size}) in the beats config do not match."
+                beats_config["codebook_vocab_size"] == n_codebook_vectors
+            ), f"The provided token list length ({n_codebook_vectors}) and the codebook vocab size ({beats_config['codebook_vocab_size']}) in the beats config do not match."
         # 1. frontend
         input_size = 1  # model will extract features
         # 2. Encoder

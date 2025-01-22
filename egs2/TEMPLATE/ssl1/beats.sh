@@ -43,7 +43,8 @@ local_data_opts= # The options given to local/data.sh.
 
 # Feature extraction related
 feats_type=raw       # Feature type (raw or fbank_pitch).
-audio_format=flac    # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw).
+audio_format=wav    # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw). 
+                    # flac does not work with kaldi during audio tokenization phase
 fs=16k               # Sampling rate.
 min_wav_duration=0.1 # Minimum duration in second.
 max_wav_duration=20  # Maximum duration in second.
@@ -58,7 +59,6 @@ train_start_iter= # Pretrain starts from the specified iteration (0 mean MFCC it
 train_stop_iter=  # Pretrain is stopped from the specified iteration (0 mean MFCC iteraion)
 train_config=    # Configration file of training stage
 n_targets=             # Number of codebook targets
-gpu_dump_feature=false  # Whether to use gpu in kmeans process for feature dumping.
 
 # Upload model related
 hf_repo=
@@ -115,7 +115,6 @@ Options:
     --beats_args      # Arguments for beats model training (default="${beats_args}").
                        # e.g., --beats_args "--max_epoch 10"
                        # Note that it will overwrite args in pt config.
-    --gpu_dump_feature # Whether to use gpu for kmeans feature dumping (default="${gpu_dump_feature}").
 
     # [Task dependent] Set the datadir name created by local/data.sh
     --train_set     # Name of training train set (required).
@@ -161,6 +160,15 @@ if ! [ ${train_start_iter} -le ${train_stop_iter} ]; then
     log "Error: train_start_iter is required to be smaller or equal than train_stop_iter"
 fi
 
+token_listdir="${datadir}/token_list_${n_targets}codebook"
+mkdir -p "${token_listdir}"
+
+
+if [ -n "${train_config}" ]; then
+    ssl_tag="$(basename "${train_config}" .yaml)_${feats_type}"
+else
+    ssl_tag="train_${feats_type}"
+fi
 # ========================== Main stages start from here. ==========================
 
 if ! "${skip_data_prep}"; then
@@ -185,6 +193,9 @@ if ! "${skip_data_prep}"; then
                                             "${datadir}/${dset}/wav.scp" "${data_feats}/org/${dset}"
 
             echo "${feats_type}" > "${data_feats}/org/${dset}/feats_type"
+            # Copy data from multiple jobs
+            utils/copy_data_dir.sh --validate_opts --non-print "${data_feats}/org/${dset}" "${data_feats}/${dset}"
+            cp "${data_feats}/org/${dset}/feats_type" "${data_feats}/${dset}/feats_type"
         done
     fi
 
@@ -193,15 +204,12 @@ if ! "${skip_data_prep}"; then
         log "Stage 3: Remove long/short data: ${data_feats}/org -> ${data_feats}"
 
         for dset in "${train_set}" "${valid_set}"; do
-            # Copy data dir
-            utils/copy_data_dir.sh --validate_opts --non-print "${data_feats}/org/${dset}" "${data_feats}/${dset}"
-            cp "${data_feats}/org/${dset}/feats_type" "${data_feats}/${dset}/feats_type"
 
             _feats_type="$(<${data_feats}/${dset}/feats_type)"
             if ! [ "${_feats_type}" = raw ]; then
                 log "Error: not supported: --feats_type ${feats_type}"
                 exit 2
-            else
+            fi
 
             _fs=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
             _min_length=$(python3 -c "print(int(${min_wav_duration} * ${_fs}))")
@@ -217,10 +225,6 @@ if ! "${skip_data_prep}"; then
             utils/filter_scp.pl "${data_feats}/${dset}/utt2num_samples"  \
             >"${data_feats}/${dset}/wav.scp"
 
-            # Remove empty text
-            <"${data_feats}/org/${dset}/text" \
-            awk ' { if( NF != 1 ) print $0; } ' >"${data_feats}/${dset}/text"
-
             # fix_data_dir.sh leaves only utts which exist in all files
             utils/fix_data_dir.sh "${data_feats}/${dset}"
         done
@@ -231,12 +235,38 @@ fi
 
 
 if ! "${skip_train}"; then
-
+    codec_choice="beats_random"
+    if ! [ ${train_start_iter} -eq 0 ]; then
+        codec_choice="beats"
+    fi
     if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
+        log "Stage 4: BEATs Tokenization: ${data_feats}/${train_set}, ${data_feats}/${valid_set}"
+        
+        # Tokenize
+        _nj=$((ngpu==0?nj:ngpu))
+        for dset in "${train_set}" "${valid_set}"; do
+            ./scripts/feats/audio_tokenization.sh \
+                --codec_choice ${codec_choice} \
+                --file_name wav.scp \
+                --src_dir "${data_feats}/${dset}" \
+                --tgt_dir "${data_feats}/${dset}/codes" \
+                --nj "${_nj}"
+            cp "${data_feats}/${dset}/codes/wav_${codec_choice}.txt" "${data_feats}/${dset}/target_iter0"
+        done
+        
+        # Prepare token list
+        : > "${token_listdir}/tokens.txt"  # Clear the file if it exists
+        echo "<unk>" >> "${token_listdir}/tokens.txt"
+        for i in $(seq 0 $((n_targets - 1))); do
+            echo "${i}" >> "${token_listdir}/tokens.txt"
+        done
+    fi
+
+    if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         _ssl_train_dir="${data_feats}/${train_set}"
         _ssl_valid_dir="${data_feats}/${valid_set}"
 
-        log "Stage 4: BEATs collect stats: train_set=${_ssl_train_dir}, valid_set=${_ssl_valid_dir}"
+        log "Stage 5: BEATs collect stats: train_set=${_ssl_train_dir}, valid_set=${_ssl_valid_dir}"
 
         _opts=
         if [ -n "${train_config}" ]; then
@@ -276,13 +306,12 @@ if ! "${skip_train}"; then
         utils/split_scp.pl "${key_file}" ${split_scps}
 
         # 2. Generate run.sh
-        log "Generate '${ssl_stats_dir}/run.sh'. You can resume the process from stage 4 using this script"
-        mkdir -p "${ssl_stats_dir}"; echo "${run_args} --stage 4 \"\$@\"; exit \$?" > "${ssl_stats_dir}/run.sh";chmod +x "${ssl_stats_dir}/run.sh"
+        log "Generate '${ssl_stats_dir}/run.sh'. You can resume the process from stage 5 using this script"
+        mkdir -p "${ssl_stats_dir}"; echo "${run_args} --stage 5 \"\$@\"; exit \$?" > "${ssl_stats_dir}/run.sh";chmod +x "${ssl_stats_dir}/run.sh"
 
         # 3. Submit jobs
         log "BEATs collect-stats started... log: '${_logdir}/stats.*.log'"
         
-        token_listdir="${datadir}/token_list_${n_targets}codebook"
         # shellcheck disableSC2046,SC2086
         ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
             ${python} -m espnet2.bin.beats_train \
@@ -290,9 +319,9 @@ if ! "${skip_train}"; then
                 --use_preprocessor true \
                 --token_list "${token_listdir}/tokens.txt" \
                 --train_data_path_and_name_and_type "${_ssl_train_dir}/${_scp},speech,${_type}" \
-                --train_data_path_and_name_and_type "${_ssl_train_dir}/text,target,text" \
+                --train_data_path_and_name_and_type "${_ssl_train_dir}/target_iter0,target,text" \
                 --valid_data_path_and_name_and_type "${_ssl_valid_dir}/${_scp},speech,${_type}" \
-                --valid_data_path_and_name_and_type "${_ssl_valid_dir}/text,target,text" \
+                --valid_data_path_and_name_and_type "${_ssl_valid_dir}/target_iter0,target,text" \
                 --train_shape_file "${_logdir}/train.JOB.scp" \
                 --valid_shape_file "${_logdir}/valid.JOB.scp" \
                 --output_dir "${_logdir}/stats.JOB" \
@@ -308,83 +337,61 @@ if ! "${skip_train}"; then
         ${python} -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${ssl_stats_dir}"
 
         # Append the num-tokens at the last dimensions. This is used for batch-bins count
-        <"${ssl_stats_dir}/train/text_shape" \
+        <"${ssl_stats_dir}/train/target_shape" \
             awk -v N="$(<${token_listdir}/tokens.txt wc -l)" '{ print $0 "," N }' \
-            >"${ssl_stats_dir}/train/text_shape.word"
+            >"${ssl_stats_dir}/train/target_shape.word"
 
-        <"${ssl_stats_dir}/valid/text_shape" \
+        <"${ssl_stats_dir}/valid/target_shape" \
             awk -v N="$(<${token_listdir}/tokens.txt wc -l)" '{ print $0 "," N }' \
-            >"${ssl_stats_dir}/valid/text_shape.word"
+            >"${ssl_stats_dir}/valid/target_shape.word"
     fi
     
-    for ((iter=${train_start_iter}; iter<=${train_stop_iter};iter++)); do
-        if [ -n "${train_config}" ]; then
-            ssl_tag="$(basename "${train_config}" .yaml)_${feats_type}"
-        else
-            ssl_tag="train_${feats_type}"
-        fi
-
-        ssl_stats_dir="${expdir}/beats_iter${iter}_stats_${feats_type}"
-        ssl_exp="${expdir}/beats_iter${iter}_${ssl_tag}"
-        token_listdir="${datadir}/token_list_iter${iter}_${n_targets}codebook/${token_type}"
-
-        if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
-            log "Stage 4 [Iter ${iter} / ${train_stop_iter}]: Training self-distilled tokenizer with ${n_targets} tokens."
-            # TODO: Add training and tokenization of the self-distilled tokenizer
-            # Iter 0: No training, only tokenization with random tokenizer
-            # Iter 1 onwards: Distillation training of tokenizer and tokenization with the trained tokenizer
+    if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
+        _ssl_train_dir="${data_feats}/${train_set}"
+        _ssl_valid_dir="${data_feats}/${valid_set}"
+        log "Stage 6: BEATs Training: train_set=${_ssl_train_dir}, valid_set=${_ssl_valid_dir}"
+        for ((iter=${train_start_iter}; iter<=${train_stop_iter};iter++)); do
+            log "Iter ${iter} BEATs Training started..."
+            
             if ! [ ${iter} -eq 0 ]; then
-                # Train the tokenizer
-                log "Training the tokenizer with ${n_targets} tokens"
-                # TODO: Add training of the tokenizer
-                exit 1
+                # Train beats tokenizer and generate codes from it
+                _checkpoint_path="TODODODO"
+                _config_path=""
+                log "Implement the training stage for iter ${iter}!"
+                exit 2
+                log "Iter ${iter} BEATs Tokenizer Training completed, model saved in: ${ssl_exp}"
+                # Tokenize
+                for _data_dir in "${_ssl_train_dir}" "${_ssl_val_dir}"; do
+                    _nj=$((ngpu==0?nj:ngpu))
+                    ./scripts/feats/audio_tokenization.sh \
+                        --codec_choice beats \
+                        --file_name wav.scp \
+                        --src_dir "${_data_dir}" \
+                        --tgt_dir "${_data_dir}/codes_iter${iter}" \
+                        --checkpoint_path "${_checkpoint_path}" \
+                        --config_path "${_config_path}" \
+                        --nj "${_nj}"
+                    cp "${_data_dir}/codes/wav_${codec_choice}.txt" "${_data_dir}/target_iter${iter}"
+                done
             fi
-            # TODO(shikhar): bring in variables
-            ./scripts/feats/codec_tokenization.sh \
-                --src_dir "${}" \
-                --tgt_dir "${}" \
-                --file_name ${} \
-                --codec_choice beats \
-                --checkpoint_path ${} \
-                --config_path ${} \
-                --nj ${nj} # batch_size?
-        fi
 
-        if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
-            _ssl_train_dir="${data_feats}/${train_set}"
-            _ssl_valid_dir="${data_feats}/${valid_set}"
-
-            log "Stage 7 [Iter ${iter} / ${train_stop_iter}]: BEATs Training: train_set=${_ssl_train_dir}, valid_set=${_ssl_valid_dir}"
+            # Train beats encoder model
+            ssl_exp="${expdir}/beats_iter${iter}_${ssl_tag}"
 
             _opts=
-            if [ -n "${ssl_config}" ]; then
+            if [ -n "${train_config}" ]; then
                 # To generate the config file: e.g.
                 #   % python3 -m espnet2.bin.beats_train --print_config --optim adam
-                _opts+="--config ${ssl_config} "
+                _opts+="--config ${train_config} "
             fi
 
             _feats_type="$(<${_ssl_train_dir}/feats_type)"
-            if [ "${_feats_type}" = raw ]; then
-                _scp=wav.scp
-                # "sound" supports "wav", "flac", etc.
-                if [[ "${audio_format}" == *ark* ]]; then
-                    _type=kaldi_ark
-                else
-                    _type=sound
-                fi
-                _fold_length="$((speech_fold_length * 100))"
-                _opts+="--frontend_conf fs=${fs} "
-            else
-                _scp=feats.scp
-                _type=kaldi_ark
-                _fold_length="${speech_fold_length}"
-                _input_size="$(<${_ssl_train_dir}/feats_dim)"
-                _opts+="--input_size=${_input_size} "
+            if ! [ "${_feats_type}" = raw ]; then
+                log "Error: not supported: --feats_type ${feats_type}"
+                exit 2
             fi
-            if [ "${feats_normalize}" = global_mvn ]; then
-                # Default normalization is utterance_mvn and changes to global_mvn
-                _opts+="--normalize=global_mvn --normalize_conf stats_file=${ssl_stats_dir}/train/feats_stats.npz "
-            fi
+            _scp=wav.scp
+            _type=sound
 
             if [ "${num_splits_ssl}" -gt 1 ]; then
                 # If you met a memory error when parsing text files, this option may help you.
@@ -397,9 +404,9 @@ if ! "${skip_train}"; then
                     ${python} -m espnet2.bin.split_scps \
                         --scps \
                         "${_ssl_train_dir}/${_scp}" \
-                        "${_ssl_train_dir}/text.km.${km_tag}" \
+                        "${_ssl_train_dir}/target_iter${iter}" \
                         "${ssl_stats_dir}/train/speech_shape" \
-                        "${ssl_stats_dir}/train/text_shape.${token_type}" \
+                        "${ssl_stats_dir}/train/target_shape.word" \
                         --num_splits "${num_splits_ssl}" \
                         --output_dir "${_split_dir}"
                     touch "${_split_dir}/.done"
@@ -408,20 +415,20 @@ if ! "${skip_train}"; then
                 fi
 
                 _opts+="--train_data_path_and_name_and_type ${_split_dir}/${_scp},speech,${_type} "
-                _opts+="--train_data_path_and_name_and_type ${_split_dir}/text.km.${km_tag},text,text "
+                _opts+="--train_data_path_and_name_and_type ${_split_dir}/target_iter${iter},target,text "
                 _opts+="--train_shape_file ${_split_dir}/speech_shape "
-                _opts+="--train_shape_file ${_split_dir}/text_shape.${token_type} "
+                _opts+="--train_shape_file ${_split_dir}/target_shape.word "
                 _opts+="--multiple_iterator true "
 
             else
                 _opts+="--train_data_path_and_name_and_type ${_ssl_train_dir}/${_scp},speech,${_type} "
-                _opts+="--train_data_path_and_name_and_type ${_ssl_train_dir}/text.km.${km_tag},text,text "
+                _opts+="--train_data_path_and_name_and_type ${_ssl_train_dir}/target_iter${iter},target,text "
                 _opts+="--train_shape_file ${ssl_stats_dir}/train/speech_shape "
-                _opts+="--train_shape_file ${ssl_stats_dir}/train/text_shape.${token_type} "
+                _opts+="--train_shape_file ${ssl_stats_dir}/train/target_shape.word "
             fi
 
-            log "Generate '${ssl_exp}/run.sh'. You can resume the process from stage 7 using this script"
-            mkdir -p "${ssl_exp}"; echo "${run_args} --stage 7 \"\$@\"; exit \$?" > "${ssl_exp}/run.sh"; chmod +x "${ssl_exp}/run.sh"
+            log "Generate '${ssl_exp}/run.sh'. You can resume the process from stage 6 using this script"
+            mkdir -p "${ssl_exp}"; echo "${run_args} --stage 6 \"\$@\"; exit \$?" > "${ssl_exp}/run.sh"; chmod +x "${ssl_exp}/run.sh"
 
             # NOTE(kamo): --fold_length is used only if --batch_type=folded and it's ignored in the other case
             log "BEATs Training started... log: '${ssl_exp}/train.log'"
@@ -432,7 +439,6 @@ if ! "${skip_train}"; then
                 jobname="${ssl_exp}/train.log"
             fi
             
-            token_listdir=#TODO
             # shellcheck disable=SC2086
             ${python} -m espnet2.bin.launch \
                 --cmd "${cuda_cmd} --name ${jobname}" \
@@ -445,33 +451,26 @@ if ! "${skip_train}"; then
                     --use_preprocessor true \
                     --token_list "${token_listdir}/tokens.txt" \
                     --valid_data_path_and_name_and_type "${_ssl_valid_dir}/${_scp},speech,${_type}" \
-                    --valid_data_path_and_name_and_type "${_ssl_valid_dir}/text.km.${km_tag},text,text" \
+                    --valid_data_path_and_name_and_type "${_ssl_valid_dir}/target_iter${iter},target,text" \
                     --valid_shape_file "${ssl_stats_dir}/valid/speech_shape" \
-                    --valid_shape_file "${ssl_stats_dir}/valid/text_shape.${token_type}" \
+                    --valid_shape_file "${ssl_stats_dir}/valid/target_shape.word" \
                     --resume true \
-                    --fold_length "${_fold_length}" \
+                    --fold_length "${speech_fold_length}" \
                     --fold_length "${text_fold_length}" \
                     --output_dir "${ssl_exp}" \
                     ${_opts} ${beats_args}
 
             log "Iter ${iter} BEATs Training completed, model saved in: ${ssl_exp}"
-        fi
-    done
+        done
+    fi
 else
     log "Skip the training stages"
 fi
 
 
-# ssl_config=${train_config_list[${train_stop_iter}]}
-# if [ -n "${ssl_config}" ]; then
-#     ssl_tag="$(basename "${ssl_config}" .yaml)_${feats_type}"
-# else
-#     ssl_tag="train_${feats_type}"
-# fi
-# ssl_exp="${expdir}/beats_iter${train_stop_iter}_${ssl_tag}"
-# km_tag="kmeans_iter${train_stop_iter}_${train_set}_portion${portion_km}"
+
 # packed_model="${ssl_exp}/${ssl_exp##*/}_${inference_ssl_model%.*}.zip"
-# # Skip pack preparation if using a downloaded model
+# Skip pack preparation if using a downloaded model
 # if ! "${skip_packing}"; then
 #     if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
 #         log "Stage 8: Pack model: ${packed_model}"

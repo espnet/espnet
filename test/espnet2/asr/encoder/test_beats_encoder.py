@@ -109,9 +109,7 @@ def test_backward_pass_beats_encoder(
 
 
 def test_forward_pass_pretraining_beats_encoder():
-    beats_config = BeatsConfig(
-        cfg={"encoder_layers": 2, "mask_ratio": 0.75}
-    )  # Smaller model
+    beats_config = {"encoder_layers": 2, "mask_ratio": 0.75}
     beats_model = BeatsEncoder(
         input_size=1,
         beats_config=beats_config,
@@ -147,9 +145,7 @@ def test_forward_pass_pretraining_beats_encoder():
 
 
 def test_backward_pass_pretraining_beats_encoder():
-    beats_config = BeatsConfig(
-        cfg={"encoder_layers": 2, "mask_ratio": 0.75}
-    )  # Smaller model
+    beats_config = {"encoder_layers": 2, "mask_ratio": 0.75}
     beats_model = BeatsEncoder(
         input_size=1,
         beats_config=beats_config,
@@ -164,15 +160,13 @@ def test_backward_pass_pretraining_beats_encoder():
 def test_forward_pass_beats_pretraining_predictor():
     if not is_torch_1_12_1_plus:
         return
-    beats_config = BeatsConfig(
-        cfg={
-            "encoder_layers": 2,
-            "encoder_embed_dim": 128,
-            "decoder_embed_dim": 1024,
-            "encoder_attention_heads": 4,
-            "codebook_vocab_size": 24,
-        }
-    )  # Smaller model
+    beats_config = {
+        "encoder_layers": 2,
+        "encoder_embed_dim": 128,
+        "decoder_embed_dim": 1024,
+        "encoder_attention_heads": 4,
+        "codebook_vocab_size": 24,
+    }
     beats_predictor = BeatsPretrainingPredictor(
         beats_config=beats_config,
     )
@@ -188,15 +182,13 @@ def test_forward_pass_beats_pretraining_predictor():
 def test_backward_pass_beats_pretraining_predictor():
     if not is_torch_1_12_1_plus:
         return
-    beats_config = BeatsConfig(
-        cfg={
-            "encoder_layers": 2,
-            "encoder_embed_dim": 128,
-            "decoder_embed_dim": 1024,
-            "encoder_attention_heads": 4,
-            "codebook_vocab_size": 24,
-        }
-    )  # Smaller model
+    beats_config = {
+        "encoder_layers": 2,
+        "encoder_embed_dim": 128,
+        "decoder_embed_dim": 1024,
+        "encoder_attention_heads": 4,
+        "codebook_vocab_size": 24,
+    }
     beats_predictor = BeatsPretrainingPredictor(
         beats_config=beats_config,
     )
