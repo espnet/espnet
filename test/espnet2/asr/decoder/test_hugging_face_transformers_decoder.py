@@ -3,6 +3,7 @@ import torch
 
 from espnet2.asr.decoder.hugging_face_transformers_decoder import (
     HuggingFaceTransformersDecoder,
+    read_json_config,
 )
 
 
@@ -110,3 +111,29 @@ def test_HuggingFaceTransformersDecoder_causal_lm(model_name_or_path, prefix, po
     t_lens = torch.tensor([4, 3], dtype=torch.long)
     z_all, ys_in_lens = decoder(x, x_lens, t, t_lens)
     assert t.shape[1] == z_all.shape[1]
+
+
+@pytest.fixture()
+def json_config_path(tmp_path):
+    json_config = tmp_path / "config.json"
+    json_config.write_text(
+        """
+        {
+            "model_name_or_path": "akreal/tiny-random-t5",
+            "encoder_output_size": 32,
+            "causal_lm": true,
+            "prefix": "prefix",
+            "postfix": "postfix"
+        }
+        """
+    )
+    return str(json_config)
+
+
+def test_read_json_config(json_config_path):
+    config = read_json_config(json_config_path)
+    assert config["model_name_or_path"] == "akreal/tiny-random-t5"
+    assert config["encoder_output_size"] == 32
+    assert config["causal_lm"]
+    assert config["prefix"] == "prefix"
+    assert config["postfix"] == "postfix"
