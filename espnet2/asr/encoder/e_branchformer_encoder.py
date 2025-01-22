@@ -10,7 +10,7 @@ Reference:
 """
 
 import logging
-from typing import Optional, Tuple, List
+from typing import List, Optional, Tuple
 
 import torch
 from typeguard import typechecked
@@ -488,16 +488,14 @@ class EBranchformerEncoder(AbsEncoder):
                 )
             if 0 in self.gradient_checkpoint_layers:
                 xs_pad, masks = torch.utils.checkpoint.checkpoint(
-                    self.embed, xs_pad, masks,
-                    use_reentrant=False
+                    self.embed, xs_pad, masks, use_reentrant=False
                 )
             else:
                 xs_pad, masks = self.embed(xs_pad, masks)
         elif self.embed is not None:
             if 0 in self.gradient_checkpoint_layers:
                 xs_pad = torch.utils.checkpoint.checkpoint(
-                    self.embed, xs_pad,
-                    use_reentrant=False
+                    self.embed, xs_pad, use_reentrant=False
                 )
             else:
                 xs_pad = self.embed(xs_pad)
@@ -519,8 +517,7 @@ class EBranchformerEncoder(AbsEncoder):
 
             if layer_idx + 1 in self.gradient_checkpoint_layers:
                 xs_pad, masks = torch.utils.checkpoint.checkpoint(
-                    encoder_layer, xs_pad, masks,
-                    use_reentrant=False
+                    encoder_layer, xs_pad, masks, use_reentrant=False
                 )
             else:
                 xs_pad, masks = encoder_layer(xs_pad, masks)

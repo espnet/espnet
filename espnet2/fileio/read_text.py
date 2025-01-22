@@ -3,7 +3,7 @@ import logging
 from mmap import mmap
 from pathlib import Path
 from random import randint
-from typing import Dict, List, Optional, Tuple, Union, Set
+from typing import Dict, List, Optional, Set, Tuple, Union
 
 from typeguard import typechecked
 

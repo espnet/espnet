@@ -1793,7 +1793,9 @@ class AbsTask(ABC):
         cls, args: argparse.Namespace, iter_options: IteratorOptions, mode: str
     ) -> AbsIterFactory:
 
-        utt2category_file = Path(iter_options.data_path_and_name_and_type[0][0]).parent / "utt2category"
+        utt2category_file = (
+            Path(iter_options.data_path_and_name_and_type[0][0]).parent / "utt2category"
+        )
         if utt2category_file.exists():
             utt2category_file = str(utt2category_file)
             logging.warning("Reading " + utt2category_file)

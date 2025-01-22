@@ -2,9 +2,9 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """Decoder definition."""
+import logging
 from typing import Any, List, Sequence, Tuple
 
-import logging
 import torch
 from typeguard import typechecked
 
@@ -155,8 +155,7 @@ class BaseTransformerDecoder(
         for layer_idx, decoder_layer in enumerate(self.decoders):
             if layer_idx + 1 in self.gradient_checkpoint_layers:
                 x, tgt_mask, memory, memory_mask = torch.utils.checkpoint.checkpoint(
-                    decoder_layer, x, tgt_mask, memory, memory_mask,
-                    use_reentrant=False
+                    decoder_layer, x, tgt_mask, memory, memory_mask, use_reentrant=False
                 )
             else:
                 x, tgt_mask, memory, memory_mask = decoder_layer(

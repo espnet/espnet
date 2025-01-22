@@ -107,6 +107,7 @@ class TrainerOptions:
     gradient_as_bucket_view: bool
     ddp_comm_hook: Optional[str]
 
+
 class Trainer:
     """Trainer having a optimizer.
 
@@ -274,13 +275,17 @@ class Trainer:
 
                 # Register DDP communication hook
                 if trainer_options.ddp_comm_hook is not None:
-                    from torch.distributed.algorithms.ddp_comm_hooks.default_hooks import fp16_compress_hook, bf16_compress_hook
+                    from torch.distributed.algorithms.ddp_comm_hooks.default_hooks import (
+                        bf16_compress_hook,
+                        fp16_compress_hook,
+                    )
+
                     _hooks = {
                         "fp16_compress_hook": fp16_compress_hook,
                         "bf16_compress_hook": bf16_compress_hook,
                     }
                     dp_model.register_comm_hook(
-                        None, 
+                        None,
                         _hooks[trainer_options.ddp_comm_hook],
                     )
                     logging.info(
