@@ -1,6 +1,6 @@
-# JIBO Kids spontaneous RECIPE
+# JIBO Kids RECIPE
 
-This is the recipe of the children speech recognition model with [JIBO Kids spontaneous dataset](https://github.com/balaji1312/Jibo_Kids).
+This is the recipe of the children speech recognition model with [JIBO Kids dataset](https://github.com/balaji1312/Jibo_Kids).
 
 Before running the recipe, please download the [dataset](https://github.com/balaji1312/Jibo_Kids).
 Then, edit 'JIBO_KIDS' in `db.sh` and locate unzipped dataset as follows:
