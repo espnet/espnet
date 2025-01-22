@@ -134,6 +134,6 @@ def test_read_json_config(json_config_path):
     config = read_json_config(json_config_path)
     assert config["model_name_or_path"] == "akreal/tiny-random-t5"
     assert config["encoder_output_size"] == 32
-    assert config["causal_lm"] == True
+    assert config["causal_lm"]
     assert config["prefix"] == "prefix"
     assert config["postfix"] == "postfix"
