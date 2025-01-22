@@ -425,7 +425,7 @@ if ! "${skip_data_prep}"; then
                 # expand the utt_extra_files for multi-references
                 expand_utt_extra_files=""
                 for extra_file in ${utt_extra_files}; do
-                    for single_file in data/"${dset}"/${extra_file}/*; do
+                    for single_file in data/"${dset}"/*"${extra_file}"*; do
                         cp ${single_file} "${data_feats}${_suf}/${dset}"
                         expand_utt_extra_files="${expand_utt_extra_files} $(basename ${single_file})"
                     done
@@ -600,7 +600,7 @@ if ! "${skip_data_prep}"; then
             done
         elif [ ${kmeans_feature_type} != "multi" ]; then
             log "Stage 4a: Perform Kmeans using ${kmeans_feature_type} features"
-            nj=1
+            nj=2
             scripts/feats/perform_kmeans.sh \
                 --stage 1 --stop-stage 3 \
                 --train_set "${train_set}" \
