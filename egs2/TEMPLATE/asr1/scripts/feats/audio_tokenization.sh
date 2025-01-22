@@ -102,6 +102,13 @@ for n in $(seq ${_nj}); do
     cat ${output_dir}/${file_name}_codec_${codec_choice}.${n}.${_combine_filetype} || exit 1;
 done > ${tgt_dir}/${file_name}_${codec_choice}.${_combine_filetype} || exit 1
 
+if [ ${code_writeformat} == "text" ]; then
+    # format text file: [ 2 4 5 6 ] -> 2 4 5 6
+    sed -i 's/[][]//g' ${tgt_dir}/${file_name}_${codec_choice}.${_combine_filetype}
+    # remove multiple spaces
+    sed -i 's/  */ /g' ${tgt_dir}/${file_name}_${codec_choice}.${_combine_filetype}
+fi
+
 if ${dump_audio}; then
     for n in $(seq ${_nj}); do
         cat ${output_dir}/${file_name}_resyn_${codec_choice}.${n}.scp || exit 1;
