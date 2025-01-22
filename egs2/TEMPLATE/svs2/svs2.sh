@@ -425,7 +425,7 @@ if ! "${skip_data_prep}"; then
                 # expand the utt_extra_files for multi-references
                 expand_utt_extra_files=""
                 for extra_file in ${utt_extra_files}; do
-                    for single_file in $(ls data/"${dset}"/${extra_file}); do
+                    for single_file in data/"${dset}"/${extra_file}/*; do
                         cp ${single_file} "${data_feats}${_suf}/${dset}"
                         expand_utt_extra_files="${expand_utt_extra_files} $(basename ${single_file})"
                     done
