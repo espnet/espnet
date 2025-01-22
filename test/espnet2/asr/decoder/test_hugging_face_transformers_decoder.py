@@ -2,7 +2,8 @@ import pytest
 import torch
 
 from espnet2.asr.decoder.hugging_face_transformers_decoder import (
-    HuggingFaceTransformersDecoder, read_json_config
+    HuggingFaceTransformersDecoder,
+    read_json_config,
 )
 
 
@@ -127,7 +128,7 @@ def json_config_path(tmp_path):
         """
     )
     return str(json_config)
-    
+
 
 def test_read_json_config(json_config_path):
     config = read_json_config(json_config_path)

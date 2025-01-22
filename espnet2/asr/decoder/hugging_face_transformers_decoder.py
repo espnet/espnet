@@ -98,7 +98,8 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
         if isinstance(overriding_architecture_config, str):
             # It is path to a json config file
             self.overriding_architecture_config = read_json_config(
-                                                overriding_architecture_config)
+                overriding_architecture_config
+            )
 
         self.causal_lm = causal_lm
 
@@ -375,6 +376,7 @@ def read_json_config(conf_path):
         dict[str, Any]: Config information loaded from json file.
     """
     import json
+
     with open(conf_path, "rb") as f:
         logging.info("Reading config file from " + conf_path)
         confs = json.load(f)
