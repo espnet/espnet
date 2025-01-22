@@ -275,10 +275,11 @@ class Trainer:
 
                 # Register DDP communication hook
                 if trainer_options.ddp_comm_hook is not None:
-                    from torch.distributed.algorithms.ddp_comm_hooks.default_hooks import ( # noqa: E501
+                    from torch.distributed.algorithms.ddp_comm_hooks.default_hooks import (  # noqa: E501
                         bf16_compress_hook,
                         fp16_compress_hook,
                     )
+
                     _hooks = {
                         "fp16_compress_hook": fp16_compress_hook,
                         "bf16_compress_hook": bf16_compress_hook,
