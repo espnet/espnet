@@ -9,13 +9,13 @@ import numpy as np
 import torch
 import yaml
 
-from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.speechlm.tokenizer.abs_tokenizer import AbsTokenizer
 from espnet2.speechlm.tokenizer.beats_tokenizer import (
     BeatsRandomTokenizer,
     BeatsTokenizer,
     BeatsTokenizerConfig,
 )
+from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 
 
 class CodecTokenizer(AbsTokenizer):
