@@ -98,9 +98,9 @@ ${cuda_cmd} --gpu 1 JOB=1:${_nj} ${_logdir}/codec_dump_${codec_choice}.JOB.log \
         ${_opts} \
         "scp:${_logdir}/${file_name}.JOB.scp" ${code_wspecifier} || exit 1;
 
-for n in $(seq ${_nj}); do
-    cat ${output_dir}/${file_name}_codec_${codec_choice}.${n}.${_combine_filetype} || exit 1;
-done > ${tgt_dir}/${file_name}_${codec_choice}.${_combine_filetype} || exit 1
+for n in $(seq "${_nj}"); do
+    cat "${output_dir}/${file_name}_codec_${codec_choice}.${n}.${_combine_filetype}" || exit 1;
+done > "${tgt_dir}/${file_name}_${codec_choice}.${_combine_filetype}" || exit 1
 
 if [ ${code_writeformat} == "text" ]; then
     # format text file: [ 2 4 5 6 ] -> 2 4 5 6
@@ -110,9 +110,9 @@ if [ ${code_writeformat} == "text" ]; then
 fi
 
 if ${dump_audio}; then
-    for n in $(seq ${_nj}); do
-        cat ${output_dir}/${file_name}_resyn_${codec_choice}.${n}.scp || exit 1;
-    done > ${tgt_dir}/${file_name}_resyn_${codec_choice}.scp || exit 1
+    for n in $(seq "${_nj}"); do
+        cat "${output_dir}/${file_name}_resyn_${codec_choice}.${n}.scp" || exit 1;
+    done > "${tgt_dir}/${file_name}_resyn_${codec_choice}.scp" || exit 1
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"

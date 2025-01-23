@@ -50,6 +50,7 @@ min_wav_duration=0.1 # Minimum duration in second.
 max_wav_duration=20  # Maximum duration in second.
 
 # Pretrain model related
+ssl_tag=       # Suffix to the result dir for ssl model training.
 beats_args=         # Arguments for ssl model training, e.g., "--max_epoch 10".
                      # Note that it will overwrite args in ssl config.
 num_splits_ssl=1 # Number of splitting for lm corpus.
@@ -90,6 +91,7 @@ Options:
     --datadir        # Directory to save the prepared data from Stage 1 (default="${datadir}").
     --dumpdir        # Directory to dump features (default="${dumpdir}").
     --expdir         # Directory to save experiments (default="${expdir}").
+    --ssl_tag        # Suffix to the result dir for ssl model training (default="${ssl_tag}").
     --python         # Specify python to execute espnet commands (default="${python}").
     --hf_repo        # Hugging face repository name (default="${hf_repo}").
 
@@ -163,11 +165,12 @@ fi
 token_listdir="${datadir}/token_list_${n_targets}codebook"
 mkdir -p "${token_listdir}"
 
-
-if [ -n "${train_config}" ]; then
-    ssl_tag="$(basename "${train_config}" .yaml)_${feats_type}"
-else
-    ssl_tag="train_${feats_type}"
+if [ -z "${ssl_tag}" ]; then
+    if [ -n "${train_config}" ]; then
+        ssl_tag="$(basename "${train_config}" .yaml)_${feats_type}"
+    else
+        ssl_tag="train_${feats_type}"
+    fi
 fi
 # ========================== Main stages start from here. ==========================
 

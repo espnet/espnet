@@ -577,6 +577,7 @@ class BeatsPretrainingPredictor(nn.Module):
         patch_len: torch.Tensor,  # B (1>=x>=T_large)
         restore_ids: torch.Tensor,  # B,T_large,D
     ):
+        # TODO(shikhar): This gives warning due to input as list, fix it.
         padding_mask = make_pad_mask(lengths=patch_len.tolist()).to(
             audio_representation.device
         )
