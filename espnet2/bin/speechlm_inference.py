@@ -7,6 +7,7 @@ import argparse
 import json
 import logging
 import sys
+import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
@@ -64,6 +65,9 @@ class SpeechLM:
             train_config, model_file, device
         )
         self.model = model.to(dtype=getattr(torch, dtype)).eval()
+        if 'cuda' in device:
+            torch.cuda.empty_cache() # from FP32 to BF16, release the memory
+
         self.preprocessor = SpeechLMTask.build_preprocess_fn(train_args, False)
         self.device = device
         self.dtype = dtype
@@ -293,6 +297,8 @@ class SpeechLM:
 @typechecked
 def inference(
     # general
+    rank: int,
+    nproc: int,
     output_dir: Path,
     batch_size: int,
     ngpu: int,
@@ -326,8 +332,9 @@ def inference(
     if ngpu > 1:
         raise NotImplementedError("only single GPU decoding is supported")
     logging.basicConfig(
-        level=log_level,
-        format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
+    level=logging.INFO,
+        format=f"[{rank}/{nproc}] "
+               f"%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
     )
 
     if torch.cuda.is_available() and ngpu > 0:
@@ -359,7 +366,8 @@ def inference(
         task=task,
         codec_conf=codec_conf,
     )
-
+    # NOTE(Jinchuan): in multi-processing, avoid memory spike
+    time.sleep(rank)
     speechlm = SpeechLM.from_pretrained(model_tag=model_tag, **speechlm_kwargs)
 
     # 3. Build data-iterator
@@ -390,13 +398,16 @@ def inference(
         name, modality, _ = triplet
         (output_dir / name).mkdir(parents=True, exist_ok=True)
         file_name = str(output_dir / name / ("token_" + name))
-        token_writers[name] = WriteHelper(f"ark,scp:{file_name}.ark,{file_name}.scp")
+        token_writers[name] = WriteHelper(f"ark,scp:{file_name}.ark,{file_name}.scp_rank{rank}")
         if modality in ["spk", "codec", "text_bpe", "codec_ssl"]:
-            file_name = str(output_dir / name / name)
+            file_name = str(output_dir / name / f"{name}_rank{rank}")
             writers[name] = open(file_name, "w")
 
     # 5. inference loop
-    for _, (keys, batch) in enumerate(loader, 1):
+    for iiter, (keys, batch) in enumerate(loader, 1):
+        if iiter % nproc != rank:
+            continue
+
         assert isinstance(batch, dict), type(batch)
         assert all(isinstance(s, str) for s in keys), keys
         _bs = len(next(iter(batch.values())))
@@ -410,6 +421,8 @@ def inference(
 
         # 5.1 model infernece
         logging.info(f"Inference on example: {key}")
+        if ngpu > 0:
+            torch.cuda.empty_cache() # to remove cached memory
         all_segments = speechlm(batch)
 
         for triplet, segments in zip(task.data_triplets, all_segments):
@@ -417,7 +430,9 @@ def inference(
             generated = triplet in task.targets
             for idx, segment in enumerate(segments):
                 modality, token, detokenized = segment
-                assert modality == _modality, (modality, _modality)
+                if modality != _modality:
+                    logging.warning("Skip due to modality mismatch")
+                    continue
 
                 if generated:
                     example_name = f"{key}_sample{idx}"
@@ -479,6 +494,12 @@ def get_parser():
         type=int,
         default=0,
         help="The number of gpus. 0 indicates CPU mode",
+    )
+    parser.add_argument(
+        "--nproc",
+        type=int,
+        default=1,
+        help="Number of processes on a single GPU",
     )
     parser.add_argument(
         "--seed",
@@ -619,13 +640,45 @@ def get_parser():
 
 def main(cmd=None):
     """Run SpeechLM model inference."""
+    # (1) record the variables
     print(get_commandline_args(), file=sys.stderr)
     parser = get_parser()
     args = parser.parse_args(cmd)
     kwargs = vars(args)
     kwargs.pop("config", None)
     print("kwargs: ", dict(kwargs))
-    inference(**kwargs)
+
+    # (2) multiprocessing inference
+    nproc = kwargs["nproc"]
+    mp = torch.multiprocessing.get_context("spawn")
+    processes = list()
+    for rank in range(nproc):
+        kwargs['rank'] = rank
+        p = mp.Process(
+            target=inference,
+            kwargs=kwargs,
+        )
+        p.start()
+        processes.append(p)
+
+    for p in processes:
+        p.join()
+
+    print("All processes finish")
+
+    # (3) finally, merge results from all processes
+    file_dict = dict()
+    for file in args.output_dir.rglob('*_rank*'):
+        name = file.parent / file.name.split('_rank')[0]
+        if name not in file_dict:
+            file_dict[name] = list()
+        file_dict[name].append(file)
+    
+    for name, files in file_dict.items():
+        writer = open(name, 'w')
+        for file in files:
+            for line in open(file):
+                writer.write(line)
 
 
 if __name__ == "__main__":
