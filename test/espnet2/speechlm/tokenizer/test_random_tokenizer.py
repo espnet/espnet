@@ -17,13 +17,9 @@ def test_tokenizer_encode(n_codes):
 
 
 def test_reproducibility():
-    seed = 42
-    model1 = RandomProjectionQuantizer(
-        dim=128, codebook_size=512, codebook_dim=64, seed=seed
-    )
-    model2 = RandomProjectionQuantizer(
-        dim=128, codebook_size=512, codebook_dim=64, seed=seed
-    )
-
+    torch.manual_seed(42)
+    model1 = RandomProjectionQuantizer(dim=128, codebook_size=512, codebook_dim=64)
+    torch.manual_seed(42)
+    model2 = RandomProjectionQuantizer(dim=128, codebook_size=512, codebook_dim=64)
     x = torch.randn(4, 10, 128)
     assert torch.equal(model1(x), model2(x)), "Outputs differ with the same seed!"
