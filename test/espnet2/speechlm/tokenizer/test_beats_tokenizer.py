@@ -5,6 +5,7 @@ from espnet2.speechlm.tokenizer.beats_tokenizer import (
     BeatsRandomTokenizer,
     BeatsTokenizer,
     BeatsTokenizerConfig,
+    EmbeddingEMA,
 )
 
 
@@ -32,3 +33,10 @@ def test_beats_random_tokenizer_encode(n_codes):
     assert token_ids.shape[0] == 1
     assert token_ids.min() >= 0
     assert token_ids.max() < n_codes
+
+
+def test_embedding_ema_forward():
+    emb_ema = EmbeddingEMA(5, 10)  # 5 codes, 10 dim
+    emb_idx = torch.randint(0, 5, (2,))
+    emb = emb_ema(emb_idx)
+    assert emb.shape == (2, 10)

@@ -31,6 +31,7 @@ else:
 
 
 from espnet2.asr.encoder.beats_encoder import BeatsConfig, BeatsEncoder
+from espnet2.speechlm.tokenizer.beats_utils import l2norm, kmeans
 from espnet2.speechlm.tokenizer.random_tokenizer import RandomProjectionQuantizer
 
 
@@ -155,28 +156,70 @@ class NormEMAVectorQuantizer(nn.Module):
 
 
 class EmbeddingEMA(nn.Module):
+    # Not learnt via backpropagation.
     def __init__(
         self,
         num_tokens,
         codebook_dim,
         decay=0.99,
         eps=1e-5,
+        kmeans_init=True,
     ):
+        # NOTE: removed option to load weights from a supplied codebook.
         super().__init__()
         self.num_tokens = num_tokens
         self.codebook_dim = codebook_dim
         self.decay = decay
         self.eps = eps
-        weight = torch.randn(num_tokens, codebook_dim)
-        weight = l2norm(weight)
+
+        if not kmeans_init:
+            weight = torch.randn(num_tokens, codebook_dim)
+            weight = l2norm(weight)
+            self.register_buffer("initted", torch.Tensor([True]))
+        else:
+            weight = torch.zeros(num_tokens, codebook_dim)
+            self.register_buffer("initted", torch.Tensor([False]))
         self.weight = nn.Parameter(weight, requires_grad=False)
+        self.cluster_size = nn.Parameter(torch.zeros(num_tokens), requires_grad=False)
+        self.embed_avg = nn.Parameter(weight.clone(), requires_grad=False)
+        self.update = True
+
+    @torch.jit.ignore
+    def init_embed_(self, data):
+        if self.initted:
+            return
+        logging("Performing Kemans init for codebook")
+        # embed[float]: (num_tokens, codebook_dim), cluster_size[int]: (num_tokens,)
+        embed, cluster_size = kmeans(
+            data, self.num_tokens, num_iters=10, use_cosine_sim=True
+        )
+        self.weight.data.copy_(embed)
+        self.cluster_size.data.copy_(cluster_size)
+        self.initted.data.copy_(torch.Tensor([True]).to(self.initted.device))
+
+    def cluster_size_ema_update(self, new_cluster_size):
+        # ?
+        self.cluster_size.data.mul_(self.decay).add_(
+            new_cluster_size, alpha=1 - self.decay
+        )
+
+    def embed_avg_ema_update(self, new_embed_avg):
+        # ?
+        self.embed_avg.data.mul_(self.decay).add_(new_embed_avg, alpha=1 - self.decay)
+
+    def weight_update(self, num_tokens):
+        # ?
+        n = self.cluster_size.sum()
+        smoothed_cluster_size = (
+            (self.cluster_size + self.eps) / (n + num_tokens * self.eps) * n
+        )
+        # normalize embedding average with smoothed cluster size
+        embed_normalized = self.embed_avg / smoothed_cluster_size.unsqueeze(1)
+        # embed_normalized = l2norm(self.embed_avg / smoothed_cluster_size.unsqueeze(1))
+        self.weight.data.copy_(embed_normalized)
 
     def forward(self, embed_id):
         return F.embedding(embed_id, self.weight)
-
-
-def l2norm(t):
-    return F.normalize(t, p=2, dim=-1)
 
 
 class BeatsRandomTokenizer(nn.Module):
@@ -254,7 +297,6 @@ class BeatsRandomTokenizer(nn.Module):
         features = features.reshape(features.shape[0], features.shape[1], -1)
         features = features.transpose(1, 2)
         features = self.layer_norm(features)
-        print(features[0, :5, :5])
         embed_ind = self.random_projection_quantizer(features)
         return embed_ind
 
