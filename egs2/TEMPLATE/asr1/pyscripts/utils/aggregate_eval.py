@@ -60,7 +60,10 @@ def aggregate_results(logdir: str, scoredir: str, nj: int) -> None:
     ) as f2:
         for info in tqdm(score_info):
             f.write("{}\n".format(info))
-        score_info = [{k: v for k, v in info.items() if k not in ['espnet_hyp_text', 'ref_text']} for info in score_info]
+        score_info = [
+            {k: v for k, v in info.items() if k not in ["espnet_hyp_text", "ref_text"]}
+            for info in score_info
+        ]
         for key in score_info[0].keys():
             if key == "key" or "text" in key:
                 continue

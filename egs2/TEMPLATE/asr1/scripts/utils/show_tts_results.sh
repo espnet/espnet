@@ -91,8 +91,8 @@ find "$expdir" -type f -name "avg_result.txt" | while IFS= read -r filepath; do
     while IFS= read -r line; do
         heading="$(echo "$line" | cut -d ":" -f 1)"
         case "$heading" in
-            "espnet_wer_delete"|"espnet_wer_insert"|"espnet_wer_replace"|"espnet_wer_equal"|"espnet_cer_delete"|"espnet_cer_insert"|"espnet_cer_replace"|"espnet_cer_equal"|"sentences") 
-                continue 
+            "espnet_wer_delete"|"espnet_wer_insert"|"espnet_wer_replace"|"espnet_wer_equal"|"espnet_cer_delete"|"espnet_cer_insert"|"espnet_cer_replace"|"espnet_cer_equal"|"sentences")
+                continue
                 ;;
             *)
                 echo "## $heading"
