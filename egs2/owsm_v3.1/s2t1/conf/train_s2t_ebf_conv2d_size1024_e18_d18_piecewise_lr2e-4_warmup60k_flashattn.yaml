@@ -76,6 +76,7 @@ decoder_conf:
     positional_dropout_rate: 0.1
     self_attention_dropout_rate: 0.1
     src_attention_dropout_rate: 0.1
+    use_flash_attn: true
 
 model_conf:
     ctc_weight: 0.3
