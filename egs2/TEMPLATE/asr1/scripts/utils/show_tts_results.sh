@@ -40,23 +40,77 @@ cat << EOF
   - Commit date: \`$(git log -1 --format='%cd')\`
 EOF
 
-find "$expdir" -type d -name 'score_*' | while read -r d; do
-    result_file="$d/result.txt"
-    if [ -f "$result_file" ]; then
-        bname=$(basename "$d")
-        name="${bname#score_}"
-        name="${name%.*}"
-        echo "## $name"
-        grep -E 'Mean|Medium|S\.D\.' "$result_file" || true
-        echo
-    fi
-done
-
 find "$expdir" -type f -name "avg_result.txt" | while IFS= read -r filepath; do
+    # 初始化 WER 变量
+    wer_snt=0
+    wer_corr=0
+    wer_substitute=0  # 改名：sub -> substitute
+    wer_del=0
+    wer_ins=0
+    
+    # 初始化 CER 变量
+    cer_snt=0
+    cer_corr=0
+    cer_substitute=0  # 改名：sub -> substitute
+    cer_del=0
+    cer_ins=0
+    
+    # 首先收集所有需要的数据
     while IFS= read -r line; do
         heading="$(echo "$line" | cut -d ":" -f 1)"
-        echo "## $heading"
-        echo "$line"
-        echo
+        value="$(echo "$line" | cut -d ":" -f 2 | tr -d ' ')"  # 移除空格
+        
+        case "$heading" in
+            # WER metrics
+            "espnet_wer_delete") wer_del="$value" ;;
+            "espnet_wer_insert") wer_ins="$value" ;;
+            "espnet_wer_replace") wer_substitute="$value" ;;  # 改名
+            "espnet_wer_equal") wer_corr="$value" ;;
+            # CER metrics
+            "espnet_cer_delete") cer_del="$value" ;;
+            "espnet_cer_insert") cer_ins="$value" ;;
+            "espnet_cer_replace") cer_substitute="$value" ;;  # 改名
+            "espnet_cer_equal") cer_corr="$value" ;;
+            "sentences") wer_snt="$value"; cer_snt="$value" ;;
+        esac
+    done < "$filepath"
+    
+    # 使用 awk 计算所有数值
+    # WER calculations
+    wer_wrd=$(awk -v corr="$wer_corr" -v repl="$wer_substitute" -v del="$wer_del" 'BEGIN {print corr + repl + del}')
+    wer_err=$(awk -v repl="$wer_substitute" -v del="$wer_del" -v ins="$wer_ins" -v wrd="$wer_wrd" 'BEGIN {printf "%.3f", (repl + del + ins) / wrd}')
+    
+    # CER calculations
+    cer_wrd=$(awk -v corr="$cer_corr" -v repl="$cer_substitute" -v del="$cer_del" 'BEGIN {print corr + repl + del}')
+    cer_err=$(awk -v repl="$cer_substitute" -v del="$cer_del" -v ins="$cer_ins" -v wrd="$cer_wrd" 'BEGIN {printf "%.3f", (repl + del + ins) / wrd}')
+    
+    # 输出 WER 表格
+    echo "## WER"
+    echo "|Snt|Wrd|Corr|Sub|Del|Ins|Err|"
+    echo "|---|---|---|---|---|---|---|"
+    echo "|$wer_snt|$wer_wrd|$wer_corr|$wer_substitute|$wer_del|$wer_ins|$wer_err|"
+    echo
+    
+    # 输出 CER 表格
+    echo "## CER"
+    echo "|Snt|Wrd|Corr|Sub|Del|Ins|Err|"
+    echo "|---|---|---|---|---|---|---|"
+    echo "|$cer_snt|$cer_wrd|$cer_corr|$cer_substitute|$cer_del|$cer_ins|$cer_err|"
+    echo
+    
+    # 输出其他指标（如果有的话）
+    while IFS= read -r line; do
+        heading="$(echo "$line" | cut -d ":" -f 1)"
+        # 跳过已经在WER和CER表格中使用的指标
+        case "$heading" in
+            "espnet_wer_delete"|"espnet_wer_insert"|"espnet_wer_replace"|"espnet_wer_equal"|"espnet_cer_delete"|"espnet_cer_insert"|"espnet_cer_replace"|"espnet_cer_equal"|"sentences") 
+                continue 
+                ;;
+            *)
+                echo "## $heading"
+                echo "$line" | sed 's/\([0-9]\+\.[0-9]\{3\}\)[0-9]*/\1/'
+                echo
+                ;;
+        esac
     done < "$filepath"
 done

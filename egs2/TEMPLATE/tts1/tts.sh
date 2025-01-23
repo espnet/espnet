@@ -1175,6 +1175,8 @@ if ! "${skip_scoring}"; then
                 --pred ${_eval_dir}/pred.JOB \
                 --score_config ${_score_config} \
                 --cache_folder ${_eval_dir}/cache \
+                --gt ${_gt_file} \
+                --text ${_data}/text \
                 --use_gpu ${gpu_inference} \
                 --output_file ${_eval_dir}/result.JOB.txt \
                 --io soundfile \
@@ -1185,6 +1187,15 @@ if ! "${skip_scoring}"; then
             --scoredir ${_eval_dir} \
             --nj ${_nj}
 
+        _log_dir="${_eval_dir}"
+        _count=0
+        for f in "${_log_dir}"/result.*.txt; do
+            if [ -f "$f" ]; then
+                c=$(wc -l < "$f")
+                _count=$(( _count + c ))
+            fi
+        done
+        echo "sentences: ${_count}" >> "${_eval_dir}/avg_result.txt"
         ./scripts/utils/show_tts_results.sh ${_gen_dir}
         log "Finished scoring evaluation, results are in ${_eval_dir}"
     fi
