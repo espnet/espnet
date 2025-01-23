@@ -55,7 +55,7 @@
 
 # speaker related metrics
 # -- spk_similarity: speaker cosine similarity
-#                    model tag can be any ESPnet-SPK huggingface repo at 
+#                    model tag can be any ESPnet-SPK huggingface repo at
 #                    https://huggingface.co/espnet
 - name: speaker
   model_tag: default
