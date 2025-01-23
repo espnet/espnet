@@ -210,7 +210,8 @@ class CodecTokenizer(AbsTokenizer):
             wav_len = torch.LongTensor([wav_in.size(1)] * wav_in.size(0)).to(
                 wav_in.device
             )
-            codes = self.codec.encode(xs_pad=wav_in, ilens=wav_len).unsqueeze(-1)
+            codes, _, _ = self.codec.encode(xs_pad=wav_in, ilens=wav_len)
+            codes = codes.unsqueeze(-1)
 
         else:
             raise NotImplementedError

@@ -31,7 +31,12 @@ else:
 
 
 from espnet2.asr.encoder.beats_encoder import BeatsConfig, BeatsEncoder
-from espnet2.speechlm.tokenizer.beats_utils import l2norm, kmeans
+from espnet2.speechlm.tokenizer.beats_utils import (
+    l2norm,
+    kmeans,
+    norm_ema_inplace,
+    ema_inplace,
+)
 from espnet2.speechlm.tokenizer.random_tokenizer import RandomProjectionQuantizer
 
 
@@ -58,10 +63,11 @@ class BeatsTokenizer(BeatsEncoder):
         use_weighted_representation: bool = False,
         fbank_mean: float = 15.41663,
         fbank_std: float = 6.55582,
+        is_tokenizer_pretraining: bool = False,
     ) -> None:
         if beats_tokenizer_ckpt_path is None:
             logging.warning(
-                "No checkpoint path provided!!"
+                "No checkpoint path provided for BEATs encoder!!"
                 "We will encode audio using a randomly initialized model."
             )
         super().__init__(
@@ -80,8 +86,13 @@ class BeatsTokenizer(BeatsEncoder):
         if tokenizer_config:
             config.update(tokenizer_config)
 
+        self.is_tokenizer_pretraining = is_tokenizer_pretraining
         self.quantize = NormEMAVectorQuantizer(
-            n_embed=config.quant_n, embedding_dim=config.quant_dim, beta=1.0, decay=0.99
+            n_embed=config.quant_n,
+            embedding_dim=config.quant_dim,
+            beta=1.0,
+            decay=0.99,
+            kmeans_init=True,
         )
         self.quantize_layer = nn.Sequential(
             nn.Linear(
@@ -113,6 +124,16 @@ class BeatsTokenizer(BeatsEncoder):
         xs_pad: torch.Tensor,
         ilens: Optional[torch.Tensor] = None,
     ):
+        """
+        Encodes input audio xs_pad to quantized features.
+        Args:
+            xs_pad (torch.Tensor): Input tensor (B, T).
+            ilens (torch.Tensor): Input length tensor (B,).
+        Returns:
+            embed_ind (torch.Tensor): Embedding indices (B, T).
+            embed_loss (torch.Tensor): Embedding loss.
+            quantize_feature (torch.Tensor): Quantized features.
+        """
         if ilens is None:
             assert (
                 xs_pad.size(0) == 1
@@ -120,8 +141,8 @@ class BeatsTokenizer(BeatsEncoder):
             ilens = torch.tensor([xs_pad.size(1)], dtype=torch.long).to(xs_pad.device)
         x, _, _ = self(xs_pad, ilens)
         quantize_input = self.quantize_layer(x)
-        quantize_feature, embed_ind = self.quantize(quantize_input)
-        return embed_ind
+        quantize_feature, embed_loss, embed_ind = self.quantize(quantize_input)
+        return embed_ind, embed_loss, quantize_feature
 
 
 class NormEMAVectorQuantizer(nn.Module):
@@ -133,13 +154,31 @@ class NormEMAVectorQuantizer(nn.Module):
         decay=0.99,
         kmeans_init=False,
         eps=1e-5,
+        statistic_code_usage=True,
     ):
         super().__init__()
         self.codebook_dim = embedding_dim
         self.num_tokens = n_embed
         self.beta = beta
         self.decay = decay
-        self.embedding = EmbeddingEMA(self.num_tokens, self.codebook_dim, decay, eps)
+        self.embedding = EmbeddingEMA(
+            self.num_tokens, self.codebook_dim, decay, eps, kmeans_init
+        )
+        self.statistic_code_usage = statistic_code_usage
+        if statistic_code_usage:
+            self.register_buffer("cluster_size", torch.zeros(n_embed))
+        if torch.distributed.is_available() and torch.distributed.is_initialized():
+            logging.info(
+                "ddp is enabled, so use ddp_reduce to sync the cluster_size for each gpu!"
+            )
+            self.all_reduce_fn = torch.distributed.all_reduce
+        else:
+            self.all_reduce_fn = nn.Identity()
+
+    def reset_cluster_size(self, device):
+        if self.statistic_code_usage:
+            self.register_buffer("cluster_size", torch.zeros(self.num_tokens))
+            self.cluster_size = self.cluster_size.to(device)
 
     def forward(self, z):
         z = l2norm(z)
@@ -149,10 +188,42 @@ class NormEMAVectorQuantizer(nn.Module):
             + self.embedding.weight.pow(2).sum(dim=1)
             - 2 * torch.einsum("bd,nd->bn", z_flattened, self.embedding.weight)
         )
-        encoding_indices = torch.argmin(d, dim=1)
+        encoding_indices = torch.argmin(d, dim=1)  # B*T
         z_q = self.embedding(encoding_indices).view(z.shape)
-        encoding_indices = encoding_indices.view(z.shape[:-1])
-        return z_q, encoding_indices
+        encodings = F.one_hot(encoding_indices, self.num_tokens).type(
+            z.dtype
+        )  # B*T,num_tokens
+        encoding_indices = encoding_indices.view(z.shape[:-1])  # B,T
+
+        if not self.training:
+            # just update the codebook statistics
+            with torch.no_grad():
+                cluster_size = encodings.sum(0)
+                self.all_reduce_fn(cluster_size)
+                ema_inplace(self.cluster_size, cluster_size, self.decay)
+
+        if self.training:
+            # EMA cluster size
+            bins = encodings.sum(0)
+            self.all_reduce_fn(bins)
+            ema_inplace(self.cluster_size, bins, self.decay)
+
+            zero_mask = bins == 0
+            bins = bins.masked_fill(zero_mask, 1.0)
+            embed_sum = z_flattened.t() @ encodings
+            self.all_reduce_fn(embed_sum)
+            embed_normalized = (embed_sum / bins.unsqueeze(0)).t()
+            embed_normalized = l2norm(embed_normalized)
+            embed_normalized = torch.where(
+                zero_mask[..., None], self.embedding.weight, embed_normalized
+            )
+            norm_ema_inplace(self.embedding.weight, embed_normalized, self.decay)
+
+        # compute loss for embedding
+        loss = self.beta * F.mse_loss(z_q.detach(), z)
+        # preserve gradients
+        z_q = z + (z_q - z).detach()
+        return z_q, loss, encoding_indices
 
 
 class EmbeddingEMA(nn.Module):
@@ -182,7 +253,6 @@ class EmbeddingEMA(nn.Module):
         self.weight = nn.Parameter(weight, requires_grad=False)
         self.cluster_size = nn.Parameter(torch.zeros(num_tokens), requires_grad=False)
         self.embed_avg = nn.Parameter(weight.clone(), requires_grad=False)
-        self.update = True
 
     @torch.jit.ignore
     def init_embed_(self, data):
@@ -309,4 +379,4 @@ class BeatsRandomTokenizer(nn.Module):
         # TODO: Add ilens support for batched data
         assert xs_pad.size(0) == 1, "Batch size must be 1."
         embed_ind = self(xs_pad)
-        return embed_ind
+        return embed_ind, None, None
