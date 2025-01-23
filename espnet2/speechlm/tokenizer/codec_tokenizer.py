@@ -9,6 +9,7 @@ import numpy as np
 import torch
 import yaml
 
+from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.speechlm.tokenizer.abs_tokenizer import AbsTokenizer
 from espnet2.speechlm.tokenizer.beats_tokenizer import (
     BeatsRandomTokenizer,
@@ -151,6 +152,7 @@ class CodecTokenizer(AbsTokenizer):
 
         elif self.codec_choice == "beats_random":
             # Beats like patch-based frontend, with bestrq for quantization
+            set_all_random_seed(42)
             beats_config = None
             if config_path:
                 with open(config_path, "r") as f:
