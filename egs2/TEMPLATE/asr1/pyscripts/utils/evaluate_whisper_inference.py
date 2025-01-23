@@ -54,9 +54,10 @@ class Speech2Text:
 
 @typechecked
 def inference(
-    output_dir: str,
-    ngpu: int,
     rank: int,
+    nproc: int,
+    output_dir: Path,
+    ngpu: int,
     seed: int,
     num_workers: int,
     log_level: Union[int, str],
@@ -71,16 +72,13 @@ def inference(
         raise NotImplementedError("only single GPU decoding is supported")
 
     logging.basicConfig(
-        level=log_level,
-        format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
+    level=logging.INFO,
+        format=f"[{rank}/{nproc}] "
+               f"%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
     )
 
     if torch.cuda.is_available() and ngpu >= 1:
-        if torch.cuda.device_count() > 1:
-            device_id = rank % torch.cuda.device_count()
-        else:
-            device_id = 0
-        device = f"cuda:{device_id}"
+        device = "cuda"
     else:
         device = "cpu"
 
@@ -103,7 +101,10 @@ def inference(
     # 7 .Start for-loop
     # FIXME(kamo): The output format should be discussed about
     with DatadirWriter(output_dir) as writer:
-        for key, audio_file in info_list:
+        for iiter, (key, audio_file) in enumerate(info_list):
+            if iiter % nproc != rank:
+                continue
+
             # N-best list of (text, token, token_int, hyp_object)
             logging.info(
                 f"decoding {key} ...",
@@ -114,7 +115,7 @@ def inference(
             ibest_writer = writer[f"1best_recog"]
 
             # Write the result to each file
-            ibest_writer["text"][key] = results
+            ibest_writer[f"text_rank{rank}"][key] = results
 
 
 def get_parser():
@@ -126,6 +127,12 @@ def get_parser():
     # Note(kamo): Use '_' instead of '-' as separator.
     # '-' is confusing if written in yaml.
     parser.add_argument(
+        "--nproc",
+        type=int,
+        default=1,
+        help="Number of processes on a single GPU",
+    )
+    parser.add_argument(
         "--log_level",
         type=lambda x: x.upper(),
         default="INFO",
@@ -133,7 +140,7 @@ def get_parser():
         help="The verbose level of logging",
     )
 
-    parser.add_argument("--output_dir", type=str, required=True)
+    parser.add_argument("--output_dir", type=Path, required=True)
     parser.add_argument(
         "--ngpu",
         type=int,
@@ -197,12 +204,43 @@ def get_parser():
 
 
 def main(cmd=None):
+    # (1) record the variables
     print(get_commandline_args(), file=sys.stderr)
     parser = get_parser()
     args = parser.parse_args(cmd)
     kwargs = vars(args)
     kwargs.pop("config", None)
-    inference(**kwargs)
+    print("kwargs: ", dict(kwargs))
+
+    # (2) multiprocessing inference
+    nproc = kwargs["nproc"]
+    mp = torch.multiprocessing.get_context("spawn")
+    processes = list()
+    for rank in range(nproc):
+        kwargs['rank'] = rank
+        p = mp.Process(
+            target=inference,
+            kwargs=kwargs,
+        )
+        p.start()
+        processes.append(p)
+
+    for p in processes:
+        p.join()
+
+    # (3) finally, merge results from all processes
+    file_dict = dict()
+    for file in args.output_dir.rglob('*_rank*'):
+        name = file.parent / file.name.split('_rank')[0]
+        if name not in file_dict:
+            file_dict[name] = list()
+        file_dict[name].append(file)
+    
+    for name, files in file_dict.items():
+        writer = open(name, 'w')
+        for file in files:
+            for line in open(file):
+                writer.write(line)
 
 
 if __name__ == "__main__":
