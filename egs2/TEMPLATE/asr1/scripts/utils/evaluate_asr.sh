@@ -30,7 +30,7 @@ stage=1
 stop_stage=3
 nj=8
 inference_nj=8
-nproc=4 # number of processes within each job, usually for GPU
+nproc=12 # number of processes within each job, usually for GPU
 gpu_inference=false
 fs=16000
 
