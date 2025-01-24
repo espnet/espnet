@@ -45,7 +45,7 @@ Here are some detailed instructions:
 (2) Your response should be in English only.
 (3) Your response should be transcriptions that are conversational and can be easily pronounced. Specifically, no linebreak and no special symbols. Convert digit numbers into words.
 (4) Based on the text conversation, the speech-based conversation can have single or multiple turns.
-(5) However, the total length of the conversation should be no longer than 200 words.
+(5) The total length of the conversation should be no longer than 200 words. Each turn of the conversation should be no longer than 70 words.
 (6) If there is a system prompt, try to keep it in text format. However, if that system prompt is not suitable for speech-based conversation, try to revise it accordingly.
 
 Text-based conversation:
@@ -79,7 +79,10 @@ class GeminiAPIInterface:
 
         logging.info(f"Switch to model {model_id} with prompt {prompt_method}")
         
-        generation_config = GenerationConfig(response_mime_type="application/json")
+        generation_config = GenerationConfig(
+            response_mime_type="application/json",
+            max_output_tokens=512,
+        )
         self.model = GenerativeModel(
             model_id, 
             system_instruction=instruction,
@@ -123,7 +126,10 @@ class GeminiAPIInterface:
             response = response.text.removeprefix("```json").removesuffix("```")
             response = json.loads(response)
         except:
-            logging.warning(f"Dialogue {name} failed to be parsed into json dict. Skip.")
+            logging.warning(
+                f"Dialogue {name} failed to be parsed into json dict. Skip. \n"
+                f"Returned dict: {response}"
+            )
             return None
         
         # (4) sanity check
