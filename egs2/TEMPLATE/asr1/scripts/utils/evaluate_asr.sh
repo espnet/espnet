@@ -30,6 +30,7 @@ stage=1
 stop_stage=3
 nj=8
 inference_nj=8
+nproc=4 # number of processes within each job, usually for GPU
 gpu_inference=false
 fs=16000
 
@@ -203,6 +204,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             python3 pyscripts/utils/evaluate_whisper_inference.py \
                 --ngpu "${_ngpu}" \
                 --rank JOB \
+                --nproc ${nproc} \
                 --data_path_and_name_and_type "${wavscp}" \
                 --key_file "${logdir}"/keys.JOB.scp \
                 --model_tag ${whisper_tag} \

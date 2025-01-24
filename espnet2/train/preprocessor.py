@@ -2553,8 +2553,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
             dec_seq = np.concatenate(seqs, axis=0).reshape(-1, self.codec_token_in_use)
 
             special_loss_mask = np.zeros_like(sos_eos) + int(self.loss_region == "whole")
-            # NOTE(Jinchuan): always calculate loss over eos
-            loss_masks = [special_loss_mask] * 2 + loss_masks + [special_loss_mask * 0 + 1]
+            loss_masks = [special_loss_mask] * 2 + loss_masks + [np.ones_like(sos_eos)]
             loss_mask = np.concatenate(loss_masks, axis=0).reshape(dec_seq.shape)
             loss_mask[dec_seq == 0] = 0
 
