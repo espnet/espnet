@@ -21,10 +21,8 @@ log "$0 $*"
 . ./path.sh
 . ./cmd.sh
 
-if [ $# -ne 0 ]; then
-    log "Error: No positional arguments are required."
-    exit 2
-fi
+FOLD=${1:-1}
+DATA_PREP_ROOT=${2:-"."}
 
 if [ -z "${ESC50}" ]; then
     log "Fill the value of 'ESC50' of db.sh"
@@ -41,14 +39,29 @@ fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "stage 2: Data Preparation"
-    mkdir -p data/{train,valid,test}
-    python3 local/data_prep.py ${ESC50}
-    for x in test valid train; do
-        for f in text wav.scp utt2spk; do
-            sort data/${x}/${f} -o data/${x}/${f}
+
+    if [ ${FOLD} -le 1 ] && [ ${FOLD} -ge 1 ]; then
+        # Keep the code from SLU, FOLD 1 is default
+        mkdir -p data/{train,valid,test}
+        python3 local/data_prep.py ${ESC50}
+        for x in test valid train; do
+            for f in text wav.scp utt2spk; do
+                sort data/${x}/${f} -o data/${x}/${f}
+            done
+            utils/utt2spk_to_spk2utt.pl data/${x}/utt2spk > "data/${x}/spk2utt"
+            utils/validate_data_dir.sh --no-feats data/${x} || exit 1
         done
-        utils/utt2spk_to_spk2utt.pl data/${x}/utt2spk > "data/${x}/spk2utt"
-        utils/validate_data_dir.sh --no-feats data/${x} || exit 1
+    fi
+
+    # Prepare data for 5-fold cross-validation
+    echo "Preparing data for fold ${FOLD}"
+    python3 local/data_prep_multi_folds.py ${ESC50} ${FOLD} ${DATA_PREP_ROOT}
+    for x in val${FOLD} train${FOLD}; do
+        for f in text wav.scp utt2spk; do
+            sort ${DATA_PREP_ROOT}/data/${x}/${f} -o ${DATA_PREP_ROOT}/data/${x}/${f}
+        done
+        utils/utt2spk_to_spk2utt.pl ${DATA_PREP_ROOT}/data/${x}/utt2spk > "${DATA_PREP_ROOT}/data/${x}/spk2utt"
+        utils/validate_data_dir.sh --no-feats ${DATA_PREP_ROOT}/data/${x} || exit 1
     done
 fi
 
