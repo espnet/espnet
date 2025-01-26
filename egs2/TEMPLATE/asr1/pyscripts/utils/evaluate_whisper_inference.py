@@ -183,6 +183,8 @@ def get_parser():
             "medium.en",
             "medium",
             "large",
+            "large-v3",
+            "large-v3-turbo",
         ],
         help="Model tag of the released whisper models.",
     )

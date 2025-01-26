@@ -45,7 +45,7 @@ spk_config=conf/eval_spk.yaml
 mos_config=conf/eval_mos.yaml
 
 # wer options
-whisper_tag=large
+whisper_tag=large-v3-turbo
 whisper_dir=local/whisper
 cleaner=whisper_en
 hyp_cleaner=whisper_en
