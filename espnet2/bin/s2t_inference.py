@@ -190,6 +190,7 @@ class Speech2Text:
         threshold_probability: float = 0.99,
         max_seq_len: int = 5,
         max_mask_parallel: int = -1,
+        use_flash_attn: bool = False,
         # default values that can be overwritten in __call__
         lang_sym: str = "<eng>",
         task_sym: str = "<asr>",
@@ -207,6 +208,11 @@ class Speech2Text:
             s2t_train_config, s2t_model_file, device
         )
         s2t_model.to(dtype=getattr(torch, dtype)).eval()
+
+        # Set flash_attn
+        for m in s2t_model.modules():
+            if hasattr(m, "use_flash_attn"):
+                setattr(m, "use_flash_attn", use_flash_attn)
 
         if quantize_s2t_model:
             logging.info("Use quantized s2t model for decoding.")

@@ -500,16 +500,6 @@ class EBranchformerEncoder(AbsEncoder):
             else:
                 xs_pad = self.embed(xs_pad)
 
-        # if len(self.interctc_layer_idx) == 0:
-        #     if max_layer is not None and 0 <= max_layer < len(self.encoders):
-        #         for layer_idx, encoder_layer in enumerate(self.encoders):
-        #             xs_pad, masks = encoder_layer(xs_pad, masks)
-        #             if layer_idx >= max_layer:
-        #                 break
-        #     else:
-        #         xs_pad, masks = self.encoders(xs_pad, masks)
-        # else:
-
         intermediate_outs = []
         for layer_idx, encoder_layer in enumerate(self.encoders):
             if max_layer is not None and layer_idx >= max_layer:
