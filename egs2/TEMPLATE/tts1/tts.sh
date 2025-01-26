@@ -118,11 +118,6 @@ speech_fold_length=800 # fold_length for speech data.
 
 # VERSA eval related
 skip_scoring=false # Skip scoring stages.
-skip_wer=false # Skip WER evaluation.
-whisper_tag=medium # Whisper model tag.
-whisper_dir=local/whisper # Whisper model directory.
-eval_cleaner=whisper_en # Text cleaner for whisper model.
-hyp_cleaner=whisper_en # Text cleaner for hypothesis.
 versa_config=conf/versa.yaml # VERSA evaluation configuration.
 
 
@@ -208,11 +203,6 @@ Options:
 
     # VERSA scoring related
     --skip_scoring      # Skip scoring stages (default="${skip_scoring}").
-    --skip_wer          # Skip WER evaluation (default="${skip_wer}").
-    --whisper_tag       # Whisper model tag (default="${whisper_tag}").
-    --whisper_dir       # Whisper model directory (default="${whisper_dir}").
-    --eval_cleaner           # Text cleaner for whisper model (default="${eval_cleaner}").
-    --hyp_cleaner       # Text cleaner for hypothesis (default="${hyp_cleaner}").
     --versa_config      # VERSA evaluation configuration (default="${versa_config}").
 
     # [Task dependent] Set the datadir name created by local/data.sh.
