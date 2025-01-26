@@ -30,6 +30,7 @@ def main(args):
     hyp_reader = open(args.hyp_file)
     writer = open(args.out_file, "w")
 
+    tot_error, tot_count = 0, 0
     for ref_line, hyp_line in zip(ref_reader, hyp_reader):
         ref_name, ref_content = parse_line(ref_line, args.file_type)
         hyp_name, hyp_content = parse_line(hyp_line, args.file_type)
@@ -48,6 +49,11 @@ def main(args):
         }
         json.dump(stat_dict, writer)
         writer.write("\n")
+
+        tot_error += stat_dict['wer']
+        tot_count += stat_dict['weight']
+    
+    print(f"Overall WER: {tot_error / tot_count}")
 
 
 def parse_line(line, file_type):

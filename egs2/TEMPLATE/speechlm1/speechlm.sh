@@ -816,7 +816,7 @@ if ! "${skip_eval}"; then
 
                 utils/filter_scp.pl ${_dir}/eval_cache/gen_list ${_dir}/eval_cache/${name} \
                     > ${_dir}/eval_cache/${name}.tmp
-                mv ${_dir}/eval_cache/${name}.tmp ${_dir}/eval_cache/${name}
+                sort ${_dir}/eval_cache/${name}.tmp > ${_dir}/eval_cache/${name}
             done
 
             # (2.3) generated valid keys

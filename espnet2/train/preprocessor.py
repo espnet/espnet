@@ -2503,9 +2503,9 @@ class SpeechLMPreprocessor(AbsPreprocessor):
 
         data_tuples = [] # tuple of (name, modality, content, role, target)
         if task_name in ["text_dialogue", "audio_dialogue"]:
-            for idx, (role, modality, content) in enumerate(data['dialogue']):
+            for idx, (role, modality, target, content) in enumerate(data['dialogue']):
                 name = str(idx)
-                target = role == "<assistant_output>"
+                target = str(target) == "True"
                 data_tuples.append((name, modality, role, content, target))
         else:
             for idx, (name, modality, _) in enumerate(task.data_triplets):
@@ -2526,6 +2526,14 @@ class SpeechLMPreprocessor(AbsPreprocessor):
             # NOTE(Jinchuan): when the role is set, like in post-training, we
             # add this role token.
             if role is not None:
+                if role == "system":
+                    role = "<system_prompt>"
+                elif role == "user":
+                    role = "<user_input>"
+                elif role == "assistant":
+                    role = "<assistant_output>"
+                else:
+                    raise ValueError(f"Unrecognized role {role}")
                 role = self.special_token(role)
                 value = np.concatenate([role, value])
 
