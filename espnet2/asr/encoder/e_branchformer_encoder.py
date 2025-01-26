@@ -505,6 +505,9 @@ class EBranchformerEncoder(AbsEncoder):
             if max_layer is not None and layer_idx >= max_layer:
                 break
 
+            if self.training and torch.empty(1).uniform_().item() < self.layer_drop_rate:
+                continue
+
             if layer_idx + 1 in self.gradient_checkpoint_layers:
                 xs_pad, masks = torch.utils.checkpoint.checkpoint(
                     encoder_layer, xs_pad, masks, use_reentrant=False
