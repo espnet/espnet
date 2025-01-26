@@ -4,15 +4,17 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import json
-
+import random
 from pathlib import Path
 from typing import List
 
 from espnet2.speechlm.definitions import MODALITIES
+from espnet2.fileio.read_text import read_2columns_text
 
 class Dialogue:
-    def __init__(self):
+    def __init__(self, task):
         self.segments = list()
+        self.task = task
     
     def add_segment(
         self,
@@ -28,29 +30,58 @@ class Dialogue:
 
         self.segments.append([role, modality, content])
     
-    def to_list(self):
-        retval = []
+    def to_list(self, task, name):
+        assert self.task == "text_dialogue", "Should be text_dialogue task before converting to other task"
+        self.task = task
 
-        for role, modality, content in self.segments:
-            # Change role to a ESPnet-SLM special token
+        # Each segment: (role, modality, is_target, content)
+        segments = list()
+        utt_text_pairs = list()
+        for idx, (role, modality, content) in enumerate(self.segments):
             if role == "system":
-                role = "<system_prompt>"
-            elif role == "user":
-                role = "<user_input>"
-            elif role == "assistant":
-                role = "<assistant_output>"
-            else:
-                raise ValueError(f"Invalid role: {role}")
-            
-            retval.append([role, modality, content])
+                assert idx == 0, "System instruction should only in the begining"
+                assert modality == "text_bpe"
+                segments.append([role, modality, False, content])
 
-        return retval
+                if task == "audio_dialogue":
+                    utt_text_pairs.append((
+                        f"{name}_speaker_prompt",
+                        f"<placeholder for speaker prompt>",
+                    ))
+            
+            elif role == "user":
+                if task == "audio_dialogue" or task == "audio_text_dialogue":
+                    segments.append([role, "codec_ssl", False, f"{name}_{role}_seg{idx}"])
+                    utt_text_pairs.append((
+                        f"{name}_{role}_seg{idx}",
+                        content,
+                    ))
+
+                    segments.append([role, modality, True, content])
+                else:
+                    segments.append([role, modality, False, content])
+            
+            elif role == "assistant":
+                segments.append([role, modality, True, content])
+
+                if task == "audio_dialogue":
+                    segments.append([role, "codec_ssl", True, f"{name}_{role}_seg{idx}"])
+                    utt_text_pairs.append((
+                        f"{name}_{role}_seg{idx}",
+                        content,
+                    ))
+            
+            else:
+                raise ValueError(f"Unrecognized role {role}")
+        
+        # print(segments)
+        return segments, utt_text_pairs
     
     def to_str(self):
         string = ""
         for segment in self.segments:
             role, _, content = segment
-            string += f"{role}: {content}\n"
+            string += f"**{role}**: {content}\n"
 
         return string.strip()
 
@@ -71,48 +102,25 @@ class DialogueDataset:
 
     def add_dialogue(self, name: str, dialogue: Dialogue):
         assert name not in self.dialogues
-        self.dialogues[name] = dialogue.to_list()
-    
-    def convert_spoken_format(self, name, segments):
-        if not name.endswith("_spoken"):
-            return segments, []
-        
-        retval = list()
-        uttid_content_pairs = list()
-
-        # (1) If there is a system instruction, add it
-        if segments[0][0] == "<system_prompt>":
-            retval.append(segments.pop(0))
-        
-        # (2) Add an assistant speaker prompt
-        retval.append(("<system_prompt>", "spk", f"{name}_spk"))
-
-        # (3) loop over segment
-        for idx, (role, modality, content) in enumerate(segments):
-            role_str = role.lstrip("<").rstrip(">")
-            utt_id = f"{name}_{idx}_{role_str}"
-
-            if role == "<assistant_output>":
-                retval.append((role, modality, content))
-                retval.append((role, "codec_ssl", utt_id))
-            elif role == "<user_input>":
-                retval.append((role, "codec_ssl", utt_id))
-                retval.append((role, modality, content))
-            else:
-                raise ValueError(f"unrecognized role: {role}")
-            
-            uttid_content_pairs.append((utt_id, content))
-        
-        return retval, uttid_content_pairs
+        self.dialogues[name] = dialogue
 
     def dump_dataset(
         self, 
         output_dir, 
         pack_size: int = 20000, 
         rank: int = 1,
-        convert_spoken_format: bool = False,
+        assistant_prompt_list: str = None,
+        user_prompt_list: str = None,
     ):
         output_dir = Path(output_dir)
+
+        if assistant_prompt_list is not None and user_prompt_list is not None:
+            assistant_prompt_list = read_2columns_text(assistant_prompt_list)
+            assistant_prompt_list = list(assistant_prompt_list.values())
+            user_prompt_list = read_2columns_text(user_prompt_list)
+            user_prompt_list = list(user_prompt_list.values())
+        else:
+            assistant_prompt_list, user_prompt_list = None, None
 
         (output_dir / 'data').mkdir(parents=True, exist_ok=True)
         index_file = str(output_dir / 'data' / f'dialogue.{rank}')
@@ -120,28 +128,33 @@ class DialogueDataset:
 
         example_ids = list(self.dialogues.keys())
         pack_idx = 0
-
-        if convert_spoken_format:
-            dialogues, uttid_content_pairs = dict(), list()
-            for name, segments in self.dialogues.items():
-                segments, uttid_content_pair = self.convert_spoken_format(
-                    name, segments
-                )
-                dialogues[name] = segments
-                uttid_content_pairs.extend(uttid_content_pair)
-        else:
-            dialogues, uttid_content_pairs = self.dialogues, []
-
+        all_utt_text_pairs = list()
         while pack_idx * pack_size < len(example_ids):
             start = pack_idx * pack_size
             end = min((pack_idx + 1) * pack_size, len(example_ids))
-            pack = {key: dialogues[key] for key in example_ids[start: end]}
+            pack_idx += 1
 
-            pack_file = str(output_dir / 'data' / f'dialogue.{rank}.{pack_idx + 1}.json')
-            
+            # (1) dump original dialogue data
+            # NOTE(Jinchuan): so far the dialogue are still with format text_dialogue
+            # We convert it to audio_dialogue or audio_text_dialogue format when
+            # self.task is that format. The utt_text_pairs are paired utterance-id and
+            # text for TTS simulation.
+            pack, all_utt_text_pairs = dict(), dict()
+            for key in example_ids[start: end]:
+                dialogue = self.dialogues[key]
+                dialogue_segments, utt_text_pairs = dialogue.to_list(self.task, key)
+                if not check_valid_segments(dialogue_segments):
+                    continue
+                pack[key] = dialogue_segments
+                all_utt_text_pairs.update({
+                    x[0]: x[1] for x in utt_text_pairs
+                })
+
+            pack_file = str(output_dir / 'data' / f'dialogue_rank{rank}_pack{pack_idx}.json')
+
             for key in pack:
                 index_writer.write(f"{key} {pack_file}\n")
-             
+
             pack_writer = open(pack_file, 'wb')
             pack_writer.write(
                 json.dumps(pack, indent=4, ensure_ascii=False, sort_keys=False).encode(
@@ -149,25 +162,39 @@ class DialogueDataset:
                 )
             )
 
-            pack_idx += 1
-        
-        # (3) uttid - content pairs for further TTS simulation
-        if convert_spoken_format > 0:
-            simulation_writer = open(output_dir / 'data' / f'simu_text.{rank}', 'w')
-            for uttid, content in uttid_content_pairs:
-                simulation_writer.write(f"{uttid} {content}\n")
-            
-        # (3) dump ESPnet-SpeechLM style data.json
-        # writer = open(output_dir / 'data.json', 'wb')
-        # data_json = {
-        #     "task": task,
-        #     "vocabularies": [],
-        #     "data_files": [f"{index_file},dialogue,dialogue_json"],
-        #     "examples": list(self.dialogues.keys()),
-        #     "num_examples": len(list(self.dialogues.keys())),
-        # }
-        # writer.write(
-        #     json.dumps(data_json, indent=4, ensure_ascii=False, sort_keys=False).encode(
-        #         "utf_8"
-        #     )
-        # )
+            # (2) dump ESPnet-SLM style TTS dataset for TTS simulation
+            if self.task != "text_dialogue":
+                assert assistant_prompt_list is not None
+                assert user_prompt_list is not None
+
+                tts_dir = output_dir / 'tts_simulation' / f"rank{rank}_pack{pack_idx}"
+                tts_dir.mkdir(parents=True, exist_ok=True)
+
+                wav_scp_writer = open(tts_dir / 'wav.scp', 'w')
+                utt2spk_writer = open(tts_dir / 'utt2spk', 'w')
+                text_writer = open(tts_dir / 'text', 'w')
+
+                for key, segments in pack.items():
+                    assistant_prompt = random.choice(assistant_prompt_list)
+                    user_prompt = random.choice(user_prompt_list)
+
+                    for role, modality, _, content in segments:
+                        
+                        if modality == "codec_ssl":
+                            text = all_utt_text_pairs[content]
+                            # target wave is just a placeholder, will not be in real use
+                            wav_scp_writer.write(f"{content} {assistant_prompt}\n")
+                            text_writer.write(f"{content} {text}\n")
+                            if role == "user":
+                                utt2spk_writer.write(f"{content} {user_prompt}\n")
+                            elif role == "assistant":
+                                utt2spk_writer.write(f"{content} {assistant_prompt}\n")
+                            else:
+                                raise ValueError(f"Unrecognized role: {role}")
+
+def check_valid_segments(segments):
+    for role, modality, target, content in segments:
+        if content.strip() == "":
+            return False
+    
+    return True

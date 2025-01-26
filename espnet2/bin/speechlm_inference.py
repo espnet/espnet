@@ -367,7 +367,7 @@ def inference(
         codec_conf=codec_conf,
     )
     # NOTE(Jinchuan): in multi-processing, avoid memory spike
-    time.sleep(rank)
+    time.sleep(rank * 5)
     speechlm = SpeechLM.from_pretrained(model_tag=model_tag, **speechlm_kwargs)
 
     # 3. Build data-iterator
@@ -660,16 +660,57 @@ def main(cmd=None):
         )
         p.start()
         processes.append(p)
+        
 
-    for p in processes:
-        p.join()
+    try:
+        # Polling loop:
+        # We repeatedly check if any process has exited and if so, whether it failed.
+        # If a process fails, we terminate all remaining.
+        while True:
+            all_done = True
 
-    print("All processes finish")
+            for p in processes:
+                # If the process is still alive, try joining for a short time (poll)
+                if p.is_alive():
+                    p.join(timeout=1)  # Non-blocking "poll" wait
+                    # After the join with timeout, if p is still alive,
+                    # we'll continue the loop. If it ended, we can check exitcode.
+                
+                # Now, if the process is NOT alive, it might have finished or failed
+                if not p.is_alive():
+                    # p.exitcode == 0 means success
+                    # p.exitcode != 0 means error/exception
+                    if p.exitcode is not None and p.exitcode != 0:
+                        raise ChildProcessError(
+                            f"Process {p.pid} terminated with exitcode={p.exitcode}"
+                        )
+                else:
+                    # If it's still alive at this point, we're not all done yet
+                    all_done = False
+
+            if all_done:
+                # Means all processes have finished successfully
+                print("All processes finished successfully.")
+                break
+
+    except Exception as e:
+        print(f"Error detected: {e}. Terminating all processes...", file=sys.stderr)
+        
+        # Terminate all running processes
+        for p in processes:
+            if p.is_alive():
+                p.terminate()
+        
+        # Re-raise the original exception so it can be caught or exit accordingly
+        raise
 
     # (3) finally, merge results from all processes
     file_dict = dict()
     for file in args.output_dir.rglob('*_rank*'):
         name = file.parent / file.name.split('_rank')[0]
+        rank = file.name.split('_rank')[1]
+        if int(rank) >= nproc:
+            continue
         if name not in file_dict:
             file_dict[name] = list()
         file_dict[name].append(file)

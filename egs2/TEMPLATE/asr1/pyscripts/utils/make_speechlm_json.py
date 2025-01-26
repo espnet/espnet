@@ -67,10 +67,14 @@ def main():
         for name, modality, _type in all_triplets_provided:
             if (
                 modality == tgt_modality
-                and _type == tgt_type
                 and name.endswith(tgt_name)
             ):
                 triplet_found = True
+                if _type != tgt_type:
+                    logging.warning(
+                        f"target type {tgt_type} but input type {_type} "
+                        f"Please make sure this is intended"
+                    )
                 file_triplets.append([name, modality, _type])
         if not triplet_found:
             raise ValueError(f"No triplet Found: {tgt_name},{tgt_modality},{tgt_type}")
@@ -80,8 +84,11 @@ def main():
     for file_triplet in file_triplets:
         file_path = file_triplet[0]
         feat_name = file_path.split("/")[-1]
-        for line in open(file_path):
-            example_id, content = line.strip().split(maxsplit=1)
+        for idx, line in enumerate(open(file_path)):
+            try:
+                example_id, content = line.strip().split(maxsplit=1)
+            except:
+                logging.warning(f"Bad line at {idx}-th line of {file_path}")
             if example_id not in example_dict:
                 example_dict[example_id] = {}
             example_dict[example_id][feat_name] = content

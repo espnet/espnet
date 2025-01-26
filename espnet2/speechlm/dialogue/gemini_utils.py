@@ -71,17 +71,17 @@ class GeminiAPIInterface:
 
         self.set_prompt_method(model_id, prompt_method)
     
-    def set_prompt_method(self, model_id, prompt_method = None):
-        if prompt_method is not None:
-            instruction = prompt_dict[prompt_method]
+    def set_prompt_method(self, model_id, task = None):
+        if task is not None:
+            instruction = prompt_dict[task]
         else:
             instruction = None
 
-        logging.info(f"Switch to model {model_id} with prompt {prompt_method}")
+        logging.info(f"Switch to model {model_id} with task {task}")
         
         generation_config = GenerationConfig(
             response_mime_type="application/json",
-            max_output_tokens=512,
+            max_output_tokens=1024,
         )
         self.model = GenerativeModel(
             model_id, 
@@ -89,23 +89,22 @@ class GeminiAPIInterface:
             generation_config=generation_config,
         )
 
-        self.prompt_method = prompt_method
+        self.task = task
         self.model_id = model_id
         
-    
     def generate_spoken_dialogue(
         self,
         name,
         dialogue, 
         model_id,
-        prompt_method: str = "s2t",
+        task: str = "audio_dialogue",
         max_len_words: int = 500,
     ):
-        if prompt_method not in ["s2s", "s2t"]:
-            raise ValueError(f"invalid prompt method: {prompt_method}")
+        if task not in ["audio_dialogue", "audio_text_dialogue"]:
+            raise ValueError(f"invalid task: {task}")
 
-        if prompt_method != self.prompt_method or model_id != self.model_id:
-            self.set_prompt_method(model_id, prompt_method)
+        if task != self.task or model_id != self.model_id:
+            self.set_prompt_method(model_id, task)
 
         # (1) check if the string is too long
         dialogue_str = dialogue.to_str()
@@ -140,7 +139,7 @@ class GeminiAPIInterface:
             logging.warning(f"Dialogue {name} not a list {response}")
             return None
         
-        dialogue = Dialogue()
+        dialogue = Dialogue("text_dialogue")
         for idx, d in enumerate(response):
             if not ("role" in d and "content" in d):
                 logging.warning(f"Dialogue {name} | segment {idx} incomplete")
