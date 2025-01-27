@@ -428,6 +428,8 @@ class EBranchformerEncoder(AbsEncoder):
         )
         self.after_norm = LayerNorm(output_size)
 
+        self.layer_drop_rate = layer_drop_rate
+
         if interctc_layer_idx is None:
             interctc_layer_idx = []
         self.interctc_layer_idx = interctc_layer_idx
