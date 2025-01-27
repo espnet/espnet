@@ -9,9 +9,12 @@ from typeguard import typechecked
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.encoder.beats_encoder import (
-    BeatsConfig,
     BeatsEncoder,
     BeatsPretrainingPredictor,
+)
+from espnet2.speechlm.tokenizer.beats_tokenizer import (
+    BeatsTokenizer,
+    BeatsTokenizerPretrainingPredictor,
 )
 from espnet2.beats.espnet_model import BeatsPretrainModel, BeatsTokenizerPretrainModel
 from espnet2.tasks.abs_task import AbsTask
@@ -30,6 +33,7 @@ encoder_choices = ClassChoices(
     "encoder",
     classes=dict(
         beats=BeatsEncoder,
+        beats_tokenizer=BeatsTokenizer,
     ),
     type_check=AbsEncoder,
     default="beats",
@@ -86,6 +90,7 @@ class BeatsTask(AbsTask):
                 "xavier_normal",
                 "kaiming_uniform",
                 "kaiming_normal",
+                "normal",
                 None,
             ],
         )
@@ -98,6 +103,7 @@ class BeatsTask(AbsTask):
         group.add_argument(
             "--use_preprocessor", type=str2bool, default=True, help="Use preprocessor"
         )
+        group.add_argument("--beats_teacher_ckpt_path", type=str, default=None)
 
         for class_choices in cls.class_choices_list:
             # Append --<name> and --<name>_conf.
@@ -160,40 +166,113 @@ class BeatsTask(AbsTask):
         logger.info(f"Vocabulary size: {vocab_size }")
         n_codebook_vectors = vocab_size - 1
 
-        beats_config = args.encoder_conf.pop("beats_config", None)
-        if beats_config:
-            assert (
-                beats_config["codebook_vocab_size"] == n_codebook_vectors
-            ), f"The provided token list length ({n_codebook_vectors}) and the codebook vocab size ({beats_config['codebook_vocab_size']}) in the beats config do not match."
+        assert (
+            args.model == args.encoder
+        ), f"Model and encoder choice should match {pretraining_model}"
+        pretraining_model = args.model
+
         # 1. frontend
         input_size = 1  # model will extract features
-        # 2. Encoder
-        if not args.encoder_conf.get("is_pretraining", False):
-            logger.warning(
-                "BeatsTask only supports pretraining mode. Overriding with pretraining mode."
-            )
-            args.encoder_conf["is_pretraining"] = True
+        # 2. Encoder and Decoder
         encoder_class = encoder_choices.get_class(args.encoder)
-        encoder = encoder_class(
-            input_size=input_size,
-            beats_config=beats_config,
-            **args.encoder_conf,
-        )
-        if encoder_class == BeatsEncoder:
-            predictor = BeatsPretrainingPredictor(beats_config=beats_config)
-        else:
-            raise ValueError(
-                "No implementation for decoder for {}".format(encoder_class)
-            )
-
         # 3. Build model
         model_class = model_choices.get_class(args.model)
+
+        assert (
+            pretraining_model == "beats"
+        ), f"Model should be beats: {pretraining_model}"
+        config = args.encoder_conf.pop("beats_config", None)
+        encoder = encoder_class(
+            input_size=input_size,
+            beats_config=config,
+            **args.encoder_conf,
+        )
+        predictor = BeatsPretrainingPredictor(beats_config=config)
+        kwargs = {"encoder": encoder, "decoder": predictor}
+
         model = model_class(
-            encoder=encoder,
-            decoder=predictor,
+            **kwargs,
             **args.model_conf,
         )
 
+        # 4. Initialize
+        if args.init is not None:
+            initialize(model, args.init)
+        return model
+
+
+class BeatsTokenizerTask(BeatsTask):
+
+    @classmethod
+    @typechecked
+    def build_collate_fn(cls, args: argparse.Namespace, train: bool) -> Callable[
+        [Collection[Tuple[str, Dict[str, np.ndarray]]]],
+        Tuple[List[str], Dict[str, torch.Tensor]],
+    ]:
+        return CommonCollateFn(float_pad_value=0.0, int_pad_value=-1)
+
+    @classmethod
+    @typechecked
+    def build_preprocess_fn(
+        cls, args: argparse.Namespace, train: bool
+    ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
+        if args.use_preprocessor:
+            # only speech preprocessing
+            retval = CommonPreprocessor(
+                train=train,
+                text_name="",
+            )
+        else:
+            retval = None
+        return retval
+
+    @classmethod
+    def required_data_names(
+        cls, train: bool = True, inference: bool = False
+    ) -> Tuple[str, ...]:
+        retval = ("speech",)
+        return retval
+
+    @classmethod
+    def optional_data_names(
+        cls, train: bool = True, inference: bool = False
+    ) -> Tuple[str, ...]:
+        retval = ("speech_lengths",)
+        return retval
+
+    @classmethod
+    @typechecked
+    def build_model(
+        cls, args: argparse.Namespace
+    ) -> Union[BeatsPretrainModel, BeatsTokenizerPretrainModel]:
+        assert args.model == args.encoder, "Model and encoder choice should match."
+        pretraining_model = args.model
+        input_size = 1  # model will extract features
+        encoder_class = encoder_choices.get_class(args.encoder)
+        model_class = model_choices.get_class(args.model)
+        assert (
+            pretraining_model == "beats_tokenizer"
+        ), f"Model should be beats_tokenizer {pretraining_model}"
+        config = args.encoder_conf.pop("tokenizer_config", None)
+
+        encoder = encoder_class(
+            tokenizer_config=config,
+            **args.encoder_conf,
+        )
+        predictor = BeatsTokenizerPretrainingPredictor(tokenizer_config=config)
+        assert (
+            args.beats_teacher_ckpt_path is not None
+        ), "Teacher checkpoint path is required for tokenizer pretraining."
+        teacher = BeatsEncoder(
+            input_size=input_size,
+            beats_ckpt_path=args.beats_teacher_ckpt_path,
+        )
+        model = model_class(
+            encoder=encoder,
+            decoder=predictor,
+            teacher=teacher,
+            **args.model_conf,
+        )
         # 4. Initialize
         if args.init is not None:
             initialize(model, args.init)

@@ -61,7 +61,7 @@ def pad_list(xs, pad_value):
     return pad
 
 
-def make_pad_mask(lengths, xs=None, length_dim=-1, maxlen=None):
+def make_pad_mask(lengths, xs=None, length_dim=-1, maxlen=None, traceable=True):
     """Make mask tensor containing indices of padded part.
 
     Args:
@@ -70,6 +70,9 @@ def make_pad_mask(lengths, xs=None, length_dim=-1, maxlen=None):
             If set, masks will be the same shape as this tensor.
         length_dim (int, optional): Dimension indicator of the above tensor.
             See the example.
+        traceable (bool, optional): If True, use a traceable implementation.
+            Traceable operations can be costly since they construct a
+            maxlen X maxlen triangular mask.
 
     Returns:
         Tensor: Mask tensor containing indices of padded part.
@@ -164,6 +167,7 @@ def make_pad_mask(lengths, xs=None, length_dim=-1, maxlen=None):
         (xs is None or xs.dim() in (2, 3))
         and length_dim <= 2
         and (not isinstance(lengths, list) and lengths.dim() == 1)
+        and traceable
     ):
         return _make_pad_mask_traceable(lengths, xs, length_dim, maxlen)
     else:

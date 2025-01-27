@@ -30,13 +30,18 @@ else:
         yield
 
 
-from espnet2.asr.encoder.beats_encoder import BeatsConfig, BeatsEncoder
+from espnet2.asr.encoder.beats_encoder import (
+    BeatsConfig,
+    BeatsEncoder,
+    TransformerSentenceEncoderLayer,
+)
 from espnet2.speechlm.tokenizer.beats_utils import (
     l2norm,
     kmeans,
     norm_ema_inplace,
     ema_inplace,
 )
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet2.speechlm.tokenizer.random_tokenizer import RandomProjectionQuantizer
 
 
@@ -46,6 +51,8 @@ class BeatsTokenizerConfig(BeatsConfig):
         # quantizer
         self.quant_n: int = 1024  # number of vec in quantizer coebook
         self.quant_dim: int = 256  # codebook dimension in quantizer
+        self.embed_loss_beta: float = 1.0  # e15  # beta for embedding loss
+
         if cfg is not None:
             self.update(cfg)
 
@@ -66,8 +73,8 @@ class BeatsTokenizer(BeatsEncoder):
         is_tokenizer_pretraining: bool = False,
     ) -> None:
         if beats_tokenizer_ckpt_path is None:
-            logging.warning(
-                "No checkpoint path provided for BEATs encoder!!"
+            logging.info(
+                "No checkpoint path provided for BEATs tokenizer encoder!"
                 "We will encode audio using a randomly initialized model."
             )
         super().__init__(
@@ -90,7 +97,7 @@ class BeatsTokenizer(BeatsEncoder):
         self.quantize = NormEMAVectorQuantizer(
             n_embed=config.quant_n,
             embedding_dim=config.quant_dim,
-            beta=1.0,
+            beta=config.embed_loss_beta,
             decay=0.99,
             kmeans_init=True,
         )
@@ -127,7 +134,7 @@ class BeatsTokenizer(BeatsEncoder):
         """
         Encodes input audio xs_pad to quantized features.
         Args:
-            xs_pad (torch.Tensor): Input tensor (B, T).
+            xs_pad (torch.Tensor): Input tensor (B, T) or (B,T,1).
             ilens (torch.Tensor): Input length tensor (B,).
         Returns:
             embed_ind (torch.Tensor): Embedding indices (B, T).
@@ -139,10 +146,10 @@ class BeatsTokenizer(BeatsEncoder):
                 xs_pad.size(0) == 1
             ), "Batch size must be 1. Otherwise, please provide ilens."
             ilens = torch.tensor([xs_pad.size(1)], dtype=torch.long).to(xs_pad.device)
-        x, _, _ = self(xs_pad, ilens)
+        x, x_len, _ = self(xs_pad, ilens)
         quantize_input = self.quantize_layer(x)
         quantize_feature, embed_loss, embed_ind = self.quantize(quantize_input)
-        return embed_ind, embed_loss, quantize_feature
+        return embed_ind, embed_loss, quantize_feature, x_len
 
 
 class NormEMAVectorQuantizer(nn.Module):
@@ -157,8 +164,8 @@ class NormEMAVectorQuantizer(nn.Module):
         statistic_code_usage=True,
     ):
         super().__init__()
-        self.codebook_dim = embedding_dim
         self.num_tokens = n_embed
+        self.codebook_dim = embedding_dim
         self.beta = beta
         self.decay = decay
         self.embedding = EmbeddingEMA(
@@ -181,15 +188,27 @@ class NormEMAVectorQuantizer(nn.Module):
             self.cluster_size = self.cluster_size.to(device)
 
     def forward(self, z):
+        """Encode the input with the vector quantizer.
+        Args
+            z: (B, T, D) input tensor
+        Returns
+            z_q: (B, T, D) quantized tensor
+            loss: scalar quantization loss
+            encoding_indices: (B, T) indices of the quantized embeddings
+        """
         z = l2norm(z)
-        z_flattened = z.reshape(-1, self.codebook_dim)
+        z_flattened = z.reshape(-1, self.codebook_dim)  # B*T,D
+
+        if self.training:
+            self.embedding.init_embed_(z_flattened)
+
         d = (
             z_flattened.pow(2).sum(dim=1, keepdim=True)
             + self.embedding.weight.pow(2).sum(dim=1)
             - 2 * torch.einsum("bd,nd->bn", z_flattened, self.embedding.weight)
         )
         encoding_indices = torch.argmin(d, dim=1)  # B*T
-        z_q = self.embedding(encoding_indices).view(z.shape)
+        z_q = self.embedding(encoding_indices).view(z.shape)  # B,T,D
         encodings = F.one_hot(encoding_indices, self.num_tokens).type(
             z.dtype
         )  # B*T,num_tokens
@@ -204,14 +223,16 @@ class NormEMAVectorQuantizer(nn.Module):
 
         if self.training:
             # EMA cluster size
-            bins = encodings.sum(0)
+            bins = encodings.sum(0)  # num_tokens
             self.all_reduce_fn(bins)
             ema_inplace(self.cluster_size, bins, self.decay)
 
             zero_mask = bins == 0
             bins = bins.masked_fill(zero_mask, 1.0)
+            # [D, B*T] @ [B*T,num_tokens] --> [D, num_tokens]
             embed_sum = z_flattened.t() @ encodings
             self.all_reduce_fn(embed_sum)
+            # num_tokens, D
             embed_normalized = (embed_sum / bins.unsqueeze(0)).t()
             embed_normalized = l2norm(embed_normalized)
             embed_normalized = torch.where(
@@ -221,7 +242,7 @@ class NormEMAVectorQuantizer(nn.Module):
 
         # compute loss for embedding
         loss = self.beta * F.mse_loss(z_q.detach(), z)
-        # preserve gradients
+        # copy gradient from z_q to z
         z_q = z + (z_q - z).detach()
         return z_q, loss, encoding_indices
 
@@ -250,6 +271,7 @@ class EmbeddingEMA(nn.Module):
         else:
             weight = torch.zeros(num_tokens, codebook_dim)
             self.register_buffer("initted", torch.Tensor([False]))
+        # NOTE: Very important that weight is always normalized.
         self.weight = nn.Parameter(weight, requires_grad=False)
         self.cluster_size = nn.Parameter(torch.zeros(num_tokens), requires_grad=False)
         self.embed_avg = nn.Parameter(weight.clone(), requires_grad=False)
@@ -258,7 +280,7 @@ class EmbeddingEMA(nn.Module):
     def init_embed_(self, data):
         if self.initted:
             return
-        logging("Performing Kemans init for codebook")
+        logging.info("Performing Kemans init for codebook")
         # embed[float]: (num_tokens, codebook_dim), cluster_size[int]: (num_tokens,)
         embed, cluster_size = kmeans(
             data, self.num_tokens, num_iters=10, use_cosine_sim=True
@@ -267,29 +289,86 @@ class EmbeddingEMA(nn.Module):
         self.cluster_size.data.copy_(cluster_size)
         self.initted.data.copy_(torch.Tensor([True]).to(self.initted.device))
 
-    def cluster_size_ema_update(self, new_cluster_size):
-        # ?
-        self.cluster_size.data.mul_(self.decay).add_(
-            new_cluster_size, alpha=1 - self.decay
-        )
+    # def cluster_size_ema_update(self, new_cluster_size):
+    #     # ?
+    #     self.cluster_size.data.mul_(self.decay).add_(
+    #         new_cluster_size, alpha=1 - self.decay
+    #     )
 
-    def embed_avg_ema_update(self, new_embed_avg):
-        # ?
-        self.embed_avg.data.mul_(self.decay).add_(new_embed_avg, alpha=1 - self.decay)
+    # def embed_avg_ema_update(self, new_embed_avg):
+    #     # ?
+    #     self.embed_avg.data.mul_(self.decay).add_(new_embed_avg, alpha=1 - self.decay)
 
-    def weight_update(self, num_tokens):
-        # ?
-        n = self.cluster_size.sum()
-        smoothed_cluster_size = (
-            (self.cluster_size + self.eps) / (n + num_tokens * self.eps) * n
-        )
-        # normalize embedding average with smoothed cluster size
-        embed_normalized = self.embed_avg / smoothed_cluster_size.unsqueeze(1)
-        # embed_normalized = l2norm(self.embed_avg / smoothed_cluster_size.unsqueeze(1))
-        self.weight.data.copy_(embed_normalized)
+    # def weight_update(self, num_tokens):
+    #     # ?
+    #     n = self.cluster_size.sum()
+    #     smoothed_cluster_size = (
+    #         (self.cluster_size + self.eps) / (n + num_tokens * self.eps) * n
+    #     )
+    #     # normalize embedding average with smoothed cluster size
+    #     embed_normalized = self.embed_avg / smoothed_cluster_size.unsqueeze(1)
+    #     # embed_normalized = l2norm(self.embed_avg / smoothed_cluster_size.unsqueeze(1))
+    #     self.weight.data.copy_(embed_normalized)
 
     def forward(self, embed_id):
         return F.embedding(embed_id, self.weight)
+
+
+class BeatsTokenizerPretrainingPredictor(nn.Module):
+
+    def __init__(self, tokenizer_config: Optional[Dict] = None):
+        super().__init__()
+        tokenizer_config = BeatsTokenizerConfig(tokenizer_config)
+        self.connector_layer = nn.Linear(
+            tokenizer_config.quant_dim, tokenizer_config.decoder_embed_dim
+        )
+        self.decoder_blocks = nn.ModuleList(
+            [
+                TransformerSentenceEncoderLayer(
+                    embedding_dim=tokenizer_config.decoder_embed_dim,
+                    ffn_embedding_dim=tokenizer_config.encoder_ffn_embed_dim,
+                    num_attention_heads=tokenizer_config.encoder_attention_heads,
+                    dropout=tokenizer_config.dropout,
+                    attention_dropout=tokenizer_config.attention_dropout,
+                    activation_dropout=tokenizer_config.activation_dropout,
+                    activation_fn=tokenizer_config.activation_fn,
+                    layer_norm_first=tokenizer_config.layer_norm_first,
+                    deep_norm=tokenizer_config.deep_norm,
+                    has_relative_attention_bias=tokenizer_config.relative_position_embedding,
+                    num_buckets=tokenizer_config.num_buckets,
+                    max_distance=tokenizer_config.max_distance,
+                    gru_rel_pos=tokenizer_config.gru_rel_pos,
+                    encoder_layers=tokenizer_config.decoder_layers,
+                )
+                for i in range(tokenizer_config.decoder_layers)
+            ]
+        )
+        self.decoder_norm = nn.LayerNorm(tokenizer_config.decoder_embed_dim)
+
+    def forward(self, quantize_feature, quantize_feats_len):
+        quantize_feature = quantize_feature[:, : quantize_feats_len.max(), :]
+        padding_mask = make_pad_mask(
+            lengths=quantize_feats_len,
+            traceable=False,
+        ).to(quantize_feature.device)
+        x = self.connector_layer(quantize_feature)
+
+        pos_bias = None
+        # ===========================#
+        # B x T x D -> T x B x D
+        x = x.transpose(0, 1)
+        for blk in self.decoder_blocks:
+            x, _, pos_bias = blk(
+                x,
+                self_attn_padding_mask=padding_mask,
+                need_weights=False,
+                pos_bias=pos_bias,
+            )
+        x = x.transpose(0, 1)
+        # T x B x D -> B x T x D
+        # ===========================#
+        pred = self.decoder_norm(x)
+        return pred
 
 
 class BeatsRandomTokenizer(nn.Module):
@@ -355,10 +434,25 @@ class BeatsRandomTokenizer(nn.Module):
         return fbank
 
     @torch.no_grad()
-    def forward(self, xs_pad: torch.Tensor):
+    def forward_padding_mask(
+        self,
+        features: torch.Tensor,
+        padding_mask: torch.Tensor,
+    ) -> torch.Tensor:
+        """Forward padding mask. Featuires: BTC, padding_mask: BT."""
+        extra = padding_mask.size(1) % features.size(1)
+        if extra > 0:
+            padding_mask = padding_mask[:, :-extra]
+        padding_mask = padding_mask.view(padding_mask.size(0), features.size(1), -1)
+        padding_mask = padding_mask.all(-1)  # remove totally empty sequences
+        return padding_mask
+
+    @torch.no_grad()
+    def forward(self, xs_pad: torch.Tensor, ilens: torch.Tensor):
         """
         Args:
             xs_pad (torch.Tensor): Input tensor (B, T).
+            ilens (torch.Tensor): Input length tensor (B,).
         """
         with autocast(False):
             fbank = self.frontend(xs_pad)
@@ -367,16 +461,17 @@ class BeatsRandomTokenizer(nn.Module):
         features = features.reshape(features.shape[0], features.shape[1], -1)
         features = features.transpose(1, 2)
         features = self.layer_norm(features)
+        padding_mask = make_pad_mask(lengths=ilens, traceable=False).to(features.device)
+        padding_mask = self.forward_padding_mask(features, padding_mask)
         embed_ind = self.random_projection_quantizer(features)
-        return embed_ind
+        embed_len = (~padding_mask).sum(1)
+        return embed_ind, embed_len
 
     @torch.no_grad()
     def encode(
         self,
         xs_pad: torch.Tensor,
-        ilens: Optional[torch.Tensor] = None,
+        ilens: torch.Tensor,
     ):
-        # TODO: Add ilens support for batched data
-        assert xs_pad.size(0) == 1, "Batch size must be 1."
-        embed_ind = self(xs_pad)
-        return embed_ind, None, None
+        embed_ind, embed_len = self(xs_pad, ilens)
+        return embed_ind, None, None, embed_len

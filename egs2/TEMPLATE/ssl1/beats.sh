@@ -70,7 +70,7 @@ download_model= # Download a model from Model Zoo and use it for decoding.
 train_set=     # Name of training set
 valid_set=     # Name of valid set
 
-speech_fold_length=800 # fold_length for speech data during SSL training.
+speech_fold_length=160000 # fold_length for speech data during SSL training.
 text_fold_length=500   # fold_length for text data during SSL training.
 
 help_message=$(cat << EOF

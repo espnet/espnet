@@ -369,7 +369,7 @@ class BeatsEncoder(AbsEncoder):
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
         """Wrapper for compatibility with ESPnets' AbsEncoder Interface.
         Args:
-            xs_pad: (B, T)
+            xs_pad: (B, T) or (B,T,1)
             ilens: (B,)
             prev_states: None
         Returns:
@@ -377,19 +377,15 @@ class BeatsEncoder(AbsEncoder):
             output_lens: (B,)
             masks: None
         """
+        if xs_pad.dim() == 3:
+            assert xs_pad.size(-1) == 1, "Input must be single channel."
+            xs_pad = xs_pad.squeeze(-1)
+
         if self.roll_augment and self.training:
             xs_pad = roll_tensor(
                 xs_pad.unsqueeze(-1), ilens, fixed_intervals=self.roll_interval
             ).squeeze(-1)
-        # NOTE(shikhar): If xs is not provided then the operation is costly,
-        # because this function tries to create a tensor of size maxlen x maxlen.
-        # Therfore, we unsqueeze and then squeeze tensors.
-        mask = make_pad_mask(
-            lengths=ilens, xs=xs_pad.unsqueeze(-1).unsqueeze(-1), length_dim=1
-        ).to(xs_pad.device)
-        # Adjust shapes to be compatible with Beats code
-        xs_pad, mask = xs_pad.squeeze(-1).squeeze(-1), mask.squeeze(-1).squeeze(-1)
-
+        mask = make_pad_mask(lengths=ilens, traceable=False).to(xs_pad.device)
         audio_representation, mask, restore_ids, kept_mask = self.extract_features(
             xs_pad,
             mask,
@@ -577,8 +573,7 @@ class BeatsPretrainingPredictor(nn.Module):
         patch_len: torch.Tensor,  # B (1>=x>=T_large)
         restore_ids: torch.Tensor,  # B,T_large,D
     ):
-        # TODO(shikhar): This gives warning due to input as list, fix it.
-        padding_mask = make_pad_mask(lengths=patch_len.tolist()).to(
+        padding_mask = make_pad_mask(lengths=patch_len, traceable=False).to(
             audio_representation.device
         )
         x = self.decoder_embed(audio_representation)

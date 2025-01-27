@@ -51,7 +51,7 @@ def test_forward_pass_beats_encoder(
         max_positions=max_positions,
     )
     x = torch.randn((2, 32_000))  # B,T
-    x_lens = torch.LongTensor([16_000, 24_000])
+    x_lens = torch.LongTensor([16_000, 32_000])
     output_rep, output_len, _ = beats_model(x, x_lens)
 
     # Check output representation
@@ -68,7 +68,7 @@ def test_forward_pass_beats_encoder(
     assert (
         output_len.size(0) == 2
     ), f"Output length batch size should be 2. It is {output_len.size(0)}"
-    correct_length = (25, 38) if downsampling_rate == 2 else (50, 75)
+    correct_length = (25, 47) if downsampling_rate == 2 else (50, 96)
     assert (
         tuple(output_len.tolist()) == correct_length
     ), f"Output length vector should be {correct_length}. It is {output_len}"
@@ -115,8 +115,8 @@ def test_forward_pass_pretraining_beats_encoder():
         beats_config=beats_config,
         is_pretraining=True,
     )
-    x = torch.randn((2, 32_000, 1))  # B,T,1
-    x_lens = torch.LongTensor([16_000, 24_000])
+    x = torch.randn((2, 32_000))  # B,T
+    x_lens = torch.LongTensor([16_000, 32_000])
     output_rep, restore_ids, kept_mask = beats_model(x, x_lens)
 
     # Check output representation
@@ -151,8 +151,8 @@ def test_backward_pass_pretraining_beats_encoder():
         beats_config=beats_config,
         is_pretraining=True,
     )
-    x = torch.randn((2, 32_000, 1), requires_grad=True)  # B,T,1
-    x_lens = torch.LongTensor([16_000, 24_000])
+    x = torch.randn((2, 32_000), requires_grad=True)  # B,T,1
+    x_lens = torch.LongTensor([16_000, 32_000])
     output_rep, restore_ids, kept_mask = beats_model(x, x_lens)
     output_rep.sum().backward()
 
@@ -183,6 +183,7 @@ def test_backward_pass_beats_pretraining_predictor():
     if not is_torch_1_12_1_plus:
         return
     beats_config = {
+        "decoder_layers": 2,
         "encoder_layers": 2,
         "encoder_embed_dim": 128,
         "decoder_embed_dim": 1024,

@@ -1,38 +1,39 @@
 from argparse import Namespace
 
+import torch
 import numpy as np
 import pytest
 
-from espnet2.tasks.beats import BeatsTask
-from espnet2.asr.encoder.beats_encoder import BeatsConfig
+from espnet2.tasks.beats import BeatsTask, BeatsTokenizerTask
+from espnet2.asr.encoder.beats_encoder import BeatsEncoder
 
 
-def test_add_arguments():
+def test_add_arguments_beats():
     BeatsTask.get_parser()
 
 
-def test_add_arguments_help():
+def test_add_arguments_help_beats():
     parser = BeatsTask.get_parser()
     with pytest.raises(SystemExit):
         parser.parse_args(["--help"])
 
 
-def test_main_help():
+def test_main_help_beats():
     with pytest.raises(SystemExit):
         BeatsTask.main(cmd=["--help"])
 
 
-def test_main_print_config():
+def test_main_print_config_beats():
     with pytest.raises(SystemExit):
         BeatsTask.main(cmd=["--print_config"])
 
 
-def test_main_with_no_args():
+def test_main_with_no_args_beats():
     with pytest.raises(SystemExit):
         BeatsTask.main(cmd=[])
 
 
-def test_print_config_and_load_it(tmp_path):
+def test_print_config_and_load_it_beats(tmp_path):
     config_file = tmp_path / "config.yaml"
     with config_file.open("w") as f:
         BeatsTask.print_config(f)
@@ -41,42 +42,71 @@ def test_print_config_and_load_it(tmp_path):
 
 
 @pytest.mark.parametrize("inference", [True, False])
-def test_required_data_names(inference):
+def test_required_data_names_beats(inference):
     retval = BeatsTask.required_data_names(True, inference)
     assert "speech" in retval
     assert "target" in retval
 
 
 @pytest.mark.parametrize("inference", [True, False])
-def test_optional_data_names(inference):
+def test_optional_data_names_beats(inference):
     retval = BeatsTask.optional_data_names(True, inference)
     assert "target_lengths" in retval
     assert "speech_lengths" in retval
 
 
-def get_dummy_namespace():
-    return Namespace(
+def get_beats_config():
+    return {
+        "encoder_layers": 2,
+        "encoder_embed_dim": 128,
+        "decoder_embed_dim": 128,
+        "embed_dim": 64,
+        "encoder_ffn_embed_dim": 256,
+        "encoder_attention_heads": 4,
+    }
+
+
+@pytest.fixture()
+def beats_ckpt_path(tmp_path):
+    beats_ckpt_path_ = tmp_path / "beats.ckpt"
+    beats_config = get_beats_config()
+    beats_encoder = BeatsEncoder(input_size=1, beats_config=beats_config)
+    torch.save(
+        {"model": beats_encoder.state_dict(), "cfg": beats_config}, beats_ckpt_path_
+    )
+    return str(beats_ckpt_path_)
+
+
+def get_dummy_namespace(beats_ckpt_path=None, model_name="beats"):
+    args = Namespace(
         token_type="word",
         token_list=["class1", "class2", "class3", "class4", "<unk>"],
-        encoder="beats",
-        encoder_conf={
-            "beats_config": BeatsConfig(
+        encoder=model_name,
+        encoder_conf={},
+        init="normal",
+        model=model_name,
+        model_conf={},
+        beats_teacher_ckpt_path=beats_ckpt_path,
+    )
+    if model_name == "beats":
+        args.encoder_conf = {
+            "beats_config": get_beats_config(),
+            "is_pretraining": True,
+        }
+        args.model_conf = {"ignore_id": -1, "label_smoothing": 0.1}
+    if model_name == "beats_tokenizer":
+        args.encoder_conf = {
+            "tokenizer_config": get_beats_config().update(
                 {
-                    "encoder_layers": 2,
-                    "encoder_embed_dim": 128,
-                    "decoder_embed_dim": 1024,
-                    "encoder_attention_heads": 4,
                     "codebook_vocab_size": 4,
                 }
             ),
-        },
-        init="normal",
-        model="beats",
-        model_conf={"ignore_id": -1, "label_smoothing": 0.1},
-    )
+            "is_tokenizer_pretraining": True,
+        }
+    return args
 
 
-def test_build_preprocess_fn():
+def test_build_preprocess_fn_beats():
     args = get_dummy_namespace()
     preprocessor_args = {
         "use_preprocessor": True,
@@ -90,7 +120,7 @@ def test_build_preprocess_fn():
     assert np.all(data_preprocessed["target"] == np.array([3, 1]))
 
 
-def test_build_collate_fn():
+def test_build_collate_fn_beats():
     args = get_dummy_namespace()
     collate_fn = BeatsTask.build_collate_fn(args, True)
     # Following test is same as espnet/test/espnet2/train/test_collate_fn.py:test_
@@ -135,6 +165,23 @@ def test_build_collate_fn():
     np.testing.assert_array_equal(t[1]["b_lengths"], desired["b_lengths"])
 
 
-def test_build_model():
-    args = get_dummy_namespace()
-    model = BeatsTask.build_model(args)
+@pytest.mark.timeout(50)
+@pytest.mark.parametrize("model_name", ["beats", "beats_tokenizer"])
+def test_build_model(model_name, beats_ckpt_path):
+    args = get_dummy_namespace(beats_ckpt_path, model_name)
+    if model_name == "beats":
+        model = BeatsTask.build_model(args)
+    if model_name == "beats_tokenizer":
+        model = BeatsTokenizerTask.build_model(args)
+
+
+@pytest.mark.parametrize("inference", [True, False])
+def test_required_data_names_beats_tokenizer(inference):
+    retval = BeatsTokenizerTask.required_data_names(True, inference)
+    assert "speech" in retval
+
+
+@pytest.mark.parametrize("inference", [True, False])
+def test_optional_data_names_beats_tokenizer(inference):
+    retval = BeatsTokenizerTask.optional_data_names(True, inference)
+    assert "speech_lengths" in retval

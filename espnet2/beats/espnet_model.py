@@ -5,11 +5,13 @@ import logging
 from typing import Dict, List, Optional, Tuple, Union
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from typeguard import typechecked
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 
 logger = logging.getLogger(__name__)
 
@@ -154,8 +156,87 @@ class BeatsPretrainModel(AbsESPnetModel):
 
 
 class BeatsTokenizerPretrainModel(AbsESPnetModel):
-    pass
+
+    @typechecked
+    def __init__(
+        self,
+        encoder: AbsEncoder,
+        decoder: nn.Module,
+        teacher: AbsEncoder,
+    ):
+        super().__init__()
+        assert (
+            encoder.is_tokenizer_pretraining
+        ), "Set the encoder to pretraining mode with is_tokenizer_pretraining=True."
+        self.encoder = encoder  # BEATs tokenizer model
+        self.decoder = decoder  # BEATs tokenizer predictor
+        self.teacher = teacher  # BEATs audio encoder
+        self.teacher.eval()
+        assert (
+            not self.teacher.is_pretraining
+        ), "Teacher should not be in pretraining mode."
+        assert (
+            not self.encoder.is_pretraining
+        ), "Tokenizer should not be in encoder pretraining mode."
+        assert (
+            self.encoder.is_tokenizer_pretraining
+        ), "Tokenizer should be in tokenizer pretraining mode."
+        logger.info(
+            f"Initialized BeatsPretrainModel with"
+            f"encoder={encoder}, decoder={decoder}, teacher={teacher}"
+        )
+
+    @torch.no_grad()
+    def _extract_teacher_targets(
+        self, speech: torch.Tensor, speech_lengths: torch.Tensor
+    ):
+        audio_representation, output_lens, _ = self.teacher(speech, speech_lengths)
+        return audio_representation, output_lens
+
+    def collect_feats(self, speech: torch.Tensor, speech_lengths: torch.Tensor):
+        # for data-parallel
+        speech = speech[:, : speech_lengths.max()]
+        _, _, feats, feats_lengths = self.encoder.encode(speech)
+        return {"feats": feats, "feats_lengths": feats_lengths}
+
+    def _calc_beats_tokenizer_loss(
+        self, output: torch.Tensor, target: torch.Tensor, lengths: torch.Tensor
+    ):
+        cos_sim = F.cosine_similarity(target, output, dim=-1)
+        pad_mask = make_pad_mask(lengths, traceable=False).to(cos_sim.device)
+        cos_sim[pad_mask] = 0
+        cos_loss = 1 - (cos_sim.sum() / lengths.sum())
+        return cos_loss
+
+    def forward(self, speech: torch.Tensor, speech_lengths: torch.Tensor):
+        assert speech.shape[0] == speech_lengths.shape[0], (
+            speech.shape,
+            speech_lengths.shape,
+        )
+        batch_size = speech.shape[0]
+        # for data-parallel
+        speech = speech[:, : speech_lengths.max()]
+
+        targets, target_lengths = self._extract_teacher_targets(speech, speech_lengths)
+        _, embed_loss, quantize_feature, quantize_feats_len = self.encoder.encode(
+            speech, speech_lengths
+        )
+        assert (quantize_feats_len == target_lengths).all(), "Mismatch in lengths"
+        tokenizer_features = self.decoder(quantize_feature, quantize_feats_len)
+        sim_loss = self._calc_beats_tokenizer_loss(
+            tokenizer_features, targets, target_lengths
+        )
+        loss = embed_loss + sim_loss
+        stats = dict(
+            loss=loss.detach(),
+            embed_loss=embed_loss.detach(),
+            similarity_loss=sim_loss.detach(),
+            # codebook_coverage=self.encoder.quantize.cluster_size,
+        )
+        loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
+        return loss, stats, weight
 
 
 def generate_beats_encoder_checkpoint():
+    # Extract audio encoder from espnet model and save it
     pass
