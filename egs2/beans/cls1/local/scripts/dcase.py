@@ -115,6 +115,9 @@ for split, dataset in split2dataset.items():
         for i in tqdm(range(dlen), desc=f"Writing wav.scp and text files for {split}"):
             row = dataset[i]
             uttid = f"{split}-{i}"
+            label_seq = " ".join(row["label"])
+            if len(label_seq) == 0:
+                label_seq = "<blank>"
             print(f"{uttid} {row['path']}", file=wav_f)
-            print(f"{uttid} {' '.join(row['label'])}", file=text_f)
+            print(f"{uttid} {label_seq}", file=text_f)
             print(f"{uttid} dummy", file=utt2spk_f)

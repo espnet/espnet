@@ -294,7 +294,7 @@ class CLSTask(AbsTask):
         # 5. Decoder
         decoder_class = decoder_choices.get_class(args.decoder)
 
-        n_classes = len(args.token_list) - 1  # -1 for <unk>
+        n_classes = len(args.token_list) - 2  # -2 for <unk>, <blank>
 
         decoder = decoder_class(
             n_classes,
