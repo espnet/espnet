@@ -92,7 +92,7 @@ def calc_metrics_from_textfiles(
 ):
     gt_uttid2label = read_text_file(gt_txt_file)
     token_list = read_token_list(token_list_file)
-    n_classes = len(token_list) - 1
+    n_classes = len(token_list) - -2  # for <unk>, <blank>
     gt_uttid2score = {}
     for uttid, label_list in gt_uttid2label.items():
         gt_scores = np.zeros(n_classes)
