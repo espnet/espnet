@@ -119,9 +119,7 @@ def calc_metrics_from_textfiles(
     assert all_gt_scores.shape == all_pred_scores.shape
     assert all_pred_scores.shape[1] == n_classes
 
-    stats = calculate_multilabel_stats(
-        all_pred_scores, all_gt_scores
-    )
+    stats = calculate_multilabel_stats(all_pred_scores, all_gt_scores)
     return {
         "mean_acc": np.mean([stat["acc"] for stat in stats]) * 100,
         "mAP": np.mean([stat["AP"] for stat in stats]) * 100,
