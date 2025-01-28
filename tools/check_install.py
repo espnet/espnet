@@ -40,6 +40,7 @@ module_list = [
     ("RawNet3", None, "installers/install_rawnet.sh"),
     ("reazonspeech", None, "installers/install_reazonspeech.sh"),
     ("discrete_speech_metrics", None, "installers/install_discrete_speech_metrics.sh"),
+    ("lightning", None, "installers/install_lightning.sh"),
 ]
 
 executable_list = [
