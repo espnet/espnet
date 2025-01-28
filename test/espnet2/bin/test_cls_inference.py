@@ -44,8 +44,6 @@ def multi_class_config_file(tmp_path: Path, token_list):
             str(token_list),
             "--decoder",
             "linear",
-            "--classification_type",
-            "multi-class",
         ]
     )
     return tmp_path / "multi_class" / "config.yaml"
@@ -64,8 +62,6 @@ def multi_label_config_file(tmp_path: Path, token_list):
             str(token_list),
             "--decoder",
             "linear",
-            "--classification_type",
-            "multi-label",
         ]
     )
     return tmp_path / "multi_label" / "config.yaml"
@@ -142,13 +138,7 @@ def test_inference_multilabel(data_setup, multi_label_config_file):
     output_dir_path, scp_file_path = data_setup
     args = get_args(str(output_dir_path), str(scp_file_path))
     args.update({"classification_train_config": str(multi_label_config_file)})
-    print(args)
     inference(**args)
-    # prediction_path = output_dir_path / "prediction"
-    # for filename in os.listdir(prediction_path):
-    #     print(filename)
-    #     with open(prediction_path / filename) as f:
-    #         print(f.read())
 
 
 @pytest.mark.execution_timeout(20)
@@ -157,8 +147,3 @@ def test_inference_multiclass(data_setup, multi_class_config_file):
     args = get_args(str(output_dir_path), str(scp_file_path))
     args.update({"classification_train_config": str(multi_class_config_file)})
     inference(**args)
-    # prediction_path = output_dir_path / "prediction"
-    # for filename in os.listdir(prediction_path):
-    #     print(filename)
-    #     with open(prediction_path / filename) as f:
-    #         print(f.read())
