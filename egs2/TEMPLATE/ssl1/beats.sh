@@ -60,6 +60,10 @@ train_start_iter= # Pretrain starts from the specified iteration (0 mean MFCC it
 train_stop_iter=  # Pretrain is stopped from the specified iteration (0 mean MFCC iteraion)
 train_config=    # Configration file of training stage
 n_targets=             # Number of codebook targets
+tokenizer_train_config= # Configration file of tokenizer training stage
+inference_tokenizer_model=valid.acc.best.pth # Model to use for tokenizer inference
+external_tokenizer_model= # External tokenizer model to use for tokenizer inference
+external_teacher_model= # External teacher model to use for tokenizer inference
 
 # Upload model related
 hf_repo=
@@ -114,6 +118,10 @@ Options:
     --train_stop_iter   # Pretrain is stopped from the specified iteration (0 mean MFCC iteraion, default="${train_stop_iter}").
     --train_config    # configration file of training stage
     --n_targets       # number of codebook vectors
+    --tokenizer_train_config # configration file of tokenizer training stage
+    --inference_tokenizer_model # Model to use for tokenizer inference, default="${inference_tokenizer_model}".
+    --external_tokenizer_model  # External tokenizer model to use for tokenizer inference.
+    --external_teacher_model    # External teacher model to use for tokenizer inference.
     --beats_args      # Arguments for beats model training (default="${beats_args}").
                        # e.g., --beats_args "--max_epoch 10"
                        # Note that it will overwrite args in pt config.
@@ -171,6 +179,11 @@ if [ -z "${ssl_tag}" ]; then
     else
         ssl_tag="train_${feats_type}"
     fi
+fi
+
+if [ -z "${inference_tokenizer_model}" ]; then
+    log "Error: inference_tokenizer_model is required"
+    exit 2
 fi
 # ========================== Main stages start from here. ==========================
 
@@ -354,40 +367,7 @@ if ! "${skip_train}"; then
         _ssl_valid_dir="${data_feats}/${valid_set}"
         log "Stage 6: BEATs Training: train_set=${_ssl_train_dir}, valid_set=${_ssl_valid_dir}"
         for ((iter=${train_start_iter}; iter<=${train_stop_iter};iter++)); do
-            log "Iter ${iter} BEATs Training started..."
             
-            if ! [ ${iter} -eq 0 ]; then
-                # Train beats tokenizer and generate codes from it
-                _checkpoint_path="TODODODO"
-                _config_path=""
-                log "Implement the training stage for iter ${iter}!"
-                exit 2
-                log "Iter ${iter} BEATs Tokenizer Training completed, model saved in: ${ssl_exp}"
-                # Tokenize
-                for _data_dir in "${_ssl_train_dir}" "${_ssl_val_dir}"; do
-                    _nj=$((ngpu==0?nj:ngpu))
-                    ./scripts/feats/audio_tokenization.sh \
-                        --codec_choice beats \
-                        --file_name wav.scp \
-                        --src_dir "${_data_dir}" \
-                        --tgt_dir "${_data_dir}/codes_iter${iter}" \
-                        --checkpoint_path "${_checkpoint_path}" \
-                        --config_path "${_config_path}" \
-                        --nj "${_nj}"
-                    cp "${_data_dir}/codes/wav_${codec_choice}.txt" "${_data_dir}/target_iter${iter}"
-                done
-            fi
-
-            # Train beats encoder model
-            ssl_exp="${expdir}/beats_iter${iter}_${ssl_tag}"
-
-            _opts=
-            if [ -n "${train_config}" ]; then
-                # To generate the config file: e.g.
-                #   % python3 -m espnet2.bin.beats_train --print_config --optim adam
-                _opts+="--config ${train_config} "
-            fi
-
             _feats_type="$(<${_ssl_train_dir}/feats_type)"
             if ! [ "${_feats_type}" = raw ]; then
                 log "Error: not supported: --feats_type ${feats_type}"
@@ -395,6 +375,75 @@ if ! "${skip_train}"; then
             fi
             _scp=wav.scp
             _type=sound
+
+            log "Iter ${iter} BEATs Training started..."
+            
+            ssl_exp="${expdir}/beats_iter${iter}_${ssl_tag}"
+            ssl_tokenizer_exp="${expdir}/beats_tokenizer_iter${iter}_${ssl_tag}"
+
+            if ! [ ${iter} -eq 0 ]; then
+                _opts=
+                if [ -n "${tokenizer_train_config}" ]; then
+                    # To generate the config file: e.g.
+                    #   % python3 -m espnet2.bin.beats_tokenizer_train --print_config --optim adam
+                    _opts+="--config ${tokenizer_train_config} "
+                fi
+                prev_iter=$((iter - 1))
+                teacher_ckpt_path_="${expdir}/beats_iter${prev_iter}_${ssl_tag}/${inference_ssl_model}"
+                if [ -n "${external_teacher_model}" ]; then
+                    teacher_ckpt_path_="${external_teacher_model}"
+                fi
+                log "Using teacher model: ${teacher_ckpt_path_}"
+                log "BEATs Tokenizer Training started... log: '${ssl_tokenizer_exp}/train.log'"
+                
+                ${python} -m espnet2.bin.launch \
+                    --cmd "${cuda_cmd} --name ${jobname}" \
+                    --log "${ssl_tokenizer_exp}"/train.log \
+                    --ngpu "${ngpu}" \
+                    --num_nodes "${num_nodes}" \
+                    --init_file_prefix "${ssl_tokenizer_exp}"/.dist_init_ \
+                    --multiprocessing_distributed true -- \
+                    ${python} -m espnet2.bin.beats_tokenizer_train \
+                        --use_preprocessor true \
+                        --beats_teacher_ckpt_path "${teacher_ckpt_path_}" \
+                        --train_data_path_and_name_and_type "${_ssl_train_dir}/${_scp},speech,${_type}" \
+                        --valid_data_path_and_name_and_type "${_ssl_valid_dir}/${_scp},speech,${_type}" \
+                        --train_shape_file "${ssl_stats_dir}/train/speech_shape" \
+                        --valid_shape_file "${ssl_stats_dir}/valid/speech_shape" \
+                        --resume true \
+                        --fold_length "${speech_fold_length}" \
+                        --output_dir "${ssl_tokenizer_exp}" \
+                        ${_opts} ${beats_args}
+
+                log "Iter ${iter} BEATs Tokenizer Training completed, model saved in: ${ssl_tokenizer_exp}"
+                
+                # Inference with tokenizer
+                _tokenizer_ckpt_path=${ssl_tokenizer_exp}/${inference_tokenizer_model}
+                if [ -n "${external_tokenizer_model}" ]; then
+                    _tokenizer_ckpt_path="${external_tokenizer_model}"
+                fi
+                log "Inference with tokenizer model: ${_tokenizer_ckpt_path}"
+                for _data_dir in "${_ssl_train_dir}" "${_ssl_val_dir}"; do
+                    _nj=$((ngpu==0?nj:ngpu))
+                    ./scripts/feats/audio_tokenization.sh \
+                        --codec_choice beats \
+                        --file_name wav.scp \
+                        --src_dir "${_data_dir}" \
+                        --tgt_dir "${_data_dir}/codes_iter${iter}" \
+                        --checkpoint_path "${_tokenizer_ckpt_path}" \
+                        --nj "${_nj}"
+                    cp "${_data_dir}/codes/wav_${codec_choice}.txt" "${_data_dir}/target_iter${iter}"
+                done
+                log "Inference with tokenizer model completed."
+            fi
+
+            # Train beats encoder model
+            _opts=
+            if [ -n "${train_config}" ]; then
+                # To generate the config file: e.g.
+                #   % python3 -m espnet2.bin.beats_train --print_config --optim adam
+                _opts+="--config ${train_config} "
+            fi
 
             if [ "${num_splits_ssl}" -gt 1 ]; then
                 # If you met a memory error when parsing text files, this option may help you.

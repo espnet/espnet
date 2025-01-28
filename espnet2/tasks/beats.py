@@ -103,7 +103,6 @@ class BeatsTask(AbsTask):
         group.add_argument(
             "--use_preprocessor", type=str2bool, default=True, help="Use preprocessor"
         )
-        group.add_argument("--beats_teacher_ckpt_path", type=str, default=None)
 
         for class_choices in cls.class_choices_list:
             # Append --<name> and --<name>_conf.
@@ -203,6 +202,15 @@ class BeatsTask(AbsTask):
 
 class BeatsTokenizerTask(BeatsTask):
 
+    @classmethod
+    def add_task_arguments(cls, parser: argparse.ArgumentParser):
+        BeatsTask.add_task_arguments(parser)
+        required = parser.get_default("required")
+        required += ["beats_teacher_ckpt_path"]
+
+        group = parser.add_argument_group(description="Beats Tokenizer Task related")
+        group.add_argument("--beats_teacher_ckpt_path", type=str, default=None)
+    
     @classmethod
     @typechecked
     def build_collate_fn(cls, args: argparse.Namespace, train: bool) -> Callable[
