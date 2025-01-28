@@ -1,10 +1,10 @@
 from argparse import ArgumentParser
+from inspect import signature
 
 import pytest
 
-from inspect import signature
-from espnet2.bin.pack import get_parser, main, ClassificationPackedContents
 from espnet2.bin.cls_inference import Classification
+from espnet2.bin.pack import ClassificationPackedContents, get_parser, main
 
 
 def test_get_parser():
