@@ -11,6 +11,7 @@ test_sets="dcase.test"
 cls_config=conf/beats_dcase.yaml
 
 timestamp=$(date "+%Y%m%d.%H%M%S")
+#timestamp=20250127.164810
 mynametag=dcase.${timestamp}
 storage_dir=/compute/babel-11-13/sbharad2/beats_run/beans.dcase
 mkdir -p "${storage_dir}"
@@ -33,7 +34,7 @@ mkdir -p "${storage_dir}"
     --label_fold_length 35 \
     --max_wav_duration 32 \
     --inference_nj 1 \
-    --inference_model valid.acc.best.pth \
+    --inference_model valid.mAP.best.pth \
     --cls_config "${cls_config}" \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
