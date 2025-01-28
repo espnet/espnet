@@ -36,6 +36,7 @@ class Speech2Language:
         quantize_dtype: str = "qint8",
         first_lang_sym: str = "<abk>",
         last_lang_sym: str = "<zul>",
+        use_flash_attn: bool = False,
     ):
 
         qconfig_spec = set([getattr(torch.nn, q) for q in quantize_modules])
@@ -45,6 +46,11 @@ class Speech2Language:
             s2t_train_config, s2t_model_file, device
         )
         s2t_model.to(dtype=getattr(torch, dtype)).eval()
+
+        # Set flash_attn
+        for m in s2t_model.modules():
+            if hasattr(m, "use_flash_attn"):
+                setattr(m, "use_flash_attn", use_flash_attn)
 
         if quantize_s2t_model:
             logging.info("Use quantized s2t model for decoding.")
