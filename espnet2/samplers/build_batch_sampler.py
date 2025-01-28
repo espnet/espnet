@@ -8,6 +8,7 @@ from espnet2.samplers.length_batch_sampler import LengthBatchSampler
 from espnet2.samplers.num_elements_batch_sampler import NumElementsBatchSampler
 from espnet2.samplers.sorted_batch_sampler import SortedBatchSampler
 from espnet2.samplers.unsorted_batch_sampler import UnsortedBatchSampler
+from espnet2.samplers.weighted_batch_sampler import WeightedBatchSampler
 
 BATCH_TYPES = dict(
     unsorted="UnsortedBatchSampler has nothing in particular feature and "
@@ -66,6 +67,8 @@ BATCH_TYPES = dict(
     "    utterance_id_a 1000,80\n"
     "    utterance_id_b 1453,80\n"
     "    utterance_id_c 1241,80\n",
+    weighted="WeightedBatchSampler supports weighted sampling. "
+    "This sampler requires a text file which describes the weight for each sample. ",
 )
 
 
@@ -82,6 +85,7 @@ def build_batch_sampler(
     fold_lengths: Sequence[int] = (),
     padding: bool = True,
     utt2category_file: Optional[str] = None,
+    utt2weight_file: Optional[str] = None,
 ) -> AbsSampler:
     """Helper function to instantiate BatchSampler.
 
@@ -100,6 +104,7 @@ def build_batch_sampler(
         fold_lengths: Used for "folded" mode
         padding: Whether sequences are input as a padded tensor or not.
             used for "numel" mode
+        utt2weight_file: Used for "weighted" mode
     """
     if len(shape_files) == 0:
         raise ValueError("No shape file are given")
@@ -158,6 +163,13 @@ def build_batch_sampler(
             min_batch_size=min_batch_size,
         )
 
+    elif type == "weighted":
+        if utt2weight_file is None:
+            raise ValueError("utt2weight_file is required for weighted sampling")
+        retval = WeightedBatchSampler(
+            batch_size=batch_size,
+            utt2weight_file=utt2weight_file,
+        )
     else:
         raise ValueError(f"Not supported: {type}")
     return retval
