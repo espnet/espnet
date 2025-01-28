@@ -1,0 +1,50 @@
+unused_parameters: true
+init: xavier_normal
+
+batch_type: folded
+shuffle_within_batch: false
+
+valid_batch_size: 400
+batch_size: 560
+max_epoch: 112 # 500K steps / (2M / 560), ~7k batches.
+
+accum_grad: 1
+grad_clip: 1
+
+optim: adamw
+optim_conf:
+    lr: 5.0e-4
+    weight_decay: 1.0e-2
+    betas: [0.9, 0.98]
+
+scheduler: warmuplr
+scheduler_conf:
+    warmup_steps: 32000
+
+patience: none
+
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+keep_nbest_models: 5
+use_amp: false  # whether to use automatic mixed precision
+num_att_plot: 0
+num_workers: 2 # dataloader workers
+
+encoder: beats
+encoder_conf:
+    beats_config:
+        layer_wise_gradient_decay_ratio: 1.0
+        encoder_layerdrop: 0.0
+        dropout: 0.1
+         # if you change this then also change n_targets in beats.sh
+        codebook_vocab_size: 1024
+        fbank_mean: 15.25938
+        fbank_std: 6.93416
+    use_weighted_representation: false
+    is_pretraining: true
+
+model_conf:
+    ignore_id: -1
+    label_smoothing: 0.1
