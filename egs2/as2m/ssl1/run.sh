@@ -14,10 +14,13 @@ train_set="train"
 valid_set="eval"
 
 timestamp=$(date "+%Y%m%d.%H%M%S")
+
+timestamp=20250123.112306
 ssl_tag=t1.${timestamp}
 
 train_config=conf/pretrain_beats_as2m.yaml
 storage_dir=/compute/babel-11-13/sbharad2/beats_pretraining
+
 mkdir -p "${storage_dir}"
 
 ./beats.sh \
