@@ -60,11 +60,12 @@ During data preparation, three text files should be generated:
     - This must include all special tokens as described above.
     - If your data does not have timestamps, you need to use `<notimestamps>` instead. Even so, you still need to make sure that your non-linguistic symbol list (nlsyms_txt) contains [the range of all possible timestamps](https://github.com/espnet/espnet/blob/master/egs2/owsm_v1/s2t1/local/utils.py#L13-L19).
     - `<sop>`, `<sos>`, and `<eos>` are actually inserted during preprocessing/dataloading. You only need `<language><task><starttime1> utt1<endtime1><starttime2> utt2<endtime2>`
+    - For ST (speech translation), `text` should contain the translation in the target language.
     - See https://github.com/espnet/espnet/tree/master/egs2/owsm_v1/s2t1/local for an example of data preparation and the expected format.
 - `text.prev` contains the previous sentence, i.e., the text between `<sop>` and `<sos>`. This might be unavailable at the beginning of a talk. In such cases, a special token `<na>` will be used.
     - This should not contain any special tokens except for `<na>`. In the example above, take the text between `<sop>` and `<sos>` and put it here.
 - `text.ctc` contains the ASR transcript without any special token, which is used for the CTC loss. For ASR utterances, this can be derived from `text`, but for ST utterances, this is in a different language. If the ASR transcription is not available, `<na>` will be used.
-    - This should not contain any special tokens. Just take the text between `<task>` and `<eos>` and put it here (no timestamps).
+    - This should not contain any special tokens (e.g. timestamps). For ASR, just take the text between `<task>` and `<eos>` and put it here (timestamps removed). For ST, `text.ctc` should contain the [ASR transcript of the source language](https://github.com/espnet/espnet/blob/master/egs2/owsm_v1/s2t1/local/prepare_covost2.py#L162) and thus will be different from `text` (the target language translation).
 
 Further notes:
 - The `text.prev` file should be called `text.prev` (with a period). Same with `text.ctc`
