@@ -92,12 +92,15 @@ def calc_metrics_from_textfiles(
 ):
     gt_uttid2label = read_text_file(gt_txt_file)
     token_list = read_token_list(token_list_file)
-    n_classes = len(token_list) - -2  # for <unk>, <blank>
+    n_classes = len(token_list) - 2  # for <unk>, and <blank>
     gt_uttid2score = {}
     for uttid, label_list in gt_uttid2label.items():
         gt_scores = np.zeros(n_classes)
         for label in label_list:
             tok_idx = token_list.index(label)
+            if tok_idx > n_classes:
+                assert label == "<blank>", f"Unknown token {label} in ground truth."
+                continue
             gt_scores[tok_idx] = 1
         gt_uttid2score[uttid] = gt_scores
     pred_uttid2score = read_score_file(pred_score_file, n_classes)
@@ -116,7 +119,9 @@ def calc_metrics_from_textfiles(
     assert all_gt_scores.shape == all_pred_scores.shape
     assert all_pred_scores.shape[1] == n_classes
 
-    stats = calculate_multilabel_stats(all_pred_scores, all_gt_scores)
+    stats = calculate_multilabel_stats(
+        all_pred_scores, all_gt_scores
+    )
     return {
         "mean_acc": np.mean([stat["acc"] for stat in stats]) * 100,
         "mAP": np.mean([stat["AP"] for stat in stats]) * 100,
