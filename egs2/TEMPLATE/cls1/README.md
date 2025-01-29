@@ -48,8 +48,8 @@ Filtering stage.
 Processing stage to remove long and short utterances from the training and validation sets.
 You can change the threshold values via `--min_wav_duration` and `--max_wav_duration`.
 
-Empty text will also be removed. 
-If your audio sample lacks a label in multi-label setting then use the `<blank>` symbol. 
+Empty text will also be removed.
+If your audio sample lacks a label in multi-label setting then use the `<blank>` symbol.
 TODO(shikhar): This feature will be supported in a later PR.
 
 ### 4. Token list generation
@@ -132,7 +132,7 @@ Move on the recipe directory.
 $ cd egs2/as20k/cls1
 ```
 
-Modify `AUDIOSET` variable in `db.sh` to specify location where you have the AudioSet dataset. 
+Modify `AUDIOSET` variable in `db.sh` to specify location where you have the AudioSet dataset.
 ```sh
 $ vim db.sh
 ```
@@ -202,7 +202,7 @@ Each directory of training set, development set, and evaluation set, has same di
     ...
     ```
     Note that for multi-class classification each uttid should be associated with exactly one class.
-    For multi-label classification, each uttid should have at least one label. 
+    For multi-label classification, each uttid should have at least one label.
     (TODO) We will support the case with no label in the future with the <blank> symbol.
 
 - `wav.scp` format

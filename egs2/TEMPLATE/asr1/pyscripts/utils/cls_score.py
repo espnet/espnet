@@ -1,9 +1,10 @@
 import argparse
+import logging
 import warnings
+from typing import Dict
+
 import numpy as np
 from sklearn import metrics
-from typing import Dict
-import logging
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
