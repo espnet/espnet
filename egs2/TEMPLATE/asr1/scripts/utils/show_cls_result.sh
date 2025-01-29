@@ -43,21 +43,19 @@ cat << EOF
 
 EOF
 
+header_printed=false
 while IFS= read -r expdir; do
-
     if ls "${expdir}"/*/scoring/metrics &> /dev/null; then
         echo "## $(basename ${expdir})"
-                	cat << EOF
-|Dataset|Metric|Value|
-|---|---|---|
-EOF
-        if ls "${expdir}"/*/scoring/metrics &> /dev/null; then
-                    cat "${expdir}"/*/scoring/metrics \
-                        | sed -e "s#${expdir}/\([^/]*/[^/]*\)/scoring/metrics:#|\1#g" \
-                        | sed -e 's#^##g' | tr '|' ' ' | tr -s ' ' '|'
-                    echo
-        fi
+        score_files=$(ls "${expdir}"/*/scoring/metrics)
+        for score_file_ in ${score_files}; do
+            if ! $header_printed; then
+                cat "${score_file_}"
+                header_printed=true
+            else
+                tail -n +3 "${score_file_}"
+            fi
+        done
+        echo
     fi
-
-
 done < <(find ${exp} -mindepth ${mindepth} -maxdepth ${maxdepth} -type d)
