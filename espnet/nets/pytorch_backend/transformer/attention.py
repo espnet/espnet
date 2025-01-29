@@ -18,7 +18,7 @@ try:
     from flash_attn import flash_attn_func, flash_attn_varlen_func
     from flash_attn.bert_padding import pad_input, unpad_input
 except Exception as e:
-    logging.warning(f"Failed to import Flash Attention, using ESPnet default: {e}")
+    print(f"Failed to import Flash Attention, using ESPnet default: {e}")
 
 
 class MultiHeadedAttention(nn.Module):
@@ -190,7 +190,7 @@ class MultiHeadedAttention(nn.Module):
             return self.linear_out(out)  # (batch, time1, d_model)
 
         # Use Flash Attention implementation
-        if self.training and self.use_flash_attn:
+        if self.use_flash_attn:
             try:
                 # In the causal case, the last row will be the key mask
                 key_nonpad_mask = mask[:, -1, :]  # (#batch, time2)
@@ -203,13 +203,14 @@ class MultiHeadedAttention(nn.Module):
                     query_nonpad_mask = key_nonpad_mask
 
                 if key_nonpad_mask.eq(0).any():
+                    # Use variable length implementation if padded
                     q, indices_q, cu_seqlens_q, max_seqlen_q = unpad_input(
                         query, query_nonpad_mask
-                    )
+                    )[:4]
                     k, indices_k, cu_seqlens_k, max_seqlen_k = unpad_input(
                         key, key_nonpad_mask
-                    )
-                    v, _, _, _ = unpad_input(value, key_nonpad_mask)
+                    )[:4]
+                    v, _, _, _ = unpad_input(value, key_nonpad_mask)[:4]
 
                     q = self.linear_q(q).reshape(-1, self.h, self.d_k)
                     k = self.linear_k(k).reshape(-1, self.h, self.d_k)
@@ -237,9 +238,10 @@ class MultiHeadedAttention(nn.Module):
                     return out
 
                 else:
+                    # Use fixed length implementation if not padded,
+                    # which is faster than the variable length implementation
                     del key_nonpad_mask
                     q, k, v = self.forward_qkv(query, key, value)
-                    del query, key, value
 
                     out = flash_attn_func(
                         q.transpose(1, 2),
@@ -255,9 +257,10 @@ class MultiHeadedAttention(nn.Module):
                     return out
 
             except Exception as e:
-                if self.training:
-                    logging.warning(f"Flash attn has exception: {e}")
-                pass
+                logging.warning(
+                    f"Flash Attention failed, falling back to default attention: {e}"
+                )
+                self.use_flash_attn = False
 
         # Fall back to the default implementation
         q, k, v = self.forward_qkv(query, key, value, expand_kv)
