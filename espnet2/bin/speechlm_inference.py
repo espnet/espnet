@@ -398,7 +398,7 @@ def inference(
         name, modality, _ = triplet
         (output_dir / name).mkdir(parents=True, exist_ok=True)
         file_name = str(output_dir / name / ("token_" + name))
-        token_writers[name] = WriteHelper(f"ark,scp:{file_name}.ark,{file_name}.scp_rank{rank}")
+        token_writers[name] = WriteHelper(f"ark,scp:{file_name}_rank{rank}.ark,{file_name}.scp_rank{rank}")
         if modality in ["spk", "codec", "text_bpe", "codec_ssl"]:
             file_name = str(output_dir / name / f"{name}_rank{rank}")
             writers[name] = open(file_name, "w")

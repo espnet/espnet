@@ -365,7 +365,7 @@ class AbsTask(ABC):
         group.add_argument(
             "--num_att_plot",
             type=int,
-            default=3,
+            default=0,
             help="The number images to plot the outputs from attention. "
             "This option makes sense only when attention-based model. "
             "We can also disable the attention plot by setting it 0",

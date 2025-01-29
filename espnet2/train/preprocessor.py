@@ -2506,6 +2506,10 @@ class SpeechLMPreprocessor(AbsPreprocessor):
             for idx, (role, modality, target, content) in enumerate(data['dialogue']):
                 name = str(idx)
                 target = str(target) == "True"
+
+                if role == "system" and modality == "codec_ssl":
+                    modality = "spk"
+
                 data_tuples.append((name, modality, role, content, target))
         else:
             for idx, (name, modality, _) in enumerate(task.data_triplets):

@@ -19,7 +19,12 @@ class DialogueJsonReader:
 
     def __getitem__(self, name):
         # TODO: load kaldiio data
-        return self.data[name]
+        retval = list()
+        for role, modality, target, content in self.data[name]:
+            if modality in ["codec", "ssl", "codec_ssl"]:
+                content = kaldiio.load_mat(content)
+            retval.append((role, modality, target, content))
+        return retval
 
     def __len__(self):
         return len(self.data)
