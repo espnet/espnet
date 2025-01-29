@@ -38,7 +38,6 @@ min_wav_duration=0.3
     --bpemode "${bpemode}" \
     --nbpe "${nbpe}" \
     --max_wav_duration 30 \
-    --speed_perturb_factors "0.9 1.0 1.1" \
     --use_lm false \
     --feats_normalize utt_mvn \
     --feats_type raw \

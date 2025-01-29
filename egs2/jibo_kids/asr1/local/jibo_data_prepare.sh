@@ -30,13 +30,26 @@ for x in all; do
   sed -E 's:(.*/data/([^/]+)/((T[0-9]+)([0-9]{3})))/.*\.wav$:\5_\3_\2 \1/\3.wav:' $tmpdir/all.wav | sort -k1,1 > $data/$x/wav.scp
 
   # Generate text file
-  while read -r trans_file; do
+  # while read -r trans_file; do
+  #   category=$(echo "$trans_file" | sed -E 's:.*/data/([^/]+)/.*:\1:')
+  #   base=$(basename "$trans_file" .txt)
+  #   spk=$(echo "$base" | sed -E 's:.*([0-9]{3})$:\1:')
+
+  #   awk -v category="$category" -v base="$base" -v spk="$spk" '{
+  #     printf("%s_%s-%07d-%07d %s\n", spk "_" base, category, int($1 * 100), int($2 * 100), $3)
+  #   }' "$trans_file"
+  # done < $tmpdir/all.txt | sort -k1,1 -u > $data/$x/text
+
+   while read -r trans_file; do
     category=$(echo "$trans_file" | sed -E 's:.*/data/([^/]+)/.*:\1:')
     base=$(basename "$trans_file" .txt)
     spk=$(echo "$base" | sed -E 's:.*([0-9]{3})$:\1:')
 
     awk -v category="$category" -v base="$base" -v spk="$spk" '{
-      printf("%s_%s-%07d-%07d %s\n", spk "_" base, category, int($1 * 100), int($2 * 100), $3)
+      transcript = ""; 
+      for (i=3; i<=NF; i++) { transcript = transcript " " $i } 
+      gsub(/^ /, "", transcript);  # Remove leading space
+      printf("%s_%s-%07d-%07d %s\n", spk "_" base, category, int($1 * 100), int($2 * 100), transcript)
     }' "$trans_file"
   done < $tmpdir/all.txt | sort -k1,1 -u > $data/$x/text
 
@@ -89,16 +102,32 @@ cp $data/$x/wav.scp $data/$x_no_segments/wav.scp
 awk '{split($1, a, "_"); print $1, a[1]}' $data/$x_no_segments/wav.scp | sort -k1,1 > $data/$x_no_segments/utt2spk
 
 # Generate text for non-segmented data
+# while read -r trans_file; do
+#   category=$(echo "$trans_file" | sed -E 's:.*/data/([^/]+)/.*:\1:')
+#   base=$(basename "$trans_file" .txt)
+#   spk=$(echo "$base" | sed -E 's:.*([0-9]{3})$:\1:')
+
+#   awk -v category="$category" -v base="$base" -v spk="$spk" '{
+#     if (NR == 1) { transcript = $3 }
+#     else { transcript = transcript " " $3 }
+#   } END {
+#     printf("%s_%s_%s %s\n", spk, base, category, transcript)
+#   }' "$trans_file"
+# done < $tmpdir/all.txt | sort -k1,1 > $data/$x_no_segments/text
+
 while read -r trans_file; do
   category=$(echo "$trans_file" | sed -E 's:.*/data/([^/]+)/.*:\1:')
   base=$(basename "$trans_file" .txt)
   spk=$(echo "$base" | sed -E 's:.*([0-9]{3})$:\1:')
 
   awk -v category="$category" -v base="$base" -v spk="$spk" '{
-    if (NR == 1) { transcript = $3 }
-    else { transcript = transcript " " $3 }
+    transcript = ""; 
+    for (i=3; i<=NF; i++) { transcript = transcript " " $i } 
+    gsub(/^ /, "", transcript);  # Remove leading space
+    if (NR == 1) { full_transcript = transcript }
+    else { full_transcript = full_transcript " " transcript }
   } END {
-    printf("%s_%s_%s %s\n", spk, base, category, transcript)
+    printf("%s_%s_%s %s\n", spk, base, category, full_transcript)
   }' "$trans_file"
 done < $tmpdir/all.txt | sort -k1,1 > $data/$x_no_segments/text
 
