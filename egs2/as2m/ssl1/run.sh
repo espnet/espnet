@@ -14,13 +14,10 @@ train_set="train"
 valid_set="eval"
 
 timestamp=$(date "+%Y%m%d.%H%M%S")
-
-timestamp=20250123.112306
-ssl_tag=t1.${timestamp}
+ssl_tag=iter0${timestamp}
 
 train_config=conf/pretrain_beats_as2m.yaml
-storage_dir=/compute/babel-11-13/sbharad2/beats_pretraining
-
+storage_dir=./
 mkdir -p "${storage_dir}"
 
 ./beats.sh \
@@ -31,9 +28,9 @@ mkdir -p "${storage_dir}"
     --expdir "${storage_dir}/exp" \
     --dumpdir "${storage_dir}/dump" \
     --datadir "${storage_dir}/data" \
-    --stage 6 \
+    --stage 1 \
     --stop_stage 6 \
-    --ngpu 8 \
+    --ngpu 1 \
     --num_nodes 1 \
     --train_start_iter "${train_start_iter}"\
     --train_stop_iter "${train_stop_iter}" \

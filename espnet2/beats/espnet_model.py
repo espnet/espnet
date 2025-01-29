@@ -237,6 +237,47 @@ class BeatsTokenizerPretrainModel(AbsESPnetModel):
         return loss, stats, weight
 
 
-def generate_beats_encoder_checkpoint():
-    # Extract audio encoder from espnet model and save it
-    pass
+def generate_beats_encoder_checkpoint(espnet_model_checkpoint_path: str, output_path: str):
+    """Generate a checkpoint for Encoder from Pretraining model checkpoint."""
+    print('here!!')
+    espnet_state_dict = torch.load(espnet_model_checkpoint_path, map_location="cpu")
+    new_state_dict = {'model': {}, 'cfg': {}}
+    for key, value in espnet_state_dict.items():
+        if key.startswith('encoder.'):
+            new_state_dict['model'][key[len('encoder.'):]] = value
+    torch.save(new_state_dict, output_path)
+
+
+def get_cmdline_parser():
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Generate a checkpoint for Encoder from Pretraining model checkpoint",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument(
+        "--espnet_model_checkpoint_path",
+        type=str,
+        required=True,
+        help="Path to ESPnet model checkpoint",
+    )
+    parser.add_argument(
+        "--output_path",
+        type=str,
+        required=True,
+        help="Path to save the new checkpoint",
+    )
+    return parser
+
+def main(cmd=None):
+    import sys
+    from espnet.utils.cli_utils import get_commandline_args
+    print(get_commandline_args(), file=sys.stderr)
+    parser = get_cmdline_parser()
+    args = parser.parse_args(cmd)
+    kwargs = vars(args)
+    logger.info(f"Kwargs: {kwargs}")
+    generate_beats_encoder_checkpoint(**kwargs)
+
+if __name__ == "__main__":
+    main()
