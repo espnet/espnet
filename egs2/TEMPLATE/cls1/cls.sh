@@ -251,9 +251,12 @@ if ! "${skip_data_prep}"; then
         log "Stage 4: Generate token_list covering all classes from ${text_classes}"
         ${python} -m espnet2.bin.tokenize_text --token_type "word" \
             --input "${text_classes}" --output "${token_list}" \
-            --field 2- --write_vocabulary true --add_symbol "<unk>:-1"
+            --field 2- --write_vocabulary true \
+            --add_symbol "<unk>:-1" --add_symbol "<blank>:-2"
             # unk is just a dummy symbol for compatibility,
             # we ensure that it is not used in the cls model
+            # text contains blank when task is multi-label classif and 
+            # there is no label. In this case we reposition to 0th index.
     fi
 else
     log "Skip the data preparation stages"

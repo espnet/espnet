@@ -17,6 +17,7 @@ APHASIABANK=
 AR_SC=
 AUDIOSET=
 ASVSpoof_CMD=
+BEANS=downloads
 BIBLETTS=downloads
 CORAAL=downloads
 COVOST2=

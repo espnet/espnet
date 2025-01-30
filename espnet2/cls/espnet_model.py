@@ -304,8 +304,8 @@ def label_to_onehot(
             label_lengths.min() == label_lengths.max() or label.min() == -1
         ), "Pad value should be -1"
         label = label.masked_fill(label == -1, vocab_size)
-        onehot = F.one_hot(label.view(-1), vocab_size + 1)
-        onehot = onehot[:, :-1]  # Remove dummy column
+        onehot = F.one_hot(label.view(-1), vocab_size + 2)
+        onehot = onehot[:, :-2]  # Remove dummy columns, blank=-2, unk=-1
         onehot = onehot.view(label.size(0), -1, vocab_size)
         onehot = onehot.sum(dim=1)
         onehot = onehot.float()
