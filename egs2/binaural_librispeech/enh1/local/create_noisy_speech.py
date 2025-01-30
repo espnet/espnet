@@ -99,6 +99,7 @@ def process_audio_files(audio_dir, noise_dir, output_dir, n_jobs, seed: int = 42
         for file in files:
             if file.endswith((".wav", ".flac")):
                 noise_files.append(os.path.join(root, file))
+    print(f"found {len(noise_files)} noise files")
 
     # Collect all audio files and crate args for function
     args = []

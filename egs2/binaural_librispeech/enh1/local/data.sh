@@ -123,10 +123,14 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
             fi
         else
             log "Binaural LibriSpeech data already exists at ${binaural_librispeech}, creating symlink '${cdir}/downloads/BinauralLibriSpeech'"
-            # Copy BinauralLibriSpeech to user directory in case of permission issues.
-            mkdir -p "${cdir}/downloads/BinauralLibriSpeech"
+            if [ -L "${cdir}/downloads/BinauralLibriSpeech" ]; then
+                log "Symlink '${cdir}/downloads/BinauralLibriSpeech' already exists. Skipping creation."
+            elif [ -e "${cdir}/downloads/BinauralLibriSpeech" ]; then
+                log "A file or directory named '${cdir}/downloads/BinauralLibriSpeech' already exists and is not a symlink."
+            else
+                ln -s "${binaural_librispeech}" "${cdir}/downloads/"
+            fi
             log "Using Binaural Librispeech version: ${binaural_librispeech_subset}"
-            ln -s "${binaural_librispeech}" "${cdir}/downloads/BinauralLibriSpeech"
             # Verify dataset entegrity
             log "Verifying integrity of existing data..."
             n_files=$(find ${cdir}/downloads/BinauralLibriSpeech/${binaural_librispeech_subset} -iname "*.flac" | wc -l)
@@ -157,11 +161,15 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
             rm -rf "${cdir}/downloads/musan/speech/"
         fi
     else
-        log "MUSAN noise data already exists at ${musan}, copying to '${cdir}/downloads/musan'"
-        # Create
-        mkdir -p "${cdir}/downloads/musan"
-        ln -s "${musan}" "${cdir}/downloads/musan"
-
+        log "MUSAN noise data already exists at ${musan}, creating symlink '${cdir}/downloads/musan'"
+        # Create symlink
+        if [ -L "${cdir}/downloads/musan" ]; then
+            log "Symlink '${cdir}/downloads/musan' already exists. Skipping creation."
+        elif [ -e "${cdir}/downloads/musan" ]; then
+            log "A file or directory named '${cdir}/downloads/musan' already exists and is not a symlink."
+        else
+            ln -s "${musan}" "${cdir}/downloads/musan"
+        fi
     fi
     # Set paths to downloads
     binaural_librispeech="${cdir}/downloads/BinauralLibriSpeech"
