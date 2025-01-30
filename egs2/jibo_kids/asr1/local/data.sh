@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
-# set -e
-# set -u
-# set -o pipefail
+set -e
+set -u
+set -o pipefail
 
 log() {
     local fname=${BASH_SOURCE[1]##*/}
