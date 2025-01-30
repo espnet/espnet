@@ -1,0 +1,1 @@
+from espnet2.gan_codec.speechtokenizer.speechtokenizer import SpeechTokenizer
