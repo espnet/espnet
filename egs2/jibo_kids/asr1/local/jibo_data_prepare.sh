@@ -36,8 +36,8 @@ for x in all; do
     spk=$(echo "$base" | sed -E 's:.*([0-9]{3})$:\1:')
 
     awk -v category="$category" -v base="$base" -v spk="$spk" '{
-      transcript = ""; 
-      for (i=3; i<=NF; i++) { transcript = transcript " " $i } 
+      transcript = "";
+      for (i=3; i<=NF; i++) { transcript = transcript " " $i }
       gsub(/^ /, "", transcript);  # Remove leading space
       printf("%s_%s-%07d-%07d %s\n", spk "_" base, category, int($1 * 100), int($2 * 100), transcript)
     }' "$trans_file"
@@ -98,8 +98,8 @@ while read -r trans_file; do
   spk=$(echo "$base" | sed -E 's:.*([0-9]{3})$:\1:')
 
   awk -v category="$category" -v base="$base" -v spk="$spk" '{
-    transcript = ""; 
-    for (i=3; i<=NF; i++) { transcript = transcript " " $i } 
+    transcript = "";
+    for (i=3; i<=NF; i++) { transcript = transcript " " $i }
     gsub(/^ /, "", transcript);  # Remove leading space
     if (NR == 1) { full_transcript = transcript }
     else { full_transcript = full_transcript " " transcript }

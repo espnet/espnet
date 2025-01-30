@@ -7,9 +7,9 @@ Then, edit 'JIBO_KIDS' in `db.sh` and locate unzipped dataset as follows:
 
 ```bash
 $ vim db.sh
-JIBO_KIDS=/path/to/jibo_kids 
+JIBO_KIDS=/path/to/jibo_kids
 
-$ tree -L 2 path/to/jibo_kids 
+$ tree -L 2 path/to/jibo_kids
 /path/to/jibo_kids
 ├── data
 │   ├── blocks
