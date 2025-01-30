@@ -99,3 +99,18 @@ def test_backward_pass(
     output_rep, output_len, _ = beats_model(x, x_lens)
 
     output_rep.sum().backward()
+
+
+def test_small_inputs():
+    if not is_torch_1_12_1_plus:
+        return
+    beats_config = {"encoder_layers": 2}  # Smaller model
+    beats_model = BeatsEncoder(
+        input_size=1,
+        beats_config=beats_config,
+    )
+    min_input_len_ = beats_model.min_input_length_at_16khz
+    x = torch.randn(2, min_input_len_ // 2, requires_grad=True)
+    x_lens = torch.LongTensor([min_input_len_ // 2, min_input_len_ // 4])
+    audio_rep, l, _ = beats_model(x, x_lens)  # forward pass should not raise any error
+    audio_rep.sum().backward()  # backward pass should not raise any error
