@@ -15,7 +15,7 @@ frontend=wavlm
 asr_config=conf/tuning/train_asr_${frontend}_${encoder}.yaml
 inference_config=conf/decode_asr.yaml
 
-nbpe=5000
+nbpe=1024
 bpemode=unigram
 
 # if your sox supports flac file, set local_data_opts and audio_format as below.
@@ -31,10 +31,7 @@ min_wav_duration=0.3
 
 ./asr.sh \
     --lang en \
-    --gpu_inference true \
     --token_type bpe \
-    --stage 1 \
-    --stop_stage 1 \
     --bpemode "${bpemode}" \
     --nbpe "${nbpe}" \
     --max_wav_duration 30 \
