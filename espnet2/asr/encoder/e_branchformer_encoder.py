@@ -10,7 +10,7 @@ Reference:
 """
 
 import logging
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
 
 import torch
 from typeguard import typechecked
@@ -216,6 +216,7 @@ class EBranchformerEncoder(AbsEncoder):
         interctc_use_conditioning: bool = False,
         qk_norm: bool = False,
         use_flash_attn: bool = True,
+        gradient_checkpoint_layers: List[int] = [],
     ):
         super().__init__()
         self._output_size = output_size
@@ -427,6 +428,8 @@ class EBranchformerEncoder(AbsEncoder):
         )
         self.after_norm = LayerNorm(output_size)
 
+        self.layer_drop_rate = layer_drop_rate
+
         if interctc_layer_idx is None:
             interctc_layer_idx = []
         self.interctc_layer_idx = interctc_layer_idx
@@ -434,6 +437,11 @@ class EBranchformerEncoder(AbsEncoder):
             assert 0 < min(interctc_layer_idx) and max(interctc_layer_idx) < num_blocks
         self.interctc_use_conditioning = interctc_use_conditioning
         self.conditioning_layer = None
+
+        # For gradient checkpointing
+        # 0 is the embedding layer, 1 is the first encoder layer, etc.
+        self.gradient_checkpoint_layers = gradient_checkpoint_layers
+        logging.info(f"Gradient checkpoint layers: {self.gradient_checkpoint_layers}")
 
     def output_size(self) -> int:
         return self._output_size
@@ -480,40 +488,55 @@ class EBranchformerEncoder(AbsEncoder):
                     xs_pad.size(1),
                     limit_size,
                 )
-            xs_pad, masks = self.embed(xs_pad, masks)
+            if 0 in self.gradient_checkpoint_layers:
+                xs_pad, masks = torch.utils.checkpoint.checkpoint(
+                    self.embed, xs_pad, masks, use_reentrant=False
+                )
+            else:
+                xs_pad, masks = self.embed(xs_pad, masks)
         elif self.embed is not None:
-            xs_pad = self.embed(xs_pad)
+            if 0 in self.gradient_checkpoint_layers:
+                xs_pad = torch.utils.checkpoint.checkpoint(
+                    self.embed, xs_pad, use_reentrant=False
+                )
+            else:
+                xs_pad = self.embed(xs_pad)
 
         intermediate_outs = []
-        if len(self.interctc_layer_idx) == 0:
-            if max_layer is not None and 0 <= max_layer < len(self.encoders):
-                for layer_idx, encoder_layer in enumerate(self.encoders):
-                    xs_pad, masks = encoder_layer(xs_pad, masks)
-                    if layer_idx >= max_layer:
-                        break
+        for layer_idx, encoder_layer in enumerate(self.encoders):
+            if max_layer is not None and layer_idx >= max_layer:
+                break
+
+            if (
+                self.training
+                and torch.empty(1).uniform_().item() < self.layer_drop_rate
+            ):
+                continue
+
+            if layer_idx + 1 in self.gradient_checkpoint_layers:
+                xs_pad, masks = torch.utils.checkpoint.checkpoint(
+                    encoder_layer, xs_pad, masks, use_reentrant=False
+                )
             else:
-                xs_pad, masks = self.encoders(xs_pad, masks)
-        else:
-            for layer_idx, encoder_layer in enumerate(self.encoders):
                 xs_pad, masks = encoder_layer(xs_pad, masks)
 
-                if layer_idx + 1 in self.interctc_layer_idx:
-                    encoder_out = xs_pad
+            if layer_idx + 1 in self.interctc_layer_idx:
+                encoder_out = xs_pad
 
-                    if isinstance(encoder_out, tuple):
-                        encoder_out = encoder_out[0]
+                if isinstance(encoder_out, tuple):
+                    encoder_out = encoder_out[0]
 
-                    intermediate_outs.append((layer_idx + 1, encoder_out))
+                intermediate_outs.append((layer_idx + 1, encoder_out))
 
-                    if self.interctc_use_conditioning:
-                        ctc_out = ctc.softmax(encoder_out)
+                if self.interctc_use_conditioning:
+                    ctc_out = ctc.softmax(encoder_out)
 
-                        if isinstance(xs_pad, tuple):
-                            xs_pad = list(xs_pad)
-                            xs_pad[0] = xs_pad[0] + self.conditioning_layer(ctc_out)
-                            xs_pad = tuple(xs_pad)
-                        else:
-                            xs_pad = xs_pad + self.conditioning_layer(ctc_out)
+                    if isinstance(xs_pad, tuple):
+                        xs_pad = list(xs_pad)
+                        xs_pad[0] = xs_pad[0] + self.conditioning_layer(ctc_out)
+                        xs_pad = tuple(xs_pad)
+                    else:
+                        xs_pad = xs_pad + self.conditioning_layer(ctc_out)
 
         if isinstance(xs_pad, tuple):
             xs_pad = xs_pad[0]
