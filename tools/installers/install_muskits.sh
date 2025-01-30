@@ -51,6 +51,16 @@ if [ ! -e muskits.done ]; then
         else
             echo "music21 is already installed."
         fi
+
+        # Install utaufile
+        if ! python3 -c "import utaufile.version" &> /dev/null; then
+            (
+                set -euo pipefail
+                python3 -m pip install utaufile
+            )
+        else
+            echo "utaufile is already installed."
+        fi
     )
     touch muskits.done
 else
