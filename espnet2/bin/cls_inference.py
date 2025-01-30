@@ -135,6 +135,7 @@ def inference(
         format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
     )
     if batch_size > 1:
+        # TODO(shikhar): Implement batch decoding
         raise NotImplementedError("batch decoding is not implemented for batch size >1")
 
     if ngpu >= 1:

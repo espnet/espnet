@@ -442,6 +442,9 @@ if ! "${skip_eval}"; then
 
             _scp=wav.scp
             _type=sound
+            if [[ "${audio_format}" == *ark* ]]; then
+                _type=kaldi_ark
+            fi
 
             # 1. Split the key file
             key_file=${_data}/${_scp}

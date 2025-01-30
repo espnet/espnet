@@ -1,9 +1,9 @@
 import argparse
-import os
+import logging
 import warnings
+from typing import Dict
 
 import numpy as np
-from scipy import stats
 from sklearn import metrics
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -62,7 +62,12 @@ def calculate_multilabel_stats(output, target):
         )
 
         # AUC
-        auc = metrics.roc_auc_score(target[:, k], output[:, k], average=None)
+        n_examples_in_class = np.sum(target[:, k])
+        if n_examples_in_class == 0:
+            auc = 0.0  # this should not occur in normal case.
+            logging.warning("No positive example in class %d" % k)
+        else:
+            auc = metrics.roc_auc_score(target[:, k], output[:, k], average=None)
 
         # Precisions, recalls
         (precisions, recalls, thresholds) = metrics.precision_recall_curve(
@@ -160,6 +165,15 @@ def get_args():
     return args
 
 
+def _print_results(metrics: Dict, split_name: str):
+    keys_ = list(metrics.keys())
+    key_str = "|".join(keys_)
+    value_str = "|".join(f"{metrics[k]:0.2f}" for k in keys_)
+    print(f"|Split|{key_str}|")
+    print("|" + "---|" * (len(keys_) + 1))
+    print(f"{split_name}|{value_str}")
+
+
 if __name__ == "__main__":
     args = get_args()
     metrics = calc_metrics_from_textfiles(
@@ -168,5 +182,5 @@ if __name__ == "__main__":
         args.pred_score_file,
         args.token_list,
     )
-    for key, value in metrics.items():
-        print("{} {} {:0.2f}".format(args.pred_score_file, key, value))
+    split_name = args.pred_score_file.split("/")[-2]
+    _print_results(metrics, split_name)
