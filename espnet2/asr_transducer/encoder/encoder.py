@@ -153,6 +153,7 @@ class Encoder(torch.nn.Module):
         x, mask = self.embed(x, mask)
 
         x = x[:, 1:-1, :]
+
         mask = mask[:, 1:-1]
 
         pos_enc = self.pos_enc(x, left_context=left_context)
