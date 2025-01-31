@@ -93,3 +93,5 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         utils/validate_data_dir.sh --no-feats data/${x} || exit 1
     done
 fi
+
+log "Successfully finished. [elapsed=${SECONDS}s]"
