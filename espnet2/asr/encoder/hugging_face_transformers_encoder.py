@@ -23,7 +23,7 @@ except ImportError:
 
 
 class HuggingFaceTransformersEncoder(AbsEncoder):
-    """Hugging Face Transformers PostEncoder."""
+    """Hugging Face Transformers Encoder."""
 
     @typechecked
     def __init__(

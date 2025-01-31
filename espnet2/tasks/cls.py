@@ -10,6 +10,9 @@ from typeguard import typechecked
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.encoder.beats_encoder import BeatsEncoder
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
+from espnet2.asr.encoder.hugging_face_transformers_encoder import (
+    HuggingFaceTransformersEncoder,
+)
 from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
@@ -89,6 +92,16 @@ encoder_choices = ClassChoices(
     type_check=AbsEncoder,
     default="transformer",
 )
+text_encoder_choices = ClassChoices(
+    "text_encoder",
+    classes=dict(
+        hugging_face_transformers=HuggingFaceTransformersEncoder,
+        # clap=CLAPTextEncoder,
+    ),
+    type_check=AbsEncoder,
+    default=None,
+    optional=True,
+)
 decoder_choices = ClassChoices(
     "decoder",
     classes=dict(
@@ -123,6 +136,8 @@ class CLSTask(AbsTask):
         preencoder_choices,
         # --encoder and --encoder_conf
         encoder_choices,
+        # --text_encoder and --text_encoder_conf
+        text_encoder_choices,
         # --decoder and --decoder_conf
         decoder_choices,
         # --model and --model_conf
@@ -302,7 +317,13 @@ class CLSTask(AbsTask):
             **args.decoder_conf,
         )
 
-        # 6. Build model
+        # 6. Optional text encoder
+        text_encoder = None
+        if args.text_encoder is not None:
+            text_encoder_class = text_encoder_choices.get_class(args.text_encoder)
+            text_encoder = text_encoder_class(**args.text_encoder_conf)
+
+        # 7. Build model
         model = ESPnetClassificationModel(
             vocab_size=n_classes,
             token_list=args.token_list,
@@ -312,6 +333,7 @@ class CLSTask(AbsTask):
             preencoder=preencoder,
             encoder=encoder,
             decoder=decoder,
+            text_encoder=text_encoder,
             **args.model_conf,
         )
 
