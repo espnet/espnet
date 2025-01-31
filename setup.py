@@ -25,7 +25,7 @@ requirements = {
         "torch_complex",
         "nltk>=3.4.5",
         # fix CI error due to the use of deprecated aliases
-        "numpy<1.24",
+        "numpy>=2,<3",
         # https://github.com/espnet/espnet/runs/6646737793?check_suite_focus=true#step:8:7651
         "protobuf",
         "hydra-core",
