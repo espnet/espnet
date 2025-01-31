@@ -13,6 +13,9 @@ cls_config=conf/beats_cls.yaml
 timestamp=$(date "+%Y%m%d.%H%M%S")
 mynametag=${timestamp}
 
+# <=30s audio is 36743/36796 in train, 4165/4170 in val
+max_wav_duration=30
+
 storage_dir=. # change this to where you have space, if needed
 mkdir -p "${storage_dir}"
 
@@ -27,7 +30,7 @@ mkdir -p "${storage_dir}"
     --stop_stage 10 \
     --nj 10 \
     --label_fold_length 200 \
-    --max_wav_duration 30 \
+    --max_wav_duration "${max_wav_duration}" \
     --inference_nj 1 \
     --inference_model valid.mAP.best.pth \
     --cls_config "${cls_config}" \
