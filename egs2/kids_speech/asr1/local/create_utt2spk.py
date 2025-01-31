@@ -1,8 +1,8 @@
 # File: create_utt2spk.py
 
 for split in ["train", "dev", "test"]:
-    input_file = "data/" + split + "/utt.list"
-    output_file = "data/" + split + "/utt2spk"
+    input_file = "data_ogi_spon/" + split + "/utt.list"
+    output_file = "data_ogi_spon/" + split + "/utt2spk"
 
     # Open the input file and the output file
     with open(input_file, "r") as infile, open(output_file, "w") as outfile:

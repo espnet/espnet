@@ -14,6 +14,7 @@ stage=1
 stop_stage=100000
 
 flac2wav=true
+sph2wav=true
 nj=32
 
 log "$0 $*"
@@ -39,18 +40,28 @@ if [ -z "${OGI_KIDS}" ]; then
     exit 1
 fi
 
+if [ -z "${CMU_KIDS}" ]; then
+    log "Fill the value of 'CMU_KIDS' in db.sh"
+    exit 1
+fi
+
+myst_data_dir="./data_myst"
+ogi_scripted_data_dir="./data_ogi_scripted"
+ogi_spon_data_dir="./data_ogi_spon"
+cmu_data_dir="./data_cmu"
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     if [ ! -d "${OGI_KIDS}" ]; then
         log "stage 1: Please download data from https://catalog.ldc.upenn.edu/LDC2007S18 and save to ${OGI_KIDS}"
         exit 1
-
     elif [ ! -d "${MYST}/myst_child_conv_speech" ]; then
 	    log "stage 1: Please download data from https://catalog.ldc.upenn.edu/LDC2021S05 and save to ${MYST}"
         exit 1
-
+    elif [ ! -d "${CMU_KIDS}" ]; then
+        log "stage 1: Please download data from https://catalog.ldc.upenn.edu/LDC97S63 and save to ${CMU_KIDS}"
+        exit 1
     else
-        log "stage 1: ${OGI_KIDS} already exists. Skipping data downloading."
+        log "stage 1: ${OGI_KIDS}, ${MYST}, and ${CMU_KIDS} already exists. Skipping data downloading."
     fi
 fi
 
@@ -77,7 +88,6 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 
     # prepare data for MyST
     myst_dir="${MYST}/myst_child_conv_speech/data"
-    myst_data_dir="./data_myst"
     
     if "${flac2wav}"; then
         python local/prepare_data.py --original-dir $myst_dir --data-dir $myst_data_dir --is-wav
@@ -102,15 +112,20 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 
     # prepare data for ogi scripted
     ogi_dir="${OGI_KIDS}"
-    ogi_scripted_data_dir="./data_ogi_scripted"
+    
     # local/ogi_scripted_prepare.sh $ogi_dir $ogi_scripted_data_dir
     log "OGI kids scripted data prepared."
 
-    # # prepare all spon data without considering segment length
-    ogi_spon_data_dir="./data_ogi_spon"
-    local/ogi_spon_all_data_prepare.sh $ogi_dir/ $ogi_spon_data_dir/
-
     # prepare data for ogi spontaneous
+    
+    # local/ogi_spon_all_data_prepare.sh $ogi_dir/ $ogi_spon_data_dir/
+
+    # prepare data for cmu kids
+    cmu_dir="${CMU_KIDS}"
+    cmu_lists_dir="local/cmu_file_list"
+
+    local/cmu_kids_data_prepare.sh $cmu_dir $cmu_data_dir $cmu_lists_dir
+
     log "stage 3: Data preparation completed."
 fi
 
@@ -119,18 +134,56 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     log "Stage 4: CTC Segment"
 
     #lists dir is used to ensure train, dev, test splits are done based on speakers from scripted ogi
-    lists_dir="conf/file_list"
+    lists_dir="local/ogi_spon_file_list"
 
-    python local/ctc_segment.py --input $ogi_spon_data_dir/spont_all --lists $lists_dir --output $ogi_spon_data_dir
+    # python local/ctc_segment.py --input $ogi_spon_data_dir/spont_all --lists $lists_dir --output $ogi_spon_data_dir
 
-    python create_utt2spk.py
+    python local/create_utt2spk.py
 
     log "Stage 4: Finished ctc segmentation"
 fi
 
-
+# sph to wav conversion for cmu kids
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
-    log "Stage 5: Merging datasets"
+    log "Stage 5: Wav conversion"
+
+    if $sph2wav; then
+        log "Converting .sph to .wav"
+
+        # Loop over each split (train, dev, test)
+        for x in train dev test; do
+            mkdir -p ${cmu_data_dir}/${x}/wav
+            # Initialize a new wav.scp file
+            true > ${cmu_data_dir}/${x}/wav.scp.new
+
+            # Process each utterance in the wav.scp file
+            while IFS=' ' read -r uttID wavCmd; do
+                # Extract the .sph file path from wavCmd
+                sphFile=$(echo $wavCmd | sed -e 's/.*sph2pipe -f wav -p -c 1 //; s/|$//')
+
+                # Define the new .wav file path
+                wavFile="${cmu_data_dir}/${x}/wav/${uttID}.wav"
+
+                # Convert .sph to .wav
+                python local/sph2wav.py --input $sphFile --output $wavFile
+
+                # Write the new entry to the wav.scp file
+                echo "$uttID $wavFile" >> ${cmu_data_dir}/${x}/wav.scp.new
+            done < ${cmu_data_dir}/${x}/wav.scp
+            # Clean up old wav.scp
+            rm ${cmu_data_dir}/${x}/wav.scp
+            # Rename the new wav.scp
+            mv ${cmu_data_dir}/${x}/wav.scp.new ${cmu_data_dir}/${x}/wav.scp
+
+        done
+        log "Stage 5: Finished .sph to .wav conversion"
+    else
+        log "Stage 5: .sph to .wav conversion skipped."
+    fi
+fi
+
+if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
+    log "Stage 6: Merging datasets"
 
     output_dir="./data"
 
@@ -139,15 +192,16 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
 
     # Initialize the Kaldi format files
     for dir in train dev test; do
-    : > "$output_dir/$dir/wav.scp"
-    : > "$output_dir/$dir/text"
-    : > "$output_dir/$dir/utt2spk"
+        : > "$output_dir/$dir/wav.scp"
+        : > "$output_dir/$dir/text"
+        : > "$output_dir/$dir/utt2spk"
+        mv "$cmu_data_dir/$dir/wav" "$output_dir/$dir/wav"
     done
 
-    mv -r "$ogi_spon_data_dir/wav" "$output_dir/wav"
+    mv "$ogi_spon_data_dir/wav" "$output_dir/wav"
 
     # List of datasets
-    datasets=("$myst_data_dir" "$ogi_scripted_data_dir" "$ogi_spon_data_dir")
+    datasets=("$myst_data_dir" "$ogi_scripted_data_dir" "$ogi_spon_data_dir" "$cmu_data_dir")
 
     # Merge wav.scp
     for dataset in "${datasets[@]}"; do
@@ -176,17 +230,11 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             sort data/${split}/${f} -o data/${split}/${f}
         done
 
-        # # sort text, wav.scp by default
-        # for f in text wav.scp; do
-        #     sort data/${split}/${f} -o data/${split}/${f}
-        # done
-        # # sort utt2spk by speaker ID
-        # sort -k2,2 data/${split}/utt2spk -o data/${split}/utt2spk
-
         utils/utt2spk_to_spk2utt.pl "data/$split/utt2spk" > "data/$split/spk2utt"
 
         dos2unix "data/${split}/text"
 
+        # TODO: change these hard-code data directory to output_dir
         # # Remove utf-8 whitespaces
         iconv -f utf-8 -t ascii//TRANSLIT "data/${split}/text" > "data/${split}/text.ascii"
         mv "data/${split}/text.ascii" "data/${split}/text"
@@ -195,7 +243,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         utils/validate_data_dir.sh --no-feats "data/${split}"
     done
 
-    log "Stage 5: Merging datasets completed."
+    log "Stage 6: Merging datasets completed."
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
