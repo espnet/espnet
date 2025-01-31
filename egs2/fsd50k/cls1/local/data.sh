@@ -81,3 +81,15 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         --metadata ${FSD50K}/FSD50K.ground_truth \
         --output data
 fi
+
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
+    log "stage 3: Validate data"
+
+    for x in train val test; do
+        for f in text wav.scp utt2spk; do
+            sort data/${x}/${f} -o data/${x}/${f}
+        done
+        utils/utt2spk_to_spk2utt.pl data/${x}/utt2spk > "data/${x}/spk2utt"
+        utils/validate_data_dir.sh --no-feats data/${x} || exit 1
+    done
+fi

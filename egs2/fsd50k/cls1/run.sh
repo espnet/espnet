@@ -27,6 +27,7 @@ mkdir -p "${storage_dir}"
     --stop_stage 10 \
     --nj 10 \
     --label_fold_length 200 \
+    --max_wav_duration 30 \
     --inference_nj 1 \
     --inference_model valid.mAP.best.pth \
     --cls_config "${cls_config}" \
