@@ -8,6 +8,7 @@ import json
 import logging
 import sys
 import time
+import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
@@ -397,10 +398,10 @@ def inference(
     for triplet in task.data_triplets:
         name, modality, _ = triplet
         (output_dir / name).mkdir(parents=True, exist_ok=True)
-        file_name = str(output_dir / name / ("token_" + name))
-        token_writers[name] = WriteHelper(f"ark,scp:{file_name}_rank{rank}.ark,{file_name}.scp_rank{rank}")
+        file_name = str(output_dir / name / f"rank{rank}_token_{name}")
+        token_writers[name] = WriteHelper(f"ark,scp:{file_name}.ark,{file_name}.scp")
         if modality in ["spk", "codec", "text_bpe", "codec_ssl"]:
-            file_name = str(output_dir / name / f"{name}_rank{rank}")
+            file_name = str(output_dir / name / f"rank{rank}_{name}")
             writers[name] = open(file_name, "w")
 
     # 5. inference loop
@@ -706,14 +707,25 @@ def main(cmd=None):
 
     # (3) finally, merge results from all processes
     file_dict = dict()
-    for file in args.output_dir.rglob('*_rank*'):
-        name = file.parent / file.name.split('_rank')[0]
-        rank = file.name.split('_rank')[1]
-        if int(rank) >= nproc:
+    for file in args.output_dir.rglob('rank*'):
+        file_name = file.name
+        match = re.match(r"rank(\d+)_(.+)", file_name)
+        if match:
+            rank = int(match.group(1))  # Extract rank as an integer
+            file_name = match.group(2)
+            
+            if int(rank) >= nproc:
+                continue
+            if file_name.endswith('.ark'):
+                continue
+
+        else:
             continue
-        if name not in file_dict:
-            file_dict[name] = list()
-        file_dict[name].append(file)
+
+        merge_file_path = file.parent / file_name
+        if merge_file_path not in file_dict:
+            file_dict[merge_file_path] = list()
+        file_dict[merge_file_path].append(file)
     
     for name, files in file_dict.items():
         writer = open(name, 'w')

@@ -2290,9 +2290,12 @@ class AbsTask(ABC):
                 #   in PyTorch<=1.4
                 device = f"cuda:{torch.cuda.current_device()}"
             try:
+                state_dict = torch.load(model_file, map_location=device)
+                if 'model' in state_dict:
+                    state_dict = state_dict['model']
                 model.load_state_dict(
-                    torch.load(model_file, map_location=device),
-                    strict=False,
+                    state_dict,
+                    strict=True,
                 )
             except RuntimeError:
                 # Note(simpleoier): the following part is to be compatible with
