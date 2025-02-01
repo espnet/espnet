@@ -69,7 +69,12 @@ class AdapterForSoundScpReader(collections.abc.Mapping):
         return iter(self.loader)
 
     def __getitem__(self, key: str) -> np.ndarray:
-        retval = self.loader[key]
+        # For Kaldi IO to check missing audio cases
+        if hasattr(self.loader, "_dict") and self.loader._dict[key] == "None":
+            retval = None, None
+        else:
+            retval = self.loader[key]
+
 
         if isinstance(retval, tuple):
             assert len(retval) == 2, len(retval)

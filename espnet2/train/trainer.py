@@ -156,6 +156,7 @@ class Trainer:
     ):
         states = torch.load(
             checkpoint,
+            weights_only=False,
             map_location=f"cuda:{torch.cuda.current_device()}" if ngpu > 0 else "cpu",
         )
         model.load_state_dict(states["model"], strict=strict)
