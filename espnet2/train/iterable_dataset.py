@@ -17,6 +17,8 @@ from espnet2.train.dataset import ESPnetDataset
 
 
 def load_kaldi(input):
+    if input is None:  # NOTE(jiatong): use None value for missing mat
+        return None
     retval = kaldiio.load_mat(input)
     if isinstance(retval, tuple):
         assert len(retval) == 2, len(retval)
@@ -40,7 +42,8 @@ def load_kaldi(input):
 
 
 DATA_TYPES = {
-    "sound": lambda x: soundfile.read(x)[0],
+    # NOTE(jiatong): use None result for missing mat
+    "sound": lambda x: soundfile.read(x)[0] if x is not None else None,
     "multi_columns_sound": lambda x: np.concatenate(
         [soundfile.read(xx, always_2d=True)[0] for xx in x.split()], axis=1
     ),
@@ -195,6 +198,10 @@ class IterableESPnetDataset(IterableDataset):
                         )
                     key, value = sps
                     keys.append(key)
+                    # NOTE(jiatong): set None value for missing values
+                    if value == "None":
+                        value = None
+
                     values.append(value)
 
                 for k_idx, k in enumerate(keys):
@@ -202,6 +209,7 @@ class IterableESPnetDataset(IterableDataset):
                         raise RuntimeError(
                             f"Keys are mismatched. Text files (idx={k_idx}) is "
                             f"not sorted or not having same keys at L{linenum}"
+                            f"check key is {k} and reference key is {keys[0]}"
                         )
 
                 # If the key is matched, break the loop
@@ -229,14 +237,31 @@ class IterableESPnetDataset(IterableDataset):
             # 4. Force data-precision
             for name in data:
                 value = data[name]
-                if not isinstance(value, np.ndarray):
+                # NOTE(jiatong): skip the process for None value
+                if value is None:
+                    data[name] = value
+                    continue
+                if not isinstance(value, np.ndarray) and not isinstance(value, dict):
                     raise RuntimeError(
-                        f"All values must be converted to np.ndarray object "
-                        f'by preprocessing, but "{name}" is still {type(value)}.'
+                        f"All values must be converted to np.ndarray or "
+                        "dict (universa-only) object by preprocessing, "
+                        f'but "{name}" is still {type(value)}.'
                     )
 
                 # Cast to desired type
-                if value.dtype.kind == "f":
+                if type(value) == dict:
+                    # NOTE(jiatong): Universa metric case
+                    for k, v in value.items():
+                        if isinstance(v, np.ndarray):
+                            if v.dtype.kind == "f":
+                                value[k] = v.astype(self.float_dtype)
+                            elif v.dtype.kind == "i":
+                                value[k] = v.astype(self.int_dtype)
+                            else:
+                                raise NotImplementedError(
+                                    f"Not supported dtype: {v.dtype}"
+                                )
+                elif value.dtype.kind == "f":
                     value = value.astype(self.float_dtype)
                 elif value.dtype.kind == "i":
                     value = value.astype(self.int_dtype)
