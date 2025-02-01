@@ -8,6 +8,7 @@ Overall results
 | [conf/train_ECAPA_mel.yaml](conf/train_ECAPA_mel.yaml) | 0.856 | 0.0666 | | https://huggingface.co/espnet/voxcelebs12_ecapa_mel |
 | [conf/train_rawnet3.yaml](conf/train_rawnet3.yaml) | 0.739 | 0.0581 | | https://huggingface.co/espnet/voxcelebs12_rawnet3 |
 | [conf/train_SKA_mel.yaml](conf/train_SKA_mel.yaml) | 0.729 | 0.0457 | | https://huggingface.co/espnet/voxcelebs12_ska_mel |
+| [conf/train_ebranchformer_aggregate_sys1_D384_L6_Rel_LayerDrop.yaml](conf/train_ebranchformer_aggregate_sys1_D384_L6_Rel_LayerDrop.yaml) | 0.638 | 0.0479 | | https://huggingface.co/espnet/voxcelebs12_ebranchformer_base |
 | [conf/train_ECAPA_wavlm_frozen.yaml](conf/train_ECAPA_wavlm_frozen.yaml) | 0.638 | 0.0499 | ECAPA-TDNN w/ Frozen WavLM | https://huggingface.co/espnet/voxcelebs12_ecapa_frozen|
 | [conf/train_ECAPA_wavlm_joint.yaml](conf/train_ECAPA_wavlm_joint.yaml) | 0.394 | 0.0379 | ECAPA-TDNN w/ Jointly fine-tuned WavLM | https://huggingface.co/espnet/voxcelebs12_ecapa_wavlm_joint |
 | [conf/train_SKA_wavlm_frozen.yaml](conf/train_SKA_wavlm_frozen.yaml) | 0.564 | 0.0548 | SKA-TDNN w/ Frozen WavLM | https://huggingface.co/espnet/voxcelebs12_ska_wavlm_frozen |
@@ -60,6 +61,22 @@ date: 2023-11-30 15:48:13.707576
 | Model name | EER(%) | minDCF |
 |---|---|---|
 | mfa-conformer | 0.952 | 0.05834 |
+
+## Environments - conf/train_ebranchformer_aggregate_sys1_D384_L6_Rel_LayerDrop.yaml
+date: 2024-11-11 13:27:22.449116
+
+- python version: 3.10.13 (main, Sep 11 2023, 13:44:35) [GCC 11.2.0]
+- espnet version: 202409
+- pytorch version: 2.2.2+rocm5.6
+
+| | Mean | Std |
+|---|---|---|
+| Target | 8.1720 | 3.9750 |
+| Non-target | 2.0805 | 2.0805 |
+
+| Model name | EER(%) | minDCF |
+|---|---|---|
+| conf/tuning/train_ebranchformer_aggregate_sys1_D384_L6_Rel_LayerDrop | 0.638 | 0.04797 |
 
 ## Environments - conf/train_ECAPA_wavlm_frozen.yaml
 date: 2023-11-30 15:49:50.531573
