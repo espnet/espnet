@@ -408,7 +408,7 @@ class CommonPreprocessor(AbsPreprocessor):
 
     @typechecked
     def _speech_process(
-        self, data: Dict[str, Union[str, np.ndarray]]
+        self, data: Dict[str, Optional[Union[str, np.ndarray]]]
     ) -> Dict[str, Union[str, np.ndarray]]:
         if self.speech_name in data:
             if self.train and (self.rirs is not None or self.noises is not None):
@@ -541,7 +541,7 @@ class CommonPreprocessor(AbsPreprocessor):
 
     @typechecked
     def __call__(
-        self, uid: str, data: Dict[str, Union[str, np.ndarray]]
+        self, uid: str, data: Dict[str, Optional[Union[str, np.ndarray]]]
     ) -> Dict[str, np.ndarray]:
 
         data = self._speech_process(data)
