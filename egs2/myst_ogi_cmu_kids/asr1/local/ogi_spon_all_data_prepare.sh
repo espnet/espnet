@@ -21,8 +21,8 @@ for x in spont_all; do
     head -n1 "$line" # | sed "s:<[^ ]*>::g" | sed "s:([^ ]*)::g" | sed "s:  : :g" | sed "s:  : :g" | sed "s:^ ::g" | sed "s:\[::g" | sed "s:\]::g" | sed "s:\*::g" | sed "s:^\xEF\xBB\xBF::g" | tr '[:lower:]' '[:upper:]'
   done < $tmpdir/all.txt > $tmpdir/trans
   paste -d' ' $data/$x/all.uttids $tmpdir/trans | sort -k1,1 > $data/$x/text
-  dos2unix -n data/$x/text text_unix
-  mv text_unix data/$x/text
+  dos2unix -n $data/$x/text text_unix
+  mv text_unix $data/$x/text
   rm -f $data/$x/all.uttids
 
   spk2utt=$data/$x/spk2utt

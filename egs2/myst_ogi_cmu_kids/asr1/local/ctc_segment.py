@@ -1,4 +1,5 @@
-#ctc segmentation adapted from: https://pytorch.org/audio/stable/tutorials/forced_alignment_tutorial.html
+# CTC segmentation adapted from:
+# https://pytorch.org/audio/stable/tutorials/forced_alignment_tutorial.html
 
 import pandas as pd
 import os
