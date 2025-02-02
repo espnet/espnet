@@ -1,12 +1,14 @@
 #!/bin/bash
 
 # Check if at least one argument is provided
-if [ $# -ne 2 ]; then
-    echo "ERROR: Please provide the OGI data path, and the output data path as arguments."
+if [ $# -ne 3 ]; then
+    echo "ERROR: Args: OGI data path, ogi-scripted output data path, list file for splits."
 fi
 
 data_path="$1"
 output_dir="$2"
+lists_dir="$3"
+
 
 # Check the data path
 if [ ! -d "$data_path" ]; then
@@ -67,9 +69,9 @@ done
 
 utils/utt2spk_to_spk2utt.pl "$output_dir/all/utt2spk" > "$output_dir/all/spk2utt"
 
-utils/subset_data_dir.sh --utt-list conf/file_list/train.list "$output_dir/all" "$output_dir/train"
-utils/subset_data_dir.sh --utt-list conf/file_list/dev.list "$output_dir/all" "$output_dir/dev"
-utils/subset_data_dir.sh --utt-list conf/file_list/test.list "$output_dir/all" "$output_dir/test"
+utils/subset_data_dir.sh --utt-list $lists_dir/train.list "$output_dir/all" "$output_dir/train"
+utils/subset_data_dir.sh --utt-list $lists_dir/dev.list "$output_dir/all" "$output_dir/dev"
+utils/subset_data_dir.sh --utt-list $lists_dir/test.list "$output_dir/all" "$output_dir/test"
 
 rm $trans_map_file
 

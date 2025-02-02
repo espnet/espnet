@@ -12,7 +12,7 @@ test_sets="test"
 asr_config=conf/train_asr.yaml
 inference_config=conf/decode_asr.yaml
 
-nbpe=2000
+nbpe=5000
 
 min_wav_duration=0.3
 

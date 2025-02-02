@@ -1,8 +1,8 @@
 # Trained with V100 (16 GB) x 1 GPUs.
 encoder: e_branchformer
 encoder_conf:
-    output_size: 256
-    attention_heads: 4
+    output_size: 192
+    attention_heads: 2
     attention_layer_type: rel_selfattn
     pos_enc_layer_type: rel_pos
     rel_pos_type: latest
@@ -10,7 +10,7 @@ encoder_conf:
     cgmlp_conv_kernel: 31
     use_linear_after_conv: false
     gate_activation: identity
-    num_blocks: 12
+    num_blocks: 10
     dropout_rate: 0.1
     positional_dropout_rate: 0.1
     attention_dropout_rate: 0.1
@@ -24,7 +24,7 @@ encoder_conf:
 
 decoder: transformer
 decoder_conf:
-    attention_heads: 4
+    attention_heads: 2
     linear_units: 1024
     num_blocks: 6
     dropout_rate: 0.1
@@ -46,7 +46,7 @@ frontend_conf:
 seed: 2022
 num_workers: 4
 batch_type: numel
-batch_bins: 16000000
+batch_bins: 4000000
 accum_grad: 4
 max_epoch: 20
 patience: none
