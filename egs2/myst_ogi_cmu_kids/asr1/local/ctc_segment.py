@@ -1,18 +1,16 @@
 # CTC segmentation adapted from:
 # https://pytorch.org/audio/stable/tutorials/forced_alignment_tutorial.html
 
-import pandas as pd
 import os
 import re
+from dataclasses import dataclass
 from glob import glob
 
 import librosa
-import torchaudio
-import torch
+import pandas as pd
 import soundfile as sf
-
-from dataclasses import dataclass
-
+import torch
+import torchaudio
 
 
 @dataclass
@@ -76,6 +74,7 @@ def get_trellis(emission, tokens, blank_id=0):
         )
     return trellis
 
+
 @dataclass
 class Segment:
     label: str
@@ -109,6 +108,7 @@ def merge_repeats(path):
         i1 = i2
     return segments
 
+
 def merge_words(segments, separator="|"):
     words = []
     i1, i2 = 0, 0
@@ -117,14 +117,17 @@ def merge_words(segments, separator="|"):
             if i1 != i2:
                 segs = segments[i1:i2]
                 word = "".join([seg.label for seg in segs])
-                score = sum(seg.score * seg.length for seg in segs) / sum(seg.length for seg in segs)
-                words.append(Segment(word, segments[i1].start, segments[i2 - 1].end, score))
+                score = sum(seg.score * seg.length for seg in segs) / sum(
+                    seg.length for seg in segs
+                )
+                words.append(
+                    Segment(word, segments[i1].start, segments[i2 - 1].end, score)
+                )
             i1 = i2 + 1
             i2 = i1
         else:
             i2 += 1
     return words
-
 
 
 def create_buckets(segments, ratio):
@@ -137,7 +140,7 @@ def create_buckets(segments, ratio):
     for segment in segments:
         # Calculate duration of the current segment in seconds
         segment_duration = (segment.end - segment.start) * ratio
-        
+
         # Calculate the gap duration from the last segment, if any
         if last_end is not None:
             gap_duration = (segment.start - last_end) * ratio
@@ -173,92 +176,105 @@ def create_buckets(segments, ratio):
         concatenated_text = " ".join([segment.label for segment in bucket]).strip()
         if concatenated_text:
             return_intervals.append((first_start, last_end, concatenated_text))
-    
+
     return return_intervals
 
+
 def clean_transcript(sentence, dictionary):
-    sentence = re.sub(r'<[^>]*>', '', sentence)
+    sentence = re.sub(r"<[^>]*>", "", sentence)
 
     # Remove all asterisks
-    sentence = re.sub(r'\*', '', sentence)
-    sentence = re.sub(r'\([^)]*\)', '', sentence)
-    sentence = re.sub(r'\[|\]', '', sentence)
-    sentence = re.sub(r'\s{2,}', ' ', sentence)
+    sentence = re.sub(r"\*", "", sentence)
+    sentence = re.sub(r"\([^)]*\)", "", sentence)
+    sentence = re.sub(r"\[|\]", "", sentence)
+    sentence = re.sub(r"\s{2,}", " ", sentence)
 
     text = sentence.upper()
-    text = text.replace(' ', '|')
+    text = text.replace(" ", "|")
     for t in text:
         if t not in dictionary:
-            text = text.replace(t, '')
+            text = text.replace(t, "")
     return text
+
 
 def return_transcript(text):
-    text = text.replace(' ','')
-    text = text.replace('|', ' ')
+    text = text.replace(" ", "")
+    text = text.replace("|", " ")
     text = text.lower()
 
-    text = re.sub(r'\s+', ' ', text).strip()
+    text = re.sub(r"\s+", " ", text).strip()
 
     return text
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--input" , type=str, required=True, help='Path to directory with input wav.scp and text files')
-    parser.add_argument("--output", type=str, required=True, help='Path to directory to save the segmented audio files')
-    parser.add_argument("--lists_dir", type=str, required=True, help='Path to directory with train, dev and test speaker lists')
+    parser.add_argument(
+        "--input",
+        type=str,
+        required=True,
+        help="Path to directory with input wav.scp and text files",
+    )
+    parser.add_argument(
+        "--output",
+        type=str,
+        required=True,
+        help="Path to directory to save the segmented audio files",
+    )
+    parser.add_argument(
+        "--lists_dir",
+        type=str,
+        required=True,
+        help="Path to directory with train, dev and test speaker lists",
+    )
 
     args = parser.parse_args()
 
-    with open(f'{args.input}/wav.scp', 'r') as f:
+    with open(f"{args.input}/wav.scp", "r") as f:
         lines = f.readlines()
-    
-    with open(f'{args.input}/text', 'r') as g:
+
+    with open(f"{args.input}/text", "r") as g:
         lines2 = g.readlines()
-    
+
     data = []
     for l1, l2 in zip(lines, lines2):
         utt_id, path = l1.strip().split(maxsplit=1)
         _, text = l2.strip().split(maxsplit=1)
 
         data.append((utt_id, path, text))
-    
-    df = pd.DataFrame(data, columns=['utt_id', 'path', 'transcript'])
+
+    df = pd.DataFrame(data, columns=["utt_id", "path", "transcript"])
 
     print(len(df), flush=True)
 
-    df['clean transcript'] = ''
-    df['duration'] = 0.0
+    df["clean transcript"] = ""
+    df["duration"] = 0.0
 
-    device = torch.device('cuda')
+    device = torch.device("cuda")
 
     bundle = torchaudio.pipelines.WAV2VEC2_ASR_BASE_960H
     model = bundle.get_model().to(device)
     labels = bundle.get_labels()
 
-
     dictionary = {c: i for i, c in enumerate(labels)}
     print(dictionary, flush=True)
 
-
-
     for i, r in df.iterrows():
 
-        df.at[i, 'clean transcript'] = clean_transcript(r['transcript'], dictionary)
+        df.at[i, "clean transcript"] = clean_transcript(r["transcript"], dictionary)
 
         # Load audio file and calculate duration
-        y, sr = librosa.load(r['path'])
-        df.at[i, 'duration'] = librosa.get_duration(y=y, sr=sr)
-        
-
+        y, sr = librosa.load(r["path"])
+        df.at[i, "duration"] = librosa.get_duration(y=y, sr=sr)
 
     file_dict = []
 
-    for c,r in df.iterrows():
+    for c, r in df.iterrows():
 
-        test_file = r['path']
+        test_file = r["path"]
 
         with torch.inference_mode():
             waveform, sr = torchaudio.load(test_file)
@@ -267,15 +283,13 @@ if __name__ == '__main__':
 
         emission = emissions[0].cpu().detach()
 
-        transcript = r['clean transcript']
+        transcript = r["clean transcript"]
 
         tokens = [dictionary[c] for c in transcript]
-
 
         trellis = get_trellis(emission, tokens)
 
         path = backtrack(trellis, emission, tokens)
-
 
         segments = merge_repeats(path)
 
@@ -285,7 +299,7 @@ if __name__ == '__main__':
         intervals = create_buckets(segments, ratio)
 
         if not intervals:
-            print(f'No intervals found for {test_file}', flush=True)
+            print(f"No intervals found for {test_file}", flush=True)
             continue
 
         audio, sr = librosa.load(test_file, sr=None)
@@ -295,26 +309,24 @@ if __name__ == '__main__':
         for i, interval in enumerate(intervals):
             start, end, text = interval
 
-            
+            uniq_utt = test_file.split("/")[-1].split(".")[0]
 
-            uniq_utt = test_file.split('/')[-1].split('.')[0]
-
-            out_path = args.output + f'/wav/{uniq_utt}_{i}.wav'
-            out_text_path = out_path.replace('.wav', '.txt')
-
-            
+            out_path = args.output + f"/wav/{uniq_utt}_{i}.wav"
+            out_text_path = out_path.replace(".wav", ".txt")
 
             # Calculate new start and end times with a 0.5-second buffer
-            
+
             new_start = max(0, start - buffer)
             new_end = min(audio_length, end + buffer)
 
             # Load the audio segment with the new start and end times
-            y, sr = librosa.load(test_file, sr=None, offset=new_start, duration=new_end - new_start)
+            y, sr = librosa.load(
+                test_file, sr=None, offset=new_start, duration=new_end - new_start
+            )
 
             text = return_transcript(text)
 
-            if text.strip()=='':
+            if text.strip() == "":
                 continue
 
             os.makedirs(os.path.dirname(out_path), exist_ok=True)
@@ -322,44 +334,39 @@ if __name__ == '__main__':
             # Write the audio segment to the output path
             sf.write(out_path, y, sr)
 
-            with open(out_text_path, 'w') as f:
+            with open(out_text_path, "w") as f:
                 f.write(text)
 
-            new_fid = out_path.split('/')[-1].split('.')[0]
+            new_fid = out_path.split("/")[-1].split(".")[0]
 
             file_dict.append([new_fid, out_path, text])
-        
 
         if c % 100 == 0:
-            print(f'Processed {c} files', flush = True)
-        
+            print(f"Processed {c} files", flush=True)
 
-
-    all_segs_dir = args.output + '/all_segs'
-    dev_dir = args.output + '/dev'
-    train_dir = args.output + '/train'
-    test_dir = args.output + '/test'
+    all_segs_dir = args.output + "/all_segs"
+    dev_dir = args.output + "/dev"
+    train_dir = args.output + "/train"
+    test_dir = args.output + "/test"
 
     os.makedirs(all_segs_dir, exist_ok=True)
     os.makedirs(dev_dir, exist_ok=True)
     os.makedirs(train_dir, exist_ok=True)
     os.makedirs(test_dir, exist_ok=True)
 
-    with open(all_segs_dir+'/wav.scp', 'w') as f:
-        with open(all_segs_dir+'/text', 'w') as g:
+    with open(all_segs_dir + "/wav.scp", "w") as f:
+        with open(all_segs_dir + "/text", "w") as g:
             for fid, path, text in file_dict:
                 f.write(f"{fid} {path}\n")
                 g.write(f"{fid} {text}\n")
 
+    new_df = pd.DataFrame(file_dict, columns=["fid", "path", "text"])
 
-    new_df = pd.DataFrame(file_dict, columns=['fid', 'path', 'text'])
-
-    new_df.to_csv(all_segs_dir+'/metadata.csv', index=False)
-
+    new_df.to_csv(all_segs_dir + "/metadata.csv", index=False)
 
     og_dev_speakers = set()
 
-    with open(args.lists_dir+ '/dev.list', 'r') as f:
+    with open(args.lists_dir + "/dev.list", "r") as f:
         lines = f.readlines()
 
         for line in lines:
@@ -367,10 +374,9 @@ if __name__ == '__main__':
 
             og_dev_speakers.add(fid[:5])
 
-
     og_train_speakers = set()
 
-    with open(args.lists_dir+ '/train.list', 'r') as f:
+    with open(args.lists_dir + "/train.list", "r") as f:
         lines = f.readlines()
 
         for line in lines:
@@ -378,10 +384,9 @@ if __name__ == '__main__':
 
             og_train_speakers.add(fid[:5])
 
-
     og_test_speakers = set()
 
-    with open(args.lists_dir+ '/test.list', 'r') as f:
+    with open(args.lists_dir + "/test.list", "r") as f:
         lines = f.readlines()
 
         for line in lines:
@@ -389,42 +394,38 @@ if __name__ == '__main__':
 
             og_test_speakers.add(fid[:5])
 
-
-    with open(all_segs_dir+'/wav.scp', 'r') as f:
+    with open(all_segs_dir + "/wav.scp", "r") as f:
         lines1 = f.readlines()
 
-    with open(all_segs_dir+'/text', 'r') as g:
+    with open(all_segs_dir + "/text", "r") as g:
         lines2 = g.readlines()
 
-
-    for l1, l2 in zip(lines1,lines2):
+    for l1, l2 in zip(lines1, lines2):
 
         utt_id, path = l1.split()
 
-
         if utt_id[:5] in og_dev_speakers:
-            with open(args.output+'/dev/wav.scp', 'a') as f:
+            with open(args.output + "/dev/wav.scp", "a") as f:
                 f.write(f"{utt_id} {path}\n")
-            with open(args.output+'/dev/text', 'a') as g:
-                g.write(l2.strip() + '\n')
+            with open(args.output + "/dev/text", "a") as g:
+                g.write(l2.strip() + "\n")
 
-            with open(args.output+'/dev/utt.list', 'a') as f:
-                f.write(utt_id + '\n')
-        
+            with open(args.output + "/dev/utt.list", "a") as f:
+                f.write(utt_id + "\n")
+
         elif utt_id[:5] in og_train_speakers:
-            with open(args.output+'/train/wav.scp', 'a') as f:
+            with open(args.output + "/train/wav.scp", "a") as f:
                 f.write(f"{utt_id} {path}\n")
-            with open(args.output+'/train/text', 'a') as g:
-                g.write(l2.strip() + '\n')
-            
-            with open(args.output+'/train/utt.list', 'a') as f:
-                f.write(utt_id + '\n')
-        else:
-            with open(args.output+'/test/wav.scp', 'a') as f:
-                f.write(f"{utt_id} {path}\n")
-            with open(args.output+'/test/text', 'a') as g:
-                g.write(l2.strip() + '\n')
-            
-            with open(args.output+'/test/utt.list', 'a') as f:
-                f.write(utt_id + '\n')
+            with open(args.output + "/train/text", "a") as g:
+                g.write(l2.strip() + "\n")
 
+            with open(args.output + "/train/utt.list", "a") as f:
+                f.write(utt_id + "\n")
+        else:
+            with open(args.output + "/test/wav.scp", "a") as f:
+                f.write(f"{utt_id} {path}\n")
+            with open(args.output + "/test/text", "a") as g:
+                g.write(l2.strip() + "\n")
+
+            with open(args.output + "/test/utt.list", "a") as f:
+                f.write(utt_id + "\n")

@@ -43,19 +43,19 @@ done < $trans_file
 # Find all WAV files recursively in the base directory
 find "$wav_base_dir" -type f -name "*.wav" | while IFS= read -r wav_path; do
   rel_path=${wav_path#"$base_dir"/}
-  
+
   spk_id=$(basename "$(dirname "$rel_path")")
   utt_id=$(basename "$rel_path" .wav)
   utt_key=${utt_id: -3:2}
 
   trans_text=$(grep "^$utt_key " "$trans_map_file" | head -n 1 | cut -d' ' -f2-)
-  
+
   # Skip this utterance if transcription text is missing
   if [ -z "$trans_text" ]; then
       # Skip $utt_key due to missing transcription
       continue
   fi
-  
+
   # Write to Kaldi output files
   echo "$utt_id $wav_path" >> "$output_dir/all/wav.scp"
   echo "$utt_id $trans_text" >> "$output_dir/all/text"

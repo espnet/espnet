@@ -10,7 +10,7 @@ for x in spont_all; do
 
   find $wav_dir/speech/spontaneous/ -iname "*.wav" > $tmpdir/all.wav
   find $wav_dir/trans/spontaneous/ -iname "*.txt" > $tmpdir/all.txt
-  
+
   sed -e 's:.*/\(.*\)/\(.*\).wav$:\2 \1:' $tmpdir/all.wav | sort -k1,1 > $data/$x/utt2spk
   sed -e 's:.*/\(.*\)/.*/.*/\(.*\).wav$:\2 \1:' $tmpdir/all.wav | sort -k1,1 > $data/$x/utt2age
   sed -e 's:.*/\(.*\).wav$:\1:' $tmpdir/all.wav > $data/$x/all.uttids
