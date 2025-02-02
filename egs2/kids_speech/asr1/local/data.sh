@@ -54,6 +54,7 @@ ogi_scripted_data_dir="./data_ogi_scripted"
 ogi_spon_data_dir="./data_ogi_spon"
 cmu_data_dir="./data_cmu"
 
+# myst file lists is for filtering, the other three are for splits
 myst_lists_dir="local/myst_file_list"
 ogi_scripted_lists_dir="local/ogi_scripted_file_list"
 ogi_spon_lists_dir="local/ogi_spon_file_list"
@@ -116,11 +117,11 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     log "MyST data prepared."
 
     # prepare data for ogi scripted
-    #local/ogi_scripted_prepare.sh $ogi_dir $ogi_scripted_data_dir $ogi_scripted_lists_dir
+    local/ogi_scripted_prepare.sh $ogi_dir $ogi_scripted_data_dir $ogi_scripted_lists_dir
     log "OGI kids scripted data prepared."
 
     # prepare data for ogi spontaneous
-    #local/ogi_spon_all_data_prepare.sh $ogi_dir/ $ogi_spon_data_dir/
+    local/ogi_spon_all_data_prepare.sh $ogi_dir/ $ogi_spon_data_dir/
     log "OGI kids spontaneous data prepared."
 
     # prepare data for cmu kids
@@ -129,7 +130,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     log "stage 3: Data preparation completed."
 fi
 
-# this stage is for OGI-scripted
+# Filter data in MyST, >50% Whisper WER, shorter than 0.5 sec or shorter than 3 words
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     log "Stage 4: Filtering MyST"
 
@@ -152,7 +153,7 @@ fi
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     log "Stage 5: CTC Segment"
 
-    # python local/ctc_segment.py --input $ogi_spon_data_dir/spont_all --lists $ogi_spon_lists_dir --output $ogi_spon_data_dir
+    python local/ctc_segment.py --input $ogi_spon_data_dir/spont_all --lists $ogi_spon_lists_dir --output $ogi_spon_data_dir
     python local/create_utt2spk.py
 
     log "Stage 5: Finished ctc segmentation"
