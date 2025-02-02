@@ -247,6 +247,7 @@ special_tokens = [
     "<system_prompt>",
     "<user_input>",
     "<assistant_output>",
+    "<eou>",
 ]
 
 

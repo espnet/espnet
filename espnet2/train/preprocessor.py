@@ -2523,9 +2523,24 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         cache = dict(task_name=task_name)
         for idx, data_tuple in enumerate(data_tuples):
             name, modality, role, content, target = data_tuple
-            target = True if self.loss_region == "whole" else target
-
-            value, _ = self.modality_specific_processing(content, modality, cache)
+            
+            # NOTE(Jinchuan): add an indicator to the end for each target segment.
+            # This is for multi-segment inference.
+            # end-of-sentence: the last target segment
+            # end-of-utterance: all other target segments
+            if not target:
+                end_tok = None
+            elif idx == len(data_tuples) - 1:
+                end_tok = "<sos/eos>"
+            else:
+                end_tok = "<eou>" # end-of-utterance
+            
+            value, _ = self.modality_specific_processing(
+                content,
+                modality, 
+                cache,
+                end_tok=end_tok,
+            )
 
             # NOTE(Jinchuan): when the role is set, like in post-training, we
             # add this role token.
@@ -2548,6 +2563,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
                 value = np.concatenate([value, pad], axis=0)
 
             seqs.append(value)
+            target = True if self.loss_region == "whole" else target
             loss_masks.append(value * 0 + int(target))
         
         # (3) splice
@@ -2561,11 +2577,11 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         if self.encoder_decoder_format:
             raise NotImplementedError('encoder decoder is not supported yet')
         else:
-            seqs = [sos_eos] + [task_identifier] + seqs + [sos_eos]
+            seqs = [sos_eos] + [task_identifier] + seqs
             dec_seq = np.concatenate(seqs, axis=0).reshape(-1, self.codec_token_in_use)
 
             special_loss_mask = np.zeros_like(sos_eos) + int(self.loss_region == "whole")
-            loss_masks = [special_loss_mask] * 2 + loss_masks + [np.ones_like(sos_eos)]
+            loss_masks = [special_loss_mask] * 2 + loss_masks
             loss_mask = np.concatenate(loss_masks, axis=0).reshape(dec_seq.shape)
             loss_mask[dec_seq == 0] = 0
 
@@ -2607,7 +2623,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         )
         return token_idx
 
-    def modality_specific_processing(self, value, modality, cache):
+    def modality_specific_processing(self, value, modality, cache, end_tok=None):
         # multi-stream discrete modalities
         if modality in ["codec", "spk", "codec_ssl"]:
             value = value.reshape(-1, self.codec_token_per_frame)
@@ -2704,9 +2720,12 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         
         value = value.flatten()
         modality_idx = self.special_token(f"<{modality}_start/end>")
-        value = np.concatenate([modality_idx, value]).astype(np.int64)
+        value = np.concatenate([modality_idx, value])
+        if end_tok is not None:
+            end_tok = self.special_token(end_tok)
+            value = np.concatenate([value, end_tok])
 
-        return value, conti_feat
+        return value.astype(np.int64), conti_feat
 
     def diagnose(self, data):
         """Only for debug"""
