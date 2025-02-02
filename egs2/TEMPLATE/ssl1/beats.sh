@@ -60,6 +60,7 @@ train_start_iter= # Pretrain starts from the specified iteration (0 mean MFCC it
 train_stop_iter=  # Pretrain is stopped from the specified iteration (0 mean MFCC iteraion)
 train_config=    # Configration file of training stage
 n_targets=             # Number of codebook targets
+tokenizer_inference_batch_size=32 # Batch size for tokenizer inference
 tokenizer_train_config= # Configration file of tokenizer training stage
 inference_tokenizer_model=valid.acc.best.pth # Model to use for tokenizer inference
 external_tokenizer_model= # External tokenizer model to use for tokenizer inference
@@ -118,6 +119,7 @@ Options:
     --train_stop_iter   # Pretrain is stopped from the specified iteration (0 mean MFCC iteraion, default="${train_stop_iter}").
     --train_config    # configration file of training stage
     --n_targets       # number of codebook vectors
+    --tokenizer_inference_batch_size # Batch size for tokenizer inference (default="${tokenizer_inference_batch_size}").
     --tokenizer_train_config # configration file of tokenizer training stage
     --inference_tokenizer_model # Model to use for tokenizer inference, default="${inference_tokenizer_model}".
     --external_tokenizer_model  # External tokenizer model to use for tokenizer inference.
@@ -265,9 +267,9 @@ if ! "${skip_train}"; then
                 --codec_choice ${codec_choice} \
                 --file_name wav.scp \
                 --src_dir "${data_feats}/${dset}" \
-                --tgt_dir "${data_feats}/${dset}/codes" \
-                --nj "${_nj}"
-            cp "${data_feats}/${dset}/codes/wav_${codec_choice}.txt" "${data_feats}/${dset}/target_iter0"
+                --tgt_dir "${data_feats}/${dset}/codes_iter0" \
+                --nj "${_nj}" --ngpu "${ngpu}" --batch_size "${tokenizer_inference_batch_size}"
+            cp "${data_feats}/${dset}/codes_iter0/wav_${codec_choice}.txt" "${data_feats}/${dset}/target_iter0"
         done
         
         # Prepare token list
@@ -431,8 +433,8 @@ if ! "${skip_train}"; then
                         --src_dir "${_data_dir}" \
                         --tgt_dir "${_data_dir}/codes_iter${iter}" \
                         --checkpoint_path "${_tokenizer_ckpt_path}" \
-                        --nj "${_nj}"
-                    cp "${_data_dir}/codes/wav_${codec_choice}.txt" "${_data_dir}/target_iter${iter}"
+                        --nj "${_nj}" --n_gpu "${ngpu}" --batch_size "${tokenizer_inference_batch_size}"
+                    cp "${_data_dir}/codes_iter${iter}/wav_${codec_choice}.txt" "${_data_dir}/target_iter${iter}"
                 done
                 log "Inference with tokenizer model completed."
             fi

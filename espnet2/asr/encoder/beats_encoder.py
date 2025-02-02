@@ -469,8 +469,8 @@ class BeatsEncoder(AbsEncoder):
             assert (
                 max_layer is None
             ), "During pretraining max_layer should be set to None!"
-            # kept_mask: 1 - kept, 0 - removed [full length as features]
-            # features, padding_mask will be shortened
+            # kept_mask: 1 - kept, 0 - removed
+            # features, padding_mask will be shortened to only keep the kept positions
             features, padding_mask, restore_ids, kept_mask = self.mask_sequence(
                 features, padding_mask
             )
@@ -587,6 +587,7 @@ class BeatsPretrainingPredictor(nn.Module):
         )
 
         # x = x + self.decoder_pos_embed TODO
+        # layer norm? TODO
         pos_bias = None
 
         # ===========================#

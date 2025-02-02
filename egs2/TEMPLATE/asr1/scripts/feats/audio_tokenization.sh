@@ -13,11 +13,12 @@ log() {
 }
 
 nj=4                # number of parallel jobs
+ngpu=0             # number of gpus (0: no gpus)
 python=python3      # Specify python to execute espnet commands.
 codec_choice=beats  # Audio Tokenizer Options: beats
 codec_fs=16000
 code_writeformat=text # ark or text
-batch_size=1        # BEATs Audio tokenizaiton supports only batch_size=1
+batch_size=4
 bias=0
 dump_audio=false
 file_name=
@@ -85,7 +86,7 @@ else
     exit 1
 fi
 
-${cuda_cmd} --gpu 1 JOB=1:${_nj} ${_logdir}/codec_dump_${codec_choice}.JOB.log \
+${cuda_cmd} --gpu ${ngpu} JOB=1:${_nj} ${_logdir}/codec_dump_${codec_choice}.JOB.log \
     ${python} pyscripts/feats/dump_codec.py \
         --codec_choice ${codec_choice} \
         --codec_fs ${codec_fs} \

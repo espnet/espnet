@@ -126,8 +126,9 @@ def dump_codec(
 
         if idx == wav_reader_len - 1 or len(buffer) % batch_size == 0:
             wavs = pad_list(buffer, 0.0).to(device).unsqueeze(1).float()
+            wav_lens = torch.tensor(length_buffer, dtype=torch.int).to(device)
             with torch.no_grad():
-                codes, resyn_wavs = tokenizer(wavs)
+                codes, resyn_wavs = tokenizer(wavs, wav_lens)
             codes += bias
 
             codes = codes.detach().cpu().numpy()
@@ -149,7 +150,6 @@ def dump_codec(
                     )
 
             buffer, length_buffer, key_buffer = [], [], []
-
     # (4) dump vocabulary file
     if rank == 1:
         vocab_writer = open(vocab_file, "w")

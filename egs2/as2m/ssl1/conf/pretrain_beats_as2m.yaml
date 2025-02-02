@@ -1,12 +1,13 @@
 unused_parameters: true
 init: xavier_normal
 
-batch_type: folded
-shuffle_within_batch: false
+batch_type: numel
+batch_bins: 89880000 # (10sec @ 16kHz + 500 labels) * 560 audio samples
 
-valid_batch_size: 400
-batch_size: 560
-max_epoch: 112 # 500K steps / (2M / 560), ~7k batches.
+# batch_type: folded
+# valid_batch_size: 400
+# batch_size: 560 # 5.6k seconds
+max_epoch: 112 # 400K steps / (2M / 560)
 
 accum_grad: 1
 grad_clip: 1
@@ -42,6 +43,7 @@ encoder_conf:
         codebook_vocab_size: 1024
         fbank_mean: 15.25938
         fbank_std: 6.93416
+        decoder_layers: 3 # layers in the pretraining predictor
     use_weighted_representation: false
     is_pretraining: true
 

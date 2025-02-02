@@ -86,7 +86,7 @@ class BeatsPretrainModel(AbsESPnetModel):
         # logits (Batch, n_patch, codebook_size)
         logits = self.decoder(unmasked_patch_emb, target_lengths, restore_ids)
 
-        loss, acc_mask, acc_unmask = self._calc_beats_loss(
+        loss, acc_mask, acc_unmask, vocab_cov = self._calc_beats_loss(
             logits, ~kept_mask, target - 1
         )  # target - 1 because of unk token at 0th position
 
@@ -95,6 +95,7 @@ class BeatsPretrainModel(AbsESPnetModel):
             acc_mask=acc_mask,
             acc_unmask=acc_unmask,
             acc=acc_mask,
+            vocab_cov=vocab_cov,
         )
 
         # force_gatherable: to-device and to-tensor if scalar for DataParallel
@@ -146,13 +147,15 @@ class BeatsPretrainModel(AbsESPnetModel):
             corr_masked = ((logits.argmax(dim=1) == target) * masked).sum().item()
             corr_unmask = ((logits.argmax(dim=1) == target) * (~masked)).sum().item()
 
+            # TODO(shikhar): change if input speech lengths are different
             count_unmask = (~masked).sum().item()
-            count_masked = (
-                masked.sum().item()
-            )  # TODO(shikhar): change if input speech lengths are different
+            count_masked = masked.sum().item()
         acc_m = corr_masked / (count_masked + 1e-10)
         acc_u = corr_unmask / (count_unmask + 1e-10)
-        return loss, acc_m, acc_u
+
+        n_uniq = target.unique().shape[0]
+        vocab_cov = n_uniq / logits.shape[1]
+        return loss, acc_m, acc_u, vocab_cov
 
 
 class BeatsTokenizerPretrainModel(AbsESPnetModel):
