@@ -9,100 +9,107 @@ from tqdm import tqdm
 DATA_READ_ROOT = sys.argv[1]
 DATA_WRITE_ROOT = sys.argv[2]
 
+def collect_fnames_for_each_genre(): 
 
-def read_data_file(filename, mid2name):
-    data = []
-    with open(filename, "r") as file:
-        lines = file.readlines()
-        for line in tqdm(lines, desc="Reading data files"):
-            line = line.strip()
-            if line.startswith("#"):
-                continue
-            parts = line.strip().split(",", maxsplit=3)
-            # Extract the fields
-            yt_id = parts[0]
-            start_seconds = float(parts[1])
-            end_seconds = float(parts[2])
-            labels = parts[3].replace('"', "").split(",")
-            labels = [mid2name[label.strip()] for label in labels]
-            data.append(
-                {
-                    "yt_id": yt_id,
-                    "start_seconds": start_seconds,
-                    "end_seconds": end_seconds,
-                    "labels": labels,
-                }
-            )
-    return data
+    # obtain genre tags 
+    genres = sorted(os.listdir(DATA_READ_ROOT))
+    
+    # collect wavfile names for each genre
+    fnames_for_each_genre = {}
+    for genre in genres:
+        fnames = os.listdir(os.path.join(DATA_READ_ROOT, genre))
+        fnames_for_each_genre.update({genre:fnames})
+    
+    return fnames_for_each_genre
 
 
-def read_mid2name_map(mid2name_file):
-    mid2name = {}
-    unique_names = set()
-    with open(mid2name_file, "r") as file:
-        lines = file.readlines()
-        for line in tqdm(lines, desc="Reading mid2name map"):
-            line = line.strip()
-            if line.startswith("#"):
-                continue
-            parts = line.strip().split(",", maxsplit=2)
-            label_name = parts[2].replace('"', "").strip().replace(" ", "_")
-            if label_name in unique_names:
-                print(f"Warning: Duplicate label name {label_name}")
-            unique_names.add(label_name)
-            mid2name[parts[1]] = label_name
-    return mid2name
+def split_fnames_with_balanced_genre(fnames_for_each_genre, ratio={'train':0.75, 'val':0.15, 'eval':0.10}):
 
+    train_input, val_input, eval_input = [], [], [] # input
+    train_label, val_label, eval_label = [], [], [] # labels
 
-mid2name = read_mid2name_map(os.path.join(DATA_READ_ROOT, "class_labels_indices.csv"))
-eval_set = read_data_file(os.path.join(DATA_READ_ROOT, "eval_segments.csv"), mid2name)
-train_set = read_data_file(
-    os.path.join(DATA_READ_ROOT, "balanced_train_segments.csv"), mid2name
-)
+    # for each genre, randomize list and count files for train, val, and eval
+    for genre in fnames_for_each_genre.keys():
 
-"""
-Create validation split from eval
-Since the code for BEATs evals is not public, it is hard to estimate
-how they create val set. However, it seems like AST is using all of the
-training data. To replicate this setup we do not use remove any data
-from train set and use 10% of eval set as val set. This results in ~1%
-gain in mAP score. AST- https://github.com/YuanGongND/ast/tree/master
-"""
+        # randomized list 
+        n_files = len(fnames_for_each_genre[genre])
+        random_index = list(range(n_files))
+        random.shuffle(random_index)
 
-total_len = len(eval_set)
-val_len = total_len // 10
+        # number of files for each split
+        n_train = int(ratio['train'] * n_files)
+        n_val = int(ratio['val'] * n_files)
+        n_eval = n_files - (n_train + n_val)
+
+        # store file names and labels
+        train_input += [ fnames_for_each_genre[genre][i] for i in random_index[:n_train] ]
+        train_label += [ genre for i in random_index[:n_train] ]
+        val_input += [ fnames_for_each_genre[genre][i] for i in random_index[n_train:n_train+n_val] ]
+        val_label += [ genre for i in random_index[n_train:n_train+n_val] ]
+        eval_input += [ fnames_for_each_genre[genre][i] for i in random_index[-n_eval:] ]
+        eval_label += [ genre for i in random_index[-n_eval:] ]        
+
+    return train_input, train_label, val_input, val_label, eval_input, eval_label
+
 
 random.seed(0)
+fnames_for_each_genre = collect_fnames_for_each_genre()
 
-val_set = eval_set[:val_len]
+# data split 
+# Split: 75% Train, 15% Val e 10% Test
+ratio={'train':0.75, 'val':0.15, 'eval':0.10}
+train_input, train_label, val_input, val_label, eval_input, eval_label = split_fnames_with_balanced_genre(fnames_for_each_genre, ratio)
+
+# get shuffled indicies of data
+train_set = list(range(len(train_input)))
+val_set = list(range(len(val_input)))
+eval_set = list(range(len(eval_input)))
+
+random.shuffle(train_set)
+random.shuffle(val_set)
+random.shuffle(eval_set)
+
 
 print(f"Train set size: {len(train_set)}")
 print(f"Val set size: {len(val_set)}")
 print(f"Eval set size: {len(eval_set)}")
 
-for dataset, name in [(train_set, "train"), (val_set, "val"), (eval_set, "eval")]:
-    missing_wav_file = 0
+
+"""
+output kaldi style formats
+
+text:
+uttid000 rock
+uttid025 pops
+...
+
+wav.scp:
+uttid000 DATA_READ_ROOT/genre/fname 
+...
+
+utt2spk:
+uttid000 rock
+uttid025 pops
+...
+"""
+
+for sets, inputs, labels, name in [(train_set, train_input, train_label, 'train'), (val_set, val_input, val_label, 'val'), (eval_set, eval_input, eval_label, 'eval')]:
+
+    # check whether directory exists and create one if not
+    os.makedirs(os.path.join(DATA_WRITE_ROOT, name), exist_ok=True)
+
+    # paths to Kaldi style files
     text_write_path = os.path.join(DATA_WRITE_ROOT, name, "text")
     wav_scp_write_path = os.path.join(DATA_WRITE_ROOT, name, "wav.scp")
     utt2spk_write_path = os.path.join(DATA_WRITE_ROOT, name, "utt2spk")
 
-    os.makedirs(os.path.dirname(text_write_path), exist_ok=True)
-    os.makedirs(os.path.dirname(wav_scp_write_path), exist_ok=True)
-    os.makedirs(os.path.dirname(utt2spk_write_path), exist_ok=True)
+    # output contents
+    with open(text_write_path, "w") as text_f, open(wav_scp_write_path, "w") as wav_f, open(utt2spk_write_path, "w") as utt2spk_f:
 
-    with open(text_write_path, "w") as text_f, open(
-        wav_scp_write_path, "w"
-    ) as wav_f, open(utt2spk_write_path, "w") as utt2spk_f:
-        for uttid, item in enumerate(tqdm(dataset, desc=f"Processing {name} set")):
-            wav_directory = "balance_wav" if name == "train" else "eval_wav"
-            wav_path = os.path.join(
-                DATA_READ_ROOT, wav_directory, item["yt_id"] + ".wav"
-            )
-            if not os.path.exists(wav_path):
-                missing_wav_file += 1
-                continue
-            text = " ".join(item["labels"])
-            print(f"as20k-{name}-{uttid} {text}", file=text_f)
-            print(f"as20k-{name}-{uttid} {wav_path}", file=wav_f)
-            print(f"as20k-{name}-{uttid} dummy", file=utt2spk_f)
-    print(f"Missing {missing_wav_file} wav files in {name} set.")
+        for i in sets:
+            # text: 
+            print(f"uttid{'{:0=4}'.format(i)} {labels[i]}", file=text_f)
+            # wav.scp:
+            print(f"uttid{'{:0=4}'.format(i)} {os.path.join(DATA_READ_ROOT, labels[i], inputs[i])}", file=wav_f)
+            # utt2spk:
+            print(f"uttid{'{:0=4}'.format(i)} {labels[i]}", file=utt2spk_f)

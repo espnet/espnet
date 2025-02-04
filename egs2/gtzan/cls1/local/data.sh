@@ -29,11 +29,11 @@ mkdir -p ${DATA_PREP_ROOT}
 python3 local/data_prep_gtzan.py ${AUDIOSET} ${DATA_PREP_ROOT}
 
 for x in val eval train; do
-    for f in text wav.scp utt2spk; do
-        sort ${DATA_PREP_ROOT}/${x}/${f} -o ${DATA_PREP_ROOT}/${x}/${f}
-    done
-    utils/utt2spk_to_spk2utt.pl ${DATA_PREP_ROOT}/${x}/utt2spk > "${DATA_PREP_ROOT}/${x}/spk2utt"
-    utils/validate_data_dir.sh --no-feats ${DATA_PREP_ROOT}/${x} || exit 1
+   for f in text wav.scp utt2spk; do
+       sort ${DATA_PREP_ROOT}/${x}/${f} -o ${DATA_PREP_ROOT}/${x}/${f}
+   done
+   utils/utt2spk_to_spk2utt.pl ${DATA_PREP_ROOT}/${x}/utt2spk > "${DATA_PREP_ROOT}/${x}/spk2utt"
+   utils/validate_data_dir.sh --no-feats ${DATA_PREP_ROOT}/${x} || exit 1
 done
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
