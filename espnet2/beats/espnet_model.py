@@ -28,6 +28,7 @@ class BeatsPretrainModel(AbsESPnetModel):
         decoder: nn.Module,
         ignore_id: int = -1,
         label_smoothing: float = 0.1,
+        sound_input: bool = False,
     ):
         super().__init__()
         self.ignore_id = ignore_id
@@ -36,6 +37,7 @@ class BeatsPretrainModel(AbsESPnetModel):
         ), "Set the encoder to pretraining mode with is_pretraining=True."
         self.encoder = encoder
         self.decoder = decoder
+        self.sound_input = sound_input
         self.loss_function = torch.nn.CrossEntropyLoss(
             ignore_index=ignore_id, label_smoothing=label_smoothing, reduction="none"
         )
@@ -55,11 +57,11 @@ class BeatsPretrainModel(AbsESPnetModel):
         """Encoder + Predictor + Calc loss
 
         Args:
-            speech: (Batch, Length, 1)
+            speech: (Batch, Length, Dim). Either raw speech or features. 
+                    If raw speech, then should be single channel ie Dim=1.
             speech_lengths: (Batch, )
             target: (Batch, Length)
             target_lengths: (Batch,)
-            kwargs: "utt_id" is among the input.
         """
         assert target_lengths.dim() == 1, target_lengths.shape
         # Check that batch_size is unified
@@ -79,7 +81,7 @@ class BeatsPretrainModel(AbsESPnetModel):
         # restore_ids (Batch, n_patch) -- permutation of [0, 1, ..., n_patch-1]
         # kept_mask (Batch, n_patch)
         unmasked_patch_emb, restore_ids, kept_mask = self.encoder(
-            speech, speech_lengths
+            speech, speech_lengths, is_sound_input=self.sound_input
         )
 
         # target (Batch, n_patch)
@@ -114,7 +116,10 @@ class BeatsPretrainModel(AbsESPnetModel):
         self.encoder.is_pretraining = False
         # for data-parallel
         speech = speech[:, : speech_lengths.max()]
-        feats, feats_lengths = self.encoder.preprocess(speech)
+        if self.sound_input:
+            feats, feats_lengths = self.encoder.preprocess(speech)
+        else:
+            feats, feats_lengths = speech, speech_lengths
         self.encoder.is_pretraining = old_is_pretraining
         return {"feats": feats, "feats_lengths": feats_lengths}
 
@@ -206,7 +211,7 @@ class BeatsTokenizerPretrainModel(AbsESPnetModel):
         self, output: torch.Tensor, target: torch.Tensor, lengths: torch.Tensor
     ):
         cos_sim = F.cosine_similarity(target, output, dim=-1)
-        pad_mask = make_pad_mask(lengths, traceable=False).to(cos_sim.device)
+        pad_mask = make_pad_mask(lengths, traceable=False).to(cos_sim.device) # can optimize
         cos_sim[pad_mask] = 0
         cos_loss = 1 - (cos_sim.sum() / lengths.sum())
         return cos_loss

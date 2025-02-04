@@ -42,7 +42,7 @@ python=python3       # Specify python to execute espnet commands.
 local_data_opts= # The options given to local/data.sh.
 
 # Feature extraction related
-feats_type=raw       # Feature type (raw or fbank_pitch).
+feats_type=raw       # Feature type (raw or fbank).
 audio_format=wav    # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw). 
                     # flac does not work with kaldi during audio tokenization phase
 fs=16k               # Sampling rate.
@@ -104,7 +104,7 @@ Options:
     --local_data_opts # The options given to local/data.sh (default="${local_data_opts}").
 
     # Feature extraction related
-    --feats_type       # Feature type (raw, fbank_pitch or extracted, default="${feats_type}").
+    --feats_type       # Feature type (raw, or fbank, default="${feats_type}").
     --audio_format     # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw, default="${audio_format}").
     --fs               # Sampling rate (default="${fs}").
     --min_wav_duration # Minimum duration in second (default="${min_wav_duration}").
@@ -161,11 +161,14 @@ fi
 # Check feature type
 if [ "${feats_type}" = raw ]; then
     data_feats=${dumpdir}/raw
+elif [ "${feats_type}" = fbank ]; then
+    data_feats=${dumpdir}/fbank
 else
     log "${help_message}"
     log "Error: not supported: --feats_type ${feats_type}"
     exit 2
 fi
+data_feats_raw=${dumpdir}/raw
 ssl_stats_dir="${expdir}/beats_stats_${feats_type}"
 
 if ! [ ${train_start_iter} -le ${train_stop_iter} ]; then
@@ -195,57 +198,73 @@ if ! "${skip_data_prep}"; then
         local/data.sh ${datadir} ${local_data_opts}
     fi
 
+    if ! [[ "${feats_type}" = fbank || "${feats_type}" = raw ]]; then
+        log "Error: not supported: --feats_type ${feats_type}"
+        exit 2
+    fi
     if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
-        if ! [ "${feats_type}" = raw ]; then
-            log "Error in Stage 2: not supported: --feats_type ${feats_type}"
-            exit 2
-        fi
-
         log "Stage 2: Format wav.scp: ${datadir}/ -> ${data_feats}"
         for dset in "${train_set}" "${valid_set}"; do
-            utils/copy_data_dir.sh --validate_opts --non-print ${datadir}/"${dset}" "${data_feats}/org/${dset}"
-            rm -f ${data_feats}/org/${dset}/{segments,wav.scp,reco2file_and_channel,reco2dur}
+            utils/copy_data_dir.sh --validate_opts --non-print ${datadir}/"${dset}" "${data_feats_raw}/org/${dset}"
+            rm -f ${data_feats_raw}/org/${dset}/{segments,wav.scp,reco2file_and_channel,reco2dur}
             # shellcheck disable=SC2086
             scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
                                             --audio-format "${audio_format}" --fs "${fs}" \
-                                            "${datadir}/${dset}/wav.scp" "${data_feats}/org/${dset}"
+                                            "${datadir}/${dset}/wav.scp" "${data_feats_raw}/org/${dset}"
 
-            echo "${feats_type}" > "${data_feats}/org/${dset}/feats_type"
+            echo "${feats_type}" > "${data_feats_raw}/org/${dset}/feats_type"
             # Copy data from multiple jobs
-            utils/copy_data_dir.sh --validate_opts --non-print "${data_feats}/org/${dset}" "${data_feats}/${dset}"
-            cp "${data_feats}/org/${dset}/feats_type" "${data_feats}/${dset}/feats_type"
+            utils/copy_data_dir.sh --validate_opts --non-print "${data_feats_raw}/org/${dset}" "${data_feats_raw}/${dset}"
+            cp "${data_feats_raw}/org/${dset}/feats_type" "${data_feats_raw}/${dset}/feats_type"
         done
+        
     fi
 
 
     if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-        log "Stage 3: Remove long/short data: ${data_feats}/org -> ${data_feats}"
+        log "Stage 3: Remove long/short data: ${data_feats_raw}/org -> ${data_feats_raw}"
 
         for dset in "${train_set}" "${valid_set}"; do
-
-            _feats_type="$(<${data_feats}/${dset}/feats_type)"
-            if ! [ "${_feats_type}" = raw ]; then
-                log "Error: not supported: --feats_type ${feats_type}"
-                exit 2
-            fi
-
             _fs=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
             _min_length=$(python3 -c "print(int(${min_wav_duration} * ${_fs}))")
             _max_length=$(python3 -c "print(int(${max_wav_duration} * ${_fs}))")
 
             # utt2num_samples is created by format_wav_scp.sh
-            <"${data_feats}/org/${dset}/utt2num_samples" \
+            <"${data_feats_raw}/org/${dset}/utt2num_samples" \
             awk -v min_length="${_min_length}" -v max_length="${_max_length}" \
             '{ if ($2 > min_length && $2 < max_length ) print $0; }' \
-            >"${data_feats}/${dset}/utt2num_samples"
+            >"${data_feats_raw}/${dset}/utt2num_samples"
             
-            <"${data_feats}/org/${dset}/wav.scp" \
-            utils/filter_scp.pl "${data_feats}/${dset}/utt2num_samples"  \
-            >"${data_feats}/${dset}/wav.scp"
+            <"${data_feats_raw}/org/${dset}/wav.scp" \
+            utils/filter_scp.pl "${data_feats_raw}/${dset}/utt2num_samples"  \
+            >"${data_feats_raw}/${dset}/wav.scp"
 
             # fix_data_dir.sh leaves only utts which exist in all files
-            utils/fix_data_dir.sh "${data_feats}/${dset}"
+            utils/fix_data_dir.sh "${data_feats_raw}/${dset}"
         done
+    fi
+
+    if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
+        if [ "${feats_type}" = fbank ]; then
+            log "Stage 4: Feature extraction: ${data_feats}/${train_set}, ${data_feats}/${valid_set}"
+            for dset in "${train_set}" "${valid_set}"; do
+                log "Extracting features: ${dset}"
+                utils/copy_data_dir.sh --validate_opts --non-print "${dumpdir}/raw/${dset}" "${data_feats}/org/${dset}"
+                rm -f ${data_feats}/org/${dset}/{segments,reco2file_and_channel,reco2dur}
+                # shellcheck disable=SC2086
+                _fs=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
+                
+                steps/make_fbank.sh --cmd "${train_cmd}" --nj "${nj}" --fs "${_fs}" \
+                              --n_mels 128 --use_kaldi true "${data_feats}/org/${dset}"
+
+                echo "${feats_type}" > "${data_feats}/org/${dset}/feats_type"
+                utils/copy_data_dir.sh --validate_opts --non-print "${data_feats}/org/${dset}" "${data_feats}/${dset}"
+                cp "${data_feats}/org/${dset}/feats_type" "${data_feats}/${dset}/feats_type"
+                # TODO: Optionally remove raw data?.
+            done
+        else
+            log "Skip the stage for feature extraction"
+        fi
     fi
 else
     log "Skip the stages for data preparation"
@@ -257,15 +276,23 @@ if ! "${skip_train}"; then
     if ! [ ${train_start_iter} -eq 0 ]; then
         codec_choice="beats"
     fi
-    if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
-        log "Stage 4: BEATs Tokenization: ${data_feats}/${train_set}, ${data_feats}/${valid_set}"
+    if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
+        log "Stage 5: BEATs Tokenization: ${data_feats}/${train_set}, ${data_feats}/${valid_set}"
+        if [ ${feats_type} = raw]; then
+            _file_name=wav.scp
+        elif [ ${feats_type} = fbank]; then
+            _file_name=feats.scp
+        fi
         
         # Tokenize
+        # TODO(shikhar): Change audio_tokenizations.sh to accept feats.scp
+        # TODO(shikhar): Change dump_codec.py to accept feats.scp. Create dump_audio_tokens.py, then undo length
+        # changes in dump_codec.py
         _nj=$((ngpu==0?nj:ngpu))
         for dset in "${train_set}" "${valid_set}"; do
             ./scripts/feats/audio_tokenization.sh \
                 --codec_choice ${codec_choice} \
-                --file_name wav.scp \
+                --file_name ${_file_name} \
                 --src_dir "${data_feats}/${dset}" \
                 --tgt_dir "${data_feats}/${dset}/codes_iter0" \
                 --nj "${_nj}" --ngpu "${ngpu}" --batch_size "${tokenizer_inference_batch_size}"
@@ -280,11 +307,11 @@ if ! "${skip_train}"; then
         done
     fi
 
-    if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
+    if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
         _ssl_train_dir="${data_feats}/${train_set}"
         _ssl_valid_dir="${data_feats}/${valid_set}"
 
-        log "Stage 5: BEATs collect stats: train_set=${_ssl_train_dir}, valid_set=${_ssl_valid_dir}"
+        log "Stage 6: BEATs collect stats: train_set=${_ssl_train_dir}, valid_set=${_ssl_valid_dir}"
 
         _opts=
         if [ -n "${train_config}" ]; then
@@ -292,13 +319,17 @@ if ! "${skip_train}"; then
         fi
 
         _feats_type="$(<${_ssl_train_dir}/feats_type)"
-        if ! [ "${_feats_type}" = raw ]; then
+
+        if [ "${_feats_type}" = raw ]; then
+            _scp=wav.scp
+            _type=sound
+        elif [ "${_feats_type}" = fbank ]; then
+            _scp=feats.scp
+            _type=kaldi_ark
+        else
             log "Error: not supported: --feats_type ${feats_type}"
             exit 2
         fi
-
-        _scp=wav.scp
-        _type=sound
         
         # 1. Split the key file
         _logdir="${ssl_stats_dir}/logdir"
@@ -324,8 +355,8 @@ if ! "${skip_train}"; then
         utils/split_scp.pl "${key_file}" ${split_scps}
 
         # 2. Generate run.sh
-        log "Generate '${ssl_stats_dir}/run.sh'. You can resume the process from stage 5 using this script"
-        mkdir -p "${ssl_stats_dir}"; echo "${run_args} --stage 5 \"\$@\"; exit \$?" > "${ssl_stats_dir}/run.sh";chmod +x "${ssl_stats_dir}/run.sh"
+        log "Generate '${ssl_stats_dir}/run.sh'. You can resume the process from stage 6 using this script"
+        mkdir -p "${ssl_stats_dir}"; echo "${run_args} --stage 6 \"\$@\"; exit \$?" > "${ssl_stats_dir}/run.sh";chmod +x "${ssl_stats_dir}/run.sh"
 
         # 3. Submit jobs
         log "BEATs collect-stats started... log: '${_logdir}/stats.*.log'"
@@ -364,19 +395,23 @@ if ! "${skip_train}"; then
             >"${ssl_stats_dir}/valid/target_shape.word"
     fi
     
-    if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
+    if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
         _ssl_train_dir="${data_feats}/${train_set}"
         _ssl_valid_dir="${data_feats}/${valid_set}"
-        log "Stage 6: BEATs Training: train_set=${_ssl_train_dir}, valid_set=${_ssl_valid_dir}"
+        log "Stage 7: BEATs Training: train_set=${_ssl_train_dir}, valid_set=${_ssl_valid_dir}"
         for ((iter=${train_start_iter}; iter<=${train_stop_iter};iter++)); do
             
             _feats_type="$(<${_ssl_train_dir}/feats_type)"
-            if ! [ "${_feats_type}" = raw ]; then
+            if [ "${_feats_type}" = raw ]; then
+                _scp=wav.scp
+                _type=sound
+            elif [ "${_feats_type}" = fbank ]; then
+                _scp=feats.scp
+                _type=kaldi_ark
+            else
                 log "Error: not supported: --feats_type ${feats_type}"
                 exit 2
             fi
-            _scp=wav.scp
-            _type=sound
 
             log "Iter ${iter} BEATs Training started..."
             
@@ -481,8 +516,8 @@ if ! "${skip_train}"; then
                 _opts+="--train_shape_file ${ssl_stats_dir}/train/target_shape.word "
             fi
 
-            log "Generate '${ssl_exp}/run.sh'. You can resume the process from stage 6 using this script"
-            mkdir -p "${ssl_exp}"; echo "${run_args} --stage 6 \"\$@\"; exit \$?" > "${ssl_exp}/run.sh"; chmod +x "${ssl_exp}/run.sh"
+            log "Generate '${ssl_exp}/run.sh'. You can resume the process from stage 7 using this script"
+            mkdir -p "${ssl_exp}"; echo "${run_args} --stage 7 \"\$@\"; exit \$?" > "${ssl_exp}/run.sh"; chmod +x "${ssl_exp}/run.sh"
 
             # NOTE(kamo): --fold_length is used only if --batch_type=folded and it's ignored in the other case
             log "BEATs Training started... log: '${ssl_exp}/train.log'"

@@ -13,7 +13,6 @@
 import logging
 import math
 import warnings
-from copy import deepcopy
 from typing import Dict, Optional, Tuple
 
 import numpy as np
@@ -366,30 +365,31 @@ class BeatsEncoder(AbsEncoder):
         xs_pad: torch.Tensor,
         ilens: torch.Tensor,
         prev_states: torch.Tensor = None,
+        is_sound_input: Optional[bool] = True,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
         """Wrapper for compatibility with ESPnets' AbsEncoder Interface.
         Args:
-            xs_pad: (B, T) or (B,T,1)
+            xs_pad: (B, T) or (B,T,D). If sound then (B,T) or (B,T,1) both work. 
+                If features, then only (B,T,D) will work.
             ilens: (B,)
             prev_states: None
+            is_sound_input: If True, then input is sound. If False, then input is
+                already features.
         Returns:
             audio_representation: (B, T, D)
             output_lens: (B,)
             masks: None
         """
-        if xs_pad.dim() == 3:
-            assert xs_pad.size(-1) == 1, "Input must be single channel."
-            xs_pad = xs_pad.squeeze(-1)
-
+        if xs_pad.dim() == 2 and is_sound_input:
+            xs_pad = xs_pad.unsqueeze(-1) # (B,T) -> (B,T,1) for sound
         if self.roll_augment and self.training:
-            xs_pad = roll_tensor(
-                xs_pad.unsqueeze(-1), ilens, fixed_intervals=self.roll_interval
-            ).squeeze(-1)
+            xs_pad = roll_tensor(xs_pad, ilens, fixed_intervals=self.roll_interval)
         mask = make_pad_mask(lengths=ilens, traceable=False).to(xs_pad.device)
         audio_representation, mask, restore_ids, kept_mask = self.extract_features(
             xs_pad,
             mask,
             max_layer=self.max_layer,
+            skip_fbank_extraction=not is_sound_input,
         )
         output_lens = (~mask).sum(-1)
 
@@ -437,10 +437,11 @@ class BeatsEncoder(AbsEncoder):
         source: torch.Tensor,
         padding_mask: Optional[torch.Tensor] = None,
         max_layer: Optional[int] = None,
+        skip_fbank_extraction: bool = False,
     ):
         """Extract features from raw audio."""
         with autocast(False):
-            fbank, _ = self.preprocess(source)
+            fbank = source if skip_fbank_extraction else self.preprocess(source)[0] 
 
             if self.specaug is not None and self.training:
                 fbank = self.specaug(fbank)[0]
