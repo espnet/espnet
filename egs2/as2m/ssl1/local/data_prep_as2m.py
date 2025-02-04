@@ -11,7 +11,7 @@ DATA_READ_ROOT = sys.argv[1]
 DATA_WRITE_ROOT = sys.argv[2]
 
 
-def read_data_file(filename):
+def read_data_file(filename,skip_lt_10s=False):
     data = []
     if "unbalanced_train_segments" in filename:
         wav_directory = "unbalanced_wav"
@@ -32,6 +32,8 @@ def read_data_file(filename):
             yt_id = parts[0]
             start_seconds = float(parts[1])
             end_seconds = float(parts[2])
+            if skip_lt_10s and end_seconds - start_seconds < 10:
+                continue
             data.append(
                 {
                     "yt_id": yt_id,
