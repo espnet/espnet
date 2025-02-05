@@ -106,7 +106,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     else
         python local/prepare_data.py --original-dir $myst_dir --data-dir $myst_data_dir
     fi
-    
+
     # TODO: simplify this part
     for split in train dev test; do
       if [ -f "$myst_data_dir/$split/utt2spk" ]; then
@@ -142,7 +142,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         datalist=${myst_lists_dir}/${x}.list
         log "Filtering files in $x set"
         utils/subset_data_dir.sh --utt-list "${datalist}" "${myst_data_dir}/${x}" "${myst_data_dir}/${x}_filter"
-        
+
         mv ${myst_data_dir}/${x} ${myst_data_dir}/${x}_org
         mv ${myst_data_dir}/${x}_filter ${myst_data_dir}/${x}
     done
