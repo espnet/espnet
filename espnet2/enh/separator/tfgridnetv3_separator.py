@@ -366,7 +366,7 @@ class LayerNormalization(nn.Module):
         nn.init.zeros_(self.beta)
         self.eps = eps
 
-    @torch.cuda.amp.autocast(enabled=False)
+    @torch.amp.autocast("cuda", enabled=False)
     def forward(self, x):
         if x.ndim - 1 < self.dim:
             raise ValueError(
