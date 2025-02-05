@@ -7,7 +7,7 @@ set -o pipefail
 
 train_set="train"
 valid_set="dev"
-test_sets="test"
+test_sets="data_cmu/dev data_cmu/test data_ogi_spon/dev data_ogi_spon/test data_ogi_scripted/dev data_ogi_scripted/test data_myst/dev data_myst/test data_jibo"
 
 asr_config=conf/train_asr.yaml
 inference_config=conf/decode_asr.yaml
@@ -22,14 +22,12 @@ nbpe=5000
     --inference_nj 1 \
     --nbpe "${nbpe}" \
     --max_wav_duration 30 \
-    --speed_perturb_factors "1.0" \
     --audio_format "wav" \
-    --feats_type raw \
+    --feats_type "raw" \
     --use_lm false \
     --asr_config "${asr_config}" \
     --inference_config "${inference_config}" \
-    --lm_config conf/train_lm.yaml \
-    --inference_asr_model "valid.acc.best.pth" \
+    --inference_asr_model "valid.cer_ctc.best.pth" \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \

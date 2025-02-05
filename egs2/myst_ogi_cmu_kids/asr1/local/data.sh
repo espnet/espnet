@@ -49,16 +49,19 @@ myst_dir="${MYST}/myst_child_conv_speech/data"
 ogi_dir="${OGI_KIDS}"
 cmu_dir="${CMU_KIDS}"
 
+output_dir="./data"
 myst_data_dir="./data_myst"
 ogi_scripted_data_dir="./data_ogi_scripted"
 ogi_spon_data_dir="./data_ogi_spon"
-cmu_data_dir="./data_cmu"
+cmu_data_dir="${output_dir}/data_cmu"
 
 # myst file lists is for filtering, the other three are for splits
 myst_lists_dir="local/myst_file_list"
 ogi_scripted_lists_dir="local/ogi_scripted_file_list"
 ogi_spon_lists_dir="local/ogi_spon_file_list"
 cmu_lists_dir="local/cmu_file_list"
+
+mkdir -p $output_dir
 
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
@@ -121,7 +124,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     log "OGI kids scripted data prepared."
 
     # prepare data for ogi spontaneous
-    local/ogi_spon_all_data_prepare.sh $ogi_dir/ $ogi_spon_data_dir/
+    #local/ogi_spon_all_data_prepare.sh $ogi_dir/ $ogi_spon_data_dir/
     log "OGI kids spontaneous data prepared."
 
     # prepare data for cmu kids
@@ -153,7 +156,7 @@ fi
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     log "Stage 5: CTC Segment"
 
-    python local/ctc_segment.py --input $ogi_spon_data_dir/spont_all --lists $ogi_spon_lists_dir --output $ogi_spon_data_dir
+    #python local/ctc_segment.py --input $ogi_spon_data_dir/spont_all --lists $ogi_spon_lists_dir --output $ogi_spon_data_dir
     python local/create_utt2spk.py
 
     log "Stage 5: Finished ctc segmentation"
@@ -189,8 +192,6 @@ fi
 if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     log "Stage 7: Merging datasets"
 
-    output_dir="./data"
-
     # Create the output directory
     mkdir -p $output_dir/train $output_dir/dev $output_dir/test
 
@@ -205,7 +206,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     mv "$ogi_spon_data_dir/wav" "$output_dir/wav"
 
     # List of datasets
-    datasets=("$myst_data_dir" "$ogi_scripted_data_dir" "$ogi_spon_data_dir" "$cmu_data_dir")
+    datasets=("$myst_data_dir" "$ogi_scripted_data_dir" "$ogi_spon_data_dir")
 
     # Merge wav.scp
     for dataset in "${datasets[@]}"; do
@@ -228,6 +229,13 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
         cat "$dataset/test/utt2spk" >> data/test/utt2spk
     done
 
+    # merge cmu_kids; TODO: make the code in same style
+    for split in train dev test; do
+        for f in text wav.scp utt2spk; do
+            cat "${cmu_data_dir}/${split}/${f}"
+        done
+    done
+
     # Sort and clean
     for split in train dev test; do
         for f in text wav.scp utt2spk; do
@@ -248,6 +256,31 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     done
 
     log "Stage 7: Merging datasets completed."
+fi
+
+
+if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
+    log "Stage 8: Creating test sets"
+    # create separate test sets; TODO: combine these code with the code above
+    datasets=("$myst_data_dir" "$ogi_scripted_data_dir" "$ogi_spon_data_dir")
+    for dataset in "${datasets[@]}"; do
+        for split in dev test; do
+            for f in text wav.scp utt2spk; do
+                sort ${dataset}/${split}/${f} -o ${dataset}/${split}/${f}
+            done
+
+            utils/utt2spk_to_spk2utt.pl ${dataset}/${split}/utt2spk > ${dataset}/${split}/spk2utt
+
+            dos2unix ${dataset}/${split}/text
+
+            iconv -f utf-8 -t ascii//TRANSLIT  ${dataset}/${split}/text > ${dataset}/${split}/text.ascii
+            mv ${dataset}/${split}/text.ascii ${dataset}/${split}/text
+
+            utils/validate_data_dir.sh --no-feats ${dataset}/${split}
+        done
+        mv ${dataset} data
+    done
+    log "Stage 8: Creating test sets completed."
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
