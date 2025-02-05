@@ -4,7 +4,9 @@ import argparse
 import dataclasses
 import json
 import logging
+import time
 
+import humanfriendly
 import torch
 import torch.distributed as dist
 
@@ -121,9 +123,25 @@ class DeepSpeedTrainer(Trainer):
                 f"The training has already reached at max_epoch: {start_epoch}"
             )
 
+        start_time = time.perf_counter()
         for iepoch in range(start_epoch, trainer_options.max_epoch + 1):
             set_all_random_seed(trainer_options.seed + iepoch)
             reporter.set_epoch(iepoch)
+            if dist.get_rank() == 0:
+                if iepoch != start_epoch:
+                    logging.info(
+                        "{}/{}epoch started. Estimated time to finish: {}".format(
+                            iepoch,
+                            trainer_options.max_epoch,
+                            humanfriendly.format_timespan(
+                                (time.perf_counter() - start_time)
+                                / (iepoch - start_epoch)
+                                * (trainer_options.max_epoch - iepoch + 1)
+                            ),
+                        )
+                    )
+                else:
+                    logging.info(f"{iepoch}/{trainer_options.max_epoch}epoch started")
 
             # (5.1) train one epoch
             with reporter.observe("train") as sub_reporter:
