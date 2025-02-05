@@ -1,4 +1,4 @@
-""" AUTHOR:         Aaron Nicolson
+"""AUTHOR:         Aaron Nicolson
 AFFILIATION:    Signal Processing Laboratory, Griffith University.
 
 This Source Code Form is subject to the terms of the Mozilla Public

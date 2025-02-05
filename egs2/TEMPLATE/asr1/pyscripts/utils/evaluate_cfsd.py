@@ -5,8 +5,8 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """Evaluate Conditional Frechet Speech Distance
-    between generated and groundtruth audios
-    using the s3prl pretrained models."""
+between generated and groundtruth audios
+using the s3prl pretrained models."""
 
 import argparse
 import fnmatch

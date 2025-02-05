@@ -19,7 +19,9 @@ from espnet2.asr.decoder.hugging_face_transformers_decoder import (
 )
 from espnet2.asr.decoder.s4_decoder import S4Decoder
 from espnet2.asr.partially_AR_model import PartiallyARInference
-from espnet2.asr.transducer.beam_search_transducer import BeamSearchTransducer
+from espnet2.asr.transducer.beam_search_transducer import (
+    BeamSearchTransducer,
+)
 from espnet2.asr.transducer.beam_search_transducer import (
     ExtendedHypothesis as ExtTransHypothesis,
 )

@@ -296,7 +296,7 @@ class RNN(torch.nn.Module):
 
 
 def reset_backward_rnn_state(
-    states: Union[torch.Tensor, List[Optional[torch.Tensor]]]
+    states: Union[torch.Tensor, List[Optional[torch.Tensor]]],
 ) -> Union[torch.Tensor, List[Optional[torch.Tensor]]]:
     """Set backward BRNN states to zeroes.
 

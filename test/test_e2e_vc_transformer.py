@@ -312,7 +312,7 @@ def test_transformer_multi_gpu_trainable(model_dict):
         assert model.module.decoder.embed[-1].alpha.grad is not None
 
 
-@pytest.mark.parametrize("model_dict", [({})])
+@pytest.mark.parametrize("model_dict", [{}])
 def test_attention_masking(model_dict):
     # make args
     model_args = make_transformer_args(**model_dict)
