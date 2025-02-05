@@ -230,6 +230,13 @@ class SpeechLMTask(AbsTask):
                  "Otherwise on the whole sequences"
         )
         group.add_argument(
+            "--audio_modality",
+            type=str,
+            choices=["codec_ssl", "codec", "ssl"],
+            default="codec_ssl",
+            help="The audio modality to use",
+        )
+        group.add_argument(
             "--modality_weights",
             type=dict,
             default=dict(),
@@ -249,10 +256,10 @@ class SpeechLMTask(AbsTask):
             help="The config of using time mask"
         )
         group.add_argument(
-            "--ce_loss_use_liger_kernel",
-            type=str2bool,
-            default=False,
-            help="If true, ce_loss is based on liger_kernel"
+            "--z_loss_weight",
+            type=float,
+            default=0.0,
+            help="Z loss weight to reduce the magnituede of logits",
         )
 
         for class_choices in cls.class_choices_list:
@@ -300,6 +307,7 @@ class SpeechLMTask(AbsTask):
             inter_segment_pad=args.codec_token_in_use - 1 if args.corelm == "ar_delay" else 0,
             asr_apply_time_mask=args.asr_apply_time_mask,
             asr_time_mask_config=args.asr_time_mask_config,
+            audio_modality=args.audio_modality,
         )
 
         return retval
@@ -378,9 +386,9 @@ class SpeechLMTask(AbsTask):
             vocab_size=len(token_list),
             token_bias=token_bias.copy(),
             modality_weights=args.modality_weights,
+            z_loss_weight=args.z_loss_weight,
             lm_head=corelm.lm_head,
             aux_lm_head=corelm.aux_lm_head,
-            use_liger_kernel=args.ce_loss_use_liger_kernel,
         )
         kwargs.update(criterion=criterion)
 

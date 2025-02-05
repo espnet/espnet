@@ -17,9 +17,9 @@ class SpeechLMCrossEntropyLoss(torch.nn.Module):
         vocab_size,
         token_bias,
         modality_weights,
+        z_loss_weight: float = 0.0,
         lm_head: torch.nn.Linear = None,
         aux_lm_head: torch.nn.Linear = None,
-        use_liger_kernel: bool = False
     ):
         """
         Compute the CrossEntropy for SpeechLM. The main motivation of this module is to save computing.
@@ -29,8 +29,8 @@ class SpeechLMCrossEntropyLoss(torch.nn.Module):
         super().__init__()
 
         self.pad = pad
-        self.use_aux_ce_loss = "codec" in token_bias
-        self.use_liger_kernel = use_liger_kernel
+        self.use_aux_ce_loss = aux_lm_head is not None # temp modification for convinience.
+        self.z_loss_weight = z_loss_weight
 
         # (1) parse the weights of tokens
         token_bias = token_bias.copy()
@@ -63,13 +63,7 @@ class SpeechLMCrossEntropyLoss(torch.nn.Module):
             assert aux_lm_head is not None
             self.aux_lm_head = aux_lm_head
 
-        if use_liger_kernel:
-            if LigerCrossEntropyLoss is None:
-                raise ValueError('LigerFusedLinearCrossEntropyLoss is not installed')
-            ce_loss_imp = LigerCrossEntropyLoss
-        else:
-            ce_loss_imp = torch.nn.CrossEntropyLoss
-
+        ce_loss_imp = torch.nn.CrossEntropyLoss
         self.ce_loss = ce_loss_imp(
             ignore_index=self.pad,
             reduction='none'
@@ -104,25 +98,17 @@ class SpeechLMCrossEntropyLoss(torch.nn.Module):
         
         # element-wise loss
         _targets = targets[:, :, :1].flatten()
-        if self.use_liger_kernel:
-            logits = self.lm_head(logits)
-            ce_loss = self.ce_loss(
-                logits.flatten(end_dim=2),
-                _targets,
-            )
-        else:
-            ce_loss = self.apply_ce_loss(
-                logits.flatten(end_dim=2),
-                _targets,
-                self.lm_head,
-                self.ce_loss,
-                chunk_size=16384 * 100,
-            )
+        ce_loss = self.apply_ce_loss(
+            logits.flatten(end_dim=2),
+            _targets,
+            self.lm_head,
+            self.ce_loss,
+            chunk_size=16384 * 100,
+        )
         ce_loss = ce_loss * self.weight[_targets]
         ce_loss = ce_loss.view(B, T, 1)
 
         if aux_logits is not None:
-            torch.set_printoptions(sci_mode=False, threshold=1e9)
             _targets = targets[:, :, 1:].flatten()
             assert torch.all(torch.logical_or(
                 _targets == self.pad,
@@ -131,20 +117,15 @@ class SpeechLMCrossEntropyLoss(torch.nn.Module):
                     _targets < self.aux_end,
                 )
             ))
-            if self.use_liger_kernel:
-                aux_logits = self.aux_lm_head(aux_logits)
-                aux_ce_loss = self.aux_ce_loss(
-                    aux_logits.flatten(end_dim=2),
-                    _targets - self.aux_start
-                )
-            else:
-                aux_ce_loss = self.apply_ce_loss(
-                    aux_logits.flatten(end_dim=2),
-                    _targets - self.aux_start,
-                    self.aux_lm_head,
-                    self.aux_ce_loss,
-                    chunk_size=32768 * 100 ,
-                )
+            
+            aux_ce_loss = self.apply_ce_loss(
+                aux_logits.flatten(end_dim=2),
+                _targets - self.aux_start,
+                self.aux_lm_head,
+                self.aux_ce_loss,
+                chunk_size=32768 * 100 ,
+            )
+
             aux_ce_loss = aux_ce_loss * self.weight[_targets]
             aux_ce_loss = aux_ce_loss.view(B, T, -1)
 
@@ -158,10 +139,10 @@ class SpeechLMCrossEntropyLoss(torch.nn.Module):
 
         # logging, if not training
         if not self.training:
-            logits = logits if self.use_liger_kernel else self.lm_head(logits)
+            logits = self.lm_head(logits)
             acc = logits.argmax(-1) == targets[:, :, :1]
             if aux_logits is not None:
-                aux_logits = aux_logits if self.use_liger_kernel else self.aux_lm_head(aux_logits)
+                aux_logits = self.aux_lm_head(aux_logits)
                 aux_acc = aux_logits.argmax(-1) == targets[:, :, 1:] - self.aux_start
                 acc = torch.cat([acc, aux_acc], dim=2)
             
@@ -197,10 +178,15 @@ class SpeechLMCrossEntropyLoss(torch.nn.Module):
         ce_loss = []
         while start < input.size(0):
             end = min(input.size(0), start + chunk_size)
+            logits = linear_module(input[start: end])
             piece_ce_loss = loss_module(
-                linear_module(input[start: end]),
+                logits,
                 target[start: end],
             )
+            if self.z_loss_weight > 0:
+                z_loss = logits.logsumexp(-1).pow(2)
+                z_loss = z_loss * (target[start: end] != loss_module.ignore_index).float()
+                piece_ce_loss = piece_ce_loss + self.z_loss_weight * z_loss
             ce_loss.append(piece_ce_loss)
             start += chunk_size
 
