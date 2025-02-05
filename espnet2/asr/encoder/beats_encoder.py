@@ -47,6 +47,8 @@ else:
     def autocast(enabled=True):
         yield
 
+is_torch_v25_to_v26 = V(torch.__version__) >= V("2.5.0") and V(torch.__version__) <= V("2.6.0")
+
 
 class BeatsConfig:
     def __init__(self, cfg=None):
@@ -283,6 +285,8 @@ class BeatsEncoder(AbsEncoder):
         self.is_pretraining = is_pretraining
         self.mask_ratio = config.mask_ratio
         self.use_flash_attn = config.use_flash_attn
+        if self.use_flash_attn:
+            assert V(torch.__version__) >= V("2.0.0"), "Flash attention requires PyTorch >= 2.0"
         if is_pretraining:
             assert config.mask_ratio > 0.0, "mask_ratio must be > 0.0 for pretraining."
 
@@ -460,7 +464,7 @@ class BeatsEncoder(AbsEncoder):
         if padding_mask is not None:
             padding_mask = self.forward_padding_mask(fbank, padding_mask)
 
-        fbank = fbank.unsqueeze(1).float()
+        fbank = fbank.unsqueeze(1)
         features = self.patch_embedding(fbank)
         features = features.reshape(features.shape[0], features.shape[1], -1)
         features = features.transpose(1, 2)
@@ -1016,6 +1020,8 @@ class MultiheadAttention(nn.Module):
             nn.init.xavier_normal_(self.relative_attention_bias.weight)
 
     def _relative_positions_bucket(self, relative_positions, bidirectional=True):
+        # NOTE(shikhar): Deepspeed trainer might not work with this code path 
+        # due to the float calls
         num_buckets = self.num_buckets
         max_distance = self.max_distance
         relative_buckets = 0
@@ -1272,9 +1278,6 @@ class MultiheadAttention(nn.Module):
 
         # ----- Switch: use flash-attn attention if enabled -------------------------
         if self.use_flash_attn:
-            assert V(torch.__version__) >= V(
-                "2.0.0"
-            ), "Flash attention requires PyTorch >= 2.0"
             assert not before_softmax, "Flash attention does not support before_softmax"
             assert (
                 position_bias is None
@@ -1283,17 +1286,11 @@ class MultiheadAttention(nn.Module):
                 not need_weights
             ), "Flash attention does not support returning attention weights"
             # NOTE(shikhar): Pytorch < 2.5.0 has different shape requirements for qkv
-            if V(torch.__version__) >= V("2.5.0") and V(torch.__version__) <= V(
-                "2.6.0"
-            ):
+            if is_torch_v25_to_v26:
                 # NOTE(shikhar): The contiguous() call can be optimized.
                 q = q.contiguous().view(bsz, self.num_heads, tgt_len, self.q_head_dim)
                 k = k.contiguous().view(bsz, self.num_heads, src_len, self.k_head_dim)
                 v = v.contiguous().view(bsz, self.num_heads, src_len, self.head_dim)
-            else:
-                raise NotImplementedError(
-                    "Check the attention shape for PyTorch < 2.5.0"
-                )
             # NOTE(shikhar): Do causal attention via attn_mask
             if key_padding_mask is not None:
                 assert (
@@ -1303,7 +1300,17 @@ class MultiheadAttention(nn.Module):
                 attn_mask = attn_mask.unsqueeze(1).expand(
                     -1, tgt_len, -1
                 )  # B x keylen x tgtlen
-                attn_mask = attn_mask.unsqueeze(1)  # B x 1 x keylen x tgtlen
+                
+                if V(torch.__version__) >= V("2.5.0") and V(torch.__version__) <= V(
+                    "2.6.0"
+                ):
+                    attn_mask = attn_mask.unsqueeze(1)  # B x 1 x keylen x tgtlen
+                else:
+                    # TODO(shikhar): check if the ordering is correct, as in unsqueeze 1 first?
+                    attn_mask = attn_mask.unsqueeze(0).expand(self.num_heads, -1, -1, -1)
+                    attn_mask = attn_mask.contiguous().view(
+                        self.num_heads * bsz, src_len, tgt_len
+                    )
             attn = F.scaled_dot_product_attention(
                 query=q,
                 key=k,
@@ -1312,9 +1319,7 @@ class MultiheadAttention(nn.Module):
                 dropout_p=self.dropout_module.p,
                 is_causal=False,
             )  # B x H x T x D
-            if V(torch.__version__) >= V("2.5.0") and V(torch.__version__) <= V(
-                "2.6.0"
-            ):
+            if is_torch_v25_to_v26:
                 attn = attn.permute(2, 0, 1, 3).reshape(tgt_len, bsz, embed_dim)
             else:
                 attn = attn.transpose(0, 1).contiguous().view(tgt_len, bsz, embed_dim)
@@ -1412,6 +1417,8 @@ class MultiheadAttention(nn.Module):
         src_len: int,
         static_kv: bool,
     ) -> Optional[torch.Tensor]:
+        # NOTE(shikhar): Deepspeed trainer might not work with this 
+        # code path due to the float calls
         # saved key padding masks have shape (bsz, seq_len)
         if prev_key_padding_mask is not None and static_kv:
             new_key_padding_mask = prev_key_padding_mask
