@@ -307,7 +307,7 @@ class SpeechLMTask(AbsTask):
             inter_segment_pad=args.codec_token_in_use - 1 if args.corelm == "ar_delay" else 0,
             asr_apply_time_mask=args.asr_apply_time_mask,
             asr_time_mask_config=args.asr_time_mask_config,
-            audio_modality=args.audio_modality,
+            audio_modality=getattr(args, "audio_modality", "codec_ssl"),
         )
 
         return retval
@@ -386,7 +386,7 @@ class SpeechLMTask(AbsTask):
             vocab_size=len(token_list),
             token_bias=token_bias.copy(),
             modality_weights=args.modality_weights,
-            z_loss_weight=args.z_loss_weight,
+            z_loss_weight=getattr(args, "z_loss_weight", 0.0),
             lm_head=corelm.lm_head,
             aux_lm_head=corelm.aux_lm_head,
         )

@@ -2601,7 +2601,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         new_data["conti_feats"] = new_conti_feats
 
         # (5) prefix_len, as inference legacy. temp code
-        prefix_len = sum(len(seg) for seg in seqs[:-2]) // self.codec_token_in_use
+        prefix_len = sum(len(seg) for seg in seqs[:-1]) // self.codec_token_in_use
         new_data["prefix_len"] = np.array([prefix_len])
 
         # finally, sanity check
