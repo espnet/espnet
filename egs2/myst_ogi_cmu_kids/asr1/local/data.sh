@@ -106,7 +106,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     else
         python local/prepare_data.py --original-dir $myst_dir --data-dir $myst_data_dir
     fi
-
+    
     # TODO: simplify this part
     for split in train dev test; do
       if [ -f "$myst_data_dir/$split/utt2spk" ]; then
@@ -124,7 +124,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     log "OGI kids scripted data prepared."
 
     # prepare data for ogi spontaneous
-    #local/ogi_spon_all_data_prepare.sh $ogi_dir/ $ogi_spon_data_dir/
+    local/ogi_spon_all_data_prepare.sh $ogi_dir/ $ogi_spon_data_dir/
     log "OGI kids spontaneous data prepared."
 
     # prepare data for cmu kids
@@ -142,7 +142,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         datalist=${myst_lists_dir}/${x}.list
         log "Filtering files in $x set"
         utils/subset_data_dir.sh --utt-list "${datalist}" "${myst_data_dir}/${x}" "${myst_data_dir}/${x}_filter"
-
+        
         mv ${myst_data_dir}/${x} ${myst_data_dir}/${x}_org
         mv ${myst_data_dir}/${x}_filter ${myst_data_dir}/${x}
     done
@@ -156,7 +156,7 @@ fi
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     log "Stage 5: CTC Segment"
 
-    #python local/ctc_segment.py --input $ogi_spon_data_dir/spont_all --lists $ogi_spon_lists_dir --output $ogi_spon_data_dir
+    python local/ctc_segment.py --input $ogi_spon_data_dir/spont_all --lists $ogi_spon_lists_dir --output $ogi_spon_data_dir
     python local/create_utt2spk.py
 
     log "Stage 5: Finished ctc segmentation"
@@ -232,7 +232,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     # merge cmu_kids; TODO: make the code in same style
     for split in train dev test; do
         for f in text wav.scp utt2spk; do
-            cat "${cmu_data_dir}/${split}/${f}"
+            cat "${cmu_data_dir}/${split}/${f}" >> "${output_dir}/${split}/${f}"
         done
     done
 
@@ -281,6 +281,12 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
         mv ${dataset} data
     done
     log "Stage 8: Creating test sets completed."
+fi
+
+if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
+    log "Stage 9: Add JIBO"
+    local/jibo_data.sh
+    log "Stage 9: JIBO test set created."
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
