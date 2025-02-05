@@ -112,6 +112,7 @@ class BeatsConfig:
         self.decoder_layers: int = 2  # number of decoder layers
         self.codebook_vocab_size: int = 1024  # targets vectors in codebook
         self.mask_ratio = 0.75  # masking ratio for pre-training
+        self.use_flash_attn = False  # use flash attention in MultiHead attention
 
         if cfg is not None:
             self.update(cfg)
@@ -281,6 +282,7 @@ class BeatsEncoder(AbsEncoder):
 
         self.is_pretraining = is_pretraining
         self.mask_ratio = config.mask_ratio
+        self.use_flash_attn = config.use_flash_attn
         if is_pretraining:
             assert config.mask_ratio > 0.0, "mask_ratio must be > 0.0 for pretraining."
 
@@ -330,7 +332,7 @@ class BeatsEncoder(AbsEncoder):
         extra = padding_mask.size(1) % features.size(1)
         if extra > 0:
             padding_mask = padding_mask[:, :-extra]
-        padding_mask = padding_mask.view(padding_mask.size(0), features.size(1), -1)
+        padding_mask = padding_mask.contiguous().view(padding_mask.size(0), features.size(1), -1)
         padding_mask = padding_mask.all(-1)  # remove totally empty sequences
         return padding_mask
 
@@ -439,9 +441,12 @@ class BeatsEncoder(AbsEncoder):
         max_layer: Optional[int] = None,
         skip_fbank_extraction: bool = False,
     ):
-        """Extract features from raw audio."""
+        """Extract features from raw audio.
+        source: (B,T,D). for sound input D=1, for features D=feature_dim
+        padding_mask: (B,T). If True then pad the element.
+        """
         with autocast(False):
-            fbank = source if skip_fbank_extraction else self.preprocess(source)[0] 
+            fbank = source if skip_fbank_extraction else self.preprocess(source.squeeze(-1))[0] 
 
             if self.specaug is not None and self.training:
                 fbank = self.specaug(fbank)[0]
@@ -661,6 +666,7 @@ class TransformerEncoder(nn.Module):
                     max_distance=self.max_distance,
                     gru_rel_pos=config.gru_rel_pos,
                     encoder_layers=config.encoder_layers,
+                    use_flash_attn=config.use_flash_attn,
                 )
                 for i in range(config.encoder_layers)
             ]
@@ -775,6 +781,7 @@ class TransformerSentenceEncoderLayer(nn.Module):
         rescale_init: bool = False,
         gru_rel_pos: bool = False,
         encoder_layers: int = 0,
+        use_flash_attn: bool = False,
     ) -> None:
 
         super().__init__()
@@ -794,6 +801,7 @@ class TransformerSentenceEncoderLayer(nn.Module):
             max_distance=max_distance,
             rescale_init=rescale_init,
             gru_rel_pos=gru_rel_pos,
+            use_flash_attn=use_flash_attn,
         )
 
         self.dropout1 = nn.Dropout(dropout)
@@ -908,8 +916,10 @@ class MultiheadAttention(nn.Module):
         max_distance=128,
         gru_rel_pos=False,
         rescale_init=False,
+        use_flash_attn=False,
     ):
         super().__init__()
+        self.use_flash_attn=use_flash_attn
         self.embed_dim = embed_dim
         self.kdim = kdim if kdim is not None else embed_dim
         self.vdim = vdim if vdim is not None else embed_dim
@@ -1099,7 +1109,7 @@ class MultiheadAttention(nn.Module):
             position_bias = self.compute_bias(tgt_len, src_len)
             position_bias = (
                 position_bias.unsqueeze(0)
-                .repeat(bsz, 1, 1, 1)
+                .repeat(bsz, 1, 1, 1).contiguous()
                 .view(bsz * self.num_heads, tgt_len, src_len)
             )
 
@@ -1133,9 +1143,11 @@ class MultiheadAttention(nn.Module):
             q = self.q_proj(query)
             k = self.k_proj(key)
             v = self.v_proj(value)
-        q *= self.scaling
+
         alpha = 32
-        q *= 1 / alpha
+        if not self.use_flash_attn:
+            q *= self.scaling
+            q *= 1 / alpha
 
         if self.bias_k is not None:
             assert self.bias_v is not None
@@ -1177,7 +1189,7 @@ class MultiheadAttention(nn.Module):
             if "prev_key" in saved_state:
                 _prev_key = saved_state["prev_key"]
                 assert _prev_key is not None
-                prev_key = _prev_key.view(bsz * self.num_heads, -1, self.head_dim)
+                prev_key = _prev_key.contiguous().view(bsz * self.num_heads, -1, self.head_dim)
                 if static_kv:
                     k = prev_key
                 else:
@@ -1187,7 +1199,7 @@ class MultiheadAttention(nn.Module):
             if "prev_value" in saved_state:
                 _prev_value = saved_state["prev_value"]
                 assert _prev_value is not None
-                prev_value = _prev_value.view(bsz * self.num_heads, -1, self.head_dim)
+                prev_value = _prev_value.contiguous().view(bsz * self.num_heads, -1, self.head_dim)
                 if static_kv:
                     v = prev_value
                 else:
@@ -1205,8 +1217,8 @@ class MultiheadAttention(nn.Module):
                 static_kv=static_kv,
             )
 
-            saved_state["prev_key"] = k.view(bsz, self.num_heads, -1, self.head_dim)
-            saved_state["prev_value"] = v.view(bsz, self.num_heads, -1, self.head_dim)
+            saved_state["prev_key"] = k.contiguous().view(bsz, self.num_heads, -1, self.head_dim)
+            saved_state["prev_value"] = v.contiguous().view(bsz, self.num_heads, -1, self.head_dim)
             saved_state["prev_key_padding_mask"] = key_padding_mask
             # In this branch incremental_state is never None
             assert incremental_state is not None
@@ -1243,6 +1255,37 @@ class MultiheadAttention(nn.Module):
                     dim=1,
                 )
 
+        # ----- Switch: use flash-attn attention if enabled -------------------------
+        if self.use_flash_attn:
+            assert not before_softmax, "Flash attention does not support before_softmax"
+            assert position_bias is None, "Flash attention does not support position_bias"
+            assert not need_weights, "Flash attention does not support returning attention weights"
+            # For pytorch >= 2.0 this is flash attention
+            # NOTE(shikhar): Do causal attention via attn_mask
+            # NOTE(shikhar): The contiguous() call can be optimized.
+            q = q.contiguous().view(bsz, self.num_heads, tgt_len, self.q_head_dim)
+            k = k.contiguous().view(bsz, self.num_heads, src_len, self.k_head_dim)
+            v = v.contiguous().view(bsz, self.num_heads, src_len, self.head_dim)
+            if key_padding_mask is not None:
+                assert attn_mask is None, "key_padding_mask not supported with attn_mask"
+                attn_mask = (key_padding_mask == 0) # B x keylen
+                attn_mask = attn_mask.unsqueeze(1).expand(-1, tgt_len, -1) # B x keylen x tgtlen
+            
+            attn = F.scaled_dot_product_attention(
+                query=q,
+                key=k,
+                value=v,
+                attn_mask=attn_mask,
+                dropout_p=self.dropout_module.p,
+                is_causal=False,
+            ) # B x H x T x D
+            attn = attn.permute(2, 0, 1, 3).reshape(tgt_len, bsz, embed_dim)
+            attn = self.out_proj(attn)
+            # attention @ value, attn_weights, position_bias
+            return attn, None, None
+        # ------------------------------------------------------------------------------
+
+        # Original BEATs implementation below:
         attn_weights = torch.bmm(q, k.transpose(1, 2))
         attn_weights = (
             attn_weights - attn_weights.max(dim=-1, keepdim=True)[0]
@@ -1257,7 +1300,7 @@ class MultiheadAttention(nn.Module):
 
         if key_padding_mask is not None:
             # don't attend to padding symbols
-            attn_weights = attn_weights.view(bsz, self.num_heads, tgt_len, src_len)
+            attn_weights = attn_weights.contiguous().view(bsz, self.num_heads, tgt_len, src_len)
             if not is_tpu:
                 attn_weights = attn_weights.masked_fill(
                     key_padding_mask.unsqueeze(1).unsqueeze(2).to(torch.bool),
@@ -1267,7 +1310,7 @@ class MultiheadAttention(nn.Module):
                 attn_weights = attn_weights.transpose(0, 2)
                 attn_weights = attn_weights.masked_fill(key_padding_mask, float("-inf"))
                 attn_weights = attn_weights.transpose(0, 2)
-            attn_weights = attn_weights.view(bsz * self.num_heads, tgt_len, src_len)
+            attn_weights = attn_weights.contiguous().view(bsz * self.num_heads, tgt_len, src_len)
 
         if before_softmax:
             return attn_weights, v, position_bias
@@ -1276,22 +1319,22 @@ class MultiheadAttention(nn.Module):
             attn_mask_rel_pos = position_bias
             if self.gru_rel_pos == 1:
                 query_layer = (
-                    q.view(bsz, self.num_heads, tgt_len, self.q_head_dim)
+                    q.contiguous().view(bsz, self.num_heads, tgt_len, self.q_head_dim)
                     * alpha
                     / self.scaling
                 )
                 _B, _H, _L, __ = query_layer.size()
                 gate_a, gate_b = torch.sigmoid(
                     self.grep_linear(query_layer)
-                    .view(_B, _H, _L, 2, 4)
+                    .contiguous().view(_B, _H, _L, 2, 4)
                     .sum(-1, keepdim=False)
                 ).chunk(2, dim=-1)
                 gate_a_1 = gate_a * (gate_b * self.grep_a - 1.0) + 2.0
                 attn_mask_rel_pos = (
-                    gate_a_1.view(bsz * self.num_heads, tgt_len, 1) * position_bias
+                    gate_a_1.contiguous().view(bsz * self.num_heads, tgt_len, 1) * position_bias
                 )
 
-            attn_mask_rel_pos = attn_mask_rel_pos.view(attn_weights.size())
+            attn_mask_rel_pos = attn_mask_rel_pos.contiguous().view(attn_weights.size())
 
             attn_weights = attn_weights + attn_mask_rel_pos
 
@@ -1306,7 +1349,7 @@ class MultiheadAttention(nn.Module):
         attn = self.out_proj(attn)
         attn_weights: Optional[torch.Tensor] = None
         if need_weights:
-            attn_weights = attn_weights_float.view(
+            attn_weights = attn_weights_float.contiguous().view(
                 bsz, self.num_heads, tgt_len, src_len
             ).transpose(1, 0)
             if not need_head_weights:
@@ -1602,7 +1645,7 @@ def quant_noise(module, p, block_size):
                     in_features // block_size * out_features, device=weight.device
                 )
                 mask.bernoulli_(p)
-                mask = mask.repeat_interleave(block_size, -1).view(-1, in_features)
+                mask = mask.repeat_interleave(block_size, -1).contiguous().view(-1, in_features)
 
             else:
                 # gather weight and sizes
@@ -1617,7 +1660,7 @@ def quant_noise(module, p, block_size):
                         device=weight.device,
                     )
                     mask.bernoulli_(p)
-                    mask = mask.repeat_interleave(block_size, -1).view(-1, in_channels)
+                    mask = mask.repeat_interleave(block_size, -1).contiguous().view(-1, in_channels)
                 else:
                     mask = torch.zeros(
                         weight.size(0), weight.size(1), device=weight.device
