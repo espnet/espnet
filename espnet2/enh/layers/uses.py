@@ -179,7 +179,7 @@ class USES(nn.Module):
             ret.append(out)
 
         output = torch.cat(ret, dim=-1)[..., :T]
-        with torch.cuda.amp.autocast(enabled=False):
+        with torch.amp.autocast('cuda', enabled=False):
             output = self.output(output.mean(1))  # B, output_size, F, T
         return output
 
@@ -389,7 +389,7 @@ class ChannelTAC(nn.Module):
             LayerNormalization(input_dim, dim=-1, total_dim=5, eps=eps),
         )
 
-    @torch.cuda.amp.autocast(enabled=False)
+    @torch.amp.autocast('cuda', enabled=False)
     def forward(self, x, ref_channel=None):
         """ChannelTAC Forward.
 
@@ -418,7 +418,7 @@ class LayerNormalization(nn.Module):
         nn.init.zeros_(self.beta)
         self.eps = eps
 
-    @torch.cuda.amp.autocast(enabled=False)
+    @torch.amp.autocast('cuda', enabled=False)
     def forward(self, x):
         if x.ndim - 1 < self.dim:
             raise ValueError(
