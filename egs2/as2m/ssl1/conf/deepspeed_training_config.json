@@ -28,6 +28,6 @@
       "warmup_min_lr": 1.0e-5
     }
   },
-  "wall_clock_breakdown": true,
-  "steps_per_print": 10
+  "wall_clock_breakdown": false,
+  "steps_per_print": 1000
 }
