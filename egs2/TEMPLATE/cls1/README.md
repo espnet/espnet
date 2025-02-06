@@ -25,7 +25,7 @@ This is a template of cls1 recipe for ESPnet2.
 
 ## Recipe flow
 
-SVS recipe consists of 10 stages.
+CLS recipe consists of 10 stages.
 
 ### 1. Database-dependent data preparation
 
@@ -116,7 +116,7 @@ Packing stage.
 It packs the trained model files.
 Set `skip_upload` to `False`.
 
-### 9. Model upload
+### 10. Model upload
 
 Upload stage.
 It uploads the trained model files.

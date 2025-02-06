@@ -25,6 +25,7 @@ from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.cls.decoder.abs_decoder import AbsDecoder
 from espnet2.layers.abs_normalize import AbsNormalize
+from espnet2.layers.mixup_augmentation import MixupAugment
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 
@@ -89,7 +90,9 @@ class ESPnetClassificationModel(AbsESPnetModel):
             raise ValueError(
                 "Valid classification types are 'multi-label' and 'multi-class'"
             )
-        self.mixup_augmentation = mixup_augmentation
+        self.mixup_augmentation = None
+        if mixup_augmentation:
+            self.mixup_augmentation = MixupAugment(mixup_probability=1.0)
         self.metric_functions = self.setup_metrics_()
 
     def forward(
@@ -131,7 +134,7 @@ class ESPnetClassificationModel(AbsESPnetModel):
                     "Mixup is not recommended for variable length input. "
                     "It may not work as expected."
                 )
-            speech, onehot_ = mixup_augment(speech, onehot_, mixup_prob=1.0)
+            speech, onehot_ = self.mixup_augmentation(speech, onehot_)
 
         # 1. Encoder
         encoder_out, encoder_out_lens = self.encode(speech, speech_lengths)
@@ -316,31 +319,3 @@ def label_to_onehot(
         raise ValueError(
             "Valid classification types are 'multi-label' and 'multi-class'"
         )
-
-
-def mixup_augment(speech: torch.Tensor, onehot: torch.Tensor, mixup_prob: float):
-    """Mixup augmentation for multi-label classification
-
-    Args:
-        speech: (Batch, Length, Dim)
-        onehot: (Batch, n_classes)
-        mixup_prob: Apply mixup with this probability
-    Returns:
-        speech: (Batch, Length, Dim)
-        onehot: (Batch, n_classes)
-    """
-    batch_size = speech.size(0)
-    assert onehot.size(0) == batch_size
-    apply_augmentation = torch.rand((batch_size), device=speech.device) < mixup_prob
-    mix_lambda = (
-        torch.distributions.Beta(0.8, 0.8)
-        .sample(sample_shape=(batch_size, 1))
-        .to(speech.device)
-    )
-    perm = torch.randperm(batch_size).to(speech.device)
-    identity_perm = torch.arange(batch_size, device=speech.device)
-    perm[~apply_augmentation] = identity_perm[~apply_augmentation]
-    # speech = speech - speech.mean(dim=1, keepdim=True)
-    speech = mix_lambda * speech + (1 - mix_lambda) * speech[perm]
-    onehot = mix_lambda * onehot + (1 - mix_lambda) * onehot[perm]
-    return speech, onehot
