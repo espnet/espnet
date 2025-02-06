@@ -104,6 +104,7 @@ ifeq ($(strip $(USE_CONDA)),)
 else
 	. ./activate_python.sh && conda install -y numpy
 endif
+	touch numpy.done
 
 numba.done: numpy.done
 	. ./activate_python.sh && python3 -m pip install -U numba
