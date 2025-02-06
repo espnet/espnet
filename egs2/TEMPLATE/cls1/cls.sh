@@ -1,5 +1,4 @@
 #!/bin/bash
-# TODO(shikhar): add scripts to pyscripts and utils from asr/asvspoof
 
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
@@ -110,6 +109,7 @@ Options:
                       # Note that it will overwrite args in cls config.
     --feats_normalize # Normalizaton layer type (default="${feats_normalize}").
     # cls inference related
+    --download_model  # Download a model from Model Zoo and use it for decoding (default="${download_model}").
     --inference_model  # classification model path for inference (default="${inference_model}").
     --inference_tag    # Suffix to the inference dir for cls model inference
     --output_all_probabilities # Output all probabilities in the inference stage (default="${output_all_probabilities}").
@@ -442,6 +442,9 @@ if ! "${skip_eval}"; then
 
             _scp=wav.scp
             _type=sound
+            if [[ "${audio_format}" == *ark* ]]; then
+                _type=kaldi_ark
+            fi
 
             # 1. Split the key file
             key_file=${_data}/${_scp}
