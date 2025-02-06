@@ -4,6 +4,7 @@ The data processing code is adapted from https://github.com/earthspecies/beans
 
 # Training Details and Requirements
 Most of the datasets complete within 5 hours and on a single L40 gpu.
+Please install torcheval for this recipe using `installers/install_torcheval.sh`
 
 ## Steps to run
 

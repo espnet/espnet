@@ -15,9 +15,9 @@ from typeguard import typechecked
 try:
     from torcheval.metrics import functional as EvalFunction
 
-    is_torcheval_available = True
-except ImportError:
-    is_torcheval_available = False
+    torcheval_import_error = None
+except ImportError as e:
+    torcheval_import_error = e
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
@@ -63,11 +63,13 @@ class ESPnetClassificationModel(AbsESPnetModel):
         mixup_augmentation: bool = False,
     ):
         super().__init__()
-        if not is_torcheval_available:
+        if torcheval_import_error:
             raise ImportError(
-                "`torcheval` is not available. Please install it "
+                "`torcheval` is not available or there is a version mismatch. "
+                "Please install it "
                 "via `pip install torcheval` in your environment."
                 "More info at: `https://pytorch.org/torcheval/stable/`"
+                f"Original error: {torcheval_import_error}"
             )
         self.vocab_size = vocab_size
         self.token_list = token_list.copy()
