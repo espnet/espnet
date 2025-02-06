@@ -1,5 +1,6 @@
 """Search algorithms for Transducer models."""
 
+import time
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple, Union
 
@@ -85,7 +86,7 @@ class BeamSearchTransducer:
         """Construct a BeamSearchTransducer object."""
         super().__init__()
 
-        self.decoder = decoder
+        self.decoder = torch.compile(decoder)
         self.joint_network = joint_network
 
         self.vocab_size = decoder.vocab_size
@@ -148,9 +149,7 @@ class BeamSearchTransducer:
         self.reset_cache()
 
     def __call__(
-        self,
-        enc_out: torch.Tensor,
-        is_final: bool = True,
+        self, enc_out: torch.Tensor, is_final: bool = True, **kwargs
     ) -> List[Hypothesis]:
         """Perform beam search.
 
@@ -164,7 +163,7 @@ class BeamSearchTransducer:
         """
         self.decoder.set_device(enc_out.device)
 
-        hyps = self.search_algorithm(enc_out)
+        hyps = self.search_algorithm(enc_out, **kwargs)
 
         if is_final:
             self.reset_cache()
@@ -289,6 +288,9 @@ class BeamSearchTransducer:
             nbest_hyps: N-best hypothesis.
 
         """
+
+        all_decoder_times = []
+        all_joint_times = []
         beam_k = min(self.beam_size, (self.vocab_size - 1))
         max_t = len(enc_out)
 
@@ -311,16 +313,22 @@ class BeamSearchTransducer:
                 max_hyp = max(hyps, key=lambda x: x.score)
                 hyps.remove(max_hyp)
 
+                tt = time.time()
+
                 dec_out, state = self.decoder.score(
                     max_hyp.yseq,
                     max_hyp.dec_state,
                 )
+                all_decoder_times.append(time.time() - tt)
+                tt = time.time()
 
                 logp = torch.log_softmax(
                     self.joint_network(enc_out[t : t + 1, :], dec_out),
                     dim=-1,
                 ).squeeze(0)
                 top_k = logp[1:].topk(beam_k, dim=-1)
+
+                all_joint_times.append(time.time() - tt)
 
                 kept_hyps.append(
                     Hypothesis(
@@ -367,6 +375,18 @@ class BeamSearchTransducer:
                     kept_hyps = kept_most_prob
                     break
 
+        print(
+            "total decoder time",
+            sum(all_decoder_times),
+            "num_decoder_calls",
+            len(all_decoder_times),
+        )
+        print(
+            "total joint time",
+            sum(all_joint_times),
+            "num joint calls",
+            len(all_joint_times),
+        )
         return kept_hyps
 
     def align_length_sync_decoding(
@@ -461,7 +481,9 @@ class BeamSearchTransducer:
 
         return B
 
-    def time_sync_decoding(self, enc_out: torch.Tensor) -> List[Hypothesis]:
+    def time_sync_decoding(
+        self, enc_out: torch.Tensor, extra_start_token: int = None
+    ) -> List[Hypothesis]:
         """Time synchronous beam search implementation.
 
         Based on https://ieeexplore.ieee.org/document/9053040
@@ -475,10 +497,15 @@ class BeamSearchTransducer:
         """
         if self.search_cache is not None:
             B = self.search_cache
+            print("existing cache")
         else:
+            start_toks = [0]
+            if extra_start_token is not None:
+                start_toks.append(extra_start_token)
+
             B = [
                 Hypothesis(
-                    yseq=[0],
+                    yseq=start_toks,
                     score=0.0,
                     dec_state=self.decoder.init_state(1),
                 )
@@ -502,6 +529,19 @@ class BeamSearchTransducer:
                     self.joint_network(enc_out_t, beam_dec_out),
                     dim=-1,
                 )
+
+                # want to dump these to file
+                # import os
+                # import pickle
+                # outdir = '/home/jovyan/data/nhirschkind/joint_outputs'
+                # existing_files = [int(x) for x in os.listdir(outdir)]
+                # if len(existing_files)==0:
+                #     new_fname = '0'
+                # else:
+                #     new_fname = str(max(existing_files) + 1)
+                # with open(os.path.join(outdir, new_fname), 'wb') as openf:
+                #     pickle.dump(beam_logp.detach().cpu().numpy(), openf)
+
                 beam_topk = beam_logp[:, 1:].topk(self.beam_size, dim=-1)
 
                 seq_A = [h.yseq for h in A]
@@ -555,6 +595,7 @@ class BeamSearchTransducer:
     def modified_adaptive_expansion_search(
         self,
         enc_out: torch.Tensor,
+        extra_start_token: int = None,
     ) -> List[ExtendedHypothesis]:
         """Modified version of Adaptive Expansion Search (mAES).
 
@@ -571,9 +612,12 @@ class BeamSearchTransducer:
         if self.search_cache is not None:
             kept_hyps = self.search_cache
         else:
+            start_toks = [0]
+            if extra_start_token is not None:
+                start_toks.append(extra_start_token)
             init_tokens = [
                 ExtendedHypothesis(
-                    yseq=[0],
+                    yseq=start_toks,
                     score=0.0,
                     dec_state=self.decoder.init_state(1),
                 )
