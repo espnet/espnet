@@ -9,6 +9,7 @@
 import math
 
 import torch
+import typing
 
 
 def _pre_hook(
@@ -329,6 +330,30 @@ class RelPositionalEncoding(torch.nn.Module):
             self.pe.size(1) // 2 - x.size(1) + 1 : self.pe.size(1) // 2 + x.size(1),
         ]
         return self.dropout(x), self.dropout(pos_emb)
+
+
+class RelPositionalEncodingForPaddedSequences(RelPositionalEncoding):
+    def forward(self, x: torch.Tensor, masks: typing.Optional[torch.Tensor] = None):
+        """Add positional encoding.
+
+        Args:
+            x (torch.Tensor): Input tensor (batch, time, `*`).
+            masks (torch.Tensor): Boolean (or equivalent) mask for padded sequences (batch, time).
+        Returns:
+            torch.Tensor: Encoded tensor (batch, time, `*`).
+
+        """
+        if masks is None:
+            return super().forward(x)
+        else:
+            self.extend_pe(x)
+            x = x * self.xscale
+            sequence_lengths = masks.int().sum(-1, keepdim=True)
+            index = torch.arange(2 * x.size(1) - 1, dtype=torch.int, device=x.device).unsqueeze(0)
+            relative_index = index - sequence_lengths + self.pe.size(1) // 2 + 1
+            twice_mask = index.expand(x.size(0), -1) < (2 * sequence_lengths - 1)
+            pos_emb = self.pe[0, relative_index * twice_mask, :] * twice_mask.unsqueeze(-1)
+            return self.dropout(x), self.dropout(pos_emb)
 
 
 class StreamPositionalEncoding(torch.nn.Module):
