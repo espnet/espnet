@@ -7,10 +7,7 @@ from sklearn import metrics
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
 from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
 from espnet2.cls.decoder.linear_decoder import LinearDecoder
-from espnet2.cls.espnet_model import (
-    ESPnetClassificationModel,
-    label_to_onehot,
-)
+from espnet2.cls.espnet_model import ESPnetClassificationModel, label_to_onehot
 
 
 @pytest.mark.parametrize("encoder_arch", [TransformerEncoder, ConformerEncoder])

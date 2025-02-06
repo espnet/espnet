@@ -1,8 +1,9 @@
 import torch
 
+
 class MixupAugment(torch.nn.Module):
     """Mixup augmentation module for multi-label classification."""
-    
+
     def __init__(self, mixup_probability: float):
         super().__init__()
         self.mixup_probability = mixup_probability
@@ -13,15 +14,16 @@ class MixupAugment(torch.nn.Module):
         Args:
             speech: (Batch, Length)
             onehot: (Batch, n_classes)
-        
+
         Returns:
             speech: (Batch, Length)
             onehot: (Batch, n_classes)
         """
         batch_size = speech.size(0)
         assert onehot.size(0) == batch_size
-        apply_augmentation = torch.rand(
-            (batch_size), device=speech.device) < self.mixup_probability
+        apply_augmentation = (
+            torch.rand((batch_size), device=speech.device) < self.mixup_probability
+        )
         mix_lambda = (
             torch.distributions.Beta(0.8, 0.8)
             .sample(sample_shape=(batch_size, 1))
