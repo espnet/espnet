@@ -30,7 +30,9 @@ class XVExtractor:
         self.device = device
         self.audio_norm = AudioNormalizer()
         self.model = EncoderClassifier.from_hparams(
-            source=args.pretrained_model, run_opts={"device": device}
+            source=args.pretrained_model,
+            run_opts={"device": device},
+            savedir=args.savedir,
         )
 
     def __call__(self, wav, in_sr):
@@ -95,6 +97,11 @@ def get_parser() -> argparse.Namespace:
         default="speechbrain/spkrec-ecapa-voxceleb",
         type=str,
         help="Speechbrain pretrained model.",
+    )
+    parser.add_argument(
+        "--savedir",
+        type=str,
+        help="Where to put the pretraining material.",
     )
     parser.add_argument("--device", type=str, default="cuda:0", help="Inference device")
     parser.add_argument(
