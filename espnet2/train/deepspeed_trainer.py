@@ -43,6 +43,7 @@ class DeepSpeedTrainerOptions:
     train_dtype: Union[str, torch.dtype]
     log_interval: Optional[int]
     output_dir: Union[Path, str]
+    use_wandb: bool
     max_epoch: int
     deepspeed_config: Union[Path, str]
 
@@ -192,6 +193,7 @@ class DeepSpeedTrainer(Trainer):
                 log_interval = max(len(iterator) // 20, 10)
             except TypeError:
                 log_interval = 100
+        use_wandb = options.use_wandb
 
         for iiter, (utt_id, batch) in enumerate(
             reporter.measure_iter_time(iterator, "iter_time"), 1
@@ -230,6 +232,8 @@ class DeepSpeedTrainer(Trainer):
                 reporter.next()
                 if iiter % log_interval == 0:
                     logging.info(reporter.log_message(-log_interval))
+                    if use_wandb:
+                        reporter.wandb_log()
 
         else:
             iterator_stop.fill_(1)
