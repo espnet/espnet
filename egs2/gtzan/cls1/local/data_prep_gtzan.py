@@ -9,7 +9,7 @@ from tqdm import tqdm
 DATA_READ_ROOT = sys.argv[1]
 DATA_WRITE_ROOT = sys.argv[2]
 
-def collect_fnames_for_each_genre(): 
+def collect_fnames_for_each_genre(black_list): 
 
     # obtain genre tags 
     genres = sorted(os.listdir(DATA_READ_ROOT))
@@ -18,6 +18,12 @@ def collect_fnames_for_each_genre():
     fnames_for_each_genre = {}
     for genre in genres:
         fnames = os.listdir(os.path.join(DATA_READ_ROOT, genre))
+        for fn in black_list: # remove fnames in black_list
+            if fn in fnames:
+                fnames.remove(fn)
+                print('(data_prep_gtzan.py): removed file in black list '+fn)
+            else:
+                pass
         fnames_for_each_genre.update({genre:fnames})
     
     return fnames_for_each_genre
@@ -53,7 +59,8 @@ def split_fnames_with_balanced_genre(fnames_for_each_genre, ratio={'train':0.75,
 
 
 random.seed(0)
-fnames_for_each_genre = collect_fnames_for_each_genre()
+black_list = ['jazz.00054.wav'] # broken files
+fnames_for_each_genre = collect_fnames_for_each_genre(black_list)
 
 # data split 
 # Split: 75% Train, 15% Val e 10% Test
