@@ -55,7 +55,7 @@ universa_conf:
   multi_branch: true
 
 use_ref_text: true
-use_ref_audio: false 
+use_ref_audio: false
 
 # Frontend
 frontend: s3prl
