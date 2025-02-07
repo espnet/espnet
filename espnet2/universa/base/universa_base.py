@@ -15,8 +15,8 @@ from typeguard import typechecked
 
 from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
 from espnet2.layers.utterance_mvn import UtteranceMVN
-from espnet2.spk.pooling.mean_pooling import MeanPooling
 from espnet2.spk.pooling.chn_attn_stat_pooling import ChnAttnStatPooling
+from espnet2.spk.pooling.mean_pooling import MeanPooling
 from espnet2.spk.projector.xvector_projector import XvectorProjector
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.torch_utils.initialize import initialize
