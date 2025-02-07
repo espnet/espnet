@@ -229,11 +229,13 @@ class UniversaBase(AbsUniversa):
                 else:
                     raise ValueError(f"Not supported: {pooling_type}")
 
+
+                projector_input = self.pooling[-1].output_size()
                 # Initialize projector
                 if projector_type == "linear":
                     self.projector.append(
                         torch.nn.Linear(
-                            pooling_dim,
+                            projector_input,
                             1,
                             **projector_params,
                         )
@@ -241,7 +243,7 @@ class UniversaBase(AbsUniversa):
                 elif projector_type == "xvector":
                     self.projector.append(
                         XvectorProjector(
-                            pooling_dim,
+                            projector_input,
                             1,
                             **projector_params,
                         )
@@ -263,17 +265,19 @@ class UniversaBase(AbsUniversa):
             else:
                 raise ValueError(f"Not supported: {pooling_type}")
 
+            projector_input = self.pooling.output_size()
+
             # Initialize projector
             if projector_type == "linear":
                 self.projector = torch.nn.Linear(
-                    pooling_dim,
+                    projector_input,
                     self.metric_size,
                     **projector_params,
                 )
             elif projector_type == "xvector":
                 self.projector.append(
                     XvectorProjector(
-                        pooling_dim,
+                        projector_input,
                         1,
                         **projector_params,
                     )
