@@ -50,4 +50,18 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "stage 2: Data preparation completed."
 fi
 
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
+    log "Stage 3: Train Dev Test split"
+
+    utils/subset_data_dir_tr_cv.sh --cv-spk-percent 25 $data_dir/all \
+    $data_dir/train $data_dir/test_dev
+
+    utils/subset_data_dir_tr_cv.sh --cv-spk-percent 50 $data_dir/test_dev \
+        $data_dir/test $data_dir/dev
+
+    rm -rf $data_dir/test_dev
+
+    log "Stage 3: Train Dev Test split completed."
+fi
+
 log "Successfully finished. [elapsed=${SECONDS}s]"
