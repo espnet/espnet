@@ -7,16 +7,16 @@ set -o pipefail
 
 train_set="train"
 valid_set="dev"
-test_sets="data_cmu/dev data_cmu/test data_ogi_spon/dev data_ogi_spon/test data_ogi_scripted/dev data_ogi_scripted/test data_myst/dev data_myst/test data_jibo/all"
+test_sets="data_cmu/dev data_cmu/test data_ogi_spon/dev data_ogi_spon/test data_ogi_scripted/dev data_ogi_scripted/test data_myst/dev data_myst/test data_jibo/dev data_jibo/test"
 
-asr_config=conf/train_asr.yaml
+asr_config=conf/transf_0.yaml
 inference_config=conf/decode_asr.yaml
 
 nbpe=5000
 
 ./asr.sh \
     --lang en \
-    --ngpu 1 \
+    --ngpu 2 \
     --nj 16 \
     --gpu_inference true \
     --inference_nj 2 \
