@@ -122,8 +122,9 @@ if __name__ == "__main__":
     ), "System information is required for system-level evaluation"
     final_result = {}
     for metric in metric_names:
+        metric_count = {"miss_all": 0, "miss_part_ref": 0, "miss_part_pred": 0, "match": 0}
         if metric not in ref_metric_names:
-            logging.warning(f"Missing metric: {metric} in reference metric.scp")
+            metric_count["miss_all"] += 1
         if args.level == "utt":
             pred_metric, ref_metric = [], []
         else:
@@ -131,17 +132,15 @@ if __name__ == "__main__":
         for utt in pred_metrics.keys():
             # Checks for missing utterances and metrics
             if utt not in ref_metrics.keys():
-                logging.warning(f"Missing utterance: {utt} in reference metric.scp")
+                metric_count["miss_part_ref"] += 1
             if metric not in pred_metrics[utt]:
                 if args.skip_missing:
-                    logging.warning(
-                        f"Missing metric: {metric} in prediction metric.scp"
-                    )
+                    metric_count["miss_part_pred"] += 1
                     continue
                 raise ValueError(f"Missing metric: {metric} in prediction metric.scp")
             if metric not in ref_metrics[utt]:
                 if args.skip_missing:
-                    logging.warning(f"Missing metric: {metric} in reference metric.scp")
+                    metric_count["miss_part_ref"] += 1
                     continue
                 raise ValueError(f"Missing metric: {metric} in reference metric.scp")
             if args.level == "utt":
