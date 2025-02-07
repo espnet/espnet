@@ -229,7 +229,6 @@ class UniversaBase(AbsUniversa):
                 else:
                     raise ValueError(f"Not supported: {pooling_type}")
 
-
                 projector_input = self.pooling[-1].output_size()
                 # Initialize projector
                 if projector_type == "linear":
