@@ -15,7 +15,9 @@ from typeguard import typechecked
 
 from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
 from espnet2.layers.utterance_mvn import UtteranceMVN
+from espnet2.spk.pooling.chn_attn_stat_pooling import ChnAttnStatPooling
 from espnet2.spk.pooling.mean_pooling import MeanPooling
+from espnet2.spk.projector.xvector_projector import XvectorProjector
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.torch_utils.initialize import initialize
 from espnet2.universa.abs_universa import AbsUniversa
@@ -218,6 +220,12 @@ class UniversaBase(AbsUniversa):
                             input_size=pooling_dim, use_masking=True, **pooling_params
                         )
                     )
+                elif pooling_type == "channel_attention":
+                    self.pooling.append(
+                        ChnAttnStatPooling(
+                            input_size=pooling_dim, use_masking=True, **pooling_params
+                        )
+                    )
                 else:
                     raise ValueError(f"Not supported: {pooling_type}")
 
@@ -225,6 +233,14 @@ class UniversaBase(AbsUniversa):
                 if projector_type == "linear":
                     self.projector.append(
                         torch.nn.Linear(
+                            pooling_dim,
+                            1,
+                            **projector_params,
+                        )
+                    )
+                elif projector_type == "xvector":
+                    self.projector.append(
+                        XvectorProjector(
                             pooling_dim,
                             1,
                             **projector_params,
@@ -238,6 +254,12 @@ class UniversaBase(AbsUniversa):
                 self.pooling = MeanPooling(
                     input_size=pooling_dim, use_masking=True, **pooling_params
                 )
+            elif pooling_type == "channel_attention":
+                self.pooling.append(
+                    ChnAttnStatPooling(
+                        input_size=pooling_dim, use_masking=True, **pooling_params
+                    )
+                )
             else:
                 raise ValueError(f"Not supported: {pooling_type}")
 
@@ -247,6 +269,14 @@ class UniversaBase(AbsUniversa):
                     pooling_dim,
                     self.metric_size,
                     **projector_params,
+                )
+            elif projector_type == "xvector":
+                self.projector.append(
+                    XvectorProjector(
+                        pooling_dim,
+                        1,
+                        **projector_params,
+                    )
                 )
             else:
                 raise ValueError(f"Not supported: {projector_type}")

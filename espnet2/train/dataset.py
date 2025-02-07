@@ -75,7 +75,6 @@ class AdapterForSoundScpReader(collections.abc.Mapping):
         else:
             retval = self.loader[key]
 
-
         if isinstance(retval, tuple):
             assert len(retval) == 2, len(retval)
             if isinstance(retval[0], int) and isinstance(retval[1], np.ndarray):
