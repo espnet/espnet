@@ -122,7 +122,12 @@ if __name__ == "__main__":
     ), "System information is required for system-level evaluation"
     final_result = {}
     for metric in metric_names:
-        metric_count = {"miss_all": 0, "miss_part_ref": 0, "miss_part_pred": 0, "match": 0}
+        metric_count = {
+            "miss_all": 0,
+            "miss_part_ref": 0,
+            "miss_part_pred": 0,
+            "match": 0,
+        }
         if metric not in ref_metric_names:
             metric_count["miss_all"] += 1
         if args.level == "utt":
