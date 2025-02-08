@@ -76,3 +76,75 @@ def test_single_channel_model(
         "spk_labels_lengths": ilens,
     }
     loss, stats, weight = diar_model(**kwargs)
+
+
+frontend = DefaultFrontend(
+    n_fft=32,
+    win_length=32,
+    hop_length=16,
+    n_mels=10,
+)
+
+encoder = TransformerEncoder(
+    input_size=50,
+    input_layer="linear",
+    num_blocks=1,
+    linear_units=32,
+    output_size=16,
+    attention_heads=2,
+)
+
+decoder = LinearDecoder(
+    num_spk=2,
+    encoder_output_size=encoder.output_size(),
+)
+
+rnn_attractor = RnnAttractor(unit=16, encoder_output_size=encoder.output_size())
+
+label_aggregator = LabelAggregate(
+    win_length=32,
+    hop_length=16,
+)
+
+
+@pytest.mark.parametrize(
+    "frontend, encoder, decoder, label_aggregator",
+    [(frontend, encoder, decoder, label_aggregator)],
+)
+@pytest.mark.parametrize("training", [True, False])
+@pytest.mark.parametrize("attractor", [rnn_attractor, None])
+def test_model_with_context_concat_and_subsampling(
+    label_aggregator,
+    frontend,
+    encoder,
+    decoder,
+    attractor,
+    training,
+):
+    inputs = torch.randn(2, 300)
+    ilens = torch.LongTensor([300, 200])
+    spk_labels = torch.randint(high=2, size=(2, 300, 2))
+    diar_model = ESPnetDiarizationModel(
+        label_aggregator=label_aggregator,
+        attractor=attractor,
+        encoder=encoder,
+        decoder=decoder,
+        frontend=frontend,
+        specaug=None,
+        normalize=None,
+        context_size=2,
+        subsampling=10,
+    )
+
+    if training:
+        diar_model.train()
+    else:
+        diar_model.eval()
+
+    kwargs = {
+        "speech": inputs,
+        "speech_lengths": ilens,
+        "spk_labels": spk_labels,
+        "spk_labels_lengths": ilens,
+    }
+    loss, stats, weight = diar_model(**kwargs)
