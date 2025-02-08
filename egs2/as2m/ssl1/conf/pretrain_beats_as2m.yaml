@@ -1,5 +1,5 @@
 # unused_parameters: true
-init: xavier_normal
+init: none # we initialise differently from espnet
 patience: none
 best_model_criterion:
 -   - valid
@@ -20,7 +20,12 @@ encoder_conf:
         fbank_mean: 15.25938
         fbank_std: 6.93416
         decoder_layers: 3 # layers in the pretraining predictor
+        deep_norm: true
         use_flash_attn: true
+        relative_position_embedding: true
+        num_buckets: 320
+        max_distance: 800
+        gru_rel_pos: true
     use_weighted_representation: false
     is_pretraining: true
 
@@ -30,7 +35,7 @@ model_conf:
     sound_input: false
 
 batch_type: length
-batch_bins: 838880 # (998 + 500 labels) * 560 audio samples DELTAAI, H100, 830000 did not work
+batch_bins: 838880 # (998 + 500 labels) * 560 audio samples DELTAAI, H100
 # batch_bins: 778000 # (998 + 500 labels) * 520 audio samples DELTA, A100
 max_epoch: 112 # 400K steps / (2M / 560)
 
