@@ -203,8 +203,12 @@ def test_backward_pass_beats_pretraining_predictor():
     pred.sum().backward()
 
 
-def test_beats_flash_attn():
-    if not is_torch_2_plus:
+@pytest.mark.parametrize("key_padding_mask", [True, None])
+@pytest.mark.parametrize("has_relative_attention_bias", [True, False])
+@pytest.mark.parametrize("gru_rel_pos", [True, False])
+@pytest.mark.parametrize("variable_length", [True, False])
+def test_beats_flash_attn(key_padding_mask,has_relative_attention_bias, gru_rel_pos, variable_length):
+    if not is_torch_2_plus or not torch.cuda.is_available():
         return
     attn_module = (
         MultiheadAttention(
@@ -212,11 +216,11 @@ def test_beats_flash_attn():
             num_heads=8,
             dropout=0,
             self_attention=True,
-            has_relative_attention_bias=False,
-            num_buckets=0,
-            max_distance=0,
+            has_relative_attention_bias=has_relative_attention_bias,
+            num_buckets=320 if has_relative_attention_bias else 0,
+            max_distance=800 if has_relative_attention_bias else 0,
             rescale_init=False,
-            gru_rel_pos=False,
+            gru_rel_pos=gru_rel_pos,
         )
         .to("cuda")
         .to(torch.float16)
@@ -225,7 +229,12 @@ def test_beats_flash_attn():
     query = torch.rand(128, 32, 512, dtype=torch.float16, device="cuda")
     key = torch.rand(128, 32, 512, dtype=torch.float16, device="cuda")
     value = torch.rand(128, 32, 512, dtype=torch.float16, device="cuda")
-    key_padding_mask = torch.zeros(32, 128, dtype=torch.bool, device="cuda")
+    if key_padding_mask:
+        if not variable_length:
+            key_padding_mask = torch.zeros(32, 128, dtype=torch.bool, device="cuda")
+        else:
+            key_padding_mask = torch.zeros(32, 128, dtype=torch.bool, device="cuda")
+            key_padding_mask[0, 65:] = 1
 
     # import time
     # start = time.time()
@@ -236,7 +245,7 @@ def test_beats_flash_attn():
         need_weights=False,
         key_padding_mask=key_padding_mask,
     )
-    # print("Time taken vanilla Attention: ", time.time()-start)
+    # print("Time taken vanilla attn: ", time.time()-start)
 
     attn_module.use_flash_attn = True
     # start=time.time()
