@@ -8,19 +8,24 @@ class MixupAugment(torch.nn.Module):
         super().__init__()
         self.mixup_probability = mixup_probability
 
-    def forward(self, speech: torch.Tensor, onehot: torch.Tensor):
+    def forward(
+        self, speech: torch.Tensor, onehot: torch.Tensor, speech_lengths: torch.Tensor
+    ):
         """Applies mixup augmentation.
 
         Args:
             speech: (Batch, Length)
             onehot: (Batch, n_classes)
+            speech_lengths: (Batch,)
 
         Returns:
             speech: (Batch, Length)
             onehot: (Batch, n_classes)
+            speech_lengths: (Batch,): Minimum of the two lengths mixed.
         """
         batch_size = speech.size(0)
         assert onehot.size(0) == batch_size
+        assert speech_lengths.size(0) == batch_size
         apply_augmentation = (
             torch.rand((batch_size), device=speech.device) < self.mixup_probability
         )
@@ -34,4 +39,5 @@ class MixupAugment(torch.nn.Module):
         perm[~apply_augmentation] = identity_perm[~apply_augmentation]
         speech = mix_lambda * speech + (1 - mix_lambda) * speech[perm]
         onehot = mix_lambda * onehot + (1 - mix_lambda) * onehot[perm]
-        return speech, onehot
+        speech_lengths = torch.minimum(speech_lengths, speech_lengths[perm])
+        return speech, onehot, speech_lengths

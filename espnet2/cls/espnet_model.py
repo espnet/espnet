@@ -134,7 +134,9 @@ class ESPnetClassificationModel(AbsESPnetModel):
                     "Mixup is not recommended for variable length input. "
                     "It may not work as expected."
                 )
-            speech, onehot_ = self.mixup_augmentation(speech, onehot_)
+            speech, onehot_, speech_lengths = self.mixup_augmentation(
+                speech, onehot_, speech_lengths
+            )
 
         # 1. Encoder
         encoder_out, encoder_out_lens = self.encode(speech, speech_lengths)
