@@ -193,10 +193,8 @@ class BeatsTask(AbsTask):
             **kwargs,
             **args.model_conf,
         )
+        # Skip espnet intialization, beats does that internally.
 
-        # 4. Initialize
-        if args.init is not None:
-            initialize(model, args.init)
         return model
 
 
