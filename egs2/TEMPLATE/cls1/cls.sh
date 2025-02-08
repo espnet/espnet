@@ -61,6 +61,7 @@ cls_args=   # Arguments for cls model training, e.g., "--max_epoch 10".
 feats_normalize=uttmvn # Normalizaton layer type.
 
 # cls inference related
+download_model=
 inference_model=valid.acc.best.pth
 inference_tag=    # Suffix to the inference dir for cls model inference
 output_all_probabilities=true
@@ -412,6 +413,22 @@ else
     log "Skip the training stages"
 fi
 
+
+if [ -n "${download_model}" ]; then
+    log "Using ${download_model} for decoding and evaluation"
+    cls_exp="${expdir}/$(basename "${download_model}")"
+    mkdir -p "${cls_exp}"
+
+    # Ensure huggingface-cli is installed
+    command -v huggingface-cli &>/dev/null || log "huggingface-cli not found, please install it"
+
+    huggingface-cli download "${download_model}" --local-dir ./
+    mv ./**/exp/*/* "${cls_exp}/" && log "Files moved." || log "Warning: An error occurred in moving. Please recheck the downloaded huggingface model."
+
+    # Set variables for stages below
+    inference_model=$(echo ${cls_exp}/*epoch.pth)
+    inference_model=$(basename "$inference_model")
+fi
 if ! "${skip_eval}"; then
     if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
         log "Stage 7: Predict with models: training_dir=${cls_exp}"
