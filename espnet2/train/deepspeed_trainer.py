@@ -174,6 +174,8 @@ class DeepSpeedTrainer(Trainer):
             if dist.get_rank() == 0:
                 logging.info(reporter.log_message())
                 reporter.matplotlib_plot(output_dir / "images")
+                if trainer_options.use_wandb:
+                    reporter.wandb_log()
 
     @classmethod
     @typechecked

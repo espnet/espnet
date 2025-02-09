@@ -47,7 +47,10 @@ else:
     def autocast(enabled=True):
         yield
 
-is_torch_v25_to_v26 = V(torch.__version__) >= V("2.5.0") and V(torch.__version__) <= V("2.6.0")
+
+is_torch_v25_to_v26 = V(torch.__version__) >= V("2.5.0") and V(torch.__version__) <= V(
+    "2.6.0"
+)
 
 
 class BeatsConfig:
@@ -287,7 +290,9 @@ class BeatsEncoder(AbsEncoder):
         self.mask_ratio = config.mask_ratio
         self.use_flash_attn = config.use_flash_attn
         if self.use_flash_attn:
-            assert V(torch.__version__) >= V("2.0.0"), "Flash attention requires PyTorch >= 2.0"
+            assert V(torch.__version__) >= V(
+                "2.0.0"
+            ), "Flash attention requires PyTorch >= 2.0"
         if is_pretraining:
             assert config.mask_ratio > 0.0, "mask_ratio must be > 0.0 for pretraining."
         self.initialize()
@@ -313,7 +318,7 @@ class BeatsEncoder(AbsEncoder):
         For fine-tuning using one of the recipes,
         The initialization occurs in three steps:
         1. BEATs modules initialize themselves as in 1 above.
-        2. ESPnet initializes all modules. 
+        2. ESPnet initializes all modules.
             (this step inits the convnet weights in clotho_v2/asr1 recipe)
         3. Optionally, if we have the pretrained checkpoint, we load the
             weights from the checkpoint overriding 2 and 1 in this function.
@@ -400,16 +405,21 @@ class BeatsEncoder(AbsEncoder):
         if self.roll_augment and self.training:
             xs_pad = roll_tensor(xs_pad, ilens, fixed_intervals=self.roll_interval)
         mask = make_pad_mask(lengths=ilens, traceable=False).to(xs_pad.device)
-        audio_representation, mask, restore_ids, kept_mask = self.extract_features(
-            xs_pad,
-            mask,
-            max_layer=self.max_layer,
-            skip_fbank_extraction=not is_sound_input,
+        audio_representation, mask, restore_ids, kept_mask, patch_padding_mask = (
+            self.extract_features(
+                xs_pad,
+                mask,
+                max_layer=self.max_layer,
+                skip_fbank_extraction=not is_sound_input,
+            )
         )
+        # patch_padding_mask is the padding mask before any patch masking,
+        # only valid in pretraining mode
         output_lens = (~mask).sum(-1)
 
         if self.is_pretraining:
-            return audio_representation, restore_ids, kept_mask
+            patch_lengths = (~patch_padding_mask).sum(-1)
+            return audio_representation, patch_lengths, restore_ids, kept_mask
 
         return audio_representation, output_lens, None
 
@@ -419,12 +429,12 @@ class BeatsEncoder(AbsEncoder):
 
         Args:
             x: [N, L, D], sequence of embeddings.
-            padding_mask: [N, L], padding mask for x seq. 
+            padding_mask: [N, L], padding mask for x seq.
                 True means padded.
         Returns:
-            x_unmasked: [N, l, D], only unmasked portion of 
+            x_unmasked: [N, l, D], only unmasked portion of
                 the input sequence is returned.
-            padding_mask: [N, l], portion of padding mask 
+            padding_mask: [N, l], portion of padding mask
                 corresponding to x_unmasked. True means padded.
             ids_restore: [N, L], restore ids for unshuffling.
                 ids_restore[b,j]  = position of x_unmasked[b,j] in x[b].
@@ -433,31 +443,43 @@ class BeatsEncoder(AbsEncoder):
                 True if the position is kept. Useful for loss computation.
         """
         N, L, D = x.shape  # batch, length, dim
-        
+
         seq_lengths = (~padding_mask).sum(-1)
-        len_keep = (seq_lengths * (1-self.mask_ratio)).round().to(dtype=torch.long)
+        len_keep = (seq_lengths * (1 - self.mask_ratio)).round().to(dtype=torch.long)
         max_len_kept = len_keep.max()
-        
+
         noise = torch.rand(N, L, device=x.device)  # noise in [0, 1]]
         noise[padding_mask] = float("inf")
         ids_shuffle = torch.argsort(noise, dim=1)
         ids_keep = ids_shuffle[:, :max_len_kept]
 
         # make new masks
-        padding_mask=make_pad_mask(lengths=len_keep, traceable=False).to(x.device)
-        kept = torch.cat([~padding_mask, torch.zeros([N, L-max_len_kept],device=x.device,dtype=torch.bool)],dim=1)
-        
+        padding_mask = make_pad_mask(lengths=len_keep, traceable=False).to(x.device)
+        kept = torch.cat(
+            [
+                ~padding_mask,
+                torch.zeros([N, L - max_len_kept], device=x.device, dtype=torch.bool),
+            ],
+            dim=1,
+        )
+
         # sort only kept indices for maintaining same order x
         ids_keep_sorted = ids_keep.clone()
-        ids_keep_sorted=torch.where(padding_mask, torch.tensor(L-1,dtype=torch.long,device=x.device), ids_keep_sorted)
+        ids_keep_sorted = torch.where(
+            padding_mask,
+            torch.tensor(L - 1, dtype=torch.long, device=x.device),
+            ids_keep_sorted,
+        )
         ids_keep_sorted = ids_keep_sorted.sort(dim=1)[0]
-        ids_keep_sorted = torch.where(padding_mask,ids_keep, ids_keep_sorted)
-        
-        ids_shuffle=torch.cat([ids_keep_sorted,ids_shuffle[:,max_len_kept:]],dim=1)
-        ids_restore = torch.argsort(ids_shuffle,dim=1)
-        
-        x_unmasked = torch.gather(x, dim=1, index=ids_keep_sorted.unsqueeze(-1).repeat(1, 1, D))
-        
+        ids_keep_sorted = torch.where(padding_mask, ids_keep, ids_keep_sorted)
+
+        ids_shuffle = torch.cat([ids_keep_sorted, ids_shuffle[:, max_len_kept:]], dim=1)
+        ids_restore = torch.argsort(ids_shuffle, dim=1)
+
+        x_unmasked = torch.gather(
+            x, dim=1, index=ids_keep_sorted.unsqueeze(-1).repeat(1, 1, D)
+        )
+
         # unshuffle
         kept = torch.gather(kept, dim=1, index=ids_restore)
         return x_unmasked, padding_mask, ids_restore, kept
@@ -495,12 +517,14 @@ class BeatsEncoder(AbsEncoder):
             # features is BTC
             padding_mask = self.forward_padding_mask(features, padding_mask)
 
+        patch_padding_mask = None
         restore_ids = None
         kept_mask = None
         if self.is_pretraining:
             assert (
                 max_layer is None
             ), "During pretraining max_layer should be set to None!"
+            patch_padding_mask = padding_mask.clone()
             # kept_mask: 1 - kept, 0 - removed, corresponding to features
             # features, padding_mask will be shortened to only keep the kept positions
             features, padding_mask, restore_ids, kept_mask = self.mask_sequence(
@@ -557,7 +581,7 @@ class BeatsEncoder(AbsEncoder):
         if self.cross_embed_positions is not None:
             features = features + self.cross_embed_positions(features)
 
-        return features, padding_mask, restore_ids, kept_mask
+        return features, padding_mask, restore_ids, kept_mask, patch_padding_mask
 
 
 class BeatsPretrainingPredictor(nn.Module):
@@ -600,9 +624,9 @@ class BeatsPretrainingPredictor(nn.Module):
         if beats_config.relative_position_embedding:
             for i in range(1, beats_config.decoder_layers):
                 del self.decoder_blocks[i].self_attn.relative_attention_bias
-                self.decoder_blocks[i].self_attn.relative_attention_bias = self.decoder_blocks[
-                    0
-                ].self_attn.relative_attention_bias
+                self.decoder_blocks[i].self_attn.relative_attention_bias = (
+                    self.decoder_blocks[0].self_attn.relative_attention_bias
+                )
         self.decoder_norm = nn.LayerNorm(beats_config.decoder_embed_dim)
         self.decoder_pred = nn.Linear(
             beats_config.decoder_embed_dim, beats_config.codebook_vocab_size, bias=True
@@ -613,18 +637,27 @@ class BeatsPretrainingPredictor(nn.Module):
         self.apply(init_bert_params)
         if config.deep_norm:
             logging.info("Deep Norm is applied to pretraining predictor.")
-            deep_norm_beta = math.pow(8 * config.decoder_layers, -1 / 4)
             for i in range(config.decoder_layers):
-                nn.init.xavier_normal_(self.decoder_blocks[i].self_attn.k_proj.weight, gain=1)
+                deep_norm_beta = math.pow(8 * config.decoder_layers, -1 / 4)
+                nn.init.xavier_normal_(
+                    self.decoder_blocks[i].self_attn.k_proj.weight, gain=1
+                )
                 nn.init.xavier_normal_(
                     self.decoder_blocks[i].self_attn.v_proj.weight, gain=deep_norm_beta
                 )
-                nn.init.xavier_normal_(self.decoder_blocks[i].self_attn.q_proj.weight, gain=1)
                 nn.init.xavier_normal_(
-                    self.decoder_blocks[i].self_attn.out_proj.weight, gain=deep_norm_beta
+                    self.decoder_blocks[i].self_attn.q_proj.weight, gain=1
                 )
-                nn.init.xavier_normal_(self.decoder_blocks[i].fc1.weight, gain=deep_norm_beta)
-                nn.init.xavier_normal_(self.decoder_blocks[i].fc2.weight, gain=deep_norm_beta)
+                nn.init.xavier_normal_(
+                    self.decoder_blocks[i].self_attn.out_proj.weight,
+                    gain=deep_norm_beta,
+                )
+                nn.init.xavier_normal_(
+                    self.decoder_blocks[i].fc1.weight, gain=deep_norm_beta
+                )
+                nn.init.xavier_normal_(
+                    self.decoder_blocks[i].fc2.weight, gain=deep_norm_beta
+                )
 
         nn.init.normal_(self.mask_token, std=0.02)
         # init_bert_params take care of below two inits
@@ -1072,7 +1105,9 @@ class MultiheadAttention(nn.Module):
 
         if bidirectional:
             num_buckets = num_buckets // 2
-            relative_buckets = relative_buckets + (relative_positions > 0).to(torch.long) * num_buckets
+            relative_buckets = (
+                relative_buckets + (relative_positions > 0).to(torch.long) * num_buckets
+            )
             relative_positions = torch.abs(relative_positions)
         else:
             relative_positions = -torch.min(
@@ -1099,19 +1134,23 @@ class MultiheadAttention(nn.Module):
 
     def compute_bias(self, query_length, key_length):
         """Compute relative position bias."""
-        device=self.relative_attention_bias.weight.device
-        context_position = torch.arange(query_length, dtype=torch.long,device=device)[:, None]
-        memory_position = torch.arange(key_length, dtype=torch.long,device=device)[None, :]
-        relative_position = memory_position - context_position # [i,j] = j-i
+        device = self.relative_attention_bias.weight.device
+        context_position = torch.arange(query_length, dtype=torch.long, device=device)[
+            :, None
+        ]
+        memory_position = torch.arange(key_length, dtype=torch.long, device=device)[
+            None, :
+        ]
+        relative_position = memory_position - context_position  # [i,j] = j-i
         relative_position_bucket = self._relative_positions_bucket(
             relative_position, bidirectional=True
-        ) #[qlen,klen]
+        )  # [qlen,klen]
         # relative_position_bucket = relative_position_bucket.to(
         #     self.relative_attention_bias.weight.device
         # )
         # [qlen,klen,head_dim]
-        values = self.relative_attention_bias(relative_position_bucket) 
-        values = values.permute([2, 0, 1]) # [head_dim,qlen,klen]
+        values = self.relative_attention_bias(relative_position_bucket)
+        values = values.permute([2, 0, 1])  # [head_dim,qlen,klen]
         return values
 
     def forward(
@@ -1245,7 +1284,7 @@ class MultiheadAttention(nn.Module):
             )
 
         if saved_state is not None:
-            # saved states are stored with shape 
+            # saved states are stored with shape
             # (bsz, num_heads, seq_len, head_dim)
             if "prev_key" in saved_state:
                 _prev_key = saved_state["prev_key"]
@@ -1306,7 +1345,7 @@ class MultiheadAttention(nn.Module):
 
         if self.add_zero_attn:
             assert v is not None
-            src_len =  src_len+ 1
+            src_len = src_len + 1
             k = torch.cat([k, k.new_zeros((k.size(0), 1) + k.size()[2:])], dim=1)
             v = torch.cat([v, v.new_zeros((v.size(0), 1) + v.size()[2:])], dim=1)
             if attn_mask is not None:
@@ -1350,7 +1389,9 @@ class MultiheadAttention(nn.Module):
                 if is_torch_v25_to_v26:
                     attn_mask = attn_mask.unsqueeze(1)  # B x 1 x tgtlen x srclen
                 else:
-                    attn_mask = attn_mask.unsqueeze(1).expand(-1,self.num_heads, -1, -1)
+                    attn_mask = attn_mask.unsqueeze(1).expand(
+                        -1, self.num_heads, -1, -1
+                    )
                     attn_mask = attn_mask.contiguous().view(
                         bsz * self.num_heads, tgt_len, src_len
                     )
@@ -1358,7 +1399,9 @@ class MultiheadAttention(nn.Module):
             if position_bias is not None:
                 attn_mask_rel_pos = position_bias
                 if self.gru_rel_pos == 1:
-                    query_layer = q.contiguous().view(bsz, self.num_heads, tgt_len, self.q_head_dim)
+                    query_layer = q.contiguous().view(
+                        bsz, self.num_heads, tgt_len, self.q_head_dim
+                    )
                     _B, _H, _L, __ = query_layer.size()
                     gate_a, gate_b = torch.sigmoid(
                         self.grep_linear(query_layer)
@@ -1371,15 +1414,23 @@ class MultiheadAttention(nn.Module):
                         gate_a_1.contiguous().view(bsz * self.num_heads, tgt_len, 1)
                         * position_bias
                     )
-                attn_mask_rel_pos = attn_mask_rel_pos.contiguous().view(bsz * self.num_heads, tgt_len, src_len).contiguous()
-                
+                attn_mask_rel_pos = (
+                    attn_mask_rel_pos.contiguous()
+                    .view(bsz * self.num_heads, tgt_len, src_len)
+                    .contiguous()
+                )
+
                 if is_torch_v25_to_v26:
                     attn_mask_rel_pos = attn_mask_rel_pos.unsqueeze(1)
-                    attn_mask_rel_pos = attn_mask_rel_pos.view(bsz, self.num_heads , tgt_len, src_len).contiguous()
+                    attn_mask_rel_pos = attn_mask_rel_pos.view(
+                        bsz, self.num_heads, tgt_len, src_len
+                    ).contiguous()
 
                 if attn_mask is not None:
                     attn_mask_ = torch.zeros_like(attn_mask) + attn_mask_rel_pos
-                    attn_mask_ = attn_mask_.masked_fill(attn_mask.logical_not(), float("-inf"))
+                    attn_mask_ = attn_mask_.masked_fill(
+                        attn_mask.logical_not(), float("-inf")
+                    )
                     attn_mask = attn_mask_
                 else:
                     attn_mask = attn_mask_rel_pos
@@ -1412,7 +1463,7 @@ class MultiheadAttention(nn.Module):
 
         if attn_mask is not None:
             attn_mask = attn_mask.unsqueeze(0)
-            attn_weights = attn_weights+ attn_mask
+            attn_weights = attn_weights + attn_mask
 
         if key_padding_mask is not None:
             # don't attend to padding symbols
@@ -1490,7 +1541,7 @@ class MultiheadAttention(nn.Module):
         src_len: int,
         static_kv: bool,
     ) -> Optional[torch.Tensor]:
-        # NOTE(shikhar): Deepspeed trainer might not work with this 
+        # NOTE(shikhar): Deepspeed trainer might not work with this
         # code path due to the float calls
         # saved key padding masks have shape (bsz, seq_len)
         if prev_key_padding_mask is not None and static_kv:
