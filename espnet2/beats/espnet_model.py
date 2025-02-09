@@ -89,7 +89,7 @@ class BeatsPretrainModel(AbsESPnetModel):
         logits = self.decoder(unmasked_patch_emb, target_lengths, restore_ids)
 
         loss, stats = self._calc_beats_loss(
-            logits, ~kept_mask, target - 1
+            logits, target - 1, ~kept_mask, speech_lengths
         )  # target - 1 because of unk token at 0th position
 
         # force_gatherable: to-device and to-tensor if scalar for DataParallel
@@ -118,14 +118,16 @@ class BeatsPretrainModel(AbsESPnetModel):
     def _calc_beats_loss(
         self,
         logits: torch.Tensor,
-        masked: torch.Tensor,
         target: torch.Tensor,
+        masked: torch.Tensor,
+        speech_lengths: torch.Tensor,
     ):
         """Compute loss for Beats model.
         Args:
             logits: (Batch, n_patch, codebook_size)
-            masked: (Batch, n_patch) -- True for masked, False for unmasked
             target: (Batch, n_patch)
+            masked: (Batch, n_patch) -- True for masked, False for unmasked
+            speech_lengths: (Batch, )
         Returns:
             loss: scalar
             acc_mask: scalar
@@ -135,19 +137,19 @@ class BeatsPretrainModel(AbsESPnetModel):
         loss = self.loss_function(logits, target)
         loss = loss * masked  # do not count loss for unmasked patches
         loss = loss.sum()
-        # generate a relevant mask from target_lengths
-        # relevant_positions = torch.arange(target.shape[1]).unsqueeze(0).repeat(batch_size, 1).to(target.device) < target_lengths.unsqueeze(1)
-        # masked = masked & relevant_positions
-        # unmasked = unmasked & relevant_positions
+        
+        padding_mask = make_pad_mask(speech_lengths, traceable=False)
+        unmasked = ~masked & ~padding_mask # not masked and not padded
+        masked = masked & ~padding_mask # masked and not padded, no-op
+        
         weight = masked.sum().item() + 1e-10
         loss = loss / weight  # normalize by number of masked patches
         preds=logits.argmax(dim=1)
         with torch.no_grad():
             corr_masked = ((preds == target) * masked).sum().item()
-            corr_unmask = ((preds == target) * (~masked)).sum().item()
+            corr_unmask = ((preds == target) * unmasked).sum().item()
 
-            # TODO(shikhar): change if input speech lengths are different
-            count_unmask = (~masked).sum().item()
+            count_unmask = unmasked.sum().item()
             count_masked = masked.sum().item()
         acc_m = corr_masked / (count_masked + 1e-10)
         acc_u = corr_unmask / (count_unmask + 1e-10)
@@ -155,7 +157,7 @@ class BeatsPretrainModel(AbsESPnetModel):
         vocab_cov_pred = n_uniq_pred / logits.shape[1]
 
         n_uniq_pred_masked = preds[masked].unique().shape[0]
-        n_uniq_pred_unmask = preds[~masked].unique().shape[0]
+        n_uniq_pred_unmask = preds[unmasked].unique().shape[0]
         
         n_uniq_tgt_masked = target[masked].unique().shape[0]
         n_uniq_tgt = target.unique().shape[0]
@@ -164,7 +166,7 @@ class BeatsPretrainModel(AbsESPnetModel):
         probs = torch.nn.functional.softmax(logits, dim=1)
         entropy = -(probs * probs.log()).sum(dim=1).mean().item()
         
-        # log as floats
+        # Note(shikhar): Some of these are redundant
         stats_dict = dict(
             loss=loss.detach(),
             acc=acc_m,
