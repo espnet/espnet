@@ -30,9 +30,9 @@ try:
         Wav2Vec2ConformerEncoder,
     )
 
-    is_transformers_available = True
-except ImportError:
-    is_transformers_available = False
+    transformers_import_error = None
+except ImportError as e:
+    transformers_import_error = e
 
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
@@ -187,13 +187,14 @@ class BeatsEncoder(AbsEncoder):
         # 4. No checkpoint and user-provided config: Use user-provided config
         if adapter_config or add_positional_information:
             # We need transformers library for adapter and positional embeddings
-            if not is_transformers_available:
+            if transformers_import_error:
                 raise ImportError(
                     "`transformers` is not available. Please install it "
                     " via `pip install transformers` or"
                     " `cd /path/to/espnet/tools && "
                     ". ./activate_python.sh"
                     " && ./installers/install_transformers.sh`."
+                    f"The original error was: {transformers_import_error}"
                 )
         config = BeatsConfig()  # Default config
         if beats_ckpt_path and beats_config:
@@ -413,40 +414,53 @@ class BeatsEncoder(AbsEncoder):
         return audio_representation, output_lens, None
 
     def mask_sequence(self, x, padding_mask):
+        """Masks the input embedding sequence x for MLM style training.
+        Needs self.mask_ratio to be set.
+
+        Args:
+            x: [N, L, D], sequence of embeddings.
+            padding_mask: [N, L], padding mask for x seq. 
+                True means padded.
+        Returns:
+            x_unmasked: [N, l, D], only unmasked portion of 
+                the input sequence is returned.
+            padding_mask: [N, l], portion of padding mask 
+                corresponding to x_unmasked. True means padded.
+            ids_restore: [N, L], restore ids for unshuffling.
+                ids_restore[b,j]  = position of x_unmasked[b,j] in x[b].
+                No guarantees for masked positions.
+            kept: [N, L], binary mask for the unmasked(kept) positions.
+                True if the position is kept. Useful for loss computation.
         """
-        Perform per-sample random masking by per-sample shuffling.
-        Per-sample shuffling is done by argsort random noise.
-        x: [N, L, D], sequence
-        padding_mask: [N, L], padding mask for x seq.
-        """
-        # TODO: !!This function is tested for sequences of full length only!!!
         N, L, D = x.shape  # batch, length, dim
-        len_keep = int(L * (1 - self.mask_ratio))
-
-        noise = torch.rand(N, L, device=x.device)  # noise in [0, 1]]
-        # TODO: padded positions should be last, set their noise to inf
-
-        # sort noise for each sample
-        ids_shuffle = torch.argsort(
-            noise, dim=1
-        )  # ascend: small is keep, large is remove
-
-        # keep the first subset in order
-        ids_keep = ids_shuffle[:, :len_keep]
-        ids_keep = ids_keep.sort(dim=1)[0]  # sort for keeping order
-        ids_restore = torch.argsort(torch.cat([ids_keep,ids_shuffle[:,len_keep:]],dim=1),dim=1)
         
-        x_unmasked = torch.gather(x, dim=1, index=ids_keep.unsqueeze(-1).repeat(1, 1, D))
+        seq_lengths = (~padding_mask).sum(-1)
+        len_keep = (seq_lengths * (1-self.mask_ratio)).round().to(dtype=torch.long)
+        max_len_kept = len_keep.max()
+        
+        noise = torch.rand(N, L, device=x.device)  # noise in [0, 1]]
+        noise[padding_mask] = float("inf")
+        ids_shuffle = torch.argsort(noise, dim=1)
+        ids_keep = ids_shuffle[:, :max_len_kept]
 
-        # generate the binary mask: 1 is keep, 0 is remove
-        mask = torch.zeros([N, L], device=x.device, dtype=torch.bool)
-        mask[:, :len_keep] = True
-        # unshuffle to get the binary mask
-        mask = torch.gather(mask, dim=1, index=ids_restore)
-
-        # kept positions now occupy first len_keep positions
-        padding_mask = padding_mask[:, :len_keep]
-        return x_unmasked, padding_mask, ids_restore, mask
+        # make new masks
+        padding_mask=make_pad_mask(lengths=len_keep, traceable=False).to(x.device)
+        kept = torch.cat([~padding_mask, torch.zeros([N, L-max_len_kept],device=x.device,dtype=torch.bool)],dim=1)
+        
+        # sort only kept indices for maintaining same order x
+        ids_keep_sorted = ids_keep.clone()
+        ids_keep_sorted=torch.where(padding_mask, torch.tensor(L-1,dtype=torch.long,device=x.device), ids_keep_sorted)
+        ids_keep_sorted = ids_keep_sorted.sort(dim=1)[0]
+        ids_keep_sorted = torch.where(padding_mask,ids_keep, ids_keep_sorted)
+        
+        ids_shuffle=torch.cat([ids_keep_sorted,ids_shuffle[:,max_len_kept:]],dim=1)
+        ids_restore = torch.argsort(ids_shuffle,dim=1)
+        
+        x_unmasked = torch.gather(x, dim=1, index=ids_keep_sorted.unsqueeze(-1).repeat(1, 1, D))
+        
+        # unshuffle
+        kept = torch.gather(kept, dim=1, index=ids_restore)
+        return x_unmasked, padding_mask, ids_restore, kept
 
     def extract_features(
         self,
@@ -636,10 +650,7 @@ class BeatsPretrainingPredictor(nn.Module):
             x, dim=1, index=restore_ids.unsqueeze(-1).repeat(1, 1, x.shape[2])
         )
 
-        # x = x + self.decoder_pos_embed TODO
-        x = self.decoder_norm(x)
         pos_bias = None
-
         # ===========================#
         # B x T x D -> T x B x D
         x = x.transpose(0, 1)
@@ -653,6 +664,7 @@ class BeatsPretrainingPredictor(nn.Module):
         x = x.transpose(0, 1)
         # T x B x D -> B x T x D
         # ===========================#
+        x = self.decoder_norm(x)
         pred = self.decoder_pred(x)
         return pred
 
