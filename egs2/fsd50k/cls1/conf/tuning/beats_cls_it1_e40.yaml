@@ -4,7 +4,7 @@ init: xavier_normal
 # Need large batch size to get good estimate
 batch_type: numel
 batch_bins: 3000000
-max_epoch: 20
+max_epoch: 40
 
 accum_grad: 1
 grad_clip: 1
@@ -25,9 +25,9 @@ scheduler_conf:
 patience: none
 best_model_criterion:
 -   - valid
-    - loss
-    - min
-keep_nbest_models: 1
+    - mAP
+    - max
+keep_nbest_models: 5
 use_amp: false  # whether to use automatic mixed precision
 num_att_plot: 0
 num_workers: 8 # dataloader workers
@@ -41,7 +41,7 @@ encoder: beats
 encoder_conf:
     # Please download the BEATs model from https://github.com/microsoft/unilm/tree/master/beats
     # (iter3+20k) and update the path below
-    beats_ckpt_path: models/BEATs/BEATs_iter3_plus_AS20K.pt
+    beats_ckpt_path: models/BEATs/BEATs_iter1.pt
     beats_config:
         layer_wise_gradient_decay_ratio: 0.3
         encoder_layerdrop: 0.1

@@ -31,8 +31,8 @@ mkdir -p "${storage_dir}"
     --nj 10 \
     --label_fold_length 200 \
     --max_wav_duration "${max_wav_duration}" \
-    --inference_nj 1 \
-    --inference_model valid.mAP.best.pth \
+    --inference_nj 16 \
+    --inference_model valid.mAP.ave.pth \
     --cls_config "${cls_config}" \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
