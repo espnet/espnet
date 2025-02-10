@@ -76,9 +76,9 @@ class DeepSpeedTrainer(Trainer):
         ckpt_path = output_dir / f"checkpoint_{ckpt_num}"
         logging.info(f"Resume training from {ckpt_path}")
 
-        _, clinet_states = model.load_checkpoint(ckpt_path)
+        _, client_states = model.load_checkpoint(ckpt_path)
 
-        reporter.load_state_dict(clinet_states["reporter"])
+        reporter.load_state_dict(client_states["reporter"])
 
     @classmethod
     @typechecked

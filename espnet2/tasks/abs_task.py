@@ -1534,9 +1534,11 @@ class AbsTask(ABC):
                         name=name,
                         dir=str(output_dir),
                         id=args.wandb_id,
-                        resume=args.resume,
+                        resume='allow' if args.resume else 'never',
                     )
-                    wandb.config.update(args)
+                    # allow_val_change allows change of master port 
+                    # when previous run with same name had a different one
+                    wandb.config.update(args, allow_val_change=args.resume)
                 else:
                     # wandb also supports grouping for distributed training,
                     # but we only log aggregated data,
