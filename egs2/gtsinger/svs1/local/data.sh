@@ -17,10 +17,6 @@ SECONDS=0
 stage=1
 stop_stage=100
 fs=24000
-g2p=pypinyin_g2p_phone_without_prosody
-
-#--    raise NotImplementedError(f"Not supported: g2p_type={g2p_type}")
-#--    NotImplementedError: Not supported: g2p_type=None
 
 log "$0 $*"
 
@@ -33,11 +29,9 @@ fi
 
 mkdir -p ${GTSINGER}
 
-train_set="tr_no_dev" #not include the development set, solely used for training the model
-train_dev="dev"       #development/validation set, used to adjust the model's performance
-recog_set="eval"      #evaluation/test set, used for final model testing
-test_sets="dev eval"
-
+train_set="tr_no_dev"
+train_dev="dev"      
+recog_set="eval"     
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "stage 0: Data Download"

@@ -868,7 +868,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ] && ! [[ " ${skip_stages} " =~ [
 
     # shellcheck disable=SC2002,SC2068,SC2005
     for lm_txt in ${lm_train_text[@]}; do
-        suffix="${basename "${lm_txt}"}"
+        suffix="$(basename "${lm_txt}")"
         suffix="${suffix//text/}"
         <"${lm_txt}" awk -v suffix="${suffix}" ' { if( NF != 1 ) {$1=$1 suffix; print $0; }} '
     done > "${data_feats}/lm_train.txt"
