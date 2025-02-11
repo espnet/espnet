@@ -15,6 +15,7 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Set, Tuple, Un
 import humanfriendly
 import numpy as np
 import torch
+import torch.backends
 import torch.multiprocessing
 import torch.nn
 import torch.optim
@@ -1344,6 +1345,9 @@ class AbsTask(ABC):
             torch.backends.cuda.matmul.allow_tf32 = True
             torch.backends.cudnn.allow_tf32 = True
             logging.info(f"Using TensorFloat32 at the cost of matmul precision")
+        else:
+            torch.backends.cuda.matmul.allow_tf32 = False
+            torch.backends.cudnn.allow_tf32 = False
 
         if (
             args.collect_stats

@@ -137,6 +137,9 @@ class SoundScpReader(collections.abc.Mapping):
 
     def __getitem__(self, key) -> Tuple[int, np.ndarray]:
         wavs = self.data[key]
+        if type(wavs) == str and wavs == "None":
+            # NOTE(jiatong): for missing audio case
+            return None, None
 
         array, rate = soundfile_read(
             wavs,
