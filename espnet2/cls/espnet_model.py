@@ -14,6 +14,7 @@ from typeguard import typechecked
 
 try:
     from torcheval.metrics import functional as EvalFunction
+    from torchmetrics.classification import MultilabelPrecisionRecallCurve
 
     is_torcheval_available = True
 except ImportError:
@@ -60,7 +61,8 @@ class ESPnetClassificationModel(AbsESPnetModel):
         decoder: AbsDecoder,
         classification_type="multi-class",
         lsm_weight: float = 0.0,
-        mixup_augmentation: bool = False,
+        mixup_probability: float = 0.0,
+        log_epoch_metrics: bool = False,
     ):
         super().__init__()
         if not is_torcheval_available:
@@ -91,9 +93,10 @@ class ESPnetClassificationModel(AbsESPnetModel):
                 "Valid classification types are 'multi-label' and 'multi-class'"
             )
         self.mixup_augmentation = None
-        if mixup_augmentation:
-            self.mixup_augmentation = MixupAugment(mixup_probability=1.0)
+        if mixup_probability > 0.0:
+            self.mixup_augmentation = MixupAugment(mixup_probability=mixup_probability)
         self.metric_functions = self.setup_metrics_()
+        self.log_epoch_metrics = log_epoch_metrics
 
     def forward(
         self,
@@ -155,11 +158,35 @@ class ESPnetClassificationModel(AbsESPnetModel):
                 if self.classification_type == "multi-class"
                 else onehot_
             )
-            val = metric_fn(pred, target).detach()
+            if metric_name != "mAP":
+                val = metric_fn(pred, target).detach()
+            else:
+                val = metric_fn(
+                    pred=pred,
+                    tgt_onehot=target,
+                    reset_pr_curve=self.training or not self.log_epoch_metrics,
+                ).detach()
             stats[metric_name] = val
 
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
         return loss, stats, weight
+
+    def validation_epoch_end_(self):
+        if self.training:
+            logger.warning("Validation epoch end called during training.")
+            return None
+        stats_dict = None
+        if self.log_epoch_metrics:
+            epoch_mAP = self.metric_functions["mAP"](compute_epoch_stats=True).item()
+            stats_dict = {"epoch_mAP": epoch_mAP}
+        self.pr_curve_generator.reset()
+        return stats_dict
+
+    def training_epoch_end_(self):
+        if not self.training:
+            logger.warning("Training epoch end called during validation.")
+            return None
+        self.pr_curve_generator.reset()
 
     def score(
         self, speech: torch.Tensor, speech_lengths: Optional[torch.Tensor] = None
@@ -263,6 +290,9 @@ class ESPnetClassificationModel(AbsESPnetModel):
         return feats, feats_lengths
 
     def setup_metrics_(self):
+        self.pr_curve_generator = MultilabelPrecisionRecallCurve(
+            num_labels=self.vocab_size
+        )
         if self.classification_type == "multi-class":
             return {
                 "acc": EvalFunction.multiclass_accuracy,
@@ -277,9 +307,8 @@ class ESPnetClassificationModel(AbsESPnetModel):
                 "acc": partial(EvalFunction.multilabel_accuracy, criteria="hamming"),
                 # acc is usually high if data is imabalanced
                 "mAP": partial(
-                    EvalFunction.multilabel_auprc,
-                    average="macro",
-                    num_labels=self.vocab_size,
+                    mean_average_precision_score,
+                    pr_curve_generator=self.pr_curve_generator,
                 ),
             }
 
@@ -321,3 +350,48 @@ def label_to_onehot(
         raise ValueError(
             "Valid classification types are 'multi-label' and 'multi-class'"
         )
+
+
+def mean_average_precision_score(
+    pred=None,
+    tgt_onehot=None,
+    pr_curve_generator=None,
+    compute_epoch_stats=False,
+    reset_pr_curve=False,
+):
+    """Calculates mean of average precision scores per label.
+    https://scikit-learn.org/stable/modules/generated/sklearn.metrics.average_precision_score.html
+
+    Args:
+        pred: (Batch, n_classes)
+        tgt_onehot: (Batch, n_classes)
+        pr_curve_generator: MultilabelPrecisionRecallCurve
+        compute_epoch_stats: bool
+        reset_pr_curve: bool
+    Returns:
+        avg_precision: tensor of a single float
+    """
+    assert pr_curve_generator is not None
+    assert compute_epoch_stats or (pred is not None and tgt_onehot is not None)
+
+    def _compute_avg_precision(precision, recall):
+        n_labels = len(precision)
+        avg_precision = 0
+        for i in range(n_labels):
+            precision_i = torch.flip(precision[i], (0,))
+            delta_recall_i = torch.diff(torch.flip(recall[i], (0,)))
+            avg_precision_i = (precision_i[1:] * delta_recall_i).sum()
+            avg_precision += avg_precision_i
+        avg_precision /= n_labels
+        return avg_precision
+
+    if compute_epoch_stats:
+        precision, recall, _ = pr_curve_generator.compute()
+        pr_curve_generator.reset()  # always reset after computing epoch stats
+    else:
+        tgt_onehot = tgt_onehot.long()
+        precision, recall, _ = pr_curve_generator(preds=pred, target=tgt_onehot)
+        if reset_pr_curve:
+            pr_curve_generator.reset()  # reset after each batch in training mode
+
+    return _compute_avg_precision(precision, recall)

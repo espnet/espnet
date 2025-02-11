@@ -62,5 +62,5 @@ encoder_conf:
 
 model_conf:
     classification_type: multi-label
-    mixup_augmentation: true
+    mixup_probability: 1.0
     lsm_weight: 0.0  # label smoothing weight, per label
