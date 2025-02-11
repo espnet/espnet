@@ -85,8 +85,3 @@ Chinese/ZH-Alto-1/Pharyngeal/听海/Pharyngeal_Group/0011
 Chinese/ZH-Alto-1/Pharyngeal/我好想你/Pharyngeal_Group/0008
 ['s', 'i', 'n', 'ian', 'AP', 'uo', 'h', 'ai', 'iao', 'j', 'i', 'i']
 ['0.0 0.29 s', '0.29 1.08 i', '1.08 1.21 n', '1.21 2.59 ian', '2.59 3.08 AP', '3.08 3.54 uo', '3.54 3.73 h', '3.73 4.5 ai', '4.5 5.39 iao', '5.39 5.607 j', '5.607 5.97 i', '5.97 6.77 i']
-
-
-
-
-
