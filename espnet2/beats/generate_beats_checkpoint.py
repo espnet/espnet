@@ -1,15 +1,4 @@
-"""Generate a checkpoint for BEATs Encoder from BEATs pretraining model checkpoint.
-
-Usage:
-    python generate_beats_checkpoint.py \
-        --espnet_model_checkpoint_path espnet_model_checkpoint_path \
-        --espnet_model_config_path espnet_model_config_path \
-        --output_path output_path \
-        [--deepspeed_ckpt]
-    Deepspeed checkpoint is optional. If the checkpoint is generated using Deepspeed, 
-    then pass --deepspeed_ckpt.
-    We consider keys inside the "module" key for deepspeed checkpoints.
-"""
+"""Generate a checkpoint for Encoder from Pretraining model checkpoint."""
 
 import argparse
 import logging
@@ -17,7 +6,6 @@ import sys
 import torch
 import os
 import yaml
-
 
 from espnet.utils.cli_utils import get_commandline_args
 
@@ -37,12 +25,11 @@ def generate_beats_config(config):
 
 
 def generate_beats_encoder_checkpoint(
-    espnet_state_dict: dict,
-    deepspeed_ckpt: bool = False,
+    espnet_state_dict: dict, deepspeed_checkpoint: bool = False
 ):
-    """Generate a checkpoint for Encoder from Pretraining model checkpoint."""
+    """Extract encoder weights from ESPnet checkpoint."""
     model_state_dict = {}
-    if deepspeed_ckpt:
+    if deepspeed_checkpoint:
         espnet_state_dict = espnet_state_dict["module"]
     for key, value in espnet_state_dict.items():
         if key.startswith("encoder."):
@@ -50,43 +37,78 @@ def generate_beats_encoder_checkpoint(
     return model_state_dict
 
 
+def average_checkpoints(checkpoint_paths, deepspeed_checkpoint=False):
+    """Average multiple checkpoints."""
+    avg_state_dict = None
+    num_checkpoints = len(checkpoint_paths)
+    expected_keys = None
+
+    for checkpoint_path in checkpoint_paths:
+        state_dict = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
+        encoder_state_dict = generate_beats_encoder_checkpoint(
+            state_dict, deepspeed_checkpoint
+        )
+
+        if avg_state_dict is None:
+            avg_state_dict = {k: v.clone() for k, v in encoder_state_dict.items()}
+            expected_keys = set(encoder_state_dict.keys())
+        else:
+            assert (
+                set(encoder_state_dict.keys()) == expected_keys
+            ), f"Checkpoint {checkpoint_path} has mismatched keys!"
+
+            for k in avg_state_dict:
+                avg_state_dict[k] += encoder_state_dict[k]
+
+    for k in avg_state_dict:
+        avg_state_dict[k] /= num_checkpoints
+
+    return avg_state_dict
+
+
 def read_and_write_checkpoint(
-    espnet_model_checkpoint_path: str,
+    espnet_model_checkpoint_paths: list,
     espnet_model_config_path: str,
     output_path: str,
-    deepspeed_ckpt: bool,
+    deepspeed_checkpoint: bool,
 ):
-    """Read and write checkpoint."""
-    logger.info(f"Reading checkpoint from {espnet_model_checkpoint_path}")
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    espnet_state_dict = torch.load(
-        espnet_model_checkpoint_path, map_location="cpu", weights_only=False
+    """Read and write checkpoint, with optional averaging."""
+    num_checkpoints = len(espnet_model_checkpoint_paths)
+    output_path = os.path.join(
+        os.path.dirname(output_path),
+        f"{num_checkpoints}_avg{os.path.basename(output_path)}",
     )
-    encoder_state_dict = generate_beats_encoder_checkpoint(
-        espnet_state_dict, deepspeed_ckpt
+    # Prepare checkpoint
+    logger.info(f"Reading and Averaging {num_checkpoints} checkpoints.")
+    encoder_state_dict = average_checkpoints(
+        espnet_model_checkpoint_paths, deepspeed_checkpoint
     )
+    # Prepare config
     logger.info(f"Reading config from {espnet_model_config_path}")
     with open(espnet_model_config_path, "r") as f:
         config = yaml.safe_load(f)
     encoder_config = generate_beats_config(config)
     logger.info(f"Writing checkpoint to {output_path}")
+    # Write
     checkpoint = {"model": encoder_state_dict, "cfg": encoder_config}
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
     torch.save(checkpoint, output_path)
 
 
 def get_cmdline_parser():
     parser = argparse.ArgumentParser(
-        description="Generate a checkpoint for Encoder from Pretraining model checkpoint",
+        description="Generate a checkpoint for Encoder from Pretraining model checkpoint.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
-        "--espnet_model_checkpoint_path",
+        "--espnet_model_checkpoint_paths",
         type=str,
+        nargs="+",
         required=True,
-        help="Path to ESPnet model checkpoint",
+        help="Paths to ESPnet model checkpoints. If multiple paths are provided, they will be averaged.",
     )
     parser.add_argument(
-        "--deepspeed_ckpt",
+        "--deepspeed_checkpoint",
         action="store_true",
         default=False,
         help="Is DeepSpeed checkpoint?",
