@@ -187,6 +187,7 @@ class BeatsTask(AbsTask):
             **args.encoder_conf,
         )
         predictor = BeatsPretrainingPredictor(beats_config=config)
+        args.encoder_conf["beats_config"] = config  # put it back
         kwargs = {"encoder": encoder, "decoder": predictor}
 
         model = model_class(
@@ -208,7 +209,7 @@ class BeatsTokenizerTask(BeatsTask):
 
         group = parser.add_argument_group(description="Beats Tokenizer Task related")
         group.add_argument("--beats_teacher_ckpt_path", type=str, default=None)
-    
+
     @classmethod
     @typechecked
     def build_collate_fn(cls, args: argparse.Namespace, train: bool) -> Callable[
@@ -279,6 +280,7 @@ class BeatsTokenizerTask(BeatsTask):
             teacher=teacher,
             **args.model_conf,
         )
+        args.encoder_conf["tokenizer_config"] = config  # put it back
         # 4. Initialize
         if args.init is not None:
             initialize(model, args.init)
