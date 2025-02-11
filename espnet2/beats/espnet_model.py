@@ -87,7 +87,7 @@ class BeatsPretrainModel(AbsESPnetModel):
 
         # target (Batch, n_patch)
         # logits (Batch, n_patch, codebook_size)
-        logits = self.decoder(unmasked_patch_emb, target_lengths, restore_ids)
+        logits = self.decoder(unmasked_patch_emb, patch_len, restore_ids)
 
         loss, stats = self._calc_beats_loss(
             logits, target - 1, ~kept_mask, patch_len

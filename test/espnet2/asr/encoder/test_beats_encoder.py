@@ -4,7 +4,6 @@ from packaging.version import parse as V
 import time
 
 from espnet2.asr.encoder.beats_encoder import (
-    BeatsConfig,
     BeatsEncoder,
     BeatsPretrainingPredictor,
     MultiheadAttention,
@@ -32,7 +31,9 @@ def test_override_beats_config():
 @pytest.mark.timeout(30)
 @pytest.mark.parametrize("downsampling_rate", [1, 2])
 @pytest.mark.parametrize("use_weighted_representation", [False, True])
-@pytest.mark.parametrize("add_positional_information, max_positions", [(False, None), (True, 12800)])
+@pytest.mark.parametrize(
+    "add_positional_information, max_positions", [(False, None), (True, 12800)]
+)
 def test_forward_pass_beats_encoder(
     downsampling_rate,
     use_weighted_representation,
@@ -78,7 +79,9 @@ def test_forward_pass_beats_encoder(
 @pytest.mark.timeout(30)
 @pytest.mark.parametrize("downsampling_rate", [1, 2])
 @pytest.mark.parametrize("use_weighted_representation", [False, True])
-@pytest.mark.parametrize("add_positional_information, max_positions", [(False, None), (True, 12800)])
+@pytest.mark.parametrize(
+    "add_positional_information, max_positions", [(False, None), (True, 12800)]
+)
 def test_backward_pass_beats_encoder(
     downsampling_rate,
     use_weighted_representation,
@@ -116,7 +119,7 @@ def test_forward_pass_pretraining_beats_encoder():
     )
     x = torch.randn((2, 32_000))  # B,T
     x_lens = torch.LongTensor([16_000, 32_000])
-    output_rep, restore_ids, kept_mask = beats_model(x, x_lens)
+    output_rep, patch_len, restore_ids, kept_mask = beats_model(x, x_lens)
 
     # Check output representation
     assert (
@@ -127,6 +130,7 @@ def test_forward_pass_pretraining_beats_encoder():
         output_rep.size(1) == correct_length
     ), f"Representation length should be {correct_length}. It is {output_rep.size(1)}"
     assert output_rep.size(2) == 768, f"Output dim should be 768"
+    assert tuple(patch_len.tolist()) == (50, 96)
 
     assert kept_mask.shape == (
         2,
@@ -152,7 +156,7 @@ def test_backward_pass_pretraining_beats_encoder():
     )
     x = torch.randn((2, 32_000), requires_grad=True)  # B,T,1
     x_lens = torch.LongTensor([16_000, 32_000])
-    output_rep, restore_ids, kept_mask = beats_model(x, x_lens)
+    output_rep, patch_len, restore_ids, kept_mask = beats_model(x, x_lens)
     output_rep.sum().backward()
 
 
@@ -203,7 +207,9 @@ def test_backward_pass_beats_pretraining_predictor():
 @pytest.mark.parametrize("has_relative_attention_bias", [True, False])
 @pytest.mark.parametrize("gru_rel_pos", [True, False])
 @pytest.mark.parametrize("variable_length", [True, False])
-def test_flash_attn(key_padding_mask,has_relative_attention_bias, gru_rel_pos, variable_length):
+def test_flash_attn(
+    key_padding_mask, has_relative_attention_bias, gru_rel_pos, variable_length
+):
     if not is_torch_2_plus or not torch.cuda.is_available():
         return
     attn_module = (
@@ -268,16 +274,18 @@ def test_mask_sequence_no_padding():
     N, L, D = 3, 20, 4
     x = torch.randn(N, L, D)
     padding_mask = torch.zeros(N, L, dtype=torch.bool)  # No padding
-    x_unmasked, padding_mask, ids_restore, kept = beats_model.mask_sequence(x, padding_mask)
-    
+    x_unmasked, padding_mask, ids_restore, kept = beats_model.mask_sequence(
+        x, padding_mask
+    )
+
     num_keep = int(L * (1 - beats_model.mask_ratio))
     # match shapes
-    assert x_unmasked.shape==(N, num_keep, D)
-    assert padding_mask.shape== (N, num_keep)
-    assert ids_restore.shape== (N, L)
-    assert kept.shape== (N, L)
-    
-    # ensure correct num of tokens are masked, 
+    assert x_unmasked.shape == (N, num_keep, D)
+    assert padding_mask.shape == (N, num_keep)
+    assert ids_restore.shape == (N, L)
+    assert kept.shape == (N, L)
+
+    # ensure correct num of tokens are masked,
     # for full length sequences
     num_unmasked = (kept).sum(dim=1)
     assert torch.all(num_unmasked == num_keep)
@@ -299,12 +307,14 @@ def test_mask_sequence_ids_restore(variable_seq_len):
         padding_mask[0, 15:] = True
         padding_mask[1, 10:] = True
         padding_mask[2, 5:] = True
-        padding_mask[3, 20:] = True
+        padding_mask[3, 15:] = True
     x_unmasked, _, ids_restore, kept = beats_model.mask_sequence(x, padding_mask)
-    
+
     # Restore sequence
-    restore_extra_len = L-x_unmasked.shape[1]
-    x_restored = torch.cat([x_unmasked, torch.zeros_like(x[:,:restore_extra_len,:])], dim=1)
+    restore_extra_len = L - x_unmasked.shape[1]
+    x_restored = torch.cat(
+        [x_unmasked, torch.zeros_like(x[:, :restore_extra_len, :])], dim=1
+    )
     x_restored = torch.gather(
         x_restored, dim=1, index=ids_restore.unsqueeze(-1).repeat(1, 1, D)
     )
@@ -313,29 +323,34 @@ def test_mask_sequence_ids_restore(variable_seq_len):
 
 
 def test_mask_sequence_var_length():
-    beats_config={"encoder_layers": 1, "mask_ratio": 0.75}
+    beats_config = {"encoder_layers": 1, "mask_ratio": 0.75}
     beats_model = BeatsEncoder(
         input_size=1,
         beats_config=beats_config,
         is_pretraining=True,
     )
     N, L, D = 3, 20, 4
-    L1,L2,L3 = 20, 15, 10
+    L1, L2, L3 = 15, 20, 10
     x = torch.randn(N, L, D)
     padding_mask = torch.zeros(N, L, dtype=torch.bool)
     padding_mask[0, L1:] = True
     padding_mask[1, L2:] = True
     padding_mask[2, L3:] = True
-    x_unmasked, padding_mask, ids_restore, kept = beats_model.mask_sequence(x, padding_mask)
+    x_unmasked, padding_mask, ids_restore, kept = beats_model.mask_sequence(
+        x, padding_mask
+    )
 
-    num_keep_max = int(L * (1 - beats_model.mask_ratio))
+    num_keep_max = int(round(max(L1, L2, L3) * (1 - beats_model.mask_ratio)))
     # match shapes
-    assert x_unmasked.shape==(N, num_keep_max, D)
-    assert padding_mask.shape== (N, num_keep_max)
-    assert ids_restore.shape== (N, L)
-    assert kept.shape== (N, L)
+    assert x_unmasked.shape == (N, num_keep_max, D)
+    assert padding_mask.shape == (N, num_keep_max)
+    assert ids_restore.shape == (N, L)
+    assert kept.shape == (N, L)
 
     # Ensure correct number of tokens are masked
-    num_keep_expected = (torch.tensor([L1,L2,L3],dtype=torch.long) * (1 - beats_model.mask_ratio)).round().to(torch.long)
-    assert torch.all(num_keep_expected==kept.sum(dim=1))
-
+    num_keep_expected = (
+        (torch.tensor([L1, L2, L3], dtype=torch.long) * (1 - beats_model.mask_ratio))
+        .round()
+        .to(torch.long)
+    )
+    assert torch.all(num_keep_expected == kept.sum(dim=1))

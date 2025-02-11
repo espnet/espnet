@@ -419,6 +419,8 @@ class BeatsEncoder(AbsEncoder):
 
         if self.is_pretraining:
             patch_lengths = (~patch_padding_mask).sum(-1)
+            # audio_representation only contains the unmasked portion
+            # Therefore patch_lengths > audio_representation.shape[1]
             return audio_representation, patch_lengths, restore_ids, kept_mask
 
         return audio_representation, output_lens, None
@@ -469,9 +471,11 @@ class BeatsEncoder(AbsEncoder):
             padding_mask,
             torch.tensor(L - 1, dtype=torch.long, device=x.device),
             ids_keep_sorted,
-        )
+        )  # introduce L-1 for sorting only important elements
         ids_keep_sorted = ids_keep_sorted.sort(dim=1)[0]
-        ids_keep_sorted = torch.where(padding_mask, ids_keep, ids_keep_sorted)
+        ids_keep_sorted = torch.where(
+            padding_mask, ids_keep, ids_keep_sorted
+        )  # handle L-1
 
         ids_shuffle = torch.cat([ids_keep_sorted, ids_shuffle[:, max_len_kept:]], dim=1)
         ids_restore = torch.argsort(ids_shuffle, dim=1)
@@ -480,7 +484,7 @@ class BeatsEncoder(AbsEncoder):
             x, dim=1, index=ids_keep_sorted.unsqueeze(-1).repeat(1, 1, D)
         )
 
-        # unshuffle
+        # unshuffle the loss mask
         kept = torch.gather(kept, dim=1, index=ids_restore)
         return x_unmasked, padding_mask, ids_restore, kept
 
