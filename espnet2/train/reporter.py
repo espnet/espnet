@@ -360,6 +360,13 @@ class Reporter:
         self.stats.setdefault(self.epoch, {})[sub_reporter.key] = stats
         sub_reporter.finished()
 
+    def register_epoch_stats(self, key: str, stats: Dict[str, Num], epoch: int = None):
+        if epoch is None:
+            epoch = self.get_epoch()
+        if epoch not in self.stats:
+            self.stats[epoch] = {}
+        self.stats[epoch][key].update(stats)
+
     def sort_epochs_and_values(
         self, key: str, key2: str, mode: str
     ) -> List[Tuple[int, float]]:

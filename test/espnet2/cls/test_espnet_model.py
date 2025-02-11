@@ -209,24 +209,15 @@ def test_metrics_multilabel():
     batch_size = 55
     preds = torch.randn(batch_size, n_classes)
     target = torch.randint(0, 2, (batch_size, n_classes))
-
-    # The additional tensors ensure that all class values are present in the targets.
+    # The additional tensors ensure that all class values are
+    # present in the targets.
     # This is necessary to avoid a ZeroDivisionError
     # in the official implementation of AST.
-    preds_additional = torch.tensor(
-        [
-            [0.2, 0.3, 0.5, 0.1, 0.3, 0.5, 0.2],
-            [0.25, 0.35, 0.55, 0.15, 0.53, 0.55, 0.25],
-        ]
-    )
-    target_additional = torch.tensor(
-        [
-            [0, 1, 1, 0, 0, 1, 1],
-            [1, 0, 0, 1, 1, 0, 0],
-        ]
-    )
-    preds = torch.cat([preds, preds_additional], dim=0)
-    target = torch.cat([target, target_additional], dim=0)
+    ones = torch.ones(1, n_classes)
+    zeros = torch.zeros(1, n_classes)
+    preds = torch.cat([preds, zeros, ones], dim=0)
+    target = torch.cat([target, zeros, ones], dim=0)
+    batch_size += 2
 
     stats_espnet_cls = {}
     for metric_name, metric_fn in model.metric_functions.items():
@@ -283,3 +274,76 @@ def test_metrics_multiclass():
     )
     acc = np.mean([stat["acc"] for stat in stats_official_ast])
     assert np.isclose(acc, stats_espnet_cls["acc"].item(), atol=1e-4)
+
+
+@pytest.mark.parametrize("batch_size", [40, 1000, 25000])
+def test_metrics_mAP_over_multiple_batches(batch_size):
+    token_list = [
+        "class0",
+        "class1",
+        "class2",
+        "class3",
+        "class4",
+        "class5",
+        "class6",
+        "<unk>",
+    ]
+    n_classes = len(token_list) - 1
+    enc_out = 4
+    encoder = TransformerEncoder(20, output_size=enc_out, linear_units=4, num_blocks=2)
+    decoder = LinearDecoder(n_classes, enc_out, pooling="mean")
+
+    model = ESPnetClassificationModel(
+        n_classes,
+        token_list=token_list,
+        frontend=None,
+        specaug=None,
+        normalize=None,
+        preencoder=None,
+        encoder=encoder,
+        decoder=decoder,
+        classification_type="multi-label",
+        log_epoch_metrics=True,
+    )
+
+    batch_size = 55
+    preds = torch.randn(batch_size, n_classes)
+    target = torch.randint(0, 2, (batch_size, n_classes))
+    # The additional tensors ensure that all class values are
+    # present in the targets.
+    # This is necessary to avoid a ZeroDivisionError
+    # in the official implementation of AST.
+    ones = torch.ones(1, n_classes)
+    zeros = torch.zeros(1, n_classes)
+    preds = torch.cat([preds, zeros, ones], dim=0)
+    target = torch.cat([target, zeros, ones], dim=0)
+    batch_size += 2
+
+    model.eval()  # validation mode and split
+    model.metric_functions["mAP"](
+        preds[: batch_size // 2],
+        target[: batch_size // 2],
+        reset_pr_curve=model.training or not model.log_epoch_metrics,
+    )
+    model.metric_functions["mAP"](
+        preds[batch_size // 2 :],
+        target[batch_size // 2 :],
+        reset_pr_curve=model.training or not model.log_epoch_metrics,
+    )
+    # validation mode, accumulated
+    mAP_split = model.validation_epoch_end_()["epoch_mAP"]
+
+    model.train()  # train mode and bulk
+    mAP_bulk = model.metric_functions["mAP"](
+        preds,
+        target,
+        reset_pr_curve=model.training or not model.log_epoch_metrics,
+    ).item()
+    model.training_epoch_end_()
+
+    stats_official_ast = calculate_stats_testing_internal_(
+        preds.numpy(), target.numpy()
+    )
+    mAP_official = np.mean([stat["AP"] for stat in stats_official_ast])
+    assert np.isclose(mAP_official, mAP_split, atol=1e-4)
+    assert np.isclose(mAP_split, mAP_bulk, atol=1e-4)

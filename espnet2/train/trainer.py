@@ -351,6 +351,7 @@ class Trainer:
                     options=trainer_options,
                     distributed_option=distributed_option,
                 )
+            dp_model.training_epoch_end_()
 
             torch.cuda.empty_cache()
             with reporter.observe("valid") as sub_reporter:
@@ -361,6 +362,9 @@ class Trainer:
                     options=trainer_options,
                     distributed_option=distributed_option,
                 )
+            epoch_stats = dp_model.validation_epoch_end_()
+            if epoch_stats is not None:
+                reporter.register_epoch_stats("valid", stats=epoch_stats)
 
             torch.cuda.empty_cache()
             if not distributed_option.distributed or distributed_option.dist_rank == 0:
@@ -818,7 +822,6 @@ class Trainer:
             if distributed:
                 iterator_stop.fill_(1)
                 torch.distributed.all_reduce(iterator_stop, ReduceOp.SUM)
-        return all_steps_are_invalid
 
     @classmethod
     @torch.no_grad()
