@@ -74,7 +74,7 @@ freeze_param: [
 ########################
 max_epoch: 100
 batch_type: sorted
-batch_size: 16
+batch_size: 32
 grad_clip: -1             # gradient clipping norm
 grad_noise: false         # whether to use gradient noise injection
 sort_in_batch: descending # how to sort data in making batch

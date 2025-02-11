@@ -81,6 +81,7 @@ class UniversaInference:
 
         # prepare batch
         batch = dict(audio=audio, audio_lengths=audio_lengths)
+        print(audio, audio_lengths, flush=True)
         if ref_audio is not None:
             batch.update(ref_audio=ref_audio, ref_audio_lengths=ref_audio_lengths)
         if ref_text is not None:
