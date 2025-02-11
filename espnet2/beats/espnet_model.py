@@ -143,29 +143,34 @@ class BeatsPretrainModel(AbsESPnetModel):
         unmasked = ~masked & ~padding_mask  # not masked and not padded
         masked = masked & ~padding_mask  # masked and not padded, no-op
 
-        weight = masked.sum().item() + 1e-10
+        weight = masked.sum() + 1e-10
         loss = loss / weight  # normalize by number of masked patches
         preds = logits.argmax(dim=1)
         with torch.no_grad():
-            corr_masked = ((preds == target) * masked).sum().item()
-            corr_unmask = ((preds == target) * unmasked).sum().item()
+            corr_masked = ((preds == target) * masked).sum()
+            corr_unmask = ((preds == target) * unmasked).sum()
 
-            count_unmask = unmasked.sum().item()
-            count_masked = masked.sum().item()
-        acc_m = corr_masked / (count_masked + 1e-10)
-        acc_u = corr_unmask / (count_unmask + 1e-10)
-        n_uniq_pred = preds.unique().shape[0]
-        vocab_cov_pred = n_uniq_pred / logits.shape[1]
+            count_unmask = unmasked.sum()
+            count_masked = masked.sum()
+            acc_m = corr_masked / (count_masked + 1e-10)
+            acc_u = corr_unmask / (count_unmask + 1e-10)
+            n_uniq_pred = torch.unique(preds, return_counts=False).numel()
+            vocab_cov_pred = n_uniq_pred / logits.shape[1]
+            n_uniq_pred_masked = torch.unique(
+                preds[masked], return_counts=False
+            ).numel()
+            n_uniq_pred_unmask = torch.unique(
+                preds[unmasked], return_counts=False
+            ).numel()
 
-        n_uniq_pred_masked = preds[masked].unique().shape[0]
-        n_uniq_pred_unmask = preds[unmasked].unique().shape[0]
+            n_uniq_tgt_masked = torch.unique(
+                target[masked], return_counts=False
+            ).numel()
+            n_uniq_tgt = torch.unique(target, return_counts=False).numel()
+            vocab_cov_tgt = n_uniq_tgt / logits.shape[1]
 
-        n_uniq_tgt_masked = target[masked].unique().shape[0]
-        n_uniq_tgt = target.unique().shape[0]
-        vocab_cov_tgt = n_uniq_tgt / logits.shape[1]
-
-        probs = torch.nn.functional.softmax(logits, dim=1)
-        entropy = -(probs * probs.log()).sum(dim=1).mean().item()
+            probs = torch.nn.functional.softmax(logits, dim=1)
+            entropy = -(probs * probs.log()).sum(dim=1).mean()
 
         # Note(shikhar): Some of these are redundant
         stats_dict = dict(

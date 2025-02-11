@@ -15,8 +15,9 @@ class RandomProjectionQuantizer(nn.Module):
         torch.manual_seed(seed)
         # Random projection layer
         self.random_projection = nn.Linear(dim, codebook_dim, bias=False)
-        # NOTE(shikhar): change this to xavier_normal (better skew in codebook)
-        nn.init.xavier_uniform_(self.random_projection.weight)
+        # nn.init.xavier_uniform_(self.random_projection.weight)
+        # NOTE(shikhar): xavier_normal has less skew
+        nn.init.xavier_normal_(self.random_projection.weight)
 
         self.maybe_norm = (
             nn.LayerNorm(codebook_dim, elementwise_affine=False)
