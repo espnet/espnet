@@ -268,15 +268,20 @@ class ESPnetClassificationModel(AbsESPnetModel):
                 ),
             }
         elif self.classification_type == "multi-label":
-            return {
+            metric_fn_map = {
                 "acc": partial(EvalFunction.multilabel_accuracy, criteria="hamming"),
                 # acc is usually high if data is imabalanced
-                "mAP": partial(
-                    EvalFunction.multilabel_auprc,
-                    average="macro",
-                    num_labels=self.vocab_size,
+                "mAP": (
+                    partial(
+                        EvalFunction.multilabel_auprc,
+                        average="macro",
+                        num_labels=self.vocab_size,
+                    )
+                    if self.vocab_size > 1
+                    else _binary_mAP_wrapper
                 ),
             }
+            return metric_fn_map
 
 
 def label_to_onehot(
@@ -344,3 +349,10 @@ def mixup_augment(speech: torch.Tensor, onehot: torch.Tensor, mixup_prob: float)
     speech = mix_lambda * speech + (1 - mix_lambda) * speech[perm]
     onehot = mix_lambda * onehot + (1 - mix_lambda) * onehot[perm]
     return speech, onehot
+
+
+def _binary_mAP_wrapper(pred, target):
+    """Wrapper to handle binary classification for mAP calculation"""
+    pred = torch.cat([1 - pred, pred], dim=1)
+    target = torch.cat([1 - target, target], dim=1)
+    return EvalFunction.multilabel_auprc(pred, target, average="macro", num_labels=2)

@@ -119,9 +119,13 @@ def calc_metrics_from_textfiles(
     assert all_gt_scores.shape == all_pred_scores.shape
     assert all_pred_scores.shape[1] == n_classes
 
-    stats = calculate_multilabel_stats(
-        all_pred_scores, all_gt_scores
-    )
+    if n_classes == 1:
+        # If n_classes=1, then we are dealing with binary classification
+        # In this case, we need to stack the scores along the second axis
+        all_gt_scores = np.stack([all_gt_scores, 1 - all_gt_scores], axis=1)
+        all_pred_scores = np.stack([all_pred_scores, 1 - all_pred_scores], axis=1)
+        n_classes = 2
+    stats = calculate_multilabel_stats(all_pred_scores, all_gt_scores)
     return {
         "mean_acc": np.mean([stat["acc"] for stat in stats]) * 100,
         "mAP": np.mean([stat["AP"] for stat in stats]) * 100,
