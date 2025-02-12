@@ -5,15 +5,14 @@ import os
 import logging
 import pandas as pd
 from tqdm import tqdm
-
-logger = logging.getLogger(__name__)
-
 from utils import (
     divide_waveform_to_chunks,
     divide_annotation_to_chunks,
     get_wav_length_in_secs,
     BeansRecognitionDataset,
 )
+
+logger = logging.getLogger(__name__)
 
 DATA_READ_ROOT = sys.argv[1]  # data/dcase
 DATA_WRITE_ROOT = sys.argv[2]
@@ -65,7 +64,8 @@ for wav_path in tqdm(all_wav_paths, desc="Processing all wav files and annotatio
                     continue
                 annotations.append({"st": st, "ed": ed, "label": species})
 
-    # chunks is defaultdict(list) with keys as chunk index and values as list of annotations
+    # chunks is defaultdict(list) with
+    # keys as chunk index and values as list of annotations
     chunks = divide_annotation_to_chunks(annotations=annotations, chunk_size=CHUNK_SIZE)
 
     for chunk, path in enumerate(target_paths):
