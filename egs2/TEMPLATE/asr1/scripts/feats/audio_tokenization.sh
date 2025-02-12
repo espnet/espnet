@@ -87,7 +87,7 @@ else
 fi
 
 ${cuda_cmd} --gpu ${ngpu} JOB=1:${_nj} ${_logdir}/codec_dump_${codec_choice}.JOB.log \
-    ${python} pyscripts/feats/dump_codec.py \
+    ${python} pyscripts/feats/dump_audio_tokens.py \
         --codec_choice ${codec_choice} \
         --codec_fs ${codec_fs} \
         --batch_size ${batch_size} \
