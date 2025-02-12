@@ -255,7 +255,7 @@ if ! "${skip_data_prep}"; then
             --add_symbol "<unk>:-1" --add_symbol "<blank>:-2"
             # unk is just a dummy symbol for compatibility,
             # we ensure that it is not used in the cls model
-            # text contains blank when task is multi-label classif and 
+            # text contains blank when task is multi-label classif and
             # there is no label. In this case we reposition to 0th index.
     fi
 else

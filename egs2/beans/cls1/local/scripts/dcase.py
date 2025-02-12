@@ -1,15 +1,16 @@
-from collections import defaultdict
-import sys
-from pathlib import Path
-import os
 import logging
+import os
+import sys
+from collections import defaultdict
+from pathlib import Path
+
 import pandas as pd
 from tqdm import tqdm
 from utils import (
-    divide_waveform_to_chunks,
-    divide_annotation_to_chunks,
-    get_wav_length_in_secs,
     BeansRecognitionDataset,
+    divide_annotation_to_chunks,
+    divide_waveform_to_chunks,
+    get_wav_length_in_secs,
 )
 
 logger = logging.getLogger(__name__)
