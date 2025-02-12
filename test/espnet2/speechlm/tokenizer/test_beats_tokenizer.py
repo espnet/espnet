@@ -73,4 +73,23 @@ def test_beats_random_tokenizer_encode(n_codes):
     assert token_ids.shape[0] == 2
     assert token_ids.min() >= 0
     assert token_ids.max() < n_codes
-    assert tuple(token_id_len) == (496, 373)
+    assert tuple(token_id_len) == (496, 368)
+
+
+def test_beats_random_tokenizer_var_length():
+    # Padding of other elements should not affect each other
+    arr = torch.randn(3, 176_000)
+    arrlen = torch.LongTensor([96_000, 80_000, 160_000])
+    model = BeatsRandomTokenizer()
+    token_ids1, _, _, token_id_len1 = model.encode(arr, arrlen)
+
+    for i in range(3):
+        arr_ = arr[i : i + 1]  # drop everything else
+        arrlen_ = arrlen[i : i + 1]
+        token_ids2, _, _, token_id_len2 = model.encode(arr_, arrlen_)
+
+        assert token_id_len1[i] == token_id_len2[0]
+        # Match token ids
+        assert torch.all(
+            token_ids1[i, : token_id_len1[i]] == token_ids2[0, : token_id_len2[0]]
+        )

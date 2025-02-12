@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import torchaudio.compliance.kaldi as ta_kaldi
 from einops import rearrange, repeat
 
 
@@ -58,3 +59,62 @@ def kmeans(samples, num_clusters, num_iters=10, use_cosine_sim=False):
         means = torch.where(zero_mask[..., None], means, new_means)
 
     return means, bins
+
+
+@torch.no_grad()
+def beats_frontend(
+    source: torch.Tensor,
+    fbank_mean: float,
+    fbank_std: float,
+) -> torch.Tensor:
+    """Preprocess raw audio."""
+    fbanks = []
+    for waveform in source:
+        waveform = waveform.unsqueeze(0) * 2**15  # float32 to int16
+        fbank = ta_kaldi.fbank(
+            waveform,
+            num_mel_bins=128,
+            sample_frequency=16000,
+            frame_length=25,
+            frame_shift=10,
+        )
+        fbanks.append(fbank)
+    fbank = torch.stack(fbanks, dim=0)
+    fbank = (fbank - fbank_mean) / (2 * fbank_std)
+    return fbank
+
+
+@torch.no_grad()
+def forward_padding_mask_conv(
+    padding_mask: torch.Tensor,
+    n_dim: int,
+    conv2d_module: nn.Module,
+):
+    """Forward padding mask.
+    To be applied after features are passed through conv2d module, for consistency.
+    padding_mask: BT
+    n_dim: number of dimensions before conv2d was applied to features
+    conv2d_module: conv2d module applied to features,
+        the channel dimension must be 1.
+    """
+    assert n_dim >= 1
+    assert padding_mask.dim() == 2
+    padding_mask = padding_mask.unsqueeze(-1).repeat(1, 1, n_dim)
+    dtype_ = next(conv2d_module.parameters()).dtype
+    padding_mask = conv2d_module(padding_mask.unsqueeze(1).to(dtype_))
+    padding_mask = padding_mask != 0
+    padding_mask = (
+        padding_mask.view(padding_mask.shape[0], padding_mask.shape[1], -1)
+        .squeeze(-2)
+        .contiguous()
+    )
+    return padding_mask
+
+
+def freeze_conv2d_module(conv2d_module: nn.Module):
+    # Fix patch embedding for padding
+    conv2d_module.weight.data.fill_(1)
+    conv2d_module.weight.requires_grad = False
+    if conv2d_module.bias is not None:
+        conv2d_module.bias.data.fill_(0)
+        conv2d_module.bias.requires_grad = False

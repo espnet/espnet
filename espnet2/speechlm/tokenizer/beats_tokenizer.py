@@ -40,6 +40,9 @@ from espnet2.speechlm.tokenizer.beats_utils import (
     kmeans,
     norm_ema_inplace,
     ema_inplace,
+    forward_padding_mask_conv,
+    freeze_conv2d_module,
+    beats_frontend,
 )
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet2.speechlm.tokenizer.random_tokenizer import RandomProjectionQuantizer
@@ -394,6 +397,13 @@ class BeatsRandomTokenizer(nn.Module):
             stride=config.input_patch_size,
             bias=config.conv_bias,
         )
+        self.patch_embedding_pad = nn.Conv2d(
+            1,
+            1,
+            kernel_size=config.input_patch_size,
+            stride=config.input_patch_size,
+            bias=False,
+        )
         self.random_projection_quantizer = RandomProjectionQuantizer(
             config.embed_dim,
             codebook_size=config.quant_n,
@@ -412,26 +422,7 @@ class BeatsRandomTokenizer(nn.Module):
         if self.patch_embedding.bias is not None:
             torch.nn.init.constant_(self.patch_embedding.bias, 0)
             self.patch_embedding.bias.requires_grad = False
-
-    def frontend(
-        self,
-        source: torch.Tensor,
-    ) -> torch.Tensor:
-        """Preprocess raw audio."""
-        fbanks = []
-        for waveform in source:
-            waveform = waveform.unsqueeze(0) * 2**15  # float32 to int16
-            fbank = ta_kaldi.fbank(
-                waveform,
-                num_mel_bins=128,
-                sample_frequency=16000,
-                frame_length=25,
-                frame_shift=10,
-            )
-            fbanks.append(fbank)
-        fbank = torch.stack(fbanks, dim=0)
-        fbank = (fbank - self.fbank_mean) / (2 * self.fbank_std)
-        return fbank
+        freeze_conv2d_module(self.patch_embedding_pad)
 
     @torch.no_grad()
     def forward_padding_mask(
@@ -454,15 +445,22 @@ class BeatsRandomTokenizer(nn.Module):
             xs_pad (torch.Tensor): Input tensor (B, T).
             ilens (torch.Tensor): Input length tensor (B,).
         """
+        xs_pad = xs_pad[:, : ilens.max()]
         with autocast(False):
-            fbank = self.frontend(xs_pad)
+            fbank = beats_frontend(
+                xs_pad, fbank_mean=self.fbank_mean, fbank_std=self.fbank_std
+            )
+        n_mels = fbank.size(2)
+        padding_mask = make_pad_mask(lengths=ilens, traceable=False).to(fbank.device)
+        padding_mask = self.forward_padding_mask(fbank, padding_mask)
         fbank = fbank.unsqueeze(1).float()
-        features = self.patch_embedding(fbank)
+        features = self.patch_embedding(fbank)  # B, C, t, d=8
         features = features.reshape(features.shape[0], features.shape[1], -1)
         features = features.transpose(1, 2)
         features = self.layer_norm(features)
-        padding_mask = make_pad_mask(lengths=ilens, traceable=False).to(features.device)
-        padding_mask = self.forward_padding_mask(features, padding_mask)
+        padding_mask = forward_padding_mask_conv(
+            padding_mask, n_dim=n_mels, conv2d_module=self.patch_embedding_pad
+        )
         embed_ind = self.random_projection_quantizer(features)
         embed_len = (~padding_mask).sum(1)
         return embed_ind, embed_len

@@ -38,6 +38,11 @@ except ImportError as e:
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.specaug.specaug import SpecAug
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask, roll_tensor
+from espnet2.speechlm.tokenizer.beats_utils import (
+    forward_padding_mask_conv,
+    freeze_conv2d_module,
+    beats_frontend,
+)
 
 if V(torch.__version__) >= V("1.6.0"):
     from torch.cuda.amp import autocast
@@ -234,6 +239,13 @@ class BeatsEncoder(AbsEncoder):
             stride=self.input_patch_size,
             bias=config.conv_bias,
         )
+        self.patch_embedding_pad = nn.Conv2d(
+            1,
+            1,
+            kernel_size=self.input_patch_size,
+            stride=self.input_patch_size,
+            bias=False,
+        )
         self.dropout_input = nn.Dropout(config.dropout_input)
         assert not config.deep_norm or not config.layer_norm_first
 
@@ -306,6 +318,7 @@ class BeatsEncoder(AbsEncoder):
         torch.nn.init.xavier_normal_(self.patch_embedding.weight)
         if self.patch_embedding.bias is not None:
             torch.nn.init.constant_(self.patch_embedding.bias, 0)
+        freeze_conv2d_module(self.patch_embedding_pad)
 
     def reload_pretrained_parameters(self):
         """Initialization function for Beats.
@@ -338,6 +351,7 @@ class BeatsEncoder(AbsEncoder):
                 "It is expected to have 'predictor' listed above if you are "
                 "fine-tuning with only the Beats backbone."
             )
+        freeze_conv2d_module(self.patch_embedding_pad)
 
     def forward_padding_mask(
         self,
@@ -503,7 +517,11 @@ class BeatsEncoder(AbsEncoder):
             fbank = (
                 source
                 if skip_fbank_extraction
-                else self.preprocess(source.squeeze(-1))[0]
+                else beats_frontend(
+                    source.squeeze(-1),
+                    fbank_mean=self.fbank_mean,
+                    fbank_std=self.fbank_std,
+                )
             )
 
             if self.specaug is not None and self.training:
@@ -519,7 +537,12 @@ class BeatsEncoder(AbsEncoder):
 
         if padding_mask is not None:
             # features is BTC
-            padding_mask = self.forward_padding_mask(features, padding_mask)
+            # padding_mask = self.forward_padding_mask(features, padding_mask)
+            padding_mask = forward_padding_mask_conv(
+                padding_mask=padding_mask,
+                n_dim=fbank.shape[-1],
+                conv2d_module=self.patch_embedding_pad,
+            )
 
         patch_padding_mask = None
         restore_ids = None
