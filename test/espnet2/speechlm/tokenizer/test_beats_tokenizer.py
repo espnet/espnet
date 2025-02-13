@@ -79,7 +79,7 @@ def test_beats_random_tokenizer_encode(n_codes):
 def test_beats_random_tokenizer_var_length():
     # Padding of other elements should not affect each other
     arr = torch.randn(3, 176_000)
-    arrlen = torch.LongTensor([96_000, 80_000, 160_000])
+    arrlen = torch.LongTensor([int(16_000 * 3.995), int(16_000 * 7.995), 160_000])
     model = BeatsRandomTokenizer()
     token_ids1, _, _, token_id_len1 = model.encode(arr, arrlen)
 

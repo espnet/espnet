@@ -435,7 +435,7 @@ class BeatsRandomTokenizer(nn.Module):
         if extra > 0:
             padding_mask = padding_mask[:, :-extra]
         padding_mask = padding_mask.view(padding_mask.size(0), features.size(1), -1)
-        padding_mask = padding_mask.all(-1)  # remove totally empty sequences
+        padding_mask = padding_mask.any(-1)  # remove totally empty sequences
         return padding_mask
 
     @torch.no_grad()

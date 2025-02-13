@@ -358,14 +358,17 @@ class BeatsEncoder(AbsEncoder):
         features: torch.Tensor,
         padding_mask: torch.Tensor,
     ) -> torch.Tensor:
-        """Forward padding mask. Featuires: BTC, padding_mask: BT."""
+        """Forward padding mask. Features: BTC, padding_mask: BT."""
         extra = padding_mask.size(1) % features.size(1)
         if extra > 0:
             padding_mask = padding_mask[:, :-extra]
         padding_mask = padding_mask.contiguous().view(
             padding_mask.size(0), features.size(1), -1
         )
-        padding_mask = padding_mask.all(-1)  # remove totally empty sequences
+        padding_mask = padding_mask.any(-1)  # remove totally empty sequences
+        # NOTE(shikhar): This should be any? snip_edges=True in kaldi
+        # This is problem with raw input, not with fbank input
+        # Probably replace this with a 1dconv kernel or abandon raw input.
         return padding_mask
 
     def preprocess(
@@ -538,6 +541,8 @@ class BeatsEncoder(AbsEncoder):
         if padding_mask is not None:
             # features is BTC
             # padding_mask = self.forward_padding_mask(features, padding_mask)
+            # NOTE(shikhar): ESC-50, BEANS and Clotho_v2 use the previous version
+            # which is wrong (the one implmented above).
             padding_mask = forward_padding_mask_conv(
                 padding_mask=padding_mask,
                 n_dim=fbank.shape[-1],

@@ -26,7 +26,7 @@ class BeatsPretrainModel(AbsESPnetModel):
         self,
         encoder: AbsEncoder,
         decoder: nn.Module,
-        ignore_id: int = -1,
+        ignore_id: int = -2,
         label_smoothing: float = 0.1,
         sound_input: bool = False,
     ):
@@ -84,6 +84,7 @@ class BeatsPretrainModel(AbsESPnetModel):
         unmasked_patch_emb, patch_len, restore_ids, kept_mask = self.encoder(
             speech, speech_lengths, is_sound_input=self.sound_input
         )
+        target = target[:, : patch_len.max()]
 
         # target (Batch, n_patch)
         # logits (Batch, n_patch, codebook_size)
