@@ -1,33 +1,32 @@
-# Copyright 2024 Yihan Wu
+# Copyright 2024 Jiatong Shi
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""FunCodec Modules."""
+"""SpeechTokenizer Modules."""
 import copy
 import functools
 import logging
 import math
 import random
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import torchaudio
 from typeguard import typechecked
 
 from espnet2.gan_codec.abs_gan_codec import AbsGANCodec
-from espnet2.gan_codec.shared.decoder.seanet_2d import SEANetDecoder2d
-from espnet2.gan_codec.shared.discriminator.stft_discriminator import (
-    ComplexSTFTDiscriminator,
+from espnet2.gan_codec.shared.decoder.seanet import SEANetDecoder
+from espnet2.gan_codec.shared.discriminator.msmpmb_discriminator import (
+    MultiScaleMultiPeriodMultiBandDiscriminator,
 )
-from espnet2.gan_codec.shared.encoder.seanet_2d import SEANetEncoder2d
+from espnet2.gan_codec.shared.discriminator.msstft_discriminator import (
+    MultiScaleSTFTDiscriminator,
+)
+from espnet2.gan_codec.shared.encoder.seanet import SEANetEncoder
 from espnet2.gan_codec.shared.loss.freq_loss import MultiScaleMelSpectrogramLoss
+from espnet2.gan_codec.shared.loss.loss_balancer import Balancer
 from espnet2.gan_codec.shared.quantizer.residual_vq import ResidualVectorQuantizer
-from espnet2.gan_tts.hifigan.hifigan import (
-    HiFiGANMultiPeriodDiscriminator,
-    HiFiGANMultiScaleDiscriminator,
-)
 from espnet2.gan_tts.hifigan.loss import (
     DiscriminatorAdversarialLoss,
     FeatureMatchLoss,
@@ -36,8 +35,8 @@ from espnet2.gan_tts.hifigan.loss import (
 from espnet2.torch_utils.device_funcs import force_gatherable
 
 
-class FunCodec(AbsGANCodec):
-    """ "FunCodec model."""
+class SpeechTokenizer(AbsGANCodec):
+    """ "SpeechTokenizer model."""
 
     @typechecked
     def __init__(
@@ -45,10 +44,15 @@ class FunCodec(AbsGANCodec):
         sampling_rate: int = 24000,
         generator_params: Dict[str, Any] = {
             "hidden_dim": 128,
+            "semantic_dim": 1024,
+            "semantic_type": "espnet",
+            "semantic_model": "hubert",
+            "semantic_sample_rate": 16000,
+            "semantic_layer": 17,
             "encdec_channels": 1,
             "encdec_n_filters": 32,
             "encdec_n_residual_layers": 1,
-            "encdec_ratios": [(8, 1), (5, 1), (4, 1), (2, 1)],
+            "encdec_ratios": [8, 5, 4, 2],
             "encdec_activation": "ELU",
             "encdec_activation_params": {"alpha": 1.0},
             "encdec_norm": "weight_norm",
@@ -72,55 +76,51 @@ class FunCodec(AbsGANCodec):
             "quantizer_kmeans_iters": 50,
             "quantizer_threshold_ema_dead_code": 2,
             "quantizer_target_bandwidth": [7.5, 15],
-            "quantizer_dropout": True,
-            "codec_domain": ["time", "time"],
-            "domain_conf": {},
         },
         discriminator_params: Dict[str, Any] = {
-            "scales": 3,
-            "scale_downsample_pooling": "AvgPool1d",
-            "scale_downsample_pooling_params": {
-                "kernel_size": 4,
-                "stride": 2,
-                "padding": 2,
-            },
-            "scale_discriminator_params": {
+            "msstft_discriminator_params": {
+                "filters": 32,
                 "in_channels": 1,
                 "out_channels": 1,
-                "kernel_sizes": [15, 41, 5, 3],
-                "channels": 128,
-                "max_downsample_channels": 1024,
-                "max_groups": 16,
-                "bias": True,
-                "downsample_scales": [2, 2, 4, 4, 1],
-                "nonlinear_activation": "LeakyReLU",
-                "nonlinear_activation_params": {"negative_slope": 0.1},
+                "sep_channels": False,
+                "norm": "weight_norm",
+                "n_ffts": [1024, 2048, 512, 256, 128],
+                "hop_lengths": [256, 512, 128, 64, 32],
+                "win_lengths": [1024, 2048, 512, 256, 128],
+                "activation": "LeakyReLU",
+                "activation_params": {"negative_slope": 0.3},
             },
-            "scale_follow_official_norm": False,
-            "periods": [2, 3, 5, 7, 11],
-            "period_discriminator_params": {
-                "in_channels": 1,
-                "out_channels": 1,
-                "kernel_sizes": [5, 3],
-                "channels": 32,
-                "downsample_scales": [3, 3, 3, 3, 1],
-                "max_downsample_channels": 1024,
-                "bias": True,
-                "nonlinear_activation": "LeakyReLU",
-                "nonlinear_activation_params": {"negative_slope": 0.1},
-                "use_weight_norm": True,
-                "use_spectral_norm": False,
-            },
-            "complexstft_discriminator_params": {
-                "in_channels": 1,
-                "channels": 32,
-                "strides": ((1, 2), (2, 2), (1, 2), (2, 2), (1, 2), (2, 2)),
-                "chan_mults": (1, 2, 4, 4, 8, 8),
-                "n_fft": 1024,
-                "hop_length": 256,
-                "win_length": 1024,
-                "stft_normalized": False,
-                "logits_abs": True,
+            "msmpmb_discriminator_params": {
+                "rates": [],
+                "periods": [2, 3, 5, 7, 11],
+                "fft_sizes": [2048, 1024, 512],
+                "sample_rate": 24000,
+                "periods": [2, 3, 5, 7, 11],
+                "period_discriminator_params": {
+                    "in_channels": 1,
+                    "out_channels": 1,
+                    "kernel_sizes": [5, 3],
+                    "channels": 32,
+                    "downsample_scales": [3, 3, 3, 3, 1],
+                    "max_downsample_channels": 1024,
+                    "bias": True,
+                    "nonlinear_activation": "LeakyReLU",
+                    "nonlinear_activation_params": {"negative_slope": 0.1},
+                    "use_weight_norm": True,
+                    "use_spectral_norm": False,
+                },
+                "band_discriminator_params": {
+                    "hop_factor": 0.25,
+                    "sample_rate": 24000,
+                    "bands": [
+                        (0.0, 0.1),
+                        (0.1, 0.25),
+                        (0.25, 0.5),
+                        (0.5, 0.75),
+                        (0.75, 1.0),
+                    ],
+                    "channel": 32,
+                },
             },
         },
         # loss related
@@ -149,16 +149,19 @@ class FunCodec(AbsGANCodec):
             "fmax": None,
             "log_base": None,
         },
-        use_dual_decoder: bool = False,
+        use_dual_decoder: bool = True,
         lambda_quantization: float = 1.0,
         lambda_reconstruct: float = 1.0,
         lambda_commit: float = 1.0,
         lambda_adv: float = 1.0,
         lambda_feat_match: float = 2.0,
         lambda_mel: float = 45.0,
+        lambda_semantic: float = 1.0,
         cache_generator_outputs: bool = False,
+        use_loss_balancer: bool = False,
+        balance_ema_decay: float = 0.99,
     ):
-        """Intialize FunCodec model.
+        """Intialize SpeechTokenizer model.
 
         Args:
              TODO(jiatong)
@@ -166,12 +169,9 @@ class FunCodec(AbsGANCodec):
         super().__init__()
 
         # define modules
-        generator_params["encdec_ratios"] = [
-            tuple(ratio) for ratio in generator_params["encdec_ratios"]
-        ]
         generator_params.update(sample_rate=sampling_rate)
-        self.generator = FunCodecGenerator(**generator_params)
-        self.discriminator = FunCodecDiscriminator(**discriminator_params)
+        self.generator = SpeechTokenizerGenerator(**generator_params)
+        self.discriminator = SpeechTokenizerDiscriminator(**discriminator_params)
         self.generator_adv_loss = GeneratorAdversarialLoss(
             **generator_adv_loss_params,
         )
@@ -199,6 +199,7 @@ class FunCodec(AbsGANCodec):
         self.lambda_reconstruct = lambda_reconstruct
         self.lambda_commit = lambda_commit
         self.lambda_adv = lambda_adv
+        self.lambda_semantic = lambda_semantic
         if self.use_feat_match_loss:
             self.lambda_feat_match = lambda_feat_match
         if self.use_mel_loss:
@@ -213,11 +214,20 @@ class FunCodec(AbsGANCodec):
         self.fs = sampling_rate
         self.num_streams = generator_params["quantizer_n_q"]
         self.frame_shift = functools.reduce(
-            lambda x, y: x * y[0], generator_params["encdec_ratios"]
+            lambda x, y: x * y, generator_params["encdec_ratios"]
         )
         self.code_size_per_stream = [
             generator_params["quantizer_bins"]
         ] * self.num_streams
+
+        # loss balancer
+        if use_loss_balancer:
+            self.loss_balancer = Balancer(
+                ema_decay=balance_ema_decay,
+                per_batch_item=True,
+            )
+        else:
+            self.loss_balancer = None
 
     def meta_info(self) -> Dict[str, Any]:
         return {
@@ -286,13 +296,21 @@ class FunCodec(AbsGANCodec):
         reuse_cache = True
         if not self.cache_generator_outputs or self._cache is None:
             reuse_cache = False
-            audio_hat, codec_commit_loss, quantization_loss, audio_hat_real = (
-                self.generator(audio, use_dual_decoder=self.use_dual_decoder)
-            )
+            (
+                audio_hat,
+                codec_commit_loss,
+                quantization_loss,
+                semantic_loss,
+                audio_hat_real,
+            ) = self.generator(audio, use_dual_decoder=self.use_dual_decoder)
         else:
-            audio_hat, codec_commit_loss, quantization_loss, audio_hat_real = (
-                self._cache
-            )
+            (
+                audio_hat,
+                codec_commit_loss,
+                quantization_loss,
+                semantic_loss,
+                audio_hat_real,
+            ) = self._cache
 
         # store cache
         if self.training and self.cache_generator_outputs and not reuse_cache:
@@ -300,6 +318,7 @@ class FunCodec(AbsGANCodec):
                 audio_hat,
                 codec_commit_loss,
                 quantization_loss,
+                semantic_loss,
                 audio_hat_real,
             )
 
@@ -317,6 +336,7 @@ class FunCodec(AbsGANCodec):
         reconstruct_loss = (
             self.generator_reconstruct_loss(audio, audio_hat) * self.lambda_reconstruct
         )
+        semantic_loss = semantic_loss * self.lambda_semantic
         codec_loss = codec_commit_loss + codec_quantization_loss
         loss = adv_loss + codec_loss + reconstruct_loss
         stats = dict(
@@ -325,6 +345,7 @@ class FunCodec(AbsGANCodec):
             codec_commit_loss=codec_commit_loss.item(),
             codec_quantization_loss=codec_quantization_loss.item(),
             reconstruct_loss=reconstruct_loss.item(),
+            semantic_loss=semantic_loss.item(),
         )
         if self.use_feat_match_loss:
             feat_match_loss = self.feat_match_loss(p_hat, p)
@@ -343,6 +364,24 @@ class FunCodec(AbsGANCodec):
                 stats.update(mel_loss_real=mel_loss_real.item())
 
         stats.update(loss=loss.item())
+
+        if self.loss_balancer is not None and self.training:
+            # any loss built on audio_hat is processed by balancer
+            balanced_losses = {
+                "reconstruct": reconstruct_loss,
+                "adv": adv_loss,
+            }
+            if self.use_feat_match_loss:
+                balanced_losses.update(feat_match=feat_match_loss)
+            if self.use_mel_loss:
+                balanced_losses.update(mel=mel_loss)
+
+            balanced_loss, norm_stats = self.loss_balancer(balanced_losses, audio_hat)
+            stats.update(norm_stats)
+
+            loss = sum(balanced_loss.values()) + codec_loss
+            if self.use_mel_loss and self.use_dual_decoder:
+                loss = loss + mel_loss_real
 
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
 
@@ -484,19 +523,24 @@ class FunCodec(AbsGANCodec):
         return self.generator.decode(x)
 
 
-class FunCodecGenerator(nn.Module):
-    """FunCodec generator module."""
+class SpeechTokenizerGenerator(nn.Module):
+    """SpeechTokenizer generator module."""
 
     @typechecked
     def __init__(
         self,
         sample_rate: int = 24000,
         hidden_dim: int = 128,
-        codebook_dim: int = 8,
+        semantic_dim: int = 1024,
+        semantic_type: str = "espnet",
+        semantic_model: str = "hubert",
+        semantic_sample_rate: int = 16000,
+        semantic_layer: int = 17,
+        semantic_loss: str = "cosine",
         encdec_channels: int = 1,
         encdec_n_filters: int = 32,
         encdec_n_residual_layers: int = 1,
-        encdec_ratios: List[Tuple[int, int]] = [(4, 1), (4, 1), (4, 2), (4, 1)],
+        encdec_ratios: List[int] = [8, 5, 4, 2],
         encdec_activation: str = "ELU",
         encdec_activation_params: Dict[str, Any] = {"alpha": 1.0},
         encdec_norm: str = "weight_norm",
@@ -510,6 +554,7 @@ class FunCodecGenerator(nn.Module):
         encdec_true_skip: bool = False,
         encdec_compress: int = 2,
         encdec_lstm: int = 2,
+        encdec_bidirectional_lstm: bool = False,
         decoder_trim_right_ratio: float = 1.0,
         decoder_final_activation: Optional[str] = None,
         decoder_final_activation_params: Optional[dict] = None,
@@ -520,49 +565,16 @@ class FunCodecGenerator(nn.Module):
         quantizer_kmeans_iters: int = 50,
         quantizer_threshold_ema_dead_code: int = 2,
         quantizer_target_bandwidth: List[float] = [7.5, 15],
-        quantizer_dropout: bool = True,
-        codec_domain: List = ["time", "time"],
-        domain_conf: Optional[Dict] = {},
-        audio_normalize: bool = False,
     ):
-        """Initialize FunCodec Generator.
+        """Initialize SpeechTokenizer Generator.
 
         Args:
             TODO(jiatong)
         """
         super().__init__()
 
-        # define domain transformation module
-        self.codec_domain = codec_domain
-        self.domain_conf = domain_conf
-        if codec_domain[0] in ["stft", "mag_phase", "mag_angle", "mag_oracle_phase"]:
-            self.enc_trans_func = torchaudio.transforms.Spectrogram(
-                n_fft=domain_conf.get("n_fft", 512),
-                hop_length=domain_conf.get("hop_length", 160),
-                power=None,
-            )
-        elif codec_domain[0] in ["mag"]:
-            self.enc_trans_func = torchaudio.transforms.Spectrogram(
-                n_fft=domain_conf.get("n_fft", 512),
-                hop_length=domain_conf.get("hop_length", 160),
-                power=1,
-            )
-        elif codec_domain[0] == "mel":
-            self.enc_trans_func = torchaudio.transforms.MelSpectrogram(
-                sample_rate=target_sample_hz,
-                n_fft=domain_conf.get("n_fft", 512),
-                hop_length=domain_conf.get("hop_length", 160),
-                n_mels=80,
-                power=2,
-            )
-        if codec_domain[1] in ["stft", "mag_phase", "mag_angle", "mag_oracle_phase"]:
-            self.dec_trans_func = torchaudio.transforms.InverseSpectrogram(
-                n_fft=domain_conf.get("n_fft", 512),
-                hop_length=domain_conf.get("hop_length", 160),
-            )
-
         # Initialize encoder
-        self.encoder = SEANetEncoder2d(
+        self.encoder = SEANetEncoder(
             channels=encdec_channels,
             dimension=hidden_dim,
             n_filters=encdec_n_filters,
@@ -581,26 +593,25 @@ class FunCodecGenerator(nn.Module):
             true_skip=encdec_true_skip,
             compress=encdec_compress,
             lstm=encdec_lstm,
+            bidirectional_lstm=encdec_bidirectional_lstm,
         )
 
         # Initialize quantizer
         self.quantizer = ResidualVectorQuantizer(
             dimension=hidden_dim,
-            codebook_dim=codebook_dim,
             n_q=quantizer_n_q,
             bins=quantizer_bins,
             decay=quantizer_decay,
             kmeans_init=quantizer_kmeans_init,
             kmeans_iters=quantizer_kmeans_iters,
             threshold_ema_dead_code=quantizer_threshold_ema_dead_code,
-            quantizer_dropout=quantizer_dropout,
         )
         self.target_bandwidths = quantizer_target_bandwidth
         self.sample_rate = sample_rate
         self.frame_rate = math.ceil(sample_rate / np.prod(encdec_ratios))
 
         # Initialize decoder
-        self.decoder = SEANetDecoder2d(
+        self.decoder = SEANetDecoder(
             channels=encdec_channels,
             dimension=hidden_dim,
             n_filters=encdec_n_filters,
@@ -624,116 +635,31 @@ class FunCodecGenerator(nn.Module):
             final_activation_params=decoder_final_activation_params,
         )
 
+        # Semantic related
+        self.semantic_prediction = nn.Linear(hidden_dim, semantic_dim)
+        self.semantic_type = semantic_type
+        self.semantic_sample_rate = semantic_sample_rate
+        self.semantic_layer = semantic_layer
+        self.semantic_loss = semantic_loss
+        assert semantic_type in ["espnet", "s3prl"]
+        if semantic_type == "espnet":
+            from espnet2.tasks.hubert import HubertTask
+
+            self.semantic, _ = HubertTask.build_model_from_file(
+                None, semantic_model, device=self.encoder.device
+            )
+        elif semantic_type == "s3prl":
+            from s3prl.nn import S3PRLUpstream
+
+            self.semantic = S3PRLUpstream(semantic_model).to(self.encoder.device)
+        self.semantic.eval()
+
         # quantization loss
         self.l1_quantization_loss = torch.nn.L1Loss(reduction="mean")
         self.l2_quantization_loss = torch.nn.MSELoss(reduction="mean")
-        self.codec_domain = codec_domain
-        self.domain_conf = domain_conf
-        self.audio_normalize = audio_normalize
-
-    def time_to_freq_transfer(self, x: torch.Tensor):
-        if self.audio_normalize:
-            mono = x.mean(dim=1, keepdim=True)
-            volume = mono.pow(2).mean(dim=2, keepdim=True).sqrt()
-            scale = 1e-8 + volume
-            x = x / scale
-            scale = scale.view(-1, 1)
-        else:
-            scale = None
-
-        if self.codec_domain[0] == "stft":
-            x_complex = self.enc_trans_func(x.squeeze(1))
-            if self.encoder.channels == 2:
-                x = torch.stack([x_complex.real, x_complex.imag], dim=1)
-            else:
-                x = torch.cat([x_complex.real, x_complex.imag], dim=1)
-        elif self.codec_domain[0] == "mag":
-            x_mag = self.enc_trans_func(x.squeeze(1))
-            if self.encoder.channels == 1:
-                x = x_mag.unsqueeze(1)
-            else:
-                x = x_mag
-        elif self.codec_domain[0] == "mag_angle":
-            x_complex = self.enc_trans_func(x.squeeze(1))
-            x_mag = torch.abs(x_complex)
-            x_log_mag = torch.log(torch.clamp(x_mag, min=1e-6))
-            x_angle = torch.angle(x_complex)
-            if self.encoder.channels == 2:
-                x = torch.stack([x_log_mag, x_angle], dim=1)
-            else:
-                x = torch.cat([x_log_mag, x_angle], dim=1)
-        elif self.codec_domain[0] == "mag_phase":
-            x_complex = self.enc_trans_func(x.squeeze(1))
-            x_mag = torch.abs(x_complex)
-            x_log_mag = torch.log(torch.clamp(x_mag, min=1e-6))
-            x_phase = x_complex / torch.clamp(x_mag, min=1e-6)
-            if self.encoder.channels == 3:
-                x = torch.stack([x_log_mag, x_phase.real, x_phase.imag], dim=1)
-            else:
-                x = torch.cat([x_log_mag, x_phase.real, x_phase.imag], dim=1)
-        elif self.codec_domain[0] == "mel":
-            x = self.enc_trans_func(x.squeeze(1))
-            if self.encoder.channels == 1:
-                x = x.unsqueeze(1)
-        elif self.codec_domain[0] == "mag_oracle_phase":
-            x_complex = self.enc_trans_func(x.squeeze(1))
-            x = torch.abs(x_complex)
-            if self.encoder.channels == 1:
-                x = x.unsqueeze(1)
-            x_phase = torch.angle(x_complex)
-            scale = (scale, x_phase)
-        return x, scale
-
-    def freq_to_time_transfer(self, x: torch.Tensor, scale: torch.Tensor = None):
-        if self.codec_domain[1] == "stft":
-            if len(x.shape) == 3:
-                out_list = torch.split(x, x.shape[1] // 2, dim=1)
-            else:
-                out_list = torch.split(x, 1, dim=1)
-            x = torch.complex(out_list[0], out_list[1])
-            x = self.dec_trans_func(x).unsqueeze(1)
-        elif self.codec_domain[1] == "mag_phase":
-            if len(x.shape) == 3:
-                out_list = torch.split(x, x.shape[1] // 3, dim=1)
-            else:
-                out_list = [x.squeeze(1) for x in torch.split(x, 1, dim=1)]
-            x_mag = F.softplus(out_list[0])
-            x_phase = torch.complex(out_list[1], out_list[2])
-            x = x_mag * x_phase
-            x = self.dec_trans_func(x).unsqueeze(1)
-        elif self.codec_domain[1] == "mag_angle":
-            if len(x.shape) == 3:
-                out_list = torch.split(x, x.shape[1] // 2, dim=1)
-            else:
-                out_list = [x.squeeze(1) for x in torch.split(x, 1, dim=1)]
-            x_mag = F.softplus(out_list[0])
-            x_angle = torch.sin(out_list[1]) * torch.pi
-            x_spec = torch.complex(
-                torch.cos(x_angle) * x_mag, torch.sin(x_angle) * x_mag
-            )
-            x = self.dec_trans_func(x_spec).unsqueeze(1)
-        elif self.codec_domain[1] == "mag_oracle_phase":
-            if len(x.shape) == 4:
-                x = x.squeeze(1)
-            (scale, x_angle), x_mag = scale, x
-            x_spec = torch.complex(
-                torch.cos(x_angle) * x_mag, torch.sin(x_angle) * x_mag
-            )
-            x = self.dec_trans_func(x_spec).unsqueeze(1)
-        elif (
-            self.codec_domain[0]
-            in ["stft", "mag", "mag_phase", "mag_angle", "mag_oracle_phase"]
-            and self.codec_domain[1] == "time"
-        ):
-            hop_length = self.domain_conf.get("hop_length", 160)
-            x = x[:, :, hop_length // 2 : -hop_length // 2]
-
-        if scale is not None:
-            x = x * scale.view(-1, 1, 1)
-        return x
 
     def forward(self, x: torch.Tensor, use_dual_decoder: bool = False):
-        """FunCodec forward propagation.
+        """SpeechTokenizer forward propagation.
 
         Args:
             x (torch.Tensor): Input tensor of shape (B, 1, T).
@@ -744,7 +670,43 @@ class FunCodecGenerator(nn.Module):
             torch.Tensor: quantization loss
             torch.Tensor: resynthesized audio from encoder.
         """
-        x, scale = self.time_to_freq_transfer(x)
+        with torch.no_grad():
+            if self.sample_rate != self.semantic_sample_rate:
+                if self.sample_rate < self.semantic_sample_rate:
+                    raise ValueError(
+                        "Semantic model sample rate is more than encoder sample rate, likely a bug"
+                    )
+                semantic_audio = F.resample(
+                    x,
+                    self.sample_rate,
+                    self.semantic_sample_rate,
+                    resampling_method="sinc_interp_hann",
+                )
+            else:
+                semantic_audio = x
+            semantic_max_len = semantic_audio.size(2)
+            semantic_seq_len = torch.tensor(
+                [semantic_max_len] * semantic_audio.size(0)
+            ).to(semantic_audio.device)
+            if self.semantic_type == "espnet":
+                semantic = self.semantic(semantic_audio.squeeze(1), semantic_seq_len)
+                if self.semantic_layer == -1:
+                    semantic = semantic.mean(dim=1)
+                else:
+                    assert self.semantic_layer < semantic.size(
+                        1
+                    ), "semantic layer out of range"
+                    semantic = semantic[:, self.semantic_layer]
+            elif self.semantic_type == "s3prl":
+                semantic = self.semantic(semantic_audio.squeeze(1), semantic_seq_len)
+                if self.semantic_layer == -1:
+                    semantic = torch.stack(semantic).mean(dim=0)
+                else:
+                    assert self.semantic_layer < semantic.size(
+                        1
+                    ), "semantic layer out of range"
+                    semantic = semantic[self.semantic_layer]
+
         encoder_out = self.encoder(x)
         max_idx = len(self.target_bandwidths) - 1
 
@@ -752,24 +714,68 @@ class FunCodecGenerator(nn.Module):
         bw = self.target_bandwidths[random.randint(0, max_idx)]
 
         # Forward quantizer
-        quantized, _, _, commit_loss, quantization_loss = self.quantizer(
-            encoder_out, self.frame_rate, bw
+        quantized_list, _, _, commit_loss = self.quantizer(
+            encoder_out, self.frame_rate, bw, return_list=True
         )
 
-        resyn_audio = self.decoder(quantized)[:, :, :, : x.shape[3]]
-        resyn_audio = self.freq_to_time_transfer(resyn_audio)
+        semantic_stream = quantized_list[0]
+        quantized = quantized_list[-1]
+
+        quantization_loss = self.l1_quantization_loss(
+            encoder_out, quantized.detach()
+        ) + self.l2_quantization_loss(encoder_out, quantized.detach())
+
+        # calculate semantic feature
+        semantic_prediction = self.semantic_prediction(semantic_stream)
+        min_len = semantic_prediction.size(1), semantic.size(1)
+        if self.semantic_loss == "L1":
+            semantic_loss = F.l1_loss(
+                semantic_prediction[:, :min_len],
+                semantic[:, :min_len],
+                reduction="mean",
+            )
+        elif self.semantic_loss == "L2":
+            semantic_loss = F.mse_loss(
+                semantic_prediction[:, :min_len],
+                semantic[:, :min_len],
+                reduction="mean",
+            )
+        elif self.semantic_loss == "cosine":
+            semantic_loss = -torch.log(
+                0.5
+                + 1e-6
+                - F.cosine_similarity(
+                    semantic_prediction[:, :min_len], semantic[:, :min_len], axis=1
+                )
+                / 2
+            ).mean()
+        else:
+            raise ValueError(
+                "Unsupported semantic loss type [{}]. Supported types are L1, L2, cosine".format(
+                    self.semantic_loss
+                )
+            )
+
+        resyn_audio = self.decoder(quantized)
+
         if use_dual_decoder:
             resyn_audio_real = self.decoder(encoder_out)
         else:
             resyn_audio_real = None
-        return resyn_audio, commit_loss, quantization_loss, resyn_audio_real
+        return (
+            resyn_audio,
+            commit_loss,
+            quantization_loss,
+            semantic_loss,
+            resyn_audio_real,
+        )
 
     def encode(
         self,
         x: torch.Tensor,
         target_bw: Optional[float] = None,
     ):
-        """FunCodec codec encoding.
+        """SpeechTokenizer codec encoding.
 
         Args:
             x (torch.Tensor): Input tensor of shape (B, 1, T).
@@ -777,7 +783,6 @@ class FunCodecGenerator(nn.Module):
             torch.Tensor: neural codecs in shape ().
         """
 
-        x, scale = self.time_to_freq_transfer(x)
         encoder_out = self.encoder(x)
         if target_bw is None:
             bw = self.target_bandwidths[-1]
@@ -787,7 +792,7 @@ class FunCodecGenerator(nn.Module):
         return codes
 
     def decode(self, codes: torch.Tensor):
-        """FunCodec codec decoding.
+        """SpeechTokenizer codec decoding.
 
         Args:
             codecs (torch.Tensor): neural codecs in shape ().
@@ -796,95 +801,71 @@ class FunCodecGenerator(nn.Module):
         """
         quantized = self.quantizer.decode(codes)
         resyn_audio = self.decoder(quantized)
-        resyn_audio = self.freq_to_time_transfer(resyn_audio)
         return resyn_audio
 
 
-class FunCodecDiscriminator(nn.Module):
-    """FunCodec discriminator module."""
+class SpeechTokenizerDiscriminator(nn.Module):
+    """SpeechTokenizer discriminator module."""
 
     def __init__(
         self,
-        # Multi-scale discriminator related
-        scales: int = 3,
-        scale_downsample_pooling: str = "AvgPool1d",
-        # follow the official implementation setting
-        scale_downsample_pooling_params: Dict[str, Any] = {
-            "kernel_size": 4,
-            "stride": 2,
-            "padding": 2,
-        },
-        scale_discriminator_params: Dict[str, Any] = {
+        msstft_discriminator_params={
+            "filters": 32,
             "in_channels": 1,
             "out_channels": 1,
-            "kernel_sizes": [15, 41, 5, 3],
-            "channels": 128,
-            "max_downsample_channels": 1024,
-            "max_groups": 16,
-            "bias": True,
-            "downsample_scales": [2, 2, 4, 4, 1],
-            "nonlinear_activation": "LeakyReLU",
-            "nonlinear_activation_params": {"negative_slope": 0.1},
+            "sep_channels": False,
+            "norm": "weight_norm",
+            "n_ffts": [1024, 2048, 512, 256, 128],
+            "hop_lengths": [256, 512, 128, 64, 32],
+            "win_lengths": [1024, 2048, 512, 256, 128],
+            "activation": "LeakyReLU",
+            "activation_params": {"negative_slope": 0.3},
         },
-        scale_follow_official_norm: bool = False,
-        # Multi period discriminator related
-        periods: List[int] = [2, 3, 5, 7, 11],
-        period_discriminator_params: Dict[str, Any] = {
-            "in_channels": 1,
-            "out_channels": 1,
-            "kernel_sizes": [5, 3],
-            "channels": 32,
-            "downsample_scales": [3, 3, 3, 3, 1],
-            "max_downsample_channels": 1024,
-            "bias": True,
-            "nonlinear_activation": "LeakyReLU",
-            "nonlinear_activation_params": {"negative_slope": 0.1},
-            "use_weight_norm": True,
-            "use_spectral_norm": False,
-        },
-        # ComplexSTFT discriminator related
-        complexstft_discriminator_params: Dict[str, Any] = {
-            "in_channels": 1,
-            "channels": 32,
-            "strides": [[1, 2], [2, 2], [1, 2], [2, 2], [1, 2], [2, 2]],
-            "chan_mults": [1, 2, 4, 4, 8, 8],
-            "n_fft": 1024,
-            "hop_length": 256,
-            "win_length": 1024,
-            "stft_normalized": False,
+        msmpmb_discriminator_params={
+            "rates": [],
+            "periods": [2, 3, 5, 7, 11],
+            "fft_sizes": [2048, 1024, 512],
+            "sample_rate": 24000,
+            "periods": [2, 3, 5, 7, 11],
+            "period_discriminator_params": {
+                "in_channels": 1,
+                "out_channels": 1,
+                "kernel_sizes": [5, 3],
+                "channels": 32,
+                "downsample_scales": [3, 3, 3, 3, 1],
+                "max_downsample_channels": 1024,
+                "bias": True,
+                "nonlinear_activation": "LeakyReLU",
+                "nonlinear_activation_params": {"negative_slope": 0.1},
+                "use_weight_norm": True,
+                "use_spectral_norm": False,
+            },
+            "band_discriminator_params": {
+                "hop_factor": 0.25,
+                "sample_rate": 24000,
+                "bands": [
+                    (0.0, 0.1),
+                    (0.1, 0.25),
+                    (0.25, 0.5),
+                    (0.5, 0.75),
+                    (0.75, 1.0),
+                ],
+                "channel": 32,
+            },
         },
     ):
-        """Initialize FunCodec Discriminator module.
+        """Initialize SpeechTokenizer Discriminator module.
 
         Args:
-            scales (int): Number of multi-scales.
-            sclae_downsample_pooling (str): Pooling module name for downsampling of the
-                inputs.
-            scale_downsample_pooling_params (Dict[str, Any]): Parameters for the above
-                pooling module.
-            scale_discriminator_params (Dict[str, Any]): Parameters for hifi-gan  scale
-                discriminator module.
-            scale_follow_official_norm (bool): Whether to follow the norm setting of the
-                official implementaion. The first discriminator uses spectral norm
-                and the other discriminators use weight norm.
-            complexstft_discriminator_params (Dict[str, Any]): Parameters for the
-                complex stft discriminator module.
+            TODO(jiatong)
         """
         super().__init__()
 
-        self.msd = HiFiGANMultiScaleDiscriminator(
-            scales=scales,
-            downsample_pooling=scale_downsample_pooling,
-            downsample_pooling_params=scale_downsample_pooling_params,
-            discriminator_params=scale_discriminator_params,
-            follow_official_norm=scale_follow_official_norm,
+        self.msmpmb_discriminator = MultiScaleMultiPeriodMultiBandDiscriminator(
+            **msmpmb_discriminator_params
         )
-        self.mpd = HiFiGANMultiPeriodDiscriminator(
-            periods=periods,
-            discriminator_params=period_discriminator_params,
-        )
-        self.complex_stft_d = ComplexSTFTDiscriminator(
-            **complexstft_discriminator_params
+        self.msstft_discriminator = MultiScaleSTFTDiscriminator(
+            **msstft_discriminator_params
         )
 
     def forward(self, x: torch.Tensor) -> List[List[torch.Tensor]]:
@@ -899,7 +880,6 @@ class FunCodecDiscriminator(nn.Module):
                 multi period ones are concatenated.
 
         """
-        msd_outs = self.msd(x)
-        mpd_outs = self.mpd(x)
-        complex_stft_outs = self.complex_stft_d(x)
-        return msd_outs + mpd_outs + complex_stft_outs
+        msmpmb_outs = self.msmpmb_discriminator(x)
+        msstft_outs = self.msstft_discriminator(x)
+        return msmpmb_outs + msstft_outs
