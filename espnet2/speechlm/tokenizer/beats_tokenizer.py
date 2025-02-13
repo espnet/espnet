@@ -41,7 +41,7 @@ from espnet2.speechlm.tokenizer.beats_utils import (
     norm_ema_inplace,
     ema_inplace,
     forward_padding_mask_conv,
-    freeze_conv2d_module,
+    freeze_conv_module,
     beats_frontend,
 )
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
@@ -404,6 +404,13 @@ class BeatsRandomTokenizer(nn.Module):
             stride=config.input_patch_size,
             bias=False,
         )
+        self.raw2fbank_pad = nn.Conv1d(
+            1,
+            1,
+            kernel_size=400,
+            stride=160,
+            bias=False,
+        )
         self.random_projection_quantizer = RandomProjectionQuantizer(
             config.embed_dim,
             codebook_size=config.quant_n,
@@ -422,7 +429,8 @@ class BeatsRandomTokenizer(nn.Module):
         if self.patch_embedding.bias is not None:
             torch.nn.init.constant_(self.patch_embedding.bias, 0)
             self.patch_embedding.bias.requires_grad = False
-        freeze_conv2d_module(self.patch_embedding_pad)
+        freeze_conv_module(self.patch_embedding_pad)
+        freeze_conv_module(self.raw2fbank_pad)
 
     @torch.no_grad()
     def forward_padding_mask(
@@ -452,14 +460,17 @@ class BeatsRandomTokenizer(nn.Module):
             )
         n_mels = fbank.size(2)
         padding_mask = make_pad_mask(lengths=ilens, traceable=False).to(fbank.device)
-        padding_mask = self.forward_padding_mask(fbank, padding_mask)
+        # padding_mask = self.forward_padding_mask(fbank, padding_mask)
+        padding_mask = forward_padding_mask_conv(
+            padding_mask=padding_mask, n_dim=1, conv_module=self.raw2fbank_pad
+        )
         fbank = fbank.unsqueeze(1).float()
         features = self.patch_embedding(fbank)  # B, C, t, d=8
         features = features.reshape(features.shape[0], features.shape[1], -1)
         features = features.transpose(1, 2)
         features = self.layer_norm(features)
         padding_mask = forward_padding_mask_conv(
-            padding_mask, n_dim=n_mels, conv2d_module=self.patch_embedding_pad
+            padding_mask, n_dim=n_mels, conv_module=self.patch_embedding_pad
         )
         embed_ind = self.random_projection_quantizer(features)
         embed_len = (~padding_mask).sum(1)

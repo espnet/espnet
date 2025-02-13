@@ -6,7 +6,7 @@ from espnet2.speechlm.tokenizer.beats_utils import (
     sample_vectors,
     beats_frontend,
     forward_padding_mask_conv,
-    freeze_conv2d_module,
+    freeze_conv_module,
 )
 from espnet2.speechlm.tokenizer.beats_tokenizer import BeatsRandomTokenizer
 
@@ -40,7 +40,7 @@ def test_beats_forntent():
 def test_forward_padding_mask_conv():
     n_dim = 128
     conv2d_module = torch.nn.Conv2d(1, 1, kernel_size=16, stride=16, bias=False)
-    freeze_conv2d_module(conv2d_module)
+    freeze_conv_module(conv2d_module)
 
     # Test case 1: No padding (fully active input)
     padding_mask = torch.zeros(1, 16000, dtype=torch.bool)

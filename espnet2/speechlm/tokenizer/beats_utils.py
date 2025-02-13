@@ -88,20 +88,20 @@ def beats_frontend(
 def forward_padding_mask_conv(
     padding_mask: torch.Tensor,
     n_dim: int,
-    conv2d_module: nn.Module,
+    conv_module: nn.Module,
 ):
     """Forward padding mask.
     To be applied after features are passed through conv2d module, for consistency.
     padding_mask: BT
     n_dim: number of dimensions before conv2d was applied to features
-    conv2d_module: conv2d module applied to features,
+    conv_module: conv module applied to features,
         the channel dimension must be 1.
     """
     assert n_dim >= 1
     assert padding_mask.dim() == 2
-    padding_mask = padding_mask.unsqueeze(-1).repeat(1, 1, n_dim)
-    dtype_ = next(conv2d_module.parameters()).dtype
-    padding_mask = conv2d_module(padding_mask.unsqueeze(1).to(dtype_))
+    padding_mask = padding_mask.unsqueeze(-1).repeat(1, 1, n_dim).unsqueeze(1)  # b1tn
+    dtype_ = next(conv_module.parameters()).dtype
+    padding_mask = conv_module(padding_mask.to(dtype_))
     padding_mask = padding_mask != 0
     padding_mask = (
         padding_mask.view(padding_mask.shape[0], padding_mask.shape[1], -1)
@@ -111,10 +111,10 @@ def forward_padding_mask_conv(
     return padding_mask
 
 
-def freeze_conv2d_module(conv2d_module: nn.Module):
+def freeze_conv_module(conv_module: nn.Module):
     # Fix patch embedding for padding
-    conv2d_module.weight.data.fill_(1)
-    conv2d_module.weight.requires_grad = False
-    if conv2d_module.bias is not None:
-        conv2d_module.bias.data.fill_(0)
-        conv2d_module.bias.requires_grad = False
+    conv_module.weight.data.fill_(1)
+    conv_module.weight.requires_grad = False
+    if conv_module.bias is not None:
+        conv_module.bias.data.fill_(0)
+        conv_module.bias.requires_grad = False
