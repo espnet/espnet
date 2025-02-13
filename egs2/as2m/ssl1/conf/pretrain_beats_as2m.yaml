@@ -21,7 +21,7 @@ encoder_conf:
         fbank_std: 6.93416
         decoder_layers: 3 # layers in the pretraining predictor
         deep_norm: true
-        use_flash_attn: true
+        use_flash_attn: false
         relative_position_embedding: true
         num_buckets: 320
         max_distance: 800
@@ -30,7 +30,7 @@ encoder_conf:
     is_pretraining: true
 
 model_conf:
-    ignore_id: -1
+    ignore_id: -2 # This is important!
     label_smoothing: 0.1
     sound_input: false
 
