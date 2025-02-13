@@ -323,12 +323,10 @@ def test_metrics_mAP_over_multiple_batches(batch_size):
     model.metric_functions["mAP"](
         preds[: batch_size // 2],
         target[: batch_size // 2],
-        reset_pr_curve=model.training or not model.log_epoch_metrics,
     )
     model.metric_functions["mAP"](
         preds[batch_size // 2 :],
         target[batch_size // 2 :],
-        reset_pr_curve=model.training or not model.log_epoch_metrics,
     )
     # validation mode, accumulated
     mAP_split = model.validation_epoch_end_()["epoch_mAP"]
@@ -337,7 +335,6 @@ def test_metrics_mAP_over_multiple_batches(batch_size):
     mAP_bulk = model.metric_functions["mAP"](
         preds,
         target,
-        reset_pr_curve=model.training or not model.log_epoch_metrics,
     ).item()
     model.training_epoch_end_()
 

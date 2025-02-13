@@ -13,8 +13,8 @@ from packaging.version import parse as V
 from typeguard import typechecked
 
 try:
-    from torcheval.metrics import functional as EvalFunction
-    from torchmetrics.classification import MultilabelPrecisionRecallCurve
+    from torcheval.metrics import functional as EvalFunction, MultilabelAUPRC
+    from torcheval.metrics.toolkit import sync_and_compute
 
     is_torcheval_available = True
 except ImportError:
@@ -158,14 +158,8 @@ class ESPnetClassificationModel(AbsESPnetModel):
                 if self.classification_type == "multi-class"
                 else onehot_
             )
-            if metric_name != "mAP":
-                val = metric_fn(pred, target).detach()
-            else:
-                val = metric_fn(
-                    pred=pred,
-                    tgt_onehot=target,
-                    reset_pr_curve=self.training or not self.log_epoch_metrics,
-                ).detach()
+            val = metric_fn(pred, target)
+            val = val.detach() if val is not None else None
             stats[metric_name] = val
 
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
@@ -177,16 +171,14 @@ class ESPnetClassificationModel(AbsESPnetModel):
             return None
         stats_dict = None
         if self.log_epoch_metrics:
-            epoch_mAP = self.metric_functions["mAP"](compute_epoch_stats=True).item()
+            epoch_mAP = self.metric_functions["mAP"].compute().item()
             stats_dict = {"epoch_mAP": epoch_mAP}
-        self.pr_curve_generator.reset()
         return stats_dict
 
     def training_epoch_end_(self):
         if not self.training:
             logger.warning("Training epoch end called during validation.")
             return None
-        self.pr_curve_generator.reset()
 
     def score(
         self, speech: torch.Tensor, speech_lengths: Optional[torch.Tensor] = None
@@ -290,9 +282,6 @@ class ESPnetClassificationModel(AbsESPnetModel):
         return feats, feats_lengths
 
     def setup_metrics_(self):
-        self.pr_curve_generator = MultilabelPrecisionRecallCurve(
-            num_labels=self.vocab_size
-        )
         if self.classification_type == "multi-class":
             return {
                 "acc": EvalFunction.multiclass_accuracy,
@@ -306,9 +295,9 @@ class ESPnetClassificationModel(AbsESPnetModel):
             return {
                 "acc": partial(EvalFunction.multilabel_accuracy, criteria="hamming"),
                 # acc is usually high if data is imabalanced
-                "mAP": partial(
-                    mean_average_precision_score,
-                    pr_curve_generator=self.pr_curve_generator,
+                "mAP": ESPnetMultilabelAUPRC(
+                    num_labels=self.vocab_size,
+                    caller=self,
                 ),
             }
 
@@ -352,46 +341,24 @@ def label_to_onehot(
         )
 
 
-def mean_average_precision_score(
-    pred=None,
-    tgt_onehot=None,
-    pr_curve_generator=None,
-    compute_epoch_stats=False,
-    reset_pr_curve=False,
-):
-    """Calculates mean of average precision scores per label.
-    https://scikit-learn.org/stable/modules/generated/sklearn.metrics.average_precision_score.html
-
-    Args:
-        pred: (Batch, n_classes)
-        tgt_onehot: (Batch, n_classes)
-        pr_curve_generator: MultilabelPrecisionRecallCurve
-        compute_epoch_stats: bool
-        reset_pr_curve: bool
-    Returns:
-        avg_precision: tensor of a single float
+class ESPnetMultilabelAUPRC:
+    """Wrapper for torcheval.metrics.MultilabelAUPRC
+    that computes mAP at the end of each validation epoch and
+    at the end of each training step, if logging epoch metrics.
     """
-    assert pr_curve_generator is not None
-    assert compute_epoch_stats or (pred is not None and tgt_onehot is not None)
 
-    def _compute_avg_precision(precision, recall):
-        n_labels = len(precision)
-        avg_precision = 0
-        for i in range(n_labels):
-            precision_i = torch.flip(precision[i], (0,))
-            delta_recall_i = torch.diff(torch.flip(recall[i], (0,)))
-            avg_precision_i = (precision_i[1:] * delta_recall_i).sum()
-            avg_precision += avg_precision_i
-        avg_precision /= n_labels
-        return avg_precision
+    def __init__(self, num_labels=None, caller=None):
+        self.mAP_computer = MultilabelAUPRC(num_labels=num_labels)
+        self.caller = caller
 
-    if compute_epoch_stats:
-        precision, recall, _ = pr_curve_generator.compute()
-        pr_curve_generator.reset()  # always reset after computing epoch stats
-    else:
-        tgt_onehot = tgt_onehot.long()
-        precision, recall, _ = pr_curve_generator(preds=pred, target=tgt_onehot)
-        if reset_pr_curve:
-            pr_curve_generator.reset()  # reset after each batch in training mode
+    def __call__(self, pred, tgt_onehot):
+        if self.caller.training or not self.caller.log_epoch_metrics:
+            # if training or not logging epoch metrics, compute at each step
+            self.mAP_computer.update(pred, tgt_onehot)
+            return self.compute()
+        self.mAP_computer.update(pred, tgt_onehot)
 
-    return _compute_avg_precision(precision, recall)
+    def compute(self):
+        mAP = sync_and_compute(self.mAP_computer)
+        self.mAP_computer.reset()
+        return mAP
