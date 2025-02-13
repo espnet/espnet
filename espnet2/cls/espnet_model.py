@@ -7,6 +7,7 @@ from functools import partial
 from typing import Dict, List, Optional, Tuple, Union
 
 import torch
+import torch.distributed as dist
 import torch.nn as nn
 import torch.nn.functional as F
 from packaging.version import parse as V
@@ -159,7 +160,7 @@ class ESPnetClassificationModel(AbsESPnetModel):
                 else onehot_
             )
             val = metric_fn(pred, target)
-            val = val.detach() if val is not None else None
+            val = val.detach() if val is not None else -1
             stats[metric_name] = val
 
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
@@ -170,7 +171,7 @@ class ESPnetClassificationModel(AbsESPnetModel):
             logger.warning("Validation epoch end called during training.")
             return None
         stats_dict = None
-        if self.log_epoch_metrics:
+        if self.log_epoch_metrics and "mAP" in self.metric_functions:
             epoch_mAP = self.metric_functions["mAP"].compute().item()
             stats_dict = {"epoch_mAP": epoch_mAP}
         return stats_dict
@@ -352,13 +353,15 @@ class ESPnetMultilabelAUPRC:
         self.caller = caller
 
     def __call__(self, pred, tgt_onehot):
+        self.mAP_computer.update(pred, tgt_onehot)
         if self.caller.training or not self.caller.log_epoch_metrics:
             # if training or not logging epoch metrics, compute at each step
-            self.mAP_computer.update(pred, tgt_onehot)
             return self.compute()
-        self.mAP_computer.update(pred, tgt_onehot)
 
     def compute(self):
-        mAP = sync_and_compute(self.mAP_computer)
+        if dist.is_initialized() and dist.get_world_size() > 1:
+            mAP = sync_and_compute(self.mAP_computer)
+        else:
+            mAP = self.mAP_computer.compute()
         self.mAP_computer.reset()
         return mAP

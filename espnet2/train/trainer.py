@@ -822,6 +822,7 @@ class Trainer:
             if distributed:
                 iterator_stop.fill_(1)
                 torch.distributed.all_reduce(iterator_stop, ReduceOp.SUM)
+        return all_steps_are_invalid
 
     @classmethod
     @torch.no_grad()
