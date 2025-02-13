@@ -539,7 +539,7 @@ class BeatsEncoder(AbsEncoder):
             if self.specaug is not None and self.training:
                 fbank = self.specaug(fbank)[0]
 
-        if padding_mask is not None:
+        if padding_mask is not None and not skip_fbank_extraction:
             # padding_mask = self.forward_padding_mask(fbank, padding_mask)
             padding_mask = forward_padding_mask_conv(
                 padding_mask=padding_mask, n_dim=0, conv_module=self.raw2fbank_pad

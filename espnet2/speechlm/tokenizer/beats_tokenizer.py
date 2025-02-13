@@ -375,7 +375,7 @@ class BeatsTokenizerPretrainingPredictor(nn.Module):
 
 
 class BeatsRandomTokenizer(nn.Module):
-    # Note: Note tested with espnet trainer. Only use with dump_codec.py
+    # Note: Note tested with espnet trainer. Only use with dump_audio_tokens.py
     def __init__(
         self,
         tokenizer_config: Optional[Dict] = None,
@@ -450,20 +450,28 @@ class BeatsRandomTokenizer(nn.Module):
     def forward(self, xs_pad: torch.Tensor, ilens: torch.Tensor):
         """
         Args:
-            xs_pad (torch.Tensor): Input tensor (B, T).
+            xs_pad (torch.Tensor): Input tensor (B, T) or (B,T,D).
+                (B,T) for raw waveform and (B,T,D) for features.
             ilens (torch.Tensor): Input length tensor (B,).
         """
         xs_pad = xs_pad[:, : ilens.max()]
-        with autocast(False):
-            fbank = beats_frontend(
-                xs_pad, fbank_mean=self.fbank_mean, fbank_std=self.fbank_std
-            )
-        n_mels = fbank.size(2)
-        padding_mask = make_pad_mask(lengths=ilens, traceable=False).to(fbank.device)
+        audio_input = False
+        if xs_pad.dim() == 2:
+            audio_input = True
+        padding_mask = make_pad_mask(lengths=ilens, traceable=False).to(xs_pad.device)
         # padding_mask = self.forward_padding_mask(fbank, padding_mask)
-        padding_mask = forward_padding_mask_conv(
-            padding_mask=padding_mask, n_dim=0, conv_module=self.raw2fbank_pad
-        )
+        if audio_input:
+            padding_mask = forward_padding_mask_conv(
+                padding_mask=padding_mask, n_dim=0, conv_module=self.raw2fbank_pad
+            )
+        with autocast(False):
+            if audio_input:
+                fbank = beats_frontend(
+                    xs_pad, fbank_mean=self.fbank_mean, fbank_std=self.fbank_std
+                )
+            else:
+                fbank = xs_pad
+        n_mels = fbank.size(2)
         fbank = fbank.unsqueeze(1).float()
         features = self.patch_embedding(fbank)  # B, C, t, d=8
         features = features.reshape(features.shape[0], features.shape[1], -1)

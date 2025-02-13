@@ -13,7 +13,7 @@ log() {
 }
 
 nj=4                # number of parallel jobs
-ngpu=0             # number of gpus (0: no gpus)
+ngpu=1              # number of gpus ("0" uses cpu, otherwise use gpu)
 python=python3      # Specify python to execute espnet commands.
 codec_choice=beats  # Audio Tokenizer Options: beats
 codec_fs=16000
@@ -74,7 +74,6 @@ if [ ${checkpoint_path} ]; then
     _opts+="--checkpoint_path ${checkpoint_path} "
 fi
 
-wav_wspecifier="ark,scp:${output_dir}/${file_name}_resyn_${codec_choice}.JOB.ark,${output_dir}/${file_name}_resyn_${codec_choice}.JOB.scp"
 if [ ${code_writeformat} == "ark" ]; then
     code_wspecifier="ark,scp:${output_dir}/${file_name}_codec_${codec_choice}.JOB.ark,${output_dir}/${file_name}_codec_${codec_choice}.JOB.scp"
     _combine_filetype=scp
@@ -95,7 +94,6 @@ ${cuda_cmd} --gpu ${ngpu} JOB=1:${_nj} ${_logdir}/codec_dump_${codec_choice}.JOB
         --dump_audio ${dump_audio} \
         --rank JOB \
         --vocab_file ${tgt_dir}/token_lists/codec_token_list \
-        --wav_wspecifier ${wav_wspecifier} \
         ${_opts} \
         "scp:${_logdir}/${file_name}.JOB.scp" ${code_wspecifier} || exit 1;
 

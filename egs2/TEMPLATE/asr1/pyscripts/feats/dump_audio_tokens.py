@@ -22,7 +22,7 @@ logging.basicConfig(
     level=os.environ.get("LOGLEVEL", "INFO").upper(),
     stream=sys.stdout,
 )
-logger = logging.getLogger("dump_codec")
+logger = logging.getLogger("dump_audio_tokens")
 
 
 def get_parser():
@@ -33,7 +33,6 @@ def get_parser():
     parser.add_argument("--dump_audio", type=str2bool, default=False)
     parser.add_argument("--rank", type=int, default=1)
     parser.add_argument("--vocab_file", type=str, required=True)
-    parser.add_argument("--wav_wspecifier", type=str, default=None)
     parser.add_argument(
         "--bias",
         type=int,
@@ -62,11 +61,10 @@ def get_parser():
     return parser
 
 
-def dump_codec(
+def dump_audio_tokens(
     rspecifier: str,
     wspecifier: str,
     vocab_file: str,
-    wav_wspecifier: str,
     codec_choice: str,
     codec_fs: int,
     batch_size: int,
@@ -102,16 +100,16 @@ def dump_codec(
 
     # (3) Tokenizer loop
     codec_writer = kaldiio.WriteHelper(wspecifier)
-    wav_reader = kaldiio.ReadHelper(rspecifier)
+    audio_reader = kaldiio.ReadHelper(rspecifier)
 
     buffer, length_buffer, key_buffer = [], [], []
     wav_reader_len = len(open(rspecifier.split(":")[1]).readlines())
-    for idx, (key, (sample_rate, wav)) in enumerate(wav_reader):
-        if sample_rate != tokenizer.sample_rate:
-            raise ValueError("Sample rate mismatch between input audio and codec model")
-
-        if wav.ndim != 1:
-            raise ValueError("Multi-Channel audio is not supported so far")
+    idx = 0
+    for key, data in audio_reader:
+        if isinstance(data, tuple):
+            wav, sample_rate = data  # raw wav
+        else:
+            wav, sample_rate = data, None  # wav features
 
         wav = torch.from_numpy(wav)
         buffer.append(wav)
@@ -119,7 +117,12 @@ def dump_codec(
         key_buffer.append(key)
 
         if idx == wav_reader_len - 1 or len(buffer) % batch_size == 0:
-            wavs = pad_list(buffer, 0.0).to(device).unsqueeze(1).float()
+            wavs = pad_list(buffer, 0.0).to(device).float()
+            if wavs.dim() == 2:
+                wavs = wavs.unsqueeze(-1)
+            if sample_rate:
+                assert sample_rate == codec_fs
+            # b,t,d (d=1 for raw)
             wav_lens = torch.tensor(length_buffer, dtype=torch.int).to(device)
             with torch.no_grad():
                 codes, code_lengths = tokenizer(wavs, wav_lens)
@@ -134,6 +137,7 @@ def dump_codec(
                 codec_writer[key] = code
 
             buffer, length_buffer, key_buffer = [], [], []
+        idx += 1
     # (4) dump vocabulary file
     if rank == 1:
         vocab_writer = open(vocab_file, "w")
@@ -146,4 +150,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
     args = vars(args)
     logger.info(args)
-    dump_codec(**args)
+    dump_audio_tokens(**args)

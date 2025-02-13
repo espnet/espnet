@@ -289,14 +289,15 @@ if ! "${skip_train}"; then
         # TODO(shikhar): Modify dump_audio_tokens.py to accept feats.scp. Undo length
         # changes in dump_codec.py
         _nj=$((ngpu==0?nj:ngpu))
+        _ngpu=$((ngpu==0?0:1))
         for dset in "${valid_set}" "${train_set}"; do
             ./scripts/feats/audio_tokenization.sh \
                 --codec_choice ${codec_choice} \
                 --file_name ${_file_name} \
                 --src_dir "${data_feats}/${dset}" \
                 --tgt_dir "${data_feats}/${dset}/codes_iter0" \
-                --nj "${_nj}" --ngpu "${ngpu}" --batch_size "${tokenizer_inference_batch_size}"
-            cp "${data_feats}/${dset}/codes_iter0/wav_${codec_choice}.txt" "${data_feats}/${dset}/target_iter0"
+                --nj "${_nj}" --ngpu ${_ngpu} --batch_size "${tokenizer_inference_batch_size}"
+            cp "${data_feats}/${dset}/codes_iter0/${_file_name%.scp}_${codec_choice}.txt" "${data_feats}/${dset}/target_iter0"
         done
         
         # Prepare token list
@@ -462,14 +463,15 @@ if ! "${skip_train}"; then
                 log "Inference with tokenizer model: ${_tokenizer_ckpt_path}"
                 for _data_dir in "${_ssl_train_dir}" "${_ssl_val_dir}"; do
                     _nj=$((ngpu==0?nj:ngpu))
+                    _ngpu=$((ngpu==0?0:1))
                     ./scripts/feats/audio_tokenization.sh \
                         --codec_choice beats \
                         --file_name wav.scp \
                         --src_dir "${_data_dir}" \
                         --tgt_dir "${_data_dir}/codes_iter${iter}" \
                         --checkpoint_path "${_tokenizer_ckpt_path}" \
-                        --nj "${_nj}" --n_gpu "${ngpu}" --batch_size "${tokenizer_inference_batch_size}"
-                    cp "${_data_dir}/codes_iter${iter}/wav_${codec_choice}.txt" "${_data_dir}/target_iter${iter}"
+                        --nj "${_nj}" --ngpu "${_ngpu}" --batch_size "${tokenizer_inference_batch_size}"
+                    cp "${_data_dir}/codes_iter${iter}/${_file_name%.scp}_${codec_choice}.txt" "${_data_dir}/target_iter${iter}"
                 done
                 log "Inference with tokenizer model completed."
             fi
