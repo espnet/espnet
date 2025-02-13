@@ -91,15 +91,18 @@ def forward_padding_mask_conv(
     conv_module: nn.Module,
 ):
     """Forward padding mask.
-    To be applied after features are passed through conv2d module, for consistency.
+    To be applied after features are passed through conv module or after converting to spectrogram,
+    for consistency.
     padding_mask: BT
-    n_dim: number of dimensions before conv2d was applied to features
+    n_dim: number of dimensions before the transformation was applied to features.
+        When applying after fbank computation set this to a non-positive value.
     conv_module: conv module applied to features,
         the channel dimension must be 1.
     """
-    assert n_dim >= 1
     assert padding_mask.dim() == 2
-    padding_mask = padding_mask.unsqueeze(-1).repeat(1, 1, n_dim).unsqueeze(1)  # b1tn
+    if n_dim >= 1:
+        padding_mask = padding_mask.unsqueeze(-1).repeat(1, 1, n_dim)  # btn
+    padding_mask = padding_mask.unsqueeze(1)  # b1tn or b1t, depending on n_dim
     dtype_ = next(conv_module.parameters()).dtype
     padding_mask = conv_module(padding_mask.to(dtype_))
     padding_mask = padding_mask != 0

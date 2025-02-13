@@ -542,7 +542,7 @@ class BeatsEncoder(AbsEncoder):
         if padding_mask is not None:
             # padding_mask = self.forward_padding_mask(fbank, padding_mask)
             padding_mask = forward_padding_mask_conv(
-                padding_mask=padding_mask, n_dim=1, conv_module=self.raw2fbank_pad
+                padding_mask=padding_mask, n_dim=0, conv_module=self.raw2fbank_pad
             )
 
         fbank = fbank.unsqueeze(1)

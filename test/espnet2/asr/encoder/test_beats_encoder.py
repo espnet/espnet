@@ -70,7 +70,7 @@ def test_forward_pass_beats_encoder(
     assert (
         output_len.size(0) == 2
     ), f"Output length batch size should be 2. It is {output_len.size(0)}"
-    correct_length = (25, 47) if downsampling_rate == 2 else (50, 96)
+    correct_length = (24, 47) if downsampling_rate == 2 else (48, 96)
     assert (
         tuple(output_len.tolist()) == correct_length
     ), f"Output length vector should be {correct_length}. It is {output_len}"
@@ -100,7 +100,7 @@ def test_backward_pass_beats_encoder(
         add_positional_information=add_positional_information,
         max_positions=max_positions,
     )
-    x = torch.randn((2, 32_000), requires_grad=True)  # B,T
+    x = torch.randn((2, 24_000), requires_grad=True)  # B,T
     x_lens = torch.LongTensor([16_000, 24_000])
     output_rep, output_len, _ = beats_model(x, x_lens)
 
@@ -130,7 +130,7 @@ def test_forward_pass_pretraining_beats_encoder():
         output_rep.size(1) == correct_length
     ), f"Representation length should be {correct_length}. It is {output_rep.size(1)}"
     assert output_rep.size(2) == 768, f"Output dim should be 768"
-    assert tuple(patch_len.tolist()) == (50, 96)
+    assert tuple(patch_len.tolist()) == (48, 96)
 
     assert kept_mask.shape == (
         2,

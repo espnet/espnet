@@ -278,18 +278,18 @@ if ! "${skip_train}"; then
     fi
     if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         log "Stage 5: BEATs Tokenization: ${data_feats}/${train_set}, ${data_feats}/${valid_set}"
-        if [ ${feats_type} = raw]; then
+        if [ ${feats_type} = raw ]; then
             _file_name=wav.scp
-        elif [ ${feats_type} = fbank]; then
+        elif [ ${feats_type} = fbank ]; then
             _file_name=feats.scp
         fi
         
         # Tokenize
         # TODO(shikhar): Change audio_tokenizations.sh to accept feats.scp
-        # TODO(shikhar): Change dump_codec.py to accept feats.scp. Create dump_audio_tokens.py, then undo length
+        # TODO(shikhar): Modify dump_audio_tokens.py to accept feats.scp. Undo length
         # changes in dump_codec.py
         _nj=$((ngpu==0?nj:ngpu))
-        for dset in "${train_set}" "${valid_set}"; do
+        for dset in "${valid_set}" "${train_set}"; do
             ./scripts/feats/audio_tokenization.sh \
                 --codec_choice ${codec_choice} \
                 --file_name ${_file_name} \

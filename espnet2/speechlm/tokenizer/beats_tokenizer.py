@@ -462,7 +462,7 @@ class BeatsRandomTokenizer(nn.Module):
         padding_mask = make_pad_mask(lengths=ilens, traceable=False).to(fbank.device)
         # padding_mask = self.forward_padding_mask(fbank, padding_mask)
         padding_mask = forward_padding_mask_conv(
-            padding_mask=padding_mask, n_dim=1, conv_module=self.raw2fbank_pad
+            padding_mask=padding_mask, n_dim=0, conv_module=self.raw2fbank_pad
         )
         fbank = fbank.unsqueeze(1).float()
         features = self.patch_embedding(fbank)  # B, C, t, d=8
