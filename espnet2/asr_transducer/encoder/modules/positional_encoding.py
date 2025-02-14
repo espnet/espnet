@@ -69,7 +69,12 @@ class RelPositionalEncoding(torch.nn.Module):
             dtype=x.dtype, device=x.device
         )
 
-    def forward(self, x: torch.Tensor, left_context: int = 0) -> torch.Tensor:
+    def forward(
+        self,
+        x: torch.Tensor,
+        left_context: int = 0,
+        recurrent: bool = True,
+    ) -> torch.Tensor:
         """Compute positional encoding.
 
         Args:
