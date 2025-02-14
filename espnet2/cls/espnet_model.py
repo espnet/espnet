@@ -7,13 +7,16 @@ from functools import partial
 from typing import Dict, List, Optional, Tuple, Union
 
 import torch
+import torch.distributed as dist
 import torch.nn as nn
 import torch.nn.functional as F
 from packaging.version import parse as V
 from typeguard import typechecked
 
 try:
+    from torcheval.metrics import MultilabelAUPRC
     from torcheval.metrics import functional as EvalFunction
+    from torcheval.metrics.toolkit import sync_and_compute
 
     is_torcheval_available = True
 except ImportError:
@@ -60,7 +63,8 @@ class ESPnetClassificationModel(AbsESPnetModel):
         decoder: AbsDecoder,
         classification_type="multi-class",
         lsm_weight: float = 0.0,
-        mixup_augmentation: bool = False,
+        mixup_probability: float = 0.0,
+        log_epoch_metrics: bool = False,
     ):
         super().__init__()
         if not is_torcheval_available:
@@ -91,9 +95,10 @@ class ESPnetClassificationModel(AbsESPnetModel):
                 "Valid classification types are 'multi-label' and 'multi-class'"
             )
         self.mixup_augmentation = None
-        if mixup_augmentation:
-            self.mixup_augmentation = MixupAugment(mixup_probability=1.0)
+        if mixup_probability > 0.0:
+            self.mixup_augmentation = MixupAugment(mixup_probability=mixup_probability)
         self.metric_functions = self.setup_metrics_()
+        self.log_epoch_metrics = log_epoch_metrics
 
     def forward(
         self,
@@ -155,11 +160,27 @@ class ESPnetClassificationModel(AbsESPnetModel):
                 if self.classification_type == "multi-class"
                 else onehot_
             )
-            val = metric_fn(pred, target).detach()
+            val = metric_fn(pred, target)
+            val = val.detach() if val is not None else -1
             stats[metric_name] = val
 
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
         return loss, stats, weight
+
+    def validation_epoch_end_(self):
+        if self.training:
+            logger.warning("Validation epoch end called during training.")
+            return None
+        stats_dict = None
+        if self.log_epoch_metrics and "mAP" in self.metric_functions:
+            epoch_mAP = self.metric_functions["mAP"].compute().item()
+            stats_dict = {"epoch_mAP": epoch_mAP}
+        return stats_dict
+
+    def training_epoch_end_(self):
+        if not self.training:
+            logger.warning("Training epoch end called during validation.")
+            return None
 
     def score(
         self, speech: torch.Tensor, speech_lengths: Optional[torch.Tensor] = None
@@ -276,10 +297,9 @@ class ESPnetClassificationModel(AbsESPnetModel):
             return {
                 "acc": partial(EvalFunction.multilabel_accuracy, criteria="hamming"),
                 # acc is usually high if data is imabalanced
-                "mAP": partial(
-                    EvalFunction.multilabel_auprc,
-                    average="macro",
+                "mAP": ESPnetMultilabelAUPRC(
                     num_labels=self.vocab_size,
+                    caller=self,
                 ),
             }
 
@@ -321,3 +341,28 @@ def label_to_onehot(
         raise ValueError(
             "Valid classification types are 'multi-label' and 'multi-class'"
         )
+
+
+class ESPnetMultilabelAUPRC:
+    """Wrapper for torcheval.metrics.MultilabelAUPRC
+    that computes mAP at the end of each validation epoch and
+    at the end of each training step, if logging epoch metrics.
+    """
+
+    def __init__(self, num_labels=None, caller=None):
+        self.mAP_computer = MultilabelAUPRC(num_labels=num_labels)
+        self.caller = caller
+
+    def __call__(self, pred, tgt_onehot):
+        self.mAP_computer.update(pred, tgt_onehot)
+        if self.caller.training or not self.caller.log_epoch_metrics:
+            # if training or not logging epoch metrics, compute at each step
+            return self.compute()
+
+    def compute(self):
+        if dist.is_initialized() and dist.get_world_size() > 1:
+            mAP = sync_and_compute(self.mAP_computer)
+        else:
+            mAP = self.mAP_computer.compute()
+        self.mAP_computer.reset()
+        return mAP
