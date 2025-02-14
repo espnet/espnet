@@ -245,7 +245,7 @@ def process_subset(src_data, subset, check_func, fs, wav_dump, score_dump):
                 if not check_func(sofolder):
                     continue
                 for i in range(12):
-                    for group in ["Breathy", "Control"]:
+                    for group in [skfolder, "Control"]:
                         key = "{}{}_{}_{}_{}_{}".format(
                             sifolder.split("-")[1],
                             sifolder.split("-")[2],
