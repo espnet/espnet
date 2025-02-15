@@ -107,9 +107,9 @@ def dump_audio_tokens(
     idx = 0
     for key, data in audio_reader:
         if isinstance(data, tuple):
-            wav, sample_rate = data  # raw wav
+            sample_rate, wav = data  # raw wav
         else:
-            wav, sample_rate = data, None  # wav features
+            sample_rate, wav = None, data  # wav features
 
         wav = torch.from_numpy(wav)
         buffer.append(wav)

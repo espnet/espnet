@@ -152,7 +152,12 @@ class BeatsTokenizer(BeatsEncoder):
         x, x_len, _ = self(xs_pad, ilens)
         quantize_input = self.quantize_layer(x)
         quantize_feature, embed_loss, embed_ind = self.quantize(quantize_input)
-        return embed_ind, embed_loss, quantize_feature, x_len
+        return {
+            "codes": embed_ind,
+            "code_lengths": x_len,
+            "embed_loss": embed_loss,
+            "quantize_feature": quantize_feature,
+        }
 
 
 class NormEMAVectorQuantizer(nn.Module):
@@ -491,4 +496,4 @@ class BeatsRandomTokenizer(nn.Module):
         ilens: torch.Tensor,
     ):
         embed_ind, embed_len = self(xs_pad, ilens)
-        return embed_ind, None, None, embed_len
+        return {"codes": embed_ind, "code_lengths": embed_len}

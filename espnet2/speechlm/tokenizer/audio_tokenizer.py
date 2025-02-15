@@ -109,20 +109,20 @@ class AudioTokenizer(AbsTokenizer):
         Output:
             codes (torch.Tensor): Int tensor in shape [B, T, n_codebook]
         """
-        assert wavs.dim() == 3 or (wavs.dim() == 2 and wavs.size(2) == 1)
+        assert wavs.dim() == 3, "Input wavs should be in shape [B, n_sample, D]"
         if self.codec_choice == "beats" or self.codec_choice == "beats_random":
             wav_in = wavs.squeeze(2)  # [B, n_sample]
             if wav_in.dim() == 2 and (wav_in.max() > 1.0 or wav_in.min() < -1.0):
                 # Beats expects input in range [-1, 1]
-                # wav_in = wav_in.to(torch.float32)
-                # wav_in = wav_in / 2**15
-                logger.error(
-                    "Input waveform is not in range [-1, 1] for BEATs. Please normalise!."
+                wav_in = wav_in.to(torch.float32)
+                wav_in = wav_in / 2**15
+                logger.warning(
+                    "Input waveform not in range [-1, 1] for BEATs. Normalizing!"
                 )
-                raise RuntimeError("Input waveform is not in range [-1, 1] for BEATs.")
             # Assume no padding, all wavs are full length
             assert wav_lens is not None, "BeatsTokenizer requires wav_lens."
-            codes, _, _, code_lengths = self.codec.encode(xs_pad=wav_in, ilens=wav_lens)
+            ret_dict = self.codec.encode(xs_pad=wav_in, ilens=wav_lens)
+            codes, code_lengths = ret_dict["codes"], ret_dict["code_lengths"]
             codes = codes.unsqueeze(-1)
         else:
             raise NotImplementedError
@@ -132,7 +132,7 @@ class AudioTokenizer(AbsTokenizer):
         """
         Convert audio waveforms into flatten codec codes and resynthesis the audio
         Input:
-            wavs (torch.Tensor): float tensor in shape [B, n_sample, 1],
+            wavs (torch.Tensor): float tensor in shape [B, n_sample, D],
             wav_lens (torch.Tensor): int tensor in shape [B]
         Output:
             codes (torch.Tensor): Int tensor in shape [B, T * n_codebook],
