@@ -14,7 +14,8 @@ from packaging.version import parse as V
 from typeguard import typechecked
 
 try:
-    from torcheval.metrics import functional as EvalFunction, MultilabelAUPRC
+    from torcheval.metrics import MultilabelAUPRC
+    from torcheval.metrics import functional as EvalFunction
     from torcheval.metrics.toolkit import sync_and_compute
 
     is_torcheval_available = True
