@@ -1,7 +1,9 @@
+from typing import Tuple
+
 import pytest
 import torch
+
 from espnet2.cls.decoder.abs_decoder import AbsDecoder
-from typing import Tuple
 
 
 def test_abs_decoder_instantiation():
