@@ -7,13 +7,16 @@ from functools import partial
 from typing import Dict, List, Optional, Tuple, Union
 
 import torch
+import torch.distributed as dist
 import torch.nn as nn
 import torch.nn.functional as F
 from packaging.version import parse as V
 from typeguard import typechecked
 
 try:
+    from torcheval.metrics import MultilabelAUPRC
     from torcheval.metrics import functional as EvalFunction
+    from torcheval.metrics.toolkit import sync_and_compute
 
     is_torcheval_available = True
 except ImportError:
@@ -25,6 +28,7 @@ from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.cls.decoder.abs_decoder import AbsDecoder
 from espnet2.layers.abs_normalize import AbsNormalize
+from espnet2.layers.mixup_augmentation import MixupAugment
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 
@@ -60,7 +64,8 @@ class ESPnetClassificationModel(AbsESPnetModel):
         text_encoder: Optional[AbsEncoder] = None,
         classification_type="multi-class",
         lsm_weight: float = 0.0,
-        mixup_augmentation: bool = False,
+        mixup_probability: float = 0.0,
+        log_epoch_metrics: bool = False,
     ):
         super().__init__()
         if not is_torcheval_available:
@@ -91,8 +96,11 @@ class ESPnetClassificationModel(AbsESPnetModel):
             raise ValueError(
                 "Valid classification types are 'multi-label' and 'multi-class'"
             )
-        self.mixup_augmentation = mixup_augmentation
+        self.mixup_augmentation = None
+        if mixup_probability > 0.0:
+            self.mixup_augmentation = MixupAugment(mixup_probability=mixup_probability)
         self.metric_functions = self.setup_metrics_()
+        self.log_epoch_metrics = log_epoch_metrics
 
     def forward(
         self,
@@ -146,7 +154,9 @@ class ESPnetClassificationModel(AbsESPnetModel):
                     "Mixup is not recommended for variable length input. "
                     "It may not work as expected."
                 )
-            speech, onehot_ = mixup_augment(speech, onehot_, mixup_prob=1.0)
+            speech, onehot_, speech_lengths = self.mixup_augmentation(
+                speech, onehot_, speech_lengths
+            )
 
         # 1. Encoder
         encoder_out, encoder_out_lens = self.encode(
@@ -166,11 +176,27 @@ class ESPnetClassificationModel(AbsESPnetModel):
                 if self.classification_type == "multi-class"
                 else onehot_
             )
-            val = metric_fn(pred, target).detach()
+            val = metric_fn(pred, target)
+            val = val.detach() if val is not None else -1
             stats[metric_name] = val
 
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
         return loss, stats, weight
+
+    def validation_epoch_end_(self):
+        if self.training:
+            logger.warning("Validation epoch end called during training.")
+            return None
+        stats_dict = None
+        if self.log_epoch_metrics and "mAP" in self.metric_functions:
+            epoch_mAP = self.metric_functions["mAP"].compute().item()
+            stats_dict = {"epoch_mAP": epoch_mAP}
+        return stats_dict
+
+    def training_epoch_end_(self):
+        if not self.training:
+            logger.warning("Training epoch end called during validation.")
+            return None
 
     def score(
         self, speech: torch.Tensor, speech_lengths: Optional[torch.Tensor] = None
@@ -346,10 +372,9 @@ class ESPnetClassificationModel(AbsESPnetModel):
             return {
                 "acc": partial(EvalFunction.multilabel_accuracy, criteria="hamming"),
                 # acc is usually high if data is imabalanced
-                "mAP": partial(
-                    EvalFunction.multilabel_auprc,
-                    average="macro",
+                "mAP": ESPnetMultilabelAUPRC(
                     num_labels=self.vocab_size,
+                    caller=self,
                 ),
             }
 
@@ -393,29 +418,26 @@ def label_to_onehot(
         )
 
 
-def mixup_augment(speech: torch.Tensor, onehot: torch.Tensor, mixup_prob: float):
-    """Mixup augmentation for multi-label classification
-
-    Args:
-        speech: (Batch, Length, Dim)
-        onehot: (Batch, n_classes)
-        mixup_prob: Apply mixup with this probability
-    Returns:
-        speech: (Batch, Length, Dim)
-        onehot: (Batch, n_classes)
+class ESPnetMultilabelAUPRC:
+    """Wrapper for torcheval.metrics.MultilabelAUPRC
+    that computes mAP at the end of each validation epoch and
+    at the end of each training step, if logging epoch metrics.
     """
-    batch_size = speech.size(0)
-    assert onehot.size(0) == batch_size
-    apply_augmentation = torch.rand((batch_size), device=speech.device) < mixup_prob
-    mix_lambda = (
-        torch.distributions.Beta(0.8, 0.8)
-        .sample(sample_shape=(batch_size, 1))
-        .to(speech.device)
-    )
-    perm = torch.randperm(batch_size).to(speech.device)
-    identity_perm = torch.arange(batch_size, device=speech.device)
-    perm[~apply_augmentation] = identity_perm[~apply_augmentation]
-    # speech = speech - speech.mean(dim=1, keepdim=True)
-    speech = mix_lambda * speech + (1 - mix_lambda) * speech[perm]
-    onehot = mix_lambda * onehot + (1 - mix_lambda) * onehot[perm]
-    return speech, onehot
+
+    def __init__(self, num_labels=None, caller=None):
+        self.mAP_computer = MultilabelAUPRC(num_labels=num_labels)
+        self.caller = caller
+
+    def __call__(self, pred, tgt_onehot):
+        self.mAP_computer.update(pred, tgt_onehot)
+        if self.caller.training or not self.caller.log_epoch_metrics:
+            # if training or not logging epoch metrics, compute at each step
+            return self.compute()
+
+    def compute(self):
+        if dist.is_initialized() and dist.get_world_size() > 1:
+            mAP = sync_and_compute(self.mAP_computer)
+        else:
+            mAP = self.mAP_computer.compute()
+        self.mAP_computer.reset()
+        return mAP

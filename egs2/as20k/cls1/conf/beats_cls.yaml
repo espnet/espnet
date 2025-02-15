@@ -27,7 +27,7 @@ scheduler_conf:
 patience: none
 best_model_criterion:
 -   - valid
-    - mAP
+    - epoch_mAP
     - max
 keep_nbest_models: 1
 use_amp: false  # whether to use automatic mixed precision
@@ -44,6 +44,7 @@ encoder_conf:
     # Please download the BEATs model from https://github.com/microsoft/unilm/tree/master/beats
     # (iter3+20k) and update the path below
     beats_ckpt_path: /compute/babel-13-33/sbharad2/models/BEATs/BEATs_iter3_plus_AS20K.pt
+    # beats_ckpt_path:
     beats_config:
         layer_wise_gradient_decay_ratio: 0.3
         encoder_layerdrop: 0.1
@@ -62,5 +63,6 @@ encoder_conf:
 
 model_conf:
     classification_type: multi-label
-    mixup_augmentation: true
+    mixup_probability: 0.8
     lsm_weight: 0.0  # label smoothing weight, per label
+    log_epoch_metrics: true

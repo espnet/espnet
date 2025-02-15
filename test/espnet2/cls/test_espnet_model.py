@@ -7,11 +7,7 @@ from sklearn import metrics
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
 from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
 from espnet2.cls.decoder.linear_decoder import LinearDecoder
-from espnet2.cls.espnet_model import (
-    ESPnetClassificationModel,
-    label_to_onehot,
-    mixup_augment,
-)
+from espnet2.cls.espnet_model import ESPnetClassificationModel, label_to_onehot
 
 
 @pytest.mark.parametrize("encoder_arch", [TransformerEncoder, ConformerEncoder])
@@ -213,24 +209,15 @@ def test_metrics_multilabel():
     batch_size = 55
     preds = torch.randn(batch_size, n_classes)
     target = torch.randint(0, 2, (batch_size, n_classes))
-
-    # The additional tensors ensure that all class values are present in the targets.
+    # The additional tensors ensure that all class values are
+    # present in the targets.
     # This is necessary to avoid a ZeroDivisionError
     # in the official implementation of AST.
-    preds_additional = torch.tensor(
-        [
-            [0.2, 0.3, 0.5, 0.1, 0.3, 0.5, 0.2],
-            [0.25, 0.35, 0.55, 0.15, 0.53, 0.55, 0.25],
-        ]
-    )
-    target_additional = torch.tensor(
-        [
-            [0, 1, 1, 0, 0, 1, 1],
-            [1, 0, 0, 1, 1, 0, 0],
-        ]
-    )
-    preds = torch.cat([preds, preds_additional], dim=0)
-    target = torch.cat([target, target_additional], dim=0)
+    ones = torch.ones(1, n_classes)
+    zeros = torch.zeros(1, n_classes)
+    preds = torch.cat([preds, zeros, ones], dim=0)
+    target = torch.cat([target, zeros, ones], dim=0)
+    batch_size += 2
 
     stats_espnet_cls = {}
     for metric_name, metric_fn in model.metric_functions.items():
@@ -289,13 +276,71 @@ def test_metrics_multiclass():
     assert np.isclose(acc, stats_espnet_cls["acc"].item(), atol=1e-4)
 
 
-def test_mixup_augment():
-    speech = torch.randn(7, 11)
-    label = torch.tensor(
-        [[1, 0, 0], [0, 1, 0], [0, 0, 1], [1, 1, 0], [1, 1, 1], [0, 0, 0], [1, 0, 1]]
+@pytest.mark.parametrize("batch_size", [40, 1000, 25000])
+def test_metrics_mAP_over_multiple_batches(batch_size):
+    token_list = [
+        "class0",
+        "class1",
+        "class2",
+        "class3",
+        "class4",
+        "class5",
+        "class6",
+        "<unk>",
+    ]
+    n_classes = len(token_list) - 1
+    enc_out = 4
+    encoder = TransformerEncoder(20, output_size=enc_out, linear_units=4, num_blocks=2)
+    decoder = LinearDecoder(n_classes, enc_out, pooling="mean")
+
+    model = ESPnetClassificationModel(
+        n_classes,
+        token_list=token_list,
+        frontend=None,
+        specaug=None,
+        normalize=None,
+        preencoder=None,
+        encoder=encoder,
+        decoder=decoder,
+        classification_type="multi-label",
+        log_epoch_metrics=True,
     )
-    old_speech_shape = speech.shape
-    old_label_shape = label.shape
-    speech, label = mixup_augment(speech, label, 0.5)
-    assert speech.shape == old_speech_shape
-    assert label.shape == old_label_shape
+
+    batch_size = 55
+    preds = torch.randn(batch_size, n_classes)
+    target = torch.randint(0, 2, (batch_size, n_classes))
+    # The additional tensors ensure that all class values are
+    # present in the targets.
+    # This is necessary to avoid a ZeroDivisionError
+    # in the official implementation of AST.
+    ones = torch.ones(1, n_classes)
+    zeros = torch.zeros(1, n_classes)
+    preds = torch.cat([preds, zeros, ones], dim=0)
+    target = torch.cat([target, zeros, ones], dim=0)
+    batch_size += 2
+
+    model.eval()  # validation mode and split
+    model.metric_functions["mAP"](
+        preds[: batch_size // 2],
+        target[: batch_size // 2],
+    )
+    model.metric_functions["mAP"](
+        preds[batch_size // 2 :],
+        target[batch_size // 2 :],
+    )
+    # validation mode, accumulated
+    mAP_split = model.validation_epoch_end_()["epoch_mAP"]
+
+    model.train()  # train mode and bulk
+    mAP_bulk = model.metric_functions["mAP"](
+        preds,
+        target,
+    ).item()
+    model.training_epoch_end_()
+
+    stats_official_ast = calculate_stats_testing_internal_(
+        preds.numpy(), target.numpy()
+    )
+    mAP_official = np.mean([stat["AP"] for stat in stats_official_ast])
+    assert np.isclose(mAP_official, mAP_split, atol=1e-4)
+    assert np.isclose(mAP_split, mAP_bulk, atol=1e-4)
