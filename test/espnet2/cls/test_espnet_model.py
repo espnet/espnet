@@ -344,3 +344,155 @@ def test_metrics_mAP_over_multiple_batches(batch_size):
     mAP_official = np.mean([stat["AP"] for stat in stats_official_ast])
     assert np.isclose(mAP_official, mAP_split, atol=1e-4)
     assert np.isclose(mAP_split, mAP_bulk, atol=1e-4)
+
+
+class EncoderCombiner:
+    def combine_encodings(
+        self,
+        text_encoding: torch.Tensor,
+        text_encoding_lens: torch.Tensor,
+        speech_encoding: torch.Tensor,
+        speech_encoding_lens: torch.Tensor,
+    ):
+        batch_size, _, dim = text_encoding.shape
+        encoder_out_lens = text_encoding_lens + speech_encoding_lens
+        max_len = encoder_out_lens.max()
+
+        encoder_out = torch.zeros(
+            (batch_size, max_len, dim),
+            dtype=text_encoding.dtype,
+            device=text_encoding.device,
+        )
+
+        for i in range(batch_size):
+            text_len = text_encoding_lens[i].item()
+            speech_len = speech_encoding_lens[i].item()
+
+            encoder_out[i, :text_len] = text_encoding[i, :text_len]
+            encoder_out[i, text_len : text_len + speech_len] = speech_encoding[
+                i, :speech_len
+            ]
+
+        return encoder_out, encoder_out_lens
+
+
+@pytest.fixture
+def encoder_combiner():
+    return EncoderCombiner()
+
+
+def test_basic_combination(encoder_combiner):
+    text_encoding = torch.tensor(
+        [
+            [[1, 1], [2, 2], [0, 0]],  # Padded text encoding (Batch 1)
+            [[3, 3], [0, 0], [0, 0]],  # Padded text encoding (Batch 2)
+        ],
+        dtype=torch.float32,
+    )
+
+    text_encoding_lens = torch.tensor([2, 1])  # Actual lengths
+
+    speech_encoding = torch.tensor(
+        [
+            [[4, 4], [5, 5]],  # Speech encoding (Batch 1)
+            [[6, 6], [7, 7]],  # Speech encoding (Batch 2)
+        ],
+        dtype=torch.float32,
+    )
+
+    speech_encoding_lens = torch.tensor([2, 2])  # Actual lengths
+
+    expected_output = torch.tensor(
+        [
+            [[1, 1], [2, 2], [4, 4], [5, 5]],  # Combined (Batch 1)
+            [[3, 3], [6, 6], [7, 7], [0, 0]],  # Combined (Batch 2, padded)
+        ],
+        dtype=torch.float32,
+    )
+
+    expected_lens = torch.tensor([4, 3])
+
+    encoder_out, encoder_out_lens = encoder_combiner.combine_encodings(
+        text_encoding, text_encoding_lens, speech_encoding, speech_encoding_lens
+    )
+
+    assert torch.equal(encoder_out, expected_output)
+    assert torch.equal(encoder_out_lens, expected_lens)
+
+
+def test_empty_text_encoding(encoder_combiner):
+    """Tests when text encoding is empty (only speech)."""
+    text_encoding = torch.zeros((2, 0, 2))  # No text
+    text_encoding_lens = torch.tensor([0, 0])
+
+    speech_encoding = torch.tensor(
+        [[[4, 4], [5, 5]], [[6, 6], [7, 7]]], dtype=torch.float32
+    )
+
+    speech_encoding_lens = torch.tensor([2, 2])
+
+    expected_output = speech_encoding
+    expected_lens = speech_encoding_lens
+
+    encoder_out, encoder_out_lens = encoder_combiner.combine_encodings(
+        text_encoding, text_encoding_lens, speech_encoding, speech_encoding_lens
+    )
+
+    assert torch.equal(encoder_out, expected_output)
+    assert torch.equal(encoder_out_lens, expected_lens)
+
+
+def test_empty_speech_encoding(encoder_combiner):
+    """Tests when speech encoding is empty (only text)."""
+    text_encoding = torch.tensor(
+        [[[1, 1], [2, 2]], [[3, 3], [4, 4]]], dtype=torch.float32
+    )
+
+    text_encoding_lens = torch.tensor([2, 2])
+
+    speech_encoding = torch.zeros((2, 0, 2))  # No speech
+    speech_encoding_lens = torch.tensor([0, 0])
+
+    expected_output = text_encoding
+    expected_lens = text_encoding_lens
+
+    encoder_out, encoder_out_lens = encoder_combiner.combine_encodings(
+        text_encoding, text_encoding_lens, speech_encoding, speech_encoding_lens
+    )
+
+    assert torch.equal(encoder_out, expected_output)
+    assert torch.equal(encoder_out_lens, expected_lens)
+
+
+def test_varying_lengths(encoder_combiner):
+    """Tests when text and speech have very different lengths."""
+    text_encoding = torch.tensor(
+        [[[1, 1]], [[2, 2], [3, 3], [4, 4]]],  # Only one token  # Three tokens
+        dtype=torch.float32,
+    )
+
+    text_encoding_lens = torch.tensor([1, 3])
+
+    speech_encoding = torch.tensor(
+        [[[5, 5], [6, 6], [7, 7]], [[8, 8]]],  # Three tokens  # Only one token
+        dtype=torch.float32,
+    )
+
+    speech_encoding_lens = torch.tensor([3, 1])
+
+    expected_output = torch.tensor(
+        [
+            [[1, 1], [5, 5], [6, 6], [7, 7]],  # Combined (Batch 1)
+            [[2, 2], [3, 3], [4, 4], [8, 8]],  # Combined (Batch 2)
+        ],
+        dtype=torch.float32,
+    )
+
+    expected_lens = torch.tensor([4, 4])
+
+    encoder_out, encoder_out_lens = encoder_combiner.combine_encodings(
+        text_encoding, text_encoding_lens, speech_encoding, speech_encoding_lens
+    )
+
+    assert torch.equal(encoder_out, expected_output)
+    assert torch.equal(encoder_out_lens, expected_lens)
