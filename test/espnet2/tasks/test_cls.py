@@ -56,8 +56,10 @@ def test_optional_data_names(inference):
 
 def get_dummy_namespace():
     return Namespace(
-        token_type="word",
         token_list=["class1", "class2", "class3", "class4", "<unk>"],
+        text_token_list=None,
+        text_encoder=None,
+        text_encoder_conf=None,
         classification_type="multi-class",
         input_size=40,
         frontend="frontend",
