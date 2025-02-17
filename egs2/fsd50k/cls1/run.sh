@@ -8,7 +8,7 @@ set -o pipefail
 train_set="train"
 valid_set="val"
 test_sets="test"
-cls_config=conf/beats_cls.yaml
+cls_config=conf/tuning/beats_cls_it3_e60_mixup02_emap.yaml
 
 timestamp=$(date "+%Y%m%d.%H%M%S")
 mynametag=${timestamp}
