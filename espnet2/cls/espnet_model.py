@@ -31,6 +31,7 @@ from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.mixup_augmentation import MixupAugment
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
+from espnet2.cls.layers.sequence_embedding_fusion import AbsEmbeddingFusion
 
 if V(torch.__version__) >= V("1.6.0"):
     from torch.cuda.amp import autocast
@@ -62,6 +63,7 @@ class ESPnetClassificationModel(AbsESPnetModel):
         encoder: AbsEncoder,
         decoder: AbsDecoder,
         text_encoder: Optional[AbsEncoder] = None,
+        embedding_fusion: Optional[AbsEmbeddingFusion] = None,
         classification_type="multi-class",
         lsm_weight: float = 0.0,
         mixup_probability: float = 0.0,
@@ -81,8 +83,9 @@ class ESPnetClassificationModel(AbsESPnetModel):
         self.normalize = normalize
         self.preencoder = preencoder
         self.encoder = encoder
-        self.text_encoder = text_encoder
         self.decoder = decoder
+        self.text_encoder = text_encoder
+        self.embedding_fusion = embedding_fusion
         self.classification_type = classification_type
         self.lsm_weight = lsm_weight
         if classification_type == "multi-label":
@@ -199,13 +202,19 @@ class ESPnetClassificationModel(AbsESPnetModel):
             return None
 
     def score(
-        self, speech: torch.Tensor, speech_lengths: Optional[torch.Tensor] = None
+        self,
+        speech: torch.Tensor,
+        speech_lengths: Optional[torch.Tensor] = None,
+        text: Optional[torch.Tensor] = None,
+        text_lengths: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         """Forward pass at scoring (inference)
 
         Args:
             speech: (Batch, samples)
             speech_lengths: (Batch, )
+            text: (Batch, Length): Optional, used if text_encoder is provided
+            text_lengths: (Batch, ): Optional, used if text_encoder is provided
         Returns:
             scores: (Batch, n_classes)
         Assumes Batch=1
@@ -214,7 +223,9 @@ class ESPnetClassificationModel(AbsESPnetModel):
         assert batch == 1, "Batch size must be 1 for scoring."
         if speech_lengths is None:
             speech_lengths = torch.tensor([speech.size(1)], device=speech.device)
-        encoder_out, encoder_out_lens = self.encode(speech, speech_lengths)
+        encoder_out, encoder_out_lens = self.encode(
+            speech, speech_lengths, text, text_lengths
+        )
         logits, _ = self.decoder.score(x=encoder_out.squeeze(0), ys=None, state=None)
         scores = self.classification_function(logits)
         return scores.unsqueeze(0)
@@ -275,60 +286,14 @@ class ESPnetClassificationModel(AbsESPnetModel):
             encoder_out_lens.max(),
         )
 
-        if self.text is not None:
+        if self.text_encoder is not None:
             text_encoder_out, text_encoder_out_lens = self.text_encoder(
                 text, text_lengths
             )
-            encoder_out, encoder_out_lens = self.combine_encodings(
-                text_encoder_out, text_encoder_out_lens, encoder_out, encoder_out_lens
+            encoder_out, encoder_out_lens = self.embedding_fusion(
+                embeddings={"text": text_encoder_out, "audio": encoder_out},
+                lengths={"audio": encoder_out_lens, "text": text_encoder_out_lens},
             )
-
-        return encoder_out, encoder_out_lens
-
-    def combine_encodings(
-        self,
-        text_encoding: torch.Tensor,
-        text_encoding_lens: torch.Tensor,
-        speech_encoding: torch.Tensor,
-        speech_encoding_lens: torch.Tensor,
-    ):
-        """Concatenate text and speech encodings
-
-        Args:
-            text_encoding: (Batch, Length1, Dim): Maybe padded
-            text_encoding_lens: (Batch,) Each element is Length_i
-                denoting unpadded elements.
-            speech_encoding: (Batch, Length2, Dim): Maybe padded
-            speech_encoding_lens: (Batch,) Each element is Length_j
-                denoting unpadded elements.
-        Returns:
-            encoder_out: (Batch, max(Length_i+Length_j), Dim)
-            encoder_out_lens: (Batch,)
-        TODO(shikhar): Add support for attn, refactor
-        """
-        encoder_out_lens = text_encoding_lens + speech_encoding_lens
-        max_len = encoder_out_lens.max()
-        batch_size = text_encoding.size(0)
-        dim = text_encoding.size(-1)
-        assert dim == speech_encoding.size(-1), (
-            "Dimensions must match for text and speech encodings",
-            dim,
-            speech_encoding.size(-1),
-        )
-        encoder_out = torch.zeros(
-            (batch_size, max_len, dim),
-            dtype=text_encoding.dtype,
-            device=text_encoding.device,
-        )
-
-        for i in range(batch_size):
-            text_len = text_encoding_lens[i].item()
-            speech_len = speech_encoding_lens[i].item()
-
-            encoder_out[i, :text_len] = text_encoding[i, :text_len]
-            encoder_out[i, text_len : text_len + speech_len] = speech_encoding[
-                i, :speech_len
-            ]
 
         return encoder_out, encoder_out_lens
 
