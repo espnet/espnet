@@ -156,7 +156,7 @@ class CLSTask(AbsTask):
         encoder_choices,
         # --text_encoder and --text_encoder_conf
         text_encoder_choices,
-        # --embedding_combiner and --embedding_combiner_conf
+        # --embedding_fusion and --embedding_fusion_conf
         embedding_fusion_choices,
         # --decoder and --decoder_conf
         decoder_choices,
@@ -183,25 +183,17 @@ class CLSTask(AbsTask):
             help="A text mapping int-id to token",
         )
 
-        # group.add_argument(
-        #     "--token_type",
-        #     type=str,
-        #     default="word",
-        #     choices=["word"],
-        #     help="The targets/labels will always be tokenized by words. ",
-        # )
-        # group.add_argument(
-        #     "--text_token_type",
-        #     type=str,
-        #     default="hugging_face",
-        #     choices=["hugging_face"],
-        #     help="Tokenization of additional text fields will be done by a hf tokenizer",
-        # )
         group.add_argument(
             "--text_token_list",
             type=str_or_none,
             default=None,
             help="A text mapping int-id to token",
+        )
+        group.add_argument(
+            "--text_bpemodel",
+            type=str_or_none,
+            default=None,
+            help="The model file of sentencepiece",
         )
 
         group.add_argument(
@@ -267,7 +259,7 @@ class CLSTask(AbsTask):
                 text_name=["label", "text"],
                 token_type=["word", "hugging_face" if args.text_token_list else None],
                 token_list=[args.token_list, args.text_token_list],
-                bpemodel=[None, None],
+                bpemodel=[None, args.text_bpemodel],
             )
         else:
             retval = None
@@ -369,7 +361,7 @@ class CLSTask(AbsTask):
             text_encoder_class = text_encoder_choices.get_class(args.text_encoder)
             text_encoder = text_encoder_class(**args.text_encoder_conf)
             embedding_fusion_class = embedding_fusion_choices.get_class(
-                args.embedding_combiner
+                args.embedding_fusion
             )
             assert (
                 embedding_fusion_class is not None
