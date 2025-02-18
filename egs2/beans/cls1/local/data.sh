@@ -116,6 +116,7 @@ if [[ "${DATASETS}" == *"rfcx"* ]]; then
             kaggle competitions download -c rfcx-species-audio-detection -p $RFCX_LOCATION
             unzip ${RFCX_LOCATION}/rfcx-species-audio-detection.zip -d ${RFCX_LOCATION}
             rm ${RFCX_LOCATION}/rfcx-species-audio-detection.zip
+            touch "${RFCX_LOCATION}/download.done"
         fi
     else
         log "Using data from the provided location: ${BEANS}/rcfx"

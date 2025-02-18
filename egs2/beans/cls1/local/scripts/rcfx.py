@@ -55,19 +55,19 @@ df_test.sort(key=lambda x: x['path'])
 
 
 split2dataset = {
-    "rcfx.dev": BeansRecognitionDataset(
+    "rfcx.dev": BeansRecognitionDataset(
         dataset=df_valid,
         target_dir=os.path.join(DATA_WRITE_ROOT, "wav_dev"),
         window_width=WINDOW_WIDTH,
         window_shift=1,
     ),
-    "rcfx.train": BeansRecognitionDataset(
+    "rfcx.train": BeansRecognitionDataset(
         dataset=df_train + df_train_low,
         target_dir=os.path.join(DATA_WRITE_ROOT, "wav_train"),
         window_width=WINDOW_WIDTH,
         window_shift=1,
     ),
-    "rcfx.test": BeansRecognitionDataset(
+    "rfcx.test": BeansRecognitionDataset(
         dataset=df_test,
         target_dir=os.path.join(DATA_WRITE_ROOT, "wav_test"),
         window_width=WINDOW_WIDTH,
