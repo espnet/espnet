@@ -29,6 +29,9 @@ class AudioTextAttnFusion(AbsEmbeddingFusion):
         self.text_linear = nn.Linear(text_dim, hidden_dim)
         self.output_linear = nn.Linear(hidden_dim, output_dim)
 
+    def output_size(self):
+        return self.output_dim
+
     def forward(self, embeddings, lengths):
         """
         Args:
@@ -73,8 +76,12 @@ class AudioTextConcat(AbsEmbeddingFusion):
     Concatenates audio and text embeddings along the sequence dimension.
     """
 
-    def __init__(self):
+    def __init__(self, output_dim):
         super().__init__()
+        self.output_dim = output_dim
+
+    def output_size(self):
+        return self.output_dim
 
     def forward(self, embeddings, lengths):
         """
@@ -110,6 +117,9 @@ class AudioTextConcat(AbsEmbeddingFusion):
         assert dim == audio_emb.size(
             -1
         ), "Text and audio embeddings must have the same dimension"
+        assert (
+            dim == self.output_dim
+        ), "Output dimension must be equal to the dimension of the embeddings"
 
         encoder_out_lens = text_lens + audio_lens  # (B,)
         max_len = encoder_out_lens.max()

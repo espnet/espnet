@@ -341,20 +341,8 @@ class CLSTask(AbsTask):
         # 4. Encoder
         encoder_class = encoder_choices.get_class(args.encoder)
         encoder = encoder_class(input_size=input_size, **args.encoder_conf)
-        encoder_output_size = encoder.output_size()
 
-        # 5. Decoder
-        decoder_class = decoder_choices.get_class(args.decoder)
-
-        n_classes = len(args.token_list) - 2  # -2 for <unk>, <blank>
-
-        decoder = decoder_class(
-            n_classes,
-            encoder_output_size=encoder_output_size,
-            **args.decoder_conf,
-        )
-
-        # 6. Optional text encoder and embedding fusion
+        # 5. Optional text encoder and embedding fusion
         text_encoder = None
         embedding_fusion = None
         if args.text_encoder is not None:
@@ -367,6 +355,22 @@ class CLSTask(AbsTask):
                 embedding_fusion_class is not None
             ), "embedding_fusion is required when text_encoder is used"
             embedding_fusion = embedding_fusion_class(**args.embedding_fusion_conf)
+
+        # 6. Decoder
+        decoder_class = decoder_choices.get_class(args.decoder)
+
+        n_classes = len(args.token_list) - 2  # -2 for <unk>, <blank>
+
+        encoder_output_size = (
+            encoder.output_size()
+            if embedding_fusion is None
+            else embedding_fusion.output_size()
+        )
+        decoder = decoder_class(
+            n_classes,
+            encoder_output_size=encoder_output_size,
+            **args.decoder_conf,
+        )
 
         # 7. Build model
         model = ESPnetClassificationModel(

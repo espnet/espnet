@@ -92,7 +92,7 @@ def test_audio_text_attn_combiner_attention_scores_validity():
 
 
 def test_audio_text_concat_basic():
-    fusion = AudioTextConcat()
+    fusion = AudioTextConcat(output_dim=2)
 
     text_emb = torch.tensor(
         [[[1.0, 2.0], [3.0, 4.0]], [[5.0, 6.0], [7.0, 8.0]]]
@@ -114,7 +114,7 @@ def test_audio_text_concat_basic():
 
 
 def test_audio_text_concat_varying_lengths():
-    fusion = AudioTextConcat()
+    fusion = AudioTextConcat(output_dim=2)
 
     text_emb = torch.tensor([[[1.0, 2.0], [3.0, 4.0]]])  # (1, 2, 2)
     audio_emb = torch.tensor([[[5.0, 6.0], [7.0, 8.0], [9.0, 10.0]]])  # (1, 3, 2)
@@ -134,7 +134,7 @@ def test_audio_text_concat_varying_lengths():
 
 
 def test_audio_text_concat_different_embedding_dims():
-    fusion = AudioTextConcat()
+    fusion = AudioTextConcat(output_dim=4)
 
     text_emb = torch.randn((1, 2, 4))  # (1, 2, 4)
     audio_emb = torch.randn((1, 2, 3))  # (1, 2, 3) --> Dimension mismatch
@@ -149,7 +149,7 @@ def test_audio_text_concat_different_embedding_dims():
 
 
 def test_audio_text_concat_batch_size_mismatch():
-    fusion = AudioTextConcat()
+    fusion = AudioTextConcat(output_dim=4)
 
     text_emb = torch.randn((2, 3, 4))  # (2, 3, 4)
     audio_emb = torch.randn((1, 2, 4))  # (1, 2, 4) --> Batch size mismatch
