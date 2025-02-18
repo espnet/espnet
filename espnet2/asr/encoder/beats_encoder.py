@@ -267,6 +267,9 @@ class BeatsEncoder(AbsEncoder):
             self.cross_embed_positions = BartLearnedPositionalEmbedding(
                 max_positions, learned_pos_dim
             )
+        # FIXME(shikhar): This is a hack to make the model compatible with
+        # small audio inputs, without this the window sizes become larger
+        # than audio. We should add an option to use this via the config.
         self.min_input_length_at_16khz = 3200
 
     def reload_pretrained_parameters(self):

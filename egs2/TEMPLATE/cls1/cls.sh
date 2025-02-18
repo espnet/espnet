@@ -444,12 +444,6 @@ if ! "${skip_eval}"; then
         log "Generate '${cls_exp}/run.sh'. You can resume the process from stage 6 using this script"
         mkdir -p "${cls_exp}"; echo "${run_args} --stage 6 \"\$@\"; exit \$?" > "${cls_exp}/run.sh"; chmod +x "${cls_exp}/run.sh"
         _opts=
-        if [ "${max_wav_duration}" ]; then
-            _fs=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
-            max_wav_duration_in_samples=$(python3 -c "print(int(${max_wav_duration} * ${_fs}))")
-            echo "WARNING: Inference with max_wav_duration set to ${max_wav_duration_in_samples} at ${fs} Hz!"
-            _opts+="--max_wav_duration ${max_wav_duration_in_samples} "
-        fi
 
         for dset in "${valid_set}" ${test_sets}; do
             _data="${data_feats}/${dset}"
