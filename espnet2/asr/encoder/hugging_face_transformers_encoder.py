@@ -44,10 +44,7 @@ class HuggingFaceTransformersEncoder(AbsEncoder):
 
         model = AutoModel.from_pretrained(model_name_or_path)
 
-        if hasattr(model, "encoder"):
-            self.transformer = model.encoder
-        else:
-            self.transformer = model
+        self.transformer = model
 
         self.pretrained_params = copy.deepcopy(self.transformer.state_dict())
 
