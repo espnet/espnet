@@ -40,7 +40,9 @@ def divide_waveform_to_chunks(path, target_dir, chunk_size, target_sample_rate=1
     ), f"waveform should be normalized. min: {waveform.min()}, max: {waveform.max()}"
     if waveform.dim() == 1:
         waveform = waveform.unsqueeze(0)  # (1, n_samples)
-    waveform = waveform.mean(dim=0).unsqueeze(0)  # single channel always
+    else:
+        # soundfile channel is second dim
+        waveform = waveform.mean(dim=-1).unsqueeze(0)  # single channel always
 
     if sample_rate != target_sample_rate:
         transform = torchaudio.transforms.Resample(sample_rate, target_sample_rate)
