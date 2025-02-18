@@ -288,7 +288,7 @@ class ESPnetClassificationModel(AbsESPnetModel):
 
         if self.text_encoder is not None:
             text_encoder_out, text_encoder_out_lens = self.text_encoder(
-                text, text_lengths
+                input=text, input_lengths=text_lengths
             )
             encoder_out, encoder_out_lens = self.embedding_fusion(
                 embeddings={"text": text_encoder_out, "audio": encoder_out},
