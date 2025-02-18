@@ -44,7 +44,7 @@ def test_audio_text_attn_combine_shapes():
         "text": torch.LongTensor([5, 4, 3, 2]),
     }
 
-    combined_emb, output_lengths = combine_layer.combine(embeddings, lengths)
+    combined_emb, output_lengths = combine_layer(embeddings, lengths)
     assert combined_emb.shape == (batch_size, seq_len_text, 32)
     assert torch.all(output_lengths == lengths["text"])
 
@@ -63,7 +63,7 @@ def test_audio_text_attn_combiner_attention_masking():
     }
     lengths = {"audio": torch.LongTensor([6, 3]), "text": torch.LongTensor([4, 2])}
 
-    combined_emb, _ = combine_layer.combine(embeddings, lengths)
+    combined_emb, _ = combine_layer(embeddings, lengths)
     assert not torch.isnan(combined_emb).any()
 
 
@@ -84,7 +84,7 @@ def test_audio_text_attn_combiner_attention_scores_validity():
         "text": torch.LongTensor([5, 3, 2]),
     }
 
-    combined_emb, _ = combine_layer.combine(embeddings, lengths)
+    combined_emb, _ = combine_layer(embeddings, lengths)
 
     assert combined_emb.shape == (batch_size, seq_len_text, 32)
     assert not torch.isnan(combined_emb).any()
@@ -102,7 +102,7 @@ def test_audio_text_concat_basic():
     embeddings = {"text": text_emb, "audio": audio_emb}
     lengths = {"text": torch.LongTensor([2, 2]), "audio": torch.LongTensor([1, 1])}
 
-    combined_emb, combined_lens = fusion.combine(embeddings, lengths)
+    combined_emb, combined_lens = fusion(embeddings, lengths)
 
     expected_emb = torch.tensor(
         [[[1.0, 2.0], [3.0, 4.0], [9.0, 10.0]], [[5.0, 6.0], [7.0, 8.0], [11.0, 12.0]]]
@@ -122,7 +122,7 @@ def test_audio_text_concat_varying_lengths():
     embeddings = {"text": text_emb, "audio": audio_emb}
     lengths = {"text": torch.LongTensor([2]), "audio": torch.LongTensor([3])}
 
-    combined_emb, combined_lens = fusion.combine(embeddings, lengths)
+    combined_emb, combined_lens = fusion(embeddings, lengths)
 
     expected_emb = torch.tensor(
         [[[1.0, 2.0], [3.0, 4.0], [5.0, 6.0], [7.0, 8.0], [9.0, 10.0]]]
@@ -145,7 +145,7 @@ def test_audio_text_concat_different_embedding_dims():
     with pytest.raises(
         AssertionError, match="Text and audio embeddings must have the same dimension"
     ):
-        fusion.combine(embeddings, lengths)
+        fusion(embeddings, lengths)
 
 
 def test_audio_text_concat_batch_size_mismatch():
@@ -160,5 +160,8 @@ def test_audio_text_concat_batch_size_mismatch():
         "audio": torch.LongTensor([2]),
     }
 
-    with pytest.raises(AssertionError, match="Text, audio and their lengths must have the same batch size"):
-        fusion.combine(embeddings, lengths)
+    with pytest.raises(
+        AssertionError,
+        match="Text, audio and their lengths must have the same batch size",
+    ):
+        fusion(embeddings, lengths)

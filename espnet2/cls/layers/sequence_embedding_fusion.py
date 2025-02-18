@@ -19,6 +19,7 @@ class AudioTextAttnFusion(AbsEmbeddingFusion):
             output_dim: The dimension of the output embeddings.
 
         """
+        super().__init__()
         self.audio_dim = audio_dim
         self.text_dim = text_dim
         self.hidden_dim = hidden_dim
@@ -28,7 +29,7 @@ class AudioTextAttnFusion(AbsEmbeddingFusion):
         self.text_linear = nn.Linear(text_dim, hidden_dim)
         self.output_linear = nn.Linear(hidden_dim, output_dim)
 
-    def combine(self, embeddings, lengths):
+    def forward(self, embeddings, lengths):
         """
         Args:
             embeddings: A dict of embeddings to combine.
@@ -73,9 +74,9 @@ class AudioTextConcat(AbsEmbeddingFusion):
     """
 
     def __init__(self):
-        pass  # No learnable parameters needed for concatenation
+        super().__init__()
 
-    def combine(self, embeddings, lengths):
+    def forward(self, embeddings, lengths):
         """
         Concatenates text and audio embeddings along the sequence dimension.
 
