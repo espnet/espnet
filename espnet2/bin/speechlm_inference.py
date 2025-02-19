@@ -446,7 +446,10 @@ def inference(
                 # 5.3 save tokenized results
                 if detokenized is not None:
                     if modality in ["codec", "spk", "codec_ssl"]:
-                        audio_path = output_dir / name / f"{example_name}.wav"
+                        # NOTE(Jinchuan): some example names are really long
+                        # and contains "/"
+                        example_name_ = example_name.replace("/", "_")[-64:]
+                        audio_path = output_dir / name / f"{example_name_}.wav"
                         torchaudio.save(
                             str(audio_path),
                             detokenized.view(1, -1).cpu(),

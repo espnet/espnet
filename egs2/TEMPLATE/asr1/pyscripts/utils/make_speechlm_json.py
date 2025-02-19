@@ -69,12 +69,12 @@ def main():
                 modality == tgt_modality
                 and name.endswith(tgt_name)
             ):
-                triplet_found = True
                 if _type != tgt_type:
                     logging.warning(
-                        f"target type {tgt_type} but input type {_type} "
-                        f"Please make sure this is intended"
+                        f"Target type is {tgt_type} but {_type} is provided. "
+                        f"Make sure this is intended."
                     )
+                triplet_found = True
                 file_triplets.append([name, modality, _type])
         if not triplet_found:
             raise ValueError(f"No triplet Found: {tgt_name},{tgt_modality},{tgt_type}")
@@ -84,11 +84,8 @@ def main():
     for file_triplet in file_triplets:
         file_path = file_triplet[0]
         feat_name = file_path.split("/")[-1]
-        for idx, line in enumerate(open(file_path)):
-            try:
-                example_id, content = line.strip().split(maxsplit=1)
-            except:
-                logging.warning(f"Bad line at {idx}-th line of {file_path}")
+        for line in open(file_path):
+            example_id, content = line.strip().split(maxsplit=1)
             if example_id not in example_dict:
                 example_dict[example_id] = {}
             example_dict[example_id][feat_name] = content
@@ -111,7 +108,8 @@ def main():
             writers[name].write(f"{example_id} {example_dict[example_id][name]}\n")
 
     metadata["data_files"] = []
-    for name, modality, _type in all_triplets_required:
+    for name, modality, _type in file_triplets:
+        name = name.split('/')[-1]
         file_path = str(save_path / name)
         triplet = f"{file_path},{modality},{_type}"
         metadata["data_files"].append(triplet)

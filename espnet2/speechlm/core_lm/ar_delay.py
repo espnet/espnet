@@ -122,7 +122,7 @@ class ARDelayLM(ARParallelLM):
         # the effective codes in each level. minlen and maxlin already count them.
         minlen = int(prefix.size(1) * opts.minlenratio) if opts.minlenratio > 0 else 0
         maxlen = (
-            int(prefix.size(1) * opts.maxlenratio)
+            int(prefix.size(1) * opts.maxlenratio) + (self.nq - 1)
             if opts.maxlenratio > 0
             else self.n_ctx - prefix.size(1)
         )

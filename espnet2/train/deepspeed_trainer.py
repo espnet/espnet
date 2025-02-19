@@ -44,6 +44,7 @@ class DeepSpeedTrainerOptions:
     log_interval: Optional[int]
     output_dir: Union[Path, str]
     max_epoch: int
+    torch_reseved_memory_gb: float
     deepspeed_step_sync: bool
     deepspeed_config: Union[Path, str]
 
@@ -183,6 +184,8 @@ class DeepSpeedTrainer(Trainer):
         if not options.deepspeed_step_sync:
             cls.check_iterator_length(iterator)
 
+        cls.reserve_runtime_memory(size_gb=options.torch_reseved_memory_gb)
+
         for iiter, (utt_id, batch) in enumerate(
             reporter.measure_iter_time(iterator, "iter_time"), 1
         ):
@@ -223,6 +226,10 @@ class DeepSpeedTrainer(Trainer):
                 reporter.next()
                 if iiter % log_interval == 0:
                     logging.info(reporter.log_message(-log_interval))
+                    logging.info(
+                        f"Pytorch memory reservation: "
+                        f"{torch.cuda.memory_reserved() // 1024 ** 3} GB"
+                    )
 
         else:
             if options.deepspeed_step_sync:
@@ -297,3 +304,27 @@ class DeepSpeedTrainer(Trainer):
         assert torch.all(
             length_list.eq(this_length)
         ), f"Iterator lengths are different across all ranks: {length_list}"
+    
+    @classmethod
+    def reserve_runtime_memory(cls, size_gb: float):
+        if size_gb <= 0:
+            return
+
+        torch.cuda.empty_cache()
+        logging.info(
+            f"Before reserving memory: {torch.cuda.memory_reserved() // 1024 ** 3} GB"
+        )
+        
+        tensors = []
+        while torch.cuda.memory_reserved() // 1024 ** 3 < size_gb:
+            try:
+                tensor = torch.empty(1024 ** 3 // 2, dtype=torch.float16, device="cuda")
+                tensors.append(tensor)
+            except torch.cuda.OutOfMemoryError:
+                logging.info("Cannot further reserve memory due to OOM")
+                break
+        del tensors
+
+        logging.info(
+            f"after reserving memory: {torch.cuda.memory_reserved() // 1024 ** 3} GB"
+        )

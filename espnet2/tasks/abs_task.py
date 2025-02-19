@@ -478,6 +478,15 @@ class AbsTask(ABC):
             type=str2bool,
             help="Synchronize stats in each minibatch",
         )
+        group.add_argument(
+            "--torch_reseved_memory_gb",
+            default=-1,
+            type=float,
+            help="Memory specifically reserved for pytorch "
+                 "and will not be used by other libraries like deepspeed and NCCL. "
+                 "Only effective when using deepspeed trainer",
+        )
+
 
         group = parser.add_argument_group("cudnn mode related")
         group.add_argument(
