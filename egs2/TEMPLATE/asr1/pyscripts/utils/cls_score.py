@@ -105,6 +105,8 @@ def calc_metrics_from_textfiles(
             try:
                 tok_idx = token_list.index(label)
             except ValueError:
+                # this is for unseen tokens that are only in test
+                # but not in training
                 logging.warning(f"{label} not in token list.")
                 continue
             if tok_idx > n_classes:
