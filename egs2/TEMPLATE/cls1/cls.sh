@@ -398,7 +398,7 @@ if ! "${skip_train}"; then
         else
             jobname="${cls_exp}/train.log"
         fi
-        
+
         if "${use_lightning}"; then
             log "Use PyTorch Lightning trainer"
             ${python} pyscripts/utils/rotate_logfile.py "${cls_exp}"/train.log
