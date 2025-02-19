@@ -99,6 +99,11 @@ class ESPnetClassificationModel(AbsESPnetModel):
             self.mixup_augmentation = MixupAugment(mixup_probability=mixup_probability)
         self.metric_functions = self.setup_metrics_()
         self.log_epoch_metrics = log_epoch_metrics
+        self.predictions = []
+        self.targets = []
+
+    def get_vocab_size(self):
+        return self.vocab_size
 
     def forward(
         self,
@@ -163,24 +168,27 @@ class ESPnetClassificationModel(AbsESPnetModel):
             val = metric_fn(pred, target)
             val = val.detach() if val is not None else -1
             stats[metric_name] = val
+        # Store for mAP logging
+        self.predictions.append(pred)
+        self.targets.append(onehot_)
 
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
         return loss, stats, weight
 
-    def validation_epoch_end_(self):
-        if self.training:
-            logger.warning("Validation epoch end called during training.")
-            return None
-        stats_dict = None
-        if self.log_epoch_metrics and "mAP" in self.metric_functions:
-            epoch_mAP = self.metric_functions["mAP"].compute().item()
-            stats_dict = {"epoch_mAP": epoch_mAP}
-        return stats_dict
+    # def validation_epoch_end_(self):
+    #     if self.training:
+    #         logger.warning("Validation epoch end called during training.")
+    #         return None
+    #     stats_dict = None
+    #     if self.log_epoch_metrics and "mAP" in self.metric_functions:
+    #         epoch_mAP = self.metric_functions["mAP"].compute().item()
+    #         stats_dict = {"epoch_mAP": epoch_mAP}
+    #     return stats_dict
 
-    def training_epoch_end_(self):
-        if not self.training:
-            logger.warning("Training epoch end called during validation.")
-            return None
+    # def training_epoch_end_(self):
+    #     if not self.training:
+    #         logger.warning("Training epoch end called during validation.")
+    #         return None
 
     def score(
         self, speech: torch.Tensor, speech_lengths: Optional[torch.Tensor] = None
@@ -283,6 +291,13 @@ class ESPnetClassificationModel(AbsESPnetModel):
             feats, feats_lengths = speech, speech_lengths
         return feats, feats_lengths
 
+    def update_mAP(self, mAP_computer):
+        mAP_computer.update(
+            torch.cat(self.predictions), torch.cat(self.targets).float()
+        )
+        self.predictions = []
+        self.targets = []
+
     def setup_metrics_(self):
         if self.classification_type == "multi-class":
             return {
@@ -297,10 +312,10 @@ class ESPnetClassificationModel(AbsESPnetModel):
             return {
                 "acc": partial(EvalFunction.multilabel_accuracy, criteria="hamming"),
                 # acc is usually high if data is imabalanced
-                "mAP": ESPnetMultilabelAUPRC(
-                    num_labels=self.vocab_size,
-                    caller=self,
-                ),
+                # "mAP": ESPnetMultilabelAUPRC(
+                #     num_labels=self.vocab_size,
+                #     caller=self,
+                # ),
             }
 
 
@@ -343,26 +358,26 @@ def label_to_onehot(
         )
 
 
-class ESPnetMultilabelAUPRC:
-    """Wrapper for torcheval.metrics.MultilabelAUPRC
-    that computes mAP at the end of each validation epoch and
-    at the end of each training step, if logging epoch metrics.
-    """
+# class ESPnetMultilabelAUPRC:
+#     """Wrapper for torcheval.metrics.MultilabelAUPRC
+#     that computes mAP at the end of each validation epoch and
+#     at the end of each training step, if logging epoch metrics.
+#     """
 
-    def __init__(self, num_labels=None, caller=None):
-        self.mAP_computer = MultilabelAUPRC(num_labels=num_labels)
-        self.caller = caller
+#     def __init__(self, num_labels=None, caller=None):
+#         self.mAP_computer = MultilabelAUPRC(num_labels=num_labels)
+#         self.caller = caller
 
-    def __call__(self, pred, tgt_onehot):
-        self.mAP_computer.update(pred, tgt_onehot)
-        if self.caller.training or not self.caller.log_epoch_metrics:
-            # if training or not logging epoch metrics, compute at each step
-            return self.compute()
+#     def __call__(self, pred, tgt_onehot):
+#         self.mAP_computer.update(pred, tgt_onehot)
+#         if self.caller.training or not self.caller.log_epoch_metrics:
+#             # if training or not logging epoch metrics, compute at each step
+#             return self.compute()
 
-    def compute(self):
-        if dist.is_initialized() and dist.get_world_size() > 1:
-            mAP = sync_and_compute(self.mAP_computer)
-        else:
-            mAP = self.mAP_computer.compute()
-        self.mAP_computer.reset()
-        return mAP
+#     def compute(self):
+#         if dist.is_initialized() and dist.get_world_size() > 1:
+#             mAP = sync_and_compute(self.mAP_computer)
+#         else:
+#             mAP = self.mAP_computer.compute()
+#         self.mAP_computer.reset()
+#         return mAP

@@ -38,6 +38,7 @@ inference_nj=4      # The number of parallel jobs in decoding.
 gpu_inference=false  # Whether to perform gpu decoding.
 expdir=exp           # Directory to save experiments.
 python=python3       # Specify python to execute espnet commands
+use_lightning=false     # Whether to use pytorch lightning trainer for training.
 
 # Data preparation related
 local_data_opts= # The options given to local/data.sh.
@@ -59,6 +60,7 @@ cls_config= # Config for cls model training.
 cls_args=   # Arguments for cls model training, e.g., "--max_epoch 10".
              # Note that it will overwrite args in cls config.
 feats_normalize=uttmvn # Normalizaton layer type.
+pretrained_model=              # Pretrained model to load
 
 # cls inference related
 download_model=
@@ -93,6 +95,7 @@ Options:
     --dumpdir        # Directory to dump features (default="${dumpdir}").
     --expdir         # Directory to save experiments (default="${expdir}").
     --python         # Specify python to execute espnet commands (default="${python}").
+    --use_lightning # Whether to use pytorch lightning trainer for training (default="${use_lightning}").
     # Data preparation related
     --local_data_opts # The options given to local/data.sh (default="${local_data_opts}").
     # Feature extraction related
@@ -109,6 +112,7 @@ Options:
     --cls_args       # Arguments for classification model training, e.g., "--max_epoch 10" (default="${cls_args}").
                       # Note that it will overwrite args in cls config.
     --feats_normalize # Normalizaton layer type (default="${feats_normalize}").
+    --pretrained_model # Pretrained model to load (default="${pretrained_model}").
     # cls inference related
     --download_model  # Download a model from Model Zoo and use it for decoding (default="${download_model}").
     --inference_model  # classification model path for inference (default="${inference_model}").
@@ -394,20 +398,43 @@ if ! "${skip_train}"; then
         else
             jobname="${cls_exp}/train.log"
         fi
+        
+        if "${use_lightning}"; then
+            log "Use PyTorch Lightning trainer"
+            ${python} pyscripts/utils/rotate_logfile.py "${cls_exp}"/train.log
 
-        # shellcheck disable=SC2086
-        ${python} -m espnet2.bin.launch \
-            --cmd "${cuda_cmd} --name ${jobname}" \
-            --log "${cls_exp}/train.log" \
-            --ngpu "${ngpu}" \
-            --num_nodes "${num_nodes}" \
-            --init_file_prefix "${cls_exp}/.dist_init_" \
-            --multiprocessing_distributed true -- \
-            ${python} -m espnet2.bin.cls_train \
-                --use_preprocessor true \
-                --resume true \
-                --output_dir "${cls_exp}" \
-                ${_opts} ${cls_args}
+            ${cuda_cmd} --name "${jobname}" \
+                --gpu "${ngpu}" \
+                --num_tasks "${ngpu}" \
+                --num_nodes "${num_nodes}" \
+                "${cls_exp}"/train.log \
+                srun --export=ALL \
+                ${python} -m espnet2.bin.lightning_train \
+                    --task cls \
+                    --lightning_conf "{devices: ${ngpu}, num_nodes: ${num_nodes}, default_root_dir: ${cls_exp}}" \
+                    --user_callbacks mAP_logging \
+                    --use_preprocessor true \
+                    --resume true \
+                    ${pretrained_model:+--init_param $pretrained_model} \
+                    --ignore_init_mismatch ${ignore_init_mismatch} \
+                    --output_dir "${cls_exp}" \
+                    ${_opts} ${cls_args}
+        else
+            # shellcheck disable=SC2086
+            ${python} -m espnet2.bin.launch \
+                --cmd "${cuda_cmd} --name ${jobname}" \
+                --log "${cls_exp}/train.log" \
+                --ngpu "${ngpu}" \
+                --num_nodes "${num_nodes}" \
+                --init_file_prefix "${cls_exp}/.dist_init_" \
+                --multiprocessing_distributed true -- \
+                ${python} -m espnet2.bin.cls_train \
+                    --use_preprocessor true \
+                    ${pretrained_model:+--init_param $pretrained_model} \
+                    --resume true \
+                    --output_dir "${cls_exp}" \
+                    ${_opts} ${cls_args}
+        fi
     fi
 else
     log "Skip the training stages"
