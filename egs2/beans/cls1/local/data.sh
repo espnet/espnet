@@ -127,6 +127,26 @@ fi
 
 
 #HICEAS
+if [[ "${DATASETS}" == *"hiceas"* ]]; then
+    log "Processing hiceas"
+    HI_LOCATION="${DATA_PREP_ROOT}/downloads/hiceas/original"
+    if [ "${BEANS}" == "downloads" ]; then
+        if [ -f "${HI_LOCATION}/download.done" ]; then
+            log "Skip downloading hiceas data because download.done exists"
+        else
+            log "Downloading hiceas"
+            mkdir -p ${HI_LOCATION}
+            wget https://storage.googleapis.com/ml-bioacoustics-datasets/hiceas_1-20_minke-detection.zip -O ${HI_LOCATION}/hiceas.zip
+            unzip ${HI_LOCATION}/hiceas.zip -d ${HI_LOCATION}
+            rm ${HI_LOCATION}/hiceas.zip
+            touch "${HI_LOCATION}/download.done"
+        fi
+    else
+        log "Using data from the provided location: ${BEANS}/hiceas"
+        HI_LOCATION="${BEANS}/hiceas"
+    fi
+    python local/scripts/hiceas.py ${HI_LOCATION} ${DATA_PREP_ROOT}
+fi
 
 
 

@@ -92,7 +92,11 @@ def divide_annotation_to_chunks(annotations, chunk_size):
 def _get_waveform(filename, max_duration, target_sample_rate=16000):
     waveform, sample_rate = sf.read(filename)
     # (1, n_samples)
-    waveform = torch.tensor(waveform, dtype=torch.float64).unsqueeze(0)
+
+    if waveform.ndim == 2:
+        waveform = torch.tensor(waveform, dtype=torch.float32)[:, 0]
+    else:
+        waveform = torch.tensor(waveform, dtype=torch.float32).unsqueeze(0)
 
     if sample_rate != target_sample_rate:
         # This should not be needed since we resampled earlier
@@ -144,7 +148,10 @@ class BeansRecognitionDataset(Dataset):
 
                 y = set()
                 for anon in data["annotations"]:
-                    label_name = anon["label"].strip().lower()
+                    if isinstance(anon["label"], int):
+                        label_name = str(anon["label"])
+                    else:
+                        label_name = anon["label"].strip().lower()
 
                     if (st <= anon["st"] <= ed) or (st <= anon["ed"] <= ed):
                         denom = min(ed - st, anon["ed"] - anon["st"])
