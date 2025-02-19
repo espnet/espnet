@@ -58,7 +58,7 @@ def split_fnames_with_balanced_genre(fnames_for_each_genre, ratio={'train':0.75,
     return train_input, train_label, val_input, val_label, eval_input, eval_label
 
 
-random.seed(0)
+# random.seed(0)
 black_list = ['jazz.00054.wav'] # broken files
 fnames_for_each_genre = collect_fnames_for_each_genre(black_list)
 
