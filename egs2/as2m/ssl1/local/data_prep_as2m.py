@@ -71,7 +71,7 @@ train_set = train_set + train_set_bal
 print(f"Train set size: {len(train_set)}")
 print(f"Eval set size: {len(eval_set)}")
 
-for dataset, name in [(train_set, "train"), (eval_set, "eval")]:
+for dataset, name in [(train_set, "AudioSet"), (eval_set, "eval")]:
     missing_wav_file = 0
     wav_scp_write_path = os.path.join(DATA_WRITE_ROOT, name, "wav.scp")
     utt2spk_write_path = os.path.join(DATA_WRITE_ROOT, name, "utt2spk")
