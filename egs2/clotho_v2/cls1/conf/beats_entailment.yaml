@@ -6,7 +6,7 @@ optim_conf:
 
 accum_grad: 1
 
-batch_size: 128 # 12.5 steps per epoch with 1600 samples
+batch_size: 16 # 12.5 steps per epoch with 1600 samples
 max_epoch: 1000
 
 scheduler: CosineAnnealingWarmupRestarts
@@ -25,9 +25,8 @@ normalize: none # BEATs code does global mean and variance normalization
 init: xavier_normal
 
 model_conf:
-    ctc_weight: 0.0  # No CTC, no attention.
-    lsm_weight: 0.1  # label smoothing weight
-    length_normalized_loss: true
+    classification_type: multi-class
+    lsm_weight: 0.1
 
 batch_type: folded
 unused_parameters: true
@@ -66,7 +65,8 @@ encoder_conf:
     use_weighted_representation: false
 
 text_encoder: hugging_face_transformers
-text_encoder_conf: 
+text_encoder_conf:
+    input_size: 1 # dummy
     model_name_or_path: bert-base-uncased
 
 embedding_fusion: attention
@@ -77,7 +77,7 @@ embedding_fusion_conf:
     output_dim: 768
 
 # Simple linear decoder for classification.
-decoder: linear_decoder
+decoder: linear
 decoder_conf:
     pooling: mean
     dropout: 0.1

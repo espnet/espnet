@@ -220,6 +220,10 @@ if ! "${skip_data_prep}"; then
         # i.e. the input file format and rate is same as the output.
         for dset in "${train_set}" "${valid_set}" ${test_sets}; do
             utils/copy_data_dir.sh --validate_opts --non-print "${datadir}/${dset}" "${data_feats}/${dset}"
+            if ${speech_text_classification}; then
+                # Copy text input file to data_feats
+                cp "${datadir}/${dset}/${text_input_filename}" "${data_feats}/${dset}/"
+            fi
             rm -f ${data_feats}/${dset}/{wav.scp,reco2file_and_channel}
 
             # shellcheck disable=SC2086
@@ -385,31 +389,6 @@ if ! "${skip_train}"; then
         # shellcheck disable=SC2086
         ${python} -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${cls_stats_dir}"
 
-        # _opts=
-        # if [ "$speech_text_classification" ]; then
-        #     _logdir="${_logdir}_text"
-        #     log "cls collect-stats for text input of speech-text classification started... log: '${_logdir}/stats.*.log'"
-        #     ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
-        #         ${python} -m espnet2.bin.cls_train \
-        #             --collect_stats true \
-        #             --token_type hugging_face \
-        #             --use_preprocessor true \
-        #             --train_data_path_and_name_and_type ${_cls_train_dir}/${text_input_file},text,text \
-        #             --valid_data_path_and_name_and_type ${_cls_valid_dir}/${text_input_file},text,text \
-        #             --train_shape_file "${_logdir}/train.JOB.scp" \
-        #             --valid_shape_file "${_logdir}/valid.JOB.scp" \
-        #             --output_dir "${_logdir}/stats.JOB" \
-        #             --token_list "${text_token_list}" \
-        #             ${_opts} ${cls_args} || { cat $(grep -l -i error "${_logdir}"/stats.*.log) ; exit 1; }
-        #     # 4. Aggregate shape files
-        #     _opts=
-        #     for i in $(seq "${_nj}"); do
-        #         _opts+="--input_dir ${_logdir}/stats.${i} "
-        #     done
-        #     # shellcheck disable=SC2086
-        #     ${python} -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${cls_stats_dir}"
-        # fi
-
     fi
 
     if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
@@ -449,7 +428,6 @@ if ! "${skip_train}"; then
         _opts+="--valid_shape_file ${cls_stats_dir}/valid/speech_shape "
         _opts+="--valid_shape_file ${cls_stats_dir}/valid/label_shape "
         _opts+="--token_list ${token_list} "
-        _opts+="--token_type word "
         _opts+="--fold_length ${speech_fold_length} "
         _opts+="--fold_length ${label_fold_length} "
         

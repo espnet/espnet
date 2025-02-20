@@ -69,10 +69,12 @@ class HuggingFaceTransformersEncoder(AbsEncoder):
             )
             input_lengths = input_lengths + 1
 
-        args["input_ids"] = input
-
         mask = (~make_pad_mask(input_lengths)).to(input.device).float()
         args["attention_mask"] = mask
+        # ensure that the pad token is 0 and not whatever was set
+        # in task.py (usually -1 for espnet)
+        input.masked_fill_(~(mask.bool()), 0)
+        args["input_ids"] = input
         output = self.transformer(**args).last_hidden_state
 
         return output, input_lengths
