@@ -61,6 +61,8 @@ cls_args=   # Arguments for cls model training, e.g., "--max_epoch 10".
              # Note that it will overwrite args in cls config.
 feats_normalize=uttmvn # Normalizaton layer type.
 pretrained_model=              # Pretrained model to load
+ignore_init_mismatch=false      # Ignore initial mismatch
+classification_type=        # Type of classification task, multi-class or multi-label
 
 # cls inference related
 download_model=
@@ -113,6 +115,8 @@ Options:
                       # Note that it will overwrite args in cls config.
     --feats_normalize # Normalizaton layer type (default="${feats_normalize}").
     --pretrained_model # Pretrained model to load (default="${pretrained_model}").
+    --ignore_init_mismatch # Ignore initial mismatch (default="${ignore_init_mismatch}").
+    --classification_type # Type of classification task, multi-class or multi-label (default="${classification_type}").
     # cls inference related
     --download_model  # Download a model from Model Zoo and use it for decoding (default="${download_model}").
     --inference_model  # classification model path for inference (default="${inference_model}").
@@ -177,6 +181,15 @@ fi
 cls_exp="${expdir}/cls_${cls_tag}"
 token_list=${datadir}/token_list
 
+
+if [[ "${classification_type}" == "multi-label" ]]; then
+    if ! "${use_lightning}"; then
+        log "Multi-label classification is only supported with PyTorch Lightning trainer. Please set --use_lightning true."
+        # This is to ensure mAP logging at each epoch.
+        exit 1
+    fi
+    use_lightning=true
+fi
 # ========================== Main stages start from here. ==========================
 
 if ! "${skip_data_prep}"; then

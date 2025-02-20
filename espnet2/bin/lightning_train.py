@@ -36,14 +36,6 @@ def get_base_parser():
         choices=list(task_choices.keys()),
         help="Task to execute.",
     )
-    parser.add_argument(
-        "--user_callbacks",
-        type=str,
-        nargs="+",
-        choices=list(user_callback_choices.keys()),
-        default=[],
-        help="User-defined callbacks.",
-    )
     return parser
 
 
@@ -58,13 +50,21 @@ def get_parser(task_class=None):
         default=dict(),
         help="Arguments related to Lightning Trainer.",
     )
+    parser.add_argument(
+        "--user_callbacks",
+        type=str,
+        nargs="+",
+        choices=list(user_callback_choices.keys()),
+        default=[],
+        help="User-defined callbacks.",
+    )
     return parser
 
 
 def build_user_callbacks(user_callbacks):
     callbacks = []
     for callback_name in user_callbacks:
-        callback_cls = callback_choices[callback_name]
+        callback_cls = user_callback_choices[callback_name]
         callbacks.append(callback_cls())
     return callbacks
 

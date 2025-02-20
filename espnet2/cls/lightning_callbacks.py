@@ -1,4 +1,3 @@
-import torch
 import torch.distributed as dist
 from lightning.pytorch.callbacks import Callback
 
@@ -16,57 +15,69 @@ class MultilabelAUPRCCallback(Callback):
 
     To use this callback, you must implement a `update_mAP` method in the espnet
     model wrapped inside your LightningModule that accepts a `MultilabelAUPRC` object
-     and calls its `update` method with predictions
-    and targets. For example:
+    and calls its `update` method with predictions and targets. For example:
     ```python
     class MyLightningModule(pl.LightningModule):
-        def update_mAP(self, mAP_computer):
+        def update_mAP(self, mAP_function):
             ...
-            mAP_computer.update(predictions, targets)
+            mAP_function.update(predictions, targets)
     ```
     The model should also have a `get_vocab_size()` function that
-    specifies the number of classes.
+    specifies the number of labels/classes.
     """
 
     def __init__(self):
         super().__init__()
         if torcheval_import_error is not None:
-            raise torcheval_import_error
-        self.mAP_computer = None  # init on train start
+            raise ImportError(
+                "`torcheval` is not available. Please install it "
+                "via `pip install torcheval` in your environment."
+                "More info at: `https://pytorch.org/torcheval/stable/`"
+                f"Original error is: {torcheval_import_error}"
+            )
+        self.mAP_function = None  # init on train start
+
+    def setup_mAP(self, model):
+        self.mAP_function = MultilabelAUPRC(num_labels=model.get_vocab_size())
 
     def on_train_start(self, trainer, pl_module):
-        if self.mAP_computer is None:
-            self.mAP_computer = MultilabelAUPRC(pl_module.model.get_vocab_size())
-        self.mAP_computer.reset()
+        if self.mAP_function is None:
+            self.setup_mAP(pl_module.model)
+        self.mAP_function.reset()
+
+    def on_validation_start(self, trainer, pl_module):
+        if self.mAP_function is None:
+            self.setup_mAP(pl_module.model)
+        self.mAP_function.reset()
 
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
-        pl_module.model.update_mAP(self.mAP_computer)
+        pl_module.model.update_mAP(self.mAP_function)
         if not trainer.log_every_n_steps:
             return
-        if trainer.is_global_zero:
-            mAP = self.compute_mAP()
+        mAP = self.compute_mAP(trainer)
+        if mAP is not None:
             pl_module.log(
-                "train/mAP", mAP, on_step=True, on_epoch=False, sync_dist=True
+                "train/mAP", mAP, on_step=True, on_epoch=False, sync_dist=False
             )
 
     def on_validation_epoch_start(self, trainer, pl_module):
-        self.mAP_computer.reset()
+        self.mAP_function.reset()
 
     def on_validation_batch_end(
         self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx=0
     ):
-        pl_module.model.update_mAP(self.mAP_computer)  # accumulate
+        pl_module.model.update_mAP(self.mAP_function)  # accumulate
 
     def on_validation_epoch_end(self, trainer, pl_module):
-        if trainer.is_global_zero:
-            mAP = self.compute_mAP()
-            pl_module.log("val/mAP", mAP, on_epoch=True, sync_dist=True)
+        mAP = self.compute_mAP(trainer)
+        if mAP is not None:
+            pl_module.log("valid/epoch_mAP", mAP, on_epoch=True, sync_dist=False)
 
-    def compute_mAP(self):
+    def compute_mAP(self, trainer):
         """Computes the mAP."""
         if dist.is_initialized() and dist.get_world_size() > 1:
-            mAP = sync_and_compute(self.mAP_computer)
+            mAP = sync_and_compute(self.mAP_function)
         else:
-            mAP = self.mAP_computer.compute()
-        self.mAP_computer.reset()
+            mAP = self.mAP_function.compute()
+        self.mAP_function.reset()
         return mAP

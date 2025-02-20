@@ -2,7 +2,7 @@ from pathlib import Path
 
 import torch
 from lightning.pytorch.callbacks import Callback
-from tasks.cls.lightning_callbacks import MultilabelAUPRCCallback
+from espnet2.cls.lightning_callbacks import MultilabelAUPRCCallback
 
 user_callback_choices = {
     "mAP_logging": MultilabelAUPRCCallback,
