@@ -6,7 +6,7 @@ optim_conf:
 
 accum_grad: 1
 
-batch_size: 16 # 12.5 steps per epoch with 1600 samples
+batch_size: 32 # 12.5 steps per epoch with 1600 samples
 max_epoch: 1000
 
 scheduler: CosineAnnealingWarmupRestarts

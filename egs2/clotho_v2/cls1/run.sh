@@ -12,6 +12,7 @@ cls_config=conf/beats_entailment.yaml
 
 timestamp=$(date "+%Y%m%d.%H%M%S")
 mynametag=${timestamp}
+mynametag=tx_multimodal
 
 storage_dir=. # change this to where you have space, if needed
 mkdir -p "${storage_dir}"
@@ -21,12 +22,14 @@ mkdir -p "${storage_dir}"
     --datadir "${storage_dir}/data" \
     --dumpdir "${storage_dir}/dump" \
     --expdir "${storage_dir}/exp" \
+    --speech_text_classification true \
     --text_input_filename hypothesis.txt \
     --hugging_face_model_name_or_path bert-base-uncased \
     --gpu_inference false \
     --feats_normalize uttmvn \
-    --stage 5 \
-    --stop_stage 5 \
+    --ngpu 2 \
+    --stage 6 \
+    --stop_stage 6 \
     --nj 10 \
     --label_fold_length 600 \
     --inference_nj 1 \
