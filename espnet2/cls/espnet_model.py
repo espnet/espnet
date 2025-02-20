@@ -161,7 +161,7 @@ class ESPnetClassificationModel(AbsESPnetModel):
                 else onehot_
             )
             val = metric_fn(pred, target)
-            val = val.detach() if val is not None else -1
+            val = val.detach() if val is not None else -1.0
             stats[metric_name] = val
 
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
@@ -361,7 +361,7 @@ class ESPnetMultilabelAUPRC:
 
     def compute(self):
         if dist.is_initialized() and dist.get_world_size() > 1:
-            mAP = sync_and_compute(self.mAP_computer)
+            mAP = sync_and_compute(self.mAP_computer, recepient_rank='all')
         else:
             mAP = self.mAP_computer.compute()
         self.mAP_computer.reset()
