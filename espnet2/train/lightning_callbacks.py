@@ -2,6 +2,7 @@ from pathlib import Path
 
 import torch
 from lightning.pytorch.callbacks import Callback
+
 from espnet2.cls.lightning_callbacks import MultilabelAUPRCCallback
 
 user_callback_choices = {
