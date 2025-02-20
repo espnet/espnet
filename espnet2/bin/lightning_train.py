@@ -15,7 +15,10 @@ from lightning.pytorch.loggers import TensorBoardLogger, WandbLogger
 from lightning.pytorch.strategies import DDPStrategy, FSDPStrategy
 from torch.distributed.algorithms.ddp_comm_hooks import default_hooks
 
-from espnet2.train.lightning_callbacks import AverageCheckpointsCallback
+from espnet2.train.lightning_callbacks import (
+    AverageCheckpointsCallback,
+    user_callback_choices,
+)
 from espnet2.train.lightning_espnet_model import LitESPnetModel, task_choices
 from espnet2.utils.nested_dict_action import NestedDictAction
 
@@ -47,7 +50,23 @@ def get_parser(task_class=None):
         default=dict(),
         help="Arguments related to Lightning Trainer.",
     )
+    parser.add_argument(
+        "--user_callbacks",
+        type=str,
+        nargs="+",
+        choices=list(user_callback_choices.keys()),
+        default=[],
+        help="User-defined callbacks.",
+    )
     return parser
+
+
+def build_user_callbacks(user_callbacks):
+    callbacks = []
+    for callback_name in user_callbacks:
+        callback_cls = user_callback_choices[callback_name]
+        callbacks.append(callback_cls())
+    return callbacks
 
 
 def main():
@@ -161,6 +180,9 @@ def main():
         output_dir=args.output_dir, best_ckpt_callbacks=best_ckpt_callbacks
     )
 
+    # Get user callbacks
+    user_callbacks = build_user_callbacks(args.user_callbacks)
+
     # Monitor learning rate
     lr_callback = LearningRateMonitor()
 
@@ -204,7 +226,8 @@ def main():
             ave_ckpt_callback,
             lr_callback,
             TQDMProgressBar(refresh_rate=args.lightning_conf["log_every_n_steps"]),
-        ],
+        ]
+        + user_callbacks,
         strategy=strategy,
         logger=loggers,
     )
