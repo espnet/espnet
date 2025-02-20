@@ -62,7 +62,8 @@ train_config=    # Configration file of training stage
 n_targets=             # Number of codebook targets
 tokenizer_inference_batch_size=32 # Batch size for tokenizer inference
 tokenizer_train_config= # Configration file of tokenizer training stage
-inference_tokenizer_model=valid.acc.best.pth # Model to use for tokenizer inference
+tokenizer_inference_model=valid.acc.best.pth # Model to use for tokenizer inference
+tokenizer_inference_config= # Configration file of tokenizer inference stage
 external_tokenizer_model= # External tokenizer model to use for tokenizer inference
 external_teacher_model= # External teacher model to use for tokenizer inference
 
@@ -121,7 +122,8 @@ Options:
     --n_targets       # number of codebook vectors
     --tokenizer_inference_batch_size # Batch size for tokenizer inference (default="${tokenizer_inference_batch_size}").
     --tokenizer_train_config # configration file of tokenizer training stage
-    --inference_tokenizer_model # Model to use for tokenizer inference, default="${inference_tokenizer_model}".
+    --tokenizer_inference_model # Model to use for tokenizer inference, default="${tokenizer_inference_model}".
+    --tokenizer_inference_config # Configration file of tokenizer inference stage.
     --external_tokenizer_model  # External tokenizer model to use for tokenizer inference.
     --external_teacher_model    # External teacher model to use for tokenizer inference.
     --beats_args      # Arguments for beats model training (default="${beats_args}").
@@ -186,8 +188,8 @@ if [ -z "${ssl_tag}" ]; then
     fi
 fi
 
-if [ -z "${inference_tokenizer_model}" ]; then
-    log "Error: inference_tokenizer_model is required"
+if [ -z "${tokenizer_inference_model}" ]; then
+    log "Error: tokenizer_inference_model is required"
     exit 2
 fi
 # ========================== Main stages start from here. ==========================
@@ -284,10 +286,14 @@ if ! "${skip_train}"; then
             _file_name=feats.scp
         fi
         
+        _opts=
+        _tokenizer_inference_tag="tok"
+        if [ -n "${tokenizer_inference_config}" ]; then
+            _opts+="--config_path ${tokenizer_inference_config} "
+            _tokenizer_inference_tag="$(basename "${tokenizer_inference_config}" .yaml)"
+        fi
         # Tokenize
-        # TODO(shikhar): Change audio_tokenizations.sh to accept feats.scp
-        # TODO(shikhar): Modify dump_audio_tokens.py to accept feats.scp. Undo length
-        # changes in dump_codec.py
+        # TODO(shikhar): Undo changes to dump_codec.py
         _nj=$((ngpu==0?nj:ngpu))
         _ngpu=$((ngpu==0?0:1))
         for dset in "${valid_set}" "${train_set}"; do
@@ -295,9 +301,10 @@ if ! "${skip_train}"; then
                 --codec_choice ${codec_choice} \
                 --file_name ${_file_name} \
                 --src_dir "${data_feats}/${dset}" \
-                --tgt_dir "${data_feats}/${dset}/codes_iter0" \
+                --tgt_dir "${data_feats}/${dset}/iter0_${_tokenizer_inference_tag}" \
+                ${_opts} \
                 --nj "${_nj}" --ngpu ${_ngpu} --batch_size "${tokenizer_inference_batch_size}"
-            cp "${data_feats}/${dset}/codes_iter0/${_file_name%.scp}_${codec_choice}.txt" "${data_feats}/${dset}/target_iter0"
+            cp "${data_feats}/${dset}/iter0_${_tokenizer_inference_tag}/${_file_name%.scp}_${codec_choice}.txt" "${data_feats}/${dset}/target_iter0_${_tokenizer_inference_tag}"
         done
         
         # Prepare token list
@@ -362,6 +369,12 @@ if ! "${skip_train}"; then
         # 3. Submit jobs
         log "BEATs collect-stats started... log: '${_logdir}/stats.*.log'"
         
+        # Run collectstats
+        _tokenizer_inference_tag="tok"
+        if [ -n "${tokenizer_inference_config}" ]; then
+            _tokenizer_inference_tag="$(basename "${tokenizer_inference_config}" .yaml)"
+        fi
+        
         # shellcheck disableSC2046,SC2086
         ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
             ${python} -m espnet2.bin.beats_train \
@@ -369,9 +382,9 @@ if ! "${skip_train}"; then
                 --use_preprocessor true \
                 --token_list "${token_listdir}/tokens.txt" \
                 --train_data_path_and_name_and_type "${_ssl_train_dir}/${_scp},speech,${_type}" \
-                --train_data_path_and_name_and_type "${_ssl_train_dir}/target_iter0,target,text" \
+                --train_data_path_and_name_and_type "${_ssl_train_dir}/target_iter0_${_tokenizer_inference_tag},target,text" \
                 --valid_data_path_and_name_and_type "${_ssl_valid_dir}/${_scp},speech,${_type}" \
-                --valid_data_path_and_name_and_type "${_ssl_valid_dir}/target_iter0,target,text" \
+                --valid_data_path_and_name_and_type "${_ssl_valid_dir}/target_iter0_${_tokenizer_inference_tag},target,text" \
                 --train_shape_file "${_logdir}/train.JOB.scp" \
                 --valid_shape_file "${_logdir}/valid.JOB.scp" \
                 --output_dir "${_logdir}/stats.JOB" \
@@ -400,6 +413,11 @@ if ! "${skip_train}"; then
         _ssl_train_dir="${data_feats}/${train_set}"
         _ssl_valid_dir="${data_feats}/${valid_set}"
         log "Stage 7: BEATs Training: train_set=${_ssl_train_dir}, valid_set=${_ssl_valid_dir}"
+
+        _tokenizer_inference_tag="tok"
+        if [ -n "${tokenizer_inference_config}" ]; then
+            _tokenizer_inference_tag="$(basename "${tokenizer_inference_config}" .yaml)"
+        fi
         for ((iter=${train_start_iter}; iter<=${train_stop_iter};iter++)); do
             
             _feats_type="$(<${_ssl_train_dir}/feats_type)"
@@ -456,7 +474,7 @@ if ! "${skip_train}"; then
                 log "Iter ${iter} BEATs Tokenizer Training completed, model saved in: ${ssl_tokenizer_exp}"
                 
                 # Inference with tokenizer
-                _tokenizer_ckpt_path=${ssl_tokenizer_exp}/${inference_tokenizer_model}
+                _tokenizer_ckpt_path=${ssl_tokenizer_exp}/${tokenizer_inference_model}
                 if [ -n "${external_tokenizer_model}" ]; then
                     _tokenizer_ckpt_path="${external_tokenizer_model}"
                 fi
@@ -495,7 +513,7 @@ if ! "${skip_train}"; then
                     ${python} -m espnet2.bin.split_scps \
                         --scps \
                         "${_ssl_train_dir}/${_scp}" \
-                        "${_ssl_train_dir}/target_iter${iter}" \
+                        "${_ssl_train_dir}/target_iter${iter}_${_tokenizer_inference_tag}" \
                         "${ssl_stats_dir}/train/speech_shape" \
                         "${ssl_stats_dir}/train/target_shape.word" \
                         --num_splits "${num_splits_ssl}" \
@@ -506,14 +524,14 @@ if ! "${skip_train}"; then
                 fi
 
                 _opts+="--train_data_path_and_name_and_type ${_split_dir}/${_scp},speech,${_type} "
-                _opts+="--train_data_path_and_name_and_type ${_split_dir}/target_iter${iter},target,text "
+                _opts+="--train_data_path_and_name_and_type ${_split_dir}/target_iter${iter}_${_tokenizer_inference_tag},target,text "
                 _opts+="--train_shape_file ${_split_dir}/speech_shape "
                 _opts+="--train_shape_file ${_split_dir}/target_shape.word "
                 _opts+="--multiple_iterator true "
 
             else
                 _opts+="--train_data_path_and_name_and_type ${_ssl_train_dir}/${_scp},speech,${_type} "
-                _opts+="--train_data_path_and_name_and_type ${_ssl_train_dir}/target_iter${iter},target,text "
+                _opts+="--train_data_path_and_name_and_type ${_ssl_train_dir}/target_iter${iter}_${_tokenizer_inference_tag},target,text "
                 _opts+="--train_shape_file ${ssl_stats_dir}/train/speech_shape "
                 _opts+="--train_shape_file ${ssl_stats_dir}/train/target_shape.word "
             fi
@@ -542,7 +560,7 @@ if ! "${skip_train}"; then
                     --use_preprocessor true \
                     --token_list "${token_listdir}/tokens.txt" \
                     --valid_data_path_and_name_and_type "${_ssl_valid_dir}/${_scp},speech,${_type}" \
-                    --valid_data_path_and_name_and_type "${_ssl_valid_dir}/target_iter${iter},target,text" \
+                    --valid_data_path_and_name_and_type "${_ssl_valid_dir}/target_iter${iter}_${_tokenizer_inference_tag},target,text" \
                     --valid_shape_file "${ssl_stats_dir}/valid/speech_shape" \
                     --valid_shape_file "${ssl_stats_dir}/valid/target_shape.word" \
                     --resume true \

@@ -56,15 +56,14 @@ class AudioTokenizer(AbsTokenizer):
                 with open(config_path, "r") as f:
                     beats_config = yaml.safe_load(f)
             valid_args = signature(BeatsTokenizer.__init__).parameters
-            remaining_args = (
+            filtered_args = (
                 {k: v for k, v in beats_config.items() if k in valid_args}
                 if beats_config
                 else {}
             )
             self.codec = BeatsTokenizer(
                 beats_tokenizer_ckpt_path=checkpoint_path,
-                tokenizer_config=beats_config,
-                **remaining_args,
+                **filtered_args,
             )
             self.codec = self.codec.to(device)
             self.codec.eval()
@@ -80,15 +79,12 @@ class AudioTokenizer(AbsTokenizer):
                 with open(config_path, "r") as f:
                     beats_config = yaml.safe_load(f)
             valid_args = signature(BeatsRandomTokenizer.__init__).parameters
-            remaining_args = (
+            filtered_args = (
                 {k: v for k, v in beats_config.items() if k in valid_args}
                 if beats_config
                 else {}
             )
-            self.codec = BeatsRandomTokenizer(
-                tokenizer_config=beats_config,
-                **remaining_args,
-            )
+            self.codec = BeatsRandomTokenizer(**filtered_args)
             self.codec = self.codec.to(device)
             self.codec.eval()
             self.n_codebook = 1

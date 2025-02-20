@@ -119,7 +119,7 @@ class BeatsConfig:
         self.decoder_pos_trainable: bool = False
         self.decoder_attention_heads: int = 12
         self.decoder_mlp_ratio: float = 4.0  # MLP to transformer dimension ratio
-        self.decoder_layers: int = 2  # number of decoder layers
+        self.decoder_layers: int = 3  # number of decoder layers
         self.codebook_vocab_size: int = 1024  # targets vectors in codebook
         self.mask_ratio = 0.75  # masking ratio for pre-training
         self.use_flash_attn = False  # use flash attention in MultiHead attention

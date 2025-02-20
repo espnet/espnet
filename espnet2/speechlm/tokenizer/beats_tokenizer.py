@@ -386,7 +386,6 @@ class BeatsRandomTokenizer(nn.Module):
         tokenizer_config: Optional[Dict] = None,
         fbank_mean: float = 15.41663,
         fbank_std: float = 6.55582,
-        seed: int = 42,
     ) -> None:
         super().__init__()
         self.fbank_mean = fbank_mean
@@ -416,6 +415,7 @@ class BeatsRandomTokenizer(nn.Module):
             stride=160,
             bias=False,
         )
+        seed = config.seed
         self.random_projection_quantizer = RandomProjectionQuantizer(
             config.embed_dim,
             codebook_size=config.quant_n,
@@ -425,7 +425,9 @@ class BeatsRandomTokenizer(nn.Module):
         self._initialize(seed)
 
     def _initialize(self, seed):
-        logging.info("Beats Random Tokenizer initialization function called.")
+        logging.info(
+            f"Beats Random Tokenizer initialization function called with seed {seed}."
+        )
         original_rng_state = torch.get_rng_state()
         torch.manual_seed(seed)
         torch.nn.init.xavier_normal_(self.patch_embedding.weight)
