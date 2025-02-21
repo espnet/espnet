@@ -169,8 +169,8 @@ class ESPnetClassificationModel(AbsESPnetModel):
             stats[metric_name] = val
         # Store for mAP logging
         if self.log_epoch_metrics:
-            self.predictions.append(pred.detach().cpu())
-            self.targets.append(onehot_.detach().cpu())
+            self.predictions.append(pred.detach())
+            self.targets.append(onehot_.detach())
 
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
         return loss, stats, weight
