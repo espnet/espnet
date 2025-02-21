@@ -38,15 +38,3 @@ class AbsESPnetModel(torch.nn.Module, ABC):
     @abstractmethod
     def collect_feats(self, **batch: torch.Tensor) -> Dict[str, torch.Tensor]:
         raise NotImplementedError
-
-    def validation_epoch_end_(self):
-        """This function is called at the end of the validation epoch.
-        Returns:
-            Dict[str, torch.Tensor]: The dictionary which contains
-                the epoch level metrics to be logged.
-        """
-        return None
-
-    def training_epoch_end_(self):
-        """This function is called at the end of the training epoch."""
-        return None

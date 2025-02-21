@@ -351,11 +351,6 @@ class Trainer:
                     options=trainer_options,
                     distributed_option=distributed_option,
                 )
-            if distributed_option.distributed or (distributed_option.ngpu > 1):
-                if distributed_option.dist_rank == 0:
-                    dp_model.module.training_epoch_end_()
-            else:
-                dp_model.training_epoch_end_()
 
             torch.cuda.empty_cache()
             with reporter.observe("valid") as sub_reporter:
@@ -366,15 +361,6 @@ class Trainer:
                     options=trainer_options,
                     distributed_option=distributed_option,
                 )
-            if distributed_option.distributed or (distributed_option.ngpu > 1):
-                if distributed_option.dist_rank == 0:
-                    epoch_stats = dp_model.module.validation_epoch_end_()
-                    if epoch_stats is not None:
-                        reporter.register_epoch_stats("valid", stats=epoch_stats)
-            else:
-                epoch_stats = dp_model.validation_epoch_end_()
-                if epoch_stats is not None:
-                    reporter.register_epoch_stats("valid", stats=epoch_stats)
 
             torch.cuda.empty_cache()
             if not distributed_option.distributed or distributed_option.dist_rank == 0:

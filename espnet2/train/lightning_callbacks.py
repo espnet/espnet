@@ -3,6 +3,12 @@ from pathlib import Path
 import torch
 from lightning.pytorch.callbacks import Callback
 
+from espnet2.cls.lightning_callbacks import MultilabelAUPRCCallback
+
+user_callback_choices = {
+    "mAP_logging": MultilabelAUPRCCallback,
+}
+
 
 class AverageCheckpointsCallback(Callback):
     def __init__(self, output_dir, best_ckpt_callbacks):
