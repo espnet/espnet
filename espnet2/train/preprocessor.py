@@ -1947,8 +1947,10 @@ class SpkPreprocessor(CommonPreprocessor):
         noise_apply_prob: float = 1.0,
         short_noise_thres: float = 0.5,
     ):
-        super().__init__(train, rir_scp=rir_scp, rir_apply_prob=rir_apply_prob)
 
+        if rir_apply_prob == 0:
+            self.rir_scp = None
+            super().__init__(train, rir_scp=self.rir_scp, rir_apply_prob=rir_apply_prob)
         self.spk2label = None  # a dictionary that maps string speaker label to int
         self.sample_rate = sample_rate
         self.target_duration = int(target_duration * sample_rate)
@@ -1959,8 +1961,6 @@ class SpkPreprocessor(CommonPreprocessor):
                 self.spk2utt = f_s2u.readlines()
             self._make_label_mapping()
             self.nspk = len(self.spk2utt)
-
-        self.rir_scp = rir_scp
 
         self.noise_apply_prob = noise_apply_prob
         self.short_noise_thres = short_noise_thres
