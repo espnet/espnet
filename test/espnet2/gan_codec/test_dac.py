@@ -3,7 +3,7 @@
 
 """Test code for SoundStream modules."""
 
-import numpy as np
+import numpy as np  # noqa
 import pytest
 import torch
 
