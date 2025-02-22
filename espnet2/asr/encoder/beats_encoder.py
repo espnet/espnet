@@ -10,10 +10,10 @@
 #  can be used to pre-train/and or fine-tune BEATs model.
 # --------------------------------------------------------
 
-from contextlib import contextmanager
 import logging
 import math
 import warnings
+from contextlib import contextmanager
 from typing import Dict, Optional, Tuple
 
 import numpy as np

@@ -1,4 +1,5 @@
 """CLI Readers methods."""
+
 import io
 import logging
 import sys

@@ -1,4 +1,5 @@
 """Tensorboard Logger Functions."""
+
 from chainer.training.extension import Extension
 
 

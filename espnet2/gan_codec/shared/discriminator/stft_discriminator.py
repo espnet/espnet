@@ -83,7 +83,12 @@ class ComplexSTFTDiscriminator(nn.Module):
         in_channels: int = 1,
         channels: int = 32,
         strides: List[List(int, int)] = [
-            [1, 2], [2, 2], [1, 2], [2, 2], [1, 2], [2, 2]
+            [1, 2],
+            [2, 2],
+            [1, 2],
+            [2, 2],
+            [1, 2],
+            [2, 2],
         ],
         chan_mults: List[int] = [1, 2, 4, 4, 8, 8],
         n_fft: int = 1024,

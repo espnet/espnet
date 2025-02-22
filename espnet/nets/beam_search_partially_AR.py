@@ -5,6 +5,7 @@ new tokens based on scores and maintaining a beam size for each mask.
 It supports operations such as batching beam search, post-processing,
 and logging the best hypotheses.
 """
+
 # Beam search module for partially autoregressive decoding.
 # Copyright 2024 Masao Someki
 # This script is licensed under MIT license.

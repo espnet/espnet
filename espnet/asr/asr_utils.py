@@ -1,4 +1,5 @@
 """Common Utils for ASR in ESPnet."""
+
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 # Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 

@@ -8,8 +8,8 @@
 
 """Encodec SEANet-based encoder and decoder implementation."""
 
-from typing import Any, Dict, List, Tuple, Union
 import warnings
+from typing import Any, Dict, List, Tuple, Union
 
 import numpy as np
 import torch

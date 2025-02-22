@@ -1,4 +1,5 @@
 """pytorch_backend/transformer/plot module."""
+
 # Copyright 2019 Shigeki Karita
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
@@ -154,6 +155,7 @@ class PlotAttentionReport(asr_utils.PlotAttentionReport):
 
     def log_attentions(self, logger, step):
         """Log attentions."""
+
         def log_fig(plot, filename):
             import matplotlib
 
