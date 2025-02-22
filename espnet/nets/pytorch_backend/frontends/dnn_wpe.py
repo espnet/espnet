@@ -1,4 +1,5 @@
 """DNN WPE module."""
+
 from typing import Tuple
 
 import torch

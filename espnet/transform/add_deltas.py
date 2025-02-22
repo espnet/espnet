@@ -1,4 +1,5 @@
 """Add_deltas module."""
+
 import numpy as np
 
 

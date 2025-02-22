@@ -1,4 +1,5 @@
 """Pytorch CTC module."""
+
 import logging
 
 import numpy as np

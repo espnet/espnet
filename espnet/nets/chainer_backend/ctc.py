@@ -1,4 +1,5 @@
 """Chainer CTC module."""
+
 import logging
 
 import chainer

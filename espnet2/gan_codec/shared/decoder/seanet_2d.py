@@ -6,9 +6,9 @@
 # This source code is licensed under the license found in the
 # LICENSE file in https://github.com/facebookresearch/encodec/tree/main
 
+import math
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-import math
 import numpy as np
 import torch
 import torch.nn as nn

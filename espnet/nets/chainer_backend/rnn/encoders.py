@@ -1,4 +1,5 @@
 """Chainer rnn encoders module."""
+
 import logging
 
 import chainer

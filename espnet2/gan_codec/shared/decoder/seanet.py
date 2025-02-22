@@ -8,9 +8,9 @@
 
 """Encodec SEANet-based encoder and decoder implementation."""
 
+import math
 from typing import Any, Dict, List, Optional, Tuple
 
-import math
 import numpy as np
 import torch
 from torch import nn

@@ -1,4 +1,5 @@
 """Utils for training routine."""
+
 import logging
 
 import chainer
