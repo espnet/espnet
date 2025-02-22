@@ -1,3 +1,5 @@
+"""Beamformer module."""
+
 import torch
 from torch_complex import functional as FC
 from torch_complex.tensor import ComplexTensor
@@ -6,7 +8,7 @@ from torch_complex.tensor import ComplexTensor
 def get_power_spectral_density_matrix(
     xs: ComplexTensor, mask: torch.Tensor, normalization=True, eps: float = 1e-15
 ) -> ComplexTensor:
-    """Return cross-channel power spectral density (PSD) matrix
+    """Return cross-channel power spectral density (PSD) matrix.
 
     Args:
         xs (ComplexTensor): (..., F, C, T)
@@ -43,7 +45,7 @@ def get_mvdr_vector(
     reference_vector: torch.Tensor,
     eps: float = 1e-15,
 ) -> ComplexTensor:
-    """Return the MVDR(Minimum Variance Distortionless Response) vector:
+    """Return the MVDR(Minimum Variance Distortionless Response) vector.
 
         h = (Npsd^-1 @ Spsd) / (Tr(Npsd^-1 @ Spsd)) @ u
 
@@ -79,6 +81,7 @@ def get_mvdr_vector(
 def apply_beamforming_vector(
     beamform_vector: ComplexTensor, mix: ComplexTensor
 ) -> ComplexTensor:
+    """Apply beamforming vector."""
     # (..., C) x (..., C, T) -> (..., T)
     es = FC.einsum("...c,...ct->...t", [beamform_vector.conj(), mix])
     return es

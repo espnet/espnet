@@ -98,6 +98,7 @@ def kmeans(samples, num_clusters: int, num_iters: int = 10):
 
 class EuclideanCodebook(nn.Module):
     """Codebook with Euclidean distance.
+
     Args:
         dim (int): Dimension.
         codebook_size (int): Codebook size.
@@ -255,6 +256,7 @@ class EuclideanCodebook(nn.Module):
 
 class VectorQuantization(nn.Module):
     """Vector quantization implementation.
+
     Currently supports only euclidean distance.
     Args:
         dim (int): Dimension

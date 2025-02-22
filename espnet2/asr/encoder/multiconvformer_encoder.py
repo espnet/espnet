@@ -47,6 +47,7 @@ from espnet.nets.pytorch_backend.transformer.subsampling import (
 
 class MultiConvConformerEncoder(AbsEncoder):
     """Multiconvformer encoder module.
+
     Link to the paper: https://arxiv.org/abs/2407.03718
 
     Args:

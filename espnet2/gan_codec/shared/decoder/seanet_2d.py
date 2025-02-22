@@ -6,13 +6,14 @@
 # This source code is licensed under the license found in the
 # LICENSE file in https://github.com/facebookresearch/encodec/tree/main
 
+import math
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
 import torch.nn as nn
 
-from espnet2.gan_codec.shared.encoder.seanet import (
+from espnet2.gan_codec.shared.encoder.seanet import (  # noqa
     SLSTM,
     SConv1d,
     apply_parametrization_norm,
@@ -38,6 +39,7 @@ def unpad2d(x: torch.Tensor, paddings: Tuple[Tuple[int, int], Tuple[int, int]]):
 
 class NormConvTranspose2d(nn.Module):
     """Wrapper around ConvTranspose2d and normalization applied to this conv
+
     to provide a uniform interface across normalization approaches.
     """
 
@@ -63,6 +65,7 @@ class NormConvTranspose2d(nn.Module):
 
 class SConvTranspose2d(nn.Module):
     """ConvTranspose2d with some builtin handling of asymmetric or causal padding
+
     and normalization. Note: causal padding only make sense on time (the last) axis.
     Frequency (the second last) axis are always non-causally padded.
     """
@@ -162,6 +165,7 @@ class SConvTranspose2d(nn.Module):
 
 class SEANetResnetBlock2d(nn.Module):
     """Residual block from SEANet model.
+
     Args:
         dim (int): Dimension of the input/output
         kernel_sizes (list): List of kernel sizes for the convolutions.
@@ -259,6 +263,7 @@ class ReshapeModule(nn.Module):
 
 class SEANetDecoder2d(nn.Module):
     """SEANet decoder.
+
     Args:
         channels (int): Audio channels.
         dimension (int): Intermediate representation dimension.

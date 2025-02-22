@@ -8,13 +8,14 @@
 
 """Encodec SEANet-based encoder and decoder implementation."""
 
+import math
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
 from torch import nn
-from torch.nn import functional as F
-from torch.nn.utils import spectral_norm, weight_norm
+from torch.nn import functional as F  # noqa
+from torch.nn.utils import spectral_norm, weight_norm  # noqa
 
 from espnet2.gan_codec.shared.encoder.seanet import (
     SLSTM,
@@ -37,6 +38,7 @@ def unpad1d(x: torch.Tensor, paddings: Tuple[int, int]):
 
 class NormConvTranspose1d(nn.Module):
     """Wrapper around ConvTranspose1d and normalization applied to this conv
+
     to provide a uniform interface across normalization approaches.
     """
 
@@ -63,6 +65,7 @@ class NormConvTranspose1d(nn.Module):
 
 class SConvTranspose1d(nn.Module):
     """ConvTranspose1d with some builtin handling of asymmetric or causal padding
+
     and normalization.
     """
 
@@ -122,6 +125,7 @@ class SConvTranspose1d(nn.Module):
 
 class SEANetDecoder(nn.Module):
     """SEANet decoder.
+
     Args:
         channels (int): Audio channels.
         dimension (int): Intermediate representation dimension.

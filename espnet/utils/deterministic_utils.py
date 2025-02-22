@@ -1,3 +1,5 @@
+"""Deterministic Utils methods."""
+
 import logging
 import os
 
@@ -6,7 +8,7 @@ import torch
 
 
 def set_deterministic_pytorch(args):
-    """Ensures pytorch produces deterministic results depending on the program arguments
+    """Ensure pytorch produces deterministic results depending on program arguments.
 
     :param Namespace args: The program arguments
     """
@@ -32,7 +34,7 @@ def set_deterministic_pytorch(args):
 
 
 def set_deterministic_chainer(args):
-    """Ensures chainer produces deterministic results depending on the program arguments
+    """Ensure chainer produces deterministic results depending on program arguments.
 
     :param Namespace args: The program arguments
     """

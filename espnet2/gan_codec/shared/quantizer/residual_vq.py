@@ -11,7 +11,7 @@
 
 """Residual vector quantizer implementation."""
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field  # noqa
 from typing import Optional
 
 import torch
@@ -32,6 +32,7 @@ class QuantizedResult:
 
 class ResidualVectorQuantizer(nn.Module):
     """Residual Vector Quantizer.
+
     Args:
         dimension (int): Dimension of the codebooks.
         n_q (int): Number of residual vector quantizers used.
@@ -83,6 +84,7 @@ class ResidualVectorQuantizer(nn.Module):
         self, x: torch.Tensor, sample_rate: int, bandwidth: Optional[float] = None
     ) -> QuantizedResult:
         """Residual vector quantization on the given input tensor.
+
         Args:
             x (torch.Tensor): Input tensor.
             sample_rate (int): Sample rate of the input tensor.
@@ -132,6 +134,7 @@ class ResidualVectorQuantizer(nn.Module):
         st: Optional[int] = None,
     ) -> torch.Tensor:
         """Encode a given input tensor with the specified sample rate at
+
         the given bandwidth. The RVQ encode method sets the appropriate
         number of quantizer to use and returns indices for each quantizer.
         """

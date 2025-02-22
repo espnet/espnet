@@ -62,6 +62,7 @@ def _check_number_of_params(params: List[torch.Tensor]):
 
 def broadcast_tensors(tensors: Iterable[torch.Tensor], src: int = 0):
     """Broadcast the tensors from the given parameters to all workers.
+
     This can be used to ensure that all workers have the same model to start with.
     """
     if not is_distributed():
@@ -78,8 +79,9 @@ def broadcast_tensors(tensors: Iterable[torch.Tensor], src: int = 0):
 
 
 def sync_buffer(buffers, average=True):
-    """
-    Sync grad for buffers. If average is False, broadcast instead of averaging.
+    """Sync grad for buffers.
+
+    If average is False, broadcast instead of averaging.
     """
     if not is_distributed():
         return
@@ -100,8 +102,8 @@ def sync_buffer(buffers, average=True):
 
 
 def sync_grad(params):
-    """
-    Simpler alternative to DistributedDataParallel, that doesn't rely
+    """Simpler alternative to DistributedDataParallel, that doesn't rely
+
     on any black magic. For simple models it can also be as fast.
     Just call this on your model parameters after the call to backward!
     """
@@ -121,6 +123,7 @@ def sync_grad(params):
 
 def average_metrics(metrics: Dict[str, float], count=1.0):
     """Average a dictionary of metrics across all workers, using the optional
+
     `count` as unormalized weight.
     """
     if not is_distributed():

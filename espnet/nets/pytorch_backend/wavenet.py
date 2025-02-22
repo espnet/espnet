@@ -73,6 +73,7 @@ class OneHot(nn.Module):
     """
 
     def __init__(self, depth):
+        """Initialize OneHot class."""
         super(OneHot, self).__init__()
         self.depth = depth
 
@@ -97,6 +98,7 @@ class CausalConv1d(nn.Module):
     """1D dilated causal convolution."""
 
     def __init__(self, in_channels, out_channels, kernel_size, dilation=1, bias=True):
+        """Initialize CausalConv1d."""
         super(CausalConv1d, self).__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
@@ -137,6 +139,7 @@ class UpSampling(nn.Module):
     """
 
     def __init__(self, upsampling_factor, bias=True):
+        """Initialize Upsampling class."""
         super(UpSampling, self).__init__()
         self.upsampling_factor = upsampling_factor
         self.bias = bias
@@ -190,6 +193,7 @@ class WaveNet(nn.Module):
         kernel_size=2,
         upsampling_factor=0,
     ):
+        """Initialize WaveNet class."""
         super(WaveNet, self).__init__()
         self.n_aux = n_aux
         self.n_quantize = n_quantize

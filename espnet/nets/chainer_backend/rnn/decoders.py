@@ -1,3 +1,5 @@
+"""Chainer RNN decoders module."""
+
 import logging
 import random
 from argparse import Namespace
@@ -52,6 +54,7 @@ class Decoder(chainer.Chain):
         lsm_weight=0.0,
         sampling_probability=0.0,
     ):
+        """Initialize Decoder."""
         super(Decoder, self).__init__()
         with self.init_scope():
             self.embed = DL.EmbedID(odim, dunits)
@@ -87,6 +90,7 @@ class Decoder(chainer.Chain):
         self.sampling_probability = sampling_probability
 
     def rnn_forward(self, ey, z_list, c_list, z_prev, c_prev):
+        """Calculate RNN decoder forward."""
         if self.dtype == "lstm":
             c_list[0], z_list[0] = self.rnn0(c_prev[0], z_prev[0], ey)
             for i in range(1, self.dlayers):

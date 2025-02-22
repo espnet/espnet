@@ -187,5 +187,8 @@ class BatchPartialScorerInterface(BatchScorerInterface, PartialScorerInterface):
 
 
 class MaskParallelScorerInterface(ScorerInterface):
+    """Mask Parallel Scorer Interface."""
+
     def __init__(self) -> None:
+        """Initialize method."""
         super().__init__()

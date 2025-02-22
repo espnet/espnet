@@ -45,8 +45,7 @@ def main(args):
         score = -1.0 * torch.mean(score)
         scores.append(score.item())
 
-    if not os.path.exists(os.path.dirname(out_dir)):
-        os.makedirs(os.path.dirname(out_dir))
+    os.makedirs(os.path.dirname(out_dir), exist_ok=True)
     with open(out_dir, "w") as f:
         for trl, sco, lbl in zip(trial_ids, scores, labels):
             f.write(f"{trl} {sco} {lbl}\n")

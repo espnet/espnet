@@ -5,7 +5,7 @@ cross-attention modules and extra language and task token inputs.
 """
 
 import logging
-from typing import List, Optional, Tuple
+from typing import Optional, Tuple
 
 import torch
 from typeguard import typechecked

@@ -134,8 +134,8 @@ if __name__ == "__main__":
         spk_type = "sound" if not args.variable_num_refs else "variable_columns_sound"
         data_info = {}
         data_info["speech_mix"] = ["wav.scp", "sound"]
-        data_info[f"enroll_ref1"] = [f"enroll_spk1.scp", "text"]
-        data_info[f"speech_ref1"] = [f"spk1.scp", spk_type]
+        data_info["enroll_ref1"] = ["enroll_spk1.scp", "text"]
+        data_info["speech_ref1"] = ["spk1.scp", spk_type]
         if (
             "num_spk" in training_config["preprocessor_conf"]
             and training_config["preprocessor_conf"]["num_spk"] > 1

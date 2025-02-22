@@ -5,7 +5,7 @@
 """Test VISinger related modules."""
 
 import pytest
-import scipy
+import scipy  # noqa
 import torch
 
 from espnet2.gan_svs.vits import VITS
@@ -234,7 +234,7 @@ def make_vits_loss_args(**kwargs):
 )
 def test_vits_is_trainable_and_decodable(gen_dict, dis_dict, loss_dict):
     try:
-        from scipy.signal import kaiser
+        from scipy.signal import kaiser  # noqa
     except ImportError:
         pytest.skip("Compatibility issue with scipy.")
     idim = 10
@@ -426,7 +426,7 @@ def test_multi_speaker_vits_is_trainable_and_decodable(
     gen_dict, dis_dict, loss_dict, spks, spk_embed_dim, langs
 ):
     try:
-        from scipy.signal import kaiser
+        from scipy.signal import kaiser  # noqa
     except ImportError:
         pytest.skip("Compatibility issue with scipy.")
     idim = 10

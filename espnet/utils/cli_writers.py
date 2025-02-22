@@ -1,3 +1,5 @@
+"""CLI writers methods and classes."""
+
 from pathlib import Path
 from typing import Dict
 
@@ -18,7 +20,7 @@ def file_writer_helper(
     compression_method: int = 2,
     pcm_format: str = "wav",
 ):
-    """Write matrices in kaldi style
+    """Write matrices in kaldi style.
 
     Args:
         wspecifier: e.g. ark,scp:out.ark,out.scp
@@ -80,16 +82,22 @@ def file_writer_helper(
 
 
 class BaseWriter:
+    """Declare Base Writer."""
+
     def __setitem__(self, key, value):
+        """Set items."""
         raise NotImplementedError
 
     def __enter__(self):
+        """Return self."""
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        """Close self when exit."""
         self.close()
 
     def close(self):
+        """Close self."""
         try:
             self.writer.close()
         except Exception:
@@ -109,7 +117,7 @@ class BaseWriter:
 
 
 def get_num_frames_writer(write_num_frames: str):
-    """get_num_frames_writer
+    """Get number of frames.
 
     Examples:
         >>> get_num_frames_writer('ark,t:num_frames.txt')
@@ -132,9 +140,12 @@ def get_num_frames_writer(write_num_frames: str):
 
 
 class KaldiWriter(BaseWriter):
+    """Kaldi Writer Class."""
+
     def __init__(
         self, wspecifier, write_num_frames=None, compress=False, compression_method=2
     ):
+        """Initialize Kaldi writer."""
         if compress:
             self.writer = kaldiio.WriteHelper(
                 wspecifier, compression_method=compression_method
@@ -148,13 +159,14 @@ class KaldiWriter(BaseWriter):
             self.writer_nframe = None
 
     def __setitem__(self, key, value):
+        """Set Item."""
         self.writer[key] = value
         if self.writer_nframe is not None:
             self.writer_nframe.write(f"{key} {len(value)}\n")
 
 
 def parse_wspecifier(wspecifier: str) -> Dict[str, str]:
-    """Parse wspecifier to dict
+    """Parse wspecifier to dict.
 
     Examples:
         >>> parse_wspecifier('ark,scp:out.ark,out.scp')
@@ -173,7 +185,7 @@ def parse_wspecifier(wspecifier: str) -> Dict[str, str]:
 
 
 class HDF5Writer(BaseWriter):
-    """HDF5Writer
+    """HDF5Writer Class.
 
     Examples:
         >>> with HDF5Writer('ark:out.h5', compress=True) as f:
@@ -181,6 +193,7 @@ class HDF5Writer(BaseWriter):
     """
 
     def __init__(self, wspecifier, write_num_frames=None, compress=False):
+        """Initialize HDF5 Writer."""
         spec_dict = parse_wspecifier(wspecifier)
         self.filename = spec_dict["ark"]
 
@@ -199,6 +212,7 @@ class HDF5Writer(BaseWriter):
             self.writer_nframe = None
 
     def __setitem__(self, key, value):
+        """Set item."""
         self.writer.create_dataset(key, data=value, **self.kwargs)
 
         if self.writer_scp is not None:
@@ -208,7 +222,7 @@ class HDF5Writer(BaseWriter):
 
 
 class SoundHDF5Writer(BaseWriter):
-    """SoundHDF5Writer
+    """SoundHDF5Writer Class.
 
     Examples:
         >>> fs = 16000
@@ -217,6 +231,7 @@ class SoundHDF5Writer(BaseWriter):
     """
 
     def __init__(self, wspecifier, write_num_frames=None, pcm_format="wav"):
+        """Initialize Sound HDF5 Writer."""
         self.pcm_format = pcm_format
         spec_dict = parse_wspecifier(wspecifier)
         self.filename = spec_dict["ark"]
@@ -231,6 +246,7 @@ class SoundHDF5Writer(BaseWriter):
             self.writer_nframe = None
 
     def __setitem__(self, key, value):
+        """Set item in self class."""
         assert_scipy_wav_style(value)
         # Change Tuple[int, ndarray] -> Tuple[ndarray, int]
         # (scipy style -> soundfile style)
@@ -244,7 +260,7 @@ class SoundHDF5Writer(BaseWriter):
 
 
 class SoundWriter(BaseWriter):
-    """SoundWriter
+    """SoundWriter class.
 
     Examples:
         >>> fs = 16000
@@ -253,6 +269,7 @@ class SoundWriter(BaseWriter):
     """
 
     def __init__(self, wspecifier, write_num_frames=None, pcm_format="wav"):
+        """Initialize Sound writer."""
         self.pcm_format = pcm_format
         spec_dict = parse_wspecifier(wspecifier)
         # e.g. ark,scp:dirname,wav.scp
@@ -271,6 +288,7 @@ class SoundWriter(BaseWriter):
             self.writer_nframe = None
 
     def __setitem__(self, key, value):
+        """Set item in self class."""
         assert_scipy_wav_style(value)
         rate, signal = value
         wavfile = Path(self.dirname) / (key + "." + self.pcm_format)

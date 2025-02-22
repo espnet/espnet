@@ -9,7 +9,6 @@ import subprocess
 import configargparse
 
 
-
 def get_git_revision_hash() -> str:
     return subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode('ascii').strip()
 
@@ -84,12 +83,12 @@ if __name__ == "__main__":
     # print argparse to each files
     for m in modinfo:
         cmd = m.path.name
-        sourceurl = f"https://github.com/espnet/espnet/blob/" \
+        sourceurl = "https://github.com/espnet/espnet/blob/" \
             + get_git_revision_hash() + "/" + str(m.path.parent / m.path.stem) + ".py"
         sep = "~" * len(cmd)
         mname = m.name if m.name.startswith("espnet") \
             else ".".join(m.name.split(".")[1:])
-        with open(f"{args.output_dir}/{cmd[:-3]}.rst", "w") as writer: # remove .py
+        with open(f"{args.output_dir}/{cmd[:-3]}.rst", "w") as writer:  # remove .py
             writer.write(f""".. _{cmd}
 {cmd}
 {sep}

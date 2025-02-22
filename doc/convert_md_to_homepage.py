@@ -40,7 +40,7 @@ def convert(markdown_text):
     for match in re.finditer(example_pattern, _result):
         _result = _result.replace(
             match.group(0),
-            f"##### Examples"
+            "##### Examples"
         )
 
     # convert ### to div with specific class
@@ -60,7 +60,7 @@ def convert(markdown_text):
     for match in re.finditer(note_pattern, _result):
         _result = _result.replace(
             match.group(0),
-            f"##### NOTE"
+            "##### NOTE"
         )
 
     # Convert "####" to custom-h4 tag.

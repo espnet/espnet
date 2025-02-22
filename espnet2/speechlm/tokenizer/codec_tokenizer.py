@@ -10,7 +10,7 @@ import torch
 import yaml
 
 from espnet2.speechlm.tokenizer.abs_tokenizer import AbsTokenizer
-from espnet2.speechlm.tokenizer.beats_tokenizer import (
+from espnet2.speechlm.tokenizer.beats_tokenizer import (  # noqa
     BeatsRandomTokenizer,
     BeatsTokenizer,
     BeatsTokenizerConfig,
@@ -19,7 +19,7 @@ from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 
 
 class CodecTokenizer(AbsTokenizer):
-    """Codec Tokenizer implementation
+    """Codec Tokenizer implementation.
 
     Use cases:
         - use encode and decode for discrete (de)tokenization
@@ -40,7 +40,7 @@ class CodecTokenizer(AbsTokenizer):
         config_path: str = None,
         max_token_per_frame: int = 32,
     ):
-        """Codec Tokenizer initialization
+        """Codec Tokenizer initialization.
 
         Each of the codec implementation should assign all following features:
             self.n_codebook (int): the number of codec codebooks.
@@ -177,8 +177,8 @@ class CodecTokenizer(AbsTokenizer):
             raise ValueError(f"Codec {codec_choice} is not supported")
 
     def encode(self, wavs):
-        """
-        Convert audio waveforms into codec codes
+        """Convert audio waveforms into codec codes.
+
         Input:
             wavs (torch.Tensor): float tensor in shape [B, 1, n_sample],
         Output:
@@ -220,8 +220,8 @@ class CodecTokenizer(AbsTokenizer):
         return codes
 
     def encode_continuous(self, wavs):
-        """
-        Convert audio waveforms into continuous codec encoding results
+        """Convert audio waveforms into continuous codec encoding results.
+
         Input:
             wavs (torch.Tensor): float tensor in shape [B, 1, n_sample],
         Output:
@@ -244,8 +244,8 @@ class CodecTokenizer(AbsTokenizer):
         return z
 
     def decode(self, codes):
-        """
-        Recover the waveform from the codes.
+        """Recover the waveform from the codes.
+
         Input:
             codes (torch.Tensor): Int tensor in shape [B, T, n_codebook]
         Output:
@@ -276,8 +276,8 @@ class CodecTokenizer(AbsTokenizer):
         return waveform
 
     def decode_continuous(self, z):
-        """
-        Recover the waveform from the continuous representations of codec
+        """Recover the waveform from the continuous representations of codec.
+
         Input:
             z (torch.Tensor): Float tensor in shape [B, T, D], codec
               continuous representations
@@ -300,8 +300,8 @@ class CodecTokenizer(AbsTokenizer):
         return waveform
 
     def forward(self, wavs):
-        """
-        Convert audio waveforms into flatten codec codes and resynthesis the audio
+        """Convert audio waveforms into flatten codec codes and resynthesis the audio.
+
         Input:
             wavs (torch.Tensor): float tensor in shape [B, 1, n_sample],
         Output:
@@ -322,8 +322,8 @@ class CodecTokenizer(AbsTokenizer):
         return codes, resyn_audio
 
     def detokenize(self, codes, n_codebook=None):
-        """
-        Convert flatten codec codes into resynthesis the audio
+        """Convert flatten codec codes into resynthesis the audio.
+
         Input:
             codes (torch.Tensor): int tensor in shape [B, T * n_codebook],
                 or [T * n_codebook]
@@ -374,23 +374,23 @@ if __name__ == "__main__":
     with torch.no_grad():
         # discrete
         codes = codec.encode(waveform)
-        print(f"cdoes: ", codes.size())
+        print("cdoes: ", codes.size())
         resyn_audio = codec.decode(codes)
-        print(f"audio1", resyn_audio.size())
+        print("audio1", resyn_audio.size())
         resyn_audio = resyn_audio[0].cpu().numpy()
         sf.write("resyn1.wav", resyn_audio, sr)
 
         # continuous
         z = codec.encode_continuous(waveform)
-        print(f"z: ", z.size())
+        print("z: ", z.size())
         resyn_audio2 = codec.decode_continuous(z)
-        print(f"audio2", resyn_audio2.size())
+        print("audio2", resyn_audio2.size())
         resyn_audio2 = resyn_audio2[0].cpu().numpy()
         sf.write("resyn2.wav", resyn_audio2, sr)
 
         # high level API for speechlm
         flatten_codes, _ = codec(waveform)
-        print(f"flatten_codes", flatten_codes.size())
+        print("flatten_codes", flatten_codes.size())
         resyn_audio3 = codec.detokenize(flatten_codes)
         print("resyn", resyn_audio3.size())
         resyn_audio3 = resyn_audio3[0].cpu().numpy()

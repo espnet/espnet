@@ -1,3 +1,5 @@
+"""Chainer RNN training module."""
+
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
@@ -64,6 +66,7 @@ class CustomUpdater(training.StandardUpdater):
     """
 
     def __init__(self, train_iter, optimizer, converter, device, accum_grad=1):
+        """Initialize Custom Updater."""
         super(CustomUpdater, self).__init__(
             train_iter, optimizer, converter=converter, device=device
         )
@@ -75,7 +78,7 @@ class CustomUpdater(training.StandardUpdater):
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
-        """Main update routine for Custom Updater."""
+        """Execute main update routine for Custom Updater."""
         train_iter = self.get_iterator("main")
         optimizer = self.get_optimizer("main")
 
@@ -108,6 +111,7 @@ class CustomUpdater(training.StandardUpdater):
         optimizer.target.cleargrads()  # Clear the parameter gradients
 
     def update(self):
+        """Update optimizers."""
         self.update_core()
         if self.forward_count == 0:
             self.iteration += 1
@@ -141,6 +145,7 @@ class CustomParallelUpdater(training.updaters.MultiprocessParallelUpdater):
     """
 
     def __init__(self, train_iters, optimizer, converter, devices, accum_grad=1):
+        """Initialize Custom Parallel Updater."""
         super(CustomParallelUpdater, self).__init__(
             train_iters, optimizer, converter=converter, devices=devices
         )
@@ -152,7 +157,7 @@ class CustomParallelUpdater(training.updaters.MultiprocessParallelUpdater):
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
-        """Main Update routine of the custom parallel updater."""
+        """Execute main update routine of the custom parallel updater."""
         self.setup_workers()
 
         self._send_message(("update", None))
@@ -208,6 +213,7 @@ class CustomParallelUpdater(training.updaters.MultiprocessParallelUpdater):
                 )
 
     def update(self):
+        """Update optimizers."""
         self.update_core()
         if self.forward_count == 0:
             self.iteration += 1
@@ -222,6 +228,7 @@ class CustomConverter(object):
     """
 
     def __init__(self, subsampling_factor=1):
+        """Initialize Custom Converter."""
         self.subsampling_factor = subsampling_factor
 
     def __call__(self, batch, device):

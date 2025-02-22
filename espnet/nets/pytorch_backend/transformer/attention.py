@@ -48,7 +48,6 @@ class MultiHeadedAttention(nn.Module):
         use_sdpa=False,
     ):
         """Construct an MultiHeadedAttention object."""
-
         super(MultiHeadedAttention, self).__init__()
 
         assert n_feat % n_head == 0
@@ -169,9 +168,7 @@ class MultiHeadedAttention(nn.Module):
 
         Returns:
             torch.Tensor: Output tensor (#batch, time1, d_model).
-
         """
-
         # Use PyTorch's Scaled Dot Product Attention implementation
         if getattr(self, "use_sdpa", False):
             q, k, v = self.forward_qkv(query, key, value, expand_kv)

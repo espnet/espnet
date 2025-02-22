@@ -7,7 +7,7 @@ from typing import Callable, Collection, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
-import yaml
+import yaml  # noqa
 from typeguard import typechecked
 
 from espnet2.tasks.abs_task import AbsTask
@@ -31,9 +31,9 @@ from espnet2.tts2.feats_extract.abs_feats_extract import AbsFeatsExtractDiscrete
 from espnet2.tts2.feats_extract.identity import IdentityFeatureExtract
 from espnet2.tts.utils import ParallelWaveGANPretrainedVocoder
 from espnet2.utils.get_default_kwargs import get_default_kwargs
-from espnet2.utils.griffin_lim import Spectrogram2Waveform
+from espnet2.utils.griffin_lim import Spectrogram2Waveform  # noqa
 from espnet2.utils.nested_dict_action import NestedDictAction
-from espnet2.utils.types import int_or_none, str2bool, str_or_none
+from espnet2.utils.types import int_or_none, str2bool, str_or_none  # noqa
 
 discrete_feats_extractor_choices = ClassChoices(
     "discrete_feats_extract",

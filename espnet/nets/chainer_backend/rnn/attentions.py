@@ -1,3 +1,5 @@
+"""Chainer RNN attentions."""
+
 import chainer
 import chainer.functions as F
 import chainer.links as L
@@ -16,6 +18,7 @@ class AttDot(chainer.Chain):
     """
 
     def __init__(self, eprojs, dunits, att_dim):
+        """Initialize AttDot."""
         super(AttDot, self).__init__()
         with self.init_scope():
             self.mlp_enc = L.Linear(eprojs, att_dim)
@@ -96,6 +99,7 @@ class AttLoc(chainer.Chain):
     """
 
     def __init__(self, eprojs, dunits, att_dim, aconv_chans, aconv_filts):
+        """Initialize AttLoc."""
         super(AttLoc, self).__init__()
         with self.init_scope():
             self.mlp_enc = L.Linear(eprojs, att_dim)
@@ -205,6 +209,7 @@ class NoAtt(chainer.Chain):
     """
 
     def __init__(self):
+        """Initialize NoAtt."""
         super(NoAtt, self).__init__()
         self.h_length = None
         self.enc_h = None
@@ -255,7 +260,7 @@ class NoAtt(chainer.Chain):
 
 
 def att_for(args):
-    """Returns an attention layer given the program arguments.
+    """Return an attention layer given the program arguments.
 
     Args:
         args (Namespace): The arguments.

@@ -37,8 +37,7 @@ except ImportError:
 
 
 class ESPnetSDSModelInterface(AbsESPnetModel):
-    """
-    Web Interface for Spoken Dialog System models
+    """Web Interface for Spoken Dialog System models
 
     This class provides a unified interface to integrate ASR, TTS, and LLM modules
     for cascaded spoken dialog systems as well as also
@@ -56,7 +55,8 @@ class ESPnetSDSModelInterface(AbsESPnetModel):
         type_option: str,
         access_token: str,
     ):
-        """
+        """Initializer method.
+
         Args:
             ASR_option (str):
                 The selected ASR model option to use for speech-to-text
@@ -102,8 +102,7 @@ class ESPnetSDSModelInterface(AbsESPnetModel):
         self.user_role = "user"
 
     def handle_TTS_selection(self, option: str):
-        """
-        Handles the selection and initialization of a Text-to-Speech (TTS) model.
+        """Handles the selection and initialization of a Text-to-Speech (TTS) model.
 
         This method dynamically loads the selected TTS model based
         on the provided option.
@@ -131,8 +130,7 @@ class ESPnetSDSModelInterface(AbsESPnetModel):
         yield gr.Textbox(visible=True), gr.Textbox(visible=True), gr.Audio(visible=True)
 
     def handle_LLM_selection(self, option: str):
-        """
-        Handles the selection and initialization of a LLM.
+        """Handles the selection and initialization of a LLM.
 
         This method dynamically loads the selected LLM based
         on the provided option.
@@ -156,8 +154,7 @@ class ESPnetSDSModelInterface(AbsESPnetModel):
         yield gr.Textbox(visible=True), gr.Textbox(visible=True), gr.Audio(visible=True)
 
     def handle_ASR_selection(self, option: str):
-        """
-        Handles the selection and initialization of ASR model.
+        """Handles the selection and initialization of ASR model.
 
         This method dynamically loads the selected ASR based
         on the provided option.
@@ -195,8 +192,7 @@ class ESPnetSDSModelInterface(AbsESPnetModel):
         yield gr.Textbox(visible=True), gr.Textbox(visible=True), gr.Audio(visible=True)
 
     def handle_E2E_selection(self):
-        """
-        Handles the selection and initialization of E2E model Mini-Omni.
+        """Handles the selection and initialization of E2E model Mini-Omni.
 
         This method dynamically loads the E2E spoken dialog model.
         If the model is already active, it avoids reloading to save resources.
@@ -208,8 +204,8 @@ class ESPnetSDSModelInterface(AbsESPnetModel):
     def handle_type_selection(
         self, option: str, TTS_radio: str, ASR_radio: str, LLM_radio: str
     ):
-        """
-        Handles the selection of the spoken dialogue model type (Cascaded or E2E)
+        """Handles the selection of the spoken dialogue model type (Cascaded or E2E)
+
         and dynamically updates the interface based on the selected option.
 
         This method manages the initialization of ASR, TTS, and LLM models
@@ -291,8 +287,8 @@ class ESPnetSDSModelInterface(AbsESPnetModel):
         latency_LM: float,
         latency_TTS: float,
     ):
-        """
-        Processes audio input to generate ASR, LLM, and TTS outputs
+        """Processes audio input to generate ASR, LLM, and TTS outputs
+
         while calculating latencies.
 
         This method handles both Cascaded and End-to-End setups.

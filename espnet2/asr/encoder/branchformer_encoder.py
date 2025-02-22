@@ -424,7 +424,7 @@ class BranchformerEncoder(AbsEncoder):
                     )
 
                     use_flash_attn = is_flash_attn_supported()
-                    import flash_attn
+                    import flash_attn  # noqa
                 except Exception:
                     use_flash_attn = False
 

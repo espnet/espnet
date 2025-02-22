@@ -1,3 +1,5 @@
+"""Spectrogram module."""
+
 import librosa
 import numpy as np
 
@@ -5,6 +7,7 @@ import numpy as np
 def stft(
     x, n_fft, n_shift, win_length=None, window="hann", center=True, pad_mode="reflect"
 ):
+    """Process STFT from signal."""
     # x: [Time, Channel]
     if x.ndim == 1:
         single_channel = True
@@ -39,6 +42,7 @@ def stft(
 
 
 def istft(x, n_shift, win_length=None, window="hann", center=True):
+    """Process invert stft."""
     # x: [Time, Channel, Freq]
     if x.ndim == 2:
         single_channel = True
@@ -69,6 +73,7 @@ def istft(x, n_shift, win_length=None, window="hann", center=True):
 
 
 def stft2logmelspectrogram(x_stft, fs, n_mels, n_fft, fmin=None, fmax=None, eps=1e-10):
+    """Convert STFT to LogMel."""
     # x_stft: (Time, Channel, Freq) or (Time, Freq)
     fmin = 0 if fmin is None else fmin
     fmax = fs / 2 if fmax is None else fmax
@@ -86,6 +91,7 @@ def stft2logmelspectrogram(x_stft, fs, n_mels, n_fft, fmin=None, fmax=None, eps=
 
 
 def spectrogram(x, n_fft, n_shift, win_length=None, window="hann"):
+    """Obtain Spectrogram from signal."""
     # x: (Time, Channel) -> spc: (Time, Channel, Freq)
     spc = np.abs(stft(x, n_fft, n_shift, win_length, window=window))
     return spc
@@ -104,6 +110,7 @@ def logmelspectrogram(
     eps=1e-10,
     pad_mode="reflect",
 ):
+    """Obtain Logmel from signal."""
     # stft: (Time, Channel, Freq) or (Time, Freq)
     x_stft = stft(
         x,
@@ -120,13 +127,17 @@ def logmelspectrogram(
 
 
 class Spectrogram(object):
+    """Spectrogram class."""
+
     def __init__(self, n_fft, n_shift, win_length=None, window="hann"):
+        """Initialize Spectrogram."""
         self.n_fft = n_fft
         self.n_shift = n_shift
         self.win_length = win_length
         self.window = window
 
     def __repr__(self):
+        """Return string with class details."""
         return (
             "{name}(n_fft={n_fft}, n_shift={n_shift}, "
             "win_length={win_length}, window={window})".format(
@@ -139,6 +150,7 @@ class Spectrogram(object):
         )
 
     def __call__(self, x):
+        """Process call method."""
         return spectrogram(
             x,
             n_fft=self.n_fft,
@@ -149,6 +161,8 @@ class Spectrogram(object):
 
 
 class LogMelSpectrogram(object):
+    """LogMel Spectrogram Class."""
+
     def __init__(
         self,
         fs,
@@ -161,6 +175,7 @@ class LogMelSpectrogram(object):
         fmax=None,
         eps=1e-10,
     ):
+        """Initialize LogMel Spectrogram Class."""
         self.fs = fs
         self.n_mels = n_mels
         self.n_fft = n_fft
@@ -172,6 +187,7 @@ class LogMelSpectrogram(object):
         self.eps = eps
 
     def __repr__(self):
+        """Return string with class details."""
         return (
             "{name}(fs={fs}, n_mels={n_mels}, n_fft={n_fft}, "
             "n_shift={n_shift}, win_length={win_length}, window={window}, "
@@ -190,6 +206,7 @@ class LogMelSpectrogram(object):
         )
 
     def __call__(self, x):
+        """Process call method."""
         return logmelspectrogram(
             x,
             fs=self.fs,
@@ -202,7 +219,10 @@ class LogMelSpectrogram(object):
 
 
 class Stft2LogMelSpectrogram(object):
+    """STFT to LogMel Spectrogram Class."""
+
     def __init__(self, fs, n_mels, n_fft, fmin=None, fmax=None, eps=1e-10):
+        """Initialize Class."""
         self.fs = fs
         self.n_mels = n_mels
         self.n_fft = n_fft
@@ -211,6 +231,7 @@ class Stft2LogMelSpectrogram(object):
         self.eps = eps
 
     def __repr__(self):
+        """Return string with class details."""
         return (
             "{name}(fs={fs}, n_mels={n_mels}, n_fft={n_fft}, "
             "fmin={fmin}, fmax={fmax}, eps={eps}))".format(
@@ -225,6 +246,7 @@ class Stft2LogMelSpectrogram(object):
         )
 
     def __call__(self, x):
+        """Process call method."""
         return stft2logmelspectrogram(
             x,
             fs=self.fs,
@@ -236,6 +258,8 @@ class Stft2LogMelSpectrogram(object):
 
 
 class Stft(object):
+    """STFT Class."""
+
     def __init__(
         self,
         n_fft,
@@ -245,6 +269,7 @@ class Stft(object):
         center=True,
         pad_mode="reflect",
     ):
+        """Initialize Class."""
         self.n_fft = n_fft
         self.n_shift = n_shift
         self.win_length = win_length
@@ -253,6 +278,7 @@ class Stft(object):
         self.pad_mode = pad_mode
 
     def __repr__(self):
+        """Return string with class details."""
         return (
             "{name}(n_fft={n_fft}, n_shift={n_shift}, "
             "win_length={win_length}, window={window},"
@@ -268,6 +294,7 @@ class Stft(object):
         )
 
     def __call__(self, x):
+        """Process call method."""
         return stft(
             x,
             self.n_fft,
@@ -280,13 +307,17 @@ class Stft(object):
 
 
 class IStft(object):
+    """iSTFT Class."""
+
     def __init__(self, n_shift, win_length=None, window="hann", center=True):
+        """Initialize Class."""
         self.n_shift = n_shift
         self.win_length = win_length
         self.window = window
         self.center = center
 
     def __repr__(self):
+        """Return string with class details."""
         return (
             "{name}(n_shift={n_shift}, "
             "win_length={win_length}, window={window},"
@@ -300,6 +331,7 @@ class IStft(object):
         )
 
     def __call__(self, x):
+        """Process call method."""
         return istft(
             x,
             self.n_shift,

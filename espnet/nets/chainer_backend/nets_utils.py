@@ -1,3 +1,5 @@
+"""Chainer net_utils module."""
+
 import chainer.functions as F
 
 

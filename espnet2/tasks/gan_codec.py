@@ -4,14 +4,13 @@
 """GAN-based neural codec task."""
 
 import argparse
-import logging
 from typing import Callable, Collection, Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
 from typeguard import typechecked
 
-from espnet2.gan_codec.abs_gan_codec import AbsGANCodec
+from espnet2.gan_codec.abs_gan_codec import AbsGANCodec  # noqa
 from espnet2.gan_codec.dac.dac import DAC
 from espnet2.gan_codec.encodec.encodec import Encodec
 from espnet2.gan_codec.espnet_model import ESPnetGANCodecModel
@@ -24,7 +23,7 @@ from espnet2.train.gan_trainer import GANTrainer
 from espnet2.train.preprocessor import CommonPreprocessor
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
-from espnet2.utils.types import int_or_none, str2bool, str_or_none
+from espnet2.utils.types import int_or_none, str2bool, str_or_none  # noqa
 
 codec_choices = ClassChoices(
     "codec",
@@ -61,7 +60,7 @@ class GANCodecTask(AbsTask):
 
         # NOTE(kamo): add_arguments(..., required=True) can't be used
         # to provide --print_config mode. Instead of it, do as
-        required = parser.get_default("required")
+        required = parser.get_default("required")  # noqa
 
         group.add_argument(
             "--model_conf",

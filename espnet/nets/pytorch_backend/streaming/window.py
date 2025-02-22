@@ -1,3 +1,5 @@
+"""Streaming/window module."""
+
 import torch
 
 
@@ -11,6 +13,7 @@ class WindowStreamingE2E(object):
     """
 
     def __init__(self, e2e, recog_args, rnnlm=None):
+        """Initialize WindowStreaming."""
         self._e2e = e2e
         self._recog_args = recog_args
         self._char_list = e2e.char_list
@@ -30,7 +33,6 @@ class WindowStreamingE2E(object):
 
     def accept_input(self, x):
         """Call this method each time a new batch of input is available."""
-
         h, ilen = self._e2e.subsample_frames(x)
 
         # Streaming encoder
@@ -43,6 +45,7 @@ class WindowStreamingE2E(object):
         self._ctc_posteriors.append(self._e2e.ctc.log_softmax(h).squeeze(0))
 
     def _input_window_for_decoder(self, use_all=False):
+        """Generate input window for decoder."""
         if use_all:
             return (
                 torch.cat(self._encoder_states, dim=0),
