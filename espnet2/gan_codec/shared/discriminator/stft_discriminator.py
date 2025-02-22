@@ -7,7 +7,7 @@ This code is modified from https://github.com/kan-bayashi/ParallelWaveGAN.
 
 """
 
-from typing import List
+from typing import Any, List
 
 import numpy as np  # noqa
 import torch
@@ -82,7 +82,7 @@ class ComplexSTFTDiscriminator(nn.Module):
         *,
         in_channels: int = 1,
         channels: int = 32,
-        strides: List[List(int, int)] = [
+        strides: Any = [
             [1, 2], [2, 2], [1, 2], [2, 2], [1, 2], [2, 2]
         ],
         chan_mults: List[int] = [1, 2, 4, 4, 8, 8],
