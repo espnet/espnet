@@ -1,0 +1,10 @@
+# This configuration is the decoding setting for FastSpeech or FastSpeech2.
+
+##########################################################
+#                    DECODING SETTING                    #
+##########################################################
+# speed_control_alpha: 1   # alpha to control the speed of generated speech
+                           # 1 < alpha makes slower and 1 > alpha makes faster
+use_teacher_forcing: false # whether to use teacher forcing
+                           # if true, we use groundtruth of durations
+                           # (+ pitch & energy for FastSpeech2)

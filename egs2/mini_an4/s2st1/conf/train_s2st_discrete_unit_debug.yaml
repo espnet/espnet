@@ -12,7 +12,7 @@ frontend_conf:
     hop_length: 160
 
 # Tgt feats extract
-tgt_feats_extract: None
+tgt_feats_extract: null
 output_size: 5
 
 # Encoder
@@ -115,3 +115,5 @@ best_model_criterion:
     - loss
     - min
 keep_nbest_models: 2
+
+unit_token_list: data/en_es_token_list/discrete_unit.hubert_layer6_5/tokens.txt

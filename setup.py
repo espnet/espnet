@@ -8,7 +8,7 @@ from setuptools import find_packages, setup
 
 requirements = {
     "install": [
-        "setuptools>=38.5.1",
+        "setuptools>=38.5.1,<74.0.0",
         "packaging",
         "configargparse>=1.2.1",
         "typeguard",
@@ -30,8 +30,9 @@ requirements = {
         "protobuf",
         "hydra-core",
         "opt-einsum",
+        "lightning",
         # ASR
-        "sentencepiece==0.1.97",
+        "sentencepiece==0.2.0",
         "ctc-segmentation>=1.6.6",
         # TTS
         "pyworld>=0.3.4",
@@ -53,7 +54,6 @@ requirements = {
     "train": [
         "matplotlib",
         "pillow==9.5.0",
-        "editdistance==0.5.2",
         "wandb",
         "tensorboard>=1.14",
     ],
@@ -85,7 +85,6 @@ requirements = {
         "torch_optimizer",
         "fairscale",
         "transformers",
-        "gtn==0.0.0",
         "evaluate",
     ],
     "setup": [
@@ -107,13 +106,15 @@ requirements = {
     ],
     "doc": [
         "Jinja2<3.1",
-        "Sphinx==2.1.2",
+        "sphinx<9.0.0",
         "sphinx-rtd-theme>=0.2.4",
         "sphinx-argparse>=0.2.5",
         "commonmark==0.8.1",
-        "recommonmark>=0.4.0",
+        "myst-parser",
         "nbsphinx>=0.4.2",
         "sphinx-markdown-tables>=0.0.12",
+        "jupyterlab<5",
+        "sphinx-markdown-builder",
     ],
 }
 requirements["all"].extend(requirements["train"] + requirements["recipe"])

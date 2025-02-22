@@ -1,4 +1,4 @@
-# ESPnet2 Spk1 Recipe TEMPLATE
+# Speaker Representation
 
 This is a template of Spk1 recipe for ESPnet2.
 It follows d-vector style training/inference for speaker verification.
@@ -9,21 +9,19 @@ speaker embedding) to represent diverse open set speakers.
 
 ## Table of Contents
 
-* [ESPnet2 SPK1 Recipe TEMPLATE](#ESPnet2-Spk1-Recipe-TEMPLATE)
-  * [Table of Contents](#table-of-contents)
-  * [Recipe flow](#recipe-flow)
-    * [1\. Data preparation](#1-data-preparation)
-    * [2\. Speed perturbation](#2-speed-perturbation)
-    * [3\. Wav format](#3-wav-format)
-    * [4\. Spk statistics collection](#4-spk-statistics-collection)
-    * [5\. Spk training](#5-spk-training)
-    * [6\. Speaker embedding extraction](#6-speaker-embedding-extraction)
-    * [7\. Score calculation](#7-score-calculation)
-    * [8\. Metric calculation](#8-metric-calculation)
-    * [9\-10\. (Optional) Pack results for upload](#9-10-optional-pack-results-for-upload)
-  * [How to run](#how-to-run)
-    * [LibriSpeech training](#librispeech-training)
-  * [Related works](#related-works)
+* [Recipe flow](#recipe-flow)
+  * [1\. Data preparation](#1-data-preparation)
+  * [2\. Speed perturbation](#2-speed-perturbation)
+  * [3\. Wav format](#3-wav-format)
+  * [4\. Spk statistics collection](#4-spk-statistics-collection)
+  * [5\. Spk training](#5-spk-training)
+  * [6\. Speaker embedding extraction](#6-speaker-embedding-extraction)
+  * [7\. Score calculation](#7-score-calculation)
+  * [8\. Metric calculation](#8-metric-calculation)
+  * [9\-10\. (Optional) Pack results for upload](#9-10-optional-pack-results-for-upload)
+* [How to run](#how-to-run)
+  * [LibriSpeech training](#librispeech-training)
+* [Related works](#related-works)
 
 ## Recipe flow
 

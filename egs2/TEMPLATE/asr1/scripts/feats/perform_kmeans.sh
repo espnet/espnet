@@ -31,6 +31,7 @@ upsample=           # Upsampling rate of pseudo-labels to measure the pseudo-lab
 use_gpu=false       # Whether to use gpu in feature extraction
 suffix=             # A suffix to distinguish the feature dump directory. Empty in usual cases.
 audio_format="wav"  # The audio format of the source speech (flac, wav, *_ark, etc)
+audio_sample_rate=16000 # the sample rate of input audio
 
 skip_train_kmeans=false     # Whether to skip the kmeans model training
 nclusters=100       # Number of clusters of kmeans model
@@ -152,6 +153,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ] && ! [[ " ${skip_stages} " =~ [
         ${_cmd} JOB=1:${_nj} ${_logdir}/dump_features.JOB.log \
             ${python} pyscripts/feats/dump_ssl_feature.py \
                 --feature_conf "'${feature_conf}'" \
+                --audio_sample_rate "${audio_sample_rate}" \
                 --use_gpu ${use_gpu} \
                 --in_filetype "${_in_filetype}" \
                 --out_filetype "mat" \
@@ -267,6 +269,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [
         ${_cmd} JOB=1:${_nj} "${_dump_dir}"/logdir/inference_pseudo_labels_km${nclusters}.JOB.log \
             ${python} pyscripts/feats/dump_km_label.py \
                 ${_opts} \
+                --audio_sample_rate "${audio_sample_rate}" \
                 --km_path "${km_dir}/km_${nclusters}.mdl" \
                 --out_filetype "mat" \
                 --use_gpu ${use_gpu} \

@@ -101,8 +101,9 @@ class Stft(torch.nn.Module, InversibleInterface):
                 onesided=self.onesided,
             )
             stft_kwargs["return_complex"] = True
-            output = torch.stft(input, **stft_kwargs)
-            output = torch.view_as_real(output)
+            # NOTE(Jinchuan) CuFFT is not compatible with bfloat16
+            output = torch.stft(input.float(), **stft_kwargs)
+            output = torch.view_as_real(output).type(input.dtype)
         else:
             if self.training:
                 raise NotImplementedError(

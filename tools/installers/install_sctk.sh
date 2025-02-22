@@ -2,8 +2,8 @@
 set -euo pipefail
 
 # SCTK official repo does not have version tags. Here's the mapping:
-# 2.4.9 = 659bc36; 2.4.10 = d914e1b; 2.4.11 = 20159b5.
-SCTK_GITHASH=20159b5
+# 2.4.9 = 659bc36; 2.4.10 = d914e1b; 2.4.11 = 20159b5; 2.4.12 = 9688a26;
+SCTK_GITHASH=9688a26
 
 if [ $# != 0 ]; then
     echo "Usage: $0"

@@ -16,7 +16,15 @@ Dataset are extracted from various multilingual sources. All sources are with ei
 
 ### Data download/setup
 
-[Download link](https://drive.google.com/file/d/1QYjl-7vflle__3AfuosAC5VJGiBDvEqz/view?usp=drive_link)
+#### 7th version (aligned with [Interspeech2023](https://arxiv.org/abs/2305.10615) and [ASRU2023](https://arxiv.org/abs/2310.05513))
+[Download link (Google Drive)](https://drive.google.com/file/d/1QYjl-7vflle__3AfuosAC5VJGiBDvEqz/view?usp=drive_link)
+
+[Download link (Huggingface)](https://huggingface.co/datasets/ftshijt/mlsuperb_7th)
+
+#### 8th version (aligned with [Interspeech2024](https://arxiv.org/abs/2406.08641))
+[Download link(Google Drive)](https://drive.google.com/file/d/1vQ5NksmGl-lY7I4mlU4Kde3EhrEYGii2/view?usp=drive_link)
+
+[Download link (Huggingface)](https://huggingface.co/datasets/ftshijt/mlsuperb_8th)
 
 After download the dataset, please set the `MLSUPERB` to the data directory. The preparation will be automatically done in scripts for each tasks.
 

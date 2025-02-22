@@ -91,6 +91,7 @@ def test_XMLReader(tmp_path: Path):
     with p.open("w") as f:
         f.write(f"abc {xml_path}\n")
 
+    print(p)
     reader = XMLReader(p)
     val = reader["abc"]
 

@@ -1,3 +1,45 @@
+# Multiconvformer
+- Params: 37.21 M
+- ASR config: [conf/tuning/train_asr_multiconvformer_conv_fusion_linear1024.yaml](conf/tuning/train_asr_multiconvformer_conv_fusion_linear1024.yaml)
+- Model link: [https://huggingface.co/Darshan7575/librispeech_100_multiconvformer_ctcatt_conv_fusion](https://huggingface.co/Darshan7575/librispeech_100_multiconvformer_ctcatt_conv_fusion)
+
+# RESULTS
+## Environments
+- date: `Sun Jan 28 23:50:53 UTC 2024`
+- python version: `3.9.16 (main, Mar  8 2023, 14:00:05)  [GCC 11.2.0]`
+- espnet version: `espnet 202304`
+- pytorch version: `pytorch 2.1.2+cu118`
+- Git hash: `3651c2e67126c4544820cf148407be7f2679866c`
+  - Commit date: `Sat Jul 1 14:46:46 2023 +0000`
+
+## exp/librispeech_100_multiconvformer_conv_fusion
+### WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_lm_lm_train_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/dev_clean|2703|54402|94.8|4.8|0.3|0.7|5.9|53.8|
+|decode_asr_lm_lm_train_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/dev_other|2864|50948|85.4|13.2|1.4|2.0|16.6|78.8|
+|decode_asr_lm_lm_train_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/test_clean|2620|52576|94.5|5.0|0.4|0.7|6.2|55.5|
+|decode_asr_lm_lm_train_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/test_other|2939|52343|85.0|13.6|1.5|2.0|17.0|80.5|
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_lm_lm_train_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/dev_clean|2703|288456|98.3|1.0|0.7|0.6|2.3|53.8|
+|decode_asr_lm_lm_train_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/dev_other|2864|265951|93.6|4.0|2.4|2.0|8.4|78.8|
+|decode_asr_lm_lm_train_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/test_clean|2620|281530|98.3|1.0|0.7|0.6|2.4|55.5|
+|decode_asr_lm_lm_train_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/test_other|2939|272758|93.6|3.8|2.6|1.9|8.2|80.5|
+
+### TER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_lm_lm_train_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/dev_clean|2703|69558|92.5|4.7|2.8|0.6|8.1|53.8|
+|decode_asr_lm_lm_train_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/dev_other|2864|64524|82.0|12.9|5.0|2.4|20.4|78.8|
+|decode_asr_lm_lm_train_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/test_clean|2620|66983|92.4|4.8|2.8|0.6|8.2|55.5|
+|decode_asr_lm_lm_train_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/test_other|2939|66650|81.6|12.9|5.5|2.2|20.6|80.5|
+
 # E-Branchformer
 ## Environments
 - date: `Mon Dec 12 06:50:58 CST 2022`
@@ -39,7 +81,6 @@
 |decode_asr_asr_model_valid.acc.ave/dev_other|2864|64524|81.9|12.8|5.2|2.3|20.4|78.9|
 |decode_asr_asr_model_valid.acc.ave/test_clean|2620|66983|92.2|4.9|2.9|0.6|8.4|56.1|
 |decode_asr_asr_model_valid.acc.ave/test_other|2939|66650|81.5|13.0|5.5|2.2|20.7|80.3|
-
 
 # E-Branchformer with CTC
 ## Environments

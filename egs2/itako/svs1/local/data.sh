@@ -39,7 +39,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "stage 0: Data Download"
     # The itako data should be downloaded from https://zunko.jp/itadev/login.php
     # with authentication
-
+    # itako version: 2021/06/05
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then

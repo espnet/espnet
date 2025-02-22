@@ -270,6 +270,7 @@ class MelSpectrogramLoss(torch.nn.Module):
         y_hat: torch.Tensor,
         y: torch.Tensor,
         spec: Optional[torch.Tensor] = None,
+        use_mse: bool = False,
     ) -> torch.Tensor:
         """Calculate Mel-spectrogram loss.
 
@@ -279,6 +280,7 @@ class MelSpectrogramLoss(torch.nn.Module):
             spec (Optional[Tensor]): Groundtruth linear amplitude spectrum tensor
                 (B, T, n_fft // 2 + 1).  if provided, use it instead of groundtruth
                 waveform.
+            use_l2 (bool): Whether to use mse_loss instead of l1
 
         Returns:
             Tensor: Mel-spectrogram loss value.
@@ -289,6 +291,9 @@ class MelSpectrogramLoss(torch.nn.Module):
             mel, _ = self.wav_to_mel(y.squeeze(1))
         else:
             mel, _ = self.wav_to_mel.logmel(spec)
-        mel_loss = F.l1_loss(mel_hat, mel)
+        if use_mse:
+            mel_loss = F.mse_loss(mel_hat, mel)
+        else:
+            mel_loss = F.l1_loss(mel_hat, mel)
 
         return mel_loss

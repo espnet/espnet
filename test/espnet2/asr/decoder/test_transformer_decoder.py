@@ -12,6 +12,8 @@ from espnet2.asr.decoder.transformer_decoder import (  # noqa: H301
 from espnet.nets.batch_beam_search import BatchBeamSearch
 from espnet.nets.batch_beam_search_online_sim import BatchBeamSearchOnlineSim
 from espnet.nets.beam_search import BeamSearch
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
 from espnet.nets.scorers.ctc import CTCPrefixScorer
 
 
@@ -253,4 +255,42 @@ def test_TransformerDecoder_batch_beam_search_online(
             x=enc,
             maxlenratio=0.0,
             minlenratio=0.0,
+        )
+
+
+@pytest.mark.parametrize(
+    "decoder_class",
+    [
+        TransformerDecoder,
+        LightweightConvolutionTransformerDecoder,
+        LightweightConvolution2DTransformerDecoder,
+        DynamicConvolutionTransformerDecoder,
+        DynamicConvolution2DTransformerDecoder,
+    ],
+)
+def test_TransformerDecoder_partially_AR(decoder_class):
+    """This test is for partially auto-regressive decoding.
+    This function tests if the `expand_kv` works properly for TransformerDecoder.
+    """
+    decoder = decoder_class(
+        vocab_size=5,
+        encoder_output_size=8,
+        input_layer="embed",
+        normalize_before=True,
+        use_output_layer=True,
+        linear_units=10,
+    )
+
+    enc = torch.randn(5, 10, 8)
+    tgt = torch.ones(5, 3).type(torch.long)
+    tgt_lengths = torch.ones(5).type(torch.long) * 3
+    tgt_mask = (~make_pad_mask(tgt_lengths)[:, None, :]).to(enc.device)
+    m = subsequent_mask(tgt_mask.size(-1), device=enc.device).unsqueeze(0)
+    tgt_mask = tgt_mask & m
+    with torch.no_grad():
+        decoder.forward_partially_AR(
+            tgt,
+            tgt_mask,
+            tgt_lengths,
+            enc,
         )

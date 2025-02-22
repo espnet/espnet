@@ -1,30 +1,28 @@
-# ESPnet2 ASR1 Multi-tasking Recipe TEMPLATE
+# Automatic Speech Recognition (Multi-tasking)
 
 This is a template of ASR1 Multi-tasking recipe for ESPnet2.
 This README provides comprehensive instructions on how to enhance ASR1 for prompt-based multi-task learning.
 
 ## Table of Contents
 
-* [ESPnet2 ASR1 Multi-tasking Recipe TEMPLATE](#espnet2-asr2-recipe-template)
-  * [Table of Contents](#table-of-contents)
-  * [Recipe flow](#recipe-flow)
-    * [1\. Data preparation](#1-data-preparation)
-    * [2\. Speed perturbation](#2-speed-perturbation)
-    * [3\. Generate dump folder](#3-generate-dump-folder)
-    * [4\. Removal of long / short data](#4-removal-of-long--short-data)
-    * [5\. Input / Output Token list generation](#5-input--output-token-list-generation)
-    * [6\. LM statistics collection](#6-lm-statistics-collection)
-    * [7\. LM training](#7-lm-training)
-    * [8\. LM perplexity](#8-lm-perplexity)
-    * [9\. Ngram-LM training](#9-n-gram-lm-training)
-    * [10\. ASR statistics collection](#10-asr-statistics-collection)
-    * [11\. ASR training](#11-asr-training)
-    * [12\. ASR inference](#12-asr-inference)
-    * [13\. ASR scoring](#13-asr-scoring)
-    * [14\-16\. (Optional) Pack results for upload](#14-16-optional-pack-results-for-upload)
-  * [How to run](#how-to-run)
-    * [SLU Multi-task training](#slu-multi-task-training)
-  * [Related works](#related-works)
+* [Recipe flow](#recipe-flow)
+  * [1\. Data preparation](#1-data-preparation)
+  * [2\. Speed perturbation](#2-speed-perturbation)
+  * [3\. Generate dump folder](#3-generate-dump-folder)
+  * [4\. Removal of long / short data](#4-removal-of-long--short-data)
+  * [5\. Input / Output Token list generation](#5-input--output-token-list-generation)
+  * [6\. LM statistics collection](#6-lm-statistics-collection)
+  * [7\. LM training](#7-lm-training)
+  * [8\. LM perplexity](#8-lm-perplexity)
+  * [9\. Ngram-LM training](#9-n-gram-lm-training)
+  * [10\. ASR statistics collection](#10-asr-statistics-collection)
+  * [11\. ASR training](#11-asr-training)
+  * [12\. ASR inference](#12-asr-inference)
+  * [13\. ASR scoring](#13-asr-scoring)
+  * [14\-16\. (Optional) Pack results for upload](#14-16-optional-pack-results-for-upload)
+* [How to run](#how-to-run)
+  * [SLU Multi-task training](#slu-multi-task-training)
+* [Related works](#related-works)
 
 ## Recipe flow
 

@@ -1,39 +1,34 @@
-# Speech Enhancement Frontend Recipe
+# Speech Enhancement
 
-This is the common recipe for ESPnet2 speech enhancement frontend. Currently, ten speech enhancement/separation recipes are supported:
-```
-egs2/
-├── aishell4
-│   └── enh1
-├── chime4
-│   └── enh1
-├── clarity21
-│   └── enh1
-├── conferencingspeech21
-│   └── enh1
-├── dns_icassp21
-│   └── enh1
-├── dns_ins20
-│   └── enh1
-├── dns_ins21
-│   └── enh1
-├── librimix
-│   └── enh1
-├── sms_wsj
-│   └── enh1
-├── vctk_noisy
-│   └── enh1
-├── vctk_noisyreverb
-│   └── enh1
-├── wham
-│   └── enh1
-├── whamr
-│   └── enh1
-├── wsj0_2mix
-│   └── enh1
-└── wsj0_2mix_spatialized
-    └── enh1
-```
+This is the common recipe for ESPnet2 speech enhancement frontend.
+
+**Table of Contents**
+
+- [Introduction to enh.sh](#introduction-to-enhsh)
+    - [Stage 1: Data preparation](#stage-1-data-preparation)
+    - [Stage 2: Speech perturbation](#stage-2-speech-perturbation)
+    - [Stage 3: Format wav.scp](#stage-3-format-wavscp)
+    - [Stage 4: Remove short data](#stage-4-remove-short-data)
+    - [Stage 5: Collect stats for the enhancement task.](#stage-5-collect-stats-for-the-enhancement-task)
+    - [Stage 6: Enhancement task Training](#stage-6-enhancement-task-training)
+    - [Stage 7: Speech Enhancement inferencing](#stage-7-speech-enhancement-inferencing)
+    - [Stage 8: Scoring](#stage-8-scoring)
+    - [Stage 9: Decode with a pretrained ASR model](#stage-9-decode-with-a-pretrained-asr-model)
+    - [Stage 10: Scoring with a pretrained ASR model](#stage-10-scoring-with-a-pretrained-asr-model)
+    - [Stage 11: Pack model](#stage-11-pack-model)
+    - [Stage 12: Upload model to Zenodo (Deprecated)](#stage-12-upload-model-to-zenodo-deprecated)
+    - [Stage 13: Upload model to Hugging Face](#stage-13-upload-model-to-hugging-face)
+- [(For developers) Instructions on creating a new recipe](#for-developers-instructions-on-creating-a-new-recipe)
+    - [Step 1 Create recipe directory](#step-1-create-recipe-directory)
+    - [Step 2 Write scripts for data preparation](#step-2-write-scripts-for-data-preparation)
+    - [Step 3 Prepare training configuration](#step-3-prepare-training-configuration)
+    - [Step 4 Prepare run.sh](#step-4-prepare-runsh)
+- [Instructions on creating a new model](#instructions-on-creating-a-new-model)
+    - [Step 1 Create model scripts](#step-1-create-model-scripts)
+    - [Step 2 Add the new model to related scripts](#step-2-add-the-new-model-to-related-scripts)
+    - [Step 3 [Optional] Create new loss functions](#step-3-optional-create-new-loss-functions)
+    - [Step 4 Create unit tests for the new model](#step-4-create-unit-tests-for-the-new-model)
+
 ## Introduction to enh.sh
 In `egs2/TEMPLATE/enh1/enh.sh`, 13 stages are included.
 

@@ -435,13 +435,13 @@ class MultiResL1SpecLoss(TimeDomainLoss):
     def name(self) -> str:
         return "l1_timedomain+magspec_loss"
 
-    def get_magnitude(self, stft):
+    def get_magnitude(self, stft, eps=1e-06):
         if is_torch_1_9_plus:
             stft = torch.complex(stft[..., 0], stft[..., 1])
+            return stft.abs()
         else:
             stft = ComplexTensor(stft[..., 0], stft[..., 1])
-
-        return stft.abs()
+            return (stft.real.pow(2) + stft.imag.pow(2) + eps).sqrt()
 
     @torch.cuda.amp.autocast(enabled=False)
     def forward(

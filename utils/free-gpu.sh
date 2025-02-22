@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 # Author: Gaurav Kumar
 
-
-# Usage: e.g.
-# % free-gpu.sh -n 2
-# 1,2
+if [ "$1" = "--help" ] ; then
+    echo "Usage: $0 -n <Number of free GPUs on a machine>"
+    echo "e.g.: $0 -n 2"
+    echo "1, 2"
+    exit 0
+fi
 
 # Allow requests for multiple GPUs
 # (Optional) defaults to 1

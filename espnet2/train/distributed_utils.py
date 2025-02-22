@@ -1,4 +1,5 @@
 import dataclasses
+import logging
 import os
 import socket
 from typing import Optional
@@ -107,6 +108,34 @@ class DistributedOption:
             #    => Distributed with 1-Process and n-GPU
             if self.local_rank is not None and self.ngpu > 0:
                 torch.cuda.set_device(self.local_rank)
+
+    def init_deepspeed(self):
+        try:
+            import deepspeed
+        except ImportError:
+            raise
+
+        if not torch.distributed.is_initialized():
+            raise ValueError(
+                "Should initailize torch distributed before initializing deepspeed"
+            )
+
+        # NOTE(Jinchuan): init torch distributed backend first. Then
+        # deepspeed will find that backend automatically.
+        os.environ["LOCAL_RANK"] = str(self.local_rank)
+        os.environ["RANK"] = str(self.dist_rank)
+        os.environ["WORLD_SIZE"] = str(self.dist_world_size)
+        if int(os.environ["OMP_NUM_THREADS"]) == 1:
+            logging.warning(
+                "\n=================================================================\n"
+                "Found OMP_NUM_THREADS=1 in environment variables. "
+                "With some advanced features, DeepSpeed may have heavy cpu workload "
+                "so that OMP_NUM_THREADS=1 is not sufficient. "
+                "Try to increase it in your path.sh \n"
+                "================================================================="
+            )
+
+        deepspeed.init_distributed()
 
 
 def resolve_distributed_mode(args):

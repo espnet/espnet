@@ -206,6 +206,61 @@
 |decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/test_clean|2620|65818|97.7|1.6|0.7|0.4|2.7|25.7|
 |decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/test_other|2939|65101|94.5|3.9|1.5|1.0|6.4|45.1|
 
+# Multiconvformer
+- Params: 147.41 M
+- ASR config: [conf/tuning/train_asr_multiconvformer_conv_fusion.yaml](conf/tuning/train_asr_multiconvformer_conv_fusion.yaml)
+- LM config: [conf/tuning/train_lm_transformer2.yaml](conf/tuning/train_lm_transformer2.yaml)
+- Model link: [https://huggingface.co/Darshan7575/librispeech_960_multiconvformer_ctcatt_conv_fusion](https://huggingface.co/Darshan7575/librispeech_960_multiconvformer_ctcatt_conv_fusion)
+
+# RESULTS
+## Environments
+- date: `Fri Mar  1 15:40:42 UTC 2024`
+- python version: `3.9.16 (main, May 15 2023, 23:46:34)  [GCC 11.2.0]`
+- espnet version: `espnet 202402`
+- pytorch version: `pytorch 2.1.2+cu118`
+- Git hash: `a50d6a0c8c31b4ef775473a657de031a40be30c1`
+  - Commit date: `Mon Feb 19 07:37:52 2024 -0500`
+
+## exp/asr_train_asr_multiconvformer_conv_fusion_raw_en_bpe5000_sp
+### WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_asr_model_valid.acc.ave/dev_clean|2703|54402|98.2|1.6|0.2|0.2|2.0|25.8|
+|decode_asr_asr_model_valid.acc.ave/dev_other|2864|50948|95.7|3.9|0.3|0.5|4.7|41.4|
+|decode_asr_asr_model_valid.acc.ave/test_clean|2620|52576|98.1|1.7|0.2|0.3|2.2|26.9|
+|decode_asr_asr_model_valid.acc.ave/test_other|2939|52343|95.9|3.8|0.3|0.6|4.7|42.6|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/dev_clean|2703|54402|98.4|1.4|0.2|0.2|1.7|23.2|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/dev_other|2864|50948|96.7|2.9|0.3|0.3|3.6|34.3|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/test_clean|2620|52576|98.3|1.5|0.2|0.2|1.9|23.4|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/test_other|2939|52343|96.5|3.1|0.5|0.4|3.9|38.0|
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_asr_model_valid.acc.ave/dev_clean|2703|288456|99.5|0.3|0.2|0.2|0.7|25.8|
+|decode_asr_asr_model_valid.acc.ave/dev_other|2864|265951|98.5|0.9|0.6|0.5|2.0|41.4|
+|decode_asr_asr_model_valid.acc.ave/test_clean|2620|281530|99.5|0.2|0.2|0.2|0.7|26.9|
+|decode_asr_asr_model_valid.acc.ave/test_other|2939|272758|98.7|0.8|0.5|0.6|1.9|42.6|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/dev_clean|2703|288456|99.5|0.2|0.2|0.2|0.6|23.2|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/dev_other|2864|265951|98.7|0.7|0.6|0.4|1.7|34.3|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/test_clean|2620|281530|99.5|0.2|0.3|0.2|0.7|23.4|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/test_other|2939|272758|98.7|0.7|0.6|0.4|1.7|38.0|
+
+### TER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_asr_model_valid.acc.ave/dev_clean|2703|68010|97.7|1.7|0.6|0.3|2.6|25.8|
+|decode_asr_asr_model_valid.acc.ave/dev_other|2864|63110|94.7|4.0|1.3|0.8|6.1|41.4|
+|decode_asr_asr_model_valid.acc.ave/test_clean|2620|65818|97.6|1.7|0.7|0.3|2.7|26.9|
+|decode_asr_asr_model_valid.acc.ave/test_other|2939|65101|95.0|3.6|1.4|0.7|5.7|42.6|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/dev_clean|2703|68010|97.9|1.4|0.7|0.3|2.4|23.2|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/dev_other|2864|63110|95.5|3.1|1.4|0.6|5.1|34.3|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/test_clean|2620|65818|97.8|1.4|0.8|0.3|2.4|23.4|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/test_other|2939|65101|95.5|2.9|1.6|0.5|5.0|38.0|
+
 # E-Branchformer
 - Params: 148.92 M
 - ASR config: [conf/tuning/train_asr_e_branchformer.yaml](conf/tuning/train_asr_e_branchformer.yaml)

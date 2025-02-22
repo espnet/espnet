@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import copy
 import logging
 import sys
 from distutils.version import LooseVersion
@@ -17,6 +18,7 @@ from espnet2.asr.decoder.hugging_face_transformers_decoder import (
     get_hugging_face_model_network,
 )
 from espnet2.asr.decoder.s4_decoder import S4Decoder
+from espnet2.asr.partially_AR_model import PartiallyARInference
 from espnet2.asr.transducer.beam_search_transducer import BeamSearchTransducer
 from espnet2.asr.transducer.beam_search_transducer import (
     ExtendedHypothesis as ExtTransHypothesis,
@@ -62,6 +64,10 @@ ListOfHypothesis = List[
         Union[Hypothesis, ExtTransHypothesis, TransHypothesis],
     ]
 ]
+
+logger = logging.getLogger(__name__)
+# NOTE(shikhar): We use contextual logging here because
+# RTF calculation looks for "INFO: " as a prefix in the logs.
 
 
 class Speech2Text:
@@ -114,6 +120,10 @@ class Speech2Text:
         lang_prompt_token: Optional[str] = None,
         nlp_prompt_token: Optional[str] = None,
         prompt_token_file: Optional[str] = None,
+        partial_ar: bool = False,
+        threshold_probability: float = 0.99,
+        max_seq_len: int = 5,
+        max_mask_parallel: int = -1,
     ):
 
         task = ASRTask if not enh_s2t_task else EnhS2TTask
@@ -151,7 +161,7 @@ class Speech2Text:
         asr_model.to(dtype=getattr(torch, dtype)).eval()
 
         if quantize_asr_model:
-            logging.info("Use quantized asr model for decoding.")
+            logger.info("Use quantized asr model for decoding.")
 
             asr_model = torch.quantization.quantize_dynamic(
                 asr_model, qconfig_spec=qconfig_spec, dtype=quantize_dtype
@@ -174,7 +184,7 @@ class Speech2Text:
             )
 
             if quantize_lm:
-                logging.info("Use quantized lm for decoding.")
+                logger.info("Use quantized lm for decoding.")
 
                 lm = torch.quantization.quantize_dynamic(
                     lm, qconfig_spec=qconfig_spec, dtype=quantize_dtype
@@ -239,21 +249,27 @@ class Speech2Text:
 
             if decoder.causal_lm:
                 hugging_face_model = AutoModelForCausalLM.from_pretrained(
-                    decoder.model_name_or_path
+                    decoder.model_name_or_path, **decoder.overriding_architecture_config
                 )
 
                 hugging_face_model.resize_token_embeddings(decoder.lm_head.out_features)
 
                 transformer = get_hugging_face_model_network(hugging_face_model)
                 transformer.load_state_dict(decoder.decoder.state_dict())
-
-                lm_head = get_hugging_face_model_lm_head(hugging_face_model)
+                if decoder.separate_lm_head:
+                    lm_head = copy.deepcopy(
+                        get_hugging_face_model_lm_head(hugging_face_model)
+                    )
+                else:
+                    lm_head = get_hugging_face_model_lm_head(hugging_face_model)
                 lm_head.load_state_dict(decoder.lm_head.state_dict())
             else:
                 hugging_face_model = AutoModelForSeq2SeqLM.from_pretrained(
-                    decoder.model_name_or_path
+                    decoder.model_name_or_path, **decoder.overriding_architecture_config
                 )
 
+                if decoder.separate_lm_head:
+                    hugging_face_model.lm_head = copy.deepcopy(decoder.lm_head)
                 hugging_face_model.lm_head.load_state_dict(decoder.lm_head.state_dict())
 
                 if hasattr(hugging_face_model, "model"):
@@ -301,7 +317,22 @@ class Speech2Text:
                 length_bonus=penalty,
             )
 
-            if time_sync:
+            if partial_ar:
+                beam_search = PartiallyARInference(
+                    asr_model.ctc,
+                    asr_model.decoder,
+                    threshold_probability=threshold_probability,
+                    sos=asr_model.sos,
+                    eos=asr_model.eos,
+                    mask_token=len(token_list),
+                    token_list=token_list,
+                    scorers=scorers,
+                    weights=weights,
+                    beam_size=beam_size,
+                    max_seq_len=max_seq_len,
+                    max_mask_parallel=max_mask_parallel,
+                )
+            elif time_sync:
                 if not hasattr(asr_model, "ctc"):
                     raise NotImplementedError(
                         "BeamSearchTimeSync without CTC is not supported."
@@ -310,7 +341,7 @@ class Speech2Text:
                     raise NotImplementedError(
                         "BeamSearchTimeSync with batching is not yet supported."
                     )
-                logging.info("BeamSearchTimeSync implementation is selected.")
+                logger.info("BeamSearchTimeSync implementation is selected.")
 
                 scorers["ctc"] = asr_model.ctc
                 beam_search = BeamSearchTimeSync(
@@ -344,14 +375,14 @@ class Speech2Text:
                         if streaming:
                             beam_search.__class__ = BatchBeamSearchOnlineSim
                             beam_search.set_streaming_config(asr_train_config)
-                            logging.info(
+                            logger.info(
                                 "BatchBeamSearchOnlineSim implementation is selected."
                             )
                         else:
                             beam_search.__class__ = BatchBeamSearch
-                            logging.info("BatchBeamSearch implementation is selected.")
+                            logger.info("BatchBeamSearch implementation is selected.")
                     else:
-                        logging.warning(
+                        logger.warning(
                             f"As non-batch scorers {non_batch} are found, "
                             f"fall back to non-batch implementation."
                         )
@@ -360,8 +391,8 @@ class Speech2Text:
             for scorer in scorers.values():
                 if isinstance(scorer, torch.nn.Module):
                     scorer.to(device=device, dtype=getattr(torch, dtype)).eval()
-            logging.info(f"Beam_search: {beam_search}")
-            logging.info(f"Decoding device={device}, dtype={dtype}")
+            logger.info(f"Beam_search: {beam_search}")
+            logger.info(f"Decoding device={device}, dtype={dtype}")
 
         # 5. [Optional] Build Text converter: e.g. bpe-sym -> Text
         if token_type is None:
@@ -439,7 +470,7 @@ class Speech2Text:
                 beam_search.set_hyp_primer(
                     list(converter.tokenizer.tokenizer.convert_tokens_to_ids(a1))
                 )
-        logging.info(f"Text tokenizer: {tokenizer}")
+        logger.info(f"Text tokenizer: {tokenizer}")
 
         self.asr_model = asr_model
         self.asr_train_args = asr_train_args
@@ -486,7 +517,7 @@ class Speech2Text:
         # lengths: (1,)
         lengths = speech.new_full([1], dtype=torch.long, fill_value=speech.size(1))
         batch = {"speech": speech, "speech_lengths": lengths}
-        logging.info("speech length: " + str(speech.size(1)))
+        logger.info("speech length: " + str(speech.size(1)))
 
         # a. To device
         batch = to_device(batch, device=self.device)
@@ -723,6 +754,10 @@ def inference(
     lang_prompt_token: Optional[str],
     nlp_prompt_token: Optional[str],
     prompt_token_file: Optional[str],
+    partial_ar: bool,
+    threshold_probability: float,
+    max_seq_len: int,
+    max_mask_parallel: int,
 ):
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
@@ -778,6 +813,10 @@ def inference(
         prompt_token_file=prompt_token_file,
         lang_prompt_token=lang_prompt_token,
         nlp_prompt_token=nlp_prompt_token,
+        partial_ar=partial_ar,
+        threshold_probability=threshold_probability,
+        max_seq_len=max_seq_len,
+        max_mask_parallel=max_mask_parallel,
     )
     speech2text = Speech2Text.from_pretrained(
         model_tag=model_tag,
@@ -1097,6 +1136,35 @@ def get_parser():
         type=str2bool,
         default=False,
         help="If true, best hypothesis is selected by length-normalized scores",
+    )
+
+    group = parser.add_argument_group("Partially AR related")
+    group.add_argument(
+        "--partial_ar",
+        type=str2bool,
+        default=False,
+        help="Flag to use the partially AR decoding",
+    )
+    group.add_argument(
+        "--threshold_probability",
+        type=float,
+        default=0.99,
+        help="Threshold for probability of the token to be masked",
+    )
+    group.add_argument(
+        "--max_seq_len",
+        type=int,
+        default=5,
+        help="Maximum sequence length for each hypothesis."
+        + "Will stop beam_search after max_seq_len iteration in partially AR decoding.",
+    )
+    group.add_argument(
+        "--max_mask_parallel",
+        type=int,
+        default=-1,
+        help="Maximum number of masks to predict in parallel."
+        + "If you got OOM error, try to decrease this value."
+        + "Default to -1, which means always predict all masks simultaneously.",
     )
     return parser
 

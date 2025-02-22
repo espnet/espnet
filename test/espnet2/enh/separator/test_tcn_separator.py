@@ -14,8 +14,9 @@ from espnet2.enh.separator.tcn_separator import TCNSeparator
 @pytest.mark.parametrize("stack", [1, 3])
 @pytest.mark.parametrize("causal", [True, False])
 @pytest.mark.parametrize("num_spk", [1, 2])
-@pytest.mark.parametrize("nonlinear", ["relu", "sigmoid", "tanh"])
+@pytest.mark.parametrize("nonlinear", ["relu", "sigmoid", "tanh", "linear"])
 @pytest.mark.parametrize("norm_type", ["BN", "gLN", "cLN"])
+@pytest.mark.parametrize("masking", [True, False])
 def test_tcn_separator_forward_backward_complex(
     input_dim,
     layer,
@@ -27,6 +28,7 @@ def test_tcn_separator_forward_backward_complex(
     kernel,
     causal,
     norm_type,
+    masking,
 ):
     model = TCNSeparator(
         input_dim=input_dim,
@@ -39,6 +41,7 @@ def test_tcn_separator_forward_backward_complex(
         causal=causal,
         norm_type=norm_type,
         nonlinear=nonlinear,
+        masking=masking,
     )
     model.train()
 
@@ -49,7 +52,8 @@ def test_tcn_separator_forward_backward_complex(
 
     masked, flens, others = model(x, ilens=x_lens)
 
-    assert isinstance(masked[0], ComplexTensor)
+    if masking:
+        assert isinstance(masked[0], ComplexTensor)
     assert len(masked) == num_spk
 
     masked[0].abs().mean().backward()
@@ -65,6 +69,7 @@ def test_tcn_separator_forward_backward_complex(
 @pytest.mark.parametrize("num_spk", [1, 2])
 @pytest.mark.parametrize("nonlinear", ["relu", "sigmoid", "tanh"])
 @pytest.mark.parametrize("norm_type", ["BN", "gLN", "cLN"])
+@pytest.mark.parametrize("masking", [True, False])
 def test_tcn_separator_forward_backward_real(
     input_dim,
     layer,
@@ -76,6 +81,7 @@ def test_tcn_separator_forward_backward_real(
     kernel,
     causal,
     norm_type,
+    masking,
 ):
     model = TCNSeparator(
         input_dim=input_dim,
@@ -88,6 +94,7 @@ def test_tcn_separator_forward_backward_real(
         causal=causal,
         norm_type=norm_type,
         nonlinear=nonlinear,
+        masking=masking,
     )
 
     x = torch.rand(2, 10, input_dim)

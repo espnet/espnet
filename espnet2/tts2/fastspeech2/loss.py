@@ -83,10 +83,17 @@ class FastSpeech2LossDiscrete(torch.nn.Module):
             Tensor: Energy predictor loss value.
 
         """
-        batch_size, max_len, vocab_size = before_outs.size()
+        if len(before_outs.size()) == 3:
+            batch_size, max_len, vocab_size = before_outs.size()
+        else:
+            batch_size, max_len, discrete_token_layers, vocab_size = before_outs.size()
         # apply mask to remove padded part
         if self.use_masking:
             out_masks = make_non_pad_mask(olens).unsqueeze(-1).to(ys.device)
+            if len(before_outs.size()) > 3:
+                out_masks = out_masks.unsqueeze(-1).repeat(
+                    1, 1, discrete_token_layers, 1
+                )
             before_outs = before_outs.masked_select(out_masks).view(-1, vocab_size)
             if after_outs is not None:
                 after_outs = after_outs.masked_select(out_masks).view(-1, vocab_size)

@@ -1,34 +1,37 @@
-# ESPnet2 S2T1 Recipe TEMPLATE
+# Weakly-supervised Learning (Speech-to-Text)
 
 This is a template of S2T1 recipe for ESPnet2. It is based on ASR1, but follows the style of OpenAI's Whisper to train a single encoder-decoder model for various speech processing tasks.
 Specifically, it uses special tokens as task specifiers (e.g., transcribe, translate) or prediction targets (e.g., language ID) so that a single model can perform multiple tasks for multiple languages. It further supports conditional generation where the condition is the previous sentence within the long talk.
 
 More details can be found in our [OWSM](https://arxiv.org/abs/2309.13876) paper (ASRU 2023).
 
+**Table of Contents**
+- [Recipe flow](#recipe-flow)
+- [1. Data preparation](#1-data-preparation)
+    - [ESPnet format:](#espnet-format)
+- [2. Speed perturbation](#2-speed-perturbation)
+- [3. Wav format](#3-wav-format)
+- [4. Remove long or short data](#4-remove-long-or-short-data)
+- [5. Generate token list](#5-generate-token-list)
+- [6. LM statistics collection](#6-lm-statistics-collection)
+- [7. LM training](#7-lm-training)
+- [8. LM perplexity](#8-lm-perplexity)
+- [9. Ngram LM training](#9-ngram-lm-training)
+- [10. S2T statistics collection](#10-s2t-statistics-collection)
+- [11. S2T training](#11-s2t-training)
+- [12. S2T inference](#12-s2t-inference)
+- [13. S2T scoring](#13-s2t-scoring)
+- [14-15. (Optional) Pack results for upload](#14-15-optional-pack-results-for-upload)
+- [How to run](#how-to-run)
+- [OWSM training](#owsm-training)
+- [How to fine-tune pre-trained OWSM](#how-to-fine-tune-pre-trained-owsm)
+    - [1. Prepare `s2t1` recipe](#1-prepare-s2t1-recipe)
+    - [2. Prepare data in OWSM format](#2-prepare-data-in-owsm-format)
+    - [3. Fine-tune the model](#3-fine-tune-the-model)
+- [Related work](#related-work)
 
 ## Table of Contents
 
-* [ESPnet2 S2T1 Recipe TEMPLATE](#espnet2-s2t1-recipe-template)
-  * [Table of Contents](#table-of-contents)
-  * [Recipe flow](#recipe-flow)
-    * [1\. Data preparation](#1-data-preparation)
-    * [2\. Speed perturbation](#2-speed-perturbation)
-    * [3\. Wav format](#3-wav-format)
-    * [4\. Remove long or short data](#4-remove-long-or-short-data)
-    * [5\. Generate token list](#5-generate-token-list)
-    * [6\. LM statistics collection](#6-lm-statistics-collection)
-    * [7\. LM training](#7-lm-training)
-    * [8\. LM perplexity](#8-lm-perplexity)
-    * [9\. Ngram-LM training](#9-ngram-lm-training)
-    * [10\. S2T statistics collection](#10-s2t-statistics-collection)
-    * [11\. S2T training](#11-s2t-training)
-    * [12\. S2T inference](#12-s2t-inference)
-    * [13\. S2T scoring](#13-s2t-scoring)
-    * [14\-16\. (Optional) Pack results for upload](#14-16-optional-pack-results-for-upload)
-  * [How to run](#how-to-run)
-    * [OWSM Training](#owsm-training)
-    * [How to fine-tune pre-trained OWSM](#how-to-fine-tune-pre-trained-owsm)
-  * [Related work](#related-work)
 
 ## Recipe flow
 
@@ -52,11 +55,24 @@ where `<sop>` is a special token denoting the start of prev/prompt sentence. The
 <sop> I'm going to talk today about energy and climate.<sos><en><transcribe><0.00> And that might seem a bit surprising, because my full-time work at the foundation is mostly about vaccines and seeds, about the things that we need to invent and deliver to help the poorest two billion live better lives.<14.12><15.36> But energy and climate are extremely important to these people; in fact, more important than to anyone else on the planet.<24.26><eos>
 ```
 
-During data preparation, three text files are generated:
+During data preparation, three text files should be generated:
 - `text` contains the normal target sentence, i.e., the text between `<sos>` and `<eos>`.
+    - This must include all special tokens as described above.
+    - If your data does not have timestamps, you need to use `<notimestamps>` instead. Even so, you still need to make sure that your non-linguistic symbol list (nlsyms_txt) contains [the range of all possible timestamps](https://github.com/espnet/espnet/blob/master/egs2/owsm_v1/s2t1/local/utils.py#L13-L19).
+    - `<sop>`, `<sos>`, and `<eos>` are actually inserted during preprocessing/dataloading. You only need `<language><task><starttime1> utt1<endtime1><starttime2> utt2<endtime2>`
+    - For ST (speech translation), `text` should contain the translation in the target language.
+    - See https://github.com/espnet/espnet/tree/master/egs2/owsm_v1/s2t1/local for an example of data preparation and the expected format.
 - `text.prev` contains the previous sentence, i.e., the text between `<sop>` and `<sos>`. This might be unavailable at the beginning of a talk. In such cases, a special token `<na>` will be used.
+    - This should not contain any special tokens except for `<na>`. In the example above, take the text between `<sop>` and `<sos>` and put it here.
 - `text.ctc` contains the ASR transcript without any special token, which is used for the CTC loss. For ASR utterances, this can be derived from `text`, but for ST utterances, this is in a different language. If the ASR transcription is not available, `<na>` will be used.
+    - This should not contain any special tokens (e.g. timestamps). For ASR, just take the text between `<task>` and `<eos>` and put it here (timestamps removed). For ST, `text.ctc` should contain the [ASR transcript of the source language](https://github.com/espnet/espnet/blob/master/egs2/owsm_v1/s2t1/local/prepare_covost2.py#L162) and thus will be different from `text` (the target language translation).
 
+Further notes:
+- The `text.prev` file should be called `text.prev` (with a period). Same with `text.ctc`
+    - In the training config, however, the `text_ctc_name` must be `text_ctc` (and `text_ctc_name` must be `text_ctc`)
+- If you support multiple tasks (e.g. ASR and ST), all utterances are expected to be put into `text`, `text.prev`, and `text.ctc`. The task token (e.g. `<asr>`) will distinguish between different tasks.
+- If the same utterance is used multiple times (e.g. once in ASR and once in ST), each copy of the utterance needs a unique ID. You can append the task to the utterance ID to make it unique.
+    - Use `utils/fix_data_dir.sh --utt_extra_files "utt2num_samples text.ctc text.prev" SPLIT` to ensure the file is still sorted.
 
 ### 2. Speed perturbation
 

@@ -7,6 +7,7 @@ from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
 
 @pytest.mark.parametrize("input_layer", ["linear", "conv2d", "embed", None])
 @pytest.mark.parametrize("positionwise_layer_type", ["conv1d", "conv1d-linear"])
+@pytest.mark.parametrize("qk_norm", [True, False])
 @pytest.mark.parametrize(
     "interctc_layer_idx, interctc_use_conditioning",
     [
@@ -18,6 +19,7 @@ from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
 def test_Encoder_forward_backward(
     input_layer,
     positionwise_layer_type,
+    qk_norm,
     interctc_layer_idx,
     interctc_use_conditioning,
 ):
@@ -28,6 +30,7 @@ def test_Encoder_forward_backward(
         positionwise_layer_type=positionwise_layer_type,
         interctc_layer_idx=interctc_layer_idx,
         interctc_use_conditioning=interctc_use_conditioning,
+        qk_norm=qk_norm,
     )
     if input_layer == "embed":
         x = torch.randint(0, 10, [2, 10])

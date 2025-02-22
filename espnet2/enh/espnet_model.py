@@ -5,6 +5,7 @@ from typing import Dict, List, Optional, OrderedDict, Tuple
 
 import numpy as np
 import torch
+import torchaudio
 from packaging.version import parse as V
 from typeguard import typechecked
 
@@ -15,7 +16,9 @@ from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainLoss
 from espnet2.enh.loss.criterions.time_domain import TimeDomainLoss
 from espnet2.enh.loss.wrappers.abs_wrapper import AbsLossWrapper
 from espnet2.enh.separator.abs_separator import AbsSeparator
+from espnet2.enh.separator.bsrnn_separator import BSRNNSeparator
 from espnet2.enh.separator.dan_separator import DANSeparator
+from espnet2.enh.separator.tfgridnetv3_separator import TFGridNetV3
 from espnet2.enh.separator.uses_separator import USESSeparator
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
@@ -45,6 +48,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         normalize_variance_per_ch: bool = False,
         categories: list = [],
         category_weights: list = [],
+        always_forward_in_48k: bool = False,
     ):
         """Main entry of speech enhancement/separation model training.
 
@@ -89,8 +93,13 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                 Different categories will have different loss name suffixes.
             category_weights: list of weights for each category.
                 Used to set loss weights for batches of different categories.
+            ------------------------------------------------------------------
+            always_forward_in_48k: whether to always upsample the input speech to 48kHz
+                for forward, and then downsample to the original sample rate for loss
+                calculation.
+                NOTE: this can be useful to train a model capable of handling various
+                sampling rates while unifying bandwidth extension + speech enhancement.
         """
-
         super().__init__()
 
         self.encoder = encoder
@@ -146,6 +155,8 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             self.category_weights = tuple(category_weights)
         else:
             self.category_weights = tuple(1.0 for _ in self.categories)
+
+        self.always_forward_in_48k = always_forward_in_48k
 
     def forward(
         self,
@@ -232,13 +243,37 @@ class ESPnetEnhancementModel(AbsESPnetModel):
 
         # sampling frequency information about the batch
         fs = None
+        fs_tuple = None
+        speech_lengths0 = None
         if "utt2fs" in kwargs:
             # All samples must have the same sampling rate
             fs = kwargs["utt2fs"][0].item()
             assert all([fs == kwargs["utt2fs"][0].item() for fs in kwargs["utt2fs"]])
 
-            # Adaptively adjust the STFT/iSTFT window/hop sizes for USESSeparator
-            if not isinstance(self.separator, USESSeparator):
+            tgt_fs = 48000 if self.always_forward_in_48k else fs
+            if fs != tgt_fs:
+                fs_tuple = (tgt_fs, fs)
+                speech_lengths0 = speech_lengths
+                speech_lengths = speech_lengths.new_tensor(
+                    [
+                        torchaudio.functional.resample(
+                            torch.randn(length, device="meta"), fs, tgt_fs
+                        ).size(0)
+                        for length in speech_lengths
+                    ]
+                )
+                if speech_mix.ndim > 2:
+                    speech_mix = speech_mix.transpose(1, 2).contiguous()
+                speech_mix = torchaudio.functional.resample(speech_mix, fs, tgt_fs)
+                if speech_mix.ndim > 2:
+                    speech_mix = speech_mix.transpose(1, 2).contiguous()
+                fs = tgt_fs
+
+            # Adaptively adjust the STFT/iSTFT window/hop sizes for
+            # BSRNNSeparator and USESSeparator
+            if not isinstance(
+                self.separator, (BSRNNSeparator, USESSeparator, TFGridNetV3)
+            ):
                 fs = None
 
         # category information (integer) about the batch
@@ -299,6 +334,17 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             if mix_std_.ndim > 2:
                 mix_std_ = mix_std_.squeeze(2)
             speech_pre = [sp * mix_std_ for sp in speech_pre]
+
+        # resample back to the original input sample rate
+        if self.always_forward_in_48k and fs_tuple is not None:
+            fs2, fs0 = fs_tuple
+            speech_lengths = speech_lengths0
+            speech_pre = [
+                torchaudio.functional.resample(sp, fs2, fs0)[
+                    ..., : speech_lengths0.max()
+                ]
+                for sp in speech_pre
+            ]
 
         # loss computation
         loss, stats, weight, perm = self.forward_loss(
@@ -500,15 +546,20 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                     # for models like SVoice that output multiple lists of
                     # separated signals
                     pre_is_multi_list = isinstance(spre[0], (list, tuple))
-                    if pre_is_multi_list:
-                        tf_pre = [
-                            [self.encoder(sp, speech_lengths, fs=fs)[0] for sp in ps]
-                            for ps in spre
-                        ]
-                    else:
-                        tf_pre = [
-                            self.encoder(sp, speech_lengths, fs=fs)[0] for sp in spre
-                        ]
+                    with torch.no_grad() if zero_weight else contextlib.ExitStack():
+                        if pre_is_multi_list:
+                            tf_pre = [
+                                [
+                                    self.encoder(sp, speech_lengths, fs=fs)[0]
+                                    for sp in ps
+                                ]
+                                for ps in spre
+                            ]
+                        else:
+                            tf_pre = [
+                                self.encoder(sp, speech_lengths, fs=fs)[0]
+                                for sp in spre
+                            ]
 
                 with torch.no_grad() if zero_weight else contextlib.ExitStack():
                     l, s, o = loss_wrapper(tf_ref, tf_pre, {**others, **o})

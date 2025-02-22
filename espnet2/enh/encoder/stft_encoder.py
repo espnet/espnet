@@ -120,7 +120,6 @@ class STFTEncoder(AbsEncoder):
         Args:
             fs (int): new sampling rate
         """  # noqa: H405
-        assert fs % self.default_fs == 0 or self.default_fs % fs == 0
         self.stft.n_fft = self.n_fft * fs // self.default_fs
         self.stft.win_length = self.win_length * fs // self.default_fs
         self.stft.hop_length = self.hop_length * fs // self.default_fs

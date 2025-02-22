@@ -2,12 +2,25 @@ import math
 import random
 from typing import Dict, List, Optional, Tuple, Union
 
+import librosa
 import numpy as np
 import torch
 import torchaudio
 
+# Avaiable sampling rates for bandwidth limitation
+SAMPLE_RATES = (8000, 16000, 22050, 24000, 32000, 44100, 48000)
+
+RESAMPLE_METHODS = (
+    "kaiser_best",
+    "kaiser_fast",
+    "scipy",
+    "polyphase",
+)
+
 
 def weighted_sample_without_replacement(population, weights, k, rng=random):
+    if k == 0:
+        return []
     if k > len(population):
         raise ValueError(
             "Cannot take a larger sample than population when without replacement"
@@ -517,11 +530,43 @@ def corrupt_phase(
     return ret
 
 
+def bandwidth_limitation(waveform, sample_rate: int, res_type="random"):
+    """Apply the bandwidth limitation distortion to the input signal.
+
+    Args:
+        waveform (np.ndarray): a single speech sample (..., Time)
+        sample_rate (int): input sampling rate in Hz
+        fs_new (int): effective sampling rate in Hz
+        res_type (str): resampling method
+
+    Returns:
+        ret (np.ndarray): bandwidth-limited speech sample (..., Time)
+    """
+    fs = sample_rate
+    fs_opts = [fs_new for fs_new in SAMPLE_RATES if fs_new < fs]
+    if fs_opts:
+        fs_new = np.random.choice(fs_opts)
+    else:
+        return waveform
+    if res_type == "random":
+        res_type = np.random.choice(RESAMPLE_METHODS)
+    opts = {"res_type": res_type}
+    if waveform.ndim == 1:
+        length = waveform.size(0)
+    else:
+        length = waveform.size(1)
+    ret = librosa.resample(waveform.cpu().numpy(), orig_sr=fs, target_sr=fs_new, **opts)
+    # resample back to the original sampling rate
+    ret = librosa.resample(ret, orig_sr=fs_new, target_sr=fs, **opts)
+    return torch.from_numpy(ret[:length]).to(device=waveform.device)
+
+
 effects_dict = {
     "lowpass": lowpass_filtering,
     "highpass": highpass_filtering,
     "bandpass": bandpass_filtering,
     "bandreject": bandreject_filtering,
+    "bandwidth_limitation": bandwidth_limitation,
     "contrast": contrast,
     "equalization": equalization_filtering,
     "pitch_shift": pitch_shift,

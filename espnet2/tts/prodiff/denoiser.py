@@ -343,6 +343,11 @@ class SpectogramDenoiser(nn.Module):
         post_var = beta * (1.0 - alph_prod_prv) / (1.0 - alph_prod)
         post_var = torch.log(torch.maximum(post_var, torch.full((1,), 1e-20)))
 
+        # allows non CPU denoising
+        coef1 = coef1.to(device)
+        coef2 = coef2.to(device)
+        post_var = post_var.to(device)
+
         # denoising steps
         for _step in reversed(range(0, self.timesteps)):
             # p-sample

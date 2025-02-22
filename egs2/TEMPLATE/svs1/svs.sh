@@ -68,7 +68,7 @@ pitch_extract=None
 ying_extract=None
 # Only used for the model using pitch features (e.g. FastSpeech2)
 f0min=80          # Maximum f0 for pitch extraction.
-f0max=800         # Minimum f0 for pitch extraction.
+f0max=810         # Minimum f0 for pitch extraction.
 
 oov="<unk>"         # Out of vocabrary symbol.
 blank="<blank>"     # CTC blank symbol.
@@ -1021,6 +1021,7 @@ if ! "${skip_eval}"; then
                     --train_config "${svs_exp}"/config.yaml \
                     --output_dir "${_logdir}"/output.JOB \
                     --vocoder_checkpoint "${vocoder_file}" \
+                    --svs_task "${svs_task}" \
                     ${_opts} ${_ex_opts} ${inference_args}
 
             # 4. Concatenates the output files from each jobs
@@ -1117,7 +1118,7 @@ else
 fi
 
 packed_model="${svs_exp}/${svs_exp##*/}_${inference_model%.*}.zip"
-if ! "${skip_upload}"; then
+if ! "${skip_packing}"; then
     if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
         log "Stage 9: Pack model: ${packed_model}"
 

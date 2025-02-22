@@ -1,10 +1,6 @@
 # ESPnet2
-We are planning a super major update, called `ESPnet2`. The developing status is still **under construction** yet, so please be very careful to use with understanding following cautions:
-
-- There might be fatal bugs related to essential parts.
-- We haven't achieved comparable results to espnet1 on each task yet.
-
-## Main changing from ESPnet1
+[[toc]]
+## Main changes from ESPnet1
 
 - **Chainer free**
   - Discarding Chainer completely.
@@ -24,9 +20,11 @@ We are planning a super major update, called `ESPnet2`. The developing status is
 - Support distributed data-parallel training (Not enough tested)
    - Single node multi GPU training with `DistributedDataParallel` is also supported.
 
-## Recipes using ESPnet2
+## Understanding ESPnet2 Recipes
+**Recipe** is a set of scripts that enables users to fully reproduce the experiment, such as data preparation, model definition, training, evaluation, and model release.
 
-You can find the new recipes in `egs2`:
+
+You can find the new recipes in `egs2` (shorthand for *Examples for ESPnet2*):
 
 ```
 espnet/  # Python modules of espnet1
@@ -35,71 +33,80 @@ egs/     # espnet1 recipes
 egs2/    # espnet2 recipes
 ```
 
-The usage of recipes is **almost the same** as that of ESPnet1.
+The `egs2` recipes are always structured by `egs2/<dataset>/<task>`.
+So, for example, the user should be able to fully reproduce the experiment by the following:
+```
+# Dataset: an4, Task: ASR
+cd egs2/an4/asr1/
 
+# Run the full experiment
+./run.sh
+```
+Note that the usage of recipes is **almost the same** as that of ESPnet1.
 
-1. Change directory to the base directory
+Now, let's go step-by-step on how exactly the recipes work.
 
+### Change directory to the base directory
+
+```bash
+# e.g.
+cd egs2/an4/asr1/
+```
+`an4` is a tiny corpus and can be freely obtained, so it might be suitable for this tutorial.
+You can perform any other recipes as the same way. e.g. `wsj`, `librispeech`, and etc.
+
+Keep in mind that all scripts should be ran at the level of `egs2/<dataset>/<task>`.
+
+```bash
+# Doesn't work
+cd egs2/an4/
+./asr1/run.sh
+./asr1/scripts/<some-script>.sh
+
+# Doesn't work
+cd egs2/an4/asr1/local/
+./data.sh
+
+# Works
+cd egs2/an4/asr1
+./run.sh
+./scripts/<some-script>.sh
+```
+
+### Directory structure of each recipe
+
+```
+egs2/an4/asr1/
+  - conf/      # Configuration files for training, inference, etc.
+  - scripts/   # Bash utilities of espnet2
+  - pyscripts/ # Python utilities of espnet2
+  - steps/     # From Kaldi utilities
+  - utils/     # From Kaldi utilities
+  - db.sh      # The directory path of each corpora
+  - path.sh    # Setup script for environment variables
+  - cmd.sh     # Configuration for your backend of job scheduler
+  - run.sh     # Entry point
+  - asr.sh     # Invoked by run.sh
+```
+
+### Change the configuration
+- You need to modify `db.sh` for specifying your corpus before executing `run.sh`. For example, when you touch the recipe of `egs2/wsj`, you need to change the paths of `WSJ0` and `WSJ1` in `db.sh`.
+- Some corpora can be freely obtained from the WEB and they are written as "downloads/" at the initial state. You can also change them to your corpus path if it's already downloaded.
+- `path.sh` is used to set up the environment for `run.sh`. Note that the Python interpreter used for ESPnet is not the current Python of your terminal, but it's the Python which was installed at `tools/`. Thus you need to source `path.sh` to use this Python.
     ```bash
-    # e.g.
-    cd egs2/an4/asr1/
+    . path.sh
+    python
     ```
-    `an4` is a tiny corpus and can be freely obtained, so it might be suitable for this tutorial.
-    You can perform any other recipes as the same way. e.g. `wsj`, `librispeech`, and etc.
+- `cmd.sh` is used for specifying the backend of the job scheduler. If you don't have such a system in your local machine environment, you don't need to change anything about this file. See [Using Job scheduling system](./parallelization.md)
 
-    Keep in mind that all scripts should be ran at the level of `egs2/*/{asr1,tts1,...}`.
+### `run.sh`
+```bash
+./run.sh
+```
 
-    ```bash
-    # Doesn't work
-    cd egs2/an4/
-    ./asr1/run.sh
-    ./asr1/scripts/<some-script>.sh
+`run.sh` is an example script, which we often call as "recipe", to run all stages related to DNN experiments; data-preparation, training, and evaluation.
 
-    # Doesn't work
-    cd egs2/an4/asr1/local/
-    ./data.sh
-
-    # Work
-    cd egs2/an4/asr1
-    ./run.sh
-    ./scripts/<some-script>.sh
-    ```
-
-1. Change the configuration
-    Describing the directory structure as follows:
-
-    ```
-    egs2/an4/asr1/
-     - conf/      # Configuration files for training, inference, etc.
-     - scripts/   # Bash utilities of espnet2
-     - pyscripts/ # Python utilities of espnet2
-     - steps/     # From Kaldi utilities
-     - utils/     # From Kaldi utilities
-     - db.sh      # The directory path of each corpora
-     - path.sh    # Setup script for environment variables
-     - cmd.sh     # Configuration for your backend of job scheduler
-     - run.sh     # Entry point
-     - asr.sh     # Invoked by run.sh
-    ```
-
-    - You need to modify `db.sh` for specifying your corpus before executing `run.sh`. For example, when you touch the recipe of `egs2/wsj`, you need to change the paths of `WSJ0` and `WSJ1` in `db.sh`.
-    - Some corpora can be freely obtained from the WEB and they are written as "downloads/" at the initial state. You can also change them to your corpus path if it's already downloaded.
-    - `path.sh` is used to set up the environment for `run.sh`. Note that the Python interpreter used for ESPnet is not the current Python of your terminal, but it's the Python which was installed at `tools/`. Thus you need to source `path.sh` to use this Python.
-        ```bash
-        . path.sh
-        python
-        ```
-    - `cmd.sh` is used for specifying the backend of the job scheduler. If you don't have such a system in your local machine environment, you don't need to change anything about this file. See [Using Job scheduling system](./parallelization.md)
-
-1. Run `run.sh`
-
-    ```bash
-    ./run.sh
-    ```
-
-    `run.sh` is an example script, which we often call as "recipe", to run all stages related to DNN experiments; data-preparation, training, and evaluation.
-
-## See training status
+## Seeing the training status
 
 ### Show the log file
 
@@ -128,8 +135,8 @@ eog exp/*_train_*/att_ws/<sample-id>/<param-name>.img
 tensorboard --logdir exp/*_train_*/tensorboard/
 ```
 
-# Instruction for run.sh
-## How to parse command-line arguments in shell scripts?
+## Instruction for run.sh
+### How to parse command-line arguments in shell scripts?
 
 All shell scripts in espnet/espnet2 depend on [utils/parse_options.sh](https://github.com/kaldi-asr/kaldi/blob/master/egs/wsj/s5/utils/parse_options.sh) to parase command line arguments.
 
@@ -156,7 +163,7 @@ You can also show the help message:
 ./run.sh --help
 ```
 
-## Start from a specified stage and stop at a specified stage
+### Start from a specified stage and stop at a specified stage
 The procedures in `run.sh` can be divided into some stages, e.g. data preparation, training, and evaluation. You can specify the starting stage and the stopping stage.
 
 ```sh
@@ -174,7 +181,7 @@ run.sh --skip_packing false --skip_upload_hf false  # Enable packing and uploadi
 
 Note that `skip_upload` and `skip_upload_hf` are true by default. Please change them to false when uploading your model.
 
-## Change the configuration for training
+### Change the configuration for training
 Please keep in mind that `run.sh` is a wrapper script of several tools including DNN training command.
 You need to do one of the following two ways to change the training configuration.
 
@@ -200,7 +207,7 @@ This is the case of ASR training and you need to replace it accordingly for the 
 See [Change the configuration for training](./espnet2_training_option.md) for more detail about the usage of training tools.
 
 
-## Change the number of parallel jobs
+### Change the number of parallel jobs
 
 ```sh
 ./run.sh --nj 10             # Chnage the number of parallels for data preparation stages.
@@ -210,7 +217,7 @@ See [Change the configuration for training](./espnet2_training_option.md) for mo
 We also support submitting jobs to multiple hosts to accelerate your experiment: See [Using Job scheduling system](./parallelization.md)
 
 
-## Multi GPUs training and distributed training
+### Multi GPUs training and distributed training
 
 ```sh
 ./run.sh --ngpu 4 # 4GPUs in a single node
@@ -223,13 +230,14 @@ Note that you need to setup your environment correctly to use distributed traini
 - [Distributed training](./espnet2_distributed.md)
 - [Using Job scheduling system](./parallelization.md)
 
+## Various tips
 
 ### Relationship between mini-batch size and number of GPUs
 
 The behavior of batch size in ESPnet2 during multi-GPU training is different from that in ESPnet1. **In ESPnet2, the total batch size is not changed regardless of the number of GPUs.** Therefore, you need to manually increase the batch size if you increase the number of GPUs. Please refer to this [doc](https://espnet.github.io/espnet/espnet2_training_option.html#the-relation-between-mini-batch-size-and-number-of-gpus) for more information.
 
 
-## Use specified experiment directory for evaluation
+### Use specified experiment directory for evaluation
 
 If you already have trained a model, you may wonder how to give it to run.sh when you'll evaluate it later.
 By default the directory name is determined according to given options, `asr_args`, `lm_args`, or etc.
@@ -243,7 +251,7 @@ You can overwrite it by `--asr_exp` and `--lm_exp`.
 ./run.sh --skip_data_prep true --skip_train true --tts_exp <your_tts_exp_directory>
 ```
 
-## Evaluation without training using pretrained model
+### Evaluation without training using pretrained model
 
 
 ```sh
@@ -251,8 +259,7 @@ You can overwrite it by `--asr_exp` and `--lm_exp`.
 ```
 
 You need to fill `model_name` by yourself. You can search for pretrained models on Hugging Face using the tag [espnet](https://huggingface.co/models?library=espnet)
-
-(Deprecated: See the following link about our pretrain models: https://github.com/espnet/espnet_model_zoo)
+See the following link about our pretrained models: https://github.com/espnet/espnet_model_zoo
 
 
 ### Evaluation using OpenAI Whisper
@@ -296,7 +303,7 @@ done
 ```
 
 
-## Packing and sharing your trained model
+### Packing and sharing your trained model
 
 ESPnet encourages you to share your results using platforms like [Hugging Face](https://huggingface.co/).
 
@@ -314,17 +321,16 @@ The stage number differs according to the task. Please read the task-specific sh
 The packed model can be uploaded to huggingface by setting the previously mentioned flags.
 
 
-## Usage of Self-Supervised Learning Representations as feature
+### Usage of Self-Supervised Learning Representations as feature
 
 ESPnet supports self-supervised learning representations (SSLR) to replace traditional spectrum features. In some cases, SSLRs can boost the performance.
 
 To use SSLRs in your task, you need to make several modifications.
 
-### Prerequisite
 1. Install [S3PRL](https://github.com/s3prl/s3prl) by `tools/installers/install_s3prl.sh`.
 2. If HuBERT / Wav2Vec is needed, [fairseq](https://github.com/pytorch/fairseq) should be installed by `tools/installers/install_fairseq.sh`.
 
-### Usage
+Here's various tips for using SSLRs.
 1. To reduce the time used in `collect_stats` step, please specify `--feats_normalize uttmvn` in `run.sh` and pass it as arguments to `asr.sh` or other task-specific scripts. (Recommended)
 2. In the configuration file, specify the `frontend` and `preencoder`. Taking `HuBERT` as an example:
    The `upstream` name can be whatever supported in S3PRL. `multilayer-feature=True` means the final representation is a weighted-sum of all layers' hidden states from SSLR model.
@@ -347,7 +353,6 @@ To use SSLRs in your task, you need to make several modifications.
 
 ## Streaming ASR
 ESPnet supports streaming Transformer/Conformer ASR with blockwise synchronous beam search.
-
 For more details, please refer to the [paper](https://arxiv.org/pdf/2006.14941.pdf).
 
 ### Training
@@ -465,25 +470,30 @@ For Transducer loss computation during training, we rely by default on a fork of
 
 **Note:** We made available FastEmit regularization [[Yu et al., 2021]](https://arxiv.org/pdf/2010.11148) during loss computation. To enable it, `fastemit_lambda` need to be set in `model_conf`:
 
-    model_conf:
-      fastemit_lambda: Regularization parameter for FastEmit. (float, default = 0.0)
+```yaml
+model_conf:
+  fastemit_lambda: Regularization parameter for FastEmit. (float, default = 0.0)
+```
 
 Optionnaly, we also support training with the Pruned RNN-T loss [[Kuang et al. 2022]](https://arxiv.org/pdf/2206.13236.pdf) made available in the [k2](https://github.com/k2-fsa/k2) toolkit. To use it, the parameter `use_k2_pruned_loss` should be set to `True` in `model_conf`. From here, the loss computation can be controlled by setting the following parameters through `k2_pruned_loss_args` in `model_conf`:
 
-    model_conf:
-      use_k2_pruned_loss: True
-      k2_pruned_loss_args:
-        prune_range: How many tokens by frame are used compute the pruned loss. (int, default = 5)
-        simple_loss_scaling: The weight to scale the simple loss after warm-up. (float, default = 0.5)
-        lm_scale: The scale factor to smooth the LM part. (float, default = 0.0)
-        am_scale: The scale factor to smooth the AM part. (float, default = 0.0)
-        loss_type: Define the type of path to take for loss computation, either 'regular', 'smoothed' or 'constrained'. (str, default = "regular")
+```yaml
+model_conf:
+  use_k2_pruned_loss: True
+  k2_pruned_loss_args:
+    prune_range: How many tokens by frame are used compute the pruned loss. (int, default = 5)
+    simple_loss_scaling: The weight to scale the simple loss after warm-up. (float, default = 0.5)
+    lm_scale: The scale factor to smooth the LM part. (float, default = 0.0)
+    am_scale: The scale factor to smooth the AM part. (float, default = 0.0)
+    loss_type: Define the type of path to take for loss computation, either 'regular', 'smoothed' or 'constrained'. (str, default = "regular")
+```
 
 **Note:** Because the number of tokens emitted by timestep can be restricted during training with this version, we also make available the parameter `validation_nstep`. It let the users apply similar constraints during the validation process, when reporting CER or/and WER:
 
-    model_conf:
-      validation_nstep: Maximum number of symbol expansions at each time step when reporting CER or/and WER using mAES.
-
+```yaml
+model_conf:
+  validation_nstep: Maximum number of symbol expansions at each time step when reporting CER or/and WER using mAES.
+```
 For more information, see section Inference and "modified Adaptive Expansion Search" algorithm.
 
 ### Architecture
@@ -501,36 +511,38 @@ It is similar to the custom encoder in ESPnet1, meaning we don't need to set the
 
 The first and second configurations are optional. If needed, the following parameters can be modified in each configuration:
 
-    main_conf:
-      pos_wise_act_type: Conformer position-wise feed-forward activation type. (str, default = "swish")
-      conv_mod_act_type: Conformer convolution module activation type. (str, default = "swish")
-      pos_enc_dropout_rate: Dropout rate for the positional encoding layer, if used. (float, default = 0.0)
-      pos_enc_max_len: Positional encoding maximum length. (int, default = 5000)
-      simplified_att_score: Whether to use simplified attention score computation. (bool, default = False)
-      norm_type: X-former normalization module type. (str, default = "layer_norm")
-      conv_mod_norm_type: Branchformer convolution module normalization type. (str, default = "layer_norm")
-      after_norm_eps: Epsilon value for the final normalization module. (float, default = 1e-05 or 0.25 for BasicNorm)
-      after_norm_partial: Partial value for the final normalization module, if norm_type = 'rms_norm'. (float, default = -1.0)
-      blockdrop_rate: Probability threshold of dropping out each encoder block. (float, default = 0.0)
-      # For more information on the parameters below, please refer to espnet2/asr_transducer/activation.py
-      ftswish_threshold: Threshold value for FTSwish activation formulation.
-      ftswish_mean_shift: Mean shifting value for FTSwish activation formulation.
-      hardtanh_min_val: Minimum value of the linear region range for HardTanh activation. (float, default = -1.0)
-      hardtanh_max_val: Maximum value of the linear region range for HardTanh. (float, default = 1.0)
-      leakyrelu_neg_slope: Negative slope value for LeakyReLU activation formulation.
-      smish_alpha: Alpha value for Smish variant activation fomulation. (float, default = 1.0)
-      smish_beta: Beta value for Smish variant activation formulation. (float, default = 1.0)
-      softplus_beta: Beta value for softplus activation formulation in Mish activation. (float, default = 1.0)
-      softplus_threshold: Values above this revert to a linear function in Mish activation. (int, default = 20)
-      swish_beta: Beta value for E-Swish activation formulation. (float, default = 20)
+```yaml
+main_conf:
+  pos_wise_act_type: Conformer position-wise feed-forward activation type. (str, default = "swish")
+  conv_mod_act_type: Conformer convolution module activation type. (str, default = "swish")
+  pos_enc_dropout_rate: Dropout rate for the positional encoding layer, if used. (float, default = 0.0)
+  pos_enc_max_len: Positional encoding maximum length. (int, default = 5000)
+  simplified_att_score: Whether to use simplified attention score computation. (bool, default = False)
+  norm_type: X-former normalization module type. (str, default = "layer_norm")
+  conv_mod_norm_type: Branchformer convolution module normalization type. (str, default = "layer_norm")
+  after_norm_eps: Epsilon value for the final normalization module. (float, default = 1e-05 or 0.25 for BasicNorm)
+  after_norm_partial: Partial value for the final normalization module, if norm_type = 'rms_norm'. (float, default = -1.0)
+  blockdrop_rate: Probability threshold of dropping out each encoder block. (float, default = 0.0)
+  # For more information on the parameters below, please refer to espnet2/asr_transducer/activation.py
+  ftswish_threshold: Threshold value for FTSwish activation formulation.
+  ftswish_mean_shift: Mean shifting value for FTSwish activation formulation.
+  hardtanh_min_val: Minimum value of the linear region range for HardTanh activation. (float, default = -1.0)
+  hardtanh_max_val: Maximum value of the linear region range for HardTanh. (float, default = 1.0)
+  leakyrelu_neg_slope: Negative slope value for LeakyReLU activation formulation.
+  smish_alpha: Alpha value for Smish variant activation fomulation. (float, default = 1.0)
+  smish_beta: Beta value for Smish variant activation formulation. (float, default = 1.0)
+  softplus_beta: Beta value for softplus activation formulation in Mish activation. (float, default = 1.0)
+  softplus_threshold: Values above this revert to a linear function in Mish activation. (int, default = 20)
+  swish_beta: Beta value for E-Swish activation formulation. (float, default = 20)
 
-    input_conf:
-      block_type: Input block type, either "conv2d" or "vgg". (str, default = "conv2d")
-      conv_size: Convolution output size. For "vgg", the two convolution outputs can be controlled by passing a tuple. (int, default = 256)
-      subsampling_factor: Subsampling factor of the input block, either 2 (only conv2d), 4 or 6. (int, default = 4)
+input_conf:
+  block_type: Input block type, either "conv2d" or "vgg". (str, default = "conv2d")
+  conv_size: Convolution output size. For "vgg", the two convolution outputs can be controlled by passing a tuple. (int, default = 256)
+  subsampling_factor: Subsampling factor of the input block, either 2 (only conv2d), 4 or 6. (int, default = 4)
+```
 
 The only mandatory configuration is `body_conf`, defining the encoder body architecture block by block. Each block has its own set of mandatory and optional parameters depending on the type, defined by `block_type`:
-
+```yaml
     # Branchformer
     - block_type: branchformer
       hidden_size: Hidden (and output) dimension. (int)
@@ -583,6 +595,7 @@ The only mandatory configuration is `body_conf`, defining the encoder body archi
       conv_mod_norm_partial (optional): Partial value for the ConvolutionalSpatialGatingUnit module normalization, if conv_norm_type = 'rms_norm'. (float, default = -1.0)
       dropout_rate (optional): Dropout rate for some intermediate layers. (float, default = 0.0)
       att_dropout_rate (optional): Dropout rate for the attention module. (float, default = 0.0)
+```
 
 In addition, each block has a parameter `num_blocks` to build **N** times the defined block (int, default = 1). This is useful if you want to use a group of blocks sharing the same parameters without writing each configuration.
 
@@ -621,33 +634,34 @@ encoder_conf:
 For the decoder, four types of blocks are available: stateless ('stateless'), RNN ('rnn'), MEGA ('mega') or RWKV ('rwkv'). Contrary to the encoder, the parameters are shared across the blocks, meaning we only define one block in the configuration.
 The type of the stack of blocks is defined by passing the corresponding type string to the parameter `decoder`. The internal parts are defined through the field `decoder_conf` containing the following controlable parameters:
 
-    decoder_conf:
-      embed_size: Size of the embedding layer (int, default = 256).
-      num_blocks: Number of decoder blocks/layers (int, default = 4 for MEGA or 1 for RNN).
-      rnn_type (RNN only): Type of RNN cells (int, default = "lstm").
-      hidden_size (RNN only): Size of the hidden layers (int, default = 256).
-      block_size (MEGA/RWKV only): Size of the block's input/output (int, default = 512).
-      linear_size (MEGA/RWKV only): Feed-Forward module hidden size (int, default = 1024).
-      attention_size (RWKV only): Hidden-size of the attention module. (int, default = None).
-      context_size (RWKV only): Context size for the WKV kernel module (int, default = 1024).
-      qk_size (MEGA only): Shared query and key size for attention module (int, default = 128).
-      v_size (MEGA only): Value size for attention module (int, default = 1024).
-      chunk_size (MEGA only): Chunk size for attention computation (int, default = -1, i.e. full context).
-      num_heads (MEGA only): Number of EMA heads (int, default = 4).
-      rel_pos_bias (MEGA only): Type of relative position bias in attention module (str, default = "simple").
-      max_positions (MEGA only): Maximum number of position for RelativePositionBias (int, default = 2048).
-      truncation_length (MEGA only): Maximum length for truncation in EMA module (int, default = None).
-      normalization_type (MEGA/RWKV only): Normalization layer type (str, default = "layer_norm").
-      normalization_args (MEGA/RKWV only): Normalization layer arguments (dict, default = {}).
-      activation_type (MEGA only): Activation function type (str, default = "swish").
-      activation_args (MEGA only): Activation function arguments (dict, default = {}).
-      rescale_every (RWKV only): Whether to rescale input every N blocks during inference (int, default = 0)
-      dropout_rate (excl. RWKV): Dropout rate for main block modules (float, default = 0.0).
-      embed_dropout_rate: Dropout rate for embedding layer (float, default = 0.0).
-      att_dropout_rate (MEGA/RWKV only): Dropout rate for the attention module.
-      ema_dropout_rate (MEGA only): Dropout rate for the EMA module.
-      ffn_dropout_rate (MEGA/RWKV only): Dropout rate for the feed-forward module.
-
+```yaml
+decoder_conf:
+  embed_size: Size of the embedding layer (int, default = 256).
+  num_blocks: Number of decoder blocks/layers (int, default = 4 for MEGA or 1 for RNN).
+  rnn_type (RNN only): Type of RNN cells (int, default = "lstm").
+  hidden_size (RNN only): Size of the hidden layers (int, default = 256).
+  block_size (MEGA/RWKV only): Size of the block's input/output (int, default = 512).
+  linear_size (MEGA/RWKV only): Feed-Forward module hidden size (int, default = 1024).
+  attention_size (RWKV only): Hidden-size of the attention module. (int, default = None).
+  context_size (RWKV only): Context size for the WKV kernel module (int, default = 1024).
+  qk_size (MEGA only): Shared query and key size for attention module (int, default = 128).
+  v_size (MEGA only): Value size for attention module (int, default = 1024).
+  chunk_size (MEGA only): Chunk size for attention computation (int, default = -1, i.e. full context).
+  num_heads (MEGA only): Number of EMA heads (int, default = 4).
+  rel_pos_bias (MEGA only): Type of relative position bias in attention module (str, default = "simple").
+  max_positions (MEGA only): Maximum number of position for RelativePositionBias (int, default = 2048).
+  truncation_length (MEGA only): Maximum length for truncation in EMA module (int, default = None).
+  normalization_type (MEGA/RWKV only): Normalization layer type (str, default = "layer_norm").
+  normalization_args (MEGA/RKWV only): Normalization layer arguments (dict, default = {}).
+  activation_type (MEGA only): Activation function type (str, default = "swish").
+  activation_args (MEGA only): Activation function arguments (dict, default = {}).
+  rescale_every (RWKV only): Whether to rescale input every N blocks during inference (int, default = 0)
+  dropout_rate (excl. RWKV): Dropout rate for main block modules (float, default = 0.0).
+  embed_dropout_rate: Dropout rate for embedding layer (float, default = 0.0).
+  att_dropout_rate (MEGA/RWKV only): Dropout rate for the attention module.
+  ema_dropout_rate (MEGA only): Dropout rate for the EMA module.
+  ffn_dropout_rate (MEGA/RWKV only): Dropout rate for the feed-forward module.
+```
 
 **Example 1: RNN decoder.**
 
@@ -700,12 +714,14 @@ We also support multi-task learning with two auxiliary tasks: CTC and cross-entr
 
 where the losses (L_*) are respectively, in order: The Transducer loss, the CTC loss and the LM loss. Lambda values define their respective contribution to the total loss. Each task can be parameterized using the following options, passed to `model_conf`:
 
-    model_conf:
-      transducer_weight: Weight of the Transducer loss (float, default = 1.0)
-      auxiliary_ctc_weight: Weight of the CTC loss. (float, default = 0.0)
-      auxiliary_ctc_dropout_rate: Dropout rate for the CTC loss inputs. (float, default = 0.0)
-      auxiliary_lm_loss_weight: Weight of the LM loss. (float, default = 0.2)
-      auxiliary_lm_loss_smoothing: Smoothing rate for LM loss. If > 0, label smoothing is enabled. (float, default = 0.0)
+```yaml
+model_conf:
+  transducer_weight: Weight of the Transducer loss (float, default = 1.0)
+  auxiliary_ctc_weight: Weight of the CTC loss. (float, default = 0.0)
+  auxiliary_ctc_dropout_rate: Dropout rate for the CTC loss inputs. (float, default = 0.0)
+  auxiliary_lm_loss_weight: Weight of the LM loss. (float, default = 0.2)
+  auxiliary_lm_loss_smoothing: Smoothing rate for LM loss. If > 0, label smoothing is enabled. (float, default = 0.0)
+```
 
 **Note:** We do not support other auxiliary tasks in ESPnet2 yet.
 
@@ -720,19 +736,23 @@ Various decoding algorithms are also available for Transducer by setting `search
 
 The algorithms share two parameters to control the beam size (`beam_size`) and the partial/final hypotheses normalization (`score_norm`). In addition, three algorithms have specific parameters:
 
-    # Time-synchronous decoding
-    search_type: tsd
-    max_sym_exp : Number of maximum symbol expansions at each time step. (int > 1, default = 3)
-
-    # Alignement-Length Synchronous decoding
-    search_type: alsd
-    u_max: Maximum expected target sequence length. (int, default = 50)
-
-    # modified Adaptive Expansion Search
-    search_type: maes
-    nstep: Number of maximum expansion steps at each time step (int, default = 2)
-    expansion_gamma: Number of additional candidates in expanded hypotheses selection. (int, default = 2)
-    expansion_beta: Allowed logp difference for prune-by-value method. (float, default = 2.3)
+- Time-synchronous decoding
+```yaml
+search_type: tsd
+max_sym_exp : Number of maximum symbol expansions at each time step. (int > 1, default = 3)
+```
+- Alignement-Length Synchronous decoding
+```yaml
+search_type: alsd
+u_max: Maximum expected target sequence length. (int, default = 50)
+```
+- Modified Adaptive Expansion Search
+```yaml
+search_type: maes
+nstep: Number of maximum expansion steps at each time step (int, default = 2)
+expansion_gamma: Number of additional candidates in expanded hypotheses selection. (int, default = 2)
+expansion_beta: Allowed logp difference for prune-by-value method. (float, default = 2.3)
+```
 
 ***Note:*** Except for the default algorithm, the described parameters are used to control the performance and decoding speed. The optimal values for each parameter are task-dependent; a high value will typically increase decoding time to focus on performance while a low value will improve decoding time at the expense of performance.
 
@@ -750,17 +770,20 @@ To train a streaming model, the parameter `dynamic_chunk_training` should be set
 
 All these parameters can be configured through `main_conf`, introduced in the Encoder section:
 
-    dynamic_chunk_training: Whether to train streaming model with dynamic chunks. (bool, default = False)
-    short_chunk_threshold: Chunk length threshold (in percent) for dynamic chunk selection. (int, default = 0.75)
-    short_chunk_size: Minimum number of frames during dynamic chunk training. (int, default = 25)
-    num_left_chunks: The number of left chunks the attention module can see during training, where the actual size is defined by `short_chunk_threshold` and `short_chunk_size`. (int, default = 0, i.e. full context)
-
+```yaml
+dynamic_chunk_training: Whether to train streaming model with dynamic chunks. (bool, default = False)
+short_chunk_threshold: Chunk length threshold (in percent) for dynamic chunk selection. (int, default = 0.75)
+short_chunk_size: Minimum number of frames during dynamic chunk training. (int, default = 25)
+num_left_chunks: The number of left chunks the attention module can see during training, where the actual size is defined by `short_chunk_threshold` and `short_chunk_size`. (int, default = 0, i.e. full context)
+```
 #### Decoding
 
 To perform chunk-by-chunk inference, the parameter `streaming` should be set to True in the decoding configuration (otherwise, offline decoding will be performed). Two parameters are available to control the decoding process:
 
-    decoding_window: The input audio length, in milliseconds, to process during decoding. (int, default = 640)
-    left_context: Number of previous frames (AFTER subsampling) the attention module can see in current chunk. (int, default = 32)
+```yaml
+decoding_window: The input audio length, in milliseconds, to process during decoding. (int, default = 640)
+left_context: Number of previous frames (AFTER subsampling) the attention module can see in current chunk. (int, default = 32)
+```
 
 ***Note:*** All search algorithms but ALSD are available with chunk-by-chunk inference.
 

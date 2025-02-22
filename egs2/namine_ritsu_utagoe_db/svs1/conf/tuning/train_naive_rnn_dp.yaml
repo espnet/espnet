@@ -7,7 +7,7 @@ svs: naive_rnn_dp                   # model architecture
 svs_conf:                        # keyword arguments for the selected model
     midi_dim: 129                # midi dimension (note number + silence)
     embed_dim: 512               # char or phn embedding dimension
-    tempo_dim: 500
+    duration_dim: 500
     eprenet_conv_layers: 0       # prenet (from bytesing) conv layers
     eprenet_conv_chans: 256      # prenet (from bytesing) conv channels numbers
     eprenet_conv_filts: 3        # prenet (from bytesing) conv filters size
@@ -29,8 +29,12 @@ svs_conf:                        # keyword arguments for the selected model
     postnet_dropout_rate: 0.5    # postnet dropout_rate
     init_type: pytorch           # parameter initialization
     use_masking: true            # whether to apply masking for padded part in loss calculation
-    use_mixup_training: False    # Default: False
-    loss_mixup_wight: 0          # Default: 0
+
+# extra module for additional inputs
+pitch_extract: dio           # pitch extractor type
+pitch_extract_conf:
+    use_token_averaged_f0: false
+pitch_normalize: global_mvn  # normalizer for the pitch feature
 
 
 ##########################################################
@@ -51,19 +55,8 @@ grad_clip: 1.0              # gradient clipping norm
 grad_noise: false           # whether to use gradient noise injection
 accum_grad: 1               # gradient accumulation
 
-# batch_bins: 1000000       # batch bins (for feats_type=fbank)
-# batch_bins: 10000000         # batch bins (for feats_type=raw, *= n_shift / n_mels)
-# batch_type: numel           # how to make batch
-
 batch_type: sorted
-batch_size: 8
-
-pitch_aug_min: 0            # Default: 0, [-1,-2,-3]
-pitch_aug_max: 0            # Default: 0, [1,2,3]
-time_aug_min: 1             # Default: 1, [0.99]
-time_aug_max: 1             # Default: 1, [1.01]
-random_crop: False          # Default: False, crop length [0.9 * length, length]
-mask_aug: False             # Default: False, random mask length 1500 samples
+batch_size: 16
 
 sort_in_batch: descending   # how to sort data in making batch
 sort_batch: descending      # how to sort created batches
@@ -80,5 +73,3 @@ best_model_criterion:
 -   - train
     - loss
     - min
-
-gpu_id: 0

@@ -322,6 +322,8 @@ class BranchformerEncoder(AbsEncoder):
         zero_triu: bool = False,
         padding_idx: int = -1,
         stochastic_depth_rate: Union[float, List[float]] = 0.0,
+        qk_norm: bool = False,
+        use_flash_attn: bool = True,
     ):
         super().__init__()
         self._output_size = output_size
@@ -414,11 +416,27 @@ class BranchformerEncoder(AbsEncoder):
             raise ValueError("unknown input_layer: " + input_layer)
 
         if attention_layer_type == "selfattn":
+            # Default to flash attention unless overrided by user
+            if use_flash_attn:
+                try:
+                    from espnet2.torch_utils.get_flash_attn_compatability import (
+                        is_flash_attn_supported,
+                    )
+
+                    use_flash_attn = is_flash_attn_supported()
+                    import flash_attn
+                except Exception:
+                    use_flash_attn = False
+
             encoder_selfattn_layer = MultiHeadedAttention
             encoder_selfattn_layer_args = (
                 attention_heads,
                 output_size,
                 attention_dropout_rate,
+                qk_norm,
+                use_flash_attn,
+                False,
+                False,
             )
         elif attention_layer_type == "legacy_rel_selfattn":
             assert pos_enc_layer_type == "legacy_rel_pos"
