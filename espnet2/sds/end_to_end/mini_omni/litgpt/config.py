@@ -1,6 +1,5 @@
 # Copyright Lightning AI. Licensed under the Apache License 2.0, see LICENSE file.
 
-from copy import deepcopy
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal, Optional, Type, Union
@@ -152,7 +151,9 @@ class Config:
     @classmethod
     def from_checkpoint(cls, path: Path, **kwargs: Any) -> Self:
         """Automatically load `model_config.yaml` and if it doesn't
-        exist - a matching config from `litgpt/config.py`."""
+
+        exist - a matching config from `litgpt/config.py`.
+        """
         if (config_path := path / "model_config.yaml").is_file():
             return cls.from_file(config_path, **kwargs)
         if (model_name := path.name) in name_to_config:

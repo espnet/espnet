@@ -2,6 +2,7 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """E-Branchformer encoder definition.
+
 Reference:
     Kwangyoun Kim, Felix Wu, Yifan Peng, Jing Pan,
     Prashant Sridhar, Kyu J. Han, Shinji Watanabe,
@@ -354,7 +355,7 @@ class EBranchformerEncoder(AbsEncoder):
                     )
 
                     use_flash_attn = is_flash_attn_supported()
-                    import flash_attn
+                    import flash_attn  # noqa
                 except Exception:
                     use_flash_attn = False
 
