@@ -646,8 +646,8 @@ def roll_tensor(
     roll_amounts: Optional[torch.Tensor] = None,
     fixed_intervals: Optional[int] = None,
 ) -> torch.Tensor:
-    """Left-roll tensor x by roll_amounts, only within lengths and
-        optionally quantized.
+    """Left-roll tensor x by roll_amounts, only within lengths and optionally quantized.
+
     Args:
         x: input tensor (B, T, D)
         lengths: lengths of each sequence (B,)
