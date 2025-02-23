@@ -496,8 +496,8 @@ if ! "${skip_eval}"; then
             _ngpu=0
         fi
 
-        log "Generate '${cls_exp}/run.sh'. You can resume the process from stage 6 using this script"
-        mkdir -p "${cls_exp}"; echo "${run_args} --stage 6 \"\$@\"; exit \$?" > "${cls_exp}/run.sh"; chmod +x "${cls_exp}/run.sh"
+        log "Generate '${cls_exp}/run.sh'. You can resume the process from stage 7 using this script"
+        mkdir -p "${cls_exp}"; echo "${run_args} --stage 7 \"\$@\"; exit \$?" > "${cls_exp}/run.sh"; chmod +x "${cls_exp}/run.sh"
 
         for dset in "${valid_set}" ${test_sets}; do
             _data="${data_feats}/${dset}"

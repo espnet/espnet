@@ -1,20 +1,20 @@
 optim: adamw
 optim_conf:
-    lr: 1.0e-4
+    lr: 1.0e-5
     weight_decay: 1.0e-2
     betas: [0.9, 0.98]
 
 accum_grad: 1
 
-batch_size: 32 # 12.5 steps per epoch with 1600 samples
+batch_size: 16
 max_epoch: 1000
 
 scheduler: CosineAnnealingWarmupRestarts
 scheduler_conf:
-    first_cycle_steps: 6000
+    first_cycle_steps: 800
     warmup_steps: 300
-    max_lr: 1.0e-4
-    min_lr: 5.0e-6
+    max_lr: 1.0e-5
+    min_lr: 1.0e-6
 
 # BEATs implementation takes care of generating mel spectrogram, normalization and specaug
 frontend: none
@@ -63,6 +63,10 @@ encoder_conf:
     roll_augment: true
     roll_interval: 16000 # 1 second, only 5 possible augmentations per sample
     use_weighted_representation: false
+
+freeze_param: [
+    "text_encoder",
+]
 
 text_encoder: hugging_face_transformers
 text_encoder_conf:
