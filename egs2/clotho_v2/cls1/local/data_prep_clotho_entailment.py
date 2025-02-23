@@ -1,4 +1,5 @@
 """Prepares data for Clotho audio entailment dataset.
+
 Run with
 python egs2/clotho_v2/cls1/local/data_prep_clotho_entailment.py ${INPUT_DIR} ${OUTPUT_DIR}
 """
@@ -52,7 +53,11 @@ def prepare_data(input_dir, output_dir, audio_dir, csv_dir):
     """
     Prepares the Clotho entailment dataset for training and evaluation.
     """
-    split_names = ["development", "validation", "evaluation"]
+    split_names = [
+        "development",
+        "validation",
+        "evaluation",
+    ]
 
     for data_split in split_names:
         missing_audio = []
@@ -64,16 +69,17 @@ def prepare_data(input_dir, output_dir, audio_dir, csv_dir):
         hypothesis_dict = read_hypothesis_text(hypthesis_path)
 
         n_processed = 0
-        os.makedirs(os.path.join(output_dir, data_split), exist_ok=True)
+        write_data_split = f"{data_split}_cle"
+        os.makedirs(os.path.join(output_dir, write_data_split), exist_ok=True)
 
         with open(
-            os.path.join(output_dir, data_split, "wav.scp"), "w", encoding="utf-8"
+            os.path.join(output_dir, write_data_split, "wav.scp"), "w", encoding="utf-8"
         ) as wav_scp_f, open(
-            os.path.join(output_dir, data_split, "utt2spk"), "w", encoding="utf-8"
+            os.path.join(output_dir, write_data_split, "utt2spk"), "w", encoding="utf-8"
         ) as utt2spk_f, open(
-            os.path.join(output_dir, data_split, "text"), "w", encoding="utf-8"
+            os.path.join(output_dir, write_data_split, "text"), "w", encoding="utf-8"
         ) as text_f, open(
-            os.path.join(output_dir, data_split, "hypothesis.txt"),
+            os.path.join(output_dir, write_data_split, "hypothesis.txt"),
             "w",
             encoding="utf-8",
         ) as hyp_f:
@@ -85,7 +91,7 @@ def prepare_data(input_dir, output_dir, audio_dir, csv_dir):
                     continue
 
                 for hyp_text, label in hypotheses:
-                    uttid = f"{data_split}_clotho_{idx}"
+                    uttid = f"{write_data_split}_clotho_{idx}"
                     print(f"{uttid} dummy", file=utt2spk_f)
                     print(f"{uttid} {audio_path}", file=wav_scp_f)
                     print(f"{uttid} {label}", file=text_f)

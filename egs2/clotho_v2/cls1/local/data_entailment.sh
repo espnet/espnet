@@ -34,26 +34,28 @@ if [ "${CLOTHO_ENTAILMENT}" == "downloads" ]; then
     log "Downlaoding clotho into ${CLOTHO_ENTAILMENT_ROOT_DIR}."
     mkdir -p "${CLOTHO_ENTAILMENT_ROOT_DIR}"
 
-    if [ ! -e "${CLOTHO_ENTAILMENT_ROOT_DIR}/download_done" ]; then
-        log "stage 1: Data preparation - Installing aac-datasets"
-        if ! pip3 install aac-datasets; then
-            log "Error: Installing aac-datasets failed."
-            exit 1
-        fi
-        for split in val eval dev; do
-            log "Downloading ${split} split."
-            if ! aac-datasets-download --root "${CLOTHO_ENTAILMENT_ROOT_DIR}" clotho --subsets "${split}"; then
-                log "Error: Downloading Clotho dataset failed."
+    if [ ! -e "${CLOTHO_ENTAILMENT_ROOT_DIR}/entailment_download_done" ]; then
+        if [ ! -e "${CLOTHO_ENTAILMENT_ROOT_DIR}/audio_download_done" ]; then    
+            log "stage 1: Data preparation - Installing aac-datasets"
+            if ! pip3 install aac-datasets; then
+                log "Error: Installing aac-datasets failed."
                 exit 1
             fi
-        done
-        pwd_=$(pwd)
-        cd "${CLOTHO_ENTAILMENT_ROOT_DIR}"
-        git clone https://github.com/microsoft/AudioEntailment.git
-        cd ${pwd_}
-        touch "${CLOTHO_ENTAILMENT_ROOT_DIR}/download_done"
+            for split in val eval dev; do
+                log "Downloading ${split} split."
+                if ! aac-datasets-download --root "${CLOTHO_ENTAILMENT_ROOT_DIR}" clotho --subsets "${split}"; then
+                    log "Error: Downloading Clotho dataset failed."
+                    exit 1
+                fi
+            done
+            touch "${CLOTHO_ENTAILMENT_ROOT_DIR}/audio_download_done"
+        else
+            log "Clotho audio is already downloaded. ${CLOTHO_ENTAILMENT_ROOT_DIR}/audio_download_done exists."
+        fi
+        git clone https://github.com/microsoft/AudioEntailment.git ${CLOTHO_ENTAILMENT_ROOT_DIR}/
+        touch "${CLOTHO_ENTAILMENT_ROOT_DIR}/entailment_download_done"
     else
-        log "Clotho dataset is already downloaded. ${CLOTHO_ENTAILMENT_ROOT_DIR}/download_done exists."
+        log "Clotho dataset is already downloaded. ${CLOTHO_ENTAILMENT_ROOT_DIR}/entailment_download_done exists."
     fi
 else
     CLOTHO_ENTAILMENT_ROOT_DIR=${CLOTHO_ENTAILMENT}
@@ -71,7 +73,7 @@ python3 local/data_prep_clotho_entailment.py ${CLOTHO_ENTAILMENT_ROOT_DIR} ${DAT
 ##########
 
 # SORT ALL
-SPLITS=(development validation evaluation)
+SPLITS=(development_entailment validation_entailment evaluation_entailment)
 for split_name in "${SPLITS[@]}"; do
     for f in wav.scp utt2spk text hypothesis.txt; do
         if [ -f "${DATADIR}/${split_name}/${f}" ]; then

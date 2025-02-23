@@ -30,30 +30,25 @@ DATADIR=$1
 ## DOWNLOAD DATA if CLOTHO_AQA is set to downloads
 if [ "${CLOTHO_AQA}" == "downloads" ]; then
     # If there is no argument, the default download directory is set to currentdir/downloads
-    CLOTHO_AQA_ROOT_DIR="${DATADIR}/downloads"
+    CLOTHO_AQA_ROOT_DIR="${DATADIR}/downloads/AQA"
     log "Downlaoding clotho into ${CLOTHO_AQA_ROOT_DIR}."
     mkdir -p "${CLOTHO_AQA_ROOT_DIR}"
 
-    if [ ! -e "${CLOTHO_AQA_ROOT_DIR}/download_done" ]; then
-        log "stage 1: Data preparation - Installing aac-datasets"
-        if ! pip3 install aac-datasets; then
-            log "Error: Installing aac-datasets failed."
-            exit 1
+    if [ ! -e "${CLOTHO_AQA_ROOT_DIR}/aqa_download_done" ]; then
+        if [ ! -e "${CLOTHO_AQA_ROOT_DIR}/audio_download_done" ]; then    
+            log "stage 1: Data preparation"
+            wget -P ${CLOTHO_AQA_ROOT_DIR}/ https://zenodo.org/records/6473207/files/audio_files.zip
+            unzip ${CLOTHO_AQA_ROOT_DIR}/audio_files.zip -d ${CLOTHO_AQA_ROOT_DIR}
+            touch "${CLOTHO_AQA_ROOT_DIR}/audio_download_done"
+        else
+            log "Clotho audio is already downloaded. ${CLOTHO_AQA_ROOT_DIR}/audio_download_done exists."
         fi
-        for split in val eval dev; do
-            log "Downloading ${split} split."
-            if ! aac-datasets-download --root "${CLOTHO_AQA_ROOT_DIR}" clotho --subsets "${split}"; then
-                log "Error: Downloading Clotho dataset failed."
-                exit 1
-            fi
-        done
-        pwd_=$(pwd)
-        cd "${CLOTHO_AQA_ROOT_DIR}"
-        git clone https://github.com/microsoft/AudioEntailment.git
-        cd ${pwd_}
-        touch "${CLOTHO_AQA_ROOT_DIR}/download_done"
+        for split in test val train; do
+            wget -P ${CLOTHO_AQA_ROOT_DIR}/ "https://zenodo.org/records/6473207/files/clotho_aqa_${split}.csv"
+        done        
+        touch "${CLOTHO_AQA_ROOT_DIR}/aqa_download_done"
     else
-        log "Clotho dataset is already downloaded. ${CLOTHO_AQA_ROOT_DIR}/download_done exists."
+        log "Clotho AQA dataset is already downloaded. ${CLOTHO_AQA_ROOT_DIR}/aqa_download_done exists."
     fi
 else
     CLOTHO_AQA_ROOT_DIR=${CLOTHO_AQA}
@@ -63,17 +58,17 @@ CLOTHO_AQA_ROOT_DIR=$(realpath ${CLOTHO_AQA_ROOT_DIR})
 log "Using the data directory: ${CLOTHO_AQA_ROOT_DIR}"
 
 # Prepare data in the Kaldi format:
-# text, questions, wav.scp, utt2spk
+# text, question.txt, wav.scp, utt2spk
 # text is the label pos, neg, neutral
-# questions is a question about the audio
+# question.txt contains question about the audio
 ##########
 python3 local/data_prep_clotho_aqa.py ${CLOTHO_AQA_ROOT_DIR} ${DATADIR}
 ##########
 
 # SORT ALL
-SPLITS=(development validation evaluation)
+SPLITS=(development_aqa validation_aqa evaluation_aqa)
 for split_name in "${SPLITS[@]}"; do
-    for f in wav.scp utt2spk text questions.txt; do
+    for f in wav.scp utt2spk text question.txt; do
         if [ -f "${DATADIR}/${split_name}/${f}" ]; then
             sort "${DATADIR}/${split_name}/${f}" -o "${DATADIR}/${split_name}/${f}"
         fi

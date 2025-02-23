@@ -7,7 +7,7 @@ optim_conf:
 accum_grad: 1
 
 batch_size: 16
-max_epoch: 1000
+max_epoch: 100
 
 scheduler: CosineAnnealingWarmupRestarts
 scheduler_conf:
