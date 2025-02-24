@@ -497,7 +497,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
             --data_path_and_name_and_type ${_inference_dir}/trial.scp,speech,sound \
             --data_path_and_name_and_type ${_inference_dir}/trial2.scp,speech2,sound \
             --data_path_and_name_and_type ${_inference_dir}/trial_label,spk_labels,text \
-            --shape_file ${spk_stats_dir}/test/speech_shape \
+            --shape_file ${spk_stats_dir}/valid/speech_shape \
             --fold_length ${fold_length} \
             --config ${inference_config} \
             --spk_train_config "${spk_exp}/config.yaml" \
