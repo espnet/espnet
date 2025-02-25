@@ -183,12 +183,10 @@ token_list=${datadir}/token_list
 
 
 if [[ "${classification_type}" == "multi-label" ]]; then
-    if ! "${use_lightning}"; then
+    if [[ "${use_lightning}" != "true" ]]; then
         log "Multi-label classification is only supported with PyTorch Lightning trainer. Please set --use_lightning true."
-        # This is to ensure mAP logging at each epoch.
         exit 1
     fi
-    use_lightning=true
 fi
 # ========================== Main stages start from here. ==========================
 
