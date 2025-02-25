@@ -6,6 +6,7 @@ set -u
 set -o pipefail
 
 
-# ./run_entailment.sh
+./run_entailment.sh
 
-./run_aqa.sh
+./run_aqa_yn.sh
+./run_aqa_open.sh

@@ -70,6 +70,7 @@ download_model=
 inference_model=valid.acc.best.pth
 inference_tag=    # Suffix to the inference dir for cls model inference
 output_all_probabilities=true
+decoding_batch_size=1
 
 hf_repo=        # Huggingface repo name
 
@@ -123,6 +124,7 @@ Options:
     --inference_model  # classification model path for inference (default="${inference_model}").
     --inference_tag    # Suffix to the inference dir for cls model inference
     --output_all_probabilities # Output all probabilities in the inference stage (default="${output_all_probabilities}").
+    --decoding_batch_size # Batch size in inference (default="${decoding_batch_size}").
     # Huggingface related
     --hf_repo        # Huggingface repo name (default="${hf_repo}").
     # [Task dependent] Set the datadir name created by local/data.sh
@@ -531,7 +533,6 @@ if ! "${skip_eval}"; then
             fi
             if [ "$speech_text_classification" ]; then
                 _opts+="--data_path_and_name_and_type ${_data}/${text_input_filename},text,text "
-                _opts+="--text_bpemodel ${text_bpemodel} "
             fi
 
             # 2. Submit inference jobs
@@ -546,6 +547,7 @@ if ! "${skip_eval}"; then
                     --classification_model_file "${cls_exp}/${inference_model}" \
                     --output_dir "${_logdir}"/output.JOB \
                     --output_all_probabilities ${output_all_probabilities} \
+                    --batch_size "${decoding_batch_size}" \
                     ${_opts} || { cat $(grep -l -i error "${_logdir}"/cls_inference.*.log) ; exit 1; }
 
             # 3. Concatenates the output files from each jobs
@@ -561,7 +563,7 @@ if ! "${skip_eval}"; then
         log "Stage 8: Scoring"
         _cmd=${decode_cmd}
 
-        for dset in "${valid_set}" ${test_sets}; do
+        for dset in  "${test_sets}" "${valid_set}"; do
             _data="${data_feats}/${dset}"
             _inf_dir="${cls_exp}/cls_${dset}"
             _dir="${cls_exp}/cls_${dset}/scoring"

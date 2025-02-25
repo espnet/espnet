@@ -204,7 +204,7 @@ class ESPnetClassificationModel(AbsESPnetModel):
     def score(
         self,
         speech: torch.Tensor,
-        speech_lengths: Optional[torch.Tensor] = None,
+        speech_lengths: torch.Tensor,
         text: Optional[torch.Tensor] = None,
         text_lengths: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
@@ -219,16 +219,19 @@ class ESPnetClassificationModel(AbsESPnetModel):
             scores: (Batch, n_classes)
         Assumes Batch=1
         """
-        batch = speech.size(0)
-        assert batch == 1, "Batch size must be 1 for scoring."
-        if speech_lengths is None:
-            speech_lengths = torch.tensor([speech.size(1)], device=speech.device)
+        # batch = speech.size(0)
+        # assert batch == 1, "Batch size must be 1 for scoring."
         encoder_out, encoder_out_lens = self.encode(
             speech, speech_lengths, text, text_lengths
         )
-        logits, _ = self.decoder.score(x=encoder_out.squeeze(0), ys=None, state=None)
-        scores = self.classification_function(logits)
-        return scores.unsqueeze(0)
+        scores = []
+        for enc, enc_len in zip(encoder_out, encoder_out_lens):
+            enc = enc[:enc_len]
+            logits, _ = self.decoder.score(x=enc, ys=None, state=None)
+            score = self.classification_function(logits)
+            scores.append(score)
+        scores = torch.stack(scores, dim=0)
+        return scores
 
     def collect_feats(
         self,

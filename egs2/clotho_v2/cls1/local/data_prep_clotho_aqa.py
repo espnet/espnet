@@ -13,7 +13,7 @@ from string import punctuation
 # strip_punct_table = str.maketrans("", "", punctuation)
 
 
-def prepare_data(input_dir, output_dir, audio_dir, csv_pattern):
+def prepare_data(input_dir, output_dir, audio_dir, csv_pattern, task_type="yn"):
     """
     Prepares the Clotho entailment dataset for training and evaluation.
     """
@@ -57,6 +57,17 @@ def prepare_data(input_dir, output_dir, audio_dir, csv_pattern):
                 question = row["QuestionText"].strip().lower()
                 label = row["answer"].strip().lower()
 
+                if task_type == "yn":
+                    # only prepare yes/no set
+                    if label != "yes" and label != "no":
+                        continue
+                elif task_type == "open":
+                    # only prepare open set
+                    if label == "yes" or label == "no":
+                        continue
+                else:
+                    raise ValueError(f"Invalid task_type {task_type}")
+
                 uttid = f"{write_data_plit}_clotho_{idx}"
                 print(f"{uttid} dummy", file=utt2spk_f)
                 print(f"{uttid} {audio_path}", file=wav_scp_f)
@@ -76,7 +87,8 @@ def prepare_data(input_dir, output_dir, audio_dir, csv_pattern):
 if __name__ == "__main__":
     INPUT_DIR = sys.argv[1]
     OUTPUT_DIR = sys.argv[2]
+    task_type = sys.argv[3]  # yn or open
     AUDIO_DIR = "audio_files"
     CSV_PATTERN = "clotho_aqa_{split}.csv"
 
-    prepare_data(INPUT_DIR, OUTPUT_DIR, AUDIO_DIR, CSV_PATTERN)
+    prepare_data(INPUT_DIR, OUTPUT_DIR, AUDIO_DIR, CSV_PATTERN, task_type)
