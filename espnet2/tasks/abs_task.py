@@ -459,7 +459,8 @@ class AbsTask(ABC):
             "--deepspeed_config",
             default=None,
             type=str,
-            help="deepspeed training config",
+            help="Deepspeed training config. "
+            "This can be a base64 encoded json string or a path to a json file",
         )
 
         group = parser.add_argument_group("cudnn mode related")
@@ -1534,9 +1535,9 @@ class AbsTask(ABC):
                         name=name,
                         dir=str(output_dir),
                         id=args.wandb_id,
-                        resume='allow' if args.resume else 'never',
+                        resume="allow" if args.resume else "never",
                     )
-                    # allow_val_change allows change of master port 
+                    # allow_val_change allows change of master port
                     # when previous run with same name had a different one
                     wandb.config.update(args, allow_val_change=args.resume)
                 else:
