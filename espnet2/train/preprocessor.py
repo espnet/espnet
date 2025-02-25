@@ -1948,6 +1948,8 @@ class SpkPreprocessor(CommonPreprocessor):
         short_noise_thres: float = 0.5,
     ):
 
+        self.train = train
+
         if rir_apply_prob == 0:
             self.rir_scp = None
         else:
