@@ -1955,7 +1955,7 @@ class SpkPreprocessor(CommonPreprocessor):
         else:
             self.rir_scp = rir_scp
         super().__init__(train, rir_scp=self.rir_scp, rir_apply_prob=rir_apply_prob)
-        
+
         self.spk2label = None  # a dictionary that maps string speaker label to int
         self.sample_rate = sample_rate
         self.target_duration = int(target_duration * sample_rate)
