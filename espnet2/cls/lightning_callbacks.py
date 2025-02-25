@@ -14,13 +14,15 @@ class MultilabelAUPRCCallback(Callback):
     """Computes and logs Multilabel AUPRC (mAP) at the end of each validation epoch.
 
     To use this callback, you must implement a `update_mAP` method in the espnet
-    model wrapped inside your LightningModule that accepts a `MultilabelAUPRC` object
-    and calls its `update` method with predictions and targets. For example:
+    model that accepts a `MultilabelAUPRC` object and calls its `update` method
+    with predictions and targets.
+    For example:
     ```python
-    class MyLightningModule(pl.LightningModule):
-        def update_mAP(self, mAP_function):
+    class MyESPnetModel(AbsESPnetModel):
+        def update_mAP(self, mAP_function: MultilabelAUPRC):
             ...
             mAP_function.update(predictions, targets)
+            ...
     ```
     The model should also have a `get_vocab_size()` function that
     specifies the number of labels/classes.
