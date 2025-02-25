@@ -1,7 +1,4 @@
-"""Prepares data for self-supervised audio only training with WavCaps.
-This covers BBC Soundeffects, FreeSound, and SoundBible datasets.
-We don't include AudioSet_SL because it is already included in AudioSet.
-"""
+"""Prepares data for self-supervised audio only training with inat sounds."""
 
 import numpy as np
 import soundfile as sf
@@ -16,7 +13,6 @@ DATA_READ_DIR = sys.argv[1]
 DATA_WRITE_DIR = sys.argv[2]
 PARALLELISM = int(sys.argv[3]) if len(sys.argv) > 3 else 1
 SPLIT_THRESHOLD_SECONDS = 10
-MAX_SPLITS = 100
 
 
 def split_flac_into_chunks(audio_path: str, audio_duration: float, chunk_size: float):
@@ -32,7 +28,6 @@ def split_flac_into_chunks(audio_path: str, audio_duration: float, chunk_size: f
     total_samples = int(sample_rate * audio_duration)
     chunk_samples = int(sample_rate * chunk_size)
     num_chunks = total_samples // chunk_samples
-    num_chunks = min(num_chunks, MAX_SPLITS)
 
     chunks = {}
     for i in range(num_chunks):
@@ -43,18 +38,17 @@ def split_flac_into_chunks(audio_path: str, audio_duration: float, chunk_size: f
 
     if total_samples % chunk_samples != 0:
         start_sample = num_chunks * chunk_samples
-        end_sample = start_sample + chunk_samples
         chunk_name = f"{filename}.chunk_{num_chunks+1}.flac"
-        chunks[chunk_name] = audio_data[start_sample:end_sample]
+        chunks[chunk_name] = audio_data[start_sample:]
 
     return chunks, sample_rate
 
 
-def process_file(data, dataset, audio_dir, data_write_dir, wav_scp_f, wavscplock):
+def process_file(data, data_write_dir, wav_scp_f, wavscplock):
     """Processes a single file, handling splitting and writing metadata."""
     file_id = data["id"]
-    uttid = f"{dataset}.{file_id}"
-    audio_path = os.path.join(DATA_READ_DIR, audio_dir, f"{file_id}.flac")
+    audio_path = os.path.join(DATA_READ_DIR, data["file_name"])
+    uttid = f"inat_sounds.{file_id}"
 
     if not os.path.exists(audio_path) or data["duration"] <= 0.2:
         return None
@@ -65,7 +59,9 @@ def process_file(data, dataset, audio_dir, data_write_dir, wav_scp_f, wavscplock
             audio_path, data["duration"], SPLIT_THRESHOLD_SECONDS
         )
         for chunk_name, audio in audio_chunks.items():
-            chunk_path = os.path.join(data_write_dir, dataset, "chunked", chunk_name)
+            chunk_path = os.path.join(
+                data_write_dir, "inat_sounds", "chunked", chunk_name
+            )
             os.makedirs(os.path.dirname(chunk_path), exist_ok=True)
             sf.write(chunk_path, audio, sr)
             audio_paths.append(chunk_path)
@@ -82,15 +78,13 @@ def process_file(data, dataset, audio_dir, data_write_dir, wav_scp_f, wavscplock
     return len(lines_to_write)
 
 
-def process_dataset(dataset, json_name, data_read_dir, data_write_dir, wavscplock):
-    print(f"Processing {dataset}...")
-    json_path = os.path.join(data_read_dir, "json_files", dataset, json_name)
-    audio_dir = f"Zip_files/{dataset}/mnt/fast/nobackup/scratch4weeks/xm00178/WavCaps/data/waveforms/{dataset}_flac"
-
+def process_dataset(json_name, data_read_dir, data_write_dir, wavscplock):
+    print(f"Processing inat sounds...")
+    json_path = os.path.join(data_read_dir, json_name)
     with open(json_path, "r") as f:
         json_d = json.load(f)
 
-    wav_scp_write_path = os.path.join(data_write_dir, dataset, "wav.scp")
+    wav_scp_write_path = os.path.join(data_write_dir, "inat_sounds", "wav.scp")
     os.makedirs(os.path.dirname(wav_scp_write_path), exist_ok=True)
 
     processed_count = 0
@@ -100,39 +94,28 @@ def process_dataset(dataset, json_name, data_read_dir, data_write_dir, wavscploc
                 executor.map(
                     lambda data: process_file(
                         data,
-                        dataset,
-                        audio_dir,
                         data_write_dir,
                         wav_scp_write_path,
                         wavscplock,
                     ),
-                    json_d["data"],
+                    json_d["audio"],
                 ),
-                total=len(json_d["data"]),
+                total=len(json_d["audio"]),
             )
         )
         processed_count = sum(1 for r in results if r is not None)
         created_files = sum(r for r in results if r is not None)
 
-    print(f"Created {created_files} files from {dataset}.")
-    print(f"Processed {processed_count} files from {dataset}.")
+    print(f"Created {created_files} files from {json_name}.")
+    print(f"Processed {processed_count} files from {json_name}.")
     return processed_count
 
 
 if __name__ == "__main__":
-    DATASET_COMPONENTS = {
-        # "BBC_Sound_Effects": "bbc_final.json",
-        "FreeSound": "fsd_final.json",
-        # "SoundBible": "sb_final.json",
-    }
-    # lock on wavscp
     total_processed = 0
-    for dataset, json_name in DATASET_COMPONENTS.items():
+    for split in ["train"]:
         dataset_lock = threading.Lock()
-        n_processed = process_dataset(
-            dataset, json_name, DATA_READ_DIR, DATA_WRITE_DIR, dataset_lock
+        total_processed += process_dataset(
+            f"{split}.json", DATA_READ_DIR, DATA_WRITE_DIR, dataset_lock
         )
-        total_processed += n_processed
-        print(f"Processed {n_processed} files from {dataset}.")
-
-    print(f"Processed {total_processed} files in total.")
+    print(f"Processed {total_processed} files in split {split}.")
