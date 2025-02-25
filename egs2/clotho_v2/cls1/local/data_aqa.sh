@@ -27,7 +27,7 @@ fi
 log "stage 1: Data preparation"
 
 DATADIR=$1
-TYPE=$2
+TASK_TYPE=$3
 ## DOWNLOAD DATA if CLOTHO_AQA is set to downloads
 if [ "${CLOTHO_AQA}" == "downloads" ]; then
     # If there is no argument, the default download directory is set to currentdir/downloads
@@ -63,11 +63,11 @@ log "Using the data directory: ${CLOTHO_AQA_ROOT_DIR}"
 # text is the label pos, neg, neutral
 # question.txt contains question about the audio
 ##########
-python3 local/data_prep_clotho_aqa.py ${CLOTHO_AQA_ROOT_DIR} ${DATADIR} ${TYPE}
+python3 local/data_prep_clotho_aqa.py ${CLOTHO_AQA_ROOT_DIR} ${DATADIR} ${TASK_TYPE}
 ##########
 
 # SORT ALL
-SPLITS=(development_aqa_${TYPE} validation_aqa_${TYPE} evaluation_aqa_${TYPE})
+SPLITS=(development_aqa_${TASK_TYPE} validation_aqa_${TASK_TYPE} evaluation_aqa_${TASK_TYPE})
 for split_name in "${SPLITS[@]}"; do
     for f in wav.scp utt2spk text question.txt; do
         if [ -f "${DATADIR}/${split_name}/${f}" ]; then

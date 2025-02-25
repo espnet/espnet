@@ -5,14 +5,14 @@ set -e
 set -u
 set -o pipefail
 
-train_set="development"
-valid_set="validation"
-test_sets="evaluation"
+train_set="development_cle"
+valid_set="validation_cle"
+test_sets="evaluation_cle"
 cls_config=conf/beats_entailment.yaml
 
 timestamp=$(date "+%Y%m%d.%H%M%S")
 mynametag=${timestamp}
-mynametag=multimodal.fix_txt.lr1e-5
+mynametag=multimodal.cle.lr1e-5
 decoding_batch_size=20
 
 storage_dir=. # change this to where you have space, if needed
@@ -21,9 +21,10 @@ mkdir -p "${storage_dir}"
 ./cls.sh \
     --local_data_opts "entailment" \
     --cls_tag "${mynametag}" \
-    --datadir "${storage_dir}/data" \
-    --dumpdir "${storage_dir}/dump" \
-    --expdir "${storage_dir}/exp" \
+    --datadir "${storage_dir}/data_cle" \
+    --dumpdir "${storage_dir}/dump_cle" \
+    --expdir "${storage_dir}/exp_cle" \
+    --cls_stats_dir "${storage_dir}/data_stats_cle" \
     --speech_text_classification true \
     --text_input_filename hypothesis.txt \
     --hugging_face_model_name_or_path bert-base-uncased \
@@ -31,7 +32,7 @@ mkdir -p "${storage_dir}"
     --decoding_batch_size ${decoding_batch_size} \
     --feats_normalize uttmvn \
     --ngpu 1 \
-    --stage 7 \
+    --stage 1 \
     --stop_stage 8 \
     --nj 10 \
     --label_fold_length 600 \

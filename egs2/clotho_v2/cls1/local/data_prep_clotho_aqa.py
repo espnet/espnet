@@ -33,7 +33,7 @@ def prepare_data(input_dir, output_dir, audio_dir, csv_pattern, task_type="yn"):
         qa_df = pd.read_csv(question_csv_path)  # file_name, QuestionText, answer
 
         n_processed = 0
-        write_data_plit = f"{data_split}_aqa"
+        write_data_plit = f"{data_split}_aqa_{task_type}"
         os.makedirs(os.path.join(output_dir, write_data_plit), exist_ok=True)
 
         with open(
