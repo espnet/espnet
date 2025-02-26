@@ -16,6 +16,7 @@ DATA_WRITE_DIR = sys.argv[2]
 PARALLELISM = int(sys.argv[3]) if len(sys.argv) > 3 else 1
 SPLIT_THRESHOLD_SECONDS = 10
 SAMPLE_RATE = 16000
+MIN_LENGTH_SECONDS = 0.2
 
 
 def split_hd5_audio_into_chunks(file_id: str, audio_data: np.array, chunk_size: float):
@@ -35,11 +36,17 @@ def split_hd5_audio_into_chunks(file_id: str, audio_data: np.array, chunk_size: 
     for i in range(num_chunks):
         start_sample = i * chunk_samples
         end_sample = start_sample + chunk_samples
+        chunk_length = (end_sample - start_sample) / sample_rate
+        if chunk_length < MIN_LENGTH_SECONDS:
+            continue
         chunk_name = f"{file_id}.chunk_{i+1}.flac"
         chunks[chunk_name] = audio_data[start_sample:end_sample]
 
     if total_samples % chunk_samples != 0:
         start_sample = num_chunks * chunk_samples
+        chunk_length = len(audio_data[start_sample:]) / sample_rate
+        if chunk_length < MIN_LENGTH_SECONDS:
+            return chunks, sample_rate
         chunk_name = f"{file_id}.chunk_{num_chunks+1}.flac"
         chunks[chunk_name] = audio_data[start_sample:]
 

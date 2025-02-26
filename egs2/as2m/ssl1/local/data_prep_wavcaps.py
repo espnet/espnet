@@ -1,6 +1,8 @@
 """Prepares data for self-supervised audio only training with WavCaps.
 This covers BBC Soundeffects, FreeSound, and SoundBible datasets.
 We don't include AudioSet_SL because it is already included in AudioSet.
+We filter out ESC IDs from FreeSound dataset using the esc_ids.txt file 
+from the same directory as this script.
 """
 
 import numpy as np
@@ -15,8 +17,15 @@ from concurrent.futures import ThreadPoolExecutor
 DATA_READ_DIR = sys.argv[1]
 DATA_WRITE_DIR = sys.argv[2]
 PARALLELISM = int(sys.argv[3]) if len(sys.argv) > 3 else 1
+MIN_LENGTH_SECONDS = 0.2
 SPLIT_THRESHOLD_SECONDS = 10
 MAX_SPLITS = 100
+ESC_IDS = {
+    line.strip()
+    for line in open(
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "esc_ids.txt")
+    )
+}
 
 
 def split_flac_into_chunks(audio_path: str, audio_duration: float, chunk_size: float):
@@ -38,12 +47,18 @@ def split_flac_into_chunks(audio_path: str, audio_duration: float, chunk_size: f
     for i in range(num_chunks):
         start_sample = i * chunk_samples
         end_sample = start_sample + chunk_samples
+        chunk_length = (end_sample - start_sample) / sample_rate
+        if chunk_length < MIN_LENGTH_SECONDS:
+            continue
         chunk_name = f"{filename}.chunk_{i+1}.flac"
         chunks[chunk_name] = audio_data[start_sample:end_sample]
 
     if total_samples % chunk_samples != 0:
         start_sample = num_chunks * chunk_samples
         end_sample = start_sample + chunk_samples
+        chunk_length = len(audio_data[start_sample:end_sample]) / sample_rate
+        if chunk_length < MIN_LENGTH_SECONDS:
+            return chunks, sample_rate
         chunk_name = f"{filename}.chunk_{num_chunks+1}.flac"
         chunks[chunk_name] = audio_data[start_sample:end_sample]
 
@@ -57,6 +72,9 @@ def process_file(data, dataset, audio_dir, data_write_dir, wav_scp_f, wavscplock
     audio_path = os.path.join(DATA_READ_DIR, audio_dir, f"{file_id}.flac")
 
     if not os.path.exists(audio_path) or data["duration"] <= 0.2:
+        return None
+
+    if dataset == "FreeSound" and file_id in ESC_IDS:
         return None
 
     audio_paths = []
