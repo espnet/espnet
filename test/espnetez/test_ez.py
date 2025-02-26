@@ -5,7 +5,6 @@ import tempfile
 from pathlib import Path
 
 import pytest
-
 from torch import nn
 
 import espnetez as ez
@@ -224,7 +223,7 @@ def test_sentencepiece_preparation():
         )
         tokenizer = build_tokenizer(
             token_type=model_type,
-            bpemodel=temp_dir / "data" / "bpemodel" / f"{model_type}.model"
+            bpemodel=temp_dir / "data" / "bpemodel" / f"{model_type}.model",
         )
         token_id_converter = TokenIDConverter(
             token_list=temp_dir / "data" / "bpemodel" / "tokens.txt",
@@ -254,17 +253,16 @@ def test_tokenizer_run():
 
 def test_streaming_iter():
     from espnetez.dataloader import Dataloader
+
     dataset = generate_random_dataset(5)
-    Dataloader(
-        dataset=dataset
-    ).build_iter(0)
+    Dataloader(dataset=dataset).build_iter(0)
 
 
 def test_dataset():
     dataset = generate_random_dataset(5)
     data_inputs = {
-        "speech": lambda x:x,
-        "text": lambda x:x,
+        "speech": lambda x: x,
+        "text": lambda x: x,
     }
     ds = ez.ESPnetEZDataset(dataset, data_inputs)
     print(len(ds))
