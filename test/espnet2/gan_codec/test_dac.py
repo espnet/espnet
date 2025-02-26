@@ -57,7 +57,6 @@ def make_discriminator_args(**kwargs):
     defaults = dict(
         msmpmb_discriminator_params={
             "rates": [],
-            "periods": [2, 3],
             "fft_sizes": [32, 16, 8],
             "sample_rate": 120,
             "periods": [2, 3, 5, 7, 11],
