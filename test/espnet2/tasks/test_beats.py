@@ -91,8 +91,8 @@ def get_dummy_namespace(beats_ckpt_path=None, model_name="beats"):
             "is_pretraining": True,
         }
         args.model_conf = {"ignore_id": -1, "label_smoothing": 0.1}
-        args.token_list=["class1", "class2", "class3", "class4", "<unk>"]
-        args.token_type="word"
+        args.token_list = ["class1", "class2", "class3", "class4", "<unk>"]
+        args.token_type = "word"
     if model_name == "beats_tokenizer":
         args.encoder_conf = {
             "tokenizer_config": get_beats_config().update(
@@ -100,9 +100,8 @@ def get_dummy_namespace(beats_ckpt_path=None, model_name="beats"):
                     "codebook_vocab_size": 4,
                 }
             ),
-            "is_tokenizer_pretraining": True,
         }
-        args.beats_teacher_ckpt_path=beats_ckpt_path
+        args.beats_teacher_ckpt_path = beats_ckpt_path
     return args
 
 

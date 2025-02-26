@@ -31,6 +31,7 @@ def get_parser():
     parser.add_argument("--codec_fs", type=int, default=16000)
     parser.add_argument("--batch_size", type=int, default=3)
     parser.add_argument("--dump_audio", type=str2bool, default=False)
+    parser.add_argument("--waveform_input", type=str2bool, default=True)
     parser.add_argument("--rank", type=int, default=1)
     parser.add_argument("--vocab_file", type=str, required=True)
     parser.add_argument(
@@ -73,6 +74,7 @@ def dump_audio_tokens(
     rank: int,
     checkpoint_path: str = None,
     config_path: str = None,
+    waveform_input: bool = True,
 ):
     # (1) Device
     if torch.cuda.is_available():
@@ -96,6 +98,7 @@ def dump_audio_tokens(
         dump_audio,
         checkpoint_path,
         config_path,
+        waveform_input=waveform_input,
     )
 
     # (3) Tokenizer loop

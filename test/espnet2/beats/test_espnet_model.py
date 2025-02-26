@@ -58,7 +58,6 @@ def test_forward_backward_beats_tokenizer_pretrain_model():
     tokenizer_config["codebook_vocab_size"] = 24
     encoder = BeatsTokenizer(
         tokenizer_config=tokenizer_config,
-        is_tokenizer_pretraining=True,
     )
     predictor = BeatsTokenizerPretrainingPredictor(tokenizer_config=tokenizer_config)
     teacher = BeatsEncoder(

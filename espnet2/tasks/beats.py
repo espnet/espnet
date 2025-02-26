@@ -174,8 +174,6 @@ class BeatsTask(AbsTask):
         input_size = 1  # model will extract features
         # 2. Encoder and Decoder
         encoder_class = encoder_choices.get_class(args.encoder)
-        # 3. Build model
-        model_class = model_choices.get_class(args.model)
 
         assert (
             pretraining_model == "beats"
@@ -190,7 +188,7 @@ class BeatsTask(AbsTask):
         args.encoder_conf["beats_config"] = config  # put it back
         kwargs = {"encoder": encoder, "decoder": predictor}
 
-        model = model_class(
+        model = BeatsPretrainModel(
             **kwargs,
             **args.model_conf,
         )
@@ -205,18 +203,11 @@ class BeatsTokenizerTask(BeatsTask):
     def add_task_arguments(cls, parser: argparse.ArgumentParser):
         BeatsTask.add_task_arguments(parser)
         required = parser.get_default("required")
+        required.remove("token_list")
         required += ["beats_teacher_ckpt_path"]
 
         group = parser.add_argument_group(description="Beats Tokenizer Task related")
         group.add_argument("--beats_teacher_ckpt_path", type=str, default=None)
-
-    @classmethod
-    @typechecked
-    def build_collate_fn(cls, args: argparse.Namespace, train: bool) -> Callable[
-        [Collection[Tuple[str, Dict[str, np.ndarray]]]],
-        Tuple[List[str], Dict[str, torch.Tensor]],
-    ]:
-        return CommonCollateFn(float_pad_value=0.0, int_pad_value=-1)
 
     @classmethod
     @typechecked
@@ -249,39 +240,26 @@ class BeatsTokenizerTask(BeatsTask):
 
     @classmethod
     @typechecked
-    def build_model(
-        cls, args: argparse.Namespace
-    ) -> Union[BeatsPretrainModel, BeatsTokenizerPretrainModel]:
-        assert args.model == args.encoder, "Model and encoder choice should match."
-        pretraining_model = args.model
-        input_size = 1  # model will extract features
-        encoder_class = encoder_choices.get_class(args.encoder)
-        model_class = model_choices.get_class(args.model)
+    def build_model(cls, args: argparse.Namespace) -> BeatsTokenizerPretrainModel:
         assert (
-            pretraining_model == "beats_tokenizer"
-        ), f"Model should be beats_tokenizer {pretraining_model}"
-        config = args.encoder_conf.pop("tokenizer_config", None)
-
-        encoder = encoder_class(
-            tokenizer_config=config,
-            **args.encoder_conf,
-        )
-        predictor = BeatsTokenizerPretrainingPredictor(tokenizer_config=config)
-        assert (
-            args.beats_teacher_ckpt_path is not None
+            args.beats_teacher_ckpt_path
         ), "Teacher checkpoint path is required for tokenizer pretraining."
-        teacher = BeatsEncoder(
-            input_size=input_size,
-            beats_ckpt_path=args.beats_teacher_ckpt_path,
+
+        encoder = BeatsTokenizer(**args.encoder_conf)
+        predictor = BeatsTokenizerPretrainingPredictor(
+            tokenizer_config=args.encoder_conf.get("tokenizer_config", None)
         )
-        model = model_class(
+        teacher = BeatsEncoder(
+            input_size=1, beats_ckpt_path=args.beats_teacher_ckpt_path
+        )
+
+        # Build model
+        model = BeatsTokenizerPretrainModel(
             encoder=encoder,
             decoder=predictor,
             teacher=teacher,
-            **args.model_conf,
+            waveform_input=args.model_conf.get("waveform_input", False),
         )
-        args.encoder_conf["tokenizer_config"] = config  # put it back
-        # 4. Initialize
-        if args.init is not None:
+        if args.init:
             initialize(model, args.init)
         return model

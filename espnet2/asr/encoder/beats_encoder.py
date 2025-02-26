@@ -327,6 +327,7 @@ class BeatsEncoder(AbsEncoder):
             torch.nn.init.constant_(self.patch_embedding.bias, 0)
         freeze_conv_module(self.patch_embedding_pad)
         freeze_conv_module(self.raw2fbank_pad)
+        self.reload_pretrained_parameters()
 
     def reload_pretrained_parameters(self):
         """Initialization function for Beats.
@@ -411,7 +412,7 @@ class BeatsEncoder(AbsEncoder):
         xs_pad: torch.Tensor,
         ilens: torch.Tensor,
         prev_states: torch.Tensor = None,
-        is_sound_input: Optional[bool] = True,
+        waveform_input: Optional[bool] = True,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
         """Wrapper for compatibility with ESPnets' AbsEncoder Interface.
         Args:
@@ -419,14 +420,14 @@ class BeatsEncoder(AbsEncoder):
                 If features, then only (B,T,D) will work.
             ilens: (B,)
             prev_states: None
-            is_sound_input: If True, then input is sound. If False, then input is
+            waveform_input: If True, then input is waveform. If False, then input is
                 already features.
         Returns:
             audio_representation: (B, T, D)
             output_lens: (B,)
             masks: None
         """
-        if xs_pad.dim() == 2 and is_sound_input:
+        if xs_pad.dim() == 2 and waveform_input:
             xs_pad = xs_pad.unsqueeze(-1)  # (B,T) -> (B,T,1) for sound
         if self.roll_augment and self.training:
             xs_pad = roll_tensor(xs_pad, ilens, fixed_intervals=self.roll_interval)
@@ -436,7 +437,7 @@ class BeatsEncoder(AbsEncoder):
                 xs_pad,
                 mask,
                 max_layer=self.max_layer,
-                skip_fbank_extraction=not is_sound_input,
+                skip_fbank_extraction=not waveform_input,
             )
         )
         # patch_padding_mask is the padding mask before any patch masking,
@@ -1120,7 +1121,7 @@ class MultiheadAttention(nn.Module):
 
     def initialize(self):
         """Initiate parameters in the transformer model."""
-        logging.info("Initiate parameters in the MultiheadAttention module.")
+        # logging.info("Initiate parameters in the MultiheadAttention module.")
         if self.qkv_same_dim:
             # Empirically observed the convergence to be much better with
             # the scaled initialization
@@ -1665,17 +1666,17 @@ def init_bert_params(module):
         data.copy_(data.cpu().normal_(mean=0.0, std=0.02).to(data.device))
 
     if isinstance(module, nn.Linear):
-        logging.info("Intializing Linear Layer")
+        # logging.info("Intializing Linear Layer")
         normal_(module.weight.data)
         if module.bias is not None:
             module.bias.data.zero_()
     if isinstance(module, nn.Embedding):
-        logging.info("Intializing Embedding Layer")
+        # logging.info("Intializing Embedding Layer")
         normal_(module.weight.data)
         if module.padding_idx is not None:
             module.weight.data[module.padding_idx].zero_()
     if isinstance(module, MultiheadAttention):
-        logging.info("Intializing Multihead Attention")
+        # logging.info("Intializing Multihead Attention")
         normal_(module.q_proj.weight.data)
         normal_(module.k_proj.weight.data)
         normal_(module.v_proj.weight.data)

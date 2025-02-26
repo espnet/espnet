@@ -19,6 +19,19 @@ from espnet2.speechlm.tokenizer.beats_tokenizer import (
 logger = logging.getLogger(__name__)
 
 
+def load_beats_config(config_path):
+    with open(config_path, "r") as f:
+        beats_config = yaml.safe_load(f)
+        if "encoder_conf" in beats_config:
+            beats_config = beats_config.get("encoder_conf", {})
+        else:
+            logging.warning(
+                f"BEATs config path {config_path} was provided but "
+                "no encoder_conf found."
+            )
+    return beats_config
+
+
 class AudioTokenizer(AbsTokenizer):
     """Codec Tokenizer implementation
 
@@ -35,6 +48,7 @@ class AudioTokenizer(AbsTokenizer):
         checkpoint_path: str = None,
         config_path: str = None,
         max_token_per_frame: int = 32,
+        waveform_input: bool = True,
     ):
         """Codec Tokenizer initialization
 
@@ -49,17 +63,14 @@ class AudioTokenizer(AbsTokenizer):
         self.codec_choice = codec_choice
         self.device = device
         self.dump_audio = dump_audio
+        self.waveform_input = waveform_input
 
         if self.codec_choice == "beats":
-            beats_config = None
-            if config_path:
-                with open(config_path, "r") as f:
-                    beats_config = yaml.safe_load(f)
+            beats_config = load_beats_config(config_path) if config_path else {}
             valid_args = signature(BeatsTokenizer.__init__).parameters
-            filtered_args = (
-                {k: v for k, v in beats_config.items() if k in valid_args}
-                if beats_config
-                else {}
+            filtered_args = {k: v for k, v in beats_config.items() if k in valid_args}
+            logging.info(
+                f"Setting up tokenization with following args: {filtered_args}"
             )
             self.codec = BeatsTokenizer(
                 beats_tokenizer_ckpt_path=checkpoint_path,
@@ -74,15 +85,11 @@ class AudioTokenizer(AbsTokenizer):
 
         elif self.codec_choice == "beats_random":
             # Beats like patch-based frontend, with bestrq for quantization
-            beats_config = None
-            if config_path:
-                with open(config_path, "r") as f:
-                    beats_config = yaml.safe_load(f)
+            beats_config = load_beats_config(config_path) if config_path else {}
             valid_args = signature(BeatsRandomTokenizer.__init__).parameters
-            filtered_args = (
-                {k: v for k, v in beats_config.items() if k in valid_args}
-                if beats_config
-                else {}
+            filtered_args = {k: v for k, v in beats_config.items() if k in valid_args}
+            logging.info(
+                f"Setting up tokenization with following args: {filtered_args}"
             )
             self.codec = BeatsRandomTokenizer(**filtered_args)
             self.codec = self.codec.to(device)
@@ -117,7 +124,9 @@ class AudioTokenizer(AbsTokenizer):
                 )
             # Assume no padding, all wavs are full length
             assert wav_lens is not None, "BeatsTokenizer requires wav_lens."
-            ret_dict = self.codec.encode(xs_pad=wav_in, ilens=wav_lens)
+            ret_dict = self.codec.encode(
+                xs_pad=wav_in, ilens=wav_lens, waveform_input=self.waveform_input
+            )
             codes, code_lengths = ret_dict["codes"], ret_dict["code_lengths"]
             codes = codes.unsqueeze(-1)
         else:

@@ -15,8 +15,6 @@ from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 
 logger = logging.getLogger(__name__)
 
-# NOTE: Assumes all speech is same length.
-
 
 class BeatsPretrainModel(AbsESPnetModel):
     """Beats Pretraining model"""
@@ -28,7 +26,7 @@ class BeatsPretrainModel(AbsESPnetModel):
         decoder: nn.Module,
         ignore_id: int = -2,
         label_smoothing: float = 0.1,
-        sound_input: bool = False,
+        waveform_input: bool = False,
     ):
         super().__init__()
         self.ignore_id = ignore_id
@@ -37,7 +35,7 @@ class BeatsPretrainModel(AbsESPnetModel):
         ), "Set the encoder to pretraining mode with is_pretraining=True."
         self.encoder = encoder
         self.decoder = decoder
-        self.sound_input = sound_input
+        self.waveform_input = waveform_input
         self.loss_function = torch.nn.CrossEntropyLoss(
             ignore_index=ignore_id, label_smoothing=label_smoothing, reduction="none"
         )
@@ -82,7 +80,7 @@ class BeatsPretrainModel(AbsESPnetModel):
         # kept_mask (Batch, n_patch)
         # patch_len (Batch,)
         unmasked_patch_emb, patch_len, restore_ids, kept_mask = self.encoder(
-            speech, speech_lengths, is_sound_input=self.sound_input
+            speech, speech_lengths, waveform_input=self.waveform_input
         )
         target = target[:, : patch_len.max()]
 
@@ -110,7 +108,7 @@ class BeatsPretrainModel(AbsESPnetModel):
         self.encoder.is_pretraining = False
         # for data-parallel
         speech = speech[:, : speech_lengths.max()]
-        if self.sound_input:
+        if self.waveform_input:
             feats, feats_lengths = self.encoder.preprocess(speech)
         else:
             feats, feats_lengths = speech, speech_lengths
@@ -204,14 +202,13 @@ class BeatsTokenizerPretrainModel(AbsESPnetModel):
         encoder: AbsEncoder,
         decoder: nn.Module,
         teacher: AbsEncoder,
+        waveform_input: bool = False,
     ):
         super().__init__()
-        assert (
-            encoder.is_tokenizer_pretraining
-        ), "Set the encoder to pretraining mode with is_tokenizer_pretraining=True."
         self.encoder = encoder  # BEATs tokenizer model
         self.decoder = decoder  # BEATs tokenizer predictor
         self.teacher = teacher  # BEATs audio encoder
+        self.waveform_input = waveform_input
         self.teacher.eval()
         assert (
             not self.teacher.is_pretraining
@@ -219,19 +216,20 @@ class BeatsTokenizerPretrainModel(AbsESPnetModel):
         assert (
             not self.encoder.is_pretraining
         ), "Tokenizer should not be in encoder pretraining mode."
-        assert (
-            self.encoder.is_tokenizer_pretraining
-        ), "Tokenizer should be in tokenizer pretraining mode."
         logger.info(
-            f"Initialized BeatsPretrainModel with"
-            f"encoder={encoder}, decoder={decoder}, teacher={teacher}"
+            f"Initialized BeatsTokenizerPretrainModel with"
+            f"encoder={encoder}, decoder={decoder}, teacher={teacher}, "
+            f"waveform_input={waveform_input}"
         )
 
     @torch.no_grad()
     def _extract_teacher_targets(
         self, speech: torch.Tensor, speech_lengths: torch.Tensor
     ):
-        audio_representation, output_lens, _ = self.teacher(speech, speech_lengths)
+        self.teacher.eval()
+        audio_representation, output_lens, _ = self.teacher(
+            speech, speech_lengths, waveform_input=self.waveform_input
+        )
         return audio_representation, output_lens
 
     def collect_feats(self, speech: torch.Tensor, speech_lengths: torch.Tensor):
@@ -241,17 +239,38 @@ class BeatsTokenizerPretrainModel(AbsESPnetModel):
         return {"feats": feats, "feats_lengths": feats_lengths}
 
     def _calc_beats_tokenizer_loss(
-        self, output: torch.Tensor, target: torch.Tensor, lengths: torch.Tensor
+        self,
+        output: torch.Tensor,
+        target: torch.Tensor,
+        lengths: torch.Tensor,
+        encoder_dict: dict,
     ):
         cos_sim = F.cosine_similarity(target, output, dim=-1)
         pad_mask = make_pad_mask(lengths, traceable=False).to(
             cos_sim.device
         )  # can optimize
-        cos_sim[pad_mask] = 0
-        cos_loss = 1 - (cos_sim.sum() / lengths.sum())
-        return cos_loss
+        cos_sim[pad_mask] = 1.0
+        cos_loss = (1 - cos_sim).sum() / lengths.sum()
+        loss = cos_loss + encoder_dict["embed_loss"]
+        with torch.no_grad():
+            n_uniq_pred_msk = torch.unique(
+                encoder_dict["codes"][~pad_mask], return_counts=False
+            ).numel()
+            probs = (
+                self.encoder.quantize.cluster_size
+                / self.encoder.quantize.cluster_size.sum()
+            )
+            entropy = -torch.sum(probs * (probs + 1e-10).log()).item()
+            stats_dict = dict(
+                loss=loss.detach(),
+                embed_loss=encoder_dict["embed_loss"].detach(),
+                similarity_loss=cos_loss.detach(),
+                n_uniq_pred_msk=n_uniq_pred_msk * 1.0,
+                codebook_entropy=entropy,
+            )
+        return loss, stats_dict
 
-    def forward(self, speech: torch.Tensor, speech_lengths: torch.Tensor):
+    def forward(self, speech: torch.Tensor, speech_lengths: torch.Tensor, **kwargs):
         assert speech.shape[0] == speech_lengths.shape[0], (
             speech.shape,
             speech_lengths.shape,
@@ -261,20 +280,15 @@ class BeatsTokenizerPretrainModel(AbsESPnetModel):
         speech = speech[:, : speech_lengths.max()]
 
         targets, target_lengths = self._extract_teacher_targets(speech, speech_lengths)
-        _, embed_loss, quantize_feature, quantize_feats_len = self.encoder.encode(
-            speech, speech_lengths
+        ret_dict = self.encoder.encode(
+            speech, speech_lengths, waveform_input=self.waveform_input
         )
-        assert (quantize_feats_len == target_lengths).all(), "Mismatch in lengths"
-        tokenizer_features = self.decoder(quantize_feature, quantize_feats_len)
-        sim_loss = self._calc_beats_tokenizer_loss(
-            tokenizer_features, targets, target_lengths
+        assert (ret_dict["code_lengths"] == target_lengths).all(), "Mismatch in lengths"
+        tokenizer_features = self.decoder(
+            ret_dict["quantize_feature"], ret_dict["code_lengths"]
         )
-        loss = embed_loss + sim_loss
-        stats = dict(
-            loss=loss.detach(),
-            embed_loss=embed_loss.detach(),
-            similarity_loss=sim_loss.detach(),
-            # codebook_coverage=self.encoder.quantize.cluster_size,
+        loss, stats = self._calc_beats_tokenizer_loss(
+            tokenizer_features, targets, target_lengths, ret_dict
         )
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
         return loss, stats, weight

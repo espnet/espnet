@@ -16,6 +16,7 @@ nj=4                # number of parallel jobs
 ngpu=1              # number of gpus ("0" uses cpu, otherwise use gpu)
 python=python3      # Specify python to execute espnet commands.
 codec_choice=beats  # Audio Tokenizer Options: beats
+waveform_input=true # If true, input is waveform else features
 codec_fs=16000
 code_writeformat=text # ark or text
 batch_size=4
@@ -73,6 +74,8 @@ fi
 if [ ${checkpoint_path} ]; then
     _opts+="--checkpoint_path ${checkpoint_path} "
 fi
+
+_opts+="--waveform_input ${waveform_input} "
 
 if [ ${code_writeformat} == "ark" ]; then
     code_wspecifier="ark,scp:${output_dir}/${file_name}_codec_${codec_choice}.JOB.ark,${output_dir}/${file_name}_codec_${codec_choice}.JOB.scp"

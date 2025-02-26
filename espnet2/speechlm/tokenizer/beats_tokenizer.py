@@ -13,13 +13,14 @@
 
 import logging
 from typing import Dict, Optional
-
+import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchaudio.compliance.kaldi as ta_kaldi
 from packaging.version import parse as V
 from torch.nn import LayerNorm
+import torch.distributed as dist
 
 if V(torch.__version__) >= V("1.6.0"):
     from torch.cuda.amp import autocast
@@ -34,6 +35,7 @@ from espnet2.asr.encoder.beats_encoder import (
     BeatsConfig,
     BeatsEncoder,
     TransformerSentenceEncoderLayer,
+    init_bert_params,
 )
 from espnet2.speechlm.tokenizer.beats_utils import (
     l2norm,
@@ -64,7 +66,6 @@ class BeatsTokenizerConfig(BeatsConfig):
 
 
 class BeatsTokenizer(BeatsEncoder):
-    # Note: Note tested with espnet trainer. Only use with dump_codec.py
     def __init__(
         self,
         beats_tokenizer_ckpt_path: str = None,
@@ -73,7 +74,6 @@ class BeatsTokenizer(BeatsEncoder):
         use_weighted_representation: bool = False,
         fbank_mean: float = 15.41663,
         fbank_std: float = 6.55582,
-        is_tokenizer_pretraining: bool = False,
     ) -> None:
         if beats_tokenizer_ckpt_path is None:
             logging.info(
@@ -91,12 +91,11 @@ class BeatsTokenizer(BeatsEncoder):
         )
 
         config = BeatsTokenizerConfig()  # default config
-        if self.loaded_state_dict_:
+        if self.loaded_state_dict_ is not None:
             config = BeatsTokenizerConfig(self.loaded_state_dict_["cfg"])
         if tokenizer_config:
             config.update(tokenizer_config)
 
-        self.is_tokenizer_pretraining = is_tokenizer_pretraining
         self.quantize = NormEMAVectorQuantizer(
             n_embed=config.quant_n,
             embedding_dim=config.quant_dim,
@@ -112,11 +111,16 @@ class BeatsTokenizer(BeatsEncoder):
             nn.Tanh(),
             nn.Linear(self._output_size, config.quant_dim),
         )
+        self.initialize_tokenizer_params()
+
+    def initialize_tokenizer_params(self):
+        logging.info("Beats Tokenizer initialization function called.")
+        init_bert_params(self.quantize_layer)
         self.reload_pretrained_parameters()
 
     def reload_pretrained_parameters(self):
         super().reload_pretrained_parameters()
-        logging.info("Beats Tokenizer initialization function called.")
+        logging.info("Beats Tokenizer reload pretrained params function called.")
         if self.loaded_state_dict_ is not None:
             load_info = self.load_state_dict(
                 self.loaded_state_dict_["model"], strict=False
@@ -133,23 +137,20 @@ class BeatsTokenizer(BeatsEncoder):
         self,
         xs_pad: torch.Tensor,
         ilens: Optional[torch.Tensor] = None,
+        waveform_input: bool = True,
     ):
         """
         Encodes input audio xs_pad to quantized features.
         Args:
-            xs_pad (torch.Tensor): Input tensor (B, T) or (B,T,1).
+            xs_pad (torch.Tensor): Input tensor (B, T, D) or (B,T,1).
             ilens (torch.Tensor): Input length tensor (B,).
+            waveform_input (bool): If True, input is raw waveform.
         Returns:
             embed_ind (torch.Tensor): Embedding indices (B, T).
             embed_loss (torch.Tensor): Embedding loss.
             quantize_feature (torch.Tensor): Quantized features.
         """
-        if ilens is None:
-            assert (
-                xs_pad.size(0) == 1
-            ), "Batch size must be 1. Otherwise, please provide ilens."
-            ilens = torch.tensor([xs_pad.size(1)], dtype=torch.long).to(xs_pad.device)
-        x, x_len, _ = self(xs_pad, ilens)
+        x, x_len, _ = self(xs_pad, ilens, waveform_input=waveform_input)
         quantize_input = self.quantize_layer(x)
         quantize_feature, embed_loss, embed_ind = self.quantize(quantize_input)
         return {
@@ -224,6 +225,7 @@ class NormEMAVectorQuantizer(nn.Module):
 
         if not self.training:
             # just update the codebook statistics
+            # logging.info("Updating codebook statistics...")
             with torch.no_grad():
                 cluster_size = encodings.sum(0)
                 self.all_reduce_fn(cluster_size)
@@ -247,6 +249,7 @@ class NormEMAVectorQuantizer(nn.Module):
                 zero_mask[..., None], self.embedding.weight, embed_normalized
             )
             norm_ema_inplace(self.embedding.weight, embed_normalized, self.decay)
+            # logging.info("Codebook statistics updated in training mode!")
 
         # compute loss for embedding
         loss = self.beta * F.mse_loss(z_q.detach(), z)
@@ -272,51 +275,38 @@ class EmbeddingEMA(nn.Module):
         self.decay = decay
         self.eps = eps
 
-        if not kmeans_init:
-            weight = torch.randn(num_tokens, codebook_dim)
-            weight = l2norm(weight)
-            self.register_buffer("initted", torch.Tensor([True]))
-        else:
-            weight = torch.zeros(num_tokens, codebook_dim)
-            self.register_buffer("initted", torch.Tensor([False]))
+        assert kmeans_init, "Only kmeans init is supported for now."
+        # if not kmeans_init:
+        #     weight = torch.randn(num_tokens, codebook_dim)
+        #     weight = l2norm(weight)
+        #     self.register_buffer("initted", torch.Tensor([True]))
+        # else:
+        weight = torch.zeros(num_tokens, codebook_dim)
+        self.register_buffer("initted", torch.Tensor([False]))
         # NOTE: Very important that weight is always normalized.
         self.weight = nn.Parameter(weight, requires_grad=False)
         self.cluster_size = nn.Parameter(torch.zeros(num_tokens), requires_grad=False)
         self.embed_avg = nn.Parameter(weight.clone(), requires_grad=False)
 
-    @torch.jit.ignore
+    # @torch.jit.ignore
     def init_embed_(self, data):
         if self.initted:
             return
-        logging.info("Performing Kemans init for codebook")
+        logging.info("Performing Kmeans init for codebook")
         # embed[float]: (num_tokens, codebook_dim), cluster_size[int]: (num_tokens,)
         embed, cluster_size = kmeans(
             data, self.num_tokens, num_iters=10, use_cosine_sim=True
         )
+        cluster_size = cluster_size.to(self.cluster_size.device)
+        embed = embed.to(self.weight.device)
+        if dist.is_initialized():
+            # NOTE(shikhar): This might not work with deepspeed Zero.
+            dist.broadcast(embed, src=0)
+            dist.broadcast(cluster_size, src=0)
         self.weight.data.copy_(embed)
         self.cluster_size.data.copy_(cluster_size)
         self.initted.data.copy_(torch.Tensor([True]).to(self.initted.device))
-
-    # def cluster_size_ema_update(self, new_cluster_size):
-    #     # ?
-    #     self.cluster_size.data.mul_(self.decay).add_(
-    #         new_cluster_size, alpha=1 - self.decay
-    #     )
-
-    # def embed_avg_ema_update(self, new_embed_avg):
-    #     # ?
-    #     self.embed_avg.data.mul_(self.decay).add_(new_embed_avg, alpha=1 - self.decay)
-
-    # def weight_update(self, num_tokens):
-    #     # ?
-    #     n = self.cluster_size.sum()
-    #     smoothed_cluster_size = (
-    #         (self.cluster_size + self.eps) / (n + num_tokens * self.eps) * n
-    #     )
-    #     # normalize embedding average with smoothed cluster size
-    #     embed_normalized = self.embed_avg / smoothed_cluster_size.unsqueeze(1)
-    #     # embed_normalized = l2norm(self.embed_avg / smoothed_cluster_size.unsqueeze(1))
-    #     self.weight.data.copy_(embed_normalized)
+        logging.info("Kmeans init done!")
 
     def forward(self, embed_id):
         return F.embedding(embed_id, self.weight)
@@ -347,11 +337,45 @@ class BeatsTokenizerPretrainingPredictor(nn.Module):
                     max_distance=tokenizer_config.max_distance,
                     gru_rel_pos=tokenizer_config.gru_rel_pos,
                     encoder_layers=tokenizer_config.decoder_layers,
+                    use_flash_attn=tokenizer_config.use_flash_attn,
                 )
                 for i in range(tokenizer_config.decoder_layers)
             ]
         )
         self.decoder_norm = nn.LayerNorm(tokenizer_config.decoder_embed_dim)
+        if tokenizer_config.relative_position_embedding:
+            for i in range(1, tokenizer_config.decoder_layers):
+                del self.decoder_blocks[i].self_attn.relative_attention_bias
+                self.decoder_blocks[i].self_attn.relative_attention_bias = (
+                    self.decoder_blocks[0].self_attn.relative_attention_bias
+                )
+        self.initialize(tokenizer_config)
+
+    def initialize(self, config):
+        self.apply(init_bert_params)
+        if config.deep_norm:
+            logging.info("Deep Norm is applied to pretraining predictor.")
+            for i in range(config.decoder_layers):
+                deep_norm_beta = math.pow(8 * config.decoder_layers, -1 / 4)
+                nn.init.xavier_normal_(
+                    self.decoder_blocks[i].self_attn.k_proj.weight, gain=1
+                )
+                nn.init.xavier_normal_(
+                    self.decoder_blocks[i].self_attn.v_proj.weight, gain=deep_norm_beta
+                )
+                nn.init.xavier_normal_(
+                    self.decoder_blocks[i].self_attn.q_proj.weight, gain=1
+                )
+                nn.init.xavier_normal_(
+                    self.decoder_blocks[i].self_attn.out_proj.weight,
+                    gain=deep_norm_beta,
+                )
+                nn.init.xavier_normal_(
+                    self.decoder_blocks[i].fc1.weight, gain=deep_norm_beta
+                )
+                nn.init.xavier_normal_(
+                    self.decoder_blocks[i].fc2.weight, gain=deep_norm_beta
+                )
 
     def forward(self, quantize_feature, quantize_feats_len):
         quantize_feature = quantize_feature[:, : quantize_feats_len.max(), :]
@@ -454,25 +478,26 @@ class BeatsRandomTokenizer(nn.Module):
         return padding_mask
 
     @torch.no_grad()
-    def forward(self, xs_pad: torch.Tensor, ilens: torch.Tensor):
+    def forward(
+        self, xs_pad: torch.Tensor, ilens: torch.Tensor, waveform_input: bool = True
+    ):
         """
         Args:
             xs_pad (torch.Tensor): Input tensor (B, T) or (B,T,D).
                 (B,T) for raw waveform and (B,T,D) for features.
             ilens (torch.Tensor): Input length tensor (B,).
+            waveform_input (bool): If True, input is raw waveform.
         """
         xs_pad = xs_pad[:, : ilens.max()]
-        audio_input = False
-        if xs_pad.dim() == 2:
-            audio_input = True
+        if waveform_input:
+            assert xs_pad.dim() == 2
         padding_mask = make_pad_mask(lengths=ilens, traceable=False).to(xs_pad.device)
-        # padding_mask = self.forward_padding_mask(fbank, padding_mask)
-        if audio_input:
+        if waveform_input:
             padding_mask = forward_padding_mask_conv(
                 padding_mask=padding_mask, n_dim=0, conv_module=self.raw2fbank_pad
             )
         with autocast(False):
-            if audio_input:
+            if waveform_input:
                 fbank = beats_frontend(
                     xs_pad, fbank_mean=self.fbank_mean, fbank_std=self.fbank_std
                 )

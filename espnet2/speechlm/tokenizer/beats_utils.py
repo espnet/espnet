@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchaudio.compliance.kaldi as ta_kaldi
 from einops import rearrange, repeat
+import logging
 
 
 def l2norm(t):
@@ -31,10 +32,15 @@ def sample_vectors(samples, num):
 
 def kmeans(samples, num_clusters, num_iters=10, use_cosine_sim=False):
     dim, dtype, device = samples.shape[-1], samples.dtype, samples.device
+    logging.info(
+        f"Running K-means with {num_clusters} clusters, {num_iters} iterations, and cosine similarity: {use_cosine_sim}"
+    )
 
     means = sample_vectors(samples, num_clusters)
+    logging.info(f"Init means!")
 
     for _ in range(num_iters):
+        logging.info(f"Running iteration {_ + 1}...")
         if use_cosine_sim:
             # Assumes samples are normalized
             dists = samples @ means.t()

@@ -8,7 +8,7 @@ from torch.linalg import vector_norm
 
 
 class RandomProjectionQuantizer(nn.Module):
-    def __init__(self, dim, codebook_size, codebook_dim, norm=True, seed=42):
+    def __init__(self, dim, codebook_size, codebook_dim, norm=True, seed=45):
         super().__init__()
         # Seed locally for reproducibility
         original_rng_state = torch.get_rng_state()
