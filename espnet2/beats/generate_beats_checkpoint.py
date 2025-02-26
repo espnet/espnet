@@ -18,8 +18,19 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def generate_beats_config(config):
+def generate_beats_config(config, drop_tokenizer_keys=False):
     beats_config = config.get("encoder_conf", {}).get("beats_config", {})
+    if len(beats_config) == 0:
+        beats_config = config.get("encoder_conf", {}).get("tokenizer_config", {})
+        if drop_tokenizer_keys:
+            extra_keys_in_tokenizer = [
+                "quant_dim",
+                "quant_n",  # equal to codebook_vocab_size
+                "embed_loss_beta",
+            ]
+            for key in extra_keys_in_tokenizer:
+                beats_config.pop(key, None)
+
     logger.info(f"Beats config: {beats_config}")
     return beats_config
 
@@ -71,6 +82,7 @@ def read_and_write_checkpoint(
     espnet_model_config_path: str,
     output_path: str,
     deepspeed_checkpoint: bool,
+    drop_tokenizer_keys: bool = False,
 ):
     """Read and write checkpoint, with optional averaging."""
     num_checkpoints = len(espnet_model_checkpoint_paths)
@@ -87,7 +99,7 @@ def read_and_write_checkpoint(
     logger.info(f"Reading config from {espnet_model_config_path}")
     with open(espnet_model_config_path, "r") as f:
         config = yaml.safe_load(f)
-    encoder_config = generate_beats_config(config)
+    encoder_config = generate_beats_config(config, drop_tokenizer_keys)
     logger.info(f"Writing checkpoint to {output_path}")
     # Write
     checkpoint = {"model": encoder_state_dict, "cfg": encoder_config}
@@ -124,6 +136,12 @@ def get_cmdline_parser():
         type=str,
         required=True,
         help="Path to save the new checkpoint",
+    )
+    parser.add_argument(
+        "--drop_tokenizer_keys",
+        action="store_true",
+        default=False,
+        help="Drop tokenizer keys from config",
     )
     return parser
 
