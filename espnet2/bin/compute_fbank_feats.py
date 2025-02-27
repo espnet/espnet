@@ -106,6 +106,8 @@ def get_parser():
 def kaldi_fbank_extractor(array, rate, args):
     rate = args.fs if args.fs is not None else rate
     array = torch.from_numpy(array).unsqueeze(0)  # (1, T)
+    if args.normalize is not None and args.normalize != 1:
+        array = array * (1 << (args.normalize - 1))
     # TODO: Add support for more arguments, probably as a dictionary
     fbank = ta_kaldi.fbank(
         array,
@@ -169,7 +171,7 @@ def main():
             if args.fbank_stats_file is not None:
                 sums += features.sum()
                 sqsums += (features**2).sum()
-                count += features.numel()
+                count += features.size
     if args.fbank_stats_file is not None:
         numpy.savez(
             args.fbank_stats_file,
