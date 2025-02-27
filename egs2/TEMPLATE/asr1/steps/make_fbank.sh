@@ -15,6 +15,7 @@ n_shift=512
 win_length=
 window=hann
 write_utt2num_frames=true
+fbank_stats_file=
 cmd=run.pl
 compress=true
 normalize=16  # The bit-depth of the input wav files
@@ -89,6 +90,13 @@ else
   write_num_frames_opt=
 fi
 
+if [ -n ${fbank_stats_file} ]; then
+  fbank_stats_file_=${fbankdir}/${fbank_stats_file%.npz}.JOB.npz
+  fbank_stats_file_opt="--fbank-stats-file ${fbank_stats_file_} "
+else
+  fbank_stats_file_opt=
+fi
+
 if [ "${filetype}" == hdf5 ]; then
     ext=h5
 else
@@ -115,6 +123,7 @@ if [ -f ${data}/segments ]; then
             --window ${window} \
             --n_mels ${n_mels} \
             ${write_num_frames_opt} \
+            ${fbank_stats_file_opt} \
             --compress=${compress} \
             --use_kaldi=${use_kaldi} \
             --filetype ${filetype} \
@@ -142,6 +151,7 @@ else
           --window ${window} \
           --n_mels ${n_mels} \
           ${write_num_frames_opt} \
+          ${fbank_stats_file_opt} \
           --compress=${compress} \
           --use_kaldi=${use_kaldi} \
           --filetype ${filetype} \
@@ -161,6 +171,31 @@ if ${write_utt2num_frames}; then
         cat ${logdir}/utt2num_frames.${n} || exit 1;
     done > ${data}/utt2num_frames || exit 1
     rm ${logdir}/utt2num_frames.* 2>/dev/null
+fi
+
+echo "Succeeded creating filterbank features!"
+
+# Merge fbank_stats
+if [ -n "${fbank_stats_file}" ]; then
+    fbank_stats_files_=""
+    for n in $(seq ${nj}); do
+        fbank_stats_files_+="${fbankdir}/${fbank_stats_file%.npz}.${n}.npz|"
+    done
+    output_file="${data}/${fbank_stats_file%.npz}.txt"
+    echo "Merging fbank_stats to ${output_file}"
+    ${python} - <<EOF "${fbank_stats_files_}" "${output_file}"
+import sys
+import numpy as np
+from functools import reduce
+files=sys.argv[1].strip().split('|')[:-1]
+output_file=sys.argv[2]
+merged_data = reduce(lambda d, f: {k: d.get(k, 0) + v for k, v in np.load(f).items()}, files, {})
+merged_data['fbank_mean'] = merged_data['sum'] / merged_data['count']
+merged_data['fbank_std'] = np.sqrt(merged_data['sum2'] / merged_data['count'] - merged_data['fbank_mean']**2)
+with open(output_file, "w") as f:
+    for k, v in merged_data.items():
+        f.write(f"{k}: {v:.5f}\n")
+EOF
 fi
 
 rm -f ${logdir}/wav.*.scp ${logdir}/segments.* 2>/dev/null

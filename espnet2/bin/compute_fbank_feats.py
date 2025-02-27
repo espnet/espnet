@@ -18,6 +18,7 @@ from espnet.utils.cli_writers import file_writer_helper
 import torchaudio.compliance.kaldi as ta_kaldi
 import torch
 
+
 def get_parser():
     parser = argparse.ArgumentParser(
         description="compute FBANK feature from WAV",
@@ -53,6 +54,12 @@ def get_parser():
         "--write-num-frames", type=str, help="Specify wspecifer for utt2num_frames"
     )
     parser.add_argument(
+        "--fbank-stats-file",
+        type=str,
+        default=None,
+        help="Write various statistics to this npz file if not None",
+    )
+    parser.add_argument(
         "--filetype",
         type=str,
         default="mat",
@@ -63,8 +70,12 @@ def get_parser():
     parser.add_argument(
         "--compress", type=strtobool, default=False, help="Save in compressed format"
     )
-    parser.add_argument("--use_kaldi", type=strtobool, default=False, 
-                        help="Use Kaldi for feature extraction")
+    parser.add_argument(
+        "--use_kaldi",
+        type=strtobool,
+        default=False,
+        help="Use Kaldi for feature extraction",
+    )
     parser.add_argument(
         "--compression-method",
         type=int,
@@ -94,29 +105,31 @@ def get_parser():
 
 def kaldi_fbank_extractor(array, rate, args):
     rate = args.fs if args.fs is not None else rate
-    array = torch.from_numpy(array).unsqueeze(0) # (1, T)
+    array = torch.from_numpy(array).unsqueeze(0)  # (1, T)
     # TODO: Add support for more arguments, probably as a dictionary
     fbank = ta_kaldi.fbank(
-                array,
-                num_mel_bins=args.n_mels,
-                sample_frequency=rate,
-            )
-    fbank = fbank.numpy() # (T, num_mel_bins)
+        array,
+        num_mel_bins=args.n_mels,
+        sample_frequency=rate,
+    )
+    fbank = fbank.numpy()  # (T, num_mel_bins)
     return fbank
+
 
 def espnet_fbank_extractor(array, rate, args):
     lmspc = logmelspectrogram(
-            x=array,
-            fs=args.fs if args.fs is not None else rate,
-            n_mels=args.n_mels,
-            n_fft=args.n_fft,
-            n_shift=args.n_shift,
-            win_length=args.win_length,
-            window=args.window,
-            fmin=args.fmin,
-            fmax=args.fmax,
-        )
+        x=array,
+        fs=args.fs if args.fs is not None else rate,
+        n_mels=args.n_mels,
+        n_fft=args.n_fft,
+        n_shift=args.n_shift,
+        win_length=args.win_length,
+        window=args.window,
+        fmin=args.fmin,
+        fmax=args.fmax,
+    )
     return lmspc
+
 
 def main():
     parser = get_parser()
@@ -129,6 +142,9 @@ def main():
         logging.basicConfig(level=logging.WARN, format=logfmt)
     logging.info(get_commandline_args())
 
+    sums = 0
+    sqsums = 0
+    count = 0
     with kaldiio.ReadHelper(
         args.rspecifier, segments=args.segments
     ) as reader, file_writer_helper(
@@ -146,10 +162,21 @@ def main():
                 array = array / (1 << (args.normalize - 1))
 
             if args.use_kaldi:
-                features= kaldi_fbank_extractor(array, rate, args)
+                features = kaldi_fbank_extractor(array, rate, args)
             else:
                 features = espnet_fbank_extractor(array, rate, args)
             writer[utt_id] = features
+            if args.fbank_stats_file is not None:
+                sums += features.sum()
+                sqsums += (features**2).sum()
+                count += features.numel()
+    if args.fbank_stats_file is not None:
+        numpy.savez(
+            args.fbank_stats_file,
+            count=count,
+            sum=sums,
+            sum2=sqsums,
+        )
 
 
 if __name__ == "__main__":
