@@ -1,6 +1,6 @@
 # General
 # GH200 GPUs with 96G memory; 1.7B model. Revise according to your GPU memory
-nproc: 5
+nproc: 1
 dtype: bfloat16
 
 # search algorithm parameters
@@ -8,6 +8,7 @@ search_algo: topk_sampling
 # search_algo: teacher_force
 sampling_temperature: 0.7
 minlenratio: 0.05
+# maxlenratio: 10
 top_k: 30
 seed: 0
 

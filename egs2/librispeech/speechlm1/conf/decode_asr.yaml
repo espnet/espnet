@@ -1,12 +1,12 @@
 # General
 # GH200 GPUs with 96G memory; 1.7B model. Revise according to your GPU memory
-nproc: 8
+nproc: 1
 dtype: bfloat16
 
 search_algo: greedy_search
 # search_algo: teacher_force
 maxlenratio: 0.3
-minlenratio: 0.03
+minlenratio: 0.05
 
 # offline tokenizer
 codec_conf:

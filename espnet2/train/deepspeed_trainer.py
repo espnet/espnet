@@ -171,7 +171,6 @@ class DeepSpeedTrainer(Trainer):
         options: DeepSpeedTrainerOptions,
     ) -> None:
         model.train()
-        torch.cuda.empty_cache()
         iterator_stop = torch.tensor(0).cuda()
 
         log_interval = options.log_interval
@@ -247,7 +246,6 @@ class DeepSpeedTrainer(Trainer):
         options: DeepSpeedTrainerOptions,
     ) -> None:
         model.eval()
-        torch.cuda.empty_cache()
         iterator_stop = torch.tensor(0).cuda()
 
         for iiter, (utt_id, batch) in enumerate(iterator):
