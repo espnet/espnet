@@ -9,8 +9,7 @@ from typing import Dict, List
 
 
 class Chat:
-    """
-    Handles the chat to avoid OOM issues.
+    """Handles the chat to avoid OOM issues.
 
     Attributes:
         size (int):
@@ -24,8 +23,7 @@ class Chat:
     """
 
     def __init__(self, size: int):
-        """
-        Initializes the Chat object with a buffer size.
+        """Initializes the Chat object with a buffer size.
 
         Args:
             size (int):
@@ -39,8 +37,8 @@ class Chat:
         self.buffer = []
 
     def append(self, item: Dict[str, str]) -> None:
-        """
-        Adds a new message to the chat buffer.
+        """Adds a new message to the chat buffer.
+
         Removes the oldest prompt-response
         pair if the buffer exceeds the maximum allowed size.
 
@@ -56,8 +54,7 @@ class Chat:
             self.buffer.pop(0)
 
     def init_chat(self, init_chat_message: Dict[str, str]) -> None:
-        """
-        Sets the initial chat message, which will be prepended to the chat history.
+        """Sets the initial chat message, which will be prepended to the chat history.
 
         Args:
             init_chat_message (Dict[str, str]):
@@ -67,8 +64,8 @@ class Chat:
         self.init_chat_message = init_chat_message
 
     def to_list(self) -> List[Dict[str, str]]:
-        """
-        Returns the complete chat history as a list,
+        """Returns the complete chat history as a list,
+
         including the initial message if set.
 
         Returns:

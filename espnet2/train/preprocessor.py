@@ -2604,10 +2604,10 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         # speaker prompt
         self.speaker_prompt_length = speaker_prompt_length
 
+    @typechecked
     def __call__(
         self, uid: str, data: Dict[str, Union[str, np.ndarray]]
     ) -> Dict[str, np.ndarray]:
-        assert check_argument_types()
 
         # (1) task parsing
         task_name = uid.strip().split(" ")[0]
@@ -2619,7 +2619,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
                 raise ValueError("Continuous feature is not supported yet.")
 
         # (2) encoder & decoder sequence
-        seqs, conti_feats = [], []
+        seqs, conti_feats = [], []  # noqa
         n_enc_entries = len(task.encoder_entries)
         for e_idx, entries in enumerate([task.encoder_entries, task.decoder_entries]):
             for entry in entries:
@@ -2713,7 +2713,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         enc_seq = data.get("enc_seq", None)
         dec_seq = data.get("dec_seq", None)
 
-        logging.warning(f"Diagnose in preprocessor ...")
+        logging.warning("Diagnose in preprocessor ...")
         for name, seq in [("encoder", enc_seq), ("decoder", dec_seq)]:
             if seq is None:
                 continue

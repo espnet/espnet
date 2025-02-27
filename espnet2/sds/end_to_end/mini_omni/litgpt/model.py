@@ -71,8 +71,8 @@ class GPT(nn.Module):
 
     @max_seq_length.setter
     def max_seq_length(self, value: int) -> None:
-        """
-        When doing inference, the sequences used might be shorter
+        """When doing inference, the sequences used might be shorter
+
         than the model's context length.
         This allows setting a smaller number to avoid allocating
         unused memory
@@ -126,7 +126,7 @@ class GPT(nn.Module):
         task: Optional[str] = None,
     ) -> torch.Tensor:
 
-        show = False
+        show = False  # noqa
         T = input_ids[0].size(1)
         if self.max_seq_length < T:
             raise ValueError(
@@ -497,8 +497,8 @@ class LLaMAMoE(nn.Module):
         self.config = config
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """
-        Derived from:
+        """Forward method derived from:
+
         https://github.com/mistralai/mistral-src/blob/b46d6/
         moe_one_file_ref.py#L203-L219
         See also figure 1 in https://arxiv.org/abs/2211.15841

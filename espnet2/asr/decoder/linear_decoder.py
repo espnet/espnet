@@ -51,7 +51,8 @@ class LinearDecoder(AbsDecoder):
         ys_in_pad: torch.Tensor = None,
         ys_in_lens: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """
+        """Forward method.
+
         Args:
             hs_pad: (B, Tmax, D)
             hlens: (B,)
@@ -77,6 +78,7 @@ class LinearDecoder(AbsDecoder):
 
     def score(self, ys, state, x):
         """Classify x.
+
         Args:
             ys: Not used
             state: Not used
@@ -85,7 +87,8 @@ class LinearDecoder(AbsDecoder):
         Returns:
             logp: log probabilities over (n_classes,)
             state: None
-        Assumes that x is a single unpadded sequence."""
+        Assumes that x is a single unpadded sequence.
+        """
         hs_len = torch.tensor([x.shape[0]], dtype=torch.long).to(x.device)
         logits = self.forward(
             x.unsqueeze(0),

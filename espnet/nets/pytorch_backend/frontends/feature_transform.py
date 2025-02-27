@@ -1,3 +1,5 @@
+"""Feature transform module."""
+
 from typing import List, Tuple, Union
 
 import librosa
@@ -9,6 +11,8 @@ from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 
 
 class FeatureTransform(torch.nn.Module):
+    """Feature transform class."""
+
     def __init__(
         self,
         # Mel options,
@@ -23,6 +27,7 @@ class FeatureTransform(torch.nn.Module):
         uttmvn_norm_means: bool = True,
         uttmvn_norm_vars: bool = False,
     ):
+        """Initialize Feature transform."""
         super().__init__()
         self.apply_uttmvn = apply_uttmvn
 
@@ -43,6 +48,7 @@ class FeatureTransform(torch.nn.Module):
     def forward(
         self, x: ComplexTensor, ilens: Union[torch.LongTensor, np.ndarray, List[int]]
     ) -> Tuple[torch.Tensor, torch.LongTensor]:
+        """Calculate feature transform forward propagation."""
         # (B, T, F) or (B, T, C, F)
         if x.dim() not in (3, 4):
             raise ValueError(f"Input dim must be 3 or 4: {x.dim()}")
@@ -74,7 +80,7 @@ class FeatureTransform(torch.nn.Module):
 
 
 class LogMel(torch.nn.Module):
-    """Convert STFT to fbank feats
+    """Convert STFT to fbank feats.
 
     The arguments is same as librosa.filters.mel
 
@@ -103,6 +109,7 @@ class LogMel(torch.nn.Module):
         htk: bool = False,
         norm=1,
     ):
+        """Initialize LogMel."""
         super().__init__()
 
         _mel_options = dict(
@@ -116,11 +123,13 @@ class LogMel(torch.nn.Module):
         self.register_buffer("melmat", torch.from_numpy(melmat.T).float())
 
     def extra_repr(self):
+        """Append an extra string representation."""
         return ", ".join(f"{k}={v}" for k, v in self.mel_options.items())
 
     def forward(
         self, feat: torch.Tensor, ilens: torch.LongTensor
     ) -> Tuple[torch.Tensor, torch.LongTensor]:
+        """Calculate Logmel forward propagation."""
         # feat: (B, T, D1) x melmat: (D1, D2) -> mel_feat: (B, T, D2)
         mel_feat = torch.matmul(feat, self.melmat)
 
@@ -131,7 +140,7 @@ class LogMel(torch.nn.Module):
 
 
 class GlobalMVN(torch.nn.Module):
-    """Apply global mean and variance normalization
+    """Apply global mean and variance normalization.
 
     Args:
         stats_file(str): npy file of 1-dim array or text file.
@@ -151,6 +160,7 @@ class GlobalMVN(torch.nn.Module):
         norm_vars: bool = True,
         eps: float = 1.0e-20,
     ):
+        """Initialize Global MVN."""
         super().__init__()
         self.norm_means = norm_means
         self.norm_vars = norm_vars
@@ -170,6 +180,7 @@ class GlobalMVN(torch.nn.Module):
         self.register_buffer("scale", torch.from_numpy(1 / std.astype(np.float32)))
 
     def extra_repr(self):
+        """Append an extra string representation."""
         return (
             f"stats_file={self.stats_file}, "
             f"norm_means={self.norm_means}, norm_vars={self.norm_vars}"
@@ -178,6 +189,7 @@ class GlobalMVN(torch.nn.Module):
     def forward(
         self, x: torch.Tensor, ilens: torch.LongTensor
     ) -> Tuple[torch.Tensor, torch.LongTensor]:
+        """Calculate GlobalMVN forward propagation."""
         # feat: (B, T, D)
         if self.norm_means:
             x += self.bias.type_as(x)
@@ -189,20 +201,25 @@ class GlobalMVN(torch.nn.Module):
 
 
 class UtteranceMVN(torch.nn.Module):
+    """Utterance MVN class."""
+
     def __init__(
         self, norm_means: bool = True, norm_vars: bool = False, eps: float = 1.0e-20
     ):
+        """Initialize UtteranceMVN."""
         super().__init__()
         self.norm_means = norm_means
         self.norm_vars = norm_vars
         self.eps = eps
 
     def extra_repr(self):
+        """Append an extra string representation."""
         return f"norm_means={self.norm_means}, norm_vars={self.norm_vars}"
 
     def forward(
         self, x: torch.Tensor, ilens: torch.LongTensor
     ) -> Tuple[torch.Tensor, torch.LongTensor]:
+        """Calculate UtteranceMVN forward propagation."""
         return utterance_mvn(
             x, ilens, norm_means=self.norm_means, norm_vars=self.norm_vars, eps=self.eps
         )
@@ -215,7 +232,7 @@ def utterance_mvn(
     norm_vars: bool = False,
     eps: float = 1.0e-20,
 ) -> Tuple[torch.Tensor, torch.LongTensor]:
-    """Apply utterance mean and variance normalization
+    """Apply utterance mean and variance normalization.
 
     Args:
         x: (B, T, D), assumed zero padded
@@ -246,6 +263,7 @@ def utterance_mvn(
 
 
 def feature_transform_for(args, n_fft):
+    """Instantiate an feature transform module given the program arguments."""
     return FeatureTransform(
         # Mel options,
         fs=args.fbank_fs,

@@ -13,7 +13,7 @@
 import logging
 import math
 import warnings
-from copy import deepcopy
+from contextlib import contextmanager
 from typing import Dict, Optional, Tuple
 
 import numpy as np
@@ -348,6 +348,7 @@ class BeatsEncoder(AbsEncoder):
         prev_states: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
         """Wrapper for compatibility with ESPnets' AbsEncoder Interface.
+
         Args:
             xs_pad: (B, T)
             ilens: (B,)
@@ -1227,8 +1228,8 @@ class MultiheadAttention(nn.Module):
 
 
 def init_bert_params(module):
-    """
-    Initialize the weights specific to the BERT Model.
+    """Initialize the weights specific to the BERT Model.
+
     This overrides the default initializations depending on the specified arguments.
         1. If normal_init_linear_weights is set then weights of linear
            layer will be initialized using the normal distribution and
@@ -1386,8 +1387,8 @@ def get_activation_fn(activation: str):
 
 
 def quant_noise(module, p, block_size):
-    """
-    Wraps modules and applies quantization noise to the weights for
+    """Wraps modules and applies quantization noise to the weights for
+
     subsequent quantization with Iterative Product Quantization as
     described in "Training with Quantization Noise for Extreme Model Compression"
 

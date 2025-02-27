@@ -2,9 +2,7 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """DAC Modules."""
-import copy
 import functools
-import logging
 import math
 import random
 from typing import Any, Dict, List, Optional
@@ -12,7 +10,7 @@ from typing import Any, Dict, List, Optional
 import numpy as np
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
+import torch.nn.functional as F  # noqa
 from typeguard import typechecked
 
 from espnet2.gan_codec.abs_gan_codec import AbsGANCodec
@@ -32,7 +30,7 @@ from espnet2.torch_utils.device_funcs import force_gatherable
 
 
 class DAC(AbsGANCodec):
-    """ "DAC model."""
+    """DAC model."""
 
     @typechecked
     def __init__(
@@ -73,7 +71,6 @@ class DAC(AbsGANCodec):
             "scale_follow_official_norm": False,
             "msmpmb_discriminator_params": {
                 "rates": [],
-                "periods": [2, 3, 5, 7, 11],
                 "fft_sizes": [2048, 1024, 512],
                 "sample_rate": 24000,
                 "periods": [2, 3, 5, 7, 11],
@@ -647,7 +644,6 @@ class DACDiscriminator(nn.Module):
         # MultiScaleMultiPeriodMultiBandDiscriminator parameters
         msmpmb_discriminator_params: Dict[str, Any] = {
             "rates": [],
-            "periods": [2, 3, 5, 7, 11],
             "fft_sizes": [2048, 1024, 512],
             "sample_rate": 24000,
             "periods": [2, 3, 5, 7, 11],
