@@ -115,7 +115,7 @@ class AudioTokenizer(AbsTokenizer):
         assert wavs.dim() == 3, "Input wavs should be in shape [B, n_sample, D]"
         if self.codec_choice == "beats" or self.codec_choice == "beats_random":
             wav_in = wavs.squeeze(2)  # [B, n_sample]
-            if wav_in.dim() == 2 and (wav_in.max() > 1.0 or wav_in.min() < -1.0):
+            if self.waveform_input and (wav_in.max() > 1.0 or wav_in.min() < -1.0):
                 # Beats expects input in range [-1, 1]
                 wav_in = wav_in.to(torch.float32)
                 wav_in = wav_in / 2**15

@@ -528,7 +528,7 @@ class BeatsEncoder(AbsEncoder):
         """
         with autocast(False):
             fbank = (
-                source
+                (source - self.fbank_mean) / (2 * self.fbank_std)
                 if skip_fbank_extraction
                 else beats_frontend(
                     source.squeeze(-1),

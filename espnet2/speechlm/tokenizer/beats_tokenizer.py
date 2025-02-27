@@ -502,7 +502,7 @@ class BeatsRandomTokenizer(nn.Module):
                     xs_pad, fbank_mean=self.fbank_mean, fbank_std=self.fbank_std
                 )
             else:
-                fbank = xs_pad
+                fbank = (xs_pad - self.fbank_mean) / (2 * self.fbank_std)
         n_mels = fbank.size(2)
         fbank = fbank.unsqueeze(1).float()
         features = self.patch_embedding(fbank)  # B, C, t, d=8

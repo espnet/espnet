@@ -189,8 +189,10 @@ if [ -z "${ssl_tag}" ]; then
 fi
 
 if [ -z "${tokenizer_inference_model}" ]; then
-    log "Error: tokenizer_inference_model is required"
-    exit 2
+    if [-z "${external_tokenizer_model}" ]; then
+        log "Error: Either tokenizer_inference_model or external_tokenizer_model is required"
+        exit 2
+    fi
 fi
 # ========================== Main stages start from here. ==========================
 
@@ -205,8 +207,8 @@ if ! "${skip_data_prep}"; then
         exit 2
     fi
     if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
-        log "Stage 2: Format wav.scp: ${datadir}/ -> ${data_feats}"
-        for dset in "${train_set}" "${valid_set}"; do
+        log "Stage 2: Format wav.scp: ${datadir}/ -> ${data_feats_raw}/[org]"
+        for dset in "${valid_set}" "${train_set}" ; do
             utils/copy_data_dir.sh --validate_opts --non-print ${datadir}/"${dset}" "${data_feats_raw}/org/${dset}"
             rm -f ${data_feats_raw}/org/${dset}/{segments,wav.scp,reco2file_and_channel,reco2dur}
             # shellcheck disable=SC2086
@@ -214,17 +216,16 @@ if ! "${skip_data_prep}"; then
                                             --audio-format "${audio_format}" --fs "${fs}" \
                                             "${datadir}/${dset}/wav.scp" "${data_feats_raw}/org/${dset}"
 
-            echo "${feats_type}" > "${data_feats_raw}/org/${dset}/feats_type"
             # Copy data from multiple jobs
             utils/copy_data_dir.sh --validate_opts --non-print "${data_feats_raw}/org/${dset}" "${data_feats_raw}/${dset}"
-            cp "${data_feats_raw}/org/${dset}/feats_type" "${data_feats_raw}/${dset}/feats_type"
+            echo "raw" > "${data_feats_raw}/${dset}/feats_type"
         done
         
     fi
 
 
     if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-        log "Stage 3: Remove long/short data: ${data_feats_raw}/org -> ${data_feats_raw}"
+        log "Stage 3: Remove long/short data: ${data_feats_raw}"
 
         for dset in "${train_set}" "${valid_set}"; do
             _fs=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
@@ -249,20 +250,21 @@ if ! "${skip_data_prep}"; then
     if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         if [ "${feats_type}" = fbank ]; then
             log "Stage 4: Feature extraction: ${data_feats}/${train_set}, ${data_feats}/${valid_set}"
-            for dset in "${train_set}" "${valid_set}"; do
+            # "${valid_set}"  "${train_set}"
+            for dset in "${valid_set}" "${train_set}"; do
                 log "Extracting features: ${dset}"
                 utils/copy_data_dir.sh --validate_opts --non-print "${dumpdir}/raw/${dset}" "${data_feats}/org/${dset}"
                 rm -f ${data_feats}/org/${dset}/{segments,reco2file_and_channel,reco2dur}
                 # shellcheck disable=SC2086
                 _fs=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
-                
-                steps/make_fbank.sh --cmd "${train_cmd}" --nj "${nj}" --fs "${_fs}" \
+                steps/make_fbank.sh --cmd "${train_cmd}" --nj "${nj}" --fs "${_fs}" --fbank_stats_file fbank_stats \
                               --n_mels 128 --use_kaldi true "${data_feats}/org/${dset}"
 
                 echo "${feats_type}" > "${data_feats}/org/${dset}/feats_type"
                 utils/copy_data_dir.sh --validate_opts --non-print "${data_feats}/org/${dset}" "${data_feats}/${dset}"
                 cp "${data_feats}/org/${dset}/feats_type" "${data_feats}/${dset}/feats_type"
-                # TODO: Optionally remove raw data?.
+                cp "${data_feats}/org/${dset}/fbank_stats.txt" "${data_feats}/${dset}/fbank_stats.txt"
+                # NOTE(shikhar): After this stage we have data in both raw and fbank format.
             done
         else
             log "Skip the stage for feature extraction"
@@ -280,17 +282,19 @@ if ! "${skip_train}"; then
     fi
     if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         log "Stage 5: BEATs Tokenization: ${data_feats}/${train_set}, ${data_feats}/${valid_set}"
-        if [ ${feats_type} = raw ]; then
-            _file_name=wav.scp
-        elif [ ${feats_type} = fbank ]; then
-            _file_name=feats.scp
-        fi
         
         _opts=
         _tokenizer_inference_tag="tok"
         if [ -n "${tokenizer_inference_config}" ]; then
             _opts+="--config_path ${tokenizer_inference_config} "
             _tokenizer_inference_tag="$(basename "${tokenizer_inference_config}" .yaml)"
+        fi
+        if [ ${feats_type} = raw ]; then
+            _file_name=wav.scp
+            _opts+="--waveform_input true "
+        elif [ ${feats_type} = fbank ]; then
+            _file_name=feats.scp
+            _opts+="--waveform_input false "
         fi
         # Tokenize
         # TODO(shikhar): Undo changes to dump_codec.py
@@ -449,8 +453,15 @@ if ! "${skip_train}"; then
                 if [ -n "${external_teacher_model}" ]; then
                     teacher_ckpt_path_="${external_teacher_model}"
                 fi
-                log "Using teacher model: ${teacher_ckpt_path_}"
+                log "Using teacher model checkpoint: ${teacher_ckpt_path_}"
                 log "BEATs Tokenizer Training started... log: '${ssl_tokenizer_exp}/train.log'"
+                mkdir -p "${ssl_tokenizer_exp}"; echo "${run_args} --stage 7 \"\$@\"; exit \$?" > "${ssl_tokenizer_exp}/run.sh"; chmod +x "${ssl_tokenizer_exp}/run.sh"
+                if echo "${cuda_cmd}" | grep -e queue.pl -e queue-freegpu.pl &> /dev/null; then
+                    # SGE can't include "/" in a job name
+                    jobname="$(basename ${ssl_tokenizer_exp})"
+                else
+                    jobname="${ssl_tokenizer_exp}/train.log"
+                fi
                 
                 ${python} -m espnet2.bin.launch \
                     --cmd "${cuda_cmd} --name ${jobname}" \
@@ -470,26 +481,53 @@ if ! "${skip_train}"; then
                         --fold_length "${speech_fold_length}" \
                         --output_dir "${ssl_tokenizer_exp}" \
                         ${_opts} ${beats_args}
+                
+                ########
+                # Convert checkpoint to float32 for further inference!
+                # python /data/user_data/sbharad2/espnet/espnet2/beats/generate_beats_checkpoint.py \
+                #     --espnet_model_checkpoint_path /data/user_data/sbharad2/espnet/egs2/as2m/ssl1/exp/beats_iter0_iter020250215.140135/checkpoint_36/36/mp_rank_00_model_states.pt \
+                #     --output_path /data/user_data/sbharad2/espnet/egs2/as2m/ssl1/exp/beats_iter0_iter020250215.140135/epoch36.pt \
+                #     --espnet_model_config_path /data/user_data/sbharad2/espnet/egs2/as2m/ssl1/exp/beats_iter0_iter020250215.140135/config.yaml \
+                #     --deepspeed_checkpoint
+                ########
 
                 log "Iter ${iter} BEATs Tokenizer Training completed, model saved in: ${ssl_tokenizer_exp}"
+                exit 1
                 
                 # Inference with tokenizer
-                _tokenizer_ckpt_path=${ssl_tokenizer_exp}/${tokenizer_inference_model}
+                _opts=
                 if [ -n "${external_tokenizer_model}" ]; then
                     _tokenizer_ckpt_path="${external_tokenizer_model}"
+                    _opts+="--checkpoint_path ${_tokenizer_ckpt_path} "
+                else
+                    _tokenizer_ckpt_path=${ssl_tokenizer_exp}/${tokenizer_inference_model}
+                    _tokenizer_config_path=${ssl_tokenizer_exp}/config.yaml
+                    _opts+="--checkpoint_path ${_tokenizer_ckpt_path} --config_path ${_tokenizer_config_path} "
                 fi
-                log "Inference with tokenizer model: ${_tokenizer_ckpt_path}"
-                for _data_dir in "${_ssl_train_dir}" "${_ssl_val_dir}"; do
+
+                codec_choice=beats
+                if [ ${feats_type} = raw ]; then
+                    _file_name=wav.scp
+                    _opts+="--waveform_input true "
+                elif [ ${feats_type} = fbank ]; then
+                    _file_name=feats.scp
+                    _opts+="--waveform_input false "
+                fi
+                
+                log "Inference with ${_opts}."
+                for _data_dir in "${_ssl_valid_dir}" "${_ssl_train_dir}"; do
                     _nj=$((ngpu==0?nj:ngpu))
                     _ngpu=$((ngpu==0?0:1))
                     ./scripts/feats/audio_tokenization.sh \
-                        --codec_choice beats \
-                        --file_name wav.scp \
+                        --codec_choice ${codec_choice} \
+                        --file_name ${_file_name} \
                         --src_dir "${_data_dir}" \
-                        --tgt_dir "${_data_dir}/codes_iter${iter}" \
-                        --checkpoint_path "${_tokenizer_ckpt_path}" \
-                        --nj "${_nj}" --ngpu "${_ngpu}" --batch_size "${tokenizer_inference_batch_size}"
-                    cp "${_data_dir}/codes_iter${iter}/${_file_name%.scp}_${codec_choice}.txt" "${_data_dir}/target_iter${iter}"
+                        --tgt_dir "${_data_dir}/iter${iter}_${_tokenizer_inference_tag}" \
+                        --nj "${_nj}" --ngpu "${_ngpu}" --batch_size "${tokenizer_inference_batch_size}" \
+                        ${_opts}
+
+                    cp "${_data_dir}/iter${iter}_${_tokenizer_inference_tag}/${_file_name%.scp}_${codec_choice}.txt" \
+                        "${_data_dir}/target_iter${iter}_${_tokenizer_inference_tag}"
                 done
                 log "Inference with tokenizer model completed."
             fi

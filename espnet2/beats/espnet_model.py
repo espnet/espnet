@@ -12,6 +12,7 @@ from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet2.speechlm.tokenizer.beats_utils import beats_frontend
 
 logger = logging.getLogger(__name__)
 
@@ -109,7 +110,11 @@ class BeatsPretrainModel(AbsESPnetModel):
         # for data-parallel
         speech = speech[:, : speech_lengths.max()]
         if self.waveform_input:
-            feats, feats_lengths = self.encoder.preprocess(speech)
+            feats, feats_lengths = beats_frontend(
+                speech.squeeze(-1),
+                fbank_mean=self.encoder.fbank_mean,
+                fbank_std=self.encoder.fbank_std,
+            )
         else:
             feats, feats_lengths = speech, speech_lengths
         self.encoder.is_pretraining = old_is_pretraining
