@@ -251,7 +251,6 @@ class BeatsRandomTokenizer(nn.Module):
         features = features.reshape(features.shape[0], features.shape[1], -1)
         features = features.transpose(1, 2)
         features = self.layer_norm(features)
-        print(features[0, :5, :5])
         embed_ind = self.random_projection_quantizer(features)
         return embed_ind
 
