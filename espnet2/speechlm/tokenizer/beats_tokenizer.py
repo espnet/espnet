@@ -521,6 +521,7 @@ class BeatsRandomTokenizer(nn.Module):
         self,
         xs_pad: torch.Tensor,
         ilens: torch.Tensor,
+        waveform_input: bool = True,
     ):
-        embed_ind, embed_len = self(xs_pad, ilens)
+        embed_ind, embed_len = self(xs_pad, ilens, waveform_input=waveform_input)
         return {"codes": embed_ind, "code_lengths": embed_len}

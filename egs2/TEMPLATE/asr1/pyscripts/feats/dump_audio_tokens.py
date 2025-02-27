@@ -110,8 +110,10 @@ def dump_audio_tokens(
     idx = 0
     for key, data in audio_reader:
         if isinstance(data, tuple):
+            assert waveform_input, "Set waveform_input=True for raw wav"
             sample_rate, wav = data  # raw wav
         else:
+            assert not waveform_input, "Set waveform_input=False for fbank"
             sample_rate, wav = None, data  # wav features
 
         wav = torch.from_numpy(wav)
