@@ -63,7 +63,7 @@ class UniversaInference:
         audio_lengths: Union[np.ndarray, torch.Tensor] = None,
         ref_audio: Optional[Union[np.ndarray, torch.Tensor]] = None,
         ref_audio_lengths: Optional[Union[np.ndarray, torch.Tensor]] = None,
-        ref_text: Optional[Union[np.ndarray, torch.Tensor]] = None,
+        ref_text: Optional[Union[np.ndarray, torch.Tensor, str]] = None,
         ref_text_lengths: Optional[Union[np.ndarray, torch.Tensor]] = None,
         **kwargs,
     ) -> Dict[str, Union[np.array, torch.Tensor]]:
