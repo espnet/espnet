@@ -52,7 +52,8 @@ if [ "${CLOTHO_ENTAILMENT}" == "downloads" ]; then
         else
             log "Clotho audio is already downloaded. ${CLOTHO_ENTAILMENT_ROOT_DIR}/audio_download_done exists."
         fi
-        git clone https://github.com/microsoft/AudioEntailment.git ${CLOTHO_ENTAILMENT_ROOT_DIR}/
+        rm -rf "${CLOTHO_ENTAILMENT_ROOT_DIR}/AudioEntailment"
+        git clone https://github.com/microsoft/AudioEntailment.git "${CLOTHO_ENTAILMENT_ROOT_DIR}/AudioEntailment"
         touch "${CLOTHO_ENTAILMENT_ROOT_DIR}/entailment_download_done"
     else
         log "Clotho dataset is already downloaded. ${CLOTHO_ENTAILMENT_ROOT_DIR}/entailment_download_done exists."
@@ -73,7 +74,7 @@ python3 local/data_prep_clotho_entailment.py ${CLOTHO_ENTAILMENT_ROOT_DIR} ${DAT
 ##########
 
 # SORT ALL
-SPLITS=(development_entailment validation_entailment evaluation_entailment)
+SPLITS=(development_cle validation_cle evaluation_cle)
 for split_name in "${SPLITS[@]}"; do
     for f in wav.scp utt2spk text hypothesis.txt; do
         if [ -f "${DATADIR}/${split_name}/${f}" ]; then

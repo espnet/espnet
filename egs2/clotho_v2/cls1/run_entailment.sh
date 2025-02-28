@@ -22,8 +22,8 @@ mkdir -p "${storage_dir}"
     --local_data_opts "entailment" \
     --cls_tag "${mynametag}" \
     --datadir "${storage_dir}/data_cle" \
-    --dumpdir "${storage_dir}/dump_cle" \
-    --expdir "${storage_dir}/exp_cle" \
+    --dumpdir "${storage_dir}/dump" \
+    --expdir "${storage_dir}/exp" \
     --cls_stats_dir "${storage_dir}/data_stats_cle" \
     --speech_text_classification true \
     --text_input_filename hypothesis.txt \
