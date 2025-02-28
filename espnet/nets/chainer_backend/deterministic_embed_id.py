@@ -1,3 +1,10 @@
+"""Deterministic EmbedID link and function.
+
+copied from chainer/links/connection/embed_id.py
+and chainer/functions/connection/embed_id.py,
+and modified not to use atomicAdd operation
+"""
+
 import chainer
 import numpy
 
@@ -6,20 +13,17 @@ from chainer import cuda, function_node, link, variable
 from chainer.initializers import normal
 from chainer.utils import type_check
 
-"""Deterministic EmbedID link and function
-
-   copied from chainer/links/connection/embed_id.py
-   and chainer/functions/connection/embed_id.py,
-   and modified not to use atomicAdd operation
-"""
-
 
 class EmbedIDFunction(function_node.FunctionNode):
+    """EmbedIDFunction class."""
+
     def __init__(self, ignore_label=None):
+        """Initialize EmbedIDFunction."""
         self.ignore_label = ignore_label
         self._w_shape = None
 
     def check_type_forward(self, in_types):
+        """Check type forward."""
         type_check.expect(in_types.size() == 2)
         x_type, w_type = in_types
         type_check.expect(
@@ -29,6 +33,7 @@ class EmbedIDFunction(function_node.FunctionNode):
         type_check.expect(w_type.dtype == numpy.float32, w_type.ndim == 2)
 
     def forward(self, inputs):
+        """Compute EmbedIDFunction forward."""
         self.retain_inputs((0,))
         x, W = inputs
         self._w_shape = W.shape
@@ -56,6 +61,7 @@ class EmbedIDFunction(function_node.FunctionNode):
         return (W[x],)
 
     def backward(self, indexes, grad_outputs):
+        """Compute EmbedIDFunction backward."""
         inputs = self.get_retained_inputs()
         gW = EmbedIDGrad(self._w_shape, self.ignore_label).apply(inputs + grad_outputs)[
             0
@@ -64,12 +70,16 @@ class EmbedIDFunction(function_node.FunctionNode):
 
 
 class EmbedIDGrad(function_node.FunctionNode):
+    """EmbedIDGrad class."""
+
     def __init__(self, w_shape, ignore_label=None):
+        """Initialize EmbedIDGrad."""
         self.w_shape = w_shape
         self.ignore_label = ignore_label
         self._gy_shape = None
 
     def forward(self, inputs):
+        """Compute EmbedIDGrad forward."""
         self.retain_inputs((0,))
         xp = cuda.get_array_module(*inputs)
         x, gy = inputs
@@ -118,6 +128,7 @@ class EmbedIDGrad(function_node.FunctionNode):
         return (gW,)
 
     def backward(self, indexes, grads):
+        """Compute EmbedIDGrad backward."""
         xp = cuda.get_array_module(*grads)
         x = self.get_retained_inputs()[0].data
         ggW = grads[0]
@@ -164,7 +175,6 @@ def embed_id(x, W, ignore_label=None):
     .. rubric:: :class:`~chainer.links.EmbedID`
 
     Examples:
-
         >>> x = np.array([2, 1]).astype('i')
         >>> x
         array([2, 1], dtype=int32)
@@ -205,7 +215,6 @@ class EmbedID(link.Link):
         W (~chainer.Variable): Embedding parameter matrix.
 
     Examples:
-
         >>> W = np.array([[0, 0, 0],
         ...               [1, 1, 1],
         ...               [2, 2, 2]]).astype('f')
@@ -227,6 +236,7 @@ class EmbedID(link.Link):
     ignore_label = None
 
     def __init__(self, in_size, out_size, initialW=None, ignore_label=None):
+        """Initialize EmbedID."""
         super(EmbedID, self).__init__()
         self.ignore_label = ignore_label
 
@@ -236,7 +246,7 @@ class EmbedID(link.Link):
             self.W = variable.Parameter(initialW, (in_size, out_size))
 
     def __call__(self, x):
-        """Extracts the word embedding of given IDs.
+        """Extract the word embedding of given IDs.
 
         Args:
             x (chainer.Variable): Batch vectors of IDs.

@@ -11,7 +11,7 @@
 
 import logging
 import math
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Tuple, Union
 
 import einops
 import numpy as np
@@ -42,8 +42,8 @@ CONV_NORMALIZATIONS = frozenset(
 
 
 class ConvLayerNorm(nn.LayerNorm):
-    """
-    Convolution-friendly LayerNorm that moves channels to last dimensions
+    """Convolution-friendly LayerNorm that moves channels to last dimensions
+
     before running the normalization and moves them back to
     original position right after.
     """
@@ -73,7 +73,9 @@ def apply_parametrization_norm(module: nn.Module, norm: str = "none") -> nn.Modu
 def get_norm_module(
     module: nn.Module, causal: bool = False, norm: str = "none", **norm_kwargs
 ) -> nn.Module:
-    """Return the proper normalization module. If causal is True, this will
+    """Return the proper normalization module.
+
+    If causal is True, this will
     ensure the returned module is causal, or return an error if the
     normalization doesn't support causal evaluation.
     """
@@ -95,6 +97,7 @@ def get_extra_padding_for_conv1d(
     x: torch.Tensor, kernel_size: int, stride: int, padding_total: int = 0
 ) -> int:
     """Pad for a convolution to make sure that the last window is full.
+
     Extra padding is added at the end. This is required to ensure that we can rebuild
     an output of the same length, as otherwise, even with padding, some time steps
     might get removed.
@@ -114,6 +117,7 @@ def pad1d(
     x: torch.Tensor, paddings: Tuple[int, int], mode: str = "zero", value: float = 0.0
 ):
     """Tiny wrapper around F.pad, just to allow for reflect padding on small input.
+
     If this is the case, we insert extra 0 padding to the right before
     the reflection happen.
     """
@@ -135,6 +139,7 @@ def pad1d(
 
 class NormConv1d(nn.Module):
     """Wrapper around Conv1d and normalization applied to this conv
+
     to provide a uniform interface across normalization approaches.
     """
 
@@ -159,6 +164,7 @@ class NormConv1d(nn.Module):
 
 class SConv1d(nn.Module):
     """Conv1d with some builtin handling of asymmetric or causal padding
+
     and normalization.
     """
 
@@ -224,8 +230,8 @@ class SConv1d(nn.Module):
 
 
 class SLSTM(nn.Module):
-    """
-    LSTM without worrying about the hidden state, nor the layout of the data.
+    """LSTM without worrying about the hidden state, nor the layout of the data.
+
     Expects input as convolutional layout.
     """
 
@@ -245,6 +251,7 @@ class SLSTM(nn.Module):
 
 class SEANetResnetBlock(nn.Module):
     """Residual block from SEANet model.
+
     Args:
         dim (int): Dimension of the input/output
         kernel_sizes (list): List of kernel sizes for the convolutions.
@@ -323,6 +330,7 @@ class SEANetResnetBlock(nn.Module):
 
 class SEANetEncoder(nn.Module):
     """SEANet encoder.
+
     Args:
         channels (int): Audio channels.
         dimension (int): Intermediate representation dimension.

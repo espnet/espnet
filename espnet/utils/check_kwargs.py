@@ -1,8 +1,10 @@
+"""Check kwargs methods."""
+
 import inspect
 
 
 def check_kwargs(func, kwargs, name=None):
-    """check kwargs are valid for func
+    """Check kwargs are valid for func.
 
     If kwargs are invalid, raise TypeError as same as python default
     :param function func: function to be validated

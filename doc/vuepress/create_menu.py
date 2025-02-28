@@ -1,5 +1,5 @@
 import argparse
-import os
+import os  # noqa
 import yaml
 
 from pathlib import Path
@@ -30,12 +30,16 @@ if __name__ == "__main__":
     navbars = [{
         "text": "Demos",
         "icon": "fa-solid:laptop-code",
-        "prefix": f"notebook/",
+        "prefix": "notebook/",
         "children": [
             {"text": "Roadmap", "link": "README.md"},
             {"text": "ESPnet2", "prefix": "ESPnet2/", "children": ["Demo/", "Course/"]},
             {"text": "ESPnet-EZ", "prefix": "ESPnetEZ/", "children": ["README.md"]},
-            {"text": "ESPnet1 (Legacy)", "prefix": "ESPnet1/", "children": ["README.md"]},
+            {
+                "text": "ESPnet1 (Legacy)",
+                "prefix": "ESPnet1/",
+                "children": ["README.md"]
+            },
         ]
     }, {
         "text": "Recipes",
@@ -51,7 +55,7 @@ if __name__ == "__main__":
     }, {
         "text": "Python API",
         "icon": "fa-solid:book",
-        "prefix": f"guide/",
+        "prefix": "guide/",
         "children": [{
             "text": module.name,
             "prefix": module.name,
@@ -63,7 +67,7 @@ if __name__ == "__main__":
     }, {
         "text": "Shell API",
         "icon": "fa-solid:wrench",
-        "prefix": f"tools/",
+        "prefix": "tools/",
         "children": [{
             "text": module.name,
             "link": f"{module.name}/",

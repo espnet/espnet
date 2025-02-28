@@ -17,8 +17,8 @@ class HuggingFaceLLM(AbsLLM):
         device: str = "cuda",
         dtype: str = "float16",
     ):
-        """
-        A class for initializing a text response generator
+        """A class for initializing a text response generator
+
         using the Transformers library.
 
         Args:
@@ -55,8 +55,8 @@ class HuggingFaceLLM(AbsLLM):
         )
 
     def warmup(self):
-        """
-        Perform a single forward pass with dummy input to
+        """Perform a single forward pass with dummy input to
+
         pre-load and warm up the model.
         """
         with torch.no_grad():
@@ -71,8 +71,9 @@ class HuggingFaceLLM(AbsLLM):
             )
 
     def forward(self, chat_messages: List[dict]) -> str:
-        """
-        Generate a response from the language model based on the provided chat messages.
+        """Generate a response from the language model based on
+
+        the provided chat messages.
 
         Args:
             chat_messages (List[dict]):

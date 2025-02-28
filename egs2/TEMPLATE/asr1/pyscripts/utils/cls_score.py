@@ -41,6 +41,7 @@ def calculate_multilabel_stats(output, target):
     """Calculate statistics including mAP, AUC, etc.
     This function is adapted from the official implementation of AST
     https://github.com/YuanGongND/ast/blob/master/src/utilities/stats.py
+    TODO(shikhar): Replace this with torcheval or torchmetric functions.
 
     Args:
       output: 2d array, (samples_num, classes_num)

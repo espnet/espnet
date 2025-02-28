@@ -7,6 +7,7 @@ from functools import partial
 from typing import Dict, List, Optional, Tuple, Union
 
 import torch
+import torch.distributed as dist
 import torch.nn as nn
 import torch.nn.functional as F
 from packaging.version import parse as V
@@ -16,8 +17,8 @@ try:
     from torcheval.metrics import functional as EvalFunction
 
     torcheval_import_error = None
-except ImportError as e:
-    torcheval_import_error = e
+except ImportError as err:
+    torcheval_import_error = err
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
@@ -60,16 +61,17 @@ class ESPnetClassificationModel(AbsESPnetModel):
         decoder: AbsDecoder,
         classification_type="multi-class",
         lsm_weight: float = 0.0,
-        mixup_augmentation: bool = False,
+        mixup_probability: float = 0.0,
+        log_epoch_metrics: bool = False,
     ):
         super().__init__()
-        if torcheval_import_error:
+        if torcheval_import_error is not None:
             raise ImportError(
                 "`torcheval` is not available or there is a version mismatch. "
                 "Please install it "
                 "via `pip install torcheval` in your environment."
                 "More info at: `https://pytorch.org/torcheval/stable/`"
-                f"Original error: {torcheval_import_error}"
+                f"Original error is: {torcheval_import_error}"
             )
         self.vocab_size = vocab_size
         self.token_list = token_list.copy()
@@ -93,9 +95,15 @@ class ESPnetClassificationModel(AbsESPnetModel):
                 "Valid classification types are 'multi-label' and 'multi-class'"
             )
         self.mixup_augmentation = None
-        if mixup_augmentation:
-            self.mixup_augmentation = MixupAugment(mixup_probability=1.0)
+        if mixup_probability > 0.0:
+            self.mixup_augmentation = MixupAugment(mixup_probability=mixup_probability)
         self.metric_functions = self.setup_metrics_()
+        self.log_epoch_metrics = log_epoch_metrics
+        self.predictions = []
+        self.targets = []
+
+    def get_vocab_size(self):
+        return self.vocab_size
 
     def forward(
         self,
@@ -136,7 +144,9 @@ class ESPnetClassificationModel(AbsESPnetModel):
                     "Mixup is not recommended for variable length input. "
                     "It may not work as expected."
                 )
-            speech, onehot_ = self.mixup_augmentation(speech, onehot_)
+            speech, onehot_, speech_lengths = self.mixup_augmentation(
+                speech, onehot_, speech_lengths
+            )
 
         # 1. Encoder
         encoder_out, encoder_out_lens = self.encode(speech, speech_lengths)
@@ -155,8 +165,13 @@ class ESPnetClassificationModel(AbsESPnetModel):
                 if self.classification_type == "multi-class"
                 else onehot_
             )
-            val = metric_fn(pred, target).detach()
+            val = metric_fn(pred, target)
+            val = val.detach() if val is not None else -1.0
             stats[metric_name] = val
+        # Store for mAP logging
+        if self.log_epoch_metrics:
+            self.predictions.append(pred.detach().cpu())
+            self.targets.append(onehot_.detach().cpu())
 
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
         return loss, stats, weight
@@ -262,6 +277,11 @@ class ESPnetClassificationModel(AbsESPnetModel):
             feats, feats_lengths = speech, speech_lengths
         return feats, feats_lengths
 
+    def update_mAP(self, mAP_computer):
+        mAP_computer.update(torch.cat(self.predictions), torch.cat(self.targets))
+        self.predictions = []
+        self.targets = []
+
     def setup_metrics_(self):
         if self.classification_type == "multi-class":
             return {
@@ -275,12 +295,6 @@ class ESPnetClassificationModel(AbsESPnetModel):
         elif self.classification_type == "multi-label":
             return {
                 "acc": partial(EvalFunction.multilabel_accuracy, criteria="hamming"),
-                # acc is usually high if data is imabalanced
-                "mAP": partial(
-                    EvalFunction.multilabel_auprc,
-                    average="macro",
-                    num_labels=self.vocab_size,
-                ),
             }
 
 

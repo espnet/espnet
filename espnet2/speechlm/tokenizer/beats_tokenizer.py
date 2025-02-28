@@ -12,6 +12,7 @@
 # --------------------------------------------------------
 
 import logging
+from contextlib import contextmanager
 from typing import Dict, Optional
 
 import torch
@@ -238,7 +239,8 @@ class BeatsRandomTokenizer(nn.Module):
 
     @torch.no_grad()
     def forward(self, xs_pad: torch.Tensor):
-        """
+        """Forward method.
+
         Args:
             xs_pad (torch.Tensor): Input tensor (B, T).
         """
@@ -249,7 +251,6 @@ class BeatsRandomTokenizer(nn.Module):
         features = features.reshape(features.shape[0], features.shape[1], -1)
         features = features.transpose(1, 2)
         features = self.layer_norm(features)
-        print(features[0, :5, :5])
         embed_ind = self.random_projection_quantizer(features)
         return embed_ind
 
@@ -259,7 +260,7 @@ class BeatsRandomTokenizer(nn.Module):
         xs_pad: torch.Tensor,
         ilens: Optional[torch.Tensor] = None,
     ):
-        # TODO: Add ilens support for batched data
+        # TODO(gituser): Add ilens support for batched data
         assert xs_pad.size(0) == 1, "Batch size must be 1."
         embed_ind = self(xs_pad)
         return embed_ind

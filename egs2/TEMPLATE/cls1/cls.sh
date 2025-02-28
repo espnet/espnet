@@ -38,6 +38,7 @@ inference_nj=4      # The number of parallel jobs in decoding.
 gpu_inference=false  # Whether to perform gpu decoding.
 expdir=exp           # Directory to save experiments.
 python=python3       # Specify python to execute espnet commands
+use_lightning=false     # Whether to use pytorch lightning trainer for training.
 
 # Data preparation related
 local_data_opts= # The options given to local/data.sh.
@@ -59,8 +60,12 @@ cls_config= # Config for cls model training.
 cls_args=   # Arguments for cls model training, e.g., "--max_epoch 10".
              # Note that it will overwrite args in cls config.
 feats_normalize=uttmvn # Normalizaton layer type.
+pretrained_model=              # Pretrained model to load
+ignore_init_mismatch=false      # Ignore initial mismatch
+classification_type=        # Type of classification task, multi-class or multi-label
 
 # cls inference related
+download_model=
 inference_model=valid.acc.best.pth
 inference_tag=    # Suffix to the inference dir for cls model inference
 output_all_probabilities=true
@@ -92,6 +97,7 @@ Options:
     --dumpdir        # Directory to dump features (default="${dumpdir}").
     --expdir         # Directory to save experiments (default="${expdir}").
     --python         # Specify python to execute espnet commands (default="${python}").
+    --use_lightning # Whether to use pytorch lightning trainer for training (default="${use_lightning}").
     # Data preparation related
     --local_data_opts # The options given to local/data.sh (default="${local_data_opts}").
     # Feature extraction related
@@ -108,6 +114,9 @@ Options:
     --cls_args       # Arguments for classification model training, e.g., "--max_epoch 10" (default="${cls_args}").
                       # Note that it will overwrite args in cls config.
     --feats_normalize # Normalizaton layer type (default="${feats_normalize}").
+    --pretrained_model # Pretrained model to load (default="${pretrained_model}").
+    --ignore_init_mismatch # Ignore initial mismatch (default="${ignore_init_mismatch}").
+    --classification_type # Type of classification task, multi-class or multi-label (default="${classification_type}").
     # cls inference related
     --download_model  # Download a model from Model Zoo and use it for decoding (default="${download_model}").
     --inference_model  # classification model path for inference (default="${inference_model}").
@@ -172,6 +181,13 @@ fi
 cls_exp="${expdir}/cls_${cls_tag}"
 token_list=${datadir}/token_list
 
+
+if [[ "${classification_type}" == "multi-label" ]]; then
+    if [[ "${use_lightning}" != "true" ]]; then
+        log "Multi-label classification is only supported with PyTorch Lightning trainer. Please set --use_lightning true."
+        exit 1
+    fi
+fi
 # ========================== Main stages start from here. ==========================
 
 if ! "${skip_data_prep}"; then
@@ -394,24 +410,63 @@ if ! "${skip_train}"; then
             jobname="${cls_exp}/train.log"
         fi
 
-        # shellcheck disable=SC2086
-        ${python} -m espnet2.bin.launch \
-            --cmd "${cuda_cmd} --name ${jobname}" \
-            --log "${cls_exp}/train.log" \
-            --ngpu "${ngpu}" \
-            --num_nodes "${num_nodes}" \
-            --init_file_prefix "${cls_exp}/.dist_init_" \
-            --multiprocessing_distributed true -- \
-            ${python} -m espnet2.bin.cls_train \
-                --use_preprocessor true \
-                --resume true \
-                --output_dir "${cls_exp}" \
-                ${_opts} ${cls_args}
+        if "${use_lightning}"; then
+            log "Use PyTorch Lightning trainer"
+            ${python} pyscripts/utils/rotate_logfile.py "${cls_exp}"/train.log
+
+            ${cuda_cmd} --name "${jobname}" \
+                --gpu "${ngpu}" \
+                --num_tasks "${ngpu}" \
+                --num_nodes "${num_nodes}" \
+                "${cls_exp}"/train.log \
+                srun --export=ALL \
+                ${python} -m espnet2.bin.lightning_train \
+                    --task cls \
+                    --lightning_conf "{devices: ${ngpu}, num_nodes: ${num_nodes}, default_root_dir: ${cls_exp}}" \
+                    --user_callbacks mAP_logging \
+                    --use_preprocessor true \
+                    --resume true \
+                    ${pretrained_model:+--init_param $pretrained_model} \
+                    --ignore_init_mismatch ${ignore_init_mismatch} \
+                    --output_dir "${cls_exp}" \
+                    ${_opts} ${cls_args}
+        else
+            # shellcheck disable=SC2086
+            ${python} -m espnet2.bin.launch \
+                --cmd "${cuda_cmd} --name ${jobname}" \
+                --log "${cls_exp}/train.log" \
+                --ngpu "${ngpu}" \
+                --num_nodes "${num_nodes}" \
+                --init_file_prefix "${cls_exp}/.dist_init_" \
+                --multiprocessing_distributed true -- \
+                ${python} -m espnet2.bin.cls_train \
+                    --use_preprocessor true \
+                    ${pretrained_model:+--init_param $pretrained_model} \
+                    --resume true \
+                    --output_dir "${cls_exp}" \
+                    ${_opts} ${cls_args}
+        fi
     fi
 else
     log "Skip the training stages"
 fi
 
+
+if [ -n "${download_model}" ]; then
+    log "Using ${download_model} for decoding and evaluation"
+    cls_exp="${expdir}/$(basename "${download_model}")"
+    mkdir -p "${cls_exp}"
+
+    # Ensure huggingface-cli is installed
+    command -v huggingface-cli &>/dev/null || log "huggingface-cli not found, please install it"
+
+    huggingface-cli download "${download_model}" --local-dir ./
+    mv ./**/exp/*/* "${cls_exp}/" && log "Files moved." || log "Warning: An error occurred in moving. Please recheck the downloaded huggingface model."
+
+    # Set variables for stages below
+    inference_model=$(echo ${cls_exp}/*epoch.pth)
+    inference_model=$(basename "$inference_model")
+fi
 if ! "${skip_eval}"; then
     if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
         log "Stage 7: Predict with models: training_dir=${cls_exp}"
@@ -427,12 +482,6 @@ if ! "${skip_eval}"; then
         log "Generate '${cls_exp}/run.sh'. You can resume the process from stage 6 using this script"
         mkdir -p "${cls_exp}"; echo "${run_args} --stage 6 \"\$@\"; exit \$?" > "${cls_exp}/run.sh"; chmod +x "${cls_exp}/run.sh"
         _opts=
-        if [ "${max_wav_duration}" ]; then
-            _fs=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
-            max_wav_duration_in_samples=$(python3 -c "print(int(${max_wav_duration} * ${_fs}))")
-            echo "WARNING: Inference with max_wav_duration set to ${max_wav_duration_in_samples} at ${fs} Hz!"
-            _opts+="--max_wav_duration ${max_wav_duration_in_samples} "
-        fi
 
         for dset in "${valid_set}" ${test_sets}; do
             _data="${data_feats}/${dset}"
