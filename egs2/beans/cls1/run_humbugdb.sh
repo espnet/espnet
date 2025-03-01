@@ -12,7 +12,7 @@ cls_config=conf/beats_humbugdb.yaml
 
 timestamp=$(date "+%Y%m%d.%H%M%S")
 mynametag=humbugdb.${timestamp}
-storage_dir=./
+storage_dir=.
 mkdir -p "${storage_dir}"
 
 ./cls.sh \
@@ -20,7 +20,7 @@ mkdir -p "${storage_dir}"
     --cls_tag "${mynametag}" \
     --datadir "${storage_dir}/data" \
     --dumpdir "${storage_dir}/dump" \
-    --expdir "${storage_dir}/exp" \
+    --expdir "${storage_dir}/exp/humbugdb" \
     --feats_normalize uttmvn \
     --stage 1 \
     --stop_stage 10 \

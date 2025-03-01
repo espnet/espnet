@@ -18,4 +18,6 @@ sleep 2s
 ./run_humbugdb.sh "$@" &
 sleep 2s
 
-./run_dogs.sh "$@"
+./run_dogs.sh "$@" &
+
+wait
