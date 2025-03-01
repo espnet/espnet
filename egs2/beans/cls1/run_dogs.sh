@@ -5,18 +5,18 @@ set -e
 set -u
 set -o pipefail
 
-train_set="watkins.train"
-valid_set="watkins.dev"
-test_sets="watkins.test"
-cls_config=conf/beats_watkins.yaml
+train_set="dogs.train"
+valid_set="dogs.dev"
+test_sets="dogs.test"
+cls_config=conf/beats_dogs.yaml
 
 timestamp=$(date "+%Y%m%d.%H%M%S")
-mynametag=watkins.${timestamp}
+mynametag=dogs.${timestamp}
 storage_dir=./
 mkdir -p "${storage_dir}"
 
 ./cls.sh \
-    --local_data_opts "watkins" \
+    --local_data_opts "dogs" \
     --cls_tag "${mynametag}" \
     --datadir "${storage_dir}/data" \
     --dumpdir "${storage_dir}/dump" \
@@ -35,4 +35,4 @@ mkdir -p "${storage_dir}"
     --cls_config "${cls_config}" \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
-    --test_sets "${test_sets}" "$@" &
+    --test_sets "${test_sets}" "$@"

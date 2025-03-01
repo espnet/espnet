@@ -21,8 +21,8 @@ log "$0 $*"
 DATA_PREP_ROOT=${1:-"."}
 DATASETS=${2:-"watkins bats cbi humbugdb dogs"}
 
-if [ -z "${BEAN}" ]; then
-    log "Fill the value of 'BEAN' in db.sh"
+if [ -z "${BEANS}" ]; then
+    log "Fill the value of 'BEANS' in db.sh"
     exit 1
 fi
 
@@ -30,7 +30,7 @@ fi
 if [[ "${DATASETS}" == *"watkins"* ]]; then
     log "Processing watkins"
     WATKINS_LOCATION="${DATA_PREP_ROOT}/downloads/watkins"
-    if [ "${BEAN}" == "downloads" ]; then
+    if [ "${BEANS}" == "downloads" ]; then
         if [ -f "${DATA_PREP_ROOT}/downloads/watkins/download.done" ]; then
             log "Skip downloading because download.done exists"
         else
@@ -41,8 +41,8 @@ if [[ "${DATASETS}" == *"watkins"* ]]; then
             touch "${WATKINS_LOCATION}/download.done"
         fi
     else
-        log "Using data from the provided location: ${BEAN}/watkins"
-        WATKINS_LOCATION="${BEAN}/watkins"
+        log "Using data from the provided location: ${BEANS}/watkins"
+        WATKINS_LOCATION="${BEANS}/watkins"
     fi
     python local/scripts/watkins.py ${WATKINS_LOCATION} ${DATA_PREP_ROOT}
 fi
@@ -52,7 +52,7 @@ fi
 if [[ "${DATASETS}" == *"bats"* ]]; then
     log "Processing bats"
     BATS_LOCATION="${DATA_PREP_ROOT}/downloads/bats"
-    if [ "${BEAN}" == "downloads" ]; then
+    if [ "${BEANS}" == "downloads" ]; then
         if [ -f "${DATA_PREP_ROOT}/downloads/bats/download.done" ]; then
             log "Skip downloading because download.done exists"
         else
@@ -63,8 +63,8 @@ if [[ "${DATASETS}" == *"bats"* ]]; then
             touch "${BATS_LOCATION}/download.done"
         fi
     else
-        log "Using data from the provided location: ${BEAN}/bats"
-        BATS_LOCATION="${BEAN}/bats"
+        log "Using data from the provided location: ${BEANS}/bats"
+        BATS_LOCATION="${BEANS}/bats"
     fi
     python local/scripts/bats.py ${BATS_LOCATION} ${DATA_PREP_ROOT}
 fi
@@ -74,7 +74,7 @@ fi
 if [[ "${DATASETS}" == *"cbi"* ]]; then
     log "Processing cbi"
     CBI_LOCATION="${DATA_PREP_ROOT}/downloads/cbi"
-    if [ "${BEAN}" == "downloads" ]; then
+    if [ "${BEANS}" == "downloads" ]; then
         if [ -f "${DATA_PREP_ROOT}/downloads/cbi/download.done" ]; then
             log "Skip downloading because download.done exists"
         else
@@ -86,8 +86,8 @@ if [[ "${DATASETS}" == *"cbi"* ]]; then
             touch "${CBI_LOCATION}/download.done"
         fi
     else
-        log "Using data from the provided location: ${BEAN}/cbi"
-        CBI_LOCATION="${BEAN}/cbi"
+        log "Using data from the provided location: ${BEANS}/cbi"
+        CBI_LOCATION="${BEANS}/cbi"
     fi
     python local/scripts/cbi.py ${CBI_LOCATION} ${DATA_PREP_ROOT}
 fi
@@ -97,7 +97,7 @@ fi
 if [[ "${DATASETS}" == *"humbugdb"* ]]; then
     log "Processing humbugdb"
     HUMBUGDB_LOCATION="${DATA_PREP_ROOT}/downloads/humbugdb"
-    if [ "${BEAN}" == "downloads" ]; then
+    if [ "${BEANS}" == "downloads" ]; then
         if [ -f "${DATA_PREP_ROOT}/downloads/humbugdb/download.done" ]; then
             log "Skip downloading because download.done exists"
         else
@@ -111,8 +111,8 @@ if [[ "${DATASETS}" == *"humbugdb"* ]]; then
             touch "${HUMBUGDB_LOCATION}/download.done"
         fi
     else
-        log "Using data from the provided location: ${BEAN}/humbugdb"
-        HUMBUGDB_LOCATION="${BEAN}/humbugdb"
+        log "Using data from the provided location: ${BEANS}/humbugdb"
+        HUMBUGDB_LOCATION="${BEANS}/humbugdb"
     fi
     python local/scripts/humbugdb.py ${HUMBUGDB_LOCATION} ${DATA_PREP_ROOT}
 fi
@@ -122,7 +122,7 @@ fi
 if [[ "${DATASETS}" == *"dogs"* ]]; then
     log "Processing dogs"
     DOGS_LOCATION="${DATA_PREP_ROOT}/downloads/dogs"
-    if [ "${BEAN}" == "downloads" ]; then
+    if [ "${BEANS}" == "downloads" ]; then
         if [ -f "${DATA_PREP_ROOT}/downloads/dogs/download.done" ]; then
             log "Skip downloading because download.done exists"
         else
@@ -145,8 +145,8 @@ if [[ "${DATASETS}" == *"dogs"* ]]; then
             touch "${DOGS_LOCATION}/download.done"
         fi
     else
-        log "Using data from the provided location: ${BEAN}/dogs"
-        DOGS_LOCATION="${BEAN}/dogs"
+        log "Using data from the provided location: ${BEANS}/dogs"
+        DOGS_LOCATION="${BEANS}/dogs"
     fi
     python local/scripts/dogs.py ${DOGS_LOCATION} ${DATA_PREP_ROOT}
 fi

@@ -6,12 +6,16 @@ set -u
 set -o pipefail
 
 
-./run_watkins.sh
+./run_watkins.sh "$@" &
+sleep 2s
 
-./run_bats.sh
+./run_bats.sh "$@" &
+sleep 2s
 
-./run_cbi.sh
+./run_cbi.sh "$@" &
+sleep 2s
 
-./run_humbugdb.sh
+./run_humbugdb.sh "$@" &
+sleep 2s
 
-./run_dogs.sh
+./run_dogs.sh "$@"

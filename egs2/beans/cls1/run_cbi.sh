@@ -5,18 +5,18 @@ set -e
 set -u
 set -o pipefail
 
-train_set="dogs.train"
-valid_set="dogs.dev"
-test_sets="dogs.test"
-cls_config=conf/beats_dogs.yaml
+train_set="cbi.train"
+valid_set="cbi.dev"
+test_sets="cbi.test"
+cls_config=conf/beats_cbi.yaml
 
 timestamp=$(date "+%Y%m%d.%H%M%S")
-mynametag=dogs.${timestamp}
+mynametag=cbi.${timestamp}
 storage_dir=./
 mkdir -p "${storage_dir}"
 
 ./cls.sh \
-    --local_data_opts "dogs" \
+    --local_data_opts "cbi" \
     --cls_tag "${mynametag}" \
     --datadir "${storage_dir}/data" \
     --dumpdir "${storage_dir}/dump" \
@@ -29,10 +29,10 @@ mkdir -p "${storage_dir}"
     --nj 10 \
     --speech_fold_length 160000 \
     --label_fold_length 5 \
-    --max_wav_duration 32 \
+    --max_wav_duration 12 \
     --inference_nj 1 \
     --inference_model valid.acc.best.pth \
     --cls_config "${cls_config}" \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
-    --test_sets "${test_sets}" "$@" &
+    --test_sets "${test_sets}" "$@"

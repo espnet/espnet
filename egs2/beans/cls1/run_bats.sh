@@ -35,4 +35,4 @@ mkdir -p "${storage_dir}"
     --cls_config "${cls_config}" \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
-    --test_sets "${test_sets}" "$@" &
+    --test_sets "${test_sets}" "$@"
