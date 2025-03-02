@@ -20,8 +20,8 @@ class ESPnetTTSModel(AbsTTS):
         tag: str = "kan-bayashi/ljspeech_vits",
         device: str = "cuda",
     ):
-        """
-        A class to initialize and manage a ESPnet's
+        """A class to initialize and manage a ESPnet's
+
         pre-trained text-to-speech (TTS) model.
 
         This class:
@@ -97,16 +97,16 @@ class ESPnetTTSModel(AbsTTS):
             self.spembs = xvectors[spk]
 
     def warmup(self):
-        """
-        Perform a single forward pass with dummy input to
+        """Perform a single forward pass with dummy input to
+
         pre-load and warm up the model.
         """
         with torch.no_grad():
             _ = self.text2speech("Sid", sids=self.sids, spembs=self.spembs)["wav"]
 
     def forward(self, transcript: str) -> Tuple[int, np.ndarray]:
-        """
-        Converts a text transcript into an audio waveform
+        """Converts a text transcript into an audio waveform
+
         using a pre-trained ESPnet-TTS model.
 
         Args:

@@ -7,6 +7,7 @@ from functools import partial
 from typing import Dict, List, Optional, Tuple, Union
 
 import torch
+import torch.distributed as dist
 import torch.nn as nn
 import torch.nn.functional as F
 from packaging.version import parse as V
@@ -15,9 +16,9 @@ from typeguard import typechecked
 try:
     from torcheval.metrics import functional as EvalFunction
 
-    is_torcheval_available = True
-except ImportError:
-    is_torcheval_available = False
+    torcheval_import_error = None
+except ImportError as err:
+    torcheval_import_error = err
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
@@ -25,6 +26,7 @@ from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.cls.decoder.abs_decoder import AbsDecoder
 from espnet2.layers.abs_normalize import AbsNormalize
+from espnet2.layers.mixup_augmentation import MixupAugment
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 
@@ -59,15 +61,18 @@ class ESPnetClassificationModel(AbsESPnetModel):
         decoder: AbsDecoder,
         classification_type="multi-class",
         lsm_weight: float = 0.0,
-        mixup_augmentation: bool = False,
+        mixup_probability: float = 0.0,
+        log_epoch_metrics: bool = False,
     ):
         super().__init__()
-        if not is_torcheval_available:
+        if torcheval_import_error is not None:
             raise ImportError(
                 "`torcheval` is not available. Please install it "
                 "via `pip install torcheval` in your environment."
                 "More info at: `https://pytorch.org/torcheval/stable/`"
+                f"Original error is: {torcheval_import_error}"
             )
+        assert vocab_size > 1, f"vocab_size must be > 1, got {vocab_size}"
         self.vocab_size = vocab_size
         self.token_list = token_list.copy()
         self.frontend = frontend
@@ -89,8 +94,16 @@ class ESPnetClassificationModel(AbsESPnetModel):
             raise ValueError(
                 "Valid classification types are 'multi-label' and 'multi-class'"
             )
-        self.mixup_augmentation = mixup_augmentation
+        self.mixup_augmentation = None
+        if mixup_probability > 0.0:
+            self.mixup_augmentation = MixupAugment(mixup_probability=mixup_probability)
         self.metric_functions = self.setup_metrics_()
+        self.log_epoch_metrics = log_epoch_metrics
+        self.predictions = []
+        self.targets = []
+
+    def get_vocab_size(self):
+        return self.vocab_size
 
     def forward(
         self,
@@ -131,7 +144,9 @@ class ESPnetClassificationModel(AbsESPnetModel):
                     "Mixup is not recommended for variable length input. "
                     "It may not work as expected."
                 )
-            speech, onehot_ = mixup_augment(speech, onehot_, mixup_prob=1.0)
+            speech, onehot_, speech_lengths = self.mixup_augmentation(
+                speech, onehot_, speech_lengths
+            )
 
         # 1. Encoder
         encoder_out, encoder_out_lens = self.encode(speech, speech_lengths)
@@ -150,8 +165,13 @@ class ESPnetClassificationModel(AbsESPnetModel):
                 if self.classification_type == "multi-class"
                 else onehot_
             )
-            val = metric_fn(pred, target).detach()
+            val = metric_fn(pred, target)
+            val = val.detach() if val is not None else -1.0
             stats[metric_name] = val
+        # Store for mAP logging
+        if self.log_epoch_metrics:
+            self.predictions.append(pred.detach().cpu())
+            self.targets.append(onehot_.detach().cpu())
 
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
         return loss, stats, weight
@@ -257,6 +277,11 @@ class ESPnetClassificationModel(AbsESPnetModel):
             feats, feats_lengths = speech, speech_lengths
         return feats, feats_lengths
 
+    def update_mAP(self, mAP_computer):
+        mAP_computer.update(torch.cat(self.predictions), torch.cat(self.targets))
+        self.predictions = []
+        self.targets = []
+
     def setup_metrics_(self):
         if self.classification_type == "multi-class":
             return {
@@ -270,16 +295,6 @@ class ESPnetClassificationModel(AbsESPnetModel):
         elif self.classification_type == "multi-label":
             metric_fn_map = {
                 "acc": partial(EvalFunction.multilabel_accuracy, criteria="hamming"),
-                # acc is usually high if data is imabalanced
-                "mAP": (
-                    partial(
-                        EvalFunction.multilabel_auprc,
-                        average="macro",
-                        num_labels=self.vocab_size,
-                    )
-                    if self.vocab_size > 1
-                    else _binary_mAP_wrapper
-                ),
             }
             return metric_fn_map
 
@@ -321,38 +336,3 @@ def label_to_onehot(
         raise ValueError(
             "Valid classification types are 'multi-label' and 'multi-class'"
         )
-
-
-def mixup_augment(speech: torch.Tensor, onehot: torch.Tensor, mixup_prob: float):
-    """Mixup augmentation for multi-label classification
-
-    Args:
-        speech: (Batch, Length, Dim)
-        onehot: (Batch, n_classes)
-        mixup_prob: Apply mixup with this probability
-    Returns:
-        speech: (Batch, Length, Dim)
-        onehot: (Batch, n_classes)
-    """
-    batch_size = speech.size(0)
-    assert onehot.size(0) == batch_size
-    apply_augmentation = torch.rand((batch_size), device=speech.device) < mixup_prob
-    mix_lambda = (
-        torch.distributions.Beta(0.8, 0.8)
-        .sample(sample_shape=(batch_size, 1))
-        .to(speech.device)
-    )
-    perm = torch.randperm(batch_size).to(speech.device)
-    identity_perm = torch.arange(batch_size, device=speech.device)
-    perm[~apply_augmentation] = identity_perm[~apply_augmentation]
-    # speech = speech - speech.mean(dim=1, keepdim=True)
-    speech = mix_lambda * speech + (1 - mix_lambda) * speech[perm]
-    onehot = mix_lambda * onehot + (1 - mix_lambda) * onehot[perm]
-    return speech, onehot
-
-
-def _binary_mAP_wrapper(pred, target):
-    """Wrapper to handle binary classification for mAP calculation"""
-    pred = torch.cat([1 - pred, pred], dim=1)
-    target = torch.cat([1 - target, target], dim=1)
-    return EvalFunction.multilabel_auprc(pred, target, average="macro", num_labels=2)

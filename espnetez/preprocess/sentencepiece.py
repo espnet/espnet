@@ -6,6 +6,10 @@ from typing import Union
 import sentencepiece as spm
 import sentencepiece.sentencepiece_model_pb2 as model
 from sentencepiece.sentencepiece_model_pb2 import ModelProto
+from torch import nn
+
+from espnet2.text.sentencepiece_tokenizer import SentencepiecesTokenizer
+from espnet2.text.token_id_converter import TokenIDConverter
 
 
 def prepare_sentences(

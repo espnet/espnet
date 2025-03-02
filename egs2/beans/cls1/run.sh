@@ -19,4 +19,5 @@ sleep 2s
 sleep 2s
 
 ./run_rfcx.sh "$@" &
-sleep 2s
+
+wait

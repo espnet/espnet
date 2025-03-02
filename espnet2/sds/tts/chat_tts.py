@@ -1,4 +1,3 @@
-import os
 from typing import Tuple
 
 import numpy as np
@@ -15,8 +14,7 @@ class ChatTTSModel(AbsTTS):
     def __init__(
         self,
     ):
-        """
-        Initializes the ChatTTSModel class.
+        """Initializes the ChatTTSModel class.
 
         Ensures that the `ChatTTS` library is properly installed
         and initializes the TTS engine.
@@ -31,16 +29,16 @@ class ChatTTSModel(AbsTTS):
         self.text2speech.load(compile=False)
 
     def warmup(self):
-        """
-        Perform a single forward pass with dummy input to
+        """Perform a single forward pass with dummy input to
+
         pre-load and warm up the model.
         """
         with torch.no_grad():
             _ = self.text2speech.infer(["Sid"])[0]
 
     def forward(self, transcript: str) -> Tuple[int, np.ndarray]:
-        """
-        Converts a text transcript into an audio waveform
+        """Converts a text transcript into an audio waveform
+
         using the ChatTTS system.
 
         Args:

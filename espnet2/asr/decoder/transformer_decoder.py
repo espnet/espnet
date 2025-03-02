@@ -2,6 +2,7 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """Decoder definition."""
+import logging
 from typing import Any, List, Sequence, Tuple
 
 import torch
@@ -63,6 +64,7 @@ class BaseTransformerDecoder(
         use_output_layer: bool = True,
         pos_enc_class=PositionalEncoding,
         normalize_before: bool = True,
+        gradient_checkpoint_layers: List[int] = [],
     ):
         super().__init__()
         attention_dim = encoder_output_size
@@ -95,6 +97,10 @@ class BaseTransformerDecoder(
         # Must set by the inheritance
         self.decoders = None
         self.batch_ids = None
+
+        # For gradient checkpointing, start from 1 (not 0)
+        self.gradient_checkpoint_layers = gradient_checkpoint_layers
+        logging.info(f"Gradient checkpoint layers: {self.gradient_checkpoint_layers}")
 
     def forward(
         self,
@@ -147,9 +153,14 @@ class BaseTransformerDecoder(
         x = self.embed(tgt)
         intermediate_outs = []
         for layer_idx, decoder_layer in enumerate(self.decoders):
-            x, tgt_mask, memory, memory_mask = decoder_layer(
-                x, tgt_mask, memory, memory_mask
-            )
+            if layer_idx + 1 in self.gradient_checkpoint_layers:
+                x, tgt_mask, memory, memory_mask = torch.utils.checkpoint.checkpoint(
+                    decoder_layer, x, tgt_mask, memory, memory_mask, use_reentrant=False
+                )
+            else:
+                x, tgt_mask, memory, memory_mask = decoder_layer(
+                    x, tgt_mask, memory, memory_mask
+                )
             if return_all_hs:
                 intermediate_outs.append(x)
         if self.normalize_before:
@@ -389,6 +400,7 @@ class TransformerDecoder(BaseTransformerDecoder):
         layer_drop_rate: float = 0.0,
         qk_norm: bool = False,
         use_flash_attn: bool = True,
+        gradient_checkpoint_layers: List[int] = [],
     ):
         super().__init__(
             vocab_size=vocab_size,
@@ -399,6 +411,7 @@ class TransformerDecoder(BaseTransformerDecoder):
             use_output_layer=use_output_layer,
             pos_enc_class=pos_enc_class,
             normalize_before=normalize_before,
+            gradient_checkpoint_layers=gradient_checkpoint_layers,
         )
 
         if use_flash_attn:
@@ -408,7 +421,7 @@ class TransformerDecoder(BaseTransformerDecoder):
                 )
 
                 use_flash_attn = is_flash_attn_supported()
-                import flash_attn
+                import flash_attn  # noqa
             except Exception:
                 use_flash_attn = False
 

@@ -25,8 +25,8 @@ class RandomProjectionQuantizer(nn.Module):
 
     @torch.no_grad()
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """
-        Perform random projection and quantization.
+        """Perform random projection and quantization.
+
         Args:
             x (torch.Tensor): Input tensor with shape `(B, L, D)`.
         Returns:

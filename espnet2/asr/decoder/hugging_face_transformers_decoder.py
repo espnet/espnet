@@ -6,7 +6,6 @@
 
 import copy
 import logging
-import os
 from typing import Any, List, Optional, Tuple, Union
 
 import torch
@@ -48,8 +47,7 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
         load_pretrained_weights: bool = True,
         separate_lm_head: bool = False,
     ):
-        """
-        Initializes the HuggingFaceTransformersDecoder.
+        """Initializes the HuggingFaceTransformersDecoder.
 
         Args:
             vocab_size (int): The size of the vocabulary.
@@ -370,6 +368,7 @@ def get_hugging_face_model_lm_head(model):
 
 def read_json_config(conf_path):
     """Read a json model config information.
+
     Args:
         conf_path (str): Config path.
     Returns:

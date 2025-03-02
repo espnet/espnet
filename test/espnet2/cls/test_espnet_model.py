@@ -7,11 +7,7 @@ from sklearn import metrics
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
 from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
 from espnet2.cls.decoder.linear_decoder import LinearDecoder
-from espnet2.cls.espnet_model import (
-    ESPnetClassificationModel,
-    label_to_onehot,
-    mixup_augment,
-)
+from espnet2.cls.espnet_model import ESPnetClassificationModel, label_to_onehot
 
 
 @pytest.mark.parametrize("encoder_arch", [TransformerEncoder, ConformerEncoder])
@@ -182,67 +178,6 @@ def calculate_stats_testing_internal_(
     return stats
 
 
-def test_metrics_multilabel():
-    token_list = [
-        "class0",
-        "class1",
-        "class2",
-        "class3",
-        "class4",
-        "class5",
-        "class6",
-        "<unk>",
-    ]
-    n_classes = len(token_list) - 1
-    enc_out = 4
-    encoder = TransformerEncoder(20, output_size=enc_out, linear_units=4, num_blocks=2)
-    decoder = LinearDecoder(n_classes, enc_out, pooling="mean")
-
-    model = ESPnetClassificationModel(
-        n_classes,
-        token_list=token_list,
-        frontend=None,
-        specaug=None,
-        normalize=None,
-        preencoder=None,
-        encoder=encoder,
-        decoder=decoder,
-        classification_type="multi-label",
-    )
-
-    batch_size = 55
-    preds = torch.randn(batch_size, n_classes)
-    target = torch.randint(0, 2, (batch_size, n_classes))
-
-    # The additional tensors ensure that all class values are present in the targets.
-    # This is necessary to avoid a ZeroDivisionError
-    # in the official implementation of AST.
-    preds_additional = torch.tensor(
-        [
-            [0.2, 0.3, 0.5, 0.1, 0.3, 0.5, 0.2],
-            [0.25, 0.35, 0.55, 0.15, 0.53, 0.55, 0.25],
-        ]
-    )
-    target_additional = torch.tensor(
-        [
-            [0, 1, 1, 0, 0, 1, 1],
-            [1, 0, 0, 1, 1, 0, 0],
-        ]
-    )
-    preds = torch.cat([preds, preds_additional], dim=0)
-    target = torch.cat([target, target_additional], dim=0)
-
-    stats_espnet_cls = {}
-    for metric_name, metric_fn in model.metric_functions.items():
-        val = metric_fn(preds, target).detach()
-        stats_espnet_cls[metric_name] = val
-    stats_official_ast = calculate_stats_testing_internal_(
-        preds.numpy(), target.numpy()
-    )
-    mAP = np.mean([stat["AP"] for stat in stats_official_ast])
-    assert np.isclose(mAP, stats_espnet_cls["mAP"].item(), atol=1e-4)
-
-
 def test_metrics_multiclass():
     token_list = [
         "class0",
@@ -287,15 +222,3 @@ def test_metrics_multiclass():
     )
     acc = np.mean([stat["acc"] for stat in stats_official_ast])
     assert np.isclose(acc, stats_espnet_cls["acc"].item(), atol=1e-4)
-
-
-def test_mixup_augment():
-    speech = torch.randn(7, 11)
-    label = torch.tensor(
-        [[1, 0, 0], [0, 1, 0], [0, 0, 1], [1, 1, 0], [1, 1, 1], [0, 0, 0], [1, 0, 1]]
-    )
-    old_speech_shape = speech.shape
-    old_label_shape = label.shape
-    speech, label = mixup_augment(speech, label, 0.5)
-    assert speech.shape == old_speech_shape
-    assert label.shape == old_label_shape

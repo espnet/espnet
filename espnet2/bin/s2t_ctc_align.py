@@ -431,7 +431,7 @@ class CTCSegmentation:
                 buffer_list.append(cur_buffer)
 
         speech = torch.tensor(np.array(buffer_list)).to(getattr(torch, self.dtype))
-        buffer_frames = int(frames_per_sec * buffer_len_in_secs)
+        buffer_frames = int(frames_per_sec * buffer_len_in_secs)  # noqa
         context_frames = int(frames_per_sec * context_len_in_secs)
 
         valid_speech_samples = speech.size(0) * chunk_len
