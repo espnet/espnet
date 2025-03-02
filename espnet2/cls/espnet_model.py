@@ -67,7 +67,8 @@ class ESPnetClassificationModel(AbsESPnetModel):
         super().__init__()
         if torcheval_import_error is not None:
             raise ImportError(
-                "`torcheval` is not available. Please install it "
+                "`torcheval` is not available or there is a version mismatch. "
+                "Please install it "
                 "via `pip install torcheval` in your environment."
                 "More info at: `https://pytorch.org/torcheval/stable/`"
                 f"Original error is: {torcheval_import_error}"
@@ -318,6 +319,7 @@ def label_to_onehot(
     """
     if classification_type == "multi-class":
         assert label_lengths.max() == 1, "Only one label per sample"
+        assert label.max() < vocab_size, (label.max(), vocab_size)
         return F.one_hot(label.squeeze(-1), vocab_size).float()
     elif classification_type == "multi-label":
         assert (

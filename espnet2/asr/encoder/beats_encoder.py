@@ -390,15 +390,18 @@ class BeatsEncoder(AbsEncoder):
     ):
         """Extract features from raw audio."""
 
-        if source.size(1) < self.min_input_length_at_16khz:
+        if (
+            self.min_input_length_at_16khz
+            and source.size(1) < self.min_input_length_at_16khz
+        ):
             logging.warning(
                 f"Input shape: {source.shape}. This is less than"
                 f" the minimum size of {self.min_input_length_at_16khz}."
             )
             # repeat the input to make it at least min_length
-            source = torch.cat(
-                [source] * (self.min_input_length_at_16khz // source.size(1) + 1), dim=1
-            )
+            repeat_factor = self.min_input_length_at_16khz // source.size(1) + 1
+            source = torch.cat([source] * repeat_factor, dim=1)
+            padding_mask = torch.cat([padding_mask] * repeat_factor, dim=1)
 
         with autocast(False):
             fbank = self.preprocess(source)

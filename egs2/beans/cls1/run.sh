@@ -5,6 +5,7 @@ set -e
 set -u
 set -o pipefail
 
+## Detection
 
 ./run_dcase.sh "$@" &
 sleep 2s
@@ -19,5 +20,22 @@ sleep 2s
 sleep 2s
 
 ./run_rfcx.sh "$@" &
+sleep 2s
+
+## Classification
+
+./run_watkins.sh "$@" &
+sleep 2s
+
+./run_bats.sh "$@" &
+sleep 2s
+
+./run_cbi.sh "$@" &
+sleep 2s
+
+./run_humbugdb.sh "$@" &
+sleep 2s
+
+./run_dogs.sh "$@" &
 
 wait
