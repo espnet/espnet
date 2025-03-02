@@ -8,7 +8,7 @@ set -o pipefail
 train_set="humbugdb.train"
 valid_set="humbugdb.dev"
 test_sets="humbugdb.test"
-cls_config=conf/beats_humbugdb.yaml
+cls_config=conf/beats_beans_cls.yaml
 
 timestamp=$(date "+%Y%m%d.%H%M%S")
 mynametag=humbugdb.${timestamp}

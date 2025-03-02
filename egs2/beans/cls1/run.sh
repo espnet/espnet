@@ -24,18 +24,18 @@ sleep 2s
 
 ## Classification
 
-./run_watkins.sh "$@" &
-sleep 2s
+# ./run_watkins.sh "$@" &
+# sleep 2s
 
-./run_bats.sh "$@" &
-sleep 2s
+# ./run_bats.sh "$@" &
+# sleep 2s
 
-./run_cbi.sh "$@" &
-sleep 2s
+# ./run_cbi.sh "$@" &
+# sleep 2s
 
-./run_humbugdb.sh "$@" &
-sleep 2s
+# ./run_humbugdb.sh "$@" &
+# sleep 2s
 
-./run_dogs.sh "$@" &
+# ./run_dogs.sh "$@" &
 
 wait

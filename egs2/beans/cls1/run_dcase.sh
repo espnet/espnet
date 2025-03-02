@@ -8,7 +8,7 @@ set -o pipefail
 train_set="dcase.train"
 valid_set="dcase.dev"
 test_sets="dcase.test"
-cls_config=conf/beats_dcase.yaml
+cls_config=conf/beats_beans_sed.yaml
 
 timestamp=$(date "+%Y%m%d.%H%M%S")
 mynametag=${timestamp}

@@ -8,7 +8,7 @@ set -o pipefail
 train_set="gibbons.train"
 valid_set="gibbons.dev"
 test_sets="gibbons.test"
-cls_config=conf/beats_dcase.yaml
+cls_config=conf/beats_beans_sed.yaml
 
 timestamp=$(date "+%Y%m%d.%H%M%S")
 mynametag=${timestamp}

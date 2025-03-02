@@ -8,7 +8,7 @@ set -o pipefail
 train_set="rfcx.train"
 valid_set="rfcx.dev"
 test_sets="rfcx.test"
-cls_config=conf/beats_dcase.yaml
+cls_config=conf/beats_beans_sed.yaml
 
 timestamp=$(date "+%Y%m%d.%H%M%S")
 #timestamp=20250127.164810

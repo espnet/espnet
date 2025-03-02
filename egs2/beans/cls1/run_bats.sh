@@ -8,7 +8,7 @@ set -o pipefail
 train_set="bats.train"
 valid_set="bats.dev"
 test_sets="bats.test"
-cls_config=conf/beats_bats.yaml
+cls_config=conf/beats_beans_cls.yaml
 
 timestamp=$(date "+%Y%m%d.%H%M%S")
 mynametag=bats.${timestamp}

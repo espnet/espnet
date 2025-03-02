@@ -8,7 +8,7 @@ set -o pipefail
 train_set="cbi.train"
 valid_set="cbi.dev"
 test_sets="cbi.test"
-cls_config=conf/beats_cbi.yaml
+cls_config=conf/beats_beans_cls.yaml
 
 timestamp=$(date "+%Y%m%d.%H%M%S")
 mynametag=cbi.${timestamp}

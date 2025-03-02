@@ -8,7 +8,7 @@ set -o pipefail
 train_set="dogs.train"
 valid_set="dogs.dev"
 test_sets="dogs.test"
-cls_config=conf/beats_dogs.yaml
+cls_config=conf/beats_beans_cls.yaml
 
 timestamp=$(date "+%Y%m%d.%H%M%S")
 mynametag=dogs.${timestamp}

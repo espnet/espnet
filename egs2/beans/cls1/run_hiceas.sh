@@ -8,7 +8,7 @@ set -o pipefail
 train_set="hiceas.train"
 valid_set="hiceas.dev"
 test_sets="hiceas.test"
-cls_config=conf/beats_dcase.yaml
+cls_config=conf/beats_beans_sed.yaml
 
 timestamp=$(date "+%Y%m%d.%H%M%S")
 mynametag=${timestamp}

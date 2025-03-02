@@ -8,7 +8,7 @@ set -o pipefail
 train_set="watkins.train"
 valid_set="watkins.dev"
 test_sets="watkins.test"
-cls_config=conf/beats_watkins.yaml
+cls_config=conf/beats_beans_cls.yaml
 
 timestamp=$(date "+%Y%m%d.%H%M%S")
 mynametag=watkins.${timestamp}
