@@ -12,8 +12,8 @@ cls_config=conf/beats_dcase.yaml
 
 timestamp=$(date "+%Y%m%d.%H%M%S")
 #timestamp=20250127.164810
-mynametag=dcase.${timestamp}
-storage_dir=/raid/users/popcornell/ESPnet_BEATS/espnet/egs2/beans/cls1/beats_run_rfcx
+mynametag=${timestamp}
+storage_dir=.
 mkdir -p "${storage_dir}"
 
 #change label_fold_length for each dataset: greater than num_class
@@ -21,9 +21,9 @@ mkdir -p "${storage_dir}"
 ./cls.sh \
     --local_data_opts "rfcx" \
     --cls_tag "${mynametag}" \
-    --datadir "${storage_dir}/data" \
-    --dumpdir "${storage_dir}/dump" \
-    --expdir "${storage_dir}/exp" \
+    --datadir "${storage_dir}/data/rfcx" \
+    --dumpdir "${storage_dir}/dump/rfcx" \
+    --expdir "${storage_dir}/exp/rfcx" \
     --feats_normalize uttmvn \
     --stage 1 \
     --stop_stage 10 \

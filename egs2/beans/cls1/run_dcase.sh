@@ -11,9 +11,8 @@ test_sets="dcase.test"
 cls_config=conf/beats_dcase.yaml
 
 timestamp=$(date "+%Y%m%d.%H%M%S")
-#timestamp=20250127.164810
-mynametag=dcase.${timestamp}
-storage_dir=/compute/babel-11-13/sbharad2/beats_run/beans.dcase
+mynametag=${timestamp}
+storage_dir=.
 mkdir -p "${storage_dir}"
 
 #change label_fold_length for each dataset: greater than num_class
@@ -21,9 +20,9 @@ mkdir -p "${storage_dir}"
 ./cls.sh \
     --local_data_opts "dcase" \
     --cls_tag "${mynametag}" \
-    --datadir "${storage_dir}/data" \
-    --dumpdir "${storage_dir}/dump" \
-    --expdir "${storage_dir}/exp" \
+    --datadir "${storage_dir}/data/dcase" \
+    --dumpdir "${storage_dir}/dump/dcase" \
+    --expdir "${storage_dir}/exp/dcase" \
     --feats_normalize uttmvn \
     --stage 1 \
     --stop_stage 10 \
