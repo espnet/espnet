@@ -18,8 +18,8 @@ mkdir -p "${storage_dir}"
 ./cls.sh \
     --local_data_opts "watkins" \
     --cls_tag "${mynametag}" \
-    --datadir "${storage_dir}/data" \
-    --dumpdir "${storage_dir}/dump" \
+    --datadir "${storage_dir}/data/watkins" \
+    --dumpdir "${storage_dir}/dump/watkins" \
     --expdir "${storage_dir}/exp/watkins" \
     --feats_normalize uttmvn \
     --stage 1 \

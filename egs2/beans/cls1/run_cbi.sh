@@ -18,8 +18,8 @@ mkdir -p "${storage_dir}"
 ./cls.sh \
     --local_data_opts "cbi" \
     --cls_tag "${mynametag}" \
-    --datadir "${storage_dir}/data" \
-    --dumpdir "${storage_dir}/dump" \
+    --datadir "${storage_dir}/data/cbi" \
+    --dumpdir "${storage_dir}/dump/cbi" \
     --expdir "${storage_dir}/exp/cbi" \
     --feats_normalize uttmvn \
     --stage 1 \

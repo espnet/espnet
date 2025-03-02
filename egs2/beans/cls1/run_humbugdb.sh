@@ -18,8 +18,8 @@ mkdir -p "${storage_dir}"
 ./cls.sh \
     --local_data_opts "humbugdb" \
     --cls_tag "${mynametag}" \
-    --datadir "${storage_dir}/data" \
-    --dumpdir "${storage_dir}/dump" \
+    --datadir "${storage_dir}/data/humbugdb" \
+    --dumpdir "${storage_dir}/dump/humbugdb" \
     --expdir "${storage_dir}/exp/humbugdb" \
     --feats_normalize uttmvn \
     --stage 1 \

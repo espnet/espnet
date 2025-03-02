@@ -18,8 +18,8 @@ mkdir -p "${storage_dir}"
 ./cls.sh \
     --local_data_opts "bats" \
     --cls_tag "${mynametag}" \
-    --datadir "${storage_dir}/data" \
-    --dumpdir "${storage_dir}/dump" \
+    --datadir "${storage_dir}/data/bats" \
+    --dumpdir "${storage_dir}/dump/bats" \
     --expdir "${storage_dir}/exp/bats" \
     --feats_normalize uttmvn \
     --stage 1 \
