@@ -1,7 +1,6 @@
 import argparse
 import logging
 import warnings
-import logging
 from typing import Dict
 
 import numpy as np
