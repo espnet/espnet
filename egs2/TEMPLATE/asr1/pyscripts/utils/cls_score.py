@@ -1,7 +1,7 @@
 import argparse
 import os
 import warnings
-
+import logging
 import numpy as np
 from scipy import stats
 from sklearn import metrics
@@ -62,7 +62,12 @@ def calculate_multilabel_stats(output, target):
         )
 
         # AUC
-        auc = metrics.roc_auc_score(target[:, k], output[:, k], average=None)
+        n_examples_in_class = np.sum(target[:, k])
+        if n_examples_in_class == 0:
+            auc = 0.0  # this should not occur in normal case.
+            logging.warning("No positive example in class %d" % k)
+        else:
+            auc = metrics.roc_auc_score(target[:, k], output[:, k], average=None)
 
         # Precisions, recalls
         (precisions, recalls, thresholds) = metrics.precision_recall_curve(
@@ -97,7 +102,13 @@ def calc_metrics_from_textfiles(
     for uttid, label_list in gt_uttid2label.items():
         gt_scores = np.zeros(n_classes)
         for label in label_list:
-            tok_idx = token_list.index(label)
+            try:
+                tok_idx = token_list.index(label)
+            except ValueError:
+                # this is for unseen tokens that are only in test
+                # but not in training
+                logging.warning(f"{label} not in token list.")
+                continue
             if tok_idx > n_classes:
                 assert label == "<blank>", f"Unknown token {label} in ground truth."
                 continue
