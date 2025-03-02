@@ -21,50 +21,53 @@ DATA_WRITE_ROOT = sys.argv[2]
 
 CHUNK_SIZE = 60  # in seconds
 TARGET_SAMPLE_RATE = 16000  # for all datasets we fix 16kHz
-WINDOW_WIDTH=4
+WINDOW_WIDTH = 4
+
 
 def get_split(file_id):
     # 1:5:3:3
     if file_id == 0:
-        return 'train-low'
+        return "train-low"
     elif 1 <= file_id <= 5:
-        return 'train'
+        return "train"
     elif 6 <= file_id <= 8:
-        return 'valid'
+        return "valid"
     else:
-        return 'test'
+        return "test"
+
 
 datasets = defaultdict(list)
 os.makedirs(Path(DATA_READ_ROOT).parent / "processed", exist_ok=True)
-for file_id, wav_path in enumerate(sorted(Path(DATA_READ_ROOT).glob('*.wav'))):
-    print(f'Converting {wav_path} ...', file=sys.stderr)
+for file_id, wav_path in enumerate(sorted(Path(DATA_READ_ROOT).glob("*.wav"))):
+    print(f"Converting {wav_path} ...", file=sys.stderr)
 
     target_paths = divide_waveform_to_chunks(
         path=wav_path,
         target_dir=Path(DATA_READ_ROOT).parent / "processed",
         chunk_size=CHUNK_SIZE,
-        target_sample_rate=TARGET_SAMPLE_RATE
+        target_sample_rate=TARGET_SAMPLE_RATE,
     )
-    df = pd.read_csv(os.path.join(DATA_READ_ROOT, 'Train_Labels',  ('g_'+wav_path.stem + '.data')) )
+    df = pd.read_csv(
+        os.path.join(DATA_READ_ROOT, "Train_Labels", ("g_" + wav_path.stem + ".data"))
+    )
     annotations = []
     for _, row in df.iterrows():
-        st, ed, type = row['Start'], row['End'], row['Type']
-        annotations.append({'st': st, 'ed': ed, 'label': str(type)})
+        st, ed, type = row["Start"], row["End"], row["Type"]
+        annotations.append({"st": st, "ed": ed, "label": str(type)})
 
-    chunks = divide_annotation_to_chunks(
-        annotations=annotations,
-        chunk_size=CHUNK_SIZE)
+    chunks = divide_annotation_to_chunks(annotations=annotations, chunk_size=CHUNK_SIZE)
     split = get_split(file_id)
 
     for chunk, path in enumerate(target_paths):
         if chunk % 3 != 0:
             continue
-        datasets[split].append({
-            'path': path,
-            'length': get_wav_length_in_secs(path),
-            'annotations': chunks[chunk]
-        })
-
+        datasets[split].append(
+            {
+                "path": path,
+                "length": get_wav_length_in_secs(path),
+                "annotations": chunks[chunk],
+            }
+        )
 
 
 split2dataset = {
@@ -107,4 +110,3 @@ for split, dataset in split2dataset.items():
             print(f"{uttid} {row['path']}", file=wav_f)
             print(f"{uttid} {label_seq}", file=text_f)
             print(f"{uttid} dummy", file=utt2spk_f)
-

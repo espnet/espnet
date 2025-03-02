@@ -1,22 +1,20 @@
 import glob
-
-from sklearn.model_selection import train_test_split
-from pathlib import Path
-import pandas as pd
-import os
-import sys
-import logging
 import json
-from tqdm import tqdm
-from utils import (
-    BeansRecognitionDataset,
-    get_wav_length_in_secs,
-)
+import logging
+import os
 import pathlib
 import subprocess
+import sys
+from pathlib import Path
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from tqdm import tqdm
+
+from utils import BeansRecognitionDataset, get_wav_length_in_secs
 
 WINDOW_WIDTH = 10
-CHUNK_SIZE = 60 # in seconds
+CHUNK_SIZE = 60  # in seconds
 TARGET_SAMPLE_RATE = 16000
 
 logger = logging.getLogger(__name__)
@@ -32,7 +30,9 @@ for split in ["train", "train-low", "valid", "test"]:
         for line in f:
             if isinstance(line, str):
                 json_obj = json.loads(line.strip())
-                json_obj["path"] = os.path.join(DATA_READ_ROOT, "wav", Path(json_obj["path"]).stem + ".wav")
+                json_obj["path"] = os.path.join(
+                    DATA_READ_ROOT, "wav", Path(json_obj["path"]).stem + ".wav"
+                )
                 json_data.append(json_obj)
 
     datasets[split] = json_data
