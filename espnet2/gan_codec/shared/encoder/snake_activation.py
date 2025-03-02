@@ -1,9 +1,9 @@
-import numpy as np
+import numpy as np  # noqa
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-from einops import rearrange
-from torch.nn.utils import weight_norm
+import torch.nn.functional as F  # noqa
+from einops import rearrange  # noqa
+from torch.nn.utils import weight_norm  # noqa
 
 
 @torch.jit.script

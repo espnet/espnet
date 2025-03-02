@@ -1,7 +1,13 @@
+"""WPE classes and methods."""
+
+
 class WPE(object):
+    """WPE Class."""
+
     def __init__(
         self, taps=10, delay=3, iterations=3, psd_context=0, statistics_mode="full"
     ):
+        """Initialize WPE."""
         self.taps = taps
         self.delay = delay
         self.iterations = iterations
@@ -9,6 +15,7 @@ class WPE(object):
         self.statistics_mode = statistics_mode
 
     def __repr__(self):
+        """Return string representation of class."""
         return (
             "{name}(taps={taps}, delay={delay}"
             "iterations={iterations}, psd_context={psd_context}, "
@@ -23,7 +30,7 @@ class WPE(object):
         )
 
     def __call__(self, xs):
-        """Return enhanced
+        """Return enhanced.
 
         :param np.ndarray xs: (Time, Channel, Frequency)
         :return: enhanced_xs

@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+"""Pytorch ExtLM module."""
+
 # Copyright 2018 Mitsubishi Electric Research Laboratories (Takaaki Hori)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
@@ -16,6 +18,8 @@ from espnet.nets.pytorch_backend.nets_utils import to_device
 
 # Definition of a multi-level (subword/word) language model
 class MultiLevelLM(nn.Module):
+    """Multilevel LM class."""
+
     logzero = -10000000000.0
     zero = 1.0e-10
 
@@ -29,6 +33,7 @@ class MultiLevelLM(nn.Module):
         oov_penalty=1.0,
         open_vocab=True,
     ):
+        """Initialize class."""
         super(MultiLevelLM, self).__init__()
         self.wordlm = wordlm
         self.subwordlm = subwordlm
@@ -46,6 +51,7 @@ class MultiLevelLM(nn.Module):
         self.normalized = True
 
     def forward(self, state, x):
+        """Compute MultiLevelLM forward."""
         # update state with input label x
         if state is None:  # make initial states and log-prob vectors
             self.var_word_eos = to_device(x, self.var_word_eos)
@@ -103,6 +109,7 @@ class MultiLevelLM(nn.Module):
         )
 
     def final(self, state):
+        """Return final calculations."""
         clm_state, wlm_state, wlm_logprobs, node, log_y, clm_logprob = state
         if node is not None and node[1] >= 0:  # check if the node is word end
             w = to_device(wlm_logprobs, torch.LongTensor([node[1]]))
@@ -114,12 +121,15 @@ class MultiLevelLM(nn.Module):
 
 # Definition of a look-ahead word language model
 class LookAheadWordLM(nn.Module):
+    """LookAheadWorldLM class."""
+
     logzero = -10000000000.0
     zero = 1.0e-10
 
     def __init__(
         self, wordlm, word_dict, subword_dict, oov_penalty=0.0001, open_vocab=True
     ):
+        """Initialize class."""
         super(LookAheadWordLM, self).__init__()
         self.wordlm = wordlm
         self.word_eos = word_dict["<eos>"]
@@ -136,6 +146,7 @@ class LookAheadWordLM(nn.Module):
         self.normalized = True
 
     def forward(self, state, x):
+        """Compute class forward."""
         # update state with input label x
         if state is None:  # make initial states and cumlative probability vector
             self.var_word_eos = to_device(x, self.var_word_eos)
@@ -209,6 +220,7 @@ class LookAheadWordLM(nn.Module):
         return (wlm_state, cumsum_probs, new_node), log_y
 
     def final(self, state):
+        """Return final calculations."""
         wlm_state, cumsum_probs, node = state
         if node is not None and node[1] >= 0:  # check if the node is word end
             w = to_device(cumsum_probs, torch.LongTensor([node[1]]))

@@ -79,6 +79,8 @@ def initialize(model: torch.nn.Module, init: str):
                     torch.nn.init.kaiming_uniform_(p.data, nonlinearity="relu")
                 elif init == "kaiming_normal":
                     torch.nn.init.kaiming_normal_(p.data, nonlinearity="relu")
+                elif init == "normal":
+                    torch.nn.init.normal_(p.data, mean=0.0, std=0.02)
                 else:
                     raise ValueError("Unknown initialization: " + init)
         # bias init

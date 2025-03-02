@@ -1,0 +1,16 @@
+{
+    "vocab_size": 50265,
+    "max_position_embeddings": 256,
+    "decoder_layers": 6,
+    "decoder_ffn_dim": 3072,
+    "decoder_attention_heads": 16,
+    "d_model": 768,
+    "decoder_layerdrop": 0.0,
+    "activation_function": "gelu",
+    "dropout": 0.1,
+    "attention_dropout": 0.1,
+    "activation_dropout": 0.1,
+    "scale_embedding": false,
+    "use_cache": true,
+    "ignore_mismatched_sizes": true
+}
