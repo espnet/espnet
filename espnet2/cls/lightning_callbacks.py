@@ -2,7 +2,7 @@ import torch.distributed as dist
 from lightning.pytorch.callbacks import Callback
 
 try:
-    from torcheval.metrics import MultilabelAUPRC, BinaryAUPRC
+    from torcheval.metrics import BinaryAUPRC, MultilabelAUPRC
     from torcheval.metrics.toolkit import sync_and_compute
 
     torcheval_import_error = None

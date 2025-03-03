@@ -8,7 +8,7 @@ Please install torcheval for this recipe using `installers/install_torcheval.sh`
 
 ## Steps to run
 
-For following datasets you have to download kaggle api key and put it in ~/.kaggle/kaggle.json, and accept competition conditions- 
+For following datasets you have to download kaggle api key and put it in ~/.kaggle/kaggle.json, and accept competition conditions-
 * [cbi: Cornell Birdcall Identification-Kaggle](https://www.kaggle.com/competitions/birdsong-recognition)
 * [rfcx: Rainforest Connection Species Audio Detection](https://www.kaggle.com/competitions/rfcx-species-audio-detection)
 
