@@ -27,6 +27,7 @@ lm_config=conf/train_lm.yaml
     --token_type word \
     --nbpe 2000 \
     --feats_type raw \
+    --local_data_opts "--turn_take true " \
     --audio_format "flac.ark" \
     --bpe_train_text "data/${train_set}/text" \
     --lm_train_text "data/${train_set}/text" \
