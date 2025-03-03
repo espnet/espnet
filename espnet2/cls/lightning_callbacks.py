@@ -2,7 +2,7 @@ import torch.distributed as dist
 from lightning.pytorch.callbacks import Callback
 
 try:
-    from torcheval.metrics import MultilabelAUPRC
+    from torcheval.metrics import MultilabelAUPRC, BinaryAUPRC
     from torcheval.metrics.toolkit import sync_and_compute
 
     torcheval_import_error = None
@@ -40,7 +40,11 @@ class MultilabelAUPRCCallback(Callback):
         self.mAP_function = None  # init on train start
 
     def setup_mAP(self, model):
-        self.mAP_function = MultilabelAUPRC(num_labels=model.get_vocab_size())
+        vocab_size = model.get_vocab_size()
+        if vocab_size > 1:
+            self.mAP_function = MultilabelAUPRC(num_labels=vocab_size)
+        else:
+            self.mAP_function = BinaryAUPRC()
 
     def on_train_start(self, trainer, pl_module):
         if self.mAP_function is None:

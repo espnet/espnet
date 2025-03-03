@@ -3,9 +3,11 @@ import sys
 
 import pandas as pd
 from sklearn.model_selection import train_test_split
+import soundfile as sf
 
 DATA_READ_ROOT = sys.argv[1]
 DATA_WRITE_ROOT = sys.argv[2]
+LENGTH_CUTOFF_SECONDS = 30
 
 df = pd.read_csv(os.path.join(DATA_READ_ROOT, "annotations.csv"))
 df = df.apply(
@@ -58,6 +60,17 @@ for split, df in split2df.items():
     ) as utt2spk_f:
         for index, row in df.iterrows():
             uttid = f"{split}-{index}"
-            print(f"{uttid} {row['path']}", file=wav_f)
+            filepath = row["path"]
+            wav, sr = sf.read(filepath)
+            if LENGTH_CUTOFF_SECONDS < len(wav) / sr:
+                # One audio is 30 minute long!
+                wav = wav[: LENGTH_CUTOFF_SECONDS * sr]
+                fname = os.path.split(os.path.basename(filepath))[0]
+                filepath = os.path.join(
+                    DATA_WRITE_ROOT, "cut_audio", f"{fname}_cut.wav"
+                )
+                os.makedirs(os.path.dirname(filepath), exist_ok=True)
+                sf.write(filepath, wav, sr)
+            print(f"{uttid} {filepath}", file=wav_f)
             print(f"{uttid} {row['label']}", file=text_f)
             print(f"{uttid} dummy", file=utt2spk_f)

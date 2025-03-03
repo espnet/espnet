@@ -27,6 +27,7 @@ def convert(row):
     wav, sr = sf.read(filepath)
     if LENGTH_CUTOFF_SECONDS < len(wav) / sr:
         # One audio is 20 minute long!
+        wav = wav[: LENGTH_CUTOFF_SECONDS * sr]
         filepath = os.path.join(DATA_WRITE_ROOT, "cut_audio", f"{row['id']}_cut.wav")
         os.makedirs(os.path.dirname(filepath), exist_ok=True)
         sf.write(filepath, wav, sr)

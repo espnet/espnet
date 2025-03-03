@@ -60,5 +60,4 @@ encoder_conf:
 
 model_conf:
     classification_type: multi-label
-    mixup_augmentation: false
-    # lsm_weight: 0.1  # label smoothing weight, per class
+    log_epoch_metrics: true

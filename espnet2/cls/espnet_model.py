@@ -73,7 +73,10 @@ class ESPnetClassificationModel(AbsESPnetModel):
                 "More info at: `https://pytorch.org/torcheval/stable/`"
                 f"Original error is: {torcheval_import_error}"
             )
-        assert vocab_size > 1, f"vocab_size must be > 1, got {vocab_size}"
+        if vocab_size == 1:
+            assert (
+                classification_type == "multi-label"
+            ), "Binary classification should use multi-label classification type"
         self.vocab_size = vocab_size
         self.token_list = token_list.copy()
         self.frontend = frontend
@@ -279,7 +282,15 @@ class ESPnetClassificationModel(AbsESPnetModel):
         return feats, feats_lengths
 
     def update_mAP(self, mAP_computer):
-        mAP_computer.update(torch.cat(self.predictions), torch.cat(self.targets))
+
+        if self.get_vocab_size() == 1:
+            preds = torch.cat(self.predictions)
+            targets = torch.cat(self.targets)
+            preds = torch.cat([1 - preds, preds], dim=-1)
+            targets = torch.cat([1 - targets, targets], dim=-1)
+        else:
+            preds, targets = torch.cat(self.predictions), torch.cat(self.targets)
+        mAP_computer.update(preds, targets)
         self.predictions = []
         self.targets = []
 
