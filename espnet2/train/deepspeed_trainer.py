@@ -1,4 +1,4 @@
-""" DeepSpeed Trainer Module """
+"""DeepSpeed Trainer Module"""
 
 import argparse
 import dataclasses
