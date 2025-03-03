@@ -43,6 +43,8 @@ swbd1_dir=${SWBD}
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log " Data Preparation for turn taking"
     local/swbd1_data_download.sh ${swbd1_dir}
+    gdown 1Wc0DmEs0htZI22Z5U7oQQclueho7EApX
+    unzip turn_take_splits.zip
     local/swbd1_prepare_dict.sh
     local/swbd1_data_prep.sh ${swbd1_dir}
     for x in train; do
