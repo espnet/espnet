@@ -251,7 +251,7 @@ class ESPnetASRModel(AbsESPnetModel):
         loss_att, acc_att, cer_att, wer_att = None, None, None, None
         loss_ctc, cer_ctc = None, None
         loss_transducer, cer_transducer, wer_transducer = None, None, None
-        loss_classif, acc_classif = None, None
+        loss_classif, acc_classif = None, None  # noqa
         stats = dict()
 
         # 1. CTC branch
@@ -694,6 +694,7 @@ class ESPnetASRModel(AbsESPnetModel):
         labels: torch.Tensor,
     ):
         """Compute classification loss.
+
         Args:
             encoder_out: Encoder output sequences. (B, T, D_enc)
             encoder_out_lens: Encoder output sequences lengths. (B,)

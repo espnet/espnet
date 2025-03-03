@@ -8,7 +8,7 @@ set -o pipefail
 train_set="train"
 valid_set="val"
 test_sets="eval"
-cls_config=conf/beats_cls.yaml
+cls_config=conf/beats_cls_lightning.yaml
 
 timestamp=$(date "+%Y%m%d.%H%M%S")
 mynametag=${timestamp}
@@ -22,13 +22,14 @@ mkdir -p "${storage_dir}"
     --dumpdir "${storage_dir}/dump" \
     --expdir "${storage_dir}/exp" \
     --gpu_inference false \
+    --use_lightning true \
     --feats_normalize uttmvn \
     --stage 1 \
     --stop_stage 10 \
     --nj 10 \
     --label_fold_length 600 \
     --inference_nj 1 \
-    --inference_model valid.epoch_mAP.best.pth \
+    --inference_model valid.epoch_mAP.ave_1best.pth \
     --cls_config "${cls_config}" \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \

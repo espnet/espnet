@@ -12,7 +12,6 @@ from typeguard import typechecked
 
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.tasks.cls import CLSTask
-from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
@@ -50,7 +49,6 @@ class Classification:
         device: str = "cpu",
         batch_size: int = 1,
         dtype: str = "float32",
-        max_wav_duration: Optional[int] = None,
     ):
 
         classification_model, classification_train_args = CLSTask.build_model_from_file(
@@ -66,7 +64,6 @@ class Classification:
         self.token_id_converter = TokenIDConverter(
             token_list=classification_train_args.token_list
         )
-        self.max_wav_duration = max_wav_duration
 
     @torch.no_grad()
     @typechecked
@@ -97,11 +94,6 @@ class Classification:
         if isinstance(speech_lengths, np.ndarray):
             speech_lengths = _to_batched_tensor(speech_lengths, ndim=1)
             speech_lengths = speech_lengths.to(torch.long)
-
-        # Truncate the input audio if it exceeds the maximum duration
-        # if self.max_wav_duration and speech.size(1) > self.max_wav_duration:
-        #     speech = speech[:, : self.max_wav_duration]
-        #     lengths = torch.tensor([self.max_wav_duration], dtype=torch.long)
 
         batch = {"speech": speech, "speech_lengths": speech_lengths}
         logging.info(f"speech length: {speech_lengths.tolist()}")
@@ -161,7 +153,6 @@ def inference(
     classification_model_file: Optional[str],
     allow_variable_data_keys: bool,
     output_all_probabilities: bool,
-    max_wav_duration: Optional[int],
 ):
 
     logging.basicConfig(
@@ -186,7 +177,6 @@ def inference(
         classification_model_file=classification_model_file,
         device=device,
         dtype=dtype,
-        max_wav_duration=max_wav_duration,
     )
     classification = Classification(**classification_kwargs)
 
@@ -316,12 +306,6 @@ def get_parser():
         type=str2bool,
         default=False,
         help="Output scores for all classes",
-    )
-    group.add_argument(
-        "--max_wav_duration",
-        type=int,
-        default=None,
-        help="Maximum duration of input audio in number of samples",
     )
 
     return parser

@@ -34,20 +34,21 @@ num_nodes=1          # The number of nodes
 nj=32                # The number of parallel jobs.
 datadir=data         # Directory to save data from Stage 1.
 dumpdir=dump         # Directory to dump features.
-inference_nj=4      # The number of parallel jobs in decoding.
+inference_nj=4       # The number of parallel jobs in decoding.
 gpu_inference=false  # Whether to perform gpu decoding.
 expdir=exp           # Directory to save experiments.
 python=python3       # Specify python to execute espnet commands
+use_lightning=false  # Whether to use pytorch lightning trainer for training.
 
 # Data preparation related
-local_data_opts= # The options given to local/data.sh.
+local_data_opts=     # The options given to local/data.sh.
 
 # Feature extraction related
 audio_format=flac    # Audio format: wav, flac, wav.ark, flac.ark.
 fs=16k               # Sampling rate.
 speech_fold_length=160000 # The length of the speech input to the cls model.
-label_fold_length=1   # fold_length for labels during CLS training. Set to 1 for multi-class classification.
-cls_stats_dir=      # The directory used for collect-stats mode.
+label_fold_length=1  # fold_length for labels during CLS training. Set to 1 for multi-class classification.
+cls_stats_dir=       # The directory used for collect-stats mode.
 
 # data preprocessing related
 min_wav_duration=0.1 # Minimum duration in seconds to use in training
@@ -59,6 +60,8 @@ cls_config= # Config for cls model training.
 cls_args=   # Arguments for cls model training, e.g., "--max_epoch 10".
              # Note that it will overwrite args in cls config.
 feats_normalize=uttmvn # Normalizaton layer type.
+pretrained_model=              # Pretrained model to load
+ignore_init_mismatch=false      # Ignore initial mismatch
 
 # speech-text classification related
 speech_text_classification=false # If true, use text input for speech-text classification.
@@ -99,6 +102,7 @@ Options:
     --dumpdir        # Directory to dump features (default="${dumpdir}").
     --expdir         # Directory to save experiments (default="${expdir}").
     --python         # Specify python to execute espnet commands (default="${python}").
+    --use_lightning # Whether to use pytorch lightning trainer for training (default="${use_lightning}").
     # Data preparation related
     --local_data_opts # The options given to local/data.sh (default="${local_data_opts}").
     # Feature extraction related
@@ -115,6 +119,8 @@ Options:
     --cls_args       # Arguments for classification model training, e.g., "--max_epoch 10" (default="${cls_args}").
                       # Note that it will overwrite args in cls config.
     --feats_normalize # Normalizaton layer type (default="${feats_normalize}").
+    --pretrained_model # Pretrained model to load (default="${pretrained_model}").
+    --ignore_init_mismatch # Ignore initial mismatch (default="${ignore_init_mismatch}").
     # speech-text classification related
     --speech_text_classification  # If true, use text input for speech-text classification (default="${speech_text_classification}").
     --text_input_filename  # Filename for text input (default="${text_input_filename}").
@@ -290,7 +296,7 @@ if ! "${skip_data_prep}"; then
             --add_symbol "<unk>:-1" --add_symbol "<blank>:-2"
             # unk is just a dummy symbol for compatibility,
             # we ensure that it is not used in the cls model
-            # text contains blank when task is multi-label classif and 
+            # text contains blank when task is multi-label classif and
             # there is no label. In this case we reposition to 0th index.
         
         if [ "$speech_text_classification" ]; then
@@ -452,19 +458,42 @@ if ! "${skip_train}"; then
             jobname="${cls_exp}/train.log"
         fi
 
-        # shellcheck disable=SC2086
-        ${python} -m espnet2.bin.launch \
-            --cmd "${cuda_cmd} --name ${jobname}" \
-            --log "${cls_exp}/train.log" \
-            --ngpu "${ngpu}" \
-            --num_nodes "${num_nodes}" \
-            --init_file_prefix "${cls_exp}/.dist_init_" \
-            --multiprocessing_distributed true -- \
-            ${python} -m espnet2.bin.cls_train \
-                --use_preprocessor true \
-                --resume true \
-                --output_dir "${cls_exp}" \
-                ${_opts} ${cls_args}
+        if "${use_lightning}"; then
+            log "Use PyTorch Lightning trainer"
+            ${python} pyscripts/utils/rotate_logfile.py "${cls_exp}"/train.log
+
+            ${cuda_cmd} --name "${jobname}" \
+                --gpu "${ngpu}" \
+                --num_tasks "${ngpu}" \
+                --num_nodes "${num_nodes}" \
+                "${cls_exp}"/train.log \
+                srun --export=ALL \
+                ${python} -m espnet2.bin.lightning_train \
+                    --task cls \
+                    --lightning_conf "{devices: ${ngpu}, num_nodes: ${num_nodes}, default_root_dir: ${cls_exp}}" \
+                    --user_callbacks mAP_logging \
+                    --use_preprocessor true \
+                    --resume true \
+                    ${pretrained_model:+--init_param $pretrained_model} \
+                    --ignore_init_mismatch ${ignore_init_mismatch} \
+                    --output_dir "${cls_exp}" \
+                    ${_opts} ${cls_args}
+        else
+            # shellcheck disable=SC2086
+            ${python} -m espnet2.bin.launch \
+                --cmd "${cuda_cmd} --name ${jobname}" \
+                --log "${cls_exp}/train.log" \
+                --ngpu "${ngpu}" \
+                --num_nodes "${num_nodes}" \
+                --init_file_prefix "${cls_exp}/.dist_init_" \
+                --multiprocessing_distributed true -- \
+                ${python} -m espnet2.bin.cls_train \
+                    --use_preprocessor true \
+                    ${pretrained_model:+--init_param $pretrained_model} \
+                    --resume true \
+                    --output_dir "${cls_exp}" \
+                    ${_opts} ${cls_args}
+        fi
     fi
 else
     log "Skip the training stages"

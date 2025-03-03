@@ -1951,7 +1951,14 @@ class SpkPreprocessor(CommonPreprocessor):
         noise_apply_prob: float = 1.0,
         short_noise_thres: float = 0.5,
     ):
-        super().__init__(train, rir_scp=rir_scp, rir_apply_prob=rir_apply_prob)
+
+        self.train = train
+
+        if rir_apply_prob == 0:
+            self.rir_scp = None
+        else:
+            self.rir_scp = rir_scp
+        super().__init__(train, rir_scp=self.rir_scp, rir_apply_prob=rir_apply_prob)
 
         self.spk2label = None  # a dictionary that maps string speaker label to int
         self.sample_rate = sample_rate
@@ -1963,8 +1970,6 @@ class SpkPreprocessor(CommonPreprocessor):
                 self.spk2utt = f_s2u.readlines()
             self._make_label_mapping()
             self.nspk = len(self.spk2utt)
-
-        self.rir_scp = rir_scp
 
         self.noise_apply_prob = noise_apply_prob
         self.short_noise_thres = short_noise_thres
@@ -2603,10 +2608,10 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         # speaker prompt
         self.speaker_prompt_length = speaker_prompt_length
 
+    @typechecked
     def __call__(
         self, uid: str, data: Dict[str, Union[str, np.ndarray]]
     ) -> Dict[str, np.ndarray]:
-        assert check_argument_types()
 
         # (1) task parsing
         task_name = uid.strip().split(" ")[0]
@@ -2618,7 +2623,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
                 raise ValueError("Continuous feature is not supported yet.")
 
         # (2) encoder & decoder sequence
-        seqs, conti_feats = [], []
+        seqs, conti_feats = [], []  # noqa
         n_enc_entries = len(task.encoder_entries)
         for e_idx, entries in enumerate([task.encoder_entries, task.decoder_entries]):
             for entry in entries:
@@ -2712,7 +2717,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         enc_seq = data.get("enc_seq", None)
         dec_seq = data.get("dec_seq", None)
 
-        logging.warning(f"Diagnose in preprocessor ...")
+        logging.warning("Diagnose in preprocessor ...")
         for name, seq in [("encoder", enc_seq), ("decoder", dec_seq)]:
             if seq is None:
                 continue

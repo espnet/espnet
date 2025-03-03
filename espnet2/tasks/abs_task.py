@@ -65,7 +65,7 @@ from espnet2.train.distributed_utils import (
     get_num_nodes,
     resolve_distributed_mode,
 )
-from espnet2.train.iterable_dataset import (
+from espnet2.train.iterable_dataset import (  # noqa
     IterableESPnetDataset,
     SplicedIterableESPnetDataset,
 )
@@ -1343,7 +1343,7 @@ class AbsTask(ABC):
             assert not args.use_amp, "amp is not compatible with tf32"
             torch.backends.cuda.matmul.allow_tf32 = True
             torch.backends.cudnn.allow_tf32 = True
-            logging.info(f"Using TensorFloat32 at the cost of matmul precision")
+            logging.info("Using TensorFloat32 at the cost of matmul precision")
 
         if (
             args.collect_stats
@@ -2251,7 +2251,7 @@ class AbsTask(ABC):
         collate_fn,
         key_file: Optional[str] = None,
         batch_size: int = 1,
-        dtype: str = np.float32,
+        dtype: Optional[Any] = np.float32,
         num_workers: int = 1,
         allow_variable_data_keys: bool = False,
         ngpu: int = 0,

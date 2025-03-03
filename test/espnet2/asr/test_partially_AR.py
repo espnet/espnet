@@ -17,7 +17,7 @@ from espnet2.asr.partially_AR_model import PartiallyARInference
 def test_partially_ar(interctc_layer_idx, interctc_use_conditioning, interctc_weight):
     vocab_size = 5
     enc_out = 4
-    encoder = ConformerEncoder(
+    encoder = ConformerEncoder(  # noqa
         20,
         output_size=enc_out,
         linear_units=4,
