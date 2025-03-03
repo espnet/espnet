@@ -8,7 +8,7 @@ set -o pipefail
 train_set="development_cle"
 valid_set="validation_cle"
 test_sets="evaluation_cle"
-cls_config=conf/beats_entailment.yaml
+cls_config=conf/beats_bert_multimodal_cls.yaml
 
 timestamp=$(date "+%Y%m%d.%H%M%S")
 mynametag=${timestamp}
@@ -16,14 +16,13 @@ decoding_batch_size=20
 
 storage_dir=. # change this to where you have space, if needed
 mkdir -p "${storage_dir}"
-# datadir and cls_stats_dir are important to provide to resolve conflict with aqa 
+
 ./cls.sh \
     --local_data_opts "entailment" \
     --cls_tag "${mynametag}" \
-    --datadir "${storage_dir}/data_cle" \
-    --dumpdir "${storage_dir}/dump" \
-    --expdir "${storage_dir}/exp" \
-    --cls_stats_dir "${storage_dir}/data_stats_cle" \
+    --datadir "${storage_dir}/data/cle" \
+    --dumpdir "${storage_dir}/dump/cle" \
+    --expdir "${storage_dir}/exp/cle" \
     --speech_text_classification true \
     --text_input_filename hypothesis.txt \
     --hugging_face_model_name_or_path bert-base-uncased \
@@ -32,7 +31,7 @@ mkdir -p "${storage_dir}"
     --feats_normalize uttmvn \
     --ngpu 1 \
     --stage 1 \
-    --stop_stage 8 \
+    --stop_stage 10 \
     --nj 10 \
     --label_fold_length 600 \
     --inference_nj 1 \
