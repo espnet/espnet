@@ -23,6 +23,7 @@ mkdir -p "${storage_dir}"
     --datadir "${storage_dir}/data/gibbons" \
     --dumpdir "${storage_dir}/dump/gibbons" \
     --expdir "${storage_dir}/exp/gibbons" \
+    --use_lightning true \
     --feats_normalize uttmvn \
     --stage 1 \
     --stop_stage 10 \
@@ -33,7 +34,7 @@ mkdir -p "${storage_dir}"
     --label_fold_length 35 \
     --max_wav_duration 32 \
     --inference_nj 1 \
-    --inference_model valid.mAP.best.pth \
+    --inference_model valid.epoch_mAP.best.pth \
     --cls_config "${cls_config}" \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \

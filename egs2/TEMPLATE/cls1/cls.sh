@@ -34,21 +34,21 @@ num_nodes=1          # The number of nodes
 nj=32                # The number of parallel jobs.
 datadir=data         # Directory to save data from Stage 1.
 dumpdir=dump         # Directory to dump features.
-inference_nj=4      # The number of parallel jobs in decoding.
+inference_nj=4       # The number of parallel jobs in decoding.
 gpu_inference=false  # Whether to perform gpu decoding.
 expdir=exp           # Directory to save experiments.
 python=python3       # Specify python to execute espnet commands
-use_lightning=false     # Whether to use pytorch lightning trainer for training.
+use_lightning=false  # Whether to use pytorch lightning trainer for training.
 
 # Data preparation related
-local_data_opts= # The options given to local/data.sh.
+local_data_opts=     # The options given to local/data.sh.
 
 # Feature extraction related
 audio_format=flac    # Audio format: wav, flac, wav.ark, flac.ark.
 fs=16k               # Sampling rate.
 speech_fold_length=160000 # The length of the speech input to the cls model.
-label_fold_length=1   # fold_length for labels during CLS training. Set to 1 for multi-class classification.
-cls_stats_dir=      # The directory used for collect-stats mode.
+label_fold_length=1  # fold_length for labels during CLS training. Set to 1 for multi-class classification.
+cls_stats_dir=       # The directory used for collect-stats mode.
 
 # data preprpocessing related
 min_wav_duration=0.1 # Minimum duration in seconds to use in training
@@ -62,7 +62,6 @@ cls_args=   # Arguments for cls model training, e.g., "--max_epoch 10".
 feats_normalize=uttmvn # Normalizaton layer type.
 pretrained_model=              # Pretrained model to load
 ignore_init_mismatch=false      # Ignore initial mismatch
-classification_type=        # Type of classification task, multi-class or multi-label
 
 # cls inference related
 download_model=
@@ -116,7 +115,6 @@ Options:
     --feats_normalize # Normalizaton layer type (default="${feats_normalize}").
     --pretrained_model # Pretrained model to load (default="${pretrained_model}").
     --ignore_init_mismatch # Ignore initial mismatch (default="${ignore_init_mismatch}").
-    --classification_type # Type of classification task, multi-class or multi-label (default="${classification_type}").
     # cls inference related
     --download_model  # Download a model from Model Zoo and use it for decoding (default="${download_model}").
     --inference_model  # classification model path for inference (default="${inference_model}").
@@ -181,13 +179,6 @@ fi
 cls_exp="${expdir}/cls_${cls_tag}"
 token_list=${datadir}/token_list
 
-
-if [[ "${classification_type}" == "multi-label" ]]; then
-    if [[ "${use_lightning}" != "true" ]]; then
-        log "Multi-label classification is only supported with PyTorch Lightning trainer. Please set --use_lightning true."
-        exit 1
-    fi
-fi
 # ========================== Main stages start from here. ==========================
 
 if ! "${skip_data_prep}"; then
@@ -485,8 +476,7 @@ if ! "${skip_eval}"; then
         log "Generate '${cls_exp}/run.sh'. You can resume the process from stage 6 using this script"
         mkdir -p "${cls_exp}"; echo "${run_args} --stage 6 \"\$@\"; exit \$?" > "${cls_exp}/run.sh"; chmod +x "${cls_exp}/run.sh"
         _opts=
-
-        for dset in "${valid_set}" ${test_sets}; do
+        for dset in "${valid_set}" "${test_sets}"; do
             _data="${data_feats}/${dset}"
             _dir="${cls_exp}/cls_${dset}"
             _logdir="${_dir}/logdir"

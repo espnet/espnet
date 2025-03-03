@@ -31,7 +31,7 @@ mkdir -p "${storage_dir}"
     --label_fold_length 5 \
     --max_wav_duration 32 \
     --inference_nj 1 \
-    --inference_model valid.acc.best.pth \
+    --inference_model valid.epoch_mAP.best.pth \
     --cls_config "${cls_config}" \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
