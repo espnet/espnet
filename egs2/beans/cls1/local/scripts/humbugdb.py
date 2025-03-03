@@ -3,8 +3,8 @@ import sys
 
 import numpy as np
 import pandas as pd
-from sklearn.model_selection import train_test_split
 import soundfile as sf
+from sklearn.model_selection import train_test_split
 
 DATA_READ_ROOT = sys.argv[1]
 DATA_WRITE_ROOT = sys.argv[2]
