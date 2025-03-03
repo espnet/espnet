@@ -2,7 +2,7 @@ import pytest
 import torch
 from packaging.version import parse as V
 
-from espnet2.asr.encoder.beats_encoder import BeatsConfig, BeatsEncoder
+from espnet2.asr.encoder.beats_encoder import BeatsConfig, BeatsEncoder  # noqa
 
 is_torch_1_12_1_plus = V(torch.__version__) >= V("1.12.1")
 
@@ -58,7 +58,7 @@ def test_forward_pass(
     assert (
         output_rep.size(1) == correct_length
     ), f"Representation length should be {correct_length}. It is {output_rep.size(1)}"
-    assert output_rep.size(2) == 768, f"Output dim should be 768"
+    assert output_rep.size(2) == 768, "Output dim should be 768"
 
     # Check output length
     assert (

@@ -26,7 +26,7 @@ scheduler_conf:
 patience: none
 best_model_criterion:
 -   - valid
-    - mAP
+    - acc
     - max
 keep_nbest_models: 1
 use_amp: false  # whether to use automatic mixed precision
@@ -40,9 +40,8 @@ normalize: none # BEATs code does global mean and variance normalization
 
 encoder: beats
 encoder_conf:
-    # Please download the BEATs model from https://github.com/microsoft/unilm/tree/master/beats
-    # (iter3+, Beats finetuned model 1) and update the path below
-    beats_ckpt_path: /compute/babel-13-33/sbharad2/models/BEATs/BEATs_iter3.pt # BEATs_iter3_plus_AS20K.pt # BEATs_iter3.pt
+    # Please download the BEATs model from https://github.com/microsoft/unilm/tree/master/beats and update the path below
+    beats_ckpt_path: /compute/babel-13-33/sbharad2/models/BEATs/BEATs_iter3.pt # BEATs_iter2.pt BEATs_iter1.pt
     beats_config:
         layer_wise_gradient_decay_ratio: 0.3
         encoder_layerdrop: 0.1
@@ -56,9 +55,9 @@ encoder_conf:
         - 0
         - 0.06
         num_time_mask: 1
-    roll_augment: false
+    roll_augment: true
+    roll_interval: 1 # 16000
 
 model_conf:
-    classification_type: multi-label
-    mixup_augmentation: false
-    # lsm_weight: 0.1  # label smoothing weight, per class
+    classification_type: multi-class
+    lsm_weight: 0.1  # label smoothing weight, per class

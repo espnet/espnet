@@ -17,10 +17,8 @@ except ImportError:
     DeepSpeedEngine = None
 
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Sequence, Tuple, Union
+from typing import Dict, Iterable, List, Optional, Tuple, Union
 
-import torch
-import torch.distributed as dist
 from torch.distributed import ReduceOp
 from typeguard import typechecked
 
@@ -133,7 +131,6 @@ class DeepSpeedTrainer(Trainer):
                     reporter=sub_reporter,
                     options=trainer_options,
                 )
-            model.training_epoch_end_()
 
             # (5.2) valid one epoch
             with reporter.observe("valid") as sub_reporter:
@@ -143,9 +140,6 @@ class DeepSpeedTrainer(Trainer):
                     reporter=sub_reporter,
                     options=trainer_options,
                 )
-            epoch_stats = model.validation_epoch_end_()
-            if epoch_stats is not None:
-                reporter.register_epoch_stats("valid", stats=epoch_stats)
 
             # (5.3) save checkpoint
             checkpoint_path = output_dir / f"checkpoint_{iepoch}"

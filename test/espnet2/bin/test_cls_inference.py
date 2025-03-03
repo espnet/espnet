@@ -28,6 +28,7 @@ def token_list(tmp_path: Path):
         for c in string.ascii_letters:
             f.write(f"{c}\n")
         f.write("<unk>\n")
+        f.write("<blank>\n")
     return tmp_path / "tokens.txt"
 
 

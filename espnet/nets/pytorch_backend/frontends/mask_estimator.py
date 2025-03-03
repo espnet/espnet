@@ -1,3 +1,5 @@
+"""Mask Estimator module."""
+
 from typing import Tuple
 
 import numpy as np
@@ -10,7 +12,10 @@ from espnet.nets.pytorch_backend.rnn.encoders import RNN, RNNP
 
 
 class MaskEstimator(torch.nn.Module):
+    """Mask estimator class."""
+
     def __init__(self, type, idim, layers, units, projs, dropout, nmask=1):
+        """Initialize mask estimator."""
         super().__init__()
         subsample = np.ones(layers + 1, dtype=np.int64)
 
@@ -29,7 +34,7 @@ class MaskEstimator(torch.nn.Module):
     def forward(
         self, xs: ComplexTensor, ilens: torch.LongTensor
     ) -> Tuple[Tuple[torch.Tensor, ...], torch.LongTensor]:
-        """The forward function
+        """Calculate Mask estimator forward propagation.
 
         Args:
             xs: (B, F, C, T)

@@ -161,7 +161,7 @@ def tokenize(
         # e.g. idx=-1 -> append as the last symbol
         if idx < 0:
             idx = len(words_and_counts) + 1 + idx
-        
+
         if symbol in set([w for w, _ in words_and_counts]):
             logging.warning(
                 f"{symbol} is already in the vocabulary. "
@@ -173,7 +173,7 @@ def tokenize(
                     continue
                 words_and_counts_.append((w, c))
             words_and_counts = words_and_counts_
-        
+
         words_and_counts.insert(idx, (symbol, None))
 
     # Write words

@@ -1,12 +1,13 @@
-from collections import defaultdict
 import hashlib
 import math
-from pathlib import Path
-import soundfile as sf
 import os
+from collections import defaultdict
+from pathlib import Path
+
+import soundfile as sf
 import torch
-from torch.nn import functional as F
 import torchaudio
+from torch.nn import functional as F
 from torch.utils.data import Dataset
 
 
@@ -39,7 +40,9 @@ def divide_waveform_to_chunks(path, target_dir, chunk_size, target_sample_rate=1
     ), f"waveform should be normalized. min: {waveform.min()}, max: {waveform.max()}"
     if waveform.dim() == 1:
         waveform = waveform.unsqueeze(0)  # (1, n_samples)
-    waveform = waveform.mean(dim=0).unsqueeze(0)  # single channel always
+    else:
+        # soundfile channel is second dim
+        waveform = waveform.mean(dim=-1).unsqueeze(0)  # single channel always
 
     if sample_rate != target_sample_rate:
         transform = torchaudio.transforms.Resample(sample_rate, target_sample_rate)
@@ -89,7 +92,11 @@ def divide_annotation_to_chunks(annotations, chunk_size):
 def _get_waveform(filename, max_duration, target_sample_rate=16000):
     waveform, sample_rate = sf.read(filename)
     # (1, n_samples)
-    waveform = torch.tensor(waveform, dtype=torch.float64).unsqueeze(0)
+
+    if waveform.ndim == 2:
+        waveform = torch.tensor(waveform, dtype=torch.float32)[:, 0]
+    else:
+        waveform = torch.tensor(waveform, dtype=torch.float32).unsqueeze(0)
 
     if sample_rate != target_sample_rate:
         # This should not be needed since we resampled earlier
@@ -141,7 +148,10 @@ class BeansRecognitionDataset(Dataset):
 
                 y = set()
                 for anon in data["annotations"]:
-                    label_name = anon["label"].strip().lower()
+                    if isinstance(anon["label"], int):
+                        label_name = str(anon["label"])
+                    else:
+                        label_name = anon["label"].strip().lower()
 
                     if (st <= anon["st"] <= ed) or (st <= anon["ed"] <= ed):
                         denom = min(ed - st, anon["ed"] - anon["st"])

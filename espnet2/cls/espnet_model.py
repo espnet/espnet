@@ -14,13 +14,11 @@ from packaging.version import parse as V
 from typeguard import typechecked
 
 try:
-    from torcheval.metrics import MultilabelAUPRC
     from torcheval.metrics import functional as EvalFunction
-    from torcheval.metrics.toolkit import sync_and_compute
 
-    is_torcheval_available = True
-except ImportError:
-    is_torcheval_available = False
+    torcheval_import_error = None
+except ImportError as err:
+    torcheval_import_error = err
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
@@ -70,12 +68,18 @@ class ESPnetClassificationModel(AbsESPnetModel):
         log_epoch_metrics: bool = False,
     ):
         super().__init__()
-        if not is_torcheval_available:
+        if torcheval_import_error is not None:
             raise ImportError(
-                "`torcheval` is not available. Please install it "
+                "`torcheval` is not available or there is a version mismatch. "
+                "Please install it "
                 "via `pip install torcheval` in your environment."
                 "More info at: `https://pytorch.org/torcheval/stable/`"
+                f"Original error is: {torcheval_import_error}"
             )
+        if vocab_size == 1:
+            assert (
+                classification_type == "multi-label"
+            ), "Binary classification should use multi-label classification type"
         self.vocab_size = vocab_size
         self.token_list = token_list.copy()
         self.frontend = frontend
@@ -104,6 +108,11 @@ class ESPnetClassificationModel(AbsESPnetModel):
             self.mixup_augmentation = MixupAugment(mixup_probability=mixup_probability)
         self.metric_functions = self.setup_metrics_()
         self.log_epoch_metrics = log_epoch_metrics
+        self.predictions = []
+        self.targets = []
+
+    def get_vocab_size(self):
+        return self.vocab_size
 
     def forward(
         self,
@@ -182,24 +191,13 @@ class ESPnetClassificationModel(AbsESPnetModel):
             val = metric_fn(pred, target)
             val = val.detach() if val is not None else -1.0
             stats[metric_name] = val
+        # Store for mAP logging
+        if self.log_epoch_metrics:
+            self.predictions.append(pred.detach().cpu())
+            self.targets.append(onehot_.detach().cpu())
 
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
         return loss, stats, weight
-
-    def validation_epoch_end_(self):
-        if self.training:
-            logger.warning("Validation epoch end called during training.")
-            return None
-        stats_dict = None
-        if self.log_epoch_metrics and "mAP" in self.metric_functions:
-            epoch_mAP = self.metric_functions["mAP"].compute().item()
-            stats_dict = {"epoch_mAP": epoch_mAP}
-        return stats_dict
-
-    def training_epoch_end_(self):
-        if not self.training:
-            logger.warning("Training epoch end called during validation.")
-            return None
 
     def score(
         self,
@@ -326,6 +324,19 @@ class ESPnetClassificationModel(AbsESPnetModel):
             feats, feats_lengths = speech, speech_lengths
         return feats, feats_lengths
 
+    def update_mAP(self, mAP_computer):
+
+        if self.get_vocab_size() == 1:
+            preds = torch.cat(self.predictions)
+            targets = torch.cat(self.targets)
+            preds = torch.cat([1 - preds, preds], dim=-1)
+            targets = torch.cat([1 - targets, targets], dim=-1)
+        else:
+            preds, targets = torch.cat(self.predictions), torch.cat(self.targets)
+        mAP_computer.update(preds, targets)
+        self.predictions = []
+        self.targets = []
+
     def setup_metrics_(self):
         if self.classification_type == "multi-class":
             return {
@@ -337,14 +348,10 @@ class ESPnetClassificationModel(AbsESPnetModel):
                 ),
             }
         elif self.classification_type == "multi-label":
-            return {
+            metric_fn_map = {
                 "acc": partial(EvalFunction.multilabel_accuracy, criteria="hamming"),
-                # acc is usually high if data is imabalanced
-                "mAP": ESPnetMultilabelAUPRC(
-                    num_labels=self.vocab_size,
-                    caller=self,
-                ),
             }
+            return metric_fn_map
 
 
 def label_to_onehot(
@@ -366,6 +373,7 @@ def label_to_onehot(
     """
     if classification_type == "multi-class":
         assert label_lengths.max() == 1, "Only one label per sample"
+        assert label.max() < vocab_size, (label.max(), vocab_size)
         return F.one_hot(label.squeeze(-1), vocab_size).float()
     elif classification_type == "multi-label":
         assert (
@@ -384,28 +392,3 @@ def label_to_onehot(
         raise ValueError(
             "Valid classification types are 'multi-label' and 'multi-class'"
         )
-
-
-class ESPnetMultilabelAUPRC:
-    """Wrapper for torcheval.metrics.MultilabelAUPRC
-    that computes mAP at the end of each validation epoch and
-    at the end of each training step, if logging epoch metrics.
-    """
-
-    def __init__(self, num_labels=None, caller=None):
-        self.mAP_computer = MultilabelAUPRC(num_labels=num_labels)
-        self.caller = caller
-
-    def __call__(self, pred, tgt_onehot):
-        self.mAP_computer.update(pred, tgt_onehot)
-        if self.caller.training or not self.caller.log_epoch_metrics:
-            # if training or not logging epoch metrics, compute at each step
-            return self.compute()
-
-    def compute(self):
-        if dist.is_initialized() and dist.get_world_size() > 1:
-            mAP = sync_and_compute(self.mAP_computer)
-        else:
-            mAP = self.mAP_computer.compute()
-        self.mAP_computer.reset()
-        return mAP

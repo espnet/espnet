@@ -25,7 +25,7 @@ CTC_SCORING_RATIO = 1.5
 
 
 class Decoder(torch.nn.Module, ScorerInterface):
-    """Decoder module
+    """Decoder module.
 
     :param int eprojs: encoder projection units
     :param int odim: dimension of outputs
@@ -65,6 +65,7 @@ class Decoder(torch.nn.Module, ScorerInterface):
         replace_sos=False,
         num_encs=1,
     ):
+        """Initialize decoder."""
         torch.nn.Module.__init__(self)
         self.dtype = dtype
         self.dunits = dunits
@@ -123,9 +124,11 @@ class Decoder(torch.nn.Module, ScorerInterface):
         self.logzero = -10000000000.0
 
     def zero_state(self, hs_pad):
+        """Set zerp states."""
         return hs_pad.new_zeros(hs_pad.size(0), self.dunits)
 
     def rnn_forward(self, ey, z_list, c_list, z_prev, c_prev):
+        """Run rnn forward."""
         if self.dtype == "lstm":
             z_list[0], c_list[0] = self.decoder[0](ey, (z_prev[0], c_prev[0]))
             for i in range(1, self.dlayers):
@@ -141,7 +144,7 @@ class Decoder(torch.nn.Module, ScorerInterface):
         return z_list, c_list
 
     def forward(self, hs_pad, hlens, ys_pad, strm_idx=0, lang_ids=None):
-        """Decoder forward
+        """Forward Decoder.
 
         :param torch.Tensor hs_pad: batch of padded hidden state sequences (B, Tmax, D)
                                     [in multi-encoder case,
@@ -308,7 +311,7 @@ class Decoder(torch.nn.Module, ScorerInterface):
         return self.loss, acc, ppl
 
     def recognize_beam(self, h, lpz, recog_args, char_list, rnnlm=None, strm_idx=0):
-        """beam search implementation
+        """Process beam search implementation.
 
         :param torch.Tensor h: encoder hidden state (T, eprojs)
                                 [in multi-encoder case, list of torch.Tensor,
@@ -638,6 +641,7 @@ class Decoder(torch.nn.Module, ScorerInterface):
         strm_idx=0,
         lang_ids=None,
     ):
+        """Recognize beam batch."""
         # to support mutiple encoder asr mode, in single encoder mode,
         # convert torch.Tensor to List of torch.Tensor
         if self.num_encs == 1:
@@ -962,7 +966,7 @@ class Decoder(torch.nn.Module, ScorerInterface):
         return nbest_hyps
 
     def calculate_all_attentions(self, hs_pad, hlen, ys_pad, strm_idx=0, lang_ids=None):
-        """Calculate all of attentions
+        """Calculate all of attentions.
 
         :param torch.Tensor hs_pad: batch of padded hidden state sequences
                                     (B, Tmax, D)
@@ -1109,6 +1113,7 @@ class Decoder(torch.nn.Module, ScorerInterface):
 
     # scorer interface methods
     def init_state(self, x):
+        """Initialize states."""
         # to support mutiple encoder asr mode, in single encoder mode,
         # convert torch.Tensor to List of torch.Tensor
         if self.num_encs == 1:
@@ -1137,6 +1142,7 @@ class Decoder(torch.nn.Module, ScorerInterface):
         )
 
     def score(self, yseq, state, x):
+        """Score probabilities."""
         # to support mutiple encoder asr mode, in single encoder mode,
         # convert torch.Tensor to List of torch.Tensor
         if self.num_encs == 1:
@@ -1192,6 +1198,7 @@ class Decoder(torch.nn.Module, ScorerInterface):
 
 
 def decoder_for(args, odim, sos, eos, att, labeldist):
+    """Instantiate an decoder module given the program arguments."""
     return Decoder(
         args.eprojs,
         odim,

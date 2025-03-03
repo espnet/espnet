@@ -5,7 +5,7 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Dict, Optional, Tuple
+from typing import Dict, Tuple
 
 import torch
 
@@ -26,8 +26,7 @@ class SpeechLMInferenceOptions:
 
 
 class AbsCoreLM(torch.nn.Module, ABC):
-    """
-    The abstract CoreLM class for SpeechLM, which is the major component of SpeechLM.
+    """The abstract CoreLM class for SpeechLM, which is the major component of SpeechLM.
 
     It supports or is going to support several styles of SpeechLM:
     Auto-Regressive (AR):
@@ -50,7 +49,6 @@ class AbsCoreLM(torch.nn.Module, ABC):
             Put everyhing in `espnet2.speechlm.core_lm.<model_name>.py`. Usually
             this is just a warpper that bridges HF models into Espnet SpeechLM.
     Reminder: try to avoid any model dependency beyond espnet2.speechlm
-
     """
 
     @abstractmethod

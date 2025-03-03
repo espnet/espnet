@@ -1,13 +1,13 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
+import torch.nn.functional as F  # noqa
 import torchaudio
 from einops import rearrange
 from torch.nn.utils import weight_norm
 
-from espnet2.gan_tts.hifigan.hifigan import (
+from espnet2.gan_tts.hifigan.hifigan import (  # noqa
     HiFiGANMultiPeriodDiscriminator,
     HiFiGANMultiScaleDiscriminator,
 )
@@ -76,6 +76,7 @@ class MultiBandDiscriminator(nn.Module):
         channel: int = 32,
     ):
         """Complex multi-band spectrogram discriminator.
+
         Parameters
         ----------
         window_length : int

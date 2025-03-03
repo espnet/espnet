@@ -1,3 +1,5 @@
+"""Pertub module."""
+
 import librosa
 import numpy
 import scipy
@@ -7,7 +9,7 @@ from espnet.utils.io_utils import SoundHDF5File
 
 
 class SpeedPerturbation(object):
-    """SpeedPerturbation
+    """SpeedPerturbation class.
 
     The speed perturbation in kaldi uses sox-speed instead of sox-tempo,
     and sox-speed just to resample the input,
@@ -31,6 +33,7 @@ class SpeedPerturbation(object):
         res_type="kaiser_best",
         seed=None,
     ):
+        """Initialize class."""
         self.res_type = res_type
         self.keep_length = keep_length
         self.state = numpy.random.RandomState(seed)
@@ -55,6 +58,7 @@ class SpeedPerturbation(object):
             self.upper = upper
 
     def __repr__(self):
+        """Return string with details of class."""
         if self.utt2ratio is None:
             return "{}(lower={}, upper={}, " "keep_length={}, res_type={})".format(
                 self.__class__.__name__,
@@ -69,6 +73,7 @@ class SpeedPerturbation(object):
             )
 
     def __call__(self, x, uttid=None, train=True):
+        """Process call function."""
         if not train:
             return x
 
@@ -99,7 +104,7 @@ class SpeedPerturbation(object):
 
 
 class BandpassPerturbation(object):
-    """BandpassPerturbation
+    """BandpassPerturbation class.
 
     Randomly dropout along the frequency axis.
 
@@ -113,6 +118,7 @@ class BandpassPerturbation(object):
     """
 
     def __init__(self, lower=0.0, upper=0.75, seed=None, axes=(-1,)):
+        """Initialize class."""
         self.lower = lower
         self.upper = upper
         self.state = numpy.random.RandomState(seed)
@@ -120,11 +126,13 @@ class BandpassPerturbation(object):
         self.axes = axes
 
     def __repr__(self):
+        """Return string with details of class."""
         return "{}(lower={}, upper={})".format(
             self.__class__.__name__, self.lower, self.upper
         )
 
     def __call__(self, x_stft, uttid=None, train=True):
+        """Process call function."""
         if not train:
             return x_stft
 
@@ -143,7 +151,10 @@ class BandpassPerturbation(object):
 
 
 class VolumePerturbation(object):
+    """Volume Perturbation class."""
+
     def __init__(self, lower=-1.6, upper=1.6, utt2ratio=None, dbunit=True, seed=None):
+        """Initialize class."""
         self.dbunit = dbunit
         self.utt2ratio_file = utt2ratio
         self.lower = lower
@@ -167,6 +178,7 @@ class VolumePerturbation(object):
             self.utt2ratio = None
 
     def __repr__(self):
+        """Return string with details of class."""
         if self.utt2ratio is None:
             return "{}(lower={}, upper={}, dbunit={})".format(
                 self.__class__.__name__, self.lower, self.upper, self.dbunit
@@ -177,6 +189,7 @@ class VolumePerturbation(object):
             )
 
     def __call__(self, x, uttid=None, train=True):
+        """Process call function."""
         if not train:
             return x
 
@@ -192,7 +205,7 @@ class VolumePerturbation(object):
 
 
 class NoiseInjection(object):
-    """Add isotropic noise"""
+    """Add isotropic noise."""
 
     def __init__(
         self,
@@ -204,6 +217,7 @@ class NoiseInjection(object):
         dbunit=True,
         seed=None,
     ):
+        """Initialize class."""
         self.utt2noise_file = utt2noise
         self.utt2ratio_file = utt2ratio
         self.filetype = filetype
@@ -248,6 +262,7 @@ class NoiseInjection(object):
                 )
 
     def __repr__(self):
+        """Return string with details of class."""
         if self.utt2ratio is None:
             return "{}(lower={}, upper={}, dbunit={})".format(
                 self.__class__.__name__, self.lower, self.upper, self.dbunit
@@ -258,6 +273,7 @@ class NoiseInjection(object):
             )
 
     def __call__(self, x, uttid=None, train=True):
+        """Process call function."""
         if not train:
             return x
         x = x.astype(numpy.float32)
@@ -301,7 +317,10 @@ class NoiseInjection(object):
 
 
 class RIRConvolve(object):
+    """RIR Convolve class."""
+
     def __init__(self, utt2rir, filetype="list"):
+        """Initialize class."""
         self.utt2rir_file = utt2rir
         self.filetype = filetype
 
@@ -319,9 +338,11 @@ class RIRConvolve(object):
             raise NotImplementedError(filetype)
 
     def __repr__(self):
+        """Return string with details of class."""
         return '{}("{}")'.format(self.__class__.__name__, self.utt2rir_file)
 
     def __call__(self, x, uttid=None, train=True):
+        """Process call function."""
         if not train:
             return x
 
