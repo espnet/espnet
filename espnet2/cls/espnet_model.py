@@ -67,11 +67,16 @@ class ESPnetClassificationModel(AbsESPnetModel):
         super().__init__()
         if torcheval_import_error is not None:
             raise ImportError(
-                "`torcheval` is not available. Please install it "
+                "`torcheval` is not available or there is a version mismatch. "
+                "Please install it "
                 "via `pip install torcheval` in your environment."
                 "More info at: `https://pytorch.org/torcheval/stable/`"
                 f"Original error is: {torcheval_import_error}"
             )
+        if vocab_size == 1:
+            assert (
+                classification_type == "multi-label"
+            ), "Binary classification should use multi-label classification type"
         self.vocab_size = vocab_size
         self.token_list = token_list.copy()
         self.frontend = frontend
@@ -277,7 +282,15 @@ class ESPnetClassificationModel(AbsESPnetModel):
         return feats, feats_lengths
 
     def update_mAP(self, mAP_computer):
-        mAP_computer.update(torch.cat(self.predictions), torch.cat(self.targets))
+
+        if self.get_vocab_size() == 1:
+            preds = torch.cat(self.predictions)
+            targets = torch.cat(self.targets)
+            preds = torch.cat([1 - preds, preds], dim=-1)
+            targets = torch.cat([1 - targets, targets], dim=-1)
+        else:
+            preds, targets = torch.cat(self.predictions), torch.cat(self.targets)
+        mAP_computer.update(preds, targets)
         self.predictions = []
         self.targets = []
 
@@ -292,9 +305,10 @@ class ESPnetClassificationModel(AbsESPnetModel):
                 ),
             }
         elif self.classification_type == "multi-label":
-            return {
+            metric_fn_map = {
                 "acc": partial(EvalFunction.multilabel_accuracy, criteria="hamming"),
             }
+            return metric_fn_map
 
 
 def label_to_onehot(
@@ -316,14 +330,15 @@ def label_to_onehot(
     """
     if classification_type == "multi-class":
         assert label_lengths.max() == 1, "Only one label per sample"
+        assert label.max() < vocab_size, (label.max(), vocab_size)
         return F.one_hot(label.squeeze(-1), vocab_size).float()
     elif classification_type == "multi-label":
         assert (
             label_lengths.min() == label_lengths.max() or label.min() == -1
         ), "Pad value should be -1"
         label = label.masked_fill(label == -1, vocab_size)
-        onehot = F.one_hot(label.view(-1), vocab_size + 1)
-        onehot = onehot[:, :-1]  # Remove dummy column
+        onehot = F.one_hot(label.view(-1), vocab_size + 2)
+        onehot = onehot[:, :-2]  # Remove dummy columns, blank=-2, unk=-1
         onehot = onehot.view(label.size(0), -1, vocab_size)
         onehot = onehot.sum(dim=1)
         onehot = onehot.float()

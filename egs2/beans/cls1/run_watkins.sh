@@ -5,31 +5,33 @@ set -e
 set -u
 set -o pipefail
 
-train_set="train"
-valid_set="val"
-test_sets="eval"
-cls_config=conf/beats_cls_lightning.yaml
+train_set="watkins.train"
+valid_set="watkins.dev"
+test_sets="watkins.test"
+cls_config=conf/beats_beans_cls.yaml
 
 timestamp=$(date "+%Y%m%d.%H%M%S")
-mynametag=${timestamp}
-
-storage_dir=. # change this to where you have space, if needed
+mynametag=watkins.${timestamp}
+storage_dir=.
 mkdir -p "${storage_dir}"
 
 ./cls.sh \
+    --local_data_opts "watkins" \
     --cls_tag "${mynametag}" \
-    --datadir "${storage_dir}/data" \
-    --dumpdir "${storage_dir}/dump" \
-    --expdir "${storage_dir}/exp" \
-    --gpu_inference false \
-    --use_lightning true \
+    --datadir "${storage_dir}/data/watkins" \
+    --dumpdir "${storage_dir}/dump/watkins" \
+    --expdir "${storage_dir}/exp/watkins" \
     --feats_normalize uttmvn \
     --stage 1 \
     --stop_stage 10 \
+    --ngpu 1 \
+    --gpu_inference true \
     --nj 10 \
-    --label_fold_length 600 \
+    --speech_fold_length 160000 \
+    --label_fold_length 5 \
+    --max_wav_duration 32 \
     --inference_nj 1 \
-    --inference_model valid.epoch_mAP.ave_1best.pth \
+    --inference_model valid.acc.best.pth \
     --cls_config "${cls_config}" \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \

@@ -5,31 +5,36 @@ set -e
 set -u
 set -o pipefail
 
-train_set="train"
-valid_set="val"
-test_sets="eval"
-cls_config=conf/beats_cls_lightning.yaml
+train_set="hiceas.train"
+valid_set="hiceas.dev"
+test_sets="hiceas.test"
+cls_config=conf/beats_beans_sed.yaml
 
 timestamp=$(date "+%Y%m%d.%H%M%S")
 mynametag=${timestamp}
-
-storage_dir=. # change this to where you have space, if needed
+storage_dir=.
 mkdir -p "${storage_dir}"
 
+#change label_fold_length for each dataset: greater than num_class
+
 ./cls.sh \
+    --local_data_opts "hiceas" \
     --cls_tag "${mynametag}" \
-    --datadir "${storage_dir}/data" \
-    --dumpdir "${storage_dir}/dump" \
-    --expdir "${storage_dir}/exp" \
-    --gpu_inference false \
+    --datadir "${storage_dir}/data/hiceas" \
+    --dumpdir "${storage_dir}/dump/hiceas" \
+    --expdir "${storage_dir}/exp/hiceas" \
     --use_lightning true \
     --feats_normalize uttmvn \
     --stage 1 \
     --stop_stage 10 \
+    --ngpu 1 \
+    --gpu_inference true \
     --nj 10 \
-    --label_fold_length 600 \
+    --speech_fold_length 160000 \
+    --label_fold_length 35 \
+    --max_wav_duration 32 \
     --inference_nj 1 \
-    --inference_model valid.epoch_mAP.ave_1best.pth \
+    --inference_model valid.epoch_mAP.best.pth \
     --cls_config "${cls_config}" \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
