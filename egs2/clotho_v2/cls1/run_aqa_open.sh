@@ -8,11 +8,10 @@ set -o pipefail
 train_set="development_aqa_open"
 valid_set="validation_aqa_open"
 test_sets="evaluation_aqa_open"
-cls_config=conf/beats_entailment.yaml
+cls_config=conf/beats_aqa_open.yaml
 
 timestamp=$(date "+%Y%m%d.%H%M%S")
 mynametag=${timestamp}
-mynametag=multimodal.yn.aqa.lr1e-5
 decoding_batch_size=20
 
 storage_dir=. # change this to where you have space, if needed

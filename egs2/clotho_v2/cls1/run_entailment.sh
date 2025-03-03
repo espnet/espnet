@@ -12,7 +12,6 @@ cls_config=conf/beats_entailment.yaml
 
 timestamp=$(date "+%Y%m%d.%H%M%S")
 mynametag=${timestamp}
-mynametag=multimodal.cle.lr1e-5
 decoding_batch_size=20
 
 storage_dir=. # change this to where you have space, if needed
