@@ -78,14 +78,23 @@ done
 
 # Register all recipe runners relative to this script
 declare -A recipe_runners
-recipe_runners["beans"]="../beans/cls1/run.sh"
+recipe_runners["clotho_aac"]="../../clotho_v2/asr1/run.sh"
+recipe_runners["audiocaps_aac"]="../../clotho_v2/asr1/run.sh"
 
-recipe_runners["audioset20k"]="../as20k/cls1/run.sh"
-recipe_runners["audioset2m"]="../as2m/cls1/run.sh"
+# Add BERT audio-text classification
+recipe_runners["clotho_cle"]="../../clotho_v2/cls1/run_entailment.sh"
+recipe_runners["clotho_aqa"]="../../clotho_v2/cls1/run_aqa_yn.sh,../../clotho_v2/cls1/run_aqa_open.sh"
+# Add CLAP audio-text classification
 
-recipe_runners["clotho_aqa"]="../clotho_v2/cls1/run_aqa_yn.sh,clotho_v2/cls1/run_aqa_open.sh"
-recipe_runners["clotho_cle"]="../clotho_v2/cls1/run_entailment.sh"
-recipe_runners["clotho_aac"]="../clotho_v2/asr1/run.sh"
+recipe_runners["audioset2m"]="../../as2m/cls1/run.sh"
+recipe_runners["audioset20k"]="../../as20k/cls1/run.sh"
+# recipe_runners["fsd50k"]
+recipe_runners["esc"]="../../esc50/asr1/run.sh"
+
+# recipe_runners["dcase24_machine"]
+recipe_runners["beans"]="../../beans/cls1/run.sh"
+
+# recipe_runners["gtzan"]
 
 generate_recipe_list() {
     local recipes_to_run=()
