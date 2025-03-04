@@ -69,7 +69,8 @@ freeze_param: [
 text_encoder: hugging_face_transformers
 text_encoder_conf:
     input_size: 1 # dummy
-    model_name_or_path: bert-base-uncased
+    model_name_or_path: laion/clap-htsat-unfused
+    encoder_module: text_model
 
 embedding_fusion: attention
 embedding_fusion_conf:

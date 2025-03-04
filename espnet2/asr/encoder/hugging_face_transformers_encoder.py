@@ -6,7 +6,7 @@
 
 import copy
 import logging
-from typing import Tuple
+from typing import Tuple, Optional
 
 import torch
 from typeguard import typechecked
@@ -31,6 +31,7 @@ class HuggingFaceTransformersEncoder(AbsEncoder):
         input_size: int,
         model_name_or_path: str,
         lang_token_id: int = -1,
+        encoder_module: Optional[str] = None,
     ):
         """Initialize the module."""
         super().__init__()
@@ -45,6 +46,7 @@ class HuggingFaceTransformersEncoder(AbsEncoder):
         model = AutoModel.from_pretrained(model_name_or_path)
 
         self.transformer = model
+        self.encoder_module = encoder_module
 
         self.pretrained_params = copy.deepcopy(self.transformer.state_dict())
 
@@ -75,7 +77,12 @@ class HuggingFaceTransformersEncoder(AbsEncoder):
         # in task.py (usually -1 for espnet)
         input.masked_fill_(~(mask.bool()), 0)
         args["input_ids"] = input
-        output = self.transformer(**args).last_hidden_state
+        encoder_module = (
+            getattr(self.transformer, self.encoder_module)
+            if self.encoder_module is not None
+            else self.transformer
+        )
+        output = encoder_module(**args).last_hidden_state
 
         return output, input_lengths
 
