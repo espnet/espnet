@@ -40,9 +40,8 @@ normalize: none # BEATs code does global mean and variance normalization
 
 encoder: beats
 encoder_conf:
-    # Please download the BEATs model from https://github.com/microsoft/unilm/tree/master/beats
-    # (iter3+, Beats finetuned model 1) and update the path below
-    beats_ckpt_path: /compute/babel-13-33/sbharad2/models/BEATs/BEATs_iter3.pt # BEATs_iter3_plus_AS20K.pt # BEATs_iter3.pt
+    # Please download the BEATs model from https://github.com/microsoft/unilm/tree/master/beats and update the path below
+    beats_ckpt_path: /compute/babel-13-33/sbharad2/models/BEATs/BEATs_iter1.pt # BEATs_iter2.pt BEATs_iter1.pt
     beats_config:
         layer_wise_gradient_decay_ratio: 0.3
         encoder_layerdrop: 0.1
@@ -61,5 +60,4 @@ encoder_conf:
 
 model_conf:
     classification_type: multi-class
-    mixup_augmentation: false
     lsm_weight: 0.1  # label smoothing weight, per class

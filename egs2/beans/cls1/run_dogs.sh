@@ -8,19 +8,19 @@ set -o pipefail
 train_set="dogs.train"
 valid_set="dogs.dev"
 test_sets="dogs.test"
-cls_config=conf/beats_dogs.yaml
+cls_config=conf/beats_beans_cls.yaml
 
 timestamp=$(date "+%Y%m%d.%H%M%S")
 mynametag=dogs.${timestamp}
-storage_dir=./
+storage_dir=.
 mkdir -p "${storage_dir}"
 
 ./cls.sh \
     --local_data_opts "dogs" \
     --cls_tag "${mynametag}" \
-    --datadir "${storage_dir}/data" \
-    --dumpdir "${storage_dir}/dump" \
-    --expdir "${storage_dir}/exp" \
+    --datadir "${storage_dir}/data/dogs" \
+    --dumpdir "${storage_dir}/dump/dogs" \
+    --expdir "${storage_dir}/exp/dogs" \
     --feats_normalize uttmvn \
     --stage 1 \
     --stop_stage 10 \

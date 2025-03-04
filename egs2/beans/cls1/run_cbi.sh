@@ -8,19 +8,19 @@ set -o pipefail
 train_set="cbi.train"
 valid_set="cbi.dev"
 test_sets="cbi.test"
-cls_config=conf/beats_cbi.yaml
+cls_config=conf/beats_beans_cls.yaml
 
 timestamp=$(date "+%Y%m%d.%H%M%S")
 mynametag=cbi.${timestamp}
-storage_dir=./
+storage_dir=.
 mkdir -p "${storage_dir}"
 
 ./cls.sh \
     --local_data_opts "cbi" \
     --cls_tag "${mynametag}" \
-    --datadir "${storage_dir}/data" \
-    --dumpdir "${storage_dir}/dump" \
-    --expdir "${storage_dir}/exp" \
+    --datadir "${storage_dir}/data/cbi" \
+    --dumpdir "${storage_dir}/dump/cbi" \
+    --expdir "${storage_dir}/exp/cbi" \
     --feats_normalize uttmvn \
     --stage 1 \
     --stop_stage 10 \

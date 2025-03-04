@@ -8,19 +8,19 @@ set -o pipefail
 train_set="humbugdb.train"
 valid_set="humbugdb.dev"
 test_sets="humbugdb.test"
-cls_config=conf/beats_humbugdb.yaml
+cls_config=conf/beats_beans_cls.yaml
 
 timestamp=$(date "+%Y%m%d.%H%M%S")
 mynametag=humbugdb.${timestamp}
-storage_dir=./
+storage_dir=.
 mkdir -p "${storage_dir}"
 
 ./cls.sh \
     --local_data_opts "humbugdb" \
     --cls_tag "${mynametag}" \
-    --datadir "${storage_dir}/data" \
-    --dumpdir "${storage_dir}/dump" \
-    --expdir "${storage_dir}/exp" \
+    --datadir "${storage_dir}/data/humbugdb" \
+    --dumpdir "${storage_dir}/dump/humbugdb" \
+    --expdir "${storage_dir}/exp/humbugdb" \
     --feats_normalize uttmvn \
     --stage 1 \
     --stop_stage 10 \

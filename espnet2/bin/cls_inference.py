@@ -12,7 +12,6 @@ from typeguard import typechecked
 
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.tasks.cls import CLSTask
-from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
@@ -20,6 +19,14 @@ from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
 from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
 from espnet.utils.cli_utils import get_commandline_args
+
+
+def _to_batched_tensor(data: np.ndarray, ndim: int) -> torch.Tensor:
+    if isinstance(data, np.ndarray):
+        data = torch.tensor(data)
+    while data.dim() < ndim:
+        data = data.unsqueeze(0)
+    return data
 
 
 class Classification:
@@ -51,6 +58,7 @@ class Classification:
 
         self.classification_model = classification_model
         self.classification_train_args = classification_train_args
+        self.batch_size = batch_size
         self.device = device
         self.dtype = dtype
         self.token_id_converter = TokenIDConverter(
@@ -60,49 +68,74 @@ class Classification:
     @torch.no_grad()
     @typechecked
     def __call__(
-        self, speech: Union[torch.Tensor, np.ndarray]
-    ) -> Tuple[List[int], torch.Tensor, str]:
+        self,
+        speech: Union[torch.Tensor, np.ndarray],
+        speech_lengths: Union[torch.Tensor, np.ndarray],
+        text: Optional[Union[torch.Tensor, np.ndarray]] = None,
+        text_lengths: Optional[Union[torch.Tensor, np.ndarray]] = None,
+    ) -> Tuple[List[List[int]], torch.Tensor, List[str]]:
         """Inference
 
         Args:
             speech: Input speech data
+            speech_lengths: Length of input speech data
+            text: Input text data
+            text_lengths: Length of input text data
         Returns: Tuple of
-            prediction: list of ints
-            scores: tensor of float, (num_classes,) corresponding to each class'
+            prediction: list of list of ints
+            scores: tensor of float, (batch_size, num_classes) corresponding to each class'
                 probability
         """
 
         # Input as audio signal
         if isinstance(speech, np.ndarray):
-            speech = torch.tensor(speech)
+            speech = _to_batched_tensor(speech, ndim=2)
+            speech = speech.to(getattr(torch, self.dtype))
+        if isinstance(speech_lengths, np.ndarray):
+            speech_lengths = _to_batched_tensor(speech_lengths, ndim=1)
+            speech_lengths = speech_lengths.to(torch.long)
 
-        # data: (Nsamples,) -> (1, Nsamples)
-        speech = speech.unsqueeze(0).to(getattr(torch, self.dtype))
-        # lengths: (1,)
-        lengths = speech.new_full([1], dtype=torch.long, fill_value=speech.size(1))
+        batch = {"speech": speech, "speech_lengths": speech_lengths}
+        logging.info(f"speech length: {speech_lengths.tolist()}")
 
-        batch = {"speech": speech, "speech_lengths": lengths}
-        logging.info("speech length: " + str(speech.size(1)))
+        # process text
+        if text is not None:
+            assert (
+                self.classification_model.text_encoder is not None
+            ), "Text input provided but model has no text encoder."
+            if isinstance(text, np.ndarray):
+                text = _to_batched_tensor(text, ndim=2)
+                text = text.to(torch.long)
+            if isinstance(text_lengths, np.ndarray):
+                text_lengths = _to_batched_tensor(text_lengths, ndim=1)
+                text_lengths = text_lengths.to(torch.long)
+
+            batch["text"] = text
+            batch["text_lengths"] = text_lengths
+            logging.info(f"text_lengths: {text_lengths.tolist()}")
 
         # To device
         batch = to_device(batch, device=self.device)
-        scores = self.classification_model.score(**batch)  # (1, num_classes)
+        scores = self.classification_model.score(**batch)  # (batch_size, num_classes)
 
         # scores would be a tensor of shape (batch_size, num_classes)
         # representing probabilities.
         if self.classification_model.classification_type == "multi-class":
-            prediction = [torch.argmax(scores, dim=-1).item()]  # list (1,)
+            # list of list of single elem
+            prediction = torch.argmax(scores, dim=-1).unsqueeze(-1).tolist()
         elif self.classification_model.classification_type == "multi-label":
-            prediction = scores > 0.5  # Fixed threshold, (1, num_labels)
-            # list (num_labels,)
-            prediction = torch.nonzero(prediction.squeeze(0)).squeeze(-1).tolist()
+            prediction = scores > 0.5  # Fixed threshold, (batch_size, num_labels)
+            # list (batch_size, num_labels) som of which maybe empty
+            prediction = [np.nonzero(row)[0].tolist() for row in prediction]
         else:
             raise NotImplementedError(
                 "Unsupported classification type: "
                 f"{self.classification_model.classification_type}"
             )
-        prediction_string = " ".join(self.token_id_converter.ids2tokens(prediction))
-        return prediction, scores.squeeze(0), prediction_string
+        prediction_strings = [
+            " ".join(self.token_id_converter.ids2tokens(pred)) for pred in prediction
+        ]
+        return prediction, scores, prediction_strings
 
 
 @typechecked
@@ -126,9 +159,9 @@ def inference(
         level=log_level,
         format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
     )
-    if batch_size > 1:
-        # TODO(shikhar): Implement batch decoding
-        raise NotImplementedError("batch decoding is not implemented for batch size >1")
+    # if batch_size > 1:
+    #     # TODO(shikhar): Implement batch decoding
+    #     raise NotImplementedError("batch decoding is not implemented for batch size >1")
 
     if ngpu >= 1:
         device = "cuda"
@@ -171,31 +204,37 @@ def inference(
             assert all(isinstance(s, str) for s in keys), keys
             _bs = len(next(iter(batch.values())))
             assert len(keys) == _bs, f"{len(keys)} != {_bs}"
-            batch = {k: v[0] for k, v in batch.items() if not k.endswith("_lengths")}
+            # print(batch)
+            # batch = {k: v[0] for k, v in batch.items()}
 
             try:
                 predictions, scores, prediction_string = classification(**batch)
-                if not output_all_probabilities:
-                    scores_reduced = [scores[pred].item() for pred in predictions]
-                    scores = scores_reduced
-                else:
+                if output_all_probabilities:
                     scores = scores.tolist()
+                else:
+                    scores_reduced = [
+                        [scores[p].item() for p in pred] for pred in predictions
+                    ]
+                    scores = scores_reduced
 
             except TooShortUttError as e:
                 logging.warning(f"Utterance {keys} {e}")
-                predictions = [-1]
-                scores = [0]
-                prediction_string = ""
+                predictions = [[-1] * batch_size]
+                scores = [[0] * batch_size]
+                prediction_string = [[""] * batch_size]
 
-            # Only supporting batch_size==1
-            key = keys[0]
-            # Create a directory: outdir/{n}best_recog
             result_writer = writer["prediction"]
-            # Write the result to each file
-            result_writer["score"][key] = " ".join([str(score) for score in scores])
-            result_writer["token"][key] = " ".join([str(pred) for pred in predictions])
-            result_writer["text"][key] = prediction_string
-            logging.info("processed {}: prediction {}".format(key, prediction_string))
+            for key, score, prediction, prediction_str_i in zip(
+                keys, scores, predictions, prediction_string
+            ):
+                result_writer["score"][key] = " ".join([str(sc) for sc in score])
+                result_writer["token"][key] = " ".join(
+                    [str(pred) for pred in prediction]
+                )
+                result_writer["text"][key] = prediction_str_i
+                logging.info(
+                    "processed {}: prediction {}".format(key, prediction_str_i)
+                )
 
 
 def get_parser():

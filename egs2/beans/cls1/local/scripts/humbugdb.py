@@ -3,10 +3,12 @@ import sys
 
 import numpy as np
 import pandas as pd
+import soundfile as sf
 from sklearn.model_selection import train_test_split
 
 DATA_READ_ROOT = sys.argv[1]
 DATA_WRITE_ROOT = sys.argv[2]
+LENGTH_CUTOFF_SECONDS = 30
 
 df = pd.read_csv(
     os.path.join(DATA_READ_ROOT, "data", "metadata", "neurips_2021_zenodo_0_0_1.csv")
@@ -21,6 +23,15 @@ df.species.replace(to_remove, "others", inplace=True)
 
 def convert(row):
     filepath = os.path.join(DATA_READ_ROOT, "data", "audio", f"{row['id']}.wav")
+
+    wav, sr = sf.read(filepath)
+    if LENGTH_CUTOFF_SECONDS < len(wav) / sr:
+        # One audio is 20 minute long!
+        wav = wav[: LENGTH_CUTOFF_SECONDS * sr]
+        filepath = os.path.join(DATA_WRITE_ROOT, "cut_audio", f"{row['id']}_cut.wav")
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)
+        sf.write(filepath, wav, sr)
+
     new_row = pd.Series(
         {"path": filepath, "label": str(row["species"]).replace(" ", "_")}
     )

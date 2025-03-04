@@ -8,10 +8,17 @@ Please install torcheval for this recipe using `installers/install_torcheval.sh`
 
 ## Steps to run
 
-For Cornell Bird Identification you have to download kaggle api key and put it in ~/.kaggle/kaggle.json, and accept competition conditions- [Cornell Birdcall Identification-Kaggle](https://www.kaggle.com/competitions/birdsong-recognition)
+For following datasets you have to download kaggle api key and put it in ~/.kaggle/kaggle.json, and accept competition conditions-
+* [cbi: Cornell Birdcall Identification-Kaggle](https://www.kaggle.com/competitions/birdsong-recognition)
+* [rfcx: Rainforest Connection Species Audio Detection](https://www.kaggle.com/competitions/rfcx-species-audio-detection)
 
 1. Download the BEATs checkpoint: [BEATs_iter3](https://github.com/microsoft/unilm/tree/master/beats) and change the `beats_ckpt_path` path in `conf/beats_[dataset].yaml`
 3. Launch data preparation and training for all datasets with `run.sh` or for a dataset with `run_[dataset].sh`
+
+## Additional dependencies
+pip install torcheval==0.0.5
+pip install pyyaml
+pip install kaggle # for rfcx
 
 ## Trained checkpoints
 All trained checkpoints are available at:

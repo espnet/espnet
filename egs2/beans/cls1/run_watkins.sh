@@ -8,19 +8,19 @@ set -o pipefail
 train_set="watkins.train"
 valid_set="watkins.dev"
 test_sets="watkins.test"
-cls_config=conf/beats_watkins.yaml
+cls_config=conf/beats_beans_cls.yaml
 
 timestamp=$(date "+%Y%m%d.%H%M%S")
 mynametag=watkins.${timestamp}
-storage_dir=./
+storage_dir=.
 mkdir -p "${storage_dir}"
 
 ./cls.sh \
     --local_data_opts "watkins" \
     --cls_tag "${mynametag}" \
-    --datadir "${storage_dir}/data" \
-    --dumpdir "${storage_dir}/dump" \
-    --expdir "${storage_dir}/exp" \
+    --datadir "${storage_dir}/data/watkins" \
+    --dumpdir "${storage_dir}/dump/watkins" \
+    --expdir "${storage_dir}/exp/watkins" \
     --feats_normalize uttmvn \
     --stage 1 \
     --stop_stage 10 \

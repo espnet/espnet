@@ -34,23 +34,23 @@ num_nodes=1          # The number of nodes
 nj=32                # The number of parallel jobs.
 datadir=data         # Directory to save data from Stage 1.
 dumpdir=dump         # Directory to dump features.
-inference_nj=4      # The number of parallel jobs in decoding.
+inference_nj=4       # The number of parallel jobs in decoding.
 gpu_inference=false  # Whether to perform gpu decoding.
 expdir=exp           # Directory to save experiments.
 python=python3       # Specify python to execute espnet commands
-use_lightning=false     # Whether to use pytorch lightning trainer for training.
+use_lightning=false  # Whether to use pytorch lightning trainer for training.
 
 # Data preparation related
-local_data_opts= # The options given to local/data.sh.
+local_data_opts=     # The options given to local/data.sh.
 
 # Feature extraction related
 audio_format=flac    # Audio format: wav, flac, wav.ark, flac.ark.
 fs=16k               # Sampling rate.
 speech_fold_length=160000 # The length of the speech input to the cls model.
-label_fold_length=1   # fold_length for labels during CLS training. Set to 1 for multi-class classification.
-cls_stats_dir=      # The directory used for collect-stats mode.
+label_fold_length=1  # fold_length for labels during CLS training. Set to 1 for multi-class classification.
+cls_stats_dir=       # The directory used for collect-stats mode.
 
-# data preprpocessing related
+# data preprocessing related
 min_wav_duration=0.1 # Minimum duration in seconds to use in training
 max_wav_duration=  # Maximum duration in seconds to use in training
 
@@ -62,13 +62,18 @@ cls_args=   # Arguments for cls model training, e.g., "--max_epoch 10".
 feats_normalize=uttmvn # Normalizaton layer type.
 pretrained_model=              # Pretrained model to load
 ignore_init_mismatch=false      # Ignore initial mismatch
-classification_type=        # Type of classification task, multi-class or multi-label
+
+# speech-text classification related
+speech_text_classification=false # If true, use text input for speech-text classification.
+text_input_filename= # Filename for text input
+hugging_face_model_name_or_path="" # Hugging Face model or path for hugging_face tokenizer
 
 # cls inference related
 download_model=
 inference_model=valid.acc.best.pth
 inference_tag=    # Suffix to the inference dir for cls model inference
 output_all_probabilities=true
+decoding_batch_size=1
 
 hf_repo=        # Huggingface repo name
 
@@ -116,12 +121,16 @@ Options:
     --feats_normalize # Normalizaton layer type (default="${feats_normalize}").
     --pretrained_model # Pretrained model to load (default="${pretrained_model}").
     --ignore_init_mismatch # Ignore initial mismatch (default="${ignore_init_mismatch}").
-    --classification_type # Type of classification task, multi-class or multi-label (default="${classification_type}").
+    # speech-text classification related
+    --speech_text_classification  # If true, use text input for speech-text classification (default="${speech_text_classification}").
+    --text_input_filename  # Filename for text input (default="${text_input_filename}").
+    --hugging_face_model_name_or_path  # Hugging Face model or path for hugging_face tokenizer
     # cls inference related
     --download_model  # Download a model from Model Zoo and use it for decoding (default="${download_model}").
     --inference_model  # classification model path for inference (default="${inference_model}").
     --inference_tag    # Suffix to the inference dir for cls model inference
     --output_all_probabilities # Output all probabilities in the inference stage (default="${output_all_probabilities}").
+    --decoding_batch_size # Batch size in inference (default="${decoding_batch_size}").
     # Huggingface related
     --hf_repo        # Huggingface repo name (default="${hf_repo}").
     # [Task dependent] Set the datadir name created by local/data.sh
@@ -181,18 +190,30 @@ fi
 cls_exp="${expdir}/cls_${cls_tag}"
 token_list=${datadir}/token_list
 
-
-if [[ "${classification_type}" == "multi-label" ]]; then
-    if [[ "${use_lightning}" != "true" ]]; then
-        log "Multi-label classification is only supported with PyTorch Lightning trainer. Please set --use_lightning true."
-        exit 1
+# Used only for speech-text classification
+if [ ${speech_text_classification} ]; then
+    if [ -z "${text_input_filename}" ]; then
+        log "Error: --text_input_filename is required for speech-text classification"
+        exit 2
     fi
+    if [ ${text_input_filename} == "text" ]; then
+        log "Error: text_input_filename cannot be 'text' for speech-text classification"
+        exit 2
+    fi
+    if [ -z "${hugging_face_model_name_or_path}" ]; then
+        log "Error: --hugging_face_model_name_or_path is required for speech-text classification"
+        exit 2
+    fi
+    text_token_list="${datadir}/hugging_face_"${hugging_face_model_name_or_path/\//-}/tokens.txt
+    text_bpemodel=${hugging_face_model_name_or_path}
 fi
+
 # ========================== Main stages start from here. ==========================
 
 if ! "${skip_data_prep}"; then
     if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         log "Stage 1: Data preparation for ${datadir}/${train_set}, ${datadir}/${valid_set}, etc."
+        log "local_data_opts=${local_data_opts}"
         local/data.sh ${datadir} ${local_data_opts}
     fi
 
@@ -208,6 +229,10 @@ if ! "${skip_data_prep}"; then
         # i.e. the input file format and rate is same as the output.
         for dset in "${train_set}" "${valid_set}" ${test_sets}; do
             utils/copy_data_dir.sh --validate_opts --non-print "${datadir}/${dset}" "${data_feats}/${dset}"
+            if ${speech_text_classification}; then
+                # Copy text input file to data_feats
+                cp "${datadir}/${dset}/${text_input_filename}" "${data_feats}/${dset}/"
+            fi
             rm -f ${data_feats}/${dset}/{wav.scp,reco2file_and_channel}
 
             # shellcheck disable=SC2086
@@ -267,9 +292,20 @@ if ! "${skip_data_prep}"; then
         log "Stage 4: Generate token_list covering all classes from ${text_classes}"
         ${python} -m espnet2.bin.tokenize_text --token_type "word" \
             --input "${text_classes}" --output "${token_list}" \
-            --field 2- --write_vocabulary true --add_symbol "<unk>:-1"
+            --field 2- --write_vocabulary true \
+            --add_symbol "<unk>:-1" --add_symbol "<blank>:-2"
             # unk is just a dummy symbol for compatibility,
             # we ensure that it is not used in the cls model
+            # text contains blank when task is multi-label classif and
+            # there is no label. In this case we reposition to 0th index.
+        
+        if [ "$speech_text_classification" ]; then
+            log "Generate hugging_face text_token_list from ${hugging_face_model_name_or_path}"
+            # The first symbol in text_token_list must be "<blank>" and the last must be also sos/eos
+            ${python} -m espnet2.bin.hugging_face_export_vocabulary  \
+                --model_name_or_path "${hugging_face_model_name_or_path}" \
+                --output "${text_token_list}"
+        fi
     fi
 else
     log "Skip the data preparation stages"
@@ -323,20 +359,26 @@ if ! "${skip_train}"; then
         utils/split_scp.pl "${key_file}" ${split_scps}
 
         # 2. Generate run.sh
-        log "Generate '${cls_stats_dir}/run.sh'. You can resume the process from stage 4 using this script"
-        mkdir -p "${cls_stats_dir}"; echo "${run_args} --stage 4 \"\$@\"; exit \$?" > "${cls_stats_dir}/run.sh"; chmod +x "${cls_stats_dir}/run.sh"
+        log "Generate '${cls_stats_dir}/run.sh'. You can resume the process from stage 5 using this script"
+        mkdir -p "${cls_stats_dir}"; echo "${run_args} --stage 5 \"\$@\"; exit \$?" > "${cls_stats_dir}/run.sh"; chmod +x "${cls_stats_dir}/run.sh"
 
         # 3. Submit jobs
         log "cls collect-stats started... log: '${_logdir}/stats.*.log'"
 
         # NOTE: --*_shape_file doesn't require length information if --batch_type=unsorted,
         #       but it's used only for deciding the sample ids.
+        if [ "$speech_text_classification" ]; then
+            _opts+="--train_data_path_and_name_and_type ${_cls_train_dir}/${text_input_filename},text,text "
+            _opts+="--valid_data_path_and_name_and_type ${_cls_valid_dir}/${text_input_filename},text,text "
+            _opts+="--text_token_list ${text_token_list} "
+            _opts+="--text_bpemodel ${text_bpemodel} "
+        fi
 
         # shellcheck disable=SC2046,SC2086
+                # --token_type "word" \
         ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
             ${python} -m espnet2.bin.cls_train \
                 --collect_stats true \
-                --token_type "word" \
                 --use_preprocessor true \
                 --train_data_path_and_name_and_type "${_cls_train_dir}/${_scp},speech,${_type}" \
                 --train_data_path_and_name_and_type "${_cls_train_dir}/text,label,text" \
@@ -347,7 +389,7 @@ if ! "${skip_train}"; then
                 --output_dir "${_logdir}/stats.JOB" \
                 --token_list "${token_list}" \
                 ${_opts} ${cls_args} || { cat $(grep -l -i error "${_logdir}"/stats.*.log) ; exit 1; }
-
+        
         # 4. Aggregate shape files
         _opts=
         for i in $(seq "${_nj}"); do
@@ -395,12 +437,18 @@ if ! "${skip_train}"; then
         _opts+="--valid_shape_file ${cls_stats_dir}/valid/speech_shape "
         _opts+="--valid_shape_file ${cls_stats_dir}/valid/label_shape "
         _opts+="--token_list ${token_list} "
-        _opts+="--token_type word "
         _opts+="--fold_length ${speech_fold_length} "
         _opts+="--fold_length ${label_fold_length} "
+        
+        if [ "$speech_text_classification" ]; then
+            _opts+="--train_data_path_and_name_and_type ${_cls_train_dir}/${text_input_filename},text,text "
+            _opts+="--valid_data_path_and_name_and_type ${_cls_valid_dir}/${text_input_filename},text,text "
+            _opts+="--text_token_list ${text_token_list} "
+            _opts+="--text_bpemodel ${text_bpemodel} "
+        fi
 
-        log "Generate '${cls_exp}/run.sh'. You can resume the process from stage 5 using this script"
-        mkdir -p "${cls_exp}"; echo "${run_args} --stage 5 \"\$@\"; exit \$?" > "${cls_exp}/run.sh"; chmod +x "${cls_exp}/run.sh"
+        log "Generate '${cls_exp}/run.sh'. You can resume the process from stage 6 using this script"
+        mkdir -p "${cls_exp}"; echo "${run_args} --stage 6 \"\$@\"; exit \$?" > "${cls_exp}/run.sh"; chmod +x "${cls_exp}/run.sh"
 
         log "cls training started... log: '${cls_exp}/train.log'"
         if echo "${cuda_cmd}" | grep -e queue.pl -e queue-freegpu.pl &> /dev/null; then
@@ -467,6 +515,7 @@ if [ -n "${download_model}" ]; then
     inference_model=$(echo ${cls_exp}/*epoch.pth)
     inference_model=$(basename "$inference_model")
 fi
+
 if ! "${skip_eval}"; then
     if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
         log "Stage 7: Predict with models: training_dir=${cls_exp}"
@@ -479,9 +528,8 @@ if ! "${skip_eval}"; then
             _ngpu=0
         fi
 
-        log "Generate '${cls_exp}/run.sh'. You can resume the process from stage 6 using this script"
-        mkdir -p "${cls_exp}"; echo "${run_args} --stage 6 \"\$@\"; exit \$?" > "${cls_exp}/run.sh"; chmod +x "${cls_exp}/run.sh"
-        _opts=
+        log "Generate '${cls_exp}/run.sh'. You can resume the process from stage 7 using this script"
+        mkdir -p "${cls_exp}"; echo "${run_args} --stage 7 \"\$@\"; exit \$?" > "${cls_exp}/run.sh"; chmod +x "${cls_exp}/run.sh"
 
         for dset in "${valid_set}" ${test_sets}; do
             _data="${data_feats}/${dset}"
@@ -504,6 +552,17 @@ if ! "${skip_eval}"; then
             done
             # shellcheck disable=SC2086
             utils/split_scp.pl "${key_file}" ${split_scps}
+            
+            _opts=
+            if [ "${max_wav_duration}" ]; then
+                _fs=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
+                max_wav_duration_in_samples=$(python3 -c "print(int(${max_wav_duration} * ${_fs}))")
+                echo "WARNING: Inference with max_wav_duration set to ${max_wav_duration_in_samples} at ${fs} Hz!"
+                _opts+="--max_wav_duration ${max_wav_duration_in_samples} "
+            fi
+            if [ "$speech_text_classification" ]; then
+                _opts+="--data_path_and_name_and_type ${_data}/${text_input_filename},text,text "
+            fi
 
             # 2. Submit inference jobs
             log "cls inference started... log: '${_logdir}/cls_inference.*.log'"
@@ -517,6 +576,7 @@ if ! "${skip_eval}"; then
                     --classification_model_file "${cls_exp}/${inference_model}" \
                     --output_dir "${_logdir}"/output.JOB \
                     --output_all_probabilities ${output_all_probabilities} \
+                    --batch_size "${decoding_batch_size}" \
                     ${_opts} || { cat $(grep -l -i error "${_logdir}"/cls_inference.*.log) ; exit 1; }
 
             # 3. Concatenates the output files from each jobs
@@ -532,7 +592,7 @@ if ! "${skip_eval}"; then
         log "Stage 8: Scoring"
         _cmd=${decode_cmd}
 
-        for dset in "${valid_set}" ${test_sets}; do
+        for dset in  "${test_sets}" "${valid_set}"; do
             _data="${data_feats}/${dset}"
             _inf_dir="${cls_exp}/cls_${dset}"
             _dir="${cls_exp}/cls_${dset}/scoring"
@@ -558,6 +618,10 @@ if ! "${skip_upload}"; then
         _opts=
         if [ "${feats_normalize}" = global_mvn ]; then
             _opts+="--option ${cls_stats_dir}/train/feats_stats.npz "
+        fi
+        if [ "$speech_text_classification" ]; then
+            _opts+="--option ${text_token_list} "
+            _opts+="--option ${text_bpemodel} "
         fi
         # shellcheck disable=SC2086
         ${python} -m espnet2.bin.pack cls \

@@ -29,6 +29,7 @@ from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.mixup_augmentation import MixupAugment
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
+from espnet2.cls.layers.sequence_embedding_fusion import AbsEmbeddingFusion
 
 if V(torch.__version__) >= V("1.6.0"):
     from torch.cuda.amp import autocast
@@ -59,6 +60,8 @@ class ESPnetClassificationModel(AbsESPnetModel):
         preencoder: Optional[AbsPreEncoder],
         encoder: AbsEncoder,
         decoder: AbsDecoder,
+        text_encoder: Optional[AbsEncoder] = None,
+        embedding_fusion: Optional[AbsEmbeddingFusion] = None,
         classification_type="multi-class",
         lsm_weight: float = 0.0,
         mixup_probability: float = 0.0,
@@ -73,6 +76,10 @@ class ESPnetClassificationModel(AbsESPnetModel):
                 "More info at: `https://pytorch.org/torcheval/stable/`"
                 f"Original error is: {torcheval_import_error}"
             )
+        if vocab_size == 1:
+            assert (
+                classification_type == "multi-label"
+            ), "Binary classification should use multi-label classification type"
         self.vocab_size = vocab_size
         self.token_list = token_list.copy()
         self.frontend = frontend
@@ -81,6 +88,8 @@ class ESPnetClassificationModel(AbsESPnetModel):
         self.preencoder = preencoder
         self.encoder = encoder
         self.decoder = decoder
+        self.text_encoder = text_encoder
+        self.embedding_fusion = embedding_fusion
         self.classification_type = classification_type
         self.lsm_weight = lsm_weight
         if classification_type == "multi-label":
@@ -111,6 +120,8 @@ class ESPnetClassificationModel(AbsESPnetModel):
         speech_lengths: torch.Tensor,
         label: torch.Tensor,
         label_lengths: torch.Tensor,
+        text: Optional[torch.Tensor] = None,
+        text_lengths: Optional[torch.Tensor] = None,
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Pass the input through the model and calculate the loss.
@@ -120,6 +131,8 @@ class ESPnetClassificationModel(AbsESPnetModel):
             speech_lengths: (Batch, )
             label: (Batch, Length)
             label_lengths: (Batch, )
+            text: (Batch, Length): Optional, used if text_encoder is provided
+            text_lengths: (Batch, ): Optional, used if text_encoder is provided
         Returns:
             loss: (1,)
             stats: dict
@@ -127,6 +140,15 @@ class ESPnetClassificationModel(AbsESPnetModel):
         """
         assert len(label.shape) == 2, label.shape
         assert speech.shape[0] == label.shape[0], (speech.shape, label.shape)
+        assert text is None or (
+            len(text.shape) == 2 and text.shape[0] == label.shape[0]
+        ), (
+            text.shape,
+            label.shape,
+        )
+        assert (
+            text is None or self.text_encoder is not None
+        ), "You must provide text encoder if text is provided."
         batch_size = speech.shape[0]
         onehot_ = label_to_onehot(
             label,
@@ -149,8 +171,9 @@ class ESPnetClassificationModel(AbsESPnetModel):
             )
 
         # 1. Encoder
-        encoder_out, encoder_out_lens = self.encode(speech, speech_lengths)
-
+        encoder_out, encoder_out_lens = self.encode(
+            speech, speech_lengths, text, text_lengths
+        )
         # 2. Decoder
         logits = self.decoder(encoder_out, encoder_out_lens)
 
@@ -177,25 +200,36 @@ class ESPnetClassificationModel(AbsESPnetModel):
         return loss, stats, weight
 
     def score(
-        self, speech: torch.Tensor, speech_lengths: Optional[torch.Tensor] = None
+        self,
+        speech: torch.Tensor,
+        speech_lengths: torch.Tensor,
+        text: Optional[torch.Tensor] = None,
+        text_lengths: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         """Forward pass at scoring (inference)
 
         Args:
             speech: (Batch, samples)
             speech_lengths: (Batch, )
+            text: (Batch, Length): Optional, used if text_encoder is provided
+            text_lengths: (Batch, ): Optional, used if text_encoder is provided
         Returns:
             scores: (Batch, n_classes)
         Assumes Batch=1
         """
-        batch = speech.size(0)
-        assert batch == 1, "Batch size must be 1 for scoring."
-        if speech_lengths is None:
-            speech_lengths = torch.tensor([speech.size(1)], device=speech.device)
-        encoder_out, encoder_out_lens = self.encode(speech, speech_lengths)
-        logits, _ = self.decoder.score(x=encoder_out.squeeze(0), ys=None, state=None)
-        scores = self.classification_function(logits)
-        return scores.unsqueeze(0)
+        # batch = speech.size(0)
+        # assert batch == 1, "Batch size must be 1 for scoring."
+        encoder_out, encoder_out_lens = self.encode(
+            speech, speech_lengths, text, text_lengths
+        )
+        scores = []
+        for enc, enc_len in zip(encoder_out, encoder_out_lens):
+            enc = enc[:enc_len]
+            logits, _ = self.decoder.score(x=enc, ys=None, state=None)
+            score = self.classification_function(logits)
+            scores.append(score)
+        scores = torch.stack(scores, dim=0)
+        return scores
 
     def collect_feats(
         self,
@@ -210,12 +244,16 @@ class ESPnetClassificationModel(AbsESPnetModel):
         self,
         speech: torch.Tensor,
         speech_lengths: torch.Tensor,
+        text: Optional[torch.Tensor] = None,
+        text_lengths: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Encode the input speech.
 
         Args:
             speech: (Batch, Length, ...)
             speech_lengths: (Batch,)
+            text: (Batch, Length) Optional
+            text_lengths: (Batch,) Optional
         Returns:
             scores: (Batch, Length, n_classes)
         """
@@ -249,6 +287,15 @@ class ESPnetClassificationModel(AbsESPnetModel):
             encoder_out_lens.max(),
         )
 
+        if self.text_encoder is not None:
+            text_encoder_out, text_encoder_out_lens = self.text_encoder(
+                input=text, input_lengths=text_lengths
+            )
+            encoder_out, encoder_out_lens = self.embedding_fusion(
+                embeddings={"text": text_encoder_out, "audio": encoder_out},
+                lengths={"audio": encoder_out_lens, "text": text_encoder_out_lens},
+            )
+
         return encoder_out, encoder_out_lens
 
     def _extract_feats(
@@ -278,7 +325,15 @@ class ESPnetClassificationModel(AbsESPnetModel):
         return feats, feats_lengths
 
     def update_mAP(self, mAP_computer):
-        mAP_computer.update(torch.cat(self.predictions), torch.cat(self.targets))
+
+        if self.get_vocab_size() == 1:
+            preds = torch.cat(self.predictions)
+            targets = torch.cat(self.targets)
+            preds = torch.cat([1 - preds, preds], dim=-1)
+            targets = torch.cat([1 - targets, targets], dim=-1)
+        else:
+            preds, targets = torch.cat(self.predictions), torch.cat(self.targets)
+        mAP_computer.update(preds, targets)
         self.predictions = []
         self.targets = []
 
@@ -293,9 +348,10 @@ class ESPnetClassificationModel(AbsESPnetModel):
                 ),
             }
         elif self.classification_type == "multi-label":
-            return {
+            metric_fn_map = {
                 "acc": partial(EvalFunction.multilabel_accuracy, criteria="hamming"),
             }
+            return metric_fn_map
 
 
 def label_to_onehot(
@@ -324,8 +380,8 @@ def label_to_onehot(
             label_lengths.min() == label_lengths.max() or label.min() == -1
         ), "Pad value should be -1"
         label = label.masked_fill(label == -1, vocab_size)
-        onehot = F.one_hot(label.view(-1), vocab_size + 1)
-        onehot = onehot[:, :-1]  # Remove dummy column
+        onehot = F.one_hot(label.view(-1), vocab_size + 2)
+        onehot = onehot[:, :-2]  # Remove dummy columns, blank=-2, unk=-1
         onehot = onehot.view(label.size(0), -1, vocab_size)
         onehot = onehot.sum(dim=1)
         onehot = onehot.float()

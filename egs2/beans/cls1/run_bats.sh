@@ -8,19 +8,19 @@ set -o pipefail
 train_set="bats.train"
 valid_set="bats.dev"
 test_sets="bats.test"
-cls_config=conf/beats_bats.yaml
+cls_config=conf/beats_beans_cls.yaml
 
 timestamp=$(date "+%Y%m%d.%H%M%S")
 mynametag=bats.${timestamp}
-storage_dir=./
+storage_dir=.
 mkdir -p "${storage_dir}"
 
 ./cls.sh \
     --local_data_opts "bats" \
     --cls_tag "${mynametag}" \
-    --datadir "${storage_dir}/data" \
-    --dumpdir "${storage_dir}/dump" \
-    --expdir "${storage_dir}/exp" \
+    --datadir "${storage_dir}/data/bats" \
+    --dumpdir "${storage_dir}/dump/bats" \
+    --expdir "${storage_dir}/exp/bats" \
     --feats_normalize uttmvn \
     --stage 1 \
     --stop_stage 10 \
@@ -31,7 +31,7 @@ mkdir -p "${storage_dir}"
     --label_fold_length 5 \
     --max_wav_duration 32 \
     --inference_nj 1 \
-    --inference_model valid.acc.best.pth \
+    --inference_model valid.epoch_mAP.best.pth \
     --cls_config "${cls_config}" \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \

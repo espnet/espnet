@@ -56,8 +56,13 @@ def test_optional_data_names(inference):
 
 def get_dummy_namespace():
     return Namespace(
-        token_type="word",
         token_list=["class1", "class2", "class3", "class4", "<unk>"],
+        text_token_list=None,
+        text_encoder=None,
+        text_encoder_conf=None,
+        text_bpemodel=None,
+        embedding_fusion=None,
+        embedding_fusion_conf=None,
         classification_type="multi-class",
         input_size=40,
         frontend="frontend",
@@ -82,8 +87,14 @@ def get_dummy_namespace():
     )
 
 
-def test_build_preprocess_fn():
+@pytest.mark.parametrize("text_input", [True, False])
+def test_build_preprocess_fn(text_input):
     args = get_dummy_namespace()
+
+    if text_input:
+        args.text_bpemodel = "bert-base-uncased"  # used for text->tokens
+        args.text_token_list = ["world", "hello", "<unk>"]  # tokens->ids
+        args.text_encoder = "hugging_face_transformers"
 
     preprocessor_args = {
         "use_preprocessor": True,
@@ -98,9 +109,16 @@ def test_build_preprocess_fn():
     preprocess = CLSTask.build_preprocess_fn(args, True)
     data = {}
     data["label"] = "class4 class2"
+    if text_input:
+        data["text"] = "hello world"
     data_preprocessed = preprocess._text_process(data)
     assert "label" in data_preprocessed
     assert np.all(data_preprocessed["label"] == np.array([3, 1]))
+
+    if text_input:
+        assert "text" in data_preprocessed
+        print(data_preprocessed["text"])
+        assert np.all(data_preprocessed["text"] == np.array([1, 0]))
 
 
 def test_build_collate_fn():
@@ -148,8 +166,27 @@ def test_build_collate_fn():
     np.testing.assert_array_equal(t[1]["b_lengths"], desired["b_lengths"])
 
 
-def test_build_model():
+@pytest.mark.execution_timeout(20)
+@pytest.mark.parametrize("text_input", [True, False])
+def test_build_model(text_input):
     args = get_dummy_namespace()
+
+    if text_input:
+        args.text_bpemodel = "bert-base-uncased"  # used for text->tokens
+        args.text_token_list = ["world", "hello", "<unk>"]  # tokens->ids
+        args.text_encoder = "hugging_face_transformers"
+        args.text_encoder_conf = {
+            "input_size": 1,  # dummy
+            "model_name_or_path": "bert-base-uncased",
+        }
+        args.embedding_fusion = "attention"
+        args.embedding_fusion_conf = {
+            "audio_dim": 40,
+            "text_dim": 40,
+            "hidden_dim": 40,
+            "output_dim": 40,
+        }
+
     args.classification_type = "multi-label"
     model = CLSTask.build_model(args)
     args.classification_type = "multi-class"

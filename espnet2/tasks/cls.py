@@ -10,6 +10,9 @@ from typeguard import typechecked
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.encoder.beats_encoder import BeatsEncoder
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
+from espnet2.asr.encoder.hugging_face_transformers_encoder import (
+    HuggingFaceTransformersEncoder,
+)
 from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
@@ -24,6 +27,11 @@ from espnet2.asr.specaug.specaug import SpecAug
 from espnet2.cls.decoder.abs_decoder import AbsDecoder
 from espnet2.cls.decoder.linear_decoder import LinearDecoder
 from espnet2.cls.espnet_model import ESPnetClassificationModel
+from espnet2.cls.layers.sequence_embedding_fusion import (
+    AbsEmbeddingFusion,
+    AudioTextAttnFusion,
+    AudioTextConcat,
+)
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
@@ -32,7 +40,10 @@ from espnet2.torch_utils.initialize import initialize
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
-from espnet2.train.preprocessor import CommonPreprocessor
+from espnet2.train.preprocessor import (
+    CommonPreprocessor,
+    MutliTokenizerCommonPreprocessor,
+)
 from espnet2.train.trainer import Trainer
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import int_or_none, str2bool, str_or_none
@@ -89,6 +100,26 @@ encoder_choices = ClassChoices(
     type_check=AbsEncoder,
     default="transformer",
 )
+text_encoder_choices = ClassChoices(
+    "text_encoder",
+    classes=dict(
+        hugging_face_transformers=HuggingFaceTransformersEncoder,
+        # clap=CLAPTextEncoder,
+    ),
+    type_check=AbsEncoder,
+    default=None,
+    optional=True,
+)
+embedding_fusion_choices = ClassChoices(
+    "embedding_fusion",
+    classes=dict(
+        attention=AudioTextAttnFusion,
+        concatenate=AudioTextConcat,
+    ),
+    type_check=AbsEmbeddingFusion,
+    default=None,
+    optional=True,
+)
 decoder_choices = ClassChoices(
     "decoder",
     classes=dict(
@@ -123,6 +154,10 @@ class CLSTask(AbsTask):
         preencoder_choices,
         # --encoder and --encoder_conf
         encoder_choices,
+        # --text_encoder and --text_encoder_conf
+        text_encoder_choices,
+        # --embedding_fusion and --embedding_fusion_conf
+        embedding_fusion_choices,
         # --decoder and --decoder_conf
         decoder_choices,
         # --model and --model_conf
@@ -149,13 +184,16 @@ class CLSTask(AbsTask):
         )
 
         group.add_argument(
-            "--token_type",
-            type=str,
-            default="word",
-            choices=["word"],
-            help="The text will be tokenized by words. This is not a"
-            " real parameter, just for compatibility with abs_task.py"
-            " while creating tokenizer.",
+            "--text_token_list",
+            type=str_or_none,
+            default=None,
+            help="A text mapping int-id to token",
+        )
+        group.add_argument(
+            "--text_bpemodel",
+            type=str_or_none,
+            default=None,
+            help="The model file of sentencepiece",
         )
 
         group.add_argument(
@@ -212,9 +250,17 @@ class CLSTask(AbsTask):
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
         if args.use_preprocessor:
-            valid_args = signature(CommonPreprocessor.__init__).parameters
-            filtered_args = {k: v for k, v in vars(args).items() if k in valid_args}
-            retval = CommonPreprocessor(train=train, text_name="label", **filtered_args)
+            # valid_args = signature(CommonPreprocessor.__init__).parameters
+            # filtered_args = {k: v for k, v in vars(args).items() if k in valid_args}
+            # token_type
+            # retval = CommonPreprocessor(train=train, text_name="label", **filtered_args)
+            retval = MutliTokenizerCommonPreprocessor(
+                train=train,
+                text_name=["label", "text"],
+                token_type=["word", "hugging_face" if args.text_token_list else None],
+                token_list=[args.token_list, args.text_token_list],
+                bpemodel=[None, args.text_bpemodel],
+            )
         else:
             retval = None
         return retval
@@ -234,22 +280,28 @@ class CLSTask(AbsTask):
     def optional_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
-        retval = ("speech_lengths", "label_lengths")
+        retval = ("speech_lengths", "label_lengths", "text", "text_lengths")
         return retval
+
+    @classmethod
+    def load_token_list(self, token_list):
+        """Load token list from a file or validate list input."""
+        if isinstance(token_list, str):
+            with open(token_list, encoding="utf-8") as f:
+                return [line.rstrip() for line in f]
+        elif isinstance(token_list, (tuple, list)):
+            return list(token_list)
+        else:
+            raise RuntimeError(
+                "Token list must be a str or a list, recheck all token lists."
+            )
 
     @classmethod
     @typechecked
     def build_model(cls, args: argparse.Namespace) -> ESPnetClassificationModel:
-        if isinstance(args.token_list, str):
-            with open(args.token_list, encoding="utf-8") as f:
-                token_list = [line.rstrip() for line in f]
-
-            # Overwriting token_list to keep it as "portable".
-            args.token_list = list(token_list)
-        elif isinstance(args.token_list, (tuple, list)):
-            token_list = list(args.token_list)
-        else:
-            raise RuntimeError("token_list must be str or list")
+        args.token_list = cls.load_token_list(args.token_list)
+        if args.text_token_list is not None:
+            args.text_token_list = cls.load_token_list(args.text_token_list)
 
         # 1. frontend
         if args.input_size is None:
@@ -289,20 +341,38 @@ class CLSTask(AbsTask):
         # 4. Encoder
         encoder_class = encoder_choices.get_class(args.encoder)
         encoder = encoder_class(input_size=input_size, **args.encoder_conf)
-        encoder_output_size = encoder.output_size()
 
-        # 5. Decoder
+        # 5. Optional text encoder and embedding fusion
+        text_encoder = None
+        embedding_fusion = None
+        if args.text_encoder is not None:
+            text_encoder_class = text_encoder_choices.get_class(args.text_encoder)
+            text_encoder = text_encoder_class(**args.text_encoder_conf)
+            embedding_fusion_class = embedding_fusion_choices.get_class(
+                args.embedding_fusion
+            )
+            assert (
+                embedding_fusion_class is not None
+            ), "embedding_fusion is required when text_encoder is used"
+            embedding_fusion = embedding_fusion_class(**args.embedding_fusion_conf)
+
+        # 6. Decoder
         decoder_class = decoder_choices.get_class(args.decoder)
 
-        n_classes = len(args.token_list) - 1  # -1 for <unk>
+        n_classes = len(args.token_list) - 2  # -2 for <unk>, <blank>
 
+        encoder_output_size = (
+            encoder.output_size()
+            if embedding_fusion is None
+            else embedding_fusion.output_size()
+        )
         decoder = decoder_class(
             n_classes,
             encoder_output_size=encoder_output_size,
             **args.decoder_conf,
         )
 
-        # 6. Build model
+        # 7. Build model
         model = ESPnetClassificationModel(
             vocab_size=n_classes,
             token_list=args.token_list,
@@ -312,10 +382,12 @@ class CLSTask(AbsTask):
             preencoder=preencoder,
             encoder=encoder,
             decoder=decoder,
+            text_encoder=text_encoder,
+            embedding_fusion=embedding_fusion,
             **args.model_conf,
         )
 
-        # 7. Initialize
+        # 8. Initialize
         if args.init is not None:
             initialize(model, args.init)
 
