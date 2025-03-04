@@ -35,7 +35,7 @@ if [ "${CLOTHO_ENTAILMENT}" == "downloads" ]; then
     mkdir -p "${CLOTHO_ENTAILMENT_ROOT_DIR}"
 
     if [ ! -e "${CLOTHO_ENTAILMENT_ROOT_DIR}/entailment_download_done" ]; then
-        if [ ! -e "${CLOTHO_ENTAILMENT_ROOT_DIR}/audio_download_done" ]; then    
+        if [ ! -e "${CLOTHO_ENTAILMENT_ROOT_DIR}/audio_download_done" ]; then
             log "stage 1: Data preparation - Installing aac-datasets"
             if ! pip3 install aac-datasets; then
                 log "Error: Installing aac-datasets failed."
@@ -68,7 +68,7 @@ log "Using the data directory: ${CLOTHO_ENTAILMENT_ROOT_DIR}"
 # Prepare data in the Kaldi format:
 # text, hypothesis, wav.scp, utt2spk
 # text is the label pos, neg, neutral
-# hypothesis is an assertion about the audio premise 
+# hypothesis is an assertion about the audio premise
 ##########
 python3 local/data_prep_clotho_entailment.py ${CLOTHO_ENTAILMENT_ROOT_DIR} ${DATADIR}
 ##########

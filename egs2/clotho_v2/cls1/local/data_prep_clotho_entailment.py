@@ -7,8 +7,9 @@ python egs2/clotho_v2/cls1/local/data_prep_clotho_entailment.py ${INPUT_DIR} ${O
 import glob
 import os
 import sys
-import pandas as pd
 from string import punctuation
+
+import pandas as pd
 
 strip_punct_table = str.maketrans("", "", punctuation)
 

@@ -36,7 +36,7 @@ if [ "${CLOTHO_AQA}" == "downloads" ]; then
     mkdir -p "${CLOTHO_AQA_ROOT_DIR}"
 
     if [ ! -e "${CLOTHO_AQA_ROOT_DIR}/aqa_download_done" ]; then
-        if [ ! -e "${CLOTHO_AQA_ROOT_DIR}/audio_download_done" ]; then    
+        if [ ! -e "${CLOTHO_AQA_ROOT_DIR}/audio_download_done" ]; then
             log "stage 1: Data preparation"
             wget -P ${CLOTHO_AQA_ROOT_DIR}/ https://zenodo.org/records/6473207/files/audio_files.zip
             unzip ${CLOTHO_AQA_ROOT_DIR}/audio_files.zip -d ${CLOTHO_AQA_ROOT_DIR}
@@ -46,7 +46,7 @@ if [ "${CLOTHO_AQA}" == "downloads" ]; then
         fi
         for split in test val train; do
             wget -P ${CLOTHO_AQA_ROOT_DIR}/ "https://zenodo.org/records/6473207/files/clotho_aqa_${split}.csv"
-        done        
+        done
         touch "${CLOTHO_AQA_ROOT_DIR}/aqa_download_done"
     else
         log "Clotho AQA dataset is already downloaded. ${CLOTHO_AQA_ROOT_DIR}/aqa_download_done exists."

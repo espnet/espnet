@@ -298,7 +298,7 @@ if ! "${skip_data_prep}"; then
             # we ensure that it is not used in the cls model
             # text contains blank when task is multi-label classif and
             # there is no label. In this case we reposition to 0th index.
-        
+
         if [ "$speech_text_classification" ]; then
             log "Generate hugging_face text_token_list from ${hugging_face_model_name_or_path}"
             # The first symbol in text_token_list must be "<blank>" and the last must be also sos/eos
@@ -389,7 +389,7 @@ if ! "${skip_train}"; then
                 --output_dir "${_logdir}/stats.JOB" \
                 --token_list "${token_list}" \
                 ${_opts} ${cls_args} || { cat $(grep -l -i error "${_logdir}"/stats.*.log) ; exit 1; }
-        
+
         # 4. Aggregate shape files
         _opts=
         for i in $(seq "${_nj}"); do
@@ -439,7 +439,7 @@ if ! "${skip_train}"; then
         _opts+="--token_list ${token_list} "
         _opts+="--fold_length ${speech_fold_length} "
         _opts+="--fold_length ${label_fold_length} "
-        
+
         if [ "$speech_text_classification" ]; then
             _opts+="--train_data_path_and_name_and_type ${_cls_train_dir}/${text_input_filename},text,text "
             _opts+="--valid_data_path_and_name_and_type ${_cls_valid_dir}/${text_input_filename},text,text "
@@ -552,7 +552,7 @@ if ! "${skip_eval}"; then
             done
             # shellcheck disable=SC2086
             utils/split_scp.pl "${key_file}" ${split_scps}
-            
+
             _opts=
             if [ "${max_wav_duration}" ]; then
                 _fs=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")

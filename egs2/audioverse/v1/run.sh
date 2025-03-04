@@ -29,7 +29,7 @@ Options:
   # General
   --parallel BOOL           Run recipes in parallel (default: ${parallel})
   --wait_time SECONDS       Wait time between parallel runs (default: ${wait_time})
-  
+
   # Recipe selection
   --filter_recipe LIST      Comma-separated list to run all recipes except these. Default is None.
   --recipe LIST             Comma-separated list of specific recipes to run. Default is all.
@@ -40,7 +40,7 @@ Options:
   --run_name STRING         Name for this benchmark run (default: timestamp)
   --template_args LIST      Arguments to replace in the template config. Comma-separated list of KEY:value pairs.
                             For example: --template_args "BEATS_CHECKPOINT_PATH:/path/to/checkpoint"
-                            Note that the KEY should be in ALLCAPS. 
+                            Note that the KEY should be in ALLCAPS.
   --recipe_args LIST        Arguments to pass to the recipe runners. These are passed as-is to the recipe runners.
                             For example: --recipe_args "--stage 4 --batch_bins 800000"
   --help                    Display this help message
@@ -98,11 +98,11 @@ recipe_runners["beans"]="../../beans/cls1/run.sh"
 
 generate_recipe_list() {
     local recipes_to_run=()
-    
+
     # Add all recipes except filtered ones
     IFS=',' read -r -a filter_array <<< "$filter_recipe"
     for r in "${!recipe_runners[@]}"; do
-        should_add=true 
+        should_add=true
         for f in "${filter_array[@]}"; do
             if [[ -n "$f" && $r == *"$f"* ]]; then
                 should_add=false
@@ -111,7 +111,7 @@ generate_recipe_list() {
         done
         [[ $should_add == true ]] && recipes_to_run+=("$r")
     done
-    
+
     if [ -n "$recipe" ]; then
         recipes_to_run=() # Reset
         IFS=',' read -ra requested_recipes <<< "$recipe"
@@ -124,12 +124,12 @@ generate_recipe_list() {
             fi
         done
     fi
-    
+
     if [ ${#recipes_to_run[@]} -eq 0 ]; then
         log "No recipes found matching criteria"
         return 1
     fi
-    
+
     echo "${recipes_to_run[@]}"
     return 0
 }
@@ -137,18 +137,18 @@ generate_recipe_list() {
 create_config() {
     local recipe=$1
     shift 1
-    
+
     local template_dir="conf/template"
     local config_dir="conf/${run_name}"
     local template_path="${template_dir}/${config_prefix}_${recipe%.yaml}.yaml"
     local output_path="${config_dir}/${config_prefix}_${recipe%.yaml}.yaml"
-    
+
     mkdir -p "$(dirname "$output_path")"
     if [ ! -f "$template_path" ]; then
         log "Template not found: $template_path"
         return 1
     fi
-    
+
     # replace ARGUMENT placeholders
     cp "$template_path" "$output_path"
     for var_name in "${!template_map[@]}"; do
@@ -170,12 +170,12 @@ construct_command_args() {
     local config_dir="conf/${run_name}"
     local config_path="${config_dir}/${config_prefix}_${recipe%.yaml}.yaml"
     local recipe_dir="$(dirname $runner)"
-    
+
     if [ ! -d "$recipe_dir" ]; then
         log "Error: Recipe directory not found: $recipe_dir"
         return 1
     fi
-    
+
     task_name=$(basename $recipe_dir)
     if [[ $task_name == "cls1" ]]; then
         task_name="cls"
@@ -186,7 +186,7 @@ construct_command_args() {
         return 1
     fi
     cmd_args="--${task_name}_config ${config_path} --${task_name}_tag ${run_name}"
-    
+
     echo "$cmd_args"
     return 0
 }
@@ -195,33 +195,33 @@ run_recipe() {
     local recipe=$1
     local runners="${recipe_runners[$recipe]}"
     shift
-    
+
     local success=true
     local recipe_log="${exp_dir}/${recipe}.log"
 
     log "Processing recipe: $recipe"
     IFS=',' read -ra runner_list <<< "$runners"
-    
+
     for runner in "${runner_list[@]}"; do
         log "Setting up task: $runner for recipe: $recipe"
-        
+
         # Create config from the template
         create_config "$recipe" "$runner" || {
             log "Error: Failed to create config for $recipe|$runner"
             success=false
             continue
         }
-        
+
         # Construct command for running the recipe
         local cmd_args=$(construct_command_args "$recipe" "$runner") || {
             log "Error: Failed to construct command for $recipe|$runner"
             success=false
             continue
         }
-        
+
         log "Running command: $runner with args: ${cmd_args} ${recipe_args[@]}"
         log "Output will be saved to: $recipe_log"
-        
+
         if [ "$parallel" = true ]; then
             (cd "$(dirname $runner)" && "./$(basename $runner) ${cmd_args} ${recipe_args[@]}" 2>&1 | tee -a "$recipe_log") &
             log "Started $recipe|$runner in background (PID: $!)"
@@ -233,7 +233,7 @@ run_recipe() {
             }
         fi
     done
-    
+
     if $success; then
         return 0
     else
@@ -273,12 +273,12 @@ done
 if [ "$parallel" = true ]; then
     log "Waiting for all recipes to complete..."
     wait
-    
+
     # For parallel mode, we need to check logs for success/failure
     total=0
     successful=0
     failed=0
-    
+
     for recipe in $recipes; do
         total=$((total + 1))
         recipe_log="${exp_dir}/${recipe}.log"

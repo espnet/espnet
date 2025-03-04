@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
 from espnet2.cls.layers.abs_embedding_fusion import AbsEmbeddingFusion
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 

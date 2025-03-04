@@ -25,11 +25,11 @@ from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.cls.decoder.abs_decoder import AbsDecoder
+from espnet2.cls.layers.sequence_embedding_fusion import AbsEmbeddingFusion
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.mixup_augmentation import MixupAugment
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
-from espnet2.cls.layers.sequence_embedding_fusion import AbsEmbeddingFusion
 
 if V(torch.__version__) >= V("1.6.0"):
     from torch.cuda.amp import autocast

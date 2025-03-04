@@ -6,7 +6,7 @@
 
 import copy
 import logging
-from typing import Tuple, Optional
+from typing import Optional, Tuple
 
 import torch
 from typeguard import typechecked
