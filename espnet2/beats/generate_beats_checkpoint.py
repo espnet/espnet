@@ -86,9 +86,13 @@ def read_and_write_checkpoint(
 ):
     """Read and write checkpoint, with optional averaging."""
     num_checkpoints = len(espnet_model_checkpoint_paths)
-    output_path = os.path.join(
-        os.path.dirname(output_path),
-        f"{num_checkpoints}_avg{os.path.basename(output_path)}",
+    output_path = (
+        os.path.join(
+            os.path.dirname(output_path),
+            f"{num_checkpoints}avg.{os.path.basename(output_path)}",
+        )
+        if num_checkpoints > 1
+        else output_path
     )
     # Prepare checkpoint
     logger.info(f"Reading and Averaging {num_checkpoints} checkpoints.")

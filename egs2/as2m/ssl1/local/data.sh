@@ -20,13 +20,56 @@ log "$0 $*"
 
 DATA_PREP_ROOT=${1:-"."}
 
-if [ -z "${AUDIOSET}" ]; then
-    log "Fill the value of 'AUDIOSET' of db.sh"
-    exit 1
+declare -A DATASETS=(
+    ["as2m"]=AUDIOSET
+    ["cochlscene"]=COCHLSCENE
+    ["epic_sounds"]=EPIC_SOUNDS
+    ["fma"]=FMA
+    ["inat"]=INAT_SOUNDS
+    ["wavcaps"]=WAVCAPS
+)
+
+SELECTED_DATASETS=(${@:2})
+if [ ${#SELECTED_DATASETS[@]} -eq 0 ]; then
+    SELECTED_DATASETS=("as2m") # Default: as2m
 fi
 
 mkdir -p ${DATA_PREP_ROOT}
-python3 local/data_prep_as2m.py ${AUDIOSET} ${DATA_PREP_ROOT}
+
+# Process selected datasets
+for dataset in "${SELECTED_DATASETS[@]}"; do
+    VAR_NAME=${DATASETS[$dataset]}
+    if [ -z "${!VAR_NAME}" ]; then
+        log "Fill the value of ${VAR_NAME} in db.sh"
+        exit 1
+    fi
+
+    # SCRIPT="local/data_prep_${dataset}.py"
+    # if [ -f "$SCRIPT" ]; then
+    #     python3 "$SCRIPT" "${!VAR_NAME}" "$DATA_PREP_ROOT"
+    # else
+    #     log "Script $SCRIPT not found, skipping ${dataset}."
+    # fi
+done
+
+# copy and append wav.scp files to create training set
+mkdir -p ${DATA_PREP_ROOT}/train
+mkdir -p ${DATA_PREP_ROOT}/eval
+> "${DATA_PREP_ROOT}/train/wav.scp" # clear the file
+
+for x in AudioSet cochlscene epic_sounds fma inat_sounds FreeSound BBC_Sound_Effects SoundBible; do 
+    if [ ! -d ${DATA_PREP_ROOT}/${x} ]; then
+        log "No such directory: ${DATA_PREP_ROOT}/${x}"
+        continue
+    fi
+    cat ${DATA_PREP_ROOT}/${x}/wav.scp >> ${DATA_PREP_ROOT}/train/wav.scp
+done
+# 7.35M instances total
+
+# make an utt2sk file for all training and eval data
+for x in eval train; do
+     awk '{print $1, $1}' "${DATA_PREP_ROOT}/${x}/wav.scp" > "${DATA_PREP_ROOT}/${x}/utt2spk"
+done
 
 for x in eval train; do
     for f in wav.scp utt2spk; do

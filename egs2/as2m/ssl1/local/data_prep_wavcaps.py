@@ -139,9 +139,9 @@ def process_dataset(dataset, json_name, data_read_dir, data_write_dir, wavscploc
 
 if __name__ == "__main__":
     DATASET_COMPONENTS = {
-        # "BBC_Sound_Effects": "bbc_final.json",
+        "BBC_Sound_Effects": "bbc_final.json",
         "FreeSound": "fsd_final.json",
-        # "SoundBible": "sb_final.json",
+        "SoundBible": "sb_final.json",
     }
     # lock on wavscp
     total_processed = 0

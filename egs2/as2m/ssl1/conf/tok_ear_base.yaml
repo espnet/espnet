@@ -1,0 +1,42 @@
+# unused_parameters: true
+init: none # we initialise differently from espnet
+patience: none
+best_model_criterion:
+-   - valid
+    - loss
+    - min
+keep_nbest_models: 1
+
+num_att_plot: 0
+
+model_conf:
+    waveform_input: false
+
+encoder_conf:
+    tokenizer_config:
+        embed_loss_beta: 10.0
+        layer_wise_gradient_decay_ratio: 1.0
+        encoder_layerdrop: 0.0
+        dropout: 0.1
+         # if you change this then also change n_targets in beats.sh
+        codebook_vocab_size: 1024
+        fbank_mean: 15.29130 # for 7m
+        fbank_std: 5.90532
+        decoder_layers: 3 # layers in the pretraining predictor
+        deep_norm: true
+        use_flash_attn: false
+        relative_position_embedding: true
+        num_buckets: 320
+        max_distance: 800
+        gru_rel_pos: true
+
+freeze_param: ["teacher"]
+
+batch_type: length
+
+batch_bins: 350000
+max_epoch: 60
+
+num_workers: 4 # dataloader workers, geq to ngpu
+use_deepspeed: true
+deepspeed_config: conf/ds_ear_tok.json

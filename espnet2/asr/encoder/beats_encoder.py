@@ -1780,7 +1780,7 @@ def gelu_accurate(x):
 
 
 def gelu(x: torch.Tensor) -> torch.Tensor:
-    return F.gelu(x.float()).type_as(x)
+    return F.gelu(x).type_as(x)
 
 
 def get_activation_fn(activation: str):
