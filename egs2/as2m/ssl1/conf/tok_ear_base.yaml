@@ -34,7 +34,7 @@ freeze_param: ["teacher"]
 
 batch_type: length
 
-batch_bins: 350000
+batch_bins: 600000 # 3gpus, 622 examples per batch, 11414 batches per epoch @7.2M total data
 max_epoch: 60
 
 num_workers: 4 # dataloader workers, geq to ngpu

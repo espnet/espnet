@@ -28,8 +28,6 @@ stop_stage=10000     # Processes is stopped at the specified stage.
 skip_data_prep=false # Skip data preparation stages.
 skip_train=false     # Skip training stages.
 skip_eval=false      # Skip decoding and evaluation stages.
-skip_packing=true    # Skip the packing stage.
-skip_upload_hf=true  # Skip uploading to huggingface stage.
 ngpu=1               # The number of gpus ("0" uses cpu, otherwise use gpu).
 num_nodes=1          # The number of nodes.
 nj=32                # The number of parallel jobs.
@@ -53,22 +51,20 @@ max_wav_duration=20  # Maximum duration in second.
 ssl_tag=       # Suffix to the result dir for ssl model training.
 beats_args=         # Arguments for ssl model training, e.g., "--max_epoch 10".
                      # Note that it will overwrite args in ssl config.
-num_splits_ssl=1 # Number of splitting for lm corpus.
+num_splits_ssl=1 # Number of splitting for corpus.
 
 # Pretrain related
-train_start_iter= # Pretrain starts from the specified iteration (0 mean MFCC iteraion)
-train_stop_iter=  # Pretrain is stopped from the specified iteration (0 mean MFCC iteraion)
+train_start_iter=0 # Pretrain starts from the specified iteration
+train_stop_iter=2  # Pretrain is stopped from the specified iteration
 train_config=    # Configration file of training stage
 n_targets=             # Number of codebook targets
 tokenizer_inference_batch_size=32 # Batch size for tokenizer inference
 tokenizer_train_config= # Configration file of tokenizer training stage
-tokenizer_inference_model=valid.acc.best.pth # Model to use for tokenizer inference
 tokenizer_inference_config= # Configration file of tokenizer inference stage
 external_tokenizer_model= # External tokenizer model to use for tokenizer inference
 external_teacher_model= # External teacher model to use for tokenizer inference
 
 # Upload model related
-hf_repo=
 inference_ssl_model=valid.loss.best.pth # SSL model path from previous iteration and uploading
 download_model= # Download a model from Model Zoo and use it for decoding.
 
@@ -89,8 +85,6 @@ Options:
     --skip_data_prep # Skip data preparation stages (default="${skip_data_prep}").
     --skip_train     # Skip training stages (default="${skip_train}")
     --skip_eval      # Skip decoding and evaluation stages (default="${skip_eval}").
-    --skip_packing   # Skip the packing stage (default="${skip_packing}").
-    --skip_upload_hf # Skip uploading to huggingface stage (default="${skip_upload_hf}").
     --ngpu           # The number of gpus ("0" uses cpu, otherwise use gpu, default="${ngpu}").
     --num_nodes      # The number of nodes (default="${num_nodes}").
     --nj             # The number of parallel jobs (default="${nj}").
@@ -99,7 +93,6 @@ Options:
     --expdir         # Directory to save experiments (default="${expdir}").
     --ssl_tag        # Suffix to the result dir for ssl model training (default="${ssl_tag}").
     --python         # Specify python to execute espnet commands (default="${python}").
-    --hf_repo        # Hugging face repository name (default="${hf_repo}").
 
     # Data preparation related
     --local_data_opts # The options given to local/data.sh (default="${local_data_opts}").
@@ -122,7 +115,6 @@ Options:
     --n_targets       # number of codebook vectors
     --tokenizer_inference_batch_size # Batch size for tokenizer inference (default="${tokenizer_inference_batch_size}").
     --tokenizer_train_config # configration file of tokenizer training stage
-    --tokenizer_inference_model # Model to use for tokenizer inference, default="${tokenizer_inference_model}".
     --tokenizer_inference_config # Configration file of tokenizer inference stage.
     --external_tokenizer_model  # External tokenizer model to use for tokenizer inference.
     --external_teacher_model    # External teacher model to use for tokenizer inference.
@@ -188,12 +180,6 @@ if [ -z "${ssl_tag}" ]; then
     fi
 fi
 
-if [ -z "${tokenizer_inference_model}" ]; then
-    if [-z "${external_tokenizer_model}" ]; then
-        log "Error: Either tokenizer_inference_model or external_tokenizer_model is required"
-        exit 2
-    fi
-fi
 # ========================== Main stages start from here. ==========================
 
 if ! "${skip_data_prep}"; then
@@ -207,6 +193,7 @@ if ! "${skip_data_prep}"; then
         exit 2
     fi
     if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
+        # TODO(shikhar): Add support for segment file
         log "Stage 2: Format wav.scp: ${datadir}/ -> ${data_feats_raw}/[org]"
         for dset in "${valid_set}" "${train_set}" ; do
             utils/copy_data_dir.sh --validate_opts --non-print ${datadir}/"${dset}" "${data_feats_raw}/org/${dset}"
@@ -250,7 +237,6 @@ if ! "${skip_data_prep}"; then
     if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         if [ "${feats_type}" = fbank ]; then
             log "Stage 4: Feature extraction: ${data_feats}/${train_set}, ${data_feats}/${valid_set}"
-            # "${valid_set}"  "${train_set}"
             for dset in "${valid_set}" "${train_set}"; do
                 log "Extracting features: ${dset}"
                 utils/copy_data_dir.sh --validate_opts --non-print "${dumpdir}/raw/${dset}" "${data_feats}/org/${dset}"
@@ -275,40 +261,237 @@ else
 fi
 
 
-if ! "${skip_train}"; then
-    codec_choice="beats_random"
-    if ! [ ${train_start_iter} -eq 0 ]; then
-        codec_choice="beats"
+setup_common_vars() {
+    _ssl_train_dir="${data_feats}/${train_set}"
+    _ssl_valid_dir="${data_feats}/${valid_set}"
+    
+    # Set tokenizer tag
+    _tokenizer_inference_tag="tok"
+    if [ -n "${tokenizer_inference_config}" ]; then
+        _tokenizer_inference_tag="$(basename "${tokenizer_inference_config}" .yaml)"
     fi
+    
+    # Determine file types
+    _feats_type="$(<${_ssl_train_dir}/feats_type)"
+    if [ "${_feats_type}" = raw ]; then
+        _scp=wav.scp
+        _type=sound
+        _waveform_opt="--waveform_input true"
+    elif [ "${_feats_type}" = fbank ]; then
+        _scp=feats.scp
+        _type=kaldi_ark
+        _waveform_opt="--waveform_input false"
+    else
+        log "Error: not supported: --feats_type ${feats_type}"
+        exit 2
+    fi
+}
+
+
+generate_checkpoint() {
+    run_dir_=$1
+    output_path_=$2
+
+    latest_checkpoint_dir_=$(find "${run_dir_}/checkpoint_"* -type d | sort -V | tail -n 1)
+    if [[ -z "$latest_checkpoint_dir_" ]]; then
+        log "Error: No checkpoints found in ${run_dir_}"
+        return 1
+    fi
+    checkpoint_num_=$(basename "${latest_checkpoint_dir_}" | grep -oE '[0-9]+')
+    if [[ -z "$checkpoint_num_" ]]; then
+        log "Error: Failed to extract checkpoint number from ${latest_checkpoint_dir_}"
+        return 1
+    fi
+
+    ${python} espnet2/beats/generate_beats_checkpoint.py \
+        --espnet_model_checkpoint_path "${latest_checkpoint_dir_}/${checkpoint_num_}/mp_rank_00_model_states.pt" \
+        --output_path "${output_path_}" \
+        --espnet_model_config_path "${run_dir_}/config.yaml" \
+        --deepspeed_checkpoint
+
+    log "Checkpoint converted and stored at ${output_path_}"
+}
+
+train_encoder() {
+    iteration=$1
+    ssl_exp="${expdir}/beats_iter${iteration}_${ssl_tag}"
+    
+    log "Training encoder for iteration ${iteration}..."
+    
+    _opts=""
+    [ -n "${train_config}" ] && _opts+="--config ${train_config} "
+
+    if [ "${num_splits_ssl}" -gt 1 ]; then
+        _split_dir="${ssl_stats_dir}/splits${num_splits_ssl}"
+        if [ ! -f "${_split_dir}/.done" ]; then
+            rm -f "${_split_dir}/.done"
+            ${python} -m espnet2.bin.split_scps \
+                --scps "${_ssl_train_dir}/${_scp}" \
+                "${_ssl_train_dir}/target_iter${iteration}_${_tokenizer_inference_tag}" \
+                "${ssl_stats_dir}/train/speech_shape" \
+                "${ssl_stats_dir}/train/target_shape.word" \
+                --num_splits "${num_splits_ssl}" \
+                --output_dir "${_split_dir}"
+            touch "${_split_dir}/.done"
+        fi
+
+        _opts+="--train_data_path_and_name_and_type ${_split_dir}/${_scp},speech,${_type} "
+        _opts+="--train_data_path_and_name_and_type ${_split_dir}/target_iter${iteration}_${_tokenizer_inference_tag},target,text "
+        _opts+="--train_shape_file ${_split_dir}/speech_shape "
+        _opts+="--train_shape_file ${_split_dir}/target_shape.word "
+        _opts+="--multiple_iterator true "
+    else
+        _opts+="--train_data_path_and_name_and_type ${_ssl_train_dir}/${_scp},speech,${_type} "
+        _opts+="--train_data_path_and_name_and_type ${_ssl_train_dir}/target_iter${iteration}_${_tokenizer_inference_tag},target,text "
+        _opts+="--train_shape_file ${ssl_stats_dir}/train/speech_shape "
+        _opts+="--train_shape_file ${ssl_stats_dir}/train/target_shape.word "
+    fi
+
+    mkdir -p "${ssl_exp}"
+    echo "${run_args} --stage 7 \"\$@\"; exit \$?" > "${ssl_exp}/run.sh"
+    chmod +x "${ssl_exp}/run.sh"
+
+    jobname=$(echo "${cuda_cmd}" | grep -q -e queue.pl -e queue-freegpu.pl && basename ${ssl_exp} || echo "${ssl_exp}/train.log")
+    
+    ${python} -m espnet2.bin.launch \
+        --cmd "${cuda_cmd} --name ${jobname}" \
+        --log "${ssl_exp}"/train.log \
+        --ngpu "${ngpu}" \
+        --num_nodes "${num_nodes}" \
+        --init_file_prefix "${ssl_exp}"/.dist_init_ \
+        --multiprocessing_distributed true -- \
+        ${python} -m espnet2.bin.beats_train \
+            --use_preprocessor true \
+            --token_list "${token_listdir}/tokens.txt" \
+            --valid_data_path_and_name_and_type "${_ssl_valid_dir}/${_scp},speech,${_type}" \
+            --valid_data_path_and_name_and_type "${_ssl_valid_dir}/target_iter${iteration}_${_tokenizer_inference_tag},target,text" \
+            --valid_shape_file "${ssl_stats_dir}/valid/speech_shape" \
+            --valid_shape_file "${ssl_stats_dir}/valid/target_shape.word" \
+            --resume true \
+            --fold_length "${speech_fold_length}" \
+            --fold_length "${text_fold_length}" \
+            --output_dir "${ssl_exp}" \
+            ${_opts} ${beats_args}
+    
+    # Generate float32 checkpoint after training completes
+    checkpoint_path="${ssl_exp}/epoch_latest.pt"
+    log "Generating float32 checkpoint from encoder training: ${checkpoint_path}"
+    generate_checkpoint "${ssl_exp}" "${checkpoint_path}"
+}
+
+train_tokenizer() {
+    iteration=$1
+    ssl_tokenizer_exp="${expdir}/beats_tokenizer_iter${iteration}_${ssl_tag}"
+    
+    _opts=""
+    [ -n "${tokenizer_train_config}" ] && _opts+="--config ${tokenizer_train_config} "
+    
+    # Setup teacher
+    prev_iter=$((iteration - 1))
+    prev_model_dir="${expdir}/beats_iter${prev_iter}_${ssl_tag}"
+    teacher_ckpt_path_="${prev_model_dir}/epoch_latest.pt"
+
+    if [ -n "${external_teacher_model}" ]; then
+        teacher_ckpt_path_="${external_teacher_model}"
+    else
+        if [ ! -f "${teacher_ckpt_path_}" ]; then
+            log "Generating teacher checkpoint from previous iteration"
+            generate_checkpoint "${prev_model_dir}" "${teacher_ckpt_path_}"
+        fi
+    fi
+
+    log "Training tokenizer for iteration ${iteration} using teacher: ${teacher_ckpt_path_}"
+
+    mkdir -p "${ssl_tokenizer_exp}"
+    echo "${run_args} --stage 7 \"\$@\"; exit \$?" > "${ssl_tokenizer_exp}/run.sh"
+    chmod +x "${ssl_tokenizer_exp}/run.sh"
+    
+    jobname=$(echo "${cuda_cmd}" | grep -q -e queue.pl -e queue-freegpu.pl && basename ${ssl_tokenizer_exp} || echo "${ssl_tokenizer_exp}/train.log")
+    
+    ${python} -m espnet2.bin.launch \
+        --cmd "${cuda_cmd} --name ${jobname}" \
+        --log "${ssl_tokenizer_exp}"/train.log \
+        --ngpu "${ngpu}" \
+        --num_nodes "${num_nodes}" \
+        --init_file_prefix "${ssl_tokenizer_exp}"/.dist_init_ \
+        --multiprocessing_distributed true -- \
+        ${python} -m espnet2.bin.beats_tokenizer_train \
+            --use_preprocessor true \
+            --beats_teacher_ckpt_path "${teacher_ckpt_path_}" \
+            --train_data_path_and_name_and_type "${_ssl_train_dir}/${_scp},speech,${_type}" \
+            --valid_data_path_and_name_and_type "${_ssl_valid_dir}/${_scp},speech,${_type}" \
+            --train_shape_file "${ssl_stats_dir}/train/speech_shape" \
+            --valid_shape_file "${ssl_stats_dir}/valid/speech_shape" \
+            --resume true \
+            --fold_length "${speech_fold_length}" \
+            --output_dir "${ssl_tokenizer_exp}" \
+            ${_opts} ${beats_args}
+    
+    # Convert tokenizer checkpoint to float32 for inference
+    log "Generating float32 checkpoint from tokenizer training"
+    checkpoint_path="${ssl_tokenizer_exp}/epoch_latest.pt"
+    generate_checkpoint "${ssl_tokenizer_exp}" "${checkpoint_path}"
+}
+
+tokenizer_inference() {
+    iteration=$1
+    ssl_tokenizer_exp="${expdir}/beats_tokenizer_iter${iteration}_${ssl_tag}"
+    
+    _opts=""
+    if [ -n "${external_tokenizer_model}" ]; then
+        _opts+="--checkpoint_path ${external_tokenizer_model} "
+    else
+        tokenizer_checkpoint_path_="${ssl_tokenizer_exp}/epoch_latest.pt"
+        if [ ! -f "${tokenizer_checkpoint_path_}" ]; then
+            log "Generating tokenizer checkpoint for inference"
+            generate_checkpoint "${ssl_tokenizer_exp}" "${tokenizer_checkpoint_path_}"
+        fi
+        _opts+="--checkpoint_path ${tokenizer_checkpoint_path_} "
+        _opts+="--config_path ${ssl_tokenizer_exp}/config.yaml "
+    fi
+    _opts+="${_waveform_opt} "
+    
+    _nj=$((ngpu==0?nj:ngpu))
+    _ngpu=$((ngpu==0?0:1))
+    
+    for _data_dir in "${_ssl_valid_dir}" "${_ssl_train_dir}"; do
+        ./scripts/feats/audio_tokenization.sh \
+            --codec_choice beats \
+            --file_name ${_scp} \
+            --src_dir "${_data_dir}" \
+            --tgt_dir "${_data_dir}/iter${iteration}_${_tokenizer_inference_tag}" \
+            --nj "${_nj}" --ngpu "${_ngpu}" --batch_size "${tokenizer_inference_batch_size}" \
+            ${_opts}
+
+        cp "${_data_dir}/iter${iteration}_${_tokenizer_inference_tag}/${_scp%.scp}_beats.txt" \
+            "${_data_dir}/target_iter${iteration}_${_tokenizer_inference_tag}"
+    done
+}
+
+if ! "${skip_train}"; then
     if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
-        log "Stage 5: BEATs Tokenization: ${data_feats}/${train_set}, ${data_feats}/${valid_set}"
+        log "Stage 5: BEATs Random Tokenization: ${data_feats}/${train_set}, ${data_feats}/${valid_set}"
+        setup_common_vars
         
         _opts=
-        _tokenizer_inference_tag="tok"
         if [ -n "${tokenizer_inference_config}" ]; then
             _opts+="--config_path ${tokenizer_inference_config} "
-            _tokenizer_inference_tag="$(basename "${tokenizer_inference_config}" .yaml)"
         fi
-        if [ ${feats_type} = raw ]; then
-            _file_name=wav.scp
-            _opts+="--waveform_input true "
-        elif [ ${feats_type} = fbank ]; then
-            _file_name=feats.scp
-            _opts+="--waveform_input false "
-        fi
+        _opts+="${_waveform_opt} "
+
         # Tokenize
         # TODO(shikhar): Undo changes to dump_codec.py
         _nj=$((ngpu==0?nj:ngpu))
         _ngpu=$((ngpu==0?0:1))
         for dset in "${valid_set}" "${train_set}"; do
             ./scripts/feats/audio_tokenization.sh \
-                --codec_choice ${codec_choice} \
-                --file_name ${_file_name} \
+                --codec_choice beats_random \
+                --file_name ${_scp} \
                 --src_dir "${data_feats}/${dset}" \
                 --tgt_dir "${data_feats}/${dset}/iter0_${_tokenizer_inference_tag}" \
                 ${_opts} \
                 --nj "${_nj}" --ngpu ${_ngpu} --batch_size "${tokenizer_inference_batch_size}"
-            cp "${data_feats}/${dset}/iter0_${_tokenizer_inference_tag}/${_file_name%.scp}_${codec_choice}.txt" "${data_feats}/${dset}/target_iter0_${_tokenizer_inference_tag}"
+            cp "${data_feats}/${dset}/iter0_${_tokenizer_inference_tag}/${_scp%.scp}_beats_random.txt" "${data_feats}/${dset}/target_iter0_${_tokenizer_inference_tag}"
         done
         
         # Prepare token list
@@ -320,8 +503,7 @@ if ! "${skip_train}"; then
     fi
 
     if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
-        _ssl_train_dir="${data_feats}/${train_set}"
-        _ssl_valid_dir="${data_feats}/${valid_set}"
+        setup_common_vars
 
         log "Stage 6: BEATs collect stats: train_set=${_ssl_train_dir}, valid_set=${_ssl_valid_dir}"
 
@@ -329,19 +511,7 @@ if ! "${skip_train}"; then
         if [ -n "${train_config}" ]; then
             _opts+="--config ${train_config} "
         fi
-
-        _feats_type="$(<${_ssl_train_dir}/feats_type)"
-
-        if [ "${_feats_type}" = raw ]; then
-            _scp=wav.scp
-            _type=sound
-        elif [ "${_feats_type}" = fbank ]; then
-            _scp=feats.scp
-            _type=kaldi_ark
-        else
-            log "Error: not supported: --feats_type ${feats_type}"
-            exit 2
-        fi
+        _opts+="${_waveform_opt} "
         
         # 1. Split the key file
         _logdir="${ssl_stats_dir}/logdir"
@@ -374,11 +544,6 @@ if ! "${skip_train}"; then
         log "BEATs collect-stats started... log: '${_logdir}/stats.*.log'"
         
         # Run collectstats
-        _tokenizer_inference_tag="tok"
-        if [ -n "${tokenizer_inference_config}" ]; then
-            _tokenizer_inference_tag="$(basename "${tokenizer_inference_config}" .yaml)"
-        fi
-        
         # shellcheck disableSC2046,SC2086
         ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
             ${python} -m espnet2.bin.beats_train \
@@ -414,286 +579,26 @@ if ! "${skip_train}"; then
     fi
     
     if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
-        _ssl_train_dir="${data_feats}/${train_set}"
-        _ssl_valid_dir="${data_feats}/${valid_set}"
+        setup_common_vars
         log "Stage 7: BEATs Training: train_set=${_ssl_train_dir}, valid_set=${_ssl_valid_dir}"
-
-        _tokenizer_inference_tag="tok"
-        if [ -n "${tokenizer_inference_config}" ]; then
-            _tokenizer_inference_tag="$(basename "${tokenizer_inference_config}" .yaml)"
-        fi
         for ((iter=${train_start_iter}; iter<=${train_stop_iter};iter++)); do
-            
-            _feats_type="$(<${_ssl_train_dir}/feats_type)"
-            if [ "${_feats_type}" = raw ]; then
-                _scp=wav.scp
-                _type=sound
-            elif [ "${_feats_type}" = fbank ]; then
-                _scp=feats.scp
-                _type=kaldi_ark
-            else
-                log "Error: not supported: --feats_type ${feats_type}"
-                exit 2
-            fi
-
-            log "Iter ${iter} BEATs Training started..."
-            
-            ssl_exp="${expdir}/beats_iter${iter}_${ssl_tag}"
-            ssl_tokenizer_exp="${expdir}/beats_tokenizer_iter${iter}_${ssl_tag}"
-
+            log "Starting iteration ${iter} of BEATs Training"
             if ! [ ${iter} -eq 0 ]; then
-                _opts=
-                if [ -n "${tokenizer_train_config}" ]; then
-                    # To generate the config file: e.g.
-                    #   % python3 -m espnet2.bin.beats_tokenizer_train --print_config --optim adam
-                    _opts+="--config ${tokenizer_train_config} "
-                fi
-                prev_iter=$((iter - 1))
-                teacher_ckpt_path_="${expdir}/beats_iter${prev_iter}_${ssl_tag}/${inference_ssl_model}"
-                if [ -n "${external_teacher_model}" ]; then
-                    teacher_ckpt_path_="${external_teacher_model}"
-                fi
-                log "Using teacher model checkpoint: ${teacher_ckpt_path_}"
-                log "BEATs Tokenizer Training started... log: '${ssl_tokenizer_exp}/train.log'"
-                mkdir -p "${ssl_tokenizer_exp}"; echo "${run_args} --stage 7 \"\$@\"; exit \$?" > "${ssl_tokenizer_exp}/run.sh"; chmod +x "${ssl_tokenizer_exp}/run.sh"
-                if echo "${cuda_cmd}" | grep -e queue.pl -e queue-freegpu.pl &> /dev/null; then
-                    # SGE can't include "/" in a job name
-                    jobname="$(basename ${ssl_tokenizer_exp})"
+                if [ -z "${external_tokenizer_model}" ]; then
+                    train_tokenizer ${iter}
                 else
-                    jobname="${ssl_tokenizer_exp}/train.log"
+                    if [ "${train_start_iter}" -ne "${train_stop_iter}" ]; then
+                        log "Error: External tokenizer model is provided, but training is requested for multiple iterations"
+                        exit 1
+                    fi
                 fi
-                
-                ${python} -m espnet2.bin.launch \
-                    --cmd "${cuda_cmd} --name ${jobname}" \
-                    --log "${ssl_tokenizer_exp}"/train.log \
-                    --ngpu "${ngpu}" \
-                    --num_nodes "${num_nodes}" \
-                    --init_file_prefix "${ssl_tokenizer_exp}"/.dist_init_ \
-                    --multiprocessing_distributed true -- \
-                    ${python} -m espnet2.bin.beats_tokenizer_train \
-                        --use_preprocessor true \
-                        --beats_teacher_ckpt_path "${teacher_ckpt_path_}" \
-                        --train_data_path_and_name_and_type "${_ssl_train_dir}/${_scp},speech,${_type}" \
-                        --valid_data_path_and_name_and_type "${_ssl_valid_dir}/${_scp},speech,${_type}" \
-                        --train_shape_file "${ssl_stats_dir}/train/speech_shape" \
-                        --valid_shape_file "${ssl_stats_dir}/valid/speech_shape" \
-                        --resume true \
-                        --fold_length "${speech_fold_length}" \
-                        --output_dir "${ssl_tokenizer_exp}" \
-                        ${_opts} ${beats_args}
-                
-                ########
-                # Convert checkpoint to float32 for further inference!
-                # python /data/user_data/sbharad2/espnet/espnet2/beats/generate_beats_checkpoint.py \
-                #     --espnet_model_checkpoint_path /data/user_data/sbharad2/espnet/egs2/as2m/ssl1/exp/beats_iter0_iter020250215.140135/checkpoint_36/36/mp_rank_00_model_states.pt \
-                #     --output_path /data/user_data/sbharad2/espnet/egs2/as2m/ssl1/exp/beats_iter0_iter020250215.140135/epoch36.pt \
-                #     --espnet_model_config_path /data/user_data/sbharad2/espnet/egs2/as2m/ssl1/exp/beats_iter0_iter020250215.140135/config.yaml \
-                #     --deepspeed_checkpoint
-                ########
-
-                log "Iter ${iter} BEATs Tokenizer Training completed, model saved in: ${ssl_tokenizer_exp}"
-                exit 1
-                
-                # Inference with tokenizer
-                _opts=
-                if [ -n "${external_tokenizer_model}" ]; then
-                    _tokenizer_ckpt_path="${external_tokenizer_model}"
-                    _opts+="--checkpoint_path ${_tokenizer_ckpt_path} "
-                else
-                    _tokenizer_ckpt_path=${ssl_tokenizer_exp}/${tokenizer_inference_model}
-                    _tokenizer_config_path=${ssl_tokenizer_exp}/config.yaml
-                    _opts+="--checkpoint_path ${_tokenizer_ckpt_path} --config_path ${_tokenizer_config_path} "
-                fi
-
-                codec_choice=beats
-                if [ ${feats_type} = raw ]; then
-                    _file_name=wav.scp
-                    _opts+="--waveform_input true "
-                elif [ ${feats_type} = fbank ]; then
-                    _file_name=feats.scp
-                    _opts+="--waveform_input false "
-                fi
-                
-                log "Inference with ${_opts}."
-                for _data_dir in "${_ssl_valid_dir}" "${_ssl_train_dir}"; do
-                    _nj=$((ngpu==0?nj:ngpu))
-                    _ngpu=$((ngpu==0?0:1))
-                    ./scripts/feats/audio_tokenization.sh \
-                        --codec_choice ${codec_choice} \
-                        --file_name ${_file_name} \
-                        --src_dir "${_data_dir}" \
-                        --tgt_dir "${_data_dir}/iter${iter}_${_tokenizer_inference_tag}" \
-                        --nj "${_nj}" --ngpu "${_ngpu}" --batch_size "${tokenizer_inference_batch_size}" \
-                        ${_opts}
-
-                    cp "${_data_dir}/iter${iter}_${_tokenizer_inference_tag}/${_file_name%.scp}_${codec_choice}.txt" \
-                        "${_data_dir}/target_iter${iter}_${_tokenizer_inference_tag}"
-                done
-                log "Inference with tokenizer model completed."
+                tokenizer_inference ${iter}
             fi
-
-            # Train beats encoder model
-            _opts=
-            if [ -n "${train_config}" ]; then
-                # To generate the config file: e.g.
-                #   % python3 -m espnet2.bin.beats_train --print_config --optim adam
-                _opts+="--config ${train_config} "
-            fi
-
-            if [ "${num_splits_ssl}" -gt 1 ]; then
-                # If you met a memory error when parsing text files, this option may help you.
-                # The corpus is split into subsets and each subset is used for training one by one in order,
-                # so the memory footprint can be limited to the memory required for each dataset.
-
-                _split_dir="${ssl_stats_dir}/splits${num_splits_ssl}"
-                if [ ! -f "${_split_dir}/.done" ]; then
-                    rm -f "${_split_dir}/.done"
-                    ${python} -m espnet2.bin.split_scps \
-                        --scps \
-                        "${_ssl_train_dir}/${_scp}" \
-                        "${_ssl_train_dir}/target_iter${iter}_${_tokenizer_inference_tag}" \
-                        "${ssl_stats_dir}/train/speech_shape" \
-                        "${ssl_stats_dir}/train/target_shape.word" \
-                        --num_splits "${num_splits_ssl}" \
-                        --output_dir "${_split_dir}"
-                    touch "${_split_dir}/.done"
-                else
-                    log "${_split_dir}/.done exists. Spliting is skipped"
-                fi
-
-                _opts+="--train_data_path_and_name_and_type ${_split_dir}/${_scp},speech,${_type} "
-                _opts+="--train_data_path_and_name_and_type ${_split_dir}/target_iter${iter}_${_tokenizer_inference_tag},target,text "
-                _opts+="--train_shape_file ${_split_dir}/speech_shape "
-                _opts+="--train_shape_file ${_split_dir}/target_shape.word "
-                _opts+="--multiple_iterator true "
-
-            else
-                _opts+="--train_data_path_and_name_and_type ${_ssl_train_dir}/${_scp},speech,${_type} "
-                _opts+="--train_data_path_and_name_and_type ${_ssl_train_dir}/target_iter${iter}_${_tokenizer_inference_tag},target,text "
-                _opts+="--train_shape_file ${ssl_stats_dir}/train/speech_shape "
-                _opts+="--train_shape_file ${ssl_stats_dir}/train/target_shape.word "
-            fi
-
-            log "Generate '${ssl_exp}/run.sh'. You can resume the process from stage 7 using this script"
-            mkdir -p "${ssl_exp}"; echo "${run_args} --stage 7 \"\$@\"; exit \$?" > "${ssl_exp}/run.sh"; chmod +x "${ssl_exp}/run.sh"
-
-            # NOTE(kamo): --fold_length is used only if --batch_type=folded and it's ignored in the other case
-            log "BEATs Training started... log: '${ssl_exp}/train.log'"
-            if echo "${cuda_cmd}" | grep -e queue.pl -e queue-freegpu.pl &> /dev/null; then
-                # SGE can't include "/" in a job name
-                jobname="$(basename ${ssl_exp})"
-            else
-                jobname="${ssl_exp}/train.log"
-            fi
-            
-            # shellcheck disable=SC2086
-            ${python} -m espnet2.bin.launch \
-                --cmd "${cuda_cmd} --name ${jobname}" \
-                --log "${ssl_exp}"/train.log \
-                --ngpu "${ngpu}" \
-                --num_nodes "${num_nodes}" \
-                --init_file_prefix "${ssl_exp}"/.dist_init_ \
-                --multiprocessing_distributed true -- \
-                ${python} -m espnet2.bin.beats_train \
-                    --use_preprocessor true \
-                    --token_list "${token_listdir}/tokens.txt" \
-                    --valid_data_path_and_name_and_type "${_ssl_valid_dir}/${_scp},speech,${_type}" \
-                    --valid_data_path_and_name_and_type "${_ssl_valid_dir}/target_iter${iter}_${_tokenizer_inference_tag},target,text" \
-                    --valid_shape_file "${ssl_stats_dir}/valid/speech_shape" \
-                    --valid_shape_file "${ssl_stats_dir}/valid/target_shape.word" \
-                    --resume true \
-                    --fold_length "${speech_fold_length}" \
-                    --fold_length "${text_fold_length}" \
-                    --output_dir "${ssl_exp}" \
-                    ${_opts} ${beats_args}
-
-            log "Iter ${iter} BEATs Training completed, model saved in: ${ssl_exp}"
+            train_encoder ${iter}
         done
     fi
 else
     log "Skip the training stages"
 fi
-
-
-
-# packed_model="${ssl_exp}/${ssl_exp##*/}_${inference_ssl_model%.*}.zip"
-# Skip pack preparation if using a downloaded model
-# if ! "${skip_packing}"; then
-#     if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
-#         log "Stage 8: Pack model: ${packed_model}"
-
-#         _opts=
-#         if [ "${feats_normalize}" = global_mvn ]; then
-#             _opts+="--option ${ssl_stats_dir}/train/feats_stats.npz "
-#         fi
-#         # shellcheck disable=SC2086
-#         ${python} -m espnet2.bin.pack ssl \
-#             --ssl_train_config "${ssl_exp}"/config.yaml \
-#             --ssl_model_file "${ssl_exp}"/"${inference_ssl_model}" \
-#             ${_opts} \
-#             --option "${ssl_exp}"/images \
-#             --option "${expdir}/${km_tag}/km_${n_targets_list[${train_stop_iter}]}.mdl" \
-#             --outpath "${packed_model}"
-#     fi
-# else
-#     log "Skip the packing stage"
-# fi
-
-# if ! "${skip_upload_hf}"; then
-#     if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
-#         [ -z "${hf_repo}" ] && \
-#             log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace, follow the following steps described here https://github.com/espnet/espnet/blob/master/CONTRIBUTING.md#132-espnet2-recipes" && \
-#         exit 1
-#         log "Stage 9: Upload model to HuggingFace: ${hf_repo}"
-
-#         if [ ! -f "${packed_model}" ]; then
-#             log "ERROR: ${packed_model} does not exist. Please run stage 8 first."
-#             exit 1
-#         fi
-
-#         gitlfs=$(git lfs --version 2> /dev/null || true)
-#         [ -z "${gitlfs}" ] && \
-#             log "ERROR: You need to install git-lfs first" && \
-#             exit 1
-
-#         dir_repo=${expdir}/hf_${hf_repo//"/"/"_"}
-#         [ ! -d "${dir_repo}" ] && git clone https://huggingface.co/${hf_repo} ${dir_repo}
-
-#         if command -v git &> /dev/null; then
-#             _creator_name="$(git config user.name)"
-#             _checkout="git checkout $(git show -s --format=%H)"
-#         else
-#             _creator_name="$(whoami)"
-#             _checkout=""
-#         fi
-#         # /some/where/espnet/egs2/foo/ssl1/ -> foo/ssl1
-#         _task="$(pwd | rev | cut -d/ -f2 | rev)"
-#         # foo/ssl1 -> foo
-#         _corpus="${_task%/*}"
-#         _model_name="${_creator_name}/${_corpus}_$(basename ${packed_model} .zip)"
-
-#         # copy files in ${dir_repo}
-#         unzip -o ${packed_model} -d ${dir_repo}
-#         # Generate description file
-#         # shellcheck disable=SC2034
-#         hf_task=self-supervised-learning
-#         # shellcheck disable=SC2034
-#         espnet_task=SSL
-#         # shellcheck disable=SC2034
-#         task_exp=${ssl_exp}
-#         eval "echo \"$(cat scripts/utils/TEMPLATE_HF_Readme.md)\"" > "${dir_repo}"/README.md
-
-#         this_folder=${PWD}
-#         cd ${dir_repo}
-#         if [ -n "$(git status --porcelain)" ]; then
-#             git add .
-#             git commit -m "Update model"
-#         fi
-#         git push
-#         cd ${this_folder}
-#     fi
-# else
-#     log "Skip the uploading to HuggingFace stage"
-# fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"

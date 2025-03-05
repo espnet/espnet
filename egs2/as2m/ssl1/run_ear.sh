@@ -20,7 +20,7 @@ ssl_tag=${mynametag}.${timestamp}
 
 
 tokenizer_inf_config=conf/tokenizer_inference_beats2.yaml
-model_size=base
+model_size=large
 ssl_tag=${model_size}.7p2M
 
 if [ $model_size == "large" ]; then
@@ -45,6 +45,7 @@ mkdir -p "${storage_dir}"
 # 7: gpu (training)
 num_splits_ssl=1
 external_teacher_model=
+external_tokenizer_model=
 # use_wandb=true
 # wandb_project=BEATsPTi0
 # wandb_args="--use_wandb ${use_wandb} --wandb_project ${wandb_project} --wandb_name ${ssl_tag} --wandb_entity shikhar"
@@ -67,11 +68,12 @@ external_teacher_model=
     --nj 32 \
     --max_wav_duration 11 \
     --external_teacher_model "${external_teacher_model}" \
+    --external_tokenizer_model "${external_tokenizer_model}" \
     --tokenizer_train_config "${tokenizer_train_config}" \
     --tokenizer_inference_config "${tokenizer_inf_config}" \
     --tokenizer_inference_batch_size 160 \
     --train_config "${train_config}" \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
-    --num_splits_ssl ${num_splits_ssl} \
+    --num_splits_ssl "${num_splits_ssl}" \
     "$@" #--beats_args "${wandb_args}" 
