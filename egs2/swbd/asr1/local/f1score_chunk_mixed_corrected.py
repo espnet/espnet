@@ -1,8 +1,15 @@
-# pred_file=
+import matplotlib.pyplot as plt
+import numpy as np
+from sklearn.metrics import (
+    ConfusionMatrixDisplay,
+    classification_report,
+    confusion_matrix,
+    f1_score,
+    roc_auc_score,
+)
+
 word_dict = {}
-for line in open(
-    "/Users/siddhantarora/venv/bolt-samples/pytorch/Two_Channel_Label_Mono_update.csv"
-):
+for line in open("Test_Two_Channel_Label_Mono.csv"):
     line1 = line.strip().split(",")
     if ("sw0" + line1[0]) not in word_dict:
         word_dict["sw0" + line1[0]] = {}
@@ -12,9 +19,7 @@ for line in open(
         word_dict["sw0" + line1[0]][float(line1[1])][float(line1[2])] = line1
     else:
         print("error")
-        import pdb
-
-        pdb.set_trace()
+        exit()
 
 spk_dict = {}
 label_dict = {}
@@ -30,24 +35,13 @@ for id1 in word_dict:
     label_dict[id1] = label_text_str
 
 pred_file_arr = []
-str1 = "/Users/siddhantarora/venv/bolt-samples/pytorch/decode_asr_chunk_asr_model_valid.loss.ave_corrected_mix/test/logdir/output."
+str1 = "decode_asr_chunk_asr_model_valid.loss.ave_corrected_mix/test/logdir/output."
 for k in range(1, 5):
     pred_file_arr.append(open(str1 + str(k) + "/1best_recog/text"))
 
-# gt_file=
-gt_arr = [
-    k.strip().split()[1:]
-    for k in open(
-        "/Users/siddhantarora/venv/bolt-samples/pytorch/data_2channel_mix/test/text"
-    )
-]
+gt_arr = [k.strip().split()[1:] for k in open("data/test/text")]
 
-gt_id_arr = [
-    k.split()[0]
-    for k in open(
-        "/Users/siddhantarora/venv/bolt-samples/pytorch/data_2channel_mix/test/text"
-    )
-]
+gt_id_arr = [k.split()[0] for k in open("data/test/text")]
 pred_arr = []
 spk_arr = []
 count = 0
@@ -56,18 +50,15 @@ for pred_file in pred_file_arr:
         assert line.split()[0] == gt_id_arr[count]
         if gt_id_arr[count] == "sw04153":
             gt_arr[count] = ["NA"] + gt_arr[count]
-        # import pdb;pdb.set_trace()
         assert len(spk_dict[gt_id_arr[count]]) == len(gt_arr[count])
         gt_arr[count] = label_dict[gt_id_arr[count]]
         spk_arr.append(spk_dict[gt_id_arr[count]])
         pred_index_arr = line.strip().split()[1:]
         if len(pred_index_arr) < len(gt_arr[count]):
             assert len(gt_arr[count]) - len(pred_index_arr) == 1
-            # import pdb;pdb.set_trace()
             gt_arr[count] = gt_arr[count][: len(pred_index_arr)]
         elif len(pred_index_arr) > len(gt_arr[count]):
             assert len(pred_index_arr) - len(gt_arr[count]) == 1
-            # import pdb;pdb.set_trace()
             pred_index_arr = pred_index_arr[: len(gt_arr[count])]
         count += 1
         for subline in pred_index_arr:
@@ -97,8 +88,6 @@ print(len(gt_arr_total))
 print(len(pred_arr_update))
 labels = ["C", "I", "BC", "T"]
 score = 0
-import numpy as np
-from sklearn.metrics import classification_report, f1_score, roc_auc_score
 
 gt_arr = np.array(gt_arr_total)
 pred_arr = np.array(pred_arr_update)
@@ -115,17 +104,8 @@ for i in range(len(pred_arr)):
     elif pred_arr[i][4] > 0.35:
         pred_final_arr.append("T")
     else:
-        # import pdb;pdb.set_trace()
         pred_final_arr.append(np.argmax([pred_arr[i][0]] + list(pred_arr[i][2:])))
 pred_final_arr = np.array(pred_final_arr)
-import matplotlib.pyplot as plt
-from sklearn.metrics import (
-    ConfusionMatrixDisplay,
-    classification_report,
-    confusion_matrix,
-    f1_score,
-    roc_auc_score,
-)
 
 # cm = confusion_matrix(gt_arr, pred_final_arr, labels=labels)
 # disp = ConfusionMatrixDisplay(confusion_matrix=cm,
