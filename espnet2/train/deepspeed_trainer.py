@@ -4,7 +4,11 @@ import argparse
 import dataclasses
 import json
 import logging
+import time
+import errno
+import base64
 
+import humanfriendly
 import torch
 import torch.distributed as dist
 
@@ -39,6 +43,7 @@ class DeepSpeedTrainerOptions:
     train_dtype: Union[str, torch.dtype]
     log_interval: Optional[int]
     output_dir: Union[Path, str]
+    use_wandb: bool
     max_epoch: int
     deepspeed_config: Union[Path, str]
 
@@ -71,9 +76,9 @@ class DeepSpeedTrainer(Trainer):
         ckpt_path = output_dir / f"checkpoint_{ckpt_num}"
         logging.info(f"Resume training from {ckpt_path}")
 
-        _, clinet_states = model.load_checkpoint(ckpt_path)
+        _, client_states = model.load_checkpoint(ckpt_path)
 
-        reporter.load_state_dict(clinet_states["reporter"])
+        reporter.load_state_dict(client_states["reporter"])
 
     @classmethod
     @typechecked
@@ -92,7 +97,7 @@ class DeepSpeedTrainer(Trainer):
         # (2) initailize deepspeed
         if deepspeed is None:
             raise ImportError("Cannot proceed as deepspeed is not installed")
-        deepspeed_config = json.load(open(trainer_options.deepspeed_config))
+        deepspeed_config = cls.setup_deepspeed_config(trainer_options.deepspeed_config)
         trainer_options.train_dtype = cls.setup_data_dtype(deepspeed_config)
         model, _, _, _ = deepspeed.initialize(
             model=model,
@@ -119,9 +124,25 @@ class DeepSpeedTrainer(Trainer):
                 f"The training has already reached at max_epoch: {start_epoch}"
             )
 
+        start_time = time.perf_counter()
         for iepoch in range(start_epoch, trainer_options.max_epoch + 1):
             set_all_random_seed(trainer_options.seed + iepoch)
             reporter.set_epoch(iepoch)
+            if dist.get_rank() == 0:
+                if iepoch != start_epoch:
+                    logging.info(
+                        "{}/{}epoch started. Estimated time to finish: {}".format(
+                            iepoch,
+                            trainer_options.max_epoch,
+                            humanfriendly.format_timespan(
+                                (time.perf_counter() - start_time)
+                                / (iepoch - start_epoch)
+                                * (trainer_options.max_epoch - iepoch + 1)
+                            ),
+                        )
+                    )
+                else:
+                    logging.info(f"{iepoch}/{trainer_options.max_epoch}epoch started")
 
             # (5.1) train one epoch
             with reporter.observe("train") as sub_reporter:
@@ -153,6 +174,8 @@ class DeepSpeedTrainer(Trainer):
             if dist.get_rank() == 0:
                 logging.info(reporter.log_message())
                 reporter.matplotlib_plot(output_dir / "images")
+                if trainer_options.use_wandb:
+                    reporter.wandb_log()
 
     @classmethod
     @typechecked
@@ -172,6 +195,7 @@ class DeepSpeedTrainer(Trainer):
                 log_interval = max(len(iterator) // 20, 10)
             except TypeError:
                 log_interval = 100
+        use_wandb = options.use_wandb
 
         for iiter, (utt_id, batch) in enumerate(
             reporter.measure_iter_time(iterator, "iter_time"), 1
@@ -210,6 +234,8 @@ class DeepSpeedTrainer(Trainer):
                 reporter.next()
                 if iiter % log_interval == 0:
                     logging.info(reporter.log_message(-log_interval))
+                    if use_wandb:
+                        reporter.wandb_log()
 
         else:
             iterator_stop.fill_(1)
@@ -269,3 +295,18 @@ class DeepSpeedTrainer(Trainer):
 
         else:
             return torch.float
+
+    @classmethod
+    @typechecked
+    def setup_deepspeed_config(cls, deepspeed_config: Union[str, Path]):
+        try:
+            return json.load(open(deepspeed_config))
+        except (FileNotFoundError, OSError) as e:
+            if isinstance(e, OSError) and e.errno != errno.ENAMETOOLONG:
+                # OSError needed because configs are too long so we get FileNameTooLongError
+                raise e
+            logging.info(
+                f"Loading deepspeed config: {deepspeed_config} (a Base64-encoded string)"
+            )
+            decoded_json_str = base64.b64decode(deepspeed_config).decode("utf-8")
+            return json.loads(decoded_json_str)

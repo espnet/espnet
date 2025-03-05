@@ -8,11 +8,14 @@ from torch.linalg import vector_norm
 
 
 class RandomProjectionQuantizer(nn.Module):
-    def __init__(self, dim, codebook_size, codebook_dim, norm=True):
+    def __init__(self, dim, codebook_size, codebook_dim, norm=True, seed=45):
         super().__init__()
         # Random projection layer
         self.random_projection = nn.Linear(dim, codebook_dim, bias=False)
-        nn.init.xavier_uniform_(self.random_projection.weight)
+        # nn.init.xavier_uniform_(self.random_projection.weight)
+        # NOTE(shikhar): xavier_normal has less skew
+        nn.init.xavier_normal_(self.random_projection.weight)
+
         self.maybe_norm = (
             nn.LayerNorm(codebook_dim, elementwise_affine=False)
             if norm

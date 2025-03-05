@@ -8,14 +8,16 @@ from inspect import signature
 import numpy as np
 import torch
 import yaml
+import logging
 
 from espnet2.speechlm.tokenizer.abs_tokenizer import AbsTokenizer
 from espnet2.speechlm.tokenizer.beats_tokenizer import (  # noqa
     BeatsRandomTokenizer,
     BeatsTokenizer,
-    BeatsTokenizerConfig,
 )
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
+
+logger = logging.getLogger(__name__)
 
 
 class CodecTokenizer(AbsTokenizer):
@@ -173,14 +175,17 @@ class CodecTokenizer(AbsTokenizer):
             self.size_codebook = self.codec.config.quant_n
             self.sample_rate = 16000
             self.subsample = 320
+            # NOTE(shikhar): Might be greater than 320 if audio does not fit well.
+            # Example 10 second audio at 16khz returns 496 codes.
         else:
             raise ValueError(f"Codec {codec_choice} is not supported")
 
-    def encode(self, wavs):
-        """Convert audio waveforms into codec codes.
-
+    def encode(self, wavs, wav_lens=None):
+        """
+        Convert audio waveforms into codec codes
         Input:
             wavs (torch.Tensor): float tensor in shape [B, 1, n_sample],
+            wav_lens (torch.Tensor): int tensor in shape [B]
         Output:
             codes (torch.Tensor): Int tensor in shape [B, T, n_codebook]
         """
@@ -202,17 +207,18 @@ class CodecTokenizer(AbsTokenizer):
             codes = self.codec.encode(wavs).permute(1, 2, 0)
 
         elif self.codec_choice == "beats" or self.codec_choice == "beats_random":
-            wav_in = wavs.squeeze(1)
+            wav_in = wavs.squeeze(1)  # [B, n_sample]
             if wav_in.max() > 1.0 or wav_in.min() < -1.0:
                 # Beats expects input in range [-1, 1]
                 wav_in = wav_in.to(torch.float32)
                 wav_in = wav_in / 2**15
+                logger.warning(
+                    "Input waveform is not in range [-1, 1] for BEATs. Normalizing!."
+                )
             # Assume no padding, all wavs are full length
-            assert wav_in.shape[0] == 1, "BeatsTokenizer only supports batch size 1"
-            wav_len = torch.LongTensor([wav_in.size(1)] * wav_in.size(0)).to(
-                wav_in.device
-            )
-            codes = self.codec.encode(xs_pad=wav_in, ilens=wav_len).unsqueeze(-1)
+            assert wav_lens is not None, "BeatsTokenizer requires wav_lens."
+            codes, _, _, _ = self.codec.encode(xs_pad=wav_in, ilens=wav_lens)
+            codes = codes.unsqueeze(-1)
 
         else:
             raise NotImplementedError
@@ -299,16 +305,17 @@ class CodecTokenizer(AbsTokenizer):
 
         return waveform
 
-    def forward(self, wavs):
-        """Convert audio waveforms into flatten codec codes and resynthesis the audio.
-
+    def forward(self, wavs, wav_lens=None):
+        """
+        Convert audio waveforms into flatten codec codes and resynthesis the audio
         Input:
             wavs (torch.Tensor): float tensor in shape [B, 1, n_sample],
+            wav_lens (torch.Tensor): int tensor in shape [B]
         Output:
             codes (torch.Tensor): Int tensor in shape [B, T * n_codebook],
             resyn_audio (torch.Tensor): float tensor in shape [B, n_samples]
         """
-        codes = self.encode(wavs)
+        codes = self.encode(wavs, wav_lens)
 
         if self.dump_audio:
             resyn_audio = self.decode(codes)

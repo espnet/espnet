@@ -12,7 +12,7 @@ import kaldiio
 import numpy as np
 import torch
 
-from espnet2.speechlm.tokenizer.codec_tokenizer import CodecTokenizer
+from espnet2.speechlm.tokenizer.audio_tokenizer import AudioTokenizer
 from espnet2.utils.types import str2bool
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 
@@ -22,7 +22,7 @@ logging.basicConfig(
     level=os.environ.get("LOGLEVEL", "INFO").upper(),
     stream=sys.stdout,
 )
-logger = logging.getLogger("dump_codec")
+logger = logging.getLogger("dump_audio_tokens")
 
 
 def get_parser():
@@ -31,9 +31,9 @@ def get_parser():
     parser.add_argument("--codec_fs", type=int, default=16000)
     parser.add_argument("--batch_size", type=int, default=3)
     parser.add_argument("--dump_audio", type=str2bool, default=False)
+    parser.add_argument("--waveform_input", type=str2bool, default=True)
     parser.add_argument("--rank", type=int, default=1)
     parser.add_argument("--vocab_file", type=str, required=True)
-    parser.add_argument("--wav_wspecifier", type=str, default=None)
     parser.add_argument(
         "--bias",
         type=int,
@@ -62,11 +62,10 @@ def get_parser():
     return parser
 
 
-def dump_codec(
+def dump_audio_tokens(
     rspecifier: str,
     wspecifier: str,
     vocab_file: str,
-    wav_wspecifier: str,
     codec_choice: str,
     codec_fs: int,
     batch_size: int,
@@ -75,6 +74,7 @@ def dump_codec(
     rank: int,
     checkpoint_path: str = None,
     config_path: str = None,
+    waveform_input: bool = True,
 ):
     # (1) Device
     if torch.cuda.is_available():
@@ -91,33 +91,30 @@ def dump_codec(
 
     # (2) Codec Tokenizer Implementation
     logger.info(f"build with codec_choice: {codec_choice}")
-    tokenizer = CodecTokenizer(
+    tokenizer = AudioTokenizer(
         codec_choice,
         codec_fs,
         device,
         dump_audio,
         checkpoint_path,
         config_path,
+        waveform_input=waveform_input,
     )
 
     # (3) Tokenizer loop
     codec_writer = kaldiio.WriteHelper(wspecifier)
-    wav_reader = kaldiio.ReadHelper(rspecifier)
-    if wav_wspecifier is not None and dump_audio:
-        wav_ark_file, wav_scp_file = wav_wspecifier.split(":")[1].split(",")
-        wav_scp_writer = open(wav_scp_file, "w")
-        wav_ark_writer = open(wav_ark_file, "wb")
-    else:
-        wav_scp_writer, wav_ark_writer = None, None
+    audio_reader = kaldiio.ReadHelper(rspecifier)
 
     buffer, length_buffer, key_buffer = [], [], []
     wav_reader_len = len(open(rspecifier.split(":")[1]).readlines())
-    for idx, (key, (sample_rate, wav)) in enumerate(wav_reader):
-        if sample_rate != tokenizer.sample_rate:
-            raise ValueError("Sample rate mismatch between input audio and codec model")
-
-        if wav.ndim != 1:
-            raise ValueError("Multi-Channel audio is not supported so far")
+    idx = 0
+    for key, data in audio_reader:
+        if isinstance(data, tuple):
+            assert waveform_input, "Set waveform_input=True for raw wav"
+            sample_rate, wav = data  # raw wav
+        else:
+            assert not waveform_input, "Set waveform_input=False for fbank"
+            sample_rate, wav = None, data  # wav features
 
         wav = torch.from_numpy(wav)
         buffer.append(wav)
@@ -125,37 +122,32 @@ def dump_codec(
         key_buffer.append(key)
 
         if idx == wav_reader_len - 1 or len(buffer) % batch_size == 0:
-            wavs = pad_list(buffer, 0.0).to(device).unsqueeze(1).float()
+            wavs = pad_list(buffer, 0.0).to(device).float()
+            if wavs.dim() == 2:
+                wavs = wavs.unsqueeze(-1)
+            if sample_rate:
+                assert sample_rate == codec_fs
+            # b,t,d (d=1 for raw)
             wav_lens = torch.tensor(length_buffer, dtype=torch.int).to(device)
             with torch.no_grad():
-                codes, resyn_wavs = tokenizer(wavs, wav_lens)
+                codes, code_lengths = tokenizer(wavs, wav_lens)
             codes += bias
 
             codes = codes.detach().cpu().numpy()
-            for code, length, key in zip(codes, length_buffer, key_buffer):
-                code = code[: length // tokenizer.subsample * tokenizer.n_codebook]
+            code_lengths = code_lengths.detach().cpu().numpy()
+            assert codes.shape[0] == len(length_buffer)
+            assert code_lengths.shape[0] == len(length_buffer)
+            for code, length, key in zip(codes, code_lengths, key_buffer):
+                code = code[:length]
                 codec_writer[key] = code
 
-            if dump_audio:
-                resyn_wavs = resyn_wavs.detach().cpu().numpy()
-                for wav, length, key in zip(resyn_wavs, length_buffer, key_buffer):
-                    wav = wav[:length]
-                    kaldiio.save_ark(
-                        wav_ark_writer,
-                        {key: (wav, sample_rate)},
-                        scp=wav_scp_writer,
-                        append=True,
-                        write_function="soundfile",
-                        write_kwargs={"format": "wav", "subtype": None},
-                    )
-
             buffer, length_buffer, key_buffer = [], [], []
+        idx += 1
     # (4) dump vocabulary file
     if rank == 1:
         vocab_writer = open(vocab_file, "w")
-        for codebook_idx in range(tokenizer.n_codebook):
-            for code_idx in range(tokenizer.size_codebook):
-                vocab_writer.write(f"<codec_layer{codebook_idx}_code{code_idx}>\n")
+        for code_idx in range(tokenizer.size_codebook):
+            vocab_writer.write(f"{code_idx}\n")
 
 
 if __name__ == "__main__":
@@ -163,4 +155,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
     args = vars(args)
     logger.info(args)
-    dump_codec(**args)
+    dump_audio_tokens(**args)

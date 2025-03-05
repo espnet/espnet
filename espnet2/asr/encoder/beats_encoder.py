@@ -13,7 +13,6 @@
 import logging
 import math
 import warnings
-from contextlib import contextmanager
 from typing import Dict, Optional, Tuple
 
 import numpy as np
@@ -31,14 +30,19 @@ try:
         Wav2Vec2ConformerEncoder,
     )
 
-    is_transformers_available = True
-except ImportError:
-    is_transformers_available = False
+    transformers_import_error = None
+except ImportError as e:
+    transformers_import_error = e
 
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.specaug.specaug import SpecAug
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask, roll_tensor
+from espnet2.speechlm.tokenizer.beats_utils import (
+    forward_padding_mask_conv,
+    freeze_conv_module,
+    beats_frontend,
+)
 
 if V(torch.__version__) >= V("1.6.0"):
     from torch.cuda.amp import autocast
@@ -47,6 +51,11 @@ else:
     @contextmanager
     def autocast(enabled=True):
         yield
+
+
+is_torch_v25_to_v26 = V(torch.__version__) >= V("2.5.0") and V(torch.__version__) <= V(
+    "2.6.0"
+)
 
 
 class BeatsConfig:
@@ -103,6 +112,18 @@ class BeatsConfig:
         self.predictor_dropout: float = 0.1  # dropout probability for the predictor
         self.predictor_class: int = 527  # target class number for the predictor
 
+        # Decoder parameters
+        self.decoder_embed_dim: int = (
+            768  # decoder embedding dimension, audiomae is 512
+        )
+        self.decoder_pos_trainable: bool = False
+        self.decoder_attention_heads: int = 12
+        self.decoder_mlp_ratio: float = 4.0  # MLP to transformer dimension ratio
+        self.decoder_layers: int = 3  # number of decoder layers
+        self.codebook_vocab_size: int = 1024  # targets vectors in codebook
+        self.mask_ratio = 0.75  # masking ratio for pre-training
+        self.use_flash_attn = False  # use flash attention in MultiHead attention
+
         if cfg is not None:
             self.update(cfg)
 
@@ -154,6 +175,7 @@ class BeatsEncoder(AbsEncoder):
         fbank_std: float = 6.55582,
         roll_augment: bool = False,
         roll_interval: int = 1600,
+        is_pretraining: Optional[bool] = False,
     ) -> None:
         super().__init__()
 
@@ -173,13 +195,14 @@ class BeatsEncoder(AbsEncoder):
         # 4. No checkpoint and user-provided config: Use user-provided config
         if adapter_config or add_positional_information:
             # We need transformers library for adapter and positional embeddings
-            if not is_transformers_available:
+            if transformers_import_error:
                 raise ImportError(
                     "`transformers` is not available. Please install it "
                     " via `pip install transformers` or"
                     " `cd /path/to/espnet/tools && "
                     ". ./activate_python.sh"
                     " && ./installers/install_transformers.sh`."
+                    f"The original error was: {transformers_import_error}"
                 )
         config = BeatsConfig()  # Default config
         if beats_ckpt_path and beats_config:
@@ -215,6 +238,20 @@ class BeatsEncoder(AbsEncoder):
             kernel_size=self.input_patch_size,
             stride=self.input_patch_size,
             bias=config.conv_bias,
+        )
+        self.patch_embedding_pad = nn.Conv2d(
+            1,
+            1,
+            kernel_size=self.input_patch_size,
+            stride=self.input_patch_size,
+            bias=False,
+        )
+        self.raw2fbank_pad = nn.Conv1d(
+            1,
+            1,
+            kernel_size=400,
+            stride=160,
+            bias=False,
         )
         self.dropout_input = nn.Dropout(config.dropout_input)
         assert not config.deep_norm or not config.layer_norm_first
@@ -272,16 +309,18 @@ class BeatsEncoder(AbsEncoder):
         # than audio. We should add an option to use this via the config.
         self.min_input_length_at_16khz = 3200
 
-    def reload_pretrained_parameters(self):
-        """Initialization function for Beats.
+        self.is_pretraining = is_pretraining
+        self.mask_ratio = config.mask_ratio
+        self.use_flash_attn = config.use_flash_attn
+        if self.use_flash_attn:
+            assert V(torch.__version__) >= V(
+                "2.0.0"
+            ), "Flash attention requires PyTorch >= 2.0"
+        if is_pretraining:
+            assert config.mask_ratio > 0.0, "mask_ratio must be > 0.0 for pretraining."
+        self.initialize()
 
-        This must be called last in the initialization procedure.
-        The initialization occurs in three steps:
-        1. ESPnet initializes all modules.
-        2. This function initializes Beats encoder overriding 1.
-        3. Optionally, if we have the pretrained checkpoint, we load the
-            weights from the checkpoint overriding 2 and 1.
-        """
+    def initialize(self):
         logging.info("Beats Initialization function called.")
         if self.post_extract_proj:
             torch.nn.init.xavier_normal_(self.post_extract_proj.weight)
@@ -290,10 +329,27 @@ class BeatsEncoder(AbsEncoder):
         torch.nn.init.xavier_normal_(self.patch_embedding.weight)
         if self.patch_embedding.bias is not None:
             torch.nn.init.constant_(self.patch_embedding.bias, 0)
+        freeze_conv_module(self.patch_embedding_pad)
+        freeze_conv_module(self.raw2fbank_pad)
+        self.reload_pretrained_parameters()
 
-        # Beats has different initialization from ESPnet for other modules,
-        #  so override.
-        self.encoder.apply(init_bert_params)
+    def reload_pretrained_parameters(self):
+        """Initialization function for Beats.
+
+        This must be called last in the initialization procedure.
+        For pre-training the flow is,
+        1. All modules have an initialize function to set the weights.
+        2. We do not call espnet initialization once modules are built.
+
+        For fine-tuning using one of the recipes,
+        The initialization occurs in three steps:
+        1. BEATs modules initialize themselves as in 1 above.
+        2. ESPnet initializes all modules.
+            (this step inits the convnet weights in clotho_v2/asr1 recipe)
+        3. Optionally, if we have the pretrained checkpoint, we load the
+            weights from the checkpoint overriding 2 and 1 in this function.
+        """
+        logging.info("Beats parameter loading function called.")
         if self.loaded_state_dict_ is not None:
 
             load_info = self.load_state_dict(
@@ -308,18 +364,25 @@ class BeatsEncoder(AbsEncoder):
                 "It is expected to have 'predictor' listed above if you are "
                 "fine-tuning with only the Beats backbone."
             )
+        freeze_conv_module(self.patch_embedding_pad)
+        freeze_conv_module(self.raw2fbank_pad)
 
     def forward_padding_mask(
         self,
         features: torch.Tensor,
         padding_mask: torch.Tensor,
     ) -> torch.Tensor:
-        """Forward padding mask. Featuires: BTC, padding_mask: BT."""
+        """Forward padding mask. Features: BTC, padding_mask: BT."""
         extra = padding_mask.size(1) % features.size(1)
         if extra > 0:
             padding_mask = padding_mask[:, :-extra]
-        padding_mask = padding_mask.view(padding_mask.size(0), features.size(1), -1)
-        padding_mask = padding_mask.all(-1)  # remove totally empty sequences
+        padding_mask = padding_mask.contiguous().view(
+            padding_mask.size(0), features.size(1), -1
+        )
+        padding_mask = padding_mask.any(-1)  # remove totally empty sequences
+        # NOTE(shikhar): This should be any? snip_edges=True in kaldi
+        # This is problem with raw input, not with fbank input
+        # Probably replace this with a 1dconv kernel or abandon raw input.
         return padding_mask
 
     def preprocess(
@@ -328,6 +391,7 @@ class BeatsEncoder(AbsEncoder):
     ) -> torch.Tensor:
         """Preprocess raw audio."""
         fbanks = []
+        fbank_lens = []
         for waveform in source:
             waveform = waveform.unsqueeze(0) * 2**15  # float32 to int16
             fbank = ta_kaldi.fbank(
@@ -338,9 +402,11 @@ class BeatsEncoder(AbsEncoder):
                 frame_shift=10,
             )
             fbanks.append(fbank)
+            fbank_lens.append(fbank.shape[0])
         fbank = torch.stack(fbanks, dim=0)
         fbank = (fbank - self.fbank_mean) / (2 * self.fbank_std)
-        return fbank
+        fbank_lens = torch.tensor(fbank_lens).to(fbank.device)
+        return fbank, fbank_lens
 
     def output_size(self) -> int:
         return self._output_size
@@ -350,50 +416,127 @@ class BeatsEncoder(AbsEncoder):
         xs_pad: torch.Tensor,
         ilens: torch.Tensor,
         prev_states: torch.Tensor = None,
+        waveform_input: Optional[bool] = True,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
         """Wrapper for compatibility with ESPnets' AbsEncoder Interface.
 
         Args:
-            xs_pad: (B, T)
+            xs_pad: (B, T) or (B,T,D). If sound then (B,T) or (B,T,1) both work.
+                If features, then only (B,T,D) will work.
             ilens: (B,)
             prev_states: None
+            waveform_input: If True, then input is waveform. If False, then input is
+                already features.
         Returns:
             audio_representation: (B, T, D)
             output_lens: (B,)
             masks: None
         """
+        if xs_pad.dim() == 2 and waveform_input:
+            xs_pad = xs_pad.unsqueeze(-1)  # (B,T) -> (B,T,1) for sound
         if self.roll_augment and self.training:
-            xs_pad = roll_tensor(
-                xs_pad.unsqueeze(-1), ilens, fixed_intervals=self.roll_interval
-            ).squeeze(-1)
-        # NOTE(shikhar): If xs is not provided then the operation is costly,
-        # because this function tries to create a tensor of size maxlen x maxlen.
-        # Therfore, we unsqueeze and then squeeze tensors.
-        mask = make_pad_mask(
-            lengths=ilens, xs=xs_pad.unsqueeze(-1).unsqueeze(-1), length_dim=1
-        ).to(xs_pad.device)
-        # Adjust shapes to be compatible with Beats code
-        mask = mask.squeeze(-1).squeeze(-1)
-        audio_representation, mask = self.extract_features(
-            xs_pad,
-            mask,
-            max_layer=self.max_layer,
+            xs_pad = roll_tensor(xs_pad, ilens, fixed_intervals=self.roll_interval)
+        mask = make_pad_mask(lengths=ilens, traceable=False).to(xs_pad.device)
+        audio_representation, mask, restore_ids, kept_mask, patch_padding_mask = (
+            self.extract_features(
+                xs_pad,
+                mask,
+                max_layer=self.max_layer,
+                skip_fbank_extraction=not waveform_input,
+            )
         )
+        # patch_padding_mask is the padding mask before any patch masking,
+        # only valid in pretraining mode
         output_lens = (~mask).sum(-1)
+
+        if self.is_pretraining:
+            patch_lengths = (~patch_padding_mask).sum(-1)
+            # audio_representation only contains the unmasked portion
+            # Therefore patch_lengths > audio_representation.shape[1]
+            return audio_representation, patch_lengths, restore_ids, kept_mask
+
         return audio_representation, output_lens, None
+
+    def mask_sequence(self, x, padding_mask):
+        """Masks the input embedding sequence x for MLM style training.
+        Needs self.mask_ratio to be set.
+
+        Args:
+            x: [N, L, D], sequence of embeddings.
+            padding_mask: [N, L], padding mask for x seq.
+                True means padded.
+        Returns:
+            x_unmasked: [N, l, D], only unmasked portion of
+                the input sequence is returned.
+            padding_mask: [N, l], portion of padding mask
+                corresponding to x_unmasked. True means padded.
+            ids_restore: [N, L], restore ids for unshuffling.
+                ids_restore[b,j]  = position of x_unmasked[b,j] in x[b].
+                No guarantees for masked positions.
+            kept: [N, L], binary mask for the unmasked(kept) positions.
+                True if the position is kept. Useful for loss computation.
+        """
+        N, L, D = x.shape  # batch, length, dim
+
+        seq_lengths = (~padding_mask).sum(-1)
+        len_keep = (seq_lengths * (1 - self.mask_ratio)).round().to(dtype=torch.long)
+        max_len_kept = len_keep.max()
+
+        noise = torch.rand(N, L, device=x.device)  # noise in [0, 1]]
+        noise[padding_mask] = float("inf")
+        ids_shuffle = torch.argsort(noise, dim=1)
+        ids_keep = ids_shuffle[:, :max_len_kept]
+
+        # make new masks
+        padding_mask = make_pad_mask(lengths=len_keep, traceable=False).to(x.device)
+        kept = torch.cat(
+            [
+                ~padding_mask,
+                torch.zeros([N, L - max_len_kept], device=x.device, dtype=torch.bool),
+            ],
+            dim=1,
+        )
+
+        # sort only kept indices for maintaining same order x
+        ids_keep_sorted = ids_keep.clone()
+        ids_keep_sorted = torch.where(
+            padding_mask,
+            torch.tensor(L - 1, dtype=torch.long, device=x.device),
+            ids_keep_sorted,
+        )  # introduce L-1 for sorting only important elements
+        ids_keep_sorted = ids_keep_sorted.sort(dim=1)[0]
+        ids_keep_sorted = torch.where(
+            padding_mask, ids_keep, ids_keep_sorted
+        )  # handle L-1
+
+        ids_shuffle = torch.cat([ids_keep_sorted, ids_shuffle[:, max_len_kept:]], dim=1)
+        ids_restore = torch.argsort(ids_shuffle, dim=1)
+
+        x_unmasked = torch.gather(
+            x, dim=1, index=ids_keep_sorted.unsqueeze(-1).repeat(1, 1, D)
+        )
+
+        # unshuffle the loss mask
+        kept = torch.gather(kept, dim=1, index=ids_restore)
+        return x_unmasked, padding_mask, ids_restore, kept
 
     def extract_features(
         self,
         source: torch.Tensor,
         padding_mask: Optional[torch.Tensor] = None,
         max_layer: Optional[int] = None,
+        skip_fbank_extraction: bool = False,
     ):
-        """Extract features from raw audio."""
-
+        """Extract features from raw audio.
+        source: (B,T,D). for waveform input D=1, for features D=feature_dim
+        padding_mask: (B,T). If True then pad the element.
+        """
         if (
-            self.min_input_length_at_16khz
+            not skip_fbank_extraction
+            and self.min_input_length_at_16khz
             and source.size(1) < self.min_input_length_at_16khz
         ):
+            # Only executed for raw waveform input
             logging.warning(
                 f"Input shape: {source.shape}. This is less than"
                 f" the minimum size of {self.min_input_length_at_16khz}."
@@ -404,28 +547,61 @@ class BeatsEncoder(AbsEncoder):
             padding_mask = torch.cat([padding_mask] * repeat_factor, dim=1)
 
         with autocast(False):
-            fbank = self.preprocess(source)
+            fbank = (
+                (source - self.fbank_mean) / (2 * self.fbank_std)
+                if skip_fbank_extraction
+                else beats_frontend(
+                    source.squeeze(-1),
+                    fbank_mean=self.fbank_mean,
+                    fbank_std=self.fbank_std,
+                )
+            )
 
             if self.specaug is not None and self.training:
                 fbank = self.specaug(fbank)[0]
 
-        if padding_mask is not None:
-            padding_mask = self.forward_padding_mask(fbank, padding_mask)
+        if padding_mask is not None and not skip_fbank_extraction:
+            # padding_mask = self.forward_padding_mask(fbank, padding_mask)
+            padding_mask = forward_padding_mask_conv(
+                padding_mask=padding_mask, n_dim=0, conv_module=self.raw2fbank_pad
+            )
 
-        fbank = fbank.unsqueeze(1).float()
+        fbank = fbank.unsqueeze(1)
         features = self.patch_embedding(fbank)
         features = features.reshape(features.shape[0], features.shape[1], -1)
         features = features.transpose(1, 2)
-        features = self.layer_norm(features)
 
         if padding_mask is not None:
             # features is BTC
-            padding_mask = self.forward_padding_mask(features, padding_mask)
+            # padding_mask = self.forward_padding_mask(features, padding_mask)
+            # NOTE(shikhar): ESC-50, BEANS and Clotho_v2 use the previous version
+            # which is wrong (the one implmented above).
+            padding_mask = forward_padding_mask_conv(
+                padding_mask=padding_mask,
+                n_dim=fbank.shape[-1],
+                conv_module=self.patch_embedding_pad,
+            )
 
+        patch_padding_mask = None
+        restore_ids = None
+        kept_mask = None
+        if self.is_pretraining:
+            assert (
+                max_layer is None
+            ), "During pretraining max_layer should be set to None!"
+            patch_padding_mask = padding_mask.clone()
+            # kept_mask: 1 - kept, 0 - removed, corresponding to features
+            # features, padding_mask will be shortened to only keep the kept positions
+            features, padding_mask, restore_ids, kept_mask = self.mask_sequence(
+                features, padding_mask
+            )
+
+        features = self.layer_norm(features)
         if self.post_extract_proj is not None:
             features = self.post_extract_proj(features)
 
         features = self.dropout_input(features)
+
         features, layer_results = self.encoder(
             features, padding_mask=padding_mask, layer=max_layer
         )
@@ -470,7 +646,125 @@ class BeatsEncoder(AbsEncoder):
         if self.cross_embed_positions is not None:
             features = features + self.cross_embed_positions(features)
 
-        return features, padding_mask
+        return features, padding_mask, restore_ids, kept_mask, patch_padding_mask
+
+
+class BeatsPretrainingPredictor(nn.Module):
+    def __init__(self, beats_config: Optional[Dict] = None):
+        # Unclear rn (but should be minimal impact)
+        # 1. Do they shuffle before encoding masked embeddings?
+        # 2. Do they add positional information before passing to decoder (as in MAE)?
+        super().__init__()
+        beats_config = BeatsConfig(
+            beats_config
+        )  # use default config if None, else override
+        self.decoder_embed = nn.Linear(
+            beats_config.encoder_embed_dim, beats_config.decoder_embed_dim, bias=True
+        )
+        self.mask_token = nn.Parameter(
+            torch.zeros(1, 1, beats_config.decoder_embed_dim)
+        )
+        self.decoder_blocks = nn.ModuleList(
+            [
+                TransformerSentenceEncoderLayer(
+                    embedding_dim=beats_config.decoder_embed_dim,
+                    ffn_embedding_dim=beats_config.encoder_ffn_embed_dim,
+                    num_attention_heads=beats_config.encoder_attention_heads,
+                    dropout=beats_config.dropout,
+                    attention_dropout=beats_config.attention_dropout,
+                    activation_dropout=beats_config.activation_dropout,
+                    activation_fn=beats_config.activation_fn,
+                    layer_norm_first=beats_config.layer_norm_first,
+                    deep_norm=beats_config.deep_norm,
+                    has_relative_attention_bias=beats_config.relative_position_embedding,
+                    num_buckets=beats_config.num_buckets,
+                    max_distance=beats_config.max_distance,
+                    gru_rel_pos=beats_config.gru_rel_pos,
+                    encoder_layers=beats_config.decoder_layers,
+                    use_flash_attn=beats_config.use_flash_attn,
+                )
+                for i in range(beats_config.decoder_layers)
+            ]
+        )
+        if beats_config.relative_position_embedding:
+            for i in range(1, beats_config.decoder_layers):
+                del self.decoder_blocks[i].self_attn.relative_attention_bias
+                self.decoder_blocks[i].self_attn.relative_attention_bias = (
+                    self.decoder_blocks[0].self_attn.relative_attention_bias
+                )
+        self.decoder_norm = nn.LayerNorm(beats_config.decoder_embed_dim)
+        self.decoder_pred = nn.Linear(
+            beats_config.decoder_embed_dim, beats_config.codebook_vocab_size, bias=True
+        )
+        self.initialize(beats_config)
+
+    def initialize(self, config):
+        self.apply(init_bert_params)
+        if config.deep_norm:
+            logging.info("Deep Norm is applied to pretraining predictor.")
+            for i in range(config.decoder_layers):
+                deep_norm_beta = math.pow(8 * config.decoder_layers, -1 / 4)
+                nn.init.xavier_normal_(
+                    self.decoder_blocks[i].self_attn.k_proj.weight, gain=1
+                )
+                nn.init.xavier_normal_(
+                    self.decoder_blocks[i].self_attn.v_proj.weight, gain=deep_norm_beta
+                )
+                nn.init.xavier_normal_(
+                    self.decoder_blocks[i].self_attn.q_proj.weight, gain=1
+                )
+                nn.init.xavier_normal_(
+                    self.decoder_blocks[i].self_attn.out_proj.weight,
+                    gain=deep_norm_beta,
+                )
+                nn.init.xavier_normal_(
+                    self.decoder_blocks[i].fc1.weight, gain=deep_norm_beta
+                )
+                nn.init.xavier_normal_(
+                    self.decoder_blocks[i].fc2.weight, gain=deep_norm_beta
+                )
+
+        nn.init.normal_(self.mask_token, std=0.02)
+        # init_bert_params take care of below two inits
+        # nn.init.xavier_normal_(self.decoder_embed.weight)
+        # nn.init.xavier_normal_(self.decoder_pred.weight)
+
+    def forward(
+        self,
+        audio_representation: torch.Tensor,  # B,T_small,D
+        patch_len: torch.Tensor,  # B, (1>=x>=T_large)
+        restore_ids: torch.Tensor,  # B,T_large
+    ):
+        padding_mask = make_pad_mask(lengths=patch_len, traceable=False).to(
+            audio_representation.device
+        )
+        x = self.decoder_embed(audio_representation)
+        mask_tokens = self.mask_token.repeat(
+            x.shape[0], restore_ids.shape[1] - x.shape[1], 1
+        )
+        x = torch.cat([x, mask_tokens], dim=1)
+        # unshuffle
+        x = torch.gather(
+            x, dim=1, index=restore_ids.unsqueeze(-1).repeat(1, 1, x.shape[2])
+        )
+
+        pos_bias = None
+        # ===========================#
+        # B x T x D -> T x B x D
+        x = x.transpose(0, 1)
+        for blk in self.decoder_blocks:
+            x, _, pos_bias = blk(
+                x,
+                self_attn_padding_mask=padding_mask,
+                need_weights=False,
+                pos_bias=pos_bias,
+            )
+        x = x.transpose(0, 1)
+        # T x B x D -> B x T x D
+        # ===========================#
+        x = self.decoder_norm(x)
+        pred = self.decoder_pred(x)
+        return pred
 
 
 class TransformerEncoder(nn.Module):
@@ -525,6 +819,7 @@ class TransformerEncoder(nn.Module):
                     max_distance=self.max_distance,
                     gru_rel_pos=config.gru_rel_pos,
                     encoder_layers=config.encoder_layers,
+                    use_flash_attn=config.use_flash_attn,
                 )
                 for i in range(config.encoder_layers)
             ]
@@ -543,6 +838,7 @@ class TransformerEncoder(nn.Module):
         self.apply(init_bert_params)
 
         if config.deep_norm:
+            logging.info("Deep Norm is applied.")
             deep_norm_beta = math.pow(8 * config.encoder_layers, -1 / 4)
             for i in range(config.encoder_layers):
                 nn.init.xavier_normal_(self.layers[i].self_attn.k_proj.weight, gain=1)
@@ -639,6 +935,7 @@ class TransformerSentenceEncoderLayer(nn.Module):
         rescale_init: bool = False,
         gru_rel_pos: bool = False,
         encoder_layers: int = 0,
+        use_flash_attn: bool = False,
     ) -> None:
 
         super().__init__()
@@ -658,6 +955,7 @@ class TransformerSentenceEncoderLayer(nn.Module):
             max_distance=max_distance,
             rescale_init=rescale_init,
             gru_rel_pos=gru_rel_pos,
+            use_flash_attn=use_flash_attn,
         )
 
         self.dropout1 = nn.Dropout(dropout)
@@ -772,8 +1070,10 @@ class MultiheadAttention(nn.Module):
         max_distance=128,
         gru_rel_pos=False,
         rescale_init=False,
+        use_flash_attn=False,
     ):
         super().__init__()
+        self.use_flash_attn = use_flash_attn
         self.embed_dim = embed_dim
         self.kdim = kdim if kdim is not None else embed_dim
         self.vdim = vdim if vdim is not None else embed_dim
@@ -837,11 +1137,11 @@ class MultiheadAttention(nn.Module):
             self.grep_linear = nn.Linear(self.q_head_dim, 8)
             self.grep_a = nn.Parameter(torch.ones(1, num_heads, 1, 1))
 
-        self.reset_parameters()
+        self.initialize()
 
-    def reset_parameters(self):
+    def initialize(self):
         """Initiate parameters in the transformer model."""
-        logging.info("Initiate parameters in the MultiheadAttention module.")
+        # logging.info("Initiate parameters in the MultiheadAttention module.")
         if self.qkv_same_dim:
             # Empirically observed the convergence to be much better with
             # the scaled initialization
@@ -870,7 +1170,9 @@ class MultiheadAttention(nn.Module):
 
         if bidirectional:
             num_buckets = num_buckets // 2
-            relative_buckets += (relative_positions > 0).to(torch.long) * num_buckets
+            relative_buckets = (
+                relative_buckets + (relative_positions > 0).to(torch.long) * num_buckets
+            )
             relative_positions = torch.abs(relative_positions)
         else:
             relative_positions = -torch.min(
@@ -881,7 +1183,7 @@ class MultiheadAttention(nn.Module):
         is_small = relative_positions < max_exact
 
         relative_postion_if_large = max_exact + (
-            torch.log(relative_positions.float() / max_exact)
+            torch.log(relative_positions.to(torch.get_default_dtype()) / max_exact)
             / math.log(max_distance / max_exact)
             * (num_buckets - max_exact)
         ).to(torch.long)
@@ -890,24 +1192,30 @@ class MultiheadAttention(nn.Module):
             torch.full_like(relative_postion_if_large, num_buckets - 1),
         )
 
-        relative_buckets += torch.where(
+        relative_buckets = relative_buckets + torch.where(
             is_small, relative_positions, relative_postion_if_large
         )
         return relative_buckets
 
     def compute_bias(self, query_length, key_length):
         """Compute relative position bias."""
-        context_position = torch.arange(query_length, dtype=torch.long)[:, None]
-        memory_position = torch.arange(key_length, dtype=torch.long)[None, :]
-        relative_position = memory_position - context_position
+        device = self.relative_attention_bias.weight.device
+        context_position = torch.arange(query_length, dtype=torch.long, device=device)[
+            :, None
+        ]
+        memory_position = torch.arange(key_length, dtype=torch.long, device=device)[
+            None, :
+        ]
+        relative_position = memory_position - context_position  # [i,j] = j-i
         relative_position_bucket = self._relative_positions_bucket(
             relative_position, bidirectional=True
-        )
-        relative_position_bucket = relative_position_bucket.to(
-            self.relative_attention_bias.weight.device
-        )
+        )  # [qlen,klen]
+        # relative_position_bucket = relative_position_bucket.to(
+        #     self.relative_attention_bias.weight.device
+        # )
+        # [qlen,klen,head_dim]
         values = self.relative_attention_bias(relative_position_bucket)
-        values = values.permute([2, 0, 1])
+        values = values.permute([2, 0, 1])  # [head_dim,qlen,klen]
         return values
 
     def forward(
@@ -960,10 +1268,12 @@ class MultiheadAttention(nn.Module):
                 assert src_len, bsz == value.shape[:2]
 
         if self.has_relative_attention_bias and position_bias is None:
+            # headdim,qlen,klen
             position_bias = self.compute_bias(tgt_len, src_len)
             position_bias = (
                 position_bias.unsqueeze(0)
                 .repeat(bsz, 1, 1, 1)
+                .contiguous()
                 .view(bsz * self.num_heads, tgt_len, src_len)
             )
 
@@ -997,9 +1307,11 @@ class MultiheadAttention(nn.Module):
             q = self.q_proj(query)
             k = self.k_proj(key)
             v = self.v_proj(value)
-        q *= self.scaling
+
         alpha = 32
-        q *= 1 / alpha
+        if not self.use_flash_attn:
+            q *= self.scaling
+            q *= 1 / alpha
 
         if self.bias_k is not None:
             assert self.bias_v is not None
@@ -1037,11 +1349,14 @@ class MultiheadAttention(nn.Module):
             )
 
         if saved_state is not None:
-            # saved states are stored with shape (bsz, num_heads, seq_len, head_dim)
+            # saved states are stored with shape
+            # (bsz, num_heads, seq_len, head_dim)
             if "prev_key" in saved_state:
                 _prev_key = saved_state["prev_key"]
                 assert _prev_key is not None
-                prev_key = _prev_key.view(bsz * self.num_heads, -1, self.head_dim)
+                prev_key = _prev_key.contiguous().view(
+                    bsz * self.num_heads, -1, self.head_dim
+                )
                 if static_kv:
                     k = prev_key
                 else:
@@ -1051,7 +1366,9 @@ class MultiheadAttention(nn.Module):
             if "prev_value" in saved_state:
                 _prev_value = saved_state["prev_value"]
                 assert _prev_value is not None
-                prev_value = _prev_value.view(bsz * self.num_heads, -1, self.head_dim)
+                prev_value = _prev_value.contiguous().view(
+                    bsz * self.num_heads, -1, self.head_dim
+                )
                 if static_kv:
                     v = prev_value
                 else:
@@ -1069,8 +1386,12 @@ class MultiheadAttention(nn.Module):
                 static_kv=static_kv,
             )
 
-            saved_state["prev_key"] = k.view(bsz, self.num_heads, -1, self.head_dim)
-            saved_state["prev_value"] = v.view(bsz, self.num_heads, -1, self.head_dim)
+            saved_state["prev_key"] = k.contiguous().view(
+                bsz, self.num_heads, -1, self.head_dim
+            )
+            saved_state["prev_value"] = v.contiguous().view(
+                bsz, self.num_heads, -1, self.head_dim
+            )
             saved_state["prev_key_padding_mask"] = key_padding_mask
             # In this branch incremental_state is never None
             assert incremental_state is not None
@@ -1089,7 +1410,7 @@ class MultiheadAttention(nn.Module):
 
         if self.add_zero_attn:
             assert v is not None
-            src_len += 1
+            src_len = src_len + 1
             k = torch.cat([k, k.new_zeros((k.size(0), 1) + k.size()[2:])], dim=1)
             v = torch.cat([v, v.new_zeros((v.size(0), 1) + v.size()[2:])], dim=1)
             if attn_mask is not None:
@@ -1107,6 +1428,96 @@ class MultiheadAttention(nn.Module):
                     dim=1,
                 )
 
+        # ----- Switch: use flash-attn attention if enabled -------------------------
+        if self.use_flash_attn:
+            assert not before_softmax, "Flash attention does not support before_softmax"
+            assert (
+                not need_weights
+            ), "Flash attention does not support returning attention weights"
+            # NOTE(shikhar): Pytorch < 2.5.0 has different shape requirements for qkv
+            if is_torch_v25_to_v26:
+                # NOTE(shikhar): The contiguous() call can be optimized.
+                q = q.contiguous().view(bsz, self.num_heads, tgt_len, self.q_head_dim)
+                k = k.contiguous().view(bsz, self.num_heads, src_len, self.k_head_dim)
+                v = v.contiguous().view(bsz, self.num_heads, src_len, self.head_dim)
+            # NOTE(shikhar): Do causal attention via attn_mask
+            if key_padding_mask is not None:
+                assert (
+                    attn_mask is None
+                ), "key_padding_mask not supported with attn_mask"
+                attn_mask = key_padding_mask == 0  # B x keylen(srclen)
+                attn_mask = attn_mask.unsqueeze(1).expand(
+                    -1, tgt_len, -1
+                )  # B x tgtlen x srclen
+
+            if attn_mask is not None:
+                if is_torch_v25_to_v26:
+                    attn_mask = attn_mask.unsqueeze(1)  # B x 1 x tgtlen x srclen
+                else:
+                    attn_mask = attn_mask.unsqueeze(1).expand(
+                        -1, self.num_heads, -1, -1
+                    )
+                    attn_mask = attn_mask.contiguous().view(
+                        bsz * self.num_heads, tgt_len, src_len
+                    )
+
+            if position_bias is not None:
+                attn_mask_rel_pos = position_bias
+                if self.gru_rel_pos == 1:
+                    query_layer = q.contiguous().view(
+                        bsz, self.num_heads, tgt_len, self.q_head_dim
+                    )
+                    _B, _H, _L, __ = query_layer.size()
+                    gate_a, gate_b = torch.sigmoid(
+                        self.grep_linear(query_layer)
+                        .contiguous()
+                        .view(_B, _H, _L, 2, 4)
+                        .sum(-1, keepdim=False)
+                    ).chunk(2, dim=-1)
+                    gate_a_1 = gate_a * (gate_b * self.grep_a - 1.0) + 2.0
+                    attn_mask_rel_pos = (
+                        gate_a_1.contiguous().view(bsz * self.num_heads, tgt_len, 1)
+                        * position_bias
+                    )
+                attn_mask_rel_pos = (
+                    attn_mask_rel_pos.contiguous()
+                    .view(bsz * self.num_heads, tgt_len, src_len)
+                    .contiguous()
+                )
+
+                if is_torch_v25_to_v26:
+                    attn_mask_rel_pos = attn_mask_rel_pos.unsqueeze(1)
+                    attn_mask_rel_pos = attn_mask_rel_pos.view(
+                        bsz, self.num_heads, tgt_len, src_len
+                    ).contiguous()
+
+                if attn_mask is not None:
+                    attn_mask_ = torch.zeros_like(attn_mask) + attn_mask_rel_pos
+                    attn_mask_ = attn_mask_.masked_fill(
+                        attn_mask.logical_not(), float("-inf")
+                    )
+                    attn_mask = attn_mask_
+                else:
+                    attn_mask = attn_mask_rel_pos
+
+            attn = F.scaled_dot_product_attention(
+                query=q,
+                key=k,
+                value=v,
+                attn_mask=attn_mask,
+                dropout_p=self.dropout_module.p,
+                is_causal=False,
+            )  # B x H x T x D
+            if is_torch_v25_to_v26:
+                attn = attn.permute(2, 0, 1, 3).reshape(tgt_len, bsz, embed_dim)
+            else:
+                attn = attn.transpose(0, 1).contiguous().view(tgt_len, bsz, embed_dim)
+            attn = self.out_proj(attn)
+            # attention @ value, attn_weights, position_bias
+            return attn, None, None
+        # ------------------------------------------------------------------------------
+
+        # Original BEATs implementation below:
         attn_weights = torch.bmm(q, k.transpose(1, 2))
         attn_weights = (
             attn_weights - attn_weights.max(dim=-1, keepdim=True)[0]
@@ -1117,11 +1528,13 @@ class MultiheadAttention(nn.Module):
 
         if attn_mask is not None:
             attn_mask = attn_mask.unsqueeze(0)
-            attn_weights += attn_mask
+            attn_weights = attn_weights + attn_mask
 
         if key_padding_mask is not None:
             # don't attend to padding symbols
-            attn_weights = attn_weights.view(bsz, self.num_heads, tgt_len, src_len)
+            attn_weights = attn_weights.contiguous().view(
+                bsz, self.num_heads, tgt_len, src_len
+            )
             if not is_tpu:
                 attn_weights = attn_weights.masked_fill(
                     key_padding_mask.unsqueeze(1).unsqueeze(2).to(torch.bool),
@@ -1131,7 +1544,9 @@ class MultiheadAttention(nn.Module):
                 attn_weights = attn_weights.transpose(0, 2)
                 attn_weights = attn_weights.masked_fill(key_padding_mask, float("-inf"))
                 attn_weights = attn_weights.transpose(0, 2)
-            attn_weights = attn_weights.view(bsz * self.num_heads, tgt_len, src_len)
+            attn_weights = attn_weights.contiguous().view(
+                bsz * self.num_heads, tgt_len, src_len
+            )
 
         if before_softmax:
             return attn_weights, v, position_bias
@@ -1140,22 +1555,24 @@ class MultiheadAttention(nn.Module):
             attn_mask_rel_pos = position_bias
             if self.gru_rel_pos == 1:
                 query_layer = (
-                    q.view(bsz, self.num_heads, tgt_len, self.q_head_dim)
+                    q.contiguous().view(bsz, self.num_heads, tgt_len, self.q_head_dim)
                     * alpha
                     / self.scaling
                 )
                 _B, _H, _L, __ = query_layer.size()
                 gate_a, gate_b = torch.sigmoid(
                     self.grep_linear(query_layer)
+                    .contiguous()
                     .view(_B, _H, _L, 2, 4)
                     .sum(-1, keepdim=False)
                 ).chunk(2, dim=-1)
                 gate_a_1 = gate_a * (gate_b * self.grep_a - 1.0) + 2.0
                 attn_mask_rel_pos = (
-                    gate_a_1.view(bsz * self.num_heads, tgt_len, 1) * position_bias
+                    gate_a_1.contiguous().view(bsz * self.num_heads, tgt_len, 1)
+                    * position_bias
                 )
 
-            attn_mask_rel_pos = attn_mask_rel_pos.view(attn_weights.size())
+            attn_mask_rel_pos = attn_mask_rel_pos.contiguous().view(attn_weights.size())
 
             attn_weights = attn_weights + attn_mask_rel_pos
 
@@ -1170,9 +1587,11 @@ class MultiheadAttention(nn.Module):
         attn = self.out_proj(attn)
         attn_weights: Optional[torch.Tensor] = None
         if need_weights:
-            attn_weights = attn_weights_float.view(
-                bsz, self.num_heads, tgt_len, src_len
-            ).transpose(1, 0)
+            attn_weights = (
+                attn_weights_float.contiguous()
+                .view(bsz, self.num_heads, tgt_len, src_len)
+                .transpose(1, 0)
+            )
             if not need_head_weights:
                 # average attention weights over heads
                 attn_weights = attn_weights.mean(dim=0)
@@ -1187,6 +1606,8 @@ class MultiheadAttention(nn.Module):
         src_len: int,
         static_kv: bool,
     ) -> Optional[torch.Tensor]:
+        # NOTE(shikhar): Deepspeed trainer might not work with this
+        # code path due to the float calls
         # saved key padding masks have shape (bsz, seq_len)
         if prev_key_padding_mask is not None and static_kv:
             new_key_padding_mask = prev_key_padding_mask
@@ -1265,17 +1686,17 @@ def init_bert_params(module):
         data.copy_(data.cpu().normal_(mean=0.0, std=0.02).to(data.device))
 
     if isinstance(module, nn.Linear):
-        logging.info("Intializing Linear Layer")
+        # logging.info("Intializing Linear Layer")
         normal_(module.weight.data)
         if module.bias is not None:
             module.bias.data.zero_()
     if isinstance(module, nn.Embedding):
-        logging.info("Intializing Embedding Layer")
+        # logging.info("Intializing Embedding Layer")
         normal_(module.weight.data)
         if module.padding_idx is not None:
             module.weight.data[module.padding_idx].zero_()
     if isinstance(module, MultiheadAttention):
-        logging.info("Intializing Multihead Attention")
+        # logging.info("Intializing Multihead Attention")
         normal_(module.q_proj.weight.data)
         normal_(module.k_proj.weight.data)
         normal_(module.v_proj.weight.data)
@@ -1379,7 +1800,7 @@ def gelu_accurate(x):
 
 
 def gelu(x: torch.Tensor) -> torch.Tensor:
-    return F.gelu(x.float()).type_as(x)
+    return F.gelu(x).type_as(x)
 
 
 def get_activation_fn(activation: str):
@@ -1466,7 +1887,11 @@ def quant_noise(module, p, block_size):
                     in_features // block_size * out_features, device=weight.device
                 )
                 mask.bernoulli_(p)
-                mask = mask.repeat_interleave(block_size, -1).view(-1, in_features)
+                mask = (
+                    mask.repeat_interleave(block_size, -1)
+                    .contiguous()
+                    .view(-1, in_features)
+                )
 
             else:
                 # gather weight and sizes
@@ -1481,7 +1906,11 @@ def quant_noise(module, p, block_size):
                         device=weight.device,
                     )
                     mask.bernoulli_(p)
-                    mask = mask.repeat_interleave(block_size, -1).view(-1, in_channels)
+                    mask = (
+                        mask.repeat_interleave(block_size, -1)
+                        .contiguous()
+                        .view(-1, in_channels)
+                    )
                 else:
                     mask = torch.zeros(
                         weight.size(0), weight.size(1), device=weight.device

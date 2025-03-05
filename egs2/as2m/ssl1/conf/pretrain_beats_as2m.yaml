@@ -1,0 +1,61 @@
+# unused_parameters: true
+init: none # we initialise differently from espnet
+patience: none
+best_model_criterion:
+-   - valid
+    - loss
+    - min
+keep_nbest_models: 1
+
+num_att_plot: 0
+
+encoder: beats
+encoder_conf:
+    beats_config:
+        layer_wise_gradient_decay_ratio: 1.0
+        encoder_layerdrop: 0.0
+        dropout: 0.1
+         # if you change this then also change n_targets in beats.sh
+        codebook_vocab_size: 1024
+        fbank_mean: 15.25938
+        fbank_std: 6.93416
+        decoder_layers: 3 # layers in the pretraining predictor
+        deep_norm: true
+        use_flash_attn: false
+        relative_position_embedding: true
+        num_buckets: 320
+        max_distance: 800
+        gru_rel_pos: true
+    use_weighted_representation: false
+    is_pretraining: true
+
+model_conf:
+    ignore_id: -2 # This is important!
+    label_smoothing: 0.1
+    sound_input: false
+
+batch_type: length
+batch_bins: 838880 # (998 + 500 labels) * 560 audio samples DELTAAI, H100
+# batch_bins: 778000 # (998 + 500 labels) * 520 audio samples DELTA, A100
+max_epoch: 112 # 400K steps / (2M / 560)
+
+use_amp: true
+accum_grad: 1
+grad_clip: 1
+num_workers: 4 # dataloader workers, geq to ngpu
+use_deepspeed: true
+deepspeed_config: conf/deepspeed_training_config.json
+optim: adamw
+optim_conf:
+    lr: 5.0e-4
+    weight_decay: 1.0e-2
+    betas: [0.9, 0.98]
+
+# Linear warmup and linear decay
+scheduler: cycliclr
+scheduler_conf:
+    base_lr: 1.0e-5
+    max_lr: 5.0e-4
+    step_size_up: 32000
+    step_size_down: 368000
+    cycle_momentum: false
