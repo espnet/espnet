@@ -1,14 +1,14 @@
 import pytest
 import torch
 
+from espnet2.speechlm.tokenizer.beats_tokenizer import BeatsRandomTokenizer
 from espnet2.speechlm.tokenizer.beats_utils import (
-    kmeans,
-    sample_vectors,
     beats_frontend,
     forward_padding_mask_conv,
     freeze_conv_module,
+    kmeans,
+    sample_vectors,
 )
-from espnet2.speechlm.tokenizer.beats_tokenizer import BeatsRandomTokenizer
 
 
 @pytest.mark.parametrize("num", [3, 15])

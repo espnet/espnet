@@ -64,7 +64,7 @@ for LEARNING_RATE in 5.0e-4 1.0e-3 ; do
       deepspeed_config_json_str=$(echo "$deepspeed_config_json_str" | base64 -w 0)
 
       echo "Starting run with SSL_TAG=${SSL_TAG}, LR=${LEARNING_RATE}, Warmup=${WARMUP_STEPS}, BatchBins=${BATCH_BINS}"
-      
+
       ./run.sh --ngpu 4 --ssl_tag "${SSL_TAG}" \
           --beats_args "--batch_bins ${BATCH_BINS} --max_epoch ${N_EPOCH} --deepspeed_config '${deepspeed_config_json_str}' \
           --use_wandb ${use_wandb} --wandb_project ${wandb_project} --wandb_name ${SSL_TAG} --wandb_entity ${wandb_entity}" &

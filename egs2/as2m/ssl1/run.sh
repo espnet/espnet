@@ -22,7 +22,7 @@ ssl_tag=${mynametag}.${timestamp}
 # ssl_tag=ordered.deepnorm.relpos_noflash.default_hyp.0207.155136
 # ssl_tag=ordered.deepnorm.relpos_noflash.prenorm_pred.default_hyp.0207.161949
 
-# ssl_tag=xv_normalcodes.noflash.0212.174746 
+# ssl_tag=xv_normalcodes.noflash.0212.174746
 # modelsize=small
 
 i=2

@@ -1,9 +1,10 @@
+import logging
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchaudio.compliance.kaldi as ta_kaldi
 from einops import rearrange, repeat
-import logging
 
 
 def l2norm(t):

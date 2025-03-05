@@ -3,20 +3,18 @@
 import argparse
 import logging
 from typing import Callable, Collection, Dict, List, Optional, Tuple, Union
+
 import numpy as np
 import torch
 from typeguard import typechecked
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
-from espnet2.asr.encoder.beats_encoder import (
-    BeatsEncoder,
-    BeatsPretrainingPredictor,
-)
+from espnet2.asr.encoder.beats_encoder import BeatsEncoder, BeatsPretrainingPredictor
+from espnet2.beats.espnet_model import BeatsPretrainModel, BeatsTokenizerPretrainModel
 from espnet2.speechlm.tokenizer.beats_tokenizer import (
     BeatsTokenizer,
     BeatsTokenizerPretrainingPredictor,
 )
-from espnet2.beats.espnet_model import BeatsPretrainModel, BeatsTokenizerPretrainModel
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.torch_utils.initialize import initialize
 from espnet2.train.abs_espnet_model import AbsESPnetModel

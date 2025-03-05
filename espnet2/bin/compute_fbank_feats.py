@@ -10,13 +10,13 @@ from distutils.util import strtobool
 import kaldiio
 import numpy
 import resampy
+import torch
+import torchaudio.compliance.kaldi as ta_kaldi
 
 from espnet2.utils.types import int_or_none
 from espnet.transform.spectrogram import logmelspectrogram
 from espnet.utils.cli_utils import get_commandline_args
 from espnet.utils.cli_writers import file_writer_helper
-import torchaudio.compliance.kaldi as ta_kaldi
-import torch
 
 
 def get_parser():

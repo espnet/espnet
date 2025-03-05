@@ -2,14 +2,15 @@
 ~ 150 hours of audio from the EPIC-Kitchens dataset.
 """
 
-import numpy as np
-import soundfile as sf
 import os
 import sys
-import h5py
 import threading
-from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor
+
+import h5py
+import numpy as np
+import soundfile as sf
+from tqdm import tqdm
 
 DATA_READ_FILE = sys.argv[1]
 DATA_WRITE_DIR = sys.argv[2]

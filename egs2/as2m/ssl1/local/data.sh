@@ -57,7 +57,7 @@ mkdir -p ${DATA_PREP_ROOT}/train
 mkdir -p ${DATA_PREP_ROOT}/eval
 > "${DATA_PREP_ROOT}/train/wav.scp" # clear the file
 
-for x in AudioSet cochlscene epic_sounds fma inat_sounds FreeSound BBC_Sound_Effects SoundBible; do 
+for x in AudioSet cochlscene epic_sounds fma inat_sounds FreeSound BBC_Sound_Effects SoundBible; do
     if [ ! -d ${DATA_PREP_ROOT}/${x} ]; then
         log "No such directory: ${DATA_PREP_ROOT}/${x}"
         continue

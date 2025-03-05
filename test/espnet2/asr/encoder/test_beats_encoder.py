@@ -1,7 +1,8 @@
+import time
+
 import pytest
 import torch
 from packaging.version import parse as V
-import time
 
 from espnet2.asr.encoder.beats_encoder import (
     BeatsEncoder,
@@ -120,6 +121,8 @@ def test_small_inputs():
     x_lens = torch.LongTensor([min_input_len_ // 2, min_input_len_ // 4])
     audio_rep, l, _ = beats_model(x, x_lens)  # forward pass should not raise any error
     audio_rep.sum().backward()  # backward pass should not raise any error
+
+
 # Test for pretraining mode
 
 

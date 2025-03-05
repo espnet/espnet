@@ -2,15 +2,12 @@ import pytest
 import torch
 from packaging.version import parse as V
 
-from espnet2.asr.encoder.beats_encoder import (
-    BeatsEncoder,
-    BeatsPretrainingPredictor,
-)
+from espnet2.asr.encoder.beats_encoder import BeatsEncoder, BeatsPretrainingPredictor
+from espnet2.beats.espnet_model import BeatsPretrainModel, BeatsTokenizerPretrainModel
 from espnet2.speechlm.tokenizer.beats_tokenizer import (
     BeatsTokenizer,
     BeatsTokenizerPretrainingPredictor,
 )
-from espnet2.beats.espnet_model import BeatsPretrainModel, BeatsTokenizerPretrainModel
 
 is_torch_1_12_1_plus = V(torch.__version__) >= V("1.12.1")
 

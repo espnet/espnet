@@ -63,7 +63,7 @@ wandb_project=EARTokenizer.PT
 
 #       echo "Starting run with N_EPOCH=${N_EPOCH}, SSL_TAG=${SSL_TAG}, LR=${LEARNING_RATE}, Warmup=${WARMUP_STEPS}, BatchBins=${BATCH_BINS}"
 #       external_teacher_model=/work/nvme/bbjs/sbharadwaj/model_checkpoints/ear_base/beats_iter0_base.tune_lr5e-4_warmup40000_bins1600000_totalsteps400000/epoch59.pt
-      
+
 #       ./run_ear.sh --ngpu 4 --ssl_tag "${SSL_TAG}" --train_start_iter 1 --external_teacher_model "${external_teacher_model}" \
 #           --beats_args "--batch_bins ${BATCH_BINS} --max_epoch ${N_EPOCH} --deepspeed_config '${deepspeed_config_json_str}' \
 #           --use_wandb ${use_wandb} --wandb_project ${wandb_project} --wandb_name ${SSL_TAG} --wandb_entity shikhar" &
@@ -86,7 +86,7 @@ for LEARNING_RATE in 5.0e-4; do
 
       echo "Starting run with N_EPOCH=${N_EPOCH}, SSL_TAG=${SSL_TAG}, LR=${LEARNING_RATE}, Warmup=${WARMUP_STEPS}, BatchBins=${BATCH_BINS}"
       external_teacher_model=/work/nvme/bbjs/sbharadwaj/model_checkpoints/ear_large/beats_iter0_large.tune_lr1.0e-4_warmup40000_bins1600000_totalsteps400000/epoch59.pt
-      
+
       ./run_ear.sh --ngpu 4 --ssl_tag "${SSL_TAG}" --train_start_iter 1 --external_teacher_model "${external_teacher_model}" \
           --beats_args "--batch_bins ${BATCH_BINS} --max_epoch ${N_EPOCH} --deepspeed_config '${deepspeed_config_json_str}' \
           --use_wandb ${use_wandb} --wandb_project ${wandb_project} --wandb_name ${SSL_TAG} --wandb_entity shikhar" &
