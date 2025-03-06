@@ -90,14 +90,14 @@ declare -A recipe_runners
 # recipe_runners["audiocaps_aac"]="../../clotho_v2/asr1/run.sh|"
 
 # BERT audio-text classification
-recipe_runners["cle_bert"]="../../clotho_v2/cls1/run_entailment.sh|"
-recipe_runners["aqa_yn_bert"]="../../clotho_v2/cls1/run_aqa_yn.sh|"
-recipe_runners["aqa_open_bert"]="../../clotho_v2/cls1/run_aqa_open.sh|"
+# recipe_runners["cle_bert"]="../../clotho_v2/cls1/run_entailment.sh|"
+# recipe_runners["aqa_yn_bert"]="../../clotho_v2/cls1/run_aqa_yn.sh|"
+# recipe_runners["aqa_open_bert"]="../../clotho_v2/cls1/run_aqa_open.sh|"
 
 # CLAP audio-text classification
-recipe_runners["cle_clap"]="../../clotho_v2/cls1/run_entailment.sh|--hugging_face_model_name_or_path laion/clap-htsat-unfused"
-recipe_runners["aqa_yn_clap"]="../../clotho_v2/cls1/run_aqa_yn.sh|--hugging_face_model_name_or_path laion/clap-htsat-unfused"
-recipe_runners["aqa_open_clap"]="../../clotho_v2/cls1/run_aqa_open.sh|--hugging_face_model_name_or_path laion/clap-htsat-unfused"
+# recipe_runners["cle_clap"]="../../clotho_v2/cls1/run_entailment.sh|--hugging_face_model_name_or_path laion/clap-htsat-unfused"
+# recipe_runners["aqa_yn_clap"]="../../clotho_v2/cls1/run_aqa_yn.sh|--hugging_face_model_name_or_path laion/clap-htsat-unfused"
+# recipe_runners["aqa_open_clap"]="../../clotho_v2/cls1/run_aqa_open.sh|--hugging_face_model_name_or_path laion/clap-htsat-unfused"
 
 # General sound Multi-label tasks
 # recipe_runners["audioset2m"]="../../as2m/cls1/run.sh|"
@@ -107,11 +107,11 @@ recipe_runners["aqa_open_clap"]="../../clotho_v2/cls1/run_aqa_open.sh|--hugging_
 recipe_runners["esc50"]="../../esc50/asr1/run.sh|"
 
 # Register BEANS detection tasks
-recipe_runners["beans_dcase"]="../../run_dcase.sh|"
-recipe_runners["beans_enabirds"]="../../run_enabirds.sh|"
-recipe_runners["beans_gibbons"]="../../run_gibbons.sh|"
-recipe_runners["beans_hiceas"]="../../run_hiceas.sh|"
-recipe_runners["beans_rfcx"]="../../run_rfcx.sh|"
+# recipe_runners["beans_dcase"]="../../run_dcase.sh|"
+# recipe_runners["beans_enabirds"]="../../run_enabirds.sh|"
+# recipe_runners["beans_gibbons"]="../../run_gibbons.sh|"
+# recipe_runners["beans_hiceas"]="../../run_hiceas.sh|"
+# recipe_runners["beans_rfcx"]="../../run_rfcx.sh|"
 
 # Register BEANS classification tasks
 recipe_runners["beans_watkins"]="../../run_watkins.sh|"

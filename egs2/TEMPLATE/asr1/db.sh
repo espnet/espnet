@@ -31,7 +31,8 @@ DNS3=
 DNS4=downloads
 DSING=downloads
 EPIC_SOUNDS=/work/hdd/bbjs/shared/corpora/epic_sound/EPIC_audio.hdf5
-ESC50=/work/hdd/bbjs/shared/corpora/esc_master/ESC-50-master
+ESC50=/compute/babel-13-33/sbharad2/ESC-50-master
+# /work/hdd/bbjs/shared/corpora/esc_master/ESC-50-master
 FMA=/work/hdd/bbjs/shared/corpora/fma/fma_full
 INAT_SOUNDS=/work/hdd/bbjs/shared/corpora/inat_sounds
 MIXUP_FSD=/work/hdd/bbjs/shared/corpora/synthetic_fsd/BFSD

@@ -6,7 +6,6 @@ set -u
 set -o pipefail
 
 # bert
-
 ./run_entailment.sh "$@" &
 sleep 2s
 

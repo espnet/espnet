@@ -24,7 +24,7 @@ for fold in $(seq 1 $n_folds); do
         --asr_tag "${mynametag}${fold}" \
         --lang "${fold}" \
         --ngpu 1 \
-        --stage 15 \
+        --stage 1 \
         --inference_args "--ctc_weight 0.0 --maxlenratio -1" \
         --token_type word \
         --asr_speech_fold_length ${asr_speech_fold_length} \
