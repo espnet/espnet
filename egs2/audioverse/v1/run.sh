@@ -258,7 +258,7 @@ run_recipe() {
 
         log "Running command: $runner with args: ${runner_specific_args} ${cmd_args} ${recipe_args}"
         log "Output will be saved to: $recipe_log"
-        
+
         if [[ "$dry_run" = true ]]; then
             log "Dry run: Would execute: (cd \"$(dirname $runner)\" && \"./$(basename $runner)\" ${runner_specific_args} ${cmd_args} ${recipe_args})"
         else

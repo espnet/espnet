@@ -18,7 +18,7 @@ This tool manages configuration templates, experiment directories, and execution
 ./run.sh --config_prefix beats --run_name iter3 \
              --template_args "CHECKPOINT_PATH:/path/to/beatsiter3.pt"
 
-# Second experiment    
+# Second experiment
 ./run.sh --config_prefix beats --run_name iter2 \
              --template_args "CHECKPOINT_PATH:/path/to/beatsiter2.pt"
 ```
