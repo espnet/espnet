@@ -1,0 +1,92 @@
+token_type: word
+
+optim: adamw
+optim_conf:
+    lr: 5.0e-5
+    weight_decay: 1.0e-2
+    betas: [0.9, 0.98]
+
+accum_grad: 1
+
+batch_size: 128 # 12.5 steps per epoch with 1600 samples
+max_epoch: 1000
+
+scheduler: CosineAnnealingWarmupRestarts
+scheduler_conf:
+    first_cycle_steps: 6000
+    warmup_steps: 300
+    max_lr: 5.0e-5
+    min_lr: 5.0e-6
+
+# BEATs implementation takes care of generating mel spectrogram, normalization and specaug
+frontend: none
+input_size: 1 # important to set input_size to 1 if frontend is none
+normalize: none # BEATs code does global mean and variance normalization
+
+# Initialization for the decoder
+init: xavier_normal
+
+model_conf:
+    ctc_weight: 0.0  # No CTC, no attention.
+    lsm_weight: 0.1  # label smoothing weight
+    length_normalized_loss: true
+
+batch_type: folded
+unused_parameters: true
+grad_clip: 1
+patience: none
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+keep_nbest_models: 1
+use_amp: false  # whether to use automatic mixed precision
+num_att_plot: 0
+num_workers: 2 # dataloader workers
+
+encoder: beats
+encoder_conf:
+    # Please download the BEATs model from https://github.com/microsoft/unilm/tree/master/beats
+    # (iter3) and update the path below
+    # /work/nvme/bbjs/sbharadwaj/model_checkpoints/ear_base/beats_iter0_base.tune_lr5e-4_warmup40000_bins1600000_totalsteps400000/epoch39.pt <--- this is the same size as beats but more data (ear base iter 1)
+    # /work/nvme/bbjs/sbharadwaj/model_checkpoints/ear_large/beats_iter0_large.tune_lr5.0e-4_warmup40000_bins1600000_totalsteps400000/epoch31.pt <---- this is 300M, you dont need to change config, current code should handle it. trained on same data as base above (ear large iter 1)
+    beats_ckpt_path: /work/nvme/bbjs/sbharadwaj/model_checkpoints/ear_large/beats_iter0_large.tune_lr5.0e-4_warmup40000_bins1600000_totalsteps400000/epoch59.pt
+    # /work/nvme/bbjs/sbharadwaj/model_checkpoints/ear_large/beats_iter0_large.tune_lr2.5e-4_warmup40000_bins1600000_totalsteps400000/epoch59.pt
+    # /work/nvme/bbjs/sbharadwaj/model_checkpoints/ear_large/beats_iter0_large.tune_lr1.0e-4_warmup40000_bins1600000_totalsteps400000/epoch59.pt <-- 94.3
+    
+    # /work/nvme/bbjs/sbharadwaj/model_checkpoints/ear_base/beats_iter0_base.tune_lr5e-4_warmup20000_bins1600000_totalsteps400000/epoch59.pt <-- 92
+    # /work/nvme/bbjs/sbharadwaj/model_checkpoints/ear_base/beats_iter0_base.tune_lr5e-4_warmup40000_bins1600000_totalsteps400000/epoch59.pt <-- 93
+    # /work/nvme/bbjs/sbharadwaj/model_checkpoints/ear_large/beats_iter0_large.tune_lr5.0e-4_warmup40000_bins1600000_totalsteps400000/epoch31.pt
+    # /work/nvme/bbjs/sbharadwaj/model_checkpoints/ear_base/beats_iter0_base.tune_lr5e-4_warmup40000_bins1600000_totalsteps400000/epoch39.pt
+    # /work/nvme/bbjs/sbharadwaj/model_checkpoints/ear_base/beats_iter0_tune_lr5.0e-4_warmup4000_bins2886000/1_avgepoch50.pt
+    # /work/nvme/bbjs/sbharadwaj/model_checkpoints/ear_base/beats_iter1_bs2k.base.xv_normal2/1_avgepoch28.pt
+    #/work/nvme/bbjs/sbharadwaj/model_checkpoints/ear_base/beats_tokenizer_iter1_tok.beta10_t2.loaded.base.xv_normal2/1_avgepoch16.pt
+    # /work/nvme/bbjs/sbharadwaj/fullas2m/exp/beats_iter0_bs2k.base.xv_normal2/1_avgepoch28.pt
+    # /work/nvme/bbjs/sbharadwaj/model_checkpoints/openbeats/beats_iter0_large.as2m.0215.002904/1_avgepoch112.pt
+    # /work/nvme/bbjs/sbharadwaj/model_checkpoints/openbeats/seed1212/1_avgepoch36.pt
+    # /work/nvme/bbjs/sbharadwaj/model_checkpoints/openbeats/xvnormal/1_avgepoch112.pt 
+    # /work/nvme/bbjs/sbharadwaj/espnet/egs2/as2m/ssl1/exp/beats_iter0_ordered.deepnorm.relpos_noflash.prenorm_pred.default_hyp.0207.161949/encoder_checkpoints/epoch112_fp32.pt 
+    # /compute/babel-13-33/sbharad2/models/BEATs/BEATs_iter3.pt
+    fbank_mean: 11.72215
+    fbank_std: 10.60431
+    beats_config:
+        layer_wise_gradient_decay_ratio: 0.2
+        encoder_layerdrop: 0.1
+        dropout: 0.0
+    specaug_config:
+        apply_time_warp: true
+        apply_freq_mask: false
+        apply_time_mask: true
+        time_mask_width_ratio_range:
+        - 0
+        - 0.06
+        num_time_mask: 1
+    roll_augment: true
+    roll_interval: 16000
+    use_weighted_representation: false
+
+# Simple linear decoder for classification.
+decoder: linear_decoder
+decoder_conf:
+    pooling: mean
+    dropout: 0.1

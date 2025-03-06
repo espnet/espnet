@@ -42,7 +42,7 @@ max_epoch: 112 # 400K steps / (2M / 560)
 use_amp: true
 accum_grad: 1
 grad_clip: 1
-num_workers: 4 # dataloader workers, geq to ngpu
+num_workers: 6 # dataloader workers, geq to ngpu
 use_deepspeed: true
 deepspeed_config: conf/deepspeed_training_config.json
 optim: adamw

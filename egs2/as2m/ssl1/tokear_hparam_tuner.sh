@@ -76,7 +76,7 @@ wandb_project=EARTokenizer.PT
 # LARGE
 for LEARNING_RATE in 5.0e-4; do
   for WARMUP_STEPS in 20000; do
-    for BATCH_BINS in 700000 600000 500000; do
+    for BATCH_BINS in 300000; do
 
       SSL_TAG="large_tok.tune_lr${LEARNING_RATE}_warmup${WARMUP_STEPS}_bins${BATCH_BINS}_totalsteps${TOTAL_STEPS}"
       N_EPOCH=$(awk "BEGIN {print int($TOTAL_STEPS * ($BATCH_BINS / 998) / 7220000)}")
