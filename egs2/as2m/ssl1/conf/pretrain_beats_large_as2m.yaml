@@ -26,6 +26,15 @@ encoder_conf:
         num_buckets: 320
         max_distance: 800
         gru_rel_pos: true
+        
+        # Large
+        encoder_layers: 24
+        encoder_embed_dim: 1024
+        encoder_ffn_embed_dim: 4096
+        encoder_attention_heads: 16
+        decoder_embed_dim: 1024
+        decoder_attention_heads: 16
+
     use_weighted_representation: false
     is_pretraining: true
 
@@ -44,10 +53,10 @@ accum_grad: 1
 grad_clip: 1
 num_workers: 4 # dataloader workers, geq to ngpu
 use_deepspeed: true
-deepspeed_config: conf/deepspeed_training_config.json
+deepspeed_config: conf/deepspeed_training_config_large_as2m.json
 optim: adamw
 optim_conf:
-    lr: 5.0e-4
+    lr: 1.0e-4
     weight_decay: 1.0e-2
     betas: [0.9, 0.98]
 
@@ -55,7 +64,7 @@ optim_conf:
 scheduler: cycliclr
 scheduler_conf:
     base_lr: 1.0e-5
-    max_lr: 5.0e-4
+    max_lr: 1.0e-4
     step_size_up: 32000
     step_size_down: 368000
     cycle_momentum: false
