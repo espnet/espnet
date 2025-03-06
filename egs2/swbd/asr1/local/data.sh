@@ -14,6 +14,7 @@ SECONDS=0
 
 stage=1
 stop_stage=3
+turn_take=false
 
 log "$0 $*"
 . utils/parse_options.sh
@@ -33,6 +34,10 @@ if [ -z "${SWBD}" ]; then
     exit 1
 fi
 
+if [ ${turn_take} = "true" ]; then
+    ./local/data_turn_take.sh
+    exit 1
+fi
 
 # we assume the following data structure
   # SWBD: LDC97S62 LDC2002S09 LDC2002T43 LDC2004T19 LDC2005T19 LDC2004S13 LDC2005S13
