@@ -577,31 +577,35 @@ class Speech2Text:
 
         # b. Forward Encoder
         enc, enc_olens = self.asr_model.encode(**batch)
-        if self.asr_model.superb_setup:
-            encoder_out = self.asr_model.transform_mean(self.asr_model.act_fn(enc))
-            if self.asr_model.use_only_last_correct:
-                feats = []
-                for k in range(encoder_out.shape[0]):
-                    feats.append(encoder_out[k, enc_olens[k] - 1])
-                feats = torch.stack(feats)
-            else:
-                feats_mean_out = []
-                for k in range(encoder_out.shape[0]):
-                    feats_mean_out.append(
-                        torch.mean(encoder_out[k, : enc_olens[k]], dim=0)
-                    )
-                feats = torch.stack(feats_mean_out)
-            encoder_out = self.asr_model.transform_linear(feats)
-            m = torch.nn.Softmax()
-            token_int = [(m(encoder_out[0])).tolist()]
-            token_int_corr = [np.argmax(k) + 2 for k in token_int]
-            token = self.converter.ids2tokens(token_int_corr)
-            text = ",".join([str(k) for k in token_int[0]])
-            hyp = Hypothesis(
-                score=0.0, scores=None, states=None, yseq=torch.tensor(token_int_corr)
-            )
-            results = [(text, token, token_int_corr, hyp)]
-            return results
+        if hasattr(self.asr_model, "superb_setup"):
+            if self.asr_model.superb_setup:
+                encoder_out = self.asr_model.transform_mean(self.asr_model.act_fn(enc))
+                if self.asr_model.use_only_last_correct:
+                    feats = []
+                    for k in range(encoder_out.shape[0]):
+                        feats.append(encoder_out[k, enc_olens[k] - 1])
+                    feats = torch.stack(feats)
+                else:
+                    feats_mean_out = []
+                    for k in range(encoder_out.shape[0]):
+                        feats_mean_out.append(
+                            torch.mean(encoder_out[k, : enc_olens[k]], dim=0)
+                        )
+                    feats = torch.stack(feats_mean_out)
+                encoder_out = self.asr_model.transform_linear(feats)
+                m = torch.nn.Softmax()
+                token_int = [(m(encoder_out[0])).tolist()]
+                token_int_corr = [np.argmax(k) + 2 for k in token_int]
+                token = self.converter.ids2tokens(token_int_corr)
+                text = ",".join([str(k) for k in token_int[0]])
+                hyp = Hypothesis(
+                    score=0.0,
+                    scores=None,
+                    states=None,
+                    yseq=torch.tensor(token_int_corr),
+                )
+                results = [(text, token, token_int_corr, hyp)]
+                return results
         if self.multi_asr:
             enc = enc.unbind(dim=1)  # (batch, num_inf, ...) -> num_inf x [batch, ...]
         if self.enh_s2t_task or self.multi_asr:
