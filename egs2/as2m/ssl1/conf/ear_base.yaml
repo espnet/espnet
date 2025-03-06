@@ -1,0 +1,37 @@
+# unused_parameters: true
+init: none # we initialise differently from espnet
+num_att_plot: 0
+
+encoder: beats
+encoder_conf:
+    beats_config:
+        layer_wise_gradient_decay_ratio: 1.0
+        encoder_layerdrop: 0.0
+        dropout: 0.1
+         # if you change this then also change n_targets in beats.sh
+        codebook_vocab_size: 1024
+        fbank_mean: 15.29130 # for 7m
+        fbank_std: 5.90532
+        decoder_layers: 3 # layers in the pretraining predictor
+        deep_norm: true
+        use_flash_attn: false
+        relative_position_embedding: true
+        num_buckets: 320
+        max_distance: 800
+        gru_rel_pos: true
+    use_weighted_representation: false
+    is_pretraining: true
+
+model_conf:
+    ignore_id: -2 # This is important!
+    label_smoothing: 0.1
+    waveform_input: false
+
+batch_type: length
+
+batch_bins: 1600000 # (998 + 500 labels) * 1000 audio samples 4-H100 ~ 3hr
+max_epoch: 60
+
+num_workers: 4
+use_deepspeed: true
+deepspeed_config: conf/ds_ear.json

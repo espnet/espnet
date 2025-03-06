@@ -5,19 +5,34 @@ from scipy import stats
 from sklearn import metrics
 
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
+from espnet2.asr.encoder.hugging_face_transformers_encoder import (
+    HuggingFaceTransformersEncoder,
+)
 from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
 from espnet2.cls.decoder.linear_decoder import LinearDecoder
 from espnet2.cls.espnet_model import ESPnetClassificationModel, label_to_onehot
+from espnet2.cls.layers.sequence_embedding_fusion import AudioTextAttnFusion
 
 
 @pytest.mark.parametrize("encoder_arch", [TransformerEncoder, ConformerEncoder])
 @pytest.mark.parametrize("classification_type", ["multi-label", "multi-class"])
-def test_fwd_bkwd(encoder_arch, classification_type):
+@pytest.mark.parametrize("text_input", [True, False])
+def test_fwd_bkwd(encoder_arch, classification_type, text_input):
     token_list = ["class0", "class1", "class2", "class3", "class4", "<unk>"]
     n_classes = len(token_list) - 1
     enc_out = 4
     encoder = encoder_arch(20, output_size=enc_out, linear_units=4, num_blocks=2)
     decoder = LinearDecoder(n_classes, enc_out, pooling="mean")
+
+    text_encoder = None
+    embedding_fusion = None
+    if text_input:
+        text_encoder = HuggingFaceTransformersEncoder(
+            input_size=1, model_name_or_path="bert-base-uncased"
+        )
+        embedding_fusion = AudioTextAttnFusion(
+            audio_dim=enc_out, text_dim=768, hidden_dim=40, output_dim=enc_out
+        )
 
     model = ESPnetClassificationModel(
         n_classes,
@@ -28,6 +43,8 @@ def test_fwd_bkwd(encoder_arch, classification_type):
         preencoder=None,
         encoder=encoder,
         decoder=decoder,
+        text_encoder=text_encoder,
+        embedding_fusion=embedding_fusion,
         classification_type=classification_type,
     )
 
@@ -45,18 +62,36 @@ def test_fwd_bkwd(encoder_arch, classification_type):
             label=torch.tensor([[3], [0]], dtype=torch.long),
             label_lengths=torch.tensor([[1], [1]], dtype=torch.long),
         )
+
+    if text_input:
+        inputs["text"] = torch.randint(
+            0, 25, (2, 15), requires_grad=False, dtype=torch.long
+        )
+        inputs["text_lengths"] = torch.tensor([10, 15], dtype=torch.long)
+
     loss, _, _ = model(**inputs)
     loss.backward()
 
 
 @pytest.mark.parametrize("encoder_arch", [TransformerEncoder, ConformerEncoder])
 @pytest.mark.parametrize("classification_type", ["multi-label", "multi-class"])
-def test_score(encoder_arch, classification_type):
+@pytest.mark.parametrize("text_input", [True, False])
+def test_score(encoder_arch, classification_type, text_input):
     token_list = ["class0", "class1", "class2", "class3", "class4", "<unk>"]
     n_classes = len(token_list) - 1
     enc_out = 4
     encoder = encoder_arch(20, output_size=enc_out, linear_units=4, num_blocks=2)
     decoder = LinearDecoder(n_classes, enc_out, pooling="mean")
+
+    text_encoder = None
+    embedding_fusion = None
+    if text_input:
+        text_encoder = HuggingFaceTransformersEncoder(
+            input_size=1, model_name_or_path="bert-base-uncased"
+        )
+        embedding_fusion = AudioTextAttnFusion(
+            audio_dim=enc_out, text_dim=768, hidden_dim=40, output_dim=enc_out
+        )
 
     model = ESPnetClassificationModel(
         n_classes,
@@ -67,12 +102,21 @@ def test_score(encoder_arch, classification_type):
         preencoder=None,
         encoder=encoder,
         decoder=decoder,
+        text_encoder=text_encoder,
+        embedding_fusion=embedding_fusion,
         classification_type=classification_type,
     )
     inputs = dict(
         speech=torch.randn(1, 10, 20, requires_grad=True),
         speech_lengths=torch.tensor([10], dtype=torch.long),
     )
+
+    if text_input:
+        inputs["text"] = torch.randint(
+            0, 25, (1, 15), requires_grad=False, dtype=torch.long
+        )
+        inputs["text_lengths"] = torch.tensor([15], dtype=torch.long)
+
     model.eval()
     scores = model.score(**inputs)
     assert scores.shape == (1, n_classes)

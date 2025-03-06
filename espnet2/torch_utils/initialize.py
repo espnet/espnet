@@ -125,3 +125,7 @@ def initialize(model: torch.nn.Module, init: str):
             model.decoder, "reload_pretrained_parameters", None
         ):
             model.decoder.reload_pretrained_parameters()
+        if getattr(model, "teacher", None) and getattr(
+            model.teacher, "reload_pretrained_parameters", None
+        ):
+            model.teacher.reload_pretrained_parameters()

@@ -22,6 +22,7 @@ mkdir -p "${storage_dir}"
     --dumpdir "${storage_dir}/dump" \
     --expdir "${storage_dir}/exp" \
     --gpu_inference false \
+    --use_lightning true \
     --feats_normalize uttmvn \
     --stage 1 \
     --stop_stage 10 \
