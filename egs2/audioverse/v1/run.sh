@@ -13,6 +13,8 @@ run_args=$(pyscripts/utils/print_args.py $0 "$@")
 # Define default values for command-line options
 parallel=false # Run recipes in parallel
 wait_time=5  # Default wait time between parallel runs in seconds
+store_locally=true # If true all runs will have data, dump and expdir in current audioverse folder. Otherwise we use the default values of recipe.
+dry_run=false # Do not run just print commands
 filter_recipe=none # Filter recipes by name. Default none
 recipe="" # Specific recipes to run, takes precedence. Default is all
 config_prefix="" # Template config prefix tag
@@ -29,6 +31,8 @@ Options:
   # General
   --parallel BOOL           Run recipes in parallel (default: ${parallel})
   --wait_time SECONDS       Wait time between parallel runs (default: ${wait_time})
+  --store_locally BOOL      Store all recipe data in this folder if true (default: ${store_locally})
+  --dry_run                 If true, just print commands (default: ${dry_run})
 
   # Recipe selection
   --filter_recipe LIST      Comma-separated list to run all recipes except these. Default is None.
@@ -77,24 +81,49 @@ done
 
 
 # Register all recipe runners relative to this script
+# Format: [recipe_name]="[path_to_script]|[additional_arguments]"
+# Dots are not allowed in recipe names
 declare -A recipe_runners
-recipe_runners["clotho_aac"]="../../clotho_v2/asr1/run.sh"
-recipe_runners["audiocaps_aac"]="../../clotho_v2/asr1/run.sh"
 
-# Add BERT audio-text classification
-recipe_runners["clotho_cle"]="../../clotho_v2/cls1/run_entailment.sh"
-recipe_runners["clotho_aqa"]="../../clotho_v2/cls1/run_aqa_yn.sh,../../clotho_v2/cls1/run_aqa_open.sh"
-# Add CLAP audio-text classification
+# Captioning tasks
+# recipe_runners["clotho_aac"]="../../clotho_v2/asr1/run.sh|"
+# recipe_runners["audiocaps_aac"]="../../clotho_v2/asr1/run.sh|"
 
-recipe_runners["audioset2m"]="../../as2m/cls1/run.sh"
-recipe_runners["audioset20k"]="../../as20k/cls1/run.sh"
-# recipe_runners["fsd50k"]
-recipe_runners["esc"]="../../esc50/asr1/run.sh"
+# BERT audio-text classification
+recipe_runners["cle_bert"]="../../clotho_v2/cls1/run_entailment.sh|"
+recipe_runners["aqa_yn_bert"]="../../clotho_v2/cls1/run_aqa_yn.sh|"
+recipe_runners["aqa_open_bert"]="../../clotho_v2/cls1/run_aqa_open.sh|"
 
-# recipe_runners["dcase24_machine"]
-recipe_runners["beans"]="../../beans/cls1/run.sh"
+# CLAP audio-text classification
+recipe_runners["cle_clap"]="../../clotho_v2/cls1/run_entailment.sh|--hugging_face_model_name_or_path laion/clap-htsat-unfused"
+recipe_runners["aqa_yn_clap"]="../../clotho_v2/cls1/run_aqa_yn.sh|--hugging_face_model_name_or_path laion/clap-htsat-unfused"
+recipe_runners["aqa_open_clap"]="../../clotho_v2/cls1/run_aqa_open.sh|--hugging_face_model_name_or_path laion/clap-htsat-unfused"
 
+# General sound Multi-label tasks
+# recipe_runners["audioset2m"]="../../as2m/cls1/run.sh|"
+# recipe_runners["audioset20k"]="../../as20k/cls1/run.sh|"
+# recipe_runners["fsd50k"]="../../fsd/cls1/run.sh|"
+
+recipe_runners["esc50"]="../../esc50/asr1/run.sh|"
+
+# Register BEANS detection tasks
+recipe_runners["beans_dcase"]="../../run_dcase.sh|"
+recipe_runners["beans_enabirds"]="../../run_enabirds.sh|"
+recipe_runners["beans_gibbons"]="../../run_gibbons.sh|"
+recipe_runners["beans_hiceas"]="../../run_hiceas.sh|"
+recipe_runners["beans_rfcx"]="../../run_rfcx.sh|"
+
+# Register BEANS classification tasks
+recipe_runners["beans_watkins"]="../../run_watkins.sh|"
+recipe_runners["beans_bats"]="../../run_bats.sh|"
+recipe_runners["beans_cbi"]="../../run_cbi.sh|"
+recipe_runners["beans_humbugdb"]="../../run_humbugdb.sh|"
+recipe_runners["beans_dogs"]="../../run_dogs.sh|"
+
+# Music and machine sound tasks
 # recipe_runners["gtzan"]
+# recipe_runners["nsynth"]
+# recipe_runners["dcase24_machine"]
 
 generate_recipe_list() {
     local recipes_to_run=()
@@ -120,14 +149,14 @@ generate_recipe_list() {
                 recipes_to_run+=("$r")
             else
                 log "Unknown recipe: $r"
-                return 1
+                exit 1
             fi
         done
     fi
 
     if [ ${#recipes_to_run[@]} -eq 0 ]; then
         log "No recipes found matching criteria"
-        return 1
+        exit 1
     fi
 
     echo "${recipes_to_run[@]}"
@@ -146,7 +175,7 @@ create_config() {
     mkdir -p "$(dirname "$output_path")"
     if [ ! -f "$template_path" ]; then
         log "Template not found: $template_path"
-        return 1
+        exit 1
     fi
 
     # replace ARGUMENT placeholders
@@ -173,7 +202,7 @@ construct_command_args() {
 
     if [ ! -d "$recipe_dir" ]; then
         log "Error: Recipe directory not found: $recipe_dir"
-        return 1
+        exit 1
     fi
 
     task_name=$(basename $recipe_dir)
@@ -183,9 +212,12 @@ construct_command_args() {
         task_name="asr"
     else
         log "Error: Unknown task: $task_name"
-        return 1
+        exit 1
     fi
-    cmd_args="--${task_name}_config ${config_path} --${task_name}_tag ${run_name}"
+    cmd_args="--${task_name}_config $(pwd)/${config_path} --${task_name}_tag ${run_name} "
+    if [[ "${store_locally}" == true ]]; then
+        cmd_args+="--datadir $(pwd)/data/${recipe} --dumpdir $(pwd)/dump/${recipe} --expdir $(pwd)/exp/${recipe} "
+    fi
 
     echo "$cmd_args"
     return 0
@@ -193,17 +225,22 @@ construct_command_args() {
 
 run_recipe() {
     local recipe=$1
-    local runners="${recipe_runners[$recipe]}"
+    local runner_info="${recipe_runners[$recipe]}"
     shift
 
     local success=true
     local recipe_log="${exp_dir}/${recipe}.log"
 
     log "Processing recipe: $recipe"
-    IFS=',' read -ra runner_list <<< "$runners"
+    IFS=',' read -ra runner_info_list <<< "$runner_info"
 
-    for runner in "${runner_list[@]}"; do
-        log "Setting up task: $runner for recipe: $recipe"
+    for runner_entry in "${runner_info_list[@]}"; do
+        # Split the runner entry into path and args
+        IFS='|' read -ra runner_parts <<< "$runner_entry"
+        local runner="${runner_parts[0]}"
+        local runner_specific_args="${runner_parts[1]:-}"  # Use empty string if no args specified
+
+        log "Setting up task: $runner for recipe: $recipe with args: $runner_specific_args"
 
         # Create config from the template
         create_config "$recipe" "$runner" || {
@@ -219,18 +256,22 @@ run_recipe() {
             continue
         }
 
-        log "Running command: $runner with args: ${cmd_args} ${recipe_args[@]}"
+        log "Running command: $runner with args: ${runner_specific_args} ${cmd_args} ${recipe_args}"
         log "Output will be saved to: $recipe_log"
-
-        if [ "$parallel" = true ]; then
-            (cd "$(dirname $runner)" && "./$(basename $runner) ${cmd_args} ${recipe_args[@]}" 2>&1 | tee -a "$recipe_log") &
-            log "Started $recipe|$runner in background (PID: $!)"
-            sleep "$wait_time"
+        
+        if [[ "$dry_run" = true ]]; then
+            log "Dry run: Would execute: (cd \"$(dirname $runner)\" && \"./$(basename $runner)\" ${runner_specific_args} ${cmd_args} ${recipe_args})"
         else
-            (cd "$(dirname $runner)" && "./$(basename $runner) ${cmd_args} ${recipe_args[@]}" 2>&1 | tee -a "$recipe_log") || {
-                log "Error: Recipe $recipe|$runner failed"
-                success=false
-            }
+            if [ "$parallel" = true ]; then
+                (cd "$(dirname $runner)" && "./$(basename $runner)" ${runner_specific_args} ${cmd_args} ${recipe_args} 2>&1 | tee -a "$recipe_log") &
+                log "Started $recipe|$runner in background (PID: $!)"
+                sleep "$wait_time"
+            else
+                (cd "$(dirname $runner)" && "./$(basename $runner)" ${runner_specific_args} ${cmd_args} ${recipe_args} 2>&1 | tee -a "$recipe_log") || {
+                    log "Error: Recipe $recipe|$runner failed"
+                    success=false
+                }
+            fi
         fi
     done
 
