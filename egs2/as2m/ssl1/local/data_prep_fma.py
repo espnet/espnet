@@ -1,14 +1,15 @@
 """Prepares data for self-supervised audio only training with FMA."""
 
-import torchaudio
-import soundfile as sf
 import glob
 import os
 import sys
 import threading
-from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor
 from itertools import islice
+
+import soundfile as sf
+import torchaudio
+from tqdm import tqdm
 
 DATA_READ_DIR = sys.argv[1]
 DATA_WRITE_DIR = sys.argv[2]

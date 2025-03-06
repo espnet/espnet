@@ -12,16 +12,17 @@
 # --------------------------------------------------------
 
 import logging
+import math
 from contextlib import contextmanager
 from typing import Dict, Optional
-import math
+
 import torch
+import torch.distributed as dist
 import torch.nn as nn
 import torch.nn.functional as F
 import torchaudio.compliance.kaldi as ta_kaldi
 from packaging.version import parse as V
 from torch.nn import LayerNorm
-import torch.distributed as dist
 
 if V(torch.__version__) >= V("1.6.0"):
     from torch.cuda.amp import autocast
@@ -39,16 +40,16 @@ from espnet2.asr.encoder.beats_encoder import (
     init_bert_params,
 )
 from espnet2.speechlm.tokenizer.beats_utils import (
-    l2norm,
-    kmeans,
-    norm_ema_inplace,
+    beats_frontend,
     ema_inplace,
     forward_padding_mask_conv,
     freeze_conv_module,
-    beats_frontend,
+    kmeans,
+    l2norm,
+    norm_ema_inplace,
 )
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet2.speechlm.tokenizer.random_tokenizer import RandomProjectionQuantizer
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 
 
 class BeatsTokenizerConfig(BeatsConfig):

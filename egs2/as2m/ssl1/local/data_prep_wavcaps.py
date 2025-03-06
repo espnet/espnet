@@ -1,18 +1,19 @@
 """Prepares data for self-supervised audio only training with WavCaps.
 This covers BBC Soundeffects, FreeSound, and SoundBible datasets.
 We don't include AudioSet_SL because it is already included in AudioSet.
-We filter out ESC IDs from FreeSound dataset using the esc_ids.txt file 
+We filter out ESC IDs from FreeSound dataset using the esc_ids.txt file
 from the same directory as this script.
 """
 
-import numpy as np
-import soundfile as sf
+import json
 import os
 import sys
-import json
 import threading
-from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor
+
+import numpy as np
+import soundfile as sf
+from tqdm import tqdm
 
 DATA_READ_DIR = sys.argv[1]
 DATA_WRITE_DIR = sys.argv[2]

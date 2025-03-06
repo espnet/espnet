@@ -1,12 +1,12 @@
 """ DeepSpeed Trainer Module """
 
 import argparse
+import base64
 import dataclasses
+import errno
 import json
 import logging
 import time
-import errno
-import base64
 
 import humanfriendly
 import torch

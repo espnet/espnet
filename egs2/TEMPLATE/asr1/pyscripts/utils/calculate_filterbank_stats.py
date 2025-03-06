@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
 import argparse
 import logging
-import sys
 import os
+import sys
+
 import torch
-from typeguard import typechecked
+import torchaudio.compliance.kaldi as ta_kaldi
 from tqdm import tqdm
+from typeguard import typechecked
 
 from espnet2.fileio.sound_scp import SoundScpReader
 from espnet2.utils import config_argparse
 from espnet.utils.cli_utils import get_commandline_args
-import torchaudio.compliance.kaldi as ta_kaldi
 
 
 def compute_filterbank(

@@ -3,12 +3,12 @@
 # Copyright 2024 Jinchuan Tian
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+import logging
 from inspect import signature
 
 import numpy as np
 import torch
 import yaml
-import logging
 
 from espnet2.speechlm.tokenizer.abs_tokenizer import AbsTokenizer
 from espnet2.speechlm.tokenizer.beats_tokenizer import (  # noqa

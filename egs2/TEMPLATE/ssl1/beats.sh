@@ -41,7 +41,7 @@ local_data_opts= # The options given to local/data.sh.
 
 # Feature extraction related
 feats_type=raw       # Feature type (raw or fbank).
-audio_format=wav    # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw). 
+audio_format=wav    # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw).
                     # flac does not work with kaldi during audio tokenization phase
 fs=16k               # Sampling rate.
 min_wav_duration=0.1 # Minimum duration in second.
@@ -207,7 +207,7 @@ if ! "${skip_data_prep}"; then
             utils/copy_data_dir.sh --validate_opts --non-print "${data_feats_raw}/org/${dset}" "${data_feats_raw}/${dset}"
             echo "raw" > "${data_feats_raw}/${dset}/feats_type"
         done
-        
+
     fi
 
 
@@ -224,7 +224,7 @@ if ! "${skip_data_prep}"; then
             awk -v min_length="${_min_length}" -v max_length="${_max_length}" \
             '{ if ($2 > min_length && $2 < max_length ) print $0; }' \
             >"${data_feats_raw}/${dset}/utt2num_samples"
-            
+
             <"${data_feats_raw}/org/${dset}/wav.scp" \
             utils/filter_scp.pl "${data_feats_raw}/${dset}/utt2num_samples"  \
             >"${data_feats_raw}/${dset}/wav.scp"
@@ -264,13 +264,13 @@ fi
 setup_common_vars() {
     _ssl_train_dir="${data_feats}/${train_set}"
     _ssl_valid_dir="${data_feats}/${valid_set}"
-    
+
     # Set tokenizer tag
     _tokenizer_inference_tag="tok"
     if [ -n "${tokenizer_inference_config}" ]; then
         _tokenizer_inference_tag="$(basename "${tokenizer_inference_config}" .yaml)"
     fi
-    
+
     # Determine file types
     _feats_type="$(<${_ssl_train_dir}/feats_type)"
     if [ "${_feats_type}" = raw ]; then
@@ -315,9 +315,9 @@ generate_checkpoint() {
 train_encoder() {
     iteration=$1
     ssl_exp="${expdir}/beats_iter${iteration}_${ssl_tag}"
-    
+
     log "Training encoder for iteration ${iteration}..."
-    
+
     _opts=""
     [ -n "${train_config}" ] && _opts+="--config ${train_config} "
 
@@ -352,7 +352,7 @@ train_encoder() {
     chmod +x "${ssl_exp}/run.sh"
 
     jobname=$(echo "${cuda_cmd}" | grep -q -e queue.pl -e queue-freegpu.pl && basename ${ssl_exp} || echo "${ssl_exp}/train.log")
-    
+
     ${python} -m espnet2.bin.launch \
         --cmd "${cuda_cmd} --name ${jobname}" \
         --log "${ssl_exp}"/train.log \
@@ -372,7 +372,7 @@ train_encoder() {
             --fold_length "${text_fold_length}" \
             --output_dir "${ssl_exp}" \
             ${_opts} ${beats_args}
-    
+
     # Generate float32 checkpoint after training completes
     checkpoint_path="${ssl_exp}/epoch_latest.pt"
     log "Generating float32 checkpoint from encoder training: ${checkpoint_path}"
@@ -382,10 +382,10 @@ train_encoder() {
 train_tokenizer() {
     iteration=$1
     ssl_tokenizer_exp="${expdir}/beats_tokenizer_iter${iteration}_${ssl_tag}"
-    
+
     _opts=""
     [ -n "${tokenizer_train_config}" ] && _opts+="--config ${tokenizer_train_config} "
-    
+
     # Setup teacher
     prev_iter=$((iteration - 1))
     prev_model_dir="${expdir}/beats_iter${prev_iter}_${ssl_tag}"
@@ -405,9 +405,9 @@ train_tokenizer() {
     mkdir -p "${ssl_tokenizer_exp}"
     echo "${run_args} --stage 7 \"\$@\"; exit \$?" > "${ssl_tokenizer_exp}/run.sh"
     chmod +x "${ssl_tokenizer_exp}/run.sh"
-    
+
     jobname=$(echo "${cuda_cmd}" | grep -q -e queue.pl -e queue-freegpu.pl && basename ${ssl_tokenizer_exp} || echo "${ssl_tokenizer_exp}/train.log")
-    
+
     ${python} -m espnet2.bin.launch \
         --cmd "${cuda_cmd} --name ${jobname}" \
         --log "${ssl_tokenizer_exp}"/train.log \
@@ -426,7 +426,7 @@ train_tokenizer() {
             --fold_length "${speech_fold_length}" \
             --output_dir "${ssl_tokenizer_exp}" \
             ${_opts} ${beats_args}
-    
+
     # Convert tokenizer checkpoint to float32 for inference
     log "Generating float32 checkpoint from tokenizer training"
     checkpoint_path="${ssl_tokenizer_exp}/epoch_latest.pt"
@@ -436,7 +436,7 @@ train_tokenizer() {
 tokenizer_inference() {
     iteration=$1
     ssl_tokenizer_exp="${expdir}/beats_tokenizer_iter${iteration}_${ssl_tag}"
-    
+
     _opts=""
     if [ -n "${external_tokenizer_model}" ]; then
         _opts+="--checkpoint_path ${external_tokenizer_model} "
@@ -450,10 +450,10 @@ tokenizer_inference() {
         _opts+="--config_path ${ssl_tokenizer_exp}/config.yaml "
     fi
     _opts+="${_waveform_opt} "
-    
+
     _nj=$((ngpu==0?nj:ngpu))
     _ngpu=$((ngpu==0?0:1))
-    
+
     for _data_dir in "${_ssl_valid_dir}" "${_ssl_train_dir}"; do
         ./scripts/feats/audio_tokenization.sh \
             --codec_choice beats \
@@ -472,7 +472,7 @@ if ! "${skip_train}"; then
     if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         log "Stage 5: BEATs Random Tokenization: ${data_feats}/${train_set}, ${data_feats}/${valid_set}"
         setup_common_vars
-        
+
         _opts=
         if [ -n "${tokenizer_inference_config}" ]; then
             _opts+="--config_path ${tokenizer_inference_config} "
@@ -493,7 +493,7 @@ if ! "${skip_train}"; then
                 --nj "${_nj}" --ngpu ${_ngpu} --batch_size "${tokenizer_inference_batch_size}"
             cp "${data_feats}/${dset}/iter0_${_tokenizer_inference_tag}/${_scp%.scp}_beats_random.txt" "${data_feats}/${dset}/target_iter0_${_tokenizer_inference_tag}"
         done
-        
+
         # Prepare token list
         : > "${token_listdir}/tokens.txt"  # Clear the file if it exists
         echo "<unk>" >> "${token_listdir}/tokens.txt"
@@ -512,7 +512,7 @@ if ! "${skip_train}"; then
             _opts+="--config ${train_config} "
         fi
         _opts+="${_waveform_opt} "
-        
+
         # 1. Split the key file
         _logdir="${ssl_stats_dir}/logdir"
         mkdir -p "${_logdir}"
@@ -542,7 +542,7 @@ if ! "${skip_train}"; then
 
         # 3. Submit jobs
         log "BEATs collect-stats started... log: '${_logdir}/stats.*.log'"
-        
+
         # Run collectstats
         # shellcheck disableSC2046,SC2086
         ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
@@ -577,7 +577,7 @@ if ! "${skip_train}"; then
             awk -v N="$(<${token_listdir}/tokens.txt wc -l)" '{ print $0 "," N }' \
             >"${ssl_stats_dir}/valid/target_shape.word"
     fi
-    
+
     if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
         setup_common_vars
         log "Stage 7: BEATs Training: train_set=${_ssl_train_dir}, valid_set=${_ssl_valid_dir}"

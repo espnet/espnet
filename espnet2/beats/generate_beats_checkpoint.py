@@ -2,9 +2,10 @@
 
 import argparse
 import logging
-import sys
-import torch
 import os
+import sys
+
+import torch
 import yaml
 
 from espnet.utils.cli_utils import get_commandline_args

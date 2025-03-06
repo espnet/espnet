@@ -1,13 +1,14 @@
 """Prepares data for self-supervised audio only training with inat sounds."""
 
-import numpy as np
-import soundfile as sf
+import json
 import os
 import sys
-import json
 import threading
-from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor
+
+import numpy as np
+import soundfile as sf
+from tqdm import tqdm
 
 DATA_READ_DIR = sys.argv[1]
 DATA_WRITE_DIR = sys.argv[2]

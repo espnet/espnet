@@ -62,7 +62,7 @@ for LEARNING_RATE in 5e-4; do
       external_tokenizer_model=/work/nvme/bbjs/sbharadwaj/model_checkpoints/ear_base/beats_tokenizer_iter1_base_tok.tune_lr1.0e-3_warmup40000_bins800000_totalsteps400000/epoch3.pt
 
       echo "Starting run with N_EPOCH=${N_EPOCH}, SSL_TAG=${SSL_TAG}, LR=${LEARNING_RATE}, Warmup=${WARMUP_STEPS}, BatchBins=${BATCH_BINS}"
-      
+
       ./run_ear.sh --ngpu 3 --ssl_tag "${SSL_TAG}" \
           --external_tokenizer_model ${external_tokenizer_model} --train_start_iter 1 --train_stop_iter 1 \
           --beats_args "--batch_bins ${BATCH_BINS} --max_epoch ${N_EPOCH} --deepspeed_config '${deepspeed_config_json_str}' \
