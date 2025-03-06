@@ -53,7 +53,7 @@ encoder_conf:
     beats_ckpt_path: /work/nvme/bbjs/sbharadwaj/model_checkpoints/ear_large/beats_iter0_large.tune_lr5.0e-4_warmup40000_bins1600000_totalsteps400000/epoch59.pt
     # /work/nvme/bbjs/sbharadwaj/model_checkpoints/ear_large/beats_iter0_large.tune_lr2.5e-4_warmup40000_bins1600000_totalsteps400000/epoch59.pt
     # /work/nvme/bbjs/sbharadwaj/model_checkpoints/ear_large/beats_iter0_large.tune_lr1.0e-4_warmup40000_bins1600000_totalsteps400000/epoch59.pt <-- 94.3
-    
+
     # /work/nvme/bbjs/sbharadwaj/model_checkpoints/ear_base/beats_iter0_base.tune_lr5e-4_warmup20000_bins1600000_totalsteps400000/epoch59.pt <-- 92
     # /work/nvme/bbjs/sbharadwaj/model_checkpoints/ear_base/beats_iter0_base.tune_lr5e-4_warmup40000_bins1600000_totalsteps400000/epoch59.pt <-- 93
     # /work/nvme/bbjs/sbharadwaj/model_checkpoints/ear_large/beats_iter0_large.tune_lr5.0e-4_warmup40000_bins1600000_totalsteps400000/epoch31.pt
@@ -64,8 +64,8 @@ encoder_conf:
     # /work/nvme/bbjs/sbharadwaj/fullas2m/exp/beats_iter0_bs2k.base.xv_normal2/1_avgepoch28.pt
     # /work/nvme/bbjs/sbharadwaj/model_checkpoints/openbeats/beats_iter0_large.as2m.0215.002904/1_avgepoch112.pt
     # /work/nvme/bbjs/sbharadwaj/model_checkpoints/openbeats/seed1212/1_avgepoch36.pt
-    # /work/nvme/bbjs/sbharadwaj/model_checkpoints/openbeats/xvnormal/1_avgepoch112.pt 
-    # /work/nvme/bbjs/sbharadwaj/espnet/egs2/as2m/ssl1/exp/beats_iter0_ordered.deepnorm.relpos_noflash.prenorm_pred.default_hyp.0207.161949/encoder_checkpoints/epoch112_fp32.pt 
+    # /work/nvme/bbjs/sbharadwaj/model_checkpoints/openbeats/xvnormal/1_avgepoch112.pt
+    # /work/nvme/bbjs/sbharadwaj/espnet/egs2/as2m/ssl1/exp/beats_iter0_ordered.deepnorm.relpos_noflash.prenorm_pred.default_hyp.0207.161949/encoder_checkpoints/epoch112_fp32.pt
     # /compute/babel-13-33/sbharad2/models/BEATs/BEATs_iter3.pt
     fbank_mean: 11.72215
     fbank_std: 10.60431
