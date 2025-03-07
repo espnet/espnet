@@ -27,8 +27,8 @@ class Masking(nn.Module):
         Args:
             encoder_embed_dim (int): The dimension of the transformer embedding output.
             mask_prob (float): Prob for each token to be the start of a masked span.
-                Will be multiplied by num of timesteps divided by len of mask span 
-                to mask approx this % of all elements. However due to overlaps, 
+                Will be multiplied by num of timesteps divided by len of mask span
+                to mask approx this % of all elements. However due to overlaps,
                 the actual number will be smaller (unless no_overlap is True).
             mask_selection (str): How to choose the mask length.
                 Options: [``static``, ``uniform``, ``normal``, ``poisson``].
@@ -45,7 +45,7 @@ class Masking(nn.Module):
             mask_channel_length (int): Minimum space between spans
                 (if no overlap is enabled) for channel masking.
             no_mask_channel_overlap (bool):  Whether to allow channel masks to overlap.
-            mask_channel_min_space (int): Minimum space between spans for 
+            mask_channel_min_space (int): Minimum space between spans for
                 channel masking (if no overlap is enabled).
         """
         super().__init__()
