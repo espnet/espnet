@@ -27,26 +27,26 @@ class Masking(nn.Module):
         Args:
             encoder_embed_dim (int): The dimension of the transformer embedding output.
             mask_prob (float): Prob for each token to be the start of a masked span.
-                Will be multiplied by num of timesteps divided by len of mask span to mask
-                approx this % of all elements. However due to overlaps, the actual number
-                will be smaller (unless no_overlap is True).
+                Will be multiplied by num of timesteps divided by len of mask span 
+                to mask approx this % of all elements. However due to overlaps, 
+                the actual number will be smaller (unless no_overlap is True).
             mask_selection (str): How to choose the mask length.
                 Options: [``static``, ``uniform``, ``normal``, ``poisson``].
             mask_other (float): Secondary mask argument
                 (used for more complex distributions).
             mask_length (int): The lengths of the mask.
             no_mask_overlap (bool):  Whether to allow masks to overlap.
-            mask_min_space (int):  Minimum space between spans (if no overlap is enabled).
+            mask_min_space (int):  Minimum space between spans (if no overlap).
             mask_channel_prob (float): The probability of replacing a feature with 0.
-            mask_channel_selection (str): How to choose the mask length for channel masking.
+            mask_channel_selection (str): How to choose mask length for channel mask.
                 Options: [``static``, ``uniform``, ``normal``, ``poisson``].
             mask_channel_other (float): Secondary mask argument for channel masking
                 (used for more complex distributions).
             mask_channel_length (int): Minimum space between spans
                 (if no overlap is enabled) for channel masking.
             no_mask_channel_overlap (bool):  Whether to allow channel masks to overlap.
-            mask_channel_min_space (int): Minimum space between spans for channel masking
-                (if no overlap is enabled).
+            mask_channel_min_space (int): Minimum space between spans for 
+                channel masking (if no overlap is enabled).
         """
         super().__init__()
         self.mask_prob = mask_prob
