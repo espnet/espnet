@@ -2349,7 +2349,7 @@ class AbsTask(ABC):
                 if "module" in state_dict:
                     state_dict = state_dict["module"]
                 model.load_state_dict(
-                    state_dict
+                    state_dict,
                     strict=False,
                 )
             except RuntimeError:
