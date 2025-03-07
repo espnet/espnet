@@ -2344,23 +2344,17 @@ class AbsTask(ABC):
                 #   in PyTorch<=1.4
                 device = f"cuda:{torch.cuda.current_device()}"
             try:
-                if 'mp_rank' in model_file:
+                if "mp_rank" in model_file:
                     model.load_state_dict(
-                        torch.load(
-                            model_file, 
-                            map_location=device,
-                            weights_only=False
-                        )['module'],
-                        strict=False
+                        torch.load(model_file, map_location=device, weights_only=False)[
+                            "module"
+                        ],
+                        strict=False,
                     )
                 else:
                     model.load_state_dict(
-                        torch.load(
-                            model_file, 
-                            map_location=device,
-                            weights_only=False
-                        ),
-                        strict=False
+                        torch.load(model_file, map_location=device, weights_only=False),
+                        strict=False,
                     )
             except RuntimeError:
                 # Note(simpleoier): the following part is to be compatible with

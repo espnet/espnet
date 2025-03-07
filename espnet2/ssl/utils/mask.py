@@ -5,18 +5,19 @@ from typing import Dict, List, Optional, Tuple, Union
 import torch
 from torch import Tensor, nn
 
+
 class Masking(nn.Module):
     def __init__(
         self,
         encoder_embed_dim: int,
         mask_prob: float = 0.8,
-        mask_selection: str = 'static',
+        mask_selection: str = "static",
         mask_other: float = 0.0,
         mask_length: int = 10,
         no_mask_overlap: bool = False,
         mask_min_space: int = 0,
         mask_channel_prob: float = 0.0,
-        mask_channel_selection: str = 'static',
+        mask_channel_selection: str = "static",
         mask_channel_other: float = 0.0,
         mask_channel_length: int = 10,
         no_mask_channel_overlap: bool = False,

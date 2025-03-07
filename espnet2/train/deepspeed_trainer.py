@@ -17,13 +17,13 @@ except ImportError:
     DeepSpeedEngine = None
 
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Tuple, Union, Sequence
+from typing import Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
 from torch.distributed import ReduceOp
 from typeguard import typechecked
 
-from espnet2.main_funcs.average_nbest_models import average_nbest_models
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
+from espnet2.main_funcs.average_nbest_models import average_nbest_models
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.recursive_op import recursive_average
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
@@ -45,8 +45,8 @@ class DeepSpeedTrainerOptions:
     best_model_criterion: Sequence[Sequence[str]]
     keep_nbest_models: Union[int, List[int]]
 
-class DeepSpeedTrainer(Trainer):
 
+class DeepSpeedTrainer(Trainer):
 
     @classmethod
     @typechecked

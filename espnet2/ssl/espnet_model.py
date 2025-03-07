@@ -5,24 +5,24 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import logging
-from typing import Dict, List, Optional, Tuple, Union, Set
+from typing import Dict, List, Optional, Set, Tuple, Union
 
 import torch
 from typeguard import typechecked
 
-from espnet2.asr.frontend.abs_frontend import AbsFrontend
-from espnet2.layers.abs_normalize import AbsNormalize
-from espnet2.asr.specaug.abs_specaug import AbsSpecAug
-from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
+from espnet2.asr.frontend.abs_frontend import AbsFrontend
+from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
+from espnet2.asr.specaug.abs_specaug import AbsSpecAug
+from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.ssl.loss.abs_loss import AbsSSLLoss
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 
+
 class ESPnetSSLModel(AbsESPnetModel):
     """A generic SSL model"""
-
 
     @typechecked
     def __init__(
@@ -89,8 +89,8 @@ class ESPnetSSLModel(AbsESPnetModel):
         batch_size = speech.shape[0]
 
         data = self.encode(speech, speech_lengths, text, text_lengths)
-        data['text'] = text
-        data['text_lengths'] = text_lengths
+        data["text"] = text
+        data["text_lengths"] = text_lengths
 
         total_loss = 0.0
         stats = {}
@@ -101,7 +101,7 @@ class ESPnetSSLModel(AbsESPnetModel):
             total_loss += loss
             stats.update(stats_i)
 
-        stats['loss'] = total_loss.detach().item()
+        stats["loss"] = total_loss.detach().item()
 
         # force_gatherable: to-device and to-tensor if scalar for DataParallel
         total_loss, stats, weight = force_gatherable(
@@ -144,9 +144,9 @@ class ESPnetSSLModel(AbsESPnetModel):
         # 1. Frontend
         speech, speech_lengths = self._extract_feats(speech, speech_lengths)
 
-        if 'frontend' in self.required_inputs:
-            data['frontend'] = speech
-            data['frontend_lengths'] = speech_lengths
+        if "frontend" in self.required_inputs:
+            data["frontend"] = speech
+            data["frontend_lengths"] = speech_lengths
 
         # 2. Data Augmentation
         if self.specaug is not None and self.training:
@@ -159,9 +159,9 @@ class ESPnetSSLModel(AbsESPnetModel):
         # 4. Pre-encoder
         if self.preencoder is not None:
             speech, speech_lengths = self.preencoder(speech, speech_lengths)
-            if 'preencoder' in self.required_inputs:
-                data['preencoder'] = speech
-                data['preencoder_lengths'] = speech_lengths
+            if "preencoder" in self.required_inputs:
+                data["preencoder"] = speech
+                data["preencoder_lengths"] = speech_lengths
 
         # 5. Objective-specific pre-processing
 
@@ -171,29 +171,29 @@ class ESPnetSSLModel(AbsESPnetModel):
 
         # EMA - data2vec / DinoSR
         # TODO: NOT IMPLEMENTED YET
-        if 'ema' in self.util_attributes:
+        if "ema" in self.util_attributes:
             with torch.no_grad():
-                ema_output, ema_output_lengths = self.util_modules['ema'].model(
+                ema_output, ema_output_lengths = self.util_modules["ema"].model(
                     speech, speech_lengths, masks=pad_masks, return_all_hs=True
                 )
-            data['ema_output'] = ema_output
-            data['ema_output_lengths'] = ema_output_lengths
+            data["ema_output"] = ema_output
+            data["ema_output_lengths"] = ema_output_lengths
 
         # Masking
-        if 'block_mask' in self.util_attributes or 'mask' in self.util_attributes:
+        if "block_mask" in self.util_attributes or "mask" in self.util_attributes:
             pad_masks = make_pad_mask(speech_lengths).to(speech.device)
             # Prioritize block masking if both are available
-            if 'block_mask' in self.util_attributes:
-                speech, mask_info = self.util_modules['block_mask'](speech, pad_masks)
-            elif 'mask' in self.util_attributes:
-                speech, mask_info = self.util_modules['mask'](speech, pad_masks)
-            data['mask_info'] = mask_info
+            if "block_mask" in self.util_attributes:
+                speech, mask_info = self.util_modules["block_mask"](speech, pad_masks)
+            elif "mask" in self.util_attributes:
+                speech, mask_info = self.util_modules["mask"](speech, pad_masks)
+            data["mask_info"] = mask_info
 
         # Flow Matching
         # TODO: NOT IMPLEMENTED YET
-        if 'flow_preprocess' in self.util_attributes:
+        if "flow_preprocess" in self.util_attributes:
             speech, target = None  # TODO
-            data['flow_target'] = target
+            data["flow_target"] = target
 
         # 6. Encoder
         speech, speech_lengths, _ = self.encoder(
@@ -206,8 +206,8 @@ class ESPnetSSLModel(AbsESPnetModel):
         else:
             speech = speech[1]
 
-        data['encoder_output'] = speech
-        data['encoder_output_lengths'] = speech_lengths
+        data["encoder_output"] = speech
+        data["encoder_output_lengths"] = speech_lengths
 
         return data
 
@@ -236,15 +236,14 @@ class ESPnetSSLModel(AbsESPnetModel):
         # Masking
         pad_masks = make_pad_mask(speech_lengths).to(speech.device)
         if self.training and use_mask:
-            if 'block_mask' in self.util_attributes or 'mask' in self.util_attributes:
+            if "block_mask" in self.util_attributes or "mask" in self.util_attributes:
                 # Prioritize block masking if both are available
-                if 'block_mask' in self.util_attributes:
-                    speech, mask_info = self.util_modules['block_mask'](
-                        speech, 
-                        pad_masks
+                if "block_mask" in self.util_attributes:
+                    speech, mask_info = self.util_modules["block_mask"](
+                        speech, pad_masks
                     )
-                elif 'mask' in self.util_attributes:
-                    speech, mask_info = self.util_modules['mask'](speech, pad_masks)
+                elif "mask" in self.util_attributes:
+                    speech, mask_info = self.util_modules["mask"](speech, pad_masks)
         # 6. Encoder
         speech, speech_lengths, _ = self.encoder(
             speech, speech_lengths, masks=pad_masks, return_all_hs=True
@@ -255,5 +254,5 @@ class ESPnetSSLModel(AbsESPnetModel):
             speech = speech[1][:-1] + [speech[0]]
         else:
             speech = speech[1]
-        
+
         return speech, speech_lengths

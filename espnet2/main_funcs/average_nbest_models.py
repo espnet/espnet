@@ -77,15 +77,18 @@ def average_nbest_models(
                     if e not in _loaded:
                         if use_deepspeed:
                             _loaded[e] = torch.load(
-                                output_dir / f"checkpoint_{e}" / f"{e}" / "mp_rank_00_model_states.pt",
+                                output_dir
+                                / f"checkpoint_{e}"
+                                / f"{e}"
+                                / "mp_rank_00_model_states.pt",
                                 map_location="cpu",
-                                weights_only=False
-                            )['module']
+                                weights_only=False,
+                            )["module"]
                         else:
                             _loaded[e] = torch.load(
                                 output_dir / f"{e}epoch.pth",
                                 map_location="cpu",
-                                weights_only=False
+                                weights_only=False,
                             )
                     states = _loaded[e]
 

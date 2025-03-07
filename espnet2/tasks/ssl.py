@@ -14,9 +14,9 @@ import torch
 from typeguard import typechecked
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
+from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
 from espnet2.asr.encoder.e_branchformer_encoder import EBranchformerEncoder
 from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
-from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.cnn import CNNFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
@@ -29,10 +29,11 @@ from espnet2.asr.specaug.specaug import SpecAug
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
-
 from espnet2.ssl.espnet_model import ESPnetSSLModel
 from espnet2.ssl.loss.abs_loss import AbsSSLLoss
 from espnet2.ssl.loss.hubert import HuBERTLoss
+from espnet2.ssl.utils.ema import EMAModule
+from espnet2.ssl.utils.mask import Masking
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.torch_utils.initialize import initialize
@@ -43,8 +44,6 @@ from espnet2.train.preprocessor import CommonPreprocessor
 from espnet2.train.trainer import Trainer
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import float_or_none, int_or_none, str2bool, str_or_none
-from espnet2.ssl.utils.mask import Masking
-from espnet2.ssl.utils.ema import EMAModule
 
 frontend_choices = ClassChoices(
     name="frontend",
@@ -71,9 +70,7 @@ normalize_choices = ClassChoices(
 )
 preencoder_choices = ClassChoices(
     name="preencoder",
-    classes=dict(
-        sinc=LightweightSincConvs, linear=LinearProjection
-    ),
+    classes=dict(sinc=LightweightSincConvs, linear=LinearProjection),
     type_check=AbsPreEncoder,
     default="linear",
     optional=True,
@@ -81,9 +78,9 @@ preencoder_choices = ClassChoices(
 encoder_choices = ClassChoices(
     "encoder",
     classes=dict(
-        transformer=TransformerEncoder, 
+        transformer=TransformerEncoder,
         e_branchformer=EBranchformerEncoder,
-        conformer=ConformerEncoder
+        conformer=ConformerEncoder,
     ),
     type_check=AbsEncoder,
     default="transformer",
@@ -463,7 +460,7 @@ class SSLTask(AbsTask):
         losses = []
         for loss_args in args.loss:
             loss_conf = loss_args.get("conf", {})
-            loss_class = loss_choices.get_class(loss_args['name'])
+            loss_class = loss_choices.get_class(loss_args["name"])
             loss = loss_class(
                 encoder_output_size=encoder.output_size(),
                 **loss_conf,
@@ -481,18 +478,15 @@ class SSLTask(AbsTask):
             util_args = {}
             util_class = util_choices.get_class(attr)
             for conf_obj in args.util:
-                if conf_obj['name'] == attr:
-                    util_args = conf_obj['conf']
-            if attr == 'ema':
-                util_args['model'] = encoder
-                util_args['device'] = f"cuda:{torch.cuda.current_device()}"
-            if attr == 'mask':
-                util_args['encoder_embed_dim'] = encoder.output_size()
-            util = util_class(
-                **util_args
-            )
+                if conf_obj["name"] == attr:
+                    util_args = conf_obj["conf"]
+            if attr == "ema":
+                util_args["model"] = encoder
+                util_args["device"] = f"cuda:{torch.cuda.current_device()}"
+            if attr == "mask":
+                util_args["encoder_embed_dim"] = encoder.output_size()
+            util = util_class(**util_args)
             util_modules.update({attr: util})
-
 
         # 8. Build model
         model_class = model_choices.get_class(args.model)

@@ -4,12 +4,14 @@
 # Copyright 2025 William Chen
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-import torch
-from torch import nn
-import torch.nn.functional as F
+from typing import Dict, List, Tuple
 
-from typing import List, Dict, Tuple
+import torch
+import torch.nn.functional as F
+from torch import nn
+
 from espnet2.ssl.loss.abs_loss import AbsSSLLoss
+
 
 class HuBERTLoss(AbsSSLLoss):
     def __init__(
@@ -17,9 +19,9 @@ class HuBERTLoss(AbsSSLLoss):
         encoder_output_size: int,
         num_classes: int,
         final_dim: int,
-        loss_type: str = 'cross_entropy',
+        loss_type: str = "cross_entropy",
         layers: List = [-1],
-        loss_weights: List =[1.0],
+        loss_weights: List = [1.0],
     ):
         """HuBERT MLM Loss
 
@@ -39,13 +41,13 @@ class HuBERTLoss(AbsSSLLoss):
 
         assert len(self.layers) == len(self.loss_weights)
 
-        self.util_attributes = ['mask']
+        self.util_attributes = ["mask"]
         self.required_inputs = [
-            'encoder_output',
-            'encoder_output_lengths',
-            'text',
-            'text_lengths',
-            'mask_info'
+            "encoder_output",
+            "encoder_output_lengths",
+            "text",
+            "text_lengths",
+            "mask_info",
         ]
 
         self.decoder = HuBERTDecoder(
@@ -67,7 +69,7 @@ class HuBERTLoss(AbsSSLLoss):
             correct = (max_idx == targets).sum().item()
             count = max_idx.numel()
         return correct, count
-    
+
     def forward(
         self,
         encoder_output: List,
@@ -81,12 +83,12 @@ class HuBERTLoss(AbsSSLLoss):
         Args:
             encoder_output (List): List of encoded sequences (B, T, D) from each layer.
             encoder_output_lengths (Tensor): Lengths of batched encoder sequences (B,).
-            text (Tensor): text targets (B, T) 
+            text (Tensor): text targets (B, T)
             text_lengths (Tensor): Lengths of text targets (B,).
             mask_info (Dict): Contains masked/unmasked indices
         """
 
-        mask_m = mask_info['mask_m']
+        mask_m = mask_info["mask_m"]
         mask_u = mask_info["mask_u"]
         y_m = text[mask_m]
         y_u = text[mask_u]

@@ -289,7 +289,7 @@ if ! "${skip_train}"; then
     ssl_exp="${expdir}/ssl_${ssl_tag}"
 
     if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
-            
+
             _ssl_train_dir="${data_feats}/${train_set}"
             _ssl_valid_dir="${data_feats}/${valid_set}"
 

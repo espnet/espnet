@@ -4,12 +4,14 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 from abc import ABC, abstractmethod
-from typing import List, Tuple, Dict
+from typing import Dict, List, Tuple
+
 import torch
+
 
 class AbsSSLLoss(torch.nn.Module, ABC):
     """Abstract loss class for encoder-only SSL model.
-    
+
     Each loss class must contain 2 attributes:
 
         - self.util_attributes (List): functions that need to be
@@ -17,7 +19,6 @@ class AbsSSLLoss(torch.nn.Module, ABC):
         - self.required_inputs(List): data names needed to perform
             loss calculation.
     """
-
 
     @abstractmethod
     def forward(

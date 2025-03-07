@@ -27,11 +27,11 @@ from espnet.nets.pytorch_backend.transformer.attention import (  # noqa: H301
     RelPositionMultiHeadedAttention,
 )
 from espnet.nets.pytorch_backend.transformer.embedding import (  # noqa: H301
+    ConvolutionalPositionalEmbedding,
     LegacyRelPositionalEncoding,
     PositionalEncoding,
     RelPositionalEncoding,
     ScaledPositionalEncoding,
-    ConvolutionalPositionalEmbedding,
 )
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
@@ -528,7 +528,7 @@ class EBranchformerEncoder(AbsEncoder):
                 )
             else:
                 xs_pad, masks = encoder_layer(xs_pad, masks)
-            
+
             if return_all_hs:
                 if isinstance(xs_pad, tuple):
                     intermediate_outs.append(xs_pad[0])

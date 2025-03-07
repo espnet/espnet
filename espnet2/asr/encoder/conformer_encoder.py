@@ -24,11 +24,11 @@ from espnet.nets.pytorch_backend.transformer.attention import (
     RelPositionMultiHeadedAttention,
 )
 from espnet.nets.pytorch_backend.transformer.embedding import (
+    ConvolutionalPositionalEmbedding,
     LegacyRelPositionalEncoding,
     PositionalEncoding,
     RelPositionalEncoding,
     ScaledPositionalEncoding,
-    ConvolutionalPositionalEmbedding,
 )
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet.nets.pytorch_backend.transformer.multi_layer_conv import (

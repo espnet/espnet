@@ -384,6 +384,7 @@ class StreamPositionalEncoding(torch.nn.Module):
         x = x * self.xscale + self.pe[:, start_idx : start_idx + x.size(1)]
         return self.dropout(x)
 
+
 class ConvolutionalPositionalEmbedding(torch.nn.Module):
     """Convolutional positional embedding.
        Used in wav2vec2/HuBERT SSL models.
