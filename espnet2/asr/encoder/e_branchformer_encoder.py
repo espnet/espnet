@@ -31,6 +31,7 @@ from espnet.nets.pytorch_backend.transformer.embedding import (  # noqa: H301
     PositionalEncoding,
     RelPositionalEncoding,
     ScaledPositionalEncoding,
+    ConvolutionalPositionalEmbedding,
 )
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
@@ -235,6 +236,8 @@ class EBranchformerEncoder(AbsEncoder):
 
         if pos_enc_layer_type == "abs_pos":
             pos_enc_class = PositionalEncoding
+        elif pos_enc_layer_type == "conv":
+            pos_enc_class = ConvolutionalPositionalEmbedding
         elif pos_enc_layer_type == "scaled_abs_pos":
             pos_enc_class = ScaledPositionalEncoding
         elif pos_enc_layer_type == "rel_pos":
@@ -452,8 +455,10 @@ class EBranchformerEncoder(AbsEncoder):
         xs_pad: torch.Tensor,
         ilens: torch.Tensor,
         prev_states: torch.Tensor = None,
+        masks: torch.Tensor = None,
         ctc: CTC = None,
         max_layer: int = None,
+        return_all_hs: bool = False,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
         """Calculate forward propagation.
 
@@ -469,7 +474,10 @@ class EBranchformerEncoder(AbsEncoder):
             torch.Tensor: Not to be used now.
         """
 
-        masks = (~make_pad_mask(ilens)[:, None, :]).to(xs_pad.device)
+        if masks is None:
+            masks = (~make_pad_mask(ilens)[:, None, :]).to(xs_pad.device)
+        else:
+            masks = ~masks[:, None, :]
 
         if (
             isinstance(self.embed, Conv2dSubsampling)
@@ -520,8 +528,14 @@ class EBranchformerEncoder(AbsEncoder):
                 )
             else:
                 xs_pad, masks = encoder_layer(xs_pad, masks)
+            
+            if return_all_hs:
+                if isinstance(xs_pad, tuple):
+                    intermediate_outs.append(xs_pad[0])
+                else:
+                    intermediate_outs.append(xs_pad)
 
-            if layer_idx + 1 in self.interctc_layer_idx:
+            elif layer_idx + 1 in self.interctc_layer_idx:
                 encoder_out = xs_pad
 
                 if isinstance(encoder_out, tuple):
