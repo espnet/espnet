@@ -323,4 +323,9 @@ class Trainer:
         self.train_config.train_shape_file = []
         self.train_config.valid_shape_file = []
 
+        if hasattr(self.train_config, 'use_ez_preprocessor'):
+            self.train_config.use_preprocessor = self.train_config.use_ez_preprocessor
+        else:
+            self.train_config.use_preprocessor = False
+
         self.task_class.main(self.train_config)

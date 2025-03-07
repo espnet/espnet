@@ -41,6 +41,8 @@ from espnet2.tasks.tts import TTSTask
 from espnet2.tasks.uasr import UASRTask
 from espnet2.train.distributed_utils import DistributedOption
 
+from espnetez.dataset import ESPnetEZDataset
+
 TASK_CLASSES = dict(
     asr=ASRTask,
     asr_transducer=ASRTransducerTask,
@@ -173,14 +175,6 @@ def get_ez_task_with_dataset(task_name: str) -> AbsTask:
                 return task_class.build_model(args=args)
 
         @classmethod
-        def build_preprocess_fn(cls, *args, **kwargs) -> IteratorOptions:
-            """Build a preprocess function for the task.
-            When developers uses the ESPnetEZDataTask, developers should perform
-            preprocess steps inside the custom dataset class.
-            """
-            return None
-
-        @classmethod
         def build_iter_factory(
             cls,
             args: argparse.Namespace,
@@ -254,6 +248,9 @@ def get_ez_task_with_dataset(task_name: str) -> AbsTask:
                 dataset = cls.valid_dataset
             else:
                 raise ValueError(f"Invalid mode: {mode}")
+
+            if isinstance(dataset, ESPnetEZDataset):
+                dataset.preprocess = iter_options.preprocess_fn
 
             cls.check_task_requirements(
                 dataset, args.allow_variable_data_keys, train=iter_options.train
@@ -383,6 +380,9 @@ def get_ez_task_with_dataset(task_name: str) -> AbsTask:
                 ds = cls.valid_dataset
             else:
                 raise ValueError(f"Invalid mode: {mode}")
+
+            if isinstance(ds, ESPnetEZDataset):
+                ds.preprocess = preprocess_fn
 
             if hasattr(ds, "apply_utt2category") and ds.apply_utt2category:
                 kwargs.update(batch_size=1)
