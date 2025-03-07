@@ -32,7 +32,6 @@ from espnet2.layers.utterance_mvn import UtteranceMVN
 from espnet2.ssl.espnet_model import ESPnetSSLModel
 from espnet2.ssl.loss.abs_loss import AbsSSLLoss
 from espnet2.ssl.loss.hubert import HuBERTLoss
-from espnet2.ssl.utils.ema import EMAModule
 from espnet2.ssl.utils.mask import Masking
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.text.phoneme_tokenizer import g2p_choices
@@ -93,7 +92,7 @@ loss_choices = ClassChoices(
 )
 util_choices = ClassChoices(
     "util",
-    classes=dict(mask=Masking, ema=EMAModule),
+    classes=dict(mask=Masking),
     type_check=torch.nn.Module,
     default=None,
 )
