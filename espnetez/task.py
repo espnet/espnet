@@ -40,7 +40,6 @@ from espnet2.tasks.svs import SVSTask
 from espnet2.tasks.tts import TTSTask
 from espnet2.tasks.uasr import UASRTask
 from espnet2.train.distributed_utils import DistributedOption
-
 from espnetez.dataset import ESPnetEZDataset
 
 TASK_CLASSES = dict(
