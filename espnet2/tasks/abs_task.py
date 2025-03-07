@@ -2344,18 +2344,14 @@ class AbsTask(ABC):
                 #   in PyTorch<=1.4
                 device = f"cuda:{torch.cuda.current_device()}"
             try:
-                if "mp_rank" in model_file:
-                    model.load_state_dict(
-                        torch.load(model_file, map_location=device, weights_only=False)[
-                            "module"
-                        ],
-                        strict=False,
-                    )
-                else:
-                    model.load_state_dict(
-                        torch.load(model_file, map_location=device, weights_only=False),
-                        strict=False,
-                    )
+                state_dict = torch.load(model_file, map_location=device, weights_only=False)
+                # for deepspeed checkpoints
+                if "module" in state_dict:
+                    state_dict = state_dict["module"]
+                model.load_state_dict(
+                    state_dict
+                    strict=False,
+                )
             except RuntimeError:
                 # Note(simpleoier): the following part is to be compatible with
                 #   pretrained model using earlier versions before `0a625088`
