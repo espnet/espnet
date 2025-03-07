@@ -34,7 +34,7 @@ targets=""
 
 # Copy
 for f in cmd.sh conf local; do
-    target="${dir}"/../../TEMPLATE/hubert/"${f}"
+    target="${dir}"/../../TEMPLATE/hubert1/"${f}"
     cp -r "${target}" "${dir}"
     targets+="${dir}/${target} "
 done
@@ -42,7 +42,7 @@ done
 
 # Symlinks to TEMPLATE
 for f in hubert.sh path.sh scripts; do
-    target=../../TEMPLATE/ssl1/"${f}"
+    target=../../TEMPLATE/hubert1/"${f}"
     ln -sf "${target}" "${dir}"
     targets+="${dir}/${target} "
 done
