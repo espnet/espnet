@@ -17,6 +17,7 @@ def average_nbest_models(
     best_model_criterion: Sequence[Sequence[str]],
     nbest: Union[Collection[int], int],
     suffix: Optional[str] = None,
+    use_deepspeed: bool = False,
 ) -> None:
     """Generate averaged model from n-best models
 
@@ -74,10 +75,21 @@ def average_nbest_models(
                 # 2.a. Averaging model
                 for e, _ in epoch_and_values[:n]:
                     if e not in _loaded:
-                        _loaded[e] = torch.load(
-                            output_dir / f"{e}epoch.pth",
-                            map_location="cpu",
-                        )
+                        if use_deepspeed:
+                            _loaded[e] = torch.load(
+                                output_dir
+                                / f"checkpoint_{e}"
+                                / f"{e}"
+                                / "mp_rank_00_model_states.pt",
+                                map_location="cpu",
+                                weights_only=False,
+                            )["module"]
+                        else:
+                            _loaded[e] = torch.load(
+                                output_dir / f"{e}epoch.pth",
+                                map_location="cpu",
+                                weights_only=False,
+                            )
                     states = _loaded[e]
 
                     if avg is None:
