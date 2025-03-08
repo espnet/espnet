@@ -34,7 +34,7 @@ jobs:
         (github.event.pull_request.draft == false && needs.get_labels.outputs.is_doc == 'true')
     steps:
       - uses: actions/checkout@master
-      - uses: actions/cache@v1
+      - uses: actions/cache@v4
         with:
           path: ~/.cache/pip
           key: pip-${{ hashFiles('**/setup.py') }}
