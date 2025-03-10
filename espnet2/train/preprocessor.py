@@ -2863,6 +2863,8 @@ class UniversaProcessor(AbsPreprocessor):
             if isinstance(text, np.ndarray):
                 return data
             text = self.text_cleaner(text)
+            if text is None:
+                text = "Test sentence for checking, it is not a none sentence"
             tokens = self.tokenizer.text2tokens(text)
             text_ints = self.token_id_converter.tokens2ids(tokens)
             if len(text_ints) > 500:

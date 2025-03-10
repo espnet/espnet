@@ -4,7 +4,14 @@ import argparse
 import functools
 import logging
 import os
-import sys
+import sys 
+
+logging.basicConfig(
+    level="INFO",
+    format=f"[{os.uname()[1].split('.')[0]}]"
+    f" %(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
+)
+
 import tempfile
 from abc import ABC, abstractmethod
 from dataclasses import dataclass

@@ -81,12 +81,12 @@ class UniversaInference:
 
         # prepare batch
         batch = dict(audio=audio, audio_lengths=audio_lengths)
-        print(audio, audio_lengths, flush=True)
         if ref_audio is not None:
             batch.update(ref_audio=ref_audio, ref_audio_lengths=ref_audio_lengths)
         if ref_text is not None:
             if isinstance(ref_text, str):
                 ref_text = self.preprocess_fn("<dummy>", dict(ref_text=ref_text))["ref_text"]
+                ref_text = np.expand_dims(ref_text, axis=0)
                 ref_text_lengths = torch.tensor([len(ref_text)])
             batch.update(ref_text=ref_text, ref_text_lengths=ref_text_lengths)
         batch = to_device(batch, device=self.device)
