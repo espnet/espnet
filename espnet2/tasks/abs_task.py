@@ -460,7 +460,8 @@ class AbsTask(ABC):
             "--deepspeed_config",
             default=None,
             type=str,
-            help="deepspeed training config",
+            help="Deepspeed training config. "
+            "This can be a base64 encoded json string or a path to a json file",
         )
         group.add_argument(
             "--gradient_as_bucket_view",
@@ -1549,9 +1550,11 @@ class AbsTask(ABC):
                         name=name,
                         dir=str(output_dir),
                         id=args.wandb_id,
-                        resume=args.resume,
+                        resume="allow" if args.resume else "never",
                     )
-                    wandb.config.update(args)
+                    # allow_val_change allows change of master port
+                    # when previous run with same name had a different one
+                    wandb.config.update(args, allow_val_change=args.resume)
                 else:
                     # wandb also supports grouping for distributed training,
                     # but we only log aggregated data,

@@ -98,12 +98,21 @@ def calc_metrics_from_textfiles(
 ):
     gt_uttid2label = read_text_file(gt_txt_file)
     token_list = read_token_list(token_list_file)
-    n_classes = len(token_list) - 1
+    n_classes = len(token_list) - 2  # for <unk>, and <blank>
     gt_uttid2score = {}
     for uttid, label_list in gt_uttid2label.items():
         gt_scores = np.zeros(n_classes)
         for label in label_list:
-            tok_idx = token_list.index(label)
+            try:
+                tok_idx = token_list.index(label)
+            except ValueError:
+                # this is for unseen tokens that are only in test
+                # but not in training
+                logging.warning(f"{label} not in token list.")
+                continue
+            if tok_idx > n_classes:
+                assert label == "<blank>", f"Unknown token {label} in ground truth."
+                continue
             gt_scores[tok_idx] = 1
         gt_uttid2score[uttid] = gt_scores
     pred_uttid2score = read_score_file(pred_score_file, n_classes)
@@ -122,6 +131,11 @@ def calc_metrics_from_textfiles(
     assert all_gt_scores.shape == all_pred_scores.shape
     assert all_pred_scores.shape[1] == n_classes
 
+    if n_classes == 1:
+        # If n_classes=1, then we are dealing with binary classification
+        # In this case, we need to stack the scores along the second axis
+        all_gt_scores = np.stack([all_gt_scores, 1 - all_gt_scores], axis=1)
+        all_pred_scores = np.stack([all_pred_scores, 1 - all_pred_scores], axis=1)
     stats = calculate_multilabel_stats(all_pred_scores, all_gt_scores)
     return {
         "mean_acc": np.mean([stat["acc"] for stat in stats]) * 100,
