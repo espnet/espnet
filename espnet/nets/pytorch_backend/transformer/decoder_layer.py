@@ -181,6 +181,7 @@ class DecoderLayer(nn.Module):
     def forward_partially_AR(
         self, tgt, tgt_mask, tgt_lengths, memory, memory_mask, cache=None
     ):
+        """Forward partially in autoregression fashion."""
         residual = tgt
         if self.normalize_before:
             tgt = self.norm1(tgt)

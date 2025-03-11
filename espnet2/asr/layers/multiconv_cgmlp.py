@@ -132,7 +132,7 @@ class MultiConvolutionalSpatialGatingUnit(torch.nn.Module):
 
         x_i = self.norm(x_i).transpose(1, 2)  # (N, D/2, T)
 
-        # TODO: Parallelize this convolution computation
+        # TODO(gituser): Parallelize this convolution computation
         xs = []
         for conv in self.convs:
             xi = conv(x_i).transpose(1, 2)  # (N, T, D/2)

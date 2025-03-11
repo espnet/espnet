@@ -12,8 +12,8 @@ from espnet2.gan_codec.soundstream.soundstream import SoundStream
 
 
 class Encodec(SoundStream):
-    """
-    Encodec Model: https://arxiv.org/abs/2210.13438
+    """Encodec Model: https://arxiv.org/abs/2210.13438
+
     The key differences between this and SoundStream are the discriminator
     and loss balancer. Check SoundStream model for many details
     """

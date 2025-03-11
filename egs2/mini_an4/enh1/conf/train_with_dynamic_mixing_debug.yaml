@@ -44,6 +44,6 @@ criterions:
       weight: 1.0
 
 max_epoch: 1
-num_iters_per_epoch: 1
-batch_type: folded
+num_iters_per_epoch: 2
+batch_type: sorted
 batch_size: 2

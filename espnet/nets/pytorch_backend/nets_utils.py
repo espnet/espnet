@@ -3,7 +3,7 @@
 """Network related utility tools."""
 
 import logging
-from typing import Dict
+from typing import Dict, Optional
 
 import numpy as np
 import torch
@@ -207,15 +207,14 @@ def _make_pad_mask(lengths, xs=None, length_dim=-1, maxlen=None):
 
 
 def _make_pad_mask_traceable(lengths, xs, length_dim, maxlen=None):
-    """
-    Make mask tensor containing indices of padded part.
+    """Make mask tensor containing indices of padded part.
+
     This is a simplified implementation of make_pad_mask without the xs input
     that supports JIT tracing for applications like exporting models to ONNX.
     Dimension length of xs should be 2 or 3
     This function will create torch.ones(maxlen, maxlen).triu(diagonal=1) and
     select rows to create mask tensor.
     """
-
     if xs is None:
         device = lengths.device
     else:
@@ -256,6 +255,7 @@ def _make_pad_mask_traceable(lengths, xs, length_dim, maxlen=None):
 
 
 def triu_onnx(x):
+    """Make TriU for ONNX."""
     arange = torch.arange(x.size(0), device=x.device)
     mask = arange.unsqueeze(-1).expand(-1, x.size(0)) <= arange
     return x * mask
@@ -589,12 +589,11 @@ def trim_by_ctc_posterior(
     masks: torch.Tensor,
     pos_emb: torch.Tensor = None,
 ):
-    """
-    Trim the encoder hidden output using CTC posterior.
+    """Trim the encoder hidden output using CTC posterior.
+
     The continuous frames in the tail that confidently represent
     blank symbols are trimmed.
     """
-
     # Empirical settings
     frame_tolerance = 5
     conf_tolerance = 0.95
@@ -639,3 +638,42 @@ def trim_by_ctc_posterior(
         pos_emb = pos_emb[:, : h.size(1)]
 
     return h, masks, pos_emb
+
+
+def roll_tensor(
+    x: torch.Tensor,
+    lengths: torch.Tensor,
+    roll_amounts: Optional[torch.Tensor] = None,
+    fixed_intervals: Optional[int] = None,
+) -> torch.Tensor:
+    """Left-roll tensor x by roll_amounts, only within lengths and optionally quantized.
+
+    Args:
+        x: input tensor (B, T, D)
+        lengths: lengths of each sequence (B,)
+        roll_amounts: random shift amounts (B,). If None, random shift
+            amounts are generated.
+        fixed_intervals: if not None, roll_amounts are quantized to
+            multiples of this.
+    Returns:
+        rolled_x: rolled tensor (B, T, D)
+    Useful to apply roll augmentation to the input, while considering
+    the input length for each sample.
+    """
+    B, T, D = x.shape
+
+    indices = torch.arange(T).unsqueeze(0).expand(B, T).to(x.device)  # (B, T)
+    lengths = lengths.unsqueeze(1)  # (B, 1)
+
+    if roll_amounts is None:
+        roll_amounts = torch.randint(0, lengths.max(), (B,), device=x.device)
+    if fixed_intervals is not None:
+        roll_amounts = (roll_amounts // fixed_intervals) * fixed_intervals
+    roll_indices = (indices - roll_amounts.unsqueeze(1)) % lengths  # (B, T)
+    roll_indices = roll_indices.unsqueeze(2).expand(-1, -1, D)  # (B, T, D)
+
+    mask = indices < lengths  # (B, T), True if position is valid
+    rolled_x = torch.empty_like(x)
+    rolled_x[mask] = x.gather(1, roll_indices)[mask]
+    rolled_x[~mask] = x[~mask]
+    return rolled_x

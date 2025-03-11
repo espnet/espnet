@@ -19,5 +19,13 @@ decoder_conf:
     attention_heads: 2
     linear_units: 2
     num_blocks: 1
+
+batch_type: sorted
+batch_size: 2
 max_epoch: 1
 num_iters_per_epoch: 1
+
+preprocessor_conf:
+    text_name:
+        - text
+        - src_text

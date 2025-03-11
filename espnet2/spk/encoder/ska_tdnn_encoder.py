@@ -185,7 +185,7 @@ class SKAttentionModule(nn.Module):
         weights = []
         for fc in self.fcs:
             weight = fc(Z)
-            weights += [(weight.view(bs, c, 1))]
+            weights += [weight.view(bs, c, 1)]
         attention_weights = torch.stack(weights, 0)
         attention_weights = self.softmax(attention_weights)
         V = (attention_weights * feats).sum(0)
@@ -258,7 +258,7 @@ class fwSKAttention(nn.Module):
         weights = []
         for fc in self.fcs:
             weight = fc(Z)
-            weights += [(weight.view(bs, 1, f, 1))]
+            weights += [weight.view(bs, 1, f, 1)]
         attention_weights = torch.stack(weights, 0)
         attention_weights = self.softmax(attention_weights)
         V = (attention_weights * feats).sum(0)
@@ -331,7 +331,7 @@ class cwSKAttention(nn.Module):
         weights = []
         for fc in self.fcs:
             weight = fc(Z)
-            weights += [(weight.view(bs, c, 1, 1))]
+            weights += [weight.view(bs, c, 1, 1)]
         attention_weights = torch.stack(weights, 0)
         attention_weights = self.softmax(attention_weights)
         V = (attention_weights * feats).sum(0)

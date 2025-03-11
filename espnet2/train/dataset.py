@@ -6,7 +6,7 @@ import logging
 import numbers
 import random
 import re
-import types
+import types  # noqa
 from abc import ABC, abstractmethod
 from typing import (
     Any,
@@ -16,6 +16,7 @@ from typing import (
     List,
     Mapping,
     Optional,
+    Set,
     Tuple,
     Union,
 )
@@ -358,7 +359,7 @@ DATA_TYPES = {
     ),
     "text": dict(
         func=read_2columns_text,
-        kwargs=[],
+        kwargs=["keys_to_load"],
         help="Return text as is. The text must be converted to ndarray "
         "by 'preprocess'."
         "\n\n"
@@ -457,6 +458,7 @@ class ESPnetDataset(AbsDataset):
         max_cache_size: Union[float, int, str] = 0.0,
         max_cache_fd: int = 0,
         allow_multi_rates: bool = False,
+        keys_to_load: Optional[Set[Union[str, int]]] = None,
     ):
         if len(path_name_type_list) == 0:
             raise ValueError(
@@ -478,7 +480,7 @@ class ESPnetDataset(AbsDataset):
             if name in self.loader_dict:
                 raise RuntimeError(f'"{name}" is duplicated for data-key')
 
-            loader = self._build_loader(path, _type)
+            loader = self._build_loader(path, _type, keys_to_load)
             self.loader_dict[name] = loader
             self.debug_info[name] = path, _type
             if len(self.loader_dict[name]) == 0:
@@ -495,13 +497,17 @@ class ESPnetDataset(AbsDataset):
             self.cache = None
 
     def _build_loader(
-        self, path: str, loader_type: str
+        self,
+        path: str,
+        loader_type: str,
+        keys_to_load: Optional[Set[Union[str, int]]],
     ) -> Mapping[str, Union[np.ndarray, torch.Tensor, str, numbers.Number]]:
         """Helper function to instantiate Loader.
 
         Args:
             path:  The file path
             loader_type:  loader_type. sound, npy, text_int, text_float, etc
+            keys_to_load:  The set of keys to load. If None, load all.
         """
         for key, dic in DATA_TYPES.items():
             # e.g. loader_type="sound"
@@ -519,6 +525,8 @@ class ESPnetDataset(AbsDataset):
                         kwargs["max_cache_fd"] = self.max_cache_fd
                     elif key2 == "allow_multi_rates":
                         kwargs["allow_multi_rates"] = self.allow_multi_rates
+                    elif key2 == "keys_to_load":
+                        kwargs["keys_to_load"] = keys_to_load
                     else:
                         raise RuntimeError(f"Not implemented keyword argument: {key2}")
 
@@ -628,7 +636,8 @@ class ESPnetDataset(AbsDataset):
 
 
 class ESPnetSpeechLMDataset(ESPnetDataset):
-    """
+    """ESPnet Speech LM Dataset.
+
     Dataset object that is specifically designed for SpeechLM. It will allows
     dataset-level operations (e.g., on-the-fly speaker prompt sampling). It is
     task-specific and can be queried by ESPnetMultiTaskDataset.
@@ -682,10 +691,11 @@ class ESPnetSpeechLMDataset(ESPnetDataset):
 
 
 class ESPnetMultiTaskDataset(AbsDataset):
-    """
-    The top-level Dataset object that can manage multiple EspnetSpeechLMDataset
+    """ESPnet Multi Task Dataset.
+
+    The top-level Dataset object that can manage multiple ESPnetSpeechLMDataset
     objects, each of which serves a specific task and dataset.
-    This object will query all these EspnetSpeechLMDataset and combine examples
+    This object will query all these ESPnetSpeechLMDataset and combine examples
     from different tasks for multi-task training. Typically, this dataset is
     used in ESPnet SpeechLM models
     See details in:
@@ -731,7 +741,7 @@ class ESPnetMultiTaskDataset(AbsDataset):
                     if json_dict["task"] + "_" + e in self.key_dict
                 ]
 
-            dataset = EspnetSpeechLMDataset(
+            dataset = ESPnetSpeechLMDataset(
                 path_name_type_list=this_path_name_type_list,
                 example_list=example_list,
                 task=json_dict["task"],

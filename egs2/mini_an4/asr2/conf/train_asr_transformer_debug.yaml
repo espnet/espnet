@@ -1,5 +1,5 @@
 # This is a debug config for CI
-batch_type: folded
+batch_type: unsorted
 batch_size: 2
 accum_grad: 1
 max_epoch: 1

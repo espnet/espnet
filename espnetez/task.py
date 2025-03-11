@@ -3,7 +3,7 @@
 import argparse
 import logging
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 import numpy as np
 import torch
@@ -171,6 +171,14 @@ def get_ez_task_with_dataset(task_name: str) -> AbsTask:
                 return cls.build_model_fn(args=args)
             else:
                 return task_class.build_model(args=args)
+
+        @classmethod
+        def build_preprocess_fn(cls, *args, **kwargs) -> IteratorOptions:
+            """Build a preprocess function for the task.
+            When developers uses the ESPnetEZDataTask, developers should perform
+            preprocess steps inside the custom dataset class.
+            """
+            return None
 
         @classmethod
         def build_iter_factory(
@@ -347,7 +355,7 @@ def get_ez_task_with_dataset(task_name: str) -> AbsTask:
             collate_fn,
             key_file: Optional[str] = None,
             batch_size: int = 1,
-            dtype: str = np.float32,
+            dtype: Optional[Any] = None,
             num_workers: int = 1,
             allow_variable_data_keys: bool = False,
             ngpu: int = 0,
@@ -355,7 +363,9 @@ def get_ez_task_with_dataset(task_name: str) -> AbsTask:
             mode: Optional[str] = None,
             multi_task_dataset: bool = False,
         ) -> DataLoader:
-            """Build DataLoader using iterable dataset"""
+            """Build DataLoader using iterable dataset.
+            Basically this iterator is used in collect_stats stage.
+            """
             if mode == "train" and cls.train_dataloader is not None:
                 return cls.train_dataloader
             elif mode == "valid" and cls.valid_dataloader is not None:
