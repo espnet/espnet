@@ -2,7 +2,7 @@
 # Copyright   2020   Desh Raj
 # Apache 2.0.
 """This script splits a kaldi output (text) file
-  into per_speaker output (text) file"""
+into per_speaker output (text) file"""
 
 import argparse
 import itertools

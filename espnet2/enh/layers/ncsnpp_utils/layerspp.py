@@ -14,8 +14,7 @@
 # limitations under the License.
 
 # pylint: skip-file
-"""Layers for defining NCSN++.
-"""
+"""Layers for defining NCSN++."""
 import numpy as np
 import torch
 import torch.nn as nn
