@@ -469,9 +469,7 @@ class Speech2Text:
         Tuple[Optional[str], List[str], List[int], Union[Hypothesis, TransHypothesis]]
     ], Tuple[List[
         Tuple[Optional[str], List[str], List[int], Union[Hypothesis, TransHypothesis]]
-    ], List[
-        Tuple[Optional[str], List[str], List[int], Union[Hypothesis, TransHypothesis]]
-    ]]]:
+    ], Any]:
         """Inference
 
         Args:
