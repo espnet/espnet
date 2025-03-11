@@ -66,6 +66,7 @@ from espnet2.enh.separator.tfgridnet_separator import TFGridNet
 from espnet2.enh.separator.tfgridnetv2_separator import TFGridNetV2
 from espnet2.enh.separator.tfgridnetv3_separator import TFGridNetV3
 from espnet2.enh.separator.transformer_separator import TransformerSeparator
+from espnet2.enh.separator.uses2_separator import USES2Separator
 from espnet2.enh.separator.uses_separator import USESSeparator
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
 from espnet2.tasks.abs_task import AbsTask
@@ -116,6 +117,7 @@ separator_choices = ClassChoices(
         tfgridnetv2=TFGridNetV2,
         tfgridnetv3=TFGridNetV3,
         uses=USESSeparator,
+        uses2=USES2Separator,
     ),
     type_check=AbsSeparator,
     default="rnn",
