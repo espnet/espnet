@@ -465,9 +465,11 @@ class Speech2Text:
     @typechecked
     def __call__(
         self, speech: Union[torch.Tensor, np.ndarray]
-    ) -> List[
+    ) -> Union[List[
         Tuple[Optional[str], List[str], List[int], Union[Hypothesis, TransHypothesis]]
-    ]:
+    ], Tuple[List[
+        Tuple[Optional[str], List[str], List[int], Union[Hypothesis, TransHypothesis]]
+    ]]]:
         """Inference
 
         Args:
