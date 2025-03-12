@@ -2268,6 +2268,7 @@ class AbsTask(ABC):
             device: Device type, "cpu", "cuda", or "cuda:N".
 
         """
+
         if config_file is None:
             assert model_file is not None, (
                 "The argument 'model_file' must be provided "
@@ -2286,7 +2287,6 @@ class AbsTask(ABC):
             raise RuntimeError(
                 f"model must inherit {AbsESPnetModel.__name__}, but got {type(model)}"
             )
-        model.to(device)
 
         # For finetuned model, create adapter
         use_adapter = getattr(args, "use_adapter", False)
@@ -2299,7 +2299,7 @@ class AbsTask(ABC):
                 #   in PyTorch<=1.4
                 device = f"cuda:{torch.cuda.current_device()}"
             try:
-                state_dict = torch.load(model_file, map_location=device)
+                state_dict = torch.load(model_file, map_location='cpu')
                 if 'model' in state_dict:
                     state_dict = state_dict['model']
                 model.load_state_dict(
@@ -2309,7 +2309,7 @@ class AbsTask(ABC):
             except RuntimeError:
                 # Note(simpleoier): the following part is to be compatible with
                 #   pretrained model using earlier versions before `0a625088`
-                state_dict = torch.load(model_file, map_location=device)
+                state_dict = torch.load(model_file, map_location='cpu')
                 if any(["frontend.upstream.model" in k for k in state_dict.keys()]):
                     if any(
                         [
@@ -2342,4 +2342,5 @@ class AbsTask(ABC):
                     else:
                         raise
 
+        model = model.to(device)
         return model, args

@@ -2493,7 +2493,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
 
     @typechecked
     def __call__(
-        self, uid: str, data: Dict[str, Union[str, np.ndarray]]
+        self, uid: str, data: Dict[str, Union[str, np.ndarray, tuple]]
     ) -> Dict[str, Union[np.ndarray, List]]:
         new_data = dict()
 
@@ -2606,7 +2606,8 @@ class SpeechLMPreprocessor(AbsPreprocessor):
 
         # finally, sanity check
         if np.isin(self.unk, new_data["dec_seq"]):
-            raise ValueError(f"Unknown token is in the decoder seq. UID: {uid}")
+            logging.warning(f"Unknown token is in the decoder seq. UID: {uid}")
+            self.diagnose(new_data)
 
         # self.diagnose(new_data) # For debug. Enable this to check the sequence format
 

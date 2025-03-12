@@ -32,6 +32,7 @@ class HFTransformerDecoder(AbsTransformer):
         revision: str = None,
         attention_choice: str = "sdpa",
         activation_checkpointing: bool = False,
+        dtype: str = "bfloat16",
         n_ctx: int = 8192,
     ):
         super(HFTransformerDecoder, self).__init__()
@@ -50,12 +51,14 @@ class HFTransformerDecoder(AbsTransformer):
         self.lm_head = causal_class.from_pretrained(
             hf_model_tag,
             attn_implementation=attention_choice,
+            torch_dtype=dtype,
         ).get_output_embeddings()
         
         self.model = base_class.from_pretrained(
             hf_model_tag,
             attn_implementation=attention_choice,
             revision=revision,
+            torch_dtype=dtype,
         )
         self.emb = self.model.get_input_embeddings()
 
