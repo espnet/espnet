@@ -467,9 +467,7 @@ class Speech2Text:
         self, speech: Union[torch.Tensor, np.ndarray]
     ) -> Union[List[
         Tuple[Optional[str], List[str], List[int], Union[Hypothesis, TransHypothesis]]
-    ], Tuple[List[
-        Tuple[Optional[str], List[str], List[int], Union[Hypothesis, TransHypothesis]]
-    ], Any]]:
+    ], Any]:
         """Inference
 
         Args:
