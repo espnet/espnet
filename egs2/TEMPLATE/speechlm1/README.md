@@ -1,5 +1,7 @@
 # ESPnet2 Speech Language Model (SpeechLM) Recipe
 
+Also check our system paper on [ESPnet-SpeechLM](https://arxiv.org/abs/2502.15218)
+
 ## Table of Content
 
 - [ESPnet2 Speech Language Model (SpeechLM) Recipe](#espnet2-speech-language-model-speechlm-recipe)
@@ -580,32 +582,59 @@ Note, we always use the `ESPnetMultiTaskDataset` as a unified interface even tho
 When training with massive data, storing the whole dataset in each GPU process is expensive. So that, in [stage 7](#stage-7-collect-statistics), we shard each input `data.json` based on the number of GPUs.
 
 ## Resources
-### Tokenization Models
-`Codec`: As of Aug 10, 2024, we encourage the developers to use our open-sourced codec-model from Jiatong:
-  * https://huggingface.co/espnet/owsmdata_soundstream_16k_200epoch
-  * In `speechlm.sh`, use it with argument `--codec_choice ESPnet --codec_hf_model_tag espnet/owsmdata_soundstream_16k_200epoch`
+### Pre-Trained Models:
+We share the pre-trained SpeechLM of 1.7B presented in [ESPnet-SpeechLM system paper](https://arxiv.org/abs/2502.15218). We will release more advanced models of 1.7B and 7B in late May.
+  * HuggingFace repo: https://huggingface.co/JinchuanTian/OpusLM_v0_1.7B_NAACL_Demo
+  * download the model and its dependency by `cd espnet/egs2/<dataname>/speechlm1; huggingface-cli download --repo-type model --local-dir . JinchuanTian/OpusLM_v0_1.7B_NAACL_Demo`
 
-`SSL`: As of Aug 10, 2024, we encourage the developers to use our open-sourced codec-model from William:
-  * https://huggingface.co/datasets/JinchuanTian/speechlm_ssl_xeus
-  * First, download the model by `huggingface-cli download --repo-type dataset --local-dir . JinchuanTian/speechlm_ssl_xeus`
 
-### Pretrained Models:
-As of Sep 18, we provide two pre-trained models. These models are trained on 160khrs of English corpus, of size 300-400M parameters. People who work on speech understanding can use ASR pre-trained model; people who work on speech generation can use TTS pre-trained model.
+#### Tokenization
+Please setup the tokenizer options for `speechlm.sh` as below:
+  * For codec: `--codec_choice ESPnet --codec_hf_model_tag ftshijt/espnet_codec_dac_large_v1.4_360epoch`
+  * For SSL: `--ssl_choice espnet_hubert --ssl_nlayer 18 --ssl_checkpoint_path exp/kmeans/38epoch.pth --ssl_kmeans_path exp/kmeans/xeus_18_5000clusters/km_5000.mdl --ssl_batch_bins 5000000`
+  * For text BPE: `--subword_choice huggingface --subword_model HuggingFaceTB/SmolLM-1.7B`
 
-`ASR`: https://huggingface.co/datasets/espnet/espnet_speechlm_pretrained_asr
-  * download the model: `cd <espnet>/egs2/<recipe_name>/speechlm1; huggingface-cli download --repo-type dataset --local-dir . espnet/espnet_speechlm_pretrained_asr`
-  * Use the training config file: `<espnet>/egs2/librispeech/speechlm1/conf/train_delay_asr.yaml`. You should keep the model configuration unchanged, but feel free to revise other configs.
-  * Use the prepared token list folder. In `speechlm.sh`, use `--token_list_dir data/token_list/asr_vocab`. The folder is together downloaded with the model.
-  * Remember to download the SSL model.
+#### Config files:
+  * The training config is `conf/train_delay_smollm_1.7b_nods.yaml`; This config is for pre-training, feel free to revise settings (e.g., batch size, learning rate, etc) for fine-tuning
+  * The ASR inference config is `conf/decode_asr.yaml`; the TTS inference config is `conf/decode_tts_espnet.yaml`. We put multiple processes on each GPU. So revise `nproc` according to your GPU memory
 
-`TTS`: https://huggingface.co/datasets/espnet/espnet_speechlm_pretrained_tts
-  * download the model: `cd <espnet>/egs2/<recipe_name>/speechlm1; huggingface-cli download --repo-type dataset --local-dir . espnet/espnet_speechlm_pretrained_tts`
-  * Use the training config file: `<espnet>/egs2/librispeech/speechlm1/conf/train_delay_tts.yaml`. You should keep the model configuration unchanged, but feel free to revise other configs.
-  * Use the prepared token list folder. In `speechlm.sh`, use `--token_list_dir data/token_list/tts_vocab`. The folder is together downloaded with the model.
+#### Important Notice
+Due to codebase update, please do a simple hacking for the inference. This issue is unique for the current model, and has been fixed in the later models.
+  * For [this line](https://github.com/jctian98/espnet/blob/8dc3e7b76d2c24451aa10a36930efe21324e5f34/espnet2/speechlm/core_lm/ar_delay.py#L170), change the code to 34 if TTS; to 35 if ASR. 
 
-### Recipes：
-  * `ASR` fine-tuning the pre-trained model: `<espnet>/egs2/librispeech/speechlm1/run_asr.sh`
-  * `TTS` fine-tuning the pre-trained model: `<espnet>/egs2/librispeech/speechlm1/run_tts.sh`
+#### Inference Demo:
+  * We also share the pre-tokenized LibriSpeech Test-Clean subset for ASR and TTS inference. Run as follow:
+  ```bash
+  # ASR Inference
+  bash run.sh \
+    --skip_data_prep false \
+    --stage 9 --stop_stage 10 \
+    --tag naacl_demo_1.7B \
+    --expdir exp \
+    --inference_model 34epoch.pth \
+    --inference_config conf/decode_asr.yaml  \
+    --task codec_ssl_asr \
+    --nbest 1 \
+    --data_name librispeech \
+    --test_sets "test_clean" \
+    --nj 4 --inference_nj 4
+  ```
+
+  ```bash
+  # TTS Inference
+  bash run.sh \
+    --skip_data_prep false \
+    --stage 9 --stop_stage 10 \
+    --tag naacl_demo_1.7B \
+    --expdir exp \
+    --inference_model 34epoch.pth \
+    --inference_config conf/decode_tts_espnet.yaml  \
+    --task codec_ssl_tts \
+    --nbest 1 \
+    --data_name librispeech \
+    --test_sets "test_clean" \
+    --nj 4 --inference_nj 4
+  ```
 
 ### Step-by-Step Guidance of supporting a new task
   * Before you start, make sure you have some additional dependencies installed.
