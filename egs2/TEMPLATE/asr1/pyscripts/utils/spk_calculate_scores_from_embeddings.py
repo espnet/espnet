@@ -40,7 +40,7 @@ def main(args):
         test = torch.from_numpy(embd_dic[t])
         if len(enroll.size()) == 1:
             enroll = enroll.unsqueeze(0)
-            test = enroll.unsqueeze(0)
+            test = test.unsqueeze(0)
         score = torch.cdist(enroll, test)
         score = -1.0 * torch.mean(score)
         scores.append(score.item())
