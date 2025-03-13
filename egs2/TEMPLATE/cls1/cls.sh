@@ -191,7 +191,7 @@ cls_exp="${expdir}/cls_${cls_tag}"
 token_list=${datadir}/token_list
 
 # Used only for speech-text classification
-if [ ${speech_text_classification} ]; then
+if ${speech_text_classification}; then
     if [ -z "${text_input_filename}" ]; then
         log "Error: --text_input_filename is required for speech-text classification"
         exit 2
@@ -299,7 +299,7 @@ if ! "${skip_data_prep}"; then
             # text contains blank when task is multi-label classif and
             # there is no label. In this case we reposition to 0th index.
 
-        if [ "$speech_text_classification" ]; then
+        if ${speech_text_classification}; then
             log "Generate hugging_face text_token_list from ${hugging_face_model_name_or_path}"
             # The first symbol in text_token_list must be "<blank>" and the last must be also sos/eos
             ${python} -m espnet2.bin.hugging_face_export_vocabulary  \
@@ -367,7 +367,7 @@ if ! "${skip_train}"; then
 
         # NOTE: --*_shape_file doesn't require length information if --batch_type=unsorted,
         #       but it's used only for deciding the sample ids.
-        if [ "$speech_text_classification" ]; then
+        if ${speech_text_classification}; then
             _opts+="--train_data_path_and_name_and_type ${_cls_train_dir}/${text_input_filename},text,text "
             _opts+="--valid_data_path_and_name_and_type ${_cls_valid_dir}/${text_input_filename},text,text "
             _opts+="--text_token_list ${text_token_list} "
@@ -440,7 +440,7 @@ if ! "${skip_train}"; then
         _opts+="--fold_length ${speech_fold_length} "
         _opts+="--fold_length ${label_fold_length} "
 
-        if [ "$speech_text_classification" ]; then
+        if ${speech_text_classification}; then
             _opts+="--train_data_path_and_name_and_type ${_cls_train_dir}/${text_input_filename},text,text "
             _opts+="--valid_data_path_and_name_and_type ${_cls_valid_dir}/${text_input_filename},text,text "
             _opts+="--text_token_list ${text_token_list} "
@@ -554,13 +554,7 @@ if ! "${skip_eval}"; then
             utils/split_scp.pl "${key_file}" ${split_scps}
 
             _opts=
-            if [ "${max_wav_duration}" ]; then
-                _fs=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
-                max_wav_duration_in_samples=$(python3 -c "print(int(${max_wav_duration} * ${_fs}))")
-                echo "WARNING: Inference with max_wav_duration set to ${max_wav_duration_in_samples} at ${fs} Hz!"
-                _opts+="--max_wav_duration ${max_wav_duration_in_samples} "
-            fi
-            if [ "$speech_text_classification" ]; then
+            if ${speech_text_classification}; then
                 _opts+="--data_path_and_name_and_type ${_data}/${text_input_filename},text,text "
             fi
 
@@ -619,7 +613,7 @@ if ! "${skip_upload}"; then
         if [ "${feats_normalize}" = global_mvn ]; then
             _opts+="--option ${cls_stats_dir}/train/feats_stats.npz "
         fi
-        if [ "$speech_text_classification" ]; then
+        if ${speech_text_classification}; then
             _opts+="--option ${text_token_list} "
             _opts+="--option ${text_bpemodel} "
         fi

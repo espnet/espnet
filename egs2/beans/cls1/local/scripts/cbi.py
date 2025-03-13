@@ -38,12 +38,21 @@ def convert(row):
     )
     os.makedirs(os.path.dirname(wav_filepath), exist_ok=True)
     # Convert MP3 to WAV and trim to 10 seconds
-    ffmpeg.input(filepath).output(wav_filepath, t=10, ac=1).run(quiet=True)
+    try:
+        # Convert MP3 to WAV and trim to 10 seconds
+        ffmpeg.input(filepath).output(wav_filepath, t=10, ac=1).run(quiet=True)
+        success = True
+        error_msg = ""
+    except ffmpeg.Error as e:
+        success = False
+        error_msg = e.stderr.decode("utf8")
+        print(f"Failed to convert {filepath}: {error_msg}", file=sys.stderr)
     new_row = pd.Series(
         {
             "path": wav_filepath,
             "label": str(row["ebird_code"]).replace(" ", "_"),
             "split": split,
+            "success": success,
         }
     )
     return new_row
@@ -51,6 +60,10 @@ def convert(row):
 
 print("Converting audio files to WAV format")
 df = df.progress_apply(convert, axis=1)
+print("Old shape:", df.shape)
+df = df[df.success]
+df = df.drop(columns=["success"])
+print("New shape after dropping unsuccessful items:", df.shape)
 
 split2df = {
     "cbi.dev": df[df.split == "valid"],

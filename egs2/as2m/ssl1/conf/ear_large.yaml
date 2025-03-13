@@ -43,4 +43,4 @@ max_epoch: 60
 
 num_workers: 4
 use_deepspeed: true
-deepspeed_config: conf/ds_ear.json
+deepspeed_config: conf/ds_ear_large.json

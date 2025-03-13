@@ -101,6 +101,7 @@ class BeatsTask(AbsTask):
         group.add_argument(
             "--use_preprocessor", type=str2bool, default=True, help="Use preprocessor"
         )
+        group.add_argument("--waveform_input", type=str2bool, default=False)
 
         for class_choices in cls.class_choices_list:
             # Append --<name> and --<name>_conf.

@@ -193,14 +193,22 @@ if ! "${skip_data_prep}"; then
         exit 2
     fi
     if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
-        # TODO(shikhar): Add support for segment file
         log "Stage 2: Format wav.scp: ${datadir}/ -> ${data_feats_raw}/[org]"
         for dset in "${valid_set}" "${train_set}" ; do
-            utils/copy_data_dir.sh --validate_opts --non-print ${datadir}/"${dset}" "${data_feats_raw}/org/${dset}"
+            utils/copy_data_dir.sh --validate_opts --non-print "${datadir}/${dset}" "${data_feats_raw}/org/${dset}"
             rm -f ${data_feats_raw}/org/${dset}/{segments,wav.scp,reco2file_and_channel,reco2dur}
+            _opts=
+            if [ -e ${datadir}/"${dset}"/segments ]; then
+                # segments can be used to create cut audio files from larger audio files.
+                # uttid recordid start_time end_time <-- format for segments
+                # recordid path/to/wav <-- format for wav.scp
+                # others are usual.
+                _opts+="--segments ${datadir}/${dset}/segments "
+                # !! Ensure that _opts is passed as ${_opts} and not as "$_opts"!!
+            fi
             # shellcheck disable=SC2086
             scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
-                                            --audio-format "${audio_format}" --fs "${fs}" \
+                                            --audio-format "${audio_format}" --fs "${fs}" ${_opts} \
                                             "${datadir}/${dset}/wav.scp" "${data_feats_raw}/org/${dset}"
 
             # Copy data from multiple jobs
@@ -214,7 +222,7 @@ if ! "${skip_data_prep}"; then
     if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         log "Stage 3: Remove long/short data: ${data_feats_raw}"
 
-        for dset in "${train_set}" "${valid_set}"; do
+        for dset in "${valid_set}" "${train_set}"; do
             _fs=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
             _min_length=$(python3 -c "print(int(${min_wav_duration} * ${_fs}))")
             _max_length=$(python3 -c "print(int(${max_wav_duration} * ${_fs}))")
@@ -303,7 +311,8 @@ generate_checkpoint() {
         return 1
     fi
 
-    ${python} espnet2/beats/generate_beats_checkpoint.py \
+    # TODO(shikhar): Move to scripts?
+    ${python} ../../../../espnet/espnet2/beats/generate_beats_checkpoint.py \
         --espnet_model_checkpoint_path "${latest_checkpoint_dir_}/${checkpoint_num_}/mp_rank_00_model_states.pt" \
         --output_path "${output_path_}" \
         --espnet_model_config_path "${run_dir_}/config.yaml" \

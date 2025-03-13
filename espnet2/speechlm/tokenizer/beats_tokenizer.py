@@ -447,13 +447,12 @@ class BeatsRandomTokenizer(nn.Module):
             codebook_size=config.quant_n,
             codebook_dim=config.quant_dim,
         )
-        self._initialize()
+        self._initialize(seed)
 
     def _initialize(self, seed):
         logging.info(
             f"Beats Random Tokenizer initialization function called with seed {seed}."
         )
-        original_rng_state = torch.get_rng_state()
         torch.manual_seed(seed)
         torch.nn.init.xavier_normal_(self.patch_embedding.weight)
         self.patch_embedding.weight.requires_grad = False

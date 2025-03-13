@@ -1,0 +1,11 @@
+/u/sbharadwaj/conda/envs/espnet/bin/python
+2025-03-08T13:58:35 (slurm_script:28:main) /var/spool/slurmd/job7678326/slurm_script 
+2025-03-08T13:58:36 (slurm_script:40:main) Processing Watkins dataset from /work/hdd/bbjs/shared/corpora/watkins_marine/scraped_data/master_tapes
+Processing 5876 WAV files using 127 processes...
+/u/sbharadwaj/conda/envs/espnet/lib/python3.9/site-packages/librosa/util/decorators.py:88: UserWarning: PySoundFile failed. Trying audioread instead.
+  return f(*args, **kwargs)
+/u/sbharadwaj/conda/envs/espnet/lib/python3.9/site-packages/librosa/util/decorators.py:88: UserWarning: PySoundFile failed. Trying audioread instead.
+  return f(*args, **kwargs)
+/u/sbharadwaj/conda/envs/espnet/lib/python3.9/site-packages/librosa/util/decorators.py:88: UserWarning: PySoundFile failed. Trying audioread instead.
+  return f(*args, **kwargs)
+slurmstepd: error: *** JOB 7678326 ON cn003 CANCELLED AT 2025-03-08T14:02:54 ***

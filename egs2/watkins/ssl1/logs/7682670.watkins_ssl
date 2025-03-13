@@ -1,0 +1,23 @@
+/u/sbharadwaj/conda/envs/espnet/bin/python
+2025-03-08T14:47:21 (slurm_script:28:main) /var/spool/slurmd/job7682670/slurm_script 
+2025-03-08T14:47:22 (slurm_script:40:main) Processing Watkins dataset from /work/hdd/bbjs/shared/corpora/watkins_marine/scraped_data/cut_tapes
+Processing 15567 WAV files using 127 processes...
+/u/sbharadwaj/conda/envs/espnet/lib/python3.9/site-packages/librosa/util/decorators.py:88: UserWarning: PySoundFile failed. Trying audioread instead.
+  return f(*args, **kwargs)
+Processing audio files:   0%|          | 0/15567 [00:00<?, ?file/s]Processing audio files: 100%|██████████| 15567/15567 [00:00<00:00, 3311158.29file/s]
+Error loading audio file /work/hdd/bbjs/shared/corpora/watkins_marine/scraped_data/cut_tapes/AtlanticSpottedDolphin/1961/6102500W.wav: 
+Error processing /work/hdd/bbjs/shared/corpora/watkins_marine/scraped_data/cut_tapes/AtlanticSpottedDolphin/1961/6102500W.wav: 
+Skipped 1 corrupted or invalid files
+Successfully processed 15566 WAV files in 69.69 seconds (223.36 files/sec) and created output files in /work/nvme/bbjs/sbharadwaj/watkins_ssl/data/cut_tapes
+utils/validate_data_dir.sh: Successfully validated data-directory /work/nvme/bbjs/sbharadwaj/watkins_ssl/data/cut_tapes
+2025-03-08T14:48:35 (slurm_script:55:main) Processing Watkins dataset from /work/hdd/bbjs/shared/corpora/watkins_marine/scraped_data/cut_tapes
+Processing 15567 WAV files using 127 processes...
+/u/sbharadwaj/conda/envs/espnet/lib/python3.9/site-packages/librosa/util/decorators.py:88: UserWarning: PySoundFile failed. Trying audioread instead.
+  return f(*args, **kwargs)
+Processing audio files:   0%|          | 0/15567 [00:00<?, ?file/s]Processing audio files: 100%|██████████| 15567/15567 [00:00<00:00, 3433568.07file/s]
+Error loading audio file /work/hdd/bbjs/shared/corpora/watkins_marine/scraped_data/cut_tapes/AtlanticSpottedDolphin/1961/6102500W.wav: 
+Error processing /work/hdd/bbjs/shared/corpora/watkins_marine/scraped_data/cut_tapes/AtlanticSpottedDolphin/1961/6102500W.wav: 
+Skipped 1 corrupted or invalid files
+Successfully processed 15566 WAV files in 944.02 seconds (16.49 files/sec) and created output files in /work/nvme/bbjs/sbharadwaj/watkins_ssl/data/cut_tapes_noise
+utils/validate_data_dir.sh: Successfully validated data-directory /work/nvme/bbjs/sbharadwaj/watkins_ssl/data/cut_tapes_noise
+2025-03-08T15:04:22 (slurm_script:68:main) Successfully finished processing Watkins dataset. [elapsed=1022s]

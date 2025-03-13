@@ -1,0 +1,59 @@
+/u/sbharadwaj/conda/envs/espnet/bin/python
+2025-03-08T14:03:41 (slurm_script:28:main) /var/spool/slurmd/job7678801/slurm_script 
+2025-03-08T14:03:43 (slurm_script:40:main) Processing Watkins dataset from /work/hdd/bbjs/shared/corpora/watkins_marine/scraped_data/master_tapes
+Processing 5876 WAV files using 127 processes...
+/u/sbharadwaj/conda/envs/espnet/lib/python3.9/site-packages/librosa/util/decorators.py:88: UserWarning: PySoundFile failed. Trying audioread instead.
+  return f(*args, **kwargs)
+/u/sbharadwaj/conda/envs/espnet/lib/python3.9/site-packages/librosa/util/decorators.py:88: UserWarning: PySoundFile failed. Trying audioread instead.
+  return f(*args, **kwargs)
+/u/sbharadwaj/conda/envs/espnet/lib/python3.9/site-packages/librosa/util/decorators.py:88: UserWarning: PySoundFile failed. Trying audioread instead.
+  return f(*args, **kwargs)
+/u/sbharadwaj/conda/envs/espnet/lib/python3.9/site-packages/librosa/util/decorators.py:88: UserWarning: PySoundFile failed. Trying audioread instead.
+  return f(*args, **kwargs)
+/u/sbharadwaj/conda/envs/espnet/lib/python3.9/site-packages/librosa/util/decorators.py:88: UserWarning: PySoundFile failed. Trying audioread instead.
+  return f(*args, **kwargs)
+/u/sbharadwaj/conda/envs/espnet/lib/python3.9/site-packages/librosa/util/decorators.py:88: UserWarning: PySoundFile failed. Trying audioread instead.
+  return f(*args, **kwargs)
+/u/sbharadwaj/conda/envs/espnet/lib/python3.9/site-packages/librosa/util/decorators.py:88: UserWarning: PySoundFile failed. Trying audioread instead.
+  return f(*args, **kwargs)
+/u/sbharadwaj/conda/envs/espnet/lib/python3.9/site-packages/librosa/util/decorators.py:88: UserWarning: PySoundFile failed. Trying audioread instead.
+  return f(*args, **kwargs)
+/u/sbharadwaj/conda/envs/espnet/lib/python3.9/site-packages/librosa/util/decorators.py:88: UserWarning: PySoundFile failed. Trying audioread instead.
+  return f(*args, **kwargs)
+/u/sbharadwaj/conda/envs/espnet/lib/python3.9/site-packages/librosa/util/decorators.py:88: UserWarning: PySoundFile failed. Trying audioread instead.
+  return f(*args, **kwargs)
+/u/sbharadwaj/conda/envs/espnet/lib/python3.9/site-packages/librosa/util/decorators.py:88: UserWarning: PySoundFile failed. Trying audioread instead.
+  return f(*args, **kwargs)
+/u/sbharadwaj/conda/envs/espnet/lib/python3.9/site-packages/librosa/util/decorators.py:88: UserWarning: PySoundFile failed. Trying audioread instead.
+  return f(*args, **kwargs)
+Processing audio files:   0%|          | 0/5876 [00:00<?, ?file/s]Processing audio files: 100%|██████████| 5876/5876 [00:00<00:00, 3178863.70file/s]
+Error loading audio file /work/hdd/bbjs/shared/corpora/watkins_marine/scraped_data/master_tapes/Fin_FinbackWhale/80002/80002C34.wav: division by zero
+Error processing /work/hdd/bbjs/shared/corpora/watkins_marine/scraped_data/master_tapes/Fin_FinbackWhale/80002/80002C34.wav: division by zero
+Error loading audio file /work/hdd/bbjs/shared/corpora/watkins_marine/scraped_data/master_tapes/StripedDolphin/85006/85006C12.wav: division by zero
+Error processing /work/hdd/bbjs/shared/corpora/watkins_marine/scraped_data/master_tapes/StripedDolphin/85006/85006C12.wav: division by zero
+Error loading audio file /work/hdd/bbjs/shared/corpora/watkins_marine/scraped_data/master_tapes/BlueWhale/74008/74008C34.wav: division by zero
+Error processing /work/hdd/bbjs/shared/corpora/watkins_marine/scraped_data/master_tapes/BlueWhale/74008/74008C34.wav: division by zero
+Error loading audio file /work/hdd/bbjs/shared/corpora/watkins_marine/scraped_data/master_tapes/Grampus_Risso'sDolphin/85006/85006C12.wav: division by zero
+Error processing /work/hdd/bbjs/shared/corpora/watkins_marine/scraped_data/master_tapes/Grampus_Risso'sDolphin/85006/85006C12.wav: division by zero
+Error loading audio file /work/hdd/bbjs/shared/corpora/watkins_marine/scraped_data/master_tapes/BottlenoseDolphin/72010/72010C12.wav: division by zero
+Error processing /work/hdd/bbjs/shared/corpora/watkins_marine/scraped_data/master_tapes/BottlenoseDolphin/72010/72010C12.wav: division by zero
+Error loading audio file /work/hdd/bbjs/shared/corpora/watkins_marine/scraped_data/master_tapes/BottlenoseDolphin/72010/72010C34.wav: division by zero
+Error processing /work/hdd/bbjs/shared/corpora/watkins_marine/scraped_data/master_tapes/BottlenoseDolphin/72010/72010C34.wav: division by zero
+Error loading audio file /work/hdd/bbjs/shared/corpora/watkins_marine/scraped_data/master_tapes/SpinnerDolphin/71007/71007C34.wav: division by zero
+Error processing /work/hdd/bbjs/shared/corpora/watkins_marine/scraped_data/master_tapes/SpinnerDolphin/71007/71007C34.wav: division by zero
+Error loading audio file /work/hdd/bbjs/shared/corpora/watkins_marine/scraped_data/master_tapes/SpermWhale/72010/72010C34.wav: division by zero
+Error processing /work/hdd/bbjs/shared/corpora/watkins_marine/scraped_data/master_tapes/SpermWhale/72010/72010C34.wav: division by zero
+Error loading audio file /work/hdd/bbjs/shared/corpora/watkins_marine/scraped_data/master_tapes/SpermWhale/83032/83032.wav: division by zero
+Error processing /work/hdd/bbjs/shared/corpora/watkins_marine/scraped_data/master_tapes/SpermWhale/83032/83032.wav: division by zero
+Error loading audio file /work/hdd/bbjs/shared/corpora/watkins_marine/scraped_data/master_tapes/SpermWhale/79033/79033A.wav: division by zero
+Error processing /work/hdd/bbjs/shared/corpora/watkins_marine/scraped_data/master_tapes/SpermWhale/79033/79033A.wav: division by zero
+Error loading audio file /work/hdd/bbjs/shared/corpora/watkins_marine/scraped_data/master_tapes/SpermWhale/74013/74013.wav: division by zero
+Error processing /work/hdd/bbjs/shared/corpora/watkins_marine/scraped_data/master_tapes/SpermWhale/74013/74013.wav: division by zero
+Error loading audio file /work/hdd/bbjs/shared/corpora/watkins_marine/scraped_data/master_tapes/NorthernRightWhale/74008/74008C34.wav: division by zero
+Error processing /work/hdd/bbjs/shared/corpora/watkins_marine/scraped_data/master_tapes/NorthernRightWhale/74008/74008C34.wav: division by zero
+Error loading audio file /work/hdd/bbjs/shared/corpora/watkins_marine/scraped_data/master_tapes/SpermWhale/72010/72010C12.wav: division by zero
+Error processing /work/hdd/bbjs/shared/corpora/watkins_marine/scraped_data/master_tapes/SpermWhale/72010/72010C12.wav: division by zero
+Skipped 13 corrupted or invalid files
+Successfully processed 5863 WAV files in 1146.60 seconds (5.11 files/sec) and created output files in /work/nvme/bbjs/sbharadwaj/watkins_ssl/data/master_tapes
+Bad line in segments file 00038570_1379-000000000 0.00 10.00
+utils/validate_data_dir.sh: badly formatted segments file

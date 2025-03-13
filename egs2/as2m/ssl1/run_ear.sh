@@ -7,8 +7,8 @@ set -o pipefail
 
 . ./db.sh
 
-train_start_iter=0
-train_stop_iter=2
+train_start_iter=1
+train_stop_iter=1
 
 train_set="train"
 valid_set="eval"
@@ -19,7 +19,8 @@ mynametag=
 ssl_tag=${mynametag}.${timestamp}
 
 
-tokenizer_inf_config=conf/tokenizer_inference_beats2.yaml
+# tokenizer_inf_config=conf/tokenizer_inference_beats2.yaml
+tokenizer_inf_config=conf/tokenizer_large_100k_steps.yaml
 model_size=large
 ssl_tag=${model_size}.7p2M
 
