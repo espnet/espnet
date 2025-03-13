@@ -34,7 +34,7 @@ log "$0 $*"
 # Parse arguments
 WRITE_DIR=/work/nvme/bbjs/sbharadwaj/watkins_ssl/data
 READ_DIR=/work/hdd/bbjs/shared/corpora/watkins_marine/scraped_data
-# master_tapes 
+# master_tapes
 for set in cut_tapes; do
     mkdir -p ${WRITE_DIR}/${set}
     log "Processing Watkins dataset from ${READ_DIR}/${set}"

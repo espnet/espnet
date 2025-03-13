@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
-import os
 import argparse
+import multiprocessing
+import os
+import sys
+import time
+from functools import partial
+from multiprocessing import Lock
+
 import librosa
 import numpy as np
 import soundfile as sf
 from tqdm import tqdm
-import multiprocessing
-from functools import partial
-import time
-from multiprocessing import Lock
-import sys
-
 
 # Create a lock for file writing
 file_lock = Lock()

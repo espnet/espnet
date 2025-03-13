@@ -2,7 +2,7 @@
 
 These experiments analyze the impact of temporal ratio of "interesting events" to noise in the pretraining corpus for BEATs pre-training.
 
-We compare two pre-trained model variants - all_cuts (base dataset) and all_cuts_noise (with augmented noise) - each on two variants differentiated by tokenizer initialization. 
+We compare two pre-trained model variants - all_cuts (base dataset) and all_cuts_noise (with augmented noise) - each on two variants differentiated by tokenizer initialization.
 
 Results indicate that the choice of tokenizer significantly affects model performance and a bad temporal ratio leads to an underperforming model (especially if the tokenizer is not well trained).
 
@@ -56,7 +56,7 @@ Results indicate that the choice of tokenizer significantly affects model perfor
 - **Learning Rate**: 5.0e-4
 - **Batch Size**: Average of 26 examples
 - **Model Architecture**: BEATs (Vision Transformer-like)
-- **Warmup Steps**: 
+- **Warmup Steps**:
   - 10,000 steps for all models except,
   - 40,000 steps for all_cuts with random tokenizer (10,000 leads to collapse of pre-training)
 
