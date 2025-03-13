@@ -135,7 +135,7 @@ def ner_error_analysis(all_gt, all_predictions, gt_text):
 def get_metrics(num_correct, num_gt, num_pred):
     precision = safe_divide([num_correct], [num_pred])
     recall = safe_divide([num_correct], [num_gt])
-    fscore = safe_divide([2 * precision * recall], [(precision + recall)])
+    fscore = safe_divide([2 * precision * recall], [precision + recall])
     return precision[0], recall[0], fscore[0][0]
 
 

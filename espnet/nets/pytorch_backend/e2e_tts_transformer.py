@@ -8,7 +8,9 @@ import logging
 import torch
 import torch.nn.functional as F
 
-from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import GuidedAttentionLoss
+from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import (
+    GuidedAttentionLoss,
+)
 from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import (
     Tacotron2Loss as TransformerLoss,
 )
