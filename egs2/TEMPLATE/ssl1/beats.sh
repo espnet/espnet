@@ -601,7 +601,7 @@ if ! "${skip_train}"; then
                         exit 1
                     fi
                 fi
-                tokenizer_inference ${iter}
+                # tokenizer_inference ${iter}
             fi
             train_encoder ${iter}
         done

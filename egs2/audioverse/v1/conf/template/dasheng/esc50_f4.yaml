@@ -16,10 +16,9 @@ scheduler_conf:
     max_lr: 1.0e-4
     min_lr: 5.0e-6
 
-# BEATs implementation takes care of generating mel spectrogram, normalization and specaug
 frontend: none
-input_size: 1 # important to set input_size to 1 if frontend is none
-normalize: none # BEATs code does global mean and variance normalization
+input_size: 1
+normalize: none
 
 # Initialization for the decoder
 init: xavier_normal
@@ -37,15 +36,9 @@ use_amp: false  # whether to use automatic mixed precision
 num_att_plot: 0
 num_workers: 2 # dataloader workers
 
-encoder: beats
+encoder: dasheng
 encoder_conf:
-    beats_ckpt_path: CHECKPOINT_PATH
-    fbank_mean: 11.72215
-    fbank_std: 10.60431
-    beats_config:
-        layer_wise_gradient_decay_ratio: 0.2
-        encoder_layerdrop: 0.1
-        dropout: 0.0
+    model_name: DASHENG_MODEL_NAME
     specaug_config:
         apply_time_warp: true
         apply_freq_mask: false
@@ -56,7 +49,6 @@ encoder_conf:
         num_time_mask: 1
     roll_augment: true
     roll_interval: 16000
-    use_weighted_representation: false
 
 decoder: linear
 decoder_conf:

@@ -26,26 +26,22 @@ scheduler_conf:
 patience: none
 best_model_criterion:
 -   - valid
-    - epoch_mAP
+    - acc
     - max
 keep_nbest_models: 1
 use_amp: false  # whether to use automatic mixed precision
 num_att_plot: 0
 num_workers: 2 # dataloader workers
 
-# BEATs implementation takes care of generating mel spectrogram, normalization and specaug
 frontend: none
-input_size: 1 # important to set input_size to 1 if frontend is none
-normalize: none # BEATs code does global mean and variance normalization
+input_size: 1
+normalize: none
 
-encoder: beats
+encoder: dasheng
 encoder_conf:
-    beats_ckpt_path: CHECKPOINT_PATH
-    beats_config:
-        layer_wise_gradient_decay_ratio: 0.3
-        encoder_layerdrop: 0.1
-        dropout: 0.0
-    use_weighted_representation: false
+    model_name: DASHENG_MODEL_NAME
+    roll_augment: true
+    roll_interval: 1 # 16000
     specaug_config:
         apply_time_warp: true
         apply_freq_mask: false
@@ -53,9 +49,9 @@ encoder_conf:
         time_mask_width_ratio_range:
         - 0
         - 0.06
-        num_time_mask: 1
-    roll_augment: false
+        num_time_mask: 1 
+
 
 model_conf:
-    classification_type: multi-label
-    log_epoch_metrics: true
+    classification_type: multi-class
+    lsm_weight: 0.1  # label smoothing weight, per class
