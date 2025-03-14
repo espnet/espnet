@@ -9,8 +9,8 @@ from typeguard import typechecked
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.encoder.beats_encoder import BeatsEncoder
-from espnet2.asr.encoder.dasheng_hf_encoder import DashengEncoder
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
+from espnet2.asr.encoder.dasheng_hf_encoder import DashengEncoder
 from espnet2.asr.encoder.hugging_face_transformers_encoder import (
     HuggingFaceTransformersEncoder,
 )

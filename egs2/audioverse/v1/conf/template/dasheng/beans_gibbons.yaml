@@ -48,7 +48,7 @@ encoder_conf:
         time_mask_width_ratio_range:
         - 0
         - 0.06
-        num_time_mask: 1 
+        num_time_mask: 1
 
 model_conf:
     classification_type: multi-label

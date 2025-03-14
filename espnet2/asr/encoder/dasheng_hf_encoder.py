@@ -15,11 +15,10 @@
 
 import collections
 import copy
+import logging
 import math
 from functools import partial
-import logging
-from typing import Any, List, Optional, Tuple, Union, Dict
-from espnet2.asr.specaug.specaug import SpecAug
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -27,14 +26,14 @@ import torch.utils.checkpoint
 import torchaudio.transforms as audio_transforms
 from einops.layers.torch import Rearrange
 from torch import nn
-
-from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from transformers import PretrainedConfig
 from transformers.feature_extraction_sequence_utils import SequenceFeatureExtractor
 from transformers.feature_extraction_utils import BatchFeature
 from transformers.modeling_utils import PreTrainedModel
-from espnet.nets.pytorch_backend.nets_utils import roll_tensor
 
+from espnet2.asr.encoder.abs_encoder import AbsEncoder
+from espnet2.asr.specaug.specaug import SpecAug
+from espnet.nets.pytorch_backend.nets_utils import roll_tensor
 
 DASHENG_PRETRAINED_MODEL_ARCHIVE_LIST = [
     "mispeech/dasheng-base",
