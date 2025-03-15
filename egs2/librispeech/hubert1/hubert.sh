@@ -1,1 +1,1 @@
-../../TEMPLATE/ssl1/hubert.sh
+../../TEMPLATE/hubert1/hubert.sh
