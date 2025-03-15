@@ -71,14 +71,20 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     python local/create_switchboard_data_2channels.py
     python local/create_switchboard_data_2channels_mono.py
     python local/subsample_2channel_switchboard_mono.py
+    mv data/train data/train_old
     mkdir -p data/{train,valid,test}
     python3 local/create_espnet_data_folders.py
-    for x in test valid train; do
+    for x in valid train; do
         for f in segments text wav.scp utt2spk; do
             sort data/${x}/${f} -o data/${x}/${f}
         done
         utils/utt2spk_to_spk2utt.pl data/${x}/utt2spk > "data/${x}/spk2utt"
         utils/validate_data_dir.sh --no-feats data/${x} || exit 1
     done
+    for f in text wav.scp utt2spk; do
+        sort data/test/${f} -o data/test/${f}
+    done
+    utils/utt2spk_to_spk2utt.pl data/test/utt2spk > "data/test/spk2utt"
+    utils/validate_data_dir.sh --no-feats data/test || exit 1
 fi
 log "Successfully finished. [elapsed=${SECONDS}s]"
