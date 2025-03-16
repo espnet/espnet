@@ -370,7 +370,7 @@ class ScoreResult:
         """
         score = 0
         F1_dict = {}
-        assert self.human_human == True
+        assert self.human_human is True
         for k in self.labels:
             print("Label: " + k)
             if k == "C":
