@@ -22,6 +22,7 @@ from sklearn.metrics import (
     classification_report,
     confusion_matrix,
     f1_score,
+    roc_auc_score,
 )
 
 
@@ -82,7 +83,7 @@ class ModelParam(
     chunk_length = 0.04  # Turn taking model makes prediction at every 0.04 seconds
 
 
-def compute_gt(ref_arr, min_start_time, chunk_length):
+def compute_turn_likelihoods(ref_arr, min_start_time, chunk_length):
     """
     Generate a likelihood dictionary of turn-taking events based on
     predictions from the turn-taking model.
@@ -117,19 +118,20 @@ def compute_gt(ref_arr, min_start_time, chunk_length):
     #   - Value: Array storing the likelihood of Label "L" at LabelIndex."L".value
     for line in ref_arr:
         line1 = line.strip().split()
-        if line1[0] not in true_dict:
-            true_dict[line1[0]] = {}
+        line_id = line1[0].replace("sw0", "")
+        if line_id not in true_dict:
+            true_dict[line_id] = {}
             for count in range(len(line1) - 1):
                 end_chunk = float(
                     f"{(min_start_time + (count + 1) * chunk_length):.2f}"
                 )
-                true_dict[line1[0]][end_chunk] = [
+                true_dict[line_id][end_chunk] = [
                     float(k) for k in line1[1 + count].split(",")
                 ]
     return true_dict
 
 
-def compute_pred(hyp_arr):
+def compute_turn_decisions(hyp_arr):
     """
     Generate a dictionary of turn-taking decisions in Human AI conversation.
 
@@ -164,11 +166,13 @@ def compute_pred(hyp_arr):
     #   - Value: Any one of the speaker turn labels (see TurnLabel)
     for line in hyp_arr:
         line1 = line.strip().split(",")
-        if line1[0] + ".wav" not in pred_dict:
-            pred_dict[line1[0] + ".wav"] = {}
-            turn_dict[line1[0] + ".wav"] = {}
-        pred_dict[line1[0] + ".wav"][float(line1[2])] = line1[3]
-        turn_dict[line1[0] + ".wav"][float(line1[2])] = line1[-1]
+        if line1[0] not in pred_dict:
+            pred_dict[line1[0]] = {}
+            turn_dict[line1[0]] = {}
+        if line1[3] == "I":
+            line1[3] = "IN"
+        pred_dict[line1[0]][float(line1[2])] = line1[3]
+        turn_dict[line1[0]][float(line1[2])] = line1[-1]
     return pred_dict, turn_dict
 
 
@@ -208,18 +212,31 @@ class ScoreResult:
         labels,
         only_AI: bool = False,
         only_human: bool = False,
+        human_human: bool = False,
     ) -> None:
         self.labels = labels
         self.only_AI = only_AI  # True if metrics computed only for decisions made by AI
         self.only_human = (
             only_human  # True if metrics computed only for decisions made by human
         )
-        (
-            self.pred_arr,
-            self.true_arr_hard_label,
-            self.true_arr_soft_label,
-            self.turn_arr,
-        ) = self.combined_pred_hyp_arr(true_dict, pred_dict, turn_dict)
+        self.human_human = (
+            human_human  # True if metrics are being computed on
+            # human-human conversation to evaluate judge model
+        )
+        if self.human_human:
+            (
+                self.true_arr,
+                self.pred_arr_hard_label,
+                self.pred_arr_soft_label,
+                self.turn_arr,
+            ) = self.combined_pred_hyp_arr(pred_dict, true_dict, turn_dict)
+        else:
+            (
+                self.pred_arr,
+                self.true_arr_hard_label,
+                self.true_arr_soft_label,
+                self.turn_arr,
+            ) = self.combined_pred_hyp_arr(true_dict, pred_dict, turn_dict)
 
     def combined_pred_hyp_arr(self, true_dict, pred_dict, turn_dict):
         """
@@ -317,17 +334,70 @@ class ScoreResult:
         F1_dict = {}
         for k in self.labels:
             print("Label: " + k)
-            x = f1_score(
-                self.true_arr_hard_label == k, self.pred_arr == k, average="macro"
-            )
+            if self.human_human:
+                x = f1_score(
+                    self.true_arr == k, self.pred_arr_hard_label == k, average="macro"
+                )
+            else:
+                x = f1_score(
+                    self.true_arr_hard_label == k, self.pred_arr == k, average="macro"
+                )
             F1_dict[k] = round(x, 3)
-            print(
-                classification_report(self.true_arr_hard_label == k, self.pred_arr == k)
-            )
+            if self.human_human:
+                print(
+                    classification_report(
+                        self.true_arr == k, self.pred_arr_hard_label == k
+                    )
+                )
+            else:
+                print(
+                    classification_report(
+                        self.true_arr_hard_label == k, self.pred_arr == k
+                    )
+                )
             print("Macro F1: " + str(round(x, 3)))
             print("--------")
             score += x
         print("Overall F1: " + str(round(score / len(self.labels), 3)))
+        return F1_dict
+
+    def compute_roc_auc(self):
+        """
+        Computes ROC_AUC of the turn-taking events.
+
+        Returns:
+            F1_dict: Dict with keys as label and values as macro F1 for that label
+        """
+        score = 0
+        F1_dict = {}
+        assert self.human_human == True
+        for k in self.labels:
+            print("Label: " + k)
+            if k == "C":
+                x = roc_auc_score(
+                    self.true_arr == k, self.pred_arr_soft_label[:, LabelIndex.C.value]
+                )
+            elif k == "NA":
+                x = roc_auc_score(
+                    self.true_arr == k, self.pred_arr_soft_label[:, LabelIndex.NA.value]
+                )
+            elif k == "IN":
+                x = roc_auc_score(
+                    self.true_arr == k, self.pred_arr_soft_label[:, LabelIndex.IN.value]
+                )
+            elif k == "BC":
+                x = roc_auc_score(
+                    self.true_arr == k, self.pred_arr_soft_label[:, LabelIndex.BC.value]
+                )
+            elif k == "T":
+                x = roc_auc_score(
+                    self.true_arr == k, self.pred_arr_soft_label[:, LabelIndex.T.value]
+                )
+            F1_dict[k] = round(x, 3)
+            print("ROC AUC: " + str(round(x, 3)))
+            print("--------")
+            score += x
+        print("Overall ROC AUC: " + str(round(score / len(self.labels), 3)))
         return F1_dict
 
     def compute_confusion_matrix(self):

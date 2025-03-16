@@ -23,7 +23,8 @@ lm_config=conf/train_lm.yaml
     --ngpu 2 \
     --nj 32 \
     --gpu_inference true \
-    --inference_nj 2 \
+    --inference_nj 4 \
+    --inference_asr_model valid.loss.ave.pth \
     --token_type word \
     --nbpe 2000 \
     --feats_type raw \
@@ -38,6 +39,7 @@ lm_config=conf/train_lm.yaml
     --score_opts "-s" \
     --feats_normalize utterance_mvn\
     --max_wav_duration 40\
+    --run_turn_taking true\
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" "$@"
