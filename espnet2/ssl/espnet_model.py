@@ -142,6 +142,12 @@ class ESPnetSSLModel(AbsESPnetModel):
 
         stats["loss"] = total_loss.detach().item()
 
+        # Use loss function to override gradient
+        # scaling factor. This is because we only
+        # take the loss for a subset of elements
+        if 'sample_size' in stats:
+            batch_size = stats['sample_size']
+
         # force_gatherable: to-device and to-tensor if scalar for DataParallel
         total_loss, stats, weight = force_gatherable(
             (total_loss, stats, batch_size), total_loss.device
@@ -250,3 +256,42 @@ class ESPnetSSLModel(AbsESPnetModel):
 
         return data
 
+    def inference_encode(
+        self,
+        speech: torch.Tensor,
+        speech_lengths: torch.Tensor,
+        use_mask: bool = False,
+        use_final_output: bool = True,
+    ) -> Tuple[List[torch.Tensor], torch.Tensor]:
+        # 1. Frontend
+        speech, speech_lengths = self._extract_feats(speech, speech_lengths)
+
+        # 2. Data Augmentation
+        if self.specaug is not None and self.training and use_mask:
+            speech, speech_lengths = self.specaug(speech, speech_lengths)
+
+        # 3. Normalization for feature: e.g. Global-CMVN, Utterance-CMVN
+        if self.normalize is not None:
+            speech, speech_lengths = self.normalize(speech, speech_lengths)
+
+        # 4. Pre-encoder
+        if self.preencoder is not None:
+            speech, speech_lengths = self.preencoder(speech, speech_lengths)
+
+        # Masking
+        pad_masks = make_pad_mask(speech_lengths).to(speech.device)
+        if self.training and use_mask:
+            if "block_mask" in self.util_attributes or "mask" in self.util_attributes:
+                # Prioritize block masking if both are available
+                if "block_mask" in self.util_attributes:
+                    speech, mask_info = self.util_modules["block_mask"](
+                        speech, pad_masks
+                    )
+                elif "mask" in self.util_attributes:
+                    speech, mask_info = self.util_modules["mask"](speech, pad_masks)
+        # 6. Encoder
+        speech, speech_lengths, _ = self.encoder(
+            speech, speech_lengths, masks=pad_masks, return_all_hs=True
+        )
+
+        return speech[0], speech[1], speech_lengths
