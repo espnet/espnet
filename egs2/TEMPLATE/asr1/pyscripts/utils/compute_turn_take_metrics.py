@@ -627,8 +627,6 @@ class ScoreResult:
             if (
                 self.turn_arr[k] == TurnLabel.AI_HUM.value
                 and self.pred_arr[k - 1] == "IN"
-                and self.pred_arr[k - 2] == "IN"
-                and self.pred_arr[k - 3] == "IN"
             ):  # AI is being interrupted by Human
                 if pred_label in ("C", "T"):
                     pred_arr.append(pred_label)

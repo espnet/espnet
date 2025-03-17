@@ -8,7 +8,7 @@
 import argparse
 import os
 
-from local.compute_turn_take_metrics import (
+from pyscripts.utils.compute_turn_take_metrics import (
     ModelParam,
     ScoreResult,
     compute_turn_decisions,
