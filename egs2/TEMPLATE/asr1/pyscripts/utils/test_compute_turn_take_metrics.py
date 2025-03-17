@@ -113,7 +113,7 @@ def test_confusion_matrix_simple():
         [0, 0, 0, 0, 1],
     ]
     res = scorer_simple.compute_confusion_matrix() == gt_array
-    assert res.all() == True
+    assert res.all() is True
 
 
 def test_turn_change_metric_simple():
@@ -193,7 +193,8 @@ def test_make_backchannel_metric_simple():
     # where system decides to not backchannel
     # Where BackChannel Likelihood (0.04, 0.01)
     # < MetricThreshold.backchannel.value,
-    # Thus Judge Label is no backchannel for both cases, hence accuracy_no_backchannel = 100.0
+    # Thus Judge Label is no backchannel for both cases,
+    # hence accuracy_no_backchannel = 100.0
     true_dict = compute_turn_likelihoods(
         ref_arr_simple, ModelParam.min_start_time.value, ModelParam.chunk_length.value
     )
