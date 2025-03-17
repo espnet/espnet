@@ -22,7 +22,23 @@ from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 
 
 class ESPnetSSLModel(AbsESPnetModel):
-    """A generic SSL model"""
+    """An encoder-only SSL model.
+    
+       We currently/will support the
+       following SSL objectives:
+        - HuBERT
+        - Data2Vec (in development)
+        - DinoSR (in development)
+        - wav2vec 2.0 (TODO)
+        - w2v-BERT (TODO)
+        - BEST-RQ (TODO)
+        - Flow Matching (TODO)
+
+        Models can be trained with 
+        multiple objectives by adding
+        multiple entries under loss_conf
+        in the training configuration.
+    """
 
     @typechecked
     def __init__(
