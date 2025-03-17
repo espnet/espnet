@@ -113,7 +113,7 @@ def test_confusion_matrix_simple():
         [0, 0, 0, 0, 1],
     ]
     res = scorer_simple.compute_confusion_matrix() == gt_array
-    assert res.all() is True
+    assert res.all()
 
 
 def test_turn_change_metric_simple():
