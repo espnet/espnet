@@ -4,11 +4,11 @@ This is a template of the ssl1 recipe for ESPnet2, designed for general purpose 
 
 ## Differences from other recipes
 
-ESPnet2 serves two different recipes for Self-Supervised Learning (SSL): `ssl1` (this one) and `hubert1`. 
+ESPnet2 serves two different recipes for Self-Supervised Learning (SSL): `ssl1` (this one) and `hubert1`.
 
-`hubert1` is the original implementation of SSL under the [HuBERT](https://arxiv.org/abs/2106.07447) pre-training framework. The recipe takes care of everything need for pre-training, such as K-means pseudo-labelling and discrete token evaluation. This is very important for reproducibility. However, it is quite complicated due to the multiple offline stages required for HuBERT and therefore difficult to hack/adapt to new training methods or other scenarios. 
+`hubert1` is the original implementation of SSL under the [HuBERT](https://arxiv.org/abs/2106.07447) pre-training framework. The recipe takes care of everything need for pre-training, such as K-means pseudo-labelling and discrete token evaluation. This is very important for reproducibility. However, it is quite complicated due to the multiple offline stages required for HuBERT and therefore difficult to hack/adapt to new training methods or other scenarios.
 
-We created the new `ssl1` recipe to future-proof the codebase to accomodate other pre-training techniques that are purely end-to-end, such as [DinoSR](https://arxiv.org/abs/2305.10005), [SpeechFlow](https://arxiv.org/abs/2310.16338), or [w2v-BERT](https://arxiv.org/abs/2108.06209). This recipe is designed to be easily customizable and more scalable to large-scale pre-training setups.      
+We created the new `ssl1` recipe to future-proof the codebase to accomodate other pre-training techniques that are purely end-to-end, such as [DinoSR](https://arxiv.org/abs/2305.10005), [SpeechFlow](https://arxiv.org/abs/2310.16338), or [w2v-BERT](https://arxiv.org/abs/2108.06209). This recipe is designed to be easily customizable and more scalable to large-scale pre-training setups.
 
 ## HuBERT Pre-training in SSL1
 
@@ -29,7 +29,7 @@ To use the labels from `hubert1`, follow these steps
 3. In `ssl1/run.sh`, add the following flags:
 
     1. `--token_type word`
-    
+
     2. `--token_list <path to token list from step 1.1>`
 
 4. Update your training config with the used k-means size
@@ -39,4 +39,3 @@ To use the labels from `hubert1`, follow these steps
         conf:
         num_classes: <update this>
     ```
-

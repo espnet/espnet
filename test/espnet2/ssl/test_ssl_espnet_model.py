@@ -12,6 +12,7 @@ from espnet2.ssl.loss.hubert import HuBERTLoss
 from espnet2.tasks.ssl import util_choices
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 
+
 @pytest.mark.parametrize("encoder_arch", [TransformerEncoder])
 @pytest.mark.parametrize("loss_fn", [HuBERTLoss])
 def test_espnet_model_wav2vec(encoder_arch, loss_fn):
@@ -122,23 +123,24 @@ def test_espnet_model_conformer(encoder_arch, loss_fn):
     loss, *_ = model(**inputs)
     loss.backward()
 
+
 def test_masking():
     util_class = util_choices.get_class("mask")
     masking = util_class(encoder_embed_dim=16)
 
     data = dict(
-        encoder_output=torch.randn(2, 16 ,16, requires_grad=False),
+        encoder_output=torch.randn(2, 16, 16, requires_grad=False),
         encoder_output_lengths=torch.tensor([16, 8], dtype=torch.long),
     )
 
     # check if mask was applied correctly
-    encoded = data['encoder_output']
-    encoded_lengths = data['encoder_output_lengths']
+    encoded = data["encoder_output"]
+    encoded_lengths = data["encoder_output_lengths"]
     pad_masks = make_pad_mask(encoded_lengths).to(encoded.device)
 
     masked, mask_info = masking(encoded, pad_masks)
-    mask_m = mask_info['mask_m']
-    mask_u = mask_info['mask_u']
+    mask_m = mask_info["mask_m"]
+    mask_u = mask_info["mask_u"]
 
     masked_sample = masked[mask_m][0]
     unmasked_sample = masked[mask_u][0]

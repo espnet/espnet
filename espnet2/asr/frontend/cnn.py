@@ -174,7 +174,7 @@ class CNNFrontend(AbsFrontend):
             in_channels = out_channels
             self.downsampling_factor *= stride
         self.layers = nn.Sequential(*blocks)
-        
+
         if normalize_output:
             self.final_norm = nn.LayerNorm(self.output_channels)
         else:

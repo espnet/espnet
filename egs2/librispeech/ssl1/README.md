@@ -16,10 +16,10 @@ pip install flash-attn --no-build-isolation
 
 Note that both libraries require custom CUDA-kernels, which may complicate the dependency setup. For more detailed guidance, please refer to the instructions in the library-specific links above.
 
-Many configurations in this recipe use `bfloat16` half precision to reduce compute costs while maintaining accurracy. This will require Nvidia Ampere or higher grade GPUs. To disable this, you can replace the `bf16` entry in `conf/deepspeed.json` with 
+Many configurations in this recipe use `bfloat16` half precision to reduce compute costs while maintaining accurracy. This will require Nvidia Ampere or higher grade GPUs. To disable this, you can replace the `bf16` entry in `conf/deepspeed.json` with
 
 ```
-"fp16": { 
+"fp16": {
     "enabled": true
   }
 ```

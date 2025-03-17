@@ -165,7 +165,7 @@ class HuBERTCollateFn(CommonCollateFn):
     def _get_aligned_reverb_signal(self, speech):
         """
         Simulate reverberant audio with a random RIR.
-        
+
         It is re-aligned to the original signal for
         compatability with HuBERT-style training.
 
@@ -194,7 +194,7 @@ class HuBERTCollateFn(CommonCollateFn):
     def _add_noise_wavlm(self, data, speech, speech_id):
         """
         WavLM-style augmentation. We randomly choose one of two methods:
-            - Denoising -> sample an acoustic noise 
+            - Denoising -> sample an acoustic noise
             - Separation -> sample another utterance from the batch
 
         See https://arxiv.org/abs/2110.13900 for details

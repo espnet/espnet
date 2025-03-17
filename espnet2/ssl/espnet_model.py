@@ -23,21 +23,21 @@ from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 
 class ESPnetSSLModel(AbsESPnetModel):
     """An encoder-only SSL model.
-    
-       We currently/will support the
-       following SSL objectives:
-        - HuBERT
-        - Data2Vec (in development)
-        - DinoSR (in development)
-        - wav2vec 2.0 (TODO)
-        - w2v-BERT (TODO)
-        - BEST-RQ (TODO)
-        - Flow Matching (TODO)
 
-        Models can be trained with 
-        multiple objectives by adding
-        multiple entries under loss_conf
-        in the training configuration.
+    We currently/will support the
+    following SSL objectives:
+     - HuBERT
+     - Data2Vec (in development)
+     - DinoSR (in development)
+     - wav2vec 2.0 (TODO)
+     - w2v-BERT (TODO)
+     - BEST-RQ (TODO)
+     - Flow Matching (TODO)
+
+     Models can be trained with
+     multiple objectives by adding
+     multiple entries under loss_conf
+     in the training configuration.
     """
 
     @typechecked
@@ -73,7 +73,7 @@ class ESPnetSSLModel(AbsESPnetModel):
 
         # track the current iteration
         # this is used for calculating decay in EMA
-        self.register_buffer('global_step', torch.tensor([0]))
+        self.register_buffer("global_step", torch.tensor([0]))
 
     def collect_feats(
         self,
@@ -113,21 +113,21 @@ class ESPnetSSLModel(AbsESPnetModel):
 
         # we move the ema model to GPU here to avoid issues with NCCL
         # when copying the ema params when initializing ddp
-        if 'ema' in self.util_modules:
+        if "ema" in self.util_modules:
             self.util_modules["ema"].update_device_and_type(speech.device, speech.dtype)
 
         # update decay parameters only after the first gradient update
         # note that this assumes accum_grad == 1
         if self.training and self.global_step > 0:
             for attr in self.util_attributes:
-                if hasattr(self.util_modules[attr], 'step'):
-                    if attr == 'ema':
+                if hasattr(self.util_modules[attr], "step"):
+                    if attr == "ema":
                         self.util_modules[attr].step(self.global_step, self.encoder)
-                        stats['ema_decay'] = self.util_modules[attr].get_decay() * 1000
+                        stats["ema_decay"] = self.util_modules[attr].get_decay() * 1000
                     else:
                         self.util_modules[attr].step(self.global_step)
             for loss_func in self.losses:
-                if hasattr(loss_func, 'step'):
+                if hasattr(loss_func, "step"):
                     loss_func.step(self.global_step)
 
         data = self.encode(speech, speech_lengths, text, text_lengths)
@@ -145,8 +145,8 @@ class ESPnetSSLModel(AbsESPnetModel):
         # Use loss function to override gradient
         # scaling factor. This is because we only
         # take the loss for a subset of elements
-        if 'sample_size' in stats:
-            batch_size = stats['sample_size']
+        if "sample_size" in stats:
+            batch_size = stats["sample_size"]
 
         # force_gatherable: to-device and to-tensor if scalar for DataParallel
         total_loss, stats, weight = force_gatherable(

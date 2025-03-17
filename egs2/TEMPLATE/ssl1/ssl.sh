@@ -80,7 +80,7 @@ speech_fold_length=800 # fold_length for speech data during SSL training.
 text_fold_length=400   # fold_length for text data during SSL training.
 
 help_message=$(cat << EOF
-Usage: $0 --train-set "<train_set_name>" --valid-set "<valid_set_name>" 
+Usage: $0 --train-set "<train_set_name>" --valid-set "<valid_set_name>"
 
 Options:
     # General configuration
