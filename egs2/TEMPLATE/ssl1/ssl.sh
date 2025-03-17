@@ -58,7 +58,7 @@ min_wav_duration=0.1 # Minimum duration in second.
 max_wav_duration=20  # Maximum duration in second.
 
 # Tokenization related
-token_type=word      # Tokenization type (char or bpe).
+token_type=      # Tokenization type (char or bpe).
 token_list=
 # Pretrain model related
 ssl_args=         # Arguments for ssl model training, e.g., "--max_epoch 10".
@@ -69,7 +69,7 @@ feats_normalize=
 
 # Upload model related
 hf_repo=
-inference_ssl_model=valid.loss.best.pth # SSL model path from previous iteration and uploading
+inference_ssl_model=valid.total_count.ave.pth # SSL model path from previous iteration and uploading
 download_model= # Download a model from Model Zoo and use it for decoding.
 
 # [Task dependent] Set the datadir name created by local/data.sh
@@ -80,7 +80,7 @@ speech_fold_length=800 # fold_length for speech data during SSL training.
 text_fold_length=400   # fold_length for text data during SSL training.
 
 help_message=$(cat << EOF
-Usage: $0 --train-set "<train_set_name>" --valid-set "<valid_set_name>" --test_sets "<test_set_names>"
+Usage: $0 --train-set "<train_set_name>" --valid-set "<valid_set_name>" 
 
 Options:
     # General configuration
@@ -93,6 +93,8 @@ Options:
     --skip_upload_hf # Skip uploading to huggingface stage (default="${skip_upload_hf}").
     --ngpu           # The number of gpus ("0" uses cpu, otherwise use gpu, default="${ngpu}").
     --num_nodes      # The number of nodes (default="${num_nodes}").
+    --use_ssh        # Use SSH instead of cmd.sh
+    --nodes          # Node list if using ssh
     --nj             # The number of parallel jobs (default="${nj}").
     --dumpdir        # Directory to dump features (default="${dumpdir}").
     --expdir         # Directory to save experiments (default="${expdir}").
@@ -113,21 +115,18 @@ Options:
     --max_wav_duration # Maximum duration in second (default="${max_wav_duration}").
 
     # Tokenization related
-    --token_type              # Tokenization type (char or bpe, default="${token_type}").
+    --token_type              # Tokenization type (word, char or bpe, default="${token_type}").
 
     # Training related
     --num_splits_ssl   # Number of splitting for ssl training  (default="${num_splits_ssl}").
-
-    # Alignment
-    --alignment_phoneme_dir # Phoneme alignment directory with tsv file (utt_id, phoneme_alignment)
 
     # [Task dependent] Set the datadir name created by local/data.sh
     --train_set     # Name of training train set (required).
     --valid_set     # Name of validation set used for monitoring/tuning network training (required).
     --lang          # The language type of corpus (default=${lang}).
-    --speech_fold_length  # fold_length for speech data during HuBERT training (default="${speech_fold_length}").
-    --text_fold_length    # fold_length for text data during HuBERT training (default="${text_fold_length}").
-    --inference_ssl_model # SSL model path from previous iteration and uploading (default="${inference_ssl_model}").
+    --speech_fold_length  # fold_length for speech data during SSL training (default="${speech_fold_length}").
+    --text_fold_length    # fold_length for text data during SSL training (default="${text_fold_length}").
+    --inference_ssl_model # final SSL model path (default="${inference_ssl_model}").
     --download_model      # Download a model from Model Zoo and use it for decoding (default="${download_model}").
 EOF
 )
@@ -319,6 +318,12 @@ if ! "${skip_train}"; then
                 _opts+="--input_size=${_input_size} "
             fi
 
+            if [ -n "$token_type" ]; then
+                _opts+="--token_type=${token_type} "
+                _opts+="--train_data_path_and_name_and_type ${_ssl_train_dir}/text,text,text "
+                _opts+="--valid_data_path_and_name_and_type ${_ssl_valid_dir}/text,text,text "
+            fi
+
             # 1. Split the key file
             _logdir="${ssl_stats_dir}/logdir"
             mkdir -p "${_logdir}"
@@ -358,12 +363,9 @@ if ! "${skip_train}"; then
                     --collect_stats true \
                     --use_preprocessor true \
                     --normalize none \
-                    --token_type "${token_type}" \
                     --token_list "${token_list}" \
                     --train_data_path_and_name_and_type "${_ssl_train_dir}/${_scp},speech,${_type}" \
-                    --train_data_path_and_name_and_type "${_ssl_train_dir}/text,text,text" \
                     --valid_data_path_and_name_and_type "${_ssl_valid_dir}/${_scp},speech,${_type}" \
-                    --valid_data_path_and_name_and_type "${_ssl_valid_dir}/text,text,text" \
                     --train_shape_file "${_logdir}/train.JOB.scp" \
                     --valid_shape_file "${_logdir}/valid.JOB.scp" \
                     --output_dir "${_logdir}/stats.JOB" \
@@ -418,6 +420,10 @@ if ! "${skip_train}"; then
                 _opts+="--normalize=global_mvn --normalize_conf stats_file=${ssl_stats_dir}/train/feats_stats.npz "
             fi
 
+            if [ -n "$token_type" ]; then
+                _opts+="--token_type=${token_type} "
+            fi
+
             if [ "${num_splits_ssl}" -gt 1 ]; then
                 # If you met a memory error when parsing text files, this option may help you.
                 # The corpus is split into subsets and each subset is used for training one by one in order,
@@ -439,21 +445,29 @@ if ! "${skip_train}"; then
                 fi
 
                 _opts+="--train_data_path_and_name_and_type ${_split_dir}/${_scp},speech,${_type} "
-                _opts+="--train_data_path_and_name_and_type ${_split_dir}/text,text,text "
                 _opts+="--train_shape_file ${_split_dir}/speech_shape "
                 _opts+="--multiple_iterator true "
 
+                if [ -n "$token_type" ]; then
+                    _opts+="--train_data_path_and_name_and_type ${_split_dir}/text,text,text "
+                    _opts+="--valid_data_path_and_name_and_type ${_ssl_valid_dir}/text,text,text "
+                fi
+
             else
                 _opts+="--train_data_path_and_name_and_type ${_ssl_train_dir}/${_scp},speech,${_type} "
-                _opts+="--train_data_path_and_name_and_type ${_ssl_train_dir}/text,text,text "
                 _opts+="--train_shape_file ${ssl_stats_dir}/train/speech_shape "
+
+                if [ -n "$token_type" ]; then
+                    _opts+="--train_data_path_and_name_and_type ${_ssl_train_dir}/text,text,text "
+                    _opts+="--valid_data_path_and_name_and_type ${_ssl_valid_dir}/text,text,text "
+                fi
             fi
 
             log "Generate '${ssl_exp}/run.sh'. You can resume the process from stage 7 using this script"
             mkdir -p "${ssl_exp}"; echo "${run_args} --stage 7 \"\$@\"; exit \$?" > "${ssl_exp}/run.sh"; chmod +x "${ssl_exp}/run.sh"
 
             # NOTE(kamo): --fold_length is used only if --batch_type=folded and it's ignored in the other case
-            log "HuBERT Training started... log: '${ssl_exp}/train.log'"
+            log "SSL Training started... log: '${ssl_exp}/train.log'"
             if echo "${cuda_cmd}" | grep -e queue.pl -e queue-freegpu.pl &> /dev/null; then
                 # SGE can't include "/" in a job name
                 jobname="$(basename ${ssl_exp})"
@@ -479,10 +493,8 @@ if ! "${skip_train}"; then
                 ${python} -m espnet2.bin.ssl_train \
                     --use_preprocessor true \
                     --normalize null \
-                    --token_type "${token_type}" \
                     --token_list "${token_list}" \
                     --valid_data_path_and_name_and_type "${_ssl_valid_dir}/${_scp},speech,${_type}" \
-                    --valid_data_path_and_name_and_type "${_ssl_valid_dir}/text,text,text" \
                     --valid_shape_file "${ssl_stats_dir}/valid/speech_shape" \
                     --resume true \
                     --fold_length "${_fold_length}" \

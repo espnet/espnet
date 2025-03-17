@@ -403,21 +403,31 @@ class ConvolutionalPositionalEmbedding(torch.nn.Module):
         embed_dim: int,
         dropout: float,
         max_len: int = 5000,
+        num_layers: int = 1,
         kernel_size: int = 128,
         groups: int = 16,
+        weight_norm: str = 'new'
     ):
         super().__init__()
         self.embed_dim = embed_dim
         self.kernel_size = kernel_size
-        self.conv = torch.nn.Conv1d(
-            in_channels=embed_dim,
-            out_channels=embed_dim,
-            kernel_size=kernel_size,
-            padding=kernel_size // 2,
-            groups=groups,
-        )
-
-        self.conv = torch.nn.utils.weight_norm(self.conv, name="weight", dim=2)
+        convs = []
+        for layer in range(num_layers):
+            conv = torch.nn.Conv1d(
+                in_channels=embed_dim,
+                out_channels=embed_dim,
+                kernel_size=kernel_size,
+                padding=kernel_size // 2,
+                groups=groups,
+            )
+            # torch.nn.utils.weight_norm leads to weird behavior with copy.deepcopy()
+            # usually this doesnt need to be considered, but its important for models that use EMA
+            if weight_norm == 'legacy':
+                conv = torch.nn.utils.weight_norm(conv, name="weight", dim=2)
+            else:
+                conv = torch.nn.utils.parametrizations.weight_norm(conv, name="weight", dim=2)
+            convs.append(conv)
+        self.convs = torch.nn.ModuleList(convs)
         self.num_remove: int = 1 if kernel_size % 2 == 0 else 0
 
     def __prepare_scriptable__(self):
@@ -443,9 +453,10 @@ class ConvolutionalPositionalEmbedding(torch.nn.Module):
             Tensor: The resulting feature. Shape ``[batch, frame, feature]``.
         """
         x = x.transpose(-2, -1)
-        x = self.conv(x)
-        if self.num_remove > 0:
-            x = x[..., : -self.num_remove]
-        x = torch.nn.functional.gelu(x)
+        for conv in self.convs:
+            x = conv(x)
+            if self.num_remove > 0:
+                x = x[..., : -self.num_remove]
+            x = torch.nn.functional.gelu(x)
         x = x.transpose(-2, -1)
         return x

@@ -13,10 +13,9 @@ valid_set="dev"
 train_config=conf/tuning/train_hubert.yaml
 
 ./ssl.sh \
-    --stage 7 \
     --ngpu 4 \
-    --num_nodes 1 \
-    --token_list data/en_token_list_kmeans_iter1_espnet_hubert_500clusters/word/tokens.txt \
+    --token_type word \
+    --token_list ../hubert1/data/en_token_list_kmeans_iter1_espnet_hubert_500clusters/word/tokens.txt \
     --lang "en" \
     --nj 32 \
     --max_wav_duration 30 \

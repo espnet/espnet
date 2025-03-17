@@ -55,6 +55,10 @@ class ESPnetSSLModel(AbsESPnetModel):
         self.required_inputs = required_inputs
         self.util_modules = util_modules
 
+        # track the current iteration
+        # this is used for calculating decay in EMA
+        self.register_buffer('global_step', torch.tensor([0]))
+
     def collect_feats(
         self,
         speech: torch.Tensor,
@@ -88,12 +92,31 @@ class ESPnetSSLModel(AbsESPnetModel):
 
         batch_size = speech.shape[0]
 
+        total_loss = 0.0
+        stats = {}
+
+        # we move the ema model to GPU here to avoid issues with NCCL
+        # when copying the ema params when initializing ddp
+        if 'ema' in self.util_modules:
+            self.util_modules["ema"].update_device_and_type(speech.device, speech.dtype)
+
+        # update decay parameters only after the first gradient update
+        # note that this assumes accum_grad == 1
+        if self.training and self.global_step > 0:
+            for attr in self.util_attributes:
+                if hasattr(self.util_modules[attr], 'step'):
+                    if attr == 'ema':
+                        self.util_modules[attr].step(self.global_step, self.encoder)
+                        stats['ema_decay'] = self.util_modules[attr].get_decay() * 1000
+                    else:
+                        self.util_modules[attr].step(self.global_step)
+            for loss_func in self.losses:
+                if hasattr(loss_func, 'step'):
+                    loss_func.step(self.global_step)
+
         data = self.encode(speech, speech_lengths, text, text_lengths)
         data["text"] = text
         data["text_lengths"] = text_lengths
-
-        total_loss = 0.0
-        stats = {}
 
         for loss_func in self.losses:
             loss_input = {k: data[k] for k in loss_func.required_inputs}
@@ -107,6 +130,10 @@ class ESPnetSSLModel(AbsESPnetModel):
         total_loss, stats, weight = force_gatherable(
             (total_loss, stats, batch_size), total_loss.device
         )
+
+        if self.training:
+            self.global_step = self.global_step + 1
+
         return total_loss, stats, weight
 
     def _extract_feats(
@@ -163,25 +190,21 @@ class ESPnetSSLModel(AbsESPnetModel):
                 data["preencoder"] = speech
                 data["preencoder_lengths"] = speech_lengths
 
+        pad_masks = make_pad_mask(speech_lengths).to(speech.device)
+
         # 5. Objective-specific pre-processing
 
-        # BEST-RQ targets TODO
-
-        # wav2vec 2.0 targets TODO
-
         # EMA - data2vec / DinoSR
-        # TODO: NOT IMPLEMENTED YET
         if "ema" in self.util_attributes:
             with torch.no_grad():
-                ema_output, ema_output_lengths = self.util_modules["ema"].model(
+                ema_output, ema_output_lengths, _ = self.util_modules["ema"](
                     speech, speech_lengths, masks=pad_masks, return_all_hs=True
                 )
-            data["ema_output"] = ema_output
+            data["ema_output"] = ema_output[1]
             data["ema_output_lengths"] = ema_output_lengths
 
         # Masking
         if "block_mask" in self.util_attributes or "mask" in self.util_attributes:
-            pad_masks = make_pad_mask(speech_lengths).to(speech.device)
             # Prioritize block masking if both are available
             if "block_mask" in self.util_attributes:
                 speech, mask_info = self.util_modules["block_mask"](speech, pad_masks)
@@ -190,7 +213,7 @@ class ESPnetSSLModel(AbsESPnetModel):
             data["mask_info"] = mask_info
 
         # Flow Matching
-        # TODO: NOT IMPLEMENTED YET
+        # TODO (william): NOT IMPLEMENTED YET
         if "flow_preprocess" in self.util_attributes:
             speech, target = None  # TODO
             data["flow_target"] = target
@@ -211,48 +234,3 @@ class ESPnetSSLModel(AbsESPnetModel):
 
         return data
 
-    def inference_encode(
-        self,
-        speech: torch.Tensor,
-        speech_lengths: torch.Tensor,
-        use_mask: bool = False,
-        use_final_output: bool = True,
-    ) -> Tuple[List[torch.Tensor], torch.Tensor]:
-        # 1. Frontend
-        speech, speech_lengths = self._extract_feats(speech, speech_lengths)
-
-        # 2. Data Augmentation
-        if self.specaug is not None and self.training and use_mask:
-            speech, speech_lengths = self.specaug(speech, speech_lengths)
-
-        # 3. Normalization for feature: e.g. Global-CMVN, Utterance-CMVN
-        if self.normalize is not None:
-            speech, speech_lengths = self.normalize(speech, speech_lengths)
-
-        # 4. Pre-encoder
-        if self.preencoder is not None:
-            speech, speech_lengths = self.preencoder(speech, speech_lengths)
-
-        # Masking
-        pad_masks = make_pad_mask(speech_lengths).to(speech.device)
-        if self.training and use_mask:
-            if "block_mask" in self.util_attributes or "mask" in self.util_attributes:
-                # Prioritize block masking if both are available
-                if "block_mask" in self.util_attributes:
-                    speech, mask_info = self.util_modules["block_mask"](
-                        speech, pad_masks
-                    )
-                elif "mask" in self.util_attributes:
-                    speech, mask_info = self.util_modules["mask"](speech, pad_masks)
-        # 6. Encoder
-        speech, speech_lengths, _ = self.encoder(
-            speech, speech_lengths, masks=pad_masks, return_all_hs=True
-        )
-
-        # for encoder architectures that have a final norm
-        if use_final_output:
-            speech = speech[1][:-1] + [speech[0]]
-        else:
-            speech = speech[1]
-
-        return speech, speech_lengths

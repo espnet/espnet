@@ -94,9 +94,7 @@ class ConvLayerBlock(Module):
         """
         x = self.conv(x)
         if self.layer_norm is not None:
-            x = torch.utils.checkpoint.checkpoint(
-                self.layer_norm, x, use_reentrant=False
-            )
+            x = self.layer_norm(x)
         x = nn.functional.gelu(x)
 
         if length is not None:
@@ -132,6 +130,7 @@ class CNNFrontend(AbsFrontend):
         ],
         fs: Union[int, str] = 16000,
         normalize_audio: bool = False,
+        normalize_output: bool = False,
     ):
 
         super().__init__()
@@ -175,6 +174,11 @@ class CNNFrontend(AbsFrontend):
             in_channels = out_channels
             self.downsampling_factor *= stride
         self.layers = nn.Sequential(*blocks)
+        
+        if normalize_output:
+            self.final_norm = nn.LayerNorm(self.output_channels)
+        else:
+            self.final_norm = nn.Identity()
 
     def output_size(self) -> int:
         return self.output_channels
@@ -210,4 +214,5 @@ class CNNFrontend(AbsFrontend):
         for layer in self.layers:
             x, length = layer(x, length)  # (batch, feature, frame)
         x = x.transpose(1, 2)  # (batch, frame, feature)
+        x = self.final_norm(x)
         return x, length
