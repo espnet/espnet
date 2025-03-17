@@ -6,10 +6,11 @@
 
 """Positional Encoding Module."""
 
+import logging
 import math
 
 import torch
-
+from packaging.version import parse as V
 
 def _pre_hook(
     state_dict,
@@ -422,10 +423,14 @@ class ConvolutionalPositionalEmbedding(torch.nn.Module):
             )
             # torch.nn.utils.weight_norm leads to weird behavior with copy.deepcopy()
             # usually isnt needed, but its important for models that use EMA
+            if weight_norm == 'new':
+                if V(torch.__version__) >= V("2.2.0"):
+                    conv = torch.nn.utils.parametrizations.weight_norm(conv, name="weight", dim=2)
+                else: 
+                    weight_norm = 'legacy'
+                    logging.warning(f"torch.nn.utils.parametrizations.weight_norm is only supported for pytorch versions >= 2.2.0. Defaulting to torch.nn.utils.weight_norm.")
             if weight_norm == 'legacy':
                 conv = torch.nn.utils.weight_norm(conv, name="weight", dim=2)
-            else:
-                conv = torch.nn.utils.parametrizations.weight_norm(conv, name="weight", dim=2)
             convs.append(conv)
         self.convs = torch.nn.ModuleList(convs)
         self.num_remove: int = 1 if kernel_size % 2 == 0 else 0
