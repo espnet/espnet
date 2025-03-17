@@ -421,7 +421,7 @@ class ConvolutionalPositionalEmbedding(torch.nn.Module):
                 groups=groups,
             )
             # torch.nn.utils.weight_norm leads to weird behavior with copy.deepcopy()
-            # usually this doesnt need to be considered, but its important for models that use EMA
+            # usually isnt needed, but its important for models that use EMA
             if weight_norm == 'legacy':
                 conv = torch.nn.utils.weight_norm(conv, name="weight", dim=2)
             else:
