@@ -1,15 +1,19 @@
+"""Channel Selector module."""
+
 import numpy
 
 
 class ChannelSelector(object):
-    """Select 1ch from multi-channel signal"""
+    """Select 1ch from multi-channel signal."""
 
     def __init__(self, train_channel="random", eval_channel=0, axis=1):
+        """Initialize the class."""
         self.train_channel = train_channel
         self.eval_channel = eval_channel
         self.axis = axis
 
     def __repr__(self):
+        """Return a printable representation of the class."""
         return (
             "{name}(train_channel={train_channel}, "
             "eval_channel={eval_channel}, axis={axis})".format(
@@ -21,6 +25,7 @@ class ChannelSelector(object):
         )
 
     def __call__(self, x, train=True):
+        """Process the call method."""
         # Assuming x: [Time, Channel] by default
 
         if x.ndim <= self.axis:

@@ -5,8 +5,8 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """Evaluate Speaker Embedding Cosine Similarity
-    between generated and groundtruth audios using X-vector
-    of the speechbrain pretrained models"""
+between generated and groundtruth audios using X-vector
+of the speechbrain pretrained models"""
 
 import argparse
 import fnmatch
