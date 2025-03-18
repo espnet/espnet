@@ -7,7 +7,7 @@ frontend_conf:
         upstream: wavlm_large  # Note: If the upstream is changed, please change the input_size in the preencoder.
     download_dir: ./hub
     multilayer_feature: false
-    layer: 21
+    layer: 9
 
 preencoder: linear
 preencoder_conf:
@@ -62,7 +62,8 @@ batch_type: numel
 batch_bins: 2000000
 grad_clip: 1.0
 accum_grad: 1
-max_epoch: 10
+patience: 2
+max_epoch: 20
 init: none
 patience: 1
 best_model_criterion:
@@ -75,10 +76,9 @@ optim: adamw
 optim_conf:
     lr: 0.0001
     weight_decay: 0.000001
-scheduler: steplr
+scheduler: warmuplr
 scheduler_conf:
-    step_size: 1000
-    gamma: 0.9
+    warmup_steps: 30000
 
 specaug: specaug
 specaug_conf:
