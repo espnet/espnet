@@ -284,7 +284,7 @@ EOF
 
 log "$0 $*"
 # Save command line args for logging (they will be lost after utils/parse_options.sh)
-run_args=$(scripts/utils/print_args.sh $0 "$@")
+run_args=$(scripts/utils/print_args.sh "$0" "$@")
 . utils/parse_options.sh
 
 if [ $# -ne 0 ]; then
@@ -572,7 +572,7 @@ log "Skipped stages: ${skip_stages}"
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ] && ! [[ " ${skip_stages} " =~ [[:space:]]1[[:space:]] ]]; then
     log "Stage 1: Data preparation for data/${train_set}, data/${valid_set}, etc."
     # [Task dependent] Need to create data.sh for new corpus
-    local/data.sh ${local_data_opts}
+    local/data.sh "${local_data_opts}"
 fi
 
 
@@ -592,7 +592,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ] && ! [[ " ${skip_stages} " =~ [
         done
         utils/combine_data.sh \
             ${ref_text_files_str:+--extra_files "${ref_text_files_str}"} \
-            "data/${train_set}_sp" ${_dirs}
+            "data/${train_set}_sp" "${_dirs}"
     else
        log "Skip stage 2: Speed perturbation"
     fi
@@ -630,13 +630,13 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [
                 _suf=""
             fi
             utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}${_suf}/${dset}"
-            rm -f ${data_feats}${_suf}/${dset}/{segments,wav.scp,reco2file_and_channel,reco2dur}
+            rm -f ${data_feats}${_suf}/"${dset}"/{segments,wav.scp,reco2file_and_channel,reco2dur}
 
             # Copy reference text files if there is more than 1 reference
             if [ ${#ref_text_files[@]} -gt 1 ]; then
                 # shellcheck disable=SC2068
                 for ref_txt in ${ref_text_files[@]}; do
-                    [ -f data/${dset}/${ref_txt} ] && cp data/${dset}/${ref_txt} ${data_feats}${_suf}/${dset}
+                    [ -f data/"${dset}"/"${ref_txt}" ] && cp data/"${dset}"/"${ref_txt}" ${data_feats}${_suf}/"${dset}"
                 done
             fi
 
@@ -682,7 +682,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [
 
                 if [ -e "data/${dset}/utt2dur" ]; then
                     _fs=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
-                    <data/${dset}/utt2dur awk '{ print $1, int($2*'${_fs}'); }' > "${data_feats}${_suf}/${dset}"/utt2num_samples
+                    <data/"${dset}"/utt2dur awk '{ print $1, int($2*'"${_fs}"'); }' > "${data_feats}${_suf}/${dset}"/utt2num_samples
 
                 elif [ -e "data/${dset}/utt2num_samples" ]; then
                     cp "data/${dset}/utt2num_samples" "${data_feats}${_suf}/${dset}"/utt2num_samples
@@ -697,7 +697,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [
             if [ ${#ref_text_files[@]} -gt 1 ]; then
                 # shellcheck disable=SC2068
                 for ref_txt in ${ref_text_files[@]}; do
-                    [ -f data/${dset}/${ref_txt} ] && cp data/${dset}/${ref_txt} ${data_feats}${_suf}/${dset}
+                    [ -f data/"${dset}"/"${ref_txt}" ] && cp data/"${dset}"/"${ref_txt}" ${data_feats}${_suf}/"${dset}"
                 done
             fi
 
@@ -725,7 +725,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [
             if [ ${#ref_text_files[@]} -gt 1 ]; then
                 # shellcheck disable=SC2068
                 for ref_txt in ${ref_text_files[@]}; do
-                    [ -f data/${dset}/${ref_txt} ] && cp data/${dset}/${ref_txt} ${data_feats}${_suf}/${dset}
+                    [ -f data/"${dset}"/"${ref_txt}" ] && cp data/"${dset}"/"${ref_txt}" ${data_feats}${_suf}/"${dset}"
                 done
             fi
 
@@ -740,7 +740,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [
 
             # 4. Write feats_dim
             head -n 1 "${data_feats}${_suf}/${dset}/feats_shape" | awk '{ print $2 }' \
-                | cut -d, -f2 > ${data_feats}${_suf}/${dset}/feats_dim
+                | cut -d, -f2 > ${data_feats}${_suf}/"${dset}"/feats_dim
 
             # 5. Write feats_type
             echo "${feats_type}" > "${data_feats}${_suf}/${dset}/feats_type"
@@ -775,7 +775,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [
             # shellcheck disable=SC2068
             if [ ${#ref_text_files[@]} -gt 1 ]; then
                 for ref_txt in ${ref_text_files[@]}; do
-                    [ -f data/${dset}/${ref_txt} ] && cp data/${dset}/${ref_txt} ${data_feats}${_suf}/${dset}
+                    [ -f data/"${dset}"/"${ref_txt}" ] && cp data/"${dset}"/"${ref_txt}" ${data_feats}${_suf}/"${dset}"
                 done
             fi
 
@@ -863,13 +863,14 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ] && ! [[ " ${skip_stages} " =~ [
 
     if [ -n "${post_process_local_data_opts}" ]; then
         # Do any additional local data post-processing here
-        local/data.sh ${post_process_local_data_opts} --asr_data_dir "${data_feats}/${train_set}"
+        local/data.sh "${post_process_local_data_opts}" --asr_data_dir "${data_feats}/${train_set}"
     fi
 
     # shellcheck disable=SC2002,SC2068,SC2005
     for lm_txt in ${lm_train_text[@]}; do
-        suffix=$(echo "$(basename ${lm_txt})" | sed 's/text//')
-        <${lm_txt} awk -v suffix=${suffix} ' { if( NF != 1 ) {$1=$1 suffix; print $0; }} '
+        suffix="$(basename "${lm_txt}")"
+        suffix="${suffix//text/}"
+        <"${lm_txt}" awk -v suffix="${suffix}" ' { if( NF != 1 ) {$1=$1 suffix; print $0; }} '
     done > "${data_feats}/lm_train.txt"
 fi
 
@@ -880,11 +881,11 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && ! [[ " ${skip_stages} " =~ [
 
         mkdir -p "${bpedir}"
         # shellcheck disable=SC2002
-        cat ${bpe_train_text} | cut -f 2- -d" "  > "${bpedir}"/train.txt
+        cat "${bpe_train_text}" | cut -f 2- -d" "  > "${bpedir}"/train.txt
 
         if [ -n "${bpe_nlsyms}" ]; then
             if test -f "${bpe_nlsyms}"; then
-                bpe_nlsyms_list=$(awk '{print $1}' ${bpe_nlsyms} | paste -s -d, -)
+                bpe_nlsyms_list=$(awk '{print $1}' "${bpe_nlsyms}" | paste -s -d, -)
                 _opts_spm="--user_defined_symbols=${bpe_nlsyms_list}"
             else
                 _opts_spm="--user_defined_symbols=${bpe_nlsyms}"
@@ -908,7 +909,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && ! [[ " ${skip_stages} " =~ [
             --model_prefix="${bpeprefix}" \
             --character_coverage=${bpe_char_cover} \
             --input_sentence_size="${bpe_input_sentence_size}" \
-            ${_opts_spm}
+            "${_opts_spm}"
 
         {
         echo "${blank}"
@@ -935,7 +936,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && ! [[ " ${skip_stages} " =~ [
         # 0 is reserved for CTC-blank for ASR and also used as ignore-index in the other task
         ${python} -m espnet2.bin.tokenize_text  \
             --token_type "${token_type}" \
-            --input "${data_feats}/lm_train.txt" --output "${token_list}" ${_opts} \
+            --input "${data_feats}/lm_train.txt" --output "${token_list}" "${_opts}" \
             --field 2- \
             --cleaner "${cleaner}" \
             --g2p "${g2p}" \
@@ -947,9 +948,9 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && ! [[ " ${skip_stages} " =~ [
             # Duplicated <sc> token may be counted for char token type,
             # so we shoud remove it
             if ${sot_asr} && [ "${token_type}" = char ]; then
-                cp ${token_list} ${token_list}".duplicated"
-                awk '!seen[$0]++' ${token_list}".duplicated" > ${token_list}
-                rm ${token_list}".duplicated"
+                cp "${token_list}" "${token_list}"".duplicated"
+                awk '!seen[$0]++' "${token_list}"".duplicated" > "${token_list}"
+                rm "${token_list}"".duplicated"
             fi
     elif grep -q "whisper" <<< ${token_type}; then
         log "Stage 5: Generate whisper token_list from ${token_type} tokenizer"
@@ -957,7 +958,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && ! [[ " ${skip_stages} " =~ [
 
         # The first symbol in token_list must be "<blank>" and the last must be also sos/eos:
         # 0 is reserved for CTC-blank for ASR and also used as ignore-index in the other task
-        echo ${token_list}
+        echo "${token_list}"
         ${python} -m espnet2.bin.whisper_export_vocabulary  \
             --whisper_model "${token_type}" \
             --add_token_file_name "${nlsyms_txt}" \
@@ -1019,11 +1020,11 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && ! [[ " ${skip_stages} " =~ [
     _logdir="${lm_stats_dir}/logdir"
     mkdir -p "${_logdir}"
     # Get the minimum number among ${nj} and the number lines of input files
-    _nj=$(min "${nj}" "$(<${data_feats}/lm_train.txt wc -l)" "$(<${lm_dev_text} wc -l)")
+    _nj=$(min "${nj}" "$(<${data_feats}/lm_train.txt wc -l)" "$(<"${lm_dev_text}" wc -l)")
 
     key_file="${data_feats}/lm_train.txt"
     split_scps=""
-    for n in $(seq ${_nj}); do
+    for n in $(seq "${_nj}"); do
         split_scps+=" ${_logdir}/train.${n}.scp"
     done
     # shellcheck disable=SC2086
@@ -1031,7 +1032,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && ! [[ " ${skip_stages} " =~ [
 
     key_file="${lm_dev_text}"
     split_scps=""
-    for n in $(seq ${_nj}); do
+    for n in $(seq "${_nj}"); do
         split_scps+=" ${_logdir}/dev.${n}.scp"
     done
     # shellcheck disable=SC2086
@@ -1073,11 +1074,11 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && ! [[ " ${skip_stages} " =~ [
 
     # Append the num-tokens at the last dimensions. This is used for batch-bins count
     <"${lm_stats_dir}/train/text_shape" \
-        awk -v N="$(<${lm_token_list} wc -l)" '{ print $0 "," N }' \
+        awk -v N="$(<"${lm_token_list}" wc -l)" '{ print $0 "," N }' \
         >"${lm_stats_dir}/train/text_shape.${lm_token_type}"
 
     <"${lm_stats_dir}/valid/text_shape" \
-        awk -v N="$(<${lm_token_list} wc -l)" '{ print $0 "," N }' \
+        awk -v N="$(<"${lm_token_list}" wc -l)" '{ print $0 "," N }' \
         >"${lm_stats_dir}/valid/text_shape.${lm_token_type}"
 fi
 
@@ -1126,7 +1127,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ] && ! [[ " ${skip_stages} " =~ [
     log "LM training started... log: '${lm_exp}/train.log'"
     if echo "${cuda_cmd}" | grep -e queue.pl -e queue-freegpu.pl &> /dev/null; then
         # SGE can't include "/" in a job name
-        jobname="$(basename ${lm_exp})"
+        jobname="$(basename "${lm_exp}")"
     else
         jobname="${lm_exp}/train.log"
     fi
@@ -1172,7 +1173,7 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ] && ! [[ " ${skip_stages} " =~ [
             --model_file "${lm_exp}/${inference_lm}" \
             --output_dir "${lm_exp}/perplexity_test" \
             ${_opts}
-    log "PPL: ${lm_test_text}: $(cat ${lm_exp}/perplexity_test/ppl)"
+    log "PPL: ${lm_test_text}: $(cat "${lm_exp}"/perplexity_test/ppl)"
 
 fi
 
@@ -1294,11 +1295,11 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ] && ! [[ " ${skip_stages} " =~
     # shellcheck disable=SC2068
     for ref_txt in ${ref_text_names[@]}; do
         <"${asr_stats_dir}/train/${ref_txt}_shape" \
-            awk -v N="$(<${token_list} wc -l)" '{ print $0 "," N }' \
+            awk -v N="$(<"${token_list}" wc -l)" '{ print $0 "," N }' \
             >"${asr_stats_dir}/train/${ref_txt}_shape.${token_type}"
 
         <"${asr_stats_dir}/valid/${ref_txt}_shape" \
-            awk -v N="$(<${token_list} wc -l)" '{ print $0 "," N }' \
+            awk -v N="$(<"${token_list}" wc -l)" '{ print $0 "," N }' \
             >"${asr_stats_dir}/valid/${ref_txt}_shape.${token_type}"
     done
 fi
@@ -1413,7 +1414,7 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ] && ! [[ " ${skip_stages} " =~
     log "ASR training started... log: '${asr_exp}/train.log'"
     if echo "${cuda_cmd}" | grep -e queue.pl -e queue-freegpu.pl &> /dev/null; then
         # SGE can't include "/" in a job name
-        jobname="$(basename ${asr_exp})"
+        jobname="$(basename "${asr_exp}")"
     else
         jobname="${asr_exp}/train.log"
     fi
@@ -1445,7 +1446,7 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ] && ! [[ " ${skip_stages} " =~
                 --ignore_init_mismatch ${ignore_init_mismatch} \
                 --fold_length "${_fold_length}" \
                 --output_dir "${asr_exp}" \
-                ${_opts} ${asr_args}
+                "${_opts}" "${asr_args}"
 
     else
         log "Use ESPnet trainer"
@@ -1570,8 +1571,8 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ] && ! [[ " ${skip_stages} " =~
         _logdir="${_dir}/logdir"
         mkdir -p "${_logdir}"
 
-        _feats_type="$(<${_data}/feats_type)"
-        _audio_format="$(cat ${_data}/audio_format 2>/dev/null || echo ${audio_format})"
+        _feats_type="$(<"${_data}"/feats_type)"
+        _audio_format="$(cat "${_data}"/audio_format 2>/dev/null || echo ${audio_format})"
         if [ "${_feats_type}" = raw ]; then
             _scp=wav.scp
             if [[ "${audio_format}" == *ark* ]]; then
@@ -1593,7 +1594,7 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ] && ! [[ " ${skip_stages} " =~
           # Now only _nj=1 is verified if using k2
           _nj=1
         else
-          _nj=$(min "${inference_nj}" "$(<${key_file} wc -l)")
+          _nj=$(min "${inference_nj}" "$(<"${key_file}" wc -l)")
         fi
 
         for n in $(seq "${_nj}"); do
@@ -1625,18 +1626,18 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ] && ! [[ " ${skip_stages} " =~
             _sample_shift=$(python3 -c "print(1 / ${_fs} * 1000)") # in ms
             ${_cmd} JOB=1 "${_logdir}"/calculate_rtf.log \
                 pyscripts/utils/calculate_rtf.py \
-                    --log-dir ${_logdir} \
+                    --log-dir "${_logdir}" \
                     --log-name "asr_inference" \
-                    --input-shift ${_sample_shift} \
+                    --input-shift "${_sample_shift}" \
                     --start-times-marker "speech length" \
                     --end-times-marker "best hypo" \
-                    --inf-num ${num_inf} || { cat "${_logdir}"/calculate_rtf.log; exit 1; }
+                    --inf-num "${num_inf}" || { cat "${_logdir}"/calculate_rtf.log; exit 1; }
         fi
 
         # 4. Concatenates the output files from each jobs
         # shellcheck disable=SC2068
         for ref_txt in ${ref_text_files[@]}; do
-            suffix=$(echo ${ref_txt} | sed 's/text//')
+            suffix="${ref_txt//text/}"
             for f in token token_int score text; do
                 if [ -f "${_logdir}/output.1/1best_recog/${f}${suffix}" ]; then
                     for i in $(seq "${_nj}"); do
@@ -1693,7 +1694,7 @@ if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ] && ! [[ " ${skip_stages} " =~
             # shellcheck disable=SC2068
             for ref_txt in ${ref_text_files[@]}; do
                 # Note(simpleoier): to get the suffix after text, e.g. "text_spk1" -> "_spk1"
-                suffix=$(echo ${ref_txt} | sed 's/text//')
+                suffix="${ref_txt//text/}"
 
                 # Tokenize text to ${_tok_type} level
                 paste \
@@ -1701,7 +1702,7 @@ if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ] && ! [[ " ${skip_stages} " =~
                         ${python} -m espnet2.bin.tokenize_text  \
                             -f 2- --input - --output - \
                             --cleaner "${cleaner}" \
-                            ${_opts} \
+                            "${_opts}" \
                             ) \
                     <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
                         >"${_scoredir}/ref${suffix:-${suffix}}.trn"
@@ -1711,7 +1712,7 @@ if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ] && ! [[ " ${skip_stages} " =~
                     <(<"${_dir}/${ref_txt}"  \
                         ${python} -m espnet2.bin.tokenize_text  \
                             -f 2- --input - --output - \
-                            ${_opts} \
+                            "${_opts}" \
                             --cleaner "${hyp_cleaner}" \
                             ) \
                     <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
@@ -1722,9 +1723,9 @@ if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ] && ! [[ " ${skip_stages} " =~
             # Note(simpleoier): score across all possible permutations
             if [ ${num_ref} -gt 1 ] && [ -n "${suffix}" ]; then
                 for i in $(seq ${num_ref}); do
-                    for j in $(seq ${num_inf}); do
+                    for j in $(seq "${num_inf}"); do
                         sclite \
-                            ${score_opts} \
+                            "${score_opts}" \
                             -r "${_scoredir}/ref_spk${i}.trn" trn \
                             -h "${_scoredir}/hyp_spk${j}.trn" trn \
                             -i rm -o all stdout > "${_scoredir}/result_r${i}h${j}.txt"
@@ -1732,11 +1733,11 @@ if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ] && ! [[ " ${skip_stages} " =~
                 done
                 # Generate the oracle permutation hyp.trn and ref.trn
                 pyscripts/utils/eval_perm_free_error.py --num-spkrs ${num_ref} \
-                    --results-dir ${_scoredir}
+                    --results-dir "${_scoredir}"
             fi
 
             sclite \
-                ${score_opts} \
+                "${score_opts}" \
                 -r "${_scoredir}/ref.trn" trn \
                 -h "${_scoredir}/hyp.trn" trn \
                 -i rm -o all stdout > "${_scoredir}/result.txt"
@@ -1746,7 +1747,7 @@ if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ] && ! [[ " ${skip_stages} " =~
         done
     done
 
-    [ -f local/score.sh ] && local/score.sh ${local_score_opts} "${asr_exp}"
+    [ -f local/score.sh ] && local/score.sh "${local_score_opts}" "${asr_exp}"
 
     # Show results in Markdown syntax
     scripts/utils/show_asr_result.sh "${asr_exp}" > "${asr_exp}"/RESULTS.md
@@ -1803,7 +1804,7 @@ if [ ${stage} -le 15 ] && [ ${stop_stage} -ge 15 ] && ! [[ " ${skip_stages} " =~
         exit 1
 
     dir_repo=${expdir}/hf_${hf_repo//"/"/"_"}
-    [ ! -d "${dir_repo}" ] && git clone https://huggingface.co/${hf_repo} ${dir_repo}
+    [ ! -d "${dir_repo}" ] && git clone https://huggingface.co/"${hf_repo}" "${dir_repo}"
 
     if command -v git &> /dev/null; then
         _creator_name="$(git config user.name)"
@@ -1816,10 +1817,10 @@ if [ ${stage} -le 15 ] && [ ${stop_stage} -ge 15 ] && ! [[ " ${skip_stages} " =~
     _task="$(pwd | rev | cut -d/ -f2 | rev)"
     # foo/asr1 -> foo
     _corpus="${_task%/*}"
-    _model_name="${_creator_name}/${_corpus}_$(basename ${packed_model} .zip)"
+    _model_name="${_creator_name}/${_corpus}_$(basename "${packed_model}" .zip)"
 
     # copy files in ${dir_repo}
-    unzip -o ${packed_model} -d ${dir_repo}
+    unzip -o "${packed_model}" -d "${dir_repo}"
     # Generate description file
     # shellcheck disable=SC2034
     hf_task=automatic-speech-recognition
@@ -1830,13 +1831,13 @@ if [ ${stage} -le 15 ] && [ ${stop_stage} -ge 15 ] && ! [[ " ${skip_stages} " =~
     eval "echo \"$(cat scripts/utils/TEMPLATE_HF_Readme.md)\"" > "${dir_repo}"/README.md
 
     this_folder=${PWD}
-    cd ${dir_repo}
+    cd "${dir_repo}"
     if [ -n "$(git status --porcelain)" ]; then
         git add .
         git commit -m "Update model"
     fi
     git push
-    cd ${this_folder}
+    cd "${this_folder}"
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
