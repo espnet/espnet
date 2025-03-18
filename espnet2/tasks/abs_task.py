@@ -2344,8 +2344,14 @@ class AbsTask(ABC):
                 #   in PyTorch<=1.4
                 device = f"cuda:{torch.cuda.current_device()}"
             try:
+                state_dict = torch.load(
+                    model_file, map_location=device, weights_only=False
+                )
+                # for deepspeed checkpoints
+                if "module" in state_dict:
+                    state_dict = state_dict["module"]
                 model.load_state_dict(
-                    torch.load(model_file, map_location=device),
+                    state_dict,
                     strict=False,
                 )
             except RuntimeError:
