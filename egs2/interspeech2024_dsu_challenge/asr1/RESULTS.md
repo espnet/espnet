@@ -517,4 +517,3 @@
 |decode_ctc0.3_beamsize5_asr_model_valid.acc.best/test_1h|24256|1131804|61.6|26.8|11.6|5.2|43.5|94.1|
 |decode_ctc0.3_beamsize5_asr_model_valid.acc.best/test_clean|2620|133595|97.9|1.5|0.5|0.3|2.4|41.6|
 |decode_ctc0.3_beamsize5_asr_model_valid.acc.best/test_other|2939|129019|95.5|3.4|1.1|0.8|5.2|59.7|
-
