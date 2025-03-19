@@ -65,7 +65,6 @@ accum_grad: 1
 patience: 2
 max_epoch: 20
 init: none
-patience: 1
 best_model_criterion:
 -   - valid
     - acc
