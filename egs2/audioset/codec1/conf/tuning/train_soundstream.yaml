@@ -1,20 +1,20 @@
 ##########################################################
 #                  CODEC MODEL SETTING                   #
 ##########################################################
-codec: dac
+codec: soundstream
 codec_conf:
-    sampling_rate: 24000
+    sampling_rate: 16000
 
     # generator related
     generator_params:
         hidden_dim: 512
-        codebook_dim: 512
         encdec_channels: 1
         encdec_n_filters: 32
         encdec_n_residual_layers: 3
         encdec_ratios: [8, 5, 4, 2]
-        encdec_activation: Snake
-        # encdec_activation_params:
+        encdec_activation: ELU
+        encdec_activation_params:
+            alpha: 1.0
         encdec_norm: weight_norm
         encdec_kernel_size: 7
         encdec_residual_kernel_size: 7
@@ -35,39 +35,40 @@ codec_conf:
         quantizer_kmeans_iters: 50
         quantizer_threshold_ema_dead_code: 2
         quantizer_target_bandwidth: [2, 4, 8, 16, 32]
-        quantizer_dropout: true
 
     # discriminator related
     discriminator_params:
-        # multi scale multi band multi resolution discriminator related
-        msmpmb_discriminator_params:
-            rates: []
-            sample_rate: 24000
-            fft_sizes: [2048, 1024, 512]
-            periods: [2, 3, 5, 7, 11]
-            period_discriminator_params:
-                in_channels: 1
-                out_channels: 1
-                kernel_sizes: [5, 3]
-                channels: 32
-                downsample_scales: [3, 3, 3, 3, 1]
-                max_downsample_channels: 1024
-                bias: True
-                nonlinear_activation: "LeakyReLU"
-                nonlinear_activation_params:
-                    negative_slope: 0.1
-                use_weight_norm: True
-                use_spectral_norm: False
-            band_discriminator_params:
-                hop_factor: 0.25
-                sample_rate: 24000
-                bands:
-                    - [0.0, 0.1]
-                    - [0.1, 0.25]
-                    - [0.25, 0.5]
-                    - [0.5, 0.75]
-                    - [0.75, 1.0]
-                channel: 32
+        # multi-scale discriminator related
+        scales: 3
+        scale_downsample_pooling: AvgPool1d
+        scale_downsample_pooling_params:
+            kernel_size: 4
+            stride: 2
+            padding: 2
+        scale_discriminator_params:
+            in_channels: 1
+            out_channels: 1
+            kernel_sizes: [15, 41, 5, 3]
+            channels: 128
+            max_downsample_channels: 1024
+            max_groups: 16
+            bias: true
+            downsample_scales: [2, 2, 4, 4, 1]
+            nonlinear_activation: LeakyReLU
+            nonlinear_activation_params:
+                negative_slope: 0.1
+        scale_follow_official_norm: false
+
+        # complex stft discriminator related
+        complexstft_discriminator_params:
+            in_channels: 1
+            channels: 32
+            strides: [[1, 2], [2, 2], [1, 2], [2, 2], [1, 2], [2, 2]]
+            chan_mults: [1, 2, 4, 4, 8, 8]
+            n_fft: 1024
+            hop_length: 256
+            win_length: 1024
+            stft_normalized: False
 
     # loss function related
     generator_adv_loss_params:
@@ -90,7 +91,7 @@ codec_conf:
         fmin: 0             # minimum frequency for Mel basis
         fmax: null          # maximum frequency for Mel basis
         log_base: null      # null represent natural log
-    lambda_quantization: 0.25       # loss scaling coefficient for codec quantization loss
+    lambda_quantization: 0.0       # loss scaling coefficient for codec quantization loss
     lambda_commit: 1.0      # loss scaling coefficient for codec commitment loss
     lambda_reconstruct: 1.0 # loss scaling coefficient for speech reconstruction loss
     lambda_adv: 1.0         # loss scaling coefficient for adversarial loss
@@ -132,12 +133,12 @@ generator_first: true # whether to start updating generator first
 num_iters_per_epoch: 5000 # number of iterations per epoch
 max_epoch: 120              # number of epochs
 accum_grad: 1             # gradient accumulation
-batch_size: 8             # CHANGED
+batch_size: 16             # CHANGED
 batch_type: unsorted      # how to make batch
 
 
 iterator_type: chunk
-chunk_length: 24000 # CHANGED
+chunk_length: 16000 # CHANGED
 num_cache_chunks: 64
 
 grad_clip: -1             # gradient clipping norm
