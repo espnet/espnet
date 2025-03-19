@@ -65,12 +65,7 @@ model_conf:
     log_epoch_metrics: true
 
 lightning_conf:
-    #### args that are passed directly to the trainer
     log_every_n_steps: 250
-    # debugging args
-    # limit_train_batches: 10
-    # limit_val_batches: 2
-    #### args used for other purposes
     strategy: ddp
     strategy_conf:
         find_unused_parameters: true

@@ -30,7 +30,7 @@ if [ -z "${FSD50K}" ]; then
     log "Fill the value of 'FSD50K' of db.sh"
     exit 1
 fi
-
+mkdir -p ${FSD50K}
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "stage 0: Download Data to ${FSD50K}"
@@ -50,6 +50,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
         "FSD50K.metadata.zip"
     )
     for fname in "${fnames[@]}"; do
+        echo "Downloading ${fname} now"
         wget -O ${FSD50K}/${fname} \
             https://zenodo.org/records/4060432/files/${fname}?download=1       
     done

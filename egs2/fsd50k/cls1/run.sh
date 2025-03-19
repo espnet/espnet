@@ -24,11 +24,12 @@ mkdir -p "${storage_dir}"
     --datadir "${storage_dir}/data" \
     --dumpdir "${storage_dir}/dump" \
     --expdir "${storage_dir}/exp" \
-    --gpu_inference false \
+    --use_lightning true \
+    --gpu_inference true \
     --feats_normalize uttmvn \
     --stage 1 \
     --stop_stage 10 \
-    --nj 10 \
+    --nj 32 \
     --label_fold_length 200 \
     --max_wav_duration "${max_wav_duration}" \
     --inference_nj 16 \
