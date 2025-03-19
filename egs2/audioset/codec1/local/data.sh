@@ -52,7 +52,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     else
         log "stage 0: Downloading and extracting AudioSet data"
         mkdir -p ${download_dir}
-        
+
         files=()
         for i in {00..09}; do files+=("bal_train${i}.tar"); done
         for i in {00..08}; do files+=("eval${i}.tar"); done
@@ -67,7 +67,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
                 log "Downloading ${url}"
                 wget -q --show-progress -O ${tar_path} ${url}
             fi
-            
+
             log "Extracting ${tar_path}"
             tar -xf ${tar_path} -C ${download_dir}
         done
@@ -85,11 +85,11 @@ fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage 1: Converting flac to raw wav"
-    
+
     for dset in test train; do
         raw_dir=${data_dir}/audioset/${dset}/raw
         wav_dir=${data_dir}/audioset/${dset}/wav
-        
+
         mkdir -p ${wav_dir}
         find -L ${raw_dir} -name "*.flac" | while read flac_path; do
             wav_path=${wav_dir}/$(basename ${flac_path%.*}).wav
@@ -102,11 +102,11 @@ fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "stage 2: Standardized to 16khz mono"
-    
+
     for dset in test train; do
         wav_dir=${data_dir}/audioset/${dset}/wav
         norm_dir=${data_dir}/audioset/${dset}/normed_wav
-        
+
         mkdir -p ${norm_dir}
         find -L ${wav_dir} -name "*.wav" | while read raw_wav; do
             norm_wav=${norm_dir}/$(basename ${raw_wav})
@@ -119,7 +119,7 @@ fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     log "stage 3: Data preparation"
-    
+
     for dset in test train; do
 
         norm_dir=$(realpath "${data_dir}/audioset/${dset}/normed_wav")
@@ -144,11 +144,11 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     utils/shuffle_list.pl --srand ${seed} ${data_dir}/train_all/wav.scp > ${data_dir}/train_all/shuffled.scp
     num_total=$(wc -l < ${data_dir}/train_all/shuffled.scp)
     num_dev=$(printf "%.0f" $(echo "${num_total} * ${dev_ratio}" | bc))
-    
+
     mkdir -p ${data_dir}/dev ${data_dir}/train
     head -n ${num_dev} ${data_dir}/train_all/shuffled.scp > ${data_dir}/dev/wav.scp
     tail -n +$((num_dev+1)) ${data_dir}/train_all/shuffled.scp > ${data_dir}/train/wav.scp
-    
+
     for dset in train dev; do
         awk '{print $1, $1}' ${data_dir}/${dset}/wav.scp > ${data_dir}/${dset}/utt2spk
         utils/utt2spk_to_spk2utt.pl ${data_dir}/${dset}/utt2spk > ${data_dir}/${dset}/spk2utt
