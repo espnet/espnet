@@ -113,7 +113,7 @@ declare -A recipe_runners
 # General sound Multi-label tasks
 recipe_runners["audioset2m"]="../../as2m/cls1/run.sh|"
 recipe_runners["audioset20k"]="../../as20k/cls1/run.sh|"
-# recipe_runners["fsd50k"]="../../fsd/cls1/run.sh|"
+recipe_runners["fsd50k"]="../../fsd/cls1/run.sh|"
 
 # ESC-50 folds
 recipe_runners["esc50_f1"]="../../esc50/cls1/run_single_fold.sh|--local_data_opts 1 --train_set train1 --valid_set val1 --test_sets val1"

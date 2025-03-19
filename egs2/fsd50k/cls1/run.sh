@@ -7,41 +7,33 @@ set -o pipefail
 
 train_set="train"
 valid_set="val"
-test_sets="eval"
-cls_config=conf/beats_cls_lightning.yaml
+test_sets="test"
+cls_config=conf/tuning/beats_cls_it3_e60_mixup02_emap.yaml
 
 timestamp=$(date "+%Y%m%d.%H%M%S")
-# mynametag=finl.EarLarge
-mynametag=finl.beats
+mynametag=${timestamp}
+
+# <=30s audio is 36743/36796 in train, 4165/4170 in val
+max_wav_duration=30
 
 storage_dir=. # change this to where you have space, if needed
 mkdir -p "${storage_dir}"
-
-
-## plz change the the wandb_entity
-use_wandb=false
-wandb_project=BEATsAS20K
-wandb_args="--use_wandb ${use_wandb} --wandb_project ${wandb_project} --wandb_name ${mynametag} --wandb_entity shikhar"
-
 
 ./cls.sh \
     --cls_tag "${mynametag}" \
     --datadir "${storage_dir}/data" \
     --dumpdir "${storage_dir}/dump" \
     --expdir "${storage_dir}/exp" \
-    --gpu_inference true \
-    --use_lightning true \
+    --gpu_inference false \
     --feats_normalize uttmvn \
-    --ngpu 2 \
-    --stage 6 \
-    --stop_stage 6 \
+    --stage 1 \
+    --stop_stage 10 \
     --nj 10 \
-    --label_fold_length 600 \
-    --inference_nj 1 \
-    --max_wav_duration 12 \
-    --inference_model valid.epoch_mAP.ave_1best.pth \
+    --label_fold_length 200 \
+    --max_wav_duration "${max_wav_duration}" \
+    --inference_nj 16 \
+    --inference_model valid.epoch_mAP.ave.pth \
     --cls_config "${cls_config}" \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
-    --test_sets "${test_sets}" \
-    --cls_args "${wandb_args}"
+    --test_sets "${test_sets}" "$@"
