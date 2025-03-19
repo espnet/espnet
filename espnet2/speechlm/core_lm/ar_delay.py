@@ -166,9 +166,6 @@ class ARDelayLM(ARParallelLM):
                 allow_eos=step >= minlen - (self.nq - 1)
             )
 
-            if step  == 1:
-                gen_tok[..., 0] = 34
-
             # NOTE(Jinchuan): Due to delay interleave, the first predictions
             # are replaced by PAD. Especially, when step == 1, the prediction
             # is the modality identifier.

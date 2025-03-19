@@ -130,6 +130,13 @@ bpe_char_cover=1.0  # character coverage when modeling with sentencepiece.
 textlm_hf_model_tag=
 textlm_max_words=1000
 
+# (6) Image tokenizer
+image_tokenizer_choice=cosmos
+image_tokenizer_tag=Cosmos-0.1-Tokenizer-DI8x8
+image_tokenizer_resolution=256
+image_tokenization_batch_size=100
+image_tokenizer_resize_choice=center_crop
+
 # (100) other general
 nlsyms_txt=none
 token_list_dir=
@@ -149,7 +156,6 @@ if [ $# -ne 0 ]; then
     log "Error: No positional arguments are required."
     exit 2
 fi
-
 . ./path.sh
 . ./cmd.sh
 
@@ -406,6 +412,19 @@ if ! "${skip_data_prep}"; then
                         --checkpoint_path ${codec_checkpoint_path} \
                         --config_path ${codec_config_path} \
                         --hf_model_tag ${codec_hf_model_tag}
+                
+                elif [ ${_modality} == "image" ]; then
+                    log "Image Tokenization: ${data_audio}/${dset}/${_name} -> ${data_feats}/${dset}/${_name}"
+                    scripts/feats/image_tokenization.sh \
+                        --src_dir ${data_audio}/${dset} \
+                        --tgt_dir ${data_feats}/${dset} \
+                        --file_name ${_name} \
+                        --nj ${nj} \
+                        --model_choice ${image_tokenizer_choice} \
+                        --model_tag ${image_tokenizer_tag} \
+                        --resolution ${image_tokenizer_resolution} \
+                        --batch_size ${image_tokenization_batch_size} \
+                        --resize_choice ${image_tokenizer_resize_choice}
 
                 elif [ ${_modality} == "g2p" ]; then
                     log "Find G2P vocabulary and copy text"
@@ -784,7 +803,6 @@ if ! "${skip_eval}"; then
 
             # (2) process files before scoring.
             # (2.1) intersection of all generated example files
-
             awk '{print $1}' ${_dir}/$(echo ${target_files} | cut -d ' ' -f 1) > ${_dir}/eval_cache/gen_list
             for file in $(echo ${target_files} | cut -d ' ' -f 2-); do
                 utils/filter_scp.pl ${_dir}/eval_cache/gen_list ${_dir}/${file} \
