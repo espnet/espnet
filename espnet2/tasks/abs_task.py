@@ -853,6 +853,12 @@ class AbsTask(ABC):
             default=False,
             help="Use multiple iterator mode",
         )
+        group.add_argument(
+            "--utt2weight_file",
+            type=str,
+            default=None,
+            help="File path. File contains uttid and sampling weight.",
+        )
 
         group = parser.add_argument_group("Chunk iterator related")
         group.add_argument(
@@ -1818,6 +1824,7 @@ class AbsTask(ABC):
                 torch.distributed.get_world_size() if iter_options.distributed else 1
             ),
             utt2category_file=utt2category_file,
+            utt2weight_file=getattr(args, "utt2weight_file", None),
         )
 
         batches = list(batch_sampler)
