@@ -270,6 +270,7 @@ def test_TransformerDecoder_batch_beam_search_online(
 )
 def test_TransformerDecoder_partially_AR(decoder_class):
     """This test is for partially auto-regressive decoding.
+
     This function tests if the `expand_kv` works properly for TransformerDecoder.
     """
     decoder = decoder_class(

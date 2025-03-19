@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-""" Inference class definition for Transducer models."""
+"""Inference class definition for Transducer models."""
 
 from __future__ import annotations
 

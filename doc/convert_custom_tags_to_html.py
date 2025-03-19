@@ -1,4 +1,4 @@
-import os
+import os  # noqa
 import glob
 import re
 import configargparse
@@ -137,6 +137,7 @@ LANGUAGE_TAG_SET = [
     ("cd", "text"),
 ]
 
+
 def get_parser():
     parser = configargparse.ArgumentParser(
         description="Convert custom tags to markdown",
@@ -154,6 +155,7 @@ def get_parser():
 def replace_custom_tags(content):
     # Regex to find tags and their content
     tag_pattern = re.compile(r'<(?!!--)([^>]+)>')
+
     def replace_tag(match):
         tag_name = match.group(1)
         if len(tag_name) > 50:
@@ -181,6 +183,7 @@ def replace_custom_tags(content):
 def replace_string_tags(content):
     # Regex to find tags and their content
     tag_pattern = re.compile(r"['|\"]<(?!\/)(.+?)(?!\/)>['|\"]")
+
     def replace_tag(match):
         tag_name = match.group(1)
         if len(tag_name) > 50:
@@ -229,7 +232,6 @@ if __name__ == "__main__":
 
         with open(md, "w") as f:
             f.write(content)
-
 
     for md in glob.glob(f"{args.root}/**/*.md", recursive=True):
         with open(md, "r") as f:

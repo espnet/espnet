@@ -10,7 +10,7 @@ boost_version=1.81.0
 
 if [ ! -d boost_${boost_version//./_} ]; then
     if [ ! -e "boost_"${boost_version//./_}".tar.bz2" ]; then
-        wget --no-check-certificate https://boostorg.jfrog.io/artifactory/main/release/"${boost_version}"/source/boost_"${boost_version//./_}".tar.bz2
+        wget --no-check-certificate https://sourceforge.net/projects/boost/files/boost/"${boost_version}"/boost_"${boost_version//./_}".tar.bz2
     fi
     tar xvf boost_"${boost_version//./_}".tar.bz2
 fi

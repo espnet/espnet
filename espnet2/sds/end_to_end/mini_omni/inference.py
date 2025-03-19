@@ -7,7 +7,6 @@
 # 2. https://huggingface.co/spaces/gradio/omni-mini/tree/main
 
 import os
-import time
 
 import lightning as L
 import soundfile as sf
@@ -29,7 +28,7 @@ from espnet2.sds.end_to_end.mini_omni.litgpt.generate.base import (
     next_token_batch,
 )
 from espnet2.sds.end_to_end.mini_omni.litgpt.model import GPT, Config
-from espnet2.sds.end_to_end.mini_omni.litgpt.utils import num_parameters
+from espnet2.sds.end_to_end.mini_omni.litgpt.utils import num_parameters  # noqa
 from espnet2.sds.end_to_end.mini_omni.utils.snac_utils import (
     generate_audio_data,
     get_snac,
@@ -42,7 +41,7 @@ from espnet2.sds.end_to_end.mini_omni.utils.snac_utils import (
 torch.set_printoptions(sci_mode=False)
 
 
-# TODO
+# TODO(gituser)
 text_vocabsize = 151936
 text_specialtokens = 64
 audio_vocabsize = 4096
@@ -571,7 +570,7 @@ class OmniInference:
 def test_infer():
     device = "cuda:0"
     out_dir = f"./output/{get_time_str()}"
-    ckpt_dir = f"./checkpoint"
+    ckpt_dir = "./checkpoint"
     if not os.path.exists(ckpt_dir):
         print(
             f"checkpoint directory {ckpt_dir} not found, downloading from huggingface"
@@ -585,7 +584,7 @@ def test_infer():
     task = ["A1A2", "asr", "T1A2", "AA-BATCH", "T1T2", "AT"]
 
     # prepare test data
-    # TODO
+    # TODO(gituser)
     test_audio_list = sorted(os.listdir("./data/samples"))
     test_audio_list = [os.path.join("./data/samples", path) for path in test_audio_list]
     test_audio_transcripts = [

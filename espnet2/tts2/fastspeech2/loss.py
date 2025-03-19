@@ -1,7 +1,7 @@
 # Copyright 2020 Nagoya University (Tomoki Hayashi)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""Fastspeech2 related loss module for ESPnet2. Speech Target are discrete units """
+"""Fastspeech2 related loss module for ESPnet2. Speech Target are discrete units"""
 
 from typing import Tuple
 
