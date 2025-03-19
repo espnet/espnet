@@ -1032,6 +1032,13 @@ class AbsTask(ABC):
                 default=dict(),
                 help="The keyword arguments for lr scheduler",
             )
+            parser.add_argument(
+                "--lightning_conf",
+                action=NestedDictAction,
+                default=dict(),
+                help="Arguments related to Lightning Trainer. "
+                "Used only if you are using the Lightning trainer",
+            )
 
         cls.trainer.add_arguments(parser)
         cls.add_task_arguments(parser)
