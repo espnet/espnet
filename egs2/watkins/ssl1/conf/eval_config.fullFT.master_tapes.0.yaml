@@ -5,7 +5,7 @@ batch_type: folded
 shuffle_within_batch: false
 valid_batch_size: 32
 batch_size: 32
-max_epoch: 500
+max_epoch: 250
 
 accum_grad: 1
 grad_clip: 1
@@ -40,7 +40,7 @@ normalize: none # BEATs code does global mean and variance normalization
 
 encoder: beats
 encoder_conf:
-    beats_ckpt_path: CHECKPOINT_PATH
+    beats_ckpt_path: /work/nvme/bbjs/sbharadwaj/watkins_ssl/exp_master_tapes/beats_iter0_10k_ckpt.master_tapes.0.100k_total/epoch10.pt
     beats_config:
         layer_wise_gradient_decay_ratio: 0.3
         encoder_layerdrop: 0.1

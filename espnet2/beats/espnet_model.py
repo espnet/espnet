@@ -14,6 +14,8 @@ from espnet2.speechlm.tokenizer.beats_utils import beats_frontend
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet2.layers.mixup_augmentation import MixupAugment
+from espnet2.cls.espnet_model import label_to_onehot
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +31,7 @@ class BeatsPretrainModel(AbsESPnetModel):
         ignore_id: int = -2,
         label_smoothing: float = 0.1,
         waveform_input: bool = False,
+        mixup_probability: float = 0.0,
     ):
         super().__init__()
         self.ignore_id = ignore_id
@@ -38,8 +41,20 @@ class BeatsPretrainModel(AbsESPnetModel):
         self.encoder = encoder
         self.decoder = decoder
         self.waveform_input = waveform_input
-        self.loss_function = torch.nn.CrossEntropyLoss(
-            ignore_index=ignore_id, label_smoothing=label_smoothing, reduction="none"
+        self.mixup_probability = mixup_probability
+        self.mixup_augmentation = (
+            MixupAugment(mixup_probability) if mixup_probability > 0.0 else None
+        )
+        self.loss_function = (
+            torch.nn.CrossEntropyLoss(
+                ignore_index=ignore_id,
+                label_smoothing=label_smoothing,
+                reduction="none",
+            )
+            if self.mixup_augmentation is None
+            else torch.nn.CrossEntropyLoss(
+                label_smoothing=label_smoothing, reduction="none"
+            )
         )
         logger.info(
             f"Initialized BeatsPretrainModel with ignore_id={ignore_id}, "
@@ -76,6 +91,17 @@ class BeatsPretrainModel(AbsESPnetModel):
         # for data-parallel
         speech = speech[:, : speech_lengths.max()]
         target = target[:, : target_lengths.max()]
+        onehot_ = None
+        if self.training and self.mixup_augmentation is not None:
+            onehot_ = (target - 1).reshape(-1, 1).contiguous()
+            onehot_[onehot_ < 0] = 0  # -1 to 0
+            onehot_ = F.one_hot(
+                onehot_.squeeze(-1), self.decoder.decoder_pred.weight.shape[0]
+            ).float()
+            onehot_ = onehot_.reshape(target.shape[0], target.shape[1], -1).contiguous()
+            speech, onehot_, speech_lengths = self.mixup_augmentation(
+                speech, onehot_, speech_lengths
+            )
 
         # unmasked_patch_emb (Batch, n_patch*kept_ratio, emb_dim)
         # restore_ids (Batch, n_patch) -- permutation of [0, 1, ..., n_patch-1]
@@ -85,13 +111,14 @@ class BeatsPretrainModel(AbsESPnetModel):
             speech, speech_lengths, waveform_input=self.waveform_input
         )
         target = target[:, : patch_len.max()]
+        onehot_ = onehot_[:, : patch_len.max()] if onehot_ is not None else None
 
         # target (Batch, n_patch)
         # logits (Batch, n_patch, codebook_size)
         logits = self.decoder(unmasked_patch_emb, patch_len, restore_ids)
 
         loss, stats = self._calc_beats_loss(
-            logits, target - 1, ~kept_mask, patch_len
+            logits, target - 1, ~kept_mask, patch_len, onehot_
         )  # target - 1 because of unk token at 0th position
 
         # force_gatherable: to-device and to-tensor if scalar for DataParallel
@@ -127,6 +154,7 @@ class BeatsPretrainModel(AbsESPnetModel):
         target: torch.Tensor,
         masked: torch.Tensor,
         speech_lengths: torch.Tensor,
+        onehot_: Optional[torch.Tensor] = None,
     ):
         """Compute loss for Beats model.
         Args:
@@ -134,13 +162,18 @@ class BeatsPretrainModel(AbsESPnetModel):
             target: (Batch, n_patch)
             masked: (Batch, n_patch) -- True for masked, False for unmasked
             speech_lengths: (Batch, )
+            onehot_: (Batch, n_patch, codebook_size) -- onehot target for mixup
         Returns:
             loss: scalar
             acc_mask: scalar
             acc_unmask: scalar
         """
         logits = logits.transpose(1, 2)  # (Batch, codebook_size, n_patch)
-        loss = self.loss_function(logits, target)
+        if onehot_ is not None:
+            onehot_ = onehot_.transpose(1, 2)
+            loss = self.loss_function(logits, onehot_)  # mixup loss
+        else:
+            loss = self.loss_function(logits, target)
         loss = loss * masked  # do not count loss for unmasked patches
         loss = loss.sum()
 

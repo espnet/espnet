@@ -212,16 +212,14 @@ if ! "${skip_data_prep}"; then
                                             "${datadir}/${dset}/wav.scp" "${data_feats_raw}/org/${dset}"
 
             # Copy data from multiple jobs
+            utils/fix_data_dir.sh "${data_feats_raw}/org/${dset}" # Needed if format_wav_scp.py is modified ad-hoc to skip read failures.
             utils/copy_data_dir.sh --validate_opts --non-print "${data_feats_raw}/org/${dset}" "${data_feats_raw}/${dset}"
             echo "raw" > "${data_feats_raw}/${dset}/feats_type"
         done
-
     fi
-
 
     if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         log "Stage 3: Remove long/short data: ${data_feats_raw}"
-
         for dset in "${valid_set}" "${train_set}"; do
             _fs=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
             _min_length=$(python3 -c "print(int(${min_wav_duration} * ${_fs}))")
@@ -313,7 +311,7 @@ generate_checkpoint() {
 
     # TODO(shikhar): Move to scripts?
     ${python} ../../../../espnet/espnet2/beats/generate_beats_checkpoint.py \
-        --espnet_model_checkpoint_path "${latest_checkpoint_dir_}/${checkpoint_num_}/mp_rank_00_model_states.pt" \
+        --espnet_model_checkpoint_path "${latest_checkpoint_dir_}/mp_rank_00_model_states.pt" \
         --output_path "${output_path_}" \
         --espnet_model_config_path "${run_dir_}/config.yaml" \
         --deepspeed_checkpoint
@@ -464,6 +462,11 @@ tokenizer_inference() {
     _ngpu=$((ngpu==0?0:1))
 
     for _data_dir in "${_ssl_valid_dir}" "${_ssl_train_dir}"; do
+        final_target_path_="${_data_dir}/target_iter${iteration}_${_tokenizer_inference_tag}"
+        if [ -f "${final_target_path_}" ]; then
+            log "Skipping tokenizer inference for ${_data_dir} as target already exists at ${final_target_path_}"
+            continue
+        fi
         ./scripts/feats/audio_tokenization.sh \
             --codec_choice beats \
             --file_name ${_scp} \
@@ -601,7 +604,7 @@ if ! "${skip_train}"; then
                         exit 1
                     fi
                 fi
-                # tokenizer_inference ${iter}
+                tokenizer_inference ${iter}
             fi
             train_encoder ${iter}
         done

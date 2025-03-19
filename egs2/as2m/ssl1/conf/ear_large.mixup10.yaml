@@ -35,7 +35,7 @@ model_conf:
     ignore_id: -2 # This is important!
     label_smoothing: 0.1
     waveform_input: false
-    mixup_probability: 0.0
+    mixup_probability: 0.10
 
 batch_type: length
 

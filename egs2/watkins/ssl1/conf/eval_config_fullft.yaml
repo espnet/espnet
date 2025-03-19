@@ -5,7 +5,7 @@ batch_type: folded
 shuffle_within_batch: false
 valid_batch_size: 32
 batch_size: 32
-max_epoch: 500
+max_epoch: 250
 
 accum_grad: 1
 grad_clip: 1

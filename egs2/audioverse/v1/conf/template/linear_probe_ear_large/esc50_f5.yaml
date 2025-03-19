@@ -1,0 +1,46 @@
+optim: adamw
+optim_conf:
+    lr: 3.0e-3
+    weight_decay: 1.0e-2
+    betas: [0.9, 0.999]
+
+accum_grad: 1
+batch_size: 64
+max_epoch: 10
+
+
+frontend: none
+input_size: 1
+normalize: none
+
+
+init: xavier_normal
+
+freeze_param: ['encoder']
+
+batch_type: folded
+unused_parameters: true
+grad_clip: 1
+patience: none
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+keep_nbest_models: 1
+use_amp: false  # whether to use automatic mixed precision
+num_att_plot: 0
+num_workers: 2 # dataloader workers
+
+encoder: beats
+encoder_conf:
+    beats_ckpt_path: CHECKPOINT_PATH
+    fbank_mean: 11.72215
+    fbank_std: 10.60431
+
+decoder: linear
+decoder_conf:
+    pooling: mean
+    pre_layer_norm: true
+
+model_conf:
+    classification_type: multi-class

@@ -31,13 +31,20 @@ class MixupAugment(torch.nn.Module):
         )
         mix_lambda = (
             torch.distributions.Beta(0.8, 0.8)
-            .sample(sample_shape=(batch_size, 1))
+            .sample(sample_shape=(batch_size,))
             .to(speech.device)
         )
         perm = torch.randperm(batch_size).to(speech.device)
         identity_perm = torch.arange(batch_size, device=speech.device)
         perm[~apply_augmentation] = identity_perm[~apply_augmentation]
-        speech = mix_lambda * speech + (1 - mix_lambda) * speech[perm]
-        onehot = mix_lambda * onehot + (1 - mix_lambda) * onehot[perm]
+
+        speech_shape = (batch_size,) + (1,) * (speech.dim() - 1)
+        mix_lambda_ = mix_lambda.view(speech_shape)
+        speech = mix_lambda_ * speech + (1 - mix_lambda_) * speech[perm]
+
+        onehot_shape = (batch_size,) + (1,) * (onehot.dim() - 1)
+        mix_lambda_ = mix_lambda.view(onehot_shape)
+        onehot = mix_lambda_ * onehot + (1 - mix_lambda_) * onehot[perm]
+
         speech_lengths = torch.minimum(speech_lengths, speech_lengths[perm])
         return speech, onehot, speech_lengths

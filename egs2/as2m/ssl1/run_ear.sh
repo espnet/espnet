@@ -21,7 +21,7 @@ ssl_tag=${mynametag}.${timestamp}
 
 # tokenizer_inf_config=conf/tokenizer_inference_beats2.yaml
 tokenizer_inf_config=conf/tokenizer_large_100k_steps.yaml
-model_size=base
+model_size=large
 ssl_tag=${model_size}.7p2M
 
 if [ $model_size == "large" ]; then
@@ -34,10 +34,11 @@ else
     echo "Invalid model size"
     exit 1
 fi
-ngpu=4
+ngpu=8
 
 storage_dir=.
 storage_dir=/work/nvme/bbjs/sbharadwaj/7Msounds
+# storage_dir=/work/nvme/bbjs/sbharadwaj/7100Ksounds empty lines in stage 5 output ??
 mkdir -p "${storage_dir}"
 
 # 1-4 : cpu (data prep: local, format, filter, fbank)
@@ -66,13 +67,13 @@ external_tokenizer_model=
     --num_nodes 1 \
     --train_start_iter "${train_start_iter}"\
     --train_stop_iter "${train_stop_iter}" \
-    --nj 32 \
+    --nj 128 \
     --max_wav_duration 11 \
     --external_teacher_model "${external_teacher_model}" \
     --external_tokenizer_model "${external_tokenizer_model}" \
     --tokenizer_train_config "${tokenizer_train_config}" \
     --tokenizer_inference_config "${tokenizer_inf_config}" \
-    --tokenizer_inference_batch_size 160 \
+    --tokenizer_inference_batch_size 144 \
     --train_config "${train_config}" \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \

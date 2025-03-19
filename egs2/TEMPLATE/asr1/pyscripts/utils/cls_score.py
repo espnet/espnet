@@ -26,7 +26,9 @@ def read_score_file(filename, n_classes):
             score_arr = np.array([float(x.strip()) for x in line[1:]])
             assert (
                 len(score_arr) == n_classes
-            ), "Number of scores do not match number of classes. "
+            ), "Number of scores do not match number of classes. len(score_arr)={}, n_classes={}".format(
+                len(score_arr), n_classes
+            )
             "Please ensure output_all_probabilities is set to true during inference."
             data[line[0].strip()] = score_arr
     return data
