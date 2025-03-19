@@ -4,7 +4,7 @@ init: xavier_normal
 batch_type: folded
 shuffle_within_batch: false
 valid_batch_size: 32
-batch_size: 24
+batch_size: 1 #24
 max_epoch: 250
 
 accum_grad: 1

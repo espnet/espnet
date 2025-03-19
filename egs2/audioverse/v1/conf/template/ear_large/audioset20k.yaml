@@ -6,7 +6,7 @@ shuffle_within_batch: false
 # Need large batch size to get good estimate
 valid_batch_size: 1200
 batch_size: 80
-max_epoch: 160
+max_epoch: 1 #160
 
 accum_grad: 1
 grad_clip: 1

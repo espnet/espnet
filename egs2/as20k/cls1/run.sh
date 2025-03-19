@@ -21,7 +21,7 @@ mkdir -p "${storage_dir}"
     --datadir "${storage_dir}/data" \
     --dumpdir "${storage_dir}/dump" \
     --expdir "${storage_dir}/exp" \
-    --gpu_inference false \
+    --gpu_inference true \
     --use_lightning true \
     --feats_normalize uttmvn \
     --stage 1 \
@@ -29,6 +29,7 @@ mkdir -p "${storage_dir}"
     --nj 10 \
     --label_fold_length 600 \
     --inference_nj 1 \
+    --max_wav_duration 12 \
     --inference_model valid.epoch_mAP.ave_1best.pth \
     --cls_config "${cls_config}" \
     --train_set "${train_set}" \

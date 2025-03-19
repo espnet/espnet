@@ -76,7 +76,7 @@ if ${log_wandb}; then
     fi
 fi
 
-exp_dir="$(pwd)/exp/${run_name}"
+exp_dir="$(pwd)/exp/runs/${run_name}"
 mkdir -p "$exp_dir"
 log "Created exp directory: $exp_dir"
 
@@ -111,7 +111,7 @@ declare -A recipe_runners
 # recipe_runners["aqa_open_clap"]="../../clotho_v2/cls1/run_aqa_open.sh|--hugging_face_model_name_or_path laion/clap-htsat-unfused"
 
 # General sound Multi-label tasks
-# recipe_runners["audioset2m"]="../../as2m/cls1/run.sh|"
+recipe_runners["audioset2m"]="../../as2m/cls1/run.sh|"
 recipe_runners["audioset20k"]="../../as20k/cls1/run.sh|"
 # recipe_runners["fsd50k"]="../../fsd/cls1/run.sh|"
 

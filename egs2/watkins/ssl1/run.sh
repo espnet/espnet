@@ -1,39 +1,39 @@
-# #!/usr/bin/env bash
-# # Set bash to 'debug' mode, it will exit on :
-# # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
-# set -e
-# set -u
-# set -o pipefail
+#!/usr/bin/env bash
+# Set bash to 'debug' mode, it will exit on :
+# -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
+set -e
+set -u
+set -o pipefail
 
-# # 1-4 : cpu (data prep: local, format, filter, fbank)
-# # 5: gpu (tokenization)
-# # 6: cpu (collect stats)
-# # 7: gpu (training)
+# 1-4 : cpu (data prep: local, format, filter, fbank)
+# 5: gpu (tokenization)
+# 6: cpu (collect stats)
+# 7: gpu (training)
 
-# . ./db.sh
+. ./db.sh
 
-# timestamp=$(date "+%m%d.%H%M%S")
-# mynametag=
+timestamp=$(date "+%m%d.%H%M%S")
+mynametag=
 
-# ssl_tag=${mynametag}.${timestamp}
+ssl_tag=${mynametag}.${timestamp}
 
-# ngpu=2
-# num_splits_ssl=1
+ngpu=2
+num_splits_ssl=1
 
-# storage_dir=/work/nvme/bbjs/sbharadwaj/watkins_ssl
-# mkdir -p "${storage_dir}"
+storage_dir=/work/nvme/bbjs/sbharadwaj/watkins_ssl
+mkdir -p "${storage_dir}"
 
-# ######
-# tokenizer_train_config=
-# external_teacher_model=
+######
+tokenizer_train_config=
+external_teacher_model=
 
-# external_tokenizer_model=/work/nvme/bbjs/sbharadwaj/BEATs_models/Tokenizer_iter3.pt
-# ######
-# # master_tapes
+external_tokenizer_model=/work/nvme/bbjs/sbharadwaj/BEATs_models/Tokenizer_iter3.pt
+######
 
 
-# for train_set in cut_tapes cut_tapes_noise; do
-#     for iter in 0 1;do
+# # cut_tapes cut_tapes_noise
+# for train_set in master_tapes; do
+#     for iter in 0 1; do
 #         train_start_iter=${iter}
 #         train_stop_iter=${iter}
 #         tokenizer_inf_config=conf/beats_watkins_tokinf_config_${train_set}.yaml
@@ -76,7 +76,7 @@
 
 
 # CONVERT CKPT
-# for set in cut_tapes cut_tapes_noise; do
+# for set in master_tapes; do
 #     for iter in 0 1; do
 #         python /work/nvme/bbjs/sbharadwaj/espnet/espnet2/beats/generate_beats_checkpoint.py \
 #              --espnet_model_checkpoint_path /work/nvme/bbjs/sbharadwaj/watkins_ssl/exp_${set}/beats_iter${iter}_10k_ckpt.${set}.${iter}.100k_total/checkpoint_10/10/mp_rank_00_model_states.pt \
@@ -87,19 +87,37 @@
 # done
 
 
-# RUN WATKINS EVAL
-for set in cut_tapes cut_tapes_noise; do
-    for iter in 0 1; do
-        ckpt_path=/work/nvme/bbjs/sbharadwaj/watkins_ssl/exp_${set}/beats_iter${iter}_10k_ckpt.${set}.${iter}.100k_total/epoch10.pt
-        run_config=/work/nvme/bbjs/sbharadwaj/espnet/egs2/watkins/ssl1/conf/eval_config.freeze.${set}.${iter}.yaml
-        sed "s|CHECKPOINT_PATH|${ckpt_path}|g" conf/eval_config.yaml > ${run_config}
-        storage_dir_=/work/nvme/bbjs/sbharadwaj/watkins_ssl
-        datadir=/work/nvme/bbjs/sbharadwaj/espnet/egs2/audioverse/v1/data/beans_watkins
-        dumpdir=/work/nvme/bbjs/sbharadwaj/espnet/egs2/audioverse/v1/dump/beans_watkins
-        expdir=${storage_dir_}/exp/${set}.${iter}
-        (cd ../../beans/cls1 && ./run_watkins.sh --cls_tag freeze.${set}.${iter} --datadir ${datadir} --dumpdir ${dumpdir} --expdir ${expdir} --stage 6 --cls_config ${run_config}) &
-        echo "----"
-    done
-done
+# RUN WATKINS EVAL - LINEAR PROBE
+# for set in master_tapes; do
+#     for iter in 0 1; do
+#         ckpt_path=/work/nvme/bbjs/sbharadwaj/watkins_ssl/exp_${set}/beats_iter${iter}_10k_ckpt.${set}.${iter}.100k_total/epoch10.pt
+#         run_config=/work/nvme/bbjs/sbharadwaj/espnet/egs2/watkins/ssl1/conf/eval_config.freeze.${set}.${iter}.yaml
+#         sed "s|CHECKPOINT_PATH|${ckpt_path}|g" conf/eval_config.yaml > ${run_config}
+#         storage_dir_=/work/nvme/bbjs/sbharadwaj/watkins_ssl
+#         datadir=/work/nvme/bbjs/sbharadwaj/espnet/egs2/audioverse/v1/data/beans_watkins
+#         dumpdir=/work/nvme/bbjs/sbharadwaj/espnet/egs2/audioverse/v1/dump/beans_watkins
+#         expdir=${storage_dir_}/exp/${set}.${iter}
+#         (cd ../../beans/cls1 && ./run_watkins.sh --cls_tag freeze.${set}.${iter} --datadir ${datadir} --dumpdir ${dumpdir} --expdir ${expdir} --stage 6 --cls_config ${run_config}) &
+#         echo "----"
+#     done
+# done
 
-wait
+# wait
+
+
+# # RUN WATKINS EVAL - Full finetune
+# for set in master_tapes; do
+#     for iter in 0 1; do
+#         ckpt_path=/work/nvme/bbjs/sbharadwaj/watkins_ssl/exp_${set}/beats_iter${iter}_10k_ckpt.${set}.${iter}.100k_total/epoch10.pt
+#         run_config=/work/nvme/bbjs/sbharadwaj/espnet/egs2/watkins/ssl1/conf/eval_config.fullFT.${set}.${iter}.yaml
+#         sed "s|CHECKPOINT_PATH|${ckpt_path}|g" conf/eval_config_fullft.yaml > ${run_config}
+#         storage_dir_=/work/nvme/bbjs/sbharadwaj/watkins_ssl
+#         datadir=/work/nvme/bbjs/sbharadwaj/espnet/egs2/audioverse/v1/data/beans_watkins
+#         dumpdir=/work/nvme/bbjs/sbharadwaj/espnet/egs2/audioverse/v1/dump/beans_watkins
+#         expdir=${storage_dir_}/exp/${set}.${iter}
+#         (cd ../../beans/cls1 && ./run_watkins.sh --cls_tag fullft.${set}.${iter} --datadir ${datadir} --dumpdir ${dumpdir} --expdir ${expdir} --stage 6 --cls_config ${run_config}) &
+#         echo "----"
+#     done
+# done
+
+# wait
