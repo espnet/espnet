@@ -15,12 +15,12 @@
 - Complete data preparation setup with turn taking labels using the label annotation sequence defined in \cite{arora2025talking}
 - Get turn taking label for each 40msec and downsample chunks from training and validation set such that there are roughly similar numbers of samples for each label class.
 - Scripts for preparing data for switchboard provided in this recipe.
-- Run the following command ``./run_turn_take.sh --stop_stage 11``
+- Run the following command ``./run.sh --stop_stage 11``
 
 # Guidance for using judge turn-taking model for inference
-- Run the following command to run inference on switchboard: ``./run_turn_take.sh --stage 12 --stop_stage 12``
-- Evaluate judge turn taking model on switchboard using ROC_AUC values and Macro F1 values : ``./run_turn_take.sh --stage 13 --stop_stage 13``
-- To apply the model to your own test set, format your human-AI conversation dataset in the same structure as the Switchboard test set, then run: ``./run_turn_take.sh --stage 12 --stop_stage 12 --test_sets ${own_test_set}`
+- Run the following command to run inference on switchboard: ``./run.sh --stage 12 --stop_stage 12``
+- Evaluate judge turn taking model on switchboard using ROC_AUC values and Macro F1 values : ``./run.sh --stage 13 --stop_stage 13``
+- To apply the model to your own test set, format your human-AI conversation dataset in the same structure as the Switchboard test set, then run: ``./run.sh --stage 12 --stop_stage 12 --test_sets ${own_test_set}`
 
 # Guidance to benchmark audio FM using our proposed metric
 - Collect human-audio FM conversation data
