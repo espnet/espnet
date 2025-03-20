@@ -3,7 +3,7 @@ init: xavier_normal
 
 batch_type: numel
 batch_bins: 3000000
-max_epoch: 60
+max_epoch: 105
 
 accum_grad: 1
 grad_clip: 1
@@ -62,6 +62,7 @@ model_conf:
 
 lightning_conf:
     log_every_n_steps: 250
+    max_epochs: 105
     strategy: ddp
     strategy_conf:
         find_unused_parameters: true

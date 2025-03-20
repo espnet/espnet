@@ -125,8 +125,10 @@ class Classification:
             prediction = torch.argmax(scores, dim=-1).unsqueeze(-1).tolist()
         elif self.classification_model.classification_type == "multi-label":
             prediction = scores > 0.5  # Fixed threshold, (batch_size, num_labels)
-            # list (batch_size, num_labels) som of which maybe empty
-            prediction = [np.nonzero(row)[0].tolist() for row in prediction]
+            # list (batch_size, num_labels) some of which maybe empty
+            prediction = [
+                row.nonzero(as_tuple=False).view(-1).tolist() for row in prediction
+            ]
         else:
             raise NotImplementedError(
                 "Unsupported classification type: "

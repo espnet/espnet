@@ -161,11 +161,6 @@ class ESPnetClassificationModel(AbsESPnetModel):
             assert (
                 self.classification_type == "multi-label"
             ), "Mixup is only for multi-label classification"
-            if speech_lengths.min() != speech_lengths.max():
-                logger.warning(
-                    "Mixup is not recommended for variable length input. "
-                    "It may not work as expected."
-                )
             speech, onehot_, speech_lengths = self.mixup_augmentation(
                 speech, onehot_, speech_lengths
             )
@@ -325,7 +320,10 @@ class ESPnetClassificationModel(AbsESPnetModel):
         return feats, feats_lengths
 
     def update_mAP(self, mAP_computer):
-
+        if len(self.predictions) == 0 or len(self.targets) == 0:
+            self.predictions = []
+            self.targets = []
+            return
         if self.get_vocab_size() == 1:
             preds = torch.cat(self.predictions)
             targets = torch.cat(self.targets)

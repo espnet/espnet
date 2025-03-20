@@ -6,7 +6,7 @@ shuffle_within_batch: false
 
 valid_batch_size: 32
 batch_size: 80
-max_epoch: 160
+max_epoch: 160 # 185
 
 accum_grad: 1
 grad_clip: 1
@@ -66,12 +66,8 @@ model_conf:
 
 lightning_conf:
     #### args that are passed directly to the trainer
-    log_every_n_steps: 250
-    # debugging args
-    # limit_train_batches: 10
-    # limit_val_batches: 2
-    # max_epochs: 4
-    #### args used for other purposes
+    log_every_n_steps: 185
+    max_epochs: 337
     strategy: ddp
     strategy_conf:
         find_unused_parameters: true

@@ -66,6 +66,7 @@ model_conf:
 
 lightning_conf:
     log_every_n_steps: 250
+    max_epochs: 500
     strategy: ddp
     strategy_conf:
         find_unused_parameters: true
