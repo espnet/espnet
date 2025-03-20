@@ -7,7 +7,7 @@ set -o pipefail
 
 train_set=train
 valid_set=valid
-test_sets=test
+test_sets="test"
 
 slu_config=conf/train_asr_whisper_turn_taking.yaml
 inference_config=conf/decode_asr_chunk.yaml

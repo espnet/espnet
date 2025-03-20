@@ -47,9 +47,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     unzip turn_take_splits.zip
     local/swbd1_prepare_dict.sh
     local/swbd1_data_prep.sh ${swbd1_dir}
-    for x in train; do
-        sed -i.bak -e "s/$/ sox -R -t wav - -t wav - rate 16000 dither | /" data/${x}/wav.scp
-    done
+    sed -i.bak -e "s/$/ sox -R -t wav - -t wav - rate 16000 dither | /" data/train/wav.scp
 
 
     utils/fix_data_dir.sh data/train
@@ -65,14 +63,14 @@ fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     log "stage 3: Data Preparation"
-    # python local/get_duration.py
-    # sh sox_duration.sh &> sox_duration.txt
-    # wget https://raw.githubusercontent.com/ErikEkstedt/VoiceActivityProjection/refs/heads/main/dataset_swb/backchannels.csv -O  local/backchannels.csv
-    # python local/create_switchboard_data_2channels.py
+    python local/get_duration.py
+    sh sox_duration.sh &> sox_duration.txt
+    wget https://raw.githubusercontent.com/ErikEkstedt/VoiceActivityProjection/refs/heads/main/dataset_swb/backchannels.csv -O  local/backchannels.csv
+    python local/create_switchboard_data_2channels.py
     python local/create_switchboard_data_2channels_mono.py
     python local/subsample_2channel_switchboard_mono.py
-    # mv data/train data/train_old
-    # mkdir -p data/{train,valid,test}
+    mv data/train data/train_old
+    mkdir -p data/{train,valid,test}
     python3 local/create_espnet_data_folders.py
     for x in valid train; do
         for f in segments text wav.scp utt2spk; do
