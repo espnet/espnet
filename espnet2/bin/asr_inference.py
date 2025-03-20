@@ -123,7 +123,6 @@ class Speech2Text:
         nlp_prompt_token: Optional[str] = None,
         prompt_token_file: Optional[str] = None,
         partial_ar: bool = False,
-        run_chunk: bool = False,
         threshold_probability: float = 0.99,
         max_seq_len: int = 5,
         max_mask_parallel: int = -1,
@@ -491,9 +490,9 @@ class Speech2Text:
         self.nbest = nbest
         self.enh_s2t_task = enh_s2t_task
         self.multi_asr = multi_asr
-        self.run_chunk = run_chunk
 
     @torch.no_grad()
+    @typechecked
     def __call__(self, speech: Union[torch.Tensor, np.ndarray]) -> Union[
         ListOfHypothesis,
         List[ListOfHypothesis],
@@ -519,58 +518,6 @@ class Speech2Text:
         speech = speech.unsqueeze(0).to(getattr(torch, self.dtype))
         # lengths: (1,)
         lengths = speech.new_full([1], dtype=torch.long, fill_value=speech.size(1))
-
-        if self.run_chunk:
-            speech = to_device(speech, device=self.device)
-            sim_chunk_length = 640
-            start_chunk = 3200
-            results_arr = []
-            token_int_corr_total = []
-            text_arr = []
-            for i in range((speech.size(1) - start_chunk) // sim_chunk_length):
-                speech1 = speech[
-                    :,
-                    max(0, ((i + 1) * sim_chunk_length + start_chunk - 480000)) : (
-                        (i + 1) * sim_chunk_length + start_chunk
-                    ),
-                ]
-                lengths = speech1.new_full(
-                    [1], dtype=torch.long, fill_value=speech1.size(1)
-                )
-                batch = {"speech": speech1, "speech_lengths": lengths}
-                batch = to_device(batch, device=self.device)
-                logging.info("speech length: " + str(speech1.size(1)) + " i: " + str(i))
-                enc, enc_olens = self.asr_model.encode(**batch)
-                encoder_out = self.asr_model.transform_mean(self.asr_model.act_fn(enc))
-                if self.asr_model.use_only_last_correct:
-                    feats = []
-                    for k in range(encoder_out.shape[0]):
-                        feats.append(encoder_out[k, enc_olens[k] - 1])
-                    feats = torch.stack(feats)
-                else:
-                    feats_mean_out = []
-                    for k in range(encoder_out.shape[0]):
-                        feats_mean_out.append(
-                            torch.mean(encoder_out[k, : enc_olens[k]], dim=0)
-                        )
-                    feats = torch.stack(feats_mean_out)
-                encoder_out = self.asr_model.transform_linear(feats)
-                m = torch.nn.Softmax()
-                token_int = [(m(encoder_out[0])).tolist()]
-                token_int_corr = [np.argmax(k) + 2 for k in token_int]
-                text = ",".join([str(k) for k in token_int[0]])
-                token_int_corr_total += token_int_corr
-                text_arr.append(text)
-                token = self.converter.ids2tokens(token_int_corr_total)
-                logging.info("best hypo: " + " ".join(token) + "\n")
-            hyp = Hypothesis(
-                score=0.0, scores=None, states=None, yseq=torch.tensor(token_int_corr)
-            )
-            token = self.converter.ids2tokens(token_int_corr_total)
-            text = " ".join(text_arr)
-            logging.info("best hypo: " + " ".join(token) + "\n")
-            results = [(text, token, token_int_corr_total, hyp)]
-            return results
         batch = {"speech": speech, "speech_lengths": lengths}
         logger.info("speech length: " + str(speech.size(1)))
 
@@ -579,35 +526,6 @@ class Speech2Text:
 
         # b. Forward Encoder
         enc, enc_olens = self.asr_model.encode(**batch)
-        if hasattr(self.asr_model, "superb_setup"):
-            if self.asr_model.superb_setup:
-                encoder_out = self.asr_model.transform_mean(self.asr_model.act_fn(enc))
-                if self.asr_model.use_only_last_correct:
-                    feats = []
-                    for k in range(encoder_out.shape[0]):
-                        feats.append(encoder_out[k, enc_olens[k] - 1])
-                    feats = torch.stack(feats)
-                else:
-                    feats_mean_out = []
-                    for k in range(encoder_out.shape[0]):
-                        feats_mean_out.append(
-                            torch.mean(encoder_out[k, : enc_olens[k]], dim=0)
-                        )
-                    feats = torch.stack(feats_mean_out)
-                encoder_out = self.asr_model.transform_linear(feats)
-                m = torch.nn.Softmax()
-                token_int = [(m(encoder_out[0])).tolist()]
-                token_int_corr = [np.argmax(k) + 2 for k in token_int]
-                token = self.converter.ids2tokens(token_int_corr)
-                text = ",".join([str(k) for k in token_int[0]])
-                hyp = Hypothesis(
-                    score=0.0,
-                    scores=None,
-                    states=None,
-                    yseq=torch.tensor(token_int_corr),
-                )
-                results = [(text, token, token_int_corr, hyp)]
-                return results
         if self.multi_asr:
             enc = enc.unbind(dim=1)  # (batch, num_inf, ...) -> num_inf x [batch, ...]
         if self.enh_s2t_task or self.multi_asr:
@@ -838,7 +756,6 @@ def inference(
     lang_prompt_token: Optional[str],
     nlp_prompt_token: Optional[str],
     prompt_token_file: Optional[str],
-    run_chunk: bool,
     partial_ar: bool,
     threshold_probability: float,
     max_seq_len: int,
@@ -896,7 +813,6 @@ def inference(
         hugging_face_decoder_conf=hugging_face_decoder_conf,
         time_sync=time_sync,
         prompt_token_file=prompt_token_file,
-        run_chunk=run_chunk,
         lang_prompt_token=lang_prompt_token,
         nlp_prompt_token=nlp_prompt_token,
         partial_ar=partial_ar,
@@ -1223,12 +1139,7 @@ def get_parser():
         default=False,
         help="If true, best hypothesis is selected by length-normalized scores",
     )
-    group.add_argument(
-        "--run_chunk",
-        type=str2bool,
-        default=False,
-        help="Run inference on chunks of audio",
-    )
+
     group = parser.add_argument_group("Partially AR related")
     group.add_argument(
         "--partial_ar",
