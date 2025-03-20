@@ -47,7 +47,7 @@ class ESPnetASRModel(AbsESPnetModel):
         specaug: Optional[AbsSpecAug],
         normalize: Optional[AbsNormalize],
         preencoder: Optional[AbsPreEncoder],
-        encoder: AbsEncoder,
+        encoder: Optional[AbsEncoder],
         postencoder: Optional[AbsPostEncoder],
         decoder: Optional[AbsDecoder],
         ctc: CTC,
@@ -68,6 +68,7 @@ class ESPnetASRModel(AbsESPnetModel):
         # Pretrained HF Tokenizer needs custom sym_sos and sym_eos
         sym_sos: str = "<sos/eos>",
         sym_eos: str = "<sos/eos>",
+        autocast_frontend: bool = False,
         extract_feats_in_collect_stats: bool = True,
         lang_token_id: int = -1,
     ):
@@ -103,9 +104,11 @@ class ESPnetASRModel(AbsESPnetModel):
         self.postencoder = postencoder
         self.encoder = encoder
 
-        if not hasattr(self.encoder, "interctc_use_conditioning"):
+        self.autocast_frontend = autocast_frontend
+
+        if self.encoder is not None and not hasattr(self.encoder, "interctc_use_conditioning"):
             self.encoder.interctc_use_conditioning = False
-        if self.encoder.interctc_use_conditioning:
+        if self.encoder is not None and self.encoder.interctc_use_conditioning:
             self.encoder.conditioning_layer = torch.nn.Linear(
                 vocab_size, self.encoder.output_size()
             )
@@ -197,7 +200,10 @@ class ESPnetASRModel(AbsESPnetModel):
 
         self.extract_feats_in_collect_stats = extract_feats_in_collect_stats
 
-        self.is_encoder_whisper = "Whisper" in type(self.encoder).__name__
+        if self.encoder is not None:
+            self.is_encoder_whisper = "Whisper" in type(self.encoder).__name__
+        else:
+            self.is_encoder_whisper = False
 
         if self.is_encoder_whisper:
             assert (
@@ -387,7 +393,7 @@ class ESPnetASRModel(AbsESPnetModel):
             speech: (Batch, Length, ...)
             speech_lengths: (Batch, )
         """
-        with autocast(False):
+        with autocast(self.autocast_frontend, dtype=torch.bfloat16):
             # 1. Extract feats
             feats, feats_lengths = self._extract_feats(speech, speech_lengths)
 
@@ -406,14 +412,19 @@ class ESPnetASRModel(AbsESPnetModel):
         # 4. Forward encoder
         # feats: (Batch, Length, Dim)
         # -> encoder_out: (Batch, Length2, Dim2)
-        if self.encoder.interctc_use_conditioning or getattr(
-            self.encoder, "ctc_trim", False
-        ):
-            encoder_out, encoder_out_lens, _ = self.encoder(
-                feats, feats_lengths, ctc=self.ctc
-            )
+        if self.encoder is None:
+            encoder_out, encoder_out_lens = feats, feats_lengths
         else:
-            encoder_out, encoder_out_lens, _ = self.encoder(feats, feats_lengths)
+
+            if self.encoder.interctc_use_conditioning or getattr(
+                self.encoder, "ctc_trim", False
+            ):
+                encoder_out, encoder_out_lens, _ = self.encoder(
+                    feats, feats_lengths, ctc=self.ctc
+                )
+            else:
+                encoder_out, encoder_out_lens, _ = self.encoder(feats, feats_lengths)
+
         intermediate_outs = None
         if isinstance(encoder_out, tuple):
             intermediate_outs = encoder_out[1]
@@ -429,7 +440,7 @@ class ESPnetASRModel(AbsESPnetModel):
             encoder_out.size(),
             speech.size(0),
         )
-        if (
+        if self.encoder is not None and (
             getattr(self.encoder, "selfattention_layer_type", None) != "lf_selfattn"
             and not self.is_encoder_whisper
         ):
