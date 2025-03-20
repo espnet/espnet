@@ -11,17 +11,10 @@ test_sets="eval"
 cls_config=conf/beats_cls_lightning.yaml
 
 timestamp=$(date "+%Y%m%d.%H%M%S")
-# mynametag=finl.EarLarge
-mynametag=finl.beats
+mynametag=${timestamp}
 
 storage_dir=. # change this to where you have space, if needed
 mkdir -p "${storage_dir}"
-
-
-## plz change the the wandb_entity
-use_wandb=false
-wandb_project=BEATsAS20K
-wandb_args="--use_wandb ${use_wandb} --wandb_project ${wandb_project} --wandb_name ${mynametag} --wandb_entity shikhar"
 
 
 ./cls.sh \
@@ -32,10 +25,11 @@ wandb_args="--use_wandb ${use_wandb} --wandb_project ${wandb_project} --wandb_na
     --gpu_inference true \
     --use_lightning true \
     --feats_normalize uttmvn \
-    --ngpu 2 \
-    --stage 6 \
-    --stop_stage 6 \
+    --ngpu 1 \
+    --stage 1 \
+    --stop_stage 10 \
     --nj 10 \
+    --speech_fold_length 160000 \
     --label_fold_length 600 \
     --inference_nj 1 \
     --max_wav_duration 12 \
@@ -43,5 +37,4 @@ wandb_args="--use_wandb ${use_wandb} --wandb_project ${wandb_project} --wandb_na
     --cls_config "${cls_config}" \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
-    --test_sets "${test_sets}" \
-    --cls_args "${wandb_args}"
+    --test_sets "${test_sets}" "$@"

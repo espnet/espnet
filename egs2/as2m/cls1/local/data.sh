@@ -26,7 +26,9 @@ if [ -z "${AUDIOSET}" ]; then
 fi
 
 mkdir -p ${DATA_PREP_ROOT}
+
 python3 local/data_prep_as2m.py ${AUDIOSET} ${DATA_PREP_ROOT}
+# sbatch local/prep_as2m_cls.sh ${DATA_PREP_ROOT}
 
 for x in val eval train; do
     for f in text wav.scp utt2spk; do

@@ -263,7 +263,7 @@ run_recipe() {
         local runner="${runner_parts[0]}"
         local runner_specific_args="${runner_parts[1]:-}"  # Use empty string if no args specified
 
-        log "Setting up task: $runner for recipe: $recipe with args: $runner_specific_args"
+        log "Setting up task: $runner for recipe: $recipe with runner args: $runner_specific_args"
 
         # Create config from the template
         create_config "$recipe" "$runner" || {
