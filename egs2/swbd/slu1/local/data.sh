@@ -12,7 +12,7 @@ log() {
 SECONDS=0
 
 
-stage=1
+stage=3
 stop_stage=3
 
 log "$0 $*"
@@ -64,15 +64,15 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-    log "stage 2: Data Preparation"
-    python local/get_duration.py
-    sh sox_duration.sh &> sox_duration.txt
-    wget https://raw.githubusercontent.com/ErikEkstedt/VoiceActivityProjection/refs/heads/main/dataset_swb/backchannels.csv -O  local/backchannels.csv
-    python local/create_switchboard_data_2channels.py
+    log "stage 3: Data Preparation"
+    # python local/get_duration.py
+    # sh sox_duration.sh &> sox_duration.txt
+    # wget https://raw.githubusercontent.com/ErikEkstedt/VoiceActivityProjection/refs/heads/main/dataset_swb/backchannels.csv -O  local/backchannels.csv
+    # python local/create_switchboard_data_2channels.py
     python local/create_switchboard_data_2channels_mono.py
     python local/subsample_2channel_switchboard_mono.py
-    mv data/train data/train_old
-    mkdir -p data/{train,valid,test}
+    # mv data/train data/train_old
+    # mkdir -p data/{train,valid,test}
     python3 local/create_espnet_data_folders.py
     for x in valid train; do
         for f in segments text wav.scp utt2spk; do

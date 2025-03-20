@@ -30,7 +30,7 @@ labels = [
 ]
 
 
-hyp = os.path.join(exp_root, "decode_asr_chunk_asr_model_valid.loss.ave/test/text")
+hyp = os.path.join(exp_root, "decode_asr_chunk_slu_model_valid.loss.ave/test/text")
 ref = "Test_Two_Channel_Label_Mono.csv"
 ref_arr = list(open(ref, "r"))
 hyp_arr = list(open(hyp, "r"))

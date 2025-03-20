@@ -73,7 +73,6 @@ for x in dir_arr:
     line_arr = line_arr[1:]
     assert len(label_arr_write) == len(line_arr)
     assert len(prev_speaker_arr) == len(line_arr)
-    file_write.write(line_arr[0])
     for i in range(len(line_arr)):
         line_arr1 = line_arr[i].strip().split(",")
         file_write.write(

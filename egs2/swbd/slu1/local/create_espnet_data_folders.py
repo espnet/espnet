@@ -17,7 +17,7 @@ dir_dict = {
 for x in dir_dict:
     line_count = 0
     word_dict = {}
-    for line in open("data/" + dir_dict[x]):
+    for line in open(dir_dict[x]):
         line1 = line.strip().split(",")
         if ("sw0" + line1[0]) not in word_dict:
             word_dict["sw0" + line1[0]] = {}
