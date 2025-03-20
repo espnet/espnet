@@ -42,7 +42,6 @@ dumpdir=dump            # Directory to dump features.
 expdir=exp              # Directory to save experiments.
 python=python3          # Specify python to execute espnet commands.
 use_lightning=false     # Whether to use pytorch lightning trainer for training.
-run_turn_taking=false   # Whether to train turn taking model
 
 # Data preparation related
 local_data_opts= # The options given to local/data.sh.
@@ -296,6 +295,7 @@ fi
 
 . ./path.sh
 . ./cmd.sh
+
 
 # Check required arguments
 if ! "${skip_train}"; then
@@ -1536,9 +1536,6 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ] && ! [[ " ${skip_stages} " =~
     if "${use_ngram}"; then
          _opts+="--ngram_file ${ngram_exp}/${inference_ngram}"
     fi
-    if "${run_turn_taking}"; then
-        _opts+="--run_chunk true "
-    fi
 
     # 2. Generate run.sh
     log "Generate '${asr_exp}/${inference_tag}/run.sh'. You can resume the process from stage 12 using this script"
@@ -1665,97 +1662,91 @@ if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ] && ! [[ " ${skip_stages} " =~
     else
         _dsets="${test_sets}"
     fi
-    if ! "${run_turn_taking}"; then
-        for dset in ${_dsets}; do
-            _data="${data_feats}/${dset}"
-            _dir="${asr_exp}/${inference_tag}/${dset}"
+    for dset in ${_dsets}; do
+        _data="${data_feats}/${dset}"
+        _dir="${asr_exp}/${inference_tag}/${dset}"
 
-            for _tok_type in "char" "word" "bpe"; do
-                [ "${_tok_type}" = bpe ] && [ ! -f "${bpemodel}" ] && continue
+        for _tok_type in "char" "word" "bpe"; do
+            [ "${_tok_type}" = bpe ] && [ ! -f "${bpemodel}" ] && continue
 
-                _opts="--token_type ${_tok_type} "
-                if [ "${_tok_type}" = "char" ] || [ "${_tok_type}" = "word" ]; then
-                    _type="${_tok_type:0:1}er"
-                    _opts+="--non_linguistic_symbols ${nlsyms_txt} "
-                    if grep -q "whisper" <<< ${token_type}; then
-                        log "Non linguistic_symbols used for prompting"
-                    else
-                        _opts+="--remove_non_linguistic_symbols true "
-                    fi
-
-                elif [ "${_tok_type}" = "bpe" ]; then
-                    _type="ter"
-                    _opts+="--bpemodel ${bpemodel} "
-
+            _opts="--token_type ${_tok_type} "
+            if [ "${_tok_type}" = "char" ] || [ "${_tok_type}" = "word" ]; then
+                _type="${_tok_type:0:1}er"
+                _opts+="--non_linguistic_symbols ${nlsyms_txt} "
+                if grep -q "whisper" <<< ${token_type}; then
+                    log "Non linguistic_symbols used for prompting"
                 else
-                    log "Error: unsupported token type ${_tok_type}"
+                    _opts+="--remove_non_linguistic_symbols true "
                 fi
 
-                _scoredir="${_dir}/score_${_type}"
-                mkdir -p "${_scoredir}"
+            elif [ "${_tok_type}" = "bpe" ]; then
+                _type="ter"
+                _opts+="--bpemodel ${bpemodel} "
 
-                # shellcheck disable=SC2068
-                for ref_txt in ${ref_text_files[@]}; do
-                    # Note(simpleoier): to get the suffix after text, e.g. "text_spk1" -> "_spk1"
-                    suffix=$(echo ${ref_txt} | sed 's/text//')
+            else
+                log "Error: unsupported token type ${_tok_type}"
+            fi
 
-                    # Tokenize text to ${_tok_type} level
-                    paste \
-                        <(<"${_data}/${ref_txt}" \
-                            ${python} -m espnet2.bin.tokenize_text  \
-                                -f 2- --input - --output - \
-                                --cleaner "${cleaner}" \
-                                ${_opts} \
-                                ) \
-                        <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
-                            >"${_scoredir}/ref${suffix:-${suffix}}.trn"
+            _scoredir="${_dir}/score_${_type}"
+            mkdir -p "${_scoredir}"
 
-                    # NOTE(kamo): Don't use cleaner for hyp
-                    paste \
-                        <(<"${_dir}/${ref_txt}"  \
-                            ${python} -m espnet2.bin.tokenize_text  \
-                                -f 2- --input - --output - \
-                                ${_opts} \
-                                --cleaner "${hyp_cleaner}" \
-                                ) \
-                        <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
-                            >"${_scoredir}/hyp${suffix:-${suffix}}.trn"
+            # shellcheck disable=SC2068
+            for ref_txt in ${ref_text_files[@]}; do
+                # Note(simpleoier): to get the suffix after text, e.g. "text_spk1" -> "_spk1"
+                suffix=$(echo ${ref_txt} | sed 's/text//')
 
-                done
+                # Tokenize text to ${_tok_type} level
+                paste \
+                    <(<"${_data}/${ref_txt}" \
+                        ${python} -m espnet2.bin.tokenize_text  \
+                            -f 2- --input - --output - \
+                            --cleaner "${cleaner}" \
+                            ${_opts} \
+                            ) \
+                    <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
+                        >"${_scoredir}/ref${suffix:-${suffix}}.trn"
 
-                # Note(simpleoier): score across all possible permutations
-                if [ ${num_ref} -gt 1 ] && [ -n "${suffix}" ]; then
-                    for i in $(seq ${num_ref}); do
-                        for j in $(seq ${num_inf}); do
-                            sclite \
-                                ${score_opts} \
-                                -r "${_scoredir}/ref_spk${i}.trn" trn \
-                                -h "${_scoredir}/hyp_spk${j}.trn" trn \
-                                -i rm -o all stdout > "${_scoredir}/result_r${i}h${j}.txt"
-                        done
-                    done
-                    # Generate the oracle permutation hyp.trn and ref.trn
-                    pyscripts/utils/eval_perm_free_error.py --num-spkrs ${num_ref} \
-                        --results-dir ${_scoredir}
-                fi
+                # NOTE(kamo): Don't use cleaner for hyp
+                paste \
+                    <(<"${_dir}/${ref_txt}"  \
+                        ${python} -m espnet2.bin.tokenize_text  \
+                            -f 2- --input - --output - \
+                            ${_opts} \
+                            --cleaner "${hyp_cleaner}" \
+                            ) \
+                    <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
+                        >"${_scoredir}/hyp${suffix:-${suffix}}.trn"
 
-                sclite \
-                    ${score_opts} \
-                    -r "${_scoredir}/ref.trn" trn \
-                    -h "${_scoredir}/hyp.trn" trn \
-                    -i rm -o all stdout > "${_scoredir}/result.txt"
-
-                log "Write ${_type} result in ${_scoredir}/result.txt"
-                grep -e Avg -e SPKR -m 2 "${_scoredir}/result.txt"
             done
+
+            # Note(simpleoier): score across all possible permutations
+            if [ ${num_ref} -gt 1 ] && [ -n "${suffix}" ]; then
+                for i in $(seq ${num_ref}); do
+                    for j in $(seq ${num_inf}); do
+                        sclite \
+                            ${score_opts} \
+                            -r "${_scoredir}/ref_spk${i}.trn" trn \
+                            -h "${_scoredir}/hyp_spk${j}.trn" trn \
+                            -i rm -o all stdout > "${_scoredir}/result_r${i}h${j}.txt"
+                    done
+                done
+                # Generate the oracle permutation hyp.trn and ref.trn
+                pyscripts/utils/eval_perm_free_error.py --num-spkrs ${num_ref} \
+                    --results-dir ${_scoredir}
+            fi
+
+            sclite \
+                ${score_opts} \
+                -r "${_scoredir}/ref.trn" trn \
+                -h "${_scoredir}/hyp.trn" trn \
+                -i rm -o all stdout > "${_scoredir}/result.txt"
+
+            log "Write ${_type} result in ${_scoredir}/result.txt"
+            grep -e Avg -e SPKR -m 2 "${_scoredir}/result.txt"
         done
-        [ -f local/score.sh ] && local/score.sh ${local_score_opts} "${asr_exp}"
-    else
-        [ -f local/score_turn_take.sh ] && local/score_turn_take.sh ${local_score_opts} "${asr_exp}"
-    fi
+    done
 
-
-
+    [ -f local/score.sh ] && local/score.sh ${local_score_opts} "${asr_exp}"
 
     # Show results in Markdown syntax
     scripts/utils/show_asr_result.sh "${asr_exp}" > "${asr_exp}"/RESULTS.md
