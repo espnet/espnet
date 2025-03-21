@@ -141,3 +141,49 @@ def test_Speech2Understand_quantized(slu_config_file, lm_config_file):
         assert isinstance(token[0], str)
         assert isinstance(token_int[0], int)
         assert isinstance(hyp, Hypothesis)
+
+
+@pytest.fixture()
+def slu_turn_take_config_file(tmp_path: Path, token_list):
+    # Write default configuration file
+    SLUTask.main(
+        cmd=[
+            "--dry_run",
+            "true",
+            "--output_dir",
+            str(tmp_path / "slu"),
+            "--token_list",
+            str(token_list),
+            "--token_type",
+            "char",
+            "--decoder",
+            "rnn",
+            "--encoder_conf",
+            str({"output_size": 4}),
+            "--model_conf",
+            str(
+                {
+                    "superb_setup": True,
+                    "num_class": 5,
+                    "ssl_input_size": 4,
+                    "use_only_last_correct": True,
+                }
+            ),
+        ]
+    )
+    return tmp_path / "slu" / "config.yaml"
+
+
+@pytest.mark.execution_timeout(20)
+def test_Speech2Text_turn_taking(slu_turn_take_config_file):
+    speech2understand = Speech2Understand(
+        slu_train_config=slu_turn_take_config_file,
+        beam_size=1,
+        run_chunk=True,
+    )
+    speech = np.random.randn(5000)
+    results = speech2understand(speech)
+    for text, token, token_int, hyp in results:
+        assert isinstance(text, str)
+        assert isinstance(token[0], str)
+        assert isinstance(token_int[0], np.int64)
