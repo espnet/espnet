@@ -1,7 +1,4 @@
-from typing import Callable, Dict, Optional, Tuple, Union
-
-import numpy as np
-from typeguard import typechecked
+from typing import Dict, Tuple, Union
 
 from espnet2.train.dataset import AbsDataset
 
@@ -56,14 +53,11 @@ class ESPnetEZDataset(AbsDataset):
         proper functionality of the methods.
     """
 
-    @typechecked
     def __init__(
         self,
         dataset,
         data_info,
-        preprocess: Optional[
-            Callable[[str, Dict[str, np.ndarray]], Dict[str, np.ndarray]]
-        ] = None,
+        preprocess=None,
     ):
         self.dataset = dataset
         self.data_info = data_info
@@ -150,12 +144,9 @@ class ESPnetEZDataset(AbsDataset):
 
     def __getitem__(self, uid: Union[str, int]) -> Tuple[str, Dict]:
         idx = int(uid)
-        if self.preprocess is None:
-            data = {k: v(self.dataset[idx]) for k, v in self.data_info.items()}
-        else:
-            data = self.preprocess(
-                str(uid), {k: v(self.dataset[idx]) for k, v in self.data_info.items()}
-            )
+        data = {k: v(self.dataset[idx]) for k, v in self.data_info.items()}
+        if self.preprocess is not None:
+            data = self.preprocess(str(uid), data)
         return (str(uid), data)
 
     def __len__(self) -> int:
