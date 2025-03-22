@@ -40,6 +40,7 @@ class WKVLinearAttention(torch.autograd.Function):
             out: Weighted Key-Value tensor. (B, U, D_att)
 
         """
+
         batch, length, dim = key.size()
 
         assert length <= wkv_kernel.context_size, (
@@ -237,8 +238,9 @@ class SelfAttention(torch.nn.Module):
         """
         ratio_0_to_1 = block_id / (num_blocks - 1)
         ratio_1_to_almost0 = 1.0 - (block_id / num_blocks)
+        dtype = self.proj_key.weight.dtype
 
-        time_weight = torch.ones(1, 1, size)
+        time_weight = torch.ones(1, 1, size, dtype=dtype)
 
         for i in range(size):
             time_weight[0, 0, i] = i / size
@@ -248,13 +250,13 @@ class SelfAttention(torch.nn.Module):
             for h in range(attention_size)
         ]
         decay_speed = torch.tensor(
-            decay_speed, dtype=self.time_decay.dtype, device=self.time_decay.device
+            decay_speed, dtype=dtype, device=self.time_decay.device
         )
 
         zigzag = (
             torch.tensor(
                 [(i + 1) % 3 - 1 for i in range(attention_size)],
-                dtype=self.time_first.dtype,
+                dtype=dtype,
                 device=self.time_first.device,
             )
             * 0.5
@@ -364,7 +366,15 @@ class SelfAttention(torch.nn.Module):
             state[3][..., self.block_id] = att_state[1]
             state[4][..., self.block_id] = att_state[2]
         else:
-            wkv = WKVLinearAttention.apply(self.time_decay, self.time_first, key, value)
+
+            wkv = WKVLinearAttention.apply(
+                self.time_decay.float(),
+                self.time_first.float(),
+                key.float(),
+                value.float(),
+            )
+            if x.dtype == torch.float16:
+                wkv = wkv.half()
 
         x = self.proj_output(receptance * wkv)
 

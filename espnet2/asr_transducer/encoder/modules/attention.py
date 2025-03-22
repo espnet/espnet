@@ -142,6 +142,7 @@ class RelPositionMultiHeadedAttention(torch.nn.Module):
         matrix_ac = torch.matmul(q_with_bias_u, key.transpose(-2, -1))
 
         matrix_bd = torch.matmul(q_with_bias_v, p.permute(0, 2, 3, 1))
+
         matrix_bd = self.rel_shift(matrix_bd, left_context=left_context)
 
         return (matrix_ac + matrix_bd) / math.sqrt(self.d_k)
