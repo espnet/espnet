@@ -13,7 +13,7 @@ from typing import Any, Dict, Optional, Sequence, Tuple, Union
 import numpy as np
 import soundfile as sf
 import torch
-from packaging.version import parse as V
+from packaging.version import parse as V  # noqa
 from typeguard import typechecked
 
 from espnet2.fileio.npy_scp import NpyScpWriter

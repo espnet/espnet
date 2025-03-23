@@ -1,6 +1,6 @@
 # Copyright Lightning AI. Licensed under the Apache License 2.0, see LICENSE file.
 
-from typing import Any, Literal, Optional
+from typing import Any, Optional
 
 import torch
 from tqdm import tqdm
@@ -193,8 +193,8 @@ def generate(
     # print("eos_id_a:", eos_id_a)
     # print("eos_id_t:", eos_id_t)
     # print("pad_id:", pad_id)
-    """
-    Takes a conditioning sequence (prompt) as input and continues to
+    """Takes a conditioning sequence (prompt) as input and continues to
+
     generate as many tokens as requested.
     The implementation of this function is modified from A.
     Karpathy's nanoGPT.
@@ -563,7 +563,7 @@ def generate_AT(
     )
     output.append(token_T.clone().tolist()[0])
     input_pos = torch.tensor([T], device=device)
-    text_end = False
+    text_end = False  # noqa
     for _ in tqdm(range(2, max_returned_tokens - T + 1)):
         model_input_ids = []
         for i in range(7):
@@ -793,7 +793,7 @@ def generate_ASR(
     )
     output.append(token_T.clone().tolist()[0])
     input_pos = torch.tensor([T], device=device)
-    text_end = False
+    text_end = False  # noqa
     for _ in tqdm(range(2, max_returned_tokens - T + 1)):
         model_input_ids = []
         for i in range(7):

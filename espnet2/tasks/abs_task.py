@@ -65,7 +65,7 @@ from espnet2.train.distributed_utils import (
     get_num_nodes,
     resolve_distributed_mode,
 )
-from espnet2.train.iterable_dataset import (
+from espnet2.train.iterable_dataset import (  # noqa
     IterableESPnetDataset,
     SplicedIterableESPnetDataset,
 )
@@ -1343,7 +1343,7 @@ class AbsTask(ABC):
             assert not args.use_amp, "amp is not compatible with tf32"
             torch.backends.cuda.matmul.allow_tf32 = True
             torch.backends.cudnn.allow_tf32 = True
-            logging.info(f"Using TensorFloat32 at the cost of matmul precision")
+            logging.info("Using TensorFloat32 at the cost of matmul precision")
 
         if (
             args.collect_stats
@@ -2251,7 +2251,7 @@ class AbsTask(ABC):
         collate_fn,
         key_file: Optional[str] = None,
         batch_size: int = 1,
-        dtype: str = np.float32,
+        dtype: Optional[Any] = np.float32,
         num_workers: int = 1,
         allow_variable_data_keys: bool = False,
         ngpu: int = 0,
@@ -2344,8 +2344,14 @@ class AbsTask(ABC):
                 #   in PyTorch<=1.4
                 device = f"cuda:{torch.cuda.current_device()}"
             try:
+                state_dict = torch.load(
+                    model_file, map_location=device, weights_only=False
+                )
+                # for deepspeed checkpoints
+                if "module" in state_dict:
+                    state_dict = state_dict["module"]
                 model.load_state_dict(
-                    torch.load(model_file, map_location=device),
+                    state_dict,
                     strict=False,
                 )
             except RuntimeError:

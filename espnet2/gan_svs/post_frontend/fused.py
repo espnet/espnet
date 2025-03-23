@@ -5,7 +5,7 @@ import torch
 from typeguard import typechecked
 
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
-from espnet2.asr.frontend.default import DefaultFrontend
+from espnet2.asr.frontend.default import DefaultFrontend  # noqa
 from espnet2.gan_svs.post_frontend.s3prl import S3prlPostFrontend
 
 

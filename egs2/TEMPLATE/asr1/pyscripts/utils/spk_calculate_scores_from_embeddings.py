@@ -40,13 +40,12 @@ def main(args):
         test = torch.from_numpy(embd_dic[t])
         if len(enroll.size()) == 1:
             enroll = enroll.unsqueeze(0)
-            test = enroll.unsqueeze(0)
+            test = test.unsqueeze(0)
         score = torch.cdist(enroll, test)
         score = -1.0 * torch.mean(score)
         scores.append(score.item())
 
-    if not os.path.exists(os.path.dirname(out_dir)):
-        os.makedirs(os.path.dirname(out_dir))
+    os.makedirs(os.path.dirname(out_dir), exist_ok=True)
     with open(out_dir, "w") as f:
         for trl, sco, lbl in zip(trial_ids, scores, labels):
             f.write(f"{trl} {sco} {lbl}\n")
