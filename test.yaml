@@ -1,0 +1,11 @@
+
+parallel:
+  env: slurm
+  n_workers: 16
+  options:
+    queue: general
+    cores: 8
+    processes: 4
+    memory: 16GB
+    walltime: 30:00
+    
