@@ -58,6 +58,23 @@ log "$0 $*"
 mkdir -p ${gen_dir}/scoring
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
+    if [ ${cleaner} == "whisper_basic" ] || [ ${hyp_cleaner} == "whisper_basic" ]; then
+        cat ${ref_dir}/text |\
+            sed 's/<German>//g' | sed 's/German://g' |\
+            sed 's/<Spanish>//g' | sed 's/Spanish://g' |\
+            sed 's/<Dutch>//g' | sed 's/Dutch://g' |\
+            sed 's/<Polish>//g' | sed 's/Polish://g' |\
+            sed 's/<French>//g' | sed 's/French://g' |\
+            sed 's/<Italian>//g' | sed 's/Italian://g' |\
+            sed 's/<Portuguese>//g' | sed 's/Portuguese://g' |\
+            sed 's/<Russian>//g' | sed 's/Russian://g' |\
+            sed 's/<Chinese>//g' | sed 's/Chinese://g' |\
+            sed 's/<Japanese>//g' | sed 's/Japanese://g' |\
+            sed 's/<Korean>//g' | sed 's/Korean://g' \
+            > ${ref_dir}/text.tmp
+        mv ${ref_dir}/text.tmp ${ref_dir}/text
+    fi
+
     if ${eval_wer}; then
         # Use ESPnet builtin script
         ./scripts/utils/evaluate_asr.sh \

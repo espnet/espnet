@@ -38,9 +38,10 @@ class ImageTokenizer(AbsTokenizer):
 
         if self.model_choice == "cosmos":
             model_dir = os.path.join("Cosmos-Tokenizer", "ckpt")
-            config_file = os.path.join(model_dir, "model_config.yaml")
+            config_file1 = os.path.join(model_dir, "model_config.yaml")
+            config_file2 = os.path.join(model_dir, "config.json")
 
-            if not os.path.exists(config_file):
+            if not (os.path.exists(config_file1) or os.path.exists(config_file2)):
                 raise ValueError(
                     f"Haven't found the target checkpoint file. \n"
                     f"To use cosmos tokenizer, please do as follow \n"
@@ -111,8 +112,11 @@ class ImageTokenizer(AbsTokenizer):
                 for img in images
             ], dim=0)
             images = images.to(torch.bfloat16).to(self.device)
-
             tokens = self.tokenizer.encode_image(images)[0].int()
+
+            shift = torch.arange(self.n_codebook).to(self.device)
+            tokens += shift.view(1, 1, 1, -1) * self.size_codebook
+
             return tokens
 
         else:
@@ -137,11 +141,12 @@ class ImageTokenizer(AbsTokenizer):
 
         elif self.model_choice == "vila-u":
             # resize to [B, H, W, C]. Will raise an error if size is not compatible
-            # print('type: ', type(codes))
             assert codes.dim() == 2
             size = int((codes.size(1) / self.n_codebook) ** 0.5)
             codes = codes.view(-1, size, size, self.n_codebook)
-            # codes = codes.permute
+
+            shift = torch.arange(self.n_codebook).to(self.device)
+            codes -= shift.view(1, 1, 1, -1) * self.size_codebook
 
             # convert back to range [0, 255]
             rec_images = self.tokenizer.decode(
@@ -153,26 +158,3 @@ class ImageTokenizer(AbsTokenizer):
             return rec_images
         else:
             raise NotImplementedError
-        
-
-def save_image_pil(image_matrix, file_path):
-    from PIL import Image
-    print('size: ', image_matrix.size())
-    print('before saving: ', image_matrix.max(), image_matrix.min())
-    image_matrix = image_matrix.permute(1, 2, 0)
-    image_matrix = image_matrix.float().cpu().detach().numpy()
-
-    # Convert from [0, 1] to [0, 255]
-    if image_matrix.max() <= 1.0:
-        image_matrix = (image_matrix * 255).astype(np.uint8)
-    
-    # If in [-1, 1] range, convert to [0, 255]
-    elif image_matrix.min() < 0:
-        image_matrix = ((image_matrix + 1) * 127.5).astype(np.uint8)
-        print('here', image_matrix.max(), image_matrix.min())
-        
-    # Create PIL image
-    img = Image.fromarray(image_matrix)
-    
-    # Save to disk
-    img.save(file_path)

@@ -48,11 +48,7 @@ def split_one_data_json(json_file, nj, output_dir):
         path, name, _type = file_triplet.split(",")
         file_dict = {}
         for line in open(path):
-            if _type == "jsonl":
-                line = json.loads(line)
-                utt, content = list(line.items())[0]
-            else:
-                utt, content = line.strip().split(maxsplit=1)
+            utt, content = line.strip().split(maxsplit=1)
             file_dict[utt] = content
         all_file_dict[(path, name, _type)] = file_dict
 
@@ -70,6 +66,11 @@ def split_one_data_json(json_file, nj, output_dir):
                 all_file_dict[(path, name, _type)],
                 nj,
             )
+        elif _type == "dialogue_json":
+            splits = split_by_consecutive(
+                all_file_dict[(path, name, _type)],
+                nj,
+            )
 
         if splits is not None:
             break
@@ -79,7 +80,7 @@ def split_one_data_json(json_file, nj, output_dir):
             all_file_dict[(path, name, _type)],
             nj,
         )
-
+    
     # (4) write to the disk
     (output_dir / f"split{nj}").mkdir(parents=True, exist_ok=True)
     for j in range(1, nj + 1):
@@ -96,11 +97,7 @@ def split_one_data_json(json_file, nj, output_dir):
             data_files.append(f"{new_file_name},{name},{_type}")
             writer = open(new_file_name, "w")
             for utt in this_split:
-                if _type == "jsonl":
-                    line = json.dumps({utt: data_dict[utt]})
-                    writer.write(line + "\n")
-                else:
-                    writer.write(f"{utt} {data_dict[utt]}\n")
+                writer.write(f"{utt} {data_dict[utt]}\n")
             writer.close()
 
         # write json files
@@ -127,6 +124,18 @@ def split_by_default(data_dict, nj):
     retval = [[] for _ in range(nj)]
     for idx, key in enumerate(data_dict.keys()):
         retval[idx % nj].append(key)
+    return retval
+
+def split_by_consecutive(data_dict, nj):
+    retval = []
+
+    all_keys = list(data_dict.keys())
+    size = len(all_keys) // nj
+    for n in range(nj):
+        start = n * size
+        end = min((n + 1) * size, len(all_keys))
+        retval.append(all_keys[start: end])
+    
     return retval
 
 

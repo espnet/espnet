@@ -17,9 +17,6 @@ import kaldiio
 import numpy as np
 import torch
 from torch.utils.data import Dataset, DataLoader
-# import torchvision
-# from torchvision import transforms
-
 from espnet2.speechlm.tokenizer.image_tokenizer import ImageTokenizer
 from espnet2.fileio.read_text import read_2columns_text
 
@@ -134,7 +131,6 @@ def parse_parquet(data_dict):
             parquet_files[parquet_file].append(k)
     
     for parquet_file, ids in parquet_files.items():
-        print(f'loading parquet file: {parquet_file}', flush=True)
         df = pd.read_parquet(parquet_file)
 
         for imgid in ids:
@@ -197,7 +193,6 @@ def dump_image(
 
     # (4) Tokenization
     image_writer = kaldiio.WriteHelper(wspecifier)
-    print('start tokenization: ', flush=True)
     for idx, (keys, images) in enumerate(dataloader):
         
         # Tokens of size: [B, W, H] or [B, W, H, n_q]
@@ -209,7 +204,7 @@ def dump_image(
         
         if idx > 0 and idx % 10 == 0:
             print(f'done {idx} batches', flush=True)
-
+        
     # (4) dump vocabulary file and image_code_per_frame file
     if rank == 1:
         vocab_writer = open(vocab_file, "w")

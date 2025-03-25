@@ -1,6 +1,6 @@
 # General
 # GH200 GPUs with 96G memory; 1.7B model. Revise according to your GPU memory
-nproc: 1
+nproc: 10
 dtype: bfloat16
 
 search_algo: greedy_search

@@ -132,7 +132,7 @@ textlm_max_words=1000
 
 # (6) Image tokenizer
 image_tokenizer_choice=cosmos
-image_tokenizer_tag=Cosmos-0.1-Tokenizer-DI8x8
+image_tokenizer_tag="Cosmos-Tokenize1-DI16x16-360p"
 image_tokenizer_resolution=256
 image_tokenization_batch_size=100
 image_tokenizer_resize_choice=center_crop
