@@ -84,7 +84,7 @@ requirements = {
         "torchaudio",
         "torch_optimizer",
         "fairscale",
-        "transformers",
+        "transformers<4.50.0",
         "evaluate",
     ],
     "setup": [
