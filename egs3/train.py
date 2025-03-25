@@ -24,7 +24,7 @@ def get_dataset(config):
     # load dataset
     train_dataset = load_from_disk(
         config.dataset.id,
-    )["dev-other"]
+    )["train-clean-100"]
     dev_dataset = concatenate_datasets([
         load_from_disk(
             config.dataset.id,
@@ -53,7 +53,7 @@ def get_dataset_ez(config, tokenize):
     # load dataset
     train_dataset = load_from_disk(
         config.dataset.id,
-    )["dev-other"]
+    )["train-clean-100"]
     dev_dataset = concatenate_datasets([
         load_from_disk(
             config.dataset.id,
@@ -85,7 +85,7 @@ if __name__ == "__main__":
     set_parallel(config.parallel)
     print("Parallelism config set", flush=True)
 
-    # Get dataset
+    # Get datase
     tokenizer = instantiate(config.tokenizer)
     converter = instantiate(config.converter)
     def tokenize(text):
@@ -118,3 +118,4 @@ if __name__ == "__main__":
     print("Trainer defined", flush=True)
 
     trainer.train()
+

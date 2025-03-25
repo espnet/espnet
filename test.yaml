@@ -1,11 +1,18 @@
 
 parallel:
   env: slurm
-  n_workers: 16
+  n_workers: 8
   options:
     queue: general
     cores: 8
-    processes: 4
+    processes: 2
     memory: 16GB
     walltime: 30:00
-    
+  
+frontend:
+  _target_: espnet2.asr.frontend.default.DefaultFrontend
+  n_fft: 512
+  win_length: 400
+  hop_length: 160
+  n_mels: 80
+
