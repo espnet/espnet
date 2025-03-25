@@ -146,6 +146,7 @@ def test_train_acc():
 
     numpy.testing.assert_allclose(ch_acc.data, th_acc)
 
+
 def test_train_acc():
     n_out = 7
     _eos = n_out - 1
