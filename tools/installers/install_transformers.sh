@@ -18,7 +18,7 @@ EOF
 }
 
 TR_VER="4.9.1"
-if $(torch_ver 2.1.0); then
+if $(torch_ver 2.3.0); then
     TR_VER+=",<4.50.0"
 fi
 
