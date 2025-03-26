@@ -1,6 +1,7 @@
 
 from omegaconf import OmegaConf
 from hydra.utils import instantiate
+from argparse import Namespace
 
 import librosa
 import numpy as np
@@ -17,7 +18,7 @@ print("IMPORTED", flush=True)
 def load_line(path):
     with open(path, "r") as f:
         data = f.readlines()
-    return data
+    return [t.strip() for t in data]
 
 
 def get_dataset(config):
@@ -100,14 +101,26 @@ if __name__ == "__main__":
     print("Set audio backend", flush=True)
 
     # Define model
+    # model = LitESPnetModel(
+    #     config.training,
+    #     instantiate(config.model),
+    #     train_dataset=train_cuts,
+    #     valid_dataset=dev_cuts,
+    # )
+    from espnetez.task import get_ez_task
+    model_config = OmegaConf.load("egs3/espnet_config.yaml")
+    task = get_ez_task("asr")
+    default_config = task.get_default_config()
+    default_config.update(model_config.model)
+    espnet_model = task.build_model(Namespace(**default_config))
     model = LitESPnetModel(
         config.training,
-        instantiate(config.model),
+        espnet_model,
         train_dataset=train_cuts,
         valid_dataset=dev_cuts,
     )
+    print(model)
     print("Model defined", flush=True)
-
     lightning_config = {} if not hasattr(config, "lightning") else config.lightning
 
     trainer = ESPnetEZLightningTrainer(
