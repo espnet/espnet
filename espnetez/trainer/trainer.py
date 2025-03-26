@@ -5,10 +5,20 @@ from typing import Any, Dict, List, Union
 
 import lightning as L
 import torch
+import torch.nn as nn
 from lightning.pytorch.loggers import CSVLogger
 from espnetez.trainer.callbacks import get_default_callbacks
 from espnetez.trainer.model import LitESPnetModel
 from typeguard import typechecked
+
+
+def init_weights(m):
+    if isinstance(m, nn.Linear):
+        torch.nn.init.xavier_uniform(m.weight)
+        m.bias.data.fill_(0.01)
+    if isinstance(m, nn.Conv1d):
+        torch.nn.init.kaiming_uniform_(m.weight)
+        m.bias.data.fill_(0.01)
 
 
 class ESPnetEZLightningTrainer:
@@ -49,6 +59,7 @@ class ESPnetEZLightningTrainer:
 
         # Instantiate the Lightning Model
         self.model = model
+        init_weights(self.model)
 
         # Set strategy. Default is DDP
         if getattr(self.config, "strategy") and type(self.config.strategy) == str:
@@ -88,5 +99,10 @@ class ESPnetEZLightningTrainer:
             **lightning_kwargs,
         )
 
-    def train(self):
-        self.trainer.fit(model=self.model, ckpt_path="last")
+    def train(self, *args, **kwargs):
+        self.trainer.fit(
+            *args,
+            model=self.model,
+            ckpt_path="last",
+            **kwargs,
+        )

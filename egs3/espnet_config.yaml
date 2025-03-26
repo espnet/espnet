@@ -1,4 +1,4 @@
-expdir: exp/ls100_debug_utt_custom_callback
+expdir: exp/ls100_debug_ctc
 vocab_size: 6500
 
 parallel:
@@ -29,38 +29,9 @@ model:
   vocab_size: ${vocab_size}
   token_list: ${load_line:sentencepiece_model/tokens.txt}
   
-  frontend:
-    _target_: espnet2.asr.frontend.default.DefaultFrontend
-    n_fft: 512
-    win_length: 400
-    hop_length: 160
-    n_mels: 80
-
-  specaug:
-    _target_: espnet2.asr.specaug.specaug.SpecAug
-    apply_time_warp: true
-    time_warp_window: 5
-    time_warp_mode: bicubic
-    apply_freq_mask: true
-    freq_mask_width_range:
-    - 0
-    - 27
-    num_freq_mask: 2
-    apply_time_mask: true
-    time_mask_width_ratio_range:
-    - 0.
-    - 0.05
-    num_time_mask: 5
-
-  normalize:
-    _target_: espnet2.layers.utterance_mvn.UtteranceMVN
-  # normalize:
-    # _target_: espnet2.layers.global_mvn.GlobalMVN
-    # stats_file: train_feat_stats.npz
-    
-  encoder: 
-    _target_: espnet2.asr.encoder.e_branchformer_encoder.EBranchformerEncoder
-    input_size: ${model.frontend.n_mels}
+  input_size: 
+  encoder: e_branchformer
+  encoder_conf:
     output_size: 256
     attention_heads: 4
     attention_layer_type: rel_selfattn
@@ -82,29 +53,47 @@ model:
     macaron_ffn: true
     merge_conv_kernel: 31
 
-  decoder:
-    _target_: espnet2.asr.decoder.transformer_decoder.TransformerDecoder
-    vocab_size: ${vocab_size}
-    encoder_output_size: ${model.encoder.output_size}
-    attention_heads: 4
-    linear_units: 2048
-    num_blocks: 6
-    dropout_rate: 0.1
-    positional_dropout_rate: 0.1
-    self_attention_dropout_rate: 0.1
-    src_attention_dropout_rate: 0.1
-    layer_drop_rate: 0.0
-  
-  ctc:
-    _target_: espnet2.asr.ctc.CTC
-    odim: ${vocab_size}
-    encoder_output_size: ${model.encoder.output_size}
-  
-  joint_network:
-  ctc_weight: 1.0
-  lsm_weight: 0.1
-  preencoder:
-  postencoder:
+  # normalize: global_mvn
+  # normalize_conf:
+  #   stats_file: train_feat_stats.npz
+  normalize: utterance_mvn
+
+  model_conf:
+      ctc_weight: 1.0
+      lsm_weight: 0.1
+      length_normalized_loss: false
+
+  frontend: default
+  frontend_conf:
+      n_fft: 512
+      win_length: 400
+      hop_length: 160
+      
+  specaug: specaug
+  specaug_conf:
+      apply_time_warp: true
+      time_warp_window: 5
+      time_warp_mode: bicubic
+      apply_freq_mask: true
+      freq_mask_width_range:
+      - 0
+      - 27
+      num_freq_mask: 2
+      apply_time_mask: true
+      time_mask_width_ratio_range:
+      - 0.
+      - 0.05
+      num_time_mask: 5
+
+  optim: adam
+  optim_conf:
+      lr: 0.002
+      weight_decay: 0.000001
+  scheduler: warmuplr
+  scheduler_conf:
+      warmup_steps: 15000
+
+
 
 training:
   expdir: ${expdir}
@@ -123,7 +112,7 @@ training:
       int_pad_value: -1
     train:
       shuffle: true
-      batch_size: 30
+      batch_size: 20
     valid:
       shuffle: false
       batch_size: 4
@@ -155,6 +144,9 @@ trainer:
 
   strategy: ddp
 
+  callbacks:
+    - _target_: lightning.pytorch.callbacks.DeviceStatsMonitor
+
   loggers:
     - _target_: lightning.pytorch.loggers.TensorBoardLogger
       save_dir: ${expdir}/tensorboard
@@ -164,10 +156,9 @@ lightning:
   # GPU settings
   accelerator: gpu
   devices: 1
-  # distributed_backend: ddp
   num_nodes: 1
   accumulate_grad_batches: 1
   gradient_clip_val: 1.0
   log_every_n_steps: ${trainer.log_interval}
-  max_epochs: 10
+  max_epochs: 100
   use_distributed_sampler: false
