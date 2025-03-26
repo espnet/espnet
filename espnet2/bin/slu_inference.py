@@ -79,6 +79,8 @@ class Speech2Understand:
         quantize_lm: bool = False,
         quantize_modules: List[str] = ["Linear"],
         quantize_dtype: str = "qint8",
+        sim_chunk_length: int = 640,
+        start_chunk: int = 3200,
     ):
 
         task = SLUTask
@@ -242,6 +244,8 @@ class Speech2Understand:
         self.dtype = dtype
         self.nbest = nbest
         self.run_chunk = run_chunk
+        self.sim_chunk_length = sim_chunk_length
+        self.start_chunk = start_chunk
 
     @torch.no_grad()
     def __call__(
@@ -276,8 +280,8 @@ class Speech2Understand:
 
         if self.run_chunk:
             speech = to_device(speech, device=self.device)
-            sim_chunk_length = 640
-            start_chunk = 3200
+            sim_chunk_length = self.sim_chunk_length
+            start_chunk = self.start_chunk
             results_arr = []
             token_int_corr_total = []
             text_arr = []
