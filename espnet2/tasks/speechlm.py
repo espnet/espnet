@@ -9,11 +9,7 @@ from typeguard import typechecked
 
 # CoreLMs
 from espnet2.speechlm.core_lm.abs_core_lm import AbsCoreLM
-from espnet2.speechlm.core_lm.ar import ARLM
 from espnet2.speechlm.core_lm.ar_delay import ARDelayLM
-from espnet2.speechlm.core_lm.ar_multiscale import ARMultiScaleLM
-from espnet2.speechlm.core_lm.ar_parallel import ARParallelLM
-from espnet2.speechlm.core_lm.valle import ValleLM
 
 # Overall model warppers
 from espnet2.speechlm.espnet_model import ESPnetSpeechLMModel
@@ -58,11 +54,7 @@ transformer_choices = ClassChoices(
 corelm_choices = ClassChoices(
     "corelm",
     classes=dict(
-        valle=ValleLM,
-        ar=ARLM,
-        ar_parallel=ARParallelLM,
         ar_delay=ARDelayLM,
-        ar_multiscale=ARMultiScaleLM,
     ),
     type_check=AbsCoreLM,
     default="valle",
