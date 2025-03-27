@@ -7,7 +7,7 @@
 from typing import Dict, Tuple
 
 import torch
-import torch.nn.functional as F
+import torch.nn.functional as F  # noqa
 from typeguard import typechecked
 
 from espnet2.speechlm.core_lm.abs_core_lm import AbsCoreLM

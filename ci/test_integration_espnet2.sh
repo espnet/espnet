@@ -331,6 +331,15 @@ echo "==== [ESPnet2] LM ==="
 rm -rf exp dump data
 cd "${cwd}"
 
+# [ESPnet2] test codec1 recipe
+cd ./egs2/mini_an4/codec1
+gen_dummy_coverage
+echo "==== [ESPnet2] Codec ==="
+./run.sh --ngpu 0 --stage 1 --stop_stage 6 --python "${python}"
+# Remove generated files in order to reduce the disk usage
+rm -rf exp dump data
+cd "${cwd}"
+
 echo "=== report ==="
 coverage combine egs2/*/*/.coverage
 coverage report

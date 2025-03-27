@@ -13,18 +13,19 @@ n_fft=2048
 n_shift=512
 win_length=2048
 
-score_feats_extract=syllable_score_feats   # frame_score_feats | syllable_score_feats
+score_feats_extract="syllable_score_feats" # frame_score_feats | syllable_score_feats
 
 opts="--audio_format wav "
 
-train_set=tr_no_dev
-valid_set=dev
-test_sets="dev test"
-dataset='all'
+train_set="tr_no_dev"
+valid_set="dev"
+test_set="test"
+test_sets="${valid_set} ${test_set}"
+dataset="all"
 
 # training and inference configuration
-train_config=conf/train.yaml
-inference_config=conf/decode.yaml
+train_config="conf/train.yaml"
+inference_config="conf/decode.yaml"
 
 # text related processing arguments
 g2p=None
@@ -35,7 +36,7 @@ ying_extract=None
 
 ./svs.sh \
     --lang zh \
-    --local_data_opts "--stage 0 --dataset ${dataset}" \
+    --local_data_opts "--stage 0 --dataset ${dataset} --train_set ${train_set} --valid_set ${valid_set} --test_set ${test_set}" \
     --feats_type raw \
     --pitch_extract "${pitch_extract}" \
     --ying_extract "${ying_extract}" \

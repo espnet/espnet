@@ -41,6 +41,8 @@ from espnet2.train.abs_espnet_model import AbsESPnetModel
 # Preprocessor
 from espnet2.train.preprocessor import SpeechLMPreprocessor
 from espnet2.train.trainer import Trainer
+from espnet2.utils.get_default_kwargs import get_default_kwargs  # noqa
+from espnet2.utils.nested_dict_action import NestedDictAction  # noqa
 from espnet2.utils.types import int_or_none, str2bool, str_or_none
 
 transformer_choices = ClassChoices(

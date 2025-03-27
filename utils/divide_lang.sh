@@ -5,10 +5,10 @@
 
 . ./path.sh
 
-if [ "$#" -ne 2 ]; then
+if [ "$1" = "--help" ] ; then
     echo "Usage: $0 <set> <langs divided by space>"
     echo "e.g.: $0 dev"
-    exit 1
+    exit 0
 fi
 
 set=$1

@@ -10,13 +10,13 @@ import sys
 import time
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, List, Optional, Sequence, Tuple, Union
 
 import torch
 import torchaudio
 import yaml
 from kaldiio import WriteHelper
-from packaging.version import parse as V
+from packaging.version import parse as V  # noqa
 from typeguard import typechecked
 
 from espnet2.speechlm.core_lm.abs_core_lm import SpeechLMInferenceOptions
@@ -29,7 +29,7 @@ from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
-from espnet2.utils.types import str2bool, str2triple_str, str_or_none
+from espnet2.utils.types import str2bool, str2triple_str, str_or_none  # noqa
 from espnet.utils.cli_utils import get_commandline_args
 
 

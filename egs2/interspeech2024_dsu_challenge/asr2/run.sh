@@ -16,11 +16,11 @@ train_set="train"
 train_dev="dev"
 test_sets="test_clean test_other dev_clean dev_other test_1h"
 
-asr_config=conf/tuning/train_discrete_asr_e_branchformer1_1gpu_lr5e-4_warmup5k.yaml
+asr_config=conf/tuning/train_discrete_asr_e_branchformer1_1gpu_lr5e-4_warmup30k.yaml
 inference_config=conf/decode_ctc0.3.yaml
 
 src_nbpe=3000   # I use src_nbpe=6000 for 2000-cluster kmeans.
-tgt_nbpe=6000   # if token_joint is True, then only tgt_nbpe is used
+tgt_nbpe=6500   # if token_joint is True, then only tgt_nbpe is used
 
 # ts: true sequence
 # rm: deduplicated sequence which removes duplicated tokens
@@ -51,6 +51,6 @@ speed_perturb_factors=""
     --valid_set "${train_dev}" \
     --test_sets "${test_sets}" \
     --use_lm false \
-    --src_bpe_train_text "data/${train_set}/text.${src_case}.${src_lang}" \
-    --tgt_bpe_train_text "data/${train_set}/text.${tgt_case}.${tgt_lang}" \
-    --lm_train_text "data/${train_set}/text.${tgt_case}.${tgt_lang}" "$@"
+    --src_bpe_train_text "dump/raw/${train_set}/text.${src_case}.${src_lang}" \
+    --tgt_bpe_train_text "dump/raw/${train_set}/text.${tgt_case}.${tgt_lang}" \
+    --lm_train_text "dump/raw/${train_set}/text.${tgt_case}.${tgt_lang}" "$@"

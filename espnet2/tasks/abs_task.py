@@ -2,6 +2,7 @@
 
 import argparse
 import functools
+import itertools
 import logging
 import os
 import sys
@@ -9,7 +10,7 @@ import tempfile
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Sequence, Set, Tuple, Union
 
 import humanfriendly
 import numpy as np
@@ -24,6 +25,7 @@ from typeguard import typechecked
 
 from espnet import __version__
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
+from espnet2.iterators.category_chunk_iter_factory import CategoryChunkIterFactory
 from espnet2.iterators.category_iter_factory import CategoryIterFactory
 from espnet2.iterators.chunk_iter_factory import ChunkIterFactory
 from espnet2.iterators.multiple_iter_factory import MultipleIterFactory
@@ -288,7 +290,6 @@ class AbsTask(ABC):
     @classmethod
     @typechecked
     def get_parser(cls) -> config_argparse.ArgumentParser:
-
         class ArgumentDefaultsRawTextHelpFormatter(
             argparse.RawTextHelpFormatter,
             argparse.ArgumentDefaultsHelpFormatter,
@@ -486,7 +487,20 @@ class AbsTask(ABC):
                  "and will not be used by other libraries like deepspeed and NCCL. "
                  "Only effective when using deepspeed trainer",
         )
-
+        group.add_argument(
+            "--gradient_as_bucket_view",
+            default=True,
+            type=str2bool,
+            help="Enable gradient_as_bucket_view in DDP",
+        )
+        group.add_argument(
+            "--ddp_comm_hook",
+            default=None,
+            type=str_or_none,
+            choices=["none", "fp16_compress_hook", "bf16_compress_hook"],
+            help="DDP communication hook from "
+            "torch.distributed.algorithms.ddp_comm_hooks.default_hooks",
+        )
 
         group = parser.add_argument_group("cudnn mode related")
         group.add_argument(
@@ -819,6 +833,12 @@ class AbsTask(ABC):
             help="If true, allow duplication in sampler shape files. "
                  "This is usually for data re-weighting "
                  "Currently only for numel sampler"
+        )
+        group.add_argument(
+            "--category_sample_size",
+            type=int,
+            default=10,
+            help="The sample size for category chunk iterator",
         )
 
         group.add_argument("--train_shape_file", type=str, action="append", default=[])
@@ -1371,7 +1391,7 @@ class AbsTask(ABC):
             assert not args.use_amp, "amp is not compatible with tf32"
             torch.backends.cuda.matmul.allow_tf32 = True
             torch.backends.cudnn.allow_tf32 = True
-            logging.info(f"Using TensorFloat32 at the cost of matmul precision")
+            logging.info("Using TensorFloat32 at the cost of matmul precision")
 
         if (
             args.collect_stats
@@ -1613,10 +1633,8 @@ class AbsTask(ABC):
                     else:
                         project = args.wandb_project
 
-                    if args.wandb_name is None:
-                        name = str(Path(".").resolve()).replace("/", "_")
-                    else:
-                        name = args.wandb_name
+                    # Wandb server generates a random name, if args.wandb_name is None
+                    name = args.wandb_name
 
                     wandb.init(
                         entity=args.wandb_entity,
@@ -1629,7 +1647,7 @@ class AbsTask(ABC):
                     wandb.config.update(args)
                 else:
                     # wandb also supports grouping for distributed training,
-                    # but we only logs aggregated data,
+                    # but we only log aggregated data,
                     # so it's enough to perform on rank0 node.
                     args.use_wandb = False
 
@@ -1644,6 +1662,23 @@ class AbsTask(ABC):
 
             # Don't give args to trainer.run() directly!!!
             # Instead of it, define "Options" object and build here.
+
+            if args.use_deepspeed:
+                if not distributed_option.distributed:
+                    logging.warning(
+                        "DeepSpeed is for distributed training. E.g., --ngpu > 1 "
+                        "Switch back to the normal trainer."
+                    )
+                elif cls.trainer != Trainer:
+                    raise ValueError(
+                        "only default trainer is compatible with deepspeed"
+                    )
+                else:
+                    from espnet2.train.deepspeed_trainer import DeepSpeedTrainer
+
+                    cls.trainer = DeepSpeedTrainer
+                    distributed_option.init_deepspeed()
+
             trainer_options = cls.trainer.build_options(args)
             cls.trainer.run(
                 model=model,
@@ -1812,6 +1847,12 @@ class AbsTask(ABC):
                 iter_options=iter_options,
                 mode=mode,
             )
+        elif iterator_type == "category_chunk":
+            return cls.build_category_chunk_iter_factory(
+                args=args,
+                iter_options=iter_options,
+                mode=mode,
+            )
         elif iterator_type == "task":
             return cls.build_task_iter_factory(
                 args=args,
@@ -1823,10 +1864,12 @@ class AbsTask(ABC):
 
     @classmethod
     @typechecked
-    def build_sequence_iter_factory(
-        cls, args: argparse.Namespace, iter_options: IteratorOptions, mode: str
-    ) -> AbsIterFactory:
-
+    def build_dataset(
+        cls,
+        args: argparse.Namespace,
+        iter_options: IteratorOptions,
+        keys_to_load: Optional[Set[Union[int, str]]] = None,
+    ) -> AbsDataset:
         if args.multi_task_dataset:
             dataset_class = ESPnetMultiTaskDataset
         else:
@@ -1839,20 +1882,24 @@ class AbsTask(ABC):
             max_cache_size=iter_options.max_cache_size,
             max_cache_fd=iter_options.max_cache_fd,
             allow_multi_rates=iter_options.allow_multi_rates,
+            keys_to_load=keys_to_load,
         )
         cls.check_task_requirements(
             dataset, args.allow_variable_data_keys, train=iter_options.train
         )
+        return dataset
 
-        if Path(
-            Path(iter_options.data_path_and_name_and_type[0][0]).parent, "utt2category"
-        ).exists():
-            utt2category_file = str(
-                Path(
-                    Path(iter_options.data_path_and_name_and_type[0][0]).parent,
-                    "utt2category",
-                )
-            )
+    @classmethod
+    @typechecked
+    def build_sequence_iter_factory(
+        cls, args: argparse.Namespace, iter_options: IteratorOptions, mode: str
+    ) -> AbsIterFactory:
+
+        utt2category_file = (
+            Path(iter_options.data_path_and_name_and_type[0][0]).parent / "utt2category"
+        )
+        if utt2category_file.exists():
+            utt2category_file = str(utt2category_file)
             logging.warning("Reading " + utt2category_file)
         else:
             utt2category_file = None
@@ -1881,13 +1928,13 @@ class AbsTask(ABC):
 
         bs_list = [len(batch) for batch in batches]
 
-        logging.info(f"[{mode}] dataset:\n{dataset}")
         logging.info(f"[{mode}] Batch sampler: {batch_sampler}")
         logging.info(
             f"[{mode}] mini-batch sizes summary: N-batch={len(bs_list)}, "
             f"mean={np.mean(bs_list):.1f}, min={np.min(bs_list)}, max={np.max(bs_list)}"
         )
 
+        # Shard mini-batches for distributed training
         if iter_options.distributed:
             if args.sharded_dataset:
                 batches = synchronize_sharded_batches(batches)
@@ -1901,6 +1948,15 @@ class AbsTask(ABC):
                             f"{len(batch)} < {world_size}"
                         )
                 batches = [batch[rank::world_size] for batch in batches]
+
+        # Build dataset after sharding to reduce memory usage
+        # This is very helpful for large-scale training
+        dataset = cls.build_dataset(
+            args,
+            iter_options,
+            set(itertools.chain(*batches)),
+        )
+        logging.info(f"[{mode}] dataset:\n{dataset}")
 
         return SequenceIterFactory(
             dataset=dataset,
@@ -2075,6 +2131,103 @@ class AbsTask(ABC):
             discard_short_samples=args.chunk_discard_short_samples,
         )
 
+    @classmethod
+    @typechecked
+    def build_category_chunk_iter_factory(
+        cls,
+        args: argparse.Namespace,
+        iter_options: IteratorOptions,
+        mode: str,
+    ) -> AbsIterFactory:
+
+        dataset = ESPnetDataset(
+            iter_options.data_path_and_name_and_type,
+            float_dtype=args.train_dtype,
+            preprocess=iter_options.preprocess_fn,
+            max_cache_size=iter_options.max_cache_size,
+            max_cache_fd=iter_options.max_cache_fd,
+            allow_multi_rates=iter_options.allow_multi_rates,
+        )
+        cls.check_task_requirements(
+            dataset, args.allow_variable_data_keys, train=iter_options.train
+        )
+
+        if Path(
+            Path(iter_options.data_path_and_name_and_type[0][0]).parent, "category2utt"
+        ).exists():
+            category2utt_file = str(
+                Path(
+                    Path(iter_options.data_path_and_name_and_type[0][0]).parent,
+                    "category2utt",
+                )
+            )
+            logging.warning("Reading " + category2utt_file)
+        else:
+            category2utt_file = None
+
+        sampler_args = dict(
+            batch_size=args.category_sample_size,
+            min_batch_size=(
+                torch.distributed.get_world_size() if iter_options.distributed else 1
+            ),
+            drop_last=args.drop_last_iter,
+            category2utt_file=category2utt_file,
+            epoch=1,
+            num_batches=iter_options.num_batches,
+            distributed=iter_options.distributed,
+        )
+        batch_sampler = CategoryBalancedSampler(**sampler_args)
+
+        batches = list(batch_sampler)
+        if iter_options.num_batches is not None:
+            batches = batches[: iter_options.num_batches]
+        logging.info(f"[{mode}] dataset:\n{dataset}")
+
+        if iter_options.distributed:
+            world_size = torch.distributed.get_world_size()
+            rank = torch.distributed.get_rank()
+            if len(batches) < world_size:
+                raise RuntimeError("Number of samples is smaller than world_size")
+            if iter_options.batch_size < world_size:
+                raise RuntimeError("batch_size must be equal or more than world_size")
+
+            if rank < iter_options.batch_size % world_size:
+                batch_size = iter_options.batch_size // world_size + 1
+            else:
+                batch_size = iter_options.batch_size // world_size
+            num_cache_chunks = args.num_cache_chunks // world_size
+            # NOTE(kamo): Split whole corpus by sample numbers without considering
+            #   each of the lengths, therefore the number of iteration counts are not
+            #   always equal to each other and the iterations are limitted
+            #   by the fewest iterations.
+            #   i.e. the samples over the counts are discarded.
+            batches = batches[rank::world_size]
+        else:
+            batch_size = iter_options.batch_size
+            num_cache_chunks = args.num_cache_chunks
+
+        return CategoryChunkIterFactory(
+            dataset=dataset,
+            batches=batches,
+            seed=args.seed,
+            batch_size=batch_size,
+            # For chunk iterator,
+            # --num_iters_per_epoch doesn't indicate the number of iterations,
+            # but indicates the number of samples.
+            num_samples_per_epoch=iter_options.num_iters_per_epoch,
+            shuffle=iter_options.train,
+            num_workers=args.num_workers,
+            collate_fn=iter_options.collate_fn,
+            pin_memory=args.ngpu > 0,
+            chunk_length=args.chunk_length,
+            chunk_shift_ratio=args.chunk_shift_ratio,
+            num_cache_chunks=num_cache_chunks,
+            excluded_key_prefixes=args.chunk_excluded_key_prefixes,
+            default_fs=args.chunk_default_fs,
+            chunk_max_abs_length=args.chunk_max_abs_length,
+            discard_short_samples=args.chunk_discard_short_samples,
+        )
+
     # NOTE(kamo): Not abstract class
     @classmethod
     def build_task_iter_factory(
@@ -2206,7 +2359,7 @@ class AbsTask(ABC):
         collate_fn,
         key_file: Optional[str] = None,
         batch_size: int = 1,
-        dtype: str = np.float32,
+        dtype: Optional[Any] = np.float32,
         num_workers: int = 1,
         allow_variable_data_keys: bool = False,
         ngpu: int = 0,
@@ -2299,12 +2452,15 @@ class AbsTask(ABC):
                 #   in PyTorch<=1.4
                 device = f"cuda:{torch.cuda.current_device()}"
             try:
-                state_dict = torch.load(model_file, map_location='cpu')
-                if 'model' in state_dict:
-                    state_dict = state_dict['model']
+                state_dict = torch.load(
+                    model_file, map_location=device, weights_only=False
+                )
+                # for deepspeed checkpoints
+                if "module" in state_dict:
+                    state_dict = state_dict["module"]
                 model.load_state_dict(
                     state_dict,
-                    strict=True,
+                    strict=False,
                 )
             except RuntimeError:
                 # Note(simpleoier): the following part is to be compatible with

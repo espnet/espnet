@@ -1,3 +1,5 @@
+"""Iterators functions."""
+
 import chainer
 import numpy as np
 from chainer.iterators import MultiprocessIterator, SerialIterator, ShuffleOrderSampler
@@ -5,10 +7,10 @@ from chainer.training.extension import Extension
 
 
 class ShufflingEnabler(Extension):
-    """An extension enabling shuffling on an Iterator"""
+    """An extension enabling shuffling on an Iterator."""
 
     def __init__(self, iterators):
-        """Inits the ShufflingEnabler
+        """Init the ShufflingEnabler.
 
         :param list[Iterator] iterators: The iterators to enable shuffling on
         """
@@ -16,7 +18,7 @@ class ShufflingEnabler(Extension):
         self.iterators = iterators
 
     def __call__(self, trainer):
-        """Calls the enabler on the given iterator
+        """Call the enabler on the given iterator.
 
         :param trainer: The iterator
         """
@@ -27,10 +29,10 @@ class ShufflingEnabler(Extension):
 
 
 class ToggleableShufflingSerialIterator(SerialIterator):
-    """A SerialIterator having its shuffling property activated during training"""
+    """A SerialIterator having its shuffling property activated during training."""
 
     def __init__(self, dataset, batch_size, repeat=True, shuffle=True):
-        """Init the Iterator
+        """Init the Iterator.
 
         :param torch.nn.Tensor dataset: The dataset to take batches from
         :param int batch_size: The batch size
@@ -42,7 +44,7 @@ class ToggleableShufflingSerialIterator(SerialIterator):
         )
 
     def start_shuffle(self):
-        """Starts shuffling (or reshuffles) the batches"""
+        """Start shuffling (or reshuffles) the batches."""
         self._shuffle = True
         if int(chainer._version.__version__[0]) <= 4:
             self._order = np.random.permutation(len(self.dataset))
@@ -52,7 +54,7 @@ class ToggleableShufflingSerialIterator(SerialIterator):
 
 
 class ToggleableShufflingMultiprocessIterator(MultiprocessIterator):
-    """A MultiprocessIterator having its shuffling property activated during training"""
+    """MultiprocessIterator having its shuffling property activated during training."""
 
     def __init__(
         self,
@@ -65,7 +67,7 @@ class ToggleableShufflingMultiprocessIterator(MultiprocessIterator):
         shared_mem=None,
         maxtasksperchild=20,
     ):
-        """Init the iterator
+        """Init the iterator.
 
         :param torch.nn.Tensor dataset: The dataset to take batches from
         :param int batch_size: The batch size
@@ -88,7 +90,7 @@ class ToggleableShufflingMultiprocessIterator(MultiprocessIterator):
         )
 
     def start_shuffle(self):
-        """Starts shuffling (or reshuffles) the batches"""
+        """Start shuffling (or reshuffles) the batches."""
         self.shuffle = True
         if int(chainer._version.__version__[0]) <= 4:
             self._order = np.random.permutation(len(self.dataset))

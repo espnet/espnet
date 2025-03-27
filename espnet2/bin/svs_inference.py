@@ -33,10 +33,61 @@ class SingingGenerate:
     """SingingGenerate class
 
     Examples:
+        Example 1: SVS
         >>> import soundfile
-        >>> svs = SingingGenerate("config.yml", "model.pth")
-        >>> wav = svs("Hello World")[0]
-        >>> soundfile.write("out.wav", wav.numpy(), svs.fs, "PCM_16")
+        >>> import numpy as np
+        >>> svs = svs = SingingGenerate(
+        ...     "config.yaml", "model.pth", vocoder_checkpoint="vocoder.pkl"
+        ... )
+        >>> batch = {
+        ...     "score": (
+        ...         75,  # tempo
+        ...         [
+        ...             (0.0, 0.25, "r_en", 63.0, "r_en"),
+        ...             (0.25, 0.5, "—", 63.0, "en"),
+        ...         ],
+        ...     ),
+        ...     "text": "r en en",
+        ...     "label": (
+        ...         np.array(
+        ...             [
+        ...                 [0.0, 0.125],
+        ...                 [0.125, 0.25],
+        ...                 [0.25, 0.375],
+        ...             ]
+        ...         ),
+        ...         ["r", "en", "en"],
+        ...     ),
+        ... }
+        >>> output_dict = svs(batch)
+        >>> soundfile.write("out.wav", output_dict["wav"].numpy(), svs.fs, "PCM_16")
+
+        Example 2: GAN SVS
+        >>> import soundfile
+        >>> import numpy as np
+        >>> svs = SingingGenerate("config.yaml", "model.pth")
+        >>> batch = {
+        ...     "score": (
+        ...         75,  # tempo
+        ...         [
+        ...             (0.0, 0.25, "r_en", 63.0, "r_en"),
+        ...             (0.25, 0.5, "—", 63.0, "en"),
+        ...         ],
+        ...     ),
+        ...     "text": "r en en",
+        ...     "label": (
+        ...         np.array(
+        ...             [
+        ...                 [0.0, 0.125],
+        ...                 [0.125, 0.25],
+        ...                 [0.25, 0.375],
+        ...             ]
+        ...         ),
+        ...         ["r", "en", "en"],
+        ...     ),
+        ... }
+        >>> output_dict = svs(batch, sids=np.array([1]))
+        >>> soundfile.write("out_gan.wav", output_dict["wav"].numpy(), svs.fs, "PCM_16")
     """
 
     @typechecked

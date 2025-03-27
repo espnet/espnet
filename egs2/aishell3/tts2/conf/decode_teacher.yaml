@@ -1,0 +1,10 @@
+# This configuration is the basic decoding setting for Tacotron 2.
+# It can be also applied to Transformer. If you met some problems
+# such as deletions or repetitions, it is worthwhile to try
+# `use_att_constraint: true` to make the generation more stable.
+# Note that attention constraint is not supported in Transformer.
+
+##########################################################
+#                    DECODING SETTING                    #
+##########################################################
+use_teacher_forcing: false

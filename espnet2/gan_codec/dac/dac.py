@@ -2,9 +2,7 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """DAC Modules."""
-import copy
 import functools
-import logging
 import math
 import random
 from typing import Any, Dict, List, Optional
@@ -12,7 +10,7 @@ from typing import Any, Dict, List, Optional
 import numpy as np
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
+import torch.nn.functional as F  # noqa
 from typeguard import typechecked
 
 from espnet2.gan_codec.abs_gan_codec import AbsGANCodec
@@ -20,13 +18,9 @@ from espnet2.gan_codec.shared.decoder.seanet import SEANetDecoder
 from espnet2.gan_codec.shared.discriminator.msmpmb_discriminator import (
     MultiScaleMultiPeriodMultiBandDiscriminator,
 )
-from espnet2.gan_codec.shared.discriminator.stft_discriminator import (
-    ComplexSTFTDiscriminator,
-)
 from espnet2.gan_codec.shared.encoder.seanet import SEANetEncoder
 from espnet2.gan_codec.shared.loss.freq_loss import MultiScaleMelSpectrogramLoss
 from espnet2.gan_codec.shared.quantizer.residual_vq import ResidualVectorQuantizer
-from espnet2.gan_tts.hifigan.hifigan import HiFiGANMultiScaleDiscriminator
 from espnet2.gan_tts.hifigan.loss import (
     DiscriminatorAdversarialLoss,
     FeatureMatchLoss,
@@ -36,7 +30,7 @@ from espnet2.torch_utils.device_funcs import force_gatherable
 
 
 class DAC(AbsGANCodec):
-    """ "DAC model."""
+    """DAC model."""
 
     @typechecked
     def __init__(
@@ -74,36 +68,37 @@ class DAC(AbsGANCodec):
             "quantizer_dropout": True,
         },
         discriminator_params: Dict[str, Any] = {
-            "scales": 3,
-            "scale_downsample_pooling": "AvgPool1d",
-            "scale_downsample_pooling_params": {
-                "kernel_size": 4,
-                "stride": 2,
-                "padding": 2,
-            },
-            "scale_discriminator_params": {
-                "in_channels": 1,
-                "out_channels": 1,
-                "kernel_sizes": [15, 41, 5, 3],
-                "channels": 128,
-                "max_downsample_channels": 1024,
-                "max_groups": 16,
-                "bias": True,
-                "downsample_scales": [2, 2, 4, 4, 1],
-                "nonlinear_activation": "LeakyReLU",
-                "nonlinear_activation_params": {"negative_slope": 0.1},
-            },
             "scale_follow_official_norm": False,
-            "complexstft_discriminator_params": {
-                "in_channels": 1,
-                "channels": 32,
-                "strides": ((1, 2), (2, 2), (1, 2), (2, 2), (1, 2), (2, 2)),
-                "chan_mults": (1, 2, 4, 4, 8, 8),
-                "n_fft": 1024,
-                "hop_length": 256,
-                "win_length": 1024,
-                "stft_normalized": False,
-                "logits_abs": True,
+            "msmpmb_discriminator_params": {
+                "rates": [],
+                "fft_sizes": [2048, 1024, 512],
+                "sample_rate": 24000,
+                "periods": [2, 3, 5, 7, 11],
+                "period_discriminator_params": {
+                    "in_channels": 1,
+                    "out_channels": 1,
+                    "kernel_sizes": [5, 3],
+                    "channels": 32,
+                    "downsample_scales": [3, 3, 3, 3, 1],
+                    "max_downsample_channels": 1024,
+                    "bias": True,
+                    "nonlinear_activation": "LeakyReLU",
+                    "nonlinear_activation_params": {"negative_slope": 0.1},
+                    "use_weight_norm": True,
+                    "use_spectral_norm": False,
+                },
+                "band_discriminator_params": {
+                    "hop_factor": 0.25,
+                    "sample_rate": 24000,
+                    "bands": [
+                        (0.0, 0.1),
+                        (0.1, 0.25),
+                        (0.25, 0.5),
+                        (0.5, 0.75),
+                        (0.75, 1.0),
+                    ],
+                    "channel": 32,
+                },
             },
         },
         # loss related
@@ -646,30 +641,9 @@ class DACDiscriminator(nn.Module):
 
     def __init__(
         self,
-        # Multi-scale discriminator related
-        scales: int = 3,
-        scale_downsample_pooling: str = "AvgPool1d",
-        # follow the official implementation setting
-        scale_downsample_pooling_params: Dict[str, Any] = {
-            "kernel_size": 4,
-            "stride": 2,
-            "padding": 2,
-        },
-        scale_discriminator_params: Dict[str, Any] = {
-            "in_channels": 1,
-            "out_channels": 1,
-            "kernel_sizes": [15, 41, 5, 3],
-            "channels": 128,
-            "max_downsample_channels": 1024,
-            "max_groups": 16,
-            "bias": True,
-            "downsample_scales": [2, 2, 4, 4, 1],
-            "nonlinear_activation": "LeakyReLU",
-            "nonlinear_activation_params": {"negative_slope": 0.1},
-        },
+        # MultiScaleMultiPeriodMultiBandDiscriminator parameters
         msmpmb_discriminator_params: Dict[str, Any] = {
             "rates": [],
-            "periods": [2, 3, 5, 7, 11],
             "fft_sizes": [2048, 1024, 512],
             "sample_rate": 24000,
             "periods": [2, 3, 5, 7, 11],
@@ -704,18 +678,7 @@ class DACDiscriminator(nn.Module):
         """Initialize DAC Discriminator module.
 
         Args:
-            scales (int): Number of multi-scales.
-            sclae_downsample_pooling (str): Pooling module name for downsampling of the
-                inputs.
-            scale_downsample_pooling_params (Dict[str, Any]): Parameters for the above
-                pooling module.
-            scale_discriminator_params (Dict[str, Any]): Parameters for hifi-gan  scale
-                discriminator module.
-            scale_follow_official_norm (bool): Whether to follow the norm setting of the
-                official implementaion. The first discriminator uses spectral norm
-                and the other discriminators use weight norm.
-            complexstft_discriminator_params (Dict[str, Any]): Parameters for the
-                complex stft discriminator module.
+
         """
         super().__init__()
 

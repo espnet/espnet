@@ -12,7 +12,7 @@ from espnet2.asr.ctc import CTC
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
-from espnet.nets.pytorch_backend.transformer.embedding import (
+from espnet.nets.pytorch_backend.transformer.embedding import (  # noqa: H301
     ConvolutionalPositionalEmbedding,
     PositionalEncoding,
 )
@@ -75,8 +75,8 @@ class TransformerEncoder(AbsEncoder):
         positional_dropout_rate: float = 0.1,
         attention_dropout_rate: float = 0.0,
         input_layer: Optional[str] = "conv2d",
-        pos_enc_class=None,
-        pos_enc_layer_type: str = "abs_pos",
+        pos_enc_class=PositionalEncoding,
+        pos_enc_layer_type="abs_pos",
         normalize_before: bool = True,
         concat_after: bool = False,
         positionwise_layer_type: str = "linear",
@@ -85,16 +85,16 @@ class TransformerEncoder(AbsEncoder):
         interctc_layer_idx: List[int] = [],
         interctc_use_conditioning: bool = False,
         layer_drop_rate: float = 0.0,
+        qk_norm: bool = False,
+        use_flash_attn: bool = True,
     ):
         super().__init__()
         self._output_size = output_size
 
-        if pos_enc_layer_type == "abs_pos":
-            pos_enc_class = PositionalEncoding
-        elif pos_enc_layer_type == "conv":
+        if pos_enc_layer_type == "conv":
             pos_enc_class = ConvolutionalPositionalEmbedding
-        elif pos_enc_layer_type is None:
-            assert pos_enc_class is not None
+        elif pos_enc_layer_type == "abs_pos":
+            pos_enc_class = PositionalEncoding
 
         if input_layer == "linear":
             self.embed = torch.nn.Sequential(
@@ -169,12 +169,31 @@ class TransformerEncoder(AbsEncoder):
             )
         else:
             raise NotImplementedError("Support only linear or conv1d.")
+
+        # Default to flash attention unless overrided by user
+        if use_flash_attn:
+            try:
+                from espnet2.torch_utils.get_flash_attn_compatability import (
+                    is_flash_attn_supported,
+                )
+
+                use_flash_attn = is_flash_attn_supported()
+                import flash_attn  # noqa
+            except Exception:
+                use_flash_attn = False
+
         self.encoders = repeat(
             num_blocks,
             lambda lnum: EncoderLayer(
                 output_size,
                 MultiHeadedAttention(
-                    attention_heads, output_size, attention_dropout_rate
+                    attention_heads,
+                    output_size,
+                    attention_dropout_rate,
+                    qk_norm,
+                    use_flash_attn,
+                    False,
+                    False,
                 ),
                 positionwise_layer(*positionwise_layer_args),
                 dropout_rate,

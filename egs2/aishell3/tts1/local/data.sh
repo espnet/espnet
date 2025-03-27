@@ -34,6 +34,7 @@ fi
 db_root=${AISHELL3}
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
+    mkdir -p ${db_root}
     log "stage -1: download data from openslr"
     local/download_and_untar.sh "${db_root}" "https://www.openslr.org/resources/93/data_aishell3.tgz" data_aishell3.tgz
 fi
@@ -78,19 +79,19 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         utils/fix_data_dir.sh data/${x}
     done
 fi
-
+# use {dset},_phn here, to be consistent with mfa
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     log "stage 3: split for development set"
     utils/subset_data_dir.sh data/train 250 data/dev
     utils/subset_data_dir.sh data/train_phn 250 data/dev_phn
     utils/copy_data_dir.sh data/train data/train_no_dev
-    utils/copy_data_dir.sh data/train_phn data/train_phn_no_dev
+    utils/copy_data_dir.sh data/train_phn data/train_no_dev_phn
     utils/filter_scp.pl --exclude data/dev/wav.scp \
         data/train/wav.scp > data/train_no_dev/wav.scp
     utils/filter_scp.pl --exclude data/dev_phn/wav.scp \
-        data/train_phn/wav.scp > data/train_phn_no_dev/wav.scp
+        data/train_phn/wav.scp > data/train_no_dev_phn/wav.scp
     utils/fix_data_dir.sh data/train_no_dev
-    utils/fix_data_dir.sh data/train_phn_no_dev
+    utils/fix_data_dir.sh data/train_no_dev_phn
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
