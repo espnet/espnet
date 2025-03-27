@@ -1,7 +1,7 @@
 import math
-import numpy as np
 from typing import Sequence, Union
 
+import numpy as np
 import torch
 from typeguard import typechecked
 

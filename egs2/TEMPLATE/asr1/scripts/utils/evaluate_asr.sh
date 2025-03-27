@@ -312,7 +312,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 
         fi
 
-        
+
         # Scoring
         sclite \
             -r "${_scoredir}/ref.trn" trn \

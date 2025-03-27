@@ -103,7 +103,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     elif [ "${ssl_choice}" == "s3prl" ]; then
         s3prl_conf="{upstream=${ssl_feature_type}}"
         feature_conf="{type=s3prl,conf={s3prl_conf=${s3prl_conf},download_dir=ckpt,multilayer_feature=False,layer=${nlayer}}}"
-        
+
     else
         log Unsupported SSL choice: ${ssl_choice} && exit 1;
     fi

@@ -6,17 +6,18 @@
 import argparse
 import json
 import logging
-
 from pathlib import Path
+
 from datasets import load_dataset
 
-from espnet2.utils.types import str2bool
 from espnet2.speechlm.dialogue.dialogue_format import Dialogue, DialogueDataset
+from espnet2.utils.types import str2bool
 
 logging.basicConfig(
     level="INFO",
     format=f" %(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
 )
+
 
 def smoltalk_fn(
     sample,
@@ -24,11 +25,9 @@ def smoltalk_fn(
 ):
     dialogue = Dialogue()
     # print('original sample: ', sample)
-    for segment in sample['messages']:
+    for segment in sample["messages"]:
         dialogue.add_segment(
-            role=segment['role'],
-            modality='text_bpe',
-            content=segment['content']
+            role=segment["role"], modality="text_bpe", content=segment["content"]
         )
 
     return name, dialogue
@@ -42,7 +41,6 @@ HF_SFT_DATA = {
         #  (2) skip: skip that subset
         #  (3) s2s: convert to speech-to-speech dialogue
         #  (4) s2t: convert to speech-to-text dialogue
-
         # NOTE(Jinchuan):
         # (1) Skip apigen-80k to avoid tool-call
         # (2) Skip longalign as it's too long
@@ -66,10 +64,11 @@ HF_SFT_DATA = {
             "smol-summarize": "skip",
             "systemchats-30k": "s2s",
         },
-        'splits': ["test"],
-        "parse_fn": smoltalk_fn
+        "splits": ["test"],
+        "parse_fn": smoltalk_fn,
     }
 }
+
 
 def get_parser():
     parser = argparse.ArgumentParser(
@@ -83,10 +82,10 @@ def get_parser():
         help="input HuggingFace dataset tag",
     )
     parser.add_argument(
-        "--output_dir", 
-        type=Path, 
-        required=True, 
-        help="output directory of smoltalk dialogue dataset"
+        "--output_dir",
+        type=Path,
+        required=True,
+        help="output directory of smoltalk dialogue dataset",
     )
     parser.add_argument(
         "--spoken_format",
@@ -111,15 +110,16 @@ def get_parser():
     )
     return parser
 
+
 def main():
     parser = get_parser()
     args = parser.parse_args()
 
     # (1) prepare dataset
     dataset = HF_SFT_DATA[args.input_hf_tag]
-    subsets_and_methods = dataset['subsets_and_methods']
-    splits = dataset['splits']
-    parse_fn = dataset['parse_fn']
+    subsets_and_methods = dataset["subsets_and_methods"]
+    splits = dataset["splits"]
+    parse_fn = dataset["parse_fn"]
 
     subsets_methods_splits = [
         (subset, method, split)
@@ -130,6 +130,7 @@ def main():
     # (2) prepare LLM
     if args.spoken_format:
         from espnet2.speechlm.dialogue.gemini_utils import GeminiAPIInterface
+
         llm_model = GeminiAPIInterface(args.model_id, None)
     else:
         llm_model = None
@@ -164,7 +165,7 @@ def main():
                 if method in ["s2t", "s2s"]:
                     spoken_dialogue = llm_model.generate_spoken_dialogue(
                         name,
-                        dialogue, 
+                        dialogue,
                         prompt_method=method,
                         model_id=model_id,
                         max_len_words=args.max_len_words,
@@ -174,12 +175,14 @@ def main():
                 elif method in ["skip"]:
                     continue
                 else:
-                    raise NotImplementedError(f"unrecognized processing method: {method}")
-                
+                    raise NotImplementedError(
+                        f"unrecognized processing method: {method}"
+                    )
+
                 if spoken_dialogue is not None:
                     logging.info(f"save spoken dialogue transcript: {name}_spoken")
                     dialogue_dataset.add_dialogue(name + "_spoken", spoken_dialogue)
-            
+
             if idx > 20:
                 break
 
@@ -188,8 +191,8 @@ def main():
             task=task,
         )
 
-        logging.info(f'Done preparing {args.input_hf_tag}-{subset}-{split}')
-        
+        logging.info(f"Done preparing {args.input_hf_tag}-{subset}-{split}")
+
 
 if __name__ == "__main__":
     main()

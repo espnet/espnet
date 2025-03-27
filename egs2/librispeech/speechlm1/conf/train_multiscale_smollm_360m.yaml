@@ -3,7 +3,7 @@ transformer: huggingface
 transformer_conf:
     hf_model_tag: HuggingFaceTB/SmolLM2-360M
     activation_checkpointing: true
-    
+
 corelm: ar_multiscale
 corelm_conf:
     share_emb: false

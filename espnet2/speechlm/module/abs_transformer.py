@@ -3,8 +3,9 @@
 # Copyright 2024 Jinchuan Tian
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-import torch
 from abc import ABC, abstractmethod
+
+import torch
 
 
 class AbsTransformer(torch.nn.Module, ABC):

@@ -29,9 +29,9 @@ import torch
 from torch.utils.data.dataset import Dataset
 from typeguard import typechecked
 
+from espnet2.fileio.dialogue_json import DialogueJsonReader
 from espnet2.fileio.multi_sound_scp import MultiSoundScpReader
 from espnet2.fileio.multicol_kaldi_ark import MultiColKaldiArkReader
-from espnet2.fileio.dialogue_json import DialogueJsonReader
 from espnet2.fileio.npy_scp import NpyScpReader
 from espnet2.fileio.rand_gen_dataset import (
     FloatRandomGenerateDataset,

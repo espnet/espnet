@@ -13,9 +13,9 @@ import torch
 from espnet2.speechlm.core_lm.abs_core_lm import SpeechLMInferenceOptions
 from espnet2.speechlm.core_lm.ar_parallel import ARParallelLM
 from espnet2.speechlm.net_utils import (
+    install_continuous_features,
     logits_to_tokens,
     modality_index_to_mask,
-    install_continuous_features,
 )
 
 

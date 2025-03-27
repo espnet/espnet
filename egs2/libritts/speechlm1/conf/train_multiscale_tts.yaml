@@ -6,7 +6,7 @@ transformer_conf:
     n_head: 16
     n_layer: 24
     qk_norm: true
-    
+
 corelm: ar_multiscale
 corelm_conf:
     share_emb: false

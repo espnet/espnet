@@ -70,7 +70,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     python local/speechlm_dialogue_simulation.py \
       --input_hf_tag HuggingFaceH4/ultrachat_200k \
       --output_dir ${text_output_dir} || exit 1;
-    
+
     for subset in `ls ${text_output_dir}`; do
         cp ${text_output_dir}/${subset}/data/dialogue.1 ${text_output_dir}/${subset}/dialogue
         python3 pyscripts/utils/make_speechlm_json.py \
@@ -82,7 +82,7 @@ fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "Generate audio_dialogue SFT data."
-    
+
     # SODA
     python local/speechlm_dialogue_simulation.py \
       --input_hf_tag allenai/soda \
@@ -90,7 +90,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
       --output_dir ${audio_output_dir}_original \
       --assistant_prompt_list ${assistant_prompt_list} \
       --user_prompt_list ${user_prompt_list} || exit 1;
-    
+
     for tts_dir in `find ${audio_output_dir}_original -name rank*pack* | grep tts_simulation`; do
         if [ ! -f ${tts_dir}/data.json ]; then
             echo "working on ${tts_dir}"
@@ -103,4 +103,3 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         fi
     done
 fi
-

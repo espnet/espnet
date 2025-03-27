@@ -13,9 +13,9 @@ corelm_conf:
 
 # loss
 modality_weights: {
-    "codec": 0.125,
+    "ssl": 1.0,
+    "text_bpe": 1.0,
     "special_token": 10.0,
-    "g2p": 1.0,
 }
 loss_region: target
 
@@ -49,10 +49,8 @@ best_model_criterion:
     - max
 
 # Data preprocessing
-codec_token_per_frame: 8
-codec_token_in_use: 8
-speaker_prompt_length: 500 # 50fps, a.k.a., 10s
-codec_ssl_corrupt_prob: 0.0
+codec_token_per_frame: 1
+codec_token_in_use: 1
 
 # specaug
 asr_apply_time_mask: false

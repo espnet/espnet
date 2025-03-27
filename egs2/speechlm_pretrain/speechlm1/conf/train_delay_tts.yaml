@@ -49,8 +49,8 @@ best_model_criterion:
     - max
 
 # Data preprocessing
-codec_token_per_frame: 8
-codec_token_in_use: 8
+codec_token_per_frame: 9
+codec_token_in_use: 9
 speaker_prompt_length: 500 # 50fps, a.k.a., 10s
 codec_ssl_corrupt_prob: 0.0
 

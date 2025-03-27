@@ -54,5 +54,5 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "Convert to ESPnet Dialogue data format"
     python local/sft_textlm_smoltalk.py \
       --input_dir ${SMOLTALK} \
-      --output_dir ${text_output_dir} 
+      --output_dir ${text_output_dir}
 fi

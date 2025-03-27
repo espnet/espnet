@@ -1,11 +1,15 @@
-import torch
 import logging
-from espnet2.speechlm.net_utils import length_mask
+
+import torch
 import torch.distributed
 
+from espnet2.speechlm.net_utils import length_mask
+
 try:
-    from liger_kernel.transformers import LigerFusedLinearCrossEntropyLoss
-    from liger_kernel.transformers import LigerCrossEntropyLoss
+    from liger_kernel.transformers import (
+        LigerCrossEntropyLoss,
+        LigerFusedLinearCrossEntropyLoss,
+    )
 except:
     LigerFusedLinearCrossEntropyLoss = None
     LigerCrossEntropyLoss = None
