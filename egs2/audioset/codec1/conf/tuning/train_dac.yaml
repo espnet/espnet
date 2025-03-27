@@ -10,10 +10,10 @@ codec_conf:
         hidden_dim: 512
         codebook_dim: 512
         encdec_channels: 1
-        encdec_n_filters: 64
+        encdec_n_filters: 32
         encdec_n_residual_layers: 3
         encdec_ratios: [8, 5, 4, 2]
-        encdec_activation: LeakyReLU
+        encdec_activation: Snake
         # encdec_activation_params:
         encdec_norm: weight_norm
         encdec_kernel_size: 7
@@ -28,13 +28,13 @@ codec_conf:
         decoder_trim_right_ratio: 1.0
         decoder_final_activation: null
         decoder_final_activation_params: null
-        quantizer_n_q: 32
+        quantizer_n_q: 8
         quantizer_bins: 1024
         quantizer_decay: 0.99
         quantizer_kmeans_init: true
         quantizer_kmeans_iters: 50
         quantizer_threshold_ema_dead_code: 2
-        quantizer_target_bandwidth: [2, 4, 8, 16, 32]
+        quantizer_target_bandwidth: [0.5, 1, 2, 4]
         quantizer_dropout: true
 
     # discriminator related
@@ -43,7 +43,7 @@ codec_conf:
         msmpmb_discriminator_params:
             rates: []
             sample_rate: 16000
-            fft_sizes: [2048, 1024, 512, 256]
+            fft_sizes: [2048, 1024, 512]
             periods: [2, 3, 5, 7, 11]
             period_discriminator_params:
                 in_channels: 1
@@ -60,7 +60,7 @@ codec_conf:
                 use_spectral_norm: False
             band_discriminator_params:
                 hop_factor: 0.25
-                sample_rate: 16000
+                sample_rate: 24000
                 bands:
                     - [0.0, 0.1]
                     - [0.1, 0.25]
@@ -86,25 +86,26 @@ codec_conf:
         range_start: 6
         range_end: 11
         window: hann        # window type
-        n_mels: 128          # number of Mel basis
+        n_mels: 80          # number of Mel basis
         fmin: 0             # minimum frequency for Mel basis
         fmax: null          # maximum frequency for Mel basis
         log_base: null      # null represent natural log
     lambda_quantization: 0.25       # loss scaling coefficient for codec quantization loss
     lambda_commit: 1.0      # loss scaling coefficient for codec commitment loss
     lambda_reconstruct: 1.0 # loss scaling coefficient for speech reconstruction loss
-    lambda_adv: 0.5         # loss scaling coefficient for adversarial loss
+    lambda_adv: 1.0         # loss scaling coefficient for adversarial loss
     lambda_mel: 45.0        # loss scaling coefficient for Mel loss
-    lambda_feat_match: 3.0 # loss scaling coefficient for feat match loss
+    lambda_feat_match: 2.0 # loss scaling coefficient for feat match loss
 
     # others
     cache_generator_outputs: true # whether to cache generator outputs in the training
+
 
 ##########################################################
 #            OPTIMIZER & SCHEDULER SETTING               #
 ##########################################################
 # optimizer setting for generator
-optim: adam # [CHANGED]
+optim: adamw
 optim_conf:
     lr: 2.0e-4
     betas: [0.5, 0.9]
@@ -114,7 +115,7 @@ scheduler: exponentiallr
 scheduler_conf:
     gamma: 0.999875
 # optimizer setting for discriminator
-optim2: adam
+optim2: adamw
 optim2_conf:
     lr: 2.0e-4
     betas: [0.5, 0.9]
@@ -125,20 +126,18 @@ scheduler2_conf:
     gamma: 0.999875
 generator_first: true # whether to start updating generator first
 
-
 ##########################################################
 #                OTHER TRAINING SETTING                  #
 ##########################################################
-num_iters_per_epoch: 5000 # number of iterations per epoch
-max_epoch: 120              # number of epochs
+num_iters_per_epoch: 500 # number of iterations per epoch
+max_epoch: 3600              # number of epochs
 accum_grad: 1             # gradient accumulation
-batch_size: 16             # CHANGED
+batch_size: 64             # CHANGED
 batch_type: unsorted      # how to make batch
 
-
 iterator_type: chunk
-chunk_length: 16000 # CHANGED
-num_cache_chunks: 64
+chunk_length: 32000
+num_cache_chunks: 256
 
 grad_clip: -1             # gradient clipping norm
 grad_noise: false         # whether to use gradient noise injection
