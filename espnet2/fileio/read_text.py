@@ -10,7 +10,7 @@ from typeguard import typechecked
 
 @typechecked
 def read_2columns_text(
-    path: Union[Path, str], 
+    path: Union[Path, str],
     allow_duplication: bool = False,
     keys_to_load: Optional[Set[Union[str, int]]] = None,
 ) -> Dict[str, str]:
@@ -42,13 +42,13 @@ def read_2columns_text(
                 k, v = sps[0], ""
             else:
                 k, v = sps
-            
+
             if keys_to_load is not None and k not in keys_to_load:
                 continue
 
             if k in data and not allow_duplication:
                 raise RuntimeError(f"{k} is duplicated ({path}:{linenum})")
-                
+
             data[k] = v
     return data
 
@@ -100,8 +100,8 @@ def read_multi_columns_text(
 
 @typechecked
 def load_num_sequence_text(
-    path: Union[Path, str], 
-    loader_type: str = "csv_int", 
+    path: Union[Path, str],
+    loader_type: str = "csv_int",
     allow_duplication: bool = False,
 ) -> Dict[str, List[Union[float, int]]]:
     """Read a text file indicating sequences of number

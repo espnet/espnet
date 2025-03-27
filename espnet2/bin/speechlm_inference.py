@@ -66,8 +66,8 @@ class SpeechLM:
             train_config, model_file, device
         )
         self.model = model.to(dtype=getattr(torch, dtype)).eval()
-        if 'cuda' in device:
-            torch.cuda.empty_cache() # from FP32 to BF16, release the memory
+        if "cuda" in device:
+            torch.cuda.empty_cache()  # from FP32 to BF16, release the memory
 
         self.preprocessor = SpeechLMTask.build_preprocess_fn(train_args, False)
         self.device = device
@@ -86,8 +86,8 @@ class SpeechLM:
 
         # initially, no modality is known
         mask = torch.ones(self.inference_nq, len(self.token_list)).to(device).bool()
-        mask[0, 32: 64] = False
-        predict_masks['unknown'] = mask
+        mask[0, 32:64] = False
+        predict_masks["unknown"] = mask
 
         for modality in set(self.modalities):
             if modality == "spk":  # never predict "spk" modality
@@ -103,7 +103,7 @@ class SpeechLM:
 
             elif modality == "codec_ssl":
                 codec_start, codec_end = self.token_bias["codec"]
-                ssl_start, ssl_end = self.token_bias['ssl']
+                ssl_start, ssl_end = self.token_bias["ssl"]
 
                 mask[0, ssl_start:ssl_end] = False
                 mask[1:, self.pad] = False
@@ -119,7 +119,7 @@ class SpeechLM:
                         False
                     )
 
-            else: # single-stream, discrete tokens
+            else:  # single-stream, discrete tokens
                 start, end = self.token_bias[modality]
                 mask[0, start:end] = False
                 mask[1:, self.pad] = False
@@ -195,7 +195,7 @@ class SpeechLM:
         # (2) record the prefix segments
         retval = [[] for _ in self.modalities]
         prefix = dec_seq[0, :prefix_len]
-        
+
         segments = self.parse_sequence(prefix)
         if len(segments) != len(self.task.conditions):
             raise ValueError("Invalid Condition segments")
@@ -237,7 +237,7 @@ class SpeechLM:
                     n_codebook = self.inference_nq
                 segment = segment[segment[:, 0] != self.pad]
 
-                segment = segment.contiguous().view(-1) - self.token_bias['codec'][0]
+                segment = segment.contiguous().view(-1) - self.token_bias["codec"][0]
                 detokenized = self.codec_tokenizer.detokenize(
                     segment.clone(),
                     n_codebook=n_codebook,
@@ -257,7 +257,6 @@ class SpeechLM:
                 segment = segment[:, 0] - self.token_bias[modality][0]
                 detokenized = None
 
-            
             retval.append((modality, segment, detokenized))
 
         return retval
@@ -333,9 +332,9 @@ def inference(
     if ngpu > 1:
         raise NotImplementedError("only single GPU decoding is supported")
     logging.basicConfig(
-    level=logging.INFO,
+        level=logging.INFO,
         format=f"[{rank}/{nproc}] "
-               f"%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
+        f"%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
     )
 
     if torch.cuda.is_available() and ngpu > 0:
@@ -423,7 +422,7 @@ def inference(
         # 5.1 model infernece
         logging.info(f"Inference on example: {key}")
         if ngpu > 0:
-            torch.cuda.empty_cache() # to remove cached memory
+            torch.cuda.empty_cache()  # to remove cached memory
         all_segments = speechlm(batch)
 
         for triplet, segments in zip(task.data_triplets, all_segments):
@@ -623,9 +622,9 @@ def get_parser():
         type=str2bool,
         default=False,
         help="If true, the length of inference is fixed. "
-             "The inference is specified by the fixed_length_key of "
-             "each task definition "
-             "E.g., inference length for speech enhancement is the same as the mix.scp "
+        "The inference is specified by the fixed_length_key of "
+        "each task definition "
+        "E.g., inference length for speech enhancement is the same as the mix.scp ",
     )
 
     # Offline tokenizer configurations. The offline tokenizers are not used during
@@ -657,14 +656,13 @@ def main(cmd=None):
     mp = torch.multiprocessing.get_context("spawn")
     processes = list()
     for rank in range(nproc):
-        kwargs['rank'] = rank
+        kwargs["rank"] = rank
         p = mp.Process(
             target=inference,
             kwargs=kwargs,
         )
         p.start()
         processes.append(p)
-        
 
     try:
         # Polling loop:
@@ -679,7 +677,7 @@ def main(cmd=None):
                     p.join(timeout=1)  # Non-blocking "poll" wait
                     # After the join with timeout, if p is still alive,
                     # we'll continue the loop. If it ended, we can check exitcode.
-                
+
                 # Now, if the process is NOT alive, it might have finished or failed
                 if not p.is_alive():
                     # p.exitcode == 0 means success
@@ -699,27 +697,27 @@ def main(cmd=None):
 
     except Exception as e:
         print(f"Error detected: {e}. Terminating all processes...", file=sys.stderr)
-        
+
         # Terminate all running processes
         for p in processes:
             if p.is_alive():
                 p.terminate()
-        
+
         # Re-raise the original exception so it can be caught or exit accordingly
         raise
 
     # (3) finally, merge results from all processes
     file_dict = dict()
-    for file in args.output_dir.rglob('rank*'):
+    for file in args.output_dir.rglob("rank*"):
         file_name = file.name
         match = re.match(r"rank(\d+)_(.+)", file_name)
         if match:
             rank = int(match.group(1))  # Extract rank as an integer
             file_name = match.group(2)
-            
+
             if int(rank) >= nproc:
                 continue
-            if file_name.endswith('.ark'):
+            if file_name.endswith(".ark"):
                 continue
 
         else:
@@ -729,9 +727,9 @@ def main(cmd=None):
         if merge_file_path not in file_dict:
             file_dict[merge_file_path] = list()
         file_dict[merge_file_path].append(file)
-    
+
     for name, files in file_dict.items():
-        writer = open(name, 'w')
+        writer = open(name, "w")
         for file in files:
             for line in open(file):
                 writer.write(line)

@@ -279,6 +279,7 @@ def rand_int_loader(filepath, loader_type):
 def multicol_kaldi_ark_loader(filepath):
     return MultiColKaldiArkReader(filepath)
 
+
 def dialogue_json_loader(filepath):
     return DialogueJsonReader(filepath)
 
@@ -484,8 +485,7 @@ DATA_TYPES = {
     "dialogue_json": dict(
         func=dialogue_json_loader,
         kwargs=[],
-        help="Use json format to load dialogue data"
-        "TODO: add documents"
+        help="Use json format to load dialogue data" "TODO: add documents",
     ),
 }
 

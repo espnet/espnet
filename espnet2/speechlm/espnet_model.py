@@ -46,7 +46,7 @@ class ESPnetSpeechLMModel(AbsESPnetModel):
         )
 
         loss, stats, weight = self.criterion(
-            logits, 
+            logits,
             targets,
             loss_mask,
         )

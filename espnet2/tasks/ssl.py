@@ -1,16 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-<<<<<<< HEAD
-# Thanks to Abdelrahman Mohamed and Wei-Ning Hsu's help in this implementation,
-# Their origial Hubert work is in:
-#     Paper: https://arxiv.org/pdf/2106.07447.pdf
-#     Code in Fairseq: https://github.com/pytorch/fairseq/tree/master/examples/hubert
-=======
 # Copyright 2025 William Chen
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
->>>>>>> e72ffd9f44396fd97121dc5d38893d66b18756cc
 import argparse
 import logging
 from typing import Callable, Collection, Dict, List, Optional, Tuple, Union
@@ -25,13 +18,8 @@ from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
 from espnet2.asr.encoder.e_branchformer_encoder import EBranchformerEncoder
 from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
-<<<<<<< HEAD
-from espnet2.asr.frontend.default import DefaultFrontend
-from espnet2.asr.frontend.wav2vec_cnn import CNNFrontend
-=======
 from espnet2.asr.frontend.cnn import CNNFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
->>>>>>> e72ffd9f44396fd97121dc5d38893d66b18756cc
 from espnet2.asr.frontend.windowing import SlidingWindow
 from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.preencoder.linear import LinearProjection
@@ -42,17 +30,9 @@ from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
 from espnet2.ssl.espnet_model import ESPnetSSLModel
-<<<<<<< HEAD
-from espnet2.ssl.loss.abs_loss import AbsLoss
-from espnet2.ssl.loss.hubert_loss import HuBERTLoss
-from espnet2.ssl.loss.hubert_loss_ce import HuBERTLossCrossEntropy
-from espnet2.ssl.mask.abs_mask import AbsMasker
-from espnet2.ssl.mask.hubert_mask import HubertMasker
-=======
 from espnet2.ssl.loss.abs_loss import AbsSSLLoss
 from espnet2.ssl.loss.hubert import HuBERTLoss
 from espnet2.ssl.utils.mask import Masking
->>>>>>> e72ffd9f44396fd97121dc5d38893d66b18756cc
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.torch_utils.initialize import initialize
@@ -98,33 +78,12 @@ encoder_choices = ClassChoices(
     "encoder",
     classes=dict(
         transformer=TransformerEncoder,
-<<<<<<< HEAD
-        conformer=ConformerEncoder,
-        e_branchformer=EBranchformerEncoder,
-=======
         e_branchformer=EBranchformerEncoder,
         conformer=ConformerEncoder,
->>>>>>> e72ffd9f44396fd97121dc5d38893d66b18756cc
     ),
     type_check=AbsEncoder,
     default="transformer",
 )
-<<<<<<< HEAD
-masker_choices = ClassChoices(
-    "masker",
-    classes=dict(
-        hubert=HubertMasker,
-    ),
-    type_check=AbsMasker,
-    default="hubert",
-)
-loss_choices = ClassChoices(
-    "loss",
-    classes=dict(hubert=HuBERTLoss, hubert_ce=HuBERTLossCrossEntropy),
-    type_check=AbsLoss,
-    default="hubert",
-)
-=======
 loss_choices = ClassChoices(
     "loss",
     classes=dict(hubert=HuBERTLoss),
@@ -137,7 +96,6 @@ util_choices = ClassChoices(
     type_check=torch.nn.Module,
     default=None,
 )
->>>>>>> e72ffd9f44396fd97121dc5d38893d66b18756cc
 model_choices = ClassChoices(
     "model",
     classes=dict(
@@ -166,11 +124,6 @@ class SSLTask(AbsTask):
         encoder_choices,
         # --model and --model_conf
         model_choices,
-<<<<<<< HEAD
-        masker_choices,
-        loss_choices,
-=======
->>>>>>> e72ffd9f44396fd97121dc5d38893d66b18756cc
     ]
 
     # If you need to modify train() or eval() procedures, change Trainer class here
@@ -302,39 +255,6 @@ class SSLTask(AbsTask):
             help="The range of noise decibel level.",
         )
         parser.add_argument(
-<<<<<<< HEAD
-            "--pred_masked_weight",
-            type=float,
-            default=1.0,
-            help="weight for predictive loss for masked frames",
-        )
-        parser.add_argument(
-            "--pred_nomask_weight",
-            type=float,
-            default=0.0,
-            help="weight for predictive loss for unmasked frames",
-        )
-        parser.add_argument(
-            "--loss_weights",
-            type=float,
-            default=0.0,
-            help="weights for additional loss terms (not first one)",
-        )
-        parser.add_argument(
-            "--codec_token_per_frame",
-            type=int,
-            default=1,
-            help="weights for additional loss terms (not first one)",
-        )
-        parser.add_argument(
-            "--codec_token_in_use",
-            type=int,
-            default=None,
-            help="weights for additional loss terms (not first one)",
-        )
-        parser.add_argument(
-=======
->>>>>>> e72ffd9f44396fd97121dc5d38893d66b18756cc
             "--window_size",
             type=int,
             default=None,
@@ -347,18 +267,6 @@ class SSLTask(AbsTask):
             help="weights for additional loss terms (not first one)",
         )
         group.add_argument(
-<<<<<<< HEAD
-            "--use_codec",
-            type=str2bool,
-            default=False,
-            help="Apply preprocessing to data or not",
-        )
-        parser.add_argument(
-            "--alt_int_pad_value",
-            type=int,
-            default=None,
-            help="weights for additional loss terms (not first one)",
-=======
             "--loss",
             action=NestedDictAction,
             default=[
@@ -379,7 +287,6 @@ class SSLTask(AbsTask):
                 },
             ],
             help="Configurations for SSL helper utils.",
->>>>>>> e72ffd9f44396fd97121dc5d38893d66b18756cc
         )
 
         for class_choices in cls.class_choices_list:
@@ -417,10 +324,6 @@ class SSLTask(AbsTask):
         return HuBERTCollateFn(
             float_pad_value=0.0,
             int_pad_value=args.collate_fn_conf.get("int_pad_value", -1),
-<<<<<<< HEAD
-            alt_int_pad_value=args.collate_fn_conf.get("alt_int_pad_value", 8192),
-=======
->>>>>>> e72ffd9f44396fd97121dc5d38893d66b18756cc
             label_downsampling=args.collate_fn_conf.get("label_downsampling", 1),
             pad=args.collate_fn_conf.get("pad", False),
             rand_crop=args.collate_fn_conf.get("rand_crop", True),
@@ -441,11 +344,6 @@ class SSLTask(AbsTask):
                 "dynamic_mixing_gain_db", 5.0
             ),
             dynamic_mixing_prob=args.collate_fn_conf.get("dynamic_mixing_prob", 0.1),
-<<<<<<< HEAD
-            center_speech=args.frontend_conf.get("center", False),
-            input_emb=args.preencoder,
-=======
->>>>>>> e72ffd9f44396fd97121dc5d38893d66b18756cc
         )
 
     @classmethod
@@ -470,13 +368,6 @@ class SSLTask(AbsTask):
                 noise_db_range=getattr(args, "noise_db_range", "13_15"),
                 short_noise_thres=getattr(args, "short_noise_thres", 0.5),
                 speech_volume_normalize=getattr(args, "rir_scp", None),
-<<<<<<< HEAD
-                use_codec=getattr(args, "use_codec", False),
-                codec_token_per_frame=getattr(args, "codec_token_per_frame", 8),
-                codec_token_in_use=getattr(args, "codec_token_in_use", None),
-                **getattr(args, "preprocessor_conf", {}),
-=======
->>>>>>> e72ffd9f44396fd97121dc5d38893d66b18756cc
             )
         else:
             retval = None
@@ -559,41 +450,11 @@ class SSLTask(AbsTask):
 
         # 4. Encoder
         encoder_class = encoder_choices.get_class(args.encoder)
-<<<<<<< HEAD
-        del args.encoder_conf["use_flash_attn"]  # temp until flash-attn pr merged
-        del args.encoder_conf["activation_ckpt"]
-=======
->>>>>>> e72ffd9f44396fd97121dc5d38893d66b18756cc
         encoder = encoder_class(
             input_size=input_size,
             **args.encoder_conf,
         )
 
-<<<<<<< HEAD
-        # 5. Masker
-        masker_class = masker_choices.get_class(args.masker)
-        masker = masker_class(
-            encoder_embed_dim=(
-                preencoder.output_size()
-                if getattr(args, "preencoder", None) is not None
-                else frontend.output_size()
-            ),
-            **args.masker_conf,
-        )
-
-        # 6. Loss
-        loss_class = loss_choices.get_class(args.loss)
-        loss = loss_class(
-            encoder_embed_dim=encoder.output_size(),
-            **args.loss_conf,
-        )
-
-        # 8. Build model
-        try:
-            model_class = model_choices.get_class(args.model)
-        except AttributeError:
-            model_class = model_choices.get_class("fairseq")
-=======
         # 5. Loss
         losses = []
         for loss_args in args.loss:
@@ -628,7 +489,6 @@ class SSLTask(AbsTask):
 
         # 8. Build model
         model_class = model_choices.get_class(args.model)
->>>>>>> e72ffd9f44396fd97121dc5d38893d66b18756cc
 
         model = model_class(
             vocab_size=vocab_size,
@@ -638,15 +498,10 @@ class SSLTask(AbsTask):
             preencoder=preencoder,
             encoder=encoder,
             token_list=token_list,
-<<<<<<< HEAD
-            masker=masker,
-            losses=[loss],
-=======
             losses=losses,
             util_attributes=util_attributes,
             required_inputs=required_inputs,
             util_modules=util_modules,
->>>>>>> e72ffd9f44396fd97121dc5d38893d66b18756cc
             **args.model_conf,
         )
 

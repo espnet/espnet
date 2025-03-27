@@ -65,10 +65,7 @@ def main():
     for tgt_name, tgt_modality, tgt_type in all_triplets_required:
         triplet_found = False
         for name, modality, _type in all_triplets_provided:
-            if (
-                modality == tgt_modality
-                and name.endswith(tgt_name)
-            ):
+            if modality == tgt_modality and name.endswith(tgt_name):
                 if _type != tgt_type:
                     logging.warning(
                         f"Target type is {tgt_type} but {_type} is provided. "
@@ -109,7 +106,7 @@ def main():
 
     metadata["data_files"] = []
     for name, modality, _type in file_triplets:
-        name = name.split('/')[-1]
+        name = name.split("/")[-1]
         file_path = str(save_path / name)
         triplet = f"{file_path},{modality},{_type}"
         metadata["data_files"].append(triplet)

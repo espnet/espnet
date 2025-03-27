@@ -235,7 +235,7 @@ def main():
 
         new_tensor = torch.cat([old_tensor, new_tensor], dim=0).contiguous()
         checkpoint[tensor_name] = new_tensor
-    
+
     for modality_name, vocab in additional_vocabs:
         if modality_name == "codec":
             torch.random.manual_seed(0)

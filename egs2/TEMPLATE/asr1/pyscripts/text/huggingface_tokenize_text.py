@@ -18,6 +18,7 @@ logging.basicConfig(
     stream=sys.stdout,
 )
 
+
 def get_parser():
     parser = argparse.ArgumentParser(description="process text")
     parser.add_argument("--input_path", type=Path, help="input jsonl file")
@@ -61,12 +62,13 @@ def main():
     # multi-process dump
     pool = Pool(args.nj)
     for n in range(args.nj):
-        this_results = all_results[n::args.nj]
+        this_results = all_results[n :: args.nj]
         output_dir = Path(str(args.output_dir) + f"_split{n}")
-        data_name = str(output_dir.name).replace('.jsonl', '')
+        data_name = str(output_dir.name).replace(".jsonl", "")
         _ = pool.apply_async(dump_one_split, args=(this_results, data_name, output_dir))
     pool.close()
     pool.join()
+
 
 def dump_one_split(all_results, data_name, output_dir):
     # write kaldi scp and ark

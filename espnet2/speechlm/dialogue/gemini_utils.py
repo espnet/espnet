@@ -33,7 +33,7 @@ except:
     GenerationConfig = None
 
 ##### MACROS #####
-PROJECT_ID = "lti-sw-gemini" # revise this to your account
+PROJECT_ID = "lti-sw-gemini"  # revise this to your account
 
 ##### Section 1: Prompt #####
 s2s_prompt = """
@@ -55,6 +55,7 @@ prompt_dict = {
     "s2s": s2s_prompt,
 }
 
+
 ##### Section 2: LLM setups, configurations and processing functions #####
 class GeminiAPIInterface:
     def __init__(
@@ -62,40 +63,40 @@ class GeminiAPIInterface:
         model_id: str,
         prompt_method: str = None,
     ):
-        
+
         assert vertexai is not None, "Please install vertexai"
         vertexai.init(project=PROJECT_ID)
-        
+
         self.model_id = model_id
         self.prompt_method = prompt_method
 
         self.set_prompt_method(model_id, prompt_method)
-    
-    def set_prompt_method(self, model_id, task = None):
+
+    def set_prompt_method(self, model_id, task=None):
         if task is not None:
             instruction = prompt_dict[task]
         else:
             instruction = None
 
         logging.info(f"Switch to model {model_id} with task {task}")
-        
+
         generation_config = GenerationConfig(
             response_mime_type="application/json",
             max_output_tokens=1024,
         )
         self.model = GenerativeModel(
-            model_id, 
+            model_id,
             system_instruction=instruction,
             generation_config=generation_config,
         )
 
         self.task = task
         self.model_id = model_id
-        
+
     def generate_spoken_dialogue(
         self,
         name,
-        dialogue, 
+        dialogue,
         model_id,
         task: str = "audio_dialogue",
         max_len_words: int = 500,
@@ -111,12 +112,12 @@ class GeminiAPIInterface:
         if len(dialogue_str.split()) > max_len_words:
             logging.warning(f"Dialogue {name} is discarded as it's too long ")
             return None
-        
+
         # (2) check if the string contains code
         if "```" in dialogue_str:
             logging.warning(f"Dialogue {name} is discarded as it contains code")
             return None
-        
+
         # (2) model call
         response = self.model.generate_content(dialogue_str)
 
@@ -130,7 +131,7 @@ class GeminiAPIInterface:
                 f"Returned dict: {response}"
             )
             return None
-        
+
         # (4) sanity check
         if isinstance(response, dict) and len(response) == 1:
             response = next(iter(response.values()))
@@ -138,18 +139,18 @@ class GeminiAPIInterface:
         if not isinstance(response, list):
             logging.warning(f"Dialogue {name} not a list {response}")
             return None
-        
+
         dialogue = Dialogue("text_dialogue")
         for idx, d in enumerate(response):
             if not ("role" in d and "content" in d):
                 logging.warning(f"Dialogue {name} | segment {idx} incomplete")
                 return None
-            
-            role, content = d['role'], d['content']
+
+            role, content = d["role"], d["content"]
             if role not in ["system", "user", "assistant"]:
                 logging.warning(f"Dialogue {name} | segment {idx} invalid role {role}")
                 return None
-            
+
             dialogue.add_segment(role, "text_bpe", content)
-        
+
         return dialogue

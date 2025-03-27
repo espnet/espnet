@@ -16,9 +16,7 @@ from transformers import (
     AutoTokenizer,
 )
 
-model_class_choices = {
-    "google-t5/t5-large": T5ForConditionalGeneration
-}
+model_class_choices = {"google-t5/t5-large": T5ForConditionalGeneration}
 
 logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",

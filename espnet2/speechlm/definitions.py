@@ -49,11 +49,11 @@ class SpeechLMTaskTemplate:
     def data_triplets(self):
         all_entries = self.conditions + self.targets
         return all_entries
-    
+
     @property
     def n_conditions(self):
         return len(self.conditions)
-    
+
     @property
     def n_targets(self):
         return len(self.targets)

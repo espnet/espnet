@@ -52,10 +52,10 @@ class ARParallelLM(AbsCoreLM):
 
         if hasattr(self.decoders, "init_embeddings"):
             self.decoders.init_embeddings(self.emb, self.lm_head)
-        
+
         self.nq = nq
         self.n_ctx = transformer.n_ctx
-        
+
     def forward(
         self,
         dec_seq: torch.Tensor,
@@ -95,7 +95,7 @@ class ARParallelLM(AbsCoreLM):
         self,
         prefix: torch.Tensor,
         opts: SpeechLMInferenceOptions,
-        conti_feats = None,
+        conti_feats=None,
         suffix: torch.Tensor = None,
     ):
         """Auto-Regresive MultiScale Inference.

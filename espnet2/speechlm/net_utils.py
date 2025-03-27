@@ -9,6 +9,7 @@ import torch
 
 from espnet2.speechlm.core_lm.abs_core_lm import SpeechLMInferenceOptions
 
+
 def length_mask(lengths: torch.Tensor, maxlen: int = None) -> torch.Tensor:
     assert lengths.dim() == 1
     maxlen = maxlen if maxlen is not None else lengths.max()
@@ -129,12 +130,14 @@ def logits_to_tokens(
         ).view(clip_probs[..., :1].size())
         gen_token_idx = torch.gather(sorted_indices, -1, inner_indices).squeeze(-1)
         gen_token_score = torch.gather(clip_probs, -1, inner_indices).squeeze(-1).log()
-    
+
     elif search_algo in ["beam_search"]:
         # NOTE(Jinchuan): for beam search, this function only proposes the candidates but not
         # to do the hypothesis selection / pruning. If beam search, this function should be used
         # together with the "beam_search_selection" function as defined below.
-        assert logits.size(2) == 1, "Currently beam search only supports single-stream decoding"
+        assert (
+            logits.size(2) == 1
+        ), "Currently beam search only supports single-stream decoding"
         probs = torch.log_softmax(logits / opts.sampling_temperature, dim=-1)
         gen_token_score, gen_token_idx = torch.topk(probs, opts.beam_size, dim=-1)
 
@@ -149,14 +152,15 @@ def logits_to_tokens(
 
     return gen_token_idx, gen_token_score
 
+
 def beam_search_selection(
-    gen_token_idx, 
+    gen_token_idx,
     gen_token_score,
     generated,
     finish_idx,
     model,
 ):
-    # NOTE(Jinchuan): assume there are beam * beam hypotheses 
+    # NOTE(Jinchuan): assume there are beam * beam hypotheses
     # expanded from previous beam hypothesis. Prune to "beam" hypotheses
     beam_size = gen_token_idx.size(-1)
 
@@ -167,13 +171,12 @@ def beam_search_selection(
             finish_idx != -1, 1e20, gen_token_score[:, 0, 0, 0]
         )
         gen_token_score[:, 0, 0, 1:] = torch.where(
-            (finish_idx != -1).unsqueeze(-1),
-            -1e20, gen_token_score[:, 0, 0, 1:]
+            (finish_idx != -1).unsqueeze(-1), -1e20, gen_token_score[:, 0, 0, 1:]
         )
 
     # (1) compute overall scores, find select idx
     if len(generated["score"]) > 0:
-        prev_scores = torch.cat(generated["score"], dim=1).sum(dim=(1, 2)) # [B]
+        prev_scores = torch.cat(generated["score"], dim=1).sum(dim=(1, 2))  # [B]
         prev_scores = prev_scores.repeat_interleave(beam_size, dim=0)
     else:
         prev_scores = 0
@@ -192,9 +195,7 @@ def beam_search_selection(
     # for finished hypotheses, this score is 0.0
     if torch.any(finish_idx != -1):
         gen_token_score[:, 0, 0] = torch.where(
-            finish_idx != -1,
-            0.0,
-            gen_token_score[:, 0, 0]
+            finish_idx != -1, 0.0, gen_token_score[:, 0, 0]
         )
 
     model.select_state(select_idx)
@@ -202,6 +203,7 @@ def beam_search_selection(
     generated["token"] = [s[select_idx] for s in generated["token"]]
 
     return gen_token_idx, gen_token_score, finish_idx
+
 
 def modality_index_to_mask(
     modality_index: torch.Tensor,

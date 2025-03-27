@@ -41,7 +41,7 @@ class ARMultiScaleLM(AbsCoreLM):
             aux_vocab_size (int): the size of auxuliary tokens, usually for codec tokens.
             nq (int): Number of codes for each token / frame, usually for speech codec.
             share_emb (bool): If true, share the embedding and lm_head weight.
-            
+
             qk_norm: (bool): If true, apply LayerNorm to q and k in atention.
             dropout: (float): dropout rate for attention layers.
             g_att_unit (int): Dimention of global Transformer attention.
@@ -126,10 +126,10 @@ class ARMultiScaleLM(AbsCoreLM):
 
         # local
         B, T, _ = x.size()
-        placeholder = self.placeholder.tile(B, T, 1, 1) # [B, T, 1, D]
+        placeholder = self.placeholder.tile(B, T, 1, 1)  # [B, T, 1, D]
         local_x = self.g2l(self.emb(target))
         local_x = torch.cat([placeholder, local_x], dim=2)[:, :, :-1]
-        x = local_x + x.unsqueeze(2) # [B, T, nq, D]
+        x = local_x + x.unsqueeze(2)  # [B, T, nq, D]
 
         x = x.flatten(0, 1)
         x = self.l_decoders(x).view(local_x.size())
@@ -146,7 +146,7 @@ class ARMultiScaleLM(AbsCoreLM):
         self,
         prefix: torch.Tensor,
         opts: SpeechLMInferenceOptions,
-        conti_feats = None,
+        conti_feats=None,
         suffix: torch.Tensor = None,
         inference_length: int = -1,
     ):
@@ -180,14 +180,16 @@ class ARMultiScaleLM(AbsCoreLM):
         )
 
         if opts.fixed_length:
-            assert inference_length > 0, "Inference length is needed for fixed length inference"
+            assert (
+                inference_length > 0
+            ), "Inference length is needed for fixed length inference"
             minlen = int(inference_length)
             maxlen = int(inference_length)
-        
+
         if opts.search_algo == "teacher_force":
             minlen = suffix.size(1)
             maxlen = suffix.size(1)
-        
+
         logging.info(f"maxlen={maxlen}, minlen={minlen}, reflen={suffix.size(1)}")
 
         finish_idx = torch.Tensor([-1]).expand(opts.nbest).long().to(opts.device)
@@ -210,7 +212,7 @@ class ARMultiScaleLM(AbsCoreLM):
             for l_step in range(opts.nq):
                 # print(f"local addition: {l_step} | {l_prev_emb[:, 0, 0]} {g_hidden[:, 0, 0]}")
                 l_hidden = l_prev_emb + g_hidden
-                l_hidden = self.l2g(self.l_decoders(l_hidden)) # [B, 1, D]
+                l_hidden = self.l2g(self.l_decoders(l_hidden))  # [B, 1, D]
 
                 if l_step == 0:
                     logits = self.lm_head(l_hidden)
@@ -219,9 +221,13 @@ class ARMultiScaleLM(AbsCoreLM):
                     logits = torch.nn.functional.pad(
                         logits,
                         pad=(
-                         opts.aux_start,
-                         self.lm_head.out_features - (opts.aux_start + logits.size(2)),
-                         0, 0, 0, 0,
+                            opts.aux_start,
+                            self.lm_head.out_features
+                            - (opts.aux_start + logits.size(2)),
+                            0,
+                            0,
+                            0,
+                            0,
                         ),
                         mode="constant",
                         value=-1e10,
@@ -238,7 +244,7 @@ class ARMultiScaleLM(AbsCoreLM):
                 gen_tok, gen_score = gen_tok.squeeze(2), gen_score.squeeze(2)
 
                 if opts.search_algo == "teacher_force":
-                    l_prev_tok = suffix[:, g_step - 1: g_step, l_step]
+                    l_prev_tok = suffix[:, g_step - 1 : g_step, l_step]
                 else:
                     l_prev_tok = gen_tok
                 # print(f"gen_tok: {gen_tok} | l_prev_tok: {l_prev_tok}", flush=True)
@@ -257,7 +263,7 @@ class ARMultiScaleLM(AbsCoreLM):
             g_generated["score"].append(gen_scores_local)
 
             if opts.search_algo == "teacher_force":
-                g_prev_tok = suffix[:, g_step - 1: g_step]
+                g_prev_tok = suffix[:, g_step - 1 : g_step]
             else:
                 g_prev_tok = gen_tokens_local
 

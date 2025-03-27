@@ -22,6 +22,7 @@ HF_OBJ = {
     "facebook/opt": [AutoModel, AutoModelForCausalLM],
 }
 
+
 class HFTransformerDecoder(AbsTransformer):
     """Unified interface of ESPnet Transformer and HuggingFace Transformer"""
 
@@ -53,7 +54,7 @@ class HFTransformerDecoder(AbsTransformer):
             attn_implementation=attention_choice,
             torch_dtype=dtype,
         ).get_output_embeddings()
-        
+
         self.model = base_class.from_pretrained(
             hf_model_tag,
             attn_implementation=attention_choice,
@@ -93,7 +94,7 @@ class HFTransformerDecoder(AbsTransformer):
     def reset(self):
         self.kv_cache = None
         self.use_cache = False
-    
+
     @property
     def n_ctx(self):
         return self._n_ctx
@@ -101,9 +102,8 @@ class HFTransformerDecoder(AbsTransformer):
     @torch.no_grad()
     def init_embeddings(self, emb, lm_head):
         """When using HF pretrained model, inherit the embeddings and lm_head"""
-        if (
-            "text_bpe" not in self.token_bias
-            or (self.emb is None or self.lm_head is None)
+        if "text_bpe" not in self.token_bias or (
+            self.emb is None or self.lm_head is None
         ):
             del self.lm_head, self.emb
             return

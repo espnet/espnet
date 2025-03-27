@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-from abc import ABC, abstractmethod
-from typing import Tuple
-=======
 #!/usr/bin/env python3
 
 # Copyright 2025 William Chen
@@ -9,20 +5,10 @@ from typing import Tuple
 
 from abc import ABC, abstractmethod
 from typing import Dict, List, Tuple
->>>>>>> e72ffd9f44396fd97121dc5d38893d66b18756cc
 
 import torch
 
 
-<<<<<<< HEAD
-class AbsLoss(torch.nn.Module, ABC):
-    @abstractmethod
-    def forward(
-        self,
-        xs_pad: torch.Tensor,
-        ys_pad: torch.Tensor,
-    ) -> torch.Tensor:
-=======
 class AbsSSLLoss(torch.nn.Module, ABC):
     """Abstract loss class for encoder-only SSL model.
 
@@ -47,5 +33,4 @@ class AbsSSLLoss(torch.nn.Module, ABC):
             encoder_output_lengths (Tensor): Lengths of batched encoder sequences (B,),
 
         """
->>>>>>> e72ffd9f44396fd97121dc5d38893d66b18756cc
         raise NotImplementedError

@@ -50,9 +50,9 @@ def main(args):
         json.dump(stat_dict, writer)
         writer.write("\n")
 
-        tot_error += stat_dict['wer']
-        tot_count += stat_dict['weight']
-    
+        tot_error += stat_dict["wer"]
+        tot_count += stat_dict["weight"]
+
     print(f"Overall WER: {tot_error / tot_count}")
 
 

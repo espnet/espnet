@@ -72,9 +72,9 @@ def inference(
         raise NotImplementedError("only single GPU decoding is supported")
 
     logging.basicConfig(
-    level=logging.INFO,
+        level=logging.INFO,
         format=f"[{rank}/{nproc}] "
-               f"%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
+        f"%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
     )
 
     if torch.cuda.is_available() and ngpu >= 1:
@@ -219,7 +219,7 @@ def main(cmd=None):
     mp = torch.multiprocessing.get_context("spawn")
     processes = list()
     for rank in range(nproc):
-        kwargs['rank'] = rank
+        kwargs["rank"] = rank
         p = mp.Process(
             target=inference,
             kwargs=kwargs,
@@ -232,14 +232,14 @@ def main(cmd=None):
 
     # (3) finally, merge results from all processes
     file_dict = dict()
-    for file in args.output_dir.rglob('*_rank*'):
-        name = file.parent / file.name.split('_rank')[0]
+    for file in args.output_dir.rglob("*_rank*"):
+        name = file.parent / file.name.split("_rank")[0]
         if name not in file_dict:
             file_dict[name] = list()
         file_dict[name].append(file)
-    
+
     for name, files in file_dict.items():
-        writer = open(name, 'w')
+        writer = open(name, "w")
         for file in files:
             for line in open(file):
                 writer.write(line)

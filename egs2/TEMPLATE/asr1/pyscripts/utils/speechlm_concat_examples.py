@@ -22,12 +22,13 @@ logging.basicConfig(
     stream=sys.stdout,
 )
 
+
 def get_parser():
     parser = argparse.ArgumentParser(
         description="Concat examples",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    
+
     parser.add_argument(
         "--input_data_json",
         type=Path,
@@ -64,6 +65,7 @@ def get_parser():
 
     return parser
 
+
 def main():
     parser = get_parser()
     args = parser.parse_args()
@@ -87,7 +89,7 @@ def main():
     for uid, length in length_dict.items():
         if length is None:
             raise ValueError(f"UID {uid} is not in the shape file")
-    
+
     # (2) grouping
     group_file = None
     for file, modality, _ in data_triplets:
@@ -95,7 +97,7 @@ def main():
             assert group_file is None
             group_file = file
             break
-    
+
     if group_file is None:
         groups = [list(length_dict.keys())]
     else:
@@ -106,7 +108,7 @@ def main():
                 groups[gid] = []
             groups[gid].append(uid)
         groups = list(groups.values())
-    
+
     # (3) concat: assign uid for each long-form example
     concat_examples = []
     for group in groups:
@@ -129,43 +131,51 @@ def main():
             )
         else:
             raise NotImplementedError
-    
+
     # (4) concat: exact concat
     concat_data_triplets = []
     for idx, (file, modality, _type) in enumerate(data_triplets):
-            
+
         # (4.1) concat content
         reader = read_2columns_text(file)
-        writer = open(args.output_dir / Path(file).name, 'w')
+        writer = open(args.output_dir / Path(file).name, "w")
         for uid_list in concat_examples:
             concat_uid = "_".join(uid_list)
 
-            if modality in ["ssl", "codec", "codec_ssl", "text_bpe", "g2p"] and _type in ["kaldi_ark", "text"]:
+            if modality in [
+                "ssl",
+                "codec",
+                "codec_ssl",
+                "text_bpe",
+                "g2p",
+            ] and _type in ["kaldi_ark", "text"]:
                 concat_content = " ".join([reader[uid] for uid in uid_list])
             elif modality in ["spk"] and _type in "text":
                 concat_content = [reader[uid] for uid in uid_list]
                 assert all([v == concat_content[0] for v in concat_content])
                 concat_content = concat_content[0]
             else:
-                raise NotImplementedError(f"Modality {modality} and type {_type} is not supported yet")
+                raise NotImplementedError(
+                    f"Modality {modality} and type {_type} is not supported yet"
+                )
 
             writer.write(f"{concat_uid} {concat_content}\n")
-        
+
         # (4.2) save length
         if idx == 0:
             (args.output_dir / "stats").mkdir(parents=True, exist_ok=True)
-            length_writer = open(args.output_dir / "stats" / "dec_seq_shape", 'w')
+            length_writer = open(args.output_dir / "stats" / "dec_seq_shape", "w")
             for uid_list in concat_examples:
                 concat_uid = "_".join(uid_list)
                 concat_length = sum([length_dict[uid] for uid in uid_list])
                 length_writer.write(f"{task}_{concat_uid} {concat_length}\n")
-        
+
         # (4.2) save new triplets
         if _type == "kaldi_ark":
             _type = "multicol_kaldi_ark"
         concat_file = str(args.output_dir / Path(file).name)
         concat_data_triplets.append(",".join([concat_file, modality, _type]))
-    
+
     # (5) save the data.json
     json_dict["data_files"] = concat_data_triplets
     json_dict["examples"] = ["_".join(uid_list) for uid_list in concat_examples]
@@ -178,12 +188,12 @@ def main():
             )
         )
 
-    
+
 def concat_by_number(group, length_dict, n_concat, max_len):
     ans = []
     count = 0
     while count < len(group):
-        example = group[count: min(count + n_concat, len(group))]
+        example = group[count : min(count + n_concat, len(group))]
         if sum([length_dict[uid] for uid in example]) < max_len:
             ans.append(example)
         else:
@@ -193,13 +203,14 @@ def concat_by_number(group, length_dict, n_concat, max_len):
             )
             for uid in example:
                 ans.append([uid])
-        
+
         count += n_concat
     return ans
-            
+
+
 def concat_by_bucket(group, length_dict, max_len):
     raise NotImplementedError
-        
+
 
 if __name__ == "__main__":
     main()

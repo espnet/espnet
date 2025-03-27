@@ -41,13 +41,15 @@ class NumElementsBatchSampler(AbsSampler):
         #    uttA 100,...
         #    uttB 201,...
         utt2shapes = [
-            load_num_sequence_text(s, loader_type="csv_int", allow_duplication=allow_duplication) 
+            load_num_sequence_text(
+                s, loader_type="csv_int", allow_duplication=allow_duplication
+            )
             for s in shape_files
         ]
 
         # NOTE(Jinchuan): use list rather than dict to keep duplication
         first_utt2shape = utt2shapes[0]
-        if allow_duplication: 
+        if allow_duplication:
             keys = [line.split()[0] for line in open(shape_files[0])]
         else:
             keys = first_utt2shape.keys()

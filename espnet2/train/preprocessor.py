@@ -2560,8 +2560,8 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         token_bias: Dict,
         train: bool = True,
         encoder_decoder_format: Optional[bool] = False,
-        loss_region: str = 'whole',
-        audio_modality: str = 'codec_ssl',
+        loss_region: str = "whole",
+        audio_modality: str = "codec_ssl",
         # codec related:
         codec_token_per_frame: int = 1,
         codec_token_in_use: Optional[int] = None,
@@ -2663,7 +2663,8 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         self.asr_apply_time_mask = asr_apply_time_mask
         if asr_apply_time_mask and train:
             from espnet2.layers.mask_along_axis import MaskAlongAxisVariableMaxWidth
-            self.asr_time_mask=MaskAlongAxisVariableMaxWidth(**asr_time_mask_config)
+
+            self.asr_time_mask = MaskAlongAxisVariableMaxWidth(**asr_time_mask_config)
         else:
             self.asr_time_mask = None
 
@@ -2677,9 +2678,9 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         task_name = uid.strip().split(" ")[0]
         task = self.tasks[task_name]
 
-        data_tuples = [] # tuple of (name, modality, content, role, target)
+        data_tuples = []  # tuple of (name, modality, content, role, target)
         if task_name in ["text_dialogue", "audio_dialogue"]:
-            for idx, (role, modality, target, content) in enumerate(data['dialogue']):
+            for idx, (role, modality, target, content) in enumerate(data["dialogue"]):
                 name = str(idx)
                 target = str(target) == "True"
 
@@ -2694,12 +2695,12 @@ class SpeechLMPreprocessor(AbsPreprocessor):
                 target = idx >= task.n_conditions
                 data_tuples.append((name, modality, role, content, target))
 
-        # (2) modality-specific processing. 
+        # (2) modality-specific processing.
         seqs, loss_masks = [], []
         cache = dict(task_name=task_name)
         for idx, data_tuple in enumerate(data_tuples):
             name, modality, role, content, target = data_tuple
-            
+
             # NOTE(Jinchuan): add an indicator to the end for each target segment.
             # This is for multi-segment inference.
             # end-of-sentence: the last target segment
@@ -2709,11 +2710,11 @@ class SpeechLMPreprocessor(AbsPreprocessor):
             elif idx == len(data_tuples) - 1:
                 end_tok = "<sos/eos>"
             else:
-                end_tok = "<eou>" # end-of-utterance
-            
+                end_tok = "<eou>"  # end-of-utterance
+
             value, _ = self.modality_specific_processing(
                 content,
-                modality, 
+                modality,
                 cache,
                 end_tok=end_tok,
             )
@@ -2734,14 +2735,14 @@ class SpeechLMPreprocessor(AbsPreprocessor):
 
             # NOTE(Jinchuan): specifically design for delay interleave: after the
             # interleave, there is still no overlap between consecutive segments.
-            if idx != len(data_tuples) - 1  and self.inter_segment_pad > 0:
+            if idx != len(data_tuples) - 1 and self.inter_segment_pad > 0:
                 pad = np.tile(self.special_token("<pad>"), self.inter_segment_pad)
                 value = np.concatenate([value, pad], axis=0)
 
             seqs.append(value)
             target = True if self.loss_region == "whole" else target
             loss_masks.append(value * 0 + int(target))
-        
+
         # (3) splice
         sos_eos = self.special_token("<sos/eos>")
         if task.use_task_identifier:
@@ -2751,17 +2752,19 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         task_identifier = self.special_token(task_identifier)
 
         if self.encoder_decoder_format:
-            raise NotImplementedError('encoder decoder is not supported yet')
+            raise NotImplementedError("encoder decoder is not supported yet")
         else:
             seqs = [sos_eos] + [task_identifier] + seqs
             dec_seq = np.concatenate(seqs, axis=0).reshape(-1, self.codec_token_in_use)
 
-            special_loss_mask = np.zeros_like(sos_eos) + int(self.loss_region == "whole")
+            special_loss_mask = np.zeros_like(sos_eos) + int(
+                self.loss_region == "whole"
+            )
             loss_masks = [special_loss_mask] * 2 + loss_masks
             loss_mask = np.concatenate(loss_masks, axis=0).reshape(dec_seq.shape)
             loss_mask[dec_seq == 0] = 0
 
-            dec_seq, loss_mask = dec_seq[:self.n_ctx], loss_mask[:self.n_ctx]
+            dec_seq, loss_mask = dec_seq[: self.n_ctx], loss_mask[: self.n_ctx]
 
             # NOTE(Jinchuan): remove these special tokens to full preserve text LLM format.
             # the first three token: <sos> <task_id> <modality_id>
@@ -2793,10 +2796,10 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         token_idx = self.token_list.index(token)
         token_idx = np.array([token_idx])
         token_idx = np.pad(
-            token_idx, 
-            (0, self.codec_token_in_use - 1), 
-            mode="constant", 
-            constant_values=self.pad
+            token_idx,
+            (0, self.codec_token_in_use - 1),
+            mode="constant",
+            constant_values=self.pad,
         )
         return token_idx
 
@@ -2804,7 +2807,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         # multi-stream discrete modalities
         if modality in ["codec", "spk", "codec_ssl"]:
             value = value.reshape(-1, self.codec_token_per_frame)
-            value = value[:, :self.codec_token_in_use]
+            value = value[:, : self.codec_token_in_use]
 
             if modality == "spk":
                 # speaker prompt has a fixed length
@@ -2821,22 +2824,18 @@ class SpeechLMPreprocessor(AbsPreprocessor):
                         mode="constant",
                         constant_values=self.pad,
                     )
-            
+
                 bias_modality = self.audio_modality
             else:
                 bias_modality = modality
-            
-            if bias_modality == 'codec_ssl':
-                token_bias = self.token_bias['ssl'][0]
+
+            if bias_modality == "codec_ssl":
+                token_bias = self.token_bias["ssl"][0]
             else:
-                token_bias = self.token_bias['codec'][0]
-                
-            value = np.where(
-                value == self.pad,
-                self.pad,
-                value + token_bias
-            )
-            
+                token_bias = self.token_bias["codec"][0]
+
+            value = np.where(value == self.pad, self.pad, value + token_bias)
+
             conti_feat = None
 
         # Other discrete modalities
@@ -2865,12 +2864,12 @@ class SpeechLMPreprocessor(AbsPreprocessor):
 
             elif modality in ["ssl", "video_ssl"]:
                 value = value + self.token_bias[modality][0]
-            
+
             elif modality in ["svs_lb"]:
                 value = value.split(" ")  # str to token list, no '\n'
                 value = self.converter.tokens2ids(value)
                 value = np.array(value)  # NOTE(yiwen) don't need to add token bias
-            
+
             else:
                 raise NotImplementedError
 
@@ -2889,12 +2888,17 @@ class SpeechLMPreprocessor(AbsPreprocessor):
 
         else:
             raise NotImplementedError
-    
-        if modality in ["codec", "ssl", "codec_ssl"] and "asr" in cache["task_name"] and self.asr_apply_time_mask and self.train:
+
+        if (
+            modality in ["codec", "ssl", "codec_ssl"]
+            and "asr" in cache["task_name"]
+            and self.asr_apply_time_mask
+            and self.train
+        ):
             value = np.expand_dims(value, axis=0)
             value, _ = self.asr_time_mask(value)
             value = np.squeeze(value, axis=0)
-        
+
         value = value.flatten()
         modality_idx = self.special_token(f"<{modality}_start/end>")
         value = np.concatenate([modality_idx, value])
@@ -2917,6 +2921,8 @@ class SpeechLMPreprocessor(AbsPreprocessor):
             for idx, (patch, patch_loss_mask) in enumerate(seq):
                 patch = patch.tolist()
                 patch_str = ", ".join(self.converter.ids2tokens(patch))
-                logging.warning(f"Patch: {idx} -> {patch} {patch_str} {patch_loss_mask}")
+                logging.warning(
+                    f"Patch: {idx} -> {patch} {patch_str} {patch_loss_mask}"
+                )
 
         raise ValueError("End of Diagnose")

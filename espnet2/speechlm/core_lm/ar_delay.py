@@ -84,7 +84,7 @@ class ARDelayLM(ARParallelLM):
         self,
         prefix: torch.Tensor,
         opts: SpeechLMInferenceOptions,
-        conti_feats = None,
+        conti_feats=None,
         suffix: torch.Tensor = None,
         inference_length: int = -1,
     ):
@@ -107,9 +107,9 @@ class ARDelayLM(ARParallelLM):
         full_seq_delay = full_seq_delay.expand(opts.nbest, -1, -1)
 
         prelen = prefix.size(1)
-        prefix = full_seq_delay[:, :prelen - 1]
-        prev_tok = full_seq_delay[:, prelen - 1: prelen]
-        suffix = full_seq_delay[:, prelen - 1:]
+        prefix = full_seq_delay[:, : prelen - 1]
+        prev_tok = full_seq_delay[:, prelen - 1 : prelen]
+        suffix = full_seq_delay[:, prelen - 1 :]
 
         prefix_emb = self.emb(prefix).sum(dim=2)
         _ = self.decoders(prefix_emb)
@@ -126,9 +126,11 @@ class ARDelayLM(ARParallelLM):
             if opts.maxlenratio > 0
             else self.n_ctx - prefix.size(1)
         )
-        
+
         if opts.fixed_length:
-            assert inference_length > 0, "Inference length is needed for fixed length inference"
+            assert (
+                inference_length > 0
+            ), "Inference length is needed for fixed length inference"
             minlen = int(inference_length) + (self.nq - 1)
             maxlen = int(inference_length) + (self.nq - 1)
 
@@ -141,9 +143,9 @@ class ARDelayLM(ARParallelLM):
         generated = {"token": [], "score": []}
         finish_idx = torch.Tensor([-1]).expand(opts.nbest).long().to(opts.device)
         # initially, modality is unknown
-        mask = opts.masks['unknown'].tile(opts.nbest, 1, 1, 1)
+        mask = opts.masks["unknown"].tile(opts.nbest, 1, 1, 1)
         modality_index = prev_tok[:, :, 0].flatten() * 0
-        
+
         for step in range(1, maxlen + 1):
             # (3.2) AR model prediction
             prev_emb = self.emb(prev_tok).sum(dim=2)
@@ -155,18 +157,19 @@ class ARDelayLM(ARParallelLM):
                 aux_logits = self.aux_lm_head(h[:, :, 1:])
                 # NOTE(Jinchuan) use small number but not -inf, otherwise it will cause confict with
                 # modality mask.
-                pad_aux_logits = torch.ones_like(logits).repeat(1, 1, aux_logits.size(2), 1) * -1e10
-                pad_aux_logits[..., opts.aux_start: opts.aux_start + aux_logits.size(3)] = aux_logits
+                pad_aux_logits = (
+                    torch.ones_like(logits).repeat(1, 1, aux_logits.size(2), 1) * -1e10
+                )
+                pad_aux_logits[
+                    ..., opts.aux_start : opts.aux_start + aux_logits.size(3)
+                ] = aux_logits
                 logits = torch.cat([logits, pad_aux_logits], dim=2)
 
             gen_tok, gen_score = logits_to_tokens(
-                logits,
-                opts,
-                mask,
-                allow_eos=step >= minlen - (self.nq - 1)
+                logits, opts, mask, allow_eos=step >= minlen - (self.nq - 1)
             )
 
-            if step  == 1:
+            if step == 1:
                 gen_tok[..., 0] = 34
 
             # NOTE(Jinchuan): Due to delay interleave, the first predictions
@@ -177,10 +180,10 @@ class ARDelayLM(ARParallelLM):
                 gen_tok[:, :, pad_start:] = 0
 
             if opts.search_algo == "teacher_force":
-                prev_tok = suffix[:, step: step + 1]
+                prev_tok = suffix[:, step : step + 1]
             else:
                 prev_tok = gen_tok
-            
+
             generated["token"].append(gen_tok)
             generated["score"].append(gen_score)
 

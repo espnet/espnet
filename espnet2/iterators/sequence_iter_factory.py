@@ -142,7 +142,7 @@ class SequenceIterFactory(AbsIterFactory):
             kwargs = dict(collate_fn=self.collate_fn)
         else:
             kwargs = {}
-        
+
         if self.num_workers > 0:
             kwargs.update(prefetch_factor=50)
 

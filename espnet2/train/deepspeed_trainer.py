@@ -51,6 +51,7 @@ class DeepSpeedTrainerOptions:
     best_model_criterion: Sequence[Sequence[str]]
     keep_nbest_models: Union[int, List[int]]
 
+
 class DeepSpeedTrainer(Trainer):
 
     @classmethod
@@ -321,7 +322,7 @@ class DeepSpeedTrainer(Trainer):
         assert torch.all(
             length_list.eq(this_length)
         ), f"Iterator lengths are different across all ranks: {length_list}"
-    
+
     @classmethod
     def reserve_runtime_memory(cls, size_gb: float):
         if size_gb <= 0:
@@ -331,11 +332,11 @@ class DeepSpeedTrainer(Trainer):
         logging.info(
             f"Before reserving memory: {torch.cuda.memory_reserved() // 1024 ** 3} GB"
         )
-        
+
         tensors = []
-        while torch.cuda.memory_reserved() // 1024 ** 3 < size_gb:
+        while torch.cuda.memory_reserved() // 1024**3 < size_gb:
             try:
-                tensor = torch.empty(1024 ** 3 // 2, dtype=torch.float16, device="cuda")
+                tensor = torch.empty(1024**3 // 2, dtype=torch.float16, device="cuda")
                 tensors.append(tensor)
             except torch.cuda.OutOfMemoryError:
                 logging.info("Cannot further reserve memory due to OOM")

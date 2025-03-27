@@ -484,8 +484,8 @@ class AbsTask(ABC):
             default=-1,
             type=float,
             help="Memory specifically reserved for pytorch "
-                 "and will not be used by other libraries like deepspeed and NCCL. "
-                 "Only effective when using deepspeed trainer",
+            "and will not be used by other libraries like deepspeed and NCCL. "
+            "Only effective when using deepspeed trainer",
         )
         group.add_argument(
             "--gradient_as_bucket_view",
@@ -831,8 +831,8 @@ class AbsTask(ABC):
             type=str2bool,
             default=False,
             help="If true, allow duplication in sampler shape files. "
-                 "This is usually for data re-weighting "
-                 "Currently only for numel sampler"
+            "This is usually for data re-weighting "
+            "Currently only for numel sampler",
         )
         group.add_argument(
             "--category_sample_size",
@@ -2465,7 +2465,7 @@ class AbsTask(ABC):
             except RuntimeError:
                 # Note(simpleoier): the following part is to be compatible with
                 #   pretrained model using earlier versions before `0a625088`
-                state_dict = torch.load(model_file, map_location='cpu')
+                state_dict = torch.load(model_file, map_location="cpu")
                 if any(["frontend.upstream.model" in k for k in state_dict.keys()]):
                     if any(
                         [

@@ -53,7 +53,6 @@ transformer_choices = ClassChoices(
     ),
     type_check=AbsTransformer,
     default="builtin",
-
 )
 
 corelm_choices = ClassChoices(
@@ -229,7 +228,7 @@ class SpeechLMTask(AbsTask):
             choices=["whole", "target"],
             default="whole",
             help="If target, compute the loss only on the target segments "
-                 "Otherwise on the whole sequences"
+            "Otherwise on the whole sequences",
         )
         group.add_argument(
             "--audio_modality",
@@ -243,19 +242,19 @@ class SpeechLMTask(AbsTask):
             type=dict,
             default=dict(),
             help="Set the relative weights for different modalities "
-                 "using string format: modality:weight"
+            "using string format: modality:weight",
         )
         group.add_argument(
             "--asr_apply_time_mask",
             type=str2bool,
             default=False,
-            help="If true, apply time masking only for ASR tasks"
+            help="If true, apply time masking only for ASR tasks",
         )
         group.add_argument(
             "--asr_time_mask_config",
             type=dict,
             default=dict(),
-            help="The config of using time mask"
+            help="The config of using time mask",
         )
         group.add_argument(
             "--z_loss_weight",
@@ -306,7 +305,9 @@ class SpeechLMTask(AbsTask):
             speaker_prompt_length=args.speaker_prompt_length,
             pad_speaker_prompt=args.pad_speaker_prompt,
             n_ctx=args.corelm_conf.get("n_ctx", 8192),
-            inter_segment_pad=args.codec_token_in_use - 1 if args.corelm == "ar_delay" else 0,
+            inter_segment_pad=(
+                args.codec_token_in_use - 1 if args.corelm == "ar_delay" else 0
+            ),
             asr_apply_time_mask=args.asr_apply_time_mask,
             asr_time_mask_config=args.asr_time_mask_config,
             audio_modality=getattr(args, "audio_modality", "codec_ssl"),
@@ -368,11 +369,17 @@ class SpeechLMTask(AbsTask):
             transformer = TransformerDecoder(token_bias=token_bias)
         else:
             transformer_class = transformer_choices.get_class(args.transformer)
-            transformer = transformer_class(token_bias=token_bias, **args.transformer_conf)
+            transformer = transformer_class(
+                token_bias=token_bias, **args.transformer_conf
+            )
 
         # 2. Build CoreLM module
         corelm_class = corelm_choices.get_class(args.corelm)
-        aux_vocab_size = token_bias["codec"][1] - token_bias["codec"][0] if "codec" in token_bias else 0
+        aux_vocab_size = (
+            token_bias["codec"][1] - token_bias["codec"][0]
+            if "codec" in token_bias
+            else 0
+        )
         corelm = corelm_class(
             transformer=transformer,
             vocab_size=len(token_list),
@@ -410,14 +417,14 @@ class SpeechLMTask(AbsTask):
                         torch.nn.init.zeros_(m.bias)
                 elif isinstance(m, torch.nn.Embedding):
                     torch.nn.init.normal_(m.weight, mean=0.0, std=0.02)
-        
+
         # 5. if use deepspeed, also save the config
         if args.deepspeed_config is not None and torch.distributed.is_initialized():
             ds_config_dict = json.load(open(args.deepspeed_config))
             setattr(args, "ds_config_dict", ds_config_dict)
 
         return model
-    
+
     @classmethod
     def process_token_bias(cls, token_bias, token_list):
         # if the token_bias is already processed
@@ -431,17 +438,16 @@ class SpeechLMTask(AbsTask):
             token_bias["codec"] = token_list.index("<codec_layer0_code0>")
             del token_bias["codec_ssl"]
             use_codec_ssl = True
-        
+
         values = list(token_bias.values()) + [len(token_list)]
         retval = dict()
         for modality, start in token_bias.items():
             end = min([v for v in values if v > start])
             retval[modality] = (start, end)
-        
-        if "codec" in retval and "ssl" in retval and use_codec_ssl:
-            assert retval["ssl"][1] == retval["codec"][0], \
-                "ssl and codec token list should be continuous"
-        
-        return retval
-        
 
+        if "codec" in retval and "ssl" in retval and use_codec_ssl:
+            assert (
+                retval["ssl"][1] == retval["codec"][0]
+            ), "ssl and codec token list should be continuous"
+
+        return retval
