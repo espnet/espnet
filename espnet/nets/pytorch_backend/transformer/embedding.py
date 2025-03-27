@@ -433,8 +433,9 @@ class ConvolutionalPositionalEmbedding(torch.nn.Module):
                 std = math.sqrt((4 * (1.0)) / (kernel_size * embed_dim))
                 torch.nn.init.normal_(conv.weight, mean=0, std=std)
                 torch.nn.init.constant_(conv.bias, 0)
-                # torch.nn.utils.weight_norm leads to weird behavior with copy.deepcopy()
-                # usually isnt needed, but its important for models that use EMA
+                # torch.nn.utils.weight_norm leads to weird behavior 
+                # with copy.deepcopy(). Usually isnt needed,
+                # but its important for models that use EMA
                 if weight_norm == "new":
                     if V(torch.__version__) >= V("2.2.0"):
                         conv = torch.nn.utils.parametrizations.weight_norm(
