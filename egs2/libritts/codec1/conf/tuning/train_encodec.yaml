@@ -86,9 +86,9 @@ codec_conf:
 #            OPTIMIZER & SCHEDULER SETTING               #
 ##########################################################
 # optimizer setting for generator
-optim: adam
+optim: adamw
 optim_conf:
-    lr: 2.0e-4
+    lr: 3.0e-4
     betas: [0.5, 0.9]
     eps: 1.0e-9
     weight_decay: 0.0
@@ -96,9 +96,9 @@ scheduler: exponentiallr
 scheduler_conf:
     gamma: 0.999875
 # optimizer setting for discriminator
-optim2: adam
+optim2: adamw
 optim2_conf:
-    lr: 2.0e-4
+    lr: 3.0e-4
     betas: [0.5, 0.9]
     eps: 1.0e-9
     weight_decay: 0.0
@@ -112,15 +112,15 @@ skip_discriminator_prob: 0.3
 ##########################################################
 #                OTHER TRAINING SETTING                  #
 ##########################################################
-num_iters_per_epoch: 5000 # number of iterations per epoch
-max_epoch: 120              # number of epochs
+num_iters_per_epoch: 10000 # number of iterations per epoch
+max_epoch: 60              # number of epochs
 accum_grad: 1             # gradient accumulation
-batch_size: 8
+batch_size: 4
 batch_type: unsorted      # how to make batch
 
 
 iterator_type: chunk
-chunk_length: 24000
+chunk_length: 61440
 num_cache_chunks: 64
 
 grad_clip: -1             # gradient clipping norm

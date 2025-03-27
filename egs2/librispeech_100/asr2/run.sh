@@ -6,14 +6,13 @@ set -u
 set -o pipefail
 
 
-kmeans_feature="espnet_hubert/16"  # use model_type/layer_index
-nclusters=5000
-model_path="/scratch/bbjs/chen26/espnet_ssl/egs2/librispeech/ssl1/exp_900k/hubert_iter2_train_ssl_espnethubert_ebf_ce_large_p3_raw/38epoch.pth"
+kmeans_feature="wavlm_large/21"  # use model_type/layer_index
+nclusters=2000
 
 src_lang=$(echo "${kmeans_feature}_km${nclusters}" | tr "/" "_")
 tgt_lang=en
 
-train_set="dev_aishell"
+train_set="train_clean_100"
 train_dev="dev"
 test_sets="test_clean test_other dev_clean dev_other"
 
@@ -29,13 +28,10 @@ src_case="rm"
 tgt_case="ts"
 
 ./asr2.sh \
-    --kmeans_opts "--batch_bins 4800000 --nj 1 --hubert_dir_path ${model_path}" \
+    --kmeans_opts "--batch_bins 4800000 --nj 4" \
     --kmeans_feature "${kmeans_feature}" \
     --nclusters "${nclusters}" \
-    --audio_format flac.ark \
     --ngpu 1 \
-    --stage 5 \
-    --stop_stage 5 \
     --src_lang ${src_lang} \
     --tgt_lang ${tgt_lang} \
     --src_token_type "bpe" \

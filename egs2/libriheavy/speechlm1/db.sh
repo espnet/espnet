@@ -1,1 +1,0 @@
-../../TEMPLATE/speechlm1/db.sh

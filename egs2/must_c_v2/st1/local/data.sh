@@ -21,6 +21,7 @@ stop_stage=100000
 lang=$1
 
 log "$0 $*"
+. utils/parse_options.sh
 
 if [ -z "${MUST_C}" ]; then
     log "Fill the value of 'MUST_C' of db.sh"
@@ -36,7 +37,7 @@ if ! command -v tokenizer.perl > /dev/null; then
 fi
 
 if [ $# -ne 1 ]; then
-    log "Error: lang argument is required."
+    log "Error: ang argument is required."
     exit 2
 fi
 
