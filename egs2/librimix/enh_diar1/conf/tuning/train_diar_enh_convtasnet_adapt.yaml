@@ -87,6 +87,8 @@ enh_criterions:
   - name: si_snr
     conf:
       eps: 1.0e-7
+      zero_mean: False
+
     wrapper: pit
     wrapper_conf:
       weight: 1.0
