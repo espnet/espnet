@@ -91,7 +91,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         wav_dir=${data_dir}/audioset/${dset}/wav
 
         mkdir -p ${wav_dir}
-        find -L ${raw_dir} -name "*.flac" | while read flac_path; do
+        find -L ${raw_dir} -name "*.flac" | while read -r flac_path; do
             wav_path=${wav_dir}/$(basename ${flac_path%.*}).wav
             if [ ! -f ${wav_path} ]; then
                 sox ${flac_path} ${wav_path}
@@ -108,7 +108,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         norm_dir=${data_dir}/audioset/${dset}/normed_wav
 
         mkdir -p ${norm_dir}
-        find -L ${wav_dir} -name "*.wav" | while read raw_wav; do
+        find -L ${wav_dir} -name "*.wav" | while read -r raw_wav; do
             norm_wav=${norm_dir}/$(basename ${raw_wav})
             if [ ! -f ${norm_wav} ]; then
                 sox ${raw_wav} -r 16000 -c 1 -b 16 ${norm_wav} remix 1 rate -v dither -s
@@ -143,7 +143,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 
     utils/shuffle_list.pl --srand ${seed} ${data_dir}/train_all/wav.scp > ${data_dir}/train_all/shuffled.scp
     num_total=$(wc -l < ${data_dir}/train_all/shuffled.scp)
-    num_dev=$(printf "%.0f" $(echo "${num_total} * ${dev_ratio}" | bc))
+    num_dev=$(printf "%.0f" "$(echo "${num_total} * ${dev_ratio}" | bc)")
 
     mkdir -p ${data_dir}/dev ${data_dir}/train
     head -n ${num_dev} ${data_dir}/train_all/shuffled.scp > ${data_dir}/dev/wav.scp
