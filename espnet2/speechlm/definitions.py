@@ -25,6 +25,7 @@ MODALITIES["class"] = Modality()
 MODALITIES["bool"] = Modality()
 MODALITIES["video_ssl"] = Modality()
 MODALITIES["svs_lb"] = Modality()
+MODALITIES["image"] = Modality()
 
 # continuous
 MODALITIES["wav"] = Modality(discrete=False)
@@ -222,6 +223,21 @@ SPEECHLM_TASKS["text_dialogue"] = SpeechLMTaskTemplate(
 SPEECHLM_TASKS["audio_dialogue"] = SpeechLMTaskTemplate(
     conditions=[],
     targets=[("dialogue", "dialogue", "dialogue_json")],
+)
+
+SPEECHLM_TASKS["vision_dialogue"] = SpeechLMTaskTemplate(
+    conditions=[],
+    targets=[("dialogue", "dialogue", "dialogue_json")],
+)
+
+SPEECHLM_TASKS["image_to_text"] = SpeechLMTaskTemplate(
+    conditions=[("image.scp", "image", "kaldi_ark")],
+    targets=[("text", "text_bpe", "text")],
+)
+
+SPEECHLM_TASKS["text_to_image"] = SpeechLMTaskTemplate(
+    conditions=[("text", "text_bpe", "text")],
+    targets=[("image.scp", "image", "kaldi_ark")],
 )
 
 # END OF TASK DEFINITION #

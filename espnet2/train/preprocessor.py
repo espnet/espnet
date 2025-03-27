@@ -2679,7 +2679,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         task = self.tasks[task_name]
 
         data_tuples = []  # tuple of (name, modality, content, role, target)
-        if task_name in ["text_dialogue", "audio_dialogue"]:
+        if task_name in ["text_dialogue", "audio_dialogue", "vision_dialogue"]:
             for idx, (role, modality, target, content) in enumerate(data["dialogue"]):
                 name = str(idx)
                 target = str(target) == "True"
@@ -2839,7 +2839,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
             conti_feat = None
 
         # Other discrete modalities
-        elif modality in ["ssl", "text_bpe", "g2p", "video_ssl", "svs_lb"]:
+        elif modality in ["ssl", "text_bpe", "g2p", "video_ssl", "svs_lb", "image"]:
 
             if modality in ["text_bpe", "g2p"]:
                 if isinstance(value, str):
@@ -2862,7 +2862,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
                     assert isinstance(value, np.ndarray)
                     value = value + self.token_bias[modality][0]
 
-            elif modality in ["ssl", "video_ssl"]:
+            elif modality in ["ssl", "video_ssl", "image"]:
                 value = value + self.token_bias[modality][0]
 
             elif modality in ["svs_lb"]:
@@ -2887,7 +2887,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
             raise NotImplementedError
 
         else:
-            raise NotImplementedError
+            raise NotImplementedError(f"Modality: {modality}")
 
         if (
             modality in ["codec", "ssl", "codec_ssl"]

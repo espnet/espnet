@@ -61,6 +61,24 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         gen_text=${gen_dir}/text
         gt_text=${ref_dir}/text
 
+        # remove language ID
+        if [ ${cleaner} == "whisper_basic" ] || [ ${hyp_cleaner} == "whisper_basic" ]; then
+            cat ${gen_dir}/text |\
+                sed 's/<German>//g' | sed 's/German://g' |\
+                sed 's/<Spanish>//g' | sed 's/Spanish://g' |\
+                sed 's/<Dutch>//g' | sed 's/Dutch://g' |\
+                sed 's/<Polish>//g' | sed 's/Polish://g' |\
+                sed 's/<French>//g' | sed 's/French://g' |\
+                sed 's/<Italian>//g' | sed 's/Italian://g' |\
+                sed 's/<Portuguese>//g' | sed 's/Portuguese://g' |\
+                sed 's/<Russian>//g' | sed 's/Russian://g' |\
+                sed 's/<Chinese>//g' | sed 's/Chinese://g' |\
+                sed 's/<Japanese>//g' | sed 's/Japanese://g' |\
+                sed 's/<Korean>//g' | sed 's/Korean://g' \
+                > ${gen_dir}/text.tmp
+            mv ${gen_dir}/text.tmp ${gen_dir}/text
+        fi
+
         if [ "${_type}" = wer ]; then
             paste \
                 <(<"${gt_text}" \

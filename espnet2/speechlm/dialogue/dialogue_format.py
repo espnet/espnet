@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-# Copyright 2024 Jinchuan Tian
-#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+# Copyright 2025 Jinchuan Tian
+# Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import json
 import random
@@ -21,21 +21,34 @@ class Dialogue:
         self,
         role: str,
         modality: str,
+        target: bool,
         content: str,
     ):
-        if role not in ["system", "user", "assistant"]:
-            raise ValueError(f"Role can only be system, user or assistant: {role}")
+        if role not in [None, "system", "user", "assistant"]:
+            raise ValueError(
+                f"Role can only be None, system, user or assistant: {role}"
+            )
 
         if modality not in MODALITIES:
             raise ValueError(f"unrecognized modality: {modality}")
 
-        self.segments.append([role, modality, content])
+        self.segments.append([role, modality, target, content])
 
-    def to_list(self, task, name):
-        assert (
-            self.task == "text_dialogue"
-        ), "Should be text_dialogue task before converting to other task"
-        self.task = task
+    def transform(self, task, name):
+        # Same task, keep the same
+        if self.task == task:
+            return self.segments, []
+        # add placeholder for speech
+        elif self.task == "text_dialogue" and task == "audio_dialogue":
+            return self.text_dialogue_to_audio_dialogue(name)
+        else:
+            raise NotImplementedError
+
+    def text_dialogue_to_audio_dialogue(self, name):
+        # NOTE(Jinchuan): this text-dialogue to audio-dialogue is for spoken dialogue
+        # system SFT. Loss is applied to every segment except user input speech.
+        # Since there is no speech in the text-dialogue, we temporarily put a
+        # placeholder to each speech for follow-up TTS simulation.
 
         # Each segment: (role, modality, is_target, content)
         segments = list()
@@ -87,7 +100,6 @@ class Dialogue:
             else:
                 raise ValueError(f"Unrecognized role {role}")
 
-        # print(segments)
         return segments, utt_text_pairs
 
     def to_str(self):
@@ -102,8 +114,8 @@ class Dialogue:
 class DialogueDataset:
     def __init__(self, task):
 
-        if task not in ["text_dialogue", "audio_dialogue"]:
-            raise ValueError("task can only be text_dialogue or audio_dialogue")
+        if task not in ["text_dialogue", "audio_dialogue", "vision_dialogue"]:
+            raise ValueError("dialogue support: text, audio, vision")
         self.task = task
 
         self.dialogues = dict()
@@ -149,14 +161,14 @@ class DialogueDataset:
             pack_idx += 1
 
             # (1) dump original dialogue data
-            # NOTE(Jinchuan): so far the dialogue are still with format text_dialogue
+            # NOTE(Jinchuan): If, so far the dialogue are still with format text_dialogue
             # We convert it to audio_dialogue or audio_text_dialogue format when
             # self.task is that format. The utt_text_pairs are paired utterance-id and
             # text for TTS simulation.
             pack, all_utt_text_pairs = dict(), dict()
             for key in example_ids[start:end]:
                 dialogue = self.dialogues[key]
-                dialogue_segments, utt_text_pairs = dialogue.to_list(self.task, key)
+                dialogue_segments, utt_text_pairs = dialogue.transform(self.task, key)
                 if not check_valid_segments(dialogue_segments):
                     continue
                 pack[key] = dialogue_segments
@@ -177,7 +189,7 @@ class DialogueDataset:
             )
 
             # (2) dump ESPnet-SLM style TTS dataset for TTS simulation
-            if self.task != "text_dialogue":
+            if self.task == "audio_dialogue" and len(all_utt_text_pairs) > 0:
                 assert assistant_prompt_list is not None
                 assert user_prompt_list is not None
 
