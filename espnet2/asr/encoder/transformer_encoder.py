@@ -136,9 +136,9 @@ class TransformerEncoder(AbsEncoder):
                 torch.nn.Embedding(input_size, output_size, padding_idx=padding_idx),
                 pos_enc_class(output_size, positional_dropout_rate),
             )
-        elif input_layer == "none" or input_layer is None:
+        elif input_layer is None:
             if input_size == output_size:
-                self.embed = pos_enc_class(output_size, positional_dropout_rate)
+                self.embed = None
             else:
                 self.embed = torch.nn.Linear(input_size, output_size)
         else:

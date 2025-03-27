@@ -159,11 +159,6 @@ class ConformerEncoder(AbsEncoder):
                 torch.nn.Dropout(dropout_rate),
                 pos_enc_class(output_size, positional_dropout_rate, max_pos_emb_len),
             )
-        elif input_layer == "wav2vec":
-            self.embed = torch.nn.Sequential(
-                pos_enc_class(output_size, positional_dropout_rate, max_pos_emb_len),
-                torch.nn.Dropout(dropout_rate),
-            )
         elif input_layer == "conv2d":
             self.embed = Conv2dSubsampling(
                 input_size,
@@ -209,7 +204,7 @@ class ConformerEncoder(AbsEncoder):
                 input_layer,
                 pos_enc_class(output_size, positional_dropout_rate, max_pos_emb_len),
             )
-        elif input_layer == "none" or input_layer is None:
+        elif input_layer is None:
             self.embed = torch.nn.Sequential(
                 pos_enc_class(output_size, positional_dropout_rate, max_pos_emb_len)
             )

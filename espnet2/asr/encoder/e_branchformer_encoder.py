@@ -259,11 +259,6 @@ class EBranchformerEncoder(AbsEncoder):
                 torch.nn.Dropout(dropout_rate),
                 pos_enc_class(output_size, positional_dropout_rate, max_pos_emb_len),
             )
-        elif input_layer == "wav2vec":
-            self.embed = torch.nn.Sequential(
-                pos_enc_class(output_size, positional_dropout_rate, max_pos_emb_len),
-                torch.nn.Dropout(dropout_rate),
-            )
         elif input_layer == "conv1d1":
             self.embed = Conv1dSubsampling1(
                 input_size,
@@ -330,7 +325,7 @@ class EBranchformerEncoder(AbsEncoder):
                 input_layer,
                 pos_enc_class(output_size, positional_dropout_rate, max_pos_emb_len),
             )
-        elif input_layer == "none" or input_layer is None:
+        elif input_layer is None:
             if input_size == output_size:
                 self.embed = torch.nn.Sequential(
                     pos_enc_class(output_size, positional_dropout_rate, max_pos_emb_len)
