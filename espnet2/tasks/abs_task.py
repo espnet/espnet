@@ -45,7 +45,6 @@ from espnet2.schedulers.piecewise_linear_warmup_lr import PiecewiseLinearWarmupL
 from espnet2.schedulers.warmup_lr import WarmupLR
 from espnet2.schedulers.warmup_reducelronplateau import WarmupReduceLROnPlateau
 from espnet2.schedulers.warmup_step_lr import WarmupStepLR
-from espnet2.torch_utils.fsdp import warp_fsdp
 from espnet2.torch_utils.load_pretrained_model import load_pretrained_model
 from espnet2.torch_utils.model_summary import model_summary
 from espnet2.torch_utils.pytorch_version import pytorch_cudnn_version
@@ -448,18 +447,6 @@ class AbsTask(ABC):
             default=False,
             type=str2bool,
             help="Enable sharded training provided by fairscale",
-        )
-        group.add_argument(
-            "--use_fsdp",
-            default=False,
-            type=str2bool,
-            help="if true, use pytorch builtin FullyShardedDataParallel",
-        )
-        group.add_argument(
-            "--min_num_params_fsdp",
-            default=30 * 1e6,
-            type=int,
-            help="The minimum #params for a nn.Module to be warpped by FSDP",
         )
         group.add_argument(
             "--use_deepspeed",
@@ -1423,7 +1410,6 @@ class AbsTask(ABC):
                 create_adapter(model, args.adapter, args.adapter_conf)
 
             # 2. Loads pre-trained model
-            # NOTE(Jinchuan): should load --init_param before FSDP warpper
             for p in args.init_param:
 
                 if args.collect_stats:
@@ -1441,18 +1427,6 @@ class AbsTask(ABC):
                         if args.ngpu > 0
                         else "cpu"
                     ),
-                )
-
-            # Note(Jinchuan): have to warp FSDP before building optimizers
-            if (
-                args.use_fsdp
-                and not args.collect_stats
-                and torch.distributed.is_initialized()
-            ):
-                model = warp_fsdp(
-                    model,
-                    use_amp=args.use_amp,
-                    min_num_params=args.min_num_params_fsdp,
                 )
 
             # 3. Build optimizer
@@ -1476,7 +1450,6 @@ class AbsTask(ABC):
 
                 schedulers.append(scheduler)
 
-            # NOTE(Jinchuan) printed #param will be devided by #GPU when using FSDP
             logging.info(pytorch_cudnn_version())
             logging.info(model_summary(model))
             for i, (o, s) in enumerate(zip(optimizers, schedulers), 1):
