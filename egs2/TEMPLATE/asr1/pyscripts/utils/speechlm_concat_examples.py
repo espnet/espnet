@@ -10,8 +10,9 @@ import json
 import logging
 import os
 import sys
-import numpy as np
 from pathlib import Path
+
+import numpy as np
 
 from espnet2.fileio.read_text import read_2columns_text
 

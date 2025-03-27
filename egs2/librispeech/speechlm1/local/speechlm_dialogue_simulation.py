@@ -7,7 +7,7 @@
 As of Jan 2025, create supervised fine-tuning (SFT) data for SpeechLM
 
 *** Text-Only fine-tuning, use the original data of the following datasets.
-    Note, 
+    Note,
 
 SmolTalk: https://huggingface.co/datasets/HuggingFaceTB/smoltalk
   * This is for instruction following / task completion
@@ -16,7 +16,7 @@ SODA: https://huggingface.co/datasets/allenai/soda
   * Role play-like conversation, very short (250 tokens)
   * Have some emotional labels, better for future exploration
   * around 1.5M samples
-ultrachat_200k: 
+ultrachat_200k:
   * Daily conversation without role, kind of long (1200 tokens)
   * Have HFRL data, better for future exploration
 
@@ -39,8 +39,8 @@ ultrachat_200k:
 
 import argparse
 import logging
-
 from pathlib import Path
+
 from datasets import load_dataset
 
 from espnet2.speechlm.dialogue.dialogue_format import Dialogue, DialogueDataset
@@ -63,6 +63,7 @@ def smoltalk_fn(
 
     return name, dialogue
 
+
 def soda_fn(
     sample,
     name,
@@ -78,15 +79,11 @@ def soda_fn(
     dialogue = Dialogue("text_dialogue")
 
     # Add the narrative description
-    narrative = sample['narrative']
+    narrative = sample["narrative"]
     user_name, assistant_name = sample["speakers"][:2]
     role_str = f"This is a conversation between {user_name} and {assistant_name}. As the assistant, your role is {assistant_name}."
     narrative = role_str + "\n" + narrative
-    dialogue.add_segment(
-        role="system", 
-        modality="text_bpe", 
-        content=narrative
-    )
+    dialogue.add_segment(role="system", modality="text_bpe", content=narrative)
 
     # add the dialogue segments
     for idx, content in enumerate(sample["dialogue"]):
@@ -94,13 +91,10 @@ def soda_fn(
             role = "user"
         else:
             role = "assistant"
-        dialogue.add_segment(
-            role=role,
-            modality="text_bpe",
-            content=content
-        )
+        dialogue.add_segment(role=role, modality="text_bpe", content=content)
 
     return name, dialogue
+
 
 def ultrachat_fn(
     sample,
@@ -110,12 +104,11 @@ def ultrachat_fn(
 
     for segment in sample["messages"]:
         dialogue.add_segment(
-            role=segment['role'],
-            modality="text_bpe",
-            content=segment['content']
+            role=segment["role"], modality="text_bpe", content=segment["content"]
         )
 
     return name, dialogue
+
 
 # NOTE(Jinchuan): for each subset and corresponding task,
 # we assign the processing method.
@@ -194,18 +187,18 @@ HF_SFT_DATA = {
         "splits": ["train", "test"],
         "parse_fn": smoltalk_fn,
     },
-    "allenai/soda":{
+    "allenai/soda": {
         "subsets_and_methods": {
             "default": {
                 "text_dialogue": "original",
-                "audio_dialogue": "original", 
+                "audio_dialogue": "original",
                 "audio_text_dialogue": "skip",
             }
         },
         "splits": ["train", "validation", "test"],
         "parse_fn": soda_fn,
     },
-    "HuggingFaceH4/ultrachat_200k":{
+    "HuggingFaceH4/ultrachat_200k": {
         "subsets_and_methods": {
             "default": {
                 "text_dialogue": "original",
@@ -215,7 +208,7 @@ HF_SFT_DATA = {
         },
         "splits": ["train_sft", "test_sft"],
         "parse_fn": ultrachat_fn,
-    }
+    },
 }
 
 
@@ -317,10 +310,14 @@ def main():
 
     for subset, method, split in subsets_methods_splits:
         if method == "skip":
-            logging.info(f"Skip processing {args.input_hf_tag}-{subset}-{split} for {args.task}")
+            logging.info(
+                f"Skip processing {args.input_hf_tag}-{subset}-{split} for {args.task}"
+            )
             continue
         else:
-            logging.info(f"processing {args.input_hf_tag}-{subset}-{split} with method {method}")
+            logging.info(
+                f"processing {args.input_hf_tag}-{subset}-{split} with method {method}"
+            )
 
         # (1) load HF dataset and initialize ESPnet dialogue dataset
         ds = load_dataset(args.input_hf_tag, subset)[split]

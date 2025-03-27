@@ -8,7 +8,7 @@ transformer_conf:
     hf_model_tag: HuggingFaceTB/SmolLM-360M
     attention_choice: flash_attention_2
     n_ctx: 8192
-    
+
 corelm: ar_delay
 corelm_conf:
     share_emb: false

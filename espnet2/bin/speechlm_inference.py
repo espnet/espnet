@@ -6,9 +6,9 @@
 import argparse
 import json
 import logging
+import re
 import sys
 import time
-import re
 from pathlib import Path
 from typing import Any, List, Optional, Sequence, Tuple, Union
 

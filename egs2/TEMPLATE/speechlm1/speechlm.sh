@@ -412,7 +412,7 @@ if ! "${skip_data_prep}"; then
                         --checkpoint_path ${codec_checkpoint_path} \
                         --config_path ${codec_config_path} \
                         --hf_model_tag ${codec_hf_model_tag}
-                
+
                 elif [ ${_modality} == "image" ]; then
                     log "Image Tokenization: ${data_audio}/${dset}/${_name} -> ${data_feats}/${dset}/${_name}"
                     scripts/feats/image_tokenization.sh \

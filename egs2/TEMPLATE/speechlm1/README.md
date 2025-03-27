@@ -600,7 +600,7 @@ Please setup the tokenizer options for `speechlm.sh` as below:
 
 #### Important Notice
 Due to codebase update, please do a simple hacking for the inference. This issue is unique for the current model, and has been fixed in the later models.
-  * For [this line](https://github.com/jctian98/espnet/blob/8dc3e7b76d2c24451aa10a36930efe21324e5f34/espnet2/speechlm/core_lm/ar_delay.py#L170), change the code to 34 if TTS; to 35 if ASR. 
+  * For [this line](https://github.com/jctian98/espnet/blob/8dc3e7b76d2c24451aa10a36930efe21324e5f34/espnet2/speechlm/core_lm/ar_delay.py#L170), change the code to 34 if TTS; to 35 if ASR.
 
 #### Inference Demo:
   * We also share the pre-tokenized LibriSpeech Test-Clean subset for ASR and TTS inference. Run as follow:

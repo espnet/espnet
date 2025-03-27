@@ -19,14 +19,14 @@ Before you run:
     https://console.developers.google.com/apis/api/aiplatform.googleapis.com/overview?project=slm-sft
 """
 
-import logging
 import json
+import logging
 
 from espnet2.speechlm.dialogue.dialogue_format import Dialogue
 
 try:
     import vertexai
-    from vertexai.generative_models import GenerativeModel, GenerationConfig
+    from vertexai.generative_models import GenerationConfig, GenerativeModel
 except:
     vertexai = None
     GenerativeModel = None

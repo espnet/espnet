@@ -3,10 +3,11 @@
 # Copyright 2024 Jinchuan Tian
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-import numpy as np
-import torch
 import os
 import sys
+
+import numpy as np
+import torch
 
 from espnet2.speechlm.tokenizer.abs_tokenizer import AbsTokenizer
 

@@ -7,11 +7,6 @@ import numpy as np
 import torch
 from typeguard import typechecked
 
-# Transformer Implementation
-from espnet2.speechlm.module.builtin import TransformerDecoder
-from espnet2.speechlm.module.huggingface import HFTransformerDecoder
-from espnet2.speechlm.module.abs_transformer import AbsTransformer
-
 # CoreLMs
 from espnet2.speechlm.core_lm.abs_core_lm import AbsCoreLM
 from espnet2.speechlm.core_lm.ar import ARLM
@@ -24,6 +19,14 @@ from espnet2.speechlm.core_lm.valle import ValleLM
 from espnet2.speechlm.espnet_model import ESPnetSpeechLMModel
 from espnet2.speechlm.espnet_model_rl import ESPnetSpeechLMRLModel
 
+# Others
+from espnet2.speechlm.loss import SpeechLMCrossEntropyLoss
+from espnet2.speechlm.module.abs_transformer import AbsTransformer
+
+# Transformer Implementation
+from espnet2.speechlm.module.builtin import TransformerDecoder
+from espnet2.speechlm.module.huggingface import HFTransformerDecoder
+
 # Tokenizers
 from espnet2.speechlm.tokenizer.abs_tokenizer import AbsTokenizer
 from espnet2.speechlm.tokenizer.codec_tokenizer import CodecTokenizer
@@ -31,12 +34,9 @@ from espnet2.speechlm.tokenizer.text_bpe_tokenizer import TextBPETokenizer
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.torch_utils.initialize import initialize
-
-# Others
-from espnet2.speechlm.loss import SpeechLMCrossEntropyLoss
+from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
-from espnet2.train.abs_espnet_model import AbsESPnetModel
 
 # Preprocessor
 from espnet2.train.preprocessor import SpeechLMPreprocessor

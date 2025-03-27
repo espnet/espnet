@@ -8,8 +8,8 @@ import random
 from pathlib import Path
 from typing import List
 
-from espnet2.speechlm.definitions import MODALITIES
 from espnet2.fileio.read_text import read_2columns_text
+from espnet2.speechlm.definitions import MODALITIES
 
 
 class Dialogue:

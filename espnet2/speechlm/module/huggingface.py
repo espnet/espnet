@@ -10,6 +10,7 @@ from transformers import (
     GPTNeoXForCausalLM,
     GPTNeoXModel,
 )
+
 from espnet2.speechlm.module.abs_transformer import AbsTransformer
 
 HF_OBJ = {

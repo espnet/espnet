@@ -1,8 +1,8 @@
 import argparse
-import os
-import sys
 import json
 import logging
+import os
+import sys
 from functools import partial
 from multiprocessing import Pool
 from pathlib import Path

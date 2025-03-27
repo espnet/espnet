@@ -4,7 +4,7 @@ transformer_conf:
     hf_model_tag: HuggingFaceTB/SmolLM2-1.7B
     activation_checkpointing: true
     attention_choice: flash_attention_2
-    
+
 corelm: ar_delay
 corelm_conf:
     share_emb: false
@@ -44,5 +44,5 @@ asr_time_mask_config:
 
 # deepspeed
 use_deepspeed: true
-deepspeed_config: conf/deepspeed_ddp_zero1_smollm2.json 
+deepspeed_config: conf/deepspeed_ddp_zero1_smollm2.json
 deepspeed_step_sync: false

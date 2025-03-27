@@ -12,8 +12,8 @@ import kaldiio
 import torch
 from transformers import (
     AutoModelForCausalLM,
-    T5ForConditionalGeneration,
     AutoTokenizer,
+    T5ForConditionalGeneration,
 )
 
 model_class_choices = {"google-t5/t5-large": T5ForConditionalGeneration}

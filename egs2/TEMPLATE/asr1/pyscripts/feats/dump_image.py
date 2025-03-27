@@ -4,21 +4,22 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import argparse
+import io
 import logging
 import os
-import sys
 import re
-import io
-import pandas as pd
-from PIL import Image
+import sys
 from pathlib import Path
 
 import kaldiio
 import numpy as np
+import pandas as pd
 import torch
-from torch.utils.data import Dataset, DataLoader
-from espnet2.speechlm.tokenizer.image_tokenizer import ImageTokenizer
+from PIL import Image
+from torch.utils.data import DataLoader, Dataset
+
 from espnet2.fileio.read_text import read_2columns_text
+from espnet2.speechlm.tokenizer.image_tokenizer import ImageTokenizer
 
 logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",

@@ -15,7 +15,7 @@ train_jsons+="dump/raw_codec_ssl_tts_mls_en/mls_en_train/data.json "
 train_jsons+="dump/raw_codec_ssl_tts_mls_multilingual/mls_multilingual_train/data.json "
 train_jsons+="dump/raw_codec_ssl_tts_emilia/emilia_en/data.json "
 train_jsons+="dump/raw_codec_ssl_tts_yodas/train_yodas/data.json "
-valid_jsons+="dump/raw_codec_ssl_tts_librispeech/dev/data.json " 
+valid_jsons+="dump/raw_codec_ssl_tts_librispeech/dev/data.json "
 
 # (2) Codec_SSL_ASR
 train_jsons+="dump/raw_codec_ssl_asr_librispeech/train_960/data.json "
