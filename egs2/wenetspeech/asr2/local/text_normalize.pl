@@ -1,0 +1,1 @@
+../../asr1/local/text_normalize.pl
