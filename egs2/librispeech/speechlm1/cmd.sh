@@ -36,7 +36,7 @@ if [ "${cmd_backend}" = local ]; then
     # The other usage
     export train_cmd="run.pl"
     # Used for "*_train.py": "--gpu" is appended optionally by run.sh
-    export cuda_cmd="run.pl --gpu 1 --max-jobs-run 8"
+    export cuda_cmd="run.pl"
     # Used for "*_recog.py"
     export decode_cmd="run.pl"
 
