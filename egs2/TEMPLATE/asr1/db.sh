@@ -211,7 +211,7 @@ ELRA_S0371=
 M4SINGER=
 ONIKU=
 PJS=
-AMEBOSHI=
+AMABOSHI=
 ITAKO=
 NATSUME=
 KIRITAN=
@@ -226,6 +226,10 @@ CLOTHO_V2=downloads
 AUDIOCAPS=
 CLOTHO_CHATGPT_MIXUP=
 EDACC=downloads
+
+if [[ `hostname` == mars_tyx_2254 ]]; then
+    OPENCPOP=/data2/tyx/dataset/opencpop
+fi
 
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then
