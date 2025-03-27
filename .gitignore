@@ -20,6 +20,7 @@ check_autopep8
 .coverage
 .coverage.*
 htmlcov
+hf_cache
 coverage.xml*
 test_utils/bats-core/
 test_utils/bats-support/
