@@ -56,9 +56,9 @@ Also check our system paper on [ESPnet-SpeechLM](https://arxiv.org/abs/2502.1521
   ```
 
 #### Important Tips on Environment:
-The code should work well as long as you can install `deepspeed`, `flash-attn`, `transformers` and `huggingface-hub` successfully in some ways, which is mostly dependent to your server environment. 
+The code should work well as long as you can install `deepspeed`, `flash-attn`, `transformers` and `huggingface-hub` successfully in some ways, which is mostly dependent to your server environment.
 Below are some common trouble-shooting that are suitable for our clusters:
-* Usually, the installation of `transformers` and `huggingface-hub` is smooth. 
+* Usually, the installation of `transformers` and `huggingface-hub` is smooth.
 * **If GCC is needed**: you can install with conda:
   ```bash
   conda install -c conda-forge gcc=12 gxx=12 # change the version as you like, but usually need GCC > 9
