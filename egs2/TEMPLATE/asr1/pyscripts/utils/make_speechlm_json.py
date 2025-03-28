@@ -49,7 +49,7 @@ def main():
     task_format = SPEECHLM_TASKS[args.task]
     metadata = {}
 
-    ### (1) collect metadata.
+    # (1) collect metadata.
     # (1.1) task and root
     metadata["task"] = args.task
 

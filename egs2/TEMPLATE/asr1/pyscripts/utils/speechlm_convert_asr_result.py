@@ -39,7 +39,8 @@ def main(args):
 
         if ref_name != hyp_name:
             raise ValueError(
-                f"cannot compare {ref_line} vs. {hyp_line} | with utt: {ref_name} vs {hyp_name}"
+                f"cannot compare {ref_line} vs. {hyp_line} "
+                f"| with utt: {ref_name} vs {hyp_name}"
             )
 
         stat_dict = {

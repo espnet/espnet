@@ -2612,8 +2612,6 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         )
         self.text_cleaner = TextCleaner(text_cleaner)
 
-        ### Modality-specific utilities
-
         # Text BPE (text_bpe):
         if subword_model is not None:
             if bpe_encode_kwargs is None:
@@ -2766,8 +2764,8 @@ class SpeechLMPreprocessor(AbsPreprocessor):
 
             dec_seq, loss_mask = dec_seq[: self.n_ctx], loss_mask[: self.n_ctx]
 
-            # NOTE(Jinchuan): remove these special tokens to full preserve text LLM format.
-            # the first three token: <sos> <task_id> <modality_id>
+            # NOTE(Jinchuan): remove these special tokens to full preserve
+            # text LLM format. the first three token: <sos> <task_id> <modality_id>
             if task_name == "textlm":
                 dec_seq = dec_seq[3:]
                 loss_mask = loss_mask[3:]
@@ -2845,7 +2843,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
                 if isinstance(value, str):
                     try:
                         value = self.text_cleaner(value)
-                    except:
+                    except Exception:
                         logging.warning(
                             f"Failed to apply cleaner to {value}. Make it empty"
                         )

@@ -175,7 +175,7 @@ class SpeechLM:
         """Run SpeechLM inference"""
 
         # NOTE(Jinchuan): directly called outside so it's still the raw data
-        if not "dec_seq" in data:
+        if "dec_seq" not in data:
             data = self.preprocessor(data)
 
         dec_seq = data.get("dec_seq")

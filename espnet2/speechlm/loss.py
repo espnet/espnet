@@ -5,15 +5,6 @@ import torch.distributed
 
 from espnet2.speechlm.net_utils import length_mask
 
-try:
-    from liger_kernel.transformers import (
-        LigerCrossEntropyLoss,
-        LigerFusedLinearCrossEntropyLoss,
-    )
-except:
-    LigerFusedLinearCrossEntropyLoss = None
-    LigerCrossEntropyLoss = None
-
 
 class SpeechLMCrossEntropyLoss(torch.nn.Module):
     def __init__(
@@ -27,8 +18,9 @@ class SpeechLMCrossEntropyLoss(torch.nn.Module):
         aux_lm_head: torch.nn.Linear = None,
     ):
         """
-        Compute the CrossEntropy for SpeechLM. The main motivation of this module is to save computing.
-        From the second layer and then on, the target codes can only be the codec codes or paddings,
+        Compute the CrossEntropy for SpeechLM. The main motivation
+        of this module is to save computing. From the second layer and then on,
+        the target codes can only be the codec codes or paddings,
         which helps us to shrink the vocabulary during the loss computing.
         """
         super().__init__()
@@ -52,7 +44,7 @@ class SpeechLMCrossEntropyLoss(torch.nn.Module):
 
             if modality_name not in token_bias:
                 logging.warning(
-                    f"The specified modality {modality_name} is not in token_bias. Skip it"
+                    f"Modality {modality_name} is not in token_bias. Skip it"
                 )
                 continue
 

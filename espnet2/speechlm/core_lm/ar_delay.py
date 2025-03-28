@@ -155,8 +155,8 @@ class ARDelayLM(ARParallelLM):
             logits = self.lm_head(h[:, :, :1])  # [B, 1, nq, V]
             if self.aux_lm_head is not None:
                 aux_logits = self.aux_lm_head(h[:, :, 1:])
-                # NOTE(Jinchuan) use small number but not -inf, otherwise it will cause confict with
-                # modality mask.
+                # NOTE(Jinchuan) use small number but not -inf,
+                # otherwise it will cause confict with modality mask.
                 pad_aux_logits = (
                     torch.ones_like(logits).repeat(1, 1, aux_logits.size(2), 1) * -1e10
                 )

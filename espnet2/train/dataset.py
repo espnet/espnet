@@ -203,14 +203,6 @@ class AdapterForLabelScpReader(collections.abc.Mapping):
         return sample_time, sample_label
 
 
-def jsonl_loader(path):
-    ret_dict = dict()
-    for line in open(path):
-        ret_dict.update(json.loads(line))
-
-    return ret_dict
-
-
 def sound_loader(path, float_dtype=None, multi_columns=False, allow_multi_rates=False):
     # The file is as follows:
     #   utterance_id_A /some/where/a.wav
@@ -454,14 +446,7 @@ DATA_TYPES = {
         "    SPEAKER file1 3 500 4023 <NA> <NA> spk1 <NA>"
         "    END     file1 <NA> 4023 <NA> <NA> <NA> <NA>"
         "   ...",
-    ),
-    "jsonl": dict(
-        func=jsonl_loader,
-        kwargs=[],
-        help="jsonl file loader. Will allow text in multiple lines."
-        "\{ example1: content1 \}"
-        "\{ example2: content2 \}",
-    ),
+    )
 }
 
 
@@ -792,12 +777,7 @@ class ESPnetMultiTaskDataset(AbsDataset):
 
             # example_list is for sub_dataest -> no task prefix
             example_list = json_dict["data_files"][0].strip().split(",")[0]
-            if _type == "jsonl":
-                example_list = [
-                    list(json.loads(line).keys())[0] for line in open(example_list)
-                ]
-            else:
-                example_list = [line.strip().split()[0] for line in open(example_list)]
+            example_list = [line.strip().split()[0] for line in open(example_list)]
             if self.key_dict is not None:
                 example_list = [
                     e

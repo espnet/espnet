@@ -120,7 +120,7 @@ def process_chunk(tokenizer, max_len, iterator):
     for line in iterator:
         try:
             line = json.loads(line)
-        except:
+        except Exception:
             print(f"bad line: {line}", flush=True)
             continue
 

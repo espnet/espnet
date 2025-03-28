@@ -352,7 +352,6 @@ class SpeechLMTask(AbsTask):
         logging.info(f"Token Bias: {token_bias}")
 
         kwargs = dict()
-        ### Build the model step-by-step
         # 1. Build Transformer decoder
         if args.collect_stats:
             # NOTE(Jinchuan): model will not in real use. Create a placeholder

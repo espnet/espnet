@@ -78,7 +78,7 @@ def main():
         for vocab in vocabs:
             try:
                 this_vocab = json.load(open(vocab))
-            except:
+            except Exception:
                 # have to remove "\n" as text is read line-by-line
                 this_vocab = [e.rstrip("\n") for e in open(vocab)]
             for e in this_vocab:
@@ -92,7 +92,8 @@ def main():
                     logging.warning(f"Duplicated token: {e}. It has been seen before")
 
         logging.info(
-            f"Modality {modality} has {len(modality_vocab)} tokens starting from {len(token_list) + len(special_tokens)}"
+            f"Modality {modality} has {len(modality_vocab)} tokens "
+            f"starting from {len(token_list) + len(special_tokens)}"
         )
         token_bias[modality] = len(token_list) + len(special_tokens)
         token_list = token_list + list(modality_vocab.keys())

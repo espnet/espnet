@@ -132,9 +132,10 @@ def logits_to_tokens(
         gen_token_score = torch.gather(clip_probs, -1, inner_indices).squeeze(-1).log()
 
     elif search_algo in ["beam_search"]:
-        # NOTE(Jinchuan): for beam search, this function only proposes the candidates but not
-        # to do the hypothesis selection / pruning. If beam search, this function should be used
-        # together with the "beam_search_selection" function as defined below.
+        # NOTE(Jinchuan): for beam search, this function only proposes
+        # the candidates but not to do the hypothesis selection / pruning.
+        # If beam search, this function should be used together with
+        # the "beam_search_selection" function as defined below.
         assert (
             logits.size(2) == 1
         ), "Currently beam search only supports single-stream decoding"

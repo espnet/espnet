@@ -62,7 +62,7 @@ class MultiHeadAttention(nn.Module):
             from flash_attn import flash_attn_func
 
             self.flash_attn_func = flash_attn_func
-        except:
+        except Exception:
             self.flash_attn_func = None
 
     def forward(
@@ -75,12 +75,14 @@ class MultiHeadAttention(nn.Module):
         q = self.query(x)
 
         if kv_cache is None or xa is None or self.key not in kv_cache:
-            # hooks, if installed (i.e. kv_cache is not None), will prepend the cached kv tensors;
-            # otherwise, perform key/value projections for self- or cross-attention as usual.
+            # hooks, if installed (i.e. kv_cache is not None), will prepend
+            # the cached kv tensors; otherwise, perform key/value projections
+            #  for self- or cross-attention as usual.
             k = self.key(x if xa is None else xa)
             v = self.value(x if xa is None else xa)
         else:
-            # for cross-attention, calculate keys and values once and reuse in subsequent calls.
+            # for cross-attention, calculate keys and values once
+            # and reuse in subsequent calls.
             k = kv_cache[self.key]
             v = kv_cache[self.value]
 

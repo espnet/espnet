@@ -27,7 +27,8 @@ class ARParallelLM(AbsCoreLM):
         Args:
             transformer (torch.nn.Module): the Transformer body implementation
             vocab_size (int): Dimention of vocabulary.
-            aux_vocab_size (int): the size of auxuliary tokens, usually for codec tokens.
+            aux_vocab_size (int): the size of auxuliary tokens,
+                mainly for codec tokens.
             nq (int): Number of codes for each token / frame, usually for speech codec.
             share_emb (bool): If true, share the embedding and lm_head weight.
         """
