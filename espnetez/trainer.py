@@ -212,6 +212,9 @@ class Trainer:
             self.task_class = get_ez_task(task, use_custom_dataset=True)
             self.task_class.train_dataset = train_dataset
             self.task_class.valid_dataset = valid_dataset
+            self.train_config.use_preprocessor = getattr(
+                self.train_config, "use_ez_preprocessor", False
+            )
         elif train_dataloader is not None and valid_dataloader is not None:
             self.task_class = get_ez_task(task, use_custom_dataset=True)
             self.task_class.train_dataloader = train_dataloader
@@ -322,10 +325,5 @@ class Trainer:
         self.train_config.output_dir = self.stats_dir
         self.train_config.train_shape_file = []
         self.train_config.valid_shape_file = []
-
-        if hasattr(self.train_config, "use_ez_preprocessor"):
-            self.train_config.use_preprocessor = self.train_config.use_ez_preprocessor
-        else:
-            self.train_config.use_preprocessor = False
 
         self.task_class.main(self.train_config)
