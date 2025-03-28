@@ -78,9 +78,8 @@ if __name__ == "__main__":
     OmegaConf.register_new_resolver("load_line", load_line)
     print("Config loaded", flush=True)
 
-    # save the configuration
-    os.makedirs(config.expdir, exist_ok=True)
-    OmegaConf.save(config, os.path.join(config.expdir, "config.yaml"))
+    # save the configuration for inference
+    ez.save_espnet_config("asr", config, os.path.join(config.expdir, "config.yaml"))
 
     # Set random seed if required
     if getattr(config, "seed", None) is not None:
@@ -109,7 +108,7 @@ if __name__ == "__main__":
 
     # Users can use this function for any model from espnet config.
     # Otherwise you can define your own model here.
-    espnet_model = ez.task.get_espnet_model(
+    espnet_model = ez.get_espnet_model(
         "asr",
         config.model,
     )

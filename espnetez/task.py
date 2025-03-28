@@ -5,7 +5,7 @@ from argparse import Namespace
 import logging
 from pathlib import Path
 from typing import Any, Optional, Union, Dict
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 
 import numpy as np
 import torch
@@ -138,6 +138,29 @@ def get_ez_task(task_name: str, use_custom_dataset: bool = False) -> AbsTask:
 def get_espnet_model(task_name: str, config: Union[Dict, DictConfig]) -> AbsESPnetModel:
     task = get_ez_task(task_name)
     default_config = task.get_default_config()
-    default_config.update(model_config.model)
+    default_config.update(config)
     espnet_model = task.build_model(Namespace(**default_config))
     return espnet_model
+
+
+def save_espnet_config(
+    task_name: str,
+    config: Union[Dict, DictConfig],
+    output_dir: str
+) -> None:
+    task = get_ez_task(task_name)
+    default_config = task.get_default_config()
+    default_config.update(OmegaConf.to_container(config, resolve=True))
+
+    # Check if there is None in the config with the name "*_conf"
+    for k,v in default_config.items():
+        if k.endswith("_conf") and v is None:
+            default_config[k] = {}
+
+    # Save the config to the output directory
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_path = output_dir / "config.yaml"
+    with open(output_path, "w") as f:
+        OmegaConf.save(config=OmegaConf.create(default_config), f=f)
+
