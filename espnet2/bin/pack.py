@@ -49,8 +49,8 @@ class EnhS2TPackedContents(PackedContents):
 
 class SSLPackedContents(PackedContents):
     # These names must be consistent with the argument of inference functions
-    files = ["model_file"]
-    yaml_files = ["train_config"]
+    files = ["ssl_model_file"]
+    yaml_files = ["ssl_train_config"]
 
 
 class S2STPackedContents(PackedContents):

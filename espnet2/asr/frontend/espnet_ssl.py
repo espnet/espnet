@@ -52,7 +52,7 @@ class ESPnetSSLFrontend(AbsFrontend):
                 model, model_args = SSLTask.build_model_from_file(
                     None,
                     path_or_url,
-                    device=f"cuda:{torch.cuda.current_device()}",
+                    device="cpu",
                 )
             else:
                 try:
@@ -67,9 +67,11 @@ class ESPnetSSLFrontend(AbsFrontend):
                 
                 args = {}
                 d = ModelDownloader()
-                args.update(**d.download_and_unpack(model_tag))
+                args.update(**d.download_and_unpack(path_or_url))
                 model, model_args = SSLTask.build_model_from_file(
-                    **args,
+                    args['ssl_train_config'],
+                    args['ssl_model_file'],
+                    device="cpu",
                 )
         else:
             raise RuntimeError(f"Did not receive a model to load in the frontend_conf")
