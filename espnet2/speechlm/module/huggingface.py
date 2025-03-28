@@ -4,7 +4,6 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import torch
-
 from espnet2.speechlm.module.abs_transformer import AbsTransformer
 
 
