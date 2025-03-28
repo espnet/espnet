@@ -226,7 +226,6 @@ class ESPnetSLUModel(ESPnetASRModel):
         if self.superb_setup:
             encoder_out = self.transform_mean(self.act_fn(encoder_out))
             if self.use_only_last_correct:
-                # import pdb;pdb.set_trace()
                 feats = []
                 for k in range(encoder_out.shape[0]):
                     feats.append(encoder_out[k, encoder_out_lens[k] - 1])

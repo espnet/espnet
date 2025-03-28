@@ -1,3 +1,6 @@
+import sys
+
+
 def clean_line(k):
     k = k.replace("[noise]", "")
     k = k.replace("[silence]", "")
@@ -94,9 +97,7 @@ def remove_backchannel(file_name, backchannel_dict, word_file):
                     elif found_2:
                         if sub_val[0] != sub_val[1]:
                             print("error")
-                            import pdb
-
-                            pdb.set_trace()
+                            sys.exit(1)
                     else:
                         word_val = clean_line(line1[3].strip())
                         if word_val != "":
@@ -125,9 +126,8 @@ def clean_dialogue(word_file_A, word_file_B, sentence_dict_sort):
                 continue
             while float(word_file_A[count_A][2]) <= sentence_dict_sort[k][1]:
                 if word_file_A[count_A][0] != sentence_dict_sort[k][2]:
-                    import pdb
-
-                    pdb.set_trace()
+                    print("error")
+                    sys.exit(1)
                 if k not in sentence_dict_sort_clean:
                     sentence_dict_sort_clean[k] = sentence_dict_sort[k] + [
                         float(word_file_A[count_A][1]),
@@ -150,9 +150,8 @@ def clean_dialogue(word_file_A, word_file_B, sentence_dict_sort):
                 continue
             while float(word_file_B[count_B][2]) <= sentence_dict_sort[k][1]:
                 if word_file_B[count_B][0] != sentence_dict_sort[k][2]:
-                    import pdb
-
-                    pdb.set_trace()
+                    print("error")
+                    sys.exit(1)
                 if k not in sentence_dict_sort_clean:
                     sentence_dict_sort_clean[k] = sentence_dict_sort[k] + [
                         float(word_file_B[count_B][1]),
@@ -172,23 +171,17 @@ def clean_dialogue(word_file_A, word_file_B, sentence_dict_sort):
                     break
         else:
             print("error")
-            import pdb
-
-            pdb.set_trace()
+            sys.exit(1)
     while count_A < len(word_file_A):
         if float(word_file_A[count_A][2]) != sentence_dict_sort[k][1]:
             print("error")
-            import pdb
-
-            pdb.set_trace()
+            sys.exit(1)
         else:
             break
     while count_B < len(word_file_B):
         if float(word_file_B[count_B][2]) != sentence_dict_sort[k][1]:
             print("error")
-            import pdb
-
-            pdb.set_trace()
+            sys.exit(1)
         else:
             break
     return sentence_dict_sort_clean

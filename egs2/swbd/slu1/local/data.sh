@@ -12,7 +12,7 @@ log() {
 SECONDS=0
 
 
-stage=3
+stage=1
 stop_stage=3
 
 log "$0 $*"

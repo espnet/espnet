@@ -1,4 +1,5 @@
 import csv
+import sys
 
 import pandas as pd
 from local.turn_take_utils import (
@@ -21,9 +22,7 @@ def get_label(start_chunk, end_chunk, label_arr, arr_count):
                 return get_label(start_chunk, end_chunk, label_arr, arr_count)
             else:
                 print("error")
-                import pdb
-
-                pdb.set_trace()
+                sys.exit(1)
         elif end_chunk >= label_arr[arr_count][1]:
             arr_count += 1
             return get_label(start_chunk, end_chunk, label_arr, arr_count)
@@ -45,9 +44,8 @@ def get_chunk_dict(
         start_chunk = start_time + i * chunk_length
         end_chunk = start_time + (i + 1) * chunk_length
         if start_chunk >= end_time:
-            import pdb
-
-            pdb.set_trace()
+            print("error")
+            sys.exit(1)
         word_key = file_id + "_" + str(start_chunk) + "_" + str(end_chunk)
         if word_key not in chunk_dict:
             chunk_dict[word_key] = {}

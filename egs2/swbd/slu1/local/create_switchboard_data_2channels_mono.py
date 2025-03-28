@@ -66,9 +66,7 @@ for x in dir_arr:
                 label_arr_write.append("BC")
         else:
             print("Error")
-            import pdb
-
-            pdb.set_trace()
+            sys.exit(1)
 
     line_arr = line_arr[1:]
     assert len(label_arr_write) == len(line_arr)

@@ -27,9 +27,7 @@ for x in dir_dict:
             word_dict["sw0" + line1[0]][float(line1[1])][float(line1[2])] = line1
         else:
             print("error")
-            import pdb
-
-            pdb.set_trace()
+            sys.exit(1)
 
     for k in word_dict:
         for j in word_dict[k]:
