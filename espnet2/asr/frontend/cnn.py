@@ -12,13 +12,14 @@ from torch.nn import functional as F
 
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 
+
 def dim_1_layer_norm(x, eps=1e-05, gamma=None, beta=None):
     """
     Functional version of Dim1LayerNorm.
     """
-    B,D,T = x.shape
+    B, D, T = x.shape
     mean = torch.mean(x, 1, keepdim=True)
-    variance = torch.mean((x -mean)**2, 1, keepdim=True)
+    variance = torch.mean((x - mean) ** 2, 1, keepdim=True)
 
     x = (x - mean) * torch.rsqrt(variance + eps)
 
@@ -28,13 +29,9 @@ def dim_1_layer_norm(x, eps=1e-05, gamma=None, beta=None):
             x = x + beta.view(1, -1, 1)
     return x
 
+
 class Dim1LayerNorm(Module):
-    def __init__(self, 
-        normalized_shape, 
-        eps=1e-05, 
-        elementwise_affine=True, 
-        bias=True
-    ):
+    def __init__(self, normalized_shape, eps=1e-05, elementwise_affine=True, bias=True):
         """LayerNorm but it assumes the input
         is shape B, D, T to avoid transposing.
         """
@@ -49,7 +46,7 @@ class Dim1LayerNorm(Module):
             self.weight = nn.Parameter(torch.ones(normalized_shape))
             if bias:
                 self.bias = nn.Parameter(torch.zeros(normalized_shape))
-    
+
     def forward(self, x):
         assert x.size(1) == self.normalized_shape
         return dim_1_layer_norm(x, self.eps, self.weight, self.bias)
