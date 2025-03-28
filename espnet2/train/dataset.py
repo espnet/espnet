@@ -446,7 +446,7 @@ DATA_TYPES = {
         "    SPEAKER file1 3 500 4023 <NA> <NA> spk1 <NA>"
         "    END     file1 <NA> 4023 <NA> <NA> <NA> <NA>"
         "   ...",
-    )
+    ),
 }
 
 
