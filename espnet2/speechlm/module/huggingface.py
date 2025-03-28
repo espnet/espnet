@@ -4,24 +4,6 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import torch
-from transformers import (
-    AutoModel,
-    AutoModelForCausalLM,
-    GPTNeoXForCausalLM,
-    GPTNeoXModel,
-)
-
-from espnet2.speechlm.module.abs_transformer import AbsTransformer
-
-HF_OBJ = {
-    "EleutherAI/pythia": [GPTNeoXModel, GPTNeoXForCausalLM],
-    "Qwen/Qwen2": [AutoModel, AutoModelForCausalLM],
-    "allenai/OLMo": [AutoModel, AutoModelForCausalLM],
-    "allenai/OLMo-2-1124": [AutoModel, AutoModelForCausalLM],
-    "meta-llama/Llama-3.": [AutoModel, AutoModelForCausalLM],
-    "HuggingFaceTB/SmolLM": [AutoModel, AutoModelForCausalLM],
-    "facebook/opt": [AutoModel, AutoModelForCausalLM],
-}
 
 
 class HFTransformerDecoder(AbsTransformer):
@@ -38,25 +20,18 @@ class HFTransformerDecoder(AbsTransformer):
         n_ctx: int = 8192,
     ):
         super(HFTransformerDecoder, self).__init__()
-
-        base_class, causal_class = None, None
-        for name in HF_OBJ.keys():
-            if hf_model_tag.startswith(name):
-                base_class, causal_class = HF_OBJ[name]
-                break
-        if base_class is None and causal_class is None:
-            raise ValueError(f"HF model {hf_model_tag} is not supported yet")
+        from transformers import AutoModel, AutoModelForCausalLM
 
         # NOTE(Jinchuan): lm_head and emb are only used in self.init_embeddings
         # and then removed. So this object only contains the transformer body,
         # i.e., self.model
-        self.lm_head = causal_class.from_pretrained(
+        self.lm_head = AutoModelForCausalLM.from_pretrained(
             hf_model_tag,
             attn_implementation=attention_choice,
             torch_dtype=dtype,
         ).get_output_embeddings()
 
-        self.model = base_class.from_pretrained(
+        self.model = AutoModel.from_pretrained(
             hf_model_tag,
             attn_implementation=attention_choice,
             revision=revision,
