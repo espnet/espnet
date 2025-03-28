@@ -61,18 +61,4 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     utils/combine_data.sh --extra_files utt2num_frames data/${train_dev} data/dev_clean data/dev_other
 fi
 
-if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
-    # use external data
-    if [ ! -e data/local/other_text/librispeech-lm-norm.txt.gz ]; then
-        log "stage 4: prepare external text data from http://www.openslr.org/resources/11/librispeech-lm-norm.txt.gz"
-        wget http://www.openslr.org/resources/11/librispeech-lm-norm.txt.gz -P data/local/other_text/
-    fi
-    if [ ! -e data/local/other_text/text ]; then
-        # provide utterance id to each texts
-        # e.g., librispeech_lng_00003686 A BANK CHECK
-        zcat data/local/other_text/librispeech-lm-norm.txt.gz | \
-            awk '{ printf("librispeech_lng_%08d %s\n",NR,$0) } ' > data/local/other_text/text
-    fi
-fi
-
 log "Successfully finished. [elapsed=${SECONDS}s]"

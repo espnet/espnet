@@ -72,19 +72,6 @@ try:
 except Exception:
     s3prl = None
 
-if V(torch.__version__) >= V("2.0.1"):
-    from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
-    from torch.distributed.fsdp.sharded_grad_scaler import ShardedGradScaler
-
-    from espnet2.torch_utils.fsdp import (
-        get_model_and_optimizer_state_dict_fsdp,
-        prepare_for_resume_fsdp,
-    )
-else:
-    FSDP = None
-    ShardedGradScaler = None
-
-
 @dataclasses.dataclass
 class TrainerOptions:
     ngpu: int
@@ -174,8 +161,6 @@ class Trainer:
             map_location=f"cuda:{torch.cuda.current_device()}" if ngpu > 0 else "cpu",
             weights_only=False,
         )
-        if isinstance(model, FSDP):
-            states = prepare_for_resume_fsdp(states, model, optimizers)
 
         model.load_state_dict(states["model"], strict=strict)
         reporter.load_state_dict(states["reporter"])
@@ -196,7 +181,7 @@ class Trainer:
     @typechecked
     def run(
         cls,
-        model: Union[AbsESPnetModel, FSDP],
+        model: AbsESPnetModel,
         optimizers: Sequence[torch.optim.Optimizer],
         schedulers: Sequence[Optional[AbsScheduler]],
         train_iter_factory: AbsIterFactory,
@@ -231,8 +216,6 @@ class Trainer:
                         "Requiring fairscale. Do 'pip install fairscale'"
                     )
                 scaler = fairscale.optim.grad_scaler.ShardedGradScaler()
-            elif isinstance(model, FSDP):
-                scaler = ShardedGradScaler()
             else:
                 scaler = GradScaler()
         else:
@@ -273,9 +256,6 @@ class Trainer:
                     module=model,
                     sharded_optimizer=optimizers,
                 )
-
-            elif isinstance(model, FSDP):  # already warpped in FSDP
-                dp_model = model
 
             else:
                 dp_model = torch.nn.parallel.DistributedDataParallel(
@@ -423,13 +403,8 @@ class Trainer:
                     reporter.wandb_log()
 
                 # 4. Save/Update the checkpoint
-                if isinstance(model, FSDP):
-                    model_state_dict, optim_state_dict = (
-                        get_model_and_optimizer_state_dict_fsdp(model, optimizers)
-                    )
-                else:
-                    model_state_dict = model.state_dict()
-                    optim_state_dict = [o.state_dict() for o in optimizers]
+                model_state_dict = model.state_dict()
+                optim_state_dict = [o.state_dict() for o in optimizers]
                 if use_adapter:
                     if save_strategy == "all":
                         model_state_dict = model_state_dict
@@ -547,11 +522,6 @@ class Trainer:
                         _removed.append(str(p))
                 if len(_removed) != 0:
                     logging.info("The model files were removed: " + ", ".join(_removed))
-            else:
-                # NOTE (Jinchuan): call this on each rank, as we need allreduce to
-                # collect the state_dict from all ranks when using FSDP.
-                if isinstance(model, FSDP):
-                    _ = get_model_and_optimizer_state_dict_fsdp(model, optimizers)
 
             # 7. If any updating haven't happened, stops the training
             if all_steps_are_invalid:
@@ -590,7 +560,7 @@ class Trainer:
         iterator: Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
         optimizers: Sequence[torch.optim.Optimizer],
         schedulers: Sequence[Optional[AbsScheduler]],
-        scaler: Optional[Union[GradScaler, ShardedGradScaler]],
+        scaler: Optional[GradScaler],
         reporter: SubReporter,
         summary_writer,
         options: TrainerOptions,
@@ -764,16 +734,11 @@ class Trainer:
                     )
 
                 # compute the gradient norm to check if it is normal or not
-                if isinstance(model, FSDP):
-                    grad_norm = model.clip_grad_norm_(
-                        max_norm=grad_clip, norm_type=grad_clip_type
-                    )
-                else:
-                    grad_norm = torch.nn.utils.clip_grad_norm_(
-                        model.parameters(),
-                        max_norm=grad_clip,
-                        norm_type=grad_clip_type,
-                    )
+                grad_norm = torch.nn.utils.clip_grad_norm_(
+                    model.parameters(),
+                    max_norm=grad_clip,
+                    norm_type=grad_clip_type,
+                )
                 # PyTorch<=1.4, clip_grad_norm_ returns float value
                 if not isinstance(grad_norm, torch.Tensor):
                     grad_norm = torch.tensor(grad_norm)

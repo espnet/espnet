@@ -1624,15 +1624,6 @@ class AbsTask(ABC):
                     # so it's enough to perform on rank0 node.
                     args.use_wandb = False
 
-            if args.use_deepspeed:
-                if cls.trainer != Trainer:
-                    raise ValueError(
-                        "only default trainer is compatible with deepspeed"
-                    )
-                from espnet2.train.deepspeed_trainer import DeepSpeedTrainer
-
-                cls.trainer = DeepSpeedTrainer
-
             # Don't give args to trainer.run() directly!!!
             # Instead of it, define "Options" object and build here.
 

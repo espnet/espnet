@@ -1,0 +1,14 @@
+# General
+nproc: 2 # Revise according to your GPU memory
+dtype: bfloat16
+
+search_algo: greedy_search
+# search_algo: teacher_force
+maxlenratio: 0.3
+minlenratio: 0.05
+
+# offline tokenizer
+codec_conf:
+    codec_choice: ESPnet
+    codec_fs: 16000
+    hf_model_tag: ftshijt/espnet_codec_dac_large_v1.4_360epoch

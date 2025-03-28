@@ -294,16 +294,6 @@ DATA_TYPES = {
         "   utterance_id_b b.wav b2.wav\n"
         "   ...",
     ),
-    "multicol_kaldi_ark": dict(
-        func=multicol_kaldi_ark_loader,
-        kwargs=[],
-        help="Enable multi columns wav.scp with kaldi ark format"
-        "The following text file can be loaded as a list"
-        "\n\n"
-        "   utterance_id_a foo1.ark:123 foo2.ark:234\n"
-        "   utterance_id_b foo3.ark:345 foo4.ark:456 foo5.ark:567\n"
-        "   ...",
-    ),
     "variable_columns_sound": dict(
         func=variable_columns_sound_loader,
         kwargs=["float_dtype", "allow_multi_rates"],
@@ -711,6 +701,12 @@ class ESPnetSpeechLMDataset(ESPnetDataset):
         task: str,
         **kwargs,
     ):
+        # Remove the task prefix
+        if kwargs.get("keys_to_load", None) is not None:
+            kwargs["keys_to_load"] = {
+                key.removeprefix(f"{task}_")
+                for key in kwargs["keys_to_load"]
+            }
         super(ESPnetSpeechLMDataset, self).__init__(**kwargs)
 
         # (1) build spk2utt map

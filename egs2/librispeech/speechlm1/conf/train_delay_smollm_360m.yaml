@@ -1,0 +1,46 @@
+# Model
+transformer: huggingface
+transformer_conf:
+    hf_model_tag: HuggingFaceTB/SmolLM2-360M
+    activation_checkpointing: true
+
+corelm: ar_delay
+corelm_conf:
+    share_emb: false
+
+# loss
+modality_weights: {
+    "g2p": 1.0,
+    "ssl": 0.5,
+    "codec": 0.0625,
+    "text_bpe": 1.0,
+    "image": 1.0,
+    "special_token": 10.0,
+}
+loss_region: target
+
+# General Dataloader configuration
+batch_type: numel
+batch_bins: 32000
+max_epoch: 100
+num_workers: 6
+drop_last_iter: true
+log_interval: 2000
+
+# Data preprocessing
+codec_token_per_frame: 9
+codec_token_in_use: 9
+speaker_prompt_length: 500
+
+# specaug
+asr_apply_time_mask: true
+asr_time_mask_config:
+    mask_width_ratio_range:
+    - 0.
+    - 0.05
+    num_mask: 10
+
+# deepspeed
+use_deepspeed: true
+deepspeed_config: conf/deepspeed_ddp.json
+deepspeed_step_sync: false

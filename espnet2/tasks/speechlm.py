@@ -13,7 +13,6 @@ from espnet2.speechlm.core_lm.ar_delay import ARDelayLM
 
 # Overall model warppers
 from espnet2.speechlm.espnet_model import ESPnetSpeechLMModel
-from espnet2.speechlm.espnet_model_rl import ESPnetSpeechLMRLModel
 
 # Others
 from espnet2.speechlm.loss import SpeechLMCrossEntropyLoss
@@ -74,7 +73,6 @@ model_choices = ClassChoices(
     "model",
     classes=dict(
         espnet=ESPnetSpeechLMModel,
-        rl=ESPnetSpeechLMRLModel,
     ),
     type_check=AbsESPnetModel,
     default="espnet",
