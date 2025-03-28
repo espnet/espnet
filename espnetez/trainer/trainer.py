@@ -1,7 +1,7 @@
 from argparse import Namespace
-from omegaconf import DictConfig
+from omegaconf import DictConfig, ListConfig, OmegaConf
 from hydra.utils import instantiate
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Union, Tuple
 
 import lightning as L
 import torch
@@ -21,88 +21,91 @@ def init_weights(m):
         m.bias.data.fill_(0.01)
 
 
+def get_or_initialize(config, item_name: str=None, default=None) -> Any:
+    if item_name is not None:
+        item = getattr(config, item_name, default)
+    else:
+        item = config
+    
+    if type(item) == DictConfig:
+        return instantiate(item)
+    elif type(item) == ListConfig:
+        return [get_or_initialize(c) for c in item]
+    else:
+        return item
+
+
 class ESPnetEZLightningTrainer:
     @typechecked
     def __init__(
         self,
-        config: Union[DictConfig, Namespace, Dict[str, Any]],
-        model: LitESPnetModel,
-        **lightning_kwargs,
+        model: LitESPnetModel = None,
+        expdir: str = None,
+        config: Union[DictConfig, Namespace, Dict[str, Any]] = None,
+        best_model_criterion = None,
     ):
+        assert model is not None, "model must be provided."
+        assert expdir is not None, "expdir must be provided."
+        assert config is not None, "config must be provided."
+        if best_model_criterion is None:
+            best_model_criterion = [("valid/loss", 3, "min")]
+    
         # HP and configs
         self.config = config
-        if type(self.config) is dict:
-            config.update(lightning_kwargs)
-            self.config = Namespace(**self.config)
-        elif type(self.config) is Namespace or isinstance(self.config, DictConfig):
-            for key, value in lightning_kwargs.items():
-                setattr(self.config, key, value)
-        else:
-            raise ValueError(
-                "config should be dict or Namespace, but got {}.".format(
-                    type(self.config)
-                )
-            )
-
-        # Check if necessary configurations are present
-        assert hasattr(
-            self.config, "expdir"
-        ), "expdir is required to save logs and checkpoints."
-
-        # Set random seed if required
-        if getattr(self.config, "seed", None) is not None:
-            assert isinstance(self.config.seed, int), "seed should be an integer"
-            L.seed_everything(self.config.seed)
-
-        # Set additional configurations that might be helpful
-        torch.set_float32_matmul_precision("high")
 
         # Instantiate the Lightning Model
         self.model = model
         init_weights(self.model)
 
-        # Set strategy. Default is DDP
-        if getattr(self.config, "strategy") and type(self.config.strategy) == str:
-            strategy = self.config.strategy
-        elif getattr(self.config, "strategy"):
-            strategy = instantiate(self.config.strategy)
-        else:
-            logging.warning("Using default DDP strategy")
-            strategy = "ddp"
+        # Accelerator
+        accelerator = get_or_initialize(self.config, "accelerator", "auto")
+        if accelerator is not "auto":
+            self.config.pop("accelerator")
+
+        # strategy
+        strategy = get_or_initialize(self.config, "strategy", "auto")
+        if strategy is not "auto":
+            self.config.pop("strategy")
+
+        # logger
+        logger = get_or_initialize(self.config, "logger")
+        if logger is not None:
+            self.config.pop("logger")
+
+        # profiler
+        profiler = get_or_initialize(self.config, "profiler")
+        if profiler is not None:
+            self.config.pop("profiler")
+        
+        # plugins
+        plugins = get_or_initialize(self.config, "plugins")
+        if plugins is not None:
+            self.config.pop("plugins")
 
         # Callbacks
-        callbacks = get_default_callbacks(self.config)
+        callbacks = get_default_callbacks(
+            expdir, self.config.log_every_n_steps , OmegaConf.to_container(best_model_criterion)
+        )
         if getattr(self.config, "callbacks", None):
-            assert isinstance(self.config.callbacks, list), "callbacks should be a list"
+            assert isinstance(self.config.callbacks, ListConfig), "callbacks should be a list"
             for callback in self.config.callbacks:
                 callbacks.append(instantiate(callback))
-
-        # Set up the loggers
-        loggers = []
-        if getattr(self.config, "loggers", None) is not None:
-            try:
-                list(self.config.loggers)
-            except:
-                raise ValueError("loggers should be a list")
-            
-            for logger in self.config.loggers:
-                loggers.append(instantiate(logger))
-        else:
-            # Use csv logger for default logging.
-            loggers.append(CSVLogger(self.config.expdir, name="default_logger"))
+            self.config.pop("callbacks")
 
         # Set up the trainer
         self.trainer = L.Trainer(
+            accelerator=accelerator,
             callbacks=callbacks,
             strategy=strategy,
-            logger=loggers,
-            **lightning_kwargs,
+            logger=logger,
+            profiler=profiler,
+            plugins=plugins,
+            **self.config,
         )
 
-    def train(self, *args, **kwargs):
+    def fit(self, *args, **kwargs):
         self.trainer.fit(
             *args,
             model=self.model,
-            ckpt_path="last",
             **kwargs,
         )
