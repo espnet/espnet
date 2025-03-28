@@ -10,7 +10,7 @@ import re
 import sys
 import time
 from pathlib import Path
-from typing import Any, List, Optional, Sequence, Tuple, Union, Dict
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import torch
 import torchaudio
