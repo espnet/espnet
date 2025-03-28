@@ -12,7 +12,7 @@ set -o pipefail
 ### Before You Start ###
 # (1) Install the extra dependency of ESPnet-SpeechLM following the link:
 #     Check the "Environment" section of <espnet>/egs2/Template/speechlm1/README.md
-# (2) Download the pre-trained tokenizers: 
+# (2) Download the pre-trained tokenizers:
 #     huggingface-cli download --repo-type model --local-dir . JinchuanTian/OpusLM_v0_1.7B_NAACL_Demo
 
 train_set="train_960"
