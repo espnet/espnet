@@ -72,6 +72,7 @@ try:
 except Exception:
     s3prl = None
 
+
 @dataclasses.dataclass
 class TrainerOptions:
     ngpu: int

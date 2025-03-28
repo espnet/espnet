@@ -704,8 +704,7 @@ class ESPnetSpeechLMDataset(ESPnetDataset):
         # Remove the task prefix
         if kwargs.get("keys_to_load", None) is not None:
             kwargs["keys_to_load"] = {
-                key.removeprefix(f"{task}_")
-                for key in kwargs["keys_to_load"]
+                key.removeprefix(f"{task}_") for key in kwargs["keys_to_load"]
             }
         super(ESPnetSpeechLMDataset, self).__init__(**kwargs)
 
