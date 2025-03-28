@@ -38,27 +38,50 @@ Also check our system paper on [ESPnet-SpeechLM](https://arxiv.org/abs/2502.1521
   - [FQA](#fqa)
 
 ## Environments
-First, please install ESPnet following the [Install Instruction](https://espnet.github.io/espnet/installation.html).
-  * Recommend to use Pytorch 2.1.0 and above
+(1) Install ESPnet following the [Install Instruction](https://espnet.github.io/espnet/installation.html).
+  * Recommend to use Pytorch 2.4.0 and above
+  * Highly Recommend to use `conda`
 
-If you plan to use third-party models from Huggingface, also install:
-```
-# HuggingFace Tools
-pip install huggingface-hub transformers tokenizers datasets
+(2) Install `deepspeed`, `flash-attn`, `transformers` and `huggingface-hub`.
+  ```bash
+  pip install deepspeed
+  pip install transformers huggingface-hub
+  pip install flash-attn --no-build-isolation
+  ```
+(3) If you want to evaluate the model with our existing recipes, install `versa`:
+  ```bash
+  git clone https://github.com/wavlab-speech/versa.git
+  cd versa
+  pip install .
+  ```
 
-# Flash Attention
-pip install flash-attn --no-build-isolation
-```
+#### Important Tips on Environment:
+The code should work well as long as you can install `deepspeed`, `flash-attn`, `transformers` and `huggingface-hub` successfully in some ways, which is mostly dependent to your server environment. 
+Below are some common trouble-shooting that are suitable for our clusters:
+* Usually, the installation of `transformers` and `huggingface-hub` is smooth. 
+* **If GCC is needed**: you can install with conda:
+  ```bash
+  conda install -c conda-forge gcc=12 gxx=12 # change the version as you like, but usually need GCC > 9
+  ```
+* **If CUDA is needed**: If you install Pytorch with conda, usualy the software can detech the installed CUDA as long as:
+  ```bash
+  cd <espnet>/tools
+  . ./activate_python.sh
+  export CUDA_HOME=${CONDA_PREFIX} # ensure your conda environment is activated
+  ```
+  if some of the CUDA files are missing, you may further install with:
+  ```bash
+  conda install cuda-toolkit
+  ```
+* **If NVCC is needed**
+  ```bash
+  conda install -c nvidia cuda-nvcc
+  ```
+* `DeepSpeed`:
+  * Usually, the `pip install deepspeed` will be smooth. `deepspeed` would attempt to compile several plugins when you lunch the training for the first time. Make sure your GCC, CUDA and NVCC are ready.
+* `flash-attn`:
+  * Please use the pre-compiled while of `flash-attn` if possible. If you still need to build from source, ensure GCC, CUDA and `flash-attn` are ready.
 
-For evaluation purpose, also install VERSA (ESPnet evluation toolkit, under rapid development).
-```
-git clone https://github.com/ftshijt/speech_evaluation.git
-cd speech_evaluation
-pip install .
-```
-VISQOL dependency may have some issue. If you don't need that, comment [this line](#https://github.com/ftshijt/speech_evaluation/blob/50419bda43c27a0c3c484e96214bf5e02dbed089/setup.py#L54) and then install
-
-TODO: Build DeepSpeed environment
 
 <!-- ## Check List of Building a New Task
 We provide a check list for developers who want to work on a new task with ESPnet SpeechLM. Users are highly recommended to read [The Concept of Task Templete](#the-concept-of-task-templete) before working on a new task.
