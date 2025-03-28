@@ -13,7 +13,7 @@ from espnetez.trainer.hybrid_scheduler import HybridLRS
 
 
 class LitESPnetModel(L.LightningModule):
-    def __init__(self, config, model, train_dataset, valid_dataset):
+    def __init__(self, model, config, train_dataset, valid_dataset):
         super().__init__()
         self.config = config
         self.model = model

@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List, Tuple, Any
+from typing import List, Tuple, Any, Union
 
 import torch
 from lightning.pytorch.callbacks import (
@@ -72,7 +72,11 @@ class AverageCheckpointsCallback(Callback):
 
 
 @typechecked
-def get_default_callbacks(config):
+def get_default_callbacks(
+    expdir: str = "./exp",
+    log_interval: int = 500,
+    best_model_criterion: Union[List[Tuple[str, int, str]], List[List]] = [("valid/loss", 3, "min")],
+) -> List[Callback]:
     """
     Utility function to construct and return a list of standard PyTorch Lightning callbacks.
 
@@ -99,7 +103,7 @@ def get_default_callbacks(config):
         >>> trainer = Trainer(callbacks=callbacks, ...)
     """
     last_ckpt_callback = ModelCheckpoint(
-        dirpath=config.expdir,
+        dirpath=expdir,
         save_last="link",
         filename="step{step}",
         auto_insert_metric_name=False,
@@ -108,13 +112,13 @@ def get_default_callbacks(config):
     )
 
     best_ckpt_callbacks = []
-    for monitor, nbest, mode in config.pop("best_model_criterion", []):
+    for monitor, nbest, mode in best_model_criterion:
         best_ckpt_callbacks.append(
             ModelCheckpoint(
                 save_top_k=nbest,
                 monitor=monitor,
                 mode=mode,  # "min" or "max"
-                dirpath=config.expdir,
+                dirpath=expdir,
                 save_last=False,
                 # Add monitor to filename to avoid overwriting when multiple metrics are used
                 filename="epoch{epoch}_step{step}_" + monitor.replace("/", "."),
@@ -125,14 +129,14 @@ def get_default_callbacks(config):
             )
         )
     ave_ckpt_callback = AverageCheckpointsCallback(
-        output_dir=config.expdir, best_ckpt_callbacks=best_ckpt_callbacks
+        output_dir=expdir, best_ckpt_callbacks=best_ckpt_callbacks
     )
 
     # Monitor learning rate
     lr_callback = LearningRateMonitor()
 
     # Progress bar
-    progress_bar_callback = TQDMProgressBar(refresh_rate=config.log_interval)
+    progress_bar_callback = TQDMProgressBar(refresh_rate=log_interval)
 
     return [
         last_ckpt_callback,
