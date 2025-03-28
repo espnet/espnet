@@ -143,6 +143,9 @@ class SequenceIterFactory(AbsIterFactory):
         else:
             kwargs = {}
 
+        if self.num_workers > 0:
+            kwargs.update(prefetch_factor=50)
+
         # reshuffle whole 'batches' so that elements within a batch can move
         # between different batches
         if self.shuffle_within_batch:
@@ -159,7 +162,7 @@ class SequenceIterFactory(AbsIterFactory):
             dataset=self.dataset,
             batch_sampler=batches,
             num_workers=self.num_workers,
-            pin_memory=self.pin_memory,
+            pin_memory=True,
             worker_init_fn=partial(worker_init_fn, base_seed=epoch + self.seed),
             **kwargs,
         )

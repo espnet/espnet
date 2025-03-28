@@ -25,6 +25,8 @@ class DistributedOption:
     dist_master_port: Optional[int] = None
     dist_launcher: Optional[str] = None
     multiprocessing_distributed: bool = True
+    use_deepspeed: bool = False
+    deepspeed_config: Optional[str] = None
 
     def init_options(self):
         if self.distributed:
