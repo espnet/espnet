@@ -27,6 +27,7 @@ from espnet2.train.gan_trainer import GANTrainer
 from espnet2.train.preprocessor import CommonPreprocessor
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
 from espnet2.tts.feats_extract.dio import Dio
+from espnet2.tts.feats_extract.harvest import Harvest
 from espnet2.tts.feats_extract.energy import Energy
 from espnet2.tts.feats_extract.linear_spectrogram import LinearSpectrogram
 from espnet2.tts.feats_extract.log_mel_fbank import LogMelFbank
@@ -67,7 +68,7 @@ tts_choices = ClassChoices(
 )
 pitch_extractor_choices = ClassChoices(
     "pitch_extract",
-    classes=dict(dio=Dio),
+    classes={"dio": Dio, "harvest": Harvest},
     type_check=AbsFeatsExtract,
     default=None,
     optional=True,
