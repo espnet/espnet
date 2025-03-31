@@ -1,7 +1,7 @@
 # This script is copied from
 # https://github.com/Lightning-AI/pytorch-lightning/issues/3346#issuecomment-1478556073
 
-from typing import Dict, Iterable, List, Union, Any, Callable
+from typing import Any, Callable, Dict, Iterable, List, Union
 
 import torch
 from typeguard import typechecked

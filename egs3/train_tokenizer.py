@@ -1,14 +1,15 @@
 # User should create this type of script to prepare tokenizer.
-from tqdm import tqdm
-from datasets import load_from_disk
 import datasets
+from datasets import load_from_disk
+from tqdm import tqdm
+
 from espnet3.preprocess import train_sentencepiece
 
 if __name__ == "__main__":
     dataset_dir = "/home/msomeki/workspace/librispeech_dataset"
     dataset = load_from_disk(
         dataset_dir,
-    )['train-clean-100']
+    )["train-clean-100"]
 
     dataset = dataset.cast_column("audio", datasets.Audio(decode=False))
 
@@ -24,4 +25,3 @@ if __name__ == "__main__":
         character_coverage=0.995,
         model_type="bpe",
     )
-
