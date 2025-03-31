@@ -9,10 +9,10 @@ import numpy as np
 from datasets import load_from_disk, concatenate_datasets
 import lightning as L
 import torch
-import espnetez as ez
-from espnetez.parallel import set_parallel
-from espnetez.trainer import ESPnetEZLightningTrainer, LitESPnetModel
-from espnetez.data import cutset_from_huggingface, HuggingfaceDatasetsBackend
+import espnet3 as ez
+from espnet3.parallel import set_parallel
+from espnet3.trainer import ESPnetEZLightningTrainer, LitESPnetModel
+from espnet3.data import cutset_from_huggingface, HuggingfaceDatasetsBackend
 from lhotse.audio.backend import set_current_audio_backend
 
 
