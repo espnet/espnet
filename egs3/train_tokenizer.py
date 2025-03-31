@@ -2,7 +2,7 @@
 from tqdm import tqdm
 from datasets import load_from_disk
 import datasets
-from espnetez.preprocess import train_sentencepiece
+from espnet3.preprocess import train_sentencepiece
 
 if __name__ == "__main__":
     dataset_dir = "/home/msomeki/workspace/librispeech_dataset"

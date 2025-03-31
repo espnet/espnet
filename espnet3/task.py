@@ -135,21 +135,21 @@ def get_ez_task(task_name: str, use_custom_dataset: bool = False) -> AbsTask:
 
 
 @typechecked
-def get_espnet_model(task_name: str, config: Union[Dict, DictConfig]) -> AbsESPnetModel:
-    task = get_ez_task(task_name)
-    default_config = task.get_default_config()
+def get_espnet_model(task: str, config: Union[Dict, DictConfig]) -> AbsESPnetModel:
+    ez_task = get_ez_task(task)
+    default_config = ez_task.get_default_config()
     default_config.update(config)
-    espnet_model = task.build_model(Namespace(**default_config))
+    espnet_model = ez_task.build_model(Namespace(**default_config))
     return espnet_model
 
 
 def save_espnet_config(
-    task_name: str,
+    task: str,
     config: Union[Dict, DictConfig],
     output_dir: str
 ) -> None:
-    task = get_ez_task(task_name)
-    default_config = task.get_default_config()
+    ez_task = get_ez_task(task)
+    default_config = ez_task.get_default_config()
     default_config.update(OmegaConf.to_container(config, resolve=True))
 
     # Check if there is None in the config with the name "*_conf"

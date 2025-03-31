@@ -56,6 +56,7 @@ class ESPnetEZDataset(AbsDataset):
     def __init__(self, dataset, data_info):
         self.dataset = dataset
         self.data_info = data_info
+        self.preprocessor = None
 
     def has_name(self, name) -> bool:
         """

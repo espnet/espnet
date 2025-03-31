@@ -1,5 +1,5 @@
 from contextlib import contextmanager
-from dask.distributed import Client, LocalCluster, as_completed
+from dask.distributed import Client, LocalCluster, as_completed, WorkerPlugin
 from dask_jobqueue import SLURMCluster
 from omegaconf import DictConfig
 from typeguard import typechecked
@@ -55,7 +55,7 @@ def make_client(config: DictConfig = None) -> Client:
 
 
 @contextmanager
-def get_client(config: DictConfig=None) -> Generator[Client, None, None]:
+def get_client(config: DictConfig=None, plugin: WorkerPlugin = None) -> Generator[Client, None, None]:
     """Context manager to yield a Dask client from the global singleton cluster.
 
     Yields:
@@ -66,6 +66,8 @@ def get_client(config: DictConfig=None) -> Generator[Client, None, None]:
         ...     results = client.map(lambda x: x**2, range(10))
     """
     client = _make_client(config)
+    if plugin is not None:
+        client.register_worker_plugin(plugin)
     try:
         yield client
     finally:
