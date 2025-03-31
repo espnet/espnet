@@ -36,6 +36,7 @@ test_spm.model
 constraints.txt
 
 out/config.yaml
+hub/
 
 doc/vuepress/src/.vuepress/.temp
 doc/vuepress/src/.vuepress/.cache
@@ -115,3 +116,5 @@ tools/Miniconda3-latest-*.sh
 tools/Miniforge3-*.sh
 tools/condarc
 tools/lightning_constraints.txt
+tools/versa
+tools/ParallelWaveGAN
