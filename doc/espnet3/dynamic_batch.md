@@ -13,7 +13,7 @@ It covers the following sections:
 Unlike text or image data, speech data can vary greatly in length. This leads to significant differences in the size of acoustic feature matrices. For example, consider two utterances:
 - One 30-second long
 - One 5-second long
-When batching together, the 5-second audio needs to be padded to match the 30-second audio in the batch. 
+When batching together, the 5-second audio needs to be padded to match the 30-second audio in the batch.
 
 ![](./images/dynamic_batch_sec.png)
 
@@ -78,4 +78,3 @@ dataloader:
 The model class (`LitESPnetModel`) automatically receives dataloaders created based on this configuration. This is handled internally in `ESPnet3/trainer/model.py`, so the user does not need to manually construct samplers in their training scripts.
 
 By leveraging Lhotse and Hydra-style configuration, ESPnet3 enables dynamic batching with clean abstraction, removing the need for a separate collect-stats stage and supporting scalable and memory-efficient training workflows.
-

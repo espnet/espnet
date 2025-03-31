@@ -1,14 +1,14 @@
 from pathlib import Path
-from typing import List, Tuple, Any, Union
+from typing import Any, List, Tuple, Union
 
 import torch
+from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.callbacks import (
     Callback,
     LearningRateMonitor,
     ModelCheckpoint,
     TQDMProgressBar,
 )
-from lightning.pytorch import Trainer, LightningModule
 from typeguard import typechecked
 
 
@@ -27,6 +27,7 @@ class AverageCheckpointsCallback(Callback):
     - Parameters with integer types (e.g., `BatchNorm.num_batches_tracked`) are not averaged,
       only accumulated. If other reduction methods are needed (e.g., max/min), they should be added explicitly.
     """
+
     def __init__(self, output_dir, best_ckpt_callbacks):
         self.output_dir = output_dir
         self.best_ckpt_callbacks = best_ckpt_callbacks
@@ -75,7 +76,9 @@ class AverageCheckpointsCallback(Callback):
 def get_default_callbacks(
     expdir: str = "./exp",
     log_interval: int = 500,
-    best_model_criterion: Union[List[Tuple[str, int, str]], List[List]] = [("valid/loss", 3, "min")],
+    best_model_criterion: Union[List[Tuple[str, int, str]], List[List]] = [
+        ("valid/loss", 3, "min")
+    ],
 ) -> List[Callback]:
     """
     Utility function to construct and return a list of standard PyTorch Lightning callbacks.
@@ -96,7 +99,7 @@ def get_default_callbacks(
 
     Returns:
         List[Callback]: A list of configured PyTorch Lightning callbacks.
-    
+
     Example:
         >>> from my_callbacks import get_default_callbacks
         >>> callbacks = get_default_callbacks(config)

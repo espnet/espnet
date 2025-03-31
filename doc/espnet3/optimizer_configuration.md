@@ -55,4 +55,3 @@ Be sure to have the `params` configuration to each optimziers, otherwise we cann
 
 Schedulers use optimizer index to bind to the corresponding optimizer in the optimizers list;
 when multiple optimizers are configured (e.g., three), the number of schedulers must match, and each scheduler is associated with its optimizer by their respective positions in the lists - i.e., the first scheduler corresponds to the first optimizer, the second to the second, and so on.
-

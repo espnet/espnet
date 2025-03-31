@@ -30,7 +30,7 @@ Or if you want to use `GloblMVN` on your custom model:
 ```yaml
 normalize:
   _target_: espnet2.layers.global_mvn.GlobalMVN
-  stats_file: /path/to/your/custom/stats_file.npz   
+  stats_file: /path/to/your/custom/stats_file.npz
 ```
 
 
@@ -89,4 +89,3 @@ with get_client(LargeInstancePlugin()) as client:
 ---
 
 In summary, the collect-stats stage in ESPnet3 is largely replaced by Lhotse's native capabilities and parallel APIs. This simplifies the pipeline and integrates more naturally with general-purpose training frameworks like PyTorch Lightning.
-

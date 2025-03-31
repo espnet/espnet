@@ -1,14 +1,14 @@
 from argparse import Namespace
-from omegaconf import DictConfig, ListConfig, OmegaConf
-from hydra.utils import instantiate
-from typing import Any, Dict, List, Union, Tuple
+from typing import Any, Dict, List, Tuple, Union
 
 import lightning as L
 import torch
 import torch.nn as nn
-from lightning.pytorch.loggers import CSVLogger
 from espnetez.trainer.callbacks import get_default_callbacks
 from espnetez.trainer.model import LitESPnetModel
+from hydra.utils import instantiate
+from lightning.pytorch.loggers import CSVLogger
+from omegaconf import DictConfig, ListConfig, OmegaConf
 from typeguard import typechecked
 
 
@@ -21,12 +21,12 @@ def init_weights(m):
         m.bias.data.fill_(0.01)
 
 
-def get_or_initialize(config, item_name: str=None, default=None) -> Any:
+def get_or_initialize(config, item_name: str = None, default=None) -> Any:
     if item_name is not None:
         item = getattr(config, item_name, default)
     else:
         item = config
-    
+
     if type(item) == DictConfig:
         return instantiate(item)
     elif type(item) == ListConfig:
@@ -42,14 +42,14 @@ class ESPnetEZLightningTrainer:
         model: LitESPnetModel = None,
         expdir: str = None,
         config: Union[DictConfig, Namespace, Dict[str, Any]] = None,
-        best_model_criterion = None,
+        best_model_criterion=None,
     ):
         assert model is not None, "model must be provided."
         assert expdir is not None, "expdir must be provided."
         assert config is not None, "config must be provided."
         if best_model_criterion is None:
             best_model_criterion = [("valid/loss", 3, "min")]
-    
+
         # HP and configs
         self.config = config
 
@@ -76,7 +76,7 @@ class ESPnetEZLightningTrainer:
         profiler = get_or_initialize(self.config, "profiler")
         if profiler is not None:
             self.config.pop("profiler")
-        
+
         # plugins
         plugins = get_or_initialize(self.config, "plugins")
         if plugins is not None:
@@ -84,10 +84,14 @@ class ESPnetEZLightningTrainer:
 
         # Callbacks
         callbacks = get_default_callbacks(
-            expdir, self.config.log_every_n_steps , OmegaConf.to_container(best_model_criterion)
+            expdir,
+            self.config.log_every_n_steps,
+            OmegaConf.to_container(best_model_criterion),
         )
         if getattr(self.config, "callbacks", None):
-            assert isinstance(self.config.callbacks, ListConfig), "callbacks should be a list"
+            assert isinstance(
+                self.config.callbacks, ListConfig
+            ), "callbacks should be a list"
             for callback in self.config.callbacks:
                 callbacks.append(instantiate(callback))
             self.config.pop("callbacks")

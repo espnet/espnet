@@ -4,10 +4,10 @@ import shutil
 import tempfile
 from pathlib import Path
 
+import espnetez as ez
 import pytest
 from torch import nn
 
-import espnetez as ez
 from espnet2.tasks.asr import ASRTask
 from espnet2.tasks.asr_transducer import ASRTransducerTask
 from espnet2.tasks.asvspoof import ASVSpoofTask

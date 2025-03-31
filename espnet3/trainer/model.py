@@ -1,15 +1,15 @@
 import os
 from pathlib import Path
-from hydra.utils import instantiate
-from omegaconf import OmegaConf
 
 import lightning as L
 import torch
 import yaml
-
-from espnet2.train.collate_fn import CommonCollateFn
 from espnetez.trainer.hybrid_optim import HybridOptim
 from espnetez.trainer.hybrid_scheduler import HybridLRS
+from hydra.utils import instantiate
+from omegaconf import OmegaConf
+
+from espnet2.train.collate_fn import CommonCollateFn
 
 
 class LitESPnetModel(L.LightningModule):
@@ -59,7 +59,7 @@ class LitESPnetModel(L.LightningModule):
 
     def configure_optimizers(self):
         """
-        This implementation utilize the following document to use multiple 
+        This implementation utilize the following document to use multiple
         optimizers and schedulers to the different modules:
         https://github.com/Lightning-AI/pytorch-lightning/issues/3346
         If you want to use multiple optimizers or schedulers to the different modules,
@@ -71,44 +71,51 @@ class LitESPnetModel(L.LightningModule):
         """
         if getattr(self.config, "optim") and getattr(self.config, "scheduler"):
             # setup optimizer and scheduler
-            assert getattr(self.config, "optims", None) is None, \
-                "Mixture of `optim` and `optims` is not allowed."
+            assert (
+                getattr(self.config, "optims", None) is None
+            ), "Mixture of `optim` and `optims` is not allowed."
             params = filter(lambda p: p.requires_grad, self.parameters())
             optimizer = instantiate(self.config.optim, params=params)
 
-            assert getattr(self.config, "schedulers", None) is None, \
-                "Mixture of `scheduler` and `schedulers` is not allowed."
+            assert (
+                getattr(self.config, "schedulers", None) is None
+            ), "Mixture of `scheduler` and `schedulers` is not allowed."
             scheduler = instantiate(self.config.scheduler, optimizer=optimizer)
-        
+
         elif getattr(self.config, "optims") and getattr(self.config, "schedulers"):
-            assert getattr(self.config, "optim", None) is None, \
-                "Mixture of `optim` and `optims` is not allowed."
-            assert len(self.config.optims) == len(self.config.schedulers), \
-                f"The number of optimizers and schedulers must be equal: " \
-                + f"optims: {len(self.config.optims)}, " \
+            assert (
+                getattr(self.config, "optim", None) is None
+            ), "Mixture of `optim` and `optims` is not allowed."
+            assert len(self.config.optims) == len(self.config.schedulers), (
+                f"The number of optimizers and schedulers must be equal: "
+                + f"optims: {len(self.config.optims)}, "
                 + f"schedulers: {len(self.config.schedulers)}"
+            )
             optims = []
             trainable_params = filter(lambda p: p.requires_grad, self.parameters())
             for optim in self.config.optims:
                 # filter params for optimizer
                 assert "params" in optim, "missing 'params' in optim config"
                 params = [p for p in trainable_params if optim["params"] in p.name]
-                assert len(params) > 0, f"No trainable parameters found for" \
-                                + f"optimizer: {optim} with params: {optim['params']}"
+                assert len(params) > 0, (
+                    f"No trainable parameters found for"
+                    + f"optimizer: {optim} with params: {optim['params']}"
+                )
                 optims.append(instantiate(optim, params=params))
             optimizer = HybridOptim(optims)
 
-            assert getattr(self.config, "scheduler", None) is None, \
-                "Mixture of `scheduler` and `schedulers` is not allowed."
+            assert (
+                getattr(self.config, "scheduler", None) is None
+            ), "Mixture of `scheduler` and `schedulers` is not allowed."
             schedulers = []
             for i_sch, scheduler in enumerate(self.config.schedulers):
                 schedulers.append(instantiate(scheduler, optimizer=optims[i_sch]))
             scheduler = [
-                HybridLRS(optimizer, i_sch, sch)
-                for i_sch, sch in enumerate(schedulers)
+                HybridLRS(optimizer, i_sch, sch) for i_sch, sch in enumerate(schedulers)
             ]
-        elif not getattr(self.config, "optim") and \
-            not getattr(self.config, "scheduler"):
+        elif not getattr(self.config, "optim") and not getattr(
+            self.config, "scheduler"
+        ):
             optimizer = torch.optim.Adam(self.parameters())
             scheduler = torch.optim.lr_scheduler.StepLR(optimizer)
         else:
@@ -131,27 +138,31 @@ class LitESPnetModel(L.LightningModule):
         collate_fn = CommonCollateFn(int_pad_value=-1)
         if hasattr(self.config, "dataloader"):
             if hasattr(self.config.dataloader, "train"):
-                dataloader_config.update(OmegaConf.to_container(self.config.dataloader.train))
+                dataloader_config.update(
+                    OmegaConf.to_container(self.config.dataloader.train)
+                )
 
-            if hasattr(self.config.dataloader, "train") and \
-                hasattr(self.config.dataloader.train, "sampler"):
+            if hasattr(self.config.dataloader, "train") and hasattr(
+                self.config.dataloader.train, "sampler"
+            ):
                 sampler = instantiate(
-                    self.config.dataloader.train.sampler, self.train_dataset)
-            
+                    self.config.dataloader.train.sampler, self.train_dataset
+                )
+
             # define collate_fn. Default to ESPnet's CommonCollateFn
             if hasattr(self.config.dataloader, "collate_fn"):
                 collate_fn = instantiate(self.config.dataloader.collate_fn)
-            
+
             if "sampler" in dataloader_config:
                 dataloader_config.pop("sampler")
-            
-            if "dataset" in dataloader_config:  # remove dataset for compatibility with torch.utils.data.DataLoader
+
+            if (
+                "dataset" in dataloader_config
+            ):  # remove dataset for compatibility with torch.utils.data.DataLoader
                 dataloader_config.pop("dataset")
 
-
         return torch.utils.data.DataLoader(
-            train_dataset, sampler=sampler, collate_fn=collate_fn,
-            **dataloader_config
+            train_dataset, sampler=sampler, collate_fn=collate_fn, **dataloader_config
         )
 
     def val_dataloader(self):
@@ -162,30 +173,35 @@ class LitESPnetModel(L.LightningModule):
         collate_fn = CommonCollateFn(int_pad_value=-1)
         if hasattr(self.config, "dataloader"):
             if hasattr(self.config.dataloader, "valid"):
-                dataloader_config.update(OmegaConf.to_container(self.config.dataloader.valid))
+                dataloader_config.update(
+                    OmegaConf.to_container(self.config.dataloader.valid)
+                )
 
-            if hasattr(self.config.dataloader, "valid") and \
-                hasattr(self.config.dataloader.valid, "sampler"):
+            if hasattr(self.config.dataloader, "valid") and hasattr(
+                self.config.dataloader.valid, "sampler"
+            ):
                 sampler = instantiate(
-                    self.config.dataloader.valid.sampler, self.valid_dataset)
-            
+                    self.config.dataloader.valid.sampler, self.valid_dataset
+                )
+
             # define collate_fn. Default to ESPnet's CommonCollateFn
             if hasattr(self.config.dataloader, "collate_fn"):
                 collate_fn = instantiate(self.config.dataloader.collate_fn)
-            
+
             if "sampler" in dataloader_config:
                 dataloader_config.pop("sampler")
-            
-            if "dataset" in dataloader_config:  # remove dataset for compatibility with torch.utils.data.DataLoader
+
+            if (
+                "dataset" in dataloader_config
+            ):  # remove dataset for compatibility with torch.utils.data.DataLoader
                 dataloader_config.pop("dataset")
 
         return torch.utils.data.DataLoader(
-            valid_dataset, sampler=sampler, collate_fn=collate_fn,
-            **dataloader_config
+            valid_dataset, sampler=sampler, collate_fn=collate_fn, **dataloader_config
         )
 
     def state_dict(self, *args, **kwargs):
         return self.model.state_dict(*args, **kwargs)
-    
+
     def load_state_dict(self, state_dict, strict=True):
         return self.model.load_state_dict(state_dict, strict=strict)

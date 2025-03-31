@@ -1,11 +1,11 @@
 # This script is copied from
 # https://github.com/Lightning-AI/pytorch-lightning/issues/3346#issuecomment-1478556073
 
-from typing import Dict, Iterable, List, Union, Any
-import torch
-from typeguard import typechecked
+from typing import Any, Dict, Iterable, List, Union
 
+import torch
 from espnetez.trainer.hybrid_optim import HybridOptim
+from typeguard import typechecked
 
 
 class HybridLRS(torch.optim.lr_scheduler._LRScheduler):

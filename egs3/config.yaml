@@ -19,7 +19,7 @@ tokenizer:
 converter:
   _target_: espnet2.text.token_id_converter.TokenIDConverter
   token_list: sentencepiece_model/tokens.txt
-   
+
 dataset:
   id: /home/msomeki/workspace/librispeech_dataset
 
@@ -27,8 +27,8 @@ model:
   _target_: espnet2.asr.espnet_model.ESPnetASRModel
   vocab_size: ${vocab_size}
   token_list: ${load_line:sentencepiece_model/tokens.txt}
-  
-  input_size: 
+
+  input_size:
   encoder: e_branchformer
   encoder_conf:
     output_size: 256
@@ -67,7 +67,7 @@ model:
       n_fft: 512
       win_length: 400
       hop_length: 160
-      
+
   specaug: specaug
   specaug_conf:
       apply_time_warp: true
@@ -163,4 +163,3 @@ trainer:
 
 # fit:
 #   ckpt_path: exp/ls100_debug_ctc_utt/step80920.ckpt
-

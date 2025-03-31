@@ -1,12 +1,14 @@
 from contextlib import contextmanager
-from dask.distributed import Client, LocalCluster, as_completed, WorkerPlugin
+from typing import Any, Callable, Generator, Iterable, Optional
+
+from dask.distributed import Client, LocalCluster, WorkerPlugin, as_completed
 from dask_jobqueue import SLURMCluster
 from omegaconf import DictConfig
-from typeguard import typechecked
-from typing import Any, Callable, Generator, Iterable, Optional
 from tqdm import tqdm
+from typeguard import typechecked
 
 parallel_config: Optional[DictConfig] = None
+
 
 @typechecked
 def set_parallel(config: DictConfig) -> None:
@@ -49,13 +51,17 @@ def make_client(config: DictConfig = None) -> Client:
         return _make_client(config)
 
     if parallel_config is None:
-        raise ValueError("Parallel configuration not set. Use `set_parallel` to set it.")
-    
+        raise ValueError(
+            "Parallel configuration not set. Use `set_parallel` to set it."
+        )
+
     return _make_client(parallel_config)
 
 
 @contextmanager
-def get_client(config: DictConfig=None, plugin: WorkerPlugin = None) -> Generator[Client, None, None]:
+def get_client(
+    config: DictConfig = None, plugin: WorkerPlugin = None
+) -> Generator[Client, None, None]:
     """Context manager to yield a Dask client from the global singleton cluster.
 
     Yields:
@@ -74,8 +80,11 @@ def get_client(config: DictConfig=None, plugin: WorkerPlugin = None) -> Generato
         if not isinstance(client, LocalCluster):
             client.shutdown()
 
+
 @typechecked
-def parallel_map(func: Callable[[Any], Any], data: Iterable[Any], client: Optional[Client] = None) -> list:
+def parallel_map(
+    func: Callable[[Any], Any], data: Iterable[Any], client: Optional[Client] = None
+) -> list:
     """Run a function over a list of data in parallel using Dask.
 
     Args:
@@ -102,8 +111,11 @@ def parallel_map(func: Callable[[Any], Any], data: Iterable[Any], client: Option
                 results.append(future.result())
     return results
 
+
 @typechecked
-def parallel_submit(func: Callable[..., Any], *args: Any, client: Optional[Client] = None, **kwargs: Any) -> Any:
+def parallel_submit(
+    func: Callable[..., Any], *args: Any, client: Optional[Client] = None, **kwargs: Any
+) -> Any:
     """Submit a single function call asynchronously using Dask.
 
     Args:
@@ -124,6 +136,7 @@ def parallel_submit(func: Callable[..., Any], *args: Any, client: Optional[Clien
     else:
         with get_client() as client:
             return client.submit(func, *args, **kwargs).result()
+
 
 @typechecked
 def parallel_scatter(data: Any, client: Optional[Client] = None) -> Any:

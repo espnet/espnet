@@ -36,4 +36,3 @@ For more details, refer to the official PyTorch Lightning documentation:
 ---
 
 By configuring loggers via YAML and using Lightning’s built-in support, ESPnetEZ simplifies monitoring and improves compatibility with popular experiment tracking platforms.
-
