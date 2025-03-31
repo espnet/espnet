@@ -53,7 +53,7 @@ bc.done: activate_python.sh
 	. ./activate_python.sh && { command -v bc || conda install -y bc -c conda-forge; }
 	touch bc.done
 cmake.done: activate_python.sh
-	. ./activate_python.sh && { command -v cmake || conda install -y cmake; }
+	. ./activate_python.sh && { command -v cmake || conda install -y "cmake<4.0"; }
 	touch cmake.done
 flac.done: activate_python.sh
 	. ./activate_python.sh && { command -v flac || conda install -y libflac -c conda-forge; }
