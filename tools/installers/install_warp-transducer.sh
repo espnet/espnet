@@ -42,7 +42,7 @@ git clone --single-branch --branch update_torch2.1 https://github.com/b-flo/warp
 
     (
         set -euo pipefail
-        cd pytorch_binding && python3 -m pip install -e .
+        cd pytorch_binding && python3 -m pip install -e . --no-build-isolation --no-cache-dir
     )
 )
 

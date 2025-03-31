@@ -39,6 +39,6 @@ fi
     )
     (
         set -euo pipefail
-        python3 -m pip install -e .
+        python3 -m pip install -e . --no-build-isolation --no-cache-dir
     )
 )
