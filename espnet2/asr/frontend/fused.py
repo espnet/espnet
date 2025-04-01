@@ -12,7 +12,11 @@ from espnet2.asr.frontend.s3prl import S3prlFrontend
 class FusedFrontends(AbsFrontend):
     @typechecked
     def __init__(
-        self, frontends: List[AbsFrontend] = None, align_method: str ="linear_projection", proj_dim: int =100, fs: int =16000
+        self,
+        frontends: List[AbsFrontend] = None,
+        align_method: str = "linear_projection",
+        proj_dim: int = 100,
+        fs: int = 16000,
     ):
         super().__init__()
         self.align_method = (
