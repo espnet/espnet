@@ -11,12 +11,9 @@ test_sets="rfcx.test"
 cls_config=conf/beats_beans_sed.yaml
 
 timestamp=$(date "+%Y%m%d.%H%M%S")
-#timestamp=20250127.164810
 mynametag=${timestamp}
 storage_dir=.
 mkdir -p "${storage_dir}"
-
-#change label_fold_length for each dataset: greater than num_class
 
 ./cls.sh \
     --local_data_opts "rfcx" \
@@ -24,8 +21,8 @@ mkdir -p "${storage_dir}"
     --datadir "${storage_dir}/data/rfcx" \
     --dumpdir "${storage_dir}/dump/rfcx" \
     --expdir "${storage_dir}/exp/rfcx" \
-    --feats_normalize uttmvn \
     --use_lightning true \
+    --feats_normalize uttmvn \
     --stage 1 \
     --stop_stage 10 \
     --ngpu 1 \

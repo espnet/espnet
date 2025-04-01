@@ -15,8 +15,6 @@ mynametag=${timestamp}
 storage_dir=.
 mkdir -p "${storage_dir}"
 
-#change label_fold_length for each dataset: greater than num_class
-
 ./cls.sh \
     --local_data_opts "enabirds" \
     --cls_tag "${mynametag}" \
