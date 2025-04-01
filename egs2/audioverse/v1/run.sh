@@ -123,11 +123,11 @@ recipe_runners["esc50_f4"]="../../esc50/cls1/run_single_fold.sh|--local_data_opt
 recipe_runners["esc50_f5"]="../../esc50/cls1/run_single_fold.sh|--local_data_opts 5 --train_set train5 --valid_set val5 --test_sets val5"
 
 # Register BEANS detection tasks
-# recipe_runners["beans_dcase"]="../../beans/cls1/run_dcase.sh|"
-# recipe_runners["beans_enabirds"]="../../beans/cls1/run_enabirds.sh|"
-# recipe_runners["beans_gibbons"]="../../beans/cls1/run_gibbons.sh|"
-# recipe_runners["beans_hiceas"]="../../beans/cls1/run_hiceas.sh|"
-# recipe_runners["beans_rfcx"]="../../beans/cls1/run_rfcx.sh|"
+recipe_runners["beans_dcase"]="../../beans/cls1/run_dcase.sh|"
+recipe_runners["beans_enabirds"]="../../beans/cls1/run_enabirds.sh|"
+recipe_runners["beans_gibbons"]="../../beans/cls1/run_gibbons.sh|"
+recipe_runners["beans_hiceas"]="../../beans/cls1/run_hiceas.sh|"
+recipe_runners["beans_rfcx"]="../../beans/cls1/run_rfcx.sh|"
 
 # Register BEANS classification tasks
 recipe_runners["beans_watkins"]="../../beans/cls1/run_watkins.sh|"
@@ -136,10 +136,9 @@ recipe_runners["beans_cbi"]="../../beans/cls1/run_cbi.sh|"
 recipe_runners["beans_humbugdb"]="../../beans/cls1/run_humbugdb.sh|"
 recipe_runners["beans_dogs"]="../../beans/cls1/run_dogs.sh|"
 
-# Music and machine sound tasks
-# recipe_runners["gtzan"]
+# Music tasks
+recipe_runners["gtzan"]="../../gtzan/cls1/run.sh|"
 # recipe_runners["nsynth"]
-# recipe_runners["dcase24_machine"]
 
 generate_recipe_list() {
     local recipes_to_run=()

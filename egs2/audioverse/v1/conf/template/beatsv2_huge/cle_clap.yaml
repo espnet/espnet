@@ -1,0 +1,84 @@
+optim: adamw
+optim_conf:
+    lr: 1.0e-5
+    weight_decay: 1.0e-2
+    betas: [0.9, 0.98]
+
+accum_grad: 1
+
+batch_size: 16
+max_epoch: 100
+
+scheduler: CosineAnnealingWarmupRestarts
+scheduler_conf:
+    first_cycle_steps: 202000
+    warmup_steps: 20000
+    max_lr: 1.0e-4
+    min_lr: 1.0e-6
+
+# BEATs implementation takes care of generating mel spectrogram, normalization and specaug
+frontend: none
+input_size: 1 # important to set input_size to 1 if frontend is none
+normalize: none # BEATs code does global mean and variance normalization
+
+# Initialization for the decoder
+init: xavier_normal
+
+model_conf:
+    classification_type: multi-class
+    lsm_weight: 0.1
+
+batch_type: folded
+unused_parameters: true
+grad_clip: 1
+patience: none
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+keep_nbest_models: 1
+use_amp: false  # whether to use automatic mixed precision
+num_att_plot: 0
+num_workers: 2 # dataloader workers
+
+encoder: beats
+encoder_conf:
+    beats_ckpt_path: CHECKPOINT_PATH
+    beats_config:
+        layer_wise_gradient_decay_ratio: 0.2
+        encoder_layerdrop: 0.1
+        dropout: 0.0
+    specaug_config:
+        apply_time_warp: true
+        apply_freq_mask: false
+        apply_time_mask: true
+        time_mask_width_ratio_range:
+        - 0
+        - 0.06
+        num_time_mask: 1
+    roll_augment: true
+    roll_interval: 16000 # 1 second, only 5 possible augmentations per sample
+    use_weighted_representation: false
+
+freeze_param: [
+    "text_encoder",
+]
+
+text_encoder: hugging_face_transformers
+text_encoder_conf:
+    input_size: 1 # dummy
+    model_name_or_path: laion/clap-htsat-unfused
+    encoder_module: text_model
+
+embedding_fusion: attention
+embedding_fusion_conf:
+    audio_dim: 768
+    text_dim: 768
+    hidden_dim: 768
+    output_dim: 768
+
+# Simple linear decoder for classification.
+decoder: linear
+decoder_conf:
+    pooling: mean
+    dropout: 0.1

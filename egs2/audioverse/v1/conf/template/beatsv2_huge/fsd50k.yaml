@@ -1,12 +1,9 @@
 unused_parameters: true
 init: xavier_normal
 
-batch_type: folded
-shuffle_within_batch: false
-
-valid_batch_size: 16
-batch_size: 16
-max_epoch: 160
+batch_type: numel
+batch_bins: 3000000
+max_epoch: 105
 
 accum_grad: 1
 grad_clip: 1
@@ -19,23 +16,23 @@ optim_conf:
 
 scheduler: CosineAnnealingWarmupRestarts
 scheduler_conf:
-    first_cycle_steps: 15000
-    warmup_steps: 1500
+    first_cycle_steps: 95000
+    warmup_steps: 8000
     max_lr: 3.0e-5
     min_lr: 5.0e-6
 
 patience: none
 best_model_criterion:
 -   - valid
-    - acc
+    - epoch_mAP
     - max
-keep_nbest_models: 1
+keep_nbest_models: 5
 use_amp: false  # whether to use automatic mixed precision
 num_att_plot: 0
-num_workers: 2 # dataloader workers
+num_workers: 8 # dataloader workers
 
 frontend: none
-input_size: 1
+input_size: 1 # important to set input_size to 1 if frontend is none
 normalize: none
 
 encoder: beats
@@ -58,5 +55,19 @@ encoder_conf:
     roll_interval: 1
 
 model_conf:
-    classification_type: multi-class
-    lsm_weight: 0.1  # label smoothing weight, per label
+    classification_type: multi-label
+    mixup_probability: 0.2
+    lsm_weight: 0.0  # label smoothing weight, per label
+    log_epoch_metrics: true
+
+lightning_conf:
+    log_every_n_steps: 250
+    max_epochs: 105
+    strategy: ddp
+    strategy_conf:
+        find_unused_parameters: true
+
+    best_model_criterion:
+    -   - valid/epoch_mAP     # metric to monitor
+        - max           # max or min
+        - 1            # number of best models to keep
