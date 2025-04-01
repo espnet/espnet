@@ -496,6 +496,8 @@ if ! "${skip_train}"; then
         _nj=$((ngpu==0?nj:ngpu))
         _ngpu=$((ngpu==0?0:1))
         for dset in "${valid_set}" "${train_set}"; do
+            log "Clearing token output directory: ${data_feats}/${dset}/iter0_${_tokenizer_inference_tag}"
+            rm -rf "${data_feats}/${dset}/iter0_${_tokenizer_inference_tag}"
             ./scripts/feats/audio_tokenization.sh \
                 --codec_choice beats_random \
                 --file_name ${_scp} \

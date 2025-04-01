@@ -34,6 +34,7 @@ EPIC_SOUNDS=/work/hdd/bbjs/shared/corpora/epic_sound/EPIC_audio.hdf5
 ESC50=/compute/babel-13-33/sbharad2/ESC-50-master
 # /work/hdd/bbjs/shared/corpora/esc_master/ESC-50-master
 FMA=/work/hdd/bbjs/shared/corpora/fma/fma_full
+GTZAN=downloads
 INAT_SOUNDS=/work/hdd/bbjs/shared/corpora/inat_sounds
 MIXUP_FSD=/work/hdd/bbjs/shared/corpora/synthetic_fsd/BFSD
 WAVCAPS=/work/hdd/bbjs/shared/corpora/wavcaps
