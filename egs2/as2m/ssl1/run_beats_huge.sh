@@ -18,28 +18,16 @@ mynametag=
 
 ssl_tag=${mynametag}.${timestamp}
 
-
-# tokenizer_inf_config=conf/tokenizer_inference_beats2.yaml
-tokenizer_inf_config=conf/tokenizer_large_100k_steps.yaml
-model_size=large
+tokenizer_inf_config=conf/tokenizer_huge_inf.yaml
+model_size=huge
 ssl_tag=${model_size}.7p2M
 
-if [ $model_size == "large" ]; then
-    train_config=conf/ear_large.yaml
-    tokenizer_train_config=conf/tok_ear_large.yaml
-elif [ $model_size == "base" ]; then
-    train_config=conf/ear_base.yaml
-    tokenizer_train_config=conf/tok_ear_base.yaml
-else
-    echo "Invalid model size"
-    exit 1
-fi
+train_config=conf/beats_huge.yaml
+tokenizer_train_config=conf/beats_tok_huge.yaml
 ngpu=8
 
 storage_dir=.
 storage_dir=/work/nvme/bbjs/sbharadwaj/7Msounds
-# storage_dir=/work/nvme/bbjs/sbharadwaj/fullas2m
-
 # storage_dir=/work/nvme/bbjs/sbharadwaj/7100Ksounds
 mkdir -p "${storage_dir}"
 
@@ -58,7 +46,7 @@ external_tokenizer_model=
     --speech_fold_length 160000 \
     --text_fold_length 600 \
     --ssl_tag ${ssl_tag} \
-    --n_targets 1024 \
+    --n_targets 4096 \
     --datadir "${storage_dir}/data" \
     --dumpdir "${storage_dir}/dump" \
     --expdir "${storage_dir}/exp" \
