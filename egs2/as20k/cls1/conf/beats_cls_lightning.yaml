@@ -69,6 +69,7 @@ model_conf:
 lightning_conf:
     #### args that are passed directly to the trainer
     log_every_n_steps: 250
+    max_epochs: 160
     # debugging args
     # limit_train_batches: 100
     # limit_val_batches: 3
