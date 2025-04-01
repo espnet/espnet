@@ -20,7 +20,7 @@ class MixupAugment(torch.nn.Module):
 
         Returns:
             speech: (Batch, Length)
-            onehot: (Batch, n_classes)
+            onehot: (Batch,..., n_classes)
             speech_lengths: (Batch,): Minimum of the two lengths mixed.
         """
         batch_size = speech.size(0)
@@ -49,4 +49,7 @@ class MixupAugment(torch.nn.Module):
 
         speech_lengths = torch.minimum(speech_lengths, speech_lengths[perm])
         speech = speech[:, : speech_lengths.max()]
+        if onehot.dim() > 2:
+            # onehot is (Batch, length, n_classes), must ensure length match
+            onehot = onehot[:, : speech_lengths.max()]
         return speech, onehot, speech_lengths

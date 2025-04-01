@@ -14,6 +14,7 @@ import logging
 import math
 import warnings
 from typing import Dict, Optional, Tuple
+from contextlib import contextmanager
 
 import numpy as np
 import torch
@@ -318,6 +319,7 @@ class BeatsEncoder(AbsEncoder):
             ), "Flash attention requires PyTorch >= 2.0"
         if is_pretraining:
             assert config.mask_ratio > 0.0, "mask_ratio must be > 0.0 for pretraining."
+        self.config = config
         self.initialize()
 
     def initialize(self):

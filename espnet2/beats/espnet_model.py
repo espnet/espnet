@@ -15,7 +15,6 @@ from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet2.layers.mixup_augmentation import MixupAugment
-from espnet2.cls.espnet_model import label_to_onehot
 
 logger = logging.getLogger(__name__)
 
@@ -40,21 +39,18 @@ class BeatsPretrainModel(AbsESPnetModel):
         ), "Set the encoder to pretraining mode with is_pretraining=True."
         self.encoder = encoder
         self.decoder = decoder
+        self.n_targets = getattr(
+            getattr(encoder, "config", None), "codebook_vocab_size", None
+        )
         self.waveform_input = waveform_input
         self.mixup_probability = mixup_probability
         self.mixup_augmentation = (
             MixupAugment(mixup_probability) if mixup_probability > 0.0 else None
         )
-        self.loss_function = (
-            torch.nn.CrossEntropyLoss(
-                ignore_index=ignore_id,
-                label_smoothing=label_smoothing,
-                reduction="none",
-            )
-            if self.mixup_augmentation is None
-            else torch.nn.CrossEntropyLoss(
-                label_smoothing=label_smoothing, reduction="none"
-            )
+        self.loss_function = torch.nn.CrossEntropyLoss(
+            ignore_index=ignore_id,
+            label_smoothing=label_smoothing,
+            reduction="none",
         )
         logger.info(
             f"Initialized BeatsPretrainModel with ignore_id={ignore_id}, "
@@ -96,7 +92,8 @@ class BeatsPretrainModel(AbsESPnetModel):
             onehot_ = (target - 1).reshape(-1, 1).contiguous()
             onehot_[onehot_ < 0] = 0  # -1 to 0
             onehot_ = F.one_hot(
-                onehot_.squeeze(-1), self.decoder.decoder_pred.weight.shape[0]
+                onehot_.squeeze(-1),
+                num_classes=self.n_targets,
             ).float()
             onehot_ = onehot_.reshape(target.shape[0], target.shape[1], -1).contiguous()
             speech, onehot_, speech_lengths = self.mixup_augmentation(
@@ -207,8 +204,8 @@ class BeatsPretrainModel(AbsESPnetModel):
             n_uniq_tgt = torch.unique(target, return_counts=False).numel()
             vocab_cov_tgt = n_uniq_tgt / logits.shape[1]
 
-            probs = torch.nn.functional.softmax(logits, dim=1)
-            entropy = -(probs * probs.log()).sum(dim=1).mean()
+            # probs = torch.nn.functional.softmax(logits, dim=1)
+            # entropy = -(probs * probs.log()).sum(dim=1).mean()
 
         # Note(shikhar): Some of these are redundant
         stats_dict = dict(
@@ -228,7 +225,7 @@ class BeatsPretrainModel(AbsESPnetModel):
             # Vocab coverage metrics
             vocab_cov_tgt=vocab_cov_tgt,
             vocab_cov_pred=vocab_cov_pred,
-            entropy=entropy,
+            # entropy=entropy,
         )
         return loss, stats_dict
 
