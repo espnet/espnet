@@ -37,8 +37,8 @@ from espnet2.train.preprocessor import SVSPreprocessor
 from espnet2.train.trainer import Trainer
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
 from espnet2.tts.feats_extract.dio import Dio
-from espnet2.tts.feats_extract.harvest import Harvest
 from espnet2.tts.feats_extract.energy import Energy
+from espnet2.tts.feats_extract.harvest import Harvest
 from espnet2.tts.feats_extract.linear_spectrogram import LinearSpectrogram
 from espnet2.tts.feats_extract.log_mel_fbank import LogMelFbank
 from espnet2.tts.feats_extract.log_spectrogram import LogSpectrogram
