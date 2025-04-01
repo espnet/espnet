@@ -20,13 +20,22 @@ log "$0 $*"
 
 DATA_PREP_ROOT=${1:-"."}
 
-if [ -z "${AUDIOSET}" ]; then
-    log "Fill the value of 'AUDIOSET' of db.sh"
+if [ -z "${GTZAN}" ]; then
+    log "Fill the value of 'GTZAN' of db.sh"
     exit 1
 fi
 
+if [ -f "${GTZAN}/download.done" ]; then
+    log "Already downloaded. Skip downloading."
+else
+    log "Downloading GTZAN dataset..."
+    kaggle datasets download -d andradaolteanu/gtzan-dataset-music-genre-classification -p ${GTZAN}
+    unzip ${GTZAN}/gtzan-dataset-music-genre-classification.zip -d ${GTZAN}
+    touch ${GTZAN}/download.done
+fi
+
 mkdir -p ${DATA_PREP_ROOT}
-python3 local/data_prep_gtzan.py ${AUDIOSET} ${DATA_PREP_ROOT}
+python3 local/data_prep_gtzan.py ${GTZAN}/Data/genres_original ${DATA_PREP_ROOT}
 
 for x in val eval train; do
    for f in text wav.scp utt2spk; do

@@ -27,7 +27,7 @@ scheduler_conf:
 patience: none
 best_model_criterion:
 -   - valid
-    - mAP
+    - acc
     - max
 keep_nbest_models: 1
 use_amp: false  # whether to use automatic mixed precision
@@ -62,5 +62,5 @@ encoder_conf:
 
 model_conf:
     classification_type: multi-label
-    mixup_augmentation: true
+    mixup_probability: 1.0
     lsm_weight: 0.0  # label smoothing weight, per label
