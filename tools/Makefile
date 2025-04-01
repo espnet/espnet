@@ -53,7 +53,10 @@ bc.done: activate_python.sh
 	. ./activate_python.sh && { command -v bc || conda install -y bc -c conda-forge; }
 	touch bc.done
 cmake.done: activate_python.sh
-	. ./activate_python.sh && { command -v cmake || conda install -y "cmake<4.0"; }
+	# TODO(nelson): Currently, cmake==4.0 is being recognized (despite 3.28 is being installed)
+	# probably an issue with the container (using ubuntu:latest download 24.04.1 meanwhile
+	# in server installs 24.04.2), remove when is fixed.
+	. ./activate_python.sh && conda install -y "cmake<4.0"
 	touch cmake.done
 flac.done: activate_python.sh
 	. ./activate_python.sh && { command -v flac || conda install -y libflac -c conda-forge; }
