@@ -4,12 +4,10 @@ from pathlib import Path
 import lightning as L
 import torch
 import yaml
-from espnetez.trainer.hybrid_optim import HybridOptim
-from espnetez.trainer.hybrid_scheduler import HybridLRS
-from hydra.utils import instantiate
-from omegaconf import OmegaConf
 
 from espnet2.train.collate_fn import CommonCollateFn
+from espnet3.trainer.hybrid_optim import HybridOptim
+from espnet3.trainer.hybrid_scheduler import HybridLRS
 
 
 class LitESPnetModel(L.LightningModule):

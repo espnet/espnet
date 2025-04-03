@@ -14,37 +14,62 @@ from lhotse.audio.backend import (
     FileObject,
     LibsndfileCompatibleAudioInfo,
     set_current_audio_backend,
+    get_current_audio_backend,
 )
 from lhotse.audio.source import AudioSource, PathOrFilelike
 from lhotse.cut import Cut, CutSet, MonoCut
 from lhotse.supervision import SupervisionSegment
-from lhotse.utils import Pathlike, Seconds
-from omegaconf import DictConfig
-from pathos.multiprocessing import ProcessingPool as Pool
+from lhotse.utils import Seconds, Pathlike
+from lhotse.cut import CutSet, Cut, MonoCut
+from dask.distributed import Client, get_worker, WorkerPlugin, LocalCluster
+from dask.distributed import get_worker
+from distributed.worker import thread_state
+import datasets
+
+from espnet3.parallel import parallel_map, get_client, get_parallel_config
+
 
 
 class HuggingFaceAudioSource(AudioSource):
     type: str
     """
-    The type of audio source. Supported types are:
-    - 'file' (supports most standard audio encodings, possibly multi-channel)
-    - 'command' [unix pipe] (supports most standard audio encodings, possibly multi-channel)
-    - 'url' (any URL type that is supported by "smart_open" library, e.g. http/https/s3/gcp/azure/etc.)
-    - 'memory' (any format, read from a binary string attached to 'source' member of AudioSource)
-    - 'huggingface' (supports loading audio from HuggingFace datasets)
-    - 'shar' (indicates a placeholder that will be filled later when using Lhotse Shar data format)
+    AudioSource subclass for HuggingFace datasets.
+
+    This class overrides the method used to prepare audio for reading,
+    allowing Lhotse to interface directly with audio samples embedded in
+    HuggingFace datasets.
+
+    Attributes:
+        type (str): Audio source type. Must be 'huggingface' to activate special handling.
     """
 
     def _prepare_for_reading(
         self, offset: Seconds, duration: Optional[Seconds]
     ) -> PathOrFilelike:
-        if self.type == "huggingface":
+        """
+        Return the source path or handle for reading the audio.
+
+        Args:
+            offset (Seconds): Start offset in seconds.
+            duration (Optional[Seconds]): Duration in seconds.
+
+        Returns:
+            PathOrFilelike: String identifier (for 'huggingface') or standard audio source.
+
+        """
+        if self.type == 'huggingface':
             return self.source
         else:
             return super()._prepare_for_reading(offset, duration)
 
 
 def is_datasets_available() -> bool:
+    """
+    Check whether the HuggingFace 'datasets' library is available.
+
+    Returns:
+        bool: True if available, False otherwise.
+    """
     try:
         import datasets
 
@@ -55,22 +80,38 @@ def is_datasets_available() -> bool:
 
 class HuggingfaceDatasetsBackend(AudioBackend):
     """
-    A backend for reading audio data from HuggingFace datasets.
-    This class supports audio data with #channels=1.
-    If you want to read audio data with more channels, please copy this class
-    and modify the `read_audio` method to support more channels.
+    Lhotse audio backend to load audio from HuggingFace datasets.
+
+    Supports only mono-channel audio by default. Modify `read_audio` to support
+    multi-channel if needed.
+
+    Args:
+        dataset_id (str, optional): Dataset ID to load, required outside Dask workers.
     """
 
     def __init__(self, dataset_id: str = None):
         os.environ["LHOTSE_AUDIO_BACKEND"] = "HuggingfaceDatasetsBackend"
-        try:
+
+        if self._running_in_dask_worker():
             worker = get_worker()
+            assert hasattr(worker, "dataset"), "Worker has no attribute 'dataset'"
+            assert hasattr(worker, "dataset_id"), "Worker has no attribute 'dataset_id'"
             self.dataset = worker.dataset
             self.dataset_id = worker.dataset_id
-        except:
+        else:
             assert dataset_id is not None, "Dataset id is not provided"
             self.dataset = _load_from_hf_or_disk(dataset_id)
             self.dataset_id = dataset_id
+    
+    def _running_in_dask_worker(self) -> bool:
+        """
+        Return True if we're running inside a Dask worker thread.
+        """
+        try:
+            worker = get_worker()
+            return True
+        except:
+            return False
 
     def read_audio(
         self,
@@ -79,6 +120,22 @@ class HuggingfaceDatasetsBackend(AudioBackend):
         duration: Optional[Seconds] = None,
         force_opus_sampling_rate: Optional[int] = None,
     ) -> Tuple[np.ndarray, int]:
+        """
+        Read audio from a HuggingFace dataset entry.
+
+        Args:
+            path_or_fd (str): String in format 'dataset_id:split:index'.
+            offset (Seconds, optional): Start offset in seconds. Default: 0.0.
+            duration (Optional[Seconds]): Length to read in seconds. Default: None.
+            force_opus_sampling_rate (Optional[int]): Not supported; raises error if set.
+
+        Returns:
+            Tuple[np.ndarray, int]: Audio waveform and sample rate.
+
+        Raises:
+            RuntimeError: If force_opus_sampling_rate is set.
+            AssertionError: If dataset_id does not match.
+        """
         # Check dataset id and split is correct
         dataset_id = path_or_fd.split(":")[0]
         split = path_or_fd.split(":")[1]
@@ -109,12 +166,20 @@ class HuggingfaceDatasetsBackend(AudioBackend):
         return audio, sampling_rate
 
     def is_applicable(self, path_or_fd: Union[Pathlike, FileObject]) -> bool:
+        """
+        Check whether this backend is usable.
+
+        Returns:
+            bool: True if HuggingFace datasets are available.
+        """
         return is_datasets_available()
 
     def supports_save(self) -> bool:
+        """Returns False — saving not supported."""
         return False
 
     def supports_info(self) -> bool:
+        """Returns True — info fetching is supported."""
         return True
 
     def info(
@@ -122,7 +187,24 @@ class HuggingfaceDatasetsBackend(AudioBackend):
         path_or_fd: str,
         force_opus_sampling_rate: Optional[int] = None,
     ):
-        data = self.dataset[int(path_or_fd)]
+        """
+        Return metadata for the audio in HuggingFace dataset.
+
+        Args:
+            path_or_fd (str): String identifier for the audio.
+            force_opus_sampling_rate (Optional[int]): Ignored.
+
+        Returns:
+            LibsndfileCompatibleAudioInfo: Audio metadata.
+        """
+        # Check dataset id and split is correct
+        dataset_id = path_or_fd.split(':')[0]
+        split = path_or_fd.split(':')[1]
+        data_idx = int(path_or_fd.split(':')[2])
+
+        assert dataset_id == self.dataset_id, "Dataset id does not match"
+
+        data = self.dataset[split][data_idx]
         return LibsndfileCompatibleAudioInfo(
             channels=1,
             frames=len(data["audio"]["array"]),
@@ -132,25 +214,53 @@ class HuggingfaceDatasetsBackend(AudioBackend):
 
 
 def _load_from_hf_or_disk(path_or_hf):
-    try:
-        return datasets.load_dataset(path_or_hf)
-    except:
+    """
+    Attempt to load dataset from HuggingFace hub or local disk.
+
+    Args:
+        path_or_hf (str): Dataset path or identifier.
+
+    Returns:
+        datasets.DatasetDict: Loaded dataset.
+    """
+    if os.path.exists(path_or_hf):
         return datasets.load_from_disk(path_or_hf)
+    else:
+        return datasets.load_dataset(path_or_hf)
 
 
 class HuggingfaceAudioLoader(WorkerPlugin):
+    """
+    Worker plugin to preload HuggingFace datasets into Dask workers.
+
+    Args:
+        dataset_id (str): Identifier of the dataset.
+        split (str, optional): Dataset split to load.
+    """
     def __init__(self, dataset_id, split: str = None) -> None:
         super().__init__()
         self.dataset_id = dataset_id
         self.split = split
 
     def setup(self, worker):
+        """
+        Setup hook that is run on each worker.
+
+        Args:
+            worker: Dask worker instance.
+        """
         # worker.dataset = self.load_dataset()
         worker.dataset = _load_from_hf_or_disk(self.dataset_id)
         worker.dataset_id = self.dataset_id
         worker.split = self.split
 
     def load_dataset(self):
+        """
+        Load the dataset (legacy method, unused).
+
+        Returns:
+            datasets.DatasetDict
+        """
         try:
             return datasets.load_dataset(self.dataset_id)
         except:
@@ -159,28 +269,37 @@ class HuggingfaceAudioLoader(WorkerPlugin):
 
 def cut_from_huggingface(idx: int, data_info: Dict) -> Cut:
     """
-    Create a Cut from a single example from a HuggingFace dataset.
-    If data_info is provided, it should contain the mappings from
-    huggingface columns to lhotse supervision keys.
-    This function is implemented mainly because we want to procell in parallel.
+    Construct a MonoCut from a HuggingFace dataset example.
 
     Args:
-        example: A single example from a HuggingFace dataset.
-        data_info: A dictionary containing the mappings from
+        idx (int): Index of the example in the dataset.
+        data_info (Dict): Mapping from supervision field -> function(example) -> value.
 
     Returns:
-        A Cut object.
+        Cut: A MonoCut with attached supervision.
+
+    Example:
+        >>> cut = cut_from_huggingface(0, {"text": lambda ex: ex["transcription"]})
     """
     # create a recording.
-    worker = get_worker()
-    ds = worker.dataset[worker.split]
     data_id = str(idx)
-    data = ds[idx]
-    duration = len(data["audio"]["array"]) / data["audio"]["sampling_rate"]
+    try:
+        worker = get_worker()
+        ds = worker.dataset[worker.split]
+        data = ds[idx]
+        dataset_id = worker.dataset_id
+        split = worker.split
+    except:
+        backend = get_current_audio_backend()
+        dataset = backend.dataset
+
+
+    
+    duration = len(data['audio']['array']) / data['audio']['sampling_rate']
     sources = [
         HuggingFaceAudioSource(
             type="huggingface",
-            source=f"{worker.dataset_id}:{worker.split}:{data_id}",
+            source=f"{dataset_id}:{split}:{data_id}",
             channels=[0],
         ),
     ]
@@ -224,27 +343,30 @@ def cutset_from_huggingface(
     client: Optional[Union[Client, DictConfig]] = None,
 ) -> CutSet:
     """
-    Convert a HuggingFace dataset into a CutSet using Dask-based parallel processing.
-    We need dataset_id and split to specify the audio source.
+    Convert a HuggingFace dataset to a CutSet using parallel processing with Dask.
 
     Args:
-        dataset: HuggingFace dataset
-        data_info (Dict[str, callable]): Mapping from HuggingFace columns to supervision fields
-        client (Optional[Union[Client, DictConfig]]): Either a Dask client or a parallel config dict.
-            If not provided, it assumes `parallel.set()` has already been called.
-        dataset_id: HuggingFace dataset ID
-        split: HuggingFace split to use (default: None, uses the 'train' split)
-
+        data_info (Dict[str, callable]): Mapping from supervision field name to function(example).
+        dataset_length (int): Total number of dataset entries.
+        dataset_id (str): HuggingFace dataset name or path.
+        split (str, optional): Dataset split to use (e.g., "train").
+        client (Optional[Union[Client, DictConfig]]): Dask client or parallel config.
+            If not provided, global parallel settings are used.
 
     Returns:
-        CutSet: A combined CutSet from all entries
+        CutSet: The resulting CutSet with recordings and supervisions.
 
     Raises:
-        RuntimeError: If no client is set and no config is provided.
+        RuntimeError: If no client is set and none can be created.
 
     Example:
-        >>> cuts = cutset_from_huggingface(ds, info, client=config)  # config is DictConfig
-        >>> cuts = cutset_from_huggingface(ds, info)  # requires parallel.set() to be called first
+        >>> cutset = cutset_from_huggingface(
+                data_info={"text": lambda ex: ex["transcription"]},
+                dataset_length=100,
+                dataset_id="<huggingface_dataset_tag>",
+                split="train",
+                client=config.parallel
+            )
     """
     worker_plugin = HuggingfaceAudioLoader(dataset_id, split)
     runner = partial(cut_from_huggingface, data_info=data_info)
@@ -260,19 +382,14 @@ def cutset_from_huggingface(
             )  # register worker plugin for efficient data transfer.
         cuts = parallel_map(runner, list(range(dataset_length)), client=client)
     elif client is None:
-        try:
-            with get_client(get_parallel_config()) as client:
+        parallel_config = get_parallel_config()
+        if parallel_config is not None:
+            with get_client(parallel_config) as client:
                 if not isinstance(client, LocalCluster):
-                    client.register_worker_plugin(
-                        worker_plugin
-                    )  # register worker plugin for efficient data transfer.
-                cuts = parallel_map(
-                    runner, list(range(dataset_length)), client=client
-                )  # uses global client
-        except RuntimeError:
-            raise RuntimeError(
-                "No Dask client available. Please call parallel.set(config) or pass a config/client explicitly."
-            )
+                    client.register_worker_plugin(worker_plugin)  # register worker plugin for efficient data transfer.
+                cuts = parallel_map(runner, list(range(dataset_length)), client=client)  # uses global client
+        else:
+            cuts = [runner(idx) for idx in range(dataset_length)]
     else:
         raise TypeError("client must be None, a Dask Client, or a DictConfig.")
 
