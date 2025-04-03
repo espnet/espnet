@@ -3,9 +3,10 @@
 
 from typing import Any, Dict, Iterable, List, Union
 
-from espnet3.trainer.hybrid_optim import HybridOptim
 import torch
 from typeguard import typechecked
+
+from espnet3.trainer.hybrid_optim import HybridOptim
 
 
 class HybridLRS(torch.optim.lr_scheduler._LRScheduler):

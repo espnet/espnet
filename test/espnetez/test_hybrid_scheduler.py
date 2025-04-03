@@ -2,8 +2,9 @@ import pytest
 import torch
 from torch import nn
 from torch.optim import SGD, Adam
-from torch.optim.lr_scheduler import StepLR, ReduceLROnPlateau
-from espnet3.trainer import HybridOptim, HybridLRS
+from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
+
+from espnet3.trainer import HybridLRS, HybridOptim
 
 
 def create_optimizers_and_schedulers():
@@ -34,4 +35,3 @@ def test_hybrid_lrs_basic_attributes():
         assert sch.optimizer == hybrid
         assert sch.idx == i
         assert sch.lr_scheduler == scheds[i]
-
