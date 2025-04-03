@@ -82,4 +82,3 @@ callbacks = get_default_callbacks(config)
 ---
 
 In summary, ESPnet3 is designed for reproducible, efficient, and flexible research workflows. It remains compatible with ESPnet2 recipes and serves as a robust foundation for future developments in speech processing.
-

@@ -1,19 +1,18 @@
-
 import os
-from omegaconf import OmegaConf
-from hydra.utils import instantiate
 from argparse import Namespace
 
-import numpy as np
-
-from datasets import load_from_disk, concatenate_datasets
 import lightning as L
+import numpy as np
 import torch
+from datasets import concatenate_datasets, load_from_disk
+from hydra.utils import instantiate
+from lhotse.audio.backend import set_current_audio_backend
+from omegaconf import OmegaConf
+
 import espnet3 as ez
+from espnet3.data import HuggingfaceDatasetsBackend, cutset_from_huggingface
 from espnet3.parallel import set_parallel
 from espnet3.trainer import ESPnetEZLightningTrainer, LitESPnetModel
-from espnet3.data import cutset_from_huggingface, HuggingfaceDatasetsBackend
-from lhotse.audio.backend import set_current_audio_backend
 
 
 def load_line(path):
@@ -54,21 +53,22 @@ def get_dataset_ez(config, tokenize):
     train_dataset = load_from_disk(
         config.dataset.id,
     )["train-clean-100"]
-    dev_dataset = concatenate_datasets([
-        load_from_disk(
-            config.dataset.id,
-        )["dev-clean"],
-    ])
+    dev_dataset = concatenate_datasets(
+        [
+            load_from_disk(
+                config.dataset.id,
+            )["dev-clean"],
+        ]
+    )
     # Convert to Cut format
     data_info = {
-        "speech": lambda d: d["audio"]['array'].astype(np.float32),
+        "speech": lambda d: d["audio"]["array"].astype(np.float32),
         "text": lambda d: tokenize(d["text"]).astype(np.int64),
     }
     # Convert into ESPnet-EZ dataset format
     train_dataset = ez.data.ESPnetEZDataset(train_dataset, data_info=data_info)
     valid_dataset = ez.data.ESPnetEZDataset(dev_dataset, data_info=data_info)
     return train_dataset, valid_dataset
-
 
 
 if __name__ == "__main__":
@@ -96,10 +96,10 @@ if __name__ == "__main__":
     # ))
     # print("Set audio backend", flush=True)
 
-
     # Get datase
     tokenizer = instantiate(config.tokenizer)
     converter = instantiate(config.converter)
+
     def tokenize(text):
         return np.array(converter.tokens2ids(tokenizer.text2tokens(text)))
 
@@ -133,4 +133,3 @@ if __name__ == "__main__":
 
     fit_params = {} if not hasattr(config, "fit") else config.fit
     trainer.fit(**fit_params)
-

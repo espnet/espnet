@@ -1,14 +1,14 @@
 # ESPnet-EZ Task class
 # This class is a wrapper for Task classes to support custom datasets.
 import argparse
-from argparse import Namespace
 import logging
+from argparse import Namespace
 from pathlib import Path
-from typing import Any, Optional, Union, Dict
-from omegaconf import DictConfig, OmegaConf
+from typing import Any, Dict, Optional, Union
 
 import numpy as np
 import torch
+from omegaconf import DictConfig, OmegaConf
 from torch.utils.data import DataLoader
 from typeguard import typechecked
 
@@ -29,9 +29,9 @@ from espnet2.tasks.diar import DiarizationTask
 from espnet2.tasks.enh import EnhancementTask
 from espnet2.tasks.enh_s2t import EnhS2TTask
 from espnet2.tasks.enh_tse import TargetSpeakerExtractionTask
+from espnet2.tasks.gan_codec import GANCodecTask
 from espnet2.tasks.gan_svs import GANSVSTask
 from espnet2.tasks.gan_tts import GANTTSTask
-from espnet2.tasks.gan_codec import GANCodecTask
 from espnet2.tasks.hubert import HubertTask
 from espnet2.tasks.lm import LMTask
 from espnet2.tasks.mt import MTTask
@@ -47,8 +47,8 @@ from espnet2.tasks.svs import SVSTask
 from espnet2.tasks.tts import TTSTask
 from espnet2.tasks.tts2 import TTS2Task
 from espnet2.tasks.uasr import UASRTask
-from espnet2.train.distributed_utils import DistributedOption
 from espnet2.train.abs_espnet_model import AbsESPnetModel
+from espnet2.train.distributed_utils import DistributedOption
 
 TASK_CLASSES = dict(
     asr=ASRTask,
@@ -144,16 +144,14 @@ def get_espnet_model(task: str, config: Union[Dict, DictConfig]) -> AbsESPnetMod
 
 
 def save_espnet_config(
-    task: str,
-    config: Union[Dict, DictConfig],
-    output_dir: str
+    task: str, config: Union[Dict, DictConfig], output_dir: str
 ) -> None:
     ez_task = get_ez_task(task)
     default_config = ez_task.get_default_config()
     default_config.update(OmegaConf.to_container(config, resolve=True))
 
     # Check if there is None in the config with the name "*_conf"
-    for k,v in default_config.items():
+    for k, v in default_config.items():
         if k.endswith("_conf") and v is None:
             default_config[k] = {}
 
@@ -163,4 +161,3 @@ def save_espnet_config(
     output_path = output_dir / "config.yaml"
     with open(output_path, "w") as f:
         OmegaConf.save(config=OmegaConf.create(default_config), f=f)
-

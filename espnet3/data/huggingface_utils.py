@@ -1,14 +1,14 @@
+import logging
 import os
 from dataclasses import dataclass
-from typing import Optional, Union, Tuple, Dict
-import numpy as np
-from pathos.multiprocessing import ProcessingPool as Pool
 from functools import partial
-import logging
-from omegaconf import DictConfig
+from typing import Dict, Optional, Tuple, Union
 
+import datasets
+import numpy as np
+from dask.distributed import Client, LocalCluster, WorkerPlugin, get_worker
+from espnetez.parallel import get_client, get_parallel_config, parallel_map
 from lhotse.audio import Recording
-from lhotse.audio.source import AudioSource, PathOrFilelike
 from lhotse.audio.backend import (
     AudioBackend,
     FileObject,
@@ -16,6 +16,8 @@ from lhotse.audio.backend import (
     set_current_audio_backend,
     get_current_audio_backend,
 )
+from lhotse.audio.source import AudioSource, PathOrFilelike
+from lhotse.cut import Cut, CutSet, MonoCut
 from lhotse.supervision import SupervisionSegment
 from lhotse.utils import Seconds, Pathlike
 from lhotse.cut import CutSet, Cut, MonoCut
@@ -70,6 +72,7 @@ def is_datasets_available() -> bool:
     """
     try:
         import datasets
+
         return True
     except ImportError:
         return False
@@ -85,6 +88,7 @@ class HuggingfaceDatasetsBackend(AudioBackend):
     Args:
         dataset_id (str, optional): Dataset ID to load, required outside Dask workers.
     """
+
     def __init__(self, dataset_id: str = None):
         os.environ["LHOTSE_AUDIO_BACKEND"] = "HuggingfaceDatasetsBackend"
 
@@ -133,28 +137,32 @@ class HuggingfaceDatasetsBackend(AudioBackend):
             AssertionError: If dataset_id does not match.
         """
         # Check dataset id and split is correct
-        dataset_id = path_or_fd.split(':')[0]
-        split = path_or_fd.split(':')[1]
-        data_idx = int(path_or_fd.split(':')[2])
+        dataset_id = path_or_fd.split(":")[0]
+        split = path_or_fd.split(":")[1]
+        data_idx = int(path_or_fd.split(":")[2])
 
         assert dataset_id == self.dataset_id, "Dataset id does not match"
 
         data = self.dataset[split][data_idx]
-        if force_opus_sampling_rate is not None \
-            and data['audio']['sampling_rate'] != force_opus_sampling_rate:
-            raise RuntimeError("force_opus_sampling_rate not available for " \
-               "HuggingfaceDatasetsBackend. Please modify the sampling_rate " \
-               "by using datasets' features.")
-        
-        audio = data['audio']['array']
-        sampling_rate = data['audio']['sampling_rate']
+        if (
+            force_opus_sampling_rate is not None
+            and data["audio"]["sampling_rate"] != force_opus_sampling_rate
+        ):
+            raise RuntimeError(
+                "force_opus_sampling_rate not available for "
+                "HuggingfaceDatasetsBackend. Please modify the sampling_rate "
+                "by using datasets' features."
+            )
+
+        audio = data["audio"]["array"]
+        sampling_rate = data["audio"]["sampling_rate"]
         if offset is not None:
             start = int(offset * sampling_rate)
             audio = audio[start:]
         if duration is not None:
             end = int(duration * sampling_rate)
             audio = audio[:end]
-        
+
         return audio, sampling_rate
 
     def is_applicable(self, path_or_fd: Union[Pathlike, FileObject]) -> bool:
@@ -199,9 +207,9 @@ class HuggingfaceDatasetsBackend(AudioBackend):
         data = self.dataset[split][data_idx]
         return LibsndfileCompatibleAudioInfo(
             channels=1,
-            frames=len(data['audio']['array']),
-            samplerate=data['audio']['sampling_rate'],
-            duration=len(data['audio']['array']) / data['audio']['sampling_rate'],
+            frames=len(data["audio"]["array"]),
+            samplerate=data["audio"]["sampling_rate"],
+            duration=len(data["audio"]["array"]) / data["audio"]["sampling_rate"],
         )
 
 
@@ -233,7 +241,7 @@ class HuggingfaceAudioLoader(WorkerPlugin):
         super().__init__()
         self.dataset_id = dataset_id
         self.split = split
-    
+
     def setup(self, worker):
         """
         Setup hook that is run on each worker.
@@ -245,7 +253,7 @@ class HuggingfaceAudioLoader(WorkerPlugin):
         worker.dataset = _load_from_hf_or_disk(self.dataset_id)
         worker.dataset_id = self.dataset_id
         worker.split = self.split
-    
+
     def load_dataset(self):
         """
         Load the dataset (legacy method, unused).
@@ -254,13 +262,9 @@ class HuggingfaceAudioLoader(WorkerPlugin):
             datasets.DatasetDict
         """
         try:
-            return datasets.load_dataset(
-                self.dataset_id
-            )
+            return datasets.load_dataset(self.dataset_id)
         except:
-            return datasets.load_from_disk(
-                self.dataset_id
-            )
+            return datasets.load_from_disk(self.dataset_id)
 
 
 def cut_from_huggingface(idx: int, data_info: Dict) -> Cut:
@@ -302,10 +306,10 @@ def cut_from_huggingface(idx: int, data_info: Dict) -> Cut:
     recording = Recording(
         id=data_id,
         sources=sources,
-        sampling_rate=data['audio']['sampling_rate'],
-        num_samples=len(data['audio']['array']),
+        sampling_rate=data["audio"]["sampling_rate"],
+        num_samples=len(data["audio"]["array"]),
         duration=duration,
-        channel_ids=[0]
+        channel_ids=[0],
     )
 
     # create a supervision.
@@ -318,7 +322,7 @@ def cut_from_huggingface(idx: int, data_info: Dict) -> Cut:
     )
     for k, v in data_info.items():
         supervision_dict[k] = v(ds[idx])
-    
+
     supervision = SupervisionSegment.from_dict(supervision_dict)
     cut = MonoCut(
         id=data_id,
@@ -336,7 +340,7 @@ def cutset_from_huggingface(
     dataset_length: int,
     dataset_id: str,
     split: str = None,
-    client: Optional[Union[Client, DictConfig]] = None
+    client: Optional[Union[Client, DictConfig]] = None,
 ) -> CutSet:
     """
     Convert a HuggingFace dataset to a CutSet using parallel processing with Dask.
@@ -373,7 +377,9 @@ def cutset_from_huggingface(
             cuts = parallel_map(runner, list(range(dataset_length)), client=c)
     elif isinstance(client, Client):
         if not isinstance(client, LocalCluster):
-            client.register_worker_plugin(worker_plugin)  # register worker plugin for efficient data transfer.
+            client.register_worker_plugin(
+                worker_plugin
+            )  # register worker plugin for efficient data transfer.
         cuts = parallel_map(runner, list(range(dataset_length)), client=client)
     elif client is None:
         parallel_config = get_parallel_config()

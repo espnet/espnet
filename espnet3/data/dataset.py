@@ -2,6 +2,8 @@ from typing import Dict, Tuple, Union
 
 from espnet2.train.dataset import AbsDataset
 
+from lhotse import CutSet
+
 
 class ESPnetEZDataset(AbsDataset):
     """
@@ -56,7 +58,6 @@ class ESPnetEZDataset(AbsDataset):
     def __init__(self, dataset, data_info):
         self.dataset = dataset
         self.data_info = data_info
-        self.preprocessor = None
 
     def has_name(self, name) -> bool:
         """
@@ -146,3 +147,29 @@ class ESPnetEZDataset(AbsDataset):
 
     def __len__(self) -> int:
         return len(self.dataset)
+
+
+class LhotzeS2TDataset(ESPnetEZDataset):
+    def __init__(self, data_info, tokenizer, converter):
+        self.data_info = data_info
+        self.tokenizer = tokenizer
+        self.converter = converter
+    
+    def tokenize(self, text):
+        result = self.tokenizer.tokens2ids(
+            self.converter.text2tokens(text)
+        )
+        return result
+
+    def __getitem__(self, cuts: CutSet):
+        # Tokenize and create ESPnet-conpatible input from cutset
+        # This is an example implementation for Speech2Text based on Introduction by lhotse
+        # Users can implement similar dataset for their tasks.
+
+        # This dataset will output numpy array of speech and text.
+        speeches = [c.recording.sources[0].load_audio() for c in cuts]
+        texts = [self.tokenize(c.supervisions.text) for c in cuts]
+        return {
+            "speech": speeches,
+            "text": texts,
+        }

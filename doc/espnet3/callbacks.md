@@ -43,4 +43,3 @@ This setting is used inside `trainer.py` to determine what metric the `AverageCh
 ---
 
 For more customization and details, see the implementation in `espnetez/trainer/callbacks.py`. ESPnetEZ provides a clean wrapper around PyTorch Lightning’s callback interface, making it easier to extend or adjust training behavior with minimal changes.
-

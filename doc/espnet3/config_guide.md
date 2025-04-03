@@ -46,7 +46,7 @@ So please check the Dask project if you want to know more on what config you can
 You can define multiple parallel configs (e.g., `parallel_cpu`, `parallel_gpu`) and select one when launching your experiment.
 
 ```yaml
-parallel_cpu:  
+parallel_cpu:
   env: slurm
   n_workers: 64
   options:
@@ -103,7 +103,7 @@ ESPnet3 supports two main options for model definition:
 2. **Using custom models defined by researchers**
    - Specify the path to the model class and its arguments in the config
    - Hydra will instantiate it at runtime
-   
+
    ```python
    from espnet3.trainer import LitESPnetModel
 
@@ -213,4 +213,3 @@ trainer:
 ---
 
 ESPnet3 aims to provide a flexible and modular configuration system, enabling researchers to scale from quick experiments to large-scale distributed training with minimal config changes.
-
