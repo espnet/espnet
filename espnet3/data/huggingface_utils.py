@@ -7,27 +7,22 @@ from typing import Dict, Optional, Tuple, Union
 import datasets
 import numpy as np
 from dask.distributed import Client, LocalCluster, WorkerPlugin, get_worker
+from distributed.worker import thread_state
 from espnetez.parallel import get_client, get_parallel_config, parallel_map
 from lhotse.audio import Recording
 from lhotse.audio.backend import (
     AudioBackend,
     FileObject,
     LibsndfileCompatibleAudioInfo,
-    set_current_audio_backend,
     get_current_audio_backend,
+    set_current_audio_backend,
 )
 from lhotse.audio.source import AudioSource, PathOrFilelike
 from lhotse.cut import Cut, CutSet, MonoCut
 from lhotse.supervision import SupervisionSegment
-from lhotse.utils import Seconds, Pathlike
-from lhotse.cut import CutSet, Cut, MonoCut
-from dask.distributed import Client, get_worker, WorkerPlugin, LocalCluster
-from dask.distributed import get_worker
-from distributed.worker import thread_state
-import datasets
+from lhotse.utils import Pathlike, Seconds
 
-from espnet3.parallel import parallel_map, get_client, get_parallel_config
-
+from espnet3.parallel import get_client, get_parallel_config, parallel_map
 
 
 class HuggingFaceAudioSource(AudioSource):
@@ -57,7 +52,7 @@ class HuggingFaceAudioSource(AudioSource):
             PathOrFilelike: String identifier (for 'huggingface') or standard audio source.
 
         """
-        if self.type == 'huggingface':
+        if self.type == "huggingface":
             return self.source
         else:
             return super()._prepare_for_reading(offset, duration)
@@ -102,7 +97,7 @@ class HuggingfaceDatasetsBackend(AudioBackend):
             assert dataset_id is not None, "Dataset id is not provided"
             self.dataset = _load_from_hf_or_disk(dataset_id)
             self.dataset_id = dataset_id
-    
+
     def _running_in_dask_worker(self) -> bool:
         """
         Return True if we're running inside a Dask worker thread.
@@ -198,9 +193,9 @@ class HuggingfaceDatasetsBackend(AudioBackend):
             LibsndfileCompatibleAudioInfo: Audio metadata.
         """
         # Check dataset id and split is correct
-        dataset_id = path_or_fd.split(':')[0]
-        split = path_or_fd.split(':')[1]
-        data_idx = int(path_or_fd.split(':')[2])
+        dataset_id = path_or_fd.split(":")[0]
+        split = path_or_fd.split(":")[1]
+        data_idx = int(path_or_fd.split(":")[2])
 
         assert dataset_id == self.dataset_id, "Dataset id does not match"
 
@@ -237,6 +232,7 @@ class HuggingfaceAudioLoader(WorkerPlugin):
         dataset_id (str): Identifier of the dataset.
         split (str, optional): Dataset split to load.
     """
+
     def __init__(self, dataset_id, split: str = None) -> None:
         super().__init__()
         self.dataset_id = dataset_id
@@ -293,9 +289,7 @@ def cut_from_huggingface(idx: int, data_info: Dict) -> Cut:
         backend = get_current_audio_backend()
         dataset = backend.dataset
 
-
-    
-    duration = len(data['audio']['array']) / data['audio']['sampling_rate']
+    duration = len(data["audio"]["array"]) / data["audio"]["sampling_rate"]
     sources = [
         HuggingFaceAudioSource(
             type="huggingface",
@@ -386,8 +380,12 @@ def cutset_from_huggingface(
         if parallel_config is not None:
             with get_client(parallel_config) as client:
                 if not isinstance(client, LocalCluster):
-                    client.register_worker_plugin(worker_plugin)  # register worker plugin for efficient data transfer.
-                cuts = parallel_map(runner, list(range(dataset_length)), client=client)  # uses global client
+                    client.register_worker_plugin(
+                        worker_plugin
+                    )  # register worker plugin for efficient data transfer.
+                cuts = parallel_map(
+                    runner, list(range(dataset_length)), client=client
+                )  # uses global client
         else:
             cuts = [runner(idx) for idx in range(dataset_length)]
     else:

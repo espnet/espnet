@@ -3,6 +3,9 @@
 
 from typing import Any, Dict, Iterable, List, Union
 
+import torch
+from typeguard import typechecked
+
 from espnet3.trainer.hybrid_optim import HybridOptim
 
 

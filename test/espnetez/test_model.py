@@ -1,11 +1,12 @@
-import pytest
-import torch
-import numpy as np
-from unittest import mock
-from omegaconf import OmegaConf
-from pathlib import Path
 import os
 import shutil
+from pathlib import Path
+from unittest import mock
+
+import numpy as np
+import pytest
+import torch
+from omegaconf import OmegaConf
 
 from espnet3.trainer import LitESPnetModel
 
@@ -24,41 +25,34 @@ def dummy_model():
     return model
 
 
-@pytest.mark.parametrize("config_dict", [
-    {
-        # 標準的な構成
-        "expdir": "exp",
-        "dataloader": {
-            "collate_fn": {
-                "_target_": "espnet2.train.collate_fn.CommonCollateFn",
-                "int_pad_value": -1
+@pytest.mark.parametrize(
+    "config_dict",
+    [
+        {
+            # 標準的な構成
+            "expdir": "exp",
+            "dataloader": {
+                "collate_fn": {
+                    "_target_": "espnet2.train.collate_fn.CommonCollateFn",
+                    "int_pad_value": -1,
+                },
+                "train": {"shuffle": True, "batch_size": 2, "num_workers": 0},
+                "valid": {"shuffle": False, "batch_size": 1, "num_workers": 0},
             },
-            "train": {
-                "shuffle": True,
-                "batch_size": 2,
-                "num_workers": 0
-            },
-            "valid": {
-                "shuffle": False,
-                "batch_size": 1,
-                "num_workers": 0
-            }
-        }
-    },
-    {
-        # サンプラーを使うパターン（ランダムサンプラー）
-        "expdir": "exp",
-        "dataloader": {
-            "train": {
-                "batch_size": 3,
-                "num_workers": 0,
-                "sampler": {
-                    "_target_": "torch.utils.data.RandomSampler"
+        },
+        {
+            # サンプラーを使うパターン（ランダムサンプラー）
+            "expdir": "exp",
+            "dataloader": {
+                "train": {
+                    "batch_size": 3,
+                    "num_workers": 0,
+                    "sampler": {"_target_": "torch.utils.data.RandomSampler"},
                 }
-            }
-        }
-    },
-])
+            },
+        },
+    ],
+)
 def test_dataloader_configs(config_dict, dummy_model):
     config = OmegaConf.create(config_dict)
     dataset = DummyDataset()
@@ -80,32 +74,38 @@ def test_dataloader_configs(config_dict, dummy_model):
     # samplerが正しく構築されているか
     if "sampler" in config.dataloader.get("train", {}):
         from torch.utils.data import RandomSampler
+
         assert isinstance(train_dl.sampler, RandomSampler)
 
 
 @pytest.fixture
 def config(tmp_path):
-    return OmegaConf.create({
-        "expdir": str(tmp_path / "exp"),
-        "optim": {"_target_": "torch.optim.Adam", "lr": 0.001},
-        "scheduler": {"_target_": "torch.optim.lr_scheduler.StepLR", "step_size": 1},
-        "dataloader": {
-            "collate_fn": {
-                "_target_": "espnet2.train.collate_fn.CommonCollateFn",
-                "int_pad_value": -1,
+    return OmegaConf.create(
+        {
+            "expdir": str(tmp_path / "exp"),
+            "optim": {"_target_": "torch.optim.Adam", "lr": 0.001},
+            "scheduler": {
+                "_target_": "torch.optim.lr_scheduler.StepLR",
+                "step_size": 1,
             },
-            "train": {
-                "batch_size": 80,
-                "num_workers": 0,  # pytest内では0の方が安全
-                "shuffle": True,
-            },
-            "valid": {
-                "batch_size": 4,
-                "num_workers": 0,
-                "shuffle": False,
+            "dataloader": {
+                "collate_fn": {
+                    "_target_": "espnet2.train.collate_fn.CommonCollateFn",
+                    "int_pad_value": -1,
+                },
+                "train": {
+                    "batch_size": 80,
+                    "num_workers": 0,  # pytest内では0の方が安全
+                    "shuffle": True,
+                },
+                "valid": {
+                    "batch_size": 4,
+                    "num_workers": 0,
+                    "shuffle": False,
+                },
             },
         }
-    })
+    )
 
 
 @pytest.fixture
@@ -115,7 +115,7 @@ def dummy_model():
     model.forward = lambda **kwargs: (
         torch.tensor(0.123),
         {"loss": torch.tensor(0.123)},
-        torch.tensor(1.0)
+        torch.tensor(1.0),
     )
     return model
 
@@ -153,6 +153,7 @@ def test_configure_optimizers(config, dummy_model, dummy_dataset):
     assert "optimizer" in result
     assert isinstance(result["optimizer"], torch.optim.Optimizer)
     assert "lr_scheduler" in result
+
 
 def test_state_dict_delegates_to_model(config, dummy_dataset):
     dummy_model = torch.nn.Module()

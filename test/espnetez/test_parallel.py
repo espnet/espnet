@@ -1,17 +1,18 @@
-import pytest
-import numpy as np
 from unittest import mock
+
+import numpy as np
+import pytest
 from datasets import load_from_disk
+from lhotse import CutSet, SupervisionSegment
+from lhotse.audio.backend import LibsndfileCompatibleAudioInfo
+
 from espnet3.data import (
-    HuggingfaceDatasetsBackend,
-    HuggingFaceAudioSource,
     HuggingfaceAudioLoader,
+    HuggingFaceAudioSource,
+    HuggingfaceDatasetsBackend,
     cut_from_huggingface,
     cutset_from_huggingface,
 )
-from lhotse import SupervisionSegment, CutSet
-from lhotse.audio.backend import LibsndfileCompatibleAudioInfo
-
 
 DUMMY_DATASET_PATH = "test_utils/espnet3_dummy/espnet3_test_dataset"
 
@@ -23,7 +24,9 @@ def test_read_audio_basic():
         mock_worker.return_value.dataset = dataset
         mock_worker.return_value.dataset_id = DUMMY_DATASET_PATH
 
-        backend = HuggingfaceDatasetsBackend(dataset_id=DUMMY_DATASET_PATH, )
+        backend = HuggingfaceDatasetsBackend(
+            dataset_id=DUMMY_DATASET_PATH,
+        )
         waveform, sr = backend.read_audio(f"{DUMMY_DATASET_PATH}:train:0")
         assert waveform.shape[0] == 16000
         assert sr == 16000
@@ -37,7 +40,9 @@ def test_read_audio_with_offset_and_duration():
         mock_worker.return_value.dataset_id = DUMMY_DATASET_PATH
 
         backend = HuggingfaceDatasetsBackend(dataset_id=DUMMY_DATASET_PATH)
-        waveform, sr = backend.read_audio(f"{DUMMY_DATASET_PATH}:train:0", offset=0.5, duration=0.25)
+        waveform, sr = backend.read_audio(
+            f"{DUMMY_DATASET_PATH}:train:0", offset=0.5, duration=0.25
+        )
         assert waveform.shape[0] == int(0.25 * sr)
 
 
@@ -88,19 +93,27 @@ def test_force_opus_sampling_rate_raises():
 
         backend = HuggingfaceDatasetsBackend(dataset_id=DUMMY_DATASET_PATH)
         with pytest.raises(RuntimeError):
-            backend.read_audio(f"{DUMMY_DATASET_PATH}:train:0", force_opus_sampling_rate=8000)
+            backend.read_audio(
+                f"{DUMMY_DATASET_PATH}:train:0", force_opus_sampling_rate=8000
+            )
 
 
 def test_huggingface_audio_source_prepare_for_reading_type_hf():
-    src = HuggingFaceAudioSource(type="huggingface", source=f"{DUMMY_DATASET_PATH}:train:0", channels=[0])
+    src = HuggingFaceAudioSource(
+        type="huggingface", source=f"{DUMMY_DATASET_PATH}:train:0", channels=[0]
+    )
     result = src._prepare_for_reading(offset=0.0, duration=1.0)
     assert result == f"{DUMMY_DATASET_PATH}:train:0"
 
 
 def test_huggingface_audio_source_prepare_for_reading_fallback():
-    with mock.patch("lhotse.audio.source.AudioSource._prepare_for_reading") as mock_super:
+    with mock.patch(
+        "lhotse.audio.source.AudioSource._prepare_for_reading"
+    ) as mock_super:
         mock_super.return_value = "mocked_output"
-        src = HuggingFaceAudioSource(type="file", source="test_utils/ctc_align_test.wav", channels=[0])
+        src = HuggingFaceAudioSource(
+            type="file", source="test_utils/ctc_align_test.wav", channels=[0]
+        )
         result = src._prepare_for_reading(offset=0.5, duration=1.0)
         mock_super.assert_called_once()
         assert result == "mocked_output"

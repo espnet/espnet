@@ -4,10 +4,13 @@ from typing import Any, Dict, List, Tuple, Union
 import lightning as L
 import torch
 import torch.nn as nn
+from hydra.utils import instantiate
 from lightning.pytorch.loggers import CSVLogger
+from omegaconf import DictConfig, ListConfig, OmegaConf
+from typeguard import typechecked
+
 from espnet3.trainer.callbacks import get_default_callbacks
 from espnet3.trainer.model import LitESPnetModel
-from typeguard import typechecked
 
 
 def init_weights(m):
@@ -47,7 +50,7 @@ class ESPnetEZLightningTrainer:
         assert config is not None, "config must be provided."
         if best_model_criterion is None:
             best_model_criterion = ListConfig([("valid/loss", 3, "min")])
-    
+
         # HP and configs
         self.config = config
 

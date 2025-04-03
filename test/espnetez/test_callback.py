@@ -1,9 +1,10 @@
+from pathlib import Path
+from unittest import mock
+
 import pytest
 import torch
-from unittest import mock
-from pathlib import Path
-
 from lightning.pytorch.callbacks import ModelCheckpoint
+
 from espnet3.trainer.callbacks import AverageCheckpointsCallback, get_default_callbacks
 
 
@@ -24,13 +25,17 @@ def test_average_checkpoints_callback_on_fit_end(tmp_path, dummy_state_dict):
     """
     ckpt_paths = [tmp_path / f"ckpt_{i}.ckpt" for i in range(2)]
 
-    with mock.patch("torch.load", return_value=dummy_state_dict), \
-         mock.patch("torch.save") as mock_save:
+    with mock.patch("torch.load", return_value=dummy_state_dict), mock.patch(
+        "torch.save"
+    ) as mock_save:
 
         callback = AverageCheckpointsCallback(
             output_dir=str(tmp_path),
             best_ckpt_callbacks=[
-                mock.Mock(best_k_models={str(p): 0.0 for p in ckpt_paths}, monitor="valid/loss")
+                mock.Mock(
+                    best_k_models={str(p): 0.0 for p in ckpt_paths},
+                    monitor="valid/loss",
+                )
             ],
         )
         trainer = mock.Mock()
@@ -46,7 +51,7 @@ def test_average_checkpoints_callback_on_fit_end(tmp_path, dummy_state_dict):
         averaged_state = mock_save.call_args[0][0]
         assert torch.allclose(averaged_state["layer.weight"], torch.tensor([1.0, 2.0]))
         assert torch.allclose(averaged_state["layer.bias"], torch.tensor([0.5]))
-        assert "bn.num_batches_tracked" in averaged_state 
+        assert "bn.num_batches_tracked" in averaged_state
 
 
 def test_get_default_callbacks_structure():
@@ -55,12 +60,12 @@ def test_get_default_callbacks_structure():
     """
     callbacks = get_default_callbacks(
         expdir="test_utils/espnet3_dummy/",
-        best_model_criterion=[("valid/loss", 2, "min"), ("valid/wer", 2, "min")]
+        best_model_criterion=[("valid/loss", 2, "min"), ("valid/wer", 2, "min")],
     )
 
     assert len(callbacks) == 6
 
-    monitor_names = [None, "valid/loss", "valid/wer"] # None for last checkpoint
+    monitor_names = [None, "valid/loss", "valid/wer"]  # None for last checkpoint
     ckpt_callbacks = [cb for cb in callbacks if isinstance(cb, ModelCheckpoint)]
     for cb, expected_monitor in zip(ckpt_callbacks, monitor_names):
         assert cb.monitor == expected_monitor
