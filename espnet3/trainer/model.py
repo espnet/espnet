@@ -8,8 +8,8 @@ import torch
 import yaml
 
 from espnet2.train.collate_fn import CommonCollateFn
-from espnetez.trainer.hybrid_optim import HybridOptim
-from espnetez.trainer.hybrid_scheduler import HybridLRS
+from espnet3.trainer.hybrid_optim import HybridOptim
+from espnet3.trainer.hybrid_scheduler import HybridLRS
 
 
 class LitESPnetModel(L.LightningModule):

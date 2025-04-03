@@ -7,8 +7,8 @@ import lightning as L
 import torch
 import torch.nn as nn
 from lightning.pytorch.loggers import CSVLogger
-from espnetez.trainer.callbacks import get_default_callbacks
-from espnetez.trainer.model import LitESPnetModel
+from espnet3.trainer.callbacks import get_default_callbacks
+from espnet3.trainer.model import LitESPnetModel
 from typeguard import typechecked
 
 
@@ -48,7 +48,7 @@ class ESPnetEZLightningTrainer:
         assert expdir is not None, "expdir must be provided."
         assert config is not None, "config must be provided."
         if best_model_criterion is None:
-            best_model_criterion = [("valid/loss", 3, "min")]
+            best_model_criterion = ListConfig([("valid/loss", 3, "min")])
     
         # HP and configs
         self.config = config

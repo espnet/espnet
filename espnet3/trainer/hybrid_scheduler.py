@@ -5,7 +5,7 @@ from typing import Dict, Iterable, List, Union, Any
 import torch
 from typeguard import typechecked
 
-from espnetez.trainer.hybrid_optim import HybridOptim
+from espnet3.trainer.hybrid_optim import HybridOptim
 
 
 class HybridLRS(torch.optim.lr_scheduler._LRScheduler):
@@ -30,21 +30,15 @@ class HybridLRS(torch.optim.lr_scheduler._LRScheduler):
     def __init__(
         self,
         hybrid_optimizer: HybridOptim,
-        lr_scheduler: torch.optim.lr_scheduler._LRScheduler,
+        lr_scheduler: torch.optim.lr_scheduler.LRScheduler,
         optimizer_idx: int,
     ) -> None:
         self.optimizer = hybrid_optimizer
         self.lr_scheduler = lr_scheduler
         self.idx = optimizer_idx
 
-    def __getattribute__(self, __name: str) -> Any:
-        """
-        If the attribute name is one of ``optimizer``, ``idx``, or ``lr_scheduler``, return this
-        class's attribute with the same name, else return the ``lr_scheduler``'s attribute with
-        that name.
-
-        """
-        if __name in {"optimizer", "lr_scheduler", "idx"}:
-            return super().__getattribute__(__name)
+    def __getattr__(self, name: str) -> Any:
+        if name in {"optimizer", "lr_scheduler", "idx"}:
+            return getattr(self, name)
         else:
-            return self.lr_scheduler.__getattribute__(__name)
+            return self.lr_scheduler.__getattribute__(name)
