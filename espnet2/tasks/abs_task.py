@@ -5,7 +5,7 @@ import functools
 import itertools
 import logging
 import os
-import sys 
+import sys
 
 logging.basicConfig(
     level="INFO",
