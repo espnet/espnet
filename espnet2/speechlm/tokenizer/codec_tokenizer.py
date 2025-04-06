@@ -3,14 +3,23 @@
 # Copyright 2024 Jinchuan Tian
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+from inspect import signature
+
 import numpy as np
 import torch
+import yaml
 
 from espnet2.speechlm.tokenizer.abs_tokenizer import AbsTokenizer
+from espnet2.speechlm.tokenizer.beats_tokenizer import (  # noqa
+    BeatsRandomTokenizer,
+    BeatsTokenizer,
+    BeatsTokenizerConfig,
+)
+from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 
 
 class CodecTokenizer(AbsTokenizer):
-    """Codec Tokenizer implementation
+    """Codec Tokenizer implementation.
 
     Use cases:
         - use encode and decode for discrete (de)tokenization
@@ -31,7 +40,7 @@ class CodecTokenizer(AbsTokenizer):
         config_path: str = None,
         max_token_per_frame: int = 32,
     ):
-        """Codec Tokenizer initialization
+        """Codec Tokenizer initialization.
 
         Each of the codec implementation should assign all following features:
             self.n_codebook (int): the number of codec codebooks.
@@ -118,12 +127,58 @@ class CodecTokenizer(AbsTokenizer):
             self.size_codebook = 1024
             self.subsample = 320
 
+        elif self.codec_choice == "beats":
+            beats_config = None
+            if config_path:
+                with open(config_path, "r") as f:
+                    beats_config = yaml.safe_load(f)
+            valid_args = signature(BeatsTokenizer.__init__).parameters
+            remaining_args = (
+                {k: v for k, v in beats_config.items() if k in valid_args}
+                if beats_config
+                else {}
+            )
+            self.codec = BeatsTokenizer(
+                beats_tokenizer_ckpt_path=checkpoint_path,
+                tokenizer_config=beats_config,
+                **remaining_args,
+            )
+            self.codec = self.codec.to(device)
+            self.codec.eval()
+            self.n_codebook = 1
+            self.size_codebook = self.codec.quantize.num_tokens
+            self.sample_rate = 16000
+            self.subsample = 320
+
+        elif self.codec_choice == "beats_random":
+            # Beats like patch-based frontend, with bestrq for quantization
+            set_all_random_seed(42)
+            beats_config = None
+            if config_path:
+                with open(config_path, "r") as f:
+                    beats_config = yaml.safe_load(f)
+            valid_args = signature(BeatsRandomTokenizer.__init__).parameters
+            remaining_args = (
+                {k: v for k, v in beats_config.items() if k in valid_args}
+                if beats_config
+                else {}
+            )
+            self.codec = BeatsRandomTokenizer(
+                tokenizer_config=beats_config,
+                **remaining_args,
+            )
+            self.codec = self.codec.to(device)
+            self.codec.eval()
+            self.n_codebook = 1
+            self.size_codebook = self.codec.config.quant_n
+            self.sample_rate = 16000
+            self.subsample = 320
         else:
             raise ValueError(f"Codec {codec_choice} is not supported")
 
     def encode(self, wavs):
-        """
-        Convert audio waveforms into codec codes
+        """Convert audio waveforms into codec codes.
+
         Input:
             wavs (torch.Tensor): float tensor in shape [B, 1, n_sample],
         Output:
@@ -146,14 +201,27 @@ class CodecTokenizer(AbsTokenizer):
         elif self.codec_choice == "inhouse":
             codes = self.codec.encode(wavs).permute(1, 2, 0)
 
+        elif self.codec_choice == "beats" or self.codec_choice == "beats_random":
+            wav_in = wavs.squeeze(1)
+            if wav_in.max() > 1.0 or wav_in.min() < -1.0:
+                # Beats expects input in range [-1, 1]
+                wav_in = wav_in.to(torch.float32)
+                wav_in = wav_in / 2**15
+            # Assume no padding, all wavs are full length
+            assert wav_in.shape[0] == 1, "BeatsTokenizer only supports batch size 1"
+            wav_len = torch.LongTensor([wav_in.size(1)] * wav_in.size(0)).to(
+                wav_in.device
+            )
+            codes = self.codec.encode(xs_pad=wav_in, ilens=wav_len).unsqueeze(-1)
+
         else:
             raise NotImplementedError
 
         return codes
 
     def encode_continuous(self, wavs):
-        """
-        Convert audio waveforms into continuous codec encoding results
+        """Convert audio waveforms into continuous codec encoding results.
+
         Input:
             wavs (torch.Tensor): float tensor in shape [B, 1, n_sample],
         Output:
@@ -169,13 +237,15 @@ class CodecTokenizer(AbsTokenizer):
             z = z.transpose(1, 2)
 
         else:
-            raise NotImplementedError
+            raise NotImplementedError(
+                f"Codec {self.codec_choice} does not support `encode_continuous`."
+            )
 
         return z
 
     def decode(self, codes):
-        """
-        Recover the waveform from the codes.
+        """Recover the waveform from the codes.
+
         Input:
             codes (torch.Tensor): Int tensor in shape [B, T, n_codebook]
         Output:
@@ -199,13 +269,15 @@ class CodecTokenizer(AbsTokenizer):
             return wav
 
         else:
-            raise NotImplementedError
+            raise NotImplementedError(
+                f"Codec {self.codec_choice} does not support `decode`."
+            )
 
         return waveform
 
     def decode_continuous(self, z):
-        """
-        Recover the waveform from the continuous representations of codec
+        """Recover the waveform from the continuous representations of codec.
+
         Input:
             z (torch.Tensor): Float tensor in shape [B, T, D], codec
               continuous representations
@@ -221,13 +293,15 @@ class CodecTokenizer(AbsTokenizer):
             waveform = self.codec.decode(z).squeeze(1)
 
         else:
-            raise NotImplementedError
+            raise NotImplementedError(
+                f"Codec {self.codec_choice} does not support `decode_continuous`."
+            )
 
         return waveform
 
     def forward(self, wavs):
-        """
-        Convert audio waveforms into flatten codec codes and resynthesis the audio
+        """Convert audio waveforms into flatten codec codes and resynthesis the audio.
+
         Input:
             wavs (torch.Tensor): float tensor in shape [B, 1, n_sample],
         Output:
@@ -248,8 +322,8 @@ class CodecTokenizer(AbsTokenizer):
         return codes, resyn_audio
 
     def detokenize(self, codes, n_codebook=None):
-        """
-        Convert flatten codec codes into resynthesis the audio
+        """Convert flatten codec codes into resynthesis the audio.
+
         Input:
             codes (torch.Tensor): int tensor in shape [B, T * n_codebook],
                 or [T * n_codebook]
@@ -300,23 +374,23 @@ if __name__ == "__main__":
     with torch.no_grad():
         # discrete
         codes = codec.encode(waveform)
-        print(f"cdoes: ", codes.size())
+        print("cdoes: ", codes.size())
         resyn_audio = codec.decode(codes)
-        print(f"audio1", resyn_audio.size())
+        print("audio1", resyn_audio.size())
         resyn_audio = resyn_audio[0].cpu().numpy()
         sf.write("resyn1.wav", resyn_audio, sr)
 
         # continuous
         z = codec.encode_continuous(waveform)
-        print(f"z: ", z.size())
+        print("z: ", z.size())
         resyn_audio2 = codec.decode_continuous(z)
-        print(f"audio2", resyn_audio2.size())
+        print("audio2", resyn_audio2.size())
         resyn_audio2 = resyn_audio2[0].cpu().numpy()
         sf.write("resyn2.wav", resyn_audio2, sr)
 
         # high level API for speechlm
         flatten_codes, _ = codec(waveform)
-        print(f"flatten_codes", flatten_codes.size())
+        print("flatten_codes", flatten_codes.size())
         resyn_audio3 = codec.detokenize(flatten_codes)
         print("resyn", resyn_audio3.size())
         resyn_audio3 = resyn_audio3[0].cpu().numpy()

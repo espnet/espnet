@@ -61,7 +61,7 @@ def find_resume_path(
         return resume_path
     if resume is True and resume_path is None:
         raise FileNotFoundError(
-            f"You passed `--resume=True`, but no checkpont file was "
+            "You passed `--resume=True`, but no checkpont file was "
             "found in `--out_dir={out_dir}`."
         )
     return resume_path
@@ -230,7 +230,7 @@ class IncrementalPyTorchPickler(pickle.Pickler):
 
         if isinstance(obj, torch.storage.TypedStorage) or torch.is_storage(obj):
             if isinstance(obj, torch.storage.TypedStorage):
-                # TODO: Once we decide to break serialization FC, this case
+                # TODO(gituser): Once we decide to break serialization FC, this case
                 # can be deleted
                 storage = obj._untyped_storage
                 storage_dtype = obj.dtype
@@ -399,6 +399,7 @@ def map_old_state_dict_weights(state_dict: Dict, mapping: Mapping, prefix: str) 
 
 def get_default_supported_precision(training: bool) -> str:
     """Return default precision that is supported by the hardware:
+
     either `bf16` or `16`.
 
     Args:
@@ -507,7 +508,9 @@ class CycleIterator:
 
 def copy_config_files(source_dir: Path, out_dir: Path) -> None:
     """Copies the specified configuration and tokenizer files into
-    the output directory."""
+
+    the output directory.
+    """
 
     config_files = ["config.json", "generation_config.json", "model_config.yaml"]
     tokenizer_files = ["tokenizer.json", "tokenizer.model", "tokenizer_config.json"]
@@ -529,7 +532,9 @@ def CLI(*args: Any, **kwargs: Any) -> Any:
 
 def capture_hparams() -> Dict[str, Any]:
     """Captures the local variables ('hyperparameters') from where
-    this function gets called."""
+
+    this function gets called.
+    """
     caller_frame = inspect.currentframe().f_back
     locals_of_caller = caller_frame.f_locals
     hparams = {}
@@ -545,10 +550,12 @@ def capture_hparams() -> Dict[str, Any]:
 
 def save_hyperparameters(function: callable, checkpoint_dir: Path) -> None:
     """Captures the CLI parameters passed to `function` without
-    running `function` and saves them to the checkpoint."""
+
+    running `function` and saves them to the checkpoint.
+    """
     from jsonargparse import capture_parser
 
-    # TODO: Make this more robust
+    # TODO(gituser): Make this more robust
     # This hack strips away the subcommands from the top-level CLI
     # to parse the file as if it was called as a script
     known_commands = [

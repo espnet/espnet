@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional
 import numpy as np
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
+import torch.nn.functional as F  # noqa
 from typeguard import typechecked
 
 from espnet2.gan_codec.abs_gan_codec import AbsGANCodec
@@ -511,6 +511,7 @@ class HiFiCodecGenerator(nn.Module):
         quantizer_target_bandwidth: List[float] = [7.5, 15],
     ):
         """Initialize HiFiCodec Generator.
+
         Args:
             TODO
         """

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 """
-This implementation is modified from https://github.com/zcaceres/spec_augment
+This implementation is modified from https://github.com/zcaceres/spec_augment.
 
 MIT License
 
@@ -34,7 +34,7 @@ import torch
 def specaug(
     spec, W=5, F=30, T=40, num_freq_masks=2, num_time_masks=2, replace_with_zero=False
 ):
-    """SpecAugment
+    """Specaugment Data Augmentation.
 
     Reference:
         SpecAugment: A Simple Data Augmentation Method for Automatic Speech Recognition
@@ -65,7 +65,7 @@ def specaug(
 
 
 def time_warp(spec, W=5):
-    """Time warping
+    """Time warping.
 
     :param torch.Tensor spec: input tensor with shape (T, dim)
     :param int W: time warp parameter
@@ -93,7 +93,7 @@ def time_warp(spec, W=5):
 
 
 def freq_mask(spec, F=30, num_masks=1, replace_with_zero=False):
-    """Frequency masking
+    """Frequency masking.
 
     :param torch.Tensor spec: input tensor with shape (T, dim)
     :param int F: maximum width of each mask
@@ -121,7 +121,7 @@ def freq_mask(spec, F=30, num_masks=1, replace_with_zero=False):
 
 
 def time_mask(spec, T=40, num_masks=1, replace_with_zero=False):
-    """Time masking
+    """Time masking.
 
     :param torch.Tensor spec: input tensor with shape (T, dim)
     :param int T: maximum width of each mask
@@ -156,6 +156,7 @@ def sparse_image_warp(
     regularization_weight=0.0,
     num_boundaries_points=0,
 ):
+    """Sparse image warp."""
     device = img_tensor.device
     control_point_flows = dest_control_point_locations - source_control_point_locations
 
@@ -182,6 +183,7 @@ def sparse_image_warp(
 
 
 def get_grid_locations(image_height, image_width, device):
+    """Get grid locations."""
     y_range = torch.linspace(0, image_height - 1, image_height, device=device)
     x_range = torch.linspace(0, image_width - 1, image_width, device=device)
     y_grid, x_grid = torch.meshgrid(y_range, x_range)
@@ -189,10 +191,12 @@ def get_grid_locations(image_height, image_width, device):
 
 
 def flatten_grid_locations(grid_locations, image_height, image_width):
+    """Flatten grid locations."""
     return torch.reshape(grid_locations, [image_height * image_width, 2])
 
 
 def get_flat_grid_locations(image_height, image_width, device):
+    """Get Flat Grid Locations."""
     y_range = torch.linspace(0, image_height - 1, image_height, device=device)
     x_range = torch.linspace(0, image_width - 1, image_width, device=device)
     y_grid, x_grid = torch.meshgrid(y_range, x_range)
@@ -200,6 +204,7 @@ def get_flat_grid_locations(image_height, image_width, device):
 
 
 def create_dense_flows(flattened_flows, batch_size, image_height, image_width):
+    """Create dense Flows."""
     # possibly .view
     return torch.reshape(flattened_flows, [batch_size, image_height, image_width, 2])
 
@@ -211,6 +216,7 @@ def interpolate_spline(
     order,
     regularization_weight=0.0,
 ):
+    """Interpolate Spline."""
     # First, fit the spline to the observed data.
     w, v = solve_interpolation(train_points, train_values, order, regularization_weight)
     # Then, evaluate the spline at the query locations.
@@ -220,6 +226,7 @@ def interpolate_spline(
 
 
 def solve_interpolation(train_points, train_values, order, regularization_weight):
+    """Solve Interpolation."""
     device = train_points.device
     b, n, d = train_points.shape
     k = train_values.shape[-1]

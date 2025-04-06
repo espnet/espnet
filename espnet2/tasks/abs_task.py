@@ -2,6 +2,7 @@
 
 import argparse
 import functools
+import itertools
 import logging
 import os
 import sys 
@@ -16,7 +17,7 @@ import tempfile
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Sequence, Set, Tuple, Union
 
 import humanfriendly
 import numpy as np
@@ -72,7 +73,7 @@ from espnet2.train.distributed_utils import (
     get_num_nodes,
     resolve_distributed_mode,
 )
-from espnet2.train.iterable_dataset import (
+from espnet2.train.iterable_dataset import (  # noqa
     IterableESPnetDataset,
     SplicedIterableESPnetDataset,
 )
@@ -468,6 +469,20 @@ class AbsTask(ABC):
             default=None,
             type=str,
             help="deepspeed training config",
+        )
+        group.add_argument(
+            "--gradient_as_bucket_view",
+            default=True,
+            type=str2bool,
+            help="Enable gradient_as_bucket_view in DDP",
+        )
+        group.add_argument(
+            "--ddp_comm_hook",
+            default=None,
+            type=str_or_none,
+            choices=["none", "fp16_compress_hook", "bf16_compress_hook"],
+            help="DDP communication hook from "
+            "torch.distributed.algorithms.ddp_comm_hooks.default_hooks",
         )
 
         group = parser.add_argument_group("cudnn mode related")
@@ -1758,10 +1773,12 @@ class AbsTask(ABC):
 
     @classmethod
     @typechecked
-    def build_sequence_iter_factory(
-        cls, args: argparse.Namespace, iter_options: IteratorOptions, mode: str
-    ) -> AbsIterFactory:
-
+    def build_dataset(
+        cls,
+        args: argparse.Namespace,
+        iter_options: IteratorOptions,
+        keys_to_load: Optional[Set[Union[int, str]]] = None,
+    ) -> AbsDataset:
         if args.multi_task_dataset:
             dataset_class = ESPnetMultiTaskDataset
         else:
@@ -1774,20 +1791,24 @@ class AbsTask(ABC):
             max_cache_size=iter_options.max_cache_size,
             max_cache_fd=iter_options.max_cache_fd,
             allow_multi_rates=iter_options.allow_multi_rates,
+            keys_to_load=keys_to_load,
         )
         cls.check_task_requirements(
             dataset, args.allow_variable_data_keys, train=iter_options.train
         )
+        return dataset
 
-        if Path(
-            Path(iter_options.data_path_and_name_and_type[0][0]).parent, "utt2category"
-        ).exists():
-            utt2category_file = str(
-                Path(
-                    Path(iter_options.data_path_and_name_and_type[0][0]).parent,
-                    "utt2category",
-                )
-            )
+    @classmethod
+    @typechecked
+    def build_sequence_iter_factory(
+        cls, args: argparse.Namespace, iter_options: IteratorOptions, mode: str
+    ) -> AbsIterFactory:
+
+        utt2category_file = (
+            Path(iter_options.data_path_and_name_and_type[0][0]).parent / "utt2category"
+        )
+        if utt2category_file.exists():
+            utt2category_file = str(utt2category_file)
             logging.warning("Reading " + utt2category_file)
         else:
             utt2category_file = None
@@ -1813,13 +1834,13 @@ class AbsTask(ABC):
 
         bs_list = [len(batch) for batch in batches]
 
-        logging.info(f"[{mode}] dataset:\n{dataset}")
         logging.info(f"[{mode}] Batch sampler: {batch_sampler}")
         logging.info(
             f"[{mode}] mini-batch sizes summary: N-batch={len(bs_list)}, "
             f"mean={np.mean(bs_list):.1f}, min={np.min(bs_list)}, max={np.max(bs_list)}"
         )
 
+        # Shard mini-batches for distributed training
         if iter_options.distributed:
             world_size = torch.distributed.get_world_size()
             rank = torch.distributed.get_rank()
@@ -1830,6 +1851,15 @@ class AbsTask(ABC):
                         f"{len(batch)} < {world_size}"
                     )
             batches = [batch[rank::world_size] for batch in batches]
+
+        # Build dataset after sharding to reduce memory usage
+        # This is very helpful for large-scale training
+        dataset = cls.build_dataset(
+            args,
+            iter_options,
+            set(itertools.chain(*batches)),
+        )
+        logging.info(f"[{mode}] dataset:\n{dataset}")
 
         return SequenceIterFactory(
             dataset=dataset,
@@ -2232,7 +2262,7 @@ class AbsTask(ABC):
         collate_fn,
         key_file: Optional[str] = None,
         batch_size: int = 1,
-        dtype: str = np.float32,
+        dtype: Optional[Any] = np.float32,
         num_workers: int = 1,
         allow_variable_data_keys: bool = False,
         ngpu: int = 0,
@@ -2325,8 +2355,14 @@ class AbsTask(ABC):
                 #   in PyTorch<=1.4
                 device = f"cuda:{torch.cuda.current_device()}"
             try:
+                state_dict = torch.load(
+                    model_file, map_location=device, weights_only=False
+                )
+                # for deepspeed checkpoints
+                if "module" in state_dict:
+                    state_dict = state_dict["module"]
                 model.load_state_dict(
-                    torch.load(model_file, map_location=device),
+                    state_dict,
                     strict=False,
                 )
             except RuntimeError:

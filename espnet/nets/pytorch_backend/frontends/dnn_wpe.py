@@ -1,3 +1,5 @@
+"""DNN WPE module."""
+
 from typing import Tuple
 
 import torch
@@ -9,6 +11,8 @@ from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 
 
 class DNN_WPE(torch.nn.Module):
+    """DNN WPE class."""
+
     def __init__(
         self,
         wtype: str = "blstmp",
@@ -23,6 +27,7 @@ class DNN_WPE(torch.nn.Module):
         iterations: int = 1,
         normalization: bool = False,
     ):
+        """Initialize DNN WPE."""
         super().__init__()
         self.iterations = iterations
         self.taps = taps
@@ -41,7 +46,7 @@ class DNN_WPE(torch.nn.Module):
     def forward(
         self, data: ComplexTensor, ilens: torch.LongTensor
     ) -> Tuple[ComplexTensor, torch.LongTensor, ComplexTensor]:
-        """The forward function
+        """Calculate DNN_WPE forward propagation.
 
         Notation:
             B: Batch

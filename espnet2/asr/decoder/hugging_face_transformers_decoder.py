@@ -6,7 +6,6 @@
 
 import copy
 import logging
-import os
 from typing import Any, List, Optional, Tuple, Union
 
 import torch
@@ -14,7 +13,6 @@ import torch.nn.functional as F
 from typeguard import typechecked
 
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
-from espnet.asr.asr_utils import get_model_conf
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 
 try:
@@ -49,8 +47,7 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
         load_pretrained_weights: bool = True,
         separate_lm_head: bool = False,
     ):
-        """
-        Initializes the HuggingFaceTransformersDecoder.
+        """Initializes the HuggingFaceTransformersDecoder.
 
         Args:
             vocab_size (int): The size of the vocabulary.
@@ -98,8 +95,8 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
         self.overriding_architecture_config = overriding_architecture_config
         if isinstance(overriding_architecture_config, str):
             # It is path to a json config file
-            self.overriding_architecture_config = vars(
-                get_model_conf(model_path="", conf_path=overriding_architecture_config)
+            self.overriding_architecture_config = read_json_config(
+                overriding_architecture_config
             )
 
         self.causal_lm = causal_lm
@@ -367,3 +364,20 @@ def get_hugging_face_model_lm_head(model):
         raise Exception("Can not find the LM head attribute")
 
     return lm_head
+
+
+def read_json_config(conf_path):
+    """Read a json model config information.
+
+    Args:
+        conf_path (str): Config path.
+    Returns:
+        dict[str, Any]: Config information loaded from json file.
+    """
+    import json
+
+    with open(conf_path, "rb") as f:
+        logging.info("Reading config file from " + conf_path)
+        confs = json.load(f)
+    assert isinstance(confs, dict)
+    return confs

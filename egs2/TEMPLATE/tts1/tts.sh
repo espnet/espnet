@@ -116,6 +116,11 @@ lang=noinfo      # The language type of corpus.
 text_fold_length=150   # fold_length for text data.
 speech_fold_length=800 # fold_length for speech data.
 
+# VERSA eval related
+skip_scoring=false # Skip scoring stages.
+versa_config=conf/versa.yaml # VERSA evaluation configuration.
+
+
 # Upload model related
 hf_repo=
 
@@ -195,6 +200,10 @@ Options:
     --vocoder_file      # Vocoder paramemter file (default=${vocoder_file}).
                         # If set to none, Griffin-Lim vocoder will be used.
     --download_model    # Download a model from Model Zoo and use it for decoding (default="${download_model}").
+
+    # VERSA scoring related
+    --skip_scoring      # Skip scoring stages (default="${skip_scoring}").
+    --versa_config      # VERSA evaluation configuration (default="${versa_config}").
 
     # [Task dependent] Set the datadir name created by local/data.sh.
     --train_set          # Name of training set (required).
@@ -1111,12 +1120,82 @@ else
     log "Skip the evaluation stages"
 fi
 
+if ! "${skip_scoring}"; then
+    if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
+        _gen_dir=${tts_exp}/${inference_tag}/${test_sets}
+        log "Stage 9: Scoring: TTS scoring via versa logs on ${_gen_dir}"
+        _data=${data_feats}/${test_sets}
+
+        log "Scoring TTS evaluation via VERSA, using default ${versa_config}. You can visit https://github.com/shinjiwlab/versa?tab=readme-ov-file#list-of-metrics for more supported metrics."
+        _opts=
+        _eval_dir=${_gen_dir}/scoring/versa_eval
+        mkdir -p ${_eval_dir}
+
+        _pred_file=${_gen_dir}/wav/wav_test.scp
+        _score_config=${versa_config}
+        _gt_file=${_data}/wav_test.scp
+
+        _nj=$(( inference_nj < $(wc -l < "${_pred_file}") ? inference_nj : $(wc -l < "${_pred_file}") ))
+
+        _split_files=""
+        for n in $(seq ${_nj}); do
+            _split_files+="${_eval_dir}/pred.${n} "
+        done
+        utils/split_scp.pl ${_pred_file} ${_split_files}
+
+        if [ -n "${_gt_file}" ]; then
+            _split_files=""
+            for n in $(seq ${_nj}); do
+                _split_files+="${_eval_dir}/gt.${n} "
+            done
+            utils/split_scp.pl ${_gt_file} ${_split_files}
+            _opts+="--gt ${_eval_dir}/gt.JOB"
+        fi
+
+        if ${gpu_inference}; then
+            _cmd="${cuda_cmd}"
+            _ngpu=1
+        else
+            _cmd="${decode_cmd}"
+            _ngpu=0
+        fi
+
+        ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_eval_dir}"/versa_eval.JOB.log \
+            python -m versa.bin.scorer \
+                --pred ${_eval_dir}/pred.JOB \
+                --score_config ${_score_config} \
+                --cache_folder ${_eval_dir}/cache \
+                --gt ${_gt_file} \
+                --text ${_data}/text \
+                --use_gpu ${gpu_inference} \
+                --output_file ${_eval_dir}/result.JOB.txt \
+                --io soundfile \
+                ${_opts} 2>&1;
+
+        python pyscripts/utils/aggregate_eval.py \
+            --logdir ${_eval_dir} \
+            --scoredir ${_eval_dir} \
+            --nj ${_nj}
+
+        _log_dir="${_eval_dir}"
+        _count=0
+        for f in "${_log_dir}"/result.*.txt; do
+            if [ -f "$f" ]; then
+                c=$(wc -l < "$f")
+                _count=$(( _count + c ))
+            fi
+        done
+        echo "sentences: ${_count}" >> "${_eval_dir}/avg_result.txt"
+        ./scripts/utils/show_tts_results.sh ${_gen_dir}
+        log "Finished scoring evaluation, results are in ${_eval_dir}"
+    fi
+fi
 
 packed_model="${tts_exp}/${tts_exp##*/}_${inference_model%.*}.zip"
 if ! "${skip_packing}" && [ -z "${download_model}" ]; then
     # Skip pack preparation if using a downloaded model or skip_packing is true
-    if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
-        log "Stage 9: Pack model: ${packed_model}"
+    if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
+        log "Stage 10: Pack model: ${packed_model}"
 
         _opts=""
         if [ -e "${tts_stats_dir}/train/feats_stats.npz" ]; then
@@ -1156,11 +1235,11 @@ else
 fi
 
 if ! "${skip_upload_hf}"; then
-    if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
+    if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
         [ -z "${hf_repo}" ] && \
             log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace" && \
             exit 1
-        log "Stage 10: Upload model to HuggingFace: ${hf_repo}"
+        log "Stage 11: Upload model to HuggingFace: ${hf_repo}"
 
     if [ ! -f "${packed_model}" ]; then
         log "ERROR: ${packed_model} does not exist. Please run stage 9 first."
