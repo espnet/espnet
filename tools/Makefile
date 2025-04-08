@@ -53,10 +53,7 @@ bc.done: activate_python.sh
 	. ./activate_python.sh && { command -v bc || conda install -y bc -c conda-forge; }
 	touch bc.done
 cmake.done: activate_python.sh
-	# TODO(nelson): Currently, cmake==4.0 is being recognized (despite 3.28 is being installed)
-	# probably an issue with the container (using ubuntu:latest download 24.04.1 meanwhile
-	# in server installs 24.04.2), remove when is fixed.
-	. ./activate_python.sh && conda install -y "cmake<4.0"
+	. ./activate_python.sh && { command -v cmake || conda install -y cmake; }
 	touch cmake.done
 flac.done: activate_python.sh
 	. ./activate_python.sh && { command -v flac || conda install -y libflac -c conda-forge; }
@@ -299,7 +296,7 @@ clean_extra:
 	rm -rf hts_engine_API.done open_jtalk.done pyopenjtalk.done
 	rm -rf muskits.done
 	rm -rf rvad_fast.done
-	rm -rf lightning_constrains.sh
+	rm -rf lightning_constraints.txt
 	rm -rf chainer espeak-ng festival MBROLA ParallelWaveGAN versa
 	rm -rf py3mmseg sctk* speech_tools sph2pipe* ._mwerSegmenter
 	rm -rf nkf mecab swig moses mwerSegmenter
