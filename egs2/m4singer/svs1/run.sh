@@ -6,12 +6,20 @@ set -u
 set -o pipefail
 
 # spectrogram-related arguments
-fs=24000
-fmin=80
-fmax=7600
-n_fft=2048
-n_shift=300
-win_length=1200
+fs=44100
+if [ ${fs} -eq 24000 ];then
+    fmin=0
+    fmax=12000
+    n_fft=2048
+    n_shift=300
+    win_length=1200
+elif [ ${fs} -eq 44100 ]; then
+    fmin=80
+    fmax=22050
+    n_fft=2048
+    n_shift=512
+    win_length=2048
+fi
 use_sid=true
 
 score_feats_extract=frame_score_feats   # frame_score_feats | syllable_score_feats

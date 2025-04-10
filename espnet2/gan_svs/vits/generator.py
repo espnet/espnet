@@ -14,6 +14,7 @@ This code is based on https://github.com/jaywalnut310/vits.
 
 """
 
+import logging
 import math
 from typing import List, Optional, Tuple, Union
 
