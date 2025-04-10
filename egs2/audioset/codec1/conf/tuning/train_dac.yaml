@@ -3,7 +3,7 @@
 ##########################################################
 codec: dac
 codec_conf:
-    sampling_rate: 24000
+    sampling_rate: 16000
 
     # generator related
     generator_params:
@@ -28,13 +28,13 @@ codec_conf:
         decoder_trim_right_ratio: 1.0
         decoder_final_activation: null
         decoder_final_activation_params: null
-        quantizer_n_q: 32
+        quantizer_n_q: 8
         quantizer_bins: 1024
         quantizer_decay: 0.99
         quantizer_kmeans_init: true
         quantizer_kmeans_iters: 50
         quantizer_threshold_ema_dead_code: 2
-        quantizer_target_bandwidth: [2, 4, 8, 16, 32]
+        quantizer_target_bandwidth: [0.5, 1, 2, 4]
         quantizer_dropout: true
 
     # discriminator related
@@ -42,7 +42,7 @@ codec_conf:
         # multi scale multi band multi resolution discriminator related
         msmpmb_discriminator_params:
             rates: []
-            sample_rate: 24000
+            sample_rate: 16000
             fft_sizes: [2048, 1024, 512]
             periods: [2, 3, 5, 7, 11]
             period_discriminator_params:
@@ -100,11 +100,12 @@ codec_conf:
     # others
     cache_generator_outputs: true # whether to cache generator outputs in the training
 
+
 ##########################################################
 #            OPTIMIZER & SCHEDULER SETTING               #
 ##########################################################
 # optimizer setting for generator
-optim: adam # [CHANGED]
+optim: adamw
 optim_conf:
     lr: 2.0e-4
     betas: [0.5, 0.9]
@@ -114,7 +115,7 @@ scheduler: exponentiallr
 scheduler_conf:
     gamma: 0.999875
 # optimizer setting for discriminator
-optim2: adam
+optim2: adamw
 optim2_conf:
     lr: 2.0e-4
     betas: [0.5, 0.9]
@@ -125,20 +126,18 @@ scheduler2_conf:
     gamma: 0.999875
 generator_first: true # whether to start updating generator first
 
-
 ##########################################################
 #                OTHER TRAINING SETTING                  #
 ##########################################################
-num_iters_per_epoch: 5000 # number of iterations per epoch
-max_epoch: 120              # number of epochs
+num_iters_per_epoch: 500 # number of iterations per epoch
+max_epoch: 3600              # number of epochs
 accum_grad: 1             # gradient accumulation
-batch_size: 8             # CHANGED
+batch_size: 64             # CHANGED
 batch_type: unsorted      # how to make batch
 
-
 iterator_type: chunk
-chunk_length: 24000 # CHANGED
-num_cache_chunks: 64
+chunk_length: 32000
+num_cache_chunks: 256
 
 grad_clip: -1             # gradient clipping norm
 grad_noise: false         # whether to use gradient noise injection
