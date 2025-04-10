@@ -207,15 +207,14 @@ def _make_pad_mask(lengths, xs=None, length_dim=-1, maxlen=None):
 
 
 def _make_pad_mask_traceable(lengths, xs, length_dim, maxlen=None):
-    """
-    Make mask tensor containing indices of padded part.
+    """Make mask tensor containing indices of padded part.
+
     This is a simplified implementation of make_pad_mask without the xs input
     that supports JIT tracing for applications like exporting models to ONNX.
     Dimension length of xs should be 2 or 3
     This function will create torch.ones(maxlen, maxlen).triu(diagonal=1) and
     select rows to create mask tensor.
     """
-
     if xs is None:
         device = lengths.device
     else:
@@ -256,6 +255,7 @@ def _make_pad_mask_traceable(lengths, xs, length_dim, maxlen=None):
 
 
 def triu_onnx(x):
+    """Make TriU for ONNX."""
     arange = torch.arange(x.size(0), device=x.device)
     mask = arange.unsqueeze(-1).expand(-1, x.size(0)) <= arange
     return x * mask
@@ -589,12 +589,11 @@ def trim_by_ctc_posterior(
     masks: torch.Tensor,
     pos_emb: torch.Tensor = None,
 ):
-    """
-    Trim the encoder hidden output using CTC posterior.
+    """Trim the encoder hidden output using CTC posterior.
+
     The continuous frames in the tail that confidently represent
     blank symbols are trimmed.
     """
-
     # Empirical settings
     frame_tolerance = 5
     conf_tolerance = 0.95
@@ -647,8 +646,8 @@ def roll_tensor(
     roll_amounts: Optional[torch.Tensor] = None,
     fixed_intervals: Optional[int] = None,
 ) -> torch.Tensor:
-    """Left-roll tensor x by roll_amounts, only within lengths and
-        optionally quantized.
+    """Left-roll tensor x by roll_amounts, only within lengths and optionally quantized.
+
     Args:
         x: input tensor (B, T, D)
         lengths: lengths of each sequence (B,)

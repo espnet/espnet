@@ -8,7 +8,7 @@ setup() {
     # Create reference data for "calculate_eermindcf"
     cat << EOF > $tmpdir/expected_output
 trg_mean: -0.856322466135025, trg_std: 0.08600128103334274
-nontrg_mean: 0.08447770031926187, nontrg_std: 0.08447770031926187
+nontrg_mean: -1.4088802719116211, nontrg_std: 0.08447770031926187
 eer: 2.0, mindcf: 0.04
 EOF
 
@@ -30,7 +30,7 @@ EOF
     # Create reference data for "calculate_eermindcf_eer100"
     cat << EOF > $tmpdir/expected_output_eer100
 trg_mean: 0.05, trg_std: 0.05
-nontrg_mean: 0.04999999999999999, nontrg_std: 0.04999999999999999
+nontrg_mean: 0.95, nontrg_std: 0.04999999999999999
 eer: 100.0, mindcf: 1.0
 EOF
 

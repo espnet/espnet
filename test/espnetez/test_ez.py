@@ -5,6 +5,7 @@ import tempfile
 from pathlib import Path
 
 import pytest
+from torch import nn
 
 import espnetez as ez
 from espnet2.tasks.asr import ASRTask
@@ -27,6 +28,8 @@ from espnet2.tasks.st import STTask
 from espnet2.tasks.svs import SVSTask
 from espnet2.tasks.tts import TTSTask
 from espnet2.tasks.uasr import UASRTask
+from espnet2.text.build_tokenizer import build_tokenizer
+from espnet2.text.token_id_converter import TokenIDConverter
 
 # Prepare directory in the test environment to store dummy files
 TASK_CLASSES = [
@@ -210,9 +213,59 @@ def test_sentencepiece_preparation():
 
         # It seems training an sentencepiece in CI and pytest may cause error.
         # So skip this test for now.
-        # ez.preprocess.train_sentencepiece(
-        #     temp_dir / "spm" / "train.txt",
-        #     temp_dir / "data" / "bpemodel",
-        #     vocab_size=vocab_size,
-        #     model_type=model_type,
-        # )
+        vocab_size = 30
+        model_type = "bpe"
+        ez.preprocess.train_sentencepiece(
+            temp_dir / "spm" / "train.txt",
+            temp_dir / "data" / "bpemodel",
+            vocab_size=vocab_size,
+            model_type=model_type,
+        )
+        tokenizer = build_tokenizer(
+            token_type=model_type,
+            bpemodel=temp_dir / "data" / "bpemodel" / f"{model_type}.model",
+        )
+        token_id_converter = TokenIDConverter(
+            token_list=temp_dir / "data" / "bpemodel" / "tokens.txt",
+            unk_symbol="<unk>",
+        )
+        embedding = nn.Embedding(vocab_size, 2)
+        ez.preprocess.add_special_tokens(
+            tokenizer, token_id_converter, embedding, ["<ctc>", "<chat>"], "<unk>"
+        )
+
+
+def test_tokenizer_run():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_dir = Path(temp_dir)
+        dataset = generate_random_dataset(5)
+        data_inputs = {
+            "speech": ["wav.scp", "sound"],
+            "text": ["text", "text"],
+        }
+        ez.data.create_dump_file(temp_dir / "dump", dataset, data_inputs)
+        ez.preprocess.prepare_sentences([temp_dir / "dump" / "text"], temp_dir / "spm")
+        ez.preprocess.tokenize(
+            str(temp_dir / "spm" / "train.txt"),
+            str(temp_dir / "data" / "bpemodel"),
+        )
+
+
+def test_streaming_iter():
+    from espnetez.dataloader import Dataloader
+
+    dataset = generate_random_dataset(5)
+    Dataloader(dataset=dataset).build_iter(0)
+
+
+def test_dataset():
+    dataset = generate_random_dataset(5)
+    data_inputs = {
+        "speech": lambda x: x,
+        "text": lambda x: x,
+    }
+    ds = ez.ESPnetEZDataset(dataset, data_inputs)
+    print(len(ds))
+    print(ds.names())
+    print(ds.has_name("speech"))
+    print(ds[0])

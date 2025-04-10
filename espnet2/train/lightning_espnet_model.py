@@ -7,6 +7,7 @@ import torch.distributed
 
 from espnet2.tasks.abs_task import optim_classes, scheduler_classes
 from espnet2.tasks.asr import ASRTask
+from espnet2.tasks.cls import CLSTask
 from espnet2.train.distributed_utils import DistributedOption
 from espnet2.utils.yaml_no_alias_safe_dump import yaml_no_alias_safe_dump
 
@@ -14,6 +15,7 @@ logger = logging.getLogger("lightning")
 
 task_choices = {
     "asr": ASRTask,
+    "cls": CLSTask,
 }
 
 

@@ -224,7 +224,7 @@ class ValleLM(AbsCoreLM):
         if len(valid_idx) < prefix.size(0):
             logging.info(f"Only {len(valid_idx)} of {prefix.size(0)} are valid")
         elif len(valid_idx) == 0:
-            logging.warning(f"No valid examples. Return None")
+            logging.warning("No valid examples. Return None")
             return None, None
 
         finish_idx = finish_idx[valid_idx]
