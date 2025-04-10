@@ -379,6 +379,8 @@ def process_subset(args, set_name, tempos, dataset):
     ) as f:
         segments = f.read().strip().split("\n")
         for segment in segments:
+            if segment.startswith("2026"):
+                continue
             process_utterance(
                 writer,
                 wavscp,
