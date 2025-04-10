@@ -1,9 +1,8 @@
 import argparse
 from pathlib import Path
 
-import yaml
-
 import espnetez as ez
+import yaml
 
 TASK_CLASSES = [
     "asr",

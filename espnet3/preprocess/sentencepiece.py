@@ -162,7 +162,7 @@ def add_special_tokens(
     tokenizer, converter, embedding, special_tokens, insert_after="<st_zho>"
 ):
     """Add special tokens to the tokenizer.
-    For detailed usage, please refer to the demo notebook for ESPnetEZ with SLU task.
+    For detailed usage, please refer to the demo notebook for espnet3 with SLU task.
 
     Args:
         tokenizer: Sentencepiece tokenizer.
