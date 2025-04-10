@@ -34,6 +34,8 @@ test_spm.model
 *.swp
 *.nfs*
 constraints.txt
+featbin
+ubuntu16-featbin.tar.gz
 
 out/config.yaml
 hub/

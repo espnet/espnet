@@ -1,4 +1,4 @@
-FROM ubuntu:22.04
+FROM ubuntu:latest
 LABEL maintainer="Nelson Yalta <nyalta21@gmail.com>"
 
 ENV NUM_BUILD_CORES=12
@@ -26,10 +26,13 @@ RUN if [ -z "$(getent group ${GROUP_ID})" ]; then \
 
 RUN apt-get update && \
     apt-get -y install --no-install-recommends \
-        build-essential \
         automake \
         autotools-dev \
+        bc \ 
+        build-essential \
         cmake \
+        gawk \
+        gfortran \
         libffi-dev \
         libtool \
         gnupg2 \
@@ -39,7 +42,7 @@ RUN apt-get update && \
         wget \
         zip \
         zlib1g-dev \
-        pandoc ffmpeg bc nodejs npm \
+        pandoc ffmpeg nodejs npm \
         && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
@@ -57,18 +60,22 @@ RUN add-apt-repository ppa:git-core/ppa -y && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
+RUN echo "${USERNAME} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+RUN sed -i 's/#force_color_prompt=yes/force_color_prompt=yes/g' /home/${USERNAME}/.bashrc
+
+RUN chown -R ${USERNAME}:${USERNAME} /opt
+RUN mkdir -p /workspaces && \
+    chown -R ${USERNAME}:${USERNAME} /workspaces
+
+WORKDIR /opt
+USER ${USERNAME}
+
 RUN wget --tries=3 -nv "https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh" -O miniconda.sh && \
     bash miniconda.sh -b -p /opt/miniconda && \
     /opt/miniconda/bin/conda config --prepend channels https://software.repos.intel.com/python/conda/ && \
     rm miniconda.sh && \
     conda install -y python=3.10 && \
+    conda install -c conda-forge libstdcxx-ng && \
     conda clean -a -y
 
-RUN echo "${USERNAME} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
-RUN sed -i 's/#force_color_prompt=yes/force_color_prompt=yes/g' /home/${USERNAME}/.bashrc
-
-RUN mkdir -p /workspaces && \
-    chown -R ${USERNAME}:${USERNAME} /workspaces
-
-USER ${USERNAME}
 WORKDIR /workspaces
