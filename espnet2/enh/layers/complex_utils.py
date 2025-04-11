@@ -120,7 +120,7 @@ def einsum(equation, *operands):
 
 
 def inverse(
-    c: Union[torch.Tensor, ComplexTensor]
+    c: Union[torch.Tensor, ComplexTensor],
 ) -> Union[torch.Tensor, ComplexTensor]:
     if isinstance(c, ComplexTensor):
         return c.inverse2()

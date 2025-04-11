@@ -5,17 +5,19 @@
 
 import logging
 from contextlib import contextmanager
-from typing import Dict, Optional, Sequence, Tuple, Union, List
+from typing import Dict, List, Optional, Sequence, Tuple, Union
 
+import numpy as np
 import torch
 import torch.nn.functional as F
 from packaging.version import parse as V
-import numpy as np
 from typeguard import typechecked
 
 from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
 from espnet2.layers.utterance_mvn import UtteranceMVN
+from espnet2.spk.pooling.chn_attn_stat_pooling import ChnAttnStatPooling
 from espnet2.spk.pooling.mean_pooling import MeanPooling
+from espnet2.spk.projector.xvector_projector import XvectorProjector
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.torch_utils.initialize import initialize
 from espnet2.universa.abs_universa import AbsUniversa
@@ -218,14 +220,29 @@ class UniversaBase(AbsUniversa):
                             input_size=pooling_dim, use_masking=True, **pooling_params
                         )
                     )
+                elif pooling_type == "channel_attention":
+                    self.pooling.append(
+                        ChnAttnStatPooling(
+                            input_size=pooling_dim, use_masking=True, **pooling_params
+                        )
+                    )
                 else:
                     raise ValueError(f"Not supported: {pooling_type}")
 
+                projector_input = self.pooling[-1].output_size()
                 # Initialize projector
                 if projector_type == "linear":
                     self.projector.append(
                         torch.nn.Linear(
-                            pooling_dim,
+                            projector_input,
+                            1,
+                            **projector_params,
+                        )
+                    )
+                elif projector_type == "xvector":
+                    self.projector.append(
+                        XvectorProjector(
+                            projector_input,
                             1,
                             **projector_params,
                         )
@@ -238,15 +255,31 @@ class UniversaBase(AbsUniversa):
                 self.pooling = MeanPooling(
                     input_size=pooling_dim, use_masking=True, **pooling_params
                 )
+            elif pooling_type == "channel_attention":
+                self.pooling.append(
+                    ChnAttnStatPooling(
+                        input_size=pooling_dim, use_masking=True, **pooling_params
+                    )
+                )
             else:
                 raise ValueError(f"Not supported: {pooling_type}")
+
+            projector_input = self.pooling.output_size()
 
             # Initialize projector
             if projector_type == "linear":
                 self.projector = torch.nn.Linear(
-                    pooling_dim,
+                    projector_input,
                     self.metric_size,
                     **projector_params,
+                )
+            elif projector_type == "xvector":
+                self.projector.append(
+                    XvectorProjector(
+                        projector_input,
+                        1,
+                        **projector_params,
+                    )
                 )
             else:
                 raise ValueError(f"Not supported: {projector_type}")
@@ -312,7 +345,9 @@ class UniversaBase(AbsUniversa):
         audio_enc_mask = make_pad_mask(audio_enc_lengths).to(audio_enc.device)
         if self.multi_branch:
             for i in range(self.metric_size):
-                pooling_output = self.pooling[i](audio_enc.permute(0, 2, 1), mask=audio_enc_mask)
+                pooling_output = self.pooling[i](
+                    audio_enc.permute(0, 2, 1), mask=audio_enc_mask
+                )
                 with autocast(False):
                     # skip numeric stability with float16
                     pred_metric = self.projector[i](pooling_output)
@@ -337,7 +372,9 @@ class UniversaBase(AbsUniversa):
                 loss = loss + metric_loss
             stats["loss"] = loss.detach()
         else:
-            pooling_output = self.pooling(audio_enc.permute(0, 2, 1), mask=audio_enc_mask)
+            pooling_output = self.pooling(
+                audio_enc.permute(0, 2, 1), mask=audio_enc_mask
+            )
             with autocast(False):
                 # skip numeric stability with float16
                 pred_metric = self.projector(pooling_output)
@@ -383,7 +420,7 @@ class UniversaBase(AbsUniversa):
             ref_text[ref_text == -1] = self.ignore_id
             # for data-parallel
             ref_text = ref_text[:, : ref_text_lengths.max()]
-        
+
         # 1. Feats normalization
         if self.use_normalize:
             with autocast(False):
@@ -462,18 +499,21 @@ class UniversaBase(AbsUniversa):
 
         # 2. Multi-branch pooling and projectors
 
-
         audio_enc_mask = make_pad_mask(audio_enc_lengths).to(audio_enc.device)
         if self.multi_branch:
             pred_metrics = []
             for i in range(self.metric_size):
-                pooling_output = self.pooling[i](audio_enc.permute(0, 2, 1), mask=audio_enc_mask)
+                pooling_output = self.pooling[i](
+                    audio_enc.permute(0, 2, 1), mask=audio_enc_mask
+                )
                 with autocast(False):
                     # skip numeric stability with float16
                     pred_metric = self.projector[i](pooling_output)
                 pred_metrics.append(pred_metric)
         else:
-            pooling_output = self.pooling(audio_enc.permute(0, 2, 1), mask=audio_enc_mask)
+            pooling_output = self.pooling(
+                audio_enc.permute(0, 2, 1), mask=audio_enc_mask
+            )
             with autocast(False):
                 # skip numeric stability with float16
                 pred_metrics = self.projector(pooling_output)
@@ -495,13 +535,13 @@ class UniversaBase(AbsUniversa):
 
         """
         if self.multi_branch:
-            pred_metrics = {
+            results = {
                 self.id2metric[i]: pred_metrics[i].detach().cpu().numpy()
                 for i in range(self.metric_size)
             }
         else:
-            pred_metrics = {
+            results = {
                 self.id2metric[i]: pred_metrics[:, i].detach().cpu().numpy()
                 for i in range(self.metric_size)
             }
-        return pred_metrics
+        return results

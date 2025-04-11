@@ -327,6 +327,16 @@ if ! "${skip_data_prep}"; then
                     --audio-format "${audio_format}" --fs "${fs}" --suffix ".ref" \
                     --out_filename "ref_wav.scp" ${_ref_opts} \
                     "data/${dset}/ref_wav.scp" "${data_feats}${_suf}/${dset}"
+
+                # NOTE(jiatong): align the reference audio with the formulated wav
+                python pyscripts/utils/align_wav_keys.py \
+                    "${data_feats}${_suf}/${dset}/wav.scp" \
+                    "${data_feats}${_suf}/${dset}/ref_wav.scp" \
+                    "${data_feats}${_suf}/${dset}/ref_wav.tmp"
+
+                sort -o "${data_feats}${_suf}/${dset}/ref_wav.tmp" "${data_feats}${_suf}/${dset}/ref_wav.tmp"
+                mv "${data_feats}${_suf}/${dset}/ref_wav.tmp" "${data_feats}${_suf}/${dset}/ref_wav.scp"
+
             fi
 
             # NOTE(jiatong): some extra treatment for extra files, including sorting and duplication remove
@@ -788,7 +798,7 @@ if ! "${skip_eval}"; then
                 --pred_metrics "${_pred_metrics}" \
                 --skip_missing true \
                 --out_file "${_dir}/utt_result.json"
-            
+
             log "Utterance-level evaluation results are as follows:"
             cat "${_dir}/utt_result.json"
 
@@ -801,7 +811,7 @@ if ! "${skip_eval}"; then
                     --sys_info "${sys_info}" \
                     --skip_missing true \
                     --out_file "${_dir}/sys_result.json"
-                
+
                 log "System-level evaluation results are as follows:"
                 cat "${_dir}/sys_result.json"
             fi

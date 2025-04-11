@@ -20,6 +20,7 @@ check_autopep8
 .coverage
 .coverage.*
 htmlcov
+hf_cache
 coverage.xml*
 test_utils/bats-core/
 test_utils/bats-support/
@@ -35,6 +36,10 @@ test_spm.model
 constraints.txt
 
 out/config.yaml
+
+doc/vuepress/src/.vuepress/.temp
+doc/vuepress/src/.vuepress/.cache
+dist
 
 # recipe related
 egs*/*/*/data*
@@ -54,6 +59,10 @@ egs*/*/*/.cache*
 egs*/*/*/pretrained_models*
 egs*/fisher_callhome_spanish/*/local/mapping*
 egs2/test/*
+egs2/**/**/asset
+egs2/**/**/checkpoint
+egs2/**/**/flagged_data_points
+egs2/**/**/hub
 
 # tools related
 tools/chainer
@@ -105,3 +114,4 @@ tools/ffmpeg-release-*.tar.xz
 tools/Miniconda3-latest-*.sh
 tools/Miniforge3-*.sh
 tools/condarc
+tools/lightning_constraints.txt

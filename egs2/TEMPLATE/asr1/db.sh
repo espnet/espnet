@@ -56,6 +56,7 @@ CSJVER=dvd  ## Set your CSJ format (dvd or usb).
 CSMSC=downloads
 CSS10=
 DIHARD2= # Path to dihard2/second_dihard_challenge_dev-eleven_srcs/data/multichannel/sad directory
+GENSHIN=downloads
 HKUST1=
 HKUST2=
 HUI_ACG=downloads
@@ -89,6 +90,7 @@ MUST_C=downloads
 MUSTARD=
 MUSTARD_PLUS=
 NSC=
+MYST=downloads
 NIT_SONG070=
 JMD=downloads
 JSSS=downloads
@@ -220,6 +222,10 @@ SPRING_INX=downloads
 VOXCELEB=
 KSPONSPEECH=
 HIFITTS=downloads
+CLOTHO_V2=downloads
+AUDIOCAPS=
+CLOTHO_CHATGPT_MIXUP=
+EDACC=downloads
 
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then

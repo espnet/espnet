@@ -65,12 +65,23 @@ class S2TPackedContents(PackedContents):
     yaml_files = ["s2t_train_config", "lm_train_config"]
 
 
+class ClassificationPackedContents(PackedContents):
+    # These names must be consistent with the argument of inference functions
+    files = ["classification_model_file"]
+    yaml_files = ["classification_train_config"]
+
+
 class SpkPackedContents(PackedContents):
     files = ["model_file"]
     yaml_files = ["train_config"]
 
 
 class CodecPackedContents(PackedContents):
+    files = ["model_file"]
+    yaml_files = ["train_config"]
+
+
+class UniversaPackedContents(PackedContents):
     files = ["model_file"]
     yaml_files = ["train_config"]
 
@@ -102,6 +113,8 @@ def get_parser() -> argparse.ArgumentParser:
         ("s2t", S2TPackedContents),
         ("spk", SpkPackedContents),
         ("codec", CodecPackedContents),
+        ("cls", ClassificationPackedContents),
+        ("universa", UniversaPackedContents),
     ]:
         parser_asr = subparsers.add_parser(
             name,

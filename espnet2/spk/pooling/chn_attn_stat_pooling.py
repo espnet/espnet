@@ -19,7 +19,9 @@ class ChnAttnStatPooling(AbsPooling):
         use_masking: whether to use masking
     """
 
-    def __init__(self, input_size: int = 1536, hidden_size: int = 128, use_masking: bool = False):
+    def __init__(
+        self, input_size: int = 1536, hidden_size: int = 128, use_masking: bool = False
+    ):
         super().__init__()
         self.attention = nn.Sequential(
             nn.Conv1d(input_size * 3, hidden_size, kernel_size=1),
@@ -46,19 +48,22 @@ class ChnAttnStatPooling(AbsPooling):
             raise ValueError(
                 "ChannelAttentiveStatisticsPooling is not adequate for task_tokens"
             )
-        
+
         t = x.size()[-1]
         if self.use_masking and mask is not None:
             x = x.masked_fill(mask.unsqueeze(1), 0)
             sum_x = torch.sum(x, dim=-1)
             mean_x = sum_x / (torch.sum(~mask, dim=1, keepdim=True) + 1e-6)
-            var_x = torch.power(x - mean_x, 2).clamp(min=1e-4, max=1e4)
+            sum_var_x = torch.sum(
+                torch.pow(x - mean_x.unsqueeze(-1), 2).clamp(min=1e-4, max=1e4), dim=-1
+            )
+            var_x = sum_var_x / (torch.sum(~mask, dim=1, keepdim=True) + 1e-6)
             std_x = torch.sqrt(var_x)
             global_x = torch.cat(
                 (
                     x,
-                    mean_x.repeat(1, 1, t),
-                    std_x.repeat(1, 1, t),
+                    mean_x.unsqueeze(-1).repeat(1, 1, t),
+                    std_x.unsqueeze(-1).repeat(1, 1, t),
                 ),
                 dim=1,
             )

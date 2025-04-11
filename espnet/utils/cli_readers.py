@@ -1,3 +1,5 @@
+"""CLI Readers methods."""
+
 import io
 import logging
 import sys
@@ -15,7 +17,7 @@ def file_reader_helper(
     return_shape: bool = False,
     segments: str = None,
 ):
-    """Read uttid and array in kaldi style
+    """Read uttid and array in kaldi style.
 
     This function might be a bit confusing as "ark" is used
     for HDF5 to imitate "kaldi-rspecifier".
@@ -53,12 +55,16 @@ def file_reader_helper(
 
 
 class KaldiReader:
+    """Kaldi Reader Class."""
+
     def __init__(self, rspecifier, return_shape=False, segments=None):
+        """Initialize Kaldi Reader."""
         self.rspecifier = rspecifier
         self.return_shape = return_shape
         self.segments = segments
 
     def __iter__(self):
+        """Iterate self reader."""
         with kaldiio.ReadHelper(self.rspecifier, segments=self.segments) as reader:
             for key, array in reader:
                 if self.return_shape:
@@ -67,7 +73,10 @@ class KaldiReader:
 
 
 class HDF5Reader:
+    """HDF5 Reader Class."""
+
     def __init__(self, rspecifier, return_shape=False):
+        """Initialize HDF5 Reader."""
         if ":" not in rspecifier:
             raise ValueError(
                 'Give "rspecifier" such as "ark:some.ark: {}"'.format(self.rspecifier)
@@ -80,6 +89,7 @@ class HDF5Reader:
         self.return_shape = return_shape
 
     def __iter__(self):
+        """Iterate self reader."""
         if self.ark_or_scp == "scp":
             hdf5_dict = {}
             with open(self.filepath, "r", encoding="utf-8") as f:
@@ -139,7 +149,10 @@ class HDF5Reader:
 
 
 class SoundHDF5Reader:
+    """Sound HDF5 Reader class."""
+
     def __init__(self, rspecifier, return_shape=False):
+        """Initialize Sound HDF5 Reader."""
         if ":" not in rspecifier:
             raise ValueError(
                 'Give "rspecifier" such as "ark:some.ark: {}"'.format(rspecifier)
@@ -150,6 +163,7 @@ class SoundHDF5Reader:
         self.return_shape = return_shape
 
     def __iter__(self):
+        """Iterate self reader."""
         if self.ark_or_scp == "scp":
             hdf5_dict = {}
             with open(self.filepath, "r", encoding="utf-8") as f:
@@ -209,7 +223,10 @@ class SoundHDF5Reader:
 
 
 class SoundReader:
+    """Sound Reader Class."""
+
     def __init__(self, rspecifier, return_shape=False):
+        """Initialize Sound Reader."""
         if ":" not in rspecifier:
             raise ValueError(
                 'Give "rspecifier" such as "scp:some.scp: {}"'.format(rspecifier)
@@ -222,6 +239,7 @@ class SoundReader:
         self.return_shape = return_shape
 
     def __iter__(self):
+        """Iterate self reader."""
         with open(self.filepath, "r", encoding="utf-8") as f:
             for line in f:
                 key, sound_file_path = line.rstrip().split(None, 1)

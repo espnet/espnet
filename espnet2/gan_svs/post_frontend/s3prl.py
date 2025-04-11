@@ -13,9 +13,12 @@ from espnet.nets.pytorch_backend.frontends.frontend import Frontend
 
 
 class S3prlPostFrontend(AbsFrontend):
-    """Pretrained SSL model for VISinger2 Plus. Based on S3prlFrontend,
+    """Pretrained SSL model for VISinger2 Plus.
+
+    Based on S3prlFrontend,
     S3prlPostFrontend added a resampler to resample the input audio to
-    the sample rate of the pretrained model."""
+    the sample rate of the pretrained model.
+    """
 
     @typechecked
     def __init__(

@@ -3,7 +3,7 @@
 import argparse
 import logging
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 import numpy as np
 import torch
@@ -355,7 +355,7 @@ def get_ez_task_with_dataset(task_name: str) -> AbsTask:
             collate_fn,
             key_file: Optional[str] = None,
             batch_size: int = 1,
-            dtype: str = np.float32,
+            dtype: Optional[Any] = None,
             num_workers: int = 1,
             allow_variable_data_keys: bool = False,
             ngpu: int = 0,

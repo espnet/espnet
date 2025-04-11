@@ -1,4 +1,4 @@
-""" Prepare ReazonSpeech for Japanese ASR """
+"""Prepare ReazonSpeech for Japanese ASR"""
 
 import json
 import logging

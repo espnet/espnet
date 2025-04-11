@@ -1,3 +1,11 @@
+"""This class implements a beam search algorithm with parallel processing capabilities.
+
+The BeamSearch class handles the generation of hypotheses by iteratively selecting
+new tokens based on scores and maintaining a beam size for each mask.
+It supports operations such as batching beam search, post-processing,
+and logging the best hypotheses.
+"""
+
 # Beam search module for partially autoregressive decoding.
 # Copyright 2024 Masao Someki
 # This script is licensed under MIT license.
@@ -49,6 +57,7 @@ class PartiallyARHypothesis(NamedTuple):
 
 class PartiallyARBeamSearch(BatchBeamSearch):
     """Partially autoregressive beam search implementation.
+
     Partially autoregressive hypothesis is a set of BatchHypothesis.
 
     We need to use `add_mask` function to add a hypothesis for a mask.
@@ -58,6 +67,7 @@ class PartiallyARBeamSearch(BatchBeamSearch):
     """
 
     def __init__(self, *args, **kwargs):
+        """Initialize method."""
         super().__init__(*args, **kwargs)
         self.masks = []
         self.mask_ids = None
@@ -67,6 +77,7 @@ class PartiallyARBeamSearch(BatchBeamSearch):
         self.n_vocab = self.n_vocab - 1  # remove mask token
 
     def init_masks(self):
+        """Initialize masks."""
         self.masks = []
         self.num_hyps_for_masks = []
 
@@ -333,6 +344,7 @@ class PartiallyARBeamSearch(BatchBeamSearch):
         ended_hyps: List[List[Hypothesis]],
     ) -> BatchHypothesis:
         """Perform post-processing of beam search iterations.
+
         Extract BatchHypothesis for each mask, and perform post-process.
         Then merge BatchHypothesis.
 

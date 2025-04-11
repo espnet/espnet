@@ -408,7 +408,7 @@ class CommonPreprocessor(AbsPreprocessor):
 
     @typechecked
     def _speech_process(
-        self, data: Dict[str, Union[str, np.ndarray]]
+        self, data: Dict[str, Optional[Union[str, np.ndarray]]]
     ) -> Dict[str, Union[str, np.ndarray]]:
         if self.speech_name in data:
             if self.train and (self.rirs is not None or self.noises is not None):
@@ -541,7 +541,7 @@ class CommonPreprocessor(AbsPreprocessor):
 
     @typechecked
     def __call__(
-        self, uid: str, data: Dict[str, Union[str, np.ndarray]]
+        self, uid: str, data: Dict[str, Optional[Union[str, np.ndarray]]]
     ) -> Dict[str, np.ndarray]:
 
         data = self._speech_process(data)
@@ -1947,7 +1947,14 @@ class SpkPreprocessor(CommonPreprocessor):
         noise_apply_prob: float = 1.0,
         short_noise_thres: float = 0.5,
     ):
-        super().__init__(train, rir_scp=rir_scp, rir_apply_prob=rir_apply_prob)
+
+        self.train = train
+
+        if rir_apply_prob == 0:
+            self.rir_scp = None
+        else:
+            self.rir_scp = rir_scp
+        super().__init__(train, rir_scp=self.rir_scp, rir_apply_prob=rir_apply_prob)
 
         self.spk2label = None  # a dictionary that maps string speaker label to int
         self.sample_rate = sample_rate
@@ -1959,8 +1966,6 @@ class SpkPreprocessor(CommonPreprocessor):
                 self.spk2utt = f_s2u.readlines()
             self._make_label_mapping()
             self.nspk = len(self.spk2utt)
-
-        self.rir_scp = rir_scp
 
         self.noise_apply_prob = noise_apply_prob
         self.short_noise_thres = short_noise_thres
@@ -2497,7 +2502,7 @@ class S2TCTCPreprocessor(CommonPreprocessor):
                         # First two tokens are <lang> and <task>
                         # NOTE: must copy the array
                         data["prefix"] = copy.deepcopy(text_ints[:2])
-                        if np.random.uniform() > self.lang_apply_prob:
+                        if self.train and np.random.uniform() > self.lang_apply_prob:
                             data["prefix"][0] = self.nolang
 
                     elif name == self.text_ctc_name:
@@ -2614,7 +2619,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
                 raise ValueError("Continuous feature is not supported yet.")
 
         # (2) encoder & decoder sequence
-        seqs, conti_feats = [], []
+        seqs, conti_feats = [], []  # noqa
         n_enc_entries = len(task.encoder_entries)
         for e_idx, entries in enumerate([task.encoder_entries, task.decoder_entries]):
             for entry in entries:
@@ -2708,7 +2713,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         enc_seq = data.get("enc_seq", None)
         dec_seq = data.get("dec_seq", None)
 
-        logging.warning(f"Diagnose in preprocessor ...")
+        logging.warning("Diagnose in preprocessor ...")
         for name, seq in [("encoder", enc_seq), ("decoder", dec_seq)]:
             if seq is None:
                 continue
@@ -2743,6 +2748,8 @@ class UniversaProcessor(AbsPreprocessor):
         # for padding of chunk iterator, working when > 0
         min_sample_size: int = -1,
         audio_pad_value: Union[float, int] = 0.0,
+        # for silence audio (reserved for missing reference)
+        empty_audio_length: int = 8000,
     ):
         super().__init__(train)
         self.train = train
@@ -2752,6 +2759,7 @@ class UniversaProcessor(AbsPreprocessor):
         self.text_name = text_name
         self.audio_volume_normalize = audio_volume_normalize
         self.force_single_channel = force_single_channel
+        self.empty_audio_length = empty_audio_length
 
         if token_type is not None:
             if token_list is None:
@@ -2813,6 +2821,13 @@ class UniversaProcessor(AbsPreprocessor):
     ) -> Dict[str, Union[str, np.ndarray, Dict[str, float]]]:
         for name in [self.audio_name, self.ref_audio_name]:
             if name in data:
+
+                # NOTE(jiatong): an empty silence audio for None audio
+                audio = data[name]
+                if audio is None and name == self.ref_audio_name:
+                    audio = np.zeros(self.empty_audio_length)
+                    data[name] = audio
+
                 if self.train:
                     audio = data[name]
 
@@ -2853,6 +2868,8 @@ class UniversaProcessor(AbsPreprocessor):
             if isinstance(text, np.ndarray):
                 return data
             text = self.text_cleaner(text)
+            if text is None:
+                text = "Test sentence for checking, it is not a none sentence"
             tokens = self.tokenizer.text2tokens(text)
             text_ints = self.token_id_converter.tokens2ids(tokens)
             if len(text_ints) > 500:

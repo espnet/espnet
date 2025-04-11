@@ -60,7 +60,7 @@ frontend: default
 ########################
 # Training parameters  #
 ########################
-max_epoch: 100
+max_epoch: 200
 batch_type: sorted
 batch_size: 16
 grad_clip: -1             # gradient clipping norm
@@ -70,7 +70,7 @@ sort_batch: descending    # how to sort created batches
 num_workers: 1            # number of workers of data loader
 use_amp: false            # whether to use pytorch amp
 log_interval: 50          # log interval in iterations
-keep_nbest_models: 1      # number of models to keep
+keep_nbest_models: 5      # number of models to keep
 num_att_plot: 0           # number of attention figures to be saved in every check
 seed: 777                 # random seed number
 patience: null            # patience for early stopping
