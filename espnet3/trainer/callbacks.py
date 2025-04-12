@@ -39,7 +39,11 @@ class AverageCheckpointsCallback(Callback):
 
                 avg_state_dict = None
                 for ckpt_path in checkpoints:
-                    state_dict = torch.load(ckpt_path, map_location="cpu")["state_dict"]
+                    state_dict = torch.load(
+                        ckpt_path,
+                        map_location="cpu",
+                        weights_only=False,
+                    )["state_dict"]
 
                     if avg_state_dict is None:
                         avg_state_dict = state_dict
