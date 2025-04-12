@@ -35,7 +35,7 @@ train_config=conf/tuning/train_visinger2_24k.yaml
 inference_config=conf/decode.yaml
 
 # text related processing arguments
-g2p=None 
+g2p=None
 cleaner=none
 
 ./svs.sh \
