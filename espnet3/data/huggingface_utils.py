@@ -2,12 +2,15 @@ import logging
 import os
 from dataclasses import dataclass
 from functools import partial
-from typing import Dict, Optional, Tuple, Union
+from typing import Dict, Optional, Tuple, Union, Any
+from omegaconf import DictConfig, ListConfig, OmegaConf
 
 import datasets
+from datasets import load_dataset  # HuggingFace Datasets
 import numpy as np
+import torch
 from dask.distributed import Client, LocalCluster, WorkerPlugin, get_worker
-from espnetez.parallel import get_client, get_parallel_config, parallel_map
+from espnet3.parallel import get_client, get_parallel_config, parallel_map
 from lhotse.audio import Recording
 from lhotse.audio.backend import (
     AudioBackend,
@@ -24,7 +27,6 @@ from lhotse.cut import CutSet, Cut, MonoCut
 from dask.distributed import Client, get_worker, WorkerPlugin, LocalCluster
 from dask.distributed import get_worker
 from distributed.worker import thread_state
-import datasets
 
 from espnet3.parallel import parallel_map, get_client, get_parallel_config
 
@@ -213,7 +215,7 @@ class HuggingfaceDatasetsBackend(AudioBackend):
         )
 
 
-def _load_from_hf_or_disk(path_or_hf):
+def _load_from_hf_or_disk(path_or_hf, *args, **kwargs):
     """
     Attempt to load dataset from HuggingFace hub or local disk.
 
@@ -224,9 +226,9 @@ def _load_from_hf_or_disk(path_or_hf):
         datasets.DatasetDict: Loaded dataset.
     """
     if os.path.exists(path_or_hf):
-        return datasets.load_from_disk(path_or_hf)
+        return datasets.load_from_disk(path_or_hf, *args, **kwargs)
     else:
-        return datasets.load_dataset(path_or_hf)
+        return datasets.load_dataset(path_or_hf, *args, **kwargs)
 
 
 class HuggingfaceAudioLoader(WorkerPlugin):
@@ -394,3 +396,49 @@ def cutset_from_huggingface(
         raise TypeError("client must be None, a Dask Client, or a DictConfig.")
 
     return CutSet.from_cuts(cuts)
+
+
+class HFWrapper:
+    """
+    Wrapper for Hugging Face datasets compatible with DataOrganizer interface.
+
+    Attributes:
+        path (str): HuggingFace dataset ID or local path.
+        name (Optional[str]): Optional dataset config name.
+        split (str): Split to load (e.g., 'train', 'validation').
+        cache_dir (Optional[str]): Cache directory path.
+        kwargs (Dict[str, Any]): Additional keyword arguments passed to load_dataset.
+    """
+    def __init__(
+        self,
+        *args,
+        **kwargs,
+    ):
+        # Check if there is a nested list or dict in the arguments from OmegaConf
+        for k,v in kwargs.items():
+            if isinstance(v, (ListConfig, DictConfig)):
+                kwargs[k] = OmegaConf.to_container(v, resolve=True)
+
+        self.dataset = load_dataset(
+            *args,
+            **kwargs,
+        )
+    
+    def _convert_to_numpy(self, data):
+        if isinstance(data, torch.Tensor):
+            return data.numpy()
+        elif isinstance(data, (list, tuple)):
+            return [self._convert_to_numpy(x) for x in data]
+        elif isinstance(data, dict):
+            return {k: self._convert_to_numpy(v) for k, v in data.items()}
+        else:
+            return data
+
+    def __getitem__(self, idx: int) -> Dict[str, Any]:
+        return (str(idx), self.dataset[idx])
+
+    def __len__(self) -> int:
+        return len(self.dataset)
+
+    def __call__(self, idx: int) -> Dict[str, Any]:
+        return (str(idx), self.dataset[idx])
