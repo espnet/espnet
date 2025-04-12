@@ -241,10 +241,6 @@ def create_score(uid, phns, midis, syb_dur, keep):
     assert len(phns) == len(midis)
     assert len(midis) == len(syb_dur)
     assert len(syb_dur) == len(keep)
-    lyrics_seq = []
-    midis_seq = []
-    segs_seq = []
-    phns_seq = []
     st = 0
     index_phn = 0
     note_list = []
@@ -262,8 +258,9 @@ def create_score(uid, phns, midis, syb_dur, keep):
         ):
             syb.append(phns[index_phn])
             index_phn += 1
+        lyrics_pinyin = "".join(syb)
         syb = "_".join(syb)
-        note_info.extend([st, syb, midi, syb])
+        note_info.extend([st, lyrics_pinyin, midi, syb])
         note_list.append(note_info)
         # multi notes in one syllable
         while (
@@ -324,7 +321,7 @@ def process_utterance(
             continue
 
         text.write("acesinger_{}#{} {}\n".format(i_str, uid, " ".join(phns)))
-        utt2spk.write("acesinger_{}#{} {}\n".format(i_str, uid, i_str))
+        utt2spk.write("acesinger_{}#{} ace-{}\n".format(i_str, uid, i_str))
 
         cmd = "sox {}.wav -c 1 -t wavpcm -b 16 -r {} {}/acesinger_{}#{}.wav".format(
             os.path.join(audio_dir, dataset, "segments", i_str + "#" + uid),
@@ -382,6 +379,8 @@ def process_subset(args, set_name, tempos, dataset):
     ) as f:
         segments = f.read().strip().split("\n")
         for segment in segments:
+            if segment.startswith("2026"):
+                continue
             process_utterance(
                 writer,
                 wavscp,
