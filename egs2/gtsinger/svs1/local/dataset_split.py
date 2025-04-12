@@ -217,7 +217,8 @@ def process_json_to_pho_score(basepath, tempo, notes):
             assert pho_info[i] == phnes[i]
             if pho_info[i] != phnes[i]:
                 f = True
-        if f == True:  # error
+
+        if f is True: # error
             exit(1)
 
     return (
@@ -232,7 +233,7 @@ def process_json_to_pho_score(basepath, tempo, notes):
 
 
 def process_subset(
-    src_data, subset, check_func, fs, wav_dump, score_dump, use_etrinfo=False
+    src_data, subset, check_func, fs, wav_dump, score_dump
 ):
     makedir(subset)
     wavscp = open(os.path.join(subset, "wav.scp"), "w", encoding="utf-8")
@@ -253,9 +254,12 @@ def process_subset(
                     or check_func(plist[index + 4])
                 ):
                     continue
-
-                utt_id = "_".join(plist[index:])[:-4]
-                cmd = f'sox "{filepath}" -c 1 -t wavpcm -b 16 -r {fs} "{os.path.join(wav_dump, utt_id)}.wav"'
+                
+                utt_id = '_'.join(plist[index:])[:-4] 
+                cmd = (
+                    'sox "{}" -c 1 -t wavpcm -b 16 -r {} "{}.wav"'
+                    .format(filepath, fs, os.path.join(wav_dump, utt_id))
+                )
                 os.system(cmd)
 
                 wavscp.write(
