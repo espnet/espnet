@@ -83,17 +83,6 @@ def makedir(data_url):
     os.makedirs(data_url)
 
 
-def str2bool(v):
-    if isinstance(v, bool):
-        return v
-    if v.lower() in ("yes", "true", "t", "y", "1"):
-        return True
-    elif v.lower() in ("no", "false", "f", "n", "0"):
-        return False
-    else:
-        raise argparse.ArgumentTypeError("Boolean value expected.")
-
-
 def pypinyin_g2p_phone_without_prosody(text):
     phones = []
     for phone in pinyin(text, style=Style.NORMAL, strict=False):
