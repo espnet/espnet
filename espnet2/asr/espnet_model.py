@@ -26,8 +26,16 @@ from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import (  # no
     LabelSmoothingLoss,
 )
 
+autocast_type = torch.float16
 if V(torch.__version__) >= V("1.6.0"):
     from torch.cuda.amp import autocast
+
+    if (
+        V(torch.__version__) >= V("1.10.0")
+        and torch.cuda.is_available()
+        and torch.cuda.is_bf16_supported()
+    ):
+        autocast_type = torch.bfloat16
 else:
     # Nothing to do if torch<1.6.0
     @contextmanager
@@ -393,7 +401,7 @@ class ESPnetASRModel(AbsESPnetModel):
             speech: (Batch, Length, ...)
             speech_lengths: (Batch, )
         """
-        with autocast(self.autocast_frontend, dtype=torch.bfloat16):
+        with autocast(self.autocast_frontend, dtype=autocast_type):
             # 1. Extract feats
             feats, feats_lengths = self._extract_feats(speech, speech_lengths)
 
