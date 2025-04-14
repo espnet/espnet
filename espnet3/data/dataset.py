@@ -1,4 +1,4 @@
-from typing import Dict, Tuple, Union
+from typing import Dict, Tuple, Union, Any
 
 from lhotse import CutSet
 
@@ -55,7 +55,7 @@ class ESPnetEZDataset(AbsDataset):
         proper functionality of the methods.
     """
 
-    def __init__(self, dataset, data_info):
+    def __init__(self, dataset, data_info=None):
         self.dataset = dataset
         self.data_info = data_info
         self.preprocessor = None

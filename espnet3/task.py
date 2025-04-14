@@ -2,6 +2,7 @@
 # This class is a wrapper for Task classes to support custom datasets.
 import argparse
 import logging
+import yaml
 from argparse import Namespace
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
@@ -148,16 +149,36 @@ def save_espnet_config(
 ) -> None:
     ez_task = get_ez_task(task)
     default_config = ez_task.get_default_config()
-    default_config.update(OmegaConf.to_container(config, resolve=True))
+    resolved_config = OmegaConf.to_container(config, resolve=True)
+
+    # set model config at the root level
+    model_config = resolved_config.pop("model")
+    if hasattr(model_config, "_target_"):
+        model_config.pop("_target_")
+    default_config.update(model_config)
+
+    # set the preprocessor config at the root level
+    if hasattr(config.dataset, "preprocessor"):
+        preprocess_config = resolved_config.dataset.pop("preprocessor")
+        if hasattr(preprocess_config, "_target_"):
+            preprocess_config.pop("_target_")
+        default_config.update(preprocess_config)
+
+    default_config.update(resolved_config)
 
     # Check if there is None in the config with the name "*_conf"
     for k, v in default_config.items():
         if k.endswith("_conf") and v is None:
             default_config[k] = {}
+    
+    # Convert tuple into list
+    for k, v in default_config.items():
+        if isinstance(v, tuple):
+            default_config[k] = list(v)
 
     # Save the config to the output directory
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     output_path = output_dir / "config.yaml"
-    with open(output_path, "w") as f:
-        OmegaConf.save(config=OmegaConf.create(default_config), f=f)
+    with open(output_path, "w", encoding='utf-8')  as f:
+        yaml.dump(default_config, f)

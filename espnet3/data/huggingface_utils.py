@@ -445,4 +445,4 @@ class HFWrapper:
         return len(self.dataset)
 
     def __call__(self, idx: int) -> Dict[str, Any]:
-        return (str(idx), self.dataset[idx])
+        return self.__getitem__(idx)
