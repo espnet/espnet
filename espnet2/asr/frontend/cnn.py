@@ -37,6 +37,8 @@ class Dim1LayerNorm(Module):
     ):
         """LayerNorm but it assumes the input
         is shape B, D, T to avoid transposing.
+        Faster than TransposedLayerNorm, but
+        may lead to minor numerical differences.
         """
         super().__init__()
         self.normalized_shape = normalized_shape
@@ -54,6 +56,15 @@ class Dim1LayerNorm(Module):
         assert x.size(1) == self.normalized_shape
         return dim_1_layer_norm(x, self.eps, self.weight, self.bias)
 
+class TransposedLayerNorm(nn.LayerNorm):
+    """Layer norm with transpose"""
+    def forward(self, input: Tensor) -> Tensor:
+        x = input.transpose(-2, -1)
+        x = nn.functional.layer_norm(
+            x, self.normalized_shape, self.weight, self.bias, self.eps
+        )
+        x = x.transpose(-2, -1)
+        return x
 
 class ConvLayerBlock(Module):
     """Convolution unit of FeatureExtractor"""
@@ -162,6 +173,7 @@ class CNNFrontend(AbsFrontend):
         fs: Union[int, str] = 16000,
         normalize_audio: bool = False,
         normalize_output: bool = False,
+        layer_norm_cls: str = 'transposed'
     ):
 
         super().__init__()
@@ -175,6 +187,11 @@ class CNNFrontend(AbsFrontend):
         self.output_channels = shapes[-1][0]
         self.normalize_audio = normalize_audio
 
+        if layer_norm_cls == 'dim1':
+            layer_norm_func = Dim1LayerNorm
+        else:
+            layer_norm_func = TransposedLayerNorm
+
         blocks = []
         in_channels = 1
         self.downsampling_factor = 1
@@ -187,7 +204,7 @@ class CNNFrontend(AbsFrontend):
                     affine=True,
                 )
             elif norm_mode == "layer_norm":
-                normalization = Dim1LayerNorm(
+                normalization = layer_norm_func(
                     normalized_shape=out_channels,
                 )
             blocks.append(

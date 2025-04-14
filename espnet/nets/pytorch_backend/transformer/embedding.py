@@ -413,6 +413,7 @@ class ConvolutionalPositionalEmbedding(torch.nn.Module):
         kernel_size: int = 128,
         groups: int = 16,
         weight_norm: str = "new",
+        use_residual: bool = False
     ):
         super().__init__()
         self.embed_dim = embed_dim
@@ -453,6 +454,7 @@ class ConvolutionalPositionalEmbedding(torch.nn.Module):
             convs.append(conv)
         self.convs = torch.nn.ModuleList(convs)
         self.num_remove: int = 1 if kernel_size % 2 == 0 else 0
+        self.use_residual = use_residual
 
     def __prepare_scriptable__(self):
         for hook in self.conv._forward_pre_hooks.values():
@@ -476,7 +478,9 @@ class ConvolutionalPositionalEmbedding(torch.nn.Module):
         Returns:
             Tensor: The resulting feature. Shape ``[batch, frame, feature]``.
         """
-        residual = x
+        if self.use_residual:
+            residual = x
+
         x = x.transpose(-2, -1)
         for conv in self.convs:
             x = conv(x)
@@ -493,4 +497,7 @@ class ConvolutionalPositionalEmbedding(torch.nn.Module):
                 x = dim_1_layer_norm(x)
                 
         x = x.transpose(-2, -1)
-        return x + residual
+
+        if self.use_residual:
+            x = x + residual
+        return x
