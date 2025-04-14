@@ -71,7 +71,7 @@ def get_client(
         >>> with get_client() as client:
         ...     results = client.map(lambda x: x**2, range(10))
     """
-    client = _make_client(config)
+    client = make_client(config)
     if plugin is not None:
         client.register_worker_plugin(plugin)
     try:

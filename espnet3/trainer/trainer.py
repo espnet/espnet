@@ -114,3 +114,10 @@ class ESPnetEZLightningTrainer:
             model=self.model,
             **kwargs,
         )
+
+    def validate(self, *args, **kwargs):
+        return self.trainer.validate(
+            *args,
+            model=self.model,
+            **kwargs,
+        )

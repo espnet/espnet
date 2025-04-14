@@ -55,15 +55,33 @@ class CombinedDataset:
     Raises:
         IndexError: If index is out of range of the combined dataset.
     """
-    def __init__(self, datasets: List[Any], transforms: List[Callable[[dict], dict]]):
+    def __init__(self, datasets: List[Any], transforms: List[Callable[[dict], dict]], add_uid: bool = False):
         self.datasets = datasets
         self.transforms = transforms
         self.lengths = [len(ds) for ds in datasets]
         self.cumulative_lengths = []
+        self.add_uid = add_uid
         total = 0
         for length in self.lengths:
             total += length
             self.cumulative_lengths.append(total)
+        
+        # Check the first sample from all dataset to ensure they all have the same keys
+        sample_keys = None
+        for i, (dataset, transform) in enumerate(zip(self.datasets, self.transforms)):
+            if len(dataset) == 0:
+                continue  # Skip empty datasets
+            sample = transform(dataset[0])
+            if isinstance(sample, tuple):  # (uid, data_dict)
+                _, sample = sample
+            keys = set(sample.keys())
+            if sample_keys is None:
+                sample_keys = keys
+            else:
+                assert keys == sample_keys, (
+                    f"Inconsistent output keys in dataset {i}: "
+                    f"{keys} != {sample_keys}"
+                )
 
     def __len__(self):
         return self.cumulative_lengths[-1] if self.cumulative_lengths else 0
@@ -73,7 +91,10 @@ class CombinedDataset:
             if idx < cum_len:
                 ds_idx = idx if i == 0 else idx - self.cumulative_lengths[i - 1]
                 sample = self.datasets[i][ds_idx]
-                return (str(idx), self.transforms[i](sample))
+                if self.add_uid:
+                    return (str(idx), self.transforms[i](sample))
+                else:
+                    return self.transforms[i](sample)
         raise IndexError("Index out of range in CombinedDataset")
 
 
@@ -111,6 +132,7 @@ class DataOrganizer:
         preprocessor: Optional[Callable[[dict], dict]] = None
     ):
         self.preprocessor = preprocessor or (lambda x: x)
+        is_espnet_preprocessor = isinstance(self.preprocessor, AbsPreprocessor)
 
         def build_dataset_list(cfg_list):
             datasets = []
@@ -122,14 +144,14 @@ class DataOrganizer:
                 else:
                     transform = lambda x: x
                 
-                if isinstance(self.preprocessor, AbsPreprocessor):
+                if is_espnet_preprocessor:
                     # Then extract the utt id and the data
                     wrapped_transform = lambda x, t=transform, p=self.preprocessor: p(*t(x))
                 else:
                     wrapped_transform = lambda x, t=transform, p=self.preprocessor: p(t(x))
                 datasets.append(dataset)
                 transforms.append(wrapped_transform)
-            return CombinedDataset(datasets, transforms)
+            return CombinedDataset(datasets, transforms, add_uid=is_espnet_preprocessor)
 
         self.train = build_dataset_list(train)
         self.valid = build_dataset_list(valid)
@@ -174,4 +196,7 @@ class DatasetWithTransform:
 
     def __getitem__(self, idx):
         return (str(idx), self.transform(self.dataset[idx]))
+    
+    def __call__(self, idx):
+        return self.__getitem__(idx)
 
