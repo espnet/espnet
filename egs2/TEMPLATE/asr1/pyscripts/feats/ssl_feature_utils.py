@@ -318,11 +318,11 @@ class ESPnetHubertFeatureReader(BaseFeatureReader):
         self,
         hubert_model_path,
         layer,
-        sample_rate=16000,
+        audio_sample_rate=16000,
         max_chunk=1600000,
         use_gpu=True,
     ):
-        self.sample_rate = sample_rate
+        self.sample_rate = audio_sample_rate
 
         self.device = "cuda" if use_gpu and torch.cuda.is_available() else "cpu"
         from espnet2.tasks.ssl import SSLTask
@@ -353,9 +353,11 @@ class ESPnetHubertFeatureReader(BaseFeatureReader):
             x_lens = x_lens.to(self.device)
 
             with torch.no_grad():
-                feats, mask_info, pen = self.model.encode(x, x_lens, use_mask=False)
-            feats = feats[self.layer].cpu()  # (batchsize, time, feat_dim)
-        return feats, x_lens // 320
+                last_feat, feats, x_lens = self.model.inference_encode(x, x_lens)
+                feats[-1] = last_feat  # the last layer is normed.
+                feats = feats[self.layer]
+
+        return feats, x_lens
 
 
 class S3PRLFeatureReader(BaseFeatureReader):

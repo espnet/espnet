@@ -179,7 +179,7 @@ def dump_label(
                 )
 
                 for idx, utt in enumerate(utt_ids):
-                    lab = apply_kmeans(feats[idx][: feats_lens[idx]].numpy())
+                    lab = apply_kmeans(feats[idx][: feats_lens[idx]])
                     writer[utt] = lab.astype(np.int32)
 
     logger.info("finished successfully")

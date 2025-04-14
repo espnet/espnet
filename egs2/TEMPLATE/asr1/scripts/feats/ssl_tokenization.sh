@@ -98,7 +98,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     rspecifier="scp:${tgt_dir}/logdir/${file_name}.JOB.scp"
     wspecifier="ark,scp:${output_dir}/${file_name}_ssl_${ssl_choice}.JOB.ark,${output_dir}/${file_name}_ssl_${ssl_choice}.JOB.scp"
     if [ "${ssl_choice}" == "espnet_hubert" ]; then
-        feature_conf="{type=${ssl_choice},conf={sample_rate=${fs},hubert_model_path=${checkpoint_path},layer=${nlayer}}}" \
+        feature_conf="{type=${ssl_choice},conf={hubert_model_path=${checkpoint_path},layer=${nlayer}}}" \
 
     elif [ "${ssl_choice}" == "s3prl" ]; then
         s3prl_conf="{upstream=${ssl_feature_type}}"

@@ -408,7 +408,7 @@ class ConvolutionalPositionalEmbedding(torch.nn.Module):
         num_layers: int = 1,
         kernel_size: int = 128,
         groups: int = 16,
-        weight_norm: str = "new",
+        weight_norm: str = "legacy",
     ):
         super().__init__()
         self.embed_dim = embed_dim
