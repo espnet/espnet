@@ -11,9 +11,9 @@ from typing import Any, Dict, List, Optional
 
 import numpy as np
 import torch
-import torchaudio
 import torch.nn as nn
 import torch.nn.functional as F
+import torchaudio
 from typeguard import typechecked
 
 from espnet2.gan_codec.abs_gan_codec import AbsGANCodec
@@ -39,7 +39,6 @@ class SemanticDAC(AbsGANCodec):
     def __init__(
         self,
         sampling_rate: int = 24000,
-
         generator_params: Dict[str, Any] = {
             "hidden_dim": 128,
             "semantic_dim": 768,
@@ -144,7 +143,7 @@ class SemanticDAC(AbsGANCodec):
         lambda_adv: float = 1.0,
         lambda_feat_match: float = 2.0,
         lambda_mel: float = 45.0,
-        lambda_semantic: float =1.0,
+        lambda_semantic: float = 1.0,
         cache_generator_outputs: bool = False,
     ):
         """Intialize DAC model.
@@ -273,13 +272,21 @@ class SemanticDAC(AbsGANCodec):
         reuse_cache = True
         if not self.cache_generator_outputs or self._cache is None:
             reuse_cache = False
-            audio_hat, codec_commit_loss, quantization_loss, semantic_loss, audio_hat_real = (
-                self.generator(audio, use_dual_decoder=self.use_dual_decoder)
-            )
+            (
+                audio_hat,
+                codec_commit_loss,
+                quantization_loss,
+                semantic_loss,
+                audio_hat_real,
+            ) = self.generator(audio, use_dual_decoder=self.use_dual_decoder)
         else:
-            audio_hat, codec_commit_loss, quantization_loss, semantic_loss, audio_hat_real = (
-                self._cache
-            )
+            (
+                audio_hat,
+                codec_commit_loss,
+                quantization_loss,
+                semantic_loss,
+                audio_hat_real,
+            ) = self._cache
 
         # store cache
         if self.training and self.cache_generator_outputs and not reuse_cache:
@@ -374,16 +381,24 @@ class SemanticDAC(AbsGANCodec):
         reuse_cache = True
         if not self.cache_generator_outputs or self._cache is None:
             reuse_cache = False
-            audio_hat, codec_commit_loss, codec_quantization_loss, semantic_loss,  audio_hat_real = (
-                self.generator(
-                    audio,
-                    use_dual_decoder=self.use_dual_decoder,
-                )
+            (
+                audio_hat,
+                codec_commit_loss,
+                codec_quantization_loss,
+                semantic_loss,
+                audio_hat_real,
+            ) = self.generator(
+                audio,
+                use_dual_decoder=self.use_dual_decoder,
             )
         else:
-            audio_hat, codec_commit_loss, codec_quantization_loss, semantic_loss, audio_hat_real = (
-                self._cache
-            )
+            (
+                audio_hat,
+                codec_commit_loss,
+                codec_quantization_loss,
+                semantic_loss,
+                audio_hat_real,
+            ) = self._cache
 
         # store cache
         if self.cache_generator_outputs and not reuse_cache:
@@ -656,7 +671,9 @@ class SemanticDACGenerator(nn.Module):
                 if self.semantic_layer == -1:
                     semantic = torch.stack(semantic).mean(dim=0)
                 else:
-                    assert self.semantic_layer < len(semantic), "semantic layer out of range"
+                    assert self.semantic_layer < len(
+                        semantic
+                    ), "semantic layer out of range"
                     semantic = semantic[self.semantic_layer]
 
         encoder_out = self.encoder(x)

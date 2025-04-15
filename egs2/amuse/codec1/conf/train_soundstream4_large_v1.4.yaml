@@ -132,11 +132,11 @@ generator_first: true # whether to start updating generator first
 num_iters_per_epoch: 5000 # number of iterations per epoch
 max_epoch: 360              # number of epochs
 accum_grad: 1             # gradient accumulation
-batch_size: 128 
+batch_size: 128
 batch_type: unsorted      # how to make batch
 
 iterator_type: chunk
-chunk_length: 32000 
+chunk_length: 32000
 num_cache_chunks: 128
 
 grad_clip: -1             # gradient clipping norm
