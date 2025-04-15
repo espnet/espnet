@@ -13,7 +13,7 @@ mask_conf_2 = {'mask_length': 2}
 @pytest.mark.parametrize("freeze_encoder_steps", [0, 10])
 @pytest.mark.parametrize("mask_feats", [True, False])
 @pytest.mark.parametrize("use_final_output", [True, False])
-@pytest.mark.timeout(50) 
+@pytest.mark.execution_timeout(10)
 def test_frontend_backward(
     model, 
     masking_conf,
