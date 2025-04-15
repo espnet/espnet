@@ -13,6 +13,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.autograd.function import InplaceFunction
 from typeguard import typechecked
 from vector_quantize_pytorch import FSQ
 
@@ -31,12 +32,13 @@ from espnet2.gan_tts.hifigan.loss import (
 )
 from espnet2.torch_utils.device_funcs import force_gatherable
 
-from torch.autograd.function import InplaceFunction
+
 class round_func3(InplaceFunction):
     @staticmethod
     def forward(ctx, input):
         ctx.input = input
-        return torch.round(3*input)/3
+        return torch.round(3 * input) / 3
+
     @staticmethod
     def backward(ctx, grad_output):
         grad_input = grad_output.clone()
@@ -44,7 +46,7 @@ class round_func3(InplaceFunction):
 
 
 class FSQDAC(AbsGANCodec):
-    """ FSQDAC model."""
+    """FSQDAC model."""
 
     @typechecked
     def __init__(
@@ -200,7 +202,8 @@ class FSQDAC(AbsGANCodec):
             lambda x, y: x * y, generator_params["encdec_ratios"]
         )
         self.code_size_per_stream = [
-            math.prod(generator_params["quantizer_codedim"]) * generator_params["quantizer_n_q"]
+            math.prod(generator_params["quantizer_codedim"])
+            * generator_params["quantizer_n_q"]
         ] * self.num_streams
 
     def meta_info(self) -> Dict[str, Any]:
@@ -270,13 +273,11 @@ class FSQDAC(AbsGANCodec):
         reuse_cache = True
         if not self.cache_generator_outputs or self._cache is None:
             reuse_cache = False
-            audio_hat, quantization_loss, audio_hat_real = (
-                self.generator(audio, use_dual_decoder=self.use_dual_decoder)
+            audio_hat, quantization_loss, audio_hat_real = self.generator(
+                audio, use_dual_decoder=self.use_dual_decoder
             )
         else:
-            audio_hat, quantization_loss, audio_hat_real = (
-                self._cache
-            )
+            audio_hat, quantization_loss, audio_hat_real = self._cache
 
         # store cache
         if self.training and self.cache_generator_outputs and not reuse_cache:
@@ -301,14 +302,18 @@ class FSQDAC(AbsGANCodec):
         adv_loss = adv_loss * self.lambda_adv
         if self.skip_quantizer_updates <= self.num_updates and self.use_dual_decoder:
             reconstruct_loss = (
-                self.generator_reconstruct_loss(audio, audio_hat) * self.lambda_reconstruct
-                )
+                self.generator_reconstruct_loss(audio, audio_hat)
+                * self.lambda_reconstruct
+            )
         else:
-            reconstruct_loss = self.generator_reconstruct_loss(audio, audio_hat_real) * self.lambda_reconstruct
+            reconstruct_loss = (
+                self.generator_reconstruct_loss(audio, audio_hat_real)
+                * self.lambda_reconstruct
+            )
         loss = adv_loss + reconstruct_loss
         stats = dict(
             adv_loss=adv_loss.item(),
-            codec_quantization_loss=quantization_loss.item(), # just for refernece, no gradient
+            codec_quantization_loss=quantization_loss.item(),  # just for refernece, no gradient
             reconstruct_loss=reconstruct_loss.item(),
         )
         if self.use_feat_match_loss:
@@ -317,7 +322,9 @@ class FSQDAC(AbsGANCodec):
             loss = loss + feat_match_loss
             stats.update(feat_match_loss=feat_match_loss.item())
         if self.use_mel_loss:
-            assert self.skip_quantizer_updates > self.num_updates or self.use_dual_decoder, "skip quantizer must be with dual decoder"
+            assert (
+                self.skip_quantizer_updates > self.num_updates or self.use_dual_decoder
+            ), "skip quantizer must be with dual decoder"
             if self.skip_quantizer_updates <= self.num_updates:
                 mel_loss = self.mel_loss(audio_hat, audio)
                 mel_loss = self.lambda_mel * mel_loss
@@ -374,16 +381,12 @@ class FSQDAC(AbsGANCodec):
         reuse_cache = True
         if not self.cache_generator_outputs or self._cache is None:
             reuse_cache = False
-            audio_hat, codec_quantization_loss, audio_hat_real = (
-                self.generator(
-                    audio,
-                    use_dual_decoder=self.use_dual_decoder,
-                )
+            audio_hat, codec_quantization_loss, audio_hat_real = self.generator(
+                audio,
+                use_dual_decoder=self.use_dual_decoder,
             )
         else:
-            audio_hat, codec_quantization_loss, audio_hat_real = (
-                self._cache
-            )
+            audio_hat, codec_quantization_loss, audio_hat_real = self._cache
 
         # store cache
         if self.cache_generator_outputs and not reuse_cache:
