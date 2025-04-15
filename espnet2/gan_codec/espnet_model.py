@@ -4,7 +4,7 @@
 """GAN-based neural codec ESPnet model."""
 
 from contextlib import contextmanager
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import torch
 from packaging.version import parse as V

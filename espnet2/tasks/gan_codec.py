@@ -4,18 +4,21 @@
 """GAN-based neural codec task."""
 
 import argparse
+import logging
 from typing import Callable, Collection, Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
 from typeguard import typechecked
 
-from espnet2.gan_codec.abs_gan_codec import AbsGANCodec  # noqa
+from espnet2.gan_codec.abs_gan_codec import AbsGANCodec
 from espnet2.gan_codec.dac.dac import DAC
 from espnet2.gan_codec.encodec.encodec import Encodec
 from espnet2.gan_codec.espnet_model import ESPnetGANCodecModel
 from espnet2.gan_codec.funcodec.funcodec import FunCodec
 from espnet2.gan_codec.soundstream.soundstream import SoundStream
+from espnet2.gan_codec.fsq_dac.fsq_dac import FSQDAC
+from espnet2.gan_codec.semantic_dac.semantic_dac import SemanticDAC
 from espnet2.tasks.abs_task import AbsTask, optim_classes
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
@@ -23,7 +26,7 @@ from espnet2.train.gan_trainer import GANTrainer
 from espnet2.train.preprocessor import CommonPreprocessor
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
-from espnet2.utils.types import int_or_none, str2bool, str_or_none  # noqa
+from espnet2.utils.types import int_or_none, str2bool, str_or_none
 
 codec_choices = ClassChoices(
     "codec",
@@ -32,6 +35,8 @@ codec_choices = ClassChoices(
         encodec=Encodec,
         dac=DAC,
         funcodec=FunCodec,
+        fsq_dac=FSQDAC,
+        semantic_dac=SemanticDAC
     ),
     default="soundstream",
 )
@@ -60,7 +65,7 @@ class GANCodecTask(AbsTask):
 
         # NOTE(kamo): add_arguments(..., required=True) can't be used
         # to provide --print_config mode. Instead of it, do as
-        required = parser.get_default("required")  # noqa
+        required = parser.get_default("required")
 
         group.add_argument(
             "--model_conf",
