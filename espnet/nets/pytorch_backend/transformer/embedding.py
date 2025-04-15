@@ -11,7 +11,9 @@ import math
 
 import torch
 from packaging.version import parse as V
+
 from espnet2.asr.frontend.cnn import dim_1_layer_norm
+
 
 def _pre_hook(
     state_dict,
@@ -399,7 +401,7 @@ class ConvolutionalPositionalEmbedding(torch.nn.Module):
         num_layers (int): number of conv layers
         kernel_size (int): The number of frames to be use.
         groups (int): The number of groups in feature dimensions.
-        weight_norm (str): [new, legacy, none]. 
+        weight_norm (str): [new, legacy, none].
             How to init conv weights. Recommended setting is
             none if num_layers > 1.
     """
@@ -413,7 +415,7 @@ class ConvolutionalPositionalEmbedding(torch.nn.Module):
         kernel_size: int = 128,
         groups: int = 16,
         weight_norm: str = "new",
-        use_residual: bool = False
+        use_residual: bool = False,
     ):
         super().__init__()
         self.embed_dim = embed_dim
@@ -434,7 +436,7 @@ class ConvolutionalPositionalEmbedding(torch.nn.Module):
                 std = math.sqrt((4 * (1.0)) / (kernel_size * embed_dim))
                 torch.nn.init.normal_(conv.weight, mean=0, std=std)
                 torch.nn.init.constant_(conv.bias, 0)
-                # torch.nn.utils.weight_norm leads to weird behavior 
+                # torch.nn.utils.weight_norm leads to weird behavior
                 # with copy.deepcopy(). Usually isnt needed,
                 # but its important for models that use EMA
                 if weight_norm == "new":
@@ -493,9 +495,9 @@ class ConvolutionalPositionalEmbedding(torch.nn.Module):
 
             # manually normalize if the conv is not parameterized
             # with weight norm
-            if self.weight_norm is None or self.weight_norm == 'none':
+            if self.weight_norm is None or self.weight_norm == "none":
                 x = dim_1_layer_norm(x)
-                
+
         x = x.transpose(-2, -1)
 
         if self.use_residual:
