@@ -6,6 +6,9 @@
 import pytest
 import torch
 
+# Import the actual S3PRLUpstream for testing
+from s3prl.nn import S3PRLUpstream
+
 from espnet2.gan_codec.semantic_dac.semantic_dac import (
     SemanticDAC,
     SemanticDACGenerator,
@@ -16,9 +19,6 @@ from espnet2.gan_tts.hifigan.loss import (
     FeatureMatchLoss,
     GeneratorAdversarialLoss,
 )
-
-# Import the actual S3PRLUpstream for testing
-from s3prl.nn import S3PRLUpstream
 
 # Import the actual HubertTask for espnet semantic model testing
 # Note: Actual import is only used if tests are run with semantic_type="espnet"
