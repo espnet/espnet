@@ -6,7 +6,10 @@
 import pytest
 import torch
 
-from espnet2.gan_codec.semantic_dac.semantic_dac import SemanticDAC, SemanticDACGenerator
+from espnet2.gan_codec.semantic_dac.semantic_dac import (
+    SemanticDAC,
+    SemanticDACGenerator,
+)
 from espnet2.gan_codec.shared.loss.freq_loss import MultiScaleMelSpectrogramLoss
 from espnet2.gan_tts.hifigan.loss import (
     DiscriminatorAdversarialLoss,
@@ -151,27 +154,41 @@ def test_semantic_dac_generator(
     batch_size = 2
     batch_length = 128
     args_g = make_generator_args(**dict_g)
-    
+
     # Create input tensor
     x = torch.randn(batch_size, 1, batch_length)
-    
+
     # Initialize model
     model_g = SemanticDACGenerator(**args_g)
-    
+
     # Test forward pass
-    y_hat, commit_loss, quant_loss, semantic_loss, y_hat_real = model_g(x, use_dual_decoder=True)
-    
+    y_hat, commit_loss, quant_loss, semantic_loss, y_hat_real = model_g(
+        x, use_dual_decoder=True
+    )
+
     # Validate output shapes
-    assert y_hat.shape == x.shape, f"Output shape {y_hat.shape} doesn't match input shape {x.shape}"
-    assert commit_loss.numel() == 1, f"Commit loss should be a scalar, got shape {commit_loss.shape}"
-    assert quant_loss.numel() == 1, f"Quantization loss should be a scalar, got shape {quant_loss.shape}"
-    assert semantic_loss.numel() == 1, f"Semantic loss should be a scalar, got shape {semantic_loss.shape}"
-    assert y_hat_real.shape == x.shape, f"Dual decoder output shape {y_hat_real.shape} doesn't match input shape {x.shape}"
-    
+    assert (
+        y_hat.shape == x.shape
+    ), f"Output shape {y_hat.shape} doesn't match input shape {x.shape}"
+    assert (
+        commit_loss.numel() == 1
+    ), f"Commit loss should be a scalar, got shape {commit_loss.shape}"
+    assert (
+        quant_loss.numel() == 1
+    ), f"Quantization loss should be a scalar, got shape {quant_loss.shape}"
+    assert (
+        semantic_loss.numel() == 1
+    ), f"Semantic loss should be a scalar, got shape {semantic_loss.shape}"
+    assert (
+        y_hat_real.shape == x.shape
+    ), f"Dual decoder output shape {y_hat_real.shape} doesn't match input shape {x.shape}"
+
     # Test encode/decode
     codes = model_g.encode(x)
     x_hat = model_g.decode(codes)
-    assert x_hat.shape == x.shape, f"Decoded shape {x_hat.shape} doesn't match input shape {x.shape}"
+    assert (
+        x_hat.shape == x.shape
+    ), f"Decoded shape {x_hat.shape} doesn't match input shape {x.shape}"
 
 
 @pytest.mark.skipif(
@@ -204,10 +221,10 @@ def test_semantic_dac(
     args_g = make_generator_args(**dict_g)
     args_d = make_discriminator_args(**dict_d)
     args_loss = make_mel_loss_args(**dict_loss)
-    
+
     # Create input audio tensor
     y = torch.randn(batch_size, batch_length)
-    
+
     # Initialize models and loss functions
     model = SemanticDAC(
         sampling_rate=120,
@@ -233,7 +250,7 @@ def test_semantic_dac(
         lambda_semantic=1.0,
         cache_generator_outputs=cache_outputs,
     )
-    
+
     # Create optimizers
     optimizer_g = torch.optim.AdamW(
         [p for p in model.generator.parameters() if p.requires_grad]
@@ -241,56 +258,58 @@ def test_semantic_dac(
     optimizer_d = torch.optim.AdamW(
         [p for p in model.discriminator.parameters() if p.requires_grad]
     )
-    
+
     # Test generator forward path
     gen_output = model(y, forward_generator=True)
-    
+
     # Validate generator output dictionary structure
     assert "loss" in gen_output, "Generator output should contain 'loss'"
     assert "stats" in gen_output, "Generator output should contain 'stats'"
     assert "weight" in gen_output, "Generator output should contain 'weight'"
     assert "optim_idx" in gen_output, "Generator output should contain 'optim_idx'"
     assert gen_output["optim_idx"] == 0, "Generator optim_idx should be 0"
-    
+
     # Test generator optimization
     loss_g = gen_output["loss"]
     optimizer_g.zero_grad()
     loss_g.backward()
     optimizer_g.step()
-    
+
     # Test discriminator forward path
     disc_output = model(y, forward_generator=False)
-    
+
     # Validate discriminator output dictionary structure
     assert "loss" in disc_output, "Discriminator output should contain 'loss'"
     assert "stats" in disc_output, "Discriminator output should contain 'stats'"
     assert "weight" in disc_output, "Discriminator output should contain 'weight'"
     assert "optim_idx" in disc_output, "Discriminator output should contain 'optim_idx'"
     assert disc_output["optim_idx"] == 1, "Discriminator optim_idx should be 1"
-    
+
     # Test discriminator optimization
     loss_d = disc_output["loss"]
     optimizer_d.zero_grad()
     loss_d.backward()
     optimizer_d.step()
-    
+
     # Test inference methods
     x = torch.randn(batch_length).view(1, 1, -1)
     output = model.inference(x)
-    
+
     assert "wav" in output, "Inference output should contain 'wav'"
     assert "codec" in output, "Inference output should contain 'codec'"
-    
+
     # Test encode/decode methods
     codec = model.encode(x)
     wav = model.decode(codec)
-    
+
     # Check model meta_info
     meta = model.meta_info()
     assert "fs" in meta, "Meta info should contain 'fs'"
     assert "num_streams" in meta, "Meta info should contain 'num_streams'"
     assert "frame_shift" in meta, "Meta info should contain 'frame_shift'"
-    assert "code_size_per_stream" in meta, "Meta info should contain 'code_size_per_stream'"
+    assert (
+        "code_size_per_stream" in meta
+    ), "Meta info should contain 'code_size_per_stream'"
 
 
 @pytest.mark.skipif(
@@ -312,21 +331,21 @@ def test_semantic_loss_calculation(
     """Test semantic loss calculation under different loss types."""
     batch_size = 2
     batch_length = 128
-    
+
     # Create generator args with specific semantic config
     args_g = make_generator_args(
         semantic_loss=semantic_loss,
     )
-    
+
     # Create input tensor
     x = torch.randn(batch_size, 1, batch_length)
-    
+
     # Initialize model
     model_g = SemanticDACGenerator(**args_g)
-    
+
     # Test forward pass
     _, _, _, semantic_loss_value, _ = model_g(x, use_dual_decoder=False)
-    
+
     # Verify loss calculation worked
     assert semantic_loss_value.numel() == 1, "Semantic loss should be a scalar"
     assert not torch.isnan(semantic_loss_value), "Semantic loss should not be NaN"

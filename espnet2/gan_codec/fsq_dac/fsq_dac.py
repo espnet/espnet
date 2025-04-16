@@ -31,29 +31,33 @@ from espnet2.torch_utils.device_funcs import force_gatherable
 
 class CustomRoundFunc(InplaceFunction):
     """Custom rounding function for the finite scalar quantization.
-    
-    Rounds input * factor and divides by factor - creating a quantization with steps of 1/factor.
-    Maintains gradient flow during backpropagation using straight-through estimator.
-    
+
+    Rounds input * factor and divides by factor - creating a
+        quantization with steps of 1/factor.
+    Maintains gradient flow during backpropagation using
+        straight-through estimator.
+
     Attributes:
-        factor (float): The quantization factor that determines step size (default: 3.0).
+        factor (float): The quantization factor that determines step size
+                        (default: 3.0).
     """
+
     factor = 3.0  # Default factor
-    
+
     @staticmethod
     def forward(ctx, input):
         """Forward pass of custom rounding function.
-        
+
         Args:
             ctx: Context object for storing information for backward pass
             input (torch.Tensor): Input tensor to be quantized
-            
+
         Returns:
             torch.Tensor: Quantized tensor (rounded to 1/factor precision)
         """
         # Store input for backward pass
         ctx.save_for_backward(input)
-        
+
         # Apply quantization with current factor
         factor = CustomRoundFunc.factor
         return torch.round(factor * input) / factor
@@ -61,35 +65,36 @@ class CustomRoundFunc(InplaceFunction):
     @staticmethod
     def backward(ctx, grad_output):
         """Backward pass of custom rounding function using straight-through estimator.
-        
+
         Args:
             ctx: Context object containing stored tensors
             grad_output (torch.Tensor): Gradient from subsequent layers
-            
+
         Returns:
             torch.Tensor: Gradient propagated through the operation
         """
         # Straight-through estimator for gradient
         return grad_output.clone()
-    
+
     @staticmethod
     def set_factor(new_factor: float) -> None:
         """Set quantization factor for all instances of this quantizer.
-        
+
         Args:
-            new_factor (float): New quantization factor. Higher values create finer quantization.
-            
+            new_factor (float): New quantization factor.
+                                Higher values create finer quantization.
+
         Raises:
             ValueError: If quantization factor is not positive
         """
         if new_factor <= 0:
             raise ValueError("Quantization factor must be positive")
         CustomRoundFunc.factor = float(new_factor)
-        
+
     @staticmethod
     def get_factor() -> float:
         """Get current quantization factor.
-        
+
         Returns:
             float: Current quantization factor.
         """
@@ -98,7 +103,7 @@ class CustomRoundFunc(InplaceFunction):
 
 class FSQDAC(AbsGANCodec):
     """Finite Scalar Quantization Deep Audio Codec (FSQ-DAC) model.
-    
+
     This class implements a neural audio codec that uses finite scalar quantization
     for compressing audio representations. The model consists of an encoder-decoder
     architecture with an adversarial discriminator for improved audio quality.
@@ -203,15 +208,19 @@ class FSQDAC(AbsGANCodec):
         cache_generator_outputs: bool = False,
     ):
         """Initialize FSQDAC model.
-        
+
         Args:
             sampling_rate (int): Audio sampling rate in Hz.
             generator_params (Dict[str, Any]): Parameters for the generator model.
-            discriminator_params (Dict[str, Any]): Parameters for the discriminator model.
-            generator_adv_loss_params (Dict[str, Any]): Parameters for generator adversarial loss.
-            discriminator_adv_loss_params (Dict[str, Any]): Parameters for discriminator adversarial loss.
+            discriminator_params (Dict[str, Any]):
+                Parameters for the discriminator model.
+            generator_adv_loss_params (Dict[str, Any]):
+                Parameters for generator adversarial loss.
+            discriminator_adv_loss_params (Dict[str, Any]):
+                Parameters for discriminator adversarial loss.
             use_feat_match_loss (bool): Whether to use feature matching loss.
-            feat_match_loss_params (Dict[str, Any]): Parameters for feature matching loss.
+            feat_match_loss_params (Dict[str, Any]):
+                Parameters for feature matching loss.
             use_mel_loss (bool): Whether to use mel-spectrogram reconstruction loss.
             mel_loss_params (Dict[str, Any]): Parameters for mel-spectrogram loss.
             use_dual_decoder (bool): Whether to use dual decoder approach.
@@ -226,31 +235,35 @@ class FSQDAC(AbsGANCodec):
         super().__init__()
 
         # Define modules
-        generator_params = dict(generator_params)  # Create a copy to avoid modifying the original
+        generator_params = dict(
+            generator_params
+        )  # Create a copy to avoid modifying the original
         generator_params["sample_rate"] = sampling_rate
         self.generator = DACGenerator(**generator_params)
         self.discriminator = DACDiscriminator(**discriminator_params)
-        
+
         # Define losses
         self.generator_adv_loss = GeneratorAdversarialLoss(**generator_adv_loss_params)
-        self.discriminator_adv_loss = DiscriminatorAdversarialLoss(**discriminator_adv_loss_params)
+        self.discriminator_adv_loss = DiscriminatorAdversarialLoss(
+            **discriminator_adv_loss_params
+        )
         self.generator_reconstruct_loss = nn.L1Loss(reduction="mean")
-        
+
         # Training configuration
         self.skip_quantizer_updates = skip_quantizer_updates
         self.register_buffer("num_updates", torch.zeros(1, dtype=torch.long))
-        
+
         # Optional loss components
         self.use_feat_match_loss = use_feat_match_loss
         if self.use_feat_match_loss:
             self.feat_match_loss = FeatureMatchLoss(**feat_match_loss_params)
-            
+
         self.use_mel_loss = use_mel_loss
         if self.use_mel_loss:
             mel_loss_params = dict(mel_loss_params)  # Create a copy
             mel_loss_params["fs"] = sampling_rate
             self.mel_loss = MultiScaleMelSpectrogramLoss(**mel_loss_params)
-            
+
         self.use_dual_decoder = use_dual_decoder
         if self.use_dual_decoder and not self.use_mel_loss:
             raise ValueError("Dual decoder requires Mel loss to be enabled")
@@ -274,12 +287,13 @@ class FSQDAC(AbsGANCodec):
         )
         self.quantizer_factor = generator_params["quantizer_factor"]
         self.code_size_per_stream = [
-            generator_params["quantizer_factor"] ** generator_params["quantizer_codedim"]
+            generator_params["quantizer_factor"]
+            ** generator_params["quantizer_codedim"]
         ]
 
     def meta_info(self) -> Dict[str, Any]:
         """Return metadata about the model.
-        
+
         Returns:
             Dict[str, Any]: Dictionary containing metadata.
         """
@@ -298,11 +312,11 @@ class FSQDAC(AbsGANCodec):
         **kwargs,
     ) -> Dict[str, Any]:
         """Perform model forward pass.
-        
+
         Args:
             audio (torch.Tensor): Audio waveform tensor (B, T_wav).
             forward_generator (bool): Whether to forward generator or discriminator.
-            
+
         Returns:
             Dict[str, Any]:
                 - loss (torch.Tensor): Loss scalar tensor.
@@ -321,10 +335,10 @@ class FSQDAC(AbsGANCodec):
         **kwargs,
     ) -> Dict[str, Any]:
         """Perform generator forward pass.
-        
+
         Args:
             audio (torch.Tensor): Audio waveform tensor (B, T_wav).
-            
+
         Returns:
             Dict[str, Any]:
                 - loss (torch.Tensor): Loss scalar tensor.
@@ -342,7 +356,7 @@ class FSQDAC(AbsGANCodec):
             audio_hat, quantization_loss, audio_hat_real = self.generator(
                 audio, use_dual_decoder=self.use_dual_decoder
             )
-            
+
             # Store cache if enabled during training
             if self.training and self.cache_generator_outputs:
                 self._cache = (audio_hat, quantization_loss, audio_hat_real)
@@ -351,7 +365,11 @@ class FSQDAC(AbsGANCodec):
 
         # Determine which audio reconstruction to use based on training phase
         is_quantizer_active = self.skip_quantizer_updates <= self.num_updates
-        target_audio = audio_hat if (is_quantizer_active and self.use_dual_decoder) else audio_hat_real
+        target_audio = (
+            audio_hat
+            if (is_quantizer_active and self.use_dual_decoder)
+            else audio_hat_real
+        )
 
         # Calculate discriminator outputs
         p_hat = self.discriminator(target_audio)
@@ -361,35 +379,41 @@ class FSQDAC(AbsGANCodec):
 
         # Calculate losses
         adv_loss = self.generator_adv_loss(p_hat) * self.lambda_adv
-        reconstruct_loss = self.generator_reconstruct_loss(audio, target_audio) * self.lambda_reconstruct
-        
+        reconstruct_loss = (
+            self.generator_reconstruct_loss(audio, target_audio)
+            * self.lambda_reconstruct
+        )
+
         # Initialize total loss and statistics
         loss = adv_loss + reconstruct_loss
         stats = {
             "adv_loss": adv_loss.item(),
-            "codec_quantization_loss": quantization_loss.item(),  # Just for reference, no gradient
+            "codec_quantization_loss": quantization_loss.item(),  # no gradient
             "reconstruct_loss": reconstruct_loss.item(),
         }
-        
+
         # Add feature matching loss if enabled
         if self.use_feat_match_loss:
             feat_match_loss = self.feat_match_loss(p_hat, p) * self.lambda_feat_match
             loss = loss + feat_match_loss
             stats["feat_match_loss"] = feat_match_loss.item()
-            
+
         # Add mel-spectrogram loss if enabled
         if self.use_mel_loss:
             # Ensure model is in the correct training phase if using the dual decoder
             if not self.use_dual_decoder and not is_quantizer_active:
-                raise ValueError("Skip quantizer updates must be used with dual decoder")
-            
+                raise ValueError(
+                    "Skip quantizer updates must be used with dual decoder"
+                )
+
             # Mel loss for quantized reconstruction
             if is_quantizer_active:
                 mel_loss = self.mel_loss(audio_hat, audio) * self.lambda_mel
                 loss = loss + mel_loss
                 stats["mel_loss"] = mel_loss.item()
-                
-            # Mel loss for direct reconstruction (used in early training or with dual decoder)
+
+            # Mel loss for direct reconstruction
+            #    (used in early training or with dual decoder)
             if self.use_dual_decoder:
                 mel_loss_real = self.mel_loss(audio_hat_real, audio) * self.lambda_mel
                 loss = loss + mel_loss_real
@@ -397,20 +421,20 @@ class FSQDAC(AbsGANCodec):
                 # Use mel_loss_real as mel_loss if mel_loss not already set
                 if "mel_loss" not in stats:
                     stats["mel_loss"] = mel_loss_real.item()
-                    
+
         # Increment update counter
         self.num_updates += 1
-        
+
         # Add total loss to stats
         stats["loss"] = loss.item()
-        
+
         # Make loss, stats, and weight gatherable across devices
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
-        
+
         # Reset cache if needed
         if reuse_cache or not self.training:
             self._cache = None
-            
+
         return {
             "loss": loss,
             "stats": stats,
@@ -424,10 +448,10 @@ class FSQDAC(AbsGANCodec):
         **kwargs,
     ) -> Dict[str, Any]:
         """Perform discriminator forward pass.
-        
+
         Args:
             audio (torch.Tensor): Audio waveform tensor (B, T_wav).
-            
+
         Returns:
             Dict[str, Any]:
                 - loss (torch.Tensor): Loss scalar tensor.
@@ -438,46 +462,50 @@ class FSQDAC(AbsGANCodec):
         # Setup
         batch_size = audio.size(0)
         audio = audio.unsqueeze(1)  # Add channel dimension (B, 1, T_wav)
-        
+
         # Calculate generator outputs
         reuse_cache = self.cache_generator_outputs and self._cache is not None
         if not reuse_cache:
             audio_hat, codec_quantization_loss, audio_hat_real = self.generator(
                 audio, use_dual_decoder=self.use_dual_decoder
             )
-            
+
             # Store cache if enabled
             if self.cache_generator_outputs:
                 self._cache = (audio_hat, codec_quantization_loss, audio_hat_real)
         else:
             audio_hat, codec_quantization_loss, audio_hat_real = self._cache
-            
+
         # Determine which audio reconstruction to use based on training phase
         is_quantizer_active = self.skip_quantizer_updates <= self.num_updates
-        target_audio = audio_hat if (is_quantizer_active and self.use_dual_decoder) else audio_hat_real
-        
+        target_audio = (
+            audio_hat
+            if (is_quantizer_active and self.use_dual_decoder)
+            else audio_hat_real
+        )
+
         # Calculate discriminator outputs (detach generator outputs)
         p_hat = self.discriminator(target_audio.detach())
         p = self.discriminator(audio)
-        
+
         # Calculate losses
         real_loss, fake_loss = self.discriminator_adv_loss(p_hat, p)
         loss = real_loss + fake_loss
-        
+
         # Collect statistics
         stats = {
             "discriminator_loss": loss.item(),
             "real_loss": real_loss.item(),
             "fake_loss": fake_loss.item(),
         }
-        
+
         # Make loss, stats, and weight gatherable across devices
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
-        
+
         # Reset cache if needed
         if reuse_cache or not self.training:
             self._cache = None
-            
+
         return {
             "loss": loss,
             "stats": stats,
@@ -491,11 +519,11 @@ class FSQDAC(AbsGANCodec):
         **kwargs,
     ) -> Dict[str, torch.Tensor]:
         """Run inference.
-        
+
         Args:
             x (torch.Tensor): Input audio (T_wav,).
             **kwargs: Additional keyword arguments.
-            
+
         Returns:
             Dict[str, torch.Tensor]:
                 * wav (torch.Tensor): Generated waveform tensor (T_wav,).
@@ -504,19 +532,19 @@ class FSQDAC(AbsGANCodec):
         # Add batch dimension if necessary
         if x.dim() == 1:
             x = x.unsqueeze(0)  # (1, T_wav)
-            
+
         # Add channel dimension if necessary
         if x.dim() == 2:
             x = x.unsqueeze(1)  # (B, 1, T_wav)
-            
+
         codec = self.generator.encode(x)
         wav = self.generator.decode(codec)
-        
+
         # Remove batch dimension if it was added
         if x.size(0) == 1:
             wav = wav.squeeze(0)
             codec = codec.squeeze(0)
-        
+
         return {"wav": wav, "codec": codec}
 
     def encode(
@@ -525,32 +553,32 @@ class FSQDAC(AbsGANCodec):
         **kwargs,
     ) -> torch.Tensor:
         """Run encoding.
-        
+
         Args:
             x (torch.Tensor): Input audio (T_wav,).
             **kwargs: Additional keyword arguments.
-            
+
         Returns:
             torch.Tensor: Generated codes (T_code, N_stream).
         """
         # Handle various input shapes consistently
         input_dim = x.dim()
-        
+
         # Add batch dimension if necessary
         if input_dim == 1:
             x = x.unsqueeze(0)  # (1, T_wav)
-            
+
         # Add channel dimension if necessary
         if x.dim() == 2:
             x = x.unsqueeze(1)  # (B, 1, T_wav)
-            
+
         # Encode
         codes = self.generator.encode(x)
-        
+
         # Remove batch dimension if it was added
         if input_dim == 1 and codes.size(0) == 1:
             codes = codes.squeeze(0)
-            
+
         return codes
 
     def decode(
@@ -559,28 +587,28 @@ class FSQDAC(AbsGANCodec):
         **kwargs,
     ) -> torch.Tensor:
         """Run decoding.
-        
+
         Args:
             x (torch.Tensor): Input codes (T_code, N_stream) or (B, T_code, N_stream).
             **kwargs: Additional keyword arguments.
-            
+
         Returns:
             torch.Tensor: Generated waveform (T_wav,) or (B, T_wav).
         """
         # Handle various input shapes consistently
         input_dim = x.dim()
-        
+
         # Add batch dimension if necessary
         if input_dim == 2:  # (T_code, N_stream)
             x = x.unsqueeze(0)  # (1, T_code, N_stream)
-            
+
         # Decode
         wav = self.generator.decode(x)
-        
+
         # Remove batch dimension if it was added
         if input_dim == 2 and wav.size(0) == 1:
             wav = wav.squeeze(0)
-            
+
         return wav
 
 
@@ -617,7 +645,7 @@ class DACGenerator(nn.Module):
         quantizer_factor: int = 3,
     ):
         """Initialize DAC Generator.
-        
+
         Args:
             sample_rate (int): Audio sampling rate in Hz.
             hidden_dim (int): Hidden dimension size.
@@ -641,7 +669,8 @@ class DACGenerator(nn.Module):
             encdec_lstm (int): Number of LSTM layers.
             decoder_trim_right_ratio (float): Ratio for trimming right side in decoder.
             decoder_final_activation (Optional[str]): Final activation function.
-            decoder_final_activation_params (Optional[Dict]): Final activation parameters.
+            decoder_final_activation_params (Optional[Dict]):
+                Final activation parameters.
             quantizer_codedim (int): Code dimensions for the quantizer.
             quantizer_factor (int): Quantizer factor.
         """
@@ -673,11 +702,11 @@ class DACGenerator(nn.Module):
         self.quantizer_pre = nn.Linear(hidden_dim, quantizer_codedim)
         self.quantizer = CustomRoundFunc
         self.quantizer_after = nn.Linear(quantizer_codedim, hidden_dim)
-        
+
         # Setup model parameters
         self.sample_rate = sample_rate
         self.frame_rate = math.ceil(sample_rate / np.prod(encdec_ratios))
-        
+
         # Set quantization factor
         self.quantizer_factor = quantizer_factor
         CustomRoundFunc.set_factor(quantizer_factor)
@@ -708,40 +737,39 @@ class DACGenerator(nn.Module):
         )
 
     def forward(
-        self, 
-        x: torch.Tensor, 
-        use_dual_decoder: bool = False
+        self, x: torch.Tensor, use_dual_decoder: bool = False
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
         """DAC generator forward propagation.
-        
+
         Args:
             x (torch.Tensor): Input tensor of shape (B, 1, T).
             use_dual_decoder (bool): Whether to use dual decoder for encoder out.
-            
+
         Returns:
             Tuple containing:
                 - torch.Tensor: Resynthesized audio from quantized features.
                 - torch.Tensor: Quantization loss.
-                - Optional[torch.Tensor]: Resynthesized audio directly from encoder (if use_dual_decoder=True).
+                - Optional[torch.Tensor]: Resynthesized audio directly from encoder
+                                          (if use_dual_decoder=True).
         """
         # Encode input
         encoder_out = self.encoder(x)
-        
+
         # Apply quantization
         quantizer_input = self.quantizer_pre(encoder_out.permute(0, 2, 1))
         quantized = self.quantizer.apply(quantizer_input)
         quantized = self.quantizer_after(quantized)
         quantized = quantized.permute(0, 2, 1)
-        
+
         # Calculate quantization loss
         quantization_loss = F.l1_loss(quantized, encoder_out)
-        
+
         # Decode quantized features
         resyn_audio = self.decoder(quantized)
-        
+
         # Optionally decode directly from encoder features (for dual decoder approach)
         resyn_audio_real = self.decoder(encoder_out) if use_dual_decoder else None
-        
+
         return resyn_audio, quantization_loss, resyn_audio_real
 
     def encode(
@@ -750,33 +778,33 @@ class DACGenerator(nn.Module):
         target_bw: Optional[float] = None,
     ) -> torch.Tensor:
         """Encode audio into quantized representation.
-        
+
         Args:
             x (torch.Tensor): Input tensor of shape (B, 1, T).
             target_bw (Optional[float]): Target bandwidth (not implemented).
-            
+
         Returns:
             torch.Tensor: Quantized codes.
         """
         if target_bw is not None:
             raise NotImplementedError("Bandwidth control not implemented for FSQ yet")
-        
+
         # Encode and quantize
         encoder_out = self.encoder(x)
         quantizer_input = self.quantizer_pre(encoder_out.permute(0, 2, 1))
         quantized = self.quantizer.apply(quantizer_input) * self.quantizer_factor
-            
+
         return quantized
 
     def decode(
-        self, 
+        self,
         codes: torch.Tensor,
     ) -> torch.Tensor:
         """Decode quantized representation back to audio.
-        
+
         Args:
             codes (torch.Tensor): Quantized codes.
-            
+
         Returns:
             torch.Tensor: Resynthesized audio.
         """
@@ -785,5 +813,5 @@ class DACGenerator(nn.Module):
         quantized = self.quantizer_after(codes)
         quantized = quantized.permute(0, 2, 1)
         resyn_audio = self.decoder(quantized)
-        
+
         return resyn_audio

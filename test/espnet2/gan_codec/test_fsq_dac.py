@@ -180,22 +180,22 @@ def make_mel_loss_args(**kwargs):
 def test_fsqdac(dict_fsq, dict_g, dict_d, dict_loss, average, include):
     batch_size = 2
     batch_length = 128
-    
+
     # Create audio tensor (different from original test: directly use (B, T) format)
     y = torch.randn(batch_size, batch_length)
-    
+
     # Test FSQDAC as a full model
     args_fsq = make_fsqdac_args(**dict_fsq)
     model_fsq = FSQDAC(**args_fsq)
-    
+
     # Test individual components
     args_g = make_generator_args(**dict_g)
     args_d = make_discriminator_args(**dict_d)
     args_loss = make_mel_loss_args(**dict_loss)
-    
+
     model_g = DACGenerator(**args_g)
     model_d = DACDiscriminator(**args_d)
-    
+
     aux_criterion = MultiScaleMelSpectrogramLoss(**args_loss)
     feat_match_criterion = FeatureMatchLoss(
         average_by_layers=average,
@@ -208,55 +208,55 @@ def test_fsqdac(dict_fsq, dict_g, dict_d, dict_loss, average, include):
     dis_adv_criterion = DiscriminatorAdversarialLoss(
         average_by_discriminators=average,
     )
-    
+
     # Test FSQDAC forward passes
     gen_output = model_fsq(y, forward_generator=True)
     dis_output = model_fsq(y, forward_generator=False)
-    
+
     # Check if outputs contain expected keys
     assert "loss" in gen_output
     assert "stats" in gen_output
     assert "weight" in gen_output
     assert "optim_idx" in gen_output
     assert gen_output["optim_idx"] == 0
-    
+
     assert "loss" in dis_output
     assert "stats" in dis_output
     assert "weight" in dis_output
     assert "optim_idx" in dis_output
     assert dis_output["optim_idx"] == 1
-    
+
     # Test optimizers
     optimizer_g = torch.optim.AdamW(model_g.parameters())
     optimizer_d = torch.optim.AdamW(model_d.parameters())
-    
+
     # Test generator trainable
     y_unsqueezed = y.unsqueeze(1)  # Add channel dimension for individual components
     y_hat, quant_loss, y_hat_real = model_g(y_unsqueezed, use_dual_decoder=True)
     p_hat = model_d(y_hat)
     aux_loss = aux_criterion(y_hat, y_unsqueezed)
     adv_loss = gen_adv_criterion(p_hat)
-    
+
     with torch.no_grad():
         p = model_d(y_unsqueezed)
-        
+
     fm_loss = feat_match_criterion(p_hat, p)
     loss_g = adv_loss + aux_loss + fm_loss
-    
+
     optimizer_g.zero_grad()
     loss_g.backward()
     optimizer_g.step()
-    
+
     # Test discriminator trainable
     p = model_d(y_unsqueezed)
     p_hat = model_d(y_hat.detach())
     real_loss, fake_loss = dis_adv_criterion(p_hat, p)
     loss_d = real_loss + fake_loss
-    
+
     optimizer_d.zero_grad()
     loss_d.backward()
     optimizer_d.step()
-    
+
     # Test inference methods
     # Test audio encoding/decoding roundtrip
     with torch.no_grad():
@@ -264,15 +264,15 @@ def test_fsqdac(dict_fsq, dict_g, dict_d, dict_loss, average, include):
         output = model_fsq.inference(y[0])
         assert "wav" in output
         assert "codec" in output
-        
+
         # Test separate encode and decode methods
         codec = model_fsq.encode(y[0])
         wav = model_fsq.decode(codec)
-        
+
         # Test roundtrip reconstruction
         assert wav.shape[-1] > 0
         assert codec.shape[-1] > 0
-        
+
         # Test with batch input
         codec_batch = model_fsq.encode(y)
         wav_batch = model_fsq.decode(codec_batch)
