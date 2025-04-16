@@ -18,8 +18,8 @@ import torchaudio
 from typeguard import typechecked
 
 from espnet2.gan_codec.abs_gan_codec import AbsGANCodec
-from espnet2.gan_codec.shared.decoder.seanet import SEANetDecoder
 from espnet2.gan_codec.dac.dac import DACDiscriminator
+from espnet2.gan_codec.shared.decoder.seanet import SEANetDecoder
 from espnet2.gan_codec.shared.encoder.seanet import SEANetEncoder
 from espnet2.gan_codec.shared.loss.freq_loss import MultiScaleMelSpectrogramLoss
 from espnet2.gan_codec.shared.quantizer.residual_vq import ResidualVectorQuantizer
