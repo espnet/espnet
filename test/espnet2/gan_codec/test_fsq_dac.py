@@ -2,8 +2,8 @@ import numpy as np  # noqa
 import pytest
 import torch
 
-from espnet2.gan_codec.fsq_dac.fsq_dac import FSQDAC, CustomRoundFunc, DACGenerator
 from espnet2.gan_codec.dac.dac import DACDiscriminator
+from espnet2.gan_codec.fsq_dac.fsq_dac import FSQDAC, CustomRoundFunc, DACGenerator
 from espnet2.gan_codec.shared.loss.freq_loss import MultiScaleMelSpectrogramLoss
 from espnet2.gan_tts.hifigan.loss import (
     DiscriminatorAdversarialLoss,
