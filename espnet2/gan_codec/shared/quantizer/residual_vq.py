@@ -11,7 +11,7 @@
 
 """Residual vector quantizer implementation."""
 import math
-from dataclasses import dataclass, field  # noqa
+from dataclasses import dataclass, field
 from typing import Optional
 
 import torch
@@ -32,7 +32,6 @@ class QuantizedResult:
 
 class ResidualVectorQuantizer(nn.Module):
     """Residual Vector Quantizer.
-
     Args:
         dimension (int): Dimension of the codebooks.
         n_q (int): Number of residual vector quantizers used.
@@ -81,10 +80,9 @@ class ResidualVectorQuantizer(nn.Module):
         )
 
     def forward(
-        self, x: torch.Tensor, sample_rate: int, bandwidth: Optional[float] = None
+            self, x: torch.Tensor, sample_rate: int, bandwidth: Optional[float] = None, return_list: Optional[bool] = False,
     ) -> QuantizedResult:
         """Residual vector quantization on the given input tensor.
-
         Args:
             x (torch.Tensor): Input tensor.
             sample_rate (int): Sample rate of the input tensor.
@@ -98,11 +96,11 @@ class ResidualVectorQuantizer(nn.Module):
         n_q = self.get_num_quantizers_for_bandwidth(sample_rate, bandwidth)
 
         if not self.quantizer_dropout:
-            quantized, codes, commit_loss = self.vq(x, n_q=n_q)
+            quantized, codes, commit_loss = self.vq(x, n_q=n_q, return_list=return_list)
             bw = torch.tensor(n_q * bw_per_q).to(x)
             return quantized, codes, bw, torch.mean(commit_loss)
         else:
-            quantized, codes, commit_loss, quantization_loss = self.vq(x, n_q=n_q)
+            quantized, codes, commit_loss, quantization_loss = self.vq(x, n_q=n_q, return_list=return_list)
             bw = torch.tensor(n_q * bw_per_q).to(x)
             return (
                 quantized,
@@ -134,7 +132,6 @@ class ResidualVectorQuantizer(nn.Module):
         st: Optional[int] = None,
     ) -> torch.Tensor:
         """Encode a given input tensor with the specified sample rate at
-
         the given bandwidth. The RVQ encode method sets the appropriate
         number of quantizer to use and returns indices for each quantizer.
         """

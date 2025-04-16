@@ -230,12 +230,12 @@ class SemanticDAC(AbsGANCodec):
 
         # Meta information
         self.fs = sampling_rate
-        self.num_streams = generator_params["quantizer_n_q"]
+        self.num_streams = generator_params.get("quantizer_n_q", 1)
         self.frame_shift = functools.reduce(
-            lambda x, y: x * y, generator_params["encdec_ratios"]
+            lambda x, y: x * y, generator_params.get("encdec_ratios", [2, 2])
         )
         self.code_size_per_stream = [
-            generator_params["quantizer_bins"]
+            generator_params.get("quantizer_bins", 32)
         ] * self.num_streams
 
     def meta_info(self) -> Dict[str, Any]:
