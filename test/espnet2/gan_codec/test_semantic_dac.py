@@ -181,8 +181,10 @@ def test_semantic_dac_generator(
     ), f"Semantic loss should be a scalar, got shape {semantic_loss.shape}"
     assert (
         y_hat_real.shape == x.shape
-    ), f"Dual decoder output shape {y_hat_real.shape} "
-       f"doesn't match input shape {x.shape}"
+    ), "Dual decoder output shape {} doesn't match input shape {}".format(
+        y_hat_real.shape,
+        x.shape,
+    )
 
     # Test encode/decode
     codes = model_g.encode(x)
