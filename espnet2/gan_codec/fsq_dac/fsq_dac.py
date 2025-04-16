@@ -38,11 +38,11 @@ class CustomRoundFunc(InplaceFunction):
         straight-through estimator.
 
     Attributes:
-        factor (float): The quantization factor that determines step size
+        factor (int): The quantization factor that determines step size
                         (default: 3.0).
     """
 
-    factor = 3.0  # Default factor
+    factor = 3  # Default factor
 
     @staticmethod
     def forward(ctx, input):
@@ -77,11 +77,11 @@ class CustomRoundFunc(InplaceFunction):
         return grad_output.clone()
 
     @staticmethod
-    def set_factor(new_factor: float) -> None:
+    def set_factor(new_factor: int) -> None:
         """Set quantization factor for all instances of this quantizer.
 
         Args:
-            new_factor (float): New quantization factor.
+            new_factor (int): New quantization factor.
                                 Higher values create finer quantization.
 
         Raises:
@@ -89,14 +89,14 @@ class CustomRoundFunc(InplaceFunction):
         """
         if new_factor <= 0:
             raise ValueError("Quantization factor must be positive")
-        CustomRoundFunc.factor = float(new_factor)
+        CustomRoundFunc.factor = int(new_factor)
 
     @staticmethod
-    def get_factor() -> float:
+    def get_factor() -> int:
         """Get current quantization factor.
 
         Returns:
-            float: Current quantization factor.
+            int: Current quantization factor.
         """
         return CustomRoundFunc.factor
 
