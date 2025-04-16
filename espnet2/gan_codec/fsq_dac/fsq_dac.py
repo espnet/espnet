@@ -1,13 +1,13 @@
 # Copyright 2024 Yihan Wu
+# Copyright 2025 Jiatong Shi
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""DAC Modules."""
+"""DAC Modules - Refined Implementation."""
 import copy
 import functools
 import logging
 import math
-import random
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -15,16 +15,12 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd.function import InplaceFunction
 from typeguard import typechecked
-from vector_quantize_pytorch import FSQ
 
 from espnet2.gan_codec.abs_gan_codec import AbsGANCodec
+from espnet2.gan_codec.dac.dac import DACDiscriminator
 from espnet2.gan_codec.shared.decoder.seanet import SEANetDecoder
-from espnet2.gan_codec.shared.discriminator.msmpmb_discriminator import (
-    MultiScaleMultiPeriodMultiBandDiscriminator,
-)
 from espnet2.gan_codec.shared.encoder.seanet import SEANetEncoder
 from espnet2.gan_codec.shared.loss.freq_loss import MultiScaleMelSpectrogramLoss
-from espnet2.gan_codec.shared.quantizer.residual_vq import ResidualVectorQuantizer
 from espnet2.gan_tts.hifigan.loss import (
     DiscriminatorAdversarialLoss,
     FeatureMatchLoss,
@@ -33,20 +29,80 @@ from espnet2.gan_tts.hifigan.loss import (
 from espnet2.torch_utils.device_funcs import force_gatherable
 
 
-class round_func3(InplaceFunction):
+class CustomRoundFunc(InplaceFunction):
+    """Custom rounding function for the finite scalar quantization.
+    
+    Rounds input * factor and divides by factor - creating a quantization with steps of 1/factor.
+    Maintains gradient flow during backpropagation using straight-through estimator.
+    
+    Attributes:
+        factor (float): The quantization factor that determines step size (default: 3.0).
+    """
+    factor = 3.0  # Default factor
+    
     @staticmethod
     def forward(ctx, input):
-        ctx.input = input
-        return torch.round(3 * input) / 3
+        """Forward pass of custom rounding function.
+        
+        Args:
+            ctx: Context object for storing information for backward pass
+            input (torch.Tensor): Input tensor to be quantized
+            
+        Returns:
+            torch.Tensor: Quantized tensor (rounded to 1/factor precision)
+        """
+        # Store input for backward pass
+        ctx.save_for_backward(input)
+        
+        # Apply quantization with current factor
+        factor = CustomRoundFunc.factor
+        return torch.round(factor * input) / factor
 
     @staticmethod
     def backward(ctx, grad_output):
-        grad_input = grad_output.clone()
-        return grad_input
+        """Backward pass of custom rounding function using straight-through estimator.
+        
+        Args:
+            ctx: Context object containing stored tensors
+            grad_output (torch.Tensor): Gradient from subsequent layers
+            
+        Returns:
+            torch.Tensor: Gradient propagated through the operation
+        """
+        # Straight-through estimator for gradient
+        return grad_output.clone()
+    
+    @staticmethod
+    def set_factor(new_factor: float) -> None:
+        """Set quantization factor for all instances of this quantizer.
+        
+        Args:
+            new_factor (float): New quantization factor. Higher values create finer quantization.
+            
+        Raises:
+            ValueError: If quantization factor is not positive
+        """
+        if new_factor <= 0:
+            raise ValueError("Quantization factor must be positive")
+        CustomRoundFunc.factor = float(new_factor)
+        
+    @staticmethod
+    def get_factor() -> float:
+        """Get current quantization factor.
+        
+        Returns:
+            float: Current quantization factor.
+        """
+        return CustomRoundFunc.factor
 
 
 class FSQDAC(AbsGANCodec):
-    """FSQDAC model."""
+    """Finite Scalar Quantization Deep Audio Codec (FSQ-DAC) model.
+    
+    This class implements a neural audio codec that uses finite scalar quantization
+    for compressing audio representations. The model consists of an encoder-decoder
+    architecture with an adversarial discriminator for improved audio quality.
+    """
 
     @typechecked
     def __init__(
@@ -74,8 +130,8 @@ class FSQDAC(AbsGANCodec):
             "decoder_trim_right_ratio": 1.0,
             "decoder_final_activation": None,
             "decoder_final_activation_params": None,
-            "quantizer_n_q": 8,
-            "quantizer_codedim": [9, 9, 5, 5],
+            "quantizer_codedim": 4,
+            "quantizer_factor": 3.0,
         },
         discriminator_params: Dict[str, Any] = {
             "scale_follow_official_norm": False,
@@ -84,7 +140,6 @@ class FSQDAC(AbsGANCodec):
                 "periods": [2, 3, 5, 7, 11],
                 "fft_sizes": [2048, 1024, 512],
                 "sample_rate": 24000,
-                "periods": [2, 3, 5, 7, 11],
                 "period_discriminator_params": {
                     "in_channels": 1,
                     "out_channels": 1,
@@ -112,7 +167,7 @@ class FSQDAC(AbsGANCodec):
                 },
             },
         },
-        # loss related
+        # Loss related parameters
         generator_adv_loss_params: Dict[str, Any] = {
             "average_by_discriminators": False,
             "loss_type": "mse",
@@ -147,71 +202,92 @@ class FSQDAC(AbsGANCodec):
         lambda_mel: float = 45.0,
         cache_generator_outputs: bool = False,
     ):
-        """Intialize DAC model.
-
+        """Initialize FSQDAC model.
+        
         Args:
-             TODO(jiatong)
+            sampling_rate (int): Audio sampling rate in Hz.
+            generator_params (Dict[str, Any]): Parameters for the generator model.
+            discriminator_params (Dict[str, Any]): Parameters for the discriminator model.
+            generator_adv_loss_params (Dict[str, Any]): Parameters for generator adversarial loss.
+            discriminator_adv_loss_params (Dict[str, Any]): Parameters for discriminator adversarial loss.
+            use_feat_match_loss (bool): Whether to use feature matching loss.
+            feat_match_loss_params (Dict[str, Any]): Parameters for feature matching loss.
+            use_mel_loss (bool): Whether to use mel-spectrogram reconstruction loss.
+            mel_loss_params (Dict[str, Any]): Parameters for mel-spectrogram loss.
+            use_dual_decoder (bool): Whether to use dual decoder approach.
+            skip_quantizer_updates (int): Number of updates to skip quantizer training.
+            lambda_quantization (float): Weight for quantization loss.
+            lambda_reconstruct (float): Weight for reconstruction loss.
+            lambda_adv (float): Weight for adversarial loss.
+            lambda_feat_match (float): Weight for feature matching loss.
+            lambda_mel (float): Weight for mel-spectrogram loss.
+            cache_generator_outputs (bool): Whether to cache generator outputs.
         """
         super().__init__()
 
-        # define modules
-        generator_params.update(sample_rate=sampling_rate)
+        # Define modules
+        generator_params = dict(generator_params)  # Create a copy to avoid modifying the original
+        generator_params["sample_rate"] = sampling_rate
         self.generator = DACGenerator(**generator_params)
         self.discriminator = DACDiscriminator(**discriminator_params)
-        self.generator_adv_loss = GeneratorAdversarialLoss(
-            **generator_adv_loss_params,
-        )
-        self.generator_reconstruct_loss = torch.nn.L1Loss(reduction="mean")
-        self.discriminator_adv_loss = DiscriminatorAdversarialLoss(
-            **discriminator_adv_loss_params,
-        )
+        
+        # Define losses
+        self.generator_adv_loss = GeneratorAdversarialLoss(**generator_adv_loss_params)
+        self.discriminator_adv_loss = DiscriminatorAdversarialLoss(**discriminator_adv_loss_params)
+        self.generator_reconstruct_loss = nn.L1Loss(reduction="mean")
+        
+        # Training configuration
         self.skip_quantizer_updates = skip_quantizer_updates
-        self.register_buffer("num_updates", torch.LongTensor([0]))
+        self.register_buffer("num_updates", torch.zeros(1, dtype=torch.long))
+        
+        # Optional loss components
         self.use_feat_match_loss = use_feat_match_loss
         if self.use_feat_match_loss:
-            self.feat_match_loss = FeatureMatchLoss(
-                **feat_match_loss_params,
-            )
+            self.feat_match_loss = FeatureMatchLoss(**feat_match_loss_params)
+            
         self.use_mel_loss = use_mel_loss
-        mel_loss_params.update(fs=sampling_rate)
         if self.use_mel_loss:
-            self.mel_loss = MultiScaleMelSpectrogramLoss(
-                **mel_loss_params,
-            )
+            mel_loss_params = dict(mel_loss_params)  # Create a copy
+            mel_loss_params["fs"] = sampling_rate
+            self.mel_loss = MultiScaleMelSpectrogramLoss(**mel_loss_params)
+            
         self.use_dual_decoder = use_dual_decoder
-        if self.use_dual_decoder:
-            assert self.use_mel_loss, "only use dual decoder with Mel loss"
+        if self.use_dual_decoder and not self.use_mel_loss:
+            raise ValueError("Dual decoder requires Mel loss to be enabled")
 
-        # coefficients
+        # Loss coefficients
+        self.lambda_quantization = lambda_quantization
         self.lambda_reconstruct = lambda_reconstruct
         self.lambda_adv = lambda_adv
-        if self.use_feat_match_loss:
-            self.lambda_feat_match = lambda_feat_match
-        if self.use_mel_loss:
-            self.lambda_mel = lambda_mel
+        self.lambda_feat_match = lambda_feat_match if self.use_feat_match_loss else 0.0
+        self.lambda_mel = lambda_mel if self.use_mel_loss else 0.0
 
-        # cache
+        # Caching mechanism
         self.cache_generator_outputs = cache_generator_outputs
         self._cache = None
 
-        # store sampling rate for saving wav file
-        # (not used for the training)
+        # Store model metadata
         self.fs = sampling_rate
-        self.num_streams = generator_params["quantizer_n_q"]
+        self.num_streams = 1
         self.frame_shift = functools.reduce(
             lambda x, y: x * y, generator_params["encdec_ratios"]
         )
         self.code_size_per_stream = [
-            math.prod(generator_params["quantizer_codedim"])
-            * generator_params["quantizer_n_q"]
-        ] * self.num_streams
+            generator_params["quantizer_factor"] ** generator_params["quantizer_codedim"]
+        ]
 
     def meta_info(self) -> Dict[str, Any]:
+        """Return metadata about the model.
+        
+        Returns:
+            Dict[str, Any]: Dictionary containing metadata.
+        """
         return {
             "fs": self.fs,
             "num_streams": self.num_streams,
             "frame_shift": self.frame_shift,
             "code_size_per_stream": self.code_size_per_stream,
+            "quantizer_factor": CustomRoundFunc.get_factor(),
         }
 
     def forward(
@@ -220,267 +296,302 @@ class FSQDAC(AbsGANCodec):
         forward_generator: bool = True,
         **kwargs,
     ) -> Dict[str, Any]:
-        """Perform generator forward.
-
+        """Perform model forward pass.
+        
         Args:
-            audio (Tensor): Audio waveform tensor (B, T_wav).
-            forward_generator (bool): Whether to forward generator.
-
+            audio (torch.Tensor): Audio waveform tensor (B, T_wav).
+            forward_generator (bool): Whether to forward generator or discriminator.
+            
         Returns:
             Dict[str, Any]:
-                - loss (Tensor): Loss scalar tensor.
+                - loss (torch.Tensor): Loss scalar tensor.
                 - stats (Dict[str, float]): Statistics to be monitored.
-                - weight (Tensor): Weight tensor to summarize losses.
+                - weight (torch.Tensor): Weight tensor to summarize losses.
                 - optim_idx (int): Optimizer index (0 for G and 1 for D).
-
         """
         if forward_generator:
-            return self._forward_generator(
-                audio=audio,
-                **kwargs,
-            )
+            return self._forward_generator(audio=audio, **kwargs)
         else:
-            return self._forward_discrminator(
-                audio=audio,
-                **kwargs,
-            )
+            return self._forward_discriminator(audio=audio, **kwargs)
 
     def _forward_generator(
         self,
         audio: torch.Tensor,
         **kwargs,
     ) -> Dict[str, Any]:
-        """Perform generator forward.
-
+        """Perform generator forward pass.
+        
         Args:
-            audio (Tensor): Audio waveform tensor (B, T_wav).
-
+            audio (torch.Tensor): Audio waveform tensor (B, T_wav).
+            
         Returns:
             Dict[str, Any]:
-                - loss (Tensor): Loss scalar tensor.
+                - loss (torch.Tensor): Loss scalar tensor.
                 - stats (Dict[str, float]): Statistics to be monitored.
-                - weight (Tensor): Weight tensor to summarize losses.
-                - optim_idx (int): Optimizer index (0 for G and 1 for D).
-
+                - weight (torch.Tensor): Weight tensor to summarize losses.
+                - optim_idx (int): Optimizer index (0 for G).
         """
-        # setup
+        # Setup
         batch_size = audio.size(0)
+        audio = audio.unsqueeze(1)  # Add channel dimension (B, 1, T_wav)
 
-        # TODO(jiatong): double check the multi-channel input
-        audio = audio.unsqueeze(1)
-
-        # calculate generator outputs
-        reuse_cache = True
-        if not self.cache_generator_outputs or self._cache is None:
-            reuse_cache = False
+        # Calculate generator outputs
+        reuse_cache = self.cache_generator_outputs and self._cache is not None
+        if not reuse_cache:
             audio_hat, quantization_loss, audio_hat_real = self.generator(
                 audio, use_dual_decoder=self.use_dual_decoder
             )
+            
+            # Store cache if enabled during training
+            if self.training and self.cache_generator_outputs:
+                self._cache = (audio_hat, quantization_loss, audio_hat_real)
         else:
             audio_hat, quantization_loss, audio_hat_real = self._cache
 
-        # store cache
-        if self.training and self.cache_generator_outputs and not reuse_cache:
-            self._cache = (
-                audio_hat,
-                quantization_loss,
-                audio_hat_real,
-            )
+        # Determine which audio reconstruction to use based on training phase
+        is_quantizer_active = self.skip_quantizer_updates <= self.num_updates
+        target_audio = audio_hat if (is_quantizer_active and self.use_dual_decoder) else audio_hat_real
 
-        # calculate discriminator outputs
-        if self.skip_quantizer_updates <= self.num_updates and self.use_dual_decoder:
-
-            p_hat = self.discriminator(audio_hat)
-        else:
-            p_hat = self.discriminator(audio_hat_real)
+        # Calculate discriminator outputs
+        p_hat = self.discriminator(target_audio)
         with torch.no_grad():
-            # do not store discriminator gradient in generator turn
+            # Do not store discriminator gradient in generator turn
             p = self.discriminator(audio)
 
-        # calculate losses
-        adv_loss = self.generator_adv_loss(p_hat)
-        adv_loss = adv_loss * self.lambda_adv
-        if self.skip_quantizer_updates <= self.num_updates and self.use_dual_decoder:
-            reconstruct_loss = (
-                self.generator_reconstruct_loss(audio, audio_hat)
-                * self.lambda_reconstruct
-            )
-        else:
-            reconstruct_loss = (
-                self.generator_reconstruct_loss(audio, audio_hat_real)
-                * self.lambda_reconstruct
-            )
+        # Calculate losses
+        adv_loss = self.generator_adv_loss(p_hat) * self.lambda_adv
+        reconstruct_loss = self.generator_reconstruct_loss(audio, target_audio) * self.lambda_reconstruct
+        
+        # Initialize total loss and statistics
         loss = adv_loss + reconstruct_loss
-        stats = dict(
-            adv_loss=adv_loss.item(),
-            codec_quantization_loss=quantization_loss.item(),  # just for refernece, no gradient
-            reconstruct_loss=reconstruct_loss.item(),
-        )
+        stats = {
+            "adv_loss": adv_loss.item(),
+            "codec_quantization_loss": quantization_loss.item(),  # Just for reference, no gradient
+            "reconstruct_loss": reconstruct_loss.item(),
+        }
+        
+        # Add feature matching loss if enabled
         if self.use_feat_match_loss:
-            feat_match_loss = self.feat_match_loss(p_hat, p)
-            feat_match_loss = feat_match_loss * self.lambda_feat_match
+            feat_match_loss = self.feat_match_loss(p_hat, p) * self.lambda_feat_match
             loss = loss + feat_match_loss
-            stats.update(feat_match_loss=feat_match_loss.item())
+            stats["feat_match_loss"] = feat_match_loss.item()
+            
+        # Add mel-spectrogram loss if enabled
         if self.use_mel_loss:
-            assert (
-                self.skip_quantizer_updates > self.num_updates or self.use_dual_decoder
-            ), "skip quantizer must be with dual decoder"
-            if self.skip_quantizer_updates <= self.num_updates:
-                mel_loss = self.mel_loss(audio_hat, audio)
-                mel_loss = self.lambda_mel * mel_loss
+            # Ensure model is in the correct training phase if using the dual decoder
+            if not self.use_dual_decoder and not is_quantizer_active:
+                raise ValueError("Skip quantizer updates must be used with dual decoder")
+            
+            # Mel loss for quantized reconstruction
+            if is_quantizer_active:
+                mel_loss = self.mel_loss(audio_hat, audio) * self.lambda_mel
                 loss = loss + mel_loss
-                stats.update(mel_loss=mel_loss.item())
+                stats["mel_loss"] = mel_loss.item()
+                
+            # Mel loss for direct reconstruction (used in early training or with dual decoder)
             if self.use_dual_decoder:
-                mel_loss_real = self.mel_loss(audio_hat_real, audio)
-                mel_loss_real = self.lambda_mel * mel_loss_real
+                mel_loss_real = self.mel_loss(audio_hat_real, audio) * self.lambda_mel
                 loss = loss + mel_loss_real
-                stats.update(mel_loss_real=mel_loss_real.item())
-                if "mel_loss" not in stats.keys():
-                    stats.update(mel_loss=mel_loss_real)
+                stats["mel_loss_real"] = mel_loss_real.item()
+                # Use mel_loss_real as mel_loss if mel_loss not already set
+                if "mel_loss" not in stats:
+                    stats["mel_loss"] = mel_loss_real.item()
+                    
+        # Increment update counter
         self.num_updates += 1
-
-        stats.update(loss=loss.item())
-
+        
+        # Add total loss to stats
+        stats["loss"] = loss.item()
+        
+        # Make loss, stats, and weight gatherable across devices
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
-
-        # reset cache
+        
+        # Reset cache if needed
         if reuse_cache or not self.training:
             self._cache = None
-
+            
         return {
             "loss": loss,
             "stats": stats,
             "weight": weight,
-            "optim_idx": 0,  # needed for trainer
+            "optim_idx": 0,  # Needed for trainer
         }
 
-    def _forward_discrminator(
+    def _forward_discriminator(
         self,
         audio: torch.Tensor,
         **kwargs,
     ) -> Dict[str, Any]:
-        """Perform generator forward.
-
+        """Perform discriminator forward pass.
+        
         Args:
-            audio (Tensor): Audio waveform tensor (B, T_wav).
-
+            audio (torch.Tensor): Audio waveform tensor (B, T_wav).
+            
         Returns:
             Dict[str, Any]:
-                - loss (Tensor): Loss scalar tensor.
+                - loss (torch.Tensor): Loss scalar tensor.
                 - stats (Dict[str, float]): Statistics to be monitored.
-                - weight (Tensor): Weight tensor to summarize losses.
-                - optim_idx (int): Optimizer index (0 for G and 1 for D).
-
+                - weight (torch.Tensor): Weight tensor to summarize losses.
+                - optim_idx (int): Optimizer index (1 for D).
         """
-
-        # setup
+        # Setup
         batch_size = audio.size(0)
-        audio = audio.unsqueeze(1)
-
-        # calculate generator outputs
-        reuse_cache = True
-        if not self.cache_generator_outputs or self._cache is None:
-            reuse_cache = False
+        audio = audio.unsqueeze(1)  # Add channel dimension (B, 1, T_wav)
+        
+        # Calculate generator outputs
+        reuse_cache = self.cache_generator_outputs and self._cache is not None
+        if not reuse_cache:
             audio_hat, codec_quantization_loss, audio_hat_real = self.generator(
-                audio,
-                use_dual_decoder=self.use_dual_decoder,
+                audio, use_dual_decoder=self.use_dual_decoder
             )
+            
+            # Store cache if enabled
+            if self.cache_generator_outputs:
+                self._cache = (audio_hat, codec_quantization_loss, audio_hat_real)
         else:
             audio_hat, codec_quantization_loss, audio_hat_real = self._cache
-
-        # store cache
-        if self.cache_generator_outputs and not reuse_cache:
-            self._cache = (
-                audio_hat,
-                codec_quantization_loss,
-                audio_hat_real,
-            )
-
-        # calculate discriminator outputs
-        if self.skip_quantizer_updates <= self.num_updates and self.use_dual_decoder:
-            p_hat = self.discriminator(audio_hat.detach())
-        else:
-            p_hat = self.discriminator(audio_hat_real.detach())
+            
+        # Determine which audio reconstruction to use based on training phase
+        is_quantizer_active = self.skip_quantizer_updates <= self.num_updates
+        target_audio = audio_hat if (is_quantizer_active and self.use_dual_decoder) else audio_hat_real
+        
+        # Calculate discriminator outputs (detach generator outputs)
+        p_hat = self.discriminator(target_audio.detach())
         p = self.discriminator(audio)
-
-        # calculate losses
+        
+        # Calculate losses
         real_loss, fake_loss = self.discriminator_adv_loss(p_hat, p)
         loss = real_loss + fake_loss
-
-        stats = dict(
-            discriminator_loss=loss.item(),
-            real_loss=real_loss.item(),
-            fake_loss=fake_loss.item(),
-        )
+        
+        # Collect statistics
+        stats = {
+            "discriminator_loss": loss.item(),
+            "real_loss": real_loss.item(),
+            "fake_loss": fake_loss.item(),
+        }
+        
+        # Make loss, stats, and weight gatherable across devices
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
-
-        # reset cache
+        
+        # Reset cache if needed
         if reuse_cache or not self.training:
             self._cache = None
-
+            
         return {
             "loss": loss,
             "stats": stats,
             "weight": weight,
-            "optim_idx": 1,  # needed for trainer
+            "optim_idx": 1,  # Needed for trainer
         }
 
     def inference(
         self,
         x: torch.Tensor,
+        quantizer_factor: Optional[float] = None,
         **kwargs,
     ) -> Dict[str, torch.Tensor]:
         """Run inference.
-
+        
         Args:
-            x (Tensor): Input audio (T_wav,).
-
+            x (torch.Tensor): Input audio (T_wav,).
+            quantizer_factor (Optional[float]): Override the default quantization factor.
+            **kwargs: Additional keyword arguments.
+            
         Returns:
-            Dict[str, Tensor]:
-                * wav (Tensor): Generated waveform tensor (T_wav,).
-                * codec (Tensor): Generated neural codec (T_code, N_stream).
-
+            Dict[str, torch.Tensor]:
+                * wav (torch.Tensor): Generated waveform tensor (T_wav,).
+                * codec (torch.Tensor): Generated neural codec (T_code, N_stream).
         """
-        codec = self.generator.encode(x)
-        wav = self.generator.decode(codec)
-
+        # Add batch dimension if necessary
+        if x.dim() == 1:
+            x = x.unsqueeze(0)  # (1, T_wav)
+            
+        # Add channel dimension if necessary
+        if x.dim() == 2:
+            x = x.unsqueeze(1)  # (B, 1, T_wav)
+            
+        codec = self.generator.encode(x, quantizer_factor=quantizer_factor)
+        wav = self.generator.decode(codec, quantizer_factor=quantizer_factor)
+        
+        # Remove batch dimension if it was added
+        if x.size(0) == 1:
+            wav = wav.squeeze(0)
+            codec = codec.squeeze(0)
+        
         return {"wav": wav, "codec": codec}
 
     def encode(
         self,
         x: torch.Tensor,
+        quantizer_factor: Optional[float] = None,
         **kwargs,
     ) -> torch.Tensor:
         """Run encoding.
-
+        
         Args:
-            x (Tensor): Input audio (T_wav,).
-
+            x (torch.Tensor): Input audio (T_wav,).
+            quantizer_factor (Optional[float]): Override the default quantization factor.
+            **kwargs: Additional keyword arguments.
+            
         Returns:
-            Tensor: Generated codes (T_code, N_stream).
-
+            torch.Tensor: Generated codes (T_code, N_stream).
         """
-        return self.generator.encode(x)
+        # Handle various input shapes consistently
+        input_dim = x.dim()
+        
+        # Add batch dimension if necessary
+        if input_dim == 1:
+            x = x.unsqueeze(0)  # (1, T_wav)
+            
+        # Add channel dimension if necessary
+        if x.dim() == 2:
+            x = x.unsqueeze(1)  # (B, 1, T_wav)
+            
+        # Encode
+        codes = self.generator.encode(x, quantizer_factor=quantizer_factor)
+        
+        # Remove batch dimension if it was added
+        if input_dim == 1 and codes.size(0) == 1:
+            codes = codes.squeeze(0)
+            
+        return codes
 
     def decode(
         self,
         x: torch.Tensor,
+        quantizer_factor: Optional[float] = None,
         **kwargs,
     ) -> torch.Tensor:
-        """Run encoding.
-
+        """Run decoding.
+        
         Args:
-            x (Tensor): Input codes (T_code, N_stream).
-
+            x (torch.Tensor): Input codes (T_code, N_stream) or (B, T_code, N_stream).
+            quantizer_factor (Optional[float]): Override the default quantization factor.
+                Must match the factor used during encoding.
+            **kwargs: Additional keyword arguments.
+            
         Returns:
-            Tensor: Generated waveform (T_wav,).
-
+            torch.Tensor: Generated waveform (T_wav,) or (B, T_wav).
         """
-        return self.generator.decode(x)
+        # Handle various input shapes consistently
+        input_dim = x.dim()
+        
+        # Add batch dimension if necessary
+        if input_dim == 2:  # (T_code, N_stream)
+            x = x.unsqueeze(0)  # (1, T_code, N_stream)
+            
+        # Decode
+        wav = self.generator.decode(x, quantizer_factor=quantizer_factor)
+        
+        # Remove batch dimension if it was added
+        if input_dim == 2 and wav.size(0) == 1:
+            wav = wav.squeeze(0)
+            
+        return wav
 
 
 class DACGenerator(nn.Module):
-    """DAC generator module."""
+    """DAC generator module with encoder, quantizer, and decoder components."""
 
     @typechecked
     def __init__(
@@ -507,14 +618,38 @@ class DACGenerator(nn.Module):
         encdec_lstm: int = 2,
         decoder_trim_right_ratio: float = 1.0,
         decoder_final_activation: Optional[str] = None,
-        decoder_final_activation_params: Optional[dict] = None,
-        quantizer_n_q: int = 8,
-        quantizer_codedim: List[int] = [9, 9, 5, 5],
+        decoder_final_activation_params: Optional[Dict[str, Any]] = None,
+        quantizer_codedim: int = 4,
+        quantizer_factor: float = 3.0,
     ):
         """Initialize DAC Generator.
-
+        
         Args:
-            TODO(jiatong)
+            sample_rate (int): Audio sampling rate in Hz.
+            hidden_dim (int): Hidden dimension size.
+            codebook_dim (int): Dimension of codebook entries.
+            encdec_channels (int): Number of input/output audio channels.
+            encdec_n_filters (int): Base number of convolutional filters.
+            encdec_n_residual_layers (int): Number of residual layers.
+            encdec_ratios (List[int]): Upsampling/downsampling ratios.
+            encdec_activation (str): Activation function name.
+            encdec_activation_params (Dict[str, Any]): Activation function parameters.
+            encdec_norm (str): Normalization method.
+            encdec_norm_params (Dict[str, Any]): Normalization parameters.
+            encdec_kernel_size (int): Kernel size for convolutions.
+            encdec_residual_kernel_size (int): Kernel size for residual convolutions.
+            encdec_last_kernel_size (int): Kernel size for last layer.
+            encdec_dilation_base (int): Base for dilation exponential.
+            encdec_causal (bool): Whether to use causal convolutions.
+            encdec_pad_mode (str): Padding mode for convolutions.
+            encdec_true_skip (bool): Whether to use true skip connections.
+            encdec_compress (int): Compression factor for channels.
+            encdec_lstm (int): Number of LSTM layers.
+            decoder_trim_right_ratio (float): Ratio for trimming right side in decoder.
+            decoder_final_activation (Optional[str]): Final activation function.
+            decoder_final_activation_params (Optional[Dict]): Final activation parameters.
+            quantizer_codedim (int): Code dimensions for the quantizer.
+            quantizer_factor (float): Quantizer factor.
         """
         super().__init__()
 
@@ -540,14 +675,18 @@ class DACGenerator(nn.Module):
             lstm=encdec_lstm,
         )
 
-        # Initialize quantizer
-        # self.quantizer = FSQ(dim=hidden_dim, levels=quantizer_codedim, num_codebooks=quantizer_n_q)
-        self.quantizer_pre = torch.nn.Linear(hidden_dim, len(quantizer_codedim))
-        self.quantizer = round_func3()
-        self.quantizer_after = torch.nn.Linear(len(quantizer_codedim), hidden_dim)
-        self.target_bandwidths = None
+        # Initialize quantizer components
+        self.quantizer_pre = nn.Linear(hidden_dim, quantizer_codedim)
+        self.quantizer = CustomRoundFunc
+        self.quantizer_after = nn.Linear(quantizer_codedim, hidden_dim)
+        
+        # Setup model parameters
         self.sample_rate = sample_rate
         self.frame_rate = math.ceil(sample_rate / np.prod(encdec_ratios))
+        
+        # Set quantization factor
+        self.quantizer_factor = quantizer_factor
+        CustomRoundFunc.set_factor(quantizer_factor)
 
         # Initialize decoder
         self.decoder = SEANetDecoder(
@@ -574,136 +713,39 @@ class DACGenerator(nn.Module):
             final_activation_params=decoder_final_activation_params,
         )
 
-        # quantization loss
-        self.l1_quantization_loss = torch.nn.L1Loss(reduction="mean")
-        self.l2_quantization_loss = torch.nn.MSELoss(reduction="mean")
-
-    def forward(self, x: torch.Tensor, use_dual_decoder: bool = False):
-        """DAC forward propagation.
-
+    def forward(
+        self, 
+        x: torch.Tensor, 
+        use_dual_decoder: bool = False
+    ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
+        """DAC generator forward propagation.
+        
         Args:
             x (torch.Tensor): Input tensor of shape (B, 1, T).
-            use_dual_decoder (bool): Whether to use dual decoder for encoder out
+            use_dual_decoder (bool): Whether to use dual decoder for encoder out.
+            
         Returns:
-            torch.Tensor: resynthesized audio.
-            torch.Tensor: quantization loss
-            torch.Tensor: resynthesized audio from encoder.
+            Tuple containing:
+                - torch.Tensor: Resynthesized audio from quantized features.
+                - torch.Tensor: Quantization loss.
+                - Optional[torch.Tensor]: Resynthesized audio directly from encoder (if use_dual_decoder=True).
         """
-
-        # Forward quantizer
+        # Encode input
         encoder_out = self.encoder(x)
+        
+        # Apply quantization
         quantizer_input = self.quantizer_pre(encoder_out.permute(0, 2, 1))
         quantized = self.quantizer.apply(quantizer_input)
         quantized = self.quantizer_after(quantized)
         quantized = quantized.permute(0, 2, 1)
+        
+        # Calculate quantization loss
         quantization_loss = F.l1_loss(quantized, encoder_out)
+        
+        # Decode quantized features
         resyn_audio = self.decoder(quantized)
-
-        if use_dual_decoder:
-            resyn_audio_real = self.decoder(encoder_out)
-        else:
-            resyn_audio_real = None
+        
+        # Optionally decode directly from encoder features (for dual decoder approach)
+        resyn_audio_real = self.decoder(encoder_out) if use_dual_decoder else None
+        
         return resyn_audio, quantization_loss, resyn_audio_real
-
-    def encode(
-        self,
-        x: torch.Tensor,
-        target_bw: Optional[float] = None,
-    ):
-        """DAC codec encoding.
-
-        Args:
-            x (torch.Tensor): Input tensor of shape (B, 1, T).
-        Returns:
-            torch.Tensor: neural codecs in shape ().
-        """
-
-        if target_bw is None:
-            quantizer = self.quantizer
-        else:
-            raise NotImplementedError("no control to fsq yet")
-        encoder_out = self.encoder(x)
-        quantizer_input = self.quantizer_pre(encoder_out.permute(0, 2, 1))
-        quantized = self.quantizer.apply(quantizer_input)
-        return quantized
-
-    def decode(self, codes: torch.Tensor):
-        """DAC codec decoding.
-
-        Args:
-            codecs (torch.Tensor): neural codecs in shape ().
-        Returns:
-            torch.Tensor: resynthesized audio.
-        """
-        # No control to fsq yet with bandwidth
-        quantized = self.quantizer_after(codes)
-        quantized = quantized.permute(0, 2, 1)
-        resyn_audio = self.decoder(quantized)
-        return resyn_audio
-
-
-class DACDiscriminator(nn.Module):
-    """DAC discriminator module."""
-
-    def __init__(
-        self,
-        # MultiScaleMultiPeriodMultiBandDiscriminator parameters
-        msmpmb_discriminator_params: Dict[str, Any] = {
-            "rates": [],
-            "periods": [2, 3, 5, 7, 11],
-            "fft_sizes": [2048, 1024, 512],
-            "sample_rate": 24000,
-            "periods": [2, 3, 5, 7, 11],
-            "period_discriminator_params": {
-                "in_channels": 1,
-                "out_channels": 1,
-                "kernel_sizes": [5, 3],
-                "channels": 32,
-                "downsample_scales": [3, 3, 3, 3, 1],
-                "max_downsample_channels": 1024,
-                "bias": True,
-                "nonlinear_activation": "LeakyReLU",
-                "nonlinear_activation_params": {"negative_slope": 0.1},
-                "use_weight_norm": True,
-                "use_spectral_norm": False,
-            },
-            "band_discriminator_params": {
-                "hop_factor": 0.25,
-                "sample_rate": 24000,
-                "bands": [
-                    (0.0, 0.1),
-                    (0.1, 0.25),
-                    (0.25, 0.5),
-                    (0.5, 0.75),
-                    (0.75, 1.0),
-                ],
-                "channel": 32,
-            },
-        },
-        scale_follow_official_norm: bool = False,
-    ):
-        """Initialize DAC Discriminator module.
-
-        Args:
-
-        """
-        super().__init__()
-
-        self.msmpmb_discriminator = MultiScaleMultiPeriodMultiBandDiscriminator(
-            **msmpmb_discriminator_params
-        )
-
-    def forward(self, x: torch.Tensor) -> List[List[torch.Tensor]]:
-        """Calculate forward propagation.
-
-        Args:
-            x (Tensor): Input noise signal (B, 1, T).
-
-        Returns:
-            List[List[Tensor]]: List of list of each discriminator outputs,
-                which consists of each layer output tensors. Multi scale and
-                multi period ones are concatenated.
-
-        """
-        msmpmb_outs = self.msmpmb_discriminator(x)
-        return msmpmb_outs
