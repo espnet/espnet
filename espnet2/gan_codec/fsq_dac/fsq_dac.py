@@ -2,7 +2,7 @@
 # Copyright 2025 Jiatong Shi
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""DAC Modules - Refined Implementation."""
+"""DAC with Scalar Quantization."""
 import copy
 import functools
 import logging
@@ -131,7 +131,7 @@ class FSQDAC(AbsGANCodec):
             "decoder_final_activation": None,
             "decoder_final_activation_params": None,
             "quantizer_codedim": 4,
-            "quantizer_factor": 3.0,
+            "quantizer_factor": 3,
         },
         discriminator_params: Dict[str, Any] = {
             "scale_follow_official_norm": False,
@@ -272,6 +272,7 @@ class FSQDAC(AbsGANCodec):
         self.frame_shift = functools.reduce(
             lambda x, y: x * y, generator_params["encdec_ratios"]
         )
+        self.quantizer_factor = generator_params["quantizer_factor"]
         self.code_size_per_stream = [
             generator_params["quantizer_factor"] ** generator_params["quantizer_codedim"]
         ]
@@ -487,14 +488,12 @@ class FSQDAC(AbsGANCodec):
     def inference(
         self,
         x: torch.Tensor,
-        quantizer_factor: Optional[float] = None,
         **kwargs,
     ) -> Dict[str, torch.Tensor]:
         """Run inference.
         
         Args:
             x (torch.Tensor): Input audio (T_wav,).
-            quantizer_factor (Optional[float]): Override the default quantization factor.
             **kwargs: Additional keyword arguments.
             
         Returns:
@@ -510,8 +509,8 @@ class FSQDAC(AbsGANCodec):
         if x.dim() == 2:
             x = x.unsqueeze(1)  # (B, 1, T_wav)
             
-        codec = self.generator.encode(x, quantizer_factor=quantizer_factor)
-        wav = self.generator.decode(codec, quantizer_factor=quantizer_factor)
+        codec = self.generator.encode(x)
+        wav = self.generator.decode(codec)
         
         # Remove batch dimension if it was added
         if x.size(0) == 1:
@@ -523,14 +522,12 @@ class FSQDAC(AbsGANCodec):
     def encode(
         self,
         x: torch.Tensor,
-        quantizer_factor: Optional[float] = None,
         **kwargs,
     ) -> torch.Tensor:
         """Run encoding.
         
         Args:
             x (torch.Tensor): Input audio (T_wav,).
-            quantizer_factor (Optional[float]): Override the default quantization factor.
             **kwargs: Additional keyword arguments.
             
         Returns:
@@ -548,7 +545,7 @@ class FSQDAC(AbsGANCodec):
             x = x.unsqueeze(1)  # (B, 1, T_wav)
             
         # Encode
-        codes = self.generator.encode(x, quantizer_factor=quantizer_factor)
+        codes = self.generator.encode(x)
         
         # Remove batch dimension if it was added
         if input_dim == 1 and codes.size(0) == 1:
@@ -559,15 +556,12 @@ class FSQDAC(AbsGANCodec):
     def decode(
         self,
         x: torch.Tensor,
-        quantizer_factor: Optional[float] = None,
         **kwargs,
     ) -> torch.Tensor:
         """Run decoding.
         
         Args:
             x (torch.Tensor): Input codes (T_code, N_stream) or (B, T_code, N_stream).
-            quantizer_factor (Optional[float]): Override the default quantization factor.
-                Must match the factor used during encoding.
             **kwargs: Additional keyword arguments.
             
         Returns:
@@ -581,7 +575,7 @@ class FSQDAC(AbsGANCodec):
             x = x.unsqueeze(0)  # (1, T_code, N_stream)
             
         # Decode
-        wav = self.generator.decode(x, quantizer_factor=quantizer_factor)
+        wav = self.generator.decode(x)
         
         # Remove batch dimension if it was added
         if input_dim == 2 and wav.size(0) == 1:
@@ -620,7 +614,7 @@ class DACGenerator(nn.Module):
         decoder_final_activation: Optional[str] = None,
         decoder_final_activation_params: Optional[Dict[str, Any]] = None,
         quantizer_codedim: int = 4,
-        quantizer_factor: float = 3.0,
+        quantizer_factor: int = 3,
     ):
         """Initialize DAC Generator.
         
@@ -649,7 +643,7 @@ class DACGenerator(nn.Module):
             decoder_final_activation (Optional[str]): Final activation function.
             decoder_final_activation_params (Optional[Dict]): Final activation parameters.
             quantizer_codedim (int): Code dimensions for the quantizer.
-            quantizer_factor (float): Quantizer factor.
+            quantizer_factor (int): Quantizer factor.
         """
         super().__init__()
 
@@ -749,3 +743,47 @@ class DACGenerator(nn.Module):
         resyn_audio_real = self.decoder(encoder_out) if use_dual_decoder else None
         
         return resyn_audio, quantization_loss, resyn_audio_real
+
+    def encode(
+        self,
+        x: torch.Tensor,
+        target_bw: Optional[float] = None,
+    ) -> torch.Tensor:
+        """Encode audio into quantized representation.
+        
+        Args:
+            x (torch.Tensor): Input tensor of shape (B, 1, T).
+            target_bw (Optional[float]): Target bandwidth (not implemented).
+            
+        Returns:
+            torch.Tensor: Quantized codes.
+        """
+        if target_bw is not None:
+            raise NotImplementedError("Bandwidth control not implemented for FSQ yet")
+        
+        # Encode and quantize
+        encoder_out = self.encoder(x)
+        quantizer_input = self.quantizer_pre(encoder_out.permute(0, 2, 1))
+        quantized = self.quantizer.apply(quantizer_input) * self.quantizer_factor
+            
+        return quantized
+
+    def decode(
+        self, 
+        codes: torch.Tensor,
+    ) -> torch.Tensor:
+        """Decode quantized representation back to audio.
+        
+        Args:
+            codes (torch.Tensor): Quantized codes.
+            
+        Returns:
+            torch.Tensor: Resynthesized audio.
+        """
+        # Convert codes to hidden representation and decode
+        codes = codes / self.quantizer_factor
+        quantized = self.quantizer_after(codes)
+        quantized = quantized.permute(0, 2, 1)
+        resyn_audio = self.decoder(quantized)
+        
+        return resyn_audio
