@@ -18,8 +18,8 @@ import torchaudio
 from typeguard import typechecked
 
 from espnet2.gan_codec.abs_gan_codec import AbsGANCodec
-from espnet2.gan_codec.shared.decoder.seanet import SEANetDecoder
 from espnet2.gan_codec.dac.dac import DACDiscriminator
+from espnet2.gan_codec.shared.decoder.seanet import SEANetDecoder
 from espnet2.gan_codec.shared.encoder.seanet import SEANetEncoder
 from espnet2.gan_codec.shared.loss.freq_loss import MultiScaleMelSpectrogramLoss
 from espnet2.gan_codec.shared.quantizer.residual_vq import ResidualVectorQuantizer
@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 
 class SemanticDAC(AbsGANCodec):
     """DAC model with semantic features.
-    
+
     This model uses a semantic encoder to extract features from audio,
     which are then used in the training process to improve codec quality.
     """
@@ -151,7 +151,7 @@ class SemanticDAC(AbsGANCodec):
         cache_generator_outputs: bool = False,
     ):
         """Initialize DAC model.
-        
+
         Args:
             sampling_rate: The sample rate of the input audio.
             generator_params: Parameters for the generator model.
@@ -176,35 +176,41 @@ class SemanticDAC(AbsGANCodec):
 
         # Update sample rate for all components
         generator_params["sample_rate"] = sampling_rate
-        
+
         if "sample_rate" in discriminator_params.get("msmpmb_discriminator_params", {}):
-            discriminator_params["msmpmb_discriminator_params"]["sample_rate"] = sampling_rate
-            
+            discriminator_params["msmpmb_discriminator_params"][
+                "sample_rate"
+            ] = sampling_rate
+
         if use_mel_loss:
             mel_loss_params["fs"] = sampling_rate
 
         # Define modules
         self.generator = SemanticDACGenerator(**generator_params)
         self.discriminator = DACDiscriminator(**discriminator_params)
-        
+
         # Define loss functions
         self.generator_adv_loss = GeneratorAdversarialLoss(**generator_adv_loss_params)
         self.generator_reconstruct_loss = nn.L1Loss(reduction="mean")
-        self.discriminator_adv_loss = DiscriminatorAdversarialLoss(**discriminator_adv_loss_params)
-        
+        self.discriminator_adv_loss = DiscriminatorAdversarialLoss(
+            **discriminator_adv_loss_params
+        )
+
         # Optional losses
         self.use_feat_match_loss = use_feat_match_loss
         if self.use_feat_match_loss:
             self.feat_match_loss = FeatureMatchLoss(**feat_match_loss_params)
-            
+
         self.use_mel_loss = use_mel_loss
         if self.use_mel_loss:
             self.mel_loss = MultiScaleMelSpectrogramLoss(**mel_loss_params)
-            
+
         # Handle dual decoder mode
         self.use_dual_decoder = use_dual_decoder
         if self.use_dual_decoder and not self.use_mel_loss:
-            logger.warning("Dual decoder is enabled but Mel loss is disabled. This configuration is ineffective.")
+            logger.warning(
+                "Dual decoder is enabled but Mel loss is disabled. This configuration is ineffective."
+            )
             self.use_dual_decoder = False
 
         # Loss coefficients
@@ -226,11 +232,13 @@ class SemanticDAC(AbsGANCodec):
         self.frame_shift = functools.reduce(
             lambda x, y: x * y, generator_params["encdec_ratios"]
         )
-        self.code_size_per_stream = [generator_params["quantizer_bins"]] * self.num_streams
+        self.code_size_per_stream = [
+            generator_params["quantizer_bins"]
+        ] * self.num_streams
 
     def meta_info(self) -> Dict[str, Any]:
         """Return model meta information.
-        
+
         Returns:
             Dict with model information.
         """
@@ -248,11 +256,11 @@ class SemanticDAC(AbsGANCodec):
         **kwargs,
     ) -> Dict[str, Any]:
         """Perform forward pass.
-        
+
         Args:
             audio: Audio waveform tensor (B, T_wav).
             forward_generator: Whether to forward generator.
-            
+
         Returns:
             Dict with loss, stats, weight, and optimizer index.
         """
@@ -267,16 +275,16 @@ class SemanticDAC(AbsGANCodec):
         **kwargs,
     ) -> Dict[str, Any]:
         """Perform generator forward pass.
-        
+
         Args:
             audio: Audio waveform tensor (B, T_wav).
-            
+
         Returns:
             Dict with loss, stats, weight, and optimizer index.
         """
         # Setup
         batch_size = audio.size(0)
-        
+
         # Add channel dimension if needed
         if audio.dim() == 2:
             audio = audio.unsqueeze(1)
@@ -286,13 +294,31 @@ class SemanticDAC(AbsGANCodec):
         if not self.cache_generator_outputs or self._cache is None:
             reuse_cache = False
             outputs = self.generator(audio, use_dual_decoder=self.use_dual_decoder)
-            audio_hat, codec_commit_loss, quantization_loss, semantic_loss, audio_hat_real = outputs
+            (
+                audio_hat,
+                codec_commit_loss,
+                quantization_loss,
+                semantic_loss,
+                audio_hat_real,
+            ) = outputs
         else:
-            audio_hat, codec_commit_loss, quantization_loss, semantic_loss, audio_hat_real = self._cache
+            (
+                audio_hat,
+                codec_commit_loss,
+                quantization_loss,
+                semantic_loss,
+                audio_hat_real,
+            ) = self._cache
 
         # Store cache
         if self.training and self.cache_generator_outputs and not reuse_cache:
-            self._cache = (audio_hat, codec_commit_loss, quantization_loss, semantic_loss, audio_hat_real)
+            self._cache = (
+                audio_hat,
+                codec_commit_loss,
+                quantization_loss,
+                semantic_loss,
+                audio_hat_real,
+            )
 
         # Calculate discriminator outputs
         p_hat = self.discriminator(audio_hat)
@@ -304,12 +330,14 @@ class SemanticDAC(AbsGANCodec):
         adv_loss = self.generator_adv_loss(p_hat) * self.lambda_adv
         codec_commit_loss = codec_commit_loss * self.lambda_commit
         codec_quantization_loss = quantization_loss * self.lambda_quantization
-        reconstruct_loss = self.generator_reconstruct_loss(audio, audio_hat) * self.lambda_reconstruct
+        reconstruct_loss = (
+            self.generator_reconstruct_loss(audio, audio_hat) * self.lambda_reconstruct
+        )
         semantic_loss = semantic_loss * self.lambda_semantic
-        
+
         codec_loss = codec_commit_loss + codec_quantization_loss
         loss = adv_loss + codec_loss + reconstruct_loss + semantic_loss
-        
+
         # Collect statistics
         stats = {
             "adv_loss": adv_loss.item(),
@@ -319,19 +347,19 @@ class SemanticDAC(AbsGANCodec):
             "codec_quantization_loss": codec_quantization_loss.item(),
             "reconstruct_loss": reconstruct_loss.item(),
         }
-        
+
         # Add feature matching loss if enabled
         if self.use_feat_match_loss:
             feat_match_loss = self.feat_match_loss(p_hat, p) * self.lambda_feat_match
             loss = loss + feat_match_loss
             stats["feat_match_loss"] = feat_match_loss.item()
-            
+
         # Add mel-spectrogram loss if enabled
         if self.use_mel_loss:
             mel_loss = self.mel_loss(audio_hat, audio) * self.lambda_mel
             loss = loss + mel_loss
             stats["mel_loss"] = mel_loss.item()
-            
+
             if self.use_dual_decoder and audio_hat_real is not None:
                 mel_loss_real = self.mel_loss(audio_hat_real, audio) * self.lambda_mel
                 loss = loss + mel_loss_real
@@ -359,16 +387,16 @@ class SemanticDAC(AbsGANCodec):
         **kwargs,
     ) -> Dict[str, Any]:
         """Perform discriminator forward pass.
-        
+
         Args:
             audio: Audio waveform tensor (B, T_wav).
-            
+
         Returns:
             Dict with loss, stats, weight, and optimizer index.
         """
         # Setup
         batch_size = audio.size(0)
-        
+
         # Add channel dimension if needed
         if audio.dim() == 2:
             audio = audio.unsqueeze(1)
@@ -378,9 +406,21 @@ class SemanticDAC(AbsGANCodec):
         if not self.cache_generator_outputs or self._cache is None:
             reuse_cache = False
             outputs = self.generator(audio, use_dual_decoder=self.use_dual_decoder)
-            audio_hat, codec_commit_loss, codec_quantization_loss, semantic_loss, audio_hat_real = outputs
+            (
+                audio_hat,
+                codec_commit_loss,
+                codec_quantization_loss,
+                semantic_loss,
+                audio_hat_real,
+            ) = outputs
         else:
-            audio_hat, codec_commit_loss, codec_quantization_loss, semantic_loss, audio_hat_real = self._cache
+            (
+                audio_hat,
+                codec_commit_loss,
+                codec_quantization_loss,
+                semantic_loss,
+                audio_hat_real,
+            ) = self._cache
 
         # Store cache
         if self.cache_generator_outputs and not reuse_cache:
@@ -393,7 +433,9 @@ class SemanticDAC(AbsGANCodec):
             )
 
         # Calculate discriminator outputs
-        p_hat = self.discriminator(audio_hat.detach())  # Detach to avoid grad flow to generator
+        p_hat = self.discriminator(
+            audio_hat.detach()
+        )  # Detach to avoid grad flow to generator
         p = self.discriminator(audio)
 
         # Calculate losses
@@ -406,7 +448,7 @@ class SemanticDAC(AbsGANCodec):
             "real_loss": real_loss.item(),
             "fake_loss": fake_loss.item(),
         }
-        
+
         # Make values gatherable across devices
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
 
@@ -427,10 +469,10 @@ class SemanticDAC(AbsGANCodec):
         **kwargs,
     ) -> Dict[str, torch.Tensor]:
         """Run inference.
-        
+
         Args:
             x: Input audio (T_wav,).
-            
+
         Returns:
             Dict with generated waveform and neural codec.
         """
@@ -445,10 +487,10 @@ class SemanticDAC(AbsGANCodec):
         **kwargs,
     ) -> torch.Tensor:
         """Run encoding.
-        
+
         Args:
             x: Input audio (T_wav,).
-            
+
         Returns:
             Generated codes (T_code, N_stream).
         """
@@ -460,10 +502,10 @@ class SemanticDAC(AbsGANCodec):
         **kwargs,
     ) -> torch.Tensor:
         """Run decoding.
-        
+
         Args:
             x: Input codes (T_code, N_stream).
-            
+
         Returns:
             Generated waveform (T_wav,).
         """
@@ -515,7 +557,7 @@ class SemanticDACGenerator(nn.Module):
         quantizer_dropout: bool = True,
     ):
         """Initialize DAC Generator.
-        
+
         Args:
             sample_rate: Sample rate of input audio.
             hidden_dim: Hidden dimension for models.
@@ -599,7 +641,7 @@ class SemanticDACGenerator(nn.Module):
             threshold_ema_dead_code=quantizer_threshold_ema_dead_code,
             quantizer_dropout=quantizer_dropout,
         )
-        
+
         # Set model parameters
         self.target_bandwidths = quantizer_target_bandwidth
         self.sample_rate = sample_rate
@@ -636,7 +678,7 @@ class SemanticDACGenerator(nn.Module):
         self.semantic_sample_rate = semantic_sample_rate
         self.semantic_layer = semantic_layer
         self.semantic_loss = semantic_loss
-        
+
         # Initialize semantic model
         self._initialize_semantic_model(semantic_type, semantic_model)
 
@@ -645,20 +687,20 @@ class SemanticDACGenerator(nn.Module):
         self.l2_quantization_loss = nn.MSELoss(reduction="mean")
 
     def _validate_parameters(
-        self, 
+        self,
         semantic_type: str,
         semantic_loss: str,
         sample_rate: int,
-        semantic_sample_rate: int
+        semantic_sample_rate: int,
     ) -> None:
         """Validate input parameters.
-        
+
         Args:
             semantic_type: Type of semantic model.
             semantic_loss: Type of semantic loss.
             sample_rate: Sample rate of input audio.
             semantic_sample_rate: Sample rate for semantic model.
-        
+
         Raises:
             ValueError: If parameters are invalid.
         """
@@ -666,50 +708,51 @@ class SemanticDACGenerator(nn.Module):
             raise ValueError(
                 f"Unsupported semantic type: {semantic_type}. Use 'espnet' or 's3prl'."
             )
-            
+
         if semantic_loss not in ["L1", "L2", "cosine"]:
             raise ValueError(
                 f"Unsupported semantic loss: {semantic_loss}. Use 'L1', 'L2', or 'cosine'."
             )
-            
+
         if sample_rate < semantic_sample_rate:
             raise ValueError(
                 "Semantic model sample rate is higher than encoder sample rate. "
                 f"Got sample_rate={sample_rate}, semantic_sample_rate={semantic_sample_rate}."
             )
 
-    def _initialize_semantic_model(self, semantic_type: str, semantic_model: str) -> None:
+    def _initialize_semantic_model(
+        self, semantic_type: str, semantic_model: str
+    ) -> None:
         """Initialize semantic model.
-        
+
         Args:
             semantic_type: Type of semantic model.
             semantic_model: Name of semantic model.
         """
         if semantic_type == "espnet":
             from espnet2.tasks.hubert import HubertTask
+
             self.semantic, _ = HubertTask.build_model_from_file(
                 None, semantic_model, device="cpu"
             )
         elif semantic_type == "s3prl":
             from s3prl.nn import S3PRLUpstream
+
             self.semantic = S3PRLUpstream(semantic_model)
-            
+
         # Set to evaluation mode
         self.semantic.eval()
-        
+
         # Freeze semantic model parameters
         for param in self.semantic.parameters():
             param.requires_grad = False
 
-    def _extract_semantic_features(
-        self, 
-        x: torch.Tensor
-    ) -> torch.Tensor:
+    def _extract_semantic_features(self, x: torch.Tensor) -> torch.Tensor:
         """Extract semantic features from audio.
-        
+
         Args:
             x: Input audio tensor.
-            
+
         Returns:
             Semantic features.
         """
@@ -724,13 +767,13 @@ class SemanticDACGenerator(nn.Module):
                 )
             else:
                 semantic_audio = x
-                
+
             # Prepare for semantic model
             semantic_max_len = semantic_audio.size(2)
             semantic_seq_len = torch.tensor(
                 [semantic_max_len] * semantic_audio.size(0)
             ).to(semantic_audio.device)
-            
+
             # Process through semantic model
             if self.semantic_type == "espnet":
                 semantic = self.semantic(semantic_audio.squeeze(1), semantic_seq_len)
@@ -752,26 +795,24 @@ class SemanticDACGenerator(nn.Module):
                         f"for model with {len(semantic)} layers"
                     )
                     semantic = semantic[self.semantic_layer]
-                    
+
         return semantic
 
     def _calculate_semantic_loss(
-        self,
-        semantic_prediction: torch.Tensor,
-        semantic: torch.Tensor
+        self, semantic_prediction: torch.Tensor, semantic: torch.Tensor
     ) -> torch.Tensor:
         """Calculate semantic loss.
-        
+
         Args:
             semantic_prediction: Predicted semantic features.
             semantic: Target semantic features.
-            
+
         Returns:
             Semantic loss.
         """
         # Find minimum length between prediction and target
         min_len = min(semantic_prediction.size(1), semantic.size(1))
-        
+
         # Compute loss based on the specified type
         if self.semantic_loss == "L1":
             loss = F.l1_loss(
@@ -792,26 +833,24 @@ class SemanticDACGenerator(nn.Module):
                 0.5
                 + 1e-6
                 - F.cosine_similarity(
-                    semantic_prediction[:, :min_len], 
-                    semantic[:, :min_len], 
-                    dim=1
+                    semantic_prediction[:, :min_len], semantic[:, :min_len], dim=1
                 )
                 / 2
             ).mean()
-        
+
         return loss
 
     def forward(
-        self, 
-        x: torch.Tensor, 
-        use_dual_decoder: bool = False
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
+        self, x: torch.Tensor, use_dual_decoder: bool = False
+    ) -> Tuple[
+        torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, Optional[torch.Tensor]
+    ]:
         """DAC forward propagation.
-        
+
         Args:
             x: Input tensor of shape (B, 1, T).
             use_dual_decoder: Whether to use dual decoder for encoder out.
-            
+
         Returns:
             Tuple containing:
                 - resynthesized audio
@@ -822,10 +861,10 @@ class SemanticDACGenerator(nn.Module):
         """
         # Extract semantic features
         semantic = self._extract_semantic_features(x)
-        
+
         # Encode input
         encoder_out = self.encoder(x)
-        
+
         # Select target bandwidth
         bw_idx = random.randint(0, len(self.target_bandwidths) - 1)
         bw = self.target_bandwidths[bw_idx]
@@ -855,8 +894,14 @@ class SemanticDACGenerator(nn.Module):
         resyn_audio_real = None
         if use_dual_decoder:
             resyn_audio_real = self.decoder(encoder_out)
-            
-        return resyn_audio, commit_loss, quantization_loss, semantic_loss, resyn_audio_real
+
+        return (
+            resyn_audio,
+            commit_loss,
+            quantization_loss,
+            semantic_loss,
+            resyn_audio_real,
+        )
 
     def encode(
         self,
@@ -864,11 +909,11 @@ class SemanticDACGenerator(nn.Module):
         target_bw: Optional[float] = None,
     ) -> torch.Tensor:
         """DAC codec encoding.
-        
+
         Args:
             x: Input tensor of shape (B, 1, T) or (T,).
             target_bw: Target bandwidth.
-            
+
         Returns:
             Neural codecs.
         """
@@ -877,37 +922,34 @@ class SemanticDACGenerator(nn.Module):
             x = x.unsqueeze(0).unsqueeze(0)  # Add batch and channel dimensions
         elif x.dim() == 2:
             x = x.unsqueeze(1)  # Add channel dimension
-            
+
         # Run through encoder
         encoder_out = self.encoder(x.float())
-        
+
         # Select bandwidth
         if target_bw is None:
             bw = self.target_bandwidths[-1]  # Use maximum bandwidth by default
         else:
             bw = target_bw
-            
+
         # Encode to discrete codes
         codes = self.quantizer.encode(encoder_out, self.frame_rate, bw)
-        
+
         return codes
 
-    def decode(
-        self, 
-        codes: torch.Tensor
-    ) -> torch.Tensor:
+    def decode(self, codes: torch.Tensor) -> torch.Tensor:
         """DAC codec decoding.
-        
+
         Args:
             codes: Neural codecs.
-            
+
         Returns:
             Resynthesized audio.
         """
         # Convert codes back to continuous representation
         quantized = self.quantizer.decode(codes)
-        
+
         # Decode to audio
         resyn_audio = self.decoder(quantized)
-        
+
         return resyn_audio
