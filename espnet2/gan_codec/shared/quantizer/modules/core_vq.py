@@ -386,7 +386,9 @@ class ResidualVectorQuantization(nn.Module):
         )
         self.quantizer_dropout = kwargs.get("quantizer_dropout")
 
-    def forward(self, x, n_q: Optional[int] = None, return_list: Optional[bool] = False):
+    def forward(
+        self, x, n_q: Optional[int] = None, return_list: Optional[bool] = False
+    ):
         quantized_out = 0.0
         residual = x
 
@@ -449,7 +451,12 @@ class ResidualVectorQuantization(nn.Module):
                 torch.stack, (all_commit_losses, all_quant_losses, all_indices)
             )
             if return_list:
-                return all_quantized_out, out_indices, out_commit_losses, out_quant_losses
+                return (
+                    all_quantized_out,
+                    out_indices,
+                    out_commit_losses,
+                    out_quant_losses,
+                )
             return quantized_out, out_indices, out_commit_losses, out_quant_losses
 
     def encode(

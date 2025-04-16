@@ -236,8 +236,8 @@ class FSQDAC(AbsGANCodec):
 
         # Define modules
         generator_params = dict(
-            generator_params
-        .get)  # Create a copy to avoid modifying the original
+            generator_params.get
+        )  # Create a copy to avoid modifying the original
         generator_params["sample_rate"] = sampling_rate
         self.generator = DACGenerator(**generator_params)
         self.discriminator = DACDiscriminator(**discriminator_params)

@@ -80,7 +80,11 @@ class ResidualVectorQuantizer(nn.Module):
         )
 
     def forward(
-            self, x: torch.Tensor, sample_rate: int, bandwidth: Optional[float] = None, return_list: Optional[bool] = False,
+        self,
+        x: torch.Tensor,
+        sample_rate: int,
+        bandwidth: Optional[float] = None,
+        return_list: Optional[bool] = False,
     ) -> QuantizedResult:
         """Residual vector quantization on the given input tensor.
         Args:
@@ -100,7 +104,9 @@ class ResidualVectorQuantizer(nn.Module):
             bw = torch.tensor(n_q * bw_per_q).to(x)
             return quantized, codes, bw, torch.mean(commit_loss)
         else:
-            quantized, codes, commit_loss, quantization_loss = self.vq(x, n_q=n_q, return_list=return_list)
+            quantized, codes, commit_loss, quantization_loss = self.vq(
+                x, n_q=n_q, return_list=return_list
+            )
             bw = torch.tensor(n_q * bw_per_q).to(x)
             return (
                 quantized,
