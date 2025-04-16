@@ -237,7 +237,7 @@ class FSQDAC(AbsGANCodec):
         # Define modules
         generator_params = dict(
             generator_params
-        )  # Create a copy to avoid modifying the original
+        .get)  # Create a copy to avoid modifying the original
         generator_params["sample_rate"] = sampling_rate
         self.generator = DACGenerator(**generator_params)
         self.discriminator = DACDiscriminator(**discriminator_params)
@@ -283,12 +283,12 @@ class FSQDAC(AbsGANCodec):
         self.fs = sampling_rate
         self.num_streams = 1
         self.frame_shift = functools.reduce(
-            lambda x, y: x * y, generator_params["encdec_ratios"]
+            lambda x, y: x * y, generator_params.get("encdec_ratios", [8, 5, 2, 2])
         )
-        self.quantizer_factor = generator_params["quantizer_factor"]
+        self.quantizer_factor = generator_params.get("quantizer_factor", 3)
         self.code_size_per_stream = [
-            generator_params["quantizer_factor"]
-            ** generator_params["quantizer_codedim"]
+            generator_params.get("quantizer_factor", 3)
+            ** generator_params.get("quantizer_codedim", 1)
         ]
 
     def meta_info(self) -> Dict[str, Any]:
