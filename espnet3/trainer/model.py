@@ -8,17 +8,17 @@ from hydra.utils import instantiate
 from omegaconf import OmegaConf
 
 from espnet2.train.collate_fn import CommonCollateFn
-from espnet3.trainer.hybrid_optim import HybridOptim
-from espnet3.trainer.hybrid_scheduler import HybridLRS
+from espnet3.collect_stats import collect_stats
 
 
 class LitESPnetModel(L.LightningModule):
-    def __init__(self, model, config, train_dataset, valid_dataset):
+    def __init__(self, model, config):
         super().__init__()
         self.config = config
         self.model = model
-        self.train_dataset = train_dataset
-        self.valid_dataset = valid_dataset
+        organizer = instantiate(config.dataset)
+        self.train_dataset = organizer.train
+        self.valid_dataset = organizer.valid
         self.save_hyperparameters()  # args now in self.hparams
 
         # Save config to make it compatible with ESPnet inference
@@ -205,3 +205,18 @@ class LitESPnetModel(L.LightningModule):
 
     def load_state_dict(self, state_dict, strict=True):
         return self.model.load_state_dict(state_dict, strict=strict)
+
+    def collect_stats(self):
+        assert hasattr(self.config, "statsdir"), "config.statsdir must be defined"
+
+        for mode in ["train", "valid"]:
+            collect_stats(
+                model_config=OmegaConf.to_container(self.config.model, resolve=True),
+                dataset_config=self.config.dataset,
+                dataloader_config=self.config.dataloader,
+                mode=mode,
+                output_dir=Path(self.config.statsdir),
+                task=getattr(self.config, "task", None),
+                parallel_config=self.config.parallel,
+                write_collected_feats=False,
+            )
