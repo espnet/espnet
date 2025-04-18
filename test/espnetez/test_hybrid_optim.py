@@ -1,7 +1,9 @@
+from unittest.mock import MagicMock
+
 import pytest
 import torch
 from torch import nn
-from unittest.mock import MagicMock
+
 from espnet3.trainer import HybridOptim
 
 
@@ -51,7 +53,7 @@ def test_state_dict_and_load_state_dict_roundtrip():
     hybrid = HybridOptim(optimizers)
 
     # dummy gradient + step
-    for p in optimizers[0].param_groups[0]['params']:
+    for p in optimizers[0].param_groups[0]["params"]:
         p.grad = torch.ones_like(p)
     hybrid.step()
 

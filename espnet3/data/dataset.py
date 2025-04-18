@@ -154,11 +154,9 @@ class LhotzeS2TDataset(ESPnetEZDataset):
         self.data_info = data_info
         self.tokenizer = tokenizer
         self.converter = converter
-    
+
     def tokenize(self, text):
-        result = self.tokenizer.tokens2ids(
-            self.converter.text2tokens(text)
-        )
+        result = self.tokenizer.tokens2ids(self.converter.text2tokens(text))
         return result
 
     def __getitem__(self, cuts: CutSet):
