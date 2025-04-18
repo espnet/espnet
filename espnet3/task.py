@@ -159,7 +159,7 @@ def save_espnet_config(
 
     # set the preprocessor config at the root level
     if hasattr(config.dataset, "preprocessor"):
-        preprocess_config = resolved_config.dataset.pop("preprocessor")
+        preprocess_config = resolved_config['dataset'].pop("preprocessor")
         if hasattr(preprocess_config, "_target_"):
             preprocess_config.pop("_target_")
         default_config.update(preprocess_config)
