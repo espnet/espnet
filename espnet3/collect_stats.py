@@ -1,19 +1,19 @@
 import logging
 from collections import defaultdict
 from pathlib import Path
-from typing import Optional, Iterable
+from typing import Iterable, Optional
 
 import numpy as np
 import torch
 from dask import delayed
-from dask.distributed import get_worker, as_completed, WorkerPlugin
+from dask.distributed import WorkerPlugin, as_completed, get_worker
 from hydra.utils import instantiate
 from tqdm import tqdm
 
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.fileio.npy_scp import NpyScpWriter
 from espnet3 import get_espnet_model
-from espnet3.parallel import set_parallel, get_client
+from espnet3.parallel import get_client, set_parallel
 
 
 class CollectStatsPlugin(WorkerPlugin):
@@ -49,6 +49,7 @@ class CollectStatsPlugin(WorkerPlugin):
             worker.collate_fn = instantiate(self.dataloader_config.collate_fn)
         else:
             from espnet2.train.collate_fn import CommonCollateFn
+
             worker.collate_fn = CommonCollateFn(int_pad_value=-1)
 
 
@@ -86,7 +87,9 @@ def collect_stats(
         # ---- Local mode ----
         print(f"[{mode}] Running in local (non-parallel) mode")
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        model = get_espnet_model(task, model_config) if task else instantiate(model_config)
+        model = (
+            get_espnet_model(task, model_config) if task else instantiate(model_config)
+        )
         model = model.to(device).eval()
 
         organizer = instantiate(dataset_config)
@@ -95,15 +98,24 @@ def collect_stats(
             collate_fn = instantiate(dataloader_config.collate_fn)
         else:
             from espnet2.train.collate_fn import CommonCollateFn
+
             collate_fn = CommonCollateFn(int_pad_value=-1)
 
-        sum_dict, sq_dict, count_dict, writers = defaultdict(lambda: 0), defaultdict(lambda: 0), defaultdict(lambda: 0), {}
+        sum_dict, sq_dict, count_dict, writers = (
+            defaultdict(lambda: 0),
+            defaultdict(lambda: 0),
+            defaultdict(lambda: 0),
+            {},
+        )
         with DatadirWriter(output_dir / mode) as datadir_writer:
             for i in tqdm(range(0, len(dataset), batch_size), desc=f"[{mode}]"):
                 batch_idxs = list(range(i, min(i + batch_size, len(dataset))))
                 items = [dataset[j] for j in batch_idxs]
                 batch = collate_fn(items)
-                batch = {k: v.to(device) if hasattr(v, "to") else v for k, v in batch[1].items()}
+                batch = {
+                    k: v.to(device) if hasattr(v, "to") else v
+                    for k, v in batch[1].items()
+                }
                 feats = model.collect_feats(**batch)
                 feats = {k: v.cpu().numpy() for k, v in feats.items()}
                 uid_list = [uid for uid, _ in items]
@@ -128,26 +140,41 @@ def collect_stats(
                                     p / f"data_{key}", p / f"{key}.scp"
                                 )
                             npy_scp_writers[(key, mode)][uid] = seq
-                        datadir_writer[f"{key}_shape"][uid] = ",".join(map(str, seq.shape))
+                        datadir_writer[f"{key}_shape"][uid] = ",".join(
+                            map(str, seq.shape)
+                        )
     else:
         # ---- Parallel mode ----
         set_parallel(parallel_config)
-        plugin = CollectStatsPlugin(task, model_config, dataset_config, dataloader_config, mode)
+        plugin = CollectStatsPlugin(
+            task, model_config, dataset_config, dataloader_config, mode
+        )
 
         dummy = instantiate(dataset_config)
         dataset = getattr(dummy, mode)
         index_list = list(range(len(dataset)))
         del dummy  # free memory
 
-        sum_dict, sq_dict, count_dict, writers = defaultdict(lambda: 0), defaultdict(lambda: 0), defaultdict(lambda: 0), {}
+        sum_dict, sq_dict, count_dict, writers = (
+            defaultdict(lambda: 0),
+            defaultdict(lambda: 0),
+            defaultdict(lambda: 0),
+            {},
+        )
 
-        with get_client(plugin=plugin) as client, DatadirWriter(output_dir / mode) as datadir_writer:
+        with get_client(plugin=plugin) as client, DatadirWriter(
+            output_dir / mode
+        ) as datadir_writer:
             batch_idxs_list = [
                 list(range(i, min(i + batch_size, len(dataset))))
                 for i in range(0, len(dataset), batch_size)
             ]
             futures = client.map(process_batch_batching, batch_idxs_list)
-            for future in tqdm(as_completed(futures), total=len(batch_idxs_list), desc=f"[{mode} parallel]"):
+            for future in tqdm(
+                as_completed(futures),
+                total=len(batch_idxs_list),
+                desc=f"[{mode} parallel]",
+            ):
                 uid_list, feats = future.result()
                 for idx, uid in enumerate(uid_list):
                     for key in feats:
@@ -165,9 +192,13 @@ def collect_stats(
                         if write_collected_feats:
                             if (key, mode) not in writers:
                                 p = output_dir / mode / "collect_feats"
-                                writers[(key, mode)] = NpyScpWriter(p / f"data_{key}", p / f"{key}.scp")
+                                writers[(key, mode)] = NpyScpWriter(
+                                    p / f"data_{key}", p / f"{key}.scp"
+                                )
                             writers[(key, mode)][uid] = seq
-                        datadir_writer[f"{key}_shape"][uid] = ",".join(map(str, seq.shape))
+                        datadir_writer[f"{key}_shape"][uid] = ",".join(
+                            map(str, seq.shape)
+                        )
 
     # Save statistics
     for key in sum_dict:

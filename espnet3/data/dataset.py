@@ -1,4 +1,4 @@
-from typing import Dict, Tuple, Union, Any
+from typing import Any, Dict, Tuple, Union
 
 from lhotse import CutSet
 

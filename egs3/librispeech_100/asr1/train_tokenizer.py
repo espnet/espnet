@@ -1,5 +1,5 @@
-from omegaconf import OmegaConf
 from hydra.utils import instantiate
+from omegaconf import OmegaConf
 from tqdm import tqdm
 
 from espnet3.data import DataOrganizer
@@ -15,7 +15,7 @@ def main(config_path):
     # Load config
     OmegaConf.register_new_resolver("load_line", load_line)
     config = OmegaConf.load(config_path)
-    
+
     # For training dataset we don't need preprocessor
     config.dataset.preprocessor = None
     organizer = instantiate(config.dataset)
@@ -24,7 +24,7 @@ def main(config_path):
         for example in tqdm(organizer.train):
             f.write(example[1]["text"] + "\n")
             f.flush()
-    
+
     train_sentencepiece(
         dump_text_path="train_text.txt",
         output_path="sentencepiece_model",
@@ -32,7 +32,7 @@ def main(config_path):
         character_coverage=0.995,
         model_type="bpe",
     )
-    
+
 
 if __name__ == "__main__":
     config_path = "egs3/librispeech_100/asr1/config.yaml"

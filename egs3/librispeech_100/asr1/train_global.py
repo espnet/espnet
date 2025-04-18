@@ -1,16 +1,17 @@
-import os
 import argparse
-import torch
-import numpy as np
-import lightning as L
+import os
 from pathlib import Path
-from omegaconf import OmegaConf
+
+import lightning as L
+import numpy as np
+import torch
 from hydra.utils import instantiate
+from omegaconf import OmegaConf
 
 from espnet3 import get_espnet_model, save_espnet_config
-from espnet3.trainer import ESPnetEZLightningTrainer, LitESPnetModel
-from espnet3.parallel import set_parallel
 from espnet3.data import DataOrganizer
+from espnet3.parallel import set_parallel
+from espnet3.trainer import ESPnetEZLightningTrainer, LitESPnetModel
 
 
 def load_line(path):
@@ -63,6 +64,7 @@ def main(config_path):
     fit_params = {} if not hasattr(config, "fit") else config.fit
     trainer.fit(**fit_params)
     # trainer.validate(**fit_params)
+
 
 if __name__ == "__main__":
     main("config_globalMVN.yaml")

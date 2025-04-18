@@ -1,5 +1,6 @@
 from typing import Iterator, List, Tuple, Union
 
+from omegaconf import ListConfig
 from typeguard import typechecked
 
 from espnet2.fileio.read_text import load_num_sequence_text

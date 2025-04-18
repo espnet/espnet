@@ -30,15 +30,13 @@ def gather_examples(data_dir):
                     if not os.path.exists(flac_path):
                         continue
                     examples["id"].append(utt_id)
-                    examples["audio"].append(
-                        {"path": flac_path}
-                    )
+                    examples["audio"].append({"path": flac_path})
                     examples["text"].append(text)
     return examples
 
 
 # root path to the dataset（eg：LibriSpeech/train-clean-100）
-BASE_PATH = os.environ['LIBRISPEECH_PATH']
+BASE_PATH = os.environ["LIBRISPEECH_PATH"]
 
 dataset_dict = DatasetDict(
     {
@@ -59,6 +57,6 @@ for split in dataset_dict:
         "audio", datasets.Audio(decode=False)
     )
 
-dataset_dir = os.environ['LIBRISPEECH']
+dataset_dir = os.environ["LIBRISPEECH"]
 print("Saved dataset to", dataset_dir)
 dataset_dict.save_to_disk(dataset_dir)

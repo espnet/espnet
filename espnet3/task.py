@@ -2,13 +2,13 @@
 # This class is a wrapper for Task classes to support custom datasets.
 import argparse
 import logging
-import yaml
 from argparse import Namespace
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
 
 import numpy as np
 import torch
+import yaml
 from omegaconf import DictConfig, OmegaConf
 from torch.utils.data import DataLoader
 from typeguard import typechecked
@@ -159,7 +159,7 @@ def save_espnet_config(
 
     # set the preprocessor config at the root level
     if hasattr(config.dataset, "preprocessor"):
-        preprocess_config = resolved_config['dataset'].pop("preprocessor")
+        preprocess_config = resolved_config["dataset"].pop("preprocessor")
         if hasattr(preprocess_config, "_target_"):
             preprocess_config.pop("_target_")
         default_config.update(preprocess_config)
@@ -170,7 +170,7 @@ def save_espnet_config(
     for k, v in default_config.items():
         if k.endswith("_conf") and v is None:
             default_config[k] = {}
-    
+
     # Convert tuple into list
     for k, v in default_config.items():
         if isinstance(v, tuple):
@@ -180,5 +180,5 @@ def save_espnet_config(
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     output_path = output_dir / "config.yaml"
-    with open(output_path, "w", encoding='utf-8')  as f:
+    with open(output_path, "w", encoding="utf-8") as f:
         yaml.dump(default_config, f)

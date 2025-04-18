@@ -1,8 +1,11 @@
-from espnet3.metrics.abs_metrics import AbsMetrics, validate_scp_files
-from pathlib import Path
-from typing import List, Dict, Union
-from sacrebleu.metrics import BLEU as sacreBLEU, CHRF, TER
 import re
+from pathlib import Path
+from typing import Dict, List, Union
+
+from sacrebleu.metrics import BLEU as sacreBLEU
+from sacrebleu.metrics import CHRF, TER
+
+from espnet3.metrics.abs_metrics import AbsMetrics, validate_scp_files
 
 
 class BLEU(AbsMetrics):
@@ -24,7 +27,9 @@ class BLEU(AbsMetrics):
             text = re.sub(r"<[^>]+>", "", text)
         return text.strip() or "."
 
-    def __call__(self, decode_dir: Path, test_name: str, inputs: Union[List[str], Dict[str, str]]) -> Dict[str, Union[float, str]]:
+    def __call__(
+        self, decode_dir: Path, test_name: str, inputs: Union[List[str], Dict[str, str]]
+    ) -> Dict[str, Union[float, str]]:
         scp_data = validate_scp_files(decode_dir, test_name, inputs)
         if isinstance(inputs, list):
             ref_key, hyp_key = inputs
@@ -41,14 +46,10 @@ class BLEU(AbsMetrics):
         ter = self.ter.corpus_score(hyps, [refs])
 
         with open(score_dir / "score", "w") as f:
-            f.write("\n".join([
-                str(bleu),
-                str(chrf),
-                str(ter)
-            ]))
+            f.write("\n".join([str(bleu), str(chrf), str(ter)]))
 
         return {
             "BLEU": round(bleu.score, 3),
             "CHRF": round(chrf.score, 3),
-            "TER": round(ter.score, 3)
+            "TER": round(ter.score, 3),
         }

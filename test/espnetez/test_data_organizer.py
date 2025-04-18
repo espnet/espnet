@@ -1,6 +1,9 @@
-import pytest
 from types import SimpleNamespace
-from espnet3.data import DatasetConfig, CombinedDataset, DataOrganizer
+
+import pytest
+
+from espnet3.data import CombinedDataset, DataOrganizer, DatasetConfig
+
 
 # Dummy transform and preprocessor classes for testing
 class DummyTransform:
@@ -8,10 +11,12 @@ class DummyTransform:
         sample["text"] = sample["text"].upper()
         return sample
 
+
 class DummyPreprocessor:
     def __call__(self, sample):
         sample["text"] = f"[DUMMY] {sample['text']}"
         return sample
+
 
 # Dummy dataset for testing
 class DummyDataset:
@@ -27,6 +32,7 @@ class DummyDataset:
     def __getitem__(self, idx):
         return self.data[idx]
 
+
 class EmptyDataset:
     def __init__(self, path=None):
         self.data = []
@@ -37,6 +43,7 @@ class EmptyDataset:
     def __getitem__(self, idx):
         raise IndexError("Empty dataset")
 
+
 @pytest.fixture
 def dummy_dataset_config():
     return {
@@ -45,14 +52,14 @@ def dummy_dataset_config():
                 "name": "dummy",
                 "dataset_cls": "test.espnetez.test_data_organizer.DummyDataset",
                 "fields": ["audio", "text"],
-                "transform": "test.espnetez.test_data_organizer.DummyTransform"
+                "transform": "test.espnetez.test_data_organizer.DummyTransform",
             }
         ],
         "valid": [
             {
                 "name": "dummy",
                 "dataset_cls": "test.espnetez.test_data_organizer.DummyDataset",
-                "fields": ["audio", "text"]
+                "fields": ["audio", "text"],
             }
         ],
         "test": {
@@ -60,10 +67,11 @@ def dummy_dataset_config():
                 "name": "dummy",
                 "dataset_cls": "test.espnetez.test_data_organizer.DummyDataset",
                 "path": None,
-                "fields": ["audio", "text"]
+                "fields": ["audio", "text"],
             }
-        }
+        },
     }
+
 
 def test_combined_dataset():
     ds1 = DummyDataset()
@@ -73,17 +81,20 @@ def test_combined_dataset():
     assert combined[0]["text"] == "HELLO"
     assert combined[3]["text"] == "WORLD"
 
+
 def test_combined_dataset_index_error():
     ds = DummyDataset()
     combined = CombinedDataset([ds], [DummyTransform()])
     with pytest.raises(IndexError):
         _ = combined[10]
 
+
 def test_empty_combined_dataset():
     empty = CombinedDataset([], [])
     assert len(empty) == 0
     with pytest.raises(IndexError):
         _ = empty[0]
+
 
 def test_data_organizer_init(dummy_dataset_config):
     organizer = DataOrganizer(dummy_dataset_config, preprocessor=DummyPreprocessor())
@@ -100,38 +111,41 @@ def test_data_organizer_init(dummy_dataset_config):
     assert len(organizer.test["sample_test"]) == 2
     assert isinstance(organizer.test["sample_test"][0], dict)
 
+
 def test_data_organizer_empty_dataset():
     config = {
         "train": [
             {
                 "name": "empty",
                 "dataset_cls": "test.espnetez.test_data_organizer.EmptyDataset",
-                "fields": ["audio", "text"]
+                "fields": ["audio", "text"],
             }
         ],
         "valid": [
             {
                 "name": "empty",
                 "dataset_cls": "test.espnetez.test_data_organizer.EmptyDataset",
-                "fields": ["audio", "text"]
+                "fields": ["audio", "text"],
             }
-        ]
+        ],
     }
     organizer = DataOrganizer(config)
     assert len(organizer.train) == 0
     assert len(organizer.valid) == 0
+
 
 def test_missing_train_valid_raises():
     incomplete_cfg = {"train": []}  # missing valid
     with pytest.raises(AssertionError):
         DataOrganizer(incomplete_cfg)
 
+
 def test_dataset_config_from_dict():
     cfg_dict = {
         "name": "dummy",
         "dataset_cls": "test.espnetez.test_data_organizer.DummyDataset",
         "fields": ["audio", "text"],
-        "transform": "test.espnetez.test_data_organizer.DummyTransform"
+        "transform": "test.espnetez.test_data_organizer.DummyTransform",
     }
     cfg = DatasetConfig.from_dict(cfg_dict)
     assert cfg.name == "dummy"

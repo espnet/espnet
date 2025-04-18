@@ -1,10 +1,11 @@
 # tests/test_inference_runner.py
 import shutil
+from pathlib import Path
+
 import pytest
 import torch
-from pathlib import Path
-from omegaconf import OmegaConf
 from hydra.utils import instantiate
+from omegaconf import OmegaConf
 
 from espnet3.inference_runner import InferenceRunner
 from espnet3.metrics import AbsMetrics
@@ -18,6 +19,7 @@ def load_line(path):
 class DummyDataset:
     def __len__(self):
         return 2
+
     def __getitem__(self, idx):
         return {"text": f"hello {idx}"}
 
@@ -30,9 +32,10 @@ class IdentityTransform:
 class DummyInference(torch.nn.Module):
     def __call__(self, batch):
         return {
-            "text": { "type": "text", "value": batch['text']},
-            "hypothesis": {"type": "text", "value": batch['text'].upper()},
+            "text": {"type": "text", "value": batch["text"]},
+            "hypothesis": {"type": "text", "value": batch["text"].upper()},
         }
+
 
 class DummyMetrics(AbsMetrics):
     def __call__(self, decode_dir, test_name, inputs):
