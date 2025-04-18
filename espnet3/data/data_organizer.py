@@ -87,6 +87,7 @@ class CombinedDataset:
         return self.cumulative_lengths[-1] if self.cumulative_lengths else 0
 
     def __getitem__(self, idx):
+        if type(idx) == str: idx = int(idx)
         for i, cum_len in enumerate(self.cumulative_lengths):
             if idx < cum_len:
                 ds_idx = idx if i == 0 else idx - self.cumulative_lengths[i - 1]
