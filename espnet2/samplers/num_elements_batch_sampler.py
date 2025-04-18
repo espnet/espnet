@@ -1,4 +1,5 @@
 from typing import Iterator, List, Tuple, Union
+from omegaconf import ListConfig
 
 import numpy as np
 from typeguard import typechecked
@@ -12,7 +13,7 @@ class NumElementsBatchSampler(AbsSampler):
     def __init__(
         self,
         batch_bins: int,
-        shape_files: Union[Tuple[str, ...], List[str]],
+        shape_files: Union[Tuple[str, ...], List[str], ListConfig[str]],
         min_batch_size: int = 1,
         sort_in_batch: str = "descending",
         sort_batch: str = "ascending",
