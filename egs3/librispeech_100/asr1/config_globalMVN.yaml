@@ -1,0 +1,234 @@
+recipedir: .
+num_device: ${oc.env:N_GPU}
+expdir: ${recipedir}/exp/gpu${num_device}_globalmvn_numel
+statsdir:  ${recipedir}/exp/stats
+vocab_size: 6500
+seed: 2024
+task: asr
+
+parallel:
+  env: slurm
+  n_workers: 2
+  options:
+    queue: general
+    cores: 1
+    processes: 1
+    memory: 8GB
+    walltime: 30:00
+    job_extra_directives:
+      # - "--gres=gpu:1"
+      - "--ntasks-per-node=1"
+      - "--cpus-per-task=4"
+
+dataset:
+  _target_: espnet3.data.DataOrganizer
+  train:
+    - name: train-clean-100
+      dataset:
+        _target_: espnet3.data.HFWrapper
+        path: "arrow"
+        data_files:
+          train: ${oc.env:LIBRISPEECH}/train-clean-100/*.arrow
+        split: train
+      transform:
+        _target_: egs3.librispeech_100.asr1.utils.ESPnetEZTransform
+  valid:
+    - name: dev-clean
+      dataset:
+        _target_: espnet3.data.HFWrapper
+        path: "arrow"     
+        data_files:
+          dev: ${oc.env:LIBRISPEECH}/dev-clean/*.arrow
+        split: dev
+      transform:
+        _target_: egs3.librispeech_100.asr1.utils.ESPnetEZTransform
+    - name: dev-other
+      dataset:
+        _target_: espnet3.data.HFWrapper
+        path: "arrow"     
+        data_files:
+          dev: ${oc.env:LIBRISPEECH}/dev-other/*.arrow
+        split: dev
+      transform:
+        _target_: egs3.librispeech_100.asr1.utils.ESPnetEZTransform
+  test:
+    - name: test-clean
+      dataset:
+        _target_: espnet3.data.HFWrapper
+        path: "arrow"     
+        data_files:
+          test: ${oc.env:LIBRISPEECH}/test-clean/*.arrow
+        split: test
+      transform:
+        _target_: egs3.librispeech_100.asr1.utils.ESPnetEZTransform
+    - name: test-clean
+      dataset:
+        _target_: espnet3.data.HFWrapper
+        path: "arrow"     
+        data_files:
+          test: ${oc.env:LIBRISPEECH}/test-other/*.arrow
+        split: test
+      transform:
+        _target_: egs3.librispeech_100.asr1.utils.ESPnetEZTransform
+  
+  preprocessor:
+    _target_: espnet2.train.preprocessor.CommonPreprocessor
+    train: true
+    token_type: bpe
+    token_list: ${recipedir}/sentencepiece_model/tokens.txt
+    bpemodel: ${recipedir}/sentencepiece_model/bpe.model
+    text_cleaner:
+
+
+model:
+  vocab_size: ${vocab_size}
+  token_list: ${load_line:'${recipedir}/sentencepiece_model/tokens.txt'}
+
+  input_size:
+  encoder: e_branchformer
+  encoder_conf:
+    output_size: 256
+    attention_heads: 4
+    attention_layer_type: rel_selfattn
+    pos_enc_layer_type: rel_pos
+    rel_pos_type: latest
+    cgmlp_linear_units: 1024
+    cgmlp_conv_kernel: 31
+    use_linear_after_conv: false
+    gate_activation: identity
+    num_blocks: 12
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    attention_dropout_rate: 0.1
+    input_layer: conv2d
+    layer_drop_rate: 0.0
+    linear_units: 1024
+    positionwise_layer_type: linear
+    use_ffn: true
+    macaron_ffn: true
+    merge_conv_kernel: 31
+
+  normalize: global_mvn
+  normalize_conf:
+    stats_file: ${recipedir}/exp/stats/train/feats_stats.npz
+
+  model_conf:
+    ctc_weight: 1.0
+    lsm_weight: 0.1
+    length_normalized_loss: false
+
+  frontend: default
+  frontend_conf:
+    n_fft: 512
+    win_length: 400
+    hop_length: 160
+
+  specaug: specaug
+  specaug_conf:
+    apply_time_warp: true
+    time_warp_window: 5
+    time_warp_mode: bicubic
+    apply_freq_mask: true
+    freq_mask_width_range: [0, 27]
+    num_freq_mask: 2
+    apply_time_mask: true
+    time_mask_width_ratio_range: [0., 0.05]
+    num_time_mask: 5
+
+optim:
+  _target_: torch.optim.Adam
+  lr: 0.002
+  weight_decay: 0.000001
+
+scheduler:
+  _target_: espnet2.schedulers.warmup_lr.WarmupLR
+  warmup_steps: 15000
+
+dataloader:
+  collate_fn:
+    _target_: espnet2.train.collate_fn.CommonCollateFn
+    int_pad_value: -1
+  train:
+    iter_factory:
+      _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
+      shuffle: true
+      collate_fn: ${dataloader.collate_fn}
+      batches:
+        _target_: espnet2.samplers.build_batch_sampler.build_batch_sampler
+        type: numel
+        shape_files:
+          - ${statsdir}/train/feats_shape
+        batch_size: 4
+        batch_bins: 4000000
+    valid:
+      iter_factory:
+        _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
+        shuffle: false
+        collate_fn: ${dataloader.collate_fn}
+        batches:
+          _target_: espnet2.samplers.build_batch_sampler.build_batch_sampler
+          type: numel
+          shape_files:
+            - ${statsdir}/valid/feats_shape
+          batch_size: 4
+          batch_bins: ${dataloader.train.iter_factory.batches.batch_bins}
+  # train:
+  #   shuffle: true
+  #   num_workers: 4
+  #   batch_size: 40
+  #   # sampler:
+  #   #   _target_: espnet2.samplers.build_batch_sampler.build_batch_sampler
+  #   #   type: numel
+  #   #   batch_size: -1
+  #   #   batch_bins: 32000000
+  #   #   shape_files:
+  #   #     - ${statsdir}/train/feats_shape
+  # valid:
+  #   shuffle: false
+  #   num_workers: 4
+  #   batch_size: 40
+  #   # sampler:
+  #   #   _target_: espnet2.samplers.build_batch_sampler.build_batch_sampler
+  #   #   type: numel
+  #   #   batch_size: -1
+  #   #   batch_bins: ${dataloader.train.sampler.batch_bins}
+  #   #   shape_files:
+  #   #     - ${statsdir}/valid/feats_shape
+
+
+best_model_criterion:
+  - [valid/loss, 3, min]
+
+trainer:
+  accelerator: gpu
+  devices: ${num_device}
+  num_nodes: 1
+  accumulate_grad_batches: 1
+  gradient_clip_val: 1.0
+  log_every_n_steps: 500
+  max_epochs: 70
+
+  logger:
+    - _target_: lightning.pytorch.loggers.TensorBoardLogger
+      save_dir: ${expdir}/tensorboard
+      name: tb_logger
+
+  strategy: auto
+
+# fit:
+#   ckpt_path: ${recipedir}/exp/gpu1/last.ckpt
+
+test:
+  - name: test-clean
+    metrics:
+      - _target_: espnet3.metrics.WER
+        inputs:
+          ref: text
+          hyp: hypothesis
+  - name: test-other
+    metrics:
+      - _target_: espnet3.metrics.WER
+        inputs:
+          ref: text
+          hyp: hypothesis
+

@@ -1,0 +1,3 @@
+_target_: egs3.librispeech_100.asr1.inference.ASRInferenceWrapper
+config_path: egs3/librispeech_100/asr1/exp/gpu1/config.yaml
+model_path: egs3/librispeech_100/asr1/exp/gpu1/epoch46_step67069_valid.loss.ckpt
