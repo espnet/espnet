@@ -1,14 +1,16 @@
-from espnet3.metrics.abs_metrics import AbsMetrics, validate_scp_files
-from espnet2.text.cleaner import TextCleaner
 from pathlib import Path
-from typing import List, Dict, Union
+from typing import Dict, List, Union
+
 import jiwer
+
+from espnet2.text.cleaner import TextCleaner
+from espnet3.metrics.abs_metrics import AbsMetrics, validate_scp_files
 
 
 class CER(AbsMetrics):
     """
     Compute CER using jiwer with ESPnet-style text cleaning.
-    
+
     Args:
         clean_type (str): TextCleaner type, e.g., 'whisper_basic'.
     """
@@ -20,7 +22,9 @@ class CER(AbsMetrics):
         cleaned = self.cleaner(text).strip()
         return cleaned if cleaned else "."
 
-    def __call__(self, decode_dir: Path, test_name: str, inputs: Union[List[str], Dict[str, str]]) -> Dict[str, float]:
+    def __call__(
+        self, decode_dir: Path, test_name: str, inputs: Union[List[str], Dict[str, str]]
+    ) -> Dict[str, float]:
         scp_data = validate_scp_files(decode_dir, test_name, inputs)
         if isinstance(inputs, list):
             ref_key, hyp_key = inputs
@@ -47,5 +51,5 @@ class CER(AbsMetrics):
             "Substitutions": details.substitutions,
             "Insertions": details.insertions,
             "Deletions": details.deletions,
-            "Hits": details.hits
+            "Hits": details.hits,
         }

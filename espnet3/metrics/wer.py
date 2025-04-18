@@ -1,19 +1,23 @@
-from espnet3.metrics.abs_metrics import AbsMetrics, validate_scp_files
-from espnet2.text.cleaner import TextCleaner
 from pathlib import Path
-from typing import List, Dict, Union
+from typing import Dict, List, Union
+
 import jiwer
+
+from espnet2.text.cleaner import TextCleaner
+from espnet3.metrics.abs_metrics import AbsMetrics, validate_scp_files
 
 
 class WER(AbsMetrics):
     """
     Compute WER using jiwer with ESPnet-style text cleaning.
-    
+
     Args:
         clean_type (str): TextCleaner type, e.g., 'whisper_basic'.
     """
 
-    def __init__(self, inputs: Union[List[str], Dict[str, str]], clean_types: str = None):
+    def __init__(
+        self, inputs: Union[List[str], Dict[str, str]], clean_types: str = None
+    ):
         self.cleaner = TextCleaner(clean_types)
         self.inputs = inputs
         if isinstance(inputs, list):
@@ -48,5 +52,5 @@ class WER(AbsMetrics):
             "Substitutions": details.substitutions,
             "Insertions": details.insertions,
             "Deletions": details.deletions,
-            "Hits": details.hits
+            "Hits": details.hits,
         }

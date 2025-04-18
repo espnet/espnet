@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Callable, Dict, List, Optional, Any
+from typing import Any, Callable, Dict, List, Optional
 
 from datasets import load_dataset  # HuggingFace Datasets
 from hydra.utils import instantiate
@@ -31,6 +31,7 @@ class DatasetConfig:
         ... }
         >>> config = DatasetConfig.from_dict(cfg_dict)
     """
+
     name: str
     path: Optional[str] = None
     dataset: Dict[str, Any] = None  # Module path to dataset class
@@ -55,7 +56,13 @@ class CombinedDataset:
     Raises:
         IndexError: If index is out of range of the combined dataset.
     """
-    def __init__(self, datasets: List[Any], transforms: List[Callable[[dict], dict]], add_uid: bool = False):
+
+    def __init__(
+        self,
+        datasets: List[Any],
+        transforms: List[Callable[[dict], dict]],
+        add_uid: bool = False,
+    ):
         self.datasets = datasets
         self.transforms = transforms
         self.lengths = [len(ds) for ds in datasets]
@@ -65,7 +72,7 @@ class CombinedDataset:
         for length in self.lengths:
             total += length
             self.cumulative_lengths.append(total)
-        
+
         # Check the first sample from all dataset to ensure they all have the same keys
         sample_keys = None
         for i, (dataset, transform) in enumerate(zip(self.datasets, self.transforms)):
@@ -87,7 +94,8 @@ class CombinedDataset:
         return self.cumulative_lengths[-1] if self.cumulative_lengths else 0
 
     def __getitem__(self, idx):
-        if type(idx) == str: idx = int(idx)
+        if type(idx) == str:
+            idx = int(idx)
         for i, cum_len in enumerate(self.cumulative_lengths):
             if idx < cum_len:
                 ds_idx = idx if i == 0 else idx - self.cumulative_lengths[i - 1]
@@ -125,12 +133,13 @@ class DataOrganizer:
         >>> organizer = DataOrganizer(config_dict, preprocessor=preproc_fn)
         >>> sample = organizer.train[0]
     """
+
     def __init__(
         self,
         train: List[Dict[str, Any]],
         valid: List[Dict[str, Any]],
         test: Optional[List[Dict[str, Any]]] = None,
-        preprocessor: Optional[Callable[[dict], dict]] = None
+        preprocessor: Optional[Callable[[dict], dict]] = None,
     ):
         self.preprocessor = preprocessor or (lambda x: x)
         is_espnet_preprocessor = isinstance(self.preprocessor, AbsPreprocessor)
@@ -144,12 +153,16 @@ class DataOrganizer:
                     transform = cfg.transform
                 else:
                     transform = lambda x: x
-                
+
                 if is_espnet_preprocessor:
                     # Then extract the utt id and the data
-                    wrapped_transform = lambda x, t=transform, p=self.preprocessor: p(*t(x))
+                    wrapped_transform = lambda x, t=transform, p=self.preprocessor: p(
+                        *t(x)
+                    )
                 else:
-                    wrapped_transform = lambda x, t=transform, p=self.preprocessor: p(t(x))
+                    wrapped_transform = lambda x, t=transform, p=self.preprocessor: p(
+                        t(x)
+                    )
                 datasets.append(dataset)
                 transforms.append(wrapped_transform)
             return CombinedDataset(datasets, transforms, add_uid=is_espnet_preprocessor)
@@ -188,6 +201,7 @@ class DatasetWithTransform:
         >>> wrapped = DatasetWithTransform(my_dataset, my_transform)
         >>> item = wrapped[0]
     """
+
     def __init__(self, dataset, transform):
         self.dataset = dataset
         self.transform = transform
@@ -197,7 +211,6 @@ class DatasetWithTransform:
 
     def __getitem__(self, idx):
         return (str(idx), self.transform(self.dataset[idx]))
-    
+
     def __call__(self, idx):
         return self.__getitem__(idx)
-

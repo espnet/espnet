@@ -1,21 +1,23 @@
-import os
 import json
-import torch
 import logging
+import os
+from pathlib import Path
+from typing import Any, Callable, Dict, Optional, Union
+
 import numpy as np
 import soundfile as sf
-from pathlib import Path
-from omegaconf import DictConfig
-from typing import Callable, Dict, Any, Optional, Union
-from tqdm import tqdm
+import torch
+from dask.distributed import WorkerPlugin, as_completed, get_worker
 from hydra.utils import instantiate
-from dask.distributed import get_worker, WorkerPlugin, as_completed
+from omegaconf import DictConfig
+from tqdm import tqdm
 
 from espnet3 import get_espnet_model
 from espnet3.data import DataOrganizer
-from espnet3.parallel import set_parallel, get_client
+from espnet3.parallel import get_client, set_parallel
 
 logging.basicConfig(level=logging.INFO)
+
 
 class InferencePlugin(WorkerPlugin):
     def __init__(self, model_config: Dict[str, Any], dataset):
@@ -30,7 +32,9 @@ class InferencePlugin(WorkerPlugin):
         worker.dataset = self.dataset
 
 
-def save_output_scp_format(uid: str, output: Dict[str, Any], output_dir: Path, scp_files: Dict[str, Any]):
+def save_output_scp_format(
+    uid: str, output: Dict[str, Any], output_dir: Path, scp_files: Dict[str, Any]
+):
     for key, val in output.items():
         line_parts = [uid]
         if val["type"] == "text":
@@ -38,11 +42,14 @@ def save_output_scp_format(uid: str, output: Dict[str, Any], output_dir: Path, s
         elif val["type"] in ("audio", "image"):
             data_dir = output_dir / "data" / key
             data_dir.mkdir(parents=True, exist_ok=True)
-            file_path = data_dir / f"{uid}_{key}.{'flac' if val['type'] == 'audio' else 'png'}"
+            file_path = (
+                data_dir / f"{uid}_{key}.{'flac' if val['type'] == 'audio' else 'png'}"
+            )
             if val["type"] == "audio":
                 sf.write(file_path, val["value"], 16000, format="FLAC")
             elif val["type"] == "image":
                 import imageio.v2 as imageio
+
                 imageio.imwrite(file_path, val["value"])
             line_parts.append(str(file_path))
         scp_files[key].write(" ".join(line_parts) + "\n")
@@ -84,6 +91,7 @@ class InferenceRunner:
         ... )
         >>> runner.run()
     """
+
     def __init__(
         self,
         config: Dict[str, Any],
@@ -169,9 +177,15 @@ class InferenceRunner:
                     return None
                 return uid, output
 
-            with get_client(plugin=InferencePlugin(self.model_config, dataset)) as client:
+            with get_client(
+                plugin=InferencePlugin(self.model_config, dataset)
+            ) as client:
                 futures = client.map(process, list(range(len(dataset))))
-                for future in tqdm(as_completed(futures), total=len(futures), desc=f"{test_name} (parallel)"):
+                for future in tqdm(
+                    as_completed(futures),
+                    total=len(futures),
+                    desc=f"{test_name} (parallel)",
+                ):
                     result = future.result()
                     if result is not None:
                         uid, output = result
@@ -215,9 +229,9 @@ class InferenceRunner:
         """
         test_names_actual = set(self.organizer.test.keys())
         test_names_config = {t.name for t in config}
-        assert test_names_actual == test_names_config, (
-            f"Mismatched test sets: organizer={test_names_actual}, config={test_names_config}"
-        )
+        assert (
+            test_names_actual == test_names_config
+        ), f"Mismatched test sets: organizer={test_names_actual}, config={test_names_config}"
 
         for test_cfg in config:
             test_name = test_cfg.name

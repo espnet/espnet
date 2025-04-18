@@ -1,23 +1,20 @@
-from omegaconf import OmegaConf
+import time
 from pathlib import Path
-from hydra.utils import instantiate
-import torch.nn as nn
 
+import numpy as np
+import torch.nn as nn
+from hydra.utils import instantiate
+from omegaconf import OmegaConf
+
+from espnet2.bin.asr_inference_ctc import Speech2Text
 from espnet3.data import DataOrganizer
 from espnet3.inference_runner import InferenceRunner
-
-
-import time
-import numpy as np
-from espnet2.bin.asr_inference_ctc import Speech2Text
 
 
 class ASRInferenceWrapper(nn.Module):
     def __init__(self, config_path: str, model_path: str):
         super().__init__()
-        self.model = Speech2Text(
-            config_path, model_path
-        )
+        self.model = Speech2Text(config_path, model_path)
 
     def __call__(self, sample: dict) -> dict:
         assert "speech" in sample, "Missing 'speech' key in sample"
@@ -72,5 +69,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
