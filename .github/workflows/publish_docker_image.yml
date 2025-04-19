@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event.pull_request.merged == true
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@master
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
