@@ -71,7 +71,7 @@ EOF
 }
 install_torch(){
 # Usage: install_torch <torchaudio-version>
-    if [ $(pytorch_plus 2.6.0) && "${use_conda}" ]; then
+    if $(pytorch_plus 2.6.0) && [ "${use_conda}" ]; then
         log "[INFO] fallback use_conda: true -> false"
         use_conda=false
     fi
