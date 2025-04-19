@@ -43,7 +43,7 @@ def get_data_info(task, dataset_name, model_name):
             dataset_name == "espnet/ace-kising-segments"
             and model_name == "espnet/aceopencpop_svs_visinger2_40singer_pretrain"
         ):
-            # Speaker-to-ID mapping (specific to ACE-KiSing for espnet/aceopencpop_svs_visinger2_40singer_pretrain)
+            # Speaker-to-ID mapping
             singer2sid = {
                 "barber": 3,
                 "blanca": 30,
@@ -86,7 +86,7 @@ def get_data_info(task, dataset_name, model_name):
         return data_info
     else:
         raise NotImplementedError(
-            f"Data mapping not implemented for task '{task}' and dataset '{dataset_name}'."
+            f"Data info not implemented for task '{task}' and dataset '{dataset_name}'."
         )
 
 
