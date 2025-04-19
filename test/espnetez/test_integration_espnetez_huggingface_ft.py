@@ -1,6 +1,6 @@
 import argparse
-from pathlib import Path
 from itertools import islice
+from pathlib import Path
 
 import numpy as np
 
@@ -131,7 +131,9 @@ if __name__ == "__main__":
 
     # Load dataset and resample audio
     streaming_dataset = load_dataset(
-        args.dataset_name, split="train", streaming=True,
+        args.dataset_name,
+        split="train",
+        streaming=True,
     ).cast_column("audio", Audio(sampling_rate=pretrain_config["fs"]))
     subset = list(islice(streaming_dataset, 100))
     train_dataset = subset[:90]
