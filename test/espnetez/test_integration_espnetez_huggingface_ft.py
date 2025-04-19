@@ -1,5 +1,6 @@
 import argparse
 from pathlib import Path
+from itertools import islice
 
 import numpy as np
 
@@ -129,11 +130,12 @@ if __name__ == "__main__":
     pretrain_config["model_file"] = pretrain["model_file"]
 
     # Load dataset and resample audio
-    dataset = load_dataset(
-        args.dataset_name, cache_dir=args.cache_dir, split="train[:100]"
+    streaming_dataset = load_dataset(
+        args.dataset_name, split="train", streaming=True,
     ).cast_column("audio", Audio(sampling_rate=pretrain_config["fs"]))
-    train_dataset = dataset.select(range(90))
-    valid_dataset = dataset.select(range(90, 100))
+    subset = list(islice(streaming_dataset, 100))
+    train_dataset = subset[:90]
+    valid_dataset = subset[90:100]
 
     # Define data mapping for the dataset
     data_info = get_data_info(args.task, args.dataset_name, args.model_name)
