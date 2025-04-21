@@ -41,20 +41,12 @@ class ESPnetSERModel(ESPnetASRModel):
     @typechecked
     def __init__(
         self,
-        # vocab_size: int,
-        # token_list: Union[Tuple[str, ...], List[str]],
         frontend: Optional[AbsFrontend],
         specaug: Optional[AbsSpecAug],
-        # normalize: Optional[AbsNormalize],
         preencoder: Optional[AbsPreEncoder],
-        # encoder: Optional[AbsEncoder],
         pooling: Optional[AbsPooling],
         projector: Optional[AbsProjector],
-        # postencoder: Optional[AbsPostEncoder],
         loss: Optional[AbsLoss],
-        # postdecoder: Optional[AbsPostDecoder] = None,
-        # transcript_token_list: Union[Tuple[str, ...], List[str], None] = None,
-        # length_normalized_loss: bool = False,
         extract_feats_in_collect_stats: bool = True,
         pre_postencoder_norm: bool = False,
     ):
@@ -63,11 +55,7 @@ class ESPnetSERModel(ESPnetASRModel):
         self.pre_postencoder_norm = pre_postencoder_norm
         self.frontend = frontend
         self.specaug = specaug
-        # self.normalize = normalize
         self.preencoder = preencoder
-        # self.postencoder = postencoder
-        # self.postdecoder = postdecoder
-        # self.encoder = encoder
         self.pooling = pooling
         self.projector = projector
         self.loss = loss
@@ -172,10 +160,6 @@ class ESPnetSERModel(ESPnetASRModel):
             # 2. Data augmentation
             if self.specaug is not None and self.training:
                 feats, feats_lengths = self.specaug(feats, feats_lengths)
-
-            # 3. Normalization for feature: e.g. Global-CMVN, Utterance-CMVN
-            # if self.normalize is not None:
-            #     feats, feats_lengths = self.normalize(feats, feats_lengths)
 
         # Pre-encoder, e.g. used for raw input data
         if self.preencoder is not None:
