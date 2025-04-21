@@ -1,4 +1,4 @@
-""" Transform the standard kaldi data directory into whisper (OWSM) data directory """
+"""Transform the standard kaldi data directory into whisper (OWSM) data directory"""
 
 import logging
 from argparse import ArgumentParser

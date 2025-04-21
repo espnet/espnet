@@ -29,7 +29,7 @@ WITH_OMP=ON
 all: showenv conda_packages.done python ffmpeg.done sctk check_install
 
 python: activate_python.sh setuptools.done packaging.done espnet.done pytorch.done chainer.done fairscale.done torch_optimizer.done flash_attn.done lightning.done
-extra: warp-transducer.done chainer_ctc.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done fairseq.done s3prl.done k2.done transformers.done phonemizer.done longformer.done muskits.done whisper.done rvad_fast.done sounfile_test parallel-wavegan.done lora.done sph2pipe
+extra: warp-transducer.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done fairseq.done s3prl.done k2.done transformers.done phonemizer.done longformer.done muskits.done whisper.done rvad_fast.done sounfile_test parallel-wavegan.done lora.done sph2pipe torcheval.done
 
 activate_python.sh:
 	test -f activate_python.sh || { echo "Error: Run ./setup_python.sh or ./setup_miniforge.sh"; exit 1; }
@@ -53,7 +53,7 @@ bc.done: activate_python.sh
 	. ./activate_python.sh && { command -v bc || conda install -y bc -c conda-forge; }
 	touch bc.done
 cmake.done: activate_python.sh
-	. ./activate_python.sh && { command -v cmake || conda install -y cmake; }
+	. ./activate_python.sh && { command -v cmake || conda install -y "cmake<4.0"; }
 	touch cmake.done
 flac.done: activate_python.sh
 	. ./activate_python.sh && { command -v flac || conda install -y libflac -c conda-forge; }
@@ -104,6 +104,7 @@ ifeq ($(strip $(USE_CONDA)),)
 else
 	. ./activate_python.sh && conda install -y numpy
 endif
+	touch numpy.done
 
 numba.done: numpy.done
 	. ./activate_python.sh && python3 -m pip install -U numba
@@ -241,6 +242,10 @@ transformers.done: espnet.done
 	. ./activate_python.sh && ./installers/install_transformers.sh
 	touch transformers.done
 
+torcheval.done: pytorch.done
+	. ./activate_python.sh && ./installers/install_torcheval.sh
+	touch torcheval.done
+
 parallel-wavegan.done: espnet.done
 	. ./activate_python.sh && ./installers/install_parallel-wavegan.sh
 	touch parallel-wavegan.done
@@ -291,6 +296,7 @@ clean_extra:
 	rm -rf hts_engine_API.done open_jtalk.done pyopenjtalk.done
 	rm -rf muskits.done
 	rm -rf rvad_fast.done
+	rm -rf lightning_constraints.txt
 	rm -rf chainer espeak-ng festival MBROLA ParallelWaveGAN versa
 	rm -rf py3mmseg sctk* speech_tools sph2pipe* ._mwerSegmenter
 	rm -rf nkf mecab swig moses mwerSegmenter
