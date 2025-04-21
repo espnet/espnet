@@ -1,13 +1,12 @@
+import argparse
 import time
 from pathlib import Path
 
-import numpy as np
 import torch.nn as nn
-from hydra.utils import instantiate
 from omegaconf import OmegaConf
 
-from espnet2.bin.asr_inference_ctc import Speech2Text
-from espnet3.data import DataOrganizer
+# from espnet2.bin.asr_inference_ctc import Speech2Text
+from espnet2.bin.asr_inference import Speech2Text
 from espnet3.inference_runner import InferenceRunner
 
 
@@ -34,7 +33,6 @@ class ASRInferenceWrapper(nn.Module):
             "rtf": {"type": "text", "value": str(round(rtf, 4))},
         }
 
-        # Add reference text if available
         if "text" in sample:
             text = self.model.tokenizer.tokens2text(
                 self.model.converter.ids2tokens(sample["text"])
@@ -45,22 +43,25 @@ class ASRInferenceWrapper(nn.Module):
 
 
 def main():
-    config_path = "egs3/librispeech_100/asr1/config.yaml"
-    inference_config = "egs3/librispeech_100/asr1/inference.yaml"
-    # model_config = "egs3/librispeech_100/asr1/exp/gpu1/config.yaml"
-    # model_ckpt = "egs3/librispeech_100/asr1/exp/gpu1/epoch46_step67069_valid.loss.ckpt"
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config_path", type=str, required=True, help="Path to training config (e.g., config.yaml)")
+    parser.add_argument("--inference_config", type=str, required=True, help="Path to inference config (e.g., inference.yaml)")
+    parser.add_argument("--decode_dir", type=str, default=None, help="Directory to save decode results")
+    parser.add_argument("--no_resume", action="store_true", help="Disable resume mode")
 
-    # load full experiment config
-    train_config = OmegaConf.load(config_path)
-    inference_config = OmegaConf.load(inference_config)
+    args = parser.parse_args()
 
-    # run inference
+    train_config = OmegaConf.load(args.config_path)
+    inference_config = OmegaConf.load(args.inference_config)
+
+    decode_dir = Path(args.decode_dir) if args.decode_dir else Path(train_config.expdir) / "decode"
+
     runner = InferenceRunner(
         config=train_config,
-        model_config=model_config,
-        decode_dir=Path(train_config.expdir) / "decode_parallel",
+        model_config=inference_config,
+        decode_dir=decode_dir,
         parallel=train_config.parallel,
-        resume=True,
+        resume=not args.no_resume,
     )
 
     runner.run()

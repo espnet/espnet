@@ -51,11 +51,11 @@ dataset_dict = DatasetDict(
 )
 
 # Cast to Audio()
-print("Cast to Audio()")
-for split in dataset_dict:
-    dataset_dict[split] = dataset_dict[split].cast_column(
-        "audio", datasets.Audio(decode=False)
-    )
+# print("Cast to Audio()")
+# for split in dataset_dict:
+#     dataset_dict[split] = dataset_dict[split].cast_column(
+#         "audio", datasets.Audio(decode=False)
+#     )
 
 dataset_dir = os.environ["LIBRISPEECH"]
 print("Saved dataset to", dataset_dir)
