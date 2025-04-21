@@ -203,6 +203,7 @@ def inference(
 
             results = universa_inference(**batch)
 
+            results.pop("encoded_feat")
             for i in range(_bs):
                 key = keys[i]
                 # NOTE(jiatong): assume the prediction target is 1-dimensional.

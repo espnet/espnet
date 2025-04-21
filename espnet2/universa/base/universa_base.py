@@ -518,6 +518,7 @@ class UniversaBase(AbsUniversa):
                 # skip numeric stability with float16
                 pred_metrics = self.projector(pooling_output)
         pred_metrics = self._inference_decoration(pred_metrics)
+        pred_metrics["encoded_feat"] = audio_enc
         return pred_metrics
 
     @typechecked
