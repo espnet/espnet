@@ -163,7 +163,7 @@ def save_espnet_config(
     sys.argv = original_argv
 
     resolved_config = OmegaConf.to_container(config, resolve=True)
-    
+
     # set model config at the root level
     model_config = resolved_config.pop("model")
     if hasattr(model_config, "_target_"):

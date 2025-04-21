@@ -92,7 +92,7 @@ model:
     use_ffn: true
     macaron_ffn: true
     merge_conv_kernel: 31
-  
+
   decoder: transformer
   decoder_conf:
     attention_heads: 4
@@ -186,7 +186,7 @@ trainer:
     - _target_: lightning.pytorch.loggers.TensorBoardLogger
       save_dir: ${expdir}/tensorboard
       name: tb_logger
-    
+
     - _target_: lightning.pytorch.loggers.WandbLogger
       project: ESPnet3 development
       save_dir: ${expdir}/wandb

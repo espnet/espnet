@@ -44,9 +44,21 @@ class ASRInferenceWrapper(nn.Module):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config_path", type=str, required=True, help="Path to training config (e.g., config.yaml)")
-    parser.add_argument("--inference_config", type=str, required=True, help="Path to inference config (e.g., inference.yaml)")
-    parser.add_argument("--decode_dir", type=str, default=None, help="Directory to save decode results")
+    parser.add_argument(
+        "--config_path",
+        type=str,
+        required=True,
+        help="Path to training config (e.g., config.yaml)",
+    )
+    parser.add_argument(
+        "--inference_config",
+        type=str,
+        required=True,
+        help="Path to inference config (e.g., inference.yaml)",
+    )
+    parser.add_argument(
+        "--decode_dir", type=str, default=None, help="Directory to save decode results"
+    )
     parser.add_argument("--no_resume", action="store_true", help="Disable resume mode")
 
     args = parser.parse_args()
@@ -54,7 +66,11 @@ def main():
     train_config = OmegaConf.load(args.config_path)
     inference_config = OmegaConf.load(args.inference_config)
 
-    decode_dir = Path(args.decode_dir) if args.decode_dir else Path(train_config.expdir) / "decode"
+    decode_dir = (
+        Path(args.decode_dir)
+        if args.decode_dir
+        else Path(train_config.expdir) / "decode"
+    )
 
     runner = InferenceRunner(
         config=train_config,
