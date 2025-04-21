@@ -1,12 +1,11 @@
-
 import torch
 import torch.nn as nn
 
 from espnet2.bin.s2t_inference import Speech2Text
-from espnet.nets.pytorch_backend.nets_utils import (
-    th_accuracy, pad_list
+from espnet.nets.pytorch_backend.nets_utils import pad_list, th_accuracy
+from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import (
+    LabelSmoothingLoss,
 )
-from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import LabelSmoothingLoss
 
 
 class OWSMFinetune(nn.Module):
@@ -26,7 +25,7 @@ class OWSMFinetune(nn.Module):
         self.ctc_weight = owsm_model.s2t_model.ctc_weight
 
         self.criterion_att = LabelSmoothingLoss(
-            size=owsm_model.s2t_model.vocab_size, # vocab size
+            size=owsm_model.s2t_model.vocab_size,  # vocab size
             padding_idx=-1,
             smoothing=0.1,
             normalize_length=False,
@@ -42,7 +41,7 @@ class OWSMFinetune(nn.Module):
         # Filter out invalid samples where text is not available
         is_valid = [self.na not in y for y in ys_pad]
         if not any(is_valid):
-            return torch.tensor(0.0), None  
+            return torch.tensor(0.0), None
 
         encoder_out = encoder_out[is_valid]
         encoder_out_lens = encoder_out_lens[is_valid]
@@ -104,17 +103,20 @@ class OWSMFinetune(nn.Module):
             ignore_label=self.ignore_id,
         )
         return loss_att, acc_att
-    
+
     def forward(
-            self, speech, speech_lengths,
-            text, text_lengths,
-            text_ctc, text_ctc_lengths,
-            text_prev, text_prev_lengths,
-        ):
+        self,
+        speech,
+        speech_lengths,
+        text,
+        text_lengths,
+        text_ctc,
+        text_ctc_lengths,
+        text_prev,
+        text_prev_lengths,
+    ):
         stats = dict()
-        encoder_out, encoder_out_lens = self.model.encode(
-            speech, speech_lengths
-        )
+        encoder_out, encoder_out_lens = self.model.encode(speech, speech_lengths)
 
         # OWSM has ctc.
         loss_ctc = self._calc_ctc_loss(
@@ -123,9 +125,12 @@ class OWSMFinetune(nn.Module):
 
         # calculate attention loss
         loss_att, acc_att = self._calc_att_loss(
-            encoder_out, encoder_out_lens, 
-            text, text_lengths,
-            text_prev, text_prev_lengths,
+            encoder_out,
+            encoder_out_lens,
+            text,
+            text_lengths,
+            text_prev,
+            text_prev_lengths,
         )
 
         if self.ctc_weight > 0.0:
@@ -133,10 +138,10 @@ class OWSMFinetune(nn.Module):
         else:
             loss = loss_att
 
-        stats['loss_att'] = loss_att.detach()
-        stats['loss_ctc'] = loss_ctc.detach()
-        stats['loss'] = loss.detach()
-        stats['acc_att'] = acc_att.detach()
+        stats["loss_att"] = loss_att.detach()
+        stats["loss_ctc"] = loss_ctc.detach()
+        stats["loss"] = loss.detach()
+        stats["acc_att"] = acc_att.detach()
 
         return loss, stats, None
 

@@ -4,12 +4,11 @@ import lightning as L
 import torch
 from hydra.utils import instantiate
 from omegaconf import OmegaConf
-
 from tqdm import tqdm
 
 from espnet3 import get_espnet_model, save_espnet_config
-from espnet3.trainer import ESPnetEZLightningTrainer, LitESPnetModel
 from espnet3.preprocess import train_sentencepiece
+from espnet3.trainer import ESPnetEZLightningTrainer, LitESPnetModel
 
 
 def load_line(path):
@@ -38,8 +37,12 @@ def train_tokenizer(config):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, default="config_globalMVN.yaml")
-    parser.add_argument("--train_tokenizer", action="store_true", help="Train tokenizer before training")
-    parser.add_argument("--collect_stats", action="store_true", help="Run collect_stats before training")
+    parser.add_argument(
+        "--train_tokenizer", action="store_true", help="Train tokenizer before training"
+    )
+    parser.add_argument(
+        "--collect_stats", action="store_true", help="Run collect_stats before training"
+    )
     args = parser.parse_args()
 
     # Load config
@@ -89,7 +92,9 @@ def main():
         if normalize_conf is not None:
             config.model["normalize_conf"] = normalize_conf
 
-        model = get_espnet_model(task, config.model) if task else instantiate(config.model)
+        model = (
+            get_espnet_model(task, config.model) if task else instantiate(config.model)
+        )
         lit_model = LitESPnetModel(model, config)
 
         trainer = ESPnetEZLightningTrainer(

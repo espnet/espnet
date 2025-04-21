@@ -42,7 +42,7 @@ requirements = {
         "hydra-core",
         "omegaconf",
         "dask",
-        "dask_jobqueue"
+        "dask_jobqueue",
     ],
     "asr": [
         "sentencepiece==0.2.0",
