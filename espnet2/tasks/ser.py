@@ -94,16 +94,6 @@ specaug_choices = ClassChoices(
     default=None,
     optional=True,
 )
-# normalize_choices = ClassChoices(
-#     "normalize",
-#     classes=dict(
-#         global_mvn=GlobalMVN,
-#         utterance_mvn=UtteranceMVN,
-#     ),
-#     type_check=AbsNormalize,
-#     default="utterance_mvn",
-#     optional=True,
-# )
 model_choices = ClassChoices(
     "model",
     classes=dict(
@@ -151,41 +141,6 @@ postencoder_choices = ClassChoices(
     default=None,
     optional=True,
 )
-# deliberationencoder_choices = ClassChoices(
-#     name="deliberationencoder",
-#     classes=dict(
-#         hugging_face_transformers=HuggingFaceTransformersPostEncoder,
-#         conformer=ConformerPostEncoder,
-#         transformer=TransformerPostEncoder,
-#     ),
-#     type_check=AbsPostEncoder,
-#     default=None,
-#     optional=True,
-# )
-# decoder_choices = ClassChoices(
-#     "decoder",
-#     classes=dict(
-#         transformer=TransformerDecoder,
-#         lightweight_conv=LightweightConvolutionTransformerDecoder,
-#         lightweight_conv2d=LightweightConvolution2DTransformerDecoder,
-#         dynamic_conv=DynamicConvolutionTransformerDecoder,
-#         dynamic_conv2d=DynamicConvolution2DTransformerDecoder,
-#         rnn=RNNDecoder,
-#         transducer=TransducerDecoder,
-#         mlm=MLMDecoder,
-#     ),
-#     type_check=AbsDecoder,
-#     default="rnn",
-# )
-# postdecoder_choices = ClassChoices(
-#     name="postdecoder",
-#     classes=dict(
-#         hugging_face_transformers=HuggingFaceTransformersPostDecoder,
-#     ),
-#     type_check=AbsPostDecoder,
-#     default=None,
-#     optional=True,
-# )
 pooling_choices = ClassChoices(
     name="pooling",
     classes=dict(
@@ -222,8 +177,6 @@ class SERTask(ASRTask):
         frontend_choices,
         # --specaug and --specaug_conf
         specaug_choices,
-        # --normalize and --normalize_conf
-        # normalize_choices,
         # --model and --model_conf
         model_choices,
         # --preencoder and --preencoder_conf
@@ -232,12 +185,6 @@ class SERTask(ASRTask):
         encoder_choices,
         # --postencoder and --postencoder_conf
         postencoder_choices,
-        # --deliberationencoder and --deliberationencoder_conf
-        # deliberationencoder_choices,
-        # --decoder and --decoder_conf
-        # decoder_choices,
-        # --postdecoder and --postdecoder_conf
-        # postdecoder_choices,
         pooling_choices,
         projector_choices,
         loss_choices
@@ -255,18 +202,6 @@ class SERTask(ASRTask):
         required = parser.get_default("required")
         # required += ["token_list"]
 
-        # group.add_argument(
-        #     "--token_list",
-        #     type=str_or_none,
-        #     default=None,
-        #     help="A text mapping int-id to token",
-        # )
-        # group.add_argument(
-        #     "--transcript_token_list",
-        #     type=str_or_none,
-        #     default=None,
-        #     help="A text mapping int-id to token for transcripts",
-        # )
         group.add_argument(
             "--pre_postencoder_norm",
             type=str2bool,
@@ -295,19 +230,6 @@ class SERTask(ASRTask):
             help="The number of input dimension of the feature",
         )
 
-        # group.add_argument(
-        #     "--ctc_conf",
-        #     action=NestedDictAction,
-        #     default=get_default_kwargs(CTC),
-        #     help="The keyword arguments for CTC class.",
-        # )
-        # group.add_argument(
-        #     "--joint_net_conf",
-        #     action=NestedDictAction,
-        #     default=None,
-        #     help="The keyword arguments for joint network class.",
-        # )
-
         group = parser.add_argument_group(description="Preprocess related")
         group.add_argument(
             "--use_preprocessor",
@@ -321,38 +243,6 @@ class SERTask(ASRTask):
             default="A S H U F D C N O X",
             help="Apply preprocessing to data or not",
         )
-        # group.add_argument(
-        #     "--token_type",
-        #     type=str,
-        #     default="bpe",
-        #     choices=["bpe", "char", "word", "phn"],
-        #     help="The text will be tokenized " "in the specified level token",
-        # )
-        # group.add_argument(
-        #     "--bpemodel",
-        #     type=str_or_none,
-        #     default=None,
-        #     help="The model file of sentencepiece",
-        # )
-        # parser.add_argument(
-        #     "--non_linguistic_symbols",
-        #     type=str_or_none,
-        #     help="non_linguistic_symbols file path",
-        # )
-        # group.add_argument(
-        #     "--cleaner",
-        #     type=str_or_none,
-        #     choices=[None, "tacotron", "jaconv", "vietnamese"],
-        #     default=None,
-        #     help="Apply text cleaning",
-        # )
-        # group.add_argument(
-        #     "--g2p",
-        #     type=str_or_none,
-        #     choices=g2p_choices,
-        #     default=None,
-        #     help="Specify g2p method if --token_type=phn",
-        # )
         group.add_argument(
             "--speech_volume_normalize",
             type=float_or_none,
@@ -410,17 +300,6 @@ class SERTask(ASRTask):
         if args.use_preprocessor:
             retval = SERPreprocessor(
                 train=train,
-                # token_type=args.token_type,
-                # token_list=args.token_list,
-                # transcript_token_list=(
-                #     None
-                #     if "transcript_token_list" not in args
-                #     else args.transcript_token_list
-                # ),
-                # bpemodel=args.bpemodel,
-                # non_linguistic_symbols=args.non_linguistic_symbols,
-                # text_cleaner=args.cleaner,
-                # g2p_type=args.g2p,
                 emotions=getattr(args, "emotions", None),
                 # NOTE(kamo): Check attribute existence for backward compatibility
                 rir_scp=getattr(args, "rir_scp", None),
@@ -457,30 +336,6 @@ class SERTask(ASRTask):
     @classmethod
     @typechecked
     def build_model(cls, args: argparse.Namespace) -> ESPnetSERModel:
-        # if isinstance(args.token_list, str):
-        #     with open(args.token_list, encoding="utf-8") as f:
-        #         token_list = [line.rstrip() for line in f]
-
-        #     # Overwriting token_list to keep it as "portable".
-        #     args.token_list = list(token_list)
-        # elif isinstance(args.token_list, (tuple, list)):
-        #     token_list = list(args.token_list)
-        # else:
-        #     raise RuntimeError("token_list must be str or list")
-        # if "transcript_token_list" in args:
-        #     if args.transcript_token_list is not None:
-        #         if isinstance(args.transcript_token_list, str):
-        #             with open(args.transcript_token_list, encoding="utf-8") as f:
-        #                 transcript_token_list = [line.rstrip() for line in f]
-
-        #             # Overwriting token_list to keep it as "portable".
-        #             args.transcript_token_list = list(transcript_token_list)
-        #         elif isinstance(args.token_list, (tuple, list)):
-        #             transcript_token_list = list(args.transcript_token_list)
-        #         else:
-        #             raise RuntimeError(" Transcript token_list must be str or list")
-        # vocab_size = len(token_list)
-        # logging.info(f"Vocabulary size: {vocab_size }")
 
         # 1. frontend
         if args.input_size is None:
@@ -501,13 +356,6 @@ class SERTask(ASRTask):
             specaug = specaug_class(**args.specaug_conf)
         else:
             specaug = None
-
-        # 3. Normalization layer
-        # if args.normalize is not None:
-        #     normalize_class = normalize_choices.get_class(args.normalize)
-        #     normalize = normalize_class(**args.normalize_conf)
-        # else:
-        #     normalize = None
 
         # 4. Pre-encoder input block
         # NOTE(kan-bayashi): Use getattr to keep the compatibility
@@ -535,48 +383,6 @@ class SERTask(ASRTask):
             else:
                 postencoder = None
 
-        # if getattr(args, "deliberationencoder", None) is not None:
-        #     deliberationencoder_class = deliberationencoder_choices.get_class(
-        #         args.deliberationencoder
-        #     )
-        #     deliberationencoder = deliberationencoder_class(
-        #         input_size=encoder_output_size, **args.deliberationencoder_conf
-        #     )
-        #     encoder_output_size = deliberationencoder.output_size()
-        # else:
-        #     deliberationencoder = None
-
-        # if getattr(args, "postdecoder", None) is not None:
-        #     postdecoder_class = postdecoder_choices.get_class(args.postdecoder)
-        #     postdecoder = postdecoder_class(**args.postdecoder_conf)
-        #     encoder_output_size = encoder_output_size
-        # else:
-        #     postdecoder = None
-
-        # # 5. Decoder
-        # decoder_class = decoder_choices.get_class(args.decoder)
-
-        # if args.decoder == "transducer":
-        #     decoder = decoder_class(
-        #         vocab_size,
-        #         embed_pad=0,
-        #         **args.decoder_conf,
-        #     )
-
-        #     joint_network = JointNetwork(
-        #         vocab_size,
-        #         encoder.output_size(),
-        #         decoder.dunits,
-        #         **args.joint_net_conf,
-        #     )
-        # else:
-        #     decoder = decoder_class(
-        #         vocab_size=vocab_size,
-        #         encoder_output_size=encoder_output_size,
-        #         **args.decoder_conf,
-        #     )
-
-        #     joint_network = None
         # 5. Pooling
         pooling_class = pooling_choices.get_class(args.pooling)
         if preencoder is not None:
@@ -593,37 +399,19 @@ class SERTask(ASRTask):
         loss = loss_class(
             nout=projector_output_size, nclasses=projector_output_size, **args.loss_conf
         )
-        # # 6. CTC
-        # ctc = CTC(
-        #     odim=vocab_size, encoder_output_size=encoder_output_size, **args.ctc_conf
-        # )
 
         # 7. Build model
         try:
             model_class = model_choices.get_class(args.model)
         except AttributeError:
             model_class = model_choices.get_class("espnet")
-        # if "transcript_token_list" in args:
-        #     if args.transcript_token_list is not None:
-        #         args.model_conf["transcript_token_list"] = transcript_token_list
-        #         args.model_conf["pre_postencoder_norm"] = args.pre_postencoder_norm
         model = model_class(
-            # vocab_size=vocab_size,
             frontend=frontend,
             specaug=specaug,
-            # normalize=normalize,
             preencoder=preencoder,
-            # encoder=encoder,
             pooling=pooling,
             projector=projector,
             loss=loss,
-            # postencoder=postencoder,
-            # deliberationencoder=deliberationencoder,
-            # decoder=decoder,
-            # postdecoder=postdecoder,
-            # ctc=ctc,
-            # joint_network=joint_network,
-            # token_list=token_list,
             **args.model_conf,
         )
 
