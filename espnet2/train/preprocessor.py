@@ -641,16 +641,6 @@ class SERPreprocessor(CommonPreprocessor):
     def __init__(
         self,
         train: bool,
-        # token_type: Optional[str] = None,
-        # token_list: Union[Path, str, Iterable[str]] = None,
-        # transcript_token_list: Union[Path, str, Iterable[str]] = None,
-        # bpemodel: Union[Path, str, Iterable[str]] = None,
-        # text_cleaner: Collection[str] = None,
-        # g2p_type: Optional[str] = None,
-        # unk_symbol: str = "<unk>",
-        # space_symbol: str = "<space>",
-        # non_linguistic_symbols: Union[Path, str, Iterable[str]] = None,
-        # delimiter: Optional[str] = None,
         rir_scp: Optional[str] = None,
         rir_apply_prob: float = 1.0,
         noise_scp: Optional[str] = None,
@@ -668,15 +658,6 @@ class SERPreprocessor(CommonPreprocessor):
     ):
         super().__init__(
             train=train,
-            # token_type=token_type,
-            # token_list=token_list,
-            # bpemodel=bpemodel,
-            # text_cleaner=text_cleaner,
-            # g2p_type=g2p_type,
-            # unk_symbol=unk_symbol,
-            # space_symbol=space_symbol,
-            # non_linguistic_symbols=non_linguistic_symbols,
-            # delimiter=delimiter,
             rir_scp=rir_scp,
             rir_apply_prob=rir_apply_prob,
             noise_scp=noise_scp,
@@ -693,23 +674,6 @@ class SERPreprocessor(CommonPreprocessor):
         )
         self.emotions = emotions
         self._make_label_mapping()
-        # if transcript_token_list is not None:
-        #     print("using transcript")
-        #     self.transcript_tokenizer = build_tokenizer(
-        #         token_type="word",
-        #         bpemodel=bpemodel,
-        #         delimiter=delimiter,
-        #         space_symbol=space_symbol,
-        #         non_linguistic_symbols=non_linguistic_symbols,
-        #         g2p_type=g2p_type,
-        #     )
-        #     self.transcript_token_id_converter = TokenIDConverter(
-        #         token_list=transcript_token_list,
-        #         unk_symbol=unk_symbol,
-        #     )
-        # else:
-        #     self.transcript_tokenizer = None
-        #     self.transcript_token_id_converter = None
     def _make_label_mapping(self):
         self.emo2label = {emo: idx for idx, emo in enumerate(self.emotions.split('_'))}
 
