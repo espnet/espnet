@@ -24,9 +24,7 @@ class Xnt(AbsLoss):
         nclases: number of speakers in the training set
     """
 
-    def __init__(
-        self, nout, nclasses, **kwargs
-    ):
+    def __init__(self, nout, nclasses, **kwargs):
         super().__init__(nout)
 
         self.in_feats = nout

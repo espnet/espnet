@@ -44,11 +44,6 @@ from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
 from espnet2.asr.postencoder.hugging_face_transformers_postencoder import (
     HuggingFaceTransformersPostEncoder,
 )
-from espnet2.ser.pooling.abs_pooling import AbsPooling
-from espnet2.ser.pooling.mean_pooling import MeanPooling
-from espnet2.ser.projector.abs_projector import AbsProjector
-from espnet2.ser.projector.linear_projector import LinearProjector
-from espnet2.ser.loss.cross_entropy_loss import Xnt
 from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.preencoder.linear import LinearProjection
 from espnet2.asr.preencoder.sinc import LightweightSincConvs
@@ -59,6 +54,11 @@ from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
 from espnet2.ser.espnet_model import ESPnetSERModel
+from espnet2.ser.loss.cross_entropy_loss import Xnt
+from espnet2.ser.pooling.abs_pooling import AbsPooling
+from espnet2.ser.pooling.mean_pooling import MeanPooling
+from espnet2.ser.projector.abs_projector import AbsProjector
+from espnet2.ser.projector.linear_projector import LinearProjector
 from espnet2.slu.postdecoder.abs_postdecoder import AbsPostDecoder
 from espnet2.slu.postdecoder.hugging_face_transformers_postdecoder import (
     HuggingFaceTransformersPostDecoder,
@@ -187,7 +187,7 @@ class SERTask(ASRTask):
         postencoder_choices,
         pooling_choices,
         projector_choices,
-        loss_choices
+        loss_choices,
     ]
 
     # If you need to modify train() or eval() procedures, change Trainer class here
@@ -386,7 +386,9 @@ class SERTask(ASRTask):
         # 5. Pooling
         pooling_class = pooling_choices.get_class(args.pooling)
         if preencoder is not None:
-            pooling = pooling_class(input_size=preencoder.output_size(), **args.pooling_conf)
+            pooling = pooling_class(
+                input_size=preencoder.output_size(), **args.pooling_conf
+            )
             pooling_output_size = pooling.output_size()
         # 5. Projector
         projector_class = projector_choices.get_class(args.projector)

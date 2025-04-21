@@ -192,9 +192,7 @@ def inference(
         batch_size=batch_size,
         key_file=key_file,
         num_workers=num_workers,
-        preprocess_fn=SERTask.build_preprocess_fn(
-            speech2emotion.ser_train_args, False
-        ),
+        preprocess_fn=SERTask.build_preprocess_fn(speech2emotion.ser_train_args, False),
         collate_fn=SERTask.build_collate_fn(speech2emotion.ser_train_args, False),
         allow_variable_data_keys=allow_variable_data_keys,
         inference=True,

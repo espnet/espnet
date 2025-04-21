@@ -637,6 +637,7 @@ class SLUPreprocessor(CommonPreprocessor):
             data["transcript"] = np.array(text_ints, dtype=np.int64)
         return data
 
+
 class SERPreprocessor(CommonPreprocessor):
     def __init__(
         self,
@@ -674,8 +675,9 @@ class SERPreprocessor(CommonPreprocessor):
         )
         self.emotions = emotions
         self._make_label_mapping()
+
     def _make_label_mapping(self):
-        self.emo2label = {emo: idx for idx, emo in enumerate(self.emotions.split('_'))}
+        self.emo2label = {emo: idx for idx, emo in enumerate(self.emotions.split("_"))}
 
     def _text_process(
         self, data: Dict[str, Union[str, np.ndarray]]
@@ -692,6 +694,7 @@ class SERPreprocessor(CommonPreprocessor):
             data["emotion_labels"] = np.array([emo_ints], dtype=np.int64)
             del data["emo"]
         return data
+
 
 class CommonPreprocessor_multi(CommonPreprocessor):
     def __init__(

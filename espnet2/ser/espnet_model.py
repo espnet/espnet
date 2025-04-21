@@ -9,15 +9,15 @@ from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.espnet_model import ESPnetASRModel
-from espnet2.ser.loss.abs_loss import AbsLoss
-from espnet2.ser.pooling.abs_pooling import AbsPooling
-from espnet2.ser.projector.abs_projector import AbsProjector
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
 from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.asr.transducer.error_calculator import ErrorCalculatorTransducer
 from espnet2.layers.abs_normalize import AbsNormalize
+from espnet2.ser.loss.abs_loss import AbsLoss
+from espnet2.ser.pooling.abs_pooling import AbsPooling
+from espnet2.ser.projector.abs_projector import AbsProjector
 from espnet2.slu.postdecoder.abs_postdecoder import AbsPostDecoder
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
@@ -82,16 +82,14 @@ class ESPnetSERModel(ESPnetASRModel):
         """
         # Check that batch_size is unified
         if speech_lengths is not None:
-            assert (
-                speech.shape[0]
-                == speech_lengths.shape[0]
-            ), (speech.shape, speech_lengths.shape)
+            assert speech.shape[0] == speech_lengths.shape[0], (
+                speech.shape,
+                speech_lengths.shape,
+            )
         batch_size = speech.shape[0]
 
         # 1. Encoder
-        encoder_out, encoder_out_lens = self.encode(
-            speech, speech_lengths
-        )
+        encoder_out, encoder_out_lens = self.encode(speech, speech_lengths)
         # 2. aggregation into utterance-level
         utt_level_feat = self.pooling(encoder_out)
         # 3. go through further projection(s)
@@ -118,7 +116,7 @@ class ESPnetSERModel(ESPnetASRModel):
     ) -> Dict[str, torch.Tensor]:
         feats, feats_lengths = self.extract_feats(speech, speech_lengths)
         return {"feats": feats, "feats_lengths": feats_lengths}
-    
+
     def extract_feats(
         self, speech: torch.Tensor, speech_lengths: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
