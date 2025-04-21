@@ -1,6 +1,6 @@
 recipedir: .
 num_device: ${oc.env:N_GPU}
-expdir: ${recipedir}/exp/gpu${num_device}_globalmvn_numel
+expdir: ${recipedir}/exp/gpu${num_device}_accum4
 statsdir:  ${recipedir}/exp/stats
 vocab_size: 6500
 seed: 2024
@@ -8,68 +8,45 @@ task: asr
 
 parallel:
   env: slurm
-  n_workers: 2
+  n_workers: 1
   options:
-    queue: general
+    account: bbjs-delta-gpu
+    queue: gpuA40x4
     cores: 1
     processes: 1
-    memory: 8GB
+    memory: 4GB
     walltime: 30:00
     job_extra_directives:
-      # - "--gres=gpu:1"
+      - "--gres=gpu:1"
       - "--ntasks-per-node=1"
       - "--cpus-per-task=4"
+      - "--output=parallel_log/%j-%x.log"
 
 dataset:
   _target_: espnet3.data.DataOrganizer
   train:
     - name: train-clean-100
       dataset:
-        _target_: espnet3.data.HFWrapper
-        path: "arrow"
-        data_files:
-          train: ${oc.env:LIBRISPEECH}/train-clean-100/*.arrow
-        split: train
-      transform:
-        _target_: egs3.librispeech_100.asr1.utils.ESPnetEZTransform
+        _target_: egs3.librispeech_100.asr1.dataset.LibriSpeechDataset
+        split: train-clean-100
   valid:
     - name: dev-clean
       dataset:
-        _target_: espnet3.data.HFWrapper
-        path: "arrow"
-        data_files:
-          dev: ${oc.env:LIBRISPEECH}/dev-clean/*.arrow
-        split: dev
-      transform:
-        _target_: egs3.librispeech_100.asr1.utils.ESPnetEZTransform
+        _target_: egs3.librispeech_100.asr1.dataset.LibriSpeechDataset
+        split: dev-clean
     - name: dev-other
       dataset:
-        _target_: espnet3.data.HFWrapper
-        path: "arrow"
-        data_files:
-          dev: ${oc.env:LIBRISPEECH}/dev-other/*.arrow
-        split: dev
-      transform:
-        _target_: egs3.librispeech_100.asr1.utils.ESPnetEZTransform
+        _target_: egs3.librispeech_100.asr1.dataset.LibriSpeechDataset
+        split: dev-other
   test:
     - name: test-clean
       dataset:
-        _target_: espnet3.data.HFWrapper
-        path: "arrow"
-        data_files:
-          test: ${oc.env:LIBRISPEECH}/test-clean/*.arrow
-        split: test
-      transform:
-        _target_: egs3.librispeech_100.asr1.utils.ESPnetEZTransform
-    - name: test-clean
+        _target_: egs3.librispeech_100.asr1.dataset.LibriSpeechDataset
+        split: test-clean
+    - name: test-other
       dataset:
-        _target_: espnet3.data.HFWrapper
-        path: "arrow"
-        data_files:
-          test: ${oc.env:LIBRISPEECH}/test-other/*.arrow
-        split: test
-      transform:
-        _target_: egs3.librispeech_100.asr1.utils.ESPnetEZTransform
+        _target_: egs3.librispeech_100.asr1.dataset.LibriSpeechDataset
+        split: test-other
 
   preprocessor:
     _target_: espnet2.train.preprocessor.CommonPreprocessor
@@ -107,13 +84,24 @@ model:
     use_ffn: true
     macaron_ffn: true
     merge_conv_kernel: 31
+  
+  decoder: transformer
+  decoder_conf:
+    attention_heads: 4
+    linear_units: 2048
+    num_blocks: 6
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    self_attention_dropout_rate: 0.1
+    src_attention_dropout_rate: 0.1
+    layer_drop_rate: 0.0
 
   normalize: global_mvn
   normalize_conf:
     stats_file: ${recipedir}/exp/stats/train/feats_stats.npz
 
   model_conf:
-    ctc_weight: 1.0
+    ctc_weight: 0.3
     lsm_weight: 0.1
     length_normalized_loss: false
 
@@ -160,40 +148,18 @@ dataloader:
           - ${statsdir}/train/feats_shape
         batch_size: 4
         batch_bins: 4000000
-    valid:
-      iter_factory:
-        _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
-        shuffle: false
-        collate_fn: ${dataloader.collate_fn}
-        batches:
-          _target_: espnet2.samplers.build_batch_sampler.build_batch_sampler
-          type: numel
-          shape_files:
-            - ${statsdir}/valid/feats_shape
-          batch_size: 4
-          batch_bins: ${dataloader.train.iter_factory.batches.batch_bins}
-  # train:
-  #   shuffle: true
-  #   num_workers: 4
-  #   batch_size: 40
-  #   # sampler:
-  #   #   _target_: espnet2.samplers.build_batch_sampler.build_batch_sampler
-  #   #   type: numel
-  #   #   batch_size: -1
-  #   #   batch_bins: 32000000
-  #   #   shape_files:
-  #   #     - ${statsdir}/train/feats_shape
-  # valid:
-  #   shuffle: false
-  #   num_workers: 4
-  #   batch_size: 40
-  #   # sampler:
-  #   #   _target_: espnet2.samplers.build_batch_sampler.build_batch_sampler
-  #   #   type: numel
-  #   #   batch_size: -1
-  #   #   batch_bins: ${dataloader.train.sampler.batch_bins}
-  #   #   shape_files:
-  #   #     - ${statsdir}/valid/feats_shape
+  valid:
+    iter_factory:
+      _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
+      shuffle: false
+      collate_fn: ${dataloader.collate_fn}
+      batches:
+        _target_: espnet2.samplers.build_batch_sampler.build_batch_sampler
+        type: numel
+        shape_files:
+          - ${statsdir}/valid/feats_shape
+        batch_size: 4
+        batch_bins: ${dataloader.train.iter_factory.batches.batch_bins}
 
 
 best_model_criterion:
@@ -203,7 +169,7 @@ trainer:
   accelerator: gpu
   devices: ${num_device}
   num_nodes: 1
-  accumulate_grad_batches: 1
+  accumulate_grad_batches: 4
   gradient_clip_val: 1.0
   log_every_n_steps: 500
   max_epochs: 70
@@ -212,6 +178,11 @@ trainer:
     - _target_: lightning.pytorch.loggers.TensorBoardLogger
       save_dir: ${expdir}/tensorboard
       name: tb_logger
+    
+    - _target_: lightning.pytorch.loggers.WandbLogger
+      project: ESPnet3 development
+      save_dir: ${expdir}/wandb
+      name: wandb_logger
 
   strategy: auto
 
