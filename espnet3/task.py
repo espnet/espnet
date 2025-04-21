@@ -2,6 +2,7 @@
 # This class is a wrapper for Task classes to support custom datasets.
 import argparse
 import logging
+import sys
 from argparse import Namespace
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
@@ -138,7 +139,13 @@ def get_ez_task(task_name: str, use_custom_dataset: bool = False) -> AbsTask:
 @typechecked
 def get_espnet_model(task: str, config: Union[Dict, DictConfig]) -> AbsESPnetModel:
     ez_task = get_ez_task(task)
+
+    # workaround for calling get_default_config
+    original_argv = sys.argv
+    sys.argv = ["dummy.py"]
     default_config = ez_task.get_default_config()
+    sys.argv = original_argv
+
     default_config.update(config)
     espnet_model = ez_task.build_model(Namespace(**default_config))
     return espnet_model
@@ -148,9 +155,15 @@ def save_espnet_config(
     task: str, config: Union[Dict, DictConfig], output_dir: str
 ) -> None:
     ez_task = get_ez_task(task)
-    default_config = ez_task.get_default_config()
-    resolved_config = OmegaConf.to_container(config, resolve=True)
 
+    # workaround for calling get_default_config
+    original_argv = sys.argv
+    sys.argv = ["dummy.py"]
+    default_config = ez_task.get_default_config()
+    sys.argv = original_argv
+
+    resolved_config = OmegaConf.to_container(config, resolve=True)
+    
     # set model config at the root level
     model_config = resolved_config.pop("model")
     if hasattr(model_config, "_target_"):
