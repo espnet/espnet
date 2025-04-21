@@ -54,45 +54,13 @@ class Speech2Emotion:
         self,
         ser_train_config: Union[Path, str, None] = None,
         ser_model_file: Union[Path, str, None] = None,
-        # transducer_conf: Optional[dict] = None,
-        # lm_train_config: Union[Path, str, None] = None,
-        # lm_file: Union[Path, str, None] = None,
-        # ngram_scorer: str = "full",
-        # ngram_file: Union[Path, str, None] = None,
-        # token_type: Optional[str] = None,
-        # bpemodel: Optional[str] = None,
         device: str = "cpu",
-        # maxlenratio: float = 0.0,
-        # minlenratio: float = 0.0,
         batch_size: int = 1,
         dtype: str = "float32",
         beam_size: int = 20,
-        # ctc_weight: float = 0.5,
-        # lm_weight: float = 1.0,
-        # ngram_weight: float = 0.9,
-        # penalty: float = 0.0,
-        # nbest: int = 1,
-        # normalize_length: bool = False,
-        # streaming: bool = False,
-        # quantize_asr_model: bool = False,
-        # quantize_lm: bool = False,
-        # quantize_modules: List[str] = ["Linear"],
-        # quantize_dtype: str = "qint8",
     ):
 
         task = SERTask
-
-        # if quantize_asr_model or quantize_lm:
-        #     if quantize_dtype == "float16" and torch.__version__ < LooseVersion(
-        #         "1.5.0"
-        #     ):
-        #         raise ValueError(
-        #             "float16 dtype for dynamic quantization is not supported with "
-        #             "torch version < 1.5.0. Switch to qint8 dtype instead."
-        #         )
-
-        # qconfig_spec = set([getattr(torch.nn, q) for q in quantize_modules])
-        # quantize_dtype: torch.dtype = getattr(torch, quantize_dtype)
 
         # 1. Build SER model
         scorers = {}
@@ -101,152 +69,16 @@ class Speech2Emotion:
         )
         ser_model.to(dtype=getattr(torch, dtype)).eval()
 
-        # if quantize_asr_model:
-        #     logging.info("Use quantized asr model for decoding.")
-
-        #     ser_model = torch.quantization.quantize_dynamic(
-        #         ser_model, qconfig_spec=qconfig_spec, dtype=quantize_dtype
-        #     )
-
-        # decoder = ser_model.decoder
-
-        # ctc = CTCPrefixScorer(ctc=ser_model.ctc, eos=ser_model.eos)
-        # token_list = ser_model.token_list
-        # scorers.update(
-        #     decoder=decoder,
-        #     ctc=ctc,
-        #     length_bonus=LengthBonus(len(token_list)),
-        # )
-
-        # # 2. Build Language model
-        # if lm_train_config is not None:
-        #     lm, lm_train_args = LMTask.build_model_from_file(
-        #         lm_train_config, lm_file, device
-        #     )
-
-        #     if quantize_lm:
-        #         logging.info("Use quantized lm for decoding.")
-
-        #         lm = torch.quantization.quantize_dynamic(
-        #             lm, qconfig_spec=qconfig_spec, dtype=quantize_dtype
-        #         )
-
-        #     scorers["lm"] = lm.lm
-
-        # # 3. Build ngram model
-        # if ngram_file is not None:
-        #     if ngram_scorer == "full":
-        #         from espnet.nets.scorers.ngram import NgramFullScorer
-
-        #         ngram = NgramFullScorer(ngram_file, token_list)
-        #     else:
-        #         from espnet.nets.scorers.ngram import NgramPartScorer
-
-        #         ngram = NgramPartScorer(ngram_file, token_list)
-        # else:
-        #     ngram = None
-        # scorers["ngram"] = ngram
-
-        # # 4. Build BeamSearch object
-        # if ser_model.use_transducer_decoder:
-        #     beam_search_transducer = BeamSearchTransducer(
-        #         decoder=asr_model.decoder,
-        #         joint_network=asr_model.joint_network,
-        #         beam_size=beam_size,
-        #         lm=scorers["lm"] if "lm" in scorers else None,
-        #         lm_weight=lm_weight,
-        #         token_list=token_list,
-        #         **transducer_conf,
-        #     )
-        #     beam_search = None
-        # else:
-        #     beam_search_transducer = None
-
-        #     weights = dict(
-        #         decoder=1.0 - ctc_weight,
-        #         ctc=ctc_weight,
-        #         lm=lm_weight,
-        #         ngram=ngram_weight,
-        #         length_bonus=penalty,
-        #     )
-        #     beam_search = BeamSearch(
-        #         beam_size=beam_size,
-        #         weights=weights,
-        #         scorers=scorers,
-        #         sos=asr_model.sos,
-        #         eos=asr_model.eos,
-        #         vocab_size=len(token_list),
-        #         token_list=token_list,
-        #         pre_beam_score_key=None if ctc_weight == 1.0 else "full",
-        #         normalize_length=normalize_length,
-        #     )
-
-        #     # TODO(karita): make all scorers batchfied
-        #     if batch_size == 1:
-        #         non_batch = [
-        #             k
-        #             for k, v in beam_search.full_scorers.items()
-        #             if not isinstance(v, BatchScorerInterface)
-        #         ]
-        #         if len(non_batch) == 0:
-        #             if streaming:
-        #                 beam_search.__class__ = BatchBeamSearchOnlineSim
-        #                 beam_search.set_streaming_config(slu_train_config)
-        #                 logging.info(
-        #                     "BatchBeamSearchOnlineSim implementation is selected."
-        #                 )
-        #             else:
-        #                 beam_search.__class__ = BatchBeamSearch
-        #                 logging.info("BatchBeamSearch implementation is selected.")
-        #         else:
-        #             logging.warning(
-        #                 f"As non-batch scorers {non_batch} are found, "
-        #                 f"fall back to non-batch implementation."
-        #             )
-
-        #     beam_search.to(device=device, dtype=getattr(torch, dtype)).eval()
-        #     for scorer in scorers.values():
-        #         if isinstance(scorer, torch.nn.Module):
-        #             scorer.to(device=device, dtype=getattr(torch, dtype)).eval()
-        #     logging.info(f"Beam_search: {beam_search}")
-        #     logging.info(f"Decoding device={device}, dtype={dtype}")
-
-        # # 5. [Optional] Build Text converter: e.g. bpe-sym -> Text
-        # if token_type is None:
-        #     token_type = asr_train_args.token_type
-        # if bpemodel is None:
-        #     bpemodel = asr_train_args.bpemodel
-
-        # if token_type is None:
-        #     tokenizer = None
-        # elif token_type == "bpe":
-        #     if bpemodel is not None:
-        #         tokenizer = build_tokenizer(token_type=token_type, bpemodel=bpemodel)
-        #     else:
-        #         tokenizer = None
-        # else:
-        #     tokenizer = build_tokenizer(token_type=token_type)
-        # converter = TokenIDConverter(token_list=token_list)
-        # logging.info(f"Text tokenizer: {tokenizer}")
-
         self.ser_model = ser_model
         self.ser_train_args = ser_train_args
-        # self.converter = converter
-        # self.tokenizer = tokenizer
-        # self.beam_search = beam_search
-        # self.beam_search_transducer = beam_search_transducer
-        # self.maxlenratio = maxlenratio
-        # self.minlenratio = minlenratio
         self.device = device
         self.dtype = dtype
-        # self.nbest = nbest
 
     @torch.no_grad()
     @typechecked
     def __call__(
         self,
         speech: Union[torch.Tensor, np.ndarray],
-        # transcript: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         """Inference
 
@@ -308,45 +140,22 @@ class Speech2Emotion:
 @typechecked
 def inference(
     output_dir: str,
-    # maxlenratio: float,
-    # minlenratio: float,
     batch_size: int,
     dtype: str,
     beam_size: int,
     ngpu: int,
     seed: int,
-    # ctc_weight: float,
-    # lm_weight: float,
-    # ngram_weight: float,
-    # penalty: float,
-    # nbest: int,
-    # normalize_length: bool,
     num_workers: int,
     log_level: Union[int, str],
     data_path_and_name_and_type: Sequence[Tuple[str, str, str]],
     key_file: Optional[str],
     ser_train_config: Optional[str],
     ser_model_file: Optional[str],
-    # lm_train_config: Optional[str],
-    # lm_file: Optional[str],
-    # word_lm_train_config: Optional[str],
-    # word_lm_file: Optional[str],
-    # ngram_file: Optional[str],
     model_tag: Optional[str],
-    # token_type: Optional[str],
-    # bpemodel: Optional[str],
     allow_variable_data_keys: bool,
-    # transducer_conf: Optional[dict],
-    # streaming: bool,
-    # quantize_asr_model: bool,
-    # quantize_lm: bool,
-    # quantize_modules: List[str],
-    # quantize_dtype: str,
 ):
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
-    # if word_lm_train_config is not None:
-    #     raise NotImplementedError("Word LM is not implemented")
     if ngpu > 1:
         raise NotImplementedError("only single GPU decoding is supported")
 
@@ -367,28 +176,9 @@ def inference(
     speech2emotion_kwargs = dict(
         ser_train_config=ser_train_config,
         ser_model_file=ser_model_file,
-        # transducer_conf=transducer_conf,
-        # lm_train_config=lm_train_config,
-        # lm_file=lm_file,
-        # ngram_file=ngram_file,
-        # token_type=token_type,
-        # bpemodel=bpemodel,
         device=device,
-        # maxlenratio=maxlenratio,
-        # minlenratio=minlenratio,
         dtype=dtype,
         beam_size=beam_size,
-        # ctc_weight=ctc_weight,
-        # lm_weight=lm_weight,
-        # ngram_weight=ngram_weight,
-        # penalty=penalty,
-        # nbest=nbest,
-        # normalize_length=normalize_length,
-        # streaming=streaming,
-        # quantize_asr_model=quantize_asr_model,
-        # quantize_lm=quantize_lm,
-        # quantize_modules=quantize_modules,
-        # quantize_dtype=quantize_dtype,
     )
     speech2emotion = Speech2Emotion.from_pretrained(
         model_tag=model_tag,
@@ -423,25 +213,10 @@ def inference(
             # N-best list of (text, token, token_int, hyp_object)
             # try:
             pred_emo = speech2emotion(**batch)
-            # except TooShortUttError as e:
-            #     logging.warning(f"Utterance {keys} {e}")
-                # hyp = Hypothesis(score=0.0, scores={}, states={}, yseq=[])
-                # results = [[" ", ["<space>"], [2], hyp]] * nbest
 
             # Only supporting batch_size==1
             key = keys[0]
             writer[key] = str(pred_emo.cpu().numpy()[0])
-            # for n, (text, token, token_int, hyp) in zip(range(1, nbest + 1), results):
-            #     # Create a directory: outdir/{n}best_recog
-            #     ibest_writer = writer[f"{n}best_recog"]
-
-            #     # Write the result to each file
-            #     ibest_writer["token"][key] = " ".join(token)
-            #     ibest_writer["token_int"][key] = " ".join(map(str, token_int))
-            #     ibest_writer["score"][key] = str(hyp.score)
-
-            #     if text is not None:
-            #         ibest_writer["text"][key] = text
 
 
 def get_parser():
@@ -508,31 +283,6 @@ def get_parser():
         type=str,
         help="SER model parameter file",
     )
-    # group.add_argument(
-    #     "--lm_train_config",
-    #     type=str,
-    #     help="LM training configuration",
-    # )
-    # group.add_argument(
-    #     "--lm_file",
-    #     type=str,
-    #     help="LM parameter file",
-    # )
-    # group.add_argument(
-    #     "--word_lm_train_config",
-    #     type=str,
-    #     help="Word LM training configuration",
-    # )
-    # group.add_argument(
-    #     "--word_lm_file",
-    #     type=str,
-    #     help="Word LM parameter file",
-    # )
-    # group.add_argument(
-    #     "--ngram_file",
-    #     type=str,
-    #     help="N-gram parameter file",
-    # )
     group.add_argument(
         "--model_tag",
         type=str,
@@ -540,102 +290,7 @@ def get_parser():
         "*_file will be overwritten",
     )
 
-    # group = parser.add_argument_group("Quantization related")
-    # group.add_argument(
-    #     "--quantize_asr_model",
-    #     type=str2bool,
-    #     default=False,
-    #     help="Apply dynamic quantization to ASR model.",
-    # )
-    # group.add_argument(
-    #     "--quantize_lm",
-    #     type=str2bool,
-    #     default=False,
-    #     help="Apply dynamic quantization to LM.",
-    # )
-    # group.add_argument(
-    #     "--quantize_modules",
-    #     type=str,
-    #     nargs="*",
-    #     default=["Linear"],
-    #     help="""List of modules to be dynamically quantized.
-    #     E.g.: --quantize_modules=[Linear,LSTM,GRU].
-    #     Each specified module should be an attribute of 'torch.nn', e.g.:
-    #     torch.nn.Linear, torch.nn.LSTM, torch.nn.GRU, ...""",
-    # )
-    # group.add_argument(
-    #     "--quantize_dtype",
-    #     type=str,
-    #     default="qint8",
-    #     choices=["float16", "qint8"],
-    #     help="Dtype for dynamic quantization.",
-    # )
-
-    # group = parser.add_argument_group("Beam-search related")
-    # group.add_argument(
-    #     "--batch_size",
-    #     type=int,
-    #     default=1,
-    #     help="The batch size for inference",
-    # )
-    # group.add_argument("--nbest", type=int, default=1, help="Output N-best hypotheses")
     group.add_argument("--beam_size", type=int, default=20, help="Beam size")
-    # group.add_argument("--penalty", type=float, default=0.0, help="Insertion penalty")
-    # group.add_argument(
-    #     "--maxlenratio",
-    #     type=float,
-    #     default=0.0,
-    #     help="Input length ratio to obtain max output length. "
-    #     "If maxlenratio=0.0 (default), it uses a end-detect "
-    #     "function "
-    #     "to automatically find maximum hypothesis lengths."
-    #     "If maxlenratio<0.0, its absolute value is interpreted"
-    #     "as a constant max output length",
-    # )
-    # group.add_argument(
-    #     "--minlenratio",
-    #     type=float,
-    #     default=0.0,
-    #     help="Input length ratio to obtain min output length",
-    # )
-    # group.add_argument(
-    #     "--ctc_weight",
-    #     type=float,
-    #     default=0.5,
-    #     help="CTC weight in joint decoding",
-    # )
-    # group.add_argument("--lm_weight", type=float, default=1.0, help="RNNLM weight")
-    # group.add_argument("--ngram_weight", type=float, default=0.9, help="ngram weight")
-    # group.add_argument("--streaming", type=str2bool, default=False)
-
-    # group.add_argument(
-    #     "--transducer_conf",
-    #     default=None,
-    #     help="The keyword arguments for transducer beam search.",
-    # )
-
-    # group = parser.add_argument_group("Text converter related")
-    # group.add_argument(
-    #     "--token_type",
-    #     type=str_or_none,
-    #     default=None,
-    #     choices=["char", "bpe", None],
-    #     help="The token type for ASR model. "
-    #     "If not given, refers from the training args",
-    # )
-    # group.add_argument(
-    #     "--bpemodel",
-    #     type=str_or_none,
-    #     default=None,
-    #     help="The model path of sentencepiece. "
-    #     "If not given, refers from the training args",
-    # )
-    # group.add_argument(
-    #     "--normalize_length",
-    #     type=str2bool,
-    #     default=False,
-    #     help="If true, best hypothesis is selected by length-normalized scores",
-    # )
 
     return parser
 
