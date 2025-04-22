@@ -1,8 +1,9 @@
-import torch
-from torch.utils.data import Dataset
-from datasets import load_from_disk, Audio
-import numpy as np
 import librosa
+import numpy as np
+import torch
+from datasets import Audio, load_from_disk
+from torch.utils.data import Dataset
+
 from espnet2.bin.s2t_inference import Speech2Text
 
 
@@ -83,10 +84,10 @@ class OWSMTokenizeTransform:
         owsm_model = Speech2Text.from_pretrained(model_tag)
         self.tokenizer = owsm_model.tokenizer
         self.converter = owsm_model.converter
-    
+
     def tokenize(self, text):
         return np.array(self.converter.tokens2ids(self.tokenizer.text2tokens(text)))
-    
+
     def __call__(self, data):
         idx, example = data
         ret = dict(
