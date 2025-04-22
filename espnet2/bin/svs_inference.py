@@ -196,6 +196,7 @@ class SingingGenerate:
         sids: Union[torch.Tensor, np.ndarray, None] = None,
         lids: Union[torch.Tensor, np.ndarray, None] = None,
         decode_conf: Optional[Dict[str, Any]] = None,
+        **kwargs,
     ):
 
         # check inputs
@@ -208,9 +209,14 @@ class SingingGenerate:
 
         # prepare batch
         if isinstance(text, Dict):
-            data = self.preprocess_fn(
-                "<dummy>", dict(label=text["label"], score=text["score"])
-            )
+            # dataset infer: text = dict(label=text["label"], score=text["score"])
+            # music score infer: text = dict(text=text["text"], score=text["score"])
+            infer_data = dict(score=text["score"])
+            if "label" in text:
+                infer_data["label"] = text["label"]
+            else:
+                infer_data["text"] = text["text"]
+            data = self.preprocess_fn("<dummy>", infer_data)
             label = data["label"]
             midi = data["midi"]
             duration_phn = data["duration_phn"]
@@ -360,7 +366,9 @@ class SingingGenerate:
                 vocoder_tag = vocoder_tag.replace("parallel_wavegan/", "")
                 vocoder_file = download_pretrained_model(vocoder_tag)
                 vocoder_config = Path(vocoder_file).parent / "config.yml"
-                kwargs.update(vocoder_config=vocoder_config, vocoder_file=vocoder_file)
+                kwargs.update(
+                    vocoder_config=vocoder_config, vocoder_checkpoint=vocoder_file
+                )
 
             else:
                 raise ValueError(f"{vocoder_tag} is unsupported format.")
@@ -478,10 +486,11 @@ def inference(
             logging.info(f"batch: {batch}")
             logging.info(f"keys: {keys}")
 
+            key = keys[0]
+
             start_time = time.perf_counter()
             output_dict = singingGenerate(**batch)
 
-            key = keys[0]
             insize = next(iter(batch.values())).size(0) + 1
             if output_dict.get("feat_gen") is not None:
                 # standard text2mel model case
