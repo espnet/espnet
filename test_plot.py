@@ -1,11 +1,10 @@
 import os
-import os
-
-
-import os
 from typing import Dict, Union
 
-def summarize_tree(path, max_dirs=5, max_files=5, sample_exts={".flac", ".mp3", ".wav", ".m4a"}):
+
+def summarize_tree(
+    path, max_dirs=5, max_files=5, sample_exts={".flac", ".mp3", ".wav", ".m4a"}
+):
     def summarize_dir(current_path) -> Dict[str, Union[list, dict]]:
         summary = {}
         try:
@@ -41,10 +40,8 @@ def summarize_tree(path, max_dirs=5, max_files=5, sample_exts={".flac", ".mp3", 
         summary.update(dir_summaries)
         summary.update(file_summary)
         return summary
+
     return summarize_dir(path)
-
-
-
 
 
 def print_summary(summary, indent=0):
@@ -62,7 +59,6 @@ def print_summary(summary, indent=0):
         else:
             print("    " * indent + f"{name}/")
             print_summary(content, indent + 1)
-
 
 
 PATH = "/u/someki1/nvme/espnets/i3d/egs2/europarl/asr1/downloads/v1.1"

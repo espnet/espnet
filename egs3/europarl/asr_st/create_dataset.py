@@ -1,7 +1,7 @@
+import argparse
 import os
 from pathlib import Path
-from typing import Tuple, List
-import argparse
+from typing import List, Tuple
 
 from datasets import Dataset, DatasetDict
 
@@ -54,7 +54,9 @@ def build_split_dataset(
         data["url"].append(url_lst[speech_idx] if speech_idx is not None else "")
         data["speaker_id"].append(spk_lst[speech_idx] if speech_idx is not None else "")
 
-    split_name = f"{split_dir.parent.parent.name}_{split_dir.parent.name}_{split_dir.name}"
+    split_name = (
+        f"{split_dir.parent.parent.name}_{split_dir.parent.name}_{split_dir.name}"
+    )
     return split_name, Dataset.from_dict(data)
 
 
@@ -64,7 +66,7 @@ def convert_all(root_dir: Path, save_path: Path):
     for lang1 in os.listdir(root_dir):
         for lang2 in os.listdir(root_dir / lang1):
             if not (root_dir / lang1 / lang2).is_dir():
-                continue 
+                continue
 
             for split in os.listdir(root_dir / lang1 / lang2):
                 split_dir = root_dir / lang1 / lang2 / split
@@ -79,12 +81,19 @@ def convert_all(root_dir: Path, save_path: Path):
                 txt_src = split_dir / f"speeches.{src_lang}"
                 txt_tgt = split_dir / f"speeches.{tgt_lang}"
 
-                if not (seg_src.exists() and seg_tgt.exists() and txt_src.exists() and txt_tgt.exists()):
+                if not (
+                    seg_src.exists()
+                    and seg_tgt.exists()
+                    and txt_src.exists()
+                    and txt_tgt.exists()
+                ):
                     print(f"[Skipping] Missing files in {split_dir}")
                     continue
 
                 try:
-                    split_name, dataset = build_split_dataset(split_dir, src_lang, tgt_lang)
+                    split_name, dataset = build_split_dataset(
+                        split_dir, src_lang, tgt_lang
+                    )
                     dataset_dict[split_name] = dataset
                     print(f"[Added] {split_name} with {len(dataset)} examples")
                 except Exception as e:
@@ -97,8 +106,12 @@ def convert_all(root_dir: Path, save_path: Path):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("data_dir", type=Path, help="Europarl data root (e.g. .../downloads/v1.1/)")
-    parser.add_argument("save_dir", type=Path, help="Output directory to save HuggingFace dataset")
+    parser.add_argument(
+        "data_dir", type=Path, help="Europarl data root (e.g. .../downloads/v1.1/)"
+    )
+    parser.add_argument(
+        "save_dir", type=Path, help="Output directory to save HuggingFace dataset"
+    )
     args = parser.parse_args()
 
     convert_all(args.data_dir, args.save_dir)
