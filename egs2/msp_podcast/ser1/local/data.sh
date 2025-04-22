@@ -78,15 +78,12 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         mkdir -p data/{train,valid,test1,test2}
         mkdir -p data/${tmp}
         echo -n "" > data/${tmp}/wav.scp; echo -n "" > data/${tmp}/utt2spk; echo -n "" > data/${tmp}/text
-        tail -n +2 "${datadir}/Labels/labels_consensus.csv" | while IFS=',' read -r FileName EmoClass EmoAct EmoVal EmoDom SpkrID Gender Split_Set
+        tail -n +2 "${datadir}/Labels/labels_consensus.csv" | while IFS=',' read -r FileName EmoClass _ _ _ SpkrID Gender Split_Set
         do
             utt_id=$(basename ${FileName} .wav)
             spk_id=${SpkrID}
             gender=${Gender}
             emo_cate=${EmoClass}
-            # emo_act=${EmoAct}
-            # emo_val=${EmoVal}
-            # emo_dom=${EmoDom}
             split_set=${Split_Set}
             file="${datadir}/Audios/${FileName}"
             words=$(cat "${datadir}"/Transcripts/${utt_id}.txt | sed "s/^.*\]:\s\(.*\)$/\1/g")
@@ -94,15 +91,15 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
                 # for sentiment analysis
                 if [ ${convert_to_sentiment} = "true" ]; then
                     words2=$(echo "$words" | perl local/prepare_sentiment.pl)
-                    if [ ${emo} = "hap" ] || [ ${emo} = "exc" ] || [ ${emo} = "sur" ]; then
+                    if [ ${emo_cate} = "hap" ] || [ ${emo_cate} = "exc" ] || [ ${emo_cate} = "sur" ]; then
                         echo "${utt_id} Positive ${words2}" >> data/${tmp}/text
                         echo "${utt_id} ${file}" >> data/${tmp}/wav.scp
                         echo "${utt_id} ${utt_id}" >> data/${tmp}/utt2spk
-                    elif [ ${emo} = "ang" ] || [ ${emo} = "sad" ] || [ ${emo} = "fru" ] || [ ${emo} = "fea" ]; then
+                    elif [ ${emo_cate} = "ang" ] || [ ${emo_cate} = "sad" ] || [ ${emo_cate} = "fru" ] || [ ${emo_cate} = "fea" ]; then
                         echo "${utt_id} Negative ${words2}" >> data/${tmp}/text
                         echo "${utt_id} ${file}" >> data/${tmp}/wav.scp
                         echo "${utt_id} ${utt_id}" >> data/${tmp}/utt2spk
-                    elif [ ${emo} = "neu" ];then
+                    elif [ ${emo_cate} = "neu" ];then
                         echo "${utt_id} Neutral ${words2}" >> data/${tmp}/text
                         echo "${utt_id} ${file}" >> data/${tmp}/wav.scp
                         echo "${utt_id} ${utt_id}" >> data/${tmp}/utt2spk
