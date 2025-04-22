@@ -84,9 +84,9 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
             spk_id=${SpkrID}
             gender=${Gender}
             emo_cate=${EmoClass}
-            emo_act=${EmoAct}
-            emo_val=${EmoVal}
-            emo_dom=${EmoDom}
+            # emo_act=${EmoAct}
+            # emo_val=${EmoVal}
+            # emo_dom=${EmoDom}
             split_set=${Split_Set}
             file="${datadir}/Audios/${FileName}"
             words=$(cat "${datadir}"/Transcripts/${utt_id}.txt | sed "s/^.*\]:\s\(.*\)$/\1/g")
