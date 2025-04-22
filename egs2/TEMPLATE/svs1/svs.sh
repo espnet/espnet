@@ -1040,7 +1040,7 @@ if ! "${skip_eval}"; then
             done | LC_ALL=C sort -k1 > "${_dir}/speech_shape"
             for i in $(seq "${_nj}"); do
                 cat "${_logdir}/output.${i}/wav/wav.scp" | \
-                sed 's|/log/output\.[0-9]*\/wav/|/wav/|' 
+                sed 's|/log/output\.[0-9]*\/wav/|/wav/|'
             done | LC_ALL=C sort -k1 > "${_dir}/wav/wav.scp"
             for i in $(seq "${_nj}"); do
                 mv -u "${_logdir}/output.${i}"/wav/*.wav "${_dir}"/wav
@@ -1071,7 +1071,7 @@ if ! "${skip_eval}"; then
 
     if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
         log "Stage 8: Scoring: SVS scoring"
-        
+
         if ! "${skip_versa}"; then
             log "Scoring SVS evaluation via VERSA, using default ${versa_config}. \
 You can visit https://github.com/shinjiwlab/versa?tab=readme-ov-file#list-of-metrics \

@@ -2,9 +2,9 @@
 
 """Script to run the inference of singing-voice-synthesis model."""
 
-import os
 import argparse
 import logging
+import os
 import shutil
 import sys
 import time
@@ -590,9 +590,12 @@ def inference(
                     singingGenerate.fs,
                     "PCM_16",
                 )
-                wavscp_writer.write("{} {}\n".format(
-                    key, os.path.abspath(os.path.join(output_dir, "wav", f"{key}.wav"))
-                ))
+                wavscp_writer.write(
+                    "{} {}\n".format(
+                        key,
+                        os.path.abspath(os.path.join(output_dir, "wav", f"{key}.wav")),
+                    )
+                )
 
     # remove files if those are not included in output dict
     if output_dict.get("feat_gen") is None:
