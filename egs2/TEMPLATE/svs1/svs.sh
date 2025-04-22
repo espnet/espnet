@@ -1039,6 +1039,10 @@ if ! "${skip_eval}"; then
                 cat "${_logdir}/output.${i}/speech_shape/speech_shape"
             done | LC_ALL=C sort -k1 > "${_dir}/speech_shape"
             for i in $(seq "${_nj}"); do
+                cat "${_logdir}/output.${i}/wav/wav.scp" | \
+                sed 's|/log/output\.[0-9]*\/wav/|/wav/|' 
+            done | LC_ALL=C sort -k1 > "${_dir}/wav/wav.scp"
+            for i in $(seq "${_nj}"); do
                 mv -u "${_logdir}/output.${i}"/wav/*.wav "${_dir}"/wav
                 rm -rf "${_logdir}/output.${i}"/wav
             done

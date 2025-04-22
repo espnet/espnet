@@ -2,6 +2,7 @@
 
 """Script to run the inference of singing-voice-synthesis model."""
 
+import os
 import argparse
 import logging
 import shutil
@@ -472,7 +473,9 @@ def inference(
         output_dir / "durations/durations", "w"
     ) as duration_writer, open(
         output_dir / "focus_rates/focus_rates", "w"
-    ) as focus_rate_writer:
+    ) as focus_rate_writer, open(
+        output_dir / "wav/wav.scp", "w"
+    ) as wavscp_writer:
         for idx, (keys, batch) in enumerate(loader, 1):
             assert isinstance(batch, dict), type(batch)
             assert all(isinstance(s, str) for s in keys), keys
@@ -587,6 +590,9 @@ def inference(
                     singingGenerate.fs,
                     "PCM_16",
                 )
+                wavscp_writer.write("{} {}\n".format(
+                    key, os.path.abspath(os.path.join(output_dir, "wav", f"{key}.wav"))
+                ))
 
     # remove files if those are not included in output dict
     if output_dict.get("feat_gen") is None:
