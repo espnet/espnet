@@ -104,6 +104,7 @@ download_model="" # Download a model from Model Zoo and use it for decoding.
 
 # evaluation related
 skip_versa=false
+versa_config=../../TEMPLATE/svs1/conf/versa.yaml
 
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=""             # Name of training set.
