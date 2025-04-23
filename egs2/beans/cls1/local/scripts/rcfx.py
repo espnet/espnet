@@ -29,7 +29,20 @@ for src_file in sorted(
     dest_file = dest_dir / (src_file.stem + ".wav")
     if not os.path.exists(dest_file):
         print(f"Converting {src_file} ...", file=sys.stderr)
-        subprocess.run(["sox", src_file, f"-r {TARGET_SAMPLE_RATE}", "-R", dest_file])
+        # subprocess.run(["sox", src_file, f"-r {TARGET_SAMPLE_RATE}", "-R", dest_file])
+        subprocess.run(
+            [
+                "ffmpeg",
+                "-loglevel",
+                "quiet",
+                "-i",
+                src_file,
+                "-ar",
+                str(TARGET_SAMPLE_RATE),
+                dest_file,
+            ],
+            check=True,
+        )
     dataset[src_file.stem] = {
         "path": str(dest_file),
         "length": get_wav_length_in_secs(dest_file),
