@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 import numpy as np
 import torch
@@ -13,7 +13,7 @@ class FusedFrontends(AbsFrontend):
     @typechecked
     def __init__(
         self,
-        frontends: List[AbsFrontend] = None,
+        frontends: List[Dict[str, Any]] = None,
         align_method: str = "linear_projection",
         proj_dim: int = 100,
         fs: int = 16000,
