@@ -1,27 +1,25 @@
 unused_parameters: true
 init: xavier_normal
 
-batch_type: folded
-shuffle_within_batch: false
-# Need large batch size to get good estimate
-valid_batch_size: 1200
-batch_size: 80
-max_epoch: 160
+batch_type: length
+
+max_epoch: MAX_EPOCH
+batch_bins: 20000000 # (16000 hz * 10sec) * 125
 
 accum_grad: 1
 grad_clip: 1
 
 optim: adamw
 optim_conf:
-    lr: 3.0e-5
+    lr: LEARNING_RATE
     weight_decay: 1.0e-2
     betas: [0.9, 0.98]
 
 scheduler: CosineAnnealingWarmupRestarts
 scheduler_conf:
-    first_cycle_steps: 95000
-    warmup_steps: 8000
-    max_lr: 3.0e-5
+    first_cycle_steps: 100000
+    warmup_steps: WARMUP_STEPS
+    max_lr: LEARNING_RATE
     min_lr: 5.0e-6
 
 patience: none
@@ -60,14 +58,15 @@ encoder_conf:
 
 model_conf:
     classification_type: multi-label
-    mixup_probability: 0.8
-    lsm_weight: 0.0  # label smoothing weight, per label
+    mixup_probability: MIXUP_PROB
+    mixup_alpha: MIXUP_ALPHA
+    lsm_weight: 0.1  # label smoothing weight, per label
     log_epoch_metrics: true
 
 lightning_conf:
     #### args that are passed directly to the trainer
     log_every_n_steps: 250
-    max_epochs: 160
+    max_epochs: MAX_EPOCH
     strategy: ddp
     strategy_conf:
         find_unused_parameters: true

@@ -1,16 +1,13 @@
 unused_parameters: true
 init: xavier_normal
 
-# batch_type: folded
-# valid_batch_type: folded
-# # Need large batch size to get good estimate
-# valid_batch_size: 1200
-# batch_size: 320 # over 8gpus, 6315 batches over 2m examples --> 3157.5 steps per epoch
-# max_epoch: 16 # 50k steps, 8
 
-batch_type: length
-max_epoch: 1
-batch_bins: 20000000 # (16000 hz * 10sec) * 125
+batch_type: folded
+valid_batch_type: folded
+# Need large batch size to get good estimate
+valid_batch_size: 1200
+batch_size: 320 # over 8gpus, 6315 batches over 2m examples --> 3157.5 steps per epoch
+max_epoch: 16 # 50k steps, 8
 
 accum_grad: 2
 grad_clip: 1
@@ -23,8 +20,8 @@ optim_conf:
 
 scheduler: CosineAnnealingWarmupRestarts
 scheduler_conf:
-    first_cycle_steps: 16000
-    warmup_steps: 1000
+    first_cycle_steps: 50000
+    warmup_steps: 5000
     max_lr: 1.0e-4
     min_lr: 5.0e-6
 
@@ -43,14 +40,9 @@ frontend: none
 input_size: 1 # important to set input_size to 1 if frontend is none
 normalize: none # BEATs code does global mean and variance normalization
 
-encoder: beats
+encoder: dasheng
 encoder_conf:
-    beats_ckpt_path: CHECKPOINT_PATH
-    beats_config:
-        layer_wise_gradient_decay_ratio: 0.6
-        encoder_layerdrop: 0.1
-        dropout: 0.0
-    use_weighted_representation: false
+    model_name: DASHENG_MODEL_NAME
     specaug_config:
         apply_time_warp: true
         apply_freq_mask: false
@@ -70,7 +62,7 @@ model_conf:
 
 lightning_conf:
     log_every_n_steps: 250
-    max_epochs: 1
+    max_epochs: 16
     strategy: ddp
     strategy_conf:
         find_unused_parameters: true

@@ -1,9 +1,7 @@
 unused_parameters: true
 init: xavier_normal
 
-batch_type: weighted
-utt2weight_file: /compute/babel-11-13/sbharad2/beats_run/as2m_balanced_dynamic/data/utt2weight
-
+batch_type: folded
 valid_batch_type: folded
 # Need large batch size to get good estimate
 valid_batch_size: 1200
@@ -29,7 +27,7 @@ scheduler_conf:
 patience: none
 best_model_criterion:
 -   - valid
-    - mAP
+    - epoch_mAP
     - max
 keep_nbest_models: 1
 use_amp: false  # whether to use automatic mixed precision
@@ -64,6 +62,7 @@ model_conf:
     classification_type: multi-label
     mixup_probability: 0.8
     lsm_weight: 0.0  # label smoothing weight, per label
+    log_epoch_metrics: true
 
 lightning_conf:
     log_every_n_steps: 250

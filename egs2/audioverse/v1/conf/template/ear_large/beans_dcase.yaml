@@ -59,3 +59,15 @@ encoder_conf:
 model_conf:
     classification_type: multi-label
     log_epoch_metrics: true
+
+lightning_conf:
+    log_every_n_steps: 250
+    max_epochs: 250
+    strategy: ddp
+    strategy_conf:
+        find_unused_parameters: true
+
+    best_model_criterion:
+    -   - valid/epoch_mAP     # metric to monitor
+        - max           # max or min
+        - 1            # number of best models to keep

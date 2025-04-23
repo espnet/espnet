@@ -1,9 +1,7 @@
 unused_parameters: true
 init: xavier_normal
 
-batch_type: weighted
-utt2weight_file: /compute/babel-11-13/sbharad2/beats_run/as2m_balanced_dynamic/data/utt2weight
-
+batch_type: folded
 valid_batch_type: folded
 # Need large batch size to get good estimate
 valid_batch_size: 1200

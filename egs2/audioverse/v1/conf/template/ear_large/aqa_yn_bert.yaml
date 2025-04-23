@@ -71,7 +71,7 @@ text_encoder_conf:
 
 embedding_fusion: attention
 embedding_fusion_conf:
-    audio_dim: 768
+    audio_dim: 1024
     text_dim: 768
     hidden_dim: 768
     output_dim: 768
