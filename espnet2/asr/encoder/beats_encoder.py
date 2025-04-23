@@ -575,9 +575,6 @@ class BeatsEncoder(AbsEncoder):
 
         if padding_mask is not None:
             # features is BTC
-            # padding_mask = self.forward_padding_mask(features, padding_mask)
-            # NOTE(shikhar): ESC-50, BEANS and Clotho_v2 use the previous version
-            # which is wrong (the one implmented above).
             padding_mask = forward_padding_mask_conv(
                 padding_mask=padding_mask,
                 n_dim=fbank.shape[-1],

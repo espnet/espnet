@@ -65,6 +65,7 @@ class ESPnetClassificationModel(AbsESPnetModel):
         classification_type="multi-class",
         lsm_weight: float = 0.0,
         mixup_probability: float = 0.0,
+        mixup_alpha: float = 0.8,
         log_epoch_metrics: bool = False,
     ):
         super().__init__()
@@ -105,7 +106,9 @@ class ESPnetClassificationModel(AbsESPnetModel):
             )
         self.mixup_augmentation = None
         if mixup_probability > 0.0:
-            self.mixup_augmentation = MixupAugment(mixup_probability=mixup_probability)
+            self.mixup_augmentation = MixupAugment(
+                mixup_probability=mixup_probability, mixup_alpha=mixup_alpha
+            )
         self.metric_functions = self.setup_metrics_()
         self.log_epoch_metrics = log_epoch_metrics
         self.predictions = []
@@ -324,13 +327,9 @@ class ESPnetClassificationModel(AbsESPnetModel):
             self.predictions = []
             self.targets = []
             return
+        preds, targets = torch.cat(self.predictions), torch.cat(self.targets)
         if self.get_vocab_size() == 1:
-            preds = torch.cat(self.predictions)
-            targets = torch.cat(self.targets)
-            preds = torch.cat([1 - preds, preds], dim=-1)
-            targets = torch.cat([1 - targets, targets], dim=-1)
-        else:
-            preds, targets = torch.cat(self.predictions), torch.cat(self.targets)
+            preds, targets = preds.squeeze(-1), targets.squeeze(-1)
         mAP_computer.update(preds, targets)
         self.predictions = []
         self.targets = []
