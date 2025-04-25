@@ -40,6 +40,8 @@ ubuntu16-featbin.tar.gz
 out/config.yaml
 hub/
 
+.devcontainer/*/*.env
+
 doc/vuepress/src/.vuepress/.temp
 doc/vuepress/src/.vuepress/.cache
 dist
