@@ -1,6 +1,6 @@
 # Aura: Agent for Understanding, Reasoning and Automation
 
-We develop a cascaded voice assistant system that includes ASR, TTS and a 
+We develop a cascaded voice assistant system that includes ASR, TTS and a
 ReAct based Agent for reasoning and action taking.
 
 ## Repository Structure
@@ -8,12 +8,12 @@ ReAct based Agent for reasoning and action taking.
 ```
 .
 ├── agent/                   # Core agent implementation
-│   ├── actions/             # Action handlers for different tasks. 
+│   ├── actions/             # Action handlers for different tasks.
 │   ├── controller/          # Agent state and control logic
 │   ├── llm/                 # Language model integration
 │   ├── secrets/             # Secure credential storage
 │   └── agenthub/            # Agent implementations
-│  
+│
 ├── ui/                      # User interface components
 │   ├── local_speech_app.py  # Speech interface implementation (using gradio)
 │   └── requirements.txt     # UI dependencies

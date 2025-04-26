@@ -1,5 +1,6 @@
-from agent.controller.state import State
 from agent.actions.action import Action
+from agent.controller.state import State
+
 
 class BaseAgent:
     def __init__(self):

@@ -1,22 +1,27 @@
-from openai import OpenAI
-import re
-import re
 import os
+import re
+
+from openai import OpenAI
 
 # Modify OpenAI's API key and API base to use vLLM's API server.
 openai_api_key = os.getenv("LLM_API_KEY", "EMPTY")
 openai_api_base = os.getenv("LLM_API_BASE", "http://babel-1-1:8000/v1")
 model = os.getenv("LLM_MODEL", "meta-llama/Llama-3.3-70B-Instruct")
 
-def get_response(messages,model=model):
+
+def get_response(messages, model=model):
     pass
     client = OpenAI(
-    api_key=openai_api_key,
-    base_url=openai_api_base,)
+        api_key=openai_api_key,
+        base_url=openai_api_base,
+    )
 
-    completion = client.chat.completions.create(model=model,messages=messages, temperature=0.1, max_tokens=2000)
+    completion = client.chat.completions.create(
+        model=model, messages=messages, temperature=0.1, max_tokens=2000
+    )
 
     return completion.choices[0].message.content.strip()
+
 
 def get_history_as_strings(history):
     output_string = ""
@@ -25,9 +30,8 @@ def get_history_as_strings(history):
         role = message["role"]
         content = message["content"]
         output_string += f"{role}: {content}\n"
-    
-    return output_string
 
+    return output_string
 
 
 def parse_simple_xml(text: str) -> dict:
@@ -46,7 +50,7 @@ def parse_simple_xml(text: str) -> dict:
     for tag, raw in matches:
         val = raw.strip()
 
-        if val.lower() in {"", "none", "null","None", "NULL"}:
+        if val.lower() in {"", "none", "null", "None", "NULL"}:
             parsed = None
         else:
             parsed = val
@@ -72,7 +76,7 @@ def parse_simple_xml(text: str) -> dict:
     for tag, raw in matches:
         val = raw.strip()
 
-        if val.lower() in {"", "none", "null","None", "NULL"}:
+        if val.lower() in {"", "none", "null", "None", "NULL"}:
             parsed = None
         else:
             parsed = val

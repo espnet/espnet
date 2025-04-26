@@ -1,11 +1,12 @@
-from agent.actions.action import Action
-from agent.controller.state import State
-from email.message import EmailMessage
 import base64
-from googleapiclient.discovery import build
-from agent.actions.utils import parse_payload
-from agent.actions.utils import get_credentials
 import json
+from email.message import EmailMessage
+
+from agent.actions.action import Action
+from agent.actions.utils import get_credentials, parse_payload
+from agent.controller.state import State
+from googleapiclient.discovery import build
+
 
 class EmailAction(Action):
     def __init__(self, thought: str, payload: str):
@@ -15,26 +16,37 @@ class EmailAction(Action):
         observation = "Email not sent"
         try:
             creds = get_credentials()
-            service = build('gmail', 'v1', credentials=creds)
+            service = build("gmail", "v1", credentials=creds)
 
             info = parse_payload(self.payload)
 
             with open("agent/secrets/secrets.json", "r") as f:
-                self.email_whitelist=json.load(f)["email_whitelist"]
+                self.email_whitelist = json.load(f)["email_whitelist"]
 
-            if info is not None and "to" in info and "subject" in info and "content" in info and info["to"] in self.email_whitelist:
+            if (
+                info is not None
+                and "to" in info
+                and "subject" in info
+                and "content" in info
+                and info["to"] in self.email_whitelist
+            ):
 
                 message = EmailMessage()
                 message.set_content(info["content"])
-                message['To'] = info["to"]
-                message['From'] = 'me'
-                message['Subject'] = info["subject"]
+                message["To"] = info["to"]
+                message["From"] = "me"
+                message["Subject"] = info["subject"]
 
                 encoded_message = base64.urlsafe_b64encode(message.as_bytes()).decode()
-                send_message = {'raw': encoded_message}
+                send_message = {"raw": encoded_message}
 
                 # Step 4: Use Gmail API to send
-                response = service.users().messages().send(userId="me", body=send_message).execute()
+                response = (
+                    service.users()
+                    .messages()
+                    .send(userId="me", body=send_message)
+                    .execute()
+                )
                 print(f'Message ID: {response["id"]}')
                 observation = f"Email sent to {info['to']}"
             else:
@@ -42,5 +54,10 @@ class EmailAction(Action):
         except Exception as e:
             observation = f"Error: {e}"
 
-        state.history.append({"action": {"type": "email", "payload": self.payload}, "observation": {"type": "email", "payload": observation}})
+        state.history.append(
+            {
+                "action": {"type": "email", "payload": self.payload},
+                "observation": {"type": "email", "payload": observation},
+            }
+        )
         return observation

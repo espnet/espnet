@@ -1,45 +1,45 @@
-from agent.llm.openai_chat_completion import get_response, get_history_as_strings, parse_simple_xml
+from agent.llm.openai_chat_completion import (
+    get_history_as_strings,
+    get_response,
+    parse_simple_xml,
+)
 
-class DSTAction():
-    def __init__(self, thought: str = '', payload: dict[str, any] = {}):
+
+class DSTAction:
+    def __init__(self, thought: str = "", payload: dict[str, any] = {}):
         self.thought = thought
         self.payload = payload
 
-    def execute(self,type: str = ''):
-            
-            if type == 'get_category':
-                PROMPT = DST_GET_CATEGORY
-            elif type == 'hotel':
-                PROMPT = DST_HOTEL_PROMPT
-            elif type == 'train':
-                PROMPT = DST_TRAIN_PROMPT
-            elif type == 'restaurant':  
-                PROMPT = DST_RESTAURANT_PROMPT
-            elif type == 'attraction':
-                PROMPT = DST_ATTRACTION_PROMPT
-            elif type == 'hospital':
-                PROMPT = DST_HOSPITAL_PROMPT
-            elif type == 'taxi':
-                PROMPT = DST_TAXI_PROMPT
-            else:
-                raise ValueError(f"Unknown DST type: {type}")
+    def execute(self, type: str = ""):
 
-                
-            user_history = get_history_as_strings(self.payload)
+        if type == "get_category":
+            PROMPT = DST_GET_CATEGORY
+        elif type == "hotel":
+            PROMPT = DST_HOTEL_PROMPT
+        elif type == "train":
+            PROMPT = DST_TRAIN_PROMPT
+        elif type == "restaurant":
+            PROMPT = DST_RESTAURANT_PROMPT
+        elif type == "attraction":
+            PROMPT = DST_ATTRACTION_PROMPT
+        elif type == "hospital":
+            PROMPT = DST_HOSPITAL_PROMPT
+        elif type == "taxi":
+            PROMPT = DST_TAXI_PROMPT
+        else:
+            raise ValueError(f"Unknown DST type: {type}")
 
-            messages = [
-                {"role": "system", "content": PROMPT},
-                {"role": "user", "content": user_history}
-            ]
+        user_history = get_history_as_strings(self.payload)
 
-            output = get_response(messages)
-            output = parse_simple_xml(output)
+        messages = [
+            {"role": "system", "content": PROMPT},
+            {"role": "user", "content": user_history},
+        ]
 
-            return output
+        output = get_response(messages)
+        output = parse_simple_xml(output)
 
-           
-
-
+        return output
 
 
 DST_GET_CATEGORY = """

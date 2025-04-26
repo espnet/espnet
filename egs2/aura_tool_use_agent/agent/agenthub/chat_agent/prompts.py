@@ -1,7 +1,6 @@
 import json
 
-
-#TODO: Fix DST fromat in in-context example
+# TODO: Fix DST fromat in in-context example
 
 SYSTEM_PROMPT_ORIGINAL = f"""
 You are an AI concierge agent named Aura, responsible for helping users with various tasks including restaurant reservations, train bookings, hotel accommodations, and other services. Your primary goal is to gather all necessary information through conversation to fulfill the user's request.
@@ -32,7 +31,7 @@ You will receive the following information:
    - For search actions, this includes the search results
    - For calendar actions, this includes the booking confirmation
    - Format: List of dictionaries with 'action' and 'observation' keys
-   
+
 Note: To maintain efficiency Action-Observation History and Current Dialog State may be null at certain turns.
 
 CAPABILITIES:
@@ -119,7 +118,7 @@ None
 
 Output:
 <thought>
-we do not have any prior Action-Observation History and the dialog state is empty. 
+we do not have any prior Action-Observation History and the dialog state is empty.
 We have a introduction from the user and no other information.
 So we will start the conversation with a greeting and ask how we can help the user.
 </thought>
@@ -276,7 +275,7 @@ None
 
 Output:
 <thought>
-we do not have any prior Action-Observation History and the dialog state is empty. 
+we do not have any prior Action-Observation History and the dialog state is empty.
 So we will start the conversation with a greeting and ask how we can help the user.
 </thought>
 <payload>
@@ -346,7 +345,7 @@ You will receive the following information:
    - A JSON object containing all information gathered so far
    - Tracks information about various services (restaurant, train, hotel, etc.)
    - May be empty or partially filled based on the conversation progress
-   
+
 Note: To maintain efficiency Current Dialog State may be null at certain turns.
 
 CAPABILITIES:
@@ -429,7 +428,7 @@ You will be provided with the current dialog state, which tracks information abo
 Your goal is to:
 1. Identify which fields in the dialog state are relevant to the current task
 2. Ask questions to fill in missing required fields
-3. Search for the required information when the user asks you to 
+3. Search for the required information when the user asks you to
 4. Book the slot on the user's calendar when the user asks you to book a slot on their calendar
 5. Send an email to the user's email when the user asks you to send an email
 
@@ -462,7 +461,7 @@ None
 
 Output:
 <thought>
-we do not have any prior Action-Observation History and the dialog state is empty. 
+we do not have any prior Action-Observation History and the dialog state is empty.
 We have a introduction from the user and no other information.
 So we will start the conversation with a greeting and ask how we can help the user.
 </thought>
@@ -551,7 +550,7 @@ email
 REMEMBER: You MUST trigger a chat action after any other action like web_search, calendar, contact.
 """
 
-USER_PROMPT_TEMPLATE="""
+USER_PROMPT_TEMPLATE = """
 
 Action-Observation History:
 {action_observation_history}
@@ -564,18 +563,24 @@ Last Action:
 
 Based on the conversation history and current dialog state, determine the next action to take.
 If last action was not a chat action, you MUST trigger a chat action now.
-""" 
+"""
 
-def get_prompt(action_observation_history: list[dict], dialog_state: dict, last_action: str) -> str:
+
+def get_prompt(
+    action_observation_history: list[dict], dialog_state: dict, last_action: str
+) -> str:
     # Convert inputs to strings
     action_obs_str = json.dumps(action_observation_history)
     dialog_state_str = json.dumps(dialog_state)
 
     return [
-        {'role': 'system', 'content': SYSTEM_PROMPT_SHORT},
-        {'role': 'user', 'content': USER_PROMPT_TEMPLATE.format(
-            action_observation_history=action_obs_str,
-            dialog_state=dialog_state_str,
-            last_action=last_action
-        )}
+        {"role": "system", "content": SYSTEM_PROMPT_SHORT},
+        {
+            "role": "user",
+            "content": USER_PROMPT_TEMPLATE.format(
+                action_observation_history=action_obs_str,
+                dialog_state=dialog_state_str,
+                last_action=last_action,
+            ),
+        },
     ]
