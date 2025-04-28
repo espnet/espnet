@@ -12,6 +12,7 @@ on:
 jobs:
   docker:
     runs-on: ubuntu-latest
+    environment: docker
     # if: github.event.pull_request.merged == true
     steps:
       - name: Checkout
