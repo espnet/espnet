@@ -296,3 +296,38 @@ def test_collect_feats(extract_feats):
     )
     model.extract_feats_in_collect_stats = extract_feats
     model.collect_feats(**inputs)
+
+
+def test_espnet_model_superb():
+    vocab_size = 5
+    enc_out = 4
+    encoder = ConformerEncoder(20, output_size=enc_out, linear_units=4, num_blocks=2)
+    ctc = CTC(odim=vocab_size, encoder_output_size=enc_out)
+
+    model = ESPnetSLUModel(
+        vocab_size,
+        token_list=["<blank>", "<unk>", "a", "i", "<eos>"],
+        frontend=None,
+        specaug=None,
+        normalize=None,
+        preencoder=None,
+        encoder=encoder,
+        postencoder=None,
+        decoder=None,
+        ctc=ctc,
+        joint_network=None,
+        superb_setup=True,
+        num_class=5,
+        ctc_weight=0.0,
+        ssl_input_size=enc_out,
+        use_only_last_correct=True,
+    )
+
+    inputs = dict(
+        speech=torch.randn(2, 10, 20, requires_grad=True),
+        speech_lengths=torch.tensor([10, 8], dtype=torch.long),
+        text=torch.tensor([[2], [4]], dtype=torch.long),
+        text_lengths=torch.tensor([1, 1], dtype=torch.long),
+    )
+    loss, *_ = model(**inputs)
+    loss.backward()

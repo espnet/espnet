@@ -12,5 +12,6 @@ rm -rf ParallelWaveGAN
 # ParallelWaveGAN  Commit id when making this PR: `commit 4615144d75bcb519ff1d2df7699ddd626787b5a4`
 git clone https://github.com/kan-bayashi/ParallelWaveGAN.git
 cd ParallelWaveGAN
+pip install "setuptools<80.0.0"
 pip install -e .
 cd ..
