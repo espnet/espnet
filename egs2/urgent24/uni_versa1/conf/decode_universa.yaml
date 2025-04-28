@@ -1,0 +1,3 @@
+allow_variable_data_keys: true
+always_fix_seed: true
+batch_size: 1

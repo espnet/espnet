@@ -1,3 +1,4 @@
+import logging
 import math
 from typing import Collection, Dict, List, Tuple, Union
 
@@ -40,7 +41,7 @@ class CommonCollateFn:
 
 
 class HuBERTCollateFn(CommonCollateFn):
-    """Functor class of common_collate_fn()"""
+    """HuBERT functor class of common_collate_fn()"""
 
     @typechecked
     def __init__(
@@ -419,3 +420,90 @@ def common_collate_fn(
 
     output = (uttids, output)
     return output
+
+
+class UniversaCollateFn(CommonCollateFn):
+    """Universa functor class of common_collate_fn()"""
+
+    @typechecked
+    def __init__(
+        self,
+        metrics_list: List[str],
+        float_pad_value: Union[float, int] = 0.0,
+        metric_pad_value: Union[float, int] = -1e10,
+        int_pad_value: int = -32768,
+        not_sequence: Collection[str] = (),
+    ):
+        super().__init__(
+            float_pad_value=float_pad_value,
+            int_pad_value=int_pad_value,
+            not_sequence=not_sequence,
+        )
+        self.metrics_list = metrics_list
+        self.metric_pad_value = metric_pad_value
+        # NOTE(jiatong): special treatment for metrics
+        logging.warning("We only support metric with float type now!")
+
+    def __repr__(self):
+        return (
+            f"{self.__class__}(float_pad_value={self.float_pad_value}, "
+            f"int_pad_value={self.float_pad_value}), "
+            f"metrics_list={self.metrics_list}",
+            f"metric_pad_value={self.metric_pad_value}",
+        )
+
+    def __call__(
+        self, data: Collection[Tuple[str, Dict[str, np.ndarray]]]
+    ) -> Tuple[List[str], Dict[str, torch.Tensor]]:
+
+        uttids = [u for u, _ in data]
+        data = [d for _, d in data]
+
+        assert all(set(data[0]) == set(d) for d in data), "dict-keys mismatching"
+        assert all(
+            not k.endswith("_lengths") for k in data[0]
+        ), f"*_lengths is reserved: {list(data[0])}"
+
+        output = {}
+        for key in data[0]:
+            if key == "metrics":
+                continue
+
+            # NOTE(kamo):
+            # Each models, which accepts these values finally, are responsible
+            # to repaint the pad_value to the desired value for each tasks.
+            if data[0][key].dtype.kind == "i":
+                pad_value = self.int_pad_value
+            else:
+                pad_value = self.float_pad_value
+
+            array_list = [d[key] for d in data]
+
+            # Assume the first axis is length:
+            # tensor_list: Batch x (Length, ...)
+            tensor_list = [torch.from_numpy(a) for a in array_list]
+            # tensor: (Batch, Length, ...)
+            tensor = pad_list(tensor_list, pad_value)
+            output[key] = tensor
+
+            # lens: (Batch,)
+            if key not in self.not_sequence:
+                lens = torch.tensor([d[key].shape[0] for d in data], dtype=torch.long)
+                output[key + "_lengths"] = lens
+
+        if data[0].get("metrics") is None:
+            # For inference
+            output = (uttids, output)
+            return output
+
+        metrics_data = [d["metrics"] for d in data]
+        output_metrics = {}
+        for metric in self.metrics_list:
+            tensor = torch.tensor(
+                [m.get(metric, self.metric_pad_value) for m in metrics_data]
+            )
+            output_metrics[metric] = tensor
+        output["metrics"] = output_metrics
+
+        output = (uttids, output)
+        return output
