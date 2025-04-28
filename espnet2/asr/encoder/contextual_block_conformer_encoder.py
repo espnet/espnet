@@ -149,6 +149,7 @@ class ContextualBlockConformerEncoder(AbsEncoder):
                 output_size,
                 linear_units,
                 dropout_rate,
+                activation,
             )
         elif positionwise_layer_type == "conv1d":
             positionwise_layer = MultiLayeredConv1d
