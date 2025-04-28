@@ -12,7 +12,7 @@ See https://espnet.github.io/espnet/docker.html
 
 ### Ubuntu 22.04
 
-Python 3.9, Pytorch 1.13.1, No warp-ctc:
+Python 3.10, Pytorch 2.6.0, No warp-ctc:
 
-- [`cuda11.7` (*docker/prebuilt/gpu.dockerfile)](https://github.com/espnet/espnet/tree/master/docker/prebuilt/gpu.dockerfile)
-- [`cpu-u22` (*docker/prebuilt/devel.dockerfile)](https://github.com/espnet/espnet/tree/master/docker/prebuilt/devel.dockerfile/Dockerfile)
+- [`cuda12.6` (*docker/prebuilt/gpu.dockerfile)](https://github.com/espnet/espnet/tree/master/docker/prebuilt/gpu.dockerfile)
+- [`cpu-u24` (*docker/prebuilt/devel.dockerfile)](https://github.com/espnet/espnet/tree/master/docker/prebuilt/devel.dockerfile/Dockerfile)
