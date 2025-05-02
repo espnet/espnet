@@ -3,6 +3,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 from datasets import load_dataset  # HuggingFace Datasets
 from hydra.utils import instantiate
+from tqdm import tqdm
 
 from espnet2.train.preprocessor import AbsPreprocessor
 
@@ -147,7 +148,7 @@ class DataOrganizer:
         def build_dataset_list(cfg_list):
             datasets = []
             transforms = []
-            for cfg in cfg_list:
+            for cfg in tqdm(cfg_list):
                 dataset = cfg.dataset
                 if hasattr(cfg, "transform"):
                     transform = cfg.transform
