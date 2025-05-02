@@ -123,4 +123,4 @@ class ESPnetEZLightningTrainer:
         )
 
     def collect_stats(self, *args, **kwargs):
-        return self.model.collect_stats()
+        return self.model.collect_stats(*args, **kwargs)

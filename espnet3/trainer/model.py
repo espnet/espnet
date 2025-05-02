@@ -253,6 +253,6 @@ class LitESPnetModel(L.LightningModule):
                 mode=mode,
                 output_dir=Path(self.config.statsdir),
                 task=getattr(self.config, "task", None),
-                parallel_config=self.config.parallel,
+                parallel_config=None if "parallel" not in self.config.keys() else self.config.parallel,
                 write_collected_feats=False,
             )
