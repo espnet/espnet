@@ -14,10 +14,15 @@ SECONDS=0
 stage=1
 stop_stage=100
 
-datadir=./downloads
-audio_dir=${datadir}/wav
-preprocess_dir=./data
-ndev_utt=100
+audio_dir=downloads/wav
+preprocess_dir=data
+
+trans_prefix_Zacatlan=
+trans_prefix_Tequila=
+trans_prefix_Hidalgo=
+audio_prefix_Zacatlan=
+audio_prefix_Tequila=
+audio_prefix_Hidalgo=
 
 log "$0 $*"
 . utils/parse_options.sh
@@ -35,12 +40,20 @@ dev_set="dev"
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage 1: Data preparation"
-    mkdir -p data/{train,dev,test}
+    mkdir -p ${preprocess_dir}/{train,dev,test}
     mkdir -p $audio_dir
 
-    python3 local/data_prep_xml.py ${audio_dir} ${preprocess_dir}
+    # prepare data
+    python3 local/data_prep.py \
+        --audio_data_path ${audio_dir} \
+        --data_path ${preprocess_dir} \
+        --trans_prefix_Zacatlan ${trans_prefix_Zacatlan} \
+        --trans_prefix_Tequila ${trans_prefix_Tequila} \
+        --trans_prefix_Hidalgo ${trans_prefix_Hidalgo} \
+        --audio_prefix_Zacatlan ${audio_prefix_Zacatlan} \
+        --audio_prefix_Tequila ${audio_prefix_Tequila} \
+        --audio_prefix_Hidalgo ${audio_prefix_Hidalgo} 
 
-    # prepare for training and dev set
     for x in dev train; do
         for f in text wav.scp utt2spk; do
             sort data/${x}/${f} -o data/${x}/${f}
@@ -58,8 +71,6 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         utils/utt2spk_to_spk2utt.pl data/test/${lan}/utt2spk > "data/test/${lan}/spk2utt"
         utils/data/fix_data_dir.sh data/test/${lan}
     done
-
-    # fix data
 
 fi
 
