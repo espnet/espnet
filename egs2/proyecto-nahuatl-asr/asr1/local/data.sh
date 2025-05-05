@@ -52,7 +52,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         --trans_prefix_Hidalgo ${trans_prefix_Hidalgo} \
         --audio_prefix_Zacatlan ${audio_prefix_Zacatlan} \
         --audio_prefix_Tequila ${audio_prefix_Tequila} \
-        --audio_prefix_Hidalgo ${audio_prefix_Hidalgo} 
+        --audio_prefix_Hidalgo ${audio_prefix_Hidalgo}
 
     for x in dev train; do
         for f in text wav.scp utt2spk; do
