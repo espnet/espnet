@@ -17,15 +17,16 @@ audio_prefix_Hidalgo=${prefix}/Hidalgo-Grabaciones
 
 asr_config=conf/train_asr_s3prl.yaml
 inference_config=conf/decode_asr_ctc.yaml
+lm_config=conf/train_lm.yaml
 
 # specify audio directory for processing the audio
 audio_dir=downloads/wav
 
 ./asr.sh \
     --asr_config "${asr_config}" \
-    --inference_config "${conf/decode_asr_ctc.yaml}" \
+    --inference_config "${inference_config}" \
     --audio_dir "${audio_dir}"
-    --lm_config conf/train_lm.yaml \
+    --lm_config "${lm_config}" \
     --feats_normalize utterance_mvn \
     --speed_perturb_factors "0.9 1.0 1.1" \
     --train_set train \
