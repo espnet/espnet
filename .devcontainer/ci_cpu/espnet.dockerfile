@@ -38,6 +38,7 @@ RUN apt-get update && \
         gnupg2 \
         libncurses5-dev \
         software-properties-common \
+        sox \
         unzip \
         wget \
         zip \
