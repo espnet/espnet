@@ -9,43 +9,6 @@ import xml.etree.ElementTree as ET
 
 from thefuzz import process
 
-
-# Argument parsing
-def parse_args():
-    parser = argparse.ArgumentParser(
-        description="Prepare data from XML transcriptions and audio."
-    )
-    parser.add_argument(
-        "audio_data_path", type=str, help="Path to store output audio WAV files."
-    )
-    parser.add_argument(
-        "data_path", type=str, help="Output directory for Kaldi-style data files."
-    )
-    parser.add_argument(
-        "--trans_prefix",
-        nargs="*",
-        default=[],
-        metavar="KEY=PATH",
-        help="Override transcription prefix, e.g. Zacatlan=/new/path",
-    )
-    parser.add_argument(
-        "--audio_prefix",
-        nargs="*",
-        default=[],
-        metavar="KEY=PATH",
-        help="Override audio prefix, e.g. Hidalgo=/other/path",
-    )
-    return parser.parse_args()
-
-
-def update_prefixes(defaults, overrides):
-    updated = defaults.copy()
-    for item in overrides:
-        key, path = item.split("=", 1)
-        updated[key] = path
-    return updated
-
-
 delset = string.punctuation
 delset = delset.replace(":", "")
 delset = delset.replace("'", "")
@@ -248,18 +211,6 @@ if __name__ == "__main__":
         "Tequila": args.audio_prefix_Tequila,
         "Hidalgo": args.audio_prefix_Hidalgo,
     }
-
-    # DEFAULT_TRANS_PREFIX = {
-    #     "Zacatlan": "/ocean/projects/cis210027p/shared/corpora/Proyecto-Nahuatl-ASR/Zacatlan-Tepetzintla/Transcripciones-finales",
-    #     "Tequila": "/ocean/projects/cis210027p/shared/corpora/Proyecto-Nahuatl-ASR/Tequila-Zongolica/Transcripciones-finales",
-    #     "Hidalgo": "/ocean/projects/cis210027p/shared/corpora/Proyecto-Nahuatl-ASR/Hidalgo-Transcripciones/Transcripciones-Finales"
-    # }
-
-    # DEFAULT_AUDIO_PREFIX = {
-    #     "Zacatlan": "/ocean/projects/cis210027p/shared/corpora/Proyecto-Nahuatl-ASR/Zacatlan-Tepetzintla/Grabaciones_Por-dia",
-    #     "Tequila": "/ocean/projects/cis210027p/shared/corpora/Proyecto-Nahuatl-ASR/Tequila-Zongolica/Grabaciones",
-    #     "Hidalgo": "/ocean/projects/cis210027p/shared/corpora/Proyecto-Nahuatl-ASR/Hidalgo-Grabaciones"
-    # }
 
     data_path = args.data_path
     audio_data_path = args.audio_data_path
