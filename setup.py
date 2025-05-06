@@ -31,16 +31,6 @@ requirements = {
         "hydra-core",
         "opt-einsum",
         "lightning",
-        # ASR
-        "sentencepiece==0.2.0",
-        "ctc-segmentation>=1.6.6",
-        # TTS
-        "pyworld>=0.3.4",
-        "pypinyin<=0.44.0",
-        "espnet_tts_frontend",
-        # ENH
-        "ci_sdr",
-        "fast-bss-eval==0.1.3",
         # SPK
         "asteroid_filterbanks==0.4.0",
         # UASR
@@ -49,6 +39,25 @@ requirements = {
         # https://github.com/espnet/espnet/actions/runs/3174416926/jobs/5171182884#step:8:8419
         # https://importlib-metadata.readthedocs.io/en/latest/history.html#v5-0-0
         "importlib-metadata<5.0",
+        "hydra-core",
+        "omegaconf",
+        "dask",
+        "dask_jobqueue",
+    ],
+    "asr": [
+        "sentencepiece==0.2.0",
+        "ctc-segmentation>=1.6.6",
+    ],
+    "tts": [
+        # TTS
+        "pyworld>=0.3.4",
+        "pypinyin<=0.44.0",
+        "espnet_tts_frontend",
+    ],
+    "enh": [
+        # ENH
+        "ci_sdr",
+        "fast-bss-eval==0.1.3",
     ],
     # train: The modules invoked when training only.
     "train": [
