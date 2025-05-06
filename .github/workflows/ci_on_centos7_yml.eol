@@ -20,7 +20,7 @@ jobs:
         # ImportError: /lib64/libstdc++.so.6: version `CXXABI_1.3.8' not found
         # (required by /__w/espnet/espnet/tools/venv/envs/espnet/lib/python3.6/site-packages/pyworld/pyworld.cpython-36m-x86_64-linux-gnu.so)
         # NOTE(kamo): The issue doens't exist for python3.7?
-        TH_VERSION: 1.13.1
+        TH_VERSION: 2.1.2
         CHAINER_VERSION: 6.0.0
         USE_CONDA: true
         CC: /opt/rh/devtoolset-7/root/usr/bin/gcc
@@ -29,7 +29,7 @@ jobs:
         # To avoid UnicodeEncodeError for python<=3.6
         LC_ALL: en_US.UTF-8
     steps:
-      - uses: actions/checkout@v3.6.0
+      - uses: actions/checkout@master
       - name: check OS
         run: cat /etc/os-release
       - name: install dependencies
