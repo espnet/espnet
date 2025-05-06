@@ -67,6 +67,8 @@ $ 16.49
   - Commit date: `Tue Oct 29 22:16:00 2024 -0400`
 
 ## exp/asr_train_discrete_asr_e_branchformer1_1gpu_lr5e-4_warmup30k_raw_wavlm_large_21_km2000_bpe_rm3000_bpe_ts6500
+We show both beam size 20 and 5 during inference. Beam size 20 was used for the challenge baseline. Beam size 5 slightly reduces performance, but more efficient.
+
 ### WER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
@@ -76,6 +78,11 @@ $ 16.49
 |decode_ctc0.3_asr_model_valid.acc.ave/test_1h|24256|254316|42.1|48.1|9.8|4.8|62.7|94.8|
 |decode_ctc0.3_asr_model_valid.acc.ave/test_clean|2620|52576|95.4|4.3|0.3|0.4|5.0|51.0|
 |decode_ctc0.3_asr_model_valid.acc.ave/test_other|2939|52343|91.5|7.8|0.7|0.6|9.1|66.2|
+|decode_beam5_ctc0.3_asr_model_valid.acc.ave/dev_clean|2703|54402|95.4|4.3|0.3|0.4|4.9|51.5|
+|decode_beam5_ctc0.3_asr_model_valid.acc.ave/dev_other|2864|50948|91.5|7.9|0.6|0.6|9.1|65.6|
+|decode_beam5_ctc0.3_asr_model_valid.acc.ave/test_1h|24256|254316|42.2|48.3|9.6|5.1|62.9|94.8|
+|decode_beam5_ctc0.3_asr_model_valid.acc.ave/test_clean|2620|52576|95.4|4.3|0.3|0.4|5.0|51.0|
+|decode_beam5_ctc0.3_asr_model_valid.acc.ave/test_other|2939|52343|91.4|7.9|0.7|0.6|9.2|66.2|
 
 ### CER
 
@@ -86,6 +93,11 @@ $ 16.49
 |decode_ctc0.3_asr_model_valid.acc.ave/test_1h|24256|1600215|81.0|11.2|7.7|3.9|22.9|94.8|
 |decode_ctc0.3_asr_model_valid.acc.ave/test_clean|2620|281530|98.8|0.7|0.5|0.4|1.5|51.0|
 |decode_ctc0.3_asr_model_valid.acc.ave/test_other|2939|272758|97.5|1.4|1.1|0.7|3.3|66.2|
+|decode_beam5_ctc0.3_asr_model_valid.acc.ave/dev_clean|2703|288456|98.8|0.7|0.5|0.4|1.6|51.5|
+|decode_beam5_ctc0.3_asr_model_valid.acc.ave/dev_other|2864|265951|97.3|1.6|1.1|0.7|3.4|65.6|
+|decode_beam5_ctc0.3_asr_model_valid.acc.ave/test_1h|24256|1600215|81.1|11.3|7.6|4.1|23.0|94.8|
+|decode_beam5_ctc0.3_asr_model_valid.acc.ave/test_clean|2620|281530|98.8|0.7|0.5|0.4|1.5|51.0|
+|decode_beam5_ctc0.3_asr_model_valid.acc.ave/test_other|2939|272758|97.5|1.5|1.1|0.7|3.3|66.2|
 
 ### TER
 
@@ -96,3 +108,8 @@ $ 16.49
 |decode_ctc0.3_asr_model_valid.acc.ave/test_1h|24256|1131804|72.6|19.0|8.4|4.5|32.0|94.8|
 |decode_ctc0.3_asr_model_valid.acc.ave/test_clean|2620|133595|97.1|2.2|0.8|0.4|3.3|51.0|
 |decode_ctc0.3_asr_model_valid.acc.ave/test_other|2939|129019|94.1|4.4|1.5|0.8|6.7|66.2|
+|decode_beam5_ctc0.3_asr_model_valid.acc.ave/dev_clean|2703|137035|97.0|2.3|0.7|0.4|3.4|51.5|
+|decode_beam5_ctc0.3_asr_model_valid.acc.ave/dev_other|2864|125959|94.0|4.5|1.5|0.9|6.9|65.6|
+|decode_beam5_ctc0.3_asr_model_valid.acc.ave/test_1h|24256|1131804|72.7|19.2|8.1|4.8|32.1|94.8|
+|decode_beam5_ctc0.3_asr_model_valid.acc.ave/test_clean|2620|133595|97.1|2.2|0.8|0.4|3.3|51.0|
+|decode_beam5_ctc0.3_asr_model_valid.acc.ave/test_other|2939|129019|94.1|4.4|1.5|0.9|6.8|66.2|
