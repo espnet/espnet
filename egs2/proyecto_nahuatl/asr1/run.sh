@@ -25,7 +25,7 @@ audio_dir=downloads/wav
 ./asr.sh \
     --asr_config "${asr_config}" \
     --inference_config "${inference_config}" \
-    --audio_dir "${audio_dir}"
+    --audio_dir "${audio_dir}" \
     --lm_config "${lm_config}" \
     --feats_normalize utterance_mvn \
     --speed_perturb_factors "0.9 1.0 1.1" \
