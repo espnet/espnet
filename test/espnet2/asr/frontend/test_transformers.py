@@ -12,6 +12,7 @@ pytest.importorskip("transformers", minversion="4.43.0")
         ("taiqihe/test-w2v-bert-dummy", 16000),
     ],
 )
+@pytest.mark.execution_timeout(10)
 def test_frontend_backward(model, fs):
     frontend = HuggingFaceFrontend(
         model,
