@@ -7,6 +7,7 @@
 - pytorch version: `pytorch 2.2.0+cu121`
 - Git hash: `90ea0823e6d0aa2ea7b322a8b513cbb0b8200e91`
   - Commit date: `Mon May 5 20:04:01 2025 +0000`
+- model https://https://huggingface.co/espnet/proyecto_nahuatl
 
 ## exp/asr_train_asr_s3prl_raw_en_bpe150_sp/decode_asr_ctc_lm_lm_train_lm_en_bpe150_valid.loss.ave_asr_model_valid.loss.ave
 ### WER

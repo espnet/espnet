@@ -35,9 +35,6 @@ fi
 . ./path.sh
 . ./cmd.sh
 
-train_set="train"
-dev_set="dev"
-
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage 1: Data preparation"
     mkdir -p ${preprocess_dir}/{train,dev,test}
