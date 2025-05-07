@@ -1,0 +1,1 @@
+../../TEMPLATE/codec1/path.sh
