@@ -7,7 +7,7 @@ from omegaconf import OmegaConf
 
 # from espnet2.bin.asr_inference_ctc import Speech2Text
 from espnet2.bin.s2t_inference import Speech2Text
-from espnet3.inference_runner import InferenceRunner
+from espnet3.inference.inference_runner import InferenceRunner
 
 
 class ASRInferenceWrapper(nn.Module):
