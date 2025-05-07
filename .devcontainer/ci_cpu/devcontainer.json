@@ -17,13 +17,10 @@
 			]
 		}
 	},
-	"remoteEnv": {
-		"USE_CONDA": "false",
-		"TH_VERSION": "2.2.2"
-	},
-
 	"runArgs": [
 		"--rm",
+		"--env-file",
+		".devcontainer/ci_cpu/container.env",
 		"--name",
 		"espnet-dev-ci",
 		"--hostname",
