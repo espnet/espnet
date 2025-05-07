@@ -4,38 +4,42 @@ from pathlib import Path
 
 import torch.nn as nn
 from omegaconf import OmegaConf
+from hydra.utils import instantiate
 
 # from espnet2.bin.asr_inference_ctc import Speech2Text
 from espnet2.bin.asr_inference import Speech2Text
-from espnet3.inference_runner import InferenceRunner
+from espnet3.inference.inference_runner import InferenceRunner
 
 
-class ASRInferenceWrapper(nn.Module):
+class ASRInferenceRunner(InferenceRunner, nn.Module):
     def __init__(self, config_path: str, model_path: str):
-        super().__init__()
-        self.model = Speech2Text(config_path, model_path)
+        InferenceRunner.__init__(self)
+        nn.Module.__init__(self)
+        self.config_path = config_path
+        self.model_path = model_path
+        self.asr_model = None
 
-    def __call__(self, sample: dict) -> dict:
+    def initialize(self, sample: dict):
+        if self.asr_model is None:
+            self.asr_model = Speech2Text(self.config_path, self.model_path, device="cuda")
+            
+    def inference_body(self, sample: dict) -> dict:
         assert "speech" in sample, "Missing 'speech' key in sample"
         speech = sample["speech"]
-
         start = time.time()
-        results = self.model(speech)
+        results = self.asr_model(speech)
         end = time.time()
-
         hyp_text = results[0][0] if results else ""
-        duration = len(speech) / 16000  # 16kHz assumption
+        duration = len(speech) / 16000  # assuming 16kHz
         elapsed = end - start
         rtf = elapsed / duration if duration > 0 else 0.0
-
         output = {
             "hypothesis": {"type": "text", "value": hyp_text},
             "rtf": {"type": "text", "value": str(round(rtf, 4))},
         }
-
         if "text" in sample:
-            text = self.model.tokenizer.tokens2text(
-                self.model.converter.ids2tokens(sample["text"])
+            text = self.asr_model.tokenizer.tokens2text(
+                self.asr_model.converter.ids2tokens(sample["text"])
             )
             output["text"] = {"type": "text", "value": text}
 
@@ -72,17 +76,25 @@ def main():
         else Path(train_config.expdir) / "decode"
     )
 
-    runner = InferenceRunner(
+    runner = ASRInferenceRunner(
         config=train_config,
         model_config=inference_config,
         decode_dir=decode_dir,
-        parallel=train_config.parallel,
-        resume=not args.no_resume,
+        # parallel=train_config.parallel,
+        # resume=not args.no_resume,
     )
 
-    runner.run()
-    runner.compute_metrics(train_config.test)
+    ds = instantiate(train_config.dataset)
+
+    for test_keys in ds.test.keys():
+        runner.run_on_dataset(
+            ds.test[test_keys],
+            output_dir=f"decode/{test_keys}"
+        )
+
+    # runner.compute_metrics(train_config.test)
 
 
 if __name__ == "__main__":
     main()
+
