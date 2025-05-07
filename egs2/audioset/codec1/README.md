@@ -4,3 +4,9 @@
 
 - Codec Config: [conf/tuning/train_dac.yaml](conf/tuning/train_dac.yaml)
 - Model link: [https://huggingface.co/espnet/audioset_dac_16k](https://huggingface.co/espnet/audioset_dac_16k)
+
+- Model Evaluation:
+
+| mcd | f0rmse | f0corr | sdr | si-snr | ci-sdr | visqol |
+| ---- | ---- | ---- | ---- | ---- | ---- | ---- |
+| 5.376 | 745.17 | -0.002 | 3.555 | 0.504 | 3.469 | 4.264 |

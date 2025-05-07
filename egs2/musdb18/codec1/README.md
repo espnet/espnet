@@ -4,3 +4,9 @@
 
 - Codec Config: [conf/tuning/train_dac.yaml](conf/tuning/train_dac.yaml)
 - Model link: [https://huggingface.co/espnet/musdb18_dac_44.1k](https://huggingface.co/espnet/musdb18_dac_44.1k)
+
+- Model Evaluation:
+
+| mcd | f0rmse | f0corr | sdr | si-snr | ci-sdr | visqol |
+| ---- | ---- | ---- | ---- | ---- | ---- | ---- |
+| 4.746 | 282.65 | 0.096 | 7.087 | 4.954 | 6.319 | 4.013 |
