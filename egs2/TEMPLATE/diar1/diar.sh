@@ -23,8 +23,8 @@ min() {
 SECONDS=0
 
 # General configuration
-stage=1                 # Processes starts from the specified stage.
-stop_stage=10000        # Processes is stopped at the specified stage.
+stage=0                 # Processes starts from the specified stage.
+stop_stage=10           # Processes is stopped at the specified stage.
 skip_data_prep=false    # Skip data preparation stages
 skip_train=false        # Skip training stages
 skip_eval=false         # Skip decoding and evaluation stages
@@ -70,6 +70,7 @@ hf_repo=
 collar=0         # collar for der scoring
 frame_shift=128  # frame shift to convert frame-level label into real time
                  # this should be aligned with frontend feature extraction
+subsampling=1    # subsampling factor for scoring
 
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=       # Name of training set.
@@ -546,8 +547,8 @@ if ! "${skip_eval}"; then
             mkdir -p "${_dir}"
 
             scripts/utils/score_der.sh \
-                --collar ${collar} --fs ${fs} --frame_shift ${frame_shift} \
-                ${_dir} ${_inf_dir}/diarize.scp ${_data}/rttm \
+                --collar ${collar} --fs ${fs} --frame_shift ${frame_shift} --subsampling ${subsampling} \
+                ${_dir} ${_inf_dir}/diarize.scp ${_data}/rttm
         done
 
         # Show results in Markdown syntax
