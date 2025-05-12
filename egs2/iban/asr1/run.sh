@@ -42,7 +42,6 @@ min_wav_duration=0.3
     --test_sets "${test_sets}" \
     --lm_train_text "LM/iban-bp-2012.txt" \
     --bpe_train_text "data/train/text" \
-    --local_data_opts "${local_data_opts}" \
     --audio_format ${audio_format} \
     --min_wav_duration ${min_wav_duration} \
     "$@"
