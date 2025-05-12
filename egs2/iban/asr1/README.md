@@ -17,7 +17,7 @@ This is the ASR recipe of the [Iban text and speech copora](https://www.openslr.
   	Address = {Dresden, Germany},
   	Month = {September}}
 ```
----
+
 
 # RESULTS
 ## Environments
@@ -27,6 +27,8 @@ This is the ASR recipe of the [Iban text and speech copora](https://www.openslr.
 - pytorch version: `pytorch 2.0.1`
 - Git hash: `9e12b0c877d28fba8ae1ce71abf6ed91c05d9238`
   - Commit date: `Tue May 6 07:28:58 2025 -0400`
+- GPU: 1 V100-32GB
+- Model: https://huggingface.co/cjli/iban_wavlm_conformer
 
 ## exp/asr_train_asr_wavlm_conformer_raw_iba_bpe200_sp
 ### WER
