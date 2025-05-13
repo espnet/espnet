@@ -60,12 +60,12 @@ class ESPnetEZLightningTrainer:
 
         # Accelerator
         accelerator = get_or_initialize(self.config, "accelerator", "auto")
-        if accelerator is not "auto":
+        if accelerator != "auto":
             self.config.pop("accelerator")
 
         # strategy
         strategy = get_or_initialize(self.config, "strategy", "auto")
-        if strategy is not "auto":
+        if strategy != "auto":
             self.config.pop("strategy")
 
         # logger
