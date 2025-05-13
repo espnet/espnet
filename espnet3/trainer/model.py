@@ -11,6 +11,7 @@ from espnet2.train.collate_fn import CommonCollateFn
 from espnet3.collect_stats import collect_stats
 from espnet3.trainer.hybrid_optim import HybridOptim
 from espnet3.trainer.hybrid_scheduler import HybridLRS
+from espnet3.trainer.sampler import MappedSamplerWrapper
 
 
 class LitESPnetModel(L.LightningModule):
@@ -151,6 +152,8 @@ class LitESPnetModel(L.LightningModule):
                 iter_factory = instantiate(
                     self.config.dataloader.train.iter_factory, self.train_dataset
                 )
+                shape_files = self.config.dataloader.train.iter_factory.batches.shape_files
+                iter_factory.sampler = MappedSamplerWrapper(iter_factory.sampler, shape_files)
                 return iter_factory.build_iter(self.current_epoch, shuffle=False)
 
             # Otherwise:
@@ -198,6 +201,8 @@ class LitESPnetModel(L.LightningModule):
                 iter_factory = instantiate(
                     self.config.dataloader.valid.iter_factory, self.valid_dataset
                 )
+                shape_files = self.config.dataloader.valid.iter_factory.batches.shape_files
+                iter_factory.sampler = MappedSamplerWrapper(iter_factory.sampler, shape_files)
                 return iter_factory.build_iter(self.current_epoch, shuffle=False)
 
             if hasattr(self.config.dataloader, "valid"):
