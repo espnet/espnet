@@ -54,7 +54,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
     for x in test_l1 test_l2; do
         opt=""
-        [ "${x}" == "test_l2" ] && opt="-v" 
+        [ "${x}" == "test_l2" ] && opt="-v"
 
         mkdir -p data/${x}
         tail -n+2 ${datadir}/metadata.csv | grep $opt _ENG_ENG_ > data/${x}/metadata.csv
