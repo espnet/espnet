@@ -16,22 +16,12 @@ This is the scripted English portion of the [ALLSSTAR corpus](https://speechbox.
 - Git hash: `705d1ef4b7c955975016de1a5a342636d13ccb7a`
   - Commit date: `Tue May 13 13:29:24 2025 -0400`
 
-## exp/espnet/owsm_v3.1_ebf
-### WER
-
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
-|---|---|---|---|---|---|---|---|---|
-|decode_s2t_s2t_model_valid.acc.ave/test_l1|4464|36673|97.5|1.7|0.8|0.3|2.8|11.1|
-|decode_s2t_s2t_model_valid.acc.ave/test_l2|19828|162113|91.4|7.0|1.6|1.3|10.0|31.6|
-
-### CER
-
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
-|---|---|---|---|---|---|---|---|---|
-|decode_s2t_s2t_model_valid.acc.ave/test_l1|4464|186660|98.0|0.7|1.4|0.5|2.5|11.1|
-|decode_s2t_s2t_model_valid.acc.ave/test_l2|19828|824699|94.7|2.5|2.8|1.7|6.9|31.6|
-
-### TER
-
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
-|---|---|---|---|---|---|---|---|---|
+|model                                                             |Avg|    |HT1|    |HT2|    |DHR|    |LPP|    |NWS|    |
+|-|-|-|-|-|-|-|-|-|-|-|-|-|
+|                                                                  | l1| l2 | l1| l2 | l1| l2 | l1| l2 | l1| l2 | l1| l2 | 
+|[owsm_ctc_v3.1_1B](https://huggingface.co/espnet/owsm_ctc_v3.1_1B)|3.5| 9.9|2.0| 7.0|1.6| 6.7|1.9|11.0|7.8|14.2|3.9|10.9|
+|[owsm_ctc_v4_1B](https://huggingface.co/espnet/owsm_ctc_v4_1B)    |3.0| 9.1|2.7| 7.0|0.9| 6.0|1.5| 9.8|6.8|13.0|2.6| 9.8|
+|[owsm_v3.1_ebf](https://huggingface.co/espnet/owsm_v3.1_ebf)      |2.8|10.0|1.8| 7.6|1.2| 7.1|1.6|10.9|6.6|13.9|2.2|10.6|
+|whisper_base                                                      |4.3|14.0|2.8|10.9|2.8|11.7|2.3|14.7|8.6|17.7|5.3|15.7|
+|whisper_small                                                     |3.0| 9.3|1.7| 6.4|1.6| 6.6|1.8|10.4|6.9|13.2|2.2| 9.8|
+|whisper_medium                                                    |2.4| 7.5|1.1| 4.5|0.8| 4.6|1.2| 8.8|6.3|11.6|1.9| 8.3|
