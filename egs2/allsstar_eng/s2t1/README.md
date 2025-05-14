@@ -18,7 +18,7 @@ This is the scripted English portion of the [ALLSSTAR corpus](https://speechbox.
 
 |model                                                             |Avg|    |HT1|    |HT2|    |DHR|    |LPP|    |NWS|    |
 |-|-|-|-|-|-|-|-|-|-|-|-|-|
-|                                                                  | l1| l2 | l1| l2 | l1| l2 | l1| l2 | l1| l2 | l1| l2 | 
+|                                                                  | l1| l2 | l1| l2 | l1| l2 | l1| l2 | l1| l2 | l1| l2 |
 |[owsm_ctc_v3.1_1B](https://huggingface.co/espnet/owsm_ctc_v3.1_1B)|3.5| 9.9|2.0| 7.0|1.6| 6.7|1.9|11.0|7.8|14.2|3.9|10.9|
 |[owsm_ctc_v4_1B](https://huggingface.co/espnet/owsm_ctc_v4_1B)    |3.0| 9.1|2.7| 7.0|0.9| 6.0|1.5| 9.8|6.8|13.0|2.6| 9.8|
 |[owsm_v3.1_ebf](https://huggingface.co/espnet/owsm_v3.1_ebf)      |2.8|10.0|1.8| 7.6|1.2| 7.1|1.6|10.9|6.6|13.9|2.2|10.6|
