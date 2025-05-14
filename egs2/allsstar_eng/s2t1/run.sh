@@ -5,8 +5,6 @@ set -e
 set -u
 set -o pipefail
 
-train_set=dummyt
-valid_set=dummyv
 test_sets="test_l1 test_l2"
 
 nbpe=50000
@@ -26,4 +24,3 @@ inference_config=conf/decode_s2t.yaml
     --hyp_cleaner whisper_en \
     --stop_stage 13 \
     --skip_stages "2 4 5 6 7 8 9 10 11" \
-    ${@:2}
