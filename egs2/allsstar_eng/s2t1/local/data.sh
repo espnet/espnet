@@ -28,7 +28,7 @@ if [ $# -ne 0 ]; then
 fi
 
 if [ -z "${ALLSSTAR_ENG}" ]; then
-    log "Fill the value of 'LIBRISPEECH' of db.sh"
+    log "Fill the value of 'ALLSSTAR_ENG' of db.sh"
     exit 1
 fi
 
