@@ -10,6 +10,7 @@ AISHELL2=
 AISHELL3=downloads
 AISHELL4=downloads
 ALFFA=downloads
+ALLSSTAR_ENG=downloads
 AMERICASNLP22=downloads
 AN4=downloads
 ASVTutorial=espnet_tutorial_asvspoof
