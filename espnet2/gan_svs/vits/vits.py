@@ -493,7 +493,7 @@ class VITS(AbsGANSVS):
             concatenated_feats = feats
 
         score_dur = duration["score_syb"]
-        gt_dur = duration["lab"]
+        gt_dur = duration.get("lab", None)
         label = label["lab"]
         label_lengths = label_lengths["lab"]
         melody = melody["lab"]
