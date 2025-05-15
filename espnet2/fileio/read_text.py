@@ -11,6 +11,7 @@ from typeguard import typechecked
 @typechecked
 def read_2columns_text(
     path: Union[Path, str],
+    allow_duplication: bool = False,
     keys_to_load: Optional[Set[Union[str, int]]] = None,
 ) -> Dict[str, str]:
     """Read a text file having 2 columns as dict object.
@@ -45,8 +46,9 @@ def read_2columns_text(
             if keys_to_load is not None and k not in keys_to_load:
                 continue
 
-            if k in data:
+            if k in data and not allow_duplication:
                 raise RuntimeError(f"{k} is duplicated ({path}:{linenum})")
+
             data[k] = v
     return data
 
@@ -98,7 +100,9 @@ def read_multi_columns_text(
 
 @typechecked
 def load_num_sequence_text(
-    path: Union[Path, str], loader_type: str = "csv_int"
+    path: Union[Path, str],
+    loader_type: str = "csv_int",
+    allow_duplication: bool = False,
 ) -> Dict[str, List[Union[float, int]]]:
     """Read a text file indicating sequences of number
 
@@ -129,7 +133,7 @@ def load_num_sequence_text(
     #   uttb 3,4,5
     # -> return {'utta': np.ndarray([1, 0]),
     #            'uttb': np.ndarray([3, 4, 5])}
-    d = read_2columns_text(path)
+    d = read_2columns_text(path, allow_duplication=allow_duplication)
 
     # Using for-loop instead of dict-comprehension for debuggability
     retval = {}

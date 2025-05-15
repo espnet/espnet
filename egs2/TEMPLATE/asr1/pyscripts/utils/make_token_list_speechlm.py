@@ -8,7 +8,8 @@ import json
 import logging
 from pathlib import Path
 
-from espnet2.speechlm.definitions import modalities, special_tokens
+from espnet2.speechlm.definitions import MODALITIES, special_tokens
+from espnet.utils.cli_utils import get_commandline_args
 
 
 def get_parser():
@@ -20,7 +21,7 @@ def get_parser():
         "--data_json",
         type=str,
         default=[],
-        action="append",
+        nargs="+",
         help="Append json files e.g. --data_json <data_json>",
     )
     parser.add_argument(
@@ -34,6 +35,10 @@ def get_parser():
 
 
 def main():
+    logfmt = "%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s"
+    logging.basicConfig(level=logging.INFO, format=logfmt)
+    logging.info(get_commandline_args())
+
     parser = get_parser()
     args = parser.parse_args()
 
@@ -41,23 +46,27 @@ def main():
     all_vocab = []
     for json_file in args.data_json:
         read_handle = open(json_file)
-        all_vocab = all_vocab + json.load(read_handle)["vocabularies"]
+        data_json = json.load(read_handle)
+        vocabs = [vocab for vocab in data_json["vocabularies"]]
+        all_vocab = all_vocab + vocabs
     logging.info(f"Find all token_list files: {all_vocab}")
 
     # (2) Assign each token_list file to the modality
-    vocab_dict = {modality: [] for modality in modalities}
+    vocab_dict = {modality: [] for modality in MODALITIES}
     for vocab in all_vocab:
         vocab = Path(vocab)
         vocab_stem = str(vocab.stem)
+        possible_match = []
         for modality in vocab_dict.keys():
-            if vocab_stem.startswith(modality) and modalities[modality].discrete:
-                vocab_dict[modality].append(vocab)
+            if vocab_stem.startswith(modality) and MODALITIES[modality].discrete:
+                possible_match.append(modality)
+        # for multiple matches, select the longest
+        modality = max(possible_match, key=len)
+        vocab_dict[modality].append(vocab)
 
-    # (3) First include special tokens.
-    token_list = special_tokens.copy()
-
-    # (4) Merge the vocab file from each modality
+    # (3) Merge the vocab file from each modality
     token_bias = {}
+    token_list = []
     for modality, vocabs in vocab_dict.items():
         if len(vocabs) == 0:
             continue
@@ -65,26 +74,44 @@ def main():
             f"Get vocab for modality: {modality} with token_list files: {vocabs}"
         )
 
-        modality_vocab = []
+        modality_vocab = {}
         for vocab in vocabs:
-            this_vocab = [e.rstrip("\n") for e in open(vocab)]
+            try:
+                this_vocab = json.load(open(vocab))
+            except Exception:
+                # have to remove "\n" as text is read line-by-line
+                this_vocab = [e.rstrip("\n") for e in open(vocab)]
             for e in this_vocab:
+                if e in special_tokens:
+                    idx = special_tokens.index(e)
+                    special_tokens[idx] = e + "_<espnet>"
+                    logging.warning(f"Revise special token {e} to {e}_<espnet>")
                 if e not in modality_vocab:
-                    modality_vocab.append(e)
+                    modality_vocab[e] = None
                 else:
                     logging.warning(f"Duplicated token: {e}. It has been seen before")
 
         logging.info(
-            f"Modality has {len(modality_vocab)} starting from {len(token_list)}"
+            f"Modality {modality} has {len(modality_vocab)} tokens "
+            f"starting from {len(token_list) + len(special_tokens)}"
         )
-        token_bias[modality] = len(token_list)
-        token_list = token_list + modality_vocab
+        token_bias[modality] = len(token_list) + len(special_tokens)
+        token_list = token_list + list(modality_vocab.keys())
 
-    vocab_writer = open(args.token_list_dir / "token_list", "w")
+    # (4) add special token lastly since it may be revised.
+    token_list = special_tokens + token_list
+
+    # (5) ensure each unit is unique
+    seen = dict()
     for tok in token_list:
-        vocab_writer.write(f"{tok}\n")
+        if tok in seen:
+            raise ValueError(f"token {tok} is duplicated in the token list")
+        seen[tok] = None
 
-    # (5) write vocabulary and token_bias
+    # (6) write vocabulary and token_bias
+    vocab_writer = open(args.token_list_dir / "token_list.json", "w")
+    vocab_writer.write(json.dumps(token_list, indent=4))
+
     bias_writer = open(args.token_list_dir / "token_bias.json", "wb")
     bias_writer.write(
         json.dumps(token_bias, indent=4, ensure_ascii=False, sort_keys=False).encode(

@@ -81,6 +81,11 @@ class CodecPackedContents(PackedContents):
     yaml_files = ["train_config"]
 
 
+class SpeechLMPackedContents(PackedContents):
+    files = ["model_file"]
+    yaml_files = ["train_config", "inference_config"]
+
+
 def add_arguments(parser: argparse.ArgumentParser, contents: Type[PackedContents]):
     parser.add_argument("--outpath", type=str, required=True)
     for key in contents.yaml_files:
@@ -108,6 +113,7 @@ def get_parser() -> argparse.ArgumentParser:
         ("s2t", S2TPackedContents),
         ("spk", SpkPackedContents),
         ("codec", CodecPackedContents),
+        ("speechlm", SpeechLMPackedContents),
         ("cls", ClassificationPackedContents),
     ]:
         parser_asr = subparsers.add_parser(

@@ -1,6 +1,7 @@
 from typing import Iterator, List, Tuple, Union
 
 import numpy as np
+import torch
 from typeguard import typechecked
 
 from espnet2.fileio.read_text import load_num_sequence_text
@@ -18,6 +19,7 @@ class NumElementsBatchSampler(AbsSampler):
         sort_batch: str = "ascending",
         drop_last: bool = False,
         padding: bool = True,
+        allow_duplication: bool = False,
     ):
         assert batch_bins > 0
         if sort_batch != "ascending" and sort_batch != "descending":
@@ -39,10 +41,18 @@ class NumElementsBatchSampler(AbsSampler):
         #    uttA 100,...
         #    uttB 201,...
         utt2shapes = [
-            load_num_sequence_text(s, loader_type="csv_int") for s in shape_files
+            load_num_sequence_text(
+                s, loader_type="csv_int", allow_duplication=allow_duplication
+            )
+            for s in shape_files
         ]
 
+        # NOTE(Jinchuan): use list rather than dict to keep duplication
         first_utt2shape = utt2shapes[0]
+        if allow_duplication:
+            keys = [line.split()[0] for line in open(shape_files[0])]
+        else:
+            keys = first_utt2shape.keys()
         for s, d in zip(shape_files, utt2shapes):
             if set(d) != set(first_utt2shape):
                 raise RuntimeError(
@@ -51,7 +61,7 @@ class NumElementsBatchSampler(AbsSampler):
 
         # Sort samples in ascending order
         # (shape order should be like (Length, Dim))
-        keys = sorted(first_utt2shape, key=lambda k: first_utt2shape[k][0])
+        keys = sorted(keys, key=lambda k: first_utt2shape[k][0])
         if len(keys) == 0:
             raise RuntimeError(f"0 lines found: {shape_files[0]}")
         if padding:
@@ -66,6 +76,7 @@ class NumElementsBatchSampler(AbsSampler):
         current_batch_keys = []
         for key in keys:
             current_batch_keys.append(key)
+
             # shape: (Length, dim1, dim2, ...)
             if padding:
                 for d, s in zip(utt2shapes, shape_files):
@@ -83,21 +94,25 @@ class NumElementsBatchSampler(AbsSampler):
                     np.prod(d[k]) for k in current_batch_keys for d in utt2shapes
                 )
 
-            if bins > batch_bins and len(current_batch_keys) >= min_batch_size:
-                batch_sizes.append(len(current_batch_keys))
-                current_batch_keys = []
+            if bins > batch_bins and len(current_batch_keys) >= min_batch_size + 1:
+                # NOTE (Jinchuan): exclude the last sample so that the batch size
+                # is strictly smaller than the specified batch_bins. Important
+                # for large models that can only tolerante very small batch size.
+                batch_sizes.append(len(current_batch_keys) - 1)
+                current_batch_keys = current_batch_keys[-1:]
         else:
             if len(current_batch_keys) != 0 and (
                 not self.drop_last or len(batch_sizes) == 0
             ):
                 batch_sizes.append(len(current_batch_keys))
-
         if len(batch_sizes) == 0:
             # Maybe we can't reach here
             raise RuntimeError("0 batches")
 
         # If the last batch-size is smaller than minimum batch_size,
-        # the samples are redistributed to the other mini-batches
+        # the samples are redistributed to the other mini-batches.
+        # NOTE(Jinchuan): recommend to use "drop_last", as this operation
+        # may lead to one extremely large mini-batch that can lead OOM.
         if len(batch_sizes) > 1 and batch_sizes[-1] < min_batch_size:
             for i in range(batch_sizes.pop(-1)):
                 batch_sizes[-(i % len(batch_sizes)) - 1] += 1
@@ -131,7 +146,6 @@ class NumElementsBatchSampler(AbsSampler):
                     bs = next(iter_bs)
                 except StopIteration:
                     break
-
         if sort_batch == "ascending":
             pass
         elif sort_batch == "descending":
