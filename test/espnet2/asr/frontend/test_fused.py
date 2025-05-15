@@ -10,7 +10,7 @@ list_frontends = [frontend1, frontend2]
 
 def test_frontend_init():
     frontend = FusedFrontends(
-        fs="16k",
+        fs=16000,
         align_method="linear_projection",
         proj_dim=100,
         frontends=list_frontends,
@@ -22,7 +22,7 @@ def test_frontend_init():
 
 def test_frontend_output_size():
     frontend = FusedFrontends(
-        fs="16k",
+        fs=16000,
         align_method="linear_projection",
         proj_dim=100,
         frontends=list_frontends,
@@ -32,7 +32,7 @@ def test_frontend_output_size():
 
 def test_frontend_backward():
     frontend = FusedFrontends(
-        fs="16k",
+        fs=16000,
         align_method="linear_projection",
         proj_dim=100,
         frontends=list_frontends,
