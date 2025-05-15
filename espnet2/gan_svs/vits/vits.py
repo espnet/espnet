@@ -493,7 +493,7 @@ class VITS(AbsGANSVS):
             concatenated_feats = feats
 
         score_dur = duration["score_syb"]
-        gt_dur = duration.get("lab", None)
+        gt_dur = duration["lab"]
         label = label["lab"]
         label_lengths = label_lengths["lab"]
         melody = melody["lab"]
@@ -987,7 +987,7 @@ class VITS(AbsGANSVS):
         label = label["lab"]
         melody = melody["lab"]
         score_dur = duration["score_syb"]
-        gt_dur = duration["lab"]
+        gt_dur = duration.get("lab", None)
         text = text[None]
         text_lengths = torch.tensor(
             [text.size(1)],
