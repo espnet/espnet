@@ -27,7 +27,7 @@ rm -rf exp data dump
 # and wav.scp files under dump/train_*/
 
 # [ESPnet Easy] test asr recipe with coverage
-python -m coverage run --append ../../../test/espnetez/test_integration_espnetez.py \
+python -m coverage run --append ../../../test/espnet3/test_integration_espnet3.py \
     --task asr \
     --data_path data \
     --train_dump_path dump/raw/train_nodev \
@@ -39,7 +39,7 @@ python -m coverage run --append ../../../test/espnetez/test_integration_espnetez
     --run_train
 
 # finetuning
-python -m coverage run --append ../../../test/espnetez/test_integration_espnetez_ft.py \
+python -m coverage run --append ../../../test/espnet3/test_integration_espnet3_ft.py \
     --task asr \
     --data_path data \
     --train_dump_path dump/raw/train_nodev \
@@ -52,7 +52,7 @@ python -m coverage run --append ../../../test/espnetez/test_integration_espnetez
 rm -rf exp data/spm
 
 # [ESPnet Easy] test streaming asr recipe with coverage
-python -m coverage run --append ../../../test/espnetez/test_integration_espnetez.py \
+python -m coverage run --append ../../../test/espnet3/test_integration_espnet3.py \
     --task asr \
     --data_path data \
     --train_dump_path dump/raw/train_nodev \
@@ -64,7 +64,7 @@ python -m coverage run --append ../../../test/espnetez/test_integration_espnetez
     --run_train
 
 # finetuning
-python -m coverage run --append ../../../test/espnetez/test_integration_espnetez_ft.py \
+python -m coverage run --append ../../../test/espnet3/test_integration_espnet3_ft.py \
     --task asr \
     --data_path data \
     --train_dump_path dump/raw/train_nodev \
@@ -77,7 +77,7 @@ python -m coverage run --append ../../../test/espnetez/test_integration_espnetez
 rm -rf exp data/spm
 
 # [ESPnet Easy] test asr transducer recipe with coverage
-python -m coverage run --append ../../../test/espnetez/test_integration_espnetez.py \
+python -m coverage run --append ../../../test/espnet3/test_integration_espnet3.py \
     --task asr \
     --data_path data \
     --train_dump_path dump/raw/train_nodev \
@@ -89,7 +89,7 @@ python -m coverage run --append ../../../test/espnetez/test_integration_espnetez
     --run_train
 
     # finetuning
-    python -m coverage run --append ../../../test/espnetez/test_integration_espnetez_ft.py \
+    python -m coverage run --append ../../../test/espnet3/test_integration_espnet3_ft.py \
         --task asr \
         --data_path data \
         --train_dump_path dump/raw/train_nodev \
@@ -102,7 +102,7 @@ python -m coverage run --append ../../../test/espnetez/test_integration_espnetez
 rm -rf exp data/spm
 
 # [ESPnet Easy] test conformer RNNT recipe with coverage
-python -m coverage run --append ../../../test/espnetez/test_integration_espnetez.py \
+python -m coverage run --append ../../../test/espnet3/test_integration_espnet3.py \
     --task asr_transducer \
     --data_path data \
     --train_dump_path dump/raw/train_nodev \
@@ -114,7 +114,7 @@ python -m coverage run --append ../../../test/espnetez/test_integration_espnetez
     --run_train
 
 # finetuning
-python -m coverage run --append ../../../test/espnetez/test_integration_espnetez_ft.py \
+python -m coverage run --append ../../../test/espnet3/test_integration_espnet3_ft.py \
     --task asr_transducer \
     --data_path data \
     --train_dump_path dump/raw/train_nodev \
@@ -130,7 +130,7 @@ rm -rf exp data/spm
 cd ${cwd}/egs2/mini_an4/lm1 || exit
 ln -sf ../asr1/data data
 ln -sf ../asr1/dump dump
-python -m coverage run --append ../../../test/espnetez/test_integration_espnetez.py \
+python -m coverage run --append ../../../test/espnet3/test_integration_espnet3.py \
     --task lm \
     --data_path data \
     --train_dump_path dump/raw/train_nodev \
@@ -142,7 +142,7 @@ python -m coverage run --append ../../../test/espnetez/test_integration_espnetez
     --run_train
 
 # finetune
-python -m coverage run --append ../../../test/espnetez/test_integration_espnetez_ft.py \
+python -m coverage run --append ../../../test/espnet3/test_integration_espnet3_ft.py \
     --task lm \
     --data_path data \
     --train_dump_path dump/raw/train_nodev \
@@ -159,7 +159,7 @@ rm -rf exp data/spm
 cd ${cwd}/egs2/mini_an4/s2t1 || exit
 ln -sf ../asr1/data data
 ln -sf ../asr1/dump dump
-python -m coverage run --append ../../../test/espnetez/test_integration_espnetez.py \
+python -m coverage run --append ../../../test/espnet3/test_integration_espnet3.py \
     --task slu \
     --data_path data \
     --train_dump_path dump/raw/train_nodev \
@@ -171,7 +171,7 @@ python -m coverage run --append ../../../test/espnetez/test_integration_espnetez
     --run_train
 
 # finetune
-python -m coverage run --append ../../../test/espnetez/test_integration_espnetez_ft.py \
+python -m coverage run --append ../../../test/espnet3/test_integration_espnet3_ft.py \
     --task slu \
     --data_path data \
     --train_dump_path dump/raw/train_nodev \
