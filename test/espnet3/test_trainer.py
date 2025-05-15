@@ -168,7 +168,7 @@ def test_profiler_variants(profiler, expect_type, base_trainer_config, model_con
     lit = LitESPnetModel(model, model_config, DummyDataset(), DummyDataset())
     wrapper = ESPnetEZLightningTrainer(model=lit, config=trainer_config, expdir=EXPDIR)
 
-    if type(wrapper.trainer.profiler) == list:
+    if isinstance(wrapper.trainer.profiler, list):
         assert isinstance(wrapper.trainer.profiler[0], expect_type)
     else:
         assert isinstance(wrapper.trainer.profiler, expect_type)

@@ -1,7 +1,7 @@
 import argparse
 from pathlib import Path
 
-import espnetez as ez
+import espnet3 as ez
 
 from espnet2.bin.asr_inference import Speech2Text as ASRInference
 from espnet2.bin.asr_transducer_inference import Speech2Text as RNNTInference
