@@ -1,0 +1,3 @@
+_target_: egs3.librispeech_100.asr1.inference.ASRInferenceWrapper
+config_path: exp/gpu1_globalmvn_numel/config.yaml
+model_path: exp/gpu1_globalmvn_numel/last.ckpt

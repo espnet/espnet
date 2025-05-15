@@ -1,5 +1,6 @@
 from typing import Iterator, List, Optional, Sequence, Tuple, Union
 
+from omegaconf import ListConfig
 from typeguard import typechecked
 
 from espnet2.fileio.read_text import load_num_sequence_text, read_2columns_text
@@ -11,7 +12,7 @@ class FoldedBatchSampler(AbsSampler):
     def __init__(
         self,
         batch_size: int,
-        shape_files: Union[Tuple[str, ...], List[str]],
+        shape_files: Union[Tuple[str, ...], List[str], ListConfig[str]],
         fold_lengths: Sequence[int],
         min_batch_size: int = 1,
         sort_in_batch: str = "descending",
