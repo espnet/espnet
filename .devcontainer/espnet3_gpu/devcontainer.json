@@ -1,0 +1,40 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/miniconda
+{
+	"name": "ESPnet 3 (GPU)",
+	"updateRemoteUserUID": false,
+	"image": "espnet3:dev-gpu",
+	"initializeCommand": ".devcontainer/build_image3.sh gpu",
+	"features": {},
+	"customizations": {
+		"vscode": {
+			"settings": {
+				"terminal.integrated.defaultProfile.linux": "bash"
+			},
+			"extensions" :[
+				"ms-python.python",
+				"ms-python.vscode-pylance",
+				"donjayamanne.python-extension-pack",
+				"ms-python.autopep8",
+				"tamasfe.even-better-toml"
+			]
+		}
+	},
+	// "mounts": [
+	// 	"source=${localEnv:EXPORT_DATA},target=/exported,type=bind"
+	// ],
+	"runArgs": [
+		"--gpus",
+		"all",
+		"--rm",
+		"--env-file",
+		".devcontainer/container.env",
+		"--name",
+		"espnet3-gpu",
+		"--hostname",
+		"espnet3"
+	],
+	"postCreateCommand" : "bash .devcontainer/postcreated3.sh gpu"
+	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+	// "remoteUser": "root"
+}
