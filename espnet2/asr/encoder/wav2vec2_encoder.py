@@ -90,7 +90,7 @@ class FairSeqWav2Vec2Encoder(AbsEncoder):
             self.output_layer = None
 
         self.freeze_finetune_updates = freeze_finetune_updates
-        self.register_buffer("num_updates", torch.LongTensor([0]))
+        self.register_buffer("num_updates", torch.tensor([0], dtype=torch.long))
 
     def output_size(self) -> int:
         return self._output_size

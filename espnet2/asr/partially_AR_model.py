@@ -118,15 +118,18 @@ class PartiallyARInference(torch.nn.Module):
         # partially autoregressive decoding from here
         # First, merge the masked tokens
         yseq_with_mask = (
-            torch.LongTensor([x[0] for x in groupby(y_in[0])])
+            torch.tensor([x[0] for x in groupby(y_in[0])], dtype=torch.long)
             .unsqueeze(0)
             .to(y_in.device)
         )
         merged_mask_len = torch.cat(
             (
-                torch.LongTensor([0]),
+                torch.tensor([0], dtype=torch.long),
                 torch.cumsum(
-                    torch.LongTensor([len(list(x[1])) for x in groupby(y_in[0])]) - 1,
+                    torch.tensor(
+                        [len(list(x[1])) for x in groupby(y_in[0])], dtype=torch.long
+                    )
+                    - 1,
                     dim=0,
                 )[:-1],
             )

@@ -419,19 +419,27 @@ class ESPnetSLUModel(ESPnetASRModel):
                 input_id_length,
             ) = self.postdecoder.convert_examples_to_features(transcript_list, 128)
             bert_encoder_out = self.postdecoder(
-                torch.LongTensor(transcript_input_id_features).to(device=speech.device),
-                torch.LongTensor(transcript_input_mask_features).to(
-                    device=speech.device
+                torch.tensor(
+                    transcript_input_id_features, dtype=torch.long, device=speech.device
                 ),
-                torch.LongTensor(transcript_segment_ids_feature).to(
-                    device=speech.device
+                torch.tensor(
+                    transcript_input_mask_features,
+                    dtype=torch.long,
+                    device=speech.device,
                 ),
-                torch.LongTensor(transcript_position_ids_feature).to(
-                    device=speech.device
+                torch.tensor(
+                    transcript_segment_ids_feature,
+                    dtype=torch.long,
+                    device=speech.device,
+                ),
+                torch.tensor(
+                    transcript_position_ids_feature,
+                    dtype=torch.long,
+                    device=speech.device,
                 ),
             )
-            bert_encoder_lens = torch.LongTensor(input_id_length).to(
-                device=speech.device
+            bert_encoder_lens = torch.tensor(
+                input_id_length, dtype=torch.long, device=speech.device
             )
             bert_encoder_out = bert_encoder_out[:, : torch.max(bert_encoder_lens)]
             final_encoder_out_lens = encoder_out_lens + bert_encoder_lens

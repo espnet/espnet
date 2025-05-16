@@ -335,9 +335,10 @@ class BeamSearchTransducer:
                 if self.use_lm:
                     if tuple(max_hyp.yseq) not in cache_lm:
                         lm_scores, lm_state = self.lm.score(
-                            torch.LongTensor(
+                            torch.tensor(
                                 [self.sos] + max_hyp.yseq[1:],
                                 device=self.decoder.device,
+                                dtype=torch.long,
                             ),
                             max_hyp.lm_state,
                             None,

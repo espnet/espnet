@@ -268,7 +268,7 @@ class ESPnetTTSModel(AbsESPnetModel):
             if self.pitch_extract is not None:
                 pitch = self.pitch_extract(
                     speech[None],
-                    feats_lengths=torch.LongTensor([len(feats)]),
+                    feats_lengths=torch.tensor([len(feats)], dtype=torch.long),
                     durations=durations[None],
                 )[0][0]
             if self.pitch_normalize is not None:
@@ -279,7 +279,7 @@ class ESPnetTTSModel(AbsESPnetModel):
             if self.energy_extract is not None:
                 energy = self.energy_extract(
                     speech[None],
-                    feats_lengths=torch.LongTensor([len(feats)]),
+                    feats_lengths=torch.tensor([len(feats)], dtype=torch.long),
                     durations=durations[None],
                 )[0][0]
             if self.energy_normalize is not None:

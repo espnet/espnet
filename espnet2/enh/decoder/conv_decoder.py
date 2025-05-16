@@ -36,7 +36,9 @@ class ConvDecoder(AbsDecoder):
         return wav, ilens
 
     def forward_streaming(self, input_frame: torch.Tensor):
-        return self.forward(input_frame, ilens=torch.LongTensor([self.kernel_size]))[0]
+        return self.forward(
+            input_frame, ilens=torch.tensor([self.kernel_size], dtype=torch.long)
+        )[0]
 
     def streaming_merge(self, chunks: torch.Tensor, ilens: torch.tensor = None):
         """Stream Merge.
@@ -77,7 +79,7 @@ if __name__ == "__main__":
     from espnet2.enh.encoder.conv_encoder import ConvEncoder
 
     input_audio = torch.randn((1, 100))
-    ilens = torch.LongTensor([100])
+    ilens = torch.tensor([100], dtype=torch.long)
 
     kernel_size = 32
     stride = 16

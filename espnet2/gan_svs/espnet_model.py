@@ -590,7 +590,7 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
             if self.pitch_extract is not None:
                 pitch = self.pitch_extract(
                     singing[None],
-                    feats_lengths=torch.LongTensor([len(feats)]),
+                    feats_lengths=torch.tensor([len(feats)], dtype=torch.long),
                 )[0][0]
             if self.pitch_normalize is not None:
                 pitch = self.pitch_normalize(pitch[None])[0][0]
@@ -600,7 +600,7 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
             if self.energy_extract is not None:
                 energy = self.energy_extract(
                     singing[None],
-                    feats_lengths=torch.LongTensor([len(feats)]),
+                    feats_lengths=torch.tensor([len(feats)], dtype=torch.long),
                 )[0][0]
             if self.energy_normalize is not None:
                 energy = self.energy_normalize(energy[None])[0][0]

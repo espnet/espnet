@@ -272,8 +272,9 @@ class BeamSearchTransducer:
         """
         max_len = max([len(h) for h in hyps_seq])
 
-        return torch.LongTensor(
+        return torch.tensor(
             [[self.sos] + ([0] * (max_len - len(h))) + h[1:] for h in hyps_seq],
+            dtype=torch.long,
             device=self.decoder.device,
         )
 
@@ -333,8 +334,10 @@ class BeamSearchTransducer:
 
                 if self.use_lm:
                     lm_scores, lm_state = self.lm.score(
-                        torch.LongTensor(
-                            [self.sos] + max_hyp.yseq[1:], device=self.decoder.device
+                        torch.tensor(
+                            [self.sos] + max_hyp.yseq[1:],
+                            dtype=torch.long,
+                            device=self.decoder.device,
                         ),
                         max_hyp.lm_state,
                         None,
