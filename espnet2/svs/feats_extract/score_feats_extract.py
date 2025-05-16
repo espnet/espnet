@@ -366,7 +366,7 @@ def expand_to_frame(expand_len, len_size, label, midi, duration):
         ListsToTensor(seq_label), dtype=torch.long, device=label.device
     )
     seq_label_lengths = torch.tensor(
-        seq_label_length, dtype=torch.long, device=label.device
+        seq_label_lengths, dtype=torch.long, device=label.device
     )
     seq_midi = torch.tensor(
         ListsToTensor(seq_midi), dtype=torch.long, device=label.device
