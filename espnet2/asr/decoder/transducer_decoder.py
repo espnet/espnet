@@ -227,7 +227,7 @@ class TransducerDecoder(AbsDecoder):
         if process:
             labels = torch.tensor(
                 [[p[1]] for p in process],
-                device=self.device
+                device=self.device,
                 dtype=torch.long
             )
             p_dec_states = self.create_batch_states(
