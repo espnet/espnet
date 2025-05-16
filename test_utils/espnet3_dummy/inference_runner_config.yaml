@@ -1,0 +1,36 @@
+# tests/resources/dummy_config.yaml
+decode_dir: test_utils/espnet3_dummy/tmp_decode
+vocab_size: 6500
+recipedir: test_utils/espnet3_dummy
+
+dataset:
+  _target_: espnet3.data.DataOrganizer
+  train:
+    - name: train-a
+      dataset:
+        _target_: test.espnetez.test_inference_runner.DummyDataset
+      transform:
+        _target_: test.espnetez.test_inference_runner.IdentityTransform
+  valid:
+    - name: dev-a
+      dataset:
+        _target_: test.espnetez.test_inference_runner.DummyDataset
+      transform:
+        _target_: test.espnetez.test_inference_runner.IdentityTransform
+  test:
+    - name: test-a
+      dataset:
+        _target_: test.espnetez.test_inference_runner.DummyDataset
+      transform:
+        _target_: test.espnetez.test_inference_runner.IdentityTransform
+
+
+model:
+  _target_: test.espnetez.test_inference_runner.DummyInference
+
+test:
+  - name: test-a
+    metrics:
+      - metric:
+          _target_: test.espnetez.test_inference_runner.DummyMetrics
+        inputs: ["text"]

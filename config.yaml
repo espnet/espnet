@@ -1,0 +1,128 @@
+expdir: exp/debug
+vocab_size: 6500
+seed: 2024
+parallel:
+  env: slurm
+  n_workers: 8
+  options:
+    queue: general
+    cores: 8
+    processes: 4
+    memory: 16GB
+    walltime: 1800
+tokenizer:
+  _target_: espnet2.text.sentencepiece_tokenizer.SentencepiecesTokenizer
+  model: sentencepiece_model/bpe.model
+converter:
+  _target_: espnet2.text.token_id_converter.TokenIDConverter
+  token_list: sentencepiece_model/tokens.txt
+dataset:
+  id: /home/msomeki/workspace/librispeech_dataset
+model:
+  _target_: espnet2.asr.espnet_model.ESPnetASRModel
+  vocab_size: ${vocab_size}
+  token_list: ${load_line:sentencepiece_model/tokens.txt}
+  frontend:
+    _target_: espnet2.asr.frontend.default.DefaultFrontend
+    n_fft: 512
+    win_length: 400
+    hop_length: 160
+    n_mels: 80
+  specaug:
+    _target_: espnet2.asr.specaug.specaug.SpecAug
+    apply_time_warp: true
+    time_warp_window: 5
+    time_warp_mode: bicubic
+    apply_freq_mask: true
+    freq_mask_width_range:
+    - 0
+    - 27
+    num_freq_mask: 2
+    apply_time_mask: true
+    time_mask_width_ratio_range:
+    - 0.0
+    - 0.05
+    num_time_mask: 5
+  normalize:
+    _target_: espnet2.layers.utterance_mvn.UtteranceMVN
+  encoder:
+    _target_: espnet2.asr.encoder.e_branchformer_encoder.EBranchformerEncoder
+    input_size: ${model.frontend.n_mels}
+    output_size: 256
+    attention_heads: 4
+    attention_layer_type: rel_selfattn
+    pos_enc_layer_type: rel_pos
+    rel_pos_type: latest
+    cgmlp_linear_units: 1024
+    cgmlp_conv_kernel: 31
+    use_linear_after_conv: false
+    gate_activation: identity
+    num_blocks: 12
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    attention_dropout_rate: 0.1
+    input_layer: conv2d
+    layer_drop_rate: 0.0
+    linear_units: 1024
+    positionwise_layer_type: linear
+    use_ffn: true
+    macaron_ffn: true
+    merge_conv_kernel: 31
+  decoder:
+    _target_: espnet2.asr.decoder.transformer_decoder.TransformerDecoder
+    vocab_size: ${vocab_size}
+    encoder_output_size: ${model.encoder.output_size}
+    attention_heads: 4
+    linear_units: 2048
+    num_blocks: 6
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    self_attention_dropout_rate: 0.1
+    src_attention_dropout_rate: 0.1
+    layer_drop_rate: 0.0
+  ctc:
+    _target_: espnet2.asr.ctc.CTC
+    odim: ${vocab_size}
+    encoder_output_size: ${model.encoder.output_size}
+  joint_network: null
+  ctc_weight: 1.0
+  lsm_weight: 0.1
+  preencoder: null
+  postencoder: null
+optim:
+  _target_: torch.optim.Adam
+  lr: 0.002
+  weight_decay: 1.0e-06
+scheduler:
+  _target_: espnet2.schedulers.warmup_lr.WarmupLR
+  warmup_steps: 15000
+dataloader:
+  collate_fn:
+    _target_: espnet2.train.collate_fn.CommonCollateFn
+    int_pad_value: -1
+  train:
+    shuffle: true
+    batch_size: 40
+  valid:
+    shuffle: false
+    batch_size: 4
+best_model_criterion:
+- - valid/loss
+  - 3
+  - min
+trainer:
+  accelerator: gpu
+  devices: 2
+  num_nodes: 1
+  accumulate_grad_batches: 4
+  gradient_clip_val: 1.0
+  log_every_n_steps: 500
+  max_epochs: 100
+  use_distributed_sampler: true
+  logger:
+  - _target_: lightning.pytorch.loggers.TensorBoardLogger
+    save_dir: ${expdir}/tensorboard
+    name: tb_logger
+  strategy: ddp
+  callbacks:
+  - _target_: egs3.custom_callback.MyPrintingCallback

@@ -1,0 +1,216 @@
+from dataclasses import dataclass
+from typing import Any, Callable, Dict, List, Optional
+
+from datasets import load_dataset  # HuggingFace Datasets
+from hydra.utils import instantiate
+
+from espnet2.train.preprocessor import AbsPreprocessor
+
+
+@dataclass
+class DatasetConfig:
+    """
+    Configuration class for dataset metadata and construction.
+
+    This class encapsulates the necessary fields to define and instantiate a dataset.
+    Used with Hydra to allow modular and flexible configuration via YAML or dictionaries.
+
+    Attributes:
+        name (str): Name identifier for the dataset.
+        path (Optional[str]): Optional path or ID required for dataset instantiation.
+        dataset (Dict[str, Any]): Python path to the dataset class to be instantiated via Hydra.
+        transform (Optional[Callable]): Callable to transform each sample after loading.
+
+    Example:
+        >>> cfg_dict = {
+        ...     "name": "custom",
+            ...     "dataset": {
+            ...         "_target_: "my_project.datasets.MyDataset",
+            ...     },
+        ...     "transform": "my_project.transforms.uppercase_transform"
+        ... }
+        >>> config = DatasetConfig.from_dict(cfg_dict)
+    """
+
+    name: str
+    path: Optional[str] = None
+    dataset: Dict[str, Any] = None  # Module path to dataset class
+    transform: Optional[Dict[str, Any]] = None
+
+
+class CombinedDataset:
+    """
+    Combines multiple datasets into a single dataset-like interface.
+
+    This allows unified iteration over multiple datasets, applying their associated
+    transforms and mapping a flat index to the correct dataset and item.
+
+    Args:
+        datasets (List[Any]): List of datasets implementing __getitem__ and __len__.
+        transforms (List[Callable[[dict], dict]]): List of transform functions for each dataset.
+
+    Example:
+        >>> dataset = CombinedDataset([ds1, ds2], [tf1, tf2])
+        >>> sample = dataset[10]
+
+    Raises:
+        IndexError: If index is out of range of the combined dataset.
+    """
+
+    def __init__(
+        self,
+        datasets: List[Any],
+        transforms: List[Callable[[dict], dict]],
+        add_uid: bool = False,
+    ):
+        self.datasets = datasets
+        self.transforms = transforms
+        self.lengths = [len(ds) for ds in datasets]
+        self.cumulative_lengths = []
+        self.add_uid = add_uid
+        total = 0
+        for length in self.lengths:
+            total += length
+            self.cumulative_lengths.append(total)
+
+        # Check the first sample from all dataset to ensure they all have the same keys
+        sample_keys = None
+        for i, (dataset, transform) in enumerate(zip(self.datasets, self.transforms)):
+            if len(dataset) == 0:
+                continue  # Skip empty datasets
+            sample = transform(dataset[0])
+            if isinstance(sample, tuple):  # (uid, data_dict)
+                _, sample = sample
+            keys = set(sample.keys())
+            if sample_keys is None:
+                sample_keys = keys
+            else:
+                assert keys == sample_keys, (
+                    f"Inconsistent output keys in dataset {i}: "
+                    f"{keys} != {sample_keys}"
+                )
+
+    def __len__(self):
+        return self.cumulative_lengths[-1] if self.cumulative_lengths else 0
+
+    def __getitem__(self, idx):
+        if type(idx) == str:
+            idx = int(idx)
+        for i, cum_len in enumerate(self.cumulative_lengths):
+            if idx < cum_len:
+                ds_idx = idx if i == 0 else idx - self.cumulative_lengths[i - 1]
+                sample = self.datasets[i][ds_idx]
+                if self.add_uid:
+                    return (str(idx), self.transforms[i](sample))
+                else:
+                    return self.transforms[i](sample)
+        raise IndexError("Index out of range in CombinedDataset")
+
+
+class DataOrganizer:
+    """
+    Organizes training, validation, and test datasets into a unified interface.
+
+    Automatically instantiates datasets and applies optional transform and preprocessor
+    logic per dataset.
+
+    Args:
+        config (Dict[str, Any]): Dictionary with keys 'train', 'valid', and optionally 'test'.
+            - 'train' and 'valid' must be lists of dataset configuration dictionaries.
+            - 'test' should be a dictionary of key to dataset config.
+        preprocessor (Optional[Callable[[dict], dict]]): A global preprocessor function
+            applied after each dataset's transform.
+
+    Attributes:
+        train (CombinedDataset): Combined dataset constructed from training configs.
+        valid (CombinedDataset): Combined dataset constructed from validation configs.
+        test_sets (Dict[str, DatasetWithTransform]): Mapping from test dataset names to wrapped datasets.
+
+    Note:
+        Raises AssertionError if 'train' or 'valid' is not present in the config.
+
+    Example:
+        >>> organizer = DataOrganizer(config_dict, preprocessor=preproc_fn)
+        >>> sample = organizer.train[0]
+    """
+
+    def __init__(
+        self,
+        train: List[Dict[str, Any]],
+        valid: List[Dict[str, Any]],
+        test: Optional[List[Dict[str, Any]]] = None,
+        preprocessor: Optional[Callable[[dict], dict]] = None,
+    ):
+        self.preprocessor = preprocessor or (lambda x: x)
+        is_espnet_preprocessor = isinstance(self.preprocessor, AbsPreprocessor)
+
+        def build_dataset_list(cfg_list):
+            datasets = []
+            transforms = []
+            for cfg in cfg_list:
+                dataset = cfg.dataset
+                if hasattr(cfg, "transform"):
+                    transform = cfg.transform
+                else:
+                    transform = lambda x: x
+
+                if is_espnet_preprocessor:
+                    # Then extract the utt id and the data
+                    wrapped_transform = lambda x, t=transform, p=self.preprocessor: p(
+                        *t(x)
+                    )
+                else:
+                    wrapped_transform = lambda x, t=transform, p=self.preprocessor: p(
+                        t(x)
+                    )
+                datasets.append(dataset)
+                transforms.append(wrapped_transform)
+            return CombinedDataset(datasets, transforms, add_uid=is_espnet_preprocessor)
+
+        self.train = build_dataset_list(train)
+        self.valid = build_dataset_list(valid)
+
+        self.test_sets = {}
+        for cfg in test:
+            dataset = cfg.dataset
+            if hasattr(cfg, "transform"):
+                transform = cfg.transform
+            else:
+                transform = lambda x: x
+            if isinstance(self.preprocessor, AbsPreprocessor):
+                # Then extract the utt id and the data
+                wrapped_transform = lambda x, t=transform, p=self.preprocessor: p(*t(x))
+            else:
+                wrapped_transform = lambda x, t=transform, p=self.preprocessor: p(t(x))
+            self.test_sets[cfg.name] = DatasetWithTransform(dataset, wrapped_transform)
+
+    @property
+    def test(self):
+        return self.test_sets
+
+
+class DatasetWithTransform:
+    """
+    Lightweight wrapper for applying a transform function to dataset items.
+
+    Args:
+        dataset (Any): A dataset implementing __getitem__ and __len__.
+        transform (Callable): A transform function applied to each sample.
+
+    Example:
+        >>> wrapped = DatasetWithTransform(my_dataset, my_transform)
+        >>> item = wrapped[0]
+    """
+
+    def __init__(self, dataset, transform):
+        self.dataset = dataset
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.dataset)
+
+    def __getitem__(self, idx):
+        return (str(idx), self.transform(self.dataset[idx]))
+
+    def __call__(self, idx):
+        return self.__getitem__(idx)

@@ -2350,6 +2350,9 @@ class AbsTask(ABC):
                 # for deepspeed checkpoints
                 if "module" in state_dict:
                     state_dict = state_dict["module"]
+                # for PytorchLightning checkpoints
+                if "state_dict" in state_dict:
+                    state_dict = state_dict["state_dict"]
                 model.load_state_dict(
                     state_dict,
                     strict=False,
