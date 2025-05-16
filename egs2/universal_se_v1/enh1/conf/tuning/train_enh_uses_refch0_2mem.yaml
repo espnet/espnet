@@ -32,10 +32,6 @@ scheduler_conf:
     mode: min
     factor: 0.5
     patience: 2
-freeze_param:
-- separator.muses.blocks.0.channel_nn
-- separator.muses.blocks.1.channel_nn
-- separator.muses.blocks.2.channel_nn
 
 allow_multi_rates: true
 
