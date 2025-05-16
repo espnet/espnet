@@ -212,7 +212,7 @@ class CodecTokenizer(AbsTokenizer):
             wav_len = torch.tensor(
                 [wav_in.size(1)] * wav_in.size(0),
                 dtype=torch.long,
-                device=wav_in.device
+                device=wav_in.device,
             )
             codes = self.codec.encode(xs_pad=wav_in, ilens=wav_len).unsqueeze(-1)
 

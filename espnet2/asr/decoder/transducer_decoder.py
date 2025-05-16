@@ -226,9 +226,7 @@ class TransducerDecoder(AbsDecoder):
 
         if process:
             labels = torch.tensor(
-                [[p[1]] for p in process],
-                device=self.device,
-                dtype=torch.long
+                [[p[1]] for p in process], device=self.device, dtype=torch.long
             )
             p_dec_states = self.create_batch_states(
                 self.init_state(labels.size(0)), [p[2] for p in process]
@@ -252,9 +250,7 @@ class TransducerDecoder(AbsDecoder):
 
         if use_lm:
             lm_labels = torch.tensor(
-                [h.yseq[-1] for h in hyps],
-                device=self.device,
-                dtype=torch.long
+                [h.yseq[-1] for h in hyps], device=self.device, dtype=torch.long
             ).view(final_batch, 1)
 
             return dec_out, dec_states, lm_labels

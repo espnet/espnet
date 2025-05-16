@@ -171,7 +171,11 @@ class ChunkIterFactory(AbsIterFactory):
                     )
 
             # Get sampling frequency of the batch to recalculate the chunk length
-            fs = batch.get("utt2fs", torch.tensor([16000], dtype=torch.long)).type(torch.int64).item()
+            fs = (
+                batch.get("utt2fs", torch.tensor([16000], dtype=torch.long))
+                .type(torch.int64)
+                .item()
+            )
             default_fs = fs if self.default_fs is None else self.default_fs
             assert fs % default_fs == 0 or default_fs % fs == 0
 

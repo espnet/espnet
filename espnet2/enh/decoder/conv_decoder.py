@@ -36,7 +36,9 @@ class ConvDecoder(AbsDecoder):
         return wav, ilens
 
     def forward_streaming(self, input_frame: torch.Tensor):
-        return self.forward(input_frame, ilens=torch.tensor([self.kernel_size], dtype=torch.long))[0]
+        return self.forward(
+            input_frame, ilens=torch.tensor([self.kernel_size], dtype=torch.long)
+        )[0]
 
     def streaming_merge(self, chunks: torch.Tensor, ilens: torch.tensor = None):
         """Stream Merge.

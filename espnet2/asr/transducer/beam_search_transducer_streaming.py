@@ -406,7 +406,7 @@ class BeamSearchTransducerStreaming:
                             torch.tensor(
                                 [self.sos] + max_hyp.yseq[1:],
                                 device=self.decoder.device,
-                                dtype=torch.long
+                                dtype=torch.long,
                             ),
                             max_hyp.lm_state,
                             None,

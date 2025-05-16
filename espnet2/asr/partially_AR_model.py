@@ -126,7 +126,10 @@ class PartiallyARInference(torch.nn.Module):
             (
                 torch.tensor([0], dtype=torch.long),
                 torch.cumsum(
-                    torch.tensor([len(list(x[1])) for x in groupby(y_in[0])], dtype=torch.long) - 1,
+                    torch.tensor(
+                        [len(list(x[1])) for x in groupby(y_in[0])], dtype=torch.long
+                    )
+                    - 1,
                     dim=0,
                 )[:-1],
             )

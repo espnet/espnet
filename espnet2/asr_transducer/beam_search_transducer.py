@@ -337,7 +337,7 @@ class BeamSearchTransducer:
                         torch.tensor(
                             [self.sos] + max_hyp.yseq[1:],
                             dtype=torch.long,
-                            device=self.decoder.device
+                            device=self.decoder.device,
                         ),
                         max_hyp.lm_state,
                         None,
