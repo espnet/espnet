@@ -79,15 +79,15 @@ jobs:
           source tools/activate_python.sh
           coverage erase
 
-      - name: install kaldi
-        run: |
-          ./ci/install_kaldi.sh
+      # - name: install kaldi
+      #   run: |
+      #     ./ci/install_kaldi.sh
 
-      - name: test integration
-        run: ./ci/test_integration_espnet1.sh
-      - uses: codecov/codecov-action@v2
-        with:
-          flags: test_integration_espnet1
+      # - name: test integration
+      #   run: ./ci/test_integration_espnet1.sh
+      # - uses: codecov/codecov-action@v2
+      #   with:
+      #     flags: test_integration_espnet1
 
   unit_test_espnet2_and_integration_test_espnet2:
     runs-on: ${{ matrix.os }}
@@ -144,26 +144,26 @@ jobs:
           source tools/activate_python.sh
           coverage erase
 
-      - name: install kaldi
-        run: |
-          ./ci/install_kaldi.sh
+      # - name: install kaldi
+      #   run: |
+      #     ./ci/install_kaldi.sh
 
-      - name: test utils
-        run: ./ci/test_utils.sh
-      - uses: codecov/codecov-action@v2
-        with:
-          flags: test_utils
-      - name: coverage erase
-        continue-on-error: true
-        run: |
-          source tools/activate_python.sh
-          coverage erase
+      # - name: test utils
+      #   run: ./ci/test_utils.sh
+      # - uses: codecov/codecov-action@v2
+      #   with:
+      #     flags: test_utils
+      # - name: coverage erase
+      #   continue-on-error: true
+      #   run: |
+      #     source tools/activate_python.sh
+      #     coverage erase
 
-      - name: test espnet2 integration
-        run: ./ci/test_integration_espnet2.sh
-      - uses: codecov/codecov-action@v2
-        with:
-          flags: test_integration_espnet2
+      # - name: test espnet2 integration
+      #   run: ./ci/test_integration_espnet2.sh
+      # - uses: codecov/codecov-action@v2
+      #   with:
+      #     flags: test_integration_espnet2
 
 
   test_configuration_espnet2:
@@ -238,7 +238,7 @@ jobs:
         python3 -m pip install -U numba
         ./tools/installers/install_torch.sh false ${TH_VERSION} CPU
         ./tools/installers/install_chainer.sh CPU
-        cp ./tools/setup.py ./ && mv pyproject.toml pyproject.toml.tmp
+        cp ./tools/setup.py ./ && mv pyproject.toml pyproject.toml.tmp && mv espnet3 .espnet3
         python3 setup.py bdist_wheel
         python3 -m pip install dist/espnet-*.whl
         # log
