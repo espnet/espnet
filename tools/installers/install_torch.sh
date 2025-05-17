@@ -71,6 +71,10 @@ EOF
 }
 install_torch(){
 # Usage: install_torch <torchaudio-version>
+    if $(pytorch_plus 2.6.0) && [ "${use_conda}" ]; then
+        log "[INFO] fallback use_conda: true -> false"
+        use_conda=false
+    fi
     if "${use_conda}"; then
         if $(pytorch_plus 1.13.0); then
             if [ -z "${cuda_version}" ]; then
@@ -151,9 +155,45 @@ if ! python -c "import packaging.version" &> /dev/null; then
     python3 -m pip install packaging
 fi
 
-if $(pytorch_plus 2.4.1); then
+if $(pytorch_plus 2.6.1); then
     log "[ERROR] This script doesn't support pytorch=${torch_version}"
     exit 1
+
+elif $(pytorch_plus 2.6.0); then
+    check_python_version 3.13  # Error if python>=<number>
+    if ! check_cuda_version 12.6 12.4 11.8; then
+        log "[INFO] Fallback: cuda_version=${cuda_version} -> cuda_version=12.6"
+        cuda_version=12.6
+        cuda_version_without_dot="${cuda_version/\./}"
+    fi
+    install_torch 2.6.0  # install_torch <torch-audio-ver>
+
+elif $(pytorch_plus 2.5.1); then
+    check_python_version 3.13  # Error if python>=<number>
+    if ! check_cuda_version 12.4 12.1 11.8; then
+        log "[INFO] Fallback: cuda_version=${cuda_version} -> cuda_version=12.4"
+        cuda_version=12.4
+        cuda_version_without_dot="${cuda_version/\./}"
+    fi
+    install_torch 2.5.1  # install_torch <torch-audio-ver>
+
+elif $(pytorch_plus 2.5.0); then
+    check_python_version 3.13  # Error if python>=<number>
+    if ! check_cuda_version 12.4 12.1 11.8; then
+        log "[INFO] Fallback: cuda_version=${cuda_version} -> cuda_version=12.4"
+        cuda_version=12.4
+        cuda_version_without_dot="${cuda_version/\./}"
+    fi
+    install_torch 2.5.0  # install_torch <torch-audio-ver>
+
+elif $(pytorch_plus 2.4.1); then
+    check_python_version 3.13  # Error if python>=<number>
+    if ! check_cuda_version 12.4 12.1 11.8; then
+        log "[INFO] Fallback: cuda_version=${cuda_version} -> cuda_version=12.4"
+        cuda_version=12.4
+        cuda_version_without_dot="${cuda_version/\./}"
+    fi
+    install_torch 2.4.1  # install_torch <torch-audio-ver>
 
 elif $(pytorch_plus 2.4.0); then
     check_python_version 3.13  # Error if python>=<number>
