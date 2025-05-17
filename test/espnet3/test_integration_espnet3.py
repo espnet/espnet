@@ -1,8 +1,12 @@
 import argparse
 from pathlib import Path
 
-import espnetez as ez
+import espnet3 as ez
 import yaml
+
+from espnet3 import get_espnet_model, save_espnet_config
+from espnet3.trainer import ESPnetEZLightningTrainer, LitESPnetModel
+
 
 TASK_CLASSES = [
     "asr",
@@ -96,7 +100,7 @@ if __name__ == "__main__":
     }
 
     # configuration
-    training_config = ez.config.from_yaml(args.task, args.config_path)
+    training_config = ez.utils.config.from_yaml(args.task, args.config_path)
     training_config["max_epoch"] = 1
     training_config["ngpu"] = 0
     training_config["bpemodel"] = str(args.data_path / "spm/bpemodel/bpe.model")
@@ -305,16 +309,29 @@ if __name__ == "__main__":
     exp_dir = str(args.exp_path / args.task)
     stats_dir = str(args.exp_path / "stats")
 
-    trainer = ez.Trainer(
-        task=args.task,
-        train_config=training_config,
-        train_dump_dir=args.train_dump_path,
-        valid_dump_dir=args.valid_dump_path,
-        data_info=data_info,
-        output_dir=exp_dir,
-        stats_dir=stats_dir,
-        ngpu=0,
+    model = get_espnet_model(args.task, training_config) if args.task else instantiate(training_config)
+    lit_model = LitESPnetModel(model, training_config)
+
+    # Float32 precision
+    torch.set_float32_matmul_precision("high")
+
+    # Setup trainer
+    trainer = ESPnetEZLightningTrainer(
+        model=lit_model,
+        expdir=expdir,
+        config=config.trainer,
+        best_model_criterion=config.best_model_criterion,
     )
+    # trainer = ez.ESPnetEZLightningTrainer(
+    #     task=args.task,
+    #     train_config=training_config,
+    #     train_dump_dir=args.train_dump_path,
+    #     valid_dump_dir=args.valid_dump_path,
+    #     data_info=data_info,
+    #     output_dir=exp_dir,
+    #     stats_dir=stats_dir,
+    #     ngpu=0,
+    # )
     if args.run_collect_stats:
         trainer.collect_stats()
 

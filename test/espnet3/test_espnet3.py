@@ -4,7 +4,7 @@ import shutil
 import tempfile
 from pathlib import Path
 
-import espnetez as ez
+import espnet3 as ez
 import pytest
 from torch import nn
 
@@ -141,7 +141,7 @@ def test_task(task_name, task_class):
 
 @pytest.mark.parametrize("task_name,task_class", TASK_CLASSES)
 def test_task_with_dataset(task_name, task_class):
-    task = ez.task.get_ez_task_with_dataset(task_name)
+    task = ez.task.get_ez_task(task_name)
     assert issubclass(task, task_class)
 
 
@@ -156,7 +156,7 @@ def test_task_with_dataset(task_name, task_class):
 def test_check_argument(tr_dump, val_dump, tr_ds, val_ds, tr_dl, val_dl, test_case):
     print(test_case)
     try:
-        ez.trainer.check_argument(
+        ez.utils.trainer.check_argument(
             train_dump_dir=tr_dump,
             valid_dump_dir=val_dump,
             train_dataset=tr_ds,
@@ -176,7 +176,7 @@ def test_load_config(task_name, task_class):
         config_path = Path(temp_dir) / "config.yaml"
         config_path.write_text("""task: {task_name}""")
         default_config = task_class.get_default_config()
-        ez_config = ez.config.from_yaml(task_name, config_path)
+        ez_config = ez.utils.config.from_yaml(task_name, config_path)
 
         for k in default_config.keys():
             assert default_config[k] == ez_config[k]
@@ -189,7 +189,7 @@ def test_update_finetune_config(task_name, task_class):
         config_path = Path(temp_dir) / "config.yaml"
         config_path.write_text("""use_lora: true""")
         pretrain_config = task_class.get_default_config()
-        ez_config = ez.config.update_finetune_config(
+        ez_config = ez.utils.config.update_finetune_config(
             task_name, pretrain_config, config_path
         )
 
@@ -252,7 +252,7 @@ def test_tokenizer_run():
 
 
 def test_streaming_iter():
-    from espnetez.dataloader import Dataloader
+    from espnet3.utils.dataloader import Dataloader
 
     dataset = generate_random_dataset(5)
     Dataloader(dataset=dataset).build_iter(0)
