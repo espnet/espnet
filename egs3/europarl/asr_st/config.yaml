@@ -7,19 +7,20 @@ seed: 2024
 
 parallel:
   env: slurm
-  n_workers: 8
+  n_workers: 16
   options:
     account: bbjs-delta-cpu
     queue: cpu
     cores: 1
     processes: 1
-    memory: 32GB
-    walltime: 30:00
+    memory: 16GB
+    # walltime: 3:00:00
     death_timeout: 180
     job_extra_directives:
       # - "--gres=gpu:1"
+      - "--time 1:00:00"
       - "--ntasks-per-node=1"
-      - "--cpus-per-task=16"
+      - "--cpus-per-task=8"
       - "--output=parallel_log/%j-%x.log"
 
 dataset:
@@ -195,11 +196,32 @@ dataloader:
     _target_: espnet2.train.collate_fn.CommonCollateFn
     int_pad_value: -1
   train:
-    batch_size: 4
-    shuffle: true
+    iter_factory:
+      _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
+      shuffle: true
+      collate_fn: ${dataloader.collate_fn}
+      num_workers: 4
+      num_iters_per_epoch: 15000
+      batches:
+        _target_: espnet2.samplers.build_batch_sampler.build_batch_sampler
+        type: numel
+        shape_files:
+          - ${statsdir}/train/feats_shape
+        batch_size: 4
+        batch_bins: 500000
   valid:
-    batch_size: 4
-    shuffle: false
+    iter_factory:
+      _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
+      shuffle: false
+      collate_fn: ${dataloader.collate_fn}
+      num_workers: 4
+      batches:
+        _target_: espnet2.samplers.build_batch_sampler.build_batch_sampler
+        type: numel
+        shape_files:
+          - ${statsdir}/valid/feats_shape
+        batch_size: 4
+        batch_bins: ${dataloader.train.iter_factory.batches.batch_bins}
 
 
 best_model_criterion:
@@ -213,6 +235,7 @@ trainer:
   gradient_clip_val: 1.0
   log_every_n_steps: 500
   max_epochs: 30
+  precision: bf16
 
   logger:
     - _target_: lightning.pytorch.loggers.TensorBoardLogger
