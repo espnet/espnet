@@ -70,8 +70,10 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     if [ ! -e data/local/other_text/text ]; then
         # provide utterance id to each texts
         # e.g., librispeech_lng_00003686 A BANK CHECK
+        # 書き込み先を一時的にローカルディスクにしてから移動
         zcat data/local/other_text/librispeech-lm-norm.txt.gz | \
-            awk '{ printf("librispeech_lng_%08d %s\n",NR,$0) } ' > data/local/other_text/text
+            awk '{ printf("librispeech_lng_%08d %s\n",NR,$0) } ' > /tmp/lm_text.tmp && \
+            mv /tmp/lm_text.tmp data/local/other_text/text
     fi
 fi
 

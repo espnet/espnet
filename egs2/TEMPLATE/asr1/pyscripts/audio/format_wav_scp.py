@@ -4,6 +4,7 @@ import logging
 from io import BytesIO
 from pathlib import Path
 from typing import Optional, Tuple
+import shutil
 
 import humanfriendly
 import kaldiio
@@ -227,13 +228,16 @@ def main():
     Path(args.outdir).mkdir(parents=True, exist_ok=True)
     out_wavscp = Path(args.outdir) / f"{args.name}.scp"
 
+    tmp_outdir = Path("/tmp/espnet_tmp_audio")
     if args.audio_format.endswith("ark"):
-        fark = open(Path(args.outdir) / f"data_{args.name}.ark", "wb")
+        tmp_ark = Path("/tmp") / f"data_{args.name}.ark"
+        fark = open(tmp_ark, "wb")
         fscp_out = out_wavscp.open("w")
         writer = None
     else:
+        tmp_outdir.mkdir(parents=True, exist_ok=True)
         writer = SoundScpWriter(
-            args.outdir,
+            str(tmp_outdir),
             out_wavscp,
             format=args.audio_format,
             multi_columns=args.multi_columns_output,
@@ -372,6 +376,11 @@ def main():
             else:
                 writer[uttid] = rate, wave
             fnum_samples.write(f"{uttid} {len(wave)}\n")
+
+    for file in tmp_outdir.glob("*"):
+        shutil.move(str(file), str(Path(args.outdir)))
+    if args.audio_format.endswith("ark"):
+        shutil.move(str(tmp_ark), str(Path(args.outdir) / f"data_{args.name}.ark"))
 
 
 if __name__ == "__main__":

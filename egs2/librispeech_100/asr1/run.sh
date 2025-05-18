@@ -9,8 +9,8 @@ train_set="train_clean_100"
 valid_set="dev"
 test_sets="test_clean test_other dev_clean dev_other"
 
-asr_config=conf/train_asr.yaml
-inference_config=conf/decode_asr.yaml
+asr_config=conf/train_asr_transducer_conformer_e15_linear1024.yaml
+inference_config=conf/decode_transducer.yaml
 
 ./asr.sh \
     --lang en \
