@@ -57,6 +57,30 @@ def save_output_scp_format(
         scp_files[key].write(" ".join(line_parts) + "\n")
 
 
+def read_audio(path: str) -> np.ndarray:
+    wav, _ = sf.read(path)
+    return wav
+
+def stream_audio(path: str, chunk_sec: float = 0.01) -> Iterator[np.ndarray]:
+    with sf.SoundFile(path, "r") as f:
+        sr = f.samplerate
+        frames_per_chunk = int(sr * chunk_sec)
+        while True:
+            chunk = f.read(frames_per_chunk, dtype="float32")
+            if len(chunk) == 0:
+                break
+            yield chunk
+
+def read_text(path: str) -> str:
+    with open(path, encoding="utf-8") as f:
+        return f.read().strip()
+
+def stream_text(path: str, chunk_chars: int = 5) -> Iterator[str]:
+    text = read_text(path)
+    for i in range(0, len(text), chunk_chars):
+        yield text[i : i + chunk_chars]
+
+
 class InferenceRunner:
     """
     InferenceRunner manages test-time inference over multiple test sets defined via DataOrganizer.
@@ -117,29 +141,21 @@ class InferenceRunner:
     ) -> Union[np.ndarray, str, Iterator[np.ndarray], Iterator[str]]:
         if input_type == "audio":
             if stream:
-                with sf.SoundFile(path, "r") as f:
-                    sr = f.samplerate
-                    frames_per_chunk = int(sr * chunk_sec)
-                    while True:
-                        chunk = f.read(frames_per_chunk, dtype="float32")
-                        if len(chunk) == 0:
-                            break
-                        yield chunk
+                return stream_audio(path, chunk_sec)
             else:
-                wav, _ = sf.read(path, dtype="float32")
-                return wav
+                return read_audio(path)
         elif input_type == "text":
-            with open(path, encoding="utf-8") as f:
-                text = f.read().strip()
             if stream:
-                for i in range(0, len(text), chunk_chars):
-                    yield text[i : i + chunk_chars]
+                return stream_text(path, chunk_chars)
             else:
-                return text
+                return read_text(path)
         else:
             raise ValueError(f"Unsupported input type: {input_type}")
 
-    def write(self, uid: str, output: Dict[str, Any], output_dir: Path):
+    def write(self, uid: str, output: Dict[str, Any], output_dir: Union[str, Path]):
+        if not isinstance(output_dir, Path):
+            output_dir = Path(output_dir)
+            
         for key, val in output.items():
             scp_path = output_dir / f"{key}.scp"
             line_parts = [uid]
