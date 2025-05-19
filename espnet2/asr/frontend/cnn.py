@@ -13,7 +13,48 @@ from torch.nn import functional as F
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 
 
-class LayerNorm(nn.LayerNorm):
+def dim_1_layer_norm(x, eps=1e-05, gamma=None, beta=None):
+    """
+    Functional version of Dim1LayerNorm.
+    """
+    B, D, T = x.shape
+    mean = torch.mean(x, 1, keepdim=True)
+    variance = torch.mean((x - mean) ** 2, 1, keepdim=True)
+
+    x = (x - mean) * torch.rsqrt(variance + eps)
+
+    if gamma is not None:
+        x = x * gamma.view(1, -1, 1)
+        if beta is not None:
+            x = x + beta.view(1, -1, 1)
+    return x
+
+
+class Dim1LayerNorm(Module):
+    def __init__(self, normalized_shape, eps=1e-05, elementwise_affine=True, bias=True):
+        """LayerNorm but it assumes the input
+        is shape B, D, T to avoid transposing.
+        Faster than TransposedLayerNorm, but
+        may lead to minor numerical differences.
+        """
+        super().__init__()
+        self.normalized_shape = normalized_shape
+        self.eps = eps
+        self.elementwise_affine = elementwise_affine
+
+        self.weight = None
+        self.bias = None
+        if elementwise_affine:
+            self.weight = nn.Parameter(torch.ones(normalized_shape))
+            if bias:
+                self.bias = nn.Parameter(torch.zeros(normalized_shape))
+
+    def forward(self, x):
+        assert x.size(1) == self.normalized_shape
+        return dim_1_layer_norm(x, self.eps, self.weight, self.bias)
+
+
+class TransposedLayerNorm(nn.LayerNorm):
     """Layer norm with transpose"""
 
     def forward(self, input: Tensor) -> Tensor:
@@ -78,6 +119,7 @@ class ConvLayerBlock(Module):
                     bias=bias,
                 ),
             )
+        nn.init.kaiming_normal_(self.conv.weight)
 
     def forward(
         self,
@@ -131,6 +173,7 @@ class CNNFrontend(AbsFrontend):
         fs: Union[int, str] = 16000,
         normalize_audio: bool = False,
         normalize_output: bool = False,
+        layer_norm_cls: str = "transposed",
     ):
 
         super().__init__()
@@ -144,6 +187,11 @@ class CNNFrontend(AbsFrontend):
         self.output_channels = shapes[-1][0]
         self.normalize_audio = normalize_audio
 
+        if layer_norm_cls == "dim1":
+            layer_norm_func = Dim1LayerNorm
+        else:
+            layer_norm_func = TransposedLayerNorm
+
         blocks = []
         in_channels = 1
         self.downsampling_factor = 1
@@ -156,9 +204,8 @@ class CNNFrontend(AbsFrontend):
                     affine=True,
                 )
             elif norm_mode == "layer_norm":
-                normalization = LayerNorm(
+                normalization = layer_norm_func(
                     normalized_shape=out_channels,
-                    elementwise_affine=True,
                 )
             blocks.append(
                 ConvLayerBlock(
