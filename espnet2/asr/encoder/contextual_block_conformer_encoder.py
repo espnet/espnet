@@ -9,9 +9,6 @@ import math
 from typing import Optional, Tuple
 
 import torch
-from typeguard import typechecked
-
-from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet.nets.pytorch_backend.conformer.contextual_block_encoder_layer import (
     ContextualBlockEncoderLayer,
 )
@@ -31,6 +28,9 @@ from espnet.nets.pytorch_backend.transformer.repeat import repeat
 from espnet.nets.pytorch_backend.transformer.subsampling_without_posenc import (
     Conv2dSubsamplingWOPosEnc,
 )
+from typeguard import typechecked
+
+from espnet2.asr.encoder.abs_encoder import AbsEncoder
 
 
 class ContextualBlockConformerEncoder(AbsEncoder):

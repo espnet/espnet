@@ -10,10 +10,10 @@ from typing import Any, List, Optional, Tuple, Union
 
 import torch
 import torch.nn.functional as F
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from typeguard import typechecked
 
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 
 try:
     from transformers import AutoModelForCausalLM, AutoModelForSeq2SeqLM, AutoTokenizer

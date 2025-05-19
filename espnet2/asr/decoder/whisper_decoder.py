@@ -2,10 +2,10 @@ import copy
 from typing import Any, List, Optional, Tuple
 
 import torch
+from espnet.nets.scorer_interface import BatchScorerInterface
 from typeguard import typechecked
 
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
-from espnet.nets.scorer_interface import BatchScorerInterface
 
 
 class ExpandedTokenEmbedding(torch.nn.Module):
@@ -84,9 +84,9 @@ class OpenAIWhisperDecoder(AbsDecoder, BatchScorerInterface):
         # orig vocab size (english): 51864
         if vocab_size != self.decoders.token_embedding.num_embeddings:
             if self.load_origin_token_embedding:
-                assert (
-                    vocab_size > self.decoders.token_embedding.num_embeddings
-                ), "expanded vocab_size should be larged than the origin"
+                assert vocab_size > self.decoders.token_embedding.num_embeddings, (
+                    "expanded vocab_size should be larged than the origin"
+                )
                 self.decoders.token_embedding = ExpandedTokenEmbedding(
                     self.decoders.token_embedding,
                     vocab_size - self.decoders.token_embedding.num_embeddings,
@@ -200,7 +200,10 @@ class OpenAIWhisperDecoder(AbsDecoder, BatchScorerInterface):
     def score(self, ys, state, x):
         """Score."""
         logp, state = self.forward_one_step(
-            ys.unsqueeze(0), torch.empty(0), x.unsqueeze(0), cache=state  # dummy mask
+            ys.unsqueeze(0),
+            torch.empty(0),
+            x.unsqueeze(0),
+            cache=state,  # dummy mask
         )
         return logp.squeeze(0), state
 

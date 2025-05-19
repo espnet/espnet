@@ -36,9 +36,10 @@ except ImportError:
     is_transformers_available = False
 
 
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask, roll_tensor
+
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.specaug.specaug import SpecAug
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask, roll_tensor
 
 if V(torch.__version__) >= V("1.6.0"):
     from torch.cuda.amp import autocast
@@ -227,7 +228,7 @@ class BeatsEncoder(AbsEncoder):
             if self.max_layer is None:
                 logging.warning(
                     f"max_layer must be provided when using weighted"
-                    f" representations. Set to {config.encoder_layers-1}."
+                    f" representations. Set to {config.encoder_layers - 1}."
                 )
                 self.max_layer = config.encoder_layers - 1  # 0 based index
             self.layer_weights = nn.Parameter(
@@ -256,9 +257,9 @@ class BeatsEncoder(AbsEncoder):
         # Positional embeddings applied before cross-attention with decoder.
         self.cross_embed_positions = None
         if add_positional_information:
-            assert (
-                max_positions is not None
-            ), "max_positions must be provided in the config."
+            assert max_positions is not None, (
+                "max_positions must be provided in the config."
+            )
             learned_pos_dim = (
                 config.encoder_embed_dim
                 if not self.conformer_adapter
@@ -295,7 +296,6 @@ class BeatsEncoder(AbsEncoder):
         #  so override.
         self.encoder.apply(init_bert_params)
         if self.loaded_state_dict_ is not None:
-
             load_info = self.load_state_dict(
                 self.loaded_state_dict_["model"], strict=False
             )
@@ -434,9 +434,9 @@ class BeatsEncoder(AbsEncoder):
 
         if self.use_weighted_representation:
             repr_layer_weights = nn.functional.softmax(self.layer_weights, dim=-2)
-            assert (
-                max_layer is not None
-            ), "max_layer must not be None when using weighted representations."
+            assert max_layer is not None, (
+                "max_layer must not be None when using weighted representations."
+            )
             features = (
                 torch.stack(
                     [
@@ -637,7 +637,6 @@ class TransformerSentenceEncoderLayer(nn.Module):
         gru_rel_pos: bool = False,
         encoder_layers: int = 0,
     ) -> None:
-
         super().__init__()
         self.embedding_dim = embedding_dim
         self.dropout = dropout
@@ -788,16 +787,16 @@ class MultiheadAttention(nn.Module):
         self.head_dim = embed_dim // num_heads
         self.q_head_dim = self.head_dim
         self.k_head_dim = self.head_dim
-        assert (
-            self.head_dim * num_heads == self.embed_dim
-        ), "embed_dim must be divisible by num_heads"
+        assert self.head_dim * num_heads == self.embed_dim, (
+            "embed_dim must be divisible by num_heads"
+        )
         self.scaling = self.head_dim**-0.5
 
         self.self_attention = self_attention
         self.encoder_decoder_attention = encoder_decoder_attention
 
         assert not self.self_attention or self.qkv_same_dim, (
-            "Self-attention requires query, key and " "value to be of the same size"
+            "Self-attention requires query, key and value to be of the same size"
         )
 
         k_bias = True
@@ -1433,17 +1432,17 @@ def quant_noise(module, p, block_size):
 
     # 2D matrix
     if not is_conv:
-        assert (
-            module.weight.size(1) % block_size == 0
-        ), "Input features must be a multiple of block sizes"
+        assert module.weight.size(1) % block_size == 0, (
+            "Input features must be a multiple of block sizes"
+        )
 
     # 4D matrix
     else:
         # 1x1 convolutions
         if module.kernel_size == (1, 1):
-            assert (
-                module.in_channels % block_size == 0
-            ), "Input channels must be a multiple of block sizes"
+            assert module.in_channels % block_size == 0, (
+                "Input channels must be a multiple of block sizes"
+            )
         # regular convolutions
         else:
             k = module.kernel_size[0] * module.kernel_size[1]

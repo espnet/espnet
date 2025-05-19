@@ -2,12 +2,12 @@ from typing import Tuple
 
 import numpy as np
 import torch
-from typeguard import typechecked
-
-from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet.nets.e2e_asr_common import get_vgg2l_odim
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.rnn.encoders import RNN, RNNP, VGG2L
+from typeguard import typechecked
+
+from espnet2.asr.encoder.abs_encoder import AbsEncoder
 
 
 class VGGRNNEncoder(AbsEncoder):

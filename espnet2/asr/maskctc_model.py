@@ -5,6 +5,13 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import numpy
 import torch
+from espnet.nets.beam_search import Hypothesis
+from espnet.nets.e2e_asr_common import ErrorCalculator
+from espnet.nets.pytorch_backend.maskctc.add_mask_token import mask_uniform
+from espnet.nets.pytorch_backend.nets_utils import th_accuracy
+from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import (  # noqa: H301
+    LabelSmoothingLoss,
+)
 from packaging.version import parse as V
 from typeguard import typechecked
 
@@ -19,13 +26,6 @@ from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.torch_utils.device_funcs import force_gatherable
-from espnet.nets.beam_search import Hypothesis
-from espnet.nets.e2e_asr_common import ErrorCalculator
-from espnet.nets.pytorch_backend.maskctc.add_mask_token import mask_uniform
-from espnet.nets.pytorch_backend.nets_utils import th_accuracy
-from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import (  # noqa: H301
-    LabelSmoothingLoss,
-)
 
 if V(torch.__version__) >= V("1.6.0"):
     from torch.cuda.amp import autocast
@@ -65,7 +65,6 @@ class MaskCTCModel(ESPnetASRModel):
         sym_mask: str = "<mask>",
         extract_feats_in_collect_stats: bool = True,
     ):
-
         super().__init__(
             vocab_size=vocab_size,
             token_list=token_list,

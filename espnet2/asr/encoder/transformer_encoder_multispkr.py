@@ -2,12 +2,10 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """Encoder definition."""
+
 from typing import Optional, Tuple
 
 import torch
-from typeguard import typechecked
-
-from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
@@ -30,6 +28,9 @@ from espnet.nets.pytorch_backend.transformer.subsampling import (
     TooShortUttError,
     check_short_utt,
 )
+from typeguard import typechecked
+
+from espnet2.asr.encoder.abs_encoder import AbsEncoder
 
 
 class TransformerEncoder(AbsEncoder):

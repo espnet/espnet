@@ -6,9 +6,6 @@
 from typing import Optional, Tuple
 
 import torch
-from typeguard import typechecked
-
-from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet.nets.pytorch_backend.transformer.subsampling import (
@@ -19,6 +16,9 @@ from espnet.nets.pytorch_backend.transformer.subsampling import (
     TooShortUttError,
     check_short_utt,
 )
+from typeguard import typechecked
+
+from espnet2.asr.encoder.abs_encoder import AbsEncoder
 
 
 class LinearEncoder(AbsEncoder):

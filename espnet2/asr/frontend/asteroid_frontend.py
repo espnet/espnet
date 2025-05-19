@@ -82,9 +82,9 @@ class AsteroidFrontend(AbsFrontend):
             Tensor: Frame-wise output (B, T', D).
         """
         # input check
-        assert (
-            len(input.size()) == 2
-        ), "The number of dimensions of input tensor must be 2!"
+        assert len(input.size()) == 2, (
+            "The number of dimensions of input tensor must be 2!"
+        )
 
         with torch.cuda.amp.autocast(enabled=False):
             # reflect padding to match lengths of in/out

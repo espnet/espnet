@@ -83,7 +83,7 @@ class DropoutNd(nn.Module):
         super().__init__()
         if p < 0 or p >= 1:
             raise ValueError(
-                "dropout probability has to be in [0, 1), " "but got {}".format(p)
+                "dropout probability has to be in [0, 1), but got {}".format(p)
             )
         self.p = p
         self.tie = tie
