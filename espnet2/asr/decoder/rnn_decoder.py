@@ -3,12 +3,12 @@ import random
 import numpy as np
 import torch
 import torch.nn.functional as F
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask, to_device
+from espnet.nets.pytorch_backend.rnn.attentions import initial_att
 from typeguard import typechecked
 
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.utils.get_default_kwargs import get_default_kwargs
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask, to_device
-from espnet.nets.pytorch_backend.rnn.attentions import initial_att
 
 
 def build_attention_list(

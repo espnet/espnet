@@ -166,12 +166,15 @@ class GPURNNT:
         if training:
             grads *= 0.0  # zero grads
 
-        used_offset, (
-            denom,
-            alphas,
-            betas,
-            llForward,
-            llBackward,
+        (
+            used_offset,
+            (
+                denom,
+                alphas,
+                betas,
+                llForward,
+                llBackward,
+            ),
         ) = self._prepare_workspace()
 
         # START EXECUTION
@@ -440,13 +443,16 @@ class MultiblankGPURNNT(GPURNNT):
         if training:
             grads *= 0.0  # zero grads
 
-        _, (
-            denom,
-            alphas,
-            betas,
-            llForward,
-            llBackward,
-            bigblank_durations,
+        (
+            _,
+            (
+                denom,
+                alphas,
+                betas,
+                llForward,
+                llBackward,
+                bigblank_durations,
+            ),
         ) = self._prepare_workspace()
 
         # START EXECUTION

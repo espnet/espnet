@@ -64,9 +64,9 @@ class MelSpectrogramTorch(AbsFrontend):
         self, input: torch.Tensor, input_length: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         # input check
-        assert (
-            len(input.size()) == 2
-        ), "The number of dimensions of input tensor must be 2!"
+        assert len(input.size()) == 2, (
+            "The number of dimensions of input tensor must be 2!"
+        )
 
         with torch.no_grad():
             with torch.cuda.amp.autocast(enabled=False):

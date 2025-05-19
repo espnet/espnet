@@ -7,10 +7,10 @@
 from typing import Optional, Tuple
 
 import torch
+from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
 from typeguard import typechecked
 
 from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
-from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
 
 
 class LengthAdaptorPostEncoder(AbsPostEncoder):

@@ -4,11 +4,11 @@ from typing import Optional, Tuple, Union
 
 import humanfriendly
 import torch
+from espnet.nets.pytorch_backend.frontends.frontend import Frontend
 from typeguard import typechecked
 
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.utils.get_default_kwargs import get_default_kwargs
-from espnet.nets.pytorch_backend.frontends.frontend import Frontend
 
 
 class S3prlFrontend(AbsFrontend):
@@ -57,9 +57,9 @@ class S3prlFrontend(AbsFrontend):
 
         if layer != -1:
             layer_selections = [layer]
-            assert (
-                not multilayer_feature
-            ), "multilayer feature will be deactivated, when specific layer used"
+            assert not multilayer_feature, (
+                "multilayer feature will be deactivated, when specific layer used"
+            )
         else:
             layer_selections = None
         featurizer = Featurizer(upstream, layer_selections=layer_selections)
@@ -81,9 +81,9 @@ class S3prlFrontend(AbsFrontend):
         Output - sequence of tiled representations
                  shape: (batch_size, seq_len * factor, feature_dim)
         """
-        assert (
-            len(feature.shape) == 3
-        ), "Input argument `feature` has invalid shape: {}".format(feature.shape)
+        assert len(feature.shape) == 3, (
+            "Input argument `feature` has invalid shape: {}".format(feature.shape)
+        )
         tiled_feature = feature.repeat(1, 1, self.tile_factor)
         tiled_feature = tiled_feature.reshape(
             feature.size(0), feature.size(1) * self.tile_factor, feature.size(2)

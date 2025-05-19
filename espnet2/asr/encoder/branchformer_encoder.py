@@ -16,11 +16,6 @@ from typing import List, Optional, Tuple, Union
 
 import numpy
 import torch
-from typeguard import typechecked
-
-from espnet2.asr.encoder.abs_encoder import AbsEncoder
-from espnet2.asr.layers.cgmlp import ConvolutionalGatingMLP
-from espnet2.asr.layers.fastformer import FastSelfAttention
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.transformer.attention import (  # noqa: H301
     LegacyRelPositionMultiHeadedAttention,
@@ -44,6 +39,11 @@ from espnet.nets.pytorch_backend.transformer.subsampling import (
     TooShortUttError,
     check_short_utt,
 )
+from typeguard import typechecked
+
+from espnet2.asr.encoder.abs_encoder import AbsEncoder
+from espnet2.asr.layers.cgmlp import ConvolutionalGatingMLP
+from espnet2.asr.layers.fastformer import FastSelfAttention
 
 
 class BranchformerEncoderLayer(torch.nn.Module):
@@ -74,9 +74,9 @@ class BranchformerEncoderLayer(torch.nn.Module):
         stochastic_depth_rate: float = 0.0,
     ):
         super().__init__()
-        assert (attn is not None) or (
-            cgmlp is not None
-        ), "At least one branch should be valid"
+        assert (attn is not None) or (cgmlp is not None), (
+            "At least one branch should be valid"
+        )
 
         self.size = size
         self.attn = attn
@@ -112,9 +112,9 @@ class BranchformerEncoderLayer(torch.nn.Module):
                 self.merge_proj = torch.nn.Linear(size, size)
 
             elif merge_method == "fixed_ave":
-                assert (
-                    0.0 <= cgmlp_weight <= 1.0
-                ), "cgmlp weight should be between 0.0 and 1.0"
+                assert 0.0 <= cgmlp_weight <= 1.0, (
+                    "cgmlp weight should be between 0.0 and 1.0"
+                )
 
                 # remove the other branch if only one branch is used
                 if cgmlp_weight == 0.0:

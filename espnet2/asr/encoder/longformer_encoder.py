@@ -6,10 +6,6 @@
 from typing import List, Optional, Tuple
 
 import torch
-from typeguard import typechecked
-
-from espnet2.asr.ctc import CTC
-from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
 from espnet.nets.pytorch_backend.conformer.convolution import ConvolutionModule
 from espnet.nets.pytorch_backend.conformer.encoder_layer import EncoderLayer
 from espnet.nets.pytorch_backend.nets_utils import get_activation, make_pad_mask
@@ -32,6 +28,10 @@ from espnet.nets.pytorch_backend.transformer.subsampling import (
     TooShortUttError,
     check_short_utt,
 )
+from typeguard import typechecked
+
+from espnet2.asr.ctc import CTC
+from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
 
 
 class LongformerEncoder(ConformerEncoder):
@@ -234,11 +234,10 @@ class LongformerEncoder(ConformerEncoder):
         self.selfattention_layer_type = selfattention_layer_type
         if selfattention_layer_type == "lf_selfattn":
             assert pos_enc_layer_type == "abs_pos"
-            from longformer.longformer import LongformerConfig
-
             from espnet.nets.pytorch_backend.transformer.longformer_attention import (
                 LongformerAttention,
             )
+            from longformer.longformer import LongformerConfig
 
             encoder_selfattn_layer = LongformerAttention
 

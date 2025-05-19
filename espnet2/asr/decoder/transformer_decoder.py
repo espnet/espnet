@@ -2,13 +2,11 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """Decoder definition."""
+
 import logging
 from typing import Any, List, Sequence, Tuple
 
 import torch
-from typeguard import typechecked
-
-from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
 from espnet.nets.pytorch_backend.transformer.decoder_layer import DecoderLayer
@@ -27,6 +25,9 @@ from espnet.nets.scorer_interface import (
     BatchScorerInterface,
     MaskParallelScorerInterface,
 )
+from typeguard import typechecked
+
+from espnet2.asr.decoder.abs_decoder import AbsDecoder
 
 
 class BaseTransformerDecoder(

@@ -7,7 +7,6 @@ References:
 """
 
 import torch
-
 from espnet.nets.pytorch_backend.nets_utils import get_activation
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 
@@ -35,9 +34,9 @@ class MultiConvolutionalSpatialGatingUnit(torch.nn.Module):
         kernel_sizes = list(map(int, kernel_sizes.split(",")))
         no_kernels = len(kernel_sizes)
 
-        assert (
-            n_channels % no_kernels == 0
-        ), f"{n_channels} input channels cannot be divided between {no_kernels} kernels"
+        assert n_channels % no_kernels == 0, (
+            f"{n_channels} input channels cannot be divided between {no_kernels} kernels"
+        )
 
         self.arch_type = arch_type
         if arch_type in ["sum", "weighted_sum"]:

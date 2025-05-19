@@ -7,10 +7,6 @@ import logging
 from typing import List, Optional, Tuple, Union
 
 import torch
-from typeguard import typechecked
-
-from espnet2.asr.ctc import CTC
-from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet.nets.pytorch_backend.conformer.convolution import ConvolutionModule
 from espnet.nets.pytorch_backend.conformer.encoder_layer import EncoderLayer
 from espnet.nets.pytorch_backend.nets_utils import (
@@ -48,6 +44,10 @@ from espnet.nets.pytorch_backend.transformer.subsampling import (
     TooShortUttError,
     check_short_utt,
 )
+from typeguard import typechecked
+
+from espnet2.asr.ctc import CTC
+from espnet2.asr.encoder.abs_encoder import AbsEncoder
 
 
 class ConformerEncoder(AbsEncoder):
