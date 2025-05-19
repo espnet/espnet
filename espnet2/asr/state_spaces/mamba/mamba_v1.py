@@ -8,7 +8,7 @@
 #     https://arxiv.org/abs/2401.09417
 
 
-import math 
+import math
 from typing import Optional
 
 import torch
@@ -303,3 +303,79 @@ class Mamba(nn.Module):
                 conv_state.zero_()
                 ssm_state.zero_()
         return conv_state, ssm_state
+
+class Block(nn.Module):
+    def __init__(
+        self,
+        dim,
+        mixer_cls,
+        norm_cls=nn.LayerNorm,
+        fused_add_norm=False,
+        residual_in_fp32=False,
+    ):
+        """
+        Simple block wrapping a mixer class with LayerNorm/RMSNorm and residual connection
+
+        This Block has a slightly different structure compared to a regular
+        prenorm Transformer block.
+        The standard block is: LN -> MHA/MLP -> Add.
+        [Ref: https://arxiv.org/abs/2002.04745]
+        Here we have: Add -> LN -> Mixer, returning both
+        the hidden_states (output of the mixer) and the residual.
+        This is purely for performance reasons, as we can fuse add and LayerNorm.
+        The residual needs to be provided (except for the very first block).
+        """
+        super().__init__()
+        self.residual_in_fp32 = residual_in_fp32
+        self.fused_add_norm = fused_add_norm
+        self.mixer = mixer_cls(dim)
+        self.norm = norm_cls(dim)
+
+        if self.fused_add_norm:
+            assert RMSNorm is not None, "RMSNorm import failed"
+            assert isinstance(self.norm, (nn.LayerNorm, RMSNorm)), "RMSNorm only supported for fused add-norm"
+
+    def forward(
+        self,
+        hidden_states: Tensor,
+        residual: Optional[Tensor] = None,
+        mask: Optional[Tensor] = None,
+        inference_params=None,
+        flip_fn=None,
+    ):
+        r"""Pass the input through the encoder layer.
+
+        Args:
+            hidden_states: the sequence to the encoder layer (required).
+            residual: hidden_states = Mixer(LN(residual))
+            mask: the mask for the input sequence (optional).
+        """
+        if not self.fused_add_norm:
+            residual = (hidden_states + self.norm(residual)) if residual is not None else hidden_states
+            hidden_states = self.norm(residual.to(dtype=self.norm.weight.dtype))
+            if self.residual_in_fp32:
+                residual = residual.to(dtype=torch.float32)
+                
+        else:
+            fused_add_norm_fn = rms_norm_fn if isinstance(self.norm, RMSNorm) else layer_norm_fn
+            hidden_states, residual = fused_add_norm_fn(
+                hidden_states,
+                self.norm.weight,
+                self.norm.bias,
+                residual=residual,
+                prenorm=True,
+                residual_in_fp32=self.residual_in_fp32,
+                eps=self.norm.eps,
+            )
+
+        hidden_state = self.mixer(hidden_states, mask=mask, inference_params=inference_params, flip_fn=flip_fn)
+        hidden_state = hidden_states + residual
+        return hidden_state, residual
+    
+    def allocate_inference_cache(
+        self,
+        batch_size,
+        max_seqlen,
+        **kwargs,
+    ):
+        return self.mixer.allocate_inference_cache(batch_size, max_seqlen, **kwargs)
