@@ -8,12 +8,6 @@ import logging
 from typing import Optional, Tuple
 
 import torch
-from typeguard import typechecked
-
-from espnet2.asr.ctc import CTC
-from espnet2.asr.encoder.abs_encoder import AbsEncoder
-from espnet2.asr.layers.cgmlp import ConvolutionalGatingMLP
-from espnet2.asr.layers.fastformer import FastSelfAttention
 from espnet.nets.pytorch_backend.nets_utils import get_activation, make_pad_mask
 from espnet.nets.pytorch_backend.transformer.attention import (  # noqa: H301
     LegacyRelPositionMultiHeadedAttention,
@@ -43,6 +37,12 @@ from espnet.nets.pytorch_backend.transformer.subsampling import (
     TooShortUttError,
     check_short_utt,
 )
+from typeguard import typechecked
+
+from espnet2.asr.ctc import CTC
+from espnet2.asr.encoder.abs_encoder import AbsEncoder
+from espnet2.asr.layers.cgmlp import ConvolutionalGatingMLP
+from espnet2.asr.layers.fastformer import FastSelfAttention
 
 
 class EBranchformerEncoderLayer(torch.nn.Module):

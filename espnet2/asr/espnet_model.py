@@ -3,6 +3,12 @@ from contextlib import contextmanager
 from typing import Dict, List, Optional, Tuple, Union
 
 import torch
+from espnet.nets.e2e_asr_common import ErrorCalculator
+from espnet.nets.pytorch_backend.nets_utils import th_accuracy
+from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
+from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import (  # noqa: H301
+    LabelSmoothingLoss,
+)
 from packaging.version import parse as V
 from typeguard import typechecked
 
@@ -19,12 +25,6 @@ from espnet2.asr_transducer.utils import get_transducer_task_io
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
-from espnet.nets.e2e_asr_common import ErrorCalculator
-from espnet.nets.pytorch_backend.nets_utils import th_accuracy
-from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
-from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import (  # noqa: H301
-    LabelSmoothingLoss,
-)
 
 if V(torch.__version__) >= V("1.6.0"):
     from torch.cuda.amp import autocast
@@ -169,9 +169,9 @@ class ESPnetASRModel(AbsESPnetModel):
             # and threw an Exception in the multi-GPU experiment.
             # thanks Jeff Farris for pointing out the issue.
             if ctc_weight < 1.0:
-                assert (
-                    decoder is not None
-                ), "decoder should not be None when attention is used"
+                assert decoder is not None, (
+                    "decoder should not be None when attention is used"
+                )
             else:
                 decoder = None
                 logging.warning("Set decoder to none as ctc_weight==1.0")
@@ -200,9 +200,9 @@ class ESPnetASRModel(AbsESPnetModel):
         self.is_encoder_whisper = "Whisper" in type(self.encoder).__name__
 
         if self.is_encoder_whisper:
-            assert (
-                self.frontend is None
-            ), "frontend should be None when using full Whisper model"
+            assert self.frontend is None, (
+                "frontend should be None when using full Whisper model"
+            )
 
         if lang_token_id != -1:
             self.lang_token_id = torch.tensor([[lang_token_id]])

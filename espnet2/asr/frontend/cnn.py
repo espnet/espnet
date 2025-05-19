@@ -132,7 +132,6 @@ class CNNFrontend(AbsFrontend):
         normalize_audio: bool = False,
         normalize_output: bool = False,
     ):
-
         super().__init__()
 
         if norm_mode not in ["group_norm", "layer_norm"]:

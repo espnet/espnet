@@ -7,6 +7,7 @@
 
 
 """Encoder definition."""
+
 import contextlib
 import copy
 import logging
@@ -21,11 +22,11 @@ from typing import Dict, Optional, Tuple
 import numpy as np
 import torch
 import torch.nn as nn
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from filelock import FileLock
 from typeguard import typechecked
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 
 logger = logging.getLogger(__name__)
 
@@ -249,9 +250,7 @@ class FairseqAVHubertEncoder(AbsEncoder):
                     )  # B
                     noise_ind = start_ind.view(-1, 1) + torch.arange(
                         0, xs_pad.size(1)
-                    ).unsqueeze(0).repeat(
-                        xs_pad.size(0), 1
-                    )  # B,T
+                    ).unsqueeze(0).repeat(xs_pad.size(0), 1)  # B,T
                     noise_weight = (
                         torch.rand([xs_pad.size(0), 1, 1]).to(xs_pad.device)
                         * self.max_noise_weight
@@ -540,7 +539,7 @@ class AVHubertConfig:
     no_token_positional_embeddings: bool = field(
         default=False,
         metadata={
-            "help": "if set, disables positional embeddings " "(outside self attention)"
+            "help": "if set, disables positional embeddings (outside self attention)"
         },
     )
     decoder_dropout: float = field(
@@ -549,13 +548,13 @@ class AVHubertConfig:
     decoder_attention_dropout: float = field(
         default=0.1,
         metadata={
-            "help": "dropout probability for attention weights " "inside the decoder"
+            "help": "dropout probability for attention weights inside the decoder"
         },
     )
     decoder_activation_dropout: float = field(
         default=0.0,
         metadata={
-            "help": "dropout probability after activation in FFN " "inside the decoder"
+            "help": "dropout probability after activation in FFN inside the decoder"
         },
     )
     max_target_positions: int = field(

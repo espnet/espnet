@@ -9,13 +9,13 @@ from typing import Dict, List
 
 import numpy
 import torch
+from espnet.nets.beam_search import Hypothesis
+from espnet.nets.beam_search_partially_AR import PartiallyARBeamSearch
+from espnet.nets.scorer_interface import MaskParallelScorerInterface, ScorerInterface
 
 from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.text.token_id_converter import TokenIDConverter
-from espnet.nets.beam_search import Hypothesis
-from espnet.nets.beam_search_partially_AR import PartiallyARBeamSearch
-from espnet.nets.scorer_interface import MaskParallelScorerInterface, ScorerInterface
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
@@ -42,9 +42,9 @@ class PartiallyARInference(torch.nn.Module):
         super().__init__()
         # check if scorer is a MaskParallelScorerInterface object
         for k, v in scorers.items():
-            assert isinstance(
-                v, MaskParallelScorerInterface
-            ), f"{k} is not a MaskParallelScorerInterface object"
+            assert isinstance(v, MaskParallelScorerInterface), (
+                f"{k} is not a MaskParallelScorerInterface object"
+            )
 
         self.ctc = ctc
         self.decoder = decoder
@@ -174,9 +174,7 @@ class PartiallyARInference(torch.nn.Module):
                     for x in groupby(
                         hypo.yseq[len(self.beam_search.masks[i_hypo][0]) :]
                     )
-                ][
-                    :-1
-                ]  # remove eos
+                ][:-1]  # remove eos
                 result = result[:res_mask] + hypo_list + result[res_mask + 1 :]
 
         # pad with mask tokens to ensure compatibility with mask-ctc output

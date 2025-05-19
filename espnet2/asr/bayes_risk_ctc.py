@@ -76,11 +76,14 @@ class BayesRiskCTC(torch.nn.Module):
                 output_beam=1e20,
             )
 
-            (arc_u_idx, arc_t_idx, arc_k_idx, arc_b_idx), (
-                state_u_idx,
-                state_t_idx,
-                state_k_idx,
-                state_b_idx,
+            (
+                (arc_u_idx, arc_t_idx, arc_k_idx, arc_b_idx),
+                (
+                    state_u_idx,
+                    state_t_idx,
+                    state_k_idx,
+                    state_b_idx,
+                ),
             ) = self.find_all_index(
                 ragged_lat, ctc_graphs, dense_fsa_vec, arc_map_a, arc_map_b
             )
@@ -227,8 +230,9 @@ class BayesRiskCTC(torch.nn.Module):
 
         state_t_idx[start_state_id], state_u_idx[start_state_id] = 0, 0
         state_b_idx[start_state_id] = torch.arange(num_fsas, device=ctc_graph.device)
-        state_k_idx, arc_k_idx = torch.clip(state_k_idx, min=0), torch.clip(
-            arc_k_idx, min=0
+        state_k_idx, arc_k_idx = (
+            torch.clip(state_k_idx, min=0),
+            torch.clip(arc_k_idx, min=0),
         )
 
         return (arc_u_idx, arc_t_idx, arc_k_idx, arc_b_idx), (

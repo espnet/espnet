@@ -8,6 +8,7 @@
 
 
 """Encoder definition."""
+
 import contextlib
 import copy
 import logging
@@ -17,12 +18,12 @@ from typing import List, Optional, Tuple
 
 import torch
 import yaml
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from filelock import FileLock
 from typeguard import typechecked
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
-from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 
 
 class TorchAudioHuBERTPretrainEncoder(AbsEncoder):
@@ -531,9 +532,9 @@ class FairseqHubertPretrainEncoder(AbsEncoder):
         self.use_amp = use_amp
         try:
             from fairseq.data.dictionary import Dictionary
-            from fairseq.models.hubert.hubert import HubertConfig  # noqa: H301
-            from fairseq.models.hubert.hubert import HubertModel  # noqa: H301
             from fairseq.models.hubert.hubert import (  # noqa: H301
+                HubertConfig,  # noqa: H301
+                HubertModel,  # noqa: H301
                 HubertPretrainingConfig,
             )
         except Exception as e:
