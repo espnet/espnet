@@ -47,9 +47,15 @@ def collect_stats(
         sq_dict = defaultdict(lambda: 0)
         count_dict = defaultdict(lambda: 0)
 
+        # NOTE(Jinchuan): In case datadir_writer writes nothing,
+        # still create the folder
+        (output_dir / mode).mkdir(parents=True, exist_ok=True)
         with DatadirWriter(output_dir / mode) as datadir_writer:
             for iiter, (keys, batch) in enumerate(itr, 1):
                 batch = to_device(batch, "cuda" if ngpu > 0 else "cpu")
+
+                # remove structured items in collect_stats
+                batch = {k: v for k, v in batch.items() if isinstance(v, torch.Tensor)}
 
                 # 1. Write shape file
                 for name in batch:

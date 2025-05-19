@@ -109,6 +109,7 @@ if [ -n "${segments}" ]; then
         pyscripts/audio/format_wav_scp.py \
             ${opts} \
             --fs ${fs} \
+            --name ${out_filename} \
             --audio-format "${audio_format}" \
             "--segment=${logdir}/segments.JOB" \
             --multi-columns-input "${multi_columns_input}" \
@@ -130,6 +131,7 @@ else
         pyscripts/audio/format_wav_scp.py \
         ${opts} \
         --fs "${fs}" \
+        --name ${out_filename} \
         --audio-format "${audio_format}" \
         --multi-columns-input "${multi_columns_input}" \
         --multi-columns-output "${multi_columns_output}" \
@@ -141,7 +143,7 @@ ls ${outdir}/format.* > /dev/null
 
 # concatenate the .scp files together.
 for n in $(seq ${nj}); do
-    cat "${outdir}/format${suffix}.${n}/wav.scp" || exit 1;
+    cat "${outdir}/format${suffix}.${n}/${out_filename}.scp" || exit 1;
 done > "${dir}/${out_filename}" || exit 1
 
 if "${write_utt2num_samples}"; then
