@@ -8,43 +8,80 @@
 #     https://arxiv.org/abs/2401.09417
 
 
-"""We want triton==2.1.0 or triton==2.2.0 or triton==2.3.0 for this
-"""
+"""We want triton==2.1.0 or triton==2.2.0 or triton==2.3.0 for this"""
 
 import math
+
 import torch
 import torch.nn.functional as F
-
 import triton
 import triton.language as tl
-
 from einops import rearrange, repeat
-
 from mamba_ssm.ops.triton.softplus import softplus
 
 
 @triton.heuristics({"HAS_DT_BIAS": lambda args: args["dt_bias_ptr"] is not None})
 @triton.heuristics({"HAS_D": lambda args: args["D_ptr"] is not None})
 @triton.heuristics({"HAS_Z": lambda args: args["z_ptr"] is not None})
-@triton.heuristics({"HAS_STATE_BATCH_INDICES": lambda args: args["state_batch_indices_ptr"] is not None})
-@triton.heuristics({"BLOCK_SIZE_DSTATE": lambda args: triton.next_power_of_2(args["dstate"])})
+@triton.heuristics(
+    {
+        "HAS_STATE_BATCH_INDICES": lambda args: args["state_batch_indices_ptr"]
+        is not None
+    }
+)
+@triton.heuristics(
+    {"BLOCK_SIZE_DSTATE": lambda args: triton.next_power_of_2(args["dstate"])}
+)
 @triton.jit
 def _selective_scan_update_kernel(
     # Pointers to matrices
-    state_ptr, x_ptr, dt_ptr, dt_bias_ptr, A_ptr, B_ptr, C_ptr, D_ptr, z_ptr, out_ptr, state_batch_indices_ptr,
+    state_ptr,
+    x_ptr,
+    dt_ptr,
+    dt_bias_ptr,
+    A_ptr,
+    B_ptr,
+    C_ptr,
+    D_ptr,
+    z_ptr,
+    out_ptr,
+    state_batch_indices_ptr,
     # Matrix dimensions
-    batch, nheads, dim, dstate, nheads_ngroups_ratio,
+    batch,
+    nheads,
+    dim,
+    dstate,
+    nheads_ngroups_ratio,
     # Strides
-    stride_state_batch, stride_state_head, stride_state_dim, stride_state_dstate,
-    stride_x_batch, stride_x_head, stride_x_dim,
-    stride_dt_batch, stride_dt_head, stride_dt_dim,
-    stride_dt_bias_head, stride_dt_bias_dim,
-    stride_A_head, stride_A_dim, stride_A_dstate,
-    stride_B_batch, stride_B_group, stride_B_dstate,
-    stride_C_batch, stride_C_group, stride_C_dstate,
-    stride_D_head, stride_D_dim,
-    stride_z_batch, stride_z_head, stride_z_dim,
-    stride_out_batch, stride_out_head, stride_out_dim,
+    stride_state_batch,
+    stride_state_head,
+    stride_state_dim,
+    stride_state_dstate,
+    stride_x_batch,
+    stride_x_head,
+    stride_x_dim,
+    stride_dt_batch,
+    stride_dt_head,
+    stride_dt_dim,
+    stride_dt_bias_head,
+    stride_dt_bias_dim,
+    stride_A_head,
+    stride_A_dim,
+    stride_A_dstate,
+    stride_B_batch,
+    stride_B_group,
+    stride_B_dstate,
+    stride_C_batch,
+    stride_C_group,
+    stride_C_dstate,
+    stride_D_head,
+    stride_D_dim,
+    stride_z_batch,
+    stride_z_head,
+    stride_z_dim,
+    stride_out_batch,
+    stride_out_head,
+    stride_out_dim,
     # Meta-parameters
     DT_SOFTPLUS: tl.constexpr,
     TIE_HDIM: tl.constexpr,
@@ -79,14 +116,18 @@ def _selective_scan_update_kernel(
 
     offs_m = pid_m * BLOCK_SIZE_M + tl.arange(0, BLOCK_SIZE_M)
     offs_n = tl.arange(0, BLOCK_SIZE_DSTATE)
-    state_ptrs = state_ptr + (offs_m[:, None] * stride_state_dim + offs_n[None, :] * stride_state_dstate)
+    state_ptrs = state_ptr + (
+        offs_m[:, None] * stride_state_dim + offs_n[None, :] * stride_state_dstate
+    )
     x_ptrs = x_ptr + offs_m * stride_x_dim
     dt_ptrs = dt_ptr + offs_m * stride_dt_dim
     if HAS_DT_BIAS:
         dt_bias_ptrs = dt_bias_ptr + offs_m * stride_dt_bias_dim
     if HAS_D:
         D_ptr += pid_h * stride_D_head
-    A_ptrs = A_ptr + (offs_m[:, None] * stride_A_dim + offs_n[None, :] * stride_A_dstate)
+    A_ptrs = A_ptr + (
+        offs_m[:, None] * stride_A_dim + offs_n[None, :] * stride_A_dstate
+    )
     B_ptrs = B_ptr + offs_n * stride_B_dstate
     C_ptrs = C_ptr + offs_n * stride_C_dstate
     if HAS_D:
@@ -95,7 +136,9 @@ def _selective_scan_update_kernel(
         z_ptrs = z_ptr + offs_m * stride_z_dim
     out_ptrs = out_ptr + offs_m * stride_out_dim
 
-    state = tl.load(state_ptrs, mask=(offs_m[:, None] < dim) & (offs_n[None, :] < dstate), other=0.0)
+    state = tl.load(
+        state_ptrs, mask=(offs_m[:, None] < dim) & (offs_n[None, :] < dstate), other=0.0
+    )
     x = tl.load(x_ptrs, mask=offs_m < dim, other=0.0).to(tl.float32)
     if not TIE_HDIM:
         dt = tl.load(dt_ptrs, mask=offs_m < dim, other=0.0).to(tl.float32)
@@ -103,7 +146,9 @@ def _selective_scan_update_kernel(
             dt += tl.load(dt_bias_ptrs, mask=offs_m < dim, other=0.0).to(tl.float32)
         if DT_SOFTPLUS:
             dt = tl.where(dt <= 20.0, softplus(dt), dt)
-        A = tl.load(A_ptrs, mask=(offs_m[:, None] < dim) & (offs_n[None, :] < dstate), other=0.0).to(tl.float32)
+        A = tl.load(
+            A_ptrs, mask=(offs_m[:, None] < dim) & (offs_n[None, :] < dstate), other=0.0
+        ).to(tl.float32)
         dA = tl.exp(A * dt[:, None])
     else:
         dt = tl.load(dt_ptr).to(tl.float32)
@@ -126,7 +171,9 @@ def _selective_scan_update_kernel(
     else:
         dB = B * dt  # vector of size (dstate,)
     state = state * dA + dB * x[:, None]
-    tl.store(state_ptrs, state, mask=(offs_m[:, None] < dim) & (offs_n[None, :] < dstate))
+    tl.store(
+        state_ptrs, state, mask=(offs_m[:, None] < dim) & (offs_n[None, :] < dstate)
+    )
     out = tl.sum(state * C[None, :], axis=1)
     if HAS_D:
         out += x * D
@@ -135,8 +182,19 @@ def _selective_scan_update_kernel(
     tl.store(out_ptrs, out, mask=offs_m < dim)
 
 
-def selective_state_update(state, x, dt, A, B, C, D=None, z=None, dt_bias=None, dt_softplus=False,
-                           state_batch_indices=None):
+def selective_state_update(
+    state,
+    x,
+    dt,
+    A,
+    B,
+    C,
+    D=None,
+    z=None,
+    dt_bias=None,
+    dt_softplus=False,
+    state_batch_indices=None,
+):
     """
     Argument:
         state: (batch, dim, dstate) or (batch, nheads, dim, dstate)
@@ -190,30 +248,70 @@ def selective_state_update(state, x, dt, A, B, C, D=None, z=None, dt_bias=None, 
     if state_batch_indices is not None:
         assert state_batch_indices.shape == (batch,)
     out = torch.empty_like(x)
-    grid = lambda META: (triton.cdiv(dim, META['BLOCK_SIZE_M']), batch, nheads)
-    z_strides = ((z.stride(0), z.stride(1), z.stride(2)) if z is not None else (0, 0, 0))
+    grid = lambda META: (triton.cdiv(dim, META["BLOCK_SIZE_M"]), batch, nheads)
+    z_strides = (z.stride(0), z.stride(1), z.stride(2)) if z is not None else (0, 0, 0)
     # We don't want autotune since it will overwrite the state
     # We instead tune by hand.
-    BLOCK_SIZE_M, num_warps = ((32, 4) if dstate <= 16
-                               else ((16, 4) if dstate <= 32 else
-                                     ((8, 4) if dstate <= 64 else
-                                      ((4, 4) if dstate <= 128 else
-                                       ((4, 8))))))
-    tie_hdim = A.stride(-1) == 0 and A.stride(-2) == 0 and dt.stride(-1) == 0 and dt_bias.stride(-1) == 0
+    BLOCK_SIZE_M, num_warps = (
+        (32, 4)
+        if dstate <= 16
+        else (
+            (16, 4)
+            if dstate <= 32
+            else ((8, 4) if dstate <= 64 else ((4, 4) if dstate <= 128 else ((4, 8))))
+        )
+    )
+    tie_hdim = (
+        A.stride(-1) == 0
+        and A.stride(-2) == 0
+        and dt.stride(-1) == 0
+        and dt_bias.stride(-1) == 0
+    )
     with torch.cuda.device(x.device.index):
         _selective_scan_update_kernel[grid](
-            state, x, dt, dt_bias, A, B, C, D, z, out, state_batch_indices,
-            batch, nheads, dim, dstate, nheads // ngroups,
-            state.stride(0), state.stride(1), state.stride(2), state.stride(3),
-            x.stride(0), x.stride(1), x.stride(2),
-            dt.stride(0), dt.stride(1), dt.stride(2),
+            state,
+            x,
+            dt,
+            dt_bias,
+            A,
+            B,
+            C,
+            D,
+            z,
+            out,
+            state_batch_indices,
+            batch,
+            nheads,
+            dim,
+            dstate,
+            nheads // ngroups,
+            state.stride(0),
+            state.stride(1),
+            state.stride(2),
+            state.stride(3),
+            x.stride(0),
+            x.stride(1),
+            x.stride(2),
+            dt.stride(0),
+            dt.stride(1),
+            dt.stride(2),
             *(dt_bias.stride(0), dt_bias.stride(1)) if dt_bias is not None else 0,
-            A.stride(0), A.stride(1), A.stride(2),
-            B.stride(0), B.stride(1), B.stride(2),
-            C.stride(0), C.stride(1), C.stride(2),
+            A.stride(0),
+            A.stride(1),
+            A.stride(2),
+            B.stride(0),
+            B.stride(1),
+            B.stride(2),
+            C.stride(0),
+            C.stride(1),
+            C.stride(2),
             *(D.stride(0), D.stride(1)) if D is not None else 0,
-            z_strides[0], z_strides[1], z_strides[2],
-            out.stride(0), out.stride(1), out.stride(2),
+            z_strides[0],
+            z_strides[1],
+            z_strides[2],
+            out.stride(0),
+            out.stride(1),
+            out.stride(2),
             dt_softplus,
             tie_hdim,
             BLOCK_SIZE_M,
@@ -224,7 +322,9 @@ def selective_state_update(state, x, dt, A, B, C, D=None, z=None, dt_bias=None, 
     return out
 
 
-def selective_state_update_ref(state, x, dt, A, B, C, D=None, z=None, dt_bias=None, dt_softplus=False):
+def selective_state_update_ref(
+    state, x, dt, A, B, C, D=None, z=None, dt_bias=None, dt_softplus=False
+):
     """
     Argument:
         state: (batch, dim, dstate) or (batch, nheads, dim, dstate)
@@ -274,11 +374,17 @@ def selective_state_update_ref(state, x, dt, A, B, C, D=None, z=None, dt_bias=No
         assert dt_bias.shape == (nheads, dim)
         dt = dt + dt_bias
     dt = F.softplus(dt) if dt_softplus else dt
-    dA = torch.exp(rearrange(dt, "b h d -> b h d 1") * A)  # (batch, nheads, dim, dstate)
+    dA = torch.exp(
+        rearrange(dt, "b h d -> b h d 1") * A
+    )  # (batch, nheads, dim, dstate)
     B = repeat(B, "b g n -> b (g h) n", h=nheads // ngroups)  # (batch, nheads, dstate)
     C = repeat(C, "b g n -> b (g h) n", h=nheads // ngroups)  # (batch, nheads, dstate)
-    dB = rearrange(dt, "b h d -> b h d 1") * rearrange(B, "b h n -> b h 1 n")  # (batch, nheads, dim, dstate)
-    state.copy_(state * dA + dB * rearrange(x, "b h d -> b h d 1"))  # (batch, dim, dstate
+    dB = rearrange(dt, "b h d -> b h d 1") * rearrange(
+        B, "b h n -> b h 1 n"
+    )  # (batch, nheads, dim, dstate)
+    state.copy_(
+        state * dA + dB * rearrange(x, "b h d -> b h d 1")
+    )  # (batch, dim, dstate
     out = torch.einsum("bhdn,bhn->bhd", state.to(C.dtype), C)
     if D is not None:
         out += (x * D).to(out.dtype)

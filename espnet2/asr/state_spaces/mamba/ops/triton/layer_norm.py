@@ -11,10 +11,9 @@ import warnings
 
 import torch
 import torch.nn.functional as F
-from mamba_ssm.utils.torch import custom_bwd, custom_fwd
-
 import triton
 import triton.language as tl
+from mamba_ssm.utils.torch import custom_bwd, custom_fwd
 
 
 def layer_norm_ref(
@@ -60,9 +59,9 @@ def layer_norm_ref(
         x = x + x1
     if residual is not None:
         x = (x + residual).to(x.dtype)
-    out = F.layer_norm(x.to(weight.dtype), x.shape[-1:], weight=weight, bias=bias, eps=eps).to(
-        dtype
-    )
+    out = F.layer_norm(
+        x.to(weight.dtype), x.shape[-1:], weight=weight, bias=bias, eps=eps
+    ).to(dtype)
     if weight1 is None:
         return out if not prenorm else (out, x)
     else:
@@ -116,20 +115,22 @@ def rms_norm_ref(
     if residual is not None:
         x = (x + residual).to(x.dtype)
     rstd = 1 / torch.sqrt((x.square()).mean(dim=-1, keepdim=True) + eps)
-    out = ((x * rstd * weight) + bias if bias is not None else (x * rstd * weight)).to(dtype)
+    out = ((x * rstd * weight) + bias if bias is not None else (x * rstd * weight)).to(
+        dtype
+    )
     if weight1 is None:
         return out if not prenorm else (out, x)
     else:
-        out1 = ((x * rstd * weight1) + bias1 if bias1 is not None else (x * rstd * weight1)).to(
-            dtype
-        )
+        out1 = (
+            (x * rstd * weight1) + bias1 if bias1 is not None else (x * rstd * weight1)
+        ).to(dtype)
         return (out, out1) if not prenorm else (out, out1, x)
 
-def config_prune(configs):
 
+def config_prune(configs):
     if torch.version.hip:
         try:
-            # set warp size based on gcn architecure 
+            # set warp size based on gcn architecure
             gcn_arch_name = torch.cuda.get_device_properties(0).gcnArchName
             if "gfx10" in gcn_arch_name or "gfx11" in gcn_arch_name:
                 # radeon
@@ -140,34 +141,39 @@ def config_prune(configs):
         except AttributeError as e:
             # fall back to crude method to set warp size
             device_name = torch.cuda.get_device_properties(0).name
-            if 'instinct' in device_name.lower():
+            if "instinct" in device_name.lower():
                 warp_size = 64
             else:
                 warp_size = 32
-            warnings.warn(f"{e}, warp size set to {warp_size} based on device name: {device_name}", UserWarning)
+            warnings.warn(
+                f"{e}, warp size set to {warp_size} based on device name: {device_name}",
+                UserWarning,
+            )
 
     else:
-        # cuda 
-        warp_size = 32    
+        # cuda
+        warp_size = 32
 
     max_block_sz = 1024
     max_num_warps = max_block_sz // warp_size
     pruned_configs = [config for config in configs if config.num_warps <= max_num_warps]
     return pruned_configs
 
+
 configs_autotune = [
-        triton.Config({}, num_warps=1),
-        triton.Config({}, num_warps=2),
-        triton.Config({}, num_warps=4),
-        triton.Config({}, num_warps=8),
-        triton.Config({}, num_warps=16),
-        triton.Config({}, num_warps=32),
-        ]
+    triton.Config({}, num_warps=1),
+    triton.Config({}, num_warps=2),
+    triton.Config({}, num_warps=4),
+    triton.Config({}, num_warps=8),
+    triton.Config({}, num_warps=16),
+    triton.Config({}, num_warps=32),
+]
 
 pruned_configs_autotune = config_prune(configs_autotune)
 
+
 @triton.autotune(
-    configs = pruned_configs_autotune,
+    configs=pruned_configs_autotune,
     key=["N", "HAS_RESIDUAL", "STORE_RESIDUAL_OUT", "IS_RMS_NORM", "HAS_BIAS"],
 )
 # @triton.heuristics({"HAS_BIAS": lambda args: args["B"] is not None})
@@ -235,7 +241,9 @@ def _layer_norm_fwd_1pass_kernel(
     if HAS_DROPOUT:
         # Compute dropout mask
         # 7 rounds is good enough, and reduces register pressure
-        keep_mask = tl.rand(tl.load(SEEDS + row).to(tl.uint32), cols, n_rounds=7) > dropout_p
+        keep_mask = (
+            tl.rand(tl.load(SEEDS + row).to(tl.uint32), cols, n_rounds=7) > dropout_p
+        )
         x = tl.where(keep_mask, x / (1.0 - dropout_p), 0.0)
         if STORE_DROPOUT_MASK:
             tl.store(DROPOUT_MASK + row * N + cols, keep_mask, mask=cols < N)
@@ -248,7 +256,8 @@ def _layer_norm_fwd_1pass_kernel(
             # Compute dropout mask
             # 7 rounds is good enough, and reduces register pressure
             keep_mask = (
-                tl.rand(tl.load(SEEDS + M + row).to(tl.uint32), cols, n_rounds=7) > dropout_p
+                tl.rand(tl.load(SEEDS + M + row).to(tl.uint32), cols, n_rounds=7)
+                > dropout_p
             )
             x1 = tl.where(keep_mask, x1 / (1.0 - dropout_p), 0.0)
             if STORE_DROPOUT_MASK:
@@ -343,12 +352,19 @@ def _layer_norm_fwd(
         or x1 is not None
     ):
         residual_out = torch.empty(
-            M, N, device=x.device, dtype=residual_dtype if residual_dtype is not None else x.dtype
+            M,
+            N,
+            device=x.device,
+            dtype=residual_dtype if residual_dtype is not None else x.dtype,
         )
         assert residual_out.stride(-1) == 1
     else:
         residual_out = None
-    mean = torch.empty((M,), dtype=torch.float32, device=x.device) if not is_rms_norm else None
+    mean = (
+        torch.empty((M,), dtype=torch.float32, device=x.device)
+        if not is_rms_norm
+        else None
+    )
     rstd = torch.empty((M,), dtype=torch.float32, device=x.device)
     if dropout_p > 0.0:
         seeds = torch.randint(
@@ -357,7 +373,9 @@ def _layer_norm_fwd(
     else:
         seeds = None
     if return_dropout_mask and dropout_p > 0.0:
-        dropout_mask = torch.empty(M if x1 is None else 2 * M, N, device=x.device, dtype=torch.bool)
+        dropout_mask = torch.empty(
+            M if x1 is None else 2 * M, N, device=x.device, dtype=torch.bool
+        )
     else:
         dropout_mask = None
     # Less than 64KB per feature: enqueue fused kernel
@@ -420,7 +438,14 @@ def _layer_norm_fwd(
 
 @triton.autotune(
     configs=pruned_configs_autotune,
-    key=["N", "HAS_DRESIDUAL", "STORE_DRESIDUAL", "IS_RMS_NORM", "HAS_BIAS", "HAS_DROPOUT"],
+    key=[
+        "N",
+        "HAS_DRESIDUAL",
+        "STORE_DRESIDUAL",
+        "IS_RMS_NORM",
+        "HAS_BIAS",
+        "HAS_DROPOUT",
+    ],
 )
 # @triton.heuristics({"HAS_BIAS": lambda args: args["B"] is not None})
 # @triton.heuristics({"HAS_DRESIDUAL": lambda args: args["DRESIDUAL"] is not None})
@@ -548,14 +573,18 @@ def _layer_norm_bwd_kernel(
         if HAS_DX1:
             if HAS_DROPOUT:
                 keep_mask = (
-                    tl.rand(tl.load(SEEDS + M + row).to(tl.uint32), cols, n_rounds=7) > dropout_p
+                    tl.rand(tl.load(SEEDS + M + row).to(tl.uint32), cols, n_rounds=7)
+                    > dropout_p
                 )
                 dx1 = tl.where(keep_mask, dx / (1.0 - dropout_p), 0.0)
             else:
                 dx1 = dx
             tl.store(DX1 + cols, dx1, mask=mask)
         if HAS_DROPOUT:
-            keep_mask = tl.rand(tl.load(SEEDS + row).to(tl.uint32), cols, n_rounds=7) > dropout_p
+            keep_mask = (
+                tl.rand(tl.load(SEEDS + row).to(tl.uint32), cols, n_rounds=7)
+                > dropout_p
+            )
             dx = tl.where(keep_mask, dx / (1.0 - dropout_p), 0.0)
         if HAS_ROWSCALE:
             rowscale = tl.load(ROWSCALE + row).to(tl.float32)
@@ -646,9 +675,15 @@ def _layer_norm_bwd(
         else None
     )
     dx1 = torch.empty_like(dx) if (has_x1 and dropout_p > 0.0) else None
-    y = torch.empty(M, N, dtype=dy.dtype, device=dy.device) if recompute_output else None
+    y = (
+        torch.empty(M, N, dtype=dy.dtype, device=dy.device)
+        if recompute_output
+        else None
+    )
     if recompute_output:
-        assert weight1 is None, "recompute_output is not supported with parallel LayerNorm"
+        assert weight1 is None, (
+            "recompute_output is not supported with parallel LayerNorm"
+        )
 
     # Less than 64KB per feature: enqueue fused kernel
     MAX_FUSED_SIZE = 65536 // x.element_size()
@@ -772,20 +807,22 @@ class LayerNormFn(torch.autograd.Function):
             if residual is not None
             else (torch.float32 if residual_in_fp32 else None)
         )
-        y, y1, mean, rstd, residual_out, seeds, dropout_mask, dropout_mask1 = _layer_norm_fwd(
-            x,
-            weight,
-            bias,
-            eps,
-            residual,
-            x1,
-            weight1,
-            bias1,
-            dropout_p=dropout_p,
-            rowscale=rowscale,
-            residual_dtype=residual_dtype,
-            is_rms_norm=is_rms_norm,
-            return_dropout_mask=return_dropout_mask,
+        y, y1, mean, rstd, residual_out, seeds, dropout_mask, dropout_mask1 = (
+            _layer_norm_fwd(
+                x,
+                weight,
+                bias,
+                eps,
+                residual,
+                x1,
+                weight1,
+                bias1,
+                dropout_p=dropout_p,
+                rowscale=rowscale,
+                residual_dtype=residual_dtype,
+                is_rms_norm=is_rms_norm,
+                return_dropout_mask=return_dropout_mask,
+            )
         )
         ctx.save_for_backward(
             residual_out, weight, bias, weight1, bias1, rowscale, seeds, mean, rstd
@@ -800,9 +837,15 @@ class LayerNormFn(torch.autograd.Function):
         ctx.x_dtype = x.dtype
         y = y.reshape(x_shape_og)
         y1 = y1.reshape(x_shape_og) if y1 is not None else None
-        residual_out = residual_out.reshape(x_shape_og) if residual_out is not None else None
-        dropout_mask = dropout_mask.reshape(x_shape_og) if dropout_mask is not None else None
-        dropout_mask1 = dropout_mask1.reshape(x_shape_og) if dropout_mask1 is not None else None
+        residual_out = (
+            residual_out.reshape(x_shape_og) if residual_out is not None else None
+        )
+        dropout_mask = (
+            dropout_mask.reshape(x_shape_og) if dropout_mask is not None else None
+        )
+        dropout_mask1 = (
+            dropout_mask1.reshape(x_shape_og) if dropout_mask1 is not None else None
+        )
         if not return_dropout_mask:
             if weight1 is None:
                 return y if not prenorm else (y, residual_out)
@@ -951,7 +994,6 @@ def rms_norm_fn(
 
 
 class RMSNorm(torch.nn.Module):
-
     def __init__(self, hidden_size, eps=1e-5, dropout_p=0.0, device=None, dtype=None):
         factory_kwargs = {"device": device, "dtype": dtype}
         super().__init__()
@@ -1020,17 +1062,23 @@ class LayerNormLinearFn(torch.autograd.Function):
             norm_bias,
             eps,
             residual,
-            out_dtype=None if not torch.is_autocast_enabled() else torch.get_autocast_gpu_dtype(),
+            out_dtype=None
+            if not torch.is_autocast_enabled()
+            else torch.get_autocast_gpu_dtype(),
             residual_dtype=residual_dtype,
             is_rms_norm=is_rms_norm,
         )
         y = y.reshape(x_shape_og)
-        dtype = torch.get_autocast_gpu_dtype() if torch.is_autocast_enabled() else y.dtype
+        dtype = (
+            torch.get_autocast_gpu_dtype() if torch.is_autocast_enabled() else y.dtype
+        )
         linear_weight = linear_weight.to(dtype)
         linear_bias = linear_bias.to(dtype) if linear_bias is not None else None
         out = F.linear(y.to(linear_weight.dtype), linear_weight, linear_bias)
         # We don't store y, will be recomputed in the backward pass to save memory
-        ctx.save_for_backward(residual_out, norm_weight, norm_bias, linear_weight, mean, rstd)
+        ctx.save_for_backward(
+            residual_out, norm_weight, norm_bias, linear_weight, mean, rstd
+        )
         ctx.x_shape_og = x_shape_og
         ctx.eps = eps
         ctx.is_rms_norm = is_rms_norm
