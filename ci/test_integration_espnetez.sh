@@ -678,5 +678,5 @@ cd "${cwd}" || exit
 
 echo "=== report ==="
 python -m coverage combine egs2/*/*/.coverage
-python -m coverage report
-python -m coverage xml
+python -m coverage report -i
+python -m coverage xml -i
