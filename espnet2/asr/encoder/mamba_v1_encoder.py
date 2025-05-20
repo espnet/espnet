@@ -20,7 +20,6 @@ from espnet.nets.pytorch_backend.transformer.subsampling import (
     TooShortUttError,
     check_short_utt,
 )
-from typeguard import check_argument_types
 
 from espnet2.asr.ctc import CTC
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
@@ -74,7 +73,7 @@ class MambaV1EncoderLayer(nn.Module):
         )
         self.block = Block(
             d_model,
-            self.mixer,
+            self.mixer_cls,
             norm_cls=self.norm_cls,
             fused_add_norm=fused_add_norm,
             residual_in_fp32=residual_in_fp32,
@@ -156,7 +155,6 @@ class MambaV1Encoder(AbsEncoder):
         interctc_use_conditioning: bool = False,
         init_rescale: bool = False,
     ):
-        assert check_argument_types()
         super().__init__()
         self._output_size = output_size
         self.num_blocks = num_blocks
@@ -245,7 +243,7 @@ class MambaV1Encoder(AbsEncoder):
 
         self.encoders = repeat(
             num_blocks,
-            lambda lnum: MambaEncoderLayer(
+            lambda lnum: MambaV1EncoderLayer(
                 output_size,
                 ssm_cfg=ssm_cfg,
                 norm_epsilon=norm_epsilon,

@@ -15,22 +15,27 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from einops import rearrange, repeat
-from ops.selective_scan_interface import mamab_inner_fn, selective_scan_fn
+from .ops.selective_scan_interface import mamba_inner_fn, selective_scan_fn
 from torch import Tensor
 
 try:
-    from ops.causal_conv1d import causal_conv1d_fn, causal_conv1d_update_fn
+    from espnet2.asr.state_spaces.mamba.ops.selective_scan_interface import selective_scan_fn, mamba_inner_fn, mamba_inner_fn_no_out_proj
+except ImportError:
+    selective_scan_fn, mamba_inner_fn, mamba_inner_fn_no_out_proj = None, None, None
+
+try:
+    from causal_conv1d import causal_conv1d_fn, causal_conv1d_update
 except ImportError:
     causal_conv1d_fn = None
     causal_conv1d_update_fn = None
 
 try:
-    from ops.triton.selective_state_update import selective_state_update
+    from .ops.triton.selective_state_update import selective_state_update
 except ImportError:
     selective_state_update = None
 
 try:
-    from ops.triton.layer_norm import RMSNorm, layer_norm_fn, rms_norm_fn
+    from .ops.triton.layer_norm import RMSNorm, layer_norm_fn, rms_norm_fn
 except ImportError:
     RMSNorm = None
     layer_norm_fn = None
