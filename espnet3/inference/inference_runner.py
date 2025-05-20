@@ -14,24 +14,12 @@ from hydra.utils import instantiate
 from omegaconf import DictConfig
 from tqdm import tqdm
 
+from espnet2.train.preprocessor import AbsPreprocessor
 from espnet3 import get_espnet_model
-from espnet3.data import DataOrganizer
+from espnet3.data import DatasetWithTransform
 from espnet3.parallel import get_client, set_parallel
 
 logging.basicConfig(level=logging.INFO)
-
-
-class InferencePlugin(WorkerPlugin):
-    def __init__(self, model_config: Dict[str, Any], dataset):
-        self.model_config = model_config
-        self.dataset = dataset
-
-    def setup(self, worker):
-        model = instantiate(self.model_config)
-        worker.device = torch.device("cuda") if torch.cuda.is_available() else "cpu"
-        model.to(worker.device)
-        worker.model = model
-        worker.dataset = self.dataset
 
 
 def save_output_scp_format(
@@ -81,6 +69,19 @@ def stream_text(path: str, chunk_chars: int = 5) -> Iterator[str]:
         yield text[i : i + chunk_chars]
 
 
+class InferencePlugin(WorkerPlugin):
+    def __init__(self, inference_runner):
+        self.inference_runner = inference_runner
+
+    def setup(self, worker):
+        # Set device based on worker's resources
+        worker.device = "cuda" if torch.cuda.is_available() else "cpu"
+        # Initialize model on worker
+        worker.model = self.inference_runner.initialize_model(worker.device)
+        # Store inference runner for access
+        worker.inference_runner = self.inference_runner
+
+
 class InferenceRunner:
     """
     InferenceRunner manages test-time inference over multiple test sets defined via DataOrganizer.
@@ -119,17 +120,69 @@ class InferenceRunner:
     """
     def __init__(
         self,
+        model_config: DictConfig = None,
+        dataset_config: DictConfig = None,
         stream: bool = False,
-        parallel_config: Optional[Dict[str, Any]] = None,
+        parallel: Optional[Dict[str, Any]] = None,
     ):
-        self.model = None
+        self.model_config = model_config
+        self.dataset_config = dataset_config
         self.stream = stream
-        self.parallel_config = parallel_config
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.parallel_config = parallel
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.model = None
+        self.dataset = None
+        self.current_dataset_key = None
 
-    def initialize_model(self):
+    def initialize_model(self, device=None):
+        return instantiate(self.model_config)
+
+    def _initialize_model(self, device=None):
         if self.model is None:
-            pass  # subclass handles actual model creation
+            self.model = self.initialize_model(device)
+        
+        return self.model
+    
+    def initialize_dataset(self, dataset_key, dataset_config=None):
+        if dataset_config is None:
+            dataset_config = self.dataset_config
+
+        # Look for test dataset
+        test_ds_conf = None
+        for ds_conf in dataset_config.test:
+            if ds_conf.name == dataset_key:
+                test_ds_conf = ds_conf
+                break
+        
+        if test_ds_conf is None:
+            RuntimeError(f"{dataset_key} not found in inference config.")
+
+        # Preprocessor
+        if hasattr(dataset_config, "preprocessor"):
+            preprocessor = instantiate(dataset_config.preprocessor)
+        else:
+            preprocessor = lambda x: x
+
+        is_espnet_preprocessor = isinstance(preprocessor, AbsPreprocessor)
+
+        if hasattr(test_ds_conf, "transform"):
+            transform = test_ds_conf.transform
+        else:
+            transform = lambda x: x
+
+        if is_espnet_preprocessor:
+            # Then extract the utt id and the data
+            wrapped_transform = lambda x, t=transform, p=preprocessor: p(*t(x))
+        else:
+            wrapped_transform = lambda x, t=transform, p=preprocessor: p(t(x))
+
+        return DatasetWithTransform(instantiate(ds_conf.dataset), wrapped_transform)
+
+    def _initialize_dataset(self, dataset_key, dataset_config=None):
+        if self.current_dataset_key != dataset_key:
+            self.dataset = self.initialize_dataset(dataset_key, dataset_config)
+
+        return self.dataset
 
     def read(
         self,
@@ -159,7 +212,14 @@ class InferenceRunner:
         for key, val in output.items():
             scp_path = output_dir / f"{key}.scp"
             line_parts = [uid]
-            if val["type"] == "text":
+            if not isinstance(val, str) and not isinstance(val, dict):
+                raise ValueError(f"output should be a string or dict. Got {type(output)}")
+            
+            if isinstance(val, str):
+                line_parts.append(val)
+            elif "type" not in val:
+                raise ValueError(f"Please specify type of value. 'text' or 'audio' is supported.")
+            elif val["type"] == "text":
                 line_parts.append(val["value"])
             elif val["type"] == "audio":
                 data_dir = output_dir / "data" / key
@@ -167,41 +227,41 @@ class InferenceRunner:
                 file_path = data_dir / f"{uid}_{key}.flac"
                 sf.write(file_path, val["value"], 16000, format="FLAC")
                 line_parts.append(str(file_path))
-            else:
-                continue
+
             with open(scp_path, "a") as f:
                 f.write(" ".join(line_parts) + "\n")
 
     def run_on_example(self, uid: str, sample: dict) -> dict:
-        self.initialize_model()
+        model = self.initialize_model()
         if self.stream and "audio_path" in sample:
             sample["stream"] = self.read("audio", sample["audio_path"], stream=True)
-        self.initialize(sample)
-        self.pre_inference(sample)
+        model, sample = self.pre_inference(model, sample)
         with torch.no_grad():
             if self.stream and isinstance(sample.get("stream"), Iterator):
                 outputs = []
                 for chunk in sample["stream"]:
-                    out = self.inference_body(chunk)
+                    out = self.inference_body(model, chunk)
                     outputs.append(out)
                 return self.post_inference(outputs)
             else:
-                return self.inference_body(sample)
+                return self.inference_body(model, sample)
 
-    def run_on_dataset(self, dataset: Any, output_dir: Path):
+    def run_on_dataset(self, dataset_key: Any, output_dir: Union[str, Path]):
+        if not isinstance(output_dir, Path):
+            output_dir = Path(output_dir)
         if self.parallel_config:
-            self._run_parallel(dataset, output_dir)
+            self._run_parallel(dataset_key, output_dir)
         else:
-            self._run_serial(dataset, output_dir)
+            self._run_serial(dataset_key, output_dir)
 
-    def _run_serial(self, dataset: Any, output_dir: Path):
-        self.initialize_model()
+    def _run_serial(self, dataset_key: Any, output_dir: Union[str, Path]):
+        model = self._initialize_model(self.device)
+        dataset = self._initialize_dataset(dataset_key)
+
         output_dir.mkdir(parents=True, exist_ok=True)
         pid = os.getpid()
         proc = psutil.Process(pid)
         gpu_mem = lambda: torch.cuda.memory_allocated() / 1024 / 1024 if torch.cuda.is_available() else 0
-
-        logs = {k: {} for k in ["pre_time", "infer_time", "post_time", "total_time", "cpu_mem_MB", "gpu_mem_MiB"]}
 
         for idx in tqdm(range(len(dataset))):
             uid, sample = dataset[idx]
@@ -213,10 +273,8 @@ class InferenceRunner:
                 mem_before = proc.memory_info().rss / 1024 / 1024
                 gpu_before = gpu_mem()
 
-                self.initialize(sample)
-
                 t0 = time.time()
-                self.pre_inference(sample)
+                model, sample = self.pre_inference(model, sample)
                 pre_time = time.time() - t0
 
                 outputs = []
@@ -225,125 +283,144 @@ class InferenceRunner:
                 if self.stream and isinstance(sample.get("stream"), Iterator):
                     for chunk in sample["stream"]:
                         t1 = time.time()
-                        out = self.inference_body(chunk)
+                        out = self.inference_body(model, chunk)
                         infer_times.append(time.time() - t1)
                         outputs.append(out)
-                    t_post = time.time()
-                    result = self.post_inference(outputs)
-                    post_time = time.time() - t_post
                 else:
                     t1 = time.time()
-                    result = self.inference_body(sample)
+                    outputs = [self.inference_body(model, sample)]
                     infer_times.append(time.time() - t1)
-                    post_time = 0
+
+                t_post = time.time()
+                result = self.post_inference(model, outputs)
+                post_time = time.time() - t_post
 
                 total_time = time.time() - start_total
                 mem_after = proc.memory_info().rss / 1024 / 1024
                 gpu_after = gpu_mem()
 
-                self.write(uid, result, output_dir)
+                result["pre_time"] = str(round(pre_time, 4))
+                result["infer_time"] = " ".join(str(round(t, 4)) for t in infer_times)
+                result["post_time"] = str(round(post_time, 4))
+                result["total_time"] = str(round(total_time, 4))
+                result["cpu_mem_MB"] = str(round(mem_after - mem_before, 2))
+                result["gpu_mem_MiB"] = str(round(gpu_after - gpu_before, 2))
 
-                logs["pre_time"][uid] = str(round(pre_time, 4))
-                logs["infer_time"][uid] = " ".join(str(round(t, 4)) for t in infer_times)
-                logs["post_time"][uid] = str(round(post_time, 4))
-                logs["total_time"][uid] = str(round(total_time, 4))
-                logs["cpu_mem_MB"][uid] = str(round(mem_after - mem_before, 2))
-                logs["gpu_mem_MiB"][uid] = str(round(gpu_after - gpu_before, 2))
+                self.write(uid, result, output_dir)
 
             except Exception as e:
                 self.on_error(uid, e)
 
-        for key, content in logs.items():
-            with open(output_dir / f"{key}.scp", "w") as f:
-                for uid, val in content.items():
-                    f.write(f"{uid} {val}\n")
-
-    def _run_parallel(self, dataset: Any, output_dir: Path):
-        class InferencePlugin(WorkerPlugin):
-            def __init__(self, model_config: Dict[str, Any], dataset: Any):
-                self.model_config = model_config
-                self.dataset = dataset
-
-            def setup(self, worker):
-                model = self.initialize_model()
-                worker.model = model.to(worker.device)
-                worker.dataset = self.dataset
-                worker.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
+    def _run_parallel(self, dataset_key: Any, output_dir: Union[str, Path]):
+        """Run inference in parallel using Dask"""
         set_parallel(self.parallel_config)
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        def process(idx: int):
-            import os, time, torch, psutil
-            from pathlib import Path
-
-            model = get_worker().model
-            dataset = get_worker().dataset
+        def process_sample(idx: int):
+            """Process a single sample in a worker"""
+            worker = get_worker()
+            model = worker.model
+            
+            # Initialize dataset per worker
+            dataset = worker.inference_runner.initialize_dataset(dataset_key)
             uid, sample = dataset[idx]
-            result = {
-                "uid": uid,
-                "error": None,
-                "output": None,
-                "timing": {},
-            }
+            
             try:
+                # Track resources
                 pid = os.getpid()
                 proc = psutil.Process(pid)
                 mem_before = proc.memory_info().rss / 1024 / 1024
                 gpu_before = torch.cuda.memory_allocated() / 1024 / 1024 if torch.cuda.is_available() else 0
-
+                
                 t_total_start = time.time()
-
+                
+                # Prepare streaming if enabled
+                if worker.inference_runner.stream and "audio_path" in sample:
+                    sample["stream"] = worker.inference_runner.read("audio", sample["audio_path"], stream=True)
+                
+                # Pre-inference
                 t0 = time.time()
-                pre = model.pre_inference(sample)
+                model, sample = worker.inference_runner.pre_inference(model, sample)
                 pre_time = time.time() - t0
-
-                t1 = time.time()
-                out = model.inference_body(sample)
-                infer_time = time.time() - t1
-
+                
+                outputs = []
+                infer_times = []
+                
+                # Run inference
+                if worker.inference_runner.stream and isinstance(sample.get("stream"), Iterator):
+                    for chunk in sample["stream"]:
+                        t1 = time.time()
+                        out = worker.inference_runner.inference_body(model, chunk)
+                        infer_times.append(time.time() - t1)
+                        outputs.append(out)
+                else:
+                    t1 = time.time()
+                    result = worker.inference_runner.inference_body(model, sample)
+                    infer_times.append(time.time() - t1)
+                    outputs = [result]
+                
+                # Post-inference
                 t2 = time.time()
-                post = model.post_inference([out])
+                result = worker.inference_runner.post_inference(model, outputs)
                 post_time = time.time() - t2
-
+                
+                # Ensure result is a dictionary
+                if not isinstance(result, dict):
+                    result = {"output": result}
+                
+                # Measure resource usage
                 total_time = time.time() - t_total_start
                 mem_after = proc.memory_info().rss / 1024 / 1024
                 gpu_after = torch.cuda.memory_allocated() / 1024 / 1024 if torch.cuda.is_available() else 0
-
-                result["output"] = post
-                result["timing"] = {
-                    "pre_time": round(pre_time, 4),
-                    "infer_time": round(infer_time, 4),
-                    "post_time": round(post_time, 4),
-                    "total_time": round(total_time, 4),
-                    "cpu_mem_MB": round(mem_after - mem_before, 2),
-                    "gpu_mem_MiB": round(gpu_after - gpu_before, 2),
-                }
-
+                
+                # Add metrics to result
+                result.update({
+                    "pre_time": str(round(pre_time, 4)),
+                    "infer_time": " ".join(str(round(t, 4)) for t in infer_times),
+                    "post_time": str(round(post_time, 4)),
+                    "total_time": str(round(total_time, 4)),
+                    "cpu_mem_MB": str(round(mem_after - mem_before, 2)),
+                    "gpu_mem_MiB": str(round(gpu_after - gpu_before, 2)),
+                })
+                
+                return uid, result
+            
             except Exception as e:
-                result["error"] = str(e)
-            return result
+                error_msg = str(e)
+                worker.inference_runner.on_error(uid, e)
+                return uid, {"error": error_msg}
 
-        with get_client(plugin=InferencePlugin(self.model_config, dataset)) as client:
-            futures = client.map(process, list(range(len(dataset))))
+        # Create plugin with self reference
+        plugin = InferencePlugin(self)
+        
+        # Get dataset length (temporary dataset just to get length)
+        dummy_dataset = self.initialize_dataset(dataset_key)
+        dataset_length = len(dummy_dataset)
+        del dummy_dataset
+        
+        # Run with Dask client
+        with get_client(plugin=plugin) as client:
+            futures = client.map(process_sample, list(range(dataset_length)))
             for future in tqdm(as_completed(futures)):
-                uid, output, err = future.result()
-                if err is not None:
-                    self.on_error(uid, Exception(err))
-                elif output is not None:
-                    self.write(uid, output, output_dir)
+                try:
+                    uid, output = future.result()
+                    if output is not None and "error" not in output:
+                        self.write(uid, output, output_dir)
+                    elif "error" in output:
+                        logging.error(f"Error processing {uid}: {output['error']}")
+                except Exception as e:
+                    logging.error(f"Error in future: {e}")
 
     # ---- Hook methods to override ----
-    def initialize(self, sample: dict): pass
-
-    def pre_inference(self, sample: dict): pass
+    def pre_inference(self, model, sample: dict):
+        return model, sample
 
     @abstractmethod
-    def inference_body(self, chunk: Union[dict, Any]) -> dict:
+    def inference_body(self, model, sample: Union[dict, Any]) -> dict:
         raise NotImplementedError
     
-    def post_inference(self, outputs: list) -> dict:
-        return outputs[-1] if outputs else {}
+    def post_inference(self, model, outputs: list) -> dict:
+        return outputs[0]
     
     def on_error(self, uid: str, err: Exception):
         print(f"[ERROR] {uid}: {err}", flush=True)

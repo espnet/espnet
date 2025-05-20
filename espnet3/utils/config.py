@@ -1,6 +1,23 @@
+import os
+from pathlib import Path
+from omegaconf import OmegaConf
 import yaml
+import logging
 
 from espnet3.task import get_ez_task
+
+
+def load_line(path):
+    with open(path, "r") as f:
+        return [line.strip() for line in f.readlines()]
+
+
+OMEGACONF_ESPNET3_RESOLVER = {
+    "load_line": load_line,
+}
+for name, resolver in OMEGACONF_ESPNET3_RESOLVER.items():
+    OmegaConf.register_new_resolver(name, resolver)
+    logging.info(f"Registered ESPnet-3 OmegaConf Resolver: {name}")
 
 
 def convert_none_to_None(dic):
@@ -156,3 +173,54 @@ def update_finetune_config(task, pretrain_config, path):
     pretrain_config = convert_none_to_None(pretrain_config)
 
     return pretrain_config
+
+
+def load_config_with_defaults(path: str) -> OmegaConf:
+    base_path = Path(path).parent
+    main_cfg = OmegaConf.load(path)
+    cfg_self = main_cfg.copy()
+
+    if "defaults" not in main_cfg:
+        return cfg_self
+
+    merged_cfgs = []
+    self_merged = False
+
+    for entry in main_cfg.defaults:
+        if isinstance(entry, str):
+            if entry == "_self_":
+                merged_cfgs.append(cfg_self)
+                self_merged = True
+            else:
+                cfg_path = build_config_path(base_path, entry)
+                merged_cfgs.append(load_config_with_defaults(str(cfg_path)))
+
+        elif isinstance(entry, dict):
+            for key, val in entry.items():
+                if val is None:
+                    continue
+                composed = f"{key}/{val}" if "/" not in val else val
+                cfg_path = build_config_path(base_path, composed)
+                merged_cfgs.append(load_config_with_defaults(str(cfg_path)))
+
+        elif entry == "_self_":
+            merged_cfgs.append(cfg_self)
+            self_merged = True
+
+    if not self_merged:
+        merged_cfgs.append(cfg_self)
+
+    final_cfg = OmegaConf.merge(*merged_cfgs)
+
+    if "defaults" in final_cfg:
+        del final_cfg["defaults"]
+
+    return final_cfg
+
+
+def build_config_path(base_path: Path, entry: str) -> Path:
+    if not entry.endswith(".yaml"):
+        entry += ".yaml"
+    return base_path / entry
+
+
