@@ -40,19 +40,13 @@ jobs:
         pytorch-version: [2.1.2]
         chainer-version: [6.0.0]
         use-conda: [false]
-        include:
-          - os: ubuntu-latest
-            python-version: "3.10"
-            pytorch-version: 1.13.1
-            chainer-verssion: 6.0.0
-            use-conda: false
     steps:
       - uses: actions/checkout@master
       - uses: actions/cache@v3
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/setup.py') }}-${{ hashFiles('**/Makefile') }}
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
           architecture: 'x64'
@@ -105,22 +99,16 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         python-version: ["3.10", "3.11"]
-        pytorch-version: [2.0.1, 2.1.2, 2.2.2, 2.3.1, 2.4.0]
+        pytorch-version: [2.1.2, 2.2.2, 2.3.1, 2.4.1, 2.5.1, 2.6.0]
         chainer-version: [6.0.0]
         use-conda: [false]
-        include:
-          - os: ubuntu-latest
-            python-version: "3.10"
-            pytorch-version: 1.13.1
-            chainer-verssion: 6.0.0
-            use-conda: false
     steps:
       - uses: actions/checkout@master
       - uses: actions/cache@v3
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/setup.py') }}-${{ hashFiles('**/Makefile') }}
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
           architecture: 'x64'
@@ -188,22 +176,16 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         python-version: ["3.10"]
-        pytorch-version: ["1.13.1"]
+        pytorch-version: ["2.4.0"]
         chainer-version: ["6.0.0"]
         use-conda: [false]
-        include:
-          - os: ubuntu-latest
-            python-version: "3.11"
-            pytorch-version: 2.4.0
-            chainer-verssion: 6.0.0
-            use-conda: false
     steps:
       - uses: actions/checkout@master
       - uses: actions/cache@v3
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/setup.py') }}-${{ hashFiles('**/Makefile') }}
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
           architecture: 'x64'
@@ -237,22 +219,16 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         python-version: ["3.10", "3.11"]
-        pytorch-version: [2.0.1, 2.1.2, 2.2.2, 2.3.1, 2.4.0]
+        pytorch-version: [2.1.2, 2.2.2, 2.3.1, 2.4.1, 2.5.1, 2.6.0]
         chainer-version: [6.0.0]
         use-conda: [false]
-        include:
-          - os: ubuntu-latest
-            python-version: "3.10"
-            pytorch-version: 1.13.1
-            chainer-verssion: 6.0.0
-            use-conda: false
     steps:
       - uses: actions/checkout@master
       - uses: actions/cache@v3
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/setup.py') }}-${{ hashFiles('**/Makefile') }}
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
           architecture: 'x64'
@@ -316,11 +292,11 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         python-version: ["3.10"]
-        pytorch-version: [2.4.0]
+        pytorch-version: [2.6.0]
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@master
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
@@ -331,6 +307,7 @@ jobs:
       env:
         TH_VERSION: ${{ matrix.pytorch-version }}
       run: |
+        python3 -m pip install -U "Cython<3.1.0"
         python3 -m pip install -U numba
         ./tools/installers/install_torch.sh false ${TH_VERSION} CPU
         ./tools/installers/install_chainer.sh CPU

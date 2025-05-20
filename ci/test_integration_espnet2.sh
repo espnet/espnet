@@ -342,5 +342,5 @@ cd "${cwd}"
 
 echo "=== report ==="
 coverage combine egs2/*/*/.coverage
-coverage report
-coverage xml
+coverage report -i
+coverage xml -i

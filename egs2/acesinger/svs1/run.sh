@@ -7,13 +7,19 @@ set -o pipefail
 
 # spectrogram-related arguments
 fs=44100
-fmin=80
-fmax=7600
-n_fft=2048
-n_shift=512
-win_length=2048
-use_sid=true
-
+if [ ${fs} -eq 24000 ];then
+    fmin=0
+    fmax=12000
+    n_fft=2048
+    n_shift=256
+    win_length=2048
+elif [ ${fs} -eq 44100 ]; then
+    fmin=80
+    fmax=22050
+    n_fft=2048
+    n_shift=512
+    win_length=2048
+fi
 
 score_feats_extract=syllable_score_feats   # frame_score_feats | syllable_score_feats
 
@@ -21,7 +27,7 @@ opts="--audio_format wav "
 
 train_set=tr_no_dev
 valid_set=dev
-test_sets="dev test"
+test_sets="dev eval"
 
 # training and inference configuration
 train_config=conf/train.yaml
@@ -34,10 +40,12 @@ cleaner=none
 pitch_extract=dio
 ying_extract=None
 
+use_sid=true
+
 ./svs.sh \
     --lang zh \
     --svs_task gan_svs \
-    --local_data_opts "--stage 0" \
+    --local_data_opts "--stage 1" \
     --feats_type raw \
     --use_sid ${use_sid} \
     --pitch_extract "${pitch_extract}" \
