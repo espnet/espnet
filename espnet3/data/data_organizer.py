@@ -137,8 +137,8 @@ class DataOrganizer:
 
     def __init__(
         self,
-        train: List[Dict[str, Any]],
-        valid: List[Dict[str, Any]],
+        train: List[Dict[str, Any]] = None,
+        valid: List[Dict[str, Any]] = None,
         test: Optional[List[Dict[str, Any]]] = None,
         preprocessor: Optional[Callable[[dict], dict]] = None,
     ):
@@ -168,22 +168,28 @@ class DataOrganizer:
                 transforms.append(wrapped_transform)
             return CombinedDataset(datasets, transforms, add_uid=is_espnet_preprocessor)
 
-        self.train = build_dataset_list(train)
-        self.valid = build_dataset_list(valid)
+        self.train = None
+        self.valid = None
+
+        if train is not None:
+            self.train = build_dataset_list(train)
+        if valid is not None:
+            self.valid = build_dataset_list(valid)
 
         self.test_sets = {}
-        for cfg in test:
-            dataset = cfg.dataset
-            if hasattr(cfg, "transform"):
-                transform = cfg.transform
-            else:
-                transform = lambda x: x
-            if isinstance(self.preprocessor, AbsPreprocessor):
-                # Then extract the utt id and the data
-                wrapped_transform = lambda x, t=transform, p=self.preprocessor: p(*t(x))
-            else:
-                wrapped_transform = lambda x, t=transform, p=self.preprocessor: p(t(x))
-            self.test_sets[cfg.name] = DatasetWithTransform(dataset, wrapped_transform)
+        if test is not None:
+            for cfg in test:
+                dataset = cfg.dataset
+                if hasattr(cfg, "transform"):
+                    transform = cfg.transform
+                else:
+                    transform = lambda x: x
+                if isinstance(self.preprocessor, AbsPreprocessor):
+                    # Then extract the utt id and the data
+                    wrapped_transform = lambda x, t=transform, p=self.preprocessor: p(*t(x))
+                else:
+                    wrapped_transform = lambda x, t=transform, p=self.preprocessor: p(t(x))
+                self.test_sets[cfg.name] = DatasetWithTransform(dataset, wrapped_transform)
 
     @property
     def test(self):
@@ -211,7 +217,7 @@ class DatasetWithTransform:
         return len(self.dataset)
 
     def __getitem__(self, idx):
-        return (str(idx), self.transform(self.dataset[idx]))
+        return str(idx), self.transform(self.dataset[idx])
 
     def __call__(self, idx):
         return self.__getitem__(idx)
