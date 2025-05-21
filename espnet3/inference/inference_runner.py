@@ -87,6 +87,11 @@ class InferencePlugin(WorkerPlugin):
         worker.inference_runner = self.inference_runner
 
 
+def gpu_mem():
+    return torch.cuda.memory_allocated() / 1024 / 1024 \
+        if torch.cuda.is_available() else 0
+
+
 class InferenceRunner:
     """
     InferenceRunner manages test-time inference over multiple test sets defined
@@ -282,8 +287,6 @@ class InferenceRunner:
         output_dir.mkdir(parents=True, exist_ok=True)
         pid = os.getpid()
         proc = psutil.Process(pid)
-        gpu_mem = torch.cuda.memory_allocated() / 1024 / 1024 \
-            if torch.cuda.is_available() else 0
 
         for idx in tqdm(range(len(dataset))):
             uid, sample = dataset[idx]
