@@ -28,7 +28,6 @@ specaug_conf:
 #################################
 encoder: mamba
 encoder_conf:
-  input_size: 80           # Mel-bin数と合わせる
   output_size: 256
   num_blocks: 12
   dropout_rate: 0.1
@@ -41,7 +40,6 @@ encoder_conf:
   init_rescale: true       # 論文推奨の rescale 初期化
 
 #################################
-# Predictor / Decoder  (要自作 ConformerPredictor)
 decoder: conformer
 decoder_conf:
   embed_dim: 256
