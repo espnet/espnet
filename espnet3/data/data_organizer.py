@@ -195,7 +195,7 @@ class DataOrganizer:
 
         # assert if either train/valid does not contain dataset..
         if (
-            (self.train is None ^ self.valid is None)
+            ((self.train is None) ^ (self.valid is None))
             or (
                 isinstance(self.train, CombinedDataset)
                 ^ isinstance(self.valid, CombinedDataset)

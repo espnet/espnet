@@ -221,7 +221,6 @@ def test_B5_run_on_dataset_streaming(test_audio_paths, tmp_path):
         pytest.skip("No test audio files available")
 
     path = str(test_audio_paths[0])
-    x, _ = sf.read(path, dtype="float32")
 
     # Hydra-compatible config with testset named 'testset'
     dataset_config = OmegaConf.create(
