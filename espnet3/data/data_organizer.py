@@ -175,6 +175,10 @@ class DataOrganizer:
             self.train = build_dataset_list(train)
         if valid is not None:
             self.valid = build_dataset_list(valid)
+        
+        # assert if either train/valid does not contain dataset..
+        if type(self.train) != type(self.valid):
+            raise RuntimeError("Both train and valid should be dataset class or None.")
 
         self.test_sets = {}
         if test is not None:

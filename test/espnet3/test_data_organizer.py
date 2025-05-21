@@ -3,6 +3,7 @@ import pytest
 from espnet3.data import CombinedDataset, DataOrganizer
 from omegaconf import OmegaConf
 from hydra.utils import instantiate
+import numpy as np
 
 # Dummy classes
 class DummyTransform:
@@ -17,7 +18,10 @@ class DummyPreprocessor:
 
 class DummyDataset:
     def __init__(self, path=None):
-        self.data = [{"audio": b"audio1", "text": "hello"}, {"audio": b"audio2", "text": "world"}]
+        self.data = [
+            {"audio": np.random.random(16000), "text": "hello"},
+            {"audio": np.random.random(16000), "text": "world"}
+        ]
 
     def __len__(self):
         return len(self.data)
