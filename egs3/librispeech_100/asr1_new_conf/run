@@ -1,0 +1,77 @@
+#!/bin/bash
+# run: backend-agnostic job launcher (includes Kaldi-style cmd.sh logic with job options)
+
+# ======== Configurable backend selection ========
+cmd_backend=${CMD_BACKEND:-slurm}  # set via env var; default = slurm
+TEMPLATE_DIR=../../../egs2/TEMPLATE/asr1/utils
+
+# ======== Backend-specific command setup ========
+case "${cmd_backend}" in
+    local)
+        train_cmd="${TEMPLATE_DIR}/run.pl"
+        ;;
+    stdout)
+        train_cmd="${TEMPLATE_DIR}/stdout.pl"
+        ;;
+    sge)
+        train_cmd="${TEMPLATE_DIR}/queue.pl"
+        ;;
+    pbs)
+        train_cmd="${TEMPLATE_DIR}/pbs.pl"
+        ;;
+    slurm)
+        train_cmd="${TEMPLATE_DIR}/slurm.pl --config conf/slurm.conf"
+        ;;
+    ssh)
+        train_cmd="${TEMPLATE_DIR}/ssh.pl"
+        ;;
+    jhu)
+        train_cmd="${TEMPLATE_DIR}/queue.pl --mem 2G"
+        ;;
+    *)
+        echo "run: Error: Unknown CMD_BACKEND=${cmd_backend}" >&2
+        exit 1
+        ;;
+esac
+
+# ======== Parse job submission options (e.g. --gpu, --name, etc.) ========
+declare -a JOB_OPTIONS=()
+USER_JOBNAME=""
+while [[ "$1" == --* ]]; do
+  case "$1" in
+    --name)
+      USER_JOBNAME="$2"
+      JOB_OPTIONS+=("$1" "$2")
+      shift 2
+      ;;
+    --gpu|--mem|--num_nodes|--num_tasks|--cpus-per-task|--time|--sync|--config)
+      JOB_OPTIONS+=("$1" "$2")
+      shift 2
+      ;;
+    *)
+      echo "run: Unknown option: $1" >&2
+      exit 1
+      ;;
+  esac
+done
+
+# ======== Check command presence ========
+if [[ $# -lt 1 ]]; then
+  echo "run: Error: No command specified" >&2
+  exit 1
+fi
+
+# ======== Log file auto-generation ========
+mkdir -p log
+if [[ -n "$USER_JOBNAME" ]]; then
+  script_name="$USER_JOBNAME"
+elif [[ "$1" == python ]]; then
+  script_name=$(basename "$2" .py)
+else
+  script_name=$(basename "$1")
+fi
+timestamp=$(date +%Y%m%d_%H%M%S)
+logfile="log/${script_name}_${timestamp}.log"
+
+# ======== Launch job ========
+$train_cmd "${JOB_OPTIONS[@]}" "$logfile" "$@"
