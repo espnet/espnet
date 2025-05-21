@@ -90,7 +90,8 @@ def parallel_map(
     Args:
         func (Callable[[Any], Any]): The function to apply.
         data (Iterable[Any]): Iterable of input data.
-        client (Optional[Client]): An optional Dask client. If None, uses a temporary one.
+        client (Optional[Client]): An optional Dask client. If None, uses
+            a temporary one.
 
     Returns:
         list: List of results from applying the function in parallel.

@@ -14,12 +14,14 @@ class DatasetConfig:
     Configuration class for dataset metadata and construction.
 
     This class encapsulates the necessary fields to define and instantiate a dataset.
-    Used with Hydra to allow modular and flexible configuration via YAML or dictionaries.
+    Used with Hydra to allow modular and flexible configuration via YAML or
+    dictionaries.
 
     Attributes:
         name (str): Name identifier for the dataset.
         path (Optional[str]): Optional path or ID required for dataset instantiation.
-        dataset (Dict[str, Any]): Python path to the dataset class to be instantiated via Hydra.
+        dataset (Dict[str, Any]): Python path to the dataset class to be instantiated
+            via Hydra.
         transform (Optional[Callable]): Callable to transform each sample after loading.
 
     Example:
@@ -48,7 +50,8 @@ class CombinedDataset:
 
     Args:
         datasets (List[Any]): List of datasets implementing __getitem__ and __len__.
-        transforms (List[Callable[[dict], dict]]): List of transform functions for each dataset.
+        transforms (List[Callable[[dict], dict]]): List of transform functions
+            for each dataset.
 
     Example:
         >>> dataset = CombinedDataset([ds1, ds2], [tf1, tf2])
@@ -95,7 +98,7 @@ class CombinedDataset:
         return self.cumulative_lengths[-1] if self.cumulative_lengths else 0
 
     def __getitem__(self, idx):
-        if type(idx) == str:
+        if isinstance(idx, str):
             idx = int(idx)
         for i, cum_len in enumerate(self.cumulative_lengths):
             if idx < cum_len:
@@ -108,6 +111,22 @@ class CombinedDataset:
         raise IndexError("Index out of range in CombinedDataset")
 
 
+def get_wrapped_transform(is_espnet_preprocessor, t, p):
+    def transform_espnet(x):
+        return p(*t(x))
+
+    def transform(x):
+        return p(t(x))
+    if is_espnet_preprocessor:
+        return transform_espnet
+    else:
+        return transform
+
+
+def do_nothing_transform(x):
+    return x
+
+
 class DataOrganizer:
     """
     Organizes training, validation, and test datasets into a unified interface.
@@ -116,7 +135,8 @@ class DataOrganizer:
     logic per dataset.
 
     Args:
-        config (Dict[str, Any]): Dictionary with keys 'train', 'valid', and optionally 'test'.
+        config (Dict[str, Any]): Dictionary with keys 'train', 'valid',
+            and optionally 'test'.
             - 'train' and 'valid' must be lists of dataset configuration dictionaries.
             - 'test' should be a dictionary of key to dataset config.
         preprocessor (Optional[Callable[[dict], dict]]): A global preprocessor function
@@ -125,7 +145,8 @@ class DataOrganizer:
     Attributes:
         train (CombinedDataset): Combined dataset constructed from training configs.
         valid (CombinedDataset): Combined dataset constructed from validation configs.
-        test_sets (Dict[str, DatasetWithTransform]): Mapping from test dataset names to wrapped datasets.
+        test_sets (Dict[str, DatasetWithTransform]): Mapping from test dataset names
+            to wrapped datasets.
 
     Note:
         Raises AssertionError if 'train' or 'valid' is not present in the config.
@@ -142,7 +163,7 @@ class DataOrganizer:
         test: Optional[List[Dict[str, Any]]] = None,
         preprocessor: Optional[Callable[[dict], dict]] = None,
     ):
-        self.preprocessor = preprocessor or (lambda x: x)
+        self.preprocessor = preprocessor or do_nothing_transform
         is_espnet_preprocessor = isinstance(self.preprocessor, AbsPreprocessor)
 
         def build_dataset_list(cfg_list):
@@ -153,17 +174,13 @@ class DataOrganizer:
                 if hasattr(cfg, "transform"):
                     transform = cfg.transform
                 else:
-                    transform = lambda x: x
+                    transform = do_nothing_transform
 
-                if is_espnet_preprocessor:
-                    # Then extract the utt id and the data
-                    wrapped_transform = lambda x, t=transform, p=self.preprocessor: p(
-                        *t(x)
-                    )
-                else:
-                    wrapped_transform = lambda x, t=transform, p=self.preprocessor: p(
-                        t(x)
-                    )
+                wrapped_transform = get_wrapped_transform(
+                    is_espnet_preprocessor,
+                    transform,
+                    self.preprocessor,
+                )
                 datasets.append(dataset)
                 transforms.append(wrapped_transform)
             return CombinedDataset(datasets, transforms, add_uid=is_espnet_preprocessor)
@@ -175,9 +192,15 @@ class DataOrganizer:
             self.train = build_dataset_list(train)
         if valid is not None:
             self.valid = build_dataset_list(valid)
-        
+
         # assert if either train/valid does not contain dataset..
-        if type(self.train) != type(self.valid):
+        if (
+            (self.train is None ^ self.valid is None)
+            or (
+                isinstance(self.train, CombinedDataset)
+                ^ isinstance(self.valid, CombinedDataset)
+            )
+        ):
             raise RuntimeError("Both train and valid should be dataset class or None.")
 
         self.test_sets = {}
@@ -187,13 +210,15 @@ class DataOrganizer:
                 if hasattr(cfg, "transform"):
                     transform = cfg.transform
                 else:
-                    transform = lambda x: x
-                if isinstance(self.preprocessor, AbsPreprocessor):
-                    # Then extract the utt id and the data
-                    wrapped_transform = lambda x, t=transform, p=self.preprocessor: p(*t(x))
-                else:
-                    wrapped_transform = lambda x, t=transform, p=self.preprocessor: p(t(x))
-                self.test_sets[cfg.name] = DatasetWithTransform(dataset, wrapped_transform)
+                    transform = do_nothing_transform
+                wrapped_transform = get_wrapped_transform(
+                    is_espnet_preprocessor,
+                    transform,
+                    self.preprocessor,
+                )
+                self.test_sets[cfg.name] = DatasetWithTransform(
+                    dataset, wrapped_transform
+                )
 
     @property
     def test(self):

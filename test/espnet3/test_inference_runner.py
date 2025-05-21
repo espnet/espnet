@@ -1,12 +1,13 @@
+from pathlib import Path
+from typing import Union
+
 import numpy as np
 import pytest
-import torch
 import soundfile as sf
-from pathlib import Path
+import torch
 from numpy.testing import assert_allclose
 from omegaconf import OmegaConf
 
-from typing import Union
 from espnet3.inference.inference_runner import InferenceRunner
 
 
@@ -146,7 +147,6 @@ def test_A6_manual_read_infer_write(test_audio_paths, tmp_path):
     assert (tmp_path / "stft.scp").exists()
 
 
-
 # === B系: Streaming推論 ===
 def test_B1_streaming_on_example(test_audio_paths):
     path = test_audio_paths[0]
@@ -157,13 +157,12 @@ def test_B1_streaming_on_example(test_audio_paths):
     assert "[]" not in out["stft"]["value"]
 
 
-
 # ストリーミングテスト用の追加テスト
 def test_B2_streaming_chunked_processing(test_audio_paths):
     path = test_audio_paths[0]
     x, sr = sf.read(path, dtype="float32")
     chunk_size = int(sr * 0.1)
-    chunks = [x[i:i+chunk_size] for i in range(0, len(x), chunk_size)]
+    chunks = [x[i : i + chunk_size] for i in range(0, len(x), chunk_size)]
 
     runner = STFTInferenceRunner(stream=True)
     model = runner.initialize_model()
@@ -177,18 +176,23 @@ def test_B2_streaming_chunked_processing(test_audio_paths):
     assert "[]" not in result["stft"]["value"]
 
 
-@pytest.mark.parametrize("chunk_sec, expected_min_chunks", [(0.01, 90), (0.1, 9), (0.5, 2)])
+@pytest.mark.parametrize(
+    "chunk_sec, expected_min_chunks", [(0.01, 90), (0.1, 9), (0.5, 2)]
+)
 def test_B2_streaming_read_chunks(test_audio_paths, chunk_sec, expected_min_chunks):
     if len(test_audio_paths) == 0:
         pytest.skip("No test audio files available")
-    
+
     path = str(test_audio_paths[0])
     runner = STFTInferenceRunner(stream=True)
     chunks = list(runner.read("audio", path, stream=True, chunk_sec=chunk_sec))
-    
+
     assert isinstance(chunks, list)
-    assert len(chunks) >= expected_min_chunks, f"Got only {len(chunks)} chunks for chunk_sec={chunk_sec}"
+    assert (
+        len(chunks) >= expected_min_chunks
+    ), f"Got only {len(chunks)} chunks for chunk_sec={chunk_sec}"
     assert all(isinstance(c, np.ndarray) for c in chunks)
+
 
 def test_B3_read_text_streaming_chunks(tmp_path):
     file_path = tmp_path / "text.txt"
@@ -196,8 +200,9 @@ def test_B3_read_text_streaming_chunks(tmp_path):
 
     runner = STFTInferenceRunner(stream=True)
     chunks = list(runner.read("text", str(file_path), stream=True, chunk_chars=3))
-    
+
     assert chunks == ["abc", "def", "ghi", "j"]
+
 
 def test_B4_post_inference_behavior():
     runner = STFTInferenceRunner(stream=True)
@@ -205,11 +210,10 @@ def test_B4_post_inference_behavior():
     outputs = [
         {"stft": {"type": "text", "value": "chunk1"}},
         {"stft": {"type": "text", "value": "chunk2"}},
-        {"stft": {"type": "text", "value": "chunk_final"}}
+        {"stft": {"type": "text", "value": "chunk_final"}},
     ]
     result = runner.post_inference(model, outputs)
     assert result["stft"]["value"] == "chunk_final"
-
 
 
 def test_B5_run_on_dataset_streaming(test_audio_paths, tmp_path):
@@ -220,16 +224,23 @@ def test_B5_run_on_dataset_streaming(test_audio_paths, tmp_path):
     x, _ = sf.read(path, dtype="float32")
 
     # Hydra-compatible config with testset named 'testset'
-    dataset_config = OmegaConf.create({
-        "_target_": "espnet3.data.DataOrganizer",
-        "test": [
-            {
-                "name": "testset",
-                "dataset": {"_target_": "test.espnet3.test_data_organizer.DummyDataset", "path": path},
-                "transform": {"_target_": "test.espnet3.test_data_organizer.DummyTransform"}
-            }
-        ]
-    })
+    dataset_config = OmegaConf.create(
+        {
+            "_target_": "espnet3.data.DataOrganizer",
+            "test": [
+                {
+                    "name": "testset",
+                    "dataset": {
+                        "_target_": "test.espnet3.test_data_organizer.DummyDataset",
+                        "path": path,
+                    },
+                    "transform": {
+                        "_target_": "test.espnet3.test_data_organizer.DummyTransform"
+                    },
+                }
+            ],
+        }
+    )
 
     # Define a runner with dataset_config injected
     class STFTInferenceRunnerWithConfig(InferenceRunner):
@@ -238,7 +249,7 @@ def test_B5_run_on_dataset_streaming(test_audio_paths, tmp_path):
 
         def initialize_model(self, device):
             return StreamingSTFTModule(stream=self.stream)
-        
+
         def pre_inference(self, model, sample):
             model.pre_inference(sample)
             return model, sample
@@ -257,18 +268,17 @@ def test_B5_run_on_dataset_streaming(test_audio_paths, tmp_path):
     content = out_scp.read_text()
     assert "0" in content
 
+
 def test_E1_invalid_input_type_to_read():
     runner = STFTInferenceRunner()
     with pytest.raises(ValueError, match="Unsupported input type"):
         _ = runner.read("image", "invalid_path", stream=False)
 
+
 def test_E2_invalid_output_type_skipped(tmp_path):
     runner = STFTInferenceRunner()
     invalid_output = {
-        "img": {
-            "type": "image",  # writeでは処理されない
-            "value": np.zeros((10, 10))
-        }
+        "img": {"type": "image", "value": np.zeros((10, 10))}  # writeでは処理されない
     }
     with pytest.raises(ValueError):
         runner.write("utt_invalid", invalid_output, tmp_path)
