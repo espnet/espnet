@@ -28,9 +28,9 @@ def get_or_initialize(config, item_name: str = None, default=None) -> Any:
     else:
         item = config
 
-    if type(item) == DictConfig:
+    if isinstance(item, DictConfig):
         return instantiate(item)
-    elif type(item) == ListConfig:
+    elif isinstance(item, ListConfig):
         return [get_or_initialize(c) for c in item]
     else:
         return item

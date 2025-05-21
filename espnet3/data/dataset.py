@@ -145,4 +145,3 @@ class ESPnetEZDataset(AbsDataset):
 
     def __len__(self) -> int:
         return len(self.dataset)
-

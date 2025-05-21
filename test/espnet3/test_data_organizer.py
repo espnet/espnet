@@ -1,9 +1,11 @@
 # test_data_organizer.py
-import pytest
-from espnet3.data import CombinedDataset, DataOrganizer
-from omegaconf import OmegaConf
-from hydra.utils import instantiate
 import numpy as np
+import pytest
+from hydra.utils import instantiate
+from omegaconf import OmegaConf
+
+from espnet3.data import CombinedDataset, DataOrganizer
+
 
 # Dummy classes
 class DummyTransform:
@@ -11,16 +13,18 @@ class DummyTransform:
         sample["text"] = sample["text"].upper()
         return sample
 
+
 class DummyPreprocessor:
     def __call__(self, sample):
         sample["text"] = f"[DUMMY] {sample['text']}"
         return sample
 
+
 class DummyDataset:
     def __init__(self, path=None):
         self.data = [
             {"audio": np.random.random(16000), "text": "hello"},
-            {"audio": np.random.random(16000), "text": "world"}
+            {"audio": np.random.random(16000), "text": "world"},
         ]
 
     def __len__(self):
@@ -29,6 +33,7 @@ class DummyDataset:
     def __getitem__(self, idx):
         return self.data[idx]
 
+
 # Fixtures
 @pytest.fixture
 def dummy_dataset_config():
@@ -36,25 +41,34 @@ def dummy_dataset_config():
         "train": [
             {
                 "name": "train_dummy",
-                "dataset": {"_target_": "test.espnet3.test_data_organizer.DummyDataset"},
-                "transform": {"_target_": "test.espnet3.test_data_organizer.DummyTransform"},
+                "dataset": {
+                    "_target_": "test.espnet3.test_data_organizer.DummyDataset"
+                },
+                "transform": {
+                    "_target_": "test.espnet3.test_data_organizer.DummyTransform"
+                },
             }
         ],
         "valid": [
             {
                 "name": "valid_dummy",
-                "dataset": {"_target_": "test.espnet3.test_data_organizer.DummyDataset"},
+                "dataset": {
+                    "_target_": "test.espnet3.test_data_organizer.DummyDataset"
+                },
             }
         ],
         "test": [
             {
                 "name": "test_dummy",
-                "dataset": {"_target_": "test.espnet3.test_data_organizer.DummyDataset"},
+                "dataset": {
+                    "_target_": "test.espnet3.test_data_organizer.DummyDataset"
+                },
             }
         ],
     }
     config = OmegaConf.create(config)
     return config
+
 
 # Tests
 def test_combined_dataset():
@@ -65,13 +79,14 @@ def test_combined_dataset():
     assert combined[0]["text"] == "HELLO"
     assert combined[3]["text"] == "WORLD"
 
+
 def test_data_organizer_init(dummy_dataset_config):
     config = dummy_dataset_config
     organizer = DataOrganizer(
         train=instantiate(config["train"]),
         valid=instantiate(config["valid"]),
         test=instantiate(config["test"]),
-        preprocessor=DummyPreprocessor()
+        preprocessor=DummyPreprocessor(),
     )
 
     assert len(organizer.train) == 2
@@ -80,19 +95,26 @@ def test_data_organizer_init(dummy_dataset_config):
     assert "test_dummy" in organizer.test
     assert isinstance(organizer.test["test_dummy"][0], tuple)
 
+
 def test_data_organizer_without_test():
     config = {
         "train": [
             {
                 "name": "train_dummy",
-                "dataset": {"_target_": "test.espnet3.test_data_organizer.DummyDataset"},
-                "transform": {"_target_": "test.espnet3.test_data_organizer.DummyTransform"},
+                "dataset": {
+                    "_target_": "test.espnet3.test_data_organizer.DummyDataset"
+                },
+                "transform": {
+                    "_target_": "test.espnet3.test_data_organizer.DummyTransform"
+                },
             }
         ],
         "valid": [
             {
                 "name": "valid_dummy",
-                "dataset": {"_target_": "test.espnet3.test_data_organizer.DummyDataset"},
+                "dataset": {
+                    "_target_": "test.espnet3.test_data_organizer.DummyDataset"
+                },
             }
         ],
         # No "test" field
@@ -101,12 +123,13 @@ def test_data_organizer_without_test():
     organizer = DataOrganizer(
         train=instantiate(config["train"]),
         valid=instantiate(config["valid"]),
-        preprocessor=DummyPreprocessor()
+        preprocessor=DummyPreprocessor(),
     )
 
     assert len(organizer.train) == 2
     assert len(organizer.valid) == 2
     assert organizer.test == {}
+
 
 def test_data_organizer_test_only():
     config = {
@@ -115,15 +138,18 @@ def test_data_organizer_test_only():
         "test": [
             {
                 "name": "test_dummy",
-                "dataset": {"_target_": "test.espnet3.test_data_organizer.DummyDataset"},
-                "transform": {"_target_": "test.espnet3.test_data_organizer.DummyTransform"},
+                "dataset": {
+                    "_target_": "test.espnet3.test_data_organizer.DummyDataset"
+                },
+                "transform": {
+                    "_target_": "test.espnet3.test_data_organizer.DummyTransform"
+                },
             }
         ],
     }
 
     organizer = DataOrganizer(
-        test=instantiate(config["test"]),
-        preprocessor=DummyPreprocessor()
+        test=instantiate(config["test"]), preprocessor=DummyPreprocessor()
     )
 
     assert organizer.train is None
@@ -139,23 +165,29 @@ def test_data_organizer_train_valid_multiple(train_count, valid_count):
         "train": [
             {
                 "name": f"train{i}",
-                "dataset": {"_target_": "test.espnet3.test_data_organizer.DummyDataset"},
-                "transform": {"_target_": "test.espnet3.test_data_organizer.DummyTransform"},
+                "dataset": {
+                    "_target_": "test.espnet3.test_data_organizer.DummyDataset"
+                },
+                "transform": {
+                    "_target_": "test.espnet3.test_data_organizer.DummyTransform"
+                },
             }
             for i in range(train_count)
         ],
         "valid": [
             {
                 "name": f"valid{i}",
-                "dataset": {"_target_": "test.espnet3.test_data_organizer.DummyDataset"},
+                "dataset": {
+                    "_target_": "test.espnet3.test_data_organizer.DummyDataset"
+                },
             }
             for i in range(valid_count)
-        ]
+        ],
     }
     organizer = DataOrganizer(
         train=instantiate(config["train"]),
         valid=instantiate(config["valid"]),
-        preprocessor=DummyPreprocessor()
+        preprocessor=DummyPreprocessor(),
     )
     assert len(organizer.train) == 2 * train_count
     assert len(organizer.valid) == 2 * valid_count
@@ -167,18 +199,23 @@ def test_data_organizer_test_multiple_sets():
         "test": [
             {
                 "name": "test_clean",
-                "dataset": {"_target_": "test.espnet3.test_data_organizer.DummyDataset"},
+                "dataset": {
+                    "_target_": "test.espnet3.test_data_organizer.DummyDataset"
+                },
             },
             {
                 "name": "test_other",
-                "dataset": {"_target_": "test.espnet3.test_data_organizer.DummyDataset"},
-                "transform": {"_target_": "test.espnet3.test_data_organizer.DummyTransform"},
-            }
+                "dataset": {
+                    "_target_": "test.espnet3.test_data_organizer.DummyDataset"
+                },
+                "transform": {
+                    "_target_": "test.espnet3.test_data_organizer.DummyTransform"
+                },
+            },
         ]
     }
     organizer = DataOrganizer(
-        test=instantiate(config["test"]),
-        preprocessor=DummyPreprocessor()
+        test=instantiate(config["test"]), preprocessor=DummyPreprocessor()
     )
     assert "test_clean" in organizer.test
     assert "test_other" in organizer.test
@@ -189,14 +226,20 @@ def test_data_organizer_transform_only():
         "train": [
             {
                 "name": "train_dummy",
-                "dataset": {"_target_": "test.espnet3.test_data_organizer.DummyDataset"},
-                "transform": {"_target_": "test.espnet3.test_data_organizer.DummyTransform"},
+                "dataset": {
+                    "_target_": "test.espnet3.test_data_organizer.DummyDataset"
+                },
+                "transform": {
+                    "_target_": "test.espnet3.test_data_organizer.DummyTransform"
+                },
             }
         ],
         "valid": [
             {
                 "name": "valid_dummy",
-                "dataset": {"_target_": "test.espnet3.test_data_organizer.DummyDataset"},
+                "dataset": {
+                    "_target_": "test.espnet3.test_data_organizer.DummyDataset"
+                },
             }
         ],
     }
@@ -212,20 +255,24 @@ def test_data_organizer_preprocessor_only():
         "train": [
             {
                 "name": "train_dummy",
-                "dataset": {"_target_": "test.espnet3.test_data_organizer.DummyDataset"},
+                "dataset": {
+                    "_target_": "test.espnet3.test_data_organizer.DummyDataset"
+                },
             }
         ],
         "valid": [
             {
                 "name": "valid_dummy",
-                "dataset": {"_target_": "test.espnet3.test_data_organizer.DummyDataset"},
+                "dataset": {
+                    "_target_": "test.espnet3.test_data_organizer.DummyDataset"
+                },
             }
         ],
     }
     organizer = DataOrganizer(
         train=instantiate(config["train"]),
         valid=instantiate(config["valid"]),
-        preprocessor=DummyPreprocessor()
+        preprocessor=DummyPreprocessor(),
     )
     assert organizer.train[0]["text"].startswith("[DUMMY]")
 
@@ -235,21 +282,27 @@ def test_data_organizer_transform_and_preprocessor():
         "train": [
             {
                 "name": "train_dummy",
-                "dataset": {"_target_": "test.espnet3.test_data_organizer.DummyDataset"},
-                "transform": {"_target_": "test.espnet3.test_data_organizer.DummyTransform"},
+                "dataset": {
+                    "_target_": "test.espnet3.test_data_organizer.DummyDataset"
+                },
+                "transform": {
+                    "_target_": "test.espnet3.test_data_organizer.DummyTransform"
+                },
             }
         ],
         "valid": [
             {
                 "name": "valid_dummy",
-                "dataset": {"_target_": "test.espnet3.test_data_organizer.DummyDataset"},
+                "dataset": {
+                    "_target_": "test.espnet3.test_data_organizer.DummyDataset"
+                },
             }
         ],
     }
     organizer = DataOrganizer(
         train=instantiate(config["train"]),
         valid=instantiate(config["valid"]),
-        preprocessor=DummyPreprocessor()
+        preprocessor=DummyPreprocessor(),
     )
     sample = organizer.train[0]
     assert sample["text"] == "[DUMMY] [DUMMY] HELLO"
@@ -260,7 +313,9 @@ def test_data_organizer_train_only_assertion():
         "train": [
             {
                 "name": "train_dummy",
-                "dataset": {"_target_": "test.espnet3.test_data_organizer.DummyDataset"},
+                "dataset": {
+                    "_target_": "test.espnet3.test_data_organizer.DummyDataset"
+                },
             }
         ]
         # valid is missing
@@ -288,7 +343,7 @@ def test_data_organizer_inconsistent_keys():
             return 1
 
         def __getitem__(self, idx):
-            return {"audio": b"abc", "wrong": "oops"} 
+            return {"audio": b"abc", "wrong": "oops"}
 
     ds1 = DummyDataset()
     ds2 = BadDataset()
@@ -312,13 +367,17 @@ def test_data_organizer_invalid_preprocessor_type():
         "train": [
             {
                 "name": "train_dummy",
-                "dataset": {"_target_": "test.espnet3.test_data_organizer.DummyDataset"},
+                "dataset": {
+                    "_target_": "test.espnet3.test_data_organizer.DummyDataset"
+                },
             }
         ],
         "valid": [
             {
                 "name": "valid_dummy",
-                "dataset": {"_target_": "test.espnet3.test_data_organizer.DummyDataset"},
+                "dataset": {
+                    "_target_": "test.espnet3.test_data_organizer.DummyDataset"
+                },
             }
         ],
     }
@@ -326,5 +385,5 @@ def test_data_organizer_invalid_preprocessor_type():
         DataOrganizer(
             train=instantiate(config["train"]),
             valid=instantiate(config["valid"]),
-            preprocessor="not_callable"
+            preprocessor="not_callable",
         )

@@ -1,5 +1,6 @@
-from espnet2.samplers.abs_sampler import AbsSampler
 from typing import Sequence
+
+from espnet2.samplers.abs_sampler import AbsSampler
 
 
 class MappedSamplerWrapper(AbsSampler):

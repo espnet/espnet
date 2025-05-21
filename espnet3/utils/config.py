@@ -1,8 +1,9 @@
+import logging
 import os
 from pathlib import Path
-from omegaconf import OmegaConf
+
 import yaml
-import logging
+from omegaconf import OmegaConf
 
 from espnet3.task import get_ez_task
 
@@ -222,5 +223,3 @@ def build_config_path(base_path: Path, entry: str) -> Path:
     if not entry.endswith(".yaml"):
         entry += ".yaml"
     return base_path / entry
-
-
