@@ -107,7 +107,7 @@ def main():
         save_espnet_config(task, config, config.expdir)
 
     fit_params = {} if not hasattr(config, "fit") else config.fit
-    # trainer.fit(**fit_params)
+    trainer.fit(**fit_params)
 
 
 if __name__ == "__main__":
