@@ -166,7 +166,7 @@ class InferenceRunner:
         is_espnet_preprocessor = isinstance(preprocessor, AbsPreprocessor)
 
         if hasattr(test_ds_conf, "transform"):
-            transform = test_ds_conf.transform
+            transform = instantiate(test_ds_conf.transform)
         else:
             transform = lambda x: x
 
@@ -227,6 +227,9 @@ class InferenceRunner:
                 file_path = data_dir / f"{uid}_{key}.flac"
                 sf.write(file_path, val["value"], 16000, format="FLAC")
                 line_parts.append(str(file_path))
+            else:
+                raise ValueError(f"output type {val['type']} is not supported." + \
+                                "Please override the write function")
 
             with open(scp_path, "a") as f:
                 f.write(" ".join(line_parts) + "\n")
@@ -242,7 +245,7 @@ class InferenceRunner:
                 for chunk in sample["stream"]:
                     out = self.inference_body(model, chunk)
                     outputs.append(out)
-                return self.post_inference(outputs)
+                return self.post_inference(model, outputs)
             else:
                 return self.inference_body(model, sample)
 
@@ -265,51 +268,48 @@ class InferenceRunner:
 
         for idx in tqdm(range(len(dataset))):
             uid, sample = dataset[idx]
-            try:
-                if self.stream and "audio_path" in sample:
-                    sample["stream"] = self.read("audio", sample["audio_path"], stream=True)
+            if self.stream and "audio_path" in sample:
+                sample["stream"] = self.read("audio", sample["audio_path"], stream=True)
 
-                start_total = time.time()
-                mem_before = proc.memory_info().rss / 1024 / 1024
-                gpu_before = gpu_mem()
+            start_total = time.time()
+            mem_before = proc.memory_info().rss / 1024 / 1024
+            gpu_before = gpu_mem()
 
-                t0 = time.time()
-                model, sample = self.pre_inference(model, sample)
-                pre_time = time.time() - t0
+            t0 = time.time()
+            model, sample = self.pre_inference(model, sample)
+            pre_time = time.time() - t0
 
-                outputs = []
-                infer_times = []
+            outputs = []
+            infer_times = []
 
-                if self.stream and isinstance(sample.get("stream"), Iterator):
-                    for chunk in sample["stream"]:
-                        t1 = time.time()
-                        out = self.inference_body(model, chunk)
-                        infer_times.append(time.time() - t1)
-                        outputs.append(out)
-                else:
+            if self.stream and isinstance(sample.get("stream"), Iterator):
+                for chunk in sample["stream"]:
                     t1 = time.time()
-                    outputs = [self.inference_body(model, sample)]
+                    out = self.inference_body(model, chunk)
                     infer_times.append(time.time() - t1)
+                    outputs.append(out)
+            else:
+                t1 = time.time()
+                outputs = [self.inference_body(model, sample)]
+                infer_times.append(time.time() - t1)
 
-                t_post = time.time()
-                result = self.post_inference(model, outputs)
-                post_time = time.time() - t_post
+            t_post = time.time()
+            result = self.post_inference(model, outputs)
+            post_time = time.time() - t_post
 
-                total_time = time.time() - start_total
-                mem_after = proc.memory_info().rss / 1024 / 1024
-                gpu_after = gpu_mem()
+            total_time = time.time() - start_total
+            mem_after = proc.memory_info().rss / 1024 / 1024
+            gpu_after = gpu_mem()
 
-                result["pre_time"] = str(round(pre_time, 4))
-                result["infer_time"] = " ".join(str(round(t, 4)) for t in infer_times)
-                result["post_time"] = str(round(post_time, 4))
-                result["total_time"] = str(round(total_time, 4))
-                result["cpu_mem_MB"] = str(round(mem_after - mem_before, 2))
-                result["gpu_mem_MiB"] = str(round(gpu_after - gpu_before, 2))
+            result["pre_time"] = str(round(pre_time, 4))
+            result["infer_time"] = " ".join(str(round(t, 4)) for t in infer_times)
+            result["post_time"] = str(round(post_time, 4))
+            result["total_time"] = str(round(total_time, 4))
+            result["cpu_mem_MB"] = str(round(mem_after - mem_before, 2))
+            result["gpu_mem_MiB"] = str(round(gpu_after - gpu_before, 2))
 
-                self.write(uid, result, output_dir)
+            self.write(uid, result, output_dir)
 
-            except Exception as e:
-                self.on_error(uid, e)
 
     def _run_parallel(self, dataset_key: Any, output_dir: Union[str, Path]):
         """Run inference in parallel using Dask"""
@@ -422,6 +422,6 @@ class InferenceRunner:
     def post_inference(self, model, outputs: list) -> dict:
         return outputs[0]
     
-    def on_error(self, uid: str, err: Exception):
-        print(f"[ERROR] {uid}: {err}", flush=True)
+    # def on_error(self, uid: str, err: Exception):
+    #     print(f"[ERROR] {uid}: {err}", flush=True)
 
