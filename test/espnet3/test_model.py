@@ -57,7 +57,7 @@ def external_dummy_dataset_config():
             {
                 "name": "dummy_train",
                 "dataset": {
-                    "_target_": "test.espnetez.test_model.DummyDataset"
+                    "_target_": "test.espnet3.test_model.DummyDataset"
                 }
             }
         ],
@@ -65,7 +65,7 @@ def external_dummy_dataset_config():
             {
                 "name": "dummy_valid",
                 "dataset": {
-                    "_target_": "test.espnetez.test_model.DummyDataset"
+                    "_target_": "test.espnet3.test_model.DummyDataset"
                 }
             }
         ],
@@ -73,7 +73,7 @@ def external_dummy_dataset_config():
             {
                 "name": "dummy_test",
                 "dataset": {
-                    "_target_": "test.espnetez.test_model.DummyDataset"
+                    "_target_": "test.espnet3.test_model.DummyDataset"
                 }
             }
         ]
@@ -261,18 +261,18 @@ def test_iter_factory_with_shape_file(tmp_path, dummy_model, external_dummy_data
         "dataloader": {
             "train": {
                 "iter_factory": {
-                    "_target_": "test.espnetez.test_model.DummyIterFactory",
+                    "_target_": "test.espnet3.test_model.DummyIterFactory",
                     "batches": {
-                        "_target_": "test.espnetez.test_model.DummySamplerWithShapeFiles",
+                        "_target_": "test.espnet3.test_model.DummySamplerWithShapeFiles",
                         "shape_files": [shape_file]
                     }
                 }
             },
             "valid": {
                 "iter_factory": {
-                    "_target_": "test.espnetez.test_model.DummyIterFactory",
+                    "_target_": "test.espnet3.test_model.DummyIterFactory",
                     "batches": {
-                        "_target_": "test.espnetez.test_model.DummySamplerWithShapeFiles",
+                        "_target_": "test.espnet3.test_model.DummySamplerWithShapeFiles",
                         "shape_files": [shape_file]
                     }
                 }
