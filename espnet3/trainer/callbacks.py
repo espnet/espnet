@@ -23,9 +23,11 @@ class AverageCheckpointsCallback(Callback):
       `{monitor_name}.ave_{N}best.pth`
 
     Notes:
-    - Only keys that start with `model.` are averaged (e.g., for models saved with `save_weights_only=True`).
-    - Parameters with integer types (e.g., `BatchNorm.num_batches_tracked`) are not averaged,
-      only accumulated. If other reduction methods are needed (e.g., max/min), they should be added explicitly.
+    - Only keys that start with `model.` are averaged (e.g., for models saved
+        with `save_weights_only=True`).
+    - Parameters with integer types (e.g., `BatchNorm.num_batches_tracked`)
+        are not averaged, only accumulated. If other reduction methods are needed
+        (e.g., max/min), they should be added explicitly.
     """
 
     def __init__(self, output_dir, best_ckpt_callbacks):
@@ -70,8 +72,9 @@ class AverageCheckpointsCallback(Callback):
                 }
 
                 avg_ckpt_path = (
-                    Path(self.output_dir)
-                    / f"{ckpt_callback.monitor.replace('/', '.')}.ave_{len(checkpoints)}best.pth"
+                    Path(self.output_dir) / \
+                    (f"{ckpt_callback.monitor.replace('/', '.')}." \
+                    + f"ave_{len(checkpoints)}best.pth")
                 )
                 torch.save(new_avg_state_dict, avg_ckpt_path)
 
@@ -85,21 +88,25 @@ def get_default_callbacks(
     ],
 ) -> List[Callback]:
     """
-    Utility function to construct and return a list of standard PyTorch Lightning callbacks.
+    Utility function to construct and return a list of standard PyTorch Lightning
+    callbacks.
 
     Included callbacks:
     - ModelCheckpoint for saving the last checkpoint (`save_last`)
-    - Multiple ModelCheckpoint callbacks for saving top-K checkpoints based on different metrics
+    - Multiple ModelCheckpoint callbacks for saving top-K checkpoints based on
+        different metrics
     - AverageCheckpointsCallback for saving an averaged model from top-K checkpoints
     - LearningRateMonitor to log learning rate
     - TQDMProgressBar to display training progress
 
     Args:
-        config: Configuration object (e.g., from Hydra or OmegaConf), which must include:
+        config: Configuration object (e.g., from Hydra or OmegaConf),
+            which must include:
             - `expdir`: Output directory for saved models
             - `log_interval`: Refresh rate for the progress bar
             - `best_model_criterion`: List of tuples (metric_name, top_k, mode)
-                Example: [("val/wer", 3, "min")] means save top-3 checkpoints with lowest val/wer
+                Example: [("val/wer", 3, "min")] means save top-3 checkpoints
+                with lowest val/wer
 
     Returns:
         List[Callback]: A list of configured PyTorch Lightning callbacks.
@@ -127,7 +134,8 @@ def get_default_callbacks(
                 mode=mode,  # "min" or "max"
                 dirpath=expdir,
                 save_last=False,
-                # Add monitor to filename to avoid overwriting when multiple metrics are used
+                # Add monitor to filename to avoid overwriting
+                # when multiple metrics are used
                 filename="epoch{epoch}_step{step}_" + monitor.replace("/", "."),
                 auto_insert_metric_name=False,
                 save_on_train_epoch_end=False,

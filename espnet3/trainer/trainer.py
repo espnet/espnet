@@ -28,9 +28,9 @@ def get_or_initialize(config, item_name: str = None, default=None) -> Any:
     else:
         item = config
 
-    if type(item) == DictConfig:
+    if isinstance(item, DictConfig):
         return instantiate(item)
-    elif type(item) == ListConfig:
+    elif isinstance(item, ListConfig):
         return [get_or_initialize(c) for c in item]
     else:
         return item
@@ -60,12 +60,12 @@ class ESPnetEZLightningTrainer:
 
         # Accelerator
         accelerator = get_or_initialize(self.config, "accelerator", "auto")
-        if accelerator is not "auto":
+        if hasattr(self.config, "accelerator"):
             self.config.pop("accelerator")
 
         # strategy
         strategy = get_or_initialize(self.config, "strategy", "auto")
-        if strategy is not "auto":
+        if hasattr(self.config, "strategy"):
             self.config.pop("strategy")
 
         # logger
@@ -123,4 +123,4 @@ class ESPnetEZLightningTrainer:
         )
 
     def collect_stats(self, *args, **kwargs):
-        return self.model.collect_stats()
+        return self.model.collect_stats(*args, **kwargs)

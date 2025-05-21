@@ -1,11 +1,13 @@
-from types import SimpleNamespace
-
+# test_data_organizer.py
+import numpy as np
 import pytest
+from hydra.utils import instantiate
+from omegaconf import OmegaConf
 
-from espnet3.data import CombinedDataset, DataOrganizer, DatasetConfig
+from espnet3.data import CombinedDataset, DataOrganizer
 
 
-# Dummy transform and preprocessor classes for testing
+# Dummy classes
 class DummyTransform:
     def __call__(self, sample):
         sample["text"] = sample["text"].upper()
@@ -18,12 +20,11 @@ class DummyPreprocessor:
         return sample
 
 
-# Dummy dataset for testing
 class DummyDataset:
     def __init__(self, path=None):
         self.data = [
-            {"audio": b"audio1", "text": "hello"},
-            {"audio": b"audio2", "text": "world"},
+            {"audio": np.random.random(16000), "text": "hello"},
+            {"audio": np.random.random(16000), "text": "world"},
         ]
 
     def __len__(self):
@@ -33,46 +34,43 @@ class DummyDataset:
         return self.data[idx]
 
 
-class EmptyDataset:
-    def __init__(self, path=None):
-        self.data = []
-
-    def __len__(self):
-        return 0
-
-    def __getitem__(self, idx):
-        raise IndexError("Empty dataset")
-
-
+# Fixtures
 @pytest.fixture
 def dummy_dataset_config():
-    return {
+    config = {
         "train": [
             {
-                "name": "dummy",
-                "dataset_cls": "test.espnetez.test_data_organizer.DummyDataset",
-                "fields": ["audio", "text"],
-                "transform": "test.espnetez.test_data_organizer.DummyTransform",
+                "name": "train_dummy",
+                "dataset": {
+                    "_target_": "test.espnet3.test_data_organizer.DummyDataset"
+                },
+                "transform": {
+                    "_target_": "test.espnet3.test_data_organizer.DummyTransform"
+                },
             }
         ],
         "valid": [
             {
-                "name": "dummy",
-                "dataset_cls": "test.espnetez.test_data_organizer.DummyDataset",
-                "fields": ["audio", "text"],
+                "name": "valid_dummy",
+                "dataset": {
+                    "_target_": "test.espnet3.test_data_organizer.DummyDataset"
+                },
             }
         ],
-        "test": {
-            "sample_test": {
-                "name": "dummy",
-                "dataset_cls": "test.espnetez.test_data_organizer.DummyDataset",
-                "path": None,
-                "fields": ["audio", "text"],
+        "test": [
+            {
+                "name": "test_dummy",
+                "dataset": {
+                    "_target_": "test.espnet3.test_data_organizer.DummyDataset"
+                },
             }
-        },
+        ],
     }
+    config = OmegaConf.create(config)
+    return config
 
 
+# Tests
 def test_combined_dataset():
     ds1 = DummyDataset()
     ds2 = DummyDataset()
@@ -82,71 +80,310 @@ def test_combined_dataset():
     assert combined[3]["text"] == "WORLD"
 
 
-def test_combined_dataset_index_error():
-    ds = DummyDataset()
-    combined = CombinedDataset([ds], [DummyTransform()])
-    with pytest.raises(IndexError):
-        _ = combined[10]
-
-
-def test_empty_combined_dataset():
-    empty = CombinedDataset([], [])
-    assert len(empty) == 0
-    with pytest.raises(IndexError):
-        _ = empty[0]
-
-
 def test_data_organizer_init(dummy_dataset_config):
-    organizer = DataOrganizer(dummy_dataset_config, preprocessor=DummyPreprocessor())
+    config = dummy_dataset_config
+    organizer = DataOrganizer(
+        train=instantiate(config["train"]),
+        valid=instantiate(config["valid"]),
+        test=instantiate(config["test"]),
+        preprocessor=DummyPreprocessor(),
+    )
 
-    # train set
     assert len(organizer.train) == 2
     assert organizer.train[0]["text"].startswith("[DUMMY]")
-
-    # valid set
     assert len(organizer.valid) == 2
-
-    # test set
-    assert "sample_test" in organizer.test
-    assert len(organizer.test["sample_test"]) == 2
-    assert isinstance(organizer.test["sample_test"][0], dict)
+    assert "test_dummy" in organizer.test
+    assert isinstance(organizer.test["test_dummy"][0], tuple)
 
 
-def test_data_organizer_empty_dataset():
+def test_data_organizer_without_test():
     config = {
         "train": [
             {
-                "name": "empty",
-                "dataset_cls": "test.espnetez.test_data_organizer.EmptyDataset",
-                "fields": ["audio", "text"],
+                "name": "train_dummy",
+                "dataset": {
+                    "_target_": "test.espnet3.test_data_organizer.DummyDataset"
+                },
+                "transform": {
+                    "_target_": "test.espnet3.test_data_organizer.DummyTransform"
+                },
             }
         ],
         "valid": [
             {
-                "name": "empty",
-                "dataset_cls": "test.espnetez.test_data_organizer.EmptyDataset",
-                "fields": ["audio", "text"],
+                "name": "valid_dummy",
+                "dataset": {
+                    "_target_": "test.espnet3.test_data_organizer.DummyDataset"
+                },
+            }
+        ],
+        # No "test" field
+    }
+    config = OmegaConf.create(config)
+    organizer = DataOrganizer(
+        train=instantiate(config["train"]),
+        valid=instantiate(config["valid"]),
+        preprocessor=DummyPreprocessor(),
+    )
+
+    assert len(organizer.train) == 2
+    assert len(organizer.valid) == 2
+    assert organizer.test == {}
+
+
+def test_data_organizer_test_only():
+    config = {
+        # No "train"
+        # No "valid"
+        "test": [
+            {
+                "name": "test_dummy",
+                "dataset": {
+                    "_target_": "test.espnet3.test_data_organizer.DummyDataset"
+                },
+                "transform": {
+                    "_target_": "test.espnet3.test_data_organizer.DummyTransform"
+                },
             }
         ],
     }
-    organizer = DataOrganizer(config)
+
+    organizer = DataOrganizer(
+        test=instantiate(config["test"]), preprocessor=DummyPreprocessor()
+    )
+
+    assert organizer.train is None
+    assert organizer.valid is None
+    assert "test_dummy" in organizer.test
+    print(organizer.test["test_dummy"].dataset)
+    assert organizer.test["test_dummy"][0][1]["text"].startswith("[DUMMY]")
+
+
+@pytest.mark.parametrize("train_count, valid_count", [(1, 1), (2, 2)])
+def test_data_organizer_train_valid_multiple(train_count, valid_count):
+    config = {
+        "train": [
+            {
+                "name": f"train{i}",
+                "dataset": {
+                    "_target_": "test.espnet3.test_data_organizer.DummyDataset"
+                },
+                "transform": {
+                    "_target_": "test.espnet3.test_data_organizer.DummyTransform"
+                },
+            }
+            for i in range(train_count)
+        ],
+        "valid": [
+            {
+                "name": f"valid{i}",
+                "dataset": {
+                    "_target_": "test.espnet3.test_data_organizer.DummyDataset"
+                },
+            }
+            for i in range(valid_count)
+        ],
+    }
+    organizer = DataOrganizer(
+        train=instantiate(config["train"]),
+        valid=instantiate(config["valid"]),
+        preprocessor=DummyPreprocessor(),
+    )
+    assert len(organizer.train) == 2 * train_count
+    assert len(organizer.valid) == 2 * valid_count
+    assert organizer.train[0]["text"].startswith("[DUMMY]")
+
+
+def test_data_organizer_test_multiple_sets():
+    config = {
+        "test": [
+            {
+                "name": "test_clean",
+                "dataset": {
+                    "_target_": "test.espnet3.test_data_organizer.DummyDataset"
+                },
+            },
+            {
+                "name": "test_other",
+                "dataset": {
+                    "_target_": "test.espnet3.test_data_organizer.DummyDataset"
+                },
+                "transform": {
+                    "_target_": "test.espnet3.test_data_organizer.DummyTransform"
+                },
+            },
+        ]
+    }
+    organizer = DataOrganizer(
+        test=instantiate(config["test"]), preprocessor=DummyPreprocessor()
+    )
+    assert "test_clean" in organizer.test
+    assert "test_other" in organizer.test
+
+
+def test_data_organizer_transform_only():
+    config = {
+        "train": [
+            {
+                "name": "train_dummy",
+                "dataset": {
+                    "_target_": "test.espnet3.test_data_organizer.DummyDataset"
+                },
+                "transform": {
+                    "_target_": "test.espnet3.test_data_organizer.DummyTransform"
+                },
+            }
+        ],
+        "valid": [
+            {
+                "name": "valid_dummy",
+                "dataset": {
+                    "_target_": "test.espnet3.test_data_organizer.DummyDataset"
+                },
+            }
+        ],
+    }
+    organizer = DataOrganizer(
+        train=instantiate(config["train"]),
+        valid=instantiate(config["valid"]),
+    )
+    assert organizer.train[0]["text"] == "HELLO"
+
+
+def test_data_organizer_preprocessor_only():
+    config = {
+        "train": [
+            {
+                "name": "train_dummy",
+                "dataset": {
+                    "_target_": "test.espnet3.test_data_organizer.DummyDataset"
+                },
+            }
+        ],
+        "valid": [
+            {
+                "name": "valid_dummy",
+                "dataset": {
+                    "_target_": "test.espnet3.test_data_organizer.DummyDataset"
+                },
+            }
+        ],
+    }
+    organizer = DataOrganizer(
+        train=instantiate(config["train"]),
+        valid=instantiate(config["valid"]),
+        preprocessor=DummyPreprocessor(),
+    )
+    assert organizer.train[0]["text"].startswith("[DUMMY]")
+
+
+def test_data_organizer_transform_and_preprocessor():
+    config = {
+        "train": [
+            {
+                "name": "train_dummy",
+                "dataset": {
+                    "_target_": "test.espnet3.test_data_organizer.DummyDataset"
+                },
+                "transform": {
+                    "_target_": "test.espnet3.test_data_organizer.DummyTransform"
+                },
+            }
+        ],
+        "valid": [
+            {
+                "name": "valid_dummy",
+                "dataset": {
+                    "_target_": "test.espnet3.test_data_organizer.DummyDataset"
+                },
+            }
+        ],
+    }
+    organizer = DataOrganizer(
+        train=instantiate(config["train"]),
+        valid=instantiate(config["valid"]),
+        preprocessor=DummyPreprocessor(),
+    )
+    sample = organizer.train[0]
+    assert sample["text"] == "[DUMMY] [DUMMY] HELLO"
+
+
+def test_data_organizer_train_only_assertion():
+    config = {
+        "train": [
+            {
+                "name": "train_dummy",
+                "dataset": {
+                    "_target_": "test.espnet3.test_data_organizer.DummyDataset"
+                },
+            }
+        ]
+        # valid is missing
+    }
+    with pytest.raises(RuntimeError):
+        DataOrganizer(train=instantiate(config["train"]))
+
+
+def test_data_organizer_empty_train_valid_ok():
+    config = {
+        "train": [],
+        "valid": [],
+    }
+    organizer = DataOrganizer(
+        train=instantiate(config["train"]),
+        valid=instantiate(config["valid"]),
+    )
     assert len(organizer.train) == 0
     assert len(organizer.valid) == 0
 
 
-def test_missing_train_valid_raises():
-    incomplete_cfg = {"train": []}  # missing valid
+def test_data_organizer_inconsistent_keys():
+    class BadDataset:
+        def __len__(self):
+            return 1
+
+        def __getitem__(self, idx):
+            return {"audio": b"abc", "wrong": "oops"}
+
+    ds1 = DummyDataset()
+    ds2 = BadDataset()
+
     with pytest.raises(AssertionError):
-        DataOrganizer(incomplete_cfg)
+        CombinedDataset([ds1, ds2], [lambda x: x, lambda x: x])
 
 
-def test_dataset_config_from_dict():
-    cfg_dict = {
-        "name": "dummy",
-        "dataset_cls": "test.espnetez.test_data_organizer.DummyDataset",
-        "fields": ["audio", "text"],
-        "transform": "test.espnetez.test_data_organizer.DummyTransform",
+def test_data_organizer_transform_none():
+    class BrokenTransform:
+        def __call__(self, sample):
+            raise ValueError("Broken")
+
+    ds = DummyDataset()
+    with pytest.raises(ValueError):
+        CombinedDataset([ds], [BrokenTransform()])
+
+
+def test_data_organizer_invalid_preprocessor_type():
+    config = {
+        "train": [
+            {
+                "name": "train_dummy",
+                "dataset": {
+                    "_target_": "test.espnet3.test_data_organizer.DummyDataset"
+                },
+            }
+        ],
+        "valid": [
+            {
+                "name": "valid_dummy",
+                "dataset": {
+                    "_target_": "test.espnet3.test_data_organizer.DummyDataset"
+                },
+            }
+        ],
     }
-    cfg = DatasetConfig.from_dict(cfg_dict)
-    assert cfg.name == "dummy"
-    assert callable(cfg.transform)
+    with pytest.raises(TypeError):
+        DataOrganizer(
+            train=instantiate(config["train"]),
+            valid=instantiate(config["valid"]),
+            preprocessor="not_callable",
+        )
