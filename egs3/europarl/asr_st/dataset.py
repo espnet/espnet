@@ -1,9 +1,11 @@
-import numpy as np
+import contextlib
 import os
 import sys
-import contextlib
-from torch.utils.data import Dataset
+
+import numpy as np
 from lhotse import CutSet
+from torch.utils.data import Dataset
+
 from espnet2.bin.s2t_inference import Speech2Text
 
 
@@ -70,7 +72,8 @@ class EuroparlSTDataset(Dataset):
 
         example = {
             "speech": audio.astype(np.float32),
-            "text": f'<{self.iso_code[src_lang]}><st_{self.iso_code[tgt_lang]}><notimestamps> {tgt_text}',
+            "text": f'<{self.iso_code[src_lang]}><st_{self.iso_code[tgt_lang]}>'
+            + '<notimestamps> {tgt_text}',
             "text_ctc": src_text,
             "text_prev": "<na>",
         }
@@ -82,10 +85,10 @@ class OWSMTokenizeTransform:
         owsm_model = Speech2Text.from_pretrained(model_tag)
         self.tokenizer = owsm_model.tokenizer
         self.converter = owsm_model.converter
-    
+
     def tokenize(self, text):
         return np.array(self.converter.tokens2ids(self.tokenizer.text2tokens(text)))
-    
+
     def __call__(self, data):
         idx, example = data
         ret = dict(
@@ -94,4 +97,4 @@ class OWSMTokenizeTransform:
             text_ctc=self.tokenize(example['text_ctc']),
             text_prev=self.tokenize(example['text_prev']),
         )
-        return (idx, ret)
+        return ret

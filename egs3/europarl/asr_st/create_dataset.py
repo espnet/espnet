@@ -4,6 +4,11 @@ from pathlib import Path
 from typing import List, Tuple
 
 from datasets import Dataset, DatasetDict
+import soundfile as sf
+from lhotse import CutSet, MonoCut
+from lhotse.audio import Recording
+from lhotse.audio.source import AudioSource
+from lhotse.supervision import SupervisionSegment
 
 
 def infer_langs_from_path(split_dir: Path) -> Tuple[str, str]:
@@ -15,14 +20,6 @@ def infer_langs_from_path(split_dir: Path) -> Tuple[str, str]:
 
 def read_lines(path: Path) -> List[str]:
     return path.read_text(encoding="utf-8").strip().splitlines()
-
-
-from lhotse import MonoCut, CutSet
-from lhotse.audio import Recording
-from lhotse.audio.source import AudioSource
-from lhotse.supervision import SupervisionSegment
-
-import soundfile as sf
 
 
 def build_split_cutset(
@@ -54,7 +51,9 @@ def build_split_cutset(
             info = sf.info(str(audio_path))
             recording = Recording(
                 id=fname,
-                sources=[AudioSource(type="file", source=str(audio_path), channels=[0])],
+                sources=[
+                    AudioSource(type="file", source=str(audio_path), channels=[0])
+                ],
                 sampling_rate=info.samplerate,
                 num_samples=info.frames,
                 duration=info.duration,
@@ -65,9 +64,12 @@ def build_split_cutset(
             recording = audio_path_map[fname]
 
         if start > recording.duration:
-            print(f"[Skipping] segment {fname} (start={start}, end={end}) exceeds recording duration {recording.duration}")
+            print(
+                f"[Skipping] segment {fname} (start={start}, end={end}) exceeds"
+                "recording duration {recording.duration}"
+            )
             continue
-            
+
         if end > recording.duration:
             end = recording.duration
 
@@ -82,9 +84,13 @@ def build_split_cutset(
                 f"text.{tgt_lang}": seg_tgt[i],
                 "src_lang": src_lang,
                 "tgt_lang": tgt_lang,
-                "speaker_id": spk_lst[txt_src.index(seg_src[i])] if seg_src[i] in txt_src else "",
-                "url": url_lst[txt_src.index(seg_src[i])] if seg_src[i] in txt_src else "",
-            }
+                "speaker_id": (
+                    spk_lst[txt_src.index(seg_src[i])] if seg_src[i] in txt_src else ""
+                ),
+                "url": (
+                    url_lst[txt_src.index(seg_src[i])] if seg_src[i] in txt_src else ""
+                ),
+            },
         )
 
         cut = MonoCut(
@@ -97,7 +103,9 @@ def build_split_cutset(
         )
         cuts.append(cut)
 
-    split_name = f"{split_dir.parent.parent.name}_{split_dir.parent.name}_{split_dir.name}"
+    split_name = (
+        f"{split_dir.parent.parent.name}_{split_dir.parent.name}_{split_dir.name}"
+    )
     return split_name, CutSet.from_cuts(cuts)
 
 
@@ -125,19 +133,25 @@ def convert_all(root_dir: Path, save_path: Path):
                 txt_src = split_dir / f"speeches.{src_lang}"
                 txt_tgt = split_dir / f"speeches.{tgt_lang}"
 
-                if not (seg_src.exists() and seg_tgt.exists() and txt_src.exists() and txt_tgt.exists()):
+                if not (
+                    seg_src.exists()
+                    and seg_tgt.exists()
+                    and txt_src.exists()
+                    and txt_tgt.exists()
+                ):
                     print(f"[Skipping] Missing files in {split_dir}")
                     continue
 
                 try:
-                    split_name, cutset = build_split_cutset(split_dir, src_lang, tgt_lang)
+                    split_name, cutset = build_split_cutset(
+                        split_dir, src_lang, tgt_lang
+                    )
                     out_path = save_path / f"{split_name}.jsonl.gz"
                     out_path.parent.mkdir(parents=True, exist_ok=True)
                     cutset.to_file(str(out_path))
                     print(f"[Saved] {split_name} with {len(cutset)} cuts to {out_path}")
                 except Exception as e:
                     print(f"[Warning] Failed to process {split_dir}: {e}")
-
 
 
 def main():
