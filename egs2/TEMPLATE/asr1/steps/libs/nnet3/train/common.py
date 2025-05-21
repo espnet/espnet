@@ -132,7 +132,7 @@ def get_successful_models(num_models, log_file_pattern,
             accepted_models.append(i + 1)
 
     if len(accepted_models) != num_models:
-        logger.warn("Only {0}/{1} of the models have been accepted "
+        logger.warning("Only {0}/{1} of the models have been accepted "
                     "for averaging, based on log files {2}.".format(
                         len(accepted_models),
                         num_models, log_file_pattern))
