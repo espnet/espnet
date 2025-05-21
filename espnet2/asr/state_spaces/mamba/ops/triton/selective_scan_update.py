@@ -2,8 +2,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-"""We want triton==2.1.0 for this
-"""
+"""We want triton==2.1.0 for this"""
 
 import math
 

@@ -14,12 +14,15 @@ from typing import Optional
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from einops import rearrange, repeat
 from torch import Tensor
 
-from einops import rearrange, repeat
-
 try:
-    from espnet2.asr.state_spaces.mamba.ops.selective_scan_interface import selective_scan_fn, mamba_inner_fn, mamba_inner_fn_no_out_proj
+    from espnet2.asr.state_spaces.mamba.ops.selective_scan_interface import (
+        mamba_inner_fn,
+        mamba_inner_fn_no_out_proj,
+        selective_scan_fn,
+    )
 except ImportError:
     selective_scan_fn, mamba_inner_fn, mamba_inner_fn_no_out_proj = None, None, None
 
@@ -29,12 +32,18 @@ except ImportError:
     causal_conv1d_fn, causal_conv1d_update = None, None
 
 try:
-    from espnet2.asr.state_spaces.mamba.ops.triton.selective_scan_update import selective_state_update
+    from espnet2.asr.state_spaces.mamba.ops.triton.selective_scan_update import (
+        selective_state_update,
+    )
 except ImportError:
     selective_state_update = None
 
 try:
-    from espnet2.asr.state_spaces.mamba.ops.triton.layer_norm import RMSNorm, layer_norm_fn, rms_norm_fn
+    from espnet2.asr.state_spaces.mamba.ops.triton.layer_norm import (
+        RMSNorm,
+        layer_norm_fn,
+        rms_norm_fn,
+    )
 except ImportError:
     RMSNorm, layer_norm_fn, rms_norm_fn = None, None, None
 
@@ -101,7 +110,9 @@ class Mamba(OptimModule):
 
         self.use_causal_conv1d = use_causal_conv1d
 
-        self.in_proj = nn.Linear(self.d_model, self.d_inner * 2, bias=bias, **factory_kwargs)
+        self.in_proj = nn.Linear(
+            self.d_model, self.d_inner * 2, bias=bias, **factory_kwargs
+        )
 
         self.conv1d = nn.Conv1d(
             in_channels=self.d_inner,
@@ -119,7 +130,9 @@ class Mamba(OptimModule):
         self.x_proj = nn.Linear(
             self.d_inner, self.dt_rank + self.d_state * 2, bias=False, **factory_kwargs
         )
-        self.dt_proj = nn.Linear(self.dt_rank, self.d_inner, bias=True, **factory_kwargs)
+        self.dt_proj = nn.Linear(
+            self.dt_rank, self.d_inner, bias=True, **factory_kwargs
+        )
 
         # Initialize special dt projection to preserve variance at initialization
         dt_init_std = self.dt_rank**-0.5 * dt_scale
@@ -132,7 +145,8 @@ class Mamba(OptimModule):
 
         # Initialize dt bias so that F.softplus(dt_bias) is between dt_min and dt_max
         dt = torch.exp(
-            torch.rand(self.d_inner, **factory_kwargs) * (math.log(dt_max) - math.log(dt_min))
+            torch.rand(self.d_inner, **factory_kwargs)
+            * (math.log(dt_max) - math.log(dt_min))
             + math.log(dt_min)
         ).clamp(min=dt_init_floor)
         # Inverse of softplus: https://github.com/pytorch/pytorch/issues/72759
@@ -171,9 +185,14 @@ class Mamba(OptimModule):
                 **factory_kwargs,
             )
             self.x_proj_bwd = nn.Linear(
-                self.d_inner, self.dt_rank + self.d_state * 2, bias=False, **factory_kwargs
+                self.d_inner,
+                self.dt_rank + self.d_state * 2,
+                bias=False,
+                **factory_kwargs,
             )
-            self.dt_proj_bwd = nn.Linear(self.dt_rank, self.d_inner, bias=True, **factory_kwargs)
+            self.dt_proj_bwd = nn.Linear(
+                self.dt_rank, self.d_inner, bias=True, **factory_kwargs
+            )
 
             # Initialize special dt projection to preserve variance at initialization
             with torch.no_grad():
@@ -196,13 +215,18 @@ class Mamba(OptimModule):
                 self.A_bwd_log._no_weight_decay = True
 
             # D "skip" parameter
-            self.D_bwd = nn.Parameter(torch.ones(self.d_inner, device=device))  # Keep in fp32
+            self.D_bwd = nn.Parameter(
+                torch.ones(self.d_inner, device=device)
+            )  # Keep in fp32
             self.D_bwd._no_weight_decay = True
 
-        self.out_proj = nn.Linear(self.d_inner, self.d_model, bias=bias, **factory_kwargs)
+        self.out_proj = nn.Linear(
+            self.d_inner, self.d_model, bias=bias, **factory_kwargs
+        )
 
-
-    def forward(self, hidden_states, mask=None, inference_params=None, flip_fn=None, **kwargs):
+    def forward(
+        self, hidden_states, mask=None, inference_params=None, flip_fn=None, **kwargs
+    ):
         """
         hidden_states: (B, L, D)
         mask: (B, 1, L)
@@ -214,19 +238,32 @@ class Mamba(OptimModule):
         if inference_params is not None:
             if not self.bidirectional:
                 if self.prefix_bidir:
-                    conv_state, ssm_state, conv_state_pb, ssm_state_pb = self._get_states_from_cache_pb(inference_params, batch)
-                    if kwargs['direction'] == 'backward':
+                    conv_state, ssm_state, conv_state_pb, ssm_state_pb = (
+                        self._get_states_from_cache_pb(inference_params, batch)
+                    )
+                    if kwargs["direction"] == "backward":
                         conv_state, ssm_state = conv_state_pb, ssm_state_pb
                 else:
-                    conv_state, ssm_state = self._get_states_from_cache(inference_params, batch)
+                    conv_state, ssm_state = self._get_states_from_cache(
+                        inference_params, batch
+                    )
                 if inference_params.seqlen_offset > 0:
                     # The states are updated inplace
                     out, _, _ = self.step(hidden_states, conv_state, ssm_state)
                     return out
             else:
-                conv_state, ssm_state, conv_state_pb, ssm_state_pb = self._get_states_from_cache_pb(inference_params, batch)
+                conv_state, ssm_state, conv_state_pb, ssm_state_pb = (
+                    self._get_states_from_cache_pb(inference_params, batch)
+                )
                 if inference_params.seqlen_offset > 0:
-                    out, _, _, _, _ = self.bi_mamba_forward_step(hidden_states, conv_state, ssm_state, conv_state_pb, ssm_state_pb, mask)
+                    out, _, _, _, _ = self.bi_mamba_forward_step(
+                        hidden_states,
+                        conv_state,
+                        ssm_state,
+                        conv_state_pb,
+                        ssm_state_pb,
+                        mask,
+                    )
                     return out
 
         # We do matmul and transpose BLH -> HBL at the same time
@@ -242,7 +279,9 @@ class Mamba(OptimModule):
 
         A = -torch.exp(self.A_log.float())  # (d_inner, d_state)
         # In the backward pass we write dx and dz next to each other to avoid torch.cat
-        if self.use_fast_path and inference_params is None:  # Doesn't support outputting the states
+        if (
+            self.use_fast_path and inference_params is None
+        ):  # Doesn't support outputting the states
             if not self.bidirectional:
                 out = mamba_inner_fn(
                     xz,
@@ -306,7 +345,11 @@ class Mamba(OptimModule):
                 else:
                     out_bwd = flip_fn[1](out_bwd)
 
-                out = F.linear(rearrange(out + out_bwd, "b d l -> b l d"), self.out_proj.weight, self.out_proj.bias)
+                out = F.linear(
+                    rearrange(out + out_bwd, "b d l -> b l d"),
+                    self.out_proj.weight,
+                    self.out_proj.bias,
+                )
                 out = self.dropout(out)
         else:
             """
@@ -320,7 +363,9 @@ class Mamba(OptimModule):
                     if conv_state is not None:
                         # If we just take x[:, :, -self.d_conv :], it will error if seqlen < self.d_conv
                         # Instead F.pad will pad with zeros if seqlen < self.d_conv, and truncate otherwise.
-                        conv_state.copy_(F.pad(x, (self.d_conv - x.shape[-1], 0)))  # Update state (B D W)
+                        conv_state.copy_(
+                            F.pad(x, (self.d_conv - x.shape[-1], 0))
+                        )  # Update state (B D W)
                     if causal_conv1d_fn is None:
                         x = self.act(self.conv1d(x)[..., :seqlen])
                     else:
@@ -336,7 +381,9 @@ class Mamba(OptimModule):
                 # We want dt to have d as the slowest moving dimension
                 # and L as the fastest moving dimension, since those are what the ssm_scan kernel expects.
                 x_dbl = self.x_proj(rearrange(x, "b d l -> (b l) d"))  # (bl d)
-                dt, B, C = torch.split(x_dbl, [self.dt_rank, self.d_state, self.d_state], dim=-1)
+                dt, B, C = torch.split(
+                    x_dbl, [self.dt_rank, self.d_state, self.d_state], dim=-1
+                )
                 dt = self.dt_proj.weight @ dt.t()
                 dt = rearrange(dt, "d (b l) -> b d l", l=seqlen)
                 B = rearrange(B, "(b l) dstate -> b dstate l", l=seqlen).contiguous()
@@ -369,7 +416,9 @@ class Mamba(OptimModule):
                     if conv_state is not None:
                         # If we just take x[:, :, -self.d_conv :], it will error if seqlen < self.d_conv
                         # Instead F.pad will pad with zeros if seqlen < self.d_conv, and truncate otherwise.
-                        conv_state.copy_(F.pad(x, (self.d_conv - x.shape[-1], 0)))  # Update state (B D W)
+                        conv_state.copy_(
+                            F.pad(x, (self.d_conv - x.shape[-1], 0))
+                        )  # Update state (B D W)
                     if causal_conv1d_fn is None:
                         x = self.act(self.conv1d(x)[..., :seqlen])
                     else:
@@ -386,7 +435,9 @@ class Mamba(OptimModule):
                 # and L as the fastest moving dimension, since those are what the ssm_scan kernel expects.
                 """
                 x_dbl = self.x_proj(rearrange(x, "b d l -> (b l) d"))  # (bl d)
-                dt, B, C = torch.split(x_dbl, [self.dt_rank, self.d_state, self.d_state], dim=-1)
+                dt, B, C = torch.split(
+                    x_dbl, [self.dt_rank, self.d_state, self.d_state], dim=-1
+                )
                 dt = self.dt_proj.weight @ dt.t()
                 dt = rearrange(dt, "d (b l) -> b d l", l=seqlen)
                 B = rearrange(B, "(b l) dstate -> b dstate l", l=seqlen).contiguous()
@@ -426,7 +477,9 @@ class Mamba(OptimModule):
                     if conv_state_pb is not None:
                         # If we just take x[:, :, -self.d_conv :], it will error if seqlen < self.d_conv
                         # Instead F.pad will pad with zeros if seqlen < self.d_conv, and truncate otherwise.
-                        conv_state_pb.copy_(F.pad(x, (self.d_conv - x.shape[-1], 0)))  # Update state (B D W)
+                        conv_state_pb.copy_(
+                            F.pad(x, (self.d_conv - x.shape[-1], 0))
+                        )  # Update state (B D W)
                     if causal_conv1d_fn is None:
                         x = self.act(self.conv1d_bwd(x)[..., :seqlen])
                     else:
@@ -443,7 +496,9 @@ class Mamba(OptimModule):
                 # and L as the fastest moving dimension, since those are what the ssm_scan kernel expects.
                 """
                 x_dbl = self.x_proj_bwd(rearrange(x, "b d l -> (b l) d"))  # (bl d)
-                dt, B, C = torch.split(x_dbl, [self.dt_rank, self.d_state, self.d_state], dim=-1)
+                dt, B, C = torch.split(
+                    x_dbl, [self.dt_rank, self.d_state, self.d_state], dim=-1
+                )
                 dt = self.dt_proj_bwd.weight @ dt.t()
                 dt = rearrange(dt, "d (b l) -> b d l", l=seqlen)
                 B = rearrange(B, "(b l) dstate -> b dstate l", l=seqlen).contiguous()
@@ -479,16 +534,22 @@ class Mamba(OptimModule):
 
     def step(self, hidden_states, conv_state, ssm_state):
         dtype = hidden_states.dtype
-        assert hidden_states.shape[1] == 1, "Only support decoding with 1 token at a time for now"
+        assert hidden_states.shape[1] == 1, (
+            "Only support decoding with 1 token at a time for now"
+        )
         assert not self.bidirectional, "Only support Unidirectional Mamba"
         xz = self.in_proj(hidden_states.squeeze(1))  # (B 2D)
         x, z = xz.chunk(2, dim=-1)  # (B D)
 
         # Conv step
         if causal_conv1d_update is None:
-            conv_state.copy_(torch.roll(conv_state, shifts=-1, dims=-1))  # Update state (B D W)
+            conv_state.copy_(
+                torch.roll(conv_state, shifts=-1, dims=-1)
+            )  # Update state (B D W)
             conv_state[:, :, -1] = x
-            x = torch.sum(conv_state * rearrange(self.conv1d.weight, "d 1 w -> d w"), dim=-1)  # (B D)
+            x = torch.sum(
+                conv_state * rearrange(self.conv1d.weight, "d 1 w -> d w"), dim=-1
+            )  # (B D)
             if self.conv1d.bias is not None:
                 x = x + self.conv1d.bias
             x = self.act(x).to(dtype=dtype)
@@ -519,15 +580,27 @@ class Mamba(OptimModule):
             y = y * self.act(z)  # (B D)
         else:
             y = selective_state_update(
-                ssm_state, x, dt, A, B, C, self.D, z=z, dt_bias=self.dt_proj.bias, dt_softplus=True
+                ssm_state,
+                x,
+                dt,
+                A,
+                B,
+                C,
+                self.D,
+                z=z,
+                dt_bias=self.dt_proj.bias,
+                dt_softplus=True,
             )
 
         out = self.out_proj(y)
         return out.unsqueeze(1), conv_state, ssm_state
 
-
-    def bi_mamba_forward_step(self, hidden_states, conv_state, ssm_state, conv_state_pb, ssm_state_pb, mask):
-        assert hidden_states.shape[1] == 1, "Only support decoding with 1 token at a time for now"
+    def bi_mamba_forward_step(
+        self, hidden_states, conv_state, ssm_state, conv_state_pb, ssm_state_pb, mask
+    ):
+        assert hidden_states.shape[1] == 1, (
+            "Only support decoding with 1 token at a time for now"
+        )
         assert self.bidirectional, "Only support Bidirectional Mamba"
         assert causal_conv1d_update is not None
         assert selective_state_update is not None
@@ -550,7 +623,16 @@ class Mamba(OptimModule):
         dt = F.linear(dt, self.dt_proj.weight)  # (B d_inner)
         A = -torch.exp(self.A_log.float())  # (d_inner, d_state)
         y = selective_state_update(
-            ssm_state, x, dt, A, B, C, self.D, z=z, dt_bias=self.dt_proj.bias, dt_softplus=True
+            ssm_state,
+            x,
+            dt,
+            A,
+            B,
+            C,
+            self.D,
+            z=z,
+            dt_bias=self.dt_proj.bias,
+            dt_softplus=True,
         )
 
         if not mask:
@@ -571,37 +653,64 @@ class Mamba(OptimModule):
         dt = F.linear(dt, self.dt_proj_bwd.weight)  # (B d_inner)
         A_bwd = -torch.exp(self.A_bwd_log.float())
         y_bwd = selective_state_update(
-            ssm_state_pb, x, dt, A_bwd, B, C, self.D_bwd, z=z, dt_bias=self.dt_proj_bwd.bias, dt_softplus=True
+            ssm_state_pb,
+            x,
+            dt,
+            A_bwd,
+            B,
+            C,
+            self.D_bwd,
+            z=z,
+            dt_bias=self.dt_proj_bwd.bias,
+            dt_softplus=True,
         )
 
         out = self.out_proj(y + y_bwd)
         return out.unsqueeze(1), conv_state, ssm_state, conv_state_pb, ssm_state_pb
 
-
-    def allocate_inference_cache(self, batch_size, max_seqlen=None, dtype=None, **kwargs):
+    def allocate_inference_cache(
+        self, batch_size, max_seqlen=None, dtype=None, **kwargs
+    ):
         device = self.out_proj.weight.device
         conv_dtype = self.conv1d.weight.dtype if dtype is None else dtype
         conv_state = torch.zeros(
-            batch_size, self.d_model * self.expand, self.d_conv, device=device, dtype=conv_dtype
+            batch_size,
+            self.d_model * self.expand,
+            self.d_conv,
+            device=device,
+            dtype=conv_dtype,
         )
         ssm_dtype = self.dt_proj.weight.dtype if dtype is None else dtype
         ssm_state = torch.zeros(
-            batch_size, self.d_model * self.expand, self.d_state, device=device, dtype=ssm_dtype
+            batch_size,
+            self.d_model * self.expand,
+            self.d_state,
+            device=device,
+            dtype=ssm_dtype,
         )
         if not self.bidirectional:
             return conv_state, ssm_state
 
         else:
             conv_state_pb = torch.zeros(
-                batch_size, self.d_model * self.expand, self.d_conv, device=device, dtype=conv_dtype
+                batch_size,
+                self.d_model * self.expand,
+                self.d_conv,
+                device=device,
+                dtype=conv_dtype,
             )
             ssm_state_pb = torch.zeros(
-                batch_size, self.d_model * self.expand, self.d_state, device=device, dtype=ssm_dtype
+                batch_size,
+                self.d_model * self.expand,
+                self.d_state,
+                device=device,
+                dtype=ssm_dtype,
             )
             return conv_state, ssm_state, conv_state_pb, ssm_state_pb
-         
 
-    def _get_states_from_cache(self, inference_params, batch_size, initialize_states=False):
+    def _get_states_from_cache(
+        self, inference_params, batch_size, initialize_states=False
+    ):
         assert self.layer_idx is not None
         if self.layer_idx not in inference_params.key_value_memory_dict:
             conv_state = torch.zeros(
@@ -618,16 +727,23 @@ class Mamba(OptimModule):
                 device=self.dt_proj.weight.device,
                 dtype=self.dt_proj.weight.dtype,
             )
-            inference_params.key_value_memory_dict[self.layer_idx] = (conv_state, ssm_state)
+            inference_params.key_value_memory_dict[self.layer_idx] = (
+                conv_state,
+                ssm_state,
+            )
         else:
-            conv_state, ssm_state = inference_params.key_value_memory_dict[self.layer_idx]
+            conv_state, ssm_state = inference_params.key_value_memory_dict[
+                self.layer_idx
+            ]
             # TODO: What if batch size changes between generation, and we reuse the same states?
             if initialize_states:
                 conv_state.zero_()
                 ssm_state.zero_()
         return conv_state, ssm_state
 
-    def _get_states_from_cache_pb(self, inference_params, batch_size, initialize_states=False):
+    def _get_states_from_cache_pb(
+        self, inference_params, batch_size, initialize_states=False
+    ):
         assert self.layer_idx is not None
         if self.layer_idx not in inference_params.key_value_memory_dict:
             conv_state = torch.zeros(
@@ -658,10 +774,19 @@ class Mamba(OptimModule):
                 device=self.dt_proj.weight.device,
                 dtype=self.dt_proj.weight.dtype,
             )
-            inference_params.key_value_memory_dict[self.layer_idx] = (conv_state, ssm_state, conv_state_pb, ssm_state_pb)
+            inference_params.key_value_memory_dict[self.layer_idx] = (
+                conv_state,
+                ssm_state,
+                conv_state_pb,
+                ssm_state_pb,
+            )
         else:
-            assert len(inference_params.key_value_memory_dict[self.layer_idx]) == 4, len(inference_params.key_value_memory_dict[self.layer_idx])
-            conv_state, ssm_state, conv_state_pb, ssm_state_pb = inference_params.key_value_memory_dict[self.layer_idx]
+            assert len(inference_params.key_value_memory_dict[self.layer_idx]) == 4, (
+                len(inference_params.key_value_memory_dict[self.layer_idx])
+            )
+            conv_state, ssm_state, conv_state_pb, ssm_state_pb = (
+                inference_params.key_value_memory_dict[self.layer_idx]
+            )
             # TODO: What if batch size changes between generation, and we reuse the same states?
             if initialize_states:
                 conv_state.zero_()
@@ -673,7 +798,12 @@ class Mamba(OptimModule):
 
 class Block(nn.Module):
     def __init__(
-        self, dim, mixer_cls, norm_cls=nn.LayerNorm, fused_add_norm=False, residual_in_fp32=False
+        self,
+        dim,
+        mixer_cls,
+        norm_cls=nn.LayerNorm,
+        fused_add_norm=False,
+        residual_in_fp32=False,
     ):
         """
         Simple block wrapping a mixer class with LayerNorm/RMSNorm and residual connection
@@ -694,12 +824,17 @@ class Block(nn.Module):
         self.norm = norm_cls(dim)
         if self.fused_add_norm:
             assert RMSNorm is not None, "RMSNorm import fails"
-            assert isinstance(
-                self.norm, (nn.LayerNorm, RMSNorm)
-            ), "Only LayerNorm and RMSNorm are supported for fused_add_norm"
+            assert isinstance(self.norm, (nn.LayerNorm, RMSNorm)), (
+                "Only LayerNorm and RMSNorm are supported for fused_add_norm"
+            )
 
     def forward(
-        self, hidden_states: Tensor, residual: Optional[Tensor] = None, mask: Optional[Tensor] = None, inference_params=None, flip_fn=None,
+        self,
+        hidden_states: Tensor,
+        residual: Optional[Tensor] = None,
+        mask: Optional[Tensor] = None,
+        inference_params=None,
+        flip_fn=None,
     ):
         r"""Pass the input through the encoder layer.
 
@@ -709,12 +844,16 @@ class Block(nn.Module):
             mask: the mask for the input sequence (optional).
         """
         if not self.fused_add_norm:
-            residual = (hidden_states + residual) if residual is not None else hidden_states
+            residual = (
+                (hidden_states + residual) if residual is not None else hidden_states
+            )
             hidden_states = self.norm(residual.to(dtype=self.norm.weight.dtype))
             if self.residual_in_fp32:
                 residual = residual.to(torch.float32)
         else:
-            fused_add_norm_fn = rms_norm_fn if isinstance(self.norm, RMSNorm) else layer_norm_fn
+            fused_add_norm_fn = (
+                rms_norm_fn if isinstance(self.norm, RMSNorm) else layer_norm_fn
+            )
             hidden_states, residual = fused_add_norm_fn(
                 hidden_states,
                 self.norm.weight,
@@ -724,8 +863,14 @@ class Block(nn.Module):
                 residual_in_fp32=self.residual_in_fp32,
                 eps=self.norm.eps,
             )
-        hidden_states = self.mixer(hidden_states, mask=mask, inference_params=inference_params, flip_fn=flip_fn)
+        hidden_states = self.mixer(
+            hidden_states, mask=mask, inference_params=inference_params, flip_fn=flip_fn
+        )
         return hidden_states, residual
 
-    def allocate_inference_cache(self, batch_size, max_seqlen=None, dtype=None, **kwargs):
-        return self.mixer.allocate_inference_cache(batch_size, max_seqlen, dtype=dtype, **kwargs)
+    def allocate_inference_cache(
+        self, batch_size, max_seqlen=None, dtype=None, **kwargs
+    ):
+        return self.mixer.allocate_inference_cache(
+            batch_size, max_seqlen, dtype=dtype, **kwargs
+        )
