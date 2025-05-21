@@ -12,25 +12,25 @@ from espnet3.inference.inference_runner import InferenceRunner
 
 
 class ASRInferenceRunner(InferenceRunner, nn.Module):
-    def __init__(self, config_path: str, model_path: str):
-        InferenceRunner.__init__(self)
+    def __init__(self, **kwargs):
         nn.Module.__init__(self)
-        self.config_path = config_path
-        self.model_path = model_path
-        self.asr_model = None
+        InferenceRunner.__init__(self, **kwargs)
 
-    def initialize(self, sample: dict):
-        if self.asr_model is None:
-            self.asr_model = Speech2Text(self.config_path, self.model_path, device="cuda")
-            
-    def inference_body(self, sample: dict) -> dict:
+    def initialize_model(self, device=None):
+        if device is None:
+            device = self.device
+        return instantiate(self.model_config, device=device)
+
+    def inference_body(self, model, sample: dict) -> dict:
         assert "speech" in sample, "Missing 'speech' key in sample"
         speech = sample["speech"]
+
         start = time.time()
-        results = self.asr_model(speech)
+        results = model(speech)
         end = time.time()
+
         hyp_text = results[0][0] if results else ""
-        duration = len(speech) / 16000  # assuming 16kHz
+        duration = len(speech) / 16000
         elapsed = end - start
         rtf = elapsed / duration if duration > 0 else 0.0
         output = {
@@ -38,10 +38,10 @@ class ASRInferenceRunner(InferenceRunner, nn.Module):
             "rtf": {"type": "text", "value": str(round(rtf, 4))},
         }
         if "text" in sample:
-            text = self.asr_model.tokenizer.tokens2text(
-                self.asr_model.converter.ids2tokens(sample["text"])
+            text = model.tokenizer.tokens2text(
+                model.converter.ids2tokens(sample["text"])
             )
-            output["text"] = {"type": "text", "value": text}
+            output["ref"] = {"type": "text", "value": text}
 
         return output
 
@@ -49,52 +49,29 @@ class ASRInferenceRunner(InferenceRunner, nn.Module):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--config_path",
+        "--config",
         type=str,
         required=True,
         help="Path to training config (e.g., config.yaml)",
-    )
-    parser.add_argument(
-        "--inference_config",
-        type=str,
-        required=True,
-        help="Path to inference config (e.g., inference.yaml)",
-    )
-    parser.add_argument(
-        "--decode_dir", type=str, default=None, help="Directory to save decode results"
     )
     parser.add_argument("--no_resume", action="store_true", help="Disable resume mode")
 
     args = parser.parse_args()
 
-    train_config = OmegaConf.load(args.config_path)
-    inference_config = OmegaConf.load(args.inference_config)
-
-    decode_dir = (
-        Path(args.decode_dir)
-        if args.decode_dir
-        else Path(train_config.expdir) / "decode"
-    )
+    config = OmegaConf.load(args.config)
 
     runner = ASRInferenceRunner(
-        config=train_config,
-        model_config=inference_config,
-        decode_dir=decode_dir,
-        # parallel=train_config.parallel,
-        # resume=not args.no_resume,
+        model_config=config.model,
+        dataset_config=config.dataset,
+        parallel=config.parallel,
     )
+    test_keys = [ds_conf.name for ds_conf in config.dataset.test]
 
-    ds = instantiate(train_config.dataset)
-
-    for test_keys in ds.test.keys():
-        runner.run_on_dataset(
-            ds.test[test_keys],
-            output_dir=f"decode/{test_keys}"
-        )
+    for test_key in test_keys:
+        runner.run_on_dataset(test_key, output_dir=f"{config.decode_dir}/{test_key}")
 
     # runner.compute_metrics(train_config.test)
 
 
 if __name__ == "__main__":
     main()
-
