@@ -246,6 +246,27 @@ rm -rf exp data dump
 cd "${cwd}" || exit
 
 
+# [ESPnet Easy] test gan-svs recipe with coverage
+mkdir -p ${cwd}/egs2/mini_kising/svs1 || exit
+cd ${cwd}/egs2/mini_kising/svs1 || exit
+rm -rf exp data dump
+
+echo "==== [ESPnet2] SVS ==="
+# # finetune with Hugging Face dataset
+python -m coverage run --append ../../../test/espnetez/test_integration_espnetez_huggingface_ft.py \
+    --task gan_svs \
+    --model_name espnet/aceopencpop_svs_visinger2_40singer_pretrain \
+    --dataset_name espnet/ace-kising-segments \
+    --use_ez_preprocessor \
+    --output_dir ./exp \
+    --cache_dir ./cache \
+    --run_finetune
+
+# Remove generated files in order to reduce the disk usage
+rm -rf exp cache
+cd "${cwd}" || exit
+
+
 # [ESPnet Easy] test asr2 recipe with coverage
 cd ${cwd}/egs2/mini_an4/asr2 || exit
 rm -rf exp data dump

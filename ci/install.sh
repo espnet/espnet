@@ -27,6 +27,8 @@ ${CXX:-g++} -v
 . tools/activate_python.sh
 python3 --version
 
+. tools/installers/install_datasets.sh
+
 python3 -m pip install https://github.com/kpu/kenlm/archive/master.zip
 # NOTE(kamo): tensorboardx is used for chainer mode only
 python3 -m pip install tensorboardx
