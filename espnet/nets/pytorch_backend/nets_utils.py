@@ -226,7 +226,7 @@ def _make_pad_mask_traceable(lengths, xs, length_dim, maxlen=None):
         else:
             # Then length_dim is 2 or -1.
             if length_dim not in (-1, 2):
-                logging.warn(
+                logging.warning(
                     f"Invalid length_dim {length_dim}."
                     + "We set it to -1, which is the default value."
                 )

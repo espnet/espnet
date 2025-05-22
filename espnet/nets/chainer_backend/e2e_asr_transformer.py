@@ -545,7 +545,7 @@ class E2E(ChainerASRInterface):
         logging.debug(nbest_hyps)
         # check number of hypotheis
         if len(nbest_hyps) == 0:
-            logging.warn(
+            logging.warning(
                 "there is no N-best results, perform recognition "
                 "again with smaller minlenratio."
             )
