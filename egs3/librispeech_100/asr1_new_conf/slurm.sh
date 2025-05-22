@@ -5,8 +5,8 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=32G
 #SBATCH --time=48:00:00
-#SBATCH -p gpuA40x4,gpuA100x4
-#SBATCH --account bbjs-delta-gpu
+#SBATCH -p <>
+#SBATCH --account <>
 #SBATCH --gres=gpu:1
 
 
