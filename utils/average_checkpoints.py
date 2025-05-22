@@ -63,7 +63,7 @@ def main():
         last = sorted(args.snapshots, key=os.path.getmtime)
         last = last[-args.num :]
     print("average over", last)
-    avg = None
+    avg = {}
 
     if args.backend == "pytorch":
         import torch
@@ -71,10 +71,10 @@ def main():
         # sum
         for path in last:
             states = torch.load(path, map_location=torch.device("cpu"))["model"]
-            if avg is None:
-                avg = states
-            else:
-                for k in avg.keys():
+            for k in states.keys():
+                if k not in avg.keys():
+                    avg[k] = states[k].clone()
+                else:
                     avg[k] += states[k]
 
         # average
@@ -91,9 +91,8 @@ def main():
         # sum
         for path in last:
             states = np.load(path)
-            if avg is None:
+            if len(avg) == 0:
                 keys = [x.split("main/")[1] for x in states if "model" in x]
-                avg = dict()
                 for k in keys:
                     avg[k] = states["updater/model:main/{}".format(k)]
             else:
