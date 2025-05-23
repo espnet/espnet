@@ -1,0 +1,9 @@
+# load default config
+defaults:
+  - dataset.yaml
+  - conf/default.yaml
+  - conf/owsm_finetune.yaml
+
+recipedir: .
+num_device: 2
+expdir: ${recipedir}/exp/train_ctc_gpu2
