@@ -2,8 +2,9 @@
 
 export HF_HOME=~/workspace/espnet3/hub
 export PYTHONPATH=${PYTHONPATH}:../../../
-. ../../../tools/activate_python.sh
+source ../../../tools/activate_python.sh
 
 export LIBRISPEECH=data/librispeech
 
-export N_GPU=1
+export WANDB_API_KEY=0cdbe23a746157c701dfa8ea691597ad65e2d400
+wandb login
