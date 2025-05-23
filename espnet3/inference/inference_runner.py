@@ -254,7 +254,7 @@ class InferenceRunner:
                     + "Please override the write function"
                 )
 
-            with open(scp_path, "a") as f:
+            with open(scp_path, "w") as f:
                 f.write(" ".join(line_parts) + "\n")
 
     def run_on_example(self, uid: str, sample: dict) -> dict:
