@@ -64,7 +64,7 @@ def process_batch_batching(idxs: list[int]):
     batch = collate_fn(items)
     batch = {k: v.to(device) if hasattr(v, "to") else v for k, v in batch[1].items()}
     feats = model.collect_feats(**batch)
-    feats = {k: v.cpu().numpy() for k, v in feats.items()}
+    feats = {k: v.detach().cpu().numpy() for k, v in feats.items()}
 
     uid_list = [uid for uid, _ in items]
     return uid_list, feats
