@@ -11,13 +11,9 @@ from omegaconf import OmegaConf
 from tqdm import tqdm
 
 from espnet3 import get_espnet_model, save_espnet_config
+from espnet3.utils.config import load_config_with_defaults
 from espnet3.preprocess import train_sentencepiece
 from espnet3.trainer import ESPnetEZLightningTrainer, LitESPnetModel
-
-
-def load_line(path):
-    with open(path, "r") as f:
-        return [line.strip() for line in f.readlines()]
 
 
 def train_tokenizer(config):
@@ -40,7 +36,7 @@ def train_tokenizer(config):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", type=str, default="config.yaml")
+    parser.add_argument("--config", type=str, default="train.yaml")
     parser.add_argument(
         "--train_tokenizer", action="store_true", help="Train tokenizer before training"
     )
@@ -50,8 +46,7 @@ def main():
     args = parser.parse_args()
 
     # Load config
-    OmegaConf.register_new_resolver("load_line", load_line)
-    config = OmegaConf.load(args.config)
+    config = load_config_with_defaults(args.config)
 
     if args.train_tokenizer:
         print("==> Training tokenizer...")
@@ -62,9 +57,7 @@ def main():
         assert isinstance(config.seed, int), "seed should be an integer"
         L.seed_everything(config.seed)
 
-    # Set parallel config
-    # set_parallel(config.parallel)
-
+    # Prepare for collect_stats
     normalize = None
     normalize_conf = None
     if args.collect_stats:
