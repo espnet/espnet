@@ -389,6 +389,7 @@ class StreamPositionalEncoding(torch.nn.Module):
 
 class ConvolutionalPositionalEmbedding(torch.nn.Module):
     """Convolutional positional embedding.
+
        Used in wav2vec2/HuBERT SSL models.
        https://arxiv.org/abs/1904.11660
 
@@ -410,6 +411,7 @@ class ConvolutionalPositionalEmbedding(torch.nn.Module):
         groups: int = 16,
         weight_norm: str = "new",
     ):
+        """Initialize Convolutional Positional Embedding."""
         super().__init__()
         self.embed_dim = embed_dim
         self.kernel_size = kernel_size
@@ -432,7 +434,7 @@ class ConvolutionalPositionalEmbedding(torch.nn.Module):
                 else:
                     weight_norm = "legacy"
                     logging.warning(
-                        f"torch.nn.utils.parametrizations.weight_norm is only "
+                        "torch.nn.utils.parametrizations.weight_norm is only "
                         + "supported for pytorch versions >= 2.2.0. "
                         + "Defaulting to torch.nn.utils.weight_norm."
                     )
@@ -443,6 +445,7 @@ class ConvolutionalPositionalEmbedding(torch.nn.Module):
         self.num_remove: int = 1 if kernel_size % 2 == 0 else 0
 
     def __prepare_scriptable__(self):
+        """Prepare Scriptable."""
         for hook in self.conv._forward_pre_hooks.values():
             # The hook we want to remove is an instance of WeightNorm class, so
             # normally we would do `if isinstance(...)` but this class is not accessible
@@ -452,12 +455,13 @@ class ConvolutionalPositionalEmbedding(torch.nn.Module):
                 hook.__module__ == "torch.nn.utils.weight_norm"
                 and hook.__class__.__name__ == "WeightNorm"
             ):
-                _LG.warning("Removing weight_norm from %s", self.__class__.__name__)
+                logging.warning("Removing weight_norm from %s", self.__class__.__name__)
                 torch.nn.utils.remove_weight_norm(self.conv)
         return self
 
     def forward(self, x):
-        """
+        """Forward method.
+
         Args:
             x (Tensor): shape ``[batch, frame, feature]``.
 
