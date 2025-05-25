@@ -68,7 +68,16 @@ core = [
 
 task-asr = [
   "ctc-segmentation>=1.6.6",
-  "editdistance"
+  "editdistance",
+  "h5py",
+  "lhotse",
+  "jamo",
+  "datasets",
+  "dask[distributed]",
+  "dask_jobqueue",
+  "torch_complex",
+  "opt_einsum",
+  "protobuf"
 ]
 
 task-tts = [
@@ -121,5 +130,4 @@ all = [
   "espnet[task-tts]",
   "espnet[task-enh]",
   "espnet[task-spk]",
-  "espnet[recipe-common]"
 ]
