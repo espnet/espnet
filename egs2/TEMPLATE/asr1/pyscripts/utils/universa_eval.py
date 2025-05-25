@@ -60,7 +60,8 @@ def calculate_metrics(ref_metric_scores, pred_metric_scores, prefix="utt"):
     """Calculate utterance-level metrics."""
     if len(ref_metric_scores) != len(pred_metric_scores):
         raise ValueError(
-            f"Number of utterances mismatch: {len(ref_metric_scores)} != {len(pred_metric_scores)}"
+            "Num of utt mismatch: "
+            f"{len(ref_metric_scores)} != {len(pred_metric_scores)}"
         )
     ref_metric_scores = np.array(ref_metric_scores)
     pred_metric_scores = np.array(pred_metric_scores)
@@ -182,4 +183,8 @@ if __name__ == "__main__":
     logging.info(f"Results saved to {args.out_file}")
 
 # Example usage:
-# python universa_eval.py --level utt --ref_metrics ref_metrics.scp --pred_metrics pred_metrics.scp --out_file result.json
+# python universa_eval.py \
+#     --level utt \
+#     --ref_metrics ref_metrics.scp \
+#     --pred_metrics pred_metrics.scp \
+#     --out_file result.json
