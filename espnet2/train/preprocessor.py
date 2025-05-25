@@ -2947,7 +2947,8 @@ class UniversaProcessor(AbsPreprocessor):
             for key, value in metric.items():
                 if key in data:
                     raise ValueError(
-                        f"Metric key {key} is the same as base keys, considering change metric name"
+                        f"Metric key {key} is the same as base keys,"
+                        " considering change metric name"
                     )
                 if self.metric2type is not None and key in self.metric2type:
                     if self.metric2type[key] == "int":

@@ -659,7 +659,7 @@ class ESPnetDataset(AbsDataset):
                 )
 
             # Cast to desired type
-            if type(value) == dict:
+            if type(value) is dict:
                 # NOTE(jiatong): Universa metric case
                 for k, v in value.items():
                     if isinstance(v, np.ndarray):

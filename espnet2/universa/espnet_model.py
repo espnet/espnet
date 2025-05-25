@@ -58,9 +58,11 @@ class ESPnetUniversaModel(AbsESPnetModel):
             audio_lengths (torch.Tensor): Length of audio tensor (B,).
             metrics (torch.Tensor): Metrics tensor (B, C).
             ref_audio (torch.Tensor, optional): Reference audio tensor (B', T').
-            ref_audio_lengths (torch.Tensor, optional): Length of reference audio tensor (B',).
+            ref_audio_lengths (torch.Tensor, optional):
+                Length of reference audio tensor (B',).
             ref_text (torch.Tensor, optional): Reference text tensor (B', U).
-            ref_text_lengths (torch.Tensor, optional): Length of reference text tensor (B',).
+            ref_text_lengths (torch.Tensor, optional):
+                Length of reference text tensor (B',).
 
         Returns:
             Tensor: Loss scalar tensor.
