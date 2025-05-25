@@ -6,7 +6,7 @@ from lightning.pytorch.loggers import TensorBoardLogger
 from lightning.pytorch.plugins.precision import HalfPrecision
 from lightning.pytorch.profilers import PassThroughProfiler, SimpleProfiler
 from lightning.pytorch.strategies import DDPStrategy, SingleDeviceStrategy
-from omegaconf import ListConfig, OmegaConf
+from omegaconf import OmegaConf  # ListConfig,
 
 from espnet3.trainer.model import LitESPnetModel
 from espnet3.trainer.trainer import ESPnetEZLightningTrainer

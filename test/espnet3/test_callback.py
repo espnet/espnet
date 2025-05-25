@@ -20,7 +20,8 @@ def dummy_state_dict():
 
 
 def test_average_checkpoints_callback_on_fit_end(tmp_path, dummy_state_dict):
-    """
+    """Test average checkpoints.
+
     C001: Ensure AverageCheckpointsCallback correctly averages and saves model.
     """
     ckpt_paths = [tmp_path / f"ckpt_{i}.ckpt" for i in range(2)]
@@ -55,7 +56,8 @@ def test_average_checkpoints_callback_on_fit_end(tmp_path, dummy_state_dict):
 
 
 def test_get_default_callbacks_structure():
-    """
+    """Test Get default callbacks.
+
     C002: Verify the structure and types of callbacks returned.
     """
     callbacks = get_default_callbacks(

@@ -1,11 +1,12 @@
-import os
-import shutil
-from pathlib import Path
-from unittest import mock
+# import os
+# from pathlib import Path
+# from unittest import mock
+# from unittest.mock import MagicMock
 
 import numpy as np
 import pytest
 import torch
+# from hydra.utils import instantiate
 from omegaconf import OmegaConf
 
 from espnet3.trainer import LitESPnetModel
@@ -29,7 +30,6 @@ def dummy_model():
     "config_dict",
     [
         {
-            # 標準的な構成
             "expdir": "exp",
             "dataloader": {
                 "collate_fn": {
@@ -41,7 +41,6 @@ def dummy_model():
             },
         },
         {
-            # サンプラーを使うパターン（ランダムサンプラー）
             "expdir": "exp",
             "dataloader": {
                 "train": {
@@ -61,17 +60,14 @@ def test_dataloader_configs(config_dict, dummy_model):
     train_dl = model.train_dataloader()
     batch = next(iter(train_dl))
 
-    # batch_size確認（collate_fnが返すtupleの長さ）
     assert isinstance(batch, (list, tuple))
     assert len(batch) == 2
 
-    # collate_fnが指定通り
     if "collate_fn" in config.dataloader:
         assert hasattr(train_dl.collate_fn, "__call__")
         assert hasattr(train_dl.collate_fn, "int_pad_value")
         assert train_dl.collate_fn.int_pad_value == -1
 
-    # samplerが正しく構築されているか
     if "sampler" in config.dataloader.get("train", {}):
         from torch.utils.data import RandomSampler
 
@@ -95,7 +91,7 @@ def config(tmp_path):
                 },
                 "train": {
                     "batch_size": 80,
-                    "num_workers": 0,  # pytest内では0の方が安全
+                    "num_workers": 0, 
                     "shuffle": True,
                 },
                 "valid": {
@@ -110,7 +106,6 @@ def config(tmp_path):
 
 @pytest.fixture
 def dummy_model():
-    # forward が (loss, stats_dict, weight) を返すようにモック
     model = torch.nn.Linear(1, 1)
     model.forward = lambda **kwargs: (
         torch.tensor(0.123),
