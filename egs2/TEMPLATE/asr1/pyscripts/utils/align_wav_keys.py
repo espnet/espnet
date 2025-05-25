@@ -2,8 +2,8 @@ import argparse
 
 
 def align_keys(file1, file2, output):
-    """Align keys from two sorted files and write aligned 
-       results into two separate output files."""
+    """Align keys from two sorted files and write aligned
+    results into two separate output files."""
     # Read the files into dictionaries (keys must be unique)
     data1 = {
         line.split(None, 1)[0]: line.strip()
