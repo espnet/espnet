@@ -11,6 +11,7 @@ from espnet2.train.collate_fn import CommonCollateFn
 from espnet3.collect_stats import collect_stats
 from espnet3.trainer.hybrid_optim import HybridOptim
 from espnet3.trainer.hybrid_scheduler import HybridLRS
+from espnet3.trainer.sampler import MappedSamplerWrapper
 
 
 class LitESPnetModel(L.LightningModule):
@@ -127,13 +128,14 @@ class LitESPnetModel(L.LightningModule):
             scheduler = torch.optim.lr_scheduler.StepLR(optimizer)
         else:
             raise ValueError(
-                "Must specify either `optim` or `optims` and `scheduler` or `schedulers`"
+                "Must specify either `optim` or `optims` and `scheduler` or"
+                "`schedulers`"
             )
         return {
             "optimizer": optimizer,
             "lr_scheduler": {
                 "scheduler": scheduler,
-                "interval": "step",  # assuming lr scheduler is updated per step (not epoch)
+                "interval": "step",  # assuming lr scheduler is updated per step
             },
         }
 
@@ -150,6 +152,12 @@ class LitESPnetModel(L.LightningModule):
             ):
                 iter_factory = instantiate(
                     self.config.dataloader.train.iter_factory, self.train_dataset
+                )
+                shape_files = (
+                    self.config.dataloader.train.iter_factory.batches.shape_files
+                )
+                iter_factory.sampler = MappedSamplerWrapper(
+                    iter_factory.sampler, shape_files
                 )
                 return iter_factory.build_iter(self.current_epoch, shuffle=False)
 
@@ -197,6 +205,12 @@ class LitESPnetModel(L.LightningModule):
             ):
                 iter_factory = instantiate(
                     self.config.dataloader.valid.iter_factory, self.valid_dataset
+                )
+                shape_files = (
+                    self.config.dataloader.valid.iter_factory.batches.shape_files
+                )
+                iter_factory.sampler = MappedSamplerWrapper(
+                    iter_factory.sampler, shape_files
                 )
                 return iter_factory.build_iter(self.current_epoch, shuffle=False)
 
@@ -253,6 +267,10 @@ class LitESPnetModel(L.LightningModule):
                 mode=mode,
                 output_dir=Path(self.config.statsdir),
                 task=getattr(self.config, "task", None),
-                parallel_config=self.config.parallel,
+                parallel_config=(
+                    None
+                    if "parallel" not in self.config.keys()
+                    else self.config.parallel
+                ),
                 write_collected_feats=False,
             )

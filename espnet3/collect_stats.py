@@ -162,9 +162,10 @@ def collect_stats(
             {},
         )
 
-        with get_client(plugin=plugin) as client, DatadirWriter(
-            output_dir / mode
-        ) as datadir_writer:
+        with (
+            get_client(plugin=plugin) as client,
+            DatadirWriter(output_dir / mode) as datadir_writer,
+        ):
             batch_idxs_list = [
                 list(range(i, min(i + batch_size, len(dataset))))
                 for i in range(0, len(dataset), batch_size)

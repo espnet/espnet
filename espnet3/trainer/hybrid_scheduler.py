@@ -11,8 +11,8 @@ from espnet3.trainer.hybrid_optim import HybridOptim
 
 class HybridLRS(torch.optim.lr_scheduler._LRScheduler):
     """
-    Wrapper class around ``lr_scheduler``s to return a dummy optimizer to pass PyTorch Lightning
-    checks.
+    Wrapper class around ``lr_scheduler``s to return a dummy optimizer to pass
+    PyTorch Lightning checks.
 
     Modified from the reply in a GitHub Issue thread here:
     https://github.com/Lightning-AI/lightning/issues/3346#issuecomment-1036063687
@@ -22,8 +22,8 @@ class HybridLRS(torch.optim.lr_scheduler._LRScheduler):
     hybrid_optimizer: HybridOptim
     lr_scheduler: torch.optim.lr_scheduler._LRScheduler
     idx: int
-        Index of the optimizer in ``hybrid_optimizer`` the learning rate scheduler ``lr_scheduler``
-        is assigned to
+        Index of the optimizer in ``hybrid_optimizer`` the learning rate scheduler
+        ``lr_scheduler`` is assigned to
 
     """
 
