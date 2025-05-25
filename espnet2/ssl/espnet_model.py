@@ -4,7 +4,7 @@
 # Copyright 2025 William Chen
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-import logging
+# import logging
 from typing import Dict, List, Optional, Set, Tuple, Union
 
 import torch
@@ -235,9 +235,9 @@ class ESPnetSSLModel(AbsESPnetModel):
             data["mask_info"] = mask_info
 
         # Flow Matching
-        # TODO (william): NOT IMPLEMENTED YET
+        # TODO(william): NOT IMPLEMENTED YET
         if "flow_preprocess" in self.util_attributes:
-            speech, target = None  # TODO
+            speech, target = None  # TODO(william)
             data["flow_target"] = target
 
         # 6. Encoder
