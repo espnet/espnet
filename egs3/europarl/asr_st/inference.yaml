@@ -1,3 +1,79 @@
-_target_: egs3.librispeech_100.asr1.inference.ASRInferenceWrapper
-config_path: exp/gpu1_globalmvn_numel/config.yaml
-model_path: exp/gpu1_globalmvn_numel/last.ckpt
+recipedir: .
+expdir: exp/unsorted4_gpu1
+decode_dir: ${expdir}/decode
+ckpt_path: ${expdir}/last.ckpt
+
+model:
+  model_tag: espnet/owsm_v3.1_ebf
+
+dataset:
+  _target_: espnet3.data.DataOrganizer
+  test:
+    # ASR data
+    - name: de_asr_test
+      dataset:
+        _target_: egs3.europarl.asr_st.dataset.EuroparlASRDataset
+        split: de_en_test
+
+    - name: fr_asr_test
+      dataset:
+        _target_: egs3.europarl.asr_st.dataset.EuroparlASRDataset
+        split: fr_en_test
+
+    - name: it_asr_test
+      dataset:
+        _target_: egs3.europarl.asr_st.dataset.EuroparlASRDataset
+        split: it_en_test
+
+    # ST data
+    - name: de_fr_test
+      dataset:
+        _target_: egs3.europarl.asr_st.dataset.EuroparlSTDataset
+        split: de_fr_test
+
+    - name: de_it_test
+      dataset:
+        _target_: egs3.europarl.asr_st.dataset.EuroparlSTDataset
+        split: de_it_test
+
+    - name: fr_de_test
+      dataset:
+        _target_: egs3.europarl.asr_st.dataset.EuroparlSTDataset
+        split: fr_de_test
+
+    - name: fr_it_test
+      dataset:
+        _target_: egs3.europarl.asr_st.dataset.EuroparlSTDataset
+        split: fr_it_test
+
+    - name: it_de_test
+      dataset:
+        _target_: egs3.europarl.asr_st.dataset.EuroparlSTDataset
+        split: it_de_test
+
+    - name: it_fr_test
+      dataset:
+        _target_: egs3.europarl.asr_st.dataset.EuroparlSTDataset
+        split: it_fr_test
+
+  preprocessor:
+    _target_: egs3.europarl.asr_st.dataset.OWSMTokenizeTransform
+    model_tag: espnet/owsm_v3.1_ebf
+  
+parallel:
+  env: slurm
+  n_workers: 4
+  options:
+    account: bbjs-delta-gpu
+    queue: gpuA40x4
+    cores: 1
+    processes: 1
+    memory: 16GB
+    death_timeout: 180
+    # walltime: 30:00
+    job_extra_directives:
+      - "--gres=gpu:1"
+      - "--time 5:00:00"
+      - "--ntasks-per-node=1"
+      - "--cpus-per-task=8"
+      - "--output=parallel_log/%j-%x.log"

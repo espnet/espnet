@@ -1,12 +1,11 @@
 import argparse
 from pathlib import Path
 
-import espnet3 as ez
 import yaml
 
+import espnet3 as ez
 from espnet3 import get_espnet_model, save_espnet_config
 from espnet3.trainer import ESPnetEZLightningTrainer, LitESPnetModel
-
 
 TASK_CLASSES = [
     "asr",
@@ -309,7 +308,11 @@ if __name__ == "__main__":
     exp_dir = str(args.exp_path / args.task)
     stats_dir = str(args.exp_path / "stats")
 
-    model = get_espnet_model(args.task, training_config) if args.task else instantiate(training_config)
+    model = (
+        get_espnet_model(args.task, training_config)
+        if args.task
+        else instantiate(training_config)
+    )
     lit_model = LitESPnetModel(model, training_config)
 
     # Float32 precision

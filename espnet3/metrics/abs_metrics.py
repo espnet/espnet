@@ -28,7 +28,8 @@ def read_scp(scp_file):
     with open(scp_file, "r") as f:
         lines = [line.strip() for line in f.readlines()]
     return {
-        l.split(maxsplit=1)[0].strip(): l.split(maxsplit=1)[1].strip() for l in lines
+        line.split(maxsplit=1)[0].strip(): line.split(maxsplit=1)[1].strip()
+        for line in lines
     }
 
 
