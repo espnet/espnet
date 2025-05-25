@@ -298,12 +298,24 @@ class SyllableScoreFeats(AbsFeatsExtract):
             seg_duration.append(seg[6])
             seg_duration_lengths.append(seg[7])
 
-        seg_label = torch.LongTensor(ListsToTensor(seg_label)).to(label.device)
-        seg_label_lengths = torch.LongTensor(seg_label_lengths).to(label.device)
-        seg_midi = torch.LongTensor(ListsToTensor(seg_midi)).to(label.device)
-        seg_midi_lengths = torch.LongTensor(seg_midi_lengths).to(label.device)
-        seg_duration = torch.LongTensor(ListsToTensor(seg_duration)).to(label.device)
-        seg_duration_lengths = torch.LongTensor(seg_duration_lengths).to(label.device)
+        seg_label = torch.tensor(
+            ListsToTensor(seg_label), dtype=torch.long, device=label.device
+        )
+        seg_label_lengths = torch.tensor(
+            seg_label_lengths, dtype=torch.long, device=label.device
+        )
+        seg_midi = torch.tensor(
+            ListsToTensor(seg_midi), dtype=torch.long, device=label.device
+        )
+        seg_midi_lengths = torch.tensor(
+            seg_midi_lengths, dtype=torch.long, device=label.device
+        )
+        seg_duration = torch.tensor(
+            ListsToTensor(seg_duration), dtype=torch.long, device=label.device
+        )
+        seg_duration_lengths = torch.tensor(
+            seg_duration_lengths, dtype=torch.long, device=label.device
+        )
 
         return (
             seg_label,
@@ -350,12 +362,24 @@ def expand_to_frame(expand_len, len_size, label, midi, duration):
             ]
         )
 
-    seq_label = torch.LongTensor(ListsToTensor(seq_label)).to(label.device)
-    seq_label_lengths = torch.LongTensor(seq_label_lengths).to(label.device)
-    seq_midi = torch.LongTensor(ListsToTensor(seq_midi)).to(label.device)
-    seq_midi_lengths = torch.LongTensor(seq_midi_lengths).to(label.device)
-    seq_duration = torch.LongTensor(ListsToTensor(seq_duration)).to(label.device)
-    seq_duration_lengths = torch.LongTensor(seq_duration_lengths).to(label.device)
+    seq_label = torch.tensor(
+        ListsToTensor(seq_label), dtype=torch.long, device=label.device
+    )
+    seq_label_lengths = torch.tensor(
+        seq_label_lengths, dtype=torch.long, device=label.device
+    )
+    seq_midi = torch.tensor(
+        ListsToTensor(seq_midi), dtype=torch.long, device=label.device
+    )
+    seq_midi_lengths = torch.tensor(
+        seq_midi_lengths, dtype=torch.long, device=label.device
+    )
+    seq_duration = torch.tensor(
+        ListsToTensor(seq_duration), dtype=torch.long, device=label.device
+    )
+    seq_duration_lengths = torch.tensor(
+        seq_duration_lengths, dtype=torch.long, device=label.device
+    )
 
     return (
         seq_label,

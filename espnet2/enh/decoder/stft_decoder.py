@@ -208,7 +208,7 @@ if __name__ == "__main__":
     from espnet2.enh.encoder.stft_encoder import STFTEncoder
 
     input_audio = torch.randn((1, 100))
-    ilens = torch.LongTensor([100])
+    ilens = torch.tensor([100], dtype=torch.long)
 
     nfft = 32
     win_length = 28
