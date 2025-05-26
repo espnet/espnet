@@ -182,6 +182,31 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           architecture: 'x64'
+      - name: install dependencies
+        run: |
+          sudo apt-get update -qq
+          # NOTE(kamo): g++-7 doesn't exist in ubuntu-latest
+          sudo apt-get install -qq -y cmake libsndfile1-dev bc sox ffmpeg
+      - name: Get PR labels
+        id: pr-labels
+        uses: joerick/pr-labels-action@v1.0.9
+      - name: install espnet
+        env:
+          ESPNET_PYTHON_VERSION: ${{ matrix.python-version }}
+          TH_VERSION: ${{ matrix.pytorch-version }}
+          CHAINER_VERSION: ${{ matrix.chainer-version }}
+          USE_CONDA: ${{ matrix.use-conda }}
+        run: |
+          bash .devcontainer/postcreated3.sh cpu
+      - name: test python
+        run: ./ci/test_python_espnet3.sh
+      - uses: codecov/codecov-action@v2
+        with:
+          flags: test_python_espnet3
+      - name: coverage erase
+        continue-on-error: true
+        run: |
+          coverage erase
 
   test_shell_espnet2:
     runs-on: ${{ matrix.os }}
