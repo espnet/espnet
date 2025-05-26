@@ -3,7 +3,7 @@
 setup() {
     tmpdir=/tmp/espnet2-test-calculate-eerdcf-${RANDOM}
     mkdir -p ${tmpdir}
-    cp test_utils/spk_trial_scores ${tmpdir}/spk_trial_scores
+    cp test_utils/espnet1_scripts/spk_trial_scores ${tmpdir}/spk_trial_scores
 
     # Create reference data for "calculate_eermindcf"
     cat << EOF > $tmpdir/expected_output
