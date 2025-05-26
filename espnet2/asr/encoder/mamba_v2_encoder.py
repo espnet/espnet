@@ -20,7 +20,6 @@ from espnet.nets.pytorch_backend.transformer.subsampling import (
     TooShortUttError,
     check_short_utt,
 )
-from typeguard import check_argument_types
 
 from espnet2.asr.ctc import CTC
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
@@ -153,7 +152,6 @@ class MambaV2Encoder(AbsEncoder):
         interctc_use_conditioning: bool = False,
         init_rescale: bool = False,
     ):
-        assert check_argument_types()
         super().__init__()
         self._output_size = output_size
         self.num_blocks = num_blocks
