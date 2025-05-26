@@ -20,16 +20,17 @@ def train_tokenizer(config):
     config.dataset.preprocessor = None
     organizer = instantiate(config.dataset)
 
+    dataset_size = len(organizer.train)
     with open("train_text.txt", "w", encoding="utf-8") as f:
-        for example in tqdm(organizer.train):
-            f.write(example[1]["text"] + "\n")
+        for idx in tqdm(range(dataset_size)):
+            f.write(organizer.train.get_text(idx) + "\n")
             f.flush()
 
     train_sentencepiece(
         dump_text_path="train_text.txt",
         output_path="sentencepiece_model",
         vocab_size=config.vocab_size,
-        character_coverage=0.995,
+        character_coverage=1.0,
         model_type="bpe",
     )
 

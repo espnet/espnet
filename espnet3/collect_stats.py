@@ -312,7 +312,8 @@ def collect_stats(
 ):
     """Distributed or local stat collection via index-based processing."""
     # First check if we use multiple_iterator
-    if getattr(dataloader_config, "multiple_iterator", True):
+    mode_config = getattr(dataloader_config, mode)
+    if getattr(mode_config, "multiple_iterator", False):
         if parallel_config is None:
             raise RuntimeError("You should set parallel config with multiple iterator.")
         if write_collected_feats:
