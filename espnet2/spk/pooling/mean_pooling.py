@@ -22,7 +22,9 @@ class MeanPooling(AbsPooling):
     def output_size(self):
         return self._output_size
 
-    def forward(self, x, task_tokens: torch.Tensor = None, mask: torch.Tensor = None, **kwargs):
+    def forward(
+        self, x, task_tokens: torch.Tensor = None, mask: torch.Tensor = None, **kwargs
+    ):
         """Forward.
 
         Args:
