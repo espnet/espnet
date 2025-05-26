@@ -52,7 +52,7 @@ from espnet2.asr.encoder.vgg_rnn_encoder import VGGRNNEncoder
 from espnet2.asr.encoder.wav2vec2_encoder import FairSeqWav2Vec2Encoder
 from espnet2.asr.encoder.whisper_encoder import OpenAIWhisperEncoder
 from espnet2.asr.encoder.mamba_v1_encoder import MambaV1Encoder
-from espnet2.asr.encoder.mamba_v2_encoder import MambaV2Encoder
+# from espnet2.asr.encoder.mamba_v2_encoder import MambaV2Encoder
 from espnet2.asr.espnet_model import ESPnetASRModel
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
@@ -166,8 +166,8 @@ encoder_choices = ClassChoices(
         avhubert=FairseqAVHubertEncoder,
         multiconv_conformer=MultiConvConformerEncoder,
         beats=BeatsEncoder,
-        mamba=MambaV1Encoder
-        mamba_v2=MambaV2Encoder
+        mamba=MambaV1Encoder,
+        # mamba_v2=MambaV2Encoder
     ),
     type_check=AbsEncoder,
     default="rnn",
