@@ -11,9 +11,11 @@ elif [ $# -eq 2 ]; then
 elif [ $# -eq 1 ]; then
     task="$1"
     logfile=out/config.log
+    mkdir -p out
 elif [ $# -eq 0 ]; then
     task="asr"
     logfile=out/config.log
+    mkdir -p out
 fi
 
 source tools/activate_python.sh
@@ -31,8 +33,7 @@ gen_dummy_coverage(){
     touch empty.py; ${python} empty.py
 }
 execute_config(){
-    ${python} -m $1 --config $2 $3 &> ${logfile}
-    if [ $? -ne 0 ]; then
+    if ! ${python} -m $1 --config $2 $3 &> ${logfile}; then
         log "ERROR: Config file $2"
         cat ${logfile}
         exit 1
