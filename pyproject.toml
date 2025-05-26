@@ -77,7 +77,8 @@ task-asr = [
   "dask_jobqueue",
   "torch_complex",
   "opt_einsum",
-  "protobuf"
+  "protobuf",
+  "tensorboard",
 ]
 
 task-tts = [
