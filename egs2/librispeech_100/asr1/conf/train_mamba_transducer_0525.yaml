@@ -1,0 +1,90 @@
+############################################################
+# LibriSpeech-100h | Transducer
+# encoder = mamba , predictor (decoder) = conformer
+############################################################
+
+#################################
+frontend_conf:
+    n_fft: 512
+    win_length: 400
+    hop_length: 160
+
+specaug: specaug
+specaug_conf:
+    apply_time_warp: true
+    time_warp_window: 5
+    time_warp_mode: bicubic
+    apply_freq_mask: true
+    freq_mask_width_range:
+    - 0
+    - 27
+    num_freq_mask: 2
+    apply_time_mask: true
+    time_mask_width_ratio_range:
+    - 0.
+    - 0.05
+    num_time_mask: 5
+#################################
+encoder: mamba
+encoder_conf:
+  ssm_cfg:
+      d_state: 32
+      d_conv: 4 
+      expand: 8 
+      dt_rank: auto
+      dt_min: 0.001
+      dt_max: 0.1
+      dt_init: random
+      dt_scale: 1.0
+      dt_init_floor: 0.0001
+      conv_bias: true
+      bias: false
+      use_fast_path: true
+  output_size: 256
+  num_blocks: 15
+  dropout_rate: 0.1
+  pos_enc_dropout_rate: 0.1
+  init_rescale: true
+
+#################################
+decoder: transducer
+decoder_conf:
+    rnn_type: lstm
+    num_layers: 1
+    hidden_size: 256
+    dropout: 0.1
+    dropout_embed: 0.2
+
+joint_net_conf:
+    joint_space_size: 320
+
+model_conf:
+    ctc_weight: 0.3
+    report_cer: True
+    report_wer: True
+
+#################################
+# Optimisation
+optim: adam
+optim_conf:
+  lr: 0.002
+  weight_decay: 0.000001
+scheduler: warmuplr
+scheduler_conf:
+  warmup_steps: 15000
+
+seed: 2022
+num_workers: 8
+batch_type: numel
+batch_bins: 1000000
+accum_grad: 64
+max_epoch: 70
+patience: none
+init: none
+best_model_criterion:
+-   - valid
+    - loss
+    - min
+keep_nbest_models: 10
+use_amp: false
+############################################################
