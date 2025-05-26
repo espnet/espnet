@@ -86,7 +86,7 @@ class STFTInferenceRunner(InferenceRunner):
 # === Test Fixtures ===
 @pytest.fixture(scope="module")
 def test_audio_paths():
-    base = Path("test_utils3/audio")
+    base = Path("test_utils/utils3/audio")
     # ディレクトリが存在することを確認
     assert base.exists(), f"Test audio directory not found: {base}"
     paths = sorted(base.glob("*.wav"))
