@@ -2634,6 +2634,10 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         # speaker prompt
         speaker_prompt_length: int = 500,
         pad_speaker_prompt: bool = True,
+        # vision codec
+        image_token_per_patch: int = 1,
+        # vision encoder
+        vision_encoder_processor_conf: Optional[dict] = {},
         # others
         n_ctx: int = 4096,
         inter_segment_pad: int = 0,
@@ -2642,6 +2646,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         ],
         asr_apply_time_mask: bool = False,
         asr_time_mask_config: dict = dict(),
+        is_dpo: bool = False,
     ):
         self.token_list = token_list.copy()
         self.token_bias = token_bias.copy()
@@ -2652,6 +2657,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         self.inter_segment_pad = inter_segment_pad
         self.pad = token_list.index("<pad>")
         self.unk = token_list.index("<unk>")
+        self.is_dpo = is_dpo
 
         assert not (
             "codec" in token_bias and "codec_ssl" in token_bias
@@ -2661,6 +2667,8 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         self.tasks = speechlm_definitions.SPEECHLM_TASKS
 
         assert loss_region in ["whole", "target"]
+        if is_dpo and loss_region != "target":
+            raise ValueError(f"loss region has to be target when doing DPO")
         self.loss_region = loss_region
 
         self.converter = TokenIDConverter(
@@ -2668,6 +2676,8 @@ class SpeechLMPreprocessor(AbsPreprocessor):
             unk_symbol=unk_symbol,
         )
         self.text_cleaner = TextCleaner(text_cleaner)
+
+        ### Modality-specific utilities
 
         # Text BPE (text_bpe):
         if subword_model is not None:
@@ -2705,9 +2715,41 @@ class SpeechLMPreprocessor(AbsPreprocessor):
             assert codec_token_in_use <= codec_token_per_frame
         self.codec_token_in_use = codec_token_in_use
 
+        # image tokenizer
+        self.image_token_per_patch = image_token_per_patch
+        assert image_token_per_patch <= codec_token_in_use
+
         # speaker prompt
         self.speaker_prompt_length = speaker_prompt_length
         self.pad_speaker_prompt = pad_speaker_prompt
+
+        # vision encoder
+        vision_encoder_processor = vision_encoder_processor_conf.get("hf_tag", None)
+        if vision_encoder_processor is not None:
+            if vision_encoder_processor.startswith("google/siglip"):
+                try:
+                    from transformers import SiglipImageProcessor, AutoConfig
+                except:
+                    raise ImportError(
+                        "Please install transformers to use vision encoder"
+                    )
+                self.vision_encoder_processor = SiglipImageProcessor.from_pretrained(
+                    vision_encoder_processor
+                )
+                patch_size = AutoConfig.from_pretrained(
+                    vision_encoder_processor
+                ).vision_config.patch_size
+                image_size = self.vision_encoder_processor.size
+                self.vision_encoder_feat_len = (
+                    image_size["height"] * image_size["width"] // patch_size**2
+                )
+
+            else:
+                raise ValueError(
+                    f"Unsupported vision encoder processor: {vision_encoder_processor}"
+                )
+        else:
+            self.vision_encoder_processor = None
 
         # extra entries
         self.extra_names_and_modalities = [
@@ -2727,6 +2769,9 @@ class SpeechLMPreprocessor(AbsPreprocessor):
     def __call__(
         self, uid: str, data: Dict[str, Union[str, np.ndarray, tuple]]
     ) -> Dict[str, Union[np.ndarray, List]]:
+        if self.is_dpo and data.get("skip_dpo", None) is None:
+            return self.prepare_dpo(uid, data)
+
         new_data = dict()
 
         # (1) task parsing
@@ -2734,7 +2779,12 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         task = self.tasks[task_name]
 
         data_tuples = []  # tuple of (name, modality, content, role, target)
-        if task_name in ["text_dialogue", "audio_dialogue", "vision_dialogue"]:
+        if task_name in [
+            "text_dialogue",
+            "audio_dialogue",
+            "vision_dialogue",
+            "audio_text_dialogue",
+        ]:
             for idx, (role, modality, target, content) in enumerate(data["dialogue"]):
                 name = str(idx)
                 target = str(target) == "True"
@@ -2751,23 +2801,19 @@ class SpeechLMPreprocessor(AbsPreprocessor):
                 data_tuples.append((name, modality, role, content, target))
 
         # (2) modality-specific processing.
-        seqs, loss_masks = [], []
+        seqs, loss_masks, conti_feats = [], [], []
         cache = dict(task_name=task_name)
         for idx, data_tuple in enumerate(data_tuples):
             name, modality, role, content, target = data_tuple
 
-            # NOTE(Jinchuan): add an indicator to the end for each target segment.
-            # This is for multi-segment inference.
-            # end-of-sentence: the last target segment
-            # end-of-utterance: all other target segments
+            # NOTE(Jinchuan): We only need the end token for the generated content
+            # but not for user-input content or system prompt.
             if not target:
                 end_tok = None
-            elif idx == len(data_tuples) - 1:
-                end_tok = "<sos/eos>"
             else:
-                end_tok = "<eou>"  # end-of-utterance
+                end_tok = "<sos/eos>"
 
-            value, _ = self.modality_specific_processing(
+            value, conti_feat, conti_len = self.modality_specific_processing(
                 content,
                 modality,
                 cache,
@@ -2790,13 +2836,14 @@ class SpeechLMPreprocessor(AbsPreprocessor):
 
             # NOTE(Jinchuan): specifically design for delay interleave: after the
             # interleave, there is still no overlap between consecutive segments.
-            if idx != len(data_tuples) - 1 and self.inter_segment_pad > 0:
+            if self.inter_segment_pad > 0:
                 pad = np.tile(self.special_token("<pad>"), self.inter_segment_pad)
                 value = np.concatenate([value, pad], axis=0)
 
             seqs.append(value)
             target = True if self.loss_region == "whole" else target
-            loss_masks.append(value * 0 + int(target))
+            loss_masks.append(value * 0 + int(target and conti_feat is None))
+            conti_feats.append([conti_feat, modality, idx, conti_len])
 
         # (3) splice
         sos_eos = self.special_token("<sos/eos>")
@@ -2821,8 +2868,8 @@ class SpeechLMPreprocessor(AbsPreprocessor):
 
             dec_seq, loss_mask = dec_seq[: self.n_ctx], loss_mask[: self.n_ctx]
 
-            # NOTE(Jinchuan): remove these special tokens to full preserve
-            # text LLM format. the first three token: <sos> <task_id> <modality_id>
+            # NOTE(Jinchuan): remove these special tokens to full preserve text LLM format.
+            # the first three token: <sos> <task_id> <modality_id>
             if task_name == "textlm":
                 dec_seq = dec_seq[3:]
                 loss_mask = loss_mask[3:]
@@ -2832,6 +2879,13 @@ class SpeechLMPreprocessor(AbsPreprocessor):
 
         # (4) continuous features
         new_conti_feats = []
+        modality_identifier_indices = np.nonzero(
+            (dec_seq[:, 0] >= 32) & (dec_seq[:, 0] < 64)
+        )[0]
+        for conti_feat, modality, idx, conti_len in conti_feats:
+            if conti_feat is not None:
+                start = modality_identifier_indices[idx] + 1
+                new_conti_feats.append((conti_feat, modality, start, conti_len))
         new_data["conti_feats"] = new_conti_feats
 
         # (5) prefix_len, as inference legacy. temp code
@@ -2891,16 +2945,30 @@ class SpeechLMPreprocessor(AbsPreprocessor):
 
             value = np.where(value == self.pad, self.pad, value + token_bias)
 
-            conti_feat = None
+            conti_feat, conti_len = None, 0
+
+        elif modality in ["image"]:
+            value = value.reshape(-1, self.image_token_per_patch)
+            value = value + self.token_bias[modality][0]
+
+            padding_length = self.codec_token_in_use - self.image_token_per_patch
+            value = np.pad(
+                value,
+                ((0, 0), (0, padding_length)),
+                mode="constant",
+                constant_values=self.pad,
+            )
+
+            conti_feat, conti_len = None, 0
 
         # Other discrete modalities
-        elif modality in ["ssl", "text_bpe", "g2p", "video_ssl", "svs_lb", "image"]:
+        elif modality in ["ssl", "text_bpe", "g2p", "video_ssl", "svs_lb"]:
 
             if modality in ["text_bpe", "g2p"]:
                 if isinstance(value, str):
                     try:
                         value = self.text_cleaner(value)
-                    except Exception:
+                    except:
                         logging.warning(
                             f"Failed to apply cleaner to {value}. Make it empty"
                         )
@@ -2935,15 +3003,27 @@ class SpeechLMPreprocessor(AbsPreprocessor):
                 constant_values=self.pad,
             )
 
-            conti_feat = None
+            conti_feat, conti_len = None, 0
 
-        # continuous modalities
-        elif modality in ["text_emb"]:
-            raise NotImplementedError
+        elif modality in ["vision_encoder"]:
+            assert isinstance(value, str)
+            img = Image.open(value)
+            if img.mode != "RGB":
+                img = img.convert("RGB")
+            conti_feat = self.vision_encoder_processor(
+                img,
+                return_tensors="np",
+            )[
+                "pixel_values"
+            ][0]
+            value = self.special_token("<pad>")
+            conti_len = self.vision_encoder_feat_len
+            value = np.repeat(value, conti_len)
 
         else:
             raise NotImplementedError(f"Modality: {modality}")
 
+        # SpecAugment for ASR
         if (
             modality in ["codec", "ssl", "codec_ssl"]
             and "asr" in cache["task_name"]
@@ -2961,7 +3041,61 @@ class SpeechLMPreprocessor(AbsPreprocessor):
             end_tok = self.special_token(end_tok)
             value = np.concatenate([value, end_tok])
 
-        return value.astype(np.int64), conti_feat
+        return value.astype(np.int64), conti_feat, conti_len
+
+    @typechecked
+    def prepare_dpo(
+        self, uid: str, data: Dict[str, Union[str, np.ndarray, tuple]]
+    ) -> Dict[str, Union[np.ndarray, List]]:
+
+        task_name = uid.strip().split(" ")[0]
+        if task_name not in ["text_dialogue", "audio_dialogue", "vision_dialogue"]:
+            raise ValueError("DPO data should be prepared in dialogue format")
+
+        # (1) split the dialogue half-half and process separately
+        messages = data["dialogue"]
+        assert len(messages) % 2 == 0, "messages should be in even numbers"
+        n_messages = len(messages) // 2
+        for n in range(n_messages - 1):
+            assert messages[n] == messages[n + n_messages], "prompt not equal"
+            assert messages[n][2] == False, "don't compute loss on prompt"
+
+        chosen_dict = deepcopy(data)
+        chosen_dict["dialogue"] = messages[:2]
+        chosen_dict["skip_dpo"] = True
+        chosen_dict = self.__call__(uid, chosen_dict)
+
+        rej_dict = deepcopy(data)
+        rej_dict["dialogue"] = messages[2:]
+        rej_dict["skip_dpo"] = True
+        rej_dict = self.__call__(uid, rej_dict)
+
+        # (2) combine the results
+        def pad_and_stack(seq1, seq2):
+            t1, d1 = seq1.shape
+            t2, d2 = seq2.shape
+            assert d1 == d2
+            t = max(t1, t2)
+
+            ans = np.ones((t, d1, 2), dtype=np.int64) * self.pad
+            ans[:t1, :, 0] = seq1
+            ans[:t2, :, 1] = seq2
+
+            return ans
+
+        chosen_dict["dec_seq"] = pad_and_stack(
+            chosen_dict["dec_seq"],
+            rej_dict["dec_seq"],
+        )
+        chosen_dict["loss_mask"] = pad_and_stack(
+            chosen_dict["loss_mask"],
+            rej_dict["loss_mask"],
+        )
+
+        if len(chosen_dict["conti_feats"]) > 0:
+            raise ValueError(f"continuous features are not supported in DPO")
+
+        return chosen_dict
 
     def diagnose(self, data):
         """Only for debug"""

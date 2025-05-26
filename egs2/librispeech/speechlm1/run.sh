@@ -15,18 +15,20 @@ set -o pipefail
 # (2) Download the pre-trained tokenizers:
 #     huggingface-cli download --repo-type model --local-dir . JinchuanTian/OpusLM_v0_1.7B_NAACL_Demo
 
-train_set="train_960"
-valid_set="dev"
+train_set="test_clean"
+valid_set= # "dev"
 test_sets="test_clean"
 
 task="codec_ssl_asr" # codec_ssl_asr or codec_ssl_tts
 
 if [ ${task} == "codec_ssl_asr" ]; then
-    test_sets="test_clean test_other"
+    # test_sets="test_clean test_other"
     inference_config=conf/decode_asr.yaml
+    nbest=1
 elif [ ${task} == "codec_ssl_tts" ]; then
     test_sets="test_clean"
     inference_config=conf/decode_tts.yaml
+    nbest=10
 else
     echo "This recipe only support codec_ssl_asr and codec_ssl_tts task"
 fi
@@ -45,9 +47,9 @@ ssl_opts="--ssl_choice espnet_hubert --ssl_nlayer 18 --ssl_checkpoint_path exp/k
     --task ${task} \
     --fs 16000 \
     --ngpu 2 \
-    --nj 16 \
-    --inference_nj 16 \
-    --nbest 10 \
+    --nj 1 \
+    --inference_nj 1 \
+    --nbest ${nbest} \
     --gpu_inference true \
     --train_config ${train_config} \
     --inference_config ${inference_config} \

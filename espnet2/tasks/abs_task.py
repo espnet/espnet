@@ -2374,6 +2374,7 @@ class AbsTask(ABC):
         config_file: Optional[Union[Path, str]] = None,
         model_file: Optional[Union[Path, str]] = None,
         device: str = "cpu",
+        dtype: Optional[str] = None,
     ) -> Tuple[AbsESPnetModel, argparse.Namespace]:
         """Build model from the files.
 
@@ -2383,7 +2384,7 @@ class AbsTask(ABC):
             config_file: The yaml file saved when training.
             model_file: The model file saved when training.
             device: Device type, "cpu", "cuda", or "cuda:N".
-
+            dtype: data type, float32, float16, bfloat16, etc.
         """
 
         if config_file is None:
@@ -2416,16 +2417,17 @@ class AbsTask(ABC):
                 #   in PyTorch<=1.4
                 device = f"cuda:{torch.cuda.current_device()}"
             try:
-                state_dict = torch.load(
-                    model_file, map_location=device, weights_only=False
-                )
-                # for deepspeed checkpoints
-                if "module" in state_dict:
-                    state_dict = state_dict["module"]
+                state_dict = torch.load(model_file, map_location="cpu")
+                if "model" in state_dict:
+                    state_dict = state_dict["model"]
+                elif "module" in state_dict:
+                    state_dict = state_dict["module"]  # deepspeed
+
                 model.load_state_dict(
                     state_dict,
-                    strict=False,
+                    strict=True,
                 )
+
             except RuntimeError:
                 # Note(simpleoier): the following part is to be compatible with
                 #   pretrained model using earlier versions before `0a625088`
@@ -2463,4 +2465,11 @@ class AbsTask(ABC):
                         raise
 
         model = model.to(device)
+
+        if dtype is not None:
+            model = model.to(dtype=getattr(torch, dtype))
+
+        if "cuda" in device:  # release GPU memory due to dtype change
+            torch.cuda.empty_cache()
+
         return model, args

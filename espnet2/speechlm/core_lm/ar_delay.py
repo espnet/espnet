@@ -12,10 +12,11 @@ import torch
 
 from espnet2.speechlm.core_lm.abs_core_lm import SpeechLMInferenceOptions
 from espnet2.speechlm.core_lm.ar_parallel import ARParallelLM
+from espnet2.speechlm.inference_utils import AbsInferenceConfig
 from espnet2.speechlm.net_utils import (
-    install_continuous_features,
     logits_to_tokens,
     modality_index_to_mask,
+    install_continuous_features,
 )
 
 
@@ -24,6 +25,7 @@ class ARDelayLM(ARParallelLM):
         self,
         dec_seq: torch.Tensor,
         loss_mask: torch.Tensor = None,
+        conti_feats: list = None,
     ) -> Tuple[torch.Tensor, Dict, torch.Tensor]:
         """ARDelayLM forward for training.
 
@@ -34,7 +36,6 @@ class ARDelayLM(ARParallelLM):
             dec_seq (LongTensor): Batch of decoder sequences (B, T, nq).
             loss_mask (LongTensor): Lengths of condition part in dec_seq (B, T, nq).
         """
-
         dec_seq_delay, loss_mask = self.delay_interleave(
             dec_seq=dec_seq, loss_mask=loss_mask
         )
@@ -42,6 +43,7 @@ class ARDelayLM(ARParallelLM):
         return super().forward(
             dec_seq=dec_seq_delay,
             loss_mask=loss_mask,
+            conti_feats=conti_feats,
         )
 
     def delay_interleave(
@@ -64,6 +66,10 @@ class ARDelayLM(ARParallelLM):
             if ret_loss_mask is not None:
                 ret_loss_mask[:, n : n + T, n] = loss_mask[:, :, n]
 
+        retval = retval[:, : -(self.nq - 1)]
+        if ret_loss_mask is not None:
+            ret_loss_mask = ret_loss_mask[:, : -(self.nq - 1)]
+
         return retval, ret_loss_mask
 
     def inverse_delay_interleave(
@@ -82,111 +88,69 @@ class ARDelayLM(ARParallelLM):
     @torch.no_grad()
     def inference(
         self,
-        prefix: torch.Tensor,
-        opts: SpeechLMInferenceOptions,
-        conti_feats=None,
-        suffix: torch.Tensor = None,
-        inference_length: int = -1,
+        prefill: torch.Tensor,
+        reference: torch.Tensor,
+        config: AbsInferenceConfig,
     ):
-        """Delay Architecture Inference.
+        # (1) Prefill
+        prefill_delay, _ = self.delay_interleave(prefill)
+        if config.search_algo == "teacher_force":
+            reference_delay, _ = self.delay_interleave(reference)
+        else:
+            reference_delay = None
 
-        Args:
-            prefix (LongTensor): Prefix part of dec_seq (B, T, nq).
-            opts (SpeechLMInferenceOptions): inference options.
-            conti_feats: continuous features.
-            suffix (LongTensor): suffix part of dec_seq (B, T, nq),
-                usually the target sequence for teacher-forcing.
-            inference_length: a given inference length, ignore if -1
-        """
+        prefill_delay_emb = self.emb(prefill_delay[:, :-1]).sum(dim=2)
+        _ = self.decoders(prefill_delay_emb)
 
-        # (1) initialization
-        self.decoders.init()
-
-        # (2) splice-interleave-split and prefill
-        full_seq_delay, _ = self.delay_interleave(torch.cat([prefix, suffix], dim=1))
-        full_seq_delay = full_seq_delay.expand(opts.nbest, -1, -1)
-
-        prelen = prefix.size(1)
-        prefix = full_seq_delay[:, : prelen - 1]
-        prev_tok = full_seq_delay[:, prelen - 1 : prelen]
-        suffix = full_seq_delay[:, prelen - 1 :]
-
-        prefix_emb = self.emb(prefix).sum(dim=2)
-        _ = self.decoders(prefix_emb)
+        # (2) Length control
+        # TODO(Jinchuan): double-check the length control logic
+        if config.search_algo == "teacher_force":
+            maxlen = reference_delay.size(1)
+            minlen = reference_delay.size(1)
+        elif config.length_method == "absolute":
+            maxlen = config.maxlen
+            minlen = config.minlen
+        elif config.length_method == "relative":
+            raise NotImplementedError
 
         # (3) auto-regressive loop
         # (3.1) AR initialization
-
-        # NOTE(Jinchuan):
-        # The delay interleave will need more "self.nq - 1" infernece step to obtain
-        # the effective codes in each level. minlen and maxlin already count them.
-        minlen = int(prefix.size(1) * opts.minlenratio) if opts.minlenratio > 0 else 0
-        maxlen = (
-            int(prefix.size(1) * opts.maxlenratio) + (self.nq - 1)
-            if opts.maxlenratio > 0
-            else self.n_ctx - prefix.size(1)
-        )
-
-        if opts.fixed_length:
-            assert (
-                inference_length > 0
-            ), "Inference length is needed for fixed length inference"
-            minlen = int(inference_length) + (self.nq - 1)
-            maxlen = int(inference_length) + (self.nq - 1)
-
-        if opts.search_algo == "teacher_force":
-            minlen = suffix.size(1)
-            maxlen = suffix.size(1)
-
-        logging.info(f"maxlen={maxlen}, minlen={minlen}, reflen={suffix.size(1)}")
+        logging.info(f"maxlen={maxlen}, minlen={minlen}")
+        if reference_delay is not None:
+            logging.info(f"Using teacher force, ref. length={reference_delay.size(1)}")
 
         generated = {"token": [], "score": []}
-        finish_idx = torch.Tensor([-1]).expand(opts.nbest).long().to(opts.device)
-        # initially, modality is unknown
-        mask = opts.masks["unknown"].tile(opts.nbest, 1, 1, 1)
-        modality_index = prev_tok[:, :, 0].flatten() * 0
+        finish_idx = torch.ones(config.nbest) * -1
+        finish_idx = finish_idx.long().to(config.device)
+        nq_axis = torch.arange(config.nq).long().to(config.device)
+        prev_tok = prefill_delay[:, -1:]
 
-        for step in range(1, maxlen + 1):
+        for step in range(0, maxlen):
             # (3.2) AR model prediction
             prev_emb = self.emb(prev_tok).sum(dim=2)
             h = self.decoders(prev_emb)
-
             h = h.unsqueeze(2) + self.head_emb.weight.tile(1, 1, 1, 1)[:, :, : self.nq]
-            logits = self.lm_head(h[:, :, :1])  # [B, 1, nq, V]
-            if self.aux_lm_head is not None:
-                aux_logits = self.aux_lm_head(h[:, :, 1:])
-                # NOTE(Jinchuan) use small number but not -inf,
-                # otherwise it will cause confict with modality mask.
-                pad_aux_logits = (
-                    torch.ones_like(logits).repeat(1, 1, aux_logits.size(2), 1) * -1e10
-                )
-                pad_aux_logits[
-                    ..., opts.aux_start : opts.aux_start + aux_logits.size(3)
-                ] = aux_logits
-                logits = torch.cat([logits, pad_aux_logits], dim=2)
+            logits = self.lm_head(h)
 
             gen_tok, gen_score = logits_to_tokens(
-                logits, opts, mask, allow_eos=step >= minlen - (self.nq - 1)
+                logits,
+                config,
+                allow_eos=step >= minlen,
             )
 
-            # NOTE(Jinchuan): Due to delay interleave, the first predictions
-            # are replaced by PAD. Especially, when step == 1, the prediction
-            # is the modality identifier.
-            if step < self.nq + 1:
-                pad_start = max(1, step - 1)
-                gen_tok[:, :, pad_start:] = 0
+            # NOTE(Jinchuan): Force some tokens to be PAD (0) due to delay interleave
+            if step <= self.nq:
+                gen_tok[:, :, step + 1 :] = 0
 
-            if opts.search_algo == "teacher_force":
-                prev_tok = suffix[:, step : step + 1]
-            else:
-                prev_tok = gen_tok
-
-            generated["token"].append(gen_tok)
-            generated["score"].append(gen_score)
+            if torch.any(finish_idx != -1):
+                finish_step = torch.where(finish_idx > 0, step - finish_idx + 1, 0)
+                gen_tok = torch.where(
+                    finish_step.view(-1, 1, 1) > nq_axis.view(1, 1, -1), 0, gen_tok
+                )
 
             # (3.3) detect ended hypotheses
             finish_idx = torch.where(
-                torch.logical_and(prev_tok[:, 0, 0] == opts.eos, finish_idx == -1),
+                torch.logical_and(prev_tok[:, 0, 0] == config.eos, finish_idx == -1),
                 step,
                 finish_idx,
             )
@@ -196,30 +160,28 @@ class ARDelayLM(ARParallelLM):
                     f"Some examples cannot finish in {maxlen} steps: {finish_idx} "
                     f"Force it to finish. "
                 )
+                gen_tok[:, 0, 0] = torch.where(
+                    finish_idx == -1, config.eos, gen_tok[:, 0, 0]
+                )
                 finish_idx = torch.where(finish_idx == -1, step, finish_idx)
+
+            if config.search_algo == "teacher_force":
+                prev_tok = reference_delay[:, step : step + 1]
+            else:
+                prev_tok = gen_tok
+
+            generated["token"].append(gen_tok)
+            generated["score"].append(gen_score)
 
             # more "self.nq - 1" steps after all finish_idx becomes non-negative
             if finish_idx.min() >= 0 and step - finish_idx.max() >= self.nq - 1:
                 break
 
-            # (3.4) detect modality swtich
-            modality_change_mask = torch.logical_and(
-                prev_tok[:, 0, 0] >= 32,
-                prev_tok[:, 0, 0] < 64,
-            )
-            if torch.any(modality_change_mask):
-                modality_index = torch.where(
-                    modality_change_mask,
-                    prev_tok[:, 0, 0],
-                    modality_index,
-                )
-                mask = modality_index_to_mask(modality_index, opts)
-                logging.warning(f"Step {step}: change modality index {modality_index}")
+        # (3.4) forward the last `prev_tok` to keep the correct KV-Cache
+        prev_emb = self.emb(prev_tok).sum(dim=2)
+        h = self.decoders(prev_emb)
 
         logging.info(f"Finish with lengths: {finish_idx.cpu().tolist()}")
-
-        # (4) global finalize & build hypotheses
-        self.decoders.reset()
 
         gen_token_seq = torch.cat(generated["token"], dim=1)
         gen_score_seq = torch.cat(generated["score"], dim=1)
@@ -231,6 +193,6 @@ class ARDelayLM(ARParallelLM):
         for b in range(len(finish_idx)):
             gen_tokens.append(gen_token_seq[b][: finish_idx[b] - 1])
             gen_scores.append(gen_score_seq[b][: finish_idx[b] - 1])
-            assert not torch.any(gen_tokens[-1].eq(opts.eos))
+            assert not torch.any(gen_tokens[-1].eq(config.eos))
 
         return gen_tokens, gen_scores

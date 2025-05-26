@@ -76,7 +76,6 @@ def install_kv_cache_hook(model, cache, attn_module):
 def logits_to_tokens(
     logits: torch.Tensor,
     opts: SpeechLMInferenceOptions,
-    mask: torch.Tensor,
     search_algo: str = None,
     allow_eos: bool = True,
     nq_level: int = None,
@@ -97,6 +96,8 @@ def logits_to_tokens(
     neg_inf = -1e20
 
     # (1) Apply mask
+    mask = opts.mask.clone()
+    mask = mask.view(1, 1, opts.nq, -1)
     if nq_level is not None:
         mask = mask[:, :, nq_level : nq_level + 1]
 
@@ -108,7 +109,7 @@ def logits_to_tokens(
 
     # (2) token selection
     if search_algo in ["topk_sampling"]:
-        topk_values, topk_indices = torch.topk(logits, opts.top_k, dim=-1)
+        topk_values, topk_indices = torch.topk(logits, opts.topk, dim=-1)
         probs = torch.softmax(topk_values / opts.sampling_temperature, dim=-1)
         inner_indices = torch.multinomial(
             probs.flatten(end_dim=-2), num_samples=1
@@ -131,17 +132,6 @@ def logits_to_tokens(
         gen_token_idx = torch.gather(sorted_indices, -1, inner_indices).squeeze(-1)
         gen_token_score = torch.gather(clip_probs, -1, inner_indices).squeeze(-1).log()
 
-    elif search_algo in ["beam_search"]:
-        # NOTE(Jinchuan): for beam search, this function only proposes
-        # the candidates but not to do the hypothesis selection / pruning.
-        # If beam search, this function should be used together with
-        # the "beam_search_selection" function as defined below.
-        assert (
-            logits.size(2) == 1
-        ), "Currently beam search only supports single-stream decoding"
-        probs = torch.log_softmax(logits / opts.sampling_temperature, dim=-1)
-        gen_token_score, gen_token_idx = torch.topk(probs, opts.beam_size, dim=-1)
-
     elif search_algo in ["greedy_search", "teacher_force"]:
         probs = logits.softmax(dim=-1)
         topk_values, topk_indices = torch.topk(logits, 1, dim=-1)
@@ -149,61 +139,9 @@ def logits_to_tokens(
         gen_token_score = topk_values[:, :, :, 0].log()
 
     else:
-        raise NotImplementedError(f"opts.search_algo={opts.search_algo}")
+        raise NotImplementedError(f"search_algo={search_algo}")
 
     return gen_token_idx, gen_token_score
-
-
-def beam_search_selection(
-    gen_token_idx,
-    gen_token_score,
-    generated,
-    finish_idx,
-    model,
-):
-    # NOTE(Jinchuan): assume there are beam * beam hypotheses
-    # expanded from previous beam hypothesis. Prune to "beam" hypotheses
-    beam_size = gen_token_idx.size(-1)
-
-    # (0) for finished hypotheses, keep the first candidate and kill the remained ones
-    if torch.any(finish_idx != -1) > 0:
-        # gen_token_score: [beam, 1, 1, beam]
-        gen_token_score[:, 0, 0, 0] = torch.where(
-            finish_idx != -1, 1e20, gen_token_score[:, 0, 0, 0]
-        )
-        gen_token_score[:, 0, 0, 1:] = torch.where(
-            (finish_idx != -1).unsqueeze(-1), -1e20, gen_token_score[:, 0, 0, 1:]
-        )
-
-    # (1) compute overall scores, find select idx
-    if len(generated["score"]) > 0:
-        prev_scores = torch.cat(generated["score"], dim=1).sum(dim=(1, 2))  # [B]
-        prev_scores = prev_scores.repeat_interleave(beam_size, dim=0)
-    else:
-        prev_scores = 0
-
-    overall_scores = prev_scores + gen_token_score.view(-1)
-
-    _, select_idx = torch.topk(overall_scores, beam_size, dim=0)
-    gen_token_idx = gen_token_idx.view(-1)[select_idx].view(beam_size, 1, 1)
-    gen_token_score = gen_token_score.view(-1)[select_idx].view(beam_size, 1, 1)
-
-    # (2) reorder many runtime cache: finished_idx, model kv_cache and generated dict
-    select_idx = select_idx // beam_size
-
-    finish_idx = finish_idx[select_idx]
-
-    # for finished hypotheses, this score is 0.0
-    if torch.any(finish_idx != -1):
-        gen_token_score[:, 0, 0] = torch.where(
-            finish_idx != -1, 0.0, gen_token_score[:, 0, 0]
-        )
-
-    model.select_state(select_idx)
-    generated["score"] = [s[select_idx] for s in generated["score"]]
-    generated["token"] = [s[select_idx] for s in generated["token"]]
-
-    return gen_token_idx, gen_token_score, finish_idx
 
 
 def modality_index_to_mask(

@@ -7,37 +7,44 @@ import numpy as np
 import torch
 from typeguard import typechecked
 
-# CoreLMs
-from espnet2.speechlm.core_lm.abs_core_lm import AbsCoreLM
-from espnet2.speechlm.core_lm.ar_delay import ARDelayLM
-
-# Overall model warppers
-from espnet2.speechlm.espnet_model import ESPnetSpeechLMModel
-
-# Others
-from espnet2.speechlm.loss import SpeechLMCrossEntropyLoss
-from espnet2.speechlm.module.abs_transformer import AbsTransformer
-
 # Transformer Implementation
 from espnet2.speechlm.module.builtin import TransformerDecoder
 from espnet2.speechlm.module.huggingface import HFTransformerDecoder
+from espnet2.speechlm.module.abs_transformer import AbsTransformer
+
+# CoreLMs
+from espnet2.speechlm.core_lm.abs_core_lm import AbsCoreLM
+from espnet2.speechlm.core_lm.ar_delay import ARDelayLM
+from espnet2.speechlm.core_lm.ar_parallel import ARParallelLM
+
+# Overall model warppers
+from espnet2.speechlm.espnet_model import ESPnetSpeechLMModel
+from espnet2.speechlm.espnet_model_dpo import ESPnetSpeechLMDPOModel
 
 # Tokenizers
 from espnet2.speechlm.tokenizer.abs_tokenizer import AbsTokenizer
 from espnet2.speechlm.tokenizer.codec_tokenizer import CodecTokenizer
 from espnet2.speechlm.tokenizer.text_bpe_tokenizer import TextBPETokenizer
+from espnet2.speechlm.tokenizer.image_tokenizer import ImageTokenizer
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.torch_utils.initialize import initialize
-from espnet2.train.abs_espnet_model import AbsESPnetModel
+
+# Continuous Encoder
+from espnet2.speechlm.continuous_encoder.continuous_encoder import (
+    AbsContinuousEncoder,
+    HuggingfaceVisionEncoder,
+)
+
+# Others
+from espnet2.speechlm.loss import SpeechLMCrossEntropyLossV2
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
+from espnet2.train.abs_espnet_model import AbsESPnetModel
 
 # Preprocessor
 from espnet2.train.preprocessor import SpeechLMPreprocessor
 from espnet2.train.trainer import Trainer
-from espnet2.utils.get_default_kwargs import get_default_kwargs  # noqa
-from espnet2.utils.nested_dict_action import NestedDictAction  # noqa
 from espnet2.utils.types import int_or_none, str2bool, str_or_none
 
 transformer_choices = ClassChoices(
@@ -53,6 +60,7 @@ transformer_choices = ClassChoices(
 corelm_choices = ClassChoices(
     "corelm",
     classes=dict(
+        ar_parallel=ARParallelLM,
         ar_delay=ARDelayLM,
     ),
     type_check=AbsCoreLM,
@@ -64,8 +72,18 @@ tokenizer_choices = ClassChoices(
     classes=dict(
         codec=CodecTokenizer,
         text_bpe=TextBPETokenizer,
+        image=ImageTokenizer,
     ),
     type_check=AbsTokenizer,
+    default=None,
+)
+
+vision_encoder_choices = ClassChoices(
+    "vision_encoder",
+    classes=dict(
+        huggingface=HuggingfaceVisionEncoder,
+    ),
+    type_check=AbsContinuousEncoder,
     default=None,
 )
 
@@ -73,6 +91,7 @@ model_choices = ClassChoices(
     "model",
     classes=dict(
         espnet=ESPnetSpeechLMModel,
+        dpo=ESPnetSpeechLMDPOModel,
     ),
     type_check=AbsESPnetModel,
     default="espnet",
@@ -91,6 +110,8 @@ class SpeechLMTask(AbsTask):
         corelm_choices,
         # --tokenizer and --tokenizer_conf
         tokenizer_choices,
+        # --vision_encoder and --vision_encoder_conf
+        vision_encoder_choices,
         # --model and --model_conf
         model_choices,
     ]
@@ -213,12 +234,25 @@ class SpeechLMTask(AbsTask):
             help="Number of codec codes in exact use",
         )
         group.add_argument(
+            "--image_token_per_patch",
+            type=int,
+            default=1,
+            help="Number of image codes for each patch",
+        )
+        group.add_argument(
             "--loss_region",
             type=str,
             choices=["whole", "target"],
             default="whole",
             help="If target, compute the loss only on the target segments "
             "Otherwise on the whole sequences",
+        )
+        group.add_argument(
+            "--loss_type",
+            type=str,
+            choices=["sum", "mean"],
+            default="mean",
+            help="Loss compute in token-level mean (mean) or sequence-level mean (sum)",
         )
         group.add_argument(
             "--audio_modality",
@@ -292,15 +326,18 @@ class SpeechLMTask(AbsTask):
             g2p_type=args.g2p,
             codec_token_per_frame=args.codec_token_per_frame,
             codec_token_in_use=args.codec_token_in_use,
+            image_token_per_patch=getattr(args, "image_token_per_patch", 1),
             speaker_prompt_length=args.speaker_prompt_length,
             pad_speaker_prompt=args.pad_speaker_prompt,
-            n_ctx=args.corelm_conf.get("n_ctx", 8192),
+            n_ctx=args.transformer_conf.get("n_ctx", 8192),
             inter_segment_pad=(
                 args.codec_token_in_use - 1 if args.corelm == "ar_delay" else 0
             ),
             asr_apply_time_mask=args.asr_apply_time_mask,
             asr_time_mask_config=args.asr_time_mask_config,
             audio_modality=getattr(args, "audio_modality", "codec_ssl"),
+            vision_encoder_processor_conf=getattr(args, "vision_encoder_conf", {}),
+            is_dpo=args.model == "dpo",
         )
 
         return retval
@@ -352,6 +389,7 @@ class SpeechLMTask(AbsTask):
         logging.info(f"Token Bias: {token_bias}")
 
         kwargs = dict()
+        ### Build the model step-by-step
         # 1. Build Transformer decoder
         if args.collect_stats:
             # NOTE(Jinchuan): model will not in real use. Create a placeholder
@@ -362,7 +400,18 @@ class SpeechLMTask(AbsTask):
                 token_bias=token_bias, **args.transformer_conf
             )
 
-        # 2. Build CoreLM module
+        # 2. Build continuous encoder
+        continuous_encoders = dict()
+        for modality in ["vision_encoder"]:
+            if getattr(args, modality, None) is not None:
+                continuous_encoder_class = vision_encoder_choices.get_class(
+                    getattr(args, modality)
+                )
+                continuous_encoders[modality] = continuous_encoder_class(
+                    **getattr(args, f"{modality}_conf")
+                )
+
+        # 3. Build CoreLM module
         corelm_class = corelm_choices.get_class(args.corelm)
         aux_vocab_size = (
             token_bias["codec"][1] - token_bias["codec"][0]
@@ -371,6 +420,7 @@ class SpeechLMTask(AbsTask):
         )
         corelm = corelm_class(
             transformer=transformer,
+            continuous_encoders=continuous_encoders,
             vocab_size=len(token_list),
             aux_vocab_size=aux_vocab_size,
             nq=args.codec_token_in_use,
@@ -378,23 +428,22 @@ class SpeechLMTask(AbsTask):
         )
         kwargs.update(corelm=corelm)
 
-        # 3. Build traiing criterion
-        criterion = SpeechLMCrossEntropyLoss(
+        # 4. Build training criterion
+        criterion = SpeechLMCrossEntropyLossV2(
             pad=token_list.index("<pad>"),
-            vocab_size=len(token_list),
             token_bias=token_bias.copy(),
             modality_weights=args.modality_weights,
-            z_loss_weight=getattr(args, "z_loss_weight", 0.0),
+            image_interval_split=getattr(args, "image_token_per_patch", 1),
             lm_head=corelm.lm_head,
-            aux_lm_head=corelm.aux_lm_head,
+            loss_type=getattr(args, "loss_type", "mean"),
         )
         kwargs.update(criterion=criterion)
 
-        # 3. Build model
+        # 5. Build model
         model_class = model_choices.get_class(args.model)
         model = model_class(**args.model_conf, **kwargs)
 
-        # 4. Initialize
+        # 6. Initialize
         if args.init is not None:
             initialize(model, args.init)
         # skip this when using HF transformers

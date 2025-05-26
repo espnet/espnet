@@ -11,7 +11,6 @@ import torch.nn.functional as F  # noqa
 from typeguard import typechecked
 
 from espnet2.speechlm.core_lm.abs_core_lm import AbsCoreLM
-from espnet2.speechlm.module.builtin import ResidualAttentionBlock
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 
@@ -43,9 +42,10 @@ class ESPnetSpeechLMModel(AbsESPnetModel):
         logits, targets, loss_mask = self.corelm(
             dec_seq,
             loss_mask,
+            conti_feats,
         )
 
-        loss, stats, weight = self.criterion(
+        loss, _, stats, weight = self.criterion(
             logits,
             targets,
             loss_mask,
@@ -55,10 +55,3 @@ class ESPnetSpeechLMModel(AbsESPnetModel):
 
     def collect_feats(self, **kwargs):
         raise NotImplementedError
-
-    @property
-    def layer_cls(self):
-        """All layer class that can be warpped by FSDP"""
-        return [
-            ResidualAttentionBlock,  # Espnet built-in transformer layer.
-        ]

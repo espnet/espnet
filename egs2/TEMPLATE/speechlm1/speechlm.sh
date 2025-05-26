@@ -39,6 +39,7 @@ num_nodes=1          # The number of nodes.
 nj=32                # The number of parallel jobs.
 inference_nj=32      # The number of parallel jobs in decoding.
 gpu_inference=false  # Whether to perform gpu decoding.
+inference_dir=       # directory to save inference results
 dumpdir=dump         # Directory to dump features.
 expdir=exp           # Directory to save experiments.
 python=python3       # Specify python to execute espnet commands.
@@ -57,9 +58,9 @@ test_jsons=""
 
 # Audio Feature extraction related
 feats_type=raw             # Input feature type.
-audio_format=flac          # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw).
+audio_format=flac.ark      # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw).
 min_wav_duration=0.1       # Minimum duration in second.
-max_wav_duration=30        # Maximum duration in second.
+max_wav_duration=120       # Maximum duration in second.
 fs=16000                   # Sampling rate.
 
 # Training related
@@ -342,17 +343,7 @@ if ! "${skip_data_prep}"; then
                     log "File ${data_audio}/${dset}/${_name} is missing. Exit" && exit 1;
                 fi
 
-                if [ ${_modality} == "text_emb" ]; then
-                    log "Offline Text LM inference for text embeddings"
-                    scripts/feats/dump_textlm.sh \
-                      --src_dir ${data_audio}/${dset} \
-                      --tgt_dir ${data_feats}/${dset} \
-                      --file_name ${_name} \
-                      --hf_model_tag ${textlm_hf_model_tag} \
-                      --max_words ${textlm_max_words} \
-                      --nj ${nj}
-
-                elif [ ${_modality} == "codec_ssl" ]; then
+                if [ ${_modality} == "codec_ssl" ]; then
                     # do both codec and SSL tokenization and then splice them in time-axis
                     log "codec_ssl tokenization: ${data_audio}/${dset}/${_name} -> ${data_feats}/${dset}/${_name}"
 
@@ -731,13 +722,17 @@ if ! "${skip_eval}"; then
 
         _opts=
         if [ -n "${inference_config}" ]; then
-            _opts+="--config ${inference_config} "
+            _opts+="--inference_config_file ${inference_config} "
         fi
 
         for test_json in ${test_jsons}; do
             task=$(grep -o '"task": *[^,}]*' ${test_json} | sed -e 's/"task": *//' -e 's/"//g')
             dset=$(basename $(dirname "${test_json}"))
-            _dir="${speechlm_exp}/${inference_tag}/${task}_${dset}"
+            if [ -n "${inference_dir}" ]; then
+                _dir="${inference_dir}/${task}_${dset}"
+            else
+                _dir="${speechlm_exp}/${inference_tag}/${task}_${dset}"
+            fi
             _logdir="${_dir}/log"
             mkdir -p ${_logdir}
 
@@ -752,7 +747,7 @@ if ! "${skip_eval}"; then
             log "Decoding started... log: '${_logdir}/speechlm_inference.*.log'"
             # shellcheck disable=SC2046,SC2086
             ${_cmd} --gpu "${_ngpu}" JOB=1:"${inference_nj}" "${_logdir}"/speechlm_inference.JOB.log \
-                ${python} -m espnet2.bin.speechlm_inference \
+                ${python} -m espnet2.bin.speechlm_inference_chat \
                     --ngpu "${_ngpu}" \
                     --nbest ${nbest} \
                     --model_file "${speechlm_exp}"/"${inference_model}" \
@@ -770,8 +765,8 @@ if ! "${skip_eval}"; then
                 fi
 
                 for n in `seq ${inference_nj}`; do
-                    cat ${_logdir}/output.${n}/${entry}/token_${entry}.scp
-                done | sort > ${_dir}/token_${entry}.scp
+                    cat ${_logdir}/output.${n}/${entry}/${entry}_token.scp
+                done | sort > ${_dir}/${entry}_token.scp
             done
         done
     fi
@@ -792,7 +787,12 @@ if ! "${skip_eval}"; then
             task=$(grep -o '"task": *[^,}]*' ${test_json} | sed -e 's/"task": *//' -e 's/"//g')
             _src_dir="$(dirname "${test_json}")"
             _dset="$(basename ${_src_dir})"
-            _dir="${speechlm_exp}/${inference_tag}/${task}_${_dset}";
+
+            if [ -n "${inference_dir}" ]; then
+                _dir="${inference_dir}/${task}_${_dset}"
+            else
+                _dir="${speechlm_exp}/${inference_tag}/${task}_${_dset}"
+            fi
             mkdir -p ${_dir}/eval_cache
 
             target_triplets=$(python -c "from espnet2.speechlm.definitions import SPEECHLM_TASKS; print(SPEECHLM_TASKS['${task}'].target_string)")
