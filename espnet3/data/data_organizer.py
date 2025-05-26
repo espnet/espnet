@@ -6,6 +6,7 @@ from hydra.utils import instantiate
 from tqdm import tqdm
 
 from espnet2.train.preprocessor import AbsPreprocessor
+from espnet3.data.dataset import ShardedDataset
 
 
 @dataclass
@@ -82,7 +83,7 @@ class CombinedDataset:
         for i, (dataset, transform) in enumerate(zip(self.datasets, self.transforms)):
             if len(dataset) == 0:
                 continue  # Skip empty datasets
-            sample = transform(dataset[0])
+            sample = dataset[0]
             if isinstance(sample, tuple):  # (uid, data_dict)
                 _, sample = sample
             keys = set(sample.keys())
@@ -93,22 +94,69 @@ class CombinedDataset:
                     f"Inconsistent output keys in dataset {i}: "
                     f"{keys} != {sample_keys}"
                 )
+        
+        # Check if get_text is available
+        self.get_text_available = True
+        for dataset in self.datasets:
+           if not hasattr(dataset, "get_text"):
+               self.get_text_available = False
+        
+        # Check if dataset is a subclass of ShardedDataset.
+        self.multiple_iterator = False
+        for dataset in self.datasets:
+            if self.multiple_iterator and not isinstance(dataset, ShardedDataset):
+                raise RuntimeError("If any dataset is a subclass of ShardedDataset," \
+                    " then all dataset should be a subclass of ShardedDataset.")
+            if isinstance(dataset, ShardedDataset):
+                self.multiple_iterator = True
+        
 
     def __len__(self):
         return self.cumulative_lengths[-1] if self.cumulative_lengths else 0
 
     def __getitem__(self, idx):
         if isinstance(idx, str):
-            idx = int(idx)
+            try:
+                idx = int(idx)
+            except:
+                raise ValueError("ESPnet-3 expext the utterance ID to be integer index")
+            
         for i, cum_len in enumerate(self.cumulative_lengths):
             if idx < cum_len:
                 ds_idx = idx if i == 0 else idx - self.cumulative_lengths[i - 1]
                 sample = self.datasets[i][ds_idx]
                 if self.add_uid:
-                    return (str(idx), self.transforms[i](sample))
+                    return (str(idx), self.transforms[i]((str(idx), sample)))
                 else:
                     return self.transforms[i](sample)
         raise IndexError("Index out of range in CombinedDataset")
+
+    def get_text(self, idx):
+        if not self.get_text_available:
+            raise RuntimeError("Please define `get_text` function to all datasets." \
+            "It should receive index of data and return target text." \
+            "E.g., \n" \
+            "def get_text(self, idx):\n" \
+            "   return text\n")
+        
+        for i, cum_len in enumerate(self.cumulative_lengths):
+            if idx < cum_len:
+                ds_idx = idx if i == 0 else idx - self.cumulative_lengths[i - 1]
+                return self.datasets[i].get_text(ds_idx)
+
+    def shard(self, shard_idx: int):
+        if not self.multiple_iterator:
+            raise RuntimeError("All dataset should be the subclass of " \
+                "espnet3.data.dataset.ShardedDataset.")
+        sharded_datasets = [
+            dataset.shard(shard_idx)
+            for dataset in self.datasets
+        ]
+        return CombinedDataset(
+            sharded_datasets,
+            self.transforms,
+            self.add_uid,
+        )
 
 
 def get_wrapped_transform(is_espnet_preprocessor, t, p):
@@ -217,7 +265,7 @@ class DataOrganizer:
                     self.preprocessor,
                 )
                 self.test_sets[cfg.name] = DatasetWithTransform(
-                    dataset, wrapped_transform
+                    dataset, wrapped_transform, add_uid=is_espnet_preprocessor
                 )
 
     @property
@@ -238,15 +286,19 @@ class DatasetWithTransform:
         >>> item = wrapped[0]
     """
 
-    def __init__(self, dataset, transform):
+    def __init__(self, dataset, transform, add_uid=False):
         self.dataset = dataset
         self.transform = transform
+        self.add_uid = add_uid
 
     def __len__(self):
         return len(self.dataset)
 
     def __getitem__(self, idx):
-        return str(idx), self.transform(self.dataset[idx])
+        if self.add_uid:
+            return str(idx), self.transform(self.dataset[idx])
+        else:
+            return self.transform(self.dataset[idx])
 
     def __call__(self, idx):
         return self.__getitem__(idx)

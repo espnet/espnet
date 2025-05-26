@@ -5,13 +5,13 @@ import lightning as L
 import torch
 import yaml
 from hydra.utils import instantiate
-from omegaconf import DictConfig, ListConfig, OmegaConf
+from omegaconf import OmegaConf
 
 from espnet2.train.collate_fn import CommonCollateFn
 from espnet3.collect_stats import collect_stats
 from espnet3.trainer.hybrid_optim import HybridOptim
 from espnet3.trainer.hybrid_scheduler import HybridLRS
-from espnet3.trainer.sampler import MappedSamplerWrapper
+from espnet3.trainer.dataloader import DataLoaderBuilder
 
 
 class LitESPnetModel(L.LightningModule):
@@ -140,115 +140,24 @@ class LitESPnetModel(L.LightningModule):
         }
 
     def train_dataloader(self):
-        # Define sampler if specified
-        dataloader_config = {}
-        sampler = None
-        batch_sampler = None
-        train_dataset = self.train_dataset
-        if hasattr(self.config, "dataloader"):
-            # If user wants to use ESPnet's dataloader:
-            if hasattr(self.config.dataloader, "train") and hasattr(
-                self.config.dataloader.train, "iter_factory"
-            ):
-                iter_factory = instantiate(
-                    self.config.dataloader.train.iter_factory, self.train_dataset
-                )
-                shape_files = (
-                    self.config.dataloader.train.iter_factory.batches.shape_files
-                )
-                iter_factory.sampler = MappedSamplerWrapper(
-                    iter_factory.sampler, shape_files
-                )
-                return iter_factory.build_iter(self.current_epoch, shuffle=False)
-
-            # Otherwise:
-            if hasattr(self.config.dataloader, "train"):
-                dataloader_config.update(
-                    OmegaConf.to_container(self.config.dataloader.train, resolve=True)
-                )
-
-            if hasattr(self.config.dataloader, "sampler"):
-                # Otherwise basically it requires dataset
-                sampler = instantiate(
-                    self.config.dataloader.sampler, self.train_dataset
-                )
-            if hasattr(self.config.dataloader, "batch_sampler"):
-                batch_sampler = instantiate(
-                    self.config.dataloader.batch_sampler, self.train_dataset
-                )
-            assert not (
-                sampler is not None and batch_sampler is not None
-            ), "Cannot specify both sampler and batch_sampler."
-
-            if "dataset" in dataloader_config:
-                dataloader_config.pop("dataset")
-
-        return torch.utils.data.DataLoader(
-            train_dataset,
-            sampler=sampler,
+        builder = DataLoaderBuilder(
+            dataset = self.train_dataset,
+            config=self.config,
             collate_fn=self.collate_fn,
-            batch_sampler=batch_sampler,
-            **dataloader_config,
+            num_device=self.config.num_device,
+            epoch=self.current_epoch,
         )
+        return builder.build(mode="train")
 
     def val_dataloader(self):
-        # Define sampler if specified
-        dataloader_config = {}
-        sampler = None
-        batch_sampler = None
-        valid_dataset = self.valid_dataset
-        collate_fn = CommonCollateFn(int_pad_value=-1)
-        if hasattr(self.config, "dataloader"):
-            # If user wants to use ESPnet's dataloader:
-            if hasattr(self.config.dataloader, "valid") and hasattr(
-                self.config.dataloader.valid, "iter_factory"
-            ):
-                iter_factory = instantiate(
-                    self.config.dataloader.valid.iter_factory, self.valid_dataset
-                )
-                shape_files = (
-                    self.config.dataloader.valid.iter_factory.batches.shape_files
-                )
-                iter_factory.sampler = MappedSamplerWrapper(
-                    iter_factory.sampler, shape_files
-                )
-                return iter_factory.build_iter(self.current_epoch, shuffle=False)
-
-            if hasattr(self.config.dataloader, "valid"):
-                dataloader_config.update(
-                    OmegaConf.to_container(self.config.dataloader.valid)
-                )
-
-            if hasattr(self.config.dataloader, "sampler"):
-                # Otherwise basically it requires dataset
-                sampler = instantiate(
-                    OmegaConf.to_container(
-                        self.config.dataloader.sampler, resolve=True
-                    ),
-                    self.valid_dataset,
-                )
-            if hasattr(self.config.dataloader, "batch_sampler"):
-                batch_sampler = instantiate(
-                    OmegaConf.to_container(
-                        self.config.dataloader.batch_sampler, resolve=True
-                    ),
-                    self.valid_dataset,
-                )
-            assert not (
-                sampler is not None and batch_sampler is not None
-            ), "Cannot specify both sampler and batch_sampler."
-            if (
-                "dataset" in dataloader_config
-            ):  # remove dataset for compatibility with torch.utils.data.DataLoader
-                dataloader_config.pop("dataset")
-
-        return torch.utils.data.DataLoader(
-            valid_dataset,
-            sampler=sampler,
+        builder = DataLoaderBuilder(
+            dataset = self.valid_dataset,
+            config=self.config,
             collate_fn=self.collate_fn,
-            batch_sampler=batch_sampler,
-            **dataloader_config,
+            num_device=self.config.num_device,
+            epoch=self.current_epoch,
         )
+        return builder.build(mode="valid")
 
     def state_dict(self, *args, **kwargs):
         return self.model.state_dict(*args, **kwargs)
