@@ -8,6 +8,7 @@ class OWSMFinetune(nn.Module):
         super().__init__()
         owsm_model = Speech2Text.from_pretrained(model_tag)
         self.model = owsm_model.s2t_model
+        self.model.train()
 
     def forward(
         self,
