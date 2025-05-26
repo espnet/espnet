@@ -18,7 +18,7 @@ from espnet3.parallel import get_client, set_parallel
 
 class CollectStatsPlugin(WorkerPlugin):
     def __init__(self, task, model_config, dataset_config, dataloader_config,
-                 mode, shard_idx=None, write_collected_feats=write_collected_feats):
+                 mode, shard_idx=None, write_collected_feats=False):
         self.task = task
         self.model_config = model_config
         self.dataset_config = dataset_config
