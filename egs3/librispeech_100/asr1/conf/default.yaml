@@ -23,6 +23,8 @@ dataloader:
     _target_: espnet2.train.collate_fn.CommonCollateFn
     int_pad_value: -1
   train:
+    multiple_iterator: false
+    num_shards: 1
     iter_factory:
       _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
       shuffle: true
@@ -35,6 +37,8 @@ dataloader:
         batch_size: 4
         batch_bins: 4000000
   valid:
+    multiple_iterator: false
+    num_shards: 1
     iter_factory:
       _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
       shuffle: false
