@@ -71,6 +71,9 @@ egs2/**/**/checkpoint
 egs2/**/**/flagged_data_points
 egs2/**/**/hub
 
+# test_utils related
+test_utils/espnet3_dummy
+
 # tools related
 tools/chainer
 tools/bin

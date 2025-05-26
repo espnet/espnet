@@ -6,11 +6,9 @@ if [ ! -f ./tools/activate_python.sh ]; then
     touch ./tools/activate_python.sh
 fi
 
-exclude="egs2/TEMPLATE/asr1/utils,"
-exclude+="egs2/TEMPLATE/asr1/steps,"
-exclude+="egs2/TEMPLATE/tts1/sid,doc,tools,"
+exclude="egs2,doc,tools,"
 exclude+="test_utils/bats-core,test_utils/bats-support,"
-exclude+="test_utils/bats-assert"
+exclude+="test_utils/bats-assert,espnet2,espnet,test_utils/utils3"
 
 # flake8
 "$(dirname $0)"/test_flake8.sh
