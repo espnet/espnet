@@ -29,3 +29,7 @@ class LibriSpeechDataset(Dataset):
             "text": item["text"]
         }
         return example
+    
+    def get_text(self, idx):
+        item = self.dataset[idx]
+        return item["text"]

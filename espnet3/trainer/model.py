@@ -32,7 +32,7 @@ class LitESPnetModel(L.LightningModule):
         # Save config to make it compatible with ESPnet inference
         if self.global_rank == 0:
             if not os.path.exists(Path(self.config.expdir)):
-                os.makedirs(Path(self.config.expdir))
+                Path(self.config.expdir).mkdir(parents=True, exist_ok=True)
 
             with (Path(self.config.expdir) / "config.yaml").open(
                 "w", encoding="utf-8"

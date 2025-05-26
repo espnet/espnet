@@ -55,7 +55,7 @@ def main():
     # Stage: train
     if args.stage in ("train", "all"):
         train_cmd = [
-            "python", "train.py",
+            "srun", "python", "train.py",
             "--config", args.train_config,
         ]
         if args.train_tokenizer:
