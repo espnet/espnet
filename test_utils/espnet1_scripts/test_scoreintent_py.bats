@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 
 setup() {
-    utils=$(cd $BATS_TEST_DIRNAME/..; pwd)/egs2/TEMPLATE/asr1/pyscripts/utils/
+    utils=$(cd $BATS_TEST_DIRNAME/../..; pwd)/egs2/TEMPLATE/asr1/pyscripts/utils/
     export LC_ALL="en_US.UTF-8"
     tmpdir=$(mktemp -d testXXXXXX)/
     mkdir -p $tmpdir/valid/score_wer $tmpdir/test/score_wer
