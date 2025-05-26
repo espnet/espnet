@@ -46,8 +46,8 @@ frontend_conf:
 seed: 2022
 num_workers: 4
 batch_type: numel
-batch_bins: 16000000
-accum_grad: 4
+batch_bins: 32000000
+accum_grad: 2
 max_epoch: 70
 patience: none
 init: none
