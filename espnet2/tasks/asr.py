@@ -167,6 +167,7 @@ encoder_choices = ClassChoices(
         multiconv_conformer=MultiConvConformerEncoder,
         beats=BeatsEncoder,
         mamba=MambaV1Encoder
+        mamba_v2=MambaV2Encoder
     ),
     type_check=AbsEncoder,
     default="rnn",
