@@ -1,0 +1,97 @@
+recipedir: .
+num_device: 1
+expdir: ${recipedir}/exp/finetune_owsm_gpu${num_device}
+statsdir:  ${recipedir}/exp/stats
+vocab_size: 6500
+seed: 2024
+
+# load default config
+defaults:
+  - dataset.yaml
+  - conf/default.yaml
+
+parallel:
+  env: slurm
+  n_workers: 16
+  options:
+    account: bbjs-delta-cpu
+    queue: cpu
+    cores: 1
+    processes: 1
+    memory: 10GB
+    death_timeout: 180
+    # walltime: 30:00
+    job_extra_directives:
+      # - "--gres=gpu:1"
+      - "--ntasks-per-node=1"
+      - "--cpus-per-task=2"
+      - "--output=parallel_log/%j-%x.log"
+
+model:
+  _target_: egs3.europarl.s2t1_new_conf.model.OWSMFinetune
+  model_tag: espnet/owsm_v3.1_ebf
+
+optim:
+  _target_: torch.optim.AdamW
+  lr: 0.00005
+  weight_decay: 0.000001
+
+scheduler:
+  _target_: espnet2.schedulers.warmup_lr.WarmupLR
+  warmup_steps: 6000
+
+dataloader:
+  collate_fn:
+    _target_: espnet2.train.collate_fn.CommonCollateFn
+    int_pad_value: -1
+  
+  train:
+    iter_factory:
+      _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
+      shuffle: true
+      collate_fn: ${dataloader.collate_fn}
+      num_workers: 8
+      num_iters_per_epoch: 15000
+      batches:
+        _target_: espnet2.samplers.build_batch_sampler.build_batch_sampler
+        type: numel
+        shape_files:
+          - ${statsdir}/train/feats_shape.{shard_idx}
+        batch_size: 4
+        batch_bins: 1000000
+  valid:
+    iter_factory:
+      _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
+      shuffle: false
+      collate_fn: ${dataloader.collate_fn}
+      num_workers: 8
+      num_iters_per_epoch: 15000
+      batches:
+        _target_: espnet2.samplers.build_batch_sampler.build_batch_sampler
+        type: numel
+        shape_files:
+          - ${statsdir}/valid/feats_shape
+        batch_size: 4
+        batch_bins: ${dataloader.train.iter_factory.batches.batch_bins}
+
+trainer:
+  max_epochs: 30
+  precision: bf16-mixed
+  accumulate_grad_batches: 4
+  log_every_n_steps: 500
+
+  logger:
+    - _target_: lightning.pytorch.loggers.TensorBoardLogger
+      save_dir: ${expdir}/tensorboard
+      name: tb_logger
+
+    - _target_: lightning.pytorch.loggers.WandbLogger
+      project: ESPnet3 development
+      save_dir: ${expdir}/wandb
+      name: europarl_gpu${num_device}
+
+  strategy: auto
+
+# If you want to resume training use the following config.
+# fit:
+#   ckpt_path: ${expdir}/last.ckpt
