@@ -24,7 +24,7 @@ def main():
 
     # Create dataset options
     parser.add_argument("--input_dir", type=str, help="Directory of raw input data")
-    parser.add_argument("--output_dir", type=str,
+    parser.add_argument("--output_dir", type=str, default="data/",
                         help="Directory to save processed data")
 
     # Train options

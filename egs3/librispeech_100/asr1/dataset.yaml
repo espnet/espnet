@@ -1,0 +1,33 @@
+dataset:
+  _target_: espnet3.data.DataOrganizer
+  train:
+    - name: train-clean-100
+      dataset:
+        _target_: egs3.librispeech_100.asr1.dataset.LibriSpeechDataset
+        split: train-clean-100
+  valid:
+    - name: dev-clean
+      dataset:
+        _target_: egs3.librispeech_100.asr1.dataset.LibriSpeechDataset
+        split: dev-clean
+    - name: dev-other
+      dataset:
+        _target_: egs3.librispeech_100.asr1.dataset.LibriSpeechDataset
+        split: dev-other
+  test:
+    - name: test-clean
+      dataset:
+        _target_: egs3.librispeech_100.asr1.dataset.LibriSpeechDataset
+        split: test-clean
+    - name: test-other
+      dataset:
+        _target_: egs3.librispeech_100.asr1.dataset.LibriSpeechDataset
+        split: test-other
+
+  preprocessor:
+    _target_: espnet2.train.preprocessor.CommonPreprocessor
+    train: true
+    token_type: bpe
+    token_list: ${recipedir}/sentencepiece_model/tokens.txt
+    bpemodel: ${recipedir}/sentencepiece_model/bpe.model
+    text_cleaner:
