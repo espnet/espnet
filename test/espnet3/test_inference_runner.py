@@ -51,14 +51,14 @@ def config():
     return cfg
 
 
-@pytest.fixture
-def clean_decode_dir(config):
-    decode_dir = Path(config.decode_dir)
-    if decode_dir.exists():
-        shutil.rmtree(decode_dir)
-    yield decode_dir
-    if decode_dir.exists():
-        shutil.rmtree(decode_dir)
+# === Test Fixtures ===
+@pytest.fixture(scope="module")
+def test_audio_paths():
+    base = Path("test_utils/utils3/audio")
+    assert base.exists(), f"Test audio directory not found: {base}"
+    paths = sorted(base.glob("*.wav"))
+    assert len(paths) > 0, f"No .wav files found in {base}"
+    return paths
 
 
 # === Offline inference ===
