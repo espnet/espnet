@@ -23,7 +23,8 @@ from espnet.nets.pytorch_backend.transformer.subsampling import (
 
 from espnet2.asr.ctc import CTC
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
-from espnet2.asr.state_spaces.mamba.mamba_v1 import Block, Mamba
+from espnet2.asr.state_spaces.mamba.mamba_v1 import Block
+from espnet2.asr.state_spaces.mamba.mamba_v2 import MambaV2
 
 try:
     from espnet2.asr.state_spaces.mamba.ops.triton.layer_norm import (
@@ -36,16 +37,17 @@ except ImportError:
 from espnet2.asr.state_spaces.mamba.serialbimamba import SerialBiMambaBlock
 
 
-class MambaV1EncoderLayer(nn.Module):
+class MambaV2EncoderLayer(torch.nn.Module):
+    """MambaV2 encoder layer module."""
+
     def __init__(
         self,
-        d_model: int,  # output_size
+        d_model: int,
         ssm_cfg=None,
         norm_epsilon: float = 1e-5,
         rms_norm: bool = False,
-        residual_in_fp32: bool = False,
-        fused_add_norm: bool = False,
-        use_fast_path: bool = True,
+        residual_in_fp32=False,
+        fused_add_norm=False,
         layer_idx=None,
         device=None,
         dtype=None,
@@ -59,12 +61,9 @@ class MambaV1EncoderLayer(nn.Module):
 
         if ssm_cfg is None:
             ssm_cfg = {}
-
+        factory_kwargs = {"device": device, "dtype": dtype}
         self.mixer_cls = partial(
-            Mamba,
-            layer_idx=layer_idx,
-            **ssm_cfg,
-            **factory_kwargs,
+            MambaV2, layer_idx=layer_idx, **ssm_cfg, **factory_kwargs
         )
         self.norm_cls = partial(
             nn.LayerNorm if not rms_norm else RMSNorm,
@@ -78,6 +77,7 @@ class MambaV1EncoderLayer(nn.Module):
             fused_add_norm=fused_add_norm,
             residual_in_fp32=residual_in_fp32,
         )
+        self.block.layer_idx = layer_idx
 
     def forward(
         self,
@@ -87,40 +87,37 @@ class MambaV1EncoderLayer(nn.Module):
         inference_params=None,
         flip_fn=None,
     ):
+        """Forward function."""
         hidden_states, residual = self.block(
-            hidden_states,
-            residual,
-            mask,
-            inference_params,
-            flip_fn=flip_fn,
+            hidden_states, residual, mask, inference_params, flip_fn=flip_fn
         )
+
         return hidden_states, residual, mask
 
 
-class SerialBiMambaEncoderLayer(nn.Module):
+class SerialBiMambaV2EncoderLayer(MambaV2EncoderLayer):
     def __init__(
         self,
         d_model: int,
         ssm_cfg=None,
         norm_epsilon: float = 1e-5,
         rms_norm: bool = False,
-        residual_in_fp32: bool = False,
-        fused_add_norm: bool = False,
-        use_fast_path: bool = True,
+        residual_in_fp32=False,
+        fused_add_norm=False,
         layer_idx=None,
         device=None,
         dtype=None,
     ):
         super().__init__(
             d_model,
-            ssm_cfg=ssm_cfg,
-            norm_epsilon=norm_epsilon,
-            rms_norm=rms_norm,
-            residual_in_fp32=residual_in_fp32,
-            fused_add_norm=fused_add_norm,
-            layer_idx=layer_idx,
-            device=device,
-            dtype=dtype,
+            ssm_cfg,
+            norm_epsilon,
+            rms_norm,
+            residual_in_fp32,
+            fused_add_norm,
+            layer_idx,
+            device,
+            dtype,
         )
         self.block = SerialBiMambaBlock(
             d_model,
@@ -132,7 +129,7 @@ class SerialBiMambaEncoderLayer(nn.Module):
         self.block.layer_idx = layer_idx
 
 
-class MambaV1Encoder(AbsEncoder):
+class MambaV2Encoder(AbsEncoder):
     """Mamba encoder module."""
 
     def __init__(
@@ -243,7 +240,7 @@ class MambaV1Encoder(AbsEncoder):
 
         self.encoders = repeat(
             num_blocks,
-            lambda lnum: MambaV1EncoderLayer(
+            lambda lnum: MambaV2EncoderLayer(
                 output_size,
                 ssm_cfg=ssm_cfg,
                 norm_epsilon=norm_epsilon,
