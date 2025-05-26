@@ -1,6 +1,8 @@
 from typing import Any, Dict, Tuple, Union
+from abc import ABC
 
 from espnet2.train.dataset import AbsDataset
+from torch.utils.data.dataset import Dataset
 
 
 class ESPnetEZDataset(AbsDataset):
@@ -146,3 +148,11 @@ class ESPnetEZDataset(AbsDataset):
 
     def __len__(self) -> int:
         return len(self.dataset)
+
+
+class ShardedDataset(ABC, Dataset):
+    def shard(self, idx: int):
+        raise NotImplementedError("Please implement `shard` function," \
+            " which will return torch.utils.data.dataset.Dataset class" \
+            " based on shard index.")
+    

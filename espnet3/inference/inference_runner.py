@@ -194,7 +194,11 @@ class InferenceRunner:
         wrapped_transform = get_wrapped_transform(
             is_espnet_preprocessor, transform, preprocessor
         )
-        return DatasetWithTransform(instantiate(ds_conf.dataset), wrapped_transform)
+        return DatasetWithTransform(
+            instantiate(ds_conf.dataset),
+            wrapped_transform,
+            add_uid=is_espnet_preprocessor,
+        )
 
     def _initialize_dataset(self, dataset_key, dataset_config=None):
         if self.current_dataset_key != dataset_key:
