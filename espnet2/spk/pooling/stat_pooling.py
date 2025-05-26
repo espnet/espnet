@@ -15,13 +15,14 @@ class StatsPooling(AbsPooling):
         **kwargs: additional keyword arguments (currently unused but accepted
             for compatibility)
     """
+
     def __init__(self, input_size: int = 1536, **kwargs):
         super().__init__()
         self._output_size = input_size * 2
-    
+
     def output_size(self):
         return self._output_size
-    
+
     def forward(self, x, task_tokens: torch.Tensor = None, **kwargs):
         if task_tokens is not None:
             raise ValueError("StatisticsPooling is not adequate for task_tokens")
