@@ -2728,7 +2728,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         if vision_encoder_processor is not None:
             if vision_encoder_processor.startswith("google/siglip"):
                 try:
-                    from transformers import SiglipImageProcessor, AutoConfig
+                    from transformers import AutoConfig, SiglipImageProcessor
                 except:
                     raise ImportError(
                         "Please install transformers to use vision encoder"

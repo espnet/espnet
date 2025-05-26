@@ -4,21 +4,21 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 
+import json
+import logging
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Dict, Union
+
 import torch
 import torchaudio
-import logging
-import json
-
-from pathlib import Path
-from dataclasses import dataclass
-from typing import Union, Dict
 from kaldiio import WriteHelper
 
-from espnet2.speechlm.tokenizer.abs_tokenizer import AbsTokenizer as LMTokenizer
-from espnet2.text.abs_tokenizer import AbsTokenizer as TextTokenizer
-from espnet2.speechlm.tokenizer.codec_tokenizer import CodecTokenizer
-from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.speechlm.definitions import SPEECHLM_TASKS
+from espnet2.speechlm.tokenizer.abs_tokenizer import AbsTokenizer as LMTokenizer
+from espnet2.speechlm.tokenizer.codec_tokenizer import CodecTokenizer
+from espnet2.text.abs_tokenizer import AbsTokenizer as TextTokenizer
+from espnet2.text.build_tokenizer import build_tokenizer
 
 
 @dataclass

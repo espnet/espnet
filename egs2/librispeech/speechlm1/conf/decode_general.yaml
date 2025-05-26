@@ -14,7 +14,7 @@ codec_ssl:
       codec_choice: ESPnet
       codec_fs: 16000
       hf_model_tag: ftshijt/espnet_codec_dac_large_v1.4_360epoch
-  
+
 text_bpe:
     search_algo: greedy_search
     sampling_temperature: 0.8
