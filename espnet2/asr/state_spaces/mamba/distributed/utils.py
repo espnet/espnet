@@ -22,7 +22,10 @@ if "reduce_scatter_tensor" not in dir(torch.distributed):
 def all_gather_raw(input_: Tensor, process_group: ProcessGroup, async_op: bool = False):
     world_size = torch.distributed.get_world_size(process_group)
     output = torch.empty(
-        world_size * input_.shape[0], *input_.shape[1:], dtype=input_.dtype, device=input_.device
+        world_size * input_.shape[0],
+        *input_.shape[1:],
+        dtype=input_.dtype,
+        device=input_.device,
     )
     handle = torch.distributed.all_gather_into_tensor(
         output, input_.contiguous(), group=process_group, async_op=async_op
@@ -31,11 +34,16 @@ def all_gather_raw(input_: Tensor, process_group: ProcessGroup, async_op: bool =
 
 
 # Raw operation, does not support autograd, but does support async
-def reduce_scatter_raw(input_: Tensor, process_group: ProcessGroup, async_op: bool = False):
+def reduce_scatter_raw(
+    input_: Tensor, process_group: ProcessGroup, async_op: bool = False
+):
     world_size = torch.distributed.get_world_size(process_group)
     assert input_.shape[0] % world_size == 0
     output = torch.empty(
-        input_.shape[0] // world_size, *input_.shape[1:], dtype=input_.dtype, device=input_.device
+        input_.shape[0] // world_size,
+        *input_.shape[1:],
+        dtype=input_.dtype,
+        device=input_.device,
     )
     handle = torch.distributed.reduce_scatter_tensor(
         output, input_.contiguous(), group=process_group, async_op=async_op
@@ -46,7 +54,9 @@ def reduce_scatter_raw(input_: Tensor, process_group: ProcessGroup, async_op: bo
 # Raw operation, does not support autograd, but does support async
 def all_reduce_raw(input_: Tensor, process_group: ProcessGroup, async_op: bool = False):
     input_ = input_.contiguous()
-    handle = torch.distributed.all_reduce(input_, group=process_group, async_op=async_op)
+    handle = torch.distributed.all_reduce(
+        input_, group=process_group, async_op=async_op
+    )
     return input_, handle
 
 
@@ -110,33 +120,45 @@ def sync_shared_params(model: torch.nn.Module, process_group: ProcessGroup):
     # We want to iterate over parameters with _shared_params=True in the same order,
     # as different ranks might have different number of parameters (e.g., only rank 0 has bias).
     pamams_shared = {
-        name: p for name, p in model.named_parameters() if getattr(p, "_shared_params", False)
+        name: p
+        for name, p in model.named_parameters()
+        if getattr(p, "_shared_params", False)
     }
     for _, p in sorted(pamams_shared.items()):
         with torch.no_grad():
             # Broadcast needs src to be global rank, not group rank
             torch.distributed.broadcast(
-                p, src=torch.distributed.get_global_rank(process_group, 0), group=process_group
+                p,
+                src=torch.distributed.get_global_rank(process_group, 0),
+                group=process_group,
             )
 
 
 # Ref: https://github.com/NVIDIA/Megatron-LM/blob/52e636888cccc41e931251c417a7181fc36de926/megatron/optimizer/optimizer.py#L256
-def allreduce_sequence_parallel_grad(model: torch.nn.Module, process_group: ProcessGroup):
+def allreduce_sequence_parallel_grad(
+    model: torch.nn.Module, process_group: ProcessGroup
+):
     # We want to iterate over parameters with _sequence_parallel=True in the same order,
     # as different ranks might have different number of parameters (e.g., only rank 0 has bias).
     params_seqparallel = {
-        name: p for name, p in model.named_parameters() if getattr(p, "_sequence_parallel", False)
+        name: p
+        for name, p in model.named_parameters()
+        if getattr(p, "_sequence_parallel", False)
     }
     grads = [p.grad for _, p in sorted(params_seqparallel.items())]
     if grads:
         with torch.no_grad():
             coalesced = torch._utils._flatten_dense_tensors(grads)
             torch.distributed.all_reduce(coalesced, group=process_group)
-            for buf, synced in zip(grads, torch._utils._unflatten_dense_tensors(coalesced, grads)):
+            for buf, synced in zip(
+                grads, torch._utils._unflatten_dense_tensors(coalesced, grads)
+            ):
                 buf.copy_(synced)
 
 
-def get_dim_for_local_rank(dim: int, world_size: int, local_rank: int, multiple_of: int = 1) -> int:
+def get_dim_for_local_rank(
+    dim: int, world_size: int, local_rank: int, multiple_of: int = 1
+) -> int:
     """Get the dim for the local rank derived from splitting dim on world_size processes.
 
     The split may not be even across the world_size processes.

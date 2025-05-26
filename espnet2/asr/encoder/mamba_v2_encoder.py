@@ -1,14 +1,10 @@
 import logging
-from typing import List, Optional, Tuple
 import math
 from functools import partial
+from typing import List, Optional, Tuple
 
 import torch
 import torch.nn as nn
-from typeguard import check_argument_types
-
-from espnet2.asr.ctc import CTC
-from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet.nets.pytorch_backend.transformer.repeat import repeat
@@ -24,14 +20,23 @@ from espnet.nets.pytorch_backend.transformer.subsampling import (
     TooShortUttError,
     check_short_utt,
 )
+from typeguard import check_argument_types
 
+from espnet2.asr.ctc import CTC
+from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.state_spaces.mamba.mamba_v1 import Block
 from espnet2.asr.state_spaces.mamba.mamba_v2 import MambaV2
+
 try:
-    from espnet2.asr.state_spaces.mamba.ops.triton.layer_norm import RMSNorm, layer_norm_fn, rms_norm_fn
+    from espnet2.asr.state_spaces.mamba.ops.triton.layer_norm import (
+        RMSNorm,
+        layer_norm_fn,
+        rms_norm_fn,
+    )
 except ImportError:
     RMSNorm, layer_norm_fn, rms_norm_fn = None, None, None
 from espnet2.asr.state_spaces.mamba.serialbimamba import SerialBiMambaBlock
+
 
 class MambaV2EncoderLayer(torch.nn.Module):
     """MambaV2 encoder layer module."""
@@ -58,9 +63,13 @@ class MambaV2EncoderLayer(torch.nn.Module):
         if ssm_cfg is None:
             ssm_cfg = {}
         factory_kwargs = {"device": device, "dtype": dtype}
-        self.mixer_cls = partial(MambaV2, layer_idx=layer_idx, **ssm_cfg, **factory_kwargs)
+        self.mixer_cls = partial(
+            MambaV2, layer_idx=layer_idx, **ssm_cfg, **factory_kwargs
+        )
         self.norm_cls = partial(
-            nn.LayerNorm if not rms_norm else RMSNorm, eps=norm_epsilon, **factory_kwargs
+            nn.LayerNorm if not rms_norm else RMSNorm,
+            eps=norm_epsilon,
+            **factory_kwargs,
         )
         self.block = Block(
             d_model,
@@ -71,9 +80,18 @@ class MambaV2EncoderLayer(torch.nn.Module):
         )
         self.block.layer_idx = layer_idx
 
-    def forward(self, hidden_states, residual=None, mask=None, inference_params=None, flip_fn=None):
+    def forward(
+        self,
+        hidden_states,
+        residual=None,
+        mask=None,
+        inference_params=None,
+        flip_fn=None,
+    ):
         """Forward function."""
-        hidden_states, residual = self.block(hidden_states, residual, mask, inference_params, flip_fn=flip_fn)
+        hidden_states, residual = self.block(
+            hidden_states, residual, mask, inference_params, flip_fn=flip_fn
+        )
 
         return hidden_states, residual, mask
 
@@ -91,7 +109,17 @@ class SerialBiMambaV2EncoderLayer(MambaV2EncoderLayer):
         device=None,
         dtype=None,
     ):
-        super().__init__(d_model, ssm_cfg, norm_epsilon, rms_norm, residual_in_fp32, fused_add_norm, layer_idx, device, dtype)
+        super().__init__(
+            d_model,
+            ssm_cfg,
+            norm_epsilon,
+            rms_norm,
+            residual_in_fp32,
+            fused_add_norm,
+            layer_idx,
+            device,
+            dtype,
+        )
         self.block = SerialBiMambaBlock(
             d_model,
             self.mixer_cls,
@@ -100,6 +128,7 @@ class SerialBiMambaV2EncoderLayer(MambaV2EncoderLayer):
             residual_in_fp32=residual_in_fp32,
         )
         self.block.layer_idx = layer_idx
+
 
 class MambaV2Encoder(AbsEncoder):
     """Mamba encoder module."""
@@ -129,7 +158,7 @@ class MambaV2Encoder(AbsEncoder):
         self._output_size = output_size
         self.num_blocks = num_blocks
         self.initializer_cfg = initializer_cfg
-        
+
         if input_layer == "linear":
             self.embed = torch.nn.Sequential(
                 torch.nn.Linear(input_size, output_size),
@@ -163,7 +192,9 @@ class MambaV2Encoder(AbsEncoder):
                 input_size,
                 output_size,
                 dropout_rate,
-                pos_enc=nn.Dropout(pos_enc_dropout_rate) if pos_enc_dropout_rate > 0.0 else nn.Identity(),
+                pos_enc=nn.Dropout(pos_enc_dropout_rate)
+                if pos_enc_dropout_rate > 0.0
+                else nn.Identity(),
             )
         elif input_layer == "conv2d1":
             self.embed = Conv2dSubsampling1(
@@ -203,9 +234,7 @@ class MambaV2Encoder(AbsEncoder):
             )
         elif input_layer is None:
             if input_size == output_size:
-                self.embed = torch.nn.Sequential(
-                    nn.Identity()
-                )
+                self.embed = torch.nn.Sequential(nn.Identity())
             else:
                 self.embed = torch.nn.Linear(input_size, output_size)
         else:
@@ -224,7 +253,9 @@ class MambaV2Encoder(AbsEncoder):
             ),
             layer_drop_rate,
         )
-        self.after_norm = LayerNorm(output_size) if not rms_norm else RMSNorm(output_size)
+        self.after_norm = (
+            LayerNorm(output_size) if not rms_norm else RMSNorm(output_size)
+        )
 
         if interctc_layer_idx is None:
             interctc_layer_idx = []

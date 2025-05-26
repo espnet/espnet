@@ -39,7 +39,7 @@ from espnet2.asr.state_spaces.mamba.serialbimamba import SerialBiMambaBlock
 class MambaV1EncoderLayer(nn.Module):
     def __init__(
         self,
-        d_model: int, # output_size
+        d_model: int,  # output_size
         ssm_cfg=None,
         norm_epsilon: float = 1e-5,
         rms_norm: bool = False,
@@ -243,7 +243,7 @@ class MambaV1Encoder(AbsEncoder):
 
         self.encoders = repeat(
             num_blocks,
-            lambda lnum:  MambaV1EncoderLayer(
+            lambda lnum: MambaV1EncoderLayer(
                 output_size,
                 ssm_cfg=ssm_cfg,
                 norm_epsilon=norm_epsilon,
