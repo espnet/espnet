@@ -28,6 +28,7 @@ runs:
         # NOTE(kamo): g++-7 doesn't exist in ubuntu-latest
         sudo apt-get install -qq -y cmake libsndfile1-dev bc sox ffmpeg
     - name: install espnet
+      shell: bash
       env:
         ESPNET_PYTHON_VERSION: ${{ inputs.python-version }}
         TH_VERSION: ${{ inputs.pytorch-version }}
