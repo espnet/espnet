@@ -41,6 +41,7 @@ execute_config(){
     else
         log "Config file $2 OK"
     fi
+    rm -rf /root/.cache
 }
 
 
