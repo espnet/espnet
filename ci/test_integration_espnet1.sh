@@ -19,6 +19,8 @@ elif [ $# -eq 0 ]; then
     task="asr"
 fi
 
+./run.sh --stop-stage -1
+
 if [ "${task}" == "asr" ] || [ "${task}" == "all" ]; then
     echo "==== ASR (backend=chainer) ==="
     ./run.sh --python "${python}" --backend chainer
