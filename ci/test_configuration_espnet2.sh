@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -uo pipefail
+set -euo pipefail
 
 if [ $# -gt 3 ]; then
     echo "Usage: $0 [task] [logfile]"
@@ -33,6 +33,7 @@ gen_dummy_coverage(){
     touch empty.py; ${python} empty.py
 }
 execute_config(){
+    log "Testing config $2"
     if ! ${python} -m $1 --config $2 $3 &> ${logfile}; then
         log "ERROR: Config file $2"
         cat ${logfile}
@@ -89,17 +90,17 @@ if python3 -c 'import torch as t; from packaging.version import parse as L; asse
                 fi
             fi
             if [ "$f" == "egs2/how2_2000h/asr1/conf/train_asr_conformer_lf.yaml" ]; then
-                if ! python3 -c "import longformer" > /dev/null; then
+                if ! python3 -c "import longformer" &> /dev/null; then
                     continue
                 fi
             fi
             if [ "$f" == "egs2/stop/asr1/conf/train_asr_whisper_full_correct.yaml" ]; then
-                if ! python3 -c "import whisper" > /dev/null; then
+                if ! python3 -c "import whisper" &> /dev/null; then
                     continue
                 fi
             fi
             if [ "$f" == "egs2/uslu14/asr1/conf/train_asr_whisper_full_correct_specaug.yaml" ]; then
-                if ! python3 -c "import whisper" > /dev/null; then
+                if ! python3 -c "import whisper" &> /dev/null; then
                     continue
                 fi
             fi
