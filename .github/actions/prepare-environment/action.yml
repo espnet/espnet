@@ -23,6 +23,7 @@ runs:
         python-version: ${{ inputs.python-version }}
         architecture: 'x64'
     - name: install dependencies
+      shell: bash
       run: |
         sudo apt-get update -qq
         # NOTE(kamo): g++-7 doesn't exist in ubuntu-latest
