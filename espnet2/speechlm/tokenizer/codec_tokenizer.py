@@ -209,8 +209,10 @@ class CodecTokenizer(AbsTokenizer):
                 wav_in = wav_in / 2**15
             # Assume no padding, all wavs are full length
             assert wav_in.shape[0] == 1, "BeatsTokenizer only supports batch size 1"
-            wav_len = torch.LongTensor([wav_in.size(1)] * wav_in.size(0)).to(
-                wav_in.device
+            wav_len = torch.tensor(
+                [wav_in.size(1)] * wav_in.size(0),
+                dtype=torch.long,
+                device=wav_in.device,
             )
             codes = self.codec.encode(xs_pad=wav_in, ilens=wav_len).unsqueeze(-1)
 
