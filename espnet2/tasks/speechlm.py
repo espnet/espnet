@@ -389,7 +389,7 @@ class SpeechLMTask(AbsTask):
         logging.info(f"Token Bias: {token_bias}")
 
         kwargs = dict()
-        ### Build the model step-by-step
+        # Build the model step-by-step
         # 1. Build Transformer decoder
         if args.collect_stats:
             # NOTE(Jinchuan): model will not in real use. Create a placeholder
@@ -422,7 +422,6 @@ class SpeechLMTask(AbsTask):
             transformer=transformer,
             continuous_encoders=continuous_encoders,
             vocab_size=len(token_list),
-            aux_vocab_size=aux_vocab_size,
             nq=args.codec_token_in_use,
             **args.corelm_conf,
         )

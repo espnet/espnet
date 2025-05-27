@@ -4,6 +4,7 @@ import json
 import logging
 import random
 import re
+from copy import deepcopy
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Collection, Dict, Iterable, List, Optional, Tuple, Union
@@ -14,6 +15,7 @@ import numpy as np
 import scipy.signal
 import soundfile
 from typeguard import typechecked
+from PIL import Image
 
 import espnet2.speechlm.definitions as speechlm_definitions
 from espnet2.layers.augmentation import DataAugmentation
@@ -2677,7 +2679,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         )
         self.text_cleaner = TextCleaner(text_cleaner)
 
-        ### Modality-specific utilities
+        # Modality-specific utilities
 
         # Text BPE (text_bpe):
         if subword_model is not None:
@@ -2729,7 +2731,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
             if vision_encoder_processor.startswith("google/siglip"):
                 try:
                     from transformers import SiglipImageProcessor, AutoConfig
-                except:
+                except ImportError:
                     raise ImportError(
                         "Please install transformers to use vision encoder"
                     )
@@ -2868,8 +2870,8 @@ class SpeechLMPreprocessor(AbsPreprocessor):
 
             dec_seq, loss_mask = dec_seq[: self.n_ctx], loss_mask[: self.n_ctx]
 
-            # NOTE(Jinchuan): remove these special tokens to full preserve text LLM format.
-            # the first three token: <sos> <task_id> <modality_id>
+            # NOTE(Jinchuan): remove these special tokens to full preserve
+            # text LLM format. the first three token: <sos> <task_id> <modality_id>
             if task_name == "textlm":
                 dec_seq = dec_seq[3:]
                 loss_mask = loss_mask[3:]
@@ -2968,7 +2970,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
                 if isinstance(value, str):
                     try:
                         value = self.text_cleaner(value)
-                    except:
+                    except BaseException:
                         logging.warning(
                             f"Failed to apply cleaner to {value}. Make it empty"
                         )
@@ -3058,7 +3060,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         n_messages = len(messages) // 2
         for n in range(n_messages - 1):
             assert messages[n] == messages[n + n_messages], "prompt not equal"
-            assert messages[n][2] == False, "don't compute loss on prompt"
+            assert messages[n][2] is False, "don't compute loss on prompt"
 
         chosen_dict = deepcopy(data)
         chosen_dict["dialogue"] = messages[:2]

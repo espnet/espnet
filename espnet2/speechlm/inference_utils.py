@@ -338,7 +338,8 @@ class ChatOrientedWriter:
 
             dialogue.append([role, modality, is_prefill, detokenized])
             logging.info(
-                f"Index: {idx}, Role={role}, Modality={modality}, is_prefill={is_prefill}, Content={detokenized}"
+                f"Index: {idx}, Role={role}, Modality={modality}, "
+                f"is_prefill={is_prefill}, Content={detokenized}"
             )
 
         self.buffer.append({name: dialogue})

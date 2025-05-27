@@ -88,7 +88,7 @@ class HuggingfaceVisionEncoder(AbsContinuousEncoder):
         if hf_tag.startswith("google/siglip"):
             try:
                 from transformers import SiglipVisionModel
-            except:
+            except ImportError:
                 raise ImportError("Please install transformers")
 
             self.model = SiglipVisionModel.from_pretrained(hf_tag)
