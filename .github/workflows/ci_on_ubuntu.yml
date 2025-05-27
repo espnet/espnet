@@ -26,7 +26,7 @@ jobs:
             echo "is_docker=false" >> "$GITHUB_OUTPUT"
           fi
 
-  unit_test_espnet1_and_integration_test_espnet1:
+  unit_test_python_espnet1:
     runs-on: ${{ matrix.os }}
     needs: process_labels
     # Outputs from Previous jobs are strings. Take care in case of using True/False.
@@ -46,23 +46,13 @@ jobs:
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/setup.py') }}-${{ hashFiles('**/Makefile') }}
-      - uses: actions/setup-python@v5
+      - name: Make environment
+        uses: ./.github/actions/prepare-environment
         with:
           python-version: ${{ matrix.python-version }}
-          architecture: 'x64'
-      - name: install dependencies
-        run: |
-          sudo apt-get update -qq
-          # NOTE(kamo): g++-7 doesn't exist in ubuntu-latest
-          sudo apt-get install -qq -y cmake libsndfile1-dev bc sox ffmpeg
-      - name: install espnet
-        env:
-          ESPNET_PYTHON_VERSION: ${{ matrix.python-version }}
-          TH_VERSION: ${{ matrix.pytorch-version }}
-          CHAINER_VERSION: ${{ matrix.chainer-version }}
-          USE_CONDA: ${{ matrix.use-conda }}
-        run: |
-          ./ci/install.sh
+          pytorch-version: ${{ matrix.pytorch-version }}
+          chainer-version: ${{ matrix.chainer-version }}
+          use-conda: ${{ matrix.use-conda }}
 
       - name: test shell
         run: |
@@ -79,15 +69,43 @@ jobs:
           source tools/activate_python.sh
           coverage erase
 
-      # - name: install kaldi
-      #   run: |
-      #     ./ci/install_kaldi.sh
+  unit_test_integration_espnet1:
+    runs-on: ${{ matrix.os }}
+    needs: process_labels
+    # Outputs from Previous jobs are strings. Take care in case of using True/False.
+    if: |
+      github.event.pull_request.draft == false
+    strategy:
+      max-parallel: 20
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ["3.10"]
+        pytorch-version: [2.1.2]
+        chainer-version: [6.0.0]
+        use-conda: [false]
+        task: []
+    steps:
+      - uses: actions/checkout@master
+      - uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/setup.py') }}-${{ hashFiles('**/Makefile') }}
+      - name: Make environment
+        uses: ./.github/actions/prepare-environment
+        with:
+          python-version: ${{ matrix.python-version }}
+          pytorch-version: ${{ matrix.pytorch-version }}
+          chainer-version: ${{ matrix.chainer-version }}
+          use-conda: ${{ matrix.use-conda }}
+      - name: install kaldi
+        run: |
+          ./ci/install_kaldi.sh
 
-      # - name: test integration
-      #   run: ./ci/test_integration_espnet1.sh
-      # - uses: codecov/codecov-action@v2
-      #   with:
-      #     flags: test_integration_espnet1
+      - name: test integration
+        run: ./ci/test_integration_espnet1.sh ${{ matrix.task }}
+      - uses: codecov/codecov-action@v2
+        with:
+          flags: test_integration_espnet1_${{ matrix.task }}
 
   unit_test_espnet2_and_integration_test_espnet2:
     runs-on: ${{ matrix.os }}
@@ -108,26 +126,13 @@ jobs:
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/setup.py') }}-${{ hashFiles('**/Makefile') }}
-      - uses: actions/setup-python@v5
+      - name: Make environment
+        uses: ./.github/actions/prepare-environment
         with:
           python-version: ${{ matrix.python-version }}
-          architecture: 'x64'
-      - name: install dependencies
-        run: |
-          sudo apt-get update -qq
-          # NOTE(kamo): g++-7 doesn't exist in ubuntu-latest
-          sudo apt-get install -qq -y cmake libsndfile1-dev bc sox ffmpeg
-      - name: Get PR labels
-        id: pr-labels
-        uses: joerick/pr-labels-action@v1.0.9
-      - name: install espnet
-        env:
-          ESPNET_PYTHON_VERSION: ${{ matrix.python-version }}
-          TH_VERSION: ${{ matrix.pytorch-version }}
-          CHAINER_VERSION: ${{ matrix.chainer-version }}
-          USE_CONDA: ${{ matrix.use-conda }}
-        run: |
-          ./ci/install.sh
+          pytorch-version: ${{ matrix.pytorch-version }}
+          chainer-version: ${{ matrix.chainer-version }}
+          use-conda: ${{ matrix.use-conda }}
       - name: test python
         run: ./ci/test_python_espnet2.sh
       - uses: codecov/codecov-action@v2
@@ -223,23 +228,18 @@ jobs:
         use-conda: [false]
     steps:
       - uses: actions/checkout@master
-      - uses: actions/setup-python@v5
+      - uses: actions/cache@v3
         with:
-          python-version: "3.10"
-          architecture: 'x64'
-      - name: install dependencies
-        run: |
-          sudo apt-get update -qq
-          # NOTE(kamo): g++-7 doesn't exist in ubuntu-latest
-          sudo apt-get install -qq -y cmake libsndfile1-dev bc sox ffmpeg
-      - name: install espnet
-        env:
-          ESPNET_PYTHON_VERSION: ${{ matrix.python-version }}
-          TH_VERSION: ${{ matrix.pytorch-version }}
-          CHAINER_VERSION: ${{ matrix.chainer-version }}
-          USE_CONDA: ${{ matrix.use-conda }}
-        run: |
-          ./ci/install.sh
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/setup.py') }}-${{ hashFiles('**/Makefile') }}
+
+      - name: Make environment
+        uses: ./.github/actions/prepare-environment
+        with:
+          python-version: ${{ matrix.python-version }}
+          pytorch-version: ${{ matrix.pytorch-version }}
+          chainer-version: ${{ matrix.chainer-version }}
+          use-conda: ${{ matrix.use-conda }}
       - name: test shell
         run: ./ci/test_shell_espnet2.sh
 
@@ -256,40 +256,26 @@ jobs:
         pytorch-version: ["2.6.0"]
         chainer-version: ["6.0.0"]
         use-conda: [false]
+        task: [asr, asr_transducer, lm, tts, enh, ssl, enh_asr]
     steps:
       - uses: actions/checkout@master
       - uses: actions/cache@v3
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/setup.py') }}-${{ hashFiles('**/Makefile') }}
-      - uses: actions/setup-python@v5
+      - name: Make environment
+        uses: ./.github/actions/prepare-environment
         with:
           python-version: ${{ matrix.python-version }}
-          architecture: 'x64'
-      - name: install dependencies
-        run: |
-          sudo apt-get update -qq
-          # NOTE(kamo): g++-7 doesn't exist in ubuntu-latest
-          sudo apt-get install -qq -y cmake libsndfile1-dev bc sox ffmpeg
-      - name: install espnet
-        env:
-          ESPNET_PYTHON_VERSION: ${{ matrix.python-version }}
-          TH_VERSION: ${{ matrix.pytorch-version }}
-          CHAINER_VERSION: ${{ matrix.chainer-version }}
-          USE_CONDA: ${{ matrix.use-conda }}
-        run: |
-          ./ci/install.sh
-      - name: Clean environment
-        run: |
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /opt/ghc
-          sudo rm -rf "/usr/local/share/boost"
-          sudo rm -rf /root/.cache/*
+          pytorch-version: ${{ matrix.pytorch-version }}
+          chainer-version: ${{ matrix.chainer-version }}
+          use-conda: ${{ matrix.use-conda }}
+
       - name: test configuration
-        run: ./ci/test_configuration_espnet2.sh
+        run: ./ci/test_configuration_espnet2.sh ${{ matrix.task }}
       - uses: codecov/codecov-action@v2
         with:
-          flags: test_configuration_espnet2
+          flags: test_configuration_espnet2_${{ matrix.task }}
 
   test_import:
     runs-on: ${{ matrix.os }}
