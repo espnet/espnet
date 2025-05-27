@@ -83,7 +83,7 @@ jobs:
         pytorch-version: [2.1.2]
         chainer-version: [6.0.0]
         use-conda: [false]
-        task: []
+        task: [asr, asr_mix, st, mt, tts]
     steps:
       - uses: actions/checkout@master
       - uses: actions/cache@v3
