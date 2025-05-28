@@ -408,8 +408,8 @@ class RelPositionMultiHeadedAttention(MultiHeadedAttention):
         ]  # only keep the positions from 0 to time2
 
         if self.zero_triu:
-            ones = torch.ones((x.size(2), x.size(3)), device=x.device)
-            x = x * torch.tril(ones, x.size(3) - x.size(2))[None, None, :, :]
+            ones = torch.ones((x.size(2), x.size(3)), device=x.device) # xと同じサイズ、要素の１Tensorを作成
+            x = x * torch.tril(ones, x.size(3) - x.size(2))[None, None, :, :] # 
 
         return x
 
