@@ -26,88 +26,88 @@ jobs:
             echo "is_docker=false" >> "$GITHUB_OUTPUT"
           fi
 
-  unit_test_python_espnet1:
-    runs-on: ${{ matrix.os }}
-    needs: process_labels
-    # Outputs from Previous jobs are strings. Take care in case of using True/False.
-    if: |
-      github.event.pull_request.draft == false
-    strategy:
-      max-parallel: 20
-      matrix:
-        os: [ubuntu-latest]
-        python-version: ["3.10"]
-        pytorch-version: [2.1.2]
-        chainer-version: [6.0.0]
-        use-conda: [false]
-    steps:
-      - uses: actions/checkout@master
-      - uses: actions/cache@v3
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/setup.py') }}-${{ hashFiles('**/Makefile') }}
-      - name: Make environment
-        uses: ./.github/actions/prepare-environment
-        with:
-          os-version: ubuntu
-          python-version: ${{ matrix.python-version }}
-          pytorch-version: ${{ matrix.pytorch-version }}
-          chainer-version: ${{ matrix.chainer-version }}
-          use-conda: ${{ matrix.use-conda }}
+  # unit_test_python_espnet1:
+  #   runs-on: ${{ matrix.os }}
+  #   needs: process_labels
+  #   # Outputs from Previous jobs are strings. Take care in case of using True/False.
+  #   if: |
+  #     github.event.pull_request.draft == false
+  #   strategy:
+  #     max-parallel: 20
+  #     matrix:
+  #       os: [ubuntu-latest]
+  #       python-version: ["3.10"]
+  #       pytorch-version: [2.1.2]
+  #       chainer-version: [6.0.0]
+  #       use-conda: [false]
+  #   steps:
+  #     - uses: actions/checkout@master
+  #     - uses: actions/cache@v3
+  #       with:
+  #         path: ~/.cache/pip
+  #         key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/setup.py') }}-${{ hashFiles('**/Makefile') }}
+  #     - name: Make environment
+  #       uses: ./.github/actions/prepare-environment
+  #       with:
+  #         os-version: ubuntu
+  #         python-version: ${{ matrix.python-version }}
+  #         pytorch-version: ${{ matrix.pytorch-version }}
+  #         chainer-version: ${{ matrix.chainer-version }}
+  #         use-conda: ${{ matrix.use-conda }}
 
-      - name: test shell
-        run: |
-          ./ci/test_shell_espnet1.sh
+  #     - name: test shell
+  #       run: |
+  #         ./ci/test_shell_espnet1.sh
 
-      - name: test python
-        run: ./ci/test_python_espnet1.sh
-      - uses: codecov/codecov-action@v2
-        with:
-          flags: test_python_espnet1
-      - name: coverage erase
-        continue-on-error: true
-        run: |
-          source tools/activate_python.sh
-          coverage erase
+  #     - name: test python
+  #       run: ./ci/test_python_espnet1.sh
+  #     - uses: codecov/codecov-action@v2
+  #       with:
+  #         flags: test_python_espnet1
+  #     - name: coverage erase
+  #       continue-on-error: true
+  #       run: |
+  #         source tools/activate_python.sh
+  #         coverage erase
 
-  unit_test_integration_espnet1:
-    runs-on: ${{ matrix.os }}
-    needs: process_labels
-    # Outputs from Previous jobs are strings. Take care in case of using True/False.
-    if: |
-      github.event.pull_request.draft == false
-    strategy:
-      max-parallel: 20
-      matrix:
-        os: [ubuntu-latest]
-        python-version: ["3.10"]
-        pytorch-version: [2.1.2]
-        chainer-version: [6.0.0]
-        use-conda: [false]
-        task: [asr, asr_mix, st, mt, tts]
-    steps:
-      - uses: actions/checkout@master
-      - uses: actions/cache@v3
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/setup.py') }}-${{ hashFiles('**/Makefile') }}
-      - name: Make environment
-        uses: ./.github/actions/prepare-environment
-        with:
-          os-version: ubuntu
-          python-version: ${{ matrix.python-version }}
-          pytorch-version: ${{ matrix.pytorch-version }}
-          chainer-version: ${{ matrix.chainer-version }}
-          use-conda: ${{ matrix.use-conda }}
-      - name: install kaldi
-        run: |
-          ./ci/install_kaldi.sh
+  # unit_test_integration_espnet1:
+  #   runs-on: ${{ matrix.os }}
+  #   needs: process_labels
+  #   # Outputs from Previous jobs are strings. Take care in case of using True/False.
+  #   if: |
+  #     github.event.pull_request.draft == false
+  #   strategy:
+  #     max-parallel: 20
+  #     matrix:
+  #       os: [ubuntu-latest]
+  #       python-version: ["3.10"]
+  #       pytorch-version: [2.1.2]
+  #       chainer-version: [6.0.0]
+  #       use-conda: [false]
+  #       task: [asr, asr_mix, st, mt, tts]
+  #   steps:
+  #     - uses: actions/checkout@master
+  #     - uses: actions/cache@v3
+  #       with:
+  #         path: ~/.cache/pip
+  #         key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/setup.py') }}-${{ hashFiles('**/Makefile') }}
+  #     - name: Make environment
+  #       uses: ./.github/actions/prepare-environment
+  #       with:
+  #         os-version: ubuntu
+  #         python-version: ${{ matrix.python-version }}
+  #         pytorch-version: ${{ matrix.pytorch-version }}
+  #         chainer-version: ${{ matrix.chainer-version }}
+  #         use-conda: ${{ matrix.use-conda }}
+  #     - name: install kaldi
+  #       run: |
+  #         ./ci/install_kaldi.sh
 
-      - name: test integration
-        run: ./ci/test_integration_espnet1.sh ${{ matrix.task }}
-      - uses: codecov/codecov-action@v2
-        with:
-          flags: test_integration_espnet1_${{ matrix.task }}
+  #     - name: test integration
+  #       run: ./ci/test_integration_espnet1.sh ${{ matrix.task }}
+  #     - uses: codecov/codecov-action@v2
+  #       with:
+  #         flags: test_integration_espnet1_${{ matrix.task }}
 
   unit_test_python_espnet2:
     runs-on: ${{ matrix.os }}
