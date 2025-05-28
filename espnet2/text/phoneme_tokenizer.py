@@ -4,8 +4,14 @@ import warnings
 from pathlib import Path
 from typing import Iterable, List, Optional, Union
 
-import g2p_en
-import jamo
+try:
+    import g2p_en
+except:
+    g2p_en = None
+try:
+    import jamo
+except:
+    jamo = None
 from packaging.version import parse as V
 from typeguard import typechecked
 
@@ -255,6 +261,7 @@ class G2p_en:
 
     def __call__(self, text) -> List[str]:
         if self.g2p is None:
+            assert g2p_en is not None, "g2p_en should be installed"
             self.g2p = g2p_en.G2p()
 
         phones = self.g2p(text)
@@ -329,6 +336,7 @@ class Jaso:
         self.no_space = no_space
 
     def _text_to_jaso(self, line: str) -> List[str]:
+        assert jamo is not None, "Please install jamo to use the tokenizer"
         jasos = list(jamo.hangul_to_jamo(line))
         return jasos
 

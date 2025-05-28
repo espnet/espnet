@@ -12,7 +12,6 @@ import torch.nn.functional as F
 import torch.quantization
 from typeguard import typechecked
 
-from espnet2.asr.decoder.s4_decoder import S4Decoder
 from espnet2.asr.partially_AR_model import PartiallyARInference
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.tasks.lm import LMTask
@@ -489,12 +488,6 @@ class Speech2Text:
         return results
 
     def _decode_single_sample(self, enc: torch.Tensor):
-        if hasattr(self.beam_search.nn_dict, "decoder"):
-            if isinstance(self.beam_search.nn_dict.decoder, S4Decoder):
-                # Setup: required for S4 autoregressive generation
-                for module in self.beam_search.nn_dict.decoder.modules():
-                    if hasattr(module, "setup_step"):
-                        module.setup_step()
 
         nbest_hyps = self.beam_search(
             x=enc, maxlenratio=self.maxlenratio, minlenratio=self.minlenratio
