@@ -1,10 +1,13 @@
 import pytest
 import torch
+from packaging.version import parse as V
 
 from espnet2.asr.decoder.hugging_face_transformers_decoder import (
     HuggingFaceTransformersDecoder,
     read_json_config,
 )
+
+is_torch_2_6_plus = V(torch.__version__) >= V("2.6.0")
 
 
 @pytest.mark.parametrize(
@@ -19,6 +22,8 @@ from espnet2.asr.decoder.hugging_face_transformers_decoder import (
 def test_HuggingFaceTransformersDecoder_backward(
     encoder_output_size, model_name_or_path
 ):
+    if not is_torch_2_6_plus:
+        return
     decoder = HuggingFaceTransformersDecoder(
         vocab_size=5000,  # not used
         encoder_output_size=encoder_output_size,
@@ -34,6 +39,8 @@ def test_HuggingFaceTransformersDecoder_backward(
 
 @pytest.mark.execution_timeout(30)
 def test_reload_pretrained_parameters():
+    if not is_torch_2_6_plus:
+        return
     decoder = HuggingFaceTransformersDecoder(5000, 32, "akreal/tiny-random-mbart")
     saved_param = decoder.parameters().__next__().detach().clone()
 
@@ -48,6 +55,8 @@ def test_reload_pretrained_parameters():
 
 @pytest.mark.execution_timeout(30)
 def test_skip_reload_pretrained_parameters():
+    if not is_torch_2_6_plus:
+        return
     decoder = HuggingFaceTransformersDecoder(
         5000, 32, "akreal/tiny-random-mbart", load_pretrained_weights=False
     )
@@ -68,6 +77,8 @@ def test_skip_reload_pretrained_parameters():
 @pytest.mark.execution_timeout(30)
 def test_override_hf_decoder_config():
     overriding_architecture_config = {"d_model": 8, "ignore_mismatched_sizes": True}
+    if not is_torch_2_6_plus:
+        return
     decoder = HuggingFaceTransformersDecoder(
         5000,
         32,
@@ -97,6 +108,8 @@ def test_override_hf_decoder_config():
 @pytest.mark.execution_timeout(50)
 def test_HuggingFaceTransformersDecoder_causal_lm(model_name_or_path, prefix, postfix):
     encoder_output_size = 32
+    if not is_torch_2_6_plus:
+        return
     decoder = HuggingFaceTransformersDecoder(
         vocab_size=100,
         encoder_output_size=encoder_output_size,
