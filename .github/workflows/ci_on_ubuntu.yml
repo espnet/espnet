@@ -334,7 +334,12 @@ jobs:
           pytorch-version: ${{ matrix.pytorch-version }}
           chainer-version: ${{ matrix.chainer-version }}
           use-conda: ${{ matrix.use-conda }}
-
+      - name: Clean environment
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf /root/.cache/*
       - name: test configuration
         run: ./ci/test_configuration_espnet2.sh ${{ matrix.task }}
       - uses: codecov/codecov-action@v2
