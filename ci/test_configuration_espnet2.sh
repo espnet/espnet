@@ -41,7 +41,7 @@ execute_config(){
     else
         log "Config file $2 OK"
     fi
-    ( huggingface-cli delete-cache || true ) &> /dev/null
+    sudo rm -rf /root/.cache/huggingface*
 }
 
 
