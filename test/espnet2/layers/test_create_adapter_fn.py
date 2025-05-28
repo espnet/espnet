@@ -17,6 +17,7 @@ pytest.importorskip("s3prl")
 pytest.importorskip("loralib")
 is_python_3_8_plus = sys.version_info >= (3, 8)
 is_torch_1_8_plus = V(torch.__version__) >= V("1.8.0")
+is_torch_2_6_plus = V(torch.__version__) >= V("2.6.0")
 
 
 def init_S3prl_model(frontend_conf={"upstream": "hubert_base"}):
@@ -43,6 +44,9 @@ def init_decoder_model():
 
 # =========================================Houlsby================================================
 @pytest.mark.skipif(
+    not is_torch_2_6_plus, reason="Vulnerability Issues."
+)
+@pytest.mark.skipif(
     not is_torch_1_8_plus or not is_python_3_8_plus, reason="Not supported"
 )
 @pytest.mark.parametrize(
@@ -62,6 +66,9 @@ def test_create_houlsby_adapter_bottleneck(
     )
 
 
+@pytest.mark.skipif(
+    not is_torch_2_6_plus, reason="Vulnerability Issues."
+)
 @pytest.mark.skipif(
     not is_torch_1_8_plus or not is_python_3_8_plus, reason="Not supported"
 )
@@ -95,6 +102,9 @@ def test_create_houlsby_adapter_hf_wav2vec2_custom_bottleneck(
 
 
 @pytest.mark.skipif(
+    not is_torch_2_6_plus, reason="Vulnerability Issues."
+)
+@pytest.mark.skipif(
     not is_torch_1_8_plus or not is_python_3_8_plus, reason="Not supported"
 )
 @pytest.mark.parametrize(
@@ -126,6 +136,9 @@ def test_create_houlsby_adapter_target_layers(
     ), type(model.frontend.upstream.upstream.model.encoder.layers[3])
 
 
+@pytest.mark.skipif(
+    not is_torch_2_6_plus, reason="Vulnerability Issues."
+)
 @pytest.mark.parametrize(
     "model, bottleneck, target_layers", [(init_S3prl_model(), 64, [200])]
 )
