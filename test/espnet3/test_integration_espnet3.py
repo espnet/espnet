@@ -1,10 +1,13 @@
 import argparse
 from pathlib import Path
 
+import torch
 import yaml
 
+from hydra.utils import instantiate
+
 import espnet3 as ez
-from espnet3 import get_espnet_model, save_espnet_config
+from espnet3 import get_espnet_model  # , save_espnet_config
 from espnet3.trainer import ESPnetEZLightningTrainer, LitESPnetModel
 
 TASK_CLASSES = [
@@ -112,7 +115,7 @@ if __name__ == "__main__":
         user_defined_symbols = ["<sos>", "<eos>", "<sop>", "<na>"]
         # add timestamps
         user_defined_symbols += ["<notimestamps>"]
-        user_defined_symbols += [f"<{i*0.02:.2f}>" for i in range(1501)]
+        user_defined_symbols += [f"<{i * 0.02:.2f}>" for i in range(1501)]
     else:
         user_defined_symbols = []
 
@@ -127,7 +130,7 @@ if __name__ == "__main__":
     # set data_info for specific tasks
     if args.task == "enh":
         data_info = {
-            f"speech_ref{i+1}": [f"spk{i+1}.scp", "sound"]
+            f"speech_ref{i + 1}": [f"spk{i + 1}.scp", "sound"]
             for i in range(training_config["separator_conf"]["num_spk"])
         }
         data_info["speech_mix"] = ["wav.scp", "sound"]
@@ -321,9 +324,9 @@ if __name__ == "__main__":
     # Setup trainer
     trainer = ESPnetEZLightningTrainer(
         model=lit_model,
-        expdir=expdir,
-        config=config.trainer,
-        best_model_criterion=config.best_model_criterion,
+        expdir=training_config.expdir,
+        config=training_config.trainer,
+        best_model_criterion=training_config.best_model_criterion,
     )
     # trainer = ez.ESPnetEZLightningTrainer(
     #     task=args.task,

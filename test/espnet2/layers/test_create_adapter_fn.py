@@ -17,6 +17,7 @@ pytest.importorskip("s3prl")
 pytest.importorskip("loralib")
 is_python_3_8_plus = sys.version_info >= (3, 8)
 is_torch_1_8_plus = V(torch.__version__) >= V("1.8.0")
+is_torch_2_6_plus = V(torch.__version__) >= V("2.6.0")
 
 
 def init_S3prl_model(frontend_conf={"upstream": "hubert_base"}):
@@ -45,14 +46,16 @@ def init_decoder_model():
 @pytest.mark.skipif(
     not is_torch_1_8_plus or not is_python_3_8_plus, reason="Not supported"
 )
-@pytest.mark.parametrize(
-    "model, bottleneck, target_layers", [(init_S3prl_model(), 64, [])]
-)
+@pytest.mark.parametrize("model, bottleneck, target_layers", [("s3prl", 64, [])])
 def test_create_houlsby_adapter_bottleneck(
     model,
     bottleneck,
     target_layers,
 ):
+    if not is_torch_2_6_plus:
+        pytest.skip("Due to vulnerabilities, this test will be skipped.")
+    assert model == "s3prl"
+    model = init_S3prl_model()
     create_houlsby_adapter(
         model=model, bottleneck=bottleneck, target_layers=target_layers
     )
@@ -69,12 +72,7 @@ def test_create_houlsby_adapter_bottleneck(
     "model, bottleneck, target_layers",
     [
         (
-            init_S3prl_model(
-                frontend_conf={
-                    "upstream": "hf_wav2vec2_custom",
-                    "path_or_url": "facebook/mms-300m",
-                }
-            ),
+            "s3prl",
             64,
             [],
         )
@@ -85,6 +83,15 @@ def test_create_houlsby_adapter_hf_wav2vec2_custom_bottleneck(
     bottleneck,
     target_layers,
 ):
+    if not is_torch_2_6_plus:
+        pytest.skip("Due to vulnerabilities, this test will be skipped.")
+    assert model == "s3prl"
+    model = init_S3prl_model(
+        frontend_conf={
+            "upstream": "hf_wav2vec2_custom",
+            "path_or_url": "facebook/mms-300m",
+        }
+    )
     create_houlsby_adapter(
         model=model, bottleneck=bottleneck, target_layers=target_layers
     )
@@ -97,14 +104,16 @@ def test_create_houlsby_adapter_hf_wav2vec2_custom_bottleneck(
 @pytest.mark.skipif(
     not is_torch_1_8_plus or not is_python_3_8_plus, reason="Not supported"
 )
-@pytest.mark.parametrize(
-    "model, bottleneck, target_layers", [(init_S3prl_model(), 64, [1, 2])]
-)
+@pytest.mark.parametrize("model, bottleneck, target_layers", [("s3prl", 64, [1, 2])])
 def test_create_houlsby_adapter_target_layers(
     model,
     bottleneck,
     target_layers,
 ):
+    if not is_torch_2_6_plus:
+        pytest.skip("Due to vulnerabilities, this test will be skipped.")
+    assert model == "s3prl"
+    model = init_S3prl_model()
     create_houlsby_adapter(
         model=model, bottleneck=bottleneck, target_layers=target_layers
     )
@@ -126,14 +135,16 @@ def test_create_houlsby_adapter_target_layers(
     ), type(model.frontend.upstream.upstream.model.encoder.layers[3])
 
 
-@pytest.mark.parametrize(
-    "model, bottleneck, target_layers", [(init_S3prl_model(), 64, [200])]
-)
+@pytest.mark.parametrize("model, bottleneck, target_layers", [("s3prl", 64, [200])])
 def test_create_houlsby_adapter_invalid_target_layers(
     model,
     bottleneck,
     target_layers,
 ):
+    if not is_torch_2_6_plus:
+        pytest.skip("Due to vulnerabilities, this test will be skipped.")
+    assert model == "s3prl"
+    model = init_S3prl_model()
     with pytest.raises(ValueError):
         create_houlsby_adapter(
             model=model, bottleneck=bottleneck, target_layers=target_layers
