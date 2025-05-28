@@ -80,7 +80,7 @@ class ConvolutionModule(nn.Module):
 
         # 1D Depthwise Conv
         
-        # if is_causal, padding left upper tril
+        # if is_causal, padding upper tril to mask future
         if self.is_causal:
             x = self.depthwise_conv(self.leftpad(x))
         else:
