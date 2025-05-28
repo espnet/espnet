@@ -322,7 +322,7 @@ class ConformerEncoder(AbsEncoder):
         self.interctc_use_conditioning = interctc_use_conditioning
         self.conditioning_layer = None
         self.ctc_trim = ctc_trim
-        
+
         self.is_causal = is_causal
 
     def output_size(self) -> int:
@@ -375,15 +375,15 @@ class ConformerEncoder(AbsEncoder):
             xs_pad, masks = self.embed(xs_pad, masks)
         else:
             xs_pad = self.embed(xs_pad)
-        
+
         if self.is_causal and ilens is not None:
             m = subsequent_mask(masks.size(-1), device=masks.device).unsqueeze(0)
             masks_tmp = masks & m
-            
+
             pad_max = masks.size(-1)
-            pad_masks = masks.transpose(1,2).repeat(1,1,pad_max)
-            
-            masks  = masks_tmp & pad_masks
+            pad_masks = masks.transpose(1, 2).repeat(1, 1, pad_max)
+
+            masks = masks_tmp & pad_masks
 
         intermediate_outs = []
         if len(self.interctc_layer_idx) == 0:
@@ -440,7 +440,7 @@ class ConformerEncoder(AbsEncoder):
             olens = masks[:, :, 0].sum(-1)
         else:
             olens = masks.squeeze(1).sum(1)
-                
+
         if len(intermediate_outs) > 0:
             return (xs_pad, intermediate_outs), olens, None
         return xs_pad, olens, None
