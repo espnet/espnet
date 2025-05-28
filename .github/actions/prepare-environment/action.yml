@@ -1,6 +1,9 @@
 name: Action prepare environment
 
 inputs:
+  os-version:
+    required: true
+    type: boolean
   python-version:
     required: true
     type: boolean
@@ -19,15 +22,27 @@ runs:
   using: "composite"
   steps:
     - uses: actions/setup-python@v5
+      if: ${{ inputs.os-version == 'ubuntu' }}
       with:
         python-version: ${{ inputs.python-version }}
         architecture: 'x64'
     - name: install dependencies
+      if: ${{ inputs.os-version == 'ubuntu' }}
       shell: bash
       run: |
         sudo apt-get update -qq
         # NOTE(kamo): g++-7 doesn't exist in ubuntu-latest
         sudo apt-get install -qq -y cmake libsndfile1-dev bc sox ffmpeg
+    - name: install dependencies
+      if: ${{ inputs.os-version == 'debian' }}
+      shell: bash
+      run: |
+        apt-get update -qq
+        # NOTE(kamo): cmake sndfile will be download using anacond:
+        apt-get install -qq -y \
+          build-essential git unzip bzip2 wget curl bc locales make sox \
+          libncurses5-dev automake libtool pkg-config
+        localedef -f UTF-8 -i en_US en_US
     - name: install espnet
       shell: bash
       env:
