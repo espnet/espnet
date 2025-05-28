@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 import soundfile
 import torch
+
 # import yaml
 
 from espnet2.bin.cls_inference import Classification, get_parser, inference, main

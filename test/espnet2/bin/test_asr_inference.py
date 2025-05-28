@@ -1,6 +1,7 @@
 import string
 from argparse import ArgumentParser
 from pathlib import Path
+from packaging.version import parse as V
 
 import numpy as np
 import pytest
@@ -309,6 +310,8 @@ def token_list_whisper_lang(tmp_path: Path, token_list_whisper_lang_add):
 def test_Speech2Text_hugging_face(
     asr_config_file, token_list_hugging_face, model_name_or_path
 ):
+    if not is_torch_2_6_plus:
+        return
     file = open(asr_config_file, "r", encoding="utf-8")
     asr_train_config = file.read()
     asr_train_config = yaml.full_load(asr_train_config)
@@ -355,6 +358,8 @@ def test_Speech2Text_hugging_face(
 def test_Speech2Text_hugging_face_causal_lm(
     asr_config_file, token_list_hugging_face, model_name_or_path, prefix, postfix
 ):
+    if not is_torch_2_6_plus:
+        return
     file = open(asr_config_file, "r", encoding="utf-8")
     asr_train_config = file.read()
     asr_train_config = yaml.full_load(asr_train_config)
