@@ -14,7 +14,7 @@ import torch.nn as nn
 from torch import Tensor
 
 try:
-    from espnet2.asr.state_spaces.ops.triton.layernorm import (
+    from espnet2.asr.state_spaces.mamba.ops.triton.layer_norm import (
         RMSNorm,
         layer_norm_fn,
         rms_norm_fn,
