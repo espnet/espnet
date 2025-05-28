@@ -12,7 +12,7 @@ setup() {
 
 @test "translate_wav" {
     cd ./egs/fisher_callhome_spanish/st1/
-    wav=../../../test_utils/st_test.wav
+    wav=../../../test_utils/espnet1_scripts/st_test.wav
     model=fisher_callhome_spanish.transformer.v1.es-en
     ../../../utils/translate_wav.sh --python "coverage run --append" --stop-stage 2 --decode_dir $tmpdir --models ${model} ${wav}
 

@@ -10,7 +10,7 @@ setup() {
     cd ./egs/tedlium2/align1/
     mkdir -p conf
     cp ../../wsj/asr1/conf/no_preprocess.yaml ./conf
-    wav=../../../test_utils/ctc_align_test.wav
+    wav=../../../test_utils/espnet1_scripts/ctc_align_test.wav
     base=ctc_align_test
     transcription="THE SALE OF THE HOTELS IS PART OF HOLIDAY'S STRATEGY TO SELL OFF ASSETS AND CONCENTRATE ON PROPERTY MANAGEMENT"
     mkdir -p ${tmpdir}
