@@ -17,7 +17,7 @@ requirements = {
         "transformers",
         "torchaudio",
         "einops",
-        "humanfriednly",
+        "humanfriendly",
         "torch-complex",
         "h5py",
         "kaldiio",
