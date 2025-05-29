@@ -1,6 +1,7 @@
 """Piecewise linear warm up learning rate scheduler module."""
 
 from typing import List, Union
+from omegaconf import ListConfig
 
 import numpy as np
 import torch
@@ -22,8 +23,8 @@ class PiecewiseLinearWarmupLR(_LRScheduler, AbsBatchStepScheduler):
     def __init__(
         self,
         optimizer: torch.optim.Optimizer,
-        warmup_steps_list: List[Union[int, float]] = [0, 25000],
-        warmup_lr_list: List[float] = [0.0, 0.001],
+        warmup_steps_list: Union[ListConfig, List[Union[int, float]]] = [0, 25000],
+        warmup_lr_list: Union[ListConfig, List[float]] = [0.0, 0.001],
         last_epoch: int = -1,
     ):
         self.warmup_steps_list = warmup_steps_list
