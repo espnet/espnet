@@ -27,6 +27,7 @@ from espnet.nets.pytorch_backend.transformer.embedding import (
     ScaledPositionalEncoding,
 )
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
+from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
 from espnet.nets.pytorch_backend.transformer.multi_layer_conv import (
     Conv1dLinear,
     MultiLayeredConv1d,
@@ -118,6 +119,7 @@ class ConformerEncoder(AbsEncoder):
         max_pos_emb_len: int = 5000,
         qk_norm: bool = False,
         use_flash_attn: bool = True,
+        is_causal: bool = False,
     ):
         super().__init__()
         self._output_size = output_size
@@ -285,7 +287,7 @@ class ConformerEncoder(AbsEncoder):
             raise ValueError("unknown encoder_attn_layer: " + selfattention_layer_type)
 
         convolution_layer = ConvolutionModule
-        convolution_layer_args = (output_size, cnn_module_kernel, activation)
+        convolution_layer_args = (output_size, cnn_module_kernel, activation, is_causal)
 
         if isinstance(stochastic_depth_rate, float):
             stochastic_depth_rate = [stochastic_depth_rate] * num_blocks
@@ -320,6 +322,8 @@ class ConformerEncoder(AbsEncoder):
         self.interctc_use_conditioning = interctc_use_conditioning
         self.conditioning_layer = None
         self.ctc_trim = ctc_trim
+
+        self.is_causal = is_causal
 
     def output_size(self) -> int:
         return self._output_size
@@ -372,6 +376,15 @@ class ConformerEncoder(AbsEncoder):
         else:
             xs_pad = self.embed(xs_pad)
 
+        if self.is_causal and ilens is not None:
+            m = subsequent_mask(masks.size(-1), device=masks.device).unsqueeze(0)
+            masks_tmp = masks & m
+
+            pad_max = masks.size(-1)
+            pad_masks = masks.transpose(1, 2).repeat(1, 1, pad_max)
+
+            masks = masks_tmp & pad_masks
+
         intermediate_outs = []
         if len(self.interctc_layer_idx) == 0:
             for layer_idx, encoder_layer in enumerate(self.encoders):
@@ -423,7 +436,11 @@ class ConformerEncoder(AbsEncoder):
         if self.normalize_before:
             xs_pad = self.after_norm(xs_pad)
 
-        olens = masks.squeeze(1).sum(1)
+        if self.is_causal:
+            olens = masks[:, :, 0].sum(-1)
+        else:
+            olens = masks.squeeze(1).sum(1)
+
         if len(intermediate_outs) > 0:
             return (xs_pad, intermediate_outs), olens, None
         return xs_pad, olens, None

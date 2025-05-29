@@ -16,14 +16,22 @@ class ConvolutionModule(nn.Module):
     Args:
         channels (int): The number of channels of conv layers.
         kernel_size (int): Kernerl size of conv layers.
+        is_causal (bool): 
 
     """
 
-    def __init__(self, channels, kernel_size, activation=nn.ReLU(), bias=True):
+    def __init__(self, channels, kernel_size, activation=nn.ReLU(), is_causal=False, bias=True):
         """Construct an ConvolutionModule object."""
         super(ConvolutionModule, self).__init__()
         # kernerl_size should be a odd number for 'SAME' padding
         assert (kernel_size - 1) % 2 == 0
+        self.is_causal = is_causal
+        
+        if self.is_causal:
+            padding = 0
+            self.leftpad = nn.ConstantPad1d((kernel_size-1, 0), 0)
+        else:
+            padding = (kernel_size - 1) // 2
 
         self.pointwise_conv1 = nn.Conv1d(
             channels,
@@ -38,7 +46,7 @@ class ConvolutionModule(nn.Module):
             channels,
             kernel_size,
             stride=1,
-            padding=(kernel_size - 1) // 2,
+            padding=padding,
             groups=channels,
             bias=bias,
         )
@@ -71,7 +79,13 @@ class ConvolutionModule(nn.Module):
         x = nn.functional.glu(x, dim=1)  # (batch, channel, dim)
 
         # 1D Depthwise Conv
-        x = self.depthwise_conv(x)
+        
+        # if is_causal, padding upper tril to mask future
+        if self.is_causal:
+            x = self.depthwise_conv(self.leftpad(x))
+        else:
+            x = self.depthwise_conv(x)
+
         x = self.activation(self.norm(x))
 
         x = self.pointwise_conv2(x)
