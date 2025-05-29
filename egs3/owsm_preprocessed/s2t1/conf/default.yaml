@@ -9,23 +9,12 @@ parallel:
   n_workers: 1
 
 
-optim:
-  _target_: torch.optim.Adam
-  lr: 0.001
-  weight_decay: 0.000001
-
-scheduler:
-  _target_: espnet2.schedulers.warmup_lr.WarmupLR
-  warmup_steps: 15000
-
-
 dataloader:
   collate_fn:
     _target_: espnet2.train.collate_fn.CommonCollateFn
     int_pad_value: -1
+    float_pad_value: 0.
   train:
-    multiple_iterator: false
-    num_shards: 1
     iter_factory:
       _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
       shuffle: true
@@ -37,9 +26,8 @@ dataloader:
           - ${statsdir}/train/feats_shape
         batch_size: 4
         batch_bins: 4000000
+        min_batch_size: ${num_device}
   valid:
-    multiple_iterator: false
-    num_shards: 1
     iter_factory:
       _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
       shuffle: false
@@ -51,6 +39,7 @@ dataloader:
           - ${statsdir}/valid/feats_shape
         batch_size: 4
         batch_bins: ${dataloader.train.iter_factory.batches.batch_bins}
+        min_batch_size: ${num_device}
 
 best_model_criterion:
   - - valid/loss
