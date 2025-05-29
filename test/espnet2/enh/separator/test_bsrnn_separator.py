@@ -2,8 +2,8 @@ import pytest
 import torch
 from torch_complex import ComplexTensor
 
-from espnet2.enh.separator.bsrnn_separator import BSRNNSeparator
 from espnet2.enh.layers.bsrnn import get_erb_subbands, get_mel_subbands
+from espnet2.enh.separator.bsrnn_separator import BSRNNSeparator
 
 
 @pytest.mark.parametrize("input_dim", [481])
