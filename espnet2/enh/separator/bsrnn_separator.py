@@ -17,7 +17,7 @@ class BSRNNSeparator(AbsSeparator):
         num_channels: int = 16,
         num_layers: int = 6,
         target_fs: int = 48000,
-        subbands=None,
+        subbands: Optional[List[Tuple[int, int]]] = None,
         causal: bool = False,
         norm_type: str = "GN",
         predict_noise: bool = False,
