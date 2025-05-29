@@ -39,4 +39,4 @@ def test_output_size(vocab_size, encoder_output_size, pooling, dropout):
     decoder = LinearDecoder(vocab_size, encoder_output_size, pooling, dropout)
     assert (
         decoder.output_size() == vocab_size
-    ), f"Decoder output size must match vocab size."
+    ), "Decoder output size must match vocab size."

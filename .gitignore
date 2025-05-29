@@ -40,9 +40,10 @@ pyproject.toml.tmp
 build/
 
 out/config.yaml
+out/config.log
 hub/
 
-.devcontainer/*/*.env
+.devcontainer/*.env
 
 doc/vuepress/src/.vuepress/.temp
 doc/vuepress/src/.vuepress/.cache
@@ -70,6 +71,9 @@ egs2/**/**/asset
 egs2/**/**/checkpoint
 egs2/**/**/flagged_data_points
 egs2/**/**/hub
+
+# test_utils related
+test_utils/espnet3_dummy
 
 # tools related
 tools/chainer

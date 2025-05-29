@@ -238,7 +238,7 @@ class SpeechLMTask(AbsTask):
             raise RuntimeError("token_list must be str or list")
 
         vocab_size = len(token_list)
-        logging.info(f"Vocabulary size: {vocab_size }")
+        logging.info(f"Vocabulary size: {vocab_size}")
 
         if isinstance(args.token_bias, str):
             token_bias = json.load(open(args.token_bias))

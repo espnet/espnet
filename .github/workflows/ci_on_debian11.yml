@@ -9,40 +9,139 @@ on:
       - master
 
 jobs:
-  unit_test_espnet1_and_espnet2_on_debian11:
+  # unit_test_shell_espnet1_on_debian11:
+  #   runs-on: ubuntu-latest
+  #   if: github.event.pull_request.draft == false
+  #   strategy:
+  #     max-parallel: 20
+  #     matrix:
+  #       os: [ubuntu-latest]
+  #       python-version: ["3.10"]
+  #       pytorch-version: ["2.6.0"]
+  #       chainer-version: [6.0.0]
+  #       use-conda: [true]
+  #   container:
+  #     image: debian:11
+  #     env:
+  #       # To avoid UnicodeEncodeError for python<=3.6
+  #       LC_ALL: en_US.UTF-8
+  #   steps:
+  #     - uses: actions/checkout@master
+  #     - name: check OS
+  #       run: cat /etc/os-release
+  #     - name: Make environment
+  #       uses: ./.github/actions/prepare-environment
+  #       with:
+  #         os-version: debian
+  #         python-version: ${{ matrix.python-version }}
+  #         pytorch-version: ${{ matrix.pytorch-version }}
+  #         chainer-version: ${{ matrix.chainer-version }}
+  #         use-conda: ${{ matrix.use-conda }}
+  #     # - name: Get PR labels
+  #     #   id: pr-labels
+  #     #   uses: joerick/pr-labels-action@v1.0.9
+  #     - name: test shell
+  #       run: |
+  #         ./ci/test_shell_espnet1.sh
+
+  unit_test_shell_espnet2_on_debian11:
     runs-on: ubuntu-latest
     if: github.event.pull_request.draft == false
+    strategy:
+      max-parallel: 20
+      matrix:
+        python-version: ["3.10"]
+        pytorch-version: ["2.6.0"]
+        chainer-version: [6.0.0]
+        use-conda: [true]
     container:
       image: debian:11
       env:
-        ESPNET_PYTHON_VERSION: "3.10"
-        TH_VERSION: 2.6.0
-        CHAINER_VERSION: 6.0.0
-        USE_CONDA: true
         # To avoid UnicodeEncodeError for python<=3.6
         LC_ALL: en_US.UTF-8
     steps:
       - uses: actions/checkout@master
       - name: check OS
         run: cat /etc/os-release
-      - name: install dependencies
-        run: |
-          apt-get update -qq
-          # NOTE(kamo): cmake sndfile will be download using anacond:
-          apt-get install -qq -y \
-            build-essential git unzip bzip2 wget curl bc locales make sox \
-            libncurses5-dev automake libtool pkg-config
-          localedef -f UTF-8 -i en_US en_US
-      - name: Get PR labels
-        id: pr-labels
-        uses: joerick/pr-labels-action@v1.0.9
-      - name: install espnet
-        run: ./ci/install.sh
+      - name: Make environment
+        uses: ./.github/actions/prepare-environment
+        with:
+          os-version: debian
+          python-version: ${{ matrix.python-version }}
+          pytorch-version: ${{ matrix.pytorch-version }}
+          chainer-version: ${{ matrix.chainer-version }}
+          use-conda: ${{ matrix.use-conda }}
+      # - name: Get PR labels
+      #   id: pr-labels
+      #   uses: joerick/pr-labels-action@v1.0.9
       - name: test shell
         run: |
-          ./ci/test_shell_espnet1.sh
           ./ci/test_shell_espnet2.sh
+
+  # unit_test_python_espnet1_on_debian11:
+  #   runs-on: ubuntu-latest
+  #   if: github.event.pull_request.draft == false
+  #   strategy:
+  #     max-parallel: 20
+  #     matrix:
+  #       python-version: ["3.10"]
+  #       pytorch-version: ["2.6.0"]
+  #       chainer-version: [6.0.0]
+  #       use-conda: [true]
+  #   container:
+  #     image: debian:11
+  #     env:
+  #       # To avoid UnicodeEncodeError for python<=3.6
+  #       LC_ALL: en_US.UTF-8
+  #   steps:
+  #     - uses: actions/checkout@master
+  #     - name: check OS
+  #       run: cat /etc/os-release
+  #     - name: Make environment
+  #       uses: ./.github/actions/prepare-environment
+  #       with:
+  #         os-version: debian
+  #         python-version: ${{ matrix.python-version }}
+  #         pytorch-version: ${{ matrix.pytorch-version }}
+  #         chainer-version: ${{ matrix.chainer-version }}
+  #         use-conda: ${{ matrix.use-conda }}
+  #     # - name: Get PR labels
+  #     #   id: pr-labels
+  #     #   uses: joerick/pr-labels-action@v1.0.9
+  #     - name: test python
+  #       run: |
+  #         ./ci/test_python_espnet2.sh
+
+  unit_test_python_espnet2_on_debian11:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    strategy:
+      max-parallel: 20
+      matrix:
+        python-version: ["3.10"]
+        pytorch-version: ["2.6.0"]
+        chainer-version: [6.0.0]
+        use-conda: [true]
+    container:
+      image: debian:11
+      env:
+        # To avoid UnicodeEncodeError for python<=3.6
+        LC_ALL: en_US.UTF-8
+    steps:
+      - uses: actions/checkout@master
+      - name: check OS
+        run: cat /etc/os-release
+      - name: Make environment
+        uses: ./.github/actions/prepare-environment
+        with:
+          os-version: debian
+          python-version: ${{ matrix.python-version }}
+          pytorch-version: ${{ matrix.pytorch-version }}
+          chainer-version: ${{ matrix.chainer-version }}
+          use-conda: ${{ matrix.use-conda }}
+      # - name: Get PR labels
+      #   id: pr-labels
+      #   uses: joerick/pr-labels-action@v1.0.9
       - name: test python
         run: |
-          ./ci/test_python_espnet1.sh
           ./ci/test_python_espnet2.sh

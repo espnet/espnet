@@ -76,8 +76,10 @@ class HybridOptim(torch.optim.Optimizer):
     def __repr__(self) -> str:
         """Call and concatenate ``__repr__`` for each optimizer in
         ``self.optimizers``."""
-        repr_str = f"``{self.__class__.__name__}`` " + \
-            "containing {len(self.optimizers)} optimizers:\n"
+        repr_str = (
+            f"``{self.__class__.__name__}`` "
+            + "containing {len(self.optimizers)} optimizers:\n"
+        )
 
         for optimizer in self.optimizers:
             repr_str += "\n" + optimizer.__repr__()

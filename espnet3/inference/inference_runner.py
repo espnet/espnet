@@ -17,7 +17,9 @@ from tqdm import tqdm
 from espnet2.train.preprocessor import AbsPreprocessor
 from espnet3 import get_espnet_model
 from espnet3.data import (
-    DatasetWithTransform, get_wrapped_transform, do_nothing_transform
+    DatasetWithTransform,
+    get_wrapped_transform,
+    do_nothing_transform,
 )
 from espnet3.parallel import get_client, set_parallel
 
@@ -88,8 +90,9 @@ class InferencePlugin(WorkerPlugin):
 
 
 def gpu_mem():
-    return torch.cuda.memory_allocated() / 1024 / 1024 \
-        if torch.cuda.is_available() else 0
+    return (
+        torch.cuda.memory_allocated() / 1024 / 1024 if torch.cuda.is_available() else 0
+    )
 
 
 class InferenceRunner:
@@ -189,9 +192,7 @@ class InferenceRunner:
             transform = do_nothing_transform
 
         wrapped_transform = get_wrapped_transform(
-            is_espnet_preprocessor,
-            transform,
-            preprocessor
+            is_espnet_preprocessor, transform, preprocessor
         )
         return DatasetWithTransform(
             instantiate(ds_conf.dataset),

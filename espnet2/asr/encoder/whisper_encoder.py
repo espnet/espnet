@@ -21,6 +21,7 @@ class OpenAIWhisperEncoder(AbsEncoder):
         input_size: int = 1,
         dropout_rate: float = 0.0,
         whisper_model: str = "small",
+        n_mels: int = 80,
         download_dir: Optional[str] = None,
         use_specaug: bool = False,
         specaug_conf: Union[dict, None] = None,
@@ -28,7 +29,7 @@ class OpenAIWhisperEncoder(AbsEncoder):
     ):
         try:
             import whisper
-            from whisper.audio import HOP_LENGTH, N_FFT, N_MELS, N_SAMPLES
+            from whisper.audio import HOP_LENGTH, N_FFT, N_SAMPLES
         except Exception as e:
             print("Error: whisper is not properly installed.")
             print(
@@ -38,11 +39,12 @@ class OpenAIWhisperEncoder(AbsEncoder):
             raise e
 
         super().__init__()
+        assert n_mels in [80, 128], "n_mels should be (80, 128)"
 
         self.n_fft = N_FFT
         self.win_length = N_FFT
         self.hop_length = HOP_LENGTH
-        self.n_mels = N_MELS
+        self.n_mels = n_mels
 
         self.mel_filters = whisper.audio.mel_filters
 

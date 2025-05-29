@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock
 
-import pytest
+# import pytest
 import torch
 from torch import nn
 
@@ -16,7 +16,8 @@ def create_simple_model_and_optim():
 
 
 def test_zero_grad_called():
-    """
+    """Test zero grad.
+
     H001: Check that zero_grad is called on all optimizers
     """
     opt1 = MagicMock()
@@ -28,7 +29,8 @@ def test_zero_grad_called():
 
 
 def test_step_called_and_loss_returned():
-    """
+    """Test step called.
+
     H002: Check that step is called and closure returns loss
     """
     opt1 = MagicMock()
@@ -46,7 +48,8 @@ def test_step_called_and_loss_returned():
 
 
 def test_state_dict_and_load_state_dict_roundtrip():
-    """
+    """Test state_dict roundtrip.
+
     H003: Save state_dict and restore it correctly
     """
     optimizers = create_simple_model_and_optim()
@@ -62,7 +65,8 @@ def test_state_dict_and_load_state_dict_roundtrip():
 
 
 def test_repr_contains_optimizer_info():
-    """
+    """Test Repr Optimizer.
+
     H004: __repr__ contains optimizer types
     """
     optimizers = create_simple_model_and_optim()
@@ -73,7 +77,8 @@ def test_repr_contains_optimizer_info():
 
 
 def test_combined_properties():
-    """
+    """Test Combined Properties.
+
     H005: param_groups, state, defaults are combined from all optimizers
     """
     optimizers = create_simple_model_and_optim()
