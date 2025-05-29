@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+import logging
 
 import lightning as L
 import torch
@@ -12,6 +13,8 @@ from espnet3.collect_stats import collect_stats
 from espnet3.trainer.hybrid_optim import HybridOptim
 from espnet3.trainer.hybrid_scheduler import HybridLRS
 from espnet3.trainer.dataloader import DataLoaderBuilder
+
+logger = logging.getLogger("lightning")
 
 
 class LitESPnetModel(L.LightningModule):
@@ -39,9 +42,53 @@ class LitESPnetModel(L.LightningModule):
             ) as f:
                 f.write(yaml.dump(vars(self.config)))
 
+    def _sync2skip(self, flag_skip):
+        # see below:
+        # https://github.com/Lightning-AI/lightning/issues/5243#issuecomment-1552650013
+        # gathering a tensor across all workers and then reduce it using or
+        world_size = torch.distributed.get_world_size()
+        torch.distributed.barrier()
+        # now gather
+        result = [torch.zeros_like(flag_skip) for _ in range(world_size)]
+        torch.distributed.all_gather(result, flag_skip)
+        any_invalid = torch.sum(torch.stack(result)).bool().item()
+        return any_invalid
+
+    def _check_nan_inf_loss(self, loss, batch_id):
+        mask_nan_inf = torch.logical_or(torch.isnan(loss), ~torch.isfinite(loss))
+        if torch.any(mask_nan_inf):
+            # if any is invalid then we must flag this to all DDP processes
+            flag_skip = torch.ones((), device=loss.device, dtype=torch.bool)
+        else:
+            flag_skip = torch.zeros((), device=loss.device, dtype=torch.bool)
+
+        # sub-optimal but will do, till they fix it in
+        # https://github.com/Lightning-AI/lightning/issues/5243#issuecomment-1552650013
+        any_invalid = self._sync2skip(flag_skip)
+        if any_invalid:
+            if self.nan_countdown >= 100:
+                raise RuntimeError(
+                    "Too many NaNs loss iterations encountered, stopping!"
+                )
+            logger.warning(
+                f"NaN loss in batch {batch_id} of epoch {self.current_epoch}, "
+                f"skipping the whole batch across all workers."
+            )
+            self.nan_countdown += 1
+        else:
+            # reset counter
+            self.nan_countdown = 1
+
+        return any_invalid
+
     def _step(self, batch, batch_idx, mode):
         # loss is averaged over samples within a mini-batch; weight is batch size
         loss, stats, weight = self.model(**batch[1])
+
+        any_invalid = self._check_nan_inf_loss(loss, batch_idx)
+        if any_invalid:
+            # skip this batch altogether on all workers.
+            return None
 
         new_stats = {}
         for k, v in stats.items():
@@ -55,7 +102,7 @@ class LitESPnetModel(L.LightningModule):
             sync_dist=(mode == "valid"),
             # NOTE(Yifan): must convert weight to a number to avoid device mismatch
             # when resuming training from a checkpoint with checkpoint callbacks
-            # batch_size=weight.item(),
+            batch_size=weight.item(),
         )
         return loss
 
