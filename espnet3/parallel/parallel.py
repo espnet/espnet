@@ -103,13 +103,11 @@ def parallel_map(
     results = []
     if client is not None:
         futures = client.map(func, data)
-        for future in tqdm(as_completed(futures), total=len(futures)):
-            results.append(future.result())
+        return list(tqdm(client.gather(futures), total=len(futures)))
     else:
         with get_client() as client:
             futures = client.map(func, data)
-            for future in tqdm(as_completed(futures), total=len(futures)):
-                results.append(future.result())
+            return list(tqdm(client.gather(futures), total=len(futures)))
     return results
 
 

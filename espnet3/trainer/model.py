@@ -83,12 +83,18 @@ class LitESPnetModel(L.LightningModule):
                 getattr(self.config, "optims", None) is None
             ), "Mixture of `optim` and `optims` is not allowed."
             params = filter(lambda p: p.requires_grad, self.parameters())
-            optimizer = instantiate(self.config.optim, params=params)
+            optimizer = instantiate(
+                OmegaConf.to_container(self.config.optim, resolve=True),
+                params
+            )
 
             assert (
                 getattr(self.config, "schedulers", None) is None
             ), "Mixture of `scheduler` and `schedulers` is not allowed."
-            scheduler = instantiate(self.config.scheduler, optimizer=optimizer)
+            scheduler = instantiate(
+                OmegaConf.to_container(self.config.scheduler, resolve=True),
+                optimizer=optimizer
+            )
 
         elif getattr(self.config, "optims") and getattr(self.config, "schedulers"):
             assert (
@@ -109,7 +115,9 @@ class LitESPnetModel(L.LightningModule):
                     f"No trainable parameters found for"
                     + f"optimizer: {optim} with params: {optim['params']}"
                 )
-                optims.append(instantiate(optim, params=params))
+                optims.append(instantiate(
+                    OmegaConf.to_container(optim, resolve=True), params
+                ))
             optimizer = HybridOptim(optims)
 
             assert (
@@ -117,7 +125,10 @@ class LitESPnetModel(L.LightningModule):
             ), "Mixture of `scheduler` and `schedulers` is not allowed."
             schedulers = []
             for i_sch, scheduler in enumerate(self.config.schedulers):
-                schedulers.append(instantiate(scheduler, optimizer=optims[i_sch]))
+                schedulers.append(instantiate(
+                    OmegaConf.to_container(scheduler, resolve=True),
+                    optimizer=optims[i_sch]
+                ))
             scheduler = [
                 HybridLRS(optimizer, i_sch, sch) for i_sch, sch in enumerate(schedulers)
             ]
