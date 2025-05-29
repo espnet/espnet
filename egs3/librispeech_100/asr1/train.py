@@ -11,36 +11,33 @@ from omegaconf import OmegaConf
 from tqdm import tqdm
 
 from espnet3 import get_espnet_model, save_espnet_config
+from espnet3.utils.config import load_config_with_defaults
 from espnet3.preprocess import train_sentencepiece
 from espnet3.trainer import ESPnetEZLightningTrainer, LitESPnetModel
-
-
-def load_line(path):
-    with open(path, "r") as f:
-        return [line.strip() for line in f.readlines()]
 
 
 def train_tokenizer(config):
     config.dataset.preprocessor = None
     organizer = instantiate(config.dataset)
 
+    dataset_size = len(organizer.train)
     with open("train_text.txt", "w", encoding="utf-8") as f:
-        for example in tqdm(organizer.train):
-            f.write(example[1]["text"] + "\n")
+        for idx in tqdm(range(dataset_size)):
+            f.write(organizer.train.get_text(idx) + "\n")
             f.flush()
 
     train_sentencepiece(
         dump_text_path="train_text.txt",
         output_path="sentencepiece_model",
         vocab_size=config.vocab_size,
-        character_coverage=0.995,
+        character_coverage=1.0,
         model_type="bpe",
     )
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", type=str, default="config.yaml")
+    parser.add_argument("--config", type=str, default="train.yaml")
     parser.add_argument(
         "--train_tokenizer", action="store_true", help="Train tokenizer before training"
     )
@@ -50,8 +47,7 @@ def main():
     args = parser.parse_args()
 
     # Load config
-    OmegaConf.register_new_resolver("load_line", load_line)
-    config = OmegaConf.load(args.config)
+    config = load_config_with_defaults(args.config)
 
     if args.train_tokenizer:
         print("==> Training tokenizer...")
@@ -62,9 +58,7 @@ def main():
         assert isinstance(config.seed, int), "seed should be an integer"
         L.seed_everything(config.seed)
 
-    # Set parallel config
-    # set_parallel(config.parallel)
-
+    # Prepare for collect_stats
     normalize = None
     normalize_conf = None
     if args.collect_stats:

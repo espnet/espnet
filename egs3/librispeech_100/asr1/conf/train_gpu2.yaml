@@ -1,0 +1,17 @@
+# load default config
+defaults:
+  - train.yaml
+
+num_device: 2
+
+trainer:
+  strategy: ddp_find_unused_parameters_true
+  logger:
+    - _target_: lightning.pytorch.loggers.TensorBoardLogger
+      save_dir: ${expdir}/tensorboard
+      name: tb_logger
+
+    - _target_: lightning.pytorch.loggers.WandbLogger
+      project: ESPnet3 development
+      save_dir: ${expdir}/wandb
+      name: LS_100_GPU2

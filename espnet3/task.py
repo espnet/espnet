@@ -146,7 +146,7 @@ def get_espnet_model(task: str, config: Union[Dict, DictConfig]) -> AbsESPnetMod
     default_config = ez_task.get_default_config()
     sys.argv = original_argv
 
-    default_config.update(config)
+    default_config.update(OmegaConf.to_container(config, resolve=True))
     espnet_model = ez_task.build_model(Namespace(**default_config))
     return espnet_model
 

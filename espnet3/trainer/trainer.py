@@ -1,5 +1,6 @@
 from argparse import Namespace
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict,  List, Tuple, Union
+import warnings
 
 import lightning as L
 import torch
@@ -96,6 +97,26 @@ class ESPnetEZLightningTrainer:
             for callback in self.config.callbacks:
                 callbacks.append(instantiate(callback))
             self.config.pop("callbacks")
+        
+        # Since espnet's sampler requires to set the following configs:
+        # Reload dataloaders every epoch to reuse ESPnet's dataloader
+        # reload_dataloaders_every_n_epochs=1
+        # ESPnet's dataloader already shards the dataset based on distributed setups
+        # use_distributed_sampler=False
+        if hasattr(self.model.config.dataloader.train, "iter_factory"):
+            if hasattr(self.config, "reload_dataloaders_every_n_epochs") \
+                and self.config.reload_dataloaders_every_n_epochs != 1:
+                warnings.warn("ESPnet's dataloader requires to set"
+                              "reload_dataloaders_every_n_epochs = 1. "
+                              "Override the config to 1.")
+            if hasattr(self.model.config, "use_distributed_sampler") \
+                and not self.config.use_distributed_sampler:
+                warnings.warn("ESPnet's dataloader requires to set"
+                              "use_distributed_sampler to False. "
+                              "Override the config to False.")
+
+            self.config.reload_dataloaders_every_n_epochs = 1
+            self.config.use_distributed_sampler = False
 
         # Set up the trainer
         self.trainer = L.Trainer(
