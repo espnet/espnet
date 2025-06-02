@@ -25,7 +25,24 @@ class LitESPnetModel(L.LightningModule):
         organizer = instantiate(config.dataset)
         self.train_dataset = organizer.train
         self.valid_dataset = organizer.valid
-        self.save_hyperparameters()  # args now in self.hparams
+        # self.save_hyperparameters()  # args now in self.hparams
+        
+        # If user is trying to use both Pytorch dataloader and ESPnet's dataloader
+        # Then raise an error here.
+        is_train_espnet = False
+        if hasattr(self.config.dataloader.train, "multiple_iterator") \
+            and self.config.dataloader.train.multiple_iterator:
+            is_train_espnet = True
+        
+        is_valid_espnet = False
+        if hasattr(self.config.dataloader.train, "multiple_iterator") \
+            and self.config.dataloader.train.multiple_iterator:
+            is_valid_espnet = True
+
+        assert is_train_espnet == is_valid_espnet, \
+            "Train and valid should have the same type of dataloader."
+        
+        self.is_espnet_sampler = is_train_espnet
 
         self.collate_fn = CommonCollateFn(int_pad_value=-1)
         # define collate_fn. Default to ESPnet's CommonCollateFn
@@ -41,6 +58,10 @@ class LitESPnetModel(L.LightningModule):
                 "w", encoding="utf-8"
             ) as f:
                 f.write(yaml.dump(vars(self.config)))
+    
+    @property
+    def is_espnet_sampler(self):
+        return self.is_espnet_sampler
 
     def _sync2skip(self, flag_skip):
         # see below:
