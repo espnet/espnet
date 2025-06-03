@@ -1,7 +1,7 @@
 from contextlib import contextmanager
 from typing import Any, Callable, Generator, Iterable, Optional
 
-from dask.distributed import Client, LocalCluster, WorkerPlugin, as_completed
+from dask.distributed import Client, LocalCluster, WorkerPlugin, Worker, SpecCluster
 from dask_jobqueue import SLURMCluster
 from omegaconf import DictConfig
 from tqdm import tqdm
@@ -37,9 +37,29 @@ def _make_client(config: DictConfig = None) -> Client:
     """Create a Dask client tied to the global singleton cluster."""
     if config.env == "local":
         return LocalCluster(config.n_workers, **config.options)
+    
     elif config.env == "slurm":
         cluster = SLURMCluster(**config.options)
         cluster.scale(config.n_workers)
+        return Client(cluster)
+    
+    elif config.env == "gpu-local":
+        n_workers = config.n_workers
+        options = config.options
+        worker_spec = {
+            f"gpu-worker-{i}": {
+                "cls": Worker,
+                "options": {
+                    "nthreads": options.get("threads_per_worker", 1),
+                    "env": {
+                        "CUDA_VISIBLE_DEVICES": str(i)
+                    }
+                }
+            }
+            for i in range(n_workers)
+        }
+
+        cluster = SpecCluster(workers=worker_spec, scheduler_port=0, asynchronous=False)
         return Client(cluster)
     else:
         raise ValueError(f"Unknown env: {config.env}")
