@@ -21,7 +21,7 @@ class CUDADevicePlugin(WorkerPlugin):
         self.gpu_id = gpu_id
 
     def setup(self, worker):
-        os.environ["CUDA_VISIBLE_DEVICES"] = str(self.gpu_id)
+        worker.device_id = str(self.gpu_id)
 
 
 def make_local_gpu_cluster(n_workers: int, options: dict) -> Client:

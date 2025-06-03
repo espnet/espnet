@@ -161,6 +161,13 @@ class InferenceRunner:
         return instantiate(self.model_config)
 
     def _initialize_model(self, device=None):
+        try:
+            worker = get_worker()
+            if device == "cuda":
+                device = f"cuda:{worker.device_id}"
+        except:
+            pass
+        
         if self.model is None:
             self.model = self.initialize_model(device)
 
