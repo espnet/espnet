@@ -294,7 +294,15 @@ class InferenceRunner:
         proc = psutil.Process(pid)
 
         for idx in tqdm(range(len(dataset))):
-            uid, sample = dataset[idx]
+            example = dataset[idx]
+            if isinstance(example, tuple):
+                uid, sample = example
+            elif isinstance(example, dict):
+                uid = str(idx)
+                sample = example
+            else:
+                raise RuntimeError(f"Not supported type {type(example)}")
+            
             if self.stream and "audio_path" in sample:
                 sample["stream"] = self.read("audio", sample["audio_path"], stream=True)
 
