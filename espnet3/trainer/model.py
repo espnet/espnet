@@ -59,7 +59,6 @@ class LitESPnetModel(L.LightningModule):
             ) as f:
                 f.write(yaml.dump(vars(self.config)))
     
-    @property
     def is_espnet_sampler(self):
         return self.is_espnet_sampler
 
@@ -67,11 +66,18 @@ class LitESPnetModel(L.LightningModule):
         # see below:
         # https://github.com/Lightning-AI/lightning/issues/5243#issuecomment-1552650013
         # gathering a tensor across all workers and then reduce it using or
-        world_size = torch.distributed.get_world_size()
-        torch.distributed.barrier()
+        if self.config.num_device == 1:
+            world_size = 1
+        else:
+            world_size = torch.distributed.get_world_size()
+            torch.distributed.barrier()
+
         # now gather
         result = [torch.zeros_like(flag_skip) for _ in range(world_size)]
-        torch.distributed.all_gather(result, flag_skip)
+        
+        if self.config.num_device > 1:
+            torch.distributed.all_gather(result, flag_skip)
+            
         any_invalid = torch.sum(torch.stack(result)).bool().item()
         return any_invalid
 
