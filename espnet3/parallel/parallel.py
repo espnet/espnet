@@ -8,6 +8,7 @@ from omegaconf import DictConfig
 from tqdm import tqdm
 from typeguard import typechecked
 
+
 import torch
 import torch.multiprocessing as mp
 import warnings
@@ -16,30 +17,20 @@ import warnings
 parallel_config: Optional[DictConfig] = None
 
 
-class CUDADevicePlugin(WorkerPlugin):
-    def __init__(self, gpu_id: int):
-        self.gpu_id = gpu_id
-
-    def setup(self, worker):
-        worker.device_id = str(self.gpu_id)
-
-
 def make_local_gpu_cluster(n_workers: int, options: dict) -> Client:
+    try:
+        from dask_cuda import LocalCUDACluster
+    except:
+        raise RuntimeError("Please install dask_cuda to activate this option.")
+    
     num_gpus = torch.cuda.device_count()
     if n_workers > num_gpus:
         raise ValueError(f"n_workers={n_workers} > num_gpus={num_gpus}")
     if n_workers < num_gpus:
-        import warnings
         warnings.warn(f"n_workers={n_workers} < num_gpus={num_gpus}, some GPUs may be idle.")
 
-    cluster = LocalCluster(n_workers=n_workers, **options)
-    client = Client(cluster)
-
-    for i, worker in enumerate(client.scheduler_info()["workers"].values()):
-        plugin = CUDADevicePlugin(gpu_id=i)
-        client.register_worker_plugin(plugin, name=f"cuda-device-{i}")
-
-    return client
+    cluster = LocalCUDACluster(n_workers=n_workers, **options)
+    return Client(cluster)
 
 
 @typechecked
@@ -68,9 +59,9 @@ def get_parallel_config() -> Optional[DictConfig]:
 def _make_client(config: DictConfig = None) -> Client:
     """Create a Dask client tied to the global singleton cluster."""
     if config.env == "local":
-        return LocalCluster(config.n_workers, **config.options)
+        return Client(LocalCluster(config.n_workers, **config.options))
 
-    if config.env == "local-gpu":
+    if config.env == "local_gpu":
         return make_local_gpu_cluster(config.n_workers, config.options)
     
     elif config.env == "slurm":

@@ -161,13 +161,9 @@ class InferenceRunner:
         return instantiate(self.model_config)
 
     def _initialize_model(self, device=None):
-        try:
-            worker = get_worker()
-            if device == "cuda":
-                device = f"cuda:{worker.device_id}"
-        except:
-            pass
-        
+        if device == "cuda" and self.parallel_config.env == "local_gpu":
+            device = f"cuda:{os.environ['CUDA_VISIBLE_DEVICES'].split(',')[0]}"
+
         if self.model is None:
             self.model = self.initialize_model(device)
 
