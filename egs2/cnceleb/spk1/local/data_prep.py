@@ -42,7 +42,7 @@ def main(args):
             wav_list.append([utt_id, utt_dir])
 
     with open(os.path.join(dst, "spk2utt"), "w") as f_spk2utt, open(
-            os.path.join(dst, "utt2spk"), "w"
+        os.path.join(dst, "utt2spk"), "w"
     ) as f_utt2spk, open(os.path.join(dst, "wav.scp"), "w") as f_wav:
         for spk in spk2utt:
             f_spk2utt.write(f"{spk}")
@@ -73,12 +73,7 @@ if __name__ == "__main__":
         required=True,
         help="destination directory of cnceleb",
     )
-    parser.add_argument(
-        "--spk",
-        type=str,
-        default=None,
-        help="speaker list"
-    )
+    parser.add_argument("--spk", type=str, default=None, help="speaker list")
     args = parser.parse_args()
 
     sys.exit(main(args))

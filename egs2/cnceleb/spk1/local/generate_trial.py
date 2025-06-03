@@ -41,24 +41,22 @@ def main(args):
         n_nontarget = trials_per_enroll - n_target
 
         # Target trials
-        selected_targets = random.sample(target_pool,
-                                         min(n_target, len(target_pool)))
+        selected_targets = random.sample(target_pool, min(n_target, len(target_pool)))
 
         # Non-target trials
         other_utts = [utt for utt in test_scp if utt2spk[utt] != spk]
-        selected_nontargets = random.sample(other_utts,
-                                            min(n_nontarget, len(other_utts)))
+        selected_nontargets = random.sample(
+            other_utts, min(n_nontarget, len(other_utts))
+        )
 
         for utt in selected_targets:
             joint_key = f"{enroll_utt}*{utt}"
-            trial_lines.append(
-                (joint_key, enroll_scp[enroll_utt], test_scp[utt], 1))
+            trial_lines.append((joint_key, enroll_scp[enroll_utt], test_scp[utt], 1))
             used_utts.update([enroll_utt, utt])
 
         for utt in selected_nontargets:
             joint_key = f"{enroll_utt}*{utt}"
-            trial_lines.append(
-                (joint_key, enroll_scp[enroll_utt], test_scp[utt], 0))
+            trial_lines.append((joint_key, enroll_scp[enroll_utt], test_scp[utt], 0))
             used_utts.update([enroll_utt, utt])
 
     # Cover all test utterances
@@ -76,15 +74,16 @@ def main(args):
             label = 0 if enroll_spk != test_spk else 1
             joint_key = f"{enroll_utt}*{utt}"
             trial_lines.append(
-                (joint_key, enroll_scp[enroll_utt], test_scp[utt], label))
+                (joint_key, enroll_scp[enroll_utt], test_scp[utt], label)
+            )
             used_utts.update([enroll_utt, utt])
 
     print(f"[Info] {len(trial_lines)} trials, {len(used_utts)} unique utts")
 
     # Write trial files
-    with open(os.path.join(args.out_dir, "trial.scp"), "w") as f1, \
-            open(os.path.join(args.out_dir, "trial2.scp"), "w") as f2, \
-            open(os.path.join(args.out_dir, "trial_label"), "w") as flabel:
+    with open(os.path.join(args.out_dir, "trial.scp"), "w") as f1, open(
+        os.path.join(args.out_dir, "trial2.scp"), "w"
+    ) as f2, open(os.path.join(args.out_dir, "trial_label"), "w") as flabel:
         for joint_key, path1, path2, label in trial_lines:
             f1.write(f"{joint_key} {path1}\n")
             f2.write(f"{joint_key} {path2}\n")
@@ -97,8 +96,9 @@ def main(args):
     for utt, spk in utt2spk_used.items():
         spk2utt_used[spk].append(utt)
 
-    with open(os.path.join(args.out_dir, "wav.scp"), "w") as fwav, \
-            open(os.path.join(args.out_dir, "utt2spk"), "w") as futt2spk:
+    with open(os.path.join(args.out_dir, "wav.scp"), "w") as fwav, open(
+        os.path.join(args.out_dir, "utt2spk"), "w"
+    ) as futt2spk:
         for utt in sorted(used_utts):
             scp = enroll_scp.get(utt, test_scp.get(utt))
             fwav.write(f"{utt} {scp}\n")
