@@ -294,7 +294,7 @@ class DatasetWithTransform:
 
     def __getitem__(self, idx):
         if self.add_uid:
-            return str(idx), self.transform(self.dataset[idx])
+            return (str(idx), self.transform((str(idx), self.dataset[idx])))
         else:
             return self.transform(self.dataset[idx])
 
