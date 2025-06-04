@@ -3,7 +3,7 @@ import os
 import time
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Dict, Iterator, Optional, Union
+from typing import Any, Dict, Iterator, Optional, Union, List
 
 import numpy as np
 import psutil
@@ -145,6 +145,7 @@ class InferenceRunner:
         dataset_config: DictConfig = None,
         stream: bool = False,
         parallel: Optional[Dict[str, Any]] = None,
+        async_mode: bool = False
     ):
         self.model_config = model_config
         self.dataset_config = dataset_config
@@ -154,11 +155,15 @@ class InferenceRunner:
         self.model = None
         self.dataset = None
         self.current_dataset_key = None
+        self.async_mode = async_mode
 
     def initialize_model(self, device=None):
         return instantiate(self.model_config)
 
     def _initialize_model(self, device=None):
+        if device == "cuda" and self.parallel_config.env == "local_gpu":
+            device = f"cuda:{os.environ['CUDA_VISIBLE_DEVICES'].split(',')[0]}"
+
         if self.model is None:
             self.model = self.initialize_model(device)
 
@@ -259,7 +264,7 @@ class InferenceRunner:
                     + "Please override the write function"
                 )
 
-            with open(scp_path, "w") as f:
+            with open(scp_path, "a") as f:
                 f.write(" ".join(line_parts) + "\n")
 
     def run_on_example(self, uid: str, sample: dict) -> dict:
@@ -276,11 +281,23 @@ class InferenceRunner:
                 return self.post_inference(model, outputs)
             else:
                 return self.inference_body(model, sample)
+    
+    def _get_uid_sample(self, idx, example):
+        if isinstance(example, tuple):
+            uid, sample = example
+        elif isinstance(example, dict):
+            uid = str(idx)
+            sample = example
+        else:
+            raise RuntimeError(f"Not supported type {type(example)}")
+        return uid, sample
 
     def run_on_dataset(self, dataset_key: Any, output_dir: Union[str, Path]):
         if not isinstance(output_dir, Path):
             output_dir = Path(output_dir)
-        if self.parallel_config:
+        if self.parallel_config and getattr(self.parallel_config, "async", False):
+            self._run_parallel_async(dataset_key, output_dir)
+        elif self.parallel_config:
             self._run_parallel(dataset_key, output_dir)
         else:
             self._run_serial(dataset_key, output_dir)
@@ -294,7 +311,9 @@ class InferenceRunner:
         proc = psutil.Process(pid)
 
         for idx in tqdm(range(len(dataset))):
-            uid, sample = dataset[idx]
+            example = dataset[idx]
+            uid, sample = self._get_uid_sample(idx, example)
+            
             if self.stream and "audio_path" in sample:
                 sample["stream"] = self.read("audio", sample["audio_path"], stream=True)
 
@@ -337,6 +356,80 @@ class InferenceRunner:
 
             self.write(uid, result, output_dir)
 
+    def _run_parallel_async(self, dataset_key: Any, output_dir: Union[str, Path]):
+        """Run inference in parallel using Dask"""
+        # === 1. Setup Dask parallel environment ===
+        set_parallel(self.parallel_config)
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        # === 2. Determine dataset length and split indices ===
+        dummy_dataset = self.initialize_dataset(dataset_key)
+        dataset_length = len(dummy_dataset)
+        del dummy_dataset
+
+        n_workers = self.parallel_config.n_workers
+        index_chunks = [chunk.tolist() for chunk in np.array_split(np.arange(dataset_length), n_workers)]
+
+        def process_samples(indices: List[int], dataset_key: str, stream: bool, base_output_dir: str):
+            worker = get_worker()
+            model = worker.model
+            dataset = worker.inference_runner.initialize_dataset(dataset_key)
+
+            short_id = worker.name.replace("worker-", "")  # or str(abs(hash(worker.id)) % 100000)
+            sub_output_dir = Path(base_output_dir) / f"process-{short_id}"
+
+            for idx in indices:
+                example = dataset[idx]
+                uid, sample = self._get_uid_sample(idx, example)
+                try:
+                    if stream and "audio_path" in sample:
+                        sample["stream"] = worker.inference_runner.read("audio", sample["audio_path"], stream=True)
+
+                    model, sample = worker.inference_runner.pre_inference(model, sample)
+                    outputs = []
+                    if stream and isinstance(sample.get("stream"), Iterator):
+                        for chunk in sample["stream"]:
+                            outputs.append(worker.inference_runner.inference_body(model, chunk))
+                    else:
+                        outputs = [worker.inference_runner.inference_body(model, sample)]
+
+                    result = worker.inference_runner.post_inference(model, outputs)
+
+                    worker.inference_runner.write(uid, result, sub_output_dir)
+
+                except Exception as e:
+                    logging.error(f"[{uid}] Error: {e}")
+            
+            return None
+
+
+        # === 3. Define plugin ===
+        plugin = InferencePlugin(self)
+
+        # === 4. Launch Dask submit jobs ===
+        futures = []
+        with get_client(plugin=plugin) as client:
+            for indices in index_chunks:
+                future = client.submit(
+                    process_samples,  # assumed to be imported or defined elsewhere
+                    indices,
+                    dataset_key,
+                    self.stream,
+                    str(output_dir),
+                )
+                futures.append(future)
+
+            # === 5. Wait for completion and error reporting ===
+            for future in tqdm(futures, desc="Awaiting async jobs"):
+                try:
+                    future.result()  # writing is done inside each worker
+                except Exception as e:
+                    logging.error(f"[async job error] {e}")
+
+        # === 6. Merge .scp.* files into final output ===
+        merged_output_dir = output_dir
+        self.merge_scp_files(output_dir, merged_output_dir)
+
     def _run_parallel(self, dataset_key: Any, output_dir: Union[str, Path]):
         """Run inference in parallel using Dask"""
         set_parallel(self.parallel_config)
@@ -349,7 +442,9 @@ class InferenceRunner:
 
             # Initialize dataset per worker
             dataset = worker.inference_runner.initialize_dataset(dataset_key)
-            uid, sample = dataset[idx]
+            
+            example = dataset[idx]
+            uid, sample = self._get_uid_sample(idx, example)
 
             try:
                 # Track resources
@@ -464,3 +559,19 @@ class InferenceRunner:
 
     # def on_error(self, uid: str, err: Exception):
     #     print(f"[ERROR] {uid}: {err}", flush=True)
+
+    def merge_scp_files(self, output_dir: Path, final_output_dir: Path, suffix=".scp"):
+        final_output_dir.mkdir(parents=True, exist_ok=True)
+        all_scp_files = list(output_dir.glob(f"*{suffix}.*"))  # e.g., text.scp.0, wav.scp.2
+
+        scp_groups = {}
+        for f in all_scp_files:
+            key = f.name.split(".")[0] + suffix  # e.g., "text.scp"
+            scp_groups.setdefault(key, []).append(f)
+
+        for key, files in scp_groups.items():
+            lines = []
+            for f in sorted(files):
+                lines.extend(f.read_text().splitlines())
+            with open(final_output_dir / key, "w") as fout:
+                fout.write("\n".join(lines) + "\n")

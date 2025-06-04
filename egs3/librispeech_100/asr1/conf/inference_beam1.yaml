@@ -1,6 +1,9 @@
 recipedir: .
-expdir: exp/train_ctc
-decode_dir: ${expdir}/decode_debug
+expdir: exp/score_pretrained
+decode_dir: ${expdir}/decode
+
+defaults:
+  - dataset.yaml
 
 model:
   _target_: espnet2.bin.asr_inference.Speech2Text
@@ -9,44 +12,26 @@ model:
   beam_size: 1
   ctc_weight: 1.0
 
-dataset:
-  _target_: espnet3.data.DataOrganizer
-  test:
-    - name: dev-clean
-      dataset:
-        _target_: egs3.librispeech_100.asr1.dataset.LibriSpeechDataset
-        split: dev-clean
-    - name: test-clean
-      dataset:
-        _target_: egs3.librispeech_100.asr1.dataset.LibriSpeechDataset
-        split: test-clean
-    - name: test-other
-      dataset:
-        _target_: egs3.librispeech_100.asr1.dataset.LibriSpeechDataset
-        split: test-other
-
-  preprocessor:
-    _target_: espnet2.train.preprocessor.CommonPreprocessor
-    train: false
-    token_type: bpe
-    token_list: ${recipedir}/sentencepiece_model/tokens.txt
-    bpemodel: ${recipedir}/sentencepiece_model/bpe.model
-    text_cleaner:
-
 parallel:
-  env: slurm
+  env: local_gpu
   n_workers: 4
-  options:
-    account: bbjs-delta-gpu
-    queue: gpuA40x4
-    cores: 1
-    processes: 1
-    memory: 16GB
-    death_timeout: 180
-    # walltime: 30:00
-    job_extra_directives:
-      - "--gres=gpu:1"
-      - "--time 5:00:00"
-      - "--ntasks-per-node=1"
-      - "--cpus-per-task=8"
-      - "--output=parallel_log/%j-%x.log"
+
+
+metrics:
+  - _target_: egs3.librispeech_100.asr1.score.wer.WER
+    inputs:
+      - ref
+      - hypothesis
+    clean_types: whisper_basic
+    apply_to: 
+      - test-clean
+      - test-other
+
+  - _target_: egs3.librispeech_100.asr1.score.cer.CER
+    inputs:
+      - ref
+      - hypothesis
+    clean_types: whisper_basic
+    apply_to: 
+      - test-clean
+      - test-other

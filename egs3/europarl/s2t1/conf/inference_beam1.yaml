@@ -1,6 +1,6 @@
 recipedir: .
-expdir: exp/train_ctc
-decode_dir: ${expdir}/decode_debug
+expdir: exp/train
+decode_dir: ${expdir}/decode
 
 model:
   _target_: espnet2.bin.asr_inference.Speech2Text
@@ -29,19 +29,6 @@ dataset:
     text_cleaner:
 
 parallel:
-  env: slurm
+  env: local_gpu
   n_workers: 4
-  options:
-    account: bbjs-delta-gpu
-    queue: gpuA40x4
-    cores: 1
-    processes: 1
-    memory: 16GB
-    death_timeout: 180
-    # walltime: 30:00
-    job_extra_directives:
-      - "--gres=gpu:1"
-      - "--time 5:00:00"
-      - "--ntasks-per-node=1"
-      - "--cpus-per-task=8"
-      - "--output=parallel_log/%j-%x.log"
+

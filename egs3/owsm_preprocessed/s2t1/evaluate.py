@@ -8,9 +8,13 @@ from omegaconf import OmegaConf
 from hydra.utils import instantiate
 
 # from espnet2.bin.asr_inference_ctc import Speech2Text
+from espnet2.bin.s2t_inference import Speech2Text
 from espnet3.inference.inference_runner import InferenceRunner
 from espnet3.utils.config import load_config_with_defaults
+from espnet2.text.sentencepiece_tokenizer import SentencepiecesTokenizer
+from espnet2.text.token_id_converter import TokenIDConverter
 from espnet3.inference.score_runner import ScoreRunner
+
 
 
 class ASRInferenceRunner(InferenceRunner, nn.Module):
@@ -28,7 +32,11 @@ class ASRInferenceRunner(InferenceRunner, nn.Module):
         speech = sample["speech"]
 
         start = time.time()
-        results = model(speech)
+        results = model(
+            speech,
+            lang_sym=sample['lang_sym'],
+            task_sym=sample['task_sym'],
+        )
         end = time.time()
 
         hyp_text = results[0][0] if results else ""
@@ -40,10 +48,7 @@ class ASRInferenceRunner(InferenceRunner, nn.Module):
             "rtf": {"type": "text", "value": str(round(rtf, 4))},
         }
         if "text" in sample:
-            text = model.tokenizer.tokens2text(
-                model.converter.ids2tokens(sample["text"])
-            )
-            output["ref"] = {"type": "text", "value": text}
+            output["ref"] = {"type": "text", "value": sample["text"]}
 
         return output
 

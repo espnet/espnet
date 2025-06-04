@@ -116,6 +116,10 @@ class ESPnetEZLightningTrainer:
                               "Override the config to False.")
 
             self.config.reload_dataloaders_every_n_epochs = 1
+        
+        # Check training dataloader and if it is using the espnet's sampler
+        # then we had to set the distributed_sampler to False.
+        if self.model.is_espnet_sampler:
             self.config.use_distributed_sampler = False
 
         # Set up the trainer

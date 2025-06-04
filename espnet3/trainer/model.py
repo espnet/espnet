@@ -25,7 +25,24 @@ class LitESPnetModel(L.LightningModule):
         organizer = instantiate(config.dataset)
         self.train_dataset = organizer.train
         self.valid_dataset = organizer.valid
-        self.save_hyperparameters()  # args now in self.hparams
+        # self.save_hyperparameters()  # args now in self.hparams
+        
+        # If user is trying to use both Pytorch dataloader and ESPnet's dataloader
+        # Then raise an error here.
+        is_train_espnet = False
+        if hasattr(self.config.dataloader.train, "multiple_iterator") \
+            and self.config.dataloader.train.multiple_iterator:
+            is_train_espnet = True
+        
+        is_valid_espnet = False
+        if hasattr(self.config.dataloader.train, "multiple_iterator") \
+            and self.config.dataloader.train.multiple_iterator:
+            is_valid_espnet = True
+
+        assert is_train_espnet == is_valid_espnet, \
+            "Train and valid should have the same type of dataloader."
+        
+        self.is_espnet_sampler = is_train_espnet
 
         self.collate_fn = CommonCollateFn(int_pad_value=-1)
         # define collate_fn. Default to ESPnet's CommonCollateFn
@@ -41,16 +58,26 @@ class LitESPnetModel(L.LightningModule):
                 "w", encoding="utf-8"
             ) as f:
                 f.write(yaml.dump(vars(self.config)))
+    
+    def is_espnet_sampler(self):
+        return self.is_espnet_sampler
 
     def _sync2skip(self, flag_skip):
         # see below:
         # https://github.com/Lightning-AI/lightning/issues/5243#issuecomment-1552650013
         # gathering a tensor across all workers and then reduce it using or
-        world_size = torch.distributed.get_world_size()
-        torch.distributed.barrier()
+        if self.config.num_device == 1:
+            world_size = 1
+        else:
+            world_size = torch.distributed.get_world_size()
+            torch.distributed.barrier()
+
         # now gather
         result = [torch.zeros_like(flag_skip) for _ in range(world_size)]
-        torch.distributed.all_gather(result, flag_skip)
+        
+        if self.config.num_device > 1:
+            torch.distributed.all_gather(result, flag_skip)
+            
         any_invalid = torch.sum(torch.stack(result)).bool().item()
         return any_invalid
 
