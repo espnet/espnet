@@ -49,15 +49,6 @@ class LitESPnetModel(L.LightningModule):
         if hasattr(self.config.dataloader, "collate_fn"):
             self.collate_fn = instantiate(self.config.dataloader.collate_fn)
 
-        # Save config to make it compatible with ESPnet inference
-        if self.global_rank == 0:
-            if not os.path.exists(Path(self.config.expdir)):
-                Path(self.config.expdir).mkdir(parents=True, exist_ok=True)
-
-            with (Path(self.config.expdir) / "config.yaml").open(
-                "w", encoding="utf-8"
-            ) as f:
-                f.write(yaml.dump(vars(self.config)))
     
     def is_espnet_sampler(self):
         return self.is_espnet_sampler
