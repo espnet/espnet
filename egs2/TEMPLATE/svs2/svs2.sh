@@ -125,6 +125,10 @@ inference_model=valid.loss.best.pth # Model path for decoding.
 vocoder_file=none  # Vocoder parameter file, If set to none, Griffin-Lim will be used.
 download_model=""   # Download a model from Model Zoo and use it for decoding.
 
+# evaluation related
+skip_versa=false
+versa_config=../../TEMPLATE/svs1/conf/versa.yaml
+
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=""     # Name of training set.
 valid_set=""     # Name of validation set used for monitoring/tuning network training.
@@ -1391,7 +1395,6 @@ for more supported metrics."
                 ${_gt_wavscp} \
                 --outdir "${_eval_dir}/VUV_res"
 
-        done
         done
     fi
 else

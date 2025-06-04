@@ -34,15 +34,15 @@ targets=""
 
 # Copy
 for f in cmd.sh conf local; do
-    target="${dir}"/../../TEMPLATE/svs1/"${f}"
+    target="${dir}"/../../TEMPLATE/svs2/"${f}"
     cp -r "${target}" "${dir}"
     targets+="${dir}/${target} "
 done
 
 
 # Symlinks to TEMPLATE
-for f in svs.sh path.sh scripts pyscripts; do
-    target=../../TEMPLATE/svs1/"${f}"
+for f in svs2.sh path.sh scripts pyscripts; do
+    target=../../TEMPLATE/svs2/"${f}"
     ln -sf "${target}" "${dir}"
     targets+="${dir}/${target} "
 done
