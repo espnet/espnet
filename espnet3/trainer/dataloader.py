@@ -86,11 +86,11 @@ class DataLoaderBuilder:
     def _build_iter_factory(self, factory_config, dataset=None):
         if dataset is None:
             dataset = self.dataset
-
-        iter_factory = instantiate(factory_config, dataset)
+        
+        batches = instantiate(factory_config.pop("batches"))
 
         if self.num_device > 1:
-            batches = list(iter_factory.sampler)
+            batches = list(batches)
             world_size = torch.distributed.get_world_size()
             rank = torch.distributed.get_rank()
             for batch in batches:
@@ -98,7 +98,13 @@ class DataLoaderBuilder:
                     raise RuntimeError(
                         f"The batch-size must be equal or more than world_size: {len(batch)} < {world_size}"
                     )
-            iter_factory.batches = [batch[rank::world_size] for batch in batches]
+            batches = [batch[rank::world_size] for batch in batches]
+
+        iter_factory = instantiate(
+            factory_config,
+            dataset,
+            batches=batches
+        )
 
         return iter_factory.build_iter(self.epoch, shuffle=False)
 
