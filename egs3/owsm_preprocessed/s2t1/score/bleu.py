@@ -5,7 +5,7 @@ from typing import Dict, List, Union
 from sacrebleu.metrics import BLEU as sacreBLEU
 from sacrebleu.metrics import CHRF, TER
 
-from espnet3.metrics.abs_metrics import AbsMetrics, validate_scp_files
+from espnet3.inference.abs_metrics import AbsMetrics
 
 
 class BLEU(AbsMetrics):
@@ -16,7 +16,8 @@ class BLEU(AbsMetrics):
         remove_xml (bool): If True, removes XML-like tags using regex.
     """
 
-    def __init__(self, remove_xml: bool = True):
+    def __init__(self, inputs, clean_types=None, remove_xml: bool = True):
+        self.ref_key, self.hyp_key = inputs
         self.bleu = sacreBLEU()
         self.chrf = CHRF()
         self.ter = TER()
@@ -27,17 +28,9 @@ class BLEU(AbsMetrics):
             text = re.sub(r"<[^>]+>", "", text)
         return text.strip() or "."
 
-    def __call__(
-        self, decode_dir: Path, test_name: str, inputs: Union[List[str], Dict[str, str]]
-    ) -> Dict[str, Union[float, str]]:
-        scp_data = validate_scp_files(decode_dir, test_name, inputs)
-        if isinstance(inputs, list):
-            ref_key, hyp_key = inputs
-        else:
-            ref_key, hyp_key = "ref", "hyp"
-
-        refs = [self.clean(scp_data[ref_key][uid]) for uid in scp_data[ref_key]]
-        hyps = [self.clean(scp_data[hyp_key][uid]) for uid in scp_data[hyp_key]]
+    def __call__(self, data: Dict[str, List[str]], test_name: str, decode_dir: Path) -> Dict[str, float]:
+        refs = [self.clean(x) for x in data[self.ref_key]]
+        hyps = [self.clean(x) for x in data[self.hyp_key]]
 
         score_dir = decode_dir / test_name
 
@@ -53,3 +46,4 @@ class BLEU(AbsMetrics):
             "CHRF": round(chrf.score, 3),
             "TER": round(ter.score, 3),
         }
+
