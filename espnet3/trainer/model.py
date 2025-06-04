@@ -30,13 +30,11 @@ class LitESPnetModel(L.LightningModule):
         # If user is trying to use both Pytorch dataloader and ESPnet's dataloader
         # Then raise an error here.
         is_train_espnet = False
-        if hasattr(self.config.dataloader.train, "multiple_iterator") \
-            and self.config.dataloader.train.multiple_iterator:
+        if self.config.dataloader.train.iter_factory is not None:
             is_train_espnet = True
         
         is_valid_espnet = False
-        if hasattr(self.config.dataloader.train, "multiple_iterator") \
-            and self.config.dataloader.train.multiple_iterator:
+        if self.config.dataloader.valid.iter_factory is not None:
             is_valid_espnet = True
 
         assert is_train_espnet == is_valid_espnet, \
