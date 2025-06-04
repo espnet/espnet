@@ -16,34 +16,16 @@ from espnet2.text.token_id_converter import TokenIDConverter
 from espnet3.inference.score_runner import ScoreRunner
 
 
-BASEDIR = "/work/hdd/bbjs/peng6/espnet-owsm-train-20240205/egs2/owsm_v3.1_10percent/" \
-    + "s2t1/exp/s2t_train_s2t_ebf_conv2d_size768_e9_d9_piecewise_lr5e-4_warmup60k_" \
-    + "flashattn_raw_bpe50000"
-
 
 class ASRInferenceRunner(InferenceRunner, nn.Module):
-    def __init__(self, pretrained=True, **kwargs):
+    def __init__(self, **kwargs):
         nn.Module.__init__(self)
         InferenceRunner.__init__(self, **kwargs)
-        self.pretrained = pretrained
-        self.tokenizer = SentencepiecesTokenizer("sentencepiece_model/bpe.model")
-        self.converter = TokenIDConverter("sentencepiece_model/tokens.txt")
 
     def initialize_model(self, device=None):
         if device is None:
             device = self.device
-            
-        if self.pretrained:
-            return Speech2Text(
-                # f"{BASEDIR}/config.yaml",
-                "../../../config.yaml",
-                f"{BASEDIR}/24epoch.pth",
-                beam_size=1,
-                ctc_weight=0.0,
-                device=device
-            )
-        else:
-            return instantiate(self.model_config, device=device)
+        return instantiate(self.model_config, device=device)
 
     def inference_body(self, model, sample: dict) -> dict:
         assert "speech" in sample, "Missing 'speech' key in sample"
