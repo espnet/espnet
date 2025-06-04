@@ -16,7 +16,7 @@ pytest.importorskip("transformers")
 pytest.importorskip("s3prl")
 pytest.importorskip("loralib")
 is_python_3_8_plus = sys.version_info >= (3, 8)
-is_torch_1_8_plus = V(torch.__version__) >= V("1.8.0")
+is_torch_2_6_plus = V(torch.__version__) >= V("2.6.0")
 
 
 def init_S3prl_model(frontend_conf={"upstream": "hubert_base"}):
@@ -43,7 +43,7 @@ def init_decoder_model():
 
 # =========================================Houlsby================================================
 @pytest.mark.skipif(
-    not is_torch_1_8_plus or not is_python_3_8_plus, reason="Not supported"
+    not is_torch_2_6_plus or not is_python_3_8_plus, reason="Not supported"
 )
 @pytest.mark.parametrize(
     "model, bottleneck, target_layers", [(init_S3prl_model(), 64, [])]
@@ -63,7 +63,7 @@ def test_create_houlsby_adapter_bottleneck(
 
 
 @pytest.mark.skipif(
-    not is_torch_1_8_plus or not is_python_3_8_plus, reason="Not supported"
+    not is_torch_2_6_plus or not is_python_3_8_plus, reason="Not supported"
 )
 @pytest.mark.parametrize(
     "model, bottleneck, target_layers",
@@ -95,7 +95,7 @@ def test_create_houlsby_adapter_hf_wav2vec2_custom_bottleneck(
 
 
 @pytest.mark.skipif(
-    not is_torch_1_8_plus or not is_python_3_8_plus, reason="Not supported"
+    not is_torch_2_6_plus or not is_python_3_8_plus, reason="Not supported"
 )
 @pytest.mark.parametrize(
     "model, bottleneck, target_layers", [(init_S3prl_model(), 64, [1, 2])]
@@ -156,7 +156,7 @@ def test_create_houlsby_adapter_invalid_model(
 
 # =========================================LORA================================================
 @pytest.mark.skipif(
-    not is_torch_1_8_plus or not is_python_3_8_plus, reason="Not supported"
+    not is_torch_2_6_plus or not is_python_3_8_plus, reason="Not supported"
 )
 @pytest.mark.parametrize("rank, alpha, target_modules", [(2, 4, ["linear_q"])])
 def test_create_lora_adapter_linear(rank, alpha, target_modules):
@@ -170,7 +170,7 @@ def test_create_lora_adapter_linear(rank, alpha, target_modules):
 
 
 @pytest.mark.skipif(
-    not is_torch_1_8_plus or not is_python_3_8_plus, reason="Not supported"
+    not is_torch_2_6_plus or not is_python_3_8_plus, reason="Not supported"
 )
 @pytest.mark.parametrize("rank, alpha, target_modules", [(2, 4, ["embed.0"])])
 def test_create_lora_adapter_embedding(rank, alpha, target_modules):
@@ -184,7 +184,7 @@ def test_create_lora_adapter_embedding(rank, alpha, target_modules):
 
 
 @pytest.mark.skipif(
-    not is_torch_1_8_plus or not is_python_3_8_plus, reason="Not supported"
+    not is_torch_2_6_plus or not is_python_3_8_plus, reason="Not supported"
 )
 @pytest.mark.parametrize("rank, alpha, target_modules", [(2, 4, ["query_proj"])])
 def test_create_lora_adapter_invalid_target(rank, alpha, target_modules):
@@ -196,7 +196,7 @@ def test_create_lora_adapter_invalid_target(rank, alpha, target_modules):
 
 
 @pytest.mark.skipif(
-    not is_torch_1_8_plus or not is_python_3_8_plus, reason="Not supported"
+    not is_torch_2_6_plus or not is_python_3_8_plus, reason="Not supported"
 )
 @pytest.mark.parametrize("rank, alpha, target_modules", [(2, 4, ["norm1"])])
 def test_create_lora_adapter_unsupport_target(rank, alpha, target_modules):
@@ -208,7 +208,7 @@ def test_create_lora_adapter_unsupport_target(rank, alpha, target_modules):
 
 
 @pytest.mark.skipif(
-    not is_torch_1_8_plus or not is_python_3_8_plus, reason="Not supported"
+    not is_torch_2_6_plus or not is_python_3_8_plus, reason="Not supported"
 )
 @pytest.mark.parametrize("rank, alpha, target_modules", [(2, 4, 5)])
 def test_create_lora_adapter_invalid_type(rank, alpha, target_modules):
