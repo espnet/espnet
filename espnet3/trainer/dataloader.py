@@ -47,11 +47,12 @@ class DataLoaderBuilder:
     def build(self, mode: str):
         mode_config = getattr(self.config.dataloader, mode, DictConfig({}))
 
-        if hasattr(mode_config, "multiple_iterator") and mode_config.multiple_iterator:
-            return self._build_multiple_iterator(mode_config)
-        if mode_config.iter_factory is not None:
-            return self._build_iter_factory(mode_config.iter_factory)
-        return self._build_standard_dataloader(mode_config)
+        config = copy.copy(mode_config)
+        if hasattr(config, "multiple_iterator") and config.multiple_iterator:
+            return self._build_multiple_iterator(config)
+        if config.iter_factory is not None:
+            return self._build_iter_factory(config.iter_factory)
+        return self._build_standard_dataloader(config)
 
     def _build_standard_dataloader(self, dataloader_config, dataset=None):
         if dataset is None:
@@ -131,8 +132,7 @@ class DataLoaderBuilder:
             iter_factory_config = update_shard(iter_factory_config, shard_idx)
             return self._build_iter_factory(iter_factory_config, dataset)
         else:
-            dataloader_config = copy.copy(factory_config)
-            dataloader_config.pop("num_shards")
-            dataloader_config.pop("multiple_iterator")
-            return self._build_standard_dataloader(dataloader_config, dataset)
+            factory_config.pop("num_shards")
+            factory_config.pop("multiple_iterator")
+            return self._build_standard_dataloader(factory_config, dataset)
 
