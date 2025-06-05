@@ -202,7 +202,12 @@ jobs:
           USE_CONDA: ${{ matrix.use-conda }}
         run: |
           ./ci/install.sh
-
+      - name: Clean environment
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf /root/.cache/*
       - name: test configuration
         run: ./ci/test_configuration_espnet2.sh
       - uses: codecov/codecov-action@v2
