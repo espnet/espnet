@@ -91,7 +91,7 @@ requirements = {
         "pytest-runner",
     ],
     "test": [
-        "pytest>=7.0.0",
+        "pytest>=7.0.0,<8.4.0",
         "pytest-timeouts>=1.2.1",
         "pytest-pythonpath>=0.7.3",
         "pytest-cov>=2.7.1",
