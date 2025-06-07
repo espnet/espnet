@@ -74,6 +74,7 @@ if python3 -c 'import torch as t; from packaging.version import parse as L; asse
         fi
         ${python} -m espnet2.bin.asr_train --config "${f}" --iterator_type none --dry_run true --output_dir out --token_list dummy_token_list
         sudo rm -rf /root/.cache/huggingface*
+        rm -rf hf_cache hub
     done
 
     for f in egs2/*/asr1/conf/train_transducer*.yaml; do

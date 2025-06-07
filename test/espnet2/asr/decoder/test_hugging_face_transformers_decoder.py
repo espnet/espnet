@@ -1,12 +1,18 @@
 import pytest
 import torch
 
+from packaging.version import parse as V
+
 from espnet2.asr.decoder.hugging_face_transformers_decoder import (
     HuggingFaceTransformersDecoder,
     read_json_config,
 )
 
 
+is_torch_2_6_plus = V(torch.__version__) >= V("2.6.0")
+
+
+@pytest.mark.skipif(not is_torch_2_6_plus, reason="Require torch 2.6.0+")
 @pytest.mark.parametrize(
     "model_name_or_path",
     [
@@ -32,6 +38,7 @@ def test_HuggingFaceTransformersDecoder_backward(
     z_all.sum().backward()
 
 
+@pytest.mark.skipif(not is_torch_2_6_plus, reason="Require torch 2.6.0+")
 @pytest.mark.execution_timeout(30)
 def test_reload_pretrained_parameters():
     decoder = HuggingFaceTransformersDecoder(5000, 32, "akreal/tiny-random-mbart")
@@ -46,6 +53,7 @@ def test_reload_pretrained_parameters():
     assert torch.equal(saved_param, new_param)
 
 
+@pytest.mark.skipif(not is_torch_2_6_plus, reason="Require torch 2.6.0+")
 @pytest.mark.execution_timeout(30)
 def test_skip_reload_pretrained_parameters():
     decoder = HuggingFaceTransformersDecoder(
@@ -65,6 +73,7 @@ def test_skip_reload_pretrained_parameters():
     )  # Reloading should be skipped
 
 
+@pytest.mark.skipif(not is_torch_2_6_plus, reason="Require torch 2.6.0+")
 @pytest.mark.execution_timeout(30)
 def test_override_hf_decoder_config():
     overriding_architecture_config = {"d_model": 8, "ignore_mismatched_sizes": True}
@@ -85,6 +94,7 @@ def test_override_hf_decoder_config():
     assert decoder.decoder.embed_tokens.weight.shape == (5000, 16)
 
 
+@pytest.mark.skipif(not is_torch_2_6_plus, reason="Require torch 2.6.0+")
 @pytest.mark.parametrize(
     "model_name_or_path",
     [
