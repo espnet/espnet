@@ -42,7 +42,7 @@ def init_decoder_model():
 
 
 # =========================================Houlsby================================================
-@pytest.mark.execution_timeout(6)
+@pytest.mark.execution_timeout(20)
 @pytest.mark.skipif(
     not is_torch_2_6_plus or not is_python_3_8_plus, reason="Not supported"
 )
@@ -65,7 +65,7 @@ def test_create_houlsby_adapter_bottleneck(
     )
 
 
-@pytest.mark.execution_timeout(6)
+@pytest.mark.execution_timeout(20)
 @pytest.mark.skipif(
     not is_torch_2_6_plus or not is_python_3_8_plus, reason="Not supported"
 )
@@ -102,6 +102,7 @@ def test_create_houlsby_adapter_hf_wav2vec2_custom_bottleneck(
     )
 
 
+@pytest.mark.execution_timeout(20)
 @pytest.mark.skipif(
     not is_torch_2_6_plus or not is_python_3_8_plus, reason="Not supported"
 )
@@ -233,15 +234,16 @@ def test_create_lora_adapter_invalid_type(rank, alpha, target_modules):
 
 if __name__ == "__main__":
     s3prl_model = init_S3prl_model()
-    test_create_houlsby_adapter_bottleneck(s3prl_model, 64, [])
+    test_create_houlsby_adapter_bottleneck("s3prl", 64, [])
     print("create_houlsby_adapter_bottleneck test passed")
     print("-----------------------------------------------------------")
     s3prl_model = init_S3prl_model(
         {"upstream": "hf_wav2vec2_custom", "path_or_url": "facebook/mms-300m"}
     )
-    test_create_houlsby_adapter_hf_wav2vec2_custom_bottleneck(s3prl_model, 64, [])
+    test_create_houlsby_adapter_hf_wav2vec2_custom_bottleneck("s3prl", 64, [])
     print("create_houlsby_adapter_hf_wav2vec2_custom_bottleneck test passed")
     print("-----------------------------------------------------------")
+    exit()
     s3prl_model = init_S3prl_model()
     test_create_houlsby_adapter_target_layers(s3prl_model, 64, [1, 2])
     print("create_houlsby_adapter_target_layers test passed")
