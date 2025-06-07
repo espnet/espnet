@@ -42,6 +42,7 @@ def init_decoder_model():
 
 
 # =========================================Houlsby================================================
+@pytest.mark.execution_timeout(6)
 @pytest.mark.skipif(
     not is_torch_2_6_plus or not is_python_3_8_plus, reason="Not supported"
 )
@@ -64,6 +65,7 @@ def test_create_houlsby_adapter_bottleneck(
     )
 
 
+@pytest.mark.execution_timeout(6)
 @pytest.mark.skipif(
     not is_torch_2_6_plus or not is_python_3_8_plus, reason="Not supported"
 )
