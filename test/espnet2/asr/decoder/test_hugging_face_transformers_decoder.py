@@ -1,13 +1,11 @@
 import pytest
 import torch
-
 from packaging.version import parse as V
 
 from espnet2.asr.decoder.hugging_face_transformers_decoder import (
     HuggingFaceTransformersDecoder,
     read_json_config,
 )
-
 
 is_torch_2_6_plus = V(torch.__version__) >= V("2.6.0")
 
