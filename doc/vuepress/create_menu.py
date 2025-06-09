@@ -28,6 +28,24 @@ if __name__ == "__main__":
 
     # Create navbar (on the upper side of the page)
     navbars = [{
+        "text": "Tutorials",
+        "icon": "ic:round-school",
+        "prefix": "/",
+        "children": [
+            {"text": "Full ESPnet installation", "link": "installation.md"},
+            {"text": "ESPnet2", "link": "espnet2_tutorial.md"},
+            {"text": "ESPnet1", "link": "espnet1_tutorial.md"},
+            {"text": "Training configurations", "link": "espnet2_training_option.md"},
+            {"text": "Recipe tips", "link": "tutorial.md"},
+            {"text": "Audio formatting", "link": "espnet2_format_wav_scp.md"},
+            {"text": "Task class and data input system", "link": "espnet2_task.md"},
+            {"text": "Docker", "link": "docker.md"},
+            {"text": "Job scheduling system", "link": "parallelization.md"},
+            {"text": "Distributed training", "link": "espnet2_distributed.md"},
+            {"text": "Document Generation", "link": "document.md"},
+        ]
+    },
+    {
         "text": "Demos",
         "icon": "fa-solid:laptop-code",
         "prefix": "notebook/",
