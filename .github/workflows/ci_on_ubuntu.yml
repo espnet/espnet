@@ -176,7 +176,7 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         python-version: ["3.10"]
-        pytorch-version: ["2.4.0"]
+        pytorch-version: ["2.6.0"]
         chainer-version: ["6.0.0"]
         use-conda: [false]
     steps:
@@ -202,7 +202,12 @@ jobs:
           USE_CONDA: ${{ matrix.use-conda }}
         run: |
           ./ci/install.sh
-
+      - name: Clean environment
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf /root/.cache/*
       - name: test configuration
         run: ./ci/test_configuration_espnet2.sh
       - uses: codecov/codecov-action@v2
@@ -307,6 +312,7 @@ jobs:
       env:
         TH_VERSION: ${{ matrix.pytorch-version }}
       run: |
+        python3 -m pip install -U "Cython<3.1.0"
         python3 -m pip install -U numba
         ./tools/installers/install_torch.sh false ${TH_VERSION} CPU
         ./tools/installers/install_chainer.sh CPU
