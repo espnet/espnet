@@ -149,7 +149,7 @@ if [ "${stage}" -le 0 ] && [ "${stop_stage}" -ge 0 ]; then
     export -f log
     export db_root tmpdir
 
-    cat "${tmpdir}/speakers.list" | xargs -n 1 -P "${nj}" -I{} bash -c 'process_speaker "$@"' _ {}
+    xargs -n 1 -P "${nj}" -I{} bash -c 'process_speaker "$@"' _ {} < "${tmpdir}/speakers.list"
 
     for type in wav.scp text; do
         sort -k1,1V "${tmpdir}/${type}" > "data/train/${type}"
@@ -183,8 +183,6 @@ fi
 
 if [ "${stage}" -le 1 ] && [ "${stop_stage}" -ge 1 ]; then
     log "Stage 1: Split data into training, development and evaluation sets"
-
-    total_utts=$(wc -l < data/train/wav.scp)
 
     train_list="${db_root}/expresso_processed/splits/train.txt"
     dev_list="${db_root}/expresso_processed/splits/dev.txt"
