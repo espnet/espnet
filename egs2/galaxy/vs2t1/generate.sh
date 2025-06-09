@@ -7,7 +7,7 @@ set -o pipefail
 
 train_set=galaxy_train
 valid_set=galaxy_valid
-# test_sets="visspeech_test_whisper_visual" 
+# test_sets="visspeech_test_whisper_visual"
 # test_sets="dev5_visual"
 test_sets="galaxy_test"
 

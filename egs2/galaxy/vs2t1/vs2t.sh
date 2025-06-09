@@ -1368,10 +1368,10 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ] && ! [[ " ${skip_stages} " =~
         for extra_txt in ${utt_extra_files}; do
             _all_scps+="${_s2t_train_dir}/${extra_txt} ${s2t_stats_dir}/train/${extra_txt//./_}_shape.${token_type} "
         done
-        if ${use_visual_feature}; then  
+        if ${use_visual_feature}; then
             _all_scps+="${_s2t_train_dir}/${vis_feature} ${s2t_stats_dir}/train/${vis_feature//./_}_shape.${token_type} "
         fi
-        if ${use_mask_frame}; then  
+        if ${use_mask_frame}; then
             _all_scps+="${_s2t_train_dir}/${mask_frame} ${s2t_stats_dir}/train/${mask_frame//./_}_shape.${token_type} "
         fi
 
