@@ -182,7 +182,7 @@ class TorchAudioHuBERTPretrainEncoder(AbsEncoder):
         if finetuning:
             for p in self.hubert_pretrain_model.wav2vec2.feature_extractor.parameters():
                 p.requires_grad = False
-        self.register_buffer("global_step", torch.LongTensor([0]))
+        self.register_buffer("global_step", torch.tensor([0], dtype=torch.long))
         self.freeze_encoder_updates = freeze_encoder_updates
 
     def output_size(self) -> int:
@@ -429,7 +429,7 @@ class FairseqHubertEncoder(AbsEncoder):
             self.output_layer = None
 
         self.freeze_finetune_updates = freeze_finetune_updates
-        self.register_buffer("num_updates", torch.LongTensor([0]))
+        self.register_buffer("num_updates", torch.tensor([0], dtype=torch.long))
 
     def output_size(self) -> int:
         return self._output_size
