@@ -69,6 +69,12 @@ pull_request_rules:
     actions:
       label:
         add: ["ESPnet2"]
+  - name: "auto add label=ESPnet3"
+    conditions:
+      - files~=^(espnet3/|egs3/)
+    actions:
+      label:
+        add: ["ESPnet3"]
   - name: "auto add label=ASR"
     conditions:
       - files~=^(espnet*/asr|egs*/*/asr1)
