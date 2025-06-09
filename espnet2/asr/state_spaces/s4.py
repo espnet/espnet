@@ -640,8 +640,7 @@ class SSKernelNPLR(OptimModule):
         elif L > self.L.item():  # 2*int(self.L) == L:
             if self.verbose:
                 log.info(
-                    f"S4: Doubling length from L = {self.L.item()} "
-                    f"to {2 * self.L.item()}"
+                    f"S4: Doubling length from L = {self.L.item()} to {2*self.L.item()}"
                 )
             double_length = True
             L = self.L.item()  # Convenience for the math below

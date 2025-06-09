@@ -1,8 +1,8 @@
 # Adapted from TorchAudio
 # github.com/pytorch/audio/blob/main/src/torchaudio/models/wav2vec2/components.py
 
-# import copy
-# import logging
+import copy
+import logging
 from typing import List, Optional, Tuple, Union
 
 import torch
@@ -84,8 +84,7 @@ class ConvLayerBlock(Module):
         x: Tensor,
         length: Optional[Tensor],
     ) -> Tuple[Tensor, Optional[Tensor]]:
-        """Forward Method.
-
+        """
         Args:
             x (Tensor): Shape: ``[batch, in_channels, in_frame]``.
             length (Tensor or None, optional): Shape ``[batch, ]``.
@@ -189,8 +188,7 @@ class CNNFrontend(AbsFrontend):
         x: Tensor,
         length: Optional[Tensor],
     ) -> Tuple[Tensor, Optional[Tensor]]:
-        """Forward Method.
-
+        """
         Args:
             x (Tensor):
                 Input Tensor representing a batch of audio,

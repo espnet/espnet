@@ -124,7 +124,6 @@ class HuBERTDecoder(nn.Module):
         final_dim: int,
     ):
         """Generate the logits of masked and unmasked inputs.
-
         Args:
             encoder_embed_dim (int): The dimension of the transformer embedding output.
             num_classes (int): The number of classes in the labels.
@@ -138,8 +137,7 @@ class HuBERTDecoder(nn.Module):
     def forward(
         self, x: torch.Tensor, mask_m: torch.Tensor, mask_u: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Forward Method.
-
+        """
         Args:
             x (Tensor): The feature representation of the last transformer layer.
             mask_m (Tensor): The masked indices of dimension `[batch, frame]`.

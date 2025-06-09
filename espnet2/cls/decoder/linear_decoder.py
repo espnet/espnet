@@ -23,7 +23,6 @@ class LinearDecoder(AbsDecoder):
         dropout: float = 0.0,
     ):
         """Initialize the module."""
-
         super().__init__()
 
         self.input_dim = encoder_output_size
@@ -44,8 +43,7 @@ class LinearDecoder(AbsDecoder):
         hs_pad: torch.Tensor,
         hlens: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Forward Method.
-
+        """
         Args:
             hs_pad: (B, Tmax, D)
             hlens: (B,)
@@ -71,7 +69,6 @@ class LinearDecoder(AbsDecoder):
 
     def score(self, ys, state, x):
         """Classify x.
-
         Args:
             ys: Not used
             state: Not used
@@ -92,5 +89,4 @@ class LinearDecoder(AbsDecoder):
 
     def output_size(self) -> int:
         """Get the output size."""
-
         return self.output_dim
