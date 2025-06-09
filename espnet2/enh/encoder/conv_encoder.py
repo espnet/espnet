@@ -82,7 +82,7 @@ class ConvEncoder(AbsEncoder):
 
 if __name__ == "__main__":
     input_audio = torch.randn((2, 100))
-    ilens = torch.LongTensor([100, 98])
+    ilens = torch.tensor([100, 98], dtype=torch.long)
 
     nfft = 32
     win_length = 28
