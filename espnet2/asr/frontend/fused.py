@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Any, Dict, List, Tuple
 
 import numpy as np
 import torch
@@ -12,7 +12,11 @@ from espnet2.asr.frontend.s3prl import S3prlFrontend
 class FusedFrontends(AbsFrontend):
     @typechecked
     def __init__(
-        self, frontends=None, align_method="linear_projection", proj_dim=100, fs=16000
+        self,
+        frontends: List[Dict[str, Any]] = None,
+        align_method: str = "linear_projection",
+        proj_dim: int = 100,
+        fs: int = 16000,
     ):
         super().__init__()
         self.align_method = (
