@@ -1,7 +1,7 @@
 import argparse
 from pathlib import Path
 
-import espnet3 as ez
+import espnetez as ez
 from espnet2.bin.asr_inference import Speech2Text as ASRInference
 from espnet2.bin.asr_transducer_inference import Speech2Text as RNNTInference
 from espnet2.bin.enh_inference import SeparateSpeech as ENHInference
@@ -203,7 +203,7 @@ if __name__ == "__main__":
 
     elif args.task == "enh":
         data_info = {
-            f"speech_ref{i + 1}": [f"spk{i + 1}.scp", "sound"]
+            f"speech_ref{i+1}": [f"spk{i+1}.scp", "sound"]
             for i in range(finetune_config["separator_conf"]["num_spk"])
         }
         data_info["speech_mix"] = ["wav.scp", "sound"]

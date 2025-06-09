@@ -1,13 +1,9 @@
 import argparse
 from pathlib import Path
 
-import torch
 import yaml
-from hydra.utils import instantiate
 
-import espnet3 as ez
-from espnet3 import get_espnet_model  # , save_espnet_config
-from espnet3.trainer import ESPnetEZLightningTrainer, LitESPnetModel
+import espnetez as ez
 
 TASK_CLASSES = [
     "asr",
@@ -101,7 +97,7 @@ if __name__ == "__main__":
     }
 
     # configuration
-    training_config = ez.utils.config.from_yaml(args.task, args.config_path)
+    training_config = ez.config.from_yaml(args.task, args.config_path)
     training_config["max_epoch"] = 1
     training_config["ngpu"] = 0
     training_config["bpemodel"] = str(args.data_path / "spm/bpemodel/bpe.model")
@@ -114,7 +110,7 @@ if __name__ == "__main__":
         user_defined_symbols = ["<sos>", "<eos>", "<sop>", "<na>"]
         # add timestamps
         user_defined_symbols += ["<notimestamps>"]
-        user_defined_symbols += [f"<{i * 0.02:.2f}>" for i in range(1501)]
+        user_defined_symbols += [f"<{i*0.02:.2f}>" for i in range(1501)]
     else:
         user_defined_symbols = []
 
@@ -129,7 +125,7 @@ if __name__ == "__main__":
     # set data_info for specific tasks
     if args.task == "enh":
         data_info = {
-            f"speech_ref{i + 1}": [f"spk{i + 1}.scp", "sound"]
+            f"speech_ref{i+1}": [f"spk{i+1}.scp", "sound"]
             for i in range(training_config["separator_conf"]["num_spk"])
         }
         data_info["speech_mix"] = ["wav.scp", "sound"]
@@ -310,33 +306,16 @@ if __name__ == "__main__":
     exp_dir = str(args.exp_path / args.task)
     stats_dir = str(args.exp_path / "stats")
 
-    model = (
-        get_espnet_model(args.task, training_config)
-        if args.task
-        else instantiate(training_config)
+    trainer = ez.Trainer(
+        task=args.task,
+        train_config=training_config,
+        train_dump_dir=args.train_dump_path,
+        valid_dump_dir=args.valid_dump_path,
+        data_info=data_info,
+        output_dir=exp_dir,
+        stats_dir=stats_dir,
+        ngpu=0,
     )
-    lit_model = LitESPnetModel(model, training_config)
-
-    # Float32 precision
-    torch.set_float32_matmul_precision("high")
-
-    # Setup trainer
-    trainer = ESPnetEZLightningTrainer(
-        model=lit_model,
-        expdir=training_config.expdir,
-        config=training_config.trainer,
-        best_model_criterion=training_config.best_model_criterion,
-    )
-    # trainer = ez.ESPnetEZLightningTrainer(
-    #     task=args.task,
-    #     train_config=training_config,
-    #     train_dump_dir=args.train_dump_path,
-    #     valid_dump_dir=args.valid_dump_path,
-    #     data_info=data_info,
-    #     output_dir=exp_dir,
-    #     stats_dir=stats_dir,
-    #     ngpu=0,
-    # )
     if args.run_collect_stats:
         trainer.collect_stats()
 
