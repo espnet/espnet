@@ -726,7 +726,9 @@ class VITS(AbsGANSVS):
             phoneme_dur_loss = self.mse_loss(
                 pred_dur[:, 0, :].squeeze(1), gt_dur.float()
             )
-            score_dur_loss = self.mse_loss(pred_dur[:, 1, :].squeeze(1), gt_dur.float())
+            score_dur_loss = self.mse_loss(
+                pred_dur[:, 1, :].squeeze(1), score_dur.float()
+            )
 
             if self.use_phoneme_predictor:
                 ctc_loss = self.ctc_loss(log_probs, label, feats_lengths, label_lengths)
@@ -985,7 +987,7 @@ class VITS(AbsGANSVS):
         label = label["lab"]
         melody = melody["lab"]
         score_dur = duration["score_syb"]
-        gt_dur = duration["lab"]
+        gt_dur = duration.get("lab", None)
         text = text[None]
         text_lengths = torch.tensor(
             [text.size(1)],
