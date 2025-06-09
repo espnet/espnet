@@ -26,7 +26,7 @@ highlights:
       - title: "High-performance training and full experiment replication"
         details: "Complete the full installation and use the existing recipes."
         icon: fa-solid:server
-        link: ./espnet2_tutorial.md
+        link: ./installation.md
 
   - header: Comprehensive Task Coverage
     description: We offer complete recipes for a wide range of speech processing tasks.
