@@ -36,7 +36,7 @@ ngpu=1               # The number of gpus ("0" uses cpu, otherwise use gpu).
 gpu_id=0             # GPU_id, only works when ngpu=1
 num_nodes=1          # The number of nodes.
 nj=32                # The number of parallel jobs.
-inference_nj=1      # The number of parallel jobs in decoding.
+inference_nj=32      # The number of parallel jobs in decoding.
 gpu_inference=false  # Whether to perform gpu decoding.
 dumpdir=dump         # Directory to dump features.
 expdir=exp           # Directory to save experiments.
@@ -127,7 +127,8 @@ download_model=""   # Download a model from Model Zoo and use it for decoding.
 
 # evaluation related
 skip_versa=false
-versa_config=../../TEMPLATE/svs1/conf/versa.yaml
+versa_cpu_config=../../TEMPLATE/svs2/conf/versa_cpu.yaml
+versa_gpu_config=../../TEMPLATE/svs2/conf/versa_gpu.yaml
 
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=""     # Name of training set.
@@ -308,7 +309,7 @@ else
         kmeans_feature_conf="{type=encodec,conf={fs=48000,bandwidth=12,multilayer_feature=False,layer=${layer},download_path=${encodec_url}}}"
     elif [ ${kmeans_feature_type} != "multi" ]; then
         s3prl_conf="{upstream=${kmeans_feature_type}}"
-        kmeans_feature_conf="{type=s3prl,conf={s3prl_conf=${s3prl_conf},download_dir=ckpt,multilayer_feature=False,layer=${layer}}}"
+        kmeans_feature_conf="{type=s3prl,conf={s3prl_conf=${s3prl_conf},multilayer_feature=False,layer=${layer}}}"
     fi
 fi
 if [ ${kmeans_feature_type} = "multi" ]; then
@@ -404,7 +405,6 @@ if ! "${skip_data_prep}"; then
         # [Task dependent] Need to create data.sh for new corpus
         local/data.sh ${local_data_opts} --fs "${fs}" --g2p "${g2p}"
     fi
-
 
 
     if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
@@ -546,9 +546,7 @@ if ! "${skip_data_prep}"; then
 
             # fix_data_dir.sh leaves only utts which exist in all files
             utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files}" "${data_feats}/${dset}"
-
         done
-
         # shellcheck disable=SC2002
         cat ${srctexts} | awk ' { if( NF != 1 ) print $0; } ' >"${data_feats}/srctexts"
     fi
@@ -1238,17 +1236,20 @@ if ! "${skip_eval}"; then
                 for i in $(seq "${_nj}"); do
                     cat "${_logdir}/output.${i}/norm/feats.scp"
                 done | LC_ALL=C sort -k1 > "${_dir}/norm/feats.scp"
-                #for i in $(seq "${_nj}"); do
-                #    cat "${_logdir}/output.${i}/denorm/feats.scp"
-                #done | LC_ALL=C sort -k1 > "${_dir}/denorm/feats.scp"
             fi
 
             for i in $(seq "${_nj}"); do
                  cat "${_logdir}/output.${i}/speech_shape/speech_shape"
             done | LC_ALL=C sort -k1 > "${_dir}/speech_shape"
+
+            > "${_dir}/wav/wav.scp"
             for i in $(seq "${_nj}"); do
-                mv -u "${_logdir}/output.${i}"/wav/*.wav "${_dir}"/wav
-                rm -rf "${_logdir}/output.${i}"/wav
+                mv -u "${_logdir}/output.${i}/wav/"*.wav "${_dir}/wav/"
+                if [ -f "${_logdir}/output.${i}/wav/wav.scp" ]; then
+                    sed "s|${_logdir}/output.${i}/wav/|${_dir}/wav/|g" \
+                        "${_logdir}/output.${i}/wav/wav.scp" >> "${_dir}/wav/wav.scp"
+                fi
+                rm -rf "${_logdir}/output.${i}/wav"
             done
             if [ -e "${_logdir}/output.${_nj}/att_ws" ]; then
                 mkdir -p "${_dir}"/att_ws
@@ -1277,73 +1278,43 @@ if ! "${skip_eval}"; then
         log "Stage 9: Scoring"
 
         if ! "${skip_versa}"; then
-            log "Scoring SVS evaluation via VERSA, using default ${versa_config}. \
+            log "Scoring SVS evaluation via VERSA, using default ${versa_cpu_config} and ${versa_gpu_config}. \
 You can visit https://github.com/shinjiwlab/versa?tab=readme-ov-file#list-of-metrics \
 for more supported metrics."
 
             for dset in ${test_sets}; do
                 _data="${data_feats}/${dset}"
                 _dir="${svs_exp}/${inference_tag}/${dset}"
-                _score_config=${versa_config}
 
                 _gt_wavscp="${_data}/wav.scp"
                 _gen_wavscp="${_dir}/wav/wav.scp"
 
                 _eval_dir=${_dir}/scoring/versa_eval
                 mkdir -p ${_eval_dir}
-                _opts=
 
-                _nj=$(( inference_nj < $(wc -l < "${_gen_wavscp}") ? inference_nj : $(wc -l < "${_gen_wavscp}") ))
+                _opts=""
+                _opts+="${_gen_wavscp} "
+                _opts+="${_gt_wavscp} "
+                _opts+="None "
 
-                _split_files=""
-                for n in $(seq ${_nj}); do
-                    _split_files+="${_eval_dir}/pred.${n} "
-                done
-                utils/split_scp.pl ${_gen_wavscp} ${_split_files}
+                _cpu_nj=$(( inference_nj < $(wc -l < "${_gen_wavscp}") ? inference_nj : $(wc -l < "${_gen_wavscp}") ))
+                _gpu_nj=1
 
-                if [ -n "${_gt_wavscp}" ]; then
-                    _split_files=""
-                    for n in $(seq ${_nj}); do
-                        _split_files+="${_eval_dir}/gt.${n} "
-                    done
-                    utils/split_scp.pl ${_gt_wavscp} ${_split_files}
-                    _opts+="--gt ${_eval_dir}/gt.JOB"
-                fi
-
-                if ${gpu_inference}; then
-                    _cmd="${cuda_cmd}"
-                    _ngpu=1
-                else
-                    _cmd="${decode_cmd}"
-                    _ngpu=0
-                fi
-
-                ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_eval_dir}"/versa_eval.JOB.log \
-                    python -m versa.bin.scorer \
-                        --pred ${_eval_dir}/pred.JOB \
-                        --score_config ${_score_config} \
-                        --gt ${_gt_wavscp} \
-                        --text ${_data}/text \
-                        --use_gpu ${gpu_inference} \
-                        --output_file ${_eval_dir}/result.JOB.txt \
-                        --io soundfile \
-                        ${_opts} 2>&1;
+                ./scripts/utils/versa_eval.sh ${_opts} "${_eval_dir}/cpu" ${_cpu_nj} ${versa_cpu_config} --cpu-only
+                ./scripts/utils/versa_eval.sh ${_opts} "${_eval_dir}/gpu" ${_gpu_nj} ${versa_gpu_config} --gpu-only
 
                 python pyscripts/utils/aggregate_eval.py \
-                    --logdir ${_eval_dir} \
-                    --scoredir ${_eval_dir} \
-                    --nj ${_nj}
+                    --logdir ${_eval_dir}/cpu/result \
+                    --scoredir ${_eval_dir}/cpu \
+                    --nj ${_cpu_nj}
+                
+                python pyscripts/utils/aggregate_eval.py \
+                    --logdir ${_eval_dir}/gpu/result \
+                    --scoredir ${_eval_dir}/gpu \
+                    --nj ${_gpu_nj}
 
-                _log_dir="${_eval_dir}"
-                _count=0
-                for f in "${_log_dir}"/result.*.txt; do
-                    if [ -f "$f" ]; then
-                        c=$(wc -l < "$f")
-                        _count=$(( _count + c ))
-                    fi
-                done
-                echo "sentences: ${_count}" >> "${_eval_dir}/avg_result.txt"
-                ./scripts/utils/show_tts_results.sh ${_dir}
+                cat ${_eval_dir}/gpu/avg_result.txt ${_eval_dir}/cpu/avg_result.txt > ${_eval_dir}/avg_result.txt
+                cat ${_eval_dir}/gpu/utt_result.txt ${_eval_dir}/cpu/utt_result.txt > ${_eval_dir}/utt_result.txt
                 log "Finished scoring evaluation, results are in ${_eval_dir}"
             done
         fi

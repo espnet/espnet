@@ -18,7 +18,7 @@ score_feats_extract=syllable_score_feats   # frame_score_feats | syllable_score_
 kmeans_feature="multi/hubert_large_6+wavlm_large_6+wavlm_large_23"
 # split with '/', use model_type/layer_index, e.g.:
 # 'multi layer': "multi/hubert_l_6+wavlm_l_6+wavlm_l_23";
-# 'single layer': "hubert_larg_ll60k/6" | "wavlm_large/6" | "wavlm_large/23" | "xls_r_300m/6";
+# 'single layer': "hubert_large_ll60k/6" | "wavlm_large/6" | "wavlm_large/23" | "xls_r_300m/6";
 multi_token="hubert_large_ll60k_128_6 wavlm_large_128_6 wavlm_large_128_23"
 # concat with ' ', use prepared 'model_type_nclusters_layer_index' tokens
 # e.g. "hubert_large_ll60k_128_6_RVQ_0 wavlm_large_128_6_RVQ_0 wavlm_large_128_23_RVQ_0"
