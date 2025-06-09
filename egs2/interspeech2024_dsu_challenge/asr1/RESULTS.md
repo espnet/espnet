@@ -8,6 +8,15 @@
 - Git hash: `77e6bc7776a8250fa8ab6a090cd2335dfcbf4702`
   - Commit date: `Thu Jan 30 14:32:14 2025 -0600`
 
+## Details
+- The best setting for librispeech is fully-finetuning from layer 21, and ML-SUPERB is using the frozen features from layer 21.
+- The former setting is in conf/tuning/train_asr_wavlm_21_ft_lr1e-4_warmup30k.yaml
+- The latter setting is in conf/tuning/train_asr_wavlm_21_lr1e-4_warmup30k.yaml
+- Currently, the latter setting is set as default, as the former setting degrades ML-SUPERB performances more.
+- The code here can be used to reproduce the baseline results of the Figure 4 and Table 2 of the paper [On-device Streaming Discrete Speech Units (Interspeech 2025)](https://arxiv.org/abs/2506.01845).
+- Detailed results for all the settings (different layers and settings) can be found below.
+
+
 # Full fine-tuning of SSL model with different layers 0, 3, ..., 21
 
 ## exp/asr_train_asr_wavlm_0_ft_lr1e-4_warmup30k_raw_bpe6500

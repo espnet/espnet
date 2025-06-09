@@ -9,7 +9,7 @@ train_set="train_960"
 valid_set="dev"
 test_sets="test_1h test_clean test_other dev_clean dev_other"
 
-asr_config=conf/tuning/train_asr_wavlm_21_lr1e-4.yaml
+asr_config=conf/tuning/train_asr_wavlm_21_lr1e-4_warmup30k.yaml
 inference_config=conf/decode_ctc0.3_beamsize5.yaml
 
 ./asr.sh \
