@@ -6,6 +6,7 @@
 import numpy as np
 import pytest
 import torch
+
 # from hydra.utils import instantiate
 from omegaconf import OmegaConf
 
@@ -91,7 +92,7 @@ def config(tmp_path):
                 },
                 "train": {
                     "batch_size": 80,
-                    "num_workers": 0, 
+                    "num_workers": 0,
                     "shuffle": True,
                 },
                 "valid": {

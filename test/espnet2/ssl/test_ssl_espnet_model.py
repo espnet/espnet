@@ -1,8 +1,6 @@
 import pytest
 import torch
 
-# from packaging.version import parse as V
-
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
 from espnet2.asr.encoder.e_branchformer_encoder import EBranchformerEncoder
 from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
@@ -12,6 +10,9 @@ from espnet2.ssl.espnet_model import ESPnetSSLModel
 from espnet2.ssl.loss.hubert import HuBERTLoss
 from espnet2.tasks.ssl import util_choices
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+
+# from packaging.version import parse as V
+
 
 
 @pytest.mark.parametrize("encoder_arch", [TransformerEncoder])

@@ -184,7 +184,7 @@ class GroupResidualVectorQuantization(nn.Module):
         quantizer_kmeans_init,
         quantizer_kmeans_iters,
         quantizer_threshold_ema_dead_code,
-        **kwargs
+        **kwargs,
     ):
         super().__init__()
 
