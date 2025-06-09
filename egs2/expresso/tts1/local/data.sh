@@ -70,7 +70,7 @@ eval_set=eval1
 
 if [ "${stage}" -le -2 ] && [ "${stop_stage}" -ge -2 ]; then
     log "Stage -2: Data download"
-    bash local/data_download.sh "${db_root}" 
+    bash local/data_download.sh "${db_root}"
 fi
 
 if [ "${stage}" -le -1 ] && [ "${stop_stage}" -ge -1 ]; then

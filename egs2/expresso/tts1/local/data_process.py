@@ -1,10 +1,12 @@
 import argparse
+import os
 import shutil
 from pathlib import Path
-from tqdm import tqdm
-import soundfile as sf
-import os
+
 import librosa
+import soundfile as sf
+from tqdm import tqdm
+
 
 def get_audio_duration(filepath):
     info = sf.info(filepath)
@@ -17,7 +19,7 @@ def remove_and_resample(root_dir, max_duration, resample_rate=None):
     wav_files = []
     for dirpath, _, filenames in os.walk(root_dir):
         for fname in filenames:
-            if fname.lower().endswith('.wav'):
+            if fname.lower().endswith(".wav"):
                 wav_files.append(os.path.join(dirpath, fname))
 
     for fpath in tqdm(wav_files, desc="Removing and resampling audio"):
@@ -34,6 +36,7 @@ def remove_and_resample(root_dir, max_duration, resample_rate=None):
 
     print(f"✅ Removed {num_removed} audio files.")
 
+
 def clean_and_save_splits(split_dir, output_split_dir, existing_ids):
     output_split_dir.mkdir(parents=True, exist_ok=True)
     all_files = []
@@ -47,40 +50,44 @@ def clean_and_save_splits(split_dir, output_split_dir, existing_ids):
 
         cleaned_lines = []
         for line in lines:
-            parts = line.strip().split('\t')
+            parts = line.strip().split("\t")
             if len(parts) != 1:
                 continue
 
             utt_id = parts[0]
-            if utt_id.count('-') >= 2:
+            if utt_id.count("-") >= 2:
                 continue
             if utt_id not in existing_ids:
                 continue
 
-            speaker_prefix = utt_id.split('_')[0] + '-'
+            speaker_prefix = utt_id.split("_")[0] + "-"
             full_id = speaker_prefix + utt_id
             cleaned_lines.append(full_id)
             all_files.append(utt_id)
 
         with open(output_path, "w", encoding="utf-8") as f:
-            f.write('\n'.join(cleaned_lines) + '\n')
+            f.write("\n".join(cleaned_lines) + "\n")
 
     return all_files
 
+
 def organize_dataset(src_audio_dir, output_base_dir, transcription_path, all_files):
     transcriptions = {
-        line.split('\t')[0]: line.strip().split('\t')[1]
-        for line in open(transcription_path, 'r', encoding='utf-8')
+        line.split("\t")[0]: line.strip().split("\t")[1]
+        for line in open(transcription_path, "r", encoding="utf-8")
         if line.strip()
     }
 
     valid_ids = set(all_files)
-    for path in tqdm(list(Path(src_audio_dir).rglob("*.wav")), desc="Copying and organizing .wav files"):
+    for path in tqdm(
+        list(Path(src_audio_dir).rglob("*.wav")),
+        desc="Copying and organizing .wav files",
+    ):
         file_id = path.stem
         if file_id not in valid_ids:
             continue
 
-        speaker_id = file_id.split('_')[0]
+        speaker_id = file_id.split("_")[0]
         out_dir = Path(output_base_dir) / "audio" / speaker_id
         out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -88,15 +95,25 @@ def organize_dataset(src_audio_dir, output_base_dir, transcription_path, all_fil
         if not symlink_path.exists():
             symlink_path.symlink_to(path.resolve())
 
-        with open(out_dir / f"{file_id}.txt", 'w', encoding='utf-8') as f:
+        with open(out_dir / f"{file_id}.txt", "w", encoding="utf-8") as f:
             f.write(transcriptions.get(file_id, ""))
 
+
 def main():
-    parser = argparse.ArgumentParser(description="Organize audio dataset and clean splits.")
+    parser = argparse.ArgumentParser(
+        description="Organize audio dataset and clean splits."
+    )
     parser.add_argument("input_folder", help="Path to the input folder")
     parser.add_argument("output_folder", help="Path to the output folder")
-    parser.add_argument("--max_duration", type=float, default=60.0, help="Maximum audio duration in seconds")
-    parser.add_argument("--resample_rate", type=int, default=None, help="Resample rate for audio files")
+    parser.add_argument(
+        "--max_duration",
+        type=float,
+        default=60.0,
+        help="Maximum audio duration in seconds",
+    )
+    parser.add_argument(
+        "--resample_rate", type=int, default=None, help="Resample rate for audio files"
+    )
     args = parser.parse_args()
 
     input_path = Path(args.input_folder)
@@ -120,6 +137,7 @@ def main():
     organize_dataset(src_audio_dir, output_path, transcription_path, all_files)
 
     print("Processing completed.")
+
 
 if __name__ == "__main__":
     main()

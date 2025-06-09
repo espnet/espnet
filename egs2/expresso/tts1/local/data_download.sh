@@ -31,4 +31,3 @@ if [ ! -e "${db_root}" ]; then
 else
     echo "Already exists. Skipped."
 fi
-
