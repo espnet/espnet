@@ -748,4 +748,3 @@ You can train the following models by changing `*.yaml` config for `--train_conf
 - [TokSing](https://arxiv.org/abs/2406.08416)
 
 You can find example configs of the above models in [`egs/opencpop/svs2/conf/tuning`](../../opencpop/svs2/conf/tuning).
-

@@ -441,4 +441,3 @@ class EnCodecFeatureReader(BaseFeatureReader):
         feats = feats.cpu()
         feats_lens = feats_lens.cpu()
         return feats, feats_lens
-

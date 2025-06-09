@@ -66,4 +66,3 @@ class ParallelWaveGANPretrainedVocoder(torch.nn.Module):
                 feats,
                 normalize_before=self.normalize_before,
             ).view(-1)
-
