@@ -71,6 +71,7 @@ from espnet.nets.asr_interface import dynamic_import_asr
     ],
 )
 def test_train_pytorch_dtype(dtype, device, model, conf):
+    pytest.skip("Dynamo issue. Check https://github.com/pytorch/pytorch/issues/110549.")
     if device == "cuda" and not torch.cuda.is_available():
         pytest.skip("no cuda device is available")
     if device == "cpu" and dtype == "float16":
