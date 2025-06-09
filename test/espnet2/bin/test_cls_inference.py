@@ -12,6 +12,8 @@ import yaml
 from espnet2.bin.cls_inference import Classification, get_parser, inference, main
 from espnet2.tasks.cls import CLSTask
 
+# import yaml
+
 
 def test_get_parser():
     assert isinstance(get_parser(), ArgumentParser)

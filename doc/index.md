@@ -26,7 +26,7 @@ highlights:
       - title: "High-performance training and full experiment replication"
         details: "Complete the full installation and use the existing recipes."
         icon: fa-solid:server
-        link: ./espnet2_tutorial.md
+        link: ./installation.md
 
   - header: Comprehensive Task Coverage
     description: We offer complete recipes for a wide range of speech processing tasks.
@@ -84,6 +84,11 @@ highlights:
       background-repeat: repeat
       background-size: initial
     features:
+      - title: Full ESPnet installation
+        details: Detailed steps for installing ESPnet to use its recipes
+        icon: ic:baseline-install-desktop
+        link: ./installation.md
+
       - title: ESPnet2
         details: Leveraging ESPnet2 recipes for full replication
         icon: mdi:graduation-cap

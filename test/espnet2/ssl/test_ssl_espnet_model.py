@@ -12,6 +12,8 @@ from espnet2.ssl.loss.hubert import HuBERTLoss
 from espnet2.tasks.ssl import util_choices
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 
+# from packaging.version import parse as V
+
 
 @pytest.mark.parametrize("encoder_arch", [TransformerEncoder])
 @pytest.mark.parametrize("loss_fn", [HuBERTLoss])
