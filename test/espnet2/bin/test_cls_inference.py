@@ -14,7 +14,6 @@ from espnet2.tasks.cls import CLSTask
 # import yaml
 
 
-
 def test_get_parser():
     assert isinstance(get_parser(), ArgumentParser)
 

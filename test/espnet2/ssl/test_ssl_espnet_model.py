@@ -14,7 +14,6 @@ from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 # from packaging.version import parse as V
 
 
-
 @pytest.mark.parametrize("encoder_arch", [TransformerEncoder])
 @pytest.mark.parametrize("loss_fn", [HuBERTLoss])
 def test_espnet_model_wav2vec(encoder_arch, loss_fn):
