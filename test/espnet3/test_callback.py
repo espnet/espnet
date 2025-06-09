@@ -26,9 +26,10 @@ def test_average_checkpoints_callback_on_fit_end(tmp_path, dummy_state_dict):
     """
     ckpt_paths = [tmp_path / f"ckpt_{i}.ckpt" for i in range(2)]
 
-    with mock.patch("torch.load", return_value=dummy_state_dict), mock.patch(
-        "torch.save"
-    ) as mock_save:
+    with (
+        mock.patch("torch.load", return_value=dummy_state_dict),
+        mock.patch("torch.save") as mock_save,
+    ):
 
         callback = AverageCheckpointsCallback(
             output_dir=str(tmp_path),

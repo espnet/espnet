@@ -82,9 +82,11 @@ for subset in ["train", "devel"]:
     odir = f"data/{subset}"
     os.makedirs(odir, exist_ok=True)
 
-    with open(os.path.join(odir, "wav.scp"), "w") as wav_f, open(
-        os.path.join(odir, "utt2spk"), "w"
-    ) as utt2spk_f, open(os.path.join(odir, "text"), "w", encoding="utf-8") as text_f:
+    with (
+        open(os.path.join(odir, "wav.scp"), "w") as wav_f,
+        open(os.path.join(odir, "utt2spk"), "w") as utt2spk_f,
+        open(os.path.join(odir, "text"), "w", encoding="utf-8") as text_f,
+    ):
         for domain_dir in catslu_traindev_domain_dirs:
             with open(os.path.join(domain_dir, data_json[subset])) as fp:
                 data = json.load(fp)
@@ -99,13 +101,12 @@ for domain_dir in catslu_test_domain_dirs:
     odir = f"data/test_{domain_dir.name}"
     os.makedirs(odir, exist_ok=True)
 
-    with open(os.path.join(odir, "wav.scp"), "w") as wav_f, open(
-        os.path.join(odir, "utt2spk"), "w"
-    ) as utt2spk_f, open(
-        os.path.join(odir, "text"), "w", encoding="utf-8"
-    ) as text_f, open(
-        os.path.join(domain_dir, "test.json")
-    ) as fp:
+    with (
+        open(os.path.join(odir, "wav.scp"), "w") as wav_f,
+        open(os.path.join(odir, "utt2spk"), "w") as utt2spk_f,
+        open(os.path.join(odir, "text"), "w", encoding="utf-8") as text_f,
+        open(os.path.join(domain_dir, "test.json")) as fp,
+    ):
         data = json.load(fp)
 
         wav, text, utt2spk = _process_data(data)

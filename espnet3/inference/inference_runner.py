@@ -18,8 +18,8 @@ from espnet2.train.preprocessor import AbsPreprocessor
 from espnet3 import get_espnet_model
 from espnet3.data import (
     DatasetWithTransform,
-    get_wrapped_transform,
     do_nothing_transform,
+    get_wrapped_transform,
 )
 from espnet3.parallel import get_client, set_parallel
 

@@ -1,7 +1,6 @@
 import string
 from argparse import ArgumentParser
 from pathlib import Path
-from packaging.version import parse as V
 
 import numpy as np
 import pytest
