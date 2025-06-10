@@ -38,7 +38,7 @@ def make_fsqdac_args(**kwargs):
             "decoder_final_activation": None,
             "decoder_final_activation_params": None,
             "quantizer_codedim": 2,
-            "quantizer_factor": 3.0,
+            "quantizer_factor": 3,
         },
         discriminator_params={
             "msmpmb_discriminator_params": {
@@ -107,7 +107,7 @@ def make_generator_args(**kwargs):
         decoder_final_activation=None,
         decoder_final_activation_params=None,
         quantizer_codedim=2,
-        quantizer_factor=3.0,
+        quantizer_factor=3,
     )
     default.update(kwargs)
     return default
@@ -173,7 +173,7 @@ def make_mel_loss_args(**kwargs):
     [
         ({}, {}, {}, {}, True, True),
         ({}, {}, {}, {}, False, False),
-        ({"use_dual_decoder": False}, {"quantizer_factor": 2.0}, {}, {}, False, True),
+        ({"use_dual_decoder": False}, {"quantizer_factor": 2}, {}, {}, False, True),
         ({"generator_params": {"encdec_true_skip": True}}, {}, {}, {}, True, True),
     ],
 )
