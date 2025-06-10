@@ -23,7 +23,7 @@ highlights:
         details: "<code>pip install espnet</code> and use the <code>espnetez</code> module for fine-tuning."
         icon: fa-solid:fire
         link: notebook/#espnet-ez
-      - title: "High-performance training and full experiment replication"
+      - title: "Complete installation to fully reproduce ESPnet models"
         details: "Complete the full installation and use the existing recipes."
         icon: fa-solid:server
         link: ./installation.md
