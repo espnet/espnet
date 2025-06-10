@@ -3,8 +3,9 @@
 # Copyright 2025 Jinchuan Tian
 # Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-import torch
 import logging
+
+import torch
 
 
 class SpeechLMCrossEntropyLossV2(torch.nn.Module):

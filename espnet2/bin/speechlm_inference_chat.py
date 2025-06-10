@@ -6,29 +6,28 @@
 import argparse
 import json
 import logging
+import re
 import sys
 import time
-import re
-import yaml
-import torch
-
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+
+import torch
+import yaml
 from typeguard import typechecked
 
-from espnet2.tasks.speechlm import SpeechLMTask
 from espnet2.speechlm.espnet_model import ESPnetSpeechLMModel
 from espnet2.speechlm.inference_utils import (
-    build_inference_config,
-    TaskOrientedWriter,
     ChatOrientedWriter,
+    TaskOrientedWriter,
+    build_inference_config,
     parse_sequence,
 )
-
-from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
+from espnet2.tasks.speechlm import SpeechLMTask
 from espnet2.torch_utils.device_funcs import to_device
-from espnet.utils.cli_utils import get_commandline_args
+from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils.types import str2bool
+from espnet.utils.cli_utils import get_commandline_args
 
 
 class SpeechLM:

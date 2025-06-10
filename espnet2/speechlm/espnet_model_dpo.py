@@ -4,11 +4,11 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 
+from copy import deepcopy
 from typing import Dict, Mapping, Tuple
 
 import torch
 from typeguard import typechecked
-from copy import deepcopy
 
 from espnet2.speechlm.core_lm.abs_core_lm import AbsCoreLM
 from espnet2.torch_utils.device_funcs import force_gatherable
