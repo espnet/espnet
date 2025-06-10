@@ -122,7 +122,8 @@ doc = [
   "sphinx",
   "sphinx-rtd-theme",
   "myst-parser",
-  "sphinx-argparse"
+  "sphinx-argparse",
+  "sphinx-markdown-builder"
 ]
 
 all = [
