@@ -3,17 +3,17 @@
 ##########################################################
 codec: dac
 codec_conf:
-    sampling_rate: 24000
+    sampling_rate: 44100
 
     # generator related
     generator_params:
         hidden_dim: 512
         codebook_dim: 512
         encdec_channels: 1
-        encdec_n_filters: 32
+        encdec_n_filters: 64
         encdec_n_residual_layers: 3
-        encdec_ratios: [8, 5, 4, 2]
-        encdec_activation: Snake
+        encdec_ratios: [7, 5, 4, 3]
+        encdec_activation: LeakyReLU
         # encdec_activation_params:
         encdec_norm: weight_norm
         encdec_kernel_size: 7
@@ -28,7 +28,7 @@ codec_conf:
         decoder_trim_right_ratio: 1.0
         decoder_final_activation: null
         decoder_final_activation_params: null
-        quantizer_n_q: 32
+        quantizer_n_q: 16
         quantizer_bins: 1024
         quantizer_decay: 0.99
         quantizer_kmeans_init: true
@@ -42,8 +42,8 @@ codec_conf:
         # multi scale multi band multi resolution discriminator related
         msmpmb_discriminator_params:
             rates: []
-            sample_rate: 24000
-            fft_sizes: [2048, 1024, 512]
+            sample_rate: 44100
+            fft_sizes: [2048, 1024, 512, 256]
             periods: [2, 3, 5, 7, 11]
             period_discriminator_params:
                 in_channels: 1
@@ -60,13 +60,14 @@ codec_conf:
                 use_spectral_norm: False
             band_discriminator_params:
                 hop_factor: 0.25
-                sample_rate: 24000
+                sample_rate: 44100
                 bands:
-                    - [0.0, 0.1]
-                    - [0.1, 0.25]
-                    - [0.25, 0.5]
-                    - [0.5, 0.75]
-                    - [0.75, 1.0]
+                - [0.00, 0.05]   # 0-2205Hz
+                - [0.05, 0.12]   # 2205-5292Hz
+                - [0.12, 0.20]   # 5292-8820Hz
+                - [0.20, 0.30]   # 8820-13230Hz
+                - [0.30, 0.45]   # 13230-19845Hz
+                - [0.45, 1.0]
                 channel: 32
 
     # loss function related
@@ -86,16 +87,16 @@ codec_conf:
         range_start: 6
         range_end: 11
         window: hann        # window type
-        n_mels: 80          # number of Mel basis
+        n_mels: 128          # number of Mel basis
         fmin: 0             # minimum frequency for Mel basis
         fmax: null          # maximum frequency for Mel basis
         log_base: null      # null represent natural log
     lambda_quantization: 0.25       # loss scaling coefficient for codec quantization loss
     lambda_commit: 1.0      # loss scaling coefficient for codec commitment loss
     lambda_reconstruct: 1.0 # loss scaling coefficient for speech reconstruction loss
-    lambda_adv: 1.0         # loss scaling coefficient for adversarial loss
+    lambda_adv: 0.5         # loss scaling coefficient for adversarial loss
     lambda_mel: 45.0        # loss scaling coefficient for Mel loss
-    lambda_feat_match: 2.0 # loss scaling coefficient for feat match loss
+    lambda_feat_match: 3.0 # loss scaling coefficient for feat match loss
 
     # others
     cache_generator_outputs: true # whether to cache generator outputs in the training
@@ -129,15 +130,15 @@ generator_first: true # whether to start updating generator first
 ##########################################################
 #                OTHER TRAINING SETTING                  #
 ##########################################################
-num_iters_per_epoch: 5000 # number of iterations per epoch
+num_iters_per_epoch: 300 # number of iterations per epoch
 max_epoch: 120              # number of epochs
 accum_grad: 1             # gradient accumulation
-batch_size: 8             # CHANGED
+batch_size: 4             # CHANGED
 batch_type: unsorted      # how to make batch
 
 
 iterator_type: chunk
-chunk_length: 24000 # CHANGED
+chunk_length: 88200 # CHANGED
 num_cache_chunks: 64
 
 grad_clip: -1             # gradient clipping norm
