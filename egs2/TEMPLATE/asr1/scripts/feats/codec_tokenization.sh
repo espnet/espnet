@@ -19,6 +19,7 @@ log() {
 stage=1
 stop_stage=100
 nj=4                # number of parallel jobs
+cuda_cmd=utils/run.pl
 python=python3      # Specify python to execute espnet commands.
 codec_choice=ESPnet # Options: EnCodec, DAC, ESPnet (our in-house model)
 codec_fs=16000

@@ -31,7 +31,7 @@ log "$0 $*"
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     all_files=""
-    for n in `seq 1 127`; do
+    for n in $(seq 1 127); do
         all_files+="${data_dir}/$(echo $n | awk '{printf "%05d.jsonl", $1}') "
     done
 

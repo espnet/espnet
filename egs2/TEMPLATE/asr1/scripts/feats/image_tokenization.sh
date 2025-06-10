@@ -19,7 +19,7 @@ log() {
 stage=1
 stop_stage=100
 nj=4                # number of parallel jobs
-nproc=16            # number of processes when loading and pre-processing images
+cuda_cmd=utils/run.pl
 python=python3      # Specify python to execute espnet commands.
 model_choice=cosmos # cosmos or vila-u
 model_tag=Cosmos-0.1-Tokenizer-DI16x16
@@ -30,14 +30,11 @@ resolution=256
 file_name=image.scp
 src_dir=
 tgt_dir=
-checkpoint_path=null
-config_path=null
-hf_model_tag=null
 
 log "$0 $*"
 . utils/parse_options.sh
 
-# . ./path.sh || exit 1
+. ./path.sh || exit 1
 . ./cmd.sh || exit 1
 
 if [ $# -ne 0 ]; then

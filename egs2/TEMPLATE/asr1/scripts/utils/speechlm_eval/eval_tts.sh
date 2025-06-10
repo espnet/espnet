@@ -32,6 +32,8 @@ stage=1
 stop_stage=100
 nj=8
 inference_nj=8
+cuda_cmd=utils/run.pl
+decode_cmd=utils/run.pl
 gpu_inference=true
 nbest=1
 
@@ -54,6 +56,9 @@ python=python3
 
 log "$0 $*"
 . utils/parse_options.sh
+
+. ./path.sh
+. ./cmd.sh
 
 mkdir -p ${gen_dir}/scoring
 
@@ -123,14 +128,14 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             _nj=$(min "${inference_nj}" "$(<${pred_file} wc -l)" )
 
             split_files=""
-            for n in `seq ${_nj}`; do
+            for n in $(seq ${_nj}); do
                 split_files+="${eval_dir}/pred.${n} "
             done
             utils/split_scp.pl ${pred_file} ${split_files}
 
             if [ -n "${gt_file}" ]; then
                 split_files=""
-                for n in `seq ${_nj}`; do
+                for n in $(seq ${_nj}); do
                     split_files+="${eval_dir}/gt.${n} "
                 done
                 utils/split_scp.pl ${gt_file} ${split_files}

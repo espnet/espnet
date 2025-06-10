@@ -22,6 +22,7 @@ log() {
 stage=1
 stop_stage=100
 nj=4
+cuda_cmd=utils/run.pl
 fs=16000
 file_name=
 src_dir=
@@ -44,7 +45,6 @@ ssl_nlayer=16
 ssl_hf_model_tag=null
 ssl_batch_bins=4800000
 
-use_gpu=true
 tolerance=1
 python=python3
 
@@ -52,6 +52,7 @@ log "$0 $*"
 . utils/parse_options.sh
 
 . ./path.sh
+. ./cmd.sh
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "Codec Tokenization ..."
@@ -112,7 +113,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         --ssl_vocab_size ${ssl_vocab_size} \
         --codec_code_per_frame ${codec_code_per_frame}
 
-    for n in `seq ${nj}`; do
+    for n in $(seq ${nj}); do
         cat ${tgt_dir}/data/${file_name}_codec_ssl_${codec_choice}.${n}.scp
     done > ${tgt_dir}/${file_name}.scp
 fi

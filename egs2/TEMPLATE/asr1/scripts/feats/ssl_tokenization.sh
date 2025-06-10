@@ -21,6 +21,7 @@ log() {
 
 stage=1
 stop_stage=100
+cuda_cmd=utils/run.pl
 file_name=
 src_dir=
 tgt_dir=
@@ -127,7 +128,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     done > ${tgt_dir}/${file_name}.scp || exit 1
 
     n_clusters=$(python -c "import joblib; model = joblib.load('${kmeans_path}'); print(model.n_clusters)")
-    for n in `seq ${n_clusters}`; do
+    for n in $(seq ${n_clusters}); do
         echo "<ssl_code${n}>"
     done > ${tgt_dir}/token_lists/ssl_token_list
 fi

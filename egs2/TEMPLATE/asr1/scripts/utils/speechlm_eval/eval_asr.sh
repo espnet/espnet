@@ -25,18 +25,23 @@ min() {
 }
 SECONDS=0
 
-# . ./path.sh
+. ./path.sh
 . ./cmd.sh
 
 stage=1
 stop_stage=100
+# shellcheck disable=SC2034
 nj=8
+# shellcheck disable=SC2034
 inference_nj=8
+# shellcheck disable=SC2034
 gpu_inference=true
+# shellcheck disable=SC2034
 nbest=1
 
 gen_dir=
 ref_dir=
+# shellcheck disable=SC2034
 key_file=
 
 # wer options
@@ -82,7 +87,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         if [ "${_type}" = wer ]; then
             paste \
                 <(<"${gt_text}" \
-                      python3 -m espnet2.bin.tokenize_text  \
+                      ${python} -m espnet2.bin.tokenize_text  \
                           -f 2- --input - --output - \
                           --token_type word \
                           --non_linguistic_symbols "${nlsyms_txt}" \
@@ -93,7 +98,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
                     >"${_scoredir}/ref.trn"
             paste \
                 <(<"${gen_text}"  \
-                      python3 -m espnet2.bin.tokenize_text  \
+                      ${python} -m espnet2.bin.tokenize_text  \
                           -f 2- --input - --output - \
                           --token_type word \
                           --non_linguistic_symbols "${nlsyms_txt}" \
@@ -106,7 +111,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         elif [ "${_type}" = cer ]; then
             paste \
                 <(<"${gt_text}" \
-                      python3 -m espnet2.bin.tokenize_text  \
+                      ${python} -m espnet2.bin.tokenize_text  \
                           -f 2- --input - --output - \
                           --token_type char \
                           --non_linguistic_symbols "${nlsyms_txt}" \
@@ -117,7 +122,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
                     >"${_scoredir}/ref.trn"
             paste \
                 <(<"${gen_text}" \
-                      python3 -m espnet2.bin.tokenize_text  \
+                      ${python} -m espnet2.bin.tokenize_text  \
                           -f 2- --input - --output - \
                           --token_type char \
                           --non_linguistic_symbols "${nlsyms_txt}" \
