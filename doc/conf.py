@@ -40,6 +40,7 @@ extensions = [
     "sphinx.ext.todo",
     "sphinxarg.ext",
     "myst_parser",
+    "sphinx_markdown_builder",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
