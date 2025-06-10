@@ -28,10 +28,9 @@ def clean_line(line: str) -> str:
 def main():
     args = get_args()
 
-    with (
-        open(args.input, encoding="utf-8") as f,
-        open(args.output, "w", encoding="utf-8") as of,
-    ):
+    with open(args.input, encoding="utf-8") as f, open(
+        args.output, "w", encoding="utf-8"
+    ) as of:
         for line in f:
             of.write(clean_line(line))
 
