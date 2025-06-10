@@ -134,11 +134,11 @@ class ESPnetSVSModel(AbsESPnetModel):
             Tensor: Weight tensor to summarize losses.
         """
         with autocast(False):
-            # Extract features
+            # 1. Extract performacne features (actual features) in frame wise
+            #    and normalize
             if self.feats_extract is not None and feats is None:
-                feats, feats_lengths = self.feats_extract(
-                    singing, singing_lengths
-                )  # singing to spec feature (frame level)
+                # spec feature (frame level)
+                feats, feats_lengths = self.feats_extract(singing, singing_lengths)
 
             # Extract auxiliary features
             # melody : 128 note pitch
@@ -146,7 +146,7 @@ class ESPnetSVSModel(AbsESPnetModel):
             #   input-> phone-id seqence
             #   output -> frame level(take mode from window) or syllable level
 
-            # cut length
+            # align length between feats and duration
             for i in range(feats.size(0)):
                 dur_len = sum(duration_phn[i])
                 if feats_lengths[i] > dur_len:
@@ -165,6 +165,35 @@ class ESPnetSVSModel(AbsESPnetModel):
                             duration_phn[i][end] = new
             feats = feats[:, : feats_lengths.max()]
 
+            if self.pitch_extract is not None and pitch is None:
+                pitch, pitch_lengths = self.pitch_extract(
+                    input=singing,
+                    input_lengths=singing_lengths,
+                    feats_lengths=feats_lengths,
+                )
+
+            if self.energy_extract is not None and energy is None:
+                energy, energy_lengths = self.energy_extract(
+                    singing,
+                    singing_lengths,
+                    feats_lengths=feats_lengths,
+                )
+
+            if self.ying_extract is not None and ying is None:
+                ying, ying_lengths = self.ying_extract(
+                    singing,
+                    singing_lengths,
+                    feats_lengths=feats_lengths,
+                )
+
+            if self.normalize is not None:
+                feats, feats_lengths = self.normalize(feats, feats_lengths)
+            if self.pitch_normalize is not None:
+                pitch, pitch_lengths = self.pitch_normalize(pitch, pitch_lengths)
+            if self.energy_normalize is not None:
+                energy, energy_lengths = self.energy_normalize(energy, energy_lengths)
+
+            # 2. Obtain score features in frame/syllabel wise
             if isinstance(self.score_feats_extract, FrameScoreFeats):
                 (
                     label_lab,
@@ -226,35 +255,6 @@ class ESPnetSVSModel(AbsESPnetModel):
                 slur = slur[:, : slur_lengths.max()]
             else:
                 raise RuntimeError("Cannot understand score_feats extract type")
-
-            if self.pitch_extract is not None and pitch is None:
-                pitch, pitch_lengths = self.pitch_extract(
-                    input=singing,
-                    input_lengths=singing_lengths,
-                    feats_lengths=feats_lengths,
-                )
-
-            if self.energy_extract is not None and energy is None:
-                energy, energy_lengths = self.energy_extract(
-                    singing,
-                    singing_lengths,
-                    feats_lengths=feats_lengths,
-                )
-
-            if self.ying_extract is not None and ying is None:
-                ying, ying_lengths = self.ying_extract(
-                    singing,
-                    singing_lengths,
-                    feats_lengths=feats_lengths,
-                )
-
-            # Normalize
-            if self.normalize is not None:
-                feats, feats_lengths = self.normalize(feats, feats_lengths)
-            if self.pitch_normalize is not None:
-                pitch, pitch_lengths = self.pitch_normalize(pitch, pitch_lengths)
-            if self.energy_normalize is not None:
-                energy, energy_lengths = self.energy_normalize(energy, energy_lengths)
 
         # Make batch for svs inputs
         batch = dict(
@@ -489,7 +489,8 @@ class ESPnetSVSModel(AbsESPnetModel):
         """
         label_lengths = torch.tensor([len(label)])
         midi_lengths = torch.tensor([len(midi)])
-        duration_phn_lengths = torch.tensor([len(duration_phn)])
+        if duration_phn is not None:
+            duration_phn_lengths = torch.tensor([len(duration_phn)])
         duration_ruled_phn_lengths = torch.tensor([len(duration_ruled_phn)])
         duration_syb_lengths = torch.tensor([len(duration_syb)])
         slur_lengths = torch.tensor([len(slur)])
@@ -500,7 +501,8 @@ class ESPnetSVSModel(AbsESPnetModel):
 
         label = label.unsqueeze(0)
         midi = midi.unsqueeze(0)
-        duration_phn = duration_phn.unsqueeze(0)
+        if duration_phn is not None:
+            duration_phn = duration_phn.unsqueeze(0)
         duration_ruled_phn = duration_ruled_phn.unsqueeze(0)
         duration_syb = duration_syb.unsqueeze(0)
         phn_cnt = phn_cnt.unsqueeze(0)
@@ -555,7 +557,10 @@ class ESPnetSVSModel(AbsESPnetModel):
             # Remove unused paddings at end
             label_lab = label[:, : label_lengths.max()]
             midi_lab = midi[:, : midi_lengths.max()]
-            duration_lab = duration_phn[:, : duration_phn_lengths.max()]
+            if duration_phn is not None:
+                duration_lab = duration_phn[:, : duration_phn_lengths.max()]
+            else:
+                duration_lab = None
 
             label_score = label[:, : label_lengths.max()]
             midi_score = midi[:, : midi_lengths.max()]
@@ -582,7 +587,7 @@ class ESPnetSVSModel(AbsESPnetModel):
             if self.pitch_extract is not None:
                 pitch = self.pitch_extract(
                     singing[None],
-                    feats_lengths=torch.LongTensor([len(feats)]),
+                    feats_lengths=torch.tensor([len(feats)], dtype=torch.long),
                 )[0][0]
             if self.pitch_normalize is not None:
                 pitch = self.pitch_normalize(pitch[None])[0][0]
@@ -592,7 +597,7 @@ class ESPnetSVSModel(AbsESPnetModel):
             if self.energy_extract is not None:
                 energy = self.energy_extract(
                     singing[None],
-                    feats_lengths=torch.LongTensor([len(feats)]),
+                    feats_lengths=torch.tensor([len(feats)], dtype=torch.long),
                 )[0][0]
             if self.energy_normalize is not None:
                 energy = self.energy_normalize(energy[None])[0][0]

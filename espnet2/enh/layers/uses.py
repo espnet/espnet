@@ -34,7 +34,7 @@ class USES(nn.Module):
         memory_types (int): numbre of memory token groups.
             Each group corresponds to a different type of processing, i.e.,
                 the first group is used for denoising without dereverberation,
-                the second group is used for denoising with dereverberation,
+                the second group is used for denoising with dereverberation.
         rnn_type (str): type of the RNN cell in the improved Transformer layer.
         hidden_size (int): hidden dimension of the RNN cell.
         att_heads (int): number of attention heads in Transformer.
