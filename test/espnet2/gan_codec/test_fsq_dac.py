@@ -179,7 +179,7 @@ def make_mel_loss_args(**kwargs):
 )
 def test_fsqdac(dict_fsq, dict_g, dict_d, dict_loss, average, include):
     batch_size = 2
-    batch_length = 128
+    batch_length = 256
 
     # Create audio tensor (different from original test: directly use (B, T) format)
     y = torch.randn(batch_size, batch_length)
