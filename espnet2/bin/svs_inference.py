@@ -298,14 +298,14 @@ class SingingGenerate:
                         ).transpose(0, 1)
 
                     # NOTE(Yuxun): codes below for `singomd``
-                    # feat_dict = {}
-                    # resolution = [20, 40]
-                    # for i, rs in enumerate(resolution):
-                    #     feat = input_feat[:, i].unsqueeze(1)
-                    #     feat = feat[:: (rs // 20)]
-                    #     feat_dict[rs] = feat
-                    #     # logging.info(f'{rs}({feat.shape}): {feat_dict[rs].squeeze(1)}')
-                    # input_feat = feat_dict
+                    if kwargs.get("use_singomd", False) is True:
+                        feat_dict = {}
+                        resolution = [20, 40]
+                        for i, rs in enumerate(resolution):
+                            feat = input_feat[:, i].unsqueeze(1)
+                            feat = feat[:: (rs // 20)]
+                            feat_dict[rs] = feat
+                        input_feat = feat_dict
                 if "pitch" in output_dict and output_dict["pitch"] is not None:
                     assert (
                         len(output_dict["pitch"].shape) == 1
@@ -437,6 +437,7 @@ def inference(
     discrete_token_layers: int = 1,
     mix_type: str = "frame",
     svs_task: Optional[str] = "svs",
+    use_singomd: bool = False,
 ):
     """Perform SVS model decoding."""
     if batch_size > 1:
@@ -533,7 +534,7 @@ def inference(
             key = keys[0]
 
             start_time = time.perf_counter()
-            output_dict = singingGenerate(**batch)
+            output_dict = singingGenerate(**batch, use_singomd=use_singomd)
 
             insize = next(iter(batch.values())).size(0) + 1
             if output_dict.get("feat_gen") is not None:
@@ -790,6 +791,12 @@ def get_parser():
         default="svs",
         type=str_or_none,
         help="SVS task name. svs or gan_svs",
+    )
+    group.add_argument(
+        "--use_singomd",
+        default=False,
+        type=bool,
+        help="whether to use singomd",
     )
 
     return parser

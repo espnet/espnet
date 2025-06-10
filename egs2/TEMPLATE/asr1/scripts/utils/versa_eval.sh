@@ -182,7 +182,7 @@ for ((i=0; i<${#pred_list[@]}; i++))  ; do
     echo -e "${BLUE}Processing chunk $((i+1))/${#pred_list[@]}: ${sub_pred_wavscp}${NC}"
 
     logfile="${SCORE_DIR}/logs/eval.$job_prefix.log"
-    > ${logfile}
+    true > ${logfile}
     versa-score --score_config ${METRIC_CONFIG} \
         --pred "${sub_pred_wavscp}" \
         --output_file "${SCORE_DIR}/result/result.$job_prefix.txt" \

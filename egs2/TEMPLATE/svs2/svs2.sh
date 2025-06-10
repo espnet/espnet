@@ -124,6 +124,7 @@ inference_model=valid.loss.best.pth # Model path for decoding.
                                    # inference_model=valid.loss.ave.pth
 vocoder_file=none  # Vocoder parameter file, If set to none, Griffin-Lim will be used.
 download_model=""   # Download a model from Model Zoo and use it for decoding.
+use_singomd=false
 
 # evaluation related
 skip_versa=false
@@ -1194,6 +1195,10 @@ if ! "${skip_eval}"; then
                 _ex_opts+="--data_path_and_name_and_type ${_data}/utt2lid,lids,text_int "
             fi
 
+            if "${use_singomd}"; then
+                _ex_opts+="--use_singomd ${use_singomd} "
+            fi
+
             _opts+="--discrete_token_layers ${discrete_token_layers} "
             _opts+="--mix_type ${mix_type} "
 
@@ -1333,20 +1338,20 @@ for more supported metrics."
             # Objective Evaluation - MCD
             # log "Begin Scoring for MCD metrics on ${dset}, results are written under ${_eval_dir}/MCD_res"
 
-            # mkdir -p "${_eval_dir}/MCD_res"
-            # ${python} pyscripts/utils/evaluate_mcd.py \
-            #     ${_gen_wavdir} \
-            #     ${_gt_wavscp} \
-            #     --outdir "${_eval_dir}/MCD_res"
+            mkdir -p "${_eval_dir}/MCD_res"
+            ${python} pyscripts/utils/evaluate_mcd.py \
+                ${_gen_wavdir} \
+                ${_gt_wavscp} \
+                --outdir "${_eval_dir}/MCD_res"
 
             # Objective Evaluation - log-F0 RMSE
             # log "Begin Scoring for F0 related metrics on ${dset}, results are written under ${_eval_dir}/F0_res"
 
-            # mkdir -p "${_eval_dir}/F0_res"
-            # ${python} pyscripts/utils/evaluate_f0.py \
-            #     ${_gen_wavdir} \
-            #     ${_gt_wavscp} \
-            #     --outdir "${_eval_dir}/F0_res"
+            mkdir -p "${_eval_dir}/F0_res"
+            ${python} pyscripts/utils/evaluate_f0.py \
+                ${_gen_wavdir} \
+                ${_gt_wavscp} \
+                --outdir "${_eval_dir}/F0_res"
 
             # Objective Evaluation - semitone ACC
             log "Begin Scoring for SEMITONE related metrics on ${dset}, results are written under ${_eval_dir}/SEMITONE_res"

@@ -904,7 +904,8 @@ class TokSing(AbsSVS):
             # print(after_outs.shape, flush=True)
 
         if flag_RL:
-            # NOTE(Yuxun): Length of feats, pitch in inference will be different with gt ones.
+            # NOTE(Yuxun): Length of feats, pitch in inference will be 
+            # different with gt ones.
             loss = torch.tensor(0).to(after_outs.device)
             stats = dict(
                 loss=loss,
@@ -1163,7 +1164,9 @@ class TokSing(AbsSVS):
             token_prob = token_prob / token_prob.sum(dim=-1, keepdim=True)
             # Case 1. sample tokens from distribution
             # V = token_prob.size(2)
-            # sample_token = torch.multinomial(token_prob.view(-1, V), 1, replacement=True)
+            # sample_token = torch.multinomial(
+            #     token_prob.view(-1, V), 1, replacement=True
+            # )
             # sample_token = sample_token.view(1, -1, 1) # [B=1, T, S]
             # Case 2. sample
             logits = after_outs
