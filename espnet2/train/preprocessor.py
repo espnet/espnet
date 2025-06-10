@@ -4,8 +4,8 @@ import json
 import logging
 import random
 import re
-from copy import deepcopy
 from abc import ABC, abstractmethod
+from copy import deepcopy
 from pathlib import Path
 from typing import Collection, Dict, Iterable, List, Optional, Tuple, Union
 
@@ -14,8 +14,8 @@ import librosa
 import numpy as np
 import scipy.signal
 import soundfile
-from typeguard import typechecked
 from PIL import Image
+from typeguard import typechecked
 
 import espnet2.speechlm.definitions as speechlm_definitions
 from espnet2.layers.augmentation import DataAugmentation
@@ -2730,7 +2730,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         if vision_encoder_processor is not None:
             if vision_encoder_processor.startswith("google/siglip"):
                 try:
-                    from transformers import SiglipImageProcessor, AutoConfig
+                    from transformers import AutoConfig, SiglipImageProcessor
                 except ImportError:
                     raise ImportError(
                         "Please install transformers to use vision encoder"
