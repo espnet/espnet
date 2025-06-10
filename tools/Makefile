@@ -1,4 +1,5 @@
-# PyTorch version: 1.13.1, 2.0.1, 2.1.2, 2.2.2, 2.3.1, 2.4.0 are tested.
+# PyTorch version: The latest six versions have been tested.
+# Please check https://github.com/espnet/espnet?tab=readme-ov-file#espnet-end-to-end-speech-processing-toolkit
 TH_VERSION := 2.6.0
 
 # Use pip for pytorch installation even if you have anaconda
