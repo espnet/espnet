@@ -2,8 +2,14 @@ import logging
 import math
 from abc import ABC
 
-import ci_sdr
-import fast_bss_eval
+try:
+    import ci_sdr
+except:
+    ci_sdr = None
+try:
+    import fast_bss_eval
+except:
+    fast_bss_eval = None
 import torch
 from packaging.version import parse as V
 from torch_complex.tensor import ComplexTensor
@@ -103,6 +109,8 @@ class CISDRLoss(TimeDomainLoss):
     ) -> torch.Tensor:
         assert ref.shape == inf.shape, (ref.shape, inf.shape)
 
+        if ci_sdr is None:
+            return None
         return ci_sdr.pt.ci_sdr_loss(
             inf, ref, compute_permutation=False, filter_length=self.filter_length
         )
@@ -201,7 +209,8 @@ class SDRLoss(TimeDomainLoss):
             loss: (...,)
                 the SDR loss (negative sdr)
         """
-
+        if fast_bss_eval is None:
+            return None
         sdr_loss = fast_bss_eval.sdr_loss(
             est=est,
             ref=ref,
@@ -443,7 +452,7 @@ class MultiResL1SpecLoss(TimeDomainLoss):
             stft = ComplexTensor(stft[..., 0], stft[..., 1])
             return (stft.real.pow(2) + stft.imag.pow(2) + eps).sqrt()
 
-    @torch.cuda.amp.autocast(enabled=False)
+    @torch.amp.autocast('cuda', enabled=False)
     def forward(
         self,
         target: torch.Tensor,
