@@ -16,7 +16,8 @@ exclude+="test_utils/bats-assert,espnet2,espnet3,egs3"
 # pycodestyle
 pycodestyle --exclude "${exclude}" --show-source --show-pep8
 
-pytest -q --ignore=test/espnet2 --ignore=test/espnet3 test
+# pytest -q --ignore=test/espnet2 --ignore=test/espnet3 test
+pytest -q --ignore=test/espnet2  test
 
 echo "=== report ==="
 coverage report
