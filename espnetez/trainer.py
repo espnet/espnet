@@ -183,7 +183,7 @@ class Trainer:
         train_dataloader=None,
         valid_dataloader=None,
         build_model_fn=None,
-        **kwargs,
+        **kwargs
     ):
         self.train_config = train_config
         check_argument(
