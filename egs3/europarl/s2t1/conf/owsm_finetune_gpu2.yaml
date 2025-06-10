@@ -1,8 +1,0 @@
-# load default config
-defaults:
-  - train.yaml
-
-num_device: 2
-
-trainer:
-  strategy: ddp_find_unused_parameters_true
