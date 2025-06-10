@@ -389,6 +389,8 @@ def test_resolve_distributed_mode_slurm3():
         dist_init_method="env://",
         dist_master_addr=None,
         dist_master_port=10000,
+        use_deepspeed=False,
+        deepspeed_config="",
     )
     env = dict(
         SLURM_PROCID="0",
