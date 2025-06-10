@@ -42,6 +42,7 @@ execute_config(){
         log "Config file $2 OK"
     fi
     sudo rm -rf /root/.cache/huggingface*
+    sudo rm -rf hf_cache hub
 }
 
 

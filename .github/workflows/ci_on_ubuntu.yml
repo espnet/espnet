@@ -342,9 +342,9 @@ jobs:
           sudo rm -rf /root/.cache/*
       - name: test configuration
         run: ./ci/test_configuration_espnet2.sh ${{ matrix.task }}
-      - uses: codecov/codecov-action@v2
-        with:
-          flags: test_configuration_espnet2_${{ matrix.task }}
+      # - uses: codecov/codecov-action@v2
+      #   with:
+      #     flags: test_configuration_espnet2_${{ matrix.task }}
 
   test_import:
     runs-on: ${{ matrix.os }}
