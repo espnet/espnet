@@ -56,7 +56,7 @@ nlsyms_txt=none
 cleaner=none
 hyp_cleaner=none
 gt_text=""
-scoring_metrics="wer"
+scoring_metrics="cer wer ter"
 
 help_message=$(cat << EOF
 Usage: $0 [Options] <wav.scp> <outdir>
@@ -214,7 +214,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     else
         # shellcheck disable=SC2046,SC2086
         ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${logdir}"/asr_inference.JOB.log \
-            python3 -m espnet2.bin.s2t_inference \
+            python3 -m espnet2.bin.asr_inference \
                 --ngpu "${_ngpu}" \
                 --data_path_and_name_and_type "${wavscp},speech,sound" \
                 --key_file "${logdir}"/keys.JOB.scp \
