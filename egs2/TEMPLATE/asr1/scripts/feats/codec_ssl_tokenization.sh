@@ -22,7 +22,7 @@ log() {
 stage=1
 stop_stage=100
 nj=4
-cuda_cmd=utils/run.pl
+decode_cmd=utils/run.pl
 fs=16000
 file_name=
 src_dir=
