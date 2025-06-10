@@ -122,7 +122,7 @@ doc = [
   "sphinx",
   "sphinx-rtd-theme",
   "myst-parser",
-  "nbsphinx"
+  "sphinx-argparse"
 ]
 
 all = [
