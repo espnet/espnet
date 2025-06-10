@@ -95,12 +95,15 @@ if __name__ == "__main__":
         yaml.dump(navbars, f, default_flow_style=False)
 
     # 2. Create sidebar (on the left side of the page)
-    sidebars = [{
-        "text": nav["text"],
-        "icon": nav["icon"],
-        "prefix": nav["prefix"],
-        "children": "structure",
-    } for nav in navbars]
+    sidebars = [
+        {
+            "text": nav["text"],
+            "icon": nav["icon"],
+            "prefix": nav["prefix"],
+            "children": "structure" if nav["text"] not in ["Tutorials", ] else nav["children"],
+        }
+        for nav in navbars
+    ]
 
     with open("sidebars.yml", "w", encoding="utf-8") as f:
         yaml.dump(sidebars, f, default_flow_style=False)
