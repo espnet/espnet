@@ -5,7 +5,7 @@
 # This script splits input audio files and launches Slurm jobs for parallel processing
 # using either GPU, CPU, or both resources based on user selection.
 #
-# Usage: ./versa_eval.sh <pred_wavscp> <gt_wavscp> <gt_text> <score_dir> <split_size> <metric_config> [--cpu-only|--gpu-only] 
+# Usage: ./versa_eval.sh <pred_wavscp> <gt_wavscp> <gt_text> <score_dir> <split_size> <metric_config> [--cpu-only|--gpu-only]
 #   <pred_wavscp>: Path to prediction wav.scp file
 #   <gt_wavscp>: Path to ground truth wav.scp file (use "None" if not available)
 #   <gt_text>: Path to ground truth text file (use "None" if not available)
@@ -18,7 +18,7 @@
 # Example: ./versa_eval.sh data/pred.scp data/gt.scp results/experiment1 10 speech.yaml --cpu_only
 # Example: ./versa_eval.sh data/pred.scp data/gt.scp results/experiment1 10 speech.yaml --gpu_only
 
-set -e 
+set -e
 set -u
 set -o pipefail
 
@@ -167,7 +167,7 @@ fi
 
 pids=()
 for ((i=0; i<${#pred_list[@]}; i++))  ; do
-(    
+(
     sub_pred_wavscp=${pred_list[${i}]}
     job_prefix="${sub_pred_wavscp##*.}"
 

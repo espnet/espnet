@@ -310,7 +310,7 @@ class SingingGenerate:
                     assert (
                         len(output_dict["pitch"].shape) == 1
                     ), "pitch shape must be (T,)."
-                    logging.info(f'input_feat: {input_feat.shape}')
+                    logging.info(f"input_feat: {input_feat.shape}")
                     logging.info(f'pitch: {output_dict["pitch"].shape}')
                     wav = self.vocoder(input_feat, output_dict["pitch"])
                 else:

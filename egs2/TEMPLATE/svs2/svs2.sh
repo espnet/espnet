@@ -1312,7 +1312,7 @@ for more supported metrics."
                     --logdir ${_eval_dir}/cpu/result \
                     --scoredir ${_eval_dir}/cpu \
                     --nj ${_cpu_nj}
-                
+
                 python pyscripts/utils/aggregate_eval.py \
                     --logdir ${_eval_dir}/gpu/result \
                     --scoredir ${_eval_dir}/gpu \
