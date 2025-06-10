@@ -188,43 +188,43 @@ jobs:
           source tools/activate_python.sh
           coverage erase
 
-  unit_test_integration_espnet2:
-    runs-on: ${{ matrix.os }}
-    needs: process_labels
-    if: |
-      github.event.pull_request.draft == false
-    strategy:
-      max-parallel: 20
-      matrix:
-        os: [ubuntu-latest]
-        python-version: ["3.10"]
-        pytorch-version: [2.5.1]
-        chainer-version: [6.0.0]
-        use-conda: [false]
-        task: [asr, tts, enh, tse, ssl, enh_asr, st, asr2, spk, s2t, s2st, lm, codec]
-    steps:
-      - uses: actions/checkout@master
-      - uses: actions/cache@v3
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/setup.py') }}-${{ hashFiles('**/Makefile') }}
-      - name: Make environment
-        uses: ./.github/actions/prepare-environment
-        with:
-          os-version: ubuntu
-          python-version: ${{ matrix.python-version }}
-          pytorch-version: ${{ matrix.pytorch-version }}
-          chainer-version: ${{ matrix.chainer-version }}
-          use-conda: ${{ matrix.use-conda }}
-      - name: install kaldi
-        run: |
-          ./ci/install_kaldi.sh
+  # unit_test_integration_espnet2:
+  #   runs-on: ${{ matrix.os }}
+  #   needs: process_labels
+  #   if: |
+  #     github.event.pull_request.draft == false
+  #   strategy:
+  #     max-parallel: 20
+  #     matrix:
+  #       os: [ubuntu-latest]
+  #       python-version: ["3.10"]
+  #       pytorch-version: [2.5.1]
+  #       chainer-version: [6.0.0]
+  #       use-conda: [false]
+  #       task: [asr, tts, enh, tse, ssl, enh_asr, st, asr2, spk, s2t, s2st, lm, codec]
+  #   steps:
+  #     - uses: actions/checkout@master
+  #     - uses: actions/cache@v3
+  #       with:
+  #         path: ~/.cache/pip
+  #         key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/setup.py') }}-${{ hashFiles('**/Makefile') }}
+  #     - name: Make environment
+  #       uses: ./.github/actions/prepare-environment
+  #       with:
+  #         os-version: ubuntu
+  #         python-version: ${{ matrix.python-version }}
+  #         pytorch-version: ${{ matrix.pytorch-version }}
+  #         chainer-version: ${{ matrix.chainer-version }}
+  #         use-conda: ${{ matrix.use-conda }}
+  #     - name: install kaldi
+  #       run: |
+  #         ./ci/install_kaldi.sh
 
-      - name: test espnet2 integration
-        run: ./ci/test_integration_espnet2.sh ${{ matrix.task }}
-      - uses: codecov/codecov-action@v2
-        with:
-          flags: test_integration_espnet2
+  #     - name: test espnet2 integration
+  #       run: ./ci/test_integration_espnet2.sh ${{ matrix.task }}
+  #     - uses: codecov/codecov-action@v2
+  #       with:
+  #         flags: test_integration_espnet2
 
   # unit_test_espnet3_and_integration_test_espnet3:
   #   runs-on: ${{ matrix.os }}

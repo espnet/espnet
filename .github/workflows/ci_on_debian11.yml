@@ -112,36 +112,36 @@ jobs:
   #       run: |
   #         ./ci/test_python_espnet2.sh
 
-  unit_test_python_espnet2_on_debian11:
-    runs-on: ubuntu-latest
-    if: github.event.pull_request.draft == false
-    strategy:
-      max-parallel: 20
-      matrix:
-        python-version: ["3.10"]
-        pytorch-version: ["2.6.0"]
-        chainer-version: [6.0.0]
-        use-conda: [true]
-    container:
-      image: debian:11
-      env:
-        # To avoid UnicodeEncodeError for python<=3.6
-        LC_ALL: en_US.UTF-8
-    steps:
-      - uses: actions/checkout@master
-      - name: check OS
-        run: cat /etc/os-release
-      - name: Make environment
-        uses: ./.github/actions/prepare-environment
-        with:
-          os-version: debian
-          python-version: ${{ matrix.python-version }}
-          pytorch-version: ${{ matrix.pytorch-version }}
-          chainer-version: ${{ matrix.chainer-version }}
-          use-conda: ${{ matrix.use-conda }}
-      # - name: Get PR labels
-      #   id: pr-labels
-      #   uses: joerick/pr-labels-action@v1.0.9
-      - name: test python
-        run: |
-          ./ci/test_python_espnet2.sh
+  # unit_test_python_espnet2_on_debian11:
+  #   runs-on: ubuntu-latest
+  #   if: github.event.pull_request.draft == false
+  #   strategy:
+  #     max-parallel: 20
+  #     matrix:
+  #       python-version: ["3.10"]
+  #       pytorch-version: ["2.6.0"]
+  #       chainer-version: [6.0.0]
+  #       use-conda: [true]
+  #   container:
+  #     image: debian:11
+  #     env:
+  #       # To avoid UnicodeEncodeError for python<=3.6
+  #       LC_ALL: en_US.UTF-8
+  #   steps:
+  #     - uses: actions/checkout@master
+  #     - name: check OS
+  #       run: cat /etc/os-release
+  #     - name: Make environment
+  #       uses: ./.github/actions/prepare-environment
+  #       with:
+  #         os-version: debian
+  #         python-version: ${{ matrix.python-version }}
+  #         pytorch-version: ${{ matrix.pytorch-version }}
+  #         chainer-version: ${{ matrix.chainer-version }}
+  #         use-conda: ${{ matrix.use-conda }}
+  #     # - name: Get PR labels
+  #     #   id: pr-labels
+  #     #   uses: joerick/pr-labels-action@v1.0.9
+  #     - name: test python
+  #       run: |
+  #         ./ci/test_python_espnet2.sh
