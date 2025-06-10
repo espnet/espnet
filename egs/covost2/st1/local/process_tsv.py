@@ -59,10 +59,9 @@ def main():
             uttid2transcription[utt_id] = transcription
 
     # save translation
-    with (
-        codecs.open(args.save_path_src, "w", encoding="utf-8") as f_src,
-        codecs.open(args.save_path_tgt, "w", encoding="utf-8") as f_tgt,
-    ):
+    with codecs.open(args.save_path_src, "w", encoding="utf-8") as f_src, codecs.open(
+        args.save_path_tgt, "w", encoding="utf-8"
+    ) as f_tgt:
         for d in data:
             if d["path"].split(".")[0] not in mp3path2uttid:
                 print("Skip %s (empty mp3)" % d["path"])
