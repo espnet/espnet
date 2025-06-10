@@ -1,5 +1,4 @@
 import argparse
-import os  # noqa
 import yaml
 
 from pathlib import Path
