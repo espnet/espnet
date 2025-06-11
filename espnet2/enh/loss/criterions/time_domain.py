@@ -88,7 +88,7 @@ class CISDRLoss(TimeDomainLoss):
             import ci_sdr
         except ImportError:
             raise RuntimeError("Please install espnet['task-enh']")
-        
+
         _name = "ci_sdr_loss" if name is None else name
         super().__init__(
             _name,
@@ -181,7 +181,7 @@ class SDRLoss(TimeDomainLoss):
             import fast_bss_eval
         except ImportError:
             raise RuntimeError("Please install espnet['task-enh']")
-        
+
         _name = "sdr_loss" if name is None else name
         super().__init__(
             _name,
@@ -252,7 +252,7 @@ class SISNRLoss(TimeDomainLoss):
             import fast_bss_eval
         except ImportError:
             raise RuntimeError("Please install espnet['task-enh']")
-        
+
         _name = "si_snr_loss" if name is None else name
         super().__init__(
             _name,
