@@ -3,8 +3,8 @@
 setup() {
     export LC_ALL="en_US.UTF-8"
 
-    cd $BATS_TEST_DIRNAME/../../egs/wsj/asr1
-    utils=$(cd $BATS_TEST_DIRNAME/../..; pwd)/utils
+    cd $BATS_TEST_DIRNAME/../egs/wsj/asr1
+    utils=$(cd $BATS_TEST_DIRNAME/..; pwd)/utils
     tmpdir=$(mktemp -d testXXXXXX)
     mkdir -p $tmpdir/data
     ark_1=$tmpdir/test_1.ark

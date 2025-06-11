@@ -3,7 +3,7 @@
 setup() {
     export LC_ALL="en_US.UTF-8"
 
-    utils=$(cd $BATS_TEST_DIRNAME/../..; pwd)/utils
+    utils=$(cd $BATS_TEST_DIRNAME/..; pwd)/utils
     tmpdir=$(mktemp -d testXXXXXX)
     cat << EOF > $tmpdir/base.json
 {
