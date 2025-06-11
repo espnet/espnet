@@ -188,7 +188,7 @@ You can install the **core dependencies** with:
     ```
 
 To install task-specific dependencies, you can add the desired options. For example:
-    
+
 * For ASR:
 
     ```sh
@@ -202,16 +202,16 @@ To install task-specific dependencies, you can add the desired options. For exam
     $ cd <espnet-root>
     $ pip install -e ".[core,task-tts]"
     ```
-    
+
 * For all tasks (ASR, TTS, enhancement, speaker tasks):
 
     ```sh
     $ cd <espnet-root>
     $ pip install -e ".[all]"
     ```
-    
+
     You can also install development tools (linters, test runners) or documentation tools:
-    
+
     ```sh
     $ cd <espnet-root>
     $ pip install -e ".[dev,test,doc]"
