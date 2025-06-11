@@ -5,7 +5,7 @@ You can find detailed information about Dev Containers at https://code.visualstu
 
 ### Implemented Dev Containers
 
-You can find the availables dev containers at `.devcontainer`.
+You can find the available dev containers at `.devcontainer`.
 To launch the current working space in a dev container, first you need to have the `Dev Container` extension installed in VSCode.
 You can launch the container from `F1` > `Dev Containers: Rebuild and Reopen Container`.
 
