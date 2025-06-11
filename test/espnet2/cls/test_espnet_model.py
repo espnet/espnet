@@ -1,7 +1,8 @@
 import numpy as np
 import pytest
 import torch
-from scipy import stats
+
+# from scipy import stats
 from sklearn import metrics
 
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
@@ -138,7 +139,7 @@ def calculate_stats_testing_internal_(
     """
 
     classes_num = target.shape[-1]
-    # stats = []
+    stats = []
 
     acc = metrics.accuracy_score(np.argmax(target, 1), np.argmax(output, 1))
     if classification_type == "multi-class":
