@@ -173,8 +173,81 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
         $ cd <espnet-root>/tools
         $ rm -f activate_python.sh && touch activate_python.sh
         ```
-1. Install ESPnet
 
+
+#### 4. Install ESPnet via `pyproject.toml` (Recommended for ESPnet3)
+
+ESPnet adopts the modern Python packaging standard using `pyproject.toml`.
+You can install the **core dependencies** with:
+
+* Core installation:
+
+    ```sh
+    $ cd <espnet-root>
+    $ pip install -e ".[core]"
+    ```
+
+To install task-specific dependencies, you can add the desired options. For example:
+    
+* For ASR:
+
+    ```sh
+    $ cd <espnet-root>
+    $ pip install -e ".[core,task-asr]"
+    ```
+
+* For TTS:
+
+    ```sh
+    $ cd <espnet-root>
+    $ pip install -e ".[core,task-tts]"
+    ```
+    
+* For all tasks (ASR, TTS, enhancement, speaker tasks):
+
+    ```sh
+    $ cd <espnet-root>
+    $ pip install -e ".[all]"
+    ```
+    
+    You can also install development tools (linters, test runners) or documentation tools:
+    
+    ```sh
+    $ cd <espnet-root>
+    $ pip install -e ".[dev,test,doc]"
+    ```
+
+2. Check installation
+    Run the following to validate your installation:
+
+    ```sh
+    cd tools
+    bash -c ". ./activate_python.sh; python3 check_install.py"
+    ```
+
+3. [Optional] How dependency groups are organized
+    The ESPnet `pyproject.toml` defines optional dependency groups:
+
+    | Group      | Purpose                       |
+    | ---------- | ----------------------------- |
+    | `core`     | Core libraries and runtime    |
+    | `task-asr` | ASR-specific dependencies     |
+    | `task-tts` | TTS-specific dependencies     |
+    | `task-enh` | Speech enhancement            |
+    | `task-spk` | Speaker recognition           |
+    | `dev`      | Code formatting and linting   |
+    | `test`     | Unit test dependencies        |
+    | `doc`      | Documentation generation      |
+    | `all`      | All of the above (except dev) |
+
+    You can mix and match groups as needed:
+
+    ```sh
+    pip install -e ".[core,task-asr,task-tts,test]"
+    ```
+
+
+2. Install ESPnet (Legacy)
     ```sh
     $ cd <espnet-root>/tools
     $ make
