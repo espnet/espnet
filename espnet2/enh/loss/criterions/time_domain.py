@@ -2,7 +2,6 @@ import logging
 import math
 from abc import ABC
 
-import ci_sdr
 import fast_bss_eval
 import torch
 from packaging.version import parse as V
@@ -86,6 +85,11 @@ class CISDRLoss(TimeDomainLoss):
         is_noise_loss=False,
         is_dereverb_loss=False,
     ):
+        try:
+            import ci_sdr
+        except ImportError:
+            raise RuntimeError("Please install espnet['task-enh']")
+        
         _name = "ci_sdr_loss" if name is None else name
         super().__init__(
             _name,
