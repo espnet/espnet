@@ -58,7 +58,6 @@ core = [
   "kaldiio>=2.18.0",
   "sentencepiece==0.2.0",
   "pyworld>=0.3.4",
-  "g2p_en",
   "librosa>0.9.2",
   "lightning",
   "nltk>=3.4.5",
@@ -88,6 +87,7 @@ task-tts = [
   "pyworld>=0.3.4",
   "pypinyin<=0.44.0",
   "espnet_tts_frontend",
+  "g2p_en",
 ]
 
 task-enh = [

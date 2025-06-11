@@ -4,7 +4,6 @@ import warnings
 from pathlib import Path
 from typing import Iterable, List, Optional, Union
 
-import g2p_en
 import jamo
 from packaging.version import parse as V
 from typeguard import typechecked
@@ -250,6 +249,11 @@ class G2p_en:
     """
 
     def __init__(self, no_space: bool = False):
+        try:
+            import g2p_en
+        except ImportError:
+            raise RuntimeError("Please install espnet with" \
+            "`pip install espnet['task-tts']")
         self.no_space = no_space
         self.g2p = None
 
