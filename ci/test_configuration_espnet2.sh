@@ -72,6 +72,10 @@ if python3 -c 'import torch as t; from packaging.version import parse as L; asse
                 continue
             fi
         fi
+        # FIXME(Jinchuan): this one requires extra file downloading, which is not available.
+        if [ "$f" == "egs2/iwslt21_low_resource/asr1/conf/train_asr_conformer.yaml" ]; then
+            continue
+        fi
         ${python} -m espnet2.bin.asr_train --config "${f}" --iterator_type none --dry_run true --output_dir out --token_list dummy_token_list
         sudo rm -rf /root/.cache/huggingface*
         rm -rf hf_cache hub

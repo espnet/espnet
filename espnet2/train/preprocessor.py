@@ -27,7 +27,7 @@ from espnet2.text.whisper_tokenizer import OpenAIWhisperTokenizer
 
 try:  # NOTE(Jinchuan): install manually
     from PIL import Image
-except:
+except ImportError:
     pass
 
 

@@ -21,7 +21,7 @@ from torch.utils.data import DataLoader, Dataset
 # pip install pillow
 try:
     from PIL import Image
-except:
+except ImportError:
     pass
 
 from espnet2.fileio.read_text import read_2columns_text
