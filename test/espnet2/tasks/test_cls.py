@@ -151,6 +151,6 @@ def test_build_collate_fn():
 def test_build_model():
     args = get_dummy_namespace()
     args.classification_type = "multi-label"
-    model = CLSTask.build_model(args)
+    _ = CLSTask.build_model(args)
     args.classification_type = "multi-class"
-    model = CLSTask.build_model(args)
+    _ = CLSTask.build_model(args)
