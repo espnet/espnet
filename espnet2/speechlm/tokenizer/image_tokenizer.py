@@ -51,6 +51,7 @@ class ImageTokenizer(AbsTokenizer):
                     f"./Cosmos-Tokenizer/ckpt nvidia/${model_tag} "
                 )
 
+            # TODO(Jinchuan): put this operation into shell script
             sys.path.append("./Cosmos-Tokenizer")
             from cosmos_tokenizer.image_lib import ImageTokenizer
             from cosmos_tokenizer.utils import numpy2tensor as cosmos_numpy2tensor
@@ -82,6 +83,7 @@ class ImageTokenizer(AbsTokenizer):
                     f"./vila-u/ckpt mit-han-lab/vila-u-7b-256 "
                 )
 
+            # TODO(Jinchuan): put this operation into shell script
             sys.path.append("./vila-u")
             from transformers import PretrainedConfig
             from vila_u.model.multimodal_encoder.builder import build_vision_tower

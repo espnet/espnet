@@ -10,7 +10,9 @@ from espnet2.text.sentencepiece_tokenizer import SentencepiecesTokenizer
 
 
 class TextBPETokenizer(AbsTokenizer):
-    """A warpper for SentencePiece tokenizer, only used for speechlm BPE detokenization"""
+    """
+    A warpper for SentencePiece tokenizer, only used for speechlm BPE detokenization
+    """
 
     def __init__(self, model, token_list):
         super(TextBPETokenizer, self).__init__()
