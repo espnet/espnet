@@ -171,11 +171,11 @@ def analyze_one_metric(
             weights[idx] += weight
             accum[idx] += score
 
-    print(f"Metric: {report_metric}, Rerank by {rerank_metric}")
+    logging.info(f"Metric: {report_metric}, Rerank by {rerank_metric}")
     result_list = [a / c for a, c in zip(accum, weights)]
     for idx, v in enumerate(result_list):
-        print(f"rank: {idx} | value: {v}")
-    print(f"Average: {sum(accum) / sum(weights)}")
+        logging.info(f"rank: {idx} | value: {v}")
+    logging.info(f"Average: {sum(accum) / sum(weights)}")
 
     if draw_picture:
         (output_dir / "images").mkdir(parents=True, exist_ok=True)

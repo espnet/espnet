@@ -15,8 +15,14 @@ import kaldiio
 import numpy as np
 import pandas as pd
 import torch
-from PIL import Image
 from torch.utils.data import DataLoader, Dataset
+
+# NOTE(Jinchuan): to avoid CI errors. Please install it manually
+# pip install pillow
+try:
+    from PIL import Image
+except:
+    pass
 
 from espnet2.fileio.read_text import read_2columns_text
 from espnet2.speechlm.tokenizer.image_tokenizer import ImageTokenizer

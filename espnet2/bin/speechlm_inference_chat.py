@@ -34,9 +34,31 @@ class SpeechLM:
     """
     The Chat Interface of SpeechLM
 
-    Example: TODO(Jinchuan): will finish this doc once all APIs
-    get stable.
-
+    Args:
+        train_config (str or Path): Path to the training configuration file
+            from your training folder. Contains model architecture, tokenizer,
+            and training hyperparameters.
+        model_file (str or Path): Path to the trained model checkpoint file
+            in your training folder containing the learned model weights.
+        dtype (str): PyTorch data type for model inference. Must be one of:
+            - "float16": Half precision (faster, less memory, potential accuracy loss)
+            - "bfloat16": Half precision (faster, less memory, potential accuracy loss)
+            - "float32": Single precision (default, good balance)
+        device (str or torch.device): PyTorch device specification for model execution.
+            Examples: "cpu", "cuda:0", "cuda:1", etc.
+        inference_config (Dict[str, Any]): Dictionary mapping modality tokens to their
+            respective inference configurations. Each modality (e.g., "speech", "text")
+            has specific generation parameters like beam size, temperature, etc.
+            See espnet2/speechlm/iference_utils.py for details.
+        inference_mode (str): Inference operation mode. Must be one of:
+            - "chat": Conversational mode with role tokens and turn-based interaction
+            - "task": Task-oriented mode for structured input/output processing
+        inference_last_segment (bool): Whether to perform inference only on the last
+            segment of the input sequence. If False, processes all segments requiring
+            generation.
+        nbest (int): Number of hypothesis candidates to generate and return.
+            Must be 1 for chat mode (batch inference not supported in chat).
+            For task mode, can be > 1 to get multiple alternative outputs.
     """
 
     def __init__(

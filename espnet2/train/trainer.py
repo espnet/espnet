@@ -760,10 +760,7 @@ class Trainer:
                             if optim_idx is not None and iopt != optim_idx:
                                 continue
                             scaler.step(optimizer)
-                            if scaler.get_scale() > options.max_loss_scale:
-                                scaler.update(options.max_loss_scale)
-                            else:
-                                scaler.update()
+                            scaler.update()
 
                 else:
                     reporter.register(
@@ -789,10 +786,7 @@ class Trainer:
                                 # the optimizer's assigned params.
                                 scaler.step(optimizer)
                                 # Updates the scale for next iteration.
-                                if scaler.get_scale() > options.max_loss_scale:
-                                    scaler.update(options.max_loss_scale)
-                                else:
-                                    scaler.update()
+                                scaler.update()
                             else:
                                 optimizer.step()
                             if isinstance(scheduler, AbsBatchStepScheduler):
@@ -800,9 +794,7 @@ class Trainer:
                 for iopt, optimizer in enumerate(optimizers):
                     if optim_idx is not None and iopt != optim_idx:
                         continue
-                    # Note(Jinchuan): set_to_none reduces memory operations.
-                    # https://pytorch.org/tutorials/recipes/recipes/tuning_guide.html
-                    optimizer.zero_grad(set_to_none=True)
+                    optimizer.zero_grad()
 
                 # Register lr and train/load time[sec/step],
                 # where step refers to accum_grad * mini-batch
