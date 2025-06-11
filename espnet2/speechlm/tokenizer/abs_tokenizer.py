@@ -21,5 +21,14 @@ class AbsTokenizer(torch.nn.Module, ABC):
 
     @abstractmethod
     @torch.no_grad()
-    def forward(self, tokens: torch.Tensor) -> Any:
+    def forward(self, inp: Any) -> torch.Tensor:
+        """Tokenization function"""
+        raise NotImplementedError
+
+    @torch.no_grad()
+    def detokenize(self, tokens: torch.Tensor) -> Any:
+        """
+        Detokenization function
+        Accept tokens in shape [B, N_token]
+        """
         raise NotImplementedError

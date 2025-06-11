@@ -19,8 +19,9 @@ log() {
 stage=1
 stop_stage=100
 nj=4                # number of parallel jobs
+cuda_cmd=utils/run.pl
 python=python3      # Specify python to execute espnet commands.
-codec_choice=ESPnet # Options: Encodec, DAC, ESPnet (our in-house model)
+codec_choice=ESPnet # Options: EnCodec, DAC, ESPnet (our in-house model)
 codec_fs=16000
 batch_size=3
 bias=0
@@ -30,7 +31,7 @@ src_dir=
 tgt_dir=
 checkpoint_path=null
 config_path=null
-cuda_cmd=utils/run.pl
+hf_model_tag=null
 
 log "$0 $*"
 . utils/parse_options.sh
@@ -39,11 +40,9 @@ log "$0 $*"
 . ./cmd.sh || exit 1
 
 if [ $# -ne 0 ]; then
-    echo "Usage: $0 --src_dir <src_dir> --tgt_dir <tgt_dir> --file_name wav.scp --codec_choice DAC"
+    echo "Usage: $0 --src_dir <src_dir> --tgt_dir <tgt_dir> --file_name wav.scp"
     exit 0
 fi
-
-# TODO (Jinchuan): check the installation of the used codec models
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     if [[ ${file_name} == *.scp ]]; then
@@ -82,6 +81,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
             --wav_wspecifier ${wav_wspecifier} \
             --checkpoint_path ${checkpoint_path} \
             --config_path ${config_path} \
+            --hf_model_tag ${hf_model_tag} \
             "scp:${_logdir}/${file_name}.JOB.scp" ${code_wspecifier} || exit 1;
 
     for n in $(seq ${_nj}); do

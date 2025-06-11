@@ -41,6 +41,8 @@ class DeepSpeedTrainerOptions:
     log_interval: Optional[int]
     output_dir: Union[Path, str]
     max_epoch: int
+    torch_reseved_memory_gb: float
+    deepspeed_step_sync: bool
     deepspeed_config: Union[Path, str]
     best_model_criterion: Sequence[Sequence[str]]
     keep_nbest_models: Union[int, List[int]]
@@ -144,6 +146,7 @@ class DeepSpeedTrainer(Trainer):
                 )
 
             # (5.2) valid one epoch
+            logging.info("Start Evaluation ...")
             with reporter.observe("valid") as sub_reporter:
                 cls.valid_one_epoch(
                     model=model,
@@ -193,6 +196,11 @@ class DeepSpeedTrainer(Trainer):
             except TypeError:
                 log_interval = 100
 
+        if not options.deepspeed_step_sync:
+            cls.check_iterator_length(iterator)
+
+        cls.reserve_runtime_memory(size_gb=options.torch_reseved_memory_gb)
+
         for iiter, (utt_id, batch) in enumerate(
             reporter.measure_iter_time(iterator, "iter_time"), 1
         ):
@@ -200,9 +208,10 @@ class DeepSpeedTrainer(Trainer):
 
             with reporter.measure_time("step_time"):
                 # (0) ensure all ranks have not finished.
-                dist.all_reduce(iterator_stop, ReduceOp.SUM)
-                if iterator_stop > 0:
-                    break
+                if options.deepspeed_step_sync:
+                    dist.all_reduce(iterator_stop, ReduceOp.SUM)
+                    if iterator_stop > 0:
+                        break
 
                 # (1) forward
                 batch["utt_id"] = utt_id
@@ -211,7 +220,9 @@ class DeepSpeedTrainer(Trainer):
 
                 # (2) all-reduce statistics and logging on model side
                 stats = {k: v for k, v in stats.items() if v is not None}
-                stats, weight = recursive_average(stats, weight, True)
+                stats, weight = recursive_average(
+                    stats, weight, options.deepspeed_step_sync
+                )
                 reporter.register(stats, weight)
 
                 # (3) backward and logging on trainer side
@@ -230,10 +241,15 @@ class DeepSpeedTrainer(Trainer):
                 reporter.next()
                 if iiter % log_interval == 0:
                     logging.info(reporter.log_message(-log_interval))
+                    logging.info(
+                        f"Pytorch memory reservation: "
+                        f"{torch.cuda.memory_reserved() // 1024 ** 3} GB"
+                    )
 
         else:
-            iterator_stop.fill_(1)
-            dist.all_reduce(iterator_stop, ReduceOp.SUM)
+            if options.deepspeed_step_sync:
+                iterator_stop.fill_(1)
+                dist.all_reduce(iterator_stop, ReduceOp.SUM)
 
     @classmethod
     @typechecked
@@ -289,3 +305,40 @@ class DeepSpeedTrainer(Trainer):
 
         else:
             return torch.float
+
+    @classmethod
+    @typechecked
+    def check_iterator_length(cls, iter: Iterable):
+        this_length = torch.Tensor([len(iter)]).long().cuda()
+        length_list = [
+            torch.Tensor([0]).long().cuda() for _ in range(dist.get_world_size())
+        ]
+        dist.all_gather(length_list, this_length)
+        length_list = torch.cat(length_list)
+        assert torch.all(
+            length_list.eq(this_length)
+        ), f"Iterator lengths are different across all ranks: {length_list}"
+
+    @classmethod
+    def reserve_runtime_memory(cls, size_gb: float):
+        if size_gb <= 0:
+            return
+
+        torch.cuda.empty_cache()
+        logging.info(
+            f"Before reserving memory: {torch.cuda.memory_reserved() // 1024 ** 3} GB"
+        )
+
+        tensors = []
+        while torch.cuda.memory_reserved() // 1024**3 < size_gb:
+            try:
+                tensor = torch.empty(1024**3 // 2, dtype=torch.float16, device="cuda")
+                tensors.append(tensor)
+            except torch.cuda.OutOfMemoryError:
+                logging.info("Cannot further reserve memory due to OOM")
+                break
+        del tensors
+
+        logging.info(
+            f"after reserving memory: {torch.cuda.memory_reserved() // 1024 ** 3} GB"
+        )

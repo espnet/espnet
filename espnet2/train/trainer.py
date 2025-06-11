@@ -3,6 +3,7 @@
 import argparse
 import dataclasses
 import logging
+import shutil
 import time
 from contextlib import contextmanager
 from dataclasses import is_dataclass
@@ -43,12 +44,11 @@ autocast_args = dict()
 if V(torch.__version__) >= V("1.6.0"):
     from torch.cuda.amp import GradScaler, autocast
 
-    if (
-        V(torch.__version__) >= V("1.10.0")
-        and torch.cuda.is_available()
-        and torch.cuda.is_bf16_supported()
-    ):
-        autocast_args = dict(dtype=torch.bfloat16)
+    if V(torch.__version__) >= V("1.10.0") and torch.cuda.is_available():
+        if torch.cuda.is_bf16_supported():
+            autocast_args = dict(dtype=torch.bfloat16)
+        else:
+            autocast_args = dict(dtype=torch.float16)
 else:
     # Nothing to do if torch<1.6.0
     @contextmanager
@@ -81,6 +81,7 @@ class TrainerOptions:
     train_dtype: str
     grad_noise: bool
     accum_grad: int
+    max_loss_scale: float
     grad_clip: float
     grad_clip_type: float
     log_interval: Optional[int]
@@ -161,6 +162,7 @@ class Trainer:
             map_location=f"cuda:{torch.cuda.current_device()}" if ngpu > 0 else "cpu",
             weights_only=False,
         )
+
         model.load_state_dict(states["model"], strict=strict)
         reporter.load_state_dict(states["reporter"])
         for optimizer, state in zip(optimizers, states["optimizers"]):
@@ -255,6 +257,7 @@ class Trainer:
                     module=model,
                     sharded_optimizer=optimizers,
                 )
+
             else:
                 dp_model = torch.nn.parallel.DistributedDataParallel(
                     model,
@@ -402,6 +405,7 @@ class Trainer:
 
                 # 4. Save/Update the checkpoint
                 model_state_dict = model.state_dict()
+                optim_state_dict = [o.state_dict() for o in optimizers]
                 if use_adapter:
                     if save_strategy == "all":
                         model_state_dict = model_state_dict
@@ -425,7 +429,7 @@ class Trainer:
                     {
                         "model": model_state_dict,
                         "reporter": reporter.state_dict(),
-                        "optimizers": [o.state_dict() for o in optimizers],
+                        "optimizers": optim_state_dict,
                         "schedulers": [
                             s.state_dict() if s is not None else None
                             for s in schedulers
@@ -433,6 +437,11 @@ class Trainer:
                         "scaler": scaler.state_dict() if scaler is not None else None,
                     },
                     output_dir / "checkpoint.pth",
+                )
+                # for large model, we can use this to resume the training.
+                shutil.copy(
+                    output_dir / "checkpoint.pth",
+                    output_dir / f"checkpoint_{iepoch}.pth",
                 )
 
                 # 5. Save and log the model and update the link to the best model
@@ -635,10 +644,7 @@ class Trainer:
                         )
                 del _model
 
-            with autocast(
-                scaler is not None,
-                **autocast_args,
-            ):
+            with autocast(options.use_amp, **autocast_args):
                 with reporter.measure_time("forward_time"):
                     retval = model(**batch)
 

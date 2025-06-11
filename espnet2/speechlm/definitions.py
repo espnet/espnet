@@ -20,21 +20,30 @@ from typing import List, Tuple
 #    an exception is "spk"
 @dataclass
 class Modality:
-    discrete: bool = (True,)
-    data_type: str = ("kaldi_ark",)
+    discrete: bool = True
 
 
-modalities = {}
+MODALITIES = {}
 # Discrete
-modalities["codec"] = Modality()
-modalities["ssl"] = Modality()
-modalities["text_bpe"] = Modality(data_type="text")
-modalities["g2p"] = Modality(data_type="text")
-modalities["spk"] = Modality(data_type="text")
-# Continuous
-modalities["wav"] = Modality(discrete=False)
-modalities["text_emb"] = Modality(discrete=False)
-modalities["ssl_feat"] = Modality(discrete=False)
+MODALITIES["codec"] = Modality()
+MODALITIES["ssl"] = Modality()
+MODALITIES["codec_ssl"] = Modality()
+MODALITIES["text_bpe"] = Modality()
+MODALITIES["g2p"] = Modality()
+MODALITIES["spk"] = Modality()
+MODALITIES["class"] = Modality()
+MODALITIES["bool"] = Modality()
+MODALITIES["video_ssl"] = Modality()
+MODALITIES["svs_lb"] = Modality()
+MODALITIES["image"] = Modality()
+
+# continuous
+MODALITIES["wav"] = Modality(discrete=False)
+MODALITIES["text_emb"] = Modality(discrete=False)
+MODALITIES["ssl_feat"] = Modality(discrete=False)
+
+# dialogue
+MODALITIES["dialogue"] = Modality()
 
 # END OF MODALITY DEFINITION #
 
@@ -56,32 +65,204 @@ modalities["ssl_feat"] = Modality(discrete=False)
 #    E.g., in TTS, the wave files are indexed with wav.scp, it will experence codec
 #      tokenization and then loaded as kaldi_ark -> (wav.scp, codec, kaldi_ark)
 @dataclass
-class SpeechLMTask:
-    encoder_entries: List[Tuple[str, str, str]]
-    decoder_entries: List[Tuple[str, str, str]]
-    target_entries: List[Tuple[str, str, str]]
+class SpeechLMTaskTemplate:
+    conditions: List[Tuple[str, str, str]]
+    targets: List[Tuple[str, str, str]]
     use_task_identifier: bool = True
+    fixed_length_key: str = ""
 
     @property
-    def find_modality_type(self):  # Used in shell data preparation script
-        all_entries = self.encoder_entries + self.decoder_entries
+    def data_triplets(self):
+        all_entries = self.conditions + self.targets
+        return all_entries
+
+    @property
+    def n_conditions(self):
+        return len(self.conditions)
+
+    @property
+    def n_targets(self):
+        return len(self.targets)
+
+    @property
+    def data_triplets_string(self):
         ans = ""
-        for entry in all_entries:
+        for entry in self.data_triplets:
+            ans = ans + ",".join(entry) + " "
+        return ans
+
+    @property
+    def condition_string(self):
+        ans = ""
+        for entry in self.conditions:
+            ans = ans + ",".join(entry) + " "
+        return ans
+
+    @property
+    def target_string(self):
+        ans = ""
+        for entry in self.targets:
             ans = ans + ",".join(entry) + " "
         return ans
 
 
-tasks = {}
-tasks["tts"] = SpeechLMTask(
-    encoder_entries=[("text", "g2p", "text"), ("utt2spk", "spk", "text")],
-    decoder_entries=[("wav.scp", "codec", "kaldi_ark")],
-    target_entries=[("wav.scp", "codec", "kaldi_ark")],
+SPEECHLM_TASKS = dict()
+
+SPEECHLM_TASKS["textlm"] = SpeechLMTaskTemplate(
+    conditions=[],
+    targets=[("text", "text_bpe", "text")],
 )
 
-tasks["plain_tts"] = SpeechLMTask(
-    encoder_entries=[("text", "g2p", "text")],
-    decoder_entries=[("wav.scp", "codec", "kaldi_ark")],
-    target_entries=[("wav.scp", "codec", "kaldi_ark")],
+SPEECHLM_TASKS["audiolm"] = SpeechLMTaskTemplate(
+    conditions=[],
+    targets=[("wav.scp", "codec", "kaldi_ark")],
+)
+
+SPEECHLM_TASKS["ssl_audiolm"] = SpeechLMTaskTemplate(
+    conditions=[],
+    targets=[("wav.scp", "ssl", "kaldi_ark")],
+)
+
+SPEECHLM_TASKS["tts"] = SpeechLMTaskTemplate(
+    conditions=[("text", "g2p", "text"), ("utt2spk", "spk", "text")],
+    targets=[("wav.scp", "codec", "kaldi_ark")],
+)
+
+SPEECHLM_TASKS["ssl_tts"] = SpeechLMTaskTemplate(
+    conditions=[("text", "text_bpe", "text")],
+    targets=[("wav.scp", "ssl", "kaldi_ark")],
+)
+
+SPEECHLM_TASKS["bpe_tts"] = SpeechLMTaskTemplate(
+    conditions=[("text", "text_bpe", "text"), ("utt2spk", "spk", "text")],
+    targets=[("wav.scp", "codec", "kaldi_ark")],
+)
+
+SPEECHLM_TASKS["asr"] = SpeechLMTaskTemplate(
+    conditions=[("wav.scp", "codec", "kaldi_ark")],
+    targets=[("text", "text_bpe", "text")],
+)
+
+SPEECHLM_TASKS["ssl_asr"] = SpeechLMTaskTemplate(
+    conditions=[("wav.scp", "ssl", "kaldi_ark")],
+    targets=[("text", "text_bpe", "text")],
+)
+
+SPEECHLM_TASKS["mt"] = SpeechLMTaskTemplate(
+    conditions=[("src_text", "text_bpe", "text")],
+    targets=[("text", "text_bpe", "text")],
+)
+
+SPEECHLM_TASKS["text2audio"] = SpeechLMTaskTemplate(
+    conditions=[("text", "text_emb", "kaldi_ark")],
+    targets=[("wav.scp", "codec", "kaldi_ark")],
+)
+
+SPEECHLM_TASKS["visual_tts"] = SpeechLMTaskTemplate(
+    conditions=[
+        ("text", "g2p", "text"),
+        ("utt2spk", "spk", "text"),
+        ("video.scp", "video_ssl", "kaldi_ark"),
+    ],
+    targets=[("wav.scp", "codec", "kaldi_ark")],
+)
+
+SPEECHLM_TASKS["vc"] = SpeechLMTaskTemplate(
+    conditions=[("src_wav.scp", "codec", "kaldi_ark"), ("utt2spk", "spk", "text")],
+    targets=[("wav.scp", "codec", "kaldi_ark")],
+)
+
+SPEECHLM_TASKS["ssl2codec"] = SpeechLMTaskTemplate(
+    conditions=[("ssl_wav.scp", "ssl", "kaldi_ark"), ("utt2spk", "spk", "text")],
+    targets=[("wav.scp", "codec", "kaldi_ark")],
+)
+
+SPEECHLM_TASKS["svs"] = SpeechLMTaskTemplate(
+    conditions=[("label", "svs_lb", "text")],
+    targets=[("wav.scp", "codec", "kaldi_ark")],
+)
+
+SPEECHLM_TASKS["mt"] = SpeechLMTaskTemplate(
+    conditions=[("src_text", "text_bpe", "text")],
+    targets=[("text", "text_bpe", "text")],
+)
+
+SPEECHLM_TASKS["st"] = SpeechLMTaskTemplate(
+    conditions=[("wav.scp", "ssl", "kaldi_ark")],
+    targets=[("src_text", "text_bpe", "text"), ("text", "text_bpe", "text")],
+)
+
+SPEECHLM_TASKS["se"] = SpeechLMTaskTemplate(
+    conditions=[("wav.scp", "codec", "kaldi_ark")],
+    targets=[("spk1.scp", "codec", "kaldi_ark")],
+)
+
+# codec_ssl tasks:
+SPEECHLM_TASKS["codec_ssl_asr"] = SpeechLMTaskTemplate(
+    conditions=[("wav.scp", "codec_ssl", "kaldi_ark")],
+    targets=[("text", "text_bpe", "text")],
+)
+
+SPEECHLM_TASKS["codec_ssl_tts"] = SpeechLMTaskTemplate(
+    conditions=[("text", "text_bpe", "text"), ("utt2spk", "spk", "text")],
+    targets=[("wav.scp", "codec_ssl", "kaldi_ark")],
+)
+
+SPEECHLM_TASKS["codec_ssl_plain_tts"] = SpeechLMTaskTemplate(
+    conditions=[("text", "text_bpe", "text")],
+    targets=[("wav.scp", "codec_ssl", "kaldi_ark")],
+)
+
+SPEECHLM_TASKS["codec_ssl_audiolm"] = SpeechLMTaskTemplate(
+    conditions=[],
+    targets=[("wav.scp", "codec_ssl", "kaldi_ark")],
+)
+
+SPEECHLM_TASKS["codec_ssl_se"] = SpeechLMTaskTemplate(
+    conditions=[("mix.scp", "codec_ssl", "kaldi_ark")],
+    targets=[("wav.scp", "codec_ssl", "kaldi_ark")],
+    fixed_length_key="mix.scp",
+)
+
+SPEECHLM_TASKS["codec_ssl_tse"] = SpeechLMTaskTemplate(
+    conditions=[("mix.scp", "codec_ssl", "kaldi_ark"), ("utt2spk", "spk", "text")],
+    targets=[("wav.scp", "codec_ssl", "kaldi_ark")],
+    fixed_length_key="mix.scp",
+)
+
+SPEECHLM_TASKS["aac_codecssl"] = SpeechLMTaskTemplate(
+    conditions=[("wav.scp", "codec_ssl", "kaldi_ark")],
+    targets=[("text", "text_bpe", "text")],
+)
+
+SPEECHLM_TASKS["ag_codecssl"] = SpeechLMTaskTemplate(
+    conditions=[("text", "text_bpe", "text")],
+    targets=[("wav.scp", "codec_ssl", "kaldi_ark")],
+)
+
+SPEECHLM_TASKS["text_dialogue"] = SpeechLMTaskTemplate(
+    conditions=[],
+    targets=[("dialogue", "dialogue", "dialogue_json")],
+)
+
+SPEECHLM_TASKS["audio_dialogue"] = SpeechLMTaskTemplate(
+    conditions=[],
+    targets=[("dialogue", "dialogue", "dialogue_json")],
+)
+
+SPEECHLM_TASKS["vision_dialogue"] = SpeechLMTaskTemplate(
+    conditions=[],
+    targets=[("dialogue", "dialogue", "dialogue_json")],
+)
+
+SPEECHLM_TASKS["image_to_text"] = SpeechLMTaskTemplate(
+    conditions=[("image.scp", "image", "kaldi_ark")],
+    targets=[("text", "text_bpe", "text")],
+)
+
+SPEECHLM_TASKS["text_to_image"] = SpeechLMTaskTemplate(
+    conditions=[("text", "text_bpe", "text")],
+    targets=[("image.scp", "image", "kaldi_ark")],
 )
 
 # END OF TASK DEFINITION #
@@ -95,7 +276,6 @@ tasks["plain_tts"] = SpeechLMTask(
 # b. don't delete / modify it, otherwise the model trained
 #    previously can become incompatible. New tokens can be
 #    added - there are enough slots
-
 special_tokens = [
     "<pad>",
     "<unk>",
@@ -105,6 +285,10 @@ special_tokens = [
     "<sos/eos>",
     "<local_sos/eos>",
     "<unkown_task_identifer>",
+    "<system_prompt>",
+    "<user_input>",
+    "<assistant_output>",
+    "<eou>",
 ]
 
 
@@ -117,11 +301,11 @@ def pad_until(token_list, until):
 
 special_tokens = pad_until(special_tokens, 32)
 
-for m in modalities.keys():
+for m in MODALITIES.keys():
     special_tokens.append(f"<{m}_start/end>")
 special_tokens = pad_until(special_tokens, 64)
 
-for m in tasks.keys():
+for m in SPEECHLM_TASKS.keys():
     special_tokens.append(f"<{m}_task>")
 special_tokens = pad_until(special_tokens, 128)
 

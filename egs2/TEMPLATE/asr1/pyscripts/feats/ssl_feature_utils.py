@@ -61,7 +61,7 @@ def build_data_iterator(
         dataset=dataset,
         batches=batches,
         collate_fn=CommonCollateFn(float_pad_value=0.0, int_pad_value=-1),
-        num_workers=2,
+        num_workers=8,
     ).build_iter(0)
     return iterator
 
@@ -256,7 +256,7 @@ class HubertFeatureReader(BaseFeatureReader):
         return feats, feats_lens
 
 
-class ESPnetHubertFeatureReader(BaseFeatureReader):
+class TorchaudioHubertFeatureReader(BaseFeatureReader):
     def __init__(
         self,
         hubert_model_path,
@@ -311,6 +311,53 @@ class ESPnetHubertFeatureReader(BaseFeatureReader):
             )
             feats = feats[-1].cpu()  # (batchsize, time, feat_dim)
         return feats, feats_lens
+
+
+class ESPnetHubertFeatureReader(BaseFeatureReader):
+    def __init__(
+        self,
+        hubert_model_path,
+        layer,
+        audio_sample_rate=16000,
+        max_chunk=1600000,
+        use_gpu=True,
+    ):
+        self.sample_rate = audio_sample_rate
+
+        self.device = "cuda" if use_gpu and torch.cuda.is_available() else "cpu"
+        from espnet2.tasks.ssl import SSLTask
+
+        hubert_model, hubert_train_args = SSLTask.build_model_from_file(
+            None,
+            hubert_model_path,
+            self.device,
+        )
+
+        self.model = hubert_model
+        self.model.eval()
+        self.layer = layer
+        self.max_chunk = max_chunk
+        logger.info(f" max_chunk = {self.max_chunk}")
+
+    def get_feats(
+        self,
+        data: torch.Tensor,
+        data_lens: torch.Tensor,
+        ref_len: Optional[int] = None,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        with torch.inference_mode():
+            if len(data.shape) > 2:
+                data = (data[:, :, 0] + data[:, :, 1]) / 2
+            x, x_lens = self.preprocess_data(data, data_lens)
+            x = x.to(self.device)
+            x_lens = x_lens.to(self.device)
+
+            with torch.no_grad():
+                last_feat, feats, x_lens = self.model.inference_encode(x, x_lens)
+                feats[-1] = last_feat  # the last layer is normed.
+                feats = feats[self.layer]
+
+        return feats, x_lens
 
 
 class S3PRLFeatureReader(BaseFeatureReader):
