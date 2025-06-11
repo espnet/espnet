@@ -4,7 +4,6 @@ import warnings
 from pathlib import Path
 from typing import Iterable, List, Optional, Union
 
-import jamo
 from packaging.version import parse as V
 from typeguard import typechecked
 
@@ -329,6 +328,10 @@ class Jaso:
     VALID_CHARS = JAMO_LEADS + JAMO_VOWELS + JAMO_TAILS + PUNC + SPACE
 
     def __init__(self, space_symbol=" ", no_space=False):
+        try:
+            import jamo
+        except ImportError:
+            raise RuntimeError("Please install `pip install espnet['task-tts']")
         self.space_symbol = space_symbol
         self.no_space = no_space
 
