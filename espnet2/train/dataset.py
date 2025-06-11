@@ -109,11 +109,11 @@ class AdapterForSoundScpReader(collections.abc.Mapping):
 class H5FileWrapper:
     @typechecked
     def __init__(self, path: str):
-        try:    
+        try:
             import h5py
         except ImportError:
             raise RuntimeError("Please install h5py.")
-        
+
         self.path = path
         self.h5_file = h5py.File(path, "r")
 

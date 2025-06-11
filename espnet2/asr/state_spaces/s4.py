@@ -18,6 +18,7 @@ from einops import rearrange, repeat
 
 from espnet2.asr.state_spaces.components import Activation, DropoutNd, LinearActivation
 
+
 def rank_zero_only(fn: Callable) -> Callable:
     """Decorator function from PyTorch Lightning.
 
@@ -77,11 +78,14 @@ log = get_logger(__name__)
 
 try:
     import opt_einsum as oe
+
     contract = oe.contract
     contract_expression = oe.contract_expression
 except ImportError:
-    log.warning("If you are running state-space model," \
-    "run `pip install espnet['task-asr-state-space']`.")
+    log.warning(
+        "If you are running state-space model,"
+        "run `pip install espnet['task-asr-state-space']`."
+    )
     contract = None
     contract_expression = None
 

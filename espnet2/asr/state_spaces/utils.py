@@ -9,8 +9,11 @@ try:
     from omegaconf import DictConfig, ListConfig
 except ImportError:
     import logging
-    logging.warning("If you are running state-space model," \
-    "run `pip install espnet['task-asr-state-space']`.")
+
+    logging.warning(
+        "If you are running state-space model,"
+        "run `pip install espnet['task-asr-state-space']`."
+    )
 
 
 def is_list(x):
