@@ -56,7 +56,6 @@ core = [
   "numpy",
   "soundfile>=0.10.2",
   "kaldiio>=2.18.0",
-  "espnet_tts_frontend",
   "sentencepiece==0.2.0",
   "pyworld>=0.3.4",
   "g2p_en",
@@ -87,7 +86,8 @@ task-asr = [
 
 task-tts = [
   "pyworld>=0.3.4",
-  "pypinyin<=0.44.0"
+  "pypinyin<=0.44.0",
+  "espnet_tts_frontend",
 ]
 
 task-enh = [
