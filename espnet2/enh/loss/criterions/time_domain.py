@@ -2,7 +2,6 @@ import logging
 import math
 from abc import ABC
 
-import fast_bss_eval
 import torch
 from packaging.version import parse as V
 from torch_complex.tensor import ComplexTensor
@@ -178,6 +177,11 @@ class SDRLoss(TimeDomainLoss):
         is_noise_loss=False,
         is_dereverb_loss=False,
     ):
+        try:
+            import fast_bss_eval
+        except ImportError:
+            raise RuntimeError("Please install espnet['task-enh']")
+        
         _name = "sdr_loss" if name is None else name
         super().__init__(
             _name,
@@ -244,6 +248,11 @@ class SISNRLoss(TimeDomainLoss):
         is_noise_loss=False,
         is_dereverb_loss=False,
     ):
+        try:
+            import fast_bss_eval
+        except ImportError:
+            raise RuntimeError("Please install espnet['task-enh']")
+        
         _name = "si_snr_loss" if name is None else name
         super().__init__(
             _name,
