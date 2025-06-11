@@ -36,7 +36,7 @@ dependencies = [
 Homepage = "http://github.com/espnet/espnet"
 
 [build-system]
-requires = ["setuptools>=70.0.0", "wheel", "setuptools-scm>=8.0"]
+requires = ["setuptools>=38.5.1,<74.0.0", "wheel", "setuptools-scm>=8.0"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.dynamic]
