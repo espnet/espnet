@@ -80,7 +80,7 @@ task-asr = [
   "tensorboard",
 ]
 
-task-state-space = [
+task-asr-state-space = [
   "hydra-core",
   "omegaconf",
   "opt_einsum",

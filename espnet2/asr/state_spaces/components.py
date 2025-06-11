@@ -219,7 +219,7 @@ class TransposedLinear(nn.Module):
         try:
             from opt_einsum import contract
         except ImportError:
-            raise RuntimeError("Please install espnet['asr-state-space']")
+            raise RuntimeError("Please install espnet['task-asr-state-space']")
 
         self.weight = nn.Parameter(torch.empty(d_output, d_input))
         nn.init.kaiming_uniform_(self.weight, a=math.sqrt(5))  # nn.Linear default init
