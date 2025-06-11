@@ -174,7 +174,7 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
         $ rm -f activate_python.sh && touch activate_python.sh
         ```
 
-1. Install ESPnet via `pyproject.toml` 
+1. Install ESPnet via `pyproject.toml`
 
     ESPnet adopts the modern Python packaging standard using `pyproject.toml`.
     You can install the **core dependencies** with:
