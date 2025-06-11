@@ -20,7 +20,7 @@
 	"runArgs": [
 		"--rm",
 		"--env-file",
-		".devcontainer/container.env",
+		".devcontainer/ci_cpu/container.env",
 		"--name",
 		"espnet-dev-ci",
 		"--hostname",
