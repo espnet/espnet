@@ -7,7 +7,17 @@ from dataclasses import dataclass
 from typing import List, Tuple
 
 
-# (1) Modality Definitions
+# (1) Modality definition
+# a. discrete means the discrete / continuous format in final sequences.
+#    e.g., the LLM output embeddings (textemb) is originally read as text
+#    then tokenized into BPE, and finally converted into continuous
+#    embeddings before being processed by the SpeechLM. So it's continouos
+#    This is to determine if a placeholder should be adopted in the spliced
+#    sequence in preprocess_fn
+# b. data_type: how the original data file is loaded. This is exactly follows
+#    the definitions in espent2.train.dataset
+# c. For discrete modality, we usually have a modality-specific vocabulary
+#    an exception is "spk"
 @dataclass
 class Modality:
     discrete: bool = True
@@ -39,6 +49,21 @@ MODALITIES["dialogue"] = Modality()
 
 
 # (2) Task Definition
+# a. usually we will place a task identifier in the begining.
+#    however, when we want to specify the task by natual langauge,
+#    we don't use that identifier.
+# b. encoder_entries: the entires that should feed to encoder, which
+#    is a list of tuple (file_name, entry_modality, data_type).
+# c. decoder_entries: similar to encoder_entries, but is fed to decoder.
+# d. in decoder-only format, encoder_entries and decoder_entries are merged
+# e. target_entries: entries that the loss computed on. Usually same as
+#    the decoder_entries.
+# f. file_name, the expected file name in original data folder. e.g., wav.scp
+#    entry_modality: the modality defined above, which will be used to determine
+#      how this data will be pre-processed before training. e.g., codec tokenization
+#    data_type: it determines how the data will be loaded during training.
+#    E.g., in TTS, the wave files are indexed with wav.scp, it will experence codec
+#      tokenization and then loaded as kaldi_ark -> (wav.scp, codec, kaldi_ark)
 @dataclass
 class SpeechLMTaskTemplate:
     conditions: List[Tuple[str, str, str]]

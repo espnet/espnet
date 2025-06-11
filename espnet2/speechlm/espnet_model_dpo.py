@@ -60,8 +60,8 @@ class ESPnetSpeechLMDPOModel(AbsESPnetModel):
 
         # (2) DPO
         # neg-log-likelihood -> log-likelihood
-        policy_logp = -policy_elem_logp.sum(dim=(1, 2))
-        ref_logp = -ref_elem_logp.sum(dim=(1, 2))
+        policy_logp = -1 * policy_elem_logp.sum(dim=(1, 2))
+        ref_logp = -1 * ref_elem_logp.sum(dim=(1, 2))
 
         num = len(policy_logp) // 2
         pos_policy_logp = policy_logp[:num]

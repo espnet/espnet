@@ -365,7 +365,7 @@ class AbsTask(ABC):
         group.add_argument(
             "--num_att_plot",
             type=int,
-            default=0,
+            default=3,
             help="The number images to plot the outputs from attention. "
             "This option makes sense only when attention-based model. "
             "We can also disable the attention plot by setting it 0",
@@ -1500,7 +1500,7 @@ class AbsTask(ABC):
                     key_file=train_key_file,
                     batch_size=args.batch_size,
                     dtype=args.train_dtype,
-                    num_workers=0,
+                    num_workers=args.num_workers,
                     allow_variable_data_keys=args.allow_variable_data_keys,
                     ngpu=args.ngpu,
                     preprocess_fn=cls.build_preprocess_fn(args, train=False),
@@ -1513,7 +1513,7 @@ class AbsTask(ABC):
                     key_file=valid_key_file,
                     batch_size=args.valid_batch_size,
                     dtype=args.train_dtype,
-                    num_workers=0,
+                    num_workers=args.num_workers,
                     allow_variable_data_keys=args.allow_variable_data_keys,
                     ngpu=args.ngpu,
                     preprocess_fn=cls.build_preprocess_fn(args, train=False),
@@ -2425,7 +2425,7 @@ class AbsTask(ABC):
 
                 model.load_state_dict(
                     state_dict,
-                    strict=True,
+                    strict=False,
                 )
 
             except RuntimeError:
@@ -2446,7 +2446,11 @@ class AbsTask(ABC):
                             ): v
                             for k, v in state_dict.items()
                         }
-                        model.load_state_dict(state_dict, strict=not use_adapter)
+                        model.load_state_dict(
+                            state_dict,
+                            strict=not use_adapter,
+                            weights_only=False,
+                        )
                     else:
                         if any(["postdecoder" in k for k in state_dict.keys()]):
                             model.load_state_dict(

@@ -35,7 +35,7 @@ class ESPnetSpeechLMModel(AbsESPnetModel):
         self,
         dec_seq: torch.Tensor,
         loss_mask: torch.Tensor,
-        conti_feats,
+        conti_feats: list,
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
 
