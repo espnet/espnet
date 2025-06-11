@@ -92,6 +92,7 @@ task-tts = [
   "espnet_tts_frontend",
   "g2p_en",
   "jamo",
+  "jaconv",
 ]
 
 task-enh = [

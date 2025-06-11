@@ -1,14 +1,15 @@
 from typing import Collection, Optional
 
-from jaconv import jaconv
 from typeguard import typechecked
 
 try:
     import tacotron_cleaner.cleaners as tacotron_cleaners
     from vietnamese_cleaner import vietnamese_cleaners
+    from jaconv import jaconv
 except ImportError:
     tacotron_cleaners = None
     vietnamese_cleaners = None
+    jaconv = None
 
 from espnet2.text.korean_cleaner import KoreanCleaner
 
@@ -50,9 +51,11 @@ class TextCleaner:
         for t in self.cleaner_types:
             if t == "tacotron":
                 if tacotron_cleaners is None:
-                    raise RuntimeError("Please install espnet_tts_frontend")
+                    raise RuntimeError("Please install espnet['task-tts']")
                 text = tacotron_cleaners.custom_english_cleaners(text)
             elif t == "jaconv":
+                if jaconv is None:
+                    raise RuntimeError("Please install espnet['task-tts']")
                 text = jaconv.normalize(text)
             elif t == "vietnamese":
                 if vietnamese_cleaners is None:
