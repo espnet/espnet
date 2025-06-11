@@ -251,8 +251,9 @@ class G2p_en:
         try:
             import g2p_en
         except ImportError:
-            raise RuntimeError("Please install espnet with" \
-            "`pip install espnet['task-tts']")
+            raise RuntimeError(
+                "Please install espnet with" "`pip install espnet['task-tts']"
+            )
         self.no_space = no_space
         self.g2p = None
 
