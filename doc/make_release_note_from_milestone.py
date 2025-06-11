@@ -3,7 +3,6 @@
 """Create release note from milestone with PyGithub."""
 
 import argparse
-
 from collections import defaultdict
 
 import github

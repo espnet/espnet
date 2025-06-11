@@ -7,7 +7,8 @@ from functools import partial
 from typing import Dict, List, Optional, Tuple, Union
 
 import torch
-import torch.distributed as dist
+
+# import torch.distributed as dist
 import torch.nn as nn
 import torch.nn.functional as F
 from packaging.version import parse as V
@@ -305,6 +306,7 @@ def label_to_onehot(
     lsm_weight: float = 0.0,
 ) -> torch.Tensor:
     """Convert label to onehot.
+
     Args
         label: (Batch, Length) pad value should be -1
         label_lengths: (Batch,) only used in asserts

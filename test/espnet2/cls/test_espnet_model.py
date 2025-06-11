@@ -123,6 +123,7 @@ def calculate_stats_testing_internal_(
     output, target, classification_type="multi-label"
 ):
     """Calculate statistics including mAP, AUC, etc.
+
     This function is adapted from the official implementation of AST
     https://github.com/YuanGongND/ast/blob/master/src/utilities/stats.py
 
@@ -137,7 +138,7 @@ def calculate_stats_testing_internal_(
     """
 
     classes_num = target.shape[-1]
-    stats = []
+    # stats = []
 
     acc = metrics.accuracy_score(np.argmax(target, 1), np.argmax(output, 1))
     if classification_type == "multi-class":
