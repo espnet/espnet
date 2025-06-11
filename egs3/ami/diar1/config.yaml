@@ -1,0 +1,191 @@
+recipedir: .
+num_device: ${oc.env:N_GPU}
+expdir: ${recipedir}/exp/gpu${num_device}
+statsdir:  ${recipedir}/exp/stats
+seed: 777
+task: diarization
+
+parallel:
+  env: slurm
+  n_workers: 32
+  options:
+    account: bbjs-delta-cpu
+    queue: cpu
+    cores: 1
+    processes: 4
+    memory: 16GB
+    walltime: 30:00
+    job_extra_directives:
+      # - "--gres=gpu:1"
+      - "--ntasks-per-node=1"
+      - "--cpus-per-task=16"
+      - "--output=parallel_log/%j-%x.log"
+
+synth_multispk_data:
+  librispeech_dir: /raid/users/popcornell/LibriSpeech # path to LibriSpeech main directory
+  output_dir: ./data/librispeech_synth
+  num_conversations: 1000 # for debugging purposes
+  num_utterances_per_conversation: 30
+  num_speakers_per_conversation: [2, 6] # matching AMI
+  n_workers: 16
+  max_utterance_duration: 60
+  min_utterance_duration: 0.1
+
+dataset:
+  _target_: espnet3.data.DataOrganizer
+  train:
+    - name: ami-mdm-train
+      dataset:
+        _target_: egs3.ami.diar1.dataset.DiarCutSet
+        split: ami-mdm-train
+    - name: ami-ihm-mix-train
+      dataset:
+        _target_: egs3.ami.diar1.dataset.DiarCutSet
+        split: train-clean-360
+    - name: librispeech-synth-train
+      dataset:
+        _target_: egs3.ami.diar1.dataset.DiarCutSet
+        split: librispeech-synth-train
+  valid:
+    - name: dev-clean
+      dataset:
+        _target_: egs3.librispeech_100.asr1.dataset.LibriSpeechDataset
+        split: dev-clean
+    - name: dev-other
+      dataset:
+        _target_: egs3.librispeech_100.asr1.dataset.LibriSpeechDataset
+        split: dev-other
+  test:
+    - name: test-clean
+      dataset:
+        _target_: egs3.librispeech_100.asr1.dataset.LibriSpeechDataset
+        split: test-clean
+    - name: test-other
+      dataset:
+        _target_: egs3.librispeech_100.asr1.dataset.LibriSpeechDataset
+        split: test-other
+
+  preprocessor:
+    _target_: espnet2.train.preprocessor.CommonPreprocessor
+    train: true
+    token_type: bpe
+    token_list: ${recipedir}/sentencepiece_model/tokens.txt
+    bpemodel: ${recipedir}/sentencepiece_model/bpe.model
+    text_cleaner:
+
+
+model:
+
+  encoder: e_branchformer
+  encoder_conf:
+    output_size: 256
+    attention_heads: 4
+    attention_layer_type: selfattn
+    pos_enc_layer_type:
+    rel_pos_type:
+    cgmlp_linear_units: 1024
+    cgmlp_conv_kernel: 31
+    use_linear_after_conv: false
+    gate_activation: identity
+    num_blocks: 12
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    attention_dropout_rate: 0.1
+    input_layer:
+    layer_drop_rate: 0.3
+    linear_units: 1024
+    positionwise_layer_type: linear
+    use_ffn: true
+    macaron_ffn: true
+    merge_conv_kernel: 31
+
+
+  normalize: global_mvn
+  normalize_conf:
+    stats_file: ${recipedir}/exp/stats/train/feats_stats.npz
+
+
+  frontend: default # fbanks
+  frontend_conf:
+    n_fft: 512
+    win_length: 400
+    hop_length: 160
+
+  specaug: specaug
+  specaug_conf:
+    apply_time_warp: true
+    time_warp_window: 2
+    time_warp_mode: bicubic
+    apply_freq_mask: true
+    freq_mask_width_range: [0, 4]
+    num_freq_mask: 2
+    apply_time_mask: true
+    time_mask_width: [0, 10]
+    num_time_mask: 100
+
+optim:
+  _target_: torch.optim.Adam
+  lr: 0.0001
+  weight_decay: 0.000001
+
+scheduler:
+  _target_: espnet2.schedulers.warmup_lr.WarmupLR
+  warmup_steps: 25000
+
+dataloader:
+  collate_fn:
+    _target_: espnet2.train.collate_fn.CommonCollateFn
+    int_pad_value: -1
+  train:
+    iter_factory:
+      _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
+      shuffle: true
+      collate_fn: ${dataloader.collate_fn}
+      batches:
+        _target_: espnet2.samplers.build_batch_sampler.build_batch_sampler
+        type: numel
+        shape_files:
+          - ${statsdir}/train/feats_shape
+        batch_size: 32
+        batch_bins: 4000000
+  valid:
+    iter_factory:
+      _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
+      shuffle: false
+      collate_fn: ${dataloader.collate_fn}
+      batches:
+        _target_: espnet2.samplers.build_batch_sampler.build_batch_sampler
+        type: numel
+        shape_files:
+          - ${statsdir}/valid/feats_shape
+        batch_size: 4
+        batch_bins: ${dataloader.train.iter_factory.batches.batch_bins}
+
+
+best_model_criterion:
+  - [valid/loss, 3, min]
+
+trainer:
+  accelerator: gpu
+  devices: ${num_device}
+  num_nodes: 1
+  accumulate_grad_batches: 1
+  gradient_clip_val: 1.0
+  log_every_n_steps: 500
+  max_epochs: 80
+
+  logger:
+    - _target_: lightning.pytorch.loggers.TensorBoardLogger
+      save_dir: ${expdir}/tensorboard
+      name: tb_logger
+
+    - _target_: lightning.pytorch.loggers.WandbLogger
+      project: ESPnet3 development
+      save_dir: ${expdir}/wandb
+      name: AMI_EEND
+
+  strategy: auto
+
+test:
+  - name: ami-ihm-mix-test
+  - name: ami-mdm-test

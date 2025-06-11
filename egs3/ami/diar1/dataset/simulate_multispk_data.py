@@ -1,4 +1,5 @@
-import random
+import os.path
+
 import numpy as np
 import torch
 import torchaudio
@@ -10,6 +11,9 @@ from pathlib import Path
 import lhotse
 from lhotse.manipulation import combine as combine_manifests
 from lhotse import CutSet, SupervisionSegment, Recording, MonoCut, AudioSource
+from tqdm import tqdm
+from lhotse.recipes.librispeech import prepare_librispeech
+
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -287,7 +291,8 @@ class ConversationSimulator:
                     conversation_audio, audio, transition_type, current_time
                 )
                 conversation_audio = combined_audio
-
+            import pdb
+            pdb.set_trace()
             # Update supervision segments
             supervision_segments.append({
                 'speaker': current_speaker,
@@ -309,92 +314,74 @@ class ConversationSimulator:
         return conversation_audio, supervision_segments
 
 
-def create_librispeech_conversation_dataset(librispeech_cuts: CutSet,
-                                            num_conversations: int = 100,
-                                            num_utterances_per_conversation: int = 50,
-                                            num_speakers_per_conversation: int = 2,
-                                            output_dir: Path = None,
-                                            min_utterance_duration: float = 0.1,
-                                            max_utterance_duration: float = 60.0) -> CutSet:
-    """
-    Create a simulated conversation dataset from LibriSpeech
+class ParallelGen(torch.utils.data.Dataset):
+    def __init__(self, config, all_cuts, output_dir, simulator):
+        super().__init__()
 
-    Args:
-        librispeech_cuts: LibriSpeech CutSet
-        num_conversations: Number of conversations to generate
-        num_utterances_per_conversation: Utterances per conversation
-        num_speakers_per_conversation: Speakers per conversation
-        output_dir: Directory to save generated conversations
-        min_utterance_duration: Minimum utterance duration
-        max_utterance_duration: Maximum utterance duration
+        self.num_conversations=  config.num_conversations
+        self.output_dir = output_dir
+        self.simulator = simulator
+        self.num_speakers_per_conversation = config.num_speakers_per_conversation
+        self.num_utterances_per_conversation = config.num_utterances_per_conversation
 
-    Returns:
-        CutSet containing simulated conversations
-    """
-    # Filter cuts by duration
-    filtered_cuts = librispeech_cuts.filter(
-        lambda cut: min_utterance_duration <= cut.duration <= max_utterance_duration
-    )
+        filtered_cuts = all_cuts.filter(
+            lambda cut: config.min_utterance_duration <= cut.duration <= config.max_utterance_duration)
 
-    # Group cuts by speaker
-    speaker_cuts = {}
-    for cut in filtered_cuts:
-        speaker_id = cut.supervisions[0].speaker
-        if speaker_id not in speaker_cuts:
-            speaker_cuts[speaker_id] = []
-        speaker_cuts[speaker_id].append(cut)
+        # Group cuts by speaker
+        speaker_cuts = {}
+        for cut in filtered_cuts:
+            speaker_id = cut.supervisions[0].speaker
+            if speaker_id not in speaker_cuts:
+                speaker_cuts[speaker_id] = []
+            speaker_cuts[speaker_id].append(cut)
 
-    # Filter speakers with enough utterances
-    min_utterances = max(10, num_utterances_per_conversation // num_speakers_per_conversation)
-    valid_speakers = {
-        speaker: cuts for speaker, cuts in speaker_cuts.items()
-        if len(cuts) >= min_utterances
-    }
+        # Filter speakers with enough utterances
+        min_utterances = max(10, config.num_utterances_per_conversation // min(config.num_speakers_per_conversation))
+        valid_speakers = {
+            speaker: cuts
+            for speaker, cuts in speaker_cuts.items()
+            if len(cuts) >= min_utterances
+        }
 
-    if len(valid_speakers) < num_speakers_per_conversation:
-        raise ValueError(f"Not enough speakers with sufficient utterances. "
-                         f"Found {len(valid_speakers)}, need {num_speakers_per_conversation}")
+        if len(valid_speakers) < max(config.num_speakers_per_conversation):
+            raise ValueError(f"Not enough speakers with sufficient utterances. "
+                             f"Found {len(valid_speakers)}, need {max(config.num_speakers_per_conversation)}")
 
-    logger.info(f"Found {len(valid_speakers)} valid speakers")
+        logger.info(f"Found {len(valid_speakers)} valid speakers")
+        self.valid_speakers = valid_speakers
 
-    # Initialize simulator
-    simulator = ConversationSimulator(use_markov=True)
 
-    # Generate conversations
-    conversation_cuts = []
+    def __len__(self):
+        return self.num_conversations
 
-    for conv_idx in range(num_conversations):
-        logger.info(f"Generating conversation {conv_idx + 1}/{num_conversations}")
+    def __getitem__(self, conv_idx):
 
-        # Select random speakers for this conversation
+        c_num_spk = np.random.randint(*self.num_speakers_per_conversation)
         selected_speakers = np.random.choice(
-            list(valid_speakers.keys()),
-            size=num_speakers_per_conversation,
-            replace=False
-        )
+            list(self.valid_speakers.keys()),
+            size=c_num_spk,
+            replace=False)
 
         # Create speaker cuts subset
         conv_speaker_cuts = {
-            speaker: valid_speakers[speaker]
-            for speaker in selected_speakers
-        }
+            speaker: self.valid_speakers[speaker]
+            for speaker in selected_speakers}
 
         # Simulate conversation
-        #try:
-        conv_audio, supervision_segments = simulator.simulate_conversation(
+        conv_audio, supervision_segments = self.simulator.simulate_conversation(
             conv_speaker_cuts,
-            num_utterances=num_utterances_per_conversation,
+            num_utterances=self.num_utterances_per_conversation,
             target_speakers=list(selected_speakers)
         )
 
         # Create recording
-        if output_dir:
-            output_dir.mkdir(parents=True, exist_ok=True)
-            audio_path = output_dir / f"conversation_{conv_idx:08d}.wav"
+        if self.output_dir:
+            Path(self.output_dir).mkdir(parents=True, exist_ok=True)
+            audio_path = Path(self.output_dir) / f"conversation_{conv_idx:08d}.wav"
             torchaudio.save(
                 audio_path,
                 conv_audio.unsqueeze(0),
-                sample_rate=simulator.sample_rate
+                sample_rate=self.simulator.sample_rate
             )
         else:
             audio_path = f"conversation_{conv_idx:08d}"
@@ -404,9 +391,9 @@ def create_librispeech_conversation_dataset(librispeech_cuts: CutSet,
             sources=[AudioSource(type='file',
                                  channels=[0],
                                  source=str(audio_path))],
-            sampling_rate=simulator.sample_rate,
+            sampling_rate=self.simulator.sample_rate,
             num_samples=len(conv_audio),
-            duration=len(conv_audio) / simulator.sample_rate
+            duration=len(conv_audio) / self.simulator.sample_rate
         )
 
         # Create supervisions
@@ -432,52 +419,57 @@ def create_librispeech_conversation_dataset(librispeech_cuts: CutSet,
             supervisions=supervisions
         )
 
-        conversation_cuts.append(cut)
-
-        #except Exception as e:
-        #    logger.error(f"Failed to generate conversation {conv_idx}: {e}")
-        #    continue
-
-    logger.info(f"Successfully generated {len(conversation_cuts)} conversations")
-    return CutSet.from_cuts(conversation_cuts)
+        return cut
 
 
-# Example usage
-if __name__ == "__main__":
-    # This is an example of how to use the simulator
-    # You would need to load your LibriSpeech dataset first
+def create_librispeech_conversation_dataset(config):
 
-    lhotse_manifest_dir = "./librispeech_manifests"
-    # Example: Load LibriSpeech cuts (you need to create this)
-    from lhotse.recipes.librispeech import prepare_librispeech
-    prepare_librispeech(
-         corpus_dir=Path("/raid/users/popcornell/LibriSpeech"),
-         output_dir=Path(lhotse_manifest_dir), dataset_parts=LIBRISPLITs)
+        lhotse_manifest_dir = os.path.join(config.output_dir, "librispeech_manifests")
+        Path(lhotse_manifest_dir).mkdir(parents=True, exist_ok=True)
 
-    # OPTIONAL: add possibility of using forced alignment to split further the utterances
-    # before extracting CUTs
+        prepare_librispeech(
+        corpus_dir=Path(config.librispeech_dir),
+        output_dir=Path(lhotse_manifest_dir),
+        dataset_parts=LIBRISPLITs)
 
-    all_cuts = []
-    for split in LIBRISPLITs:
-        c_rec = lhotse.load_manifest(Path(lhotse_manifest_dir) / f"librispeech_recordings_{split}.jsonl.gz")
+        all_cuts = []
+        for split in LIBRISPLITs:
+            c_rec = lhotse.load_manifest(Path(lhotse_manifest_dir) / f"librispeech_recordings_{split}.jsonl.gz")
         c_sup = lhotse.load_manifest(Path(lhotse_manifest_dir) / f"librispeech_supervisions_{split}.jsonl.gz")
         # patch recordings to add num_channels
-        #c_sup = split_with_alignment(c_sup)
-        c_cut = CutSet.from_manifests(recordings=c_rec,
-                                      supervisions=c_sup)
+        c_cut = CutSet.from_manifests(recordings=c_rec, supervisions = c_sup)
         all_cuts.append(c_cut)
 
-    all_cuts = combine_manifests(all_cuts)
-    # Generate conversational dataset
-    conversation_cuts = create_librispeech_conversation_dataset(
-        librispeech_cuts=all_cuts,
-         num_conversations=1000,
-         num_utterances_per_conversation=30,
-         num_speakers_per_conversation=8,
-         output_dir=Path("./conversations"))
+        all_cuts = combine_manifests(all_cuts)
+        # Generate conversational dataset
+        # Initialize simulator
+        simulator = ConversationSimulator(use_markov=True)
+        # Generate conversations
+        conversation_cuts = []
 
-    # Save the cuts
-    conversation_cuts.to_file("conversation_cuts.jsonl.gz")
+        helper = ParallelGen(config, all_cuts, config.output_dir, simulator)
+        num_conversations = len(helper)
+        helper = torch.utils.data.DataLoader(helper, batch_size=1, shuffle=False, collate_fn=lambda x: x, num_workers=config.n_workers)
+        logger.info(f"Generating {len(conversation_cuts)} conversations...")
+        for conv_idx, conv in tqdm(enumerate(helper)):
+            if conv[0] is not None:
+                conversation_cuts.append(conv[0])
+            else:
+                logger.warning(f"Failed to generate conversation {conv_idx + 1}/{num_conversations}")
 
-    print("Multi-speaker conversation simulator ready!")
-    print("Use create_librispeech_conversation_dataset() to generate conversations.")
+        logger.info(f"Successfully generated {len(conversation_cuts)} conversations")
+
+        # Save the cuts
+        conversation_cuts = CutSet.from_cuts(conversation_cuts)
+        conversation_cuts.to_file(os.path.join(config.output_dir, "librispeech-synth-train_cuts.jsonl.gz"))
+
+
+
+
+
+
+
+
+
+
+
