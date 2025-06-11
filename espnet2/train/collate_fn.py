@@ -212,7 +212,6 @@ class HuBERTCollateFn(CommonCollateFn):
             while noise[0] == speech_id:
                 noise = random.choice(data)
             noise = noise[1]["speech"]
-            # speech_length = speech.shape[0]
             noise_db = np.random.uniform(
                 -self.dynamic_mixing_gain_db, self.dynamic_mixing_gain_db
             )

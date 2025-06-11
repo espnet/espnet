@@ -282,7 +282,6 @@ class Speech2Understand:
             speech = to_device(speech, device=self.device)
             sim_chunk_length = self.sim_chunk_length
             start_chunk = self.start_chunk
-            # results_arr = []
             token_int_corr_total = []
             text_arr = []
             for i in range((speech.size(1) - start_chunk) // sim_chunk_length):

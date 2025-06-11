@@ -7,8 +7,6 @@ from functools import partial
 from typing import Dict, List, Optional, Tuple, Union
 
 import torch
-
-# import torch.distributed as dist
 import torch.nn as nn
 import torch.nn.functional as F
 from packaging.version import parse as V

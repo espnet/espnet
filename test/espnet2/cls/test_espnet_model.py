@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 import torch
-
-# from scipy import stats
 from sklearn import metrics
 
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
