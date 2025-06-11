@@ -1,4 +1,4 @@
-MUSE Recipe for ESPnet-Codec
+AMUSE Recipe for ESPnet-Codec
 
 This README provides instructions and details for using the AMUSE dataset with ESPnet-Codec, designed to train and evaluate neural codecs for audio, music, and speech applications.
 
