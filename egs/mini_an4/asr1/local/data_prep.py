@@ -28,13 +28,14 @@ sph2pipe = sys.argv[2]
 sph_dir = {"train": "an4_clstk", "test": "an4test_clstk"}
 
 for x in ["train", "test"]:
-    with open(
-        os.path.join(an4_root, "etc", "an4_" + x + ".transcription")
-    ) as transcript_f, open(os.path.join("data", x, "text"), "w") as text_f, open(
-        os.path.join("data", x, "wav.scp"), "w"
-    ) as wav_scp_f, open(
-        os.path.join("data", x, "utt2spk"), "w"
-    ) as utt2spk_f:
+    with (
+        open(
+            os.path.join(an4_root, "etc", "an4_" + x + ".transcription")
+        ) as transcript_f,
+        open(os.path.join("data", x, "text"), "w") as text_f,
+        open(os.path.join("data", x, "wav.scp"), "w") as wav_scp_f,
+        open(os.path.join("data", x, "utt2spk"), "w") as utt2spk_f,
+    ):
         text_f.truncate()
         wav_scp_f.truncate()
         utt2spk_f.truncate()
