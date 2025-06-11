@@ -4,8 +4,8 @@ from typeguard import typechecked
 
 try:
     import tacotron_cleaner.cleaners as tacotron_cleaners
-    from vietnamese_cleaner import vietnamese_cleaners
     from jaconv import jaconv
+    from vietnamese_cleaner import vietnamese_cleaners
 except ImportError:
     tacotron_cleaners = None
     vietnamese_cleaners = None
