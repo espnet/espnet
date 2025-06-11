@@ -40,7 +40,6 @@ pyproject.toml.tmp
 build/
 
 out/config.yaml
-out/config.log
 hub/
 
 .devcontainer/*.env
