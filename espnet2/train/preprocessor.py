@@ -14,7 +14,6 @@ import librosa
 import numpy as np
 import scipy.signal
 import soundfile
-from PIL import Image
 from typeguard import typechecked
 
 import espnet2.speechlm.definitions as speechlm_definitions
@@ -25,6 +24,11 @@ from espnet2.text.hugging_face_token_id_converter import HuggingFaceTokenIDConve
 from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.text.whisper_token_id_converter import OpenAIWhisperTokenIDConverter
 from espnet2.text.whisper_tokenizer import OpenAIWhisperTokenizer
+
+try:  # NOTE(Jinchuan): install manually
+    from PIL import Image
+except:
+    pass
 
 
 class AbsPreprocessor(ABC):
