@@ -236,7 +236,7 @@ class ESPnetSSLModel(AbsESPnetModel):
         # Flow Matching
         # TODO(william): NOT IMPLEMENTED YET
         if "flow_preprocess" in self.util_attributes:
-            speech, target = None  # TODO(william?)
+            speech, target = None  # TODO(william)
             data["flow_target"] = target
 
         # 6. Encoder
