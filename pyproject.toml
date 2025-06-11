@@ -144,6 +144,7 @@ doc = [
 all = [
   "espnet[core]",
   "espnet[task-asr]",
+  "espnet[task-asr-state-space]",
   "espnet[task-tts]",
   "espnet[task-enh]",
   "espnet[task-spk]",
