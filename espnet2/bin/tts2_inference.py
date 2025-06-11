@@ -377,16 +377,15 @@ def inference(
     import matplotlib.pyplot as plt
     from matplotlib.ticker import MaxNLocator
 
-    with NpyScpWriter(
-        output_dir / "feats",
-        output_dir / "feats/feats.scp",
-    ) as feats_writer, open(
-        output_dir / "speech_shape/speech_shape", "w"
-    ) as shape_writer, open(
-        output_dir / "durations/durations", "w"
-    ) as duration_writer, open(
-        output_dir / "focus_rates/focus_rates", "w"
-    ) as focus_rate_writer:
+    with (
+        NpyScpWriter(
+            output_dir / "feats",
+            output_dir / "feats/feats.scp",
+        ) as feats_writer,
+        open(output_dir / "speech_shape/speech_shape", "w") as shape_writer,
+        open(output_dir / "durations/durations", "w") as duration_writer,
+        open(output_dir / "focus_rates/focus_rates", "w") as focus_rate_writer,
+    ):
         for idx, (keys, batch) in enumerate(loader, 1):
             assert isinstance(batch, dict), type(batch)
             assert all(isinstance(s, str) for s in keys), keys
