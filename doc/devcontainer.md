@@ -15,5 +15,5 @@ Select the preferred container from the displayed list:
 
 ![](./image/dev_2.png)
 
-This will build and launch the container automatically, with python installed and the the ESPnet package already installed.
+This will build and launch the container automatically, with python installed and the ESPnet package already installed.
 You can launch tasks and edit the code without any issue.
