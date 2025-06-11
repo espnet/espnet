@@ -63,6 +63,7 @@ core = [
   "nltk>=3.4.5",
   "torch_complex",
   "tensorboard",
+  "einops",
 ]
 
 espnet-3 = [
