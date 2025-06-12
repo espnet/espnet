@@ -10,7 +10,6 @@ docker build \
   -t "espnet:dev-debian-ci" \
   --build-arg USE_IMAGE="debian:latest" \
   --build-arg USERNAME="$(whoami)" \
-  --build-arg USERNAME="$(whoami)" \
   --build-arg USER_UID="$(id -u)" \
   --build-arg USER_GID="$(id -g)" \
   "${_root}"
