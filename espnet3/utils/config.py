@@ -20,6 +20,22 @@ for name, resolver in OMEGACONF_ESPNET3_RESOLVER.items():
     OmegaConf.register_new_resolver(name, resolver)
     logging.info(f"Registered ESPnet-3 OmegaConf Resolver: {name}")
 
+def run_stage(stage_num, start_stage, stop_stage=float("inf"), skip_stages=None):
+    """Simple helper function to avoid boilerplate code for stages"""
+    if skip_stages is None:
+        skip_stages = []
+
+    if not isinstance(skip_stages, (tuple, list)):
+        skip_stages = [skip_stages]
+
+    if (
+        (start_stage <= stage_num)
+        and (stop_stage >= stop_stage)
+        and (stage_num not in skip_stages)
+    ):
+        return True
+    else:
+        return False
 
 def convert_none_to_None(dic):
     """
