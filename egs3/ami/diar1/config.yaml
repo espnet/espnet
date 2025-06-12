@@ -4,6 +4,7 @@ expdir: ${recipedir}/exp/gpu${num_device}
 statsdir:  ${recipedir}/exp/stats
 seed: 777
 task: diarization
+ami_root: /raid/users/popcornell/AMI
 
 parallel:
   env: slurm
@@ -73,59 +74,77 @@ dataset:
     bpemodel: ${recipedir}/sentencepiece_model/bpe.model
     text_cleaner:
 
+features:
+  num_mel_bins: 23
+  chunk_size: 120 # train on 120 seconds. The sequence length will be:
+  # 120000 / 10 (stft stride) / 10 (network frontend stride) = 1200. We can probably increase it further !
 
 model:
+   _target_: egs3.ami.diar1.model.VanillaEENDModelWrapper
+   frontend:
+     _target_: egs3.ami.diar1.model.VanillaEENDModelWrapper
+     frontend_conf:
+       n_mels: 23
+       in_ksz: 15
+       in_stride: 10
+       emb_size: 256 # should match encoder and decoder value for internal state
+       dropout: 0.2
 
-  encoder: e_branchformer
-  encoder_conf:
-    output_size: 256
-    attention_heads: 4
-    attention_layer_type: selfattn
-    pos_enc_layer_type:
-    rel_pos_type:
-    cgmlp_linear_units: 1024
-    cgmlp_conv_kernel: 31
-    use_linear_after_conv: false
-    gate_activation: identity
-    num_blocks: 12
-    dropout_rate: 0.1
-    positional_dropout_rate: 0.1
-    attention_dropout_rate: 0.1
-    input_layer:
-    layer_drop_rate: 0.3
-    linear_units: 1024
-    positionwise_layer_type: linear
-    use_ffn: true
-    macaron_ffn: true
-    merge_conv_kernel: 31
+   encoder: e_branchformer
+   encoder_conf:
+     output_size: 256
+     attention_heads: 4
+     attention_layer_type: selfattn
+     pos_enc_layer_type: # no need for pos encoding
+     rel_pos_type:
+     cgmlp_linear_units: 1024
+     cgmlp_conv_kernel: 31
+     use_linear_after_conv: false
+     gate_activation: identity
+     num_blocks: 8
+     dropout_rate: 0.2
+     positional_dropout_rate: 0.1
+     attention_dropout_rate: 0.1
+     input_layer:
+     layer_drop_rate: 0.2
+     linear_units: 1024
+     positionwise_layer_type: linear
+     use_ffn: true
+     macaron_ffn: true
+     merge_conv_kernel: 31 # this will actually do relative pos encoding
 
+   specaug: specaug
+   specaug_conf:
+     apply_time_warp: true
+     time_warp_window: 5
+     time_warp_mode: bicubic
+     apply_freq_mask: true
+     freq_mask_width_range: [ 0, 4 ]
+     num_freq_mask: 2 # note that we have only 23 mels !
+     apply_time_mask: true
+     time_mask_width: [ 0, 10 ] # 10ms features, 10 would be 100ms
+     num_time_mask: 2000 # this depends on the chunk used for training.
+     # e.g. we use 120 seconds, we can mask 20% maybe: 120000ms / 10ms * 0.2 = 2400
+     # note that this works IFF we use long form data with more than 120 seconds, shorter
+     # data will be all masked.
 
-  normalize: global_mvn
-  normalize_conf:
-    stats_file: ${recipedir}/exp/stats/train/feats_stats.npz
+   decoder:
+     _target_: egs3.ami.diar1.model.UpSamplingDecoder
+     decoder_conf:
+       n_local_spk: 5 # note this should be maximum speakers in the dataset !
+       emb_size: 256
 
+   lossfunc:
+     _target_: egs3.ami.diar1.model.MaskedBinaryXentropyWithLogits
+     lossfunc_conf:
+       balance_spk: True
 
-  frontend: default # fbanks
-  frontend_conf:
-    n_fft: 512
-    win_length: 400
-    hop_length: 160
+   log_der_train: True # this mainly for debug. remove for speeding up training.
 
-  specaug: specaug
-  specaug_conf:
-    apply_time_warp: true
-    time_warp_window: 2
-    time_warp_mode: bicubic
-    apply_freq_mask: true
-    freq_mask_width_range: [0, 4]
-    num_freq_mask: 2
-    apply_time_mask: true
-    time_mask_width: [0, 10]
-    num_time_mask: 100
 
 optim:
   _target_: torch.optim.Adam
-  lr: 0.0001
+  lr: 0.00005
   weight_decay: 0.000001
 
 scheduler:
@@ -158,7 +177,7 @@ dataloader:
         type: numel
         shape_files:
           - ${statsdir}/valid/feats_shape
-        batch_size: 4
+        batch_size: 1 # just do inference on whole session in inference by using batch size 1.
         batch_bins: ${dataloader.train.iter_factory.batches.batch_bins}
 
 
