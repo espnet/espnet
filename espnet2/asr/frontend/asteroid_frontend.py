@@ -52,7 +52,7 @@ class AsteroidFrontend(AbsFrontend):
             from asteroid_filterbanks import Encoder, ParamSincFB
         except:
             raise RuntimeError("Please install espnet['task-spk']")
-        
+
         super().__init__()
 
         # kernel for preemphasis
