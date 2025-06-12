@@ -248,7 +248,6 @@ class ConversationSimulator:
         for utt_idx in range(num_utterances):
             # Select transition type
             transition_type = self.select_transition_type(prev_transition)
-
             # Select speaker based on transition type
             if transition_type == TransitionType.TURN_HOLD:
                 # Same speaker
@@ -266,7 +265,6 @@ class ConversationSimulator:
 
             # Select random cut for current speaker
             cut = np.random.choice(speaker_cuts[current_speaker])
-
             # Load audio
             audio = torch.from_numpy(cut.load_audio()).float()
             if len(audio.shape) > 1:
@@ -436,6 +434,7 @@ def create_librispeech_conversation_dataset(config):
         for split in LIBRISPLITs:
             c_rec = lhotse.load_manifest(Path(lhotse_manifest_dir) / f"librispeech_recordings_{split}.jsonl.gz")
         c_sup = lhotse.load_manifest(Path(lhotse_manifest_dir) / f"librispeech_supervisions_{split}.jsonl.gz")
+        #c_sup = split_supervisions_with_FA(c_sup, config.mfa_root)
         # patch recordings to add num_channels
         c_cut = CutSet.from_manifests(recordings=c_rec, supervisions = c_sup)
         all_cuts.append(c_cut)
@@ -462,14 +461,3 @@ def create_librispeech_conversation_dataset(config):
         # Save the cuts
         conversation_cuts = CutSet.from_cuts(conversation_cuts)
         conversation_cuts.to_file(os.path.join(config.output_dir, "librispeech-synth-train_cuts.jsonl.gz"))
-
-
-
-
-
-
-
-
-
-
-

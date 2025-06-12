@@ -45,22 +45,19 @@ def main():
         from dataset.simulate_multispk_data import (
             create_librispeech_conversation_dataset,
         )
-
         create_librispeech_conversation_dataset(config.synth_multispk_data)
 
     if run_stage_flag(1):
         # get manifests for AMI
-        from dataset.create_dataset import get_ami_cuts
-        get_ami_cuts(config, mic={"ihm-mix", "mdm"})  # multi-condition training here.
-
+        from dataset.create_dataset import get_ami_manifets
+        get_ami_manifets(config)
 
     if run_stage_flag(2):
-        pass
+        from dataset.create_dataset import get_cuts
+        get_cuts(config)
         # create cuts with desired chunk size
 
-
-    task = getattr(config, "task", None)
-    model = get_espnet_model(task, config.model) if task else instantiate(config.model)
+    model = instantiate(config.model)
     lit_model = LitESPnetModel(model, config)
 
     # Setup trainer
@@ -70,31 +67,6 @@ def main():
         config=config.trainer,
         best_model_criterion=config.best_model_criterion,
     )
-
-    if args.collect_stats:
-        print("==> Running collect_stats...", flush=True)
-        trainer.collect_stats()
-
-        # if normalize is not None:
-        #    config.model["normalize"] = normalize
-        # if normalize_conf is not None:
-        #    config.model["normalize_conf"] = normalize_conf
-
-        model = (
-            get_espnet_model(task, config.model) if task else instantiate(config.model)
-        )
-        lit_model = LitESPnetModel(model, config)
-
-        trainer = ESPnetEZLightningTrainer(
-            model=lit_model,
-            expdir=config.expdir,
-            config=config.trainer,
-            best_model_criterion=config.best_model_criterion,
-        )
-
-    # save espnet-like config for inference
-    if task:
-        save_espnet_config(task, config, config.expdir)
 
     fit_params = {} if not hasattr(config, "fit") else config.fit
     trainer.fit(**fit_params)

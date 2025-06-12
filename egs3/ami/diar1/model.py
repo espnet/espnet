@@ -1,5 +1,5 @@
-from espnet.egs3.ami.diar1.local.hungarian_pitloss import PITLossWrapper
-from local.utils import len2mask
+from egs3.ami.diar1.local.hungarian_pitloss import PITLossWrapper
+from egs3.ami.diar1.local.utils import len2mask
 from typing import Dict, Optional, Tuple
 import numpy as np
 import torch
@@ -7,6 +7,7 @@ from typeguard import typechecked
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.torch_utils.device_funcs import force_gatherable
 from torch.cuda.amp import autocast
+#from espnet2.asr.encoder.e_branchformer_encoder import EBranchformerEncoder
 
 class ConvFrontEnd(torch.nn.Module):
     def __init__(self,
@@ -89,17 +90,13 @@ class VanillaEENDModelWrapper(torch.nn.Module):
         encoder,
         decoder,
         lossfunc,
-        specaug: Optional[AbsSpecAug],
         log_der_train: Optional[bool] = True
     ):
-
         super().__init__()
         self.frontend = frontend
         self.encoder = encoder
         self.decoder = decoder
-        self.specaug = specaug
         self.log_der_train = log_der_train
-
         # should we also use DICE loss ?
         self.pit_loss = PITLossWrapper(lossfunc, pit_from="perm_avg")
 
@@ -122,11 +119,10 @@ class VanillaEENDModelWrapper(torch.nn.Module):
             spk_labels: (Batch, seq_len)
             kwargs: "utt_id" is among the input.
         """
-
+        import pdb
+        pdb.set_trace()
         batch_size = speech.size(0)
-        speech, speech_lengths = self.encode(
-            speech, speech_lengths)
-
+        speech, speech_lengths = self.encode(speech, speech_lengths)
         speech = self.decoder(speech)
         loss, speech = self.compute_loss(speech, spk_labels, spk_labels_lengths)
 
@@ -186,9 +182,6 @@ class VanillaEENDModelWrapper(torch.nn.Module):
         """
         with autocast(False):
             # note that for efficiency the feature extraction is moved in the dataloader
-            if self.specaug is not None and self.training:
-                feats, feats_lengths = self.specaug(feats, feats_lengths)
-
             feats, feats_lengths = self.frontend(feats, feats_lengths)
             feats, feats_lengths, _ = self.encoder(feats, feats_lengths)
 
