@@ -9,6 +9,13 @@ from torch_complex.tensor import ComplexTensor
 from espnet2.enh.loss.criterions.abs_loss import AbsEnhLoss
 from espnet2.layers.stft import Stft
 
+try:
+    import ci_sdr
+    import fast_bss_eval
+except ImportError:
+    ci_sdr = None
+    fast_bss_eval = None
+
 is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 
 
@@ -84,11 +91,6 @@ class CISDRLoss(TimeDomainLoss):
         is_noise_loss=False,
         is_dereverb_loss=False,
     ):
-        try:
-            import ci_sdr
-        except ImportError:
-            raise RuntimeError("Please install espnet['task-enh']")
-
         _name = "ci_sdr_loss" if name is None else name
         super().__init__(
             _name,
@@ -96,6 +98,8 @@ class CISDRLoss(TimeDomainLoss):
             is_noise_loss=is_noise_loss,
             is_dereverb_loss=is_dereverb_loss,
         )
+        if ci_sdr is None:
+            raise RuntimeError("Please install espnet['task-enh']")
 
         self.filter_length = filter_length
 
@@ -177,11 +181,6 @@ class SDRLoss(TimeDomainLoss):
         is_noise_loss=False,
         is_dereverb_loss=False,
     ):
-        try:
-            import fast_bss_eval
-        except ImportError:
-            raise RuntimeError("Please install espnet['task-enh']")
-
         _name = "sdr_loss" if name is None else name
         super().__init__(
             _name,
@@ -189,6 +188,8 @@ class SDRLoss(TimeDomainLoss):
             is_noise_loss=is_noise_loss,
             is_dereverb_loss=is_dereverb_loss,
         )
+        if fast_bss_eval is None:
+            raise RuntimeError("Please install espnet['task-enh']")
 
         self.filter_length = filter_length
         self.use_cg_iter = use_cg_iter
@@ -248,11 +249,6 @@ class SISNRLoss(TimeDomainLoss):
         is_noise_loss=False,
         is_dereverb_loss=False,
     ):
-        try:
-            import fast_bss_eval
-        except ImportError:
-            raise RuntimeError("Please install espnet['task-enh']")
-
         _name = "si_snr_loss" if name is None else name
         super().__init__(
             _name,
@@ -260,6 +256,8 @@ class SISNRLoss(TimeDomainLoss):
             is_noise_loss=is_noise_loss,
             is_dereverb_loss=is_dereverb_loss,
         )
+        if fast_bss_eval is None:
+            raise RuntimeError("Please install espnet['task-enh']")
 
         self.clamp_db = clamp_db
         self.zero_mean = zero_mean

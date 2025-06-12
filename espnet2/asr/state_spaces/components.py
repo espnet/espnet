@@ -8,6 +8,11 @@ import torch.nn as nn
 import torch.nn.functional as F
 from einops import rearrange
 
+try:
+    from opt_einsum import contract
+except ImportError:
+    contract = None
+
 
 def stochastic_depth(input: torch.tensor, p: float, mode: str, training: bool = True):
     """Apply stochastic depth.
@@ -216,10 +221,9 @@ class TransposedLinear(nn.Module):
 
     def __init__(self, d_input, d_output, bias=True):
         super().__init__()
-        try:
-            from opt_einsum import contract
-        except ImportError:
-            raise RuntimeError("Please install espnet['task-asr-state-space']")
+
+        if contract is None:
+            raise RuntimeError("Please install espnet['task-asr']")
 
         self.weight = nn.Parameter(torch.empty(d_output, d_input))
         nn.init.kaiming_uniform_(self.weight, a=math.sqrt(5))  # nn.Linear default init
