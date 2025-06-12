@@ -104,7 +104,7 @@ task-mt = [
 ]
 
 task-st = [
-  "nltk
+  "nltk"
 ]
 
 task-sds = [
