@@ -1,6 +1,6 @@
 # https://github.com/pytorch/audio/blob/main/src/torchaudio/models/wav2vec2/components.py#L972
 
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Optional, Tuple
 
 import torch
 from torch import Tensor, nn
@@ -24,6 +24,7 @@ class Masking(nn.Module):
         mask_channel_min_space: int = 0,
     ):
         """Generate the masks for masked prediction.
+
         Args:
             encoder_embed_dim (int): The dimension of the transformer embedding output.
             mask_prob (float): Prob for each token to be the start of a masked span.
@@ -65,7 +66,8 @@ class Masking(nn.Module):
         torch.nn.init.uniform_(self.mask_embedding)
 
     def forward(self, x: Tensor, padding_mask: Optional[Tensor]) -> Tensor:
-        """
+        """Masking forward.
+
         Args:
             x (Tensor): The encoded representations after feature extraction module.
             padding_mask (Tensor or None): The padding mask
@@ -129,6 +131,7 @@ def _compute_mask_indices(
     min_space: int = 0,
 ) -> Tensor:
     """Computes random mask spans for a given shape.
+
     Args:
         shape (int, int): The shape for which to compute masks.
             The first element is batch size and second is the number of frames.

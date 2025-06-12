@@ -43,7 +43,8 @@ class LinearDecoder(AbsDecoder):
         hs_pad: torch.Tensor,
         hlens: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """
+        """LinearDecoder Forward.
+
         Args:
             hs_pad: (B, Tmax, D)
             hlens: (B,)
@@ -69,6 +70,7 @@ class LinearDecoder(AbsDecoder):
 
     def score(self, ys, state, x):
         """Classify x.
+
         Args:
             ys: Not used
             state: Not used
