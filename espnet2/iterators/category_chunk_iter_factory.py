@@ -182,7 +182,7 @@ class CategoryChunkIterFactory(AbsIterFactory):
 
                 # Get sampling frequency of the batch to recalculate the chunk length
                 fs = (
-                    curr_batch.get("utt2fs", torch.LongTensor([16000]))
+                    curr_batch.get("utt2fs", torch.tensor([16000], dtype=torch.long))
                     .type(torch.int64)
                     .item()
                 )
