@@ -391,6 +391,7 @@ class StreamPositionalEncoding(torch.nn.Module):
 
 class ConvolutionalPositionalEmbedding(torch.nn.Module):
     """Convolutional positional embedding.
+
        Used in wav2vec2/HuBERT SSL models.
        https://arxiv.org/abs/1904.11660
 
@@ -417,6 +418,7 @@ class ConvolutionalPositionalEmbedding(torch.nn.Module):
         weight_norm: str = "new",
         use_residual: bool = False,
     ):
+        """Initialize Convoluational Positional Embedding."""
         super().__init__()
         self.embed_dim = embed_dim
         self.kernel_size = kernel_size
@@ -431,7 +433,6 @@ class ConvolutionalPositionalEmbedding(torch.nn.Module):
                 padding=kernel_size // 2,
                 groups=groups,
             )
-
             if weight_norm != "none" and weight_norm is not None:
                 std = math.sqrt((4 * (1.0)) / (kernel_size * embed_dim))
                 torch.nn.init.normal_(conv.weight, mean=0, std=std)
@@ -459,6 +460,7 @@ class ConvolutionalPositionalEmbedding(torch.nn.Module):
         self.use_residual = use_residual
 
     def __prepare_scriptable__(self):
+        """Prepare Scriptable method."""
         for hook in self.conv._forward_pre_hooks.values():
             # The hook we want to remove is an instance of WeightNorm class, so
             # normally we would do `if isinstance(...)` but this class is not accessible
@@ -468,12 +470,13 @@ class ConvolutionalPositionalEmbedding(torch.nn.Module):
                 hook.__module__ == "torch.nn.utils.weight_norm"
                 and hook.__class__.__name__ == "WeightNorm"
             ):
-                _LG.warning("Removing weight_norm from %s", self.__class__.__name__)
+                logging.warning("Removing weight_norm from %s", self.__class__.__name__)
                 torch.nn.utils.remove_weight_norm(self.conv)
         return self
 
     def forward(self, x):
-        """
+        """Forward Method.
+
         Args:
             x (Tensor): shape ``[batch, frame, feature]``.
 

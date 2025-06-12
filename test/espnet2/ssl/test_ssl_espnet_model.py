@@ -1,6 +1,5 @@
 import pytest
 import torch
-from packaging.version import parse as V
 
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
 from espnet2.asr.encoder.e_branchformer_encoder import EBranchformerEncoder
