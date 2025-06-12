@@ -27,9 +27,22 @@ dependencies = [
     "typeguard",
     "humanfriendly",
     "scipy>=1.4.1",
-    "numpy",
+    "numpy<1.24",
     "PyYAML>=5.1.2",
     "soundfile>=0.10.2",
+    "torch>=2.6.0",
+    "torchaudio>=2.6.0",
+    "soundfile>=0.10.2",
+    "kaldiio>=2.18.0",
+    "sentencepiece==0.2.0",
+    "librosa>0.9.2",
+    "lightning",
+    "nltk>=3.4.5",
+    "torch_complex",
+    "tensorboard",
+    "einops",
+    "lhotse",
+    "espnet_model_zoo",
 ]
 
 [project.urls]
@@ -50,22 +63,6 @@ include = ["espnet*"]
 espnet = ["version.txt"]
 
 [project.optional-dependencies]
-core = [
-  "torch>=2.6.0",
-  "torchaudio>=2.6.0",
-  "numpy",
-  "soundfile>=0.10.2",
-  "kaldiio>=2.18.0",
-  "sentencepiece==0.2.0",
-  "librosa>0.9.2",
-  "lightning",
-  "nltk>=3.4.5",
-  "torch_complex",
-  "tensorboard",
-  "einops",
-  "lhotse",
-  "espnet_model_zoo",
-]
 
 espnet-3 = [
   "hydra-core",
@@ -73,8 +70,6 @@ espnet-3 = [
   "datasets",
   "dask[distributed]",
   "dask_jobqueue",
-  "lhotse",
-  "lightning",
 ]
 
 task-asr = [
@@ -124,19 +119,19 @@ dev = [
 ]
 
 test = [
-    "pytest>=7.0.0",
-    "pytest-timeouts>=1.2.1",
-    "pytest-pythonpath>=0.7.3",
-    "pytest-cov>=2.7.1",
-    "hacking>=2.0.0",
-    "mock>=2.0.0",
-    "pycodestyle",
-    "jsondiff>=2.0.0",
-    "flake8>=3.7.8",
-    "flake8-docstrings>=1.3.1",
-    "black",
-    "isort",
-    "h5py",
+  "pytest>=7.0.0",
+  "pytest-timeouts>=1.2.1",
+  "pytest-pythonpath>=0.7.3",
+  "pytest-cov>=2.7.1",
+  "hacking>=2.0.0",
+  "mock>=2.0.0",
+  "pycodestyle",
+  "jsondiff>=2.0.0",
+  "flake8>=3.7.8",
+  "flake8-docstrings>=1.3.1",
+  "black",
+  "isort",
+  "h5py",
 ]
 
 doc = [
@@ -148,9 +143,7 @@ doc = [
 ]
 
 all = [
-  "espnet[core]",
   "espnet[task-asr]",
-  "espnet[task-asr-state-space]",
   "espnet[task-tts]",
   "espnet[task-enh]",
   "espnet[task-spk]",
