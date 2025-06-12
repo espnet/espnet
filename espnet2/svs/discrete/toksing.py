@@ -904,7 +904,7 @@ class TokSing(AbsSVS):
             # print(after_outs.shape, flush=True)
 
         if flag_RL:
-            # NOTE(Yuxun): Length of feats, pitch in inference will be 
+            # NOTE(Yuxun): Length of feats, pitch in inference will be
             # different with gt ones.
             loss = torch.tensor(0).to(after_outs.device)
             stats = dict(
