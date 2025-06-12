@@ -4,9 +4,11 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 from abc import ABC, abstractmethod
-from typing import Dict, Tuple, List
-from espnet2.speechlm.inference_utils import AbsInferenceConfig
+from typing import Dict, List, Tuple
+
 import torch
+
+from espnet2.speechlm.inference_utils import AbsInferenceConfig
 
 
 class AbsCoreLM(torch.nn.Module, ABC):
