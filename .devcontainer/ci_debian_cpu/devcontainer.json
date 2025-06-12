@@ -1,10 +1,10 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the
 // README at: https://github.com/devcontainers/templates/tree/main/src/miniconda
 {
-	"name": "CI Test (CPU)",
+	"name": "CI Test (CPU) - Debian",
 	"updateRemoteUserUID": false,
-	"image": "espnet/dev:ci",
-	"initializeCommand": ".devcontainer/ci_cpu/build_image.sh",
+	"image": "espnet:dev-debian-ci",
+	"initializeCommand": ".devcontainer/ci_debian_cpu/build_image.sh",
 	"features": {},
 	"customizations": {
 		"vscode": {
@@ -20,9 +20,9 @@
 	"runArgs": [
 		"--rm",
 		"--env-file",
-		".devcontainer/container.env",
+		".devcontainer/ci_cpu/container.env",
 		"--name",
-		"espnet-dev-ci",
+		"espnet-debian-ci",
 		"--hostname",
 		"dev-ci"
 	]
