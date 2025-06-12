@@ -9,7 +9,8 @@ from typing import Dict, Tuple
 
 import torch
 
-from espnet2.speechlm.core_lm.abs_core_lm import AbsCoreLM, SpeechLMInferenceOptions
+from espnet2.speechlm.core_lm.abs_core_lm import AbsCoreLM
+from espnet2.speechlm.inference_utils import AbsInferenceConfig
 
 
 class ARParallelLM(AbsCoreLM):
@@ -91,10 +92,9 @@ class ARParallelLM(AbsCoreLM):
     @torch.no_grad()
     def inference(
         self,
-        prefix: torch.Tensor,
-        opts: SpeechLMInferenceOptions,
-        conti_feats=None,
-        suffix: torch.Tensor = None,
+        prefill: torch.Tensor,
+        reference: torch.Tensor,
+        config: AbsInferenceConfig,
     ):
         """Auto-Regresive MultiScale Inference.
 
