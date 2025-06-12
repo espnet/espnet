@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 import soundfile as sf
 import torch
-from numpy.testing import assert_allclose
+# from numpy.testing import assert_allclose
 from omegaconf import OmegaConf
 
 from espnet3.inference.inference_runner import InferenceRunner
@@ -86,7 +86,7 @@ class STFTInferenceRunner(InferenceRunner):
 # === Test Fixtures ===
 @pytest.fixture(scope="module")
 def test_audio_paths():
-    base = Path("test_utils3/audio")
+    base = Path("test_utils/utils3/audio")
     # ディレクトリが存在することを確認
     assert base.exists(), f"Test audio directory not found: {base}"
     paths = sorted(base.glob("*.wav"))
@@ -109,7 +109,7 @@ def test_A1_offline_on_example(test_audio_paths):
 @pytest.mark.parametrize("path_idx", [0, 1])
 def test_A3_read_audio_offline(test_audio_paths, path_idx):
     if path_idx >= len(test_audio_paths):
-        pytest.skip(f"Not enough test files: {len(test_audio_paths)} < {path_idx+1}")
+        pytest.skip(f"Not enough test files: {len(test_audio_paths)} < {path_idx + 1}")
     path = str(test_audio_paths[path_idx])
     runner = STFTInferenceRunner()
     wav = runner.read("audio", path, stream=False)

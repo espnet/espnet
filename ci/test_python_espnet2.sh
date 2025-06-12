@@ -9,10 +9,10 @@ exclude="egs2/TEMPLATE/asr1/utils,"
 exclude+="egs2/TEMPLATE/asr1/steps,"
 exclude+="egs2/TEMPLATE/tts1/sid,doc,tools,"
 exclude+="test_utils/bats-core,test_utils/bats-support,"
-exclude+="test_utils/bats-assert,espnet3,egs3,test_utils3"
+exclude+="test_utils/bats-assert,espnet,espnet3,egs3"
 
 # flake8
-# "$(dirname $0)"/test_flake8.sh
+"$(dirname $0)"/test_flake8.sh
 # pycodestyle
 pycodestyle --exclude "${exclude}" --show-source --show-pep8
 

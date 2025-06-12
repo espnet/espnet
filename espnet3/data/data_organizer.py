@@ -165,6 +165,7 @@ def get_wrapped_transform(is_espnet_preprocessor, t, p):
 
     def transform(x):
         return p(t(x))
+
     if is_espnet_preprocessor:
         return transform_espnet
     else:
@@ -242,12 +243,9 @@ class DataOrganizer:
             self.valid = build_dataset_list(valid)
 
         # assert if either train/valid does not contain dataset..
-        if (
-            ((self.train is None) ^ (self.valid is None))
-            or (
-                isinstance(self.train, CombinedDataset)
-                ^ isinstance(self.valid, CombinedDataset)
-            )
+        if ((self.train is None) ^ (self.valid is None)) or (
+            isinstance(self.train, CombinedDataset)
+            ^ isinstance(self.valid, CombinedDataset)
         ):
             raise RuntimeError("Both train and valid should be dataset class or None.")
 
@@ -296,7 +294,7 @@ class DatasetWithTransform:
 
     def __getitem__(self, idx):
         if self.add_uid:
-            return str(idx), self.transform(self.dataset[idx])
+            return (str(idx), self.transform((str(idx), self.dataset[idx])))
         else:
             return self.transform(self.dataset[idx])
 

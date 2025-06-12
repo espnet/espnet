@@ -5,6 +5,10 @@ set -e
 echo "[INFO] Building Docker"
 _root=${PWD}
 
+if [ ! -f ".devcontainer/container.env" ]; then
+  touch .devcontainer/container.env
+fi
+
 docker build \
   -f "${_root}/.devcontainer/ci_cpu/espnet.dockerfile" \
   -t "espnet/dev:ci" \

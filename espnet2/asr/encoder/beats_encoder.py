@@ -226,8 +226,8 @@ class BeatsEncoder(AbsEncoder):
         if self.use_weighted_representation:
             if self.max_layer is None:
                 logging.warning(
-                    f"max_layer must be provided when using weighted"
-                    f" representations. Set to {config.encoder_layers-1}."
+                    "max_layer must be provided when using weighted"
+                    f" representations. Set to {config.encoder_layers - 1}."
                 )
                 self.max_layer = config.encoder_layers - 1  # 0 based index
             self.layer_weights = nn.Parameter(

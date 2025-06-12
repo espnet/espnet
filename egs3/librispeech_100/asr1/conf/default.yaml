@@ -1,5 +1,6 @@
 recipedir: .
 num_device: 1
+num_nodes: 1
 seed: 2024
 task:
 
@@ -59,7 +60,7 @@ best_model_criterion:
 trainer:
   accelerator: gpu
   devices: ${num_device}
-  num_nodes: 1
+  num_nodes: ${num_nodes}
   accumulate_grad_batches: 1
   check_val_every_n_epoch: 1
   gradient_clip_val: 1.0

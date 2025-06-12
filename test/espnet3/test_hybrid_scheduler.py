@@ -1,5 +1,5 @@
-import pytest
-import torch
+# import pytest
+# import torch
 from torch import nn
 from torch.optim import SGD, Adam
 from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
@@ -22,7 +22,8 @@ def create_optimizers_and_schedulers():
 
 
 def test_hybrid_lrs_basic_attributes():
-    """
+    """Test Hybrid LRS.
+
     L001: Check that HybridLRS stores optimizer, idx, scheduler correctly
     """
     hybrid, scheds = create_optimizers_and_schedulers()

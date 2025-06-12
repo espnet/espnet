@@ -1,5 +1,6 @@
 from omegaconf import OmegaConf, DictConfig
 from hydra.utils import instantiate
+import copy
 
 import torch
 import numpy as np
@@ -46,30 +47,37 @@ class DataLoaderBuilder:
     def build(self, mode: str):
         mode_config = getattr(self.config.dataloader, mode, DictConfig({}))
 
-        if mode_config.multiple_iterator:
-            return self._build_multiple_iterator(mode_config)
-        if mode_config.iter_factory is not None:
-            return self._build_iter_factory(mode_config.iter_factory)
-        return self._build_standard_dataloader(mode_config)
+        config = copy.copy(mode_config)
+        if hasattr(config, "multiple_iterator") and config.multiple_iterator:
+            return self._build_multiple_iterator(config)
+        if config.iter_factory is not None:
+            return self._build_iter_factory(config.iter_factory)
+        return self._build_standard_dataloader(config)
 
-    def _build_standard_dataloader(self, dataloader_config):
+    def _build_standard_dataloader(self, dataloader_config, dataset=None):
+        if dataset is None:
+            dataset = self.dataset
+
         config = OmegaConf.to_container(dataloader_config, resolve=True)
         sampler = batch_sampler = None
 
         if isinstance(self.collate_fn, CommonCollateFn):
-            self.dataset.add_uid = True
+            dataset.add_uid = True
 
         if hasattr(self.config, "sampler"):
-            sampler = instantiate(self.config.sampler, self.dataset)
+            sampler = instantiate(self.config.sampler, dataset)
         if hasattr(self.config, "batch_sampler"):
-            batch_sampler = instantiate(self.config.batch_sampler, self.dataset)
+            batch_sampler = instantiate(self.config.batch_sampler, dataset)
 
         assert not (sampler and batch_sampler), \
             "Cannot specify both sampler and batch_sampler"
         config.pop("dataset", None)
 
+        # Remove default config for espnet's data loader
+        config.pop("iter_factory")
+
         return torch.utils.data.DataLoader(
-            self.dataset,
+            dataset,
             sampler=sampler,
             batch_sampler=batch_sampler,
             collate_fn=self.collate_fn,
@@ -79,11 +87,11 @@ class DataLoaderBuilder:
     def _build_iter_factory(self, factory_config, dataset=None):
         if dataset is None:
             dataset = self.dataset
-
-        iter_factory = instantiate(factory_config, dataset)
+        
+        batches = instantiate(factory_config.pop("batches"))
 
         if self.num_device > 1:
-            batches = list(iter_factory.sampler)
+            batches = list(batches)
             world_size = torch.distributed.get_world_size()
             rank = torch.distributed.get_rank()
             for batch in batches:
@@ -91,7 +99,13 @@ class DataLoaderBuilder:
                     raise RuntimeError(
                         f"The batch-size must be equal or more than world_size: {len(batch)} < {world_size}"
                     )
-            iter_factory.batches = [batch[rank::world_size] for batch in batches]
+            batches = [batch[rank::world_size] for batch in batches]
+
+        iter_factory = instantiate(
+            factory_config,
+            dataset,
+            batches=batches
+        )
 
         return iter_factory.build_iter(self.epoch, shuffle=False)
 
@@ -110,10 +124,15 @@ class DataLoaderBuilder:
 
         dataset = self.dataset.shard(shard_idx)
         
-        # update shape files
-        iter_factory_config = OmegaConf.to_container(
-            factory_config.iter_factory, resolve=True
-        )
-        iter_factory_config = update_shard(iter_factory_config, shard_idx)
-        return self._build_iter_factory(factory_config.iter_factory, dataset)
+        if factory_config.iter_factory is not None:
+            # update shape files
+            iter_factory_config = OmegaConf.to_container(
+                factory_config.iter_factory, resolve=True
+            )
+            iter_factory_config = update_shard(iter_factory_config, shard_idx)
+            return self._build_iter_factory(iter_factory_config, dataset)
+        else:
+            factory_config.pop("num_shards")
+            factory_config.pop("multiple_iterator")
+            return self._build_standard_dataloader(factory_config, dataset)
 

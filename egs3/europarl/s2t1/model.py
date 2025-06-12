@@ -3,6 +3,7 @@ import torch.nn as nn
 
 from espnet2.bin.s2t_inference import Speech2Text
 
+
 class OWSMFinetune(nn.Module):
     def __init__(self, model_tag):
         super().__init__()
