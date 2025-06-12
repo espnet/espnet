@@ -163,14 +163,16 @@ def dump_label(
         )
         for i in range(RVQ_layers)
     ]
+    logging.info(writers)
 
     dist = [np.array([]) for i in range(RVQ_layers)]
     all_dist = np.array([])
     if not online_feature_extract:
         # dumped ssl feature in kaldi ark format
         for utt, feat in file_reader_helper(rspecifier, in_filetype):
+            feats = feat
             for i in range(RVQ_layers):
-                lab = apply_kmeans[i](feats)
+                lab, dis = apply_kmeans[i](feats)
                 writers[i][utt] = lab
                 feats = feats - apply_kmeans[i].C_np.transpose()[lab]
     else:
