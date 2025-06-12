@@ -21,7 +21,7 @@ classifiers = [
 requires-python = ">=3.10"
 license = { "text" = "Apache Software License" }
 dependencies = [
-    "setuptools>70.0.0",
+    "setuptools>=38.5.1,<74.0.0",
     "configargparse>=1.2.1",
     "packaging",
     "typeguard",
