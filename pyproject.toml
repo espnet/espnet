@@ -30,14 +30,13 @@ dependencies = [
     "numpy<1.24",
     "PyYAML>=5.1.2",
     "soundfile>=0.10.2",
-    "torch>=2.6.0",
-    "torchaudio>=2.6.0",
+    "torch>=1.11.0",
+    "torchaudio>=1.11.0",
     "soundfile>=0.10.2",
     "kaldiio>=2.18.0",
     "sentencepiece==0.2.0",
     "librosa>0.9.2",
     "lightning",
-    "nltk>=3.4.5",
     "torch_complex",
     "tensorboard",
     "einops",
@@ -95,15 +94,15 @@ task-enh = [
 ]
 
 task-mt = [
-  "nltk"
+  "nltk>=3.4.5",
 ]
 
 task-st = [
-  "nltk"
+  "nltk>=3.4.5",
 ]
 
 task-sds = [
-  "nltk"
+  "nltk>=3.4.5",
 ]
 
 task-spk = [
