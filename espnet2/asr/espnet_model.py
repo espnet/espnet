@@ -422,7 +422,7 @@ class ESPnetASRModel(AbsESPnetModel):
             encoder_out, encoder_out_lens = feats, feats_lengths
         else:
 
-            if self.encoder.interctc_use_conditioning or getattr(
+            if getattr(self.encoder, "interctc_use_conditioning", False) or getattr(
                 self.encoder, "ctc_trim", False
             ):
                 encoder_out, encoder_out_lens, _ = self.encoder(
