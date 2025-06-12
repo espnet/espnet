@@ -1,0 +1,36 @@
+name: Close inactive issues
+on:
+  schedule:
+    - cron: "30 1 * * *"
+
+jobs:
+  close-issues:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/stale@v9
+        with:
+          operations-per-run: 100
+          days-before-issue-stale: 45
+          days-before-issue-close: 30
+          stale-issue-label: "Stale"
+          stale-issue-message: |
+            This issue is stale because it has been open for 45 days with no activity.
+            It will be closed if no further activity occurs.
+            Thank you for your contributions.
+          close-issue-message: >
+            This issue is closed. Please re-open if needed.
+          exempt-issue-labels: Roadmap,Bug
+          days-before-pr-stale: 90
+          days-before-pr-close: 7
+          stale-pr-message: |
+            This PR is stale because it has been open for 90 days with no activity.
+            It will be closed if no further activity occurs.
+            Thank you for your contributions.
+          close-pr-message: >
+            This PR is closed. Please re-open if needed.
+          stale-pr-label: "Stale"
+          exempt-pr-labels: Roadmap,Bug
+          repo-token: ${{ secrets.GITHUB_TOKEN }}

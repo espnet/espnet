@@ -1,3 +1,5 @@
+"""Functional module."""
+
 import inspect
 
 from espnet.transform.transform_interface import TransformInterface
@@ -5,7 +7,7 @@ from espnet.utils.check_kwargs import check_kwargs
 
 
 class FuncTrans(TransformInterface):
-    """Functional Transformation
+    """Functional Transformation.
 
     WARNING:
         Builtin or C/C++ functions may not work properly
@@ -30,14 +32,17 @@ class FuncTrans(TransformInterface):
     _func = None
 
     def __init__(self, **kwargs):
+        """Initialize Class."""
         self.kwargs = kwargs
         check_kwargs(self.func, kwargs)
 
     def __call__(self, x):
+        """Process call method."""
         return self.func(x, **self.kwargs)
 
     @classmethod
     def add_arguments(cls, parser):
+        """Add arguments to parser."""
         fname = cls._func.__name__.replace("_", "-")
         group = parser.add_argument_group(fname + " transformation setting")
         for k, v in cls.default_params().items():
@@ -48,10 +53,12 @@ class FuncTrans(TransformInterface):
 
     @property
     def func(self):
+        """Return type of self."""
         return type(self)._func
 
     @classmethod
     def default_params(cls):
+        """Return default parameters."""
         try:
             d = dict(inspect.signature(cls._func).parameters)
         except ValueError:
@@ -61,6 +68,7 @@ class FuncTrans(TransformInterface):
         }
 
     def __repr__(self):
+        """Return string with details of class."""
         params = self.default_params()
         params.update(**self.kwargs)
         ret = self.__class__.__name__ + "("

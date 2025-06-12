@@ -26,7 +26,7 @@ jobs:
             echo "is_doc=false" >> "$GITHUB_OUTPUT"
           fi
 
-  generate_and_deplay_doc:
+  generate_and_deploy_doc:
     runs-on: ubuntu-latest
     needs: get_labels
     if: |
@@ -34,7 +34,7 @@ jobs:
         (github.event.pull_request.draft == false && needs.get_labels.outputs.is_doc == 'true')
     steps:
       - uses: actions/checkout@master
-      - uses: actions/cache@v1
+      - uses: actions/cache@v4
         with:
           path: ~/.cache/pip
           key: pip-${{ hashFiles('**/setup.py') }}
@@ -51,7 +51,7 @@ jobs:
       - name: install espnet
         env:
           ESPNET_PYTHON_VERSION: 3.10
-          TH_VERSION: 2.0.1
+          TH_VERSION: 2.1.2
           CHAINER_VERSION: 6.0.0
           USE_CONDA: false
         run: ./ci/install.sh

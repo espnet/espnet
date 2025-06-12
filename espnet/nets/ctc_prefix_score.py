@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+"""CTC prefix score module."""
+
 # Copyright 2018 Mitsubishi Electric Research Labs (Takaaki Hori)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
@@ -8,7 +10,7 @@ import torch
 
 
 class CTCPrefixScoreTH(object):
-    """Batch processing of CTCPrefixScore
+    """Batch processing of CTCPrefixScore.
 
     which is based on Algorithm 2 in WATANABE et al.
     "HYBRID CTC/ATTENTION ARCHITECTURE FOR END-TO-END SPEECH RECOGNITION,"
@@ -19,7 +21,7 @@ class CTCPrefixScoreTH(object):
     """
 
     def __init__(self, x, xlens, blank, eos, margin=0):
-        """Construct CTC prefix scorer
+        """Construct CTC prefix scorer.
 
         :param torch.Tensor x: input label posterior sequences (B, T, O)
         :param torch.Tensor xlens: input lengths (B,)
@@ -65,7 +67,7 @@ class CTCPrefixScoreTH(object):
         self.idx_bo = (self.idx_b * self.odim).unsqueeze(1)
 
     def __call__(self, y, state, scoring_ids=None, att_w=None):
-        """Compute CTC prefix scores for next labels
+        """Compute CTC prefix scores for next labels.
 
         :param list y: prefix label sequences
         :param tuple state: previous CTC state
@@ -187,7 +189,7 @@ class CTCPrefixScoreTH(object):
         return (log_psi - s_prev), (r, log_psi, f_min, f_max, scoring_idmap)
 
     def index_select_state(self, state, best_ids):
-        """Select CTC states according to best ids
+        """Select CTC states according to best ids.
 
         :param state    : CTC state
         :param best_ids : index numbers selected by beam pruning (B, W)
@@ -224,7 +226,6 @@ class CTCPrefixScoreTH(object):
 
         :param torch.Tensor x: input label posterior sequences (B, T, O)
         """
-
         if self.x.shape[1] < x.shape[1]:  # self.x (2,T,B,O); x (B,T,O)
             # Pad the rest of posteriors in the batch
             # TODO(takaaki-hori): need a better way without for-loops
@@ -244,11 +245,9 @@ class CTCPrefixScoreTH(object):
     def extend_state(self, state):
         """Compute CTC prefix state.
 
-
         :param state    : CTC state
         :return ctc_state
         """
-
         if state is None:
             # nothing to do
             return state
@@ -270,7 +269,7 @@ class CTCPrefixScoreTH(object):
 
 
 class CTCPrefixScore(object):
-    """Compute CTC label sequence scores
+    """Compute CTC label sequence scores.
 
     which is based on Algorithm 2 in WATANABE et al.
     "HYBRID CTC/ATTENTION ARCHITECTURE FOR END-TO-END SPEECH RECOGNITION,"
@@ -279,6 +278,7 @@ class CTCPrefixScore(object):
     """
 
     def __init__(self, x, blank, eos, xp):
+        """Initialize CTCPrefixScore."""
         self.xp = xp
         self.logzero = -10000000000.0
         self.blank = blank
@@ -287,7 +287,7 @@ class CTCPrefixScore(object):
         self.x = x
 
     def initial_state(self):
-        """Obtain an initial CTC state
+        """Obtain an initial CTC state.
 
         :return: CTC state
         """
@@ -301,7 +301,7 @@ class CTCPrefixScore(object):
         return r
 
     def __call__(self, y, cs, r_prev):
-        """Compute CTC prefix scores for next labels
+        """Compute CTC prefix scores for next labels.
 
         :param y     : prefix label sequence
         :param cs    : array of next labels

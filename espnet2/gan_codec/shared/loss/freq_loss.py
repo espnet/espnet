@@ -3,11 +3,11 @@
 
 """Frequency-Related Loss"""
 
-from typing import List, Optional
+from typing import Optional
 
 import numpy as np
 import torch
-import torch.nn.functional as F
+import torch.nn.functional as F  # noqa
 
 from espnet2.gan_tts.hifigan.loss import MelSpectrogramLoss
 

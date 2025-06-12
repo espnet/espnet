@@ -30,8 +30,9 @@ requirements = {
         "protobuf",
         "hydra-core",
         "opt-einsum",
+        "lightning",
         # ASR
-        "sentencepiece==0.1.97",
+        "sentencepiece==0.2.0",
         "ctc-segmentation>=1.6.6",
         # TTS
         "pyworld>=0.3.4",
@@ -84,14 +85,13 @@ requirements = {
         "torch_optimizer",
         "fairscale",
         "transformers",
-        "gtn==0.0.0",
         "evaluate",
     ],
     "setup": [
         "pytest-runner",
     ],
     "test": [
-        "pytest>=7.0.0",
+        "pytest>=7.0.0,<8.4.0",
         "pytest-timeouts>=1.2.1",
         "pytest-pythonpath>=0.7.3",
         "pytest-cov>=2.7.1",

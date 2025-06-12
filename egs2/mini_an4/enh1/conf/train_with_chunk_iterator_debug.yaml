@@ -32,7 +32,7 @@ criterions:
       weight: 1.0
 
 max_epoch: 1
-batch_type: folded
+batch_type: sorted
 batch_size: 2
 iterator_type: chunk
 chunk_length: 25 # 0.5s

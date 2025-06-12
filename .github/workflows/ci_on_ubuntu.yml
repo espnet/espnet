@@ -31,8 +31,7 @@ jobs:
     needs: process_labels
     # Outputs from Previous jobs are strings. Take care in case of using True/False.
     if: |
-      github.event.pull_request.draft == false &&
-      needs.process_labels.outputs.is_docker == 'false'
+      github.event.pull_request.draft == false
     strategy:
       max-parallel: 20
       matrix:
@@ -41,19 +40,13 @@ jobs:
         pytorch-version: [2.1.2]
         chainer-version: [6.0.0]
         use-conda: [false]
-        include:
-          - os: ubuntu-latest
-            python-version: "3.10"
-            pytorch-version: 1.13.1
-            chainer-verssion: 6.0.0
-            use-conda: false
     steps:
       - uses: actions/checkout@master
       - uses: actions/cache@v3
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/setup.py') }}-${{ hashFiles('**/Makefile') }}
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
           architecture: 'x64'
@@ -100,29 +93,22 @@ jobs:
     runs-on: ${{ matrix.os }}
     needs: process_labels
     if: |
-      github.event.pull_request.draft == false &&
-      needs.process_labels.outputs.is_docker == 'false'
+      github.event.pull_request.draft == false
     strategy:
       max-parallel: 20
       matrix:
         os: [ubuntu-latest]
         python-version: ["3.10", "3.11"]
-        pytorch-version: [2.0.1, 2.1.2, 2.2.2, 2.3.1, 2.4.0]
+        pytorch-version: [2.1.2, 2.2.2, 2.3.1, 2.4.1, 2.5.1, 2.6.0]
         chainer-version: [6.0.0]
         use-conda: [false]
-        include:
-          - os: ubuntu-latest
-            python-version: "3.10"
-            pytorch-version: 1.13.1
-            chainer-verssion: 6.0.0
-            use-conda: false
     steps:
       - uses: actions/checkout@master
       - uses: actions/cache@v3
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/setup.py') }}-${{ hashFiles('**/Makefile') }}
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
           architecture: 'x64'
@@ -184,29 +170,22 @@ jobs:
     runs-on: ${{ matrix.os }}
     needs: process_labels
     if: |
-      github.event.pull_request.draft == false &&
-      needs.process_labels.outputs.is_docker == 'false'
+      github.event.pull_request.draft == false
     strategy:
       max-parallel: 20
       matrix:
         os: [ubuntu-latest]
         python-version: ["3.10"]
-        pytorch-version: ["1.13.1"]
+        pytorch-version: ["2.6.0"]
         chainer-version: ["6.0.0"]
         use-conda: [false]
-        include:
-          - os: ubuntu-latest
-            python-version: "3.11"
-            pytorch-version: 2.4.0
-            chainer-verssion: 6.0.0
-            use-conda: false
     steps:
       - uses: actions/checkout@master
       - uses: actions/cache@v3
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/setup.py') }}-${{ hashFiles('**/Makefile') }}
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
           architecture: 'x64'
@@ -223,7 +202,12 @@ jobs:
           USE_CONDA: ${{ matrix.use-conda }}
         run: |
           ./ci/install.sh
-
+      - name: Clean environment
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf /root/.cache/*
       - name: test configuration
         run: ./ci/test_configuration_espnet2.sh
       - uses: codecov/codecov-action@v2
@@ -234,29 +218,22 @@ jobs:
     runs-on: ${{ matrix.os }}
     needs: process_labels
     if: |
-      github.event.pull_request.draft == false &&
-      needs.process_labels.outputs.is_docker == 'false'
+      github.event.pull_request.draft == false
     strategy:
       max-parallel: 20
       matrix:
         os: [ubuntu-latest]
         python-version: ["3.10", "3.11"]
-        pytorch-version: [2.0.1, 2.1.2, 2.2.2, 2.3.1, 2.4.0]
+        pytorch-version: [2.1.2, 2.2.2, 2.3.1, 2.4.1, 2.5.1, 2.6.0]
         chainer-version: [6.0.0]
         use-conda: [false]
-        include:
-          - os: ubuntu-latest
-            python-version: "3.10"
-            pytorch-version: 1.13.1
-            chainer-verssion: 6.0.0
-            use-conda: false
     steps:
       - uses: actions/checkout@master
       - uses: actions/cache@v3
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/setup.py') }}-${{ hashFiles('**/Makefile') }}
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
           architecture: 'x64'
@@ -314,18 +291,17 @@ jobs:
     runs-on: ${{ matrix.os }}
     needs: process_labels
     if: |
-      github.event.pull_request.draft == false &&
-      needs.process_labels.outputs.is_docker == 'false'
+      github.event.pull_request.draft == false
     strategy:
       max-parallel: 20
       matrix:
         os: [ubuntu-latest]
         python-version: ["3.10"]
-        pytorch-version: [2.4.0]
+        pytorch-version: [2.6.0]
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@master
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
@@ -336,6 +312,7 @@ jobs:
       env:
         TH_VERSION: ${{ matrix.pytorch-version }}
       run: |
+        python3 -m pip install -U "Cython<3.1.0"
         python3 -m pip install -U numba
         ./tools/installers/install_torch.sh false ${TH_VERSION} CPU
         ./tools/installers/install_chainer.sh CPU
@@ -361,8 +338,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: process_labels
     if: |
-      github.event.pull_request.draft == false &&
-      needs.process_labels.outputs.is_docker == 'false'
+      github.event.pull_request.draft == false
     steps:
     - uses: actions/checkout@master
     - run: ci/check_kaldi_symlinks.sh

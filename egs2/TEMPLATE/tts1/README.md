@@ -4,7 +4,9 @@ This is a template of TTS recipe for ESPnet2.
 
 ## Table of Contents
 
-- [Recipe flow](#recipe-flow)
+- [Text-to-Speech](#text-to-speech)
+  - [Table of Contents](#table-of-contents)
+  - [Recipe flow](#recipe-flow)
     - [1. Data preparation](#1-data-preparation)
       - [ESPnet format:](#espnet-format)
       - [(New) MFA Aligments generation](#new-mfa-aligments-generation)
@@ -15,9 +17,10 @@ This is a template of TTS recipe for ESPnet2.
     - [6. TTS statistics collection](#6-tts-statistics-collection)
     - [7. TTS training](#7-tts-training)
     - [8. TTS decoding](#8-tts-decoding)
-    - [9. (Optional) Pack results for upload](#9-optional-pack-results-for-upload)
-    - [10. (Optional) Upload model to Hugging Face](#10-optional-upload-model-to-hugging-face)
-- [How to run](#how-to-run)
+    - [9. TTS eval using versa](#9-tts-eval-using-versa)
+    - [10. (Optional) Pack results for upload](#10-optional-pack-results-for-upload)
+    - [11. (Optional) Upload model to Hugging Face](#11-optional-upload-model-to-hugging-face)
+  - [How to run](#how-to-run)
     - [FastSpeech training](#fastspeech-training)
     - [FastSpeech2 training](#fastspeech2-training)
     - [Multi-speaker model with speaker embedding training](#multi-speaker-model-with-speaker-embedding-training)
@@ -27,12 +30,12 @@ This is a template of TTS recipe for ESPnet2.
     - [VITS training](#vits-training)
     - [Joint text2wav training](#joint-text2wav-training)
     - [Evaluation](#evaluation)
-- [Supported text frontend](#supported-text-frontend)
-- [Supported text cleaner](#supported-text-cleaner)
-- [Supported Models](#supported-models)
+  - [Supported text frontend](#supported-text-frontend)
+  - [Supported text cleaner](#supported-text-cleaner)
+  - [Supported Models](#supported-models)
     - [Single speaker model](#single-speaker-model)
     - [Multi speaker model extension](#multi-speaker-model-extension)
-- [FAQ](#faq)
+  - [FAQ](#faq)
     - [ESPnet1 model is compatible with ESPnet2?](#espnet1-model-is-compatible-with-espnet2)
     - [How to change minibatch size in training?](#how-to-change-minibatch-size-in-training)
     - [How to make a new recipe for my own dataset?](#how-to-make-a-new-recipe-for-my-own-dataset)
@@ -53,7 +56,6 @@ This is a template of TTS recipe for ESPnet2.
     - [How is the duration for FastSpeech2 generated?](#how-is-the-duration-for-fastspeech2-generated)
     - [Why the output of Tacotron2 or Transformer is non-deterministic?](#why-the-output-of-tacotron2-or-transformer-is-non-deterministic)
 
-
 ## Recipe flow
 
 TTS recipe consists of 9 stages.
@@ -68,6 +70,7 @@ You have two methods to generate the data:
 It calls `local/data.sh` to creates Kaldi-style data directories in `data/` for training, validation, and evaluation sets.
 
 See also:
+
 - [About Kaldi-style data directory](https://github.com/espnet/espnet/tree/master/egs2/TEMPLATE#about-kaldi-style-data-directory)
 
 #### (New) MFA Aligments generation
@@ -112,7 +115,7 @@ If you specify `--use_spk_embed true` (Default: `use_spk_embed=false`), we extra
 You can select the type of toolkit to use (kaldi, speechbrain, or espnet) when you specify `--spk_embed_tool <option>`
 (Default: `spk_embed_tool=espnet`).
 If you specify kaldi, then we additionally extract mfcc features and vad decision.
-In that case, `spk_embed_tag`  will be set to `xvector` automatically.
+In that case, `spk_embed_tag` will be set to `xvector` automatically.
 This processing requires the compiled kaldi, please be careful.
 
 Also, speaker ID embedding and language ID embedding preparation will be performed in this stage if you specify `--use_sid true` and `--use_lid true` options.
@@ -137,6 +140,7 @@ If `--cleaner` option is specified, the input text will be cleaned with the spec
 If `token_type=phn`, the input text will be converted with G2P module specified by `--g2p` option.
 
 See also:
+
 - [Supported text cleaner](#supported-text-cleaner).
 - [Supported text frontend](#supported-text-frontend).
 
@@ -151,6 +155,7 @@ TTS model training stage.
 You can change the training setting via `--train_config` and `--train_args` options.
 
 See also:
+
 - [Supported models](#supported-models).
 - [Change the configuration for training](https://espnet.github.io/espnet/espnet2_training_option.html)
 - [Distributed training](https://espnet.github.io/espnet/espnet2_distributed.html)
@@ -161,14 +166,34 @@ TTS model decoding stage.
 You can change the decoding setting via `--inference_config` and `--inference_args`.
 
 See also:
+
 - [Change the configuration for training](https://espnet.github.io/espnet/espnet2_training_option.html)
 
-### 9. (Optional) Pack results for upload
+### 9. TTS eval using versa
+
+TTS model eval stage using [versa](https://github.com/shinjiwlab/versa).
+
+The default metrics is below in conf/versa.yaml:
+
+| 1 | Perceptual Evaluation of Speech Quality (PESQ) | pesq | pesq |
+| 2 | Short-Time Objective Intelligibility (STOI) | stoi | stoi |
+| 3 | Mel Cepstral Distortion (MCD) | mcd_f0 | mcd |
+| 4 | F0 Correlation | mcd_f0 | f0_corr |
+| 5 | F0 Root Mean Square Error | mcd_f0 | f0_rmse |
+| 6 | UTokyo-SaruLab System for VoiceMOS Challenge 2022 (UTMOS) | pseudo_mos | utmos |
+| 7 | Deep Noise Suppression MOS Score of P.835 (DNSMOS) | pseudo_mos | dnsmos_overall |
+| 8 | Deep Noise Suppression MOS Score of P.808 (DNSMOS) | pseudo_mos | dnsmos_p808 |
+| 9 | Packet Loss Concealment-related MOS Score (PLCMOS) | pseudo_mos | plcmos |
+| 10 | Speaker Embedding Similarity | speaker | spk_similarity |
+
+You can find more detail and more metrics on [VERSA README](https://github.com/shinjiwlab/versa/blob/main/README.md).
+
+### 10. (Optional) Pack results for upload
 
 Packing stage.
 It packs the trained model files as a preparation for uploading to Hugging Face.
 
-### 10. (Optional) Upload model to Hugging Face
+### 11. (Optional) Upload model to Hugging Face
 
 Upload the trained model to Hugging Face for sharing. Additional information at [Docs](https://espnet.github.io/espnet/espnet2_tutorial.html#packing-and-sharing-your-trained-model).
 
@@ -177,28 +202,34 @@ Upload the trained model to Hugging Face for sharing. Additional information at 
 Here, we show the procedure to run the recipe using `egs2/ljspeech/tts1`.
 
 Move on the recipe directory.
+
 ```sh
 $ cd egs2/ljspeech/tts1
 ```
 
 Modify `LJSPEECH` variable in `db.sh` if you want to change the download directory.
+
 ```sh
 $ vim db.sh
 ```
 
 Modify `cmd.sh` and `conf/*.conf` if you want to use job scheduler.
 See the detail in [using job scheduling system](https://espnet.github.io/espnet/parallelization.html).
+
 ```sh
 $ vim cmd.sh
 ```
 
 Run `run.sh`, which conducts all of the stages explained above.
+
 ```sh
 $ ./run.sh
 ```
+
 As a default, we train Tacotron2 (`conf/train.yaml`) with `feats_type=raw` + `token_type=phn`.
 
 Then, you can get the following directories in the recipe directory.
+
 ```sh
 ├── data/ # Kaldi-style data directory
 │   ├── dev/        # validation set
@@ -241,6 +272,7 @@ Then, you can get the following directories in the recipe directory.
         ├── *.ave_5best.pth         # model averaged parameters
         └── *.best.pth              # symlink to the best model parameter loss
 ```
+
 In decoding, we use Griffin-Lim for waveform generation as a default (End-to-end text-to-wav model can generate waveform directly such as VITS and Joint training model).
 If you want to combine with neural vocoders, you can combine with [kan-bayashi/ParallelWaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN).
 
@@ -258,12 +290,14 @@ $ ./run.sh --stage 8 --vocoder_file /path/to/checkpoint-xxxxxxsteps.pkl --infere
 If you want to generate waveform from dumped features, please check [decoding with ESPnet-TTS model's feature](https://github.com/kan-bayashi/ParallelWaveGAN#decoding-with-espnet-tts-models-features).
 
 For the first time, we recommend performing each stage step-by-step via `--stage` and `--stop-stage` options.
+
 ```sh
 $ ./run.sh --stage 1 --stop-stage 1
 $ ./run.sh --stage 2 --stop-stage 2
 ...
 $ ./run.sh --stage 8 --stop-stage 8
 ```
+
 This might helps you to understand each stage's processing and directory structure.
 
 ### FastSpeech training
@@ -272,15 +306,18 @@ If you want to train FastSpeech, additional steps with the teacher model are nee
 Please make sure you already finished the training of the teacher model (Tacotron2 or Transformer-TTS).
 
 First, decode all of data including training, validation, and evaluation set.
+
 ```sh
 # specify teacher model directory via --tts_exp option
 $ ./run.sh --stage 8 \
     --tts_exp exp/tts_train_raw_phn_tacotron_g2p_en_no_space \
     --test_sets "tr_no_dev dev eval1"
 ```
+
 This will generate `durations` for training, validation, and evaluation sets in `exp/tts_train_raw_phn_tacotron_g2p_en_no_space/decode_train.loss.ave`.
 
 Then, you can train FastSpeech by specifying the directory including `durations` via `--teacher_dumpdir` option.
+
 ```sh
 $ ./run.sh --stage 7 \
     --train_config conf/tuning/train_fastspeech.yaml \
@@ -289,15 +326,18 @@ $ ./run.sh --stage 7 \
 
 In the above example, we use generated mel-spectrogram as the target, which is known as knowledge distillation training.
 If you want to use groundtruth mel-spectrogram as the target, we need to use teacher forcing in decoding.
+
 ```sh
 $ ./run.sh --stage 8 \
     --tts_exp exp/tts_train_raw_phn_tacotron_g2p_en_no_space \
     --inference_args "--use_teacher_forcing true" \
     --test_sets "tr_no_dev dev eval1"
 ```
+
 You can get the groundtruth aligned durations in `exp/tts_train_raw_phn_tacotron_g2p_en_no_space/decode_use_teacher_forcingtrue_train.loss.ave`.
 
 Then, you can train FastSpeech without knowledge distillation.
+
 ```sh
 $ ./run.sh --stage 7 \
     --train_config conf/tuning/train_fastspeech.yaml \
@@ -307,6 +347,7 @@ $ ./run.sh --stage 7 \
 ### FastSpeech2 training
 
 The procedure is almost the same as FastSpeech but we **MUST** use teacher forcing in decoding.
+
 ```sh
 $ ./run.sh --stage 8 \
     --tts_exp exp/tts_train_raw_phn_tacotron_g2p_en_no_space \
@@ -316,6 +357,7 @@ $ ./run.sh --stage 8 \
 
 To train FastSpeech2, we use additional feature (F0 and energy).
 Therefore, we need to start from `stage 5` to calculate additional statistics.
+
 ```sh
 $ ./run.sh --stage 6 \
     --train_config conf/tuning/train_fastspeech2.yaml \
@@ -323,28 +365,33 @@ $ ./run.sh --stage 6 \
     --tts_stats_dir exp/tts_train_raw_phn_tacotron_g2p_en_no_space/decode_use_teacher_forcingtrue_train.loss.ave/stats \
     --write_collected_feats true
 ```
+
 where `--tts_stats_dir` is the option to specify the directory to dump Statistics, and `--write_collected_feats` is the option to dump features in statistics calculation.
 The use of `--write_collected_feats` is optional but it helps to accelerate the training.
 
 ### Multi-speaker model with speaker embedding training
 
 First, you need to run from the stage 2 and 3 with `--use_spk_embed true` to extract speaker embedding.
+
 ```sh
 $ ./run.sh --stage 3 --stop-stage 4 --use_spk_embed true
 ```
+
 You can find the extracted speaker embedding in `dump/${spk_embed_tag}/*/${spk_embed_tag}.{ark,scp}`.
 Then, you can run the training with the config which has `spk_embed_dim: 512` in `tts_conf`.
+
 ```yaml
 # e.g.
 tts_conf:
-    spk_embed_dim: 512               # dimension of speaker embedding
-    spk_embed_integration_type: add  # how to integrate speaker embedding
+  spk_embed_dim: 512 # dimension of speaker embedding
+  spk_embed_integration_type: add # how to integrate speaker embedding
 ```
 
 #### (Optional) Train on speaker-averaged speaker embeddings
 
 Models trained using speaker-averaged speaker embeddings may generalise better to inference tasks where the utterance-specific speaker embedding is unknown, compared to models trained using embeddings derived from individual training utterances.
 After you perform the above extraction step, if you want to train and evaluate using speaker-averaged speaker embeddings, you can use the following command to replace utterance-level speaker embeddings with speaker-averaged values. Make sure to set your `train_set` `dev_set` and `test_set` variables beforehand:
+
 ```
 for dset in "${train_set}" "${dev_set}" "${test_set}"
 do
@@ -354,11 +401,13 @@ do
         --spk-embed-path dump/${spk_embed_tag}/${dset}/spk_${spk_embed_tag}.scp
 done
 ```
+
 The original `${spk_embed_tag}.scp` files are renamed to xvector.scp.bak in case you wish to revert the changes.
 
 ---
 
 Once you've performed extraction and optionally the speaker-averaged replacement step, please run the training from stage 6.
+
 ```sh
 $ ./run.sh --stage 7 --use_xvector true --train_config /path/to/your_xvector_config.yaml
 ```
@@ -368,18 +417,23 @@ You can find the example config in [`egs2/vctk/tts1/conf/tuning`](../../vctk/tts
 ### Multi-speaker model with speaker ID embedding training
 
 First, you need to run from the stage 2 and 3 with `--use_sid true` to extract speaker ID.
+
 ```sh
 $ ./run.sh --stage 3 --stop-stage 4 --use_sid true
 ```
+
 You can find the speaker ID file in `dump/raw/*/utt2sid`.
 Note that you need to correctly create `utt2spk` in data prep stage to generate `utt2sid`.
 Then, you can run the training with the config which has `spks: #spks` in `tts_conf`.
+
 ```yaml
 # e.g.
 tts_conf:
-    spks: 128  # Number of speakers
+  spks: 128 # Number of speakers
 ```
+
 Please run the training from stage 6.
+
 ```sh
 $ ./run.sh --stage 7 --use_sid true --train_config /path/to/your_multi_spk_config.yaml
 ```
@@ -387,35 +441,45 @@ $ ./run.sh --stage 7 --use_sid true --train_config /path/to/your_multi_spk_confi
 ### Multi-language model with language ID embedding training
 
 First, you need to run from the stage 2 and 3 with `--use_lid true` to extract speaker ID.
+
 ```sh
 $ ./run.sh --stage 3 --stop-stage 4 --use_lid true
 ```
+
 You can find the speaker ID file in `dump/raw/*/utt2lid`.
 **Note that you need to additionally create `utt2lang` file in data prep stage to generate `utt2lid`.**
 Then, you can run the training with the config which has `langs: #langs` in `tts_conf`.
+
 ```yaml
 # e.g.
 tts_conf:
-    langs: 4  # Number of languages
+  langs: 4 # Number of languages
 ```
+
 Please run the training from stage 6.
+
 ```sh
 $ ./run.sh --stage 7 --use_lid true --train_config /path/to/your_multi_lang_config.yaml
 ```
 
 Of course you can further combine with x-vector or speaker ID embedding.
 If you want to use both sid and lid, the process should be like this:
+
 ```sh
 $ ./run.sh --stage 3 --stop-stage 4 --use_lid true --use_sid true
 ```
+
 Make your config.
+
 ```yaml
 # e.g.
 tts_conf:
-    langs: 4   # Number of languages
-    spks: 128  # Number of speakers
+  langs: 4 # Number of languages
+  spks: 128 # Number of speakers
 ```
+
 Please run the training from stage 6.
+
 ```sh
 $ ./run.sh --stage 7 --use_lid true --use_sid true --train_config /path/to/your_multi_spk_multi_lang_config.yaml
 ```
@@ -522,6 +586,7 @@ $ ./run.sh \
 The training time requires long times (around several weeks) but around 100k samples can generate a reasonable sounds.
 
 You can find the example configs in:
+
 - [`egs2/ljspeech/tts1/conf/tuning/train_vits.yaml`: Single speaker 22.05 khz config](../../ljspeech/tts1/conf/tuning/train_vits.yaml).
 - [`egs2/jsut/tts1/conf/tuning/train_full_band_vits.yaml`: Single speaker 44.1 khz config](../../jsut/tts1/conf/tuning/train_full_band_vits.yaml).
 - [`egs2/vctk/tts1/conf/tuning/train_multi_spk_vits.yaml`: Multi speaker with SID 22.05 khz config](../../vctk/tts1/conf/tuning/train_multi_spk_vits.yaml).
@@ -610,6 +675,7 @@ $ ./run.sh \
 ```
 
 You can find the example configs in:
+
 - [`egs2/ljspeech/tts1/conf/tuning/train_joint_conformer_fastspeech2_hifigan.yaml`: Joint training of conformer fastspeech2 + hifigan](../../ljspeech/tts1/conf/tuning/train_joint_conformer_fastspeech2_hifigan.yaml).
 - [`egs2/ljspeech/tts1/conf/tuning/finetune_joint_conformer_fastspeech2_hifigan.yaml`: Joint fine-tuning of conformer fastspeech2 + hifigan](../../ljspeech/tts1/conf/tuning/finetune_joint_conformer_fastspeech2_hifigan.yaml).
 
@@ -728,86 +794,86 @@ You can refer [this page](https://github.com/kan-bayashi/webMUSHRA/blob/master/H
 You can change via `--g2p` option in `tts.sh`.
 
 - `none`: Just separate by space
-    - e.g.: `HH AH0 L OW1 <space> W ER1 L D` -> `[HH, AH0, L, OW1, <space>, W, ER1, L D]`
+  - e.g.: `HH AH0 L OW1 <space> W ER1 L D` -> `[HH, AH0, L, OW1, <space>, W, ER1, L D]`
 - `g2p_en`: [Kyubyong/g2p](https://github.com/Kyubyong/g2p)
-    - e.g. `Hello World` -> `[HH, AH0, L, OW1, <space>, W, ER1, L D]`
+  - e.g. `Hello World` -> `[HH, AH0, L, OW1, <space>, W, ER1, L D]`
 - `g2p_en_no_space`: [Kyubyong/g2p](https://github.com/Kyubyong/g2p)
-    - Same G2P but do not use word separator
-    - e.g. `Hello World` -> `[HH, AH0, L, OW1, W, ER1, L, D]`
+  - Same G2P but do not use word separator
+  - e.g. `Hello World` -> `[HH, AH0, L, OW1, W, ER1, L, D]`
 - `pyopenjtalk`: [r9y9/pyopenjtalk](https://github.com/r9y9/pyopenjtalk)
-    - e.g. `こ、こんにちは` -> `[k, o, pau, k, o, N, n, i, ch, i, w, a]`
+  - e.g. `こ、こんにちは` -> `[k, o, pau, k, o, N, n, i, ch, i, w, a]`
 - `pyopenjtalk_kana`: [r9y9/pyopenjtalk](https://github.com/r9y9/pyopenjtalk)
-    - Use kana instead of phoneme
-    - e.g. `こ、こんにちは` -> `[コ, 、, コ, ン, ニ, チ, ワ]`
+  - Use kana instead of phoneme
+  - e.g. `こ、こんにちは` -> `[コ, 、, コ, ン, ニ, チ, ワ]`
 - `pyopenjtalk_accent`: [r9y9/pyopenjtalk](https://github.com/r9y9/pyopenjtalk)
-    - Add accent labels in addition to phoneme labels
-    - Based on [Developing a Japanese End-to-End Speech Synthesis Server Considering Accent Phrases](https://jglobal.jst.go.jp/detail?JGLOBAL_ID=202102244593559954)
-    - e.g. `こ、こんにちは` -> `[k, 1, 0, o, 1, 0, k, 5, -4, o, 5, -4, N, 5, -3, n, 5, -2, i, 5, -2, ch, 5, -1, i, 5, -1, w, 5, 0, a, 5, 0]`
+  - Add accent labels in addition to phoneme labels
+  - Based on [Developing a Japanese End-to-End Speech Synthesis Server Considering Accent Phrases](https://jglobal.jst.go.jp/detail?JGLOBAL_ID=202102244593559954)
+  - e.g. `こ、こんにちは` -> `[k, 1, 0, o, 1, 0, k, 5, -4, o, 5, -4, N, 5, -3, n, 5, -2, i, 5, -2, ch, 5, -1, i, 5, -1, w, 5, 0, a, 5, 0]`
 - `pyopenjtalk_accent_with_pause`: [r9y9/pyopenjtalk](https://github.com/r9y9/pyopenjtalk)
-    - Add a pause label in addition to phoneme and accent labels
-    - Based on [Developing a Japanese End-to-End Speech Synthesis Server Considering Accent Phrases](https://jglobal.jst.go.jp/detail?JGLOBAL_ID=202102244593559954)
-    - e.g. `こ、こんにちは` -> `[k, 1, 0, o, 1, 0, pau, k, 5, -4, o, 5, -4, N, 5, -3, n, 5, -2, i, 5, -2, ch, 5, -1, i, 5, -1, w, 5, 0, a, 5, 0]`
+  - Add a pause label in addition to phoneme and accent labels
+  - Based on [Developing a Japanese End-to-End Speech Synthesis Server Considering Accent Phrases](https://jglobal.jst.go.jp/detail?JGLOBAL_ID=202102244593559954)
+  - e.g. `こ、こんにちは` -> `[k, 1, 0, o, 1, 0, pau, k, 5, -4, o, 5, -4, N, 5, -3, n, 5, -2, i, 5, -2, ch, 5, -1, i, 5, -1, w, 5, 0, a, 5, 0]`
 - `pyopenjtalk_prosody`: [r9y9/pyopenjtalk](https://github.com/r9y9/pyopenjtalk)
-    - Use special symbols for prosody control
-    - Based on [Prosodic features control by symbols as input of sequence-to-sequence acoustic modeling for neural TTS](https://doi.org/10.1587/transinf.2020EDP7104)
-    - e.g. `こ、こんにちは` -> `[^, k, #, o, _, k, o, [, N, n, i, ch, i, w, a, $]`
+  - Use special symbols for prosody control
+  - Based on [Prosodic features control by symbols as input of sequence-to-sequence acoustic modeling for neural TTS](https://doi.org/10.1587/transinf.2020EDP7104)
+  - e.g. `こ、こんにちは` -> `[^, k, #, o, _, k, o, [, N, n, i, ch, i, w, a, $]`
 - `pypinyin`: [mozillanzg/python-pinyin](https://github.com/mozillazg/python-pinyin)
-    - e.g. `卡尔普陪外孙玩滑梯。` -> `[ka3, er3, pu3, pei2, wai4, sun1, wan2, hua2, ti1, 。]`
+  - e.g. `卡尔普陪外孙玩滑梯。` -> `[ka3, er3, pu3, pei2, wai4, sun1, wan2, hua2, ti1, 。]`
 - `pypinyin_phone`: [mozillanzg/python-pinyin](https://github.com/mozillazg/python-pinyin)
-    - Separate into first and last parts
-    - e.g. `卡尔普陪外孙玩滑梯。` -> `[k, a3, er3, p, u3, p, ei2, wai4, s, un1, uan2, h, ua2, t, i1, 。]`
+  - Separate into first and last parts
+  - e.g. `卡尔普陪外孙玩滑梯。` -> `[k, a3, er3, p, u3, p, ei2, wai4, s, un1, uan2, h, ua2, t, i1, 。]`
 - `espeak_ng_arabic`: [espeak-ng/espeak-ng](https://github.com/espeak-ng/espeak-ng)
-    - e.g. `السلام عليكم` -> `[ʔ, a, s, s, ˈa, l, aː, m, ʕ, l, ˈiː, k, m]`
-    - This result provided by the wrapper library [bootphon/phonemizer](https://github.com/bootphon/phonemizer)
+  - e.g. `السلام عليكم` -> `[ʔ, a, s, s, ˈa, l, aː, m, ʕ, l, ˈiː, k, m]`
+  - This result provided by the wrapper library [bootphon/phonemizer](https://github.com/bootphon/phonemizer)
 - `espeak_ng_german`: [espeak-ng/espeak-ng](https://github.com/espeak-ng/espeak-ng)
-    - e.g. `Das hört sich gut an.` -> `[d, a, s, h, ˈœ, ɾ, t, z, ɪ, ç, ɡ, ˈuː, t, ˈa, n, .]`
-    - This result provided by the wrapper library [bootphon/phonemizer](https://github.com/bootphon/phonemizer)
+  - e.g. `Das hört sich gut an.` -> `[d, a, s, h, ˈœ, ɾ, t, z, ɪ, ç, ɡ, ˈuː, t, ˈa, n, .]`
+  - This result provided by the wrapper library [bootphon/phonemizer](https://github.com/bootphon/phonemizer)
 - `espeak_ng_french`: [espeak-ng/espeak-ng](https://github.com/espeak-ng/espeak-ng)
-    - e.g. `Bonjour le monde.` -> `[b, ɔ̃, ʒ, ˈu, ʁ, l, ə-, m, ˈɔ̃, d, .]`
-    - This result provided by the wrapper library [bootphon/phonemizer](https://github.com/bootphon/phonemizer)
+  - e.g. `Bonjour le monde.` -> `[b, ɔ̃, ʒ, ˈu, ʁ, l, ə-, m, ˈɔ̃, d, .]`
+  - This result provided by the wrapper library [bootphon/phonemizer](https://github.com/bootphon/phonemizer)
 - `espeak_ng_spanish`: [espeak-ng/espeak-ng](https://github.com/espeak-ng/espeak-ng)
-    - e.g. `Hola Mundo.` -> `[ˈo, l, a, m, ˈu, n, d, o, .]`
-    - This result provided by the wrapper library [bootphon/phonemizer](https://github.com/bootphon/phonemizer)
+  - e.g. `Hola Mundo.` -> `[ˈo, l, a, m, ˈu, n, d, o, .]`
+  - This result provided by the wrapper library [bootphon/phonemizer](https://github.com/bootphon/phonemizer)
 - `espeak_ng_russian`: [espeak-ng/espeak-ng](https://github.com/espeak-ng/espeak-ng)
-    - e.g. `Привет мир.` -> `[p, rʲ, i, vʲ, ˈe, t, mʲ, ˈi, r, .]`
-    - This result provided by the wrapper library [bootphon/phonemizer](https://github.com/bootphon/phonemizer)
+  - e.g. `Привет мир.` -> `[p, rʲ, i, vʲ, ˈe, t, mʲ, ˈi, r, .]`
+  - This result provided by the wrapper library [bootphon/phonemizer](https://github.com/bootphon/phonemizer)
 - `espeak_ng_greek`: [espeak-ng/espeak-ng](https://github.com/espeak-ng/espeak-ng)
-    - e.g. `Γειά σου Κόσμε.` -> `[j, ˈa, s, u, k, ˈo, s, m, e, .]`
-    - This result provided by the wrapper library [bootphon/phonemizer](https://github.com/bootphon/phonemizer)
+  - e.g. `Γειά σου Κόσμε.` -> `[j, ˈa, s, u, k, ˈo, s, m, e, .]`
+  - This result provided by the wrapper library [bootphon/phonemizer](https://github.com/bootphon/phonemizer)
 - `espeak_ng_finnish`: [espeak-ng/espeak-ng](https://github.com/espeak-ng/espeak-ng)
-    - e.g. `Hei maailma.` -> `[h, ˈei, m, ˈaː, ɪ, l, m, a, .]`
-    - This result provided by the wrapper library [bootphon/phonemizer](https://github.com/bootphon/phonemizer)
+  - e.g. `Hei maailma.` -> `[h, ˈei, m, ˈaː, ɪ, l, m, a, .]`
+  - This result provided by the wrapper library [bootphon/phonemizer](https://github.com/bootphon/phonemizer)
 - `espeak_ng_hungarian`: [espeak-ng/espeak-ng](https://github.com/espeak-ng/espeak-ng)
-    - e.g. `Helló Világ.` -> `[h, ˈɛ, l, l, oː, v, ˈi, l, aː, ɡ, .]`
-    - This result provided by the wrapper library [bootphon/phonemizer](https://github.com/bootphon/phonemizer)
+  - e.g. `Helló Világ.` -> `[h, ˈɛ, l, l, oː, v, ˈi, l, aː, ɡ, .]`
+  - This result provided by the wrapper library [bootphon/phonemizer](https://github.com/bootphon/phonemizer)
 - `espeak_ng_dutch`: [espeak-ng/espeak-ng](https://github.com/espeak-ng/espeak-ng)
-    - e.g. `Hallo Wereld.` -> `[h, ˈɑ, l, oː, ʋ, ˈɪː, r, ə, l, t, .]`
-    - This result provided by the wrapper library [bootphon/phonemizer](https://github.com/bootphon/phonemizer)
+  - e.g. `Hallo Wereld.` -> `[h, ˈɑ, l, oː, ʋ, ˈɪː, r, ə, l, t, .]`
+  - This result provided by the wrapper library [bootphon/phonemizer](https://github.com/bootphon/phonemizer)
 - `espeak_ng_hindi`: [espeak-ng/espeak-ng](https://github.com/espeak-ng/espeak-ng)
-    - e.g. `नमस्ते दुनिया` -> `[n, ə, m, ˈʌ, s, t, eː, d, ˈʊ, n, ɪ, j, ˌaː]`
-    - This result provided by the wrapper library [bootphon/phonemizer](https://github.com/bootphon/phonemizer)
+  - e.g. `नमस्ते दुनिया` -> `[n, ə, m, ˈʌ, s, t, eː, d, ˈʊ, n, ɪ, j, ˌaː]`
+  - This result provided by the wrapper library [bootphon/phonemizer](https://github.com/bootphon/phonemizer)
 - `espeak_ng_italian`: [espeak-ng/espeak-ng](https://github.com/espeak-ng/espeak-ng)
-    - e.g. `Ciao mondo.` -> `[tʃ, ˈa, o, m, ˈo, n, d, o, .]`
-    - This result provided by the wrapper library [bootphon/phonemizer](https://github.com/bootphon/phonemizer)
+  - e.g. `Ciao mondo.` -> `[tʃ, ˈa, o, m, ˈo, n, d, o, .]`
+  - This result provided by the wrapper library [bootphon/phonemizer](https://github.com/bootphon/phonemizer)
 - `espeak_ng_polish`: [espeak-ng/espeak-ng](https://github.com/espeak-ng/espeak-ng)
-    - e.g. `Witaj świecie.` -> `[v, ˈi, t, a, j, ɕ, fʲ, ˈɛ, tɕ, ɛ, .]`
-    - This result provided by the wrapper library [bootphon/phonemizer](https://github.com/bootphon/phonemizer)
+  - e.g. `Witaj świecie.` -> `[v, ˈi, t, a, j, ɕ, fʲ, ˈɛ, tɕ, ɛ, .]`
+  - This result provided by the wrapper library [bootphon/phonemizer](https://github.com/bootphon/phonemizer)
 - `espeak_ng_english_us_vits`: [espeak-ng/espeak-ng](https://github.com/espeak-ng/espeak-ng)
-    - VITS official implementation-like processing (https://github.com/jaywalnut310/vits)
-    - e.g. `Hello World.` -> `[h, ə, l, ˈ, o, ʊ, , <space>, w, ˈ, ɜ, ː, l, d, .]`
-    - This result provided by the wrapper library [bootphon/phonemizer](https://github.com/bootphon/phonemizer)
+  - VITS official implementation-like processing (https://github.com/jaywalnut310/vits)
+  - e.g. `Hello World.` -> `[h, ə, l, ˈ, o, ʊ, , <space>, w, ˈ, ɜ, ː, l, d, .]`
+  - This result provided by the wrapper library [bootphon/phonemizer](https://github.com/bootphon/phonemizer)
 - `g2pk`: [Kyubyong/g2pK](https://github.com/Kyubyong/g2pK)
-    - e.g. `안녕하세요 세계입니다.` -> `[ᄋ, ᅡ, ᆫ, ᄂ, ᅧ, ᆼ, ᄒ, ᅡ, ᄉ, ᅦ, ᄋ, ᅭ,  , ᄉ, ᅦ, ᄀ, ᅨ, ᄋ, ᅵ, ᆷ, ᄂ, ᅵ, ᄃ, ᅡ, .]`
+  - e.g. `안녕하세요 세계입니다.` -> `[ᄋ, ᅡ, ᆫ, ᄂ, ᅧ, ᆼ, ᄒ, ᅡ, ᄉ, ᅦ, ᄋ, ᅭ,  , ᄉ, ᅦ, ᄀ, ᅨ, ᄋ, ᅵ, ᆷ, ᄂ, ᅵ, ᄃ, ᅡ, .]`
 - `g2pk_no_space`: [Kyubyong/g2pK](https://github.com/Kyubyong/g2pK)
-    - Same G2P but do not use word separator
-    - e.g. `안녕하세요 세계입니다.` -> `[ᄋ, ᅡ, ᆫ, ᄂ, ᅧ, ᆼ, ᄒ, ᅡ, ᄉ, ᅦ, ᄋ, ᅭ, ᄉ, ᅦ, ᄀ, ᅨ, ᄋ, ᅵ, ᆷ, ᄂ, ᅵ, ᄃ, ᅡ, .]`
+  - Same G2P but do not use word separator
+  - e.g. `안녕하세요 세계입니다.` -> `[ᄋ, ᅡ, ᆫ, ᄂ, ᅧ, ᆼ, ᄒ, ᅡ, ᄉ, ᅦ, ᄋ, ᅭ, ᄉ, ᅦ, ᄀ, ᅨ, ᄋ, ᅵ, ᆷ, ᄂ, ᅵ, ᄃ, ᅡ, .]`
 - `g2pk_explicit_space`: [Kyubyong/g2pK](https://github.com/Kyubyong/g2pK)
-    - Same G2P but use explicit word separator
-    - e.g. `안녕하세요 세계입니다.` -> `[ᄋ, ᅡ, ᆫ, ᄂ, ᅧ, ᆼ, ᄒ, ᅡ, ᄉ, ᅦ, ᄋ, ᅭ, <space>, ᄉ, ᅦ, ᄀ, ᅨ, ᄋ, ᅵ, ᆷ, ᄂ, ᅵ, ᄃ, ᅡ, .]`
+  - Same G2P but use explicit word separator
+  - e.g. `안녕하세요 세계입니다.` -> `[ᄋ, ᅡ, ᆫ, ᄂ, ᅧ, ᆼ, ᄒ, ᅡ, ᄉ, ᅦ, ᄋ, ᅭ, <space>, ᄉ, ᅦ, ᄀ, ᅨ, ᄋ, ᅵ, ᆷ, ᄂ, ᅵ, ᄃ, ᅡ, .]`
 - `korean_jaso`: [jdongian/python-jamo](https://github.com/jdongian/python-jamo)
-    - e.g. `나는 학교에 갑니다.` -> `[ᄂ, ᅡ, ᄂ, ᅳ, ᆫ, <space>, ᄒ, ᅡ, ᆨ, ᄀ, ᅭ, ᄋ, ᅦ, <space>, ᄀ, ᅡ, ᆸ, ᄂ, ᅵ, ᄃ, ᅡ, .]`
+  - e.g. `나는 학교에 갑니다.` -> `[ᄂ, ᅡ, ᄂ, ᅳ, ᆫ, <space>, ᄒ, ᅡ, ᆨ, ᄀ, ᅭ, ᄋ, ᅦ, <space>, ᄀ, ᅡ, ᆸ, ᄂ, ᅵ, ᄃ, ᅡ, .]`
 - `korean_jaso_no_space`: [jdongian/python-jamo](https://github.com/jdongian/python-jamo)
-    - e.g. `나는 학교에 갑니다.` -> `[ᄂ, ᅡ, ᄂ, ᅳ, ᆫ, ᄒ, ᅡ, ᆨ, ᄀ, ᅭ, ᄋ, ᅦ, ᄀ, ᅡ, ᆸ, ᄂ, ᅵ, ᄃ, ᅡ, .]`
+  - e.g. `나는 학교에 갑니다.` -> `[ᄂ, ᅡ, ᄂ, ᅳ, ᆫ, ᄒ, ᅡ, ᆨ, ᄀ, ᅭ, ᄋ, ᅦ, ᄀ, ᅡ, ᆸ, ᄂ, ᅵ, ᄃ, ᅡ, .]`
 
 You can see the code example from [here](https://github.com/espnet/espnet/blob/cd7d28e987b00b30f8eb8efd7f4796f048dc3be9/test/espnet2/text/test_phoneme_tokenizer.py).
 
@@ -817,9 +883,9 @@ You can change via `--cleaner` option in `tts.sh`.
 
 - `none`: No text cleaner.
 - `tacotron`: [keithito/tacotron](https://github.com/keithito/tacotron)
-    - e.g.`"(Hello-World);  & jr. & dr."` ->`HELLO WORLD, AND JUNIOR AND DOCTOR`
+  - e.g.`"(Hello-World);  & jr. & dr."` ->`HELLO WORLD, AND JUNIOR AND DOCTOR`
 - `jaconv`: [kazuhikoarase/jaconv](https://github.com/kazuhikoarase/jaconv)
-    - e.g. `”あらゆる”　現実を　〜　’すべて’ 自分の　ほうへ　ねじ曲げたのだ。"` -> `"あらゆる" 現実を ー \'すべて\' 自分の ほうへ ねじ曲げたのだ。`
+  - e.g. `”あらゆる”　現実を　〜　’すべて’ 自分の　ほうへ　ねじ曲げたのだ。"` -> `"あらゆる" 現実を ー \'すべて\' 自分の ほうへ ねじ曲げたのだ。`
 
 You can see the code example from [here](https://github.com/espnet/espnet/blob/cd7d28e987b00b30f8eb8efd7f4796f048dc3be9/test/espnet2/text/test_cleaner.py).
 
@@ -842,6 +908,7 @@ You can find example configs of the above models in [`egs2/ljspeech/tts1/conf/tu
 ### Multi speaker model extension
 
 You can use / combine the following embedding to build multi-speaker model:
+
 - [X-Vector](https://ieeexplore.ieee.org/abstract/document/8461375)
 - [GST](https://arxiv.org/abs/1803.09017)
 - Speaker ID embedding (One-hot vector -> Continuous embedding)
@@ -849,6 +916,7 @@ You can use / combine the following embedding to build multi-speaker model:
 
 X-Vector is provided by kaldi and pretrained with VoxCeleb corpus.
 You can find example configs of the above models in:
+
 - [`egs2/vctk/tts1/conf/tuning`](../../vctk/tts1/conf/tuning).
 - [`egs2/libritts/tts1/conf/tuning`](../../vctk/libritts/conf/tuning).
 
@@ -883,6 +951,7 @@ You can find the module [`espnet2/text/phoneme_tokenizer.py`](https://github.com
 If the g2p you wanted is implemented in [bootphon/phonemizer](https://github.com/bootphon/phonemizer), we can easily add it [like this](https://github.com/kan-bayashi/espnet/blob/7cc12c6a25924892b281c2c1513de52365a1be0b/espnet2/text/phoneme_tokenizer.py#L172-L173) (Note that you need to update the choice as I mentioned the above).
 
 Example PRs may help you:
+
 - [#3382 Support Korean G2P](https://github.com/espnet/espnet/pull/3382)
 - [#3463 Support G2P functions for various languages ](https://github.com/espnet/espnet/pull/3463)
 
@@ -907,6 +976,7 @@ wav = tts("Hello, world")["wav"]
 tts = Text2Speech.from_pretrained(model_file="/path/to/model.pth", vocoder_tag="parallel_wavegan/ljspeech_style_melgan.v1")
 wav = tts("Hello, world")["wav"]
 ```
+
 See [use a pretrained model for inference](https://github.com/espnet/espnet_model_zoo#use-a-pretrained-model-for-inference).
 
 ### How to get pretrained models?
@@ -916,6 +986,7 @@ You can find the all of the pretrained model list from [here](https://github.com
 
 If you want to use pretrained models written in `egs2/hogehoge/tts1/README.md`, go to Zenodo URL and copy the URL of download in the below of the page.
 Then, you can use as follows:
+
 ```python
 from espnet2.bin.tts_inference import Text2Speech
 
@@ -955,7 +1026,7 @@ python -m espnet2.bin.tts_train --init_param model.pth:::tts.enc.embed,tts.dec
 
 ### How to finetune the pretrained model?
 
-See [jvs recipe example](../../jvs/tts1/README.md).
+See [jvs recipe example](https://github.com/espnet/espnet/blob/master/egs2/jvs/tts1/README.md).
 
 ### How to add a new model?
 
@@ -998,6 +1069,7 @@ Or you can try [joint training of text2mel & vocoder](#joint-text2wav-training).
 The trained vocoder can be used as follows:
 
 - With python
+
   ```python
   from espnet2.bin.tts_inference import Text2Speech
   tts = Text2Speech.from_pretrained(model_file="/path/to/model.pth", vocoder_file="/path/to/your_trained_vocoder_checkpoint.pkl")
@@ -1005,6 +1077,7 @@ The trained vocoder can be used as follows:
   ```
 
 - With TTS recipe
+
   ```sh
   $ ./run.sh --stage 8 --vocoder_file /path/to/your_trained_vocoder_checkpoint.pkl --inference_tag decode_with_my_vocoder
   ```
@@ -1025,8 +1098,7 @@ We recommend modifying the following part in `utils/validate_data_dir.sh` to be 
 
 https://github.com/kaldi-asr/kaldi/blob/40c71c5ee3ee5dffa1ad2c53b1b089e16d967bb5/egs/wsj/s5/utils/validate_data_dir.sh#L9
 
-> `utils/validate_text.pl: The line for utterance xxx contains disallowed Unicode whitespaces`
-> `utils/validate_text.pl: ERROR: text file 'data/xxx' contains disallowed UTF-8 whitespace character(s)`
+> `utils/validate_text.pl: The line for utterance xxx contains disallowed Unicode whitespaces` > `utils/validate_text.pl: ERROR: text file 'data/xxx' contains disallowed UTF-8 whitespace character(s)`
 
 The use of zenkaku whitespace in `text` is not allowed.
 Please changes it to hankaku whitespace or the other symbol.
@@ -1046,9 +1118,9 @@ The most of the problems are caused by the bad cleaning of the dataset.
 Please check the following items carefully:
 
 - Check the attention plot during the training. Loss value is not so meaningful in TTS.
-    - You can check [this PR](https://github.com/espnet/espnet/pull/2807) as an example.
+  - You can check [this PR](https://github.com/espnet/espnet/pull/2807) as an example.
 - Remove the silence at the beginning and end of the speech.
-    - You can use silence trimming scripts in [this example](https://github.com/espnet/espnet/blob/52ea42d8abfbfb63500e91a150a285aa7d14bfd6/egs2/hui_acg/tts1/local/data.sh#L61-L70).
+  - You can use silence trimming scripts in [this example](https://github.com/espnet/espnet/blob/52ea42d8abfbfb63500e91a150a285aa7d14bfd6/egs2/hui_acg/tts1/local/data.sh#L61-L70).
 - Separate speech if it contains a long silence at the middle of speech.
 - Use phonemes instead of characters if G2P is available.
 - Clean the text as possible as you can (abbreviation, number, etc...)

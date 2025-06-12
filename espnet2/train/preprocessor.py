@@ -1,3 +1,4 @@
+import copy
 import json
 import logging
 import random
@@ -1540,6 +1541,9 @@ class SVSPreprocessor(AbsPreprocessor):
             3: [0.1, 0.5, 1],
             4: [0.05, 0.1, 0.5, 1],
         },
+        discrete_token_name: str = "discrete_token",
+        pos_sample_name: str = "pos_idx",
+        neg_sample_name: str = "neg_idx",
     ):
         super().__init__(train)
         self.train = train
@@ -1552,6 +1556,9 @@ class SVSPreprocessor(AbsPreprocessor):
         self.singing_volume_normalize = singing_volume_normalize
         self.phn_seg = phn_seg
         self.time_shift = hop_length / fs
+        self.discrete_token_name = discrete_token_name
+        self.pos_sample_name = pos_sample_name
+        self.neg_sample_name = neg_sample_name
         if token_type is not None:
             if token_list is None:
                 raise ValueError("token_list is required if token_type is not None")
@@ -1665,6 +1672,54 @@ class SVSPreprocessor(AbsPreprocessor):
             data["phn_cnt"] = phn_cnt
             data["slur"] = slur
 
+        # Infer case of music score
+        if self.midi_name in data and self.label_name not in data:
+            # Load score info
+            tempo, syb_info = data[self.midi_name]
+            phn_cnt = []
+            midi = []
+            duration_phn = []
+            duration_ruled_phn = []
+            duration_syb = []
+            slur = []
+
+            for st, et, syb, note, phns in syb_info:
+                dur = et - st
+                _duration_syb = int(dur / self.time_shift + 0.5)
+                phone = phns.split("_")
+                phn_num = len(phone)
+                phn_cnt.append(phn_num)
+                pre_seg = 0
+                for k in range(phn_num):
+                    _duration_ruled_phn = int(
+                        (self.phn_seg[phn_num][k] - pre_seg) * dur / self.time_shift
+                        + 0.5
+                    )
+                    pre_seg = self.phn_seg[phn_num][k]
+                    # phone level feature
+                    midi.append(note)
+                    duration_ruled_phn.append(_duration_ruled_phn)
+                    duration_syb.append(_duration_syb)
+                    if syb == "—":
+                        slur.append(1)
+                    else:
+                        slur.append(0)
+
+            data.pop(self.midi_name)
+
+            midi = np.array(midi, dtype=np.int64)
+            duration_syb = np.array(duration_syb, dtype=np.int64)
+            duration_ruled_phn = np.array(duration_ruled_phn, dtype=np.int64)
+            phn_cnt = np.array(phn_cnt, dtype=np.int64)
+            slur = np.array(slur, dtype=np.int64)
+
+            data["midi"] = midi
+            data["duration_phn"] = None
+            data["duration_ruled_phn"] = duration_ruled_phn
+            data["duration_syb"] = duration_syb
+            data["phn_cnt"] = phn_cnt
+            data["slur"] = slur
+
         # TODO(Yuning): Add score from midi
 
         if self.text_name in data and self.tokenizer is not None:
@@ -1677,6 +1732,9 @@ class SVSPreprocessor(AbsPreprocessor):
                 tokens = self.tokenizer.text2tokens(text)
                 _text_ints = self.token_id_converter.tokens2ids(tokens)
                 data[self.text_name] = np.array(_text_ints, dtype=np.int64)
+                # Infer case of music score
+                if "label" not in data:
+                    data["label"] = np.array(_text_ints, dtype=np.int64)
 
         return data
 
@@ -1946,7 +2004,14 @@ class SpkPreprocessor(CommonPreprocessor):
         noise_apply_prob: float = 1.0,
         short_noise_thres: float = 0.5,
     ):
-        super().__init__(train, rir_scp=rir_scp, rir_apply_prob=rir_apply_prob)
+
+        self.train = train
+
+        if rir_apply_prob == 0:
+            self.rir_scp = None
+        else:
+            self.rir_scp = rir_scp
+        super().__init__(train, rir_scp=self.rir_scp, rir_apply_prob=rir_apply_prob)
 
         self.spk2label = None  # a dictionary that maps string speaker label to int
         self.sample_rate = sample_rate
@@ -1958,8 +2023,6 @@ class SpkPreprocessor(CommonPreprocessor):
                 self.spk2utt = f_s2u.readlines()
             self._make_label_mapping()
             self.nspk = len(self.spk2utt)
-
-        self.rir_scp = rir_scp
 
         self.noise_apply_prob = noise_apply_prob
         self.short_noise_thres = short_noise_thres
@@ -2358,6 +2421,176 @@ class S2TPreprocessor(CommonPreprocessor):
         return data
 
 
+class S2TCTCPreprocessor(CommonPreprocessor):
+    """Preprocessor for OWSM-CTC."""
+
+    def __init__(
+        self,
+        train: bool,
+        token_type: str = None,
+        token_list: Union[Path, str, Iterable[str]] = None,
+        bpemodel: Union[Path, str, Iterable[str]] = None,
+        text_cleaner: Collection[str] = None,
+        g2p_type: str = None,
+        unk_symbol: str = "<unk>",
+        space_symbol: str = "<space>",
+        non_linguistic_symbols: Union[Path, str, Iterable[str]] = None,
+        delimiter: str = None,
+        rir_scp: str = None,
+        rir_apply_prob: float = 1.0,
+        noise_scp: str = None,
+        noise_apply_prob: float = 1.0,
+        noise_db_range: str = "3_10",
+        short_noise_thres: float = 0.5,
+        speech_volume_normalize: float = None,
+        speech_name: str = "speech",
+        text_name: str = "text",
+        text_prev_name: str = "text_prev",
+        text_ctc_name: str = "text_ctc",
+        fs: int = 16000,
+        na_symbol: str = "<na>",  # text is not available e.g. for prev or ctc
+        speech_length: float = 30,  # pad or trim speech to this value in seconds
+        speech_init_silence: float = 1.0,  # max silence before speech for data aug
+        text_prev_apply_prob: float = 0.5,  # whether to condition on text_prev
+        lang_apply_prob: float = 0.5,  # whether to use groundtruth language or unknown
+        nolang_symbol: str = "<nolang>",
+    ):
+        super().__init__(
+            train=train,
+            token_type=token_type,
+            token_list=token_list,
+            bpemodel=bpemodel,
+            text_cleaner=text_cleaner,
+            g2p_type=g2p_type,
+            unk_symbol=unk_symbol,
+            space_symbol=space_symbol,
+            non_linguistic_symbols=non_linguistic_symbols,
+            delimiter=delimiter,
+            rir_scp=rir_scp,
+            rir_apply_prob=rir_apply_prob,
+            noise_scp=noise_scp,
+            noise_apply_prob=noise_apply_prob,
+            noise_db_range=noise_db_range,
+            short_noise_thres=short_noise_thres,
+            speech_volume_normalize=speech_volume_normalize,
+            speech_name=speech_name,
+            text_name=text_name,
+            fs=fs,
+        )
+        self.text_prev_name = text_prev_name
+        self.text_ctc_name = text_ctc_name
+        self.speech_length = int(speech_length * fs)
+        self.speech_init_silence = int(speech_init_silence * fs)
+        self.text_prev_apply_prob = text_prev_apply_prob
+        self.lang_apply_prob = lang_apply_prob
+
+        # Obtain the token id of special tokens
+        self.na_symbol = na_symbol
+        self.nolang = self.token_id_converter.token2id[nolang_symbol]
+
+    @typechecked
+    def _pad_or_trim_speech(
+        self, data: Dict[str, Union[str, np.ndarray]]
+    ) -> Tuple[Dict[str, Union[str, np.ndarray]], int]:
+
+        init_pad = 0
+        if self.speech_name in data:
+            speech = data[self.speech_name]
+
+            # speech: (Nmic, Time)
+            if speech.ndim == 1:
+                speech = speech[None, :]
+            else:
+                speech = speech.T
+
+            # Add silence to the left
+            if self.train and speech.shape[-1] < self.speech_length:
+                init_pad = np.random.randint(
+                    min(self.speech_length - speech.shape[-1], self.speech_init_silence)
+                    + 1
+                )
+                speech = np.pad(speech, ((0, 0), (init_pad, 0)))
+
+            # Pad or trim to max_samples
+            if speech.shape[-1] < self.speech_length:
+                speech = np.pad(
+                    speech, ((0, 0), (0, self.speech_length - speech.shape[-1]))
+                )
+            else:
+                speech = speech[:, : self.speech_length]
+
+            data[self.speech_name] = speech.T  # convert back to time first
+
+        return data, init_pad
+
+    @typechecked
+    def _text_process(
+        self, data: Dict[str, Union[str, np.ndarray]]
+    ) -> Dict[str, np.ndarray]:
+
+        # NOTE: the order is important
+        text_names = [self.text_name, self.text_prev_name, self.text_ctc_name]
+        if self.tokenizer is not None:
+            for name in text_names:
+                if name in data:
+                    text = data[name]
+
+                    # Remove prev text by setting it to <na>
+                    if (
+                        self.train
+                        and name == self.text_prev_name
+                        and np.random.uniform() > self.text_prev_apply_prob
+                    ):
+                        text = self.na_symbol
+
+                    text = self.text_cleaner(text)
+                    tokens = self.tokenizer.text2tokens(text)
+                    text_ints = self.token_id_converter.tokens2ids(tokens)
+                    text_ints = np.array(text_ints, dtype=np.int64)
+
+                    # Augment text
+                    if name == self.text_name:
+                        # NOTE(yifan): The first token is always space
+                        # which should be removed.
+                        # No space is allowed between special tokens.
+                        # This works for bpe, but maybe not for the other types.
+                        text_ints = text_ints[1:]
+
+                        # First two tokens are <lang> and <task>
+                        # NOTE: must copy the array
+                        data["prefix"] = copy.deepcopy(text_ints[:2])
+                        if self.train and np.random.uniform() > self.lang_apply_prob:
+                            data["prefix"][0] = self.nolang
+
+                    elif name == self.text_ctc_name:
+                        # Add <lang> and <task> to ASR Text as well
+                        text_ints = np.concatenate(
+                            [data[self.text_name][:2], text_ints]
+                        )
+
+                    elif name == self.text_prev_name:
+                        # Remove space before <na>
+                        if text == self.na_symbol:
+                            assert len(text_ints) == 2, text_ints
+                            text_ints = text_ints[1:]
+
+                    data[name] = text_ints
+
+        return data
+
+    @typechecked
+    def __call__(
+        self, uid: str, data: Dict[str, Union[str, np.ndarray]]
+    ) -> Dict[str, np.ndarray]:
+
+        data = self._speech_process(data)
+        data, _ = self._pad_or_trim_speech(data)
+
+        data = self._text_process(data)
+
+        return data
+
+
 class SpeechLMPreprocessor(AbsPreprocessor):
     """Preprocessor specifically for SpeechLM models"""
 
@@ -2428,10 +2661,10 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         # speaker prompt
         self.speaker_prompt_length = speaker_prompt_length
 
+    @typechecked
     def __call__(
         self, uid: str, data: Dict[str, Union[str, np.ndarray]]
     ) -> Dict[str, np.ndarray]:
-        assert check_argument_types()
 
         # (1) task parsing
         task_name = uid.strip().split(" ")[0]
@@ -2443,7 +2676,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
                 raise ValueError("Continuous feature is not supported yet.")
 
         # (2) encoder & decoder sequence
-        seqs, conti_feats = [], []
+        seqs, conti_feats = [], []  # noqa
         n_enc_entries = len(task.encoder_entries)
         for e_idx, entries in enumerate([task.encoder_entries, task.decoder_entries]):
             for entry in entries:
@@ -2537,7 +2770,7 @@ class SpeechLMPreprocessor(AbsPreprocessor):
         enc_seq = data.get("enc_seq", None)
         dec_seq = data.get("dec_seq", None)
 
-        logging.warning(f"Diagnose in preprocessor ...")
+        logging.warning("Diagnose in preprocessor ...")
         for name, seq in [("encoder", enc_seq), ("decoder", dec_seq)]:
             if seq is None:
                 continue

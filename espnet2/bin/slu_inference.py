@@ -11,7 +11,9 @@ import torch
 import torch.quantization
 from typeguard import typechecked
 
-from espnet2.asr.transducer.beam_search_transducer import BeamSearchTransducer
+from espnet2.asr.transducer.beam_search_transducer import (
+    BeamSearchTransducer,
+)
 from espnet2.asr.transducer.beam_search_transducer import (
     ExtendedHypothesis as ExtTransHypothesis,
 )
@@ -71,11 +73,14 @@ class Speech2Understand:
         penalty: float = 0.0,
         nbest: int = 1,
         normalize_length: bool = False,
+        run_chunk: bool = False,
         streaming: bool = False,
         quantize_asr_model: bool = False,
         quantize_lm: bool = False,
         quantize_modules: List[str] = ["Linear"],
         quantize_dtype: str = "qint8",
+        sim_chunk_length: int = 640,
+        start_chunk: int = 3200,
     ):
 
         task = SLUTask
@@ -238,9 +243,11 @@ class Speech2Understand:
         self.device = device
         self.dtype = dtype
         self.nbest = nbest
+        self.run_chunk = run_chunk
+        self.sim_chunk_length = sim_chunk_length
+        self.start_chunk = start_chunk
 
     @torch.no_grad()
-    @typechecked
     def __call__(
         self,
         speech: Union[torch.Tensor, np.ndarray],
@@ -270,6 +277,57 @@ class Speech2Understand:
         speech = speech.unsqueeze(0).to(getattr(torch, self.dtype))
         # lengths: (1,)
         lengths = speech.new_full([1], dtype=torch.long, fill_value=speech.size(1))
+
+        if self.run_chunk:
+            speech = to_device(speech, device=self.device)
+            sim_chunk_length = self.sim_chunk_length
+            start_chunk = self.start_chunk
+            token_int_corr_total = []
+            text_arr = []
+            for i in range((speech.size(1) - start_chunk) // sim_chunk_length):
+                speech1 = speech[
+                    :,
+                    max(0, ((i + 1) * sim_chunk_length + start_chunk - 480000)) : (
+                        (i + 1) * sim_chunk_length + start_chunk
+                    ),
+                ]
+                lengths = speech1.new_full(
+                    [1], dtype=torch.long, fill_value=speech1.size(1)
+                )
+                batch = {"speech": speech1, "speech_lengths": lengths}
+                batch = to_device(batch, device=self.device)
+                logging.info("speech length: " + str(speech1.size(1)) + " i: " + str(i))
+                enc, enc_olens = self.asr_model.encode(**batch)
+                encoder_out = self.asr_model.transform_mean(self.asr_model.act_fn(enc))
+                if self.asr_model.use_only_last_correct:
+                    feats = []
+                    for k in range(encoder_out.shape[0]):
+                        feats.append(encoder_out[k, enc_olens[k] - 1])
+                    feats = torch.stack(feats)
+                else:
+                    feats_mean_out = []
+                    for k in range(encoder_out.shape[0]):
+                        feats_mean_out.append(
+                            torch.mean(encoder_out[k, : enc_olens[k]], dim=0)
+                        )
+                    feats = torch.stack(feats_mean_out)
+                encoder_out = self.asr_model.transform_linear(feats)
+                m = torch.nn.Softmax()
+                token_int = [(m(encoder_out[0])).tolist()]
+                token_int_corr = [np.argmax(k) + 2 for k in token_int]
+                text = ",".join([str(k) for k in token_int[0]])
+                token_int_corr_total += token_int_corr
+                text_arr.append(text)
+                token = self.converter.ids2tokens(token_int_corr_total)
+                logging.info("best hypo: " + " ".join(token) + "\n")
+            hyp = Hypothesis(
+                score=0.0, scores=None, states=None, yseq=torch.tensor(token_int_corr)
+            )
+            token = self.converter.ids2tokens(token_int_corr_total)
+            text = " ".join(text_arr)
+            logging.info("best hypo: " + " ".join(token) + "\n")
+            results = [(text, token, token_int_corr_total, hyp)]
+            return results
         if transcript is None:
             batch = {"speech": speech, "speech_lengths": lengths}
             logging.info("speech length: " + str(speech.size(1)))
@@ -388,6 +446,7 @@ def inference(
     penalty: float,
     nbest: int,
     normalize_length: bool,
+    run_chunk: bool,
     num_workers: int,
     log_level: Union[int, str],
     data_path_and_name_and_type: Sequence[Tuple[str, str, str]],
@@ -451,6 +510,7 @@ def inference(
         penalty=penalty,
         nbest=nbest,
         normalize_length=normalize_length,
+        run_chunk=run_chunk,
         streaming=streaming,
         quantize_asr_model=quantize_asr_model,
         quantize_lm=quantize_lm,
@@ -695,6 +755,12 @@ def get_parser():
         type=str2bool,
         default=False,
         help="If true, best hypothesis is selected by length-normalized scores",
+    )
+    group.add_argument(
+        "--run_chunk",
+        type=str2bool,
+        default=False,
+        help="Run inference on chunks of audio",
     )
 
     return parser

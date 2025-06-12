@@ -4,6 +4,7 @@
 
 import argparse
 import logging
+import os
 import shutil
 import sys
 import time
@@ -36,7 +37,7 @@ class SingingGenerate:
         Example 1: SVS
         >>> import soundfile
         >>> import numpy as np
-        >>> svs = svs = SingingGenerate(
+        >>> svs = SingingGenerate(
         ...     "config.yaml", "model.pth", vocoder_checkpoint="vocoder.pkl"
         ... )
         >>> batch = {
@@ -65,7 +66,7 @@ class SingingGenerate:
         Example 2: GAN SVS
         >>> import soundfile
         >>> import numpy as np
-        >>> svs = SingingGenerate("config.yaml", "model.pth")
+        >>> svs = SingingGenerate("config.yaml", "model.pth", svs_task="gan_svs")
         >>> batch = {
         ...     "score": (
         ...         75,  # tempo
@@ -196,6 +197,7 @@ class SingingGenerate:
         sids: Union[torch.Tensor, np.ndarray, None] = None,
         lids: Union[torch.Tensor, np.ndarray, None] = None,
         decode_conf: Optional[Dict[str, Any]] = None,
+        **kwargs,
     ):
 
         # check inputs
@@ -208,9 +210,14 @@ class SingingGenerate:
 
         # prepare batch
         if isinstance(text, Dict):
-            data = self.preprocess_fn(
-                "<dummy>", dict(label=text["label"], score=text["score"])
-            )
+            # dataset infer: text = dict(label=text["label"], score=text["score"])
+            # music score infer: text = dict(text=text["text"], score=text["score"])
+            infer_data = dict(score=text["score"])
+            if "label" in text:
+                infer_data["label"] = text["label"]
+            else:
+                infer_data["text"] = text["text"]
+            data = self.preprocess_fn("<dummy>", infer_data)
             label = data["label"]
             midi = data["midi"]
             duration_phn = data["duration_phn"]
@@ -360,7 +367,9 @@ class SingingGenerate:
                 vocoder_tag = vocoder_tag.replace("parallel_wavegan/", "")
                 vocoder_file = download_pretrained_model(vocoder_tag)
                 vocoder_config = Path(vocoder_file).parent / "config.yml"
-                kwargs.update(vocoder_config=vocoder_config, vocoder_file=vocoder_file)
+                kwargs.update(
+                    vocoder_config=vocoder_config, vocoder_checkpoint=vocoder_file
+                )
 
             else:
                 raise ValueError(f"{vocoder_tag} is unsupported format.")
@@ -464,7 +473,9 @@ def inference(
         output_dir / "durations/durations", "w"
     ) as duration_writer, open(
         output_dir / "focus_rates/focus_rates", "w"
-    ) as focus_rate_writer:
+    ) as focus_rate_writer, open(
+        output_dir / "wav/wav.scp", "w"
+    ) as wavscp_writer:
         for idx, (keys, batch) in enumerate(loader, 1):
             assert isinstance(batch, dict), type(batch)
             assert all(isinstance(s, str) for s in keys), keys
@@ -478,10 +489,11 @@ def inference(
             logging.info(f"batch: {batch}")
             logging.info(f"keys: {keys}")
 
+            key = keys[0]
+
             start_time = time.perf_counter()
             output_dict = singingGenerate(**batch)
 
-            key = keys[0]
             insize = next(iter(batch.values())).size(0) + 1
             if output_dict.get("feat_gen") is not None:
                 # standard text2mel model case
@@ -577,6 +589,12 @@ def inference(
                     output_dict["wav"].cpu().numpy(),
                     singingGenerate.fs,
                     "PCM_16",
+                )
+                wavscp_writer.write(
+                    "{} {}\n".format(
+                        key,
+                        os.path.abspath(os.path.join(output_dir, "wav", f"{key}.wav")),
+                    )
                 )
 
     # remove files if those are not included in output dict

@@ -37,6 +37,8 @@ criterions:
       weight: 1.0
 
 optim: adam
+optim_conf:
+  lr: 0.005
 
 iterator_type: chunk
 
@@ -66,3 +68,5 @@ preprocessor_conf:
 
 max_epoch: 1
 num_iters_per_epoch: 1
+batch_type: unsorted
+batch_size: 1
