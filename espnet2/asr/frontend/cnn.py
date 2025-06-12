@@ -3,7 +3,7 @@
 
 import copy
 import logging
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union, Literal
 
 import torch
 from torch import Tensor, nn
@@ -173,7 +173,7 @@ class CNNFrontend(AbsFrontend):
         fs: Union[int, str] = 16000,
         normalize_audio: bool = False,
         normalize_output: bool = False,
-        layer_norm_cls: str = 'transposed'
+        layer_norm_cls: Literal["transposed", "dim1"] = "transposed"
     ):
 
         super().__init__()

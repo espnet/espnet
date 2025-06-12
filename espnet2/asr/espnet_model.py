@@ -114,9 +114,7 @@ class ESPnetASRModel(AbsESPnetModel):
 
         self.autocast_frontend = autocast_frontend
 
-        if self.encoder is not None and not hasattr(self.encoder, "interctc_use_conditioning"):
-            self.encoder.interctc_use_conditioning = False
-        if self.encoder is not None and self.encoder.interctc_use_conditioning:
+        if self.encoder and getattr(self.encoder, "interctc_use_conditioning", False):
             self.encoder.conditioning_layer = torch.nn.Linear(
                 vocab_size, self.encoder.output_size()
             )
