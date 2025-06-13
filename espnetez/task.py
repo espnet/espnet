@@ -2,7 +2,6 @@
 # This class is a wrapper for Task classes to support custom datasets.
 import argparse
 import logging
-from pathlib import Path
 from typing import Any, Optional
 
 import numpy as np
@@ -11,58 +10,118 @@ from torch.utils.data import DataLoader
 from typeguard import typechecked
 
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
-from espnet2.iterators.category_iter_factory import CategoryIterFactory
-from espnet2.iterators.chunk_iter_factory import ChunkIterFactory
-from espnet2.iterators.multiple_iter_factory import MultipleIterFactory
 from espnet2.iterators.sequence_iter_factory import SequenceIterFactory
 from espnet2.samplers.build_batch_sampler import build_batch_sampler
-from espnet2.samplers.category_balanced_sampler import CategoryBalancedSampler
-from espnet2.samplers.unsorted_batch_sampler import UnsortedBatchSampler
 from espnet2.tasks.abs_task import AbsTask, IteratorOptions
-from espnet2.tasks.asr import ASRTask
-from espnet2.tasks.asr_transducer import ASRTransducerTask
-from espnet2.tasks.asvspoof import ASVSpoofTask
-from espnet2.tasks.diar import DiarizationTask
-from espnet2.tasks.enh import EnhancementTask
-from espnet2.tasks.enh_s2t import EnhS2TTask
-from espnet2.tasks.enh_tse import TargetSpeakerExtractionTask
-from espnet2.tasks.gan_svs import GANSVSTask
-from espnet2.tasks.gan_tts import GANTTSTask
-from espnet2.tasks.hubert import HubertTask
-from espnet2.tasks.lm import LMTask
-from espnet2.tasks.mt import MTTask
-from espnet2.tasks.s2st import S2STTask
-from espnet2.tasks.s2t import S2TTask
-from espnet2.tasks.slu import SLUTask
-from espnet2.tasks.spk import SpeakerTask
-from espnet2.tasks.st import STTask
-from espnet2.tasks.svs import SVSTask
-from espnet2.tasks.tts import TTSTask
-from espnet2.tasks.uasr import UASRTask
 from espnet2.train.distributed_utils import DistributedOption
 
-TASK_CLASSES = dict(
-    asr=ASRTask,
-    asr_transducer=ASRTransducerTask,
-    asvspoof=ASVSpoofTask,
-    diar=DiarizationTask,
-    enh_s2t=EnhS2TTask,
-    enh_tse=TargetSpeakerExtractionTask,
-    enh=EnhancementTask,
-    gan_svs=GANSVSTask,
-    gan_tts=GANTTSTask,
-    hubert=HubertTask,
-    lm=LMTask,
-    mt=MTTask,
-    s2st=S2STTask,
-    s2t=S2TTask,
-    slu=SLUTask,
-    spk=SpeakerTask,
-    st=STTask,
-    svs=SVSTask,
-    tts=TTSTask,
-    uasr=UASRTask,
-)
+
+def get_task_class(task_name: str):
+    """
+    Lazily import and return the task class corresponding to the given task name.
+
+    This function avoids importing all task modules at the top-level, which helps
+    prevent unnecessary dependency errors for users who only use a subset of tasks
+    (e.g., ASR-only users don't need TTS or Enhancement dependencies).
+
+    Args:
+        task_name (str): The name of the task (e.g., "asr", "enh", "tts", etc.).
+
+    Returns:
+        AbsTask: The corresponding task class.
+
+    Raises:
+        KeyError: If the task_name is not recognized.
+
+    Supported task names:
+        - "asr"
+        - "asr_transducer"
+        - "asvspoof"
+        - "diar"
+        - "enh"
+        - "enh_s2t"
+        - "enh_tse"
+        - "gan_svs"
+        - "gan_tts"
+        - "hubert"
+        - "lm"
+        - "mt"
+        - "s2st"
+        - "s2t"
+        - "slu"
+        - "spk"
+        - "st"
+        - "svs"
+        - "tts"
+        - "uasr"
+
+    Example:
+        >>> task_class = get_task_class("asr")
+        >>> task = task_class()
+    """
+    if task_name == "asr":
+        from espnet2.tasks.asr import ASRTask
+        return ASRTask
+    elif task_name == "asr_transducer":
+        from espnet2.tasks.asr_transducer import ASRTransducerTask
+        return ASRTransducerTask
+    elif task_name == "asvspoof":
+        from espnet2.tasks.asvspoof import ASVSpoofTask
+        return ASVSpoofTask
+    elif task_name == "diar":
+        from espnet2.tasks.diar import DiarizationTask
+        return DiarizationTask
+    elif task_name == "enh":
+        from espnet2.tasks.enh import EnhancementTask
+        return EnhancementTask
+    elif task_name == "enh_s2t":
+        from espnet2.tasks.enh_s2t import EnhS2TTask
+        return EnhS2TTask
+    elif task_name == "enh_tse":
+        from espnet2.tasks.enh_tse import TargetSpeakerExtractionTask
+        return TargetSpeakerExtractionTask
+    elif task_name == "gan_svs":
+        from espnet2.tasks.gan_svs import GANSVSTask
+        return GANSVSTask
+    elif task_name == "gan_tts":
+        from espnet2.tasks.gan_tts import GANTTSTask
+        return GANTTSTask
+    elif task_name == "hubert":
+        from espnet2.tasks.hubert import HubertTask
+        return HubertTask
+    elif task_name == "lm":
+        from espnet2.tasks.lm import LMTask
+        return LMTask
+    elif task_name == "mt":
+        from espnet2.tasks.mt import MTTask
+        return MTTask
+    elif task_name == "s2st":
+        from espnet2.tasks.s2st import S2STTask
+        return S2STTask
+    elif task_name == "s2t":
+        from espnet2.tasks.s2t import S2TTask
+        return S2TTask
+    elif task_name == "slu":
+        from espnet2.tasks.slu import SLUTask
+        return SLUTask
+    elif task_name == "spk":
+        from espnet2.tasks.spk import SpeakerTask
+        return SpeakerTask
+    elif task_name == "st":
+        from espnet2.tasks.st import STTask
+        return STTask
+    elif task_name == "svs":
+        from espnet2.tasks.svs import SVSTask
+        return SVSTask
+    elif task_name == "tts":
+        from espnet2.tasks.tts import TTSTask
+        return TTSTask
+    elif task_name == "uasr":
+        from espnet2.tasks.uasr import UASRTask
+        return UASRTask
+    else:
+        raise KeyError(f"Unknown task: {task_name}")
+
 
 
 def get_ez_task(task_name: str, use_custom_dataset: bool = False) -> AbsTask:
@@ -77,7 +136,7 @@ def get_ez_task(task_name: str, use_custom_dataset: bool = False) -> AbsTask:
 
     Args:
         task_name (str): The name of the task to retrieve. This must be one of
-            the keys defined in the `TASK_CLASSES` dictionary, such as 'asr',
+            the keys defined in the `get_task_class` function, such as 'asr',
             'mt', 'tts', etc.
         use_custom_dataset (bool, optional): A flag indicating whether to use
             a version of the task class that supports custom datasets. Defaults
@@ -89,7 +148,7 @@ def get_ez_task(task_name: str, use_custom_dataset: bool = False) -> AbsTask:
         be capable of handling custom datasets.
 
     Raises:
-        KeyError: If `task_name` is not found in the `TASK_CLASSES` dictionary.
+        KeyError: If `task_name` is not found in the `get_task_class` function.
 
     Examples:
         >>> asr_task = get_ez_task("asr")
@@ -104,7 +163,7 @@ def get_ez_task(task_name: str, use_custom_dataset: bool = False) -> AbsTask:
         Ensure that the required dependencies for the specific task are properly
         installed and configured.
     """
-    task_class = TASK_CLASSES[task_name]
+    task_class = get_task_class(task_name)
 
     if use_custom_dataset:
         return get_ez_task_with_dataset(task_name)
@@ -152,11 +211,11 @@ def get_ez_task_with_dataset(task_name: str) -> AbsTask:
 
     Note:
         Ensure that the specified task name is valid and that the corresponding
-        task class is available in the TASK_CLASSES dictionary. The created
+        task class is available in the get_task_class function. The created
         task class will need to have its `train_dataset` and `valid_dataset`
         attributes set to the appropriate dataset instances before training.
     """
-    task_class = TASK_CLASSES[task_name]
+    task_class = get_task_class(task_name)
 
     class ESPnetEZDataTask(task_class):
         build_model_fn = None

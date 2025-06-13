@@ -17,6 +17,14 @@ gen_dummy_coverage(){
 #### Make sure chainer-independent ####
 python3 -m pip uninstall -y chainer
 
+# First uninstall all espnet-related dependencies including all extras.
+# I use toml and load the pyproject.toml
+python3 -m pip install toml
+python3 test_utils/uninstall_extra.py
+
+# Install ASR dependency
+python3 -m pip install -e '.[task-asr]'
+
 # Download mini_an4 as test data and prepare flac data
 cd ./egs2/mini_an4/asr1 || exit
 rm -rf exp data dump
@@ -126,6 +134,9 @@ python -m coverage run --append ../../../test/espnetez/test_integration_espnetez
 # Remove generated files in order to reduce the disk usage
 rm -rf exp data/spm
 
+# Uninstall task-dependency
+python3 test_utils/uninstall_extra.py
+
 # [ESPnet Easy] test lm recipe with coverage
 cd ${cwd}/egs2/mini_an4/lm1 || exit
 ln -sf ../asr1/data data
@@ -184,11 +195,14 @@ python -m coverage run --append ../../../test/espnetez/test_integration_espnetez
 rm -rf exp data/spm
 
 
+echo "==== [ESPnet2] TTS ==="
+# Install TTS dependency
+python3 -m pip install -e '.[task-tts]'
+
 # [ESPnet Easy] test tts recipe with coverage
 cd ${cwd}/egs2/mini_an4/tts1 || exit
 rm -rf exp data dump
 
-echo "==== [ESPnet2] TTS ==="
 # data preparation
 ./run.sh --ngpu 0 --stage 1 --stop-stage 4 --python "${python}" --train-args "--num_workers 0"
 python -m coverage run --append ../../../test/espnetez/test_integration_espnetez.py \
@@ -244,9 +258,14 @@ python -m coverage run --append ../../../test/espnetez/test_integration_espnetez
 # Remove generated files in order to reduce the disk usage
 rm -rf exp data dump
 cd "${cwd}" || exit
+# Uninstall task-dependency
+python3 test_utils/uninstall_extra.py
 
 
 # [ESPnet Easy] test asr2 recipe with coverage
+# Install ASR2 dependency
+python3 -m pip install -e '.[task-asr2]'
+
 cd ${cwd}/egs2/mini_an4/asr2 || exit
 rm -rf exp data dump
 gen_dummy_coverage
@@ -277,9 +296,15 @@ python -m coverage run --append ../../../test/espnetez/test_integration_espnetez
 # Remove generated files in order to reduce the disk usage
 rm -rf exp dump data
 cd "${cwd}" || exit
-
+# Uninstall task-dependency
+python3 test_utils/uninstall_extra.py
 
 # [ESPnet Easy] test enh recipe with coverage
+# Install ENH dependency
+# ENH + Speech2Text requires s2t dependency
+python3 -m pip install -e '.[task-enh]'
+python3 -m pip install -e '.[task-st]'
+
 if python -c 'import torch as t; from packaging.version import parse as L; assert L(t.__version__) >= L("1.2.0")' &> /dev/null; then
     cd ${cwd}/egs2/mini_an4/enh1 || exit
     rm -rf exp data dump
@@ -415,6 +440,7 @@ if python -c 'import torch as t; from packaging.version import parse as L; asser
 fi
 
 # [ESPnet Easy] test enh-asr recipe with coverage
+python3 -m pip install -e '.[task-asr]'
 if python -c 'import torch as t; from packaging.version import parse as L; assert L(t.__version__) >= L("1.2.0")' &> /dev/null; then
     cd ${cwd}/egs2/mini_an4/enh_asr1 || exit
     rm -rf exp data dump
@@ -447,6 +473,8 @@ if python -c 'import torch as t; from packaging.version import parse as L; asser
     rm -rf exp dump data
     cd "${cwd}" || exit
 fi
+# Uninstall task-dependency
+python3 test_utils/uninstall_extra.py
 
 # [ESPnet Easy] test ssl recipe with coverage
 if python3 -c 'import torch as t; from packaging.version import parse as L; assert L(t.__version__) >= L("1.12.0")' &> /dev/null; then
@@ -483,6 +511,8 @@ if python3 -c 'import torch as t; from packaging.version import parse as L; asse
 fi
 
 # [ESPnet Easy] test st recipe with coverage
+# Install ST dependency
+python3 -m pip install -e '.[task-st]'
 cd ${cwd}/egs2/mini_an4/st1 || exit
 echo "==== [ESPnet2] ST ==="
 rm -rf exp data dump
@@ -531,6 +561,9 @@ python -m coverage run --append ../../../test/espnetez/test_integration_espnetez
 
 # Remove generated files in order to reduce the disk usage
 rm -rf exp dump data
+cd "${cwd}" || exit
+# Uninstall task-dependency
+python3 test_utils/uninstall_extra.py
 
 # [ESPnet Easy] test s2t1 recipe with coverage
 cd ${cwd}/egs2/mini_an4/s2t1 || exit
@@ -622,6 +655,8 @@ cd ${cwd}/egs2/mini_an4/spk1 || exit
 rm -rf exp dump data
 gen_dummy_coverage
 echo "==== [ESPnet2] SPK1 ==="
+# Install SPK dependency
+python3 -m pip install -e '.[task-spk]'
 
 # data preparation
 ./run.sh --ngpu 0 --stage 0 --stop-stage 3 --feats-type "raw" --spk-args "--num_workers 0"
@@ -653,6 +688,8 @@ for conf in "${spk_configs[@]}"; do
     done
 
 cd "${cwd}" || exit
+# Uninstall task-dependency
+python3 test_utils/uninstall_extra.py
 
 
 echo "=== report ==="

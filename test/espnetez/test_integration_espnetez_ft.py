@@ -2,38 +2,69 @@ import argparse
 from pathlib import Path
 
 import espnetez as ez
-from espnet2.bin.asr_inference import Speech2Text as ASRInference
-from espnet2.bin.asr_transducer_inference import Speech2Text as RNNTInference
-from espnet2.bin.enh_inference import SeparateSpeech as ENHInference
-from espnet2.bin.enh_tse_inference import SeparateSpeech as ENHTSEInference
-from espnet2.bin.lm_inference import GenerateText as LMInference
-from espnet2.bin.mt_inference import Text2Text as MTInference
-from espnet2.bin.s2st_inference import Speech2Speech as S2STInference
-from espnet2.bin.s2t_inference import Speech2Text as S2TInference
-from espnet2.bin.slu_inference import Speech2Understand as SLUInference
-from espnet2.bin.spk_inference import Speech2Embedding as SPKInference
-from espnet2.bin.st_inference import Speech2Text as STInference
-from espnet2.bin.tts_inference import Text2Speech as TTSInference
-from espnet2.bin.uasr_inference import Speech2Text as UASRInference
 from espnet2.layers.create_adapter_fn import create_lora_adapter
 
-TASK_CLASSES = {
-    "asr": ASRInference,
-    "asr_transducer": RNNTInference,
-    "lm": LMInference,
-    "mt": MTInference,
-    "slu": SLUInference,
-    "tts": TTSInference,
-    "gan_tts": TTSInference,
-    "uasr": UASRInference,
-    "enh": ENHInference,
-    "enh_tse": ENHTSEInference,
-    "enh_s2t": ASRInference,
-    "st": STInference,
-    "s2t": S2TInference,
-    "s2st": S2STInference,
-    "spk": SPKInference,
-}
+def get_inference_class(task_name: str):
+    """
+    Lazily import and return the inference class for the given task name.
+
+    This avoids importing all modules at once, preventing unnecessary dependency
+    errors for users who only use specific tasks (e.g., ASR-only users don't need TTS).
+
+    Args:
+        task_name (str): The task name (e.g., "asr", "tts", "enh", etc.)
+
+    Returns:
+        class: The inference class corresponding to the task
+
+    Raises:
+        KeyError: If task_name is not supported
+    """
+    if task_name == "asr":
+        from espnet2.bin.asr_inference import Speech2Text
+        return Speech2Text
+    elif task_name == "asr_transducer":
+        from espnet2.bin.asr_transducer_inference import Speech2Text
+        return Speech2Text
+    elif task_name == "lm":
+        from espnet2.bin.lm_inference import GenerateText
+        return GenerateText
+    elif task_name == "mt":
+        from espnet2.bin.mt_inference import Text2Text
+        return Text2Text
+    elif task_name == "slu":
+        from espnet2.bin.slu_inference import Speech2Understand
+        return Speech2Understand
+    elif task_name in ["tts", "gan_tts"]:
+        from espnet2.bin.tts_inference import Text2Speech
+        return Text2Speech
+    elif task_name == "uasr":
+        from espnet2.bin.uasr_inference import Speech2Text
+        return Speech2Text
+    elif task_name == "enh":
+        from espnet2.bin.enh_inference import SeparateSpeech
+        return SeparateSpeech
+    elif task_name == "enh_tse":
+        from espnet2.bin.enh_tse_inference import SeparateSpeech
+        return SeparateSpeech
+    elif task_name == "enh_s2t":
+        from espnet2.bin.asr_inference import Speech2Text
+        return Speech2Text
+    elif task_name == "st":
+        from espnet2.bin.st_inference import Speech2Text
+        return Speech2Text
+    elif task_name == "s2t":
+        from espnet2.bin.s2t_inference import Speech2Text
+        return Speech2Text
+    elif task_name == "s2st":
+        from espnet2.bin.s2st_inference import Speech2Speech
+        return Speech2Speech
+    elif task_name == "spk":
+        from espnet2.bin.spk_inference import Speech2Embedding
+        return Speech2Embedding
+    else:
+        raise KeyError(f"Unknown inference task: {task_name}")
+
 
 CONFIG_NAMES = {
     "asr": "asr_train_args",
@@ -65,12 +96,12 @@ LORA_TARGET = [
 def get_pretrained_model(args):
     exp_dir = args.exp_path / args.task
     if args.task in ("tts", "enh", "enh_tse", "s2st", "spk", "gan_tts"):
-        return TASK_CLASSES[args.task](
+        return get_inference_class(args.task)(
             exp_dir / "config.yaml",  # config.yaml
             exp_dir / "1epoch.pth",  # checkpoint
         )
     elif args.task == "enh_s2t":
-        return ASRInference(
+        return get_inference_class('asr')(
             exp_dir / "config.yaml",
             exp_dir / "1epoch.pth",
             token_type="bpe",
@@ -78,7 +109,7 @@ def get_pretrained_model(args):
             enh_s2t_task=True,
         )
     else:
-        return TASK_CLASSES[args.task](
+        return get_inference_class(args.task)(
             exp_dir / "config.yaml",  # config.yaml
             exp_dir / "1epoch.pth",  # checkpoint
             token_type="bpe",
@@ -123,7 +154,7 @@ if __name__ == "__main__":
         "--task",
         type=str,
         required=True,
-        choices=TASK_CLASSES,
+        choices=CONFIG_NAMES.keys(),
     )
     parser.add_argument(
         "--data_path",

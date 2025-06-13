@@ -42,6 +42,7 @@ dependencies = [
     "einops",
     "lhotse",
     "espnet_model_zoo",
+    "matplotlib",
 ]
 
 [project.urls]
@@ -86,11 +87,17 @@ task-tts = [
   "g2p_en",
   "jamo",
   "jaconv",
+  "underthesea",
 ]
 
 task-enh = [
   "ci_sdr",
   "fast-bss-eval==0.1.3"
+]
+
+task-asr2 = [
+  "nltk>=3.4.5",
+  "editdistance",
 ]
 
 task-mt = [
@@ -99,6 +106,7 @@ task-mt = [
 
 task-st = [
   "nltk>=3.4.5",
+  "editdistance",
 ]
 
 task-sds = [

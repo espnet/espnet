@@ -12,7 +12,7 @@ except ImportError:
 
     logging.warning(
         "If you are running state-space model,"
-        "run `pip install espnet['task-asr-state-space']`."
+        "run `pip install espnet['task-asr']`."
     )
 
 

@@ -24,7 +24,7 @@ python3 test_utils/uninstall_extra.py
 
 # [ESPnet2] test asr recipe
 # Install ASR dependency
-python3 -m pip install -e .[task-asr]
+python3 -m pip install -e '.[task-asr]'
 
 # Run tests
 cd ./egs2/mini_an4/asr1
@@ -157,21 +157,12 @@ done
 rm -rf exp dump data
 cd "${cwd}"
 
-# [ESPnet2] test asr2 recipe
-cd ./egs2/mini_an4/asr2
-gen_dummy_coverage
-echo "==== [ESPnet2] ASR2 ==="
-./run.sh --ngpu 0 --stage 1 --stop-stage 15 --skip-packing false --use-lm false --python "${python}" --asr-args "--num_workers 0"
-# Remove generated files in order to reduce the disk usage
-rm -rf exp dump data
-cd "${cwd}"
-
 # Uninstall task-dependency
 python3 test_utils/uninstall_extra.py
 
 # [ESPnet2] test tts recipe
 # Install TTS dependency
-python3 -m pip install -e .[task-tts]
+python3 -m pip install -e '.[task-tts]'
 
 # Run tests
 cd ./egs2/mini_an4/tts1
@@ -195,9 +186,26 @@ cd "${cwd}"
 # Uninstall task-dependency
 python3 test_utils/uninstall_extra.py
 
+
+# [ESPnet2] test asr2 recipe
+# Install ASR2 dependency
+python3 -m pip install -e '.[task-asr2]'
+cd ./egs2/mini_an4/asr2
+gen_dummy_coverage
+echo "==== [ESPnet2] ASR2 ==="
+./run.sh --ngpu 0 --stage 1 --stop-stage 15 --skip-packing false --use-lm false --python "${python}" --asr-args "--num_workers 0"
+# Remove generated files in order to reduce the disk usage
+rm -rf exp dump data
+cd "${cwd}"
+# Uninstall task-dependency
+python3 test_utils/uninstall_extra.py
+
+
 # [ESPnet2] test enh recipe
 # Install ENH dependency
-python3 -m pip install -e .[task-enh]
+# ENH + Speech2Text requires s2t dependency
+python3 -m pip install -e '.[task-enh]'
+python3 -m pip install -e '.[task-st]'
 
 # Run tests
 if python -c 'import torch as t; from packaging.version import parse as L; assert L(t.__version__) >= L("1.2.0")' &> /dev/null; then
@@ -252,6 +260,7 @@ if python -c 'import torch as t; from packaging.version import parse as L; asser
 fi
 
 # [ESPnet2] test enh_asr1 recipe
+python3 -m pip install -e '.[task-asr]'
 if python -c 'import torch as t; from packaging.version import parse as L; assert L(t.__version__) >= L("1.2.0")' &> /dev/null; then
     cd ./egs2/mini_an4/enh_asr1
     gen_dummy_coverage
@@ -277,7 +286,7 @@ fi
 
 # [ESPnet2] test st recipe
 # Install ST dependency
-python3 -m pip install -e .[task-st]
+python3 -m pip install -e '.[task-st]'
 
 # Run tests
 cd ./egs2/mini_an4/st1
@@ -316,7 +325,7 @@ python3 test_utils/uninstall_extra.py
 
 # [ESPnet2] test spk1 recipe
 # Install SPK dependency
-python3 -m pip install -e .[task-spk]
+python3 -m pip install -e '.[task-spk]'
 
 # Run tests
 cd ./egs2/mini_an4/spk1
