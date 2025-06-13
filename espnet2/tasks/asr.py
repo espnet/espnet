@@ -29,6 +29,7 @@ from espnet2.asr.encoder.avhubert_encoder import FairseqAVHubertEncoder
 from espnet2.asr.encoder.beats_encoder import BeatsEncoder
 from espnet2.asr.encoder.branchformer_encoder import BranchformerEncoder
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
+from espnet2.asr.encoder.multi_gated_conformer_encoder import MultiGatedConformerEncoder
 from espnet2.asr.encoder.contextual_block_conformer_encoder import (
     ContextualBlockConformerEncoder,
 )
@@ -147,6 +148,7 @@ encoder_choices = ClassChoices(
     "encoder",
     classes=dict(
         conformer=ConformerEncoder,
+        multi_gated_conformer=MultiGatedConformerEncoder,
         transformer=TransformerEncoder,
         transformer_multispkr=TransformerEncoderMultiSpkr,
         contextual_block_transformer=ContextualBlockTransformerEncoder,
