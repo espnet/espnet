@@ -112,7 +112,7 @@ class PITLossWrapper(nn.Module):
             )
             if not return_est:
                 return min_loss
-            return min_loss, batch_indices
+            return min_loss, batch_indices.to(min_loss.device)
         else:
             return
 
@@ -129,7 +129,7 @@ class PITLossWrapper(nn.Module):
         if not return_est:
             return mean_loss
         reordered = self.reorder_source(est_targets, batch_indices)
-        return mean_loss, reordered
+        return mean_loss, reordered.to(mean_loss.device)
 
     @staticmethod
     def get_pw_losses(loss_func, est_targets, targets, **kwargs):

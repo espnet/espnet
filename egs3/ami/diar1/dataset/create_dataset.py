@@ -33,6 +33,7 @@ def get_cuts(config):
         # chunk into X seconds
         print(f"Splitting cutset for {dset} {split} {mic} in chunks. Number of jobs: {N_JOBS}")
         cutset = cutset.cut_into_windows(config.features.chunk_size, config.features.hop, num_jobs=N_JOBS, keep_excessive_supervisions=True)
+        cutset = cutset.filter(lambda x: x.duration >= config.features.chunk_size)
         #print(f"Computing features and saving them to disk.")
         #cutset.compute_and_store_features(extractor=extractor,
         #                            storage_path=f'./dump/feats/{dset}-{mic}-{split}', num_jobs=N_JOBS)
@@ -44,8 +45,8 @@ def get_cuts(config):
         c_sup = lhotse.load_manifest(os.path.join("./data/ami", f"{dset}-{mic}_supervisions_{split}.jsonl.gz"))
         cutset = lhotse.CutSet.from_manifests(c_rec, c_sup)
         # chunk into X seconds
-        print(f"Splitting cutset for {dset} {split} {mic} in chunks. Number of jobs: {N_JOBS}")
-        cutset = cutset.cut_into_windows(config.features.chunk_size, config.features.hop, num_jobs=N_JOBS, keep_excessive_supervisions=True)
+        #print(f"Splitting cutset for {dset} {split} {mic} in chunks. Number of jobs: {N_JOBS}")
+        #cutset = cutset.cut_into_windows(config.features.chunk_size, config.features.hop, num_jobs=N_JOBS, keep_excessive_supervisions=True)
         #print(f"Computing features and saving them to disk.")
         #cutset.compute_and_store_features(extractor=extractor,
         #                            storage_path=f'./dump/feats/{dset}-{mic}-{split}', num_jobs=N_JOBS)
@@ -57,8 +58,8 @@ def get_cuts(config):
         c_sup = lhotse.load_manifest(os.path.join("./data/ami", f"{dset}-{mic}_supervisions_{split}.jsonl.gz"))
         cutset = lhotse.CutSet.from_manifests(c_rec, c_sup)
         # chunk into X seconds
-        print(f"Splitting cutset for {dset} {split} {mic} in chunks. Number of jobs: {N_JOBS}")
-        cutset = cutset.cut_into_windows(config.features.chunk_size, config.features.hop, num_jobs=N_JOBS, keep_excessive_supervisions=True)
+        #print(f"Splitting cutset for {dset} {split} {mic} in chunks. Number of jobs: {N_JOBS}")
+        #cutset = cutset.cut_into_windows(config.features.chunk_size, config.features.hop, num_jobs=N_JOBS, keep_excessive_supervisions=True)
         # print(f"Computing features and saving them to disk.")
         # cutset.compute_and_store_features(extractor=extractor,
         #                            storage_path=f'./dump/feats/{dset}-{mic}-{split}', num_jobs=N_JOBS)

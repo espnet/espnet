@@ -4,10 +4,11 @@ from typing import Dict, Optional, Tuple
 import numpy as np
 import torch
 from typeguard import typechecked
-from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.torch_utils.device_funcs import force_gatherable
 from torch.cuda.amp import autocast
-#from espnet2.asr.encoder.e_branchformer_encoder import EBranchformerEncoder
+from egs3.ami.diar1.local.utils import padtrunc
+
+
 
 class ConvFrontEnd(torch.nn.Module):
     def __init__(self,
@@ -25,10 +26,14 @@ class ConvFrontEnd(torch.nn.Module):
         self.in_norm = torch.nn.LayerNorm(emb_size, eps=eps)
         self.in_drop = torch.nn.Dropout(dropout)
 
-    def forward(self, x):
+    def forward(self, x, lengths):
         x = self.pointwise(self.depthwise(x.transpose(-1, -2)).transpose(-1, -2))
         x = self.in_drop(self.in_norm(x))
-        return x
+
+        ratio =  x.shape[1] / lengths
+        adjusted_lengths = (lengths * ratio).long()
+
+        return x, adjusted_lengths
 
 class UpSamplingDecoder(torch.nn.Module):
     def __init__(self, n_local_spk=5,
@@ -61,8 +66,12 @@ class MaskedBinaryXentropyWithLogits(torch.nn.Module):
 
     def forward(self, logits, targets, lengths):
         loss = torch.nn.functional.binary_cross_entropy_with_logits(logits, targets, reduction='none')
-        mask = ~len2mask(lengths, targets.shape[1])
-        loss = loss.masked_fill(mask, 0.0)
+
+        if lengths is None:
+            pass
+        else:
+            mask = ~len2mask(lengths, targets.shape[-1], torch.bool)
+            loss = loss.masked_fill(mask[:, None], 0.0)
         # not sure if we should boost the speakers for which the activity is low
         # probably yes for ASR, but DER and JER won t measure it.
         if self.balance_spk:
@@ -75,7 +84,7 @@ class MaskedBinaryXentropyWithLogits(torch.nn.Module):
                                   1.0 / (pos_ratio + 1e-8),
                                   1.0 / (1.0 - pos_ratio + 1e-8))
 
-            loss = loss.sum(-1) * weights
+            loss = loss.sum(-1) * weights[..., 0]
         else:
             loss = loss.sum(-1)
 
@@ -119,53 +128,71 @@ class VanillaEENDModelWrapper(torch.nn.Module):
             spk_labels: (Batch, seq_len)
             kwargs: "utt_id" is among the input.
         """
-        import pdb
-        pdb.set_trace()
+
         batch_size = speech.size(0)
-        speech, speech_lengths = self.encode(speech, speech_lengths)
-        speech = self.decoder(speech)
-        loss, speech = self.compute_loss(speech, spk_labels, spk_labels_lengths)
+        orig_len = speech.shape[1]
 
-        if self.log_der_train or not self.training:
-            (correct,
-            num_frames,
-            speech_scored,
-            speech_miss,
-            speech_falarm,
-            speaker_scored,
-            speaker_miss,
-            speaker_falarm,
-            speaker_error,
-            ) = self.calc_diarization_error(torch.sigmoid(speech),
-                                        spk_labels,
-                                        spk_labels_lengths)
-
-            if speech_scored > 0 and num_frames > 0:
-                 sad_mr, sad_fr, mi, fa, cf, acc, der = (
-                 speech_miss / speech_scored,
-                 speech_falarm / speech_scored,
-                 speaker_miss / speaker_scored,
-                 speaker_falarm / speaker_scored,
-                 speaker_error / speaker_scored,
-                 correct / num_frames,
-                 (speaker_miss + speaker_falarm + speaker_error) / speaker_scored,
-             )
-            else:
-                 sad_mr, sad_fr, mi, fa, cf, acc, der = 0, 0, 0, 0, 0, 0, 0
-            stats = dict(
-                 loss=loss.detach(),
-                 sad_mr=sad_mr,
-                 sad_fr=sad_fr,
-                 mi=mi,
-                 fa=fa,
-                 cf=cf,
-                 acc=acc,
-                 der=der,
-             )
+        if not self.training:
+            with torch.inference_mode():
+                speech, speech_lengths = self.encode(speech, speech_lengths)
+                speech = self.decoder(speech)
         else:
-            stats = dict(
-                loss=loss.detach(),
-            )
+            speech, speech_lengths = self.encode(speech, speech_lengths)
+            speech = self.decoder(speech)
+        speech = speech[:, :orig_len]
+
+        lendiff = abs(speech.shape[1] - spk_labels.shape[1])
+        if  lendiff != 0 and lendiff <= 5:
+            speech = padtrunc(speech, spk_labels.shape[1])
+
+        loss, speech = self.compute_loss(speech.transpose(1, 2), spk_labels.transpose(1, 2).float(), spk_labels_lengths)
+        speech = speech.transpose(1, 2) # since it is fed transposed
+
+        loss = loss.mean()
+
+        with torch.cuda.amp.autocast(enabled=False):
+            speech = speech.float()
+            spk_labels = spk_labels.float()
+            if self.log_der_train or not self.training:
+                (correct,
+                 num_frames,
+                 speech_scored,
+                 speech_miss,
+                 speech_falarm,
+                 speaker_scored,
+                 speaker_miss,
+                 speaker_falarm,
+                 speaker_error,
+                 ) = self.calc_diarization_error(torch.sigmoid(speech),
+                                                 spk_labels,
+                                                 spk_labels_lengths)
+
+                speech_scored = np.clip(speech_scored, 1.0, float("inf"))
+                speaker_scored = np.clip(speaker_scored, 1.0, float("inf"))
+                sad_mr, sad_fr, mi, fa, cf, acc, der = (
+                        speech_miss / speech_scored,
+                        speech_falarm / speech_scored,
+                        speaker_miss / speaker_scored,
+                        speaker_falarm / speaker_scored,
+                        speaker_error / speaker_scored,
+                        correct / num_frames,
+                        (speaker_miss + speaker_falarm + speaker_error) / speaker_scored,
+                    )
+
+                stats = dict(
+                    loss=loss.detach(),
+                    sad_mr=sad_mr,
+                    sad_fr=sad_fr,
+                    mi=mi,
+                    fa=fa,
+                    cf=cf,
+                    acc=acc,
+                    der=der,
+                )
+            else:
+                stats = dict(
+                    loss=loss.detach(),
+                )
 
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
         return loss, stats, weight
@@ -180,16 +207,22 @@ class VanillaEENDModelWrapper(torch.nn.Module):
             feats: (Batch, Length, ...)
             feats_lengths: (Batch,)
         """
+
         with autocast(False):
             # note that for efficiency the feature extraction is moved in the dataloader
             feats, feats_lengths = self.frontend(feats, feats_lengths)
+
+            if not self.training:
+                assert feats.shape[0] == 1
+                feats_lengths = torch.tensor([feats.shape[1]]).to(feats.device)
+
             feats, feats_lengths, _ = self.encoder(feats, feats_lengths)
 
         return feats, feats_lengths
 
     def compute_loss(self, pred, label, length):
 
-        loss, batch_indx = self.pit_loss(pred, label, length=length, return_est=True)
+        loss, batch_indx = self.pit_loss(pred, label, lengths=length, return_est=True)
         pred = PITLossWrapper.reorder_source(pred, batch_indx)
         return loss, pred
 

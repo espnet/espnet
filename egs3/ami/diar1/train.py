@@ -7,7 +7,9 @@ from espnet3.utils.config import run_stage
 from espnet3 import get_espnet_model, save_espnet_config
 from espnet3.trainer import ESPnetEZLightningTrainer, LitESPnetModel
 from functools import partial
+import torchaudio
 
+torchaudio.set_audio_backend("soundfile")
 
 def load_line(path):
     with open(path, "r") as f:
@@ -32,7 +34,6 @@ def main():
     )
 
     # Load config
-    #OmegaConf.register_new_resolver("load_line", load_line)
     config = OmegaConf.load(args.config)
 
     # Set seed
@@ -55,7 +56,6 @@ def main():
     if run_stage_flag(2):
         from dataset.create_dataset import get_cuts
         get_cuts(config)
-        # create cuts with desired chunk size
 
     model = instantiate(config.model)
     lit_model = LitESPnetModel(model, config)

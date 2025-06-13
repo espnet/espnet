@@ -5,6 +5,7 @@ from lhotse.features import Fbank, FbankConfig
 from lhotse.dataset.signal_transforms import SpecAugment
 import torch
 from collections import OrderedDict
+import soundfile as sf
 
 
 
@@ -17,22 +18,22 @@ class DiarCutSet(Dataset):
         self.is_training = is_training
         self.extractor = Fbank(FbankConfig(num_mel_bins = 23)) #FIXME
 
-        self.specaugment = SpecAugment(time_warp_factor = 10,
+        self.specaugment = SpecAugment(time_warp_factor = 5,
         num_feature_masks = 2,
         features_mask_size = 4,
-        num_frame_masks = 2000,
+        num_frame_masks = 250,
         frames_mask_size = 10,
-        max_frames_mask_fraction  = 0.15,
+        max_frames_mask_fraction  = 0.2,
         p=0.9)
 
 
     def __len__(self):
         return len(self.cuts)
 
-    def get_sa(self, supervisions, segment=120, max_spk=5, resolution=1600, overlap_f=3, fs=16000):
+    def get_sa(self, supervisions, segment=120, max_spk=5, resolution=160, overlap_f=1, fs=16000):
 
         duration = segment * fs
-        n_frames = int(np.floor((duration - overlap_f * resolution) / resolution))
+        n_frames = int(np.floor((duration) / resolution))
         if len(supervisions) == 0:
             return torch.zeros((max_spk, n_frames), dtype=torch.bool)
 
@@ -42,7 +43,7 @@ class DiarCutSet(Dataset):
         sa = torch.zeros((len(spk2indx.keys()), n_frames), dtype=torch.bool)
         for utt in supervisions:
             start = max(utt.start, 0.0)
-            stop = min(utt.start + duration, segment)
+            stop = min(utt.start + utt.duration, segment)
             start = int(start / (resolution / fs))
             stop = int(stop / (resolution / fs))
             sa[spk2indx[utt.speaker], start:stop] = 1
@@ -52,72 +53,44 @@ class DiarCutSet(Dataset):
         return sa
 
 
+    def read_audio(self, cut):
+
+        sources = [x.source for x in cut.recording.sources]
+        if self.is_training:
+            source = np.random.choice(sources)
+        else:
+            source = sources[0]
+
+        start = int(cut.start * cut.sampling_rate)
+        stop = int((cut.start + cut.duration) * cut.sampling_rate)
+        audio, _ = sf.read(source, start=start, stop=stop)
+        if audio.ndim == 1:
+            audio = audio[None, :]
+
+        assert audio.shape[0] == 1
+        return audio.astype(np.float32)
+
+
     def __getitem__(self, idx):
-        cut = self.cuts[100]
-
-
+        cut = self.cuts[idx]
         # Method 1: Direct extraction for a single cut
-        audio = self.extractor.extract(samples=cut.load_audio(),sampling_rate=cut.sampling_rate)
+
+        audio = self.read_audio(cut)
+
+        audio = self.extractor.extract(samples=audio,sampling_rate=cut.sampling_rate)
         audio = audio - np.mean(audio, 0, keepdims=True)
 
         if self.is_training:
             audio = self.specaugment(torch.from_numpy(audio[None, ...])).numpy()[0]
             # specaugment
 
+
         # need to get speaker activities here
-        sa = self.get_sa(cut.supervisions).numpy()
+        sa = self.get_sa(cut.supervisions, cut.duration, fs=cut.sampling_rate).numpy().T
 
         example = {
             "speech": audio,
             "spk_labels": sa,
         }
         return example
-    
-    def get_text(self, idx):
-        cut = self.cuts[idx]
-        supervision = cut.supervisions[0]
-        return supervision.text.lower()
 
-
-class EuroparlSTDataset(Dataset):
-    def __init__(self, data_dir="data", split=None):
-        if split is None:
-            raise ValueError("STDataset requires a split name (e.g., 'dev', 'train')")
-        path = f"{data_dir}/{split}.jsonl.gz"
-        self.cuts = CutSet.from_file(path)
-
-        self.iso_code = {
-            "de": "deu",
-            "fr": "fra",
-            "it": "ita",
-        }
-
-    def __len__(self):
-        return len(self.cuts)
-
-    def __getitem__(self, idx):
-        cut = self.cuts[idx]
-        audio = cut.load_audio()[0]
-        supervision = cut.supervisions[0]
-        custom = supervision.custom
-
-        src_lang = custom['src_lang']
-        tgt_lang = custom['tgt_lang']
-        src_text = supervision.text.lower()
-        tgt_text = custom[f"text.{tgt_lang}"].lower()
-
-        example = {
-            "speech": audio.astype(np.float32),
-            "text": f'<{self.iso_code[src_lang]}><st_{self.iso_code[tgt_lang]}>'
-            + f'<notimestamps> {tgt_text}',
-            "text_ctc": src_text,
-            "text_prev": "<na>",
-        }
-        return example
-
-    def get_text(self, idx):
-        cut = self.cuts[idx]
-        supervision = cut.supervisions[0]
-        custom = supervision.custom
-        tgt_lang = custom['tgt_lang']
-        return custom[f"text.{tgt_lang}"].lower()

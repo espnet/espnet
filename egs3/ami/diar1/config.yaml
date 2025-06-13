@@ -27,24 +27,8 @@ features:
   num_mel_bins: 23
   chunk_size: 120 # train on 120 seconds. The sequence length will be:
   # 120000 / 10 (stft stride) / 10 (network frontend stride) = 1200. We can probably increase it further !
-  hop: 120 # half a second hop for extracting features #FIXME
+  hop: 1 # half a second hop for extracting features #FIXME
   # we can apply specaugm in dataloader
-
-
-#    specaug: specaug
-#   specaug_conf:
-#      apply_time_warp: true
-#      time_warp_window: 5
-#      time_warp_mode: bicubic
-#      apply_freq_mask: true
-#      freq_mask_width_range: [ 0, 4 ]
-#      num_freq_mask: 2 # note that we have only 23 mels !
-#      apply_time_mask: true
-#      time_mask_width: [ 0, 10 ] # 10ms features, 10 would be 100ms
-#      num_time_mask: 2000 # this depends on the chunk used for training.
-#      # e.g. we use 120 seconds, we can mask 20% maybe: 120000ms / 10ms * 0.2 = 2400
-#      # note that this works IFF we use long form data with more than 120 seconds, shorter
-#      # data will be all masked.
 
 synth_multispk_data:
   librispeech_dir: /raid/users/popcornell/LibriSpeech # path to LibriSpeech main directory
@@ -68,6 +52,11 @@ dataset:
       dataset:
         _target_: egs3.ami.diar1.dataset.dataset.DiarCutSet
         split: ami-ihm-mix-train
+        is_training: True
+    - name: ami-sdm-train
+      dataset:
+        _target_: egs3.ami.diar1.dataset.dataset.DiarCutSet
+        split: ami-sdm-train
         is_training: True
   valid:
     - name: ami-sdm-dev
@@ -128,7 +117,7 @@ model:
 
 optim:
   _target_: torch.optim.Adam
-  lr: 0.00005
+  lr: 0.0001
   weight_decay: 0.000001
 
 scheduler:
@@ -141,28 +130,14 @@ dataloader:
     int_pad_value: -1
   train:
     iter_factory:
-      _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
-      shuffle: true
-      collate_fn: ${dataloader.collate_fn}
-      batches:
-        _target_: espnet2.samplers.build_batch_sampler.build_batch_sampler
-        type: numel
-        shape_files:
-          - ${statsdir}/train/feats_shape
-        batch_size: 32
-        batch_bins: 4000000
+    batch_size: 16
+    shuffle: True
+    num_workers: 8
   valid:
     iter_factory:
-      _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
-      shuffle: false
-      collate_fn: ${dataloader.collate_fn}
-      batches:
-        _target_: espnet2.samplers.build_batch_sampler.build_batch_sampler
-        type: numel
-        shape_files:
-          - ${statsdir}/valid/feats_shape
-        batch_size: 1 # just do inference on whole session in inference by using batch size 1.
-        batch_bins: ${dataloader.train.iter_factory.batches.batch_bins}
+    batch_size: 1
+    shuffle: False
+    num_workers: 8
 
 
 best_model_criterion:
@@ -172,9 +147,10 @@ trainer:
   accelerator: gpu
   devices: ${num_device}
   num_nodes: 1
+  precision: bf16-mixed
   accumulate_grad_batches: 1
   gradient_clip_val: 1.0
-  log_every_n_steps: 500
+  log_every_n_steps: 10
   max_epochs: 80
 
   logger:
