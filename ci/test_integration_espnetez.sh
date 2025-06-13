@@ -572,6 +572,9 @@ cd "${cwd}" || exit
 python3 test_utils/uninstall_extra.py
 
 # [ESPnet Easy] test s2t1 recipe with coverage
+# Install ST dependency
+python3 -m pip install -e '.[task-s2t]'
+
 cd ${cwd}/egs2/mini_an4/s2t1 || exit
 rm -rf exp dump data
 gen_dummy_coverage
@@ -600,6 +603,8 @@ python -m coverage run --append ../../../test/espnetez/test_integration_espnetez
 # Remove generated files in order to reduce the disk usage
 rm -rf exp dump data
 cd "${cwd}" || exit
+# Uninstall task-dependency
+python3 test_utils/uninstall_extra.py
 
 
 # [ESPnet Easy] test s2st1 recipe with coverage
