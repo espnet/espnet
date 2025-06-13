@@ -137,6 +137,7 @@ def test_create_houlsby_adapter_target_layers(
     ), type(model.frontend.upstream.upstream.model.encoder.layers[3])
 
 
+@pytest.mark.execution_timeout(20)
 @pytest.mark.parametrize("model, bottleneck, target_layers", [("s3prl", 64, [200])])
 def test_create_houlsby_adapter_invalid_target_layers(
     model,
