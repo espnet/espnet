@@ -129,6 +129,7 @@ class Speech2Text:
         if enh_s2t_task:
             try:
                 from espnet2.tasks.enh_s2t import EnhS2TTask
+
                 task = EnhS2TTask
             except ImportError:
                 raise RuntimeError("Please install espnet['task-st']")
