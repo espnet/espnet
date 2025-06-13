@@ -21,7 +21,6 @@ from espnet2.svs.feats_extract.score_feats_extract import (
     SyllableScoreFeats,
     expand_to_frame,
 )
-from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
 
 if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
