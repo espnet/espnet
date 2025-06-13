@@ -20,6 +20,13 @@ try:
 except Exception as e:
     print(f"Failed to import Flash Attention, using ESPnet default: {e}")
 
+try:
+    from torch.nn.functional import scaled_dot_product_attention
+    USE_SDPA= True
+except (ImportError, RuntimeError, OSError):
+    scaled_dot_product_attention = None
+    USE_SDPA = False
+
 
 class MultiHeadedAttention(nn.Module):
     """Multi-Head Attention layer.
@@ -45,7 +52,7 @@ class MultiHeadedAttention(nn.Module):
         use_flash_attn=False,
         causal=False,
         cross_attn=False,
-        use_sdpa=False,
+        use_sdpa=True, # actually not used, SDPA enabled by default if available.
     ):
         """Construct an MultiHeadedAttention object."""
         super(MultiHeadedAttention, self).__init__()
@@ -72,7 +79,7 @@ class MultiHeadedAttention(nn.Module):
         self.causal = causal  # only used with flash_attn
         self.cross_attn = cross_attn  # only used with flash_attn
 
-        self.use_sdpa = use_sdpa
+        self.use_sdpa = USE_SDPA
 
     def forward_qkv(self, query, key, value, expand_kv=False):
         """Transform query, key and value.
