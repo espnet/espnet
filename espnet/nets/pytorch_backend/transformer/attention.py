@@ -22,7 +22,8 @@ except Exception as e:
 
 try:
     from torch.nn.functional import scaled_dot_product_attention
-    USE_SDPA= True
+
+    USE_SDPA = True
 except (ImportError, RuntimeError, OSError):
     scaled_dot_product_attention = None
     USE_SDPA = False
@@ -52,7 +53,7 @@ class MultiHeadedAttention(nn.Module):
         use_flash_attn=False,
         causal=False,
         cross_attn=False,
-        use_sdpa=True, # actually not used, SDPA enabled by default if available.
+        use_sdpa=True,  # actually not used, SDPA enabled by default if available.
     ):
         """Construct an MultiHeadedAttention object."""
         super(MultiHeadedAttention, self).__init__()
