@@ -19,12 +19,16 @@ dir_dict = {
 }
 mapping = {"train": "train"}
 for x in dir_dict:
-    with open(os.path.join("data", x, "wav.scp"), "w") as wav_scp_f, open(
-        os.path.join("data", x, "utt2spk"), "w"
-    ) as utt2spk_f, open(
-        os.path.join(ASVSpoof_root, "LA/ASVspoof2019_LA_cm_protocols/", dir_dict[x]),
-        "r",
-    ) as f_meta:
+    with (
+        open(os.path.join("data", x, "wav.scp"), "w") as wav_scp_f,
+        open(os.path.join("data", x, "utt2spk"), "w") as utt2spk_f,
+        open(
+            os.path.join(
+                ASVSpoof_root, "LA/ASVspoof2019_LA_cm_protocols/", dir_dict[x]
+            ),
+            "r",
+        ) as f_meta,
+    ):
         lines = f_meta.readlines()
         print(len(lines))
         split_path = Path(ASVSpoof_root, f"LA/ASVspoof2019_LA_{mapping[x]}", "flac")
