@@ -95,12 +95,12 @@ def collect_data(
         x for x in csv.DictReader(open(str(data_dir / "test.tsv")), delimiter="\t")
     ]
 
-    dev_ids = {x["client_id"]: None for x in dev_data}
-    test_ids = {x["client_id"]: None for x in test_data}
+    dev_ids = {x["sentence"]: None for x in dev_data}
+    test_ids = {x["sentence"]: None for x in test_data}
     train_data = [
         x
         for x in validated_data
-        if x["client_id"] not in dev_ids and x["client_id"] not in dev_ids
+        if x["sentence"] not in dev_ids and x["sentence"] not in test_ids
     ]
 
     logging.info("start to transform into talks")
