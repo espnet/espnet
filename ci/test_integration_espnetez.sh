@@ -165,7 +165,7 @@ python -m coverage run --append ../../../test/espnetez/test_integration_espnetez
 
 # Remove generated files in order to reduce the disk usage
 rm -rf exp data/spm
-
+cd "${cwd}" || exit
 
 # [ESPnet Easy] test slu recipe with coverage
 # Install s2t dependency
@@ -197,6 +197,7 @@ python -m coverage run --append ../../../test/espnetez/test_integration_espnetez
 
 # Remove generated files in order to reduce the disk usage
 rm -rf exp data/spm
+cd "${cwd}" || exit
 # Uninstall task-dependency
 python3 test_utils/uninstall_extra.py
 
@@ -441,7 +442,7 @@ if python -c 'import torch as t; from packaging.version import parse as L; asser
         --variable_num_refs \
         --run_collect_stats \
         --run_train
-
+    cd "${cwd}" || exit
 fi
 
 # [ESPnet Easy] test enh-asr recipe with coverage
@@ -598,6 +599,7 @@ python -m coverage run --append ../../../test/espnetez/test_integration_espnetez
 
 # Remove generated files in order to reduce the disk usage
 rm -rf exp dump data
+cd "${cwd}" || exit
 
 
 # [ESPnet Easy] test s2st1 recipe with coverage
@@ -654,6 +656,7 @@ python -m coverage run --append ../../../test/espnetez/test_integration_espnetez
 
 # Remove generated files in order to reduce the disk usage
 rm -rf exp dump data ckpt .cache
+cd "${cwd}" || exit
 
 # [ESPnet Easy] test spk recipe with coverage
 cd ${cwd}/egs2/mini_an4/spk1 || exit
