@@ -1,7 +1,7 @@
 # Copyright 2023 Jee-weon Jung
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-from typing import Dict, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import torch
 from typeguard import typechecked
@@ -47,7 +47,9 @@ class ESPnetSpeakerModel(AbsESPnetModel):
         encoder: Optional[AbsEncoder],
         pooling: Optional[AbsPooling],
         projector: Optional[AbsProjector],
-        loss: Optional[AbsLoss],
+        loss: Optional[List[AbsLoss]],
+        loss_weights: Optional[List[float]] = None,
+        loss_names: Optional[List[str]] = None,
     ):
 
         super().__init__()
@@ -59,17 +61,26 @@ class ESPnetSpeakerModel(AbsESPnetModel):
         self.pooling = pooling
         self.projector = projector
         self.loss = loss
+        self.loss_weights = loss_weights
+        self.loss_names = loss_names
 
     @typechecked
     def forward(
         self,
         speech: torch.Tensor,
         spk_labels: Optional[torch.Tensor] = None,
+        spf_labels: Optional[torch.Tensor] = None,
+        pmos_labels: Optional[torch.Tensor] = None,
         task_tokens: Optional[torch.Tensor] = None,
         extract_embd: bool = False,
+        precomp_frame_feats: Optional[torch.Tensor] = None,
+        precomp_frame_feats_lengths: Optional[torch.Tensor] = None,
+        return_attention_weights: bool = False,
         **kwargs,
     ) -> Union[
-        Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor], torch.Tensor
+        Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor],
+        Tuple[torch.Tensor, Dict[str, torch.Tensor]],
+        torch.Tensor,
     ]:
         """Feed-forward through encoder layers and aggregate into utterance-level
 
@@ -83,6 +94,11 @@ class ESPnetSpeakerModel(AbsESPnetModel):
             spk_labels: (Batch, )
             one-hot speaker labels used in the train phase
             task_tokens: (Batch, )
+            spf_labels: (Batch, )
+            pmos_labels: (Batch, )
+            precomp_frame_feats: (Batch, frames, feats)
+            precomp_frame_feats_lengths: (Batch,)
+            one-hot spoofing labels used in the train phase
             task tokens used in case of token-based trainings
         """
         if spk_labels is not None:
@@ -97,11 +113,19 @@ class ESPnetSpeakerModel(AbsESPnetModel):
             )
         batch_size = speech.shape[0]
 
+        if precomp_frame_feats is None or precomp_frame_feats_lengths is None:
+            precomp_frame_feats = kwargs.get("frame_feats", None)
+            precomp_frame_feats_lengths = kwargs.get("frame_feats_lengths", None)
+
         # 1. extract low-level feats (e.g., mel-spectrogram or MFCC)
         # Will do nothing for raw waveform-based models (e.g., RawNets)
         feats, _ = self.extract_feats(speech, None)
 
-        frame_level_feats = self.encode_frame(feats)
+        frame_level_feats = self.encode_frame(
+            feats, precomp_frame_feats, precomp_frame_feats_lengths
+        )
+        if isinstance(frame_level_feats, tuple):
+            frame_level_feats, attention_weights = frame_level_feats
 
         # 2. aggregation into utterance-level
         utt_level_feat = self.pooling(frame_level_feats, task_tokens)
@@ -109,15 +133,51 @@ class ESPnetSpeakerModel(AbsESPnetModel):
         # 3. (optionally) go through further projection(s)
         spk_embd = self.project_spk_embd(utt_level_feat)
 
-        if extract_embd:
+        if extract_embd and not return_attention_weights:
             return spk_embd
+        elif extract_embd and return_attention_weights:
+            assert (
+                attention_weights is not None
+            ), "Attention weights are None, cannot return"
+            return spk_embd, attention_weights
 
         # 4. calculate loss
-        assert spk_labels is not None, "spk_labels is None, cannot compute loss"
-        loss = self.loss(spk_embd, spk_labels.squeeze())
+        loss_names = self.loss_names
+        labels = []
+        for i, loss in enumerate(self.loss):
+            if loss_names[i] == "spk":
+                assert spk_labels is not None, "spk_labels is None, cannot compute loss"
+                labels.append(spk_labels)
+            elif loss_names[i] == "spf":
+                assert spf_labels is not None, "spf_labels is None, cannot compute loss"
+                labels.append(spf_labels)
+            elif loss_names[i] == "pmos":
+                assert (
+                    pmos_labels is not None
+                ), "pmos_labels is None, cannot compute loss"
+                labels.append(pmos_labels)
+            else:
+                raise NotImplementedError(f"Loss name {loss_names[i]} is not supported")
 
-        stats = dict(loss=loss.detach())
+        assert len(self.loss) == len(labels), "Number of losses and labels do not match"
+        losses = [
+            loss_fn(spk_embd, label.squeeze())
+            for loss_fn, label in zip(self.loss, labels)
+        ]
 
+        # calculate weighted sum of losses
+        if self.loss_weights is not None:
+            loss = sum(w * l for w, l in zip(self.loss_weights, losses))
+        else:
+            loss = sum(losses)
+
+        # Prepare stats dictionary
+        stats = {
+            f"{name}_loss": loss.detach() for name, loss in zip(loss_names, losses)
+        }
+        stats["loss"] = loss.detach()
+
+        # Make gathered results
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
         return loss, stats, weight
 
@@ -148,8 +208,18 @@ class ESPnetSpeakerModel(AbsESPnetModel):
 
         return feats, feat_lengths
 
-    def encode_frame(self, feats: torch.Tensor) -> torch.Tensor:
-        frame_level_feats = self.encoder(feats)
+    def encode_frame(
+        self,
+        feats: torch.Tensor,
+        precomp_frame_feats: torch.Tensor,
+        precomp_frame_feats_lengths: torch.Tensor,
+    ) -> torch.Tensor:
+        if precomp_frame_feats is not None:
+            frame_level_feats = self.encoder(
+                feats, precomp_frame_feats, precomp_frame_feats_lengths
+            )
+        else:
+            frame_level_feats = self.encoder(feats)
 
         return frame_level_feats
 
