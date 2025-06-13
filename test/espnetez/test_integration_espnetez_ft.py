@@ -4,6 +4,7 @@ from pathlib import Path
 import espnetez as ez
 from espnet2.layers.create_adapter_fn import create_lora_adapter
 
+
 def get_inference_class(task_name: str):
     """
     Lazily import and return the inference class for the given task name.
@@ -22,45 +23,59 @@ def get_inference_class(task_name: str):
     """
     if task_name == "asr":
         from espnet2.bin.asr_inference import Speech2Text
+
         return Speech2Text
     elif task_name == "asr_transducer":
         from espnet2.bin.asr_transducer_inference import Speech2Text
+
         return Speech2Text
     elif task_name == "lm":
         from espnet2.bin.lm_inference import GenerateText
+
         return GenerateText
     elif task_name == "mt":
         from espnet2.bin.mt_inference import Text2Text
+
         return Text2Text
     elif task_name == "slu":
         from espnet2.bin.slu_inference import Speech2Understand
+
         return Speech2Understand
     elif task_name in ["tts", "gan_tts"]:
         from espnet2.bin.tts_inference import Text2Speech
+
         return Text2Speech
     elif task_name == "uasr":
         from espnet2.bin.uasr_inference import Speech2Text
+
         return Speech2Text
     elif task_name == "enh":
         from espnet2.bin.enh_inference import SeparateSpeech
+
         return SeparateSpeech
     elif task_name == "enh_tse":
         from espnet2.bin.enh_tse_inference import SeparateSpeech
+
         return SeparateSpeech
     elif task_name == "enh_s2t":
         from espnet2.bin.asr_inference import Speech2Text
+
         return Speech2Text
     elif task_name == "st":
         from espnet2.bin.st_inference import Speech2Text
+
         return Speech2Text
     elif task_name == "s2t":
         from espnet2.bin.s2t_inference import Speech2Text
+
         return Speech2Text
     elif task_name == "s2st":
         from espnet2.bin.s2st_inference import Speech2Speech
+
         return Speech2Speech
     elif task_name == "spk":
         from espnet2.bin.spk_inference import Speech2Embedding
+
         return Speech2Embedding
     else:
         raise KeyError(f"Unknown inference task: {task_name}")
@@ -101,7 +116,7 @@ def get_pretrained_model(args):
             exp_dir / "1epoch.pth",  # checkpoint
         )
     elif args.task == "enh_s2t":
-        return get_inference_class('asr')(
+        return get_inference_class("asr")(
             exp_dir / "config.yaml",
             exp_dir / "1epoch.pth",
             token_type="bpe",

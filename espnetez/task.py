@@ -61,67 +61,86 @@ def get_task_class(task_name: str):
     """
     if task_name == "asr":
         from espnet2.tasks.asr import ASRTask
+
         return ASRTask
     elif task_name == "asr_transducer":
         from espnet2.tasks.asr_transducer import ASRTransducerTask
+
         return ASRTransducerTask
     elif task_name == "asvspoof":
         from espnet2.tasks.asvspoof import ASVSpoofTask
+
         return ASVSpoofTask
     elif task_name == "diar":
         from espnet2.tasks.diar import DiarizationTask
+
         return DiarizationTask
     elif task_name == "enh":
         from espnet2.tasks.enh import EnhancementTask
+
         return EnhancementTask
     elif task_name == "enh_s2t":
         from espnet2.tasks.enh_s2t import EnhS2TTask
+
         return EnhS2TTask
     elif task_name == "enh_tse":
         from espnet2.tasks.enh_tse import TargetSpeakerExtractionTask
+
         return TargetSpeakerExtractionTask
     elif task_name == "gan_svs":
         from espnet2.tasks.gan_svs import GANSVSTask
+
         return GANSVSTask
     elif task_name == "gan_tts":
         from espnet2.tasks.gan_tts import GANTTSTask
+
         return GANTTSTask
     elif task_name == "hubert":
         from espnet2.tasks.hubert import HubertTask
+
         return HubertTask
     elif task_name == "lm":
         from espnet2.tasks.lm import LMTask
+
         return LMTask
     elif task_name == "mt":
         from espnet2.tasks.mt import MTTask
+
         return MTTask
     elif task_name == "s2st":
         from espnet2.tasks.s2st import S2STTask
+
         return S2STTask
     elif task_name == "s2t":
         from espnet2.tasks.s2t import S2TTask
+
         return S2TTask
     elif task_name == "slu":
         from espnet2.tasks.slu import SLUTask
+
         return SLUTask
     elif task_name == "spk":
         from espnet2.tasks.spk import SpeakerTask
+
         return SpeakerTask
     elif task_name == "st":
         from espnet2.tasks.st import STTask
+
         return STTask
     elif task_name == "svs":
         from espnet2.tasks.svs import SVSTask
+
         return SVSTask
     elif task_name == "tts":
         from espnet2.tasks.tts import TTSTask
+
         return TTSTask
     elif task_name == "uasr":
         from espnet2.tasks.uasr import UASRTask
+
         return UASRTask
     else:
         raise KeyError(f"Unknown task: {task_name}")
-
 
 
 def get_ez_task(task_name: str, use_custom_dataset: bool = False) -> AbsTask:
