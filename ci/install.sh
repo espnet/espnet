@@ -12,12 +12,12 @@ ${CXX:-g++} -v
 
     # To skip error
     mkdir -p kaldi/egs/wsj/s5/utils && touch kaldi/egs/wsj/s5/utils/parse_options.sh
-    if ${USE_CONDA}; then
-        ./setup_miniforge.sh venv espnet ${ESPNET_PYTHON_VERSION}
-        # To install via pip instead of conda
-    else
-        ./setup_venv.sh "$(command -v python3)" venv
-    fi
+    # if ${USE_CONDA}; then
+    #     ./setup_miniforge.sh venv espnet ${ESPNET_PYTHON_VERSION}
+    #     # To install via pip instead of conda
+    # else
+    #     ./setup_venv.sh "$(command -v python3)" venv
+    # fi
 
     . ./activate_python.sh
     # FIXME(kamo): Failed to compile pesq
@@ -46,8 +46,7 @@ python3 -m pip uninstall -y typing
 python3 -m pip install "hacking>=2.0.0" "flake8>=3.7.8"
 
 # install espnet
-python3 -m pip install -e ".[test]"
-python3 -m pip install -e ".[doc]"
+python3 -m pip install -e ".[test,doc,all]"
 
 # log
 python3 -m pip freeze

@@ -109,6 +109,11 @@ task-st = [
   "editdistance",
 ]
 
+task-s2t = [
+  "nltk>=3.4.5",
+  "editdistance",
+]
+
 task-sds = [
   "nltk>=3.4.5",
 ]

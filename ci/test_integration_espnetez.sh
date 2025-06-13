@@ -168,6 +168,9 @@ rm -rf exp data/spm
 
 
 # [ESPnet Easy] test slu recipe with coverage
+# Install s2t dependency
+python3 -m pip install -e '.[task-s2t]'
+
 cd ${cwd}/egs2/mini_an4/s2t1 || exit
 ln -sf ../asr1/data data
 ln -sf ../asr1/dump dump
@@ -194,7 +197,8 @@ python -m coverage run --append ../../../test/espnetez/test_integration_espnetez
 
 # Remove generated files in order to reduce the disk usage
 rm -rf exp data/spm
-
+# Uninstall task-dependency
+python3 test_utils/uninstall_extra.py
 
 echo "==== [ESPnet2] TTS ==="
 # Install TTS dependency
