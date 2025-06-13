@@ -177,29 +177,23 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
 1. Install ESPnet via `pyproject.toml`
 
     ESPnet adopts the modern Python packaging standard using `pyproject.toml`.
-    You can install the **core dependencies** with:
-
-    * Core installation:
-
-        ```sh
-        $ cd <espnet-root>
-        $ pip install -e ".[core]"
-        ```
-
-    To install task-specific dependencies, you can add the desired options. For example:
+    You can install ESPnet with a simple pip command `pip install -e .`,
+    but the required dependencies vary depending on the task you want to run.
+    Therefore, we recommend installing the appropriate extra dependencies
+    for your specific task. For example:
 
     * For ASR:
 
         ```sh
         $ cd <espnet-root>
-        $ pip install -e ".[core,task-asr]"
+        $ pip install -e ".[task-asr]"
         ```
 
     * For TTS:
 
         ```sh
         $ cd <espnet-root>
-        $ pip install -e ".[core,task-tts]"
+        $ pip install -e ".[task-tts]"
         ```
 
     * For all tasks (ASR, TTS, enhancement, speaker tasks):
@@ -229,10 +223,14 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
 
         | Group      | Purpose                       |
         | ---------- | ----------------------------- |
-        | `core`     | Core libraries and runtime    |
         | `task-asr` | ASR-specific dependencies     |
+        | `task-asr2`| ASR2-specific dependencies    |
         | `task-tts` | TTS-specific dependencies     |
         | `task-enh` | Speech enhancement            |
+        | `task-mt`  | Machine Translation           |
+        | `task-st`  | Speech Translation            |
+        | `task-s2t` | Speech to Text (e.g., OWSM)   |
+        | `task-sds` | Spoken Dialogue System        |
         | `task-spk` | Speaker recognition           |
         | `dev`      | Code formatting and linting   |
         | `test`     | Unit test dependencies        |
@@ -242,7 +240,7 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
         You can mix and match groups as needed:
 
         ```sh
-        pip install -e ".[core,task-asr,task-tts,test]"
+        pip install -e ".[task-asr,task-tts,test]"
         ```
 
 
