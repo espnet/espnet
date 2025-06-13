@@ -133,6 +133,7 @@ python -m coverage run --append ../../../test/espnetez/test_integration_espnetez
 
 # Remove generated files in order to reduce the disk usage
 rm -rf exp data/spm
+cd "${cwd}" || exit
 
 # Uninstall task-dependency
 python3 test_utils/uninstall_extra.py
@@ -689,7 +690,7 @@ for conf in "${spk_configs[@]}"; do
 
 cd "${cwd}" || exit
 # Uninstall task-dependency
-python3 test_utils/uninstall_extra.py
+python3 "${cwd}"/test_utils/uninstall_extra.py
 
 
 echo "=== report ==="
