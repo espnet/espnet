@@ -4,9 +4,9 @@ from pathlib import Path
 import espnetez as ez
 from espnet2.layers.create_adapter_fn import create_lora_adapter
 
+
 def get_inference_class(task_name: str):
-    """
-    Lazily import and return the inference class for the given task name.
+    """Lazily import and return the inference class for the given task name.
 
     This avoids importing all modules at once, preventing unnecessary dependency
     errors for users who only use specific tasks (e.g., ASR-only users don't need TTS).
@@ -20,6 +20,7 @@ def get_inference_class(task_name: str):
     Raises:
         KeyError: If task_name is not supported
     """
+
     if task_name == "asr":
         from espnet2.bin.asr_inference import Speech2Text
         return Speech2Text

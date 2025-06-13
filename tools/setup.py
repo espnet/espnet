@@ -141,7 +141,7 @@ setup(
     long_description=open(os.path.join(dirname, "README.md"), encoding="utf-8").read(),
     long_description_content_type="text/markdown",
     license="Apache Software License",
-    packages=find_packages(include=["espnet", "espnet2", "espnet3"]),
+    packages=find_packages(include=["espnet*"]),
     package_data={"espnet": ["version.txt"]},
     # #448: "scripts" is inconvenient for developping because they are copied
     # scripts=get_all_scripts('espnet/bin'),

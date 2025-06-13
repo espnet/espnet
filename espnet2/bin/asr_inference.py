@@ -125,7 +125,7 @@ class Speech2Text:
         threshold_probability: float = 0.99,
         max_seq_len: int = 5,
         max_mask_parallel: int = -1,
-    ):  
+    ):
         if enh_s2t_task:
             try:
                 from espnet2.tasks.enh_s2t import EnhS2TTask
