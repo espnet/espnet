@@ -399,7 +399,7 @@ class DNN_Beamformer(torch.nn.Module):
                 u = torch.zeros(
                     *(data.size()[:-3] + (data.size(-2),)),
                     device=data.device,
-                    dtype=torch.double
+                    dtype=torch.double,
                 )
                 u[..., self.ref_channel].fill_(1)
             else:

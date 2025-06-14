@@ -4,9 +4,11 @@ on:
   push:
     branches:
       - master
+      - espnet3
   pull_request:
     branches:
       - master
+      - espnet3
 
 jobs:
   process_labels:
@@ -316,6 +318,7 @@ jobs:
         python3 -m pip install -U numba
         ./tools/installers/install_torch.sh false ${TH_VERSION} CPU
         ./tools/installers/install_chainer.sh CPU
+        cp ./tools/setup.py ./ && mv pyproject.toml pyproject.toml.tmp # && mv espnet3 .espnet3
         python3 setup.py bdist_wheel
         python3 -m pip install dist/espnet-*.whl
         # log

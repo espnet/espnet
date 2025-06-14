@@ -64,13 +64,13 @@ def main(db_base, dataset, out_dir):
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
 
-    with open(
-        os.path.join(db_base, f"{dataset}.tsv"), "r", encoding="utf-8"
-    ) as csv_file, open(
-        os.path.join(out_dir, "utt2spk"), "w", encoding="utf-8"
-    ) as f_utt2spk, open(
-        os.path.join(out_dir, "wav.scp"), "w", encoding="utf-8"
-    ) as f_wav:
+    with (
+        open(
+            os.path.join(db_base, f"{dataset}.tsv"), "r", encoding="utf-8"
+        ) as csv_file,
+        open(os.path.join(out_dir, "utt2spk"), "w", encoding="utf-8") as f_utt2spk,
+        open(os.path.join(out_dir, "wav.scp"), "w", encoding="utf-8") as f_wav,
+    ):
 
         next(csv_file)  # Skip header line
         for line in csv_file:

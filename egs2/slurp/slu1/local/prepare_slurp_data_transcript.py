@@ -47,15 +47,15 @@ for subset in ["train", "devel", "test"]:
             else:
                 text = text + sub_word
         transcript_dict[wav_name] = text
-    with open(os.path.join(idir, "dataset", "slurp", subset + ".jsonl")) as meta, open(
-        os.path.join(odir, "text"), "w", encoding="utf-8"
-    ) as text, open(
-        os.path.join(odir, "transcript"), "w", encoding="utf-8"
-    ) as transcript_file, open(
-        os.path.join(odir, "wav.scp"), "w"
-    ) as wavscp, open(
-        os.path.join(odir, "utt2spk"), "w"
-    ) as utt2spk:
+    with (
+        open(os.path.join(idir, "dataset", "slurp", subset + ".jsonl")) as meta,
+        open(os.path.join(odir, "text"), "w", encoding="utf-8") as text,
+        open(
+            os.path.join(odir, "transcript"), "w", encoding="utf-8"
+        ) as transcript_file,
+        open(os.path.join(odir, "wav.scp"), "w") as wavscp,
+        open(os.path.join(odir, "utt2spk"), "w") as utt2spk,
+    ):
         for line in meta:
             prompt = json.loads(line.strip())
             transcript = prompt["sentence"]

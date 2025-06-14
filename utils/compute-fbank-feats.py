@@ -100,15 +100,16 @@ def main():
         logging.basicConfig(level=logging.WARN, format=logfmt)
     logging.info(get_commandline_args())
 
-    with kaldiio.ReadHelper(
-        args.rspecifier, segments=args.segments
-    ) as reader, file_writer_helper(
-        args.wspecifier,
-        filetype=args.filetype,
-        write_num_frames=args.write_num_frames,
-        compress=args.compress,
-        compression_method=args.compression_method,
-    ) as writer:
+    with (
+        kaldiio.ReadHelper(args.rspecifier, segments=args.segments) as reader,
+        file_writer_helper(
+            args.wspecifier,
+            filetype=args.filetype,
+            write_num_frames=args.write_num_frames,
+            compress=args.compress,
+            compression_method=args.compression_method,
+        ) as writer,
+    ):
         for utt_id, (rate, array) in reader:
             array = array.astype(numpy.float32)
             if args.fs is not None and rate != args.fs:

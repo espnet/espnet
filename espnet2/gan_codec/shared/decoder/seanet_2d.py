@@ -49,7 +49,7 @@ class NormConvTranspose2d(nn.Module):
         causal: bool = False,
         norm: str = "none",
         norm_kwargs: Dict[str, Any] = {},
-        **kwargs
+        **kwargs,
     ):
         super().__init__()
         self.convtr = apply_parametrization_norm(

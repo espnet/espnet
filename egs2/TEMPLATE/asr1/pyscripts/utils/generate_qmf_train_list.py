@@ -77,11 +77,12 @@ def main(args):
     spk_list_short = list(spk2utt_short.keys())
     spk_list_long = list(spk2utt_long.keys())
 
-    with open(out_dir + "/qmf_train.scp", "w") as f_qmf, open(
-        out_dir + "/qmf_train2.scp", "w"
-    ) as f_qmf2, open(out_dir + "/qmf_train_speech_shape", "w") as f_shape, open(
-        out_dir + "/qmf_train_label", "w"
-    ) as f_lbl:
+    with (
+        open(out_dir + "/qmf_train.scp", "w") as f_qmf,
+        open(out_dir + "/qmf_train2.scp", "w") as f_qmf2,
+        open(out_dir + "/qmf_train_speech_shape", "w") as f_shape,
+        open(out_dir + "/qmf_train_label", "w") as f_lbl,
+    ):
         # replace = True if len(spk_list) >= cfg["qmf_n_trial_per_condition"] else False
         spk2utt_short_used = {}
         spk2utt_long_used = {}

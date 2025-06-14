@@ -628,18 +628,18 @@ def inference(
     import matplotlib.pyplot as plt
     from matplotlib.ticker import MaxNLocator
 
-    with NpyScpWriter(
-        output_dir / "norm",
-        output_dir / "norm/feats.scp",
-    ) as norm_writer, NpyScpWriter(
-        output_dir / "denorm", output_dir / "denorm/feats.scp"
-    ) as denorm_writer, open(
-        output_dir / "speech_shape/speech_shape", "w"
-    ) as shape_writer, open(
-        output_dir / "focus_rates/focus_rates", "w"
-    ) as focus_rate_writer, DatadirWriter(
-        output_dir / "st_subtask"
-    ) as st_subtask_wrtier:
+    with (
+        NpyScpWriter(
+            output_dir / "norm",
+            output_dir / "norm/feats.scp",
+        ) as norm_writer,
+        NpyScpWriter(
+            output_dir / "denorm", output_dir / "denorm/feats.scp"
+        ) as denorm_writer,
+        open(output_dir / "speech_shape/speech_shape", "w") as shape_writer,
+        open(output_dir / "focus_rates/focus_rates", "w") as focus_rate_writer,
+        DatadirWriter(output_dir / "st_subtask") as st_subtask_wrtier,
+    ):
         for idx, (keys, batch) in enumerate(loader, 1):
             assert isinstance(batch, dict), type(batch)
             assert all(isinstance(s, str) for s in keys), keys
