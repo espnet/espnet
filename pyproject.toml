@@ -78,6 +78,7 @@ task-asr = [
   "hydra-core",
   "omegaconf",
   "opt_einsum",
+  "nltk>=3.4.5",
 ]
 
 task-tts = [
