@@ -29,6 +29,11 @@ if [ -z "${ACESINGER}" ]; then
     exit 1
 fi
 
+if [ -z "${OPENCPOP}" ]; then
+    log "Fill the value of 'OPENCPOP' of db.sh"
+    exit 1
+fi
+
 mkdir -p ${ACESINGER}
 
 train_set="tr_no_dev"
@@ -49,7 +54,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     mkdir -p wav_dump
     # we convert the music score to xml format
-    python local/data_prep.py ${ACESINGER}/ACESinger --midi_note_scp local/midi-note.scp \
+    python local/data_prep.py ${ACESINGER}/ACESinger ${OPENCPOP} --midi_note_scp local/midi-note.scp \
         --wav_dumpdir wav_dump \
         --sr ${fs} \
         --g2p ${g2p} \
