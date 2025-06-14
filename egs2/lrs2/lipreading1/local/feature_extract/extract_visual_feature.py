@@ -67,13 +67,16 @@ def main():
         logging.basicConfig(level=logging.WARN, format=logfmt)
     logging.info(get_commandline_args())
 
-    with VideoReader(args.rspecifier) as reader, file_writer_helper(
-        args.wspecifier,
-        filetype=args.filetype,
-        write_num_frames=args.write_num_frames,
-        compress=args.compress,
-        compression_method=args.compression_method,
-    ) as writer:
+    with (
+        VideoReader(args.rspecifier) as reader,
+        file_writer_helper(
+            args.wspecifier,
+            filetype=args.filetype,
+            write_num_frames=args.write_num_frames,
+            compress=args.compress,
+            compression_method=args.compression_method,
+        ) as writer,
+    ):
         for utt_id, v_feature in reader:
             writer[utt_id] = v_feature
 

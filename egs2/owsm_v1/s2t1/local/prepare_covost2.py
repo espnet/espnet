@@ -27,9 +27,11 @@ def collect_data(
     data_dir = Path(data_dir) / f"{split}.{src_lang}-{tgt_lang}"
 
     ret = []
-    with open(data_dir / f"text.tc.{src_lang}", "r") as f_src, open(
-        data_dir / f"text.tc.{tgt_lang}", "r"
-    ) as f_tgt, open(data_dir / "wav.scp", "r") as f_wav:
+    with (
+        open(data_dir / f"text.tc.{src_lang}", "r") as f_src,
+        open(data_dir / f"text.tc.{tgt_lang}", "r") as f_tgt,
+        open(data_dir / "wav.scp", "r") as f_wav,
+    ):
         for src_line, tgt_line, wav_line in zip(f_src, f_tgt, f_wav):
             uttid = tgt_line.split(maxsplit=1)[0]
             assert (

@@ -32,7 +32,7 @@ def get_pc_sampler(
     corrector_steps=1,
     probability_flow: bool = False,
     intermediate=False,
-    **kwargs
+    **kwargs,
 ):
     """Create a Predictor-Corrector (PC) sampler.
 
@@ -88,7 +88,7 @@ def get_ode_sampler(
     method="RK45",
     eps=3e-2,
     device="cuda",
-    **kwargs
+    **kwargs,
 ):
     """Probability flow ODE sampler with the black-box ODE solver.
 
@@ -151,7 +151,7 @@ def get_ode_sampler(
                 rtol=rtol,
                 atol=atol,
                 method=method,
-                **kwargs
+                **kwargs,
             )
             nfe = solution.nfev
             x = (

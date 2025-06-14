@@ -60,9 +60,10 @@ for pair in ["swa-eng", "swc-fra"]:
     for subset in ["train", "valid"]:
         path = os.path.join(args.path, pair, subset)
 
-        with open(os.path.join(path, "txt", subset + ".yaml")) as metafile, open(
-            os.path.join(path, "txt", subset + ".swa")
-        ) as textfile:
+        with (
+            open(os.path.join(path, "txt", subset + ".yaml")) as metafile,
+            open(os.path.join(path, "txt", subset + ".swa")) as textfile,
+        ):
             wavs = yaml.safe_load(metafile)
             texts = textfile.readlines()
 
@@ -99,9 +100,11 @@ for pair in ["swa-eng", "swc-fra"]:
 
         os.makedirs(odir, exist_ok=True)
 
-        with open(odir + "/text", "w", encoding="utf-8") as text, open(
-            odir + "/wav.scp", "w"
-        ) as wavscp, open(odir + "/utt2spk", "w") as utt2spk:
+        with (
+            open(odir + "/text", "w", encoding="utf-8") as text,
+            open(odir + "/wav.scp", "w") as wavscp,
+            open(odir + "/utt2spk", "w") as utt2spk,
+        ):
             for utt in subsets[subset]:
                 wavscp.write(
                     "{} sox --norm=-1 {}".format(utt["id"], utt["wav"])

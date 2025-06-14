@@ -22,9 +22,10 @@ def test_spm_compatibility():
           --character_coverage=1.0 --bos_id=-1 --eos_id=-1 \
           --unk_id=0 --user_defined_symbols=[laughter],[noise],[vocalized-noise]"
     )
-    with open(f"{bpemodel}.vocab", "r") as fa, open(
-        root + "/tedlium2.vocab", "r"
-    ) as fb:
+    with (
+        open(f"{bpemodel}.vocab", "r") as fa,
+        open(root + "/tedlium2.vocab", "r") as fb,
+    ):
         for a, b in zip(fa, fb):
             assert a == b
 
