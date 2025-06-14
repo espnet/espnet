@@ -101,6 +101,12 @@ task-asr2 = [
   "editdistance",
 ]
 
+task-s2st = [
+  "nltk>=3.4.5",
+  "editdistance",
+  "s3prl",
+]
+
 task-mt = [
   "nltk>=3.4.5",
 ]

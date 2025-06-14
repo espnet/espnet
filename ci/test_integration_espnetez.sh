@@ -606,12 +606,15 @@ cd "${cwd}" || exit
 # Uninstall task-dependency
 python3 test_utils/uninstall_extra.py
 
+# Install S2ST dependency
+python3 -m pip install -e '.[task-s2st]'
 
 # [ESPnet Easy] test s2st1 recipe with coverage
 cd ${cwd}/egs2/mini_an4/s2st1 || exit
 rm -rf exp dump data
 gen_dummy_coverage
 echo "==== [ESPnet2] S2ST ==="
+
 ./run.sh --ngpu 0 --stage 1 --stop_stage 5 --use_discrete_unit false --s2st_config conf/s2st_spec_debug.yaml
 python -m coverage run --append ../../../test/espnetez/test_integration_espnetez.py \
     --task s2st \
@@ -663,13 +666,17 @@ python -m coverage run --append ../../../test/espnetez/test_integration_espnetez
 rm -rf exp dump data ckpt .cache
 cd "${cwd}" || exit
 
+# Uninstall task-dependency
+python3 test_utils/uninstall_extra.py
+
+# Install SPK dependency
+python3 -m pip install -e '.[task-spk]'
+
 # [ESPnet Easy] test spk recipe with coverage
 cd ${cwd}/egs2/mini_an4/spk1 || exit
 rm -rf exp dump data
 gen_dummy_coverage
 echo "==== [ESPnet2] SPK1 ==="
-# Install SPK dependency
-python3 -m pip install -e '.[task-spk]'
 
 # data preparation
 ./run.sh --ngpu 0 --stage 0 --stop-stage 3 --feats-type "raw" --spk-args "--num_workers 0"
@@ -703,7 +710,6 @@ for conf in "${spk_configs[@]}"; do
 cd "${cwd}" || exit
 # Uninstall task-dependency
 python3 "${cwd}"/test_utils/uninstall_extra.py
-
 
 echo "=== report ==="
 python -m coverage combine egs2/*/*/.coverage
