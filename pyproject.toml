@@ -43,6 +43,7 @@ dependencies = [
     "lhotse",
     "espnet_model_zoo",
     "matplotlib",
+    "nltk>=3.4.5",
 ]
 
 [project.urls]
@@ -78,7 +79,6 @@ task-asr = [
   "hydra-core",
   "omegaconf",
   "opt_einsum",
-  "nltk>=3.4.5",
 ]
 
 task-tts = [
@@ -97,32 +97,20 @@ task-enh = [
 ]
 
 task-asr2 = [
-  "nltk>=3.4.5",
   "editdistance",
 ]
 
 task-s2st = [
-  "nltk>=3.4.5",
   "editdistance",
   "s3prl",
 ]
 
-task-mt = [
-  "nltk>=3.4.5",
-]
-
 task-st = [
-  "nltk>=3.4.5",
   "editdistance",
 ]
 
 task-s2t = [
-  "nltk>=3.4.5",
   "editdistance",
-]
-
-task-sds = [
-  "nltk>=3.4.5",
 ]
 
 task-spk = [

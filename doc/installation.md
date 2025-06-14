@@ -227,10 +227,8 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
         | `task-asr2`| ASR2-specific dependencies    |
         | `task-tts` | TTS-specific dependencies     |
         | `task-enh` | Speech enhancement            |
-        | `task-mt`  | Machine Translation           |
         | `task-st`  | Speech Translation            |
         | `task-s2t` | Speech to Text (e.g., OWSM)   |
-        | `task-sds` | Spoken Dialogue System        |
         | `task-spk` | Speaker recognition           |
         | `dev`      | Code formatting and linting   |
         | `test`     | Unit test dependencies        |
