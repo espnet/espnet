@@ -58,8 +58,9 @@ def load_midi(args):
 
 
 def load_and_process_TextGrid(textgrid_path, transcriptions_path, song_folder):
-    # Step 1: Load the textgrid file 
+    # Step 1: Load the textgrid file
     from textgrid import TextGrid
+
     tg = TextGrid.fromFile(textgrid_path)
 
     # Step 2: Get the start and end times of non-silent utterances
@@ -68,7 +69,9 @@ def load_and_process_TextGrid(textgrid_path, transcriptions_path, song_folder):
     utterance_time = []
     for utt in tg[0]:
         if utt.mark != "silence":
-            utterance_time.append((utt.minTime * 1000, utt.maxTime * 1000)) # Convert to milliseconds
+            utterance_time.append(
+                (utt.minTime * 1000, utt.maxTime * 1000)
+            )  # Convert to milliseconds
 
     # Step 3: Load the transcription file
     transcriptions = (
@@ -87,15 +90,18 @@ def load_and_process_TextGrid(textgrid_path, transcriptions_path, song_folder):
     utterance_idx = 0
     utterance_time_map = {}
     for row in relevant_transcriptions:
-        name, _, _, _, _, _, _ = row 
-        utterance_time_map[name] = [utterance_time[utterance_idx][0], utterance_time[utterance_idx][1]]
+        name, _, _, _, _, _, _ = row
+        utterance_time_map[name] = [
+            utterance_time[utterance_idx][0],
+            utterance_time[utterance_idx][1],
+        ]
         utterance_idx += 1
     return utterance_time_map
 
 
 def segment_audio(audio, utterance_time_map, output_temp):
     for name, utt_time in utterance_time_map.items():
-        start_time, end_time = utt_time[0], utt_time[1] 
+        start_time, end_time = utt_time[0], utt_time[1]
         if end_time > len(audio):
             end_time = -1
         segment = audio[start_time:end_time]  # Extract the segment
@@ -138,12 +144,16 @@ def segment_dataset(args, dataset):
                 continue  # Skip if the audio file does not exist
             audio = AudioSegment.from_wav(audio_path)
 
-            textgrid_path = os.path.join(args.opencpop_src_data, "raw_data/textgrids", f"{song_folder}.TextGrid")
+            textgrid_path = os.path.join(
+                args.opencpop_src_data, "raw_data/textgrids", f"{song_folder}.TextGrid"
+            )
             if not os.path.exists(textgrid_path):
                 continue  # Skip if the textgrid file does not exist
-            utterance_time_map = load_and_process_TextGrid(textgrid_path, transcriptions_path, song_folder)
+            utterance_time_map = load_and_process_TextGrid(
+                textgrid_path, transcriptions_path, song_folder
+            )
             segment_audio(audio, utterance_time_map, output_temp)
-           
+
 
 def create_score(uid, phns, midis, syb_dur, keep):
     # Transfer into 'score' format
@@ -309,7 +319,9 @@ def process_subset(args, set_name, tempos, dataset):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Prepare Data for Acesinger Database")
     parser.add_argument("src_data", type=str, help="source data directory")
-    parser.add_argument("opencpop_src_data", type=str, help="opencpop source data directory")
+    parser.add_argument(
+        "opencpop_src_data", type=str, help="opencpop source data directory"
+    )
     parser.add_argument("--tgt_dir", type=str, default="data")
     parser.add_argument(
         "--midi_note_scp",
