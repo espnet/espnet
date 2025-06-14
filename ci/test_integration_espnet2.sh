@@ -361,6 +361,10 @@ cd "${cwd}"
 python3 test_utils/uninstall_extra.py
 
 # [ESPnet2] test s2st1 recipe
+# # Install s2st dependency
+python3 -m pip install -e '.[task-s2st]'
+
+# [ESPnet2] test s2st1 recipe
 cd ./egs2/mini_an4/s2st1
 gen_dummy_coverage
 echo "==== [ESPnet2] S2ST ==="
@@ -371,6 +375,8 @@ fi
 # Remove generated files in order to reduce the disk usage
 rm -rf exp dump data ckpt .cache
 cd "${cwd}"
+# Uninstall task-dependency
+python3 test_utils/uninstall_extra.py
 
 # [ESPnet2] test lm1 recipe
 cd ./egs2/mini_an4/lm1
