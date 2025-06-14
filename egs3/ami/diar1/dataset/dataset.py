@@ -84,7 +84,6 @@ class DiarCutSet(Dataset):
             audio = self.specaugment(torch.from_numpy(audio[None, ...])).numpy()[0]
             # specaugment
 
-
         # need to get speaker activities here
         sa = self.get_sa(cut.supervisions, cut.duration, fs=cut.sampling_rate).numpy().T
 

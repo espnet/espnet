@@ -125,11 +125,11 @@ class PITLossWrapper(nn.Module):
         min_loss, batch_indices = self.find_best_perm(
             pw_losses, perm_reduce=self.perm_reduce, **reduce_kwargs
         )
-        mean_loss = torch.mean(min_loss)
+        mean_loss = min_loss #torch.mean(min_loss)
         if not return_est:
             return mean_loss
-        reordered = self.reorder_source(est_targets, batch_indices)
-        return mean_loss, reordered.to(mean_loss.device)
+
+        return mean_loss, batch_indices.to(mean_loss.device)
 
     @staticmethod
     def get_pw_losses(loss_func, est_targets, targets, **kwargs):

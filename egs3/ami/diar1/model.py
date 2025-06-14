@@ -7,6 +7,7 @@ from typeguard import typechecked
 from espnet2.torch_utils.device_funcs import force_gatherable
 from torch.cuda.amp import autocast
 from egs3.ami.diar1.local.utils import padtrunc
+from espnet2.diar.espnet_model import ESPnetDiarizationModel
 
 
 
@@ -17,6 +18,7 @@ class ConvFrontEnd(torch.nn.Module):
             in_stride=10,
             emb_size=256,
             dropout=0.0,
+            pos_enc_ksz=31,
             eps=1e-5):
         super().__init__()
 
@@ -25,10 +27,15 @@ class ConvFrontEnd(torch.nn.Module):
         self.pointwise = torch.nn.Linear(n_mels, emb_size)
         self.in_norm = torch.nn.LayerNorm(emb_size, eps=eps)
         self.in_drop = torch.nn.Dropout(dropout)
+        self.pos_enc = torch.nn.Conv1d(emb_size, emb_size, kernel_size=pos_enc_ksz,
+                                         stride=1, padding=pos_enc_ksz // 2, groups=emb_size)
+
 
     def forward(self, x, lengths):
         x = self.pointwise(self.depthwise(x.transpose(-1, -2)).transpose(-1, -2))
-        x = self.in_drop(self.in_norm(x))
+        x = self.in_norm(x)
+        x = x + self.pos_enc(x.transpose(-1, -2)).transpose(-1, -2)
+        x = self.in_drop(x)
 
         ratio =  x.shape[1] / lengths
         adjusted_lengths = (lengths * ratio).long()
@@ -86,7 +93,7 @@ class MaskedBinaryXentropyWithLogits(torch.nn.Module):
 
             loss = loss.sum(-1) * weights[..., 0]
         else:
-            loss = loss.sum(-1)
+            loss = loss.sum(-1) # we should probably divide here
 
         return loss.mean(1)
 
@@ -163,13 +170,12 @@ class VanillaEENDModelWrapper(torch.nn.Module):
                  speaker_miss,
                  speaker_falarm,
                  speaker_error,
-                 ) = self.calc_diarization_error(torch.sigmoid(speech),
+                 ) = ESPnetDiarizationModel.calc_diarization_error(speech,
                                                  spk_labels,
                                                  spk_labels_lengths)
 
-                speech_scored = np.clip(speech_scored, 1.0, float("inf"))
-                speaker_scored = np.clip(speaker_scored, 1.0, float("inf"))
-                sad_mr, sad_fr, mi, fa, cf, acc, der = (
+                if speech_scored > 0 and num_frames > 0:
+                    sad_mr, sad_fr, mi, fa, cf, acc, der = (
                         speech_miss / speech_scored,
                         speech_falarm / speech_scored,
                         speaker_miss / speaker_scored,
@@ -178,6 +184,8 @@ class VanillaEENDModelWrapper(torch.nn.Module):
                         correct / num_frames,
                         (speaker_miss + speaker_falarm + speaker_error) / speaker_scored,
                     )
+                else:
+                    sad_mr, sad_fr, mi, fa, cf, acc, der = 0, 0, 0, 0, 0, 0, 0
 
                 stats = dict(
                     loss=loss.detach(),
@@ -225,48 +233,3 @@ class VanillaEENDModelWrapper(torch.nn.Module):
         loss, batch_indx = self.pit_loss(pred, label, lengths=length, return_est=True)
         pred = PITLossWrapper.reorder_source(pred, batch_indx)
         return loss, pred
-
-
-    @staticmethod
-    def calc_diarization_error(pred, label, length):
-        # Note (jiatong): Credit to https://github.com/hitachi-speech/EEND
-
-        (batch_size, max_len, num_output) = label.size()
-        # mask the padding part
-        mask = np.zeros((batch_size, max_len, num_output))
-        for i in range(batch_size):
-            mask[i, : length[i], :] = 1
-
-        # pred and label have the shape (batch_size, max_len, num_output)
-        label_np = label.data.cpu().numpy().astype(int)
-        pred_np = (pred.data.cpu().numpy() > 0.5).astype(int)
-        label_np = label_np * mask
-        pred_np = pred_np * mask
-        length = length.data.cpu().numpy()
-
-        # compute speech activity detection error
-        n_ref = np.sum(label_np, axis=2)
-        n_sys = np.sum(pred_np, axis=2)
-        speech_scored = float(np.sum(n_ref > 0))
-        speech_miss = float(np.sum(np.logical_and(n_ref > 0, n_sys == 0)))
-        speech_falarm = float(np.sum(np.logical_and(n_ref == 0, n_sys > 0)))
-
-        # compute speaker diarization error
-        speaker_scored = float(np.sum(n_ref))
-        speaker_miss = float(np.sum(np.maximum(n_ref - n_sys, 0)))
-        speaker_falarm = float(np.sum(np.maximum(n_sys - n_ref, 0)))
-        n_map = np.sum(np.logical_and(label_np == 1, pred_np == 1), axis=2)
-        speaker_error = float(np.sum(np.minimum(n_ref, n_sys) - n_map))
-        correct = float(1.0 * np.sum((label_np == pred_np) * mask) / num_output)
-        num_frames = np.sum(length)
-        return (
-            correct,
-            num_frames,
-            speech_scored,
-            speech_miss,
-            speech_falarm,
-            speaker_scored,
-            speaker_miss,
-            speaker_falarm,
-            speaker_error,
-        )
