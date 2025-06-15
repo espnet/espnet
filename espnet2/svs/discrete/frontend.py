@@ -4,7 +4,6 @@ from typing import Optional, Tuple, Union
 
 import humanfriendly
 import torch
-import torchaudio
 from typeguard import check_argument_types
 
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
@@ -43,12 +42,9 @@ class MERTFrontend(AbsFrontend):
         model.eval()
 
         if layer != -1:
-            layer_selections = [layer]
             assert (
                 not multilayer_feature
             ), "multilayer feature will be deactivated, when specific layer used"
-        else:
-            layer_selections = None
 
         self.multilayer_feature = multilayer_feature
         self.layer = layer
@@ -131,12 +127,9 @@ class EnCodecFrontend(AbsFrontend):
         model.eval()
         processor = AutoProcessor.from_pretrained(download_path)
         if layer != -1:
-            layer_selections = [layer]
             assert (
                 not multilayer_feature
             ), "multilayer feature will be deactivated, when specific layer used"
-        else:
-            layer_selections = None
 
         self.multilayer_feature = multilayer_feature
         self.layer = layer - 1
@@ -214,7 +207,6 @@ class EnCodecFrontend(AbsFrontend):
                 inputs["input_values"], inputs["padding_mask"], bandwidth=self.bandwidth
             )
             codes = out.audio_codes
-            scales = out.audio_scales
             codes = torch.cat([c[0] for c in codes], dim=-1)
             hs.append(codes)
             feats_lens.append(codes.size(1))

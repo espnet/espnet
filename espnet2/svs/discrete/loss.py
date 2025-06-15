@@ -3,33 +3,16 @@
 
 """FastSpeech related modules."""
 
-import logging
-
 import torch
-import torch.nn.functional as F
 
-from espnet.asr.asr_utils import get_model_conf, torch_load
-from espnet.nets.pytorch_backend.fastspeech.duration_calculator import (  # noqa: H301
-    DurationCalculator,
-)
 from espnet.nets.pytorch_backend.fastspeech.duration_predictor import (  # noqa: H301
-    DurationPredictor,
     DurationPredictorLoss,
 )
-from espnet.nets.pytorch_backend.fastspeech.length_regulator import LengthRegulator
-from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask, make_pad_mask
-from espnet.nets.pytorch_backend.tacotron2.decoder import Postnet
+from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
 from espnet.nets.pytorch_backend.transformer.embedding import (
     PositionalEncoding,
-    ScaledPositionalEncoding,
 )
-from espnet.nets.pytorch_backend.transformer.encoder import Encoder
-from espnet.nets.pytorch_backend.transformer.initializer import initialize
-from espnet.nets.tts_interface import TTSInterface
-from espnet.utils.cli_utils import strtobool
-from espnet.utils.fill_missing_args import fill_missing_args
-
 
 class DiscreteLoss(torch.nn.Module):
     """Loss function module for feed-forward Transformer."""
@@ -133,7 +116,6 @@ class DiscreteLoss(torch.nn.Module):
             pitch_weights /= ps.size(0) * ps.size(2)
 
             # apply weight
-            l1_loss = l1_loss.mul(out_weights).masked_select(out_masks).sum()
             duration_loss = (
                 duration_loss.mul(duration_weights).masked_select(duration_masks).sum()
             )

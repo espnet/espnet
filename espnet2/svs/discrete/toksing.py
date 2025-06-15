@@ -10,7 +10,6 @@ from typing import Dict, Optional, Tuple
 
 import torch
 import torch.nn.functional as F
-from typeguard import typechecked
 
 from espnet2.svs.abs_svs import AbsSVS
 from espnet2.svs.discrete.loss import DiscreteLoss
@@ -67,7 +66,8 @@ class Decoder(torch.nn.Module):
         attention_dropout_rate: float = 0.0,
         global_channels: int = -1,
     ):
-        """
+        """Initialize mel deocoder module
+
         Args:
             out_channels (int): The output dimension of the module.
             attention_dim (int): The dimension of the attention mechanism.
@@ -121,8 +121,7 @@ class Decoder(torch.nn.Module):
             self.global_conv = torch.nn.Conv1d(global_channels, attention_dim, 1)
 
     def forward(self, x, x_lengths, g=None):
-        """
-        Forward pass of the Decoder.
+        """Forward pass of the Decoder.
 
         Args:
             x (Tensor): Input tensor (B, 2 + attention_dim, T).
@@ -250,7 +249,7 @@ class TokSing(AbsSVS):
         predict_pitch: bool = False,
         codec_codebook: int = 0,
     ):
-        """Initialize XiaoiceSing module.
+        """Initialize TokSing module.
 
         Args:
             idim (int): Dimension of the label inputs.
