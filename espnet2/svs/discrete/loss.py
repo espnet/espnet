@@ -14,6 +14,7 @@ from espnet.nets.pytorch_backend.transformer.embedding import (
     PositionalEncoding,
 )
 
+
 class DiscreteLoss(torch.nn.Module):
     """Loss function module for feed-forward Transformer."""
 
