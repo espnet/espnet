@@ -9,10 +9,6 @@ from espnet.nets.pytorch_backend.fastspeech.duration_predictor import (  # noqa:
     DurationPredictorLoss,
 )
 from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
-from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
-from espnet.nets.pytorch_backend.transformer.embedding import (
-    PositionalEncoding,
-)
 
 class DiscreteLoss(torch.nn.Module):
     """Loss function module for feed-forward Transformer."""
