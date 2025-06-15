@@ -10,6 +10,7 @@ from espnet.nets.pytorch_backend.fastspeech.duration_predictor import (  # noqa:
 )
 from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 
+
 class DiscreteLoss(torch.nn.Module):
     """Loss function module for feed-forward Transformer."""
 
