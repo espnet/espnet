@@ -15,6 +15,7 @@ except ModuleNotFoundError:
         "pydub needed for audio segmentation" "use pip to install pydub"
     )
 from tqdm import tqdm
+from textgrid import TextGrid
 
 from espnet2.fileio.score_scp import SingingScoreWriter
 
@@ -57,10 +58,12 @@ def load_midi(args):
     return midis
 
 
-def load_and_process_TextGrid(textgrid_path, transcriptions_path, song_folder):
-    # Step 1: Load the textgrid file
-    from textgrid import TextGrid
-
+def load_and_process_TextGrid(
+    textgrid_path, 
+    transcriptions_path, 
+    song_folder
+):
+    # Step 1: Load the textgrid file 
     tg = TextGrid.fromFile(textgrid_path)
 
     # Step 2: Get the start and end times of non-silent utterances
@@ -75,7 +78,9 @@ def load_and_process_TextGrid(textgrid_path, transcriptions_path, song_folder):
 
     # Step 3: Load the transcription file
     transcriptions = (
-        open(transcriptions_path, "r", encoding="utf-8").read().strip().split("\n")
+        open(
+            transcriptions_path, "r", encoding="utf-8"
+        ).read().strip().split("\n")
     )
 
     # Step 4: Split the content in each row to name, lyrics, phns, pitch, duration, is_slur by |
@@ -83,10 +88,11 @@ def load_and_process_TextGrid(textgrid_path, transcriptions_path, song_folder):
 
     # Step 5: Find all the rows's corresponding name in the txt file starting with 2001
     relevant_transcriptions = [
-        row for row in parsed_transcriptions if row[0].startswith(str(song_folder))
+        row for row in parsed_transcriptions 
+            if row[0].startswith(str(song_folder))
     ]
 
-    # Step 6: Find the start and end times for the song's corresponding row names.
+    # Step 6: Find the start and end times for the song's corresponding row names
     utterance_idx = 0
     utterance_time_map = {}
     for row in relevant_transcriptions:
@@ -118,7 +124,9 @@ def segment_audio(audio, utterance_time_map, output_temp):
 
 def segment_dataset(args, dataset):
     root_path = os.path.join(args.src_data, dataset)
-    transcriptions_path = os.path.join(args.src_data, "segments", "transcriptions.txt")
+    transcriptions_path = os.path.join(
+        args.src_data, "segments", "transcriptions.txt"
+    )
     for singer_folder in os.listdir(root_path):
         # starts with number
         if not singer_folder[0].isdigit():
