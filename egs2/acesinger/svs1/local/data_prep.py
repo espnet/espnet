@@ -86,7 +86,7 @@ def load_and_process_TextGrid(
     # Step 4: Split the content in each row to name, lyrics, phns, pitch, duration, is_slur by |
     parsed_transcriptions = [row.split("|") for row in transcriptions]
 
-    # Step 5: Find all the rows's corresponding name in the txt file starting with 2001
+    # Step 5: Find all the rows' corresponding name in the txt file starting with 2001
     relevant_transcriptions = [
         row for row in parsed_transcriptions 
             if row[0].startswith(str(song_folder))
@@ -98,8 +98,8 @@ def load_and_process_TextGrid(
     for row in relevant_transcriptions:
         name, _, _, _, _, _, _ = row
         utterance_time_map[name] = [
-            utterance_time[utterance_idx][0],
-            utterance_time[utterance_idx][1],
+            utterance_time[utterance_idx][0], 
+            utterance_time[utterance_idx][1]
         ]
         utterance_idx += 1
     return utterance_time_map
