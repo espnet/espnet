@@ -75,7 +75,7 @@ class ESPnetSSLFrontend(AbsFrontend):
                     device="cpu",
                 )
         else:
-            raise RuntimeError(f"Did not receive a model to load in the frontend_conf")
+            raise RuntimeError("Did not receive a model to load in the frontend_conf")
 
         if multilayer_feature:
             featurizer = Featureizer(len(model.encoder.encoders))
@@ -144,9 +144,10 @@ class ESPnetSSLFrontend(AbsFrontend):
 
 class Featureizer(torch.nn.Module):
     def __init__(self, num_layers: int):
-        """Simplified S3PRL-style featurizer.
-        Outputs a learned weighted sum of input layers.
 
+        """Simplified S3PRL-style featurizer.
+
+        Outputs a learned weighted sum of input layers.
         Original code by Leo Yang (2022) in the S3PRL library.
         https://github.com/s3prl/s3prl/blob/main/s3prl/nn/upstream.py
         """
@@ -167,15 +168,13 @@ class Featureizer(torch.nn.Module):
         return weighted_hs
 
     def forward(self, all_hs: List[torch.FloatTensor]):
-        """
+        """Forward function.
+
         Args:
             all_hs (List[torch.FloatTensor]): List[ (batch_size, seq_len, hidden_size) ]
 
-        Return:
-            torch.FloatTensor, torch.LongTensor
-
+        Returns:
             1. The weighted-sum result, (batch_size, seq_len, hidden_size)
-            2. the valid length of the result, (batch_size, )
         """
         if len(all_hs) == 1:
             return all_hs[0]
