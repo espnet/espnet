@@ -14,8 +14,8 @@ except ModuleNotFoundError:
     raise ModuleNotFoundError(
         "pydub needed for audio segmentation" "use pip to install pydub"
     )
-from tqdm import tqdm
 from textgrid import TextGrid
+from tqdm import tqdm
 
 from espnet2.fileio.score_scp import SingingScoreWriter
 
@@ -58,12 +58,8 @@ def load_midi(args):
     return midis
 
 
-def load_and_process_TextGrid(
-    textgrid_path, 
-    transcriptions_path, 
-    song_folder
-):
-    # Step 1: Load the textgrid file 
+def load_and_process_TextGrid(textgrid_path, transcriptions_path, song_folder):
+    # Step 1: Load the textgrid file
     tg = TextGrid.fromFile(textgrid_path)
 
     # Step 2: Get the start and end times of non-silent utterances
@@ -78,9 +74,7 @@ def load_and_process_TextGrid(
 
     # Step 3: Load the transcription file
     transcriptions = (
-        open(
-            transcriptions_path, "r", encoding="utf-8"
-        ).read().strip().split("\n")
+        open(transcriptions_path, "r", encoding="utf-8").read().strip().split("\n")
     )
 
     # Step 4: Split the content in each row to name, lyrics, phns, pitch, duration, is_slur by |
@@ -88,8 +82,7 @@ def load_and_process_TextGrid(
 
     # Step 5: Find all the rows' corresponding name in the txt file starting with 2001
     relevant_transcriptions = [
-        row for row in parsed_transcriptions 
-            if row[0].startswith(str(song_folder))
+        row for row in parsed_transcriptions if row[0].startswith(str(song_folder))
     ]
 
     # Step 6: Find the start and end times for the song's corresponding row names
@@ -98,8 +91,8 @@ def load_and_process_TextGrid(
     for row in relevant_transcriptions:
         name, _, _, _, _, _, _ = row
         utterance_time_map[name] = [
-            utterance_time[utterance_idx][0], 
-            utterance_time[utterance_idx][1]
+            utterance_time[utterance_idx][0],
+            utterance_time[utterance_idx][1],
         ]
         utterance_idx += 1
     return utterance_time_map
@@ -124,9 +117,7 @@ def segment_audio(audio, utterance_time_map, output_temp):
 
 def segment_dataset(args, dataset):
     root_path = os.path.join(args.src_data, dataset)
-    transcriptions_path = os.path.join(
-        args.src_data, "segments", "transcriptions.txt"
-    )
+    transcriptions_path = os.path.join(args.src_data, "segments", "transcriptions.txt")
     for singer_folder in os.listdir(root_path):
         # starts with number
         if not singer_folder[0].isdigit():
