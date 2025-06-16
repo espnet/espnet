@@ -148,6 +148,7 @@ def segment_dataset(args, dataset):
                 args.opencpop_src_data, "raw_data/textgrids", f"{song_folder}.TextGrid"
             )
             if not os.path.exists(textgrid_path):
+                print(f"[data_prep] warning : {textgrid_path} does not exist, please check it ...")
                 continue  # Skip if the textgrid file does not exist
             utterance_time_map = load_and_process_TextGrid(
                 textgrid_path, transcriptions_path, song_folder
