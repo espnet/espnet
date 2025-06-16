@@ -58,7 +58,7 @@ def load_midi(args):
     return midis
 
 
-def load_and_process_TextGrid(textgrid_path, transcriptions_path, song_folder):
+def load_and_process_textgrid(textgrid_path, transcriptions_path, song_folder):
     # Step 1: Load the textgrid file
     tg = TextGrid.fromFile(textgrid_path)
 
@@ -103,7 +103,7 @@ def segment_audio(audio, utterance_time_map, output_temp):
     for name, utt_time in utterance_time_map.items():
         start_time, end_time = utt_time[0], utt_time[1]
         if end_time > len(audio):
-            end_time = -1
+            end_time = len(audio)
         segment = audio[start_time:end_time]  # Extract the segment
         output_name = output_temp + f"#{name}"
         if os.path.exists(f"{output_name}.wav"):
@@ -148,9 +148,9 @@ def segment_dataset(args, dataset):
                 args.opencpop_src_data, "raw_data/textgrids", f"{song_folder}.TextGrid"
             )
             if not os.path.exists(textgrid_path):
-                print(f"[data_prep] warning : {textgrid_path} does not exist, please check it ...")
+                print(f"[data_prep] warning : {textgrid_path} does not exist...")
                 continue  # Skip if the textgrid file does not exist
-            utterance_time_map = load_and_process_TextGrid(
+            utterance_time_map = load_and_process_textgrid(
                 textgrid_path, transcriptions_path, song_folder
             )
             segment_audio(audio, utterance_time_map, output_temp)
@@ -324,12 +324,6 @@ if __name__ == "__main__":
         "opencpop_src_data", type=str, help="opencpop source data directory"
     )
     parser.add_argument("--tgt_dir", type=str, default="data")
-    parser.add_argument(
-        "--midi_note_scp",
-        type=str,
-        help="midi note scp for information of note id",
-        default="local/midi-note.scp",
-    )
     parser.add_argument(
         "--wav_dumpdir", type=str, help="wav dump directory (rebit)", default="wav_dump"
     )
