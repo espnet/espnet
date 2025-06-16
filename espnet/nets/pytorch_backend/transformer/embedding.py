@@ -448,7 +448,7 @@ class ConvolutionalPositionalEmbedding(torch.nn.Module):
                     else:
                         weight_norm = "legacy"
                         logging.warning(
-                            f"torch.nn.utils.parametrizations.weight_norm is only "
+                            "torch.nn.utils.parametrizations.weight_norm is only "
                             + "supported for pytorch versions >= 2.2.0. "
                             + "Defaulting to torch.nn.utils.weight_norm."
                         )
