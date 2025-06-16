@@ -144,7 +144,6 @@ class ESPnetSSLFrontend(AbsFrontend):
 
 class Featureizer(torch.nn.Module):
     def __init__(self, num_layers: int):
-
         """Simplified S3PRL-style featurizer.
 
         Outputs a learned weighted sum of input layers.

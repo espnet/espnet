@@ -12,7 +12,7 @@ from espnet2.asr.frontend.abs_frontend import AbsFrontend
 
 def dim_1_layer_norm(x, eps=1e-05, gamma=None, beta=None):
     """Functional version of Dim1LayerNorm."""
-    
+
     B, D, T = x.shape
     mean = torch.mean(x, 1, keepdim=True)
     variance = torch.mean((x - mean) ** 2, 1, keepdim=True)
@@ -30,7 +30,7 @@ class Dim1LayerNorm(Module):
     def __init__(self, normalized_shape, eps=1e-05, elementwise_affine=True, bias=True):
         """LayerNorm on middle dim.
 
-        It assumes the input is shape B, D, T 
+        It assumes the input is shape B, D, T
         to avoid transposing.
         Faster than TransposedLayerNorm, but
         may lead to minor numerical differences.
