@@ -23,12 +23,14 @@ from espnet2.spk.encoder.ecapa_tdnn_encoder import EcapaTdnnEncoder
 from espnet2.spk.encoder.identity_encoder import IdentityEncoder
 from espnet2.spk.encoder.rawnet3_encoder import RawNet3Encoder
 from espnet2.spk.encoder.ska_tdnn_encoder import SkaTdnnEncoder
+from espnet2.spk.encoder.txf_ska_tdnn_encoder import TxfSkaTdnnEncoder
 from espnet2.spk.encoder.xvector_encoder import XvectorEncoder
 from espnet2.spk.espnet_model import ESPnetSpeakerModel
 from espnet2.spk.loss.aamsoftmax import AAMSoftmax
 from espnet2.spk.loss.aamsoftmax_subcenter_intertopk import (
     ArcMarginProduct_intertopk_subcenter,
 )
+from espnet2.spk.loss.mse import MSE
 from espnet2.spk.pooling.abs_pooling import AbsPooling
 from espnet2.spk.pooling.chn_attn_stat_pooling import ChnAttnStatPooling
 from espnet2.spk.pooling.mean_pooling import MeanPooling
@@ -94,6 +96,7 @@ encoder_choices = ClassChoices(
         mfaconformer=MfaConformerEncoder,
         rawnet3=RawNet3Encoder,
         ska_tdnn=SkaTdnnEncoder,
+        txf_ska_tdnn=TxfSkaTdnnEncoder,
         xvector=XvectorEncoder,
     ),
     type_check=AbsEncoder,
@@ -137,6 +140,7 @@ loss_choices = ClassChoices(
     classes=dict(
         aamsoftmax=AAMSoftmax,
         aamsoftmax_sc_topk=ArcMarginProduct_intertopk_subcenter,
+        mse=MSE,
     ),
     default="aamsoftmax",
 )
@@ -213,6 +217,34 @@ class SpeakerTask(AbsTask):
         )
 
         group.add_argument(
+            "--spf2utt",
+            type=str,
+            default="",
+            help="Directory of spf2utt file to be used in label mapping",
+        )
+
+        group.add_argument(
+            "--spf_num",
+            type=int,
+            default=None,
+            help="specify the number of spoofing classes during training",
+        )
+
+        group.add_argument(
+            "--utt2pmos",
+            type=str,
+            default="",
+            help="utt2pmos file to be used in label mapping",
+        )
+
+        group.add_argument(
+            "--embed_avg",
+            type=str2bool,
+            default=False,
+            help="Compute average embedding for an enrolled speaker",
+        )
+
+        group.add_argument(
             "--sample_rate",
             type=int,
             default=16000,
@@ -261,17 +293,21 @@ class SpeakerTask(AbsTask):
             if train:
                 retval = preprocessor_choices.get_class(args.preprocessor)(
                     spk2utt=args.spk2utt,
+                    spf2utt=args.spf2utt,
+                    utt2pmos=args.utt2pmos,
                     train=train,
                     **args.preprocessor_conf,
                 )
             else:
                 retval = preprocessor_choices.get_class(args.preprocessor)(
                     train=train,
+                    embed_avg=args.embed_avg,
                     **args.preprocessor_conf,
                 )
 
         else:
             retval = None
+
         return retval
 
     @classmethod
@@ -292,7 +328,29 @@ class SpeakerTask(AbsTask):
         # When calculating EER, we need trials where each trial has two
         # utterances. speech2 corresponds to the second utterance of each
         # trial pair in the validation/inference phase.
-        retval = ("speech2", "trial", "spk_labels", "task_tokens")
+
+        # For ASVspoof and other cases where 3 enrollment utterances are
+        # often given, speech3 and speech4 are used. Here, speech4 is
+        # the test utterance. speech1 to speech3 are for enrollment.
+
+        # spf_labels are required for SASV task
+
+        # frame_feats: precomputed features for the speech data
+        retval = (
+            "speech2",
+            "speech3",
+            "speech4",
+            "trial",
+            "spk_labels",
+            "task_tokens",
+            "spf_labels",
+            "pmos_labels",
+            "frame_feats",
+            "frame_feats1",
+            "frame_feats2",
+            "frame_feats3",
+            "frame_feats4",
+        )
 
         return retval
 
@@ -336,11 +394,38 @@ class SpeakerTask(AbsTask):
         )
         projector_output_size = projector.output_size()
 
-        loss_class = loss_choices.get_class(args.loss)
-        loss = loss_class(
-            nout=projector_output_size, nclasses=args.spk_num, **args.loss_conf
-        )
+        losses = []
+        loss_weights = []
+        loss_types = []
 
+        num_losses = len([loss for loss in args.loss if "name" in loss])
+
+        for i in range(num_losses):
+            loss_types.append(args.loss[i].get("type", "spk"))
+            loss_conf = args.loss[i].get("loss_conf", {})
+            loss_class = loss_choices.get_class(args.loss[i]["name"])
+
+            if loss_types[i] == "spk":
+                nclasses = args.spk_num
+            elif loss_types[i] == "spf":
+                nclasses = args.spf_num
+            else:
+                nclasses = None
+            if nclasses is not None:
+                loss = loss_class(
+                    nout=projector_output_size,
+                    nclasses=nclasses,
+                    **loss_conf,
+                )
+            else:  # mse has no classes
+                loss = loss_class(
+                    nout=projector_output_size,
+                    **loss_conf,
+                )
+            losses.append(loss)
+            loss_weights.append(float(args.loss[i].get("loss_weight", 1.0)))
+
+        print(f"building model with {len(losses)} losses")
         model = ESPnetSpeakerModel(
             frontend=frontend,
             specaug=specaug,
@@ -348,7 +433,9 @@ class SpeakerTask(AbsTask):
             encoder=encoder,
             pooling=pooling,
             projector=projector,
-            loss=loss,
+            loss=losses,
+            loss_weights=loss_weights,
+            loss_names=loss_types,
             # **args.model_conf, # uncomment when model_conf exists
         )
 
