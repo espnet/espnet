@@ -77,7 +77,7 @@ def load_and_process_textgrid(textgrid_path, transcriptions_path, song_folder):
         open(transcriptions_path, "r", encoding="utf-8").read().strip().split("\n")
     )
 
-    # Step 4: Split the content in each row 
+    # Step 4: Split the content in each row
     # to name, lyrics, phns, pitch, duration, is_slur by |
     parsed_transcriptions = [row.split("|") for row in transcriptions]
 
