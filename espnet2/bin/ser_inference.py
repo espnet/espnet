@@ -42,7 +42,7 @@ class Speech2Emotion:
 
     Examples:
         >>> import soundfile
-        >>> speech2emotion = Speech2Emotion("slu_config.yml", "slu.pth")
+        >>> speech2emotion = Speech2Emotion("emo_config.yml", "SER.pth")
         >>> audio, rate = soundfile.read("speech.wav")
         >>> speech2emotion(audio)
         [(text, token, token_int, hypothesis object), ...]
@@ -57,7 +57,6 @@ class Speech2Emotion:
         device: str = "cpu",
         batch_size: int = 1,
         dtype: str = "float32",
-        beam_size: int = 20,
     ):
 
         task = SERTask
@@ -142,7 +141,6 @@ def inference(
     output_dir: str,
     batch_size: int,
     dtype: str,
-    beam_size: int,
     ngpu: int,
     seed: int,
     num_workers: int,
@@ -178,7 +176,6 @@ def inference(
         ser_model_file=ser_model_file,
         device=device,
         dtype=dtype,
-        beam_size=beam_size,
     )
     speech2emotion = Speech2Emotion.from_pretrained(
         model_tag=model_tag,
@@ -287,8 +284,6 @@ def get_parser():
         help="Pretrained model tag. If specify this option, *_train_config and "
         "*_file will be overwritten",
     )
-
-    group.add_argument("--beam_size", type=int, default=20, help="Beam size")
 
     return parser
 
