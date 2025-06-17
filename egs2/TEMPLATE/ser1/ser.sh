@@ -1557,7 +1557,7 @@ if ! "${skip_eval}"; then
             mkdir -p "${_scoredir}"
 
             # Call scoring script
-            ${python} local/score_ser.py \
+            ${python} pyscripts/utils/score_ser.py \
                 --ref "${_dir}/ref" \
                 --hyp "${_dir}/emo" \
                 | tee "${_scoredir}/metrics.txt"
