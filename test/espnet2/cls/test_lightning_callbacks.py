@@ -1,7 +1,6 @@
 from test.espnet2.cls.test_espnet_model import calculate_stats_testing_internal_
 
 import numpy as np
-import pytest
 import torch
 
 from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
