@@ -1,5 +1,6 @@
 import argparse
 from typing import Callable, Collection, Dict, List, Optional, Tuple
+
 import numpy as np
 import torch
 
@@ -9,6 +10,7 @@ from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
 from espnet2.train.trainer import Trainer
+from espnet2.train.preprocessor import Qwen2AudioPreprocessor
 
 class DynamicSuperbTask(AbsTask):
     """Task class for Qwen2-Audio integration following ESPnet2 architecture[8]"""
@@ -55,7 +57,7 @@ class DynamicSuperbTask(AbsTask):
     @classmethod
     def build_preprocess_fn(cls, args: argparse.Namespace, train: bool) -> Optional[Callable]:
         """Build preprocessing function[8]"""
-        return None
+        return Qwen2AudioPreprocessor()
     
     @classmethod
     def required_data_names(cls, train: bool = True, inference: bool = False) -> Tuple[str, ...]:

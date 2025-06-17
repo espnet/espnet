@@ -30,9 +30,6 @@ def inference(
     **kwargs,
 ):
     """Perform Qwen2-Audio inference using ESPnet2 framework[36]"""
-    print(type(data_path_and_name_and_type))
-    print(len(data_path_and_name_and_type))
-    print(data_path_and_name_and_type[0])
     
     # Initialize logging first
     logging.basicConfig(
@@ -52,7 +49,7 @@ def inference(
     args = argparse.Namespace()
     args.model_name = "Qwen/Qwen2-Audio-7B-Instruct"
     model = DynamicSuperbTask.build_model(args)
-    model.to(dtype=getattr(torch, dtype)).eval()
+    model.to(device).eval()
     train_args = None
 
     # Build data iterator[8]
@@ -72,18 +69,9 @@ def inference(
     with DatadirWriter(output_dir) as writer:
         for keys, batch in loader:
             batch = to_device(batch, device)
-
-            for i, key in enumerate(keys):
-                speech = batch["speech"][i : i + 1]
-                instruction = batch.get("text", ["What does the person say?"])[0]
+            text_output = model.inference(**batch, max_new_tokens=256)
                 
-                if isinstance(instruction, torch.Tensor):
-                    instruction = "What does the person say?"
-                
-                # Use the integrated Qwen2-Audio model
-                prediction = model.inference(speech[0], instruction)
-                
-                writer["text"][key] = prediction
+            writer["text"][keys[0]] = text_output
 
 def get_parser():
     """Build argument parser[8]"""

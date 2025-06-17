@@ -84,47 +84,25 @@ class ESPnetQwen2AudioModel(AbsESPnetModel):
     
     def inference(
         self,
-        speech: torch.Tensor,
-        instruction: str,
+        input_ids: torch.Tensor,
+        attention_mask: torch.Tensor,
+        input_features: torch.Tensor,
+        feature_attention_mask: torch.Tensor,
         **kwargs,
     ) -> str:
         """Custom inference method using Qwen2-Audio"""
-        # Convert tensor to numpy for processing
-        audio_np = speech.cpu().numpy()
-        
-        # Create conversation in Qwen2-Audio format
-        conversation = [
-            {"role": "user", "content": [
-                {"type": "audio", "audio": audio_np},
-                {"type": "text", "text": instruction},
-            ]},
-        ]
-        
-        # Apply chat template
-        text_prompt = self.processor.apply_chat_template(
-            conversation, 
-            add_generation_prompt=True, 
-            tokenize=False
-        )
-        
-        # Process inputs
-        inputs = self.processor(
-            text=text_prompt, 
-            audios=[audio_np], 
-            return_tensors="pt",
-            sampling_rate=self.processor.feature_extractor.sampling_rate
-        ).to(speech.device)
-        
         # Generate response
         with torch.no_grad():
             pred_ids = self.qwen2audio_model.generate(
-                **inputs, 
-                max_new_tokens=512,
-                do_sample=False
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                input_features=input_features,
+                feature_attention_mask=feature_attention_mask,
+                max_new_tokens=256,
             )
             
         # Extract only generated tokens
-        pred_ids = pred_ids[:, inputs['input_ids'].size(1):]
+        pred_ids = pred_ids[:, input_ids.size(1):]
         
         # Decode prediction
         prediction = self.processor.batch_decode(
