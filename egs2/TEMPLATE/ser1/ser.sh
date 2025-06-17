@@ -782,185 +782,185 @@ fi
 
 
 if ! "${skip_train}"; then
-    if "${use_lm}"; then
-        if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
-            log "Stage 6: LM collect stats: train_set=${data_feats}/lm_train.txt, dev_set=${lm_dev_text}"
+    # if "${use_lm}"; then
+    #     if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
+    #         log "Stage 6: LM collect stats: train_set=${data_feats}/lm_train.txt, dev_set=${lm_dev_text}"
 
-            _opts=
-            if [ -n "${lm_config}" ]; then
-                # To generate the config file: e.g.
-                #   % python3 -m espnet2.bin.lm_train --print_config --optim adam
-                _opts+="--config ${lm_config} "
-            fi
+    #         _opts=
+    #         if [ -n "${lm_config}" ]; then
+    #             # To generate the config file: e.g.
+    #             #   % python3 -m espnet2.bin.lm_train --print_config --optim adam
+    #             _opts+="--config ${lm_config} "
+    #         fi
 
-            # 1. Split the key file
-            _logdir="${lm_stats_dir}/logdir"
-            mkdir -p "${_logdir}"
-            # Get the minimum number among ${nj} and the number lines of input files
-            _nj=$(min "${nj}" "$(<${data_feats}/lm_train.txt wc -l)" "$(<${lm_dev_text} wc -l)")
+    #         # 1. Split the key file
+    #         _logdir="${lm_stats_dir}/logdir"
+    #         mkdir -p "${_logdir}"
+    #         # Get the minimum number among ${nj} and the number lines of input files
+    #         _nj=$(min "${nj}" "$(<${data_feats}/lm_train.txt wc -l)" "$(<${lm_dev_text} wc -l)")
 
-            key_file="${data_feats}/lm_train.txt"
-            split_scps=""
-            for n in $(seq ${_nj}); do
-                split_scps+=" ${_logdir}/train.${n}.scp"
-            done
-            # shellcheck disable=SC2086
-            utils/split_scp.pl "${key_file}" ${split_scps}
+    #         key_file="${data_feats}/lm_train.txt"
+    #         split_scps=""
+    #         for n in $(seq ${_nj}); do
+    #             split_scps+=" ${_logdir}/train.${n}.scp"
+    #         done
+    #         # shellcheck disable=SC2086
+    #         utils/split_scp.pl "${key_file}" ${split_scps}
 
-            key_file="${lm_dev_text}"
-            split_scps=""
-            for n in $(seq ${_nj}); do
-                split_scps+=" ${_logdir}/dev.${n}.scp"
-            done
-            # shellcheck disable=SC2086
-            utils/split_scp.pl "${key_file}" ${split_scps}
+    #         key_file="${lm_dev_text}"
+    #         split_scps=""
+    #         for n in $(seq ${_nj}); do
+    #             split_scps+=" ${_logdir}/dev.${n}.scp"
+    #         done
+    #         # shellcheck disable=SC2086
+    #         utils/split_scp.pl "${key_file}" ${split_scps}
 
-            # 2. Generate run.sh
-            log "Generate '${lm_stats_dir}/run.sh'. You can resume the process from stage 6 using this script"
-            mkdir -p "${lm_stats_dir}"; echo "${run_args} --stage 6 \"\$@\"; exit \$?" > "${lm_stats_dir}/run.sh"; chmod +x "${lm_stats_dir}/run.sh"
+    #         # 2. Generate run.sh
+    #         log "Generate '${lm_stats_dir}/run.sh'. You can resume the process from stage 6 using this script"
+    #         mkdir -p "${lm_stats_dir}"; echo "${run_args} --stage 6 \"\$@\"; exit \$?" > "${lm_stats_dir}/run.sh"; chmod +x "${lm_stats_dir}/run.sh"
 
-            # 3. Submit jobs
-            log "LM collect-stats started... log: '${_logdir}/stats.*.log'"
-            # NOTE: --*_shape_file doesn't require length information if --batch_type=unsorted,
-            #       but it's used only for deciding the sample ids.
-            # shellcheck disable=SC2086
-            ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
-                ${python} -m espnet2.bin.lm_train \
-                    --collect_stats true \
-                    --use_preprocessor true \
-                    --bpemodel "${bpemodel}" \
-                    --token_type "${lm_token_type}"\
-                    --token_list "${lm_token_list}" \
-                    --non_linguistic_symbols "${nlsyms_txt}" \
-                    --cleaner "${cleaner}" \
-                    --g2p "${g2p}" \
-                    --train_data_path_and_name_and_type "${data_feats}/lm_train.txt,text,text" \
-                    --valid_data_path_and_name_and_type "${lm_dev_text},text,text" \
-                    --train_shape_file "${_logdir}/train.JOB.scp" \
-                    --valid_shape_file "${_logdir}/dev.JOB.scp" \
-                    --output_dir "${_logdir}/stats.JOB" \
-                    ${_opts} ${lm_args} || { cat "${_logdir}"/stats.1.log; exit 1; }
+    #         # 3. Submit jobs
+    #         log "LM collect-stats started... log: '${_logdir}/stats.*.log'"
+    #         # NOTE: --*_shape_file doesn't require length information if --batch_type=unsorted,
+    #         #       but it's used only for deciding the sample ids.
+    #         # shellcheck disable=SC2086
+    #         ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
+    #             ${python} -m espnet2.bin.lm_train \
+    #                 --collect_stats true \
+    #                 --use_preprocessor true \
+    #                 --bpemodel "${bpemodel}" \
+    #                 --token_type "${lm_token_type}"\
+    #                 --token_list "${lm_token_list}" \
+    #                 --non_linguistic_symbols "${nlsyms_txt}" \
+    #                 --cleaner "${cleaner}" \
+    #                 --g2p "${g2p}" \
+    #                 --train_data_path_and_name_and_type "${data_feats}/lm_train.txt,text,text" \
+    #                 --valid_data_path_and_name_and_type "${lm_dev_text},text,text" \
+    #                 --train_shape_file "${_logdir}/train.JOB.scp" \
+    #                 --valid_shape_file "${_logdir}/dev.JOB.scp" \
+    #                 --output_dir "${_logdir}/stats.JOB" \
+    #                 ${_opts} ${lm_args} || { cat "${_logdir}"/stats.1.log; exit 1; }
 
-            # 4. Aggregate shape files
-            _opts=
-            for i in $(seq "${_nj}"); do
-                _opts+="--input_dir ${_logdir}/stats.${i} "
-            done
-            if [ "${feats_normalize}" != global_mvn ]; then
-                # Skip summerizaing stats if not using global MVN
-                _opts+="--skip_sum_stats"
-            fi
-            # shellcheck disable=SC2086
-            ${python} -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${lm_stats_dir}"
+    #         # 4. Aggregate shape files
+    #         _opts=
+    #         for i in $(seq "${_nj}"); do
+    #             _opts+="--input_dir ${_logdir}/stats.${i} "
+    #         done
+    #         if [ "${feats_normalize}" != global_mvn ]; then
+    #             # Skip summerizaing stats if not using global MVN
+    #             _opts+="--skip_sum_stats"
+    #         fi
+    #         # shellcheck disable=SC2086
+    #         ${python} -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${lm_stats_dir}"
 
-            # Append the num-tokens at the last dimensions. This is used for batch-bins count
-            <"${lm_stats_dir}/train/text_shape" \
-                awk -v N="$(<${lm_token_list} wc -l)" '{ print $0 "," N }' \
-                >"${lm_stats_dir}/train/text_shape.${lm_token_type}"
+    #         # Append the num-tokens at the last dimensions. This is used for batch-bins count
+    #         <"${lm_stats_dir}/train/text_shape" \
+    #             awk -v N="$(<${lm_token_list} wc -l)" '{ print $0 "," N }' \
+    #             >"${lm_stats_dir}/train/text_shape.${lm_token_type}"
 
-            <"${lm_stats_dir}/valid/text_shape" \
-                awk -v N="$(<${lm_token_list} wc -l)" '{ print $0 "," N }' \
-                >"${lm_stats_dir}/valid/text_shape.${lm_token_type}"
-        fi
-
-
-        if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
-            log "Stage 7: LM Training: train_set=${data_feats}/lm_train.txt, dev_set=${lm_dev_text}"
-
-            _opts=
-            if [ -n "${lm_config}" ]; then
-                # To generate the config file: e.g.
-                #   % python3 -m espnet2.bin.lm_train --print_config --optim adam
-                _opts+="--config ${lm_config} "
-            fi
-
-            if [ "${num_splits_lm}" -gt 1 ]; then
-                # If you met a memory error when parsing text files, this option may help you.
-                # The corpus is split into subsets and each subset is used for training one by one in order,
-                # so the memory footprint can be limited to the memory required for each dataset.
-
-                _split_dir="${lm_stats_dir}/splits${num_splits_lm}"
-                if [ ! -f "${_split_dir}/.done" ]; then
-                    rm -f "${_split_dir}/.done"
-                    ${python} -m espnet2.bin.split_scps \
-                      --scps "${data_feats}/lm_train.txt" "${lm_stats_dir}/train/text_shape.${lm_token_type}" \
-                      --num_splits "${num_splits_lm}" \
-                      --output_dir "${_split_dir}"
-                    touch "${_split_dir}/.done"
-                else
-                    log "${_split_dir}/.done exists. Spliting is skipped"
-                fi
-
-                _opts+="--train_data_path_and_name_and_type ${_split_dir}/lm_train.txt,text,text "
-                _opts+="--train_shape_file ${_split_dir}/text_shape.${lm_token_type} "
-                _opts+="--multiple_iterator true "
-
-            else
-                _opts+="--train_data_path_and_name_and_type ${data_feats}/lm_train.txt,text,text "
-                _opts+="--train_shape_file ${lm_stats_dir}/train/text_shape.${lm_token_type} "
-            fi
-
-            # NOTE(kamo): --fold_length is used only if --batch_type=folded and it's ignored in the other case
-
-            log "Generate '${lm_exp}/run.sh'. You can resume the process from stage 7 using this script"
-            mkdir -p "${lm_exp}"; echo "${run_args} --stage 7 \"\$@\"; exit \$?" > "${lm_exp}/run.sh"; chmod +x "${lm_exp}/run.sh"
-
-            log "LM training started... log: '${lm_exp}/train.log'"
-            if echo "${cuda_cmd}" | grep -e queue.pl -e queue-freegpu.pl &> /dev/null; then
-                # SGE can't include "/" in a job name
-                jobname="$(basename ${lm_exp})"
-            else
-                jobname="${lm_exp}/train.log"
-            fi
-
-            # shellcheck disable=SC2086
-            ${python} -m espnet2.bin.launch \
-                --cmd "${cuda_cmd} --name ${jobname}" \
-                --log "${lm_exp}"/train.log \
-                --ngpu "${ngpu}" \
-                --num_nodes "${num_nodes}" \
-                --init_file_prefix "${lm_exp}"/.dist_init_ \
-                --multiprocessing_distributed true -- \
-                ${python} -m espnet2.bin.lm_train \
-                    --ngpu "${ngpu}" \
-                    --use_preprocessor true \
-                    --bpemodel "${bpemodel}" \
-                    --token_type "${lm_token_type}"\
-                    --token_list "${lm_token_list}" \
-                    --non_linguistic_symbols "${nlsyms_txt}" \
-                    --cleaner "${cleaner}" \
-                    --g2p "${g2p}" \
-                    --valid_data_path_and_name_and_type "${lm_dev_text},text,text" \
-                    --valid_shape_file "${lm_stats_dir}/valid/text_shape.${lm_token_type}" \
-                    --fold_length "${lm_fold_length}" \
-                    --resume true \
-                    --output_dir "${lm_exp}" \
-                    ${_opts} ${lm_args}
-
-        fi
+    #         <"${lm_stats_dir}/valid/text_shape" \
+    #             awk -v N="$(<${lm_token_list} wc -l)" '{ print $0 "," N }' \
+    #             >"${lm_stats_dir}/valid/text_shape.${lm_token_type}"
+    #     fi
 
 
-        if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
-            log "Stage 8: Calc perplexity: ${lm_test_text}"
-            _opts=
-            # TODO(kamo): Parallelize?
-            log "Perplexity calculation started... log: '${lm_exp}/perplexity_test/lm_calc_perplexity.log'"
-            # shellcheck disable=SC2086
-            ${cuda_cmd} --gpu "${ngpu}" "${lm_exp}"/perplexity_test/lm_calc_perplexity.log \
-                ${python} -m espnet2.bin.lm_calc_perplexity \
-                    --ngpu "${ngpu}" \
-                    --data_path_and_name_and_type "${lm_test_text},text,text" \
-                    --train_config "${lm_exp}"/config.yaml \
-                    --model_file "${lm_exp}/${inference_lm}" \
-                    --output_dir "${lm_exp}/perplexity_test" \
-                    ${_opts}
-            log "PPL: ${lm_test_text}: $(cat ${lm_exp}/perplexity_test/ppl)"
+    #     if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
+    #         log "Stage 7: LM Training: train_set=${data_feats}/lm_train.txt, dev_set=${lm_dev_text}"
 
-        fi
+    #         _opts=
+    #         if [ -n "${lm_config}" ]; then
+    #             # To generate the config file: e.g.
+    #             #   % python3 -m espnet2.bin.lm_train --print_config --optim adam
+    #             _opts+="--config ${lm_config} "
+    #         fi
 
-    else
-        log "Stage 6-8: Skip lm-related stages: use_lm=${use_lm}"
-    fi
+    #         if [ "${num_splits_lm}" -gt 1 ]; then
+    #             # If you met a memory error when parsing text files, this option may help you.
+    #             # The corpus is split into subsets and each subset is used for training one by one in order,
+    #             # so the memory footprint can be limited to the memory required for each dataset.
+
+    #             _split_dir="${lm_stats_dir}/splits${num_splits_lm}"
+    #             if [ ! -f "${_split_dir}/.done" ]; then
+    #                 rm -f "${_split_dir}/.done"
+    #                 ${python} -m espnet2.bin.split_scps \
+    #                   --scps "${data_feats}/lm_train.txt" "${lm_stats_dir}/train/text_shape.${lm_token_type}" \
+    #                   --num_splits "${num_splits_lm}" \
+    #                   --output_dir "${_split_dir}"
+    #                 touch "${_split_dir}/.done"
+    #             else
+    #                 log "${_split_dir}/.done exists. Spliting is skipped"
+    #             fi
+
+    #             _opts+="--train_data_path_and_name_and_type ${_split_dir}/lm_train.txt,text,text "
+    #             _opts+="--train_shape_file ${_split_dir}/text_shape.${lm_token_type} "
+    #             _opts+="--multiple_iterator true "
+
+    #         else
+    #             _opts+="--train_data_path_and_name_and_type ${data_feats}/lm_train.txt,text,text "
+    #             _opts+="--train_shape_file ${lm_stats_dir}/train/text_shape.${lm_token_type} "
+    #         fi
+
+    #         # NOTE(kamo): --fold_length is used only if --batch_type=folded and it's ignored in the other case
+
+    #         log "Generate '${lm_exp}/run.sh'. You can resume the process from stage 7 using this script"
+    #         mkdir -p "${lm_exp}"; echo "${run_args} --stage 7 \"\$@\"; exit \$?" > "${lm_exp}/run.sh"; chmod +x "${lm_exp}/run.sh"
+
+    #         log "LM training started... log: '${lm_exp}/train.log'"
+    #         if echo "${cuda_cmd}" | grep -e queue.pl -e queue-freegpu.pl &> /dev/null; then
+    #             # SGE can't include "/" in a job name
+    #             jobname="$(basename ${lm_exp})"
+    #         else
+    #             jobname="${lm_exp}/train.log"
+    #         fi
+
+    #         # shellcheck disable=SC2086
+    #         ${python} -m espnet2.bin.launch \
+    #             --cmd "${cuda_cmd} --name ${jobname}" \
+    #             --log "${lm_exp}"/train.log \
+    #             --ngpu "${ngpu}" \
+    #             --num_nodes "${num_nodes}" \
+    #             --init_file_prefix "${lm_exp}"/.dist_init_ \
+    #             --multiprocessing_distributed true -- \
+    #             ${python} -m espnet2.bin.lm_train \
+    #                 --ngpu "${ngpu}" \
+    #                 --use_preprocessor true \
+    #                 --bpemodel "${bpemodel}" \
+    #                 --token_type "${lm_token_type}"\
+    #                 --token_list "${lm_token_list}" \
+    #                 --non_linguistic_symbols "${nlsyms_txt}" \
+    #                 --cleaner "${cleaner}" \
+    #                 --g2p "${g2p}" \
+    #                 --valid_data_path_and_name_and_type "${lm_dev_text},text,text" \
+    #                 --valid_shape_file "${lm_stats_dir}/valid/text_shape.${lm_token_type}" \
+    #                 --fold_length "${lm_fold_length}" \
+    #                 --resume true \
+    #                 --output_dir "${lm_exp}" \
+    #                 ${_opts} ${lm_args}
+
+    #     fi
+
+
+    #     if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
+    #         log "Stage 8: Calc perplexity: ${lm_test_text}"
+    #         _opts=
+    #         # TODO(kamo): Parallelize?
+    #         log "Perplexity calculation started... log: '${lm_exp}/perplexity_test/lm_calc_perplexity.log'"
+    #         # shellcheck disable=SC2086
+    #         ${cuda_cmd} --gpu "${ngpu}" "${lm_exp}"/perplexity_test/lm_calc_perplexity.log \
+    #             ${python} -m espnet2.bin.lm_calc_perplexity \
+    #                 --ngpu "${ngpu}" \
+    #                 --data_path_and_name_and_type "${lm_test_text},text,text" \
+    #                 --train_config "${lm_exp}"/config.yaml \
+    #                 --model_file "${lm_exp}/${inference_lm}" \
+    #                 --output_dir "${lm_exp}/perplexity_test" \
+    #                 ${_opts}
+    #         log "PPL: ${lm_test_text}: $(cat ${lm_exp}/perplexity_test/ppl)"
+
+    #     fi
+
+    # else
+    #     log "Stage 6-8: Skip lm-related stages: use_lm=${use_lm}"
+    # fi
 
 
     if "${use_ngram}"; then
@@ -1063,12 +1063,6 @@ if ! "${skip_train}"; then
                     --output_dir "${_logdir}/stats.JOB" \
                     ${_opts} ${ser_args} || { cat "${_logdir}"/stats.1.log; exit 1; }
         else
-                    # --bpemodel "${bpemodel}" \
-                    # --token_type "${token_type}" \
-                    # --token_list "${token_list}" \
-                    # --non_linguistic_symbols "${nlsyms_txt}" \
-                    # --cleaner "${cleaner}" \
-                    # --g2p "${g2p}" \
             ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
                 ${python} -m espnet2.bin.ser_train \
                     --collect_stats true \
