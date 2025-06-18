@@ -10,9 +10,10 @@ inference_model=valid.acc.best.pth
 
 n_folds=1 # This runs all 5 folds in parallel, take care.
 
-asr_config=conf/openbeats_classification.yaml
+# asr_config=conf/openbeats_classification.yaml
+asr_config=conf/huge.yaml
 
-mynametag=iter0.large59epoch.lr5.0e-4.7m.int16bfix.xvn2.fold
+mynametag=iter0.huge98epoch.grad_decay_p4.ldrop_p2.dropout_p1.fold
 
 # NOTE(shikhar): Abusing variable lang to store fold number.
 for fold in $(seq 1 $n_folds); do
@@ -23,15 +24,15 @@ for fold in $(seq 1 $n_folds); do
         --local_data_opts "${fold}" \
         --asr_tag "${mynametag}${fold}" \
         --lang "${fold}" \
-        --ngpu 1 \
-        --stage 1 \
+        --ngpu 2 \
+        --stage 11 \
         --inference_args "--ctc_weight 0.0 --maxlenratio -1" \
         --token_type word \
         --asr_speech_fold_length ${asr_speech_fold_length} \
         --use_lm false \
         --feats_type raw \
         --max_wav_duration 6 \
-        --feats_normalize utterance_mvn\
+        --feats_normalize utterance_mvn \
         --inference_nj 8 \
         --inference_asr_model ${inference_model} \
         --asr_config "${asr_config}" \

@@ -50,7 +50,7 @@ encoder_conf:
     # (iter3) and update the path below
     # /work/nvme/bbjs/sbharadwaj/model_checkpoints/ear_base/beats_iter0_base.tune_lr5e-4_warmup40000_bins1600000_totalsteps400000/epoch39.pt <--- this is the same size as beats but more data (ear base iter 1)
     # /work/nvme/bbjs/sbharadwaj/model_checkpoints/ear_large/beats_iter0_large.tune_lr5.0e-4_warmup40000_bins1600000_totalsteps400000/epoch31.pt <---- this is 300M, you dont need to change config, current code should handle it. trained on same data as base above (ear large iter 1)
-    beats_ckpt_path: ss
+    beats_ckpt_path: /work/nvme/bbjs/sbharadwaj/7Msounds/exp/beats_iter0_huge0.tune_lr1.0e-4_warmup40000_bins2400000_totalsteps1600000/epoch98.pt
     # /work/nvme/bbjs/sbharadwaj/7Msounds/exp/beats_iter1_base.tune_lr5e-4_warmup40000_bins1600000_totalsteps400000/41epoch.pt <-- 93.0
     # /work/nvme/bbjs/sbharadwaj/model_checkpoints/ear_large/beats_iter0_large.tune_lr5.0e-4_warmup40000_bins1600000_totalsteps400000/epoch59.pt <-- 93.5
     # /work/nvme/bbjs/sbharadwaj/model_checkpoints/ear_large/beats_iter0_large.tune_lr2.5e-4_warmup40000_bins1600000_totalsteps400000/epoch59.pt <-- 93.5
