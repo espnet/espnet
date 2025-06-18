@@ -1,0 +1,4 @@
+tokenizer_config:
+    seed: 45
+fbank_mean: 13.71722
+fbank_std: 4.98288
