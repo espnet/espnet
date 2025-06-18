@@ -2,38 +2,19 @@
 import argparse
 import logging
 import sys
-from distutils.version import LooseVersion
 from pathlib import Path
-from typing import Any, List, Optional, Sequence, Tuple, Union
+from typing import Any, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
-import torch.quantization
 from typeguard import typechecked
 
-from espnet2.asr.transducer.beam_search_transducer import (
-    BeamSearchTransducer,
-)
-from espnet2.asr.transducer.beam_search_transducer import (
-    ExtendedHypothesis as ExtTransHypothesis,
-)
-from espnet2.asr.transducer.beam_search_transducer import Hypothesis as TransHypothesis
 from espnet2.fileio.datadir_writer import DatadirWriter
-from espnet2.tasks.lm import LMTask
 from espnet2.tasks.ser import SERTask
-from espnet2.text.build_tokenizer import build_tokenizer
-from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
-from espnet.nets.batch_beam_search import BatchBeamSearch
-from espnet.nets.batch_beam_search_online_sim import BatchBeamSearchOnlineSim
-from espnet.nets.beam_search import BeamSearch, Hypothesis
-from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
-from espnet.nets.scorer_interface import BatchScorerInterface
-from espnet.nets.scorers.ctc import CTCPrefixScorer
-from espnet.nets.scorers.length_bonus import LengthBonus
 from espnet.utils.cli_utils import get_commandline_args
 
 
@@ -62,7 +43,6 @@ class Speech2Emotion:
         task = SERTask
 
         # 1. Build SER model
-        scorers = {}
         ser_model, ser_train_args = task.build_model_from_file(
             ser_train_config, ser_model_file, device
         )
@@ -94,8 +74,7 @@ class Speech2Emotion:
 
         # data: (Nsamples,) -> (1, Nsamples)
         speech = speech.unsqueeze(0).to(getattr(torch, self.dtype))
-        # lengths: (1,)
-        lengths = speech.new_full([1], dtype=torch.long, fill_value=speech.size(1))
+
         batch = {"speech": speech, "get_prediction": True}
         # a. To device
         batch = to_device(batch, device=self.device)
