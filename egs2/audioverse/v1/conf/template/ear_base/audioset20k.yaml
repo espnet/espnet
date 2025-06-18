@@ -2,7 +2,6 @@ unused_parameters: true
 init: xavier_normal
 
 batch_type: length
-shuffle_within_batch: false
 
 max_epoch: 500
 batch_bins: 20000000 # (16khz * 10sec) * 125 samples/batch, 1 GPU H-200
@@ -12,7 +11,7 @@ grad_clip: 1
 
 optim: adamw
 optim_conf:
-    lr: 3.0e-5
+    lr: 3.0e-4
     weight_decay: 1.0e-2
     betas: [0.9, 0.98]
 
@@ -20,7 +19,7 @@ scheduler: CosineAnnealingWarmupRestarts
 scheduler_conf:
     first_cycle_steps: 120000
     warmup_steps: 8000
-    max_lr: 3.0e-5
+    max_lr: 3.0e-4
     min_lr: 5.0e-6
 
 patience: none
@@ -48,11 +47,11 @@ encoder_conf:
     use_weighted_representation: false
     specaug_config:
         apply_time_warp: true
-        apply_freq_mask: true # false
+        apply_freq_mask: false
         apply_time_mask: true
         time_mask_width_ratio_range:
         - 0
-        - 0.2 # 0.06
+        - 0.06
         num_time_mask: 1
     roll_augment: true
     roll_interval: 1

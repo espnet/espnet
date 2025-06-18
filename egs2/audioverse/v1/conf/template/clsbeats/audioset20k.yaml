@@ -1,28 +1,26 @@
 unused_parameters: true
 init: xavier_normal
 
-utt2weight_file: /work/nvme/bbjs/sbharadwaj/espnet/egs2/audioverse/v1/data/audioset2m/utt2weight
-batch_type: length_weighted
-valid_batch_type: length
+batch_type: length
+shuffle_within_batch: false
 
+max_epoch: 500
+batch_bins: 20000000 # (16000 hz * 10sec) * 125
 
-batch_bins: 80000000 # (16000 hz * 10sec) * 500 samples/batch, 4 GPUs H-200
-max_epoch: 25
-
-accum_grad: 2
+accum_grad: 1
 grad_clip: 1
 
 optim: adamw
 optim_conf:
-    lr: 1.0e-4
+    lr: 3.0e-5
     weight_decay: 1.0e-2
     betas: [0.9, 0.98]
 
 scheduler: CosineAnnealingWarmupRestarts
 scheduler_conf:
-    first_cycle_steps: 400000
-    warmup_steps: 10000
-    max_lr: 1.0e-4
+    first_cycle_steps: 120000
+    warmup_steps: 8000
+    max_lr: 3.0e-5
     min_lr: 5.0e-6
 
 patience: none
@@ -40,21 +38,21 @@ frontend: none
 input_size: 1 # important to set input_size to 1 if frontend is none
 normalize: none # BEATs code does global mean and variance normalization
 
-encoder: beats
+encoder: auris
 encoder_conf:
     beats_ckpt_path: CHECKPOINT_PATH
     beats_config:
-        layer_wise_gradient_decay_ratio: 0.6
+        layer_wise_gradient_decay_ratio: 0.3
         encoder_layerdrop: 0.1
         dropout: 0.0
     use_weighted_representation: false
     specaug_config:
         apply_time_warp: true
-        apply_freq_mask: false
+        apply_freq_mask: true # false
         apply_time_mask: true
         time_mask_width_ratio_range:
         - 0
-        - 0.06
+        - 0.2 # 0.06
         num_time_mask: 1
     roll_augment: true
     roll_interval: 1
@@ -62,12 +60,12 @@ encoder_conf:
 model_conf:
     classification_type: multi-label
     mixup_probability: 0.8
-    lsm_weight: 0.1  # label smoothing weight, per label
+    lsm_weight: 0  # label smoothing weight, per label
     log_epoch_metrics: true
 
 lightning_conf:
     log_every_n_steps: 250
-    max_epochs: 25
+    max_epochs: 500
     strategy: ddp
     strategy_conf:
         find_unused_parameters: true

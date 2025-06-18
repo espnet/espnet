@@ -44,7 +44,8 @@ encoder_conf:
         num_time_mask: 5
     adapter_config: conf/wav2vec2_conformer_config.json
     downsampling_rate: 3 # CNN downsampling over beats encoder
-    max_layer: 10 # 0 based index
+    max_layer: MAX_LAYER
+    # max_layer: 10 # 0 based index
     use_weighted_representation: false
     add_positional_information: true
     max_positions: 1024 # These many positional embeddings will be learned

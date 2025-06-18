@@ -1,8 +1,8 @@
 batch_type: folded
 unused_parameters: true
-batch_size: 32 #64
-accum_grad: 2
-max_epoch: 20
+batch_size: 64
+accum_grad: 1
+max_epoch: 10
 grad_clip: 1
 patience: none
 best_model_criterion:
@@ -12,48 +12,28 @@ best_model_criterion:
 keep_nbest_models: 5
 use_amp: false  # whether to use automatic mixed precision
 num_att_plot: 0
-num_workers: 2 # dataloader workers
+num_workers: 2   # number of workers in dataloader
 
 # BEATs implementation takes care of generating mel spectrogram, normalization and specaug
 frontend: none
 input_size: 1 # important to set input_size to 1 if frontend is none
 normalize: none # BEATs code does global mean and variance normalization
 
-# freeze_param: [
-#     "encoder.encoder",
-#     "encoder.layer_norm",
-#     "encoder.patch_embedding",
-#     "encoder.post_extract_proj",
-# ]
+freeze_param: [
+    "encoder.encoder",
+]
 
-encoder: beats
+encoder: dasheng
 encoder_conf:
-    beats_ckpt_path: CHECKPOINT_PATH
+    model_name: DASHENG_MODEL_NAME
     specaug_config:
-        apply_freq_mask: true
-        freq_mask_width_range:
-        - 0
-        - 64
-        num_freq_mask: 2
+        apply_time_warp: true
+        apply_freq_mask: false
         apply_time_mask: true
         time_mask_width_ratio_range:
         - 0
-        - 0.12
-        num_time_mask: 5
-    adapter_config: conf/wav2vec2_conformer_config_large.json
-    downsampling_rate: 3 # CNN downsampling over beats encoder
-    max_layer: 19 # 0 based index
-    use_weighted_representation: false
-    add_positional_information: true
-    max_positions: 1024 # These many positional embeddings will be learned
-    beats_config:
-        # Large
-        encoder_layers: 24
-        encoder_embed_dim: 1024
-        encoder_ffn_embed_dim: 4096
-        encoder_attention_heads: 16
-        decoder_embed_dim: 1024
-        decoder_attention_heads: 16
+        - 0.06
+        num_time_mask: 1
 
 # Pleae note that the decoder is not the standard BART-base,
 # but a custom one whose config is defined in the file below
@@ -64,7 +44,8 @@ decoder_conf:
     load_pretrained_weights: false
     separate_lm_head: true
 
-# Initialization does not matter we use a pre-trained model
+# This takes care of BART and adapter layers' initialization
+# (essentially everything else other than BEATs encoder backbone)
 init: normal
 
 token_type: hugging_face
@@ -73,7 +54,7 @@ token_type: hugging_face
 model_conf:
     ctc_weight: 0.0  # No CTC, only attention branch
     lsm_weight: 0.1  # label smoothing weight
-    length_normalized_loss: true
+    length_normalized_loss: true  # length normalization
     # BART Dictionary customizations
     ignore_id: 1
     sym_blank: "<pad>"
@@ -83,9 +64,9 @@ model_conf:
 
 optim: adamw
 optim_conf:
-    lr: 0.00002 # 2e-5
-    weight_decay: 0.001 # 1e-3
+    lr: 0.0002 # 2e-4
+    weight_decay: 0.001
 
 scheduler: warmuplr
 scheduler_conf:
-    warmup_steps: 1000 #1k
+    warmup_steps: 2500 # 2.5k

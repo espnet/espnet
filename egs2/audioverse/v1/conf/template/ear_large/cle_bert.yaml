@@ -6,7 +6,7 @@ optim_conf:
 
 accum_grad: 1
 
-batch_size: 16
+batch_size: 24 # 16
 max_epoch: 100
 
 scheduler: CosineAnnealingWarmupRestarts
@@ -73,8 +73,8 @@ embedding_fusion: attention
 embedding_fusion_conf:
     audio_dim: 1024
     text_dim: 768
-    hidden_dim: 768
-    output_dim: 768
+    hidden_dim: 512 # 768
+    output_dim: 512 # 768
 
 # Simple linear decoder for classification.
 decoder: linear

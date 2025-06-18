@@ -1,8 +1,12 @@
 unused_parameters: true
 init: xavier_normal
 
-batch_type: length
-batch_size: 80000000 # (16000 hz * 10sec) * 500 samples/batch, 4 GPUs H-200
+utt2weight_file: /work/nvme/bbjs/sbharadwaj/espnet/egs2/audioverse/v1/data/audioset2m/utt2weight
+batch_type: length_weighted
+valid_batch_type: length
+
+
+batch_bins: 80000000 # (16000 hz * 10sec) * 500 samples/batch, 4 GPUs H-200
 max_epoch: 25
 
 accum_grad: 2
@@ -58,7 +62,7 @@ encoder_conf:
 model_conf:
     classification_type: multi-label
     mixup_probability: 0.8
-    lsm_weight: 0.0  # label smoothing weight, per label
+    lsm_weight: 0.1  # label smoothing weight, per label
     log_epoch_metrics: true
 
 lightning_conf:

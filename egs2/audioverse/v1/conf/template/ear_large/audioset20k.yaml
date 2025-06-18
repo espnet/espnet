@@ -1,12 +1,11 @@
 unused_parameters: true
 init: xavier_normal
 
-batch_type: folded
+batch_type: length
 shuffle_within_batch: false
 
-valid_batch_size: 32
-batch_size: 80
-max_epoch: 160 # 185
+max_epoch: 500
+batch_bins: 20000000 # (16000 hz * 10sec) * 125
 
 accum_grad: 1
 grad_clip: 1
@@ -19,7 +18,7 @@ optim_conf:
 
 scheduler: CosineAnnealingWarmupRestarts
 scheduler_conf:
-    first_cycle_steps: 95000
+    first_cycle_steps: 120000
     warmup_steps: 8000
     max_lr: 3.0e-5
     min_lr: 5.0e-6
@@ -49,11 +48,11 @@ encoder_conf:
     use_weighted_representation: false
     specaug_config:
         apply_time_warp: true
-        apply_freq_mask: false
+        apply_freq_mask: true # false
         apply_time_mask: true
         time_mask_width_ratio_range:
         - 0
-        - 0.06
+        - 0.2 # 0.06
         num_time_mask: 1
     roll_augment: true
     roll_interval: 1
@@ -61,13 +60,12 @@ encoder_conf:
 model_conf:
     classification_type: multi-label
     mixup_probability: 0.8
-    lsm_weight: 0.0  # label smoothing weight, per label
+    lsm_weight: 0  # label smoothing weight, per label
     log_epoch_metrics: true
 
 lightning_conf:
-    #### args that are passed directly to the trainer
-    log_every_n_steps: 185
-    max_epochs: 337
+    log_every_n_steps: 250
+    max_epochs: 500
     strategy: ddp
     strategy_conf:
         find_unused_parameters: true

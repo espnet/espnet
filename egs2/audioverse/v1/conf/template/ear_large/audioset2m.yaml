@@ -1,12 +1,13 @@
 unused_parameters: true
 init: xavier_normal
 
-batch_type: folded
-valid_batch_type: folded
-# Need large batch size to get good estimate
-valid_batch_size: 1200
-batch_size: 320 # over 8gpus, 6315 batches over 2m examples --> 3157.5 steps per epoch
-max_epoch: 16 # 50k steps, 8
+utt2weight_file: /work/nvme/bbjs/sbharadwaj/espnet/egs2/audioverse/v1/data/audioset2m/utt2weight
+batch_type: length_weighted
+valid_batch_type: length
+
+
+batch_bins: 20000000 # (16000 hz * 10sec) * 125 samples/batch, 4 GPUs H-200
+max_epoch: 25
 
 accum_grad: 2
 grad_clip: 1
@@ -19,8 +20,8 @@ optim_conf:
 
 scheduler: CosineAnnealingWarmupRestarts
 scheduler_conf:
-    first_cycle_steps: 50000
-    warmup_steps: 5000
+    first_cycle_steps: 400000
+    warmup_steps: 10000
     max_lr: 1.0e-4
     min_lr: 5.0e-6
 
@@ -61,12 +62,12 @@ encoder_conf:
 model_conf:
     classification_type: multi-label
     mixup_probability: 0.8
-    lsm_weight: 0.0  # label smoothing weight, per label
+    lsm_weight: 0.1  # label smoothing weight, per label
     log_epoch_metrics: true
 
 lightning_conf:
     log_every_n_steps: 250
-    max_epochs: 16
+    max_epochs: 25
     strategy: ddp
     strategy_conf:
         find_unused_parameters: true

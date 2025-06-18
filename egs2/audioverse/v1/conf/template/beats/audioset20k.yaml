@@ -1,8 +1,11 @@
 unused_parameters: true
 init: xavier_normal
 
+# utt2weight_file: /work/nvme/bbjs/sbharadwaj/espnet/egs2/audioverse/v1/data/audioset20k/uttweight_bal
+# batch_type: length_weighted
 batch_type: length
 
+valid_batch_type: length
 max_epoch: MAX_EPOCH
 batch_bins: 20000000 # (16000 hz * 10sec) * 125
 
@@ -17,7 +20,7 @@ optim_conf:
 
 scheduler: CosineAnnealingWarmupRestarts
 scheduler_conf:
-    first_cycle_steps: 100000
+    first_cycle_steps: 120000
     warmup_steps: WARMUP_STEPS
     max_lr: LEARNING_RATE
     min_lr: 5.0e-6
@@ -42,7 +45,7 @@ encoder_conf:
     beats_ckpt_path: CHECKPOINT_PATH
     beats_config:
         layer_wise_gradient_decay_ratio: 0.3
-        encoder_layerdrop: 0.1
+        encoder_layerdrop: 0.05 # CHANGED!
         dropout: 0.0
     use_weighted_representation: false
     specaug_config:
