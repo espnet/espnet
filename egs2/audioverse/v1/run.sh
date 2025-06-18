@@ -97,18 +97,18 @@ done
 declare -A recipe_runners
 
 # Captioning tasks
-# recipe_runners["clotho_aac"]="../../clotho_v2/asr1/run.sh|"
-# recipe_runners["audiocaps_aac"]="../../clotho_v2/asr1/run.sh|"
+recipe_runners["audiocaps_aac"]="../../clotho_v2/asr1/run_pt.sh|"
+recipe_runners["clotho_aac"]="../../clotho_v2/asr1/run_ft.sh|"
 
 # BERT audio-text classification
-# recipe_runners["cle_bert"]="../../clotho_v2/cls1/run_entailment.sh|"
-# recipe_runners["aqa_yn_bert"]="../../clotho_v2/cls1/run_aqa_yn.sh|"
-# recipe_runners["aqa_open_bert"]="../../clotho_v2/cls1/run_aqa_open.sh|"
+recipe_runners["cle_bert"]="../../clotho_v2/cls1/run_entailment.sh|--hugging_face_model_name_or_path bert-base-uncased"
+recipe_runners["aqa_yn_bert"]="../../clotho_v2/cls1/run_aqa_yn.sh|--hugging_face_model_name_or_path bert-base-uncased"
+recipe_runners["aqa_open_bert"]="../../clotho_v2/cls1/run_aqa_open.sh|--hugging_face_model_name_or_path bert-base-uncased"
 
 # CLAP audio-text classification
-# recipe_runners["cle_clap"]="../../clotho_v2/cls1/run_entailment.sh|--hugging_face_model_name_or_path laion/clap-htsat-unfused"
-# recipe_runners["aqa_yn_clap"]="../../clotho_v2/cls1/run_aqa_yn.sh|--hugging_face_model_name_or_path laion/clap-htsat-unfused"
-# recipe_runners["aqa_open_clap"]="../../clotho_v2/cls1/run_aqa_open.sh|--hugging_face_model_name_or_path laion/clap-htsat-unfused"
+recipe_runners["cle_clap"]="../../clotho_v2/cls1/run_entailment.sh|--hugging_face_model_name_or_path laion/clap-htsat-unfused"
+recipe_runners["aqa_yn_clap"]="../../clotho_v2/cls1/run_aqa_yn.sh|--hugging_face_model_name_or_path laion/clap-htsat-unfused"
+recipe_runners["aqa_open_clap"]="../../clotho_v2/cls1/run_aqa_open.sh|--hugging_face_model_name_or_path laion/clap-htsat-unfused"
 
 # General sound Multi-label tasks
 recipe_runners["audioset2m"]="../../as2m/cls1/run.sh|"
@@ -138,7 +138,8 @@ recipe_runners["beans_dogs"]="../../beans/cls1/run_dogs.sh|"
 
 # Music tasks
 recipe_runners["gtzan"]="../../gtzan/cls1/run.sh|"
-# recipe_runners["nsynth"]
+recipe_runners["nsynth_instrument"]="../../nsynth/cls1/run_instrument.sh|"
+recipe_runners["nsynth_pitch"]="../../nsynth/cls1/run_pitch.sh|"
 
 generate_recipe_list() {
     local recipes_to_run=()
@@ -231,7 +232,11 @@ construct_command_args() {
     fi
     cmd_args="--${task_name}_config ${config_path} --${task_name}_tag ${run_name} "
     if "${store_locally}"; then
-        cmd_args+="--datadir $(pwd)/data/${recipe} --dumpdir $(pwd)/dump/${recipe} --expdir $(pwd)/exp/${recipe} "
+        cmd_args+="--dumpdir $(pwd)/dump/${recipe} --expdir $(pwd)/exp/${recipe} "
+        if [[ $task_name == "cls" ]]; then
+            cmd_args+="--datadir $(pwd)/data/${recipe} "
+        fi
+        # data for asr1 is downloaded in the recipe dir
     fi
 
     task_args_header="--${task_name}_args"
