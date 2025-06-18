@@ -42,7 +42,6 @@ from espnet2.ser.pooling.abs_pooling import AbsPooling
 from espnet2.ser.pooling.mean_pooling import MeanPooling
 from espnet2.ser.projector.abs_projector import AbsProjector
 from espnet2.ser.projector.linear_projector import LinearProjector
-
 from espnet2.slu.postencoder.conformer_postencoder import ConformerPostEncoder
 from espnet2.slu.postencoder.transformer_postencoder import TransformerPostEncoder
 from espnet2.tasks.asr import ASRTask
