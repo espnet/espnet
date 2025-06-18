@@ -58,19 +58,41 @@ def load_midi(args):
     return midis
 
 
-def load_and_process_textgrid(textgrid_path, transcriptions_path, song_folder):
+def detect_leading_silence_duration(file_path, threshold=0.0005, frame_length=2048, hop_length=512):
+    # Step 1: Load the audio file
+    y, sr = librosa.load(file_path, sr=None)
+
+    # Step 2: Calculate short-time energy for each frame
+    energy = np.array([
+        np.sum(np.abs(y[i:i+frame_length]**2))
+        for i in range(0, len(y), hop_length)
+    ])
+
+    # Step 3: Find index of the first frame where energy exceeds the threshold
+    for i, e in enumerate(energy):
+        if e > threshold:
+            silence_duration = i * hop_length / sr
+            return round(silence_duration, 4)  # round to 4 decimal places
+    return 0.0  # All frames are below the threshold -> entire audio is silent
+
+
+def load_and_process_textgrid(textgrid_path, transcriptions_path, song_folder, silence_duration):
     # Step 1: Load the textgrid file
     tg = TextGrid.fromFile(textgrid_path)
 
     # Step 2: Get the start and end times of non-silent utterances
     name = tg[0].name
     assert name == "句子"
+    silence_bias, idx = 0, 0
+    while tg[0][idx].mark == "silence":
+        silence_bias = silence_duration - tg[0][idx].maxTime
+        idx += 1
     utterance_time = []
     for utt in tg[0]:
         if utt.mark != "silence":
-            utterance_time.append(
-                (utt.minTime * 1000, utt.maxTime * 1000)
-            )  # Convert to milliseconds
+            start_time = (utt.minTime + silence_bias) * 1000 # Convert to milliseconds
+            end_time = (utt.maxTime + silence_bias) * 1000 # Convert to milliseconds
+            utterance_time.append((start_time, end_time)) 
 
     # Step 3: Load the transcription file
     transcriptions = (
@@ -143,6 +165,7 @@ def segment_dataset(args, dataset):
             if not os.path.exists(audio_path):
                 continue  # Skip if the audio file does not exist
             audio = AudioSegment.from_wav(audio_path)
+            silence_duration = detect_leading_silence_duration(audio_path)
 
             textgrid_path = os.path.join(
                 args.opencpop_src_data, "raw_data/textgrids", f"{song_folder}.TextGrid"
@@ -151,7 +174,7 @@ def segment_dataset(args, dataset):
                 logging.warning(f"warning : {textgrid_path} does not exist")
                 continue  # Skip if the textgrid file does not exist
             utterance_time_map = load_and_process_textgrid(
-                textgrid_path, transcriptions_path, song_folder
+                textgrid_path, transcriptions_path, song_folder, silence_duration
             )
             segment_audio(audio, utterance_time_map, output_temp)
 
@@ -324,6 +347,12 @@ if __name__ == "__main__":
         "opencpop_src_data", type=str, help="opencpop source data directory"
     )
     parser.add_argument("--tgt_dir", type=str, default="data")
+    parser.add_argument(
+        "--midi_note_scp",
+        type=str,
+        help="midi note scp for information of note id",
+        default="local/midi-note.scp",
+    )
     parser.add_argument(
         "--wav_dumpdir", type=str, help="wav dump directory (rebit)", default="wav_dump"
     )
