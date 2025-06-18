@@ -1,22 +1,9 @@
 import argparse
-import logging
 from typing import Callable, Dict, Optional, Tuple
 
 import numpy as np
 from typeguard import typechecked
 
-from espnet2.asr.ctc import CTC
-from espnet2.asr.decoder.abs_decoder import AbsDecoder
-from espnet2.asr.decoder.mlm_decoder import MLMDecoder
-from espnet2.asr.decoder.rnn_decoder import RNNDecoder
-from espnet2.asr.decoder.transducer_decoder import TransducerDecoder
-from espnet2.asr.decoder.transformer_decoder import (
-    DynamicConvolution2DTransformerDecoder,
-    DynamicConvolutionTransformerDecoder,
-    LightweightConvolution2DTransformerDecoder,
-    LightweightConvolutionTransformerDecoder,
-    TransformerDecoder,
-)
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.encoder.branchformer_encoder import BranchformerEncoder
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
@@ -49,31 +36,21 @@ from espnet2.asr.preencoder.linear import LinearProjection
 from espnet2.asr.preencoder.sinc import LightweightSincConvs
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.asr.specaug.specaug import SpecAug
-from espnet2.asr_transducer.joint_network import JointNetwork
-from espnet2.layers.abs_normalize import AbsNormalize
-from espnet2.layers.global_mvn import GlobalMVN
-from espnet2.layers.utterance_mvn import UtteranceMVN
 from espnet2.ser.espnet_model import ESPnetSERModel
 from espnet2.ser.loss.cross_entropy_loss import Xnt
 from espnet2.ser.pooling.abs_pooling import AbsPooling
 from espnet2.ser.pooling.mean_pooling import MeanPooling
 from espnet2.ser.projector.abs_projector import AbsProjector
 from espnet2.ser.projector.linear_projector import LinearProjector
-from espnet2.slu.postdecoder.abs_postdecoder import AbsPostDecoder
-from espnet2.slu.postdecoder.hugging_face_transformers_postdecoder import (
-    HuggingFaceTransformersPostDecoder,
-)
+
 from espnet2.slu.postencoder.conformer_postencoder import ConformerPostEncoder
 from espnet2.slu.postencoder.transformer_postencoder import TransformerPostEncoder
 from espnet2.tasks.asr import ASRTask
-from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.torch_utils.initialize import initialize
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.preprocessor import SERPreprocessor
 from espnet2.train.trainer import Trainer
-from espnet2.utils.get_default_kwargs import get_default_kwargs
-from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import float_or_none, int_or_none, str2bool, str_or_none
 
 frontend_choices = ClassChoices(
@@ -196,11 +173,6 @@ class SERTask(ASRTask):
     @classmethod
     def add_task_arguments(cls, parser: argparse.ArgumentParser):
         group = parser.add_argument_group(description="Task related")
-
-        # NOTE(kamo): add_arguments(..., required=True) can't be used
-        # to provide --print_config mode. Instead of it, do as
-        required = parser.get_default("required")
-        # required += ["token_list"]
 
         group.add_argument(
             "--pre_postencoder_norm",
@@ -357,7 +329,7 @@ class SERTask(ASRTask):
         else:
             specaug = None
 
-        # 4. Pre-encoder input block
+        # 3. Pre-encoder input block
         # NOTE(kan-bayashi): Use getattr to keep the compatibility
         if getattr(args, "preencoder", None) is not None:
             preencoder_class = preencoder_choices.get_class(args.preencoder)
@@ -383,14 +355,14 @@ class SERTask(ASRTask):
             else:
                 postencoder = None
 
-        # 5. Pooling
+        # 6. Pooling
         pooling_class = pooling_choices.get_class(args.pooling)
         if preencoder is not None:
             pooling = pooling_class(
                 input_size=preencoder.output_size(), **args.pooling_conf
             )
             pooling_output_size = pooling.output_size()
-        # 5. Projector
+        # 7. Projector
         projector_class = projector_choices.get_class(args.projector)
         projector = projector_class(
             input_size=pooling_output_size, **args.projector_conf
@@ -402,7 +374,7 @@ class SERTask(ASRTask):
             nout=projector_output_size, nclasses=projector_output_size, **args.loss_conf
         )
 
-        # 7. Build model
+        # 8. Build model
         try:
             model_class = model_choices.get_class(args.model)
         except AttributeError:
@@ -418,7 +390,7 @@ class SERTask(ASRTask):
         )
 
         # FIXME(kamo): Should be done in model?
-        # 8. Initialize
+        # 9. Initialize
         if args.init is not None:
             initialize(model, args.init)
 
