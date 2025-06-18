@@ -12,7 +12,8 @@
 . ./path.sh
 
 set -euo pipefail
-DATA_PREP_ROOT=$1
+# DATA_PREP_ROOT=$1
+DATA_PREP_ROOT=/work/nvme/bbjs/sbharadwaj/espnet/egs2/as2m/cls1/data
 mkdir -p local/logs
 echo $(which python)
 
