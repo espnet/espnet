@@ -31,6 +31,7 @@ class BeatsPretrainModel(AbsESPnetModel):
         label_smoothing: float = 0.1,
         waveform_input: bool = False,
         mixup_probability: float = 0.0,
+        contrastive_loss_weight: float = 0.0,
     ):
         super().__init__()
         self.ignore_id = ignore_id
@@ -52,10 +53,25 @@ class BeatsPretrainModel(AbsESPnetModel):
             label_smoothing=label_smoothing,
             reduction="none",
         )
+        self.contrastive_loss_weight = contrastive_loss_weight
         logger.info(
             f"Initialized BeatsPretrainModel with ignore_id={ignore_id}, "
             f"label_smoothing={label_smoothing}, encoder={encoder}, decoder={decoder}"
         )
+
+    def patch_contrastive_loss(self, unmasked_patch_emb, temperature=0.1):
+        B, _, _ = unmasked_patch_emb.shape
+        assert B % 2 == 0, "Using contrastive loss, batch size must be even. "
+        "There is some bug. Check encoder."
+        z1 = unmasked_patch_emb[: B // 2, 0, :]  # (B//2, D)
+        z2 = unmasked_patch_emb[B // 2 :, 0, :]  # (B//2, D)
+        z1 = F.normalize(z1, dim=1)  # (B//2, D)
+        z2 = F.normalize(z2, dim=1)  # (B//2, D)
+        logits = torch.matmul(z1, z2.t()) / temperature  # (B//2, B//2)
+        labels = torch.arange(B // 2, device=logits.device)
+        loss_1to2 = F.cross_entropy(logits, labels)
+        loss_2to1 = F.cross_entropy(logits.t(), labels)
+        return 0.5 * (loss_1to2 + loss_2to1)
 
     def forward(
         self,
@@ -107,16 +123,37 @@ class BeatsPretrainModel(AbsESPnetModel):
         unmasked_patch_emb, patch_len, restore_ids, kept_mask = self.encoder(
             speech, speech_lengths, waveform_input=self.waveform_input
         )
+
         target = target[:, : patch_len.max()]
         onehot_ = onehot_[:, : patch_len.max()] if onehot_ is not None else None
 
-        # target (Batch, n_patch)
-        # logits (Batch, n_patch, codebook_size)
-        logits = self.decoder(unmasked_patch_emb, patch_len, restore_ids)
+        if self.contrastive_loss_weight != 0:
+            contrastive_loss = (
+                self.contrastive_loss_weight
+                * self.patch_contrastive_loss(unmasked_patch_emb)
+            )
+            # Remove cls
+            unmasked_patch_emb = unmasked_patch_emb[:, 1:, :]
+            restore_ids = restore_ids[:, 1:] - 1
+            kept_mask = kept_mask[:, 1:]
+            patch_len = torch.cat([patch_len, patch_len], dim=0)
+            target = torch.cat([target, target], dim=0)
+            onehot_ = (
+                torch.cat([onehot_, onehot_], dim=0) if onehot_ is not None else None
+            )
+
+        logits = self.decoder(unmasked_patch_emb, patch_len, restore_ids, kept_mask)
 
         loss, stats = self._calc_beats_loss(
             logits, target - 1, ~kept_mask, patch_len, onehot_
         )  # target - 1 because of unk token at 0th position
+
+        if self.contrastive_loss_weight != 0:
+            # loss = loss * 0 # for no MAM loss
+            stats["ContraLoss"] = contrastive_loss.detach()
+            stats["MAMloss"] = loss.detach()
+            loss = loss + contrastive_loss
+            stats["loss"] = loss.detach()
 
         # force_gatherable: to-device and to-tensor if scalar for DataParallel
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)

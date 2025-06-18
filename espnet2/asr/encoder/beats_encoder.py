@@ -290,6 +290,11 @@ class BeatsEncoder(AbsEncoder):
         if adapter_config:
             conformer_config = Wav2Vec2ConformerConfig.from_json_file(adapter_config)
             self.conformer_adapter = Wav2Vec2ConformerEncoder(conformer_config)
+            # self.linear_adapter = None
+            # if conformer_config.hidden_size != config.encoder_embed_dim:
+            #     self.linear_adapter = nn.Linear(
+            #         config.encoder_embed_dim, conformer_config.hidden_size
+            #     )
 
         # Positional embeddings applied before cross-attention with decoder.
         self.cross_embed_positions = None
@@ -733,6 +738,7 @@ class BeatsPretrainingPredictor(nn.Module):
         audio_representation: torch.Tensor,  # B,T_small,D
         patch_len: torch.Tensor,  # B, (1>=x>=T_large)
         restore_ids: torch.Tensor,  # B,T_large
+        kept_mask: torch.Tensor,  # B,T_large
     ):
         padding_mask = make_pad_mask(lengths=patch_len, traceable=False).to(
             audio_representation.device
@@ -746,6 +752,7 @@ class BeatsPretrainingPredictor(nn.Module):
         x = torch.gather(
             x, dim=1, index=restore_ids.unsqueeze(-1).repeat(1, 1, x.shape[2])
         )
+        x[~kept_mask] = self.mask_token
 
         pos_bias = None
         # ===========================#
