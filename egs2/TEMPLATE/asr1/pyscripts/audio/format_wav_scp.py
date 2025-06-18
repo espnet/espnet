@@ -106,43 +106,47 @@ class SegmentsExtractor:
 
         cached = {}
         for utt, (recodeid, st, et) in self.segments_dict.items():
-            wavpath = self.wav_dict[recodeid]
-            if recodeid not in cached:
-                if wavpath.endswith("|"):
-                    if self.multi_columns:
-                        raise RuntimeError(
-                            "Not supporting multi_columns wav.scp for inputs by pipe"
-                        )
-                    # Streaming input e.g. cat a.wav |
-                    with kaldiio.open_like_kaldi(wavpath, "rb") as f:
-                        with BytesIO(f.read()) as g:
-                            array, rate = soundfile.read(g)
+            try:
+                wavpath = self.wav_dict[recodeid]
+                if recodeid not in cached:
+                    if wavpath.endswith("|"):
+                        if self.multi_columns:
+                            raise RuntimeError(
+                                "Not supporting multi_columns wav.scp for inputs by pipe"
+                            )
+                        # Streaming input e.g. cat a.wav |
+                        with kaldiio.open_like_kaldi(wavpath, "rb") as f:
+                            with BytesIO(f.read()) as g:
+                                array, rate = soundfile.read(g)
 
-                else:
-                    if self.multi_columns:
-                        array, rate = soundfile_read(
-                            wavs=wavpath.split(),
-                            dtype=None,
-                            always_2d=False,
-                            concat_axis=1,
-                        )
                     else:
-                        array, rate = soundfile.read(wavpath)
-                cached[recodeid] = array, rate
+                        if self.multi_columns:
+                            array, rate = soundfile_read(
+                                wavs=wavpath.split(),
+                                dtype=None,
+                                always_2d=False,
+                                concat_axis=1,
+                            )
+                        else:
+                            array, rate = soundfile.read(wavpath)
+                    cached[recodeid] = array, rate
 
-            array, rate = cached[recodeid]
-            # Keep array until the last query
-            recodeid_counter[recodeid] -= 1
-            if recodeid_counter[recodeid] == 0:
-                cached.pop(recodeid)
-            # Convert starting time of the segment to corresponding sample number.
-            # If end time is -1 then use the whole file starting from start time.
-            if et != -1:
-                array = array[int(st * rate) : int(et * rate)]
-            else:
-                array = array[int(st * rate) :]
+                array, rate = cached[recodeid]
+                # Keep array until the last query
+                recodeid_counter[recodeid] -= 1
+                if recodeid_counter[recodeid] == 0:
+                    cached.pop(recodeid)
+                # Convert starting time of the segment to corresponding sample number.
+                # If end time is -1 then use the whole file starting from start time.
+                if et != -1:
+                    array = array[int(st * rate) : int(et * rate)]
+                else:
+                    array = array[int(st * rate) :]
 
-            yield utt, (array, rate), None, None
+                yield utt, (array, rate), None, None
+            except Exception as e:
+                logging.error(f"Error in {utt}: {e}")
+                continue
 
 
 def main():
@@ -255,37 +259,51 @@ def main():
         def generator():
             with Path(args.scp).open("r") as fscp:
                 for line in tqdm(fscp):
-                    uttid, wavpath = line.strip().split(None, 1)
+                    try:
+                        uttid, wavpath = line.strip().split(None, 1)
 
-                    # B.a. Without segments and using pipe inputs
-                    if wavpath.endswith("|"):
-                        if args.multi_columns_input:
-                            raise RuntimeError(
-                                "Not supporting multi_columns wav.scp for inputs by"
-                                " pipe"
-                            )
-                        # Streaming input e.g. cat a.wav |
-                        with kaldiio.open_like_kaldi(wavpath, "rb") as f:
-                            with BytesIO(f.read()) as g:
-                                wave, rate = soundfile.read(g)
-                        subtypes = None
+                        # ark input
+                        if ".ark" in wavpath:
+                            rate, wave = kaldiio.load_mat(wavpath)
+                        # B.a. Without segments and using pipe inputs
+                        if wavpath.endswith("|"):
+                            if args.multi_columns_input:
+                                raise RuntimeError(
+                                    "Not supporting multi_columns wav.scp for inputs by"
+                                    " pipe"
+                                )
+                            # Streaming input e.g. cat a.wav |
+                            with kaldiio.open_like_kaldi(wavpath, "rb") as f:
+                                with BytesIO(f.read()) as g:
+                                    wave, rate = soundfile.read(g)
+                            subtypes = None
 
-                    # B.b Without segments and not using pipe
-                    else:
-                        if args.multi_columns_input:
-                            wave, rate, subtypes = soundfile_read(
-                                wavs=wavpath.split(),
-                                dtype=None,
-                                always_2d=False,
-                                concat_axis=1,
-                                return_subtype=True,
-                            )
+                        # B.b Without segments and not using pipe
                         else:
-                            with soundfile.SoundFile(wavpath) as sf:
-                                rate = sf.samplerate
-                                subtypes = [sf.subtype]
-                                wave = sf.read()
-                    yield uttid, (wave, rate), wavpath, subtypes
+                            if args.multi_columns_input:
+                                wave, rate, subtypes = soundfile_read(
+                                    wavs=wavpath.split(),
+                                    dtype=None,
+                                    always_2d=False,
+                                    concat_axis=1,
+                                    return_subtype=True,
+                                )
+                            else:
+                                with soundfile.SoundFile(wavpath) as sf:
+                                    rate = sf.samplerate
+                                    subtypes = [sf.subtype]
+                                    wave = sf.read()
+
+                        # if len(wave) > rate * 10:
+                        #     segment_length = int(rate * 10)
+                        #     max_start = len(wave) - segment_length
+                        #     start = np.random.randint(0, max_start + 1)
+                        #     wave = wave[start : start + segment_length]
+
+                        yield uttid, (wave, rate), wavpath, subtypes
+                    except Exception as e:
+                        logging.error(f"Error in {uttid}: {e}")
+                        continue
 
     with out_num_samples.open("w") as fnum_samples:
         for uttid, (wave, rate), wavpath, subtypes in tqdm(generator()):
@@ -335,6 +353,8 @@ def main():
             if wavpath is not None and wavpath.endswith("|"):
                 save_asis = False
             if wavpath is not None and Path(wavpath).suffix != "." + args.audio_format:
+                save_asis = False
+            if wavpath is not None and ".ark" in wavpath:
                 save_asis = False
 
             if not args.audio_format.endswith("ark") and subtypes is not None:

@@ -171,6 +171,7 @@ SIWIS=downloads
 GIGASPEECH=
 GIGAST=
 GOOGLEI18N=downloads
+NSYNTH=downloads
 NOISY_SPEECH=
 NOISY_REVERBERANT_SPEECH=
 LRS2=
@@ -234,10 +235,11 @@ HIFITTS=downloads
 CLOTHO_V2=downloads
 CLOTHO_ENTAILMENT=downloads
 CLOTHO_AQA=downloads
-AUDIOCAPS=
-CLOTHO_CHATGPT_MIXUP=
+AUDIOCAPS=/work/hdd/bbjs/shared/corpora/audiocaps
+CLOTHO_CHATGPT_MIXUP=/work/hdd/bbjs/shared/corpora/clotho_captions_mixup
 EDACC=downloads
 FSD50K=downloads
+YT8M=/work/hdd/bbjs/shared/corpora/yt8m/unzipped/extracted
 
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then
