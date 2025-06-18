@@ -9,6 +9,7 @@ from espnet2.samplers.num_elements_batch_sampler import NumElementsBatchSampler
 from espnet2.samplers.sorted_batch_sampler import SortedBatchSampler
 from espnet2.samplers.unsorted_batch_sampler import UnsortedBatchSampler
 from espnet2.samplers.weighted_batch_sampler import WeightedBatchSampler
+from espnet2.samplers.length_weighted_batch_sampler import WeightedLengthBatchSampler
 
 BATCH_TYPES = dict(
     unsorted="UnsortedBatchSampler has nothing in particular feature and "
@@ -69,6 +70,10 @@ BATCH_TYPES = dict(
     "    utterance_id_c 1241,80\n",
     weighted="WeightedBatchSampler supports weighted sampling. "
     "This sampler requires a text file which describes the weight for each sample. ",
+    length_weighted="LengthWeightedBatchSampler supports weighted sampling. "
+    "This sampler requires a text file which describes the length for each sample. "
+    "\n\n"
+    "    utterance_id_a 1.2\n",
 )
 
 
@@ -169,6 +174,19 @@ def build_batch_sampler(
         retval = WeightedBatchSampler(
             batch_size=batch_size,
             utt2weight_file=utt2weight_file,
+        )
+    elif type == "length_weighted":
+        if utt2weight_file is None:
+            raise ValueError("utt2weight_file is required for weighted sampling")
+        retval = WeightedLengthBatchSampler(
+            batch_bins=batch_bins,
+            shape_files=shape_files,
+            utt2weight_file=utt2weight_file,
+            min_batch_size=min_batch_size,
+            sort_in_batch=sort_in_batch,
+            sort_batch=sort_batch,
+            drop_last=drop_last,
+            padding=padding,
         )
     else:
         raise ValueError(f"Not supported: {type}")
