@@ -3,11 +3,7 @@
 # code from https://github.com/clovaai/voxceleb_trainer/blob/master/loss/aamsoftmax.py
 # Adapted from https://github.com/wujiyang/Face_Pytorch (Apache License)
 
-import math
-
-import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 from espnet2.ser.loss.abs_loss import AbsLoss
 
