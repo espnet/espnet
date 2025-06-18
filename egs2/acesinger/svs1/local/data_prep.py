@@ -58,15 +58,19 @@ def load_midi(args):
     return midis
 
 
-def detect_leading_silence_duration(file_path, threshold=0.0005, frame_length=2048, hop_length=512):
+def detect_leading_silence_duration(
+    file_path, threshold=0.0005, frame_length=2048, hop_length=512
+):
     # Step 1: Load the audio file
     y, sr = librosa.load(file_path, sr=None)
 
     # Step 2: Calculate short-time energy for each frame
-    energy = np.array([
-        np.sum(np.abs(y[i:i+frame_length]**2))
-        for i in range(0, len(y), hop_length)
-    ])
+    energy = np.array(
+        [
+            np.sum(np.abs(y[i : i + frame_length] ** 2))
+            for i in range(0, len(y), hop_length)
+        ]
+    )
 
     # Step 3: Find index of the first frame where energy exceeds the threshold
     for i, e in enumerate(energy):
@@ -76,7 +80,9 @@ def detect_leading_silence_duration(file_path, threshold=0.0005, frame_length=20
     return 0.0  # All frames are below the threshold -> entire audio is silent
 
 
-def load_and_process_textgrid(textgrid_path, transcriptions_path, song_folder, silence_duration):
+def load_and_process_textgrid(
+    textgrid_path, transcriptions_path, song_folder, silence_duration
+):
     # Step 1: Load the textgrid file
     tg = TextGrid.fromFile(textgrid_path)
 
@@ -90,9 +96,9 @@ def load_and_process_textgrid(textgrid_path, transcriptions_path, song_folder, s
     utterance_time = []
     for utt in tg[0]:
         if utt.mark != "silence":
-            start_time = (utt.minTime + silence_bias) * 1000 # Convert to milliseconds
-            end_time = (utt.maxTime + silence_bias) * 1000 # Convert to milliseconds
-            utterance_time.append((start_time, end_time)) 
+            start_time = (utt.minTime + silence_bias) * 1000  # Convert to milliseconds
+            end_time = (utt.maxTime + silence_bias) * 1000  # Convert to milliseconds
+            utterance_time.append((start_time, end_time))
 
     # Step 3: Load the transcription file
     transcriptions = (
