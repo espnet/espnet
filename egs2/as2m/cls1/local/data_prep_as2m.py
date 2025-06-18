@@ -237,7 +237,6 @@ if __name__ == "__main__":
     # Since the code for BEATs evals is not public, it is hard to estimate how they create
     # val set. However, it seems like AST is using all of the training data. To replicate this
     # setup we do not use remove any data from train set and use 10% of eval set as val set.
-    # This results in ~1% gain in mAP score.
     # AST- https://github.com/YuanGongND/ast/tree/master
     random.seed(42)
     random.shuffle(eval_set)
@@ -270,25 +269,3 @@ if __name__ == "__main__":
             data_sampling_weights=data_sampling_weights,
             num_workers=max(cpu_count() - 2, 1),
         )
-
-        # with open(text_write_path, "w") as text_f, open(
-        #     wav_scp_write_path, "w"
-        # ) as wav_f, open(utt2spk_write_path, "w") as utt2spk_f:
-        #     for uttid, item in enumerate(tqdm(dataset, desc=f"Processing {name} set")):
-        #         wav_directory = item["wav_directory"]
-        #         wav_path = os.path.join(
-        #             DATA_READ_ROOT, wav_directory, item["yt_id"] + ".wav"
-        #         )
-        #         if not os.path.exists(wav_path):
-        #             missing_wav_file += 1
-        #             continue
-        #         text = " ".join(item["labels"])
-        #         print(f"as20k-{name}-{uttid} {text}", file=text_f)
-        #         print(f"as20k-{name}-{uttid} {wav_path}", file=wav_f)
-        #         print(f"as20k-{name}-{uttid} dummy", file=utt2spk_f)
-        #         if sample_weight_f:
-        #             print(
-        #                 f"as20k-{name}-{uttid} {data_sampling_weights[uttid]}",
-        #                 file=sample_weight_f,
-        #             )
-        # print(f"Missing {missing_wav_file} wav files in {name} set.")``

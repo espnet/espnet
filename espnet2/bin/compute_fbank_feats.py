@@ -105,6 +105,8 @@ def get_parser():
 
 def kaldi_fbank_extractor(array, rate, args):
     rate = args.fs if args.fs is not None else rate
+    if array.ndim > 1:
+        array = array.mean(axis=-1)
     array = torch.from_numpy(array).unsqueeze(0)  # (1, T)
     if args.normalize is not None and args.normalize != 1:
         array = array * (1 << (args.normalize - 1))
