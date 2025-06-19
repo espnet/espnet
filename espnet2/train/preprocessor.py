@@ -2252,7 +2252,7 @@ class LIDPreprocessor(CommonPreprocessor):
     Args:
         train (bool): Whether to use in training mode.
         lang2utt (str): Path to the `lang2utt` file.
-        target_duration (float): Target duration in seconds, if 
+        target_duration (float): Target duration in seconds, if
         fix_duration, clip to this duration.
         fix_duration (bool): Whether to fix the duration of the audio.
         sample_rate (int): Sampling rate.
@@ -2374,7 +2374,7 @@ class LIDPreprocessor(CommonPreprocessor):
             startframe = np.array(
                 [np.int64(random.random() * (len(audio) - self.target_duration))]
             )
-            # Random select the start of the speech, 
+            # Random select the start of the speech,
             # and only use the target duration of speech
             data["speech"] = audio[
                 int(startframe) : int(startframe) + self.target_duration

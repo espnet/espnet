@@ -6,7 +6,6 @@ import torch
 import torch.nn as nn
 from typeguard import typechecked
 
-from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.asteroid_frontend import AsteroidFrontend
@@ -32,6 +31,7 @@ from espnet2.spk.projector.ska_tdnn_projector import SkaTdnnProjector
 from espnet2.spk.projector.xvector_projector import XvectorProjector
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.torch_utils.initialize import initialize
+from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
 from espnet2.train.preprocessor import (
@@ -40,7 +40,6 @@ from espnet2.train.preprocessor import (
     LIDPreprocessor,
 )
 from espnet2.utils.types import int_or_none, str2bool, str_or_none
-
 
 # Check and understand
 frontend_choices = ClassChoices(
@@ -140,11 +139,8 @@ preprocessor_choices = ClassChoices(
 )
 
 
-
 class LIDTask(AbsTask):
     num_optimizers: int = 1
-
-
 
     @classmethod
     def add_task_arguments(cls, parser: argparse.ArgumentParser):
@@ -190,8 +186,8 @@ class LIDTask(AbsTask):
             "--lang2utt",
             type=str,
             default="",
-            help="Directory of the train lang2utt file to be used in label mapping" \
-            "Note that both train and validation use the same lang2utt file, since" \
+            help="Directory of the train lang2utt file to be used in label mapping"
+            "Note that both train and validation use the same lang2utt file, since"
             "we can only support the same categories during validation",
         )
 
@@ -223,7 +219,6 @@ class LIDTask(AbsTask):
             default="",
             help="Directory of the rir data to be augmented",
         )
-
 
     @classmethod
     @typechecked
@@ -264,7 +259,7 @@ class LIDTask(AbsTask):
         else:
             # inference
             retval = ("speech",)
-        
+
         return retval
 
     @classmethod
@@ -274,4 +269,3 @@ class LIDTask(AbsTask):
         retval = ()
 
         return retval
-
