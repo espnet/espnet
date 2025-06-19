@@ -3,7 +3,6 @@ from typing import Callable, Collection, Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
-import torch.nn as nn
 from typeguard import typechecked
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
