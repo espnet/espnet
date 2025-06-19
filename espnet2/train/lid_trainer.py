@@ -48,41 +48,41 @@ class LIDTrainer(Trainer):
         """
         Extract LIDs and language embeddings for each utterance in the dataset.
 
-        By default, this method performs language identification (LID) for 
-        each utterance. If `extract_embd=True`, it also extracts normalized language 
+        By default, this method performs language identification (LID) for
+        each utterance. If `extract_embd=True`, it also extracts normalized language
         embeddings.
 
-        lang_embd_dic: {utt_id: lang_embd}, the language embedding for a specific 
-        utterance, this is used for temporary saving the language embedding of each 
+        lang_embd_dic: {utt_id: lang_embd}, the language embedding for a specific
+        utterance, this is used for temporary saving the language embedding of each
         utterance, and will be written to the dist every `save_every` utterances.
-        lang_to_embds_dic: {lang: [utt1 embd, utt1 embd ...]}, the language embedding 
-        for the utterances corresponding to each language, if set `extract_embd` to 
-        True, this will be defaultly used, this will not be written to the dist, but 
-        will be (in bin/lid_inference_dist.py) used for calculating the average language 
+        lang_to_embds_dic: {lang: [utt1 embd, utt1 embd ...]}, the language embedding
+        for the utterances corresponding to each language, if set `extract_embd` to
+        True, this will be defaultly used, this will not be written to the dist, but
+        will be (in bin/lid_inference_dist.py) used for calculating the average language
         embedding for each language, and plotting the tsne plot.
 
         Saved results:
-        - lang_id_dic: {utt_id: predicted_lang}, mapping from utterance ID to 
+        - lang_id_dic: {utt_id: predicted_lang}, mapping from utterance ID to
                                 predicted language ID.
-        - lang_embd_dic (optional): {utt_id: lang_embd}, temporary in-memory 
-                                    storage of per-utterance language embeddings. 
-                                    Saved to disk every `save_every` utterances if 
+        - lang_embd_dic (optional): {utt_id: lang_embd}, temporary in-memory
+                                    storage of per-utterance language embeddings.
+                                    Saved to disk every `save_every` utterances if
                                     `save_embd_per_utt=True`.
-        - lang_to_embds_dic (optional): {lang: [embd_utt1, embd_utt2, ...]}, 
-                                        mapping from language ID to a list of embeddings 
-                                        from all utterances predicted or labeled with 
-                                        that language. This is not written to disk by 
-                                        this function, but is used downstream 
-                                        (e.g., in `bin/lid_inference_dist.py`) for 
-                                        computing language-level average embeddings or 
+        - lang_to_embds_dic (optional): {lang: [embd_utt1, embd_utt2, ...]},
+                                        mapping from language ID to a list of embeddings
+                                        from all utterances predicted or labeled with
+                                        that language. This is not written to disk by
+                                        this function, but is used downstream
+                                        (e.g., in `bin/lid_inference_dist.py`) for
+                                        computing language-level average embeddings or
                                         generating t-SNE visualizations.
 
         Notes:
         - All extracted embeddings are L2-normalized.
         - The function supports distributed inference using torch.distributed.
-        - Supports resume functionality by skipping already processed utterances 
+        - Supports resume functionality by skipping already processed utterances
           based on existing output files.
-        - Limits the number of utterances per language if `max_num_utt_per_lang` is 
+        - Limits the number of utterances per language if `max_num_utt_per_lang` is
           specified.
         """
         # Extract language embedding and lids.
@@ -178,7 +178,7 @@ class LIDTrainer(Trainer):
                             continue
                         else:
                             if distributed:
-                                # Use a lock file to ensure atomic updates to 
+                                # Use a lock file to ensure atomic updates to
                                 # the shared dictionary
                                 lang_name = idx2lang[_lid_label.item()]
                                 lock_file = f"{output_dir}/lock_{lang_name}.lock"
@@ -242,7 +242,7 @@ class LIDTrainer(Trainer):
                                 _lang_embd_numpy = _lang_embd.detach().cpu().numpy()
                                 target_lid = idx2lang[_lid_label_target.item()]
                                 if distributed:
-                                    # Use a lock file to ensure atomic updates to 
+                                    # Use a lock file to ensure atomic updates to
                                     # the shared dictionary
                                     lock_file = f"{output_dir}/lock_{target_lid}.lock"
                                     with FileLock(lock_file):
@@ -331,7 +331,7 @@ class LIDTrainer(Trainer):
                     _lang_embd_numpy = _lang_embd.detach().cpu().numpy()
                     target_lid = idx2lang[_lid_label_target.item()]
                     if distributed:
-                        # Use a lock file to ensure atomic updates to 
+                        # Use a lock file to ensure atomic updates to
                         # the shared dictionary
                         lock_file = f"{output_dir}/lock_{target_lid}.lock"
                         with FileLock(lock_file):

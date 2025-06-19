@@ -280,7 +280,7 @@ def gen_tsne_plot(
     """
     Generate t-SNE plot for language embeddings with labels directly on the points.
     Args:
-        lang_to_embds_dic (dict): Dictionary mapping language IDs (iso3 code) 
+        lang_to_embds_dic (dict): Dictionary mapping language IDs (iso3 code)
                                   to embeddings.
         output_dir (str): Directory to save the t-SNE plot.
         seed (int): Random seed for reproducibility.
