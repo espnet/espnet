@@ -2309,7 +2309,7 @@ class LIDPreprocessor(CommonPreprocessor):
         self.noise_probs = []
         self.noise_db_ranges = []
         self.noise_num_to_mix = []
-        if noise_info is None:  
+        if noise_info is None:
             noise_info = []
         if noise_apply_prob > 0:
             for prob, noise_scp, num_to_mix, db_range in noise_info:
