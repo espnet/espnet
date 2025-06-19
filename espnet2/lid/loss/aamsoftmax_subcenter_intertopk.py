@@ -1,5 +1,8 @@
-# Code adapted from https://github.com/espnet/espnet/blob/master/espnet2/spk/loss/aamsoftmax_subcenter_intertopk.py
-# Original code refer to WeSpeaker: https://github.com/wenet-e2e/wespeaker/blob/
+# Code adapted from: 
+# https://github.com/espnet/espnet/blob/master/espnet2/spk/loss/
+# aamsoftmax_subcenter_intertopk.py
+# Original code refer to WeSpeaker: 
+# https://github.com/wenet-e2e/wespeaker/blob/
 # c9ec537b53fe1e04525be74b2550ee95bed3a891/wespeaker/models/projections.py#L243
 
 import math
@@ -13,7 +16,8 @@ from espnet2.lid.loss.abs_loss import AbsLoss
 
 
 class ArcMarginProduct_intertopk_subcenter(AbsLoss):
-    r"""Implementation of ArcFace loss (AAMSoftmax loss) with Inter-TopK penalty and Sub-center enhancement.
+    r"""Implementation of ArcFace loss (AAMSoftmax loss) with Inter-TopK penalty and 
+    Sub-center enhancement.
 
     This loss function combines three techniques:
     1. ArcFace: Additive angular margin loss for better feature discrimination
@@ -149,10 +153,12 @@ class ArcMarginProduct_intertopk_subcenter(AbsLoss):
 
         sine = torch.sqrt(1.0 - torch.pow(cosine, 2))
 
-        # Apply angular margin to positive samples: cos(θ + m) = cosθ·cos(m) - sinθ·sin(m)
+        # Apply angular margin to positive samples: 
+        # cos(θ + m) = cosθ·cos(m) - sinθ·sin(m)
         phi = cosine * self.cos_m - sine * self.sin_m
 
-        # Apply margin penalty to hard negative samples: cos(θ - mp) = cosθ·cos(mp) + sinθ·sin(mp)
+        # Apply margin penalty to hard negative samples: 
+        # cos(θ - mp) = cosθ·cos(mp) + sinθ·sin(mp)
         # This increases the penalty for hardest negative samples
         phi_mp = cosine * self.cos_mp + sine * self.sin_mp
 

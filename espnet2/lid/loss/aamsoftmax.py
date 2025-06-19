@@ -1,6 +1,8 @@
-# Code adapted from https://github.com/espnet/espnet/blob/master/espnet2/spk/loss/aamsoftmax.py
-# Original code refer to https://github.com/clovaai/voxceleb_trainer/blob/master/loss/aamsoftmax.py
-# and https://github.com/wujiyang/Face_Pytorch (Apache License)
+# Code adapted from: 
+# https://github.com/espnet/espnet/blob/master/espnet2/spk/loss/aamsoftmax.py
+# Original code refer to: 
+# https://github.com/clovaai/voxceleb_trainer/blob/master/loss/aamsoftmax.py
+# https://github.com/wujiyang/Face_Pytorch (Apache License)
 
 import math
 from typing import Optional, Tuple
@@ -87,7 +89,8 @@ class AAMSoftmax(AbsLoss):
 
         sine = torch.sqrt((1.0 - cosine.pow(2)).clamp(0, 1))
 
-        # Apply angular margin to positive samples: cos(θ + m) = cosθ·cos(m) - sinθ·sin(m)
+        # Apply angular margin to positive samples: 
+        # cos(θ + m) = cosθ·cos(m) - sinθ·sin(m)
         phi = cosine * self.cos_m - sine * self.sin_m
 
         # Handle numerical stability for angular margin

@@ -16,6 +16,7 @@ from espnet2.train.abs_espnet_model import AbsESPnetModel
 
 class ESPnetLIDModel(AbsESPnetModel):
     r"""ESPnet LID model
+
     Support for language identification and language embedding extraction.
     """
 
@@ -63,7 +64,8 @@ class ESPnetLIDModel(AbsESPnetModel):
             speech: Input waveform tensor (batch_size, num_samples)
             speech_lengths: Lengths of each input in the batch (batch_size,)
             lid_labels: Ground truth language labels (batch_size,)
-            extract_embd: If True, return language embeddings and predictions (inference mode)
+            extract_embd: If True, return language embeddings and 
+                          predictions (inference mode)
 
         Returns:
             - If extract_embd=True (inference mode):
