@@ -8,7 +8,6 @@ import sys
 from glob import glob
 
 import numpy as np
-import pandas as pd
 import torch
 import torch.nn.functional as F
 from sklearn.manifold import TSNE
@@ -281,7 +280,8 @@ def gen_tsne_plot(
     """
     Generate t-SNE plot for language embeddings with labels directly on the points.
     Args:
-        lang_to_embds_dic (dict): Dictionary mapping language IDs (iso3 code) to embeddings.
+        lang_to_embds_dic (dict): Dictionary mapping language IDs (iso3 code) 
+                                  to embeddings.
         output_dir (str): Directory to save the t-SNE plot.
         seed (int): Random seed for reproducibility.
     """
@@ -300,6 +300,11 @@ def gen_tsne_plot(
         import matplotlib.pyplot as plt
     except ImportError:
         logging.error("Please install matplotlib: pip install matplotlib")
+        raise
+    try:
+        import pandas as pd
+    except ImportError:
+        logging.error("Please install pandas: pip install pandas")
         raise
 
     np.random.seed(seed)
