@@ -2376,7 +2376,7 @@ class LIDPreprocessor(CommonPreprocessor):
                 int(startframe) : int(startframe) + self.target_duration
             ]
 
-        if self.train and self.noise_apply_prob > 0 or self.rir_apply_prob > 0:
+        if self.train and (self.noise_apply_prob > 0 or self.rir_apply_prob > 0):
             data["speech"] = self._apply_data_augmentation(data["speech"])
 
         return data
