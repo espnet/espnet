@@ -7,7 +7,6 @@ import random
 import sys
 from glob import glob
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import torch
@@ -32,7 +31,6 @@ from espnet2.utils import config_argparse
 from espnet2.utils.build_dataclass import build_dataclass
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import (
-    humanfriendly_parse_size_or_none,
     int_or_none,
     str2bool,
     str2triple_str,
@@ -297,6 +295,11 @@ def gen_tsne_plot(
         import plotly.express as px
     except ImportError:
         logging.error("Please install plotly: pip install plotly")
+        raise
+    try:
+        import matplotlib.pyplot as plt
+    except ImportError:
+        logging.error("Please install matplotlib: pip install matplotlib")
         raise
 
     np.random.seed(seed)
