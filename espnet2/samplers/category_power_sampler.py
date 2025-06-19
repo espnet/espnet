@@ -147,7 +147,8 @@ class CategoryPowerSampler(AbsSampler):
             cat = np.random.choice(self.categories, p=self.category_probs)
             # The index may wrap around to the start of the utterance list,
             # but this does not cause excessive repetition within a batch,
-            # since batches are constructed sequentially and utterances are shuffled per epoch.
+            # since batches are constructed sequentially and utterances are 
+            # shuffled per epoch.
             idx = cat_ptr[cat] % len(self.all_utts_by_category[cat])
             utt = self.all_utts_by_category[cat][idx]
             cat_ptr[cat] += 1
@@ -193,7 +194,7 @@ class CategoryPowerSampler(AbsSampler):
 
 
 class CategoryDatasetPowerSampler(AbsSampler):
-    r"""A two-level category- and dataset-balanced batch sampler with power-law sampling.
+    r"""A category- and dataset-balanced batch sampler with power-law sampling.
 
     Reference:
         Scaling Speech Technology to 1,000+ Languages
@@ -216,8 +217,8 @@ class CategoryDatasetPowerSampler(AbsSampler):
     Step 1 — Category-level sampling within each dataset:
         P(l | d) ∝ (n_ld / N_d)^β_L
 
-    where β_L (`category_upsampling_factor`) controls how strongly to upsample low-resource
-    languages within each dataset. The normalized probability becomes:
+    where β_L (`category_upsampling_factor`) controls how strongly to upsample 
+    low-resource languages within each dataset. The normalized probability becomes:
         P(l | d) = [(n_ld / N_d)^β_L] / ∑_l'[(n_l'd / N_d)^β_L]
 
     Step 2 — Dataset-level sampling based on resampled language distributions:
@@ -331,7 +332,8 @@ class CategoryDatasetPowerSampler(AbsSampler):
             category_bins_in_dataset = {}
             for category in self.categories:
                 category_utts = set(self.category2utt[category])
-                # Intersection: utterances that are both in this category and this dataset
+                # Intersection: utterances that are both in this category 
+                # and this dataset
                 common_utts = category_utts.intersection(dataset_utts)
                 if common_utts:
                     category_bins_in_dataset[category] = sum(
@@ -434,7 +436,8 @@ class CategoryDatasetPowerSampler(AbsSampler):
                 categories_in_dataset, p=category_probs_in_dataset
             )
 
-            # Step 3: Sample utterance uniformly from the selected dataset-category combination
+            # Step 3: Sample utterance uniformly from 
+            # the selected dataset-category combination
             if (
                 category in self.dataset_category_utts[dataset]
                 and self.dataset_category_utts[dataset][category]
