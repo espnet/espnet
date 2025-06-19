@@ -64,7 +64,7 @@ class ESPnetLIDModel(AbsESPnetModel):
             speech: Input waveform tensor (batch_size, num_samples)
             speech_lengths: Lengths of each input in the batch (batch_size,)
             lid_labels: Ground truth language labels (batch_size,)
-            extract_embd: If True, return language embeddings and 
+            extract_embd: If True, return language embeddings and
                           predictions (inference mode)
 
         Returns:
