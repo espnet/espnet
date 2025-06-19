@@ -816,28 +816,32 @@ class AbsTask(ABC):
             "--category_upsampling_factor",
             type=float,
             default=0.5,
-            help="Used when batch_type='catpow_balance_dataset' (CategoryDatasetPowerSampler), "
+            help="Used when batch_type='catpow_balance_dataset' "
+            "(CategoryDatasetPowerSampler), "
             "for upsample low-resource category and dataset",
         )
         group.add_argument(
             "--dataset_upsampling_factor",
             type=float,
             default=0.5,
-            help="Used when batch_type='catpow_balance_dataset' (CategoryDatasetPowerSampler), "
+            help="Used when batch_type='catpow_balance_dataset' "
+            "(CategoryDatasetPowerSampler), "
             "for upsample low-resource category and dataset",
         )
         group.add_argument(
             "--dataset_scaling_factor",
             type=float,
             default=1.2,
-            help="Used when batch_type='catpow' (CategoryPowerSampler) or 'catpow_balance_dataset' (CategoryDatasetPowerSampler), "
+            help="Used when batch_type='catpow' (CategoryPowerSampler) or "
+            "'catpow_balance_dataset' (CategoryDatasetPowerSampler), "
             "control the scaled dataset size after upsampling",
         )
         group.add_argument(
             "--max_batch_size",
             type=int_or_none,
             default=None,
-            help="Max batch size for CategoryPowerSampler and CategoryDatasetPowerSampler",
+            help="Max batch size for CategoryPowerSampler "
+            "and CategoryDatasetPowerSampler",
         )
 
         group.add_argument("--train_shape_file", type=str, action="append", default=[])
@@ -1289,7 +1293,8 @@ class AbsTask(ABC):
             node_rank = get_node_rank(args.dist_rank, args.dist_launcher)
 
             # The following block is copied from:
-            # https://github.com/pytorch/pytorch/blob/master/torch/multiprocessing/spawn.py
+            # https://github.com/pytorch/pytorch/blob/master/torch/
+            # multiprocessing/spawn.py
             error_files = []
             processes = []
             mp = torch.multiprocessing.get_context("spawn")
@@ -1983,7 +1988,8 @@ class AbsTask(ABC):
             else:
                 dataset2utt_file = None
                 raise ValueError(
-                    f"dataset2utt mandatory for catpow_balance_dataset batch sampler, but not found {dataset2utt_file}"
+                    f"dataset2utt mandatory for catpow_balance_dataset batch sampler, "
+                    f"but not found {dataset2utt_file}"
                 )
 
             if Path(
@@ -2000,7 +2006,8 @@ class AbsTask(ABC):
             else:
                 utt2dataset_file = None
                 raise ValueError(
-                    f"utt2dataset mandatory for catpow_balance_dataset batch sampler, but not found {utt2dataset_file}"
+                    f"utt2dataset mandatory for catpow_balance_dataset batch sampler, "
+                    f"but not found {utt2dataset_file}"
                 )
             sampler_args = dict(
                 batch_bins=iter_options.batch_bins,
