@@ -1,6 +1,7 @@
 """Exponential decrease learning rate scheduler module."""
 
 import math
+
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
 

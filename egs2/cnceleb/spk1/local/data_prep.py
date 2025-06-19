@@ -17,8 +17,9 @@ def main(args):
     if utt_list is not None:
         # read utterance list
         with open(utt_list, "r") as f:
-            utt_list = [line.strip().split('.')[0].replace('/', '-') for line in
-                        f.readlines()]
+            utt_list = [
+                line.strip().split(".")[0].replace("/", "-") for line in f.readlines()
+            ]
     else:
         utt_list = None
 
@@ -83,20 +84,11 @@ if __name__ == "__main__":
         required=True,
         help="destination directory of cnceleb",
     )
-    parser.add_argument(
-        "--spk",
-        type=str,
-        default=None,
-        help="speaker list"
-    )
-    parser.add_argument(
-        "--utt",
-        type=str,
-        default=None,
-        help="utterance list"
-    )
+    parser.add_argument("--spk", type=str, default=None, help="speaker list")
+    parser.add_argument("--utt", type=str, default=None, help="utterance list")
     args = parser.parse_args()
-    assert not (args.spk is not None and args.utt is not None), \
-        "Provide either speaker list or utterance list, not both."
+    assert not (
+        args.spk is not None and args.utt is not None
+    ), "Provide either speaker list or utterance list, not both."
 
     sys.exit(main(args))

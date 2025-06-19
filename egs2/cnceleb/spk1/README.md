@@ -6,7 +6,7 @@
 | [conf/train_ecapa_tdnn.yaml](conf/train_ecapa_tdnn.yaml) | 7.762 | 0.3530 | | https://huggingface.co/espnet/cnceleb_ecapa_tdnn |
 | [conf/train_resnet34.yaml](conf/train_resnet34.yaml)     | 7.119 | 0.3499 | | https://huggingface.co/espnet/cnceleb_resnet34   |
 | [conf/train_resnet221.yaml](conf/train_resnet221.yaml)   | 6.003 | 0.2940 | | https://huggingface.co/espnet/cnceleb_resnet221  |
- 
+
 ## Environments - conf/train_ecapa_tdnn.yaml
 date: 2025-06-17 13:12:33.497674
 
@@ -54,4 +54,3 @@ date: 2025-06-17 13:11:19.656417
 | Model name | EER(%) | minDCF |
 |---|---|---|
 | conf/train_resnet221 | 6.003 | 0.29403 |
-

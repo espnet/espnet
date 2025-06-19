@@ -6,8 +6,7 @@ import numpy as np
 import torch
 
 
-def average_enroll_embeddings(embd_dir: str,
-                              enroll_list: list) -> str:
+def average_enroll_embeddings(embd_dir: str, enroll_list: list) -> str:
     embd_dic = OrderedDict(np.load(embd_dir))
     utts = set(embd_dic.keys())
     enrolls = set(enroll_list)
@@ -181,9 +180,7 @@ def main_score_avg(args):
             scores_avg[trial_id] = [scores[i]]
         else:
             scores_avg[trial_id].append(scores[i])
-    scores_avg = {
-        k: np.mean(np.array(v)) for k, v in scores_avg.items()
-    }
+    scores_avg = {k: np.mean(np.array(v)) for k, v in scores_avg.items()}
     scores = [scores_avg[trl] for trl in trial_ids_new]
 
     os.makedirs(os.path.dirname(out_dir), exist_ok=True)

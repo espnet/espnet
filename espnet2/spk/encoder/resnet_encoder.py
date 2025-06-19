@@ -1,4 +1,4 @@
-from typing import Type, Optional
+from typing import Optional, Type
 
 import torch
 import torch.nn as nn
@@ -25,12 +25,14 @@ class ResNetEncoder(AbsEncoder):
     """
 
     @typechecked
-    def __init__(self,
-                 input_size: int,
-                 block: Type[nn.Module] = BasicBlock,
-                 num_blocks: tuple = (2, 2, 2, 2),
-                 m_channels: int = 32,
-                 resnet_type: Optional[str] = None):
+    def __init__(
+        self,
+        input_size: int,
+        block: Type[nn.Module] = BasicBlock,
+        num_blocks: tuple = (2, 2, 2, 2),
+        m_channels: int = 32,
+        resnet_type: Optional[str] = None,
+    ):
         super(ResNetEncoder, self).__init__()
 
         resnet_configs = {
@@ -52,35 +54,18 @@ class ResNetEncoder(AbsEncoder):
         self.stats_dim = int(input_size / 8) * m_channels * 8
         self._output_size = self.stats_dim * block.expansion
 
-        self.conv1 = nn.Conv2d(1,
-                               m_channels,
-                               kernel_size=3,
-                               stride=1,
-                               padding=1,
-                               bias=False)
+        self.conv1 = nn.Conv2d(
+            1, m_channels, kernel_size=3, stride=1, padding=1, bias=False
+        )
         self.bn1 = nn.BatchNorm2d(m_channels)
-        self.layer1 = self._make_layer(block,
-                                       m_channels,
-                                       num_blocks[0],
-                                       stride=1)
-        self.layer2 = self._make_layer(block,
-                                       m_channels * 2,
-                                       num_blocks[1],
-                                       stride=2)
-        self.layer3 = self._make_layer(block,
-                                       m_channels * 4,
-                                       num_blocks[2],
-                                       stride=2)
-        self.layer4 = self._make_layer(block,
-                                       m_channels * 8,
-                                       num_blocks[3],
-                                       stride=2)
+        self.layer1 = self._make_layer(block, m_channels, num_blocks[0], stride=1)
+        self.layer2 = self._make_layer(block, m_channels * 2, num_blocks[1], stride=2)
+        self.layer3 = self._make_layer(block, m_channels * 4, num_blocks[2], stride=2)
+        self.layer4 = self._make_layer(block, m_channels * 8, num_blocks[3], stride=2)
 
-    def _make_layer(self,
-                    block: Type[nn.Module],
-                    planes: int,
-                    num_blocks: int,
-                    stride: int) -> nn.Sequential:
+    def _make_layer(
+        self, block: Type[nn.Module], planes: int, num_blocks: int, stride: int
+    ) -> nn.Sequential:
         strides = [stride] + [1] * (num_blocks - 1)
         layers = []
         for stride in strides:

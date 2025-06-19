@@ -22,14 +22,14 @@ def main(args):
 
     os.makedirs(args.out, exist_ok=True)
 
-    with open(os.path.join(args.out, "trial.scp"), "w") as f1, \
-            open(os.path.join(args.out, "trial2.scp"), "w") as f2, \
-            open(os.path.join(args.out, "trial_label"), "w") as flabel:
+    with open(os.path.join(args.out, "trial.scp"), "w") as f1, open(
+        os.path.join(args.out, "trial2.scp"), "w"
+    ) as f2, open(os.path.join(args.out, "trial_label"), "w") as flabel:
 
         for enroll_id, test_id, str_label in trials:
-            test_id = test_id.split('/')[-1].split('.')[0]
+            test_id = test_id.split("/")[-1].split(".")[0]
             joint_key = f"{enroll_id}*{test_id}"
-            label = 1 if str_label == 'target' else 0
+            label = 1 if str_label == "target" else 0
 
             if enroll_id not in enroll_scp:
                 print(f"[Warning] Enroll '{enroll_id}' not found in enroll.scp")
@@ -54,7 +54,7 @@ def main_sep(args):
     with open(args.enroll_map, "r") as f:
         for line in f:
             enrolls = line.strip().split()
-            enroll_map[enrolls[0].split('-')[0]] = enrolls[1:]
+            enroll_map[enrolls[0].split("-")[0]] = enrolls[1:]
 
     # Read trials.lst
     with open(args.trial, "r") as f:
@@ -62,16 +62,16 @@ def main_sep(args):
 
     os.makedirs(args.out, exist_ok=True)
 
-    with open(os.path.join(args.out, "trial.scp"), "w") as f1, \
-            open(os.path.join(args.out, "trial2.scp"), "w") as f2, \
-            open(os.path.join(args.out, "trial_label"), "w") as flabel:
+    with open(os.path.join(args.out, "trial.scp"), "w") as f1, open(
+        os.path.join(args.out, "trial2.scp"), "w"
+    ) as f2, open(os.path.join(args.out, "trial_label"), "w") as flabel:
 
         for enroll_id, test_id, str_label in trials:
-            enrolls = enroll_map[enroll_id.split('-')[0]]
+            enrolls = enroll_map[enroll_id.split("-")[0]]
             for enroll in enrolls:
-                test_id = test_id.split('/')[-1].split('.')[0]
+                test_id = test_id.split("/")[-1].split(".")[0]
                 joint_key = f"{enroll}*{test_id}"
-                label = 1 if str_label == 'target' else 0
+                label = 1 if str_label == "target" else 0
 
                 if enroll not in enroll_scp:
                     print(f"[Warning] Enroll '{enroll}' not found in enroll.scp")
