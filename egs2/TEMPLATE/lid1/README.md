@@ -1,7 +1,7 @@
 # Language Identification
 
-This is a template of the `lid1` recipe for ESPnet2.  
-It follows a classification-based training/inference pipeline for spoken language identification.  
+This is a template of the `lid1` recipe for ESPnet2.
+It follows a classification-based training/inference pipeline for spoken language identification.
 The model is trained as a closed-set classifier over a predefined set of language labels.  ****
 Optionally, language embeddings can be extracted and used for downstream analysis, e.g., t-SNE visualization.
 
@@ -42,16 +42,16 @@ Applies offline speed perturbation to the training set using multiple speed fact
 
 ### 3. Wav format
 
-Formats the audio to a consistent format (`wav`, `flac`, or Kaldi-ark) and copies necessary metadata to the working directory.  
+Formats the audio to a consistent format (`wav`, `flac`, or Kaldi-ark) and copies necessary metadata to the working directory.
 Required for both training and evaluation sets.
 
 ### 4. Statistics collection
 
-Collects input feature shape statistics and language information needed for batching and model configuration.  
+Collects input feature shape statistics and language information needed for batching and model configuration.
 
 ### 5. LID training
 
-Trains the language identification model using the configuration provided via `--lid_config` and optional arguments in `--lid_args`.  
+Trains the language identification model using the configuration provided via `--lid_config` and optional arguments in `--lid_args`.
 The model is trained to predict the correct language ID for each utterance.
 
 ### 6. Inference and embedding extraction
@@ -67,7 +67,7 @@ Computes standard classification metrics (Accuracy, Macro Accuracy) by comparing
 
 ### 8. t-SNE visualization
 
-Visualizes the per-language embeddings using t-SNE. 
+Visualizes the per-language embeddings using t-SNE.
 
 ### 9-10. (Optional) Pack and upload results
 
