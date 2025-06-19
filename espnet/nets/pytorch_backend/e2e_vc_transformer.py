@@ -942,7 +942,7 @@ class Transformer(TTSInterface, torch.nn.Module):
         skip_output=False,
         keep_tensor=False,
         *args,
-        **kwargs
+        **kwargs,
     ):
         """Calculate all of the attention weights.
 
