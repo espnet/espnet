@@ -16,8 +16,7 @@ from espnet2.lid.loss.abs_loss import AbsLoss
 
 
 class ArcMarginProduct_intertopk_subcenter(AbsLoss):
-    r"""Implementation of ArcFace loss (AAMSoftmax loss) with Inter-TopK penalty and
-    Sub-center enhancement.
+    r"""ArcFace loss (AAMSoftmax loss) with Inter-TopK penalty and Sub-center.
 
     This loss function combines three techniques:
     1. ArcFace: Additive angular margin loss for better feature discrimination
