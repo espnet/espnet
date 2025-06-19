@@ -2340,7 +2340,7 @@ class LIDPreprocessor(CommonPreprocessor):
             msg += f", target_duration={self.target_duration}"
         else:
             msg += f", fix_duration={self.fix_duration}"
-        msg + f", sample_rate={self.sample_rate}"
+        msg += f", sample_rate={self.sample_rate}"
         if self.rirs is not None and self.rir_apply_prob > 0:
             msg += f", rir_scp={self.rir_scp}, rir_apply_prob={self.rir_apply_prob}"
         if self.noise_apply_prob > 0 and self.noises:
