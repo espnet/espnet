@@ -8,13 +8,13 @@ class ChnAttnStatPooling(AbsPooling):
     """Aggregates frame-level features to single utterance-level feature.
 
     Reference:
-    ECAPA-TDNN: Emphasized Channel Attention, Propagation and Aggregation 
+    ECAPA-TDNN: Emphasized Channel Attention, Propagation and Aggregation
     in TDNN Based Speaker Verification
     https://arxiv.org/pdf/2005.07143
 
     Args:
         input_size: Dimension of the input frame-level embeddings.
-                    The output dimensionality will be 2 × input_size 
+                    The output dimensionality will be 2 × input_size
                     after concatenating mean and std.
     """
 
@@ -33,9 +33,7 @@ class ChnAttnStatPooling(AbsPooling):
         return self._output_size
 
     def forward(
-        self, 
-        x: torch.Tensor, 
-        feat_lengths: torch.Tensor = None
+        self, x: torch.Tensor, feat_lengths: torch.Tensor = None
     ) -> torch.Tensor:
         r"""Forward pass of channel-attentive statistical pooling.
 
@@ -50,11 +48,17 @@ class ChnAttnStatPooling(AbsPooling):
         T = x.size(-1)
         if feat_lengths is not None:
             mean = torch.stack(
-                [torch.mean(x[i, :, :l.item()], dim=-1, keepdim=True) for i, l in enumerate(feat_lengths)],
+                [
+                    torch.mean(x[i, :, : l.item()], dim=-1, keepdim=True)
+                    for i, l in enumerate(feat_lengths)
+                ],
                 dim=0,
             ).repeat(1, 1, T)
             var = torch.stack(
-                [torch.var(x[i, :, :l.item()], dim=-1, unbiased=False, keepdim=True) for i, l in enumerate(feat_lengths)],
+                [
+                    torch.var(x[i, :, : l.item()], dim=-1, unbiased=False, keepdim=True)
+                    for i, l in enumerate(feat_lengths)
+                ],
                 dim=0,
             )
             var = var.clamp(min=1e-4, max=1e4)
@@ -66,7 +70,9 @@ class ChnAttnStatPooling(AbsPooling):
                     x,
                     torch.mean(x, dim=2, keepdim=True).repeat(1, 1, T),
                     torch.sqrt(
-                        torch.var(x, dim=2, keepdim=True, unbiased=False).clamp(min=1e-4, max=1e4)
+                        torch.var(x, dim=2, keepdim=True, unbiased=False).clamp(
+                            min=1e-4, max=1e4
+                        )
                     ).repeat(1, 1, T),
                 ),
                 dim=1,
@@ -75,7 +81,11 @@ class ChnAttnStatPooling(AbsPooling):
         w = self.attention(global_x)
         if feat_lengths is not None:
             # Apply padding mask
-            padding_mask = torch.arange(T).expand(x.size(0), T).to(x.device) >= feat_lengths.unsqueeze(1) # (batch_size, seq_len)
+            padding_mask = torch.arange(T).expand(x.size(0), T).to(
+                x.device
+            ) >= feat_lengths.unsqueeze(
+                1
+            )  # (batch_size, seq_len)
             w = w.masked_fill(padding_mask.unsqueeze(1), torch.finfo(w.dtype).min)
         w = self.softmax(w)
 

@@ -1,9 +1,10 @@
+from typing import Optional, Tuple
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 from espnet2.lid.loss.abs_loss import AbsLoss
-from typing import Optional, Tuple
 
 
 class Softmax(AbsLoss):
@@ -14,9 +15,7 @@ class Softmax(AbsLoss):
         nclasses: Number of output classes
     """
 
-    def __init__(
-        self, nout: int, nclasses: int
-    ):
+    def __init__(self, nout: int, nclasses: int):
         super().__init__(nout)
 
         self.in_feats = nout
@@ -29,25 +28,21 @@ class Softmax(AbsLoss):
         self.ce = nn.CrossEntropyLoss()
 
     def forward(
-        self, 
-        input: torch.Tensor, 
-        label: Optional[torch.Tensor]=None
+        self, input: torch.Tensor, label: Optional[torch.Tensor] = None
     ) -> Tuple[Optional[torch.Tensor], Optional[torch.Tensor], torch.Tensor]:
         r"""Forward pass of Softmax loss.
-        
+
         Args:
             input: Input embeddings, shape (batch_size, embedding_dim)
             label: Ground truth labels, shape (batch_size,)
-            
+
         Returns:
             loss: Cross-entropy loss
             accuracy: Classification accuracy
             pred_lids: Predicted class indices
         """
 
-        logits = F.linear(
-            F.normalize(input), F.normalize(self.weight)
-        )
+        logits = F.linear(F.normalize(input), F.normalize(self.weight))
         pred_lids = torch.argmax(logits, dim=1)
 
         if label is not None:

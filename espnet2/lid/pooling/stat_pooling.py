@@ -22,9 +22,7 @@ class StatsPooling(AbsPooling):
         return self._output_size
 
     def forward(
-        self, 
-        x: torch.Tensor, 
-        feat_lengths: torch.Tensor = None
+        self, x: torch.Tensor, feat_lengths: torch.Tensor = None
     ) -> torch.Tensor:
         r"""Forward pass of statistics pooling.
 
@@ -38,13 +36,19 @@ class StatsPooling(AbsPooling):
         """
         if feat_lengths is not None:
             mu = torch.stack(
-                [torch.mean(x[i, :, :l.item()], dim=-1) for i, l in enumerate(feat_lengths)],
+                [
+                    torch.mean(x[i, :, : l.item()], dim=-1)
+                    for i, l in enumerate(feat_lengths)
+                ],
                 dim=0,
             )
             st = torch.stack(
-                [torch.std(x[i, :, :l.item()], dim=-1, unbiased=False) for i, l in enumerate(feat_lengths)],
+                [
+                    torch.std(x[i, :, : l.item()], dim=-1, unbiased=False)
+                    for i, l in enumerate(feat_lengths)
+                ],
                 dim=0,
-            ) # unbiased=False (divided by N rather than N - 1)
+            )  # unbiased=False (divided by N rather than N - 1)
         else:
             mu = torch.mean(x, dim=-1)
             st = torch.std(x, dim=-1, unbiased=False)

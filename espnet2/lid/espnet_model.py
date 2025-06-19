@@ -101,7 +101,7 @@ class ESPnetLIDModel(AbsESPnetModel):
             return lang_embd, pred_lids
 
         stats["loss"] = loss.detach()
-        if accuracy is not None: # if not provide labels, accuracy is None
+        if accuracy is not None:  # if not provide labels, accuracy is None
             stats["accuracy"] = accuracy.detach()
 
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)

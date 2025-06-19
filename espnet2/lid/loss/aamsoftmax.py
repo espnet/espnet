@@ -3,13 +3,13 @@
 # and https://github.com/wujiyang/Face_Pytorch (Apache License)
 
 import math
+from typing import Optional, Tuple
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 from espnet2.lid.loss.abs_loss import AbsLoss
-from typing import Optional, Tuple
 
 
 class AAMSoftmax(AbsLoss):
@@ -28,12 +28,12 @@ class AAMSoftmax(AbsLoss):
     """
 
     def __init__(
-        self, 
-        nout: int, 
-        nclasses: int, 
-        margin: float=0.3, 
-        scale: int=15, 
-        easy_margin: bool=False, 
+        self,
+        nout: int,
+        nclasses: int,
+        margin: float = 0.3,
+        scale: int = 15,
+        easy_margin: bool = False,
     ):
         super().__init__(nout)
 
@@ -45,26 +45,24 @@ class AAMSoftmax(AbsLoss):
             torch.FloatTensor(nclasses, nout), requires_grad=True
         )
         nn.init.xavier_normal_(self.weight, gain=1)
-        
+
         self.easy_margin = easy_margin
         self.cos_m = math.cos(self.m)
         self.sin_m = math.sin(self.m)
-        self.th = math.cos(math.pi - margin)           # Threshold for easy_margin
+        self.th = math.cos(math.pi - margin)  # Threshold for easy_margin
         self.mm = math.sin(math.pi - margin) * margin  # For numerical stability
 
         self.ce = nn.CrossEntropyLoss()
 
     def forward(
-        self, 
-        input: torch.Tensor, 
-        label: Optional[torch.Tensor]=None
+        self, input: torch.Tensor, label: Optional[torch.Tensor] = None
     ) -> Tuple[Optional[torch.Tensor], Optional[torch.Tensor], torch.Tensor]:
         r"""Forward pass of AAMSoftmax loss.
-        
+
         Args:
             input: Input embeddings, shape (batch_size, embedding_dim)
             label: Ground truth labels, shape (batch_size,)
-            
+
         Returns:
             loss: Cross-entropy loss with angular margins
             accuracy: Classification accuracy
@@ -103,10 +101,9 @@ class AAMSoftmax(AbsLoss):
         one_hot = torch.zeros_like(cosine)
         one_hot.scatter_(1, label.view(-1, 1), 1)
 
-        output = (
-            (one_hot * phi) +           # Ground truth: apply positive margin
-            ((1.0 - one_hot) * cosine)  # Other negatives: no margin
-        )
+        output = (one_hot * phi) + (  # Ground truth: apply positive margin
+            (1.0 - one_hot) * cosine
+        )  # Other negatives: no margin
 
         # Scale logits for stable training
         output = output * self.s

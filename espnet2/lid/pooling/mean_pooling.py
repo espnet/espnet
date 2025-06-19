@@ -18,9 +18,7 @@ class MeanPooling(AbsPooling):
         return self._output_size
 
     def forward(
-        self, 
-        x: torch.Tensor, 
-        feat_lengths: torch.Tensor = None
+        self, x: torch.Tensor, feat_lengths: torch.Tensor = None
     ) -> torch.Tensor:
         r"""Forward pass of mean pooling.
 
@@ -33,7 +31,13 @@ class MeanPooling(AbsPooling):
             x: Utterance-level embeddings of shape (batch_size, feature_dim)
         """
         if feat_lengths is not None:
-            x = torch.stack([torch.mean(x[i, :, :l.item()], dim=-1) for i, l in enumerate(feat_lengths)], dim=0)
+            x = torch.stack(
+                [
+                    torch.mean(x[i, :, : l.item()], dim=-1)
+                    for i, l in enumerate(feat_lengths)
+                ],
+                dim=0,
+            )
         else:
             x = torch.mean(x, dim=-1)
 

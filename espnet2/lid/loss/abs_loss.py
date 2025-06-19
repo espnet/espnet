@@ -1,8 +1,8 @@
 from abc import abstractmethod
+from typing import Optional, Tuple
 
 import torch
 import torch.nn as nn
-from typing import Optional, Tuple
 
 
 class AbsLoss(nn.Module):
@@ -11,8 +11,6 @@ class AbsLoss(nn.Module):
 
     @abstractmethod
     def forward(
-        self, 
-        input: torch.Tensor, 
-        label: Optional[torch.Tensor]=None
+        self, input: torch.Tensor, label: Optional[torch.Tensor] = None
     ) -> Tuple[Optional[torch.Tensor], Optional[torch.Tensor], torch.Tensor]:
         raise NotImplementedError
