@@ -36,6 +36,7 @@ from espnet2.optimizers.optim_groups import configure_optimizer
 from espnet2.optimizers.sgd import SGD
 from espnet2.samplers.build_batch_sampler import BATCH_TYPES, build_batch_sampler
 from espnet2.samplers.category_balanced_sampler import CategoryBalancedSampler
+from espnet2.samplers.category_power_sampler import CategoryPowerSampler, CategoryDatasetPowerSampler
 from espnet2.samplers.unsorted_batch_sampler import UnsortedBatchSampler
 from espnet2.schedulers.cosine_anneal_warmup_restart import (
     CosineAnnealingWarmupRestarts,
@@ -45,6 +46,7 @@ from espnet2.schedulers.piecewise_linear_warmup_lr import PiecewiseLinearWarmupL
 from espnet2.schedulers.warmup_lr import WarmupLR
 from espnet2.schedulers.warmup_reducelronplateau import WarmupReduceLROnPlateau
 from espnet2.schedulers.warmup_step_lr import WarmupStepLR
+from espnet2.schedulers.tristage_lr import TristageLR
 from espnet2.torch_utils.load_pretrained_model import load_pretrained_model
 from espnet2.torch_utils.model_summary import model_summary
 from espnet2.torch_utils.pytorch_version import pytorch_cudnn_version
@@ -172,6 +174,7 @@ scheduler_classes = dict(
     onecyclelr=torch.optim.lr_scheduler.OneCycleLR,
     CosineAnnealingWarmRestarts=torch.optim.lr_scheduler.CosineAnnealingWarmRestarts,
     CosineAnnealingWarmupRestarts=CosineAnnealingWarmupRestarts,
+    tristagelr=TristageLR,
 )
 # To lower keys
 optim_classes = {k.lower(): v for k, v in optim_classes.items()}
@@ -815,6 +818,40 @@ class AbsTask(ABC):
             default="folded",
             choices=list(BATCH_TYPES),
             help=_batch_type_help,
+        )
+        group.add_argument(
+            "--upsampling_factor",
+            type=float,
+            default=0.5,
+            help="Used when batch_type='catpow' (CategoryPowerSampler), " \
+            "for upsample low-resource catageory",
+        )
+        group.add_argument(
+            "--language_upsampling_factor",
+            type=float,
+            default=0.5,
+            help="Used when batch_type='catpow_balance_dataset' (CategoryPowerSamplerBalancedDataset), " \
+            "for upsample low-resource catageory and dataset",
+        )
+        group.add_argument(
+            "--dataset_upsampling_factor",
+            type=float,
+            default=0.5,
+            help="Used when batch_type='catpow_balance_dataset' (CategoryPowerSamplerBalancedDataset), " \
+            "for upsample low-resource catageory and dataset",
+        )
+        group.add_argument(
+            "--dataset_scaling_factor",
+            type=float,
+            default=1.2,
+            help="Used when batch_type='catpow' (CategoryPowerSampler), " \
+            "control the scaled dataset size after upsampling",
+        )
+        group.add_argument(
+            "--max_batch_size",
+            type=int_or_none,
+            default=None,
+            help="Max batch size for CategoryPowerSampler",
         )
         group.add_argument(
             "--valid_batch_type",
@@ -1896,18 +1933,99 @@ class AbsTask(ABC):
                 "category2utt mandatory for category iterator, but not found"
             )
 
-        sampler_args = dict(
-            batch_size=iter_options.batch_size,
-            min_batch_size=(
-                torch.distributed.get_world_size() if iter_options.distributed else 1
-            ),
-            drop_last=args.drop_last_iter,
-            category2utt_file=category2utt_file,
-            epoch=1,
-            num_batches=iter_options.num_batches,
-            distributed=iter_options.distributed,
-        )
-        batch_sampler = CategoryBalancedSampler(**sampler_args)
+        if iter_options.batch_type == "catbel":
+            sampler_args = dict(
+                batch_size=iter_options.batch_size,
+                min_batch_size=(
+                    torch.distributed.get_world_size() if iter_options.distributed else 1
+                ),
+                drop_last=args.drop_last_iter,
+                category2utt_file=category2utt_file,
+                epoch=1,
+                num_batches=iter_options.num_batches,
+                distributed=iter_options.distributed,
+            )
+            batch_sampler = CategoryBalancedSampler(**sampler_args)
+        elif iter_options.batch_type == "catpow":
+            sampler_args = dict(
+                batch_bins=iter_options.batch_bins,
+                shape_files=iter_options.shape_files,
+                min_batch_size=(
+                    torch.distributed.get_world_size() if iter_options.distributed else 1
+                ),
+                max_batch_size=args.max_batch_size,
+                upsampling_factor=args.upsampling_factor,
+                dataset_scaling_factor=args.dataset_scaling_factor,
+                drop_last=args.drop_last_iter,
+                category2utt_file=category2utt_file,
+                epoch=1,
+                num_batches=iter_options.num_batches,
+                distributed=iter_options.distributed,
+            )
+            batch_sampler = CategoryPowerSampler(**sampler_args)
+        elif iter_options.batch_type == "catpow_balance_dataset":
+            if Path(
+                Path(iter_options.data_path_and_name_and_type[0][0]).parent, "dataset2utt"
+            ).exists():
+                dataset2utt_file = str(
+                    Path(
+                        Path(iter_options.data_path_and_name_and_type[0][0]).parent,
+                        "dataset2utt",
+                    )
+                )
+                logging.warning("Reading " + dataset2utt_file)
+            else:
+                dataset2utt_file = None
+                raise ValueError(
+                    f"dataset2utt mandatory for catpow_balance_dataset batch sampler, but not found {dataset2utt_file}"
+                )
+
+            if Path(
+                Path(iter_options.data_path_and_name_and_type[0][0]).parent, "utt2dataset"
+            ).exists():
+                utt2dataset_file = str(
+                    Path(
+                        Path(iter_options.data_path_and_name_and_type[0][0]).parent,
+                        "utt2dataset",
+                    )
+                )
+                logging.warning("Reading " + utt2dataset_file)
+            else:
+                utt2dataset_file = None
+                raise ValueError(
+                    f"utt2dataset mandatory for catpow_balance_dataset batch sampler, but not found {utt2dataset_file}"
+                )
+            sampler_args = dict(
+                batch_bins=iter_options.batch_bins,
+                shape_files=iter_options.shape_files,
+                min_batch_size=(
+                    torch.distributed.get_world_size() if iter_options.distributed else 1
+                ),
+                max_batch_size=args.max_batch_size,
+                category_upsampling_factor=args.category_upsampling_factor,
+                dataset_upsampling_factor=args.dataset_upsampling_factor,
+                dataset_scaling_factor=args.dataset_scaling_factor,
+                drop_last=args.drop_last_iter,
+                category2utt_file=category2utt_file,
+                dataset2utt_file=dataset2utt_file,
+                utt2dataset_file=utt2dataset_file,
+                epoch=1,
+                num_batches=iter_options.num_batches,
+                distributed=iter_options.distributed,
+            )
+            batch_sampler = CategoryDatasetPowerSampler(**sampler_args)
+        elif iter_options.batch_type == "unsorted":
+            # For plot attention
+            if len(iter_options.shape_files) == 0:
+                key_file = iter_options.data_path_and_name_and_type[0][0]
+            else:
+                key_file = iter_options.shape_files[0]
+            batch_sampler = UnsortedBatchSampler(
+                batch_size=iter_options.batch_size,
+                key_file=key_file,
+            )
+        else:
+            raise ValueError(f"batch_type={iter_options.batch_type} is not supported")
 
         batches = list(batch_sampler)
 
@@ -1934,17 +2052,32 @@ class AbsTask(ABC):
                     )
             batches = [batch[rank::world_size] for batch in batches]
 
-        return CategoryIterFactory(
-            dataset=dataset,
-            batches=batches,
-            seed=args.seed,
-            num_iters_per_epoch=iter_options.num_iters_per_epoch,
-            sampler_args=sampler_args,
-            shuffle=iter_options.train,
-            num_workers=args.num_workers,
-            collate_fn=iter_options.collate_fn,
-            pin_memory=args.ngpu > 0,
-        )
+        if iter_options.batch_type == "unsorted":
+            # For plot attention
+            return SequenceIterFactory(
+                dataset=dataset,
+                batches=batches,
+                seed=args.seed,
+                num_iters_per_epoch=iter_options.num_iters_per_epoch,
+                shuffle=iter_options.train,
+                shuffle_within_batch=args.shuffle_within_batch,
+                num_workers=args.num_workers,
+                collate_fn=iter_options.collate_fn,
+                pin_memory=args.ngpu > 0,
+            )
+        else:
+            return CategoryIterFactory(
+                dataset=dataset,
+                batches=batches,
+                seed=args.seed,
+                num_iters_per_epoch=iter_options.num_iters_per_epoch,
+                sampler_args=sampler_args,
+                batch_type=iter_options.batch_type,
+                shuffle=iter_options.train,
+                num_workers=args.num_workers,
+                collate_fn=iter_options.collate_fn,
+                pin_memory=args.ngpu > 0,
+            )
 
     @classmethod
     @typechecked
