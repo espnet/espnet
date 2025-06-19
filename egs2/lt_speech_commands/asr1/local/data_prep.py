@@ -20,14 +20,17 @@ dir_dict = {
 }
 
 for x in dir_dict:
-    with open(os.path.join("data", x, "wav.scp"), "w") as wav_scp_f, open(
-        os.path.join("data", x, "utt2spk"), "w"
-    ) as utt2spk_f, open(os.path.join("data", x, "text"), "w") as text_f, open(
-        os.path.join(
-            lt_speech_cmd_root, "SpeechAdvReprogram/Datasets/LT-SCR", dir_dict[x]
-        ),
-        "r",
-    ) as f_meta:
+    with (
+        open(os.path.join("data", x, "wav.scp"), "w") as wav_scp_f,
+        open(os.path.join("data", x, "utt2spk"), "w") as utt2spk_f,
+        open(os.path.join("data", x, "text"), "w") as text_f,
+        open(
+            os.path.join(
+                lt_speech_cmd_root, "SpeechAdvReprogram/Datasets/LT-SCR", dir_dict[x]
+            ),
+            "r",
+        ) as f_meta,
+    ):
         lines = f_meta.readlines()
         print(len(lines))
         for line in lines[1:]:

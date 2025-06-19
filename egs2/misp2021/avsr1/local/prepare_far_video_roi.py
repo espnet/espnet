@@ -442,7 +442,7 @@ if __name__ == "__main__":
                 video_path=sentence_path,
                 roi_store_dir=args.roi_store_dir,
                 file_handle=handle,
-                **all_input_params[sentence_path]
+                **all_input_params[sentence_path],
             )
             in_len = (len(all_sentences) - ji) // nj
             in_index = (sentence_idx - ji) // nj
