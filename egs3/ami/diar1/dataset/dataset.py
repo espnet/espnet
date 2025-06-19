@@ -10,7 +10,8 @@ import soundfile as sf
 
 
 class DiarCutSet(Dataset):
-    def __init__(self, data_dir="./data/ami", split=None, is_training=False):
+    def __init__(self, data_dir="./data/ami", split=None,
+                 is_training=False):
         if split is None:
             raise ValueError("This dataset requires a split name (e.g., 'dev', 'train')")
         path = f"{data_dir}/{split}-cuts.jsonl.gz"
@@ -21,14 +22,16 @@ class DiarCutSet(Dataset):
         self.specaugment = SpecAugment(time_warp_factor = 5,
         num_feature_masks = 2,
         features_mask_size = 4,
-        num_frame_masks = 250,
+        num_frame_masks = 50,
         frames_mask_size = 10,
         max_frames_mask_fraction  = 0.2,
         p=0.9)
 
 
     def __len__(self):
+
         return len(self.cuts)
+
 
     def get_sa(self, supervisions, segment=120, max_spk=5, resolution=160, overlap_f=1, fs=16000):
 
@@ -53,6 +56,20 @@ class DiarCutSet(Dataset):
         return sa
 
 
+    def _get_random_window(self, winlen, cut):
+
+        start = np.random.uniform(cut.start, cut.duration+cut.start - winlen)
+        stop = start + winlen
+        return start, stop
+
+
+    def _get_supervisions(self, cut, start, stop):
+
+        return cut.truncate(offset=start,
+                            duration=stop - start,
+                            keep_excessive_supervisions=True)
+
+
     def read_audio(self, cut):
 
         sources = [x.source for x in cut.recording.sources]
@@ -70,22 +87,21 @@ class DiarCutSet(Dataset):
         assert audio.shape[0] == 1
         return audio.astype(np.float32)
 
-
     def __getitem__(self, idx):
+
         cut = self.cuts[idx]
-        # Method 1: Direct extraction for a single cut
-
-        audio = self.read_audio(cut)
-
-        audio = self.extractor.extract(samples=audio,sampling_rate=cut.sampling_rate)
-        audio = audio - np.mean(audio, 0, keepdims=True)
-
+        supervisions = cut.supervisions
+        audio = cut.load_features()
+        mean = np.mean(audio, 0, keepdims=True)
+        audio = audio - mean
+        # specaugment
         if self.is_training:
+
             audio = self.specaugment(torch.from_numpy(audio[None, ...])).numpy()[0]
-            # specaugment
+            #audio = audio + mean
 
         # need to get speaker activities here
-        sa = self.get_sa(cut.supervisions, cut.duration, fs=cut.sampling_rate).numpy().T
+        sa = self.get_sa(supervisions, cut.duration, fs=cut.sampling_rate).numpy().T
 
         example = {
             "speech": audio,

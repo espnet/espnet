@@ -55,10 +55,18 @@ def main():
 
     if run_stage_flag(2):
         from dataset.create_dataset import get_cuts
-        get_cuts(config)
+        get_cuts(config.features.num_mel_bins,  config.features.chunk_size, config.features.hop)
 
     model = instantiate(config.model)
     lit_model = LitESPnetModel(model, config)
+
+    from dataset.dataset import DiarCutSet
+    import torch
+    torch.set_num_threads(16)
+    #lit_model.train_dataset = DiarCutSet(split="ami-ihm-mix-train", is_training=True)
+
+    #slit_model.dev_dataset = DiarCutSet(split="ami-ihm-mix-dev", is_training=False)
+    #lit_model.test_dataset = DiarCutSet(split="ami-ihm-mix-test", is_training=False)
 
     # Setup trainer
     trainer = ESPnetEZLightningTrainer(

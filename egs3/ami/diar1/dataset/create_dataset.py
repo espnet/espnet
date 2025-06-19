@@ -2,6 +2,9 @@ from lhotse.recipes.ami import prepare_ami
 import lhotse
 import os
 from pathlib import Path
+from lhotse.features import Fbank, FbankConfig
+import torch
+
 
 def get_ami_manifets(config, mics=["ihm-mix", "mdm", "sdm"]):
     root = config.ami_root
@@ -15,16 +18,15 @@ def get_ami_manifets(config, mics=["ihm-mix", "mdm", "sdm"]):
     # this will prepare manifests
 
 
-def get_cuts(config):
+
+def get_cuts(num_mel_bins, chunk_size, hop):
 
     # load recordings here
     dset = "ami"
     split = "train"
     N_JOBS = 16
-    #fbank_config = FbankConfig()
-    #fbank_config.num_mel_bins = config.features.num_mel_bins
-    #extractor = Fbank()
-    #extractor.config_type= fbank_config
+    fbank_config = FbankConfig(num_mel_bins=num_mel_bins)
+    extractor = Fbank(fbank_config)
 
     for mic in ["ihm-mix", "mdm", "sdm"]: # note add later SDM
         c_rec = lhotse.load_manifest(os.path.join("./data/ami", f"{dset}-{mic}_recordings_{split}.jsonl.gz"))
@@ -32,11 +34,14 @@ def get_cuts(config):
         cutset = lhotse.CutSet.from_manifests(c_rec, c_sup)
         # chunk into X seconds
         print(f"Splitting cutset for {dset} {split} {mic} in chunks. Number of jobs: {N_JOBS}")
-        cutset = cutset.cut_into_windows(config.features.chunk_size, config.features.hop, num_jobs=N_JOBS, keep_excessive_supervisions=True)
-        cutset = cutset.filter(lambda x: x.duration >= config.features.chunk_size)
-        #print(f"Computing features and saving them to disk.")
-        #cutset.compute_and_store_features(extractor=extractor,
-        #                            storage_path=f'./dump/feats/{dset}-{mic}-{split}', num_jobs=N_JOBS)
+        cutset = cutset.cut_into_windows(chunk_size, hop, num_jobs=N_JOBS,
+                                         keep_excessive_supervisions=True)
+
+        cutset = lhotse.CutSet([x for x in cutset if x.duration >= chunk_size])
+        print(f"Computing features and saving them to disk.")
+        cutset = cutset.compute_and_store_features(extractor=extractor,
+                                    storage_path=f'./dump/feats/{dset}-{mic}-{split}', num_jobs=N_JOBS)
+
         cutset.to_file(f"./data/{dset}/{dset}-{mic}-{split}-cuts.jsonl.gz")
 
     split = "dev"
@@ -47,9 +52,9 @@ def get_cuts(config):
         # chunk into X seconds
         #print(f"Splitting cutset for {dset} {split} {mic} in chunks. Number of jobs: {N_JOBS}")
         #cutset = cutset.cut_into_windows(config.features.chunk_size, config.features.hop, num_jobs=N_JOBS, keep_excessive_supervisions=True)
-        #print(f"Computing features and saving them to disk.")
-        #cutset.compute_and_store_features(extractor=extractor,
-        #                            storage_path=f'./dump/feats/{dset}-{mic}-{split}', num_jobs=N_JOBS)
+        print(f"Computing features and saving them to disk.")
+        cutset = cutset.compute_and_store_features(extractor=extractor,
+                                    storage_path=f'./dump/feats/{dset}-{mic}-{split}', num_jobs=N_JOBS)
         cutset.to_file(f"./data/{dset}/{dset}-{mic}-{split}-cuts.jsonl.gz")
 
     split = "test"
@@ -60,9 +65,9 @@ def get_cuts(config):
         # chunk into X seconds
         #print(f"Splitting cutset for {dset} {split} {mic} in chunks. Number of jobs: {N_JOBS}")
         #cutset = cutset.cut_into_windows(config.features.chunk_size, config.features.hop, num_jobs=N_JOBS, keep_excessive_supervisions=True)
-        # print(f"Computing features and saving them to disk.")
-        # cutset.compute_and_store_features(extractor=extractor,
-        #                            storage_path=f'./dump/feats/{dset}-{mic}-{split}', num_jobs=N_JOBS)
+        print(f"Computing features and saving them to disk.")
+        cutset = cutset.compute_and_store_features(extractor=extractor,
+                                    storage_path=f'./dump/feats/{dset}-{mic}-{split}', num_jobs=N_JOBS)
         cutset.to_file(f"./data/{dset}/{dset}-{mic}-{split}-cuts.jsonl.gz")
 
 

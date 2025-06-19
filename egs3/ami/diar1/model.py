@@ -8,7 +8,7 @@ from espnet2.torch_utils.device_funcs import force_gatherable
 from torch.cuda.amp import autocast
 from egs3.ami.diar1.local.utils import padtrunc
 from espnet2.diar.espnet_model import ESPnetDiarizationModel
-
+from speechbrain.lobes.models.conv_tasnet import ChannelwiseLayerNorm
 
 
 class ConvFrontEnd(torch.nn.Module):
@@ -22,20 +22,23 @@ class ConvFrontEnd(torch.nn.Module):
             eps=1e-5):
         super().__init__()
 
-        self.depthwise = torch.nn.Conv1d(n_mels, n_mels, kernel_size=in_ksz,
+        latent_dim = int(n_mels*in_ksz)
+        self.depthwise = torch.nn.Conv1d(n_mels, latent_dim, kernel_size=in_ksz,
                                      stride=in_stride, padding=in_ksz // 2, groups=n_mels)
-        self.pointwise = torch.nn.Linear(n_mels, emb_size)
-        self.in_norm = torch.nn.LayerNorm(emb_size, eps=eps)
+        # expand here
+        self.in_norm = ChannelwiseLayerNorm(latent_dim)
+        self.pointwise = torch.nn.Linear(latent_dim, emb_size) # bottleneck
+
         self.in_drop = torch.nn.Dropout(dropout)
         self.pos_enc = torch.nn.Conv1d(emb_size, emb_size, kernel_size=pos_enc_ksz,
                                          stride=1, padding=pos_enc_ksz // 2, groups=emb_size)
 
 
     def forward(self, x, lengths):
-        x = self.pointwise(self.depthwise(x.transpose(-1, -2)).transpose(-1, -2))
-        x = self.in_norm(x)
-        x = x + self.pos_enc(x.transpose(-1, -2)).transpose(-1, -2)
-        x = self.in_drop(x)
+        x = self.depthwise(x.transpose(-1, -2)).transpose(-1, -2)
+        x = self.pointwise(self.in_norm(x))
+        #x = self.in_drop(x)
+        x = self.pos_enc(x.transpose(-1, -2)).transpose(-1, -2)
 
         ratio =  x.shape[1] / lengths
         adjusted_lengths = (lengths * ratio).long()
@@ -146,6 +149,7 @@ class VanillaEENDModelWrapper(torch.nn.Module):
         else:
             speech, speech_lengths = self.encode(speech, speech_lengths)
             speech = self.decoder(speech)
+
         speech = speech[:, :orig_len]
 
         lendiff = abs(speech.shape[1] - spk_labels.shape[1])
