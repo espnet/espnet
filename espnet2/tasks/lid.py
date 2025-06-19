@@ -6,8 +6,6 @@ import torch
 import torch.nn as nn
 from typeguard import typechecked
 
-from espnet2.train.abs_espnet_model import AbsESPnetModel
-from espnet2.lid.espnet_model import ESPnetLIDModel
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.asteroid_frontend import AsteroidFrontend
@@ -21,12 +19,7 @@ from espnet2.asr.specaug.specaug import SpecAug
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
-from espnet2.spk.encoder.conformer_encoder import MfaConformerEncoder
-from espnet2.spk.encoder.ecapa_tdnn_encoder import EcapaTdnnEncoder
-from espnet2.spk.encoder.identity_encoder import IdentityEncoder
-from espnet2.spk.encoder.rawnet3_encoder import RawNet3Encoder
-from espnet2.spk.encoder.ska_tdnn_encoder import SkaTdnnEncoder
-from espnet2.spk.encoder.xvector_encoder import XvectorEncoder
+from espnet2.lid.espnet_model import ESPnetLIDModel
 from espnet2.lid.loss.aamsoftmax import AAMSoftmax
 from espnet2.lid.loss.aamsoftmax_subcenter_intertopk import (
     ArcMarginProduct_intertopk_subcenter,
@@ -36,20 +29,27 @@ from espnet2.lid.pooling.abs_pooling import AbsPooling
 from espnet2.lid.pooling.chn_attn_stat_pooling import ChnAttnStatPooling
 from espnet2.lid.pooling.mean_pooling import MeanPooling
 from espnet2.lid.pooling.stat_pooling import StatsPooling
+from espnet2.spk.encoder.conformer_encoder import MfaConformerEncoder
+from espnet2.spk.encoder.ecapa_tdnn_encoder import EcapaTdnnEncoder
+from espnet2.spk.encoder.identity_encoder import IdentityEncoder
+from espnet2.spk.encoder.rawnet3_encoder import RawNet3Encoder
+from espnet2.spk.encoder.ska_tdnn_encoder import SkaTdnnEncoder
+from espnet2.spk.encoder.xvector_encoder import XvectorEncoder
 from espnet2.spk.projector.abs_projector import AbsProjector
 from espnet2.spk.projector.rawnet3_projector import RawNet3Projector
 from espnet2.spk.projector.ska_tdnn_projector import SkaTdnnProjector
 from espnet2.spk.projector.xvector_projector import XvectorProjector
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.torch_utils.initialize import initialize
+from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
+from espnet2.train.lid_trainer import LIDTrainer
 from espnet2.train.preprocessor import (
     AbsPreprocessor,
     CommonPreprocessor,
     LIDPreprocessor,
 )
-from espnet2.train.lid_trainer import LIDTrainer
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import int_or_none, str2bool, str_or_none
@@ -255,8 +255,8 @@ class LIDTask(AbsTask):
             "--lang2utt",
             type=str,
             default="",
-            help="Directory of the train lang2utt file to be used in label mapping" \
-            "Note that both train and validation use the same lang2utt file, since" \
+            help="Directory of the train lang2utt file to be used in label mapping"
+            "Note that both train and validation use the same lang2utt file, since"
             "we can only support the same categories during validation",
         )
 

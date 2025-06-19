@@ -2289,7 +2289,9 @@ class LIDPreprocessor(CommonPreprocessor):
         self.lang2label = None  # a dictionary that maps string speaker label to int
         self.lang2vec = None
         self.sample_rate = sample_rate
-        self.target_duration = int(target_duration * sample_rate) if target_duration else None
+        self.target_duration = (
+            int(target_duration * sample_rate) if target_duration else None
+        )
         self.fix_duration = fix_duration
         self.train = train
         self.lang2utt_path = lang2utt

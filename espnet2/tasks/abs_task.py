@@ -36,17 +36,20 @@ from espnet2.optimizers.optim_groups import configure_optimizer
 from espnet2.optimizers.sgd import SGD
 from espnet2.samplers.build_batch_sampler import BATCH_TYPES, build_batch_sampler
 from espnet2.samplers.category_balanced_sampler import CategoryBalancedSampler
-from espnet2.samplers.category_power_sampler import CategoryPowerSampler, CategoryDatasetPowerSampler
+from espnet2.samplers.category_power_sampler import (
+    CategoryDatasetPowerSampler,
+    CategoryPowerSampler,
+)
 from espnet2.samplers.unsorted_batch_sampler import UnsortedBatchSampler
 from espnet2.schedulers.cosine_anneal_warmup_restart import (
     CosineAnnealingWarmupRestarts,
 )
 from espnet2.schedulers.noam_lr import NoamLR
 from espnet2.schedulers.piecewise_linear_warmup_lr import PiecewiseLinearWarmupLR
+from espnet2.schedulers.tristage_lr import TristageLR
 from espnet2.schedulers.warmup_lr import WarmupLR
 from espnet2.schedulers.warmup_reducelronplateau import WarmupReduceLROnPlateau
 from espnet2.schedulers.warmup_step_lr import WarmupStepLR
-from espnet2.schedulers.tristage_lr import TristageLR
 from espnet2.torch_utils.load_pretrained_model import load_pretrained_model
 from espnet2.torch_utils.model_summary import model_summary
 from espnet2.torch_utils.pytorch_version import pytorch_cudnn_version
@@ -823,28 +826,28 @@ class AbsTask(ABC):
             "--upsampling_factor",
             type=float,
             default=0.5,
-            help="Used when batch_type='catpow' (CategoryPowerSampler), " \
+            help="Used when batch_type='catpow' (CategoryPowerSampler), "
             "for upsample low-resource catageory",
         )
         group.add_argument(
             "--language_upsampling_factor",
             type=float,
             default=0.5,
-            help="Used when batch_type='catpow_balance_dataset' (CategoryPowerSamplerBalancedDataset), " \
+            help="Used when batch_type='catpow_balance_dataset' (CategoryPowerSamplerBalancedDataset), "
             "for upsample low-resource catageory and dataset",
         )
         group.add_argument(
             "--dataset_upsampling_factor",
             type=float,
             default=0.5,
-            help="Used when batch_type='catpow_balance_dataset' (CategoryPowerSamplerBalancedDataset), " \
+            help="Used when batch_type='catpow_balance_dataset' (CategoryPowerSamplerBalancedDataset), "
             "for upsample low-resource catageory and dataset",
         )
         group.add_argument(
             "--dataset_scaling_factor",
             type=float,
             default=1.2,
-            help="Used when batch_type='catpow' (CategoryPowerSampler), " \
+            help="Used when batch_type='catpow' (CategoryPowerSampler), "
             "control the scaled dataset size after upsampling",
         )
         group.add_argument(
@@ -1937,7 +1940,9 @@ class AbsTask(ABC):
             sampler_args = dict(
                 batch_size=iter_options.batch_size,
                 min_batch_size=(
-                    torch.distributed.get_world_size() if iter_options.distributed else 1
+                    torch.distributed.get_world_size()
+                    if iter_options.distributed
+                    else 1
                 ),
                 drop_last=args.drop_last_iter,
                 category2utt_file=category2utt_file,
@@ -1951,7 +1956,9 @@ class AbsTask(ABC):
                 batch_bins=iter_options.batch_bins,
                 shape_files=iter_options.shape_files,
                 min_batch_size=(
-                    torch.distributed.get_world_size() if iter_options.distributed else 1
+                    torch.distributed.get_world_size()
+                    if iter_options.distributed
+                    else 1
                 ),
                 max_batch_size=args.max_batch_size,
                 upsampling_factor=args.upsampling_factor,
@@ -1965,7 +1972,8 @@ class AbsTask(ABC):
             batch_sampler = CategoryPowerSampler(**sampler_args)
         elif iter_options.batch_type == "catpow_balance_dataset":
             if Path(
-                Path(iter_options.data_path_and_name_and_type[0][0]).parent, "dataset2utt"
+                Path(iter_options.data_path_and_name_and_type[0][0]).parent,
+                "dataset2utt",
             ).exists():
                 dataset2utt_file = str(
                     Path(
@@ -1981,7 +1989,8 @@ class AbsTask(ABC):
                 )
 
             if Path(
-                Path(iter_options.data_path_and_name_and_type[0][0]).parent, "utt2dataset"
+                Path(iter_options.data_path_and_name_and_type[0][0]).parent,
+                "utt2dataset",
             ).exists():
                 utt2dataset_file = str(
                     Path(
@@ -1999,7 +2008,9 @@ class AbsTask(ABC):
                 batch_bins=iter_options.batch_bins,
                 shape_files=iter_options.shape_files,
                 min_batch_size=(
-                    torch.distributed.get_world_size() if iter_options.distributed else 1
+                    torch.distributed.get_world_size()
+                    if iter_options.distributed
+                    else 1
                 ),
                 max_batch_size=args.max_batch_size,
                 category_upsampling_factor=args.category_upsampling_factor,

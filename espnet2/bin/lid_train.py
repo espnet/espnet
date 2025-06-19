@@ -7,8 +7,7 @@ def get_parser():
 
 
 def main(cmd=None):
-    r"""LID training.
-    """
+    r"""LID training."""
     LIDTask.main(cmd=cmd)
 
 
