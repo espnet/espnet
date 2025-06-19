@@ -46,33 +46,44 @@ class LIDTrainer(Trainer):
         lang_counter_dic: Optional[Dict[str, int]] = None,
     ) -> None:
         """
-        Extract language IDs and (optionally) language embeddings for each utterance in the dataset.
+        Extract LIDs and language embeddings for each utterance in the dataset.
 
-        By default, this method performs language identification (LID) for each utterance.
-        If `extract_embd=True`, it also extracts normalized language embeddings.
+        By default, this method performs language identification (LID) for 
+        each utterance. If `extract_embd=True`, it also extracts normalized language 
+        embeddings.
 
-        lang_embd_dic: {utt_id: lang_embd}, the language embedding for a specific utterance,
-        this is used for temporary saving the language embedding of each utterance,
-        and will be written to the dist every `save_every` utterances.
-        lang_to_embds_dic: {lang: [utt1 embd, utt1 embd ...]}, the language embedding for the
-        utterances corresponding to each language, if set `extract_embd` to True, this will be
-        defaultly used, this will not be written to the dist, but will be (in bin/lid_inference_dist.py)
-        used for calculating the average language embedding for each language, and ploting the tsne plot.
+        lang_embd_dic: {utt_id: lang_embd}, the language embedding for a specific 
+        utterance, this is used for temporary saving the language embedding of each 
+        utterance, and will be written to the dist every `save_every` utterances.
+        lang_to_embds_dic: {lang: [utt1 embd, utt1 embd ...]}, the language embedding 
+        for the utterances corresponding to each language, if set `extract_embd` to 
+        True, this will be defaultly used, this will not be written to the dist, but 
+        will be (in bin/lid_inference_dist.py) used for calculating the average language 
+        embedding for each language, and plotting the tsne plot.
 
         Saved results:
-        - lang_id_dic: {utt_id: predicted_lang}, mapping from utterance ID to predicted language ID.
-        - lang_embd_dic (optional): {utt_id: lang_embd}, temporary in-memory storage of per-utterance
-          language embeddings. Saved to disk every `save_every` utterances if `save_embd_per_utt=True`.
-        - lang_to_embds_dic (optional): {lang: [embd_utt1, embd_utt2, ...]}, mapping from language ID to
-          a list of embeddings from all utterances predicted or labeled with that language. This is not
-          written to disk by this function, but is used downstream (e.g., in `bin/lid_inference_dist.py`)
-          for computing language-level average embeddings or generating t-SNE visualizations.
+        - lang_id_dic: {utt_id: predicted_lang}, mapping from utterance ID to 
+                                predicted language ID.
+        - lang_embd_dic (optional): {utt_id: lang_embd}, temporary in-memory 
+                                    storage of per-utterance language embeddings. 
+                                    Saved to disk every `save_every` utterances if 
+                                    `save_embd_per_utt=True`.
+        - lang_to_embds_dic (optional): {lang: [embd_utt1, embd_utt2, ...]}, 
+                                        mapping from language ID to a list of embeddings 
+                                        from all utterances predicted or labeled with 
+                                        that language. This is not written to disk by 
+                                        this function, but is used downstream 
+                                        (e.g., in `bin/lid_inference_dist.py`) for 
+                                        computing language-level average embeddings or 
+                                        generating t-SNE visualizations.
 
         Notes:
         - All extracted embeddings are L2-normalized.
         - The function supports distributed inference using torch.distributed.
-        - Supports resume functionality by skipping already processed utterances based on existing output files.
-        - Limits the number of utterances per language if `max_num_utt_per_lang` is specified.
+        - Supports resume functionality by skipping already processed utterances 
+          based on existing output files.
+        - Limits the number of utterances per language if `max_num_utt_per_lang` is 
+          specified.
         """
         # Extract language embedding and lids.
         ngpu = options.ngpu
@@ -114,7 +125,8 @@ class LIDTrainer(Trainer):
                         utt_id, lid = line.strip().split()
                         skip_utts.add(utt_id)
             logging.info(
-                f"[Rank {rank}] Resume: {len(skip_utts)} utterances found in {output_dir}/lids{rank}"
+                f"[Rank {rank}] Resume: {len(skip_utts)} utterances found in "
+                f"{output_dir}/lids{rank}"
             )
 
         for utt_id, batch in iterator:
@@ -125,7 +137,8 @@ class LIDTrainer(Trainer):
                         num_langs_reach_max_num += 1
                 if num_langs_reach_max_num == len(lang_counter_dic):
                     logging.info(
-                        f"[Rank {rank}] All languages reach max_num_utt_per_lang: {max_num_utt_per_lang}."
+                        f"[Rank {rank}] All languages reach max_num_utt_per_lang: "
+                        f"{max_num_utt_per_lang}."
                     )
                     break
 
@@ -142,7 +155,8 @@ class LIDTrainer(Trainer):
                     if _utt_id in skip_utts:
                         if num_recheck % save_every == 0 and num_recheck > 0:
                             logging.info(
-                                f"[Rank {rank}] Skip utterance {num_recheck - save_every}-{num_recheck}."
+                                f"[Rank {rank}] Skip utterance "
+                                f"{num_recheck - save_every}-{num_recheck}."
                             )
                         num_recheck += 1
                         continue
@@ -158,13 +172,16 @@ class LIDTrainer(Trainer):
                             >= max_num_utt_per_lang
                         ):
                             logging.info(
-                                f"[Rank {rank}] Language {idx2lang[_lid_label.item()]} reach max_num_utt_per_lang: {max_num_utt_per_lang}."
+                                f"[Rank {rank}] Language {idx2lang[_lid_label.item()]} "
+                                f"reach max_num_utt_per_lang: {max_num_utt_per_lang}."
                             )
                             continue
                         else:
                             if distributed:
-                                # Use a lock file to ensure atomic updates to the shared dictionary
-                                lock_file = f"{output_dir}/lock_{idx2lang[_lid_label.item()]}.lock"
+                                # Use a lock file to ensure atomic updates to 
+                                # the shared dictionary
+                                lang_name = idx2lang[_lid_label.item()]
+                                lock_file = f"{output_dir}/lock_{lang_name}.lock"
                                 with FileLock(lock_file):
                                     lang_counter_dic[idx2lang[_lid_label.item()]] += 1
                             else:
@@ -225,7 +242,8 @@ class LIDTrainer(Trainer):
                                 _lang_embd_numpy = _lang_embd.detach().cpu().numpy()
                                 target_lid = idx2lang[_lid_label_target.item()]
                                 if distributed:
-                                    # Use a lock file to ensure atomic updates to the shared dictionary
+                                    # Use a lock file to ensure atomic updates to 
+                                    # the shared dictionary
                                     lock_file = f"{output_dir}/lock_{target_lid}.lock"
                                     with FileLock(lock_file):
                                         lang_to_embds_dic[target_lid].append(
@@ -254,7 +272,8 @@ class LIDTrainer(Trainer):
                                 for uid, lid in lang_id_dic.items():
                                     f.write(f"{uid} {lid}\n")
                             logging.info(
-                                f"[Rank {rank}] Saved {len(lang_id_dic)} utts at step {step}"
+                                f"[Rank {rank}] Saved {len(lang_id_dic)} utts at "
+                                f"step {step}"
                             )
 
                             if (
@@ -262,7 +281,8 @@ class LIDTrainer(Trainer):
                                 and lang_counter_dic is not None
                             ):
                                 logging.info(
-                                    f"[Rank {rank}] Current lang_counter_dic: {lang_counter_dic}"
+                                    f"[Rank {rank}] Current lang_counter_dic: "
+                                    f"{lang_counter_dic}"
                                 )
 
                             if extract_embd:
@@ -311,7 +331,8 @@ class LIDTrainer(Trainer):
                     _lang_embd_numpy = _lang_embd.detach().cpu().numpy()
                     target_lid = idx2lang[_lid_label_target.item()]
                     if distributed:
-                        # Use a lock file to ensure atomic updates to the shared dictionary
+                        # Use a lock file to ensure atomic updates to 
+                        # the shared dictionary
                         lock_file = f"{output_dir}/lock_{target_lid}.lock"
                         with FileLock(lock_file):
                             lang_to_embds_dic[target_lid].append(_lang_embd_numpy)
