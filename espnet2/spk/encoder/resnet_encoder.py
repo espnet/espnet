@@ -10,8 +10,8 @@ from espnet2.spk.layers.resnet_block import BasicBlock, Bottleneck
 
 
 class ResNetEncoder(AbsEncoder):
-    """
-    ResNet Encoder. Extracts frame-level ResNet embeddings from
+    """ResNet Encoder. Extracts frame-level ResNet embeddings from
+
     mel-filterbank energy or MFCC features.
     Paper: K. He et al., "Deep Residual Learning for Image Recognition",
     Adapted from https://github.com/wenet-e2e/wespeaker/blob/master/we
