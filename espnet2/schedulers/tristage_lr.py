@@ -55,6 +55,9 @@ class TristageLR(_LRScheduler, AbsBatchStepScheduler):
         final_lr_scale: float = 0.01,
         last_epoch: int = -1,
     ):
+        assert warmup_ratio + hold_ratio + decay_ratio == 1.0, (
+            "The sum of warmup_ratio, hold_ratio, and decay_ratio must be 1.0."
+        )
         self.max_steps = max_steps
         self.warmup_steps = int(max_steps * warmup_ratio)
         self.hold_steps = int(max_steps * hold_ratio)
@@ -66,11 +69,9 @@ class TristageLR(_LRScheduler, AbsBatchStepScheduler):
         else:
             self.decay_factor = 0.0
 
-        super().__init__(optimizer, last_epoch)
-
         # __init__() must be invoked before setting field
         # because step() is also invoked in __init__()
-        # super().__init__(optimizer, last_epoch)
+        super().__init__(optimizer, last_epoch)
 
     def __repr__(self):
         express = f"{self.__class__.__name__}(warmup_steps={self.warmup_steps})"
@@ -84,6 +85,7 @@ class TristageLR(_LRScheduler, AbsBatchStepScheduler):
     def get_lr(self):
 
         step_num = self.last_epoch + 1
+        step_num = min(step_num, self.max_steps)
         if step_num < self.warmup_steps:
             return [
                 self.init_lr_scale * base_lr
