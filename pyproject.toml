@@ -1,6 +1,6 @@
 [project]
 name = "espnet"
-dynamic = ["version", "readme"]
+dynamic = ["version", "readme", "optional-dependencies", "dependencies"]
 authors = [
     {name="Shinji Watanabe", email="shinjiw@ieee.org"}
 ]
