@@ -9,8 +9,7 @@ from espnet2.schedulers.abs_scheduler import AbsBatchStepScheduler
 
 
 class TristageLR(_LRScheduler, AbsBatchStepScheduler):
-    """A tri-stage learning rate scheduler with warmup, hold,
-    and exponential decay phases.
+    """Tri-stage learning rate scheduler with warmup, hold, and exponential decay.
 
     This scheduler adjusts the learning rate in three phases:
         1. Warmup:
