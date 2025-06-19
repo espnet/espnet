@@ -6,6 +6,7 @@ import torch
 import torch.nn as nn
 from typeguard import typechecked
 
+from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.asteroid_frontend import AsteroidFrontend
@@ -19,16 +20,6 @@ from espnet2.asr.specaug.specaug import SpecAug
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
-from espnet2.lid.espnet_model import ESPnetLIDModel
-from espnet2.lid.loss.aamsoftmax import AAMSoftmax
-from espnet2.lid.loss.aamsoftmax_subcenter_intertopk import (
-    ArcMarginProduct_intertopk_subcenter,
-)
-from espnet2.lid.loss.softmax import Softmax
-from espnet2.lid.pooling.abs_pooling import AbsPooling
-from espnet2.lid.pooling.chn_attn_stat_pooling import ChnAttnStatPooling
-from espnet2.lid.pooling.mean_pooling import MeanPooling
-from espnet2.lid.pooling.stat_pooling import StatsPooling
 from espnet2.spk.encoder.conformer_encoder import MfaConformerEncoder
 from espnet2.spk.encoder.ecapa_tdnn_encoder import EcapaTdnnEncoder
 from espnet2.spk.encoder.identity_encoder import IdentityEncoder
@@ -41,27 +32,15 @@ from espnet2.spk.projector.ska_tdnn_projector import SkaTdnnProjector
 from espnet2.spk.projector.xvector_projector import XvectorProjector
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.torch_utils.initialize import initialize
-from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
-from espnet2.train.lid_trainer import LIDTrainer
 from espnet2.train.preprocessor import (
     AbsPreprocessor,
     CommonPreprocessor,
     LIDPreprocessor,
 )
-from espnet2.utils.get_default_kwargs import get_default_kwargs
-from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import int_or_none, str2bool, str_or_none
 
-model_choices = ClassChoices(
-    "model",
-    classes=dict(
-        espnet=ESPnetLIDModel,
-    ),
-    type_check=AbsESPnetModel,
-    default="espnet",
-)
 
 # Check and understand
 frontend_choices = ClassChoices(
@@ -112,16 +91,6 @@ encoder_choices = ClassChoices(
     default="rawnet3",
 )
 
-pooling_choices = ClassChoices(
-    name="pooling",
-    classes=dict(
-        chn_attn_stat=ChnAttnStatPooling,
-        mean=MeanPooling,
-        stats=StatsPooling,
-    ),
-    type_check=AbsPooling,
-    default="chn_attn_stat",
-)
 
 projector_choices = ClassChoices(
     name="projector",
@@ -148,16 +117,6 @@ encoder_condition_choices = ClassChoices(
     default="rawnet3",
 )
 
-pooling_condition_choices = ClassChoices(
-    name="pooling_condition",
-    classes=dict(
-        chn_attn_stat=ChnAttnStatPooling,
-        mean=MeanPooling,
-        stats=StatsPooling,
-    ),
-    type_check=AbsPooling,
-    default="chn_attn_stat",
-)
 
 projector_condition_choices = ClassChoices(
     name="projector_condition",
@@ -180,36 +139,12 @@ preprocessor_choices = ClassChoices(
     default="lid",
 )
 
-loss_choices = ClassChoices(
-    name="loss",
-    classes=dict(
-        aamsoftmax=AAMSoftmax,
-        aamsoftmax_sc_topk=ArcMarginProduct_intertopk_subcenter,
-        softmax=Softmax,
-    ),
-    default="aamsoftmax",
-)
 
 
 class LIDTask(AbsTask):
     num_optimizers: int = 1
 
-    class_choices_list = [
-        model_choices,
-        frontend_choices,
-        specaug_choices,
-        normalize_choices,
-        encoder_choices,
-        pooling_choices,
-        projector_choices,
-        encoder_condition_choices,
-        pooling_condition_choices,
-        projector_condition_choices,
-        preprocessor_choices,
-        loss_choices,
-    ]
 
-    trainer = LIDTrainer
 
     @classmethod
     def add_task_arguments(cls, parser: argparse.ArgumentParser):
@@ -255,8 +190,8 @@ class LIDTask(AbsTask):
             "--lang2utt",
             type=str,
             default="",
-            help="Directory of the train lang2utt file to be used in label mapping"
-            "Note that both train and validation use the same lang2utt file, since"
+            help="Directory of the train lang2utt file to be used in label mapping" \
+            "Note that both train and validation use the same lang2utt file, since" \
             "we can only support the same categories during validation",
         )
 
@@ -289,8 +224,6 @@ class LIDTask(AbsTask):
             help="Directory of the rir data to be augmented",
         )
 
-        for class_choices in cls.class_choices_list:
-            class_choices.add_arguments(group)
 
     @classmethod
     @typechecked
@@ -298,7 +231,9 @@ class LIDTask(AbsTask):
         [Collection[Tuple[str, Dict[str, np.ndarray]]]],
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
-        return CommonCollateFn()
+        return CommonCollateFn(
+            not_sequence=["lid_labels"],
+        )
 
     @classmethod
     @typechecked
@@ -320,82 +255,23 @@ class LIDTask(AbsTask):
     def required_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
-        retval = ("speech", "lid_labels")
+        if train:
+            # train
+            retval = ("speech", "lid_labels")
+        elif not train and not inference:
+            # validation or plot tsne
+            retval = ("speech", "lid_labels")
+        else:
+            # inference
+            retval = ("speech",)
+        
         return retval
 
-    # @classmethod
-    # def optional_data_names(
-    #     cls, train: bool = True, inference: bool = False
-    # ) -> Tuple[str, ...]:
-    #     # When calculating EER, we need trials where each trial has two
-    #     # utterances. speech2 corresponds to the second utterance of each
-    #     # trial pair in the validation/inference phase.
-    #     retval = ("speech2", "trial", "lid_labels", "task_tokens")
-
-    #     return retval
-
     @classmethod
-    @typechecked
-    def build_model(cls, args: argparse.Namespace) -> ESPnetLIDModel:
+    def optional_data_names(
+        cls, train: bool = True, inference: bool = False
+    ) -> Tuple[str, ...]:
+        retval = ()
 
-        if args.frontend is not None:
-            frontend_class = frontend_choices.get_class(args.frontend)
-            frontend = frontend_class(**args.frontend_conf)
-            input_size = frontend.output_size()
+        return retval
 
-        else:
-            # Give features from data-loader (e.g., precompute features).
-            frontend = None
-            input_size = args.input_size
-
-        if args.specaug is not None:
-            specaug_class = specaug_choices.get_class(args.specaug)
-            specaug = specaug_class(**args.specaug_conf)
-        else:
-            specaug = None
-
-        if args.normalize is not None:
-            normalize_class = normalize_choices.get_class(args.normalize)
-            normalize = normalize_class(**args.normalize_conf)
-        else:
-            normalize = None
-
-        encoder_class = encoder_choices.get_class(args.encoder)
-        encoder = encoder_class(input_size=input_size, **args.encoder_conf)
-        encoder_output_size = encoder.output_size()
-
-        pooling_class = pooling_choices.get_class(args.pooling)
-        pooling = pooling_class(input_size=encoder_output_size, **args.pooling_conf)
-        pooling_output_size = pooling.output_size()
-
-        projector_class = projector_choices.get_class(args.projector)
-        projector = projector_class(
-            input_size=pooling_output_size, **args.projector_conf
-        )
-        projector_output_size = projector.output_size()
-
-        loss_class = loss_choices.get_class(args.loss)
-        loss = loss_class(
-            nout=projector_output_size, nclasses=args.lang_num, **args.loss_conf
-        )
-
-        model_arg = getattr(args, "model", None)
-        if model_arg is None:
-            model_arg = "espnet"
-        model_class = model_choices.get_class(model_arg)
-
-        model = model_class(
-            frontend=frontend,
-            specaug=specaug,
-            normalize=normalize,
-            encoder=encoder,
-            pooling=pooling,
-            projector=projector,
-            loss=loss,
-            **args.model_conf,
-        )
-
-        if args.init is not None:
-            initialize(model, args.init)
-
-        return model
