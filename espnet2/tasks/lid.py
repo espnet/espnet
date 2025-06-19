@@ -3,7 +3,6 @@ from typing import Callable, Collection, Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
-import torch.nn as nn
 from typeguard import typechecked
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
@@ -30,8 +29,6 @@ from espnet2.spk.projector.rawnet3_projector import RawNet3Projector
 from espnet2.spk.projector.ska_tdnn_projector import SkaTdnnProjector
 from espnet2.spk.projector.xvector_projector import XvectorProjector
 from espnet2.tasks.abs_task import AbsTask
-from espnet2.torch_utils.initialize import initialize
-from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
 from espnet2.train.lid_trainer import LIDTrainer
