@@ -276,8 +276,8 @@ def gen_tsne_plot(
     perplexity=5,
     max_iter=1000,
 ):
-    """
-    Generate t-SNE plot for language embeddings with labels directly on the points.
+    r"""Generate t-SNE plot for language embeddings with labels directly on the points.
+    
     Args:
         lang_to_embds_dic (dict): Dictionary mapping language IDs (iso3 code)
                                   to embeddings.
@@ -552,7 +552,8 @@ def get_parser():
         "--save_embd_avg_lang",
         type=str2bool,
         default=False,
-        help="Determine whether to save embedding for averaged across all utterances of a language or not",
+        help="Determine whether to save embedding for averaged across all utterances "
+        "of a language or not",
     )
     group.add_argument(
         "--save_tsne_plot",

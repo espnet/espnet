@@ -45,8 +45,7 @@ class LIDTrainer(Trainer):
         max_num_utt_per_lang: Optional[int] = None,
         lang_counter_dic: Optional[Dict[str, int]] = None,
     ) -> None:
-        """
-        Extract LIDs and language embeddings for each utterance in the dataset.
+        r"""Extract LIDs and language embeddings for each utterance in the dataset.
 
         By default, this method performs language identification (LID) for
         each utterance. If `extract_embd=True`, it also extracts normalized language
