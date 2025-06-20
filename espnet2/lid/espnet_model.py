@@ -55,7 +55,7 @@ class ESPnetLIDModel(AbsESPnetModel):
         Tuple[torch.Tensor, torch.Tensor],
         Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor],
         torch.Tensor,
-    ]:
+    ]: 
         r"""Forward pass of the LID model.
 
         Processes raw speech through frontend, encoder, pooling, and loss modules.
