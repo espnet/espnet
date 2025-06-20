@@ -6,6 +6,8 @@ import os
 
 from setuptools import find_packages, setup
 
+# TODO (Masao): Add documentation for the config structure.
+
 requirements = {
     "install": [
         "setuptools>=38.5.1,<74.0.0",
