@@ -33,9 +33,10 @@ if __name__ == "__main__":
         help="Input transcription type",
     )
     args = parser.parse_args()
-    with codecs.open(args.in_text, "r", "utf-8") as f_in, codecs.open(
-        args.out_text, "w", "utf-8"
-    ) as f_out:
+    with (
+        codecs.open(args.in_text, "r", "utf-8") as f_in,
+        codecs.open(args.out_text, "w", "utf-8") as f_out,
+    ):
         for line in f_in.readlines():
             id, content = line.split(":")
             clean_content = g2p(content, args.trans_type)
