@@ -57,7 +57,7 @@ class LIDTrainer(Trainer):
         lang_to_embds_dic: {lang: [utt1 embd, utt1 embd ...]}, the language embedding
         for the utterances corresponding to each language, if set `extract_embd` to
         True, this will be defaultly used, this will not be written to the dist, but
-        will be (in bin/lid_inference_dist.py) used for calculating the average language
+        will be (in bin/lid_inference.py) used for calculating the average language
         embedding for each language, and plotting the tsne plot.
 
         Saved results:
@@ -72,7 +72,7 @@ class LIDTrainer(Trainer):
                                         from all utterances predicted or labeled with
                                         that language. This is not written to disk by
                                         this function, but is used downstream
-                                        (e.g., in `bin/lid_inference_dist.py`) for
+                                        (e.g., in `bin/lid_inference.py`) for
                                         computing language-level average embeddings or
                                         generating t-SNE visualizations.
 
