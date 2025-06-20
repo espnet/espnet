@@ -204,7 +204,7 @@ class LIDTrainer(Trainer):
                             )  # (bs,)
                         except (
                             RuntimeError
-                        ) as e:  # for last few batches, pad to the same length
+                        ):  # for last few batches, pad to the same length
                             max_len = max(s.size(0) for s in speech_list)
                             speech_list = torch.stack(
                                 [
@@ -299,7 +299,7 @@ class LIDTrainer(Trainer):
             try:
                 speech_list = torch.stack(speech_list, dim=0)
                 speech_length_list = torch.stack(speech_length_list, dim=0)  # (bs,)
-            except RuntimeError as e:  # for last few batches, pad to the same length
+            except RuntimeError:  # for last few batches, pad to the same length
                 max_len = max(s.size(0) for s in speech_list)
                 speech_list = torch.stack(
                     [F.pad(s, (0, max_len - s.size(0))) for s in speech_list], dim=0
