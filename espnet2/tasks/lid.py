@@ -46,6 +46,7 @@ from espnet2.train.collate_fn import CommonCollateFn
 from espnet2.train.preprocessor import (
     AbsPreprocessor,
     CommonPreprocessor,
+    LIDPreprocessor,
 )
 from espnet2.utils.types import int_or_none, str2bool, str_or_none
 
@@ -169,6 +170,7 @@ preprocessor_choices = ClassChoices(
     name="preprocessor",
     classes=dict(
         common=CommonPreprocessor,
+        lid=LIDPreprocessor,
     ),
     type_check=AbsPreprocessor,
     default="lid",
