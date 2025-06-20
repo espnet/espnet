@@ -6,6 +6,12 @@ from espnet2.lid.pooling.abs_pooling import AbsPooling
 class StatsPooling(AbsPooling):
     """Aggregates frame-level features to single utterance-level feature.
 
+    Note:
+        Compared to the SPK version (`espnet2/spk/pooling/stat_pooling.py`), 
+        this implementation explicitly handles feature lengths,
+        ensuring that mean and standard deviation pooling are
+        computed only over valid (unpadded) frames.
+
     Reference:
     X-Vectors: Robust DNN Embeddings for Speaker Recognition
     https://www.danielpovey.com/files/2018_icassp_xvectors.pdf

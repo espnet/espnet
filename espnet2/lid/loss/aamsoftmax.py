@@ -15,11 +15,19 @@ from espnet2.lid.loss.abs_loss import AbsLoss
 
 
 class AAMSoftmax(AbsLoss):
-    r"""Additive angular margin softmax.
+    """Additive angular margin softmax.
 
     Reference:
     ArcFace: Additive Angular Margin Loss for Deep Face Recognition
     https://arxiv.org/pdf/1801.07698
+
+    Note:
+        Compared to the SPK version (`espnet2/spk/loss/aamsoftmax.py`),
+        the main differences are:
+        1. This implementation returns predicted labels (via argmax)
+        during inference, enabling LID predictions.
+        2. It also computes and returns accuracy during training and
+        evaluation, making it easier to monitor model performance.
 
     Args:
         nout: Dimension of input features (embedding size)

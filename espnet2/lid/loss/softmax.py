@@ -8,7 +8,7 @@ from espnet2.lid.loss.abs_loss import AbsLoss
 
 
 class Softmax(AbsLoss):
-    r"""Softmax loss
+    """Softmax loss
 
     Args:
         nout: Dimension of input features (embedding size)

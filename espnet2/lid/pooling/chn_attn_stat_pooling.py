@@ -7,8 +7,14 @@ from espnet2.lid.pooling.abs_pooling import AbsPooling
 class ChnAttnStatPooling(AbsPooling):
     """Aggregates frame-level features to single utterance-level feature.
 
+    Note:
+        Compared to the SPK version (`espnet2/spk/pooling/chn_attn_stat_pooling.py`), 
+        this implementation explicitly handles feature lengths,
+        ensuring that mean and standard deviation pooling are
+        computed only over valid (unpadded) frames.
+
     Reference:
-    ECAPA-TDNN: Emphasized Channel Attention, Propagation and Aggregation
+    ECAPA-TDNN: Emphasized Channel Attention, Propagation and Aggregation 
     in TDNN Based Speaker Verification
     https://arxiv.org/pdf/2005.07143
 

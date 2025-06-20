@@ -16,12 +16,21 @@ from espnet2.lid.loss.abs_loss import AbsLoss
 
 
 class ArcMarginProduct_intertopk_subcenter(AbsLoss):
-    r"""ArcFace loss (AAMSoftmax loss) with Inter-TopK penalty and Sub-center.
+    """ArcFace loss (AAMSoftmax loss) with Inter-TopK penalty and Sub-center.
 
     This loss function combines three techniques:
     1. ArcFace: Additive angular margin loss for better feature discrimination
     2. Sub-center: Multiple prototypes per class to handle intra-class variation
     3. Inter-TopK: Additional penalty on hardest negative samples
+
+    Note:
+        Compared to the SPK version
+        (`espnet2/spk/loss/aamsoftmax_subcenter_intertopk.py`),
+        the main differences are:
+        1. This implementation returns predicted labels (via argmax)
+        during inference, enabling LID predictions.
+        2. It also computes and returns accuracy during training and
+        evaluation, making it easier to monitor model performance.
 
     Reference:
         Multi-Query Multi-Head Attention Pooling and Inter-TopK Penalty

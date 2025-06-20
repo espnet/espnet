@@ -6,6 +6,12 @@ from espnet2.lid.pooling.abs_pooling import AbsPooling
 class MeanPooling(AbsPooling):
     """Average frame-level features to a single utterance-level feature.
 
+    Note:
+        Compared to the SPK version (`espnet2/spk/pooling/mean_pooling.py`), 
+        this implementation explicitly handles feature lengths,
+        ensuring that mean and standard deviation pooling are
+        computed only over valid (unpadded) frames.
+
     Args:
         input_size: Dimension of the input frame-level embeddings.
     """
@@ -20,7 +26,7 @@ class MeanPooling(AbsPooling):
     def forward(
         self, x: torch.Tensor, feat_lengths: torch.Tensor = None
     ) -> torch.Tensor:
-        r"""Forward pass of mean pooling.
+        """Forward pass of mean pooling.
 
         Args:
             x: Input feature tensor of shape (batch_size, feature_dim, seq_len)
