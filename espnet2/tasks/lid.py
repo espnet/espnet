@@ -36,6 +36,7 @@ from espnet2.train.preprocessor import (
     CommonPreprocessor,
     LIDPreprocessor,
 )
+from espnet2.train.lid_trainer import LIDTrainer
 from espnet2.utils.types import int_or_none, str2bool, str_or_none
 
 # Check and understand
