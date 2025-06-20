@@ -525,7 +525,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
             --num_nodes ${num_nodes} \
             --init_file_prefix ${lid_exp}/.dist_init_ \
             --multiprocessing_distributed true -- \
-            ${python} -m espnet2.bin.lid_inference_dist \
+            ${python} -m espnet2.bin.lid_inference \
                 --output_dir ${infer_exp} \
                 --dtype float32 \
                 --data_path_and_name_and_type "${_inference_dir}/wav.scp,speech,sound" \
@@ -592,7 +592,7 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
         --num_nodes ${num_nodes} \
         --init_file_prefix ${lid_exp}/.dist_init_ \
         --multiprocessing_distributed true -- \
-        ${python} -m espnet2.bin.lid_inference_dist \
+        ${python} -m espnet2.bin.lid_inference \
             --output_dir ${infer_exp} \
             --dtype float32 \
             --data_path_and_name_and_type "${_inference_dir}/wav.scp,speech,sound" \
