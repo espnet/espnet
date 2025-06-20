@@ -9,7 +9,7 @@ def read_file(file_path):
     Reads a file and returns a dictionary with key and lid.
     Each line in the file should be in the format: key lid
     """
-    data = {} 
+    data = {}
     with open(file_path, "r") as f:
         for line in f:
             parts = line.strip().split()
