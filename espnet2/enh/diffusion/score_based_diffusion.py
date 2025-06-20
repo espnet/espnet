@@ -69,7 +69,7 @@ class ScoreModel(AbsDiffusion):
                 sde=sde,
                 score_fn=self.score_fn,
                 y=y,
-                **kwargs
+                **kwargs,
             )
         else:
             M = y.shape[0]
@@ -84,7 +84,7 @@ class ScoreModel(AbsDiffusion):
                         sde=sde,
                         score_fn=self.score_fn,
                         y=y_mini,
-                        **kwargs
+                        **kwargs,
                     )
                     sample, n = sampler()
                     samples.append(sample)
@@ -165,7 +165,7 @@ class ScoreModel(AbsDiffusion):
         N=30,
         corrector_steps=1,
         snr=0.5,
-        **kwargs
+        **kwargs,
     ):
         """Enhance function.
 
@@ -192,7 +192,7 @@ class ScoreModel(AbsDiffusion):
                 corrector_steps=corrector_steps,
                 snr=snr,
                 intermediate=False,
-                **kwargs
+                **kwargs,
             )
         elif sampler_type == "ode":
             sampler = self.get_ode_sampler(Y, N=N, **kwargs)
