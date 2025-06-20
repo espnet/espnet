@@ -36,7 +36,7 @@ targets=""
 for f in cmd.sh conf local; do
     target="${dir}"/../../TEMPLATE/lid1/"${f}"
     cp -r "${target}" "${dir}"
-    targets+="${dir}/${target} "
+    targets+="${target} "
 done
 
 
@@ -44,7 +44,7 @@ done
 for f in lid.sh path.sh scripts pyscripts; do
     target=../../TEMPLATE/lid1/"${f}"
     ln -sf "${target}" "${dir}"
-    targets+="${dir}/${target} "
+    targets+="${target} "
 done
 
 
@@ -52,7 +52,7 @@ done
 for f in db.sh utils steps; do
     target=../../TEMPLATE/lid1/"${f}"
     ln -sf "${target}" "${dir}"
-    targets+="${dir}/${target} "
+    targets+="${target} "
 done
 
 
