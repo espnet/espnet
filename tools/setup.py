@@ -6,6 +6,8 @@ import os
 
 from setuptools import find_packages, setup
 
+# TODO (Masao): Add documentation for the config structure.
+
 requirements = {
     "install": [
         "setuptools>=38.5.1,<74.0.0",
@@ -141,7 +143,7 @@ setup(
     long_description=open(os.path.join(dirname, "README.md"), encoding="utf-8").read(),
     long_description_content_type="text/markdown",
     license="Apache Software License",
-    packages=find_packages(include=["espnet*"]),
+    packages=find_packages(include=["espnet", "espnet2"]),
     package_data={"espnet": ["version.txt"]},
     # #448: "scripts" is inconvenient for developping because they are copied
     # scripts=get_all_scripts('espnet/bin'),
