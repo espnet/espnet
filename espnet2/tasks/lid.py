@@ -18,6 +18,16 @@ from espnet2.asr.specaug.specaug import SpecAug
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
+from espnet2.lid.espnet_model import ESPnetLIDModel
+from espnet2.lid.loss.aamsoftmax import AAMSoftmax
+from espnet2.lid.loss.aamsoftmax_subcenter_intertopk import (
+    ArcMarginProduct_intertopk_subcenter,
+)
+from espnet2.lid.loss.softmax import Softmax
+from espnet2.lid.pooling.abs_pooling import AbsPooling
+from espnet2.lid.pooling.chn_attn_stat_pooling import ChnAttnStatPooling
+from espnet2.lid.pooling.mean_pooling import MeanPooling
+from espnet2.lid.pooling.stat_pooling import StatsPooling
 from espnet2.spk.encoder.conformer_encoder import MfaConformerEncoder
 from espnet2.spk.encoder.ecapa_tdnn_encoder import EcapaTdnnEncoder
 from espnet2.spk.encoder.identity_encoder import IdentityEncoder
@@ -29,6 +39,8 @@ from espnet2.spk.projector.rawnet3_projector import RawNet3Projector
 from espnet2.spk.projector.ska_tdnn_projector import SkaTdnnProjector
 from espnet2.spk.projector.xvector_projector import XvectorProjector
 from espnet2.tasks.abs_task import AbsTask
+from espnet2.torch_utils.initialize import initialize
+from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
 from espnet2.train.preprocessor import (
@@ -37,6 +49,15 @@ from espnet2.train.preprocessor import (
     LIDPreprocessor,
 )
 from espnet2.utils.types import int_or_none, str2bool, str_or_none
+
+model_choices = ClassChoices(
+    "model",
+    classes=dict(
+        espnet=ESPnetLIDModel,
+    ),
+    type_check=AbsESPnetModel,
+    default="espnet",
+)
 
 # Check and understand
 frontend_choices = ClassChoices(
@@ -87,6 +108,16 @@ encoder_choices = ClassChoices(
     default="rawnet3",
 )
 
+pooling_choices = ClassChoices(
+    name="pooling",
+    classes=dict(
+        chn_attn_stat=ChnAttnStatPooling,
+        mean=MeanPooling,
+        stats=StatsPooling,
+    ),
+    type_check=AbsPooling,
+    default="chn_attn_stat",
+)
 
 projector_choices = ClassChoices(
     name="projector",
@@ -113,6 +144,16 @@ encoder_condition_choices = ClassChoices(
     default="rawnet3",
 )
 
+pooling_condition_choices = ClassChoices(
+    name="pooling_condition",
+    classes=dict(
+        chn_attn_stat=ChnAttnStatPooling,
+        mean=MeanPooling,
+        stats=StatsPooling,
+    ),
+    type_check=AbsPooling,
+    default="chn_attn_stat",
+)
 
 projector_condition_choices = ClassChoices(
     name="projector_condition",
@@ -135,9 +176,34 @@ preprocessor_choices = ClassChoices(
     default="lid",
 )
 
+loss_choices = ClassChoices(
+    name="loss",
+    classes=dict(
+        aamsoftmax=AAMSoftmax,
+        aamsoftmax_sc_topk=ArcMarginProduct_intertopk_subcenter,
+        softmax=Softmax,
+    ),
+    default="aamsoftmax",
+)
+
 
 class LIDTask(AbsTask):
     num_optimizers: int = 1
+
+    class_choices_list = [
+        model_choices,
+        frontend_choices,
+        specaug_choices,
+        normalize_choices,
+        encoder_choices,
+        pooling_choices,
+        projector_choices,
+        encoder_condition_choices,
+        pooling_condition_choices,
+        projector_condition_choices,
+        preprocessor_choices,
+        loss_choices,
+    ]
 
     @classmethod
     def add_task_arguments(cls, parser: argparse.ArgumentParser):
@@ -217,6 +283,9 @@ class LIDTask(AbsTask):
             help="Directory of the rir data to be augmented",
         )
 
+        for class_choices in cls.class_choices_list:
+            class_choices.add_arguments(group)
+
     @classmethod
     @typechecked
     def build_collate_fn(cls, args: argparse.Namespace, train: bool) -> Callable[
@@ -266,3 +335,69 @@ class LIDTask(AbsTask):
         retval = ()
 
         return retval
+
+    @classmethod
+    @typechecked
+    def build_model(cls, args: argparse.Namespace) -> ESPnetLIDModel:
+
+        if args.frontend is not None:
+            frontend_class = frontend_choices.get_class(args.frontend)
+            frontend = frontend_class(**args.frontend_conf)
+            input_size = frontend.output_size()
+
+        else:
+            # Give features from data-loader (e.g., precompute features).
+            frontend = None
+            input_size = args.input_size
+
+        if args.specaug is not None:
+            specaug_class = specaug_choices.get_class(args.specaug)
+            specaug = specaug_class(**args.specaug_conf)
+        else:
+            specaug = None
+
+        if args.normalize is not None:
+            normalize_class = normalize_choices.get_class(args.normalize)
+            normalize = normalize_class(**args.normalize_conf)
+        else:
+            normalize = None
+
+        encoder_class = encoder_choices.get_class(args.encoder)
+        encoder = encoder_class(input_size=input_size, **args.encoder_conf)
+        encoder_output_size = encoder.output_size()
+
+        pooling_class = pooling_choices.get_class(args.pooling)
+        pooling = pooling_class(input_size=encoder_output_size, **args.pooling_conf)
+        pooling_output_size = pooling.output_size()
+
+        projector_class = projector_choices.get_class(args.projector)
+        projector = projector_class(
+            input_size=pooling_output_size, **args.projector_conf
+        )
+        projector_output_size = projector.output_size()
+
+        loss_class = loss_choices.get_class(args.loss)
+        loss = loss_class(
+            nout=projector_output_size, nclasses=args.lang_num, **args.loss_conf
+        )
+
+        model_arg = getattr(args, "model", None)
+        if model_arg is None:
+            model_arg = "espnet"
+        model_class = model_choices.get_class(model_arg)
+
+        model = model_class(
+            frontend=frontend,
+            specaug=specaug,
+            normalize=normalize,
+            encoder=encoder,
+            pooling=pooling,
+            projector=projector,
+            loss=loss,
+            **args.model_conf,
+        )
+
+        if args.init is not None:
+            initialize(model, args.init)
+
+        return model
