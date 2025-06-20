@@ -31,10 +31,10 @@ from espnet2.spk.projector.xvector_projector import XvectorProjector
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
-from espnet2.train.lid_trainer import LIDTrainer
 from espnet2.train.preprocessor import (
     AbsPreprocessor,
     CommonPreprocessor,
+    LIDPreprocessor,
 )
 from espnet2.utils.types import int_or_none, str2bool, str_or_none
 
@@ -129,6 +129,7 @@ preprocessor_choices = ClassChoices(
     name="preprocessor",
     classes=dict(
         common=CommonPreprocessor,
+        lid=LIDPreprocessor,
     ),
     type_check=AbsPreprocessor,
     default="lid",
