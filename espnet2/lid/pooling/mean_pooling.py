@@ -7,7 +7,7 @@ class MeanPooling(AbsPooling):
     """Average frame-level features to a single utterance-level feature.
 
     Note:
-        Compared to the SPK version (`espnet2/spk/pooling/mean_pooling.py`), 
+        Compared to the SPK version (`espnet2/spk/pooling/mean_pooling.py`),
         this implementation explicitly handles feature lengths,
         ensuring that mean and standard deviation pooling are
         computed only over valid (unpadded) frames.
