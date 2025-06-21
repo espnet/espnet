@@ -188,6 +188,6 @@ def test_build_model(text_input):
         }
 
     args.classification_type = "multi-label"
-    model = CLSTask.build_model(args)
+    _ = CLSTask.build_model(args)
     args.classification_type = "multi-class"
-    model = CLSTask.build_model(args)
+    _ = CLSTask.build_model(args)

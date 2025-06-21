@@ -14,6 +14,7 @@ except ModuleNotFoundError:
     raise ModuleNotFoundError(
         "pydub needed for audio segmentation" "use pip to install pydub"
     )
+from textgrid import TextGrid
 from tqdm import tqdm
 
 from espnet2.fileio.score_scp import SingingScoreWriter
@@ -57,128 +58,81 @@ def load_midi(args):
     return midis
 
 
-def load_midi_note_scp(midi_note_scp):
-    # Note(jiatong): midi format is 0-based
-    midi_mapping = {}
-    with open(midi_note_scp, "r", encoding="utf-8") as f:
-        content = f.read().strip().split("\n")
-        for key in content:
-            key = key.split("\t")
-            midi_mapping[key[1]] = int(key[0])
-    return midi_mapping
+def detect_leading_silence_duration(
+    file_path, threshold=0.0005, frame_length=2048, hop_length=512
+):
+    # Step 1: Load the audio file
+    y, sr = librosa.load(file_path, sr=None)
+
+    # Step 2: Calculate short-time energy for each frame
+    energy = np.array(
+        [
+            np.sum(np.abs(y[i : i + frame_length] ** 2))
+            for i in range(0, len(y), hop_length)
+        ]
+    )
+
+    # Step 3: Find index of the first frame where energy exceeds the threshold
+    for i, e in enumerate(energy):
+        if e > threshold:
+            silence_duration = i * hop_length / sr
+            return round(silence_duration, 4)  # round to 4 decimal places
+    return 0.0  # All frames are below the threshold -> entire audio is silent
 
 
-def load_and_process_transcriptions(src_data, transcriptions_path, song_folder):
-    # Step 1: Load the WAV file and the transcription file
+def load_and_process_textgrid(
+    textgrid_path, transcriptions_path, song_folder, silence_duration
+):
+    # Step 1: Load the textgrid file
+    tg = TextGrid.fromFile(textgrid_path)
+
+    # Step 2: Get the start and end times of non-silent utterances
+    name = tg[0].name
+    assert name == "句子"
+    silence_bias, idx = 0, 0
+    while tg[0][idx].mark == "silence":
+        silence_bias = silence_duration - tg[0][idx].maxTime
+        idx += 1
+    utterance_time = []
+    for utt in tg[0]:
+        if utt.mark != "silence":
+            start_time = (utt.minTime + silence_bias) * 1000  # Convert to milliseconds
+            end_time = (utt.maxTime + silence_bias) * 1000  # Convert to milliseconds
+            utterance_time.append((start_time, end_time))
+
+    # Step 3: Load the transcription file
     transcriptions = (
         open(transcriptions_path, "r", encoding="utf-8").read().strip().split("\n")
     )
-    midi_obj = miditoolkit.midi.parser.MidiFile(
-        os.path.join(src_data, "raw_data", "midis", "{}.midi".format(song_folder))
-    )
-    midi_notes = []
-    midis = []
-    tempo = midi_obj.tempo_changes[0].tempo
-    ppq = midi_obj.ticks_per_beat
-    # Populate the list with start and end times of each note
-    for note in midi_obj.instruments[0].notes:
-        start_time = note.start * 60000 / tempo / ppq
-        end_time = note.end * 60000 / tempo / ppq
-        midi_notes.append((start_time, end_time))
-        pitch = note.pitch
-        midis.append(pitch)
-    # Step 2: Split the content in each row to name, lyrics, phns, pitch, duration,
-    # is_slur by |
+
+    # Step 4: Split the content in each row
+    # to name, lyrics, phns, pitch, duration, is_slur by |
     parsed_transcriptions = [row.split("|") for row in transcriptions]
 
-    # Step 3: Find all the rows' corresponding name in the txt file starting with 2001
+    # Step 5: Find all the rows' corresponding name in the txt file starting with 2001
     relevant_transcriptions = [
         row for row in parsed_transcriptions if row[0].startswith(str(song_folder))
     ]
 
-    # Step 4: Sum the duration of each file to get the total duration of each subfile
-    total_durations = {}
-    total_pitches = {}
-    for row in relevant_transcriptions:
-        name, _, phns, pitches, _, duration, _ = row
-        phns = phns.split(" ")
-        duration = duration.split(" ")
-        pitches = pitches.split(" ")
-        while phns[-1] == "AP" or phns[-1] == "SP":
-            phns = phns[:-1]
-            duration = duration[:-1]
-        if phns[0] == "SP" or phns[0] == "AP":
-            phns = phns[1:]
-            duration = duration[1:]
-            pitches = pitches[1:]
-
-        # sum duration by the string of durations, first split the string by space,
-        # then convert the string to float, then sum the float
-        total_durations[name] = (
-            sum(float(d) for d in duration) * 1000
-        )  # Convert to milliseconds
-        total_pitches[name] = pitches
-    return total_durations, total_pitches, midi_notes, midis
-
-
-def segment_audio(
-    audio, total_durations, total_pitches, midi_mapping, midi_notes, midis, output_temp
-):
-    start_time = 0  # Initialize the current time marker in the audio
-    last_end_time = 0  # Initialize end time marker for last segment
-    note_idx = 0
+    # Step 6: Find the start and end times for the song's corresponding row names
     utterance_idx = 0
-    total_durations_keys = list(total_durations.keys())
-    while utterance_idx < len(total_durations):
-        name = total_durations_keys[utterance_idx]
-        duration = total_durations[name]
-        if note_idx >= len(midi_notes):
-            break
-        if note_idx == 0:
-            start_time = midi_notes[note_idx][0]
-            note_idx += 1
-            last_end_time = start_time + duration
-            utterance_idx += 1
-            previous_note_idx = 0
-        else:
-            if midi_notes[note_idx][0] - last_end_time < -100:
-                note_idx += 1
-                continue
-            pitch_trans = total_pitches[name][0]
-            if midis[note_idx] != midi_mapping[pitch_trans]:
-                orginal_note_idx = note_idx
-                target_midi = midi_mapping[pitch_trans]
-                min_distance = float("inf")
-                nearest_note_idx = None
-                # Search backwards within -5 index range
-                for i in range(note_idx, max(note_idx - 5, -1), -1):
-                    distance = abs(midis[i] - target_midi)
-                    if distance == 0:
-                        return i  # Exact match found
-                    if distance < min_distance:
-                        min_distance = distance
-                        nearest_note_idx = i
+    utterance_time_map = {}
+    for row in relevant_transcriptions:
+        name, _, _, _, _, _, _ = row
+        utterance_time_map[name] = [
+            utterance_time[utterance_idx][0],
+            utterance_time[utterance_idx][1],
+        ]
+        utterance_idx += 1
+    return utterance_time_map
 
-                # Search within +5 index range and should > previous note index
-                for i in range(note_idx, min(note_idx + 5, len(midis))):
-                    if i <= previous_note_idx:
-                        continue
-                    distance = abs(midis[i] - target_midi)
-                    if distance == 0:
-                        return i  # Exact match found
-                    if distance < min_distance:
-                        min_distance = distance
-                        nearest_note_idx = i
-                if nearest_note_idx is not None:
-                    note_idx = nearest_note_idx
-                else:
-                    note_idx = orginal_note_idx
-            previous_note_idx = note_idx
-            start_time = midi_notes[note_idx][0]
-            note_idx += 1
-            last_end_time = start_time + duration
-            utterance_idx += 1
-        segment = audio[start_time:last_end_time]  # Extract the segment
+
+def segment_audio(audio, utterance_time_map, output_temp):
+    for name, utt_time in utterance_time_map.items():
+        start_time, end_time = utt_time[0], utt_time[1]
+        if end_time > len(audio):
+            end_time = len(audio)
+        segment = audio[start_time:end_time]  # Extract the segment
         output_name = output_temp + f"#{name}"
         if os.path.exists(f"{output_name}.wav"):
             print(f"{output_name}.wav already exists. Skipping.")
@@ -186,6 +140,7 @@ def segment_audio(
         segment.export(
             f"{output_name}.wav", format="wav"
         )  # Export it as a wav file in the output folder
+
     return None
 
 
@@ -216,24 +171,18 @@ def segment_dataset(args, dataset):
             if not os.path.exists(audio_path):
                 continue  # Skip if the audio file does not exist
             audio = AudioSegment.from_wav(audio_path)
-            (
-                total_durations,
-                total_pitches,
-                midi_notes,
-                midis,
-            ) = load_and_process_transcriptions(
-                args.src_data, transcriptions_path, song_folder
+            silence_duration = detect_leading_silence_duration(audio_path)
+
+            textgrid_path = os.path.join(
+                args.opencpop_src_data, "raw_data/textgrids", f"{song_folder}.TextGrid"
             )
-            midi_mapping = load_midi_note_scp(args.midi_note_scp)
-            segment_audio(
-                audio,
-                total_durations,
-                total_pitches,
-                midi_mapping,
-                midi_notes,
-                midis,
-                output_temp,
+            if not os.path.exists(textgrid_path):
+                logging.warning(f"warning : {textgrid_path} does not exist")
+                continue  # Skip if the textgrid file does not exist
+            utterance_time_map = load_and_process_textgrid(
+                textgrid_path, transcriptions_path, song_folder, silence_duration
             )
+            segment_audio(audio, utterance_time_map, output_temp)
 
 
 def create_score(uid, phns, midis, syb_dur, keep):
@@ -241,10 +190,6 @@ def create_score(uid, phns, midis, syb_dur, keep):
     assert len(phns) == len(midis)
     assert len(midis) == len(syb_dur)
     assert len(syb_dur) == len(keep)
-    lyrics_seq = []
-    midis_seq = []
-    segs_seq = []
-    phns_seq = []
     st = 0
     index_phn = 0
     note_list = []
@@ -262,8 +207,9 @@ def create_score(uid, phns, midis, syb_dur, keep):
         ):
             syb.append(phns[index_phn])
             index_phn += 1
+        lyrics_pinyin = "".join(syb)
         syb = "_".join(syb)
-        note_info.extend([st, syb, midi, syb])
+        note_info.extend([st, lyrics_pinyin, midi, syb])
         note_list.append(note_info)
         # multi notes in one syllable
         while (
@@ -324,7 +270,7 @@ def process_utterance(
             continue
 
         text.write("acesinger_{}#{} {}\n".format(i_str, uid, " ".join(phns)))
-        utt2spk.write("acesinger_{}#{} {}\n".format(i_str, uid, i_str))
+        utt2spk.write("acesinger_{}#{} ace-{}\n".format(i_str, uid, i_str))
 
         cmd = "sox {}.wav -c 1 -t wavpcm -b 16 -r {} {}/acesinger_{}#{}.wav".format(
             os.path.join(audio_dir, dataset, "segments", i_str + "#" + uid),
@@ -382,6 +328,8 @@ def process_subset(args, set_name, tempos, dataset):
     ) as f:
         segments = f.read().strip().split("\n")
         for segment in segments:
+            if segment.startswith("2026"):
+                continue
             process_utterance(
                 writer,
                 wavscp,
@@ -401,6 +349,9 @@ def process_subset(args, set_name, tempos, dataset):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Prepare Data for Acesinger Database")
     parser.add_argument("src_data", type=str, help="source data directory")
+    parser.add_argument(
+        "opencpop_src_data", type=str, help="opencpop source data directory"
+    )
     parser.add_argument("--tgt_dir", type=str, default="data")
     parser.add_argument(
         "--midi_note_scp",

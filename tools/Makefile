@@ -1,5 +1,6 @@
-# PyTorch version: 1.13.1, 2.0.1, 2.1.2, 2.2.2, 2.3.1, 2.4.0 are tested.
-TH_VERSION := 2.3.0
+# PyTorch version: The latest six versions have been tested.
+# Please check https://github.com/espnet/espnet?tab=readme-ov-file#espnet-end-to-end-speech-processing-toolkit
+TH_VERSION := 2.6.0
 
 # Use pip for pytorch installation even if you have anaconda
 ifneq ($(shell test -f ./activate_python.sh && grep 'conda activate' ./activate_python.sh),)
@@ -29,7 +30,7 @@ WITH_OMP=ON
 all: showenv conda_packages.done python ffmpeg.done sctk check_install
 
 python: activate_python.sh setuptools.done packaging.done espnet.done pytorch.done chainer.done fairscale.done torch_optimizer.done flash_attn.done lightning.done
-extra: warp-transducer.done chainer_ctc.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done fairseq.done s3prl.done k2.done transformers.done phonemizer.done longformer.done muskits.done whisper.done rvad_fast.done sounfile_test parallel-wavegan.done lora.done sph2pipe torcheval.done
+extra: warp-transducer.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done fairseq.done s3prl.done k2.done transformers.done phonemizer.done longformer.done muskits.done whisper.done rvad_fast.done sounfile_test parallel-wavegan.done lora.done sph2pipe torcheval.done
 
 activate_python.sh:
 	test -f activate_python.sh || { echo "Error: Run ./setup_python.sh or ./setup_miniforge.sh"; exit 1; }
@@ -53,7 +54,7 @@ bc.done: activate_python.sh
 	. ./activate_python.sh && { command -v bc || conda install -y bc -c conda-forge; }
 	touch bc.done
 cmake.done: activate_python.sh
-	. ./activate_python.sh && { command -v cmake || conda install -y cmake; }
+	. ./activate_python.sh && { command -v cmake || conda install -y "cmake<4.0"; }
 	touch cmake.done
 flac.done: activate_python.sh
 	. ./activate_python.sh && { command -v flac || conda install -y libflac -c conda-forge; }
@@ -296,6 +297,7 @@ clean_extra:
 	rm -rf hts_engine_API.done open_jtalk.done pyopenjtalk.done
 	rm -rf muskits.done
 	rm -rf rvad_fast.done
+	rm -rf lightning_constraints.txt
 	rm -rf chainer espeak-ng festival MBROLA ParallelWaveGAN versa
 	rm -rf py3mmseg sctk* speech_tools sph2pipe* ._mwerSegmenter
 	rm -rf nkf mecab swig moses mwerSegmenter

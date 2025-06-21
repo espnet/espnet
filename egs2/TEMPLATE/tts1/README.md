@@ -1026,7 +1026,7 @@ python -m espnet2.bin.tts_train --init_param model.pth:::tts.enc.embed,tts.dec
 
 ### How to finetune the pretrained model?
 
-See [jvs recipe example](../../jvs/tts1/README.md).
+See [jvs recipe example](https://github.com/espnet/espnet/blob/master/egs2/jvs/tts1/README.md).
 
 ### How to add a new model?
 

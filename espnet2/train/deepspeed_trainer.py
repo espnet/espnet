@@ -21,12 +21,13 @@ except ImportError:
     DeepSpeedEngine = None
 
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Tuple, Union
+from typing import Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
 from torch.distributed import ReduceOp
 from typeguard import typechecked
 
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
+from espnet2.main_funcs.average_nbest_models import average_nbest_models
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.recursive_op import recursive_average
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
@@ -46,6 +47,8 @@ class DeepSpeedTrainerOptions:
     use_wandb: bool
     max_epoch: int
     deepspeed_config: Union[Path, str]
+    best_model_criterion: Sequence[Sequence[str]]
+    keep_nbest_models: Union[int, List[int]]
 
 
 class DeepSpeedTrainer(Trainer):
@@ -90,6 +93,14 @@ class DeepSpeedTrainer(Trainer):
         trainer_options: DeepSpeedTrainerOptions,
         **kwargs,
     ) -> None:
+
+        if isinstance(trainer_options.keep_nbest_models, int):
+            keep_nbest_models = [trainer_options.keep_nbest_models]
+        else:
+            if len(trainer_options.keep_nbest_models) == 0:
+                logging.warning("No keep_nbest_models is given. Change to [1]")
+                trainer_options.keep_nbest_models = [1]
+            keep_nbest_models = trainer_options.keep_nbest_models
 
         # (1) arguments needed in previous trainer but not this one. Delete them
         del kwargs
@@ -176,6 +187,15 @@ class DeepSpeedTrainer(Trainer):
                 reporter.matplotlib_plot(output_dir / "images")
                 if trainer_options.use_wandb:
                     reporter.wandb_log()
+
+        if dist.get_rank() == 0:
+            average_nbest_models(
+                reporter=reporter,
+                output_dir=output_dir,
+                best_model_criterion=trainer_options.best_model_criterion,
+                nbest=keep_nbest_models,
+                use_deepspeed=True,
+            )
 
     @classmethod
     @typechecked

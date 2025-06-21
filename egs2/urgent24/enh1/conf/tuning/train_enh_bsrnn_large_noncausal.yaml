@@ -35,7 +35,7 @@ preprocessor: enh
 force_single_channel: true
 channel_reordering: true
 # The categories list order must be the same everywhere in this config
-categories:
+categories: &categories
 - 1ch_8000Hz
 - 1ch_16000Hz
 - 1ch_22050Hz
@@ -49,14 +49,7 @@ model_conf:
     normalize_variance_per_ch: true
     #always_forward_in_48k: true
     # The categories list order must be the same everywhere in this config
-    categories:
-    - 1ch_8000Hz
-    - 1ch_16000Hz
-    - 1ch_22050Hz
-    - 1ch_24000Hz
-    - 1ch_32000Hz
-    - 1ch_44100Hz
-    - 1ch_48000Hz
+    categories: *categories
 
 encoder: stft
 encoder_conf:

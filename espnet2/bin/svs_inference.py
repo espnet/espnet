@@ -4,6 +4,7 @@
 
 import argparse
 import logging
+import os
 import shutil
 import sys
 import time
@@ -36,7 +37,7 @@ class SingingGenerate:
         Example 1: SVS
         >>> import soundfile
         >>> import numpy as np
-        >>> svs = svs = SingingGenerate(
+        >>> svs = SingingGenerate(
         ...     "config.yaml", "model.pth", vocoder_checkpoint="vocoder.pkl"
         ... )
         >>> batch = {
@@ -65,7 +66,7 @@ class SingingGenerate:
         Example 2: GAN SVS
         >>> import soundfile
         >>> import numpy as np
-        >>> svs = SingingGenerate("config.yaml", "model.pth")
+        >>> svs = SingingGenerate("config.yaml", "model.pth", svs_task="gan_svs")
         >>> batch = {
         ...     "score": (
         ...         75,  # tempo
@@ -108,6 +109,8 @@ class SingingGenerate:
         noise_scale_dur: float = 0.8,
         vocoder_config: Union[Path, str, None] = None,
         vocoder_checkpoint: Union[Path, str, None] = None,
+        discrete_token_layers: int = 1,
+        mix_type: str = "frame",
         dtype: str = "float32",
         device: str = "cpu",
         seed: int = 777,
@@ -143,6 +146,8 @@ class SingingGenerate:
         self.always_fix_seed = always_fix_seed
         self.vocoder = None
         self.prefer_normalized_feats = prefer_normalized_feats
+        self.discrete_token_layers = discrete_token_layers
+        self.mix_type = mix_type
         if vocoder_checkpoint is not None:
             vocoder = SVSTaskClass.build_vocoder_from_file(
                 vocoder_config, vocoder_checkpoint, model, device
@@ -195,7 +200,9 @@ class SingingGenerate:
         spembs: Union[torch.Tensor, np.ndarray, None] = None,
         sids: Union[torch.Tensor, np.ndarray, None] = None,
         lids: Union[torch.Tensor, np.ndarray, None] = None,
+        discrete_token: Optional[torch.Tensor] = None,
         decode_conf: Optional[Dict[str, Any]] = None,
+        **kwargs,
     ):
 
         # check inputs
@@ -208,9 +215,14 @@ class SingingGenerate:
 
         # prepare batch
         if isinstance(text, Dict):
-            data = self.preprocess_fn(
-                "<dummy>", dict(label=text["label"], score=text["score"])
-            )
+            # dataset infer: text = dict(label=text["label"], score=text["score"])
+            # music score infer: text = dict(text=text["text"], score=text["score"])
+            infer_data = dict(score=text["score"])
+            if "label" in text:
+                infer_data["label"] = text["label"]
+            else:
+                infer_data["text"] = text["text"]
+            data = self.preprocess_fn("<dummy>", infer_data)
             label = data["label"]
             midi = data["midi"]
             duration_phn = data["duration_phn"]
@@ -248,6 +260,8 @@ class SingingGenerate:
             batch.update(sids=sids)
         if lids is not None:
             batch.update(lids=lids)
+        if discrete_token is not None:
+            batch.update(discrete_token=discrete_token)
         batch = to_device(batch, self.device)
 
         cfg = self.decode_conf
@@ -262,17 +276,47 @@ class SingingGenerate:
         else:
             output_dict.update(duration=None, focus_rate=None)
 
-        # apply vocoder (mel-to-wav)
-        if self.vocoder is not None:
-            if (
-                self.prefer_normalized_feats
-                or output_dict.get("feat_gen_denorm") is None
-            ):
-                input_feat = output_dict["feat_gen"]
-            else:
-                input_feat = output_dict["feat_gen_denorm"]
-            wav = self.vocoder(input_feat)
-            output_dict.update(wav=wav)
+            # apply vocoder (mel-to-wav)
+            if self.vocoder is not None:
+                if (
+                    self.prefer_normalized_feats
+                    or output_dict.get("feat_gen_denorm") is None
+                ):
+                    input_feat = output_dict["feat_gen"]
+                else:
+                    input_feat = output_dict["feat_gen_denorm"]
+
+                logging.info(f"type: {self.mix_type}")
+                logging.info(f"layer: {self.discrete_token_layers}")
+                if self.discrete_token_layers > 1:
+                    # NOTE(Yuxun): vocoder can only accept 'frame' type, [T, L]
+                    if self.mix_type == "frame":
+                        input_feat = input_feat.view(-1, self.discrete_token_layers)
+                    elif self.mix_type == "sequence":
+                        input_feat = input_feat.view(
+                            self.discrete_token_layers, -1
+                        ).transpose(0, 1)
+
+                    # NOTE(Yuxun): codes below for `singomd``
+                    if kwargs.get("use_singomd", False) is True:
+                        feat_dict = {}
+                        resolution = [20, 40]
+                        for i, rs in enumerate(resolution):
+                            feat = input_feat[:, i].unsqueeze(1)
+                            feat = feat[:: (rs // 20)]
+                            feat_dict[rs] = feat
+                        input_feat = feat_dict
+                if "pitch" in output_dict and output_dict["pitch"] is not None:
+                    assert (
+                        len(output_dict["pitch"].shape) == 1
+                    ), "pitch shape must be (T,)."
+                    logging.info(f"input_feat: {input_feat.shape}")
+                    logging.info(f'pitch: {output_dict["pitch"].shape}')
+                    wav = self.vocoder(input_feat, output_dict["pitch"])
+                else:
+                    # print("VOC",input_feat)
+                    wav = self.vocoder(input_feat)
+                output_dict.update(wav=wav)
 
         return output_dict
 
@@ -360,7 +404,9 @@ class SingingGenerate:
                 vocoder_tag = vocoder_tag.replace("parallel_wavegan/", "")
                 vocoder_file = download_pretrained_model(vocoder_tag)
                 vocoder_config = Path(vocoder_file).parent / "config.yml"
-                kwargs.update(vocoder_config=vocoder_config, vocoder_file=vocoder_file)
+                kwargs.update(
+                    vocoder_config=vocoder_config, vocoder_checkpoint=vocoder_file
+                )
 
             else:
                 raise ValueError(f"{vocoder_tag} is unsupported format.")
@@ -388,7 +434,10 @@ def inference(
     vocoder_config: Optional[str] = None,
     vocoder_checkpoint: Optional[str] = None,
     vocoder_tag: Optional[str] = None,
+    discrete_token_layers: int = 1,
+    mix_type: str = "frame",
     svs_task: Optional[str] = "svs",
+    use_singomd: bool = False,
 ):
     """Perform SVS model decoding."""
     if batch_size > 1:
@@ -417,6 +466,8 @@ def inference(
         noise_scale_dur=noise_scale_dur,
         vocoder_config=vocoder_config,
         vocoder_checkpoint=vocoder_checkpoint,
+        discrete_token_layers=discrete_token_layers,
+        mix_type=mix_type,
         dtype=dtype,
         device=device,
         svs_task=svs_task,
@@ -464,7 +515,9 @@ def inference(
         output_dir / "durations/durations", "w"
     ) as duration_writer, open(
         output_dir / "focus_rates/focus_rates", "w"
-    ) as focus_rate_writer:
+    ) as focus_rate_writer, open(
+        output_dir / "wav/wav.scp", "w"
+    ) as wavscp_writer:
         for idx, (keys, batch) in enumerate(loader, 1):
             assert isinstance(batch, dict), type(batch)
             assert all(isinstance(s, str) for s in keys), keys
@@ -478,10 +531,11 @@ def inference(
             logging.info(f"batch: {batch}")
             logging.info(f"keys: {keys}")
 
-            start_time = time.perf_counter()
-            output_dict = singingGenerate(**batch)
-
             key = keys[0]
+
+            start_time = time.perf_counter()
+            output_dict = singingGenerate(**batch, use_singomd=use_singomd)
+
             insize = next(iter(batch.values())).size(0) + 1
             if output_dict.get("feat_gen") is not None:
                 # standard text2mel model case
@@ -577,6 +631,12 @@ def inference(
                     output_dict["wav"].cpu().numpy(),
                     singingGenerate.fs,
                     "PCM_16",
+                )
+                wavscp_writer.write(
+                    "{} {}\n".format(
+                        key,
+                        os.path.abspath(os.path.join(output_dir, "wav", f"{key}.wav")),
+                    )
                 )
 
     # remove files if those are not included in output dict
@@ -714,11 +774,29 @@ def get_parser():
         help="yaml format configuration file. if not explicitly provided, "
         "it will be searched in the checkpoint directory. (default=None)",
     )
+    parser.add_argument(
+        "--discrete_token_layers",
+        type=int,
+        default=1,
+        help="layers of discrete tokens",
+    )
+    parser.add_argument(
+        "--mix_type",
+        type=str,
+        default="frame",
+        help="multi token mix type, 'sequence' or 'frame'.",
+    )
     group.add_argument(
         "--svs_task",
         default="svs",
         type=str_or_none,
         help="SVS task name. svs or gan_svs",
+    )
+    group.add_argument(
+        "--use_singomd",
+        default=False,
+        type=bool,
+        help="whether to use singomd",
     )
 
     return parser

@@ -48,7 +48,6 @@ from espnet2.train.preprocessor import (
     MutliTokenizerCommonPreprocessor,
 )
 from espnet2.train.trainer import Trainer
-from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import int_or_none, str2bool, str_or_none
 
 logger = logging.getLogger("cls")
@@ -255,10 +254,8 @@ class CLSTask(AbsTask):
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
         if args.use_preprocessor:
-            # valid_args = signature(CommonPreprocessor.__init__).parameters
-            # filtered_args = {k: v for k, v in vars(args).items() if k in valid_args}
-            # token_type
-            # retval = CommonPreprocessor(train=train, text_name="label", **filtered_args)
+            # NOTE(shikhar): This works for both speech and
+            # speech-text classification.
             retval = MutliTokenizerCommonPreprocessor(
                 train=train,
                 text_name=["label", "text"],

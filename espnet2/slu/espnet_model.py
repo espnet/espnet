@@ -46,7 +46,7 @@ class ESPnetSLUModel(ESPnetASRModel):
         preencoder: Optional[AbsPreEncoder],
         encoder: AbsEncoder,
         postencoder: Optional[AbsPostEncoder],
-        decoder: AbsDecoder,
+        decoder: Optional[AbsDecoder],
         ctc: CTC,
         joint_network: Optional[torch.nn.Module],
         postdecoder: Optional[AbsPostDecoder] = None,
@@ -64,6 +64,10 @@ class ESPnetSLUModel(ESPnetASRModel):
         extract_feats_in_collect_stats: bool = True,
         two_pass: bool = False,
         pre_postencoder_norm: bool = False,
+        num_class: int = 0,
+        ssl_input_size: int = 0,
+        superb_setup: bool = False,
+        use_only_last_correct: bool = False,
     ):
         assert 0.0 <= ctc_weight <= 1.0, ctc_weight
         assert 0.0 <= interctc_weight < 1.0, interctc_weight
@@ -78,6 +82,8 @@ class ESPnetSLUModel(ESPnetASRModel):
         self.ctc_weight = ctc_weight
         self.interctc_weight = interctc_weight
         self.token_list = token_list.copy()
+        self.superb_setup = superb_setup
+        self.use_only_last_correct = use_only_last_correct
         if transcript_token_list is not None:
             self.transcript_token_list = transcript_token_list.copy()
         self.two_pass = two_pass
@@ -167,6 +173,20 @@ class ESPnetSLUModel(ESPnetASRModel):
 
         self.extract_feats_in_collect_stats = extract_feats_in_collect_stats
 
+        if self.superb_setup:
+            self.decoder = None
+            self.act_fn = torch.nn.Tanh()
+            self.num_class = num_class
+            self.transform_mean = torch.nn.Linear(ssl_input_size, ssl_input_size)
+            self.transform_linear = torch.nn.Linear(ssl_input_size, num_class)
+
+        self.is_encoder_whisper = "Whisper" in type(self.encoder).__name__
+
+        if self.is_encoder_whisper:
+            assert (
+                self.frontend is None
+            ), "frontend should be None when using full Whisper model"
+
     def forward(
         self,
         speech: torch.Tensor,
@@ -203,6 +223,24 @@ class ESPnetSLUModel(ESPnetASRModel):
         encoder_out, encoder_out_lens = self.encode(
             speech, speech_lengths, transcript, transcript_lengths
         )
+        if self.superb_setup:
+            encoder_out = self.transform_mean(self.act_fn(encoder_out))
+            if self.use_only_last_correct:
+                feats = []
+                for k in range(encoder_out.shape[0]):
+                    feats.append(encoder_out[k, encoder_out_lens[k] - 1])
+                feats = torch.stack(feats)
+            else:
+                feats_mean_out = []
+                for k in range(encoder_out.shape[0]):
+                    feats_mean_out.append(
+                        torch.mean(encoder_out[k, : encoder_out_lens[k]], dim=0)
+                    )
+                feats = torch.stack(feats_mean_out)
+            encoder_out = self.transform_linear(feats)
+            text = text.reshape(-1) - 2
+            loss_lightweight = torch.nn.functional.cross_entropy(encoder_out, text)
+            acc_lightweight = None
         intermediate_outs = None
         if isinstance(encoder_out, tuple):
             intermediate_outs = encoder_out[1]
@@ -273,13 +311,16 @@ class ESPnetSLUModel(ESPnetASRModel):
 
         else:
             # 2b. Attention decoder branch
-            if self.ctc_weight != 1.0:
+            if (self.ctc_weight != 1.0) and (not self.superb_setup):
                 loss_att, acc_att, cer_att, wer_att = self._calc_att_loss(
                     encoder_out, encoder_out_lens, text, text_lengths
                 )
 
             # 3. CTC-Att loss definition
-            if self.ctc_weight == 0.0:
+            if self.superb_setup:
+                loss = loss_lightweight
+                acc_att = acc_lightweight
+            elif self.ctc_weight == 0.0:
                 loss = loss_att
             elif self.ctc_weight == 1.0:
                 loss = loss_ctc
@@ -378,19 +419,27 @@ class ESPnetSLUModel(ESPnetASRModel):
                 input_id_length,
             ) = self.postdecoder.convert_examples_to_features(transcript_list, 128)
             bert_encoder_out = self.postdecoder(
-                torch.LongTensor(transcript_input_id_features).to(device=speech.device),
-                torch.LongTensor(transcript_input_mask_features).to(
-                    device=speech.device
+                torch.tensor(
+                    transcript_input_id_features, dtype=torch.long, device=speech.device
                 ),
-                torch.LongTensor(transcript_segment_ids_feature).to(
-                    device=speech.device
+                torch.tensor(
+                    transcript_input_mask_features,
+                    dtype=torch.long,
+                    device=speech.device,
                 ),
-                torch.LongTensor(transcript_position_ids_feature).to(
-                    device=speech.device
+                torch.tensor(
+                    transcript_segment_ids_feature,
+                    dtype=torch.long,
+                    device=speech.device,
+                ),
+                torch.tensor(
+                    transcript_position_ids_feature,
+                    dtype=torch.long,
+                    device=speech.device,
                 ),
             )
-            bert_encoder_lens = torch.LongTensor(input_id_length).to(
-                device=speech.device
+            bert_encoder_lens = torch.tensor(
+                input_id_length, dtype=torch.long, device=speech.device
             )
             bert_encoder_out = bert_encoder_out[:, : torch.max(bert_encoder_lens)]
             final_encoder_out_lens = encoder_out_lens + bert_encoder_lens

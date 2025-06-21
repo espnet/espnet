@@ -96,7 +96,10 @@ def load_pretrained_model(
 
         obj = get_attr(model, dst_key)
 
-    src_state = torch.load(path, map_location=map_location)
+    src_state = torch.load(path, map_location=map_location, weights_only=False)
+    if "module" in src_state:
+        src_state = src_state["module"]
+
     if excludes is not None:
         for e in excludes.split(","):
             src_state = {k: v for k, v in src_state.items() if not k.startswith(e)}
