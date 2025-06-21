@@ -16,37 +16,26 @@ log() {
 SECONDS=0
 stage=1
 stop_stage=100
-fs=44100
+fs=24000
 g2p=None
-dataset='lyrics'
 
 log "$0 $*"
 
 . utils/parse_options.sh || exit 1;
-
-if [ -z "${ACESINGER}" ]; then
-    log "Fill the value of 'ACESINGER' of db.sh"
-    exit 1
-fi
 
 if [ -z "${OPENCPOP}" ]; then
     log "Fill the value of 'OPENCPOP' of db.sh"
     exit 1
 fi
 
-mkdir -p ${ACESINGER}
+mkdir -p ${OPENCPOP}
 
 train_set="tr_no_dev"
 train_dev="dev"
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "stage 0: Data Download"
-    # The ACESINGER data should be downloaded
-
-    log "automatically download from google drive"
-    ./local/download_wget.sh "1qHLW3U7a0z8FpWuaEUmY-LViBIwRmeM0"  ${ACESINGER}/ACESinger.zip
-
-    unzip ${ACESINGER}/ACESinger.zip -d ${ACESINGER}
+    # The Opencpop data should be downloaded from https://wenet.org.cn/opencpop/
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
@@ -54,19 +43,14 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     mkdir -p wav_dump
     # we convert the music score to xml format
-    python local/data_prep.py ${ACESINGER}/ACESinger ${OPENCPOP} --midi_note_scp local/midi-note.scp \
+    python local/data_prep.py ${OPENCPOP} --midi_note_scp local/midi-note.scp \
         --wav_dumpdir wav_dump \
         --sr ${fs} \
-        --g2p ${g2p} \
-        --dataset ${dataset}
+        --g2p ${g2p}
     for src_data in train test; do
         utils/utt2spk_to_spk2utt.pl < data/${src_data}/utt2spk > data/${src_data}/spk2utt
         utils/fix_data_dir.sh --utt_extra_files "label score.scp" data/${src_data}
     done
-    if [ -e "data/eval" ];then
-        rm -r data/eval
-    fi
-    mv data/test data/eval
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
@@ -84,4 +68,5 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
     utils/fix_data_dir.sh --utt_extra_files "label score.scp" data/tr_no_dev
     utils/fix_data_dir.sh --utt_extra_files "label score.scp" data/dev
+
 fi
