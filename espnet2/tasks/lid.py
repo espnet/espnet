@@ -257,18 +257,24 @@ class LIDTask(AbsTask):
             # train
             retval = ("speech", "lid_labels")
         elif not train and not inference:
-            # validation or plot tsne
-            retval = ("speech", "lid_labels")
+            # validation or plot tsne or collect statistics
+            retval = ("speech", )
         else:
             # inference
             retval = ("speech",)
-
+        
         return retval
 
     @classmethod
     def optional_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
-        retval = ()
+        if not train and not inference:
+            # validation or plot tsne
+            # not required for collect statistics
+            retval = ("lid_labels",)
+        else:
+            # train or inference
+            retval = ()
 
         return retval
