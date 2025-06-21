@@ -27,8 +27,7 @@ if [ -z ${data_dir_prefix} ]; then
     log "Root dir for dataset not defined, setting to ${MAIN_ROOT}/egs2/cnceleb/spk1/downloads"
     data_dir_prefix=${MAIN_ROOT}/egs2/cnceleb/spk1/downloads
 else
-    log "Root dir set to ${CNCELEB}"
-    data_dir_prefix=${CNCELEB}
+    log "Root dir set to ${data_dir_prefix}"
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
