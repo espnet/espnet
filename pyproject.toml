@@ -32,6 +32,7 @@ dependencies = [
     "soundfile>=0.10.2",
     "torch>=1.11.0",
     "torchaudio>=1.11.0",
+    "torch_optimizer",
     "soundfile>=0.10.2",
     "kaldiio>=2.18.0",
     "sentencepiece==0.2.0",
@@ -117,6 +118,7 @@ task-spk = [
   "asteroid_filterbanks==0.4.0"
 ]
 
+
 dev = [
   "black",
   "flake8",
@@ -154,8 +156,6 @@ all = [
   "espnet[task-tts]",
   "espnet[task-enh]",
   "espnet[task-spk]",
-  "torchaudio",
-  "torch_optimizer",
   "fairscale",
   "transformers",
   "evaluate",
