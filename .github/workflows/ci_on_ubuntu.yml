@@ -320,7 +320,7 @@ jobs:
         ./tools/installers/install_torch.sh false ${TH_VERSION} CPU
         ./tools/installers/install_chainer.sh CPU
         python3 -m build --wheel
-        python3 -m pip install dist/espnet-*.whl
+        python3 -m pip install "dist/espnet-*.whl[all]"
         # log
         python3 -m pip freeze
     - name: Import all modules (Try1)
