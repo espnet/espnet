@@ -7,6 +7,8 @@ stage=1
 stop_stage=100
 n_proc=8
 
+data_dir_prefix= # root dir to save datasets.
+
 trg_dir=data
 
 . utils/parse_options.sh
@@ -23,9 +25,9 @@ log() {
 
 if [ -z ${data_dir_prefix} ]; then
     log "Root dir for dataset not defined, setting to ${MAIN_ROOT}/egs2/cnceleb/spk1/downloads"
-    CNCELEB=${MAIN_ROOT}/egs2/cnceleb
+    data_dir_prefix=${MAIN_ROOT}/egs2/cnceleb/spk1/downloads
 else
-    log "Root dir set to ${CNCELEB}"
+    log "Root dir set to ${data_dir_prefix}"
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
@@ -123,7 +125,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     # Convert CN-Celeb1
     if [ ! -d "${cnceleb1_wav_dir}" ]; then
         log "Converting CN-Celeb1 FLAC to WAV..."
-        python local/flac2wav.py --dataset_dir "${cnceleb1_flac_dir}" --out_dir "${cnceleb1_wav_dir}" --nj ${n_proc}
+        python local/flac2wav.py --dataset_dir "${cnceleb1_flac_dir}" --nj ${n_proc}
     else
         log "CN-Celeb1 already converted to WAV. Skipping."
     fi
@@ -131,7 +133,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     # Convert CN-Celeb2
     if [ ! -d "${cnceleb2_wav_dir}" ]; then
         log "Converting CN-Celeb2 FLAC to WAV..."
-        python local/flac2wav.py --dataset_dir "${cnceleb2_flac_dir}" --out_dir "${cnceleb2_wav_dir}" --nj ${n_proc}
+        python local/flac2wav.py --dataset_dir "${cnceleb2_flac_dir}" --nj ${n_proc}
     else
         log "CN-Celeb2 already converted to WAV. Skipping."
     fi
@@ -145,7 +147,9 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     mkdir -p ${trg_dir}/cnceleb2
     mkdir -p ${trg_dir}/cnceleb1_test
     mkdir -p ${trg_dir}/cnceleb1_enroll
+    mkdir -p ${trg_dir}/cnceleb1_enroll_sep
 
+    # Create kaldi-style data files: wav.scp, utt2spk, spk2utt
     python local/data_prep.py --src "${data_dir_prefix}/CN-Celeb_wav/data" --dst "${trg_dir}/cnceleb1_dev" \
     --spk "${data_dir_prefix}/CN-Celeb_flac/dev/dev.lst"
     python local/data_prep.py --src "${data_dir_prefix}/CN-Celeb2_wav/data" --dst "${trg_dir}/cnceleb2" \
@@ -153,12 +157,20 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     python local/data_prep.py --src "${data_dir_prefix}/CN-Celeb_wav/eval/test" --dst "${trg_dir}/cnceleb1_test"
     python local/data_prep.py --src "${data_dir_prefix}/CN-Celeb_wav/eval/enroll" --dst "${trg_dir}/cnceleb1_enroll"
 
+    # Deal with separate enroll utterances
+    enroll_map="${data_dir_prefix}/CN-Celeb_wav/eval/lists/enroll.map"
+    enroll_sep_utt="${trg_dir}/cnceleb1_enroll_sep/utt.lst"
+    awk '{for (i=2; i<=NF; i++) print $i}' ${enroll_map} > ${enroll_sep_utt}
+    python local/data_prep.py --src "${data_dir_prefix}/CN-Celeb_wav/data" --dst "${trg_dir}/cnceleb1_enroll_sep" \
+    --utt "${enroll_sep_utt}"
 
+    # Sort the data files
     for f in wav.scp utt2spk spk2utt; do
         sort ${trg_dir}/cnceleb1_dev/${f} -o ${trg_dir}/cnceleb1_dev/${f}
         sort ${trg_dir}/cnceleb2/${f} -o ${trg_dir}/cnceleb2/${f}
         sort ${trg_dir}/cnceleb1_test/${f} -o ${trg_dir}/cnceleb1_test/${f}
         sort ${trg_dir}/cnceleb1_enroll/${f} -o ${trg_dir}/cnceleb1_enroll/${f}
+        sort ${trg_dir}/cnceleb1_enroll_sep/${f} -o ${trg_dir}/cnceleb1_enroll_sep/${f}
     done
 
     # Combine CN-Celeb 1 and 2 dev sets for combined training set
@@ -171,10 +183,22 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
 
     # Combine CN-Celeb enroll and test sets for evaluation
     mkdir -p ${trg_dir}/cnceleb1_eval
+    mkdir -p ${trg_dir}/cnceleb1_eval_sep
     for f in wav.scp utt2spk spk2utt; do
+        if [ -f ${trg_dir}/cnceleb1_eval/${f} ]; then
+            rm ${trg_dir}/cnceleb1_eval/${f}
+        fi
         cat ${trg_dir}/cnceleb1_test/${f} >> ${trg_dir}/cnceleb1_eval/${f}
         cat ${trg_dir}/cnceleb1_enroll/${f} >> ${trg_dir}/cnceleb1_eval/${f}
         sort ${trg_dir}/cnceleb1_eval/${f} -o ${trg_dir}/cnceleb1_eval/${f}
+
+        # For separate enroll utterances
+        if [ -f ${trg_dir}/cnceleb1_eval_sep/${f} ]; then
+            rm ${trg_dir}/cnceleb1_eval_sep/${f}
+        fi
+        cat ${trg_dir}/cnceleb1_test/${f} >> ${trg_dir}/cnceleb1_eval_sep/${f}
+        cat ${trg_dir}/cnceleb1_enroll_sep/${f} >> ${trg_dir}/cnceleb1_eval_sep/${f}
+        sort ${trg_dir}/cnceleb1_eval_sep/${f} -o ${trg_dir}/cnceleb1_eval_sep/${f}
     done
 
     # Make test trial compatible with ESPnet.
@@ -184,13 +208,31 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     --enroll_scp "${trg_dir}/cnceleb1_enroll/wav.scp" \
     --out "${trg_dir}/cnceleb1_eval"
 
-    # Create valida trial from CN-Celeb 1 eval set
+    # Create new trial for separate enroll utterances
+    python local/convert_trial.py \
+    --trial "${data_dir_prefix}/CN-Celeb_flac/eval/lists/trials.lst" \
+    --test_scp "${trg_dir}/cnceleb1_test/wav.scp" \
+    --enroll_scp "${trg_dir}/cnceleb1_enroll_sep/wav.scp" \
+    --enroll_map "${trg_dir}/cnceleb1_enroll_sep/spk2utt" \
+    --out "${trg_dir}/cnceleb1_eval_sep"
+
+    # Create valid trial from CN-Celeb 1 eval set
     mkdir -p ${trg_dir}/cnceleb1_valid
     python local/generate_trial.py \
     --enroll_dir data/cnceleb1_enroll \
     --test_dir data/cnceleb1_test \
     --out_dir data/cnceleb1_valid \
     --trials_per_enroll 200 \
+    --target_ratio 0.3 \
+    --seed 42
+
+    # Create valid trial for separate enroll utterances
+    mkdir -p ${trg_dir}/cnceleb1_valid_sep
+    python local/generate_trial.py \
+    --enroll_dir data/cnceleb1_enroll_sep \
+    --test_dir data/cnceleb1_test \
+    --out_dir data/cnceleb1_valid_sep \
+    --trials_per_enroll 50 \
     --target_ratio 0.3 \
     --seed 42
 
