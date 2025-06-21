@@ -258,11 +258,11 @@ class LIDTask(AbsTask):
             retval = ("speech", "lid_labels")
         elif not train and not inference:
             # validation or plot tsne or collect statistics
-            retval = ("speech", )
+            retval = ("speech",)
         else:
             # inference
             retval = ("speech",)
-        
+
         return retval
 
     @classmethod
