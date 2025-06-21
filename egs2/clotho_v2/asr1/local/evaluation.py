@@ -14,6 +14,7 @@ parser.add_argument(
     required=True,
     help="Path to file containing predictions.",
 )
+parser.add_argument("--ref_file_pattern", help="Path to reference file.", default=None)
 parser.add_argument(
     "--split",
     default="evaluation",
@@ -51,12 +52,13 @@ def _convert_to_evaluation_format(predictions, references):
     return candidates, mult_references
 
 
-def _evaluate(decode_fname: str, split: str):
+def _evaluate(decode_fname: str, split: str, ref_file_pattern: str = None):
     # load all predictions from decode_file
     predictions = _parse_and_read_file(decode_fname)
 
     # modify ref file pattern based on split
-    ref_file_pattern = "data/{split}/text{suffix}"
+    if ref_file_pattern is None:
+        ref_file_pattern = "data/{split}/text{suffix}"
     ref_file_paths = []
     if split == "evaluation":
         ref_file_paths = [
@@ -116,4 +118,4 @@ def _evaluate(decode_fname: str, split: str):
         print("=" * header_str_l, file=result_f)
 
 
-_evaluate(args.decode_file, args.split)
+_evaluate(args.decode_file, args.split, args.ref_file_pattern)

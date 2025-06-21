@@ -202,8 +202,7 @@ Each directory of training set, development set, and evaluation set, has same di
     ...
     ```
     Note that for multi-class classification each uttid should be associated with exactly one class.
-    For multi-label classification, each uttid should have at least one label.
-    (TODO) We will support the case with no label in the future with the <blank> symbol.
+    For multi-label classification, each uttid should have at least one label, if there are no labels then have `<blank>` as the target.
 
 - `wav.scp` format
     ```

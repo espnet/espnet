@@ -76,7 +76,7 @@ if ${log_wandb}; then
     fi
 fi
 
-exp_dir="$(pwd)/exp/${run_name}"
+exp_dir="$(pwd)/exp/runs/${run_name}"
 mkdir -p "$exp_dir"
 log "Created exp directory: $exp_dir"
 
@@ -97,23 +97,23 @@ done
 declare -A recipe_runners
 
 # Captioning tasks
-# recipe_runners["clotho_aac"]="../../clotho_v2/asr1/run.sh|"
-# recipe_runners["audiocaps_aac"]="../../clotho_v2/asr1/run.sh|"
+recipe_runners["audiocaps_aac"]="../../clotho_v2/asr1/run_pt.sh|"
+recipe_runners["clotho_aac"]="../../clotho_v2/asr1/run_ft.sh|"
 
 # BERT audio-text classification
-# recipe_runners["cle_bert"]="../../clotho_v2/cls1/run_entailment.sh|"
-# recipe_runners["aqa_yn_bert"]="../../clotho_v2/cls1/run_aqa_yn.sh|"
-# recipe_runners["aqa_open_bert"]="../../clotho_v2/cls1/run_aqa_open.sh|"
+recipe_runners["cle_bert"]="../../clotho_v2/cls1/run_entailment.sh|--hugging_face_model_name_or_path bert-base-uncased"
+recipe_runners["aqa_yn_bert"]="../../clotho_v2/cls1/run_aqa_yn.sh|--hugging_face_model_name_or_path bert-base-uncased"
+recipe_runners["aqa_open_bert"]="../../clotho_v2/cls1/run_aqa_open.sh|--hugging_face_model_name_or_path bert-base-uncased"
 
 # CLAP audio-text classification
-# recipe_runners["cle_clap"]="../../clotho_v2/cls1/run_entailment.sh|--hugging_face_model_name_or_path laion/clap-htsat-unfused"
-# recipe_runners["aqa_yn_clap"]="../../clotho_v2/cls1/run_aqa_yn.sh|--hugging_face_model_name_or_path laion/clap-htsat-unfused"
-# recipe_runners["aqa_open_clap"]="../../clotho_v2/cls1/run_aqa_open.sh|--hugging_face_model_name_or_path laion/clap-htsat-unfused"
+recipe_runners["cle_clap"]="../../clotho_v2/cls1/run_entailment.sh|--hugging_face_model_name_or_path laion/clap-htsat-unfused"
+recipe_runners["aqa_yn_clap"]="../../clotho_v2/cls1/run_aqa_yn.sh|--hugging_face_model_name_or_path laion/clap-htsat-unfused"
+recipe_runners["aqa_open_clap"]="../../clotho_v2/cls1/run_aqa_open.sh|--hugging_face_model_name_or_path laion/clap-htsat-unfused"
 
 # General sound Multi-label tasks
-# recipe_runners["audioset2m"]="../../as2m/cls1/run.sh|"
+recipe_runners["audioset2m"]="../../as2m/cls1/run.sh|"
 recipe_runners["audioset20k"]="../../as20k/cls1/run.sh|"
-# recipe_runners["fsd50k"]="../../fsd/cls1/run.sh|"
+recipe_runners["fsd50k"]="../../fsd50k/cls1/run.sh|"
 
 # ESC-50 folds
 recipe_runners["esc50_f1"]="../../esc50/cls1/run_single_fold.sh|--local_data_opts 1 --train_set train1 --valid_set val1 --test_sets val1"
@@ -123,11 +123,11 @@ recipe_runners["esc50_f4"]="../../esc50/cls1/run_single_fold.sh|--local_data_opt
 recipe_runners["esc50_f5"]="../../esc50/cls1/run_single_fold.sh|--local_data_opts 5 --train_set train5 --valid_set val5 --test_sets val5"
 
 # Register BEANS detection tasks
-# recipe_runners["beans_dcase"]="../../beans/cls1/run_dcase.sh|"
-# recipe_runners["beans_enabirds"]="../../beans/cls1/run_enabirds.sh|"
-# recipe_runners["beans_gibbons"]="../../beans/cls1/run_gibbons.sh|"
-# recipe_runners["beans_hiceas"]="../../beans/cls1/run_hiceas.sh|"
-# recipe_runners["beans_rfcx"]="../../beans/cls1/run_rfcx.sh|"
+recipe_runners["beans_dcase"]="../../beans/cls1/run_dcase.sh|"
+recipe_runners["beans_enabirds"]="../../beans/cls1/run_enabirds.sh|"
+recipe_runners["beans_gibbons"]="../../beans/cls1/run_gibbons.sh|"
+recipe_runners["beans_hiceas"]="../../beans/cls1/run_hiceas.sh|"
+recipe_runners["beans_rfcx"]="../../beans/cls1/run_rfcx.sh|"
 
 # Register BEANS classification tasks
 recipe_runners["beans_watkins"]="../../beans/cls1/run_watkins.sh|"
@@ -136,10 +136,10 @@ recipe_runners["beans_cbi"]="../../beans/cls1/run_cbi.sh|"
 recipe_runners["beans_humbugdb"]="../../beans/cls1/run_humbugdb.sh|"
 recipe_runners["beans_dogs"]="../../beans/cls1/run_dogs.sh|"
 
-# Music and machine sound tasks
-# recipe_runners["gtzan"]
-# recipe_runners["nsynth"]
-# recipe_runners["dcase24_machine"]
+# Music tasks
+recipe_runners["gtzan"]="../../gtzan/cls1/run.sh|"
+recipe_runners["nsynth_instrument"]="../../nsynth/cls1/run_instrument.sh|"
+recipe_runners["nsynth_pitch"]="../../nsynth/cls1/run_pitch.sh|"
 
 generate_recipe_list() {
     local recipes_to_run=()
@@ -232,7 +232,11 @@ construct_command_args() {
     fi
     cmd_args="--${task_name}_config ${config_path} --${task_name}_tag ${run_name} "
     if "${store_locally}"; then
-        cmd_args+="--datadir $(pwd)/data/${recipe} --dumpdir $(pwd)/dump/${recipe} --expdir $(pwd)/exp/${recipe} "
+        cmd_args+="--dumpdir $(pwd)/dump/${recipe} --expdir $(pwd)/exp/${recipe} "
+        if [[ $task_name == "cls" ]]; then
+            cmd_args+="--datadir $(pwd)/data/${recipe} "
+        fi
+        # data for asr1 is downloaded in the recipe dir
     fi
 
     task_args_header="--${task_name}_args"
@@ -263,7 +267,7 @@ run_recipe() {
         local runner="${runner_parts[0]}"
         local runner_specific_args="${runner_parts[1]:-}"  # Use empty string if no args specified
 
-        log "Setting up task: $runner for recipe: $recipe with args: $runner_specific_args"
+        log "Setting up task: $runner for recipe: $recipe with runner args: $runner_specific_args"
 
         # Create config from the template
         create_config "$recipe" "$runner" || {

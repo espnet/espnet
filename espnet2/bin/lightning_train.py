@@ -45,12 +45,6 @@ def get_parser(task_class=None):
     else:
         parser = task_class.get_parser()
     parser.add_argument(
-        "--lightning_conf",
-        action=NestedDictAction,
-        default=dict(),
-        help="Arguments related to Lightning Trainer.",
-    )
-    parser.add_argument(
         "--user_callbacks",
         type=str,
         nargs="+",

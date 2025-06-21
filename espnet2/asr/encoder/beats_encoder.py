@@ -14,6 +14,7 @@ import logging
 import math
 import warnings
 from typing import Dict, Optional, Tuple
+from contextlib import contextmanager
 
 import numpy as np
 import torch
@@ -289,6 +290,11 @@ class BeatsEncoder(AbsEncoder):
         if adapter_config:
             conformer_config = Wav2Vec2ConformerConfig.from_json_file(adapter_config)
             self.conformer_adapter = Wav2Vec2ConformerEncoder(conformer_config)
+            # self.linear_adapter = None
+            # if conformer_config.hidden_size != config.encoder_embed_dim:
+            #     self.linear_adapter = nn.Linear(
+            #         config.encoder_embed_dim, conformer_config.hidden_size
+            #     )
 
         # Positional embeddings applied before cross-attention with decoder.
         self.cross_embed_positions = None
@@ -318,6 +324,7 @@ class BeatsEncoder(AbsEncoder):
             ), "Flash attention requires PyTorch >= 2.0"
         if is_pretraining:
             assert config.mask_ratio > 0.0, "mask_ratio must be > 0.0 for pretraining."
+        self.config = config
         self.initialize()
 
     def initialize(self):
@@ -573,9 +580,6 @@ class BeatsEncoder(AbsEncoder):
 
         if padding_mask is not None:
             # features is BTC
-            # padding_mask = self.forward_padding_mask(features, padding_mask)
-            # NOTE(shikhar): ESC-50, BEANS and Clotho_v2 use the previous version
-            # which is wrong (the one implmented above).
             padding_mask = forward_padding_mask_conv(
                 padding_mask=padding_mask,
                 n_dim=fbank.shape[-1],
@@ -734,6 +738,7 @@ class BeatsPretrainingPredictor(nn.Module):
         audio_representation: torch.Tensor,  # B,T_small,D
         patch_len: torch.Tensor,  # B, (1>=x>=T_large)
         restore_ids: torch.Tensor,  # B,T_large
+        kept_mask: torch.Tensor,  # B,T_large
     ):
         padding_mask = make_pad_mask(lengths=patch_len, traceable=False).to(
             audio_representation.device
@@ -747,6 +752,7 @@ class BeatsPretrainingPredictor(nn.Module):
         x = torch.gather(
             x, dim=1, index=restore_ids.unsqueeze(-1).repeat(1, 1, x.shape[2])
         )
+        x[~kept_mask] = self.mask_token
 
         pos_bias = None
         # ===========================#

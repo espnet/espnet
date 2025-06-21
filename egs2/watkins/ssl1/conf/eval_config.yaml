@@ -12,7 +12,7 @@ grad_clip: 1
 
 optim: adamw
 optim_conf:
-    lr: 3.0e-5 # 1.e-4
+    lr: 3.0e-5 # 1.e-4/work/hdd/bbjs/shared/corpora/watkins_marine/scraped_data/master_tapes/WeddellSeal/64174/64174hi1.wav
     weight_decay: 1.0e-2
     betas: [0.9, 0.98]
 

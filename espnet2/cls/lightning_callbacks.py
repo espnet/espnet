@@ -67,6 +67,8 @@ class MultilabelAUPRCCallback(Callback):
             )
 
     def on_validation_epoch_start(self, trainer, pl_module):
+        if self.mAP_function is None:
+            self.setup_mAP(pl_module.model)
         self.mAP_function.reset()
 
     def on_validation_batch_end(
@@ -81,6 +83,8 @@ class MultilabelAUPRCCallback(Callback):
 
     def compute_mAP(self, trainer):
         """Computes the mAP."""
+        if not self.mAP_function.inputs:
+            return None
         if dist.is_initialized() and dist.get_world_size() > 1:
             mAP = sync_and_compute(self.mAP_function)
         else:

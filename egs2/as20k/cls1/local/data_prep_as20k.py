@@ -1,9 +1,8 @@
-import json
 import os
 import random
 import sys
+import numpy as np
 
-import soundfile as sf
 from tqdm import tqdm
 
 DATA_READ_ROOT = sys.argv[1]
@@ -54,11 +53,27 @@ def read_mid2name_map(mid2name_file):
     return mid2name
 
 
+def generate_sampling_weights(train_set, mid2name):
+    label_count = {name: 0 for name in mid2name.values()}
+    for item in train_set:
+        for label in item["labels"]:
+            label_count[label] += 1
+    label_weight = {
+        name: 1000.0 / (count + 0.01) for name, count in label_count.items()
+    }
+    instance_wise_sampling_weights = np.zeros(len(train_set))
+    for idx, item in enumerate(train_set):
+        for label in item["labels"]:
+            instance_wise_sampling_weights[idx] += label_weight[label]
+    return instance_wise_sampling_weights
+
+
 mid2name = read_mid2name_map(os.path.join(DATA_READ_ROOT, "class_labels_indices.csv"))
 eval_set = read_data_file(os.path.join(DATA_READ_ROOT, "eval_segments.csv"), mid2name)
 train_set = read_data_file(
     os.path.join(DATA_READ_ROOT, "balanced_train_segments.csv"), mid2name
 )
+data_sampling_weights = generate_sampling_weights(train_set, mid2name)
 
 """
 Create validation split from eval
@@ -85,10 +100,17 @@ for dataset, name in [(train_set, "train"), (val_set, "val"), (eval_set, "eval")
     text_write_path = os.path.join(DATA_WRITE_ROOT, name, "text")
     wav_scp_write_path = os.path.join(DATA_WRITE_ROOT, name, "wav.scp")
     utt2spk_write_path = os.path.join(DATA_WRITE_ROOT, name, "utt2spk")
+    sampling_weight_write_path = (
+        os.path.join(DATA_WRITE_ROOT, name, "utt2weight") if name == "train" else None
+    )
 
     os.makedirs(os.path.dirname(text_write_path), exist_ok=True)
     os.makedirs(os.path.dirname(wav_scp_write_path), exist_ok=True)
     os.makedirs(os.path.dirname(utt2spk_write_path), exist_ok=True)
+    sampling_weight_f = None
+    if sampling_weight_write_path:
+        os.makedirs(os.path.dirname(sampling_weight_write_path), exist_ok=True)
+        sampling_weight_f = open(sampling_weight_write_path, "w")
 
     with open(text_write_path, "w") as text_f, open(
         wav_scp_write_path, "w"
@@ -105,4 +127,9 @@ for dataset, name in [(train_set, "train"), (val_set, "val"), (eval_set, "eval")
             print(f"as20k-{name}-{uttid} {text}", file=text_f)
             print(f"as20k-{name}-{uttid} {wav_path}", file=wav_f)
             print(f"as20k-{name}-{uttid} dummy", file=utt2spk_f)
+            if sampling_weight_f:
+                print(
+                    f"as20k-{name}-{uttid} {data_sampling_weights[uttid]}",
+                    file=sampling_weight_f,
+                )
     print(f"Missing {missing_wav_file} wav files in {name} set.")

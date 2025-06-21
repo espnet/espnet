@@ -14,6 +14,7 @@ from espnet2.speechlm.tokenizer.beats_utils import beats_frontend
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet2.layers.mixup_augmentation import MixupAugment
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +30,8 @@ class BeatsPretrainModel(AbsESPnetModel):
         ignore_id: int = -2,
         label_smoothing: float = 0.1,
         waveform_input: bool = False,
+        mixup_probability: float = 0.0,
+        contrastive_loss_weight: float = 0.0,
     ):
         super().__init__()
         self.ignore_id = ignore_id
@@ -37,14 +40,38 @@ class BeatsPretrainModel(AbsESPnetModel):
         ), "Set the encoder to pretraining mode with is_pretraining=True."
         self.encoder = encoder
         self.decoder = decoder
-        self.waveform_input = waveform_input
-        self.loss_function = torch.nn.CrossEntropyLoss(
-            ignore_index=ignore_id, label_smoothing=label_smoothing, reduction="none"
+        self.n_targets = getattr(
+            getattr(encoder, "config", None), "codebook_vocab_size", None
         )
+        self.waveform_input = waveform_input
+        self.mixup_probability = mixup_probability
+        self.mixup_augmentation = (
+            MixupAugment(mixup_probability) if mixup_probability > 0.0 else None
+        )
+        self.loss_function = torch.nn.CrossEntropyLoss(
+            ignore_index=ignore_id,
+            label_smoothing=label_smoothing,
+            reduction="none",
+        )
+        self.contrastive_loss_weight = contrastive_loss_weight
         logger.info(
             f"Initialized BeatsPretrainModel with ignore_id={ignore_id}, "
             f"label_smoothing={label_smoothing}, encoder={encoder}, decoder={decoder}"
         )
+
+    def patch_contrastive_loss(self, unmasked_patch_emb, temperature=0.1):
+        B, _, _ = unmasked_patch_emb.shape
+        assert B % 2 == 0, "Using contrastive loss, batch size must be even. "
+        "There is some bug. Check encoder."
+        z1 = unmasked_patch_emb[: B // 2, 0, :]  # (B//2, D)
+        z2 = unmasked_patch_emb[B // 2 :, 0, :]  # (B//2, D)
+        z1 = F.normalize(z1, dim=1)  # (B//2, D)
+        z2 = F.normalize(z2, dim=1)  # (B//2, D)
+        logits = torch.matmul(z1, z2.t()) / temperature  # (B//2, B//2)
+        labels = torch.arange(B // 2, device=logits.device)
+        loss_1to2 = F.cross_entropy(logits, labels)
+        loss_2to1 = F.cross_entropy(logits.t(), labels)
+        return 0.5 * (loss_1to2 + loss_2to1)
 
     def forward(
         self,
@@ -76,6 +103,18 @@ class BeatsPretrainModel(AbsESPnetModel):
         # for data-parallel
         speech = speech[:, : speech_lengths.max()]
         target = target[:, : target_lengths.max()]
+        onehot_ = None
+        if self.training and self.mixup_augmentation is not None:
+            onehot_ = (target - 1).reshape(-1, 1).contiguous()
+            onehot_[onehot_ < 0] = 0  # -1 to 0
+            onehot_ = F.one_hot(
+                onehot_.squeeze(-1),
+                num_classes=self.n_targets,
+            ).float()
+            onehot_ = onehot_.reshape(target.shape[0], target.shape[1], -1).contiguous()
+            speech, onehot_, speech_lengths = self.mixup_augmentation(
+                speech, onehot_, speech_lengths
+            )
 
         # unmasked_patch_emb (Batch, n_patch*kept_ratio, emb_dim)
         # restore_ids (Batch, n_patch) -- permutation of [0, 1, ..., n_patch-1]
@@ -84,15 +123,37 @@ class BeatsPretrainModel(AbsESPnetModel):
         unmasked_patch_emb, patch_len, restore_ids, kept_mask = self.encoder(
             speech, speech_lengths, waveform_input=self.waveform_input
         )
-        target = target[:, : patch_len.max()]
 
-        # target (Batch, n_patch)
-        # logits (Batch, n_patch, codebook_size)
-        logits = self.decoder(unmasked_patch_emb, patch_len, restore_ids)
+        target = target[:, : patch_len.max()]
+        onehot_ = onehot_[:, : patch_len.max()] if onehot_ is not None else None
+
+        if self.contrastive_loss_weight != 0:
+            contrastive_loss = (
+                self.contrastive_loss_weight
+                * self.patch_contrastive_loss(unmasked_patch_emb)
+            )
+            # Remove cls
+            unmasked_patch_emb = unmasked_patch_emb[:, 1:, :]
+            restore_ids = restore_ids[:, 1:] - 1
+            kept_mask = kept_mask[:, 1:]
+            patch_len = torch.cat([patch_len, patch_len], dim=0)
+            target = torch.cat([target, target], dim=0)
+            onehot_ = (
+                torch.cat([onehot_, onehot_], dim=0) if onehot_ is not None else None
+            )
+
+        logits = self.decoder(unmasked_patch_emb, patch_len, restore_ids, kept_mask)
 
         loss, stats = self._calc_beats_loss(
-            logits, target - 1, ~kept_mask, patch_len
+            logits, target - 1, ~kept_mask, patch_len, onehot_
         )  # target - 1 because of unk token at 0th position
+
+        if self.contrastive_loss_weight != 0:
+            # loss = loss * 0 # for no MAM loss
+            stats["ContraLoss"] = contrastive_loss.detach()
+            stats["MAMloss"] = loss.detach()
+            loss = loss + contrastive_loss
+            stats["loss"] = loss.detach()
 
         # force_gatherable: to-device and to-tensor if scalar for DataParallel
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
@@ -127,6 +188,7 @@ class BeatsPretrainModel(AbsESPnetModel):
         target: torch.Tensor,
         masked: torch.Tensor,
         speech_lengths: torch.Tensor,
+        onehot_: Optional[torch.Tensor] = None,
     ):
         """Compute loss for Beats model.
         Args:
@@ -134,13 +196,18 @@ class BeatsPretrainModel(AbsESPnetModel):
             target: (Batch, n_patch)
             masked: (Batch, n_patch) -- True for masked, False for unmasked
             speech_lengths: (Batch, )
+            onehot_: (Batch, n_patch, codebook_size) -- onehot target for mixup
         Returns:
             loss: scalar
             acc_mask: scalar
             acc_unmask: scalar
         """
         logits = logits.transpose(1, 2)  # (Batch, codebook_size, n_patch)
-        loss = self.loss_function(logits, target)
+        if onehot_ is not None:
+            onehot_ = onehot_.transpose(1, 2)
+            loss = self.loss_function(logits, onehot_)  # mixup loss
+        else:
+            loss = self.loss_function(logits, target)
         loss = loss * masked  # do not count loss for unmasked patches
         loss = loss.sum()
 
@@ -174,8 +241,8 @@ class BeatsPretrainModel(AbsESPnetModel):
             n_uniq_tgt = torch.unique(target, return_counts=False).numel()
             vocab_cov_tgt = n_uniq_tgt / logits.shape[1]
 
-            probs = torch.nn.functional.softmax(logits, dim=1)
-            entropy = -(probs * probs.log()).sum(dim=1).mean()
+            # probs = torch.nn.functional.softmax(logits, dim=1)
+            # entropy = -(probs * probs.log()).sum(dim=1).mean()
 
         # Note(shikhar): Some of these are redundant
         stats_dict = dict(
@@ -195,7 +262,7 @@ class BeatsPretrainModel(AbsESPnetModel):
             # Vocab coverage metrics
             vocab_cov_tgt=vocab_cov_tgt,
             vocab_cov_pred=vocab_cov_pred,
-            entropy=entropy,
+            # entropy=entropy,
         )
         return loss, stats_dict
 

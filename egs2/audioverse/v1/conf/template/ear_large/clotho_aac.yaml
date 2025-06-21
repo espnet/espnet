@@ -1,8 +1,8 @@
 batch_type: folded
 unused_parameters: true
-batch_size: 64
+batch_size: 32 #64
 accum_grad: 2
-max_epoch: 8
+max_epoch: 20
 grad_clip: 1
 patience: none
 best_model_criterion:
@@ -19,12 +19,12 @@ frontend: none
 input_size: 1 # important to set input_size to 1 if frontend is none
 normalize: none # BEATs code does global mean and variance normalization
 
-freeze_param: [
-    "encoder.encoder",
-    "encoder.layer_norm",
-    "encoder.patch_embedding",
-    "encoder.post_extract_proj",
-]
+# freeze_param: [
+#     "encoder.encoder",
+#     "encoder.layer_norm",
+#     "encoder.patch_embedding",
+#     "encoder.post_extract_proj",
+# ]
 
 encoder: beats
 encoder_conf:
@@ -40,12 +40,20 @@ encoder_conf:
         - 0
         - 0.12
         num_time_mask: 5
-    adapter_config: conf/wav2vec2_conformer_config.json
+    adapter_config: conf/wav2vec2_conformer_config_large.json
     downsampling_rate: 3 # CNN downsampling over beats encoder
-    max_layer: 10 # 0 based index
+    max_layer: 19 # 0 based index
     use_weighted_representation: false
     add_positional_information: true
     max_positions: 1024 # These many positional embeddings will be learned
+    beats_config:
+        # Large
+        encoder_layers: 24
+        encoder_embed_dim: 1024
+        encoder_ffn_embed_dim: 4096
+        encoder_attention_heads: 16
+        decoder_embed_dim: 1024
+        decoder_attention_heads: 16
 
 # Pleae note that the decoder is not the standard BART-base,
 # but a custom one whose config is defined in the file below

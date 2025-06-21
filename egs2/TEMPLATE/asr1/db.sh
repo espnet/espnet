@@ -34,6 +34,7 @@ EPIC_SOUNDS=/work/hdd/bbjs/shared/corpora/epic_sound/EPIC_audio.hdf5
 ESC50=/compute/babel-13-33/sbharad2/ESC-50-master
 # /work/hdd/bbjs/shared/corpora/esc_master/ESC-50-master
 FMA=/work/hdd/bbjs/shared/corpora/fma/fma_full
+GTZAN=downloads
 INAT_SOUNDS=/work/hdd/bbjs/shared/corpora/inat_sounds
 MIXUP_FSD=/work/hdd/bbjs/shared/corpora/synthetic_fsd/BFSD
 WAVCAPS=/work/hdd/bbjs/shared/corpora/wavcaps
@@ -170,6 +171,7 @@ SIWIS=downloads
 GIGASPEECH=
 GIGAST=
 GOOGLEI18N=downloads
+NSYNTH=downloads
 NOISY_SPEECH=
 NOISY_REVERBERANT_SPEECH=
 LRS2=
@@ -233,9 +235,11 @@ HIFITTS=downloads
 CLOTHO_V2=downloads
 CLOTHO_ENTAILMENT=downloads
 CLOTHO_AQA=downloads
-AUDIOCAPS=
-CLOTHO_CHATGPT_MIXUP=
+AUDIOCAPS=/work/hdd/bbjs/shared/corpora/audiocaps
+CLOTHO_CHATGPT_MIXUP=/work/hdd/bbjs/shared/corpora/clotho_captions_mixup
 EDACC=downloads
+FSD50K=downloads
+YT8M=/work/hdd/bbjs/shared/corpora/yt8m/unzipped/extracted
 
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then

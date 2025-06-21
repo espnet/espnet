@@ -15,8 +15,6 @@ mynametag=${timestamp}
 storage_dir=.
 mkdir -p "${storage_dir}"
 
-#change label_fold_length for each dataset: greater than num_class
-
 ./cls.sh \
     --local_data_opts "dcase" \
     --cls_tag "${mynametag}" \
@@ -34,7 +32,7 @@ mkdir -p "${storage_dir}"
     --label_fold_length 35 \
     --max_wav_duration 32 \
     --inference_nj 1 \
-    --inference_model valid.epoch_mAP.best.pth \
+    --inference_model valid.epoch_mAP.ave_1best.pth \
     --cls_config "${cls_config}" \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \

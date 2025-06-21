@@ -6,7 +6,6 @@ import sys
 import time
 from functools import partial
 from multiprocessing import Lock
-
 import librosa
 import numpy as np
 import soundfile as sf
@@ -34,6 +33,7 @@ def safe_load_audio(wav_path):
 
 
 def write_metadata(
+    segment_id,
     utterance_id,
     start_time,
     end_time,
@@ -49,7 +49,7 @@ def write_metadata(
         with open(segment_file, "a") as f:
             if end_time == -1:
                 end_time = start_time + 10.0
-            f.write(f"{utterance_id} {utterance_id} {start_time:.2f} {end_time:.2f}\n")
+            f.write(f"{segment_id} {utterance_id} {start_time:.2f} {end_time:.2f}\n")
 
         # Write to wav.scp file
         abs_wav_path = os.path.abspath(wav_path)
@@ -58,7 +58,7 @@ def write_metadata(
 
         # Write to utt2spk file
         with open(utt2spk_file, "a") as f:
-            f.write(f"{utterance_id} {utterance_id}\n")
+            f.write(f"{segment_id} {segment_id}\n")
 
 
 def create_chunks_with_noise(
@@ -122,7 +122,7 @@ def process_audio_file(args, wav_path, file_count):
         # Unpack args
         segment_file, wav_scp_file, utt2spk_file, add_noise, noise_dir = args
 
-        recording_id = generate_unique_id(wav_path, file_count)
+        utterance_id = generate_unique_id(wav_path, file_count)
 
         if not add_noise:
             # Regular chunking mode
@@ -134,9 +134,10 @@ def process_audio_file(args, wav_path, file_count):
             for i in range(num_segments):
                 start_time = i * segment_duration
                 end_time = (i + 1) * segment_duration
-                utterance_id = f"{recording_id}-{i:09d}"
+                segment_id = f"{utterance_id}-{i:09d}"
 
                 write_metadata(
+                    segment_id,
                     utterance_id,
                     start_time,
                     end_time,
@@ -151,10 +152,10 @@ def process_audio_file(args, wav_path, file_count):
             if remaining_time > 0:
                 start_time = num_segments * segment_duration
                 end_time = remaining_time + start_time
-                utterance_id = f"{recording_id}-{num_segments:09d}"
+                segment_id = f"{utterance_id}-{num_segments:09d}"
 
                 write_metadata(
-                    utterance_id,
+                    segment_id,
                     start_time,
                     end_time,
                     wav_path,
@@ -169,7 +170,7 @@ def process_audio_file(args, wav_path, file_count):
 
             # Process each chunk
             for i, (chunk, sr) in enumerate(chunks):
-                chunk_filename = f"{recording_id}-{i:04d}.wav"
+                chunk_filename = f"{utterance_id}-{i:04d}.wav"
                 chunk_path = os.path.join(noise_dir, chunk_filename)
 
                 # Save chunk to disk - needs lock since multiple processes might create files with same name
@@ -177,9 +178,9 @@ def process_audio_file(args, wav_path, file_count):
                     sf.write(chunk_path, chunk, sr)
 
                 # Create metadata entries
-                utterance_id = f"{recording_id}-{i:09d}"
+                segment_id = f"{utterance_id}-{i:09d}"
                 write_metadata(
-                    utterance_id,
+                    segment_id,
                     0.00,
                     10.00,
                     chunk_path,

@@ -22,6 +22,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
+import torch.nn.functional as F
 import torch.utils.checkpoint
 import torchaudio.transforms as audio_transforms
 from einops.layers.torch import Rearrange
@@ -155,7 +156,7 @@ class DashengFeatureExtractor(SequenceFeatureExtractor):
         x: Union[np.ndarray, torch.Tensor, List[np.ndarray], List[torch.Tensor]],
         sampling_rate: Optional[int] = None,
         max_length: Optional[int] = 16000,
-        truncation: bool = True,
+        truncation: bool = False,
         return_tensors="pt",
     ) -> BatchFeature:
         r"""
@@ -720,6 +721,10 @@ class DashengEncoder(AbsEncoder):
         )
         self.model = DashengModel.from_pretrained(model_name)
         self.feature_extractor = DashengFeatureExtractor.from_pretrained(model_name)
+        logging.info(f"Dasheng feature extractor params: {self.feature_extractor}")
+        # audio greater than 10 sec will be split and features will be appended
+        # back according to Section 3.2 : https://arxiv.org/pdf/2406.06992
+        self.dasheng_max_length = int(10 * self.feature_extractor.sampling_rate)
         self.pretrained_params = copy.deepcopy(self.model.state_dict())
         self.roll_augment = roll_augment
         self.roll_interval = roll_interval
@@ -734,6 +739,23 @@ class DashengEncoder(AbsEncoder):
         self.model.load_state_dict(self.pretrained_params)
         logging.info("Pretrained Dasheng model parameters reloaded!")
 
+    def prepare_input(self, xs_pad: torch.Tensor, ilens: torch.Tensor):
+        if xs_pad.ndim == 2:
+            xs_pad = xs_pad.unsqueeze(-1)
+        assert xs_pad.ndim == 3, xs_pad.size()
+        assert xs_pad.shape[-1] == 1, xs_pad.size()
+        if self.roll_augment and self.training:
+            xs_pad = roll_tensor(xs_pad, ilens, fixed_intervals=self.roll_interval)
+        xs_pad = xs_pad.squeeze(-1)
+        assert xs_pad.ndim == 2, xs_pad.size()  # B, T
+
+        if xs_pad.shape[1] > self.dasheng_max_length:
+            extra_len = xs_pad.shape[1] % self.dasheng_max_length
+            if extra_len != 0:
+                xs_pad = F.pad(xs_pad, (0, self.dasheng_max_length - extra_len))
+            xs_pad = xs_pad.reshape(-1, self.dasheng_max_length)
+        return xs_pad
+
     def forward(
         self,
         xs_pad: torch.Tensor,
@@ -741,25 +763,28 @@ class DashengEncoder(AbsEncoder):
         prev_states: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
 
-        if xs_pad.ndim == 2:
-            xs_pad = xs_pad.unsqueeze(-1)
-
-        assert xs_pad.ndim == 3, xs_pad.size()
-        assert xs_pad.shape[-1] == 1, xs_pad.size()
-        if self.roll_augment and self.training:
-            xs_pad = roll_tensor(xs_pad, ilens, fixed_intervals=self.roll_interval)
-        xs_pad = xs_pad.squeeze(-1)
-        assert xs_pad.ndim == 2, xs_pad.size()
-
-        x = [xs_pad[i, :ilen] for i, ilen in enumerate(ilens)]
-        x = self.feature_extractor(x)  # run dasheng frontend
-
+        x = self.prepare_input(xs_pad, ilens)
+        scale_down_factor = x.shape[1]
+        x = self.feature_extractor(x)
         if self.specaug is not None and self.training:
             x["input_values"] = self.specaug(x["input_values"])[0]
 
         x = self.model(**x)
         if self.layernorm is not None:
             x = self.layernorm(x)
+
+        scale_down_factor = scale_down_factor // x.shape[1]  # raw_len / feature_len
+
+        # Reshape back if the audio was split.
+        ilen_max = ilens.max().item()
+        if ilen_max > self.dasheng_max_length:
+            ilen_max = self.dasheng_max_length * math.ceil(
+                ilen_max / self.dasheng_max_length
+            )
+        olen_max = ilen_max // scale_down_factor
+        if x.shape[1] != olen_max:
+            x = x.reshape(-1, olen_max, x.shape[-1])
+
         olens = torch.tensor(
             [x_.shape[0] for x_ in x], dtype=torch.long, device=x.device
         )

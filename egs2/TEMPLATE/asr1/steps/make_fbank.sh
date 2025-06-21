@@ -161,34 +161,38 @@ else
 fi
 
 
-# concatenate the .scp files together.
+
+> ${data}/feats.scp
 for n in $(seq ${nj}); do
-    cat ${fbankdir}/raw_fbank_${name}.${n}.scp || exit 1;
-done > ${data}/feats.scp || exit 1
+    cat "${fbankdir}/raw_fbank_${name}.${n}.scp" || exit 1
+done >> ${data}/feats.scp || exit 1
 
 if ${write_utt2num_frames}; then
+    > ${data}/utt2num_frames
     for n in $(seq ${nj}); do
-        cat ${logdir}/utt2num_frames.${n} || exit 1;
-    done > ${data}/utt2num_frames || exit 1
-    rm ${logdir}/utt2num_frames.* 2>/dev/null
+        cat "${logdir}/utt2num_frames.${n}" || exit 1
+    done >> ${data}/utt2num_frames || exit 1
+    rm "${logdir}/utt2num_frames."* 2>/dev/null
 fi
 
 echo "Succeeded creating filterbank features!"
 
 # Merge fbank_stats
 if [ -n "${fbank_stats_file}" ]; then
-    fbank_stats_files_=""
-    for n in $(seq ${nj}); do
-        fbank_stats_files_+="${fbankdir}/${fbank_stats_file%.npz}.${n}.npz|"
-    done
     output_file="${data}/${fbank_stats_file%.npz}.txt"
     echo "Merging fbank_stats to ${output_file}"
-    ${python} - <<EOF "${fbank_stats_files_}" "${output_file}"
+
+    ${python} - <<EOF "${fbankdir}" "${fbank_stats_file}" "${nj}" "${output_file}"
 import sys
 import numpy as np
 from functools import reduce
-files=sys.argv[1].strip().split('|')[:-1]
-output_file=sys.argv[2]
+import os
+
+fbankdir = sys.argv[1]
+fbank_stats_file = sys.argv[2]
+nj = int(sys.argv[3])
+output_file = sys.argv[4]
+files = [os.path.join(fbankdir, f"{fbank_stats_file}.{n}.npz") for n in range(1, nj+1)]
 merged_data = reduce(lambda d, f: {k: d.get(k, 0) + v for k, v in np.load(f).items()}, files, {})
 merged_data['fbank_mean'] = merged_data['sum'] / merged_data['count']
 merged_data['fbank_std'] = np.sqrt(merged_data['sum2'] / merged_data['count'] - merged_data['fbank_mean']**2)
@@ -197,6 +201,7 @@ with open(output_file, "w") as f:
         f.write(f"{k}: {v:.5f}\n")
 EOF
 fi
+
 
 rm -f ${logdir}/wav.*.scp ${logdir}/segments.* 2>/dev/null
 

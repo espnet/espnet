@@ -10,6 +10,7 @@ from typeguard import typechecked
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.encoder.beats_encoder import BeatsEncoder, BeatsPretrainingPredictor
+from espnet2.asr.encoder.auris_encoder import AurisEncoder
 from espnet2.beats.espnet_model import BeatsPretrainModel, BeatsTokenizerPretrainModel
 from espnet2.speechlm.tokenizer.beats_tokenizer import (
     BeatsTokenizer,
@@ -32,6 +33,7 @@ encoder_choices = ClassChoices(
     classes=dict(
         beats=BeatsEncoder,
         beats_tokenizer=BeatsTokenizer,
+        auris=AurisEncoder,
     ),
     type_check=AbsEncoder,
     default="beats",
@@ -164,10 +166,10 @@ class BeatsTask(AbsTask):
         logger.info(f"Vocabulary size: {vocab_size }")
         n_codebook_vectors = vocab_size - 1
 
-        assert (
-            args.model == args.encoder
-        ), f"Model and encoder choice should match {pretraining_model}"
         pretraining_model = args.model
+        assert (args.model == args.encoder and args.model == "beats_tokenizer") or (
+            args.model == "beats" and args.encoder in ["beats", "auris"]
+        ), f"Model and encoder choice should match {pretraining_model}"
 
         # 1. frontend
         input_size = 1  # model will extract features

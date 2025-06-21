@@ -21,6 +21,7 @@ class LinearDecoder(AbsDecoder):
         encoder_output_size: int,
         pooling: str = "mean",
         dropout: float = 0.0,
+        pre_layer_norm: bool = False,
     ):
         """Initialize the module."""
         super().__init__()
@@ -37,6 +38,7 @@ class LinearDecoder(AbsDecoder):
             "CLS",
         ], f"Invalid pooling: {pooling}. Should be 'mean', 'max' or 'CLS'."
         self.pooling = pooling
+        self.layer_norm = torch.nn.LayerNorm(self.input_dim) if pre_layer_norm else None
 
     def forward(
         self,
@@ -52,6 +54,8 @@ class LinearDecoder(AbsDecoder):
         """
 
         mask = make_pad_mask(lengths=hlens, xs=hs_pad, length_dim=1).to(hs_pad.device)
+        if self.layer_norm is not None:
+            hs_pad = self.layer_norm(hs_pad)
         if self.dropout is not None:
             hs_pad = self.dropout(hs_pad)
         if self.pooling == "mean":

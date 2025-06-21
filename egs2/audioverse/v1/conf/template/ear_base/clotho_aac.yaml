@@ -2,7 +2,7 @@ batch_type: folded
 unused_parameters: true
 batch_size: 64
 accum_grad: 2
-max_epoch: 8
+max_epoch: 20
 grad_clip: 1
 patience: none
 best_model_criterion:
@@ -42,7 +42,7 @@ encoder_conf:
         num_time_mask: 5
     adapter_config: conf/wav2vec2_conformer_config.json
     downsampling_rate: 3 # CNN downsampling over beats encoder
-    max_layer: 10 # 0 based index
+    max_layer: 8 # 0 based index
     use_weighted_representation: false
     add_positional_information: true
     max_positions: 1024 # These many positional embeddings will be learned

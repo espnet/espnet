@@ -65,6 +65,7 @@ class ESPnetClassificationModel(AbsESPnetModel):
         classification_type="multi-class",
         lsm_weight: float = 0.0,
         mixup_probability: float = 0.0,
+        mixup_alpha: float = 0.8,
         log_epoch_metrics: bool = False,
     ):
         super().__init__()
@@ -105,7 +106,9 @@ class ESPnetClassificationModel(AbsESPnetModel):
             )
         self.mixup_augmentation = None
         if mixup_probability > 0.0:
-            self.mixup_augmentation = MixupAugment(mixup_probability=mixup_probability)
+            self.mixup_augmentation = MixupAugment(
+                mixup_probability=mixup_probability, mixup_alpha=mixup_alpha
+            )
         self.metric_functions = self.setup_metrics_()
         self.log_epoch_metrics = log_epoch_metrics
         self.predictions = []
@@ -161,11 +164,6 @@ class ESPnetClassificationModel(AbsESPnetModel):
             assert (
                 self.classification_type == "multi-label"
             ), "Mixup is only for multi-label classification"
-            if speech_lengths.min() != speech_lengths.max():
-                logger.warning(
-                    "Mixup is not recommended for variable length input. "
-                    "It may not work as expected."
-                )
             speech, onehot_, speech_lengths = self.mixup_augmentation(
                 speech, onehot_, speech_lengths
             )
@@ -193,8 +191,8 @@ class ESPnetClassificationModel(AbsESPnetModel):
             stats[metric_name] = val
         # Store for mAP logging
         if self.log_epoch_metrics:
-            self.predictions.append(pred.detach().cpu())
-            self.targets.append(onehot_.detach().cpu())
+            self.predictions.append(pred.detach())
+            self.targets.append(onehot_.detach())
 
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
         return loss, stats, weight
@@ -325,14 +323,13 @@ class ESPnetClassificationModel(AbsESPnetModel):
         return feats, feats_lengths
 
     def update_mAP(self, mAP_computer):
-
+        if len(self.predictions) == 0 or len(self.targets) == 0:
+            self.predictions = []
+            self.targets = []
+            return
+        preds, targets = torch.cat(self.predictions), torch.cat(self.targets)
         if self.get_vocab_size() == 1:
-            preds = torch.cat(self.predictions)
-            targets = torch.cat(self.targets)
-            preds = torch.cat([1 - preds, preds], dim=-1)
-            targets = torch.cat([1 - targets, targets], dim=-1)
-        else:
-            preds, targets = torch.cat(self.predictions), torch.cat(self.targets)
+            preds, targets = preds.squeeze(-1), targets.squeeze(-1)
         mAP_computer.update(preds, targets)
         self.predictions = []
         self.targets = []

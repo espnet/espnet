@@ -1,0 +1,6 @@
+tokenizer_config:
+    seed: 45
+    quant_n: 4096
+    quant_dim: 512
+fbank_mean: 15.29130
+fbank_std: 5.90532 # These are for 7m dataset

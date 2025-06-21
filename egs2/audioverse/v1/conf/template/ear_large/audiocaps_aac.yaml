@@ -42,12 +42,20 @@ encoder_conf:
         - 0
         - 0.12
         num_time_mask: 5
-    adapter_config: conf/wav2vec2_conformer_config.json
+    adapter_config: conf/wav2vec2_conformer_config_large.json
     downsampling_rate: 3 # CNN downsampling over beats encoder
-    max_layer: 10 # 0 based index
+    max_layer: MAX_LAYER # 0 based index
     use_weighted_representation: false
     add_positional_information: true
     max_positions: 1024 # These many positional embeddings will be learned
+    beats_config:
+        # Large
+        encoder_layers: 24
+        encoder_embed_dim: 1024
+        encoder_ffn_embed_dim: 4096
+        encoder_attention_heads: 16
+        decoder_embed_dim: 1024
+        decoder_attention_heads: 16
 
 # Pleae note that the decoder is not the standard BART-base,
 # but a custom one whose config is defined in the file below

@@ -110,3 +110,6 @@ tools/Miniconda3-latest-*.sh
 tools/Miniforge3-*.sh
 tools/condarc
 tools/lightning_constraints.txt
+egs2/as2m/cls1/core
+egs2/beans/cls1/core
+egs2/as2m/ssl1/core
