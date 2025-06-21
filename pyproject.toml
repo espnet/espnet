@@ -154,4 +154,9 @@ all = [
   "espnet[task-tts]",
   "espnet[task-enh]",
   "espnet[task-spk]",
+  "torchaudio",
+  "torch_optimizer",
+  "fairscale",
+  "transformers",
+  "evaluate",
 ]
