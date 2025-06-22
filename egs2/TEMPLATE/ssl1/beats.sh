@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
-# TODO(shikhar): MANY CHANGES HERE FKR DATA PREP FIX THEM -- ESP VALID SET AND COMMENTED CODE
+
 set -e
 set -u
 set -o pipefail
@@ -152,7 +152,7 @@ fi
 
 # Check required arguments
 [ -z "${train_set}" ] && { log "${help_message}"; log "Error: --train_set is required"; exit 2; };
-# [ -z "${valid_set}" ] && { log "${help_message}"; log "Error: --valid_set is required"; exit 2; };
+[ -z "${valid_set}" ] && { log "${help_message}"; log "Error: --valid_set is required"; exit 2; };
 
 # Check feature type
 if [ "${feats_type}" = raw ]; then
@@ -199,7 +199,7 @@ if ! "${skip_data_prep}"; then
     fi
     if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         log "Stage 2: Format wav.scp: ${datadir}/ -> ${data_feats_raw}/[org]"
-        for dset in "${train_set}" ; do
+        for dset in "${valid_set}" "${train_set}"; do
             utils/copy_data_dir.sh --validate_opts --non-print "${datadir}/${dset}" "${data_feats_raw}/org/${dset}"
             rm -f ${data_feats_raw}/org/${dset}/{reco2file_and_channel,reco2dur}
             _opts=
@@ -230,7 +230,7 @@ if ! "${skip_data_prep}"; then
 
     if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         log "Stage 3: Remove long/short data: ${data_feats_raw}"
-        for dset in "${train_set}"; do
+        for dset in "${valid_set}" "${train_set}"; do
             _fs=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
             _min_length=$(python3 -c "print(int(${min_wav_duration} * ${_fs}))")
             _max_length=$(python3 -c "print(int(${max_wav_duration} * ${_fs}))")
@@ -253,7 +253,7 @@ if ! "${skip_data_prep}"; then
     if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         if [ "${feats_type}" = fbank ]; then
             log "Stage 4: Feature extraction: ${data_feats}/${train_set}, ${data_feats}/${valid_set}"
-            for dset in "${train_set}"; do
+            for dset in "${valid_set}" "${train_set}"; do
                 log "Extracting features: ${dset}"
                 # utils/fix_data_dir.sh "${dumpdir}/raw/${dset}" 
                 utils/copy_data_dir.sh --validate_opts --non-print "${dumpdir}/raw/${dset}" "${data_feats}/org/${dset}"
@@ -498,27 +498,27 @@ if ! "${skip_train}"; then
         setup_common_vars
         tokenizer_inference 3
 
-        # _opts=
-        # if [ -n "${tokenizer_inference_config}" ]; then
-        #     _opts+="--config_path ${tokenizer_inference_config} "
-        # fi
-        # _opts+="${_waveform_opt} "
+        _opts=
+        if [ -n "${tokenizer_inference_config}" ]; then
+            _opts+="--config_path ${tokenizer_inference_config} "
+        fi
+        _opts+="${_waveform_opt} "
 
-        # # Tokenize
-        # _nj=$((ngpu==0?nj:ngpu))
-        # _ngpu=$((ngpu==0?0:1))
-        # for dset in "${valid_set}" "${train_set}"; do
-        #     log "Clearing token output directory: ${data_feats}/${dset}/iter0_${_tokenizer_inference_tag}"
-        #     rm -rf "${data_feats}/${dset}/iter0_${_tokenizer_inference_tag}"
-        #     ./scripts/feats/audio_tokenization.sh \
-        #         --codec_choice beats_random \
-        #         --file_name ${_scp} \
-        #         --src_dir "${data_feats}/${dset}" \
-        #         --tgt_dir "${data_feats}/${dset}/iter0_${_tokenizer_inference_tag}" \
-        #         ${_opts} \
-        #         --nj "${_nj}" --ngpu ${_ngpu} --batch_size "${tokenizer_inference_batch_size}"
-        #     cp "${data_feats}/${dset}/iter0_${_tokenizer_inference_tag}/${_scp%.scp}_beats_random.txt" "${data_feats}/${dset}/target_iter0_${_tokenizer_inference_tag}"
-        # done
+        # Tokenize
+        _nj=$((ngpu==0?nj:ngpu))
+        _ngpu=$((ngpu==0?0:1))
+        for dset in "${valid_set}" "${train_set}"; do
+            log "Clearing token output directory: ${data_feats}/${dset}/iter0_${_tokenizer_inference_tag}"
+            rm -rf "${data_feats}/${dset}/iter0_${_tokenizer_inference_tag}"
+            ./scripts/feats/audio_tokenization.sh \
+                --codec_choice beats_random \
+                --file_name ${_scp} \
+                --src_dir "${data_feats}/${dset}" \
+                --tgt_dir "${data_feats}/${dset}/iter0_${_tokenizer_inference_tag}" \
+                ${_opts} \
+                --nj "${_nj}" --ngpu ${_ngpu} --batch_size "${tokenizer_inference_batch_size}"
+            cp "${data_feats}/${dset}/iter0_${_tokenizer_inference_tag}/${_scp%.scp}_beats_random.txt" "${data_feats}/${dset}/target_iter0_${_tokenizer_inference_tag}"
+        done
 
         # Prepare token list
         : > "${token_listdir}/tokens.txt"  # Clear the file if it exists
@@ -572,19 +572,19 @@ if ! "${skip_train}"; then
 
         # Run collectstats
         # shellcheck disableSC2046,SC2086
-        # ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
-        #     ${python} -m espnet2.bin.beats_train \
-        #         --collect_stats true \
-        #         --use_preprocessor true \
-        #         --token_list "${token_listdir}/tokens.txt" \
-        #         --train_data_path_and_name_and_type "${_ssl_train_dir}/${_scp},speech,${_type}" \
-        #         --train_data_path_and_name_and_type "${_ssl_train_dir}/target_iter0_${_tokenizer_inference_tag},target,text" \
-        #         --valid_data_path_and_name_and_type "${_ssl_valid_dir}/${_scp},speech,${_type}" \
-        #         --valid_data_path_and_name_and_type "${_ssl_valid_dir}/target_iter0_${_tokenizer_inference_tag},target,text" \
-        #         --train_shape_file "${_logdir}/train.JOB.scp" \
-        #         --valid_shape_file "${_logdir}/valid.JOB.scp" \
-        #         --output_dir "${_logdir}/stats.JOB" \
-        #         ${_opts} ${beats_args} || { cat $(grep -l -i error "${_logdir}"/stats.*.log) ; exit 1; }
+        ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
+            ${python} -m espnet2.bin.beats_train \
+                --collect_stats true \
+                --use_preprocessor true \
+                --token_list "${token_listdir}/tokens.txt" \
+                --train_data_path_and_name_and_type "${_ssl_train_dir}/${_scp},speech,${_type}" \
+                --train_data_path_and_name_and_type "${_ssl_train_dir}/target_iter0_${_tokenizer_inference_tag},target,text" \
+                --valid_data_path_and_name_and_type "${_ssl_valid_dir}/${_scp},speech,${_type}" \
+                --valid_data_path_and_name_and_type "${_ssl_valid_dir}/target_iter0_${_tokenizer_inference_tag},target,text" \
+                --train_shape_file "${_logdir}/train.JOB.scp" \
+                --valid_shape_file "${_logdir}/valid.JOB.scp" \
+                --output_dir "${_logdir}/stats.JOB" \
+                ${_opts} ${beats_args} || { cat $(grep -l -i error "${_logdir}"/stats.*.log) ; exit 1; }
         
         ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
             ${python} -m espnet2.bin.beats_train \
@@ -624,17 +624,19 @@ if ! "${skip_train}"; then
         log "Stage 7: BEATs Training: train_set=${_ssl_train_dir}, valid_set=${_ssl_valid_dir}"
         for ((iter=${train_start_iter}; iter<=${train_stop_iter};iter++)); do
             log "Starting iteration ${iter} of BEATs Training"
-            # if ! [ ${iter} -eq 0 ]; then
-            #     if [ -z "${external_tokenizer_model}" ]; then
-            #         train_tokenizer ${iter}
-            #     else
-            #         if [ "${train_start_iter}" -ne "${train_stop_iter}" ]; then
-            #             log "Error: External tokenizer model is provided, but training is requested for multiple iterations"
-            #             exit 1
-            #         fi
-            #     fi
-            #     tokenizer_inference ${iter}
-            # fi
+            if ! [ ${iter} -eq 0 ]; then
+                if [ -z "${external_tokenizer_model}" ]; then
+                    train_tokenizer ${iter}
+                else
+                    if [ "${train_start_iter}" -ne "${train_stop_iter}" ]; then
+                        # NOTE(shikhar): If external tokenizer model is provided, 
+                        # it is ambiguous whether to train the tokenizer or not for next iteration so we show error.
+                        log "Error: External tokenizer model is provided, but training is requested for multiple iterations"
+                        exit 1
+                    fi
+                fi
+                tokenizer_inference ${iter}
+            fi
             train_encoder ${iter}
         done
     fi

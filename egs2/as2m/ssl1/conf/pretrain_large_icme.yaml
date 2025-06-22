@@ -1,4 +1,3 @@
-# unused_parameters: true
 init: none # we initialise differently from espnet
 num_att_plot: 0
 

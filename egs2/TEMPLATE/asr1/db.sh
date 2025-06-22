@@ -20,7 +20,7 @@ AUDIOSET=
 ASVSpoof_CMD=
 BEANS=downloads
 BIBLETTS=downloads
-COCHLSCENE=/work/hdd/bbjs/shared/corpora/cochlscene/CochlScene
+COCHLSCENE=
 CORAAL=downloads
 COVOST2=
 DIRHA_ENGLISH_PHDEV=
@@ -31,14 +31,13 @@ DNS2=
 DNS3=
 DNS4=downloads
 DSING=downloads
-EPIC_SOUNDS=/work/hdd/bbjs/shared/corpora/epic_sound/EPIC_audio.hdf5
-ESC50=/compute/babel-13-33/sbharad2/ESC-50-master
-# /work/hdd/bbjs/shared/corpora/esc_master/ESC-50-master
-FMA=/work/hdd/bbjs/shared/corpora/fma/fma_full
+EPIC_SOUNDS=
+ESC50=
+FMA=
 GTZAN=downloads
-INAT_SOUNDS=/work/hdd/bbjs/shared/corpora/inat_sounds
-MIXUP_FSD=/work/hdd/bbjs/shared/corpora/synthetic_fsd/BFSD
-WAVCAPS=/work/hdd/bbjs/shared/corpora/wavcaps
+INAT_SOUNDS=
+MIXUP_FSD=
+WAVCAPS=
 WSJ0=
 WSJ1=
 WSJ0_2MIX= # Path to wsj0_mix directory
@@ -237,11 +236,11 @@ HIFITTS=downloads
 CLOTHO_V2=downloads
 CLOTHO_ENTAILMENT=downloads
 CLOTHO_AQA=downloads
-AUDIOCAPS=/work/hdd/bbjs/shared/corpora/audiocaps
-CLOTHO_CHATGPT_MIXUP=/work/hdd/bbjs/shared/corpora/clotho_captions_mixup
+AUDIOCAPS=
+CLOTHO_CHATGPT_MIXUP=
 EDACC=downloads
 FSD50K=downloads
-YT8M=/work/hdd/bbjs/shared/corpora/yt8m/unzipped/extracted
+YT8M=
 
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then

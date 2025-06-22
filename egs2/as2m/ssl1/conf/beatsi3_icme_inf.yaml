@@ -1,10 +1,6 @@
 tokenizer_config:
     seed: 45
 
-# eval target stats
-# fbank_mean: 13.00044
-# fbank_std: 5.7666
-
-# train stats (no yt8m, GigaSpeech)
 fbank_mean: 14.803
 fbank_std: 3.079
+# Stats for inference on the ICME model's corpus

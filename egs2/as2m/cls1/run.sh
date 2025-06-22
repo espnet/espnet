@@ -11,14 +11,13 @@ test_sets="eval"
 cls_config=conf/beats_cls.yaml
 
 timestamp=$(date "+%Y%m%d.%H%M%S")
-mynametag=${timestamp}
 
 storage_dir=. # change this to where you have space, if needed
 mkdir -p "${storage_dir}"
 
 
 ./cls.sh \
-    --cls_tag "${mynametag}" \
+    --cls_tag "${timestamp}" \
     --datadir "${storage_dir}/data" \
     --dumpdir "${storage_dir}/dump" \
     --expdir "${storage_dir}/exp" \

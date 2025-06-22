@@ -348,7 +348,6 @@ if ${parallel}; then
     wait
 
     # For parallel mode, we need to check logs for success/failure
-    # TODO(shikhar): Parse!
     total=0
     successful=0
     failed=0

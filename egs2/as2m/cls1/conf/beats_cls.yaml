@@ -1,14 +1,12 @@
 unused_parameters: true
 init: xavier_normal
 
-batch_type: weighted
+batch_type: length_weighted
 utt2weight_file: /compute/babel-11-13/sbharad2/beats_run/as2m_balanced_dynamic/data/utt2weight
+valid_batch_type: length
 
-valid_batch_type: folded
-# Need large batch size to get good estimate
-valid_batch_size: 1200
-batch_size: 320 # over 8gpus, 6315 batches over 2m examples --> 3157.5 steps per epoch
-max_epoch: 16 # 50k steps, 8
+batch_bins: 80000000 # (16000 hz * 10sec) * 500 samples/batch, 4 GPUs H-200
+max_epoch: 25
 
 accum_grad: 2
 grad_clip: 1

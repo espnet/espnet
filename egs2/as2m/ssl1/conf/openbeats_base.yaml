@@ -1,4 +1,4 @@
-# unused_parameters: true
+# Pretraining config for OpenBEATs base model
 init: none # we initialise differently from espnet
 num_att_plot: 0
 
@@ -10,7 +10,7 @@ encoder_conf:
         dropout: 0.1
          # if you change this then also change n_targets in beats.sh
         codebook_vocab_size: 1024
-        fbank_mean: 15.29130
+        fbank_mean: 15.29130 # for 7m
         fbank_std: 5.90532
         decoder_layers: 3 # layers in the pretraining predictor
         deep_norm: true
@@ -19,15 +19,6 @@ encoder_conf:
         num_buckets: 320
         max_distance: 800
         gru_rel_pos: true
-
-        # Large
-        encoder_layers: 24
-        encoder_embed_dim: 1024
-        encoder_ffn_embed_dim: 4096
-        encoder_attention_heads: 16
-        decoder_embed_dim: 1024
-        decoder_attention_heads: 16
-
     use_weighted_representation: false
     is_pretraining: true
 
@@ -35,13 +26,12 @@ model_conf:
     ignore_id: -2 # This is important!
     label_smoothing: 0.1
     waveform_input: false
-    mixup_probability: 0.20
 
 batch_type: length
 
-batch_bins: 1600000 # (998 + 500 labels) * 1000 audio samples 4-H100
+batch_bins: 1600000 # (998 + 500 labels) * 1000 audio samples 4-H100 ~ 3hr
 max_epoch: 60
 
 num_workers: 4
 use_deepspeed: true
-deepspeed_config: conf/ds_ear_large.json
+deepspeed_config: conf/ds_openbeats.json

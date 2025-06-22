@@ -113,8 +113,6 @@ def process_dataset(data_read_dir, data_write_dir, wavscplock):
 
     print("Running with parallelism", PARALLELISM, flush=True)
     with ThreadPoolExecutor(max_workers=PARALLELISM) as executor:
-        # for batch in batched(wav_files, batch_size):
-        # print("Processing batch...", flush=True)
         results = list(
             tqdm(
                 executor.map(

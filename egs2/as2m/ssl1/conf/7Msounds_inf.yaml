@@ -2,3 +2,4 @@ tokenizer_config:
     seed: 45
 fbank_mean: 15.29130
 fbank_std: 5.90532
+# Stats for inference on the 7M sounds corpus from OpenBEATs

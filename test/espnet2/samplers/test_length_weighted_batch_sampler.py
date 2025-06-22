@@ -1,6 +1,6 @@
 import pytest
 
-from espnet2.samplers.weighted_batch_sampler import WeightedBatchSampler
+from espnet2.samplers.length_weighted_batch_sampler import WeightedLengthBatchSampler
 
 
 @pytest.fixture()
@@ -16,32 +16,32 @@ def utt2weight_file(tmp_path):
     return str(p)
 
 
-def test_WeightedBatchSampler(utt2weight_file):
-    sampler = WeightedBatchSampler(
+def test_WeightedLengthBatchSampler(utt2weight_file):
+    sampler = WeightedLengthBatchSampler(
         2,
         utt2weight_file=utt2weight_file,
     )
     list(sampler)
 
 
-def test_WeightedBatchSampler_repr(utt2weight_file):
-    sampler = WeightedBatchSampler(
+def test_WeightedLengthBatchSampler_repr(utt2weight_file):
+    sampler = WeightedLengthBatchSampler(
         2,
         utt2weight_file=utt2weight_file,
     )
     print(sampler)
 
 
-def test_WeightedBatchSampler_len(utt2weight_file):
-    sampler = WeightedBatchSampler(
+def test_WeightedLengthBatchSampler_len(utt2weight_file):
+    sampler = WeightedLengthBatchSampler(
         2,
         utt2weight_file=utt2weight_file,
     )
     len(sampler)
 
 
-def test_WeightedBatchSampler_generate(utt2weight_file):
-    sampler = WeightedBatchSampler(
+def test_WeightedLengthBatchSampler_generate(utt2weight_file):
+    sampler = WeightedLengthBatchSampler(
         2,
         utt2weight_file=utt2weight_file,
     )

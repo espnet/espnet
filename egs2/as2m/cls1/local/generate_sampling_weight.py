@@ -1,19 +1,8 @@
-# -*- coding: utf-8 -*-
-# @Time    : 11/17/20 3:22 PM
-# @Author  : Yuan Gong
-# @Affiliation  : Massachusetts Institute of Technology
-# @Email   : yuangong@mit.edu
-# @File    : gen_weight_file.py
-
-# gen sample weight = sum(label_weight) for label in all labels of the audio clip, where label_weight is the reciprocal of the total sample count of that class.
-# Note audioset is a multi-label dataset
-
 import argparse
 import csv
 import json
 import os
 import sys
-
 import numpy as np
 
 
@@ -53,15 +42,19 @@ if __name__ == "__main__":
             label_idx = int(index_dict[label])
             label_count[label_idx] = label_count[label_idx] + 1
 
-    # the reason not using 1 is to avoid underflow for majority classes, add small value to avoid underflow
+    # gen sample weight = sum(label_weight) for label in all labels of the audio clip,
+    # where label_weight is the reciprocal of the total sample count of that class.
+    # Note audioset is a multi-label dataset
+    # the reason not using 1 is to avoid underflow for majority classes, add small value
+    # to avoid underflow
     label_weight = 1000.0 / (label_count + 0.01)
-    # label_weight = 1000.0 / (label_count + 0.00)
     sample_weight = np.zeros(len(data))
 
     for i, sample in enumerate(data):
         sample_labels = sample["labels"].split(",")
         for label in sample_labels:
             label_idx = int(index_dict[label])
-            # summing up the weight of all appeared classes in the sample, note audioset is multiple-label classification
+            # summing up the weight of all appeared classes in the sample,
+            # note audioset is multiple-label classification
             sample_weight[i] += label_weight[label_idx]
     np.savetxt(data_path[:-5] + "_weight.csv", sample_weight, delimiter=",")

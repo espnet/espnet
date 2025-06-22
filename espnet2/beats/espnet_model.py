@@ -149,7 +149,6 @@ class BeatsPretrainModel(AbsESPnetModel):
         )  # target - 1 because of unk token at 0th position
 
         if self.contrastive_loss_weight != 0:
-            # loss = loss * 0 # for no MAM loss
             stats["ContraLoss"] = contrastive_loss.detach()
             stats["MAMloss"] = loss.detach()
             loss = loss + contrastive_loss
@@ -241,10 +240,6 @@ class BeatsPretrainModel(AbsESPnetModel):
             n_uniq_tgt = torch.unique(target, return_counts=False).numel()
             vocab_cov_tgt = n_uniq_tgt / logits.shape[1]
 
-            # probs = torch.nn.functional.softmax(logits, dim=1)
-            # entropy = -(probs * probs.log()).sum(dim=1).mean()
-
-        # Note(shikhar): Some of these are redundant
         stats_dict = dict(
             loss=loss.detach(),
             acc=acc_m,
@@ -262,7 +257,6 @@ class BeatsPretrainModel(AbsESPnetModel):
             # Vocab coverage metrics
             vocab_cov_tgt=vocab_cov_tgt,
             vocab_cov_pred=vocab_cov_pred,
-            # entropy=entropy,
         )
         return loss, stats_dict
 

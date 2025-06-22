@@ -1,7 +1,3 @@
-#export NCCL_P2P_DISABLE=1
-
-#export NCCL_SOCKET_IFNAME="^lo,docker,virbr,vmnet,vboxnet"
-# export NCCL_DEBUG=INFO
 export NCCL_SOCKET_IFNAME=hsn
 module load nccl
 module load gcc/11.4.0

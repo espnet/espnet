@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
 # Copyright 2018 Nagoya University (Tomoki Hayashi)
-#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
-# Copied from utils/make_fbank.sh and modified for SSL1
+# Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+# Copied from utils/make_fbank.sh and modified for SSL1 by Shikhar
 
 # Begin configuration section.
 nj=4
@@ -57,9 +57,6 @@ if [ $# -ge 3 ]; then
 else
   fbankdir=${data}/data
 fi
-
-# make $fbankdir an absolute pathname.
-# fbankdir=$(perl -e '($dir,$pwd)= @ARGV; if($dir!~m:^/:) { $dir = "$pwd/$dir"; } print $dir; ' ${fbankdir} ${PWD})
 
 # use "name" as part of name of the archive.
 name=$(basename ${data})

@@ -1,1 +1,0 @@
-../../TEMPLATE/ssl1/beats.sh

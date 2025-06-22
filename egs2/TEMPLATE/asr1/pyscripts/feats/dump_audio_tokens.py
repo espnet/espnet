@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-# Copyright 2024 Jinchuan Tian
-#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+# Copyright 2024 ESPnet - Shikhar
+# Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import argparse
 import logging

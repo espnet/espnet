@@ -26,7 +26,7 @@ declare -A DATASETS=(
     ["epic_sounds"]=EPIC_SOUNDS
     ["fma"]=FMA
     ["inat"]=INAT_SOUNDS
-    ["wavcaps"]=WAVCAPS
+    ["wavcaps"]=WAVCAPS # FSD, BBC SE, SoundBible 
 )
 
 SELECTED_DATASETS=(${@:2})
@@ -44,12 +44,12 @@ for dataset in "${SELECTED_DATASETS[@]}"; do
         exit 1
     fi
 
-    # SCRIPT="local/data_prep_${dataset}.py"
-    # if [ -f "$SCRIPT" ]; then
-    #     python3 "$SCRIPT" "${!VAR_NAME}" "$DATA_PREP_ROOT"
-    # else
-    #     log "Script $SCRIPT not found, skipping ${dataset}."
-    # fi
+    SCRIPT="local/data_prep_${dataset}.py"
+    if [ -f "$SCRIPT" ]; then
+        python3 "$SCRIPT" "${!VAR_NAME}" "$DATA_PREP_ROOT"
+    else
+        log "Script $SCRIPT not found, skipping ${dataset}."
+    fi
 done
 
 # copy and append wav.scp files to create training set

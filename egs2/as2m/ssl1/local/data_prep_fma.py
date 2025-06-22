@@ -24,14 +24,12 @@ def split_audio_into_chunks(audio_path: str, chunk_size: float):
     Reads an audio file and splits it into chunks of a given size.
     """
     filename = os.path.splitext(os.path.basename(audio_path))[0]
-    # audio_data, sample_rate = sf.read(audio_path)
     metadata = torchaudio.info(audio_path)
     sample_rate = metadata.sample_rate
     num_frames = sample_rate * MAX_SPLITS * SPLIT_THRESHOLD_SECONDS
     audio_data, sample_rate = torchaudio.load(
         audio_path, num_frames=num_frames, channels_first=False
     )
-    # audio_data, sample_rate = torchaudio.load(audio_path)
 
     audio_duration = audio_data.shape[0] / sample_rate
     if len(audio_data.shape) > 1:
@@ -95,7 +93,6 @@ def process_file(audio_path, data_write_dir, wav_scp_f, wavscplock):
     with wavscplock:
         with open(wav_scp_f, "a") as f:
             f.write("\n".join(lines_to_write) + "\n")
-    # print("written to wav.scp", file_id, flush=True)
     return len(lines_to_write)
 
 
@@ -118,8 +115,6 @@ def process_dataset(data_read_dir, data_write_dir, wavscplock):
 
     print("Running with parallelism", PARALLELISM, flush=True)
     with ThreadPoolExecutor(max_workers=PARALLELISM) as executor:
-        # for batch in batched(mp3_files, batch_size):
-        # print("Processing batch...", flush=True)
         results = list(
             tqdm(
                 executor.map(
