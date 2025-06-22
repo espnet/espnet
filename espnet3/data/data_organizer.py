@@ -1,8 +1,6 @@
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional
 
-from datasets import load_dataset  # HuggingFace Datasets
-from hydra.utils import instantiate
 from tqdm import tqdm
 
 from espnet2.train.preprocessor import AbsPreprocessor
@@ -96,6 +94,8 @@ class DataOrganizer:
         preprocessor: Optional[Callable[[dict], dict]] = None,
     ):
         self.preprocessor = preprocessor or do_nothing_transform
+        assert callable(self.preprocessor), \
+            "Preprocessor should be callable."
         is_espnet_preprocessor = isinstance(self.preprocessor, AbsPreprocessor)
 
         def build_dataset_list(cfg_list):
@@ -108,13 +108,8 @@ class DataOrganizer:
                 else:
                     transform = do_nothing_transform
 
-                wrapped_transform = get_wrapped_transform(
-                    is_espnet_preprocessor,
-                    transform,
-                    self.preprocessor,
-                )
                 datasets.append(dataset)
-                transforms.append(wrapped_transform)
+                transforms.append((transform, self.preprocessor))
             return CombinedDataset(datasets, transforms, add_uid=is_espnet_preprocessor)
 
         self.train = None
@@ -140,13 +135,11 @@ class DataOrganizer:
                     transform = cfg.transform
                 else:
                     transform = do_nothing_transform
-                wrapped_transform = get_wrapped_transform(
-                    is_espnet_preprocessor,
+                self.test_sets[cfg.name] = DatasetWithTransform(
+                    dataset,
                     transform,
                     self.preprocessor,
-                )
-                self.test_sets[cfg.name] = DatasetWithTransform(
-                    dataset, wrapped_transform, add_uid=is_espnet_preprocessor
+                    add_uid=is_espnet_preprocessor,
                 )
 
     @property

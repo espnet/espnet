@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import Any, Callable, Dict, List, Union, Tuple
+from typing import Any, Callable, Dict, List, Tuple, Union
 
 from torch.utils.data.dataset import Dataset
 
@@ -168,8 +168,8 @@ class CombinedDataset:
 
     Args:
         datasets (List[Any]): List of datasets implementing __getitem__ and __len__.
-        transforms (List[Callable[[dict], dict]]): List of transform functions
-            for each dataset.
+        transforms (List[Tuple[Callable, Callable]]): List of tuple with transform and
+            preprocessor. [(transform1, preprocessor), (transform2, preprocessor)..]
 
     Example:
         >>> dataset = CombinedDataset([ds1, ds2], [tf1, tf2])
@@ -182,7 +182,7 @@ class CombinedDataset:
     def __init__(
         self,
         datasets: List[Any],
-        transforms: List[Callable[[dict], dict]],
+        transforms: List[Tuple[Callable, Callable]],
         add_uid: bool = False,
     ):
         self.datasets = datasets
@@ -200,7 +200,7 @@ class CombinedDataset:
         for i, (dataset, transform) in enumerate(zip(self.datasets, self.transforms)):
             if len(dataset) == 0:
                 continue  # Skip empty datasets
-            sample = transform(dataset[0])
+            sample = transform[0](dataset[0].copy())
             if isinstance(sample, tuple):  # (uid, data_dict)
                 _, sample = sample
             keys = set(sample.keys())
@@ -243,10 +243,13 @@ class CombinedDataset:
             if idx < cum_len:
                 ds_idx = idx if i == 0 else idx - self.cumulative_lengths[i - 1]
                 sample = self.datasets[i][ds_idx]
+                transformed = self.transforms[i][0](sample)  # apply transform
                 if self.add_uid:
-                    return (str(idx), self.transforms[i]((str(idx), sample)))
+                    transformed = self.transforms[i][1](str(idx), transformed)
                 else:
-                    return self.transforms[i](sample)
+                    transformed = self.transforms[i][1](transformed)
+                return transformed
+
         raise IndexError("Index out of range in CombinedDataset")
 
     def get_text(self, idx):
@@ -285,25 +288,30 @@ class DatasetWithTransform:
     Args:
         dataset (Any): A dataset implementing __getitem__ and __len__.
         transform (Callable): A transform function applied to each sample.
+        transform (Callable): A preprocess function applied to each sample.
 
     Example:
         >>> wrapped = DatasetWithTransform(my_dataset, my_transform)
         >>> item = wrapped[0]
     """
 
-    def __init__(self, dataset, transform, add_uid=False):
+    def __init__(self, dataset, transform, preprocessor, add_uid=False):
         self.dataset = dataset
         self.transform = transform
+        self.preprocessor = preprocessor
         self.add_uid = add_uid
 
     def __len__(self):
         return len(self.dataset)
 
     def __getitem__(self, idx):
+        sample = self.dataset[idx]
+        transformed = self.transform(sample)  # apply transform
         if self.add_uid:
-            return (str(idx), self.transform((str(idx), self.dataset[idx])))
+            transformed = self.preprocessor(str(idx), transformed)
         else:
-            return self.transform(self.dataset[idx])
+            transformed = self.preprocessor(transformed)
+        return transformed
 
     def __call__(self, idx):
         return self.__getitem__(idx)
