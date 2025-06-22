@@ -94,8 +94,7 @@ class DataOrganizer:
         preprocessor: Optional[Callable[[dict], dict]] = None,
     ):
         self.preprocessor = preprocessor or do_nothing_transform
-        assert callable(self.preprocessor), \
-            "Preprocessor should be callable."
+        assert callable(self.preprocessor), "Preprocessor should be callable."
         is_espnet_preprocessor = isinstance(self.preprocessor, AbsPreprocessor)
 
         def build_dataset_list(cfg_list):
