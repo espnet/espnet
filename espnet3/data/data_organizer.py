@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Union
 
 from tqdm import tqdm
 
@@ -19,78 +19,119 @@ class DatasetConfig:
     Attributes:
         name (str): Name identifier for the dataset.
         path (Optional[str]): Optional path or ID required for dataset instantiation.
-        dataset (Dict[str, Any]): Python path to the dataset class to be instantiated
-            via Hydra.
-        transform (Optional[Callable]): Callable to transform each sample after loading.
+        dataset (Dict[str, Any]): A dictionary for Hydra instantiation of the dataset.
+        transform (Optional[Dict[str, Any]]): A dictionary for Hydra instantiation of
+            a transform applied to each sample after loading.
 
     Example:
         >>> cfg_dict = {
         ...     "name": "custom",
-            ...     "dataset": {
-            ...         "_target_: "my_project.datasets.MyDataset",
-            ...     },
-        ...     "transform": "my_project.transforms.uppercase_transform"
+        ...     "dataset": {
+        ...         "_target_": "my_project.datasets.MyDataset",
+        ...     },
+        ...     "transform": {
+        ...         "_target_": "my_project.transforms.uppercase_transform"
+        ...     }
         ... }
         >>> config = DatasetConfig.from_dict(cfg_dict)
     """
 
     name: str
-    path: Optional[str] = None
-    dataset: Dict[str, Any] = None  # Module path to dataset class
+    dataset: Dict[str, Any] = None
     transform: Optional[Dict[str, Any]] = None
 
+    @staticmethod
+    def from_dict(cfg: Dict[str, Any]) -> "DatasetConfig":
+        """
+        Create a DatasetConfig instance from a plain dictionary.
 
-def get_wrapped_transform(is_espnet_preprocessor, t, p):
-    def transform_espnet(x):
-        return p(*t(x))
+        Args:
+            cfg (Dict[str, Any]): Dictionary containing keys matching DatasetConfig fields.
 
-    def transform(x):
-        return p(t(x))
-
-    if is_espnet_preprocessor:
-        return transform_espnet
-    else:
-        return transform
+        Returns:
+            DatasetConfig: Parsed configuration object.
+        """
+        return DatasetConfig(**cfg)
 
 
 def do_nothing_transform(x):
+    """Identity transform
+    Returns input as-is.
+
+    Args:
+        x: Any object.
+
+    Returns:
+        The input object unchanged.
+    """
     return x
 
 
 class DataOrganizer:
-    """
-    Organizes training, validation, and test datasets into a unified interface.
+    """Organizes training, validation, and test datasets into a unified interface.
 
-    Automatically instantiates datasets and applies optional transform and preprocessor
-    logic per dataset.
+    This class constructs combined datasets for training and validation,
+    and individual named datasets for testing, optionally applying a transform and
+    preprocessor per dataset.
 
     Args:
-        config (Dict[str, Any]): Dictionary with keys 'train', 'valid',
-            and optionally 'test'.
-            - 'train' and 'valid' must be lists of dataset configuration dictionaries.
-            - 'test' should be a dictionary of key to dataset config.
-        preprocessor (Optional[Callable[[dict], dict]]): A global preprocessor function
-            applied after each dataset's transform.
+        train (Optional[List[Union[DatasetConfig, Dict[str, Any]]]]):
+            A list of training dataset configuration objects.
+        valid (Optional[List[Union[DatasetConfig, Dict[str, Any]]]]):
+            A list of validation dataset configuration objects.
+        test (Optional[List[Union[DatasetConfig, Dict[str, Any]]]]):
+            A list of test dataset configurations, each with a name and corresponding
+            dataset and optional transform.
+        preprocessor (Optional[Callable]): A global preprocessor function applied
+            after each dataset's transform. If it's an instance of AbsPreprocessor,
+            (uid, sample) is passed.
 
     Attributes:
-        train (CombinedDataset): Combined dataset constructed from training configs.
-        valid (CombinedDataset): Combined dataset constructed from validation configs.
-        test_sets (Dict[str, DatasetWithTransform]): Mapping from test dataset names
-            to wrapped datasets.
+        train (CombinedDataset): Combined dataset built from training configurations,
+            or `None` if not provided.
+        valid (CombinedDataset): Combined dataset built from validation configurations,
+            or `None` if not provided.
+        test_sets (Dict[str, DatasetWithTransform]): Dictionary mapping test set names
+            to DatasetWithTransform instances.
+
+    Raises:
+        RuntimeError: If only one of `train` or `valid` is provided.
+        RuntimeError: If `train` and `valid` are of mismatched types
+            (e.g., one is CombinedDataset, the other is None).
+        AssertionError: If `preprocessor` is not callable.
 
     Note:
-        Raises AssertionError if 'train' or 'valid' is not present in the config.
+        The `DataOrganizer` is designed to support both training and testing workflows:
 
-    Example:
-        >>> organizer = DataOrganizer(config_dict, preprocessor=preproc_fn)
+        - For training: provide both `train` and `valid`.
+        - For testing only: provide `test` and omit `train` / `valid`.
+        - All three (`train`, `valid`, `test`) can also be provided simultaneously.
+
+        If any of the `train`, `valid`, or `test` are omitted, the corresponding
+            attributes will be set to `None` or empty.
+
+    Example (training + validation):
+        >>> organizer = DataOrganizer(
+        ...     train=train_cfgs,
+        ...     valid=valid_cfgs,
+        ...     preprocessor=MyPreprocessor()
+        ... )
         >>> sample = organizer.train[0]
+        >>> test_sample = organizer.test["test_clean"][0]
+
+    Example (testing only):
+        >>> organizer = DataOrganizer(
+        ...     test=test_cfgs,
+        ...     preprocessor=MyPreprocessor()
+        ... )
+        >>> test_sample = organizer.test["test_clean"][0]
     """
 
     def __init__(
         self,
-        train: List[Dict[str, Any]] = None,
-        valid: List[Dict[str, Any]] = None,
-        test: Optional[List[Dict[str, Any]]] = None,
+        train: Optional[List[Union[DatasetConfig, Dict[str, Any]]]] = None,
+        valid: Optional[List[Union[DatasetConfig, Dict[str, Any]]]] = None,
+        test: Optional[List[Union[DatasetConfig, Dict[str, Any]]]] = None,
         preprocessor: Optional[Callable[[dict], dict]] = None,
     ):
         self.preprocessor = preprocessor or do_nothing_transform

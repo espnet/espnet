@@ -1,182 +1,56 @@
 from abc import ABC
-from typing import Any, Callable, Dict, List, Tuple, Union
+from typing import Any, Callable, List, Tuple
 
 from torch.utils.data.dataset import Dataset
-
-from espnet2.train.dataset import AbsDataset
-
-
-class ESPnetEZDataset(AbsDataset):
-    """
-    A dataset class for handling ESPnet data with easy access to data information.
-
-    This class extends the AbsDataset class and provides functionalities to
-    manage a dataset and its associated metadata. It allows users to retrieve
-    dataset items using unique identifiers and check for available names in
-    the dataset.
-
-    Attributes:
-        dataset (Union[list, Tuple]): The dataset containing the actual data entries.
-        data_info (Dict[str, callable]): A dictionary mapping attribute names to
-            functions that extract those attributes from the dataset.
-
-    Args:
-        dataset (Union[list, Tuple]): The dataset from which data will be extracted.
-        data_info (Dict[str, callable]): A dictionary where keys are attribute names
-            and values are functions that process the dataset entries.
-
-    Methods:
-        has_name(name): Checks if the given name exists in the data_info dictionary.
-        names() -> Tuple[str, ...]: Returns a tuple of all names in the data_info.
-        __getitem__(uid: Union[str, int]) -> Tuple[str, Dict]: Retrieves the data
-            entry corresponding to the provided unique identifier.
-        __len__() -> int: Returns the total number of entries in the dataset.
-
-    Examples:
-        >>> dataset = [
-            ("audio1.wav", "transcription1"),
-            ("audio2.wav", "transcription2")
-        ]
-        >>> data_info = {
-        ...     "audio": lambda x: x[0],
-        ...     "transcription": lambda x: x[1]
-        ... }
-        >>> ez_dataset = ESPnetEZDataset(dataset, data_info)
-        >>> ez_dataset.has_name("audio")
-        True
-        >>> ez_dataset.names()
-        ('audio', 'transcription')
-        >>> ez_dataset[0]
-        ('0', {'audio': 'audio1.wav', 'transcription': 'transcription1'})
-        >>> len(ez_dataset)
-        2
-
-    Note:
-        The dataset and data_info must be provided in a compatible format to ensure
-        proper functionality of the methods.
-    """
-
-    def __init__(self, dataset, data_info=None):
-        self.dataset = dataset
-        self.data_info = data_info
-
-    def has_name(self, name) -> bool:
-        """
-        Check if the specified name exists in the dataset's data information.
-
-        This method searches the `data_info` attribute of the dataset to determine
-        if the given `name` is present as a key. It is useful for validating
-        whether certain attributes or features are available in the dataset.
-
-        Args:
-            name (str): The name to search for in the dataset's data information.
-
-        Returns:
-            bool: True if the name exists in the data information; False otherwise.
-
-        Examples:
-            >>> dataset = ESPnetEZDataset(dataset=[...],
-                data_info={'feature1': ..., 'feature2': ...})
-            >>> dataset.has_name('feature1')
-            True
-            >>> dataset.has_name('feature3')
-            False
-
-        Note:
-            The method performs a simple membership check using the `in` operator,
-            which is efficient for dictionaries.
-        """
-        return name in self.data_info
-
-    def names(self) -> Tuple[str, ...]:
-        """
-            A dataset class for ESPnet that handles data retrieval and management.
-
-        This class extends the abstract dataset class to provide functionalities
-        specific to the ESPnet framework. It manages a dataset and its associated
-        metadata, allowing for efficient data access and manipulation.
-
-        Attributes:
-            dataset (Union[list, tuple]): The underlying dataset that contains the data.
-            data_info (Dict[str, callable]): A dictionary mapping names to functions
-                that process each data entry in the dataset.
-
-        Args:
-            dataset (Union[list, tuple]): The dataset to be wrapped.
-            data_info (Dict[str, callable]): A dictionary where keys are the names of
-                the data attributes and values are functions that extract or transform
-                the data from the dataset.
-
-        Methods:
-            has_name(name: str) -> bool:
-                Checks if a given name exists in the data_info.
-
-            names() -> Tuple[str, ...]:
-                Returns a tuple of all the names available in the data_info.
-
-            __getitem__(uid: Union[str, int]) -> Tuple[str, Dict]:
-                Retrieves the data entry corresponding to the provided identifier.
-
-            __len__() -> int:
-                Returns the number of entries in the dataset.
-
-        Examples:
-            >>> dataset = ESPnetEZDataset(dataset=[...],
-                data_info={'feature': lambda x: x.feature, 'label': lambda x: x.label})
-            >>> dataset.has_name('feature')
-            True
-            >>> dataset.names()
-            ('feature', 'label')
-            >>> entry = dataset[0]
-            >>> print(entry)
-            ('0', {'feature': ..., 'label': ...})
-            >>> len(dataset)
-            100
-
-        Note:
-            The functions provided in the data_info should be callable and should
-            accept a single argument corresponding to an entry from the dataset.
-        """
-        return tuple(self.data_info.keys())
-
-    def __getitem__(self, uid: Union[str, int]) -> Tuple[str, Dict]:
-        idx = int(uid)
-        return (
-            str(uid),
-            {k: v(self.dataset[idx]) for k, v in self.data_info.items()},
-        )
-
-    def __len__(self) -> int:
-        return len(self.dataset)
-
-
-class ShardedDataset(ABC, Dataset):
-    def shard(self, idx: int):
-        raise NotImplementedError(
-            "Please implement `shard` function,"
-            " which will return torch.utils.data.dataset.Dataset class"
-            " based on shard index."
-        )
 
 
 class CombinedDataset:
     """
-    Combines multiple datasets into a single dataset-like interface.
+    Combines multiple datasets into a single unified dataset-like interface.
 
-    This allows unified iteration over multiple datasets, applying their associated
-    transforms and mapping a flat index to the correct dataset and item.
+    This class supports seamless access to multiple datasets as if they were one.
+    Each dataset can be paired with a transform and a global preprocessor, which are
+    applied sequentially to each sample. It also supports optional UID handling for
+    ESPnet-style preprocessing.
 
     Args:
-        datasets (List[Any]): List of datasets implementing __getitem__ and __len__.
-        transforms (List[Tuple[Callable, Callable]]): List of tuple with transform and
-            preprocessor. [(transform1, preprocessor), (transform2, preprocessor)..]
+        datasets (List[Any]): A list of dataset instances. Each must implement
+            `__getitem__` and `__len__`.
+        transforms (List[Tuple[Callable, Callable]]): A list of (transform, preprocessor)
+            tuples. Each pair corresponds to the matching dataset in `datasets`.
+            - `transform(sample)` is applied first.
+            - Then `preprocessor(uid, sample)` or `preprocessor(sample)` is applied,
+              depending on `add_uid`.
+        add_uid (bool): If True, applies the preprocessor as `preprocessor(uid, sample)`.
+            This is used for ESPnet `AbsPreprocessor`-compatible pipelines.
 
-    Example:
-        >>> dataset = CombinedDataset([ds1, ds2], [tf1, tf2])
-        >>> sample = dataset[10]
+    Attributes:
+        get_text_available (bool): True if all datasets implement `get_text(idx)`.
+        multiple_iterator (bool): True if any dataset is a subclass of `ShardedDataset`.
+
+    Note:
+        At initialization, the first sample from each dataset is passed through
+        its associated transform to check that all datasets produce dictionaries
+        with the same set of keys. This ensures consistency across the combined dataset.
+        An `AssertionError` is raised if the keys differ.
 
     Raises:
-        IndexError: If index is out of range of the combined dataset.
+        IndexError: If a requested index is outside the range of the combined dataset.
+        ValueError: If index is a non-integer string or cannot be cast to int.
+        RuntimeError: If `get_text()` or `shard()` is called but not supported.
+        AssertionError: If output keys from different datasets are inconsistent.
+
+    Example:
+        >>> dataset = CombinedDataset(
+        ...     datasets=[ds1, ds2],
+        ...     transforms=[
+        ...         (transform1, preprocessor),
+        ...         (transform2, preprocessor),
+        ...     ],
+        ...     add_uid=True
+        ... )
+        >>> sample = dataset[5]
+        >>> print(sample["text"])
     """
 
     def __init__(
@@ -201,8 +75,6 @@ class CombinedDataset:
             if len(dataset) == 0:
                 continue  # Skip empty datasets
             sample = transform[0](dataset[0].copy())
-            if isinstance(sample, tuple):  # (uid, data_dict)
-                _, sample = sample
             keys = set(sample.keys())
             if sample_keys is None:
                 sample_keys = keys
@@ -253,6 +125,16 @@ class CombinedDataset:
         raise IndexError("Index out of range in CombinedDataset")
 
     def get_text(self, idx):
+        """
+        Retrieve the target text string for a given index.
+
+        This method delegates to the underlying dataset's `get_text(idx)` method.
+        It is typically used for extracting text sequences for purposes such as
+        training tokenizers or language models.
+
+        Raises:
+            RuntimeError: If not all datasets implement `get_text(idx)`.
+        """
         if not self.get_text_available:
             raise RuntimeError(
                 "Please define `get_text` function to all datasets."
@@ -268,6 +150,23 @@ class CombinedDataset:
                 return self.datasets[i].get_text(ds_idx)
 
     def shard(self, shard_idx: int):
+        """
+        Return a sharded version of the combined dataset.
+
+        This is used when handling large datasets that are split into shards
+        for efficiency and distributed processing (ESPnet multiple-iterator mode).
+        All datasets must be subclasses of `espnet3.data.dataset.ShardedDataset`,
+        and implement a `shard()` method.
+
+        Args:
+            shard_idx (int): Index of the shard to retrieve.
+
+        Returns:
+            CombinedDataset: A new CombinedDataset containing the sharded datasets.
+
+        Raises:
+            RuntimeError: If any dataset does not support sharding.
+        """
         if not self.multiple_iterator:
             raise RuntimeError(
                 "All dataset should be the subclass of "
@@ -282,20 +181,50 @@ class CombinedDataset:
 
 
 class DatasetWithTransform:
-    """
-    Lightweight wrapper for applying a transform function to dataset items.
+    """Lightweight wrapper for applying a transform function to dataset items.
+
+    This class wraps a dataset and applies a user-defined transform followed by a
+    preprocessor function. It also supports ESPnet-style UID handling, where the
+    preprocessor receives both a UID and the sample.
 
     Args:
-        dataset (Any): A dataset implementing __getitem__ and __len__.
-        transform (Callable): A transform function applied to each sample.
-        transform (Callable): A preprocess function applied to each sample.
+        dataset (Any): A dataset implementing `__getitem__` and `__len__`.
+        transform (Callable): A function applied to each sample before preprocessing.
+        preprocessor (Callable): A function applied after the transform.
+            If `add_uid` is True, it must accept `(uid, sample)` as arguments.
+            Otherwise, it must accept a single `sample`.
+        add_uid (bool): Whether to include the UID when calling the preprocessor.
+            Required for ESPnet's `AbsPreprocessor` compatibility.
 
     Example:
-        >>> wrapped = DatasetWithTransform(my_dataset, my_transform)
-        >>> item = wrapped[0]
+        >>> def transform(sample):
+        ...     return {
+        ...         "text": sample["text"].upper()
+        ...     }
+        >>>
+        >>> def preprocessor(uid, sample):
+        ...     return {
+        ...         "text": f"[uid={uid}] " + sample["text"]
+        ...     }
+        >>>
+        >>> wrapped = DatasetWithTransform(
+        ...     my_dataset,
+        ...     transform,
+        ...     preprocessor,
+        ...     add_uid=True
+        ... )
+        >>> uid_sample = wrapped[0]
+        >>> print(uid_sample["text"])
+        [uid=0] HELLO
+
+    Raises:
+        TypeError: If `preprocessor` is not callable.
+        TypeError: If `transform` is not callable.
     """
 
     def __init__(self, dataset, transform, preprocessor, add_uid=False):
+        assert callable(transform), "transform must be callable."
+        assert callable(preprocessor), "preprocessor must be callable."
         self.dataset = dataset
         self.transform = transform
         self.preprocessor = preprocessor
@@ -315,3 +244,44 @@ class DatasetWithTransform:
 
     def __call__(self, idx):
         return self.__getitem__(idx)
+
+
+class ShardedDataset(ABC, Dataset):
+    """
+    Abstract base class for datasets that support sharding.
+
+    This interface is used in ESPnet's multiple-iterator mode, where datasets are split
+    into shards for parallel or distributed data loading. Any dataset subclassing
+    `ShardedDataset` must implement the `shard()` method.
+
+    Note:
+        - This class is intended to be used with `CombinedDataset` in ESPnet.
+        - All datasets combined must subclass `ShardedDataset` if sharding is used.
+
+    Example:
+        >>> class MyDataset(ShardedDataset):
+        ...     def shard(self, idx):
+        ...         return Subset(self, shard_indices[idx])
+
+    """
+
+    def shard(self, idx: int):
+        """Return a new dataset shard corresponding to the given index.
+
+        This method must be implemented by subclasses to return a subset of the data
+        for sharded training or evaluation.
+
+        Args:
+            idx (int): The index of the shard to return.
+
+        Returns:
+            Dataset: A dataset instance representing the shard.
+
+        Raises:
+            NotImplementedError: Always in the base class. Must be overridden.
+        """
+        raise NotImplementedError(
+            "Please implement `shard` function, "
+            "which should return a `torch.utils.data.Dataset` object "
+            "representing the shard corresponding to the given index."
+        )
