@@ -4,20 +4,36 @@ import pytest
 from hydra.utils import instantiate
 from omegaconf import OmegaConf
 
-from espnet3.data import CombinedDataset, DataOrganizer
+from espnet2.train.preprocessor import AbsPreprocessor
+from espnet3.data import CombinedDataset, DataOrganizer, do_nothing_transform
 
 
 # Dummy classes
 class DummyTransform:
     def __call__(self, sample):
-        sample["text"] = sample["text"].upper()
-        return sample
+        return {
+            "audio": sample["audio"],
+            "text": sample["text"].upper(),
+        }
 
 
 class DummyPreprocessor:
     def __call__(self, sample):
-        sample["text"] = f"[dummy] {sample['text']}"
-        return sample
+        return {
+            "audio": sample["audio"],
+            "text": f"[dummy] {sample['text']}",
+        }
+
+
+class ESPnetPreprocessor(AbsPreprocessor):
+    def __init__(self):
+        super().__init__(train=True)
+
+    def __call__(self, uid, sample):
+        return {
+            "audio": sample["audio"],
+            "text": f"[espnet] {sample['text']}",
+        }
 
 
 class DummyDataset:
@@ -74,7 +90,13 @@ def dummy_dataset_config():
 def test_combined_dataset():
     ds1 = DummyDataset()
     ds2 = DummyDataset()
-    combined = CombinedDataset([ds1, ds2], [DummyTransform(), DummyTransform()])
+    combined = CombinedDataset(
+        [ds1, ds2],
+        [
+            (DummyTransform(), do_nothing_transform),
+            (DummyTransform(), do_nothing_transform),
+        ]
+    )
     assert len(combined) == 4
     assert combined[0]["text"] == "HELLO"
     assert combined[3]["text"] == "WORLD"
@@ -88,10 +110,10 @@ def test_data_organizer_init(dummy_dataset_config):
         test=instantiate(config["test"]),
         preprocessor=DummyPreprocessor(),
     )
-
     assert len(organizer.train) == 2
-    assert organizer.train[0]["text"] == "[DUMMY] HELLO"
+    assert organizer.train[0]["text"] == "[dummy] HELLO"
     assert len(organizer.valid) == 2
+    assert organizer.valid[0]["text"] == "[dummy] hello"
     assert "test_dummy" in organizer.test
 
 
@@ -154,7 +176,7 @@ def test_data_organizer_test_only():
     assert organizer.train is None
     assert organizer.valid is None
     assert "test_dummy" in organizer.test
-    assert organizer.test["test_dummy"][0]["text"].startswith("[DUMMY]")
+    assert organizer.test["test_dummy"][0]["text"] == "[dummy] HELLO"
 
 
 @pytest.mark.parametrize("train_count, valid_count", [(1, 1), (2, 2)])
@@ -189,7 +211,8 @@ def test_data_organizer_train_valid_multiple(train_count, valid_count):
     )
     assert len(organizer.train) == 2 * train_count
     assert len(organizer.valid) == 2 * valid_count
-    assert organizer.train[0]["text"].startswith("[DUMMY]")
+    assert organizer.train[0]["text"] == "[dummy] HELLO"
+    assert organizer.valid[0]["text"] == "[dummy] hello"
 
 
 def test_data_organizer_test_multiple_sets():
@@ -246,6 +269,7 @@ def test_data_organizer_transform_only():
         valid=instantiate(config["valid"]),
     )
     assert organizer.train[0]["text"] == "HELLO"
+    assert organizer.valid[0]["text"] == "hello"
 
 
 def test_data_organizer_preprocessor_only():
@@ -272,7 +296,8 @@ def test_data_organizer_preprocessor_only():
         valid=instantiate(config["valid"]),
         preprocessor=DummyPreprocessor(),
     )
-    assert organizer.train[0]["text"].startswith("[DUMMY]")
+    assert organizer.train[0]["text"] == "[dummy] hello"
+    assert organizer.valid[0]["text"] == "[dummy] hello"
 
 
 def test_data_organizer_transform_and_preprocessor():
@@ -302,8 +327,8 @@ def test_data_organizer_transform_and_preprocessor():
         valid=instantiate(config["valid"]),
         preprocessor=DummyPreprocessor(),
     )
-    sample = organizer.train[0]
-    assert sample["text"] == "[DUMMY] HELLO"
+    assert organizer.train[0]["text"] == "[dummy] HELLO"
+    assert organizer.valid[0]["text"] == "[dummy] hello"
 
 
 def test_data_organizer_train_only_assertion():
@@ -347,7 +372,13 @@ def test_data_organizer_inconsistent_keys():
     ds2 = BadDataset()
 
     with pytest.raises(AssertionError):
-        CombinedDataset([ds1, ds2], [lambda x: x, lambda x: x])
+        CombinedDataset(
+            [ds1, ds2],
+            [
+                (do_nothing_transform, do_nothing_transform),
+                (do_nothing_transform, do_nothing_transform),
+            ]
+        )
 
 
 def test_data_organizer_transform_none():
@@ -357,7 +388,7 @@ def test_data_organizer_transform_none():
 
     ds = DummyDataset()
     with pytest.raises(ValueError):
-        CombinedDataset([ds], [BrokenTransform()])
+        CombinedDataset([ds], [(BrokenTransform(), do_nothing_transform)])
 
 
 def test_data_organizer_invalid_preprocessor_type():
@@ -379,9 +410,73 @@ def test_data_organizer_invalid_preprocessor_type():
             }
         ],
     }
-    with pytest.raises(TypeError):
+    with pytest.raises(AssertionError):
         DataOrganizer(
             train=instantiate(config["train"]),
             valid=instantiate(config["valid"]),
             preprocessor="not_callable",
         )
+
+
+def test_espnet_preprocessor_without_transform():
+    config = {
+        "train": [
+            {
+                "name": "train_dummy",
+                "dataset": {
+                    "_target_": "test.espnet3.test_data_organizer.DummyDataset"
+                },
+                # transform is omitted
+            }
+        ],
+        "valid": [
+            {
+                "name": "valid_dummy",
+                "dataset": {
+                    "_target_": "test.espnet3.test_data_organizer.DummyDataset"
+                },
+            }
+        ],
+    }
+
+    organizer = DataOrganizer(
+        train=instantiate(config["train"]),
+        valid=instantiate(config["valid"]),
+        preprocessor=ESPnetPreprocessor(),  # ESPnet-style preprocessor
+    )
+
+    sample = organizer.train[0]
+    assert sample["text"] == "[espnet] hello"
+
+
+def test_espnet_preprocessor_with_transform():
+    config = {
+        "train": [
+            {
+                "name": "train_dummy",
+                "dataset": {
+                    "_target_": "test.espnet3.test_data_organizer.DummyDataset"
+                },
+                "transform": {
+                    "_target_": "test.espnet3.test_data_organizer.DummyTransform"
+                },
+            }
+        ],
+        "valid": [
+            {
+                "name": "valid_dummy",
+                "dataset": {
+                    "_target_": "test.espnet3.test_data_organizer.DummyDataset"
+                },
+            }
+        ],
+    }
+
+    organizer = DataOrganizer(
+        train=instantiate(config["train"]),
+        valid=instantiate(config["valid"]),
+        preprocessor=ESPnetPreprocessor(),  # ESPnet-style preprocessor
+    )
+
+    sample = organizer.train[0]
+    assert sample["text"] == "[espnet] HELLO"
