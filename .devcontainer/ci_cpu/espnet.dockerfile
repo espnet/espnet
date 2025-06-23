@@ -1,4 +1,6 @@
-FROM ubuntu:latest
+ARG USE_IMAGE=ubuntu:latest
+
+FROM ${USE_IMAGE}
 LABEL maintainer="Nelson Yalta <nyalta21@gmail.com>"
 
 ENV NUM_BUILD_CORES=12
@@ -32,9 +34,11 @@ RUN apt-get update && \
         build-essential \
         cmake \
         gawk \
+        curl \
         gfortran \
         libffi-dev \
         libtool \
+        git \
         gnupg2 \
         libncurses5-dev \
         software-properties-common \
@@ -45,6 +49,10 @@ RUN apt-get update && \
         zlib1g-dev \
         pandoc ffmpeg nodejs npm \
         && \
+    curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash && \
+    apt-get -y install --no-install-recommends \
+        git-lfs \
+        && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -54,12 +62,6 @@ ENV TH_VERSION=2.0.1
 ENV USE_CONDA=false
 ENV CHAINER_VERSION=6.0.0
 ENV PATH=/opt/miniconda/bin:${PATH}
-
-RUN add-apt-repository ppa:git-core/ppa -y && \
-    apt update && \
-    apt install -y --no-install-recommends git-all && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
 
 RUN echo "${USERNAME} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 RUN sed -i 's/#force_color_prompt=yes/force_color_prompt=yes/g' /home/${USERNAME}/.bashrc
