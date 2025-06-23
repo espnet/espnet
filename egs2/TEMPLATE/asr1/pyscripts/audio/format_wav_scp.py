@@ -294,12 +294,6 @@ def main():
                                     subtypes = [sf.subtype]
                                     wave = sf.read()
 
-                        # if len(wave) > rate * 10:
-                        #     segment_length = int(rate * 10)
-                        #     max_start = len(wave) - segment_length
-                        #     start = np.random.randint(0, max_start + 1)
-                        #     wave = wave[start : start + segment_length]
-
                         yield uttid, (wave, rate), wavpath, subtypes
                     except Exception as e:
                         logging.error(f"Error in {uttid}: {e}")
