@@ -11,7 +11,7 @@ inference_ckpt=latest
     --feats_normalize uttmvn \
     --stage 1 \
     --stop_stage 15 \
-    --ngpu 2 \
+    --ngpu 1 \
     --gpu_inference true \
     --nj 8 \
     --inference_nj 1 \
