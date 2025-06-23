@@ -178,8 +178,6 @@ def generate_df(source_dir, data_dir):
     logging.info("saved transcripts and metadata to downloads/transcript.csv")
     return df
 
-with open('local/panphon_ipas', 'r') as f:
-    panphon_ipas = set(f.read().splitlines())
 with open('local/ipa_mapping.json', 'r') as f:
     mapping = json.load(f)
 def normalize_phones(transcription):
@@ -201,11 +199,7 @@ def normalize_phones(transcription):
     # split dipthongs
     for dipthong in ['ɑj', 'aj', 'ɛj', 'oj', 'uj', 'ʌj']:
         ipa_tokens = ipa_tokens.replace(dipthong, dipthong[0] +' '+ dipthong[1])
-    
-    # double check if phones are in panphon
-    for token in ipa_tokens.split():
-        if token not in panphon_ipas:
-            logging.error(f"{token} not in panphon!")
+
     # filter out too short / long ones
     if len(ipa_tokens.split()) < 3 or len(ipa_tokens.split()) > 300: return None
     else: return ipa_tokens
@@ -215,8 +209,6 @@ def text_normalization(orthography):
     # most of the text normalization seems to have done
     #   in the creation of IPAPack++
     # we just need to remove punctuation and symbols
-    # see local/all_symbols to see all symbols
-    # see local/bad_symbols for which are removed by this regex
     return re.sub(r'\p{P}|\p{S}', '', str(orthography))
 
 
