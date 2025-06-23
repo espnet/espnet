@@ -42,7 +42,6 @@ normalize: none # BEATs code does global mean and variance normalization
 encoder: beats
 encoder_conf:
     # Please download the BEATs model from https://github.com/microsoft/unilm/tree/master/beats
-    # beats_ckpt_path: /work/nvme/bbjs/sbharadwaj/BEATs_models/BEATs_iter3_plus_AS20K.pt
     beats_ckpt_path: /work/nvme/bbjs/sbharadwaj/model_checkpoints/openbeats/beats_iter0_large.as2m.0215.002904/1_avgepoch112.pt
     beats_config:
         layer_wise_gradient_decay_ratio: 0.3
