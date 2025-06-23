@@ -26,7 +26,7 @@ log_wandb=false # Log to wandb if true. Please provide wandb_entity in task_args
 
 # Help message
 help_message=$(cat << EOF
-Usage: $0 [OPTIONS] [ARGS_FOR_RECIPES...]
+Usage: $0 --config_prefix TEMPLATE_DIRECTORY [OPTIONS] [ARGS_FOR_RECIPES...]
 Run multiple recipes under Audioverse.
 
 Options:
