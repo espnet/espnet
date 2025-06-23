@@ -1,8 +1,8 @@
 import os
 import random
 import sys
-import numpy as np
 
+import numpy as np
 from tqdm import tqdm
 
 DATA_READ_ROOT = sys.argv[1]

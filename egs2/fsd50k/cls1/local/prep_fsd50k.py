@@ -1,20 +1,27 @@
 import argparse
 import csv
 import sys
-
 from pathlib import Path
-
 
 SPLIT_NAMES = ("train", "val", "test")
 
+
 def _get_args(argv=sys.argv[1:]):
     parser = argparse.ArgumentParser(description="Prepare FSD50K dataset.")
-    
-    parser.add_argument("--train", type=Path, required=True, help="Path to train/dev audio files.")
-    parser.add_argument("--test", type=Path, required=True, help="Path to test audio files.")
-    parser.add_argument("--metadata", type=Path, required=True, help="Path to metadata directory.")
-    parser.add_argument("--output", type=Path, required=True, help="Path to output directory.")
-    
+
+    parser.add_argument(
+        "--train", type=Path, required=True, help="Path to train/dev audio files."
+    )
+    parser.add_argument(
+        "--test", type=Path, required=True, help="Path to test audio files."
+    )
+    parser.add_argument(
+        "--metadata", type=Path, required=True, help="Path to metadata directory."
+    )
+    parser.add_argument(
+        "--output", type=Path, required=True, help="Path to output directory."
+    )
+
     args = parser.parse_args(argv)
 
     # sanity check
@@ -38,22 +45,26 @@ def _read_rows(args):
     # data: train+dev
     with open(args.metadata / "dev.csv") as f:
         for row in csv.DictReader(f):
-            rows.append({
-                "id": row["fname"],
-                "path": args.train / f"{row['fname']}.wav",
-                "labels": row["labels"].replace(",", " "),
-                "split": row["split"],
-            })
+            rows.append(
+                {
+                    "id": row["fname"],
+                    "path": args.train / f"{row['fname']}.wav",
+                    "labels": row["labels"].replace(",", " "),
+                    "split": row["split"],
+                }
+            )
 
     # data: test
     with open(args.metadata / "eval.csv") as f:
         for row in csv.DictReader(f):
-            rows.append({
-                "id": row["fname"],
-                "path": args.test / f"{row['fname']}.wav",
-                "labels": row["labels"].replace(",", " "),
-                "split": "test",
-            })
+            rows.append(
+                {
+                    "id": row["fname"],
+                    "path": args.test / f"{row['fname']}.wav",
+                    "labels": row["labels"].replace(",", " "),
+                    "split": "test",
+                }
+            )
 
     # sanity check
     labels = set()

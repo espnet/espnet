@@ -5,10 +5,10 @@ from typeguard import typechecked
 from espnet2.samplers.abs_sampler import AbsSampler
 from espnet2.samplers.folded_batch_sampler import FoldedBatchSampler
 from espnet2.samplers.length_batch_sampler import LengthBatchSampler
+from espnet2.samplers.length_weighted_batch_sampler import WeightedLengthBatchSampler
 from espnet2.samplers.num_elements_batch_sampler import NumElementsBatchSampler
 from espnet2.samplers.sorted_batch_sampler import SortedBatchSampler
 from espnet2.samplers.unsorted_batch_sampler import UnsortedBatchSampler
-from espnet2.samplers.length_weighted_batch_sampler import WeightedLengthBatchSampler
 
 BATCH_TYPES = dict(
     unsorted="UnsortedBatchSampler has nothing in particular feature and "

@@ -95,7 +95,7 @@ uttid025 pops
 ...
 
 wav.scp:
-uttid000 DATA_READ_ROOT/genre/fname 
+uttid000 DATA_READ_ROOT/genre/fname
 ...
 
 utt2spk:

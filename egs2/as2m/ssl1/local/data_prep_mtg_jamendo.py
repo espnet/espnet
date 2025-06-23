@@ -1,8 +1,9 @@
-import torchaudio
-from tqdm import tqdm
 import os
 import threading
 from concurrent.futures import ThreadPoolExecutor
+
+import torchaudio
+from tqdm import tqdm
 
 wavscp_path = "/work/nvme/bbjs/sbharadwaj/fullas2m/data/mtg_jamendo/wav.scp"
 segments_path = "/work/nvme/bbjs/sbharadwaj/fullas2m/data/mtg_jamendo/segments"

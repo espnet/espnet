@@ -1,8 +1,9 @@
 import argparse
 import json
-import sys
 import os
+import sys
 from pathlib import Path
+
 from tqdm import tqdm
 
 SPLIT_NAMES = ("train", "valid", "test")

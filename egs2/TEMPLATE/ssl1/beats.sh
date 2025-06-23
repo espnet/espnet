@@ -219,7 +219,7 @@ if ! "${skip_data_prep}"; then
             if [ ! -e ${datadir}/"${dset}"/segments ]; then
                 # Needed if format_wav_scp.py is modified ad-hoc to skip read failures.
                 # But if segments are present then this complains, so handle that case separately.
-                utils/fix_data_dir.sh "${data_feats_raw}/org/${dset}" 
+                utils/fix_data_dir.sh "${data_feats_raw}/org/${dset}"
             fi
             # Copy data from multiple jobs
             rm -f ${data_feats_raw}/org/${dset}/segments # If this is removed, directory validation will fail
@@ -255,7 +255,7 @@ if ! "${skip_data_prep}"; then
             log "Stage 4: Feature extraction: ${data_feats}/${train_set}, ${data_feats}/${valid_set}"
             for dset in "${valid_set}" "${train_set}"; do
                 log "Extracting features: ${dset}"
-                # utils/fix_data_dir.sh "${dumpdir}/raw/${dset}" 
+                # utils/fix_data_dir.sh "${dumpdir}/raw/${dset}"
                 utils/copy_data_dir.sh --validate_opts --non-print "${dumpdir}/raw/${dset}" "${data_feats}/org/${dset}"
                 rm -f ${data_feats}/org/${dset}/{reco2file_and_channel,reco2dur}
                 # shellcheck disable=SC2086
@@ -585,7 +585,7 @@ if ! "${skip_train}"; then
                 --valid_shape_file "${_logdir}/valid.JOB.scp" \
                 --output_dir "${_logdir}/stats.JOB" \
                 ${_opts} ${beats_args} || { cat $(grep -l -i error "${_logdir}"/stats.*.log) ; exit 1; }
-        
+
         ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
             ${python} -m espnet2.bin.beats_train \
                 --collect_stats true \
@@ -629,7 +629,7 @@ if ! "${skip_train}"; then
                     train_tokenizer ${iter}
                 else
                     if [ "${train_start_iter}" -ne "${train_stop_iter}" ]; then
-                        # NOTE(shikhar): If external tokenizer model is provided, 
+                        # NOTE(shikhar): If external tokenizer model is provided,
                         # it is ambiguous whether to train the tokenizer or not for next iteration so we show error.
                         log "Error: External tokenizer model is provided, but training is requested for multiple iterations"
                         exit 1

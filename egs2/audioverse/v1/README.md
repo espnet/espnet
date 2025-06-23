@@ -1,6 +1,6 @@
 # Audioverse Benchmark Runner
 
-A comprehensive benchmarking tool for audio tasks including captioning, classification, detection, and music analysis. 
+A comprehensive benchmarking tool for audio tasks including captioning, classification, detection, and music analysis.
 This runner runs multiple audio recipes in ESPnet with configurable arguments per recipe or common arguments to all recipes. It also supports both sequential and parallel execution of recipes.
 
 ## Table of Contents
@@ -44,7 +44,7 @@ The Audioverse Benchmark Runner supports the following tasks:
 ```
 
 ## Prerequisites
- 
+
 1. **Environment Setup**: Needs ESPnet and transformers.
 1. **Data**: Some recipes like audioset require you to download data and set the path in `db.sh`. Note: If `db.sh` contains `downloads` then this runner will automatically download the data.
 1. **Templates**: Create configuration template for your model in `conf/template/{your_awesome_model}/`. You may use the ones for OpenBEATs as example.
@@ -239,7 +239,7 @@ audioverse/v1/
 - `esc50_f1` to `esc50_f5`: ESC-50 multi-class classification
 
 ### Bioacoustic Tasks (BEANS)
-- **Detection**: `beans_dcase`, `beans_enabirds`, `beans_gibbons`, `beans_hiceas`, `beans_rfcx`  
+- **Detection**: `beans_dcase`, `beans_enabirds`, `beans_gibbons`, `beans_hiceas`, `beans_rfcx`
 - **Classification**: `beans_watkins`, `beans_bats`, `beans_cbi`, `beans_humbugdb`, `beans_dogs`
 
 ### Music Tasks
@@ -256,7 +256,7 @@ audioverse/v1/
 # ❌ Wrong
 ./run.sh --recipe audiocaps_aac
 
-# ✅ Correct  
+# ✅ Correct
 ./run.sh --config_prefix openbeats_large --recipe audiocaps_aac
 ```
 
@@ -279,7 +279,7 @@ ls conf/template/openbeats_large/audiocaps_aac.yaml
 
 ### 4. Parallel Execution Memory Issues
 **Problem**: GPU out of memory with parallel execution
-**Solutions**: 
+**Solutions**:
 - Reduce batch sizes in templates
 - Limit number of parallel recipes
 - Run sequentially

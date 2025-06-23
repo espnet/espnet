@@ -49,7 +49,7 @@ if ! [ -f "${FSD50K}/download.done" ]; then
     for fname in "${fnames[@]}"; do
         echo "Downloading ${fname} now"
         wget -O ${FSD50K}/${fname} \
-            https://zenodo.org/records/4060432/files/${fname}?download=1       
+            https://zenodo.org/records/4060432/files/${fname}?download=1
     done
 
     log "stage 1: Unzip data in ${FSD50K}"

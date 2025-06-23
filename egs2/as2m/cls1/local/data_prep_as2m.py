@@ -1,9 +1,8 @@
 import os
 import random
 import sys
-from tqdm import tqdm
-from multiprocessing import Pool, Manager, cpu_count
 import tempfile
+from multiprocessing import Manager, Pool, cpu_count
 
 import numpy as np
 from tqdm import tqdm

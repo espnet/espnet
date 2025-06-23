@@ -13,8 +13,8 @@
 import logging
 import math
 import warnings
-from typing import Dict, Optional, Tuple
 from contextlib import contextmanager
+from typing import Dict, Optional, Tuple
 
 import numpy as np
 import torch

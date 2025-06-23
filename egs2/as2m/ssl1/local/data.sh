@@ -26,7 +26,7 @@ declare -A DATASETS=(
     ["epic_sounds"]=EPIC_SOUNDS
     ["fma"]=FMA
     ["inat"]=INAT_SOUNDS
-    ["wavcaps"]=WAVCAPS # FSD, BBC SE, SoundBible 
+    ["wavcaps"]=WAVCAPS # FSD, BBC SE, SoundBible
 )
 
 SELECTED_DATASETS=(${@:2})
