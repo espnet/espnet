@@ -1,0 +1,6 @@
+tokenizer_config:
+    seed: 45
+
+fbank_mean: 14.803
+fbank_std: 3.079
+# Stats for inference on the ICME model's corpus

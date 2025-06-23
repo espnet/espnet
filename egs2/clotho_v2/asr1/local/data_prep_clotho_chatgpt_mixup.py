@@ -89,7 +89,9 @@ class ClothoMixupDataset(Dataset):
         return text_id
 
     def get_captions(self, caption_json, rejected_json):
-        rejected_df = json.load(open(rejected_json))
+        rejected_df = (
+            json.load(open(rejected_json)) if os.path.exists(rejected_json) else []
+        )
         caption_df = json.load(open(caption_json))["dataset"]
 
         all_rejects = set()
@@ -116,6 +118,10 @@ class ClothoMixupDataset(Dataset):
 
                 idx_to_sample.append((samp_a, samp_b))
                 idx_to_audio.append((audio_a, audio_b))
+
+                mixed_up_caption = caption_df[i]["chatgpt_mixups"][j]
+                if len(mixed_up_caption) == 0:
+                    continue
 
                 captions[(samp_a, samp_b)].append(
                     caption_df[i]["chatgpt_mixups"][j]

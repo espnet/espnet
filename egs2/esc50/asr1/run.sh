@@ -8,13 +8,13 @@ set -o pipefail
 asr_speech_fold_length=1000 # 6.25 sec, because audio is 5 sec each.
 inference_model=valid.acc.best.pth
 
-n_folds=5 # This runs all 5 folds in parallel, take care.
+n_folds=1 # This runs all 5 folds in parallel, take care.
 
 asr_config=conf/beats_classification.yaml
 
-mynametag=fast.fold
+mynametag=beats
 
-# # NOTE(shikhar): Abusing variable lang to store fold number.
+# NOTE(shikhar): Abusing variable lang to store fold number.
 for fold in $(seq 1 $n_folds); do
     train_set="train${fold}"
     valid_set="val${fold}"
@@ -23,24 +23,24 @@ for fold in $(seq 1 $n_folds); do
         --local_data_opts "${fold}" \
         --asr_tag "${mynametag}${fold}" \
         --lang "${fold}" \
-        --ngpu 1 \
-        --stage 15 \
+        --ngpu 2 \
+        --stage 11 \
         --inference_args "--ctc_weight 0.0 --maxlenratio -1" \
         --token_type word \
         --asr_speech_fold_length ${asr_speech_fold_length} \
         --use_lm false \
         --feats_type raw \
         --max_wav_duration 6 \
-        --feats_normalize utterance_mvn\
+        --feats_normalize utterance_mvn \
         --inference_nj 8 \
         --inference_asr_model ${inference_model} \
         --asr_config "${asr_config}" \
         --train_set "${train_set}" \
         --valid_set "${valid_set}" \
-        --test_sets "${test_set}" "$@" &
+        --test_sets "${test_set}" "$@"
 done
 
-wait
+# wait
 
 # Average the accuracies of all folds.
 # Please ensure that the RESULTS.md file is empty before running this script.
