@@ -9,7 +9,7 @@ speech_fold_length=100000 # 6.25 sec, because audio is 5 sec each.
 storage_dir=.
 fold=1
 cls_config=conf/beats_cls.yaml
-mynametag=fast.fold
+mynametag=singlefold
 
 expdir=${storage_dir}/exp
 dumpdir=${storage_dir}/dump
