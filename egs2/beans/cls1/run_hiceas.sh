@@ -11,7 +11,7 @@ test_sets="hiceas.test"
 cls_config=conf/beats_beans_sed.yaml
 
 timestamp=$(date "+%Y%m%d.%H%M%S")
-mynametag=${timestamp}
+mynametag=hiceas.${timestamp}
 storage_dir=.
 mkdir -p "${storage_dir}"
 
