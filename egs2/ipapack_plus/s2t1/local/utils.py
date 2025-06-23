@@ -1,6 +1,5 @@
 from typing import Dict, List, Optional, Tuple, Union
 
-
 # adapted from https://github.com/espnet/espnet/blob/master/egs2/
 #              owsm_v1/s2t1/local/utils.py
 ############################################
@@ -18,9 +17,7 @@ SYMBOLS_TIME: List[str] = [
         for i in range(round(SPEECH_MAX_LEN / SPEECH_RESOLUTION) + 1)
     ],
 ]
-TASK_TOKENS: List[str] = [
-    "<asr>", "<pr>", "<g2p>", "<p2g>"
-]
+TASK_TOKENS: List[str] = ["<asr>", "<pr>", "<g2p>", "<p2g>"]
 LANGUAGES = {
     "<afr>": "Afrikaans",
     "<amh>": "Amharic",
