@@ -290,11 +290,6 @@ class BeatsEncoder(AbsEncoder):
         if adapter_config:
             conformer_config = Wav2Vec2ConformerConfig.from_json_file(adapter_config)
             self.conformer_adapter = Wav2Vec2ConformerEncoder(conformer_config)
-            # self.linear_adapter = None
-            # if conformer_config.hidden_size != config.encoder_embed_dim:
-            #     self.linear_adapter = nn.Linear(
-            #         config.encoder_embed_dim, conformer_config.hidden_size
-            #     )
 
         # Positional embeddings applied before cross-attention with decoder.
         self.cross_embed_positions = None
@@ -729,9 +724,6 @@ class BeatsPretrainingPredictor(nn.Module):
                 )
 
         nn.init.normal_(self.mask_token, std=0.02)
-        # init_bert_params take care of below two inits
-        # nn.init.xavier_normal_(self.decoder_embed.weight)
-        # nn.init.xavier_normal_(self.decoder_pred.weight)
 
     def forward(
         self,
@@ -1216,10 +1208,6 @@ class MultiheadAttention(nn.Module):
         relative_position_bucket = self._relative_positions_bucket(
             relative_position, bidirectional=True
         )  # [qlen,klen]
-        # relative_position_bucket = relative_position_bucket.to(
-        #     self.relative_attention_bias.weight.device
-        # )
-        # [qlen,klen,head_dim]
         values = self.relative_attention_bias(relative_position_bucket)
         values = values.permute([2, 0, 1])  # [head_dim,qlen,klen]
         return values

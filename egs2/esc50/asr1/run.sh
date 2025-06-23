@@ -10,10 +10,9 @@ inference_model=valid.acc.best.pth
 
 n_folds=1 # This runs all 5 folds in parallel, take care.
 
-# asr_config=conf/openbeats_classification.yaml
-asr_config=conf/huge.yaml
+asr_config=conf/beats_classification.yaml
 
-mynametag=iter0.huge98epoch.grad_decay_p4.ldrop_p2.dropout_p1.fold
+mynametag=beats
 
 # NOTE(shikhar): Abusing variable lang to store fold number.
 for fold in $(seq 1 $n_folds); do

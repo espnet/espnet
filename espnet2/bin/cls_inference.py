@@ -161,9 +161,6 @@ def inference(
         level=log_level,
         format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
     )
-    # if batch_size > 1:
-    #     # TODO(shikhar): Implement batch decoding
-    #     raise NotImplementedError("batch decoding is not implemented for batch size >1")
 
     if ngpu >= 1:
         device = "cuda"
@@ -206,8 +203,6 @@ def inference(
             assert all(isinstance(s, str) for s in keys), keys
             _bs = len(next(iter(batch.values())))
             assert len(keys) == _bs, f"{len(keys)} != {_bs}"
-            # print(batch)
-            # batch = {k: v[0] for k, v in batch.items()}
 
             try:
                 predictions, scores, prediction_string = classification(**batch)

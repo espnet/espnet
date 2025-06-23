@@ -214,8 +214,6 @@ class ESPnetClassificationModel(AbsESPnetModel):
             scores: (Batch, n_classes)
         Assumes Batch=1
         """
-        # batch = speech.size(0)
-        # assert batch == 1, "Batch size must be 1 for scoring."
         encoder_out, encoder_out_lens = self.encode(
             speech, speech_lengths, text, text_lengths
         )
