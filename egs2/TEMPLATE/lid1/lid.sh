@@ -514,13 +514,13 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
             # SGE can't include "/" in a job name
             jobname="$(basename ${infer_exp})"
         else
-            jobname="${infer_exp}/lid_inference.log"
+            jobname="${infer_exp}/inference_embd_lid.log"
         fi
 
-        log "Extracting language embeddings and ids... log: '${infer_exp}/lid_inference_test.log'"
+        log "Extracting language embeddings and ids... log: '${infer_exp}/inference_embd_lid.log'"
         ${python} -m espnet2.bin.launch \
             --cmd "${cuda_cmd} --name ${jobname}" \
-            --log ${infer_exp}/lid_inference_test.log \
+            --log ${infer_exp}/inference_embd_lid.log \
             --ngpu ${ngpu} \
             --num_nodes ${num_nodes} \
             --init_file_prefix ${lid_exp}/.dist_init_ \
@@ -581,13 +581,13 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
         # SGE can't include "/" in a job name
         jobname="$(basename ${infer_exp})"
     else
-        jobname="${infer_exp}/lid_inference.log"
+        jobname="${infer_exp}/inference_tsne.log"
     fi
 
-    log "Extracting language embeddings and ids... log: '${infer_exp}/lid_inference_test.log'"
+    log "Plotting t-SNE... log: '${infer_exp}/inference_tsne.log'"
     ${python} -m espnet2.bin.launch \
         --cmd "${cuda_cmd} --name ${jobname}" \
-        --log ${infer_exp}/lid_inference_test.log \
+        --log ${infer_exp}/inference_tsne.log \
         --ngpu ${ngpu} \
         --num_nodes ${num_nodes} \
         --init_file_prefix ${lid_exp}/.dist_init_ \
