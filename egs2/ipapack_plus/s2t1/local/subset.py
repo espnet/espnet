@@ -1,4 +1,5 @@
 import os
+
 import kaldiio
 from tqdm import tqdm
 
@@ -18,6 +19,7 @@ Functions
 - combine: combine files from a list of datasets
 """
 
+
 def subsample(olddir, dataset, newdir, newdataset, ratio):
     print(f"-> Subsample {dataset} by 1/{ratio}...")
     currentdir = f"{newdir}/{newdataset}"
@@ -30,35 +32,43 @@ def subsample(olddir, dataset, newdir, newdataset, ratio):
 
     # 2. subsampling
     for file in ["utt2spk", "wav.scp", "utt2num_samples"]:
-        os.system(f"awk 'NR % {ratio} == 0' {olddir}/{dataset}/{file} > {currentdir}/{file}")
+        os.system(
+            f"awk 'NR % {ratio} == 0' {olddir}/{dataset}/{file} > {currentdir}/{file}"
+        )
         # the original wav.scp does not contain the task in the utterance ID
         # we need to add the task to the utterance ID to ensure wav.scp contains unique utterance IDs
         for task in tasks:
             # take the first column which is the utterance ID
-            os.system(f"awk \'{{ $1 = $1 \"_{task}\"; print }}\' OFS=\" \" {currentdir}/{file} >> {currentdir}/{file}.tmp")
+            os.system(
+                f'awk \'{{ $1 = $1 "_{task}"; print }}\' OFS=" " {currentdir}/{file} >> {currentdir}/{file}.tmp'
+            )
         os.system(f"mv {currentdir}/{file}.tmp {currentdir}/{file}")
 
     # spk2utt should be handled separately
     #   map same speaker ("aaaaa") to all utterances on one line
     file = "spk2utt"
-    with open(f"{olddir}/{dataset}/{file}", "r") as spk2utt, open(f"{currentdir}/{file}.tmp", "w") as spk2utt_tmp:
+    with open(f"{olddir}/{dataset}/{file}", "r") as spk2utt, open(
+        f"{currentdir}/{file}.tmp", "w"
+    ) as spk2utt_tmp:
         lines = spk2utt.readlines()
         assert len(lines) == 1
-        lines = lines[0].split(' ')
+        lines = lines[0].split(" ")
         spk2utt_tmp.write(lines[0])  # speaker
-        spk2utt_tmp.write(' ')
-        spk2utt_tmp.write(' '.join(lines[1:]))  # utterances
+        spk2utt_tmp.write(" ")
+        spk2utt_tmp.write(" ".join(lines[1:]))  # utterances
     os.system(f"mv {currentdir}/{file}.tmp {currentdir}/{file}")
 
     # note that we assume each file
-    #   contains the same utterances across each 
+    #   contains the same utterances across each
     texts, textprevs, textctcs = [], [], []
     for task in tasks:
-        texts.append(f"text.{task}" if task!="pr" else "text")
-        textprevs.append(f"text.{task}_prev" if task!="pr" else "text.prev")
-        textctcs.append(f"text.{task}_ctc" if task!="pr" else "text.ctc")
+        texts.append(f"text.{task}" if task != "pr" else "text")
+        textprevs.append(f"text.{task}_prev" if task != "pr" else "text.prev")
+        textctcs.append(f"text.{task}_ctc" if task != "pr" else "text.ctc")
     for file in texts + textprevs + textctcs:
-        os.system(f"awk 'NR % {ratio} == 0' {olddir}/{dataset}/{file} > {currentdir}/texts/{file}")
+        os.system(
+            f"awk 'NR % {ratio} == 0' {olddir}/{dataset}/{file} > {currentdir}/texts/{file}"
+        )
 
     # 3. combine text files
     for file in texts:
@@ -71,9 +81,12 @@ def subsample(olddir, dataset, newdir, newdataset, ratio):
 
     # we need to sort the files by utterance ID
     # we concatenated each task's utterances separately, which messes up the order
-    os.system(f"utils/fix_data_dir.sh --utt_extra_files \"utt2num_samples text.ctc text.prev\" {currentdir}")
+    os.system(
+        f'utils/fix_data_dir.sh --utt_extra_files "utt2num_samples text.ctc text.prev" {currentdir}'
+    )
 
     print("Finished!")
+
 
 def filter(olddir, newdir, dataset, key):
     print(f"-> Finding lines with '{key}' in {dataset}...")
@@ -85,15 +98,21 @@ def filter(olddir, newdir, dataset, key):
     for file in ["spk2utt", "text", "utt2spk", "wav.scp", "utt2num_samples"]:
         os.system(f"grep '{key}' {olddir}/{dataset}/{file} > {currentdir}/{file}")
 
+
 def rename(currentdir, key, newkey):
     print(f"-> Replacing '{key}' with '{newkey}' in wav.scp...")
-    os.system(f"sed 's|{key}|{newkey}|g' {currentdir}/wav.scp > {currentdir}/wav.scp.tmp")
+    os.system(
+        f"sed 's|{key}|{newkey}|g' {currentdir}/wav.scp > {currentdir}/wav.scp.tmp"
+    )
     os.system(f"mv {currentdir}/wav.scp.tmp {currentdir}/wav.scp")
     for i in range(32):
         formatdir = f"{currentdir}/data/format.{i+1}"
-        os.system(f"sed 's|{key}|{newkey}|g' {formatdir}/wav.scp > {formatdir}/wav.scp.tmp")
+        os.system(
+            f"sed 's|{key}|{newkey}|g' {formatdir}/wav.scp > {formatdir}/wav.scp.tmp"
+        )
         os.system(f"mv {formatdir}/wav.scp.tmp {formatdir}/wav.scp")
     print("Finished!")
+
 
 def genwav(olddir, currentdir, nsplit=32):
     print("-> Setting up splits...")
@@ -101,7 +120,9 @@ def genwav(olddir, currentdir, nsplit=32):
 
     # 1. form n splits
     os.system(f"split -d -n l/{nsplit} {currentdir}/wav.scp {currentdir}/data/wav.")
-    os.system(f"split -d -n l/{nsplit} {currentdir}/utt2num_samples {currentdir}/data/samples.")
+    os.system(
+        f"split -d -n l/{nsplit} {currentdir}/utt2num_samples {currentdir}/data/samples."
+    )
     for i in range(nsplit):
         formatdir = f"{currentdir}/data/format.{i+1}"
         os.system(f"mkdir {formatdir}")
@@ -111,11 +132,17 @@ def genwav(olddir, currentdir, nsplit=32):
     # 2. In each split, get new data_wav.ark and wav.scp
     for i in tqdm(range(nsplit)):
         formatdir = f"{currentdir}/data/format.{i+1}"
-        os.system(f"sed 's|dump/raw|{olddir}|g' {formatdir}/wav.scp > {formatdir}/wav.scp.tmp")
+        os.system(
+            f"sed 's|dump/raw|{olddir}|g' {formatdir}/wav.scp > {formatdir}/wav.scp.tmp"
+        )
         os.system(f"mv {formatdir}/wav.scp.tmp {formatdir}/wav.scp")
-        d = kaldiio.load_scp(f'{formatdir}/wav.scp')
-        kaldiio.save_ark(f'{formatdir}/data_wav.ark', d, 
-            write_function="soundfile", scp=f'{formatdir}/wav.scp')
+        d = kaldiio.load_scp(f"{formatdir}/wav.scp")
+        kaldiio.save_ark(
+            f"{formatdir}/data_wav.ark",
+            d,
+            write_function="soundfile",
+            scp=f"{formatdir}/wav.scp",
+        )
 
     # 3. Update wav.scp by combining wav.scp in data/format.1~nsplit
     os.system(f"rm {currentdir}/wav.scp")
@@ -125,10 +152,19 @@ def genwav(olddir, currentdir, nsplit=32):
 
     print(f"Finished!")
 
+
 def combine(newdir, datasets, remove=False):
     print("-> Combine all datasets...")
     for dataset in datasets:
-        for file in ["spk2utt", "utt2spk", "wav.scp", "utt2num_samples", "text", "text.prev", "text.ctc"]:
+        for file in [
+            "spk2utt",
+            "utt2spk",
+            "wav.scp",
+            "utt2num_samples",
+            "text",
+            "text.prev",
+            "text.ctc",
+        ]:
             os.system(f"cat {newdir}/{dataset}/{file} >> {newdir}/{file}")
         if remove:
             os.system(f"rm -rf {newdir}/{dataset}")

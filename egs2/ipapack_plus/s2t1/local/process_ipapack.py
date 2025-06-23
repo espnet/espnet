@@ -1,15 +1,14 @@
 import argparse
-from collections import defaultdict
 import json
 import os
-import regex as re
+from collections import defaultdict
 
-from tqdm import tqdm
-import pandas as pd
-import matplotlib.pyplot as plt
 import langcodes
+import matplotlib.pyplot as plt
+import pandas as pd
+import regex as re
 from langcodes import tag_is_valid
-
+from tqdm import tqdm
 
 """
 Converts IPAPack++ into OWSM's expected format
@@ -24,9 +23,8 @@ NO_TIME = "<notimestamps>"
 SAMPLE_RATE = 16000
 LANG = "<LANG>"  # Should be mapping from utt_id to language code
 UNK_LANG = "<UNK_LANG>"
-remove_space_lang = ['<cmn>', '<jpn>', '<kor>', '<tha>']
+remove_space_lang = ["<cmn>", "<jpn>", "<kor>", "<tha>"]
 copy_files = ["feats_type", "spk2utt", "utt2num_samples", "utt2spk", "wav.scp"]
-
 
 
 def text_normalization(orthography):
@@ -35,19 +33,19 @@ def text_normalization(orthography):
     # we just need to remove punctuation and symbols
     # see local/all_symbols to see all symbols
     # see local/bad_symbols for which are removed by this regex
-    return re.sub(r'\p{P}|\p{S}', '', orthography)
+    return re.sub(r"\p{P}|\p{S}", "", orthography)
 
 
 def draw_figure(lang2dur, subset_name, image_dir):
     # Sort by count and keep only the top 10 languages
     sorted_langs = sorted(lang2dur.items(), key=lambda item: item[1], reverse=True)[:10]
-    
+
     for lang, duration in sorted_langs:
         plt.bar(lang, duration / 3600)
 
-    plt.xlabel('Language')
-    plt.ylabel('Hours')
-    plt.title(f'Language Distribution in {subset_name}')
+    plt.xlabel("Language")
+    plt.ylabel("Hours")
+    plt.title(f"Language Distribution in {subset_name}")
     plt.xticks(rotation=45)
     plt.tight_layout()
     plt.savefig(os.path.join(image_dir, f"{subset_name}_language_distribution.png"))
@@ -56,7 +54,7 @@ def draw_figure(lang2dur, subset_name, image_dir):
 
 
 def get_lang_duration(utt2lang, process_dir, lang_dist_json):
-    lang2dur = {} # lang -> duration (sec)
+    lang2dur = {}  # lang -> duration (sec)
 
     utt2num_samples_path = os.path.join(process_dir, "utt2num_samples")
     with open(utt2num_samples_path, "r") as f:
@@ -79,10 +77,10 @@ def main(root_dir, output_dir, lang_dist_json, draw_only=False):
     normalize_df = pd.read_csv(
         os.path.join(ROOT_DF_DIR, "transcript_normalized.csv"), usecols=columns
     )
-    #doreco_df = pd.read_csv(
+    # doreco_df = pd.read_csv(
     #    os.path.join(ROOT_DF_DIR, "transcript_doreco.csv"), usecols=columns
-    #)
-    #combined_df = pd.concat([normalize_df, doreco_df])
+    # )
+    # combined_df = pd.concat([normalize_df, doreco_df])
     combined_df = normalize_df
     utt2lang = {row["utt_id"]: row["lang"] for _, row in combined_df.iterrows()}
 
@@ -101,7 +99,7 @@ def main(root_dir, output_dir, lang_dist_json, draw_only=False):
             with open(os.path.join(process_dir, lang_dist_json), "r") as f:
                 lang2dur = json.load(f)
 
-            if 'test' in data_dir:
+            if "test" in data_dir:
                 # a language could appear in multiple test sets
                 for lang, dur in lang2dur.items():
                     test_stats[lang] = test_stats.get(lang, 0) + dur
@@ -116,9 +114,9 @@ def main(root_dir, output_dir, lang_dist_json, draw_only=False):
             dump_dir = os.path.join(ROOT_DUMP_DIR, data_dir)
             data_dir_path = os.path.join(ROOT_DATA_DIR, data_dir)
             process_dir = os.path.join(output_dir, data_dir)
-            
+
             os.makedirs(process_dir, exist_ok=True)
-            
+
             # Copy necessary files from dump_dir to process_dir
             for file_name in copy_files:
                 src_file = os.path.join(dump_dir, file_name)
@@ -126,11 +124,13 @@ def main(root_dir, output_dir, lang_dist_json, draw_only=False):
                 if os.path.exists(src_file):
                     with open(src_file, "r") as src, open(dst_file, "w") as dst:
                         dst.write(src.read())
-                        
+
             # Read orthography and phoneme sequences
-            orthography = open(os.path.join(dump_dir, "orthography"), "r").readlines() # change
+            orthography = open(
+                os.path.join(dump_dir, "orthography"), "r"
+            ).readlines()  # change
             phoneme_seq = open(os.path.join(dump_dir, "text"), "r").readlines()
-            
+
             unk_language_set = set()
 
             # Create mappings
@@ -166,18 +166,29 @@ def main(root_dir, output_dir, lang_dist_json, draw_only=False):
             #   text.p2g_ctc: graphemes, no task tokens
             # note - the contents for each file across tasks may be the same
             #   but the utterance IDs need to be different
-            with open(os.path.join(process_dir, "text"), "w") as pr_text, \
-                open(os.path.join(process_dir, "text.prev"), "w") as prev_text, \
-                open(os.path.join(process_dir, "text.ctc"), "w") as text_ctc, \
-                open(os.path.join(process_dir, "text.asr"), "w") as asr_text, \
-                open(os.path.join(process_dir, "text.asr_prev"), "w") as asr_text_prev, \
-                open(os.path.join(process_dir, "text.asr_ctc"), "w") as asr_text_ctc, \
-                open(os.path.join(process_dir, "text.g2p"), "w") as g2p_text, \
-                open(os.path.join(process_dir, "text.g2p_prev"), "w") as prev_g2p_text, \
-                open(os.path.join(process_dir, "text.g2p_ctc"), "w") as g2p_text_ctc, \
-                open(os.path.join(process_dir, "text.p2g"), "w") as p2g_text, \
-                open(os.path.join(process_dir, "text.p2g_prev"), "w") as prev_p2g_text, \
-                open(os.path.join(process_dir, "text.p2g_ctc"), "w") as p2g_ctc :
+            with open(os.path.join(process_dir, "text"), "w") as pr_text, open(
+                os.path.join(process_dir, "text.prev"), "w"
+            ) as prev_text, open(
+                os.path.join(process_dir, "text.ctc"), "w"
+            ) as text_ctc, open(
+                os.path.join(process_dir, "text.asr"), "w"
+            ) as asr_text, open(
+                os.path.join(process_dir, "text.asr_prev"), "w"
+            ) as asr_text_prev, open(
+                os.path.join(process_dir, "text.asr_ctc"), "w"
+            ) as asr_text_ctc, open(
+                os.path.join(process_dir, "text.g2p"), "w"
+            ) as g2p_text, open(
+                os.path.join(process_dir, "text.g2p_prev"), "w"
+            ) as prev_g2p_text, open(
+                os.path.join(process_dir, "text.g2p_ctc"), "w"
+            ) as g2p_text_ctc, open(
+                os.path.join(process_dir, "text.p2g"), "w"
+            ) as p2g_text, open(
+                os.path.join(process_dir, "text.p2g_prev"), "w"
+            ) as prev_p2g_text, open(
+                os.path.join(process_dir, "text.p2g_ctc"), "w"
+            ) as p2g_ctc:
 
                 for utt_id, p in utt2phoneme_seq.items():
                     p = "".join([f"/{char}/" for char in p.split()])
@@ -232,12 +243,22 @@ def main(root_dir, output_dir, lang_dist_json, draw_only=False):
                 for lang in unk_language_set:
                     f.write(f"{lang}\n")
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Process IPA Pack data")
     parser.add_argument("--root_dir", type=str, default=".", help="Root directory")
-    parser.add_argument("--output_dir", type=str, default="dump/raw", help="Output directory")
-    parser.add_argument("--lang_dist_json", type=str, default="language_distribution.json", help="Language distribution JSON filename")
-    parser.add_argument("--draw_only", action="store_true", help="Only draw the figures")
+    parser.add_argument(
+        "--output_dir", type=str, default="dump/raw", help="Output directory"
+    )
+    parser.add_argument(
+        "--lang_dist_json",
+        type=str,
+        default="language_distribution.json",
+        help="Language distribution JSON filename",
+    )
+    parser.add_argument(
+        "--draw_only", action="store_true", help="Only draw the figures"
+    )
     args = parser.parse_args()
-    
+
     main(**vars(args))

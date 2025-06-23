@@ -17,7 +17,7 @@ do
     target_dir=$IPAPACK_PLUS/$dataset_name
     echo "processing $dataset_name -> $target_dir"
     mkdir -p $target_dir
-    
+
     # untar while preserving the structure of the directories
     for audio_tar in $dataset/**/recording*.tar;
     do

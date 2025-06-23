@@ -1,8 +1,11 @@
 from utils import (
-    LANGUAGES, SYMBOL_NA, SYMBOL_NOSPEECH, SYMBOLS_TIME, TASK_TOKENS,
-    PHONEME_VOCABULARY
+    LANGUAGES,
+    PHONEME_VOCABULARY,
+    SYMBOL_NA,
+    SYMBOL_NOSPEECH,
+    SYMBOLS_TIME,
+    TASK_TOKENS,
 )
-
 
 # source: https://github.com/espnet/espnet/blob/master/
 #         egs2/owsm_v1/s2t1/local/generate_nlsyms.py
