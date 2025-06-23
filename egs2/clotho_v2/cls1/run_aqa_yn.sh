@@ -11,7 +11,7 @@ test_sets="evaluation_aqa_yn"
 cls_config=conf/beats_bert_multimodal_cls.yaml
 
 timestamp=$(date "+%Y%m%d.%H%M%S")
-mynametag=${timestamp}
+mynametag=aqa_yn.${timestamp}
 decoding_batch_size=20
 
 storage_dir=. # change this to where you have space, if needed

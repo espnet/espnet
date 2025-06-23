@@ -11,8 +11,6 @@ from string import punctuation
 
 import pandas as pd
 
-# strip_punct_table = str.maketrans("", "", punctuation)
-
 
 def prepare_data(input_dir, output_dir, audio_dir, csv_pattern, task_type="yn"):
     """
