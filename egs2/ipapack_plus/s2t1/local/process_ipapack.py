@@ -126,10 +126,10 @@ def main(root_dir, output_dir, lang_dist_json, draw_only=False):
                         dst.write(src.read())
 
             # Read orthography and phoneme sequences
-            orthography = open(
-                os.path.join(dump_dir, "orthography"), "r"
-            ).readlines()  # change
-            phoneme_seq = open(os.path.join(dump_dir, "text"), "r").readlines()
+            with open(os.path.join(dump_dir, "orthography"), "r") as orth_file:
+                orthography = orth_file.readlines()
+            with open(os.path.join(dump_dir, "text"), "r") as phoneme_file:
+                phoneme_seq = phoneme_file.readlines()
 
             unk_language_set = set()
 
