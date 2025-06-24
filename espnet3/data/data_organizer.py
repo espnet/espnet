@@ -46,7 +46,8 @@ class DatasetConfig:
         Create a DatasetConfig instance from a plain dictionary.
 
         Args:
-            cfg (Dict[str, Any]): Dictionary containing keys matching DatasetConfig fields.
+            cfg (Dict[str, Any]): Dictionary containing keys matching DatasetConfig
+                fields.
 
         Returns:
             DatasetConfig: Parsed configuration object.
@@ -141,7 +142,9 @@ class DataOrganizer:
         def build_dataset_list(cfg_list):
             datasets = []
             transforms = []
-            for cfg in tqdm(cfg_list):
+            for cfg in cfg_list:
+                if isinstance(cfg, dict):
+                    cfg = DatasetConfig.from_dict(cfg)
                 dataset = cfg.dataset
                 if hasattr(cfg, "transform"):
                     transform = cfg.transform

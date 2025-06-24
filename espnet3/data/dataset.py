@@ -16,12 +16,13 @@ class CombinedDataset:
     Args:
         datasets (List[Any]): A list of dataset instances. Each must implement
             `__getitem__` and `__len__`.
-        transforms (List[Tuple[Callable, Callable]]): A list of (transform, preprocessor)
-            tuples. Each pair corresponds to the matching dataset in `datasets`.
+        transforms (List[Tuple[Callable, Callable]]): A list of
+            (transform, preprocessor) tuples. Each pair corresponds to the matching
+            dataset in `datasets`.
             - `transform(sample)` is applied first.
             - Then `preprocessor(uid, sample)` or `preprocessor(sample)` is applied,
               depending on `add_uid`.
-        add_uid (bool): If True, applies the preprocessor as `preprocessor(uid, sample)`.
+        add_uid (bool): If True, applies the preprocessor as `preprocessor(uid, sample)`
             This is used for ESPnet `AbsPreprocessor`-compatible pipelines.
 
     Attributes:
@@ -108,8 +109,10 @@ class CombinedDataset:
         if isinstance(idx, str):
             try:
                 idx = int(idx)
-            except:
-                raise ValueError("ESPnet-3 expext the utterance ID to be integer index")
+            except (ValueError, TypeError):
+                raise ValueError(
+                    "ESPnet-3 expects the utterance ID to be an " "integer index"
+                )
 
         for i, cum_len in enumerate(self.cumulative_lengths):
             if idx < cum_len:
@@ -189,7 +192,7 @@ class DatasetWithTransform:
 
     Args:
         dataset (Any): A dataset implementing `__getitem__` and `__len__`.
-        transform (Callable): A function applied to each sample before preprocessing.
+        transform (Callable): A function applied to each sample before preprocessor.
         preprocessor (Callable): A function applied after the transform.
             If `add_uid` is True, it must accept `(uid, sample)` as arguments.
             Otherwise, it must accept a single `sample`.
