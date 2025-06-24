@@ -1,7 +1,7 @@
 import logging
 from pathlib import Path
 
-from omegaconf import OmegaConf
+from omegaconf import DictConfig, OmegaConf
 
 
 def load_line(path):
@@ -11,7 +11,7 @@ def load_line(path):
     This function is used as a custom resolver in OmegaConf,
     allowing YAML files to reference external text line files
     dynamically via `${load_line:some/file.txt}`.
-    
+
     This resolver is intended to load vocab file in configuration.
 
     Args:
@@ -84,13 +84,13 @@ def load_config_with_defaults(path: str) -> OmegaConf:
                 cfg_path = _build_config_path(base_path, entry)
                 merged_cfgs.append(load_config_with_defaults(str(cfg_path)))
 
-        elif isinstance(entry, dict):
+        elif isinstance(entry, DictConfig):
             for key, val in entry.items():
                 if val is None:
                     continue
                 composed = f"{key}/{val}" if "/" not in val else val
                 cfg_path = _build_config_path(base_path, composed)
-                merged_cfgs.append(load_config_with_defaults(str(cfg_path)))
+                merged_cfgs.append({key: load_config_with_defaults(str(cfg_path))})
 
         elif entry == "_self_":
             merged_cfgs.append(cfg_self)
