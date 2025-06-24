@@ -95,7 +95,7 @@ def test_combined_dataset():
         [
             (DummyTransform(), do_nothing_transform),
             (DummyTransform(), do_nothing_transform),
-        ]
+        ],
     )
     assert len(combined) == 4
     assert combined[0]["text"] == "HELLO"
@@ -377,7 +377,7 @@ def test_data_organizer_inconsistent_keys():
             [
                 (do_nothing_transform, do_nothing_transform),
                 (do_nothing_transform, do_nothing_transform),
-            ]
+            ],
         )
 
 
