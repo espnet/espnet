@@ -50,7 +50,7 @@ def inference(
     # )
     args = argparse.Namespace()
     args.model_name = "Qwen/Qwen2-Audio-7B-Instruct"
-    args.decode_config = decode_config_path
+    args.decode_config_path = decode_config_path
     model = DynamicSuperbTask.build_model(args)
     model.to(device).eval()
     train_args = None
