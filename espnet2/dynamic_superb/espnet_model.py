@@ -39,15 +39,13 @@ class ESPnetQwen2AudioModel(AbsESPnetModel):
             trust_remote_code=True
         )
 
+        self.decode_config = {"num_beams": 1, "length_penalty": 1.0, "maxlenratio": 0.0}
         if decode_config_path is not None:
             with open(decode_config_path, "r") as f:
                 decode_config = yaml.safe_load(f)
-                self.decode_config["num_beams"] = decode_config["beam_size"]
-                self.decode_config["length_penalty"] = decode_config["penalty"]
-                self.decode_config["maxlenratio"] = decode_config["maxlenratio"]
-        else:
-            self.decode_config = {"num_beams": 1, "length_penalty": 1.0, "maxlenratio": 0.0}
-
+            self.decode_config["num_beams"] = decode_config["beam_size"]
+            self.decode_config["length_penalty"] = decode_config["penalty"]
+            self.decode_config["maxlenratio"] = decode_config["maxlenratio"]
         
         # For inference-only, freeze the model parameters
         for param in self.qwen2audio_model.parameters():
