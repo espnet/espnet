@@ -21,8 +21,8 @@ class CombinedDataset:
             dataset in `datasets`.
             - `transform(sample)` is applied first.
             - Then `preprocessor(uid, sample)` or `preprocessor(sample)` is applied,
-              depending on `add_uid`.
-        add_uid (bool): If True, applies the preprocessor as `preprocessor(uid, sample)`
+              depending on `use_espnet_preprocessor`.
+        use_espnet_preprocessor (bool): If True, applies the preprocessor as `preprocessor(uid, sample)`
             This is used for ESPnet `AbsPreprocessor`-compatible pipelines.
 
     Attributes:
@@ -48,7 +48,7 @@ class CombinedDataset:
         ...         (transform1, preprocessor),
         ...         (transform2, preprocessor),
         ...     ],
-        ...     add_uid=True
+        ...     use_espnet_preprocessor=True
         ... )
         >>> sample = dataset[5]
         >>> print(sample["text"])
@@ -58,13 +58,14 @@ class CombinedDataset:
         self,
         datasets: List[Any],
         transforms: List[Tuple[Callable, Callable]],
-        add_uid: bool = False,
+        use_espnet_preprocessor: bool = False,
     ):
         self.datasets = datasets
         self.transforms = transforms
         self.lengths = [len(ds) for ds in datasets]
         self.cumulative_lengths = []
-        self.add_uid = add_uid
+        self.use_espnet_preprocessor = use_espnet_preprocessor
+
         total = 0
         for length in self.lengths:
             total += length
@@ -102,6 +103,17 @@ class CombinedDataset:
             if isinstance(dataset, ShardedDataset):
                 self.multiple_iterator = True
 
+        # This flag will be overrode by LitESPnetModel when initializing dataloader.
+        self._use_espnet_collator = False
+
+    @property
+    def use_espnet_collator(self):
+        return self._use_espnet_collator
+
+    @use_espnet_collator.setter
+    def use_espnet_collator(self, value: bool):
+        self._use_espnet_collator = value
+
     def __len__(self):
         return self.cumulative_lengths[-1] if self.cumulative_lengths else 0
 
@@ -119,11 +131,15 @@ class CombinedDataset:
                 ds_idx = idx if i == 0 else idx - self.cumulative_lengths[i - 1]
                 sample = self.datasets[i][ds_idx]
                 transformed = self.transforms[i][0](sample)  # apply transform
-                if self.add_uid:
+                if self.use_espnet_preprocessor:
                     transformed = self.transforms[i][1](str(idx), transformed)
                 else:
                     transformed = self.transforms[i][1](transformed)
-                return transformed
+
+                if self.use_espnet_collator:
+                    return str(idx), transformed
+                else:
+                    return transformed
 
         raise IndexError("Index out of range in CombinedDataset")
 
@@ -179,7 +195,7 @@ class CombinedDataset:
         return CombinedDataset(
             sharded_datasets,
             self.transforms,
-            self.add_uid,
+            self.use_espnet_preprocessor,
         )
 
 
@@ -194,9 +210,9 @@ class DatasetWithTransform:
         dataset (Any): A dataset implementing `__getitem__` and `__len__`.
         transform (Callable): A function applied to each sample before preprocessor.
         preprocessor (Callable): A function applied after the transform.
-            If `add_uid` is True, it must accept `(uid, sample)` as arguments.
+            If `use_espnet_preprocessor` is True, it must accept `(uid, sample)` as arguments.
             Otherwise, it must accept a single `sample`.
-        add_uid (bool): Whether to include the UID when calling the preprocessor.
+        use_espnet_preprocessor (bool): Whether to include the UID when calling the preprocessor.
             Required for ESPnet's `AbsPreprocessor` compatibility.
 
     Example:
@@ -214,7 +230,7 @@ class DatasetWithTransform:
         ...     my_dataset,
         ...     transform,
         ...     preprocessor,
-        ...     add_uid=True
+        ...     use_espnet_preprocessor=True
         ... )
         >>> uid_sample = wrapped[0]
         >>> print(uid_sample["text"])
@@ -225,13 +241,13 @@ class DatasetWithTransform:
         TypeError: If `transform` is not callable.
     """
 
-    def __init__(self, dataset, transform, preprocessor, add_uid=False):
+    def __init__(self, dataset, transform, preprocessor, use_espnet_preprocessor=False):
         assert callable(transform), "transform must be callable."
         assert callable(preprocessor), "preprocessor must be callable."
         self.dataset = dataset
         self.transform = transform
         self.preprocessor = preprocessor
-        self.add_uid = add_uid
+        self.use_espnet_preprocessor = use_espnet_preprocessor
 
     def __len__(self):
         return len(self.dataset)
@@ -239,7 +255,7 @@ class DatasetWithTransform:
     def __getitem__(self, idx):
         sample = self.dataset[idx]
         transformed = self.transform(sample)  # apply transform
-        if self.add_uid:
+        if self.use_espnet_preprocessor:
             transformed = self.preprocessor(str(idx), transformed)
         else:
             transformed = self.preprocessor(transformed)
