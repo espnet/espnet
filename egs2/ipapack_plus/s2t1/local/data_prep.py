@@ -287,7 +287,10 @@ def write_dir(source_dir, target_dir, transcripts):
 if __name__ == "__main__":
     logging.basicConfig(
         level=logging.DEBUG,
-        format="[%(asctime)s] %(levelname)s [%(name)s.%(funcName)s:%(lineno)d] %(message)s",
+        format=(
+            "[%(asctime)s] %(levelname)s [%(name)s.%(funcName)s:%(lineno)d] "
+            "%(message)s"
+        ),
         datefmt="%Y/%b/%d %H:%M:%S",
         stream=sys.stdout,
     )
@@ -309,7 +312,8 @@ if __name__ == "__main__":
         df = generate_df(source_dir, data_dir)
 
     # exclude the following langs
-    # from FLEURS: 'ga_ie', 'sd_in', 'ar_eg', 'ml_in', 'lo_la', 'da_dk', 'ko_kr', 'ny_mw', 'mn_mn', 'so_so', 'my_mm'
+    # from FLEURS: 'ga_ie', 'sd_in', 'ar_eg', 'ml_in', 'lo_la', 'da_dk', 
+    #   'ko_kr', 'ny_mw', 'mn_mn', 'so_so', 'my_mm'
     # Samir et al 2024 found that the data available for
     #   these languages unfortunately have low quality transcriptions.
     FLEURS_EXCLUDE = {

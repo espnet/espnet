@@ -5,7 +5,8 @@ from tqdm import tqdm
 
 """
 Preparation
-1. Make a directory to store the train/dev/test dump directory (e.g., ipapack_plus/s2t1/dump/raw)
+1. Make a directory to store the train/dev/test dump directory
+    e.g., ipapack_plus/s2t1/dump/raw
     - in this case, "newdir" is "dump/raw"
     - and "olddir" is the path to the original dump directory
 2. Run this script in newdir's parent directory to get correct path for wav.scp files
@@ -35,12 +36,13 @@ def subsample(olddir, dataset, newdir, newdataset, ratio):
         os.system(
             f"awk 'NR % {ratio} == 0' {olddir}/{dataset}/{file} > {currentdir}/{file}"
         )
-        # the original wav.scp does not contain the task in the utterance ID
-        # we need to add the task to the utterance ID to ensure wav.scp contains unique utterance IDs
+        # add task name to the original utterance ID to get unique IDs for wav.scp
         for task in tasks:
             # take the first column which is the utterance ID
-            os.system(
-                f'awk \'{{ $1 = $1 "_{task}"; print }}\' OFS=" " {currentdir}/{file} >> {currentdir}/{file}.tmp'
+            os.system((
+                    f'awk \'{{ $1 = $1 "_{task}"; print }}\' OFS=" " '
+                    f'{currentdir}/{file} >> {currentdir}/{file}.tmp'
+                )
             )
         os.system(f"mv {currentdir}/{file}.tmp {currentdir}/{file}")
 
@@ -66,8 +68,10 @@ def subsample(olddir, dataset, newdir, newdataset, ratio):
         textprevs.append(f"text.{task}_prev" if task != "pr" else "text.prev")
         textctcs.append(f"text.{task}_ctc" if task != "pr" else "text.ctc")
     for file in texts + textprevs + textctcs:
-        os.system(
-            f"awk 'NR % {ratio} == 0' {olddir}/{dataset}/{file} > {currentdir}/texts/{file}"
+        os.system((
+                f"awk 'NR % {ratio} == 0' "
+                f"{olddir}/{dataset}/{file} > {currentdir}/texts/{file}"
+            )
         )
 
     # 3. combine text files
@@ -81,8 +85,11 @@ def subsample(olddir, dataset, newdir, newdataset, ratio):
 
     # we need to sort the files by utterance ID
     # we concatenated each task's utterances separately, which messes up the order
-    os.system(
-        f'utils/fix_data_dir.sh --utt_extra_files "utt2num_samples text.ctc text.prev" {currentdir}'
+    os.system((
+            "utils/fix_data_dir.sh "
+            "--utt_extra_files \"utt2num_samples text.ctc text.prev\" "
+            f"{currentdir}"
+        )
     )
 
     print("Finished!")
@@ -120,8 +127,10 @@ def genwav(olddir, currentdir, nsplit=32):
 
     # 1. form n splits
     os.system(f"split -d -n l/{nsplit} {currentdir}/wav.scp {currentdir}/data/wav.")
-    os.system(
-        f"split -d -n l/{nsplit} {currentdir}/utt2num_samples {currentdir}/data/samples."
+    os.system((
+            f"split -d -n l/{nsplit} "
+            f"{currentdir}/utt2num_samples {currentdir}/data/samples."
+        )
     )
     for i in range(nsplit):
         formatdir = f"{currentdir}/data/format.{i+1}"

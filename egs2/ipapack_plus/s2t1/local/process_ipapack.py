@@ -196,13 +196,13 @@ def main(root_dir, output_dir, lang_dist_json, draw_only=False):
                     lang = utt2lang[utt_id]
                     try:
                         if tag_is_valid(lang):
-                            l = langcodes.get(lang).to_alpha3()
+                            langcode = langcodes.get(lang).to_alpha3()
                         else:
-                            l = langcodes.find(lang).to_alpha3()
-                        if l == "zho":
+                            langcode = langcodes.find(lang).to_alpha3()
+                        if langcode == "zho":
                             LANG = "<cmn>"
                         else:
-                            LANG = f"<{l}>"
+                            LANG = f"<{langcode}>"
                     except:
                         unk_language_set.add(lang)
                         LANG = UNK_LANG
