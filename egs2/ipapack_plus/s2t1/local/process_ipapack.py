@@ -203,7 +203,7 @@ def main(root_dir, output_dir, lang_dist_json, draw_only=False):
                             LANG = "<cmn>"
                         else:
                             LANG = f"<{langcode}>"
-                    except:
+                    except Exception:
                         unk_language_set.add(lang)
                         LANG = UNK_LANG
                     if LANG == "ina":

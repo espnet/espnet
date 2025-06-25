@@ -12,7 +12,6 @@ stop_stage=100
 min_wav_duration=0.5
 SECONDS=0
 
-s2t_data_dir=
 feat_dir=dump/raw
 
 log() {
