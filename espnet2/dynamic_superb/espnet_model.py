@@ -46,6 +46,7 @@ class ESPnetQwen2AudioModel(AbsESPnetModel):
             self.decode_config["num_beams"] = decode_config["beam_size"]
             self.decode_config["length_penalty"] = decode_config["penalty"]
             self.decode_config["maxlenratio"] = decode_config["maxlenratio"]
+            self.decode_config["minlenratio"] = decode_config["minlenratio"]
         
         # For inference-only, freeze the model parameters
         for param in self.qwen2audio_model.parameters():
@@ -107,6 +108,10 @@ class ESPnetQwen2AudioModel(AbsESPnetModel):
             max_length = int(self.decode_config["maxlenratio"] * input_length)
         else:
             max_length = 256
+        if self.decode_config["minlenratio"] > 0.0:
+            min_length = int(self.decode_config["minlenratio"] * input_length)
+        else:
+            min_length = 0
 
         with torch.no_grad():
             pred_ids = self.qwen2audio_model.generate(
@@ -116,10 +121,10 @@ class ESPnetQwen2AudioModel(AbsESPnetModel):
                 feature_attention_mask=feature_attention_mask,
                 do_sample=False,
                 max_new_tokens=max_length,
+                min_new_tokens=min_length,
                 num_beams=self.decode_config["num_beams"],
                 length_penalty=self.decode_config["length_penalty"],
             )
-                # max_new_tokens=256,
             
         # Extract only generated tokens
         pred_ids = pred_ids[:, input_ids.size(1):]
