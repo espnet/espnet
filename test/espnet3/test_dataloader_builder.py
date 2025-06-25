@@ -352,7 +352,7 @@ def dummy_multiple_iterator_dataset(tmp_path):
             {
                 "name": "shard0",
                 "dataset": {
-                    "_target_": "test.espnet3.test_dataloader_builder.DummyShardedDataset",
+                    "_target_": "test.espnet3.test_dataloader_builder.DummyShardedDataset",  # noqa: E501
                 },
             },
         ],
@@ -360,7 +360,7 @@ def dummy_multiple_iterator_dataset(tmp_path):
             {
                 "name": "valid",
                 "dataset": {
-                    "_target_": "test.espnet3.test_dataloader_builder.DummyShardedDataset",
+                    "_target_": "test.espnet3.test_dataloader_builder.DummyShardedDataset",  # noqa: E501
                 },
             }
         ],

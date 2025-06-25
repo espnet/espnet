@@ -177,7 +177,8 @@ def test_state_dict_and_load(tmp_path, dummy_model, dummy_dataset_config):
 
 
 class CustomCollate:
-    def __init__(self): ...
+    def __init__(self):
+        pass
 
     def __call__(batch):
         return {"custom": True}
