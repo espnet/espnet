@@ -2,7 +2,7 @@
 # import torch
 from torch import nn
 from torch.optim import SGD, Adam
-from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
+from torch.optim.lr_scheduler import StepLR, LinearLR
 
 from espnet3.trainer import HybridLRS, HybridOptim
 
@@ -27,7 +27,7 @@ def create_optimizers_and_schedulers():
     hybrid = HybridOptim([opt1, opt2])
 
     sched1 = StepLR(opt1, step_size=5, gamma=0.1)
-    sched2 = ReduceLROnPlateau(opt2, patience=2)
+    sched2 = LinearLR(opt2)
 
     return hybrid, [sched1, sched2]
 
