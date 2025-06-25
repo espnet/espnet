@@ -22,8 +22,9 @@ class CombinedDataset:
             - `transform(sample)` is applied first.
             - Then `preprocessor(uid, sample)` or `preprocessor(sample)` is applied,
               depending on `use_espnet_preprocessor`.
-        use_espnet_preprocessor (bool): If True, applies the preprocessor as `preprocessor(uid, sample)`
-            This is used for ESPnet `AbsPreprocessor`-compatible pipelines.
+        use_espnet_preprocessor (bool): If True, applies the preprocessor as
+            `preprocessor(uid, sample)`. This is used for ESPnet `AbsPreprocessor`
+            compatible pipelines.
 
     Attributes:
         get_text_available (bool): True if all datasets implement `get_text(idx)`.
@@ -210,10 +211,10 @@ class DatasetWithTransform:
         dataset (Any): A dataset implementing `__getitem__` and `__len__`.
         transform (Callable): A function applied to each sample before preprocessor.
         preprocessor (Callable): A function applied after the transform.
-            If `use_espnet_preprocessor` is True, it must accept `(uid, sample)` as arguments.
-            Otherwise, it must accept a single `sample`.
-        use_espnet_preprocessor (bool): Whether to include the UID when calling the preprocessor.
-            Required for ESPnet's `AbsPreprocessor` compatibility.
+            If `use_espnet_preprocessor` is True, it must accept `(uid, sample)`
+            as arguments. Otherwise, it must accept a single `sample`.
+        use_espnet_preprocessor (bool): Whether to include the UID when calling
+            the preprocessor. Required for ESPnet's `AbsPreprocessor` compatibility.
 
     Example:
         >>> def transform(sample):
