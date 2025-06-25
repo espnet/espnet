@@ -77,5 +77,6 @@ class DynamicSuperbTask(AbsTask):
         """Build the Qwen2-Audio model[8]"""
         model = ESPnetQwen2AudioModel(
             model_name=args.model_name,
+            decode_config_path=args.decode_config_path,
         )
         return model
