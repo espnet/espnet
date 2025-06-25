@@ -116,6 +116,7 @@ class ESPnetQwen2AudioModel(AbsESPnetModel):
                 attention_mask=attention_mask,
                 input_features=input_features,
                 feature_attention_mask=feature_attention_mask,
+                do_sample=False,
                 max_new_tokens=max_length,
                 num_beams=self.decode_config["num_beams"],
                 length_penalty=self.decode_config["length_penalty"],
@@ -128,7 +129,8 @@ class ESPnetQwen2AudioModel(AbsESPnetModel):
         # Decode prediction
         prediction = self.processor.batch_decode(
             pred_ids, 
-            skip_special_tokens=True
+            skip_special_tokens=True,
+            clean_up_tokenization_spaces=False,
         )[0]
         
         return prediction
