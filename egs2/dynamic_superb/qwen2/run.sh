@@ -47,11 +47,46 @@ if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ]; then
     ref=${dset}/text.output
     hyp=${_dir}/text
 
-    # Word Error Rate
-    # strip utterance IDs, keep only the text
     mkdir -p ${_dir}/score
-    awk '{ utt=$1; $1=""; print substr($0,2) " (spk-" utt ")" }' ${ref} > ${_dir}/score/ref.txt
-    awk '{ utt=$1; $1=""; print substr($0,2) " (spk-" utt ")" }' ${hyp} > ${_dir}/score/hyp.txt
+
+    # Text normalization function
+    normalize_text() {
+      local input_file=$1
+      local output_file=$2
+      
+      # Apply text normalization: lowercase, remove punctuation, normalize whitespace
+      awk '{
+        # Extract utterance ID and text
+        utt = $1
+        $1 = ""
+        text = substr($0, 2)
+        
+        # Convert to lowercase
+        text = tolower(text)
+        
+        # Remove punctuation (keep only alphanumeric and spaces)
+        gsub(/[^a-z0-9 ]/, "", text)
+        
+        # Normalize multiple spaces to single space
+        gsub(/[ \t]+/, " ", text)
+        
+        # Remove leading/trailing whitespace
+        gsub(/^[ \t]+|[ \t]+$/, "", text)
+        
+        # Print normalized text with utterance ID
+        print utt " " text
+      }' ${input_file} > ${output_file}
+    }
+
+    # Apply text normalization
+    echo "Normalizing reference and hypothesis texts..."
+    normalize_text ${ref} ${_dir}/score/ref.normalized
+    normalize_text ${hyp} ${_dir}/score/hyp.normalized
+
+    # Word Error Rate (using normalized texts)
+    # strip utterance IDs, keep only the text
+    awk '{ utt=$1; $1=""; print substr($0,2) " (spk-" utt ")" }' ${_dir}/score/ref.normalized > ${_dir}/score/ref.txt
+    awk '{ utt=$1; $1=""; print substr($0,2) " (spk-" utt ")" }' ${_dir}/score/hyp.normalized > ${_dir}/score/hyp.txt
 
     # run sclite
     sclite \
@@ -63,26 +98,25 @@ if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ]; then
 
     echo "WER report saved to ${_dir}/score/wer_sclite.log"
 
-
-    # Character Error Rate
-    # 1) Convert each line into “one char per token” plus the utt-ID:
+    # Character Error Rate (using normalized texts)
+    # 1) Convert each line into "one char per token" plus the utt-ID:
     awk '{ utt=$1; $1=""; txt=substr($0,2); gsub(/ /,"",txt);
        spaced=""; for(i=1;i<=length(txt);i++){spaced=spaced substr(txt,i,1)" ";}
-       print spaced "(spk-" utt ")" }' ${ref} \
-        > ${_dir}/ref.char.trn
+       print spaced "(spk-" utt ")" }' ${_dir}/score/ref.normalized \
+        > ${_dir}/score/ref.char.trn
 
     awk '{ utt=$1; $1=""; txt=substr($0,2); gsub(/ /,"",txt);
        spaced=""; for(i=1;i<=length(txt);i++){spaced=spaced substr(txt,i,1)" ";}
-       print spaced "(spk-" utt ")" }' ${hyp} \
-        > ${_dir}/hyp.char.trn
+       print spaced "(spk-" utt ")" }' ${_dir}/score/hyp.normalized \
+        > ${_dir}/score/hyp.char.trn
 
-    # 2) Run sclite in transcription mode (“trn”) but it’s now character‐level:
+    # 2) Run sclite in transcription mode ("trn") but it's now character‐level:
     sclite \
-        -r ${_dir}/ref.char.trn trn \
-        -h ${_dir}/hyp.char.trn trn \
+        -r ${_dir}/score/ref.char.trn trn \
+        -h ${_dir}/score/hyp.char.trn trn \
         -i rm \
         -o sum stdout \
-        | tee ${_dir}/cer_sclite.log
+        | tee ${_dir}/score/cer_sclite.log
     echo "CER report saved to ${_dir}/score/cer_sclite.log"
   done
 fi
