@@ -1,26 +1,19 @@
 import warnings
 from argparse import Namespace
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, Union
 
 import lightning as L
 import torch
 import torch.nn as nn
 from hydra.utils import instantiate
-from omegaconf import DictConfig, ListConfig, OmegaConf
+from omegaconf import DictConfig, ListConfig
 from typeguard import typechecked
+
+from espnet2.torch_utils.initialize import initialize
 
 # Temporaliry disabled for the code review.
 # from espnet3.trainer.callbacks import get_default_callbacks
 from espnet3.trainer.model import LitESPnetModel
-
-
-def init_weights(m):
-    if isinstance(m, nn.Linear):
-        torch.nn.init.xavier_uniform(m.weight)
-        m.bias.data.fill_(0.01)
-    if isinstance(m, nn.Conv1d):
-        torch.nn.init.kaiming_uniform_(m.weight)
-        m.bias.data.fill_(0.01)
 
 
 def get_or_initialize(config, item_name: str = None, default=None) -> Any:
@@ -60,9 +53,6 @@ class ESPnet3LightningTrainer:
         config: Union[DictConfig, Namespace, Dict[str, Any]] = None,
         best_model_criterion=None,
     ):
-        assert model is not None, "model must be provided."
-        assert expdir is not None, "expdir must be provided."
-        assert config is not None, "config must be provided."
         if best_model_criterion is None:
             best_model_criterion = ListConfig([("valid/loss", 3, "min")])
 
@@ -71,7 +61,8 @@ class ESPnet3LightningTrainer:
 
         # Instantiate the Lightning Model
         self.model = model
-        init_weights(self.model)
+        if getattr(self.config, "init", None) is not None:
+            initialize(self.model, self.config.init)
 
         # Accelerator
         accelerator = get_or_initialize(self.config, "accelerator", "auto")
