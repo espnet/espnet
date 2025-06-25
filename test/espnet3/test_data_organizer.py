@@ -7,6 +7,42 @@ from omegaconf import OmegaConf
 from espnet2.train.preprocessor import AbsPreprocessor
 from espnet3.data import CombinedDataset, DataOrganizer, do_nothing_transform
 
+# ===============================================================
+# Test Case Summary for DataOrganizer & CombinedDataset
+# ===============================================================
+#
+# Basic Integration
+# | Test Function Name               | Description                                                              | # noqa: E501
+# |----------------------------------|--------------------------------------------------------------------------| # noqa: E501
+# | test_data_organizer_init         | Initializes DataOrganizer with train/valid/test                          | # noqa: E501
+# | test_data_organizer_without_test | Verifies behavior without test section                                   | # noqa: E501
+# | test_data_organizer_test_only    | Validates usage of test-only pipelines                                   | # noqa: E501
+# | test_data_organizer_train_valid_multiple | Ensures multiple train/valid datasets are supported             | # noqa: E501
+# | test_data_organizer_empty_train_valid_ok | Confirms train/valid can be empty lists                          | # noqa: E501
+#
+# Transform / Preprocessor Application
+# | Test Function Name                    | Description                                                              | # noqa: E501
+# |--------------------------------------|--------------------------------------------------------------------------| # noqa: E501
+# | test_combined_dataset                | Combines datasets and applies transform                                  | # noqa: E501
+# | test_data_organizer_transform_only   | Applies only transform to data                                           | # noqa: E501
+# | test_data_organizer_preprocessor_only| Applies only preprocessor to data                                        | # noqa: E501
+# | test_data_organizer_transform_and_preprocessor | Applies both transform and preprocessor                        | # noqa: E501
+# | test_espnet_preprocessor_without_transform | Uses only ESPnet-style preprocessor (UID-based)               | # noqa: E501
+# | test_espnet_preprocessor_with_transform    | Combines transform with ESPnet preprocessor                   | # noqa: E501
+#
+# Test Set Variants
+# | Test Function Name                 | Description                                                              | # noqa: E501
+# |-----------------------------------|--------------------------------------------------------------------------| # noqa: E501
+# | test_data_organizer_test_multiple_sets | Handles multiple named test sets                                   | # noqa: E501
+#
+# Error Cases
+# | Test Function Name                         | Description                                                  | Expected Exception | # noqa: E501
+# |--------------------------------------------|--------------------------------------------------------------|--------------------| # noqa: E501
+# | test_data_organizer_train_only_assertion   | Raises error when only train is provided without valid       | RuntimeError       | # noqa: E501
+# | test_data_organizer_inconsistent_keys      | Fails when dataset output keys are inconsistent in combined  | AssertionError     | # noqa: E501
+# | test_data_organizer_transform_none         | Simulates transform failure that raises an internal exception| ValueError         | # noqa: E501
+# | test_data_organizer_invalid_preprocessor_type | Fails when a non-callable is used as preprocessor         | AssertionError     | # noqa: E501
+
 
 # Dummy classes
 class DummyTransform:
@@ -95,7 +131,7 @@ def test_combined_dataset():
         [
             (DummyTransform(), do_nothing_transform),
             (DummyTransform(), do_nothing_transform),
-        ]
+        ],
     )
     assert len(combined) == 4
     assert combined[0]["text"] == "HELLO"
@@ -377,7 +413,7 @@ def test_data_organizer_inconsistent_keys():
             [
                 (do_nothing_transform, do_nothing_transform),
                 (do_nothing_transform, do_nothing_transform),
-            ]
+            ],
         )
 
 
