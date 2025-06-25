@@ -40,6 +40,7 @@ class LitESPnetModel(L.LightningModule):
         organizer = instantiate(config.dataset)
         self.train_dataset = organizer.train
         self.valid_dataset = organizer.valid
+        self.nan_countdown = 0
         # self.save_hyperparameters()  # args now in self.hparams
 
         # If user is trying to use both Pytorch dataloader and ESPnet's dataloader
@@ -83,7 +84,8 @@ class LitESPnetModel(L.LightningModule):
         Synchronize a skip flag across all DDP workers.
 
         Args:
-            flag_skip (torch.Tensor): Boolean scalar indicating whether this worker should skip.
+            flag_skip (torch.Tensor): Boolean scalar indicating whether this worker
+                should skip.
 
         Returns:
             bool: True if any worker flags a skip.
@@ -92,18 +94,16 @@ class LitESPnetModel(L.LightningModule):
         # https://github.com/Lightning-AI/lightning/issues/5243#issuecomment-1552650013
         # gathering a tensor across all workers and then reduce it using or
         if self.config.num_device == 1:
-            world_size = 1
+            any_invalid = flag_skip
         else:
             world_size = torch.distributed.get_world_size()
             torch.distributed.barrier()
 
-        # now gather
-        result = [torch.zeros_like(flag_skip) for _ in range(world_size)]
-
-        if self.config.num_device > 1:
+            result = [torch.zeros_like(flag_skip) for _ in range(world_size)]
             torch.distributed.all_gather(result, flag_skip)
 
-        any_invalid = torch.sum(torch.stack(result)).bool().item()
+            any_invalid = torch.sum(torch.stack(result)).bool().item()
+
         return any_invalid
 
     def _check_nan_inf_loss(self, loss, batch_id):
@@ -197,7 +197,9 @@ class LitESPnetModel(L.LightningModule):
         Default optimizer is Adam and scheduler is torch.optim.lr_scheduler.StepLR
         with default values in PyTorch.
         """
-        if getattr(self.config, "optim") and getattr(self.config, "scheduler"):
+        if getattr(self.config, "optim", None) and getattr(
+            self.config, "scheduler", None
+        ):
             # setup optimizer and scheduler
             assert (
                 getattr(self.config, "optims", None) is None
@@ -250,13 +252,9 @@ class LitESPnetModel(L.LightningModule):
         #             optimizer=optims[i_sch]
         #         ))
         #     scheduler = [
-        #         HybridLRS(optimizer, i_sch, sch) for i_sch, sch in enumerate(schedulers)
+        #         HybridLRS(optimizer, i_sch, sch)
+        #         for i_sch, sch in enumerate(schedulers)
         #     ]
-        elif not getattr(self.config, "optim") and not getattr(
-            self.config, "scheduler"
-        ):
-            optimizer = torch.optim.Adam(self.parameters())
-            scheduler = torch.optim.lr_scheduler.StepLR(optimizer)
         else:
             raise ValueError(
                 "Must specify either `optim` or `optims` and `scheduler` or"
@@ -317,7 +315,7 @@ class LitESPnetModel(L.LightningModule):
     # Temporaliry disabled for the code review.
     # def collect_stats(self):
     #     """
-    #     Collect training and validation statistics using ESPnet's collect_stats function.
+    #     Collect training and validation statistics using ESPnet's collect_stats.
 
     #     Requires `config.statsdir` to be defined. Saves stats under this directory.
 
