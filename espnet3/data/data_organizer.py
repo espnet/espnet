@@ -55,7 +55,7 @@ class DatasetConfig:
         return DatasetConfig(**cfg)
 
 
-def do_nothing_transform(x):
+def do_nothing_transform(*x):
     """Identity transform
     Returns input as-is.
 
@@ -65,7 +65,10 @@ def do_nothing_transform(x):
     Returns:
         The input object unchanged.
     """
-    return x
+    if len(x) == 1:
+        return x[0]
+    else:
+        return x
 
 
 class DataOrganizer:
@@ -153,7 +156,11 @@ class DataOrganizer:
 
                 datasets.append(dataset)
                 transforms.append((transform, self.preprocessor))
-            return CombinedDataset(datasets, transforms, add_uid=is_espnet_preprocessor)
+            return CombinedDataset(
+                datasets,
+                transforms,
+                use_espnet_preprocessor=is_espnet_preprocessor,
+            )
 
         self.train = None
         self.valid = None
@@ -182,7 +189,7 @@ class DataOrganizer:
                     dataset,
                     transform,
                     self.preprocessor,
-                    add_uid=is_espnet_preprocessor,
+                    use_espnet_preprocessor=is_espnet_preprocessor,
                 )
 
     @property
