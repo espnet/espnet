@@ -5,14 +5,41 @@ from yaml.parser import ParserError
 
 from espnet3.utils.config import load_config_with_defaults, load_line
 
-# test for load_line
-# | Test Case Name                    | Description                                                     | Notes                                | # noqa: E501
-# | --------------------------------- | --------------------------------------------------------------- | ------------------------------------ | # noqa: E501
-# | `test_load_line_basic`            | Reads a file with multiple lines like `"a\\nb\\nc\\n"`          | Basic multi-line case                | # noqa: E501
-# | `test_load_line_with_whitespace`  | Trims leading/trailing spaces from lines like `"  x  \\n y\\n"` | Ensures `.strip()` works as expected | # noqa: E501
-# | `test_load_line_empty_file`       | Reads an empty file (`""`)                                      | Should return an empty list `[]`     | # noqa: E501
-# | `test_load_line_single_line`      | Reads a file with no newline, e.g., `"hello"`                   | Should return `["hello"]`            | # noqa: E501
-# | `test_load_line_trailing_newline` | Reads a file ending with a newline, e.g., `"last\\n"`           | Should return `["last"]`             | # noqa: E501
+# ===============================================================
+# Test Case Summary for Config Utilities
+# ===============================================================
+#
+# Tests for `load_line(path)`
+# | Test Name                         | Description                                                    | # noqa: E501
+# |----------------------------------|----------------------------------------------------------------| # noqa: E501
+# | test_load_line_basic             | Reads a file with multiple lines like `"a\\nb\\nc"`            | # noqa: E501
+# | test_load_line_with_whitespace   | Strips leading/trailing whitespace from each line              | # noqa: E501
+# | test_load_line_empty_file        | Returns an empty list for an empty file                        | # noqa: E501
+# | test_load_line_single_line       | Handles file with only one line, no newline                    | # noqa: E501
+# | test_load_line_trailing_newline  | Handles file ending with a newline character                   | # noqa: E501
+#
+# Simple Tests for `load_config_with_defaults`
+# | Test Name                          | Description                                                    | # noqa: E501
+# |-----------------------------------|----------------------------------------------------------------| # noqa: E501
+# | test_config_without_defaults       | Config with no `defaults` key, should load as-is               | # noqa: E501
+# | test_config_with_self_only         | `defaults: [_self_]` merges config with itself                 | # noqa: E501
+# | test_config_with_one_include       | Includes one external config file via `defaults`              | # noqa: E501
+# | test_config_with_key_value         | Loads config with `defaults: [{opt: adam}]` → opt/adam.yaml    | # noqa: E501
+# | test_config_update_with_key_value  | Adds extra fields to a nested dict loaded from `defaults`      | # noqa: E501
+# | test_config_ignore_none_entry      | Skips null entries in the `defaults` list                      | # noqa: E501
+# | test_defaults_removed_after_merge  | Ensures `defaults` is not present in the final config          | # noqa: E501
+#
+# Complex/Recursive Merging
+# | Test Name                          | Description                                                    | # noqa: E501
+# |-----------------------------------|----------------------------------------------------------------| # noqa: E501
+# | test_config_with_nested_defaults   | Nested includes (config includes another config that has its own defaults) | # noqa: E501
+# | test_config_with_self_in_middle    | `_self_` appears in the middle of the `defaults` list          | # noqa: E501
+#
+# Error Cases
+# | Test Name                          | Description                                                    | Expected Exception       | # noqa: E501
+# |-----------------------------------|----------------------------------------------------------------|--------------------------| # noqa: E501
+# | test_missing_file_raises           | Missing file in `defaults`                                     | FileNotFoundError        | # noqa: E501
+# | test_invalid_yaml_raises           | YAML parse error in included file                              | ParserError              | # noqa: E501
 
 
 @pytest.fixture
@@ -53,31 +80,6 @@ def test_load_line_trailing_newline(tmp_txt_file):
     path = tmp_txt_file("last\n")
     result = load_line(path)
     assert result == ["last"]
-
-
-# test for load_config_with_defaults
-# Simple Cases
-# | Test Case Name                      | Description                                                   | Notes                                         | # noqa: E501
-# | ----------------------------------- | ------------------------------------------------------------- | --------------------------------------------- | # noqa: E501
-# | `test_config_without_defaults`      | Config does not contain a `defaults` key                      | Returns the config as-is                      | # noqa: E501
-# | `test_config_with_self_only`        | `defaults` contains only `_self_`                             | Merges the config with itself                 | # noqa: E501
-# | `test_config_with_one_include`      | Includes another config file with `defaults: ["other"]`       | Basic one-level inclusion                     | # noqa: E501
-# | `test_config_with_key_value`        | Includes config using key/value format like `{"opt": "adam"}` | Loads from `opt/adam.yaml`                    | # noqa: E501
-# | `test_config_update_with_key_value` | Updating config using key/value format like `{"opt": "adam"}` | Loads from `opt/adam.yaml`                    | # noqa: E501
-# | `test_config_ignore_none_entry`     | Skips an entry with `{"something": null}`                     | Null entries in `defaults` are safely ignored | # noqa: E501
-# | `test_defaults_removed_after_merge` | Ensures final config does not contain a `defaults` key        | Important for runtime compatibility           | # noqa: E501
-
-# Complex / Recursive Cases
-# | Test Case Name                     | Description                                                       | Notes                                           | # noqa: E501
-# | ---------------------------------- | ----------------------------------------------------------------- | ----------------------------------------------- | # noqa: E501
-# | `test_config_with_nested_defaults` | A config includes another, which itself contains `defaults`       | Recursively merges all involved configs         | # noqa: E501
-# | `test_config_with_self_in_middle`  | `_self_` appears in between other includes in the `defaults` list | Validates correct merge order: `A -> self -> B` | # noqa: E501
-
-# Error Cases
-# | Test Case Name             | Description                                                           | Expected Exception       | # noqa: E501
-# | -------------------------- | --------------------------------------------------------------------- | ------------------------ | # noqa: E501
-# | `test_missing_file_raises` | Includes a missing file in `defaults`                                 | `FileNotFoundError`      | # noqa: E501
-# | `test_invalid_yaml_raises` | Refers to a YAML file with malformed syntax (e.g., unclosed brackets) | `ParserError` | # noqa: E501
 
 
 @pytest.fixture

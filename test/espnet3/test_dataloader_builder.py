@@ -9,6 +9,38 @@ from espnet3.data import DataOrganizer, ShardedDataset, do_nothing_transform
 from espnet3.trainer.dataloader import DataLoaderBuilder
 from espnet3.utils.config import load_config_with_defaults
 
+# ===============================================================
+# Test Case Summary for DataLoaderBuilder
+# ===============================================================
+#
+# Standard PyTorch DataLoader mode
+# | Test Name                          | Description                                                              | # noqa: E501
+# |-----------------------------------|--------------------------------------------------------------------------| # noqa: E501
+# | test_batch_sampler_only           | Uses only batch_sampler and omits batch_size and shuffle                | # noqa: E501
+# | test_sampler_only                 | Uses only sampler to drive the dataloader                               | # noqa: E501
+# | test_collate_fn_none              | Sets collate_fn=None to use PyTorch's default_collate                   | # noqa: E501
+# | test_common_collate_fn            | Uses CommonCollateFn and checks audio/audio_lengths formatting          | # noqa: E501
+# | test_custom_collate_fn            | Uses a custom collate function and checks the batch structure           | # noqa: E501
+# | test_sampler_and_batch_sampler_conflict | Ensures AssertionError if both sampler and batch_sampler are defined  | # noqa: E501
+#
+# IterFactory Mode & YAML-based Integration
+# | Test Name                          | Description                                                              | # noqa: E501
+# |-----------------------------------|--------------------------------------------------------------------------| # noqa: E501
+# | test_iter_factory_from_default_yaml_with_organizer | Uses a real YAML config with iter_factory and verifies batch structure | # noqa: E501
+# | test_iter_factory_with_collate_fn | Confirms config-defined collate_fn takes precedence over argument       | # noqa: E501
+#
+# Multiple Iterator Mode (Sharded Dataset)
+# | Test Name                              | Description                                                              | # noqa: E501
+# |---------------------------------------|--------------------------------------------------------------------------| # noqa: E501
+# | test_multiple_iterator_shard_initialization | Checks correct shard is selected based on epoch                         | # noqa: E501
+# | test_multiple_iterator_epoch_shard_switching | Ensures different shard is selected as epoch changes                  | # noqa: E501
+#
+# Note:
+# - DummyDataset and DummyShardedDataset are used to simulate real-world data layout
+# - All `DataLoaderBuilder.build(mode)` modes are exercised: standard, iter_factory,
+# and multiple_iterator
+
+
 # -------- Dummy components for testing --------
 
 
@@ -78,17 +110,7 @@ def make_standard_dataloader_config(sampler=None, batch_sampler=None, collate_fn
     return OmegaConf.create(config)
 
 
-# -------- Tests on standard pytorch dataloader --------
-# Test Case Summary for DataLoaderBuilder (Standard DataLoader mode)
-#
-# | Test Case Name                        | Description                                                              | What It Verifies                                                         | # noqa: E501
-# |--------------------------------------|--------------------------------------------------------------------------|---------------------------------------------------------------------------| # noqa: E501
-# | test_batch_sampler_only              | Uses only batch_sampler and removes batch_size and shuffle               | Ensures batch_sampler is correctly instantiated                          | # noqa: E501
-# | test_sampler_only                    | Uses only sampler                                                        | Ensures sampler is correctly instantiated                                | # noqa: E501
-# | test_collate_fn_none                 | Sets collate_fn=None                                                     | Checks if PyTorch's default_collate is used                              | # noqa: E501
-# | test_common_collate_fn              | Uses CommonCollateFn with DataOrganizer dataset                          | Confirms ESPnet-style collate function formats (input, input_lengths)    | # noqa: E501
-# | test_custom_collate_fn              | Passes a custom collate function                                         | Ensures the custom function is used and output is correctly structured   | # noqa: E501
-# | test_sampler_and_batch_sampler_conflict | Defines both sampler and batch_sampler                                  | Expects AssertionError due to mutually exclusive settings                | # noqa: E501
+# -------- Standard PyTorch DataLoader mode --------
 
 
 def test_batch_sampler_only():
@@ -185,15 +207,7 @@ def test_sampler_and_batch_sampler_conflict():
         _ = builder._build_standard_dataloader(config.dataloader.train)
 
 
-# -------- Tests on dataloader with iter_factory --------
-# Test Case Summary for DataLoaderBuilder (IterFactory mode and MultipleIterator mode)
-#
-# | Test Case Name                           | Description                                                                 | What It Verifies                                                           | # noqa: E501
-# |-----------------------------------------|-----------------------------------------------------------------------------|-----------------------------------------------------------------------------| # noqa: E501
-# | test_iter_factory_from_default_yaml_with_organizer | Loads config with iter_factory defined in YAML and builds loader           | Ensures SequenceIterFactory and CommonCollateFn integration works          | # noqa: E501
-# | test_iter_factory_with_collate_fn       | Provides collate_fn both in config and as argument                         | Confirms config-defined collate_fn takes precedence over function argument | # noqa: E501
-# | test_multiple_iterator_shard_initialization | Uses DummyShardedDataset with multiple_iterator enabled                    | Confirms that the correct shard is selected at initialization              | # noqa: E501
-# | test_multiple_iterator_epoch_shard_switching | Tests switching shards across epochs with shuffle=False                    | Confirms that shard changes per epoch as expected                          | # noqa: E501
+# -------- IterFactory Mode & YAML-based Integration --------
 
 
 def test_iter_factory_from_default_yaml_with_organizer(tmp_path):
@@ -305,7 +319,9 @@ dataloader:
     assert "audio_lengths" in batch[1]
 
 
-# --- tests on mulplt-iterator/sharded dataset ---
+# --- Multiple Iterator Mode (Sharded Dataset) ---
+
+
 # Dummy sharded dataset that returns shard-specific samples
 class DummyShardedDataset(ShardedDataset):
     def __init__(self, shard_id: int = None):

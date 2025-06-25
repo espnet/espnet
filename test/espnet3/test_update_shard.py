@@ -1,17 +1,28 @@
-import pytest
+from espnet3.trainer.dataloader import update_shard
 
-from espnet3.trainer.dataloader import update_shard  # Replace with actual import path
-
-# | Test Case Name                           | Description                                                                                                            | # noqa: E501
-# | ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | # noqa: E501
-# | `test_update_shard_in_dict`              | Replaces `{shard_idx}` in string values inside a nested dictionary                                                     | # noqa: E501
-# | `test_update_shard_in_list`              | Replaces `{shard_idx}` in strings inside a list                                                                        | # noqa: E501
-# | `test_update_shard_nested_mix`           | Handles mixed nesting of dicts and lists with `{shard_idx}` strings                                                    | # noqa: E501
-# | `test_update_shard_no_change`            | Leaves strings unchanged if `{shard_idx}` is not present                                                               | # noqa: E501
-# | `test_update_shard_non_string`           | Leaves non-string values (int, float, bool, None) untouched                                                            | # noqa: E501
-# | `test_update_shard_empty_structures`     | Handles empty lists and dicts gracefully                                                                               | # noqa: E501
-# | `test_update_shard_multiple_occurrences` | Replaces multiple `{shard_idx}` placeholders in a single string                                                        | # noqa: E501
-# | `test_update_shard_multiple_locations` ✅ | Replaces `{shard_idx}` appearing in **multiple distinct locations** across nested config (dicts, lists, list-of-dicts) | # noqa: E501
+# ===============================================================
+# Test Case Summary for update_shard
+# ===============================================================
+#
+# String Replacement Logic
+# | Test Name                           | Description                                                                 | # noqa: E501
+# |------------------------------------|-----------------------------------------------------------------------------| # noqa: E501
+# | test_update_shard_in_dict          | Replaces `{shard_idx}` in string values inside a dictionary                | # noqa: E501
+# | test_update_shard_in_list          | Replaces `{shard_idx}` in strings inside a list                            | # noqa: E501
+# | test_update_shard_multiple_occurrences | Replaces multiple `{shard_idx}` within a single string                 | # noqa: E501
+# | test_update_shard_multiple_locations  | Replaces `{shard_idx}` in various nested structures across the config     | # noqa: E501
+#
+# Nesting & Structural Integrity
+# | Test Name                           | Description                                                                 | # noqa: E501
+# |------------------------------------|-----------------------------------------------------------------------------| # noqa: E501
+# | test_update_shard_nested_mix       | Handles nested dict + list structures with placeholder substitutions       | # noqa: E501
+# | test_update_shard_empty_structures | Gracefully handles empty lists and dicts                                   | # noqa: E501
+#
+# Non-modifying / Edge Cases
+# | Test Name                           | Description                                                                 | # noqa: E501
+# |------------------------------------|-----------------------------------------------------------------------------| # noqa: E501
+# | test_update_shard_no_change        | Leaves strings unchanged if no `{shard_idx}` is present                    | # noqa: E501
+# | test_update_shard_non_string       | Leaves non-string values (int, float, bool, None) untouched                | # noqa: E501
 
 
 def test_update_shard_in_dict():
