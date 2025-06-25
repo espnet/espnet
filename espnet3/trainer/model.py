@@ -70,15 +70,6 @@ class LitESPnetModel(L.LightningModule):
         if hasattr(self.config.dataloader, "collate_fn"):
             self.collate_fn = instantiate(self.config.dataloader.collate_fn)
 
-    def is_espnet_sampler(self):
-        """
-        Return whether ESPnet's custom sampler is used.
-
-        Returns:
-            bool: True if using ESPnet's sampler; False otherwise.
-        """
-        return self.is_espnet_sampler
-
     def _sync2skip(self, flag_skip):
         """
         Synchronize a skip flag across all DDP workers.
