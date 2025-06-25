@@ -312,7 +312,7 @@ if __name__ == "__main__":
         df = generate_df(source_dir, data_dir)
 
     # exclude the following langs
-    # from FLEURS: 'ga_ie', 'sd_in', 'ar_eg', 'ml_in', 'lo_la', 'da_dk', 
+    # from FLEURS: 'ga_ie', 'sd_in', 'ar_eg', 'ml_in', 'lo_la', 'da_dk',
     #   'ko_kr', 'ny_mw', 'mn_mn', 'so_so', 'my_mm'
     # Samir et al 2024 found that the data available for
     #   these languages unfortunately have low quality transcriptions.
