@@ -36,7 +36,8 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
                 --data_path_and_name_and_type "${_dset}/wav.scp,speech,sound" \
                 --data_path_and_name_and_type "${_dset}/text.input,text,text" \
                 --output_dir "${_dir}" \
-                --batch_size 1
+                --batch_size 1 \
+                --decode_config_path "conf/decode_asr.yaml"
     done
 fi
 

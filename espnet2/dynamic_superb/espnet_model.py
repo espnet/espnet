@@ -1,3 +1,4 @@
+import yaml
 from typing import Dict, List, Optional, Tuple, Union
 
 import librosa
@@ -18,6 +19,7 @@ class ESPnetQwen2AudioModel(AbsESPnetModel):
         vocab_size: int = 50000,
         token_list: Union[Tuple[str, ...], List[str]] = (),
         ignore_id: int = -1,
+        decode_config_path: Optional[str] = None,
     ):
         super().__init__()
         
@@ -36,6 +38,16 @@ class ESPnetQwen2AudioModel(AbsESPnetModel):
             model_name,
             trust_remote_code=True
         )
+
+        if decode_config_path is not None:
+            with open(decode_config_path, "r") as f:
+                decode_config = yaml.safe_load(f)
+            self.decode_config["num_beams"] = decode_config["beam_size"]
+            self.decode_config["length_penalty"] = decode_config["penalty"]
+            self.decode_config["maxlenratio"] = decode_config["maxlenratio"]
+        else:
+            self.decode_config = {"num_beams": 1, "length_penalty": 1.0, "maxlenratio": 0.0}
+
         
         # For inference-only, freeze the model parameters
         for param in self.qwen2audio_model.parameters():
@@ -92,14 +104,23 @@ class ESPnetQwen2AudioModel(AbsESPnetModel):
     ) -> str:
         """Custom inference method using Qwen2-Audio"""
         # Generate response
+        if self.decode_config["maxlenratio"] > 0.0:
+            input_length = input_ids.size(-1)
+            max_length = int(self.decode_config["maxlenratio"] * input_length)
+        else:
+            max_length = 256
+
         with torch.no_grad():
             pred_ids = self.qwen2audio_model.generate(
                 input_ids=input_ids,
                 attention_mask=attention_mask,
                 input_features=input_features,
                 feature_attention_mask=feature_attention_mask,
-                max_new_tokens=256,
+                max_new_tokens=max_length,
+                num_beams=self.decode_config["num_beams"],
+                length_penalty=self.decode_config["length_penalty"],
             )
+                # max_new_tokens=256,
             
         # Extract only generated tokens
         pred_ids = pred_ids[:, input_ids.size(1):]

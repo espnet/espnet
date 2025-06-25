@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import logging
+import yaml
 from pathlib import Path
 from typing import Optional, Sequence, Tuple, Union
 
@@ -27,6 +28,7 @@ def inference(
     key_file: Optional[str],
     model_file: Optional[str],
     train_config: Optional[str],
+    decode_config_path: Optional[str],
     **kwargs,
 ):
     """Perform Qwen2-Audio inference using ESPnet2 framework[36]"""
@@ -48,6 +50,7 @@ def inference(
     # )
     args = argparse.Namespace()
     args.model_name = "Qwen/Qwen2-Audio-7B-Instruct"
+    args.decode_config = decode_config_path
     model = DynamicSuperbTask.build_model(args)
     model.to(device).eval()
     train_args = None
@@ -69,7 +72,8 @@ def inference(
     with DatadirWriter(output_dir) as writer:
         for keys, batch in loader:
             batch = to_device(batch, device)
-            text_output = model.inference(**batch, max_new_tokens=256)
+            # text_output = model.inference(**batch, max_new_tokens=256)
+            text_output = model.inference(**batch)
                 
             writer["text"][keys[0]] = text_output
 
@@ -92,6 +96,7 @@ def get_parser():
     parser.add_argument("--key_file", type=str)
     parser.add_argument("--train_config", type=str)
     parser.add_argument("--model_file", type=str)
+    parser.add_argument("--decode_config_path", type=str, default=None)
     
     parser.add_argument(
         "--log_level",
