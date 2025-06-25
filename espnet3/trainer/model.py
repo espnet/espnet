@@ -196,8 +196,8 @@ class LitESPnetModel(L.LightningModule):
 
         2. Multiple Optimizers + Schedulers:
         Use when training different parts of the model with different optimizers.
-        Each optimizer block must contain both a nested `optim` config and a `params` key
-        indicating a substring to match parameter names.
+        Each optimizer block must contain both a nested `optim` config and a `params`
+        key indicating a substring to match parameter names.
 
         ```yaml
         optims:
@@ -221,14 +221,17 @@ class LitESPnetModel(L.LightningModule):
 
         * Only one of `optim` or `optims` may be specified. Mixing both is not allowed.
         * Likewise, `scheduler` and `schedulers` must not be used together.
-        * When using `optims`, each `params` must uniquely match a subset of trainable parameters.
+        * When using `optims`, each `params` must uniquely match a subset of trainable
+            parameters.
         * It is an error if:
-            * A trainable parameter is assigned to multiple optimizers (overlapping `params`)
+            * A trainable parameter is assigned to multiple optimizers
+                (overlapping `params`)
             * A trainable parameter is not assigned to any optimizer (missing coverage)
             * Any optimizer block is missing `params` or nested `optim`
 
         Returns:
-            dict: A dictionary with keys `"optimizer"` and `"lr_scheduler"` for PyTorch Lightning.
+            dict: A dictionary with keys `"optimizer"` and `"lr_scheduler"`
+                for PyTorch Lightning.
 
         Raises:
             AssertionError: If configuration rules are violated.
