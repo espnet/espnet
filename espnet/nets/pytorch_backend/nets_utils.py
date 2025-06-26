@@ -238,6 +238,8 @@ def _make_pad_mask_traceable(lengths, xs, length_dim, maxlen=None):
         assert maxlen >= lengths.max()
     elif xs is not None:
         maxlen = xs.shape[length_dim]
+        if isinstance(maxlen, torch.Tensor):
+            maxlen = maxlen.item()
     else:
         maxlen = lengths.max()
 
