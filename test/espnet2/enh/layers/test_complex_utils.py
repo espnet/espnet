@@ -163,7 +163,7 @@ def test_solve(real_vec):
         if isinstance(vec2, ComplexTensor):
             ret2 = FC.solve(vec2, mat, return_LU=False)
         else:
-            return torch.linalg.solve(mat, vec2)
+            ret2 = torch.linalg.solve(mat, vec2)
         assert complex_module.allclose(ret, ret2)
 
 
