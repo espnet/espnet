@@ -8,9 +8,8 @@ import json
 import logging
 import re
 import sys
-import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Dict
 
 import torch
 import yaml
@@ -31,8 +30,7 @@ from espnet.utils.cli_utils import get_commandline_args
 
 
 class SpeechLM:
-    """
-    The Chat Interface of SpeechLM
+    """The Chat Interface of SpeechLM
 
     Args:
         train_config (str or Path): Path to the training configuration file
@@ -104,8 +102,8 @@ class SpeechLM:
 
     @torch.no_grad()
     def __call__(self, data):
-        """
-        Inference with the whole given sequence.
+        """Inference with the whole given sequence.
+
         This API is usually used for the given dataset, and working in segment-level
         teacher forcing.
         """
@@ -169,8 +167,8 @@ class SpeechLM:
         return all_segments
 
     def inference_one_segment(self, prefill, reference, inference_config):
-        """
-        Inference one turn with the prefill until certain requirements are met.
+        """Inference one turn with the prefill until certain requirements are met.
+
         This API is used in both __call__ function and the user interactive interface.
         """
         inferred_segment, _ = self.model.inference(prefill, reference, inference_config)
@@ -309,7 +307,7 @@ def inference(
     )
 
     if torch.cuda.is_available() and ngpu > 0:
-        device = f"cuda:0"
+        device = "cuda:0"
     else:
         device = "cpu"
 
