@@ -7,12 +7,6 @@ import numpy as np
 import torch
 from typeguard import typechecked
 
-# Continuous Encoder
-from espnet2.speechlm.continuous_encoder.continuous_encoder import (
-    AbsContinuousEncoder,
-    HuggingfaceVisionEncoder,
-)
-
 # CoreLMs
 from espnet2.speechlm.core_lm.abs_core_lm import AbsCoreLM
 from espnet2.speechlm.core_lm.ar_delay import ARDelayLM
