@@ -26,7 +26,7 @@ license = { "text" = "Apache Software License" }
 dependencies = [
     "setuptools==73.0.1",
     "configargparse==1.7.1",
-    "packaging==24.2",
+    "packaging==25.0",
     "typeguard==4.4.4",
     "humanfriendly==10.0",
     "scipy==1.15.3",
@@ -147,7 +147,7 @@ test = [
 ]
 
 doc = [
-  "sphinx==8.2.3",
+  "sphinx==8.1.3",
   "sphinx-rtd-theme==3.0.2",
   "myst-parser==4.0.1",
   "sphinx-argparse==0.5.2",
