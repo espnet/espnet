@@ -92,6 +92,35 @@ class ARDelayLM(ARParallelLM):
         reference: torch.Tensor,
         config: AbsInferenceConfig,
     ):
+        """Performs autoregressive inference with delay interleaving strategy.
+
+        This method implements delayed autoregressive generation, commonly used
+        in audio/speech models where tokens are generated with temporal delays
+        across quantization levels. The generation process includes prefill
+        processing, length control, and iterative token generation until
+        completion criteria are met.
+
+        Args:
+            prefill (torch.Tensor): Input prefill tokens for generation.
+                Shape: [B, T, nq] where B=batch, T=time, nq=quantization levels
+            reference (torch.Tensor): Reference tokens for teacher forcing mode.
+                Shape: [B, T, nq], only used when search_algo="teacher_force"
+            config (AbsInferenceConfig): Configuration object containing inference
+                parameters including search algorithm, length constraints, device
+                settings, and sampling parameters.
+
+        Returns:
+            tuple: A pair of (gen_tokens, gen_scores) where:
+                - gen_tokens (list): Generated token sequences for each batch
+                - gen_scores (list): Corresponding generation scores for each batch
+
+        Note:
+            The method handles three main phases:
+            1. Prefill processing with delay interleaving
+            2. Length control based on config settings
+            3. Autoregressive generation loop with EOS detection
+        """
+
         # (1) Prefill
         prefill_delay, _ = self.delay_interleave(prefill)
         if config.search_algo == "teacher_force":
