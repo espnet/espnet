@@ -230,6 +230,7 @@ class ESPnetTTS2Model(AbsESPnetModel):
         self,
         text: torch.Tensor,
         speech: Optional[torch.Tensor] = None,
+        discrete_speech: Optional[torch.Tensor] = None,
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
@@ -262,6 +263,8 @@ class ESPnetTTS2Model(AbsESPnetModel):
             input_dict.update(feats=feats)
             if self.tts.require_raw_speech:
                 input_dict.update(speech=speech)
+            if discrete_speech is not None:
+                input_dict.update(feats=discrete_speech)
 
         if decode_config["use_teacher_forcing"]:
             if durations is not None:
