@@ -1,5 +1,6 @@
 import argparse
 
+
 def gen_wav_scp():
     dev_wav_scp = "data/dev_voxlingua107/wav.scp"
     train_wav_scp = "data/train_voxlingua107/wav.scp"
@@ -11,7 +12,7 @@ def gen_wav_scp():
         for line in f:
             utt_id = line.split()[0]
             wav_dir = line.split()[1]
-            lang = lang2_to_iso3[wav_dir.split('/')[-2]]
+            lang = lang2_to_iso3[wav_dir.split("/")[-2]]
             dev_utt_ids.add(utt_id)
             utt_id_lang = f"{lang}_{utt_id}"
             line_lang = f"{utt_id_lang} {wav_dir}\n"
@@ -22,17 +23,18 @@ def gen_wav_scp():
         for line in f:
             utt_id = line.split()[0]
             wav_dir = line.split()[1]
-            lang = lang2_to_iso3[wav_dir.split('/')[-2]]
+            lang = lang2_to_iso3[wav_dir.split("/")[-2]]
             if utt_id in dev_utt_ids:
                 continue
             utt_id_lang = f"{lang}_{utt_id}"
             line_lang = f"{utt_id_lang} {wav_dir}\n"
             train_wav_scp_clear.append(line_lang)
-    
+
     with open(train_wav_scp, "w") as f:
         f.writelines(sorted(train_wav_scp_clear))
     with open(dev_wav_scp, "w") as f:
         f.writelines(sorted(dev_wav_scp_dump))
+
 
 def gen_utt2lang():
     train_wav_scp = "data/train_voxlingua107/wav.scp"
@@ -45,14 +47,14 @@ def gen_utt2lang():
         for line in f:
             utt_id = line.split()[0]
             wav_dir = line.split()[1]
-            lang = lang2_to_iso3[wav_dir.split('/')[-2]]
+            lang = lang2_to_iso3[wav_dir.split("/")[-2]]
             train_utt2lang_dump.append(f"{utt_id} {lang}\n")
 
     with open(dev_wav_scp, "r") as f:
         for line in f:
             utt_id = line.split()[0]
             wav_dir = line.split()[1]
-            lang = lang2_to_iso3[wav_dir.split('/')[-2]]
+            lang = lang2_to_iso3[wav_dir.split("/")[-2]]
             dev_utt2lang_dump.append(f"{utt_id} {lang}\n")
 
     with open("data/train_voxlingua107/utt2lang", "w") as f:
@@ -60,6 +62,7 @@ def gen_utt2lang():
 
     with open("data/dev_voxlingua107/utt2lang", "w") as f:
         f.writelines(sorted(dev_utt2lang_dump))
+
 
 def convert_voxlingua107_lang():
     try:
@@ -112,9 +115,9 @@ def convert_voxlingua107_lang():
         "id": "Indonesian",
         "is": "Icelandic",
         "it": "Italian",
-        "iw": "Hebrew", # voxlingua107 uses iw, but the modern one is he
+        "iw": "Hebrew",  # voxlingua107 uses iw, but the modern one is he
         "ja": "Japanese",
-        "jw": "Javanese", # voxlingua107 uses jw, but the modern one is jv
+        "jw": "Javanese",  # voxlingua107 uses jw, but the modern one is jv
         "ka": "Georgian",
         "kk": "Kazakh",
         "km": "Khmer",
@@ -182,10 +185,11 @@ def convert_voxlingua107_lang():
     for lang2, language in lang2_to_language.items():
         language = lang2_to_language[lang2]
         lang_data = pycountry.languages.lookup(language)
-        iso3_code = lang_data.alpha_3 
+        iso3_code = lang_data.alpha_3
         lang2_to_iso3[lang2] = iso3_code
-    
+
     return lang2_to_iso3
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Prepare voxlingua107 dataset")
