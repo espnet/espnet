@@ -6,6 +6,9 @@
 from dataclasses import dataclass
 from typing import List, Tuple
 
+# Users are encouraged to read our document to understand the definitions in this file:
+# https://github.com/jctian98/espnet/tree/speechlm3/egs2/TEMPLATE/README.md
+
 
 # (1) Modality definition
 # a. discrete means the discrete / continuous format in final sequences.
@@ -276,6 +279,23 @@ SPEECHLM_TASKS["text_to_image"] = SpeechLMTaskTemplate(
 # b. don't delete / modify it, otherwise the model trained
 #    previously can become incompatible. New tokens can be
 #    added - there are enough slots
+# c. detailed explanation for frequently special tokens:
+#    <pad>: padding tokens. These tokens is for padding only and will not participate
+#           loss computing.
+#    <sos/eos>: start-of-sentence/end-of-senetence. Each sequence always starts and
+#           ends with this token.
+#    <system_prompt>, <user_input>, <assistant_output>: role tokens in chat template.
+#    <eou>: end-of-utternace, end of an utterance (or a short segment) of certain
+#           modality. Usually used as a termination signal in decoding.
+#    modality tokens, e.g., <text_bpe_start/end>: the token to indicate modality. This
+#           token is always in the first place of a segment. e.g.,
+#           <text_bpe_start/end>, text_token1, ..., text_tokenN
+#    task tokens, e.g., <asr_task>: the indicator of a certain task. This token is
+#           always in the second place of a whole sequence, following <sos/eos>.
+#    Other special tokens are deprecated or not in frequent usage.
+#    See use case in:
+#    https://github.com/jctian98/espnet/tree/speechlm3/egs2/
+#    TEMPLATE/speechlm1#example-sequence
 special_tokens = [
     "<pad>",
     "<unk>",

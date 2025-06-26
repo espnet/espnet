@@ -10,9 +10,7 @@ from espnet2.text.sentencepiece_tokenizer import SentencepiecesTokenizer
 
 
 class TextBPETokenizer(AbsTokenizer):
-    """
-    A warpper for SentencePiece tokenizer, only used for speechlm BPE detokenization
-    """
+    """A wrapper for SentencePiece tokenizer, only used for speechlm BPE detokenization"""
 
     def __init__(self, model, token_list):
         super(TextBPETokenizer, self).__init__()
@@ -23,9 +21,6 @@ class TextBPETokenizer(AbsTokenizer):
         raise NotImplementedError
 
     def tokens2text(self, tokens):
-        """
-        tokens (torch.Tensor), token tensor, in size [B, T_text]
-        """
         if isinstance(tokens, torch.Tensor):
             tokens = tokens.cpu().tolist()
         tokens = [

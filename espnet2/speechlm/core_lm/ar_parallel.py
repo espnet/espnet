@@ -6,11 +6,8 @@
 # Implementation of Parallel architecture: https://arxiv.org/pdf/2306.05284
 
 from typing import Dict, Tuple
-
 import torch
-
-from espnet2.speechlm.core_lm.abs_core_lm import AbsCoreLM
-from espnet2.speechlm.inference_utils import AbsInferenceConfig
+from espnet2.speechlm.core_lm.abs_core_lm import AbsCoreLM, SpeechLMInferenceOptions
 
 
 class ARParallelLM(AbsCoreLM):
@@ -40,8 +37,9 @@ class ARParallelLM(AbsCoreLM):
         if share_emb:
             self.lm_head.weight = self.emb.weight
 
-        # TODO(Jinchuan): force self.head_emb.weight[0] = 0
         self.head_emb = torch.nn.Embedding(12, transformer.d_model, padding_idx=0)
+        with torch.no_grad():
+            self.head_emb.weight[0] = 0
 
         if hasattr(self.decoders, "init_embeddings"):
             self.decoders.init_embeddings(self.emb, self.lm_head)
@@ -92,11 +90,21 @@ class ARParallelLM(AbsCoreLM):
     @torch.no_grad()
     def inference(
         self,
-        prefill: torch.Tensor,
-        reference: torch.Tensor,
-        config: AbsInferenceConfig,
+        prefix: torch.Tensor,
+        opts: SpeechLMInferenceOptions,
+        conti_feats=None,
+        suffix: torch.Tensor = None,
     ):
-        """Auto-Regresive MultiScale Inference.
+        """Auto-Regresive Parallel Inference.
+
+        TODO(Jinchuan):
+        We may not implement this inference code in the near future, as the parallel
+        implementation would give poor performance. Anyone who is interested in
+        parallel should consider using ar_delay.py instead.
+
+        Potentially, the parallel would be better aligned with the FSQ codec. Users
+        who are interested in this direction could consider implementing the inference
+        by themselves.
 
         Args:
             prefix (LongTensor): Prefix part of dec_seq (B, T_dec, nq).

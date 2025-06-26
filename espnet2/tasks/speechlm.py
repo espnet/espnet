@@ -7,6 +7,11 @@ import numpy as np
 import torch
 from typeguard import typechecked
 
+# Continuous Encoder
+from espnet2.speechlm.continuous_encoder.continuous_encoder import (
+    AbsContinuousEncoder,
+    HuggingfaceVisionEncoder,
+)
 
 # CoreLMs
 from espnet2.speechlm.core_lm.abs_core_lm import AbsCoreLM
@@ -15,17 +20,20 @@ from espnet2.speechlm.core_lm.ar_parallel import ARParallelLM
 
 # Overall model warppers
 from espnet2.speechlm.espnet_model import ESPnetSpeechLMModel
+from espnet2.speechlm.espnet_model_dpo import ESPnetSpeechLMDPOModel
 
 # Others
-from espnet2.speechlm.loss import SpeechLMCrossEntropyLossV2
+from espnet2.speechlm.loss import SpeechLMCrossEntropyLoss
 from espnet2.speechlm.module.abs_transformer import AbsTransformer
 
 # Transformer Implementation
+from espnet2.speechlm.module.builtin import TransformerDecoder
 from espnet2.speechlm.module.huggingface import HFTransformerDecoder
 
 # Tokenizers
 from espnet2.speechlm.tokenizer.abs_tokenizer import AbsTokenizer
 from espnet2.speechlm.tokenizer.codec_tokenizer import CodecTokenizer
+from espnet2.speechlm.tokenizer.image_tokenizer import ImageTokenizer
 from espnet2.speechlm.tokenizer.text_bpe_tokenizer import TextBPETokenizer
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.text.phoneme_tokenizer import g2p_choices
@@ -42,6 +50,7 @@ from espnet2.utils.types import int_or_none, str2bool, str_or_none
 transformer_choices = ClassChoices(
     "transformer",
     classes=dict(
+        builtin=TransformerDecoder,
         huggingface=HFTransformerDecoder,
     ),
     type_check=AbsTransformer,
@@ -63,8 +72,18 @@ tokenizer_choices = ClassChoices(
     classes=dict(
         codec=CodecTokenizer,
         text_bpe=TextBPETokenizer,
+        image=ImageTokenizer,
     ),
     type_check=AbsTokenizer,
+    default=None,
+)
+
+vision_encoder_choices = ClassChoices(
+    "vision_encoder",
+    classes=dict(
+        huggingface=HuggingfaceVisionEncoder,
+    ),
+    type_check=AbsContinuousEncoder,
     default=None,
 )
 
@@ -72,6 +91,7 @@ model_choices = ClassChoices(
     "model",
     classes=dict(
         espnet=ESPnetSpeechLMModel,
+        dpo=ESPnetSpeechLMDPOModel,
     ),
     type_check=AbsESPnetModel,
     default="espnet",
@@ -90,6 +110,8 @@ class SpeechLMTask(AbsTask):
         corelm_choices,
         # --tokenizer and --tokenizer_conf
         tokenizer_choices,
+        # --vision_encoder and --vision_encoder_conf
+        vision_encoder_choices,
         # --model and --model_conf
         model_choices,
     ]
@@ -124,7 +146,7 @@ class SpeechLMTask(AbsTask):
             "--encoder_decoder_format",
             type=str2bool,
             default=False,
-            help="If true, work with encoder-decoder; otherwise decoder-only",
+            help="If True, work with encoder-decoder; otherwise decoder-only",
         )
         group.add_argument(
             "--speaker_prompt_length",
@@ -250,7 +272,7 @@ class SpeechLMTask(AbsTask):
             "--asr_apply_time_mask",
             type=str2bool,
             default=False,
-            help="If true, apply time masking only for ASR tasks",
+            help="If True, apply time masking only for ASR tasks",
         )
         group.add_argument(
             "--asr_time_mask_config",
@@ -371,23 +393,26 @@ class SpeechLMTask(AbsTask):
         # 1. Build Transformer decoder
         if args.collect_stats:
             # NOTE(Jinchuan): model will not in real use. Create a placeholder
-            transformer = torch.nn.Linear(128, 128)
+            transformer = TransformerDecoder(token_bias=token_bias)
         else:
             transformer_class = transformer_choices.get_class(args.transformer)
             transformer = transformer_class(
                 token_bias=token_bias, **args.transformer_conf
             )
 
-        # 2. Build continuous encoder (placeholder, add in the future)
+        # 2. Build continuous encoder
         continuous_encoders = dict()
+        for modality in ["vision_encoder"]:
+            if getattr(args, modality, None) is not None:
+                continuous_encoder_class = vision_encoder_choices.get_class(
+                    getattr(args, modality)
+                )
+                continuous_encoders[modality] = continuous_encoder_class(
+                    **getattr(args, f"{modality}_conf")
+                )
 
         # 3. Build CoreLM module
         corelm_class = corelm_choices.get_class(args.corelm)
-        aux_vocab_size = (
-            token_bias["codec"][1] - token_bias["codec"][0]
-            if "codec" in token_bias
-            else 0
-        )
         corelm = corelm_class(
             transformer=transformer,
             continuous_encoders=continuous_encoders,
@@ -398,7 +423,7 @@ class SpeechLMTask(AbsTask):
         kwargs.update(corelm=corelm)
 
         # 4. Build training criterion
-        criterion = SpeechLMCrossEntropyLossV2(
+        criterion = SpeechLMCrossEntropyLoss(
             pad=token_list.index("<pad>"),
             token_bias=token_bias.copy(),
             modality_weights=args.modality_weights,

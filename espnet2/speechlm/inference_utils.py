@@ -23,6 +23,40 @@ from espnet2.text.build_tokenizer import build_tokenizer
 
 @dataclass
 class AbsInferenceConfig:
+    """Base configuration class for autoregressive inference settings.
+
+    This abstract configuration defines common parameters used across
+    different modalities (text, speech, etc.) for controlling the
+    inference process including device settings, search algorithms,
+    length constraints, and tokenization.
+
+    Attributes:
+        device (str): PyTorch device identifier (e.g., 'cuda:0', 'cpu')
+            for model computation and tensor allocation.
+        nbest (int): Number of best hypothesis candidates to generate
+            during beam search or sampling-based generation.
+        nq (int): Number of quantization levels or tokens per frame/patch,
+            commonly used in hierarchical token generation.
+        search_algo (str): Search algorithm type for generation
+            (e.g., 'beam_search', 'greedy', 'teacher_force').
+        eos (int): End-of-sequence token ID used to detect completion
+            of generated sequences.
+        length_method (str): Length control strategy, either 'relative'
+            (ratio-based) or 'absolute' (fixed token count).
+        maxlenratio (float): Maximum generation length as ratio of input
+            length. Only used when length_method='relative'.
+        minlenratio (float): Minimum generation length as ratio of input
+            length. Only used when length_method='relative'.
+        maxlen (int): Maximum absolute generation length in tokens.
+            Used when length_method='absolute'.
+        minlen (int): Minimum absolute generation length in tokens.
+            Used when length_method='absolute'.
+        tokenizer (Union[LMTokenizer, TextTokenizer], optional):
+            Tokenizer instance for text encoding/decoding operations.
+        mask (torch.Tensor, optional): Vocabulary mask tensor for
+            implementing restricted generation or attention constraints.
+    """
+
     device: str
     nbest: int
     nq: int
@@ -39,12 +73,43 @@ class AbsInferenceConfig:
 
 @dataclass
 class TextInferenceConfig(AbsInferenceConfig):
+    """Configuration class for text modality.
+
+    Extends the base inference configuration with text-specific sampling
+    parameters for controlling randomness and diversity in text generation.
+    Suitable for language modeling, text completion, and dialogue systems.
+
+    Attributes:
+        sampling_temperature (float): Temperature parameter for controlling
+            generation randomness. Values < 1.0 make outputs more deterministic,
+            values > 1.0 increase randomness. Default 1.0 preserves original
+            distribution.
+        topk (int): Number of highest-probability tokens to consider during
+            top-k sampling. Limits vocabulary to k most likely candidates
+            at each generation step.
+    """
+
     sampling_temperature: float = 1.0
     topk: int = 30
 
 
 @dataclass
 class SpeechInferenceConfig(AbsInferenceConfig):
+    """Configuration class for speech-based modality.
+
+    Extends the base inference configuration with speech-specific sampling
+    parameters optimized for audio generation, speech synthesis, and
+    voice conversion tasks. Handles multi-level token generation common
+    in hierarchical speech models.
+
+    Attributes:
+        sampling_temperature (float): Temperature parameter for controlling
+            speech generation diversity. Lower values produce more consistent
+            pronunciation, higher values increase variability.
+        topk (int): Number of top candidate tokens to consider during
+            speech token sampling across quantization levels.
+    """
+
     sampling_temperature: float = 1.0
     topk: int = 30
 
@@ -145,6 +210,13 @@ def build_mask(train_args, modality):
 
 
 class TaskOrientedWriter:
+    """The writer to record the inference results when the SpeechLM work in *task* mode
+
+    In this mode, the task is well-defined, with a known number of segments and the
+    corresponding modalities. The results are carefully checked with the task template
+    to ensure compliance.
+    """
+
     def __init__(
         self,
         train_args: Dict,
@@ -241,6 +313,13 @@ class TaskOrientedWriter:
 
 
 class ChatOrientedWriter:
+    """The writer to record the inference results when the SpeechLM work in *chat* mode
+
+    In this mode, there is no pre-defined tasks, the role, and modality of each segment
+    is flexible. This is usually used in open-ended conversation, and we fully trust
+    the modalities provided by the SpeechLM.
+    """
+
     def __init__(
         self,
         train_args: Dict,
@@ -353,8 +432,8 @@ class ChatOrientedWriter:
 
 
 def parse_sequence(dec_seq, token_list, mode="task", inference_last_segment=False):
-    """
-    Parse the sequence into multiple segments for inference.
+    """Parse the sequence into multiple segments for inference.
+
     Args:
         dec_seq (torch.Tensor): The sequence to be parsed, of size [B, T, nq].
         mode (str): The mode of parsing, either "task" or "chat".
