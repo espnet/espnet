@@ -59,6 +59,8 @@ max_wav_duration=30  # Maximum duration in second.
 
 # Kmeans / Codec related
 kmeans_opts=                # The options given to scripts/feats/perform_kmeans.sh
+upstream=                   #  The specific upstream source, e.g., s3prl, hf_hubert_custom, etc.
+upstream_path_or_url=       # The path or url of the upstream models
 kmeans_feature="wavlm_large/21" # format: ssl_model_type/layer_idx (e.g. mfcc, hubert_large/21, wavlm_large/21)
 portion=0.1
 nclusters=2000              # The number of clusters for discrete tokenss
@@ -474,8 +476,13 @@ if [ ${kmeans_feature} = "mfcc" ]; then  # MFCC has no layer
 else
     kmeans_feature_type=$(echo "${kmeans_feature}" | cut -d/ -f1)
     layer=$(echo "${kmeans_feature}" | cut -d/ -f2)
-    # TODO(simpleoier): to support features beyond s3prl
-    s3prl_conf="{upstream=${kmeans_feature_type}}"
+
+    if [ $upstream == "s3prl" ]; then
+        s3prl_conf="{upstream=${kmeans_feature_type}}"
+    else
+        s3prl_conf="{upstream=${upstream},path_or_url=${upstream_path_or_url}}"
+    fi
+
     kmeans_feature_conf="{type=s3prl,conf={s3prl_conf=${s3prl_conf},download_dir=ckpt,multilayer_feature=False,layer=${layer}}}"
 fi
 km_dir="${expdir}"/kmeans/$(echo "${kmeans_feature}" | tr "/" "_")_${nclusters}clusters
@@ -636,6 +643,7 @@ fi
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ] && ! [[ " ${skip_stages} " =~ [[:space:]]2[[:space:]] ]]; then
     if [ -n "${speed_perturb_factors}" ]; then
         log "Stage 2: Speed perturbation: data/${train_set} -> data/${train_set}_sp"
+
         for factor in ${speed_perturb_factors}; do
             if python3 -c "assert ${factor} != 1.0" 2>/dev/null; then
                 scripts/utils/perturb_data_dir_speed.sh \
@@ -980,7 +988,6 @@ fi
 
 
 if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ] && ! [[ " ${skip_stages} " =~ [[:space:]]7[[:space:]] ]]; then
-
     if "${token_joint}"; then
         log "Merge src and target data if joint BPE"
 
