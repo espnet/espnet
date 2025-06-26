@@ -145,6 +145,13 @@ def build_mask(train_args, modality):
 
 
 class TaskOrientedWriter:
+    """
+    The writer to record the inference results when the SpeechLM work in *task* mode.
+    In this mode, the task is well-defined, with a known number of segments and the
+    corresponding modalities. The results are carefully checked with the task template
+    to ensure compliance.
+    """
+
     def __init__(
         self,
         train_args: Dict,
@@ -241,6 +248,13 @@ class TaskOrientedWriter:
 
 
 class ChatOrientedWriter:
+    """
+    The writer to record the inference results when the SpeechLM work in *chat* mode.
+    In this mode, there is no pre-defined tasks, the role, and modality of each segment
+    is flexible. This is usually used in open-ended conversation, and we fully trust
+    the modalities provided by the SpeechLM.
+    """
+
     def __init__(
         self,
         train_args: Dict,

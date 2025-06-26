@@ -8,7 +8,7 @@ import logging
 import torch
 
 
-class SpeechLMCrossEntropyLossV2(torch.nn.Module):
+class SpeechLMCrossEntropyLoss(torch.nn.Module):
     def __init__(
         self,
         pad,

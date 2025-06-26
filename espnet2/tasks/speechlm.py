@@ -23,7 +23,7 @@ from espnet2.speechlm.espnet_model import ESPnetSpeechLMModel
 from espnet2.speechlm.espnet_model_dpo import ESPnetSpeechLMDPOModel
 
 # Others
-from espnet2.speechlm.loss import SpeechLMCrossEntropyLossV2
+from espnet2.speechlm.loss import SpeechLMCrossEntropyLoss
 from espnet2.speechlm.module.abs_transformer import AbsTransformer
 
 # Transformer Implementation
@@ -146,7 +146,7 @@ class SpeechLMTask(AbsTask):
             "--encoder_decoder_format",
             type=str2bool,
             default=False,
-            help="If true, work with encoder-decoder; otherwise decoder-only",
+            help="If True, work with encoder-decoder; otherwise decoder-only",
         )
         group.add_argument(
             "--speaker_prompt_length",
@@ -272,7 +272,7 @@ class SpeechLMTask(AbsTask):
             "--asr_apply_time_mask",
             type=str2bool,
             default=False,
-            help="If true, apply time masking only for ASR tasks",
+            help="If True, apply time masking only for ASR tasks",
         )
         group.add_argument(
             "--asr_time_mask_config",
@@ -428,7 +428,7 @@ class SpeechLMTask(AbsTask):
         kwargs.update(corelm=corelm)
 
         # 4. Build training criterion
-        criterion = SpeechLMCrossEntropyLossV2(
+        criterion = SpeechLMCrossEntropyLoss(
             pad=token_list.index("<pad>"),
             token_bias=token_bias.copy(),
             modality_weights=args.modality_weights,
