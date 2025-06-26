@@ -70,7 +70,7 @@ ignore_init_mismatch=false      # Ignore initial mismatch
 # Inference related
 inference_model=valid.loss.best.pth  # Inference model weight file
 inference_batch_size=1
-extract_embd=false             # Whether to extract embeddings or not
+extract_embd=false             # Whether to extract embeddings per utt
 save_every=1000                # Save every N steps
 max_utt_per_lang_for_tsne=1000 # Maximum number of utterances per language for t-SNE visualization
 
