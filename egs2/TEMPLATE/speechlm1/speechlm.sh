@@ -747,7 +747,7 @@ if ! "${skip_eval}"; then
             log "Decoding started... log: '${_logdir}/speechlm_inference.*.log'"
             # shellcheck disable=SC2046,SC2086
             ${_cmd} --gpu "${_ngpu}" JOB=1:"${inference_nj}" "${_logdir}"/speechlm_inference.JOB.log \
-                ${python} -m espnet2.bin.speechlm_inference_chat \
+                ${python} -m espnet2.bin.speechlm_inference \
                     --ngpu "${_ngpu}" \
                     --nbest ${nbest} \
                     --model_file "${speechlm_exp}"/"${inference_model}" \
