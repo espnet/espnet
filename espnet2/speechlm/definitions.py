@@ -293,6 +293,9 @@ SPEECHLM_TASKS["text_to_image"] = SpeechLMTaskTemplate(
 #    task tokens, e.g., <asr_task>: the indicator of a certain task. This token is
 #           always in the second place of a whole sequence, following <sos/eos>.
 #    Other special tokens are deprecated or not in frequent usage.
+#    See use case in: 
+#    https://github.com/jctian98/espnet/tree/speechlm3/egs2/
+#    TEMPLATE/speechlm1#example-sequence
 special_tokens = [
     "<pad>",
     "<unk>",
