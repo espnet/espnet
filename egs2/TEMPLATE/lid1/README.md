@@ -2,7 +2,7 @@
 
 This is a template of the `lid1` recipe for ESPnet2.
 It follows a classification-based training/inference pipeline for spoken language identification.
-The model is trained as a closed-set classifier over a predefined set of language labels.  ****
+The model is trained as a closed-set classifier over a predefined set of language labels.
 Optionally, language embeddings can be extracted and used for downstream analysis, e.g., t-SNE visualization.
 
 ## Table of Contents
