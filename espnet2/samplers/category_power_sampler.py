@@ -162,10 +162,10 @@ class CategoryPowerSampler(AbsSampler):
             utt_size = utt2sizes[0][utt][0]
 
             if (
-                current_batch_bins > self.batch_bins
-                and len(current_batch) >= self.min_batch_size
-                or self.max_batch_size is not None
-                and len(current_batch) >= self.max_batch_size
+                (current_batch_bins > self.batch_bins
+                and len(current_batch) >= self.min_batch_size)
+                or (self.max_batch_size is not None
+                and len(current_batch) >= self.max_batch_size)
             ):
                 self.batch_list.append(current_batch)
                 current_batch = []
