@@ -36,7 +36,7 @@ xent_loss = Xnt(
 def test_ser_model(frontend, preencoder, pooling, projector, loss, training):
     inputs = torch.randn(2, 10000)
     ilens = torch.LongTensor([8000, 10000])
-    emotion_labels = torch.randint(0, 8, (2, 1))
+    emotion_labels = torch.randint(0, 4, (2, 1))
     ser_model = ESPnetSERModel(
         frontend=frontend,
         specaug=None,
@@ -67,7 +67,7 @@ def test_ser_model(frontend, preencoder, pooling, projector, loss, training):
 def test_ser_loss(training, loss):
     inputs = torch.randn(2, 10000)
     ilens = torch.LongTensor([8000, 10000])
-    emotion_labels = torch.randint(0, 8, (2, 1))
+    emotion_labels = torch.randint(0, 4, (2, 1))
     ser_model = ESPnetSERModel(
         frontend=frontend,
         specaug=None,
