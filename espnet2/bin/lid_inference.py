@@ -38,6 +38,26 @@ from espnet.utils.cli_utils import get_commandline_args
 
 
 def extract_embed_lid(args):
+    """
+    Perform inference for LID (Language Identification) tasks.
+
+    This function loads a trained LID model, prepares the data iterator, 
+    extracts language ids per utterance, and extracts embeddings per language 
+    or utterance. It supports distributed inference, saving per-utterance or 
+    per-language embeddings, and can generate t-SNE plots for visualization.
+
+    Args:
+        args: The arguments containing model paths, data paths, inference 
+              options, and distributed settings. For example argument 
+              settings, refer to stage 6 and stage 8 in 
+              `egs2/TEMPLATE/lid1/lid.sh`.
+
+    Note:
+        - Supports both single-process and distributed inference.
+        - Can save embeddings per utterance or per language.
+        - Optionally generates t-SNE plots for visualization.
+    """
+    
     distributed_option = build_dataclass(DistributedOption, args)
     distributed_option.init_options()
 
@@ -416,7 +436,7 @@ def gen_tsne_plot(
         "#9edae5",
     ]
 
-    if plot_name == "lang_to_list_embds":
+    if plot_name == "lang_to_embds":
         # Fixed color mapping
         unique_labels = sorted(list(set(labels)))  # 排序确保顺序固定
 
@@ -818,7 +838,7 @@ def get_parser():
         "--save_every",
         type=int,
         default=1000,
-        help="Save every N data samples",
+        help="Save every N data samples for checkpoint",
     )
     group.add_argument(
         "--resume",
