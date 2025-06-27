@@ -11,7 +11,7 @@ test_sets="test test1 test2 valid"
 
 ser_config=conf/train_ser.yaml
 inference_config=conf/decode_asr.yaml
-local_data_opts="--lowercase false --remove_punctuation false --remove_emo X_O"
+local_data_opts="--dummy_data true"
 # local_data_opts: 5 following options can be set (default=false)
 #--lowercase
 #   Convert transcripts into lowercase if "true".
