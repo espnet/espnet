@@ -182,14 +182,13 @@ class ESPnet3LightningTrainer:
             **kwargs,
         )
 
-    # Temporaliry disabled for the code review.
-    # def collect_stats(self, *args, **kwargs):
-    #     """
-    #     Collect dataset statistics with the espnet-3's parallel package.
+    def collect_stats(self, *args, **kwargs):
+        """
+        Collect dataset statistics with the espnet-3's parallel package.
 
-    #     Args:
-    #         *args: Positional arguments passed to `model.collect_stats()`.
-    #         **kwargs: Keyword arguments passed to `model.collect_stats()`.
+        Args:
+            *args: Positional arguments passed to `model.collect_stats()`.
+            **kwargs: Keyword arguments passed to `model.collect_stats()`.
 
-    #     """
-    #     return self.model.collect_stats(*args, **kwargs)
+        """
+        return self.model.collect_stats(*args, **kwargs)

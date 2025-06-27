@@ -6,10 +6,8 @@ from hydra.utils import instantiate
 from omegaconf import OmegaConf
 
 from espnet2.train.collate_fn import CommonCollateFn
+from espnet3.collect_stats import collect_stats
 from espnet3.trainer.dataloader import DataLoaderBuilder
-
-# Temporaliry disabled for the code review.
-# from espnet3.collect_stats import collect_stats
 from espnet3.trainer.hybrid_optim import HybridOptim
 from espnet3.trainer.hybrid_scheduler import HybridLRS
 
@@ -386,30 +384,29 @@ class LitESPnetModel(L.LightningModule):
     def load_state_dict(self, state_dict, strict=True):
         return self.model.load_state_dict(state_dict, strict=strict)
 
-    # Temporaliry disabled for the code review.
-    # def collect_stats(self):
-    #     """
-    #     Collect training and validation statistics using ESPnet's collect_stats.
+    def collect_stats(self):
+        """
+        Collect training and validation statistics using ESPnet's collect_stats.
 
-    #     Requires `config.statsdir` to be defined. Saves stats under this directory.
+        Requires `config.statsdir` to be defined. Saves stats under this directory.
 
-    #     Raises:
-    #         AssertionError: If `config.statsdir` is not provided.
-    #     """
-    #     assert hasattr(self.config, "statsdir"), "config.statsdir must be defined"
+        Raises:
+            AssertionError: If `config.statsdir` is not provided.
+        """
+        assert hasattr(self.config, "statsdir"), "config.statsdir must be defined"
 
-    #     for mode in ["train", "valid"]:
-    #         collect_stats(
-    #             model_config=OmegaConf.to_container(self.config.model, resolve=True),
-    #             dataset_config=self.config.dataset,
-    #             dataloader_config=self.config.dataloader,
-    #             mode=mode,
-    #             output_dir=Path(self.config.statsdir),
-    #             task=getattr(self.config, "task", None),
-    #             parallel_config=(
-    #                 None
-    #                 if "parallel" not in self.config.keys()
-    #                 else self.config.parallel
-    #             ),
-    #             write_collected_feats=False,
-    #         )
+        for mode in ["train", "valid"]:
+            collect_stats(
+                model_config=OmegaConf.to_container(self.config.model, resolve=True),
+                dataset_config=self.config.dataset,
+                dataloader_config=self.config.dataloader,
+                mode=mode,
+                output_dir=Path(self.config.statsdir),
+                task=getattr(self.config, "task", None),
+                parallel_config=(
+                    None
+                    if "parallel" not in self.config.keys()
+                    else self.config.parallel
+                ),
+                write_collected_feats=False,
+            )
