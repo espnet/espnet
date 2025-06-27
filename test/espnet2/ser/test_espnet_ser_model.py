@@ -9,18 +9,18 @@ from espnet2.ser.pooling.mean_pooling import MeanPooling
 from espnet2.ser.projector.linear_projector import LinearProjector
 
 frontend = S3prlFrontend(
-    frontend_conf={"upstream": "wavlm_large"},
+    frontend_conf={"upstream": "wavlm_base"},
 )
 
 preencoder = LinearProjection(
     input_size=frontend.output_size(),
-    output_size=128,
+    output_size=16,
 )
 
 pooling = MeanPooling(input_size=preencoder.output_size())
 
 linear_projector = LinearProjector(
-    input_size=pooling.output_size(), output_size=8
+    input_size=pooling.output_size(), output_size=4
 )
 
 
@@ -37,8 +37,8 @@ xent_loss = Xnt(
 @pytest.mark.parametrize("loss", [xent_loss])
 @pytest.mark.parametrize("training", [True, False])
 def test_ser_model(frontend, preencoder, pooling, projector, loss, training):
-    inputs = torch.randn(2, 17000)
-    ilens = torch.LongTensor([16000, 17000])
+    inputs = torch.randn(2, 10000)
+    ilens = torch.LongTensor([8000, 10000])
     emotion_labels = torch.randint(0, 8, (2,1))
     ser_model = ESPnetSERModel(
         frontend=frontend,
@@ -63,8 +63,8 @@ def test_ser_model(frontend, preencoder, pooling, projector, loss, training):
 @pytest.mark.parametrize("loss", [xent_loss])
 @pytest.mark.parametrize("training", [True, False])
 def test_ser_loss(training, loss):
-    inputs = torch.randn(2, 17000)
-    ilens = torch.LongTensor([16000, 17000])
+    inputs = torch.randn(2, 10000)
+    ilens = torch.LongTensor([8000, 10000])
     emotion_labels = torch.randint(0, 8, (2,1))
     ser_model = ESPnetSERModel(
         frontend=frontend,
