@@ -226,9 +226,7 @@ class LIDTrainer(Trainer):
                                 # Save lang to embeddings dictionary
                                 _lang_embd_numpy = _lang_embd.detach().cpu().numpy()
                                 target_lid = idx2lang[_lid_label_target.item()]
-                                lang_to_embds_dic[target_lid].append(
-                                    _lang_embd_numpy
-                                )
+                                lang_to_embds_dic[target_lid].append(_lang_embd_numpy)
                                 lang_embd_dic[uid] = _lang_embd_numpy
 
                             lang_id_dic[uid] = _pred_lid

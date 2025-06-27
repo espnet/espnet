@@ -41,15 +41,15 @@ def extract_embed_lid(args):
     """
     Perform inference for LID (Language Identification) tasks.
 
-    This function loads a trained LID model, prepares the data iterator, 
-    extracts language ids per utterance, and extracts embeddings per language 
-    or utterance. It supports distributed inference, saving per-utterance or 
+    This function loads a trained LID model, prepares the data iterator,
+    extracts language ids per utterance, and extracts embeddings per language
+    or utterance. It supports distributed inference, saving per-utterance or
     per-language embeddings, and can generate t-SNE plots for visualization.
 
     Args:
-        args: The arguments containing model paths, data paths, inference 
-              options, and distributed settings. For example argument 
-              settings, refer to stage 6 and stage 8 in 
+        args: The arguments containing model paths, data paths, inference
+              options, and distributed settings. For example argument
+              settings, refer to stage 6 and stage 8 in
               `egs2/TEMPLATE/lid1/lid.sh`.
 
     Note:
@@ -57,7 +57,7 @@ def extract_embed_lid(args):
         - Can save embeddings per utterance or per language.
         - Optionally generates t-SNE plots for visualization.
     """
-    
+
     distributed_option = build_dataclass(DistributedOption, args)
     distributed_option.init_options()
 
@@ -197,13 +197,13 @@ def extract_embed_lid(args):
     # In distributed inference, each process saves its own results.
     # The main process merges all results to form the final output.
     if distributed_option.distributed:
-        # lang_to_embds_dic is not shared between processes, so each 
-        # process must save its intermediate result for later merging 
+        # lang_to_embds_dic is not shared between processes, so each
+        # process must save its intermediate result for later merging
         # by the main process.
         np.savez(
             f"{args.output_dir}/"
-            f"lang_to_embds_dic_rank{distributed_option.dist_rank}.npz", 
-            **lang_to_embds_dic
+            f"lang_to_embds_dic_rank{distributed_option.dist_rank}.npz",
+            **lang_to_embds_dic,
         )
         torch.distributed.barrier()  # sync all processes
     if not distributed_option.distributed or distributed_option.dist_rank == 0:
@@ -217,7 +217,7 @@ def extract_embed_lid(args):
             for npz in npzs:
                 tmp_dic = dict(np.load(npz))
                 embd_dic.update(tmp_dic)
-            
+
             np.savez(f"{args.output_dir}/{set_name}_utt_embds", **embd_dic)
             for npz in npzs:
                 os.remove(npz)
@@ -228,7 +228,7 @@ def extract_embed_lid(args):
             with open(lid_file, "r") as f:
                 for line in f:
                     utt_id, lid = line.strip().split()
-                    lid_dic[utt_id] = lid    
+                    lid_dic[utt_id] = lid
 
         with open(f"{args.output_dir}/{set_name}_lids", "w") as f:
             for utt_id, lid in lid_dic.items():
