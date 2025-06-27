@@ -13,6 +13,7 @@ SECONDS=0
 stage=1
 stop_stage=100
 
+dummy_data=false
 lowercase=false
 # Convert into lowercase if "true".
 remove_punctuation=false
@@ -53,15 +54,101 @@ datadir=/ocean/projects/cis210027p/shared/corpora/msp_podcast_v1.12
 # https://ecs.utdallas.edu/research/researchlabs/msp-lab/MSP-Podcast.html
 
 log "$0 $*"
-. utils/parse_options.sh
-
-if [ $# -ne 0 ]; then
-    log "Error: No positional arguments are required."
-    exit 2
-fi
+. utils/parse_options.sh || exit 1
 
 . ./path.sh
 . ./cmd.sh
+
+if [ "$dummy_data" = true ]; then
+    log "Stage 1 (dummy): Generating 10 random dummy samples for unit tests"
+
+    # Cleanup old
+    rm -rf data/{train,valid,test1,test2,tmp}
+
+    # Create dirs & empty metadata files
+    for split in train valid test1 test2 test tmp; do
+        mkdir -p data/$split
+        for f in wav.scp utt2spk text utt2emo split_set; do
+            : > data/$split/$f
+        done
+    done
+
+    emotions=(A S H U F D C N O X)
+    # Generate 10 utts, assign splits:
+    #  1–10 → Train, 11–12 → Development, 13 → Test1, 14 → Test2, 15 → Test
+    for i in $(seq 1 15); do
+        utt=$(printf "dummy_%02d" $i)
+        if   [ $i -le 10 ]; then split_set="Train"
+        elif [ $i -le 12 ]; then split_set="Development"
+        elif [ $i -eq 13 ]; then split_set="Test1"
+        elif [ $i -eq 14 ]; then split_set="Test2"
+        else                    split_set="Test"
+        fi
+        text="This is dummy text for ${utt}"
+        spk=$(printf "spk%02d" $(( (i - 1) % 3 + 1 )))
+        emo=${emotions[$(( (i-1) % ${#emotions[@]} ))]}
+
+        # Create 1-second silent wav at 16kHz mono
+        wavpath="data/tmp/${utt}.wav"
+        mkdir -p "$(dirname "$wavpath")"
+        if command -v sox >/dev/null 2>&1; then
+            sox -n -r 16000 -c 1 "$wavpath" trim 0 1 >/dev/null
+        elif command -v ffmpeg >/dev/null 2>&1; then
+            ffmpeg -y -f lavfi -i anullsrc=r=16000:cl=mono -t 1 "$wavpath" >/dev/null 2>&1
+        elif command -v python3 >/dev/null 2>&1; then
+            python3 - <<EOF
+import wave
+f = wave.open("${wavpath}", "w")
+f.setnchannels(1)
+f.setsampwidth(2)
+f.setframerate(16000)
+f.writeframes(b'\x00\x00' * 16000)
+f.close()
+EOF
+        else
+            log "Error: please install sox, ffmpeg, or have python3 available to generate dummy wav files"
+            exit 1
+        fi
+
+        echo "${utt} ${text}"            >> data/tmp/text
+        echo "${utt} ${wavpath}"         >> data/tmp/wav.scp
+        echo "${utt} ${spk}"             >> data/tmp/utt2spk
+        echo "${utt} ${emo}"             >> data/tmp/utt2emo
+        echo "${utt} ${split_set}"       >> data/tmp/split_set
+    done
+
+    touch data/tmp/tmp.done
+
+    # Split into train/valid/test*
+    for file in wav.scp text utt2spk utt2emo; do
+        while read -r line; do
+            u=$(echo "$line" | awk '{print $1}')
+            s=$(grep "^${u} " data/tmp/split_set | awk '{print $2}')
+            case $s in
+                Train)       dst=train ;;
+                Development) dst=valid ;;
+                Test1)       dst=test1 ;;
+                Test2)       dst=test2 ;;
+                Test)        dst=test ;;
+                *) log "Unknown split ${s} for ${u}" && exit 1 ;;
+            esac
+            echo "$line" >> data/${dst}/${file}
+        done < data/tmp/${file}
+    done
+
+    utils/utt2spk_to_spk2utt.pl data/train/utt2spk > data/train/spk2utt
+    utils/utt2spk_to_spk2utt.pl data/valid/utt2spk > data/valid/spk2utt
+    utils/utt2spk_to_spk2utt.pl data/test1/utt2spk > data/test1/spk2utt
+    utils/utt2spk_to_spk2utt.pl data/test2/utt2spk > data/test2/spk2utt
+    utils/utt2spk_to_spk2utt.pl data/test/utt2spk > data/test/spk2utt
+
+    # for dset in train valid test1 test2 test; do
+    #     utils/validate_data_dir.sh --no-feats --no-spk-sort data/${dset} || exit 1
+    # done
+
+    log "Dummy data prep complete: data/{train,valid,test1,test2,test}"
+    exit 0
+fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage 1: MSP_Podcast Data Preparation"
