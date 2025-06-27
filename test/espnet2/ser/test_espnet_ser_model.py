@@ -23,7 +23,6 @@ linear_projector = LinearProjector(
     input_size=pooling.output_size(), output_size=4
 )
 
-
 xent_loss = Xnt(
     nout=linear_projector.output_size(),
     nclasses=linear_projector.output_size(),
@@ -54,11 +53,16 @@ def test_ser_model(frontend, preencoder, pooling, projector, loss, training):
     else:
         ser_model.eval()
 
-    kwargs = {"speech": inputs, "speech_lengths": ilens, "emotion_labels": emotion_labels}
+    kwargs = {
+        "speech": inputs,
+        "speech_lengths": ilens,
+        "emotion_labels": emotion_labels,
+    }
     loss, stats, weight = ser_model(**kwargs)
 
     if training:
         loss.backward()
+
 
 @pytest.mark.parametrize("loss", [xent_loss])
 @pytest.mark.parametrize("training", [True, False])
@@ -79,7 +83,11 @@ def test_ser_loss(training, loss):
     else:
         ser_model.eval()
 
-    kwargs = {"speech": inputs, "speech_lengths": ilens, "emotion_labels": emotion_labels}
+    kwargs = {
+        "speech": inputs,
+        "speech_lengths": ilens,
+        "emotion_labels": emotion_labels,
+    }
 
     if training:
         loss, stats, weight = ser_model(**kwargs)
