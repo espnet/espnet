@@ -9,7 +9,6 @@ from typing import Dict, Iterable, List, Optional
 import numpy as np
 import torch
 import torch.nn.functional as F
-from filelock import FileLock
 from typeguard import typechecked
 
 from espnet2.torch_utils.device_funcs import to_device
