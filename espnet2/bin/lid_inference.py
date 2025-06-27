@@ -364,7 +364,7 @@ def gen_tsne_plot(
             for embd in embds:
                 embeddings.append(embd)
                 labels.append(lang_id)
-            plot_name = "lang_to_list_embds"
+            plot_name = "lang_to_embds"
         elif isinstance(
             embds, np.ndarray
         ):  # A single embedding averaged across all utterances
