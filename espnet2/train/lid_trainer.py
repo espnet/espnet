@@ -90,16 +90,10 @@ class LIDTrainer(Trainer):
 
         model.eval()
         if extract_embd:
-            lang_embd_dic = (
-                {}
-            )  # {utt_id: lang_embd}, the language embedding for a specific utterance
+            # {utt_id: lang_embd}, the language embedding for a specific utterance
+            lang_embd_dic = {}
         lang_id_dic = {}  # {utt_id: lang_id}
 
-        # [For distributed] Because iteration counts are not always equals between
-        # processes, send stop-flag to the other processes if iterator is finished
-        # iterator_stop = torch.tensor(0).to("cuda" if ngpu > 0 else "cpu")
-
-        # fill dictionary with speech samples
         utt_id_list = []
         utt_id_whole_list = []
         speech_list = []
@@ -176,15 +170,7 @@ class LIDTrainer(Trainer):
                             )
                             continue
                         else:
-                            if distributed:
-                                # Use a lock file to ensure atomic updates to
-                                # the shared dictionary
-                                lang_name = idx2lang[_lid_label.item()]
-                                lock_file = f"{output_dir}/lock_{lang_name}.lock"
-                                with FileLock(lock_file):
-                                    lang_counter_dic[idx2lang[_lid_label.item()]] += 1
-                            else:
-                                lang_counter_dic[idx2lang[_lid_label.item()]] += 1
+                            lang_counter_dic[idx2lang[_lid_label.item()]] += 1
 
                     utt_id_whole_list.append(_utt_id)
                     if idx % world_size == rank:
@@ -240,18 +226,9 @@ class LIDTrainer(Trainer):
                                 # Save lang to embeddings dictionary
                                 _lang_embd_numpy = _lang_embd.detach().cpu().numpy()
                                 target_lid = idx2lang[_lid_label_target.item()]
-                                if distributed:
-                                    # Use a lock file to ensure atomic updates to
-                                    # the shared dictionary
-                                    lock_file = f"{output_dir}/lock_{target_lid}.lock"
-                                    with FileLock(lock_file):
-                                        lang_to_embds_dic[target_lid].append(
-                                            _lang_embd_numpy
-                                        )
-                                else:
-                                    lang_to_embds_dic[target_lid].append(
-                                        _lang_embd_numpy
-                                    )
+                                lang_to_embds_dic[target_lid].append(
+                                    _lang_embd_numpy
+                                )
                                 lang_embd_dic[uid] = _lang_embd_numpy
 
                             lang_id_dic[uid] = _pred_lid
@@ -329,14 +306,7 @@ class LIDTrainer(Trainer):
                     # Save lang to embeddings dictionary
                     _lang_embd_numpy = _lang_embd.detach().cpu().numpy()
                     target_lid = idx2lang[_lid_label_target.item()]
-                    if distributed:
-                        # Use a lock file to ensure atomic updates to
-                        # the shared dictionary
-                        lock_file = f"{output_dir}/lock_{target_lid}.lock"
-                        with FileLock(lock_file):
-                            lang_to_embds_dic[target_lid].append(_lang_embd_numpy)
-                    else:
-                        lang_to_embds_dic[target_lid].append(_lang_embd_numpy)
+                    lang_to_embds_dic[target_lid].append(_lang_embd_numpy)
                     lang_embd_dic[uid] = _lang_embd_numpy
 
                 lang_id_dic[uid] = _pred_lid
