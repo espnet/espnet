@@ -38,8 +38,7 @@ from espnet.utils.cli_utils import get_commandline_args
 
 
 def extract_embed_lid(args):
-    """
-    Perform inference for LID (Language Identification) tasks.
+    """Perform inference for LID (Language Identification) tasks.
 
     This function loads a trained LID model, prepares the data iterator,
     extracts language ids per utterance, and extracts embeddings per language
