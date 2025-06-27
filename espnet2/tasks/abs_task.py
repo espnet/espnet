@@ -810,7 +810,7 @@ class AbsTask(ABC):
             type=float,
             default=0.5,
             help="Used when batch_type='catpow' (CategoryPowerSampler), "
-            "for upsample low-resource catageory",
+            "for upsample low-resource category",
         )
         group.add_argument(
             "--category_upsampling_factor",
