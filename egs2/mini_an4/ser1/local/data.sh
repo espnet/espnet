@@ -125,11 +125,11 @@ EOF
             u=$(echo "$line" | awk '{print $1}')
             s=$(grep "^${u} " data/tmp/split_set | awk '{print $2}')
             case $s in
-                Train)       dst=train ;;
-                Development) dst=valid ;;
-                Test1)       dst=test1 ;;
-                Test2)       dst=test2 ;;
-                Test)        dst=test ;;
+                Train)       dst="train" ;;
+                Development) dst="valid" ;;
+                Test1)       dst="test1" ;;
+                Test2)       dst="test2" ;;
+                Test)        dst="test" ;;
                 *) log "Unknown split ${s} for ${u}" && exit 1 ;;
             esac
             echo "$line" >> data/${dst}/${file}
