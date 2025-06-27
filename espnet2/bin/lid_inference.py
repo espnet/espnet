@@ -197,6 +197,10 @@ def extract_embed_lid(args):
             for npz in npzs:
                 tmp_dic = dict(np.load(npz))
                 embd_dic.update(tmp_dic)
+            
+            np.savez(f"{args.output_dir}/{set_name}_utt_embds", **embd_dic)
+            for npz in npzs:
+                os.remove(npz)
 
         lid_files = glob(f"{args.output_dir}/lids*")
         lid_dic = {}
@@ -204,13 +208,7 @@ def extract_embed_lid(args):
             with open(lid_file, "r") as f:
                 for line in f:
                     utt_id, lid = line.strip().split()
-                    lid_dic[utt_id] = lid
-
-        
-        if args.extract_embd and args.save_embd_per_utt:
-            np.savez(f"{args.output_dir}/{set_name}_utt_embds", **embd_dic)
-            for npz in npzs:
-                os.remove(npz)
+                    lid_dic[utt_id] = lid    
 
         with open(f"{args.output_dir}/{set_name}_lids", "w") as f:
             for utt_id, lid in lid_dic.items():
