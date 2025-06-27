@@ -173,10 +173,22 @@ def extract_embed_lid(args):
             lang_counter_dic=lang_counter_dic,
         )
 
-    # 7. Merge results from all processes
+    # 7. Merge middle results from all processes and save final result
+    # In distributed inference, each process saves its own results.
+    # The main process merges all results to form the final output.
     if distributed_option.distributed:
+        # lang_to_embds_dic is not shared between processes, so each 
+        # process must save its intermediate result for later merging 
+        # by the main process.
+        np.savez(
+            f"{args.output_dir}/"
+            f"lang_to_embds_dic_rank{distributed_option.dist_rank}.npz", 
+            **lang_to_embds_dic
+        )
         torch.distributed.barrier()  # sync all processes
     if not distributed_option.distributed or distributed_option.dist_rank == 0:
+        set_name = args.data_path_and_name_and_type[0][0].split("/")[-2]
+
         # Combine dictionaries into one
         if args.extract_embd and args.save_embd_per_utt:
             npzs = glob(f"{args.output_dir}/embeddings*.npz")
@@ -194,9 +206,9 @@ def extract_embed_lid(args):
                     utt_id, lid = line.strip().split()
                     lid_dic[utt_id] = lid
 
-        set_name = args.data_path_and_name_and_type[0][0].split("/")[-2]
+        
         if args.extract_embd and args.save_embd_per_utt:
-            np.savez(f"{args.output_dir}/{set_name}_embeddings", **embd_dic)
+            np.savez(f"{args.output_dir}/{set_name}_utt_embds", **embd_dic)
             for npz in npzs:
                 os.remove(npz)
 
@@ -206,16 +218,43 @@ def extract_embed_lid(args):
         for lid_file in lid_files:
             os.remove(lid_file)
 
-        np.savez(
-            f"{args.output_dir}/{set_name}_lang_to_list_embds",
-            **lang_to_embds_dic,
-        )
+        if distributed_option.distributed:
+            # Merge lang_to_embds_dic of all processes
+            merged_lang_to_embds_dic = {lang_id: [] for lang_id in idx2lang.values()}
+            for rank in range(distributed_option.dist_world_size):
+                npz_path = f"{args.output_dir}/lang_to_embds_dic_rank{rank}.npz"
+                if not os.path.exists(npz_path):
+                    logging.warning(f"Missing {npz_path}, skipping.")
+                    continue
+                npz = np.load(npz_path, allow_pickle=True)
+                for k in npz:
+                    merged_lang_to_embds_dic[k].extend(list(npz[k]))
+
+            np.savez(
+                f"{args.output_dir}/{set_name}_lang_to_embds",
+                **merged_lang_to_embds_dic,
+            )
+            # Remove temporary files
+            for rank in range(distributed_option.dist_world_size):
+                npz_path = f"{args.output_dir}/lang_to_embds_dic_rank{rank}.npz"
+                if os.path.exists(npz_path):
+                    os.remove(npz_path)
+        else:
+            np.savez(
+                f"{args.output_dir}/{set_name}_lang_to_embds",
+                **lang_to_embds_dic,
+            )
 
         lang_to_avg_embd_dic = None
         logging.info(f"args.save_embd_per_utt: {args.save_embd_per_utt}")
         if args.extract_embd and args.save_embd_avg_lang:
             lang_to_avg_embd_dic = {}
-            for lang_id, embds in lang_to_embds_dic.items():
+            # Use the merged dictionary here
+            if distributed_option.distributed:
+                use_dic = merged_lang_to_embds_dic
+            else:
+                use_dic = lang_to_embds_dic
+            for lang_id, embds in use_dic.items():
                 if len(embds) == 0:
                     continue
                 embds_array = np.stack(
@@ -233,8 +272,13 @@ def extract_embed_lid(args):
 
         logging.info(f"args.save_tsne_plot: {args.save_tsne_plot}")
         if args.extract_embd and args.save_tsne_plot:
+            # Use the merged dictionary here
+            if distributed_option.distributed:
+                use_dic = merged_lang_to_embds_dic
+            else:
+                use_dic = lang_to_embds_dic
             gen_tsne_plot(
-                lang_to_embds_dic,
+                use_dic,
                 f"{args.output_dir}/tsne_plots",
                 args.seed,
                 perplexity=5,
@@ -250,7 +294,7 @@ def extract_embed_lid(args):
                 )
             else:
                 lang_to_avg_embd_dic = {}
-                for lang_id, embds in lang_to_embds_dic.items():
+                for lang_id, embds in use_dic.items():
                     if len(embds) == 0:
                         continue
                     embds_array = np.stack(
