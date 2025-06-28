@@ -567,7 +567,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
 fi
 
 if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
-    log "Stage 8: Plot t-SNE and save language embeddings on train sets."
+    log "Stage 8: Plot t-SNE."
 
     if [ -z "${tsne_set}" ]; then
         tsne_set="${train_set}"
