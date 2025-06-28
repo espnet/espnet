@@ -204,7 +204,7 @@ class CategoryDatasetPowerSampler(AbsSampler):
     This sampler is designed for multi-category, multi-dataset
     training where both language imbalance and dataset imbalance
     exist. It performs hierarchical sampling: (1) balancing categories
-    (e.g., languages) within each dataset, and (2) balancing datasets 
+    (e.g., languages) within each dataset, and (2) balancing datasets
     themselves.
 
     Sampling Strategy:
