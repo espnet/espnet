@@ -115,12 +115,6 @@ if [ -f $srcdir/reco2dur ]; then
     utils/apply_map.pl -f 1 $destdir/utt_map <$srcdir/reco2dur >$destdir/reco2dur
   fi
 fi
-if [ -f $srcdir/spk2gender ]; then
-  utils/apply_map.pl -f 1 $destdir/spk_map <$srcdir/spk2gender >$destdir/spk2gender
-fi
-if [ -f $srcdir/cmvn.scp ]; then
-  utils/apply_map.pl -f 1 $destdir/spk_map <$srcdir/cmvn.scp >$destdir/cmvn.scp
-fi
 for f in frame_shift stm glm ctm; do
   if [ -f $srcdir/$f ]; then
     cp $srcdir/$f $destdir
