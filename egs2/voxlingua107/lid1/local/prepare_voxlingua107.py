@@ -183,7 +183,6 @@ def convert_voxlingua107_lang():
     lang2_to_iso3 = {}
 
     for lang2, language in lang2_to_language.items():
-        language = lang2_to_language[lang2]
         lang_data = pycountry.languages.lookup(language)
         iso3_code = lang_data.alpha_3
         lang2_to_iso3[lang2] = iso3_code
