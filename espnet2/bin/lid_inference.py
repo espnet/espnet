@@ -183,7 +183,7 @@ def extract_embed_lid(args):
             output_dir=args.output_dir,
             custom_bs=custom_bs,
             idx2lang=idx2lang,
-            extract_embd=args.extract_embd,  # default: False
+            extract_embd=args.extract_embd,  # default False
             save_every=args.save_every,
             resume=args.resume,
             lang_to_embds_dic=lang_to_embds_dic,
