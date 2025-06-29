@@ -15,7 +15,7 @@ from espnet.nets.chainer_backend.ctc import ctc_for
 from espnet.nets.chainer_backend.rnn.attentions import att_for
 from espnet.nets.chainer_backend.rnn.decoders import decoder_for
 from espnet.nets.chainer_backend.rnn.encoders import encoder_for
-from espnet.nets.e2e_asr_common import label_smoothing_dist
+from espnet2.legacy.nets.e2e_asr_common import label_smoothing_dist
 from espnet.nets.pytorch_backend.e2e_asr import E2E as E2E_pytorch
 from espnet.nets.pytorch_backend.nets_utils import get_subsample
 

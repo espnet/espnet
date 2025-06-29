@@ -16,7 +16,7 @@ import numpy as np
 import torch
 from chainer import reporter
 
-from espnet.nets.e2e_asr_common import label_smoothing_dist
+from espnet2.legacy.nets.e2e_asr_common import label_smoothing_dist
 from espnet.nets.pytorch_backend.ctc import CTC
 from espnet.nets.pytorch_backend.initialization import (
     lecun_normal_init_parameters,

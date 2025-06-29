@@ -14,7 +14,7 @@ from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.mt.espnet_model import ESPnetMTModel
 from espnet2.torch_utils.device_funcs import force_gatherable
-from espnet.nets.e2e_asr_common import ErrorCalculator as ASRErrorCalculator
+from espnet2.legacy.nets.e2e_asr_common import ErrorCalculator as ASRErrorCalculator
 from espnet.nets.pytorch_backend.nets_utils import th_accuracy
 from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
 

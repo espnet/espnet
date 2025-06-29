@@ -6,7 +6,7 @@ from typing import Any, Dict, List, NamedTuple, Tuple, Union
 
 import torch
 
-from espnet.nets.e2e_asr_common import end_detect
+from espnet2.legacy.nets.e2e_asr_common import end_detect
 from espnet.nets.scorer_interface import PartialScorerInterface, ScorerInterface
 
 logger = logging.getLogger(__name__)

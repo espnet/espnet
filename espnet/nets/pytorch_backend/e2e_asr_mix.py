@@ -18,7 +18,7 @@ import numpy as np
 import torch
 
 from espnet.nets.asr_interface import ASRInterface
-from espnet.nets.e2e_asr_common import get_vgg2l_odim, label_smoothing_dist
+from espnet2.legacy.nets.e2e_asr_common import get_vgg2l_odim, label_smoothing_dist
 from espnet.nets.pytorch_backend.ctc import ctc_for
 from espnet.nets.pytorch_backend.e2e_asr import E2E as E2EASR
 from espnet.nets.pytorch_backend.e2e_asr import Reporter

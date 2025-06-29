@@ -25,7 +25,7 @@ from espnet.nets.chainer_backend.transformer.training import (  # noqa: H301
     CustomUpdater,
 )
 from espnet2.legacy.nets.ctc_prefix_score import CTCPrefixScore
-from espnet.nets.e2e_asr_common import ErrorCalculator, end_detect
+from espnet2.legacy.nets.e2e_asr_common import ErrorCalculator, end_detect
 from espnet.nets.pytorch_backend.nets_utils import get_subsample
 from espnet.nets.pytorch_backend.transformer.plot import PlotAttentionReport
 

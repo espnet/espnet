@@ -7,7 +7,7 @@ import torch
 import torch.nn.functional as F
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 
-from espnet.nets.e2e_asr_common import get_vgg2l_odim
+from espnet2.legacy.nets.e2e_asr_common import get_vgg2l_odim
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask, to_device
 
 

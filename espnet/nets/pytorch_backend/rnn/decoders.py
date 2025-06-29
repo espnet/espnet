@@ -10,7 +10,7 @@ import torch
 import torch.nn.functional as F
 
 from espnet2.legacy.nets.ctc_prefix_score import CTCPrefixScore, CTCPrefixScoreTH
-from espnet.nets.e2e_asr_common import end_detect
+from espnet2.legacy.nets.e2e_asr_common import end_detect
 from espnet.nets.pytorch_backend.nets_utils import (
     mask_by_length,
     pad_list,

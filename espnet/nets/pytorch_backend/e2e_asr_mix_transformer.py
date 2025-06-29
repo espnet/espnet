@@ -25,7 +25,7 @@ import torch
 
 from espnet.nets.asr_interface import ASRInterface
 from espnet2.legacy.nets.ctc_prefix_score import CTCPrefixScore
-from espnet.nets.e2e_asr_common import end_detect
+from espnet2.legacy.nets.e2e_asr_common import end_detect
 from espnet.nets.pytorch_backend.ctc import CTC
 from espnet.nets.pytorch_backend.e2e_asr import CTC_LOSS_THRESHOLD
 from espnet.nets.pytorch_backend.e2e_asr_mix import E2E as E2EASRMIX

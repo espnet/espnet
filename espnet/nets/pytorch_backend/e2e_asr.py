@@ -15,7 +15,7 @@ import torch
 from chainer import reporter
 
 from espnet.nets.asr_interface import ASRInterface
-from espnet.nets.e2e_asr_common import label_smoothing_dist
+from espnet2.legacy.nets.e2e_asr_common import label_smoothing_dist
 from espnet.nets.pytorch_backend.ctc import ctc_for
 from espnet.nets.pytorch_backend.frontends.feature_transform import (  # noqa: H301
     feature_transform_for,
