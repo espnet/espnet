@@ -14,7 +14,7 @@ from espnet2.bin.whisper_export_vocabulary import export_vocabulary
 from espnet2.tasks.asr import ASRTask
 from espnet2.tasks.enh_s2t import EnhS2TTask
 from espnet2.tasks.lm import LMTask
-from espnet.nets.beam_search import Hypothesis
+from espnet2.legacy.nets.beam_search import Hypothesis
 
 is_torch_2_6_plus = V(torch.__version__) >= V("2.6.0")
 

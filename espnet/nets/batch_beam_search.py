@@ -7,7 +7,7 @@ import torch
 from packaging.version import parse as V
 from torch.nn.utils.rnn import pad_sequence
 
-from espnet.nets.beam_search import BeamSearch, Hypothesis
+from espnet2.legacy.nets.beam_search import BeamSearch, Hypothesis
 
 is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 

@@ -8,7 +8,7 @@ import torch
 import yaml
 
 from espnet.nets.batch_beam_search import BatchBeamSearch
-from espnet.nets.beam_search import Hypothesis
+from espnet2.legacy.nets.beam_search import Hypothesis
 from espnet.nets.e2e_asr_common import end_detect
 
 

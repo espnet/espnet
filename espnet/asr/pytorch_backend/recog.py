@@ -10,7 +10,7 @@ from espnet2.legacy.asr.asr_utils import add_results_to_json, get_model_conf, to
 from espnet.asr.pytorch_backend.asr import load_trained_model
 from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.batch_beam_search import BatchBeamSearch
-from espnet.nets.beam_search import BeamSearch
+from espnet2.legacy.nets.beam_search import BeamSearch
 from espnet.nets.lm_interface import dynamic_import_lm
 from espnet.nets.scorer_interface import BatchScorerInterface
 from espnet.nets.scorers.length_bonus import LengthBonus

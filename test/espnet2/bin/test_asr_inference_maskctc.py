@@ -7,7 +7,7 @@ import pytest
 
 from espnet2.bin.asr_inference_maskctc import Speech2Text, get_parser, main
 from espnet2.tasks.asr import ASRTask
-from espnet.nets.beam_search import Hypothesis
+from espnet2.legacy.nets.beam_search import Hypothesis
 
 
 def test_get_parser():
