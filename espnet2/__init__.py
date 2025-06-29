@@ -1,3 +1,8 @@
-"""Initialize espnet2 package."""
+"""Initialize espnet package."""
 
-from espnet import __version__  # NOQA
+import os
+
+dirname = os.path.dirname(__file__)
+version_file = os.path.join(dirname, "version.txt")
+with open(version_file, "r") as f:
+    __version__ = f.read().strip()
