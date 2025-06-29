@@ -10,7 +10,7 @@ import chainer.links as L
 import numpy as np
 
 import espnet.nets.chainer_backend.deterministic_embed_id as DL
-from espnet.nets.ctc_prefix_score import CTCPrefixScore
+from espnet2.legacy.nets.ctc_prefix_score import CTCPrefixScore
 from espnet.nets.e2e_asr_common import end_detect
 
 CTC_SCORING_RATIO = 1.5
