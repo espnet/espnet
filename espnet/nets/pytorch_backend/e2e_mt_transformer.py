@@ -11,7 +11,7 @@ import numpy as np
 import torch
 
 from espnet2.legacy.nets.e2e_asr_common import end_detect
-from espnet.nets.e2e_mt_common import ErrorCalculator
+from espnet2.legacy.nets. e2e_mt_common import ErrorCalculator
 from espnet.nets.mt_interface import MTInterface
 from espnet.nets.pytorch_backend.e2e_mt import Reporter
 from espnet.nets.pytorch_backend.nets_utils import (

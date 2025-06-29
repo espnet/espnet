@@ -12,7 +12,7 @@ import torch
 
 from espnet2.legacy.nets.e2e_asr_common import ErrorCalculator as ASRErrorCalculator
 from espnet2.legacy.nets.e2e_asr_common import end_detect
-from espnet.nets.e2e_mt_common import ErrorCalculator as MTErrorCalculator
+from espnet2.legacy.nets. e2e_mt_common import ErrorCalculator as MTErrorCalculator
 from espnet.nets.pytorch_backend.ctc import CTC
 from espnet.nets.pytorch_backend.e2e_asr import CTC_LOSS_THRESHOLD
 from espnet.nets.pytorch_backend.e2e_st import Reporter
