@@ -16,10 +16,17 @@ from espnet2.legacy.nets.pytorch_backend.fastspeech.duration_predictor import ( 
     DurationPredictor,
     DurationPredictorLoss,
 )
-from espnet2.legacy.nets.pytorch_backend.fastspeech.length_regulator import LengthRegulator
-from espnet2.legacy.nets.pytorch_backend.nets_utils import make_non_pad_mask, make_pad_mask
+from espnet2.legacy.nets.pytorch_backend.fastspeech.length_regulator import (
+    LengthRegulator,
+)
+from espnet2.legacy.nets.pytorch_backend.nets_utils import (
+    make_non_pad_mask,
+    make_pad_mask,
+)
 from espnet2.legacy.nets.pytorch_backend.tacotron2.decoder import Postnet
-from espnet2.legacy.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
+from espnet2.legacy.nets.pytorch_backend.transformer.attention import (
+    MultiHeadedAttention,
+)
 from espnet2.legacy.nets.pytorch_backend.transformer.embedding import (
     PositionalEncoding,
     ScaledPositionalEncoding,

@@ -32,7 +32,9 @@ from espnet2.legacy.nets.pytorch_backend.transformer.positionwise_feed_forward i
     PositionwiseFeedForward,
 )
 from espnet2.legacy.nets.pytorch_backend.transformer.repeat import repeat
-from espnet2.legacy.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling
+from espnet2.legacy.nets.pytorch_backend.transformer.subsampling import (
+    Conv2dSubsampling,
+)
 
 
 class Encoder(torch.nn.Module):

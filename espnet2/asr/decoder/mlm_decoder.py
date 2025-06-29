@@ -9,7 +9,9 @@ from typeguard import typechecked
 
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.legacy.nets.pytorch_backend.nets_utils import make_pad_mask
-from espnet2.legacy.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
+from espnet2.legacy.nets.pytorch_backend.transformer.attention import (
+    MultiHeadedAttention,
+)
 from espnet2.legacy.nets.pytorch_backend.transformer.decoder_layer import DecoderLayer
 from espnet2.legacy.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 from espnet2.legacy.nets.pytorch_backend.transformer.layer_norm import LayerNorm

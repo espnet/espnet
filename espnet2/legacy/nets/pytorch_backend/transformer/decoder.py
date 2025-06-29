@@ -12,14 +12,24 @@ from typing import Any, List, Tuple
 import torch
 
 from espnet2.legacy.nets.pytorch_backend.nets_utils import rename_state_dict
-from espnet2.legacy.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
+from espnet2.legacy.nets.pytorch_backend.transformer.attention import (
+    MultiHeadedAttention,
+)
 from espnet2.legacy.nets.pytorch_backend.transformer.decoder_layer import DecoderLayer
-from espnet2.legacy.nets.pytorch_backend.transformer.dynamic_conv import DynamicConvolution
-from espnet2.legacy.nets.pytorch_backend.transformer.dynamic_conv2d import DynamicConvolution2D
+from espnet2.legacy.nets.pytorch_backend.transformer.dynamic_conv import (
+    DynamicConvolution,
+)
+from espnet2.legacy.nets.pytorch_backend.transformer.dynamic_conv2d import (
+    DynamicConvolution2D,
+)
 from espnet2.legacy.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 from espnet2.legacy.nets.pytorch_backend.transformer.layer_norm import LayerNorm
-from espnet2.legacy.nets.pytorch_backend.transformer.lightconv import LightweightConvolution
-from espnet2.legacy.nets.pytorch_backend.transformer.lightconv2d import LightweightConvolution2D
+from espnet2.legacy.nets.pytorch_backend.transformer.lightconv import (
+    LightweightConvolution,
+)
+from espnet2.legacy.nets.pytorch_backend.transformer.lightconv2d import (
+    LightweightConvolution2D,
+)
 from espnet2.legacy.nets.pytorch_backend.transformer.mask import subsequent_mask
 from espnet2.legacy.nets.pytorch_backend.transformer.positionwise_feed_forward import (
     PositionwiseFeedForward,

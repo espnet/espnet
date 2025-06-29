@@ -23,7 +23,7 @@ from espnet2.s2st.tgt_feats_extract.abs_tgt_feats_extract import AbsTgtFeatsExtr
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.legacy.nets.e2e_asr_common import ErrorCalculator as ASRErrorCalculator
-from espnet2.legacy.nets. e2e_mt_common import ErrorCalculator as MTErrorCalculator
+from espnet2.legacy.nets.e2e_mt_common import ErrorCalculator as MTErrorCalculator
 from espnet2.legacy.nets.pytorch_backend.nets_utils import make_pad_mask, th_accuracy
 from espnet2.legacy.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
 

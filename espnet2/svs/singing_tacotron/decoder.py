@@ -11,7 +11,11 @@ import six
 import torch
 
 from espnet2.legacy.nets.pytorch_backend.rnn.attentions import AttForwardTA
-from espnet2.legacy.nets.pytorch_backend.tacotron2.decoder import Postnet, Prenet, ZoneOutCell
+from espnet2.legacy.nets.pytorch_backend.tacotron2.decoder import (
+    Postnet,
+    Prenet,
+    ZoneOutCell,
+)
 
 
 def decoder_init(m):

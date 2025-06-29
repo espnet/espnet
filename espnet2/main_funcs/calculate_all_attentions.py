@@ -21,7 +21,9 @@ from espnet2.legacy.nets.pytorch_backend.rnn.attentions import (
     AttMultiHeadMultiResLoc,
     NoAtt,
 )
-from espnet2.legacy.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
+from espnet2.legacy.nets.pytorch_backend.transformer.attention import (
+    MultiHeadedAttention,
+)
 
 
 @torch.no_grad()

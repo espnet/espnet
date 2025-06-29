@@ -11,7 +11,9 @@ from typeguard import typechecked
 from espnet2.asr.ctc import CTC
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.legacy.nets.pytorch_backend.nets_utils import make_pad_mask
-from espnet2.legacy.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
+from espnet2.legacy.nets.pytorch_backend.transformer.attention import (
+    MultiHeadedAttention,
+)
 from espnet2.legacy.nets.pytorch_backend.transformer.embedding import (  # noqa: H301
     ConvolutionalPositionalEmbedding,
     PositionalEncoding,

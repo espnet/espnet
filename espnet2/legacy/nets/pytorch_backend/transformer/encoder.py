@@ -9,14 +9,24 @@ import torch
 
 from espnet2.legacy.nets.pytorch_backend.nets_utils import rename_state_dict
 from espnet2.legacy.nets.pytorch_backend.transducer.vgg2l import VGG2L
-from espnet2.legacy.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
-from espnet2.legacy.nets.pytorch_backend.transformer.dynamic_conv import DynamicConvolution
-from espnet2.legacy.nets.pytorch_backend.transformer.dynamic_conv2d import DynamicConvolution2D
+from espnet2.legacy.nets.pytorch_backend.transformer.attention import (
+    MultiHeadedAttention,
+)
+from espnet2.legacy.nets.pytorch_backend.transformer.dynamic_conv import (
+    DynamicConvolution,
+)
+from espnet2.legacy.nets.pytorch_backend.transformer.dynamic_conv2d import (
+    DynamicConvolution2D,
+)
 from espnet2.legacy.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 from espnet2.legacy.nets.pytorch_backend.transformer.encoder_layer import EncoderLayer
 from espnet2.legacy.nets.pytorch_backend.transformer.layer_norm import LayerNorm
-from espnet2.legacy.nets.pytorch_backend.transformer.lightconv import LightweightConvolution
-from espnet2.legacy.nets.pytorch_backend.transformer.lightconv2d import LightweightConvolution2D
+from espnet2.legacy.nets.pytorch_backend.transformer.lightconv import (
+    LightweightConvolution,
+)
+from espnet2.legacy.nets.pytorch_backend.transformer.lightconv2d import (
+    LightweightConvolution2D,
+)
 from espnet2.legacy.nets.pytorch_backend.transformer.multi_layer_conv import (
     Conv1dLinear,
     MultiLayeredConv1d,

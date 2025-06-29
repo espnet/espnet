@@ -5,7 +5,10 @@ from abc import ABC
 import kenlm
 import torch
 
-from espnet2.legacy.nets.scorer_interface import BatchScorerInterface, PartialScorerInterface
+from espnet2.legacy.nets.scorer_interface import (
+    BatchScorerInterface,
+    PartialScorerInterface,
+)
 
 
 class Ngrambase(ABC):

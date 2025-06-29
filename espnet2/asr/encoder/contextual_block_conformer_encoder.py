@@ -17,8 +17,12 @@ from espnet2.legacy.nets.pytorch_backend.conformer.contextual_block_encoder_laye
 )
 from espnet2.legacy.nets.pytorch_backend.conformer.convolution import ConvolutionModule
 from espnet2.legacy.nets.pytorch_backend.nets_utils import get_activation, make_pad_mask
-from espnet2.legacy.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
-from espnet2.legacy.nets.pytorch_backend.transformer.embedding import StreamPositionalEncoding
+from espnet2.legacy.nets.pytorch_backend.transformer.attention import (
+    MultiHeadedAttention,
+)
+from espnet2.legacy.nets.pytorch_backend.transformer.embedding import (
+    StreamPositionalEncoding,
+)
 from espnet2.legacy.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet2.legacy.nets.pytorch_backend.transformer.multi_layer_conv import (
     Conv1dLinear,

@@ -10,7 +10,11 @@ import torch
 import torch.nn.functional as F
 
 from espnet2.legacy.nets.pytorch_backend.nets_utils import make_non_pad_mask
-from espnet2.legacy.nets.pytorch_backend.rnn.attentions import AttForward, AttForwardTA, AttLoc
+from espnet2.legacy.nets.pytorch_backend.rnn.attentions import (
+    AttForward,
+    AttForwardTA,
+    AttLoc,
+)
 from espnet2.legacy.nets.pytorch_backend.tacotron2.cbhg import CBHG, CBHGLoss
 from espnet2.legacy.nets.pytorch_backend.tacotron2.decoder import Decoder
 from espnet2.legacy.nets.pytorch_backend.tacotron2.encoder import Encoder

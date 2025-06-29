@@ -17,11 +17,20 @@ from espnet2.legacy.nets.pytorch_backend.e2e_tts_transformer import (
     GuidedMultiHeadAttentionLoss,
     TransformerLoss,
 )
-from espnet2.legacy.nets.pytorch_backend.nets_utils import make_non_pad_mask, make_pad_mask
+from espnet2.legacy.nets.pytorch_backend.nets_utils import (
+    make_non_pad_mask,
+    make_pad_mask,
+)
 from espnet2.legacy.nets.pytorch_backend.tacotron2.decoder import Postnet
-from espnet2.legacy.nets.pytorch_backend.tacotron2.decoder import Prenet as DecoderPrenet
-from espnet2.legacy.nets.pytorch_backend.tacotron2.encoder import Encoder as EncoderPrenet
-from espnet2.legacy.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
+from espnet2.legacy.nets.pytorch_backend.tacotron2.decoder import (
+    Prenet as DecoderPrenet,
+)
+from espnet2.legacy.nets.pytorch_backend.tacotron2.encoder import (
+    Encoder as EncoderPrenet,
+)
+from espnet2.legacy.nets.pytorch_backend.transformer.attention import (
+    MultiHeadedAttention,
+)
 from espnet2.legacy.nets.pytorch_backend.transformer.decoder import Decoder
 from espnet2.legacy.nets.pytorch_backend.transformer.embedding import (
     PositionalEncoding,
