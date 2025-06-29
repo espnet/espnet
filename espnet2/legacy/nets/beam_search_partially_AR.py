@@ -16,7 +16,7 @@ from typing import Any, Dict, List, NamedTuple, Tuple, Union
 import torch
 from packaging.version import parse as V
 
-from espnet.nets.batch_beam_search import BatchBeamSearch, BatchHypothesis
+from espnet2.legacy.nets.batch_beam_search import BatchBeamSearch, BatchHypothesis
 from espnet.nets.e2e_asr_common import end_detect
 
 is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")

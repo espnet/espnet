@@ -2,7 +2,7 @@ import pytest
 import torch
 
 from espnet2.lm.transformer_lm import TransformerLM
-from espnet.nets.batch_beam_search import BatchBeamSearch
+from espnet2.legacy.nets.batch_beam_search import BatchBeamSearch
 from espnet2.legacy.nets.beam_search import BeamSearch
 
 
