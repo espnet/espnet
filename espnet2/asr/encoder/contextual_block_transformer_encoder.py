@@ -13,7 +13,7 @@ from espnet2.legacy.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet2.legacy.nets.pytorch_backend.transformer.attention import (
     MultiHeadedAttention,
 )
-from espnet2.legacy.nets.pytorch_backend.transformer.contextual_block_encoder_layer import (
+from espnet2.legacy.nets.pytorch_backend.transformer.contextual_block_encoder_layer import (  # noqa: E501
     ContextualBlockEncoderLayer,
 )
 from espnet2.legacy.nets.pytorch_backend.transformer.embedding import (

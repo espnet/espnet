@@ -236,7 +236,7 @@ class LongformerEncoder(ConformerEncoder):
             assert pos_enc_layer_type == "abs_pos"
             from longformer.longformer import LongformerConfig
 
-            from espnet2.legacy.nets.pytorch_backend.transformer.longformer_attention import (
+            from espnet2.legacy.nets.pytorch_backend.transformer.longformer_attention import (  # noqa: E501
                 LongformerAttention,
             )
 

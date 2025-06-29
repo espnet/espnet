@@ -12,7 +12,7 @@ import torch
 from typeguard import typechecked
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
-from espnet2.legacy.nets.pytorch_backend.conformer.contextual_block_encoder_layer import (
+from espnet2.legacy.nets.pytorch_backend.conformer.contextual_block_encoder_layer import (  # noqa: E501
     ContextualBlockEncoderLayer,
 )
 from espnet2.legacy.nets.pytorch_backend.conformer.convolution import ConvolutionModule
