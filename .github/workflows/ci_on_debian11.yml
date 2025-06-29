@@ -9,7 +9,7 @@ on:
       - master
 
 jobs:
-  unit_test_espnet1_and_espnet2_on_debian11:
+  unit_test_espnet2_on_debian11:
     runs-on: ubuntu-latest
     if: github.event.pull_request.draft == false
     container:
@@ -40,10 +40,8 @@ jobs:
         run: ./ci/install.sh
       - name: test shell
         run: |
-          ./ci/test_shell_espnet1.sh
           ./ci/test_shell_espnet2.sh
       - name: test python
         run: |
-          ./ci/test_python_espnet1.sh
           ./ci/test_python_espnet2.sh
           ./ci/test_python_espnetez.sh
