@@ -28,8 +28,8 @@ from espnet2.legacy.nets.pytorch_backend.transformer.encoder import Encoder
 from espnet2.legacy.nets.pytorch_backend.transformer.initializer import initialize
 from espnet2.legacy.nets.pytorch_backend.transformer.mask import subsequent_mask
 from espnet2.legacy.nets.tts_interface import TTSInterface
-from espnet.utils.cli_utils import strtobool
-from espnet.utils.fill_missing_args import fill_missing_args
+from espnet2.legacy.utils.cli_utils import strtobool
+from espnet2.legacy.utils.fill_missing_args import fill_missing_args
 
 
 class GuidedMultiHeadAttentionLoss(GuidedAttentionLoss):

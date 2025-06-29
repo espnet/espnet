@@ -24,7 +24,7 @@ from espnet2.tts2.fastspeech2 import FastSpeech2Discrete
 from espnet2.tts.utils import DurationCalculator
 from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
-from espnet.utils.cli_utils import get_commandline_args
+from espnet2.legacy.utils.cli_utils import get_commandline_args
 
 
 class Text2Speech:

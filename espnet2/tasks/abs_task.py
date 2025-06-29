@@ -83,7 +83,7 @@ from espnet2.utils.types import (
     str_or_none,
 )
 from espnet2.utils.yaml_no_alias_safe_dump import yaml_no_alias_safe_dump
-from espnet.utils.cli_utils import get_commandline_args
+from espnet2.legacy.utils.cli_utils import get_commandline_args
 
 try:
     import wandb

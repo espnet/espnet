@@ -27,7 +27,7 @@ from espnet2.legacy.nets.scorer_interface import BatchScorerInterface
 from espnet2.legacy.nets.scorers.uasr import UASRPrefixScorer
 
 # from espnet2.legacy.nets.scorers.uasr import UASRPrefixScorer
-from espnet.utils.cli_utils import get_commandline_args
+from espnet2.legacy.utils.cli_utils import get_commandline_args
 
 
 class Speech2Text:

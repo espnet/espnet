@@ -27,8 +27,8 @@ from espnet2.legacy.nets.pytorch_backend.transformer.embedding import (
 from espnet2.legacy.nets.pytorch_backend.transformer.encoder import Encoder
 from espnet2.legacy.nets.pytorch_backend.transformer.initializer import initialize
 from espnet2.legacy.nets.tts_interface import TTSInterface
-from espnet.utils.cli_utils import strtobool
-from espnet.utils.fill_missing_args import fill_missing_args
+from espnet2.legacy.utils.cli_utils import strtobool
+from espnet2.legacy.utils.fill_missing_args import fill_missing_args
 
 
 class FeedForwardTransformerLoss(torch.nn.Module):
@@ -829,7 +829,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         assert args.reduction_factor == self.reduction_factor
 
         # load teacher model
-        from espnet.utils.dynamic_import import dynamic_import
+        from espnet2.legacy.utils.dynamic_import import dynamic_import
 
         model_class = dynamic_import(args.model_module)
         model = model_class(idim, odim, args)

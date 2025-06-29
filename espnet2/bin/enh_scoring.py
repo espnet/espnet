@@ -19,7 +19,7 @@ from espnet2.fileio.sound_scp import SoundScpReader
 from espnet2.train.dataset import kaldi_loader
 from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool
-from espnet.utils.cli_utils import get_commandline_args
+from espnet2.legacy.utils.cli_utils import get_commandline_args
 
 si_snr_loss = SISNRLoss()
 
