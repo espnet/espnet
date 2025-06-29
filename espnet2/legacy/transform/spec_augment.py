@@ -4,7 +4,7 @@ import random
 
 import numpy
 
-from espnet.transform.functional import FuncTrans
+from espnet2.legacy.transform.functional import FuncTrans
 
 
 def time_warp(x, max_time_warp=80, inplace=False, mode="PIL"):
@@ -40,7 +40,7 @@ def time_warp(x, max_time_warp=80, inplace=False, mode="PIL"):
     elif mode == "sparse_image_warp":
         import torch
 
-        from espnet.utils import spec_augment
+        from espnet2.legacy.utils import spec_augment
 
         # TODO(karita): make this differentiable again
         return spec_augment.time_warp(torch.from_numpy(x), window).numpy()

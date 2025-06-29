@@ -2,8 +2,8 @@
 
 import inspect
 
-from espnet.transform.transform_interface import TransformInterface
-from espnet.utils.check_kwargs import check_kwargs
+from espnet2.legacy.transform.transform_interface import TransformInterface
+from espnet2.legacy.utils.check_kwargs import check_kwargs
 
 
 class FuncTrans(TransformInterface):

@@ -5,7 +5,7 @@ import numpy
 import scipy
 import soundfile
 
-from espnet.utils.io_utils import SoundHDF5File
+from espnet2.legacy.utils.io_utils import SoundHDF5File
 
 
 class SpeedPerturbation(object):
