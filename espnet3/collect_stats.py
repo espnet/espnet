@@ -10,8 +10,8 @@ from tqdm import tqdm
 
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.fileio.npy_scp import NpyScpWriter
-from espnet3 import get_espnet_model
 from espnet3.parallel import get_client, set_parallel
+from espnet3.task import get_espnet_model
 
 
 class CollectStatsPlugin(WorkerPlugin):
