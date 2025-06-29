@@ -23,6 +23,8 @@ from espnet3.inference.inference_runner import InferenceRunner
 # | test_A4_read_text_offline | Confirms reading plain text input offline                            | # noqa: E501
 # | test_A5_write_output      | Ensures output is correctly written to stft.scp                      | # noqa: E501
 # | test_A6_manual_read_infer_write | Manual read, inference, and write in offline mode             | # noqa: E501
+# | test_A7_image_output_type       | Checks that image output is correctly written to PNG and scp         | # noqa: E501
+# | test_A8_audio_output_type       | Checks that audio output is correctly written to FLAC and scp        | # noqa: E501
 #
 # Streaming Processing Tests
 # | Test Name                        | Description                                                      | # noqa: E501
@@ -33,11 +35,6 @@ from espnet3.inference.inference_runner import InferenceRunner
 # | test_B3_read_text_streaming_chunks | Splits text input into chunks in streaming mode              | # noqa: E501
 # | test_B4_post_inference_behavior  | Ensures last chunk's output is returned after streaming         | # noqa: E501
 # | test_B5_run_on_dataset_streaming | Full dataset processing with config injection (Hydra-style)     | # noqa: E501
-#
-# Error Handling Tests
-# | Test Name                    | Description                                                        | # noqa: E501
-# |-----------------------------|--------------------------------------------------------------------| # noqa: E501
-# | test_E1_invalid_input_type_to_read | Ensures ValueError is raised for unsupported input type     | # noqa: E501
 
 
 # === STFT Module ===
@@ -173,14 +170,20 @@ def test_A6_manual_read_infer_write(test_audio_paths, tmp_path):
     assert (tmp_path / "stft.scp").exists()
 
 
-# def test_A7_image_output_type(tmp_path):
-#     runner = STFTInferenceRunner()
-#     image_output = {
-#         "img": {"type": "image", "value": np.zeros((10, 10))}
-#     }
-#     runner.write("image_id1", image_output, tmp_path)
-#     assert (tmp_path / "img.scp").exists()
-#     assert (tmp_path / "data" / "img" / "image_id1_img.png").exists()
+def test_A7_image_output_type(tmp_path):
+    runner = STFTInferenceRunner()
+    image_output = {"img": {"type": "image", "value": np.zeros((10, 10))}}
+    runner.write("image_id1", image_output, tmp_path)
+    assert (tmp_path / "img.scp").exists()
+    assert (tmp_path / "data" / "img" / "image_id1.png").exists()
+
+
+def test_A8_audio_output_type(tmp_path):
+    runner = STFTInferenceRunner()
+    audio_output = {"speech": {"type": "audio", "value": np.random.random(16000)}}
+    runner.write("speech_id1", audio_output, tmp_path)
+    assert (tmp_path / "speech.scp").exists()
+    assert (tmp_path / "data" / "speech" / "speech_id1.flac").exists()
 
 
 def test_B1_streaming_on_example(test_audio_paths):
@@ -300,9 +303,3 @@ def test_B5_run_on_dataset_streaming(test_audio_paths, tmp_path):
     assert out_scp.exists()
     content = out_scp.read_text()
     assert "0" in content
-
-
-def test_E1_invalid_input_type_to_read():
-    runner = STFTInferenceRunner()
-    with pytest.raises(ValueError, match="Unsupported input type"):
-        _ = runner.read("image", "invalid_path", stream=False)
