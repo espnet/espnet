@@ -16,7 +16,7 @@ import torch
 from chainer import training
 from chainer.training import extensions
 
-from espnet.asr.asr_utils import (
+from espnet2.legacy.asr.asr_utils import (
     CompareValueTrigger,
     adadelta_eps_decay,
     adam_lr_decay,

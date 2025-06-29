@@ -8,7 +8,7 @@ import logging
 import torch
 import torch.nn.functional as F
 
-from espnet.asr.asr_utils import get_model_conf, torch_load
+from espnet2.legacy.asr.asr_utils import get_model_conf, torch_load
 from espnet.nets.pytorch_backend.fastspeech.duration_calculator import (  # noqa: H301
     DurationCalculator,
 )

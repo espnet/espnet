@@ -20,7 +20,7 @@ import torch
 from chainer import training
 from chainer.training import extensions
 
-from espnet.asr.asr_utils import (
+from espnet2.legacy.asr.asr_utils import (
     get_model_conf,
     snapshot_object,
     torch_load,

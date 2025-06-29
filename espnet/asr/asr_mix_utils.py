@@ -18,7 +18,7 @@ import os
 
 from chainer.training import extension
 
-from espnet.asr.asr_utils import parse_hypothesis
+from espnet2.legacy.asr.asr_utils import parse_hypothesis
 
 
 # * -------------------- chainer extension related -------------------- *

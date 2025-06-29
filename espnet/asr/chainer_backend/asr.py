@@ -18,7 +18,7 @@ import espnet.lm.chainer_backend.extlm as extlm_chainer
 import espnet.lm.chainer_backend.lm as lm_chainer
 
 # espnet related
-from espnet.asr.asr_utils import (
+from espnet2.legacy.asr.asr_utils import (
     CompareValueTrigger,
     adadelta_eps_decay,
     add_results_to_json,

@@ -24,7 +24,7 @@ from torch.utils.data.distributed import DistributedSampler
 
 import espnet.lm.pytorch_backend.extlm as extlm_pytorch
 import espnet.nets.pytorch_backend.lm.default as lm_pytorch
-from espnet.asr.asr_utils import (
+from espnet2.legacy.asr.asr_utils import (
     CompareValueTrigger,
     adadelta_eps_decay,
     add_results_to_json,
@@ -282,7 +282,7 @@ class CustomUpdater(StandardUpdater):
             loss.backward()
         # gradient noise injection
         if self.grad_noise:
-            from espnet.asr.asr_utils import add_gradient_noise
+            from espnet2.legacy.asr.asr_utils import add_gradient_noise
 
             add_gradient_noise(
                 self.model, self.iteration, duration=100, eta=1.0, scale_factor=0.55

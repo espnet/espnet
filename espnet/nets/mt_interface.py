@@ -90,6 +90,6 @@ class MTInterface:
     @property
     def attention_plot_class(self):
         """Get attention plot class."""
-        from espnet.asr.asr_utils import PlotAttentionReport
+        from espnet2.legacy.asr.asr_utils import PlotAttentionReport
 
         return PlotAttentionReport

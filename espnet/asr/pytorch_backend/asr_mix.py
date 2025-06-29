@@ -21,7 +21,7 @@ from chainer.training import extensions
 import espnet.lm.pytorch_backend.extlm as extlm_pytorch
 import espnet.nets.pytorch_backend.lm.default as lm_pytorch
 from espnet.asr.asr_mix_utils import add_results_to_json
-from espnet.asr.asr_utils import (
+from espnet2.legacy.asr.asr_utils import (
     CompareValueTrigger,
     adadelta_eps_decay,
     get_model_conf,

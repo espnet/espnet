@@ -18,7 +18,7 @@ from chainer.dataset import convert
 from chainer.training import extensions
 from torch.nn.parallel import data_parallel
 
-from espnet.asr.asr_utils import (
+from espnet2.legacy.asr.asr_utils import (
     snapshot_object,
     torch_load,
     torch_resume,

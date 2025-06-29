@@ -5,7 +5,7 @@
 
 """TTS Interface realted modules."""
 
-from espnet.asr.asr_utils import torch_load
+from espnet2.legacy.asr.asr_utils import torch_load
 
 try:
     import chainer
@@ -70,7 +70,7 @@ class TTSInterface(object):
     @property
     def attention_plot_class(self):
         """Plot attention weights."""
-        from espnet.asr.asr_utils import PlotAttentionReport
+        from espnet2.legacy.asr.asr_utils import PlotAttentionReport
 
         return PlotAttentionReport
 

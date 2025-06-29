@@ -102,14 +102,14 @@ class ASRInterface:
     @property
     def attention_plot_class(self):
         """Get attention plot class."""
-        from espnet.asr.asr_utils import PlotAttentionReport
+        from espnet2.legacy.asr.asr_utils import PlotAttentionReport
 
         return PlotAttentionReport
 
     @property
     def ctc_plot_class(self):
         """Get CTC plot class."""
-        from espnet.asr.asr_utils import PlotCTCReport
+        from espnet2.legacy.asr.asr_utils import PlotCTCReport
 
         return PlotCTCReport
 
