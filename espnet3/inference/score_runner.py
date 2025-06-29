@@ -28,7 +28,8 @@ def validate_scp_files(
     Validate existence and consistency of SCP files for a given test set.
 
     This function checks that all required SCP files exist under `decode_dir/test_name`,
-    parses their contents, and verifies that all SCP files share the same set of `utt_id`s.
+    parses their contents, and verifies that all SCP files share the same set of
+    `utt_id`s.
 
     Args:
         decode_dir (Path): Root directory containing decode results.
@@ -75,6 +76,7 @@ def validate_scp_files(
     ref_uids = uid_sets[0]
     for i, uids in enumerate(uid_sets[1:], start=1):
         assert uids == ref_uids, f"Mismatch in UID sets across inputs, {uids, ref_uids}"
+
 
 def get_class_path(obj) -> str:
     return f"{obj.__module__}.{obj.__class__.__name__}"
@@ -177,7 +179,8 @@ class ScoreRunner:
         config (DictConfig):
             Full configuration, including:
             - dataset.test: List of test set definitions (each with `name`)
-            - metrics: List of metric configurations (each must have `_target_`, `inputs`, and optional `apply_to`)
+            - metrics: List of metric configurations
+                (each must have `_target_`, `inputs`, and optional `apply_to`)
         decode_dir (Path):
             Directory containing inference results organized as:
                 decode_dir/
@@ -193,7 +196,8 @@ class ScoreRunner:
     ## Metric Configuration:
         Each metric config must define:
             - _target_: Class path to a subclass of `AbsMetrics`
-            - inputs: List or Dict specifying input .scp keys to use (e.g., ["ref", "hypothesis"])
+            - inputs: List or Dict specifying input .scp keys to use
+                (e.g., ["ref", "hypothesis"])
             - apply_to (optional): List of test set names this metric applies to
 
         Example:
@@ -233,8 +237,10 @@ class ScoreRunner:
     ## Notes:
         - Metric instantiation is handled via Hydra's `instantiate()`.
         - All metrics must inherit from `AbsMetrics`, implementing `__call__`.
-        - Metrics are applied only to test sets listed in their `apply_to` (if specified).
-        - This class is framework-agnostic and suitable for general-purpose post-evaluation.
+        - Metrics are applied only to test sets listed in their `apply_to`
+            (if specified).
+        - This class is framework-agnostic and suitable for general-purpose
+            post-evaluation.
     """
 
     def __init__(self, config: DictConfig, decode_dir: Path):
@@ -281,7 +287,8 @@ class ScoreRunner:
         Workflow:
             For each metric:
               - Check which test sets it applies to (via `apply_to`)
-              - Load required .scp files (e.g., hypothesis.scp, ref.scp) from each test set
+              - Load required .scp files (e.g., hypothesis.scp, ref.scp)
+                from each test set
               - Pass the loaded data into the metric's `__call__` method
               - Collect and store the returned score
 
@@ -300,14 +307,17 @@ class ScoreRunner:
             KeyError: If any metric config lacks a `_target_` field.
             ValueError: If any metric config lacks an `inputs` field.
             TypeError: If instantiated metric is not a subclass of `AbsMetrics`.
-            AssertionError: If required `.scp` files are missing or contain UID mismatches.
+            AssertionError: If required `.scp` files are missing or contain UID
+                mismatches.
 
         Input Specification:
-            Metrics must be defined in the `metrics:` section of the config (e.g., `evaluate.yaml`)
+            Metrics must be defined in the `metrics:` section of the config
+                (e.g., `evaluate.yaml`)
             Each metric must specify:
               - `_target_`: Path to the metric class (e.g., `score.wer.WER`)
               - `inputs`: Either a `List[str]` (e.g., `["ref", "hypothesis"]`)
-                          or `Dict[str, str]` (e.g., `{"ref": "text", "hyp": "hypothesis"}`)
+                          or `Dict[str, str]`
+                          (e.g., `{"ref": "text", "hyp": "hypothesis"}`)
               - **kwargs: Additional parameters for the metric class
               - `apply_to`: List of test set names to apply this metric to
 
@@ -337,7 +347,8 @@ class ScoreRunner:
             >>> print(scores["score.wer.WER"]["test-clean"]["wer"])  # 0.12
 
         Related:
-            - `AbsMetrics`: Each metric must inherit from this base class and implement `__call__`
+            - `AbsMetrics`: Each metric must inherit from this base class and implement
+                `__call__`
             - `validate_scp_files`: Used to check consistency before `run()`
             - `load_scp_fields`: Loads and aligns data to pass to metrics
         """

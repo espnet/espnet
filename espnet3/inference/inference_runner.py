@@ -142,7 +142,8 @@ class InferenceRunner:
         initialization logic.
 
         Args:
-            device (str, optional): The device to load the model on, e.g., 'cpu' or 'cuda'.
+            device (str, optional): The device to load the model on,
+                e.g., 'cpu' or 'cuda'.
 
         Returns:
             Any: The instantiated model object using Hydra instantiation.
@@ -171,7 +172,8 @@ class InferenceRunner:
                 If None, uses `self.dataset_config`.
 
         Returns:
-            DatasetWithTransform: Dataset object with transforms and optional preprocessor applied.
+            DatasetWithTransform: Dataset object with transforms and
+                optional preprocessor applied.
 
         Raises:
             RuntimeError: If the dataset key is not found in the config.
@@ -224,7 +226,8 @@ class InferenceRunner:
         chunk_chars: int = 5,
     ) -> Union[np.ndarray, str, Iterator[np.ndarray], Iterator[str]]:
         """
-        Read input data from file (either audio or text), supporting offline and streaming modes.
+        Read input data from file (either audio or text), supporting offline and
+        streaming modes.
 
         This function is used to abstract input loading logic depending on:
         - the type of input (`audio` or `text`)
@@ -235,13 +238,15 @@ class InferenceRunner:
                 - "audio": reads waveform from file
                 - "text": reads plain text from file
             path (str): Path to the input file.
-            stream (bool): If True, reads the input in chunks (streaming mode). Otherwise, reads the full file.
+            stream (bool): If True, reads the input in chunks (streaming mode).
+                Otherwise, reads the full file.
             chunk_sec (float): Duration (in seconds) of each audio chunk when streaming.
             chunk_chars (int): Number of characters per text chunk when streaming.
 
         Returns:
             Union[np.ndarray, str, Iterator[np.ndarray], Iterator[str]]:
-                - If `stream=False`: returns the full waveform (`np.ndarray`) or full text (`str`).
+                - If `stream=False`: returns the full waveform (`np.ndarray`)
+                    or full text (`str`).
                 - If `stream=True`: returns an iterator over chunks:
                     - For audio: `Iterator[np.ndarray]` (each chunk is waveform array)
                     - For text: `Iterator[str]` (each chunk is a string)
@@ -250,10 +255,11 @@ class InferenceRunner:
             ValueError: If `input_type` is not one of {"audio", "text"}.
 
         Notes:
-            - In streaming mode, `audio_path` or `text_path` must be present in the sample dictionary
-            so that the file can be opened in chunks.
-            - For streaming inference, this method is commonly used to initialize a generator
-            and store it in `sample["stream"]`, which is then iterated chunk-by-chunk.
+            - In streaming mode, `audio_path` or `text_path` must be present
+                in the sample dictionary so that the file can be opened in chunks.
+            - For streaming inference, this method is commonly used to initialize
+                a generator and store it in `sample["stream"]`, which is then iterated
+                chunk-by-chunk.
 
         Example:
             >>> # Offline audio
@@ -270,7 +276,9 @@ class InferenceRunner:
             >>> print(text)
 
             >>> # Streaming text
-            >>> for chunk in runner.read("text", "input.txt", stream=True, chunk_chars=10):
+            >>> for chunk in runner.read(
+                    "text", "input.txt", stream=True, chunk_chars=10
+                ):
             ...     print(chunk)
         """
         if input_type == "audio":
@@ -288,7 +296,8 @@ class InferenceRunner:
 
     def write(self, uid: str, output: Dict[str, Any], output_dir: Union[str, Path]):
         """
-        Write the model output to Kaldi-style SCP files, and save audio/image data if present.
+        Write the model output to Kaldi-style SCP files, and save audio/image data
+        if present.
 
         This function handles multiple output types (`text`, `audio`, `image`) and
         appends entries to their corresponding `{key}.scp` files. If the output is of
@@ -296,23 +305,26 @@ class InferenceRunner:
         structured directory under `output_dir/data/{key}/`.
 
         Args:
-            uid (str): Unique identifier for the input sample. Will be used in file names and SCP entries.
+            uid (str): Unique identifier for the input sample. Will be used
+                in file names and SCP entries.
             output (Dict[str, Any]): Output dictionary produced by the model.
                 Each key in the dict corresponds to an output type, and must have:
                     - "type": one of {"text", "audio", "image"}
                     - "value": the actual value (e.g., string, numpy array)
-            output_dir (str or Path): Base directory where outputs and .scp files will be written.
+            output_dir (str or Path): Base directory where outputs and .scp files
+                will be written.
 
         Raises:
-            ValueError: If an unsupported output type or output value structure is encountered.
+            ValueError: If an unsupported output type or output value structure
+                is encountered.
 
         Notes:
             - Text outputs are directly written as string values into `{key}.scp`:
                 Example line: `utt1 hello world`
-            - Audio outputs (numpy arrays) are saved as FLAC files and referenced in `{key}.scp`:
-                Output file: `data/audio/utt1_audio.flac`
-            - Image outputs (numpy arrays) are saved as PNG files and referenced in `{key}.scp`:
-                Output file: `data/weight/utt1_weight.png`
+            - Audio outputs (numpy arrays) are saved as FLAC files and referenced
+                in `{key}.scp`. e.g., `data/audio/utt1.flac`
+            - Image outputs (numpy arrays) are saved as PNG files and referenced
+                in `{key}.scp`. e.g., `data/weight/utt1.png`
             - All .scp files are *appended* to if they already exist.
             - Output directory structure:
                 output_dir/
@@ -418,10 +430,11 @@ class InferenceRunner:
         proc: Optional[psutil.Process] = None,
     ) -> Dict[str, Any]:
         """
-        Perform a complete inference pass on a single sample, including optional streaming,
-        and record timing and memory usage metrics throughout the process.
+        Perform a complete inference pass on a single sample, including optional
+        streaming, and record timing and memory usage metrics throughout the process.
 
-        This method is responsible for executing the full inference pipeline on a single input sample:
+        This method is responsible for executing the full inference pipeline
+        on a single input sample:
             1. Streaming setup (if applicable)
             2. Preprocessing via `pre_fn`
             3. Model inference via `infer_fn` (single pass or streamed)
@@ -430,7 +443,8 @@ class InferenceRunner:
 
         Args:
             sample (dict): The input sample to process. It may include fields such as
-                "audio_path", "text_path", or pre-loaded features depending on the model.
+                "audio_path", "text_path", or pre-loaded features depending
+                on the model.
             model: The model instance used for inference.
             read_fn (Callable): Function to read input data, typically `self.read`.
             pre_fn (Callable): Preprocessing hook, typically `self.pre_inference`.
@@ -446,28 +460,38 @@ class InferenceRunner:
                 - Model output from `post_fn`
                 - Timing metrics:
                     - "pre_time": Time taken by preprocessing step (seconds)
-                    - "infer_time": Space-separated string of inference durations for each chunk (seconds)
+                    - "infer_time": Space-separated string of inference durations
+                        for each chunk (seconds)
                     - "post_time": Time taken by postprocessing step (seconds)
                     - "total_time": Total elapsed time from start to end (seconds)
                 - Resource usage metrics (if `proc` is provided):
                     - "cpu_mem_MB": Difference in resident memory usage (in megabytes)
-                    - "gpu_mem_MiB": Difference in GPU memory allocation (in MiB, CUDA only)
+                    - "gpu_mem_MiB": Difference in GPU memory allocation
+                        (in MiB, CUDA only)
 
         Timing Details:
-            - `pre_time`: Time spent in `pre_fn` (usually lightweight normalization or tokenization)
-            - `infer_time`: Per-chunk or single-pass inference time(s), may be multiple entries if streaming
-            - `post_time`: Time spent in `post_fn` (e.g., merging chunk results, decoding)
+            - `pre_time`: Time spent in `pre_fn` (usually lightweight normalization
+                or tokenization)
+            - `infer_time`: Per-chunk or single-pass inference time(s), may be
+                multiple entries if streaming
+            - `post_time`: Time spent in `post_fn`
+                (e.g., merging chunk results, decoding)
             - `total_time`: Total wall-clock time including all the above stages
 
         Resource Measurement Details:
-            - `cpu_mem_MB`: Difference in resident memory (RSS) before and after processing
-            - `gpu_mem_MiB`: Difference in CUDA memory allocated before and after processing.
-                Only recorded if CUDA is available and `torch.cuda.is_available()` returns True.
+            - `cpu_mem_MB`: Difference in resident memory (RSS) before and
+                after processing
+            - `gpu_mem_MiB`: Difference in CUDA memory allocated before and
+                after processing.
+                Only recorded if CUDA is available and `torch.cuda.is_available()`
+                returns True.
 
         Notes:
-            - This method is designed to be framework-agnostic and easily parallelizable.
+            - This method is designed to be framework-agnostic and easily
+                parallelizable.
             - It is internally used by serial, parallel, and async decoding paths.
-            - All returned numerical values are strings to make them easily writable to log files or .scp metadata.
+            - All returned numerical values are strings to make them easily writable
+                to log files or .scp metadata.
 
         Example:
             >>> result = runner.process_sample_core(
@@ -543,14 +567,16 @@ class InferenceRunner:
         (`self.parallel_config`) and the `async_decode` flag.
 
         Args:
-            dataset_key (str): The name of the test dataset (e.g., "test-clean", "test-other")
-                as defined under the `test` field in the DataOrganizer configuration.
+            dataset_key (str): The name of the test dataset
+                (e.g., "test-clean", "test-other") as defined under the `test` field
+                in the DataOrganizer configuration.
             output_dir (Union[str, Path]): Path to the output directory where results
-                (e.g., text.scp, audio.scp, image.scp) will be written. Can be a string or Path.
-            async_decode (bool, optional): If True, run decoding in asynchronous mode using Dask
-                (i.e., batches assigned per worker). If False, decoding is either serial
-                (no Dask) or synchronous parallel (each sample is a Dask task).
-                Default: False
+                (e.g., text.scp, audio.scp, image.scp) will be written.
+                Can be a string or Path.
+            async_decode (bool, optional): If True, run decoding in asynchronous mode
+                using Dask (i.e., batches assigned per worker). If False, decoding is
+                either serial (no Dask) or synchronous parallel (each sample is a Dask
+                task). Default: False
 
         Raises:
             RuntimeError: If dataset_key is not found or configuration is incomplete.
@@ -558,18 +584,21 @@ class InferenceRunner:
 
         Execution Modes:
             - Serial:
-                If `self.parallel_config` is None, samples are processed one-by-one on a single process.
-                This mode is simple and deterministic, and suitable for debugging.
+                If `self.parallel_config` is None, samples are processed one-by-one
+                on a single process. This mode is simple and deterministic,
+                and suitable for debugging.
 
             - Parallel (sync):
                 If `self.parallel_config` is provided and `async_decode` is False,
                 each sample is submitted to Dask as an independent task. This allows
-                finer-grained load balancing but may incur higher overhead for large datasets.
+                finer-grained load balancing but may incur higher overhead
+                for large datasets.
 
             - Parallel (async):
                 If `self.parallel_config` is provided and `async_decode` is True,
-                the dataset is divided into index chunks, each processed by a dedicated Dask worker.
-                This mode is more efficient for large datasets and streaming inference.
+                the dataset is divided into index chunks, each processed by a dedicated
+                Dask worker. This mode is more efficient for large datasets and
+                streaming inference.
 
         Integration with Dataset Organizer:
             This method assumes datasets are defined using `espnet3.data.DataOrganizer`,
