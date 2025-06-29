@@ -1,0 +1,13 @@
+# load default config
+defaults:
+  - default.yaml
+
+dataloader:
+  train:
+    iter_factory:
+    batch_size: 2
+    num_workers: 0
+  valid:
+    iter_factory:
+    batch_size: 2
+    num_workers: 0
