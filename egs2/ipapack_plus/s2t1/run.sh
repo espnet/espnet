@@ -15,8 +15,9 @@ s2t_config=conf/tuning/train_s2t_ebf_conv2d_size768_e9_d9_piecewise_lr5e-4_warmu
 inference_config=conf/decode_s2t_pr.yaml
 
 
-nodelist=$(scontrol show hostnames $SLURM_JOB_NODELIST)
-nodelist=$(echo $nodelist | tr ' ' ',')
+# Specify nodelist based on your environment, such as
+# nodelist=$(scontrol show hostnames $SLURM_JOB_NODELIST)
+# nodelist=$(echo $nodelist | tr ' ' ',')
 
 ./s2t.sh \
     --stage 1 \

@@ -6,7 +6,8 @@ This is a S2T recipe for [IPAPack++](https://huggingface.co/anyspeech), includin
     - Raw data will be located at `downloads/`
     - `transcripts.csv` contains orthography, phones, and path to audio file
 2. Data prep: stage 1-4, can be done without GPU. The extracted `dump/raw` is around 1T.
-    - `local/data_prep.py` generates `transcripts_normalized.csv` to normalize phones and filter out unused entries
+    - `local/data_prep.py` filters out unused entries and normalizes phones with the provided mapping `local/ipa_mapping.json`, such as removing diacritics
+    - A new transcript `transcripts_normalized.csv` is then generated
     - Wav files are dumped to ark files in `data/format.{i}/`
     - `local/process_ipapack.py` generates OWSM format text files for each task, which looks like: `uttid_task <lang><task><notimestamp> text`
     - `local/subset.py` combines text files and generate other files accordingly. It also has other functions to get subsets in different ways
@@ -26,3 +27,7 @@ This is a S2T recipe for [IPAPack++](https://huggingface.co/anyspeech), includin
   year={2025}
 }
 ```
+
+## Results
+
+TBD
