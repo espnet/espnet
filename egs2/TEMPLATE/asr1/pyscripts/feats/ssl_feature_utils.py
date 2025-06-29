@@ -16,7 +16,7 @@ from espnet2.iterators.sequence_iter_factory import SequenceIterFactory
 from espnet2.samplers.num_elements_batch_sampler import NumElementsBatchSampler
 from espnet2.train.collate_fn import CommonCollateFn
 from espnet2.train.dataset import ESPnetDataset
-from espnet.utils.cli_writers import file_writer_helper
+from espnet2.legacy.utils.cli_writers import file_writer_helper
 
 logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
