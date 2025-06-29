@@ -5,8 +5,7 @@ import numpy
 import pytest
 import torch
 
-from espnet2.legacy.nets.pytorch_backend.e2e_asr import pad_list
-from espnet2.legacy.nets.pytorch_backend.nets_utils import th_accuracy
+from espnet2.legacy.nets.pytorch_backend.nets_utils import th_accuracy, pad_list
 
 
 @pytest.mark.parametrize("ctc_type", ["builtin", "gtnctc", "cudnnctc"])
