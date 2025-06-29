@@ -135,6 +135,18 @@ class InferenceRunner:
         self.async_mode = async_mode
 
     def initialize_model(self, device=None):
+        """
+        Instantiate and return the model using the model configuration.
+
+        Users are expected to override this method if they need custom model
+        initialization logic.
+
+        Args:
+            device (str, optional): The device to load the model on, e.g., 'cpu' or 'cuda'.
+
+        Returns:
+            Any: The instantiated model object using Hydra instantiation.
+        """
         return instantiate(self.model_config)
 
     def _initialize_model(self, device=None):
@@ -147,6 +159,23 @@ class InferenceRunner:
         return self.model
 
     def initialize_dataset(self, dataset_key, dataset_config=None):
+        """
+        Instantiate a test dataset and apply preprocessing and transformation.
+
+        Users are expected to override this method if they need custom dataset
+        initialization logic.
+
+        Args:
+            dataset_key (str): The name of the test dataset to initialize.
+            dataset_config (DictConfig, optional): Configuration for all datasets.
+                If None, uses `self.dataset_config`.
+
+        Returns:
+            DatasetWithTransform: Dataset object with transforms and optional preprocessor applied.
+
+        Raises:
+            RuntimeError: If the dataset key is not found in the config.
+        """
         if dataset_config is None:
             dataset_config = self.dataset_config
 
@@ -194,6 +223,56 @@ class InferenceRunner:
         chunk_sec: float = 0.01,
         chunk_chars: int = 5,
     ) -> Union[np.ndarray, str, Iterator[np.ndarray], Iterator[str]]:
+        """
+        Read input data from file (either audio or text), supporting offline and streaming modes.
+
+        This function is used to abstract input loading logic depending on:
+        - the type of input (`audio` or `text`)
+        - whether streaming is enabled (`stream=True`)
+
+        Args:
+            input_type (str): Type of input to read. Must be either:
+                - "audio": reads waveform from file
+                - "text": reads plain text from file
+            path (str): Path to the input file.
+            stream (bool): If True, reads the input in chunks (streaming mode). Otherwise, reads the full file.
+            chunk_sec (float): Duration (in seconds) of each audio chunk when streaming.
+            chunk_chars (int): Number of characters per text chunk when streaming.
+
+        Returns:
+            Union[np.ndarray, str, Iterator[np.ndarray], Iterator[str]]:
+                - If `stream=False`: returns the full waveform (`np.ndarray`) or full text (`str`).
+                - If `stream=True`: returns an iterator over chunks:
+                    - For audio: `Iterator[np.ndarray]` (each chunk is waveform array)
+                    - For text: `Iterator[str]` (each chunk is a string)
+
+        Raises:
+            ValueError: If `input_type` is not one of {"audio", "text"}.
+
+        Notes:
+            - In streaming mode, `audio_path` or `text_path` must be present in the sample dictionary
+            so that the file can be opened in chunks.
+            - For streaming inference, this method is commonly used to initialize a generator
+            and store it in `sample["stream"]`, which is then iterated chunk-by-chunk.
+
+        Example:
+            >>> # Offline audio
+            >>> data = runner.read("audio", "audio.wav", stream=False)
+            >>> print(data.shape)  # full waveform
+
+            >>> # Streaming audio
+            >>> stream = runner.read("audio", "audio.wav", stream=True, chunk_sec=0.1)
+            >>> for chunk in stream:
+            ...     print(chunk.shape)  # chunked waveform
+
+            >>> # Offline text
+            >>> text = runner.read("text", "input.txt", stream=False)
+            >>> print(text)
+
+            >>> # Streaming text
+            >>> for chunk in runner.read("text", "input.txt", stream=True, chunk_chars=10):
+            ...     print(chunk)
+        """
         if input_type == "audio":
             if stream:
                 return stream_audio(path, chunk_sec)
@@ -208,6 +287,57 @@ class InferenceRunner:
             raise ValueError(f"Unsupported input type: {input_type}")
 
     def write(self, uid: str, output: Dict[str, Any], output_dir: Union[str, Path]):
+        """
+        Write the model output to Kaldi-style SCP files, and save audio/image data if present.
+
+        This function handles multiple output types (`text`, `audio`, `image`) and
+        appends entries to their corresponding `{key}.scp` files. If the output is of
+        type `audio` or `image`, it also writes the actual data to disk in a
+        structured directory under `output_dir/data/{key}/`.
+
+        Args:
+            uid (str): Unique identifier for the input sample. Will be used in file names and SCP entries.
+            output (Dict[str, Any]): Output dictionary produced by the model.
+                Each key in the dict corresponds to an output type, and must have:
+                    - "type": one of {"text", "audio", "image"}
+                    - "value": the actual value (e.g., string, numpy array)
+            output_dir (str or Path): Base directory where outputs and .scp files will be written.
+
+        Raises:
+            ValueError: If an unsupported output type or output value structure is encountered.
+
+        Notes:
+            - Text outputs are directly written as string values into `{key}.scp`:
+                Example line: `utt1 hello world`
+            - Audio outputs (numpy arrays) are saved as FLAC files and referenced in `{key}.scp`:
+                Output file: `data/audio/utt1_audio.flac`
+            - Image outputs (numpy arrays) are saved as PNG files and referenced in `{key}.scp`:
+                Output file: `data/weight/utt1_weight.png`
+            - All .scp files are *appended* to if they already exist.
+            - Output directory structure:
+                output_dir/
+                ├── text.scp
+                ├── audio.scp
+                ├── weight.scp
+                └── data/
+                    ├── audio/
+                    │   └── utt1.flac
+                    └── weight/
+                        └── utt1.png
+
+        Example:
+            >>> output = {
+            ...     "text": {"type": "text", "value": "hello world"},
+            ...     "audio": {"type": "audio", "value": np.zeros(16000)},
+            ...     "weight": {"type": "image", "value": np.random.rand(64, 64)}
+            ... }
+            >>> runner.write("utt1", output, "decode/")
+
+            # Result:
+            # - decode/text.scp  includes: "utt1 hello world"
+            # - decode/audio.scp includes: "utt1 decode/data/audio/utt1.flac"
+            # - decode/weight.scp includes: "utt1 decode/data/weight/utt1.png"
+        """
         output_dir = Path(output_dir)
         for key, val in output.items():
             line_parts = [uid]
@@ -222,16 +352,16 @@ class InferenceRunner:
                     ext = "flac" if val_type == "audio" else "png"
                     data_dir = output_dir / "data" / key
                     data_dir.mkdir(parents=True, exist_ok=True)
-                    file_path = data_dir / f"{uid}_{key}.{ext}"
+                    file_path = data_dir / f"{uid}.{ext}"
                     if val_type == "audio":
                         sf.write(file_path, val_value, 16000, format="FLAC")
                     elif val_type == "image":
                         if np.issubdtype(val_value.dtype, np.floating):
                             val_value = np.clip(val_value, 0, 1)  # Normalize if needed
                             val_value = (val_value * 255).astype(np.uint8)
-                        import imageio.v2 as imageio
+                        import matplotlib.pyplot as plt
 
-                        imageio.imwrite(file_path, val_value)
+                        plt.imsave(file_path, val_value, format="png")
                     line_parts.append(str(file_path))
                 else:
                     raise ValueError(f"Unsupported output type: {val_type}")
@@ -242,6 +372,16 @@ class InferenceRunner:
                 f.write(" ".join(line_parts) + "\n")
 
     def run_on_example(self, uid: str, sample: dict) -> dict:
+        """
+        Run inference on a single example, including optional streaming.
+
+        Args:
+            uid (str): Unique identifier for the sample.
+            sample (dict): Sample input containing audio/text data or file paths.
+
+        Returns:
+            dict: Final model output after inference (including post-processing).
+        """
         model = self.initialize_model()
         if self.stream and "audio_path" in sample:
             sample["stream"] = self.read("audio", sample["audio_path"], stream=True)
@@ -277,6 +417,71 @@ class InferenceRunner:
         stream: bool,
         proc: Optional[psutil.Process] = None,
     ) -> Dict[str, Any]:
+        """
+        Perform a complete inference pass on a single sample, including optional streaming,
+        and record timing and memory usage metrics throughout the process.
+
+        This method is responsible for executing the full inference pipeline on a single input sample:
+            1. Streaming setup (if applicable)
+            2. Preprocessing via `pre_fn`
+            3. Model inference via `infer_fn` (single pass or streamed)
+            4. Postprocessing via `post_fn`
+            5. Resource usage and timing measurement
+
+        Args:
+            sample (dict): The input sample to process. It may include fields such as
+                "audio_path", "text_path", or pre-loaded features depending on the model.
+            model: The model instance used for inference.
+            read_fn (Callable): Function to read input data, typically `self.read`.
+            pre_fn (Callable): Preprocessing hook, typically `self.pre_inference`.
+            infer_fn (Callable): Inference hook, typically `self.inference_body`.
+            post_fn (Callable): Postprocessing hook, typically `self.post_inference`.
+            stream (bool): If True, stream the input in chunks instead of full input.
+            proc (psutil.Process, optional): A `psutil.Process` instance used to
+                measure CPU memory and GPU memory before and after inference. If None,
+                memory metrics will not be recorded.
+
+        Returns:
+            Dict[str, Any]: Output dictionary containing:
+                - Model output from `post_fn`
+                - Timing metrics:
+                    - "pre_time": Time taken by preprocessing step (seconds)
+                    - "infer_time": Space-separated string of inference durations for each chunk (seconds)
+                    - "post_time": Time taken by postprocessing step (seconds)
+                    - "total_time": Total elapsed time from start to end (seconds)
+                - Resource usage metrics (if `proc` is provided):
+                    - "cpu_mem_MB": Difference in resident memory usage (in megabytes)
+                    - "gpu_mem_MiB": Difference in GPU memory allocation (in MiB, CUDA only)
+
+        Timing Details:
+            - `pre_time`: Time spent in `pre_fn` (usually lightweight normalization or tokenization)
+            - `infer_time`: Per-chunk or single-pass inference time(s), may be multiple entries if streaming
+            - `post_time`: Time spent in `post_fn` (e.g., merging chunk results, decoding)
+            - `total_time`: Total wall-clock time including all the above stages
+
+        Resource Measurement Details:
+            - `cpu_mem_MB`: Difference in resident memory (RSS) before and after processing
+            - `gpu_mem_MiB`: Difference in CUDA memory allocated before and after processing.
+                Only recorded if CUDA is available and `torch.cuda.is_available()` returns True.
+
+        Notes:
+            - This method is designed to be framework-agnostic and easily parallelizable.
+            - It is internally used by serial, parallel, and async decoding paths.
+            - All returned numerical values are strings to make them easily writable to log files or .scp metadata.
+
+        Example:
+            >>> result = runner.process_sample_core(
+            ...     sample,
+            ...     model,
+            ...     runner.read,
+            ...     runner.pre_inference,
+            ...     runner.inference_body,
+            ...     runner.post_inference,
+            ...     stream=True,
+            ...     proc=psutil.Process(os.getpid())
+            ... )
+            >>> print(result["total_time"], result["cpu_mem_MB"])
+        """
         if stream and "audio_path" in sample:
             sample["stream"] = read_fn("audio", sample["audio_path"], stream=True)
 
@@ -326,10 +531,80 @@ class InferenceRunner:
         )
         return result
 
-    def run_on_dataset(self, dataset_key: Any, output_dir: Union[str, Path]):
+    def run_on_dataset(
+        self, dataset_key: Any, output_dir: Union[str, Path], async_decode: bool = False
+    ):
+        """
+        Run inference on a single test dataset, either serially or in parallel.
+
+        This method acts as the entry point for executing inference on one of the
+        test sets defined in the dataset configuration. It automatically selects the
+        appropriate execution mode based on the presence of a parallel configuration
+        (`self.parallel_config`) and the `async_decode` flag.
+
+        Args:
+            dataset_key (str): The name of the test dataset (e.g., "test-clean", "test-other")
+                as defined under the `test` field in the DataOrganizer configuration.
+            output_dir (Union[str, Path]): Path to the output directory where results
+                (e.g., text.scp, audio.scp, image.scp) will be written. Can be a string or Path.
+            async_decode (bool, optional): If True, run decoding in asynchronous mode using Dask
+                (i.e., batches assigned per worker). If False, decoding is either serial
+                (no Dask) or synchronous parallel (each sample is a Dask task).
+                Default: False
+
+        Raises:
+            RuntimeError: If dataset_key is not found or configuration is incomplete.
+            Any exception raised during sample inference will be caught and logged.
+
+        Execution Modes:
+            - Serial:
+                If `self.parallel_config` is None, samples are processed one-by-one on a single process.
+                This mode is simple and deterministic, and suitable for debugging.
+
+            - Parallel (sync):
+                If `self.parallel_config` is provided and `async_decode` is False,
+                each sample is submitted to Dask as an independent task. This allows
+                finer-grained load balancing but may incur higher overhead for large datasets.
+
+            - Parallel (async):
+                If `self.parallel_config` is provided and `async_decode` is True,
+                the dataset is divided into index chunks, each processed by a dedicated Dask worker.
+                This mode is more efficient for large datasets and streaming inference.
+
+        Integration with Dataset Organizer:
+            This method assumes datasets are defined using `espnet3.data.DataOrganizer`,
+            where each test set is registered with a name and instantiation config:
+
+                dataset:
+                  _target_: espnet3.data.DataOrganizer
+                  test:
+                    - name: test-clean
+                      dataset:
+                        _target_: ...
+                    - name: test-other
+                      dataset:
+                        _target_: ...
+
+            The `dataset_key` provided to this method must match one of those names
+            (e.g., "test-clean").
+
+        Example:
+            >>> runner = InferenceRunner(
+            ...     model_config=cfg.model,
+            ...     dataset_config=cfg.dataset,
+            ...     stream=True,
+            ...     parallel=cfg.parallel,
+            ... )
+            >>> runner.run_on_dataset("test-clean", Path("decode/test-clean"))
+
+        See Also:
+            - `initialize_dataset()`: How datasets are resolved from name.
+            - `write()`: How model outputs are written to .scp files.
+            - `process_sample_core()`: Core streaming-aware inference logic.
+        """
         if not isinstance(output_dir, Path):
             output_dir = Path(output_dir)
-        if self.parallel_config and getattr(self.parallel_config, "async", False):
+        if self.parallel_config and async_decode:
             self._run_parallel_async(dataset_key, output_dir)
         elif self.parallel_config:
             self._run_parallel(dataset_key, output_dir)
@@ -476,19 +751,57 @@ class InferenceRunner:
 
     # ---- Hook methods to override ----
     def pre_inference(self, model, sample: dict):
+        """
+        Preprocess the sample before inference. Override if needed.
+
+        Args:
+            model: Model instance.
+            sample (dict): Input sample.
+
+        Returns:
+            Tuple: (model, processed sample)
+        """
         return model, sample
 
     @abstractmethod
     def inference_body(self, model, sample: Union[dict, Any]) -> dict:
+        """
+        Core inference logic to be implemented by subclasses.
+
+        Args:
+            model: Model instance.
+            sample (dict or Any): Preprocessed sample or data chunk.
+
+        Returns:
+            dict: Inference output dictionary.
+
+        Raises:
+            NotImplementedError: Always, must be implemented by subclass.
+        """
         raise NotImplementedError
 
     def post_inference(self, model, outputs: list) -> dict:
+        """
+        Post-process outputs after streaming inference.
+
+        Args:
+            model: Model instance.
+            outputs (list): List of per-chunk or single inference outputs.
+
+        Returns:
+            dict: Final merged or selected output.
+        """
         return outputs[0]
 
-    # def on_error(self, uid: str, err: Exception):
-    #     print(f"[ERROR] {uid}: {err}", flush=True)
-
     def merge_scp_files(self, output_dir: Path, final_output_dir: Path, suffix=".scp"):
+        """
+        Merge multiple partial SCP files into unified output SCP files.
+
+        Args:
+            output_dir (Path): Directory containing partial .scp.* files.
+            final_output_dir (Path): Destination for merged .scp files.
+            suffix (str): File suffix to look for. Default is '.scp'.
+        """
         final_output_dir.mkdir(parents=True, exist_ok=True)
         all_scp_files = list(
             output_dir.glob(f"*{suffix}.*")
