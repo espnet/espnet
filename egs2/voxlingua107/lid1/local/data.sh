@@ -36,7 +36,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "Stage 1: Download"
     mkdir -p "${VOXLINGUA107}"
     wget -P "${VOXLINGUA107}" https://cs.taltech.ee/staff/tanel.alumae/data/voxlingua107/zip_urls.txt
-    cat "${VOXLINGUA107}/zip_urls.txt" | xargs  wget --continue -P "${VOXLINGUA107}"
+    xargs wget --continue -P "${VOXLINGUA107}" < "${VOXLINGUA107}/zip_urls.txt"
     find "${VOXLINGUA107}" -type f -name "*.zip" | while read -r zip_file; do
         if [[ "$(basename "${zip_file}")" == "dev.zip" ]]; then
             log "Extracting dev.zip to ${VOXLINGUA107}/dev"
