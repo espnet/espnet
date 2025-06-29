@@ -2,7 +2,7 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 import torch
 
-from espnet.nets.pytorch_backend.nets_utils import pad_list
+from espnet2.legacy.nets.pytorch_backend.nets_utils import pad_list
 
 
 def test_pad_list():

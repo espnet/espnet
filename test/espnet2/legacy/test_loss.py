@@ -5,8 +5,8 @@ import numpy
 import pytest
 import torch
 
-from espnet.nets.pytorch_backend.e2e_asr import pad_list
-from espnet.nets.pytorch_backend.nets_utils import th_accuracy
+from espnet2.legacy.nets.pytorch_backend.e2e_asr import pad_list
+from espnet2.legacy.nets.pytorch_backend.nets_utils import th_accuracy
 
 
 @pytest.mark.parametrize("ctc_type", ["builtin", "gtnctc", "cudnnctc"])
@@ -26,7 +26,7 @@ def test_ctc_loss(in_length, out_length, ctc_type):
 
     elif ctc_type == "gtnctc":
         pytest.importorskip("gtn")
-        from espnet.nets.pytorch_backend.gtn_ctc import GTNCTCLossFunction
+        from espnet2.legacy.nets.pytorch_backend.gtn_ctc import GTNCTCLossFunction
 
         _ctcloss_sum = GTNCTCLossFunction.apply
 

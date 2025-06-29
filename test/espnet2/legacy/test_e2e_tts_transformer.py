@@ -1,27 +1,26 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# Copyright 2020 Wen-Chin Huang
+# Copyright 2019 Tomoki Hayashi
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 from argparse import Namespace
-from math import floor
 
 import numpy as np
 import pytest
 import torch
 
-from espnet.nets.pytorch_backend.e2e_vc_transformer import Transformer, subsequent_mask
-from espnet.nets.pytorch_backend.nets_utils import pad_list
+from espnet2.legacy.nets.pytorch_backend.e2e_tts_transformer import Transformer, subsequent_mask
+from espnet2.legacy.nets.pytorch_backend.nets_utils import pad_list
 
 
 def make_transformer_args(**kwargs):
     defaults = dict(
         embed_dim=32,
         spk_embed_dim=None,
-        eprenet_conv_layers=0,
-        eprenet_conv_filts=0,
-        eprenet_conv_chans=0,
+        eprenet_conv_layers=2,
+        eprenet_conv_filts=5,
+        eprenet_conv_chans=32,
         dprenet_layers=2,
         dprenet_units=32,
         adim=32,
@@ -36,7 +35,6 @@ def make_transformer_args(**kwargs):
         eprenet_dropout_rate=0.1,
         dprenet_dropout_rate=0.5,
         postnet_dropout_rate=0.1,
-        transformer_input_layer="conv2d-scaled-pos-enc",
         transformer_enc_dropout_rate=0.1,
         transformer_enc_positional_dropout_rate=0.1,
         transformer_enc_attn_dropout_rate=0.0,
@@ -50,8 +48,8 @@ def make_transformer_args(**kwargs):
         bce_pos_weight=1.0,
         use_batch_norm=True,
         use_scaled_pos_enc=True,
-        encoder_normalize_before=False,
-        decoder_normalize_before=False,
+        encoder_normalize_before=True,
+        decoder_normalize_before=True,
         encoder_concat_after=False,
         decoder_concat_after=False,
         transformer_init="pytorch",
@@ -79,11 +77,11 @@ def make_inference_args(**kwargs):
 def prepare_inputs(
     idim, odim, ilens, olens, spk_embed_dim=None, device=torch.device("cpu")
 ):
-    xs = [np.random.randn(lg, idim) for lg in ilens]
+    xs = [np.random.randint(0, idim, lg) for lg in ilens]
     ys = [np.random.randn(lg, odim) for lg in olens]
     ilens = torch.LongTensor(ilens).to(device)
     olens = torch.LongTensor(olens).to(device)
-    xs = pad_list([torch.from_numpy(x).float() for x in xs], 0).to(device)
+    xs = pad_list([torch.from_numpy(x).long() for x in xs], 0).to(device)
     ys = pad_list([torch.from_numpy(y).float() for y in ys], 0).to(device)
     labels = ys.new_zeros(ys.size(0), ys.size(1))
     for i, l in enumerate(olens):
@@ -112,7 +110,6 @@ def prepare_inputs(
         ({"spk_embed_dim": 16, "spk_embed_integration_type": "concat"}),
         ({"spk_embed_dim": 16, "spk_embed_integration_type": "add"}),
         ({"use_scaled_pos_enc": False}),
-        ({"use_scaled_pos_enc": True}),
         ({"bce_pos_weight": 10.0}),
         ({"reduction_factor": 2}),
         ({"reduction_factor": 3}),
@@ -159,8 +156,8 @@ def test_transformer_trainable_and_decodable(model_dict):
     inference_args = make_inference_args()
 
     # setup batch
-    idim = 40
-    odim = 40
+    idim = 5
+    odim = 10
     ilens = [10, 5]
     olens = [20, 15]
     batch = prepare_inputs(idim, odim, ilens, olens, model_args["spk_embed_dim"])
@@ -177,8 +174,8 @@ def test_transformer_trainable_and_decodable(model_dict):
 
     # check gradient of ScaledPositionalEncoding
     if model.use_scaled_pos_enc:
-        assert model.encoder.embed[-1].alpha.grad is not None
-        assert model.decoder.embed[-1].alpha.grad is not None
+        assert model.encoder.embed[1].alpha.grad is not None
+        assert model.decoder.embed[1].alpha.grad is not None
 
     # decodable
     model.eval()
@@ -219,10 +216,10 @@ def test_transformer_gpu_trainable_and_decodable(model_dict):
     model_args = make_transformer_args(**model_dict)
     inference_args = make_inference_args()
 
-    idim = 40
-    odim = 40
-    ilens = [10, 5, 10, 5]
-    olens = [20, 15, 20, 15]
+    idim = 5
+    odim = 10
+    ilens = [10, 5]
+    olens = [20, 15]
     device = torch.device("cuda")
     batch = prepare_inputs(
         idim, odim, ilens, olens, model_args["spk_embed_dim"], device=device
@@ -241,8 +238,8 @@ def test_transformer_gpu_trainable_and_decodable(model_dict):
 
     # check gradient of ScaledPositionalEncoding
     if model.use_scaled_pos_enc:
-        assert model.encoder.embed[-1].alpha.grad is not None
-        assert model.decoder.embed[-1].alpha.grad is not None
+        assert model.encoder.embed[1].alpha.grad is not None
+        assert model.decoder.embed[1].alpha.grad is not None
 
     # decodable
     model.eval()
@@ -283,10 +280,10 @@ def test_transformer_multi_gpu_trainable(model_dict):
     model_args = make_transformer_args(**model_dict)
 
     # setup batch
-    idim = 40
-    odim = 40
-    ilens = [10, 5, 10, 5]
-    olens = [20, 15, 20, 15]
+    idim = 5
+    odim = 10
+    ilens = [10, 5]
+    olens = [20, 15]
     device = torch.device("cuda")
     batch = prepare_inputs(
         idim, odim, ilens, olens, model_args["spk_embed_dim"], device=device
@@ -308,8 +305,8 @@ def test_transformer_multi_gpu_trainable(model_dict):
 
     # check gradient of ScaledPositionalEncoding
     if model.module.use_scaled_pos_enc:
-        assert model.module.encoder.embed[-1].alpha.grad is not None
-        assert model.module.decoder.embed[-1].alpha.grad is not None
+        assert model.module.encoder.embed[1].alpha.grad is not None
+        assert model.module.decoder.embed[1].alpha.grad is not None
 
 
 @pytest.mark.parametrize("model_dict", [{}])
@@ -318,30 +315,26 @@ def test_attention_masking(model_dict):
     model_args = make_transformer_args(**model_dict)
 
     # setup batch
-    idim = 40
-    odim = 40
-    ilens = [40, 40]
-    olens = [40, 40]
+    idim = 5
+    odim = 10
+    ilens = [10, 5]
+    olens = [20, 15]
     batch = prepare_inputs(idim, odim, ilens, olens)
 
     # define model
     model = Transformer(idim, odim, Namespace(**model_args))
 
     # test encoder self-attention
-    x_masks = model._source_mask(batch["ilens"])
-    xs, x_masks = model.encoder.embed(batch["xs"], x_masks)
+    xs = model.encoder.embed(batch["xs"])
     xs[1, ilens[1] :] = float("nan")
+    x_masks = model._source_mask(batch["ilens"])
     a = model.encoder.encoders[0].self_attn
     a(xs, xs, xs, x_masks)
     aws = a.attn.detach().numpy()
     for aw, ilen in zip(aws, batch["ilens"]):
-        ilen = floor(floor(((ilen - 1) // 2) - 1) / 2)  # due to 4x down sampling
         assert not np.isnan(aw[:, :ilen, :ilen]).any()
         np.testing.assert_almost_equal(
-            aw[:, :ilen, :ilen].sum(),
-            float(aw.shape[0] * ilen),
-            decimal=4,
-            err_msg=f"ilen={ilen}, awshape={str(aw)}",
+            aw[:, :ilen, :ilen].sum(), float(aw.shape[0] * ilen), decimal=4
         )
         assert aw[:, ilen:, ilen:].sum() == 0.0
 
@@ -353,7 +346,6 @@ def test_attention_masking(model_dict):
     a(ys, xs, xs, xy_masks)
     aws = a.attn.detach().numpy()
     for aw, ilen, olen in zip(aws, batch["ilens"], batch["olens"]):
-        ilen = floor(floor(((ilen - 1) // 2) - 1) / 2)  # due to 4x down sampling
         assert not np.isnan(aw[:, :olen, :ilen]).any()
         np.testing.assert_almost_equal(
             aw[:, :olen, :ilen].sum(), float(aw.shape[0] * olen), decimal=4
@@ -390,10 +382,10 @@ def test_forward_and_inference_are_equal(model_dict):
     model_args = make_transformer_args(dprenet_dropout_rate=0.0, **model_dict)
 
     # setup batch
-    idim = 40
-    odim = 40
-    ilens = [60]
-    olens = [60]
+    idim = 5
+    odim = 10
+    ilens = [10]
+    olens = [20]
     batch = prepare_inputs(idim, odim, ilens, olens)
     xs = batch["xs"]
     ilens = batch["ilens"]

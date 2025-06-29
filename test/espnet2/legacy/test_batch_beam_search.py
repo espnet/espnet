@@ -6,11 +6,11 @@ import numpy
 import pytest
 import torch
 
-from espnet.nets.batch_beam_search import BatchBeamSearch, BeamSearch
-from espnet.nets.beam_search import Hypothesis
-from espnet.nets.lm_interface import dynamic_import_lm
-from espnet.nets.scorers.length_bonus import LengthBonus
-from espnet.nets.scorers.ngram import NgramFullScorer
+from espnet2.legacy.nets.batch_beam_search import BatchBeamSearch, BeamSearch
+from espnet2.legacy.nets.beam_search import Hypothesis
+from espnet2.legacy.nets.lm_interface import dynamic_import_lm
+from espnet2.legacy.nets.scorers.length_bonus import LengthBonus
+from espnet2.legacy.nets.scorers.ngram import NgramFullScorer
 
 
 def test_batchfy_hyp():

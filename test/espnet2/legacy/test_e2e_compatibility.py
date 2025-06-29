@@ -19,7 +19,7 @@ import numpy as np
 import pytest
 import torch
 
-from espnet.asr.asr_utils import chainer_load, get_model_conf, torch_load
+from espnet2.legacy.asr.asr_utils import get_model_conf, torch_load
 
 
 def download_zip_from_google_drive(download_dir, file_id):
@@ -80,10 +80,6 @@ def download_zip_from_google_drive(download_dir, file_id):
             "espnet.nets.pytorch_backend.e2e_asr",
             ("v.0.3.0 egs/an4/asr1 pytorch", "1zF88bRNbJhw9hNBq3NrDg8vnGGibREmg"),
         ),
-        (
-            "espnet.nets.chainer_backend.e2e_asr",
-            ("v.0.3.0 egs/an4/asr1 chainer", "1m2SZLNxvur3q13T6Zrx6rEVfqEifgPsx"),
-        ),
     ],
 )
 def test_downloaded_asr_model_decodable(module, download_info):
@@ -96,10 +92,7 @@ def test_downloaded_asr_model_decodable(module, download_info):
     m = importlib.import_module(module)
     idim, odim, train_args = get_model_conf(model_path)
     model = m.E2E(idim, odim, train_args)
-    if "chainer" in module:
-        chainer_load(model_path, model)
-    else:
-        torch_load(model_path, model)
+    torch_load(model_path, model)
 
     with torch.no_grad(), chainer.no_backprop_mode():
         in_data = np.random.randn(128, idim)

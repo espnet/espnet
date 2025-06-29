@@ -1,12 +1,13 @@
 from argparse import Namespace
 
+import numpy
 import pytest
 import torch
 
-from espnet.nets.asr_interface import dynamic_import_asr
-from espnet.nets.beam_search_timesync import BeamSearchTimeSync
-from espnet.nets.lm_interface import dynamic_import_lm
-from espnet.nets.scorers.length_bonus import LengthBonus
+from espnet2.legacy.nets.asr_interface import dynamic_import_asr
+from espnet2.legacy.nets.beam_search import BeamSearch
+from espnet2.legacy.nets.lm_interface import dynamic_import_lm
+from espnet2.legacy.nets.scorers.length_bonus import LengthBonus
 
 rnn_args = Namespace(
     elayers=1,
@@ -93,7 +94,7 @@ def prepare(E2E, args, mtlalpha=0.0):
     odim = len(args.char_list)
     model = dynamic_import_asr(E2E, "pytorch")(idim, odim, args)
 
-    batchsize = 1
+    batchsize = 2
     x = torch.randn(batchsize, 20, idim)
     ilens = [20, 15]
     n_token = odim - 1
@@ -135,17 +136,20 @@ def prepare(E2E, args, mtlalpha=0.0):
         for dtype in ("float16", "float32", "float64")
     ],
 )
-def test_beam_search_timesync(
+def test_beam_search_equal(
     model_class, args, mtlalpha, ctc_weight, lm_weight, bonus, device, dtype
 ):
     if device == "cuda" and not torch.cuda.is_available():
         pytest.skip("no cuda device is available")
     if device == "cpu" and dtype == "float16":
         pytest.skip("cpu float16 implementation is not available in pytorch yet")
-    if mtlalpha == 0.0 or ctc_weight == 0:
-        pytest.skip("no CTC.")
+    if mtlalpha == 0.0 and ctc_weight > 0.0:
+        pytest.skip("no CTC + CTC decoding.")
     if mtlalpha == 1.0 and ctc_weight < 1.0:
         pytest.skip("pure CTC + attention decoding")
+    # TODO(hirofumi0810): pure CTC beam search is not implemented
+    if ctc_weight == 1.0 and model_class == "transformer":
+        pytest.skip("pure CTC beam search is not implemented")
 
     # seed setting
     torch.manual_seed(123)
@@ -174,10 +178,12 @@ def test_beam_search_timesync(
     )
 
     feat = x[0, : ilens[0]].numpy()
+    # legacy beam search
+    with torch.no_grad():
+        nbest = model.recognize(feat, args, char_list, lm.model)
 
     # new beam search
     scorers = model.scorers()
-    scorers["ctc"] = model.ctc
     if lm_weight != 0:
         scorers["lm"] = lm
     scorers["length_bonus"] = LengthBonus(len(char_list))
@@ -189,18 +195,28 @@ def test_beam_search_timesync(
     )
     model.to(device, dtype=dtype)
     model.eval()
-    beam = BeamSearchTimeSync(
+    beam = BeamSearch(
         beam_size=args.beam_size,
+        vocab_size=len(char_list),
         weights=weights,
         scorers=scorers,
-        sos=model.sos,
         token_list=train_args.char_list,
+        sos=model.sos,
+        eos=model.eos,
+        pre_beam_score_key=None if ctc_weight == 1.0 else "decoder",
     )
     beam.to(device, dtype=dtype)
     beam.eval()
     with torch.no_grad():
         enc = model.encode(torch.as_tensor(feat).to(device, dtype=dtype))
-        beam(x=enc, maxlenratio=args.maxlenratio, minlenratio=args.minlenratio)
+        nbest_bs = beam(
+            x=enc, maxlenratio=args.maxlenratio, minlenratio=args.minlenratio
+        )
+    if dtype == torch.float16:
+        # skip because results are different. just checking it is decodable
+        return
 
-    # just checking it is decodable
-    return
+    for i, (expected, actual) in enumerate(zip(nbest, nbest_bs)):
+        actual = actual.asdict()
+        assert expected["yseq"] == actual["yseq"]
+        numpy.testing.assert_allclose(expected["score"], actual["score"], rtol=1e-6)

@@ -3,10 +3,10 @@ from argparse import Namespace
 import pytest
 import torch
 
-from espnet.nets.asr_interface import dynamic_import_asr
-from espnet.nets.beam_search_timesync_streaming import BeamSearchTimeSyncStreaming
-from espnet.nets.lm_interface import dynamic_import_lm
-from espnet.nets.scorers.length_bonus import LengthBonus
+from espnet2.legacy.nets.asr_interface import dynamic_import_asr
+from espnet2.legacy.nets.beam_search_timesync import BeamSearchTimeSync
+from espnet2.legacy.nets.lm_interface import dynamic_import_lm
+from espnet2.legacy.nets.scorers.length_bonus import LengthBonus
 
 rnn_args = Namespace(
     elayers=1,
@@ -135,7 +135,7 @@ def prepare(E2E, args, mtlalpha=0.0):
         for dtype in ("float16", "float32", "float64")
     ],
 )
-def test_beam_search_timesync_streaming(
+def test_beam_search_timesync(
     model_class, args, mtlalpha, ctc_weight, lm_weight, bonus, device, dtype
 ):
     if device == "cuda" and not torch.cuda.is_available():
@@ -189,7 +189,7 @@ def test_beam_search_timesync_streaming(
     )
     model.to(device, dtype=dtype)
     model.eval()
-    beam = BeamSearchTimeSyncStreaming(
+    beam = BeamSearchTimeSync(
         beam_size=args.beam_size,
         weights=weights,
         scorers=scorers,
@@ -200,13 +200,7 @@ def test_beam_search_timesync_streaming(
     beam.eval()
     with torch.no_grad():
         enc = model.encode(torch.as_tensor(feat).to(device, dtype=dtype))
-        beam(
-            x=enc,
-            maxlenratio=args.maxlenratio,
-            minlenratio=args.minlenratio,
-            is_final=True,
-            incremental_decode=True,
-        )
+        beam(x=enc, maxlenratio=args.maxlenratio, minlenratio=args.minlenratio)
 
     # just checking it is decodable
     return
