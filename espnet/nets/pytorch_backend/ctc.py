@@ -7,7 +7,7 @@ import torch
 import torch.nn.functional as F
 from packaging.version import parse as V
 
-from espnet.nets.pytorch_backend.nets_utils import to_device
+from espnet2.legacy.nets.pytorch_backend.nets_utils import to_device
 
 
 class CTC(torch.nn.Module):
@@ -44,7 +44,7 @@ class CTC(torch.nn.Module):
             reduction_type = "sum" if reduce else "none"
             self.ctc_loss = torch.nn.CTCLoss(reduction=reduction_type)
         elif self.ctc_type == "gtnctc":
-            from espnet.nets.pytorch_backend.gtn_ctc import GTNCTCLossFunction
+            from espnet2.legacy.nets.pytorch_backend.gtn_ctc import GTNCTCLossFunction
 
             self.ctc_loss = GTNCTCLossFunction.apply
         else:

@@ -5,7 +5,7 @@ import math
 import torch
 import torch.nn.functional as F
 
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask, to_device
+from espnet2.legacy.nets.pytorch_backend.nets_utils import make_pad_mask, to_device
 
 
 def _apply_attention_constraint(

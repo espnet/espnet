@@ -12,7 +12,7 @@ from espnet2.tts.feats_extract.yin import (
     cumulativeMeanNormalizedDifferenceFunctionTorch,
     differenceFunctionTorch,
 )
-from espnet.nets.pytorch_backend.nets_utils import pad_list
+from espnet2.legacy.nets.pytorch_backend.nets_utils import pad_list
 
 
 class Ying(AbsFeatsExtract):

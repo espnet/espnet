@@ -9,12 +9,12 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
-from espnet.nets.pytorch_backend.rnn.attentions import AttForward, AttForwardTA, AttLoc
-from espnet.nets.pytorch_backend.tacotron2.cbhg import CBHG, CBHGLoss
-from espnet.nets.pytorch_backend.tacotron2.decoder import Decoder
-from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder
-from espnet.nets.tts_interface import TTSInterface
+from espnet2.legacy.nets.pytorch_backend.nets_utils import make_non_pad_mask
+from espnet2.legacy.nets.pytorch_backend.rnn.attentions import AttForward, AttForwardTA, AttLoc
+from espnet2.legacy.nets.pytorch_backend.tacotron2.cbhg import CBHG, CBHGLoss
+from espnet2.legacy.nets.pytorch_backend.tacotron2.decoder import Decoder
+from espnet2.legacy.nets.pytorch_backend.tacotron2.encoder import Encoder
+from espnet2.legacy.nets.tts_interface import TTSInterface
 from espnet.utils.cli_utils import strtobool
 from espnet.utils.fill_missing_args import fill_missing_args
 

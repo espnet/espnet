@@ -8,10 +8,10 @@ from collections import OrderedDict
 import torch
 
 from espnet2.legacy.asr.asr_utils import get_model_conf, torch_load
-from espnet.nets.asr_interface import ASRInterface
-from espnet.nets.mt_interface import MTInterface
-from espnet.nets.pytorch_backend.transducer.utils import custom_torch_load
-from espnet.nets.tts_interface import TTSInterface
+from espnet2.legacy.nets.asr_interface import ASRInterface
+from espnet2.legacy.nets.mt_interface import MTInterface
+from espnet2.legacy.nets.pytorch_backend.transducer.utils import custom_torch_load
+from espnet2.legacy.nets.tts_interface import TTSInterface
 from espnet.utils.dynamic_import import dynamic_import
 
 

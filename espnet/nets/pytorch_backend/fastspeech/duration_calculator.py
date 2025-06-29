@@ -8,9 +8,9 @@
 
 import torch
 
-from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import Tacotron2
-from espnet.nets.pytorch_backend.e2e_tts_transformer import Transformer
-from espnet.nets.pytorch_backend.nets_utils import pad_list
+from espnet2.legacy.nets.pytorch_backend.e2e_tts_tacotron2 import Tacotron2
+from espnet2.legacy.nets.pytorch_backend.e2e_tts_transformer import Transformer
+from espnet2.legacy.nets.pytorch_backend.nets_utils import pad_list
 
 
 class DurationCalculator(torch.nn.Module):

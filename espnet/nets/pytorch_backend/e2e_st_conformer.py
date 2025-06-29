@@ -9,12 +9,12 @@ Refer to: https://arxiv.org/abs/2005.08100
 
 """
 
-from espnet.nets.pytorch_backend.conformer.argument import (  # noqa: H301
+from espnet2.legacy.nets.pytorch_backend.conformer.argument import (  # noqa: H301
     add_arguments_conformer_common,
     verify_rel_pos_type,
 )
-from espnet.nets.pytorch_backend.conformer.encoder import Encoder
-from espnet.nets.pytorch_backend.e2e_st_transformer import E2E as E2ETransformer
+from espnet2.legacy.nets.pytorch_backend.conformer.encoder import Encoder
+from espnet2.legacy.nets.pytorch_backend.e2e_st_transformer import E2E as E2ETransformer
 
 
 class E2E(E2ETransformer):

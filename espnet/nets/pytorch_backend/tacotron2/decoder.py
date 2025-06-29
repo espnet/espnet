@@ -9,7 +9,7 @@
 import torch
 import torch.nn.functional as F
 
-from espnet.nets.pytorch_backend.rnn.attentions import AttForwardTA
+from espnet2.legacy.nets.pytorch_backend.rnn.attentions import AttForwardTA
 
 
 def decoder_init(m):

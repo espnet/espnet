@@ -7,11 +7,11 @@ import chainer
 import numpy as np
 from chainer import links as L
 
-from espnet.nets.chainer_backend.transformer.embedding import PositionalEncoding
-from espnet.nets.chainer_backend.transformer.encoder_layer import EncoderLayer
-from espnet.nets.chainer_backend.transformer.layer_norm import LayerNorm
-from espnet.nets.chainer_backend.transformer.mask import make_history_mask
-from espnet.nets.chainer_backend.transformer.subsampling import (
+from espnet2.legacy.nets.chainer_backend.transformer.embedding import PositionalEncoding
+from espnet2.legacy.nets.chainer_backend.transformer.encoder_layer import EncoderLayer
+from espnet2.legacy.nets.chainer_backend.transformer.layer_norm import LayerNorm
+from espnet2.legacy.nets.chainer_backend.transformer.mask import make_history_mask
+from espnet2.legacy.nets.chainer_backend.transformer.subsampling import (
     Conv2dSubsampling,
     LinearSampling,
 )

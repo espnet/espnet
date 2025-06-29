@@ -15,17 +15,17 @@ import torch
 from chainer import reporter
 
 from espnet2.legacy.nets.e2e_asr_common import label_smoothing_dist
-from espnet.nets.mt_interface import MTInterface
-from espnet.nets.pytorch_backend.initialization import uniform_init_parameters
-from espnet.nets.pytorch_backend.nets_utils import get_subsample, pad_list, to_device
-from espnet.nets.pytorch_backend.rnn.argument import (  # noqa: H301
+from espnet2.legacy.nets.mt_interface import MTInterface
+from espnet2.legacy.nets.pytorch_backend.initialization import uniform_init_parameters
+from espnet2.legacy.nets.pytorch_backend.nets_utils import get_subsample, pad_list, to_device
+from espnet2.legacy.nets.pytorch_backend.rnn.argument import (  # noqa: H301
     add_arguments_rnn_attention_common,
     add_arguments_rnn_decoder_common,
     add_arguments_rnn_encoder_common,
 )
-from espnet.nets.pytorch_backend.rnn.attentions import att_for
-from espnet.nets.pytorch_backend.rnn.decoders import decoder_for
-from espnet.nets.pytorch_backend.rnn.encoders import encoder_for
+from espnet2.legacy.nets.pytorch_backend.rnn.attentions import att_for
+from espnet2.legacy.nets.pytorch_backend.rnn.decoders import decoder_for
+from espnet2.legacy.nets.pytorch_backend.rnn.encoders import encoder_for
 from espnet.utils.fill_missing_args import fill_missing_args
 
 

@@ -15,19 +15,19 @@ import numpy as np
 import torch
 from chainer import reporter
 
-from espnet.nets.asr_interface import ASRInterface
+from espnet2.legacy.nets.asr_interface import ASRInterface
 from espnet2.legacy.nets.e2e_asr_common import label_smoothing_dist
-from espnet.nets.pytorch_backend.ctc import ctc_for
-from espnet.nets.pytorch_backend.nets_utils import (
+from espnet2.legacy.nets.pytorch_backend.ctc import ctc_for
+from espnet2.legacy.nets.pytorch_backend.nets_utils import (
     get_subsample,
     pad_list,
     to_device,
     to_torch_tensor,
 )
-from espnet.nets.pytorch_backend.rnn.attentions import att_for
-from espnet.nets.pytorch_backend.rnn.decoders import decoder_for
-from espnet.nets.pytorch_backend.rnn.encoders import Encoder, encoder_for
-from espnet.nets.scorers.ctc import CTCPrefixScorer
+from espnet2.legacy.nets.pytorch_backend.rnn.attentions import att_for
+from espnet2.legacy.nets.pytorch_backend.rnn.decoders import decoder_for
+from espnet2.legacy.nets.pytorch_backend.rnn.encoders import Encoder, encoder_for
+from espnet2.legacy.nets.scorers.ctc import CTCPrefixScorer
 from espnet.utils.cli_utils import strtobool
 
 CTC_LOSS_THRESHOLD = 10000

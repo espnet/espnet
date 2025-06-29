@@ -10,14 +10,14 @@ import chainer
 import numpy as np
 from chainer import reporter
 
-from espnet.nets.chainer_backend.asr_interface import ChainerASRInterface
-from espnet.nets.chainer_backend.ctc import ctc_for
-from espnet.nets.chainer_backend.rnn.attentions import att_for
-from espnet.nets.chainer_backend.rnn.decoders import decoder_for
-from espnet.nets.chainer_backend.rnn.encoders import encoder_for
+from espnet2.legacy.nets.chainer_backend.asr_interface import ChainerASRInterface
+from espnet2.legacy.nets.chainer_backend.ctc import ctc_for
+from espnet2.legacy.nets.chainer_backend.rnn.attentions import att_for
+from espnet2.legacy.nets.chainer_backend.rnn.decoders import decoder_for
+from espnet2.legacy.nets.chainer_backend.rnn.encoders import encoder_for
 from espnet2.legacy.nets.e2e_asr_common import label_smoothing_dist
-from espnet.nets.pytorch_backend.e2e_asr import E2E as E2E_pytorch
-from espnet.nets.pytorch_backend.nets_utils import get_subsample
+from espnet2.legacy.nets.pytorch_backend.e2e_asr import E2E as E2E_pytorch
+from espnet2.legacy.nets.pytorch_backend.nets_utils import get_subsample
 
 CTC_LOSS_THRESHOLD = 10000
 
@@ -199,14 +199,14 @@ class E2E(ChainerASRInterface):
     @staticmethod
     def custom_converter(subsampling_factor=0):
         """Get customconverter of the model."""
-        from espnet.nets.chainer_backend.rnn.training import CustomConverter
+        from espnet2.legacy.nets.chainer_backend.rnn.training import CustomConverter
 
         return CustomConverter(subsampling_factor=subsampling_factor)
 
     @staticmethod
     def custom_updater(iters, optimizer, converter, device=-1, accum_grad=1):
         """Get custom_updater of the model."""
-        from espnet.nets.chainer_backend.rnn.training import CustomUpdater
+        from espnet2.legacy.nets.chainer_backend.rnn.training import CustomUpdater
 
         return CustomUpdater(
             iters, optimizer, converter=converter, device=device, accum_grad=accum_grad
@@ -215,7 +215,7 @@ class E2E(ChainerASRInterface):
     @staticmethod
     def custom_parallel_updater(iters, optimizer, converter, devices, accum_grad=1):
         """Get custom_parallel_updater of the model."""
-        from espnet.nets.chainer_backend.rnn.training import CustomParallelUpdater
+        from espnet2.legacy.nets.chainer_backend.rnn.training import CustomParallelUpdater
 
         return CustomParallelUpdater(
             iters,

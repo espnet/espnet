@@ -11,23 +11,23 @@ import chainer.functions as F
 import numpy as np
 from chainer import reporter
 
-from espnet.nets.chainer_backend.asr_interface import ChainerASRInterface
-from espnet.nets.chainer_backend.transformer import ctc
-from espnet.nets.chainer_backend.transformer.attention import MultiHeadAttention
-from espnet.nets.chainer_backend.transformer.decoder import Decoder
-from espnet.nets.chainer_backend.transformer.encoder import Encoder
-from espnet.nets.chainer_backend.transformer.label_smoothing_loss import (  # noqa: H301
+from espnet2.legacy.nets.chainer_backend.asr_interface import ChainerASRInterface
+from espnet2.legacy.nets.chainer_backend.transformer import ctc
+from espnet2.legacy.nets.chainer_backend.transformer.attention import MultiHeadAttention
+from espnet2.legacy.nets.chainer_backend.transformer.decoder import Decoder
+from espnet2.legacy.nets.chainer_backend.transformer.encoder import Encoder
+from espnet2.legacy.nets.chainer_backend.transformer.label_smoothing_loss import (  # noqa: H301
     LabelSmoothingLoss,
 )
-from espnet.nets.chainer_backend.transformer.training import (  # noqa: H301
+from espnet2.legacy.nets.chainer_backend.transformer.training import (  # noqa: H301
     CustomConverter,
     CustomParallelUpdater,
     CustomUpdater,
 )
 from espnet2.legacy.nets.ctc_prefix_score import CTCPrefixScore
 from espnet2.legacy.nets.e2e_asr_common import ErrorCalculator, end_detect
-from espnet.nets.pytorch_backend.nets_utils import get_subsample
-from espnet.nets.pytorch_backend.transformer.plot import PlotAttentionReport
+from espnet2.legacy.nets.pytorch_backend.nets_utils import get_subsample
+from espnet2.legacy.nets.pytorch_backend.transformer.plot import PlotAttentionReport
 
 CTC_SCORING_RATIO = 1.5
 MAX_DECODER_OUTPUT = 5

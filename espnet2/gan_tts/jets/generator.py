@@ -21,14 +21,14 @@ from espnet2.gan_tts.utils import get_random_segments
 from espnet2.torch_utils.initialize import initialize
 from espnet2.tts.fastspeech2.variance_predictor import VariancePredictor
 from espnet2.tts.gst.style_encoder import StyleEncoder
-from espnet.nets.pytorch_backend.conformer.encoder import Encoder as ConformerEncoder
-from espnet.nets.pytorch_backend.fastspeech.duration_predictor import DurationPredictor
-from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask, make_pad_mask
-from espnet.nets.pytorch_backend.transformer.embedding import (
+from espnet2.legacy.nets.pytorch_backend.conformer.encoder import Encoder as ConformerEncoder
+from espnet2.legacy.nets.pytorch_backend.fastspeech.duration_predictor import DurationPredictor
+from espnet2.legacy.nets.pytorch_backend.nets_utils import make_non_pad_mask, make_pad_mask
+from espnet2.legacy.nets.pytorch_backend.transformer.embedding import (
     PositionalEncoding,
     ScaledPositionalEncoding,
 )
-from espnet.nets.pytorch_backend.transformer.encoder import (
+from espnet2.legacy.nets.pytorch_backend.transformer.encoder import (
     Encoder as TransformerEncoder,
 )
 

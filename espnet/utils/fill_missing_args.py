@@ -21,7 +21,7 @@ def fill_missing_args(args, add_arguments):
 
     Examples:
         >>> from argparse import Namespace
-        >>> from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import Tacotron2
+        >>> from espnet2.legacy.nets.pytorch_backend.e2e_tts_tacotron2 import Tacotron2
         >>> args = Namespace()
         >>> fill_missing_args(args, Tacotron2.add_arguments_fn)
         Namespace(aconv_chans=32, aconv_filts=15, adim=512, atype='location', ...)

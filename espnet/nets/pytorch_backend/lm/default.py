@@ -7,9 +7,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from espnet.nets.lm_interface import LMInterface
-from espnet.nets.pytorch_backend.e2e_asr import to_device
-from espnet.nets.scorer_interface import BatchScorerInterface
+from espnet2.legacy.nets.lm_interface import LMInterface
+from espnet2.legacy.nets.pytorch_backend.e2e_asr import to_device
+from espnet2.legacy.nets.scorer_interface import BatchScorerInterface
 from espnet.utils.cli_utils import strtobool
 
 

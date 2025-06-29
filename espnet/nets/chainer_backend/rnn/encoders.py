@@ -8,7 +8,7 @@ import chainer.links as L
 import numpy as np
 from chainer import cuda
 
-from espnet.nets.chainer_backend.nets_utils import _subsamplex
+from espnet2.legacy.nets.chainer_backend.nets_utils import _subsamplex
 from espnet2.legacy.nets.e2e_asr_common import get_vgg2l_odim
 
 

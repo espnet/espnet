@@ -13,7 +13,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from espnet.lm.lm_utils import make_lexical_tree
-from espnet.nets.pytorch_backend.nets_utils import to_device
+from espnet2.legacy.nets.pytorch_backend.nets_utils import to_device
 
 
 # Definition of a multi-level (subword/word) language model

@@ -8,7 +8,7 @@
 
 import torch
 
-from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
+from espnet2.legacy.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 
 
 class TooShortUttError(Exception):

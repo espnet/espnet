@@ -8,26 +8,26 @@ import logging
 import torch
 import torch.nn.functional as F
 
-from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import (
+from espnet2.legacy.nets.pytorch_backend.e2e_tts_tacotron2 import (
     GuidedAttentionLoss,
 )
-from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import (
+from espnet2.legacy.nets.pytorch_backend.e2e_tts_tacotron2 import (
     Tacotron2Loss as TransformerLoss,
 )
-from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
-from espnet.nets.pytorch_backend.tacotron2.decoder import Postnet
-from espnet.nets.pytorch_backend.tacotron2.decoder import Prenet as DecoderPrenet
-from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder as EncoderPrenet
-from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
-from espnet.nets.pytorch_backend.transformer.decoder import Decoder
-from espnet.nets.pytorch_backend.transformer.embedding import (
+from espnet2.legacy.nets.pytorch_backend.nets_utils import make_non_pad_mask
+from espnet2.legacy.nets.pytorch_backend.tacotron2.decoder import Postnet
+from espnet2.legacy.nets.pytorch_backend.tacotron2.decoder import Prenet as DecoderPrenet
+from espnet2.legacy.nets.pytorch_backend.tacotron2.encoder import Encoder as EncoderPrenet
+from espnet2.legacy.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
+from espnet2.legacy.nets.pytorch_backend.transformer.decoder import Decoder
+from espnet2.legacy.nets.pytorch_backend.transformer.embedding import (
     PositionalEncoding,
     ScaledPositionalEncoding,
 )
-from espnet.nets.pytorch_backend.transformer.encoder import Encoder
-from espnet.nets.pytorch_backend.transformer.initializer import initialize
-from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
-from espnet.nets.tts_interface import TTSInterface
+from espnet2.legacy.nets.pytorch_backend.transformer.encoder import Encoder
+from espnet2.legacy.nets.pytorch_backend.transformer.initializer import initialize
+from espnet2.legacy.nets.pytorch_backend.transformer.mask import subsequent_mask
+from espnet2.legacy.nets.tts_interface import TTSInterface
 from espnet.utils.cli_utils import strtobool
 from espnet.utils.fill_missing_args import fill_missing_args
 
@@ -73,7 +73,7 @@ class GuidedMultiHeadAttentionLoss(GuidedAttentionLoss):
 
 
 try:
-    from espnet.nets.pytorch_backend.transformer.plot import PlotAttentionReport
+    from espnet2.legacy.nets.pytorch_backend.transformer.plot import PlotAttentionReport
 except (ImportError, TypeError):
     TTSPlot = None
 else:
@@ -98,7 +98,7 @@ else:
             """
             import matplotlib.pyplot as plt
 
-            from espnet.nets.pytorch_backend.transformer.plot import (  # noqa: H301
+            from espnet2.legacy.nets.pytorch_backend.transformer.plot import (  # noqa: H301
                 _plot_and_save_attention,
             )
 

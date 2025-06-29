@@ -10,10 +10,10 @@ import chainer
 import numpy
 import torch
 
-from espnet.nets.asr_interface import ASRInterface
-from espnet.nets.beam_search_transducer import BeamSearchTransducer
-from espnet.nets.pytorch_backend.nets_utils import get_subsample, make_non_pad_mask
-from espnet.nets.pytorch_backend.transducer.arguments import (  # noqa: H301
+from espnet2.legacy.nets.asr_interface import ASRInterface
+from espnet2.legacy.nets.beam_search_transducer import BeamSearchTransducer
+from espnet2.legacy.nets.pytorch_backend.nets_utils import get_subsample, make_non_pad_mask
+from espnet2.legacy.nets.pytorch_backend.transducer.arguments import (  # noqa: H301
     add_auxiliary_task_arguments,
     add_custom_decoder_arguments,
     add_custom_encoder_arguments,
@@ -24,23 +24,23 @@ from espnet.nets.pytorch_backend.transducer.arguments import (  # noqa: H301
     add_rnn_encoder_arguments,
     add_transducer_arguments,
 )
-from espnet.nets.pytorch_backend.transducer.custom_decoder import CustomDecoder
-from espnet.nets.pytorch_backend.transducer.custom_encoder import CustomEncoder
-from espnet.nets.pytorch_backend.transducer.error_calculator import ErrorCalculator
-from espnet.nets.pytorch_backend.transducer.initializer import initializer
-from espnet.nets.pytorch_backend.transducer.rnn_decoder import RNNDecoder
-from espnet.nets.pytorch_backend.transducer.rnn_encoder import encoder_for
-from espnet.nets.pytorch_backend.transducer.transducer_tasks import TransducerTasks
-from espnet.nets.pytorch_backend.transducer.utils import (
+from espnet2.legacy.nets.pytorch_backend.transducer.custom_decoder import CustomDecoder
+from espnet2.legacy.nets.pytorch_backend.transducer.custom_encoder import CustomEncoder
+from espnet2.legacy.nets.pytorch_backend.transducer.error_calculator import ErrorCalculator
+from espnet2.legacy.nets.pytorch_backend.transducer.initializer import initializer
+from espnet2.legacy.nets.pytorch_backend.transducer.rnn_decoder import RNNDecoder
+from espnet2.legacy.nets.pytorch_backend.transducer.rnn_encoder import encoder_for
+from espnet2.legacy.nets.pytorch_backend.transducer.transducer_tasks import TransducerTasks
+from espnet2.legacy.nets.pytorch_backend.transducer.utils import (
     get_decoder_input,
     valid_aux_encoder_output_layers,
 )
-from espnet.nets.pytorch_backend.transformer.attention import (  # noqa: H301
+from espnet2.legacy.nets.pytorch_backend.transformer.attention import (  # noqa: H301
     MultiHeadedAttention,
     RelPositionMultiHeadedAttention,
 )
-from espnet.nets.pytorch_backend.transformer.mask import target_mask
-from espnet.nets.pytorch_backend.transformer.plot import PlotAttentionReport
+from espnet2.legacy.nets.pytorch_backend.transformer.mask import target_mask
+from espnet2.legacy.nets.pytorch_backend.transformer.plot import PlotAttentionReport
 from espnet.utils.fill_missing_args import fill_missing_args
 
 

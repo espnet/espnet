@@ -18,7 +18,7 @@ import numpy as np
 import torch
 
 from espnet2.legacy.nets.beam_search import Hypothesis
-from espnet.nets.scorer_interface import ScorerInterface
+from espnet2.legacy.nets.scorer_interface import ScorerInterface
 
 
 @dataclass

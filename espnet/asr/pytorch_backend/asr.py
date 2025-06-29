@@ -42,11 +42,11 @@ from espnet.asr.pytorch_backend.asr_init import (
     load_trained_model,
     load_trained_modules,
 )
-from espnet.nets.asr_interface import ASRInterface
-from espnet.nets.beam_search_transducer import BeamSearchTransducer
-from espnet.nets.pytorch_backend.e2e_asr import pad_list
-from espnet.nets.pytorch_backend.streaming.segment import SegmentStreamingE2E
-from espnet.nets.pytorch_backend.streaming.window import WindowStreamingE2E
+from espnet2.legacy.nets.asr_interface import ASRInterface
+from espnet2.legacy.nets.beam_search_transducer import BeamSearchTransducer
+from espnet2.legacy.nets.pytorch_backend.e2e_asr import pad_list
+from espnet2.legacy.nets.pytorch_backend.streaming.segment import SegmentStreamingE2E
+from espnet2.legacy.nets.pytorch_backend.streaming.window import WindowStreamingE2E
 from espnet.transform.spectrogram import IStft
 from espnet.transform.transformation import Transformation
 from espnet.utils.cli_writers import file_writer_helper
@@ -645,7 +645,7 @@ def train(args):
     elif args.opt == "adam":
         optimizer = torch.optim.Adam(model_params, weight_decay=args.weight_decay)
     elif args.opt == "noam":
-        from espnet.nets.pytorch_backend.transformer.optimizer import get_std_opt
+        from espnet2.legacy.nets.pytorch_backend.transformer.optimizer import get_std_opt
 
         if "transducer" in mtl_mode:
             if args.noam_adim > 0:
@@ -687,7 +687,7 @@ def train(args):
             )
         use_apex = True
 
-        from espnet.nets.pytorch_backend.ctc import CTC
+        from espnet2.legacy.nets.pytorch_backend.ctc import CTC
 
         amp.register_float_function(CTC, "loss_fn")
         amp.init()

@@ -24,7 +24,7 @@ def mask_uniform(ys_pad, mask_token, eos, ignore_id):
     :return: padded tensor (B, Lmax)
     :rtype: torch.Tensor
     """
-    from espnet.nets.pytorch_backend.nets_utils import pad_list
+    from espnet2.legacy.nets.pytorch_backend.nets_utils import pad_list
 
     ys = [y[y != ignore_id] for y in ys_pad]  # parse padded ys
     ys_out = [y.new(y.size()).fill_(ignore_id) for y in ys]

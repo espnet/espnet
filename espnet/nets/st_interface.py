@@ -1,6 +1,6 @@
 """ST Interface module."""
 
-from espnet.nets.asr_interface import ASRInterface
+from espnet2.legacy.nets.asr_interface import ASRInterface
 from espnet.utils.dynamic_import import dynamic_import
 
 

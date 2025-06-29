@@ -4,9 +4,9 @@
 import chainer
 import chainer.functions as F
 
-from espnet.nets.chainer_backend.transformer.attention import MultiHeadAttention
-from espnet.nets.chainer_backend.transformer.layer_norm import LayerNorm
-from espnet.nets.chainer_backend.transformer.positionwise_feed_forward import (
+from espnet2.legacy.nets.chainer_backend.transformer.attention import MultiHeadAttention
+from espnet2.legacy.nets.chainer_backend.transformer.layer_norm import LayerNorm
+from espnet2.legacy.nets.chainer_backend.transformer.positionwise_feed_forward import (
     PositionwiseFeedForward,
 )
 

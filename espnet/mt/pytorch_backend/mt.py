@@ -32,8 +32,8 @@ from espnet.asr.pytorch_backend.asr import (
     CustomUpdater,
     load_trained_model,
 )
-from espnet.nets.mt_interface import MTInterface
-from espnet.nets.pytorch_backend.e2e_asr import pad_list
+from espnet2.legacy.nets.mt_interface import MTInterface
+from espnet2.legacy.nets.pytorch_backend.e2e_asr import pad_list
 from espnet.utils.dataset import ChainerDataLoader, TransformDataset
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
 from espnet.utils.dynamic_import import dynamic_import
@@ -164,7 +164,7 @@ def train(args):
             model.parameters(), lr=args.lr, weight_decay=args.weight_decay
         )
     elif args.opt == "noam":
-        from espnet.nets.pytorch_backend.transformer.optimizer import get_std_opt
+        from espnet2.legacy.nets.pytorch_backend.transformer.optimizer import get_std_opt
 
         optimizer = get_std_opt(
             model.parameters(),

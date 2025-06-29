@@ -31,7 +31,7 @@ from espnet.lm.lm_utils import (
     load_dataset,
     read_tokens,
 )
-from espnet.nets.lm_interface import LMInterface, dynamic_import_lm
+from espnet2.legacy.nets.lm_interface import LMInterface, dynamic_import_lm
 from espnet.optimizer.factory import dynamic_import_optimizer
 from espnet.scheduler.pytorch import PyTorchScheduler
 from espnet.scheduler.scheduler import dynamic_import_scheduler

@@ -3,7 +3,7 @@ from typeguard import typechecked
 
 from espnet2.s2st.losses.abs_loss import AbsS2STLoss
 from espnet2.utils.types import str2bool
-from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import (  # noqa: H301
+from espnet2.legacy.nets.pytorch_backend.transformer.label_smoothing_loss import (  # noqa: H301
     LabelSmoothingLoss,
 )
 

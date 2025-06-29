@@ -15,7 +15,7 @@ import configargparse
 import numpy as np
 
 from espnet import __version__
-from espnet.nets.tts_interface import TTSInterface
+from espnet2.legacy.nets.tts_interface import TTSInterface
 from espnet.utils.cli_utils import strtobool
 from espnet.utils.training.batchfy import BATCH_COUNT_CHOICES
 

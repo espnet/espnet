@@ -16,7 +16,7 @@ from typeguard import typechecked
 
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
 from espnet2.utils.types import int_or_none
-from espnet.nets.pytorch_backend.nets_utils import pad_list
+from espnet2.legacy.nets.pytorch_backend.nets_utils import pad_list
 
 
 class Dio(AbsFeatsExtract):

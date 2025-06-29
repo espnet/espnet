@@ -27,8 +27,8 @@ from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
 from espnet2.legacy.nets.batch_beam_search import BatchBeamSearch
 from espnet2.legacy.nets.beam_search import BeamSearch, Hypothesis
-from espnet.nets.scorer_interface import BatchScorerInterface
-from espnet.nets.scorers.length_bonus import LengthBonus
+from espnet2.legacy.nets.scorer_interface import BatchScorerInterface
+from espnet2.legacy.nets.scorers.length_bonus import LengthBonus
 from espnet.utils.cli_utils import get_commandline_args
 
 

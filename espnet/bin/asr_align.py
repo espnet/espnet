@@ -59,7 +59,7 @@ from ctc_segmentation import (
 
 # imports for inference
 from espnet.asr.pytorch_backend.asr_init import load_trained_model
-from espnet.nets.asr_interface import ASRInterface
+from espnet2.legacy.nets.asr_interface import ASRInterface
 from espnet.utils.io_utils import LoadInputsAndTargets
 
 

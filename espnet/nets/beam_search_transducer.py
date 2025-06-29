@@ -6,10 +6,10 @@ from typing import List, Union
 import numpy as np
 import torch
 
-from espnet.nets.pytorch_backend.transducer.custom_decoder import CustomDecoder
-from espnet.nets.pytorch_backend.transducer.joint_network import JointNetwork
-from espnet.nets.pytorch_backend.transducer.rnn_decoder import RNNDecoder
-from espnet.nets.pytorch_backend.transducer.utils import (
+from espnet2.legacy.nets.pytorch_backend.transducer.custom_decoder import CustomDecoder
+from espnet2.legacy.nets.pytorch_backend.transducer.joint_network import JointNetwork
+from espnet2.legacy.nets.pytorch_backend.transducer.rnn_decoder import RNNDecoder
+from espnet2.legacy.nets.pytorch_backend.transducer.utils import (
     create_lm_batch_states,
     init_lm_state,
     is_prefix,
@@ -18,7 +18,7 @@ from espnet.nets.pytorch_backend.transducer.utils import (
     select_lm_state,
     subtract,
 )
-from espnet.nets.transducer_decoder_interface import ExtendedHypothesis, Hypothesis
+from espnet2.legacy.nets.transducer_decoder_interface import ExtendedHypothesis, Hypothesis
 
 
 class BeamSearchTransducer:

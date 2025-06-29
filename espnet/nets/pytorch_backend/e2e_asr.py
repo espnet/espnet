@@ -14,32 +14,32 @@ import numpy as np
 import torch
 from chainer import reporter
 
-from espnet.nets.asr_interface import ASRInterface
+from espnet2.legacy.nets.asr_interface import ASRInterface
 from espnet2.legacy.nets.e2e_asr_common import label_smoothing_dist
-from espnet.nets.pytorch_backend.ctc import ctc_for
-from espnet.nets.pytorch_backend.frontends.feature_transform import (  # noqa: H301
+from espnet2.legacy.nets.pytorch_backend.ctc import ctc_for
+from espnet2.legacy.nets.pytorch_backend.frontends.feature_transform import (  # noqa: H301
     feature_transform_for,
 )
-from espnet.nets.pytorch_backend.frontends.frontend import frontend_for
-from espnet.nets.pytorch_backend.initialization import (
+from espnet2.legacy.nets.pytorch_backend.frontends.frontend import frontend_for
+from espnet2.legacy.nets.pytorch_backend.initialization import (
     lecun_normal_init_parameters,
     set_forget_bias_to_one,
 )
-from espnet.nets.pytorch_backend.nets_utils import (
+from espnet2.legacy.nets.pytorch_backend.nets_utils import (
     get_subsample,
     pad_list,
     to_device,
     to_torch_tensor,
 )
-from espnet.nets.pytorch_backend.rnn.argument import (  # noqa: H301
+from espnet2.legacy.nets.pytorch_backend.rnn.argument import (  # noqa: H301
     add_arguments_rnn_attention_common,
     add_arguments_rnn_decoder_common,
     add_arguments_rnn_encoder_common,
 )
-from espnet.nets.pytorch_backend.rnn.attentions import att_for
-from espnet.nets.pytorch_backend.rnn.decoders import decoder_for
-from espnet.nets.pytorch_backend.rnn.encoders import encoder_for
-from espnet.nets.scorers.ctc import CTCPrefixScorer
+from espnet2.legacy.nets.pytorch_backend.rnn.attentions import att_for
+from espnet2.legacy.nets.pytorch_backend.rnn.decoders import decoder_for
+from espnet2.legacy.nets.pytorch_backend.rnn.encoders import encoder_for
+from espnet2.legacy.nets.scorers.ctc import CTCPrefixScorer
 from espnet.utils.fill_missing_args import fill_missing_args
 
 CTC_LOSS_THRESHOLD = 10000

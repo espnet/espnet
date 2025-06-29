@@ -4,10 +4,10 @@ from typing import List, Tuple, Union
 
 import torch
 
-from espnet.nets.pytorch_backend.transducer.blocks import build_blocks
-from espnet.nets.pytorch_backend.transducer.vgg2l import VGG2L
-from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
-from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling
+from espnet2.legacy.nets.pytorch_backend.transducer.blocks import build_blocks
+from espnet2.legacy.nets.pytorch_backend.transducer.vgg2l import VGG2L
+from espnet2.legacy.nets.pytorch_backend.transformer.layer_norm import LayerNorm
+from espnet2.legacy.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling
 
 
 class CustomEncoder(torch.nn.Module):

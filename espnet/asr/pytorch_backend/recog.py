@@ -8,12 +8,12 @@ from packaging.version import parse as V
 
 from espnet2.legacy.asr.asr_utils import add_results_to_json, get_model_conf, torch_load
 from espnet.asr.pytorch_backend.asr import load_trained_model
-from espnet.nets.asr_interface import ASRInterface
+from espnet2.legacy.nets.asr_interface import ASRInterface
 from espnet2.legacy.nets.batch_beam_search import BatchBeamSearch
 from espnet2.legacy.nets.beam_search import BeamSearch
-from espnet.nets.lm_interface import dynamic_import_lm
-from espnet.nets.scorer_interface import BatchScorerInterface
-from espnet.nets.scorers.length_bonus import LengthBonus
+from espnet2.legacy.nets.lm_interface import dynamic_import_lm
+from espnet2.legacy.nets.scorer_interface import BatchScorerInterface
+from espnet2.legacy.nets.scorers.length_bonus import LengthBonus
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
 from espnet.utils.io_utils import LoadInputsAndTargets
 
@@ -99,7 +99,7 @@ def recog_v2(args):
         lm = None
 
     if args.ngram_model:
-        from espnet.nets.scorers.ngram import NgramFullScorer, NgramPartScorer
+        from espnet2.legacy.nets.scorers.ngram import NgramFullScorer, NgramPartScorer
 
         if args.ngram_scorer == "full":
             ngram = NgramFullScorer(args.ngram_model, train_args.char_list)

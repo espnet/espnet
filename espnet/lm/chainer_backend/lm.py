@@ -31,7 +31,7 @@ from espnet.lm.lm_utils import (
     count_tokens,
     read_tokens,
 )
-from espnet.nets.lm_interface import LMInterface
+from espnet2.legacy.nets.lm_interface import LMInterface
 from espnet.optimizer.factory import dynamic_import_optimizer
 from espnet.scheduler.chainer import ChainerScheduler
 from espnet.scheduler.scheduler import dynamic_import_scheduler

@@ -21,9 +21,9 @@ from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.legacy.nets.beam_search import Hypothesis
 from espnet2.legacy.nets.e2e_asr_common import ErrorCalculator
-from espnet.nets.pytorch_backend.maskctc.add_mask_token import mask_uniform
-from espnet.nets.pytorch_backend.nets_utils import th_accuracy
-from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import (  # noqa: H301
+from espnet2.legacy.nets.pytorch_backend.maskctc.add_mask_token import mask_uniform
+from espnet2.legacy.nets.pytorch_backend.nets_utils import th_accuracy
+from espnet2.legacy.nets.pytorch_backend.transformer.label_smoothing_loss import (  # noqa: H301
     LabelSmoothingLoss,
 )
 

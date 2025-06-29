@@ -28,8 +28,8 @@ from espnet2.legacy.asr.asr_utils import (
     torch_snapshot,
 )
 from espnet.asr.pytorch_backend.asr_init import load_trained_modules
-from espnet.nets.pytorch_backend.nets_utils import pad_list
-from espnet.nets.tts_interface import TTSInterface
+from espnet2.legacy.nets.pytorch_backend.nets_utils import pad_list
+from espnet2.legacy.nets.tts_interface import TTSInterface
 from espnet.utils.dataset import ChainerDataLoader, TransformDataset
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
 from espnet.utils.dynamic_import import dynamic_import
@@ -350,7 +350,7 @@ def train(args):
             model_params, args.lr, eps=args.eps, weight_decay=args.weight_decay
         )
     elif args.opt == "noam":
-        from espnet.nets.pytorch_backend.transformer.optimizer import get_std_opt
+        from espnet2.legacy.nets.pytorch_backend.transformer.optimizer import get_std_opt
 
         optimizer = get_std_opt(
             model_params, args.adim, args.transformer_warmup_steps, args.transformer_lr

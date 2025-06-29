@@ -26,7 +26,7 @@ from espnet2.legacy.asr.asr_utils import (
     get_model_conf,
     restore_snapshot,
 )
-from espnet.nets.asr_interface import ASRInterface
+from espnet2.legacy.nets.asr_interface import ASRInterface
 from espnet.utils.deterministic_utils import set_deterministic_chainer
 from espnet.utils.dynamic_import import dynamic_import
 from espnet.utils.io_utils import LoadInputsAndTargets
@@ -277,7 +277,7 @@ def train(args):
             trigger=(args.sortagrad if args.sortagrad != -1 else args.epochs, "epoch"),
         )
     if args.opt == "noam":
-        from espnet.nets.chainer_backend.transformer.training import VaswaniRule
+        from espnet2.legacy.nets.chainer_backend.transformer.training import VaswaniRule
 
         trainer.extend(
             VaswaniRule(

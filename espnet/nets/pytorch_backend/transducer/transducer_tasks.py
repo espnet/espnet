@@ -4,9 +4,9 @@ from typing import Any, List, Optional, Tuple
 
 import torch
 
-from espnet.nets.pytorch_backend.nets_utils import pad_list
-from espnet.nets.pytorch_backend.transducer.joint_network import JointNetwork
-from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import (  # noqa: H301
+from espnet2.legacy.nets.pytorch_backend.nets_utils import pad_list
+from espnet2.legacy.nets.pytorch_backend.transducer.joint_network import JointNetwork
+from espnet2.legacy.nets.pytorch_backend.transformer.label_smoothing_loss import (  # noqa: H301
     LabelSmoothingLoss,
 )
 

@@ -10,7 +10,7 @@ import torch
 import torch.nn.functional as F
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 
-from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
+from espnet2.legacy.nets.pytorch_backend.nets_utils import make_non_pad_mask
 
 
 class CBHGLoss(torch.nn.Module):
