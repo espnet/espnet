@@ -15,7 +15,7 @@ s2t_config=conf/tuning/train_s2t_ebf_conv2d_size768_e9_d9_piecewise_lr5e-4_warmu
 inference_config=conf/decode_s2t_pr.yaml
 
 
-# Specify nodelist based on your environment, such as
+# Specify nodelist based on your environment with --host "$nodelist"
 # nodelist=$(scontrol show hostnames $SLURM_JOB_NODELIST)
 # nodelist=$(echo $nodelist | tr ' ' ',')
 
@@ -23,7 +23,6 @@ inference_config=conf/decode_s2t_pr.yaml
     --stage 1 \
     --stop_stage 11 \
     --use_lm false \
-    --host "$nodelist" \
     --ngpu 4 \
     --nj 64 \
     --gpu_inference true \
