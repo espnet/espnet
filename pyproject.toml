@@ -40,7 +40,7 @@ requires = ["setuptools>=70.0.0", "wheel", "setuptools-scm>=8.0"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.dynamic]
-version = {attr = "espnet.__version__"}
+version = {attr = "espnet2.__version__"}
 readme = {file = ["README.md"], content-type = "text/markdown"}
 
 [tool.setuptools.packages.find]
