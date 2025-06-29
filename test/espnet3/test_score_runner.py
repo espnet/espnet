@@ -10,6 +10,27 @@ from omegaconf import OmegaConf
 from espnet3.inference.abs_metrics import AbsMetrics
 from espnet3.inference.score_runner import ScoreRunner
 
+# ===============================================================
+# Test Case Summary for ScoreRunner
+# ===============================================================
+#
+# Valid Usage Tests
+# | Test Name                         | Description                                                          | # noqa: E501
+# |----------------------------------|----------------------------------------------------------------------| # noqa: E501
+# | test_score_runner                | Full score evaluation with dummy WER/CER metrics                    | # noqa: E501
+# | test_single_metric_apply_to_subset | Tests metric applied only to a subset of datasets                 | # noqa: E501
+# | test_uid_sorting_in_load         | Confirms correct UID ordering when loading score files              | # noqa: E501
+#
+# Invalid Configuration/Error Handling Tests
+# | Test Name                         | Description                                                          | # noqa: E501
+# |----------------------------------|----------------------------------------------------------------------| # noqa: E501
+# | test_missing_inputs_field_raises | Raises ValueError when 'inputs' field is missing                    | # noqa: E501
+# | test_inputs_field_wrong_type     | Raises ValueError for wrong type in 'inputs' field                  | # noqa: E501
+# | test_missing_target_field_raises | Raises KeyError when target field is missing in config              | # noqa: E501
+# | test_metric_class_not_instance_of_absmetrics | Raises TypeError if metric is not AbsMetrics subclass   | # noqa: E501
+# | test_uid_mismatch_raises         | Raises AssertionError if UID sets mismatch across inputs            | # noqa: E501
+# | test_missing_hypothesis          | Raises AssertionError when hypothesis SCP file is missing           | # noqa: E501
+
 
 # === Dummy metrics ===
 class DummyWER(AbsMetrics):

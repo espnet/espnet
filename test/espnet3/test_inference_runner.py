@@ -11,6 +11,34 @@ from omegaconf import OmegaConf
 
 from espnet3.inference.inference_runner import InferenceRunner
 
+# ===============================================================
+# Test Case Summary for STFTInferenceRunner
+# ===============================================================
+#
+# Offline Processing Tests
+# | Test Name                  | Description                                                           | # noqa: E501
+# |---------------------------|-----------------------------------------------------------------------| # noqa: E501
+# | test_A1_offline_on_example| Tests running inference on a full audio file in offline mode          | # noqa: E501
+# | test_A3_read_audio_offline| Validates audio reading works for multiple files                      | # noqa: E501
+# | test_A4_read_text_offline | Confirms reading plain text input offline                            | # noqa: E501
+# | test_A5_write_output      | Ensures output is correctly written to stft.scp                      | # noqa: E501
+# | test_A6_manual_read_infer_write | Manual read, inference, and write in offline mode             | # noqa: E501
+#
+# Streaming Processing Tests
+# | Test Name                        | Description                                                      | # noqa: E501
+# |----------------------------------|------------------------------------------------------------------| # noqa: E501
+# | test_B1_streaming_on_example     | Tests running full inference in streaming mode                  | # noqa: E501
+# | test_B2_streaming_chunked_processing | Simulates chunk-by-chunk streaming inference                | # noqa: E501
+# | test_B2_streaming_read_chunks    | Tests chunking of audio input based on duration                 | # noqa: E501
+# | test_B3_read_text_streaming_chunks | Splits text input into chunks in streaming mode              | # noqa: E501
+# | test_B4_post_inference_behavior  | Ensures last chunk's output is returned after streaming         | # noqa: E501
+# | test_B5_run_on_dataset_streaming | Full dataset processing with config injection (Hydra-style)     | # noqa: E501
+#
+# Error Handling Tests
+# | Test Name                    | Description                                                        | # noqa: E501
+# |-----------------------------|--------------------------------------------------------------------| # noqa: E501
+# | test_E1_invalid_input_type_to_read | Ensures ValueError is raised for unsupported input type     | # noqa: E501
+
 
 # === STFT Module ===
 class StreamingSTFTModule:
