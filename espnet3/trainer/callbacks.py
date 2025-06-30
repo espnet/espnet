@@ -60,18 +60,36 @@ class AverageCheckpointsCallback(Callback):
                 checkpoints = list(ckpt_callback.best_k_models.keys())
 
                 avg_state_dict = None
+                reference_keys = None  
                 for ckpt_path in checkpoints:
                     state_dict = torch.load(
                         ckpt_path,
                         map_location="cpu",
-                        weights_only=False,
-                    )["state_dict"]
+                        weights_only=False
+                    )
 
+                    # for deepspeed checkpoints
+                    if "module" in state_dict:
+                        state_dict = state_dict["module"]
+                    # for PytorchLightning checkpoints
+                    if "state_dict" in state_dict:
+                        state_dict = state_dict["state_dict"]
+            
                     if avg_state_dict is None:
                         avg_state_dict = state_dict
+                        reference_keys = set(state_dict.keys())
                     else:
+                        # Check key consistency
+                        current_keys = set(state_dict.keys())
+                        if current_keys != reference_keys:
+                            raise KeyError(
+                                f"Mismatch in keys between checkpoints.\n"
+                                f"Expected: {reference_keys}\n"
+                                f"Got: {current_keys} (from {ckpt_path})"
+                            )
                         for k in avg_state_dict:
                             avg_state_dict[k] = avg_state_dict[k] + state_dict[k]
+                
 
                 for k in avg_state_dict:
                     if str(avg_state_dict[k].dtype).startswith("torch.int"):
