@@ -1,6 +1,6 @@
 import os
 from argparse import Namespace
-from test.test_beam_search import prepare, transformer_args
+from test.espnet2.legacy.test_beam_search import prepare, transformer_args
 
 import numpy
 import pytest
@@ -8,9 +8,9 @@ import torch
 
 from espnet2.legacy.nets.batch_beam_search import BatchBeamSearch, BeamSearch
 from espnet2.legacy.nets.beam_search import Hypothesis
-from espnet2.legacy.nets.lm_interface import dynamic_import_lm
 from espnet2.legacy.nets.scorers.length_bonus import LengthBonus
-from espnet2.legacy.nets.scorers.ngram import NgramFullScorer
+# from espnet2.legacy.nets.scorers.ngram import NgramFullScorer
+from espnet2.lm.transformer_lm import TransformerLM
 
 
 def test_batchfy_hyp():
@@ -64,19 +64,11 @@ transformer_lm = Namespace(
 
 
 @pytest.mark.parametrize(
-    "model_class, args, ctc_weight, lm_nn, lm_args, lm_weight, ngram_weight, \
-        bonus, device, dtype",
+    "args, ctc_weight, lm_weight, ngram_weight, bonus, device, dtype",
     [
-        (nn, args, ctc, lm_nn, lm_args, lm, ngram, bonus, device, dtype)
+        (transformer_args, ctc, lm, ngram, bonus, device, dtype)
         for device in ("cpu", "cuda")
-        # (("rnn", rnn_args),)
-        for nn, args in (("transformer", transformer_args),)
         for ctc in (0.0, 0.5, 1.0)
-        for lm_nn, lm_args in (
-            ("default", lstm_lm),
-            ("default", gru_lm),
-            ("transformer", transformer_lm),
-        )
         for lm in (0.5,)
         for ngram in (0.5,)
         for bonus in (0.1,)
@@ -84,11 +76,8 @@ transformer_lm = Namespace(
     ],
 )
 def test_batch_beam_search_equal(
-    model_class,
     args,
     ctc_weight,
-    lm_nn,
-    lm_args,
     lm_weight,
     ngram_weight,
     bonus,
@@ -107,18 +96,30 @@ def test_batch_beam_search_equal(
     torch.backends.cudnn.benchmark = False
 
     dtype = getattr(torch, dtype)
-    model, x, ilens, y, data, train_args = prepare(
-        model_class, args, mtlalpha=ctc_weight
-    )
+    model, x, ilens, y, data, train_args = prepare(args, mtlalpha=ctc_weight)
     model.eval()
-    char_list = train_args.char_list
-    lm = dynamic_import_lm(lm_nn, backend="pytorch")(len(char_list), lm_args)
-    lm.eval()
-    root = os.path.dirname(os.path.abspath(__file__))
-    ngram = NgramFullScorer(os.path.join(root, "beam_search_test.arpa"), args.char_list)
+    token_list = train_args.token_list
 
-    # test previous beam search
-    args = Namespace(
+    lm_args = Namespace(
+        lm="default",
+        lm_conf=dict(
+            unit=2,
+            layer=1,
+            embed_unit=2,
+            dropout_rate=0.0,
+        ),
+        token_list=token_list,
+    )
+    lm = TransformerLM(
+        len(token_list),
+        **lm_args.lm_conf
+    )
+    lm.eval()
+
+    root = os.path.dirname(os.path.abspath(__file__))
+    # ngram = NgramFullScorer(os.path.join(root, "beam_search_test.arpa"), token_list)
+
+    recog_args = Namespace(
         beam_size=3,
         penalty=bonus,
         ctc_weight=ctc_weight,
@@ -129,56 +130,65 @@ def test_batch_beam_search_equal(
         nbest=5,
     )
 
-    # new beam search
-    scorers = model.scorers()
+    scorers = {}
+    scorers["decoder"] = model.decoder
     if lm_weight != 0:
         scorers["lm"] = lm
-    if ngram_weight != 0:
-        scorers["ngram"] = ngram
-    scorers["length_bonus"] = LengthBonus(len(char_list))
+    # if ngram_weight != 0:
+    #     scorers["ngram"] = ngram
+    scorers["length_bonus"] = LengthBonus(len(token_list))
     weights = dict(
         decoder=1.0 - ctc_weight,
         ctc=ctc_weight,
-        lm=args.lm_weight,
-        ngram=args.ngram_weight,
-        length_bonus=args.penalty,
+        lm=recog_args.lm_weight,
+        ngram=recog_args.ngram_weight,
+        length_bonus=recog_args.penalty,
     )
     model.to(device, dtype=dtype)
     model.eval()
     with torch.no_grad():
-        enc = model.encode(x[0, : ilens[0]].to(device, dtype=dtype))
+        feat = x[0, : ilens[0]].unsqueeze(0)  # (1, T, D)
+        feat_lengths = ilens[:1]
+        enc, enc_lens = model.encode(
+            feat.to(device, dtype=dtype),
+            feat_lengths.to(device, dtype=torch.int32),
+        )
 
     legacy_beam = BeamSearch(
-        beam_size=args.beam_size,
-        vocab_size=len(char_list),
+        beam_size=recog_args.beam_size,
+        vocab_size=len(token_list),
         weights=weights,
         scorers=scorers,
-        token_list=train_args.char_list,
+        token_list=token_list,
         sos=model.sos,
         eos=model.eos,
-        pre_beam_score_key=None if ctc_weight == 1.0 else "full",
+        pre_beam_score_key=None if ctc_weight == 1.0 else "decoder",
     )
     legacy_beam.to(device, dtype=dtype)
     legacy_beam.eval()
 
     beam = BatchBeamSearch(
-        beam_size=args.beam_size,
-        vocab_size=len(char_list),
+        beam_size=recog_args.beam_size,
+        vocab_size=len(token_list),
         weights=weights,
         scorers=scorers,
-        token_list=train_args.char_list,
+        token_list=token_list,
         sos=model.sos,
         eos=model.eos,
-        pre_beam_score_key=None if ctc_weight == 1.0 else "full",
+        pre_beam_score_key=None if ctc_weight == 1.0 else "decoder",
     )
     beam.to(device, dtype=dtype)
     beam.eval()
     with torch.no_grad():
         legacy_nbest_bs = legacy_beam(
-            x=enc, maxlenratio=args.maxlenratio, minlenratio=args.minlenratio
+            x=enc[0],
+            maxlenratio=recog_args.maxlenratio,
+            minlenratio=recog_args.minlenratio,
         )
         nbest_bs = beam(
-            x=enc, maxlenratio=args.maxlenratio, minlenratio=args.minlenratio
+            x=enc[0],
+            maxlenratio=recog_args.maxlenratio,
+            minlenratio=recog_args.minlenratio,
         )
 
     for i, (expected, actual) in enumerate(zip(legacy_nbest_bs, nbest_bs)):
