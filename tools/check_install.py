@@ -89,29 +89,6 @@ def main():
         print("[ ] torch")
 
     try:
-        import chainer
-
-        print(f"[x] chainer={chainer.__version__}")
-        if parse(chainer.__version__) != parse("6.0.0"):
-            print(
-                f"Warning! chainer={chainer.__version__} is not supported. "
-                "Supported version is 6.0.0"
-            )
-
-        if chainer.backends.cuda.available:
-            print("[x] chainer cuda")
-        else:
-            print("[ ] chainer cuda")
-
-        if chainer.backends.cuda.cudnn_enabled:
-            print("[x] chainer cudnn")
-        else:
-            print("[ ] chainer cudnn")
-
-    except ImportError:
-        print("[ ] chainer")
-
-    try:
         import cupy
 
         print(f"[x] cupy={cupy.__version__}")
