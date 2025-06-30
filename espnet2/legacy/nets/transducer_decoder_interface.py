@@ -26,4 +26,3 @@ class ExtendedHypothesis(Hypothesis):
 
     dec_out: List[torch.Tensor] = None
     lm_scores: torch.Tensor = None
-

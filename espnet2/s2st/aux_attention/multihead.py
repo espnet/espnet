@@ -1,10 +1,10 @@
 import torch
 from typeguard import typechecked
 
-from espnet2.s2st.aux_attention.abs_aux_attention import AbsS2STAuxAttention
 from espnet2.legacy.nets.pytorch_backend.transformer.attention import (
     MultiHeadedAttention,
 )
+from espnet2.s2st.aux_attention.abs_aux_attention import AbsS2STAuxAttention
 
 
 class MultiHeadAttention(AbsS2STAuxAttention):

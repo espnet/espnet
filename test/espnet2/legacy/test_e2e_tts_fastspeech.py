@@ -7,10 +7,10 @@
 import numpy as np
 import torch
 
-from espnet2.legacy.nets.pytorch_backend.fastspeech.length_regulator import LengthRegulator
+from espnet2.legacy.nets.pytorch_backend.fastspeech.length_regulator import (
+    LengthRegulator,
+)
 from espnet2.legacy.nets.pytorch_backend.nets_utils import pad_list
-
-
 
 
 def test_length_regulator():
@@ -29,4 +29,3 @@ def test_length_regulator():
     ds[:, 2] = 0
     xs_expand = length_regulator(xs, ds)
     assert int(xs_expand.shape[1]) == int(ds.sum(dim=-1).max())
-

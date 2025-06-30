@@ -12,13 +12,13 @@ import torch
 
 from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
-from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.legacy.nets.beam_search import Hypothesis
 from espnet2.legacy.nets.beam_search_partially_AR import PartiallyARBeamSearch
 from espnet2.legacy.nets.scorer_interface import (
     MaskParallelScorerInterface,
     ScorerInterface,
 )
+from espnet2.text.token_id_converter import TokenIDConverter
 
 warnings.filterwarnings("ignore", category=UserWarning)
 

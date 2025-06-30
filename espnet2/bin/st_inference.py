@@ -12,6 +12,13 @@ from typeguard import typechecked
 from espnet2.asr.transducer.beam_search_transducer import BeamSearchTransducer
 from espnet2.asr.transducer.beam_search_transducer import Hypothesis as TransHypothesis
 from espnet2.fileio.datadir_writer import DatadirWriter
+from espnet2.legacy.nets.batch_beam_search import BatchBeamSearch
+from espnet2.legacy.nets.beam_search import BeamSearch, Hypothesis
+from espnet2.legacy.nets.pytorch_backend.transformer.subsampling import TooShortUttError
+from espnet2.legacy.nets.scorer_interface import BatchScorerInterface
+from espnet2.legacy.nets.scorers.ctc import CTCPrefixScorer
+from espnet2.legacy.nets.scorers.length_bonus import LengthBonus
+from espnet2.legacy.utils.cli_utils import get_commandline_args
 from espnet2.tasks.enh_s2t import EnhS2TTask
 from espnet2.tasks.lm import LMTask
 from espnet2.tasks.st import STTask
@@ -22,13 +29,6 @@ from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
-from espnet2.legacy.nets.batch_beam_search import BatchBeamSearch
-from espnet2.legacy.nets.beam_search import BeamSearch, Hypothesis
-from espnet2.legacy.nets.pytorch_backend.transformer.subsampling import TooShortUttError
-from espnet2.legacy.nets.scorer_interface import BatchScorerInterface
-from espnet2.legacy.nets.scorers.ctc import CTCPrefixScorer
-from espnet2.legacy.nets.scorers.length_bonus import LengthBonus
-from espnet2.legacy.utils.cli_utils import get_commandline_args
 
 try:
     from transformers import AutoModelForSeq2SeqLM

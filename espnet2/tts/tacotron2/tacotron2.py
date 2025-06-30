@@ -10,9 +10,6 @@ import torch
 import torch.nn.functional as F
 from typeguard import typechecked
 
-from espnet2.torch_utils.device_funcs import force_gatherable
-from espnet2.tts.abs_tts import AbsTTS
-from espnet2.tts.gst.style_encoder import StyleEncoder
 from espnet2.legacy.nets.pytorch_backend.e2e_tts_tacotron2 import (
     GuidedAttentionLoss,
     Tacotron2Loss,
@@ -25,6 +22,9 @@ from espnet2.legacy.nets.pytorch_backend.rnn.attentions import (
 )
 from espnet2.legacy.nets.pytorch_backend.tacotron2.decoder import Decoder
 from espnet2.legacy.nets.pytorch_backend.tacotron2.encoder import Encoder
+from espnet2.torch_utils.device_funcs import force_gatherable
+from espnet2.tts.abs_tts import AbsTTS
+from espnet2.tts.gst.style_encoder import StyleEncoder
 
 
 class Tacotron2(AbsTTS):

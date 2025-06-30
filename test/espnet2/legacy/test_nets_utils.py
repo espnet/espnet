@@ -118,4 +118,3 @@ def get_args(tc):
         kwargs_non["maxlen"] = ml
 
     return tuple(args), tuple(input_names), kwargs_trace, kwargs_non
-

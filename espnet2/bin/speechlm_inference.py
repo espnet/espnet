@@ -16,6 +16,7 @@ from kaldiio import WriteHelper
 from packaging.version import parse as V  # noqa
 from typeguard import typechecked
 
+from espnet2.legacy.utils.cli_utils import get_commandline_args
 from espnet2.speechlm.core_lm.abs_core_lm import SpeechLMInferenceOptions
 from espnet2.speechlm.definitions import tasks as speechlm_tasks
 from espnet2.tasks.speechlm import SpeechLMTask
@@ -25,7 +26,6 @@ from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none  # noqa
-from espnet2.legacy.utils.cli_utils import get_commandline_args
 
 
 class SpeechLM:

@@ -12,14 +12,6 @@ import torch.quantization
 from typeguard import typechecked
 
 from espnet2.fileio.datadir_writer import DatadirWriter
-from espnet2.tasks.lm import LMTask
-from espnet2.tasks.uasr import UASRTask
-from espnet2.text.build_tokenizer import build_tokenizer
-from espnet2.text.token_id_converter import TokenIDConverter
-from espnet2.torch_utils.device_funcs import to_device
-from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
-from espnet2.utils import config_argparse
-from espnet2.utils.types import str2bool, str2triple_str, str_or_none
 from espnet2.legacy.nets.batch_beam_search import BatchBeamSearch
 from espnet2.legacy.nets.beam_search import BeamSearch, Hypothesis
 from espnet2.legacy.nets.pytorch_backend.transformer.subsampling import TooShortUttError
@@ -28,6 +20,14 @@ from espnet2.legacy.nets.scorers.uasr import UASRPrefixScorer
 
 # from espnet2.legacy.nets.scorers.uasr import UASRPrefixScorer
 from espnet2.legacy.utils.cli_utils import get_commandline_args
+from espnet2.tasks.lm import LMTask
+from espnet2.tasks.uasr import UASRTask
+from espnet2.text.build_tokenizer import build_tokenizer
+from espnet2.text.token_id_converter import TokenIDConverter
+from espnet2.torch_utils.device_funcs import to_device
+from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
+from espnet2.utils import config_argparse
+from espnet2.utils.types import str2bool, str2triple_str, str_or_none
 
 
 class Speech2Text:

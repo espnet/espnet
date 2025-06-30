@@ -254,4 +254,3 @@ class Tacotron2Loss(torch.nn.Module):
         key = prefix + "bce_criterion.pos_weight"
         if key not in state_dict:
             state_dict[key] = self.bce_criterion.pos_weight
-

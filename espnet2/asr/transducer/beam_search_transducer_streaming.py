@@ -9,7 +9,6 @@ import torch
 
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.asr_transducer.joint_network import JointNetwork
-from espnet2.lm.transformer_lm import TransformerLM
 from espnet2.legacy.nets.beam_search import Hypothesis as Hypothesis2
 from espnet2.legacy.nets.pytorch_backend.transducer.utils import (
     is_prefix,
@@ -17,6 +16,7 @@ from espnet2.legacy.nets.pytorch_backend.transducer.utils import (
     select_k_expansions,
     subtract,
 )
+from espnet2.lm.transformer_lm import TransformerLM
 
 
 @dataclass

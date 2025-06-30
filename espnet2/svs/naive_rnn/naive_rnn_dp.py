@@ -9,9 +9,6 @@ import torch
 import torch.nn.functional as F
 from typeguard import typechecked
 
-from espnet2.svs.abs_svs import AbsSVS
-from espnet2.torch_utils.device_funcs import force_gatherable
-from espnet2.torch_utils.initialize import initialize
 from espnet2.legacy.nets.pytorch_backend.e2e_tts_fastspeech import (
     FeedForwardTransformerLoss as FastSpeechLoss,
 )
@@ -26,6 +23,9 @@ from espnet2.legacy.nets.pytorch_backend.tacotron2.decoder import Postnet
 from espnet2.legacy.nets.pytorch_backend.tacotron2.encoder import (
     Encoder as EncoderPrenet,
 )
+from espnet2.svs.abs_svs import AbsSVS
+from espnet2.torch_utils.device_funcs import force_gatherable
+from espnet2.torch_utils.initialize import initialize
 
 
 class NaiveRNNDP(AbsSVS):

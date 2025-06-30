@@ -1,8 +1,8 @@
 import numpy as np
 import torch
 
-from espnet2.tts.feats_extract.log_mel_fbank import LogMelFbank
 from espnet2.legacy.transform.spectrogram import logmelspectrogram
+from espnet2.tts.feats_extract.log_mel_fbank import LogMelFbank
 
 
 def test_forward():

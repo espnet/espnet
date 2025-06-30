@@ -3,10 +3,10 @@ from argparse import Namespace
 import pytest
 import torch
 
-from espnet2.tasks.asr import ASRTask
-from espnet2.lm.transformer_lm import TransformerLM
 from espnet2.legacy.nets.beam_search_timesync import BeamSearchTimeSync
 from espnet2.legacy.nets.scorers.length_bonus import LengthBonus
+from espnet2.lm.transformer_lm import TransformerLM
+from espnet2.tasks.asr import ASRTask
 
 rnn_args = Namespace(
     encoder="rnn",
@@ -33,7 +33,7 @@ rnn_args = Namespace(
     model_conf=dict(
         ctc_weight=0.2,
         ignore_id=-1,
-    )
+    ),
 )
 transformer_args = Namespace(
     encoder="transformer",
@@ -64,7 +64,7 @@ transformer_args = Namespace(
     model_conf=dict(
         ctc_weight=0.2,
         ignore_id=-1,
-    )
+    ),
 )
 ldconv_args = Namespace(
     **vars(transformer_args),
@@ -147,10 +147,7 @@ def test_beam_search_timesync(
         ),
         token_list=token_list,
     )
-    lm = TransformerLM(
-        len(token_list),
-        **lm_args.lm_conf
-    )
+    lm = TransformerLM(len(token_list), **lm_args.lm_conf)
     lm.eval()
 
     recog_args = Namespace(

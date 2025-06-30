@@ -10,11 +10,6 @@ import torch
 import torch.nn.functional as F
 from typeguard import typechecked
 
-from espnet2.torch_utils.device_funcs import force_gatherable
-from espnet2.torch_utils.initialize import initialize
-from espnet2.tts2.abs_tts2 import AbsTTS2
-from espnet2.tts2.fastspeech2.loss import FastSpeech2LossDiscrete
-from espnet2.tts.fastspeech2.variance_predictor import VariancePredictor
 from espnet2.legacy.nets.pytorch_backend.conformer.encoder import (
     Encoder as ConformerEncoder,
 )
@@ -36,6 +31,11 @@ from espnet2.legacy.nets.pytorch_backend.transformer.embedding import (
 from espnet2.legacy.nets.pytorch_backend.transformer.encoder import (
     Encoder as TransformerEncoder,
 )
+from espnet2.torch_utils.device_funcs import force_gatherable
+from espnet2.torch_utils.initialize import initialize
+from espnet2.tts2.abs_tts2 import AbsTTS2
+from espnet2.tts2.fastspeech2.loss import FastSpeech2LossDiscrete
+from espnet2.tts.fastspeech2.variance_predictor import VariancePredictor
 
 
 class FastSpeech2Discrete(AbsTTS2):

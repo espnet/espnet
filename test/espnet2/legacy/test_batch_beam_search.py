@@ -9,6 +9,7 @@ import torch
 from espnet2.legacy.nets.batch_beam_search import BatchBeamSearch, BeamSearch
 from espnet2.legacy.nets.beam_search import Hypothesis
 from espnet2.legacy.nets.scorers.length_bonus import LengthBonus
+
 # from espnet2.legacy.nets.scorers.ngram import NgramFullScorer
 from espnet2.lm.transformer_lm import TransformerLM
 
@@ -110,10 +111,7 @@ def test_batch_beam_search_equal(
         ),
         token_list=token_list,
     )
-    lm = TransformerLM(
-        len(token_list),
-        **lm_args.lm_conf
-    )
+    lm = TransformerLM(len(token_list), **lm_args.lm_conf)
     lm.eval()
 
     root = os.path.dirname(os.path.abspath(__file__))

@@ -5,12 +5,14 @@
 
 
 import torch
+
 from espnet2.legacy.nets.pytorch_backend.e2e_tts_tacotron2 import (
     GuidedAttentionLoss,
 )
 from espnet2.legacy.nets.pytorch_backend.e2e_tts_tacotron2 import (
     Tacotron2Loss as TransformerLoss,
 )
+
 
 class GuidedMultiHeadAttentionLoss(GuidedAttentionLoss):
     """Guided attention loss function module for multi head attention.

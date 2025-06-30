@@ -13,7 +13,6 @@ from espnet2.legacy.nets.transducer_decoder_interface import (
 )
 
 
-
 def is_prefix(x: List[int], pref: List[int]) -> bool:
     """Check if pref is a prefix of x.
 
@@ -98,7 +97,6 @@ def select_k_expansions(
     return k_expansions
 
 
-
 def recombine_hyps(hyps: List[Hypothesis]) -> List[Hypothesis]:
     """Recombine hypotheses with same label ID sequence.
 
@@ -122,4 +120,3 @@ def recombine_hyps(hyps: List[Hypothesis]) -> List[Hypothesis]:
             final.append(hyp)
 
     return final
-

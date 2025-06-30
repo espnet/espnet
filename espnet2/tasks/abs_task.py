@@ -31,6 +31,7 @@ from espnet2.iterators.chunk_iter_factory import ChunkIterFactory
 from espnet2.iterators.multiple_iter_factory import MultipleIterFactory
 from espnet2.iterators.sequence_iter_factory import SequenceIterFactory
 from espnet2.layers.create_adapter import create_adapter
+from espnet2.legacy.utils.cli_utils import get_commandline_args
 from espnet2.main_funcs.collect_stats import collect_stats
 from espnet2.optimizers.optim_groups import configure_optimizer
 from espnet2.optimizers.sgd import SGD
@@ -83,7 +84,6 @@ from espnet2.utils.types import (
     str_or_none,
 )
 from espnet2.utils.yaml_no_alias_safe_dump import yaml_no_alias_safe_dump
-from espnet2.legacy.utils.cli_utils import get_commandline_args
 
 try:
     import wandb

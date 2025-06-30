@@ -11,10 +11,6 @@ import torch
 import torch.nn.functional as F
 from typeguard import typechecked
 
-from espnet2.svs.abs_svs import AbsSVS
-from espnet2.svs.xiaoice.loss import XiaoiceSing2Loss
-from espnet2.torch_utils.device_funcs import force_gatherable
-from espnet2.torch_utils.initialize import initialize
 from espnet2.legacy.nets.pytorch_backend.conformer.encoder import (  # noqa: H301
     Encoder as ConformerEncoder,
 )
@@ -39,6 +35,10 @@ from espnet2.legacy.nets.pytorch_backend.transformer.embedding import (
 from espnet2.legacy.nets.pytorch_backend.transformer.encoder import (  # noqa: H301
     Encoder as TransformerEncoder,
 )
+from espnet2.svs.abs_svs import AbsSVS
+from espnet2.svs.xiaoice.loss import XiaoiceSing2Loss
+from espnet2.torch_utils.device_funcs import force_gatherable
+from espnet2.torch_utils.initialize import initialize
 
 
 class XiaoiceSing(AbsSVS):

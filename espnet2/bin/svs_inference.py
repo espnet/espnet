@@ -19,6 +19,7 @@ from typeguard import typechecked
 
 from espnet2.fileio.npy_scp import NpyScpWriter
 from espnet2.gan_svs.vits import VITS
+from espnet2.legacy.utils.cli_utils import get_commandline_args
 from espnet2.svs.singing_tacotron.singing_tacotron import singing_tacotron
 from espnet2.tasks.gan_svs import GANSVSTask
 from espnet2.tasks.svs import SVSTask
@@ -27,7 +28,6 @@ from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.tts.utils import DurationCalculator
 from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
-from espnet2.legacy.utils.cli_utils import get_commandline_args
 
 
 class SingingGenerate:

@@ -20,4 +20,3 @@ def subsequent_mask(size, device="cpu", dtype=torch.bool):
     """
     ret = torch.ones(size, size, device=device, dtype=dtype)
     return torch.tril(ret, out=ret)
-

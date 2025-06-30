@@ -23,13 +23,12 @@ from ctc_segmentation import (
 )
 from typeguard import typechecked
 
+# imports for inference
+from espnet2.legacy.utils.cli_utils import get_commandline_args
 from espnet2.tasks.asr import ASRTask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool, str_or_none
-
-# imports for inference
-from espnet2.legacy.utils.cli_utils import get_commandline_args
 
 
 class CTCSegmentationTask:
