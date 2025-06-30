@@ -77,7 +77,6 @@ class TargetSpeakerExtractionTask(AbsTask):
             default=None,
             help="The initialization method",
             choices=[
-                "chainer",
                 "xavier_uniform",
                 "xavier_normal",
                 "kaiming_uniform",
