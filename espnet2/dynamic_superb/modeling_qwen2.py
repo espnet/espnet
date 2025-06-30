@@ -327,6 +327,7 @@ class Qwen2AudioEncoderLayer(nn.Module):
                 returned tensors for more detail.
         """
         residual = hidden_states
+        attention_mask = attention_mask.squeeze(1)
         hidden_states = self.self_attn_layer_norm(hidden_states)
         hidden_states = self.self_attn(
             query=hidden_states,
