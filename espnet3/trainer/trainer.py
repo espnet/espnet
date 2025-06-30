@@ -6,13 +6,12 @@ import lightning as L
 import torch
 import torch.nn as nn
 from hydra.utils import instantiate
-from omegaconf import DictConfig, ListConfig
+from omegaconf import DictConfig, ListConfig, OmegaConf
 from typeguard import typechecked
 
 from espnet2.torch_utils.initialize import initialize
 
-# Temporaliry disabled for the code review.
-# from espnet3.trainer.callbacks import get_default_callbacks
+from espnet3.trainer.callbacks import get_default_callbacks
 from espnet3.trainer.model import LitESPnetModel
 
 
@@ -90,19 +89,18 @@ class ESPnet3LightningTrainer:
             self.config.pop("plugins")
 
         # Callbacks
-        # Temporaliry disabled for the code review.
-        # callbacks = get_default_callbacks(
-        #     expdir,
-        #     self.config.log_every_n_steps,
-        #     OmegaConf.to_container(best_model_criterion),
-        # )
-        # if getattr(self.config, "callbacks", None):
-        #     assert isinstance(
-        #         self.config.callbacks, ListConfig
-        #     ), "callbacks should be a list"
-        #     for callback in self.config.callbacks:
-        #         callbacks.append(instantiate(callback))
-        #     self.config.pop("callbacks")
+        callbacks = get_default_callbacks(
+            expdir,
+            self.config.log_every_n_steps,
+            OmegaConf.to_container(best_model_criterion),
+        )
+        if getattr(self.config, "callbacks", None):
+            assert isinstance(
+                self.config.callbacks, ListConfig
+            ), "callbacks should be a list"
+            for callback in self.config.callbacks:
+                callbacks.append(instantiate(callback))
+            self.config.pop("callbacks")
 
         # Since espnet's sampler requires to set the following configs:
         # Reload dataloaders every epoch to reuse ESPnet's dataloader
