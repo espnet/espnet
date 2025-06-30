@@ -29,7 +29,7 @@ WITH_OMP=ON
 
 all: showenv conda_packages.done python ffmpeg.done sctk check_install
 
-python: activate_python.sh setuptools.done packaging.done espnet.done pytorch.done chainer.done fairscale.done torch_optimizer.done flash_attn.done lightning.done
+python: activate_python.sh setuptools.done packaging.done espnet.done pytorch.done fairscale.done torch_optimizer.done flash_attn.done lightning.done
 extra: warp-transducer.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done fairseq.done s3prl.done k2.done transformers.done phonemizer.done longformer.done muskits.done whisper.done rvad_fast.done sounfile_test parallel-wavegan.done lora.done sph2pipe torcheval.done
 
 activate_python.sh:
@@ -136,23 +136,12 @@ espnet.done: pytorch.done conda_packages.done lightning.done
 sounfile_test: espnet.done
 	. ./activate_python.sh && python3 ./test_soundfile.py
 
-chainer.done: espnet.done
-	. ./activate_python.sh && ./installers/install_chainer.sh "${CUDA_VERSION}"
-	touch chainer.done
-
 warp-transducer.done: pytorch.done conda_packages.done
 ifeq ($(strip $(CPU_ONLY)),)
 	[ -n "${CUDA_HOME}" ] || { echo -e "Error: CUDA_HOME is not set.\n    $$ . ./setup_cuda_env.sh <cuda-root>"; exit 1; }
 endif
 	. ./activate_python.sh && ./installers/install_warp-transducer.sh ${WITH_OMP}
 	touch warp-transducer.done
-
-chainer_ctc.done: chainer.done
-ifeq ($(strip $(CPU_ONLY)),)
-	[ -n "${CUDA_HOME}" ] || { echo -e "Error: CUDA_HOME is not set.\n    $$ . ./setup_cuda_env.sh <cuda-root>"; exit 1; }
-endif
-	. ./activate_python.sh && ./installers/install_chainer_ctc.sh ${WITH_OMP}
-	touch chainer_ctc.done
 
 nkf.done:
 	./installers/install_nkf.sh
@@ -283,13 +272,13 @@ check_install: python
 	. ./activate_python.sh; . ./extra_path.sh; python3 check_install.py
 
 clean: clean_extra
-	rm -rf warp-transducer chainer_ctc
+	rm -rf warp-transducer
 	rm -rf *.done
 	find . -iname "*.pyc" -delete
 
 clean_python:
-	rm -rf warp-transducer chainer_ctc
-	rm -f chainer_ctc.done espnet.done chainer.done pytorch.done warp-transducer.done
+	rm -rf warp-transducer
+	rm -f espnet.done pytorch.done warp-transducer.done
 	find . -iname "*.pyc" -delete
 
 clean_extra:
@@ -298,7 +287,7 @@ clean_extra:
 	rm -rf muskits.done
 	rm -rf rvad_fast.done
 	rm -rf lightning_constraints.txt
-	rm -rf chainer espeak-ng festival MBROLA ParallelWaveGAN versa
+	rm -rf espeak-ng festival MBROLA ParallelWaveGAN versa
 	rm -rf py3mmseg sctk* speech_tools sph2pipe* ._mwerSegmenter
 	rm -rf nkf mecab swig moses mwerSegmenter
 	rm -rf PESQ PESQ.zip

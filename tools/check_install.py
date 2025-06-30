@@ -18,7 +18,6 @@ module_list = [
     ("torchaudio", None, None),
     ("torch_optimizer", None, None),
     ("warprnnt_pytorch", None, "installers/install_warp-transducer.sh"),
-    ("chainer_ctc", None, "installers/install_chainer_ctc.sh"),
     ("pyopenjtalk", None, "installers/install_pyopenjtalk.sh"),
     ("tdmelodic_pyopenjtalk", None, "installers/install_tdmelodic_pyopenjtalk.sh"),
     ("kenlm", None, "installers/install_kenlm.sh"),
