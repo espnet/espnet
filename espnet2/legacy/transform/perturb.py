@@ -356,7 +356,6 @@ class RIRConvolve(object):
 
         rir, rate = self.utt2rir[uttid]
         if rir.ndim == 2:
-            # FIXME(kamo): Use chainer.convolution_1d?
             # return [Time, Channel]
             return numpy.stack(
                 [scipy.convolve(x, r, mode="same") for r in rir], axis=-1
