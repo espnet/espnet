@@ -13,7 +13,7 @@ import torch.nn.functional as F
 from typeguard import typechecked
 
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet2.legacy.nets.pytorch_backend.nets_utils import make_pad_mask
 
 try:
     from transformers import AutoModelForCausalLM, AutoModelForSeq2SeqLM, AutoTokenizer
@@ -23,7 +23,7 @@ try:
 except ImportError:
     is_transformers_available = False
 
-from espnet.nets.scorer_interface import BatchScorerInterface
+from espnet2.legacy.nets.scorer_interface import BatchScorerInterface
 
 
 class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):

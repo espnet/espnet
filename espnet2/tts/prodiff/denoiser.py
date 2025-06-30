@@ -10,7 +10,7 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
+from espnet2.legacy.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 
 
 def _vpsde_beta_t(t: int, T: int, min_beta: float, max_beta: float) -> float:

@@ -5,7 +5,6 @@ from distutils.util import strtobool
 
 import kaldiio
 import numpy
-
 from espnet.transform.transformation import Transformation
 from espnet.utils.cli_utils import get_commandline_args
 from espnet.utils.cli_writers import file_writer_helper

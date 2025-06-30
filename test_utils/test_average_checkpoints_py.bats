@@ -5,7 +5,7 @@ setup() {
 
     utils=$(cd $BATS_TEST_DIRNAME/..; pwd)/utils
     tmpdir=$(mktemp -d testXXXXXX)
-    mkdir -p ${tmpdir}/{pytorch,chainer}
+    mkdir -p ${tmpdir}/{pytorch}
 
     # Create an ark for dummy feature
     python << EOF

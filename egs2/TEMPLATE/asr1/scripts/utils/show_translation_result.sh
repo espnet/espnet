@@ -34,7 +34,7 @@ import sys, espnet, torch
 pyversion = sys.version.replace('\n', ' ')
 
 print(f"""- python version: \`{pyversion}\`
-- espnet version: \`espnet {espnet.__version__}\`
+- espnet version: \`espnet {espnet2.__version__}\`
 - pytorch version: \`pytorch {torch.__version__}\`""")
 EOF
 

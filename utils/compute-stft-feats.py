@@ -10,11 +10,11 @@ from distutils.util import strtobool
 import kaldiio
 import numpy
 import resampy
-
-from espnet2.utils.types import int_or_none
 from espnet.transform.spectrogram import spectrogram
 from espnet.utils.cli_utils import get_commandline_args
 from espnet.utils.cli_writers import file_writer_helper
+
+from espnet2.utils.types import int_or_none
 
 
 def get_parser():

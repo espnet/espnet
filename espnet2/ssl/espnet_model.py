@@ -14,10 +14,10 @@ from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.layers.abs_normalize import AbsNormalize
+from espnet2.legacy.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet2.ssl.loss.abs_loss import AbsSSLLoss
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 
 
 class ESPnetSSLModel(AbsESPnetModel):
