@@ -37,7 +37,8 @@ from torch import nn
 # if is_flash_attn_available():
 #     from ...modeling_flash_attention_utils import _flash_attention_forward
 
-from transformers.activations import ACT2FN
+from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
+
 from transformers.cache_utils import Cache
 from transformers.generation import GenerationMixin
 from transformers.modeling_flash_attention_utils import flash_attn_supports_top_left_mask, is_flash_attn_available
@@ -98,281 +99,185 @@ class Qwen2AudioCausalLMOutputWithPast(ModelOutput):
     attention_mask: Optional[torch.FloatTensor] = None
 
 
-class Qwen2AudioAttention(nn.Module):
-    """Multi-headed attention from 'Attention Is All You Need' paper"""
+# class Qwen2AudioAttention(nn.Module):
+#     """Multi-headed attention from 'Attention Is All You Need' paper"""
 
-    # Copied from transformers.models.whisper.modeling_whisper.WhisperAttention.__init__ with Whisper->Qwen2Audio
-    def __init__(
-        self,
-        embed_dim: int,
-        num_heads: int,
-        dropout: float = 0.0,
-        is_decoder: bool = False,
-        bias: bool = True,
-        is_causal: bool = False,
-        layer_idx: Optional[int] = None,
-        config: Optional[Qwen2AudioConfig] = None,
-    ):
-        super().__init__()
-        self.embed_dim = embed_dim
-        self.num_heads = num_heads
-        self.dropout = dropout
-        self.head_dim = embed_dim // num_heads
-        self.config = config
+#     # Copied from transformers.models.whisper.modeling_whisper.WhisperAttention.__init__ with Whisper->Qwen2Audio
+#     def __init__(
+#         self,
+#         embed_dim: int,
+#         num_heads: int,
+#         dropout: float = 0.0,
+#         is_decoder: bool = False,
+#         bias: bool = True,
+#         is_causal: bool = False,
+#         layer_idx: Optional[int] = None,
+#         config: Optional[Qwen2AudioConfig] = None,
+#     ):
+#         super().__init__()
+#         self.embed_dim = embed_dim
+#         self.num_heads = num_heads
+#         self.dropout = dropout
+#         self.head_dim = embed_dim // num_heads
+#         self.config = config
 
-        if (self.head_dim * num_heads) != self.embed_dim:
-            raise ValueError(
-                f"embed_dim must be divisible by num_heads (got `embed_dim`: {self.embed_dim}"
-                f" and `num_heads`: {num_heads})."
-            )
-        self.scaling = self.head_dim**-0.5
-        self.is_decoder = is_decoder
-        self.is_causal = is_causal
+#         if (self.head_dim * num_heads) != self.embed_dim:
+#             raise ValueError(
+#                 f"embed_dim must be divisible by num_heads (got `embed_dim`: {self.embed_dim}"
+#                 f" and `num_heads`: {num_heads})."
+#             )
+#         self.scaling = self.head_dim**-0.5
+#         self.is_decoder = is_decoder
+#         self.is_causal = is_causal
 
-        if layer_idx is None and is_decoder:
-            logger.warning_once(
-                f"Instantiating a decoder {self.__class__.__name__} without passing `layer_idx` is not recommended and "
-                "will to errors during the forward call, if caching is used. Please make sure to provide a `layer_idx` "
-                "when creating this class."
-            )
-        self.layer_idx = layer_idx
+#         if layer_idx is None and is_decoder:
+#             logger.warning_once(
+#                 f"Instantiating a decoder {self.__class__.__name__} without passing `layer_idx` is not recommended and "
+#                 "will to errors during the forward call, if caching is used. Please make sure to provide a `layer_idx` "
+#                 "when creating this class."
+#             )
+#         self.layer_idx = layer_idx
 
-        self.k_proj = nn.Linear(embed_dim, embed_dim, bias=False)
-        self.v_proj = nn.Linear(embed_dim, embed_dim, bias=bias)
-        self.q_proj = nn.Linear(embed_dim, embed_dim, bias=bias)
-        self.out_proj = nn.Linear(embed_dim, embed_dim, bias=bias)
+#         self.k_proj = nn.Linear(embed_dim, embed_dim, bias=False)
+#         self.v_proj = nn.Linear(embed_dim, embed_dim, bias=bias)
+#         self.q_proj = nn.Linear(embed_dim, embed_dim, bias=bias)
+#         self.out_proj = nn.Linear(embed_dim, embed_dim, bias=bias)
 
-    def _shape(self, tensor: torch.Tensor, seq_len: int, bsz: int):
-        return tensor.view(bsz, seq_len, self.num_heads, self.head_dim).transpose(1, 2).contiguous()
+#     def _shape(self, tensor: torch.Tensor, seq_len: int, bsz: int):
+#         return tensor.view(bsz, seq_len, self.num_heads, self.head_dim).transpose(1, 2).contiguous()
 
-    @deprecate_kwarg("key_value_states", version="4.52")
-    @deprecate_kwarg("past_key_value", version="4.52")
-    @deprecate_kwarg("cache_position", version="4.52")
-    def forward(
-        self,
-        hidden_states: torch.Tensor,
-        key_value_states: Optional[torch.Tensor] = None,
-        past_key_value: Optional[Cache] = None,
-        attention_mask: Optional[torch.Tensor] = None,
-        layer_head_mask: Optional[torch.Tensor] = None,
-        output_attentions: bool = False,
-        cache_position: Optional[torch.LongTensor] = None,
-    ) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[Tuple[torch.Tensor]]]:
-        """Input shape: Batch x Time x Channel"""
+#     @deprecate_kwarg("key_value_states", version="4.52")
+#     @deprecate_kwarg("past_key_value", version="4.52")
+#     @deprecate_kwarg("cache_position", version="4.52")
+#     def forward(
+#         self,
+#         hidden_states: torch.Tensor,
+#         key_value_states: Optional[torch.Tensor] = None,
+#         past_key_value: Optional[Cache] = None,
+#         attention_mask: Optional[torch.Tensor] = None,
+#         layer_head_mask: Optional[torch.Tensor] = None,
+#         output_attentions: bool = False,
+#         cache_position: Optional[torch.LongTensor] = None,
+#     ) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[Tuple[torch.Tensor]]]:
+#         """Input shape: Batch x Time x Channel"""
 
-        bsz, tgt_len, _ = hidden_states.size()
+#         bsz, tgt_len, _ = hidden_states.size()
 
-        # get query proj
-        query_states = self._shape(self.q_proj(hidden_states) * self.scaling, tgt_len, bsz)
-        key_states = self._shape(self.k_proj(hidden_states), -1, bsz)
-        value_states = self._shape(self.v_proj(hidden_states), -1, bsz)
+#         # get query proj
+#         query_states = self._shape(self.q_proj(hidden_states) * self.scaling, tgt_len, bsz)
+#         key_states = self._shape(self.k_proj(hidden_states), -1, bsz)
+#         value_states = self._shape(self.v_proj(hidden_states), -1, bsz)
 
-        attn_weights = torch.matmul(query_states, key_states.transpose(2, 3))
+#         attn_weights = torch.matmul(query_states, key_states.transpose(2, 3))
 
-        if attention_mask is not None:  # no matter the length, we just slice it
-            causal_mask = attention_mask[:, :, :, : key_states.shape[-2]]
-            attn_weights = attn_weights + causal_mask
+#         if attention_mask is not None:  # no matter the length, we just slice it
+#             causal_mask = attention_mask[:, :, :, : key_states.shape[-2]]
+#             attn_weights = attn_weights + causal_mask
 
-        attn_weights = nn.functional.softmax(attn_weights, dim=-1)
+#         attn_weights = nn.functional.softmax(attn_weights, dim=-1)
 
-        if layer_head_mask is not None:
-            if layer_head_mask.size() != (self.num_heads,):
-                raise ValueError(
-                    f"Head mask for a single layer should be of size {(self.num_heads,)}, but is"
-                    f" {layer_head_mask.size()}"
-                )
-            attn_weights = layer_head_mask.view(1, -1, 1, 1) * attn_weights
+#         if layer_head_mask is not None:
+#             if layer_head_mask.size() != (self.num_heads,):
+#                 raise ValueError(
+#                     f"Head mask for a single layer should be of size {(self.num_heads,)}, but is"
+#                     f" {layer_head_mask.size()}"
+#                 )
+#             attn_weights = layer_head_mask.view(1, -1, 1, 1) * attn_weights
 
-        attn_probs = nn.functional.dropout(attn_weights, p=self.dropout, training=self.training)
-        attn_output = torch.matmul(attn_probs, value_states)
+#         attn_probs = nn.functional.dropout(attn_weights, p=self.dropout, training=self.training)
+#         attn_output = torch.matmul(attn_probs, value_states)
 
-        if attn_output.size() != (bsz, self.num_heads, tgt_len, self.head_dim):
-            raise ValueError(
-                f"`attn_output` should be of size {(bsz, self.num_heads, tgt_len, self.head_dim)}, but is"
-                f" {attn_output.size()}"
-            )
+#         if attn_output.size() != (bsz, self.num_heads, tgt_len, self.head_dim):
+#             raise ValueError(
+#                 f"`attn_output` should be of size {(bsz, self.num_heads, tgt_len, self.head_dim)}, but is"
+#                 f" {attn_output.size()}"
+#             )
 
-        attn_output = attn_output.transpose(1, 2)
-        # Use the `embed_dim` from the config (stored in the class) rather than `hidden_state` because `attn_output` can be
-        # partitioned across GPUs when using tensor-parallelism.
-        attn_output = attn_output.reshape(bsz, tgt_len, self.embed_dim)
+#         attn_output = attn_output.transpose(1, 2)
+#         # Use the `embed_dim` from the config (stored in the class) rather than `hidden_state` because `attn_output` can be
+#         # partitioned across GPUs when using tensor-parallelism.
+#         attn_output = attn_output.reshape(bsz, tgt_len, self.embed_dim)
 
-        attn_output = self.out_proj(attn_output)
+#         attn_output = self.out_proj(attn_output)
 
-        return attn_output, attn_weights, None
+#         return attn_output, attn_weights, None
 
+# class Qwen2AudioSdpaAttention(Qwen2AudioAttention):
+#     @deprecate_kwarg("key_value_states", version="4.52")
+#     @deprecate_kwarg("past_key_value", version="4.52")
+#     @deprecate_kwarg("cache_position", version="4.52")
+#     def forward(
+#         self,
+#         hidden_states: torch.Tensor,
+#         key_value_states: Optional[torch.Tensor] = None,
+#         past_key_value: Optional[Cache] = None,
+#         attention_mask: Optional[torch.Tensor] = None,
+#         layer_head_mask: Optional[torch.Tensor] = None,
+#         output_attentions: bool = False,
+#         cache_position: Optional[torch.LongTensor] = None,
+#     ) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[Tuple[torch.Tensor]]]:
+#         """Input shape: Batch x Time x Channel"""
+#         if output_attentions:
+#             # TODO: Improve this warning with e.g. `model.config._attn_implementation = "manual"` once this is implemented.
+#             logger.warning_once(
+#                 "Qwen2AudioModel is using Qwen2AudioSdpaAttention, but `torch.nn.functional.scaled_dot_product_attention` does not support `output_attentions=True`. Falling back to the manual attention"
+#                 ' implementation, but specifying the manual implementation will be required from Transformers version v5.0.0 onwards. This warning can be removed using the argument `attn_implementation="eager"` when loading the model.'
+#             )
+#             return super().forward(
+#                 hidden_states,
+#                 attention_mask=attention_mask,
+#                 output_attentions=output_attentions,
+#             )
 
-class Qwen2AudioFlashAttention2(Qwen2AudioAttention):
-    """
-    Qwen2Audio flash attention module. This module inherits from `Qwen2AudioAttention` as the weights of the module stays
-    untouched. The only required change would be on the forward pass where it needs to correctly call the public API of
-    flash attention and deal with padding tokens in case the input contains any of them.
-    """
+#         bsz, tgt_len, _ = hidden_states.size()
 
-    # Copied from transformers.models.whisper.modeling_whisper.WhisperFlashAttention2.__init__ with Whisper->Qwen2Audio
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+#         # get query proj
+#         query_states = self._shape(self.q_proj(hidden_states), tgt_len, bsz)
+#         key_states = self._shape(self.k_proj(hidden_states), -1, bsz)
+#         value_states = self._shape(self.v_proj(hidden_states), -1, bsz)
 
-        # TODO: Should be removed once Flash Attention for RoCm is bumped to 2.1.
-        # flash_attn<2.1 generates top-left aligned causal mask, while what is needed here is bottom-right alignment, that was made default for flash_attn>=2.1. This attribute is used to handle this difference. Reference: https://github.com/Dao-AILab/flash-attention/releases/tag/v2.1.0.
-        # Beware that with flash_attn<2.1, using q_seqlen != k_seqlen (except for the case q_seqlen == 1) produces a wrong mask (top-left).
-        self._flash_attn_uses_top_left_mask = flash_attn_supports_top_left_mask()
+#         causal_mask = attention_mask
+#         if attention_mask is not None:  # no matter the length, we just slice it
+#             causal_mask = attention_mask[:, :, :, : key_states.shape[-2]]
 
-    @deprecate_kwarg("key_value_states", version="4.52")
-    @deprecate_kwarg("past_key_value", version="4.52")
-    @deprecate_kwarg("cache_position", version="4.52")
-    def forward(
-        self,
-        hidden_states: torch.Tensor,
-        key_value_states: Optional[torch.Tensor] = None,
-        past_key_value: Optional[Cache] = None,
-        attention_mask: Optional[torch.Tensor] = None,
-        layer_head_mask: Optional[torch.Tensor] = None,
-        output_attentions: bool = False,
-        cache_position: Optional[torch.LongTensor] = None,
-    ) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[Tuple[torch.Tensor]]]:
-        # Qwen2AudioFlashAttention2 attention does not support output_attentions
-        if output_attentions:
-            raise ValueError("Qwen2AudioFlashAttention2 attention does not support output_attentions")
+#         # We dispatch to SDPA's Flash Attention or Efficient kernels via this `is_causal` if statement instead of an inline conditional assignment
+#         # in SDPA to support both torch.compile's dynamic shapes and full graph options. An inline conditional prevents dynamic shapes from compiling.
+#         # The tgt_len > 1 is necessary to match with AttentionMaskConverter.to_causal_4d that does not create a causal mask in case tgt_len == 1.
+#         is_causal = True if self.is_causal and causal_mask is None and tgt_len > 1 else False
 
-        bsz, tgt_len, _ = hidden_states.size()
+#         # NOTE: SDPA with memory-efficient backend is currently (torch==2.1.2) bugged when using non-contiguous inputs and a custom attn_mask,
+#         # but we are fine here as `_shape` do call `.contiguous()`. Reference: https://github.com/pytorch/pytorch/issues/112577
+#         attn_output = torch.nn.functional.scaled_dot_product_attention(
+#             query_states,
+#             key_states,
+#             value_states,
+#             attn_mask=causal_mask,
+#             dropout_p=self.dropout if self.training else 0.0,
+#             is_causal=is_causal,
+#         )
 
-        # get query proj
-        query_states = torch.reshape(self.q_proj(hidden_states), (bsz, tgt_len, self.num_heads, self.head_dim))
-        key_states = self._shape(self.k_proj(hidden_states), -1, bsz)
-        value_states = self._shape(self.v_proj(hidden_states), -1, bsz)
+#         if attn_output.size() != (bsz, self.num_heads, tgt_len, self.head_dim):
+#             raise ValueError(
+#                 f"`attn_output` should be of size {(bsz, self.num_heads, tgt_len, self.head_dim)}, but is"
+#                 f" {attn_output.size()}"
+#             )
 
-        # TODO: These transpose are quite inefficient but Flash Attention requires the layout [batch_size, sequence_length, num_heads, head_dim]
-        #  We would need to refactor the KV cache to be able to avoid many of these transpose/reshape/view.
-        key_states = key_states.transpose(1, 2)
-        value_states = value_states.transpose(1, 2)
+#         attn_output = attn_output.transpose(1, 2)
 
-        causal_mask = attention_mask
-        if attention_mask is not None:  # no matter the length, we just slice it
-            causal_mask = attention_mask[:, : key_states.shape[1]]
+#         # Use the `embed_dim` from the config (stored in the class) rather than `hidden_state` because `attn_output` can be
+#         # partitioned across GPUs when using tensor-parallelism.
+#         attn_output = attn_output.reshape(bsz, tgt_len, self.embed_dim)
 
-        # In PEFT, usually we cast the layer norms in float32 for training stability reasons
-        # therefore the input hidden states gets silently casted in float32. Hence, we need
-        # cast them back in the correct dtype just to be sure everything works as expected.
-        # This might slowdown training & inference so it is recommended to not cast the LayerNorms
-        # in fp32. (LlamaRMSNorm handles it correctly)
+#         attn_output = self.out_proj(attn_output)
 
-        input_dtype = query_states.dtype
-        if input_dtype == torch.float32:
-            if torch.is_autocast_enabled():
-                target_dtype = torch.get_autocast_gpu_dtype()
-            # Handle the case where the model is quantized
-            elif hasattr(self.config, "_pre_quantization_dtype"):
-                target_dtype = self.config._pre_quantization_dtype
-            else:
-                target_dtype = self.q_proj.weight.dtype
-
-            logger.warning_once(
-                f"The input hidden states seems to be silently casted in float32, this might be related to"
-                f" the fact you have upcasted embedding or layer norm layers in float32. We will cast back the input in"
-                f" {target_dtype}."
-            )
-
-            query_states = query_states.to(target_dtype)
-            key_states = key_states.to(target_dtype)
-            value_states = value_states.to(target_dtype)
-
-        attn_output = _flash_attention_forward(
-            query_states,
-            key_states,
-            value_states,
-            causal_mask,
-            tgt_len,
-            dropout=self.dropout if self.training else 0.0,
-            is_causal=self.is_causal,
-            use_top_left_mask=self._flash_attn_uses_top_left_mask,
-        )
-
-        attn_output = attn_output.reshape(bsz, tgt_len, -1)
-        attn_output = self.out_proj(attn_output)
-
-        if not output_attentions:
-            attn_weights = None
-
-        return attn_output, attn_weights, None
+#         return attn_output, None, None
 
 
-class Qwen2AudioSdpaAttention(Qwen2AudioAttention):
-    @deprecate_kwarg("key_value_states", version="4.52")
-    @deprecate_kwarg("past_key_value", version="4.52")
-    @deprecate_kwarg("cache_position", version="4.52")
-    def forward(
-        self,
-        hidden_states: torch.Tensor,
-        key_value_states: Optional[torch.Tensor] = None,
-        past_key_value: Optional[Cache] = None,
-        attention_mask: Optional[torch.Tensor] = None,
-        layer_head_mask: Optional[torch.Tensor] = None,
-        output_attentions: bool = False,
-        cache_position: Optional[torch.LongTensor] = None,
-    ) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[Tuple[torch.Tensor]]]:
-        """Input shape: Batch x Time x Channel"""
-        if output_attentions:
-            # TODO: Improve this warning with e.g. `model.config._attn_implementation = "manual"` once this is implemented.
-            logger.warning_once(
-                "Qwen2AudioModel is using Qwen2AudioSdpaAttention, but `torch.nn.functional.scaled_dot_product_attention` does not support `output_attentions=True`. Falling back to the manual attention"
-                ' implementation, but specifying the manual implementation will be required from Transformers version v5.0.0 onwards. This warning can be removed using the argument `attn_implementation="eager"` when loading the model.'
-            )
-            return super().forward(
-                hidden_states,
-                attention_mask=attention_mask,
-                output_attentions=output_attentions,
-            )
-
-        bsz, tgt_len, _ = hidden_states.size()
-
-        # get query proj
-        query_states = self._shape(self.q_proj(hidden_states), tgt_len, bsz)
-        key_states = self._shape(self.k_proj(hidden_states), -1, bsz)
-        value_states = self._shape(self.v_proj(hidden_states), -1, bsz)
-
-        causal_mask = attention_mask
-        if attention_mask is not None:  # no matter the length, we just slice it
-            causal_mask = attention_mask[:, :, :, : key_states.shape[-2]]
-
-        # We dispatch to SDPA's Flash Attention or Efficient kernels via this `is_causal` if statement instead of an inline conditional assignment
-        # in SDPA to support both torch.compile's dynamic shapes and full graph options. An inline conditional prevents dynamic shapes from compiling.
-        # The tgt_len > 1 is necessary to match with AttentionMaskConverter.to_causal_4d that does not create a causal mask in case tgt_len == 1.
-        is_causal = True if self.is_causal and causal_mask is None and tgt_len > 1 else False
-
-        # NOTE: SDPA with memory-efficient backend is currently (torch==2.1.2) bugged when using non-contiguous inputs and a custom attn_mask,
-        # but we are fine here as `_shape` do call `.contiguous()`. Reference: https://github.com/pytorch/pytorch/issues/112577
-        attn_output = torch.nn.functional.scaled_dot_product_attention(
-            query_states,
-            key_states,
-            value_states,
-            attn_mask=causal_mask,
-            dropout_p=self.dropout if self.training else 0.0,
-            is_causal=is_causal,
-        )
-
-        if attn_output.size() != (bsz, self.num_heads, tgt_len, self.head_dim):
-            raise ValueError(
-                f"`attn_output` should be of size {(bsz, self.num_heads, tgt_len, self.head_dim)}, but is"
-                f" {attn_output.size()}"
-            )
-
-        attn_output = attn_output.transpose(1, 2)
-
-        # Use the `embed_dim` from the config (stored in the class) rather than `hidden_state` because `attn_output` can be
-        # partitioned across GPUs when using tensor-parallelism.
-        attn_output = attn_output.reshape(bsz, tgt_len, self.embed_dim)
-
-        attn_output = self.out_proj(attn_output)
-
-        return attn_output, None, None
-
-
-QWEN2AUDIO_ATTENTION_CLASSES = {
-    "eager": Qwen2AudioAttention,
-    "flash_attention_2": Qwen2AudioFlashAttention2,
-    "sdpa": Qwen2AudioSdpaAttention,
-}
+# QWEN2AUDIO_ATTENTION_CLASSES = {
+#     "eager": Qwen2AudioAttention,
+#     "flash_attention_2": Qwen2AudioFlashAttention2,
+#     "sdpa": Qwen2AudioSdpaAttention,
+# }
 
 
 # Copied from transformers.models.whisper.modeling_whisper.WhisperEncoderLayer with Whisper->Qwen2Audio, WHISPER->QWEN2AUDIO
@@ -381,15 +286,23 @@ class Qwen2AudioEncoderLayer(nn.Module):
         super().__init__()
         self.embed_dim = config.d_model
 
-        self.self_attn = QWEN2AUDIO_ATTENTION_CLASSES[config._attn_implementation](
-            embed_dim=self.embed_dim,
-            num_heads=config.encoder_attention_heads,
-            dropout=config.attention_dropout,
-            config=config,
+        # self.self_attn = QWEN2AUDIO_ATTENTION_CLASSES[config._attn_implementation](
+        #     embed_dim=self.embed_dim,
+        #     num_heads=config.encoder_attention_heads,
+        #     dropout=config.attention_dropout,
+        #     config=config,
+        # )
+        self.self_attn = MultiHeadedAttention(
+            n_head=config.encoder_attention_heads,
+            n_feat=self.embed_dim,
+            dropout_rate=config.attention_dropout,
+            use_sdpa=True,
+            # causal=True,
         )
         self.self_attn_layer_norm = nn.LayerNorm(self.embed_dim)
         self.dropout = config.dropout
-        self.activation_fn = ACT2FN[config.activation_function]
+        # self.activation_fn = ACT2FN[config.activation_function]
+        self.activation_fn = nn.GELU()
         self.activation_dropout = config.activation_dropout
         self.fc1 = nn.Linear(self.embed_dim, config.encoder_ffn_dim)
         self.fc2 = nn.Linear(config.encoder_ffn_dim, self.embed_dim)
@@ -676,7 +589,8 @@ class Qwen2AudioMultiModalProjector(nn.Module):
 class Qwen2AudioForConditionalGeneration(Qwen2AudioPreTrainedModel, GenerationMixin):
     def __init__(self, config: Qwen2AudioConfig):
         super().__init__(config)
-        self.audio_tower = AutoModel.from_config(config.audio_config)  # Usually a `Qwen2AudioEncoder` instance
+        # self.audio_tower = AutoModel.from_config(config.audio_config)  # Usually a `Qwen2AudioEncoder` instance
+        self.audio_tower = Qwen2AudioEncoder(config.audio_config)
 
         self.multi_modal_projector = Qwen2AudioMultiModalProjector(config)
         self.vocab_size = config.text_config.vocab_size
