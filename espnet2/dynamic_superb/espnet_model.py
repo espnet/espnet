@@ -1,13 +1,13 @@
 import yaml
 from typing import Dict, List, Optional, Tuple, Union
 
-import librosa
 import torch
-from transformers import AutoProcessor, Qwen2AudioForConditionalGeneration
+from transformers import AutoProcessor
 from typeguard import typechecked
 
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.torch_utils.device_funcs import force_gatherable
+from .modeling_qwen2 import Qwen2AudioForConditionalGeneration
 
 class ESPnetQwen2AudioModel(AbsESPnetModel):
     """ESPnet model integrating Qwen2-Audio from transformers"""
