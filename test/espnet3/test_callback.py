@@ -95,6 +95,7 @@ def test_get_default_callbacks_structure():
     has_ave = any(isinstance(cb, AverageCheckpointsCallback) for cb in callbacks)
     assert has_ave
 
+
 def test_average_checkpoints_with_multiple_metrics(tmp_path, dummy_state_dict):
     """Test averaging for multiple ModelCheckpoint instances with different monitor names."""
     ckpt_paths_1 = [tmp_path / f"ckpt_loss_{i}.ckpt" for i in range(2)]
@@ -107,8 +108,14 @@ def test_average_checkpoints_with_multiple_metrics(tmp_path, dummy_state_dict):
         callback = AverageCheckpointsCallback(
             output_dir=str(tmp_path),
             best_ckpt_callbacks=[
-                mock.Mock(best_k_models={str(p): 0.0 for p in ckpt_paths_1}, monitor="valid/loss"),
-                mock.Mock(best_k_models={str(p): 0.0 for p in ckpt_paths_2}, monitor="valid/acc"),
+                mock.Mock(
+                    best_k_models={str(p): 0.0 for p in ckpt_paths_1},
+                    monitor="valid/loss",
+                ),
+                mock.Mock(
+                    best_k_models={str(p): 0.0 for p in ckpt_paths_2},
+                    monitor="valid/acc",
+                ),
             ],
         )
         trainer = mock.Mock(is_global_zero=True)
@@ -118,6 +125,7 @@ def test_average_checkpoints_with_multiple_metrics(tmp_path, dummy_state_dict):
         filenames = [Path(call.args[1]).name for call in mock_save.call_args_list]
         assert "valid.loss.ave_2best.pth" in filenames
         assert "valid.acc.ave_2best.pth" in filenames
+
 
 def test_output_filename_format(tmp_path, dummy_state_dict):
     """C006: Ensure output filename is formatted properly with monitor name and number of checkpoints."""
@@ -142,8 +150,9 @@ def test_output_filename_format(tmp_path, dummy_state_dict):
         filename = Path(mock_save.call_args[0][1]).name
         assert filename == "some.metric.ave_3best.pth"
 
+
 def test_average_checkpoint_on_non_global_zero(tmp_path, dummy_state_dict):
-    """ Ensure averaging does nothing when not global rank 0."""
+    """Ensure averaging does nothing when not global rank 0."""
     with (
         mock.patch("torch.load", return_value=dummy_state_dict),
         mock.patch("torch.save") as mock_save,
@@ -159,6 +168,7 @@ def test_average_checkpoint_on_non_global_zero(tmp_path, dummy_state_dict):
 
         mock_save.assert_not_called()
 
+
 def test_average_checkpoint_with_inconsistent_keys(tmp_path):
     """Raise error when checkpoints have inconsistent keys."""
     ckpt_path1 = tmp_path / "ckpt_1.ckpt"
@@ -166,26 +176,33 @@ def test_average_checkpoint_with_inconsistent_keys(tmp_path):
 
     inconsistent_state_dicts = [
         {"state_dict": {"model.layer.weight": torch.tensor([1.0])}},  # 1 key
-        {"state_dict": {
-            "model.layer.weight": torch.tensor([1.0]),
-            "model.layer.bias": torch.tensor([0.5]),
-        }},
+        {
+            "state_dict": {
+                "model.layer.weight": torch.tensor([1.0]),
+                "model.layer.bias": torch.tensor([0.5]),
+            }
+        },
     ]
 
     def load_side_effect(path, *args, **kwargs):
         return inconsistent_state_dicts.pop(0)
 
-    with \
-        mock.patch("torch.load", side_effect=load_side_effect), \
-        pytest.raises(KeyError):
+    with (
+        mock.patch("torch.load", side_effect=load_side_effect),
+        pytest.raises(KeyError),
+    ):
         callback = AverageCheckpointsCallback(
             output_dir=str(tmp_path),
             best_ckpt_callbacks=[
-                mock.Mock(best_k_models={str(ckpt_path1): 0.0, str(ckpt_path2): 0.0}, monitor="valid/loss")
+                mock.Mock(
+                    best_k_models={str(ckpt_path1): 0.0, str(ckpt_path2): 0.0},
+                    monitor="valid/loss",
+                )
             ],
         )
         trainer = mock.Mock(is_global_zero=True)
         callback.on_fit_end(trainer, pl_module=mock.Mock())
+
 
 def test_average_checkpoint_with_int_and_float_mix(tmp_path):
     """Ensure float params are averaged, int params are accumulated."""
@@ -210,13 +227,17 @@ def test_average_checkpoint_with_int_and_float_mix(tmp_path):
     def load_side_effect(path, *args, **kwargs):
         return mock_state_dicts.pop(0)
 
-    with \
-        mock.patch("torch.load", side_effect=load_side_effect), \
-        mock.patch("torch.save") as mock_save:
+    with (
+        mock.patch("torch.load", side_effect=load_side_effect),
+        mock.patch("torch.save") as mock_save,
+    ):
         callback = AverageCheckpointsCallback(
             output_dir=str(tmp_path),
             best_ckpt_callbacks=[
-                mock.Mock(best_k_models={str(ckpt_path1): 0.0, str(ckpt_path2): 0.0}, monitor="valid/loss")
+                mock.Mock(
+                    best_k_models={str(ckpt_path1): 0.0, str(ckpt_path2): 0.0},
+                    monitor="valid/loss",
+                )
             ],
         )
         trainer = mock.Mock(is_global_zero=True)
