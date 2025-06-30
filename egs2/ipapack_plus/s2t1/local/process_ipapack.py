@@ -118,15 +118,17 @@ def main(root_dir, output_dir, lang_dist_json, draw_only=False):
             os.makedirs(process_dir, exist_ok=True)
 
             # Copy necessary files from dump_dir to process_dir
-            for file_name in copy_files:
-                src_file = os.path.join(dump_dir, file_name)
-                dst_file = os.path.join(process_dir, file_name)
-                if os.path.exists(src_file):
-                    with open(src_file, "r") as src, open(dst_file, "w") as dst:
-                        dst.write(src.read())
+            if os.path.abspath(dump_dir) != os.path.abspath(process_dir):
+                for file_name in copy_files:
+                    src_file = os.path.join(dump_dir, file_name)
+                    dst_file = os.path.join(process_dir, file_name)
+                        if os.path.exists(src_file):
+                            shutil.copy2(src_file, dst_file)
+            else:
+                print(f"Skip copying: source and destination are the same")
 
             # Read orthography and phoneme sequences
-            with open(os.path.join(dump_dir, "orthography"), "r") as orth_file:
+            with open(os.path.join(data_dir_path, "orthography"), "r") as orth_file:
                 orthography = orth_file.readlines()
             with open(os.path.join(dump_dir, "text"), "r") as phoneme_file:
                 phoneme_seq = phoneme_file.readlines()
@@ -166,29 +168,18 @@ def main(root_dir, output_dir, lang_dist_json, draw_only=False):
             #   text.p2g_ctc: graphemes, no task tokens
             # note - the contents for each file across tasks may be the same
             #   but the utterance IDs need to be different
-            with open(os.path.join(process_dir, "text"), "w") as pr_text, open(
-                os.path.join(process_dir, "text.prev"), "w"
-            ) as prev_text, open(
-                os.path.join(process_dir, "text.ctc"), "w"
-            ) as text_ctc, open(
-                os.path.join(process_dir, "text.asr"), "w"
-            ) as asr_text, open(
-                os.path.join(process_dir, "text.asr_prev"), "w"
-            ) as asr_text_prev, open(
-                os.path.join(process_dir, "text.asr_ctc"), "w"
-            ) as asr_text_ctc, open(
-                os.path.join(process_dir, "text.g2p"), "w"
-            ) as g2p_text, open(
-                os.path.join(process_dir, "text.g2p_prev"), "w"
-            ) as prev_g2p_text, open(
-                os.path.join(process_dir, "text.g2p_ctc"), "w"
-            ) as g2p_text_ctc, open(
-                os.path.join(process_dir, "text.p2g"), "w"
-            ) as p2g_text, open(
-                os.path.join(process_dir, "text.p2g_prev"), "w"
-            ) as prev_p2g_text, open(
-                os.path.join(process_dir, "text.p2g_ctc"), "w"
-            ) as p2g_ctc:
+            with open(os.path.join(process_dir, "text"), "w") as pr_text, \
+                open(os.path.join(process_dir, "text.prev"), "w") as prev_text, \
+                open(os.path.join(process_dir, "text.ctc"), "w") as text_ctc, \
+                open(os.path.join(process_dir, "text.asr"), "w") as asr_text, \
+                open(os.path.join(process_dir, "text.asr_prev"), "w") as asr_text_prev, \
+                open(os.path.join(process_dir, "text.asr_ctc"), "w") as asr_text_ctc, \
+                open(os.path.join(process_dir, "text.g2p"), "w") as g2p_text, \
+                open(os.path.join(process_dir, "text.g2p_prev"), "w") as prev_g2p_text, \
+                open(os.path.join(process_dir, "text.g2p_ctc"), "w") as g2p_text_ctc, \
+                open(os.path.join(process_dir, "text.p2g"), "w") as p2g_text, \
+                open(os.path.join(process_dir, "text.p2g_prev"), "w") as prev_p2g_text, \
+                open(os.path.join(process_dir, "text.p2g_ctc"), "w") as p2g_ctc :
 
                 for utt_id, p in utt2phoneme_seq.items():
                     p = "".join([f"/{char}/" for char in p.split()])

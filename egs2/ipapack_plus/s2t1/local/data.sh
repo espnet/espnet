@@ -50,7 +50,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     for dir in data/*; do
         utils/fix_data_dir.sh --utt_extra_files "orthography" $dir
-        utils/validate_data_dir.sh --no-feats $dir || exit 1
+        utils/validate_data_dir.sh --non-print --no-feats $dir || exit 1
         # make empty files for not-yet generated extra texts
         touch $dir/text.prev $dir/text.ctc
     done
