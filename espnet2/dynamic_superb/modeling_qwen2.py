@@ -328,11 +328,12 @@ class Qwen2AudioEncoderLayer(nn.Module):
         """
         residual = hidden_states
         hidden_states = self.self_attn_layer_norm(hidden_states)
-        hidden_states, attn_weights, _ = self.self_attn(
-            hidden_states=hidden_states,
-            attention_mask=attention_mask,
-            layer_head_mask=layer_head_mask,
-            output_attentions=output_attentions,
+        hidden_states = self.self_attn(
+            query=hidden_states,
+            key=hidden_states,
+            value=hidden_states,
+            mask=attention_mask,
+            expand_kv=False,
         )
         hidden_states = nn.functional.dropout(hidden_states, p=self.dropout, training=self.training)
         hidden_states = residual + hidden_states
@@ -352,7 +353,7 @@ class Qwen2AudioEncoderLayer(nn.Module):
         outputs = (hidden_states,)
 
         if output_attentions:
-            outputs += (attn_weights,)
+            raise NotImplementedError("output_attentions is not implemented")
 
         return outputs
 
