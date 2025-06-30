@@ -7,6 +7,25 @@ from lightning.pytorch.callbacks import ModelCheckpoint
 
 from espnet3.trainer.callbacks import AverageCheckpointsCallback, get_default_callbacks
 
+# ===============================================================
+# Test Case Summary for AverageCheckpointsCallback
+# ===============================================================
+#
+# Normal Cases
+# | Test Name                                      | Description                                                                                      | # noqa: E501
+# |-----------------------------------------------|--------------------------------------------------------------------------------------------------| # noqa: E501
+# | test_average_checkpoints_callback_on_fit_end  | Verifies that checkpoint averaging and saving works correctly with dummy weights.               | # noqa: E501
+# | test_get_default_callbacks_structure          | Checks structure and types of callbacks returned by get_default_callbacks().                    | # noqa: E501
+# | test_average_checkpoints_with_multiple_metrics| Confirms correct averaging for multiple ModelCheckpoint instances with different monitor names. | # noqa: E501
+# | test_output_filename_format                   | Ensures output filename is formatted using monitor name and checkpoint count.                   | # noqa: E501
+#
+# Edge/Error Cases
+# | Test Name                                      | Description                                                                                      | # noqa: E501
+# |-----------------------------------------------|--------------------------------------------------------------------------------------------------| # noqa: E501
+# | test_average_checkpoint_on_non_global_zero    | Ensures callback is skipped when trainer.is_global_zero is False (e.g., non-main DDP rank).     | # noqa: E501
+# | test_average_checkpoint_with_inconsistent_keys| Raises KeyError if state_dict keys differ across checkpoints.                                    | # noqa: E501
+# | test_average_checkpoint_with_int_and_float_mix| Confirms floats are averaged and ints are accumulated properly during checkpoint merging.       | # noqa: E501
+
 
 @pytest.fixture
 def dummy_state_dict():
@@ -22,7 +41,7 @@ def dummy_state_dict():
 def test_average_checkpoints_callback_on_fit_end(tmp_path, dummy_state_dict):
     """Test average checkpoints.
 
-    C001: Ensure AverageCheckpointsCallback correctly averages and saves model.
+    Ensure AverageCheckpointsCallback correctly averages and saves model.
     """
     ckpt_paths = [tmp_path / f"ckpt_{i}.ckpt" for i in range(2)]
 
@@ -59,7 +78,7 @@ def test_average_checkpoints_callback_on_fit_end(tmp_path, dummy_state_dict):
 def test_get_default_callbacks_structure():
     """Test Get default callbacks.
 
-    C002: Verify the structure and types of callbacks returned.
+    Verify the structure and types of callbacks returned.
     """
     callbacks = get_default_callbacks(
         expdir="test_utils/espnet3_dummy/",
@@ -75,3 +94,136 @@ def test_get_default_callbacks_structure():
 
     has_ave = any(isinstance(cb, AverageCheckpointsCallback) for cb in callbacks)
     assert has_ave
+
+def test_average_checkpoints_with_multiple_metrics(tmp_path, dummy_state_dict):
+    """Test averaging for multiple ModelCheckpoint instances with different monitor names."""
+    ckpt_paths_1 = [tmp_path / f"ckpt_loss_{i}.ckpt" for i in range(2)]
+    ckpt_paths_2 = [tmp_path / f"ckpt_acc_{i}.ckpt" for i in range(2)]
+
+    with (
+        mock.patch("torch.load", return_value=dummy_state_dict),
+        mock.patch("torch.save") as mock_save,
+    ):
+        callback = AverageCheckpointsCallback(
+            output_dir=str(tmp_path),
+            best_ckpt_callbacks=[
+                mock.Mock(best_k_models={str(p): 0.0 for p in ckpt_paths_1}, monitor="valid/loss"),
+                mock.Mock(best_k_models={str(p): 0.0 for p in ckpt_paths_2}, monitor="valid/acc"),
+            ],
+        )
+        trainer = mock.Mock(is_global_zero=True)
+        callback.on_fit_end(trainer, pl_module=mock.Mock())
+
+        assert mock_save.call_count == 2
+        filenames = [Path(call.args[1]).name for call in mock_save.call_args_list]
+        assert "valid.loss.ave_2best.pth" in filenames
+        assert "valid.acc.ave_2best.pth" in filenames
+
+def test_output_filename_format(tmp_path, dummy_state_dict):
+    """C006: Ensure output filename is formatted properly with monitor name and number of checkpoints."""
+    ckpt_paths = [tmp_path / f"ckpt_{i}.ckpt" for i in range(3)]
+
+    with (
+        mock.patch("torch.load", return_value=dummy_state_dict),
+        mock.patch("torch.save") as mock_save,
+    ):
+        callback = AverageCheckpointsCallback(
+            output_dir=str(tmp_path),
+            best_ckpt_callbacks=[
+                mock.Mock(
+                    best_k_models={str(p): 0.0 for p in ckpt_paths},
+                    monitor="some/metric",
+                )
+            ],
+        )
+        trainer = mock.Mock(is_global_zero=True)
+        callback.on_fit_end(trainer, pl_module=mock.Mock())
+
+        filename = Path(mock_save.call_args[0][1]).name
+        assert filename == "some.metric.ave_3best.pth"
+
+def test_average_checkpoint_on_non_global_zero(tmp_path, dummy_state_dict):
+    """ Ensure averaging does nothing when not global rank 0."""
+    with (
+        mock.patch("torch.load", return_value=dummy_state_dict),
+        mock.patch("torch.save") as mock_save,
+    ):
+        callback = AverageCheckpointsCallback(
+            output_dir=str(tmp_path),
+            best_ckpt_callbacks=[
+                mock.Mock(best_k_models={"dummy.ckpt": 0.0}, monitor="valid/loss")
+            ],
+        )
+        trainer = mock.Mock(is_global_zero=False)
+        callback.on_fit_end(trainer, pl_module=mock.Mock())
+
+        mock_save.assert_not_called()
+
+def test_average_checkpoint_with_inconsistent_keys(tmp_path):
+    """Raise error when checkpoints have inconsistent keys."""
+    ckpt_path1 = tmp_path / "ckpt_1.ckpt"
+    ckpt_path2 = tmp_path / "ckpt_2.ckpt"
+
+    inconsistent_state_dicts = [
+        {"state_dict": {"model.layer.weight": torch.tensor([1.0])}},  # 1 key
+        {"state_dict": {
+            "model.layer.weight": torch.tensor([1.0]),
+            "model.layer.bias": torch.tensor([0.5]),
+        }},
+    ]
+
+    def load_side_effect(path, *args, **kwargs):
+        return inconsistent_state_dicts.pop(0)
+
+    with \
+        mock.patch("torch.load", side_effect=load_side_effect), \
+        pytest.raises(KeyError):
+        callback = AverageCheckpointsCallback(
+            output_dir=str(tmp_path),
+            best_ckpt_callbacks=[
+                mock.Mock(best_k_models={str(ckpt_path1): 0.0, str(ckpt_path2): 0.0}, monitor="valid/loss")
+            ],
+        )
+        trainer = mock.Mock(is_global_zero=True)
+        callback.on_fit_end(trainer, pl_module=mock.Mock())
+
+def test_average_checkpoint_with_int_and_float_mix(tmp_path):
+    """Ensure float params are averaged, int params are accumulated."""
+    ckpt_path1 = tmp_path / "ckpt_1.ckpt"
+    ckpt_path2 = tmp_path / "ckpt_2.ckpt"
+
+    mock_state_dicts = [
+        {
+            "state_dict": {
+                "model.weight": torch.tensor([2.0, 4.0]),
+                "model.counter": torch.tensor(10, dtype=torch.int64),
+            }
+        },
+        {
+            "state_dict": {
+                "model.weight": torch.tensor([6.0, 2.0]),
+                "model.counter": torch.tensor(30, dtype=torch.int64),
+            }
+        },
+    ]
+
+    def load_side_effect(path, *args, **kwargs):
+        return mock_state_dicts.pop(0)
+
+    with \
+        mock.patch("torch.load", side_effect=load_side_effect), \
+        mock.patch("torch.save") as mock_save:
+        callback = AverageCheckpointsCallback(
+            output_dir=str(tmp_path),
+            best_ckpt_callbacks=[
+                mock.Mock(best_k_models={str(ckpt_path1): 0.0, str(ckpt_path2): 0.0}, monitor="valid/loss")
+            ],
+        )
+        trainer = mock.Mock(is_global_zero=True)
+        callback.on_fit_end(trainer, pl_module=mock.Mock())
+
+        saved = mock_save.call_args[0][0]
+        # Float averaged
+        assert torch.allclose(saved["weight"], torch.tensor([4.0, 3.0]))
+        # Int not averaged
+        assert saved["counter"] == 40
