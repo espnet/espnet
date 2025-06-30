@@ -40,7 +40,8 @@ class AverageCheckpointsCallback(Callback):
         - Only keys that start with `model.` are included in the averaging.
         - The final filename will be:
             `{monitor_name}.ave_{K}best.pth`
-        - This callback only runs on the global rank 0 process (for distributed training).
+        - This callback only runs on the global rank 0 process
+            (for distributed training).
 
     Example:
         >>> avg_ckpt_cb = AverageCheckpointsCallback(
@@ -60,12 +61,10 @@ class AverageCheckpointsCallback(Callback):
                 checkpoints = list(ckpt_callback.best_k_models.keys())
 
                 avg_state_dict = None
-                reference_keys = None  
+                reference_keys = None
                 for ckpt_path in checkpoints:
                     state_dict = torch.load(
-                        ckpt_path,
-                        map_location="cpu",
-                        weights_only=False
+                        ckpt_path, map_location="cpu", weights_only=False
                     )
 
                     # for deepspeed checkpoints
@@ -74,7 +73,7 @@ class AverageCheckpointsCallback(Callback):
                     # for PytorchLightning checkpoints
                     if "state_dict" in state_dict:
                         state_dict = state_dict["state_dict"]
-            
+
                     if avg_state_dict is None:
                         avg_state_dict = state_dict
                         reference_keys = set(state_dict.keys())
@@ -89,7 +88,6 @@ class AverageCheckpointsCallback(Callback):
                             )
                         for k in avg_state_dict:
                             avg_state_dict[k] = avg_state_dict[k] + state_dict[k]
-                
 
                 for k in avg_state_dict:
                     if str(avg_state_dict[k].dtype).startswith("torch.int"):
@@ -130,22 +128,27 @@ def get_default_callbacks(
 
     Includes:
         - `ModelCheckpoint` for saving the last model checkpoint (`save_last`)
-        - One or more `ModelCheckpoint`s for saving the top-K checkpoints according to specific metrics
-        - `AverageCheckpointsCallback` to compute and save the average model from top-K checkpoints
+        - One or more `ModelCheckpoint`s for saving the top-K checkpoints according to
+            specific metrics
+        - `AverageCheckpointsCallback` to compute and save the average model from top-K
+            checkpoints
         - `LearningRateMonitor` to track and log learning rates during training
         - `TQDMProgressBar` to show a rich progress bar during training
 
     Args:
         expdir (str): Directory to store checkpoints and logs.
         log_interval (int): Frequency (in training steps) to refresh the progress bar.
-        best_model_criterion (List[Tuple[str, int, str]]): A list of criteria for saving top-K checkpoints.
+        best_model_criterion (List[Tuple[str, int, str]]): A list of criteria for
+            saving top-K checkpoints.
             Each item is a tuple: (metric_name, top_k, mode), where:
-            - `metric_name` (str): The name of the validation metric to monitor (e.g., "val/loss").
+            - `metric_name` (str): The name of the validation metric to monitor
+                (e.g., "val/loss").
             - `top_k` (int): Number of best models to keep.
             - `mode` (str): "min" to keep models with lowest metric, "max" for highest.
 
     Returns:
-        List[Callback]: A list of callbacks to be passed to the PyTorch Lightning Trainer.
+        List[Callback]: A list of callbacks to be passed to the PyTorch Lightning
+            Trainer.
 
     Example:
         >>> from callbacks import get_default_callbacks
