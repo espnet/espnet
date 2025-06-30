@@ -4,7 +4,6 @@ import logging
 
 import kaldiio
 import numpy as np
-
 from espnet.transform.transformation import Transformation
 from espnet.utils.cli_readers import file_reader_helper
 from espnet.utils.cli_utils import get_commandline_args, is_scipy_wav_style

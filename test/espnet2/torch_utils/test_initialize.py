@@ -40,4 +40,3 @@ def test_initialize(init):
             initialize(model, init)
     else:
         initialize(model, init)
-

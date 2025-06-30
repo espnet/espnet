@@ -9,11 +9,10 @@ import os
 
 import librosa
 import numpy as np
-from packaging.version import parse as V
-from scipy.io.wavfile import write
-
 from espnet.utils.cli_readers import file_reader_helper
 from espnet.utils.cli_utils import get_commandline_args
+from packaging.version import parse as V
+from scipy.io.wavfile import write
 
 EPS = 1e-10
 
