@@ -122,8 +122,8 @@ def main(root_dir, output_dir, lang_dist_json, draw_only=False):
                 for file_name in copy_files:
                     src_file = os.path.join(dump_dir, file_name)
                     dst_file = os.path.join(process_dir, file_name)
-                        if os.path.exists(src_file):
-                            shutil.copy2(src_file, dst_file)
+                    if os.path.exists(src_file):
+                        shutil.copy2(src_file, dst_file)
             else:
                 print(f"Skip copying: source and destination are the same")
 
