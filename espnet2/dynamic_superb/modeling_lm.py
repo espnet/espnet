@@ -37,7 +37,8 @@ logger = logging.get_logger(__name__)
 
 
 def _compute_default_rope_parameters(
-    config: Optional[PretrainedConfig] = None,
+    # config: Optional[PretrainedConfig] = None,
+    config: Optional = None,
     device: Optional["torch.device"] = None,
     seq_len: Optional[int] = None,
     **rope_kwargs,
