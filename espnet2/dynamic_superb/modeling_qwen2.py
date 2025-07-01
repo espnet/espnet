@@ -41,17 +41,18 @@ from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttenti
 
 from transformers.cache_utils import Cache
 from transformers.generation import GenerationMixin
-from transformers.modeling_flash_attention_utils import flash_attn_supports_top_left_mask, is_flash_attn_available
+# from transformers.modeling_flash_attention_utils import flash_attn_supports_top_left_mask
 from transformers.modeling_outputs import BaseModelOutput, ModelOutput
 from transformers.modeling_utils import PreTrainedModel
 from transformers.utils import auto_docstring, logging
-from transformers.utils.deprecation import deprecate_kwarg
-from transformers.models.auto import AutoModel, AutoModelForCausalLM
+# from transformers.utils.deprecation import deprecate_kwarg
+# from transformers.models.auto import AutoModel, AutoModelForCausalLM
 from transformers.models.qwen2_audio.configuration_qwen2_audio import Qwen2AudioConfig, Qwen2AudioEncoderConfig
 
+from .modeling_lm import Qwen2ForCausalLM
 
-if is_flash_attn_available():
-    from transformers.modeling_flash_attention_utils import _flash_attention_forward
+# if is_flash_attn_available():
+#     from transformers.modeling_flash_attention_utils import _flash_attention_forward
 
 
 logger = logging.get_logger(__name__)
@@ -596,7 +597,8 @@ class Qwen2AudioForConditionalGeneration(Qwen2AudioPreTrainedModel, GenerationMi
 
         self.multi_modal_projector = Qwen2AudioMultiModalProjector(config)
         self.vocab_size = config.text_config.vocab_size
-        self.language_model = AutoModelForCausalLM.from_config(config.text_config)
+        # self.language_model = AutoModelForCausalLM.from_config(config.text_config)
+        self.language_model = Qwen2ForCausalLM(config.text_config)
         if self.language_model._tied_weights_keys is not None:
             self._tied_weights_keys = [f"language_model.{k}" for k in self.language_model._tied_weights_keys]
 
