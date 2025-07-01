@@ -195,6 +195,7 @@ Options:
     --bpe_input_sentence_size # Size of input sentence for BPE (default="${bpe_input_sentence_size}").
     --bpe_nlsyms              # Non-linguistic symbol list for sentencepiece, separated by a comma or a file containing 1 symbol per line . (default="${bpe_nlsyms}").
     --bpe_char_cover          # Character coverage when modeling BPE (default="${bpe_char_cover}").
+    --bpe_largecorpus         # Set to true if using large corpus for BPE training (default="${bpe_largecorpus}").
 
     # Language model related
     --lm_tag          # Suffix to the result dir for language model training (default="${lm_tag}").
