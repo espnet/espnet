@@ -7,7 +7,10 @@ from typeguard import typechecked
 
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.torch_utils.device_funcs import force_gatherable
-from .modeling_qwen2 import Qwen2AudioForConditionalGeneration
+from espnet.nets.beam_search import BeamSearch
+# from .modeling_qwen2 import Qwen2AudioForConditionalGeneration
+from transformers import Qwen2AudioForConditionalGeneration
+from .qwen2_scorer import Qwen2HFScorer
 
 class ESPnetQwen2AudioModel(AbsESPnetModel):
     """ESPnet model integrating Qwen2-Audio from transformers"""
@@ -20,13 +23,14 @@ class ESPnetQwen2AudioModel(AbsESPnetModel):
         token_list: Union[Tuple[str, ...], List[str]] = (),
         ignore_id: int = -1,
         decode_config_path: Optional[str] = None,
+        use_espnet_beam_search: bool = False,
     ):
         super().__init__()
         
         self.model_name = model_name
-        self.vocab_size = vocab_size
         self.ignore_id = ignore_id
         self.token_list = token_list
+        self.use_espnet_beam_search = use_espnet_beam_search
         
         # Load Qwen2-Audio model and processor using standard transformers approach
         self.qwen2audio_model = Qwen2AudioForConditionalGeneration.from_pretrained(
@@ -38,15 +42,40 @@ class ESPnetQwen2AudioModel(AbsESPnetModel):
             model_name,
             trust_remote_code=True
         )
+        
+        # Get actual vocabulary size from the model
+        self.vocab_size = self.qwen2audio_model.config.vocab_size
+        print(f"Using vocabulary size: {self.vocab_size}")
 
-        self.decode_config = {"num_beams": 1, "length_penalty": 1.0, "maxlenratio": 0.0}
+        # Decode configuration
+        self.decode_config = {
+            "beam_size": 1, 
+            "penalty": 0.0, 
+            "maxlenratio": 0.0, 
+            "minlenratio": 0.0,
+            "ctc_weight": 0.0,
+            "lm_weight": 0.0,
+            "normalize_length": False,
+        }
+        
         if decode_config_path is not None:
-            with open(decode_config_path, "r") as f:
-                decode_config = yaml.safe_load(f)
-            self.decode_config["num_beams"] = decode_config["beam_size"]
-            self.decode_config["length_penalty"] = decode_config["penalty"]
-            self.decode_config["maxlenratio"] = decode_config["maxlenratio"]
-            self.decode_config["minlenratio"] = decode_config["minlenratio"]
+            try:
+                with open(decode_config_path, "r") as f:
+                    decode_config = yaml.safe_load(f)
+                self.decode_config.update(decode_config)
+                print(f"Loaded decode config: {decode_config}")
+            except FileNotFoundError:
+                print(f"Warning: decode config file {decode_config_path} not found, using defaults")
+        
+        # If beam search is enabled, ensure beam_size > 1
+        if self.use_espnet_beam_search and self.decode_config["beam_size"] <= 1:
+            print("Warning: beam_size <= 1 with ESPnet beam search enabled, setting beam_size=5")
+            self.decode_config["beam_size"] = 5
+        
+        # Initialize ESPnet beam search if enabled
+        if self.use_espnet_beam_search and self.decode_config["beam_size"] > 1:
+            print(f"Initializing ESPnet beam search with beam_size={self.decode_config['beam_size']}, vocab_size={self.vocab_size}")
+            
         
         # For inference-only, freeze the model parameters
         for param in self.qwen2audio_model.parameters():
@@ -67,6 +96,7 @@ class ESPnetQwen2AudioModel(AbsESPnetModel):
             stats: Dictionary of statistics for logging
             weight: Batch size for normalization
         """
+        self.scorer.to(speech.device)
         batch_size = speech.shape[0]
         
         # Since this is inference-only, return dummy loss
@@ -102,6 +132,61 @@ class ESPnetQwen2AudioModel(AbsESPnetModel):
         **kwargs,
     ) -> str:
         """Custom inference method using Qwen2-Audio"""
+        
+        if self.use_espnet_beam_search:
+            # Check if beam search is properly initialized
+            return self._inference_with_espnet_beam(
+                input_ids, attention_mask, input_features, feature_attention_mask
+            )
+        else:
+            return self._inference_with_hf_generate(
+                input_ids, attention_mask, input_features, feature_attention_mask
+            )
+    
+    def _inference_with_espnet_beam(self, input_ids, attention_mask, input_features, feature_attention_mask):
+        scorer = Qwen2HFScorer(
+            self.qwen2audio_model,
+            input_ids,
+            attention_mask,
+            input_features,
+            feature_attention_mask,
+        )
+
+        beam_search = BeamSearch(
+            beam_size=self.decode_config["beam_size"],
+            vocab_size=self.qwen2audio_model.config.vocab_size,
+            sos=self.qwen2audio_model.language_model.config.bos_token_id,
+            eos=self.qwen2audio_model.language_model.config.eos_token_id,
+            scorers={"decoder": scorer},
+            weights={"decoder": 1.0},
+            normalize_length=False,
+        )
+
+        # Run beam search
+        dummy_input = torch.zeros(input_ids.shape[1], dtype=torch.float, device=input_ids.device)
+        nbest = beam_search(dummy_input, maxlenratio=self.decode_config["maxlenratio"], minlenratio=self.decode_config["minlenratio"])  # input "xs" not used
+        best = nbest[0]
+
+        out_ids = best.yseq
+
+
+        prediction = self.processor.decode(
+            out_ids,
+            skip_special_tokens=True,
+            clean_up_tokenization_spaces=False,
+        )
+
+        return prediction
+    
+    def _inference_with_hf_generate(
+        self,
+        input_ids: torch.Tensor,
+        attention_mask: torch.Tensor,
+        input_features: torch.Tensor,
+        feature_attention_mask: torch.Tensor,
+    ) -> str:
+        """Inference using Hugging Face generate method"""
+        
         # Generate response
         if self.decode_config["maxlenratio"] > 0.0:
             input_length = input_ids.size(-1)
@@ -122,8 +207,8 @@ class ESPnetQwen2AudioModel(AbsESPnetModel):
                 do_sample=False,
                 max_new_tokens=max_length,
                 min_new_tokens=min_length,
-                num_beams=self.decode_config["num_beams"],
-                length_penalty=self.decode_config["length_penalty"],
+                num_beams=self.decode_config["beam_size"],
+                length_penalty=self.decode_config["penalty"],
             )
             
         # Extract only generated tokens

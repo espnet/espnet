@@ -42,6 +42,13 @@ class DynamicSuperbTask(AbsTask):
             help="Hugging Face model name for Qwen2-Audio",
         )
         
+        group.add_argument(
+            "--use_espnet_beam_search",
+            type=bool,
+            default=False,
+            help="Whether to use ESPnet beam search instead of Hugging Face generate",
+        )
+        
         # Add class choices
         for class_choices in cls.class_choices_list:
             class_choices.add_arguments(group)
@@ -77,6 +84,7 @@ class DynamicSuperbTask(AbsTask):
         """Build the Qwen2-Audio model[8]"""
         model = ESPnetQwen2AudioModel(
             model_name=args.model_name,
-            decode_config_path=args.decode_config_path,
+            decode_config_path=getattr(args, 'decode_config_path', None),
+            use_espnet_beam_search=getattr(args, 'use_espnet_beam_search', True),
         )
         return model
