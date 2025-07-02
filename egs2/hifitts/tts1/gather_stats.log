@@ -1,0 +1,5 @@
+2025-06-25T17:12:42 (tts.sh:225:main) ./tts.sh --use_sid true --fs 22050 --n_fft 1024 --n_shift 256 --win_length null --dumpdir dump/22k --expdir exp/22k --tts_task gan_tts --feats_extract linear_spectrogram --feats_normalize none --train_config conf/tuning/train_multi_spk_vits.yaml --inference_config conf/tuning/decode_vits.yaml --train_set tr_no_dev --valid_set dev --test_sets test --srctexts data/tr_no_dev/text data/dev/text data/test/text --audio_format flac --stage 6 --stop_stage 6 --ngpu 0 --nj 2 --train_args --num_workers 1
+2025-06-25T17:12:44 (tts.sh:592:main) Stage 6: TTS collect stats: train_set=dump/22k/raw/tr_no_dev, valid_set=dump/22k/raw/dev
+2025-06-25T17:12:44 (tts.sh:679:main) Generate 'exp/22k/tts_stats_raw_linear_spectrogram_phn_tacotron_g2p_en/run.sh'. You can resume the process from stage 6 using this script
+2025-06-25T17:12:44 (tts.sh:683:main) TTS collect_stats started... log: 'exp/22k/tts_stats_raw_linear_spectrogram_phn_tacotron_g2p_en/logdir/stats.*.log'
+Caught a signal: Interrupted system call , deleting SLURM task: 32996941 and exiting

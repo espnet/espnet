@@ -1,0 +1,9 @@
+2025-06-30T18:24:59 (tts.sh:226:main) ./tts.sh --use_sid true --fs 22050 --n_fft 1024 --n_shift 256 --win_length null --dumpdir dump/22k --expdir exp/22k --tts_task gan_tts --feats_extract linear_spectrogram --feats_normalize none --train_config conf/tuning/train_multi_spk_vits.yaml --inference_config conf/tuning/decode_vits.yaml --train_set tr_no_dev --valid_set dev --test_sets test --srctexts data/tr_no_dev/text data/dev/text data/test/text --audio_format flac --stage 8 --stop_stage 11
+2025-06-30T18:25:10 (tts.sh:975:main) Stage 8: Decoding: training_dir=exp/22k/tts_train_multi_spk_vits_raw_phn_tacotron_g2p_en
+2025-06-30T18:25:10 (tts.sh:998:main) Generate 'exp/22k/tts_train_multi_spk_vits_raw_phn_tacotron_g2p_en/decode_vits_latest/run.sh'. You can resume the process from stage 8 using this script
+2025-06-30T18:25:10 (tts.sh:1052:main) Decoding started... log: 'exp/22k/tts_train_multi_spk_vits_raw_phn_tacotron_g2p_en/decode_vits_latest/test/log/tts_inference.*.log'
+2025-06-30T18:33:50 (tts.sh:1127:main) Stage 9: Scoring: TTS scoring via versa logs on exp/22k/tts_train_multi_spk_vits_raw_phn_tacotron_g2p_en/decode_vits_latest/test
+2025-06-30T18:33:50 (tts.sh:1130:main) Scoring TTS evaluation via VERSA, using default conf/versa.yaml. You can visit https://github.com/shinjiwlab/versa?tab=readme-ov-file#list-of-metrics for more supported metrics.
+2025-06-30T18:33:50 (tts.sh:1181:main) Skip the packing stage
+2025-06-30T18:33:50 (tts.sh:1238:main) Skip the uploading to HuggingFace stage
+2025-06-30T18:33:50 (tts.sh:1241:main) Successfully finished. [elapsed=531s]
