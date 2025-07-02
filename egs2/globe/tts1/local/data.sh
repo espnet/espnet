@@ -10,7 +10,7 @@ log() {
 }
 SECONDS=0
 
-stage=-1
+stage=0
 stop_stage=2
 
 log "$0 $*"
@@ -23,34 +23,23 @@ fi
 
 . ./path.sh || exit 1;
 . ./cmd.sh || exit 1;
-. ./db.sh || exit 1;
+# . ./db.sh || exit 1;
 
-if [ -z "${GLOBE}" ]; then
-   log "Fill the value of 'GLOBE' of db.sh"
-   exit 1
-fi
-db_root=${GLOBE}
 
 train_set="train"
 dev_set="dev"
-eval_set="test"
+test_sets="test"
 
-if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
-    log "stage -1: Data Download"
-    local/data_download.sh "${db_root}"
-fi
-
-if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
-    log "stage 0: local/data_prep.py"
-
-    python local/data_prep.py \
-        --train_set "${train_set}" \
-        --dev_set "${dev_set}" \
-        --test_set "${eval_set}" \
-        --dataset_path "${db_root}"/globe_v2 \
-        --dest_path "data"
+if [ $stage -le 0 ] && [ $stop_stage -ge 0 ]; then
+  log "Stage 0: Data preparation via HuggingFace Datasets"
+  python3 local/data_prep.py \
+    --train_set "${train_set}" \
+    --dev_set   "${dev_set}"   \
+    --test_set  "${test_sets}" \
+    --hf_repo   "MushanW/GLOBE_V2" \
+    --dest_path "data"
 fi
 
 utils/fix_data_dir.sh data/${train_set}
 utils/fix_data_dir.sh data/${dev_set}
-utils/fix_data_dir.sh data/${eval_set}
+utils/fix_data_dir.sh data/${test_sets}
