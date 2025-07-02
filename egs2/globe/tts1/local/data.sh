@@ -31,7 +31,7 @@ if [ -z "${GLOBE}" ]; then
 fi
 db_root=${GLOBE}
 
-train_set="tr_no_dev"
+train_set="train"
 dev_set="dev"
 eval_set="test"
 
@@ -47,7 +47,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
         --train_set "${train_set}" \
         --dev_set "${dev_set}" \
         --test_set "${eval_set}" \
-        --dataset_path "${db_root}"/hi_fi_tts_v0 \
+        --dataset_path "${db_root}"/globe_v2 \
         --dest_path "data"
 fi
 

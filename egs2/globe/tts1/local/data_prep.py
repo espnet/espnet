@@ -1,105 +1,94 @@
+#!/usr/bin/env python3
+# Data preparation for GLOBE-V2 ➜ Kaldi directories
+# Author: your-name
+
 import argparse
-import json
 import os
-import re
-import sys
+from collections import defaultdict
+
+import datasets  # 🤗 Datasets
+from tqdm import tqdm
+import soundfile as sf
+
+# ----------------------------------------------------------- helpers
+def write_kaldi_dir(split, items, outdir, fs_out):
+    """items: list of (utt_id, spk_id, wav_path, txt, dur)"""
+    os.makedirs(outdir, exist_ok=True)
+
+    with open(f"{outdir}/wav.scp", "w") as fw, \
+         open(f"{outdir}/text",   "w") as ft, \
+         open(f"{outdir}/utt2spk", "w") as fu, \
+         open(f"{outdir}/utt2dur", "w") as fd:
+
+        spk2utt = defaultdict(list)
+
+        for uid, spk, wav, txt, dur in items:
+            # sox pipeline → 24 kHz wav on stdout
+            fw.write(f"{uid} sox -t flac {wav} -r {fs_out} -t wav - |\n")
+            ft.write(f"{uid} {txt}\n")
+            fu.write(f"{uid} {spk}\n")
+            fd.write(f"{uid} {dur:.3f}\n")
+            spk2utt[spk].append(uid)
+
+    with open(f"{outdir}/spk2utt", "w") as fs2u:
+        for spk, utts in spk2utt.items():
+            fs2u.write(f"{spk} {' '.join(utts)}\n")
 
 
-def parser():
-    parser = argparse.ArgumentParser(description="Data preparation for HiFiTTS")
-    parser.add_argument("--train_set", type=str, help="train set")
-    parser.add_argument("--dev_set", type=str, help="dev set")
-    parser.add_argument("--test_set", type=str, help="dev set")
-    parser.add_argument("--dataset_path", type=str, help="dataset path")
-    parser.add_argument("--dest_path", type=str, help="destination path")
-    return parser.parse_args()
-
-
-def make_kaldi_dir(path, manifests, dataset_path):
-    wav_scp_str = ""
-    text_str = ""
-    uttr2spk_str = ""
-    utt2dur_str = ""
-    spk2utt_str = ""
-
-    spk2utt = {}
-
-    for manifest in manifests:
-        with open(manifest) as fp:
-            manifest_data = fp.readlines()
-
-        for line in manifest_data:
-            data = json.loads(line)
-            text = data["text"]
-            audio = data["audio_filepath"]
-            spk = audio.split("/")[1].split("_")[0]
-            book_id = audio.split("/")[2]
-            uniq_id = spk + "_" + book_id + "_" + audio.split("/")[-1].split(".")[0]
-            dur = data["duration"]
-
-            wav_scp_str += f"{uniq_id} {dataset_path}/{audio}\n"
-            text_str += f"{uniq_id} {text}\n"
-            uttr2spk_str += f"{uniq_id} {spk}\n"
-            utt2dur_str += f"{uniq_id} {dur}\n"
-            if spk not in spk2utt:
-                spk2utt[spk] = []
-            spk2utt[spk].append(uniq_id)
-
-    with open(os.path.join(path, "wav.scp"), "w") as fp:
-        fp.write(wav_scp_str)
-
-    with open(os.path.join(path, "text"), "w") as fp:
-        fp.write(text_str)
-
-    with open(os.path.join(path, "utt2spk"), "w") as fp:
-        fp.write(uttr2spk_str)
-
-    for spk, utts in spk2utt.items():
-        spk2utt_str += f"{spk} {' '.join(utts)}\n"
-
-    with open(os.path.join(path, "spk2utt"), "w") as fp:
-        fp.write(spk2utt_str)
-
-
+# ----------------------------------------------------------- main
 def main():
-    args = parser()
-    dataset_path = args.dataset_path
-    dest_path = args.dest_path
-    train_set = os.path.join(dest_path, args.train_set)
-    dev_set = os.path.join(dest_path, args.dev_set)
-    test_set = os.path.join(dest_path, args.test_set)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--train_set", required=True)
+    parser.add_argument("--dev_set",   required=True)
+    parser.add_argument("--test_set",  required=True)
+    parser.add_argument("--dataset_path", required=True,
+                        help="globe_v2 directory (contains parquet shards)")
+    parser.add_argument("--dest_path", required=True,
+                        help="output root for data/ dirs")
+    parser.add_argument("--fs_out", type=int, default=24000,
+                        help="sampling rate written to wav.scp (sox resample)")
+    args = parser.parse_args()
 
-    if not os.path.exists(dest_path):
-        print(f"Destination path {dest_path} does not exist. Creating it.")
-        os.makedirs(dest_path)
+    splits = {
+        args.train_set: "train",
+        args.dev_set:   "val",
+        args.test_set:  "test",
+    }
 
-    if not os.path.exists(train_set):
-        os.makedirs(train_set)
-    if not os.path.exists(dev_set):
-        os.makedirs(dev_set)
-    if not os.path.exists(test_set):
-        os.makedirs(test_set)
+    for kaldi_name, hf_split in splits.items():
+        print(f"Preparing split {hf_split} → data/{kaldi_name}")
+        pattern = os.path.join(args.dataset_path, f"{hf_split}-*.parquet")
+        # 🤗 datasets will glob the parquet shards automatically
+        # ds = datasets.load_dataset(
+        #     "parquet",
+        #     data_files=pattern,
+        #     split=hf_split,
+        #     streaming=False,
+        ds = datasets.load_dataset(
+        "parquet",
+        data_files=f"{args.dataset_path}/data/{hf_split}-*.parquet",
+        split=hf_split,
+        streaming=False,
+        cache_dir="/ocean/projects/cis210027p/ttao3/cache",
+    )
+        # avoid decoding audio; keep only metadata
+        ds = ds.cast_column("audio", datasets.Audio(decode=False))
 
-    all_manifests = [
-        os.path.join(dataset_path, fname)
-        for fname in os.listdir(dataset_path)
-        if fname.endswith(".json")
-    ]
-    train_manifests = [
-        manifest for manifest in all_manifests if re.search("train", manifest)
-    ]
-    dev_manifests = [
-        manifest for manifest in all_manifests if re.search("dev", manifest)
-    ]
-    test_manifests = [
-        manifest for manifest in all_manifests if re.search("test", manifest)
-    ]
+        items = []
+        for row in tqdm(ds, desc=hf_split):
+            wav  = row["audio"]["path"]
+            spk  = row["speaker_id"]
+            txt  = row["transcript"].strip()
+            # use the HF-provided column 'duration' instead of metadata
+            dur  = float(row["duration"])
+            utt  = f"{spk}_{os.path.basename(wav).split('.')[0]}"
+            items.append((utt, spk, wav, txt, dur))
 
-    make_kaldi_dir(train_set, train_manifests, dataset_path)
-    make_kaldi_dir(dev_set, dev_manifests, dataset_path)
-    make_kaldi_dir(test_set, test_manifests, dataset_path)
 
-    print("Data preparation done.")
+        outdir = os.path.join(args.dest_path, kaldi_name)
+        write_kaldi_dir(kaldi_name, items, outdir, args.fs_out)
+
+    print("✅  Data preparation done.")
 
 
 if __name__ == "__main__":

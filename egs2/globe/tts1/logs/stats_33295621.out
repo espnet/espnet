@@ -1,0 +1,7 @@
+2025-07-02T03:16:00 (tts.sh:225:main) ./tts.sh --use_sid true --fs 22050 --n_fft 1024 --n_shift 256 --win_length null --dumpdir dump/22k --expdir exp/22k --tts_task gan_tts --feats_extract linear_spectrogram --feats_normalize none --train_config conf/tuning/train_multi_spk_vits.yaml --inference_config conf/tuning/decode_vits.yaml --train_set tr_no_dev --valid_set dev --test_sets test --srctexts data/tr_no_dev/text data/dev/text data/test/text --audio_format flac --ngpu 0 --stage 1 --stop_stage 1 --nj 1
+2025-07-02T03:16:01 (tts.sh:321:main) Stage 1: Data preparation for data/tr_no_dev, data/dev, etc.
+2025-07-02T03:16:01 (data.sh:16:main) local/data.sh 
+2025-07-02T03:16:02 (data.sh:39:main) stage -1: Data Download
+GLOBE already downloaded.  Skipping.
+2025-07-02T03:16:02 (data.sh:44:main) stage 0: local/data_prep.py
+Preparing split train → data/train
