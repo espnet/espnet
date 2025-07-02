@@ -25,11 +25,11 @@ fi
 . ./cmd.sh || exit 1;
 . ./db.sh || exit 1;
 
-if [ -z "${HIFITTS}" ]; then
-   log "Fill the value of 'HIFITTS' of db.sh"
+if [ -z "${GLOBE}" ]; then
+   log "Fill the value of 'GLOBE' of db.sh"
    exit 1
 fi
-db_root=${HIFITTS}
+db_root=${GLOBE}
 
 train_set="tr_no_dev"
 dev_set="dev"

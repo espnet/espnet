@@ -1,32 +1,39 @@
 #!/usr/bin/env bash
-
-# Copyright 2020 Tomoki Hayashi
-#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
-
-db_root=$1
-
-# check arguments
-if [ $# != 1 ]; then
-    echo "Usage: $0 <db_root>"
-    exit 1
-fi
+# Download and unpack the GLOBE V2 corpus
+# Usage: local/download.sh <db_root>
 
 set -euo pipefail
 
-cwd=$(pwd)
-if [ ! -e "${db_root}/hi_fi_tts_v0" ]; then
-    mkdir -p "${db_root}"
-    cd "${db_root}" || exit 1;
-    if ! [ -f "./hi_fi_tts_v0.tar.gz" ]; then
-        echo "Downloading HiFi-TTS dataset..."
-        wget https://www.openslr.org/resources/109/hi_fi_tts_v0.tar.gz
-    else
-        echo "HiFi-TTS dataset zip already exists. Skipped."
-    fi
-    tar xvzf ./hi_fi_tts_v0.tar.gz
-    rm ./hi_fi_tts_v0.tar.gz
-    cd "${cwd}" || exit 1;
-    echo "Successfully downloaded data."
-else
-    echo "Already exists. Skipped."
+# 1️⃣  Check args
+if [ $# -ne 1 ]; then
+    echo "Usage: $0 <db_root>"
+    exit 1
 fi
+db_root=$1
+
+# 2️⃣  Skip if already done
+if [ -f "${db_root}/.complete" ]; then
+    echo "GLOBE already downloaded.  Skipping."
+    exit 0
+fi
+
+mkdir -p "${db_root}"
+cd       "${db_root}"
+
+echo "Downloading GLOBE V2 (≈76 GB)…"
+echo "  – This uses git-lfs; make sure it’s installed."
+
+# 3️⃣  Clone the dataset repo (shallow, Git-LFS pulls large audio files)
+if ! command -v git-lfs &>/dev/null; then
+    echo "ERROR: git-lfs not found.  Install it with conda, apt, or brew."
+    exit 1
+fi
+git lfs install                       # no-op if already done
+git clone --depth 1 \
+          https://huggingface.co/datasets/MushanW/GLOBE_V2 globe_v2
+
+# 4️⃣  Mark completion
+touch "${db_root}/.complete"
+echo "Successfully downloaded GLOBE V2."
+
+cd - >/dev/null

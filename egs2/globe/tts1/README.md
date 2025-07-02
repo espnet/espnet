@@ -1,6 +1,6 @@
 # HI-FI Multi-Speaker English TTS RECIPE
 
-This is the recipe of the English multi-speaker TTS model with [HifiTTS](https://www.openslr.org/109/) corpus.
+This is the recipe of the English multi-speaker TTS model with [Globe](https://globecorpus.github.io/) corpus.
 
 See the following pages for the usage:
 - [How to run the recipe](../../TEMPLATE/tts1/README.md#how-to-run)
