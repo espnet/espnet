@@ -31,6 +31,7 @@ from espnet2.spk.projector.xvector_projector import XvectorProjector
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
+from espnet2.train.lid_trainer import LIDTrainer
 from espnet2.train.preprocessor import (
     AbsPreprocessor,
     CommonPreprocessor,
@@ -139,6 +140,8 @@ preprocessor_choices = ClassChoices(
 class LIDTask(AbsTask):
     num_optimizers: int = 1
 
+    trainer = LIDTrainer
+
     @classmethod
     def add_task_arguments(cls, parser: argparse.ArgumentParser):
         group = parser.add_argument_group(description="Task related")
@@ -217,6 +220,9 @@ class LIDTask(AbsTask):
             help="Directory of the rir data to be augmented",
         )
 
+        for class_choices in cls.class_choices_list:
+            class_choices.add_arguments(group)
+
     @classmethod
     @typechecked
     def build_collate_fn(cls, args: argparse.Namespace, train: bool) -> Callable[
@@ -251,8 +257,8 @@ class LIDTask(AbsTask):
             # train
             retval = ("speech", "lid_labels")
         elif not train and not inference:
-            # validation or plot tsne
-            retval = ("speech", "lid_labels")
+            # validation or plot tsne or collect statistics
+            retval = ("speech",)
         else:
             # inference
             retval = ("speech",)
@@ -263,6 +269,12 @@ class LIDTask(AbsTask):
     def optional_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
-        retval = ()
+        if not train and not inference:
+            # validation or plot tsne
+            # not required for collect statistics
+            retval = ("lid_labels",)
+        else:
+            # train or inference
+            retval = ()
 
         return retval
