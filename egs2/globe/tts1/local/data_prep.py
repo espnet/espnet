@@ -38,6 +38,7 @@ def main():
             args.hf_repo,
             split=split,            # must be exactly "train"/"dev"/"test"
             cache_dir="downloads/cache/",
+            verification_mode="no_checks",
             streaming=False,
         )
         ds = ds.cast_column("audio", Audio(decode=False))

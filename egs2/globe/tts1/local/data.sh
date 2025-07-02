@@ -27,7 +27,7 @@ fi
 
 
 train_set="train"
-dev_set="dev"
+dev_set="val"
 test_sets="test"
 
 if [ $stage -le 0 ] && [ $stop_stage -ge 0 ]; then
