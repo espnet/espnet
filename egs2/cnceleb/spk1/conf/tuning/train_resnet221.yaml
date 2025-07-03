@@ -1,4 +1,4 @@
-# ECAPA-TDNN reproduce recipe configuration.
+# ResNet221 reproduce recipe configuration.
 
 # Frontend
 frontend: melspec_torch
@@ -12,19 +12,17 @@ frontend_conf:
     normalize: mn
 
 # Encoder
-encoder: ecapa_tdnn
+encoder: resnet
 encoder_conf:
-  model_scale: 8
-  ndim: 1024
-  output_size: 1536
+  resnet_type: resnet221
 
 # Pooling
-pooling: chn_attn_stat
+pooling: stats
 
 # Projector
 projector: rawnet3
 projector_conf:
-  output_size: 192
+  output_size: 256
 
 # Preprocessor
 preprocessor: spk
@@ -64,7 +62,7 @@ iterator_type: category
 valid_iterator_type: sequence
 shuffle_within_batch: False
 log_interval: 100
-batch_size: 512
+batch_size: 256
 valid_batch_size: 40
 use_amp: True
 keep_nbest_models: 3
@@ -75,18 +73,17 @@ best_model_criterion:
   - min
 
 # Optimizer
-optim: adam
+optim: sgd
 optim_conf:
-  lr: 0.001
-  weight_decay: 0.00005
-  amsgrad: False
+  lr: 0.1
+  momentum: 0.9
+  weight_decay: 0.0001
 
 # Scheduler
-scheduler: CosineAnnealingWarmupRestarts
+scheduler: ExponentialDecayWarmup
 scheduler_conf:
-  first_cycle_steps: 30000
-  cycle_mult: 1.0
-  max_lr: 0.001
-  min_lr: 0.000005
-  warmup_steps: 1000
-  gamma: 0.75
+  max_lr: 0.1
+  min_lr: 0.00005
+  total_steps: 290720
+  warmup_steps: 36340  # 5 epochs
+  warm_from_zero: True
