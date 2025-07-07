@@ -12,6 +12,7 @@ def load_scp(scp_path):
 
 
 def main(args):
+    """Convert trials.lst to trial.scp, trial2.scp, trial_label."""
     # Load wav.scp entries
     enroll_scp = load_scp(args.enroll_scp)
     test_scp = load_scp(args.test_scp)
@@ -46,7 +47,13 @@ def main(args):
 
 
 def main_sep(args):
-    """Deal with separate enroll utts."""
+    """Convert trials.lst to trial.scp, trial2.scp, trial_label with enroll_map.
+
+    This version handles multiple enrollments for a single enroll_id.
+    enroll_map is expected to map enroll_id to a list of enrollments.
+    The final trial.scp and trial2.scp will contain all combinations of
+    enrollments and tests.
+    """
     # Load wav.scp entries
     enroll_scp = load_scp(args.enroll_scp)
     test_scp = load_scp(args.test_scp)

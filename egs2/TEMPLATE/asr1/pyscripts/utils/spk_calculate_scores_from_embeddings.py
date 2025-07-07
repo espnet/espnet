@@ -7,6 +7,17 @@ import torch
 
 
 def average_enroll_embeddings(embd_dir: str, enroll_list: list) -> str:
+    """Average speaker embeddings for enrollment utterances.
+
+    Args:
+        embd_dir (str): Path to a .npz file containing speaker embeddings.
+                        The file should contain a dict-like structure where
+                        each key is an utterance ID.
+        enroll_list (list): List of utterance IDs to average for enrollment.
+
+    Returns:
+        str: Path to saved averaged embeddings.
+    """
     embd_dic = OrderedDict(np.load(embd_dir))
     utts = set(embd_dic.keys())
     enrolls = set(enroll_list)
@@ -15,7 +26,7 @@ def average_enroll_embeddings(embd_dir: str, enroll_list: list) -> str:
 
     # Gather all enroll embeddings
     for enroll in enrolls:
-        spk = enroll.split("-")[0] + "-enroll"
+        spk = enroll.split("-")[0] + "-enroll"  # {speaker_id}-enroll
         if spk not in enroll_embd_dic:
             enroll_embd_dic[spk] = []
         enroll_embd_dic[spk].append(embd_dic[enroll])
@@ -51,6 +62,7 @@ def load_embeddings(embd_dir: str) -> dict:
 
 
 def main(args):
+    """Calculate speaker similarity scores using raw embeddings."""
     embd_dir = args[0]
     trial_label = args[1]
     out_dir = args[2]
@@ -83,6 +95,7 @@ def main(args):
 
 
 def main_emb_avg(args):
+    """Calculate speaker similarity scores using averaged enroll embeddings."""
     embd_dir = args[0]
     trial_label = args[1]
     out_dir = args[2]
@@ -107,7 +120,7 @@ def main_emb_avg(args):
     tests_new = []
     labels_new = []
     for i, e in enumerate(enrolls):
-        spk = e.split("-")[0] + "-enroll"
+        spk = e.split("-")[0] + "-enroll"  # {speaker_id}-enroll
         trial_id = f"{spk}*{tests[i]}"
         if trial_id not in check_list:
             check_list.add(trial_id)
@@ -136,6 +149,7 @@ def main_emb_avg(args):
 
 
 def main_score_avg(args):
+    """Calculate average scores for trials with the same enroll speaker."""
     embd_dir = args[0]
     trial_label = args[1]
     out_dir = args[2]
