@@ -3,3 +3,4 @@ downloads/
 exp/
 dump/
 data/logs/
+*.log
