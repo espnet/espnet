@@ -4,3 +4,6 @@ exp/
 dump/
 data/logs/
 *.log
+*.txt
+data/
+
