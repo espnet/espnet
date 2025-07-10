@@ -16,7 +16,7 @@ AN4=downloads
 ASVTutorial=espnet_tutorial_asvspoof
 APHASIABANK=
 AR_SC=
-AUDIOSET=
+AUDIOSET=downloads
 ASVSpoof_CMD=
 BIBLETTS=downloads
 CORAAL=downloads
@@ -229,6 +229,7 @@ CLOTHO_V2=downloads
 AUDIOCAPS=
 CLOTHO_CHATGPT_MIXUP=
 EDACC=downloads
+IPAPACK_PLUS=downloads
 
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then
