@@ -50,7 +50,7 @@ dns_p808: 3.780
 ## spk_similarity
 spk_similarity: 0.525
 
-## whisper_wer 
+## whisper_wer
 whipser_wer 0.149
 
 ## whisper_cer 0.7273753894080996
