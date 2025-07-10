@@ -5,18 +5,11 @@ set -e
 set -u
 set -o pipefail
 
-fs=48000
-n_fft=2048
-n_shift=512
-
-opts=
-if [ "${fs}" -eq 48000 ]; then
-    # To suppress recreation, specify wav format
-    opts="--audio_format wav "
-else
-    opts="--audio_format flac "
-fi
-
+fs=16000
+n_fft=1024
+n_shift=256
+ngpu=1
+opts="--audio_format wav "
 
 train_set=tr_no_dev
 valid_set=dev
@@ -29,6 +22,7 @@ inference_config=conf/decode.yaml
 g2p=g2p_en_no_space # Include no word separator
 
 ./tts.sh \
+    --ngpu "${ngpu}" \
     --lang en \
     --feats_type raw \
     --fs "${fs}" \

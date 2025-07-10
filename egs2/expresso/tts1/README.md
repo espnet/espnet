@@ -16,55 +16,45 @@ See the following pages before asking the question:
 Model: VITS
 
 ## Environments
-- date: `Fri May 30 16:37:38 UTC 2025`
-- python version: `3.9.22 | packaged by conda-forge | (main, Apr 14 2025, 23:35:59)  [GCC 13.3.0]`
+- date: `Wed Jul 9 21:57:07 UTC 2025`
+- python version: `3.10.18 | packaged by conda-forge | (main, Jun 4 2025, 14:45:51)  [GCC 13.3.0]`
 - espnet version: `espnet 202503`
 - pytorch version: `pytorch 2.4.1+cu124`
-- Git hash: `1efdaa835178b0ce5034904e29f89f8fc7e0a358`
-  - Commit date: `Thu May 22 12:09:45 2025 -0400`
-
-## WER
-|Snt|Wrd|Corr|Sub|Del|Ins|Err|
-|---|---|---|---|---|---|---|
-|588|4963|2479|2394|90|4667|1.441|
-
-## CER
-|Snt|Wrd|Corr|Sub|Del|Ins|Err|
-|---|---|---|---|---|---|---|
-|588|25680|18734|5451|1495|11733|0.727|
+- Git hash: `5f146d803dbd998af1f830017b6cf558f0e5ccb2`
+  - Commit date: `Mon Jun 9 13:27:27 2025 -0400`
 
 ## pesq
-pesq: 1.101
+pesq: 1.092
 
 ## stoi
-stoi: 0.207
+stoi: 0.205
 
 ## mcd
-mcd: 15.995
+mcd: 8.935
 
 ## f0rmse
-f0rmse: 124.229
+f0rmse: 86.014
 
 ## f0corr
-f0corr: nan
+f0corr: 0.166
 
 ## utmos
-utmos: 3.500
+utmos: 3.525
 
 ## dns_overall
-dns_overall: 3.127
+dns_overall: 3.055
 
 ## dns_p808
-dns_p808: 3.769
+dns_p808: 3.780
 
 ## spk_similarity
-spk_similarity: 0.505
+spk_similarity: 0.525
 
-## espnet_wer 1.4408623816240178
-espnet_wer 1.440
+## whisper_wer 
+whipser_wer 0.149
 
-## espnet_cer 0.7273753894080996
-espnet_cer 0.727
+## whisper_cer 0.7273753894080996
+whisper_cer 0.090
 
 ## Pretrained Models
 

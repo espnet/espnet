@@ -6,7 +6,7 @@ from pathlib import Path
 import librosa
 import soundfile as sf
 from tqdm import tqdm
-
+import re
 
 def get_audio_duration(filepath):
     info = sf.info(filepath)
@@ -70,10 +70,25 @@ def clean_and_save_splits(split_dir, output_split_dir, existing_ids):
 
     return all_files
 
+def clean_text(text):
+    # Remove "*" and "|"
+    text = text.replace("*", "")
+    text = text.replace("|", "")
+    
+    # Remove all tags like <...>
+    text = re.sub(r"<[^>]+>", "", text)
+    
+    # Remove multiple spaces and replace with a single space
+    text = re.sub(r"\s+", " ", text)
+
+    # Strip leading/trailing whitespace
+    return text.strip()
+
 
 def organize_dataset(src_audio_dir, output_base_dir, transcription_path, all_files):
+    
     transcriptions = {
-        line.split("\t")[0]: line.strip().split("\t")[1]
+        line.split("\t")[0]: clean_text(line.strip().split("\t")[1])
         for line in open(transcription_path, "r", encoding="utf-8")
         if line.strip()
     }

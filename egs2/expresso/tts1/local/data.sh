@@ -75,7 +75,7 @@ fi
 
 if [ "${stage}" -le -1 ] && [ "${stop_stage}" -ge -1 ]; then
     log "Stage -1: Preprocess Data"
-    python local/data_process.py "${db_root}/expresso" "${db_root}/expresso_processed" --max_duration 20.0
+    python local/data_process.py "${db_root}/expresso" "${db_root}/expresso_processed" --max_duration 30.0 --resample_rate 16000
 fi
 
 if [ "${stage}" -le 0 ] && [ "${stop_stage}" -ge 0 ]; then
