@@ -70,6 +70,7 @@ ignore_init_mismatch=false      # Ignore initial mismatch
 # Inference related
 inference_config=conf/decode.yaml   # Inference configuration
 inference_model=valid.eer.best.pth  # Inference model weight file
+enroll_mode=single    # Enroll mode for inference, e.g., single (utt-concat), emb-avg, score-avg
 score_norm=false      # Apply score normalization in inference.
 qmf_func=false        # Apply quality measurement based calibration in inference.
 
@@ -131,6 +132,7 @@ Options:
     # Inference related
     inference_config=     # Inference configuration file
     inference_model=      # Inference model weight file
+    enroll_mode=          # Enroll mode for inference, e.g., single (utt-concat), emb-avg, score-avg
     score_norm=false      # Apply score normalization in inference.
     qmf_func=false        # Apply quality measurement based calibration in inference.
 
@@ -192,6 +194,18 @@ fi
 spk_stats_dir="${expdir}/spk_stats_${fs}"
 if [ -z "${spk_exp}"  ]; then
     spk_exp="${expdir}/spk_${spk_tag}"
+fi
+
+# Update test sets based on the enroll mode
+if [ "${enroll_mode}" = "emb-avg" ] || [ "${enroll_mode}" = "score-avg" ]; then
+    test_sets_org="${test_sets}"
+    valid_set="${valid_set}_sep"
+    test_sets="${test_sets}_sep"
+    spk_stats_dir="${spk_stats_dir}_sep"
+    emb_suffix="_avg"
+    echo "Updated test sets for enroll mode ${enroll_mode}: ${valid_set}, ${test_sets}"
+else
+    emb_suffix=""
 fi
 
 # Determine which stages to skip
@@ -572,12 +586,12 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     cohort_dir="${data_feats}/${cohort_set}"
 
     log "Stage 7-a: get scores for the test set."
-    ${python} pyscripts/utils/spk_calculate_scores_from_embeddings.py ${infer_exp}/${test_sets}_embeddings.npz ${_inference_dir}/trial_label ${infer_exp}/${test_sets}_raw_trial_scores
+    ${python} pyscripts/utils/spk_calculate_scores_from_embeddings.py ${infer_exp}/${test_sets}_embeddings.npz ${_inference_dir}/trial_label ${infer_exp}/${test_sets}_raw_trial_scores ${enroll_mode}
     scorefile_cur=${infer_exp}/${test_sets}_raw_trial_scores
 
     if "$score_norm"; then
         log "Stage 7-b: apply score normalization."
-        ${python} pyscripts/utils/spk_apply_score_norm.py ${scorefile_cur} ${infer_exp}/${test_sets}_embeddings.npz ${infer_exp}/${cohort_set}_embeddings.npz ${cohort_dir}/utt2spk ${infer_exp}/${test_sets}_scorenormed_scores ${inference_config} ${ngpu}
+        ${python} pyscripts/utils/spk_apply_score_norm.py ${scorefile_cur} ${infer_exp}/${test_sets}_embeddings${emb_suffix}.npz ${infer_exp}/${cohort_set}_embeddings.npz ${cohort_dir}/utt2spk ${infer_exp}/${test_sets}_scorenormed_scores ${inference_config} ${ngpu}
         scorefile_cur=${infer_exp}/${test_sets}_scorenormed_scores
     fi
 
@@ -597,7 +611,13 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
         fi
 
         log "Apply qmf function."
-        ${python} pyscripts/utils/spk_apply_qmf_func.py ${cohort_dir}/qmf_train.scp ${cohort_dir}/qmf_train2.scp ${qmf_train_scores} ${infer_exp}/qmf/${cohort_set}_embeddings.npz ${_inference_dir}/trial.scp ${_inference_dir}/trial2.scp ${test_scores} ${infer_exp}/${test_sets}_embeddings.npz ${infer_exp}/qmf/${test_sets}_qmf_scores
+        if [ $enroll_mode = "emb-avg" ] || [ $enroll_mode = "score-avg" ]; then
+            # For emb-avg and score-avg, use original compressed trials for test sets
+            _inference_dir_org=data/${test_sets_org}
+            ${python} pyscripts/utils/spk_apply_qmf_func.py ${cohort_dir}/qmf_train.scp ${cohort_dir}/qmf_train2.scp ${qmf_train_scores} ${infer_exp}/qmf/${cohort_set}_embeddings.npz ${_inference_dir_org}/trial.scp ${_inference_dir_org}/trial2.scp ${test_scores} ${infer_exp}/${test_sets}_embeddings${emb_suffix}.npz ${infer_exp}/qmf/${test_sets}_qmf_scores
+        else
+            ${python} pyscripts/utils/spk_apply_qmf_func.py ${cohort_dir}/qmf_train.scp ${cohort_dir}/qmf_train2.scp ${qmf_train_scores} ${infer_exp}/qmf/${cohort_set}_embeddings.npz ${_inference_dir}/trial.scp ${_inference_dir}/trial2.scp ${test_scores} ${infer_exp}/${test_sets}_embeddings.npz ${infer_exp}/qmf/${test_sets}_qmf_scores
+        fi
     fi
 
 fi
