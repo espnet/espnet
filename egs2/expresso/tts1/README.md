@@ -53,7 +53,7 @@ spk_similarity: 0.525
 ## whisper_wer
 whipser_wer 0.149
 
-## whisper_cer 0.7273753894080996
+## whisper_cer
 whisper_cer 0.090
 
 ## Pretrained Models
