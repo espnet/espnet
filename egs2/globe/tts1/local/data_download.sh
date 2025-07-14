@@ -46,11 +46,11 @@ fi
 
 # 3) multithread 转成 WAV （24 kHz，单通道）
 echo "▶️  Converting all .flac → .wav with $nj jobs…"
-command -v parallel >/dev/null 2>&1 || { 
-  echo "ERROR: requires GNU parallel, please install it"; exit 1; 
+command -v parallel >/dev/null 2>&1 || {
+  echo "ERROR: requires GNU parallel, please install it"; exit 1;
 }
-command -v sox >/dev/null 2>&1 || { 
-  echo "ERROR: requires sox, please install it"; exit 1; 
+command -v sox >/dev/null 2>&1 || {
+  echo "ERROR: requires sox, please install it"; exit 1;
 }
 
 # find all flac file

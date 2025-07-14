@@ -1,7 +1,8 @@
-import os, pathlib
+import os
+import pathlib
 
 # assume `ds` is already cast with Audio(decode=False)
-_ = ds[0]["audio"]["path"]          # touch once → guarantees extraction
+_ = ds[0]["audio"]["path"]  # touch once → guarantees extraction
 
 first_file = pathlib.Path(ds[0]["audio"]["path"]).resolve()
 audio_cache_dir = first_file.parent

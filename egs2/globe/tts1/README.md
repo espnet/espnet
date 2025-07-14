@@ -4,13 +4,13 @@ Terry (Zhuoyan) Tao <terryt@usc.edu>  –  GLOBE‑v2 TTS recipe and download sc
 
 This is the recipe of the English multi-speaker TTS model with [Globe v2](https://globecorpus.github.io/) corpus.
 
-Before running the recipe, please run 
+Before running the recipe, please run
 cd egs2/globe/
 export HF_TOKEN=hf_xxxxxxxxxxxxxxxxxxxxxxxxx
 export HF_TOKEN=downloads
 huggingface-cli download MushanW/GLOBE_V2 \
   --repo-type dataset \
-  --include "data/*.parquet" 
+  --include "data/*.parquet"
 
 See the following pages for the usage:
 - [How to run the recipe](../../TEMPLATE/tts1/README.md#how-to-run)
