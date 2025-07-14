@@ -5,10 +5,6 @@ set -e
 set -u
 set -o pipefail
 
-
-
-
-
 fs=22050
 n_fft=1024
 n_shift=256
@@ -26,8 +22,8 @@ train_set="tr_no_dev"
 valid_set="dev"
 test_sets="test"
 
-train_config=conf/tuning/train_multi_spk_vits.yaml
-inference_config=conf/tuning/decode_vits.yaml
+train_config=/conf/tuning/train_multi_spk_vits.yaml
+inference_config=/conf/tuning/decode_vits.yaml
 
 dump_dir=dump/22k
 exp_dir=exp/22k
@@ -52,5 +48,4 @@ exp_dir=exp/22k
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
-    --srctexts "data/${train_set}/text data/${valid_set}/text data/${test_sets}/text" \
     ${opts} "$@"

@@ -18,6 +18,7 @@ from espnet2.fileio.sound_scp import SoundScpWriter, soundfile_read
 from espnet2.fileio.vad_scp import VADScpReader
 from espnet2.utils.types import str2bool
 from espnet.utils.cli_utils import get_commandline_args
+from soundfile import SoundFile, LibsndfileError
 
 
 def humanfriendly_or_none(value: str):
@@ -281,14 +282,23 @@ def main():
                                 return_subtype=True,
                             )
                         else:
-                            with soundfile.SoundFile(wavpath) as sf:
-                                rate = sf.samplerate
-                                subtypes = [sf.subtype]
-                                wave = sf.read()
+                            # ── robust open: skip files libsndfile can’t decode ──────────
+                            try:
+                                with SoundFile(wavpath) as sf:
+                                    rate = sf.samplerate
+                                    subtypes = [sf.subtype]
+                                    wave = sf.read()
+                            except LibsndfileError as e:
+                                logging.warning("Skip %s : %s", wavpath, e)
+                                continue            # ← drop this utterance and move on
+                            # ─────────────────────────────────────────────────────────────
                     yield uttid, (wave, rate), wavpath, subtypes
 
     with out_num_samples.open("w") as fnum_samples:
         for uttid, (wave, rate), wavpath, subtypes in tqdm(generator()):
+            if wave.size == 0:
+                logging.warning("Skip %s: zero-length signal", uttid)
+                continue
             save_asis = True
             if args.fs is not None and args.fs != rate:
                 # FIXME(kamo): To use sox?

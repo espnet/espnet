@@ -224,7 +224,6 @@ SPRING_INX=downloads
 VOXCELEB=
 KSPONSPEECH=
 HIFITTS=downloads
-GLOBE=downloads # GLOBE V2 dataset
 CLOTHO_V2=downloads
 AUDIOCAPS=
 CLOTHO_CHATGPT_MIXUP=
@@ -377,6 +376,5 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     TOTONAC=downloads
     GOOGLEI18N=downloads
     MALAYALAM=
-
 
 fi
