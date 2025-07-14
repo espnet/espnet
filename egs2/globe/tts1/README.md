@@ -1,4 +1,6 @@
 # GLOBE-v2 Multi-Speaker English TTS RECIPE
+# CONTRIBUTORS
+Terry (Zhuoyan) Tao <terryt@usc.edu>  –  GLOBE‑v2 TTS recipe and download script
 
 This is the recipe of the English multi-speaker TTS model with [Globe v2](https://globecorpus.github.io/) corpus.
 
@@ -27,10 +29,9 @@ See the following pages before asking the question:
 
 # INITIAL RESULTS
 
-- 22.05 kHz VITS adaptation
+- 44.1 kHz VITS adaptation
 
 
 ## Pretrained Models
-
 ### hifitts_vits_multispeaker_22.05k
 https://huggingface.co/jes3275/hifitts_vits_multispeaker_22.05k

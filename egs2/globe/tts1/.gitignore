@@ -6,4 +6,4 @@ data/logs/
 *.log
 *.txt
 data/
-
+*.wav
