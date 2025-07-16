@@ -146,6 +146,7 @@ class LIDTrainer(Trainer):
                 if resume:
                     if _utt_id in skip_utts:
                         if num_recheck % save_every == 0 and num_recheck > 0:
+                            step += 1
                             logging.info(
                                 f"[Rank {rank}] Skip utterance "
                                 f"{num_recheck - save_every}-{num_recheck}."
