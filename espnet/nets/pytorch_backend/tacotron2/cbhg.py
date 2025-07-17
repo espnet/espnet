@@ -69,7 +69,7 @@ class CBHG(torch.nn.Module):
 
     This implementation follows the paper:
         https://arxiv.org/abs/1703.10135
-    """ 
+    """
 
     def __init__(
         self,
