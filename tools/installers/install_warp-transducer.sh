@@ -67,7 +67,6 @@ git clone https://github.com/ljn7/warp-transducer.git
         echo "  $cuda_bin"
         echo "  $cuda_lib64"
         echo "Please verify \$CUDA_HOME is correctly set to a valid CUDA installation."
-        exit 1
     fi
 
     mkdir build
