@@ -26,11 +26,49 @@ if python3 -c 'import torch as t;assert t.__version__[0] == "1"' &> /dev/null; t
 fi
 
 rm -rf warp-transducer
-git clone --single-branch --branch update_torch2.1 https://github.com/b-flo/warp-transducer.git
+git clone https://github.com/ljn7/warp-transducer.git
 
 (
     set -euo pipefail
     cd warp-transducer
+
+    : "${CUDA_HOME:=/usr/local/cuda}"
+
+    cuda_include="$CUDA_HOME/targets/x86_64-linux/include"
+    cuda_lib="$CUDA_HOME/targets/x86_64-linux/lib"
+    cuda_bin="$CUDA_HOME/bin"
+    cuda_lib64="$CUDA_HOME/lib64"
+
+    if [[ -d "$cuda_include" && -d "$cuda_lib" && -d "$cuda_bin" && -d "$cuda_lib64" ]]; then
+        if [[ "${CFLAGS:-}" != *"$cuda_include"* ]]; then
+            export CFLAGS="${CFLAGS:-} -I$cuda_include"
+        fi
+
+        if [[ "${CXXFLAGS:-}" != *"$cuda_include"* ]]; then
+            export CXXFLAGS="${CXXFLAGS:-} -I$cuda_include"
+        fi
+
+        if [[ "${LDFLAGS:-}" != *"$cuda_lib"* ]]; then
+            export LDFLAGS="${LDFLAGS:-} -L$cuda_lib"
+        fi
+
+        if [[ ":$PATH:" != *":$cuda_bin:"* ]]; then
+            export PATH="$cuda_bin:$PATH"
+        fi
+
+        if [[ "${LD_LIBRARY_PATH:-}" != *"$cuda_lib64"* ]]; then
+            export LD_LIBRARY_PATH="$cuda_lib64:${LD_LIBRARY_PATH:-}"
+        fi
+    else
+        echo "Warning: One or more CUDA paths do not exist!"
+        echo "Checked:"
+        echo "  $cuda_include"
+        echo "  $cuda_lib"
+        echo "  $cuda_bin"
+        echo "  $cuda_lib64"
+        echo "Please verify \$CUDA_HOME is correctly set to a valid CUDA installation."
+        exit 1
+    fi
 
     mkdir build
     (
