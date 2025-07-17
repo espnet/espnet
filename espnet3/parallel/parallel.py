@@ -1,9 +1,16 @@
+import inspect
 import warnings
 from contextlib import contextmanager
 from typing import Any, Callable, Generator, Iterable, Optional
 
 import torch
-from dask.distributed import Client, LocalCluster, SSHCluster, WorkerPlugin
+from dask.distributed import (
+    Client,
+    LocalCluster,
+    SSHCluster,
+    WorkerPlugin,
+    as_completed,
+)
 from dask_jobqueue import (
     HTCondorCluster,
     LSFCluster,
@@ -131,15 +138,71 @@ def make_client(config: DictConfig = None) -> Client:
     return _make_client(parallel_config)
 
 
+class DictReturnWorkerPlugin(WorkerPlugin):
+    """
+    A WorkerPlugin that calls a user-defined setup function once per worker,
+    and stores the returned dictionary in `worker.plugins["env"]`.
+    """
+
+    def __init__(self, setup_fn: Callable[[], dict]):
+        self.setup_fn = setup_fn
+
+    def setup(self, worker):
+        env = self.setup_fn()
+        if not isinstance(env, dict):
+            raise ValueError("setup_fn must return a dict")
+        worker.plugins["env"] = env
+
+
+def wrap_func_with_worker_env(func: Callable) -> Callable:
+    """
+    Wrap a user function to inject environment variables returned from setup_fn.
+
+    This function uses `inspect.signature` to analyze the original function's parameters.
+    It will automatically pass only the needed items from `worker.plugins["env"]`,
+    while checking for conflicts with explicitly passed arguments.
+
+    Args:
+        func: User-defined function. Can take positional and/or keyword args.
+
+    Returns:
+        Wrapped function that pulls from the worker's environment if needed.
+    """
+    sig = inspect.signature(func)
+    param_names = set(sig.parameters.keys())
+
+    def wrapped(*args, **kwargs):
+        from distributed.worker import get_worker
+
+        env = get_worker().plugins.get("env", {})
+
+        # Detect conflict: both kwargs and env providing the same key
+        intersection = param_names & env.keys() & kwargs.keys()
+        if intersection:
+            raise ValueError(
+                f"Argument conflict: {intersection} passed via both kwargs and env"
+            )
+
+        # Pick only needed items from env
+        filtered_env = {
+            k: v for k, v in env.items() if k in param_names and k not in kwargs
+        }
+
+        return func(*args, **kwargs, **filtered_env)
+
+    return wrapped
+
+
 @contextmanager
 def get_client(
-    config: DictConfig = None, plugin: WorkerPlugin = None
+    config: DictConfig = None, setup_fn: Optional[Callable[[], dict]] = None
 ) -> Generator[Client, None, None]:
     """Context manager to yield a Dask client from the global singleton cluster.
 
     Args:
         config (DictConfig, optional): Cluster config.
-        plugin (WorkerPlugin, optional): Plugin to register with workers.
+        setup_fn (Callable[[], dict], optional): A setup function that runs
+            on each worker and returns a dictionary of environment variables.
 
     Yields:
         Client: A Dask client instance tied to the global cluster.
@@ -149,8 +212,9 @@ def get_client(
         ...     results = client.map(lambda x: x**2, range(10))
     """
     client = make_client(config)
-    if plugin is not None:
-        client.register_worker_plugin(plugin)
+    if setup_fn is not None:
+        plugin = DictReturnWorkerPlugin(setup_fn)
+        client.register_plugin(plugin)
     try:
         yield client
     finally:
@@ -188,48 +252,31 @@ def parallel_map(
     return results
 
 
-@typechecked
-def parallel_submit(
-    func: Callable[..., Any], *args: Any, client: Optional[Client] = None, **kwargs: Any
-) -> Any:
-    """Submit a single function call asynchronously using Dask.
+def parallel_for(
+    func: Callable,
+    args: Iterable,
+    client: Optional[Client] = None,
+) -> Generator:
+    """
+    Dispatch parallel tasks with Dask and iterate over results.
 
     Args:
-        func (Callable[..., Any]): The function to run.
-        *args (Any): Positional arguments to the function.
-        client (Optional[Client]): Optional Dask client.
-        **kwargs (Any): Keyword arguments to the function.
+        func: Function to map over args.
+        args: Iterable of inputs to func.
+        client: Optional external Dask client. If None, creates one internally.
 
-    Returns:
-        Future: A future representing the asynchronous computation.
-
-    Example:
-        >>> future = parallel_submit(pow, 2, 3)
-        >>> future.result()  # returns 8
+    Yields:
+        Each result (in order if keep_order=True).
     """
-    if client is not None:
-        return client.submit(func, *args, **kwargs)
-    else:
-        with get_client() as client:
-            return client.submit(func, *args, **kwargs).result()
+    internal = client is None
+    if internal:
+        client = Client()
 
-
-@typechecked
-def parallel_scatter(data: Any, client: Optional[Client] = None) -> Any:
-    """Scatter data to workers for shared access in distributed computing.
-
-    Args:
-        data (Any): Data to scatter.
-        client (Optional[Client]): Optional Dask client.
-
-    Returns:
-        Future: A future or list of futures for scattered data.
-
-    Example:
-        >>> scattered_data = parallel_scatter([1, 2, 3])
-    """
-    if client is not None:
-        return client.scatter(data)
-    else:
-        with get_client() as client:
-            return client.scatter(data)
+    try:
+        wrapped_func = wrap_func_with_worker_env(func)
+        futures = client.map(wrapped_func, args)
+        for future in as_completed(futures):
+            yield future.result()
+    finally:
+        if internal:
+            client.close()
