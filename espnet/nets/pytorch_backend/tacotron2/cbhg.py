@@ -53,15 +53,22 @@ class CBHGLoss(torch.nn.Module):
 
 
 class CBHG(torch.nn.Module):
-    """CBHG module to convert log Mel-filterbanks to linear spectrogram.
+    r"""Convolutional Bank + Highway + bidirectional GRU (CBHG).
 
-    This is a module of CBHG introduced
-    in `Tacotron: Towards End-to-End Speech Synthesis`_.
-    The CBHG converts the sequence of log Mel-filterbanks into linear spectrogram.
+    The CBHG block was introduced in *“Tacotron: Towards End‑to‑End Speech
+    Synthesis”* (Wang et al., 2017).  It is a versatile sub‑network used in two
+    places of the original Tacotron‑1 architecture:
 
-    .. _`Tacotron: Towards End-to-End Speech Synthesis`:
-         https://arxiv.org/abs/1703.10135
+    1. **Encoder CBHG** – converts an input sequence of character/phoneme
+       *embeddings* into high‑level *linguistic representations* for the
+       attention mechanism.
 
+    2. **Post‑net CBHG** – converts a frame‑wise sequence of predicted log‑Mel
+       filter‑bank energies into a *linear‑spectrogram‑like* signal for
+       Griffin–Lim (or a neural vocoder).
+
+    This implementation follows the paper:
+        https://arxiv.org/abs/1703.10135
     """
 
     def __init__(
