@@ -48,7 +48,7 @@ class LIDTrainer(Trainer):
 
         By default, this method performs language identification (LID) for
         each utterance. If `extract_embd=True`, it also extracts normalized language
-        embeddings.
+        embeddings. 
 
         lang_embd_dic: {utt_id: lang_embd}, the language embedding for a specific
         utterance, this is used for temporary saving the language embedding of each
