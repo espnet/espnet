@@ -62,7 +62,7 @@ git clone https://github.com/ljn7/warp-transducer.git
 	else
         echo "Note: Skipping CUDA setup on non-Linux platform: $unames"
     fi
-	
+
     mkdir build
     (
         set -euo pipefail
