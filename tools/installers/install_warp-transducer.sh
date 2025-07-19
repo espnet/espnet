@@ -32,49 +32,42 @@ git clone https://github.com/ljn7/warp-transducer.git
     set -euo pipefail
     cd warp-transducer
 
-    : "${CUDA_HOME:=/usr/local/cuda}"
+ 	if [[ "$unames" == "Linux" ]]; then
+    	: "${CUDA_HOME:=/usr/local/cuda}"
 
-    cuda_include="$CUDA_HOME/targets/x86_64-linux/include"
-    cuda_lib="$CUDA_HOME/targets/x86_64-linux/lib"
-    cuda_bin="$CUDA_HOME/bin"
-    cuda_lib64="$CUDA_HOME/lib64"
-
-    if [[ -d "$cuda_include" && -d "$cuda_lib" && -d "$cuda_bin" && -d "$cuda_lib64" ]]; then
-        if [[ "${CFLAGS:-}" != *"$cuda_include"* ]]; then
-            export CFLAGS="${CFLAGS:-} -I$cuda_include"
+  		if [[ "$arch" == "x86_64" ]]; then
+            cuda_include="$CUDA_HOME/targets/x86_64-linux/include"
+            cuda_lib="$CUDA_HOME/targets/x86_64-linux/lib"
+        elif [[ "$arch" == "aarch64" ]]; then
+            cuda_include="$CUDA_HOME/include"
+            cuda_lib="$CUDA_HOME/lib64"
+        else
+            echo "Unknown Linux architecture ($arch). Skipping CUDA setup."
+            cuda_include=""
+            cuda_lib=""
         fi
 
-        if [[ "${CXXFLAGS:-}" != *"$cuda_include"* ]]; then
-            export CXXFLAGS="${CXXFLAGS:-} -I$cuda_include"
-        fi
+	    cuda_bin="$CUDA_HOME/bin"
+	    cuda_lib64="$CUDA_HOME/lib64"
 
-        if [[ "${LDFLAGS:-}" != *"$cuda_lib"* ]]; then
-            export LDFLAGS="${LDFLAGS:-} -L$cuda_lib"
-        fi
-
-        if [[ ":$PATH:" != *":$cuda_bin:"* ]]; then
-            export PATH="$cuda_bin:$PATH"
-        fi
-
-        if [[ "${LD_LIBRARY_PATH:-}" != *"$cuda_lib64"* ]]; then
-            export LD_LIBRARY_PATH="$cuda_lib64:${LD_LIBRARY_PATH:-}"
-        fi
-    else
-        echo "Warning: One or more CUDA paths do not exist!"
-        echo "Checked:"
-        echo "  $cuda_include"
-        echo "  $cuda_lib"
-        echo "  $cuda_bin"
-        echo "  $cuda_lib64"
-        echo "Please verify \$CUDA_HOME is correctly set to a valid CUDA installation."
+	    if [[ -n "$cuda_include" && -d "$cuda_include" && -d "$cuda_lib" ]]; then
+	        export CFLAGS="${CFLAGS:-} -I$cuda_include"
+			export CXXFLAGS="${CXXFLAGS:-} -I$cuda_include"
+			export LDFLAGS="${LDFLAGS:-} -L$cuda_lib"
+			export PATH="$cuda_bin:$PATH"
+			export LD_LIBRARY_PATH="$cuda_lib64:${LD_LIBRARY_PATH:-}"
+	    else
+	        echo "Warning: CUDA paths not found or unsupported architecture: $arch"
+	    fi
+	else
+        echo "Note: Skipping CUDA setup on non-Linux platform: $unames"
     fi
-
+	
     mkdir build
     (
         set -euo pipefail
         cd build && cmake -DWITH_OMP="${with_openmp}" .. && make
         # cd build && cmake -DWITH_OMP="${with_openmp}" -DCMAKE_CXX_FLAGS="-std=c++1z" .. && make
-
     )
 
     (
