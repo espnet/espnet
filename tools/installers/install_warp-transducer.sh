@@ -16,7 +16,7 @@ if [[ ! ${unames} =~ Linux && ! ${unames} =~ Darwin ]]; then
 fi
 
 
-if ! python -c "import packaging.version" &> /dev/null; then
+if ! python3 -c "import packaging.version" &> /dev/null; then
     python3 -m pip install packaging
 fi
 # TODO(kamo): Consider clang case
@@ -34,20 +34,21 @@ git clone https://github.com/ljn7/warp-transducer.git
 
  	if [[ "$unames" == "Linux" ]]; then
     	: "${CUDA_HOME:=/usr/local/cuda}"
+		arch="$(uname -m)"
 
-  		if [[ "$arch" == "x86_64" ]]; then
-            cuda_include="$CUDA_HOME/targets/x86_64-linux/include"
-            cuda_lib="$CUDA_HOME/targets/x86_64-linux/lib"
-        elif [[ "$arch" == "aarch64" ]]; then
-            cuda_include="$CUDA_HOME/include"
-            cuda_lib="$CUDA_HOME/lib64"
-        else
-            echo "Unknown Linux architecture ($arch). Skipping CUDA setup."
-            cuda_include=""
-            cuda_lib=""
-        fi
+		if [[ "$arch" == "x86_64" ]]; then
+			cuda_include="$CUDA_HOME/targets/x86_64-linux/include"
+			cuda_lib="$CUDA_HOME/targets/x86_64-linux/lib"
+		elif [[ "$arch" == "aarch64" ]]; then
+			cuda_include="$CUDA_HOME/include"
+			cuda_lib="$CUDA_HOME/lib64"
+		else
+			echo "Unknown Linux architecture ($arch). Skipping CUDA setup."
+			cuda_include=""
+			cuda_lib=""
+		fi
 
-	    cuda_bin="$CUDA_HOME/bin"
+		cuda_bin="$CUDA_HOME/bin"
 	    cuda_lib64="$CUDA_HOME/lib64"
 
 	    if [[ -n "$cuda_include" && -d "$cuda_include" && -d "$cuda_lib" ]]; then
@@ -76,11 +77,11 @@ git clone https://github.com/ljn7/warp-transducer.git
     )
 )
 
-if ! python -c "import ninja" &> /dev/null; then
+if ! python3 -c "import ninja" &> /dev/null; then
     (
-	set -euo pipefail
-	echo "Installing ninja package for RWKV decoder (training only)."
+		set -euo pipefail
+		echo "Installing ninja package for RWKV decoder (training only)."
 
-	python3 -m pip install ninja
+		python3 -m pip install ninja
     )
 fi
