@@ -54,8 +54,8 @@ check_args() {
 check_platform() {
     case "$unames" in
         Linux|Darwin) ;;
-        *) warn "This script may not work on $unames. Proceeding anyway..."
-           return 1 ;;
+        *) info "Platform $unames is not supported. Exiting cleanly."
+           exit 0 ;;
     esac
 }
 
@@ -167,9 +167,7 @@ check_optional_tools() {
 main() {
     check_args "$@"
     check_requirements
-    if ! check_platform; then
-        warn "Platform $unames is not fully supported - attempting anyway..."
-    fi
+    check_platform
     ensure_python_module packaging
     check_gcc_version
     clone_repo
