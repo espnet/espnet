@@ -65,17 +65,17 @@ fi
 (
     set -euo pipefail
     cd warp-transducer
-    
+
     echo "Setting up build environment..."
-    
+
     if [[ "$unames" == "Linux" ]]; then
         : "${CUDA_HOME:=/usr/local/cuda}"
         arch="$(uname -m)"
-        
+
         cuda_include=""
         cuda_lib=""
         cuda_bin="$CUDA_HOME/bin"
-        
+
         if [[ "$arch" == "x86_64" ]]; then
             cuda_include="$CUDA_HOME/targets/x86_64-linux/include"
             cuda_lib="$CUDA_HOME/targets/x86_64-linux/lib"
@@ -85,7 +85,7 @@ fi
         else
             echo "Warning: Unknown Linux architecture ($arch). Skipping CUDA setup."
         fi
-        
+
         if [[ -n "$cuda_include" && -d "$cuda_include" && -n "$cuda_lib" && -d "$cuda_lib" ]]; then
             echo "Setting up CUDA environment for $arch..."
             export CFLAGS="${CFLAGS:-} -I\"$cuda_include\""
@@ -102,9 +102,9 @@ fi
     else
         echo "Note: Skipping CUDA setup on non-Linux platform: $unames"
     fi
-    
+
     mkdir -p build
-    
+
     echo "Building with CMake (OpenMP: $with_openmp)..."
     (
         set -euo pipefail
@@ -113,13 +113,13 @@ fi
             echo "Error: CMake configuration failed"
             exit 1
         fi
-        
+
         if ! make; then
             echo "Error: Build failed"
             exit 1
         fi
     )
-    
+
     echo "Installing Python binding..."
     (
         set -euo pipefail
@@ -129,7 +129,7 @@ fi
             exit 1
         fi
     )
-    
+
     echo "warp-transducer installation completed successfully"
 )
 
