@@ -21,7 +21,6 @@ from typing import (
     Union,
 )
 
-import h5py
 import humanfriendly
 import kaldiio
 import numpy as np
@@ -110,6 +109,11 @@ class AdapterForSoundScpReader(collections.abc.Mapping):
 class H5FileWrapper:
     @typechecked
     def __init__(self, path: str):
+        try:
+            import h5py
+        except ImportError:
+            raise RuntimeError("Please install h5py.")
+
         self.path = path
         self.h5_file = h5py.File(path, "r")
 
