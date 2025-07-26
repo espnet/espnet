@@ -79,6 +79,7 @@ class ESPnetASRModel(AbsESPnetModel):
         autocast_frontend: bool = False,
         extract_feats_in_collect_stats: bool = True,
         lang_token_id: int = -1,
+        superb_setup=True,
     ):
         assert 0.0 <= ctc_weight <= 1.0, ctc_weight
         assert 0.0 <= interctc_weight < 1.0, interctc_weight
@@ -220,6 +221,10 @@ class ESPnetASRModel(AbsESPnetModel):
             self.lang_token_id = torch.tensor([[lang_token_id]])
         else:
             self.lang_token_id = None
+
+        self.superb_setup = superb_setup
+        if self.superb_setup:
+            self.encoder = None
 
     def forward(
         self,
@@ -414,6 +419,9 @@ class ESPnetASRModel(AbsESPnetModel):
         # Pre-encoder, e.g. used for raw input data
         if self.preencoder is not None:
             feats, feats_lengths = self.preencoder(feats, feats_lengths)
+
+        if self.superb_setup:
+            return feats, feats_lengths
 
         # 4. Forward encoder
         # feats: (Batch, Length, Dim)
