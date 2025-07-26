@@ -443,7 +443,7 @@ class MultiResL1SpecLoss(TimeDomainLoss):
             stft = ComplexTensor(stft[..., 0], stft[..., 1])
             return (stft.real.pow(2) + stft.imag.pow(2) + eps).sqrt()
 
-    @torch.cuda.amp.autocast(enabled=False)
+    @torch.amp.autocast("cuda", enabled=False)
     def forward(
         self,
         target: torch.Tensor,
