@@ -23,7 +23,7 @@ warn() {
 }
 
 info() {
-    echo -e "${GREEN}$1${NC}"
+    echo -e "${GREEN}Info: $1${NC}"
 }
 
 check_requirements() {
@@ -180,7 +180,7 @@ main() {
 
     check_optional_tools
 
-    info "warp-transducer installation completed successfully!"
+    info "Warp-transducer installation completed successfully!"
 }
 
 main "$@"
