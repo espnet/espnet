@@ -223,7 +223,9 @@ class TransposedLinear(nn.Module):
         super().__init__()
 
         if contract is None:
-            raise RuntimeError("Please install espnet['task-asr']")
+            raise RuntimeError(
+                "Please install espnet with `pip install espnet[task-asr]`"
+            )
 
         self.weight = nn.Parameter(torch.empty(d_output, d_input))
         nn.init.kaiming_uniform_(self.weight, a=math.sqrt(5))  # nn.Linear default init

@@ -112,7 +112,7 @@ class H5FileWrapper:
         try:
             import h5py
         except ImportError:
-            raise RuntimeError("Please install h5py.")
+            raise RuntimeError("Please install espnet with `pip install espnet[test]`.")
 
         self.path = path
         self.h5_file = h5py.File(path, "r")

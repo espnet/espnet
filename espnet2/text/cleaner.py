@@ -51,11 +51,15 @@ class TextCleaner:
         for t in self.cleaner_types:
             if t == "tacotron":
                 if tacotron_cleaners is None:
-                    raise RuntimeError("Please install espnet['task-tts']")
+                    raise RuntimeError(
+                        "Please install espnet with `pip install espnet[task-tts]`"
+                    )
                 text = tacotron_cleaners.custom_english_cleaners(text)
             elif t == "jaconv":
                 if jaconv is None:
-                    raise RuntimeError("Please install espnet['task-tts']")
+                    raise RuntimeError(
+                        "Please install espnet with `pip install espnet[task-tts]`"
+                    )
                 text = jaconv.normalize(text)
             elif t == "vietnamese":
                 if vietnamese_cleaners is None:
