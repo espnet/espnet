@@ -18,10 +18,10 @@ from espnet2.layers.augmentation import DataAugmentation
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.cleaner import TextCleaner
 from espnet2.text.hugging_face_token_id_converter import HuggingFaceTokenIDConverter
+from espnet2.text.qwen2audio_tokenizer import Qwen2AudioTokenizer
 from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.text.whisper_token_id_converter import OpenAIWhisperTokenIDConverter
 from espnet2.text.whisper_tokenizer import OpenAIWhisperTokenizer
-from espnet2.text.qwen2audio_tokenizer import Qwen2AudioTokenizer
 
 
 class AbsPreprocessor(ABC):
@@ -2793,7 +2793,9 @@ class Qwen2AudioPreprocessor(AbsPreprocessor):
     def __call__(
         self, uid: str, data: Dict[str, Union[str, np.ndarray]]
     ) -> Dict[str, np.ndarray]:
-        out = self.tokenizer.create_multimodal_query(data["text"], ([data["speech"]], self.sampling_rate))
+        out = self.tokenizer.create_multimodal_query(
+            data["text"], ([data["speech"]], self.sampling_rate)
+        )
         input_ids = out.input_ids.squeeze(0)
         attention_mask = out.attention_mask.squeeze(0)
         input_features = out.input_features.squeeze(0)
@@ -2802,6 +2804,5 @@ class Qwen2AudioPreprocessor(AbsPreprocessor):
             "input_ids": input_ids,
             "attention_mask": attention_mask,
             "input_features": input_features,
-            "feature_attention_mask": feature_attention_mask
-            }
-        
+            "feature_attention_mask": feature_attention_mask,
+        }

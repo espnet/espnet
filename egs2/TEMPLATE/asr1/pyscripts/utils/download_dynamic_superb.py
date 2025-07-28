@@ -1,11 +1,11 @@
 import argparse
 import json
-import soundfile as sf
 from collections import defaultdict
 from pathlib import Path
 from typing import List
 
 import numpy as np
+import soundfile as sf
 from datasets import load_dataset
 from tqdm import tqdm
 
@@ -16,6 +16,7 @@ def get_parser():
     parser.add_argument("--save_dir", type=Path, required=True)
     parser.add_argument("--allow_multi_utt", action="store_true", default=False)
     return parser
+
 
 def is_audio(example):
     """
@@ -31,6 +32,7 @@ def is_audio(example):
         if "path" in example and "array" in example and "sampling_rate" in example:
             return True
     return False
+
 
 def merge_audio(wavs: List[np.array], sampling_rate: int):
     """
@@ -54,6 +56,7 @@ def merge_audio(wavs: List[np.array], sampling_rate: int):
     # Remove the last silence
     wav = np.concatenate(new_wavs[:-1], axis=0)
     return wav
+
 
 def main():
     parser = get_parser()
@@ -81,18 +84,20 @@ def main():
             sampling_rate = example["audio"]["sampling_rate"]
             audio_inputs.append(audio)
             # sf.write(save_path, audio, sampling_rate)
-        
+
         # Handle multiple utterance as inputs (e.g., Speaker Verification)
         audio_idx = 2
         audio_key = f"audio{audio_idx}"
         while audio_key in example:
             audio = example[audio_key]["array"]
             curr_sr = example[audio_key]["sampling_rate"]
-            assert sampling_rate == curr_sr, f"Sampling rate mismatch: {sampling_rate} != {curr_sr}"
+            assert (
+                sampling_rate == curr_sr
+            ), f"Sampling rate mismatch: {sampling_rate} != {curr_sr}"
             audio_inputs.append(audio)
             audio_idx = audio_idx + 1
             audio_key = f"audio{audio_idx}"
-        
+
         if len(audio_inputs) >= 1:
             if args.allow_multi_utt:
                 for audio_idx, audio in enumerate(audio_inputs):
@@ -127,7 +132,7 @@ def main():
         for idx, example in metadata.items():
             text_input = example["instruction"]
             f.write(f"{idx} {text_input}\n")
-    
+
     text_output_path = save_dir / "text.output"
     with text_output_path.open(mode="w") as f:
         for idx, example in metadata.items():
@@ -140,6 +145,6 @@ def main():
         for idx, example in metadata.items():
             f.write(f"{idx} {idx}\n")
 
+
 if __name__ == "__main__":
     main()
-

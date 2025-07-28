@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 import argparse
 import logging
-import yaml
 from pathlib import Path
 from typing import Optional, Sequence, Tuple, Union
 
 import torch
+import yaml
 from typeguard import typechecked
 
 from espnet2.fileio.datadir_writer import DatadirWriter
@@ -14,6 +14,7 @@ from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
 from espnet2.utils.types import str2triple_str
+
 
 @typechecked
 def inference(
@@ -32,20 +33,20 @@ def inference(
     **kwargs,
 ):
     """Perform Qwen2-Audio inference using ESPnet2 framework[36]"""
-    
+
     # Initialize logging first
     logging.basicConfig(
         level=log_level,
         format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
     )
-    
+
     device = "cuda" if ngpu >= 1 else "cpu"
     set_all_random_seed(seed)
 
     # Build model using ESPnet2 task system[8]
     # model, train_args = DynamicSuperbTask.build_model_from_file(
-    #     config_file=train_config, 
-    #     model_file=model_file, 
+    #     config_file=train_config,
+    #     model_file=model_file,
     #     device=device
     # )
     args = argparse.Namespace()
@@ -74,8 +75,9 @@ def inference(
             batch = to_device(batch, device)
             # text_output = model.inference(**batch, max_new_tokens=256)
             text_output = model.inference(**batch)
-                
+
             writer["text"][keys[0]] = text_output
+
 
 def get_parser():
     """Build argument parser[8]"""
@@ -83,21 +85,28 @@ def get_parser():
         description="Qwen2-Audio inference using ESPnet2 framework",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    
+
     parser.add_argument("--output_dir", type=str, required=True)
     parser.add_argument("--ngpu", type=int, default=0)
     parser.add_argument("--seed", type=int, default=0)
-    parser.add_argument("--dtype", default="float32", choices=["float16", "float32", "float64"])
+    parser.add_argument(
+        "--dtype", default="float32", choices=["float16", "float32", "float64"]
+    )
     parser.add_argument("--num_workers", type=int, default=1)
     parser.add_argument("--batch_size", type=int, default=1)
-    
+
     # Add data arguments
-    parser.add_argument("--data_path_and_name_and_type", type=str2triple_str, required=True, action="append")
+    parser.add_argument(
+        "--data_path_and_name_and_type",
+        type=str2triple_str,
+        required=True,
+        action="append",
+    )
     parser.add_argument("--key_file", type=str)
     parser.add_argument("--train_config", type=str)
     parser.add_argument("--model_file", type=str)
     parser.add_argument("--decode_config_path", type=str, default=None)
-    
+
     parser.add_argument(
         "--log_level",
         type=lambda x: x.upper(),
@@ -105,8 +114,9 @@ def get_parser():
         choices=("CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"),
         help="The verbose level of logging",
     )
-    
+
     return parser
+
 
 def main(cmd=None):
     """Main function"""
@@ -114,6 +124,7 @@ def main(cmd=None):
     args = parser.parse_args(cmd)
     kwargs = vars(args)
     inference(**kwargs)
+
 
 if __name__ == "__main__":
     main()

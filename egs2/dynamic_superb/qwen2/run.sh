@@ -21,15 +21,15 @@ fi
 # Stage 12: Inference using integrated Qwen2-Audio model
 if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
     echo "Stage 12: Qwen2-Audio Inference with ESPnet2 integration"
-    
+
     for dset in ./data/*; do
         _dset=${dset}
         echo ${_dset}
         _dir="exp/qwen2audio_inference/$(basename ${_dset})"
         _logdir="${_dir}/log"
-        
+
         mkdir -p "${_logdir}"
-        
+
         ${cuda_cmd} --gpu "${ngpu}" "${_logdir}/inference.log" \
             python -m espnet2.bin.dynamic_superb_inference \
                 --ngpu "${ngpu}" \
@@ -54,26 +54,26 @@ if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ]; then
     normalize_text() {
       local input_file=$1
       local output_file=$2
-      
+
       # Apply text normalization: lowercase, remove punctuation, normalize whitespace
       awk '{
         # Extract utterance ID and text
         utt = $1
         $1 = ""
         text = substr($0, 2)
-        
+
         # Convert to lowercase
         text = tolower(text)
-        
+
         # Remove punctuation (keep only alphanumeric and spaces)
         gsub(/[^a-z0-9 ]/, "", text)
-        
+
         # Normalize multiple spaces to single space
         gsub(/[ \t]+/, " ", text)
-        
+
         # Remove leading/trailing whitespace
         gsub(/^[ \t]+|[ \t]+$/, "", text)
-        
+
         # Print normalized text with utterance ID
         print utt " " text
       }' ${input_file} > ${output_file}

@@ -1,10 +1,14 @@
 import copy
 
 import torch
+
 from espnet.nets.scorer_interface import ScorerInterface
 
+
 class Qwen2HFScorer(ScorerInterface):
-    def __init__(self, model, input_ids, attention_mask, input_features, feature_attention_mask):
+    def __init__(
+        self, model, input_ids, attention_mask, input_features, feature_attention_mask
+    ):
         self.model = model
         self.input_ids = input_ids
         self.attention_mask = attention_mask
@@ -34,9 +38,11 @@ class Qwen2HFScorer(ScorerInterface):
             else:
                 # subsequent step: feed only the last token
                 past_len = states["step"]
-                new_mask = torch.ones((self.attention_mask.size(0), 1),
-                                      dtype=self.attention_mask.dtype,
-                                      device=self.attention_mask.device)
+                new_mask = torch.ones(
+                    (self.attention_mask.size(0), 1),
+                    dtype=self.attention_mask.dtype,
+                    device=self.attention_mask.device,
+                )
                 output = self.model(
                     input_ids=ys[-1:].unsqueeze(0),
                     attention_mask=new_mask,
@@ -58,6 +64,6 @@ class Qwen2HFScorer(ScorerInterface):
         # states is a list of state-dicts for all beams
         # idx is the list of beam indices you kept
         return [states[i] for i in idx]
-    
+
     def final_score(self, states):
         return 0.0

@@ -23,11 +23,10 @@ for task in $core_tasks; do
         --json_path "${meta_file}" \
         --save_dir "${data_dir}" \
         --allow_multi_utt
-    
+
     # Create spk2utt from utt2spk
     utils/utt2spk_to_spk2utt.pl "${data_dir}/utt2spk" > "${data_dir}/spk2utt"
-    
+
 done
 
 echo "Data preparation finished."
-
