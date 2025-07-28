@@ -2,7 +2,6 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import torch
 import yaml
-
 from transformers import AutoProcessor, Qwen2AudioForConditionalGeneration
 from typeguard import typechecked
 
