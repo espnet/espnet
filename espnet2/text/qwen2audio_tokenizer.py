@@ -60,9 +60,9 @@ class Qwen2AudioTokenizer(AbsTokenizer):
         text_input: str,
         audio_input: Optional[Tuple[List[np.ndarray], int]] = None,
     ) -> Dict:
-        """
-        Create query with both text and audio inputs following Qwen2-Audio format
-        This is the core tokenization process from your example
+        """Create query with both text and audio inputs for Qwen2-Audio.
+
+        This is the core tokenization process from the original example.
         """
         self._build_processor()
 

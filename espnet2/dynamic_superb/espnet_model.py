@@ -33,8 +33,10 @@ class ESPnetQwen2AudioModel(AbsESPnetModel):
         self.use_espnet_beam_search = use_espnet_beam_search
 
         # Load Qwen2-Audio model and processor using standard transformers approach
-        self.qwen2audio_model = Qwen2AudioForConditionalGeneration.from_pretrained(
-            model_name, device_map="cpu", trust_remote_code=True
+        self.qwen2audio_model = (
+            Qwen2AudioForConditionalGeneration.from_pretrained(
+                model_name, device_map="cpu", trust_remote_code=True
+            )
         )
         self.processor = AutoProcessor.from_pretrained(
             model_name, trust_remote_code=True
@@ -63,20 +65,16 @@ class ESPnetQwen2AudioModel(AbsESPnetModel):
                 print(f"Loaded decode config: {decode_config}")
             except FileNotFoundError:
                 print(
-                    f"Warning: decode config file {decode_config_path} not found, using defaults"
+                    f"Warning: decode config file {decode_config_path}"
+                    " not found, using defaults"
                 )
-
-        # If beam search is enabled, ensure beam_size > 1
-        if self.use_espnet_beam_search and self.decode_config["beam_size"] <= 1:
-            print(
-                "Warning: beam_size <= 1 with ESPnet beam search enabled, setting beam_size=5"
-            )
-            self.decode_config["beam_size"] = 5
 
         # Initialize ESPnet beam search if enabled
         if self.use_espnet_beam_search and self.decode_config["beam_size"] > 1:
             print(
-                f"Initializing ESPnet beam search with beam_size={self.decode_config['beam_size']}, vocab_size={self.vocab_size}"
+                f"Initializing ESPnet beam search with "
+                f"beam_size={self.decode_config['beam_size']}, "
+                f"vocab_size={self.vocab_size}"
             )
 
         # For inference-only, freeze the model parameters
@@ -91,7 +89,7 @@ class ESPnetQwen2AudioModel(AbsESPnetModel):
         text_lengths: torch.Tensor,
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
-        """Forward pass required by AbsESPnetModel interface[9][22]
+        """Forward pass required by AbsESPnetModel interface
 
         Returns:
             loss: Scalar tensor (dummy for inference-only)
@@ -111,7 +109,9 @@ class ESPnetQwen2AudioModel(AbsESPnetModel):
         }
 
         # Use force_gatherable for DataParallel compatibility[26]
-        loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
+        loss, stats, weight = force_gatherable(
+            (loss, stats, batch_size), loss.device
+        )
         return loss, stats, weight
 
     def collect_feats(
@@ -122,7 +122,7 @@ class ESPnetQwen2AudioModel(AbsESPnetModel):
         text_lengths: torch.Tensor,
         **kwargs,
     ) -> Dict[str, torch.Tensor]:
-        """Collect features for statistics computation[30][32]"""
+        """Collect features for statistics computation"""
         return {"feats": speech, "feats_lengths": speech_lengths}
 
     def inference(
@@ -138,11 +138,17 @@ class ESPnetQwen2AudioModel(AbsESPnetModel):
         if self.use_espnet_beam_search:
             # Check if beam search is properly initialized
             return self._inference_with_espnet_beam(
-                input_ids, attention_mask, input_features, feature_attention_mask
+                input_ids,
+                attention_mask,
+                input_features,
+                feature_attention_mask,
             )
         else:
             return self._inference_with_hf_generate(
-                input_ids, attention_mask, input_features, feature_attention_mask
+                input_ids,
+                attention_mask,
+                input_features,
+                feature_attention_mask,
             )
 
     def _inference_with_espnet_beam(
