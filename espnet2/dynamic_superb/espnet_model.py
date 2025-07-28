@@ -3,7 +3,6 @@ from typing import Dict, List, Optional, Tuple, Union
 import torch
 import yaml
 
-# from .modeling_qwen2 import Qwen2AudioForConditionalGeneration
 from transformers import AutoProcessor, Qwen2AudioForConditionalGeneration
 from typeguard import typechecked
 

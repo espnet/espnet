@@ -13,7 +13,7 @@ fi
 core_tasks=("SuperbASR_LibriSpeech-TestClean")
 
 
-for task in $core_tasks; do
+for task in "${core_tasks[@]}"; do
     data_dir=data/${task}
     mkdir -p ${data_dir}
 

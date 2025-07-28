@@ -1,16 +1,20 @@
 import os
 import tempfile
-from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Tuple, Union
+from typing import Dict, Iterable, List, Optional, Tuple
 
 import librosa
 import numpy as np
 import soundfile as sf
-import torch
-from transformers import AutoProcessor
 from typeguard import typechecked
 
 from espnet2.text.abs_tokenizer import AbsTokenizer
+
+try:
+    from transformers import AutoProcessor
+
+    is_transformers_available = True
+except ImportError:
+    is_transformers_available = False
 
 
 class Qwen2AudioTokenizer(AbsTokenizer):
@@ -21,6 +25,13 @@ class Qwen2AudioTokenizer(AbsTokenizer):
         self,
         model_name: str = "Qwen/Qwen2-Audio-7B-Instruct",
     ):
+        if not is_transformers_available:
+            raise ImportError(
+                "`transformers` is not available. Please install it via `pip install"
+                " transformers` or `cd /path/to/espnet/tools && . ./activate_python.sh"
+                " && ./installers/install_transformers.sh`."
+            )
+
         self.model_name = model_name
 
         # Initialize processor lazily to avoid pickling issues

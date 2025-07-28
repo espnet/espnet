@@ -1,8 +1,5 @@
 import argparse
-from typing import Callable, Collection, Dict, List, Optional, Tuple
-
-import numpy as np
-import torch
+from typing import Callable, Optional, Tuple
 
 from espnet2.dynamic_superb.espnet_model import ESPnetQwen2AudioModel
 from espnet2.tasks.abs_task import AbsTask

@@ -1,11 +1,8 @@
 #!/usr/bin/env python3
 import argparse
 import logging
-from pathlib import Path
 from typing import Optional, Sequence, Tuple, Union
 
-import torch
-import yaml
 from typeguard import typechecked
 
 from espnet2.fileio.datadir_writer import DatadirWriter
@@ -43,12 +40,6 @@ def inference(
     device = "cuda" if ngpu >= 1 else "cpu"
     set_all_random_seed(seed)
 
-    # Build model using ESPnet2 task system[8]
-    # model, train_args = DynamicSuperbTask.build_model_from_file(
-    #     config_file=train_config,
-    #     model_file=model_file,
-    #     device=device
-    # )
     args = argparse.Namespace()
     args.model_name = "Qwen/Qwen2-Audio-7B-Instruct"
     args.decode_config_path = decode_config_path
