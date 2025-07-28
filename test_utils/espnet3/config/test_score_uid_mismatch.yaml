@@ -1,0 +1,15 @@
+dataset:
+  _target_: espnet3.data.DataOrganizer
+  test:
+    - name: test_id_mismatch
+      dataset:
+        _target_: test.espnet3.test_score_runner.DummyDataset
+        split: test_id_mismatch
+
+metrics:
+  - _target_: test.espnet3.test_score_runner.DummyWER
+    inputs:
+      - ref
+      - hyp
+    apply_to:
+      - test_id_mismatch
