@@ -45,4 +45,3 @@ See the following pages before asking the question:
 | **PLC‑MOS**                  | 2.91            |
 | **SingMOS**                  | 2.78            |
 | **Speaker similarity**       | 0.20            |
-
