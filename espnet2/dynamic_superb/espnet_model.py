@@ -33,10 +33,8 @@ class ESPnetQwen2AudioModel(AbsESPnetModel):
         self.use_espnet_beam_search = use_espnet_beam_search
 
         # Load Qwen2-Audio model and processor using standard transformers approach
-        self.qwen2audio_model = (
-            Qwen2AudioForConditionalGeneration.from_pretrained(
-                model_name, device_map="cpu", trust_remote_code=True
-            )
+        self.qwen2audio_model = Qwen2AudioForConditionalGeneration.from_pretrained(
+            model_name, device_map="cpu", trust_remote_code=True
         )
         self.processor = AutoProcessor.from_pretrained(
             model_name, trust_remote_code=True
@@ -109,9 +107,7 @@ class ESPnetQwen2AudioModel(AbsESPnetModel):
         }
 
         # Use force_gatherable for DataParallel compatibility[26]
-        loss, stats, weight = force_gatherable(
-            (loss, stats, batch_size), loss.device
-        )
+        loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
         return loss, stats, weight
 
     def collect_feats(
