@@ -1,4 +1,4 @@
-## GLOBE-v2 Multi-Speaker English TTS RECIPE
+# GLOBE-v2 Multi-Speaker English TTS RECIPE
 ## CONTRIBUTORS
 Terry (Zhuoyan) Tao <terryt@usc.edu>  –  GLOBE‑v2 TTS recipe and download script
 
