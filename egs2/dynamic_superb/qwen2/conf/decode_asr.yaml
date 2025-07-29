@@ -1,8 +1,6 @@
-beam_size: 5
+beam_size: 3
 ctc_weight: 0.0
 lm_weight: 0.0
-penalty: 0.6
-maxlenratio: 0.4
+penalty: 0.0
+maxlenratio: 1.0
 minlenratio: 0.0
-normalize_length: true
-use_espnet_beam_search: true
