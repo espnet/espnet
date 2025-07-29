@@ -2785,9 +2785,15 @@ class SpeechLMPreprocessor(AbsPreprocessor):
 class Qwen2AudioPreprocessor(AbsPreprocessor):
     """Preprocessor specifically for Qwen2Audio models"""
 
-    def __init__(self):
+    def __init__(self, sampling_rate: int = 16000):
+        """Initialize the Qwen2AudioPreprocessor.
+        This method sets up the tokenizer for Qwen2Audio models and defines
+        the default sampling rate for audio processing.
+        """
         self.tokenizer = Qwen2AudioTokenizer()
-        self.sampling_rate = 16000
+        self.sampling_rate = sampling_rate
+        if self.sampling_rate != 16000:
+            raise NotImplementedError("Qwen2-Audio supports 16kHz only.")
 
     @typechecked
     def __call__(

@@ -106,7 +106,6 @@ class ESPnetQwen2AudioModel(AbsESPnetModel):
             stats: Dictionary of statistics for logging
             weight: Batch size for normalization
         """
-        self.scorer.to(speech.device)
         batch_size = speech.shape[0]
 
         # Since this is inference-only, return dummy loss
