@@ -2,7 +2,6 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import torch
 import yaml
-from transformers import AutoProcessor, Qwen2AudioForConditionalGeneration
 from typeguard import typechecked
 
 from espnet2.torch_utils.device_funcs import force_gatherable
@@ -10,6 +9,13 @@ from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet.nets.beam_search import BeamSearch
 
 from .qwen2_scorer import Qwen2HFScorer
+
+try:
+    from transformers import AutoProcessor, Qwen2AudioForConditionalGeneration
+
+    is_transformers_available = True
+except ImportError:
+    is_transformers_available = False
 
 
 class ESPnetQwen2AudioModel(AbsESPnetModel):
@@ -26,6 +32,12 @@ class ESPnetQwen2AudioModel(AbsESPnetModel):
         use_espnet_beam_search: bool = False,
     ):
         super().__init__()
+        if not is_transformers_available:
+            raise ImportError(
+                "`transformers` is not available. Please install it via `pip install"
+                " transformers` or `cd /path/to/espnet/tools && . ./activate_python.sh"
+                " && ./installers/install_transformers.sh`."
+            )
 
         self.model_name = model_name
         self.ignore_id = ignore_id
