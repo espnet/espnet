@@ -26,11 +26,11 @@ train_set="train"
 valid_set="val"
 test_sets="test"
 
-train_config=conf/tuning/train_multi_spk_vits.yaml
+train_config=conf/tuning/train_full_band_multi_spk_vits.yaml
 inference_config=conf/tuning/decode_vits.yaml
 
-dump_dir=dump/22k
-exp_dir=exp/22k
+dump_dir=dump/44k
+exp_dir=exp/44k
 
 
 # g2p=g2p_en # Include word separator
