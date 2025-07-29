@@ -1,0 +1,7 @@
+webdataset
+panphon
+ipatok
+lhotse
+tqdm
+pandas
+scipy

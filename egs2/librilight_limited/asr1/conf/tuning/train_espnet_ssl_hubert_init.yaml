@@ -1,0 +1,83 @@
+batch_type: numel
+batch_bins: 3200000
+accum_grad: 1
+max_epoch: 40
+patience: none
+# The initialization method for model parameters
+init: xavier_uniform
+best_model_criterion:
+-   - valid
+    - loss
+    - min
+keep_nbest_models: 10
+
+use_amp: true
+num_att_plot: 0
+
+freeze_param: [
+    "frontend"
+]
+
+init_param: ['../../librispeech/ssl1/exp/ssl_train_hubert_raw/valid.total_count.ave_5best.pth:frontend:frontend',
+              '../../librispeech/ssl1/exp/ssl_train_hubert_raw/valid.total_count.ave_5best.pth:preencoder:preencoder',
+              '../../librispeech/ssl1/exp/ssl_train_hubert_raw/valid.total_count.ave_5best.pth:encoder:encoder',
+]
+
+input_size: none
+frontend: wav2vec_cnn
+frontend_conf:
+    norm_mode: layer_norm
+    conv_mode: standard
+    bias: false
+    normalize_audio: True
+    normalize_outputs: False
+
+preencoder: linear
+preencoder_conf:
+    input_size: 512
+    output_size: 768
+
+encoder: transformer
+encoder_conf:
+    output_size: 768
+    attention_heads: 12
+    linear_units: 3072
+    num_blocks: 12
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.0
+    attention_dropout_rate: 0.1
+    input_layer: wav2vec
+    normalize_before: false
+    pos_enc_layer_type: conv
+    layer_drop_rate: 0.05
+
+normalize: null
+
+model_conf:
+    ctc_weight: 1.0
+    lsm_weight: 0.1
+    length_normalized_loss: false
+    autocast_frontend: true
+
+optim: adam
+optim_conf:
+    lr: 0.00005
+scheduler: warmuplr
+scheduler_conf:
+    warmup_steps: 6000
+
+specaug: specaug
+specaug_conf:
+    apply_time_warp: false
+    time_warp_window: 5
+    time_warp_mode: bicubic
+    apply_freq_mask: true
+    freq_mask_width_range:
+    - 0
+    - 27
+    num_freq_mask: 2
+    apply_time_mask: true
+    time_mask_width_ratio_range:
+    - 0.
+    - 0.05
+    num_time_mask: 10
