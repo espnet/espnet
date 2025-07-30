@@ -22,7 +22,7 @@ jobs:
       - name: Check whether PR is related to only docker
         id: step1
         run: |
-          if [ -z "$GITHUB_PR_LABEL_ESPNET1" ] && [ -z "$GITHUB_PR_LABEL_ESPNET2" ] && [ -n "$GITHUB_PR_LABEL_DOCKER" ]; then
+          if [ -z "$GITHUB_PR_LABEL_ESPNET1" ] && [ -z "$GITHUB_PR_LABEL_ESPNET2" ] && [ -z "$GITHUB_PR_LABEL_ESPNET3" ] && [ -n "$GITHUB_PR_LABEL_DOCKER" ]; then
             echo "is_docker=true" >> "$GITHUB_OUTPUT"
           else
             echo "is_docker=false" >> "$GITHUB_OUTPUT"
@@ -167,6 +167,67 @@ jobs:
         with:
           flags: test_integration_espnet2
 
+  unit_test_espnet3_and_integration_test_espnet3:
+    runs-on: ${{ matrix.os }}
+    needs: process_labels
+    if: |
+      github.event.pull_request.draft == false
+    strategy:
+      max-parallel: 20
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ["3.10", "3.11"]
+        pytorch-version: [2.1.2, 2.2.2, 2.3.1, 2.4.1, 2.5.1, 2.6.0]
+        chainer-version: [6.0.0]
+        use-conda: [false]
+    steps:
+      - uses: actions/checkout@master
+      - uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/setup.py') }}-${{ hashFiles('**/Makefile') }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          architecture: 'x64'
+      - name: install dependencies
+        run: |
+          sudo apt-get update -qq
+          # NOTE(kamo): g++-7 doesn't exist in ubuntu-latest
+          sudo apt-get install -qq -y cmake libsndfile1-dev bc sox ffmpeg
+      - name: Get PR labels
+        id: pr-labels
+        uses: joerick/pr-labels-action@v1.0.9
+      - name: install espnet
+        env:
+          ESPNET_PYTHON_VERSION: ${{ matrix.python-version }}
+          TH_VERSION: ${{ matrix.pytorch-version }}
+          CHAINER_VERSION: ${{ matrix.chainer-version }}
+          USE_CONDA: ${{ matrix.use-conda }}
+        run: |
+          ./ci/install.sh
+
+      # Note (Masao): ESPnet-3 does not use shell.
+      # - name: test shell
+      #   run: |
+      #     ./ci/test_shell_espnet2.sh
+
+      - name: test python
+        run: ./ci/test_python_espnet3.sh
+      - uses: codecov/codecov-action@v2
+        with:
+          flags: test_python_espnet3
+      - name: coverage erase
+        continue-on-error: true
+        run: |
+          source tools/activate_python.sh
+          coverage erase
+
+      # - name: test espnet3 integration
+      #   run: ./ci/test_integration_espnet3.sh
+      # - uses: codecov/codecov-action@v2
+      #   with:
+      #     flags: test_integration_espnet3
 
   test_configuration_espnet2:
     runs-on: ${{ matrix.os }}
@@ -215,79 +276,6 @@ jobs:
       - uses: codecov/codecov-action@v2
         with:
           flags: test_configuration_espnet2
-
-  unit_test_espnetez_and_integration_test_espnetez:
-    runs-on: ${{ matrix.os }}
-    needs: process_labels
-    if: |
-      github.event.pull_request.draft == false
-    strategy:
-      max-parallel: 20
-      matrix:
-        os: [ubuntu-latest]
-        python-version: ["3.10", "3.11"]
-        pytorch-version: [2.1.2, 2.2.2, 2.3.1, 2.4.1, 2.5.1, 2.6.0]
-        chainer-version: [6.0.0]
-        use-conda: [false]
-    steps:
-      - uses: actions/checkout@master
-      - uses: actions/cache@v3
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-          architecture: 'x64'
-      - name: install dependencies
-        run: |
-          sudo apt-get update -qq
-          # NOTE(kamo): g++-7 doesn't exist in ubuntu-latest
-          sudo apt-get install -qq -y cmake libsndfile1-dev bc sox ffmpeg
-      - name: Get PR labels
-        id: pr-labels
-        uses: joerick/pr-labels-action@v1.0.9
-      - name: install espnet
-        env:
-          ESPNET_PYTHON_VERSION: ${{ matrix.python-version }}
-          TH_VERSION: ${{ matrix.pytorch-version }}
-          CHAINER_VERSION: ${{ matrix.chainer-version }}
-          USE_CONDA: ${{ matrix.use-conda }}
-        run: |
-          ./ci/install.sh
-
-      - name: test python
-        run: ./ci/test_python_espnetez.sh
-      - uses: codecov/codecov-action@v2
-        with:
-          flags: test_python_espnetez
-      - name: coverage erase
-        continue-on-error: true
-        run: |
-          source tools/activate_python.sh
-          coverage erase
-
-      - name: install kaldi
-        run: |
-          ./ci/install_kaldi.sh
-
-      - name: test utils
-        run: ./ci/test_utils.sh
-      - uses: codecov/codecov-action@v2
-        with:
-          flags: test_utils
-      - name: coverage erase
-        continue-on-error: true
-        run: |
-          source tools/activate_python.sh
-          coverage erase
-
-      - name: test espnetez integration
-        run: ./ci/test_integration_espnetez.sh
-      - uses: codecov/codecov-action@v2
-        with:
-          flags: test_integration_espnetez
-
 
   test_import:
     runs-on: ${{ matrix.os }}
