@@ -31,7 +31,7 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
         mkdir -p "${_logdir}"
 
         ${cuda_cmd} --gpu "${ngpu}" "${_logdir}/inference.log" \
-            python -m espnet2.bin.prompt_s2t_inference \
+            python -m espnet2.bin.ps2st_inference \
                 --ngpu "${ngpu}" \
                 --data_path_and_name_and_type "${_dset}/wav.scp,speech,sound" \
                 --data_path_and_name_and_type "${_dset}/text.input,text,text" \

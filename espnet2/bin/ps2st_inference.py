@@ -6,7 +6,7 @@ from typing import Optional, Sequence, Tuple, Union
 from typeguard import typechecked
 
 from espnet2.fileio.datadir_writer import DatadirWriter
-from espnet2.tasks.prompt_s2t import PromptS2TTask
+from espnet2.tasks.ps2st import PS2STTask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
@@ -43,19 +43,19 @@ def inference(
     args = argparse.Namespace()
     args.model_name = "Qwen/Qwen2-Audio-7B-Instruct"
     args.decode_config_path = decode_config_path
-    model = PromptS2TTask.build_model(args)
+    model = PS2STTask.build_model(args)
     model.to(device).eval()
     train_args = None
 
     # Build data iterator
-    loader = PromptS2TTask.build_streaming_iterator(
+    loader = PS2STTask.build_streaming_iterator(
         data_path_and_name_and_type,
         dtype=dtype,
         batch_size=batch_size,
         key_file=key_file,
         num_workers=num_workers,
-        preprocess_fn=PromptS2TTask.build_preprocess_fn(train_args, False),
-        collate_fn=PromptS2TTask.build_collate_fn(train_args, False),
+        preprocess_fn=PS2STTask.build_preprocess_fn(train_args, False),
+        collate_fn=PS2STTask.build_collate_fn(train_args, False),
         allow_variable_data_keys=True,
         inference=True,
     )

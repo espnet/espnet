@@ -1,7 +1,7 @@
 import argparse
 from typing import Callable, Optional, Tuple
 
-from espnet2.dynamic_superb.espnet_model import ESPnetQwen2AudioModel
+from espnet2.ps2st.espnet_model import ESPnetQwen2AudioModel
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.train.class_choices import ClassChoices
