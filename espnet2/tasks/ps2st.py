@@ -10,7 +10,7 @@ from espnet2.train.preprocessor import Qwen2AudioPreprocessor
 from espnet2.train.trainer import Trainer
 
 
-class PromptS2TTask(AbsTask):
+class PS2STTask(AbsTask):
     """Task class for Qwen2-Audio integration following ESPnet2 architecture"""
 
     num_optimizers: int = 1
