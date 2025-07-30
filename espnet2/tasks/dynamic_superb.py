@@ -11,7 +11,7 @@ from espnet2.train.trainer import Trainer
 
 
 class DynamicSuperbTask(AbsTask):
-    """Task class for Qwen2-Audio integration following ESPnet2 architecture[8]"""
+    """Task class for Qwen2-Audio integration following ESPnet2 architecture"""
 
     num_optimizers: int = 1
 
@@ -30,7 +30,7 @@ class DynamicSuperbTask(AbsTask):
 
     @classmethod
     def add_task_arguments(cls, parser: argparse.ArgumentParser):
-        """Add task-specific arguments[8]"""
+        """Add task-specific arguments"""
         group = parser.add_argument_group(description="Task related")
 
         group.add_argument(
@@ -40,20 +40,13 @@ class DynamicSuperbTask(AbsTask):
             help="Hugging Face model name for Qwen2-Audio",
         )
 
-        group.add_argument(
-            "--use_espnet_beam_search",
-            type=bool,
-            default=False,
-            help="Whether to use ESPnet beam search instead of Hugging Face generate",
-        )
-
         # Add class choices
         for class_choices in cls.class_choices_list:
             class_choices.add_arguments(group)
 
     @classmethod
     def build_collate_fn(cls, args: argparse.Namespace, train: bool) -> Callable:
-        """Build collate function[8]"""
+        """Build collate function"""
         return CommonCollateFn(
             float_pad_value=0.0,
             int_pad_value=-1,
@@ -63,14 +56,14 @@ class DynamicSuperbTask(AbsTask):
     def build_preprocess_fn(
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable]:
-        """Build preprocessing function[8]"""
+        """Build preprocessing function"""
         return Qwen2AudioPreprocessor()
 
     @classmethod
     def required_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
-        """Define required data names[8]"""
+        """Define required data names"""
         if inference:
             return ("speech",)
         else:
@@ -80,15 +73,14 @@ class DynamicSuperbTask(AbsTask):
     def optional_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
-        """Define optional data names[8]"""
+        """Define optional data names"""
         return ()
 
     @classmethod
     def build_model(cls, args: argparse.Namespace) -> ESPnetQwen2AudioModel:
-        """Build the Qwen2-Audio model[8]"""
+        """Build the Qwen2-Audio model"""
         model = ESPnetQwen2AudioModel(
             model_name=args.model_name,
             decode_config_path=getattr(args, "decode_config_path", None),
-            use_espnet_beam_search=getattr(args, "use_espnet_beam_search", True),
         )
         return model
