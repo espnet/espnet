@@ -47,7 +47,7 @@ def inference(
     model.to(device).eval()
     train_args = None
 
-    # Build data iterator[8]
+    # Build data iterator
     loader = DynamicSuperbTask.build_streaming_iterator(
         data_path_and_name_and_type,
         dtype=dtype,
@@ -64,7 +64,6 @@ def inference(
     with DatadirWriter(output_dir) as writer:
         for keys, batch in loader:
             batch = to_device(batch, device)
-            # text_output = model.inference(**batch, max_new_tokens=256)
             text_output = model.inference(**batch)
 
             writer["text"][keys[0]] = text_output

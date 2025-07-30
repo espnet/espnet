@@ -29,7 +29,6 @@ class ESPnetQwen2AudioModel(AbsESPnetModel):
         token_list: Union[Tuple[str, ...], List[str]] = (),
         ignore_id: int = -1,
         decode_config_path: Optional[str] = None,
-        use_espnet_beam_search: bool = False,
     ):
         super().__init__()
         if not is_transformers_available:
@@ -42,7 +41,6 @@ class ESPnetQwen2AudioModel(AbsESPnetModel):
         self.model_name = model_name
         self.ignore_id = ignore_id
         self.token_list = token_list
-        self.use_espnet_beam_search = use_espnet_beam_search
 
         # Load Qwen2-Audio model and processor using standard transformers approach
         self.qwen2audio_model = Qwen2AudioForConditionalGeneration.from_pretrained(
@@ -79,14 +77,6 @@ class ESPnetQwen2AudioModel(AbsESPnetModel):
                     " not found, using defaults"
                 )
 
-        # Initialize ESPnet beam search if enabled
-        if self.use_espnet_beam_search and self.decode_config["beam_size"] > 1:
-            print(
-                f"Initializing ESPnet beam search with "
-                f"beam_size={self.decode_config['beam_size']}, "
-                f"vocab_size={self.vocab_size}"
-            )
-
         # For inference-only, freeze the model parameters
         for param in self.qwen2audio_model.parameters():
             param.requires_grad = False
@@ -117,7 +107,7 @@ class ESPnetQwen2AudioModel(AbsESPnetModel):
             "batch_size": batch_size,
         }
 
-        # Use force_gatherable for DataParallel compatibility[26]
+        # Use force_gatherable for DataParallel compatibility
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
         return loss, stats, weight
 
@@ -142,25 +132,6 @@ class ESPnetQwen2AudioModel(AbsESPnetModel):
     ) -> str:
         """Custom inference method using Qwen2-Audio"""
 
-        if self.use_espnet_beam_search:
-            # Check if beam search is properly initialized
-            return self._inference_with_espnet_beam(
-                input_ids,
-                attention_mask,
-                input_features,
-                feature_attention_mask,
-            )
-        else:
-            return self._inference_with_hf_generate(
-                input_ids,
-                attention_mask,
-                input_features,
-                feature_attention_mask,
-            )
-
-    def _inference_with_espnet_beam(
-        self, input_ids, attention_mask, input_features, feature_attention_mask
-    ):
         scorer = Qwen2HFScorer(
             self.qwen2audio_model,
             input_ids,
@@ -197,50 +168,5 @@ class ESPnetQwen2AudioModel(AbsESPnetModel):
             skip_special_tokens=True,
             clean_up_tokenization_spaces=False,
         )
-
-        return prediction
-
-    def _inference_with_hf_generate(
-        self,
-        input_ids: torch.Tensor,
-        attention_mask: torch.Tensor,
-        input_features: torch.Tensor,
-        feature_attention_mask: torch.Tensor,
-    ) -> str:
-        """Inference using Hugging Face generate method"""
-
-        # Generate response
-        if self.decode_config["maxlenratio"] > 0.0:
-            input_length = input_ids.size(-1)
-            max_length = int(self.decode_config["maxlenratio"] * input_length)
-        else:
-            max_length = 256
-        if self.decode_config["minlenratio"] > 0.0:
-            min_length = int(self.decode_config["minlenratio"] * input_length)
-        else:
-            min_length = 0
-
-        with torch.no_grad():
-            pred_ids = self.qwen2audio_model.generate(
-                input_ids=input_ids,
-                attention_mask=attention_mask,
-                input_features=input_features,
-                feature_attention_mask=feature_attention_mask,
-                do_sample=False,
-                max_new_tokens=max_length,
-                min_new_tokens=min_length,
-                num_beams=self.decode_config["beam_size"],
-                length_penalty=self.decode_config["penalty"],
-            )
-
-        # Extract only generated tokens
-        pred_ids = pred_ids[:, input_ids.size(1) :]
-
-        # Decode prediction
-        prediction = self.processor.batch_decode(
-            pred_ids,
-            skip_special_tokens=True,
-            clean_up_tokenization_spaces=False,
-        )[0]
 
         return prediction

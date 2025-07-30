@@ -14,8 +14,6 @@ class Qwen2HFScorer(ScorerInterface):
         self.attention_mask = attention_mask
         self.input_features = input_features
         self.feature_attention_mask = feature_attention_mask
-        # self.past_kv = None
-        # self.init = True
 
     def init_state(self, xs):
         return {"past_kv": None, "step": 0}
