@@ -10,7 +10,7 @@ from espnet2.train.preprocessor import Qwen2AudioPreprocessor
 from espnet2.train.trainer import Trainer
 
 
-class DynamicSuperbTask(AbsTask):
+class PromptS2TTask(AbsTask):
     """Task class for Qwen2-Audio integration following ESPnet2 architecture"""
 
     num_optimizers: int = 1
@@ -65,9 +65,9 @@ class DynamicSuperbTask(AbsTask):
     ) -> Tuple[str, ...]:
         """Define required data names"""
         if inference:
-            return ("speech",)
-        else:
             return ("speech", "text")
+        else:
+            raise NotImplementedError
 
     @classmethod
     def optional_data_names(

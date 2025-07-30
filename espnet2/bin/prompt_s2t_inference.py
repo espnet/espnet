@@ -6,7 +6,7 @@ from typing import Optional, Sequence, Tuple, Union
 from typeguard import typechecked
 
 from espnet2.fileio.datadir_writer import DatadirWriter
-from espnet2.tasks.dynamic_superb import DynamicSuperbTask
+from espnet2.tasks.prompt_s2t import PromptS2TTask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
@@ -29,7 +29,7 @@ def inference(
     decode_config_path: Optional[str],
     **kwargs,
 ):
-    """Perform Qwen2-Audio inference using ESPnet2 framework[36]"""
+    """Perform Qwen2-Audio inference using ESPnet2 framework"""
 
     # Initialize logging first
     logging.basicConfig(
@@ -43,19 +43,19 @@ def inference(
     args = argparse.Namespace()
     args.model_name = "Qwen/Qwen2-Audio-7B-Instruct"
     args.decode_config_path = decode_config_path
-    model = DynamicSuperbTask.build_model(args)
+    model = PromptS2TTask.build_model(args)
     model.to(device).eval()
     train_args = None
 
     # Build data iterator
-    loader = DynamicSuperbTask.build_streaming_iterator(
+    loader = PromptS2TTask.build_streaming_iterator(
         data_path_and_name_and_type,
         dtype=dtype,
         batch_size=batch_size,
         key_file=key_file,
         num_workers=num_workers,
-        preprocess_fn=DynamicSuperbTask.build_preprocess_fn(train_args, False),
-        collate_fn=DynamicSuperbTask.build_collate_fn(train_args, False),
+        preprocess_fn=PromptS2TTask.build_preprocess_fn(train_args, False),
+        collate_fn=PromptS2TTask.build_collate_fn(train_args, False),
         allow_variable_data_keys=True,
         inference=True,
     )
@@ -70,7 +70,7 @@ def inference(
 
 
 def get_parser():
-    """Build argument parser[8]"""
+    """Build argument parser"""
     parser = config_argparse.ArgumentParser(
         description="Qwen2-Audio inference using ESPnet2 framework",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
