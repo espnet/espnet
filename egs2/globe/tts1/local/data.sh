@@ -33,19 +33,22 @@ test_sets="test"
 db_root=${GLOBE}
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
-    log "stage -1: Data Download"
-    local/data_download.sh "${db_root}"
+    log "stage -1: Data Download (HugginFace CLI Download Separately)"
 fi
 
 if [ $stage -le 0 ] && [ $stop_stage -ge 0 ]; then
-  log "Stage 0: Data preparation via HuggingFace Datasets"
-  python3 local/data_prep.py \
-    --train_set "${train_set}" \
-    --dev_set   "${dev_set}"   \
-    --test_set  "${test_sets}" \
-    --hf_repo   "MushanW/GLOBE_V2" \
-    --dest_path "data" \
-    --jobs      4
+  log "Stage 0: Data preparation via HuggingFace Datasets (batch)"
+  _dp_logdir=logs/data_prep
+  mkdir -p "${_dp_logdir}"
+  # Submit a single job via train_cmd; logs handled by slurm.pl with logfile mapping
+  ${train_cmd} JOB=1:1 "${_dp_logdir}"/data_prep.JOB.log \
+    python3 local/data_prep.py \
+      --train_set "${train_set}" \
+      --dev_set   "${dev_set}"   \
+      --test_set  "${test_sets}" \
+      --hf_repo   "MushanW/GLOBE_V2" \
+      --dest_path "data" \
+      --jobs      4
 fi
 
 utils/fix_data_dir.sh data/${train_set}
