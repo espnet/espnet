@@ -12,17 +12,33 @@ import kaldiio
 import librosa
 import numpy as np
 import torch
-from tqdm.contrib import tqdm
+from tqdm import tqdm
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import itertools
+import multiprocessing as mp
 
 from espnet2.fileio.sound_scp import SoundScpReader
 
 
 def get_parser():
     """Construct the parser."""
+
     parser = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
+    parser.add_argument(
+    "--num_workers",
+    type=int,
+    default=max(1, mp.cpu_count() // 4),
+    help="I/O+preproc worker threads (librosa resample, wav.scp reads).",
+)
+    parser.add_argument(
+    "--prefetch",
+    type=int,
+    default=64,
+    help="Max number of outstanding I/O tasks to prefetch.",
+)
     parser.add_argument("--pretrained_model", type=str, help="Pretrained model.")
     parser.add_argument(
         "--toolkit",
@@ -148,7 +164,8 @@ class SpkEmbedExtractor:
         elif len(audio.shape) > 1:
             raise ValueError(f"Input data has shape {audio.shape} thatis not support")
         audio = torch.from_numpy(audio.astype(np.float32)).to(self.device)
-        output = self.speech2embedding(audio)
+        with torch.no_grad():
+            output = self.speech2embedding(audio)
         return output.cpu().numpy()
 
     def __call__(self, wav, in_sr):
@@ -211,18 +228,78 @@ def main(argv):
 
         spk_embed_extractor = SpkEmbedExtractor(args, device)
 
-        for speaker in tqdm(spk2utt):
-            spk_embeddings = list()
-            for utt in spk2utt[speaker]:
-                in_sr, wav = wav_scp[utt]
-                # Speaker Embedding
-                embeds = spk_embed_extractor(wav, in_sr)
-                writer_utt[utt] = np.squeeze(embeds)
-                spk_embeddings.append(embeds)
+        # for speaker in tqdm(spk2utt):
+        #     spk_embeddings = list()
+        #     for utt in spk2utt[speaker]:
+        #         in_sr, wav = wav_scp[utt]
+        #         # Speaker Embedding
+        #         embeds = spk_embed_extractor(wav, in_sr)
+        #         writer_utt[utt] = np.squeeze(embeds)
+        #         spk_embeddings.append(embeds)
 
-            # Speaker Normalization
-            embeds = np.mean(np.stack(spk_embeddings, 0), 0)
-            writer_spk[speaker] = embeds
+        #     # Speaker Normalization
+        #     embeds = np.mean(np.stack(spk_embeddings, 0), 0)
+        #     writer_spk[speaker] = embeds
+        # Build flat work list (speaker, utt)
+        work_iter = ((spk, utt) for spk, utts in spk2utt.items() for utt in utts)
+
+        # Online stats per speaker: sum vector + count
+        spk_sum = {}
+        spk_cnt = {}
+
+        def load_item(spk_utt):
+            spk, utt = spk_utt
+            in_sr, wav = wav_scp[utt]
+            # Move heavy CPU preprocessing off the main thread
+            if args.toolkit in ("rawnet", "espnet"):
+                tgt = spk_embed_extractor.tgt_sr
+                if in_sr != tgt:
+                    wav = librosa.resample(wav, orig_sr=in_sr, target_sr=tgt)
+                    in_sr = tgt
+            return spk, utt, in_sr, wav
+
+        # Bounded prefetch loop
+        with ThreadPoolExecutor(max_workers=max(1, args.num_workers)) as ex:
+            pending = set()
+            # Prime the queue
+            for spk_utt in itertools.islice(work_iter, args.prefetch):
+                pending.add(ex.submit(load_item, spk_utt))
+
+            pbar = tqdm(total=sum(len(v) for v in spk2utt.values()))
+            try:
+                while pending:
+                    for fut in as_completed(pending):
+                        pending.remove(fut)
+                        speaker, utt, in_sr, wav = fut.result()
+
+                        # GPU inference in main thread
+                        embeds = spk_embed_extractor(wav, in_sr)
+                        emb = np.squeeze(embeds)
+                        writer_utt[utt] = emb
+
+                        # Update online mean
+                        if speaker not in spk_cnt:
+                            spk_cnt[speaker] = 1
+                            spk_sum[speaker] = emb.astype(np.float32, copy=True)
+                        else:
+                            spk_cnt[speaker] += 1
+                            spk_sum[speaker] += emb
+
+                        pbar.update(1)
+
+                        # Refill the queue to keep up to prefetch tasks
+                        try:
+                            nxt = next(work_iter)
+                            pending.add(ex.submit(load_item, nxt))
+                        except StopIteration:
+                            pass
+                        break  # step out to reevaluate 'pending'
+            finally:
+                pbar.close()
+
+        # Write speaker means
+        for spk, cnt in spk_cnt.items():
+            writer_spk[spk] = (spk_sum[spk] / max(1, cnt))
         writer_utt.close()
         writer_spk.close()
 
