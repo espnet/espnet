@@ -13,6 +13,9 @@ huggingface-cli download MushanW/GLOBE_V2 \
   --repo-type dataset \
   --include "data/*.parquet"
 
+If Stage 6 gives error saying speaker embedding scp keys are not sorted, please run /work/nvme/bbjs/ttao3/espnet/egs2/globe/tts1/local/sort_spk_emb_scp.sh
+
+
 See the following pages for the usage:
 - [How to run the recipe](../../TEMPLATE/tts1/README.md#how-to-run)
 - [How to train FastSpeech](../../TEMPLATE/tts1/README.md#fastspeech-training)
