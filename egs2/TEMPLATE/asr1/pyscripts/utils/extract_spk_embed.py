@@ -7,6 +7,8 @@ import logging
 import os
 import sys
 from pathlib import Path
+from torch.nn.utils.rnn import pad_sequence
+import torchaudio
 
 import kaldiio
 import librosa
@@ -18,6 +20,9 @@ import itertools
 import multiprocessing as mp
 
 from espnet2.fileio.sound_scp import SoundScpReader
+
+torch.backends.cudnn.benchmark = True
+
 
 
 
@@ -37,13 +42,13 @@ def get_parser():
     parser.add_argument(
     "--batch_size",
     type=int,
-    default=32,          # GPU-friendly default – adjust later
+    default=64,          # GPU-friendly default – adjust later
     help="Number of utterances processed together on the GPU",
 )
     parser.add_argument(
     "--prefetch",
     type=int,
-    default=64,
+    default=512,
     help="Max number of outstanding I/O tasks to prefetch.",
 )
     parser.add_argument("--pretrained_model", type=str, help="Pretrained model.")
@@ -140,6 +145,7 @@ class SpkEmbedExtractor:
                 model_tag=model_tag,
                 **speech2embedding_kwargs,
             )
+            self.speech2embedding.spk_model.to(device).eval()
 
     def _rawnet_extract_embd(self, audio, n_samples=48000, n_segments=10):
         if len(audio.shape) > 1:
@@ -191,23 +197,57 @@ class SpkEmbedExtractor:
     
     def extract_batch(self, wav_list):
         """Batch version of __call__ for ESPnet/SpeechBrain/RawNet."""
-        # ‼️ wav_list  is a tuple/list of 1-D tensors
-        with torch.no_grad():
+        with torch.inference_mode():
             if self.toolkit == "espnet":
-                # Run *one by one*; Speech2Embedding handles batching internally.
-                outs = [self.speech2embedding(w).cpu() for w in wav_list]
-                return torch.vstack(outs)          # (B, D)
+                # to float32 arrays
+                arrs = []
+                for w in wav_list:
+                    if torch.is_tensor(w):
+                        w = w.detach().cpu().numpy()
+                    arrs.append(np.asarray(w, dtype=np.float32))
+
+                # pad to (B, T)
+                B = len(arrs)
+                T = max(a.shape[0] for a in arrs) if B > 0 else 0
+                batch_np = np.zeros((B, T), dtype=np.float32)
+                for i, a in enumerate(arrs):
+                    batch_np[i, : a.shape[0]] = a
+
+                # -> torch (B, T) on the same device as the ESPnet model
+                dev = next(self.speech2embedding.spk_model.parameters()).device
+                speech = torch.from_numpy(batch_np).to(dev, non_blocking=True)
+
+                # call the underlying speaker model directly
+                out = self.speech2embedding.spk_model(
+                    speech=speech,
+                    spk_labels=None,
+                    task_tokens=None,
+                    extract_embd=True,   # return embeddings, not logits
+                )
+
+                if torch.is_tensor(out):
+                    out = out.detach().cpu().numpy()
+                return out.astype(np.float32)
 
             elif self.toolkit == "speechbrain":
-                batch = torch.stack(wav_list).to(self.device) # (B, T)
-                return self.model.encode_batch(batch).cpu()   # (B, D)
+                batch = torch.stack(
+                    [w if torch.is_tensor(w) else torch.as_tensor(w, dtype=torch.float32)
+                    for w in wav_list]
+                ).to(self.device)
+                return self.model.encode_batch(batch).detach().cpu().numpy().astype(np.float32)
 
             elif self.toolkit == "rawnet":
-                outs = [
-                    self._rawnet_extract_embd(w.detach().cpu().numpy())
-                    for w in wav_list
-                ]
-                return np.asarray(outs, dtype=np.float32)     # (B, D)
+                outs = []
+                for w in wav_list:
+                    if torch.is_tensor(w):
+                        w = w.detach().cpu().numpy()
+                    outs.append(self._rawnet_extract_embd(np.asarray(w, dtype=np.float32)))
+                return np.asarray(outs, dtype=np.float32)
+
+
+
+
+
 
 
 def main(argv):
@@ -273,15 +313,19 @@ def main(argv):
         # Online stats per speaker: sum vector + count
         spk_sum = {}
         spk_cnt = {}
-
+        _resamplers = {}
         def load_item(spk_utt):
             spk, utt = spk_utt
-            in_sr, wav = wav_scp[utt]
-            # Move heavy CPU preprocessing off the main thread
-            if args.toolkit in ("rawnet", "espnet"):
+            in_sr, wav = wav_scp[utt]               # wav: np.float32
+            if args.toolkit in ("rawnet","espnet"):
                 tgt = spk_embed_extractor.tgt_sr
                 if in_sr != tgt:
-                    wav = librosa.resample(wav, orig_sr=in_sr, target_sr=tgt)
+                    key = (in_sr, tgt)
+                    if key not in _resamplers:
+                        _resamplers[key] = torchaudio.transforms.Resample(in_sr, tgt)
+                    w = torch.from_numpy(wav).float()
+                    w = _resamplers[key](w.unsqueeze(0)).squeeze(0)   # torch 1-D
+                    wav = w.numpy()
                     in_sr = tgt
             return spk, utt, in_sr, wav
 
@@ -309,12 +353,11 @@ def main(argv):
                         pass
 
                     # flush when full or at the very end
+                    # flush when full or at the very end
                     if len(batch) >= args.batch_size or (not pending and batch):
                         spks, utts, wav_tensors = zip(*batch)
-                        embs = spk_embed_extractor.extract_batch(wav_tensors)
-                        if torch.is_tensor(embs):
-                            embs = embs.cpu().numpy()
-
+                        embs = spk_embed_extractor.extract_batch(list(wav_tensors))
+                        # embs is (B, D) np.float32 now
                         for spk, utt, emb in zip(spks, utts, embs):
                             writer_utt[utt] = emb
                             if spk not in spk_cnt:
@@ -323,7 +366,6 @@ def main(argv):
                             else:
                                 spk_cnt[spk] += 1
                                 spk_sum[spk] += emb
-
                         pbar.update(len(batch))
                         batch.clear()
             finally:
