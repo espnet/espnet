@@ -3,27 +3,25 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import argparse
+import itertools
 import logging
+import multiprocessing as mp
 import os
 import sys
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from torch.nn.utils.rnn import pad_sequence
-import torchaudio
 
 import kaldiio
 import librosa
 import numpy as np
 import torch
+import torchaudio
+from torch.nn.utils.rnn import pad_sequence
 from tqdm import tqdm
-from concurrent.futures import ThreadPoolExecutor, as_completed
-import itertools
-import multiprocessing as mp
 
 from espnet2.fileio.sound_scp import SoundScpReader
 
 torch.backends.cudnn.benchmark = True
-
-
 
 
 def get_parser():
@@ -34,23 +32,23 @@ def get_parser():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
-    "--num_workers",
-    type=int,
-    default=max(1, mp.cpu_count() // 4),
-    help="I/O+preproc worker threads (librosa resample, wav.scp reads).",
-)
+        "--num_workers",
+        type=int,
+        default=max(1, mp.cpu_count() // 4),
+        help="I/O+preproc worker threads (librosa resample, wav.scp reads).",
+    )
     parser.add_argument(
-    "--batch_size",
-    type=int,
-    default=64,          # GPU-friendly default – adjust later
-    help="Number of utterances processed together on the GPU",
-)
+        "--batch_size",
+        type=int,
+        default=64,  # GPU-friendly default – adjust later
+        help="Number of utterances processed together on the GPU",
+    )
     parser.add_argument(
-    "--prefetch",
-    type=int,
-    default=512,
-    help="Max number of outstanding I/O tasks to prefetch.",
-)
+        "--prefetch",
+        type=int,
+        default=512,
+        help="Max number of outstanding I/O tasks to prefetch.",
+    )
     parser.add_argument("--pretrained_model", type=str, help="Pretrained model.")
     parser.add_argument(
         "--toolkit",
@@ -194,7 +192,7 @@ class SpkEmbedExtractor:
                 wav = librosa.resample(wav, orig_sr=in_sr, target_sr=self.tgt_sr)
             embeds = self._espnet_extract_embd(wav)
         return embeds
-    
+
     def extract_batch(self, wav_list):
         """Batch version of __call__ for ESPnet/SpeechBrain/RawNet."""
         with torch.inference_mode():
@@ -222,7 +220,7 @@ class SpkEmbedExtractor:
                     speech=speech,
                     spk_labels=None,
                     task_tokens=None,
-                    extract_embd=True,   # return embeddings, not logits
+                    extract_embd=True,  # return embeddings, not logits
                 )
 
                 if torch.is_tensor(out):
@@ -231,23 +229,32 @@ class SpkEmbedExtractor:
 
             elif self.toolkit == "speechbrain":
                 batch = torch.stack(
-                    [w if torch.is_tensor(w) else torch.as_tensor(w, dtype=torch.float32)
-                    for w in wav_list]
+                    [
+                        (
+                            w
+                            if torch.is_tensor(w)
+                            else torch.as_tensor(w, dtype=torch.float32)
+                        )
+                        for w in wav_list
+                    ]
                 ).to(self.device)
-                return self.model.encode_batch(batch).detach().cpu().numpy().astype(np.float32)
+                return (
+                    self.model.encode_batch(batch)
+                    .detach()
+                    .cpu()
+                    .numpy()
+                    .astype(np.float32)
+                )
 
             elif self.toolkit == "rawnet":
                 outs = []
                 for w in wav_list:
                     if torch.is_tensor(w):
                         w = w.detach().cpu().numpy()
-                    outs.append(self._rawnet_extract_embd(np.asarray(w, dtype=np.float32)))
+                    outs.append(
+                        self._rawnet_extract_embd(np.asarray(w, dtype=np.float32))
+                    )
                 return np.asarray(outs, dtype=np.float32)
-
-
-
-
-
 
 
 def main(argv):
@@ -314,23 +321,24 @@ def main(argv):
         spk_sum = {}
         spk_cnt = {}
         _resamplers = {}
+
         def load_item(spk_utt):
             spk, utt = spk_utt
-            in_sr, wav = wav_scp[utt]               # wav: np.float32
-            if args.toolkit in ("rawnet","espnet"):
+            in_sr, wav = wav_scp[utt]  # wav: np.float32
+            if args.toolkit in ("rawnet", "espnet"):
                 tgt = spk_embed_extractor.tgt_sr
                 if in_sr != tgt:
                     key = (in_sr, tgt)
                     if key not in _resamplers:
                         _resamplers[key] = torchaudio.transforms.Resample(in_sr, tgt)
                     w = torch.from_numpy(wav).float()
-                    w = _resamplers[key](w.unsqueeze(0)).squeeze(0)   # torch 1-D
+                    w = _resamplers[key](w.unsqueeze(0)).squeeze(0)  # torch 1-D
                     wav = w.numpy()
                     in_sr = tgt
             return spk, utt, in_sr, wav
 
         # ------------- Bounded prefetch loop WITH MINI-BATCHES -----------------
-        batch = []                                 # holds (spk, utt, wav_tensor)
+        batch = []  # holds (spk, utt, wav_tensor)
         with ThreadPoolExecutor(max_workers=max(1, args.num_workers)) as ex:
             pending = set()
             for spk_utt in itertools.islice(work_iter, args.prefetch):
@@ -370,12 +378,11 @@ def main(argv):
                         batch.clear()
             finally:
                 pbar.close()
-# -----------------------------------------------------------------------
-
+        # -----------------------------------------------------------------------
 
         # Write speaker means
         for spk, cnt in spk_cnt.items():
-            writer_spk[spk] = (spk_sum[spk] / max(1, cnt))
+            writer_spk[spk] = spk_sum[spk] / max(1, cnt)
         writer_utt.close()
         writer_spk.close()
 
