@@ -5,7 +5,7 @@ set -e
 set -u
 set -o pipefail
 
-
+export HF_HUB_OFFLINE=1
 
 
 
