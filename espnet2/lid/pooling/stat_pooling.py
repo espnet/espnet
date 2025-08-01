@@ -1,5 +1,6 @@
 # Code adapated from:
-# https://github.com/espnet/espnet/blob/master/espnet2/spk/pooling/stat_pooling.py
+# https://github.com/espnet/espnet/blob/master/espnet2/spk/pooling/
+# stat_pooling.py
 # The main difference is:
 # This implementation explicitly handles feature lengths,
 # ensuring that mean and standard deviation pooling are

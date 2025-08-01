@@ -1,5 +1,6 @@
 # Code adapted from:
-# https://github.com/espnet/espnet/blob/master/espnet2/spk/loss/aamsoftmax.py
+# https://github.com/espnet/espnet/blob/master/espnet2/spk/loss/
+# aamsoftmax.py
 # The main differences are:
 # 1. This implementation returns predicted labels (via argmax) during inference,
 # enabling output with LID predictions during inference.
