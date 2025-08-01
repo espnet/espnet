@@ -1,6 +1,11 @@
 # Code adapted from:
 # https://github.com/espnet/espnet/blob/master/espnet2/spk/loss/
 # aamsoftmax_subcenter_intertopk.py
+# The main differences are:
+# 1. This implementation returns predicted labels (via argmax) during inference,
+# enabling output with LID predictions during inference.
+# 2. It also computes and returns accuracy during training and evaluation,
+# making it easier to monitor model performance.
 # Original code refer to WeSpeaker:
 # https://github.com/wenet-e2e/wespeaker/blob/
 # c9ec537b53fe1e04525be74b2550ee95bed3a891/wespeaker/models/projections.py#L243

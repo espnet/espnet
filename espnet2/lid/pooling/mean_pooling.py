@@ -1,3 +1,10 @@
+# Code adapated from:
+# https://github.com/espnet/espnet/blob/master/espnet2/spk/pooling/mean_pooling.py
+# The main difference is:
+# This implementation explicitly handles feature lengths,
+# ensuring that mean and standard deviation pooling are
+# computed only over valid (unpadded) frames.
+
 import torch
 
 from espnet2.lid.pooling.abs_pooling import AbsPooling

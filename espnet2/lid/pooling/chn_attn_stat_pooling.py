@@ -1,3 +1,10 @@
+# Code adapated from:
+# https://github.com/espnet/espnet/blob/master/espnet2/spk/pooling/chn_attn_stat_pooling.py
+# The main difference is:
+# This implementation explicitly handles feature lengths,
+# ensuring that mean and standard deviation pooling are
+# computed only over valid (unpadded) frames.
+
 import torch
 import torch.nn as nn
 
