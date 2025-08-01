@@ -41,6 +41,8 @@ gpu_inference=false     # Whether to perform gpu decoding.
 dumpdir=dump            # Directory to dump features.
 expdir=exp              # Directory to save experiments.
 python=python3          # Specify python to execute espnet commands.
+spk_embed_num_workers=8
+spk_embed_prefetch=128
 
 # Data preparation related
 local_data_opts="" # Options to be passed to local/data.sh.
@@ -443,7 +445,9 @@ if ! "${skip_data_prep}"; then
                     pyscripts/utils/extract_spk_embed.py \
                         --pretrained_model ${spk_embed_model} \
                         --toolkit ${spk_embed_tool} \
-			--spk_embed_tag ${spk_embed_tag} \
+                        --spk_embed_tag ${spk_embed_tag} \
+                        --num_workers "${spk_embed_num_workers}" \
+                        --prefetch "${spk_embed_prefetch}" \
                         ${data_feats}${_suf}/${dset} \
                         ${dumpdir}/${spk_embed_tag}/${dset}
                 done
