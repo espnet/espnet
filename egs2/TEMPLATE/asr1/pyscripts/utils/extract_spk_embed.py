@@ -20,6 +20,7 @@ import multiprocessing as mp
 from espnet2.fileio.sound_scp import SoundScpReader
 
 
+
 def get_parser():
     """Construct the parser."""
 
@@ -32,6 +33,12 @@ def get_parser():
     type=int,
     default=max(1, mp.cpu_count() // 4),
     help="I/O+preproc worker threads (librosa resample, wav.scp reads).",
+)
+    parser.add_argument(
+    "--batch_size",
+    type=int,
+    default=32,          # GPU-friendly default – adjust later
+    help="Number of utterances processed together on the GPU",
 )
     parser.add_argument(
     "--prefetch",
@@ -110,7 +117,7 @@ class SpkEmbedExtractor:
             # NOTE(jiatong): set default config file as None
             # assume config is the same path as the model file
             speech2embedding_kwargs = dict(
-                batch_size=32,
+                batch_size=128,
                 dtype="float32",
                 train_config=None,
                 model_file=args.pretrained_model,
@@ -181,6 +188,26 @@ class SpkEmbedExtractor:
                 wav = librosa.resample(wav, orig_sr=in_sr, target_sr=self.tgt_sr)
             embeds = self._espnet_extract_embd(wav)
         return embeds
+    
+    def extract_batch(self, wav_list):
+        """Batch version of __call__ for ESPnet/SpeechBrain/RawNet."""
+        # ‼️ wav_list  is a tuple/list of 1-D tensors
+        with torch.no_grad():
+            if self.toolkit == "espnet":
+                # Run *one by one*; Speech2Embedding handles batching internally.
+                outs = [self.speech2embedding(w).cpu() for w in wav_list]
+                return torch.vstack(outs)          # (B, D)
+
+            elif self.toolkit == "speechbrain":
+                batch = torch.stack(wav_list).to(self.device) # (B, T)
+                return self.model.encode_batch(batch).cpu()   # (B, D)
+
+            elif self.toolkit == "rawnet":
+                outs = [
+                    self._rawnet_extract_embd(w.detach().cpu().numpy())
+                    for w in wav_list
+                ]
+                return np.asarray(outs, dtype=np.float32)     # (B, D)
 
 
 def main(argv):
@@ -258,44 +285,51 @@ def main(argv):
                     in_sr = tgt
             return spk, utt, in_sr, wav
 
-        # Bounded prefetch loop
+        # ------------- Bounded prefetch loop WITH MINI-BATCHES -----------------
+        batch = []                                 # holds (spk, utt, wav_tensor)
         with ThreadPoolExecutor(max_workers=max(1, args.num_workers)) as ex:
             pending = set()
-            # Prime the queue
             for spk_utt in itertools.islice(work_iter, args.prefetch):
                 pending.add(ex.submit(load_item, spk_utt))
 
             pbar = tqdm(total=sum(len(v) for v in spk2utt.values()))
             try:
                 while pending:
-                    for fut in as_completed(pending):
-                        pending.remove(fut)
-                        speaker, utt, in_sr, wav = fut.result()
+                    fut = next(as_completed(pending))
+                    pending.remove(fut)
+                    speaker, utt, in_sr, wav = fut.result()
 
-                        # GPU inference in main thread
-                        embeds = spk_embed_extractor(wav, in_sr)
-                        emb = np.squeeze(embeds)
-                        writer_utt[utt] = emb
+                    wav_tensor = torch.from_numpy(wav.astype(np.float32))
+                    batch.append((speaker, utt, wav_tensor))
 
-                        # Update online mean
-                        if speaker not in spk_cnt:
-                            spk_cnt[speaker] = 1
-                            spk_sum[speaker] = emb.astype(np.float32, copy=True)
-                        else:
-                            spk_cnt[speaker] += 1
-                            spk_sum[speaker] += emb
+                    try:
+                        nxt = next(work_iter)
+                        pending.add(ex.submit(load_item, nxt))
+                    except StopIteration:
+                        pass
 
-                        pbar.update(1)
+                    # flush when full or at the very end
+                    if len(batch) >= args.batch_size or (not pending and batch):
+                        spks, utts, wav_tensors = zip(*batch)
+                        embs = spk_embed_extractor.extract_batch(wav_tensors)
+                        if torch.is_tensor(embs):
+                            embs = embs.cpu().numpy()
 
-                        # Refill the queue to keep up to prefetch tasks
-                        try:
-                            nxt = next(work_iter)
-                            pending.add(ex.submit(load_item, nxt))
-                        except StopIteration:
-                            pass
-                        break  # step out to reevaluate 'pending'
+                        for spk, utt, emb in zip(spks, utts, embs):
+                            writer_utt[utt] = emb
+                            if spk not in spk_cnt:
+                                spk_cnt[spk] = 1
+                                spk_sum[spk] = emb.astype(np.float32, copy=True)
+                            else:
+                                spk_cnt[spk] += 1
+                                spk_sum[spk] += emb
+
+                        pbar.update(len(batch))
+                        batch.clear()
             finally:
                 pbar.close()
+# -----------------------------------------------------------------------
+
 
         # Write speaker means
         for spk, cnt in spk_cnt.items():
