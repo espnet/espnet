@@ -5,8 +5,7 @@ set -e
 set -u
 set -o pipefail
 
-export HF_HUB_OFFLINE=1
-
+unset HF_HUB_OFFLINE
 
 
 fs=44100
