@@ -4,6 +4,8 @@ set -e
 set -u
 set -o pipefail
 
+export HF_HUB_OFFLINE=1
+
 log() {
     local fname=${BASH_SOURCE[1]##*/}
     echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $*"
@@ -12,6 +14,9 @@ SECONDS=0
 
 stage=-1
 stop_stage=2
+
+# right after you set it:
+log "HF_HUB_OFFLINE is set to: ${HF_HUB_OFFLINE}"
 
 log "$0 $*"
 . utils/parse_options.sh
@@ -54,3 +59,8 @@ fi
 utils/fix_data_dir.sh data/${train_set}
 utils/fix_data_dir.sh data/${dev_set}
 utils/fix_data_dir.sh data/${test_sets}
+
+
+unset HF_HUB_OFFLINE
+
+log "HF_HUB_OFFLINE is now: ${HF_HUB_OFFLINE-<unset>}"
