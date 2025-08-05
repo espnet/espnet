@@ -64,7 +64,7 @@ class ESPnetSpeakerModel(AbsESPnetModel):
     def forward(
         self,
         speech: torch.Tensor,
-        speech_lengths: torch.Tensor,
+        speech_lengths: Optional[torch.Tensor] = None,
         spk_labels: Optional[torch.Tensor] = None,
         task_tokens: Optional[torch.Tensor] = None,
         extract_embd: bool = False,
@@ -77,14 +77,14 @@ class ESPnetSpeakerModel(AbsESPnetModel):
         feature.
 
         Args:
-            speech: (Batch, samples)
-            speech_lengths: (Batch,)
-            extract_embd: a flag which doesn't go through the classification
-                head when set True
-            spk_labels: (Batch, )
-            one-hot speaker labels used in the train phase
-            task_tokens: (Batch, )
-            task tokens used in case of token-based trainings
+            speech: (Batch, samples), Input speech tensor
+            speech_lengths: (Batch,), optional, Length of each speech sequence in the batch.
+                            Required when speech is padded to ensure proper pooling over unpadded frames.
+            extract_embd: bool, If True, returns speaker embeddings without computing loss.
+                          Used for inference or feature extraction.
+            spk_labels: (Batch,), Speaker labels for training. One-hot encoded speaker
+                        identifiers used during the training phase
+            task_tokens: (Batch,), Task-specific tokens for multi-task learning scenarios.
         """
         if spk_labels is not None:
             assert speech.shape[0] == spk_labels.shape[0], (

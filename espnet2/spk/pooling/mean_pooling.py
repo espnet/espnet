@@ -1,5 +1,6 @@
 import torch
 
+from typing import Optional
 from espnet2.spk.pooling.abs_pooling import AbsPooling
 
 
@@ -20,7 +21,7 @@ class MeanPooling(AbsPooling):
     def forward(
         self,
         x: torch.Tensor,
-        feat_lengths: torch.Tensor = None,
+        feat_lengths: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         """Forward pass of mean pooling.
 

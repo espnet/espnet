@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 
+from typing import Optional
 from espnet2.spk.pooling.abs_pooling import AbsPooling
 
 
@@ -35,7 +36,7 @@ class ChnAttnStatPooling(AbsPooling):
     def forward(
         self,
         x: torch.Tensor,
-        feat_lengths: torch.Tensor = None,
+        feat_lengths: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         r"""Forward pass of channel-attentive statistical pooling.
 
