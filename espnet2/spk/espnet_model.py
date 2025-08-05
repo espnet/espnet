@@ -72,8 +72,7 @@ class ESPnetSpeakerModel(AbsESPnetModel):
     ) -> Union[
         Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor], torch.Tensor
     ]:
-        """Feed-forward through encoder layers and aggregate into
-        utterance-level feature.
+        """Feed-forward pass of the speaker model.
 
         Args:
             speech: (Batch, samples), Input speech tensor
