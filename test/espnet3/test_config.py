@@ -119,6 +119,7 @@ bar: 123
 
 
 def test_config_with_one_include(write_yaml):
+    write_yaml("base.yaml", "a: 1\n")
     main = write_yaml(
         "main.yaml",
         """
