@@ -1,7 +1,8 @@
+from typing import Optional
+
 import torch
 import torch.nn as nn
 
-from typing import Optional
 from espnet2.spk.pooling.abs_pooling import AbsPooling
 
 
