@@ -33,8 +33,8 @@ class ChnAttnStatPooling(AbsPooling):
         return self._output_size
 
     def forward(
-        self, 
-        x: torch.Tensor, 
+        self,
+        x: torch.Tensor,
         feat_lengths: torch.Tensor = None,
     ) -> torch.Tensor:
         r"""Forward pass of channel-attentive statistical pooling.
@@ -47,7 +47,7 @@ class ChnAttnStatPooling(AbsPooling):
         Returns:
             x: Utterance-level embeddings of shape (batch_size, 2 x feature_dim)
         """
-        
+
         T = x.size(-1)
         if feat_lengths is not None:
             # Pooling over unpadded frames

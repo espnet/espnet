@@ -111,4 +111,3 @@ class AAMSoftmax(AbsLoss):
 
         loss = self.ce(output, label)
         return loss, accuracy, preds
-

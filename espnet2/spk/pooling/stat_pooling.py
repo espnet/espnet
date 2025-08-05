@@ -22,9 +22,7 @@ class StatsPooling(AbsPooling):
         return self._output_size
 
     def forward(
-        self, 
-        x: torch.Tensor, 
-        feat_lengths: torch.Tensor = None
+        self, x: torch.Tensor, feat_lengths: torch.Tensor = None
     ) -> torch.Tensor:
         r"""Forward pass of statistics pooling.
 

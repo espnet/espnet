@@ -18,9 +18,9 @@ class MeanPooling(AbsPooling):
         return self._output_size
 
     def forward(
-        self, 
-        x: torch.Tensor, 
-        feat_lengths: torch.Tensor = None, 
+        self,
+        x: torch.Tensor,
+        feat_lengths: torch.Tensor = None,
     ) -> torch.Tensor:
         """Forward pass of mean pooling.
 
