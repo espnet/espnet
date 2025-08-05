@@ -242,7 +242,7 @@ foo: bar
 
 def test_missing_file_raises(tmp_path):
     """Test that loading a config with a missing file in `defaults`
-    
+
     raises a FileNotFoundError.
     """
     config_path = tmp_path / "main.yaml"
