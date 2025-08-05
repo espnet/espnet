@@ -19,15 +19,16 @@ from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
 from espnet2.lid.espnet_model import ESPnetLIDModel
-from espnet2.lid.loss.aamsoftmax import AAMSoftmax
-from espnet2.lid.loss.aamsoftmax_subcenter_intertopk import (
+from espnet2.spk.loss.abs_loss import AbsLoss
+from espnet2.spk.loss.aamsoftmax import AAMSoftmax
+from espnet2.spk.loss.aamsoftmax_subcenter_intertopk import (
     ArcMarginProduct_intertopk_subcenter,
 )
-from espnet2.lid.loss.softmax import Softmax
-from espnet2.lid.pooling.abs_pooling import AbsPooling
-from espnet2.lid.pooling.chn_attn_stat_pooling import ChnAttnStatPooling
-from espnet2.lid.pooling.mean_pooling import MeanPooling
-from espnet2.lid.pooling.stat_pooling import StatsPooling
+from espnet2.spk.loss.softmax import Softmax
+from espnet2.spk.pooling.abs_pooling import AbsPooling
+from espnet2.spk.pooling.chn_attn_stat_pooling import ChnAttnStatPooling
+from espnet2.spk.pooling.mean_pooling import MeanPooling
+from espnet2.spk.pooling.stat_pooling import StatsPooling
 from espnet2.spk.encoder.conformer_encoder import MfaConformerEncoder
 from espnet2.spk.encoder.ecapa_tdnn_encoder import EcapaTdnnEncoder
 from espnet2.spk.encoder.identity_encoder import IdentityEncoder
@@ -183,6 +184,7 @@ loss_choices = ClassChoices(
         aamsoftmax_sc_topk=ArcMarginProduct_intertopk_subcenter,
         softmax=Softmax,
     ),
+    type_check=AbsLoss,
     default="aamsoftmax",
 )
 
