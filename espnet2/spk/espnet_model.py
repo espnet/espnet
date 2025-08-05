@@ -72,20 +72,20 @@ class ESPnetSpeakerModel(AbsESPnetModel):
     ) -> Union[
         Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor], torch.Tensor
     ]:
-        """Feed-forward through encoder layers and aggregate into 
+        """Feed-forward through encoder layers and aggregate into
         utterance-level feature.
 
         Args:
             speech: (Batch, samples), Input speech tensor
-            speech_lengths: (Batch,), optional, Length of each speech sequence 
-                            in the batch. Required when speech is padded to 
+            speech_lengths: (Batch,), optional, Length of each speech sequence
+                            in the batch. Required when speech is padded to
                             ensure proper pooling over unpadded frames.
-            extract_embd: bool, If True, returns speaker embeddings without 
-                          computing loss. Used for inference or feature 
+            extract_embd: bool, If True, returns speaker embeddings without
+                          computing loss. Used for inference or feature
                           extraction.
-            spk_labels: (Batch,), Speaker labels for training. One-hot encoded 
+            spk_labels: (Batch,), Speaker labels for training. One-hot encoded
                         speaker identifiers used during the training phase.
-            task_tokens: (Batch,), Task-specific tokens for multi-task learning 
+            task_tokens: (Batch,), Task-specific tokens for multi-task learning
                          scenarios.
         """
         if spk_labels is not None:
@@ -107,10 +107,7 @@ class ESPnetSpeakerModel(AbsESPnetModel):
         frame_level_feats = self.encode_frame(feats)
 
         # 2. aggregation into utterance-level
-        utt_level_feat = self.pooling(
-            frame_level_feats, 
-            feat_lengths=feat_lengths
-        )
+        utt_level_feat = self.pooling(frame_level_feats, feat_lengths=feat_lengths)
 
         # 3. (optionally) go through further projection(s)
         spk_embd = self.project_spk_embd(utt_level_feat)
@@ -126,10 +123,7 @@ class ESPnetSpeakerModel(AbsESPnetModel):
         if accuracy is not None:
             stats["accuracy"] = accuracy.detach()
 
-        loss, stats, weight = force_gatherable(
-            (loss, stats, batch_size), 
-            loss.device
-        )
+        loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
         return loss, stats, weight
 
     def extract_feats(
