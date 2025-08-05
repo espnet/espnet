@@ -38,7 +38,7 @@ class MeanPooling(AbsPooling):
             # Pooling over unpadded frames
             x = torch.stack(
                 [
-                    torch.mean(x[i, :, : l.item()], dim=-1)
+                    torch.mean(x[i, :, : int(l.item())], dim=-1)
                     for i, l in enumerate(feat_lengths)
                 ],
                 dim=0,

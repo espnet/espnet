@@ -55,14 +55,14 @@ class ChnAttnStatPooling(AbsPooling):
             # Pooling over unpadded frames
             mean = torch.stack(
                 [
-                    torch.mean(x[i, :, : l.item()], dim=-1, keepdim=True)
+                    torch.mean(x[i, :, : int(l.item())], dim=-1, keepdim=True)
                     for i, l in enumerate(feat_lengths)
                 ],
                 dim=0,
             ).repeat(1, 1, T)
             var = torch.stack(
                 [
-                    torch.var(x[i, :, : l.item()], dim=-1, unbiased=False, keepdim=True)
+                    torch.var(x[i, :, : int(l.item())], dim=-1, unbiased=False, keepdim=True)
                     for i, l in enumerate(feat_lengths)
                 ],
                 dim=0,

@@ -42,14 +42,14 @@ class StatsPooling(AbsPooling):
             # Pooling over unpadded frames
             mu = torch.stack(
                 [
-                    torch.mean(x[i, :, : l.item()], dim=-1)
+                    torch.mean(x[i, :, : int(l.item())], dim=-1)
                     for i, l in enumerate(feat_lengths)
                 ],
                 dim=0,
             )
             st = torch.stack(
                 [
-                    torch.std(x[i, :, : l.item()], dim=-1, unbiased=False)
+                    torch.std(x[i, :, : int(l.item())], dim=-1, unbiased=False)
                     for i, l in enumerate(feat_lengths)
                 ],
                 dim=0,
