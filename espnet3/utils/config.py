@@ -20,8 +20,15 @@ def load_line(path):
     Returns:
         List[str]: A list of stripped lines from the file.
     """
-    with open(path, "r") as f:
-        return [line.strip() for line in f.readlines()]
+    try:
+        with open(path, "r") as f:
+            return [line.strip() for line in f.readlines()]
+    except FileNotFoundError:
+        logging.error(f"File not found: {path}")
+        raise
+    except PermissionError:
+        logging.error(f"Permission denied when accessing file: {path}")
+        raise
 
 
 OMEGACONF_ESPNET3_RESOLVER = {
@@ -30,6 +37,25 @@ OMEGACONF_ESPNET3_RESOLVER = {
 for name, resolver in OMEGACONF_ESPNET3_RESOLVER.items():
     OmegaConf.register_new_resolver(name, resolver)
     logging.info(f"Registered ESPnet-3 OmegaConf Resolver: {name}")
+
+
+def _process_dict_config_entry(entry: DictConfig, base_path: Path) -> list:
+    """
+    Process a dictionary-style entry in the `defaults` list and return a list
+    of partial configs to be merged.
+    """
+    results = []
+    for key, val in entry.items():
+        # Skip null entries (can be used for disabling config entries)
+        if val is None:
+            continue
+
+        # Compose config path like 'optimizer/adam.yaml'
+        # or use as-is if path includes '/'
+        composed = f"{key}/{val}" if "/" not in val else val
+        cfg_path = _build_config_path(base_path, composed)
+        results.append({key: load_config_with_defaults(str(cfg_path))})
+    return results
 
 
 def load_config_with_defaults(path: str) -> OmegaConf:
@@ -85,12 +111,7 @@ def load_config_with_defaults(path: str) -> OmegaConf:
                 merged_cfgs.append(load_config_with_defaults(str(cfg_path)))
 
         elif isinstance(entry, DictConfig):
-            for key, val in entry.items():
-                if val is None:
-                    continue
-                composed = f"{key}/{val}" if "/" not in val else val
-                cfg_path = _build_config_path(base_path, composed)
-                merged_cfgs.append({key: load_config_with_defaults(str(cfg_path))})
+            merged_cfgs.extend(_process_dict_config_entry(entry, base_path))
 
         elif entry == "_self_":
             merged_cfgs.append(cfg_self)
@@ -108,6 +129,12 @@ def load_config_with_defaults(path: str) -> OmegaConf:
 
 
 def _build_config_path(base_path: Path, entry: str) -> Path:
-    if not entry.endswith(".yaml"):
+    entry_path = Path(entry)
+    if entry_path.suffix and entry_path.suffix != ".yaml":
+        raise ValueError(
+            f"Invalid file extension '{entry_path.suffix}' in entry: {entry}. "
+            "Expected '.yaml'."
+        )
+    if not entry_path.suffix:
         entry += ".yaml"
     return base_path / entry
