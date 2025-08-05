@@ -64,6 +64,7 @@ class ESPnetSpeakerModel(AbsESPnetModel):
     def forward(
         self,
         speech: torch.Tensor,
+        speech_lengths: torch.Tensor,
         spk_labels: Optional[torch.Tensor] = None,
         task_tokens: Optional[torch.Tensor] = None,
         extract_embd: bool = False,
@@ -99,12 +100,12 @@ class ESPnetSpeakerModel(AbsESPnetModel):
 
         # 1. extract low-level feats (e.g., mel-spectrogram or MFCC)
         # Will do nothing for raw waveform-based models (e.g., RawNets)
-        feats, _ = self.extract_feats(speech, None)
+        feats, feat_lengths = self.extract_feats(speech, speech_lengths)
 
         frame_level_feats = self.encode_frame(feats)
 
         # 2. aggregation into utterance-level
-        utt_level_feat = self.pooling(frame_level_feats, task_tokens)
+        utt_level_feat = self.pooling(frame_level_feats, feat_lengths=feat_lengths)
 
         # 3. (optionally) go through further projection(s)
         spk_embd = self.project_spk_embd(utt_level_feat)
@@ -114,9 +115,11 @@ class ESPnetSpeakerModel(AbsESPnetModel):
 
         # 4. calculate loss
         assert spk_labels is not None, "spk_labels is None, cannot compute loss"
-        loss = self.loss(spk_embd, spk_labels.squeeze())
+        loss, accuracy, _ = self.loss(spk_embd, spk_labels.squeeze())
 
         stats = dict(loss=loss.detach())
+        if accuracy is not None:
+            stats["accuracy"] = accuracy.detach()
 
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
         return loss, stats, weight
