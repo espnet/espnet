@@ -1,6 +1,6 @@
 import logging
 
-import lightning as L
+import lightning
 import torch
 from hydra.utils import instantiate
 from omegaconf import OmegaConf
@@ -16,7 +16,7 @@ from espnet3.trainer.dataloader import DataLoaderBuilder
 logger = logging.getLogger("lightning")
 
 
-class LitESPnetModel(L.LightningModule):
+class LitESPnetModel(lightning.LightningModule):
     """
     ESPnet3-specific PyTorch LightningModule wrapper.
 
@@ -31,15 +31,21 @@ class LitESPnetModel(L.LightningModule):
         valid_dataset: Validation dataset.
         collate_fn (Callable): Collation function used in DataLoader.
         is_espnet_sampler (bool): Whether the model uses ESPnet's custom sampler.
+    
+    Note:
+        This class assumes the use of a `DataOrganizer`-compatible dataset config.
+        The `data_organizer` is instantiated temporarily to access
+        `train` and `valid` datasets, but is not retained as an attribute
+        since it is no longer needed after extraction.
     """
 
     def __init__(self, model, config):
         super().__init__()
         self.config = config
         self.model = model
-        organizer = instantiate(config.dataset)
-        self.train_dataset = organizer.train
-        self.valid_dataset = organizer.valid
+        data_organizer = instantiate(config.dataset)
+        self.train_dataset = data_organizer.train
+        self.valid_dataset = data_organizer.valid
         self.nan_countdown = 0
 
         # If user is trying to use both Pytorch dataloader and ESPnet's dataloader

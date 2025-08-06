@@ -2,7 +2,7 @@ import warnings
 from argparse import Namespace
 from typing import Any, Dict, Union
 
-import lightning as L
+import lightning
 from hydra.utils import instantiate
 from omegaconf import DictConfig, ListConfig
 from typeguard import typechecked
@@ -135,7 +135,7 @@ class ESPnet3LightningTrainer:
             self.config.use_distributed_sampler = False
 
         # Set up the trainer
-        self.trainer = L.Trainer(
+        self.trainer = lightning.Trainer(
             accelerator=accelerator,
             # Temporarily disabled for the code review.
             # callbacks=callbacks,
