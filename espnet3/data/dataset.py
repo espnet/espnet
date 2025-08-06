@@ -116,9 +116,6 @@ class CombinedDataset:
     def use_espnet_collator(self, value: bool):
         self._use_espnet_collator = value
 
-        # This flag will be overrode by LitESPnetModel when initializing dataloader.
-        self._use_espnet_collator = False
-
     def __len__(self):
         return self.cumulative_lengths[-1] if self.cumulative_lengths else 0
 

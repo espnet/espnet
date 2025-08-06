@@ -3,8 +3,6 @@ from argparse import Namespace
 from typing import Any, Dict, Union
 
 import lightning as L
-import torch
-import torch.nn as nn
 from hydra.utils import instantiate
 from omegaconf import DictConfig, ListConfig
 from typeguard import typechecked
