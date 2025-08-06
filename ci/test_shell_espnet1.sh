@@ -4,7 +4,9 @@ if [ ! -e tools/kaldi ]; then
     git clone https://github.com/kaldi-asr/kaldi --depth 1 tools/kaldi
 fi
 
-PATH=$(pwd)/test_utils/bats-core/bin:$(pwd)/shellcheck-stable:$PATH
+# Workaround to avoid issue introduces in v0.11.0
+# PATH=$(pwd)/test_utils/bats-core/bin:$(pwd)/shellcheck-stable:$PATH
+PATH=$(pwd)/test_utils/bats-core/bin:$(pwd)/shellcheck-v0.10.0:$PATH
 if ! [ -x "$(command -v bats)" ]; then
     echo "=== install bats ==="
     git clone https://github.com/bats-core/bats-core.git "$(pwd)"/test_utils/bats-core
@@ -13,8 +15,12 @@ if ! [ -x "$(command -v bats)" ]; then
 fi
 if ! [ -x "$(command -v shellcheck)" ]; then
     echo "=== install shellcheck ==="
-    wget https://github.com/koalaman/shellcheck/releases/download/stable/shellcheck-stable.linux.x86_64.tar.xz
-    tar -xvf shellcheck-stable.linux.x86_64.tar.xz
+    # wget https://github.com/koalaman/shellcheck/releases/download/stable/shellcheck-stable.linux.x86_64.tar.xz
+    # tar -xvf shellcheck-stable.linux.x86_64.tar.xz
+
+    # Workaround to avoid issue introduces in v0.11.0
+    wget https://github.com/koalaman/shellcheck/releases/download/v0.10.0/shellcheck-v0.10.0.linux.x86_64.tar.xz
+    tar -xvf shellcheck-v0.10.0.linux.x86_64.tar.xz
 fi
 . tools/activate_python.sh
 . tools/extra_path.sh
