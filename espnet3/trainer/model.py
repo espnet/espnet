@@ -7,7 +7,7 @@ from omegaconf import OmegaConf
 
 from espnet2.train.collate_fn import CommonCollateFn
 
-# Temporaliry disabled for the code review.
+# Temporarily disabled for the code review.
 # from espnet3.collect_stats import collect_stats
 # from espnet3.trainer.hybrid_optim import HybridOptim
 # from espnet3.trainer.hybrid_scheduler import HybridLRS
@@ -41,7 +41,6 @@ class LitESPnetModel(L.LightningModule):
         self.train_dataset = organizer.train
         self.valid_dataset = organizer.valid
         self.nan_countdown = 0
-        # self.save_hyperparameters()  # args now in self.hparams
 
         # If user is trying to use both Pytorch dataloader and ESPnet's dataloader
         # Then raise an error here.
@@ -208,7 +207,7 @@ class LitESPnetModel(L.LightningModule):
                 optimizer=optimizer,
             )
 
-        # Temporaliry disabled for the code review.
+        # Temporarily disabled for the code review.
         # elif getattr(self.config, "optims") and getattr(self.config, "schedulers"):
         #     assert (
         #         getattr(self.config, "optim", None) is None
