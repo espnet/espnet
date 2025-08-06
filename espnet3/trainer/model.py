@@ -31,7 +31,7 @@ class LitESPnetModel(lightning.LightningModule):
         valid_dataset: Validation dataset.
         collate_fn (Callable): Collation function used in DataLoader.
         is_espnet_sampler (bool): Whether the model uses ESPnet's custom sampler.
-    
+
     Note:
         This class assumes the use of a `DataOrganizer`-compatible dataset config.
         The `data_organizer` is instantiated temporarily to access
