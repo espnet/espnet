@@ -1,8 +1,6 @@
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional, Union
 
-from tqdm import tqdm
-
 from espnet2.train.preprocessor import AbsPreprocessor
 from espnet3.data.dataset import CombinedDataset, DatasetWithTransform
 

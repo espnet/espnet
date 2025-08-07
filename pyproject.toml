@@ -73,6 +73,8 @@ espnet-3 = [
   "datasets",
   "dask[distributed]==0.9.0",
   "dask_jobqueue==2025.5.1",
+  "torch>=2.3.1",
+  "torchaudio>=2.3.1",
 ]
 
 task-asr = [
