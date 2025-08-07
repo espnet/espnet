@@ -4,7 +4,8 @@ from typing import Union
 import numpy as np
 import torch
 from hydra.utils import instantiate
-from omegaconf import DictConfig, OmegaConf, ListConfig
+from omegaconf import DictConfig, ListConfig, OmegaConf
+
 from espnet2.samplers.build_batch_sampler import build_batch_sampler
 
 
@@ -148,9 +149,7 @@ class DataLoaderBuilder:
         if hasattr(config, "multiple_iterator") and config.multiple_iterator:
             return self._build_multiple_iterator(config)
         if config.iter_factory is not None:
-            factory_config = OmegaConf.to_container(
-                config.iter_factory, resolve=True
-            )
+            factory_config = OmegaConf.to_container(config.iter_factory, resolve=True)
             return self._build_iter_factory(factory_config)
         return self._build_standard_dataloader(config)
 
@@ -186,7 +185,7 @@ class DataLoaderBuilder:
         if dataset is None:
             dataset = self.dataset
 
-        batches = build_batch_sampler(**factory_config['batches'])
+        batches = build_batch_sampler(**factory_config["batches"])
 
         if self.num_device > 1:
             batches = list(batches)
@@ -221,7 +220,7 @@ class DataLoaderBuilder:
 
         dataset = self.dataset.shard(shard_idx)
 
-        if factory_config['iter_factory'] is not None:
+        if factory_config["iter_factory"] is not None:
             # update shape files
             iter_factory_config = update_shard(iter_factory_config, shard_idx)
             return self._build_iter_factory(iter_factory_config, dataset)
