@@ -1,6 +1,5 @@
 from typing import List, Optional, Sequence, Tuple, Union
 
-from omegaconf import ListConfig
 from typeguard import typechecked
 
 from espnet2.samplers.abs_sampler import AbsSampler
@@ -75,7 +74,7 @@ def build_batch_sampler(
     type: str,
     batch_size: int,
     batch_bins: int,
-    shape_files: Union[Tuple[str, ...], List[str], ListConfig[str]],
+    shape_files: Union[Tuple[str, ...], List[str]],
     sort_in_batch: str = "descending",
     sort_batch: str = "ascending",
     drop_last: bool = False,

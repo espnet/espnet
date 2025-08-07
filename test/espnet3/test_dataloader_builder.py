@@ -238,7 +238,6 @@ dataloader:
         _target_: espnet2.train.collate_fn.CommonCollateFn
         int_pad_value: -1
       batches:
-        _target_: espnet2.samplers.build_batch_sampler.build_batch_sampler
         shape_files:
           - test_utils/espnet3/stats/stats_dummy
         type: unsorted
@@ -293,7 +292,6 @@ dataloader:
         _target_: espnet2.train.collate_fn.CommonCollateFn
         int_pad_value: -1
       batches:
-        _target_: espnet2.samplers.build_batch_sampler.build_batch_sampler
         shape_files:
           - test_utils/espnet3/stats/stats_dummy
         type: unsorted
