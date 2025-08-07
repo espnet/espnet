@@ -2,16 +2,14 @@ import warnings
 from argparse import Namespace
 from typing import Any, Dict, Union
 
-import lightning as L
-import torch
-import torch.nn as nn
+import lightning
 from hydra.utils import instantiate
 from omegaconf import DictConfig, ListConfig
 from typeguard import typechecked
 
 from espnet2.torch_utils.initialize import initialize
 
-# Temporaliry disabled for the code review.
+# Temporalily disabled for the code review.
 # from espnet3.trainer.callbacks import get_default_callbacks
 from espnet3.trainer.model import LitESPnetModel
 
@@ -67,30 +65,30 @@ class ESPnet3LightningTrainer:
         # Accelerator
         accelerator = get_or_initialize(self.config, "accelerator", "auto")
         if hasattr(self.config, "accelerator"):
-            self.config.pop("accelerator")
+            self._del_config_key("accelerator")
 
         # strategy
         strategy = get_or_initialize(self.config, "strategy", "auto")
         if hasattr(self.config, "strategy"):
-            self.config.pop("strategy")
+            self._del_config_key("strategy")
 
         # logger
         logger = get_or_initialize(self.config, "logger")
         if logger is not None:
-            self.config.pop("logger")
+            self._del_config_key("logger")
 
         # profiler
         profiler = get_or_initialize(self.config, "profiler")
         if profiler is not None:
-            self.config.pop("profiler")
+            self._del_config_key("profiler")
 
         # plugins
         plugins = get_or_initialize(self.config, "plugins")
         if plugins is not None:
-            self.config.pop("plugins")
+            self._del_config_key("plugins")
 
         # Callbacks
-        # Temporaliry disabled for the code review.
+        # Temporarily disabled for the code review.
         # callbacks = get_default_callbacks(
         #     expdir,
         #     self.config.log_every_n_steps,
@@ -102,7 +100,7 @@ class ESPnet3LightningTrainer:
         #     ), "callbacks should be a list"
         #     for callback in self.config.callbacks:
         #         callbacks.append(instantiate(callback))
-        #     self.config.pop("callbacks")
+        #     self._del_config_key("callbacks")
 
         # Since espnet's sampler requires to set the following configs:
         # Reload dataloaders every epoch to reuse ESPnet's dataloader
@@ -137,9 +135,9 @@ class ESPnet3LightningTrainer:
             self.config.use_distributed_sampler = False
 
         # Set up the trainer
-        self.trainer = L.Trainer(
+        self.trainer = lightning.Trainer(
             accelerator=accelerator,
-            # Temporaliry disabled for the code review.
+            # Temporarily disabled for the code review.
             # callbacks=callbacks,
             strategy=strategy,
             logger=logger,
@@ -147,6 +145,12 @@ class ESPnet3LightningTrainer:
             plugins=plugins,
             **self.config,
         )
+
+    def _del_config_key(self, key):
+        if isinstance(self.config, DictConfig) or isinstance(self.config, Namespace):
+            delattr(self.config, key)
+        elif isinstance(self.config, dict):
+            self.config.pop(key)
 
     def fit(self, *args, **kwargs):
         """

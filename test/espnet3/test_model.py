@@ -1,11 +1,8 @@
-import sys
-
 import numpy as np
 import pytest
 import torch
 from omegaconf import OmegaConf
 
-from espnet2.train.collate_fn import CommonCollateFn
 from espnet3.trainer.model import LitESPnetModel
 
 # ===============================================================

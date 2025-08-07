@@ -1,3 +1,4 @@
+import copy
 from abc import ABC
 from typing import Any, Callable, List, Tuple
 
@@ -77,7 +78,7 @@ class CombinedDataset:
         for i, (dataset, transform) in enumerate(zip(self.datasets, self.transforms)):
             if len(dataset) == 0:
                 continue  # Skip empty datasets
-            sample = transform[0](dataset[0].copy())
+            sample = transform[0](copy.deepcopy(dataset[0]))
             keys = set(sample.keys())
             if sample_keys is None:
                 sample_keys = keys
@@ -96,13 +97,13 @@ class CombinedDataset:
         # Check if dataset is a subclass of ShardedDataset.
         self.multiple_iterator = False
         for dataset in self.datasets:
+            if isinstance(dataset, ShardedDataset):
+                self.multiple_iterator = True
             if self.multiple_iterator and not isinstance(dataset, ShardedDataset):
                 raise RuntimeError(
                     "If any dataset is a subclass of ShardedDataset,"
                     " then all dataset should be a subclass of ShardedDataset."
                 )
-            if isinstance(dataset, ShardedDataset):
-                self.multiple_iterator = True
 
         # This flag will be overrode by LitESPnetModel when initializing dataloader.
         self._use_espnet_collator = False
@@ -130,7 +131,15 @@ class CombinedDataset:
         for i, cum_len in enumerate(self.cumulative_lengths):
             if idx < cum_len:
                 ds_idx = idx if i == 0 else idx - self.cumulative_lengths[i - 1]
-                sample = self.datasets[i][ds_idx]
+                try:
+                    sample = self.datasets[i][ds_idx]
+                except Exception as e:
+                    raise RuntimeError(
+                        f"Failed to access dataset at index {i} or "
+                        f"item at index {ds_idx}. "
+                        f"Original error: {e}"
+                    ) from e
+
                 transformed = self.transforms[i][0](sample)  # apply transform
                 if self.use_espnet_preprocessor:
                     transformed = self.transforms[i][1](str(idx), transformed)

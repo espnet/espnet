@@ -1,0 +1,10 @@
+# https://github.com/espnet/espnet/blob/master/egs2/owsm_v3.1/s2t1/conf/decode_s2t.yaml
+beam_size: 1
+penalty: 0.0
+maxlenratio: 0.4
+minlenratio: 0.0
+ctc_weight: 0.3
+lm_weight: 0.0
+lang_sym: <eng> # set according to test set; <unk> for unseen languages
+task_sym: <pr>
+predict_time: false
