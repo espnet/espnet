@@ -29,22 +29,20 @@ See the following pages before asking the question:
 - [ESPnet2 Tutorial](https://espnet.github.io/espnet/espnet2_tutorial.html)
 - [ESPnet2 TTS FAQ](../../TEMPLATE/tts1/README.md#faq)
 
-## Initial Baseline
+## Initial Baseline (Trained with Speaker Embeddings)
 | Model                        | Sampling rate | Epochs | Notes         |
 | ---------------------------- | ------------- | ------ | ------------- |
-| **44.1 kHz VITS (gan\_tts)** | 44.1 kHz      | 407    | Results below |
+| **44.1 kHz VITS (gan\_tts)** | 44.1 kHz      | 290    | Results below |
 
 ## Baseline Results
-| Metric                       | Score           |
-| ---------------------------- | --------------- |
-| **WER (ASR on synthesized)** | **1.890**       |
-| **CER**                      | 0.885           |
-| **PESQ**                     | 1.107           |
-| **STOI**                     | 0.220           |
-| **MCD (dB)**                 | 17.23           |
-| **F0 RMSE / corr.**          | 79.5 Hz / 0.135 |
-| **UTMOS**                    | 3.23            |
-| **DNS overall / P.808**      | 3.29 / 3.90     |
-| **PLC‑MOS**                  | 2.91            |
-| **SingMOS**                  | 2.78            |
-| **Speaker similarity**       | 0.20            |
+| Metric                    | Score           |
+|---------------------------|-----------------|
+| WER (ASR on synthesized)  | 2.91            |
+| CER                       | 9.44            |
+| MCD (dB)                  | 10.96           |
+| F0 RMSE / corr.           | 54.7 Hz / 0.27  |
+| UTMOS                     | 3.11            |
+| DNS overall / P.808       | 3.30 / 3.87     |
+| PLC‑MOS                   | 2.95            |
+| SingMOS                   | 2.83            |
+| Speaker similarity        | 0.28            |
