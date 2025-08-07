@@ -38,7 +38,7 @@ See the following pages before asking the question:
 | Metric                    | Score           |
 |---------------------------|-----------------|
 | WER (ASR on synthesized)  | 28.8%            |
-| CER                       | 9.44            |
+| CER                       | 16.6%            |
 | MCD (dB)                  | 10.96           |
 | F0 RMSE / corr.           | 54.7 Hz / 0.27  |
 | UTMOS                     | 3.11            |
