@@ -23,7 +23,7 @@ requirements = {
         "kaldiio>=2.18.0",
         "torch>=1.11.0",
         "torch_complex",
-        "nltk>=3.4.5",
+        "nltk>=3.4.5,<=3.8.1",  # <=3.8.1 is for g2p_en
         # fix CI error due to the use of deprecated aliases
         "numpy<1.24",
         # https://github.com/espnet/espnet/runs/6646737793?check_suite_focus=true#step:8:7651
