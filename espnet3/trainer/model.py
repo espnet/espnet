@@ -261,7 +261,7 @@ class LitESPnetModel(lightning.LightningModule):
                 OmegaConf.to_container(self.config.scheduler, resolve=True),
                 optimizer=optimizer,
             )
-            
+
         elif getattr(self.config, "optims", None) and getattr(
             self.config, "schedulers", None
         ):

@@ -2,7 +2,7 @@
 # import torch
 from torch import nn
 from torch.optim import SGD, Adam
-from torch.optim.lr_scheduler import StepLR, LinearLR
+from torch.optim.lr_scheduler import LinearLR, StepLR
 
 from espnet3.trainer import HybridLRS, HybridOptim
 
