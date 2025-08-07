@@ -37,7 +37,7 @@ See the following pages before asking the question:
 ## Baseline Results
 | Metric                    | Score           |
 |---------------------------|-----------------|
-| WER (ASR on synthesized)  | 2.91            |
+| WER (ASR on synthesized)  | 28.8%            |
 | CER                       | 9.44            |
 | MCD (dB)                  | 10.96           |
 | F0 RMSE / corr.           | 54.7 Hz / 0.27  |
