@@ -17,7 +17,7 @@ class ChnAttnStatPooling(AbsPooling):
     Args:
         input_size: Dimension of the input frame-level embeddings.
                     The output dimensionality will be 2 × input_size
-                    after concatenating mean and std. 
+                    after concatenating mean and std.
     """
 
     def __init__(self, input_size: int = 1536):
