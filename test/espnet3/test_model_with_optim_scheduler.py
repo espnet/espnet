@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 from omegaconf import OmegaConf
 
-from espnet3.trainer import LitESPnetModel
+from espnet3.trainer.model import LitESPnetModel
 
 # ===============================================================
 # Test Case Summary for LitESPnetModel.configure_optimizers

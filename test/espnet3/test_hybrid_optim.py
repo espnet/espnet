@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 import torch
 from torch import nn
 
-from espnet3.trainer import HybridOptim
+from espnet3.trainer.hybrid_optim import HybridOptim
 
 # ===============================================================
 # Test Case Summary for HybridOptim

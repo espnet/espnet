@@ -4,7 +4,8 @@ from torch import nn
 from torch.optim import SGD, Adam
 from torch.optim.lr_scheduler import LinearLR, StepLR
 
-from espnet3.trainer import HybridLRS, HybridOptim
+from espnet3.trainer.hybrid_optim import HybridOptim
+from espnet3.trainer.hybrid_scheduler import HybridLRS
 
 # ===============================================================
 # Test Case Summary for HybridLRS
