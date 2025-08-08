@@ -36,7 +36,7 @@ on:
         required: false
       review:
         description: Review ID
-        required: true
+        required: false
 
 jobs:
   automerge:
