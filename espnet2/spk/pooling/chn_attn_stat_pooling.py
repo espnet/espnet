@@ -47,7 +47,7 @@ class ChnAttnStatPooling(AbsPooling):
                           the valid length of each sequence before padding
 
         Returns:
-            x: Utterance-level embeddings of shape (batch_size, 2 x feature_dim)
+            x: Utterance-level embeddings of shape (batch_size, 2 × feature_dim)
         """
 
         T = x.size(-1)
