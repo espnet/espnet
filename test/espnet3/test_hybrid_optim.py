@@ -11,17 +11,22 @@ from espnet3.trainer.hybrid_optim import HybridOptim
 # ===============================================================
 #
 # Basic Functionality Tests
-# | Test Name                          | Description                                                              | # noqa: E501
-# |-----------------------------------|--------------------------------------------------------------------------| # noqa: E501
-# | test_zero_grad_called             | Ensures zero_grad() is called with correct arguments on all optimizers  | # noqa: E501
-# | test_step_called_and_loss_returned| Confirms step() calls each optimizer's step and returns closure loss     | # noqa: E501
-# | test_state_dict_and_load_state_dict_roundtrip | Tests saving and restoring of optimizer state dicts            | # noqa: E501
-# | test_repr_contains_optimizer_info | Checks that __repr__ includes optimizer names (SGD, Adam, etc.)         | # noqa: E501
+# | Test Name                          | Description                           |
+# |-----------------------------------|----------------------------------------|
+# | test_zero_grad_called             | Ensures zero_grad() is called with     |
+# |                                   | correct arguments on all optimizers    |
+# | test_step_called_and_loss_returned| Confirms step() calls each optimizer's |
+# |                                   | step and returns closure loss          |
+# | test_state_dict_and_load_state_dict_roundtrip | Tests saving and restoring of      |
+# |                                   | optimizer state dicts for round-trip integrity |
+# | test_repr_contains_optimizer_info | Checks that __repr__ includes optimizer names  |
+# |                                   | (SGD, Adam, etc.)                              |
 #
 # Combined Properties Tests
-# | Test Name                          | Description                                                              | # noqa: E501
-# |-----------------------------------|--------------------------------------------------------------------------| # noqa: E501
-# | test_combined_properties          | Validates param_groups, state, defaults are aggregated correctly         | # noqa: E501
+# | Test Name                          | Description                           |
+# |-----------------------------------|----------------------------------------|
+# | test_combined_properties          | Validates param_groups, state, defaults|
+# |                                   | are aggregated correctly               |
 
 
 def create_simple_model_and_optim():

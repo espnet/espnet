@@ -209,17 +209,17 @@ class LitESPnetModel(lightning.LightningModule):
             - optim:
                 _target_: torch.optim.Adam
                 lr: 0.001
-            params: encoder
+                params: encoder
             - optim:
                 _target_: torch.optim.SGD
                 lr: 0.01
-            params: decoder
+                params: decoder
 
         schedulers:
             - _target_: torch.optim.lr_scheduler.StepLR
-            step_size: 10
+              step_size: 10
             - _target_: torch.optim.lr_scheduler.ReduceLROnPlateau
-            patience: 2
+              patience: 2
         ```
 
         Notes:
