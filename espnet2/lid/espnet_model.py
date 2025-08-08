@@ -153,7 +153,7 @@ class ESPnetLIDModel(AbsESPnetModel):
         self,
         speech: torch.Tensor,
         speech_lengths: torch.Tensor,
-        lid_labels: torch.Tensor = None,
+        lid_labels: Optional[torch.Tensor] = None,
         **kwargs,
     ) -> Dict[str, torch.Tensor]:
         feats, feats_lengths = self.extract_feats(speech, speech_lengths)
