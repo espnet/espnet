@@ -175,7 +175,7 @@ elif $(pytorch_plus 2.7.1); then
         cuda_version=12.6
         cuda_version_without_dot="${cuda_version/\./}"
     fi
-    install_torch 2.7.0  # install_torch <torch-audio-ver>
+    install_torch 2.7.1  # install_torch <torch-audio-ver>
 
 elif $(pytorch_plus 2.6.0); then
     check_python_version 3.13  # Error if python>=<number>
