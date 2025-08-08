@@ -17,37 +17,39 @@ from espnet2.train.abs_espnet_model import AbsESPnetModel
 
 @typechecked
 class ESPnetSpeechLMModel(AbsESPnetModel):
+
+    @typechecked
     def __init__(
         self,
         corelm: AbsCoreLM,
+        criterion,
         extract_feats_in_collect_stats: bool = False,
     ):
         super().__init__()
 
         self.corelm = corelm
+        self.criterion = criterion
         self.extract_feats_in_collect_stats = extract_feats_in_collect_stats
 
     def forward(
         self,
         dec_seq: torch.Tensor,
-        dec_seq_lengths: torch.Tensor,
+        loss_mask: torch.Tensor,
+        conti_feats: list,
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
 
-        enc_seq = kwargs.get("enc_seq", None)
-        enc_seq_lengths = kwargs.get("enc_seq_lengths", None)
-        prefix_len = kwargs.get("prefix_len", None)
-        if prefix_len is not None:
-            prefix_len = prefix_len.squeeze(1)
-
-        loss, stats, weight = self.corelm(
+        logits, targets, loss_mask = self.corelm(
             dec_seq,
-            dec_seq_lengths,
-            enc_seq,
-            enc_seq_lengths,
-            prefix_len,
+            loss_mask,
+            conti_feats,
         )
 
+        loss, _, stats, weight = self.criterion(
+            logits,
+            targets,
+            loss_mask,
+        )
         loss, stats, weight = force_gatherable((loss, stats, weight), loss.device)
         return loss, stats, weight
 
