@@ -212,6 +212,9 @@ class Trainer:
             self.task_class = get_ez_task(task, use_custom_dataset=True)
             self.task_class.train_dataset = train_dataset
             self.task_class.valid_dataset = valid_dataset
+            self.train_config.use_preprocessor = getattr(
+                self.train_config, "use_ez_preprocessor", False
+            )
         elif train_dataloader is not None and valid_dataloader is not None:
             self.task_class = get_ez_task(task, use_custom_dataset=True)
             self.task_class.train_dataloader = train_dataloader
