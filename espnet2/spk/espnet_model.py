@@ -126,14 +126,16 @@ class ESPnetSpeakerModel(AbsESPnetModel):
         return loss, stats, weight
 
     def extract_feats(
-        self, speech: torch.Tensor, speech_lengths: torch.Tensor
+        self,
+        speech: torch.Tensor,
+        speech_lengths: Optional[torch.Tensor] = None
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         batch_size = speech.shape[0]
         speech_lengths = (
             speech_lengths
             if speech_lengths is not None
             else torch.ones(batch_size).int() * speech.shape[1]
-        )
+        ).to(speech.device)
 
         # 1. extract feats
         if self.frontend is not None:
