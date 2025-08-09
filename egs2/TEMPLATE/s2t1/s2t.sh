@@ -70,6 +70,7 @@ sop="<sop>"         # Start of prev/prompt symbol
 bpe_input_sentence_size=100000000 # Size of input sentence for BPE.
 bpe_nlsyms=         # non-linguistic symbols list, separated by a comma or a file containing 1 symbol per line, for BPE
 bpe_char_cover=1.0  # character coverage when modeling BPE
+bpe_largecorpus=false # Set to true if using large corpus for BPE training
 hugging_face_model_name_or_path="" # Hugging Face model or path for hugging_face tokenizer
 
 # Ngram model related
@@ -195,6 +196,7 @@ Options:
     --bpe_input_sentence_size # Size of input sentence for BPE (default="${bpe_input_sentence_size}").
     --bpe_nlsyms              # Non-linguistic symbol list for sentencepiece, separated by a comma or a file containing 1 symbol per line . (default="${bpe_nlsyms}").
     --bpe_char_cover          # Character coverage when modeling BPE (default="${bpe_char_cover}").
+    --bpe_largecorpus         # Set to true if using large corpus for BPE training (default="${bpe_largecorpus}").
 
     # Language model related
     --lm_tag          # Suffix to the result dir for language model training (default="${lm_tag}").
@@ -877,15 +879,17 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && ! [[ " ${skip_stages} " =~ [
         # shellcheck disable=SC2002
         cat ${bpe_train_text} | cut -f 2- -d" "  > "${bpedir}"/train.txt
 
+        _opts_spm=""
+        if [ "${bpe_largecorpus:-false}" = true ]; then
+            _opts_spm+="--train_extremely_large_corpus=true "
+        fi
         if [ -n "${bpe_nlsyms}" ]; then
             if test -f "${bpe_nlsyms}"; then
                 bpe_nlsyms_list=$(awk '{print $1}' ${bpe_nlsyms} | paste -s -d, -)
-                _opts_spm="--user_defined_symbols=${bpe_nlsyms_list}"
+                _opts_spm+="--user_defined_symbols=${bpe_nlsyms_list}"
             else
-                _opts_spm="--user_defined_symbols=${bpe_nlsyms}"
+                _opts_spm+="--user_defined_symbols=${bpe_nlsyms}"
             fi
-        else
-            _opts_spm=""
         fi
 
         spm_train \
