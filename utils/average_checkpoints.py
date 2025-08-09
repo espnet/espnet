@@ -75,7 +75,7 @@ def main():
                 raise FileNotFoundError(f"Checkpoint file not found: {path}")
 
             # Check file extension and size for basic validation
-            if not path.endswith(('.pt', '.pth', '.bin')):
+            if not path.endswith((".pt", ".pth", ".bin")):
                 raise ValueError(f"Untrusted file extension: {path}")
 
             file_size = os.path.getsize(path)
