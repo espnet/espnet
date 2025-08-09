@@ -75,7 +75,7 @@ def main():
                 raise FileNotFoundError(f"Checkpoint file not found: {path}")
 
             # Check file extension and size for basic validation
-            if not path.endswith(('.pt', '.pth', '.bin')):
+            if not path.endswith((".pt", ".pth", ".bin")):
                 print(f"Warning: Untrusted file extension: {path}")
                 # Currently, snapshots do not have any extension so it is not possible
                 # to raise error when files do not have a pytorch-file extension
