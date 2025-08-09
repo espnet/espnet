@@ -159,5 +159,9 @@ def build_batch_sampler(
         )
 
     else:
-        raise ValueError(f"Not supported: {type}")
+        raise ValueError(
+            f"Not supported: {type}. "
+            "Please specify batch_type in unsorted, sorted, folded, numel, "
+            "length."
+        )
     return retval

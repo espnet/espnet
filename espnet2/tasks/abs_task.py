@@ -2041,7 +2041,11 @@ class AbsTask(ABC):
                 key_file=key_file,
             )
         else:
-            raise ValueError(f"batch_type={iter_options.batch_type} is not supported")
+            raise ValueError(
+                f"batch_type={iter_options.batch_type} is not supported"
+                "Please specify batch_type in catbel, catpow, "
+                "catpow_balance_dataset, unsorted."
+            )
 
         batches = list(batch_sampler)
 
