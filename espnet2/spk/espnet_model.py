@@ -132,8 +132,12 @@ class ESPnetSpeakerModel(AbsESPnetModel):
         speech_lengths = (
             speech_lengths
             if speech_lengths is not None
-            else torch.ones(batch_size).int() * speech.shape[1]
-        ).to(speech.device)
+            else torch.ones(
+                batch_size,
+                device=speech.device,
+                dtype=torch.int
+            ) * speech.shape[1]
+        )
 
         # 1. extract feats
         if self.frontend is not None:
