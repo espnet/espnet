@@ -76,7 +76,11 @@ def main():
 
             # Check file extension and size for basic validation
             if not path.endswith(('.pt', '.pth', '.bin')):
-                raise ValueError(f"Untrusted file extension: {path}")
+                print(f"Warning: Untrusted file extension: {path}")
+                # Currently, snapshots do not have any extension so it is not possible
+                # to raise error when files do not have a pytorch-file extension
+                # TODO(nelson): Add extension to snapshots.
+                # raise ValueError(f"Untrusted file extension: {path}")
 
             file_size = os.path.getsize(path)
             if file_size > 10 * 1024 * 1024 * 1024:  # 10GB limit
