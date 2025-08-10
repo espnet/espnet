@@ -1991,7 +1991,9 @@ class AbsTask(ABC):
                 dataset2utt_file = None
                 raise ValueError(
                     f"dataset2utt mandatory for catpow_balance_dataset batch sampler, "
-                    f"but not found {dataset2utt_file}"
+                    f"but not found {dataset2utt_file}. To create a dataset2utt "
+                    "file, please refer to the script in "
+                    "`egs2/geolid/lid1/local/create_utt2dataset_dataset2utt.sh`"
                 )
 
             if Path(
@@ -2009,7 +2011,9 @@ class AbsTask(ABC):
                 utt2dataset_file = None
                 raise ValueError(
                     f"utt2dataset mandatory for catpow_balance_dataset batch sampler, "
-                    f"but not found {utt2dataset_file}"
+                    f"but not found {utt2dataset_file}. To create a dataset2utt "
+                    "file, please refer to the script in "
+                    "`egs2/geolid/lid1/local/create_utt2dataset_dataset2utt.sh`"
                 )
             sampler_args = dict(
                 batch_bins=iter_options.batch_bins,
