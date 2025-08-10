@@ -1,6 +1,7 @@
 import argparse
-import os
 import logging
+import os
+
 
 def parser():
     parser = argparse.ArgumentParser(description="Prepare OOD test data")
@@ -26,9 +27,8 @@ def parser():
         required=True,
         help="Names of the test sets in dump dir, e.g. 'dev_fleurs_lang dev_ml_superb2_lang' ",
     )
-    
-    return parser.parse_args()
 
+    return parser.parse_args()
 
 
 def main(args):
@@ -52,12 +52,14 @@ def main(args):
             for line in f:
                 lang = line.split(" ", 1)[0]
                 test_langs.add(lang)
-        
+
         logging.info(f"Test set {test_set} languages: {test_langs}")
-        
+
         test_train_lang_cross = test_langs.intersection(train_langs)
 
-        logging.info(f"Test set {test_set} languages in train set {args.train_set}: {test_train_lang_cross}")
+        logging.info(
+            f"Test set {test_set} languages in train set {args.train_set}: {test_train_lang_cross}"
+        )
 
         cross_utt2spk = []
         cross_wavscp = []
@@ -83,7 +85,8 @@ def main(args):
             f.writelines(sorted(cross_utt2spk))
         with open(os.path.join(cross_dir, "wav.scp"), "w") as f:
             f.writelines(sorted(cross_wavscp))
-        
+
+
 if __name__ == "__main__":
     args = parser()
     main(args)
