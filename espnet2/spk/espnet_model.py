@@ -72,7 +72,7 @@ class ESPnetSpeakerModel(AbsESPnetModel):
     ) -> Union[
         Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor], torch.Tensor
     ]:
-        """Feed-forward pass of the speaker model.
+        """Feed-forward pass of the speaker model. 
 
         Args:
             speech: (Batch, samples), Input speech tensor
