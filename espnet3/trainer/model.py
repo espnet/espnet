@@ -10,8 +10,8 @@ from espnet3.trainer.dataloader import DataLoaderBuilder
 
 # Temporarily disabled for the code review.
 # from espnet3.collect_stats import collect_stats
-from espnet3.trainer.hybrid_optim import HybridOptim
-from espnet3.trainer.hybrid_scheduler import HybridLRS
+from espnet3.trainer.multiple_optim import MultipleOptim
+from espnet3.trainer.mutiple_scheduler import MultipleScheduler
 
 logger = logging.getLogger("lightning")
 
@@ -317,7 +317,7 @@ class LitESPnetModel(lightning.LightningModule):
                 not unused_param_ids
             ), f"{unused_param_ids} are not assigned to any optimizer"
 
-            optimizer = HybridOptim(optims)
+            optimizer = MultipleOptim(optims)
 
             assert (
                 getattr(self.config, "scheduler", None) is None
@@ -332,7 +332,8 @@ class LitESPnetModel(lightning.LightningModule):
                 )
 
             scheduler = [
-                HybridLRS(optimizer, sch, i_sch) for i_sch, sch in enumerate(schedulers)
+                MultipleScheduler(optimizer, sch, i_sch)
+                for i_sch, sch in enumerate(schedulers)
             ]
         else:
             raise ValueError(
