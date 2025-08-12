@@ -4,10 +4,10 @@ from unittest.mock import MagicMock
 import torch
 from torch import nn
 
-from espnet3.trainer.hybrid_optim import HybridOptim
+from espnet3.trainer.multiple_optim import MultipleOptim
 
 # ===============================================================
-# Test Case Summary for HybridOptim
+# Test Case Summary for MultipleOptim
 # ===============================================================
 #
 # Basic Functionality Tests
@@ -40,8 +40,8 @@ def create_simple_model_and_optim():
 def test_zero_grad_called():
     opt1 = MagicMock()
     opt2 = MagicMock()
-    hybrid = HybridOptim([opt1, opt2])
-    hybrid.zero_grad(set_to_none=True)
+    mopts = MultipleOptim([opt1, opt2])
+    mopts.zero_grad(set_to_none=True)
     opt1.zero_grad.assert_called_once_with(set_to_none=True)
     opt2.zero_grad.assert_called_once_with(set_to_none=True)
 
@@ -49,12 +49,12 @@ def test_zero_grad_called():
 def test_step_called_and_loss_returned():
     opt1 = MagicMock()
     opt2 = MagicMock()
-    hybrid = HybridOptim([opt1, opt2])
+    mopts = MultipleOptim([opt1, opt2])
 
     def closure():
         return torch.tensor(1.23)
 
-    loss = hybrid.step(closure)
+    loss = mopts.step(closure)
     assert isinstance(loss, torch.Tensor)
     assert torch.allclose(loss, torch.tensor(1.23))
     opt1.step.assert_called_once()
@@ -63,32 +63,32 @@ def test_step_called_and_loss_returned():
 
 def test_state_dict_and_load_state_dict_roundtrip():
     optimizers = create_simple_model_and_optim()
-    hybrid = HybridOptim(optimizers)
+    mopts = MultipleOptim(optimizers)
 
     # dummy gradient + step
     for p in optimizers[0].param_groups[0]["params"]:
         p.grad = torch.ones_like(p)
-    hybrid.step()
+    mopts.step()
 
-    saved = hybrid.state_dict()
-    hybrid.load_state_dict(saved)
+    saved = mopts.state_dict()
+    mopts.load_state_dict(saved)
 
 
 def test_repr_contains_optimizer_info():
     optimizers = create_simple_model_and_optim()
-    hybrid = HybridOptim(optimizers)
-    rep = repr(hybrid)
+    mopts = MultipleOptim(optimizers)
+    rep = repr(mopts)
     assert "SGD" in rep
     assert "Adam" in rep
 
 
 def test_combined_properties():
     optimizers = create_simple_model_and_optim()
-    hybrid = HybridOptim(optimizers)
+    mopts = MultipleOptim(optimizers)
 
     # Make sure all properties return flattened lists/dicts
-    assert isinstance(hybrid.param_groups, list)
-    assert all(isinstance(pg, dict) for pg in hybrid.param_groups)
+    assert isinstance(mopts.param_groups, list)
+    assert all(isinstance(pg, dict) for pg in mopts.param_groups)
 
-    assert isinstance(hybrid.state, dict)
-    assert isinstance(hybrid.defaults, dict)
+    assert isinstance(mopts.state, dict)
+    assert isinstance(mopts.defaults, dict)
