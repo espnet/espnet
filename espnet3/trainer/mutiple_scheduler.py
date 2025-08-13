@@ -34,6 +34,10 @@ class MultipleScheduler(torch.optim.lr_scheduler._LRScheduler):
         lr_scheduler: torch.optim.lr_scheduler.LRScheduler,
         optimizer_idx: int,
     ) -> None:
+        assert 0 <= optimizer_idx < len(multiple_optimizer.optimizers), (
+            f"optimizer_idx {optimizer_idx} is out of range for "
+            f"multiple_optimizer with {len(multiple_optimizer.optimizers)} optimizers."
+        )
         self.optimizer = multiple_optimizer
         self.lr_scheduler = lr_scheduler
         self.idx = optimizer_idx

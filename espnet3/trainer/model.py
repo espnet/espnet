@@ -209,17 +209,19 @@ class LitESPnetModel(lightning.LightningModule):
             - optim:
                 _target_: torch.optim.Adam
                 lr: 0.001
-                params: encoder
+              params: encoder
             - optim:
                 _target_: torch.optim.SGD
                 lr: 0.01
-                params: decoder
+              params: decoder
 
         schedulers:
-            - _target_: torch.optim.lr_scheduler.StepLR
-              step_size: 10
-            - _target_: torch.optim.lr_scheduler.ReduceLROnPlateau
-              patience: 2
+            - scheduler:
+                _target_: torch.optim.lr_scheduler.StepLR
+                step_size: 10
+            - scheduler:
+                _target_: torch.optim.lr_scheduler.ReduceLROnPlateau
+                patience: 2
         ```
 
         Notes:
@@ -275,7 +277,11 @@ class LitESPnetModel(lightning.LightningModule):
             )
 
             optims = []
-            trainable_params = dict(self.named_parameters())  # key: name, value: param
+            trainable_params = {
+                name: param
+                for name, param in self.named_parameters()
+                if param.requires_grad
+            }  # key: name, value: param
             used_param_ids = set()
 
             for optim_cfg in self.config.optims:
@@ -286,12 +292,12 @@ class LitESPnetModel(lightning.LightningModule):
                 selected = [
                     p
                     for name, p in trainable_params.items()
-                    if optim_cfg["params"] in name and p.requires_grad
+                    if optim_cfg["params"] in name
                 ]
                 selected_names = [
                     name
-                    for name, p in trainable_params.items()
-                    if optim_cfg["params"] in name and p.requires_grad
+                    for name in trainable_params.keys()
+                    if optim_cfg["params"] in name
                 ]
                 assert (
                     len(selected) > 0
@@ -326,7 +332,7 @@ class LitESPnetModel(lightning.LightningModule):
             for i_sch, scheduler in enumerate(self.config.schedulers):
                 schedulers.append(
                     instantiate(
-                        OmegaConf.to_container(scheduler, resolve=True),
+                        OmegaConf.to_container(scheduler.scheduler, resolve=True),
                         optimizer=optims[i_sch],
                     )
                 )
