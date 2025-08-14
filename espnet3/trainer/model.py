@@ -11,7 +11,7 @@ from espnet3.trainer.dataloader import DataLoaderBuilder
 # Temporarily disabled for the code review.
 # from espnet3.collect_stats import collect_stats
 from espnet3.trainer.multiple_optim import MultipleOptim
-from espnet3.trainer.mutiple_scheduler import MultipleScheduler
+from espnet3.trainer.multiple_scheduler import MultipleScheduler
 
 logger = logging.getLogger("lightning")
 
