@@ -7,6 +7,23 @@ OWSM v4 significantly outperforms previous versions in multilingual tasks. It is
 Note: OWSM v4 applies 8 times subsampling (instead of 4 times in OWSM v3.1) to the log Mel features, leading to a final resolution of 80 ms in the encoder.
 When running inference, we recommend setting `maxlenratio=1.0` (default) instead of smaller values.
 
+## Results
+
+Please refer to our paper for comprehensive evaluations. Below are some notable results.
+
+### Language Identification
+
+![Language identification accuracy](local/lid-result.png)
+
+
+### English ASR
+
+![English ASR WER vs inference speed](local/en-asr.png)
+
+### Multilingual ASR
+
+![Multilingual ASR WER](local/fleurs.png)
+
 
 ## Data Cleaning
 
