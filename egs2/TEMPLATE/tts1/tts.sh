@@ -227,6 +227,11 @@ log "$0 $*"
 run_args=$(scripts/utils/print_args.sh $0 "$@")
 . utils/parse_options.sh
 
+if [[ ${use_sid:-false} == true && ${use_spk_embed:-false} == true ]]; then
+    log "Error: --use_sid and --use_spk_embed cannot both be true; pick one."
+    exit 2
+fi
+
 if [ $# -ne 0 ]; then
     log "${help_message}"
     log "Error: No positional arguments are required."
@@ -322,7 +327,6 @@ if ! "${skip_data_prep}"; then
         # [Task dependent] Need to create data.sh for new corpus
         local/data.sh ${local_data_opts}
     fi
-
 
     if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         # TODO(kamo): Change kaldi-ark to npy or HDF5?
