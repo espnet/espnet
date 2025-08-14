@@ -36,7 +36,7 @@ exp_dir=exp/44k
 
 
 ./tts.sh \
-    --use_sid true \
+    --use_sid false \
     --fs "${fs}" \
     --n_fft "${n_fft}" \
     --n_shift "${n_shift}" \
