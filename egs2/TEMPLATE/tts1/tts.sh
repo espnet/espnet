@@ -327,7 +327,7 @@ if ! "${skip_data_prep}"; then
         # [Task dependent] Need to create data.sh for new corpus
         local/data.sh ${local_data_opts}
     fi
-    
+
 
     if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         # TODO(kamo): Change kaldi-ark to npy or HDF5?
