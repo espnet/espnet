@@ -6,12 +6,12 @@ from hydra.utils import instantiate
 from omegaconf import OmegaConf
 
 from espnet2.train.collate_fn import CommonCollateFn
+from espnet3.trainer.dataloader import DataLoaderBuilder
 
 # Temporarily disabled for the code review.
 # from espnet3.collect_stats import collect_stats
-# from espnet3.trainer.hybrid_optim import HybridOptim
-# from espnet3.trainer.hybrid_scheduler import HybridLRS
-from espnet3.trainer.dataloader import DataLoaderBuilder
+from espnet3.trainer.multiple_optim import MultipleOptim
+from espnet3.trainer.multiple_scheduler import MultipleScheduler
 
 logger = logging.getLogger("lightning")
 
@@ -183,15 +183,66 @@ class LitESPnetModel(lightning.LightningModule):
 
     def configure_optimizers(self):
         """
-        This implementation utilize the following document to use multiple
-        optimizers and schedulers to the different modules:
-        https://github.com/Lightning-AI/pytorch-lightning/issues/3346
-        If you want to use multiple optimizers or schedulers to the different modules,
-        See <espnet-ez document> for how to do it.
+        Configure optimizers and schedulers for training.
 
-        Default to one optimizer and scheduler.
-        Default optimizer is Adam and scheduler is torch.optim.lr_scheduler.StepLR
-        with default values in PyTorch.
+        This method supports two modes of configuration:
+
+        1. Single Optimizer + Scheduler:
+        Use when the entire model is trained with a single optimizer.
+        ```yaml
+        optim:
+            _target_: torch.optim.Adam
+            lr: 0.001
+
+        scheduler:
+            _target_: torch.optim.lr_scheduler.StepLR
+            step_size: 10
+        ````
+
+        2. Multiple Optimizers + Schedulers:
+        Use when training different parts of the model with different optimizers.
+        Each optimizer block must contain both a nested `optim` config and a `params`
+        key indicating a substring to match parameter names.
+
+        ```yaml
+        optims:
+            - optim:
+                _target_: torch.optim.Adam
+                lr: 0.001
+              params: encoder
+            - optim:
+                _target_: torch.optim.SGD
+                lr: 0.01
+              params: decoder
+
+        schedulers:
+            - scheduler:
+                _target_: torch.optim.lr_scheduler.StepLR
+                step_size: 10
+            - scheduler:
+                _target_: torch.optim.lr_scheduler.ReduceLROnPlateau
+                patience: 2
+        ```
+
+        Notes:
+
+        * Only one of `optim` or `optims` may be specified. Mixing both is not allowed.
+        * Likewise, `scheduler` and `schedulers` must not be used together.
+        * When using `optims`, each `params` must uniquely match a subset of trainable
+            parameters.
+        * It is an error if:
+            * A trainable parameter is assigned to multiple optimizers
+                (overlapping `params`)
+            * A trainable parameter is not assigned to any optimizer (missing coverage)
+            * Any optimizer block is missing `params` or nested `optim`
+
+        Returns:
+            dict: A dictionary with keys `"optimizer"` and `"lr_scheduler"`
+                for PyTorch Lightning.
+
+        Raises:
+            AssertionError: If configuration rules are violated.
+            ValueError: If neither optimizer configuration is provided.
         """
         if getattr(self.config, "optim", None) and getattr(
             self.config, "scheduler", None
@@ -213,44 +264,83 @@ class LitESPnetModel(lightning.LightningModule):
                 optimizer=optimizer,
             )
 
-        # Temporarily disabled for the code review.
-        # elif getattr(self.config, "optims") and getattr(self.config, "schedulers"):
-        #     assert (
-        #         getattr(self.config, "optim", None) is None
-        #     ), "Mixture of `optim` and `optims` is not allowed."
-        #     assert len(self.config.optims) == len(self.config.schedulers), (
-        #         f"The number of optimizers and schedulers must be equal: "
-        #         + f"optims: {len(self.config.optims)}, "
-        #         + f"schedulers: {len(self.config.schedulers)}"
-        #     )
-        #     optims = []
-        #     trainable_params = filter(lambda p: p.requires_grad, self.parameters())
-        #     for optim in self.config.optims:
-        #         # filter params for optimizer
-        #         assert "params" in optim, "missing 'params' in optim config"
-        #         params = [p for p in trainable_params if optim["params"] in p.name]
-        #         assert len(params) > 0, (
-        #             f"No trainable parameters found for"
-        #             + f"optimizer: {optim} with params: {optim['params']}"
-        #         )
-        #         optims.append(instantiate(
-        #             OmegaConf.to_container(optim, resolve=True), params
-        #         ))
-        #     optimizer = HybridOptim(optims)
+        elif getattr(self.config, "optims", None) and getattr(
+            self.config, "schedulers", None
+        ):
+            assert (
+                getattr(self.config, "optim", None) is None
+            ), "Mixture of `optim` and `optims` is not allowed."
+            assert len(self.config.optims) == len(self.config.schedulers), (
+                f"The number of optimizers and schedulers must be equal: "
+                + f"optims: {len(self.config.optims)}, "
+                + f"schedulers: {len(self.config.schedulers)}"
+            )
 
-        #     assert (
-        #         getattr(self.config, "scheduler", None) is None
-        #     ), "Mixture of `scheduler` and `schedulers` is not allowed."
-        #     schedulers = []
-        #     for i_sch, scheduler in enumerate(self.config.schedulers):
-        #         schedulers.append(instantiate(
-        #             OmegaConf.to_container(scheduler, resolve=True),
-        #             optimizer=optims[i_sch]
-        #         ))
-        #     scheduler = [
-        #         HybridLRS(optimizer, i_sch, sch)
-        #         for i_sch, sch in enumerate(schedulers)
-        #     ]
+            optims = []
+            trainable_params = {
+                name: param
+                for name, param in self.named_parameters()
+                if param.requires_grad
+            }  # key: name, value: param
+            used_param_ids = set()
+
+            for optim_cfg in self.config.optims:
+                assert "params" in optim_cfg, "missing 'params' in optim config"
+                assert "optim" in optim_cfg, "missing nested 'optim' block"
+
+                # filter parameters whose name contains the 'params' keyword
+                selected = [
+                    p
+                    for name, p in trainable_params.items()
+                    if optim_cfg["params"] in name
+                ]
+                selected_names = [
+                    name
+                    for name in trainable_params.keys()
+                    if optim_cfg["params"] in name
+                ]
+                assert (
+                    len(selected) > 0
+                ), f"No trainable parameters found for: {optim_cfg['params']}"
+
+                for n in selected_names:
+                    assert (
+                        n not in used_param_ids
+                    ), f"Parameter {n} is assigned to multiple optimizers"
+                    used_param_ids.add(n)
+
+                optim = instantiate(
+                    OmegaConf.to_container(optim_cfg["optim"], resolve=True), selected
+                )
+                optims.append(optim)
+
+            # Check for uncovered parameters
+            all_param_ids = {
+                name for name, p in self.named_parameters() if p.requires_grad
+            }
+            unused_param_ids = all_param_ids - used_param_ids
+            assert (
+                not unused_param_ids
+            ), f"{unused_param_ids} are not assigned to any optimizer"
+
+            optimizer = MultipleOptim(optims)
+
+            assert (
+                getattr(self.config, "scheduler", None) is None
+            ), "Mixture of `scheduler` and `schedulers` is not allowed."
+            schedulers = []
+            for i_sch, scheduler in enumerate(self.config.schedulers):
+                schedulers.append(
+                    instantiate(
+                        OmegaConf.to_container(scheduler.scheduler, resolve=True),
+                        optimizer=optims[i_sch],
+                    )
+                )
+
+            scheduler = [
+                MultipleScheduler(optimizer, sch, i_sch)
+                for i_sch, sch in enumerate(schedulers)
+            ]
         else:
             raise ValueError(
                 "Must specify either `optim` or `optims` and `scheduler` or"
