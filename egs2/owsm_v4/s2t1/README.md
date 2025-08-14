@@ -8,9 +8,28 @@ Note: OWSM v4 applies 8 times subsampling (instead of 4 times in OWSM v3.1) to t
 When running inference, we recommend setting `maxlenratio=1.0` (default) instead of smaller values.
 
 
-### OWSM series
+## Data Cleaning
 
-#### Encoder-decoder OWSM
+As presented in Section 2.1 of [our paper](https://arxiv.org/abs/2506.00338), we conducted three-stage data cleaning from the original [YODAS2](https://huggingface.co/datasets/espnet/yodas2) dataset.
+- Resegmentation
+- LID-based filtering
+- CTC-score-based filtering
+
+To get started, download the YODAS2 dataset to a local directory and create a text file containing paths to all data files that need to be processed. For example, we create `data_reseg/json_files.txt`:
+```
+/work/hdd/bbjs/shared/corpora/yodas2/data/af000/text/00000000.json
+/work/hdd/bbjs/shared/corpora/yodas2/data/af000/text/00000001.json
+/work/hdd/bbjs/shared/corpora/yodas2/data/am000/text/00000000.json
+/work/hdd/bbjs/shared/corpora/yodas2/data/am000/text/00000001.json
+...
+```
+
+Then, run `local/data.sh` to filter the data and convert to Kaldi style for later training.
+
+
+## OWSM series
+
+### Encoder-decoder OWSM
 
 | Name | Size | Hugging Face Repo |
 | :--- | ---: | :---------------- |
@@ -23,7 +42,7 @@ When running inference, we recommend setting `maxlenratio=1.0` (default) instead
 | OWSM v4 medium | 1.02B | https://huggingface.co/espnet/owsm_v4_medium_1B |
 
 
-#### CTC-based OWSM
+### CTC-based OWSM
 
 | Name | Size | Hugging Face Repo |
 | :--- | ---: | :---------------- |
@@ -41,7 +60,7 @@ When running inference, we recommend setting `maxlenratio=1.0` (default) instead
 @inproceedings{owsm-v4,
   title={{OWSM} v4: Improving Open Whisper-Style Speech Models via Data Scaling and Cleaning},
   author={Yifan Peng and Shakeel Muhammad and Yui Sudo and William Chen and Jinchuan Tian and Chyi-Jiunn Lin and Shinji Watanabe},
-  booktitle={Proceedings of the Annual Conference of the International Speech Communication Association (INTERSPEECH) (accepted)},
+  booktitle={Proceedings of the Annual Conference of the International Speech Communication Association (INTERSPEECH)},
   year={2025},
 }
 ```
