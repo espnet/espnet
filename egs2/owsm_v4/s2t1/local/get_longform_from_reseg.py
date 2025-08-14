@@ -1,12 +1,14 @@
 import json
-from tqdm import tqdm
 from argparse import ArgumentParser
 from pathlib import Path
+
+from tqdm import tqdm
+
 from utils import (
-    Utterance,
+    TO_ISO_LANGUAGE_CODE,
     LongUtterance,
+    Utterance,
     generate_long_utterances,
-    TO_ISO_LANGUAGE_CODE
 )
 
 
@@ -14,18 +16,25 @@ def construct_data_from_file(file):
     lang = Path(file).resolve().parent.parent.name[:2]  # two-letter language code
     if lang == "iw":
         lang = "he"
-    lang = TO_ISO_LANGUAGE_CODE[lang]   # convert to three-letter language code
+    lang = TO_ISO_LANGUAGE_CODE[lang]  # convert to three-letter language code
 
     long_utts = []
-    with open(file, 'r') as f:
+    with open(file, "r") as f:
         for line in f:
             recording = json.loads(line.strip())
 
             short_utts = []
-            audio_id = recording['audio_id']
-            wav_path = recording['wav_path']
+            audio_id = recording["audio_id"]
+            wav_path = recording["wav_path"]
 
-            for utt_id, start_time, end_time, confidence, cleaned_text, raw_text in recording['utts']:
+            for (
+                utt_id,
+                start_time,
+                end_time,
+                confidence,
+                cleaned_text,
+                raw_text,
+            ) in recording["utts"]:
                 short_utts.append(
                     Utterance(
                         utt_id=utt_id,
@@ -40,7 +49,7 @@ def construct_data_from_file(file):
                         confidence=confidence,
                     )
                 )
-            
+
             long_utts.extend(generate_long_utterances(short_utts))
 
     return long_utts
@@ -49,8 +58,13 @@ def construct_data_from_file(file):
 def get_parser():
     parser = ArgumentParser()
     parser.add_argument("-d", "--yodas2_dir", type=str, required=True)
-    parser.add_argument("-o", "--output_file", type=str, required=True,
-                        help="Path to save the long-form data file")
+    parser.add_argument(
+        "-o",
+        "--output_file",
+        type=str,
+        required=True,
+        help="Path to save the long-form data file",
+    )
     return parser
 
 
@@ -61,8 +75,8 @@ if __name__ == "__main__":
     assert yodas2_dir.is_dir(), f"YODAS2 path {yodas2_dir} is not a directory."
 
     all_files = list(yodas2_dir.glob("data/*/text_reseg/*.jsonl"))
-    with open(args.output_file, 'w') as fout:
+    with open(args.output_file, "w") as fout:
         for file in tqdm(all_files):
             long_utts = construct_data_from_file(file)
             for long_utt in long_utts:
-                fout.write(json.dumps(long_utt.__dict__, ensure_ascii=False) + '\n')
+                fout.write(json.dumps(long_utt.__dict__, ensure_ascii=False) + "\n")

@@ -1,16 +1,17 @@
-import re
 import argparse
 import json
-import torch
-import librosa
-import emoji
-import chinese_converter
+import re
 from pathlib import Path
-from tqdm import tqdm
-from espnet2.bin.s2t_ctc_align import CTCSegmentation
-from espnet_model_zoo.downloader import ModelDownloader
-from utils import TO_ISO_LANGUAGE_CODE
 
+import chinese_converter
+import emoji
+import librosa
+import torch
+from espnet_model_zoo.downloader import ModelDownloader
+from tqdm import tqdm
+
+from espnet2.bin.s2t_ctc_align import CTCSegmentation
+from utils import TO_ISO_LANGUAGE_CODE
 
 owsm_langs = [
     "abk",
@@ -185,16 +186,13 @@ def clean_text(text: str) -> str:
 def align_audio(text, wav_path, aligner):
     with torch.autocast(device_type="cuda", dtype=torch.bfloat16):
         speech = librosa.load(wav_path, sr=16000)[0]
-        res = aligner(
-            speech,
-            text
-        )
+        res = aligner(speech, text)
 
     output = []
-    start_err = 0.
-    end_err = 0.
+    start_err = 0.0
+    end_err = 0.0
     for utt_id, (start_time, end_time, confidence) in zip(res.utt_ids, res.segments):
-        fields = utt_id.split('-')
+        fields = utt_id.split("-")
         ori_start_time = float(fields[-2]) / 100
         ori_end_time = float(fields[-1]) / 100
 
@@ -207,23 +205,23 @@ def align_audio(text, wav_path, aligner):
 
 
 def process_json(file, out_dir, aligner, additional_text_cleaners=[]):
-    """Segment all audios in the input json file and 
+    """Segment all audios in the input json file and
     write the new jsonl file to the output directory.
     """
-    fout = open(out_dir / (Path(file).stem + ".jsonl"), 'w')
+    fout = open(out_dir / (Path(file).stem + ".jsonl"), "w")
 
-    audio_dir = Path(file).parent.parent / 'audio'
+    audio_dir = Path(file).parent.parent / "audio"
 
-    json_obj_lst = json.loads(open(file, 'r').read())
+    json_obj_lst = json.loads(open(file, "r").read())
     for json_obj in tqdm(json_obj_lst, disable=False, mininterval=30, maxinterval=300):
-        audio_id = json_obj['audio_id']
-        wav_path = str(audio_dir / f'{audio_id}.flac')
+        audio_id = json_obj["audio_id"]
+        wav_path = str(audio_dir / f"{audio_id}.flac")
 
         kaldi_text = ""
         raw_texts = []
         cleaned_texts = []
-        for k, v in sorted(json_obj['text'].items()):
-            ori = str(v)    # save the original text
+        for k, v in sorted(json_obj["text"].items()):
+            ori = str(v)  # save the original text
 
             for cleaner in additional_text_cleaners:
                 v = cleaner(v)
@@ -237,20 +235,35 @@ def process_json(file, out_dir, aligner, additional_text_cleaners=[]):
 
         if len(raw_texts) > 0:
             try:
-                segments, ave_start_err, ave_end_err = align_audio(kaldi_text, wav_path, aligner)
+                segments, ave_start_err, ave_end_err = align_audio(
+                    kaldi_text, wav_path, aligner
+                )
 
                 sample = {
-                    'audio_id': audio_id,
-                    'wav_path': wav_path,
-                    'ave_start_err': ave_start_err,
-                    'ave_end_err': ave_end_err,
-                    'utts': [
-                        (utt_id, start_time, end_time, confidence, cleaned_text, raw_text) for (
-                                utt_id, start_time, end_time, confidence
-                            ), cleaned_text, raw_text in zip(segments, cleaned_texts, raw_texts)
-                    ]
+                    "audio_id": audio_id,
+                    "wav_path": wav_path,
+                    "ave_start_err": ave_start_err,
+                    "ave_end_err": ave_end_err,
+                    "utts": [
+                        (
+                            utt_id,
+                            start_time,
+                            end_time,
+                            confidence,
+                            cleaned_text,
+                            raw_text,
+                        )
+                        for (
+                            utt_id,
+                            start_time,
+                            end_time,
+                            confidence,
+                        ), cleaned_text, raw_text in zip(
+                            segments, cleaned_texts, raw_texts
+                        )
+                    ],
                 }
-                fout.write(json.dumps(sample, ensure_ascii=False) + '\n')
+                fout.write(json.dumps(sample, ensure_ascii=False) + "\n")
 
             except Exception as e:
                 tqdm.write(f"Failed to process {audio_id}: {e}")
@@ -275,7 +288,7 @@ if __name__ == "__main__":
         **downloaded,
         fs=16000,
         ngpu=1,
-        batch_size=32,    # batched parallel decoding; reduce it if your GPU memory is smaller
+        batch_size=32,  # batched parallel decoding; reduce it if your GPU memory is smaller
         kaldi_style_text=True,
         time_stamps="auto",
         lang_sym="<eng>",
@@ -283,7 +296,7 @@ if __name__ == "__main__":
         context_len_in_secs=2,  # left and right context in buffered decoding
     )
 
-    with open(args.file_list, 'r') as fin:
+    with open(args.file_list, "r") as fin:
         for file in tqdm(fin):
             file = file.strip()
 
@@ -296,9 +309,11 @@ if __name__ == "__main__":
             additional_text_cleaners = []
             if lang == "zh":
                 additional_text_cleaners.append(chinese_converter.to_simplified)
-                tqdm.write("**** Additional text cleaner: chinese_converter.to_simplified")
+                tqdm.write(
+                    "**** Additional text cleaner: chinese_converter.to_simplified"
+                )
 
-            out_dir = Path(file).parent.parent / 'text_reseg'
+            out_dir = Path(file).parent.parent / "text_reseg"
             out_dir.mkdir(exist_ok=True)
 
             process_json(file, out_dir, aligner, additional_text_cleaners)
