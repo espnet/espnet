@@ -90,7 +90,14 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
                 spk2utt_path="${dir_path}/spk2utt"
 
                 # Rewrite utt2spk: duplicate utterance ID as speaker ID, then sort
-                awk '{ print $1, $1 }' "${utt2spk_path}" | sort > "${utt2spk_path}.tmp" && mv "${utt2spk_path}.tmp" "${utt2spk_path}"
+                awk '{ print $1, $1 }' "${utt2spk_path}" | sort > "${utt2spk_path}.tmp" || {
+                    log "Error: Failed to create temporary utt2spk file at ${utt2spk_path}.tmp"
+                    exit 1
+                }
+                mv "${utt2spk_path}.tmp" "${utt2spk_path}" || {
+                    log "Error: Failed to move temporary utt2spk file to ${utt2spk_path}"
+                    exit 1
+                }
                 log "Rewritten and sorted utt2spk in ${utt2spk_path} with utterance ID as speaker"
 
                 # Generate spk2utt and sort it
