@@ -124,7 +124,7 @@ def test_set_parallel_copies_options_dict(local_cfg):
     )()
     # mutate original options
     cfg.options["threads_per_worker"] = 999
-    # get_parallel_config の保持オブジェクトに影響しないこと
+    # The held object of get_parallel_config should not be affected
     assert got.options["threads_per_worker"] != 999
 
 

@@ -173,14 +173,14 @@ def save_espnet_config(
 
     # set model config at the root level
     model_config = resolved_config.pop("model")
-    if hasattr(model_config, "_target_"):
+    if "_target_" in model_config:
         model_config.pop("_target_")
     default_config.update(model_config)
 
     # set the preprocessor config at the root level
-    if hasattr(config.dataset, "preprocessor"):
+    if config.dataset is not None and "preprocessor" in config.dataset:
         preprocess_config = resolved_config["dataset"].pop("preprocessor")
-        if hasattr(preprocess_config, "_target_"):
+        if "_target_" in preprocess_config:
             preprocess_config.pop("_target_")
         default_config.update(preprocess_config)
 
