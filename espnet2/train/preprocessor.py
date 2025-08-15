@@ -693,7 +693,7 @@ class SERPreprocessor(CommonPreprocessor):
             emo_ints = self.emo2label[emo]
             data["emotion_labels"] = np.array([emo_ints], dtype=np.int64)
             del data["emo"]
-        return data
+        return dat
 
 
 class CommonPreprocessor_multi(CommonPreprocessor):
