@@ -10,8 +10,7 @@ def parser():
         "--dump_dir",
         type=str,
         required=True,
-        help="Directory of the dump dir, "
-             "like /path/to/espnet/egs2/lid/spk1/dump",
+        help="Directory of the dump dir, " "like /path/to/espnet/egs2/lid/spk1/dump",
     )
 
     parser.add_argument(
@@ -27,7 +26,7 @@ def parser():
         type=str,
         required=True,
         help="Names of the test sets in dump dir, "
-             "e.g. 'dev_fleurs_lang dev_ml_superb2_lang' ",
+        "e.g. 'dev_fleurs_lang dev_ml_superb2_lang' ",
     )
 
     return parser.parse_args()
@@ -80,10 +79,7 @@ def main(args):
                     cross_wavscp.append(f"{utt} {path}\n")
 
         # output dir
-        cross_dir = os.path.join(
-            args.dump_dir,
-            f"{test_set}_cross_{args.train_set}"
-        )
+        cross_dir = os.path.join(args.dump_dir, f"{test_set}_cross_{args.train_set}")
         os.makedirs(cross_dir, exist_ok=True)
 
         # write files
