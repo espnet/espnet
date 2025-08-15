@@ -37,7 +37,7 @@ class ARParallelLM(AbsCoreLM):
         if share_emb:
             self.lm_head.weight = self.emb.weight
 
-        self.head_emb = torch.nn.Embedding(12, transformer.d_model, padding_idx=0)
+        self.head_emb = torch.nn.Embedding(nq, transformer.d_model, padding_idx=0)
         with torch.no_grad():
             self.head_emb.weight[0] = 0
 

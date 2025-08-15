@@ -30,6 +30,7 @@ class HFTransformerDecoder(AbsTransformer):
         self.lm_head = AutoModelForCausalLM.from_pretrained(
             hf_model_tag,
             attn_implementation=attention_choice,
+            revision=revision,
             torch_dtype=dtype,
         ).get_output_embeddings()
 
