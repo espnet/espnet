@@ -3,6 +3,7 @@ This script concatenates consecutive segments of audio files into long-form utte
 which can then be used for Whisper/OWSM-style training.
 Reference: Section 2.1.1 in the paper (https://arxiv.org/pdf/2506.00338)
 """
+
 import json
 from argparse import ArgumentParser
 from pathlib import Path

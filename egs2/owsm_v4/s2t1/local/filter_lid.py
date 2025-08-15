@@ -1,8 +1,9 @@
 """
-This script filters out utterances with mismatched language labels 
+This script filters out utterances with mismatched language labels
 (audio, text, and original label).
 Reference: Section 2.1.2 in the paper (https://arxiv.org/pdf/2506.00338)
 """
+
 import json
 from argparse import ArgumentParser
 

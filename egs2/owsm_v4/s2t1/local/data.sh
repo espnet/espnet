@@ -36,7 +36,7 @@ longform_data_file="${save_dir}/all_data.jsonl"
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     # Section 2.1.1 in the paper:
     # YODAS provides unsegmented long-form recordings, but the timestamps can
-    # be inaccurate. Our first step is to realign the audio and text using 
+    # be inaccurate. Our first step is to realign the audio and text using
     # the CTC segmentation algorithm.
     echo "Stage 1: Resegmentation"
     if [ -z "${file_list}" ]; then
@@ -66,7 +66,7 @@ fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     # Section 2.1.2 in the paper:
-    # Some utterances have incorrect language labels. To address this issue, 
+    # Some utterances have incorrect language labels. To address this issue,
     # we perform LID on both the audio and text using public models.
     echo "Stage 2: LID-based filtering"
     _logdir=logdir/lid_reseg
@@ -98,7 +98,7 @@ fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     # Section 2.1.3 in the paper:
-    # We filter out utterances with bad audio-text alignments, 
+    # We filter out utterances with bad audio-text alignments,
     # as indicated by the CTC score computed in CTC segmentation.
     echo "Stage 3: CTC-score-based filtering"
     python local/filter_score.py --in_file ${save_dir}/lid_remaining.txt \

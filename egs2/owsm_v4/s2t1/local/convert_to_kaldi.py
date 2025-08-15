@@ -1,6 +1,7 @@
 """
 This script converts the filtered data into Kaldi format for later training.
 """
+
 import json
 from argparse import ArgumentParser
 from pathlib import Path

@@ -1,8 +1,9 @@
 """
-This script performs CTC segmentation on audio files to align them 
+This script performs CTC segmentation on audio files to align them
 with their corresponding text transcriptions.
 Reference: Section 2.1.1 in the paper (https://arxiv.org/pdf/2506.00338)
 """
+
 import argparse
 import json
 import re
