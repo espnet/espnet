@@ -5,7 +5,8 @@ from hydra.utils import instantiate
 from omegaconf import OmegaConf
 from torch.utils.data import BatchSampler, Sampler
 
-from espnet3.data import DataOrganizer, ShardedDataset, do_nothing_transform
+from espnet3.data.data_organizer import DataOrganizer, do_nothing_transform
+from espnet3.data.dataset import ShardedDataset
 from espnet3.trainer.dataloader import DataLoaderBuilder
 from espnet3.utils.config import load_config_with_defaults
 
@@ -237,7 +238,6 @@ dataloader:
         _target_: espnet2.train.collate_fn.CommonCollateFn
         int_pad_value: -1
       batches:
-        _target_: espnet2.samplers.build_batch_sampler.build_batch_sampler
         shape_files:
           - test_utils/espnet3/stats/stats_dummy
         type: unsorted
@@ -292,7 +292,6 @@ dataloader:
         _target_: espnet2.train.collate_fn.CommonCollateFn
         int_pad_value: -1
       batches:
-        _target_: espnet2.samplers.build_batch_sampler.build_batch_sampler
         shape_files:
           - test_utils/espnet3/stats/stats_dummy
         type: unsorted

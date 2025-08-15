@@ -28,7 +28,6 @@ dataloader:
       shuffle: true
       collate_fn: ${dataloader.collate_fn}
       batches:
-        _target_: espnet2.samplers.build_batch_sampler.build_batch_sampler
         type: numel
         shape_files:
           - ${statsdir}/train/feats_shape
@@ -41,7 +40,6 @@ dataloader:
       shuffle: false
       collate_fn: ${dataloader.collate_fn}
       batches:
-        _target_: espnet2.samplers.build_batch_sampler.build_batch_sampler
         type: numel
         shape_files:
           - ${statsdir}/valid/feats_shape
