@@ -437,7 +437,7 @@ def gen_tsne_plot(
 
     if plot_name == "lang_to_embds":
         # Fixed color mapping
-        unique_labels = sorted(list(set(labels)))  # 排序确保顺序固定
+        unique_labels = sorted(list(set(labels)))
 
         if len(unique_labels) <= len(fixed_colors):
             color_dict = {lang: fixed_colors[i] for i, lang in enumerate(unique_labels)}
