@@ -9,17 +9,6 @@ from espnet2.ser.loss.abs_loss import AbsLoss
 
 
 class Xnt(AbsLoss):
-    """Additive angular margin softmax.
-
-    Paper: Deng, Jiankang, et al. "Arcface: Additive angular margin loss for
-    deep face recognition." Proceedings of the IEEE/CVF conference on computer
-    vision and pattern recognition. 2019.
-
-    args:
-        nout    : dimensionality of speaker embedding
-        nclases: number of speakers in the training set
-    """
-
     def __init__(self, nout, nclasses, **kwargs):
         super().__init__(nout)
 
