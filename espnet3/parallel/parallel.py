@@ -291,7 +291,7 @@ def get_client(
         skip_shutdown_types = (LocalCluster,)
         if LocalCUDACluster is not None:
             skip_shutdown_types += (LocalCUDACluster,)
-            
+
         if not isinstance(cluster, skip_shutdown_types):
             client.shutdown()
 

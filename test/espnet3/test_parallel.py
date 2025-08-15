@@ -221,6 +221,7 @@ def test_parallel_for_completion_order(local_cfg):
 # Normal case: environment variables and setup functions
 # ------------------------------------------------------------
 
+
 @pytest.mark.timeout(30)
 def test_worker_env_injection_via_setup_fn(local_cfg):
     # Verify env injection via get_client(setup_fn=...) without manual wrapping
@@ -306,6 +307,7 @@ def test_parallel_for_registers_setup_fn_when_passed_directly(local_cfg):
 
 
 # --------- Error cases ---------
+
 
 @pytest.mark.timeout(30)
 def test_worker_env_conflict_detection(local_cfg):
