@@ -28,9 +28,9 @@ Please refer to our paper for comprehensive evaluations. Below are some notable 
 ## Data Cleaning
 
 As presented in Section 2.1 of [our paper](https://arxiv.org/abs/2506.00338), we conducted three-stage data cleaning from the original [YODAS2](https://huggingface.co/datasets/espnet/yodas2) dataset.
-- Resegmentation
-- LID-based filtering
-- CTC-score-based filtering
+- Resegmentation (Section 2.1.1 in the paper)
+- LID-based filtering (Section 2.1.2)
+- CTC-score-based filtering (Section 2.1.3)
 
 To get started, download the YODAS2 dataset to a local directory and create a text file containing paths to all data files that need to be processed. For example, we create `data_reseg/json_files.txt`:
 ```
@@ -41,8 +41,23 @@ To get started, download the YODAS2 dataset to a local directory and create a te
 ...
 ```
 
-Then, run `local/data.sh` to filter the data and convert to Kaldi style for later training.
+Then, pass the file list to `local/data.sh` which will filter the data and convert the processed version in Kaldi style for later training.
 
+### Stage 1: Resegmentation
+
+YODAS provides unsegmented long-form recordings, each of them is accompanied by a list of text transcriptions annotated with start and end timestamps. However, these timestamps can be inaccurate. Consequently, our first step is to realign the audio and text using the CTC segmentation algorithm.
+
+We first launch parallel jobs for CTC segmentation in `local/ctc_seg.py`, and then resegment the short utterances into long-form utterances up to 30 seconds in `local/get_longform_from_reseg.py`. This makes the training data consistent with the Whisper-style training.
+
+### Stage 2: LID-based filtering
+
+We observe that certain utterances have incorrect language labels. To address this issue, we perform language identification on both audio and text using public models using `local/lid.py`. Then, we remove utterances where the language label does not match the identified language from either audio or text, as implemented in `local/filter_lid.py`.
+
+### Stage 3: CTC-score-based filtering
+
+The CTC segmentation algorithm assigns a score to each utterance, which indicates the confidence of the segmentation. We filter out utterances with low CTC scores using `local/filter_score.py`. The CTC confidence score is language-dependent; therefore, we rank the scores of short utterances within each language and select a relative threshold (quantile).
+
+Finally, we convert the filtered data into Kaldi format using `local/convert_to_kaldi.py`. The resulting data is stored in `data`.
 
 ## OWSM series
 
