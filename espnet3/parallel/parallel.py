@@ -25,6 +25,11 @@ from omegaconf import DictConfig
 from tqdm import tqdm
 from typeguard import typechecked
 
+try:
+    from dask_cuda import LocalCUDACluster
+except ImportError:
+    LocalCUDACluster = None
+
 parallel_config: Optional[DictConfig] = None
 
 CLUSTER_MAP = {
@@ -52,9 +57,7 @@ def make_local_gpu_cluster(n_workers: int, options: dict) -> Client:
     Returns:
         Client: Dask client connected to the GPU cluster.
     """
-    try:
-        from dask_cuda import LocalCUDACluster
-    except ImportError:
+    if LocalCUDACluster is None:
         raise RuntimeError("Please install dask_cuda.")
 
     num_gpus = torch.cuda.device_count()
@@ -283,8 +286,13 @@ def get_client(
     try:
         yield client
     finally:
+        # Avoid shutdown for LocalCluster and LocalCUDACluster
         cluster = getattr(client, "cluster", None)
-        if not isinstance(cluster, LocalCluster):
+        skip_shutdown_types = (LocalCluster,)
+        if LocalCUDACluster is not None:
+            skip_shutdown_types += (LocalCUDACluster,)
+            
+        if not isinstance(cluster, skip_shutdown_types):
             client.shutdown()
 
 
