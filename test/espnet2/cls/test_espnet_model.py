@@ -1,7 +1,6 @@
 import numpy as np
 import pytest
 import torch
-from scipy import stats
 from sklearn import metrics
 
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
@@ -123,6 +122,7 @@ def calculate_stats_testing_internal_(
     output, target, classification_type="multi-label"
 ):
     """Calculate statistics including mAP, AUC, etc.
+
     This function is adapted from the official implementation of AST
     https://github.com/YuanGongND/ast/blob/master/src/utilities/stats.py
 
