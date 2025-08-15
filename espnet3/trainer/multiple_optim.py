@@ -7,7 +7,7 @@ import torch
 from typeguard import typechecked
 
 
-class HybridOptim(torch.optim.Optimizer):
+class MultipleOptim(torch.optim.Optimizer):
     """
     Wrapper around multiple optimizers that should be stepped together at a single
     time. This is a hack to avoid PyTorch Lightning calling ``training_step`` once

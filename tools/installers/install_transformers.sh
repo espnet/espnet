@@ -22,4 +22,4 @@ if $(torch_ver 2.1.0); then
     TR_VER+=",<4.50.0"
 fi
 
-python3 -m pip install "transformers>=${TR_VER}"
+python3 -m pip install "transformers>=${TR_VER}" soxr

@@ -39,7 +39,7 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         python-version: ["3.10"]
-        pytorch-version: [2.1.2]
+        pytorch-version: [2.3.1]
         chainer-version: [6.0.0]
         use-conda: [false]
     steps:
@@ -47,7 +47,7 @@ jobs:
       - uses: actions/cache@v3
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/setup.py') }}-${{ hashFiles('**/Makefile') }}
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
@@ -101,7 +101,7 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         python-version: ["3.10", "3.11"]
-        pytorch-version: [2.1.2, 2.2.2, 2.3.1, 2.4.1, 2.5.1, 2.6.0]
+        pytorch-version: [2.3.1, 2.4.1, 2.5.1, 2.6.0]
         chainer-version: [6.0.0]
         use-conda: [false]
     steps:
@@ -109,7 +109,7 @@ jobs:
       - uses: actions/cache@v3
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/setup.py') }}-${{ hashFiles('**/Makefile') }}
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
@@ -177,7 +177,7 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         python-version: ["3.10", "3.11"]
-        pytorch-version: [2.1.2, 2.2.2, 2.3.1, 2.4.1, 2.5.1, 2.6.0]
+        pytorch-version: [2.3.1, 2.4.1, 2.5.1, 2.6.0]
         chainer-version: [6.0.0]
         use-conda: [false]
     steps:
@@ -222,13 +222,12 @@ jobs:
         run: |
           source tools/activate_python.sh
           coverage erase
-          
+
       # - name: test espnet3 integration
       #   run: ./ci/test_integration_espnet3.sh
       # - uses: codecov/codecov-action@v2
       #   with:
       #     flags: test_integration_espnet3
-
 
   test_configuration_espnet2:
     runs-on: ${{ matrix.os }}
@@ -248,7 +247,7 @@ jobs:
       - uses: actions/cache@v3
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/setup.py') }}-${{ hashFiles('**/Makefile') }}
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
@@ -305,10 +304,11 @@ jobs:
       run: |
         python3 -m pip install -U "Cython<3.1.0"
         python3 -m pip install -U numba
+        python3 -m pip install build
         ./tools/installers/install_torch.sh false ${TH_VERSION} CPU
         ./tools/installers/install_chainer.sh CPU
-        python3 setup.py bdist_wheel
-        python3 -m pip install dist/espnet-*.whl
+        python3 -m build --wheel
+        python3 -m pip install "$(echo dist/espnet-*.whl)"[all]
         # log
         python3 -m pip freeze
     - name: Import all modules (Try1)

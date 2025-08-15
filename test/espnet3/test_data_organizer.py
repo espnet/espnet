@@ -5,7 +5,69 @@ from hydra.utils import instantiate
 from omegaconf import OmegaConf
 
 from espnet2.train.preprocessor import AbsPreprocessor
-from espnet3.data import CombinedDataset, DataOrganizer, do_nothing_transform
+from espnet3.data.data_organizer import (
+    DataOrganizer,
+    do_nothing_transform,
+)
+from espnet3.data.dataset import (
+    CombinedDataset,
+    ShardedDataset,
+)
+
+# ===============================================================
+# Test Case Summary for DataOrganizer & CombinedDataset
+# ===============================================================
+
+# | Test Function Name               | Description                              |
+# |----------------------------------|------------------------------------------|
+# | test_data_organizer_init         | Initializes DataOrganizer with           |
+# |                                  | train/valid/test                         |
+# | test_data_organizer_without_test | Verifies behavior without test section   |
+# | test_data_organizer_test_only    | Validates usage of test-only pipelines   |
+# | test_data_organizer_train_valid_multiple | Ensures multiple train/valid datasets   |
+# |                                  | are supported                            |
+# | test_data_organizer_empty_train_valid_ok | Confirms train/valid can be empty lists |
+#
+# Transform / Preprocessor Application
+# | Test Function Name                    | Description                         |
+# |--------------------------------------|--------------------------------------|
+# | test_combined_dataset                | Combines datasets and applies transform  |
+# | test_data_organizer_transform_only   | Applies only transform to data       |
+# | test_data_organizer_preprocessor_only| Applies only preprocessor to data    |
+# | test_data_organizer_transform_and_preprocessor | Applies both transform and |
+# |                                      | preprocessor                         |
+# | test_espnet_preprocessor_without_transform | Uses only ESPnet-style preprocessor   |
+# |                                      | (UID-based)                          |
+# | test_espnet_preprocessor_with_transform    | Combines transform with ESPnet |
+# |                                      | preprocessor                         |
+#
+# Test Set Variants
+# | Test Function Name                     | Description                               |
+# |----------------------------------------|-------------------------------------------|
+# | test_data_organizer_test_multiple_sets | Handles multiple named test sets          |
+#
+# Error Cases
+# | Test Function Name                         | Description                           |
+# |--------------------------------------------|---------------------------------------|
+# | test_data_organizer_train_only_assertion   | Raises error when only train is       |
+# |                                            | provided without valid                |
+# | test_data_organizer_inconsistent_keys      | Fails when dataset output keys are    |
+# |                                            | inconsistent in combined              |
+# | test_data_organizer_transform_none         | Simulates transform failure that      |
+# |                                            | raises an internal exception          |
+# | test_data_organizer_invalid_preprocessor_type | Fails when a non-callable is used  |
+# |                                            | as preprocessor                       |
+# | test_combined_dataset_sharded_consistency_error | Ensures RuntimeError if only     |
+# |                                            | some datasets use sharding            |
+#
+#  Expected Exceptions
+# | Test Function Name                                 | Expected Exception |
+# | -------------------------------------------------- | ------------------ |
+# | test_data_organizer_train_only_assertion      | RuntimeError       |
+# | test_data_organizer_inconsistent_keys          | AssertionError     |
+# | test_data_organizer_transform_none             | ValueError         |
+# | test_data_organizer_invalid_preprocessor_type | AssertionError     |
+# | test_combined_dataset_sharded_consistency_error | RuntimeError       |
 
 
 # Dummy classes
@@ -48,6 +110,23 @@ class DummyDataset:
 
     def __getitem__(self, idx):
         return self.data[idx]
+
+
+class DummyShardedDataset(ShardedDataset):
+    def __init__(self, path=None):
+        self.data = [
+            {"audio": np.random.random(16000), "text": "hello"},
+            {"audio": np.random.random(16000), "text": "world"},
+        ]
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        return self.data[idx]
+
+    def shard(self, idx):
+        return self  # dummy
 
 
 # Fixtures
@@ -480,3 +559,19 @@ def test_espnet_preprocessor_with_transform():
 
     sample = organizer.train[0]
     assert sample["text"] == "[espnet] HELLO"
+
+
+def test_combined_dataset_sharded_consistency_error():
+    # One dataset is a ShardedDataset, the other is not
+    ds1 = DummyShardedDataset()
+    ds2 = DummyDataset()
+
+    # This should raise a RuntimeError due to inconsistency
+    with pytest.raises(
+        RuntimeError, match="If any dataset is a subclass of ShardedDataset"
+    ):
+        CombinedDataset(
+            datasets=[ds1, ds2],
+            transforms=[(DummyTransform(), DummyPreprocessor())] * 2,
+            use_espnet_preprocessor=False,
+        )

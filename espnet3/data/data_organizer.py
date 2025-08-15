@@ -1,8 +1,6 @@
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional, Union
 
-from tqdm import tqdm
-
 from espnet2.train.preprocessor import AbsPreprocessor
 from espnet3.data.dataset import CombinedDataset, DatasetWithTransform
 
@@ -170,10 +168,22 @@ class DataOrganizer:
         if valid is not None:
             self.valid = build_dataset_list(valid)
 
-        # assert if either train/valid does not contain dataset..
-        if ((self.train is None) ^ (self.valid is None)) or (
-            isinstance(self.train, CombinedDataset)
-            ^ isinstance(self.valid, CombinedDataset)
+        # Check consistency between train and valid datasets:
+        # - It is invalid to provide only one of train or valid.
+        # - If one of them is a CombinedDataset, the other must be too.
+        if (
+            (
+                (self.train is None and self.valid is not None)
+                or (self.train is not None and self.valid is None)
+            )
+            or (
+                isinstance(self.train, CombinedDataset)
+                and not isinstance(self.valid, CombinedDataset)
+            )
+            or (
+                not isinstance(self.train, CombinedDataset)
+                and isinstance(self.valid, CombinedDataset)
+            )
         ):
             raise RuntimeError("Both train and valid should be dataset class or None.")
 

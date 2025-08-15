@@ -6,10 +6,10 @@ from typing import Any, Dict, Iterable, List, Union
 import torch
 from typeguard import typechecked
 
-from espnet3.trainer.hybrid_optim import HybridOptim
+from espnet3.trainer.multiple_optim import MultipleOptim
 
 
-class HybridLRS(torch.optim.lr_scheduler._LRScheduler):
+class MultipleScheduler(torch.optim.lr_scheduler._LRScheduler):
     """
     Wrapper class around ``lr_scheduler``s to return a dummy optimizer to pass
     PyTorch Lightning checks.
@@ -19,10 +19,10 @@ class HybridLRS(torch.optim.lr_scheduler._LRScheduler):
 
     Parameters
     ----------
-    hybrid_optimizer: HybridOptim
+    multiple_optim: MultipleOptim
     lr_scheduler: torch.optim.lr_scheduler._LRScheduler
     idx: int
-        Index of the optimizer in ``hybrid_optimizer`` the learning rate scheduler
+        Index of the optimizer in ``multiple_optimizer`` the learning rate scheduler
         ``lr_scheduler`` is assigned to
 
     """
@@ -30,11 +30,15 @@ class HybridLRS(torch.optim.lr_scheduler._LRScheduler):
     @typechecked
     def __init__(
         self,
-        hybrid_optimizer: HybridOptim,
+        multiple_optimizer: MultipleOptim,
         lr_scheduler: torch.optim.lr_scheduler.LRScheduler,
         optimizer_idx: int,
     ) -> None:
-        self.optimizer = hybrid_optimizer
+        assert 0 <= optimizer_idx < len(multiple_optimizer.optimizers), (
+            f"optimizer_idx {optimizer_idx} is out of range for "
+            f"multiple_optimizer with {len(multiple_optimizer.optimizers)} optimizers."
+        )
+        self.optimizer = multiple_optimizer
         self.lr_scheduler = lr_scheduler
         self.idx = optimizer_idx
 
