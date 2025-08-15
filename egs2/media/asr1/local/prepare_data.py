@@ -35,9 +35,11 @@ for subset in files.keys():
     subset_dir = os.path.join(odir, subset)
     os.makedirs(subset_dir, exist_ok=True)
 
-    with open(os.path.join(subset_dir, "wav.scp"), "w") as wavscp, open(
-        os.path.join(subset_dir, "utt2spk"), "w"
-    ) as utt2spk, open(os.path.join(subset_dir, "text"), "w", encoding="utf-8") as text:
+    with (
+        open(os.path.join(subset_dir, "wav.scp"), "w") as wavscp,
+        open(os.path.join(subset_dir, "utt2spk"), "w") as utt2spk,
+        open(os.path.join(subset_dir, "text"), "w", encoding="utf-8") as text,
+    ):
         for part in files[subset]:
             xml_root = ET.parse(os.path.join(data_dir, f"media_{part}.xml")).getroot()
             for turn in xml_root.findall(".//turn[@speaker='spk']"):
