@@ -1,4 +1,4 @@
-name: publich docker image
+name: publish docker image
 
 on:
   pull_request:
@@ -13,6 +13,7 @@ jobs:
   docker:
     runs-on: ubuntu-latest
     if: github.event.pull_request.merged == true
+    environment: docker
     steps:
       - uses: actions/checkout@master
 
