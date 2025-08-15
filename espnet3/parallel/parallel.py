@@ -54,7 +54,7 @@ def make_local_gpu_cluster(n_workers: int, options: dict) -> Client:
     """
     try:
         from dask_cuda import LocalCUDACluster
-    except:
+    except ImportError:
         raise RuntimeError("Please install dask_cuda.")
 
     num_gpus = torch.cuda.device_count()
