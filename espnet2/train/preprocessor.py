@@ -688,6 +688,7 @@ class SERPreprocessor(CommonPreprocessor):
             tokens = self.tokenizer.text2tokens(text)
             text_ints = self.token_id_converter.tokens2ids(tokens)
             data[self.text_name] = np.array(text_ints, dtype=np.int64)
+        #Taking care of the emotion labels in SER task, and create the mapping for the emotions as well
         if "emo" in data:
             emo = data["emo"]
             emo_ints = self.emo2label[emo]
