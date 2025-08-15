@@ -28,7 +28,7 @@ class CollectStatsPlugin(WorkerPlugin):
         dataloader_config (DictConfig): Configuration for the data loader.
         mode (str): Dataset mode - 'train' or 'valid'.
         shard_idx (int, optional): Index for dataset sharding in multiple iterator mode.
-        write_collected_feats (bool): Whether to save extracted features 
+        write_collected_feats (bool): Whether to save extracted features
         during stat collection.
     """
 
