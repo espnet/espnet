@@ -1,5 +1,6 @@
 import inspect
 import warnings
+import copy
 from contextlib import contextmanager
 from typing import Any, Callable, Generator, Iterable, Optional
 
@@ -83,7 +84,7 @@ def set_parallel(config: DictConfig) -> None:
     global parallel_config
     options = dict(config.options) if hasattr(config, "options") else {}
     config.options = options
-    parallel_config = config
+    parallel_config = copy.copy(config)
 
 
 def get_parallel_config() -> Optional[DictConfig]:
