@@ -1,4 +1,5 @@
 import torch
+
 from espnet.nets.scorer_interface import ScorerInterface
 
 
