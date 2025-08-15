@@ -269,7 +269,7 @@ class LIDTrainer(Trainer):
                         speech_length_list = []
                         lid_label_list = []
 
-        if len(utt_id_list) != 0: 
+        if len(utt_id_list) != 0:
             # Process the remaining utterances in the last batch
             try:
                 speech_list = torch.stack(speech_list, dim=0)
