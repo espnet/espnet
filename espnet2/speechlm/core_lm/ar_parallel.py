@@ -6,7 +6,9 @@
 # Implementation of Parallel architecture: https://arxiv.org/pdf/2306.05284
 
 from typing import Dict, Tuple
+
 import torch
+
 from espnet2.speechlm.core_lm.abs_core_lm import AbsCoreLM, SpeechLMInferenceOptions
 
 
