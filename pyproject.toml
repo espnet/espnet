@@ -70,7 +70,8 @@ espnet-3 = [
   "hydra-core",
   "omegaconf",
   "datasets",
-  "dask[distributed]",
+  "dask==2025.7.0",
+  "distributed",
   "dask_jobqueue",
   "torch>=2.3.1",
   "torchaudio>=2.3.1",
@@ -153,6 +154,7 @@ doc = [
 ]
 
 all = [
+  "espnet[espnet-3]",
   "espnet[task-asr]",
   "espnet[task-tts]",
   "espnet[task-enh]",
