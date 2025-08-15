@@ -1,3 +1,8 @@
+"""
+This script performs language identification (LID) on audio files and their 
+corresponding text transcriptions using public models.
+Reference: Section 2.1.2 in the paper (https://arxiv.org/pdf/2506.00338)
+"""
 import argparse
 import json
 import logging

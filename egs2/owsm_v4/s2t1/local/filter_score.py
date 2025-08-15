@@ -1,3 +1,8 @@
+"""
+This script filters out utterances based on their CTC scores computed during segmentation.
+Utterances with scores below a certain threshold are excluded.
+Reference: Section 2.1.3 in the paper (https://arxiv.org/pdf/2506.00338)
+"""
 import json
 from argparse import ArgumentParser
 from pathlib import Path
