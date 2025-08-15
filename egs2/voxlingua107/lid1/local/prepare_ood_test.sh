@@ -29,7 +29,7 @@ for dir in "${train_set}" ${test_sets}; do
     fi
 done
 
-# cross set names
+# create cross set names
 cross_sets=""
 for test_set in ${test_sets}; do
     cross_set="${test_set}_cross_${train_set}"
