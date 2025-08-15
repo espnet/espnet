@@ -18,8 +18,8 @@ class CollectStatsPlugin(WorkerPlugin):
     """
     Dask WorkerPlugin for setting up ESPnet model and dataset on each worker node.
 
-    This plugin is used to initialize the model, dataset, and collate function on each worker
-    when using Dask-based parallel processing for collecting statistics.
+    This plugin is used to initialize the model, dataset, and collate function
+    on each worker when using Dask-based parallel processing for collecting statistics.
 
     Args:
         task (str): Task name to retrieve the ESPnet model.
@@ -28,7 +28,8 @@ class CollectStatsPlugin(WorkerPlugin):
         dataloader_config (DictConfig): Configuration for the data loader.
         mode (str): Dataset mode - 'train' or 'valid'.
         shard_idx (int, optional): Index for dataset sharding in multiple iterator mode.
-        write_collected_feats (bool): Whether to save extracted features during stat collection.
+        write_collected_feats (bool): Whether to save extracted features 
+        during stat collection.
     """
 
     def __init__(
@@ -337,7 +338,7 @@ def collect_stats_multiple_iterator(
     Args:
         model_config (DictConfig): Model configuration.
         dataset_config (DictConfig): Dataset configuration.
-        dataloader_config (DictConfig): DataLoader configuration containing sharding info.
+        dataloader_config (DictConfig): DataLoader config containing sharding info.
         mode (str): Mode of the dataset ('train', etc.).
         output_dir (Path): Output path to save statistics.
         task (str): ESPnet model task name.
