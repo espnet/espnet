@@ -23,9 +23,7 @@ def causal_mask(qlen: int, device: torch.device) -> torch.Tensor:
 
 
 def pad_and_concat(tensor_list, pad_id=0):
-    """pad a list of torch.Tensor with shape [B_n, T_n, ...]
-    in T dimension and then concat in B dimension
-    """
+    """pad a list of torch.Tensor with shape [B_n, T_n, ...]"""
 
     size_list = [t.size() for t in tensor_list]
     concat_size = sum([size[0] for size in size_list])
@@ -78,8 +76,7 @@ def logits_to_tokens(
     allow_eos: bool = True,
     nq_level: int = None,
 ):
-    """
-    Select the generated tokens and their scores based on logits prediction.
+    """Select the generated tokens and their scores based on logits prediction.
 
     logits (torch.Tensor), predicted logits, of size [B, T, nq, V]
     opts (SpeechLMInferenceOptions): search options

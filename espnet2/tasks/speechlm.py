@@ -370,7 +370,7 @@ class SpeechLMTask(AbsTask):
         # 1. Build Transformer decoder
         if args.collect_stats:
             # NOTE(Jinchuan): model will not in real use. Create a placeholder
-            transformer = TransformerDecoder(token_bias=token_bias)
+            transformer = None
         else:
             transformer_class = transformer_choices.get_class(args.transformer)
             transformer = transformer_class(

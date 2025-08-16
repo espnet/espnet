@@ -86,7 +86,7 @@ class SpeechLMCrossEntropyLoss(torch.nn.Module):
             acc[:, :, 0][this_mask] = this_acc
 
         # (4) all remained stream.
-        # TODO: Check this is safe for single-stream LM.
+        # TODO(Jinchuan): Check this is safe for single-stream LM.
         for interval in self.aux_loss_interval:
             this_loss, this_acc, this_mask = self.forward_interval(
                 hidden[:, :, 1:],
