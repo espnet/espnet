@@ -9,7 +9,8 @@ import torch
 
 
 class AbsTransformer(torch.nn.Module, ABC):
-    """Transformer body implementation.
+    """Transformer body implementation
+
     It should take care of (1) Stacked Transforemr layers; (2) Positional Encoding
     """
 
