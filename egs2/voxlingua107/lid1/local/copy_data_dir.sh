@@ -76,7 +76,7 @@ fi
 cat $srcdir/utt2lang | utils/apply_map.pl -f 1 $destdir/utt_map  | \
   utils/apply_map.pl -f 2 $destdir/lang_map >$destdir/utt2lang
 
-utils/utt2lang_to_lang2utt.pl <$destdir/utt2lang >$destdir/lang2utt
+utils/utt2spk_to_spk2utt.pl <$destdir/utt2lang >$destdir/lang2utt
 
 if [ -f $srcdir/feats.scp ]; then
   utils/apply_map.pl -f 1 $destdir/utt_map <$srcdir/feats.scp >$destdir/feats.scp
