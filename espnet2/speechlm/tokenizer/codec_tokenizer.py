@@ -38,7 +38,8 @@ class CodecTokenizer(AbsTokenizer):
         dump_audio: bool = False,
         checkpoint_path: str = None,
         config_path: str = None,
-        max_token_per_frame: int = 32,
+        hf_model_tag: str = None,
+        max_token_per_frame: int = 8,
     ):
         """Codec Tokenizer initialization.
 
@@ -55,13 +56,21 @@ class CodecTokenizer(AbsTokenizer):
         self.dump_audio = dump_audio
 
         if self.codec_choice == "ESPnet":
-            from espnet2.tasks.gan_codec import GANCodecTask
 
-            model, _ = GANCodecTask.build_model_from_file(
-                config_path,
-                checkpoint_path,
-                device=str(device),
-            )
+            if hf_model_tag is not None:
+                from espnet2.bin.gan_codec_inference import AudioCoding
+
+                model = AudioCoding.from_pretrained(
+                    hf_model_tag, device=str(device)
+                ).model
+            else:
+                from espnet2.tasks.gan_codec import GANCodecTask
+
+                model, _ = GANCodecTask.build_model_from_file(
+                    config_path,
+                    checkpoint_path,
+                    device=str(device),
+                )
             self.codec = model
 
             meta_info = self.codec.meta_info()
@@ -253,6 +262,17 @@ class CodecTokenizer(AbsTokenizer):
         Output:
             waveform (torch.Tensor): float tensor in shape [B, n_sample]
         """
+
+        # NOTE(Jinchuan) The very short input may raise errors, so simply
+        # make the output as 0.0
+        if codes.size(1) <= 10:
+            B, T, _ = codes.size()
+            return torch.zeros(
+                (B, self.subsample * T),
+                dtype=torch.float32,
+                device=codes.device,
+            )
+
         if self.codec_choice == "ESPnet":
             codes = codes.permute(2, 0, 1)
             waveform = self.codec.decode(codes).squeeze(1)
@@ -267,8 +287,7 @@ class CodecTokenizer(AbsTokenizer):
 
         elif self.codec_choice == "inhouse":
             codes = codes.permute(2, 0, 1)
-            wav = self.codec.decode(codes).squeeze(1)
-            return wav
+            waveform = self.codec.decode(codes).squeeze(1)
 
         else:
             raise NotImplementedError(
@@ -341,7 +360,7 @@ class CodecTokenizer(AbsTokenizer):
         B, Tnq = codes.size()
         n_codebook = self.n_codebook if n_codebook is None else n_codebook
         assert Tnq % n_codebook == 0, (n_codebook, codes.size())
-        codes = codes.view(B, Tnq // self.n_codebook, self.n_codebook)
+        codes = codes.view(B, Tnq // n_codebook, n_codebook)
 
         for l_idx in range(n_codebook):
             codes[:, :, l_idx] -= l_idx * self.size_codebook

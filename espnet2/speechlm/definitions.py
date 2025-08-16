@@ -6,82 +6,143 @@
 from dataclasses import dataclass
 from typing import List, Tuple
 
+# Users are encouraged to read our document to understand the definitions in this file:
+# https://github.com/jctian98/espnet/blob/master/egs2/TEMPLATE/speechlm1/README.md
+
 
 # (1) Modality definition
-# a. discrete means the discrete / continuous format in final sequences.
-#    e.g., the LLM output embeddings (textemb) is originally read as text
-#    then tokenized into BPE, and finally converted into continuous
-#    embeddings before being processed by the SpeechLM. So it's continouos
-#    This is to determine if a placeholder should be adopted in the spliced
-#    sequence in preprocess_fn
-# b. data_type: how the original data file is loaded. This is exactly follows
-#    the definitions in espent2.train.dataset
-# c. For discrete modality, we usually have a modality-specific vocabulary
-#    an exception is "spk"
+# a. Modality could be either discrete or continuous, depending on how the LM
+#    processes the data in that modality.
+# b. Data from discrete modalities (e.g., text_bpe, codec) will experience an
+#    embedding process before being fed into LM.
+# c. Data from continuous modalities (e.g., text_emb) will be projected by an
+#    MLP before being processed by the LM.
 @dataclass
 class Modality:
-    discrete: bool = (True,)
-    data_type: str = ("kaldi_ark",)
+    discrete: bool = True
 
 
-modalities = {}
+MODALITIES = {}
 # Discrete
-modalities["codec"] = Modality()
-modalities["ssl"] = Modality()
-modalities["text_bpe"] = Modality(data_type="text")
-modalities["g2p"] = Modality(data_type="text")
-modalities["spk"] = Modality(data_type="text")
-# Continuous
-modalities["wav"] = Modality(discrete=False)
-modalities["text_emb"] = Modality(discrete=False)
-modalities["ssl_feat"] = Modality(discrete=False)
+MODALITIES["codec"] = Modality()
+MODALITIES["ssl"] = Modality()
+MODALITIES["codec_ssl"] = Modality()
+MODALITIES["text_bpe"] = Modality()
+MODALITIES["g2p"] = Modality()
+MODALITIES["spk"] = Modality()
+MODALITIES["class"] = Modality()
+MODALITIES["bool"] = Modality()
+MODALITIES["video_ssl"] = Modality()
+MODALITIES["svs_lb"] = Modality()
+MODALITIES["image"] = Modality()
+
+# continuous
+MODALITIES["wav"] = Modality(discrete=False)
+MODALITIES["text_emb"] = Modality(discrete=False)
+MODALITIES["ssl_feat"] = Modality(discrete=False)
+
+# dialogue
+MODALITIES["dialogue"] = Modality()
 
 # END OF MODALITY DEFINITION #
 
 
 # (2) Task Definition
-# a. usually we will place a task identifier in the begining.
-#    however, when we want to specify the task by natual langauge,
-#    we don't use that identifier.
-# b. encoder_entries: the entires that should feed to encoder, which
-#    is a list of tuple (file_name, entry_modality, data_type).
-# c. decoder_entries: similar to encoder_entries, but is fed to decoder.
-# d. in decoder-only format, encoder_entries and decoder_entries are merged
-# e. target_entries: entries that the loss computed on. Usually same as
-#    the decoder_entries.
-# f. file_name, the expected file name in original data folder. e.g., wav.scp
-#    entry_modality: the modality defined above, which will be used to determine
-#      how this data will be pre-processed before training. e.g., codec tokenization
-#    data_type: it determines how the data will be loaded during training.
-#    E.g., in TTS, the wave files are indexed with wav.scp, it will experence codec
-#      tokenization and then loaded as kaldi_ark -> (wav.scp, codec, kaldi_ark)
+# a. The task definition contains conditions and targets, both are represented
+#    by a list of "triplets", as described in README file.
+# b. The conditions specifies the input of that task. e.g., audio of ASR
+# c. The targets specifies the output of that task. e.g., text of ASR.
 @dataclass
-class SpeechLMTask:
-    encoder_entries: List[Tuple[str, str, str]]
-    decoder_entries: List[Tuple[str, str, str]]
-    target_entries: List[Tuple[str, str, str]]
-    use_task_identifier: bool = True
+class SpeechLMTaskTemplate:
+    conditions: List[Tuple[str, str, str]]
+    targets: List[Tuple[str, str, str]]
 
     @property
-    def find_modality_type(self):  # Used in shell data preparation script
-        all_entries = self.encoder_entries + self.decoder_entries
+    def data_triplets(self):
+        all_entries = self.conditions + self.targets
+        return all_entries
+
+    @property
+    def n_conditions(self):
+        return len(self.conditions)
+
+    @property
+    def n_targets(self):
+        return len(self.targets)
+
+    @property
+    def data_triplets_string(self):
         ans = ""
-        for entry in all_entries:
+        for entry in self.data_triplets:
+            ans = ans + ",".join(entry) + " "
+        return ans
+
+    @property
+    def condition_string(self):
+        ans = ""
+        for entry in self.conditions:
+            ans = ans + ",".join(entry) + " "
+        return ans
+
+    @property
+    def target_string(self):
+        ans = ""
+        for entry in self.targets:
             ans = ans + ",".join(entry) + " "
         return ans
 
 
-tasks = {}
-tasks["tts"] = SpeechLMTask(
-    encoder_entries=[("text", "g2p", "text"), ("utt2spk", "spk", "text")],
-    decoder_entries=[("wav.scp", "codec", "kaldi_ark")],
-    target_entries=[("wav.scp", "codec", "kaldi_ark")],
+# Here we only keep limited number of task definitions. For more examples, users
+# can either define by their own, or refer to our experimental file below. Note
+# some of those task template are not well justified.
+# https://github.com/jctian98/espnet/blob/speechlm3/espnet2/speechlm/definitions.py
+SPEECHLM_TASKS = dict()
+
+# Task-ID: 64
+# Auto-regressive prediction over text_bpe tokens, aka, standard text LM task
+SPEECHLM_TASKS["textlm"] = SpeechLMTaskTemplate(
+    conditions=[],
+    targets=[("text", "text_bpe", "text")],
 )
 
-tasks["plain_tts"] = SpeechLMTask(
-    encoder_entries=[("text", "g2p", "text")],
-    decoder_entries=[("wav.scp", "codec", "kaldi_ark")],
-    target_entries=[("wav.scp", "codec", "kaldi_ark")],
+# Task-ID: 65
+# Auto-regressive prediction over audio sequence, where audio is represented by
+# codec_ssl modality.
+SPEECHLM_TASKS["codec_ssl_audiolm"] = SpeechLMTaskTemplate(
+    conditions=[],
+    targets=[("wav.scp", "codec_ssl", "kaldi_ark")],
+)
+
+# Task-ID: 66
+# Speech Recognition task, predict text based on audio input.
+# Note audio is represented by codec_ssl modality
+SPEECHLM_TASKS["codec_ssl_asr"] = SpeechLMTaskTemplate(
+    conditions=[("wav.scp", "codec_ssl", "kaldi_ark")],
+    targets=[("text", "text_bpe", "text")],
+)
+
+# Task-ID: 67
+# Text-to-Speech task, predict audio based on text and speaker prompt.
+# Note audio is represented by codec_ssl modality.
+SPEECHLM_TASKS["codec_ssl_tts"] = SpeechLMTaskTemplate(
+    conditions=[("text", "text_bpe", "text"), ("utt2spk", "spk", "text")],
+    targets=[("wav.scp", "codec_ssl", "kaldi_ark")],
+)
+
+# Task-ID: 68
+# Free-form conversational data with textual content only.
+# The exact content is described in each dialogue json files.
+SPEECHLM_TASKS["text_dialogue"] = SpeechLMTaskTemplate(
+    conditions=[],
+    targets=[("dialogue", "dialogue", "dialogue_json")],
+)
+
+# Task-ID: 69
+# Free-form conversational data with both audio and text content.
+# The exact content is described in each dialogue json files.
+SPEECHLM_TASKS["audio_dialogue"] = SpeechLMTaskTemplate(
+    conditions=[],
+    targets=[("dialogue", "dialogue", "dialogue_json")],
 )
 
 # END OF TASK DEFINITION #
@@ -95,7 +156,23 @@ tasks["plain_tts"] = SpeechLMTask(
 # b. don't delete / modify it, otherwise the model trained
 #    previously can become incompatible. New tokens can be
 #    added - there are enough slots
-
+# c. detailed explanation for frequently special tokens:
+#    <pad>: padding tokens. These tokens is for padding only and will not participate
+#           loss computing.
+#    <sos/eos>: start-of-sentence/end-of-senetence. Each sequence always starts and
+#           ends with this token.
+#    <system_prompt>, <user_input>, <assistant_output>: role tokens in chat template.
+#    <eou>: end-of-utternace, end of an utterance (or a short segment) of certain
+#           modality. Usually used as a termination signal in decoding.
+#    modality tokens, e.g., <text_bpe_start/end>: the token to indicate modality. This
+#           token is always in the first place of a segment. e.g.,
+#           <text_bpe_start/end>, text_token1, ..., text_tokenN
+#    task tokens, e.g., <asr_task>: the indicator of a certain task. This token is
+#           always in the second place of a whole sequence, following <sos/eos>.
+#    Other special tokens are deprecated or not in frequent usage.
+#    See use case in:
+#    https://github.com/jctian98/espnet/tree/speechlm3/egs2/
+#    TEMPLATE/speechlm1#example-sequence
 special_tokens = [
     "<pad>",
     "<unk>",
@@ -105,6 +182,10 @@ special_tokens = [
     "<sos/eos>",
     "<local_sos/eos>",
     "<unkown_task_identifer>",
+    "<system_prompt>",
+    "<user_input>",
+    "<assistant_output>",
+    "<eou>",
 ]
 
 
@@ -117,11 +198,11 @@ def pad_until(token_list, until):
 
 special_tokens = pad_until(special_tokens, 32)
 
-for m in modalities.keys():
+for m in MODALITIES.keys():
     special_tokens.append(f"<{m}_start/end>")
 special_tokens = pad_until(special_tokens, 64)
 
-for m in tasks.keys():
+for m in SPEECHLM_TASKS.keys():
     special_tokens.append(f"<{m}_task>")
 special_tokens = pad_until(special_tokens, 128)
 
