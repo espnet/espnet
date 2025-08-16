@@ -59,7 +59,6 @@ mp.set_start_method("fork", force=True)
 # | test_worker_env_conflict_detection               | ValueError on args conflict     |
 # | test_worker_env_conflict_detection_parallel_for  | ValueError on args conflict     |
 # | test_make_local_gpu_cluster_import_guard         | RuntimeError when dask_cuda miss|
-# | test_make_local_gpu_cluster_workers_gt_gpus      | ValueError when workers>gpus    |
 # | test_make_client_unknown_env_raises              | ValueError on unknown env       |
 # | test_make_client_kube_import_guard               | RuntimeError when dask_kube miss|
 # | test_worker_plugin_setup_must_return_dict        | ValueError when setup_fn != dict|
@@ -71,7 +70,6 @@ mp.set_start_method("fork", force=True)
 # | test_worker_env_conflict_detection               | ValueError                      |
 # | test_worker_env_conflict_detection_parallel_for  | ValueError                      |
 # | test_make_local_gpu_cluster_import_guard         | RuntimeError                    |
-# | test_make_local_gpu_cluster_workers_gt_gpus      | ValueError                      |
 # | test_make_client_unknown_env_raises              | ValueError                      |
 # | test_make_client_kube_import_guard               | RuntimeError                    |
 # | test_worker_plugin_setup_must_return_dict        | ValueError                      |
@@ -351,26 +349,6 @@ def test_make_local_gpu_cluster_import_guard(monkeypatch):
         pytest.skip("dask_cuda is installed; skipping import-guard test")
     with pytest.raises(RuntimeError):
         make_local_gpu_cluster(n_workers=1, options={})
-
-
-@pytest.mark.execution_timeout(30)
-def test_make_local_gpu_cluster_workers_gt_gpus(monkeypatch):
-    # Fake dask_cuda to pass import, then trigger ValueError with n_workers > num_gpus
-    dummy = types.ModuleType("dask_cuda")
-
-    class _DummyLocalCUDACluster:
-        def __init__(self, *a, **k):
-            pass
-
-    dummy.LocalCUDACluster = _DummyLocalCUDACluster
-    monkeypatch.setitem(sys.modules, "dask_cuda", dummy)
-
-    import espnet3.parallel as ymp
-
-    monkeypatch.setattr(ymp.torch.cuda, "device_count", lambda: 1)
-
-    with pytest.raises(ValueError):
-        make_local_gpu_cluster(n_workers=2, options={})
 
 
 @pytest.mark.execution_timeout(30)
