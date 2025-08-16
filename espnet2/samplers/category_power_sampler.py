@@ -64,7 +64,7 @@ class CategoryPowerSampler(AbsSampler):
         drop_last: Whether to drop the final batch.
         category2utt_file: Path to a file mapping each category to utterance ID.
         epoch: Random seed is set using the epoch to ensure reproducibility with
-               variation across epochs.
+               variation across epochs. 
     """
 
     @typechecked
