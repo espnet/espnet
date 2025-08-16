@@ -867,14 +867,14 @@ if ! "${skip_train}"; then
         # shellcheck disable=SC2086
         ${python} -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${ser_stats_dir}"
 
-        # Append the num-tokens at the last dimensions. This is used for batch-bins count
-        <"${ser_stats_dir}/train/emo_shape" \
-            awk -v N="$(<${token_list} wc -l)" '{ print $0 "," N }' \
-            >"${ser_stats_dir}/train/emo_shape.${token_type}"
+        # # Append the num-tokens at the last dimensions. This is used for batch-bins count
+        # <"${ser_stats_dir}/train/emo_shape" \
+        #     awk -v N="$(<${token_list} wc -l)" '{ print $0 "," N }' \
+        #     >"${ser_stats_dir}/train/emo_shape.${token_type}"
 
-        <"${ser_stats_dir}/valid/emo_shape" \
-            awk -v N="$(<${token_list} wc -l)" '{ print $0 "," N }' \
-            >"${ser_stats_dir}/valid/emo_shape.${token_type}"
+        # <"${ser_stats_dir}/valid/emo_shape" \
+        #     awk -v N="$(<${token_list} wc -l)" '{ print $0 "," N }' \
+        #     >"${ser_stats_dir}/valid/emo_shape.${token_type}"
 
     fi
 
