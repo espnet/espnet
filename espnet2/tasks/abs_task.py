@@ -811,24 +811,28 @@ class AbsTask(ABC):
             "--upsampling_factor",
             type=float,
             default=0.5,
-            help="Used when batch_type='catpow' (CategoryPowerSampler), "
-            "for upsample low-resource category",
+            help="Upsampling factor for low-resource categories when using "
+            "batch_type='catpow' (CategoryPowerSampler). "
+            "Lower values (-> 0) increase sampling of rare categories, "
+            "higher values (-> 1.0) reduce upsampling. Default: 0.5",
         )
         group.add_argument(
             "--category_upsampling_factor",
             type=float,
             default=0.5,
-            help="Used when batch_type='catpow_balance_dataset' "
-            "(CategoryDatasetPowerSampler), "
-            "for upsample low-resource category and dataset",
+            help="Upsampling factor for datasets with fewer samples when using "
+            "batch_type='catpow_balance_dataset' (CategoryDatasetPowerSampler). "
+            "Lower values (-> 0) increase sampling of rare categories, "
+            "higher values (-> 1.0) reduce upsampling. Default: 0.5",
         )
         group.add_argument(
             "--dataset_upsampling_factor",
             type=float,
             default=0.5,
-            help="Used when batch_type='catpow_balance_dataset' "
-            "(CategoryDatasetPowerSampler), "
-            "for upsample low-resource category and dataset",
+            help="Upsampling factor for low-resource datasets when using "
+            "batch_type='catpow_balance_dataset' (CategoryDatasetPowerSampler). "
+            "Lower values (-> 0) increase sampling of rare datasets, "
+            "higher values (-> 1.0) reduce upsampling. Default: 0.5",
         )
         group.add_argument(
             "--dataset_scaling_factor",
