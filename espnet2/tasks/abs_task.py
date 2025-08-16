@@ -1976,9 +1976,7 @@ class AbsTask(ABC):
             batch_sampler = CategoryPowerSampler(**sampler_args)
         elif iter_options.batch_type == "catpow_balance_dataset":
             if Path(parent_dir, "dataset2utt").exists():
-                dataset2utt_file = str(
-                    Path(parent_dir, "dataset2utt")
-                )
+                dataset2utt_file = str(Path(parent_dir, "dataset2utt"))
                 logging.warning("Reading " + dataset2utt_file)
             else:
                 dataset2utt_file = None
@@ -1990,9 +1988,7 @@ class AbsTask(ABC):
                 )
 
             if Path(parent_dir, "utt2dataset").exists():
-                utt2dataset_file = str(
-                    Path(parent_dir, "utt2dataset")
-                )
+                utt2dataset_file = str(Path(parent_dir, "utt2dataset"))
                 logging.warning("Reading " + utt2dataset_file)
             else:
                 utt2dataset_file = None
