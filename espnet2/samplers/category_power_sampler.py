@@ -86,8 +86,8 @@ class CategoryPowerSampler(AbsSampler):
         assert dataset_scaling_factor >= 1, "dataset_scaling_factor must >= 1"
 
         # Set random seed based on epoch to ensure different sampling at each epoch
-        random.seed(epoch)
-        np.random.seed(epoch)
+        self.random_state = random.Random(epoch)
+        self.np_random_state = np.random.RandomState(epoch)
 
         self.batch_bins = batch_bins
         self.drop_last = drop_last
@@ -131,7 +131,7 @@ class CategoryPowerSampler(AbsSampler):
             self.all_utts_by_category[cat].extend(utts)
             # Shuffle utterances within each category to ensure
             # P(x | l) = 1 / n_l (uniform sampling within category)
-            random.shuffle(self.all_utts_by_category[cat])
+            self.random_state.shuffle(self.all_utts_by_category[cat])
 
         # 4. Estimate the total number of utterances after upsampling the whole dataset
         utt_avg_size = np.mean([utt2sizes[0][utt][0] for utt in utt2sizes[0].keys()])
@@ -144,7 +144,7 @@ class CategoryPowerSampler(AbsSampler):
         sampled_utts = []
         for _ in range(total_num_samples):
             # P(l)
-            cat = np.random.choice(self.categories, p=self.category_probs)
+            cat = self.np_random_state.choice(self.categories, p=self.category_probs)
             # The index may wrap around to the start of the utterance list,
             # but this does not cause excessive repetition within a batch,
             # since batches are constructed sequentially and utterances are
@@ -294,8 +294,8 @@ class CategoryDatasetPowerSampler(AbsSampler):
         assert dataset_scaling_factor >= 1, "dataset_scaling_factor must >= 1"
 
         # Set random seed as epoch
-        random.seed(epoch)
-        np.random.seed(epoch)
+        self.random_state = random.Random(epoch)
+        self.np_random_state = np.random.RandomState(epoch)
 
         self.batch_bins = batch_bins
         self.drop_last = drop_last
@@ -405,7 +405,7 @@ class CategoryDatasetPowerSampler(AbsSampler):
             for category in self.dataset_category_probs[dataset].keys():
                 category_utts = set(self.category2utt[category])
                 common_utts = list(category_utts.intersection(dataset_utts))
-                random.shuffle(common_utts)
+                self.random_state.shuffle(common_utts)
                 self.dataset_category_utts[dataset][category] = common_utts
 
         # Estimate total number of samples after scaling
@@ -419,7 +419,7 @@ class CategoryDatasetPowerSampler(AbsSampler):
 
         for _ in range(total_num_samples):
             # Step 1: Sample dataset d according to P(d)
-            dataset = np.random.choice(self.datasets, p=self.dataset_probs)
+            dataset = self.np_random_state.choice(self.datasets, p=self.dataset_probs)
 
             if dataset not in self.dataset_category_probs:
                 continue
@@ -434,7 +434,7 @@ class CategoryDatasetPowerSampler(AbsSampler):
             if not categories_in_dataset:
                 continue
 
-            category = np.random.choice(
+            category = self.np_random_state.choice(
                 categories_in_dataset, p=category_probs_in_dataset
             )
 
