@@ -106,7 +106,9 @@ class Qwen2AudioTokenizer(AbsTokenizer):
 
                 # Load audio files
                 audios = [
-                    librosa.load(file, sr=self.processor.feature_extractor.sampling_rate)[0]
+                    librosa.load(
+                        file, sr=self.processor.feature_extractor.sampling_rate
+                    )[0]
                     for file in temp_files
                     if os.path.exists(file)
                 ]

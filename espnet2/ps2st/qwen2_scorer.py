@@ -96,7 +96,9 @@ class Qwen2HFScorer(ScorerInterface):
             idx = idx.tolist()
         out = []
         for i in idx:
-            assert i < len(states), f"Index {i} out of range, len(states): {len(states)}"
+            assert i < len(
+                states
+            ), f"Index {i} out of range, len(states): {len(states)}"
             s = states[i]
             out.append({"past_kv": s["past_kv"], "step": int(s["step"])})
         return out
