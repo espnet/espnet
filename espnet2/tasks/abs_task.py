@@ -2191,11 +2191,11 @@ class AbsTask(ABC):
         )
 
         if Path(
-            parent_dir, "category2utt"
+            Path(iter_options.data_path_and_name_and_type[0][0]).parent, "category2utt"
         ).exists():
             category2utt_file = str(
                 Path(
-                    parent_dir,
+                    Path(iter_options.data_path_and_name_and_type[0][0]).parent,
                     "category2utt",
                 )
             )
