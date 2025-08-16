@@ -184,7 +184,8 @@ class CategoryPowerSampler(AbsSampler):
             f"{self.__class__.__name__}("
             f"N-batch={len(self)}, "
             f"batch_bins={self.batch_bins}, "
-            f"upsampling_factor={self.upsampling_factor})"
+            f"upsampling_factor={self.upsampling_factor}), "
+            f"category_bins={self.category_bins}"
         )
 
     def __len__(self):
