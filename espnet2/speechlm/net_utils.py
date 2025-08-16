@@ -157,23 +157,3 @@ def modality_index_to_mask(
     )  # [B, 1, nq, V]
 
     return mask
-
-
-@torch.no_grad()
-def install_continuous_features(
-    dec_emb: torch.Tensor,
-    conti_feats: Tuple = None,
-):
-    if conti_feats is None:
-        return dec_emb
-
-    assert dec_emb.size(0) == len(conti_feats)
-
-    for b, conti_feat in enumerate(conti_feats):
-        for conti_emb, start, end in conti_feat:
-            # NOTE(Jinchuan): The continuous embeddings shouls have the same dimension
-            # of the model hidden size.
-            assert conti_emb.size(1) == dec_emb.size(2)
-            dec_emb[b, start:end] = conti_emb
-
-    return dec_emb

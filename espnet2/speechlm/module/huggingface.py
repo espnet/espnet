@@ -31,14 +31,14 @@ class HFTransformerDecoder(AbsTransformer):
             hf_model_tag,
             attn_implementation=attention_choice,
             revision=revision,
-            torch_dtype=dtype,
+            torch_dtype=getattr(torch, dtype),
         ).get_output_embeddings()
 
         self.model = AutoModel.from_pretrained(
             hf_model_tag,
             attn_implementation=attention_choice,
             revision=revision,
-            torch_dtype=dtype,
+            torch_dtype=getattr(torch, dtype),
         )
         self.emb = self.model.get_input_embeddings()
 

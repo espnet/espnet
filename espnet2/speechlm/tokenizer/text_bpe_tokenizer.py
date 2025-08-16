@@ -23,6 +23,11 @@ class TextBPETokenizer(AbsTokenizer):
     def tokens2text(self, tokens):
         if isinstance(tokens, torch.Tensor):
             tokens = tokens.cpu().tolist()
+
+        for seq in tokens:
+            if not all(tok >= 0 and tok < len(self.token_list) for tok in seq):
+                raise ValueError(f"Invalid token sequence {seq}")
+
         tokens = [
             self.bpe.tokens2text([self.token_list[tok] for tok in seq])
             for seq in tokens

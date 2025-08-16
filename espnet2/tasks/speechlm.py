@@ -58,7 +58,7 @@ corelm_choices = ClassChoices(
         ar_delay=ARDelayLM,
     ),
     type_check=AbsCoreLM,
-    default="valle",
+    default="ar_delay",
 )
 
 tokenizer_choices = ClassChoices(
@@ -69,15 +69,6 @@ tokenizer_choices = ClassChoices(
         image=ImageTokenizer,
     ),
     type_check=AbsTokenizer,
-    default=None,
-)
-
-vision_encoder_choices = ClassChoices(
-    "vision_encoder",
-    classes=dict(
-        huggingface=HuggingfaceVisionEncoder,
-    ),
-    type_check=AbsContinuousEncoder,
     default=None,
 )
 
@@ -104,8 +95,6 @@ class SpeechLMTask(AbsTask):
         corelm_choices,
         # --tokenizer and --tokenizer_conf
         tokenizer_choices,
-        # --vision_encoder and --vision_encoder_conf
-        vision_encoder_choices,
         # --model and --model_conf
         model_choices,
     ]
@@ -152,7 +141,7 @@ class SpeechLMTask(AbsTask):
             "--pad_speaker_prompt",
             type=str2bool,
             default=True,
-            help="If ture, add padding to the speaker prompt that is shorter"
+            help="If true, add padding to the speaker prompt that is shorter"
             "than the pre-defined length.",
         )
         group.add_argument(
@@ -278,7 +267,7 @@ class SpeechLMTask(AbsTask):
             "--z_loss_weight",
             type=float,
             default=0.0,
-            help="Z loss weight to reduce the magnituede of logits",
+            help="Z loss weight to reduce the magnitude of logits",
         )
 
         for class_choices in cls.class_choices_list:
