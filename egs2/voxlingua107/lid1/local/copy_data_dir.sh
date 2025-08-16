@@ -138,4 +138,8 @@ done
 [ ! -f $srcdir/feats.scp ] && validate_opts="$validate_opts --no-feats"
 [ ! -f $srcdir/text ] && validate_opts="$validate_opts --no-text"
 
+mv $destdir/lang2utt $destdir/spk2utt
+mv $destdir/utt2lang $destdir/utt2spk
 utils/validate_data_dir.sh $validate_opts $destdir
+mv $destdir/spk2utt $destdir/lang2utt
+mv $destdir/utt2spk $destdir/utt2lang
