@@ -3,8 +3,6 @@
 # Copyright 2024 Jinchuan Tian
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-from typing import Dict, Optional, Tuple
-
 import torch
 
 from espnet2.speechlm.core_lm.abs_core_lm import SpeechLMInferenceOptions

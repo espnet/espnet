@@ -383,29 +383,18 @@ class SpeechLMTask(AbsTask):
                 token_bias=token_bias, **args.transformer_conf
             )
 
-        # 2. Build continuous encoder
-        continuous_encoders = dict()
-        for modality in ["vision_encoder"]:
-            if getattr(args, modality, None) is not None:
-                continuous_encoder_class = vision_encoder_choices.get_class(
-                    getattr(args, modality)
-                )
-                continuous_encoders[modality] = continuous_encoder_class(
-                    **getattr(args, f"{modality}_conf")
-                )
-
-        # 3. Build CoreLM module
+        # 2. Build CoreLM module
         corelm_class = corelm_choices.get_class(args.corelm)
         corelm = corelm_class(
             transformer=transformer,
-            continuous_encoders=continuous_encoders,
+            continuous_encoders={},
             vocab_size=len(token_list),
             nq=args.codec_token_in_use,
             **args.corelm_conf,
         )
         kwargs.update(corelm=corelm)
 
-        # 4. Build training criterion
+        # 3. Build training criterion
         criterion = SpeechLMCrossEntropyLoss(
             pad=token_list.index("<pad>"),
             token_bias=token_bias.copy(),
@@ -416,11 +405,11 @@ class SpeechLMTask(AbsTask):
         )
         kwargs.update(criterion=criterion)
 
-        # 5. Build model
+        # 4. Build model
         model_class = model_choices.get_class(args.model)
         model = model_class(**args.model_conf, **kwargs)
 
-        # 6. Initialize
+        # 5. Initialize
         if args.init is not None:
             initialize(model, args.init)
         # skip this when using HF transformers
@@ -433,7 +422,7 @@ class SpeechLMTask(AbsTask):
                 elif isinstance(m, torch.nn.Embedding):
                     torch.nn.init.normal_(m.weight, mean=0.0, std=0.02)
 
-        # 5. if use deepspeed, also save the config
+        # 6. if use deepspeed, also save the config
         if args.deepspeed_config is not None and torch.distributed.is_initialized():
             ds_config_dict = json.load(open(args.deepspeed_config))
             setattr(args, "ds_config_dict", ds_config_dict)
