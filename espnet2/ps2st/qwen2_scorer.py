@@ -31,8 +31,9 @@ class Qwen2HFScorer(ScorerInterface):
 
     @torch.no_grad()
     def score(self, ys, state, xs):
-        """
-        ys: 1D LongTensor of generated tokens so far (ESPnet-side; includes BOS)
+        """Forward scoring function.
+
+        ys: 1D LongTensor of generated tokens so far
         state: dict with 'past_kv' and 'step'
         """
         if state["past_kv"] is None:
