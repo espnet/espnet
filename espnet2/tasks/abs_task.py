@@ -1929,15 +1929,10 @@ class AbsTask(ABC):
             dataset, args.allow_variable_data_keys, train=iter_options.train
         )
 
-        if Path(
-            Path(iter_options.data_path_and_name_and_type[0][0]).parent, "category2utt"
-        ).exists():
-            category2utt_file = str(
-                Path(
-                    Path(iter_options.data_path_and_name_and_type[0][0]).parent,
-                    "category2utt",
-                )
-            )
+        parent_dir = Path(iter_options.data_path_and_name_and_type[0][0]).parent
+
+        if Path(parent_dir, "category2utt").exists():
+            category2utt_file = str(Path(parent_dir, "category2utt"))
             logging.warning("Reading " + category2utt_file)
         else:
             category2utt_file = None
@@ -1980,15 +1975,9 @@ class AbsTask(ABC):
             )
             batch_sampler = CategoryPowerSampler(**sampler_args)
         elif iter_options.batch_type == "catpow_balance_dataset":
-            if Path(
-                Path(iter_options.data_path_and_name_and_type[0][0]).parent,
-                "dataset2utt",
-            ).exists():
+            if Path(parent_dir, "dataset2utt").exists():
                 dataset2utt_file = str(
-                    Path(
-                        Path(iter_options.data_path_and_name_and_type[0][0]).parent,
-                        "dataset2utt",
-                    )
+                    Path(parent_dir, "dataset2utt")
                 )
                 logging.warning("Reading " + dataset2utt_file)
             else:
@@ -2000,15 +1989,9 @@ class AbsTask(ABC):
                     "`egs2/geolid/lid1/local/create_utt2dataset_dataset2utt.sh`"
                 )
 
-            if Path(
-                Path(iter_options.data_path_and_name_and_type[0][0]).parent,
-                "utt2dataset",
-            ).exists():
+            if Path(parent_dir, "utt2dataset").exists():
                 utt2dataset_file = str(
-                    Path(
-                        Path(iter_options.data_path_and_name_and_type[0][0]).parent,
-                        "utt2dataset",
-                    )
+                    Path(parent_dir, "utt2dataset")
                 )
                 logging.warning("Reading " + utt2dataset_file)
             else:
@@ -2208,11 +2191,11 @@ class AbsTask(ABC):
         )
 
         if Path(
-            Path(iter_options.data_path_and_name_and_type[0][0]).parent, "category2utt"
+            parent_dir, "category2utt"
         ).exists():
             category2utt_file = str(
                 Path(
-                    Path(iter_options.data_path_and_name_and_type[0][0]).parent,
+                    parent_dir,
                     "category2utt",
                 )
             )
