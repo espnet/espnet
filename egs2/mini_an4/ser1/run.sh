@@ -43,7 +43,7 @@ local_data_opts="--dummy_data true"
     --max_wav_duration 30 \
     --feats_normalize false \
     --inference_nj 8 \
-    --inference_ser_model valid.acc.ave_10best.pth\
+    --inference_ser_model latest.pth\
     --ser_config "${ser_config}" \
     --inference_config "${inference_config}" \
     --train_set "${train_set}" \

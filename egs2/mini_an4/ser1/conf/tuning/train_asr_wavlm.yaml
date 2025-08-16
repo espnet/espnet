@@ -36,7 +36,7 @@ pooling: mean
 # Projector
 projector: linear
 projector_conf:
-  output_size: 8
+  output_size: 10
 
 freeze_param:
     - "frontend.upstream"
