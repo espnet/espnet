@@ -4,8 +4,15 @@ import re
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Format SER results in Markdown")
-    parser.add_argument("--metrics", type=str, required=True, help="Path to metrics.txt")
-    parser.add_argument("--dataset", type=str, required=True, help="Dataset name (e.g., inference_xxx/test)")
+    parser.add_argument(
+        "--metrics", type=str, required=True, help="Path to metrics.txt"
+    )
+    parser.add_argument(
+        "--dataset",
+        type=str,
+        required=True,
+        help="Dataset name (e.g., inference_xxx/test)",
+    )
     return parser.parse_args()
 
 
@@ -33,7 +40,9 @@ def show_ser_results(metrics_path, dataset_name):
         match = re.match(r"^(\S+)\s+([\d\.]+)\s+([\d\.]+)\s+([\d\.]+)\s+(\d+)$", line)
         if match:
             label, prec, recall, f1, support = match.groups()
-            print(f"| {dataset_name} | {label} | {prec} | {recall} | {f1} | {support} |")
+            print(
+                f"| {dataset_name} | {label} | {prec} | {recall} | {f1} | {support} |"
+            )
 
 
 if __name__ == "__main__":
