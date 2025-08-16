@@ -49,6 +49,7 @@ class DummyDataset:
 
     Each item has a variable time length and fixed feature dim.
     """
+
     def __init__(self, n=10, base_len=3, dim=4):
         self.n = n
         self.base_len = base_len
@@ -89,6 +90,7 @@ class DummyDataset:
 
 class DummyOrganizer:
     """Hydra-instantiable organizer that exposes .train and .valid datasets."""
+
     def __init__(self, n_train=8, n_valid=5, base_len=3, dim=4):
         self.train = DummyDataset(n=n_train, base_len=base_len, dim=dim)
         self.valid = DummyDataset(n=n_valid, base_len=base_len, dim=dim)
@@ -97,8 +99,9 @@ class DummyOrganizer:
 class DummyCollate:
     """Collate that pads to max length and returns:
 
-      (uids, {"x": [B, T, D], "lengths": [B]})
+    (uids, {"x": [B, T, D], "lengths": [B]})
     """
+
     def __init__(self, int_pad_value: int = -1):
         self.pad = int_pad_value
 
@@ -119,9 +122,10 @@ class DummyCollate:
 class DummyModel:
     """Model with collect_feats(**batch) that returns torch tensors:
 
-      - "mel": [B, T, D] (copied from input)
-      - "mel_lengths": [B]
+    - "mel": [B, T, D] (copied from input)
+    - "mel_lengths": [B]
     """
+
     def __init__(self, scale: float = 1.0):
         self.scale = scale
         self.device = torch.device("cpu")
