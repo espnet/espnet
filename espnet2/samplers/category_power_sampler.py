@@ -20,7 +20,7 @@ class CategoryPowerSampler(AbsSampler):
     categories (e.g., language IDs), using a power-law distribution
     to control the sampling frequency. Originally developed for language
     identification, it can be applied to any dataset that provides a
-    mapping from category (e.g., language) to utterances.
+    mapping from category (e.g., language) to utterances. 
 
     Sampling Strategy:
 
