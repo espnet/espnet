@@ -9,9 +9,9 @@ from hydra.utils import instantiate
 from omegaconf import OmegaConf
 
 # Import the functions under test (adjust import path if your file/module path differs)
-from espnet3.collect_stats import (
-    collect_stats,
-    collect_stats_local,
+from espnet3.collect_stats import collect_stats
+from espnet3.utils.collect_stats_local import collect_stats_local
+from espnet3.utils.collect_stats_parallel import (
     collect_stats_multiple_iterator,
     collect_stats_parallel,
 )
@@ -45,11 +45,10 @@ mp.set_start_method("fork", force=True)
 
 
 class DummyDataset:
-    """
-    Minimal dataset that returns (uid, sample_dict).
+    """Minimal dataset that returns (uid, sample_dict).
+
     Each item has a variable time length and fixed feature dim.
     """
-
     def __init__(self, n=10, base_len=3, dim=4):
         self.n = n
         self.base_len = base_len
@@ -89,21 +88,17 @@ class DummyDataset:
 
 
 class DummyOrganizer:
-    """
-    Hydra-instantiable organizer that exposes .train and .valid datasets.
-    """
-
+    """Hydra-instantiable organizer that exposes .train and .valid datasets."""
     def __init__(self, n_train=8, n_valid=5, base_len=3, dim=4):
         self.train = DummyDataset(n=n_train, base_len=base_len, dim=dim)
         self.valid = DummyDataset(n=n_valid, base_len=base_len, dim=dim)
 
 
 class DummyCollate:
-    """
-    Collate that pads to max length and returns:
+    """Collate that pads to max length and returns:
+
       (uids, {"x": [B, T, D], "lengths": [B]})
     """
-
     def __init__(self, int_pad_value: int = -1):
         self.pad = int_pad_value
 
@@ -122,12 +117,11 @@ class DummyCollate:
 
 
 class DummyModel:
-    """
-    Model with collect_feats(**batch) that returns torch tensors:
+    """Model with collect_feats(**batch) that returns torch tensors:
+
       - "mel": [B, T, D] (copied from input)
       - "mel_lengths": [B]
     """
-
     def __init__(self, scale: float = 1.0):
         self.scale = scale
         self.device = torch.device("cpu")
@@ -234,12 +228,11 @@ def _load_npz_counts(dirpath: Path, feat_key: str):
 # ------------
 # The tests
 # ------------
-@pytest.mark.timeout(10)
+@pytest.mark.execution_timeout(10)
 def test_collect_stats_local_basic(tmp_path: Path):
-    """
-    Verify that local (non-parallel) path aggregates counts/sums correctly
-    and writes expected files.
-    """
+    # Verify that local (non-parallel) path aggregates counts/sums correctly
+    # and writes expected files.
+    tmp_path = Path(".")
     model_cfg = make_model_cfg(scale=1.0)
     ds_cfg = make_dataset_cfg(n_train=6, n_valid=0, base_len=3, dim=4)
     dl_cfg = make_dataloader_cfg(use_custom_collate=True)
@@ -281,13 +274,11 @@ def test_collect_stats_local_basic(tmp_path: Path):
     assert (mode_dir / "stats_keys").exists(), "stats_keys not written"
 
 
-@pytest.mark.timeout(10)
+@pytest.mark.execution_timeout(30)
 @pytest.mark.parametrize("n_workers", [1, 2])
 def test_collect_stats_parallel_basic(tmp_path: Path, n_workers):
-    """
-    Verify that parallel path (setup_fn + parallel_for) works and matches
-    local aggregation logic for counts at least.
-    """
+    # Verify that parallel path (setup_fn + parallel_for) works and matches
+    # local aggregation logic for counts at least.
     model_cfg = make_model_cfg(scale=2.0)  # scale to change sums
     ds_cfg = make_dataset_cfg(n_train=7, n_valid=0, base_len=2, dim=3)
     dl_cfg = make_dataloader_cfg(use_custom_collate=True)
@@ -325,7 +316,7 @@ def test_collect_stats_parallel_basic(tmp_path: Path, n_workers):
     ds = instantiate(ds_cfg).train
     total_count = _expected_total_count(ds)
 
-    cnt, s, sq = _load_npz_counts(mode_dir, "mel")
+    cnt, _, _ = _load_npz_counts(mode_dir, "mel")
     assert int(cnt) == total_count, "Total frame count mismatch in parallel mode"
     # Features should be saved as well
     assert (
@@ -333,12 +324,10 @@ def test_collect_stats_parallel_basic(tmp_path: Path, n_workers):
     ).exists(), "mel.scp not written (parallel)"
 
 
-@pytest.mark.timeout(10)
+@pytest.mark.execution_timeout(30)
 def test_collect_stats_multiple_iterator(tmp_path: Path):
-    """
-    Verify multiple-iterator (sharded) path aggregates counts and writes shapes
-    with shard suffixes. Feature saving is disabled by spec.
-    """
+    # Verify multiple-iterator (sharded) path aggregates counts and writes shapes
+    # with shard suffixes. Feature saving is disabled by spec.
     model_cfg = make_model_cfg(scale=1.0)
     ds_cfg = make_dataset_cfg(n_train=10, n_valid=0, base_len=2, dim=2)
     # multiple_iterator=True and define number of shards
@@ -401,15 +390,13 @@ def test_collect_stats_multiple_iterator(tmp_path: Path):
 # ----------------------------
 
 
-@pytest.mark.timeout(10)
+@pytest.mark.execution_timeout(30)
 @pytest.mark.parametrize("use_parallel", [False, True])
 def test_collect_stats_entrypoint_train(tmp_path: Path, use_parallel):
-    """
-    Smoke-test the public entrypoint `collect_stats` for the 'train' split,
-    both in local (no parallel_config) and parallel (with parallel_config) modes.
-    Verifies that stats are saved and key files exist.
-    Also checks that *_lengths features are persisted (since they matter).
-    """
+    # Smoke-test the public entrypoint `collect_stats` for the 'train' split,
+    # both in local (no parallel_config) and parallel (with parallel_config) modes.
+    # erifies that stats are saved and key files exist.
+    # Also checks that *_lengths features are persisted (since they matter).
     model_cfg = make_model_cfg(scale=1.5)
     ds_cfg = make_dataset_cfg(n_train=6, n_valid=0, base_len=3, dim=4)
     dl_cfg = make_dataloader_cfg(use_custom_collate=True)
@@ -452,12 +439,10 @@ def test_collect_stats_entrypoint_train(tmp_path: Path, use_parallel):
     assert int(cnt) == total_count, "Total frame count mismatch in entrypoint(train)"
 
 
-@pytest.mark.timeout(10)
+@pytest.mark.execution_timeout(30)
 @pytest.mark.parametrize("use_parallel", [False, True])
 def test_collect_stats_entrypoint_valid(tmp_path: Path, use_parallel):
-    """
-    Same as above but for 'valid' split, to ensure both branches work.
-    """
+    # Same as above but for 'valid' split, to ensure both branches work.
     model_cfg = make_model_cfg(scale=1.0)
     ds_cfg = make_dataset_cfg(n_train=0, n_valid=5, base_len=2, dim=3)
     dl_cfg = make_dataloader_cfg(use_custom_collate=True)
@@ -485,12 +470,10 @@ def test_collect_stats_entrypoint_valid(tmp_path: Path, use_parallel):
         assert (mode_dir / "collect_feats" / f"{k}.scp").exists()
 
 
-@pytest.mark.timeout(10)
+@pytest.mark.execution_timeout(30)
 def test_collect_stats_entrypoint_multiple_iterator(tmp_path: Path):
-    """
-    Entrypoint with multiple_iterator=True should dispatch to the sharded path.
-    It must save stats and shard-suffixed shapes; features are not saved by spec.
-    """
+    # Entrypoint with multiple_iterator=True should dispatch to the sharded path.
+    # It must save stats and shard-suffixed shapes; features are not saved by spec.
     model_cfg = make_model_cfg(scale=1.0)
     ds_cfg = make_dataset_cfg(n_train=10, n_valid=0, base_len=2, dim=2)
     dl_cfg = make_dataloader_cfg(

@@ -155,7 +155,7 @@ def test_get_client_context_manager_and_parallel_map(set_global_parallel):
         assert res == [1, 2, 3, 4]
 
 
-@pytest.mark.timeout(30)
+@pytest.mark.execution_timeout(30)
 def test_parallel_map_internal_client(local_cfg, monkeypatch):
     # Test the branch where client=None and get_client() is internally used
     class _Ctx:
@@ -222,7 +222,7 @@ def test_parallel_for_completion_order(local_cfg):
 # ------------------------------------------------------------
 
 
-@pytest.mark.timeout(30)
+@pytest.mark.execution_timeout(30)
 def test_worker_env_injection_via_setup_fn(local_cfg):
     # Verify env injection via get_client(setup_fn=...) without manual wrapping
     def setup_fn():
@@ -237,7 +237,7 @@ def test_worker_env_injection_via_setup_fn(local_cfg):
     assert out == [11, 12, 13]
 
 
-@pytest.mark.timeout(30)
+@pytest.mark.execution_timeout(30)
 def test_parallel_map_auto_inject_env_via_setup_fn(local_cfg):
     # Verify parallel_map auto-injects worker env
     # when setup_fn is provided via get_client
@@ -250,7 +250,7 @@ def test_parallel_map_auto_inject_env_via_setup_fn(local_cfg):
         assert out == [11, 12, 13]
 
 
-@pytest.mark.timeout(30)
+@pytest.mark.execution_timeout(30)
 def test_parallel_for_auto_inject_env_via_setup_fn_without_with(local_cfg):
     # Verify parallel_for auto-injects env
     # without using a 'with' block (manual enter/exit)
@@ -269,7 +269,7 @@ def test_parallel_for_auto_inject_env_via_setup_fn_without_with(local_cfg):
         ctx.__exit__(None, None, None)
 
 
-@pytest.mark.timeout(30)
+@pytest.mark.execution_timeout(30)
 def test_wrap_env_filters_unknown_keys(local_cfg):
     def setup_fn():
         return {"bias": 10, "unknown": "ignored"}
@@ -282,7 +282,7 @@ def test_wrap_env_filters_unknown_keys(local_cfg):
         assert out == [11, 12, 13]
 
 
-@pytest.mark.timeout(30)
+@pytest.mark.execution_timeout(30)
 def test_parallel_map_registers_setup_fn_when_passed_directly(local_cfg):
     def setup_fn():
         return {"bias": 5}
@@ -294,7 +294,7 @@ def test_parallel_map_registers_setup_fn_when_passed_directly(local_cfg):
     assert out == [15, 25, 35]
 
 
-@pytest.mark.timeout(30)
+@pytest.mark.execution_timeout(30)
 def test_parallel_for_registers_setup_fn_when_passed_directly(local_cfg):
     def setup_fn():
         return {"factor": 3}
@@ -309,7 +309,7 @@ def test_parallel_for_registers_setup_fn_when_passed_directly(local_cfg):
 # --------- Error cases ---------
 
 
-@pytest.mark.timeout(30)
+@pytest.mark.execution_timeout(30)
 def test_worker_env_conflict_detection(local_cfg):
     # When both worker env and kwargs provide the same key,
     # wrapping should raise ValueError
@@ -327,7 +327,7 @@ def test_worker_env_conflict_detection(local_cfg):
             parallel_map(add_bias, [1, 2], client=client, bias=5)
 
 
-@pytest.mark.timeout(30)
+@pytest.mark.execution_timeout(30)
 def test_worker_env_conflict_detection_parallel_for(local_cfg):
     # When both worker env and kwargs provide the same key,
     # submission-time check should raise ValueError
@@ -351,6 +351,7 @@ def test_make_local_gpu_cluster_import_guard(monkeypatch):
         make_local_gpu_cluster(n_workers=1, options={})
 
 
+@pytest.mark.execution_timeout(30)
 def test_make_local_gpu_cluster_workers_gt_gpus(monkeypatch):
     # Fake dask_cuda to pass import, then trigger ValueError with n_workers > num_gpus
     dummy = types.ModuleType("dask_cuda")
@@ -370,7 +371,7 @@ def test_make_local_gpu_cluster_workers_gt_gpus(monkeypatch):
         make_local_gpu_cluster(n_workers=2, options={})
 
 
-@pytest.mark.timeout(30)
+@pytest.mark.execution_timeout(30)
 def test_get_client_context_auto_shutdown(local_cfg, monkeypatch):
     # Ensure get_client shuts down or closes the client without raising exceptions
     calls = {"shutdown": 0, "close": 0}
@@ -428,7 +429,7 @@ def test_worker_plugin_setup_must_return_dict():
         plugin.setup(dummy_worker)
 
 
-@pytest.mark.timeout(30)
+@pytest.mark.execution_timeout(30)
 def test_parallel_for_propagates_task_exception(local_cfg):
     def boom(x):
         if x == 2:
