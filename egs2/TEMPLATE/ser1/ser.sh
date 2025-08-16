@@ -1163,6 +1163,7 @@ if ! "${skip_eval}"; then
                     for i in "${!emotions[@]}"; do
                         if [ "${emotions[$i]}" = "$emo" ]; then
                             echo $i
+                            
                             break
                         fi
                     done
