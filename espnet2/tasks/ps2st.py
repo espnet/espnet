@@ -11,7 +11,13 @@ from espnet2.train.trainer import Trainer
 
 
 class PS2STTask(AbsTask):
-    """Task class for Qwen2-Audio integration following ESPnet2 architecture"""
+    """PS2ST refers to the prompt-based speech-to-text task.
+    The prompt is a text that serves as an instruction
+    for the model to do a specific task such as ASR, IC, ST, etc.
+    The output of this task is a text sequence.
+    It can be transcriptions for ASR or textual labels
+    for classification tasks.
+    """
 
     num_optimizers: int = 1
 

@@ -79,6 +79,7 @@ def main():
     for idx, example in tqdm(enumerate(dataset)):
         audio_inputs = []
         metadata[f"{idx:06d}"]["audio"] = []
+        sampling_rate = None
         if "audio" in example:
             audio = example["audio"]["array"]
             sampling_rate = example["audio"]["sampling_rate"]
@@ -91,6 +92,8 @@ def main():
         while audio_key in example:
             audio = example[audio_key]["array"]
             curr_sr = example[audio_key]["sampling_rate"]
+            if sampling_rate is None:
+                sampling_rate = curr_sr
             assert (
                 sampling_rate == curr_sr
             ), f"Sampling rate mismatch: {sampling_rate} != {curr_sr}"
