@@ -14,20 +14,17 @@ from espnet2.speechlm.core_lm.ar_parallel import ARParallelLM
 
 # Overall model warppers
 from espnet2.speechlm.espnet_model import ESPnetSpeechLMModel
-from espnet2.speechlm.espnet_model_dpo import ESPnetSpeechLMDPOModel
 
 # Others
 from espnet2.speechlm.loss import SpeechLMCrossEntropyLoss
 from espnet2.speechlm.module.abs_transformer import AbsTransformer
 
 # Transformer Implementation
-from espnet2.speechlm.module.builtin import TransformerDecoder
 from espnet2.speechlm.module.huggingface import HFTransformerDecoder
 
 # Tokenizers
 from espnet2.speechlm.tokenizer.abs_tokenizer import AbsTokenizer
 from espnet2.speechlm.tokenizer.codec_tokenizer import CodecTokenizer
-from espnet2.speechlm.tokenizer.image_tokenizer import ImageTokenizer
 from espnet2.speechlm.tokenizer.text_bpe_tokenizer import TextBPETokenizer
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.text.phoneme_tokenizer import g2p_choices
@@ -44,11 +41,10 @@ from espnet2.utils.types import int_or_none, str2bool, str_or_none
 transformer_choices = ClassChoices(
     "transformer",
     classes=dict(
-        builtin=TransformerDecoder,
         huggingface=HFTransformerDecoder,
     ),
     type_check=AbsTransformer,
-    default="builtin",
+    default="huggingface",
 )
 
 corelm_choices = ClassChoices(
@@ -66,7 +62,6 @@ tokenizer_choices = ClassChoices(
     classes=dict(
         codec=CodecTokenizer,
         text_bpe=TextBPETokenizer,
-        image=ImageTokenizer,
     ),
     type_check=AbsTokenizer,
     default=None,
@@ -76,7 +71,6 @@ model_choices = ClassChoices(
     "model",
     classes=dict(
         espnet=ESPnetSpeechLMModel,
-        dpo=ESPnetSpeechLMDPOModel,
     ),
     type_check=AbsESPnetModel,
     default="espnet",
