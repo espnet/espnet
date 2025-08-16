@@ -16,7 +16,8 @@ tts_conf:
     generator_type: vits_generator
     generator_params:
         hidden_channels: 192
-        spks: 21630
+        spks: null              # disable SID table so it won’t read sids
+        spk_embed_dim: 192      # RawNet3 embedding size
         global_channels: 256
         segment_size: 32
         text_encoder_attention_heads: 2
