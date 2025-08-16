@@ -229,7 +229,7 @@ log "Skipped stages: ${skip_stages}"
 if [ ${stage} -le 1  ] && [ ${stop_stage} -ge 1  ] && ! [[ " ${skip_stages} " =~ [[:space:]]1[[:space:]]  ]]; then
     log "Stage 1: Data preparation for train and evaluation."
     # [Task dependent] Need to create data.sh for new corpus
-    # Please prepare utt2lang, lang2utt, wav.scp, segments (optional) 
+    # Please prepare utt2lang, lang2utt, wav.scp, segments (optional)
     # for train/dev/test sets.
     local/data.sh ${local_data_opts}
     log "Stage 1 Complete."
@@ -244,7 +244,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ] && ! [[ " ${skip_stages} " =~ [
         # Temporary move to use perturb_lid_data_dir_speed.sh
         mv "data/${train_set}/utt2lang" "data/${train_set}/utt2spk"
         mv "data/${train_set}/lang2utt" "data/${train_set}/spk2utt"
-        
+
         for factor in ${speed_perturb_factors}; do
             if ${python} -c "assert ${factor} != 1.0" 2>/dev/null; then
                 local/perturb_lid_data_dir_speed.sh --utt_extra_files "${utt_extra_files}" "${factor}" "data/${train_set}" "data/${train_set}_sp${factor}" "${_scp_list}"
