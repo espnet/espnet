@@ -349,7 +349,7 @@ coverage xml -i
 cd ./egs2/mini_an4/ser1
 gen_dummy_coverage
 echo "==== [ESPnet2] SER ==="
-./run.sh --ngpu 0 --stage 1 --stop_stage 13 --python "${python}"
+./run.sh --ngpu 0 --stage 1 --stop_stage 12 --python "${python}"
 # Remove generated files in order to reduce the disk usage
 rm -rf exp dump data
 cd "${cwd}"
