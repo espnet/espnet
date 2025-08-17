@@ -19,7 +19,8 @@ try:
     f_g2p("")
 except ImportError:
     raise ImportError(
-        "g2p_en is not installed. please run `. ./path.sh && pip install git+https://github.com/espnet/g2p.git`."
+        "g2p_en is not installed. please run "
+        "`. ./path.sh && pip install git+https://github.com/espnet/g2p.git`."
     )
 except LookupError:
     # NOTE: we need to download dict in initial running
