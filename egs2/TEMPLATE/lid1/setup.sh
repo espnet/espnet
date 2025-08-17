@@ -50,7 +50,7 @@ done
 
 # Symlinks to TEMPLATE/asr1
 for f in pyscripts scripts steps utils; do
-    target=../../TEMPLATE/lid1/"${f}"
+    target=../../TEMPLATE/asr1/"${f}"
     ln -sf "${target}" "${dir}"
     targets+="${target} "
 done
