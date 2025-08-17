@@ -176,7 +176,7 @@ class CategoryPowerSampler(AbsSampler):
                 current_batch_bins = 0
 
         # 7. If the last batch is not empty, append it to the batch list
-        if not self.drop_last and len(current_batch) >= 1:
+        if not self.drop_last and len(current_batch) >= self.min_batch_size:
             self.batch_list.append(current_batch)
 
     def __repr__(self):
@@ -477,7 +477,7 @@ class CategoryDatasetPowerSampler(AbsSampler):
                 current_batch_bins = 0
 
         # Handle last batch
-        if not self.drop_last and len(current_batch) >= 1:
+        if not self.drop_last and len(current_batch) >= self.min_batch_size:
             self.batch_list.append(current_batch)
 
     def __repr__(self):
