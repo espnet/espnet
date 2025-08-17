@@ -75,7 +75,7 @@ fi
 cat $srcdir/utt2lang | utils/apply_map.pl -f 1 $destdir/utt_map  | \
   utils/apply_map.pl -f 2 $destdir/lang_map >$destdir/utt2lang
 
-utils/utt2lang_to_lang2utt.pl <$destdir/utt2lang >$destdir/lang2utt
+utils/utt2spk_to_spk2utt.pl <$destdir/utt2lang >$destdir/lang2utt
 
 if [ -f $srcdir/feats.scp ]; then
   utils/apply_map.pl -f 1 $destdir/utt_map <$srcdir/feats.scp >$destdir/feats.scp
@@ -137,4 +137,8 @@ done
 [ ! -f $srcdir/feats.scp ] && validate_opts="$validate_opts --no-feats"
 [ ! -f $srcdir/text ] && validate_opts="$validate_opts --no-text"
 
+mv $destdir/lang2utt $destdir/spk2utt
+mv $destdir/utt2lang $destdir/utt2spk
 utils/validate_data_dir.sh $validate_opts $destdir
+mv $destdir/spk2utt $destdir/lang2utt
+mv $destdir/utt2spk $destdir/utt2lang
