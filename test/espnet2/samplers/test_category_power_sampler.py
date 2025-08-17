@@ -1,6 +1,9 @@
 import pytest
 
-from espnet2.samplers.category_power_sampler import CategoryPowerSampler, CategoryDatasetPowerSampler
+from espnet2.samplers.category_power_sampler import (
+    CategoryDatasetPowerSampler,
+    CategoryPowerSampler,
+)
 
 
 @pytest.fixture()
@@ -13,6 +16,7 @@ def category2utt_file(tmp_path):
 
     return str(p)
 
+
 @pytest.fixture()
 def dataset2utt_file(tmp_path):
     p = tmp_path / "dataset2utt"
@@ -22,6 +26,7 @@ def dataset2utt_file(tmp_path):
         f.write("d3 utt9")
 
     return str(p)
+
 
 @pytest.fixture()
 def utt2dataset_file(tmp_path):
@@ -39,6 +44,7 @@ def utt2dataset_file(tmp_path):
 
     return str(p)
 
+
 @pytest.fixture()
 def shape_file(tmp_path):
     p = tmp_path / "speech_shape"
@@ -54,6 +60,7 @@ def shape_file(tmp_path):
         f.write("utt9 900")
 
     return str(p)
+
 
 @pytest.mark.parametrize("drop_last", [True, False])
 def test_CategoryPowerSampler(category2utt_file, shape_file, drop_last):
@@ -71,8 +78,11 @@ def test_CategoryPowerSampler(category2utt_file, shape_file, drop_last):
     list(sampler)
     print(sampler)
 
+
 @pytest.mark.parametrize("drop_last", [True, False])
-def test_CategoryDatasetPowerSampler(category2utt_file, dataset2utt_file, utt2dataset_file, shape_file, drop_last):
+def test_CategoryDatasetPowerSampler(
+    category2utt_file, dataset2utt_file, utt2dataset_file, shape_file, drop_last
+):
     sampler = CategoryDatasetPowerSampler(
         batch_bins=1500,
         shape_files=[shape_file],

@@ -16,9 +16,9 @@
 # limitations under the License.
 
 import os
+import random
 import re
 import sys
-import random
 
 if len(sys.argv) != 3:
     print("Usage: python data_prep.py [an4_root] [sph2pipe]")
