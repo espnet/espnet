@@ -1,7 +1,7 @@
 from typing import Dict, Optional, Tuple, Union
 
 import torch
-from typeguard import typechecked 
+from typeguard import typechecked
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
