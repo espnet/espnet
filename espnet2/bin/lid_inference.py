@@ -298,16 +298,16 @@ def extract_embed_lid(args):
                 use_dic,
                 f"{args.output_dir}/tsne_plots",
                 args.seed,
-                perplexity=5,
-                max_iter=1000,
+                perplexity=args.perplexity,
+                max_iter=args.max_iter,
             )
             if lang_to_avg_embd_dic is not None:
                 gen_tsne_plot(
                     lang_to_avg_embd_dic,
                     f"{args.output_dir}/tsne_plots",
                     args.seed,
-                    perplexity=5,
-                    max_iter=1000,
+                    perplexity=args.perplexity,
+                    max_iter=args.max_iter,
                 )
             else:
                 lang_to_avg_embd_dic = {}
@@ -325,8 +325,8 @@ def extract_embed_lid(args):
                     lang_to_avg_embd_dic,
                     f"{args.output_dir}/tsne_plots",
                     args.seed,
-                    perplexity=5,
-                    max_iter=1000,
+                    perplexity=args.perplexity,
+                    max_iter=args.max_iter,
                 )
 
 
@@ -850,6 +850,18 @@ def get_parser():
         type=int,
         default=None,
         help="The maximum number of utterances per language for t-SNE",
+    )
+    group.add_argument(
+        "--perplexity",
+        type=int,
+        default=5,
+        help="The perplexity for t-SNE",
+    )
+    group.add_argument(
+        "--max_iter",
+        type=int,
+        default=1000,
+        help="The maximum number of iterations for t-SNE",
     )
 
     return parser

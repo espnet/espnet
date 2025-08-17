@@ -73,6 +73,8 @@ inference_batch_size=1
 extract_embd=false             # Whether to extract embeddings per utt
 save_every=1000                # Save every N steps
 max_utt_per_lang_for_tsne=1000 # Maximum number of utterances per language for t-SNE visualization
+perplexity=5                   # The perplexity for t-SNE
+max_iter=1000                  # The maximum number of iterations for t-SNE
 
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=        # Name of training set.
@@ -134,6 +136,8 @@ Options:
     extract_embd=         # Whether to extract embeddings or not
     save_every=           # Save every N steps
     max_utt_per_lang_for_tsne=1000 # Maximum number of utterances per language for t-SNE visualization
+    perplexity=5                   # The perplexity for t-SNE
+    max_iter=1000                  # The maximum number of iterations for t-SNE
 
     # [Task dependent] Set the datadir name created by local/data.sh
     train_set=        # Name of training set.
@@ -623,7 +627,9 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
             --save_embd_per_utt false \
             --save_embd_avg_lang true \
             --save_tsne_plot true \
-            --max_utt_per_lang_for_tsne ${max_utt_per_lang_for_tsne}
+            --max_utt_per_lang_for_tsne ${max_utt_per_lang_for_tsne} \
+            --perplexity ${perplexity} \
+            --max_iter ${max_iter}
 fi
 
 packed_model="${lid_exp}/${lid_exp##*/}_${inference_model%.*}.zip"
