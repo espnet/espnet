@@ -376,7 +376,7 @@ class CategoryDatasetPowerSampler(AbsSampler):
             # N'_d = sum(n'_{l,d} for all l)
             self.dataset_resampled_bins[dataset] = sum(resampled_bins.values())
 
-        # Step 2: Dataset sampling using resampled data 
+        # Step 2: Dataset sampling using resampled data
         # Compute M' = sum(N'_d for all d)
         total_resampled_bins = sum(self.dataset_resampled_bins.values())
 
