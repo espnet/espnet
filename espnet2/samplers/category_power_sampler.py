@@ -161,6 +161,9 @@ class CategoryPowerSampler(AbsSampler):
         for utt in sampled_utts:
             utt_size = utt2sizes[0][utt][0]
 
+            current_batch.append(utt)
+            current_batch_bins += utt_size
+
             if (
                 current_batch_bins > self.batch_bins
                 and len(current_batch) >= self.min_batch_size
@@ -171,9 +174,6 @@ class CategoryPowerSampler(AbsSampler):
                 self.batch_list.append(current_batch)
                 current_batch = []
                 current_batch_bins = 0
-
-            current_batch.append(utt)
-            current_batch_bins += utt_size
 
         # 7. If the last batch is not empty, append it to the batch list
         if not self.drop_last and len(current_batch) >= 1:
@@ -462,6 +462,9 @@ class CategoryDatasetPowerSampler(AbsSampler):
 
             utt_size = utt2sizes[0][utt][0]
 
+            current_batch.append(utt)
+            current_batch_bins += utt_size
+
             if (
                 current_batch_bins > self.batch_bins
                 and len(current_batch) >= self.min_batch_size
@@ -472,9 +475,6 @@ class CategoryDatasetPowerSampler(AbsSampler):
                 self.batch_list.append(current_batch)
                 current_batch = []
                 current_batch_bins = 0
-
-            current_batch.append(utt)
-            current_batch_bins += utt_size
 
         # Handle last batch
         if not self.drop_last and len(current_batch) >= 1:
