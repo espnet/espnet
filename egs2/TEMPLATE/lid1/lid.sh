@@ -685,6 +685,8 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ] && ! [[ " ${skip_stages} " =~
     espnet_task=LID
     # shellcheck disable=SC2034
     task_exp=${lid_exp}
+    # shellcheck disable=SC2034
+    lang=multilingual
     eval "echo \"$(cat scripts/utils/TEMPLATE_HF_Readme.md)\"" > "${dir_repo}"/README.md
 
     this_folder=${PWD}
