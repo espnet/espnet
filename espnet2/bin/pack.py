@@ -75,6 +75,7 @@ class SpkPackedContents(PackedContents):
     files = ["model_file"]
     yaml_files = ["train_config"]
 
+
 class LIDPackedContents(PackedContents):
     files = ["model_file"]
     yaml_files = ["train_config"]
