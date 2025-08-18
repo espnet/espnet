@@ -19,7 +19,7 @@ config_dir="conf/mms_ecapa_baseline.yaml"
 exp_dir="exp_voxlingua107_raw"
 
 # Inference
-inference_model="valid.accuracy.ave.pth"
+inference_model="valid.accuracy.best.pth"
 inference_batch_size=4
 max_utt_per_lang_for_tsne=100
 
