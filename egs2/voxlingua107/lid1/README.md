@@ -8,6 +8,16 @@ This recipe provides a spoken language identification (LID) setup using the VoxL
 
 **Accuracy (%) on In-domain and Out-of-domain Test Sets**
 
+In-domain Test Set(s):
+- VoxLingua107
+
+Out-of-domain Test Set(s):
+- Babel
+- FLEURS
+- ML-SUPERB2.0 Dev
+- ML-SUPERB2.0 Dialect
+- VoxPopuli
+
 <style>
 .hf-model-cell {
     max-width: 120px;
