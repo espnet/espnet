@@ -6,24 +6,56 @@ This recipe provides a spoken language identification (LID) setup using the VoxL
 
 ## Results
 
-**Overall Accuracy**
+**Accuracy (%) on In-domain and Out-of-domain Test Sets**
 
-**
+<style>
+.hf-model-cell {
+    max-width: 120px;
+    overflow-x: auto;
+    white-space: nowrap;
+    scrollbar-width: thin;
+    scrollbar-color: #888 #f1f1f1;
+}
 
-| Config                    | Accuracy (%) | Hugging Face                                                 |
-| ------------------------- | ------------ | ------------------------------------------------------------ |
-| `conf/mms_ecapa_baseline` | 94.3         | [espnet/lid_voxlingua107_mms_ecapa](https://huggingface.co/espnet/lid_voxlingua107_mms_ecapa) |
+.config-cell {
+    max-width: 100px;
+    overflow-x: auto;
+    white-space: nowrap;
+    scrollbar-width: thin;
+    scrollbar-color: #888 #f1f1f1;
+}
 
+.hf-model-cell::-webkit-scrollbar,
+.config-cell::-webkit-scrollbar {
+    height: 6px;
+}
 
-**Per-Language Accuracy**
+.hf-model-cell::-webkit-scrollbar-track,
+.config-cell::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.hf-model-cell::-webkit-scrollbar-thumb,
+.config-cell::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 3px;
+}
+
+.hf-model-cell::-webkit-scrollbar-thumb:hover,
+.config-cell::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+</style>
 
 <div style="overflow-x: auto;">
 
-| Config                    | ara  | aze  | cmn   | dan  | deu  | ell  | eng  | est  | fas  | fin  | fra  | hrv  | hun   | hye  | isl   | ita  | jpn  | lav   | lit  | mkd   | nld  | nno   | nor  | pol   | por   | rus  | slv  | spa  | srp  | swe  | tur  | ukr   | urd  |
-| ------------------------- | ---- | ---- | ----- | ---- | ---- | ---- | ---- | ---- | ---- | ---- | ---- | ---- | ----- | ---- | ----- | ---- | ---- | ----- | ---- | ----- | ---- | ----- | ---- | ----- | ----- | ---- | ---- | ---- | ---- | ---- | ---- | ----- | ---- |
-| `conf/mms_ecapa_baseline` | 94.0 | 94.1 | 100.0 | 97.0 | 93.9 | 80.0 | 88.8 | 95.3 | 92.0 | 96.8 | 97.0 | 50.0 | 100.0 | 96.0 | 100.0 | 98.0 | 97.6 | 100.0 | 84.6 | 100.0 | 95.0 | 100.0 | 70.8 | 100.0 | 100.0 | 93.1 | 88.9 | 92.7 | 85.7 | 97.0 | 95.8 | 100.0 | 78.9 |
+| Config                    | 🤗 HF Repo | VoxLingua107 | Babel | FLEURS | ML-SUPERB2.0 Dev | ML-SUPERB2.0 Dialect | VoxPopuli | Macro Avg. |
+| ------------------------- | ----------- | ------------ | ----- | ------ | ---------------- | -------------------- | --------- | ---------- |
+| <div class="config-cell">`conf/mms_ecapa_baseline`</div> | <div class="hf-model-cell">[espnet/lid_voxlingua107_mms_ecapa](https://huggingface.co/espnet/lid_voxlingua107_mms_ecapa)</div> | 94.2         | 86.7  | 95.8   | 89.0             | 73.4                 | 85.6      | 87.5       |
 
 </div>
+
 
 **Note:**
 
