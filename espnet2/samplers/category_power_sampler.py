@@ -465,7 +465,7 @@ class CategoryDatasetPowerSampler(AbsSampler):
             current_batch.append(utt)
             current_batch_bins += utt_size
 
-            if (
+            if ( 
                 current_batch_bins > self.batch_bins
                 and len(current_batch) >= self.min_batch_size
             ) or (
