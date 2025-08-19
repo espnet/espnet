@@ -1,6 +1,10 @@
 # README
 
-This recipe provides a spoken language identification (LID) setup using the VoxLingua107 dataset, which contains over 6600 hours of speech in 107 languages. The speech segments are extracted from YouTube videos and labeled based on metadata, with a validated development set covering 33 languages.
+This language identification model was trained using the ESPnet recipe from [ESPnet](https://github.com/espnet/espnet/) toolkit. It leverages the pretrained [MMS-1B](https://huggingface.co/facebook/mms-1b) as the encoder and [ECAPA-TDNN](https://arxiv.org/pdf/2005.07143) as the embedding extractor for robust spoken language identification.
+
+The model is trained on the [VoxLingua107](https://cs.taltech.ee/staff/tanel.alumae/data/voxlingua107/) dataset, which comprises over 6,600 hours of speech spanning 107 languages. Speech segments are sourced from YouTube videos and annotated using metadata.
+
+This recipe provides data preparation scripts and training setup.
 
 <details>
 <summary>Supported languages</summary>
@@ -115,20 +119,32 @@ This recipe provides a spoken language identification (LID) setup using the VoxL
 
 </details>
 
+## Usage
+
+To train the model from scratch, simply run:
+
+```bash
+./run.sh
+```
+
+For using pretrained checkpoints, please see the Hugging Face repository [espnet/lid_voxlingua107_mms_ecapa](https://huggingface.co/espnet/lid_voxlingua107_mms_ecapa).
+
+## Train and Evaluation Datasets
+
+The training used only the VoxLingua107 dataset, comprising 6,628 hours of speech across 107 languages from YouTube.
+
+| Dataset       | Domain      | #Langs. Train/Test | Dialect | Training Setup (VL107-only) |
+| ------------- | ----------- | ------------------ | ------- | --------------------------- |
+| [VoxLingua107](https://cs.taltech.ee/staff/tanel.alumae/data/voxlingua107/)  | YouTube     | 107/33             | No      | Seen                        |
+| [Babel](https://citeseerx.ist.psu.edu/document?repid=rep1&type=pdf&doi=31a13cefb42647e924e0d2778d341decc44c40e9)         | Telephone   | 25/25              | No      | Unseen                      |
+| [FLEURS](https://huggingface.co/datasets/google/xtreme_s)        | Read speech | 102/102            | No      | Unseen                      |
+| [ML-SUPERB 2.0](https://huggingface.co/datasets/espnet/ml_superb_hf) | Mixed       | 137/(137, 8)       | Yes     | Unseen                      |
+| [VoxPopuli](https://huggingface.co/datasets/facebook/voxpopuli)     | Parliament  | 16/16              | No      | Unseen                      |
+
 
 ## Results
 
 **Accuracy (%) on In-domain and Out-of-domain Test Sets**
-
-In-domain Test Set(s):
-- VoxLingua107
-
-Out-of-domain Test Set(s):
-- Babel
-- FLEURS
-- ML-SUPERB2.0 Dev
-- ML-SUPERB2.0 Dialect
-- VoxPopuli
 
 <style>
 .hf-model-cell {
