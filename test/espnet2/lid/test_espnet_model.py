@@ -4,8 +4,8 @@ import torch
 from espnet2.asr.frontend.s3prl import S3prlFrontend
 from espnet2.asr.specaug.specaug import SpecAug
 from espnet2.layers.utterance_mvn import UtteranceMVN
-from espnet2.lid.espnet_model import ESPnetLIDModel
 from espnet2.spk.encoder.ecapa_tdnn_encoder import EcapaTdnnEncoder
+from espnet2.lid.espnet_model import ESPnetLIDModel
 from espnet2.spk.loss.aamsoftmax_subcenter_intertopk import (
     ArcMarginProduct_intertopk_subcenter,
 )
@@ -65,7 +65,8 @@ aamsoftmax_it_sub_loss = ArcMarginProduct_intertopk_subcenter(
 @pytest.mark.parametrize("loss", [aamsoftmax_it_sub_loss])
 @pytest.mark.parametrize("training", [True, False])
 def test_lid_model(
-    frontend, specaug, normalize, encoder, pooling, projector, loss, training
+    frontend, specaug, normalize, encoder,
+    pooling, projector, loss, training
 ):
     inputs = torch.randn(2, 8000)
     ilens = torch.LongTensor([8000, 7800])
@@ -86,4 +87,6 @@ def test_lid_model(
         lid_model.eval()
 
     kwargs = {"speech": inputs, "speech_lengths": ilens, "lid_labels": lid_labels}
-    result = lid_model(**kwargs)
+    loss, *_ = lid_model(**kwargs)
+    loss.backward()
+
