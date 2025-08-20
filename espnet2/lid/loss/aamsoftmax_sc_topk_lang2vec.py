@@ -8,8 +8,7 @@ from espnet2.spk.loss.abs_loss import AbsLoss
 
 
 class AAMSoftmaxSCTopKLang2Vec(AbsLoss):
-    r"""
-    AAMSoftmax with intertopk and subcenter, and lang2vec prediction.
+    """AAMSoftmax with intertopk and subcenter, and lang2vec prediction.
 
     The AAMSoftmax part is same with ArcMarginProduct_intertopk_subcenter
     in `aamsoftmax_subcenter_intertopk.py`
@@ -24,12 +23,6 @@ class AAMSoftmaxSCTopKLang2Vec(AbsLoss):
         k_top: number of hard samples
         mp: margin penalty of hard samples
         do_lm: whether do large margin finetune
-
-        NOTE(qingzheng):
-        There are no place in ESPnet been found use the update function
-        to update the cos_mp and sin_mp, so the the cos_mp are always
-        cos(0.0) and sin_mp are sin(0.0). So, actually, the marginize on
-        the negative classes in topK is not used.
     """
 
     def __init__(
@@ -128,30 +121,19 @@ class AAMSoftmaxSCTopKLang2Vec(AbsLoss):
         self.cos_mp = math.cos(mp)
         self.sin_mp = math.sin(mp)
 
-    def _calc_subcenter_cosine(self, input, weight=None):
-        """
-        Calculate the cosine similarity between input and K subcenters.
-        If the weight is not provided (None), it will use the default
-        weight (in __init__). The weight input here is for the self-conditioning
-        LID on the intermediate layers, which may need to use independent
-        weights. If weight is not provided here and use self-conditioning
-        LID, it means the weight is shared across all intermediate layers
-        and the downstream AAMSoftmax.
+    def _calc_subcenter_cosine(self, input):
+        """Calculate the cosine similarity between input and K subcenters.
+
         Args:
             input: (batch, in_features)
-            weight: (K * nclasses, in_features)
+
         Returns:
             cosine: (batch, nclasses)
         """
         # there are k subcenter per class in weight
-        if weight is not None:
-            cosine = F.linear(
-                F.normalize(input), F.normalize(weight)
-            )  # (batch, nclasses * k)
-        else:
-            cosine = F.linear(
-                F.normalize(input), F.normalize(self.weight)
-            )  # (batch, nclasses * k)
+        cosine = F.linear(
+            F.normalize(input), F.normalize(self.weight)
+        )  # (batch, nclasses * k)
         cosine = torch.reshape(
             cosine, (-1, self.out_features, self.K)
         )  # (batch, nclasses, k)
@@ -165,25 +147,21 @@ class AAMSoftmaxSCTopKLang2Vec(AbsLoss):
         return cosine
 
     def _add_margin(self, cosine, label):
-        """
-        Add margin to the cosine similarity. Only add margin during training.
+        """Add margin to the cosine similarity.
+        
+        Only add margin during training.
+
         Args:
             cosine: (batch, nclasses)
             label: (batch,)
+
         Returns:
             output: (batch, nclasses)
         """
         sine = torch.sqrt(1.0 - torch.pow(cosine, 2))
 
-        # NOTE(qingzheng): \ means drop trend, / means increase trend
-        # phi: cos(theta + m), true class, +m, /, cos(+m) \,
-        # -logcos(+m) /, original goal is \, hence is the penalty
-        phi = cosine * self.cos_m - sine * self.sin_m
+        phi = cosine * self.cos_m - sine * self.sin_m # cos(theta + m)
 
-        # NOTE(qingzheng): phi_mp: for the topk samples, negative class
-        # cos(theta - mp), -mp, \, cos(-mp) /, -logcos(-mp) \,
-        # original goal is / (for negative class, we want max loss),
-        # hence is the penalty
         phi_mp = cosine * self.cos_mp + sine * self.sin_mp  # cos(theta - mp)
 
         if self.easy_margin:
@@ -216,13 +194,15 @@ class AAMSoftmaxSCTopKLang2Vec(AbsLoss):
 
         return output
 
-    def forward(self, input, label=None, lang2vec=None, weight=None):
+    def forward(self, input, label=None, lang2vec=None):
         """
-        weight should be provided if use self-conditioning LID and apply
-        independent weights across all intermediate layers.
+        Args:
+            input: (batch, in_features)
+            label: (batch,)
+            lang2vec: (batch, lang2vec_dim)
         """
 
-        cosine = self._calc_subcenter_cosine(input, weight)
+        cosine = self._calc_subcenter_cosine(input)
 
         pred_lids = torch.argmax(cosine, dim=1)  # (batch,)
 
