@@ -2,6 +2,7 @@
 # DO NOT RUN THIS SCRIPT DIRECTLY!!!!!!!!
 log "DO NOT RUN THIS SCRIPT DIRECTLY!!!!!!!!!"
 log "Please see the script for each dataset preparation!"
+log "Please see local/README.md for more details!"
 exit 1
 
 download_path="downloads"
@@ -27,7 +28,7 @@ bash local/prepare_voxpopuli.sh
 
 # 2) Combine datasets for training
 # Before running combine.sh, make sure each dataset has been fully processed.
-# Specifically, run the dump stages (stage 1 -> stage 4) in the lid.sh pipelines,
-# e.g., ./run.sh --stage 1 --stop_stage 4.
+# Specifically, run the dump stages (stage 3) in the lid.sh pipelines,
+# e.g., ./run.sh --stage 3 --stop_stage 3.
 # After all dumps are ready, run:
 bash local/combine.sh
