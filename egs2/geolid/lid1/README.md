@@ -15,8 +15,7 @@ For further details on the geolocation-aware LID methodology, please refer to ou
 
 First, ensure you have ESPnet installed. If not, follow the [ESPnet installation instructions](https://espnet.github.io/espnet/installation.html).
 
-
-This project requires modified versions of s3prl and transformers for geolocation conditioning functionality.
+This project requires **modified versions** of s3prl and transformers for geolocation conditioning functionality.
 
 **Install Modified s3prl:**
 ```bash
@@ -46,34 +45,39 @@ cd ..
 
 ### Quick Start
 
-**Navigate to project directory:**
+**Step 1: Navigate to project directory**
 ```bash
 cd espnet/egs2/geolid/lid1
 ```
 
+If you would like to train the model or run inference using our prepared datasets (instead of your own), please first follow the [data preparation instructions](local/README.md) to set up the required data.
+
 **Option 1: Train with Combined Dataset**
 ```bash
 # Uses all available datasets for training
-./run_combined.sh
+./run_combined.sh --stage 4 --stop_stage 8
 ```
 
 **Option 2: Train with VoxLingua107 Only**
 ```bash
 # Four different configurations available
 # Check run_voxlingua107_only.sh for configuration details
-./run_voxlingua107_only.sh
+./run_voxlingua107_only.sh --stage 4 --stop_stage 8
 ```
 
-### Using Pre-trained Models
-
-We provide pre-trained models for immediate use:
+We also provide pre-trained models for immediate use:
 
 ```bash
 # Download the exp_combined to egs2/geolid/lid1
 hf download espnet/geolid_vl107only_shared_trainable --local-dir . --exclude "README.md" "meta.yaml" ".gitattributes"
 
-./run_voxlingua107_only.sh --skip_data_prep false --skip_train true --lid_config conf/voxlingua107_only/mms_ecapa_upcon_32_44_it0.4_shared_trainable.yaml
+./run_voxlingua107_only.sh --skip_data_prep false --skip_train true --lid_config conf/voxlingua107_only/mms_ecapa_upcon_32_44_it0.4_shared_trainable.yaml --stage 6 --stop_stage 8
+
 ```
+
+To run inference with checkpoints trained on the combined training set, please use the script `run_combined.sh`.
+
+If you want to perform inference on your own prepared datasets, modify the test_sets field in the corresponding run script.
 
 See the [Results](#results) section below for detailed performance metrics and Hugging Face model links.
 
