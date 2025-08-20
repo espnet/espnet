@@ -1,6 +1,6 @@
 # Data Preparation Scripts Guide
 
-This directory contains scripts for preparing multiple language identification datasets. **Do not run any script directly as an executable**, but follow the step-by-step instructions below.
+This directory contains scripts for preparing multiple language identification datasets. Please follow the step-by-step instructions below.
 
 ## Important Notes
 
