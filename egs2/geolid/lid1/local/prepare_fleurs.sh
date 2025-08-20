@@ -40,18 +40,21 @@ done
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     python local/prepare_fleurs.py \
-      --cache /scratch/bbjs/shared/corpora/fleurs \
       --output_dir ${output_dir} || exit 1;
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     for x in ${splits}; do
-      check_sorted ${output_dir}/${x}/utt2spk
+      check_sorted ${output_dir}/${x}/utt2lang
       check_sorted ${output_dir}/${x}/wav.scp
-      ./utils/utt2spk_to_spk2utt.pl ${output_dir}/${x}/utt2spk > ${output_dir}/${x}/spk2utt
-      cp ${output_dir}/${x}/spk2utt ${output_dir}/${x}/category2utt
+      ./utils/utt2spk_to_spk2utt.pl ${output_dir}/${x}/utt2lang > ${output_dir}/${x}/lang2utt
+      cp ${output_dir}/${x}/lang2utt ${output_dir}/${x}/category2utt
+      mv ${output_dir}/${x}/utt2lang ${output_dir}/${x}/utt2spk
+      mv ${output_dir}/${x}/lang2utt ${output_dir}/${x}/spk2utt
       utils/fix_data_dir.sh ${output_dir}/${x} || exit 1;
       utils/validate_data_dir.sh --no-feats --non-print --no-text ${output_dir}/${x} || exit 1;
+      mv ${output_dir}/${x}/utt2spk ${output_dir}/${x}/utt2lang
+      mv ${output_dir}/${x}/spk2utt ${output_dir}/${x}/lang2utt
     done
 fi
 

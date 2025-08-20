@@ -31,18 +31,25 @@ def build_audio_path(utterance_ids: List[str], base_dir: str):
     return wav_scp
 
 
-def build_utt2spk(utterance_ids: List[str], lang_folder_name: str):
-    utt2spk = []
+def build_utt2lang(utterance_ids: List[str], lang_folder_name: str):
+    utt2lang = []
     for utterance_id in utterance_ids:
-        utt2spk.append(f"{utterance_id} {lang_to_iso3[lang_folder_name]}\n")
-    return utt2spk
+        utt2lang.append(f"{utterance_id} {lang_to_iso3[lang_folder_name]}\n")
+    return utt2lang
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--dataset_path", type=str, default="downloads/voxpopuli")
+    return parser.parse_args()
 
 
 def main():
-    
+    args = parse_args()
+    dataset_path = args.dataset_path
+
     target_folder = "data"
     
-    original_folder = "/scratch/bbjs/shared/corpora/voxpopuli/_transcribed_data"
+    original_folder = f"{dataset_path}/_transcribed_data"
 
     dataset_name = "voxpopuli"
     
@@ -50,29 +57,25 @@ def main():
     # for split1,split2 in [("train", f"train_{dataset_name}_lang"), ("dev", f"dev_{dataset_name}_lang"), ("dev", f"test_{dataset_name}_lang")]:
     for split1,split2 in [("dev", f"dev_{dataset_name}_lang")]:
         wav_scp = []
-        utt2spk = []
+        utt2lang = []
         for lang_folder_name in lang_to_iso3.keys():
             lang_folder_path = os.path.join(original_folder, lang_folder_name)
             df = pd.read_csv(os.path.join(lang_folder_path, f"asr_{split1}.tsv"), sep="\t")
             df = df.iloc[::-1]
-            for _, row in df.iterrows():
-                print(row)
-                if pd.notnull(row.get('accent')):
-                    print(row)
-            # utterance_ids = df['id'].tolist()
-            # utterance_ids = [f"{lang_to_iso3[lang_folder_name]}_{utterance_id}" for utterance_id in utterance_ids]
-            # wav_scp.extend(build_audio_path(utterance_ids, lang_folder_path))
-            # utt2spk.extend(build_utt2spk(utterance_ids, lang_folder_name))
+            utterance_ids = df['id'].tolist()
+            utterance_ids = [f"{lang_to_iso3[lang_folder_name]}_{utterance_id}" for utterance_id in utterance_ids]
+            wav_scp.extend(build_audio_path(utterance_ids, lang_folder_path))
+            utt2lang.extend(build_utt2lang(utterance_ids, lang_folder_name))
 
 
         # make directory
-        # os.makedirs(os.path.join(target_folder, split2), exist_ok=True)
+        os.makedirs(os.path.join(target_folder, split2), exist_ok=True)
         
         
-        # with open(os.path.join(target_folder, split2, "wav.scp"), "w") as f:
-        #     f.writelines(sorted(wav_scp))
-        # with open(os.path.join(target_folder, split2, "utt2spk"), "w") as f:
-        #     f.writelines(sorted(utt2spk))
+        with open(os.path.join(target_folder, split2, "wav.scp"), "w") as f:
+            f.writelines(sorted(wav_scp))
+        with open(os.path.join(target_folder, split2, "utt2lang"), "w") as f:
+            f.writelines(sorted(utt2lang))
 
 
 

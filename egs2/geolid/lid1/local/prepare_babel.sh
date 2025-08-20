@@ -13,6 +13,7 @@ stop_stage=100
 dataset_name="babel"
 train_set="train_${dataset_name}_lang"
 valid_set="dev_${dataset_name}_lang"
+dataset_path="downloads/babel"
 
 log "$0 $*"
 . utils/parse_options.sh
@@ -41,19 +42,41 @@ langs=(
 # Stage 1: (Optional) Download
 # =======================
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
-    log "Stage 1: Download BABEL (currently skipped)"
-    log "Skipping download step. Ensure corpus is available in /scratch/bbjs/shared/corpora/babel/"
+    log "Stage 1: Download BABEL"
+    if [ ! -d "${dataset_path}" ]; then
+        log "Please manually download the Babel corpus from LDC:"
+        log "    https://catalog.ldc.upenn.edu"
+        log "Then unzip it and place it under downloads/babel"
+        log "Note: Due to copyright restrictions, we cannot provide an automatic download script."
+        exit 1
+    fi
 fi
 
 # =======================
-# Stage 2: Prepare Kaldi-format files
+# Stage 2: Prepare list files
 # =======================
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
-    log "Stage 2: Preparing Kaldi-format files per language"
+    log "Stage 2: Preparing BABEL list files"
+        
+    bash local/prepare_babel_lists.sh --dataset_path ${dataset_path} --lists_dir conf/lists
+        
+    if [ $? -ne 0 ]; then
+        log "Error: Failed to generate list files"
+        exit 1
+    fi
+    
+    log "✅ List files preparation complete"
+fi
+
+# =======================
+# Stage 3: Prepare Kaldi-format files
+# =======================
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
+    log "Stage 3: Preparing Kaldi-format files per language"
 
     for entry in "${langs[@]}"; do
         read -r lang iso3 train_list dev_list <<< "$entry"
-        base_path="/scratch/bbjs/shared/corpora/babel/${lang}/conversational"
+        base_path="${dataset_path}/${lang}/conversational"
         lexicon_path="${base_path}/reference_materials/lexicon.txt"
 
         for split in training dev; do
@@ -66,12 +89,12 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             if [ "$split" == "training" ]; then
                 local/prepare_babel.pl \
                     --iso3 "$iso3" --vocab "$lexicon_path" --fragmentMarkers \-\*\~ \
-                    --filelist "conf/lists/${train_list}" \
+                    --filelist "conf/lists/${train_list}.filenames" \
                     "${base_path}/${split}" "$out_dir" > "$out_dir/skipped_utts.log"
             elif [ "$split" == "dev" ]; then
                 local/prepare_babel.pl \
                     --iso3 "$iso3" --vocab "$lexicon_path" --fragmentMarkers \-\*\~ \
-                    --filelist "conf/lists/${dev_list}" \
+                    --filelist "conf/lists/${dev_list}.filenames" \
                     "${base_path}/${split}" "$out_dir" > "$out_dir/skipped_utts.log"
             fi
         done
@@ -83,20 +106,20 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     for split in train dev; do
         out_dir="data/${split}_babel_lang"
         mkdir -p "$out_dir"
-        touch ${out_dir}/{utt2spk,segments,wav.scp}
+        touch ${out_dir}/{utt2lang,segments,wav.scp}
 
         for d in data/${split}_BABEL_*; do
             log "Merging $d into $out_dir"
-            for f in utt2spk segments wav.scp; do
+            for f in utt2lang segments wav.scp; do
                 [ -f "$d/$f" ] && cat "$d/$f" >> "$out_dir/$f"
             done
         done
 
-        for f in utt2spk segments wav.scp; do
+        for f in utt2lang segments wav.scp; do
             sort "$out_dir/$f" -o "$out_dir/$f"
         done
 
-        utils/utt2spk_to_spk2utt.pl "$out_dir/utt2spk" > "$out_dir/spk2utt"
+        utils/utt2spk_to_spk2utt.pl "$out_dir/utt2lang" > "$out_dir/lang2utt"
 
         # Move intermediate files to .backup
         for d in data/${split}_BABEL_*; do
@@ -107,20 +130,24 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     done
 
     for x in ${partitions}; do
-        cp "data/${x}/spk2utt" "data/${x}/category2utt"
+        cp "data/${x}/lang2utt" "data/${x}/category2utt"
     done
 
     log "✅ Kaldi preparation and merging complete"
 fi
 
 # =======================
-# Stage 3: Validate data directories
+# Stage 4: Validate data directories
 # =======================
-if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-    log "Stage 3: Validating Kaldi data directories"
+if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
+    log "Stage 4: Validating Kaldi data directories"
     for x in ${partitions}; do
+        mv data/${x}/utt2lang data/${x}/utt2spk
+        mv data/${x}/lang2utt data/${x}/spk2utt
         utils/fix_data_dir.sh "data/${x}" || exit 1
         utils/validate_data_dir.sh --no-feats "data/${x}" --no-text
+        mv data/${x}/utt2spk data/${x}/utt2lang
+        mv data/${x}/spk2utt data/${x}/lang2utt
     done
     log "✅ Validation complete"
 fi

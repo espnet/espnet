@@ -8,9 +8,9 @@ use Getopt::Long;
 #  -  Place transcripts in a file named "text"
 #     Each line contains: utteranceID word1 word2 ...
 #
-#  -  Place the utterance-to-speaker map in a file named "utt2spk"
-#     Each line contains: utteranceID speakerID
-#     speakerID MUST BE be a prefix of the utteranceID
+#  -  Place the utterance-to-language map in a file named "utt2lang"
+#     Each line contains: utteranceID languageID
+#     languageID MUST BE be a prefix of the utteranceID
 #     Kaldi code does not require it, but some training scripts do.
 #
 #   -  Place the utterance-to-segment map in a file named "segments"
@@ -19,9 +19,9 @@ use Getopt::Long;
 #   -  Place the recordingID-to-waveformFile map in "wav.scp"
 #      Each line contains: recordingIB Input_pipe_for_reading_waveform|
 #
-#  -  Place the speaker-utterance map in a file named "spk2utt"
-#     Each line contains: speakerID utteranceID_1 utteranceID_2 ...
-#     This is the inverse of the utt2spk mapping
+#  -  Place the language-utterance map in a file named "lang2utt"
+#     Each line contains: languageID utteranceID_1 utteranceID_2 ...
+#     This is the inverse of the utt2lang mapping
 #
 # Note 1: the utteranceIDs in the first 3 files must match exactly, and
 #         the recordingIDSs in the last 2 files must match exactly.
@@ -38,12 +38,6 @@ use Getopt::Long;
 #        /export/babel/sanjeev/kaldi-trunk/tools/sph2pipe_v2.5/sph2pipe \
 #        -f wav -p -c 1 \
 #        BABEL_BP_101_11694_20111204_205320_inLine.sph|
-#
-#   -  The filename contains speaker information, e.g.
-#        BABEL_BP_101_37210_20111102_170037_O1_scripted.sph -> 37210_A
-#        BABEL_BP_101_37210_20111102_172955_inLine.sph      -> 37210_A
-#        BABEL_BP_101_37210_20111102_172955_outLine.sph     -> 37210_B
-#      Specifically, the inLine speaker is the same as scripted
 #
 #   -  The transcription file has time marks in square brackets, e.g.
 #        [0.0]
@@ -367,43 +361,6 @@ if (-d $AudioDir) {
         print STDERR ("$0 NOTICE: No .sph files in $AudioDir\n");
     }
 
-    # @AudioFiles = `ls ${AudioDir}/*.wav`;
-    # if ($#AudioFiles >= 0) {
-    #     $soxi=`which soxi` or die "Could not find soxi binary -- do you have sox installed?\n";
-    #     chomp $soxi;
-    #     printf STDERR ("$0: Found %d .wav files in $AudioDir\n", ($#AudioFiles +1));
-    #     print STDERR "Soxi found: $soxi\n";
-    #     $numFiles = 0;
-    #     while ($filename = shift @AudioFiles) {
-    #         $fileID = $filename;
-    #         $fileID =~ s:.+/::;      # remove path prefix
-    #         $fileID =~ s:\.wav\s*::; # remove file extension
-    #         if (exists $numUtterancesInFile{$fileID}) {
-    #             # Some portion of this file has training transcriptions
-    #             $duration = `$soxi -D $filename`;
-    #             if ($duration <=0) {
-    #                 # Unable to extract a valid duration from the sphere header
-    #                 print STDERR ("Unable to extract duration: skipping file $filename");
-    #             } else {
-    #                 if (exists $waveformName{$fileID} ) {
-    #                   print STDERR ("$0 ERROR: duplicate fileID \"$fileID\" for files \"$filename\" and \"" . $waveformName{$fileID} ."\"\n");
-    #                   exit(1);
-    #                 }
-    #                 $waveformName{$fileID} = $filename; chomp $waveformName{$fileID};
-    #                 $duration{$fileID} = $duration;
-    #                 $numFiles++;
-    #             }
-    #         } else {
-    #             # Could be due to text filtering resulting in an empty transcription
-    #             # Output information to STDOUT to enable > /dev/null
-    #             print STDOUT ("$0: No transcriptions for audio file ${fileID}.sph\n");
-    #         }
-    #     }
-    #     print STDERR ("$0: Recorded durations from headers of $numFiles .sph files\n");
-    # } else {
-    #     print STDERR ("$0 NOTICE: No .wav files in $AudioDir\n");
-    # }
-
     # new added
     @AudioFiles = `ls ${AudioDir}/*.wav`;
     if ($#AudioFiles >= 0) {
@@ -457,8 +414,8 @@ print STDERR ("$0: Writing 5 output files to $outDir\n");
 $textFileName = "$outDir/text";
 open (TEXT, "> $textFileName") || die "$0 ERROR: Unable to write text file $textFileName\n";
 
-$utt2spkFileName = "$outDir/utt2spk";
-open (UTT2SPK, "> $utt2spkFileName") || die "$0 ERROR: Unable to write utt2spk file $utt2spkFileName\n";
+$utt2langFileName = "$outDir/utt2lang";
+open (UTT2SPK, "> $utt2langFileName") || die "$0 ERROR: Unable to write utt2lang file $utt2langFileName\n";
 
 $segmentsFileName = "$outDir/segments";
 open (SEGMENTS, "> $segmentsFileName") || die "$0 ERROR: Unable to write segments file $segmentsFileName\n";
@@ -470,7 +427,7 @@ open (SCP, "| sort -u >  $scpFileName") || die "$0 ERROR: Unable to write wav.sc
 # my $SOXBINARY =`which sox` or die "Could not find the sph2pipe command"; chomp $SOXBINARY;
 # $SOXFLAGS ="-r 8000 -c 1 -b 16 -t wav - downsample";
 
-$spk2uttFileName = "$outDir/spk2utt";
+$spk2uttFileName = "$outDir/lang2utt";
 open (SPK2UTT, "> $spk2uttFileName") || die "$0 ERROR: Unable to write spk2utt file $spk2uttFileName\n";
 
 $oovFileName = "$outDir/oovCounts";
@@ -518,9 +475,9 @@ foreach $w (sort keys %oovCount) {
 exit(1) unless (close(TEXT) && close(UTT2SPK) && close(SEGMENTS) && close(SCP) && close(SPK2UTT) && close(OOV));
 
 print STDERR ("$0: Summary\n");
-print STDERR ("\tWrote $numUtterances lines each to text, utt2spk and segments\n");
+print STDERR ("\tWrote $numUtterances lines each to text, utt2lang and segments\n");
 print STDERR ("\tWrote $numWaveforms lines to wav.scp\n");
-print STDERR ("\tWrote $numSpeakers lines to spk2utt\n");
+print STDERR ("\tWrote $numSpeakers lines to lang2utt\n");
 print STDERR ("\tHmmm ... $numSpeakers distinct speakers in this corpus? Unusual!\n")
     if (($numSpeakers<($numUtterances/500.0)) || ($numSpeakers>($numUtterances/2.0)));
 print STDERR ("\tTotal # words = $numWords (including $numOOV OOVs) + $numSilence $silence\n")

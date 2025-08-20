@@ -52,10 +52,10 @@ mv dump/raw/train_babel_lang/segments.backup dump/raw/train_babel_lang/segments
 
 python local/create_utt2dataset.py --train_sets "${train_sets}"
 
-utils/utt2spk_to_spk2utt.pl ${train_out}/utt2spk > ${train_out}/spk2utt || exit 1;
+utils/utt2spk_to_spk2utt.pl ${train_out}/utt2lang > ${train_out}/lang2utt || exit 1;
 utils/utt2spk_to_spk2utt.pl ${train_out}/utt2dataset > ${train_out}/dataset2utt || exit 1;
 
-cp ${train_out}/spk2utt ${train_out}/category2utt || exit 1;
+cp ${train_out}/lang2utt ${train_out}/category2utt || exit 1;
 
 utils/fix_data_dir.sh ${train_out} || exit 1;
 utils/validate_data_dir.sh --no-feats --non-print --no-text ${train_out} || exit 1;

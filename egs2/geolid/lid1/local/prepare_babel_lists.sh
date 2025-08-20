@@ -107,10 +107,10 @@ process_language() {
 }
 
 # Process each language
-# for entry in "${langs[@]}"; do
-#     IFS=':' read -r lang_code iso3 lang_dir train_list dev_list <<< "$entry"
-#     process_language "$lang_code" "$iso3" "$lang_dir" "$train_list" "$dev_list"
-# done
+for entry in "${langs[@]}"; do
+    IFS=':' read -r lang_code iso3 lang_dir train_list dev_list <<< "$entry"
+    process_language "$lang_code" "$iso3" "$lang_dir" "$train_list" "$dev_list"
+done
 
 log "Done! Processed ${#langs[@]} languages"
 

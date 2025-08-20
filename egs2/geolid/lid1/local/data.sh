@@ -4,6 +4,8 @@ log "DO NOT RUN THIS SCRIPT DIRECTLY!!!!!!!!!"
 log "Please see the script for each dataset preparation!"
 exit 1
 
+download_path="downloads"
+
 # NOTE
 # This file is a TEMPLATE that shows the typical order to PREPARE each dataset.
 # It’s strongly recommended to run each `prepare_*.sh` script separately
@@ -14,8 +16,10 @@ exit 1
 #
 # We do NOT run this script end-to-end in practice; we prepare datasets one by one.
 
+
+
 # 1) Prepare individual datasets (edit paths inside each script before running)
-bash local/prepare_babel.sh
+bash local/prepare_babel.sh --dataset_path "${download_path}/babel"
 bash local/prepare_fleurs.sh
 bash local/prepare_ml_superb2.sh
 bash local/prepare_voxlingua107.sh
