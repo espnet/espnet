@@ -53,7 +53,7 @@ encoder_condition: identity
 pooling_condition: chn_attn_stat
 
 projector_condition: rawnet3
-projector_conf:
+projector_condition_conf:
   output_size: 192
 
 # Preprocessor

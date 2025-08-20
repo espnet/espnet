@@ -43,10 +43,10 @@ projector_conf:
 # Upstream Conditioning Modules
 encoder_condition: identity
 
-projector_condition: chn_attn_stat
+pooling_condition: chn_attn_stat
 
 projector_condition: rawnet3
-projector_conf:
+projector_condition_conf:
   output_size: 192
 
 # Preprocessor
