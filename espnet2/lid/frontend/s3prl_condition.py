@@ -1,6 +1,6 @@
 import copy
 import logging
-from typing import Optional, Tuple, Union, List
+from typing import List, Optional, Tuple, Union
 
 import humanfriendly
 import torch
@@ -10,6 +10,7 @@ from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet.nets.pytorch_backend.frontends.frontend import Frontend
 
+
 class S3prlFrontendCondition(AbsFrontend):
     """
     This is a modified version of S3prlFrontend for geolocation-aware LID.
@@ -17,12 +18,13 @@ class S3prlFrontendCondition(AbsFrontend):
     For the geolocation-aware LID, please refer to the following paper:
         Geolocation-Aware Robust Spoken Language Identification
 
-    This class requires a modified version of S3PRL with S3PRLUpstreamCondition 
+    This class requires a modified version of S3PRL with S3PRLUpstreamCondition
     support. Installation:
         git clone -b lid https://github.com/Qingzheng-Wang/s3prl.git
         cd s3prl
         pip install -e .
     """
+
     @typechecked
     def __init__(
         self,
@@ -45,7 +47,7 @@ class S3prlFrontendCondition(AbsFrontend):
                 "  cd s3prl\n"
                 "  pip install -e ."
             )
-        try: 
+        try:
             from s3prl.nn import S3PRLUpstreamCondition
         except Exception as e:
             raise ImportError(
@@ -71,9 +73,8 @@ class S3prlFrontendCondition(AbsFrontend):
             s3prl.util.download.set_dir(download_dir)
 
         assert (
-            frontend_conf.get(
-                "upstream", None
-            ) in S3PRLUpstreamCondition.available_names()
+            frontend_conf.get("upstream", None)
+            in S3PRLUpstreamCondition.available_names()
         ), f"Invalid upstream model: {frontend_conf.get('upstream', None)}"
 
         upstream = S3PRLUpstreamCondition(
@@ -96,8 +97,8 @@ class S3prlFrontendCondition(AbsFrontend):
                 not multilayer_feature
             ), "multilayer feature will be deactivated, when a specific layer used"
         elif layer is not None and isinstance(layer, list):
-            assert (
-                all([l >= 0 and l <= upstream.num_layers for l in layer])
+            assert all(
+                [l >= 0 and l <= upstream.num_layers for l in layer]
             ), f"Invalid layer index: {layer}, should all be in [0, {upstream.upstream.num_layers}]"
             layer_selections = layer
             assert (
@@ -137,15 +138,11 @@ class S3prlFrontendCondition(AbsFrontend):
         return self.featurizer.output_size
 
     def forward(
-        self, 
-        input: torch.Tensor,
-        input_lengths: torch.Tensor, 
-        labels: torch.Tensor
+        self, input: torch.Tensor, input_lengths: torch.Tensor, labels: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        (
-            feats, feats_lens, 
-            intermediate_lang2vec_preds
-        ) = self.upstream(input, input_lengths, labels)
+        (feats, feats_lens, intermediate_lang2vec_preds) = self.upstream(
+            input, input_lengths, labels
+        )
         if self.layer is not None and isinstance(self.layer, int):
             layer = self.layer
             feats, feats_lens = feats[layer], feats_lens[layer]
@@ -159,7 +156,4 @@ class S3prlFrontendCondition(AbsFrontend):
         if self.tile_factor != 1:
             feats = self._tile_representations(feats)
 
-        return (
-            feats, feats_lens, 
-            intermediate_lang2vec_preds
-        )
+        return (feats, feats_lens, intermediate_lang2vec_preds)

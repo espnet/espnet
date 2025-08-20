@@ -1,11 +1,13 @@
 # filter babel dev data, remove the data lower than 10 seconds
 import os
 
+
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--babel_dir", type=str, required=True)
     parser.add_argument("--babel_over_10s_dir", type=str, required=True)
     return parser.parse_args()
+
 
 args = parse_args()
 

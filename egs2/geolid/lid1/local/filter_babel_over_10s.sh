@@ -16,4 +16,3 @@ for split in $splits_over_10s; do
     ./utils/utt2spk_to_spk2utt.pl $dump_dir/$split/utt2spk > $dump_dir/$split/spk2utt
     cp $dump_dir/$split/spk2utt $dump_dir/$split/category2utt
 done
-

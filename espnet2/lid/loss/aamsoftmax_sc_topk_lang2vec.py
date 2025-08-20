@@ -44,7 +44,7 @@ class AAMSoftmaxSCTopKLang2Vec(AbsLoss):
         k_top=5,
         do_lm=False,
         lang2vec_dim: int = None,
-        lang2vec_type: str = None, # geo, phonology_knn, syntax_knn, inventory_knn
+        lang2vec_type: str = None,  # geo, phonology_knn, syntax_knn, inventory_knn
         lang2vec_weight: float = None,
     ):
         super().__init__(nout)
@@ -88,9 +88,9 @@ class AAMSoftmaxSCTopKLang2Vec(AbsLoss):
         self.lang2vec_weight = lang2vec_weight
 
         if (
-            self.lang2vec_dim is not None and 
-            self.lang2vec_type is not None and 
-            self.lang2vec_weight is not None
+            self.lang2vec_dim is not None
+            and self.lang2vec_type is not None
+            and self.lang2vec_weight is not None
         ):
             if lang2vec_type == "geo":
                 self.lang2vec_head = nn.Sequential(
@@ -101,7 +101,9 @@ class AAMSoftmaxSCTopKLang2Vec(AbsLoss):
                 self.lang2vec_head = nn.Sequential(
                     nn.Linear(nout, lang2vec_dim),
                 )
-                self.lang2vec_loss = nn.BCEWithLogitsLoss() # BCEWithLogitsLoss combines sigmoid and binary cross entropy, which use the log-sum-exp trick for numerical stability.
+                self.lang2vec_loss = (
+                    nn.BCEWithLogitsLoss()
+                )  # BCEWithLogitsLoss combines sigmoid and binary cross entropy, which use the log-sum-exp trick for numerical stability.
             else:
                 raise ValueError(
                     f"Unknown lang2vec type: {lang2vec_type},"
@@ -125,11 +127,11 @@ class AAMSoftmaxSCTopKLang2Vec(AbsLoss):
             mp = 0.0
         self.cos_mp = math.cos(mp)
         self.sin_mp = math.sin(mp)
-    
+
     def _calc_subcenter_cosine(self, input, weight=None):
         """
         Calculate the cosine similarity between input and K subcenters.
-        If the weight is not provided (None), it will use the default 
+        If the weight is not provided (None), it will use the default
         weight (in __init__). The weight input here is for the self-conditioning
         LID on the intermediate layers, which may need to use independent
         weights. If weight is not provided here and use self-conditioning
@@ -155,8 +157,8 @@ class AAMSoftmaxSCTopKLang2Vec(AbsLoss):
         )  # (batch, nclasses, k)
 
         # subcenter max pooling, compute k max cosine, use the max one
-        # k subcenter per class in weight, cosine is the simlarity to these 
-        # subcenters then select the top one. This is for intra-class 
+        # k subcenter per class in weight, cosine is the simlarity to these
+        # subcenters then select the top one. This is for intra-class
         # marginization.
         cosine, _ = torch.max(cosine, dim=2)  # (batch, nclasses)
 
@@ -174,7 +176,7 @@ class AAMSoftmaxSCTopKLang2Vec(AbsLoss):
         sine = torch.sqrt(1.0 - torch.pow(cosine, 2))
 
         # NOTE(qingzheng): \ means drop trend, / means increase trend
-        # phi: cos(theta + m), true class, +m, /, cos(+m) \, 
+        # phi: cos(theta + m), true class, +m, /, cos(+m) \,
         # -logcos(+m) /, original goal is \, hence is the penalty
         phi = cosine * self.cos_m - sine * self.sin_m
 
@@ -182,7 +184,7 @@ class AAMSoftmaxSCTopKLang2Vec(AbsLoss):
         # cos(theta - mp), -mp, \, cos(-mp) /, -logcos(-mp) \,
         # original goal is / (for negative class, we want max loss),
         # hence is the penalty
-        phi_mp = cosine * self.cos_mp + sine * self.sin_mp # cos(theta - mp)
+        phi_mp = cosine * self.cos_mp + sine * self.sin_mp  # cos(theta - mp)
 
         if self.easy_margin:
             phi = torch.where(cosine > 0, phi, cosine)
@@ -201,9 +203,11 @@ class AAMSoftmaxSCTopKLang2Vec(AbsLoss):
 
             # sum
             output = (
-                (one_hot * phi) # true class, phi
-                + (top_k_one_hot * phi_mp) # topk class (negative), phi_mp
-                + ((1.0 - one_hot - top_k_one_hot) * cosine) # other class, cosine, without margin
+                (one_hot * phi)  # true class, phi
+                + (top_k_one_hot * phi_mp)  # topk class (negative), phi_mp
+                + (
+                    (1.0 - one_hot - top_k_one_hot) * cosine
+                )  # other class, cosine, without margin
             )
         else:
             output = (one_hot * phi) + ((1.0 - one_hot) * cosine)
@@ -214,38 +218,40 @@ class AAMSoftmaxSCTopKLang2Vec(AbsLoss):
 
     def forward(self, input, label=None, lang2vec=None, weight=None):
         """
-        weight should be provided if use self-conditioning LID and apply 
-        independent weights across all intermediate layers. 
+        weight should be provided if use self-conditioning LID and apply
+        independent weights across all intermediate layers.
         """
-        
+
         cosine = self._calc_subcenter_cosine(input, weight)
-        
-        pred_lids = torch.argmax(cosine, dim=1) # (batch,)
+
+        pred_lids = torch.argmax(cosine, dim=1)  # (batch,)
 
         if label is not None:
             if len(label.size()) == 2:
                 label = label.squeeze(1)
             accuracy = (pred_lids == label).float().mean()
-        else: # inference
+        else:  # inference
             loss = None
             accuracy = None
             return loss, accuracy, pred_lids
 
         output = self._add_margin(cosine, label)
-        
+
         loss = self.ce(output, label)
-        class_loss = loss # classification loss
+        class_loss = loss  # classification loss
         lang2vec_loss = None
 
         if (
-            lang2vec is not None and
-            self.lang2vec_dim is not None and 
-            self.lang2vec_type is not None and 
-            self.lang2vec_weight is not None
+            lang2vec is not None
+            and self.lang2vec_dim is not None
+            and self.lang2vec_type is not None
+            and self.lang2vec_weight is not None
         ):
-            assert 0 < self.lang2vec_weight < 1, f"lang2vec_weight should be in (0, 1), but got {self.lang2vec_weight}"
+            assert (
+                0 < self.lang2vec_weight < 1
+            ), f"lang2vec_weight should be in (0, 1), but got {self.lang2vec_weight}"
             lang2vec_loss = self.lang2vec_loss(self.lang2vec_head(input), lang2vec)
-            loss *= (1 - self.lang2vec_weight)
+            loss *= 1 - self.lang2vec_weight
             loss += self.lang2vec_weight * lang2vec_loss
 
         return loss, accuracy, pred_lids, class_loss, lang2vec_loss

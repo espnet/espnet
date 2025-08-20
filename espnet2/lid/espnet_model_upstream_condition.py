@@ -8,20 +8,20 @@
 #   - syntax_knn
 #   - inventory_knn
 #
-# It enables upstream lang2vec conditioning at selected intermediate layers 
-# of the frontend model (e.g., MMS), and supports downstream auxiliary lang2vec 
+# It enables upstream lang2vec conditioning at selected intermediate layers
+# of the frontend model (e.g., MMS), and supports downstream auxiliary lang2vec
 # prediction as an auxiliary learning objective.
-# The model architecture allows for independent or shared conditioning modules 
-# across layers, and can be configured to freeze or train the conditioning 
+# The model architecture allows for independent or shared conditioning modules
+# across layers, and can be configured to freeze or train the conditioning
 # projections.
-# 
+#
 # Reference:
 #   Geolocation-Aware Robust Spoken Language Identification
 #   TODO: add arxiv link
-# 
+#
 # Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-from typing import Dict, Optional, Tuple, Union, List
+from typing import Dict, List, Optional, Tuple, Union
 
 import torch
 import torch.nn as nn
@@ -31,12 +31,12 @@ from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.layers.abs_normalize import AbsNormalize
+from espnet2.lid.espnet_model import ESPnetLIDModel
+from espnet2.lid.loss.aamsoftmax_sc_topk_lang2vec import AAMSoftmaxSCTopKLang2Vec
 from espnet2.spk.loss.abs_loss import AbsLoss
 from espnet2.spk.pooling.abs_pooling import AbsPooling
 from espnet2.spk.projector.abs_projector import AbsProjector
 from espnet2.torch_utils.device_funcs import force_gatherable
-from espnet2.lid.espnet_model import ESPnetLIDModel
-from espnet2.lid.loss.aamsoftmax_sc_topk_lang2vec import AAMSoftmaxSCTopKLang2Vec
 
 
 class ESPnetLIDUpstreamConditionModel(ESPnetLIDModel):
@@ -59,19 +59,19 @@ class ESPnetLIDUpstreamConditionModel(ESPnetLIDModel):
         projector_condition: ModuleDict of condition module(s) for projector layers,
                              key is layer index, value is projector condition module
                              (can be shared or independent)
-        lang2vec_conditioning_layers: list of encoder layer indices to apply 
+        lang2vec_conditioning_layers: list of encoder layer indices to apply
                                       lang2vec conditioning
-        apply_intermediate_lang2vec_loss: whether to apply auxiliary lang2vec 
+        apply_intermediate_lang2vec_loss: whether to apply auxiliary lang2vec
                                           prediction loss at intermediate layers
-        apply_intermediate_lang2vec_condition: whether to apply lang2vec 
+        apply_intermediate_lang2vec_condition: whether to apply lang2vec
                                                conditioning at intermediate layers
         inter_lang2vec_loss_weight: weight for the intermediate lang2vec loss
-        cutoff_gradient_from_backbone: whether to cutoff gradient from upstream 
+        cutoff_gradient_from_backbone: whether to cutoff gradient from upstream
                                        (frontend) backbone to the conditioning projection
-        cutoff_gradient_before_condproj: whether to cutoff gradient before 
+        cutoff_gradient_before_condproj: whether to cutoff gradient before
                                           conditioning projection
         shared_conditioning_proj: if True, share conditioning projection across layers
-    
+
     Reference:
         Geolocation-Aware Robust Spoken Language Identification
         TODO: add arxiv link
@@ -121,18 +121,27 @@ class ESPnetLIDUpstreamConditionModel(ESPnetLIDModel):
             # lang2vec_head is the "GeoPred" layer noted in the paper if use geo vector
             lang2vec_head = nn.ModuleDict()
             for layer_idx in lang2vec_conditioning_layers:
-                projector_condition_output_size = projector_condition[str(layer_idx)].output_size()
+                projector_condition_output_size = projector_condition[
+                    str(layer_idx)
+                ].output_size()
                 lang2vec_head[str(layer_idx)] = nn.Sequential(
                     nn.Linear(projector_condition_output_size, self.loss.lang2vec_dim),
                 )
             self.frontend.upstream.upstream.model.encoder.lang2vec_head = lang2vec_head
 
-        self.frontend.upstream.upstream.model.encoder.lang2vec_conditioning_layers = lang2vec_conditioning_layers
-        
-        self.frontend.upstream.upstream.model.encoder.apply_intermediate_lang2vec_condition = apply_intermediate_lang2vec_condition
+        self.frontend.upstream.upstream.model.encoder.lang2vec_conditioning_layers = (
+            lang2vec_conditioning_layers
+        )
+
+        self.frontend.upstream.upstream.model.encoder.apply_intermediate_lang2vec_condition = (
+            apply_intermediate_lang2vec_condition
+        )
 
         # Each conditioning projection layer is independent
-        if lang2vec_conditioning_layers is not None and apply_intermediate_lang2vec_condition:
+        if (
+            lang2vec_conditioning_layers is not None
+            and apply_intermediate_lang2vec_condition
+        ):
             if shared_conditioning_proj:
                 lang2vec_conditioning_projs = nn.Linear(
                     self.loss.lang2vec_dim,
@@ -147,11 +156,19 @@ class ESPnetLIDUpstreamConditionModel(ESPnetLIDModel):
                             self.frontend.upstream.upstream.model.encoder.config.hidden_size,
                         ),
                     )
-            self.frontend.upstream.upstream.model.encoder.lang2vec_conditioning_projs = lang2vec_conditioning_projs
-            self.frontend.upstream.upstream.model.encoder.shared_conditioning_proj = shared_conditioning_proj
+            self.frontend.upstream.upstream.model.encoder.lang2vec_conditioning_projs = (
+                lang2vec_conditioning_projs
+            )
+            self.frontend.upstream.upstream.model.encoder.shared_conditioning_proj = (
+                shared_conditioning_proj
+            )
 
-        self.frontend.upstream.upstream.model.encoder.cutoff_gradient_from_backbone = cutoff_gradient_from_backbone
-        self.frontend.upstream.upstream.model.encoder.cutoff_gradient_before_condproj = cutoff_gradient_before_condproj
+        self.frontend.upstream.upstream.model.encoder.cutoff_gradient_from_backbone = (
+            cutoff_gradient_from_backbone
+        )
+        self.frontend.upstream.upstream.model.encoder.cutoff_gradient_before_condproj = (
+            cutoff_gradient_before_condproj
+        )
 
         assert isinstance(self.loss, AAMSoftmaxSCTopKLang2Vec), (
             f"ESPnetLIDUpstreamConditionModel only supports AAMSoftmaxSCTopKLang2Vec, "
@@ -207,7 +224,9 @@ class ESPnetLIDUpstreamConditionModel(ESPnetLIDModel):
 
         # 1. extract feats
         # Must transfer speech_lengths to extract_feats to get correct feat_lengths
-        feats, feat_lengths, intermediate_lang2vec_preds = self.extract_feats(speech, speech_lengths, lid_labels)
+        feats, feat_lengths, intermediate_lang2vec_preds = self.extract_feats(
+            speech, speech_lengths, lid_labels
+        )
         frame_level_feats = self.encode_frame(feats)
 
         # 2. aggregation into utterance-level
@@ -219,17 +238,22 @@ class ESPnetLIDUpstreamConditionModel(ESPnetLIDModel):
         # 4. calculate loss
         # NOTE: if lid_labels is None, loss and accuracy are None
         if lang2vecs is not None:
-            loss, accuracy, pred_lids, class_loss, lang2vec_loss = self.loss(lang_embd, lid_labels, lang2vecs)
+            loss, accuracy, pred_lids, class_loss, lang2vec_loss = self.loss(
+                lang_embd, lid_labels, lang2vecs
+            )
             lang2vec_type = self.loss.lang2vec_type
             stats["class_loss"] = class_loss.detach()
-            if lang2vec_loss is not None: # lang2vec_loss is None when setting apply_last to False in the loss
+            if (
+                lang2vec_loss is not None
+            ):  # lang2vec_loss is None when setting apply_last to False in the loss
                 stats[f"{lang2vec_type}_loss_downstream"] = lang2vec_loss.detach()
 
             if (
-                intermediate_lang2vec_preds is not None and 
-                self.inter_lang2vec_loss_weight > 0 and 
-                self.apply_intermediate_lang2vec_loss and
-                self.frontend.upstream.upstream.model.encoder.lang2vec_conditioning_layers is not None
+                intermediate_lang2vec_preds is not None
+                and self.inter_lang2vec_loss_weight > 0
+                and self.apply_intermediate_lang2vec_loss
+                and self.frontend.upstream.upstream.model.encoder.lang2vec_conditioning_layers
+                is not None
             ):
                 inter_lang2vec_losses = self._calc_intermediate_lang2vec_pred_loss(
                     intermediate_lang2vec_preds,
@@ -237,24 +261,34 @@ class ESPnetLIDUpstreamConditionModel(ESPnetLIDModel):
                 )
 
                 inter_lang2vec_loss_mean = 0.0
-            
+
                 for layer_idx, inter_lang2vec_loss in zip(
-                    self.frontend.upstream.upstream.model.encoder.lang2vec_conditioning_layers, 
-                    inter_lang2vec_losses
+                    self.frontend.upstream.upstream.model.encoder.lang2vec_conditioning_layers,
+                    inter_lang2vec_losses,
                 ):
-                    stats[f"inter_{lang2vec_type}_loss_layer{layer_idx}"] = inter_lang2vec_loss.detach()
+                    stats[f"inter_{lang2vec_type}_loss_layer{layer_idx}"] = (
+                        inter_lang2vec_loss.detach()
+                    )
                     inter_lang2vec_loss_mean += inter_lang2vec_loss
-                
+
                 inter_lang2vec_loss_mean /= len(inter_lang2vec_losses)
-                stats[f"inter_{lang2vec_type}_loss_mean"] = inter_lang2vec_loss_mean.detach()
+                stats[f"inter_{lang2vec_type}_loss_mean"] = (
+                    inter_lang2vec_loss_mean.detach()
+                )
 
                 lang2vec_loss_all = 0.0
-                if lang2vec_loss is not None: # which means do not apply lang2vec loss on the last layer
-                    lang2vec_loss_all += (1 - self.inter_lang2vec_loss_weight) * lang2vec_loss
-                    lang2vec_loss_all += self.inter_lang2vec_loss_weight * inter_lang2vec_loss_mean
+                if (
+                    lang2vec_loss is not None
+                ):  # which means do not apply lang2vec loss on the last layer
+                    lang2vec_loss_all += (
+                        1 - self.inter_lang2vec_loss_weight
+                    ) * lang2vec_loss
+                    lang2vec_loss_all += (
+                        self.inter_lang2vec_loss_weight * inter_lang2vec_loss_mean
+                    )
                 else:
                     lang2vec_loss_all = inter_lang2vec_loss_mean
-                
+
                 stats[f"{lang2vec_type}_loss_all"] = lang2vec_loss_all.detach()
             else:
                 lang2vec_loss_all = lang2vec_loss
@@ -263,12 +297,14 @@ class ESPnetLIDUpstreamConditionModel(ESPnetLIDModel):
 
             # NOTE(qingzheng): recaulculate the loss, loss fomula:
             # loss = (1 - lang2vec_weight) * class_loss+ lang2vec_weight * (
-            #     (1 - inter_lang2vec_loss_weight) * lang2vec_loss + 
+            #     (1 - inter_lang2vec_loss_weight) * lang2vec_loss +
             #     inter_lang2vec_loss_weight * inter_lang2vec_loss_mean
             # )
-            loss = (1- self.loss.lang2vec_weight) * lid_class_loss_all + self.loss.lang2vec_weight * lang2vec_loss_all
+            loss = (
+                1 - self.loss.lang2vec_weight
+            ) * lid_class_loss_all + self.loss.lang2vec_weight * lang2vec_loss_all
         else:
-            # NOTE(qingzheng): if use aamsoftmax_sc_topk_lang2vec loss but not 
+            # NOTE(qingzheng): if use aamsoftmax_sc_topk_lang2vec loss but not
             # specify the lang2vec in preprocessor, it will jump to this branch,
             # but aamsoftmax_sc_topk_lang2vec default return 5 outputs, so use [:3]
             # to restrict here only retrieve the first 3 outputs
@@ -281,15 +317,15 @@ class ESPnetLIDUpstreamConditionModel(ESPnetLIDModel):
             return lang_embd, pred_lids
 
         stats["loss"] = loss.detach()
-        if accuracy is not None: # if not provide labels, accuracy is None
+        if accuracy is not None:  # if not provide labels, accuracy is None
             stats["accuracy"] = accuracy.detach()
 
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
         return loss, stats, weight
 
     def extract_feats(
-        self, 
-        speech: torch.Tensor, 
+        self,
+        speech: torch.Tensor,
         speech_lengths: torch.Tensor,
         lid_labels: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -334,4 +370,3 @@ class ESPnetLIDUpstreamConditionModel(ESPnetLIDModel):
             inter_lang2vec_losses.append(inter_lang2vec_loss)
 
         return inter_lang2vec_losses
-

@@ -15,7 +15,7 @@ python local/prepare_ml_superb2.py
 python local/fix_ml_superb2_dev_dialect.py
 
 for x in ${partitions}; do
-    
+
     utils/utt2spk_to_spk2utt.pl data/${x}/utt2lang > data/${x}/lang2utt
     cp data/${x}/lang2utt data/${x}/category2utt
 

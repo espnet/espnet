@@ -1,4 +1,4 @@
-# This config use independent module for each intermediate layer. 
+# This config use independent module for each intermediate layer.
 
 # Model
 model: upstream_condition

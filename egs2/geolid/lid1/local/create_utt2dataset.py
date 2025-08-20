@@ -1,10 +1,9 @@
 import argparse
 import os
 
+
 def parser():
-    parser = argparse.ArgumentParser(
-        description="Create dataset2utt map"
-    )
+    parser = argparse.ArgumentParser(description="Create dataset2utt map")
     parser.add_argument(
         "--train_sets",
         type=str,
@@ -20,6 +19,7 @@ def parser():
     args = parser.parse_args()
     return args
 
+
 def main(args):
     train_sets = args.train_sets.strip().split()
     train_all_dir = args.train_all_dir
@@ -33,7 +33,7 @@ def main(args):
             for line in f:
                 utt, lang = line.strip().split()
                 utt2dataset.append(f"{utt} {train_set_name}\n")
-    
+
     # Write the dataset2utt map to a file
     with open(os.path.join(train_all_dir, "utt2dataset"), "w") as f:
         f.writelines(sorted(utt2dataset))

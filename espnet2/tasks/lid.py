@@ -22,6 +22,7 @@ from espnet2.layers.utterance_mvn import UtteranceMVN
 from espnet2.lid.espnet_model import ESPnetLIDModel
 from espnet2.lid.espnet_model_upstream_condition import ESPnetLIDUpstreamConditionModel
 from espnet2.lid.frontend.s3prl_condition import S3prlFrontendCondition
+from espnet2.lid.loss.aamsoftmax_sc_topk_lang2vec import AAMSoftmaxSCTopKLang2Vec
 from espnet2.spk.encoder.conformer_encoder import MfaConformerEncoder
 from espnet2.spk.encoder.ecapa_tdnn_encoder import EcapaTdnnEncoder
 from espnet2.spk.encoder.identity_encoder import IdentityEncoder
@@ -34,7 +35,6 @@ from espnet2.spk.loss.aamsoftmax_subcenter_intertopk import (
 )
 from espnet2.spk.loss.abs_loss import AbsLoss
 from espnet2.spk.loss.softmax import Softmax
-from espnet2.lid.loss.aamsoftmax_sc_topk_lang2vec import AAMSoftmaxSCTopKLang2Vec
 from espnet2.spk.pooling.abs_pooling import AbsPooling
 from espnet2.spk.pooling.chn_attn_stat_pooling import ChnAttnStatPooling
 from espnet2.spk.pooling.mean_pooling import MeanPooling
@@ -386,10 +386,7 @@ class LIDTask(AbsTask):
         encoder_output_size = encoder.output_size()
 
         pooling_class = pooling_choices.get_class(args.pooling)
-        pooling = pooling_class(
-            input_size=encoder_output_size,
-            **args.pooling_conf
-        )
+        pooling = pooling_class(input_size=encoder_output_size, **args.pooling_conf)
         pooling_output_size = pooling.output_size()
 
         projector_class = projector_choices.get_class(args.projector)
@@ -423,8 +420,8 @@ class LIDTask(AbsTask):
                     args.pooling_condition
                 )
                 pooling_condition[str(layer_idx)] = pooling_condition_class(
-                    input_size=encoder_condition_output_size, 
-                    **args.pooling_condition_conf
+                    input_size=encoder_condition_output_size,
+                    **args.pooling_condition_conf,
                 )
                 pooling_condition_output_size = pooling_condition[
                     str(layer_idx)
@@ -435,13 +432,12 @@ class LIDTask(AbsTask):
                 )
                 projector_condition[str(layer_idx)] = projector_condition_class(
                     input_size=pooling_condition_output_size,
-                    **args.projector_condition_conf
+                    **args.projector_condition_conf,
                 )
 
         loss_class = loss_choices.get_class(args.loss)
         loss = loss_class(
-            nout=projector_output_size,
-            nclasses=args.lang_num, **args.loss_conf
+            nout=projector_output_size, nclasses=args.lang_num, **args.loss_conf
         )
 
         model_arg = getattr(args, "model", None)
@@ -449,8 +445,8 @@ class LIDTask(AbsTask):
             model_arg = "espnet"
         model_class = model_choices.get_class(model_arg)
         if (
-            lang2vec_conditioning_layers is not None and 
-            model_arg == "upstream_condition"
+            lang2vec_conditioning_layers is not None
+            and model_arg == "upstream_condition"
         ):
             model = model_class(
                 frontend=frontend,

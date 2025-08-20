@@ -53,7 +53,7 @@ Run the data preprocessing stages (stage 3-4) for each dataset:
 
 This will generate:
 - `dump/raw/train_fleurs_lang`
-- `dump/raw/dev_fleurs_lang` 
+- `dump/raw/dev_fleurs_lang`
 - `dump/raw/test_fleurs_lang`
 
 Repeat this process for all datasets. The complete list of dataset splits to process:

@@ -48,29 +48,29 @@ langs=(
 # Function to process a single language
 process_language() {
     local lang_code="$1"
-    local iso3="$2" 
+    local iso3="$2"
     local lang_dir="$3"
     local train_list="$4"
     local dev_list="$5"
-    
+
     local base_dir="/scratch/bbjs/shared/corpora/babel/${lang_code}/conversational"
     local train_audio_dir="$base_dir/training/audio"
     local dev_audio_dir="$base_dir/dev/audio"
     local train_output="conf/lists/$lang_dir/$train_list"
     local dev_output="conf/lists/$lang_dir/$dev_list"
-    
+
     log "Processing $lang_code ($iso3)"
-    
+
     # Check if base directory exists
     if [ ! -d "$base_dir" ]; then
         log "Warning: Language directory not found: $base_dir, skipping..."
         return 0
     fi
-    
+
     # Create output directories
     mkdir -p "$(dirname "$train_output")"
     mkdir -p "$(dirname "$dev_output")"
-    
+
     # Process training files
     if [ -d "$train_audio_dir" ]; then
         > "$train_output"
@@ -87,8 +87,8 @@ process_language() {
         log "Training directory not found: $train_audio_dir"
         touch "$train_output"  # Create empty file
     fi
-    
-    # Process dev files  
+
+    # Process dev files
     if [ -d "$dev_audio_dir" ]; then
         > "$dev_output"
         for file in "$dev_audio_dir"/*.sph; do

@@ -57,14 +57,14 @@ fi
 # =======================
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "Stage 2: Preparing BABEL list files"
-        
+
     bash local/prepare_babel_lists.sh --dataset_path ${dataset_path} --lists_dir conf/lists
-        
+
     if [ $? -ne 0 ]; then
         log "Error: Failed to generate list files"
         exit 1
     fi
-    
+
     log "✅ List files preparation complete"
 fi
 

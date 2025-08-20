@@ -1,6 +1,6 @@
 # This configuration uses independent intermediate language embedding extractors
 # (AttnStatPooling + Projector) and geolocation vector predictors (GeoPred).
-# The conditioning projection modules are independent across selected 
+# The conditioning projection modules are independent across selected
 # intermediate layers, and are frozen.
 
 # Model
@@ -134,4 +134,3 @@ scheduler_conf:
   decay_ratio: 0.5
   init_lr_scale: 0.6 # Start from 3e-6
   final_lr_scale: 0.1 # End with 5e-7
-
