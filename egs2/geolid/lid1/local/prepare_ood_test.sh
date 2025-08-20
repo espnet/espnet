@@ -64,8 +64,8 @@ python local/prepare_ood_test.py \
     --test_sets "${test_sets_renew}"
 
 for cross_set in ${cross_sets_renew}; do
-    ./utils/utt2spk_to_spk2utt.pl ${dump_dir}/${cross_set}/utt2spk > ${dump_dir}/${cross_set}/spk2utt
-    cp ${dump_dir}/${cross_set}/spk2utt ${dump_dir}/${cross_set}/category2utt
+    ./utils/utt2spk_to_spk2utt.pl ${dump_dir}/${cross_set}/utt2lang > ${dump_dir}/${cross_set}/lang2utt
+    cp ${dump_dir}/${cross_set}/lang2utt ${dump_dir}/${cross_set}/category2utt
 done
 
 log "Successfully prepared the following OOD test sets: ${cross_sets_renew}"
