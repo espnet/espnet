@@ -94,9 +94,11 @@ class AAMSoftmaxSCTopKLang2Vec(AbsLoss):
                 self.lang2vec_head = nn.Sequential(
                     nn.Linear(nout, lang2vec_dim),
                 )
+                # BCEWithLogitsLoss combines sigmoid and binary cross entropy,
+                # which use the log-sum-exp trick for numerical stability.
                 self.lang2vec_loss = (
                     nn.BCEWithLogitsLoss()
-                )  # BCEWithLogitsLoss combines sigmoid and binary cross entropy, which use the log-sum-exp trick for numerical stability.
+                )
             else:
                 raise ValueError(
                     f"Unknown lang2vec type: {lang2vec_type},"
@@ -195,7 +197,8 @@ class AAMSoftmaxSCTopKLang2Vec(AbsLoss):
         return output
 
     def forward(self, input, label=None, lang2vec=None):
-        """
+        """Forward pass.
+
         Args:
             input: (batch, in_features)
             label: (batch,)

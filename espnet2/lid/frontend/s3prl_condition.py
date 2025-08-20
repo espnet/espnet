@@ -12,8 +12,7 @@ from espnet.nets.pytorch_backend.frontends.frontend import Frontend
 
 
 class S3prlFrontendCondition(AbsFrontend):
-    """
-    This is a modified version of S3prlFrontend for geolocation-aware LID.
+    """This is a modified version of S3prlFrontend for geolocation-aware LID.
 
     For the geolocation-aware LID, please refer to the following paper:
         Geolocation-Aware Robust Spoken Language Identification
@@ -37,21 +36,10 @@ class S3prlFrontendCondition(AbsFrontend):
         try:
             import s3prl
             from s3prl.nn import Featurizer
-        except Exception as e:
+            from s3prl.nn import S3PRLUpstreamCondition
+        except Exception:
             raise ImportError(
                 "Error: s3prl are not found.\n"
-                "Please install the modified S3PRL version:\n"
-                "  If you have already installed s3prl, please uninstall it first.\n"
-                "  (optional) pip uninstall s3prl\n"
-                "  git clone -b lid https://github.com/Qingzheng-Wang/s3prl.git\n"
-                "  cd s3prl\n"
-                "  pip install -e ."
-            )
-        try:
-            from s3prl.nn import S3PRLUpstreamCondition
-        except Exception as e:
-            raise ImportError(
-                "Error: S3PRLUpstreamCondition is not found.\n"
                 "Please install the modified S3PRL version:\n"
                 "  If you have already installed s3prl, please uninstall it first.\n"
                 "  (optional) pip uninstall s3prl\n"
@@ -89,21 +77,31 @@ class S3prlFrontendCondition(AbsFrontend):
         upstream.eval()
 
         if layer is not None and isinstance(layer, int):
+            # Check that the selected layer index is valid
             assert (
-                layer >= 0 and layer <= upstream.num_layers
-            ), f"Invalid layer index: {layer}, should be in [0, {upstream.upstream.num_layers}]"
+                0 <= layer < upstream.num_layers
+            ), (
+                f"Invalid layer index: {layer}, "
+                f"should be in [0, {upstream.num_layers - 1}]"
+            )
             layer_selections = [layer]
             assert (
                 not multilayer_feature
             ), "multilayer feature will be deactivated, when a specific layer used"
         elif layer is not None and isinstance(layer, list):
             assert all(
-                [l >= 0 and l <= upstream.num_layers for l in layer]
-            ), f"Invalid layer index: {layer}, should all be in [0, {upstream.upstream.num_layers}]"
+                [0 <= layer_idx < upstream.num_layers for layer_idx in layer]
+            ), (
+                f"Invalid layer index: {layer}, "
+                f"should all be in [0, {upstream.num_layers}]"
+            )
             layer_selections = layer
             assert (
                 multilayer_feature
-            ), "multilayer feature will be activated, when a list of specific layers used"
+            ), (
+                "multilayer feature will be activated, "
+                "when a list of specific layers used"
+            )
         else:
             layer_selections = None
         featurizer = Featurizer(upstream, layer_selections=layer_selections)
