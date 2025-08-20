@@ -45,7 +45,8 @@ for i in "${!cross_sets_array[@]}"; do
     test_set="${test_sets_array[$i]}"
 
     if [ -d "${dump_dir}/${cross_set}" ]; then
-        log "Warning: cross_set ${cross_set} already exists in ${dump_dir}. Skipping preparation."
+        log "Warning: cross_set ${cross_set} already exists in ${dump_dir}."
+        log "Skipping preparation."
         continue
     fi
 
