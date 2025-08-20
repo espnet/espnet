@@ -31,9 +31,16 @@ if [ ! -d "${dir}"/../../TEMPLATE ]; then
 fi
 
 targets=""
+local_files="
+local/copy_data_dir.sh \
+local/perturb_lid_data_dir_speed.sh \
+local/prepare_ood_test.py \
+local/prepare_ood_test.sh \
+local/score.py
+"
 
 # Copy
-for f in cmd.sh conf local; do
+for f in cmd.sh conf; do
     target="${dir}"/../../TEMPLATE/lid1/"${f}"
     cp -r "${target}" "${dir}"
     targets+="${target} "
@@ -55,5 +62,15 @@ for f in pyscripts scripts steps utils; do
     targets+="${target} "
 done
 
+
+mkdir -p "${dir}"/local
+for f in ${local_files}; do
+    target=../../../TEMPLATE/lid1/"${f}"
+    ln -sf "${target}" "${dir}/local"
+    targets+="${target} "
+done
+
+cp "egs2/TEMPLATE/lid1/local/path.sh" "${dir}/local/path.sh"
+targets+="${dir}/local/path.sh "
 
 log "Created: ${targets}"
