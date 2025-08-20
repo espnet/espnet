@@ -1,18 +1,17 @@
 #!/usr/bin/env bash
 
+# 2025 @Qingzheng-Wang
+# Copied from ./scripts/utils/copy_data_dir.sh
+# Modified for language identification data.
+
 # Copyright 2013  Johns Hopkins University (author: Daniel Povey)
 # Apache 2.0
-# This is modified from the original copy_data_dir.sh script to work with
-# language identification data.
 
 # This script operates on a directory, such as in data/train/,
 # that contains some subset of the following files:
-#  feats.scp
 #  wav.scp
-#  vad.scp
 #  lang2utt
 #  utt2lang
-#  text
 #
 # It copies to another directory, possibly adding a specified prefix or a suffix
 # to the utterance and/or speaker names.  Note, the recording-ids stay the same.
