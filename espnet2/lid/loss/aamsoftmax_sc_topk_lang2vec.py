@@ -96,9 +96,7 @@ class AAMSoftmaxSCTopKLang2Vec(AbsLoss):
                 )
                 # BCEWithLogitsLoss combines sigmoid and binary cross entropy,
                 # which use the log-sum-exp trick for numerical stability.
-                self.lang2vec_loss = (
-                    nn.BCEWithLogitsLoss()
-                )
+                self.lang2vec_loss = nn.BCEWithLogitsLoss()
             else:
                 raise ValueError(
                     f"Unknown lang2vec type: {lang2vec_type},"
@@ -150,7 +148,7 @@ class AAMSoftmaxSCTopKLang2Vec(AbsLoss):
 
     def _add_margin(self, cosine, label):
         """Add margin to the cosine similarity.
-        
+
         Only add margin during training.
 
         Args:
@@ -162,7 +160,7 @@ class AAMSoftmaxSCTopKLang2Vec(AbsLoss):
         """
         sine = torch.sqrt(1.0 - torch.pow(cosine, 2))
 
-        phi = cosine * self.cos_m - sine * self.sin_m # cos(theta + m)
+        phi = cosine * self.cos_m - sine * self.sin_m  # cos(theta + m)
 
         phi_mp = cosine * self.cos_mp + sine * self.sin_mp  # cos(theta - mp)
 

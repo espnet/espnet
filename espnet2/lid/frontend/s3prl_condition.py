@@ -35,8 +35,7 @@ class S3prlFrontendCondition(AbsFrontend):
     ):
         try:
             import s3prl
-            from s3prl.nn import Featurizer
-            from s3prl.nn import S3PRLUpstreamCondition
+            from s3prl.nn import Featurizer, S3PRLUpstreamCondition
         except Exception:
             raise ImportError(
                 "Error: s3prl are not found.\n"
@@ -78,9 +77,7 @@ class S3prlFrontendCondition(AbsFrontend):
 
         if layer is not None and isinstance(layer, int):
             # Check that the selected layer index is valid
-            assert (
-                0 <= layer < upstream.num_layers
-            ), (
+            assert 0 <= layer < upstream.num_layers, (
                 f"Invalid layer index: {layer}, "
                 f"should be in [0, {upstream.num_layers - 1}]"
             )
@@ -89,16 +86,12 @@ class S3prlFrontendCondition(AbsFrontend):
                 not multilayer_feature
             ), "multilayer feature will be deactivated, when a specific layer used"
         elif layer is not None and isinstance(layer, list):
-            assert all(
-                [0 <= layer_idx < upstream.num_layers for layer_idx in layer]
-            ), (
+            assert all([0 <= layer_idx < upstream.num_layers for layer_idx in layer]), (
                 f"Invalid layer index: {layer}, "
                 f"should all be in [0, {upstream.num_layers}]"
             )
             layer_selections = layer
-            assert (
-                multilayer_feature
-            ), (
+            assert multilayer_feature, (
                 "multilayer feature will be activated, "
                 "when a list of specific layers used"
             )

@@ -67,11 +67,11 @@ class ESPnetLIDUpstreamConditionModel(ESPnetLIDModel):
                                                conditioning at intermediate layers
         inter_lang2vec_loss_weight: weight for the intermediate lang2vec loss
         cutoff_gradient_from_backbone: whether to cutoff gradient from upstream
-                                       (frontend) backbone to the conditioning 
+                                       (frontend) backbone to the conditioning
                                        projection
         cutoff_gradient_before_condproj: whether to cutoff gradient before
                                           conditioning projection
-        shared_conditioning_proj: if True, share conditioning projection across 
+        shared_conditioning_proj: if True, share conditioning projection across
                                   layers
 
     Reference:
@@ -163,9 +163,7 @@ class ESPnetLIDUpstreamConditionModel(ESPnetLIDModel):
             self.upstream_encoder.lang2vec_conditioning_projs = (
                 lang2vec_conditioning_projs
             )
-            self.upstream_encoder.shared_conditioning_proj = (
-                shared_conditioning_proj
-            )
+            self.upstream_encoder.shared_conditioning_proj = shared_conditioning_proj
 
         self.upstream_encoder.cutoff_gradient_from_backbone = (
             cutoff_gradient_from_backbone
@@ -256,8 +254,7 @@ class ESPnetLIDUpstreamConditionModel(ESPnetLIDModel):
                 intermediate_lang2vec_preds is not None
                 and self.inter_lang2vec_loss_weight > 0
                 and self.apply_intermediate_lang2vec_loss
-                and self.upstream_encoder.lang2vec_conditioning_layers
-                is not None
+                and self.upstream_encoder.lang2vec_conditioning_layers is not None
             ):
                 inter_lang2vec_losses = self._calc_intermediate_lang2vec_pred_loss(
                     intermediate_lang2vec_preds,
