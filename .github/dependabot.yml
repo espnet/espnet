@@ -1,27 +1,8 @@
-version: 1
+version: 2
 updates:
   # Maintain dependencies for GitHub Actions
-  # Enable version updates for npm
+  # Enable version updates for github-actions
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
-
-#   - package-ecosystem: "pip"
-#     directory: "/"
-#     schedule:
-#       interval: "weekly"
-#     labels: ["dependencies"]
-#     open-pull-requests-limit: 5
-#     reviewers: ["sw005320", "Fhrozen"]
-#     allow:
-#       - dependency-type: "all"
-#     ignore:
-#       - dependency-name: "*"
-#         update-types: ["version-update:semver-patch"]
-#       - dependency-name: "torch"
-#       - dependency-name: "torchaudio"
-#     groups:
-#       minor-update:
-#         applies-to: version-updates
-#         update-types: ["minor"]
