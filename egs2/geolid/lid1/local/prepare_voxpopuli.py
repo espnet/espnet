@@ -58,8 +58,11 @@ def main():
     dataset_name = "voxpopuli"
 
     # dev is used for both development and test set, training is used for train set
-    # for split1,split2 in [("train", f"train_{dataset_name}_lang"), ("dev", f"dev_{dataset_name}_lang"), ("dev", f"test_{dataset_name}_lang")]:
-    for split1, split2 in [("dev", f"dev_{dataset_name}_lang")]:
+    for split1,split2 in [
+        ("train", f"train_{dataset_name}_lang"),
+        ("dev", f"dev_{dataset_name}_lang"),
+        ("dev", f"test_{dataset_name}_lang")
+    ]:
         wav_scp = []
         utt2lang = []
         for lang_folder_name in lang_to_iso3.keys():
