@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-download_path="downloads"
 
 # DO NOT RUN THIS SCRIPT DIRECTLY!!!!!!!!
 log "DO NOT RUN THIS SCRIPT DIRECTLY!!!!!!!!!"
