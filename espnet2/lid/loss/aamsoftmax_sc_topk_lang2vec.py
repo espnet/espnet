@@ -100,7 +100,7 @@ class AAMSoftmaxSCTopKLang2Vec(AbsLoss):
             else:
                 raise ValueError(
                     f"Unknown lang2vec type: {lang2vec_type},"
-                    "support lang2vec types: geo, phonology_knn,"
+                    " support lang2vec types: geo, phonology_knn,"
                     "syntax_knn, inventory_knn"
                 )
 
