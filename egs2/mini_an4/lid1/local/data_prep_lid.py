@@ -26,6 +26,8 @@ if len(sys.argv) != 3:
 an4_root = sys.argv[1]
 sph2pipe = sys.argv[2]
 
+random.seed(0)
+
 sph_dir = {"train": "an4_clstk", "test": "an4test_clstk"}
 
 train_langs = set()
