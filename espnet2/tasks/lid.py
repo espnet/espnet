@@ -264,7 +264,11 @@ class LIDTask(AbsTask):
             help="Directory of the train lang2utt file to be used in label "
             "mapping. Note that both train and validation use the same lang2utt "
             "file, since we can only support the same categories during "
-            "validation",
+            help=(
+                "Directory of the train lang2utt file to be used in label mapping. "
+                "Note that both train and validation use the same lang2utt file, "
+                "since we can only support the same categories during validation."
+            ),
         )
 
         group.add_argument(
