@@ -50,7 +50,7 @@ mv dump/raw/train_babel_lang/segments dump/raw/train_babel_lang/segments.backup
 utils/combine_data.sh --skip_fix true ${train_out} ${train_sets} || exit 1;
 mv dump/raw/train_babel_lang/segments.backup dump/raw/train_babel_lang/segments
 
-python local/create_utt2dataset.py --train_sets "${train_sets}"
+python local/create_utt2dataset.py --train_sets "${train_sets}" --train_all_dir "${train_out}"
 
 utils/utt2spk_to_spk2utt.pl ${train_out}/utt2lang > ${train_out}/lang2utt || exit 1;
 utils/utt2spk_to_spk2utt.pl ${train_out}/utt2dataset > ${train_out}/dataset2utt || exit 1;
