@@ -143,8 +143,7 @@ See: https://espnet.github.io/espnet/espnet2_tutorial.html#recipes-using-espnet2
 | mustard              | MUStARD: Multimodal Sarcasm Detection Dataset                                                                                                        | SLU               | ENG            | https://github.com/soujanyaporia/MUStARD/                                                                                    |              |
 | mustard_plus_plus              | A Multimodal Corpus for Emotion Recognition in Sarcasm                                                                                                        | SLU               | ENG            | https://github.com/cfiltnlp/MUStARD_Plus_Plus/                                                                                    |              |
 | myst              | My Science Tutor (MyST) Children's Conversational Speech Corpus                                              | ASR               | ENG            | https://catalog.ldc.upenn.edu/LDC2021S05                                                                                    |              |
-| myst_ogi_cmu_kids      | My Science Tutor (MyST) Children's Conversational Speech Corpus, OGI
-Kids’ Speech Corpus, CMU Kids Corpus        | ASR               | ENG            | https://catalog.ldc.upenn.edu/LDC2021S05
+| myst_ogi_cmu_kids      | My Science Tutor (MyST) Children's Conversational Speech Corpus, OGI Kids’ Speech Corpus, CMU Kids Corpus        | ASR               | ENG            | https://catalog.ldc.upenn.edu/LDC2021S05
 https://catalog.ldc.upenn.edu/LDC2007S18
 https://catalog.ldc.upenn.edu/LDC97S63|              |
 | nit_song070             | The NITech Japanese speech database | SVS                     | JPN                  | http://hts.sp.nitech.ac.jp/archives/2.3/HTS-demo_NIT-SONG070-F001.tar.bz2
