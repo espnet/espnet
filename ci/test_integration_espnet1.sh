@@ -1,21 +1,19 @@
 #!/usr/bin/env bash
 
 numpy_plus(){
-    python3 <<EOF
-from packaging.version import parse as L
+    python3 -c "
+import sys
+from packaging.version import parse as V
 import numpy as np
-if L(np.__version__) >= L('$1'):
-    print("true")
-else:
-    print("false")
-EOF
+sys.exit(0 if V(np.__version__) >= V('$1') else 1)
+"
 }
 
 python="coverage run --append"
 
 cwd=$(pwd)
 
-if $(numpy_plus 2.0.0); then
+if numpy_plus 2.0.0; then
     echo "WARNING: The current numpy version is not supported by 'Chainer',"
     echo "         a dependency required for ESPnet<202509."
     echo "         Try with a different lower version of ESPnet for running these tests"

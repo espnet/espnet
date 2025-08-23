@@ -4,14 +4,12 @@
 . tools/extra_path.sh
 
 numpy_plus(){
-    python3 <<EOF
-from packaging.version import parse as L
+    python3 -c "
+import sys
+from packaging.version import parse as V
 import numpy as np
-if L(np.__version__) >= L('$1'):
-    print("true")
-else:
-    print("false")
-EOF
+sys.exit(0 if V(np.__version__) >= V('$1') else 1)
+"
 }
 
 set -euo pipefail
@@ -23,7 +21,7 @@ exclude="egs2/TEMPLATE/asr1/utils,egs2/TEMPLATE/asr1/steps,egs2/TEMPLATE/tts1/si
 # pycodestyle
 pycodestyle --exclude "${exclude}" --show-source --show-pep8
 
-if $(numpy_plus 2.0.0); then
+if numpy_plus 2.0.0; then
     echo "WARNING: The current numpy version is not supported by 'Chainer',"
     echo "         a dependency required for ESPnet<202509."
     echo "         Try with a different lower version of ESPnet for running these tests"
