@@ -40,9 +40,9 @@ class Iterator:
     """A dummy Iterator wrapper."""
 
     def __init__(self, *args, **kwargs):
+        """Initliaze Dummy Iterator."""
         self.__next__ = self.serialize
         self.start_shuffle = self.serialize
-        """Initliaze Dummy Iterator."""
         pass
 
     def serialize(self, *args, **kwargs):

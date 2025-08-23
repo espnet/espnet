@@ -296,7 +296,7 @@ jobs:
       max-parallel: 20
       matrix:
         os: [ubuntu-latest]
-        python-version: ["3.12"]
+        python-version: ["3.10"]
         pytorch-version: [2.6.0]
     steps:
     - uses: actions/checkout@master
