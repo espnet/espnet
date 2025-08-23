@@ -62,16 +62,7 @@ try:
 
 except ImportError:
     logging.warning("Chainer is not Installed. Run `make chainer.done` at tools dir.")
-
-    class Reporter:
-        """A dummy chainer reporter wrapper."""
-
-        def report(self, *args, **kwargs):
-            """Report at every step."""
-            raise NotImplementedError(
-                "This is a dummy object to solve version compatibility issues.\n"
-                "You need to install `chainer` if you want work with this class."
-            )
+    from espnet.utils.dummy_chainer import Reporter
 
 
 class E2E(ASRInterface, torch.nn.Module):
