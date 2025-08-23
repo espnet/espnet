@@ -43,3 +43,5 @@ $ tree -L 1 /path/to/cmu_kids
 ├── kids
 └── tables
 ```
+
+Pretrained models and final results will be uploaded soon.
