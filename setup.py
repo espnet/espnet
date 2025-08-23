@@ -15,7 +15,7 @@ requirements = {
         "humanfriendly",
         "scipy>=1.4.1",
         "filelock",
-        "librosa==0.9.2",
+        "librosa>=0.10.2",
         "jamo==0.4.1",  # For kss
         "PyYAML>=5.1.2",
         "soundfile>=0.10.2",
@@ -26,7 +26,7 @@ requirements = {
         "nltk>=3.4.5",
         # https://github.com/espnet/g2p/pull/1
         "g2p_en @ git+https://github.com/espnet/g2p.git@master",
-        "numpy>=2.2.0",
+        "numpy>=2.0.0",
         "protobuf",
         "hydra-core",
         "opt-einsum",
