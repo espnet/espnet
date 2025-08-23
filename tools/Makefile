@@ -139,7 +139,7 @@ sounfile_test: espnet.done
 chainer.done: espnet.done
 	echo "WARNING: From ESPnet>=202509, numpy=2.0.0 has become the minimal supported version."
 	echo "Chainer may be incompatible with the current numpy version."
-	echo "It is recommended to check the ESPnet version to avoid issues." 
+	echo "It is recommended to check the ESPnet version to avoid issues."
 	. ./activate_python.sh && ./installers/install_chainer.sh "${CUDA_VERSION}"
 	touch chainer.done
 
