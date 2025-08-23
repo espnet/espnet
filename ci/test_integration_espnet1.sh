@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 
+python="coverage run --append"
+
+cwd=$(pwd)
+
+. tools/activate_python.sh
+
 numpy_plus(){
     python3 -c "
 import sys
@@ -8,10 +14,6 @@ import numpy as np
 sys.exit(0 if V(np.__version__) >= V('$1') else 1)
 "
 }
-
-python="coverage run --append"
-
-cwd=$(pwd)
 
 if numpy_plus 2.0.0; then
     echo "WARNING: The current numpy version is not supported by 'Chainer',"
