@@ -1,6 +1,6 @@
 # PyTorch version: The latest six versions have been tested.
 # Please check https://github.com/espnet/espnet?tab=readme-ov-file#espnet-end-to-end-speech-processing-toolkit
-TH_VERSION := 2.6.0
+TH_VERSION := 2.7.1
 
 # Use pip for pytorch installation even if you have anaconda
 ifneq ($(shell test -f ./activate_python.sh && grep 'conda activate' ./activate_python.sh),)
@@ -137,6 +137,9 @@ sounfile_test: espnet.done
 	. ./activate_python.sh && python3 ./test_soundfile.py
 
 chainer.done: espnet.done
+	echo "WARNING: From ESPnet>=202509, numpy=2.0.0 has become the minimal supported version."
+	echo "Chainer may be incompatible with the current numpy version."
+	echo "It is recommended to check the ESPnet version to avoid issues." 
 	. ./activate_python.sh && ./installers/install_chainer.sh "${CUDA_VERSION}"
 	touch chainer.done
 
