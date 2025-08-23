@@ -1,10 +1,10 @@
 import copy
 import logging
-from packaging.version import parse as V
 from typing import Optional, Tuple, Union
 
 import torch
 import torch.nn.functional as F
+from packaging.version import parse as V
 from typeguard import typechecked
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
