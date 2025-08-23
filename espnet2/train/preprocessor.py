@@ -13,7 +13,6 @@ import scipy.signal
 import soundfile
 from typeguard import typechecked
 
-import espnet2.speechlm.definitions as speechlm_definitions
 from espnet2.layers.augmentation import DataAugmentation
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.cleaner import TextCleaner
