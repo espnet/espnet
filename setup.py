@@ -33,7 +33,7 @@ requirements = {
         "lightning",
         # ASR
         "sentencepiece==0.2.0",
-        "ctc-segmentation>=1.6.6",
+        "ctc-segmentation @ git+https://github.com/espnet/ctc-segmentation.git@master",
         # TTS
         "pyworld>=0.3.4",
         "pypinyin<=0.44.0",
