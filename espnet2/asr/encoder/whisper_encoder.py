@@ -39,14 +39,14 @@ class OpenAIWhisperEncoder(AbsEncoder):
             )
             raise e
 
-        if V(whisper.__version__) > V("20230308"):
+        if hasattr(whisper.audio, "N_MELS"):
+            N_MELS = whisper.audio.N_MELS
+        else:
             logging.warning(
                 "The whisper version does not include N_MELS. "
                 f"Using input_size={input_size} as N_MELS."
             )
             N_MELS = input_size
-        else:
-            from whisper.audio import N_MELS
 
         super().__init__()
 
