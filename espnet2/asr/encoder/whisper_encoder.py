@@ -1,5 +1,4 @@
 import copy
-import logging
 from typing import Optional, Tuple, Union
 
 import torch
@@ -29,7 +28,7 @@ class OpenAIWhisperEncoder(AbsEncoder):
     ):
         try:
             import whisper
-            from whisper.audio import HOP_LENGTH, N_FFT, N_SAMPLES
+            from whisper.audio import HOP_LENGTH, N_FFT, N_MELS, N_SAMPLES
         except Exception as e:
             print("Error: whisper is not properly installed.")
             print(
@@ -37,15 +36,6 @@ class OpenAIWhisperEncoder(AbsEncoder):
                 "./installers/install_whisper.sh",
             )
             raise e
-
-        if hasattr(whisper.audio, "N_MELS"):
-            N_MELS = whisper.audio.N_MELS
-        else:
-            logging.warning(
-                "The whisper version does not include N_MELS. "
-                f"Using input_size={input_size} as N_MELS."
-            )
-            N_MELS = input_size
 
         super().__init__()
 
