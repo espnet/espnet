@@ -41,7 +41,8 @@ class OpenAIWhisperEncoder(AbsEncoder):
 
         if V(whisper.__version__) > V("20230308"):
             logging.warning(
-                f"The whisper version does not include N_MELS. Using input_size={input_size}."
+                "The whisper version does not include N_MELS. "
+                f"Using input_size={input_size} as N_MELS."
             )
             N_MELS = input_size
         else:
