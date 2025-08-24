@@ -422,7 +422,8 @@ def parallel_map(
         client_cm = ctx  # keep reference for exit
         client = ctx.__enter__()
 
-    if setup_fn is not None:
+    elif setup_fn is not None:
+        # If an external client is provided, register the plugin on it.
         plugin = DictReturnWorkerPlugin(setup_fn)
         getattr(client, "register_worker_plugin")(plugin, name="env")
         _prime_client_env_keys_from_setup_fn(client, setup_fn)
@@ -514,7 +515,8 @@ def parallel_for(
         client_cm = ctx  # keep reference for exit
         client = ctx.__enter__()
 
-    if setup_fn is not None:
+    elif setup_fn is not None:
+        # If an external client is provided, register the plugin on it.
         plugin = DictReturnWorkerPlugin(setup_fn)
         getattr(client, "register_worker_plugin")(plugin, name="env")
         _prime_client_env_keys_from_setup_fn(client, setup_fn)

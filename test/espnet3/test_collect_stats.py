@@ -232,7 +232,6 @@ def _load_npz_counts(dirpath: Path, feat_key: str):
 def test_collect_stats_local_basic(tmp_path: Path):
     # Verify that local (non-parallel) path aggregates counts/sums correctly
     # and writes expected files.
-    tmp_path = Path(".")
     model_cfg = make_model_cfg(scale=1.0)
     ds_cfg = make_dataset_cfg(n_train=6, n_valid=0, base_len=3, dim=4)
     dl_cfg = make_dataloader_cfg(use_custom_collate=True)
