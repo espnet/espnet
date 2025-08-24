@@ -170,7 +170,7 @@ def collect_stats_multiple_iterator(
         setup_fn = make_collect_setup_fn(
             task=task,
             model_config=model_config,
-            dataset_config=dataloader_config if False else dataset_config,
+            dataset_config=dataset_config,
             dataloader_config=dataloader_config,
             mode=mode,
             shard_idx=shard_idx,
