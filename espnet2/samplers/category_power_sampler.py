@@ -26,16 +26,18 @@ class CategoryPowerSampler(AbsSampler):
 
     Given:
     - l ∈ {1, 2, ..., L}, the set of category labels
-    - n_l: number of utterances in category l
-    - N: total number of utterances in the dataset
+    - n_l: total duration (number of bins) of category l
+    - N: total duration (number of bins) of all categories in the dataset
+    - β: upsampling factor
+    - k_l: the number of utterances in category l
 
     We define:
     - Category-level sampling probability:
         P(l) = (n_l / N)^β
     - Utterance-level conditional sampling:
-        P(x | l) = 1 / n_l
+        P(x | l) = 1 / k_l
     - Combined sampling probability:
-        P(x) = P(l) * P(x | l) = (n_l / N)^β * (1 / n_l)
+        P(x) = P(l) * P(x | l) = (n_l / N)^β * (1 / k_l)
 
     Where β ∈ [0, 1] is the `upsampling_factor`:
     - β → 0 emphasizes low-resource categories (strong upsampling)
@@ -105,15 +107,13 @@ class CategoryPowerSampler(AbsSampler):
         self.category2utt = {k: v.split(" ") for k, v in category2utt_raw.items()}
         self.categories = list(self.category2utt.keys())
 
-        # 1. Compute n_l (the number of utterances in each category) and
-        # N (total number of utterances)
+        # 1. Compute n_l (the number of bins in each category) and
+        # N (total number of bins in the dataset)
         self.category_bins = {
             cat: sum(utt2sizes[0][utt][0] for utt in utts)
             for cat, utts in self.category2utt.items()
         }
         total_bins = sum(self.category_bins.values())
-        assert dataset_scaling_factor >= 1, "dataset_scaling_factor must >= 1"
-        scaling_bins = int(total_bins * dataset_scaling_factor)
 
         # 2. Compute sampling prob of each category: P(l) = (n_l / N)^β
         probs = np.array(
@@ -130,10 +130,16 @@ class CategoryPowerSampler(AbsSampler):
         for cat, utts in self.category2utt.items():
             self.all_utts_by_category[cat].extend(utts)
             # Shuffle utterances within each category to ensure
-            # P(x | l) = 1 / n_l (uniform sampling within category)
+            # P(x | l) = 1 / k_l (uniform sampling within category)
             self.random_state.shuffle(self.all_utts_by_category[cat])
 
         # 4. Estimate the total number of utterances after upsampling the whole dataset
+        # Motivation: Upsampling low-resource categories may increase the
+        # total number of bins beyond the original dataset size. To reflect this,
+        # we scale the total bins by `dataset_scaling_factor`, then divide by
+        # average utterance size to get the total number of utterances to sample.
+        assert dataset_scaling_factor >= 1, "dataset_scaling_factor must >= 1"
+        scaling_bins = int(total_bins * dataset_scaling_factor)
         utt_avg_size = np.mean([utt2sizes[0][utt][0] for utt in utt2sizes[0].keys()])
         total_num_samples = int(scaling_bins / utt_avg_size)
 
@@ -184,8 +190,12 @@ class CategoryPowerSampler(AbsSampler):
             f"{self.__class__.__name__}("
             f"N-batch={len(self)}, "
             f"batch_bins={self.batch_bins}, "
-            f"upsampling_factor={self.upsampling_factor}), "
-            f"category_bins={self.category_bins}"
+            f"min_batch_size={self.min_batch_size}, "
+            f"max_batch_size={self.max_batch_size}, "
+            f"upsampling_factor={self.upsampling_factor}, "
+            f"dataset_scaling_factor={self.dataset_scaling_factor}, "
+            f"drop_last={self.drop_last}, "
+            f"category2utt_file={self.category2utt_file}"
         )
 
     def __len__(self):
@@ -212,10 +222,13 @@ class CategoryDatasetPowerSampler(AbsSampler):
 
     Let:
     - d ∈ {1, 2, ..., D} denote the dataset index
-    - l ∈ {1, 2, ..., L_d} denote the language (or category) index in dataset d
-    - n_ld: number of utterances in language l of dataset d
-    - N_d = ∑_l n_ld: total number of utterances in dataset d
-    - M = ∑_d N_d: total number of utterances across all datasets
+    - l ∈ {1, 2, ..., L_d} denote the category index in dataset d
+    - n_ld: total duration (number of bins) of category l in dataset d
+    - k_ld: the number of utterances in category l in dataset d
+    - N_d = ∑_l n_ld: total duration (number of bins) of all categories
+                      in dataset d
+    - M = ∑_d N_d: total duration (number of bins) of all categories across
+                all datasets
 
     Step 1 — Category-level sampling within each dataset:
         P(l | d) ∝ (n_ld / N_d)^β_L
@@ -226,16 +239,19 @@ class CategoryDatasetPowerSampler(AbsSampler):
 
     Step 2 — Dataset-level sampling based on resampled language distributions:
 
-    Let N_d' = N_d × ∑_l P(l | d) be the total number of resampled bins from dataset d.
-    The probability of sampling dataset d is then:
-        P(d) = (N_d' / M')^β_D / ∑_d'[(N_d' / M')^β_D]
+    For each dataset d, the resampled number of bins for category l is:
+      n_ld' = N_d × P(l | d)
+    Since the category probabilities sum to 1 within each dataset
+    (∑_l P(l | d) = 1), the total resampled bins (N_d') for dataset d is:
+      N_d' = ∑_l n_ld' = N_d
 
+    The probability of sampling dataset d is then:
+      P(d) = [(N_d / M)^β_D] / ∑_d[(N_d / M)^β_D]
     where:
     - β_D is `dataset_upsampling_factor`
-    - M' = ∑_d N_d' is the total number of resampled bins across datasets
 
     Final utterance sampling probability:
-        P(x) = P(d) × P(l | d) × P(x | l, d), where P(x | l, d) = 1 / n_ld
+        P(x) = P(d) × P(l | d) × P(x | l, d), where P(x | l, d) = 1 / k_ld
 
     Note:
     - Batches are constructed based on `batch_bins`, similar to
@@ -373,11 +389,11 @@ class CategoryDatasetPowerSampler(AbsSampler):
             for category, prob in category_probs.items():
                 resampled_bins[category] = total_bins_in_dataset * prob
 
-            # N'_d = sum(n'_{l,d} for all l)
+            # N_d' = sum(n'_{l,d} for all l) = N_d
             self.dataset_resampled_bins[dataset] = sum(resampled_bins.values())
 
         # Step 2: Dataset sampling using resampled data
-        # Compute M' = sum(N'_d for all d)
+        # Compute M = sum(N_d (N_d' = N_d) for all d)
         total_resampled_bins = sum(self.dataset_resampled_bins.values())
 
         # Compute P(d) for each dataset
@@ -406,10 +422,15 @@ class CategoryDatasetPowerSampler(AbsSampler):
             for category in self.dataset_category_probs[dataset].keys():
                 category_utts = set(self.category2utt[category])
                 common_utts = list(category_utts.intersection(dataset_utts))
-                self.random_state.shuffle(common_utts)
+                self.random_state.shuffle(common_utts) # P(x | l, d) = 1 / k_ld
                 self.dataset_category_utts[dataset][category] = common_utts
 
-        # Estimate total number of samples after scaling
+        # Estimate total number of samples after applying dataset scaling.
+        # Motivation: Upsampling low-resource datasets and categories may
+        # increase the total number of bins beyond the original dataset size.
+        # To reflect this, we scale the total bins by `dataset_scaling_factor`,
+        # then divide by average utterance size to get the total number of
+        # utterances to sample.
         scaling_bins = int(total_resampled_bins * dataset_scaling_factor)
         utt_avg_size = np.mean([utt2sizes[0][utt][0] for utt in utt2sizes[0].keys()])
         total_num_samples = int(scaling_bins / utt_avg_size)
@@ -485,8 +506,14 @@ class CategoryDatasetPowerSampler(AbsSampler):
             f"{self.__class__.__name__}("
             f"N-batch={len(self)}, "
             f"batch_bins={self.batch_bins}, "
+            f"min_batch_size={self.min_batch_size}, "
+            f"max_batch_size={self.max_batch_size}, "
             f"category_upsampling_factor={self.category_upsampling_factor}, "
-            f"dataset_upsampling_factor={self.dataset_upsampling_factor})"
+            f"dataset_upsampling_factor={self.dataset_upsampling_factor}), "
+            f"dataset_scaling_factor={self.dataset_scaling_factor}, "
+            f"drop_last={self.drop_last}, "
+            f"category2utt_file={self.category2utt_file}, "
+            f"dataset2utt_file={self.dataset2utt_file}"
         )
 
     def __len__(self):
