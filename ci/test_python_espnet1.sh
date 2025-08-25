@@ -23,10 +23,10 @@ exclude="egs2/TEMPLATE/asr1/utils,egs2/TEMPLATE/asr1/steps,egs2/TEMPLATE/tts1/si
 # pycodestyle
 pycodestyle --exclude "${exclude}" --show-source --show-pep8
 
-if check_chainer; then
-    echo "WARNING: We are currently deprecating chainer and will be removed in the "
-    echo "         next release (v202509). Install chainer by your own."
-    echo "         Run 'make chainer.done' at tools dir."
+if ! check_chainer; then
+    echo "WARNING: Chainer is not installed, skipping espnet1 python tests."
+    echo "         Chainer is being deprecated and will be removed in a future release."
+    echo "         To run these tests, install Chainer via 'make chainer.done' in the tools directory."
     exit 0
 fi
 
