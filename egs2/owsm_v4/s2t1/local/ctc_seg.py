@@ -182,7 +182,7 @@ def clean_text(text: str) -> str:
     text = emoji.replace_emoji(text, replace="")
 
     # remove [xx] or (xx)
-    text = re.sub("[\(\[].*?[\)\]]", "", text)
+    text = re.sub(r"[\(\[].*?[\)\]]", "", text)
 
     text = " ".join(text.strip().split())
 
@@ -294,7 +294,7 @@ if __name__ == "__main__":
         **downloaded,
         fs=16000,
         ngpu=1,
-        batch_size=32,  # batched parallel decoding; reduce it if your GPU memory is smaller
+        batch_size=32,  # batched parallel decoding; reduce to fit your GPU memory
         kaldi_style_text=True,
         time_stamps="auto",
         lang_sym="<eng>",

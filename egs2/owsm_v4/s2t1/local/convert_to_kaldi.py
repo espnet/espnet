@@ -51,13 +51,15 @@ if __name__ == "__main__":
                     and is_valid(sample["prev_text"])
                 ):
                     f_text.write(
-                        f"{utt_id} {sample['lang']}{sample['task']}{sample['text_with_time']}\n"
+                        f"{utt_id} {sample['lang']}{sample['task']}"
+                        f"{sample['text_with_time']}\n"
                     )
                     f_textctc.write(f"{utt_id} {sample['asr_text']}\n")
                     f_textprev.write(f"{utt_id} {sample['prev_text']}\n")
                     f_utt2spk.write(f"{utt_id} {utt_id}\n")
                     f_segments.write(
-                        f"{utt_id} {wav_id} {sample['start_time']} {sample['end_time']}\n"
+                        f"{utt_id} {wav_id} {sample['start_time']} "
+                        f"{sample['end_time']}\n"
                     )
                     f_wavscp.write(
                         f"{wav_id} sox {sample['wav_path']} -t wav -r 16k -c 1 - |\n"
