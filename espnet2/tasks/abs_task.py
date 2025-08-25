@@ -2204,7 +2204,7 @@ class AbsTask(ABC):
 
         if iter_options.batch_type == "catbel":
             sampler_args = dict(
-                batch_size=iter_options.batch_size,
+                batch_size=args.category_sample_size,
                 min_batch_size=(
                     torch.distributed.get_world_size()
                     if iter_options.distributed
