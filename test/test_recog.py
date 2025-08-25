@@ -91,7 +91,7 @@ def make_small_arg(**kwargs):
         adim=2,
         rnnlm="dummy",
         lm_weight=0.3,
-        **kwargs
+        **kwargs,
     )
 
 

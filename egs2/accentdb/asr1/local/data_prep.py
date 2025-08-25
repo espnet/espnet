@@ -44,11 +44,12 @@ dir_dict = {
 
 
 for x in dir_dict:
-    with open(os.path.join("data", x, "wav.scp"), "w") as wav_scp_f, open(
-        os.path.join("data", x, "utt2spk"), "w"
-    ) as f_utt2spk, open(os.path.join("data", x, "text"), "w") as text_f, open(
-        os.path.join("data", x, "words"), "w"
-    ) as f_words:
+    with (
+        open(os.path.join("data", x, "wav.scp"), "w") as wav_scp_f,
+        open(os.path.join("data", x, "utt2spk"), "w") as f_utt2spk,
+        open(os.path.join("data", x, "text"), "w") as text_f,
+        open(os.path.join("data", x, "words"), "w") as f_words,
+    ):
         cls_set = set()
 
         lines = dir_dict[x]

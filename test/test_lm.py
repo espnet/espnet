@@ -52,8 +52,10 @@ def test_lm():
 
         # test prediction equality
         x = torch.from_numpy(numpy.random.randint(n_vocab, size=batchsize)).long()
-        with torch.no_grad(), chainer.no_backprop_mode(), chainer.using_config(
-            "train", False
+        with (
+            torch.no_grad(),
+            chainer.no_backprop_mode(),
+            chainer.using_config("train", False),
         ):
             rnnlm_th.predictor.eval()
             state_th, y_th = rnnlm_th.predictor(None, x.long())

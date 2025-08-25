@@ -47,15 +47,14 @@ def meta_analysis(input_json, output_dir):
         sys.exit(f"Failed to load input json file: {input_json}")
     else:
         if json_data["audios"] is not None:
-            with open(f"{output_dir}/text", "w") as utt2text, open(
-                f"{output_dir}/segments", "w"
-            ) as segments, open(f"{output_dir}/utt2dur", "w") as utt2dur, open(
-                f"{output_dir}/wav.scp", "w"
-            ) as wavscp, open(
-                f"{output_dir}/utt2subsets", "w"
-            ) as utt2subsets, open(
-                f"{output_dir}/reco2dur", "w"
-            ) as reco2dur:
+            with (
+                open(f"{output_dir}/text", "w") as utt2text,
+                open(f"{output_dir}/segments", "w") as segments,
+                open(f"{output_dir}/utt2dur", "w") as utt2dur,
+                open(f"{output_dir}/wav.scp", "w") as wavscp,
+                open(f"{output_dir}/utt2subsets", "w") as utt2subsets,
+                open(f"{output_dir}/reco2dur", "w") as reco2dur,
+            ):
                 for long_audio in json_data["audios"]:
                     try:
                         long_audio_path = os.path.realpath(

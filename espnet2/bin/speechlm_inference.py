@@ -1,324 +1,204 @@
 #!/usr/bin/env python3
 
-# Copyright 2024 Jinchuan Tian
+# Copyright 2025 Jinchuan Tian
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import argparse
 import json
 import logging
+import re
 import sys
 from pathlib import Path
-from typing import Any, List, Optional, Sequence, Tuple, Union
+from typing import Dict
 
 import torch
-import torchaudio
-from kaldiio import WriteHelper
-from packaging.version import parse as V  # noqa
+import yaml
 from typeguard import typechecked
 
-from espnet2.speechlm.core_lm.abs_core_lm import SpeechLMInferenceOptions
-from espnet2.speechlm.definitions import tasks as speechlm_tasks
+from espnet2.speechlm.espnet_model import ESPnetSpeechLMModel
+from espnet2.speechlm.inference_utils import (
+    ChatOrientedWriter,
+    TaskOrientedWriter,
+    build_inference_config,
+    parse_sequence,
+)
 from espnet2.tasks.speechlm import SpeechLMTask
-
-# utilities
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
-from espnet2.utils import config_argparse
-from espnet2.utils.types import str2bool, str2triple_str, str_or_none  # noqa
+from espnet2.utils.types import str2bool
 from espnet.utils.cli_utils import get_commandline_args
 
 
 class SpeechLM:
-    """SpeechLM class.
+    """The Chat Interface of SpeechLM
 
-    Examples: TODO(Jinchuan): will finish this when the code is stable.
+    Args:
+        train_config (str or Path): Path to the training configuration file
+            from your training folder. Contains model architecture, tokenizer,
+            and training hyperparameters.
+        model_file (str or Path): Path to the trained model checkpoint file
+            in your training folder containing the learned model weights.
+        dtype (str): PyTorch data type for model inference. Must be one of:
+            - "float16": Half precision (faster, less memory, potential accuracy loss)
+            - "bfloat16": Half precision (faster, less memory, potential accuracy loss)
+            - "float32": Single precision (default, good balance)
+        device (str or torch.device): PyTorch device specification for model execution.
+            Examples: "cpu", "cuda:0", "cuda:1", etc.
+        inference_config (Dict[str, Any]): Dictionary mapping modality tokens to their
+            respective inference configurations. Each modality (e.g., "speech", "text")
+            has specific generation parameters like beam size, temperature, etc.
+            See espnet2/speechlm/iference_utils.py for details.
+        inference_mode (str): Inference operation mode. Must be one of:
+            - "chat": Conversational mode with role tokens and turn-based interaction
+            - "task": Task-oriented mode for structured input/output processing
+        inference_last_segment (bool): Whether to perform inference only on the last
+            segment of the input sequence. If False, processes all segments requiring
+            generation.
+        nbest (int): Number of hypothesis candidates to generate and return.
+            Must be 1 for chat mode (batch inference not supported in chat).
+            For task mode, can be > 1 to get multiple alternative outputs.
     """
 
-    @typechecked
     def __init__(
         self,
-        train_config: Union[Path, str] = None,
-        model_file: Union[Path, str] = None,
-        dtype: str = "float32",
-        device: str = "cpu",
-        search_algo: str = "sampling",
-        inference_nq: int = None,
-        nbest: int = 1,
-        sampling_temperature: float = 1.0,
-        top_k: int = 20,
-        maxlenratio: float = 0.0,
-        minlenratio: float = 10.0,
-        modality: str = "codec",
-        post_processor_conf: dict = {},
+        # For model initialization
+        train_config,
+        model_file,
+        dtype,
+        device,
+        # Inference parameters
+        inference_config,
+        inference_mode,
+        inference_last_segment,
+        nbest,
     ):
-        """Initialize SpeechLM module."""
-
-        # setup model
+        # load model
         model, train_args = SpeechLMTask.build_model_from_file(
-            train_config, model_file, device
+            train_config, model_file, device, dtype
         )
-        self.model = model.to(dtype=getattr(torch, dtype)).eval()
-        self.device = device
-        self.dtype = dtype
+
+        # In case the model is trained with DPO
+        if not isinstance(model, ESPnetSpeechLMModel):
+            del model.reflm
+            model.__class__ = ESPnetSpeechLMModel
+            train_args.model = "espnet"
+
+        self.model = model.corelm
         self.train_args = train_args
 
-        # token_mask
-        token_bias = train_args.token_bias
-        token_list = train_args.token_list
-        inference_nq = model.corelm.nq if inference_nq is None else inference_nq
-        assert inference_nq <= model.corelm.nq
-        valid_start = token_bias[modality]
-        valid_end = min(
-            [s for s in token_bias.values() if s > valid_start] + [len(token_list)]
+        # Inference configs
+        self.inference_config = build_inference_config(
+            train_args,
+            inference_config,
+            device,
+            nbest,
+        )
+        self.inference_mode = inference_mode
+        self.inference_last_segment = inference_last_segment
+        self.nbest = nbest
+
+        if self.inference_mode == "chat":
+            assert self.nbest == 1, "Batch inference in chat mode is not supported."
+
+    @torch.no_grad()
+    def __call__(self, data):
+        """Inference with the whole given sequence.
+
+        This API is usually used for the given dataset, and working in segment-level
+        teacher forcing.
+        """
+        dec_seq = data.get("dec_seq")
+
+        # (1) Initialization
+        self.model.decoders.reset()
+        self.model.decoders.init()
+
+        assert dec_seq.dim() == 3, dec_seq.size()
+        assert dec_seq.size(0) == 1, dec_seq.size()
+        if self.nbest > 1:
+            dec_seq = dec_seq.expand(self.nbest, -1, -1)
+
+        # (2) Parse the decoder sequence
+        segments, is_prefills = parse_sequence(
+            dec_seq,
+            self.train_args.token_list,
+            mode=self.inference_mode,
+            inference_last_segment=self.inference_last_segment,
         )
 
-        masks = torch.ones(inference_nq, len(token_list)).to(device).bool()
-        if modality == "codec":
-            increment = (valid_end - valid_start) // train_args.codec_token_per_frame
-            for l_idx in range(inference_nq):
-                masks[
-                    l_idx,
-                    valid_start
-                    + l_idx * increment : valid_start
-                    + (l_idx + 1) * increment,
-                ] = False
-        else:
-            masks[:, valid_start:valid_end] = False
-
-        # inference options
-        self.inference_opts = SpeechLMInferenceOptions(
-            device=device,
-            search_algo=search_algo,
-            nbest=nbest,
-            sampling_temperature=sampling_temperature,
-            top_k=top_k,
-            maxlenratio=maxlenratio,
-            minlenratio=minlenratio,
-            eos=train_args.token_list.index("<sos/eos>"),
-            start=train_args.token_list.index(f"<{modality}_start/end>"),
-            masks=masks,
-            nq=inference_nq if inference_nq is not None else model.corelm.nq,
-        )
-
-        # post_processor: transform tokens to the target modality. E.g., speech, text.
-        if modality in ["codec"]:
-            self.bias = token_bias[modality]
-        else:
-            self.bias = 0
-
-    @typechecked
-    def __call__(
-        self,
-        dec_seq: torch.Tensor,
-        dec_seq_lengths: torch.Tensor,
-        prefix_len: torch.Tensor,
-        **kwargs,
-    ) -> Tuple[List[Any], List[torch.Tensor], List[torch.Tensor]]:
-        """Run SpeechLM inference"""
-
-        enc_seq = kwargs.get("enc_seq", None)
-        enc_seq_lengths = kwargs.get("enc_seq_lengths", None)
-        if enc_seq is not None or enc_seq_lengths is not None:
-            raise NotImplementedError("encoder-decoder is not supported yet.")
-
-        # language model inference
-        # Note(Jinchuan): the token dec_seq[prefix_len] is exactly
-        # self.inference_opts.start and will be handled by the
-        # inference algorithm. We discard it here.
-        prefix_len = prefix_len.squeeze(1)
-        gen_tokens, gen_scores = self.model.corelm.inference(
-            prefix=dec_seq[:, :prefix_len],
-            opts=self.inference_opts,
-            enc_seq=None,
-            suffix=dec_seq[:, prefix_len + 1 :],
-        )
-
-        if gen_tokens is None and gen_scores is None:
-            return None, None, None
-
-        # post-processing
-        generated = []
-        for gen_token in gen_tokens:
-            gen_token = gen_token - self.bias
-            generated.append(self.post_processor(gen_token))
-
-        return generated, gen_tokens, gen_scores
-
-    @staticmethod
-    def from_pretrained(
-        model_tag: Optional[str] = None,
-        **kwargs: Optional[Any],
-    ):
-        if model_tag is not None:
-            raise ValueError("Model tag is not supported yet")
-
-        return SpeechLM(**kwargs)
-
-
-@typechecked
-def inference(
-    # general
-    output_dir: str,
-    batch_size: int,
-    ngpu: int,
-    seed: int,
-    num_workers: int,
-    dtype: str,
-    log_level: Union[int, str],
-    # data related
-    data_path_and_name_and_type: Sequence[Tuple[str, str, str]],
-    key_file: Optional[str],
-    # model related
-    train_config: Optional[str],
-    model_file: Optional[str],
-    model_tag: Optional[str],
-    # inference related
-    search_algo: str = "sampling",
-    nbest: int = 1,
-    sampling_temperature: float = 1.0,
-    top_k: int = 20,
-    minlenratio: float = 0.0,
-    maxlenratio: float = 10.0,
-    inference_nj: Optional[int] = 1,
-    # post_processor related
-    postprocessor: str = None,
-    postprocessor_conf: dict = {},
-):
-    """Run SpeechLM inference."""
-    if batch_size > 1:
-        raise NotImplementedError("batch decoding is not implemented")
-    if ngpu > 1:
-        raise NotImplementedError("only single GPU decoding is supported")
-    logging.basicConfig(
-        level=log_level,
-        format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
-    )
-
-    if ngpu >= 1:
-        device = "cuda"
-    else:
-        device = "cpu"
-
-    # 1. Set random-seed
-    set_all_random_seed(seed)
-
-    # 2. parse task
-    assert len(data_path_and_name_and_type) == 1, "Can only do inference for one json"
-    task_name = json.load(open(data_path_and_name_and_type[0][0]))["task"]
-    task = speechlm_tasks[task_name]
-    output_name, output_modality = task.decoder_entries[-1][:2]
-    assert (
-        output_modality == postprocessor
-    ), f"Postprocessor should be {output_modality}"
-
-    # 3. Build model
-    speechlm_kwargs = dict(
-        train_config=train_config,
-        model_file=model_file,
-        dtype=dtype,
-        device=device,
-        search_algo=search_algo,
-        inference_nq=inference_nj,
-        nbest=nbest,
-        sampling_temperature=sampling_temperature,
-        top_k=top_k,
-        maxlenratio=maxlenratio,
-        minlenratio=minlenratio,
-        modality=output_modality,
-        post_processor_conf=postprocessor_conf,
-    )
-
-    speechlm = SpeechLM.from_pretrained(model_tag=model_tag, **speechlm_kwargs)
-
-    # 4. Build data-iterator
-    loader = SpeechLMTask.build_streaming_iterator(
-        data_path_and_name_and_type,
-        dtype=dtype,
-        batch_size=batch_size,
-        key_file=key_file,
-        num_workers=num_workers,
-        preprocess_fn=SpeechLMTask.build_preprocess_fn(speechlm.train_args, False),
-        collate_fn=SpeechLMTask.build_collate_fn(speechlm.train_args, False),
-        allow_variable_data_keys=False,
-        inference=True,
-        multi_task_dataset=True,
-    )
-
-    # 5 Start for-loop
-    output_dir = Path(output_dir)
-    (output_dir / output_name).mkdir(parents=True, exist_ok=True)
-    (output_dir / "token").mkdir(parents=True, exist_ok=True)
-    (output_dir / "score").mkdir(parents=True, exist_ok=True)
-
-    writer = open(output_dir / output_name / f"{output_name}_list", "w")
-    token_writer = WriteHelper(f'ark:{str(output_dir / "token" / "token")}.ark')
-    score_writer = WriteHelper(f'ark:{str(output_dir / "score" / "score")}.ark')
-
-    for _, (keys, batch) in enumerate(loader, 1):
-        assert isinstance(batch, dict), type(batch)
-        assert all(isinstance(s, str) for s in keys), keys
-        _bs = len(next(iter(batch.values())))
-        assert _bs == 1, _bs
-
-        batch = to_device(batch, device=device)
-        key = keys[0]
-        logging.info(f"Inference on example: {key}")
-
-        contents, tokens, scores = speechlm(**batch)
-        if contents is None:
-            logging.info(f"fail on example: {key}")
-            continue
-
-        for h_idx, (content, token, score) in enumerate(zip(contents, tokens, scores)):
-            example_name = f"{key}_sample{h_idx}"
-
-            if output_modality == "codec":
-                wave_path = output_dir / output_name / f"{example_name}.wav"
-                writer.write(f"{example_name} {str(wave_path)}\n")
-
-                torchaudio.save(
-                    wave_path,
-                    content.cpu(),
-                    sample_rate=speechlm.post_processor.sample_rate,
-                )
-                logging.info(f"save audio {example_name}: {wave_path}")
-
+        # (3) Inference on each segments
+        prefill_buffer, all_segments = [], []
+        for segment, is_prefill in zip(segments, is_prefills):
+            # (3.1) cache the prefill
+            if is_prefill:
+                prefill_buffer.append(segment)
+                all_segments.append(segment)
             else:
-                raise NotImplementedError(
-                    f"Output modality {output_modality} is not supported"
+                # (3.2) add the known prefix of the target
+                # if task mode, add the modality specifier
+                # if chat mode, add the role token and modality specifier
+                extra_prefill_len = 1 if self.inference_mode == "task" else 2
+                prefill_buffer.append(segment[:, :extra_prefill_len, :])
+                prefill = torch.cat(prefill_buffer, dim=1)
+                prefill_buffer = []
+
+                # (3.3) find the corresponding inference config
+                modality_token = segment[0, extra_prefill_len - 1, 0].item()
+                modality_token = self.train_args.token_list[modality_token]
+                modality_token = modality_token.removeprefix("<").removesuffix(
+                    "_start/end>"
                 )
+                inference_config = self.inference_config[modality_token]
 
-            if isinstance(token, torch.Tensor):
-                token = token.int().flatten().cpu().numpy()
-            if isinstance(score, torch.Tensor):
-                score = score.float().flatten().cpu().numpy()
+                # (3.4) inference one segment
+                inferred_segments = self.inference_one_segment(
+                    prefill,
+                    segment[:, extra_prefill_len:, :],
+                    inference_config,
+                )
+                prefix = segment[0, :extra_prefill_len, :]
+                inferred_segments_new = []
+                for candidate in inferred_segments:
+                    candidate = torch.cat([prefix, candidate], dim=0)
+                    inferred_segments_new.append(candidate)
 
-            token_writer[example_name] = token
-            score_writer[example_name] = score
+                all_segments.append(inferred_segments_new)
+
+        return all_segments
+
+    def inference_one_segment(self, prefill, reference, inference_config):
+        """Inference one turn with the prefill until certain requirements are met.
+
+        This API is used in both __call__ function and the user interactive interface.
+        """
+        inferred_segment, _ = self.model.inference(prefill, reference, inference_config)
+        return inferred_segment
 
 
 def get_parser():
-    """Get argument parser."""
-    parser = config_argparse.ArgumentParser(
+    parser = argparse.ArgumentParser(
         description="SpeechLM inference",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
-    # Note(kamo): Use "_" instead of "-" as separator.
-    # "-" is confusing if written in yaml.
+    # General
     parser.add_argument(
-        "--log_level",
-        type=lambda x: x.upper(),
-        default="INFO",
-        choices=("CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"),
-        help="The verbose level of logging",
+        "--nproc",
+        type=int,
+        default=1,
+        help="Number of concurrent processes",
     )
-
     parser.add_argument(
         "--output_dir",
-        type=str,
+        type=Path,
         required=True,
         help="The path of output directory",
+    )
+    parser.add_argument(
+        "--batch_size",
+        type=int,
+        default=1,
+        help="The batch size for inference",
     )
     parser.add_argument(
         "--ngpu",
@@ -333,112 +213,276 @@ def get_parser():
         help="Random seed",
     )
     parser.add_argument(
+        "--num_workers",
+        type=int,
+        default=0,
+        help="The number of workers used for DataLoader",
+    )
+    parser.add_argument(
+        "--log_level",
+        type=lambda x: x.upper(),
+        default="INFO",
+        choices=("CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"),
+        help="The verbose level of logging",
+    )
+
+    # Model
+    parser.add_argument(
+        "--model_file",
+        type=str,
+        help="Model parameter file",
+    )
+    parser.add_argument(
+        "--train_config",
+        type=str,
+        help="Training configuration file",
+    )
+    parser.add_argument(
         "--dtype",
         default="float32",
         choices=["float16", "float32", "float64"],
         help="Data type",
     )
+
+    # Inference configs
     parser.add_argument(
-        "--num_workers",
-        type=int,
-        default=1,
-        help="The number of workers used for DataLoader",
+        "--inference_config_file",
+        type=str,
+        help="Inference configuration file",
     )
     parser.add_argument(
-        "--batch_size",
-        type=int,
-        default=1,
-        help="The batch size for inference",
+        "--inference_last_segment",
+        type=str2bool,
+        default=False,
+        help="Inference configuration file",
     )
-
-    group = parser.add_argument_group("Input data related")
-    group.add_argument(
-        "--data_path_and_name_and_type",
-        type=str2triple_str,
-        required=True,
-        action="append",
-    )
-    group.add_argument(
-        "--key_file",
-        type=str_or_none,
-    )
-
-    group = parser.add_argument_group("The model configuration related")
-    group.add_argument(
-        "--train_config",
-        type=str,
-        help="Training configuration file",
-    )
-    group.add_argument(
-        "--model_file",
-        type=str,
-        help="Model parameter file",
-    )
-    group.add_argument(
-        "--model_tag",
-        type=str,
-        help="Pretrained model tag. If specify this option, train_config and "
-        "model_file will be overwritten",
-    )
-
-    group = parser.add_argument_group("Infernece related")
-    group.add_argument(
-        "--maxlenratio",
-        type=float,
-        default=10.0,
-        help="Maximum length ratio in decoding",
-    )
-    group.add_argument(
-        "--minlenratio",
-        type=float,
-        default=0.0,
-        help="Minimum length ratio in decoding",
-    )
-    group.add_argument(
-        "--search_algo",
-        type=str,
-        default="sampling",
-        choices=["sampling", "teacher_force", "beam_search", "greedy_search"],
-        help="the search algorithm of SpeechLM",
-    )
-    group.add_argument(
+    parser.add_argument(
         "--nbest",
         type=int,
-        default=1,
-        help="The number of hypotheses to return",
-    )
-    group.add_argument(
-        "--sampling_temperature",
-        type=float,
-        default=1.0,
-        help="the temperature of softmax during sampling",
-    )
-    group.add_argument(
-        "--top_k",
-        type=int,
-        default=20,
-        help="if positive, restrict the sampling to top-k tokens with highest probs.",
-    )
-    group.add_argument(
-        "--inference_nj",
-        type=int,
-        default=None,
-        help="nj used in inference, should be the same/smaller than the nq in train",
+        help="Number of best hypotheses to return",
     )
 
-    group = parser.add_argument_group("Postprocessor related")
+    # Data
+    parser.add_argument(
+        "--data_path_and_name_and_type",
+        type=str,
+        help="Data path and name and type",
+    )
 
     return parser
 
 
+@typechecked
+def inference(
+    # General
+    rank: int,
+    nproc: int,
+    output_dir: Path,
+    batch_size: int,
+    ngpu: int,
+    seed: int,
+    num_workers: int,
+    log_level: str,
+    # Model
+    train_config: str,
+    model_file: str,
+    dtype: str,
+    # Inference_configs
+    inference_config: Dict,
+    inference_last_segment: bool,
+    nbest: int,
+    # Data:
+    data_path_and_name_and_type: str,
+):
+    # (1) General settings
+    if batch_size > 1:
+        raise ValueError("Batch size > 1 is not supported yet.")
+    if ngpu > 1:
+        raise ValueError("Multi-GPU is not supported yet.")
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format=f"[{rank}/{nproc}] "
+        f"%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
+    )
+
+    if torch.cuda.is_available() and ngpu > 0:
+        device = "cuda:0"
+    else:
+        device = "cpu"
+
+    data_path = data_path_and_name_and_type.split(",")[0]
+    task_name = json.load(open(data_path))["task"]
+    if "dialogue" in task_name:
+        inference_mode = "chat"
+    else:
+        inference_mode = "task"
+
+    # (2) Load model
+    speechlm = SpeechLM(
+        train_config=train_config,
+        model_file=model_file,
+        dtype=dtype,
+        device=device,
+        inference_config=inference_config,
+        inference_mode=inference_mode,
+        inference_last_segment=inference_last_segment,
+        nbest=nbest,
+    )
+
+    # (3) Load data
+    loader = SpeechLMTask.build_streaming_iterator(
+        [data_path_and_name_and_type.strip().split(",")],
+        dtype=dtype,
+        batch_size=batch_size,
+        num_workers=num_workers,
+        preprocess_fn=SpeechLMTask.build_preprocess_fn(speechlm.train_args, False),
+        collate_fn=SpeechLMTask.build_collate_fn(speechlm.train_args, False),
+        allow_variable_data_keys=False,
+        inference=True,
+        multi_task_dataset=True,
+    )
+
+    # (4) Build result writer
+    if inference_mode == "task":
+        writer = TaskOrientedWriter(
+            train_args=speechlm.train_args,
+            task=task_name,
+            output_dir=output_dir,
+            rank=rank,
+            inference_config=speechlm.inference_config,
+        )
+    elif inference_mode == "chat":
+        writer = ChatOrientedWriter(
+            train_args=speechlm.train_args,
+            task=task_name,
+            output_dir=output_dir,
+            rank=rank,
+            inference_config=speechlm.inference_config,
+        )
+    # (5) Inference loop
+    for iiter, (keys, batch) in enumerate(loader, 1):
+        if iiter % nproc != rank:
+            continue
+
+        assert isinstance(batch, dict), type(batch)
+        assert all(isinstance(s, str) for s in keys), keys
+        _bs = len(next(iter(batch.values())))
+        assert _bs == 1, _bs
+
+        batch = to_device(batch, device=device)
+        key = keys[0]
+
+        # NOTE(Jinchuan): make each example independently rseproducible
+        set_all_random_seed(seed)
+
+        # model infernece
+        logging.info(f"Inference on example: {key}")
+        all_segments = speechlm(batch)
+
+        # save results
+        writer.write(key, all_segments)
+
+
 def main(cmd=None):
     """Run SpeechLM model inference."""
+    # (1) record the variables
     print(get_commandline_args(), file=sys.stderr)
     parser = get_parser()
     args = parser.parse_args(cmd)
     kwargs = vars(args)
-    kwargs.pop("config", None)
-    inference(**kwargs)
+
+    inference_config = kwargs.pop("inference_config_file")
+    inference_config = yaml.safe_load(open(inference_config, "r"))
+    keys = list(inference_config.keys())
+    for key in keys:
+        if key in kwargs:
+            kwargs[key] = inference_config.pop(key)
+    kwargs["inference_config"] = inference_config
+    print(f"kwargs: {kwargs}")
+
+    # (2) multiprocessing inference
+    nproc = kwargs["nproc"]
+    mp = torch.multiprocessing.get_context("spawn")
+    processes = list()
+    for rank in range(nproc):
+        kwargs["rank"] = rank
+        p = mp.Process(
+            target=inference,
+            kwargs=kwargs,
+        )
+        p.start()
+        processes.append(p)
+
+    try:
+        # Polling loop:
+        # We repeatedly check if any process has exited and if so, whether it failed.
+        # If a process fails, we terminate all remaining.
+        while True:
+            all_done = True
+
+            for p in processes:
+                # If the process is still alive, try joining for a short time (poll)
+                if p.is_alive():
+                    p.join(timeout=1)  # Non-blocking "poll" wait
+                    # After the join with timeout, if p is still alive,
+                    # we'll continue the loop. If it ended, we can check exitcode.
+
+                # Now, if the process is NOT alive, it might have finished or failed
+                if not p.is_alive():
+                    # p.exitcode == 0 means success
+                    # p.exitcode != 0 means error/exception
+                    if p.exitcode is not None and p.exitcode != 0:
+                        raise ChildProcessError(
+                            f"Process {p.pid} terminated with exitcode={p.exitcode}"
+                        )
+                else:
+                    # If it's still alive at this point, we're not all done yet
+                    all_done = False
+
+            if all_done:
+                # Means all processes have finished successfully
+                print("All processes finished successfully.")
+                break
+
+    except Exception as e:
+        print(f"Error detected: {e}. Terminating all processes...", file=sys.stderr)
+
+        # Terminate all running processes
+        for p in processes:
+            if p.is_alive():
+                p.terminate()
+
+        # Re-raise the original exception so it can be caught or exit accordingly
+        raise
+
+    # (3) finally, merge results from all processes
+    file_dict = dict()
+    for file in args.output_dir.rglob("rank*"):
+        file_name = file.name
+        match = re.match(r"rank(\d+)_(.+)", file_name)
+        if match:
+            rank = int(match.group(1))  # Extract rank as an integer
+            file_name = match.group(2)
+
+            if int(rank) >= nproc:
+                continue
+            if file_name.endswith(".ark"):
+                continue
+
+        else:
+            continue
+
+        merge_file_path = file.parent / file_name
+        if merge_file_path not in file_dict:
+            file_dict[merge_file_path] = list()
+        file_dict[merge_file_path].append(file)
+
+    for name, files in file_dict.items():
+        writer = open(name, "w")
+        for file in files:
+            for line in open(file):
+                writer.write(line)
 
 
 if __name__ == "__main__":

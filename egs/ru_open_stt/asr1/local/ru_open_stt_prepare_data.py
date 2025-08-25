@@ -98,9 +98,11 @@ for subset in subsets.keys():
     odir = "data/" + subset
     os.makedirs(odir, exist_ok=True)
 
-    with open(odir + "/text", "w", encoding="utf-8") as text, open(
-        odir + "/wav.scp", "w"
-    ) as wavscp, open(odir + "/utt2spk", "w") as utt2spk:
+    with (
+        open(odir + "/text", "w", encoding="utf-8") as text,
+        open(odir + "/wav.scp", "w") as wavscp,
+        open(odir + "/utt2spk", "w") as utt2spk,
+    ):
         for utt in subsets[subset]["all"]:
             [uttid, words, wav] = utt
             text.write("{} {}\n".format(uttid, words))
