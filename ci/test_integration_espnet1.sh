@@ -17,10 +17,10 @@ except ImportError:
 "
 }
 
-if check_chainer; then
-    echo "WARNING: We are currently deprecating chainer and will be removed in the "
-    echo "         next release (v202509). Install chainer by your own."
-    echo "         Run 'make chainer.done' at tools dir."
+if ! check_chainer; then
+    echo "WARNING: Chainer is not installed, skipping espnet1 integration tests."
+    echo "         Chainer is being deprecated and will be removed in a future release."
+    echo "         To run these tests, install Chainer via 'make chainer.done' in the tools directory."
     exit 0
 fi
 
