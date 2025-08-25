@@ -13,10 +13,6 @@ import os
 import numpy as np
 import torch
 import torch.distributed as dist
-from chainer import reporter as reporter_module
-from chainer import training
-from chainer.training import extensions
-from chainer.training.updater import StandardUpdater
 from packaging.version import parse as V
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.nn.parallel import data_parallel
@@ -67,6 +63,17 @@ def _recursive_to(xs, device):
     if isinstance(xs, tuple):
         return tuple(_recursive_to(x, device) for x in xs)
     return xs
+
+
+try:
+    from chainer import reporter as reporter_module
+    from chainer import training
+    from chainer.training import extensions
+    from chainer.training.updater import StandardUpdater
+
+except ImportError:
+    logging.warning("Chainer is not Installed. Run `make chainer.done` at tools dir.")
+    from espnet.utils.dummy_chainer import StandardUpdater
 
 
 class DistributedDictSummary:
