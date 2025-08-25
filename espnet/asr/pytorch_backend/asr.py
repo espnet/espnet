@@ -56,7 +56,6 @@ from espnet.utils.training.iterators import ShufflingEnabler
 from espnet.utils.training.tensorboard_logger import TensorboardLogger
 from espnet.utils.training.train_utils import check_early_stop, set_early_stop
 
-
 try:
     from chainer import reporter as reporter_module
     from chainer import training
