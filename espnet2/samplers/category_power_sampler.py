@@ -422,7 +422,7 @@ class CategoryDatasetPowerSampler(AbsSampler):
             for category in self.dataset_category_probs[dataset].keys():
                 category_utts = set(self.category2utt[category])
                 common_utts = list(category_utts.intersection(dataset_utts))
-                self.random_state.shuffle(common_utts) # P(x | l, d) = 1 / k_ld
+                self.random_state.shuffle(common_utts)  # P(x | l, d) = 1 / k_ld
                 self.dataset_category_utts[dataset][category] = common_utts
 
         # Estimate total number of samples after applying dataset scaling.

@@ -38,7 +38,7 @@ from espnet2.samplers.build_batch_sampler import (
     BATCH_TYPES,
     CATEGORY_BATCH_TYPES,
     build_batch_sampler,
-    build_category_batch_sampler
+    build_category_batch_sampler,
 )
 from espnet2.samplers.unsorted_batch_sampler import UnsortedBatchSampler
 from espnet2.schedulers.cosine_anneal_warmup_restart import (

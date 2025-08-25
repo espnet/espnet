@@ -3,16 +3,16 @@ from typing import List, Optional, Sequence, Tuple, Union
 from typeguard import typechecked
 
 from espnet2.samplers.abs_sampler import AbsSampler
-from espnet2.samplers.folded_batch_sampler import FoldedBatchSampler
-from espnet2.samplers.length_batch_sampler import LengthBatchSampler
-from espnet2.samplers.num_elements_batch_sampler import NumElementsBatchSampler
-from espnet2.samplers.sorted_batch_sampler import SortedBatchSampler
-from espnet2.samplers.unsorted_batch_sampler import UnsortedBatchSampler
 from espnet2.samplers.category_balanced_sampler import CategoryBalancedSampler
 from espnet2.samplers.category_power_sampler import (
     CategoryDatasetPowerSampler,
     CategoryPowerSampler,
 )
+from espnet2.samplers.folded_batch_sampler import FoldedBatchSampler
+from espnet2.samplers.length_batch_sampler import LengthBatchSampler
+from espnet2.samplers.num_elements_batch_sampler import NumElementsBatchSampler
+from espnet2.samplers.sorted_batch_sampler import SortedBatchSampler
+from espnet2.samplers.unsorted_batch_sampler import UnsortedBatchSampler
 
 BATCH_TYPES = dict(
     unsorted="UnsortedBatchSampler has nothing in particular feature and "
@@ -177,6 +177,7 @@ def build_batch_sampler(
         )
     return retval
 
+
 @typechecked
 def build_category_batch_sampler(
     type: str,
@@ -190,7 +191,7 @@ def build_category_batch_sampler(
     dataset_upsampling_factor: Optional[float] = None,
     dataset_scaling_factor: Optional[float] = None,
     drop_last: bool = False,
-    category2utt_file: str=None,
+    category2utt_file: str = None,
     dataset2utt_parent_dir: Optional[str] = None,
     epoch: int = 1,
     num_batches: int = None,
@@ -267,5 +268,5 @@ def build_category_batch_sampler(
             f"batch_type={type} is not supported"
             f"Please specify batch_type in {CATEGORY_BATCH_TYPES.keys()}."
         )
-    
+
     return batch_sampler
