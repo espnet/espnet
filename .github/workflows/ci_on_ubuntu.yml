@@ -70,7 +70,7 @@ jobs:
 
       - name: test python
         run: ./ci/test_python_espnet1.sh
-      - uses: codecov/codecov-action@v2
+      - uses: codecov/codecov-action@v5
         with:
           flags: test_python_espnet1
       - name: coverage erase
@@ -85,7 +85,7 @@ jobs:
 
       - name: test integration
         run: ./ci/test_integration_espnet1.sh
-      - uses: codecov/codecov-action@v2
+      - uses: codecov/codecov-action@v5
         with:
           flags: test_integration_espnet1
 
@@ -135,7 +135,7 @@ jobs:
 
       - name: test python
         run: ./ci/test_python_espnet2.sh
-      - uses: codecov/codecov-action@v2
+      - uses: codecov/codecov-action@v5
         with:
           flags: test_python_espnet2
       - name: coverage erase
@@ -150,7 +150,7 @@ jobs:
 
       - name: test utils
         run: ./ci/test_utils.sh
-      - uses: codecov/codecov-action@v2
+      - uses: codecov/codecov-action@v5
         with:
           flags: test_utils
       - name: coverage erase
@@ -161,7 +161,7 @@ jobs:
 
       - name: test espnet2 integration
         run: ./ci/test_integration_espnet2.sh
-      - uses: codecov/codecov-action@v2
+      - uses: codecov/codecov-action@v5
         with:
           flags: test_integration_espnet2
 
@@ -210,7 +210,7 @@ jobs:
           sudo rm -rf /root/.cache/*
       - name: test configuration
         run: ./ci/test_configuration_espnet2.sh
-      - uses: codecov/codecov-action@v2
+      - uses: codecov/codecov-action@v5
         with:
           flags: test_configuration_espnet2
 
@@ -256,7 +256,7 @@ jobs:
 
       - name: test python
         run: ./ci/test_python_espnetez.sh
-      - uses: codecov/codecov-action@v2
+      - uses: codecov/codecov-action@v5
         with:
           flags: test_python_espnetez
       - name: coverage erase
@@ -271,7 +271,7 @@ jobs:
 
       - name: test utils
         run: ./ci/test_utils.sh
-      - uses: codecov/codecov-action@v2
+      - uses: codecov/codecov-action@v5
         with:
           flags: test_utils
       - name: coverage erase
@@ -282,7 +282,7 @@ jobs:
 
       - name: test espnetez integration
         run: ./ci/test_integration_espnetez.sh
-      - uses: codecov/codecov-action@v2
+      - uses: codecov/codecov-action@v5
         with:
           flags: test_integration_espnetez
 
