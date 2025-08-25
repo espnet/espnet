@@ -4,6 +4,26 @@ python="coverage run --append"
 
 cwd=$(pwd)
 
+. tools/activate_python.sh
+
+check_chainer(){
+    python3 -c "
+import sys
+try:
+    import chainer
+    sys.exit(0)
+except ImportError:
+    sys.exit(1)
+"
+}
+
+if check_chainer; then
+    echo "WARNING: We are currently deprecating chainer and will be removed in the "
+    echo "         next release (v202509). Install chainer by your own."
+    echo "         Run 'make chainer.done' at tools dir."
+    exit 0
+fi
+
 # test asr recipe
 cd ./egs/mini_an4/asr1 || exit 1
 . path.sh  # source here to avoid undefined variable errors
