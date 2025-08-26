@@ -495,7 +495,7 @@ class CategoryDatasetPowerSampler(AbsSampler):
             ):
                 self.batch_list.append(current_batch)
                 current_batch = []
-                current_batch_bins = 0 
+                current_batch_bins = 0
 
         # Handle last batch
         if not self.drop_last and len(current_batch) >= self.min_batch_size:
