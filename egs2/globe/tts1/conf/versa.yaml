@@ -38,7 +38,7 @@
   mcep_alpha: 0.466
   seq_mismatch_tolerance: 1.0
   power_threshold: -20
-  dtw: false
+  dtw: true
 
 # pseudo subjective metrics
 # -- utmos: UT-MOS score
