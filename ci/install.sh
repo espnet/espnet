@@ -74,6 +74,6 @@ python3 <<EOF
 import numpy
 from packaging.version import parse as L
 
-if L(numpy.__version__) >= L("2.0.0"):
-    raise RuntimeError(f"Numpy>=2.0.0 is expected, but got pytorch={numpy.__version__}. This is a bug in installation scripts")
+if L(numpy.__version__) < L("2.0.0"):
+    raise RuntimeError(f"Numpy>=2.0.0 is expected, but got numpy={numpy.__version__}. This is a bug in installation scripts")
 EOF
