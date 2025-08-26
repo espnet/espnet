@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import List, Optional, Sequence, Tuple, Union
 
 from typeguard import typechecked
@@ -196,7 +197,7 @@ def build_category_batch_sampler(
     epoch: int = 1,
     num_batches: int = None,
     distributed: bool = False,
-) -> AbsSampler:
+) -> Tuple[AbsSampler, dict]:
 
     if type == "catbel":
         sampler_args = dict(
@@ -269,4 +270,4 @@ def build_category_batch_sampler(
             f"Please specify batch_type in {CATEGORY_BATCH_TYPES.keys()}."
         )
 
-    return batch_sampler
+    return batch_sampler, sampler_args

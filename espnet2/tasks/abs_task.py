@@ -1948,7 +1948,7 @@ class AbsTask(ABC):
             )
 
         if iter_options.batch_type in CATEGORY_BATCH_TYPES:
-            batch_sampler = build_category_batch_sampler(
+            batch_sampler, sampler_args = build_category_batch_sampler(
                 type=iter_options.batch_type,
                 batch_size=iter_options.batch_size,
                 batch_bins=iter_options.batch_bins,
@@ -2145,7 +2145,7 @@ class AbsTask(ABC):
         else:
             category2utt_file = None
 
-        batch_sampler = build_category_batch_sampler(
+        batch_sampler, _ = build_category_batch_sampler(
             type=iter_options.batch_type,
             batch_size=args.category_sample_size,
             batch_bins=iter_options.batch_bins,
