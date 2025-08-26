@@ -1,14 +1,8 @@
 """Evaluator classes & methods."""
 
-import logging
+from chainer.training.extensions import Evaluator
 
 from espnet.utils.training.tensorboard_logger import TensorboardLogger
-
-try:
-    from chainer.training.extensions import Evaluator
-except ImportError:
-    logging.warning("Chainer is not Installed. Run `make chainer.done` at tools dir.")
-    from espnet.utils.dummy_chainer import Evaluator
 
 
 class BaseEvaluator(Evaluator):

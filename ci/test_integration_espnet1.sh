@@ -4,24 +4,6 @@ python="coverage run --append"
 
 cwd=$(pwd)
 
-. tools/activate_python.sh
-
-numpy_plus(){
-    python3 -c "
-import sys
-from packaging.version import parse as V
-import numpy as np
-sys.exit(0 if V(np.__version__) >= V('$1') else 1)
-"
-}
-
-if numpy_plus 2.0.0; then
-    echo "WARNING: The current numpy version is not supported by 'Chainer',"
-    echo "         a dependency required for ESPnet<202509."
-    echo "         Try with a different lower version of ESPnet for running these tests"
-    exit 0
-fi
-
 # test asr recipe
 cd ./egs/mini_an4/asr1 || exit 1
 . path.sh  # source here to avoid undefined variable errors

@@ -1,24 +1,9 @@
 """Iterators functions."""
 
-import logging
-
+import chainer
 import numpy as np
-
-try:
-    import chainer
-    from chainer.iterators import (
-        MultiprocessIterator,
-        SerialIterator,
-        ShuffleOrderSampler,
-    )
-    from chainer.training.extension import Extension
-except ImportError:
-    logging.warning("Chainer is not Installed. Run `make chainer.done` at tools dir.")
-    from espnet.utils.dummy_chainer import (
-        Extension,
-        MultiprocessIterator,
-        SerialIterator,
-    )
+from chainer.iterators import MultiprocessIterator, SerialIterator, ShuffleOrderSampler
+from chainer.training.extension import Extension
 
 
 class ShufflingEnabler(Extension):

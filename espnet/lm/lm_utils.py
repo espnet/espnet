@@ -11,18 +11,11 @@ import logging
 import os
 import random
 
+import chainer
 import h5py
 import numpy as np
+from chainer.training import extension
 from tqdm import tqdm
-
-try:
-    import chainer
-    from chainer.dataset import Iterator
-    from chainer.training.extension import Extension
-except ImportError:
-    logging.warning("Chainer is not Installed. Run `make chainer.done` at tools dir.")
-
-    from espnet.utils.dummy_chainer import Extension, Iterator
 
 
 def load_dataset(path, label_dict, outdir=None):
@@ -115,7 +108,7 @@ def compute_perplexity(result):
         result["val_perplexity"] = np.exp(result["validation/main/loss"])
 
 
-class ParallelSentenceIterator(Iterator):
+class ParallelSentenceIterator(chainer.dataset.Iterator):
     """Dataset iterator to create a batch of sentences.
 
     This iterator returns a pair of sentences, where one token is shifted
@@ -235,7 +228,7 @@ class ParallelSentenceIterator(Iterator):
                 self._previous_epoch_detail = -1.0
 
 
-class MakeSymlinkToBestModel(Extension):
+class MakeSymlinkToBestModel(extension.Extension):
     """Extension that makes a symbolic link to the best model.
 
     :param str key: Key of value

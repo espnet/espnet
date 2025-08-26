@@ -3,15 +3,8 @@
 import logging
 import os
 
+import chainer
 import torch
-
-try:
-    import chainer
-
-    is_chainer_installer = True
-except ImportError:
-    logging.warning("Chainer is not Installed. Run `make chainer.done` at tools dir.")
-    is_chainer_installer = False
 
 
 def set_deterministic_pytorch(args):
@@ -30,7 +23,7 @@ def set_deterministic_pytorch(args):
     torch.backends.cudnn.benchmark = (
         False  # https://github.com/pytorch/pytorch/issues/6351
     )
-    if args.debugmode < 2 and is_chainer_installer:
+    if args.debugmode < 2:
         chainer.config.type_check = False
         logging.info("torch type check is disabled")
     # use deterministic computation or not
