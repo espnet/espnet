@@ -2842,6 +2842,7 @@ class S2TCTCPreprocessor(CommonPreprocessor):
 
         return data
 
+
 class Qwen2AudioPreprocessor(AbsPreprocessor):
     """Preprocessor specifically for Qwen2Audio models"""
 

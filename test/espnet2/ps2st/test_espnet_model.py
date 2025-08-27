@@ -1,6 +1,5 @@
-import pytest
-
 import numpy as np
+import pytest
 import torch
 
 from espnet2.ps2st.espnet_model import ESPnetQwen2AudioModel
