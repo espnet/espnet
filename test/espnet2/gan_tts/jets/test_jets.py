@@ -190,7 +190,8 @@ def make_jets_loss_args(**kwargs):
 #   so a little bit more time is needed to run. Therefore,
 #   here we extend execution timeout from 2 sec to 8 sec.
 # NOTE(Nelson): 8 sec. is not enough. Extending to 15.
-@pytest.mark.execution_timeout(15)
+# NOTE(Qingzheng): Extending to 30 sec for CI environment stability.
+@pytest.mark.execution_timeout(30)
 @pytest.mark.skipif(
     "1.6" in torch.__version__,
     reason="group conv in pytorch 1.6 has an issue. "
