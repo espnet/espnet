@@ -41,6 +41,7 @@ def inference(
     set_all_random_seed(seed)
 
     args = argparse.Namespace()
+    # Currently only Qwen2-Audio is available.
     args.model_name = "Qwen/Qwen2-Audio-7B-Instruct"
     args.decode_config_path = decode_config_path
     model = PS2STTask.build_model(args)

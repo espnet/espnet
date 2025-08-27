@@ -66,67 +66,36 @@ class Qwen2AudioTokenizer(AbsTokenizer):
         """
         self._build_processor()
 
-        def create_tempfile(audio_input: Tuple[List[np.ndarray], int]) -> List[str]:
-            n_audios, sr = len(audio_input[0]), audio_input[1]
-            tempfiles = [
-                tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
-                for _ in range(n_audios)
-            ]
-            for temp, wav in zip(tempfiles, audio_input[0]):
-                sf.write(temp.name, wav, sr)
-            return [tempfile.name for tempfile in tempfiles]
-
-        def delete_tempfile(p_files: List[str]):
-            for p_file in p_files:
-                os.unlink(p_file)
-
         # Handle audio input if provided
         if audio_input is not None:
-            temp_files = create_tempfile(audio_input)
+            audios, sr = audio_input
+            # The audio URLs are just placeholders for the chat template.
+            # The actual audio data is passed in the `audios` argument below.
+            wavs_query = [
+                {"type": "audio", "audio_url": f"placeholder_{i}.wav"}
+                for i in range(len(audios))
+            ]
 
-            try:
-                # Prepare multimodal query
-                wavs_query = [
-                    {"type": "audio", "audio_url": file}
-                    for file in temp_files
-                    if os.path.exists(file)
-                ]
+            text_query = [{"type": "text", "text": text_input}]
 
-                text_query = [{"type": "text", "text": text_input}]
+            query = [
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": wavs_query + text_query},
+            ]
 
-                query = [
-                    {"role": "system", "content": "You are a helpful assistant."},
-                    {"role": "user", "content": wavs_query + text_query},
-                ]
+            # Apply chat template
+            text = self.processor.apply_chat_template(
+                query, add_generation_prompt=True, tokenize=False
+            )
 
-                # Apply chat template
-                text = self.processor.apply_chat_template(
-                    query, add_generation_prompt=True, tokenize=False
-                )
-
-                # Load audio files
-                audios = [
-                    librosa.load(
-                        file, sr=self.processor.feature_extractor.sampling_rate
-                    )[0]
-                    for file in temp_files
-                    if os.path.exists(file)
-                ]
-
-                # Process inputs with both text and audio
-                inputs = self.processor(
-                    text=text,
-                    audios=audios,
-                    sampling_rate=self.processor.feature_extractor.sampling_rate,
-                    return_tensors="np",
-                    padding=True,
-                )
-                delete_tempfile(temp_files)
-            except Exception as e:
-                # Make sure to delete temp files if error occurs.
-                print(f"Error processing audio input: {e}")
-                delete_tempfile(temp_files)
-                raise e
+            # Process inputs with both text and audio
+            inputs = self.processor(
+                text=text,
+                audios=audios,
+                sampling_rate=sr,
+                return_tensors="np",
+                padding=True,
+            )
         else:
             # Text-only processing
             inputs = self.processor(text=text_input, return_tensors="np", padding=True)

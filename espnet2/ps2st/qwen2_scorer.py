@@ -67,12 +67,9 @@ class Qwen2HFScorer(ScorerInterface):
         past_len = state["step"]
         # Fallback to read from KV if step got desynced
         if isinstance(past_kv, tuple) and len(past_kv) > 0 and len(past_kv[0]) > 0:
-            try:
-                kv_len = past_kv[0][0].size(-2)
-                if kv_len != past_len:
-                    past_len = kv_len
-            except Exception:
-                pass
+            kv_len = past_kv[0][0].size(-2)
+            if kv_len != past_len:
+                past_len = kv_len
 
         position_ids = torch.tensor(
             [[past_len]], dtype=torch.long, device=last_tok.device

@@ -11,13 +11,13 @@ from espnet2.train.trainer import Trainer
 
 
 class PS2STTask(AbsTask):
-    """PS2ST refers to the prompt-based speech-to-text task.
+    """PS2ST refers to the prompt-based speech-to-speech/text task.
 
     The prompt is a text that serves as an instruction
     for the model to do a specific task such as ASR, IC, ST, etc.
-    The output of this task is a text sequence.
-    It can be transcriptions for ASR or textual labels
-    for classification tasks.
+    The output can be a text sequence or speech, depending on the task.
+    For example, transcriptions for ASR, textual labels for classification,
+    or synthesized speech for speech generation tasks.
     """
 
     num_optimizers: int = 1
