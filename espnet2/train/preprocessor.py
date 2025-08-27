@@ -13,7 +13,6 @@ import scipy.signal
 import soundfile
 from typeguard import typechecked
 
-import espnet2.speechlm.definitions as speechlm_definitions
 from espnet2.layers.augmentation import DataAugmentation
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.cleaner import TextCleaner
@@ -2247,6 +2246,258 @@ class SpkPreprocessor(CommonPreprocessor):
         return data
 
 
+class LIDPreprocessor(CommonPreprocessor):
+    """Preprocessor for LID tasks.
+
+    Args:
+        train (bool): Whether to use in training mode.
+        lang2utt (str): Path to the `lang2utt` file.
+        target_duration (float): Target duration in seconds, if
+        fix_duration, clip to this duration.
+        fix_duration (bool): Whether to fix the duration of the audio.
+        sample_rate (int): Sampling rate.
+        rir_scp (str): Path to the RIR scp file.
+        rir_apply_prob (float): Probability of applying RIR.
+        noise_info (List[Tuple[float, str, Tuple[int, int], Tuple[float, float]]]):
+            List of tuples of noise information. Each tuple represents a noise type.
+            Each tuple consists of `(prob, noise_scp, num_to_mix, db_range)`.
+                - `prob` (float) is the probability of applying the noise type.
+                - `noise_scp` (str) is the path to the noise scp file.
+                - `num_to_mix` (Tuple[int, int]) is the range of the number of noises
+                    to be mixed.
+                - `db_range` (Tuple[float, float]) is the range of noise levels in dB.
+        noise_apply_prob (float): Probability of applying noise.
+        short_noise_thres (float): Threshold of short noise.
+    """
+
+    def __init__(
+        self,
+        train: bool,
+        lang2utt: Optional[str] = None,
+        fix_duration: bool = True,
+        target_duration: Optional[float] = None,  # in seconds
+        sample_rate: int = 16000,
+        rir_scp: Optional[str] = None,
+        rir_apply_prob: float = 1.0,
+        noise_info: List[
+            Tuple[float, str, Tuple[int, int], Tuple[float, float]]
+        ] = None,
+        noise_apply_prob: float = 1.0,
+        short_noise_thres: float = 0.5,
+    ):
+        super().__init__(train, rir_scp=rir_scp, rir_apply_prob=rir_apply_prob)
+
+        self.lang2label = None  # a dictionary that maps string speaker label to int
+        self.lang2vec = None
+        self.sample_rate = sample_rate
+        self.target_duration = (
+            int(target_duration * sample_rate) if target_duration else None
+        )
+        self.fix_duration = fix_duration
+        self.train = train
+        self.lang2utt_path = lang2utt
+
+        with open(lang2utt, "r") as f_s2u:
+            self.lang2utt = f_s2u.readlines()
+        self._make_label_mapping()
+        # self.nlang = len(self.lang2utt)
+
+        self.rir_scp = rir_scp
+
+        self.noise_apply_prob = noise_apply_prob
+        self.short_noise_thres = short_noise_thres
+        self.noises = []
+        self.noise_probs = []
+        self.noise_db_ranges = []
+        self.noise_num_to_mix = []
+        if noise_info is None:
+            noise_info = []
+        if noise_apply_prob > 0:
+            for prob, noise_scp, num_to_mix, db_range in noise_info:
+                if prob > 0:
+                    assert len(db_range) == 2, db_range
+                    assert db_range[0] <= db_range[1], db_range
+                    assert len(num_to_mix) == 2, num_to_mix
+                    assert num_to_mix[0] <= num_to_mix[1], num_to_mix
+                    self.noise_probs.append(prob)
+                    self.noise_db_ranges.append(tuple(db_range))
+                    self.noise_num_to_mix.append(num_to_mix)
+                    noises = []
+                    with open(noise_scp, "r", encoding="utf-8") as f:
+                        for line in f:
+                            sps = line.strip().split(None, 1)
+                            if len(sps) == 1:
+                                noises.append(sps[0])
+                            else:
+                                noises.append(sps[1])
+                    self.noises.append(noises)
+
+    def __repr__(self):
+        name = self.__class__.__module__ + "." + self.__class__.__name__
+        msg = f"{name}(train={self.train}"
+        msg += f", lang2utt={self.lang2utt_path}"
+        if self.lang2label:
+            msg += f", len(lang2label)={len(self.lang2label)}"
+        if self.fix_duration:
+            msg += f", fix_duration={self.fix_duration}"
+            msg += f", target_duration={self.target_duration}"
+        else:
+            msg += f", fix_duration={self.fix_duration}"
+        msg += f", sample_rate={self.sample_rate}"
+        if self.rirs is not None and self.rir_apply_prob > 0:
+            msg += f", rir_scp={self.rir_scp}, rir_apply_prob={self.rir_apply_prob}"
+        if self.noise_apply_prob > 0 and self.noises:
+            msg += f", noise_apply_prob={self.noise_apply_prob}"
+            msg += f", noises.shapes={[len(n) for n in self.noises]}"
+            msg += f", noise_probs={self.noise_probs}"
+            msg += f", noise_db_ranges={self.noise_db_ranges}"
+            msg += f", noise_num_to_mix={self.noise_num_to_mix}"
+        return msg + ")"
+
+    def _make_label_mapping(self):
+        label_idx = 0
+        self.lang2label = {}
+        for lang in self.lang2utt:
+            lang = lang.strip().split(" ")[0]
+            self.lang2label[lang] = label_idx
+            label_idx += 1
+
+    def _speech_process(self, data: Dict[np.ndarray, str]):
+        audio = data["speech"]
+
+        if self.fix_duration and self.target_duration is not None:
+            # Duplicate if utt is shorter than minimum required duration
+            if len(audio) < self.target_duration:
+                shortage = self.target_duration - len(audio) + 1
+                audio = np.pad(audio, (0, shortage), "wrap")
+
+            startframe = np.array(
+                [np.int64(random.random() * (len(audio) - self.target_duration))]
+            )
+            # Random select the start of the speech,
+            # and only use the target duration of speech
+            data["speech"] = audio[
+                int(startframe) : int(startframe) + self.target_duration
+            ]
+
+        if self.train and (self.noise_apply_prob > 0 or self.rir_apply_prob > 0):
+            data["speech"] = self._apply_data_augmentation(data["speech"])
+
+        return data
+
+    def _convolve_rir(self, speech, rirs):
+        rir_path = np.random.choice(rirs)
+        rir = None
+        if rir_path is not None:
+            rir, _ = soundfile.read(rir_path, dtype=np.float64, always_2d=True)
+
+            # rir: (Nmic, Time)
+            rir = rir.T
+
+            # normalize rir
+            rir = rir / np.sqrt(np.sum(rir**2))
+
+            # speech: (Nmic, Time)
+            # Note that this operation doesn't change the signal length
+            speech = scipy.signal.convolve(speech, rir, mode="full")[
+                :, : speech.shape[1]
+            ]
+        return speech, rir
+
+    def _load_noise(self, speech, speech_db, noises, noise_db_low, noise_db_high):
+        nsamples = speech.shape[1]
+        noise_path = np.random.choice(noises)
+        noise = None
+        if noise_path is not None:
+            noise_snr = np.random.uniform(noise_db_low, noise_db_high)
+            with soundfile.SoundFile(noise_path) as f:
+                if f.frames == nsamples:
+                    noise = f.read(dtype=np.float64)
+                elif f.frames < nsamples:
+                    # noise: (Time,)
+                    noise = f.read(dtype=np.float64)
+                    # Repeat noise
+                    noise = np.pad(
+                        noise,
+                        (0, nsamples - f.frames),
+                        mode="wrap",
+                    )
+                else:
+                    offset = np.random.randint(0, f.frames - nsamples)
+                    f.seek(offset)
+                    # noise: (Time,)
+                    noise = f.read(nsamples, dtype=np.float64)
+                    if len(noise) != nsamples:
+                        raise RuntimeError(f"Something wrong: {noise_path}")
+            # noise: (Nmic, Time)
+            noise = noise[None, :]
+
+            noise_power = np.mean(noise**2)
+            noise_db = 10 * np.log10(noise_power + 1e-4)
+            scale = np.sqrt(10 ** ((speech_db - noise_db - noise_snr) / 10))
+
+            noise = noise * scale
+        return noise
+
+    def _apply_data_augmentation(self, speech):
+        # speech: (Nmic, Time)
+        if speech.ndim == 1:
+            speech = speech[None, :]
+        else:
+            speech = speech.T
+
+        if self.rirs is not None and self.rir_apply_prob >= np.random.random():
+            speech, _ = self._convolve_rir(speech, self.rirs)
+
+        if self.noises and self.noise_apply_prob >= np.random.random():
+            idx = random.choices(
+                range(len(self.noises)), weights=self.noise_probs, k=1
+            )[0]
+            low, high = self.noise_num_to_mix[idx]
+            if low == high:
+                num_to_mix = low
+            else:
+                num_to_mix = np.random.randint(low, high + 1)
+
+            # add eps of 1e-4 to avoid negative value before log
+            speech_db = 10 * np.log10(np.mean(speech**2) + 1e-4)
+            noiselist = []
+            for _ in range(num_to_mix):
+                noise = self._load_noise(
+                    speech,  # original speech
+                    speech_db,  # db of speech
+                    self.noises[idx],  # a list of a type of noise
+                    self.noise_db_ranges[idx][0],  # min db
+                    self.noise_db_ranges[idx][1],  # max db
+                )
+                noiselist.append(noise)
+            noise = np.sum(np.concatenate(noiselist, axis=0), axis=0, keepdims=True)
+            speech = speech + noise
+
+        speech = np.squeeze(speech, axis=0)
+        return speech
+
+    def _text_process(
+        self, data: Dict[str, Union[str, np.ndarray]]
+    ) -> Dict[str, np.ndarray]:
+        """Make speaker labels into integers."""
+        iso3_labels = data["lid_labels"]
+        int_label = self.lang2label[iso3_labels]
+        data["lid_labels"] = np.asarray([int_label], dtype=np.int64)
+
+        return data
+
+    @typechecked
+    def __call__(
+        self, uid: str, data: Dict[str, Union[str, np.ndarray]]
+    ) -> Dict[str, np.ndarray]:
+
+        data = self._text_process(data)
+        data = self._speech_process(data)
+
+        return data
+
+
 class S2TPreprocessor(CommonPreprocessor):
     def __init__(
         self,
@@ -2590,197 +2841,6 @@ class S2TCTCPreprocessor(CommonPreprocessor):
         data = self._text_process(data)
 
         return data
-
-
-class SpeechLMPreprocessor(AbsPreprocessor):
-    """Preprocessor specifically for SpeechLM models"""
-
-    def __init__(
-        self,
-        token_list: List,
-        token_bias: Dict,
-        encoder_decoder_format: bool = False,
-        # codec related:
-        codec_token_per_frame: int = 1,
-        codec_token_in_use: int = None,
-        # tokenizer related: Phone & BPE
-        unk_symbol: str = "<unk>",
-        space_symbol: str = "<space>",
-        non_linguistic_symbols: Union[Path, str, Iterable[str]] = None,
-        g2p_type: str = None,
-        bpemodel: Union[Path, str, Iterable[str]] = None,
-        bpe_encode_kwargs: Dict = None,
-        text_cleaner: str = None,
-        # speaker prompt
-        speaker_prompt_length: int = 1800,
-    ):
-        self.token_list = token_list
-        self.token_bias = token_bias
-        self.encoder_decoder_format = encoder_decoder_format
-
-        self.modalities = speechlm_definitions.modalities
-        self.tasks = speechlm_definitions.tasks
-
-        self.converter = TokenIDConverter(
-            token_list=token_list,
-            unk_symbol=unk_symbol,
-        )
-        self.text_cleaner = TextCleaner(text_cleaner)
-
-        # Modality-specific utilities
-
-        # Text BPE (text_bpe):
-        if bpemodel is not None:
-            if bpe_encode_kwargs is None:
-                bpe_encode_kwargs = Dict()
-            self.bpe = build_tokenizer(
-                token_type="bpe",
-                bpemodel=bpemodel,
-                encode_kwargs=bpe_encode_kwargs,
-            )
-        else:
-            self.bpe = None
-
-        # Phones (g2p):
-        if g2p_type is not None:
-            self.g2p = build_tokenizer(
-                token_type="phn",
-                space_symbol=space_symbol,
-                non_linguistic_symbols=non_linguistic_symbols,
-                g2p_type=g2p_type,
-            )
-        else:
-            self.g2p = None
-
-        # Codec model (codec):
-        self.codec_token_per_frame = codec_token_per_frame
-        if codec_token_in_use is None:
-            codec_token_in_use = codec_token_per_frame
-            assert codec_token_in_use <= codec_token_per_frame
-        self.codec_token_in_use = codec_token_in_use
-
-        # speaker prompt
-        self.speaker_prompt_length = speaker_prompt_length
-
-    @typechecked
-    def __call__(
-        self, uid: str, data: Dict[str, Union[str, np.ndarray]]
-    ) -> Dict[str, np.ndarray]:
-
-        # (1) task parsing
-        task_name = uid.strip().split(" ")[0]
-        task = self.tasks[task_name]
-
-        # (Jinchuan): Temp code
-        for e in task.encoder_entries + task.decoder_entries:
-            if not self.modalities[e[1]].discrete:
-                raise ValueError("Continuous feature is not supported yet.")
-
-        # (2) encoder & decoder sequence
-        seqs, conti_feats = [], []  # noqa
-        n_enc_entries = len(task.encoder_entries)
-        for e_idx, entries in enumerate([task.encoder_entries, task.decoder_entries]):
-            for entry in entries:
-                name, modality, _ = entry
-
-                value, _ = self.modality_specific_processing(data[name], modality)
-                seqs.append(value)
-
-        # (3) splice
-        sos_eos = self.special_token("<sos/eos>")
-        if task.use_task_identifier:
-            task_identifier = f"<{task_name}_task>"
-        else:
-            task_identifier = "<unkown_task_identifer>"
-        task_identifier = self.special_token(task_identifier)
-
-        new_data = {}
-        if self.encoder_decoder_format:
-            new_data["enc_seq"] = np.concatenate(
-                [sos_eos] + [task_identifier] + seqs[:n_enc_entries] + [sos_eos], axis=0
-            ).reshape(-1, self.codec_token_in_use)
-            new_data["dec_seq"] = np.concatenate(
-                [sos_eos] + seqs[n_enc_entries:] + [sos_eos], axis=0
-            ).reshape(-1, self.codec_token_in_use)
-        else:
-            new_data["dec_seq"] = np.concatenate(
-                [sos_eos] + [task_identifier] + seqs + [sos_eos], axis=0
-            ).reshape(-1, self.codec_token_in_use)
-
-        prefix_len = (
-            len(new_data["dec_seq"]) - len(seqs[-1]) // self.codec_token_in_use - 1
-        )
-        new_data["prefix_len"] = np.array([prefix_len])
-        # self.diagnose(new_data) # For debug. Enable this to check the sequence format
-
-        return new_data
-
-    def special_token(self, token):
-        token_idx = self.token_list.index(token)
-        token_idx = np.array([token_idx]).repeat(self.codec_token_in_use, axis=0)
-        return token_idx
-
-    def modality_specific_processing(self, value, modality):
-
-        if modality in ["codec", "spk"]:
-            value = value.reshape(-1, self.codec_token_per_frame)
-            value = value[:, : self.codec_token_in_use]
-            value = value + self.token_bias["codec"]
-
-            if modality == "spk":
-                if len(value) <= self.speaker_prompt_length:
-                    pad_len = self.speaker_prompt_length - len(value)
-                    pad = np.tile(self.special_token("<pad>"), (pad_len, 1))
-                    value = np.concatenate([value, pad])
-                else:
-                    start = random.randint(
-                        0, len(value) - self.speaker_prompt_length - 1
-                    )
-                    value = value[start : start + self.speaker_prompt_length]
-
-            value = value.flatten()
-            conti_feat = None
-
-        # Other discrete modalities
-        elif modality in ["ssl", "text_bpe", "g2p"]:
-
-            if modality in ["text_bpe", "g2p"]:
-                value = self.text_cleaner(value)
-                tokenizer = self.bpe if modality == "text_bpe" else self.g2p
-                value = tokenizer.text2tokens(value)
-                value = self.converter.tokens2ids(value)
-                value = np.array(value)
-
-            elif modality in ["ssl"]:
-                value = value + self.token_bias["ssl"]
-
-            value = value.repeat(self.codec_token_in_use, axis=0)
-            conti_feat = None
-
-        # TODO(Jinchuan): Support continuous modalities
-        else:
-            raise NotImplementedError
-
-        modality_idx = self.special_token(f"<{modality}_start/end>")
-        value = np.concatenate([modality_idx, value])
-
-        return value, conti_feat
-
-    def diagnose(self, data):
-        """Only for debug"""
-        enc_seq = data.get("enc_seq", None)
-        dec_seq = data.get("dec_seq", None)
-
-        logging.warning("Diagnose in preprocessor ...")
-        for name, seq in [("encoder", enc_seq), ("decoder", dec_seq)]:
-            if seq is None:
-                continue
-            logging.warning(f"{name} ...")
-            for idx, patch in enumerate(seq):
-                patch = patch.tolist()
-                patch_str = ", ".join(self.converter.ids2tokens(patch))
-                logging.warning(f"Patch: {idx} -> {patch_str}")
-
 
 class Qwen2AudioPreprocessor(AbsPreprocessor):
     """Preprocessor specifically for Qwen2Audio models"""

@@ -14,10 +14,6 @@ from itertools import zip_longest as zip_longest
 import numpy as np
 import torch
 
-# chainer related
-from chainer import training
-from chainer.training import extensions
-
 import espnet.lm.pytorch_backend.extlm as extlm_pytorch
 import espnet.nets.pytorch_backend.lm.default as lm_pytorch
 from espnet.asr.asr_mix_utils import add_results_to_json
@@ -46,6 +42,13 @@ from espnet.utils.training.batchfy import make_batchset
 from espnet.utils.training.iterators import ShufflingEnabler
 from espnet.utils.training.tensorboard_logger import TensorboardLogger
 from espnet.utils.training.train_utils import check_early_stop, set_early_stop
+
+try:
+    # chainer related
+    from chainer import training
+    from chainer.training import extensions
+except ImportError:
+    logging.warning("Chainer is not Installed. Run `make chainer.done` at tools dir.")
 
 
 class CustomConverter(object):
