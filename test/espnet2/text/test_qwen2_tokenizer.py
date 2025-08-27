@@ -1,6 +1,5 @@
 import numpy as np
 import pytest
-import torch
 
 from espnet2.text.qwen2audio_tokenizer import Qwen2AudioTokenizer
 

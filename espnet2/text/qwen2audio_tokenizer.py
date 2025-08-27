@@ -1,10 +1,6 @@
-import os
-import tempfile
 from typing import Dict, Iterable, List, Optional, Tuple
 
-import librosa
 import numpy as np
-import soundfile as sf
 from typeguard import typechecked
 
 from espnet2.text.abs_tokenizer import AbsTokenizer
