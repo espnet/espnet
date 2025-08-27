@@ -2,7 +2,10 @@
 
 import logging
 
-import chainer
+try:
+    import chainer
+except ImportError:
+    logging.warning("Chainer is not Installed. Run `make chainer.done` at tools dir.")
 
 
 def check_early_stop(trainer, epochs):

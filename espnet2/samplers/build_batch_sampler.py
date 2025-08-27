@@ -1,8 +1,14 @@
+from pathlib import Path
 from typing import List, Optional, Sequence, Tuple, Union
 
 from typeguard import typechecked
 
 from espnet2.samplers.abs_sampler import AbsSampler
+from espnet2.samplers.category_balanced_sampler import CategoryBalancedSampler
+from espnet2.samplers.category_power_sampler import (
+    CategoryDatasetPowerSampler,
+    CategoryPowerSampler,
+)
 from espnet2.samplers.folded_batch_sampler import FoldedBatchSampler
 from espnet2.samplers.length_batch_sampler import LengthBatchSampler
 from espnet2.samplers.num_elements_batch_sampler import NumElementsBatchSampler
@@ -66,6 +72,12 @@ BATCH_TYPES = dict(
     "    utterance_id_a 1000,80\n"
     "    utterance_id_b 1453,80\n"
     "    utterance_id_c 1241,80\n",
+)
+
+CATEGORY_BATCH_TYPES = dict(
+    catbel="CategoryBalancedSampler",
+    catpow="CategoryPowerSampler",
+    catpow_balance_dataset="CategoryDatasetPowerSampler",
 )
 
 
@@ -159,5 +171,103 @@ def build_batch_sampler(
         )
 
     else:
-        raise ValueError(f"Not supported: {type}")
+        raise ValueError(
+            f"Not supported: {type}. "
+            "Please specify batch_type in unsorted, sorted, folded, numel, "
+            "length."
+        )
     return retval
+
+
+@typechecked
+def build_category_batch_sampler(
+    type: str,
+    batch_size: Optional[int] = None,
+    batch_bins: Optional[int] = None,
+    shape_files: Optional[Union[Tuple[str, ...], List[str]]] = None,
+    min_batch_size: int = None,
+    max_batch_size: Optional[int] = None,
+    upsampling_factor: Optional[float] = None,
+    category_upsampling_factor: Optional[float] = None,
+    dataset_upsampling_factor: Optional[float] = None,
+    dataset_scaling_factor: Optional[float] = None,
+    drop_last: bool = False,
+    category2utt_file: str = None,
+    dataset2utt_parent_dir: Optional[str] = None,
+    epoch: int = 1,
+    num_batches: int = None,
+    distributed: bool = False,
+) -> Tuple[AbsSampler, dict]:
+
+    if type == "catbel":
+        sampler_args = dict(
+            batch_size=batch_size,
+            min_batch_size=min_batch_size,
+            drop_last=drop_last,
+            category2utt_file=category2utt_file,
+            epoch=epoch,
+            num_batches=num_batches,
+            distributed=distributed,
+        )
+        batch_sampler = CategoryBalancedSampler(**sampler_args)
+    elif type == "catpow":
+        sampler_args = dict(
+            batch_bins=batch_bins,
+            shape_files=shape_files,
+            min_batch_size=min_batch_size,
+            max_batch_size=max_batch_size,
+            upsampling_factor=upsampling_factor,
+            dataset_scaling_factor=dataset_scaling_factor,
+            drop_last=drop_last,
+            category2utt_file=category2utt_file,
+            epoch=epoch,
+            num_batches=num_batches,
+            distributed=distributed,
+        )
+        batch_sampler = CategoryPowerSampler(**sampler_args)
+    elif type == "catpow_balance_dataset":
+        if Path(dataset2utt_parent_dir, "dataset2utt").exists():
+            dataset2utt_file = str(Path(dataset2utt_parent_dir, "dataset2utt"))
+        else:
+            dataset2utt_file = None
+            raise ValueError(
+                f"dataset2utt mandatory for catpow_balance_dataset batch sampler, "
+                f"but not found {dataset2utt_file}. To create a dataset2utt "
+                "file, please refer to the script in "
+                "`egs2/geolid/lid1/local/create_utt2dataset_dataset2utt.sh`"
+            )
+
+        if Path(dataset2utt_parent_dir, "utt2dataset").exists():
+            utt2dataset_file = str(Path(dataset2utt_parent_dir, "utt2dataset"))
+        else:
+            utt2dataset_file = None
+            raise ValueError(
+                f"utt2dataset mandatory for catpow_balance_dataset batch sampler, "
+                f"but not found {utt2dataset_file}. To create a dataset2utt "
+                "file, please refer to the script in "
+                "`egs2/geolid/lid1/local/create_utt2dataset_dataset2utt.sh`"
+            )
+        sampler_args = dict(
+            batch_bins=batch_bins,
+            shape_files=shape_files,
+            min_batch_size=min_batch_size,
+            max_batch_size=max_batch_size,
+            category_upsampling_factor=category_upsampling_factor,
+            dataset_upsampling_factor=dataset_upsampling_factor,
+            dataset_scaling_factor=dataset_scaling_factor,
+            drop_last=drop_last,
+            category2utt_file=category2utt_file,
+            dataset2utt_file=dataset2utt_file,
+            utt2dataset_file=utt2dataset_file,
+            epoch=epoch,
+            num_batches=num_batches,
+            distributed=distributed,
+        )
+        batch_sampler = CategoryDatasetPowerSampler(**sampler_args)
+    else:
+        raise ValueError(
+            f"batch_type={type} is not supported"
+            f"Please specify batch_type in {CATEGORY_BATCH_TYPES.keys()}."
+        )
+
+    return batch_sampler, sampler_args
