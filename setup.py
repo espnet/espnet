@@ -24,6 +24,8 @@ requirements = {
         "torch>=1.11.0",
         "torch_complex",
         "nltk>=3.4.5",
+        # https://github.com/espnet/g2p/pull/1
+        "g2p_en @ git+https://github.com/espnet/g2p.git@master",
         # fix CI error due to the use of deprecated aliases
         "numpy<1.24",
         # https://github.com/espnet/espnet/runs/6646737793?check_suite_focus=true#step:8:7651
@@ -91,7 +93,7 @@ requirements = {
         "pytest-runner",
     ],
     "test": [
-        "pytest>=7.0.0",
+        "pytest>=7.0.0,<8.4.0",
         "pytest-timeouts>=1.2.1",
         "pytest-pythonpath>=0.7.3",
         "pytest-cov>=2.7.1",

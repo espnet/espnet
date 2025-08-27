@@ -12,6 +12,8 @@ import math
 import torch
 from packaging.version import parse as V
 
+from espnet2.asr.frontend.cnn import dim_1_layer_norm
+
 
 def _pre_hook(
     state_dict,
@@ -389,6 +391,7 @@ class StreamPositionalEncoding(torch.nn.Module):
 
 class ConvolutionalPositionalEmbedding(torch.nn.Module):
     """Convolutional positional embedding.
+
        Used in wav2vec2/HuBERT SSL models.
        https://arxiv.org/abs/1904.11660
 
@@ -396,8 +399,12 @@ class ConvolutionalPositionalEmbedding(torch.nn.Module):
         embed_dim (int): Feature dimension of the input Tensor.
         dropout (float): unused
         max_len (int): unused
+        num_layers (int): number of conv layers
         kernel_size (int): The number of frames to be use.
         groups (int): The number of groups in feature dimensions.
+        weight_norm (str): [new, legacy, none].
+            How to init conv weights. Recommended setting is
+            none if num_layers > 1.
     """
 
     def __init__(
@@ -409,10 +416,14 @@ class ConvolutionalPositionalEmbedding(torch.nn.Module):
         kernel_size: int = 128,
         groups: int = 16,
         weight_norm: str = "new",
+        use_residual: bool = False,
     ):
+        """Initialize Convoluational Positional Embedding."""
         super().__init__()
         self.embed_dim = embed_dim
         self.kernel_size = kernel_size
+        self.weight_norm = weight_norm
+
         convs = []
         for layer in range(num_layers):
             conv = torch.nn.Conv1d(
@@ -422,27 +433,34 @@ class ConvolutionalPositionalEmbedding(torch.nn.Module):
                 padding=kernel_size // 2,
                 groups=groups,
             )
-            # torch.nn.utils.weight_norm leads to weird behavior with copy.deepcopy()
-            # usually isnt needed, but its important for models that use EMA
-            if weight_norm == "new":
-                if V(torch.__version__) >= V("2.2.0"):
-                    conv = torch.nn.utils.parametrizations.weight_norm(
-                        conv, name="weight", dim=2
-                    )
-                else:
-                    weight_norm = "legacy"
-                    logging.warning(
-                        f"torch.nn.utils.parametrizations.weight_norm is only "
-                        + "supported for pytorch versions >= 2.2.0. "
-                        + "Defaulting to torch.nn.utils.weight_norm."
-                    )
-            if weight_norm == "legacy":
-                conv = torch.nn.utils.weight_norm(conv, name="weight", dim=2)
+            if weight_norm != "none" and weight_norm is not None:
+                std = math.sqrt((4 * (1.0)) / (kernel_size * embed_dim))
+                torch.nn.init.normal_(conv.weight, mean=0, std=std)
+                torch.nn.init.constant_(conv.bias, 0)
+                # torch.nn.utils.weight_norm leads to weird behavior
+                # with copy.deepcopy(). Usually isnt needed,
+                # but its important for models that use EMA
+                if weight_norm == "new":
+                    if V(torch.__version__) >= V("2.2.0"):
+                        conv = torch.nn.utils.parametrizations.weight_norm(
+                            conv, name="weight", dim=2
+                        )
+                    else:
+                        weight_norm = "legacy"
+                        logging.warning(
+                            "torch.nn.utils.parametrizations.weight_norm is only "
+                            + "supported for pytorch versions >= 2.2.0. "
+                            + "Defaulting to torch.nn.utils.weight_norm."
+                        )
+                if weight_norm == "legacy":
+                    conv = torch.nn.utils.weight_norm(conv, name="weight", dim=2)
             convs.append(conv)
         self.convs = torch.nn.ModuleList(convs)
         self.num_remove: int = 1 if kernel_size % 2 == 0 else 0
+        self.use_residual = use_residual
 
     def __prepare_scriptable__(self):
+        """Prepare Scriptable method."""
         for hook in self.conv._forward_pre_hooks.values():
             # The hook we want to remove is an instance of WeightNorm class, so
             # normally we would do `if isinstance(...)` but this class is not accessible
@@ -452,23 +470,39 @@ class ConvolutionalPositionalEmbedding(torch.nn.Module):
                 hook.__module__ == "torch.nn.utils.weight_norm"
                 and hook.__class__.__name__ == "WeightNorm"
             ):
-                _LG.warning("Removing weight_norm from %s", self.__class__.__name__)
+                logging.warning("Removing weight_norm from %s", self.__class__.__name__)
                 torch.nn.utils.remove_weight_norm(self.conv)
         return self
 
     def forward(self, x):
-        """
+        """Forward Method.
+
         Args:
             x (Tensor): shape ``[batch, frame, feature]``.
 
         Returns:
             Tensor: The resulting feature. Shape ``[batch, frame, feature]``.
         """
+        if self.use_residual:
+            residual = x
+
         x = x.transpose(-2, -1)
         for conv in self.convs:
             x = conv(x)
+
+            # remove extra padding
             if self.num_remove > 0:
                 x = x[..., : -self.num_remove]
+
             x = torch.nn.functional.gelu(x)
+
+            # manually normalize if the conv is not parameterized
+            # with weight norm
+            if self.weight_norm is None or self.weight_norm == "none":
+                x = dim_1_layer_norm(x)
+
         x = x.transpose(-2, -1)
+
+        if self.use_residual:
+            x = x + residual
         return x
