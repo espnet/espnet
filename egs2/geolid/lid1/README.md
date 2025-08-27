@@ -1,5 +1,7 @@
 # README
 
+[Paper](https://arxiv.org/pdf/2508.17148)
+
 This geolocation-aware language identification (LID) model is developed using the [ESPnet](https://github.com/espnet/espnet/) toolkit. It integrates the powerful pretrained [MMS-1B](https://huggingface.co/facebook/mms-1b) as the encoder and employs [ECAPA-TDNN](https://arxiv.org/pdf/2005.07143) as the embedding extractor to achieve robust spoken language identification.
 
 The main innovations of this model are:
@@ -7,7 +9,7 @@ The main innovations of this model are:
 2. Conditioning the intermediate representations of the self-supervised learning (SSL) encoder on intermediate-layer information.
 This geolocation-aware strategy greatly improves robustness, especially for dialects and accented variations.
 
-For further details on the geolocation-aware LID methodology, please refer to our paper: *Geolocation-Aware Robust Spoken Language Identification* (arXiv link to be added).
+For further details on the geolocation-aware LID methodology, please refer to our paper: *Geolocation-Aware Robust Spoken Language Identification* ([arXiv](https://arxiv.org/pdf/2508.17148)).
 
 ## Usage
 
