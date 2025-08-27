@@ -281,7 +281,7 @@ def token_list_whisper_lang_add(tmp_path: Path):
     return tmp_path / "add_token_list.txt"
 
 
-@pytest.fixture()
+@pytest.fixture() 
 def token_list_whisper_lang(tmp_path: Path, token_list_whisper_lang_add):
     pytest.importorskip("whisper")
     tknlist_path = tmp_path / "token_whisper_lang.txt"
