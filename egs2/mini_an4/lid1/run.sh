@@ -27,8 +27,8 @@ inference_batch_size=1
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
     --tsne_set "${tsne_set}" \
-    --inference_model ${inference_model} \
-    --inference_batch_size ${inference_batch_size} \
+    --inference_model "${inference_model}" \
+    --inference_batch_size "${inference_batch_size}" \
     --extract_embd true \
     --nj 2 \
     --ngpu 0 \
