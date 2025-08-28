@@ -320,6 +320,7 @@ def main(argv):
         spk_sum = {}
         spk_cnt = {}
         _resamplers = {}
+        _resampler_lock = mp.Lock()
 
         def load_item(spk_utt):
             spk, utt = spk_utt
@@ -329,7 +330,12 @@ def main(argv):
                 if in_sr != tgt:
                     key = (in_sr, tgt)
                     if key not in _resamplers:
-                        _resamplers[key] = torchaudio.transforms.Resample(in_sr, tgt)
+                        with _resampler_lock:
+                            # Double-check to ensure thread safety
+                            if key not in _resamplers:
+                                _resamplers[key] = torchaudio.transforms.Resample(
+                                    in_sr, tgt
+                                )
                     w = torch.from_numpy(wav).float()
                     w = _resamplers[key](w.unsqueeze(0)).squeeze(0)  # torch 1-D
                     wav = w.numpy()
