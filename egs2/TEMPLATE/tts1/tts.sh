@@ -503,7 +503,10 @@ if ! "${skip_data_prep}"; then
 
     if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         log "Stage 4: Remove long/short data: ${data_feats}/org -> ${data_feats}"
-
+		if "${use_spk_embed}"; then
+            log "Fixing order of speaker-embed scp to match text"
+            pyscripts/utils/sort_spk_embed_scp.sh "${dumpdir}/${fs}/${tag}" "${tag}"
+        fi
         # NOTE(kamo): Not applying to test_sets to keep original data
         for dset in "${train_set}" "${valid_set}"; do
             # Copy data dir
