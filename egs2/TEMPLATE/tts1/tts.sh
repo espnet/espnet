@@ -505,7 +505,7 @@ if ! "${skip_data_prep}"; then
         log "Stage 4: Remove long/short data: ${data_feats}/org -> ${data_feats}"
 		if "${use_spk_embed}"; then
             log "Fixing order of speaker-embed scp to match text"
-            scripts/utils/sort_spk_embed_scp.sh "${dumpdir}/${fs}/${tag}" "${tag}"
+            scripts/utils/sort_spk_embed_scp.sh "${dumpdir}" "${spk_embed_tag}"
         fi
         # NOTE(kamo): Not applying to test_sets to keep original data
         for dset in "${train_set}" "${valid_set}"; do
