@@ -54,8 +54,8 @@ class TristageLR(_LRScheduler, AbsBatchStepScheduler):
         final_lr_scale: float = 0.01,
         last_epoch: int = -1,
     ):
-        assert math.isclose(  
-            warmup_ratio + hold_ratio + decay_ratio, 1.0  
+        assert math.isclose(
+            warmup_ratio + hold_ratio + decay_ratio, 1.0
         ), "The sum of warmup_ratio, hold_ratio, and decay_ratio must be 1.0."
         assert 0.0 < init_lr_scale <= 1.0, "init_lr_scale must be in (0, 1]."
         assert 0.0 < final_lr_scale <= 1.0, "final_lr_scale must be in (0, 1]."
