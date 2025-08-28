@@ -301,18 +301,6 @@ def main(argv):
 
         spk_embed_extractor = SpkEmbedExtractor(args, device)
 
-        # for speaker in tqdm(spk2utt):
-        #     spk_embeddings = list()
-        #     for utt in spk2utt[speaker]:
-        #         in_sr, wav = wav_scp[utt]
-        #         # Speaker Embedding
-        #         embeds = spk_embed_extractor(wav, in_sr)
-        #         writer_utt[utt] = np.squeeze(embeds)
-        #         spk_embeddings.append(embeds)
-
-        #     # Speaker Normalization
-        #     embeds = np.mean(np.stack(spk_embeddings, 0), 0)
-        #     writer_spk[speaker] = embeds
         # Build flat work list (speaker, utt)
         work_iter = ((spk, utt) for spk, utts in spk2utt.items() for utt in utts)
 
