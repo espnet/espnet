@@ -1,6 +1,6 @@
+import numpy as np
 import pytest
 
-import numpy as np
 from espnet2.train.preprocessor import Qwen2AudioPreprocessor
 
 
