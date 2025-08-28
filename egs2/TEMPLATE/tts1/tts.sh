@@ -1167,6 +1167,7 @@ if ! "${skip_scoring}"; then
                 --pred ${_eval_dir}/pred.JOB \
                 --score_config ${_score_config} \
                 --cache_folder ${_eval_dir}/cache \
+				--gt ${_gt_file} \
                 --text ${_data}/text \
                 ${use_gpu_flag} \
                 --output_file ${_eval_dir}/result.JOB.txt \
