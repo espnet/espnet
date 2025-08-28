@@ -1155,15 +1155,11 @@ if ! "${skip_scoring}"; then
         if ${gpu_inference}; then
             _cmd="${cuda_cmd}"
             _ngpu=1
+			use_gpu_flag="--use_gpu"
         else
             _cmd="${decode_cmd}"
             _ngpu=0
-        fi
-
-        if ${gpu_inference}; then
-            use_gpu_flag="--use_gpu"
-        else
-            use_gpu_flag=""
+			use_gpu_flag=""
         fi
 
         ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_eval_dir}"/versa_eval.JOB.log \
