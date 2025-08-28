@@ -56,7 +56,6 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             sort data/${x}/${f} -o data/${x}/${f}
         done
         utils/utt2spk_to_spk2utt.pl data/${x}/utt2lang > data/${x}/lang2utt
-        # cp data/${x}/utt2lang data/${x}/utt2category
     done
 
     # make a dev set
@@ -71,7 +70,6 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
     for set in ${sets}; do
         mv data/${set}/spk2utt data/${set}/lang2utt
-        # cp data/${set}/utt2lang data/${set}/utt2category
     done
 
     find downloads/noise/ -iname "*.wav" | awk '{print "noise" NR " " $1}' > data/musan_music.scp
