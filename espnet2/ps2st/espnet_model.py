@@ -45,9 +45,10 @@ class ESPnetQwen2AudioModel(AbsESPnetModel):
         # Load Qwen2-Audio model and processor using standard transformers approach
         self.qwen2audio_model = Qwen2AudioForConditionalGeneration.from_pretrained(
             model_name,
-            device_map="cpu",
             trust_remote_code=True,
+            # device_map="cpu",
         )
+        self.qwen2audio_model.to("cpu")
         self.processor = AutoProcessor.from_pretrained(
             model_name, trust_remote_code=True
         )
