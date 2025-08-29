@@ -33,7 +33,7 @@ convert_to_sentiment=false
 # Neutral: neu
 
 #data
-datadir=/ocean/projects/cis210027p/shared/corpora/msp_podcast_v1.12
+datadir=
 # msp_podcast
 #  |_ readme.txt
 #  |_ Partitions.txt

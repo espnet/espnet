@@ -212,7 +212,7 @@ class SERTask(ASRTask):
             "--emotions",
             type=str,
             default="A S H U F D C N O X",
-            help="Apply preprocessing to data or not",
+            help="Space-separated list of emotion labels to use",
         )
         group.add_argument(
             "--speech_volume_normalize",

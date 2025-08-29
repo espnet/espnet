@@ -87,7 +87,4 @@ def test_ser_loss(training, loss):
         "emotion_labels": emotion_labels,
     }
 
-    if training:
-        loss, stats, weight = ser_model(**kwargs)
-    else:
-        loss, stats, weight = ser_model(**kwargs)
+    loss, stats, weight = ser_model(**kwargs)

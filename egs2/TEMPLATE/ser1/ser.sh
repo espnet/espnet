@@ -139,6 +139,9 @@ ser_speech_fold_length=800 # fold_length for speech data during SER training.
 ser_text_fold_length=150   # fold_length for text data during SER training.
 lm_fold_length=150         # fold_length for LM training.
 
+emotions="A S H U F D C N O X" # space-separated emotion list
+emotions_string="${emotions// /_}" # underscore-separated for ser_train
+
 help_message=$(cat << EOF
 Usage: $0 --train-set "<train_set_name>" --valid-set "<valid_set_name>" --test_sets "<test_set_names>"
 Options:
@@ -850,7 +853,7 @@ if ! "${skip_train}"; then
             ${python} -m espnet2.bin.ser_train \
                 --collect_stats true \
                 --use_preprocessor true \
-                --emotions "A_S_H_U_F_D_C_N_O_X" \
+                --emotions ${emotions_string} \
                 --train_data_path_and_name_and_type "${_ser_train_dir}/${_scp},speech,${_type}" \
                 --train_data_path_and_name_and_type "${_ser_train_dir}/utt2emo,emo,text" \
                 --valid_data_path_and_name_and_type "${_ser_valid_dir}/${_scp},speech,${_type}" \
@@ -973,7 +976,7 @@ if ! "${skip_train}"; then
                 ${python} -m espnet2.bin.ser_train \
                     --use_preprocessor true \
                     --pre_postencoder_norm "${pre_postencoder_norm}" \
-                    --emotions "A_S_H_U_F_D_C_N_O_X" \
+                    --emotions ${emotions_string} \
                     --valid_data_path_and_name_and_type "${_ser_valid_dir}/${_scp},speech,${_type}" \
                     --valid_data_path_and_name_and_type "${_ser_valid_dir}/utt2emo,emo,text" \
                     --valid_shape_file "${ser_stats_dir}/valid/speech_shape" \
@@ -997,7 +1000,7 @@ if ! "${skip_train}"; then
                 --multiprocessing_distributed true -- \
                 ${python} -m espnet2.bin.ser_train \
                     --use_preprocessor true \
-                    --emotions "A_S_H_U_F_D_C_N_O_X" \
+                    --emotions ${emotions_string} \
                     --valid_data_path_and_name_and_type "${_ser_valid_dir}/${_scp},speech,${_type}" \
                     --valid_data_path_and_name_and_type "${_ser_valid_dir}/utt2emo,emo,text" \
                     --valid_shape_file "${ser_stats_dir}/valid/speech_shape" \
@@ -1143,7 +1146,7 @@ if ! "${skip_eval}"; then
     if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ]; then
         log "Stage 13: SER Scoring"
         # Define emotion-to-index mapping
-        emotions=(A S H U F D C N O X)
+        emotions=(${emotions})
 
         for dset in ${test_sets}; do
             _data="${data_feats}/${dset}"
