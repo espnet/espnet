@@ -28,7 +28,7 @@ jobs:
       - name: install dependencies
         run: |
           apt-get update -qq
-          # NOTE(kamo): cmake sndfile will be download using anacond:
+          # NOTE(kamo): cmake sndfile will be downloaded using anaconda:
           apt-get install -qq -y \
             build-essential git unzip bzip2 wget curl bc locales make sox \
             libncurses5-dev automake libtool pkg-config
