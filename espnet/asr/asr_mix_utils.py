@@ -16,18 +16,13 @@ import copy
 import logging
 import os
 
+from chainer.training import extension
+
 from espnet.asr.asr_utils import parse_hypothesis
-
-try:
-    from chainer.training.extension import Extension
-
-except ImportError:
-    logging.warning("Chainer is not Installed. Run `make chainer.done` at tools dir.")
-    from espnet.utils.dummy_chainer import Extension
 
 
 # * -------------------- chainer extension related -------------------- *
-class PlotAttentionReport(Extension):
+class PlotAttentionReport(extension.Extension):
     """Plot attention reporter.
 
     Args:

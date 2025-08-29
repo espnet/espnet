@@ -1,16 +1,12 @@
 """Chainer optimizer builders."""
 
 import argparse
-import logging
+
+import chainer
+from chainer.optimizer_hooks import WeightDecay
 
 from espnet.optimizer.factory import OptimizerFactoryInterface
 from espnet.optimizer.parser import adadelta, adam, sgd
-
-try:
-    import chainer
-    from chainer.optimizer_hooks import WeightDecay
-except ImportError:
-    logging.warning("Chainer is not Installed. Run `make chainer.done` at tools dir.")
 
 
 class AdamFactory(OptimizerFactoryInterface):

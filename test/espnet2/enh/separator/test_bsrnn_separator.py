@@ -174,7 +174,6 @@ def test_bsrnn_separator_predict_noise(
     others["noise1"].abs().mean().backward()
 
 
-@pytest.mark.execution_timeout(10)
 @pytest.mark.parametrize("input_dim", [481])
 @pytest.mark.parametrize("num_spk", [1, 2])
 @pytest.mark.parametrize("num_channels", [16])

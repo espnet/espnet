@@ -227,11 +227,6 @@ log "$0 $*"
 run_args=$(scripts/utils/print_args.sh $0 "$@")
 . utils/parse_options.sh
 
-if [[ ${use_sid:-false} = true && ${use_spk_embed:-false} = true ]]; then
-    log "Error: --use_sid and --use_spk_embed cannot both be true; pick one."
-    exit 2
-fi
-
 if [ $# -ne 0 ]; then
     log "${help_message}"
     log "Error: No positional arguments are required."

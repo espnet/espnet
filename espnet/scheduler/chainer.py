@@ -1,20 +1,16 @@
 """Chainer optimizer schdulers."""
 
-import logging
 from typing import List
 
-from espnet.scheduler.scheduler import SchedulerInterface
+from chainer.optimizer import Optimizer
 
-try:
-    from chainer.optimizer import Optimizer
-except ImportError:
-    logging.warning("Chainer is not Installed. Run `make chainer.done` at tools dir.")
+from espnet.scheduler.scheduler import SchedulerInterface
 
 
 class ChainerScheduler:
     """Chainer optimizer scheduler."""
 
-    def __init__(self, schedulers: List[SchedulerInterface], optimizer: "Optimizer"):
+    def __init__(self, schedulers: List[SchedulerInterface], optimizer: Optimizer):
         """Initialize class."""
         self.schedulers = schedulers
         self.optimizer = optimizer

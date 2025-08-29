@@ -4,7 +4,7 @@ set -u
 set -o pipefail
 
 
-spk_config=conf/train_resnet34.yaml
+spk_config=conf/train_ECAPA_mel.yaml
 
 train_set="cnceleb_train"
 valid_set="cnceleb1_valid"
