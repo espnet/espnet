@@ -1,4 +1,4 @@
-name: ci on debian11
+name: ci on debian12
 
 on:
   push:
@@ -9,11 +9,11 @@ on:
       - master
 
 jobs:
-  unit_test_espnet1_and_espnet2_on_debian11:
+  unit_test_espnet1_and_espnet2_on_debian12:
     runs-on: ubuntu-latest
     if: github.event.pull_request.draft == false
     container:
-      image: debian:11
+      image: debian:12
       env:
         ESPNET_PYTHON_VERSION: "3.10"
         TH_VERSION: 2.6.0
