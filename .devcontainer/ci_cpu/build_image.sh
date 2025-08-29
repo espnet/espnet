@@ -6,7 +6,7 @@ echo "[INFO] Building Docker"
 _root=${PWD}
 
 if [ ! -f ".devcontainer/container.env" ]; then
-  touch .devcontainer/container.env
+  cp .devcontainer/container.env.example .devcontainer/container.env
 fi
 
 docker build \
