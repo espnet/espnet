@@ -17,6 +17,7 @@ from espnet2.layers.augmentation import DataAugmentation
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.cleaner import TextCleaner
 from espnet2.text.hugging_face_token_id_converter import HuggingFaceTokenIDConverter
+from espnet2.text.qwen2audio_tokenizer import Qwen2AudioTokenizer
 from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.text.whisper_token_id_converter import OpenAIWhisperTokenIDConverter
 from espnet2.text.whisper_tokenizer import OpenAIWhisperTokenizer
@@ -2840,3 +2841,37 @@ class S2TCTCPreprocessor(CommonPreprocessor):
         data = self._text_process(data)
 
         return data
+
+
+class Qwen2AudioPreprocessor(AbsPreprocessor):
+    """Preprocessor specifically for Qwen2Audio models"""
+
+    def __init__(self, sampling_rate: int = 16000):
+        """Initialize the Qwen2AudioPreprocessor.
+
+        This method sets up the tokenizer for Qwen2Audio models and defines
+        the default sampling rate for audio processing.
+        """
+
+        self.tokenizer = Qwen2AudioTokenizer()
+        self.sampling_rate = sampling_rate
+        if self.sampling_rate != 16000:
+            raise NotImplementedError("Qwen2-Audio supports 16kHz only.")
+
+    @typechecked
+    def __call__(
+        self, uid: str, data: Dict[str, Union[str, np.ndarray]]
+    ) -> Dict[str, np.ndarray]:
+        out = self.tokenizer.create_multimodal_query(
+            data["text"], ([data["speech"]], self.sampling_rate)
+        )
+        input_ids = out.input_ids.squeeze(0)
+        attention_mask = out.attention_mask.squeeze(0)
+        input_features = out.input_features.squeeze(0)
+        feature_attention_mask = out.feature_attention_mask.squeeze(0)
+        return {
+            "input_ids": input_ids,
+            "attention_mask": attention_mask,
+            "input_features": input_features,
+            "feature_attention_mask": feature_attention_mask,
+        }
