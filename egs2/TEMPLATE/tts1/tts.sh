@@ -1160,9 +1160,11 @@ if ! "${skip_scoring}"; then
         if ${gpu_inference}; then
             _cmd="${cuda_cmd}"
             _ngpu=1
+			use_gpu_flag="--use_gpu"
         else
             _cmd="${decode_cmd}"
             _ngpu=0
+			use_gpu_flag=""
         fi
 
         ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_eval_dir}"/versa_eval.JOB.log \
@@ -1170,12 +1172,13 @@ if ! "${skip_scoring}"; then
                 --pred ${_eval_dir}/pred.JOB \
                 --score_config ${_score_config} \
                 --cache_folder ${_eval_dir}/cache \
-                --gt ${_gt_file} \
+				--gt ${_gt_file} \
                 --text ${_data}/text \
-                --use_gpu ${gpu_inference} \
+                ${use_gpu_flag} \
                 --output_file ${_eval_dir}/result.JOB.txt \
                 --io soundfile \
                 ${_opts} 2>&1;
+
 
         python pyscripts/utils/aggregate_eval.py \
             --logdir ${_eval_dir} \
