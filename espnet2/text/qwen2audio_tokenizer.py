@@ -1,8 +1,8 @@
 from importlib.metadata import version as pkg_version
-from packaging.version import Version
 from typing import Dict, Iterable, List, Optional, Tuple
 
 import numpy as np
+from packaging.version import Version
 from typeguard import typechecked
 
 from espnet2.text.abs_tokenizer import AbsTokenizer
