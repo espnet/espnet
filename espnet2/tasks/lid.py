@@ -44,6 +44,7 @@ from espnet2.torch_utils.initialize import initialize
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
+from espnet2.train.lid_trainer import LIDTrainer
 from espnet2.train.preprocessor import (
     AbsPreprocessor,
     CommonPreprocessor,
@@ -191,6 +192,8 @@ loss_choices = ClassChoices(
 
 class LIDTask(AbsTask):
     num_optimizers: int = 1
+
+    trainer = LIDTrainer
 
     class_choices_list = [
         model_choices,
