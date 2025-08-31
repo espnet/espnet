@@ -7,6 +7,7 @@ from espnet2.text.qwen2audio_tokenizer import Qwen2AudioTokenizer
 
 
 @pytest.mark.parametrize("model_name", ["Qwen/Qwen2-Audio-7B-Instruct"])
+@pytest.mark.execution_timeout(300)
 def test_espnet_model_inference(model_name):
     model = ESPnetQwen2AudioModel(model_name)
     tokenizer = Qwen2AudioTokenizer(model_name)

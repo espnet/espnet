@@ -107,7 +107,7 @@ requirements = {
         "isort",
     ],
     "doc": [
-        "Jinja2<3.1",
+        "Jinja2<=3.1",
         "sphinx<9.0.0",
         "sphinx-rtd-theme>=0.2.4",
         "sphinx-argparse>=0.2.5",

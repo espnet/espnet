@@ -1,3 +1,5 @@
+from importlib.metadata import version as pkg_version
+from packaging.version import Version
 from typing import Dict, Iterable, List, Optional, Tuple
 
 import numpy as np
@@ -85,13 +87,24 @@ class Qwen2AudioTokenizer(AbsTokenizer):
             )
 
             # Process inputs with both text and audio
-            inputs = self.processor(
-                text=text,
-                audios=audios,
-                sampling_rate=sr,
-                return_tensors="np",
-                padding=True,
-            )
+            tfm_ver = Version(pkg_version("transformers"))
+            if tfm_ver >= Version("4.55.0"):
+                inputs = self.processor(
+                    text=text,
+                    audio=audios,
+                    sampling_rate=sr,
+                    return_tensors="np",
+                    padding=True,
+                )
+            else:
+                inputs = self.processor(
+                    text=text,
+                    audios=audios,
+                    sampling_rate=sr,
+                    return_tensors="np",
+                    padding=True,
+                )
+
         else:
             # Text-only processing
             inputs = self.processor(text=text_input, return_tensors="np", padding=True)

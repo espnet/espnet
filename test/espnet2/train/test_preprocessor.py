@@ -4,6 +4,7 @@ import pytest
 from espnet2.train.preprocessor import Qwen2AudioPreprocessor
 
 
+@pytest.mark.execution_timeout(300)
 def test_qwen2audio_preprocessor():
     preprocessor = Qwen2AudioPreprocessor(sampling_rate=16000)
     assert preprocessor.sampling_rate == 16000
@@ -23,6 +24,7 @@ def test_qwen2audio_preprocessor():
     assert out["input_features"].ndim == 2
 
 
+@pytest.mark.execution_timeout(10)
 def test_qwen2audio_preprocessor_invalid_sampling_rate():
     with pytest.raises(NotImplementedError, match="16kHz only"):
         Qwen2AudioPreprocessor(sampling_rate=8000)
