@@ -11,7 +11,9 @@ from espnet.nets.beam_search import BeamSearch
 from .qwen2_scorer import Qwen2HFScorer
 
 try:
-    from transformers import AutoProcessor, Qwen2AudioForConditionalGeneration
+    from transformers import AutoConfig, AutoProcessor
+    from transformers import Qwen2AudioForConditionalGeneration
+    from transformers.modeling_utils import no_init_weights
 
     is_transformers_available = True
 except ImportError:
@@ -29,6 +31,7 @@ class ESPnetQwen2AudioModel(AbsESPnetModel):
         token_list: Union[Tuple[str, ...], List[str]] = (),
         ignore_id: int = -1,
         decode_config_path: Optional[str] = None,
+        pytest_mode: Optional[bool] = False,
     ):
         super().__init__()
         if not is_transformers_available:
@@ -42,13 +45,19 @@ class ESPnetQwen2AudioModel(AbsESPnetModel):
         self.ignore_id = ignore_id
         self.token_list = token_list
 
-        # Load Qwen2-Audio model and processor using standard transformers approach
-        self.qwen2audio_model = Qwen2AudioForConditionalGeneration.from_pretrained(
-            model_name,
-            trust_remote_code=True,
-            # device_map="cpu",
-        )
+        if not pytest_mode:
+            # Load Qwen2-Audio model and processor using standard transformers approach
+            self.qwen2audio_model = Qwen2AudioForConditionalGeneration.from_pretrained(
+                model_name,
+                trust_remote_code=True,
+            )
+        else:
+            config = AutoConfig.from_pretrained(model_name)
+            with no_init_weights():
+                self.qwen2audio_model = Qwen2AudioForConditionalGeneration(config)
+
         self.qwen2audio_model.to("cpu")
+        self.qwen2audio_model.eval()
         self.processor = AutoProcessor.from_pretrained(
             model_name, trust_remote_code=True
         )
