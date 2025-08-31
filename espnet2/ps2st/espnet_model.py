@@ -56,6 +56,16 @@ class ESPnetQwen2AudioModel(AbsESPnetModel):
             )
         else:
             config = AutoConfig.from_pretrained(model_name)
+            config.audio_config.encoder_layers = 2
+            config.audio_config.d_model = 256
+            config.audio_config.encoder_attention_heads = 4
+            config.audio_config.encoder_ffn_dim = 256
+            config.audio_config.num_hidden_layers = 4
+            config.text_config.hidden_size = 128
+            config.text_config.num_hidden_layers = 4
+            config.text_config.num_attention_heads = 4
+            config.text_config.num_key_value_heads = 4
+            config.text_config.intermediate_size = 256
             with no_init_weights():
                 self.qwen2audio_model = Qwen2AudioForConditionalGeneration(config)
 
