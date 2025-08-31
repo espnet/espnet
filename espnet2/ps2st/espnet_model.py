@@ -11,8 +11,11 @@ from espnet.nets.beam_search import BeamSearch
 from .qwen2_scorer import Qwen2HFScorer
 
 try:
-    from transformers import AutoConfig, AutoProcessor
-    from transformers import Qwen2AudioForConditionalGeneration
+    from transformers import (
+        AutoConfig,
+        AutoProcessor,
+        Qwen2AudioForConditionalGeneration,
+    )
     from transformers.modeling_utils import no_init_weights
 
     is_transformers_available = True
