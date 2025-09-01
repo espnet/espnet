@@ -551,7 +551,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
                 --lid_train_config "${lid_exp}/config.yaml" \
                 --lid_model_file "${lid_exp}"/${inference_model} \
                 --use_preprocessor false \
-                --fix_duration false \ 
+                --fix_duration false \
                 --num_workers ${nj} \
                 --extract_embd ${extract_embd} \
                 --save_every ${save_every} \
