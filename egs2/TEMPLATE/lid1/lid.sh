@@ -522,7 +522,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     log "Test sets after being processed: ${test_sets}"
     for test_set in ${test_sets_all}; do
         infer_exp="${lid_exp}/inference/${inference_model_name}/${test_set}"
-        if [ -f "${infer_exp}/${test_set}_lids" ] && [ -f "${infer_exp}/${test_set}_lang_to_list_embds.npz" ]; then
+        if [ -f "${infer_exp}/${test_set}_lids" ] && [ -f "${infer_exp}/${test_set}_lang_to_embds.npz" ]; then
             log "Skip inference for ${test_set} since it has already been done."
             continue
         fi
