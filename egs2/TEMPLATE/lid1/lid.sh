@@ -108,7 +108,7 @@ Options:
     dumpdir=dump          # Directory to dump features.
     expdir=exp            # Directory to save experiments.
     python=python3        # Specify python to execute espnet commands.
-    fold_length=80000     # fold_length for speech data during enhancement training
+    fold_length=120000     # fold_length for speech data during enhancement training
 
     # Speed perturbation related
     speed_perturb_factors=  # perturbation factors, e.g. "0.9 1.0 1.1" (separated by space).
@@ -429,8 +429,8 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     utils/split_scp.pl "${key_file}" ${split_scps}
 
     # 2. Generate run.sh
-    log "Generate '${lid_stats_dir}/run.sh'. You can resume the process from stage 3 using this script"
-    mkdir -p "${lid_stats_dir}"; echo "${run_args} -- stage3 \"\$@\"; exit \$?" > "${lid_stats_dir}/run.sh"; chmod +x "${lid_stats_dir}/run.sh"
+    log "Generate '${lid_stats_dir}/run.sh'. You can resume the process from stage 4 using this script"
+    mkdir -p "${lid_stats_dir}"; echo "${run_args} --stage 4 \"\$@\"; exit \$?" > "${lid_stats_dir}/run.sh"; chmod +x "${lid_stats_dir}/run.sh"
 
     # 3. Submit jobs
     log "Language identification collect-stats started... log: '${_logdir}/stats.*.log'"
