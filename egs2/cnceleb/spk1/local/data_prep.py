@@ -13,6 +13,15 @@ def main(args):
             spk_list = [line.strip() for line in f.readlines()]
     else:
         spk_list = None
+    utt_list = args.utt
+    if utt_list is not None:
+        # read utterance list
+        with open(utt_list, "r") as f:
+            utt_list = [
+                line.strip().split(".")[0].replace("/", "-") for line in f.readlines()
+            ]
+    else:
+        utt_list = None
 
     spk2utt = {}
     utt2spk = []
@@ -24,17 +33,19 @@ def main(args):
                 continue
 
             utt_dir = os.path.join(r, f)
-            # 2 cases:
-            # case 1: id00001/entertainment-05-003.wav
-            # case 2: id00819-entertainment-01-023.wav
             spk, utt = utt_dir.split("/")[-2:]
-            if utt.startswith("id"):
+            if utt.startswith("id"):  # id00001-entertainment-05-003.wav
                 spk = utt.split("-")[0]
                 utt_id = utt.split(".")[0]
-            else:
+            else:  # entertainment-05-003.wav
                 utt_id = "-".join([spk, utt.split(".")[0]])
+
+            # filter by speaker or utterance lists
             if spk_list is not None and spk not in spk_list:
                 continue
+            if utt_list is not None and utt_id not in utt_list:
+                continue
+
             if spk not in spk2utt:
                 spk2utt[spk] = []
             spk2utt[spk].append(utt_id)
@@ -62,7 +73,7 @@ def main(args):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="CN-celeb 1&2 downloader")
+    parser = argparse.ArgumentParser(description="CN-celeb data preparation")
     parser.add_argument(
         "--src",
         type=str,
@@ -76,6 +87,10 @@ if __name__ == "__main__":
         help="destination directory of cnceleb",
     )
     parser.add_argument("--spk", type=str, default=None, help="speaker list")
+    parser.add_argument("--utt", type=str, default=None, help="utterance list")
     args = parser.parse_args()
+    assert not (
+        args.spk is not None and args.utt is not None
+    ), "Provide either speaker list or utterance list, not both."
 
     sys.exit(main(args))

@@ -13,10 +13,6 @@ import os
 import numpy as np
 import torch
 import torch.distributed as dist
-from chainer import reporter as reporter_module
-from chainer import training
-from chainer.training import extensions
-from chainer.training.updater import StandardUpdater
 from packaging.version import parse as V
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.nn.parallel import data_parallel
@@ -59,6 +55,16 @@ from espnet.utils.training.evaluator import BaseEvaluator
 from espnet.utils.training.iterators import ShufflingEnabler
 from espnet.utils.training.tensorboard_logger import TensorboardLogger
 from espnet.utils.training.train_utils import check_early_stop, set_early_stop
+
+try:
+    from chainer import reporter as reporter_module
+    from chainer import training
+    from chainer.training import extensions
+    from chainer.training.updater import StandardUpdater
+
+except ImportError:
+    logging.warning("Chainer is not Installed. Run `make chainer.done` at tools dir.")
+    from espnet.utils.dummy_chainer import StandardUpdater
 
 
 def _recursive_to(xs, device):

@@ -20,14 +20,15 @@ from tacotron_cleaner.cleaners import (
 )
 
 try:
-    # For phoneme conversion, use https://github.com/Kyubyong/g2p.
+    # For phoneme conversion, use https://github.com/espnet/g2p.
     from g2p_en import G2p
 
     f_g2p = G2p()
     f_g2p("")
 except ImportError:
     raise ImportError(
-        "g2p_en is not installed. please run `. ./path.sh && pip install g2p_en`."
+        "g2p_en is not installed. please run "
+        "`. ./path.sh && pip install git+https://github.com/espnet/g2p.git`."
     )
 except LookupError:
     # NOTE: we need to download dict in initial running

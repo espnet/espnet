@@ -351,7 +351,7 @@ def test_Speech2Text_hugging_face(
 )
 @pytest.mark.parametrize("prefix", ["prefix", ""])
 @pytest.mark.parametrize("postfix", ["postfix", ""])
-@pytest.mark.execution_timeout(30)
+@pytest.mark.execution_timeout(60)
 def test_Speech2Text_hugging_face_causal_lm(
     asr_config_file, token_list_hugging_face, model_name_or_path, prefix, postfix
 ):

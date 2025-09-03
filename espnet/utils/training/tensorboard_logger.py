@@ -1,6 +1,12 @@
 """Tensorboard Logger Functions."""
 
-from chainer.training.extension import Extension
+import logging
+
+try:
+    from chainer.training.extension import Extension
+except ImportError:
+    logging.warning("Chainer is not Installed. Run `make chainer.done` at tools dir.")
+    from espnet.utils.dummy_chainer import Extension
 
 
 class TensorboardLogger(Extension):

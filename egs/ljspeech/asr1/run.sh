@@ -20,7 +20,7 @@ resume=""    # the snapshot path to resume (if set empty, no effect)
 debugmode=1
 
 # char or phn
-# In the case of phn, input transcription is convered to phoneem using https://github.com/Kyubyong/g2p.
+# In the case of phn, input transcription is convered to phoneem using https://github.com/espnet/g2p.
 trans_type="char"
 
 # config files

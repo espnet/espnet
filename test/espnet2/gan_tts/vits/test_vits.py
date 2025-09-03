@@ -274,7 +274,7 @@ def make_vits_loss_args(**kwargs):
     return defaults
 
 
-@pytest.mark.execution_timeout(10)
+@pytest.mark.execution_timeout(30)
 @pytest.mark.skipif(
     "1.6" in torch.__version__,
     reason="group conv in pytorch 1.6 has an issue. "

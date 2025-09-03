@@ -229,6 +229,8 @@ AUDIOCAPS=
 CLOTHO_CHATGPT_MIXUP=
 EDACC=downloads
 IPAPACK_PLUS=downloads
+GALAXY=
+
 
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then

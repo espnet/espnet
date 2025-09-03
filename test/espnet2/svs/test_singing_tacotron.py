@@ -4,6 +4,7 @@ import torch
 from espnet2.svs.singing_tacotron.singing_tacotron import singing_tacotron
 
 
+@pytest.mark.execution_timeout(30)
 @pytest.mark.parametrize("prenet_layers", [0, 1])
 @pytest.mark.parametrize("postnet_layers", [0, 1])
 @pytest.mark.parametrize("reduction_factor", [1, 3])

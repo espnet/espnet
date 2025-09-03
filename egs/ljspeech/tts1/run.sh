@@ -29,7 +29,7 @@ n_shift=256   # number of shift points
 win_length="" # window length
 
 # char or phn
-# In the case of phn, input transcription is convered to phoneem using https://github.com/Kyubyong/g2p.
+# In the case of phn, input transcription is convered to phoneem using https://github.com/espnet/g2p.
 trans_type="char"
 
 # config files

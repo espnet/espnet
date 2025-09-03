@@ -22,6 +22,7 @@ from espnet2.spk.encoder.conformer_encoder import MfaConformerEncoder
 from espnet2.spk.encoder.ecapa_tdnn_encoder import EcapaTdnnEncoder
 from espnet2.spk.encoder.identity_encoder import IdentityEncoder
 from espnet2.spk.encoder.rawnet3_encoder import RawNet3Encoder
+from espnet2.spk.encoder.resnet_encoder import ResNetEncoder
 from espnet2.spk.encoder.ska_tdnn_encoder import SkaTdnnEncoder
 from espnet2.spk.encoder.xvector_encoder import XvectorEncoder
 from espnet2.spk.espnet_model import ESPnetSpeakerModel
@@ -29,6 +30,7 @@ from espnet2.spk.loss.aamsoftmax import AAMSoftmax
 from espnet2.spk.loss.aamsoftmax_subcenter_intertopk import (
     ArcMarginProduct_intertopk_subcenter,
 )
+from espnet2.spk.loss.softmax import Softmax
 from espnet2.spk.pooling.abs_pooling import AbsPooling
 from espnet2.spk.pooling.chn_attn_stat_pooling import ChnAttnStatPooling
 from espnet2.spk.pooling.mean_pooling import MeanPooling
@@ -93,6 +95,7 @@ encoder_choices = ClassChoices(
         identity=IdentityEncoder,
         mfaconformer=MfaConformerEncoder,
         rawnet3=RawNet3Encoder,
+        resnet=ResNetEncoder,
         ska_tdnn=SkaTdnnEncoder,
         xvector=XvectorEncoder,
     ),
@@ -137,6 +140,7 @@ loss_choices = ClassChoices(
     classes=dict(
         aamsoftmax=AAMSoftmax,
         aamsoftmax_sc_topk=ArcMarginProduct_intertopk_subcenter,
+        softmax=Softmax,
     ),
     default="aamsoftmax",
 )
