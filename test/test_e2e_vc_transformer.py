@@ -385,6 +385,7 @@ def test_attention_masking(model_dict):
         ({"encoder_concat_after": True, "decoder_concat_after": True}),
     ],
 )
+@pytest.mark.execution_timeout(20)
 def test_forward_and_inference_are_equal(model_dict):
     # make args
     model_args = make_transformer_args(dprenet_dropout_rate=0.0, **model_dict)

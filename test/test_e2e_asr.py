@@ -284,6 +284,7 @@ def test_model_trainable_and_decodable(module, model_dict):
             )  # batch decodable
 
 
+@pytest.mark.execution_timeout(20)
 def test_window_streaming_e2e_encoder_and_ctc_with_offline_attention():
     args = make_arg()
     model = th_asr.E2E(10, 5, args)
@@ -294,6 +295,7 @@ def test_window_streaming_e2e_encoder_and_ctc_with_offline_attention():
     asr.decode_with_attention_offline()
 
 
+@pytest.mark.execution_timeout(20)
 def test_segment_streaming_e2e():
     args = make_arg()
     args.etype = "vgglstm"  # uni-directional

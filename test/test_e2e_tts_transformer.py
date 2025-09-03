@@ -150,6 +150,7 @@ def prepare_inputs(
         ),
     ],
 )
+@pytest.mark.execution_timeout(20)
 def test_transformer_trainable_and_decodable(model_dict):
     # make args
     model_args = make_transformer_args(**model_dict)

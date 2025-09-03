@@ -12,7 +12,13 @@ exclude="egs2/TEMPLATE/asr1/utils,egs2/TEMPLATE/asr1/steps,egs2/TEMPLATE/tts1/si
 # pycodestyle
 pycodestyle --exclude "${exclude}" --show-source --show-pep8
 
-pytest -q --ignore test/espnet2 --ignore test/espnetez test
+# It will set default timeout to 10.0 seconds for each test.
+# If the test is marked with @pytest.mark.execution_timeout,
+# the value in the mark will be used as the timeout value.
+pytest -q \
+    --ignore test/espnet2 --ignore test/espnetez \
+    --execution-timeout 10.0 --timeouts-order moi \
+    test
 
 echo "=== report ==="
 coverage report

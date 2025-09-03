@@ -154,6 +154,7 @@ def test_model_trainable_and_decodable(module, model_dict):
 
 
 @pytest.mark.parametrize("module", ["pytorch"])
+@pytest.mark.execution_timeout(20)
 def test_sortagrad_trainable(module):
     args = make_arg(sortagrad=1)
     dummy_json = make_dummy_json_mt(4, [10, 20], [10, 20], idim=6, odim=5)
@@ -178,6 +179,7 @@ def test_sortagrad_trainable(module):
 
 
 @pytest.mark.parametrize("module", ["pytorch"])
+@pytest.mark.execution_timeout(20)
 def test_sortagrad_trainable_with_batch_bins(module):
     args = make_arg(sortagrad=1)
     idim = 6
@@ -218,6 +220,7 @@ def test_sortagrad_trainable_with_batch_bins(module):
 
 
 @pytest.mark.parametrize("module", ["pytorch"])
+@pytest.mark.execution_timeout(20)
 def test_sortagrad_trainable_with_batch_frames(module):
     args = make_arg(sortagrad=1)
     idim = 6

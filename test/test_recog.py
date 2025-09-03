@@ -97,6 +97,7 @@ def make_small_arg(**kwargs):
 
 # ctc_weight: 0.0 (attention), 0.5 (hybrid CTC/attention), 1.0 (CTC)
 @pytest.mark.parametrize("ctc_weight", [0.0, 0.5, 1.0])
+@pytest.mark.execution_timeout(20)
 def test_batch_beam_search(ctc_weight):
     numpy.random.seed(1)
     idim = 10

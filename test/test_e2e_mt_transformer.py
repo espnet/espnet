@@ -103,6 +103,7 @@ def _savefn(*args, **kwargs):
         {"tie_src_tgt_embedding": True, "tie_classifier": True},
     ],
 )
+@pytest.mark.execution_timeout(20)
 def test_transformer_trainable_and_decodable(model_dict):
     args = make_arg(**model_dict)
     model, y_src, ilens, y_tgt, data, uttid_list = prepare(args)
