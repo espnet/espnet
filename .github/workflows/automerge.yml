@@ -1,0 +1,53 @@
+# https://github.com/marketplace/actions/auto-merge-pull-request
+name: Automerge
+
+on:
+  # Try enabling auto-merge for all open pull requests.
+  schedule:
+    - cron: "30 1 * * *"
+
+  # Try enabling auto-merge when a pull request is approved. Note that this
+  # event skips the check for the pull request author association and instead
+  # checks the review author association.
+  pull_request_review:
+    types:
+      - submitted
+
+  # Try enabling auto-merge for a pull request when a draft is marked as
+  # “ready for review”, when a required label is applied or when a
+  # “do not merge” label is removed, or when a pull request is updated in
+  # any way (opened, synchronized, reopened, edited).
+  pull_request_target:
+    types:
+    #   - opened
+    #   - synchronize
+    #   - reopened
+    #   - edited
+    #   - labeled
+    #   - unlabeled
+      - ready_for_review
+
+  # Try enabling auto-merge for the specified pull request,
+  # review or all open pull requests if none is specified.
+  workflow_dispatch:
+    inputs:
+      pull-request:
+        description: Pull Request Number
+        required: false
+      review:
+        description: Review ID
+        required: false
+
+jobs:
+  automerge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: reitermarkus/automerge@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          merge-method: rebase
+          do-not-merge-labels: never-merge
+          required-labels: automerge
+          pull-request: ${{ github.event.inputs.pull-request }}
+          review: ${{ github.event.inputs.review }}
+          dry-run: ${{ github.event.inputs.dry-run }}
