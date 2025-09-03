@@ -33,15 +33,14 @@ sys.path.insert(0, os.path.abspath("../../utils"))
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    "nbsphinx",
     "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",
     "sphinx.ext.viewcode",
     "sphinx.ext.mathjax",
     "sphinx.ext.todo",
     "sphinxarg.ext",
-    "sphinx_markdown_tables",
-    'myst_parser',
+    "myst_parser",
+    "sphinx_markdown_builder",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -50,14 +49,7 @@ templates_path = ["_templates"]
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
 #
-# source_suffix = '.rst'
 source_suffix = [".rst", ".md"]
-
-source_parsers = {
-    ".md": 'markdown',
-}
-
-github_doc_root = "https://github.com/rtfd/recommonmark/tree/master/doc/"
 
 # The master toctree document.
 master_doc = "index"
@@ -83,7 +75,7 @@ release = espnet.__version__
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = "en"
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -196,6 +188,3 @@ texinfo_documents = [
 ]
 
 autoclass_content = "both"
-
-# NOTE(kan-bayashi): Do not update outputs in notebook automatically.
-nbsphinx_execute = "never"
