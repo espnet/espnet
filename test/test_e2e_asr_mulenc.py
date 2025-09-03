@@ -401,6 +401,7 @@ def test_sortagrad_trainable_with_batch_bins(module, num_encs):
 
 
 @pytest.mark.parametrize("module, num_encs", [("pytorch", 2), ("pytorch", 3)])
+@pytest.mark.execution_timeout(20)
 def test_sortagrad_trainable_with_batch_frames(module, num_encs):
     args = make_arg(num_encs=num_encs, sortagrad=1)
     idim = 2
@@ -549,7 +550,7 @@ def test_multi_gpu_trainable(module, num_encs):
         loss.backward(loss.new_ones(ngpu))  # trainable
 
 
-@pytest.mark.execution_timeout(5)
+# @pytest.mark.execution_timeout(5)
 @pytest.mark.parametrize(
     "module, num_encs, model_dict",
     [

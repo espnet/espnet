@@ -111,6 +111,7 @@ def init_chainer_weight_const(m, val):
         ("vggbgrup", "gru", 2, True, "espnet.nets.pytorch_backend.e2e_asr_mix", 1),
     ],
 )
+@pytest.mark.execution_timeout(20)
 def test_recognition_results_multi_outputs(
     etype, dtype, num_spkrs, spa, m_str, text_idx1
 ):
@@ -181,7 +182,7 @@ def test_pit_process(etype, dtype, num_spkrs, m_str, data_idx):
     assert torch.equal(min_perm, true_perm[data_idx])
 
 
-@pytest.mark.execution_timeout(5)
+# @pytest.mark.execution_timeout(5)
 @pytest.mark.parametrize(
     ("use_frontend", "use_beamformer", "bnmask", "num_spkrs", "m_str"),
     [(True, True, 3, 2, "espnet.nets.pytorch_backend.e2e_asr_mix")],

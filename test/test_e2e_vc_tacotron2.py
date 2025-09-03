@@ -152,6 +152,7 @@ def prepare_inputs(
         ({"atype": "forward_ta"}, {"use_att_constraint": True}),
     ],
 )
+@pytest.mark.execution_timeout(20)
 def test_tacotron2_trainable_and_decodable(model_dict, inference_dict):
     # make args
     model_args = make_taco2_args(**model_dict)

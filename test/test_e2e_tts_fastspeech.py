@@ -257,6 +257,7 @@ def make_feedforward_transformer_args(**kwargs):
         ("tacotron2", {"reduction_factor": 5}),
     ],
 )
+@pytest.mark.execution_timeout(20)
 def test_fastspeech_trainable_and_decodable(teacher_type, model_dict):
     # make args
     idim, odim = 10, 25
