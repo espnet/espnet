@@ -1,6 +1,6 @@
 # PyTorch version: The latest six versions have been tested.
 # Please check https://github.com/espnet/espnet?tab=readme-ov-file#espnet-end-to-end-speech-processing-toolkit
-TH_VERSION := 2.6.0
+TH_VERSION := 2.7.1
 
 # Use pip for pytorch installation even if you have anaconda
 ifneq ($(shell test -f ./activate_python.sh && grep 'conda activate' ./activate_python.sh),)

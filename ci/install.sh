@@ -68,3 +68,12 @@ next_version = f"{version[0]}.{version[1]}.{int(version[2]) + 1}"
 if L(torch.__version__) < L('$TH_VERSION') or L(torch.__version__) >= L(next_version):
     raise RuntimeError(f"Pytorch=$TH_VERSION is expected, but got pytorch={torch.__version__}. This is a bug in installation scripts")
 EOF
+
+# Check numpy version
+python3 <<EOF
+import numpy
+from packaging.version import parse as L
+
+if L(numpy.__version__) < L("2.0.0"):
+    raise RuntimeError(f"Numpy>=2.0.0 is expected, but got numpy={numpy.__version__}. This is a bug in installation scripts")
+EOF
