@@ -2,7 +2,7 @@
 
 import torch
 
-from espnet.nets.pytorch_backend.nets_utils import get_activation
+from espnet2.legacy.nets.pytorch_backend.nets_utils import get_activation
 
 
 class JointNetwork(torch.nn.Module):

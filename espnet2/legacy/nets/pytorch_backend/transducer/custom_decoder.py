@@ -4,15 +4,15 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 import torch
 
-from espnet.nets.pytorch_backend.transducer.blocks import build_blocks
-from espnet.nets.pytorch_backend.transducer.utils import (
+from espnet2.legacy.nets.pytorch_backend.transducer.blocks import build_blocks
+from espnet2.legacy.nets.pytorch_backend.transducer.utils import (
     check_batch_states,
     check_state,
     pad_sequence,
 )
-from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
-from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
-from espnet.nets.transducer_decoder_interface import (
+from espnet2.legacy.nets.pytorch_backend.transformer.layer_norm import LayerNorm
+from espnet2.legacy.nets.pytorch_backend.transformer.mask import subsequent_mask
+from espnet2.legacy.nets.transducer_decoder_interface import (
     ExtendedHypothesis,
     Hypothesis,
     TransducerDecoderInterface,
