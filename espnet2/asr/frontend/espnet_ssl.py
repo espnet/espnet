@@ -5,7 +5,7 @@ from typing import List, Optional, Tuple, Union
 import humanfriendly
 import torch
 import torch.nn.functional as F
-from espnet.nets.pytorch_backend.frontends.frontend import Frontend
+from espnet2.legacy.nets.pytorch_backend.frontends.frontend import Frontend
 from typeguard import typechecked
 
 from espnet2.asr.frontend.abs_frontend import AbsFrontend

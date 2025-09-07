@@ -54,9 +54,6 @@ class GANTrainerOptions(TrainerOptions):
 class GANTrainer(Trainer):
     """Trainer for GAN-based training.
 
-    If you'd like to use this trainer, the model must inherit
-    espnet.train.abs_gan_espnet_model.AbsGANESPnetModel.
-
     """
 
     @classmethod

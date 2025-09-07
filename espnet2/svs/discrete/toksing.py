@@ -10,21 +10,21 @@ from typing import Dict, Optional, Tuple
 
 import torch
 import torch.nn.functional as F
-from espnet.nets.pytorch_backend.conformer.encoder import (  # noqa: H301
+from espnet2.legacy.nets.pytorch_backend.conformer.encoder import (  # noqa: H301
     Encoder as ConformerEncoder,
 )
-from espnet.nets.pytorch_backend.e2e_tts_fastspeech import (
+from espnet2.legacy.nets.pytorch_backend.e2e_tts_fastspeech import (
     FeedForwardTransformerLoss as XiaoiceSingLoss,  # NOQA
 )
-from espnet.nets.pytorch_backend.fastspeech.duration_predictor import DurationPredictor
-from espnet.nets.pytorch_backend.fastspeech.length_regulator import LengthRegulator
-from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask, make_pad_mask
-from espnet.nets.pytorch_backend.tacotron2.decoder import Postnet
-from espnet.nets.pytorch_backend.transformer.embedding import (
+from espnet2.legacy.nets.pytorch_backend.fastspeech.duration_predictor import DurationPredictor
+from espnet2.legacy.nets.pytorch_backend.fastspeech.length_regulator import LengthRegulator
+from espnet2.legacy.nets.pytorch_backend.nets_utils import make_non_pad_mask, make_pad_mask
+from espnet2.legacy.nets.pytorch_backend.tacotron2.decoder import Postnet
+from espnet2.legacy.nets.pytorch_backend.transformer.embedding import (
     PositionalEncoding,
     ScaledPositionalEncoding,
 )
-from espnet.nets.pytorch_backend.transformer.encoder import (  # noqa: H301
+from espnet2.legacy.nets.pytorch_backend.transformer.encoder import (  # noqa: H301
     Encoder as TransformerEncoder,
 )
 
