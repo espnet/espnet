@@ -9,8 +9,8 @@ import os
 
 import librosa
 import numpy as np
-from espnet.utils.cli_readers import file_reader_helper
-from espnet.utils.cli_utils import get_commandline_args
+from espnet2.legacy.utils.cli_readers import file_reader_helper
+from espnet2.legacy.utils.cli_utils import get_commandline_args
 from packaging.version import parse as V
 from scipy.io.wavfile import write
 

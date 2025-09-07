@@ -157,7 +157,7 @@ function download_models () {
         "csj.transformer.v1") share_url="https://drive.google.com/open?id=120nUQcSsKeY5dpyMWw_kI33ooMRGT2uF" ;;
         "csj.rnn.v1") share_url="https://drive.google.com/open?id=1ALvD4nHan9VDJlYJwNurVr7H7OV0j2X9" ;;
         "wsj.transformer.v1") share_url="https://drive.google.com/open?id=1Az-4H25uwnEFa4lENc-EKiPaWXaijcJp" ;;
-        "wsj.transformer_small.v1") share_url="https://drive.google.com/open?id=1jdEKbgWhLTxN_qP4xwE7mTOPmp7Ga--T" ;;
+        # "wsj.transformer_small.v1") share_url="https://drive.google.com/open?id=1jdEKbgWhLTxN_qP4xwE7mTOPmp7Ga--T" ;; # Deleted
         *) echo "No such models: ${models}"; exit 1 ;;
     esac
 

@@ -5,9 +5,9 @@ from distutils.util import strtobool
 
 import kaldiio
 import numpy
-from espnet.transform.transformation import Transformation
-from espnet.utils.cli_utils import get_commandline_args
-from espnet.utils.cli_writers import file_writer_helper
+from espnet2.legacy.transform.transformation import Transformation
+from espnet2.legacy.utils.cli_utils import get_commandline_args
+from espnet2.legacy.utils.cli_writers import file_writer_helper
 
 
 def get_parser():

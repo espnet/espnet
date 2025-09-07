@@ -10,7 +10,7 @@ import logging
 import sys
 from io import open
 
-from espnet.utils.cli_utils import get_commandline_args
+from espnet2.legacy.utils.cli_utils import get_commandline_args
 
 
 def get_parser():
