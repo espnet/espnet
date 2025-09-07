@@ -32,7 +32,7 @@ from espnet2.legacy.nets.pytorch_backend.transformer.positionwise_feed_forward i
 )
 from espnet2.legacy.nets.pytorch_backend.transformer.repeat import MultiSequential
 from espnet2.legacy.nets.pytorch_backend.transformer.subsampling import (
-    Conv2dSubsampling
+    Conv2dSubsampling,
 )
 
 
