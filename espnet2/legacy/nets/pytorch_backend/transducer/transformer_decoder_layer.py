@@ -5,7 +5,7 @@ from typing import Optional
 import torch
 
 from espnet2.legacy.nets.pytorch_backend.transformer.attention import (
-    MultiHeadedAttention
+    MultiHeadedAttention,
 )
 from espnet2.legacy.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet2.legacy.nets.pytorch_backend.transformer.positionwise_feed_forward import (
