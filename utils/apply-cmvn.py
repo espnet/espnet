@@ -5,6 +5,7 @@ from distutils.util import strtobool
 
 import kaldiio
 import numpy
+
 from espnet2.legacy.transform.cmvn import CMVN
 from espnet2.legacy.utils.cli_readers import file_reader_helper
 from espnet2.legacy.utils.cli_utils import get_commandline_args, is_scipy_wav_style
