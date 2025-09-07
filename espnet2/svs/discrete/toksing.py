@@ -10,6 +10,7 @@ from typing import Dict, Optional, Tuple
 
 import torch
 import torch.nn.functional as F
+
 from espnet2.legacy.nets.pytorch_backend.conformer.encoder import (  # noqa: H301
     Encoder as ConformerEncoder,
 )
@@ -18,10 +19,10 @@ from espnet2.legacy.nets.pytorch_backend.e2e_tts_fastspeech import (
 )
 from espnet2.legacy.nets.pytorch_backend.fastspeech.duration_predictor import (
     DurationPredictor,
-)  # noqa: E501
+)
 from espnet2.legacy.nets.pytorch_backend.fastspeech.length_regulator import (
     LengthRegulator,
-)  # noqa: E501
+)
 from espnet2.legacy.nets.pytorch_backend.nets_utils import (
     make_non_pad_mask,
     make_pad_mask,
@@ -34,7 +35,6 @@ from espnet2.legacy.nets.pytorch_backend.transformer.embedding import (
 from espnet2.legacy.nets.pytorch_backend.transformer.encoder import (  # noqa: H301
     Encoder as TransformerEncoder,
 )
-
 from espnet2.svs.abs_svs import AbsSVS
 from espnet2.svs.discrete.loss import DiscreteLoss
 from espnet2.svs.xiaoice.loss import XiaoiceSing2Loss
