@@ -7,9 +7,9 @@ from typing import List
 import torch
 import yaml
 
+from espnet2.legacy.nets.e2e_asr_common import end_detect
 from espnet2.search.batch_beam_search import BatchBeamSearch
 from espnet2.search.beam_search import Hypothesis
-from espnet2.legacy.nets.e2e_asr_common import end_detect
 
 
 class BatchBeamSearchOnlineSim(BatchBeamSearch):
