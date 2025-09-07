@@ -4,7 +4,6 @@
 """FastSpeech related modules."""
 
 import torch
-
 from espnet.nets.pytorch_backend.fastspeech.duration_predictor import (  # noqa: H301
     DurationPredictorLoss,
 )
