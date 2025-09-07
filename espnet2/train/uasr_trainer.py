@@ -53,9 +53,7 @@ class UASRTrainerOptions(TrainerOptions):
 
 
 class UASRTrainer(Trainer):
-    """Trainer for GAN-based UASR training.
-
-    """
+    """Trainer for GAN-based UASR training."""
 
     @classmethod
     @typechecked

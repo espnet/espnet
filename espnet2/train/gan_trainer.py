@@ -52,9 +52,7 @@ class GANTrainerOptions(TrainerOptions):
 
 
 class GANTrainer(Trainer):
-    """Trainer for GAN-based training.
-
-    """
+    """Trainer for GAN-based training."""
 
     @classmethod
     @typechecked
