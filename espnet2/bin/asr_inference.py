@@ -37,7 +37,6 @@ from espnet2.legacy.nets.scorers.ctc import CTCPrefixScorer
 from espnet2.legacy.nets.scorers.length_bonus import LengthBonus
 from espnet2.legacy.utils.cli_utils import get_commandline_args
 from espnet2.tasks.asr import ASRTask
-from espnet2.tasks.enh_s2t import EnhS2TTask
 from espnet2.tasks.lm import LMTask
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.hugging_face_token_id_converter import HuggingFaceTokenIDConverter
@@ -127,8 +126,15 @@ class Speech2Text:
         max_seq_len: int = 5,
         max_mask_parallel: int = -1,
     ):
+        if enh_s2t_task:
+            try:
+                from espnet2.tasks.enh_s2t import EnhS2TTask
 
-        task = ASRTask if not enh_s2t_task else EnhS2TTask
+                task = EnhS2TTask
+            except ImportError:
+                raise RuntimeError("Please install espnet['task-st']")
+        else:
+            task = ASRTask
 
         if quantize_asr_model or quantize_lm:
             if quantize_dtype == "float16" and torch.__version__ < LooseVersion(
