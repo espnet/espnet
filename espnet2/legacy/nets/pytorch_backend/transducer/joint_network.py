@@ -1,7 +1,6 @@
 """Transducer joint network implementation."""
 
 import torch
-
 from espnet.nets.pytorch_backend.nets_utils import get_activation
 
 

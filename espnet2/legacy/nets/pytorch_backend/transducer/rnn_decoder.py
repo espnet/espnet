@@ -3,7 +3,6 @@
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import torch
-
 from espnet.nets.transducer_decoder_interface import (
     ExtendedHypothesis,
     Hypothesis,

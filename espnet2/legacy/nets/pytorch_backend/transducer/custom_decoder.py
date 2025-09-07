@@ -3,7 +3,6 @@
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import torch
-
 from espnet.nets.pytorch_backend.transducer.blocks import build_blocks
 from espnet.nets.pytorch_backend.transducer.utils import (
     check_batch_states,
