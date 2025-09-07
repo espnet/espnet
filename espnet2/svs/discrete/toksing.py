@@ -16,9 +16,16 @@ from espnet2.legacy.nets.pytorch_backend.conformer.encoder import (  # noqa: H30
 from espnet2.legacy.nets.pytorch_backend.e2e_tts_fastspeech import (
     FeedForwardTransformerLoss as XiaoiceSingLoss,  # NOQA
 )
-from espnet2.legacy.nets.pytorch_backend.fastspeech.duration_predictor import DurationPredictor
-from espnet2.legacy.nets.pytorch_backend.fastspeech.length_regulator import LengthRegulator
-from espnet2.legacy.nets.pytorch_backend.nets_utils import make_non_pad_mask, make_pad_mask
+from espnet2.legacy.nets.pytorch_backend.fastspeech.duration_predictor import (
+    DurationPredictor,
+)  # noqa: E501
+from espnet2.legacy.nets.pytorch_backend.fastspeech.length_regulator import (
+    LengthRegulator,
+)  # noqa: E501
+from espnet2.legacy.nets.pytorch_backend.nets_utils import (
+    make_non_pad_mask,
+    make_pad_mask,
+)
 from espnet2.legacy.nets.pytorch_backend.tacotron2.decoder import Postnet
 from espnet2.legacy.nets.pytorch_backend.transformer.embedding import (
     PositionalEncoding,

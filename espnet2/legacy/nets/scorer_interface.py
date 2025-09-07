@@ -12,15 +12,17 @@ class ScorerInterface:
     The scorer performs scoring of the all tokens in vocabulary.
 
     Examples:
-        * Search heuristics
-            * :class:`espnet2.legacy.nets.scorers.length_bonus.LengthBonus`
-        * Decoder networks of the sequence-to-sequence models
-            * :class:`espnet2.legacy.nets.pytorch_backend.nets.transformer.decoder.Decoder`
-            * :class:`espnet2.legacy.nets.pytorch_backend.nets.rnn.decoders.Decoder`
-        * Neural language models
-            * :class:`espnet2.legacy.nets.pytorch_backend.lm.transformer.TransformerLM`
-            * :class:`espnet2.legacy.nets.pytorch_backend.lm.default.DefaultRNNLM`
-            * :class:`espnet2.legacy.nets.pytorch_backend.lm.seq_rnn.SequentialRNNLM`
+        Search heuristics:
+        * espnet2.legacy.nets.scorers.length_bonus.LengthBonus
+
+        Decoder networks of the sequence-to-sequence models:
+            * espnet2.legacy.nets.pytorch_backend.nets.transformer.decoder.Decoder
+            * espnet2.legacy.nets.pytorch_backend.nets.rnn.decoders.Decoder
+
+        Neural language models:
+            * espnet2.legacy.nets.pytorch_backend.lm.transformer.TransformerLM
+            * espnet2.legacy.nets.pytorch_backend.lm.default.DefaultRNNLM
+            * espnet2.legacy.nets.pytorch_backend.lm.seq_rnn.SequentialRNNLM
 
     """
 
