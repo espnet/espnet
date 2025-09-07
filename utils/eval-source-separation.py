@@ -15,8 +15,9 @@ from tempfile import TemporaryDirectory
 import museval
 import numpy as np
 import soundfile
-from espnet2.legacy.utils.cli_utils import get_commandline_args
 from pystoi.stoi import stoi
+
+from espnet2.legacy.utils.cli_utils import get_commandline_args
 
 
 def eval_STOI(ref, y, fs, extended=False, compute_permutation=True):
