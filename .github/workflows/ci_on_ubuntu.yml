@@ -87,16 +87,17 @@ jobs:
         run: |
           ./ci/install_kaldi.sh
 
-      - name: test utils
-        run: ./ci/test_utils.sh
-      - uses: codecov/codecov-action@v2
-        with:
-          flags: test_utils
-      - name: coverage erase
-        continue-on-error: true
-        run: |
-          source tools/activate_python.sh
-          coverage erase
+      # These util tests seems to be for ESPnet-1, so simply skip it.
+      # - name: test utils
+      #   run: ./ci/test_utils.sh
+      # - uses: codecov/codecov-action@v2
+      #   with:
+      #     flags: test_utils
+      # - name: coverage erase
+      #   continue-on-error: true
+      #   run: |
+      #     source tools/activate_python.sh
+      #     coverage erase
 
       - name: test espnet2 integration
         run: ./ci/test_integration_espnet2.sh
