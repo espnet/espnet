@@ -1,7 +1,7 @@
 import sys
 from datetime import datetime
 
-import espnet
+import espnet2
 import torch
 
 if __name__ == "__main__":
@@ -12,7 +12,7 @@ if __name__ == "__main__":
 
     pyversion = sys.version.replace("\n", " ")
     output_string += f"- python version: {pyversion}\n"
-    output_string += f"- espnet version: {espnet2.__version__}\n"
+    output_string += f"- espnet2 version: {espnet2.__version__}\n"
     output_string += f"- pytorch version: {torch.__version__}\n\n"
 
     with open(sys.argv[1], "r") as f:
