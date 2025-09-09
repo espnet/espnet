@@ -72,6 +72,12 @@ spk_embed_gpu_inference=false # Whether to use gpu to inference speaker embeddin
 spk_embed_tool=espnet    # Toolkit for extracting x-vector (speechbrain, rawnet, espnet, kaldi).
 spk_embed_model=espnet/voxcelebs12_rawnet3  # For only espnet, speechbrain, or rawnet.
 
+# Parallel speaker-embedding extraction (NEW)
+spk_embed_parallel=true        # if true, use extract_spk_embed_parallel.py
+spk_embed_num_workers=8        # dataloader workers for parallel extractor
+spk_embed_batch_size=8         # batch size for parallel extractor
+spk_embed_prefetch=64          # prefetch queue length (if supported)
+
 # Vocabulary related
 oov="<unk>"         # Out of vocabrary symbol.
 blank="<blank>"     # CTC blank symbol.
@@ -158,6 +164,10 @@ Options:
     --spk_embed_gpu_inference # Whether to use gpu to inference speaker embedding (default="${spk_embed_gpu_inference}").
     --spk_embed_tool   # Toolkit for generating the speaker embedding (default="${spk_embed_tool}").
     --spk_embed_model  # Pretrained model to generate the speaker embedding (default="${spk_embed_model}").
+	--spk_embed_parallel     # Use parallel extractor (default="${spk_embed_parallel}").
+    --spk_embed_num_workers  # Num workers for parallel extractor (default="${spk_embed_num_workers}").
+    --spk_embed_batch_size   # Batch size for parallel extractor (default="${spk_embed_batch_size}").
+    --spk_embed_prefetch     # Prefetch for parallel extractor (default="${spk_embed_prefetch}").
     --use_sid          # Whether to use speaker id as the inputs (default="${use_sid}").
     --use_lid          # Whether to use language id as the inputs (default="${use_lid}").
     --feats_extract    # On the fly feature extractor (default="${feats_extract}").
@@ -419,6 +429,7 @@ if ! "${skip_data_prep}"; then
                 done
             else
                 # Assume that others toolkits are python-based
+                # Assume that others toolkits are python-based
                 log "Stage 3.1: Extract speaker embedding: data/ -> ${dumpdir}/${spk_embed_tag} using python toolkits"
 
                 if ${spk_embed_gpu_inference}; then
@@ -435,17 +446,33 @@ if ! "${skip_data_prep}"; then
                     else
                         _suf=""
                     fi
+
+                    # RawNet convenience name
                     if [ "${spk_embed_tool}" = "rawnet" ]; then
                         spk_embed_model="RawNet"
                     fi
 
-                    ${_cmd} --gpu "${_ngpu}" ${dumpdir}/${spk_embed_tag}/${dset}/spk_embed_extract.log \
-                    pyscripts/utils/extract_spk_embed.py \
-                        --pretrained_model ${spk_embed_model} \
-                        --toolkit ${spk_embed_tool} \
-			--spk_embed_tag ${spk_embed_tag} \
-                        ${data_feats}${_suf}/${dset} \
-                        ${dumpdir}/${spk_embed_tag}/${dset}
+                    # Choose extractor (sequential vs parallel)
+                    _script="pyscripts/utils/extract_spk_embed.py"
+                    _extra=""
+                    if "${spk_embed_parallel}"; then
+                        _script="pyscripts/utils/extract_spk_embed_parallel.py"
+                        _extra+=" --num_workers ${spk_embed_num_workers}"
+                        _extra+=" --batch_size ${spk_embed_batch_size}"
+                        _extra+=" --prefetch ${spk_embed_prefetch}"
+                    fi
+
+                    _device=$([ "${spk_embed_gpu_inference}" = true ] && echo cuda || echo cpu)
+
+                    ${_cmd} --gpu "${_ngpu}" "${dumpdir}/${spk_embed_tag}/${dset}/spk_embed_extract.log" \
+                        ${python} "${_script}" \
+                            --pretrained_model "${spk_embed_model}" \
+                            --toolkit "${spk_embed_tool}" \
+                            --spk_embed_tag "${spk_embed_tag}" \
+                            --device "${_device}" \
+                            ${_extra} \
+                            "${data_feats}${_suf}/${dset}" \
+                            "${dumpdir}/${spk_embed_tag}/${dset}"
                 done
             fi
         else
