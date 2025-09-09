@@ -212,4 +212,3 @@ def compare_spk(A_scp, B_scp, keys, rtol=1e-5, atol=1e-5):
 compare_utt(utt_seq, utt_par, utts)
 compare_spk(spk_seq, spk_par, spks)
 PY
-
