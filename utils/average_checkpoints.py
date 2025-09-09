@@ -90,7 +90,7 @@ def main():
                 states = torch.load(
                     path, map_location=torch.device("cpu"), weights_only=True
                 )["model"]
-            except Exception as e:
+            except RuntimeError as e:
                 # Fallback for older checkpoints that may contain custom objects
                 print(f"Warning: Loading {path} with weights_only=False due to: {e}")
                 states = torch.load(

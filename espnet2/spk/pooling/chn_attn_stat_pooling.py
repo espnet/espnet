@@ -53,24 +53,18 @@ class ChnAttnStatPooling(AbsPooling):
         T = x.size(-1)
         if feat_lengths is not None:
             # Pooling over unpadded frames
-            mean = torch.stack(
-                [
-                    torch.mean(x[i, :, : int(l.item())], dim=-1, keepdim=True)
-                    for i, l in enumerate(feat_lengths)
-                ],
-                dim=0,
-            ).repeat(1, 1, T)
-            var = torch.stack(
-                [
-                    torch.var(
-                        x[i, :, : int(l.item())], dim=-1, unbiased=False, keepdim=True
-                    )
-                    for i, l in enumerate(feat_lengths)
-                ],
-                dim=0,
-            )
-            var = var.clamp(min=1e-4, max=1e4)
-            std = torch.sqrt(var).repeat(1, 1, T)
+            mask = torch.arange(T, device=x.device)[None, None, :] < feat_lengths[:, None, None]
+            # set padding to 0 for sum
+            masked_x = x.masked_fill(~mask, 0)
+            # sum over time
+            sum_val = masked_x.sum(dim=-1, keepdim=True)
+            sum_sq_val = (masked_x**2).sum(dim=-1, keepdim=True)
+            # feat_lengths might be 0, add epsilon
+            feat_lengths_ = feat_lengths.view(-1, 1, 1).clamp(min=1e-8)
+            mean = sum_val / feat_lengths_
+            # var = E[X^2] - (E[X])^2
+            var = sum_sq_val / feat_lengths_ - mean**2
+            std = torch.sqrt(var.clamp(min=1e-4, max=1e4))
             global_x = torch.cat((x, mean, std), dim=1)
         else:
             global_x = torch.cat(
