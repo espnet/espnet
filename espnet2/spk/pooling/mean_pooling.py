@@ -36,7 +36,10 @@ class MeanPooling(AbsPooling):
         """
         if feat_lengths is not None:
             # Pooling over unpadded frames
-            mask = torch.arange(x.size(-1), device=x.device)[None, None, :] < feat_lengths[:, None, None]
+            mask = (
+                torch.arange(x.size(-1), device=x.device)[None, None, :]
+                < feat_lengths[:, None, None]
+            )
             masked_x = x.masked_fill(~mask, 0)
             x = masked_x.sum(dim=-1) / feat_lengths[:, None]
         else:
