@@ -429,7 +429,6 @@ if ! "${skip_data_prep}"; then
                 done
             else
                 # Assume that others toolkits are python-based
-                # Assume that others toolkits are python-based
                 log "Stage 3.1: Extract speaker embedding: data/ -> ${dumpdir}/${spk_embed_tag} using python toolkits"
 
                 if ${spk_embed_gpu_inference}; then
