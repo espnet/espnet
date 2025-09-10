@@ -2,6 +2,7 @@ name: publish docker image
 
 on:
   schedule:
+    # Runs every Monday at midnight UTC
     - cron: "0 0 * * 1"
 
 jobs:
