@@ -260,7 +260,6 @@ def fix_from_pycodestyle(
                         "-",
                         r"\*",
                         "/",
-                        "=",
                         "%",
                         "<",
                         ">",
@@ -286,11 +285,6 @@ def fix_from_pycodestyle(
                         )
                 elif code == "E231":  # Missing whitespace after ','
                     modified_line = re.sub(r",([^\s])", r", \1", modified_line)
-                # Unexpected spaces around keyword / parameter equals
-                elif code == "E251":
-                    modified_line = re.sub(
-                        r"([a-zA-Z0-9_]+)\s*=\s*", r"\1=", modified_line
-                    )
                 elif code == "E261":  # At least two spaces before inline comment
                     modified_line = re.sub(r"([^\s])(\s*)#", r"\1  #", modified_line)
                 elif code == "E262":  # Inline comment should start with '# '
