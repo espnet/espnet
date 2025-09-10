@@ -638,9 +638,10 @@ class SSKernelNPLR(OptimModule):
                 log.info(f"S4: Initializing kernel to length {L}")
             double_length = False
         elif L > self.L.item():  # 2*int(self.L) == L:
+            l_item = self.L.item()
             if self.verbose:
                 log.info(
-                    f"S4: Doubling length from L = {self.L.item()} to {2 * self.L.item()}"
+                    f"S4: Doubling length from L = {l_item} to {2 * l_item}"
                 )
             double_length = True
             L = self.L.item()  # Convenience for the math below
