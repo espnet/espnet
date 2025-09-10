@@ -44,7 +44,8 @@ dev_speakers = speaker_ids[num_train:-num_test]
 test_speakers = speaker_ids[-num_test:]
 
 print(
-    f"# train: {num_train}, # dev:{num_speakers-num_train-num_test}, # test:{num_test}"
+    f"# train: {num_train}, # dev:"
+    f"{num_speakers - num_train - num_test}, # test:{num_test}"
 )
 
 
