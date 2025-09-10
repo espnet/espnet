@@ -1022,7 +1022,7 @@ class DynamicMixingPreprocessor(AbsPreprocessor):
         speech_mix = np.sum(np.array(ref_audios), axis=0)
 
         for i, ref in enumerate(ref_audios):
-            data[f"{self.speech_ref_name_prefix}{i+1}"] = ref
+            data[f"{self.speech_ref_name_prefix}{i + 1}"] = ref
         data[self.speech_name] = speech_mix
 
         return data
