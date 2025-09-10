@@ -618,7 +618,7 @@ class S2STTask(STTask):
             else:
                 raise RuntimeError("token_list must be str or list")
             unit_vocab_size = len(unit_token_list)
-            logging.info(f"Discrete unit vocabulary size: {unit_vocab_size }")
+            logging.info(f"Discrete unit vocabulary size: {unit_vocab_size}")
         else:
             unit_token_list, unit_vocab_size = None, None
 
