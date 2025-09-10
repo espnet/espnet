@@ -13,8 +13,7 @@ import re
 import subprocess
 import sys
 from collections import defaultdict
-from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Optional, Tuple
 
 
 def find_python_files(
@@ -94,6 +93,7 @@ def parse_pycodestyle_output(output: str) -> Dict[str, List[Dict[str, str]]]:
 
     current_file = None
     current_line = None
+    current_column = None
     current_code = None
     current_message = None
     source_lines = []
