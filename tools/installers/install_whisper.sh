@@ -49,13 +49,7 @@ echo "cuda_version=${cuda_version}"
 if "${torch_17_plus}" && "${python_38_plus}"; then
     # NOTE(nelson): Workaround for whisper installation.
     # There is no triton version < 2.2.0 supported on Python 3.12.
-    git clone https://github.com/openai/whisper.git
-    cd whisper
-    git checkout ad3250a
-    sed -i '16s/triton==2.0.0/triton/' setup.py
-    python -m pip install .
-    cd ..
-    rm -r ./whisper
+    python -m pip install git+https://github.com/espnet/whisper.git
 else
     echo "[ERROR] whisper does not work with pytorch<1.7.0, python<3.8"
 fi
