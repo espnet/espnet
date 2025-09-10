@@ -18,8 +18,7 @@ from typing import Dict, List, Optional, Set, Tuple
 
 
 def find_python_files(
-    directory: str,
-    exclude_dirs: Optional[List[str]] = None
+    directory: str, exclude_dirs: Optional[List[str]] = None
 ) -> List[str]:
     """Find all Python files in the given directory.
 
@@ -70,7 +69,7 @@ def run_pycodestyle(paths: List[str], exclude: Optional[List[str]] = None) -> st
             cmd,
             check=False,  # Don't raise an exception if pycodestyle finds issues
             capture_output=True,
-            text=True
+            text=True,
         )
         return result.stdout
     except subprocess.CalledProcessError as e:
@@ -109,14 +108,16 @@ def parse_pycodestyle_output(output: str) -> Dict[str, List[Dict[str, str]]]:
         if match:
             # If we were processing an issue, save it before starting a new one
             if current_file and current_line and current_code and current_message:
-                issues_by_file[current_file].append({
-                    "line": current_line,
-                    "column": current_column,
-                    "code": current_code,
-                    "message": current_message,
-                    "source": "\n".join(source_lines),
-                    "pep8": "\n".join(pep8_lines)
-                })
+                issues_by_file[current_file].append(
+                    {
+                        "line": current_line,
+                        "column": current_column,
+                        "code": current_code,
+                        "message": current_message,
+                        "source": "\n".join(source_lines),
+                        "pep8": "\n".join(pep8_lines),
+                    }
+                )
                 source_lines = []
                 pep8_lines = []
 
@@ -147,14 +148,16 @@ def parse_pycodestyle_output(output: str) -> Dict[str, List[Dict[str, str]]]:
 
     # Save the last issue
     if current_file and current_line and current_code and current_message:
-        issues_by_file[current_file].append({
-            "line": current_line,
-            "column": current_column,
-            "code": current_code,
-            "message": current_message,
-            "source": "\n".join(source_lines),
-            "pep8": "\n".join(pep8_lines)
-        })
+        issues_by_file[current_file].append(
+            {
+                "line": current_line,
+                "column": current_column,
+                "code": current_code,
+                "message": current_message,
+                "source": "\n".join(source_lines),
+                "pep8": "\n".join(pep8_lines),
+            }
+        )
 
     return issues_by_file
 
@@ -180,8 +183,7 @@ def run_command(cmd: List[str], file_path: str) -> bool:
 
 
 def fix_from_pycodestyle(
-    issues_by_file: Dict[str, List[Dict[str, str]]],
-    verbose: bool = False
+    issues_by_file: Dict[str, List[Dict[str, str]]], verbose: bool = False
 ) -> Tuple[int, int]:
     """Apply fixes based on pycodestyle output.
 
@@ -220,7 +222,7 @@ def fix_from_pycodestyle(
             if line_num > len(lines):
                 print(
                     f"Warning: Line {line_num} is out of range for {file_path}",
-                    file=sys.stderr
+                    file=sys.stderr,
                 )
                 continue
 
@@ -242,15 +244,11 @@ def fix_from_pycodestyle(
                     modified_line = re.sub(r"\s+\(", "(", modified_line)
                 elif code == "E221":  # Multiple spaces before operator
                     modified_line = re.sub(
-                        r"\s{2,}([\+\-\*\/\=])",
-                        r" \1",
-                        modified_line
+                        r"\s{2,}([\+\-\*\/\=])", r" \1", modified_line
                     )
                 elif code == "E222":  # Multiple spaces after operator
                     modified_line = re.sub(
-                        r"([\+\-\*\/\=])\s{2,}",
-                        r"\1 ",
-                        modified_line
+                        r"([\+\-\*\/\=])\s{2,}", r"\1 ", modified_line
                     )
                 elif code == "E223":  # Tab before operator
                     modified_line = re.sub(r"\t+([\+\-\*\/\=])", r" \1", modified_line)
@@ -281,21 +279,17 @@ def fix_from_pycodestyle(
                         "-=",
                         r"\*=",
                         "/=",
-                        "%="
+                        "%=",
                     ]:
                         modified_line = re.sub(
-                            r"([^\s])(" + op + r")([^\s])",
-                            r"\1 \2 \3",
-                            modified_line
+                            r"([^\s])(" + op + r")([^\s])", r"\1 \2 \3", modified_line
                         )
                 elif code == "E231":  # Missing whitespace after ','
                     modified_line = re.sub(r",([^\s])", r", \1", modified_line)
                 # Unexpected spaces around keyword / parameter equals
                 elif code == "E251":
                     modified_line = re.sub(
-                        r"([a-zA-Z0-9_]+)\s*=\s*",
-                        r"\1=",
-                        modified_line
+                        r"([a-zA-Z0-9_]+)\s*=\s*", r"\1=", modified_line
                     )
                 elif code == "E261":  # At least two spaces before inline comment
                     modified_line = re.sub(r"([^\s])(\s*)#", r"\1  #", modified_line)
@@ -307,13 +301,13 @@ def fix_from_pycodestyle(
                     modified_line = re.sub(
                         r"\b(if|while|for|return|yield|in|and|or|not|is|elif)\s{2,}",
                         r"\1 ",
-                        modified_line
+                        modified_line,
                     )
                 elif code == "E272":  # Multiple spaces before keyword
                     modified_line = re.sub(
                         r"\s{2,}(if|while|for|return|yield|in|and|or|not|is|elif)\b",
                         r" \1",
-                        modified_line
+                        modified_line,
                     )
                 elif code == "W291":  # Trailing whitespace
                     modified_line = re.sub(r"\s+$", "", modified_line)
@@ -348,7 +342,7 @@ def fix_file(
     use_black: bool = True,
     use_isort: bool = True,
     use_autopep8: bool = True,
-    verbose: bool = False
+    verbose: bool = False,
 ) -> bool:
     """Fix flake8 issues in a single file.
 
@@ -406,7 +400,7 @@ def main():
         "--exclude",
         nargs="+",
         default=["__pycache__", ".git", "venv", "env", ".venv", ".env"],
-        help="Directories to exclude from processing."
+        help="Directories to exclude from processing.",
     )
     parser.add_argument(
         "--mode",
@@ -415,27 +409,21 @@ def main():
         help=(
             "Mode of operation: 'auto' uses both methods, 'pycodestyle' uses "
             "pycodestyle output parsing, 'tools' uses external formatting tools."
-        )
+        ),
     )
     parser.add_argument(
-        "--no-black",
-        action="store_true",
-        help="Don't use black for formatting."
+        "--no-black", action="store_true", help="Don't use black for formatting."
     )
     parser.add_argument(
-        "--no-isort",
-        action="store_true",
-        help="Don't use isort for import sorting."
+        "--no-isort", action="store_true", help="Don't use isort for import sorting."
     )
     parser.add_argument(
         "--no-autopep8",
         action="store_true",
-        help="Don't use autopep8 for PEP 8 compliance."
+        help="Don't use autopep8 for PEP 8 compliance.",
     )
     parser.add_argument(
-        "-v", "--verbose",
-        action="store_true",
-        help="Print verbose output."
+        "-v", "--verbose", action="store_true", help="Print verbose output."
     )
 
     args = parser.parse_args()
@@ -447,7 +435,7 @@ def main():
                 ["which", "pycodestyle"],
                 check=True,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE
+                stderr=subprocess.PIPE,
             )
         except subprocess.CalledProcessError:
             print("Error: pycodestyle is not installed. Please install it using pip:")
@@ -474,7 +462,7 @@ def main():
                 ["which", tool],
                 check=True,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE
+                stderr=subprocess.PIPE,
             )
         except subprocess.CalledProcessError:
             missing_tools.append(tool)
@@ -506,8 +494,7 @@ def main():
 
             if issues_by_file:
                 num_fixed, num_total = fix_from_pycodestyle(
-                    issues_by_file,
-                    args.verbose
+                    issues_by_file, args.verbose
                 )
 
                 print(
@@ -548,7 +535,7 @@ def main():
                 use_black=not args.no_black,
                 use_isort=not args.no_isort,
                 use_autopep8=not args.no_autopep8,
-                verbose=args.verbose
+                verbose=args.verbose,
             ):
                 success_count += 1
 
