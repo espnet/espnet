@@ -34,7 +34,7 @@ from espnet2.utils.types import (
     str2triple_str,
     str_or_none,
 )
-from espnet.utils.cli_utils import get_commandline_args
+from espnet2.legacy.utils.cli_utils import get_commandline_args
 
 
 def extract_embed_lid(args):
