@@ -34,8 +34,6 @@ max_utt_per_lang_for_tsne=100
     --inference_batch_size ${inference_batch_size} \
     --extract_embd true \
     --save_every 1000 \
-    --nj 8 \
-    --ngpu 1 \
     --expdir "${exp_dir}" \
     --lid_config "${config_dir}" \
     --max_utt_per_lang_for_tsne ${max_utt_per_lang_for_tsne} \
