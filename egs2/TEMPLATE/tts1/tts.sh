@@ -524,15 +524,19 @@ if ! "${skip_data_prep}"; then
                     > "${data_feats}${_suf}/${dset}/utt2lid"
             done
         fi
+		if "${use_spk_embed}"; then
+		    if ls "${dumpdir}/${spk_embed_tag}"/**/"${spk_embed_tag}.scp" >/dev/null 2>&1; then
+		        log "Fixing order of speaker-embed scp to match text"
+		        scripts/utils/sort_spk_embed_scp.sh "${dumpdir}" "${spk_embed_tag}"
+		    else
+		        log "WARN: no speaker-embed scp files found; skip sorting"
+		    fi
+		fi
     fi
 
 
     if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         log "Stage 4: Remove long/short data: ${data_feats}/org -> ${data_feats}"
-		if "${use_spk_embed}"; then
-            log "Fixing order of speaker-embed scp to match text"
-            scripts/utils/sort_spk_embed_scp.sh "${dumpdir}" "${spk_embed_tag}"
-        fi
         # NOTE(kamo): Not applying to test_sets to keep original data
         for dset in "${train_set}" "${valid_set}"; do
             # Copy data dir
