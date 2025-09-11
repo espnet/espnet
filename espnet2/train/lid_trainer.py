@@ -52,7 +52,8 @@ class LIDTrainer(Trainer):
 
         lang_embd_dic: {utt_id: lang_embd}, the language embedding for a specific
         utterance, this is used for temporary saving the language embedding of each
-        utterance, and will be written to the disk every `checkpoint_interval` utterances.
+        utterance, and will be written to the disk every `checkpoint_interval` 
+        utterances. 
         lang_to_embds_dic: {lang: [utt1 embd, utt1 embd ...]}, the language embedding
         for the utterances corresponding to each language, if set `extract_embd` to
         True, this will be defaultly used, this will not be written to the dist, but
@@ -64,15 +65,16 @@ class LIDTrainer(Trainer):
                                 predicted language ID.
         - lang_embd_dic (optional): {utt_id: lang_embd}, temporary in-memory
                                     storage of per-utterance language embeddings.
-                                    Saved to disk every `checkpoint_interval` utterances if
-                                    `save_embd_per_utt=True`.
+                                    Saved to disk every `checkpoint_interval` 
+                                    utterances if `save_embd_per_utt=True`.
         - lang_to_embds_dic (optional): {lang: [embd_utt1, embd_utt2, ...]},
-                                        mapping from language ID to a list of embeddings
-                                        from all utterances predicted or labeled with
-                                        that language. This is not written to disk by
-                                        this function, but is used downstream
-                                        (e.g., in `bin/lid_inference.py`) for
-                                        computing language-level average embeddings or
+                                        mapping from language ID to a list of
+                                        embeddings from all utterances predicted
+                                        or labeled with that language. This is
+                                        not written to disk by this function, but
+                                        is used downstream (e.g., in
+                                        `bin/lid_inference.py`) for computing
+                                        language-level average embeddings or
                                         generating t-SNE visualizations.
 
         Notes:
@@ -80,8 +82,8 @@ class LIDTrainer(Trainer):
         - The function supports distributed inference using torch.distributed.
         - Supports resume functionality by skipping already processed utterances
           based on existing output files.
-        - Limits the number of utterances per language if `max_num_utt_per_lang` is
-          specified.
+        - Limits the number of utterances per language if `max_num_utt_per_lang`
+          is specified.
         """
         # Extract language embedding and lids.
         ngpu = options.ngpu
