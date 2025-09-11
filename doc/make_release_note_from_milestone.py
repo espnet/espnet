@@ -41,12 +41,13 @@ def make_request(prompt, llm_ip, llm_model, client_type):
             timeout=180
         )
 
+
         # Check if the request was successful
         if response.status_code == 200:
             if client_type == "ollama":
                 return response.json()["message"]["content"]
-            else:
-                raise NotImplementedError
+            elif client_type == "v1":
+                return response.json()["choices"][0]["message"]["content"]
         else:
             print(f"Error calling LLM API: {response.status_code}", file=sys.stderr)
             return None
@@ -65,17 +66,18 @@ def generate_llm_summary(
 ):
     """Generate a summary of the release using an LLM.
 
+
     Args:
         llm_ip (str): IP address of the LLM API
         milestone (str): The milestone title
         pull_request_dict (dict): Dictionary containing PRs organized by labels
         contributors (list): List of contributors
-        
+
     Returns:
         str: The LLM-generated summary
     """
 
-        # Prepare data for the LLM
+    # Prepare data for the LLM
     pr_data = {}
     for label, prs in pull_request_dict.items():
         pr_data[label] = []
@@ -88,9 +90,10 @@ def generate_llm_summary(
                 "url": pr.html_url
             })
 
+
     # Create the prompt
     prompt = f"""
-Generate a comprehensive release note for ESPnet version {milestone}. 
+Generate a comprehensive release note for ESPnet version {milestone}.
 Use the following data to create a markdown summary:
 
 PR Data: {json.dumps(pr_data, indent=2)}
