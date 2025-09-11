@@ -41,7 +41,6 @@ def make_request(prompt, llm_ip, llm_model, client_type):
             timeout=180
         )
 
-
         # Check if the request was successful
         if response.status_code == 200:
             if client_type == "ollama":
@@ -66,7 +65,6 @@ def generate_llm_summary(
 ):
     """Generate a summary of the release using an LLM.
 
-
     Args:
         llm_ip (str): IP address of the LLM API
         milestone (str): The milestone title
@@ -89,7 +87,6 @@ def generate_llm_summary(
                 "author": pr.user.login,
                 "url": pr.html_url
             })
-
 
     # Create the prompt
     prompt = f"""
