@@ -44,8 +44,8 @@ def make_request(prompt, llm_ip, llm_model, client_type):
         if response.status_code == 200:
             if client_type == "ollama":
                 return response.json()["message"]["content"]
-            else:
-                raise NotImplementedError
+            elif client_type == "v1":
+                return response.json()["choices"][0]["message"]["content"]
         else:
             print(f"Error calling LLM API: {response.status_code}", file=sys.stderr)
             return None
