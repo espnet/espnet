@@ -3,7 +3,7 @@
 """Create release note from milestone with PyGithub.
 
 Launch with:
-python doc/make_release_note_from_milestone.py <git_key> <mileston> --llm-ip <llm_ip_address> 
+python doc/make_release_note_from_milestone.py <git_key> <mileston> --llm-ip <llm_ip_address>
 """
 
 import argparse
@@ -39,7 +39,7 @@ def make_request(prompt, llm_ip, llm_model, client_type):
             headers={"Content-Type": "application/json"},
             timeout=180
         )
-        
+
         # Check if the request was successful
         if response.status_code == 200:
             if client_type == "ollama":
@@ -63,13 +63,13 @@ def generate_llm_summary(
     contributors
 ):
     """Generate a summary of the release using an LLM.
-    
+
     Args:
         llm_ip (str): IP address of the LLM API
         milestone (str): The milestone title
         pull_request_dict (dict): Dictionary containing PRs organized by labels
         contributors (list): List of contributors
-        
+
     Returns:
         str: The LLM-generated summary
     """
@@ -86,10 +86,10 @@ def generate_llm_summary(
                 "author": pr.user.login,
                 "url": pr.html_url
             })
-    
+
     # Create the prompt
     prompt = f"""
-Generate a comprehensive release note for ESPnet version {milestone}. 
+Generate a comprehensive release note for ESPnet version {milestone}.
 Use the following data to create a markdown summary:
 
 PR Data: {json.dumps(pr_data, indent=2)}
