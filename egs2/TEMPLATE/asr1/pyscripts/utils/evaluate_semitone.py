@@ -332,7 +332,7 @@ def main():
 
         # calculate statistics
         mean_semitone_acc = np.mean(np.array([v for v in semitone_acc_dict.values()]))
-        logging.info(f"Average - Semitone_ACC: {mean_semitone_acc*100:.2f}%")
+        logging.info(f"Average - Semitone_ACC: {mean_semitone_acc * 100:.2f}%")
 
     # write results
     if args.outdir is None:
@@ -344,10 +344,10 @@ def main():
     with open(f"{args.outdir}/utt2semitone_acc", "w") as f:
         for utt_id in sorted(semitone_acc_dict.keys()):
             semitone_ACC = semitone_acc_dict[utt_id]
-            f.write(f"{utt_id} {semitone_ACC*100:.2f}%\n")
+            f.write(f"{utt_id} {semitone_ACC * 100:.2f}%\n")
     with open(f"{args.outdir}/semitone_acc_avg_result.txt", "w") as f:
         f.write(f"#utterances: {len(gen_files)}\n")
-        f.write(f"Average: {mean_semitone_acc*100:.2f}%")
+        f.write(f"Average: {mean_semitone_acc * 100:.2f}%")
 
     logging.info("Successfully finished semitone ACC evaluation.")
 
