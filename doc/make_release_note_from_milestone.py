@@ -74,7 +74,7 @@ def generate_llm_summary(
         str: The LLM-generated summary
     """
 
-        # Prepare data for the LLM
+    # Prepare data for the LLM
     pr_data = {}
     for label, prs in pull_request_dict.items():
         pr_data[label] = []
