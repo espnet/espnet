@@ -25,4 +25,4 @@ for sample_id in ref_dict:
 
 with open(os.path.join(args.wer_dir, "..", "accuracy.csv"), "w") as f:
     f.write("total,correct,accuracy\n")
-    f.write(f"{n_samples},{n_correct},{n_correct/n_samples}\n")
+    f.write(f"{n_samples},{n_correct},{n_correct / n_samples}\n")

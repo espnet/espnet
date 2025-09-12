@@ -34,7 +34,7 @@ Use the fleurs portion of "google/xtreme_s" instead of "google/fleurs".
 google/fleurs data does not include the path to the downloaded audio clips
 """
 fleurs_asr = load_dataset(
-    "google/xtreme_s", f"fleurs.{ args.lang}", cache_dir="downloads/cache/"
+    "google/xtreme_s", f"fleurs.{args.lang}", cache_dir="downloads/cache/"
 )
 lang_iso_map = fleurs_asr["train"].features["lang_id"].names
 

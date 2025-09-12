@@ -184,7 +184,7 @@ def extract_embed_lid(args):
             custom_bs=custom_bs,
             idx2lang=idx2lang,
             extract_embd=args.extract_embd,  # default False
-            save_every=args.save_every,
+            checkpoint_interval=args.checkpoint_interval,
             resume=args.resume,
             lang_to_embds_dic=lang_to_embds_dic,
             save_embd_per_utt=args.save_embd_per_utt,
@@ -298,16 +298,16 @@ def extract_embed_lid(args):
                 use_dic,
                 f"{args.output_dir}/tsne_plots",
                 args.seed,
-                perplexity=5,
-                max_iter=1000,
+                perplexity=args.perplexity,
+                max_iter=args.max_iter,
             )
             if lang_to_avg_embd_dic is not None:
                 gen_tsne_plot(
                     lang_to_avg_embd_dic,
                     f"{args.output_dir}/tsne_plots",
                     args.seed,
-                    perplexity=5,
-                    max_iter=1000,
+                    perplexity=args.perplexity,
+                    max_iter=args.max_iter,
                 )
             else:
                 lang_to_avg_embd_dic = {}
@@ -325,8 +325,8 @@ def extract_embed_lid(args):
                     lang_to_avg_embd_dic,
                     f"{args.output_dir}/tsne_plots",
                     args.seed,
-                    perplexity=5,
-                    max_iter=1000,
+                    perplexity=args.perplexity,
+                    max_iter=args.max_iter,
                 )
 
 
@@ -834,10 +834,10 @@ def get_parser():
         help="Apply preprocessing to data or not",
     )
     group.add_argument(
-        "--save_every",
+        "--checkpoint_interval",
         type=int,
         default=1000,
-        help="Save every N data samples for checkpoint",
+        help="Save checkpoint every N utterances for resume functionality",
     )
     group.add_argument(
         "--resume",
@@ -850,6 +850,18 @@ def get_parser():
         type=int,
         default=None,
         help="The maximum number of utterances per language for t-SNE",
+    )
+    group.add_argument(
+        "--perplexity",
+        type=int,
+        default=5,
+        help="The perplexity for t-SNE",
+    )
+    group.add_argument(
+        "--max_iter",
+        type=int,
+        default=1000,
+        help="The maximum number of iterations for t-SNE",
     )
 
     return parser
