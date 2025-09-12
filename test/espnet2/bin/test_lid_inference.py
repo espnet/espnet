@@ -126,9 +126,13 @@ def test_gen_tsne_plot(tmp_path, sample_embeddings):
         "matplotlib.pyplot.text"
     ), patch("matplotlib.pyplot.title"), patch("matplotlib.pyplot.savefig"), patch(
         "matplotlib.pyplot.close"
-    ), patch("matplotlib.pyplot.get_cmap"), patch(
+    ), patch(
+        "matplotlib.pyplot.get_cmap"
+    ), patch(
         "pandas.DataFrame"
-    ) as mock_df, patch("pandas.DataFrame.to_csv"), patch(
+    ) as mock_df, patch(
+        "pandas.DataFrame.to_csv"
+    ), patch(
         "plotly.express.scatter"
     ) as mock_px_scatter, patch(
         "adjustText.adjust_text"
@@ -144,7 +148,9 @@ def test_gen_tsne_plot(tmp_path, sample_embeddings):
 
         # Mock TSNE fit_transform to return dummy 2D coordinates
         mock_tsne_instance = MagicMock()
-        mock_tsne_instance.fit_transform.return_value = np.array([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]])
+        mock_tsne_instance.fit_transform.return_value = np.array(
+            [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]]
+        )
         mock_tsne.return_value = mock_tsne_instance
 
         # Mock plotly figure with write_html method
@@ -155,7 +161,7 @@ def test_gen_tsne_plot(tmp_path, sample_embeddings):
         # Mock pandas DataFrame with proper chaining
         mock_df_instance = MagicMock()
         mock_df.return_value = mock_df_instance
-        
+
         # Mock the df["label"] access and its unique() method
         mock_label_series = MagicMock()
         mock_label_series.unique.return_value = ["eng", "fra", "deu"]
@@ -172,10 +178,10 @@ def test_gen_tsne_plot(tmp_path, sample_embeddings):
 
         # Check if output directory is created
         assert Path(output_dir).exists()
-        
+
         # Verify TSNE was called with correct parameters
         mock_tsne.assert_called_once()
         mock_tsne_instance.fit_transform.assert_called_once()
-        
+
         # Verify plotly figure write_html was called
         mock_fig.write_html.assert_called_once()
