@@ -96,6 +96,7 @@ class CategoryPowerSampler(AbsSampler):
         self.min_batch_size = min_batch_size
         self.max_batch_size = max_batch_size
         self.upsampling_factor = upsampling_factor
+        self.dataset_scaling_factor = dataset_scaling_factor
 
         assert len(shape_files) == 1, "Only one shape file is supported"
         utt2sizes = [
@@ -320,6 +321,7 @@ class CategoryDatasetPowerSampler(AbsSampler):
         self.max_batch_size = max_batch_size
         self.category_upsampling_factor = category_upsampling_factor
         self.dataset_upsampling_factor = dataset_upsampling_factor
+        self.dataset_scaling_factor = dataset_scaling_factor
 
         assert len(shape_files) == 1, "only one shape file is supported"
         utt2sizes = [
