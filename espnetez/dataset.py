@@ -53,9 +53,15 @@ class ESPnetEZDataset(AbsDataset):
         proper functionality of the methods.
     """
 
-    def __init__(self, dataset, data_info):
+    def __init__(
+        self,
+        dataset,
+        data_info,
+        preprocess=None,
+    ):
         self.dataset = dataset
         self.data_info = data_info
+        self.preprocess = preprocess
 
     def has_name(self, name) -> bool:
         """
@@ -138,10 +144,10 @@ class ESPnetEZDataset(AbsDataset):
 
     def __getitem__(self, uid: Union[str, int]) -> Tuple[str, Dict]:
         idx = int(uid)
-        return (
-            str(uid),
-            {k: v(self.dataset[idx]) for k, v in self.data_info.items()},
-        )
+        data = {k: v(self.dataset[idx]) for k, v in self.data_info.items()}
+        if self.preprocess is not None:
+            data = self.preprocess(str(uid), data)
+        return (str(uid), data)
 
     def __len__(self) -> int:
         return len(self.dataset)
