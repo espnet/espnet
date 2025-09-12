@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from espnet2.asr.frontend.s3prl import S3prlFrontend
+from espnet2.asr.frontend.default import DefaultFrontend
 from espnet2.asr.specaug.specaug import SpecAug
 from espnet2.layers.utterance_mvn import UtteranceMVN
 from espnet2.lid.espnet_model import ESPnetLIDModel
@@ -12,13 +12,9 @@ from espnet2.spk.loss.aamsoftmax_subcenter_intertopk import (
 from espnet2.spk.pooling.chn_attn_stat_pooling import ChnAttnStatPooling
 from espnet2.spk.projector.rawnet3_projector import RawNet3Projector
 
-frontend_conf = {
-    "upstream": "hf_wav2vec2_custom",
-    "path_or_url": "facebook/mms-1b",
-}
-s3prl_frontend = S3prlFrontend(
-    frontend_conf=frontend_conf,
-    multilayer_feature=True,
+default_frontend = DefaultFrontend(
+    fs=16000,
+    n_mels=80,
 )
 
 specaug = SpecAug(
@@ -36,7 +32,7 @@ specaug = SpecAug(
 normalize = UtteranceMVN()
 
 ecapa_tdnn_encoder = EcapaTdnnEncoder(
-    s3prl_frontend.output_size(), model_scale=2, ndim=16, output_size=24
+    default_frontend.output_size(), model_scale=2, ndim=16, output_size=24
 )
 
 chan_attn_stat_pooling = ChnAttnStatPooling(input_size=ecapa_tdnn_encoder.output_size())
@@ -56,7 +52,7 @@ aamsoftmax_it_sub_loss = ArcMarginProduct_intertopk_subcenter(
 )
 
 
-@pytest.mark.parametrize("frontend", [s3prl_frontend])
+@pytest.mark.parametrize("frontend", [default_frontend])
 @pytest.mark.parametrize("specaug", [specaug])
 @pytest.mark.parametrize("normalize", [normalize])
 @pytest.mark.parametrize("encoder", [ecapa_tdnn_encoder])
