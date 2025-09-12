@@ -24,8 +24,7 @@ requirements = {
         "torch>=1.11.0",
         "torch_complex",
         "nltk>=3.4.5",
-        # https://github.com/espnet/g2p/pull/1
-        "g2p_en @ git+https://github.com/espnet/g2p.git@master",
+        # Moving g2p_en and ctc-segmentation to makefile
         "numpy>=2.0.0",
         "protobuf",
         "hydra-core",
@@ -33,7 +32,6 @@ requirements = {
         "lightning",
         # ASR
         "sentencepiece==0.2.0",
-        "ctc-segmentation @ git+https://github.com/espnet/ctc-segmentation.git@9b9ea1d",
         # TTS
         "pyworld>=0.3.4",
         "pypinyin<=0.44.0",
