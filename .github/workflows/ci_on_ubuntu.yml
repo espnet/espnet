@@ -303,10 +303,9 @@ jobs:
         TH_VERSION: ${{ matrix.pytorch-version }}
       run: |
         python3 -m pip install -U "Cython<3.1.0"
-        python3 -m pip install -U numba
+        python3 -m pip install -U numba six
         python3 -m pip install build
         ./tools/installers/install_torch.sh false ${TH_VERSION} CPU
-        ./tools/installers/install_chainer.sh CPU
         python3 -m build --wheel
         python3 -m pip install "$(echo dist/espnet-*.whl)"[all]
         # log
