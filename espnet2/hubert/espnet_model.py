@@ -20,9 +20,9 @@ from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.hubert.hubert_loss import HubertPretrainLoss
 from espnet2.layers.abs_normalize import AbsNormalize
+from espnet2.legacy.nets.e2e_asr_common import ErrorCalculator
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
-from espnet.nets.e2e_asr_common import ErrorCalculator
 
 if V(torch.__version__) >= V("1.6.0"):
     from torch.cuda.amp import autocast

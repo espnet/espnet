@@ -8,8 +8,8 @@ References:
 
 import torch
 
-from espnet.nets.pytorch_backend.nets_utils import get_activation
-from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
+from espnet2.legacy.nets.pytorch_backend.nets_utils import get_activation
+from espnet2.legacy.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 
 
 class MultiConvolutionalSpatialGatingUnit(torch.nn.Module):

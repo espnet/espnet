@@ -10,7 +10,7 @@ import sys
 from distutils.util import strtobool
 from io import open
 
-from espnet.utils.cli_utils import get_commandline_args
+from espnet2.legacy.utils.cli_utils import get_commandline_args
 
 PY2 = sys.version_info[0] == 2
 sys.stdin = codecs.getreader("utf-8")(sys.stdin if PY2 else sys.stdin.buffer)

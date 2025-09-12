@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 import numpy
 import resampy
 
-from espnet.utils.cli_utils import get_commandline_args
+from espnet2.legacy.utils.cli_utils import get_commandline_args
 
 
 def _time_to_str(time_idx):

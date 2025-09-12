@@ -7,8 +7,8 @@ from torch.nn import functional as F
 from torch_complex.tensor import ComplexTensor
 
 from espnet2.enh.layers.complex_utils import is_complex
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
-from espnet.nets.pytorch_backend.rnn.encoders import RNN, RNNP
+from espnet2.legacy.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet2.legacy.nets.pytorch_backend.rnn.encoders import RNN, RNNP
 
 is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 

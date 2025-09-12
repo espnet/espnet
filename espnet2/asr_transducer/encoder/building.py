@@ -21,7 +21,7 @@ from espnet2.asr_transducer.encoder.modules.positional_encoding import (  # noqa
     RelPositionalEncoding,
 )
 from espnet2.asr_transducer.normalization import get_normalization
-from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
+from espnet2.legacy.nets.pytorch_backend.transformer.positionwise_feed_forward import (
     PositionwiseFeedForward,
 )
 

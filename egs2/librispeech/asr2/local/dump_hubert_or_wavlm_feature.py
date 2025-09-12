@@ -6,9 +6,9 @@ import numpy as np
 from hubert_feature_loader import HubertFeatureReader
 from wavlm_feature_loader import WavLMFeatureReader
 
-from espnet.utils.cli_readers import file_reader_helper
-from espnet.utils.cli_utils import is_scipy_wav_style
-from espnet.utils.cli_writers import file_writer_helper
+from espnet2.legacy.utils.cli_readers import file_reader_helper
+from espnet2.legacy.utils.cli_utils import is_scipy_wav_style
+from espnet2.legacy.utils.cli_writers import file_writer_helper
 
 logging.basicConfig(
     level=logging.DEBUG,

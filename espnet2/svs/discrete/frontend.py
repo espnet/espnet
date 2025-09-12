@@ -7,9 +7,9 @@ import torch
 from typeguard import check_argument_types
 
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
+from espnet2.legacy.nets.pytorch_backend.frontends.frontend import Frontend
+from espnet2.legacy.nets.pytorch_backend.nets_utils import make_non_pad_mask
 from espnet2.utils.get_default_kwargs import get_default_kwargs
-from espnet.nets.pytorch_backend.frontends.frontend import Frontend
-from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 
 
 class MERTFrontend(AbsFrontend):
