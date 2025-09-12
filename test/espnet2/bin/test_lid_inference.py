@@ -35,7 +35,7 @@ def test_extract_embed_lid_basic_logic(tmp_path):
     mock_args.num_workers = 1
     mock_args.lang2utt = "dump/test/lang2utt"
     mock_args.extract_embd = True
-    mock_args.save_every = 1000
+    mock_args.checkpoint_interval = 1000
     mock_args.resume = True
     mock_args.save_embd_per_utt = True
     mock_args.save_embd_avg_lang = True
@@ -119,6 +119,9 @@ def sample_embeddings():
 
 def test_gen_tsne_plot(tmp_path, sample_embeddings):
     """Test basic functionality of gen_tsne_plot function"""
+    plotly = pytest.importorskip("plotly")
+    adjusttext = pytest.importorskip("adjustText")
+    
     output_dir = str(tmp_path / "tsne_output")
 
     with patch("matplotlib.pyplot.figure"), patch("matplotlib.pyplot.scatter"), patch(
