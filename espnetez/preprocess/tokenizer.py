@@ -1,7 +1,7 @@
 """Convenience wrapper for ESPnet's text tokenizer.
 
 This module exposes a single public function, :func:`tokenize`, that
-constructs the command‑line arguments required by
+constructs the command-line arguments required by
 ``espnet2.bin.tokenize_text`` and executes the tokenizer programmatically.
 It is intended for use in Python scripts, unit tests, or CI pipelines
 where invoking the ESPnet tokenizer as a subprocess is undesirable.
@@ -11,9 +11,9 @@ The wrapper forwards all keyword arguments to the underlying
 arguments.  In addition to the standard tokenizer options it supports
 the following convenience flags:
 
-* ``write_vocabulary`` – whether to write a vocabulary file.
-* ``blank``, ``oov`` and ``sos_eos`` – custom special symbols that will
-  be added to the tokenizer’s symbol table.
+* ``write_vocabulary`` - whether to write a vocabulary file.
+* ``blank``, ``oov`` and ``sos_eos`` - custom special symbols that will
+  be added to the tokenizer's symbol table.
 
 Because the arguments are passed to ``get_parser`` internally, any
 additional options recognised by ESPnet can be supplied via
@@ -64,8 +64,7 @@ def tokenize(
     sos_eos="<sos/eos>",
     **kwargs,
 ):
-    """
-    Tokenizes the input text and saves the output to a specified file.
+    """Tokenize the input text and saves the output to a specified file.
 
     This function utilizes the ESPnet tokenizer to process a given input text file,
     tokenize its contents, and save the results to an output file. Additionally,

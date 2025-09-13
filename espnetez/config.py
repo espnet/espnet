@@ -1,23 +1,22 @@
-"""
-Utility functions for loading and merging YAML configuration files in ESPNetEZ.
+"""Utility functions for loading and merging YAML configuration files in ESPNetEZ.
 
 This module provides a small set of helpers that are used throughout the
-ESPNetEZ code‑base to read user‑supplied configuration files and combine them
-with task‑specific default settings.  The helpers perform the following
+ESPNetEZ code-base to read user-supplied configuration files and combine them
+with task-specific default settings.  The helpers perform the following
 operations:
 
-* `convert_none_to_None` – Recursively replaces the literal string
+* `convert_none_to_None` - Recursively replaces the literal string
   ``"none"`` in a dictionary with the Python ``None`` value.  The function
   mutates the dictionary in place and returns it for convenience.
 
-* `from_yaml` – Loads a YAML file, converts any ``"none"`` entries to
+* `from_yaml` - Loads a YAML file, converts any ``"none"`` entries to
   ``None``, and merges the result with the default configuration of the
   specified task.
 
-* `update_finetune_config` – Updates an existing pre‑training configuration
-  with values from a fine‑tuning YAML file.  Distributed‑related keys are
+* `update_finetune_config` - Updates an existing pre-training configuration
+  with values from a fine-tuning YAML file.  Distributed-related keys are
   restored to their defaults, and any missing keys are filled in from the
-  task’s default configuration.  The function also handles nested
+  task's default configuration.  The function also handles nested
   ``preprocessor_conf`` entries.
 
 Typical usage::
@@ -39,8 +38,7 @@ from espnetez.task import get_ez_task
 
 
 def convert_none_to_None(dic):
-    """
-    Recursively convert string representations of 'none' in a dictionary to None.
+    """Recursively convert string representations of 'none' in a dictionary to None.
 
     This function traverses a dictionary and replaces any occurrences of the string
     "none" with the actual Python None type. If a value in the dictionary is another
@@ -78,12 +76,11 @@ def convert_none_to_None(dic):
 
 
 def from_yaml(task, path):
-    """
-    Load configuration from a YAML file and merge it with the default configuration.
+    """Load configuration from a YAML file and merge it with the default configuration.
 
     This function reads a YAML configuration file from the specified path and merges
-    its contents with the default configuration for the specified task. If there are any
-    keys in the YAML file that have the string value "none", they are converted to
+    its contents with the default configuration for the specified task. If there are
+    any keys in the YAML file that have the string value "none", they are converted to
     `None` type. The resulting configuration dictionary is returned.
 
     Args:
@@ -124,8 +121,7 @@ def from_yaml(task, path):
 
 
 def update_finetune_config(task, pretrain_config, path):
-    """
-    Update the fine-tuning configuration with values from a specified YAML file.
+    """Update the fine-tuning configuration with values from a specified YAML file.
 
     This function loads the fine-tuning configuration from a YAML file and
     updates the provided pre-training configuration dictionary. It prioritizes

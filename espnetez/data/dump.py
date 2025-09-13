@@ -1,8 +1,8 @@
-"""Utilities for creating and merging dataset dump files.
+r"""Utilities for creating and merging dataset dump files.
 
 The :mod:`dump_utils` module provides two helper functions that are
 commonly used when working with large tabular datasets that are stored
-as plain‑text “dump” files.  A dump file is simply a text file where
+as plain-text “dump” files.  A dump file is simply a text file where
 each line represents a single data record and columns are separated
 by spaces.  The helpers allow you to:
 
@@ -11,10 +11,10 @@ by spaces.  The helpers allow you to:
   represents a feature of the dataset.
 * Merge a collection of dump directories that contain files with
   identical names.  The merged file prefixes each line with a
-  dataset‑specific identifier so that the source of each record can
+  dataset-specific identifier so that the source of each record can
   be traced after the merge.
 
-These utilities are especially useful in machine‑learning pipelines
+These utilities are especially useful in machine-learning pipelines
 that require a lightweight, portable representation of feature
 matrices, for example when exporting data for external tools or
 sharing between Python and R environments.
@@ -57,8 +57,7 @@ def join_dumps(
     dump_prefix: List[str],
     output_dir: Union[str, Path],
 ):
-    """
-    Create a joined dump file from a list of dump paths.
+    """Create a joined dump file from a list of dump paths.
 
     This function takes multiple dump paths and prefixes, reads the corresponding
     dump files, and creates a new dump file in the specified output directory.
@@ -121,8 +120,7 @@ def create_dump_file(
     dataset: Union[Dict[str, Dict], List[Dict]],
     data_inputs: Dict[str, Dict],
 ):
-    """
-    Create a dump file for a dataset.
+    """Create a dump file for a dataset.
 
     This function generates a dump file in the specified directory containing
     the specified data from the dataset. The dump file will include information

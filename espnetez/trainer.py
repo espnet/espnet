@@ -217,6 +217,64 @@ class Trainer:
         build_model_fn=None,
         **kwargs
     ):
+        """Initialize an EZ training environment.
+
+        Args:
+            task (str): Identifier of the EZ task to be trained.
+            train_config (dict|argparse.Namespace): Configuration for the training
+                run. If adictionary, the key/value pairs are converted into an
+                ``argparse.Namespace``. Any additional keyword arguments passed via
+                ``**kwargs`` are merged into ``train_config``.
+            output_dir (str|pathlib.Path): Directory where the trained model and other
+                artifacts will be written.
+            stats_dir (str|pathlib.Path): Directory where training statistics and logs
+                should be stored.
+            data_info (dict, optional): Metadata describing the training and validation
+                datasets.  The structure can be either:
+                ``{"train": {...}, "valid": {...}}`` or a flat mapping where the same
+                items are used for both splits.  Each value must be a tuple
+                ``(file_name, name, type)``.
+            train_dump_dir (str|pathlib.Path, optional): Path to the directory
+                containing the training data dump files.  Required if ``data_info``
+                is provided.
+            valid_dump_dir (str|pathlib.Path, optional): Path to the directory
+                containing the validation data dump files.  Required if ``data_info``
+                is provided.
+            train_dataset (Dataset, optional): A custom training ``Dataset`` instance
+                supplied directly to the task.
+            valid_dataset (Dataset, optional): A custom validation ``Dataset`` instance
+                supplied directly to the task.
+            train_dataloader (DataLoader, optional): A custom training ``DataLoader``
+                instance.  Mutually exclusive with ``train_dataset``.
+            valid_dataloader (DataLoader, optional): A custom validation ``DataLoader``
+                instance.  Mutually exclusive with ``valid_dataset``.
+            build_model_fn (Callable, optional): Function that builds the model used by
+                the task.  If provided, it is stored on the task instance as
+                ``build_model_fn``.
+            **kwargs: Additional configuration values that will be merged into
+                ``train_config`` if it is a dictionary, or set as attributes on the
+                resulting ``argparse.Namespace``.
+
+        Raises:
+            ValueError: If ``train_config`` is neither a ``dict`` nor an
+                ``argparse.Namespace``.
+            AssertionError: If required arguments are missing (e.g. ``data_info``,
+                ``train_dump_dir``, ``valid_dump_dir`` when custom datasets are not
+                supplied).
+
+        Side Effects:
+            * Instantiates ``self.task_class`` by calling :func:`get_ez_task` with the
+            provided ``task`` identifier.  When custom datasets or dataloaders are
+            supplied, ``get_ez_task`` is called with ``use_custom_dataset=True``.
+            * Sets ``self.train_config.train_data_path_and_name_and_type`` and
+            ``self.train_config.valid_data_path_and_name_and_type`` when
+            ``data_info`` is used.
+            * Adds ``print_config`` and ``required`` attributes to
+            ``self.train_config`` based on ``kwargs`` (default values are ``False`` and
+            ``["output_dir", "token_list"]`` respectively).
+            * Stores ``stats_dir`` and ``output_dir`` on the instance.
+            * If ``build_model_fn`` is provided, it is attached to the task class.
+        """
         self.train_config = train_config
         check_argument(
             train_dump_dir,

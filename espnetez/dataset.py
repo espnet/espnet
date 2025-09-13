@@ -34,11 +34,11 @@ True
 
 Design goals
 ------------
-* **Simplicity** – The API mirrors the familiar ``list`` interface while
-  providing an attribute‑based view of each item.
-* **Flexibility** – ``data_info`` can contain any callables; they are
+* **Simplicity** - The API mirrors the familiar ``list`` interface while
+  providing an attribute-based view of each item.
+* **Flexibility** - ``data_info`` can contain any callables; they are
   evaluated lazily on item access.
-* **Compatibility** – The class is compatible with ESPnet training loops
+* **Compatibility** - The class is compatible with ESPnet training loops
   that expect an ``AbsDataset`` implementation.
 
 Attributes
@@ -72,8 +72,7 @@ from espnet2.train.dataset import AbsDataset
 
 
 class ESPnetEZDataset(AbsDataset):
-    """
-    A dataset class for handling ESPnet data with easy access to data information.
+    """A dataset class for handling ESPnet data with easy access to data information.
 
     This class extends the AbsDataset class and provides functionalities to
     manage a dataset and its associated metadata. It allows users to retrieve
@@ -122,8 +121,8 @@ class ESPnetEZDataset(AbsDataset):
     """
 
     def __init__(self, dataset, data_info):
-        """Initializes the object with a dataset and its corresponding data.
-        
+        """Initialize the object with a dataset and its corresponding data.
+
         Args:
             dataset: The dataset to be stored in the instance. It can be any object
                      that represents the data to be processed or analyzed.
@@ -162,7 +161,7 @@ class ESPnetEZDataset(AbsDataset):
         return name in self.data_info
 
     def names(self) -> Tuple[str, ...]:
-        """A dataset class for ESPnet that handles data retrieval and management.
+        """Handle data retrieval and management.
 
         This class extends the abstract dataset class to provide functionalities
         specific to the ESPnet framework. It manages a dataset and its associated
@@ -212,6 +211,37 @@ class ESPnetEZDataset(AbsDataset):
         return tuple(self.data_info.keys())
 
     def __getitem__(self, uid: Union[str, int]) -> Tuple[str, Dict]:
+        """Retrieve a data sample by identifier.
+
+        This method is called when a user indexes the dataset object with ``[]``.
+        The identifier ``uid`` can be either a string or an integer.  It is
+        interpreted as the index of the underlying ``self.dataset`` after
+        converting it to an integer.  The method returns a tuple containing
+        the original identifier (converted to a string) and a dictionary with
+        processed data values.
+
+        The dictionary is constructed by iterating over ``self.data_info`` - a
+        mapping from field names to callables.  Each callable is invoked with
+        the raw dataset entry ``self.dataset[idx]`` to produce the processed
+        value for that field.
+
+        Args:
+            uid: The identifier for the desired data sample.  It may be an
+                integer index or a string that can be cast to an integer.
+                The string is returned unchanged in the result tuple.
+
+        Returns:
+            Tuple[str, Dict]:
+                * A string representation of ``uid``.
+                * A dictionary where each key is from ``self.data_info`` and
+                each value is the result of applying the corresponding
+                callable to the indexed dataset entry.
+
+        Raises:
+            ValueError: If ``uid`` cannot be converted to an integer.
+            IndexError: If the resulting index is out of bounds for
+                ``self.dataset``.
+        """
         idx = int(uid)
         return (
             str(uid),
@@ -220,12 +250,12 @@ class ESPnetEZDataset(AbsDataset):
 
     def __len__(self) -> int:
         """Return the number of items in the underlying dataset.
-        
+
         This method implements the ``__len__`` protocol, allowing instances of the
         class to be used with the built-in ``len()`` function. It simply forwards
         the length calculation to the ``dataset`` attribute, which must support
         the ``len()`` operation.
-        
+
         Returns:
             int: The number of elements contained in ``self.dataset``.
         """

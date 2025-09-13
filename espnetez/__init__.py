@@ -1,7 +1,7 @@
 """Utilities for building machine learning workflows.
 
-This package aggregates the core components used to build and train machine‑learning
-models.  It re‑exports the most frequently used classes, functions and configuration
+This package aggregates the core components used to build and train machine-learning
+models.  It re-exports the most frequently used classes, functions and configuration
 helpers so that they can be imported directly from the package root.
 
 Available modules
@@ -20,7 +20,7 @@ Public API
 ----------
 The following symbols are exported from the package namespace:
 
-* :class:`.trainer.Trainer` – orchestrates training loops and evaluation.
+* :class:`.trainer.Trainer` - orchestrates training loops and evaluation.
 * Everything imported from :mod:`.config`, :mod:`.data`, :mod:`.dataset`,
   :mod:`.preprocess` and :mod:`.task` via ``import *``.
   These include configuration helpers, data loaders, dataset abstractions,
@@ -37,9 +37,9 @@ having to import each submodule individually.  All public symbols are documented
 in their respective modules; consult the module docs for detailed usage.
 """
 
-from .config import *
-from .data import *
-from .dataset import *
-from .preprocess import *
-from .task import *
-from .trainer import Trainer
+from .config import *  # noqa
+from .data import *  # noqa
+from .dataset import *  # noqa
+from .preprocess import *  # noqa
+from .task import *  # noqa
+from .trainer import Trainer  # noqa

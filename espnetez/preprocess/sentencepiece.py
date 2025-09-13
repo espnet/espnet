@@ -2,8 +2,8 @@
 
 The module contains helper functions that simplify the process of creating a
 training corpus, fitting a SentencePiece model, and adding custom special
-tokens to an existing tokenizer.  It is primarily designed for speech‑to‑text
-or spoken‑language‑understanding pipelines where custom vocabularies are
+tokens to an existing tokenizer.  It is primarily designed for speech-to-text
+or spoken-language-understanding pipelines where custom vocabularies are
 required.
 
 Functions
@@ -24,7 +24,7 @@ train_sentencepiece(dump_text_path, output_path, vocab_size=5000,
 add_special_tokens(tokenizer, converter, embedding, special_tokens,
                     insert_after="<st_zho>")
     Adds new tokens to an existing SentencePiece tokenizer, updates the
-    token‑to‑ID converter, and expands an ``nn.Embedding`` module
+    token-to-ID converter, and expands an ``nn.Embedding`` module
     accordingly.  The new tokens are inserted immediately after the token
     specified by *insert_after*.
 
@@ -86,9 +86,7 @@ def prepare_sentences(
     output_path: Union[str, Path],
     remove_characters: str = "",
 ):
-    """
-    Create a training text file for SentencePiece model training from the
-    provided dump text files.
+    """Create a training text file for SentencePiece model.
 
     This function consolidates multiple text files into a single `train.txt`
     file, which is formatted for use in SentencePiece training. It also
@@ -155,8 +153,7 @@ def train_sentencepiece(
     model_type: str = "bpe",
     user_defined_symbols: list = [],
 ):
-    """
-    Main function to train a SentencePiece model.
+    """Train a SentencePiece model.
 
     This function trains a SentencePiece model using the provided training
     data and saves the resulting model and vocabulary files to the specified
@@ -231,6 +228,7 @@ def add_special_tokens(
     tokenizer, converter, embedding, special_tokens, insert_after="<st_zho>"
 ):
     """Add special tokens to the tokenizer.
+
     For detailed usage, please refer to the demo notebook for ESPnetEZ with SLU task.
 
     Args:

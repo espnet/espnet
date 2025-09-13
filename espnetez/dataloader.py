@@ -4,7 +4,7 @@ The :class:`~espnet2.iterators.dataloader.Dataloader` class is a concrete
 implementation of :class:`~espnet2.iterators.abs_iter_factory.AbsIterFactory`
 that stores keyword arguments to be passed to
 :class:`torch.utils.data.DataLoader`.  It exposes a :py:meth:`build_iter`
-method which returns a ready‑to‑use DataLoader for a given epoch.
+method which returns a ready-to-use DataLoader for a given epoch.
 
 Typical usage::
 
@@ -24,14 +24,14 @@ Typical usage::
         # process batch
 
 The ``epoch`` argument is currently unused but is included for future
-epoch‑dependent behaviour such as shuffling.  The ``shuffle`` parameter
+epoch-dependent behaviour such as shuffling.  The ``shuffle`` parameter
 is also ignored in the current implementation, keeping the interface
 compatible with potential future extensions.
 
 Dependencies
 ------------
-- `torch` – provides :class:`torch.utils.data.DataLoader`.
-- :class:`espnet2.iterators.abs_iter_factory.AbsIterFactory` – abstract
+- `torch` - provides :class:`torch.utils.data.DataLoader`.
+- :class:`espnet2.iterators.abs_iter_factory.AbsIterFactory` - abstract
   factory base class.
 """
 
@@ -41,8 +41,7 @@ from espnet2.iterators.abs_iter_factory import AbsIterFactory
 
 
 class Dataloader(AbsIterFactory):
-    """
-    DataLoader class for building data iterators.
+    """DataLoader class for building data iterators.
 
     This class extends the `AbsIterFactory` and provides a method to create
     a PyTorch DataLoader. It accepts keyword arguments that can be passed
@@ -78,19 +77,18 @@ class Dataloader(AbsIterFactory):
     """
 
     def __init__(self, **kwargs):
-        """Initializes the instance, storing arbitrary keyword arguments.
-        
+        """Initialize the instance, storing arbitrary keyword arguments.
+
         Args:
             kwargs: Arbitrary keyword arguments to be stored on the instance.
-        
+
         The keyword arguments are stored in the :attr:`kwargs` attribute for
         later use.
         """
         self.kwargs = kwargs
 
     def build_iter(self, epoch: int, shuffle: bool = None) -> DataLoader:
-        """
-        Constructs a PyTorch DataLoader instance.
+        """Construct a PyTorch DataLoader instance.
 
         This method initializes and returns a DataLoader using the
         parameters provided during the instantiation of the Dataloader

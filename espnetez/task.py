@@ -1,18 +1,18 @@
-"""ESPnet‑EZ Task Wrapper
+"""ESPnet-EZ Task Wrapper.
 
-This module provides helper utilities for the **ESPnet‑EZ** framework, which
+This module provides helper utilities for the **ESPnet-EZ** framework, which
 adds a lightweight layer on top of the original ESPnet tasks.  The goal is to
 allow users to instantiate task classes that optionally support custom
 datasets while still reusing all of the existing functionality in ESPnet.
 
 Key features
 ------------
-* :data:`TASK_CLASSES` – a mapping from task name strings (e.g. ``"asr"``,
+* :data:`TASK_CLASSES` - a mapping from task name strings (e.g. ``"asr"``,
   ``"tts"``) to the corresponding ESPnet task classes.
-* :func:`get_ez_task` – returns a lightweight subclass of the requested
+* :func:`get_ez_task` - returns a lightweight subclass of the requested
   task.  If ``use_custom_dataset`` is ``True`` a special subclass that
   exposes dataset hooks is returned.
-* :func:`get_ez_task_with_dataset` – creates a subclass that holds
+* :func:`get_ez_task_with_dataset` - creates a subclass that holds
   ``train_dataset``/``valid_dataset`` attributes and overrides iterator
   creation so that the custom datasets are used.
 * The generated classes expose the same public API as the original tasks
@@ -61,7 +61,6 @@ appropriate factory function for the task they wish to use.
 # This class is a wrapper for Task classes to support custom datasets.
 import argparse
 import logging
-from pathlib import Path
 from typing import Any, Optional
 
 import numpy as np
@@ -70,13 +69,8 @@ from torch.utils.data import DataLoader
 from typeguard import typechecked
 
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
-from espnet2.iterators.category_iter_factory import CategoryIterFactory
-from espnet2.iterators.chunk_iter_factory import ChunkIterFactory
-from espnet2.iterators.multiple_iter_factory import MultipleIterFactory
 from espnet2.iterators.sequence_iter_factory import SequenceIterFactory
 from espnet2.samplers.build_batch_sampler import build_batch_sampler
-from espnet2.samplers.category_balanced_sampler import CategoryBalancedSampler
-from espnet2.samplers.unsorted_batch_sampler import UnsortedBatchSampler
 from espnet2.tasks.abs_task import AbsTask, IteratorOptions
 from espnet2.tasks.asr import ASRTask
 from espnet2.tasks.asr_transducer import ASRTransducerTask
@@ -125,8 +119,7 @@ TASK_CLASSES = dict(
 
 
 def get_ez_task(task_name: str, use_custom_dataset: bool = False) -> AbsTask:
-    """
-    Retrieve a customized task class for the ESPnet-EZ framework.
+    """Retrieve a customized task class for the ESPnet-EZ framework.
 
     This function returns a task class based on the specified task name.
     If the `use_custom_dataset` flag is set to True, a version of the task
@@ -182,8 +175,7 @@ def get_ez_task(task_name: str, use_custom_dataset: bool = False) -> AbsTask:
 
 
 def get_ez_task_with_dataset(task_name: str) -> AbsTask:
-    """
-    Create an ESPnet-EZ task class with a custom dataset for a given task.
+    """Create an ESPnet-EZ task class with a custom dataset for a given task.
 
     This function returns a task class that inherits from the specified
     task class in the ESPnet framework, enabling the use of custom datasets
@@ -234,6 +226,7 @@ def get_ez_task_with_dataset(task_name: str) -> AbsTask:
         @classmethod
         def build_preprocess_fn(cls, *args, **kwargs) -> IteratorOptions:
             """Build a preprocess function for the task.
+
             When developers uses the ESPnetEZDataTask, developers should perform
             preprocess steps inside the custom dataset class.
             """
