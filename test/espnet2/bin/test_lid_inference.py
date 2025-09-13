@@ -1,6 +1,5 @@
 import os
 from argparse import ArgumentParser
-from pathlib import Path
 from unittest.mock import MagicMock, mock_open, patch
 
 import numpy as np
@@ -165,7 +164,7 @@ def test_gen_tsne_plot(tmp_path, sample_embeddings):
 
             # Try importing plotly to see if it's available
             try:
-                import plotly.express as px
+                import plotly.express as px  # noqa: F401
 
                 plotly_available = True
             except ImportError:
