@@ -49,6 +49,7 @@ flake8 --select D100,D101,D102,D103 . | python doc_generator.py \
 import argparse
 import ast
 import json
+import logging
 import os
 import re
 import sys
@@ -58,6 +59,17 @@ import requests
 # --- Configuration ---
 # This is now a fallback. Use the --api-key argument for better practice.
 DEFAULT_API_KEY = os.environ.get("MY_LLM_API_KEY", "YOUR_API_KEY_HERE")
+
+# --- Color Definitions for Logging ---
+
+
+class Colors:
+    """ANSI color codes"""
+
+    GREEN = "\033[92m"
+    YELLOW = "\033[93m"
+    RED = "\033[91m"
+    ENDC = "\033[0m"
 
 
 def get_code_snippet(full_source, node):
@@ -123,8 +135,7 @@ def _generate_docstring_ollama(code_snippet, element_type, model, ip):
     response.raise_for_status()
     result = response.json()
     return result.get("message", {}).get(
-        "content",
-        "Error: Could not extract 'response' from Ollama result."
+        "content", "Error: Could not extract 'response' from Ollama result."
     )
 
 
@@ -167,19 +178,23 @@ def generate_docstring_with_llm(code_snippet, element_type, args):
     if args.llm_type in ["gemini", "openai-v1"] and (
         not args.api_key or args.api_key == "YOUR_API_KEY_HERE"
     ):
-        print("---")
-        print(
-            "SKIPPING API CALL: API Key not configured for llm-type "
-            f"'{args.llm_type}'."
+        logging.warning("---")
+        logging.warning(
+            f"{Colors.YELLOW}SKIPPING API CALL: API Key not configured for llm-type "
+            f"'{args.llm_type}'.{Colors.ENDC}"
         )
-        print(f"Would have generated a docstring for this {element_type.lower()}:")
-        print(code_snippet)
-        print("---")
+        logging.warning(
+            f"Would have generated a docstring for this {
+                element_type.lower()}:"
+        )
+        logging.warning(code_snippet)
+        logging.warning("---")
         return f"/* LLM Generation Skipped for {element_type} */"
 
     try:
-        print(
-            f"-> Sending {element_type} to LLM ({args.llm_type}) for documentation..."
+        logging.info(
+            f"{Colors.GREEN}-> Sending {element_type} to LLM ({args.llm_type}) "
+            f"for documentation...{Colors.ENDC}"
         )
         generated_text = ""
         if args.llm_type == "gemini":
@@ -213,17 +228,17 @@ def generate_docstring_with_llm(code_snippet, element_type, args):
         if generated_text.strip().endswith("```"):
             generated_text = generated_text.strip()[:-3].strip()
 
-        print("<- Received docstring from LLM.")
+        logging.info("<- Received docstring from LLM.")
         return generated_text
 
     except requests.exceptions.RequestException as e:
-        print(f"Error calling LLM API: {e}")
+        logging.error(f"{Colors.RED}Error calling LLM API: {e}{Colors.ENDC}")
         return f"/* Error generating docstring: {e} */"
     except (KeyError, IndexError, json.JSONDecodeError) as e:
-        print(f"Error parsing LLM response: {e}")
+        logging.error(f"{Colors.RED}Error parsing LLM response: {e}{Colors.ENDC}")
         return f"/* Error parsing LLM response {e}*/"
     except ValueError as e:
-        print(f"Configuration Error: {e}")
+        logging.error(f"{Colors.RED}Configuration Error: {e}{Colors.ENDC}")
         return f"/* Configuration error: {e} */"
 
 
@@ -231,7 +246,7 @@ def parse_flake8_input(input_stream):
     """Parses flake8 output from a stream for missing docstring errors (D100-D103)."""
     # Example: ./sample_module.py:27:5: D102 Missing docstring in public method
     flake8_pattern = re.compile(
-        r"^(?P<file_path>[^:]+):(?P<line>\d+):(?P<col>\d+): (?P<error>D10[0-3])"
+        r"^(?P<file_path>[^:]+):(?P<line>\d+):(?P<col>\d+): (?P<error>D10[0-7])"
     )
     for line in input_stream:
         match = flake8_pattern.match(line)
@@ -254,7 +269,7 @@ def find_element_at_line(file_path, line_number):
                 if node.lineno == line_number:
                     return {"node": node, "source_code": source_code}
     except Exception as e:
-        print(f"Error processing file {file_path}: {e}")
+        logging.error(f"Error processing file {file_path}: {e}")
 
     return None
 
@@ -271,7 +286,7 @@ def add_docstring_to_file(file_path, node, docstring):
             docstring = docstring.strip()[:-3].strip()
 
         if not node.body:
-            print(f"  - Cannot add docstring to empty body in {node.name}.")
+            logging.warning(f"  - Cannot add docstring to empty body in {node.name}.")
             return False
 
         docstring_indent_level = node.body[0].col_offset
@@ -296,11 +311,11 @@ def add_docstring_to_file(file_path, node, docstring):
         with open(file_path, "w", encoding="utf-8") as f:
             f.writelines(original_lines)
 
-        print(f"  - Successfully updated file: {file_path}")
+        logging.info(f"  - Successfully updated file: {file_path}")
         return True
 
     except Exception as e:
-        print(f"  - Error updating file {file_path}: {e}")
+        logging.error(f"  - Error updating file {file_path}: {e}")
         return False
 
 
@@ -347,61 +362,73 @@ def add_module_docstring_to_file(file_path, docstring):
         with open(file_path, "w", encoding="utf-8") as f:
             f.writelines(original_lines)
 
-        print(f"  - Successfully added module docstring to: {file_path}")
+        logging.info(f"  - Successfully added module docstring to: {file_path}")
         return True
 
     except Exception as e:
-        print(f"  - Error updating module docstring for {file_path}: {e}")
+        logging.error(f"  - Error updating module docstring for {file_path}: {e}")
         return False
 
 
 def main(args):
     """Main processing loop to read from stdin and patch files."""
-    print("Reading flake8 output from stdin...")
+    # Configure logging
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
+
+    logging.info("Reading flake8 output from stdin...")
     flake8_errors = list(parse_flake8_input(sys.stdin))
 
     if not flake8_errors:
-        print("No missing docstring errors (D100-D107) found in flake8 output.")
+        logging.info("No missing docstring errors (D100-D107) found in flake8 output.")
         return
 
-    print(f"Found {len(flake8_errors)} missing docstring errors. Processing...")
+    logging.info(f"Found {len(flake8_errors)} missing docstring errors. Processing...")
 
     for error in flake8_errors:
         file_path = error["file_path"]
         line_num = error["line"]
-        print(f"\nProcessing error {error['error']} in {file_path} at line {line_num}")
+        logging.info(
+            f"\nProcessing error {
+                error['error']} in {file_path} at line {line_num}"
+        )
 
         generated_docstring = None
         node_for_update = None  # Stores the AST node for function/class updates
 
-        if error["error"] == ['D100', 'D104']:
+        if error["error"] in ["D100", "D104"]:
             # Handle missing module/package docstring
             try:
                 with open(file_path, "r", encoding="utf-8") as f:
                     source_code = f.read()
 
-                if not source_code.strip() and file_path.endswith('__init__.py'):
-                    print(f"  - Skipping empty __init__.py file: {file_path}")
+                if not source_code.strip() and file_path.endswith("__init__.py"):
+                    logging.warning(f"  - Skipping empty __init__.py file: {file_path}")
                     continue
 
                 # Safeguard: check if a docstring already exists.
                 if ast.get_docstring(ast.parse(source_code)):
-                    print("  - Module/Package already has a docstring. Skipping.")
+                    logging.warning(
+                        "  - Module/Package already has a docstring. Skipping."
+                    )
                     continue
 
-                element_type = "Package" if error['error'] == 'D104' else "Module"
+                element_type = "Package" if error["error"] == "D104" else "Module"
                 generated_docstring = generate_docstring_with_llm(
                     source_code, element_type, args
                 )
             except Exception as e:
-                print(f"  - An error occurred while processing module/package {file_path}: {e}")
+                logging.error(
+                    "  - An error occurred while processing "
+                    f"module/package {file_path}: {e}"
+                )
                 continue
         else:
-            # Handle missing class/function/method docstring (D101, D102, D103, D105, D106, D107)
+            # Handle missing class/function/method docstring (D101, D102, D103, D105,
+            # D106, D107)
             element_info = find_element_at_line(file_path, line_num)
 
             if not element_info:
-                print(
+                logging.warning(
                     f"  - Could not find a class/function at line {line_num}. Skipping."
                 )
                 continue
@@ -422,11 +449,11 @@ def main(args):
             or "Error" in generated_docstring
             or "Skipped" in generated_docstring
         ):
-            print(
-                f"  - Failed to generate a valid docstring for {file_path}. "
-                "Skipping update."
+            logging.warning(
+                f"{Colors.YELLOW}  - Failed to generate a valid docstring for "
+                f"{file_path}. Skipping update.{Colors.ENDC}"
             )
-            print("Failed docstring:")
+            print(f"Failed docstring at {file_path}:{line_num}:")
             print(generated_docstring)
             continue
 
@@ -436,18 +463,18 @@ def main(args):
         print('"""')
 
         if args.apply_changes:
-            print(f"-> Applying changes to {file_path}...")
-            if error["error"] == "D100":
+            logging.info(f"-> Applying changes to {file_path}...")
+            if error["error"] in ["D100", "D104"]:
                 add_module_docstring_to_file(file_path, generated_docstring)
             elif node_for_update:
                 add_docstring_to_file(file_path, node_for_update, generated_docstring)
             else:
-                print(
+                logging.error(
                     f"  - Could not apply changes for {file_path} due to "
                     "missing element info."
                 )
         else:
-            print(
+            logging.info(
                 "-> In dry-run mode. To apply changes, run with the "
                 "--apply-changes flag."
             )
