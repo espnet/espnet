@@ -123,39 +123,55 @@ def test_gen_tsne_plot(tmp_path, sample_embeddings):
 
     # Create comprehensive mock objects for all external dependencies
     mock_tsne_instance = MagicMock()
-    mock_tsne_instance.fit_transform.return_value = np.array([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]])
-    
+    mock_tsne_instance.fit_transform.return_value = np.array(
+        [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]]
+    )
+
     mock_plotly_fig = MagicMock()
     mock_plotly_fig.write_html = MagicMock()
-    
+
     mock_df_instance = MagicMock()
     mock_label_series = MagicMock()
     mock_label_series.unique.return_value = ["eng", "fra", "deu"]
     mock_df_instance.__getitem__.return_value = mock_label_series
-    
+
     # Mock external modules that are imported within the function
-    with patch.dict("sys.modules", {
-        "plotly": MagicMock(),
-        "plotly.express": MagicMock(),
-        "adjustText": MagicMock(),
-        "sklearn": MagicMock(),
-        "sklearn.manifold": MagicMock(),
-    }):
+    with patch.dict(
+        "sys.modules",
+        {
+            "plotly": MagicMock(),
+            "plotly.express": MagicMock(),
+            "adjustText": MagicMock(),
+            "sklearn": MagicMock(),
+            "sklearn.manifold": MagicMock(),
+        },
+    ):
         # Mock the specific functions and classes used in gen_tsne_plot
-        with patch("sklearn.manifold.TSNE", return_value=mock_tsne_instance), \
-             patch("plotly.express.scatter", return_value=mock_plotly_fig), \
-             patch("pandas.DataFrame", return_value=mock_df_instance), \
-             patch("matplotlib.pyplot.figure"), \
-             patch("matplotlib.pyplot.scatter"), \
-             patch("matplotlib.pyplot.text"), \
-             patch("matplotlib.pyplot.title"), \
-             patch("matplotlib.pyplot.savefig"), \
-             patch("matplotlib.pyplot.close"), \
-             patch("matplotlib.pyplot.get_cmap"), \
-             patch("adjustText.adjust_text"), \
-             patch("os.path.exists", return_value=False), \
-             patch("os.makedirs"), \
-             patch("espnet2.bin.lid_inference.logging.info"):
+        with patch("sklearn.manifold.TSNE", return_value=mock_tsne_instance), patch(
+            "plotly.express.scatter", return_value=mock_plotly_fig
+        ), patch("pandas.DataFrame", return_value=mock_df_instance), patch(
+            "matplotlib.pyplot.figure"
+        ), patch(
+            "matplotlib.pyplot.scatter"
+        ), patch(
+            "matplotlib.pyplot.text"
+        ), patch(
+            "matplotlib.pyplot.title"
+        ), patch(
+            "matplotlib.pyplot.savefig"
+        ), patch(
+            "matplotlib.pyplot.close"
+        ), patch(
+            "matplotlib.pyplot.get_cmap"
+        ), patch(
+            "adjustText.adjust_text"
+        ), patch(
+            "os.path.exists", return_value=False
+        ), patch(
+            "os.makedirs"
+        ), patch(
+            "espnet2.bin.lid_inference.logging.info"
+        ):
 
             # Execute the function
             gen_tsne_plot(
@@ -169,10 +185,10 @@ def test_gen_tsne_plot(tmp_path, sample_embeddings):
             # Verify core functionality
             # 1. Check that t-SNE was properly configured and executed
             mock_tsne_instance.fit_transform.assert_called_once()
-            
+
             # 2. Check that plotly figure was created and saved
             mock_plotly_fig.write_html.assert_called_once()
-            
+
             # 3. Verify output directory handling
             assert Path(output_dir).exists()
 
