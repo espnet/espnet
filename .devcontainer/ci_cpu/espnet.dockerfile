@@ -37,7 +37,6 @@ RUN apt-get update && \
         curl \
         gfortran \
         libffi-dev \
-        libjpeg-dev \
         libtool \
         git \
         gnupg2 \
@@ -74,12 +73,12 @@ RUN mkdir -p /workspaces && \
 WORKDIR /opt
 USER ${USERNAME}
 
-# RUN wget --tries=3 -nv "https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh" -O miniconda.sh && \
-#     bash miniconda.sh -b -p /opt/miniconda && \
-#     /opt/miniconda/bin/conda config --prepend channels https://software.repos.intel.com/python/conda/ && \
-#     rm miniconda.sh && \
-#     conda install -y python=3.10 && \
-#     conda install -c conda-forge libstdcxx-ng && \
-#     conda clean -a -y
+RUN wget --tries=3 -nv "https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh" -O miniconda.sh && \
+    bash miniconda.sh -b -p /opt/miniconda && \
+    /opt/miniconda/bin/conda config --prepend channels https://software.repos.intel.com/python/conda/ && \
+    rm miniconda.sh && \
+    conda install -y python=3.10 && \
+    conda install -c conda-forge libstdcxx-ng && \
+    conda clean -a -y
 
 WORKDIR /workspaces
