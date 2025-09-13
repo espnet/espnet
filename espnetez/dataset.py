@@ -1,3 +1,71 @@
+"""ESPnetEZDataset module.
+
+This module provides :class:`~ESPnetEZDataset`, a lightweight dataset wrapper for
+ESPnet that simplifies access to data items and their associated metadata.
+It is designed to be used in training pipelines where a simple mapping
+from a unique identifier to a dictionary of feature values is required.
+
+The wrapper accepts any sequence (list, tuple, or any ``Sized`` iterable)
+containing dataset entries.  A ``data_info`` dictionary maps attribute names
+to callables that extract the corresponding value from a single dataset
+entry.  The class inherits from :class:`espnet2.train.dataset.AbsDataset`,
+providing the standard ``__getitem__`` and ``__len__`` interfaces as well
+as helper methods for introspection.
+
+Typical use case
+----------------
+>>> dataset = [
+...     ("audio1.wav", "transcription1"),
+...     ("audio2.wav", "transcription2")
+... ]
+>>> data_info = {
+...     "audio": lambda x: x[0],
+...     "transcription": lambda x: x[1]
+... }
+>>> ez_dataset = ESPnetEZDataset(dataset, data_info)
+>>> ez_dataset.has_name("audio")
+True
+>>> ez_dataset.names()
+('audio', 'transcription')
+>>> ez_dataset[0]
+('0', {'audio': 'audio1.wav', 'transcription': 'transcription1'})
+>>> len(ez_dataset)
+2
+
+Design goals
+------------
+* **Simplicity** – The API mirrors the familiar ``list`` interface while
+  providing an attribute‑based view of each item.
+* **Flexibility** – ``data_info`` can contain any callables; they are
+  evaluated lazily on item access.
+* **Compatibility** – The class is compatible with ESPnet training loops
+  that expect an ``AbsDataset`` implementation.
+
+Attributes
+----------
+dataset : ``Sequence`` of entries
+    The raw dataset from which items are retrieved.
+data_info : ``dict[str, Callable]``
+    Mapping from feature names to callables that compute the feature
+    from a single dataset entry.
+
+Methods
+-------
+has_name(name)
+    Return ``True`` if *name* is a key in ``data_info``.
+names()
+    Return a tuple of all feature names defined in ``data_info``.
+__getitem__(uid)
+    Retrieve the entry with the given unique identifier.  ``uid`` may be
+    a string or an integer; it is cast to ``int`` internally.
+__len__()
+    Return the number of entries in the dataset.
+
+The module deliberately avoids external dependencies beyond the standard
+library and ESPnet's :class:`AbsDataset`.  It is suitable for quick prototyping
+or for embedding in larger ESPnet training scripts.
+"""
+
 from typing import Dict, Tuple, Union
 
 from espnet2.train.dataset import AbsDataset

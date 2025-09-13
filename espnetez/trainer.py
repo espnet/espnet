@@ -14,8 +14,7 @@ def check_argument(
     train_dataloader,
     valid_dataloader,
 ):
-    """
-    Validate the arguments for training and validation data sources.
+    """Validate the arguments for training and validation data sources.
 
     This function checks the consistency of the input arguments used for
     specifying training and validation data sources. It ensures that
@@ -117,8 +116,7 @@ def check_argument(
 
 
 class Trainer:
-    """
-    Generic trainer class for ESPnet training.
+    """Generic trainer class for ESPnet training.
 
     This class is responsible for managing the training process of ESPnet models.
     It handles the configuration, dataset preparation, and the training loop.
@@ -249,8 +247,7 @@ class Trainer:
             self.task_class.build_model_fn = build_model_fn
 
     def train(self):
-        """
-        Train the model using the specified training configuration.
+        """Train the model using the specified training configuration.
 
         This method orchestrates the training process by first ensuring that
         the necessary shape files are available. It checks for the presence
@@ -285,8 +282,7 @@ class Trainer:
         self.task_class.main(self.train_config)
 
     def collect_stats(self):
-        """
-        Collects statistics for training and validation datasets.
+        """Collect statistics for training and validation datasets.
 
         This method initializes the process of gathering statistical data
         from the training and validation datasets. It creates the necessary

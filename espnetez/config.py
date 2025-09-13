@@ -1,3 +1,38 @@
+"""
+Utility functions for loading and merging YAML configuration files in ESPNetEZ.
+
+This module provides a small set of helpers that are used throughout the
+ESPNetEZ code‑base to read user‑supplied configuration files and combine them
+with task‑specific default settings.  The helpers perform the following
+operations:
+
+* `convert_none_to_None` – Recursively replaces the literal string
+  ``"none"`` in a dictionary with the Python ``None`` value.  The function
+  mutates the dictionary in place and returns it for convenience.
+
+* `from_yaml` – Loads a YAML file, converts any ``"none"`` entries to
+  ``None``, and merges the result with the default configuration of the
+  specified task.
+
+* `update_finetune_config` – Updates an existing pre‑training configuration
+  with values from a fine‑tuning YAML file.  Distributed‑related keys are
+  restored to their defaults, and any missing keys are filled in from the
+  task’s default configuration.  The function also handles nested
+  ``preprocessor_conf`` entries.
+
+Typical usage::
+
+    from espnetez.utils.config import from_yaml, update_finetune_config
+
+    base_cfg = from_yaml("speech_recognition", "config.yaml")
+    fine_tune_cfg = update_finetune_config("speech_recognition",
+                                            base_cfg,
+                                            "finetune.yaml")
+
+The module relies on the `yaml` library for parsing and on
+`espnetez.task.get_ez_task` to obtain the appropriate task class.
+"""
+
 import yaml
 
 from espnetez.task import get_ez_task

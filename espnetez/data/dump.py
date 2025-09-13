@@ -1,3 +1,51 @@
+"""Utilities for creating and merging dataset dump files.
+
+The :mod:`dump_utils` module provides two helper functions that are
+commonly used when working with large tabular datasets that are stored
+as plain‑text “dump” files.  A dump file is simply a text file where
+each line represents a single data record and columns are separated
+by spaces.  The helpers allow you to:
+
+* Create a set of dump files from a Python data structure
+  (dictionary or list of dictionaries) where each key/value pair
+  represents a feature of the dataset.
+* Merge a collection of dump directories that contain files with
+  identical names.  The merged file prefixes each line with a
+  dataset‑specific identifier so that the source of each record can
+  be traced after the merge.
+
+These utilities are especially useful in machine‑learning pipelines
+that require a lightweight, portable representation of feature
+matrices, for example when exporting data for external tools or
+sharing between Python and R environments.
+
+Functions
+---------
+join_dumps(dump_paths, dump_prefix, output_dir)
+    Merge dump files from several directories into a single set of
+    files, adding a prefix to each line.
+
+create_dump_file(dump_dir, dataset, data_inputs)
+    Write individual dump files for selected input variables from a
+    dataset.
+
+Typical usage
+-------------
+>>> # Create dump files for two input features
+>>> dump_dir = Path("tmp/dump")
+>>> dataset = [{\"feature1\": \"a\", \"feature2\": \"b\"},
+...            {\"feature1\": \"c\", \"feature2\": \"d\"}]
+>>> data_inputs = {\"feature1\": [\"feature1_dump.txt\"],
+...                \"feature2\": [\"feature2_dump.txt\"]}
+>>> create_dump_file(dump_dir, dataset, data_inputs)
+
+>>> # Merge the dump directories from two different experiments
+>>> join_dumps(
+...     dump_paths=[\"/path/exp1\", \"/path/exp2\"],
+...     dump_prefix=[\"exp1\", \"exp2\"],
+...     output_dir=\"/path/merged\")
+"""
+
 import glob
 import os
 from pathlib import Path

@@ -1,3 +1,62 @@
+"""ESPnet‑EZ Task Wrapper
+
+This module provides helper utilities for the **ESPnet‑EZ** framework, which
+adds a lightweight layer on top of the original ESPnet tasks.  The goal is to
+allow users to instantiate task classes that optionally support custom
+datasets while still reusing all of the existing functionality in ESPnet.
+
+Key features
+------------
+* :data:`TASK_CLASSES` – a mapping from task name strings (e.g. ``"asr"``,
+  ``"tts"``) to the corresponding ESPnet task classes.
+* :func:`get_ez_task` – returns a lightweight subclass of the requested
+  task.  If ``use_custom_dataset`` is ``True`` a special subclass that
+  exposes dataset hooks is returned.
+* :func:`get_ez_task_with_dataset` – creates a subclass that holds
+  ``train_dataset``/``valid_dataset`` attributes and overrides iterator
+  creation so that the custom datasets are used.
+* The generated classes expose the same public API as the original tasks
+  (``build_model``, ``build_iter_factory`` etc.), ensuring that existing
+  training scripts can be run with little to no modification.
+
+Typical usage
+-------------
+```python
+from espnetez.task import get_ez_task, get_ez_task_with_dataset
+
+# 1. Regular task (no custom dataset)
+asr_task_cls = get_ez_task("asr")
+asr_task = asr_task_cls()
+model = asr_task.build_model(args)
+
+# 2. Task that uses a custom dataset
+custom_asr_cls = get_ez_task_with_dataset("asr")
+custom_asr = custom_asr_cls()
+custom_asr.train_dataset = MyCustomTrainDataset()
+custom_asr.valid_dataset = MyCustomValidDataset()
+model = custom_asr.build_model(args)
+train_iter = custom_asr.build_iter_factory(args, distributed_option, "train")
+```
+
+Design notes
+------------
+* The dynamic subclassing keeps the API stable: the returned class
+  inherits from the original ESPnet task, so any method overridden
+  in the base class remains available.
+* ``build_model_fn`` can be set on the subclass to provide a custom
+  model‑building function that bypasses the default logic.
+* Iterator factories are overridden to use the custom datasets if
+  available; otherwise the original logic is delegated to the base
+  task.
+* Streaming iterators (`build_streaming_iterator`) are also provided
+  for collect‑stats and inference use cases.
+
+The module imports a variety of ESPnet utilities (samplers, iterator
+factories, etc.) to support the construction of training and validation
+iterators.  Users should only need to import this module and call the
+appropriate factory function for the task they wish to use.
+"""
+
 # ESPnet-EZ Task class
 # This class is a wrapper for Task classes to support custom datasets.
 import argparse
@@ -364,6 +423,7 @@ def get_ez_task_with_dataset(task_name: str) -> AbsTask:
             multi_task_dataset: bool = False,
         ) -> DataLoader:
             """Build DataLoader using iterable dataset.
+
             Basically this iterator is used in collect_stats stage.
             """
             if mode == "train" and cls.train_dataloader is not None:
