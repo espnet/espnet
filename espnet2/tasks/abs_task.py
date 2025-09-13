@@ -1939,9 +1939,7 @@ class AbsTask(ABC):
             dataset, args.allow_variable_data_keys, train=iter_options.train
         )
 
-        parent_dir = str(
-            Path(iter_options.data_path_and_name_and_type[0][0]).parent
-        )
+        parent_dir = str(Path(iter_options.data_path_and_name_and_type[0][0]).parent)
 
         if Path(parent_dir, "category2utt").exists():
             category2utt_file = str(Path(parent_dir, "category2utt"))
@@ -2141,9 +2139,7 @@ class AbsTask(ABC):
             dataset, args.allow_variable_data_keys, train=iter_options.train
         )
 
-        parent_dir = str(
-            Path(iter_options.data_path_and_name_and_type[0][0]).parent
-        )
+        parent_dir = str(Path(iter_options.data_path_and_name_and_type[0][0]).parent)
 
         if Path(parent_dir, "category2utt").exists():
             category2utt_file = str(Path(parent_dir, "category2utt"))
