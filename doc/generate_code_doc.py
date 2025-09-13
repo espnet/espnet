@@ -90,8 +90,10 @@ def _generate_docstring_gemini(code_snippet, element_type, api_key):
         "Only return the complete docstring content itself, without any "
         "surrounding text, markdown, or the original code."
     )
-    user_prompt = f"Generate a docstring for the following Python {
-        element_type.lower()}:\n\n```python\n{code_snippet}\n```"
+    user_prompt = (
+        "Generate a docstring for the following Python "
+        f"{element_type.lower()}:\n\n```python\n{code_snippet}\n```"
+    )
 
     payload = {
         "contents": [{"parts": [{"text": user_prompt}]}],
@@ -117,8 +119,10 @@ def _generate_docstring_ollama(code_snippet, element_type, model, ip):
         "Google Python Style Guide. Return only the raw docstring content, "
         "without any introduction, conclusion, or markdown code fences."
     )
-    user_prompt = f"Generate a docstring for the following Python {
-        element_type.lower()}:\n\n```python\n{code_snippet}\n```"
+    user_prompt = (
+        "Generate a docstring for the following Python "
+        f"{element_type.lower()}:\n\n```python\n{code_snippet}\n```"
+    )
 
     payload = {
         "model": model,
@@ -149,8 +153,10 @@ def _generate_docstring_openai_v1(code_snippet, element_type, model, ip, api_key
         "Only return the complete docstring content itself, without any surrounding "
         "text, markdown, or the original code."
     )
-    user_prompt = f"Generate a docstring for the following Python {
-        element_type.lower()}:\n\n```python\n{code_snippet}\n```"
+    user_prompt = (
+        "Generate a docstring for the following Python "
+        f"{element_type.lower()}:\n\n```python\n{code_snippet}\n```"
+    )
 
     payload = {
         "model": model,
