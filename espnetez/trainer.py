@@ -1,3 +1,37 @@
+"""ESPnetEZ training utilities.
+
+Provides helper functions and the :class:`Trainer` class to train ESPnet models using
+dump directories, custom datasets, or dataloaders.  The module validates
+argument combinations, configures the training environment, collects
+statistics and launches the training process.
+
+Classes
+-------
+Trainer
+    Generic trainer that orchestrates dataset preparation, statistics
+    collection and model training.
+
+Functions
+---------
+check_argument
+    Validates that the user supplies exactly one of dump directories,
+    custom datasets, or custom dataloaders.
+
+Example
+-------
+    >>> from espnetez.train import Trainer
+    >>> trainer = Trainer(
+    ...     task="asr",
+    ...     train_config={"batch_size": 32, "learning_rate": 1e-3},
+    ...     output_dir="exp/asr",
+    ...     stats_dir="exp/asr/stats",
+    ...     train_dump_dir="dump/train",
+    ...     valid_dump_dir="dump/valid",
+    ... )
+    >>> trainer.collect_stats()
+    >>> trainer.train()
+"""
+
 import glob
 import os
 from argparse import Namespace
