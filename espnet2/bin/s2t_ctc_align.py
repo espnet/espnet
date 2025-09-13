@@ -12,7 +12,6 @@ from typing import List, Optional, TextIO, Union
 import numpy as np
 import soundfile
 import torch
-
 from typeguard import typechecked
 
 from espnet2.tasks.s2t_ctc import S2TTask
