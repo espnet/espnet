@@ -13,7 +13,6 @@ log() {
 dump_dir=dump/raw
 train_set=
 test_sets=
-python=python3
 
 . utils/parse_options.sh || exit 1;
 
@@ -60,7 +59,7 @@ if [ -z "${test_sets_renew}" ]; then
     exit 0
 fi
 
-${python} local/prepare_ood_test.py \
+python local/prepare_ood_test.py \
     --dump_dir ${dump_dir} \
     --train_set ${train_set} \
     --test_sets "${test_sets_renew}"

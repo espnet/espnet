@@ -235,7 +235,6 @@ if [ ${stage} -le 1  ] && [ ${stop_stage} -ge 1  ] && ! [[ " ${skip_stages} " =~
     # [Task dependent] Need to create data.sh for new corpus
     # Please prepare utt2lang, lang2utt, wav.scp, segments (optional)
     # for train/dev/test sets.
-    local_data_opts+="--python ${python} "
     local/data.sh ${local_data_opts}
     log "Stage 1 Complete."
 fi
@@ -515,8 +514,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
         ./local/prepare_ood_test.sh \
             --dump_dir ${data_feats} \
             --train_set ${train_set} \
-            --test_sets "${test_sets_ood}" \
-            --python "${python}"
+            --test_sets "${test_sets_ood}"
     fi
 
     inference_model_name="${inference_model%.pth}"
@@ -579,7 +577,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
         target_lids="${data_feats}/${test_set}/utt2lang"
         results="${infer_exp}/results"
 
-        ${python} ./local/score.py \
+        python ./local/score.py \
             --pred_lids "${pred_lids}" \
             --target_lids "${target_lids}" \
             --results "${results}"
