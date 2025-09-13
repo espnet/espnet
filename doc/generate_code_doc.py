@@ -265,6 +265,11 @@ def add_docstring_to_file(file_path, node, docstring):
         with open(file_path, "r", encoding="utf-8") as f:
             original_lines = f.readlines()
 
+        if docstring.startswith('"""'):
+            docstring = docstring.strip()[3:].strip()
+        if docstring.endswith('"""'):
+            docstring = docstring.strip()[:-3].strip()
+
         if not node.body:
             print(f"  - Cannot add docstring to empty body in {node.name}.")
             return False
@@ -301,6 +306,12 @@ def add_docstring_to_file(file_path, node, docstring):
 
 def add_module_docstring_to_file(file_path, docstring):
     """Inserts a module-level docstring at the top of a Python file."""
+
+    if docstring.startswith('"""'):
+        docstring = docstring.strip()[3:].strip()
+    if docstring.endswith('"""'):
+        docstring = docstring.strip()[:-3].strip()
+
     try:
         with open(file_path, "r", encoding="utf-8") as f:
             original_lines = f.readlines()
@@ -410,6 +421,7 @@ def main(args):
             or "Error" in generated_docstring
             or "Skipped" in generated_docstring
         ):
+            print(generated_docstring)
             print(
                 f"  - Failed to generate a valid docstring for {file_path}. "
                 "Skipping update."
