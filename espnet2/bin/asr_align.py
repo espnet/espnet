@@ -35,7 +35,7 @@ except ImportError:
     raise ImportError(
         "ctc_segmentation is not installed. please run "
         "`. ./path.sh && pip install "
-        "git+https://github.com/espnet/ctc-segmentation.git`."
+        "git+https://github.com/espnet/ctc-segmentation.git@9b9ea1d`."
     )
 
 
