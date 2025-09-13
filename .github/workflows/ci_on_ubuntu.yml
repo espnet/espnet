@@ -213,7 +213,7 @@ jobs:
       #     ./ci/test_shell_espnet2.sh
 
       - name: test python
-        run: ./ci/test_python_espnetez.sh
+        run: ./ci/test_python_espnet3.sh
       - uses: codecov/codecov-action@v5
         with:
           flags: test_python_espnet3
