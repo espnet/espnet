@@ -125,8 +125,17 @@ def test_gen_tsne_plot(tmp_path, sample_embeddings):
     # Create mock for t-SNE
     mock_tsne_instance = MagicMock()
     mock_tsne_instance.fit_transform.return_value = np.array(
-        [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0], [7.0, 8.0], [9.0, 10.0],
-         [11.0, 12.0], [13.0, 14.0], [15.0, 16.0], [17.0, 18.0]]
+        [
+            [1.0, 2.0],
+            [3.0, 4.0],
+            [5.0, 6.0],
+            [7.0, 8.0],
+            [9.0, 10.0],
+            [11.0, 12.0],
+            [13.0, 14.0],
+            [15.0, 16.0],
+            [17.0, 18.0],
+        ]
     )
 
     # Create mock for pandas DataFrame
@@ -143,21 +152,21 @@ def test_gen_tsne_plot(tmp_path, sample_embeddings):
 
     # Mock all external library modules that gen_tsne_plot tries to import
     mock_modules = {
-        'adjustText': MagicMock(),
-        'plotly': MagicMock(),
-        'plotly.express': MagicMock(),
-        'matplotlib': MagicMock(), 
-        'matplotlib.pyplot': MagicMock(),
-        'pandas': MagicMock(),
+        "adjustText": MagicMock(),
+        "plotly": MagicMock(),
+        "plotly.express": MagicMock(),
+        "matplotlib": MagicMock(),
+        "matplotlib.pyplot": MagicMock(),
+        "pandas": MagicMock(),
     }
 
     # Configure the mock behaviors
-    mock_modules['adjustText'].adjust_text = MagicMock()
-    mock_modules['plotly.express'].scatter = MagicMock(return_value=mock_plotly_fig)
-    mock_modules['pandas'].DataFrame = MagicMock(return_value=mock_df_instance)
-    
+    mock_modules["adjustText"].adjust_text = MagicMock()
+    mock_modules["plotly.express"].scatter = MagicMock(return_value=mock_plotly_fig)
+    mock_modules["pandas"].DataFrame = MagicMock(return_value=mock_df_instance)
+
     # Configure matplotlib.pyplot mock
-    plt_mock = mock_modules['matplotlib.pyplot']
+    plt_mock = mock_modules["matplotlib.pyplot"]
     plt_mock.figure = MagicMock()
     plt_mock.scatter = MagicMock()
     plt_mock.text = MagicMock()
@@ -167,11 +176,11 @@ def test_gen_tsne_plot(tmp_path, sample_embeddings):
     plt_mock.get_cmap = MagicMock()
 
     # Use sys.modules patching to make all library imports return our mocks
-    with patch.dict('sys.modules', mock_modules):
+    with patch.dict("sys.modules", mock_modules):
         with patch("espnet2.bin.lid_inference.TSNE", return_value=mock_tsne_instance):
             # Mock logging to avoid log output during tests
             with patch("espnet2.bin.lid_inference.logging.info"):
-                
+
                 # Execute the function - this should now work without real dependencies
                 gen_tsne_plot(
                     lang_to_embds_dic=sample_embeddings,
