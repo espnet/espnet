@@ -122,12 +122,20 @@ class ESPnetEZDataset(AbsDataset):
     """
 
     def __init__(self, dataset, data_info):
+        """Initializes the object with a dataset and its corresponding data.
+        
+        Args:
+            dataset: The dataset to be stored in the instance. It can be any object
+                     that represents the data to be processed or analyzed.
+            data_info: Additional information about the dataset, such as metadata or
+                       configuration parameters. This should be a dictionary or
+                       any other mapping structure.
+        """
         self.dataset = dataset
         self.data_info = data_info
 
     def has_name(self, name) -> bool:
-        """
-        Check if the specified name exists in the dataset's data information.
+        """Check if the specified name exists in the dataset's data information.
 
         This method searches the `data_info` attribute of the dataset to determine
         if the given `name` is present as a key. It is useful for validating
@@ -154,8 +162,7 @@ class ESPnetEZDataset(AbsDataset):
         return name in self.data_info
 
     def names(self) -> Tuple[str, ...]:
-        """
-            A dataset class for ESPnet that handles data retrieval and management.
+        """A dataset class for ESPnet that handles data retrieval and management.
 
         This class extends the abstract dataset class to provide functionalities
         specific to the ESPnet framework. It manages a dataset and its associated
@@ -212,4 +219,14 @@ class ESPnetEZDataset(AbsDataset):
         )
 
     def __len__(self) -> int:
+        """Return the number of items in the underlying dataset.
+        
+        This method implements the ``__len__`` protocol, allowing instances of the
+        class to be used with the built-in ``len()`` function. It simply forwards
+        the length calculation to the ``dataset`` attribute, which must support
+        the ``len()`` operation.
+        
+        Returns:
+            int: The number of elements contained in ``self.dataset``.
+        """
         return len(self.dataset)

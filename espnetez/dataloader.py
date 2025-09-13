@@ -78,6 +78,14 @@ class Dataloader(AbsIterFactory):
     """
 
     def __init__(self, **kwargs):
+        """Initializes the instance, storing arbitrary keyword arguments.
+        
+        Args:
+            kwargs: Arbitrary keyword arguments to be stored on the instance.
+        
+        The keyword arguments are stored in the :attr:`kwargs` attribute for
+        later use.
+        """
         self.kwargs = kwargs
 
     def build_iter(self, epoch: int, shuffle: bool = None) -> DataLoader:
