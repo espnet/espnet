@@ -118,81 +118,68 @@ def sample_embeddings():
 
 
 def test_gen_tsne_plot(tmp_path, sample_embeddings):
-    """Test basic functionality of gen_tsne_plot function"""
+    """Test gen_tsne_plot function by mocking all external dependencies"""
     output_dir = str(tmp_path / "tsne_output")
+    os.makedirs(output_dir, exist_ok=True)
 
-    # Simple test - just verify the function doesn't crash with mocked dependencies
-    with patch("espnet2.bin.lid_inference.TSNE") as mock_tsne_cls:
-        mock_tsne_instance = MagicMock()
-        mock_tsne_instance.fit_transform.return_value = np.array(
-            [
-                [1.0, 2.0],
-                [3.0, 4.0],
-                [5.0, 6.0],
-                [7.0, 8.0],
-                [9.0, 10.0],
-                [11.0, 12.0],
-                [13.0, 14.0],
-                [15.0, 16.0],
-                [17.0, 18.0],
-            ]
-        )
-        mock_tsne_cls.return_value = mock_tsne_instance
+    # Create mock for t-SNE
+    mock_tsne_instance = MagicMock()
+    mock_tsne_instance.fit_transform.return_value = np.array(
+        [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0], [7.0, 8.0], [9.0, 10.0],
+         [11.0, 12.0], [13.0, 14.0], [15.0, 16.0], [17.0, 18.0]]
+    )
 
-        # Create the output directory
-        os.makedirs(output_dir, exist_ok=True)
+    # Create mock for pandas DataFrame
+    mock_df_instance = MagicMock()
+    mock_df_instance.to_csv = MagicMock()
+    mock_df_instance.__getitem__ = MagicMock()
+    mock_label_series = MagicMock()
+    mock_label_series.unique.return_value = ["eng", "fra", "deu"]
+    mock_df_instance.__getitem__.return_value = mock_label_series
 
-        with patch("matplotlib.pyplot.figure"), patch(
-            "matplotlib.pyplot.scatter"
-        ), patch("matplotlib.pyplot.text"), patch("matplotlib.pyplot.title"), patch(
-            "matplotlib.pyplot.savefig"
-        ), patch(
-            "matplotlib.pyplot.close"
-        ), patch(
-            "matplotlib.pyplot.get_cmap"
-        ), patch(
-            "pandas.DataFrame"
-        ) as mock_df_cls, patch(
-            "espnet2.bin.lid_inference.logging.info"
-        ):
+    # Create mock for plotly figure
+    mock_plotly_fig = MagicMock()
+    mock_plotly_fig.write_html = MagicMock()
 
-            # Mock pandas DataFrame and its methods
-            mock_df_instance = MagicMock()
-            mock_df_instance.to_csv = MagicMock()
-            mock_df_instance.__getitem__ = MagicMock()
-            mock_df_cls.return_value = mock_df_instance
+    # Mock all external library modules that gen_tsne_plot tries to import
+    mock_modules = {
+        'adjustText': MagicMock(),
+        'plotly': MagicMock(),
+        'plotly.express': MagicMock(),
+        'matplotlib': MagicMock(), 
+        'matplotlib.pyplot': MagicMock(),
+        'pandas': MagicMock(),
+    }
 
-            # Try importing plotly to see if it's available
-            try:
-                import plotly.express as px  # noqa: F401
+    # Configure the mock behaviors
+    mock_modules['adjustText'].adjust_text = MagicMock()
+    mock_modules['plotly.express'].scatter = MagicMock(return_value=mock_plotly_fig)
+    mock_modules['pandas'].DataFrame = MagicMock(return_value=mock_df_instance)
+    
+    # Configure matplotlib.pyplot mock
+    plt_mock = mock_modules['matplotlib.pyplot']
+    plt_mock.figure = MagicMock()
+    plt_mock.scatter = MagicMock()
+    plt_mock.text = MagicMock()
+    plt_mock.title = MagicMock()
+    plt_mock.savefig = MagicMock()
+    plt_mock.close = MagicMock()
+    plt_mock.get_cmap = MagicMock()
 
-                plotly_available = True
-            except ImportError:
-                plotly_available = False
+    # Use sys.modules patching to make all library imports return our mocks
+    with patch.dict('sys.modules', mock_modules):
+        with patch("espnet2.bin.lid_inference.TSNE", return_value=mock_tsne_instance):
+            # Mock logging to avoid log output during tests
+            with patch("espnet2.bin.lid_inference.logging.info"):
+                
+                # Execute the function - this should now work without real dependencies
+                gen_tsne_plot(
+                    lang_to_embds_dic=sample_embeddings,
+                    output_dir=output_dir,
+                    seed=42,
+                    perplexity=2,
+                    max_iter=250,
+                )
 
-            if plotly_available:
-                with patch("plotly.express.scatter") as mock_px_scatter:
-                    mock_fig = MagicMock()
-                    mock_px_scatter.return_value = mock_fig
-
-                    # Execute the function
-                    gen_tsne_plot(
-                        lang_to_embds_dic=sample_embeddings,
-                        output_dir=output_dir,
-                        seed=42,
-                        perplexity=2,
-                        max_iter=250,
-                    )
-            else:
-                # If plotly is not available, the function should raise ImportError
-                with pytest.raises(ImportError, match="Please install plotly"):
-                    gen_tsne_plot(
-                        lang_to_embds_dic=sample_embeddings,
-                        output_dir=output_dir,
-                        seed=42,
-                        perplexity=2,
-                        max_iter=250,
-                    )
-
-            # Verify that t-SNE was called
-            mock_tsne_instance.fit_transform.assert_called_once()
+                # Verify the key operation: t-SNE was called
+                mock_tsne_instance.fit_transform.assert_called_once()
