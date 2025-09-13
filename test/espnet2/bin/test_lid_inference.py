@@ -127,43 +127,55 @@ def test_gen_tsne_plot(tmp_path, sample_embeddings):
         mock_tsne_instance = MagicMock()
         mock_tsne_instance.fit_transform.return_value = np.array(
             [
-                [1.0, 2.0], [3.0, 4.0], [5.0, 6.0], [7.0, 8.0], [9.0, 10.0],
-                [11.0, 12.0], [13.0, 14.0], [15.0, 16.0], [17.0, 18.0]
+                [1.0, 2.0],
+                [3.0, 4.0],
+                [5.0, 6.0],
+                [7.0, 8.0],
+                [9.0, 10.0],
+                [11.0, 12.0],
+                [13.0, 14.0],
+                [15.0, 16.0],
+                [17.0, 18.0],
             ]
         )
         mock_tsne_cls.return_value = mock_tsne_instance
-        
+
         # Create the output directory
         os.makedirs(output_dir, exist_ok=True)
-        
-        with patch("matplotlib.pyplot.figure"), \
-             patch("matplotlib.pyplot.scatter"), \
-             patch("matplotlib.pyplot.text"), \
-             patch("matplotlib.pyplot.title"), \
-             patch("matplotlib.pyplot.savefig"), \
-             patch("matplotlib.pyplot.close"), \
-             patch("matplotlib.pyplot.get_cmap"), \
-             patch("pandas.DataFrame") as mock_df_cls, \
-             patch("espnet2.bin.lid_inference.logging.info"):
-            
+
+        with patch("matplotlib.pyplot.figure"), patch(
+            "matplotlib.pyplot.scatter"
+        ), patch("matplotlib.pyplot.text"), patch("matplotlib.pyplot.title"), patch(
+            "matplotlib.pyplot.savefig"
+        ), patch(
+            "matplotlib.pyplot.close"
+        ), patch(
+            "matplotlib.pyplot.get_cmap"
+        ), patch(
+            "pandas.DataFrame"
+        ) as mock_df_cls, patch(
+            "espnet2.bin.lid_inference.logging.info"
+        ):
+
             # Mock pandas DataFrame and its methods
             mock_df_instance = MagicMock()
             mock_df_instance.to_csv = MagicMock()
             mock_df_instance.__getitem__ = MagicMock()
             mock_df_cls.return_value = mock_df_instance
-            
+
             # Try importing plotly to see if it's available
             try:
                 import plotly.express as px
+
                 plotly_available = True
             except ImportError:
                 plotly_available = False
-            
+
             if plotly_available:
                 with patch("plotly.express.scatter") as mock_px_scatter:
                     mock_fig = MagicMock()
                     mock_px_scatter.return_value = mock_fig
-                    
+
                     # Execute the function
                     gen_tsne_plot(
                         lang_to_embds_dic=sample_embeddings,
