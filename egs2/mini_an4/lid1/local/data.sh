@@ -13,6 +13,7 @@ SECONDS=0
 
 stage=1
 stop_stage=100
+python=python3
 
 an4_root=./downloads/an4
 
@@ -49,7 +50,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         exit 1
     fi
 
-    python3 local/data_prep_lid.py ${an4_root} sph2pipe
+    ${python} local/data_prep_lid.py ${an4_root} sph2pipe
 
     for x in test_minian4 train_minian4; do
         for f in wav.scp utt2lang; do

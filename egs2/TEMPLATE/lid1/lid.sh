@@ -235,6 +235,7 @@ if [ ${stage} -le 1  ] && [ ${stop_stage} -ge 1  ] && ! [[ " ${skip_stages} " =~
     # [Task dependent] Need to create data.sh for new corpus
     # Please prepare utt2lang, lang2utt, wav.scp, segments (optional)
     # for train/dev/test sets.
+    local_data_opts+="--python ${python} "
     local/data.sh ${local_data_opts}
     log "Stage 1 Complete."
 fi
@@ -250,7 +251,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ] && ! [[ " ${skip_stages} " =~ [
         mv "data/${train_set}/lang2utt" "data/${train_set}/spk2utt"
 
         for factor in ${speed_perturb_factors}; do
-            if ${python} -c "assert ${factor} != 1.0" 2>/dev/null; then
+            if [ "${factor}" != "1.0" ] && [ "${factor}" != "1" ]; then
                 local/perturb_lid_data_dir_speed.sh --utt_extra_files "${utt_extra_files}" "${factor}" "data/${train_set}" "data/${train_set}_sp${factor}" "${_scp_list}"
                 _dirs+="data/${train_set}_sp${factor} "
             else
@@ -514,7 +515,8 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
         ./local/prepare_ood_test.sh \
             --dump_dir ${data_feats} \
             --train_set ${train_set} \
-            --test_sets "${test_sets_ood}"
+            --test_sets "${test_sets_ood}" \
+            --python "${python}"
     fi
 
     inference_model_name="${inference_model%.pth}"
@@ -577,7 +579,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
         target_lids="${data_feats}/${test_set}/utt2lang"
         results="${infer_exp}/results"
 
-        python ./local/score.py \
+        ${python} ./local/score.py \
             --pred_lids "${pred_lids}" \
             --target_lids "${target_lids}" \
             --results "${results}"
