@@ -69,18 +69,18 @@ def tokenize(
     This function utilizes the ESPnet tokenizer to process a given input text file,
     tokenize its contents, and save the results to an output file. Additionally,
     it can optionally write a vocabulary file and allows for the inclusion of
-    special symbols such as blank tokens, out - of - vocabulary tokens, and start / end
+    special symbols such as blank tokens, out-of-vocabulary tokens, and start/end
     of sentence tokens.
 
     Args:
-        input(str): Path to the input text file to be tokenized.
-        output(str): Path to the output file where the tokenized text will be saved.
-        write_vocabulary(bool, optional): Whether to write the vocabulary to a file.
+        input (str): Path to the input text file to be tokenized.
+        output (str): Path to the output file where the tokenized text will be saved.
+        write_vocabulary (bool, optional): Whether to write the vocabulary to a file.
             Defaults to True.
-        blank(str, optional): Symbol to represent blank tokens. Defaults to "<blank>".
-        oov(str, optional): Symbol to represent out - of - vocabulary tokens.
+        blank (str, optional): Symbol to represent blank tokens. Defaults to "<blank>".
+        oov (str, optional): Symbol to represent out-of-vocabulary tokens.
             Defaults to "<unk>".
-        sos_eos(str, optional): Symbol to represent start and end of sentence tokens.
+        sos_eos (str, optional): Symbol to represent start and end of sentence tokens.
             Defaults to "<sos/eos>".
         **kwargs: Additional keyword arguments to customize the tokenizer behavior.
 
