@@ -119,7 +119,7 @@ def _generate_docstring_ollama(code_snippet, element_type, model, ip):
     }
     headers = {"Content-Type": "application/json"}
 
-    response = requests.post(url, headers=headers, json=payload, timeout=60)
+    response = requests.post(url, headers=headers, json=payload, timeout=120)
     response.raise_for_status()
     result = response.json()
     return result.get("message", {}).get(
