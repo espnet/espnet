@@ -321,7 +321,7 @@ def main():
 
         # calculate statistics
         mean_vuv_err = np.mean(np.array([v for v in vuv_err_dict.values()]))
-        logging.info(f"Average - VUV_ERROR: {mean_vuv_err*100:.2f}%")
+        logging.info(f"Average - VUV_ERROR: {mean_vuv_err * 100:.2f}%")
 
     # write results
     if args.outdir is None:
@@ -333,10 +333,10 @@ def main():
     with open(f"{args.outdir}/utt2vuv_error", "w") as f:
         for utt_id in sorted(vuv_err_dict.keys()):
             vuv_ERR = vuv_err_dict[utt_id]
-            f.write(f"{utt_id} {vuv_ERR*100:.2f}%\n")
+            f.write(f"{utt_id} {vuv_ERR * 100:.2f}%\n")
     with open(f"{args.outdir}/vuv_error_avg_result.txt", "w") as f:
         f.write(f"#utterances: {len(gen_files)}\n")
-        f.write(f"Average: {mean_vuv_err*100:.2f}%")
+        f.write(f"Average: {mean_vuv_err * 100:.2f}%")
 
     logging.info("Successfully finished VUV error evaluation.")
 

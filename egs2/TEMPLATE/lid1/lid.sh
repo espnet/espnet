@@ -71,7 +71,7 @@ ignore_init_mismatch=false      # Ignore initial mismatch
 inference_model=valid.loss.best.pth  # Inference model weight file
 inference_batch_size=1
 extract_embd=false             # Whether to extract embeddings per utt
-save_every=1000                # Save every N steps
+checkpoint_interval=1000       # Save checkpoint every N utterances during inference
 max_utt_per_lang_for_tsne=1000 # Maximum number of utterances per language for t-SNE visualization
 perplexity=5                   # The perplexity for t-SNE
 max_iter=1000                  # The maximum number of iterations for t-SNE
@@ -134,7 +134,7 @@ Options:
     inference_model=      # Inference model weight file
     inference_batch_size= # Inference batch size
     extract_embd=         # Whether to extract embeddings or not
-    save_every=           # Save every N steps
+    checkpoint_interval=  # Save checkpoint every N utterances during inference
     max_utt_per_lang_for_tsne=1000 # Maximum number of utterances per language for t-SNE visualization
     perplexity=5                   # The perplexity for t-SNE
     max_iter=1000                  # The maximum number of iterations for t-SNE
@@ -554,7 +554,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
                 --fix_duration false \
                 --num_workers ${nj} \
                 --extract_embd ${extract_embd} \
-                --save_every ${save_every} \
+                --checkpoint_interval ${checkpoint_interval} \
                 --resume true \
                 --save_embd_per_utt true \
                 --save_embd_avg_lang false \
@@ -622,7 +622,7 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
             --fix_duration false \
             --num_workers ${nj} \
             --extract_embd true \
-            --save_every 1000 \
+            --checkpoint_interval ${checkpoint_interval} \
             --resume true \
             --save_embd_per_utt false \
             --save_embd_avg_lang true \

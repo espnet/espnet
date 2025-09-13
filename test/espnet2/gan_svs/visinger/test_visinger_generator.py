@@ -123,11 +123,11 @@ def test_vits_generator_forward(model_dict):
     for i, output in enumerate(outputs):
         if not isinstance(output, tuple):
             if output is not None:
-                print(f"{i+1}: {output.shape}")
+                print(f"{i + 1}: {output.shape}")
         else:
             for j, output_ in enumerate(output):
                 if output_ is not None:
-                    print(f"{i+j+1}: {output_.shape}")
+                    print(f"{i + j + 1}: {output_.shape}")
 
     # check inference
     inputs = dict(
@@ -183,11 +183,11 @@ def test_vits_generator_forward(model_dict):
     for i, output in enumerate(outputs):
         if not isinstance(output, tuple):
             if output is not None:
-                print(f"{i+1}: {output.shape}")
+                print(f"{i + 1}: {output.shape}")
         else:
             for j, output_ in enumerate(output):
                 if output_ is not None:
-                    print(f"{i+j+1}: {output_.shape}")
+                    print(f"{i + j + 1}: {output_.shape}")
 
     # check inference with teacher forcing
     inputs = dict(
@@ -310,11 +310,11 @@ def test_multi_speaker_vits_generator_forward(model_dict):
     for i, output in enumerate(outputs):
         if not isinstance(output, tuple):
             if output is not None:
-                print(f"{i+1}: {output.shape}")
+                print(f"{i + 1}: {output.shape}")
         else:
             for j, output_ in enumerate(output):
                 if output_ is not None:
-                    print(f"{i+j+1}: {output_.shape}")
+                    print(f"{i + j + 1}: {output_.shape}")
 
     # check inference
     inputs = dict(
@@ -371,11 +371,11 @@ def test_multi_speaker_vits_generator_forward(model_dict):
     for i, output in enumerate(outputs):
         if not isinstance(output, tuple):
             if output is not None:
-                print(f"{i+1}: {output.shape}")
+                print(f"{i + 1}: {output.shape}")
         else:
             for j, output_ in enumerate(output):
                 if output_ is not None:
-                    print(f"{i+j+1}: {output_.shape}")
+                    print(f"{i + j + 1}: {output_.shape}")
 
     # check inference with teacher forcing
     inputs = dict(

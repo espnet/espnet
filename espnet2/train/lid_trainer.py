@@ -37,7 +37,7 @@ class LIDTrainer(Trainer):
         custom_bs: int,
         idx2lang: Dict[int, str],
         extract_embd: bool = False,
-        save_every: int = 1000,
+        checkpoint_interval: int = 1000,
         resume: bool = True,
         lang_to_embds_dic: Dict[str, List[np.ndarray]] = None,
         save_embd_per_utt: bool = False,
@@ -52,7 +52,8 @@ class LIDTrainer(Trainer):
 
         lang_embd_dic: {utt_id: lang_embd}, the language embedding for a specific
         utterance, this is used for temporary saving the language embedding of each
-        utterance, and will be written to the dist every `save_every` utterances.
+        utterance, and will be written to the disk every `checkpoint_interval`
+        utterances.
         lang_to_embds_dic: {lang: [utt1 embd, utt1 embd ...]}, the language embedding
         for the utterances corresponding to each language, if set `extract_embd` to
         True, this will be defaultly used, this will not be written to the dist, but
@@ -64,15 +65,16 @@ class LIDTrainer(Trainer):
                                 predicted language ID.
         - lang_embd_dic (optional): {utt_id: lang_embd}, temporary in-memory
                                     storage of per-utterance language embeddings.
-                                    Saved to disk every `save_every` utterances if
-                                    `save_embd_per_utt=True`.
+                                    Saved to disk every `checkpoint_interval`
+                                    utterances if `save_embd_per_utt=True`.
         - lang_to_embds_dic (optional): {lang: [embd_utt1, embd_utt2, ...]},
-                                        mapping from language ID to a list of embeddings
-                                        from all utterances predicted or labeled with
-                                        that language. This is not written to disk by
-                                        this function, but is used downstream
-                                        (e.g., in `bin/lid_inference.py`) for
-                                        computing language-level average embeddings or
+                                        mapping from language ID to a list of
+                                        embeddings from all utterances predicted
+                                        or labeled with that language. This is
+                                        not written to disk by this function, but
+                                        is used downstream (e.g., in
+                                        `bin/lid_inference.py`) for computing
+                                        language-level average embeddings or
                                         generating t-SNE visualizations.
 
         Notes:
@@ -80,8 +82,8 @@ class LIDTrainer(Trainer):
         - The function supports distributed inference using torch.distributed.
         - Supports resume functionality by skipping already processed utterances
           based on existing output files.
-        - Limits the number of utterances per language if `max_num_utt_per_lang` is
-          specified.
+        - Limits the number of utterances per language if `max_num_utt_per_lang`
+          is specified.
         """
         # Extract language embedding and lids.
         ngpu = options.ngpu
@@ -145,11 +147,11 @@ class LIDTrainer(Trainer):
             ):
                 if resume:
                     if _utt_id in skip_utts:
-                        if num_recheck % save_every == 0 and num_recheck > 0:
+                        if num_recheck % checkpoint_interval == 0 and num_recheck > 0:
                             step += 1
                             logging.info(
                                 f"[Rank {rank}] Skip utterance "
-                                f"{num_recheck - save_every}-{num_recheck}."
+                                f"{num_recheck - checkpoint_interval}-{num_recheck}."
                             )
                         num_recheck += 1
                         continue
@@ -231,8 +233,8 @@ class LIDTrainer(Trainer):
 
                             lang_id_dic[uid] = _pred_lid
 
-                        # save every `save_every` utterances
-                        if len(lang_id_dic) >= save_every:
+                        # save every `checkpoint_interval` utterances
+                        if len(lang_id_dic) >= checkpoint_interval:
                             if extract_embd and save_embd_per_utt:
                                 # save each middle step results to different files
                                 np.savez(

@@ -181,8 +181,8 @@ def process_utterance(
         cmd = (
             f"sox -t wav -r 48000 -b 16 -c 1 -L -e signed-integer "
             f"{os.path.join(audio_dir, label_id)}.wav -c 1 -t wavpcm -b 16 -r {tgt_sr} "
-            f"{os.path.join(wav_dumpdir, 'jsut_song_'+label_id+'_'+seg[0])}.wav "
-            f"trim {float(seg[1] / 1e7)} {float((seg[2]-seg[1]) / 1e7)}"
+            f"{os.path.join(wav_dumpdir, 'jsut_song_' + label_id + '_' + seg[0])}.wav "
+            f"trim {float(seg[1] / 1e7)} {float((seg[2] - seg[1]) / 1e7)}"
         )
         os.system(cmd)
 

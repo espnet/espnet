@@ -23,7 +23,7 @@ if __name__ == "__main__":
     with open(os.path.join(ROOT_DATA_DIR, TRAIN_FILES)) as f:
         train_meta = json.load(f)
         all_train_ids = train_meta["audiocap_ids"]
-    assert all_train_ids is not None, f"Could not read {ROOT_DATA_DIR/TRAIN_FILES}"
+    assert all_train_ids is not None, f"Could not read {ROOT_DATA_DIR / TRAIN_FILES}"
 
     output_wav_scp_path = os.path.join(LOCAL_DATA_DIR, "wav.scp")
     output_utt2spk_path = os.path.join(LOCAL_DATA_DIR, "utt2spk")

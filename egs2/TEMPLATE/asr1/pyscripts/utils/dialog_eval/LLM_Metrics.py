@@ -169,7 +169,7 @@ def bert_score(
         bert_model,
         bert_tokenizer,
     )
-    return f"Cosine Similarity: {similarity*100:.2f}" + "\n"
+    return f"Cosine Similarity: {similarity * 100:.2f}" + "\n"
 
 
 def DialoGPT_perplexity(

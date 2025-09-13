@@ -364,7 +364,7 @@ with (
         print(f"{uttid} dummy", file=utt2spk_f)
         N_PROCESSED += 1
         if (i + 1) % 1000 == 0:
-            print(f"Processed {i+1} mixup samples.")
+            print(f"Processed {i + 1} mixup samples.")
 
 print(f"Number of files skipped {N_ERROR}")
 print(f"Number of files processed {N_PROCESSED}")

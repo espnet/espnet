@@ -586,7 +586,7 @@ class S2STTask(STTask):
             else:
                 raise RuntimeError("token_list must be str or list")
             tgt_vocab_size = len(tgt_token_list)
-            logging.info(f"Target Vocabulary size: {tgt_vocab_size }")
+            logging.info(f"Target Vocabulary size: {tgt_vocab_size}")
         else:
             tgt_token_list, tgt_vocab_size = None, None
 
@@ -602,7 +602,7 @@ class S2STTask(STTask):
             else:
                 raise RuntimeError("token_list must be str or list")
             src_vocab_size = len(src_token_list)
-            logging.info(f"Source vocabulary size: {src_vocab_size }")
+            logging.info(f"Source vocabulary size: {src_vocab_size}")
         else:
             src_token_list, src_vocab_size = None, None
 
@@ -618,7 +618,7 @@ class S2STTask(STTask):
             else:
                 raise RuntimeError("token_list must be str or list")
             unit_vocab_size = len(unit_token_list)
-            logging.info(f"Discrete unit vocabulary size: {unit_vocab_size }")
+            logging.info(f"Discrete unit vocabulary size: {unit_vocab_size}")
         else:
             unit_token_list, unit_vocab_size = None, None
 

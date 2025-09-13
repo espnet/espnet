@@ -360,7 +360,7 @@ class ASRTransducerTask(AbsTask):
                 "warmup_steps", 25000
             )
 
-        logging.info(f"Vocabulary size: {vocab_size }")
+        logging.info(f"Vocabulary size: {vocab_size}")
 
         # 1. frontend
         if args.input_size is None:

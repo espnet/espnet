@@ -184,7 +184,7 @@ def extract_embed_lid(args):
             custom_bs=custom_bs,
             idx2lang=idx2lang,
             extract_embd=args.extract_embd,  # default False
-            save_every=args.save_every,
+            checkpoint_interval=args.checkpoint_interval,
             resume=args.resume,
             lang_to_embds_dic=lang_to_embds_dic,
             save_embd_per_utt=args.save_embd_per_utt,
@@ -834,10 +834,10 @@ def get_parser():
         help="Apply preprocessing to data or not",
     )
     group.add_argument(
-        "--save_every",
+        "--checkpoint_interval",
         type=int,
         default=1000,
-        help="Save every N data samples for checkpoint",
+        help="Save checkpoint every N utterances for resume functionality",
     )
     group.add_argument(
         "--resume",

@@ -159,7 +159,7 @@ def reorder_refs_or_hyps(result_dir, num_spkrs, all_keys, hyp_or_ref=None, perms
             # todo: clean this part, because sclite turn all ids in to lower characters.
             assert key.lower() == all_keys[idx].lower()
             for i in range(num_spkrs):
-                f.write(orig_trns[perm[i]][key] + f"\t({key}-{i+1})" + "\n")
+                f.write(orig_trns[perm[i]][key] + f"\t({key}-{i + 1})" + "\n")
 
 
 def main(args):

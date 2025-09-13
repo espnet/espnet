@@ -459,7 +459,7 @@ class S2TTask(AbsTask):
             raise RuntimeError("token_list must be str or list")
 
         vocab_size = len(token_list)
-        logging.info(f"Vocabulary size: {vocab_size }")
+        logging.info(f"Vocabulary size: {vocab_size}")
 
         # 1. frontend
         if args.input_size is None:

@@ -178,7 +178,7 @@ if __name__ == "__main__":
             )
             output_filename = (
                 f"{speech_basename}"
-                + f"_{i_sample//NB_SAMPLES_PER_ROOM}_{t60_real:.2f}_{drr:.1f}.wav"
+                + f"_{i_sample // NB_SAMPLES_PER_ROOM}_{t60_real:.2f}_{drr:.1f}.wav"
             )
 
             sf.write(
