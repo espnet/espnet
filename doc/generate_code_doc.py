@@ -45,6 +45,7 @@ flake8 --select D100,D101,D102,D103 . | python doc_generator.py \
 ```
 
 """
+
 import argparse
 import ast
 import json
@@ -97,7 +98,7 @@ def _generate_docstring_gemini(code_snippet, element_type, api_key):
 
 def _generate_docstring_ollama(code_snippet, element_type, model, ip):
     """Handles API call to an Ollama server."""
-    url = f"{ip}/api/generate"
+    url = f"{ip}/api/chat"
     system_prompt = (
         "You are a helpful expert Python programmer. Your task is to write a "
         "high-quality docstring for a given Python code snippet. Follow the "
@@ -109,17 +110,21 @@ def _generate_docstring_ollama(code_snippet, element_type, model, ip):
 
     payload = {
         "model": model,
-        "system": system_prompt,
-        "prompt": user_prompt,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
         "stream": False,
+        "temperature": 0.7,
     }
     headers = {"Content-Type": "application/json"}
 
     response = requests.post(url, headers=headers, json=payload, timeout=60)
     response.raise_for_status()
     result = response.json()
-    return result.get(
-        "response", "Error: Could not extract 'response' from Ollama result."
+    return result.get("message", {}).get(
+        "content",
+        "Error: Could not extract 'response' from Ollama result."
     )
 
 
@@ -143,10 +148,7 @@ def _generate_docstring_openai_v1(code_snippet, element_type, model, ip, api_key
             {"role": "user", "content": user_prompt},
         ],
     }
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {api_key}"
-    }
+    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"}
 
     response = requests.post(url, headers=headers, json=payload, timeout=60)
     response.raise_for_status()
@@ -248,11 +250,7 @@ def find_element_at_line(file_path, line_number):
         tree = ast.parse(source_code)
 
         for node in ast.walk(tree):
-            if isinstance(node, (
-                ast.FunctionDef,
-                ast.AsyncFunctionDef,
-                ast.ClassDef
-            )):
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
                 if node.lineno == line_number:
                     return {"node": node, "source_code": source_code}
     except Exception as e:
@@ -301,6 +299,51 @@ def add_docstring_to_file(file_path, node, docstring):
         return False
 
 
+def add_module_docstring_to_file(file_path, docstring):
+    """Inserts a module-level docstring at the top of a Python file."""
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            original_lines = f.readlines()
+
+        # Format the docstring for file insertion
+        docstring_lines = docstring.strip().split("\n")
+        if len(docstring_lines) == 1:
+            # Add extra newline for separation
+            formatted_docstring = f'"""{docstring_lines[0]}"""\n\n'
+        else:
+            formatted_lines = [f'"""{docstring_lines[0]}']
+            formatted_lines.extend(docstring_lines[1:])
+            formatted_lines.append('"""')
+            # Add extra newline for separation
+            formatted_docstring = "\n".join(formatted_lines) + "\n\n"
+
+        # Find where to insert the docstring (after any shebang or encoding
+        # declarations)
+        insertion_index = 0
+        for i, line in enumerate(original_lines):
+            stripped_line = line.strip()
+            if stripped_line.startswith("#!/") or (
+                stripped_line.startswith("#") and "coding" in stripped_line
+            ):
+                insertion_index = i + 1
+            elif stripped_line:
+                # Stop at the first line of actual code or import
+                break
+
+        # Insert the formatted docstring
+        original_lines.insert(insertion_index, formatted_docstring)
+
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.writelines(original_lines)
+
+        print(f"  - Successfully added module docstring to: {file_path}")
+        return True
+
+    except Exception as e:
+        print(f"  - Error updating module docstring for {file_path}: {e}")
+        return False
+
+
 def main(args):
     """Main processing loop to read from stdin and patch files."""
     print("Reading flake8 output from stdin...")
@@ -315,29 +358,61 @@ def main(args):
     for error in flake8_errors:
         file_path = error["file_path"]
         line_num = error["line"]
-        print(f"\nProcessing error in {file_path} at line {line_num}")
+        print(f"\nProcessing error {error['error']} in {file_path} at line {line_num}")
 
-        element_info = find_element_at_line(file_path, line_num)
+        generated_docstring = None
+        node_for_update = None  # Stores the AST node for function/class updates
 
-        if not element_info:
-            print(
-                f"  - Could not find a class/function at line {line_num}. Skipping."
+        if error["error"] == "D100":
+            # Handle missing module docstring
+            try:
+                with open(file_path, "r", encoding="utf-8") as f:
+                    source_code = f.read()
+
+                if not source_code.strip():
+                    print(f"  - Skipping empty file: {file_path}")
+                    continue
+
+                # Safeguard: check if a docstring already exists.
+                if ast.get_docstring(ast.parse(source_code)):
+                    print("  - Module already has a docstring. Skipping.")
+                    continue
+
+                generated_docstring = generate_docstring_with_llm(
+                    source_code, "Module", args
+                )
+            except Exception as e:
+                print(f"  - An error occurred while processing module {file_path}: {e}")
+                continue
+        else:
+            # Handle missing class/function/method docstring
+            element_info = find_element_at_line(file_path, line_num)
+
+            if not element_info:
+                print(
+                    f"  - Could not find a class/function at line {line_num}. Skipping."
+                )
+                continue
+
+            node_for_update = element_info["node"]
+            source_code = element_info["source_code"]
+
+            element_code = get_code_snippet(source_code, node_for_update)
+            element_type = (
+                "Class" if isinstance(node_for_update, ast.ClassDef) else "Function"
             )
-            continue
+            generated_docstring = generate_docstring_with_llm(
+                element_code, element_type, args
+            )
 
-        node = element_info["node"]
-        source_code = element_info["source_code"]
-
-        element_code = get_code_snippet(source_code, node)
-        element_type = "Class" if isinstance(node, ast.ClassDef) else "Function"
-
-        generated_docstring = generate_docstring_with_llm(
-            element_code, element_type, args
-        )
-
-        if "Error" in generated_docstring or "Skipped" in generated_docstring:
+        if (
+            not generated_docstring
+            or "Error" in generated_docstring
+            or "Skipped" in generated_docstring
+        ):
             print(
-                f"  - Failed to generate docstring for {node.name}. Skipping update."
+                f"  - Failed to generate a valid docstring for {file_path}. "
+                "Skipping update."
             )
             continue
 
@@ -348,7 +423,15 @@ def main(args):
 
         if args.apply_changes:
             print(f"-> Applying changes to {file_path}...")
-            add_docstring_to_file(file_path, node, generated_docstring)
+            if error["error"] == "D100":
+                add_module_docstring_to_file(file_path, generated_docstring)
+            elif node_for_update:
+                add_docstring_to_file(file_path, node_for_update, generated_docstring)
+            else:
+                print(
+                    f"  - Could not apply changes for {file_path} due to "
+                    "missing element info."
+                )
         else:
             print(
                 "-> In dry-run mode. To apply changes, run with the "
