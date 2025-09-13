@@ -361,7 +361,7 @@ def main(args):
     flake8_errors = list(parse_flake8_input(sys.stdin))
 
     if not flake8_errors:
-        print("No missing docstring errors (D100-D103) found in flake8 output.")
+        print("No missing docstring errors (D100-D107) found in flake8 output.")
         return
 
     print(f"Found {len(flake8_errors)} missing docstring errors. Processing...")
@@ -374,29 +374,30 @@ def main(args):
         generated_docstring = None
         node_for_update = None  # Stores the AST node for function/class updates
 
-        if error["error"] == "D100":
-            # Handle missing module docstring
+        if error["error"] == ['D100', 'D104']:
+            # Handle missing module/package docstring
             try:
                 with open(file_path, "r", encoding="utf-8") as f:
                     source_code = f.read()
 
-                if not source_code.strip():
-                    print(f"  - Skipping empty file: {file_path}")
+                if not source_code.strip() and file_path.endswith('__init__.py'):
+                    print(f"  - Skipping empty __init__.py file: {file_path}")
                     continue
 
                 # Safeguard: check if a docstring already exists.
                 if ast.get_docstring(ast.parse(source_code)):
-                    print("  - Module already has a docstring. Skipping.")
+                    print("  - Module/Package already has a docstring. Skipping.")
                     continue
 
+                element_type = "Package" if error['error'] == 'D104' else "Module"
                 generated_docstring = generate_docstring_with_llm(
-                    source_code, "Module", args
+                    source_code, element_type, args
                 )
             except Exception as e:
-                print(f"  - An error occurred while processing module {file_path}: {e}")
+                print(f"  - An error occurred while processing module/package {file_path}: {e}")
                 continue
         else:
-            # Handle missing class/function/method docstring
+            # Handle missing class/function/method docstring (D101, D102, D103, D105, D106, D107)
             element_info = find_element_at_line(file_path, line_num)
 
             if not element_info:
@@ -421,11 +422,12 @@ def main(args):
             or "Error" in generated_docstring
             or "Skipped" in generated_docstring
         ):
-            print(generated_docstring)
             print(
                 f"  - Failed to generate a valid docstring for {file_path}. "
                 "Skipping update."
             )
+            print("Failed docstring:")
+            print(generated_docstring)
             continue
 
         print("-" * 20 + " Generated Docstring " + "-" * 15)
