@@ -92,7 +92,6 @@ task-tts = [
   "g2p_en @ git+https://github.com/espnet/g2p.git@master",
   "jamo==0.4.1",
   "jaconv",
-  "underthesea",
 ]
 
 task-enh = [
