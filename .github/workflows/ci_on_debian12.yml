@@ -45,4 +45,4 @@ jobs:
       - name: test python
         run: |
           ./ci/test_python_espnet2.sh
-          ./ci/test_python_espnetez.sh
+          ./ci/test_python_espnet3.sh
