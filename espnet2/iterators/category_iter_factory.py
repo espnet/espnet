@@ -1,6 +1,6 @@
 import random
 from functools import partial
-from typing import Any, Sequence, Union, Optional
+from typing import Any, Optional, Sequence, Union
 
 import numpy as np
 import torch
@@ -10,7 +10,10 @@ from typeguard import typechecked
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
 from espnet2.samplers.abs_sampler import AbsSampler
 from espnet2.samplers.category_balanced_sampler import CategoryBalancedSampler
-from espnet2.samplers.category_power_sampler import CategoryPowerSampler, CategoryDatasetPowerSampler
+from espnet2.samplers.category_power_sampler import (
+    CategoryDatasetPowerSampler,
+    CategoryPowerSampler,
+)
 
 
 def worker_init_fn(worker_id, base_seed=0):
@@ -53,7 +56,7 @@ class CategoryIterFactory(AbsIterFactory):
         num_iters_per_epoch: Optional[int] = None,
         seed: int = 0,
         sampler_args: dict = None,
-        batch_type: str = "catbel", # or "catpow", "catpow_dataset"
+        batch_type: str = "catbel",  # or "catpow", "catpow_dataset"
         shuffle: bool = False,
         num_workers: int = 0,
         collate_fn=None,
@@ -91,7 +94,7 @@ class CategoryIterFactory(AbsIterFactory):
                 batch_sampler = CategoryDatasetPowerSampler(**self.sampler_args)
             else:
                 raise ValueError(f"Unsupported batch_type: {self.batch_type}")
-            
+
             batches = list(batch_sampler)
 
             if self.sampler_args["num_batches"] is not None:
