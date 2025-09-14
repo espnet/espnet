@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-echo "=== run integration tests at test_utils ==="
+echo "=== run unit tests at test_utils ==="
 
 PATH=$(pwd)/test_utils/bats-core/bin:$PATH
 if ! [ -x "$(command -v bats)" ]; then
@@ -9,7 +9,7 @@ if ! [ -x "$(command -v bats)" ]; then
     git clone https://github.com/bats-core/bats-support.git "$(pwd)"/test_utils/bats-support
     git clone https://github.com/bats-core/bats-assert.git "$(pwd)"/test_utils/bats-assert
 fi
-bats test_utils/integration_test_*.bats
+bats test_utils/test_*.bats
 
 echo "=== report ==="
 
