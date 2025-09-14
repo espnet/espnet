@@ -76,8 +76,9 @@ def score(pred_file, target_file, train_lang2utt, results_file):
 
     accuracy = correct / total
     accuracy_per_lang = {
-        lang: lang_correct[lang] / lang_total[lang] 
-        for lang in target_langs if lang_total[lang] > 0
+        lang: lang_correct[lang] / lang_total[lang]
+        for lang in target_langs
+        if lang_total[lang] > 0
     }
     macro_accuracy = sum(accuracy_per_lang.values()) / len(target_langs)
 
@@ -184,9 +185,7 @@ if __name__ == "__main__":
         "--target_lids", required=True, help="Path to the target (ground-truth) lids."
     )
     parser.add_argument(
-        "--train_lang2utt",
-        required=True,
-        help="Path to the train lang2utt."
+        "--train_lang2utt", required=True, help="Path to the train lang2utt."
     )
     parser.add_argument("--results", required=True, help="Path to the results file.")
     args = parser.parse_args()

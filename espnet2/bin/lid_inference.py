@@ -242,7 +242,9 @@ def extract_embed_lid(args):
 
             if distributed_option.distributed:
                 # Merge lang_to_embds_dic of all processes
-                merged_lang_to_embds_dic = {lang_id: [] for lang_id in idx2lang.values()}
+                merged_lang_to_embds_dic = {
+                    lang_id: [] for lang_id in idx2lang.values()
+                }
                 for rank in range(distributed_option.dist_world_size):
                     npz_path = f"{args.output_dir}/lang_to_embds_dic_rank{rank}.npz"
                     if not os.path.exists(npz_path):
@@ -285,7 +287,9 @@ def extract_embed_lid(args):
                     avg_embd = np.mean(
                         embds_array, axis=0
                     )  # Compute mean along the first axis
-                    avg_embd = F.normalize(torch.from_numpy(avg_embd), p=2, dim=0).numpy()
+                    avg_embd = F.normalize(
+                        torch.from_numpy(avg_embd), p=2, dim=0
+                    ).numpy()
                     lang_to_avg_embd_dic[lang_id] = avg_embd
                 np.savez(
                     f"{args.output_dir}/{set_name}_lang_to_avg_embd",
@@ -383,24 +387,28 @@ def gen_tsne_plot(
 
     try:
         from adjustText import adjust_text
+
         has_adjust_text = True
     except ImportError:
         logging.warning("Please install adjustText: pip install adjustText")
         has_adjust_text = False
     try:
         import plotly.express as px
+
         has_px = True
     except ImportError:
         logging.warning("Please install plotly: pip install plotly")
         has_px = False
     try:
         import matplotlib.pyplot as plt
+
         has_plt = True
     except ImportError:
         logging.warning("Please install matplotlib: pip install matplotlib")
         has_plt = False
     try:
         import pandas as pd
+
         has_pd = True
     except ImportError:
         logging.warning("Please install pandas: pip install pandas")
@@ -539,13 +547,12 @@ def gen_tsne_plot(
                         tsne_results[i, 1],
                         label,
                         fontsize=8,
-                        alpha=0.8
+                        alpha=0.8,
                     )
                 )
             if has_adjust_text:
                 adjust_text(
-                    texts,
-                    arrowprops=dict(arrowstyle="->", color="gray", lw=0.5)
+                    texts, arrowprops=dict(arrowstyle="->", color="gray", lw=0.5)
                 )
             else:
                 logging.warning(
@@ -577,7 +584,6 @@ def gen_tsne_plot(
         df.to_csv(f"{output_dir}/tsne_results_{plot_name}.csv", index=False)
     else:
         logging.warning("Missing pandas, skipping saving t-SNE results to CSV.")
-    
 
     if has_plt and has_px and df is not None:
         # ========== Plotly Interactive Visualization ==========
