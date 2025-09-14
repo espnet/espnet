@@ -1,0 +1,1 @@
+../../TEMPLATE/lid1/path.sh
