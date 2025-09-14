@@ -117,7 +117,7 @@ def rename(currentdir, key, newkey):
     )
     os.system(f"mv {currentdir}/wav.scp.tmp {currentdir}/wav.scp")
     for i in range(32):
-        formatdir = f"{currentdir}/data/format.{i+1}"
+        formatdir = f"{currentdir}/data/format.{i + 1}"
         os.system(
             f"sed 's|{key}|{newkey}|g' {formatdir}/wav.scp > {formatdir}/wav.scp.tmp"
         )
@@ -138,14 +138,14 @@ def genwav(olddir, currentdir, nsplit=32):
         )
     )
     for i in range(nsplit):
-        formatdir = f"{currentdir}/data/format.{i+1}"
+        formatdir = f"{currentdir}/data/format.{i + 1}"
         os.system(f"mkdir {formatdir}")
         os.system(f"mv {currentdir}/data/wav.{i:02d} {formatdir}/wav.scp")
         os.system(f"mv {currentdir}/data/samples.{i:02d} {formatdir}/utt2num_samples")
 
     # 2. In each split, get new data_wav.ark and wav.scp
     for i in tqdm(range(nsplit)):
-        formatdir = f"{currentdir}/data/format.{i+1}"
+        formatdir = f"{currentdir}/data/format.{i + 1}"
         os.system(
             f"sed 's|dump/raw|{olddir}|g' {formatdir}/wav.scp > {formatdir}/wav.scp.tmp"
         )
@@ -161,7 +161,7 @@ def genwav(olddir, currentdir, nsplit=32):
     # 3. Update wav.scp by combining wav.scp in data/format.1~nsplit
     os.system(f"rm {currentdir}/wav.scp")
     for i in range(nsplit):
-        formatdir = f"{currentdir}/data/format.{i+1}"
+        formatdir = f"{currentdir}/data/format.{i + 1}"
         os.system(f"cat {formatdir}/wav.scp >> {currentdir}/wav.scp")
 
     print(f"Finished!")

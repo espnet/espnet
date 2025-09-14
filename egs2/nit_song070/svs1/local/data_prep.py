@@ -198,11 +198,12 @@ def process_utterance(
         utt2spk.write("nit_song070_{}_{} {}\n".format(label_id, seg[0], "onit_song070"))
 
         # apply bit convert, there is a known issue in direct convert in format wavscp
+        tgt_fn = os.path.join(wav_dumpdir, "nit_song070_" + label_id + "_" + seg[0])
         cmd = (
             f"sox -t raw -r 48000 -b 16 -c 1 -L -e signed-integer "
-            f"{os.path.join(audio_dir, label_id)}.raw -c 1 -t wavpcm -b 16 -r {tgt_sr} "
-            f"{os.path.join(wav_dumpdir, 'nit_song070_'+label_id+'_'+seg[0])}.wav "
-            f"trim {float(seg[1] / 1e7)} {float((seg[2]-seg[1]) / 1e7)}"
+            f"{os.path.join(audio_dir, label_id)}.raw -c 1 -t wavpcm -b 16 "
+            f"-r {tgt_sr} {tgt_fn}.wav "
+            f"trim {float(seg[1] / 1e7)} {float((seg[2] - seg[1]) / 1e7)}"
         )
         os.system(cmd)
 

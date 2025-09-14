@@ -37,7 +37,7 @@ jobs:
       max-parallel: 20
       matrix:
         os: [ubuntu-latest]
-        python-version: ["3.10", "3.11"]
+        python-version: ["3.10", "3.12"]
         pytorch-version: [2.5.1, 2.6.0, 2.7.1, 2.8.0]
         chainer-version: [6.0.0]
         use-conda: [false]
@@ -55,7 +55,7 @@ jobs:
         run: |
           sudo apt-get update -qq
           # NOTE(kamo): g++-7 doesn't exist in ubuntu-latest
-          sudo apt-get install -qq -y cmake libsndfile1-dev bc sox ffmpeg
+          sudo apt-get install -qq -y cmake libsndfile1-dev bc sox ffmpeg libjpeg-dev
       - name: Get PR labels
         id: pr-labels
         uses: joerick/pr-labels-action@v1.0.9
@@ -113,7 +113,7 @@ jobs:
       max-parallel: 20
       matrix:
         os: [ubuntu-latest]
-        python-version: ["3.10", "3.11"]
+        python-version: ["3.10", "3.12"]
         pytorch-version: [2.5.1, 2.6.0, 2.7.1, 2.8.0]
         chainer-version: [6.0.0]
         use-conda: [false]
@@ -131,7 +131,7 @@ jobs:
         run: |
           sudo apt-get update -qq
           # NOTE(kamo): g++-7 doesn't exist in ubuntu-latest
-          sudo apt-get install -qq -y cmake libsndfile1-dev bc sox ffmpeg
+          sudo apt-get install -qq -y cmake libsndfile1-dev bc sox ffmpeg libjpeg-dev
       - name: Get PR labels
         id: pr-labels
         uses: joerick/pr-labels-action@v1.0.9
@@ -150,7 +150,7 @@ jobs:
       #     ./ci/test_shell_espnet2.sh
 
       - name: test python
-        run: ./ci/test_python_espnetez.sh
+        run: ./ci/test_python_espnet3.sh
       - uses: codecov/codecov-action@v5
         with:
           flags: test_python_espnet3
@@ -240,7 +240,7 @@ jobs:
         TH_VERSION: ${{ matrix.pytorch-version }}
       run: |
         python3 -m pip install -U "Cython<3.1.0"
-        python3 -m pip install -U numba
+        python3 -m pip install -U numba six
         python3 -m pip install build
         ./tools/installers/install_torch.sh false ${TH_VERSION} CPU
         python3 -m build --wheel
