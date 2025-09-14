@@ -13,7 +13,7 @@ tsne_set="test_minian4"
 
 # Train
 feats_type="raw"
-config_dir="conf/mms_ecapa_baseline.yaml"
+config_dir="conf/default_ecapa_baseline.yaml"
 exp_dir="exp"
 
 # Inference

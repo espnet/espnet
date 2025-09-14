@@ -1,11 +1,5 @@
 # Frontend
-frontend: s3prl
-frontend_conf:
-    frontend_conf:
-        upstream: hf_wav2vec2_custom
-        path_or_url: facebook/mms-1b
-    download_dir: ./hub
-    multilayer_feature: True
+frontend: default
 
 # Normalizer
 normalize: utterance_mvn
