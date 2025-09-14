@@ -126,7 +126,8 @@ def extract_embed_lid(args):
         args = argparse.Namespace(**merged_args)
 
         # 4. Build data-iterator
-        # NOTE(jeeweon): Temporarily disable distributed to let loader include all trials
+        # NOTE(jeeweon): Temporarily disable distributed to
+        # let loader include all trials
         org_distributed = distributed_option.distributed
         distributed_option.distributed = False
 
