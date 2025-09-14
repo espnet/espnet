@@ -2034,7 +2034,6 @@ class AbsTask(ABC):
                 seed=args.seed,
                 num_iters_per_epoch=iter_options.num_iters_per_epoch,
                 sampler_args=sampler_args,
-                batch_type=iter_options.batch_type,
                 shuffle=iter_options.train,
                 num_workers=args.num_workers,
                 collate_fn=iter_options.collate_fn,
