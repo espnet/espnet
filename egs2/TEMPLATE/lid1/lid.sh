@@ -559,7 +559,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
                 --save_embd_per_utt true \
                 --save_embd_avg_lang false \
                 --save_tsne_plot false
-        
+
         touch ${infer_exp}/lid_and_embd_extract.done
     done
 fi
