@@ -19,7 +19,6 @@ jobs:
       env:
         ESPNET_PYTHON_VERSION: "3.10"
         TH_VERSION: 2.6.0
-        CHAINER_VERSION: 6.0.0
         USE_CONDA: true
         # To avoid UnicodeEncodeError for python<=3.6
         LC_ALL: en_US.UTF-8
@@ -42,10 +41,8 @@ jobs:
         run: ./ci/install.sh
       - name: test shell
         run: |
-          ./ci/test_shell_espnet1.sh
           ./ci/test_shell_espnet2.sh
       - name: test python
         run: |
-          ./ci/test_python_espnet1.sh
           ./ci/test_python_espnet2.sh
           ./ci/test_python_espnetez.sh
