@@ -1,6 +1,6 @@
 import random
 from functools import partial
-from typing import Any, Sequence, Union
+from typing import Any, Sequence, Union, Optional
 
 import numpy as np
 import torch
@@ -10,6 +10,7 @@ from typeguard import typechecked
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
 from espnet2.samplers.abs_sampler import AbsSampler
 from espnet2.samplers.category_balanced_sampler import CategoryBalancedSampler
+from espnet2.samplers.category_power_sampler import CategoryPowerSampler, CategoryDatasetPowerSampler
 
 
 def worker_init_fn(worker_id, base_seed=0):
@@ -49,9 +50,10 @@ class CategoryIterFactory(AbsIterFactory):
         self,
         dataset,
         batches: Union[AbsSampler, Sequence[Sequence[Any]]],
-        num_iters_per_epoch: int = None,
+        num_iters_per_epoch: Optional[int] = None,
         seed: int = 0,
         sampler_args: dict = None,
+        batch_type: str = "catbel", # or "catpow", "catpow_dataset"
         shuffle: bool = False,
         num_workers: int = 0,
         collate_fn=None,
@@ -66,6 +68,7 @@ class CategoryIterFactory(AbsIterFactory):
         self.dataset = dataset
         self.num_iters_per_epoch = num_iters_per_epoch
         self.sampler_args = sampler_args
+        self.batch_type = batch_type
         self.shuffle = shuffle
         self.seed = seed
         self.num_workers = num_workers
@@ -80,7 +83,15 @@ class CategoryIterFactory(AbsIterFactory):
         # rebuild sampler
         if epoch > 1:
             self.sampler_args["epoch"] = epoch
-            batch_sampler = CategoryBalancedSampler(**self.sampler_args)
+            if self.batch_type == "catbel":
+                batch_sampler = CategoryBalancedSampler(**self.sampler_args)
+            elif self.batch_type == "catpow":
+                batch_sampler = CategoryPowerSampler(**self.sampler_args)
+            elif self.batch_type == "catpow_balance_dataset":
+                batch_sampler = CategoryDatasetPowerSampler(**self.sampler_args)
+            else:
+                raise ValueError(f"Unsupported batch_type: {self.batch_type}")
+            
             batches = list(batch_sampler)
 
             if self.sampler_args["num_batches"] is not None:
