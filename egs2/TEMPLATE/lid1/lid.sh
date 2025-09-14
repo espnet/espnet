@@ -566,6 +566,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     log "Stage 7: Score on the test set."
 
     inference_model_name="${inference_model%.pth}"
+    _lid_train_dir="${data_feats}/${train_set}"
     for test_set in ${test_sets_all}; do
         infer_exp="${lid_exp}/inference/${inference_model_name}/${test_set}"
 
@@ -580,6 +581,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
         python ./local/score.py \
             --pred_lids "${pred_lids}" \
             --target_lids "${target_lids}" \
+            --train_lang2utt "${_lid_train_dir}/lang2utt" \
             --results "${results}"
     done
 fi

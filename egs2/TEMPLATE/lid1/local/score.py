@@ -17,16 +17,19 @@ def read_file(file_path):
                 key, lid = parts
                 data[key] = lid
             else:
-                raise ValueError(f"Invalid line format: {line}")
+                lid = parts[0]
+                keys = parts[1:]
+                data[lid] = keys
     return data
 
 
-def score(pred_file, target_file, results_file):
+def score(pred_file, target_file, train_lang2utt, results_file):
     """
     Calculates the accuracy by comparing the predicted and target lids.
     """
     pred_data = read_file(pred_file)
     target_data = read_file(target_file)
+    train_lang2utt_data = read_file(train_lang2utt)
 
     if set(pred_data.keys()) != set(target_data.keys()):
         raise ValueError("Keys in pred and target files do not match.")
@@ -38,14 +41,18 @@ def score(pred_file, target_file, results_file):
     # Count error frequencies: target->predicted pairs
     error_count = defaultdict(int)
 
-    langs = list(set(target_data.values()))
-    lang_correct = {lang: 0 for lang in langs}
-    lang_total = {lang: 0 for lang in langs}
+    # Get lanugages the system trained on
+    # all langs the system trained
+    all_langs = list(set(train_lang2utt_data.keys()))
+    # langs in the test set, target langs is sub or equal to all_langs
+    target_langs = list(set(target_data.values()))
+    lang_correct = {lang: 0 for lang in all_langs}
+    lang_total = {lang: 0 for lang in all_langs}
 
     # For precision and recall calculations
-    true_positives = {lang: 0 for lang in langs}
-    false_positives = {lang: 0 for lang in langs}
-    false_negatives = {lang: 0 for lang in langs}
+    true_positives = {lang: 0 for lang in all_langs}
+    false_positives = {lang: 0 for lang in all_langs}
+    false_negatives = {lang: 0 for lang in all_langs}
 
     for key in pred_data:
         target_lang = target_data[key]
@@ -68,15 +75,19 @@ def score(pred_file, target_file, results_file):
             false_positives[pred_lang] += 1
 
     accuracy = correct / total
-    accuracy_per_lang = {lang: lang_correct[lang] / lang_total[lang] for lang in langs}
-    macro_accuracy = sum(accuracy_per_lang.values()) / len(langs)
+    accuracy_per_lang = {
+        lang: lang_correct[lang] / lang_total[lang] 
+        for lang in target_langs if lang_total[lang] > 0
+    }
+    macro_accuracy = sum(accuracy_per_lang.values()) / len(target_langs)
 
     # Calculate precision and recall for each language
     precision_per_lang = {}
     recall_per_lang = {}
     f1_per_lang = {}
 
-    for lang in langs:
+    # Calculate precision, recall, and F1 for each language in the test set
+    for lang in target_langs:
         # Precision = TP / (TP + FP)
         if true_positives[lang] + false_positives[lang] > 0:
             precision_per_lang[lang] = true_positives[lang] / (
@@ -103,15 +114,16 @@ def score(pred_file, target_file, results_file):
         else:
             f1_per_lang[lang] = 0.0
 
-    # Calculate macro-averaged precision, recall, and F1
-    macro_precision = sum(precision_per_lang.values()) / len(langs)
-    macro_recall = sum(recall_per_lang.values()) / len(langs)
-    macro_f1 = sum(f1_per_lang.values()) / len(langs)
+    # Calculate macro-averaged precision, recall, and F1 for test languages
+    macro_precision = sum(precision_per_lang.values()) / len(target_langs)
+    macro_recall = sum(recall_per_lang.values()) / len(target_langs)
+    macro_f1 = sum(f1_per_lang.values()) / len(target_langs)
 
     # Calculate overall (micro-averaged) precision, recall, and F1
-    total_tp = sum(true_positives.values())
-    total_fp = sum(false_positives.values())
-    total_fn = sum(false_negatives.values())
+    # for all trained languages
+    total_tp = sum(true_positives[lang] for lang in all_langs)
+    total_fp = sum(false_positives[lang] for lang in all_langs)
+    total_fn = sum(false_negatives[lang] for lang in all_langs)
 
     if total_tp + total_fp > 0:
         overall_precision = total_tp / (total_tp + total_fp)
@@ -143,7 +155,7 @@ def score(pred_file, target_file, results_file):
         f.write(f"Macro Recall across Languages: {macro_recall:.2%}\n")
         f.write(f"Macro F1 across Languages: {macro_f1:.2%}\n")
         f.write("\nPer-Language Metrics:\n")
-        for lang in langs:
+        for lang in target_langs:
             f.write(f"{lang}:\n")
             f.write(f"  Accuracy: {accuracy_per_lang[lang]:.2%}\n")
             f.write(f"  Precision: {precision_per_lang[lang]:.2%}\n")
@@ -171,7 +183,12 @@ if __name__ == "__main__":
     parser.add_argument(
         "--target_lids", required=True, help="Path to the target (ground-truth) lids."
     )
+    parser.add_argument(
+        "--train_lang2utt",
+        required=True,
+        help="Path to the train lang2utt."
+    )
     parser.add_argument("--results", required=True, help="Path to the results file.")
     args = parser.parse_args()
 
-    score(args.pred_lids, args.target_lids, args.results)
+    score(args.pred_lids, args.target_lids, args.train_lang2utt, args.results)
