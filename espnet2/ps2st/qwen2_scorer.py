@@ -1,6 +1,6 @@
 import torch
 
-from espnet.nets.scorer_interface import ScorerInterface
+from espnet2.legacy.nets.scorer_interface import ScorerInterface
 
 
 class Qwen2HFScorer(ScorerInterface):
