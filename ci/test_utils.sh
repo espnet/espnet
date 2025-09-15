@@ -2,6 +2,7 @@
 
 echo "=== run unit tests at test_utils ==="
 source tools/activate_python.sh
+source tools/extra_path.sh
 
 PATH=$(pwd)/test_utils/bats-core/bin:$PATH
 if ! [ -x "$(command -v bats)" ]; then
