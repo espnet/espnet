@@ -1,4 +1,5 @@
 import argparse
+import logging
 from collections import defaultdict
 
 # score.py
@@ -23,8 +24,9 @@ def read_utt2lang_file(file_path):
                     key, lid = parts
                     data[key] = lid
                 else:
-                    print(
-                        f"Warning: Line {line_num} in {file_path} has {len(parts)} parts, expected 2: {line}"
+                    logging.warning(
+                        f"Line {line_num} in {file_path} has {len(parts)} parts, "
+                        f"expected 2: {line}"
                     )
     except FileNotFoundError:
         raise FileNotFoundError(f"File not found: {file_path}")
@@ -54,8 +56,9 @@ def read_lang2utt_file(file_path):
                     keys = parts[1:]
                     data[lid] = keys
                 else:
-                    print(
-                        f"Warning: Line {line_num} in {file_path} has {len(parts)} parts, expected >= 2: {line}"
+                    logging.warning(
+                        f"Line {line_num} in {file_path} has {len(parts)} parts, "
+                        f"expected >= 2: {line}"
                     )
     except FileNotFoundError:
         raise FileNotFoundError(f"File not found: {file_path}")
