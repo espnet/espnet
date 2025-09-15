@@ -4,6 +4,26 @@ python="coverage run --append"
 
 cwd=$(pwd)
 
+. tools/activate_python.sh
+
+check_chainer(){
+    python3 -c "
+import sys
+try:
+    import chainer
+    sys.exit(0)
+except ImportError:
+    sys.exit(1)
+"
+}
+
+if ! check_chainer; then
+    echo "WARNING: Chainer is not installed, skipping espnet1 integration tests."
+    echo "         Chainer is being deprecated and will be removed in a future release."
+    echo "         To run these tests, install Chainer via 'make chainer.done' in the tools directory."
+    exit 0
+fi
+
 # test asr recipe
 cd ./egs/mini_an4/asr1 || exit 1
 . path.sh  # source here to avoid undefined variable errors
@@ -139,5 +159,5 @@ cd "${cwd}" || exit 1
 echo "=== report ==="
 
 coverage combine egs/*/*/.coverage
-coverage report
-coverage xml
+coverage report -i
+coverage xml -i

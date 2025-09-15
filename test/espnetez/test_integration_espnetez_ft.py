@@ -203,7 +203,7 @@ if __name__ == "__main__":
 
     elif args.task == "enh":
         data_info = {
-            f"speech_ref{i+1}": [f"spk{i+1}.scp", "sound"]
+            f"speech_ref{i + 1}": [f"spk{i + 1}.scp", "sound"]
             for i in range(finetune_config["separator_conf"]["num_spk"])
         }
         data_info["speech_mix"] = ["wav.scp", "sound"]

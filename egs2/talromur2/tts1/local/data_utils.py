@@ -106,7 +106,7 @@ def main():
             firstPhoneDone = True
             if p not in silence_phones:
                 end_sec = e
-        sox_cmd = f"sox {path} -t wav - trim {start_sec} {end_sec-start_sec} | "
+        sox_cmd = f"sox {path} -t wav - trim {start_sec} {end_sec - start_sec} | "
         output_line = " ".join([id, sox_cmd]) + "\n"
         output_wav_scp.write(output_line)
     os.rename(output_wav_scp_path, wav_scp_path)
