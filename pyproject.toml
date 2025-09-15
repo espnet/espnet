@@ -57,14 +57,13 @@ requires = ["setuptools>=38.5.1,<74.0.0", "wheel", "setuptools-scm>=8.0,<9.0"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.dynamic]
-version = {attr = "espnet.__version__"}
+version = {attr = "espnet2.__version__"}
 readme = {file = ["README.md"], content-type = "text/markdown"}
 
 [tool.setuptools.packages.find]
 include = ["espnet*"]
 
-[tool.setuptools.package-data]
-espnet = ["version.txt"]
+
 
 [project.optional-dependencies]
 espnet-3 = [

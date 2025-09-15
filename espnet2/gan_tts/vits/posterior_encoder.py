@@ -13,7 +13,7 @@ import torch
 
 from espnet2.gan_tts.wavenet import WaveNet
 from espnet2.gan_tts.wavenet.residual_block import Conv1d
-from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
+from espnet2.legacy.nets.pytorch_backend.nets_utils import make_non_pad_mask
 
 
 class PosteriorEncoder(torch.nn.Module):
