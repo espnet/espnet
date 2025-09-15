@@ -115,7 +115,10 @@ def score(pred_file, target_file, train_lang2utt, results_file):
         for lang in target_langs
         if lang_total[lang] > 0
     }
-    macro_accuracy = sum(accuracy_per_lang.values()) / len(target_langs)
+    macro_accuracy = (
+        sum(accuracy_per_lang.values()) / len(target_langs)
+        if target_langs else 0.0
+    )
 
     # Calculate precision and recall for each language
     precision_per_lang = {}
@@ -151,9 +154,18 @@ def score(pred_file, target_file, train_lang2utt, results_file):
             f1_per_lang[lang] = 0.0
 
     # Calculate macro-averaged precision, recall, and F1 for test languages
-    macro_precision = sum(precision_per_lang.values()) / len(target_langs)
-    macro_recall = sum(recall_per_lang.values()) / len(target_langs)
-    macro_f1 = sum(f1_per_lang.values()) / len(target_langs)
+    macro_precision = (
+        sum(precision_per_lang.values()) / len(target_langs)
+        if target_langs else 0.0
+    )
+    macro_recall = (
+        sum(recall_per_lang.values()) / len(target_langs)
+        if target_langs else 0.0
+    )
+    macro_f1 = (
+        sum(f1_per_lang.values()) / len(target_langs)
+        if target_langs else 0.0
+    )
 
     # Calculate overall (micro-averaged) precision, recall, and F1
     # for all trained languages
