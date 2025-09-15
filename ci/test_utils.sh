@@ -12,9 +12,3 @@ if ! [ -x "$(command -v bats)" ]; then
     git clone https://github.com/bats-core/bats-assert.git "$(pwd)"/test_utils/bats-assert
 fi
 bats test_utils/test_*.bats
-
-echo "=== report ==="
-
-coverage combine egs/*/*/.coverage
-coverage report
-coverage xml
