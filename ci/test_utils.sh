@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 echo "=== run unit tests at test_utils ==="
+source tools/activate_python.sh
 
 PATH=$(pwd)/test_utils/bats-core/bin:$PATH
 if ! [ -x "$(command -v bats)" ]; then
@@ -13,7 +14,6 @@ bats test_utils/test_*.bats
 
 echo "=== report ==="
 
-source tools/activate_python.sh
 coverage combine egs/*/*/.coverage
 coverage report
 coverage xml
