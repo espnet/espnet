@@ -23,7 +23,7 @@ from packaging.version import parse as V
 from torch.utils.data import DataLoader
 from typeguard import typechecked
 
-from espnet import __version__
+from espnet2 import __version__
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
 from espnet2.iterators.category_chunk_iter_factory import CategoryChunkIterFactory
 from espnet2.iterators.category_iter_factory import CategoryIterFactory
@@ -31,6 +31,7 @@ from espnet2.iterators.chunk_iter_factory import ChunkIterFactory
 from espnet2.iterators.multiple_iter_factory import MultipleIterFactory
 from espnet2.iterators.sequence_iter_factory import SequenceIterFactory
 from espnet2.layers.create_adapter import create_adapter
+from espnet2.legacy.utils.cli_utils import get_commandline_args
 from espnet2.main_funcs.collect_stats import collect_stats
 from espnet2.optimizers.optim_groups import configure_optimizer
 from espnet2.optimizers.sgd import SGD
@@ -42,6 +43,7 @@ from espnet2.schedulers.cosine_anneal_warmup_restart import (
 )
 from espnet2.schedulers.noam_lr import NoamLR
 from espnet2.schedulers.piecewise_linear_warmup_lr import PiecewiseLinearWarmupLR
+from espnet2.schedulers.tristage_lr import TristageLR
 from espnet2.schedulers.warmup_lr import WarmupLR
 from espnet2.schedulers.warmup_reducelronplateau import WarmupReduceLROnPlateau
 from espnet2.schedulers.warmup_step_lr import WarmupStepLR
@@ -83,7 +85,6 @@ from espnet2.utils.types import (
     str_or_none,
 )
 from espnet2.utils.yaml_no_alias_safe_dump import yaml_no_alias_safe_dump
-from espnet.utils.cli_utils import get_commandline_args
 
 try:
     import wandb
@@ -172,6 +173,8 @@ scheduler_classes = dict(
     onecyclelr=torch.optim.lr_scheduler.OneCycleLR,
     CosineAnnealingWarmRestarts=torch.optim.lr_scheduler.CosineAnnealingWarmRestarts,
     CosineAnnealingWarmupRestarts=CosineAnnealingWarmupRestarts,
+    tristagelr=TristageLR,
+    ExponentialDecayWarmup=ExponentialDecayWarmup,
 )
 # To lower keys
 optim_classes = {k.lower(): v for k, v in optim_classes.items()}

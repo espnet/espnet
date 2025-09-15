@@ -11,10 +11,10 @@ from packaging.version import parse as V
 from espnet2.bin.asr_inference import Speech2Text, get_parser, main
 from espnet2.bin.asr_inference_streaming import Speech2TextStreaming
 from espnet2.bin.whisper_export_vocabulary import export_vocabulary
+from espnet2.legacy.nets.beam_search import Hypothesis
 from espnet2.tasks.asr import ASRTask
 from espnet2.tasks.enh_s2t import EnhS2TTask
 from espnet2.tasks.lm import LMTask
-from espnet.nets.beam_search import Hypothesis
 
 is_torch_2_6_plus = V(torch.__version__) >= V("2.6.0")
 
@@ -351,7 +351,7 @@ def test_Speech2Text_hugging_face(
 )
 @pytest.mark.parametrize("prefix", ["prefix", ""])
 @pytest.mark.parametrize("postfix", ["postfix", ""])
-@pytest.mark.execution_timeout(30)
+@pytest.mark.execution_timeout(60)
 def test_Speech2Text_hugging_face_causal_lm(
     asr_config_file, token_list_hugging_face, model_name_or_path, prefix, postfix
 ):

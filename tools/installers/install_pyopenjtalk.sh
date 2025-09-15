@@ -11,9 +11,9 @@ fi
 if [ ! -e pyopenjtalk.done ]; then
     (
         set -euo pipefail
-        # Since this installer overwrite existing pyopenjtalk, remove done file.
+        # Since this installer overwrites the existing pyopenjtalk, remove the done file.
         [ -e tdmelodic_pyopenjtalk.done ] && rm tdmelodic_pyopenjtalk.done
-        python3 -m pip install pyopenjtalk==0.3.3 --no-build-isolation --no-cache-dir
+        python3 -m pip install pyopenjtalk==0.4.1 --no-cache-dir
         python3 -c "import pyopenjtalk; pyopenjtalk.g2p('download dict')"
     )
     touch pyopenjtalk.done

@@ -1,4 +1,5 @@
 import torch
+from typing import Optional
 
 from espnet2.spk.pooling.abs_pooling import AbsPooling
 
@@ -23,11 +24,41 @@ class StatsPooling(AbsPooling):
     def output_size(self):
         return self._output_size
 
-    def forward(self, x, task_tokens: torch.Tensor = None):
-        if task_tokens is not None:
-            raise ValueError("StatisticsPooling is not adequate for task_tokens")
-        mu = torch.mean(x, dim=-1)
-        st = torch.std(x, dim=-1)
+    def forward(
+        self,
+        x: torch.Tensor,
+        feat_lengths: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
+        r"""Forward pass of statistics pooling.
+
+        Args:
+            x: Input feature tensor of shape (batch_size, feature_dim, seq_len)
+            feat_lengths: Optional tensor of shape (batch_size,) containing
+                          the valid length of each sequence before padding
+
+        Returns:
+            x: Utterance-level embeddings of shape (batch_size, 2 × feature_dim)
+        """
+        if feat_lengths is not None:
+            # Pooling over unpadded frames
+            max_len = x.size(-1)
+            mask = torch.arange(max_len, device=x.device).expand(
+                x.size(0), max_len
+            ) < feat_lengths.unsqueeze(1)
+            mask = mask.unsqueeze(1)  # (B, 1, T)
+
+            # Calculate mean over the time dimension (dim=-1)
+            mu = (x * mask).sum(dim=-1) / feat_lengths.unsqueeze(1)
+
+            # Calculate standard deviation over the time dimension (dim=-1)
+            # unbiased=False (divided by N rather than N - 1)
+            variance = ((x - mu.unsqueeze(-1)) ** 2 * mask).sum(
+                dim=-1
+            ) / feat_lengths.unsqueeze(1)
+            st = torch.sqrt(variance.clamp(min=1e-4))
+        else:
+            mu = torch.mean(x, dim=-1)
+            st = torch.std(x, dim=-1, unbiased=False)
 
         x = torch.cat((mu, st), dim=1)
 

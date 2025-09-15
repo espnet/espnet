@@ -1,18 +1,14 @@
 name: publich docker image
 
 on:
-  pull_request:
-    types: [closed]
-    branches:
-      - master
-    paths:
-      - 'tools/**'
-      - pyproject.toml
+  schedule:
+    # Runs every Monday at midnight UTC
+    - cron: "0 0 * * 1"
 
 jobs:
   docker:
     runs-on: ubuntu-latest
-    if: github.event.pull_request.merged == true
+    environment: docker
     steps:
       - uses: actions/checkout@master
 
