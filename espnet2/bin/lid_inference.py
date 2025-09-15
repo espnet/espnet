@@ -59,6 +59,7 @@ def extract_embed_lid(args):
 
     distributed_option = build_dataclass(DistributedOption, args)
     distributed_option.init_options()
+    set_name = args.data_path_and_name_and_type[0][0].split("/")[-2]
 
     if not distributed_option.distributed or distributed_option.dist_rank == 0:
         if not distributed_option.distributed:
@@ -74,7 +75,6 @@ def extract_embed_lid(args):
             format=f"[{os.uname()[1].split('.')[0]}{_rank}]"
             f" %(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
         )
-        set_name = args.data_path_and_name_and_type[0][0].split("/")[-2]
     else:
         # Suppress logging if RANK != 0
         logging.basicConfig(
