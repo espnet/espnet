@@ -1,0 +1,56 @@
+batch_type: numel
+batch_bins: 3200000
+accum_grad: 1
+max_epoch: 40
+patience: none
+# The initialization method for model parameters
+init: xavier_uniform
+best_model_criterion:
+-   - valid
+    - loss
+    - min
+keep_nbest_models: 10
+
+use_amp: true
+num_att_plot: 0
+
+freeze_param: [
+    "frontend.upstream"
+]
+
+input_size: none
+frontend: espnet_ssl
+frontend_conf:
+    frontend_conf:
+        path_or_url: ../../librispeech/ssl1/exp/ssl_train_hubert_raw/valid.total_count.ave_5best.pth
+    multilayer_feature: True
+    use_final_output: False
+
+normalize: null
+specaug: null
+encoder: transformer
+encoder_conf:
+    output_size: 768
+    attention_heads: 12
+    linear_units: 3072
+    num_blocks: 2
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.0
+    attention_dropout_rate: 0.1
+    input_layer: conv2d
+    normalize_before: false
+    layer_drop_rate: 0.00
+
+model_conf:
+    ctc_weight: 1.0
+    lsm_weight: 0.1
+    length_normalized_loss: false
+    autocast_frontend: true
+
+optim: adam
+optim_conf:
+    lr: 0.00005
+scheduler: warmuplr
+scheduler_conf:
+    warmup_steps: 6000
+unused_parameters: false
