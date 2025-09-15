@@ -3,6 +3,7 @@ from collections import defaultdict
 
 # score.py
 
+
 def read_utt2lang_file(file_path):
     """
     Reads a file and returns a dictionary with key and lid.
@@ -22,13 +23,16 @@ def read_utt2lang_file(file_path):
                     key, lid = parts
                     data[key] = lid
                 else:
-                    print(f"Warning: Line {line_num} in {file_path} has {len(parts)} parts, expected 2: {line}")
+                    print(
+                        f"Warning: Line {line_num} in {file_path} has {len(parts)} parts, expected 2: {line}"
+                    )
     except FileNotFoundError:
         raise FileNotFoundError(f"File not found: {file_path}")
     except Exception as e:
         raise Exception(f"Error reading file {file_path}: {e}")
 
     return data
+
 
 def read_lang2utt_file(file_path):
     """
@@ -50,13 +54,16 @@ def read_lang2utt_file(file_path):
                     keys = parts[1:]
                     data[lid] = keys
                 else:
-                    print(f"Warning: Line {line_num} in {file_path} has {len(parts)} parts, expected >= 2: {line}")
+                    print(
+                        f"Warning: Line {line_num} in {file_path} has {len(parts)} parts, expected >= 2: {line}"
+                    )
     except FileNotFoundError:
         raise FileNotFoundError(f"File not found: {file_path}")
     except Exception as e:
         raise Exception(f"Error reading file {file_path}: {e}")
 
     return data
+
 
 def score(pred_file, target_file, train_lang2utt, results_file):
     """
@@ -116,8 +123,7 @@ def score(pred_file, target_file, train_lang2utt, results_file):
         if lang_total[lang] > 0
     }
     macro_accuracy = (
-        sum(accuracy_per_lang.values()) / len(target_langs)
-        if target_langs else 0.0
+        sum(accuracy_per_lang.values()) / len(target_langs) if target_langs else 0.0
     )
 
     # Calculate precision and recall for each language
@@ -155,17 +161,12 @@ def score(pred_file, target_file, train_lang2utt, results_file):
 
     # Calculate macro-averaged precision, recall, and F1 for test languages
     macro_precision = (
-        sum(precision_per_lang.values()) / len(target_langs)
-        if target_langs else 0.0
+        sum(precision_per_lang.values()) / len(target_langs) if target_langs else 0.0
     )
     macro_recall = (
-        sum(recall_per_lang.values()) / len(target_langs)
-        if target_langs else 0.0
+        sum(recall_per_lang.values()) / len(target_langs) if target_langs else 0.0
     )
-    macro_f1 = (
-        sum(f1_per_lang.values()) / len(target_langs)
-        if target_langs else 0.0
-    )
+    macro_f1 = sum(f1_per_lang.values()) / len(target_langs) if target_langs else 0.0
 
     # Calculate overall (micro-averaged) precision, recall, and F1
     # for all trained languages
