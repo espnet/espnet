@@ -3,33 +3,68 @@ from collections import defaultdict
 
 # score.py
 
-
-def read_file(file_path):
+def read_utt2lang_file(file_path):
     """
     Reads a file and returns a dictionary with key and lid.
     Each line in the file should be in the format: key lid
     """
     data = {}
-    with open(file_path, "r") as f:
-        for line in f:
-            parts = line.strip().split()
-            if len(parts) == 2:
-                key, lid = parts
-                data[key] = lid
-            else:
-                lid = parts[0]
-                keys = parts[1:]
-                data[lid] = keys
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            line_num = 0
+            for line in f:
+                line_num += 1
+                line = line.strip()
+                if not line:  # Skip empty lines
+                    continue
+                parts = line.split()
+                if len(parts) == 2:
+                    key, lid = parts
+                    data[key] = lid
+                else:
+                    print(f"Warning: Line {line_num} in {file_path} has {len(parts)} parts, expected 2: {line}")
+    except FileNotFoundError:
+        raise FileNotFoundError(f"File not found: {file_path}")
+    except Exception as e:
+        raise Exception(f"Error reading file {file_path}: {e}")
+
     return data
 
+def read_lang2utt_file(file_path):
+    """
+    Reads a file and returns a dictionary with key and lid.
+    Each line in the file should be in the format: lid keys, key is uttid
+    """
+    data = {}
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            line_num = 0
+            for line in f:
+                line_num += 1
+                line = line.strip()
+                if not line:  # Skip empty lines
+                    continue
+                parts = line.split()
+                if len(parts) >= 2:
+                    lid = parts[0]
+                    keys = parts[1:]
+                    data[lid] = keys
+                else:
+                    print(f"Warning: Line {line_num} in {file_path} has {len(parts)} parts, expected >= 2: {line}")
+    except FileNotFoundError:
+        raise FileNotFoundError(f"File not found: {file_path}")
+    except Exception as e:
+        raise Exception(f"Error reading file {file_path}: {e}")
+
+    return data
 
 def score(pred_file, target_file, train_lang2utt, results_file):
     """
     Calculates the accuracy by comparing the predicted and target lids.
     """
-    pred_data = read_file(pred_file)
-    target_data = read_file(target_file)
-    train_lang2utt_data = read_file(train_lang2utt)
+    pred_data = read_utt2lang_file(pred_file)
+    target_data = read_utt2lang_file(target_file)
+    train_lang2utt_data = read_lang2utt_file(train_lang2utt)
 
     if set(pred_data.keys()) != set(target_data.keys()):
         raise ValueError("Keys in pred and target files do not match.")
