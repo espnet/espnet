@@ -1,6 +1,6 @@
+import copy
 import inspect
 import warnings
-import copy
 from contextlib import contextmanager
 from typing import Any, Callable, Generator, Iterable, Optional
 
@@ -452,7 +452,10 @@ def parallel_map(
         >>> results
         [11, 12, 13]
     """
-    with _submit_tasks(func, data, client=client, setup_fn=setup_fn, **kwargs) as (cli, futures):
+    with _submit_tasks(func, data, client=client, setup_fn=setup_fn, **kwargs) as (
+        cli,
+        futures,
+    ):
         return list(tqdm(cli.gather(futures), total=len(futures)))
 
 
@@ -526,6 +529,9 @@ def parallel_for(
         5
         6
     """
-    with _submit_tasks(func, args, client=client, setup_fn=setup_fn, **kwargs) as (_, futures):
+    with _submit_tasks(func, args, client=client, setup_fn=setup_fn, **kwargs) as (
+        _,
+        futures,
+    ):
         for future in as_completed(futures):
             yield future.result()
