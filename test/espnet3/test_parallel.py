@@ -76,7 +76,6 @@ mp.set_start_method("fork", force=True)
 # | test_parallel_for_propagates_task_exception      | RuntimeError                    |
 
 
-
 # --------- Fixtures ---------
 
 
@@ -400,6 +399,7 @@ def test_make_client_kube_import_guard(monkeypatch, local_cfg):
     cfg.options = {"whatever": "x"}
     with pytest.raises(RuntimeError, match="Please install dask_kubernetes"):
         make_client(cfg)
+
 
 def test_worker_plugin_setup_must_return_dict():
     plugin = DictReturnWorkerPlugin(setup_fn=lambda: 123)  # not a dict
