@@ -97,7 +97,6 @@ def get_parallel_config() -> Optional[DictConfig]:
 
 def _make_client(config: DictConfig = None) -> Client:
     """Create a Dask client tied to the global singleton cluster."""
-    set_parallel(config)
     if config.env == "local":
         return Client(LocalCluster(n_workers=config.n_workers, **config.options))
 
@@ -133,6 +132,7 @@ def make_client(config: DictConfig = None) -> Client:
         Client: Dask client instance.
     """
     if config is not None:
+        set_parallel(config)
         return _make_client(config)
 
     if parallel_config is None:

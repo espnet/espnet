@@ -146,8 +146,10 @@ def get_espnet_model(task: str, config: Union[Dict, DictConfig]) -> AbsESPnetMod
     # workaround for calling get_default_config
     original_argv = sys.argv
     sys.argv = ["dummy.py"]
-    default_config = ez_task.get_default_config()
-    sys.argv = original_argv
+    try:
+        default_config = ez_task.get_default_config()
+    finally:
+        sys.argv = original_argv
 
     if isinstance(config, OmegaConf):
         default_config.update(OmegaConf.to_container(config, resolve=True))
