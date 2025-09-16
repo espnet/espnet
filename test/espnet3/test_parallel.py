@@ -2,10 +2,10 @@ import multiprocessing as mp
 import sys
 import time
 import types
+import warnings
 
 import pytest
 from omegaconf import OmegaConf
-import warnings
 
 from espnet3.parallel import (
     DictReturnWorkerPlugin,
