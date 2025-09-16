@@ -1,8 +1,10 @@
 # tests/conftest.py
-import types
-import sys
 import builtins
+import sys
+import types
+
 import pytest
+
 
 @pytest.fixture(autouse=True)
 def fake_espnet_modules(monkeypatch):

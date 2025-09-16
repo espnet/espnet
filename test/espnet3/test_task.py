@@ -1,13 +1,13 @@
 # tests/test_task_wrapper.py
-import yaml
-import pytest
 from argparse import Namespace
+
+import pytest
+import yaml
 from omegaconf import OmegaConf
 
 # Replace with your actual module path
 # Example: from espneteztask import get_task_class, save_espnet_config, get_espnet_model
-from espnet3.task import get_task_class, save_espnet_config, get_espnet_model
-
+from espnet3.task import get_espnet_model, get_task_class, save_espnet_config
 
 # ===============================================================
 # Test Case Summary for Task Wrapper (espnet3.task)
@@ -99,4 +99,3 @@ def test_save_espnet_config_creates_yaml_and_transforms(tmp_path):
 
     # Remaining dataset values are still present
     assert data["dataset"]["other"] == 123
-
