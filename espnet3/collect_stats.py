@@ -24,12 +24,42 @@ def collect_stats(
     write_collected_feats: bool = True,
     batch_size: int = 4,
 ):
-    """
-    Entry point to collect feature statistics from a dataset.
+    """Entry point for collecting dataset statistics used for feature normalization.
 
-    - Local single-process path
-    - Dask parallel path
-    - Multi-iterator (sharded) path (parallel only; no raw feats saved)
+    Depending on the supplied configuration the function chooses one of three
+    execution strategies:
+
+    - Local single-process execution.
+    - Parallel execution using Dask.
+    - Multi-iterator (sharded) execution, which only works with parallel
+      processing and does not write raw features to disk.
+
+    Args:
+        model_config: Configuration object used to instantiate the model that
+            extracts features from the input examples.
+        dataset_config: Configuration of the dataset organizer providing the
+            split specified by ``mode``.
+        dataloader_config: Dataloader configuration. The attribute matching
+            ``mode`` may include the ``multiple_iterator`` flag.
+        mode: Name of the dataset split to process (``train`` or ``valid``).
+        output_dir: Directory where aggregated statistics and optionally
+            collected features are written.
+        task: Name of the ESPnet task. If ``None``, ``model_config`` should be
+            directly instantiable.
+        parallel_config: Configuration for parallel execution. Required when
+            ``multiple_iterator`` is enabled.
+        write_collected_feats: Whether to persist the raw collected features.
+            This option is unsupported in multi-iterator mode.
+        batch_size: Number of dataset items processed per batch.
+
+    Raises:
+        RuntimeError: If ``multiple_iterator`` is ``True`` but
+            ``parallel_config`` is not provided.
+        ValueError: If ``write_collected_feats`` is ``True`` when running in
+            multi-iterator mode.
+
+    Returns:
+        None: Aggregated statistics are saved under ``output_dir / mode``.
     """
     mode_config = getattr(dataloader_config, mode)
     if getattr(mode_config, "multiple_iterator", False):
