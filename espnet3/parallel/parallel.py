@@ -355,6 +355,43 @@ def _check_conflict_client_side(
         )
 
 
+@contextmanager
+def _submit_tasks(
+    func: Callable[[Any], Any],
+    iterable: Iterable[Any],
+    client: Optional[Client] = None,
+    setup_fn: Optional[Callable[[], dict]] = None,
+    **kwargs: Any,
+):
+    """
+    Common submission path used by parallel_map and parallel_for.
+
+    - Creates/reuses a client (and handles its lifecycle if internal).
+    - Registers the setup plugin (client- and worker-side).
+    - Performs client-side conflict checks.
+    - Wraps the function to inject worker env.
+    - Submits tasks and yields (client, futures).
+    """
+    internal = client is None
+    if internal:
+        ctx = get_client(setup_fn=setup_fn)
+        client_cm = ctx
+        client = ctx.__enter__()
+    elif setup_fn is not None:
+        plugin = DictReturnWorkerPlugin(setup_fn)
+        getattr(client, "register_worker_plugin")(plugin, name="env")
+        _prime_client_env_keys_from_setup_fn(client, setup_fn)
+
+    try:
+        _check_conflict_client_side(func, kwargs, client)
+        wrapped_func = wrap_func_with_worker_env(func)
+        futures = client.map(wrapped_func, iterable, **kwargs)
+        yield client, futures
+    finally:
+        if internal:
+            client_cm.__exit__(None, None, None)
+
+
 @typechecked
 def parallel_map(
     func: Callable[[Any], Any],
@@ -415,27 +452,8 @@ def parallel_map(
         >>> results
         [11, 12, 13]
     """
-    internal = client is None
-    if internal:
-        # respect global config and local/remote shutdown policy
-        ctx = get_client(setup_fn=setup_fn)
-        client_cm = ctx  # keep reference for exit
-        client = ctx.__enter__()
-
-    elif setup_fn is not None:
-        # If an external client is provided, register the plugin on it.
-        plugin = DictReturnWorkerPlugin(setup_fn)
-        getattr(client, "register_worker_plugin")(plugin, name="env")
-        _prime_client_env_keys_from_setup_fn(client, setup_fn)
-
-    try:
-        _check_conflict_client_side(func, kwargs, client)
-        wrapped_func = wrap_func_with_worker_env(func)
-        futures = client.map(wrapped_func, data, **kwargs)
-        return list(tqdm(client.gather(futures), total=len(futures)))
-    finally:
-        if internal:
-            client_cm.__exit__(None, None, None)
+    with _submit_tasks(func, data, client=client, setup_fn=setup_fn, **kwargs) as (cli, futures):
+        return list(tqdm(cli.gather(futures), total=len(futures)))
 
 
 def parallel_for(
@@ -508,25 +526,6 @@ def parallel_for(
         5
         6
     """
-    internal = client is None
-    if internal:
-        # respect global config and local/remote shutdown policy
-        ctx = get_client(setup_fn=setup_fn)
-        client_cm = ctx  # keep reference for exit
-        client = ctx.__enter__()
-
-    elif setup_fn is not None:
-        # If an external client is provided, register the plugin on it.
-        plugin = DictReturnWorkerPlugin(setup_fn)
-        getattr(client, "register_worker_plugin")(plugin, name="env")
-        _prime_client_env_keys_from_setup_fn(client, setup_fn)
-
-    try:
-        _check_conflict_client_side(func, kwargs, client)
-        wrapped_func = wrap_func_with_worker_env(func)
-        futures = client.map(wrapped_func, args, **kwargs)
+    with _submit_tasks(func, args, client=client, setup_fn=setup_fn, **kwargs) as (_, futures):
         for future in as_completed(futures):
             yield future.result()
-    finally:
-        if internal:
-            client_cm.__exit__(None, None, None)
