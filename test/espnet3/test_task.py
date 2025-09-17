@@ -45,6 +45,7 @@ from espnet3.utils.config import load_config_with_defaults
         ("uasr", "UASRTask"),
     ],
 )
+@pytest.mark.execution_timeout(30)
 def test_get_task_class_returns_correct_class(task_name, expected_cls_name):
     cls = get_task_class(task_name)
     assert cls.__name__ == expected_cls_name
