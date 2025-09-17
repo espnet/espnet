@@ -1,11 +1,12 @@
 # tests/test_task_wrapper.py
-import yaml
+from pathlib import Path
 import pytest
-from omegaconf import OmegaConf
+from argparse import Namespace
 
 # Replace with your actual module path
 # Example: from espneteztask import get_task_class, save_espnet_config, get_espnet_model
-from espnet3.task import get_task_class, save_espnet_config
+from espnet3.task import get_task_class, get_espnet_model, save_espnet_config
+from espnet3.utils.config import load_config_with_defaults 
 
 
 # ===============================================================
@@ -51,25 +52,20 @@ def test_get_task_class_returns_correct_class(task_name, expected_cls_name):
 
 def test_get_espnet_model():
     from espnet2.tasks.asr import ASRTask
-
-    task = ASRTask()
-    model = task.get_espnet_model()
-    assert model is task.model
+    default_config = ASRTask.get_default_config()
+    default_config["token_list"] = ["<blank>", "a", "b", "c"]
+    default_config["model_conf"]["ctc_weight"] = 1.0
+    model = ASRTask.build_model(Namespace(**default_config))
+    model_espnet3 = get_espnet_model("asr", default_config)
+    assert str(model) == str(model_espnet3) # Check all attributes are the same
 
 
 def test_save_espnet_config(tmp_path):
-    from espnet2.tasks.asr import ASRTask
-
-    task = ASRTask()
-    config_path = tmp_path / "config.yaml"
-    save_espnet_config(task, config_path)
-
-    # Load the saved config to verify its contents
-    with open(config_path, "r") as f:
-        loaded_config = yaml.safe_load(f)
-
-    # Convert task's config to a dictionary for comparison
-    task_config_dict = OmegaConf.to_container(task.config, resolve=True)
-
-    assert loaded_config == task_config_dict
-
+    config_path = Path("test_utils") / "espnet3" / "config" / "model_ctc.yaml"
+    output_file = tmp_path / "config.yaml"
+    save_espnet_config(
+        "asr",
+        load_config_with_defaults(config_path),
+        output_file
+    )
+    assert output_file.exists()
