@@ -1,0 +1,331 @@
+accum_grad: 1
+adapter: lora
+adapter_conf: {}
+allow_multi_rates: false
+allow_variable_data_keys: false
+aux_ctc_tasks: []
+batch_bins: 1000000
+batch_size: 20
+batch_type: folded
+best_model_criterion:
+- - valid/loss
+  - 3
+  - min
+bpemodel: ./sentencepiece_model/bpe.model
+category_sample_size: 10
+category_upsampling_factor: 0.5
+chunk_default_fs: null
+chunk_discard_short_samples: true
+chunk_excluded_key_prefixes: []
+chunk_length: 500
+chunk_max_abs_length: null
+chunk_shift_ratio: 0.5
+cleaner: null
+collect_stats: false
+create_graph_in_tensorboard: false
+ctc_conf:
+  brctc_group_strategy: end
+  brctc_risk_factor: 0.0
+  brctc_risk_strategy: exp
+  ctc_type: builtin
+  dropout_rate: 0.0
+  ignore_nan_grad: null
+  reduce: true
+  zero_infinity: true
+cudnn_benchmark: false
+cudnn_deterministic: true
+cudnn_enabled: true
+dataloader:
+  collate_fn:
+    _target_: espnet2.train.collate_fn.CommonCollateFn
+    int_pad_value: -1
+  train:
+    iter_factory:
+      _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
+      batches:
+        batch_bins: 1500000
+        batch_size: 4
+        min_batch_size: 1
+        shape_files:
+        - ./exp/stats/train/feats_shape
+        type: numel
+      collate_fn:
+        _target_: espnet2.train.collate_fn.CommonCollateFn
+        int_pad_value: -1
+      num_workers: 8
+      shuffle: true
+  valid:
+    iter_factory:
+      _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
+      batches:
+        batch_bins: 1500000
+        batch_size: 4
+        min_batch_size: 1
+        shape_files:
+        - ./exp/stats/valid/feats_shape
+        type: numel
+      collate_fn:
+        _target_: espnet2.train.collate_fn.CommonCollateFn
+        int_pad_value: -1
+      num_workers: 8
+      shuffle: false
+dataset:
+  _target_: espnet3.data.DataOrganizer
+  test:
+  - dataset:
+      _target_: egs3.librispeech_100.asr1.dataset.LibriSpeechDataset
+      split: test-clean
+    name: test-clean
+  - dataset:
+      _target_: egs3.librispeech_100.asr1.dataset.LibriSpeechDataset
+      split: test-other
+    name: test-other
+  train:
+  - dataset:
+      _target_: egs3.librispeech_100.asr1.dataset.LibriSpeechDataset
+      split: train-clean-100
+    name: train-clean-100
+  valid:
+  - dataset:
+      _target_: egs3.librispeech_100.asr1.dataset.LibriSpeechDataset
+      split: dev-clean
+    name: dev-clean
+  - dataset:
+      _target_: egs3.librispeech_100.asr1.dataset.LibriSpeechDataset
+      split: dev-other
+    name: dev-other
+dataset_scaling_factor: 1.2
+dataset_upsampling_factor: 0.5
+ddp_comm_hook: null
+decoder: null
+decoder_conf: {}
+deepspeed_config: null
+detect_anomaly: false
+dist_backend: nccl
+dist_init_method: env://
+dist_launcher: null
+dist_master_addr: null
+dist_master_port: null
+dist_rank: null
+dist_world_size: null
+drop_last_iter: false
+dry_run: false
+early_stopping_criterion:
+- valid
+- loss
+- min
+encoder: e_branchformer
+encoder_conf:
+  attention_dropout_rate: 0.1
+  attention_heads: 4
+  attention_layer_type: rel_selfattn
+  cgmlp_conv_kernel: 31
+  cgmlp_linear_units: 1024
+  dropout_rate: 0.1
+  gate_activation: identity
+  input_layer: conv2d
+  layer_drop_rate: 0.0
+  linear_units: 1024
+  macaron_ffn: true
+  merge_conv_kernel: 31
+  num_blocks: 12
+  output_size: 256
+  pos_enc_layer_type: rel_pos
+  positional_dropout_rate: 0.1
+  positionwise_layer_type: linear
+  rel_pos_type: latest
+  use_ffn: true
+  use_linear_after_conv: false
+exclude_weight_decay: false
+exclude_weight_decay_conf: {}
+expdir: ./exp/train_ctc
+fold_length: []
+freeze_param: []
+frontend: default
+frontend_conf:
+  hop_length: 160
+  n_fft: 512
+  win_length: 400
+g2p: null
+grad_clip: 5.0
+grad_clip_type: 2.0
+grad_noise: false
+gradient_as_bucket_view: true
+ignore_init_mismatch: false
+init: null
+init_param: []
+input_size: null
+iterator_type: sequence
+joint_net_conf: {}
+keep_nbest_models:
+- 10
+local_rank: null
+log_interval: null
+log_level: INFO
+max_batch_size: null
+max_cache_fd: 32
+max_cache_size: 0.0
+max_epoch: 40
+min_batch_size: 1
+model: espnet
+model_conf:
+  ctc_weight: 1.0
+  length_normalized_loss: false
+  lsm_weight: 0.1
+multi_task_dataset: false
+multiple_iterator: false
+multiprocessing_distributed: false
+nbest_averaging_interval: 0
+no_forward_run: false
+noise_apply_prob: 1.0
+noise_db_range: '13_15'
+noise_scp: null
+non_linguistic_symbols: null
+normalize: global_mvn
+normalize_conf:
+  stats_file: ./exp/stats/train/feats_stats.npz
+num_att_plot: 3
+num_cache_chunks: 1024
+num_device: 1
+num_iters_per_epoch: null
+num_workers: 1
+optim:
+  _target_: torch.optim.Adam
+  lr: 0.002
+  weight_decay: 1.0e-06
+optim_conf:
+  capturable: false
+  differentiable: false
+  eps: 1.0e-06
+  foreach: null
+  lr: 1.0
+  maximize: false
+  rho: 0.9
+  weight_decay: 0
+output_dir: null
+parallel:
+  env: slurm
+  n_workers: 16
+  options:
+    account: bbjs-delta-cpu
+    cores: 1
+    job_extra_directives:
+    - --ntasks-per-node=1
+    - --cpus-per-task=4
+    - --output=parallel_log/%j-%x.log
+    memory: 8GB
+    processes: 1
+    queue: cpu
+patience: null
+postencoder: null
+postencoder_conf: {}
+preencoder: null
+preencoder_conf: {}
+preprocessor: default
+preprocessor_conf:
+  audio_pad_value: 0.0
+  data_aug_effects: null
+  data_aug_num:
+  - 1
+  - 1
+  data_aug_prob: 0.0
+  delimiter: null
+  force_single_channel: false
+  fs: 0
+  min_sample_size: -1
+  nonsplit_symbol: null
+  space_symbol: <space>
+  speech_name: speech
+  text_name: text
+  unk_symbol: <unk>
+  whisper_language: null
+  whisper_task: null
+pretrain_path: null
+recipedir: .
+resume: false
+rir_apply_prob: 1.0
+rir_scp: null
+save_strategy: all
+scheduler:
+  _target_: espnet2.schedulers.warmup_lr.WarmupLR
+  warmup_steps: 15000
+scheduler_conf: {}
+seed: 2024
+sharded_ddp: false
+short_noise_thres: 0.5
+shuffle_within_batch: false
+sort_batch: descending
+sort_in_batch: descending
+specaug: specaug
+specaug_conf:
+  apply_freq_mask: true
+  apply_time_mask: true
+  apply_time_warp: true
+  freq_mask_width_range:
+  - 0
+  - 27
+  num_freq_mask: 2
+  num_time_mask: 5
+  time_mask_width_ratio_range:
+  - 0.0
+  - 0.05
+  time_warp_mode: bicubic
+  time_warp_window: 5
+speech_volume_normalize: null
+statsdir: ./exp/stats
+task: asr
+text_cleaner: null
+token_list: ./sentencepiece_model/tokens.txt
+token_type: bpe
+train: true
+train_data_path_and_name_and_type: []
+train_dtype: float32
+train_shape_file: []
+trainer:
+  accelerator: gpu
+  accumulate_grad_batches: 4
+  check_val_every_n_epoch: 1
+  devices: 1
+  gradient_clip_val: 1.0
+  log_every_n_steps: 500
+  logger:
+  - _target_: lightning.pytorch.loggers.TensorBoardLogger
+    name: tb_logger
+    save_dir: ./exp/train_ctc/tensorboard
+  - _target_: lightning.pytorch.loggers.WandbLogger
+    name: LS_100_GPU1
+    project: ESPnet3 development
+    save_dir: ./exp/train_ctc/wandb
+  max_epochs: 70
+  num_nodes: 1
+  precision: bf16-mixed
+  strategy: auto
+unused_parameters: false
+upsampling_factor: 0.5
+use_adapter: false
+use_amp: false
+use_deepspeed: false
+use_lang_prompt: false
+use_matplotlib: true
+use_nlp_prompt: false
+use_preprocessor: true
+use_tensorboard: true
+use_tf32: false
+use_wandb: false
+val_scheduler_criterion:
+- valid
+- loss
+valid_batch_bins: null
+valid_batch_size: null
+valid_batch_type: null
+valid_data_path_and_name_and_type: []
+valid_iterator_type: null
+valid_max_cache_size: null
+valid_shape_file: []
+vocab_size: 6500
+wandb_entity: null
+wandb_id: null
+wandb_model_log_interval: -1
+wandb_name: null
+wandb_project: null
+write_collected_feats: false
