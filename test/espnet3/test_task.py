@@ -1,12 +1,11 @@
 # tests/test_task_wrapper.py
-import yaml
 import pytest
+import yaml
 from omegaconf import OmegaConf
 
 # Replace with your actual module path
 # Example: from espneteztask import get_task_class, save_espnet_config, get_espnet_model
 from espnet3.task import get_task_class, save_espnet_config
-
 
 # ===============================================================
 # Test Case Summary for Task Wrapper (espnet3.task)
@@ -72,4 +71,3 @@ def test_save_espnet_config(tmp_path):
     task_config_dict = OmegaConf.to_container(task.config, resolve=True)
 
     assert loaded_config == task_config_dict
-
