@@ -11,7 +11,7 @@ on:
       - espnet3
 
 jobs:
-  unit_test_espnet1_and_espnet2_on_debian12:
+  unit_test_espnet2_and_espnet3_on_debian12:
     runs-on: ubuntu-latest
     if: github.event.pull_request.draft == false
     container:
