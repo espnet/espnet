@@ -46,20 +46,8 @@ dataset:
 
 
 parallel:
-  env: slurm
-  n_workers: 16
-  options:
-    account: bbjs-delta-cpu
-    queue: cpu
-    cores: 1
-    processes: 1
-    memory: 8GB
-    # walltime: 30:00
-    job_extra_directives:
-      # - "--gres=gpu:1"
-      - "--ntasks-per-node=1"
-      - "--cpus-per-task=4"
-      - "--output=parallel_log/%j-%x.log"
+  env: local
+  n_workers: 2
 
 
 model:
