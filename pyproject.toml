@@ -24,6 +24,7 @@ license = { "text" = "Apache Software License" }
 # We can use newer setuptools after removing chainer support.
 # We didn't specify torch-related packages as it highly depends on environment.
 dependencies = [
+    # ESPnet-2 and ESPnet-3 dependencies
     "setuptools>=38.5.1,<74.0.0",
     "configargparse>=1.2.1",
     "packaging",
@@ -33,8 +34,6 @@ dependencies = [
     "numpy>=2.0.0",
     "PyYAML>=5.1.2",
     "soundfile>=0.10.2",
-    "torch>=1.11.0",
-    "torchaudio",
     "torch_optimizer",
     "kaldiio>=2.18.0",
     "sentencepiece==0.2.0",
@@ -47,6 +46,15 @@ dependencies = [
     "espnet_model_zoo",
     "matplotlib",
     "nltk>=3.4.5",
+
+    # ESPnet-3 related
+    "hydra-core",
+    "omegaconf",
+    "datasets",
+    "dask[distributed]",
+    "dask_jobqueue",
+    "torch>=2.3.1",
+    "torchaudio>=2.3.1",
 ]
 
 [project.urls]
@@ -66,21 +74,9 @@ include = ["espnet*"]
 
 
 [project.optional-dependencies]
-espnet-3 = [
-  "hydra-core",
-  "omegaconf",
-  "datasets",
-  "dask[distributed]",
-  "dask_jobqueue",
-  "torch>=2.3.1",
-  "torchaudio>=2.3.1",
-]
-
 task-asr = [
   "ctc-segmentation @ git+https://github.com/espnet/ctc-segmentation.git@9b9ea1d",
   "editdistance",
-  "hydra-core",
-  "omegaconf",
   "opt_einsum",
 ]
 
@@ -153,7 +149,6 @@ doc = [
 ]
 
 all = [
-  "espnet[espnet-3]",
   "espnet[task-asr]",
   "espnet[task-tts]",
   "espnet[task-enh]",
