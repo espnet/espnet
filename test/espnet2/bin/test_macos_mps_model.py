@@ -1,12 +1,12 @@
-import torch
-import pytest
-
 from pathlib import Path
 
-from espnet2.bin.s2t_inference import Speech2Text
-
 # NOTE: these fixture imports are necessary to have a config file in place
-from test.espnet2.bin.test_s2t_inference import token_list, s2t_config_file
+from test.espnet2.bin.test_s2t_inference import s2t_config_file, token_list
+
+import pytest
+import torch
+
+from espnet2.bin.s2t_inference import Speech2Text
 
 
 @pytest.mark.skipif(
