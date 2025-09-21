@@ -21,33 +21,36 @@ from espnet3.utils.config import load_config_with_defaults
 
 
 @pytest.mark.parametrize(
-    "task_name, expected_cls_name",
+    "task_path, expected_cls_name",
     [
-        ("asr", "ASRTask"),
-        ("asr_transducer", "ASRTransducerTask"),
-        ("asvspoof", "ASVSpoofTask"),
-        ("diar", "DiarizationTask"),
-        ("enh", "EnhancementTask"),
-        ("enh_s2t", "EnhS2TTask"),
-        ("enh_tse", "TargetSpeakerExtractionTask"),
-        ("gan_svs", "GANSVSTask"),
-        ("gan_tts", "GANTTSTask"),
-        ("hubert", "HubertTask"),
-        ("lm", "LMTask"),
-        ("mt", "MTTask"),
-        ("s2st", "S2STTask"),
-        ("s2t", "S2TTask"),
-        ("slu", "SLUTask"),
-        ("spk", "SpeakerTask"),
-        ("st", "STTask"),
-        ("svs", "SVSTask"),
-        ("tts", "TTSTask"),
-        ("uasr", "UASRTask"),
+        ("espnet2.tasks.asr.ASRTask", "ASRTask"),
+        ("espnet2.tasks.asr_transducer.ASRTransducerTask", "ASRTransducerTask"),
+        ("espnet2.tasks.asvspoof.ASVSpoofTask", "ASVSpoofTask"),
+        ("espnet2.tasks.diar.DiarizationTask", "DiarizationTask"),
+        ("espnet2.tasks.enh.EnhancementTask", "EnhancementTask"),
+        ("espnet2.tasks.enh_s2t.EnhS2TTask", "EnhS2TTask"),
+        (
+            "espnet2.tasks.enh_tse.TargetSpeakerExtractionTask",
+            "TargetSpeakerExtractionTask",
+        ),
+        ("espnet2.tasks.gan_svs.GANSVSTask", "GANSVSTask"),
+        ("espnet2.tasks.gan_tts.GANTTSTask", "GANTTSTask"),
+        ("espnet2.tasks.hubert.HubertTask", "HubertTask"),
+        ("espnet2.tasks.lm.LMTask", "LMTask"),
+        ("espnet2.tasks.mt.MTTask", "MTTask"),
+        ("espnet2.tasks.s2st.S2STTask", "S2STTask"),
+        ("espnet2.tasks.s2t.S2TTask", "S2TTask"),
+        ("espnet2.tasks.slu.SLUTask", "SLUTask"),
+        ("espnet2.tasks.spk.SpeakerTask", "SpeakerTask"),
+        ("espnet2.tasks.st.STTask", "STTask"),
+        ("espnet2.tasks.svs.SVSTask", "SVSTask"),
+        ("espnet2.tasks.tts.TTSTask", "TTSTask"),
+        ("espnet2.tasks.uasr.UASRTask", "UASRTask"),
     ],
 )
 @pytest.mark.execution_timeout(30)
-def test_get_task_class_returns_correct_class(task_name, expected_cls_name):
-    cls = get_task_class(task_name)
+def test_get_task_class_returns_correct_class(task_path, expected_cls_name):
+    cls = get_task_class(task_path)
     assert cls.__name__ == expected_cls_name
 
 
