@@ -11,7 +11,8 @@ from espnet2.bin.s2t_inference import Speech2Text
 
 @pytest.mark.skipif(
     not torch.backends.mps.is_available(),
-    reason="This test is specific to macOS with Metal Performance Shaders enabled",
+    reason="This test is specific to macOS"
+    + "with Metal Performance Shaders enabled",
 )
 def test_macos_mps_model(s2t_config_file, tmp_path: Path):
     # create a float64 model using the CPU since it supports it
@@ -22,7 +23,8 @@ def test_macos_mps_model(s2t_config_file, tmp_path: Path):
     ).to(dtype=torch.float64)
     torch.save(dummy_model.state_dict(), tmp_path / "s2t" / "model.pth")
 
-    # load it with mps and make sure it gets loaded as float32 since mps doesn't support float64
+    # load it with mps and make sure it gets loaded
+    # as float32 since mps doesn't support float64
     s2t = Speech2Text.from_pretrained(
         s2t_model_file=str(tmp_path / "s2t" / "model.pth"),
         device="mps",
