@@ -29,3 +29,6 @@ def test_macos_mps_model(s2t_config_file, tmp_path: Path):
     )
     assert s2t.device == "mps"
     assert s2t.dtype == "float32"
+    model_params = next(s2t.s2t_model.parameters())
+    assert model_params.device.type == "mps"
+    assert model_params.dtype == torch.float32
