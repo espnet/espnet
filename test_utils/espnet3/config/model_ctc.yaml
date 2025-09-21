@@ -4,7 +4,7 @@ expdir: ${recipedir}/exp/train_ctc
 statsdir:  ${recipedir}/exp/stats
 vocab_size: 6500
 seed: 2024
-task: asr
+task: espnet2.tasks.asr.ASRTask
 
 # load default config
 defaults:

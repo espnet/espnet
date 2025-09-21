@@ -61,12 +61,14 @@ def test_get_espnet_model():
     default_config["token_list"] = ["<blank>", "a", "b", "c"]
     default_config["model_conf"]["ctc_weight"] = 1.0
     model = ASRTask.build_model(Namespace(**default_config))
-    model_espnet3 = get_espnet_model("asr", default_config)
+    model_espnet3 = get_espnet_model("espnet2.tasks.asr.ASRTask", default_config)
     assert str(model) == str(model_espnet3)  # Check all attributes are the same
 
 
 def test_save_espnet_config(tmp_path):
     config_path = Path("test_utils") / "espnet3" / "config" / "model_ctc.yaml"
     output_file = tmp_path / "config.yaml"
-    save_espnet_config("asr", load_config_with_defaults(config_path), output_file)
+    save_espnet_config(
+        "espnet2.tasks.asr.ASRTask", load_config_with_defaults(config_path), output_file
+    )
     assert output_file.exists()
