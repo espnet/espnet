@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Optional
 
 import numpy as np
+
 from espnet3.utils.collect_stats_local import collect_stats_local
 from espnet3.utils.collect_stats_parallel import (
     collect_stats_multiple_iterator,
