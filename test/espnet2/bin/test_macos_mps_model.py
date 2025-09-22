@@ -1,7 +1,10 @@
 from pathlib import Path
 
 # NOTE: these fixture imports are necessary to have a config file in place
-from test.espnet2.bin.test_s2t_inference import s2t_config_file, token_list
+from test.espnet2.bin.test_s2t_inference import (  # noqa: F401
+    s2t_config_file,
+    token_list,
+)
 
 import pytest
 import torch
@@ -13,7 +16,7 @@ from espnet2.bin.s2t_inference import Speech2Text
     not torch.backends.mps.is_available(),
     reason="This test is specific to macOS with Metal Performance Shaders enabled",
 )
-def test_macos_mps_model(s2t_config_file, tmp_path: Path):
+def test_macos_mps_model(s2t_config_file, tmp_path: Path):  # noqa: F811
     # create a float64 model using the CPU since it supports it
     dummy_model = torch.nn.Sequential(
         torch.nn.Linear(80, 10),
