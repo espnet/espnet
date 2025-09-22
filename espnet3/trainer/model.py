@@ -8,9 +8,6 @@ from omegaconf import OmegaConf
 from espnet2.train.collate_fn import CommonCollateFn
 from espnet3.collect_stats import collect_stats
 from espnet3.trainer.dataloader import DataLoaderBuilder
-
-# Temporarily disabled for the code review.
-# from espnet3.collect_stats import collect_stats
 from espnet3.trainer.multiple_optim import MultipleOptim
 from espnet3.trainer.multiple_scheduler import MultipleScheduler
 
