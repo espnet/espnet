@@ -6,16 +6,26 @@ from espnet2.asr.encoder.e_branchformer_encoder import EBranchformerEncoder
 from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
 from espnet2.asr.frontend.cnn import CNNFrontend
 from espnet2.asr.preencoder.linear import LinearProjection
+from espnet2.legacy.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet2.ssl.espnet_model import ESPnetSSLModel
 from espnet2.ssl.loss.hubert import HuBERTLoss
 from espnet2.tasks.ssl import util_choices
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 
 
 @pytest.mark.parametrize("encoder_arch", [TransformerEncoder])
 @pytest.mark.parametrize("loss_fn", [HuBERTLoss])
-def test_espnet_model_wav2vec(encoder_arch, loss_fn):
-    frontend = CNNFrontend("group_norm", "standard", True, [(3, 3, 2)])
+@pytest.mark.parametrize(
+    "cnn_settings",
+    [
+        ("group_norm", False, False, "transposed"),
+        ("layer_norm", True, True, "dim1"),
+    ],
+)
+def test_espnet_model_wav2vec(encoder_arch, loss_fn, cnn_settings):
+    norm_mode, norm_in, norm_out, norm_func = cnn_settings
+    frontend = CNNFrontend(
+        norm_mode, "standard", True, [(3, 3, 2)], norm_in, norm_out, norm_func
+    )
     preencoder = LinearProjection(3, 16)
     encoder = encoder_arch(
         16,

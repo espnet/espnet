@@ -49,8 +49,8 @@ class EnhS2TPackedContents(PackedContents):
 
 class SSLPackedContents(PackedContents):
     # These names must be consistent with the argument of inference functions
-    files = ["model_file"]
-    yaml_files = ["train_config"]
+    files = ["ssl_model_file"]
+    yaml_files = ["ssl_train_config"]
 
 
 class S2STPackedContents(PackedContents):
@@ -72,6 +72,11 @@ class ClassificationPackedContents(PackedContents):
 
 
 class SpkPackedContents(PackedContents):
+    files = ["model_file"]
+    yaml_files = ["train_config"]
+
+
+class LIDPackedContents(PackedContents):
     files = ["model_file"]
     yaml_files = ["train_config"]
 
@@ -107,6 +112,7 @@ def get_parser() -> argparse.ArgumentParser:
         ("s2st", S2STPackedContents),
         ("s2t", S2TPackedContents),
         ("spk", SpkPackedContents),
+        ("lid", LIDPackedContents),
         ("codec", CodecPackedContents),
         ("cls", ClassificationPackedContents),
     ]:

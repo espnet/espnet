@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 from omegaconf import OmegaConf
 
-from espnet3.trainer import LitESPnetModel
+from espnet3.trainer.model import LitESPnetModel
 
 # ===============================================================
 # Test Case Summary for LitESPnetModel.configure_optimizers
@@ -51,7 +51,10 @@ class ReduceLROnPlateauModel(LitESPnetModel):
         return optimizer
 
     def optimizer_step(
-        self, epoch_nb, batch_nb, optimizer, optimizer_i, second_order_closure=None
+        self,
+        epoch_nb,
+        batch_nb,
+        optimizer,
     ):
         if batch_nb == 0:
             self.scheduler.step(self.favorite_metric)
@@ -103,8 +106,18 @@ def test_multiple_optims_and_schedulers():
                 },
             ],
             "schedulers": [
-                {"_target_": "torch.optim.lr_scheduler.StepLR", "step_size": 10},
-                {"_target_": "torch.optim.lr_scheduler.StepLR", "step_size": 100},
+                {
+                    "scheduler": {
+                        "_target_": "torch.optim.lr_scheduler.StepLR",
+                        "step_size": 10,
+                    }
+                },
+                {
+                    "scheduler": {
+                        "_target_": "torch.optim.lr_scheduler.StepLR",
+                        "step_size": 100,
+                    }
+                },
             ],
             "dataset": {
                 "_target_": "espnet3.data.DataOrganizer",
@@ -173,7 +186,9 @@ def test_reduce_on_plateau_with_config_adam():
                 1.0 - 0.1 * epoch
             )  # simulate val_loss decreasing
             lit_model.optimizer_step(
-                epoch_nb=epoch, batch_nb=batch, optimizer=optimizer, optimizer_i=0
+                epoch_nb=epoch,
+                batch_nb=batch,
+                optimizer=optimizer,
             )
 
 
@@ -239,7 +254,12 @@ def test_mixed_scheduler_and_schedulers():
                 "step_size": 10,
             },
             "schedulers": [
-                {"_target_": "torch.optim.lr_scheduler.StepLR", "step_size": 10}
+                {
+                    "scheduler": {
+                        "_target_": "torch.optim.lr_scheduler.StepLR",
+                        "step_size": 10,
+                    }
+                }
             ],
             "dataset": {
                 "_target_": "espnet3.data.DataOrganizer",
@@ -271,7 +291,12 @@ def test_optims_and_schedulers_length_mismatch():
                 },
             ],
             "schedulers": [
-                {"_target_": "torch.optim.lr_scheduler.StepLR", "step_size": 10}
+                {
+                    "scheduler": {
+                        "_target_": "torch.optim.lr_scheduler.StepLR",
+                        "step_size": 10,
+                    }
+                }
             ],
             "dataset": {
                 "_target_": "espnet3.data.DataOrganizer",
@@ -296,7 +321,12 @@ def test_optimizer_missing_params_key():
                 {"optim": {"_target_": "torch.optim.SGD", "lr": 0.01}}
             ],  # Missing "params"
             "schedulers": [
-                {"_target_": "torch.optim.lr_scheduler.StepLR", "step_size": 10}
+                {
+                    "scheduler": {
+                        "_target_": "torch.optim.lr_scheduler.StepLR",
+                        "step_size": 10,
+                    }
+                }
             ],
             "dataset": {
                 "_target_": "espnet3.data.DataOrganizer",
@@ -322,7 +352,12 @@ def test_optimizer_params_not_matching_model():
                 }
             ],
             "schedulers": [
-                {"_target_": "torch.optim.lr_scheduler.StepLR", "step_size": 10}
+                {
+                    "scheduler": {
+                        "_target_": "torch.optim.lr_scheduler.StepLR",
+                        "step_size": 10,
+                    }
+                }
             ],
             "dataset": {
                 "_target_": "espnet3.data.DataOrganizer",
@@ -352,8 +387,18 @@ def test_optimizer_duplicate_params():
                 },
             ],
             "schedulers": [
-                {"_target_": "torch.optim.lr_scheduler.StepLR", "step_size": 10},
-                {"_target_": "torch.optim.lr_scheduler.StepLR", "step_size": 10},
+                {
+                    "scheduler": {
+                        "_target_": "torch.optim.lr_scheduler.StepLR",
+                        "step_size": 10,
+                    }
+                },
+                {
+                    "scheduler": {
+                        "_target_": "torch.optim.lr_scheduler.StepLR",
+                        "step_size": 10,
+                    }
+                },
             ],
             "dataset": {
                 "_target_": "espnet3.data.DataOrganizer",
@@ -391,7 +436,12 @@ def test_optimizer_missing_coverage():
                 }
             ],
             "schedulers": [
-                {"_target_": "torch.optim.lr_scheduler.StepLR", "step_size": 10}
+                {
+                    "scheduler": {
+                        "_target_": "torch.optim.lr_scheduler.StepLR",
+                        "step_size": 10,
+                    }
+                },
             ],
             "dataset": {
                 "_target_": "espnet3.data.DataOrganizer",

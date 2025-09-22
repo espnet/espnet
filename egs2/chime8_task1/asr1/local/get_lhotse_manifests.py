@@ -163,7 +163,7 @@ def prepare_chime6(
 
                 ex_id = (
                     f"{spk_id}_chime6_{session}_{idx}-"
-                    f"{round(100*start):06d}_{round(100*end):06d}-{mic}"
+                    f"{round(100 * start):06d}_{round(100 * end):06d}-{mic}"
                 )
 
                 if "words" not in segment.keys():
