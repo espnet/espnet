@@ -45,7 +45,26 @@ class CategoryIterFactory(AbsIterFactory):
       guarantees reproducibility when resuming from middle of training process.
     - Enable to restrict the number of samples for one epoch. This features
       controls the interval number between training and evaluation.
-
+    
+    Args:
+        dataset: The dataset to iterate over
+        batches: The batches to iterate over
+        num_iters_per_epoch: The number of iterations per epoch
+        seed: The random seed
+        sampler_args: The arguments to pass to the batch sampler
+        batch_type: The type of batch sampler to use:
+            catbel: Category-balanced batch sampler,
+                    ensures equal representation of all categories in each batch
+            catpow: Category-power batch sampler,
+                    applies power law sampling based on category frequency to
+                    address class imbalance
+            catpow_dataset: Category-power batch sampler with dataset-level
+                    upsampling, performs dataset-level upsampling before applying
+                    power law sampling on categories within each dataset
+        shuffle: Whether to shuffle the batches
+        num_workers: The number of workers to use
+        collate_fn: The collate function to use
+        pin_memory: Whether to pin the memory
     """
 
     @typechecked
