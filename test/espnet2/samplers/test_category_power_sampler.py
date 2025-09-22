@@ -75,8 +75,11 @@ def test_CategoryPowerSampler(category2utt_file, shape_file, drop_last):
         category2utt_file=category2utt_file,
         epoch=1,
     )
-    list(sampler)
-    print(sampler)
+
+    assert hasattr(sampler, '__iter__')
+
+    batches = list(sampler)
+    assert len(batches) > 0
 
 
 @pytest.mark.parametrize("drop_last", [True, False])
@@ -97,5 +100,8 @@ def test_CategoryDatasetPowerSampler(
         utt2dataset_file=utt2dataset_file,
         epoch=1,
     )
-    list(sampler)
-    print(sampler)
+
+    assert hasattr(sampler, '__iter__')
+
+    batches = list(sampler)
+    assert len(batches) > 0
