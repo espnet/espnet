@@ -120,6 +120,57 @@ class ESPnetS2TModel(AbsESPnetModel):
             assert (
                 self.frontend is None
             ), "frontend should be None when using full Whisper model"
+    
+    def forced_align(self, speech, speech_lengths, text, text_lengths):
+        """Calculate frame-wise alignment from CTC probabilities.
+
+        Args:
+            speech: (Batch, Length, ...)
+            speech_lengths: (Batch,)
+            text: (Batch, Length)
+            text_lengths: (Batch,)
+        Returns:
+            alignments: Tuple(tensor, tensor):
+                - Label for each time step in the alignment path computed using forced alignment.
+                - Log probability scores of the labels for each time step.
+            https://docs.pytorch.org/audio/main/generated/torchaudio.functional.forced_align.html
+        """
+        assert text_lengths.dim() == 1, text_lengths.shape
+        # Check that batch_size is unified
+        assert (
+            speech.shape[0]
+            == speech_lengths.shape[0]
+            == text.shape[0]
+            == text_lengths.shape[0]
+        ), (
+            speech.shape,
+            speech_lengths.shape,
+            text.shape,
+            text_lengths.shape,
+        )
+        batch_size = speech.shape[0]
+        assert batch_size==1, "Forced alignment only works with batch size 1."
+
+        # -1 is used as padding index in collate fn
+        text[text == -1] = self.ignore_id
+
+        # for data-parallel
+        text = text[:, : text_lengths.max()]
+
+        batch = {
+            "speech": speech,
+            "speech_lengths": speech_lengths,
+            "text_ctc": text,
+            "text_ctc_lengths": text_lengths,
+        }
+        with torch.no_grad():
+            encoder_out, encoder_out_lens = self.encode(
+                batch["speech"], batch["speech_lengths"]
+            )
+            alignments = self.ctc.forced_align(
+                encoder_out, encoder_out_lens, batch["text_ctc"], batch["text_ctc_lengths"], blank_idx = self.blank_id
+            )
+        return alignments
 
     def forward(
         self,
