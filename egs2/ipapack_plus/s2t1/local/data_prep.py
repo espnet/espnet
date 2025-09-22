@@ -165,7 +165,7 @@ def generate_df(source_dir, data_dir):
                 )
 
             logging.info(
-                f"{dataset} done! {len(split_datasets)-i-1}"
+                f"{dataset} done! {len(split_datasets) - i - 1}"
                 + "datasets remaining for the split."
             )
 

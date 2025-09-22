@@ -21,7 +21,12 @@ ${CXX:-g++} -v
 
     . ./activate_python.sh
     # FIXME(kamo): Failed to compile pesq
-    make TH_VERSION="${TH_VERSION}" WITH_OMP="${WITH_OMP-ON}" all warp-transducer.done nkf.done moses.done mwerSegmenter.done pyopenjtalk.done py3mmseg.done s3prl.done transformers.done phonemizer.done fairseq.done k2.done longformer.done parallel-wavegan.done muskits.done lora.done sph2pipe versa.done torcheval.done whisper.done
+    make TH_VERSION="${TH_VERSION}" WITH_OMP="${WITH_OMP-ON}" all \
+        warp-transducer.done nkf.done moses.done mwerSegmenter.done \
+        pyopenjtalk.done py3mmseg.done s3prl.done transformers.done \
+        phonemizer.done fairseq.done k2.done longformer.done \
+        parallel-wavegan.done muskits.done lora.done sph2pipe \
+        torcheval.done whisper.done
     rm -rf kaldi
 )
 . tools/activate_python.sh
@@ -62,4 +67,13 @@ next_version = f"{version[0]}.{version[1]}.{int(version[2]) + 1}"
 
 if L(torch.__version__) < L('$TH_VERSION') or L(torch.__version__) >= L(next_version):
     raise RuntimeError(f"Pytorch=$TH_VERSION is expected, but got pytorch={torch.__version__}. This is a bug in installation scripts")
+EOF
+
+# Check numpy version
+python3 <<EOF
+import numpy
+from packaging.version import parse as L
+
+if L(numpy.__version__) < L("2.0.0"):
+    raise RuntimeError(f"Numpy>=2.0.0 is expected, but got numpy={numpy.__version__}. This is a bug in installation scripts")
 EOF
