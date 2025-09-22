@@ -45,7 +45,7 @@ class CategoryIterFactory(AbsIterFactory):
       guarantees reproducibility when resuming from middle of training process.
     - Enable to restrict the number of samples for one epoch. This features
       controls the interval number between training and evaluation.
-    
+
     Args:
         dataset: The dataset to iterate over
         batches: The batches to iterate over

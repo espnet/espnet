@@ -76,7 +76,7 @@ def test_CategoryPowerSampler(category2utt_file, shape_file, drop_last):
         epoch=1,
     )
 
-    assert hasattr(sampler, '__iter__')
+    assert hasattr(sampler, "__iter__")
 
     batches = list(sampler)
     assert len(batches) > 0
@@ -101,7 +101,7 @@ def test_CategoryDatasetPowerSampler(
         epoch=1,
     )
 
-    assert hasattr(sampler, '__iter__')
+    assert hasattr(sampler, "__iter__")
 
     batches = list(sampler)
     assert len(batches) > 0
