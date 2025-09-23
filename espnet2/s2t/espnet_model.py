@@ -120,7 +120,7 @@ class ESPnetS2TModel(AbsESPnetModel):
             assert (
                 self.frontend is None
             ), "frontend should be None when using full Whisper model"
-    
+
     def forced_align(self, speech, speech_lengths, text, text_lengths):
         """Calculate frame-wise alignment from CTC probabilities.
 
@@ -135,7 +135,9 @@ class ESPnetS2TModel(AbsESPnetModel):
                 - Log probability scores of the labels for each time step.
             https://docs.pytorch.org/audio/main/generated/torchaudio.functional.forced_align.html
         """
-        assert self.ctc is not None, "CTC is not used in this model. Cannot compute forced alignment."
+        assert (
+            self.ctc is not None
+        ), "CTC is not used in this model. Cannot compute forced alignment."
         assert text_lengths.dim() == 1, text_lengths.shape
         # Check that batch_size is unified
         assert (
@@ -150,7 +152,7 @@ class ESPnetS2TModel(AbsESPnetModel):
             text_lengths.shape,
         )
         batch_size = speech.shape[0]
-        assert batch_size==1, "Forced alignment only works with batch size 1."
+        assert batch_size == 1, "Forced alignment only works with batch size 1."
 
         # -1 is used as padding index in collate fn
         text[text == -1] = self.ignore_id
@@ -169,7 +171,11 @@ class ESPnetS2TModel(AbsESPnetModel):
                 batch["speech"], batch["speech_lengths"]
             )
             alignments = self.ctc.forced_align(
-                encoder_out, encoder_out_lens, batch["text_ctc"], batch["text_ctc_lengths"], blank_idx = self.blank_id
+                encoder_out,
+                encoder_out_lens,
+                batch["text_ctc"],
+                batch["text_ctc_lengths"],
+                blank_idx=self.blank_id,
             )
         return alignments
 

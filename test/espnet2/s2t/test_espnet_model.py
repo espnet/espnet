@@ -70,8 +70,21 @@ def test_espnet_model_forced_align(encoder_arch, decoder_arch):
     # Run only if torchaudio is available
     pytest.importorskip("torchaudio")
     token_list = [
-        "<blank>", "<unk>", "<na>", "<nospeech>", "<en>", "<asr>", "<st_en>",
-        "<notimestamps>", "<0.00>", "<30.00>", "a", "i", "<sos>", "<eos>", "<sop>",
+        "<blank>",
+        "<unk>",
+        "<na>",
+        "<nospeech>",
+        "<en>",
+        "<asr>",
+        "<st_en>",
+        "<notimestamps>",
+        "<0.00>",
+        "<30.00>",
+        "a",
+        "i",
+        "<sos>",
+        "<eos>",
+        "<sop>",
     ]
     vocab_size = len(token_list)
     enc_out = 4
@@ -79,8 +92,11 @@ def test_espnet_model_forced_align(encoder_arch, decoder_arch):
         20, output_size=enc_out, linear_units=4, num_blocks=2, use_flash_attn=False
     )
     decoder = decoder_arch(
-        vocab_size=vocab_size, encoder_output_size=enc_out, linear_units=4,
-        num_blocks=2, use_flash_attn=False
+        vocab_size=vocab_size,
+        encoder_output_size=enc_out,
+        linear_units=4,
+        num_blocks=2,
+        use_flash_attn=False,
     )
     ctc = CTC(odim=vocab_size, encoder_output_size=enc_out)
     model = ESPnetS2TModel(
@@ -109,5 +125,5 @@ def test_espnet_model_forced_align(encoder_arch, decoder_arch):
         text_lengths=text_lengths,
     )
 
-    assert aligns.shape == (1, T//4 - 1)
-    assert scores.shape == (1, T//4 - 1)
+    assert aligns.shape == (1, T // 4 - 1)
+    assert scores.shape == (1, T // 4 - 1)

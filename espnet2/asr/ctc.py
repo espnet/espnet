@@ -212,7 +212,7 @@ class CTC(torch.nn.Module):
             torch.Tensor: argmax applied 2d tensor (B, Tmax)
         """
         return torch.argmax(self.ctc_lo(hs_pad), dim=2)
-    
+
     def forced_align(self, hs_pad, hlens, ys_pad, ys_lens, blank_idx=0):
         """Force alignment between input and target sequences (Viterbi path).
         Args:
@@ -229,6 +229,7 @@ class CTC(torch.nn.Module):
             https://docs.pytorch.org/audio/main/generated/torchaudio.functional.forced_align.html
         """
         import torchaudio
+
         if self.ctc_type != "builtin":
             raise NotImplementedError("force_align is only implemented for builtin CTC")
         log_probs = self.log_softmax(hs_pad)  # (B, Tmax, odim)
