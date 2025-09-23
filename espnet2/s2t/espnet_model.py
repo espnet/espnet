@@ -135,6 +135,7 @@ class ESPnetS2TModel(AbsESPnetModel):
                 - Log probability scores of the labels for each time step.
             https://docs.pytorch.org/audio/main/generated/torchaudio.functional.forced_align.html
         """
+        assert self.ctc is not None, "CTC is not used in this model. Cannot compute forced alignment."
         assert text_lengths.dim() == 1, text_lengths.shape
         # Check that batch_size is unified
         assert (
