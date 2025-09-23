@@ -1,6 +1,6 @@
 # PyTorch version: The latest six versions have been tested.
 # Please check https://github.com/espnet/espnet?tab=readme-ov-file#espnet-end-to-end-speech-processing-toolkit
-TH_VERSION := 2.6.0
+TH_VERSION := 2.7.1
 
 # Use pip for pytorch installation even if you have anaconda
 ifneq ($(shell test -f ./activate_python.sh && grep 'conda activate' ./activate_python.sh),)
@@ -128,6 +128,9 @@ lightning.done: pytorch.done
 # NOTE(kamo): conda_packages is not necessary for installation of espnet, but add it the dependencies just in case.
 espnet.done: pytorch.done conda_packages.done lightning.done
 	@echo NUMPY_VERSION=$(shell . ./activate_python.sh && python3 -c "import numpy; print(numpy.__version__)")
+	# Install additional packages that cannot be included in setup.py due to package build issues.
+	. ./activate_python.sh && python3 -m pip install git+https://github.com/espnet/g2p.git@053dfa9  # https://github.com/espnet/g2p/pull/1
+	. ./activate_python.sh && python3 -m pip install git+https://github.com/espnet/ctc-segmentation.git@9b9ea1d
 	. ./activate_python.sh && python3 -m pip install -e "..[train, recipe]"  # Install editable mode by default
 	@echo NUMPY_VERSION=$(shell . ./activate_python.sh && python3 -c "import numpy; print(numpy.__version__)")
 	. ./activate_python.sh && python -m nltk.downloader averaged_perceptron_tagger_eng
