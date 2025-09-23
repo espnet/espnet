@@ -234,6 +234,7 @@ class CTC(torch.nn.Module):
             raise NotImplementedError("force_align is only implemented for builtin CTC")
         log_probs = self.log_softmax(hs_pad)  # (B, Tmax, odim)
         assert log_probs.size(0) == 1, "Forced alignment only works with batch size 1."
+        assert not (ys_pad == blank_idx).any(), "Target cannot contain blank tokens."
         align_label, align_prob = torchaudio.functional.forced_align(
             log_probs, ys_pad, hlens, ys_lens, blank=blank_idx
         )
