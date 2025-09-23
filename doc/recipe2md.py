@@ -1,7 +1,7 @@
-import configargparse
 import shutil
 from pathlib import Path
 
+import configargparse
 
 if __name__ == "__main__":
     # parser
@@ -10,10 +10,8 @@ if __name__ == "__main__":
         config_file_parser_class=configargparse.YAMLConfigFileParser,
         formatter_class=configargparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument(
-        "--src", type=Path, help="Path to TEMPLATE folder")
-    parser.add_argument(
-        "--dst", type=Path, help="Destination to store markdowns")
+    parser.add_argument("--src", type=Path, help="Path to TEMPLATE folder")
+    parser.add_argument("--dst", type=Path, help="Destination to store markdowns")
     args = parser.parse_args()
     print(args)
 
