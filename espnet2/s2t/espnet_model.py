@@ -155,7 +155,7 @@ class ESPnetS2TModel(AbsESPnetModel):
         assert batch_size == 1, "Forced alignment only works with batch size 1."
 
         # -1 is used as padding index in collate fn
-        text[text == -1] = self.ignore_id
+        text = torch.where(text == -1, self.ignore_id, text)
 
         # for data-parallel
         text = text[:, : text_lengths.max()]
