@@ -32,6 +32,7 @@ from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.lid.espnet_model import ESPnetLIDModel
+from espnet2.lid.frontend.s3prl_condition import S3prlFrontendCondition
 from espnet2.lid.loss.aamsoftmax_sc_topk_lang2vec import AAMSoftmaxSCTopKLang2Vec
 from espnet2.spk.loss.abs_loss import AbsLoss
 from espnet2.spk.pooling.abs_pooling import AbsPooling
@@ -76,7 +77,7 @@ class ESPnetLIDUpstreamConditionModel(ESPnetLIDModel):
 
     Reference:
         Geolocation-Aware Robust Spoken Language Identification
-        TODO(qingzheng): add arxiv link
+        https://arxiv.org/pdf/2508.17148
     """
 
     @typechecked
@@ -112,6 +113,11 @@ class ESPnetLIDUpstreamConditionModel(ESPnetLIDModel):
             pooling=pooling,
             projector=projector,
             loss=loss,
+        )
+
+        assert isinstance(self.frontend, S3prlFrontendCondition), (
+            f"ESPnetLIDUpstreamConditionModel only supports S3prlFrontendCondition "
+            f"as frontend, but got {type(self.frontend)}"
         )
 
         self.upstream_encoder = self.frontend.upstream.upstream.model.encoder
