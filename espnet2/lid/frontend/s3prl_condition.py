@@ -38,7 +38,7 @@ class S3prlFrontendCondition(AbsFrontend):
             from s3prl.nn import Featurizer, S3PRLUpstreamCondition
         except Exception:
             raise ImportError(
-                "Error: s3prl are not found.\n"
+                "Error: s3prl is not found.\n"
                 "Please install the modified S3PRL version:\n"
                 "  If you have already installed s3prl, please uninstall it first.\n"
                 "  (optional) pip uninstall s3prl\n"
