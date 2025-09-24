@@ -261,9 +261,6 @@ class LIDTask(AbsTask):
             "--lang2utt",
             type=str,
             default="",
-            help="Directory of the train lang2utt file to be used in label "
-            "mapping. Note that both train and validation use the same lang2utt "
-            "file, since we can only support the same categories during "
             help=(
                 "Directory of the train lang2utt file to be used in label mapping. "
                 "Note that both train and validation use the same lang2utt file, "
