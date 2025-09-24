@@ -1,9 +1,13 @@
 import pytest
+import torch
 
 from espnet2.asr.frontend.default import DefaultFrontend
 from espnet2.asr.specaug.specaug import SpecAug
 from espnet2.layers.utterance_mvn import UtteranceMVN
-from espnet2.lid.espnet_model_upstream_condition import ESPnetLIDUpstreamConditionModel
+from espnet2.lid.espnet_model_upstream_condition import (
+    ESPnetLIDModel,
+    ESPnetLIDUpstreamConditionModel,
+)
 from espnet2.lid.frontend.s3prl_condition import S3prlFrontendCondition
 from espnet2.lid.loss.aamsoftmax_sc_topk_lang2vec import AAMSoftmaxSCTopKLang2Vec
 from espnet2.spk.encoder.ecapa_tdnn_encoder import EcapaTdnnEncoder
@@ -99,12 +103,12 @@ def test_aamsoftmax_sc_topk_lang2vec_loss(training):
     ilens = torch.LongTensor([8000, 7800])
     lid_labels = torch.randint(0, 10, (2,))
     lid_model = ESPnetLIDModel(
-        frontend=frontend,
+        frontend=default_frontend,
         specaug=specaug,
         normalize=normalize,
-        encoder=encoder,
-        pooling=pooling,
-        projector=projector,
+        encoder=ecapa_tdnn_encoder,
+        pooling=chan_attn_stat_pooling,
+        projector=rawnet3_projector,
         loss=aamsoftmax_sc_topk_lang2vec_loss,
     )
     lang2vecs = torch.randn(2, 299)
