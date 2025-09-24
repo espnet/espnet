@@ -45,17 +45,19 @@ def test_lid_model_upstream_condition_skip():
 
 
 @pytest.mark.parametrize("training", [True, False])
-@pytest.mark.parametrize("lang2vec_type", ["geo", "phonology_knn", "syntax_knn", "inventory_knn"])
+@pytest.mark.parametrize(
+    "lang2vec_type", ["geo", "phonology_knn", "syntax_knn", "inventory_knn"]
+)
 def test_aamsoftmax_sc_topk_lang2vec_loss(training, lang2vec_type):
 
     inputs = torch.randn(2, 198, requires_grad=True)
     lid_labels = torch.randint(0, 10, (2,)).long()
     if lang2vec_type == "geo":
         lang2vecs = torch.randn(2, 299)
-        lang2vec_dim = 299 # mock data
+        lang2vec_dim = 299  # mock data
     else:
         lang2vecs = torch.randn(2, 28)
-        lang2vec_dim = 28 # mock data
+        lang2vec_dim = 28  # mock data
 
     aamsoftmax_sc_topk_lang2vec_loss = AAMSoftmaxSCTopKLang2Vec(
         nout=198,  # Use fixed embedding dimension
