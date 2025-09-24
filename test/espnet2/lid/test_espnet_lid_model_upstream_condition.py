@@ -55,8 +55,6 @@ aamsoftmax_sc_topk_lang2vec_loss = AAMSoftmaxSCTopKLang2Vec(
 )
 
 
-
-
 def test_import_espnet_lid_upstream_condition_model():
     """Test that ESPnetLIDUpstreamConditionModel can be imported."""
     assert ESPnetLIDUpstreamConditionModel is not None
