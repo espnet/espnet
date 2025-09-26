@@ -12,19 +12,28 @@ from espnet3.trainer.callbacks import AverageCheckpointsCallback, get_default_ca
 # ===============================================================
 #
 # Normal Cases
-# | Test Name                                      | Description                                                                                      | # noqa: E501
-# |-----------------------------------------------|--------------------------------------------------------------------------------------------------| # noqa: E501
-# | test_average_checkpoints_callback_on_fit_end  | Verifies that checkpoint averaging and saving works correctly with dummy weights.               | # noqa: E501
-# | test_get_default_callbacks_structure          | Checks structure and types of callbacks returned by get_default_callbacks().                    | # noqa: E501
-# | test_average_checkpoints_with_multiple_metrics| Confirms correct averaging for multiple ModelCheckpoint instances with different monitor names. | # noqa: E501
-# | test_output_filename_format                   | Ensures output filename is formatted using monitor name and checkpoint count.                   | # noqa: E501
+# | Test Name                                      | Description                       |
+# |-----------------------------------------------|------------------------------------|
+# | test_average_checkpoints_callback_on_fit_end  | Verifies that checkpoint averaging |
+# |                                  | and saving works correctly with dummy weights.  |
+# | test_get_default_callbacks_structure          | Checks structure and types of      |
+# |                                   | callbacks returned by get_default_callbacks(). |
+# | test_average_checkpoints_with_multiple_metrics| Confirms correct averaging for     |
+# |                |  multiple ModelCheckpoint instances with different monitor names. |
+# | test_output_filename_format                 | Ensures output filename is formatted |
+# |                                         | using monitor name and checkpoint count. |
+# | test_average_checkpoint_with_no_checkpoints   | Tests the case when if checkpoints |
+# |                                               | is an empty list.          |
 #
 # Edge/Error Cases
-# | Test Name                                      | Description                                                                                      | # noqa: E501
-# |-----------------------------------------------|--------------------------------------------------------------------------------------------------| # noqa: E501
-# | test_average_checkpoint_on_non_global_zero    | Ensures callback is skipped when trainer.is_global_zero is False (e.g., non-main DDP rank).     | # noqa: E501
-# | test_average_checkpoint_with_inconsistent_keys| Raises KeyError if state_dict keys differ across checkpoints.                                    | # noqa: E501
-# | test_average_checkpoint_with_int_and_float_mix| Confirms floats are averaged and ints are accumulated properly during checkpoint merging.       | # noqa: E501
+# | Test Name                                      | Description                       |
+# |-----------------------------------------------|------------------------------------|
+# | test_average_checkpoint_on_non_global_zero    | Ensures callback is skipped when   |
+# |                       | trainer.is_global_zero is False (e.g., non-main DDP rank). |
+# | test_average_checkpoint_with_inconsistent_keys| Raises KeyError if state_dict keys |
+# |                                               | differ across checkpoints. |
+# | test_average_checkpoint_with_int_and_float_mix| Confirms floats are averaged and   |
+# |                          | ints are accumulated properly during checkpoint merging. |
 
 
 @pytest.fixture
@@ -248,3 +257,19 @@ def test_average_checkpoint_with_int_and_float_mix(tmp_path):
         assert torch.allclose(saved["weight"], torch.tensor([4.0, 3.0]))
         # Int not averaged
         assert saved["counter"] == 40
+
+
+def test_average_checkpoint_with_no_checkpoints(tmp_path):
+    """Ensure averaging does nothing when there are no checkpoints."""
+    with mock.patch("torch.save") as mock_save:
+        callback = AverageCheckpointsCallback(
+            output_dir=str(tmp_path),
+            best_ckpt_callbacks=[
+                mock.Mock(best_k_models={}, monitor="valid/loss")
+            ],
+        )
+        trainer = mock.Mock(is_global_zero=True)
+        # This should not raise an exception
+        callback.on_fit_end(trainer, pl_module=mock.Mock())
+
+        mock_save.assert_not_called()

@@ -59,6 +59,8 @@ class AverageCheckpointsCallback(Callback):
         if trainer.is_global_zero:
             for ckpt_callback in self.best_ckpt_callbacks:
                 checkpoints = list(ckpt_callback.best_k_models.keys())
+                if not checkpoints:
+                    continue
 
                 avg_state_dict = None
                 reference_keys = None

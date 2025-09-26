@@ -97,7 +97,7 @@ class ESPnet3LightningTrainer:
             ), "callbacks should be a list"
             for callback in self.config.callbacks:
                 callbacks.append(instantiate(callback))
-            self.config.pop("callbacks")
+            self._del_config_key("callbacks")
 
         # Since espnet's sampler requires to set the following configs:
         # Reload dataloaders every epoch to reuse ESPnet's dataloader
