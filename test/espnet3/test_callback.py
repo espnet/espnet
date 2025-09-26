@@ -131,7 +131,7 @@ def test_average_checkpoints_with_multiple_metrics(tmp_path, dummy_state_dict):
             ],
         )
         trainer = mock.Mock(is_global_zero=True)
-        callback.on_fit_end(trainer, pl_module=mock.Mock())
+        callback.on_validation_end(trainer, pl_module=mock.Mock())
 
         assert mock_save.call_count == 2
         filenames = [Path(call.args[1]).name for call in mock_save.call_args_list]
@@ -157,7 +157,7 @@ def test_output_filename_format(tmp_path, dummy_state_dict):
             ],
         )
         trainer = mock.Mock(is_global_zero=True)
-        callback.on_fit_end(trainer, pl_module=mock.Mock())
+        callback.on_validation_end(trainer, pl_module=mock.Mock())
 
         filename = Path(mock_save.call_args[0][1]).name
         assert filename == "some.metric.ave_3best.pth"
@@ -176,7 +176,7 @@ def test_average_checkpoint_on_non_global_zero(tmp_path, dummy_state_dict):
             ],
         )
         trainer = mock.Mock(is_global_zero=False)
-        callback.on_fit_end(trainer, pl_module=mock.Mock())
+        callback.on_validation_end(trainer, pl_module=mock.Mock())
 
         mock_save.assert_not_called()
 
@@ -213,7 +213,7 @@ def test_average_checkpoint_with_inconsistent_keys(tmp_path):
             ],
         )
         trainer = mock.Mock(is_global_zero=True)
-        callback.on_fit_end(trainer, pl_module=mock.Mock())
+        callback.on_validation_end(trainer, pl_module=mock.Mock())
 
 
 def test_average_checkpoint_with_int_and_float_mix(tmp_path):
@@ -253,7 +253,7 @@ def test_average_checkpoint_with_int_and_float_mix(tmp_path):
             ],
         )
         trainer = mock.Mock(is_global_zero=True)
-        callback.on_fit_end(trainer, pl_module=mock.Mock())
+        callback.on_validation_end(trainer, pl_module=mock.Mock())
 
         saved = mock_save.call_args[0][0]
         # Float averaged
@@ -271,7 +271,7 @@ def test_average_checkpoint_with_no_checkpoints(tmp_path):
         )
         trainer = mock.Mock(is_global_zero=True)
         # This should not raise an exception
-        callback.on_fit_end(trainer, pl_module=mock.Mock())
+        callback.on_validation_end(trainer, pl_module=mock.Mock())
 
         mock_save.assert_not_called()
 
