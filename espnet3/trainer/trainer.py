@@ -135,7 +135,7 @@ class ESPnet3LightningTrainer:
         self.trainer = lightning.Trainer(
             accelerator=accelerator,
             # Temporarily disabled for the code review.
-            # callbacks=callbacks,
+            callbacks=callbacks,
             strategy=strategy,
             logger=logger,
             profiler=profiler,
