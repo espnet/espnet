@@ -56,7 +56,7 @@ class AverageCheckpointsCallback(Callback):
         self.output_dir = output_dir
         self.best_ckpt_callbacks = best_ckpt_callbacks
 
-    def on_fit_end(self, trainer, pl_module):
+    def on_validation_end(self, trainer, pl_module):
         if trainer.is_global_zero:
             for ckpt_callback in self.best_ckpt_callbacks:
                 checkpoints = list(ckpt_callback.best_k_models.keys())

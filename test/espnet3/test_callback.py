@@ -16,8 +16,8 @@ from espnet3.trainer.callbacks import AverageCheckpointsCallback, get_default_ca
 # Normal Cases
 # | Test Name                                      | Description                       |
 # |-----------------------------------------------|------------------------------------|
-# | test_average_checkpoints_callback_on_fit_end  | Verifies that checkpoint averaging |
-# |                                  | and saving works correctly with dummy weights.  |
+# | test_average_checkpoints_callback_on_validation_end  | Verifies that checkpoint    |
+# |                        | averaging and saving works correctly with dummy weights.  |
 # | test_get_default_callbacks_structure          | Checks structure and types of      |
 # |                                   | callbacks returned by get_default_callbacks(). |
 # | test_average_checkpoints_with_multiple_metrics| Confirms correct averaging for     |
@@ -50,7 +50,7 @@ def dummy_state_dict():
     }
 
 
-def test_average_checkpoints_callback_on_fit_end(tmp_path, dummy_state_dict):
+def test_average_checkpoints_callback_on_validation_end(tmp_path, dummy_state_dict):
     """Test average checkpoints.
 
     Ensure AverageCheckpointsCallback correctly averages and saves model.
@@ -74,7 +74,7 @@ def test_average_checkpoints_callback_on_fit_end(tmp_path, dummy_state_dict):
         trainer = mock.Mock()
         trainer.is_global_zero = True
 
-        callback.on_fit_end(trainer, pl_module=mock.Mock())
+        callback.on_validation_end(trainer, pl_module=mock.Mock())
 
         mock_save.assert_called_once()
 
