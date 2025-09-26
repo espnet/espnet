@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 from typing import Any, List, Tuple, Union
 
@@ -98,6 +99,10 @@ class AverageCheckpointsCallback(Callback):
                         # (If there are any cases that requires averaging
                         #  or the other reducing method, e.g. max/min, for integer type,
                         #  please report.)
+                        logging.info(
+                            "The following parameters were only accumulated, "
+                            f"not averaged: {k}"
+                        )
                         pass
                     else:
                         avg_state_dict[k] = avg_state_dict[k] / len(checkpoints)
