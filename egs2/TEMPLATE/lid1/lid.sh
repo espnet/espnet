@@ -511,7 +511,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     # Prepare out-of-domain test sets
     if [ -n "${test_sets_ood}" ]; then
         log "Out-of-domain test sets: ${test_sets_ood}"
-        ./local/prepare_ood_test.sh \
+        bash ./local/prepare_ood_test.sh \
             --dump_dir ${data_feats} \
             --train_set ${train_set} \
             --test_sets "${test_sets_ood}"
