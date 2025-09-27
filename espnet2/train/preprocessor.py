@@ -2377,12 +2377,12 @@ class LIDPreprocessor(CommonPreprocessor):
             lang = lang.strip().split(" ")[0]
             self.lang2label[lang] = label_idx
             label_idx += 1
-    
+
     def get_lang2vec(self):
         langs = list(self.lang2label.keys())
         self.lang2vec = {}
         vector_dim = None
-        
+
         for lang in langs:
             try:
                 lang_result = l2v.get_features([lang], self.lang2vec_type)
@@ -2398,7 +2398,6 @@ class LIDPreprocessor(CommonPreprocessor):
                     self.lang2vec[lang] = np.zeros(vector_dim)
                 else:
                     raise e
-
 
     def _speech_process(self, data: Dict[np.ndarray, str]):
         audio = data["speech"]
@@ -2525,9 +2524,11 @@ class LIDPreprocessor(CommonPreprocessor):
 
         if "task_tokens" in data:
             data["task_tokens"] = np.asarray([int(data["task_tokens"])])
-        
+
         if self.use_lang2vec and self.lang2vec_type is not None:
-            data["lang2vecs"] = self.lang2vec[iso3_labels] # ndarray, (bs, lang2vec_dim)
+            data["lang2vecs"] = self.lang2vec[
+                iso3_labels
+            ]  # ndarray, (bs, lang2vec_dim)
 
         return data
 
