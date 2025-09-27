@@ -2253,7 +2253,7 @@ class LIDPreprocessor(CommonPreprocessor):
         train (bool): Whether to use in training mode.
         lang2utt (str): Path to the `lang2utt` file.
         target_duration (float): Target duration in seconds, if
-        fix_duration, clip to this duration.
+                                 fix_duration, clip to this duration.
         fix_duration (bool): Whether to fix the duration of the audio.
         sample_rate (int): Sampling rate.
         rir_scp (str): Path to the RIR scp file.
@@ -2284,6 +2284,8 @@ class LIDPreprocessor(CommonPreprocessor):
         ] = None,
         noise_apply_prob: float = 1.0,
         short_noise_thres: float = 0.5,
+        use_lang2vec: bool = False,
+        lang2vec_type: str = None,
     ):
         super().__init__(train, rir_scp=rir_scp, rir_apply_prob=rir_apply_prob)
 
@@ -2296,11 +2298,25 @@ class LIDPreprocessor(CommonPreprocessor):
         self.fix_duration = fix_duration
         self.train = train
         self.lang2utt_path = lang2utt
+        self.use_lang2vec = use_lang2vec
+        self.lang2vec_type = lang2vec_type
 
-        with open(lang2utt, "r") as f_s2u:
-            self.lang2utt = f_s2u.readlines()
+        with open(lang2utt, "r") as f_l2u:
+            self.lang2utt = f_l2u.readlines()
         self._make_label_mapping()
-        # self.nlang = len(self.lang2utt)
+        self.nlang = len(self.lang2utt)
+
+        if self.use_lang2vec and self.lang2vec_type is not None:
+            logging.info(f"Using lang2vec {self.lang2vec_type}")
+            try:
+                import lang2vec.lang2vec as l2v
+            except Exception as e:
+                raise ImportError(
+                    "Error: lang2vec is not found.\n"
+                    "Please install lang2vec by:\n"
+                    "  pip install lang2vec"
+                )
+            self.get_lang2vec()
 
         self.rir_scp = rir_scp
 
@@ -2361,6 +2377,28 @@ class LIDPreprocessor(CommonPreprocessor):
             lang = lang.strip().split(" ")[0]
             self.lang2label[lang] = label_idx
             label_idx += 1
+    
+    def get_lang2vec(self):
+        langs = list(self.lang2label.keys())
+        self.lang2vec = {}
+        vector_dim = None
+        
+        for lang in langs:
+            try:
+                lang_result = l2v.get_features([lang], self.lang2vec_type)
+                vec = np.array(lang_result[lang])
+                self.lang2vec[lang] = vec
+                if vector_dim is None:
+                    vector_dim = len(vec)
+            except Exception as e:
+                if vector_dim is not None:
+                    self.lang2vec[lang] = np.zeros(vector_dim)
+                elif self.lang2vec_type == "geo":
+                    vector_dim = 299
+                    self.lang2vec[lang] = np.zeros(vector_dim)
+                else:
+                    raise e
+
 
     def _speech_process(self, data: Dict[np.ndarray, str]):
         audio = data["speech"]
@@ -2484,6 +2522,12 @@ class LIDPreprocessor(CommonPreprocessor):
         iso3_labels = data["lid_labels"]
         int_label = self.lang2label[iso3_labels]
         data["lid_labels"] = np.asarray([int_label], dtype=np.int64)
+
+        if "task_tokens" in data:
+            data["task_tokens"] = np.asarray([int(data["task_tokens"])])
+        
+        if self.use_lang2vec and self.lang2vec_type is not None:
+            data["lang2vecs"] = self.lang2vec[iso3_labels] # ndarray, (bs, lang2vec_dim)
 
         return data
 
