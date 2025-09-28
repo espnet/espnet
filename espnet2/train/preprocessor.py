@@ -2308,14 +2308,6 @@ class LIDPreprocessor(CommonPreprocessor):
 
         if self.use_lang2vec and self.lang2vec_type is not None:
             logging.info(f"Using lang2vec {self.lang2vec_type}")
-            try:
-                import lang2vec.lang2vec as l2v
-            except Exception as e:
-                raise ImportError(
-                    "Error: lang2vec is not found.\n"
-                    "Please install lang2vec by:\n"
-                    "  pip install lang2vec"
-                )
             self.get_lang2vec()
 
         self.rir_scp = rir_scp
@@ -2379,6 +2371,15 @@ class LIDPreprocessor(CommonPreprocessor):
             label_idx += 1
 
     def get_lang2vec(self):
+        try:
+            import lang2vec.lang2vec as l2v
+        except Exception as e:
+            raise ImportError(
+                "Error: lang2vec is not found.\n"
+                "Please install lang2vec by:\n"
+                "  pip install lang2vec"
+            )
+
         langs = list(self.lang2label.keys())
         self.lang2vec = {}
         vector_dim = None
