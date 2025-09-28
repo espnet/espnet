@@ -40,20 +40,21 @@ class StatsPooling(AbsPooling):
         """
         if feat_lengths is not None:
             # Pooling over unpadded frames
-            mu = torch.stack(
-                [
-                    torch.mean(x[i, :, : int(l.item())], dim=-1)
-                    for i, l in enumerate(feat_lengths)
-                ],
-                dim=0,
-            )
-            st = torch.stack(
-                [
-                    torch.std(x[i, :, : int(l.item())], dim=-1, unbiased=False)
-                    for i, l in enumerate(feat_lengths)
-                ],
-                dim=0,
-            )  # unbiased=False (divided by N rather than N - 1)
+            max_len = x.size(-1)
+            mask = torch.arange(max_len, device=x.device).expand(
+                x.size(0), max_len
+            ) < feat_lengths.unsqueeze(1)
+            mask = mask.unsqueeze(1)  # (B, 1, T)
+
+            # Calculate mean over the time dimension (dim=-1)
+            mu = (x * mask).sum(dim=-1) / feat_lengths.unsqueeze(1)
+
+            # Calculate standard deviation over the time dimension (dim=-1)
+            # unbiased=False (divided by N rather than N - 1)
+            variance = ((x - mu.unsqueeze(-1)) ** 2 * mask).sum(
+                dim=-1
+            ) / feat_lengths.unsqueeze(1)
+            st = torch.sqrt(variance.clamp(min=1e-4))
         else:
             mu = torch.mean(x, dim=-1)
             st = torch.std(x, dim=-1, unbiased=False)

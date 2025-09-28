@@ -65,9 +65,11 @@ BACKGROUND_NOISE = "_background_noise_"
 SAMPLE_RATE = 16000
 
 # Generate test data
-with open(os.path.join(args.test_dir, "text"), "w") as text_f, open(
-    os.path.join(args.test_dir, "wav.scp"), "w"
-) as wav_scp_f, open(os.path.join(args.test_dir, "utt2spk"), "w") as utt2spk_f:
+with (
+    open(os.path.join(args.test_dir, "text"), "w") as text_f,
+    open(os.path.join(args.test_dir, "wav.scp"), "w") as wav_scp_f,
+    open(os.path.join(args.test_dir, "utt2spk"), "w") as utt2spk_f,
+):
     for label in LABELS:
         wav_list = [
             n
@@ -134,9 +136,11 @@ for name in ["train", "dev"]:
     # filter the list to reduce unknown words
     file_list = filter_file_list(file_list)
 
-    with open(os.path.join(out_dir, "text"), "w") as text_f, open(
-        os.path.join(out_dir, "wav.scp"), "w"
-    ) as wav_scp_f, open(os.path.join(out_dir, "utt2spk"), "w") as utt2spk_f:
+    with (
+        open(os.path.join(out_dir, "text"), "w") as text_f,
+        open(os.path.join(out_dir, "wav.scp"), "w") as wav_scp_f,
+        open(os.path.join(out_dir, "utt2spk"), "w") as utt2spk_f,
+    ):
         for wav_abspath in file_list:  # absolute path
             word, wav = wav_abspath.split("/")[-2:]
             if word != BACKGROUND_NOISE:
@@ -181,11 +185,11 @@ for name in ["train", "dev"]:
 with open(args.speechbrain_testcsv, "r") as f:
     speechbrain_lines = list(csv.reader(f))[1:]  # remove header line
 
-with open(os.path.join(args.speechbrain_test_dir, "text"), "w") as text_f, open(
-    os.path.join(args.speechbrain_test_dir, "wav.scp"), "w"
-) as wav_scp_f, open(
-    os.path.join(args.speechbrain_test_dir, "utt2spk"), "w"
-) as utt2spk_f:
+with (
+    open(os.path.join(args.speechbrain_test_dir, "text"), "w") as text_f,
+    open(os.path.join(args.speechbrain_test_dir, "wav.scp"), "w") as wav_scp_f,
+    open(os.path.join(args.speechbrain_test_dir, "utt2spk"), "w") as utt2spk_f,
+):
     for sb_line in speechbrain_lines:
         sb_id, _, start, stop, sb_wav = sb_line[:5]
         command = sb_line[10]

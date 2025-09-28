@@ -6,8 +6,8 @@ import torch
 import torch.nn as nn
 from typeguard import typechecked
 
+from espnet2.legacy.nets.pytorch_backend.transformer.mask import subsequent_mask
 from espnet2.lm.abs_model import AbsLM
-from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
 
 
 class HuggingfaceOPTModel(AbsLM):

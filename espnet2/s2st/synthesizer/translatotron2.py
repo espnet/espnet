@@ -11,10 +11,10 @@ import torch.nn.functional as F
 from torch import nn
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 
-from espnet2.s2st.synthesizer.abs_synthesizer import AbsSynthesizer
-from espnet.nets.pytorch_backend.fastspeech.duration_predictor import (
+from espnet2.legacy.nets.pytorch_backend.fastspeech.duration_predictor import (
     DurationPredictor as FastDurationPredictor,
 )
+from espnet2.s2st.synthesizer.abs_synthesizer import AbsSynthesizer
 
 
 class Translatotron2(AbsSynthesizer):
