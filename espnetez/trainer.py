@@ -234,6 +234,7 @@ class Trainer:
                 ``{"train": {...}, "valid": {...}}`` or a flat mapping where the same
                 items are used for both splits.  Each value must be a tuple
                 ``(file_name, name, type)``.
+                The types are found at: `espnet2/train/dataset.py`.
             train_dump_dir (str|pathlib.Path, optional): Path to the directory
                 containing the training data dump files.  Required if ``data_info``
                 is provided.

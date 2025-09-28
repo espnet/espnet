@@ -23,8 +23,8 @@ Typical usage::
 
     from espnetez.utils.config import from_yaml, update_finetune_config
 
-    base_cfg = from_yaml("speech_recognition", "config.yaml")
-    fine_tune_cfg = update_finetune_config("speech_recognition",
+    base_cfg = from_yaml("asr", "config.yaml")
+    fine_tune_cfg = update_finetune_config("asr",
                                             base_cfg,
                                             "finetune.yaml")
 
@@ -95,11 +95,11 @@ def from_yaml(task, path):
         yaml.YAMLError: If the YAML file is not formatted correctly.
 
     Examples:
-        >>> config = from_yaml('speech_recognition', 'config.yaml')
+        >>> config = from_yaml('asr', 'config.yaml')
         >>> print(config)
         {'learning_rate': 0.001, 'batch_size': 32, 'preprocessor_conf': None}
 
-        >>> config = from_yaml('text_to_speech', 'path/to/config.yaml')
+        >>> config = from_yaml('tts', 'path/to/config.yaml')
         >>> print(config['model_type'])
         'tacotron2'
 
