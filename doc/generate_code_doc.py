@@ -190,8 +190,8 @@ def generate_docstring_with_llm(code_snippet, element_type, args):
             f"'{args.llm_type}'.{Colors.ENDC}"
         )
         logging.warning(
-            f"Would have generated a docstring for this {
-                element_type.lower()}:"
+            "Would have generated a docstring for "
+            f"this {element_type.lower()}:"
         )
         logging.warning(code_snippet)
         logging.warning("---")
