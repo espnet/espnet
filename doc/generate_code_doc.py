@@ -301,8 +301,9 @@ def add_docstring_to_file(file_path, node, docstring):
         docstring_lines = docstring.strip().split("\n")
 
         if len(docstring_lines) == 1:
-            formatted_docstring_content = f'{docstring_indent}"""{
-                docstring_lines[0]}"""\n'
+            formatted_docstring_content = (
+                f'{docstring_indent}"""{docstring_lines[0]}"""\n'
+            )
         else:
             formatted_lines = [f'{docstring_indent}"""{docstring_lines[0]}']
             formatted_lines.extend(
@@ -394,8 +395,8 @@ def main(args):
         file_path = error["file_path"]
         line_num = error["line"]
         logging.info(
-            f"\nProcessing error {
-                error['error']} in {file_path} at line {line_num}"
+            "\nProcessing error "
+            f"{error['error']} in {file_path} at line {line_num}"
         )
 
         generated_docstring = None
