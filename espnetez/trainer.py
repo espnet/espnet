@@ -1,3 +1,37 @@
+"""ESPnetEZ training utilities.
+
+Provides helper functions and the :class:`Trainer` class to train ESPnet models using
+dump directories, custom datasets, or dataloaders.  The module validates
+argument combinations, configures the training environment, collects
+statistics and launches the training process.
+
+Classes
+-------
+Trainer
+    Generic trainer that orchestrates dataset preparation, statistics
+    collection and model training.
+
+Functions
+---------
+check_argument
+    Validates that the user supplies exactly one of dump directories,
+    custom datasets, or custom dataloaders.
+
+Example
+-------
+    >>> from espnetez.train import Trainer
+    >>> trainer = Trainer(
+    ...     task="asr",
+    ...     train_config={"batch_size": 32, "learning_rate": 1e-3},
+    ...     output_dir="exp/asr",
+    ...     stats_dir="exp/asr/stats",
+    ...     train_dump_dir="dump/train",
+    ...     valid_dump_dir="dump/valid",
+    ... )
+    >>> trainer.collect_stats()
+    >>> trainer.train()
+"""
+
 import glob
 import os
 from argparse import Namespace
@@ -14,8 +48,7 @@ def check_argument(
     train_dataloader,
     valid_dataloader,
 ):
-    """
-    Validate the arguments for training and validation data sources.
+    """Validate the arguments for training and validation data sources.
 
     This function checks the consistency of the input arguments used for
     specifying training and validation data sources. It ensures that
@@ -117,8 +150,7 @@ def check_argument(
 
 
 class Trainer:
-    """
-    Generic trainer class for ESPnet training.
+    """Generic trainer class for ESPnet training.
 
     This class is responsible for managing the training process of ESPnet models.
     It handles the configuration, dataset preparation, and the training loop.
@@ -185,6 +217,65 @@ class Trainer:
         build_model_fn=None,
         **kwargs
     ):
+        """Initialize an EZ training environment.
+
+        Args:
+            task (str): Identifier of the EZ task to be trained.
+            train_config (dict|argparse.Namespace): Configuration for the training
+                run. If adictionary, the key/value pairs are converted into an
+                ``argparse.Namespace``. Any additional keyword arguments passed via
+                ``**kwargs`` are merged into ``train_config``.
+            output_dir (str|pathlib.Path): Directory where the trained model and other
+                artifacts will be written.
+            stats_dir (str|pathlib.Path): Directory where training statistics and logs
+                should be stored.
+            data_info (dict, optional): Metadata describing the training and validation
+                datasets.  The structure can be either:
+                ``{"train": {...}, "valid": {...}}`` or a flat mapping where the same
+                items are used for both splits.  Each value must be a tuple
+                ``(file_name, name, type)``.
+                The types are found at: `espnet2/train/dataset.py`.
+            train_dump_dir (str|pathlib.Path, optional): Path to the directory
+                containing the training data dump files.  Required if ``data_info``
+                is provided.
+            valid_dump_dir (str|pathlib.Path, optional): Path to the directory
+                containing the validation data dump files.  Required if ``data_info``
+                is provided.
+            train_dataset (Dataset, optional): A custom training ``Dataset`` instance
+                supplied directly to the task.
+            valid_dataset (Dataset, optional): A custom validation ``Dataset`` instance
+                supplied directly to the task.
+            train_dataloader (DataLoader, optional): A custom training ``DataLoader``
+                instance.  Mutually exclusive with ``train_dataset``.
+            valid_dataloader (DataLoader, optional): A custom validation ``DataLoader``
+                instance.  Mutually exclusive with ``valid_dataset``.
+            build_model_fn (Callable, optional): Function that builds the model used by
+                the task.  If provided, it is stored on the task instance as
+                ``build_model_fn``.
+            **kwargs: Additional configuration values that will be merged into
+                ``train_config`` if it is a dictionary, or set as attributes on the
+                resulting ``argparse.Namespace``.
+
+        Raises:
+            ValueError: If ``train_config`` is neither a ``dict`` nor an
+                ``argparse.Namespace``.
+            AssertionError: If required arguments are missing (e.g. ``data_info``,
+                ``train_dump_dir``, ``valid_dump_dir`` when custom datasets are not
+                supplied).
+
+        Side Effects:
+            * Instantiates ``self.task_class`` by calling :func:`get_ez_task` with the
+            provided ``task`` identifier.  When custom datasets or dataloaders are
+            supplied, ``get_ez_task`` is called with ``use_custom_dataset=True``.
+            * Sets ``self.train_config.train_data_path_and_name_and_type`` and
+            ``self.train_config.valid_data_path_and_name_and_type`` when
+            ``data_info`` is used.
+            * Adds ``print_config`` and ``required`` attributes to
+            ``self.train_config`` based on ``kwargs`` (default values are ``False`` and
+            ``["output_dir", "token_list"]`` respectively).
+            * Stores ``stats_dir`` and ``output_dir`` on the instance.
+            * If ``build_model_fn`` is provided, it is attached to the task class.
+        """
         self.train_config = train_config
         check_argument(
             train_dump_dir,
@@ -249,8 +340,7 @@ class Trainer:
             self.task_class.build_model_fn = build_model_fn
 
     def train(self):
-        """
-        Train the model using the specified training configuration.
+        """Train the model using the specified training configuration.
 
         This method orchestrates the training process by first ensuring that
         the necessary shape files are available. It checks for the presence
@@ -285,8 +375,7 @@ class Trainer:
         self.task_class.main(self.train_config)
 
     def collect_stats(self):
-        """
-        Collects statistics for training and validation datasets.
+        """Collect statistics for training and validation datasets.
 
         This method initializes the process of gathering statistical data
         from the training and validation datasets. It creates the necessary

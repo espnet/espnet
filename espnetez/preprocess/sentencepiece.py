@@ -1,3 +1,72 @@
+"""Utilities for training and extending SentencePiece tokenizers.
+
+The module contains helper functions that simplify the process of creating a
+training corpus, fitting a SentencePiece model, and adding custom special
+tokens to an existing tokenizer.  It is primarily designed for speech-to-text
+or spoken-language-understanding pipelines where custom vocabularies are
+required.
+
+Functions
+---------
+prepare_sentences(dump_text_paths, output_path, remove_characters="")
+    Aggregates one or more dump text files into a single ``train.txt`` file
+    suitable for SentencePiece training.  The function also removes any
+    characters specified by *remove_characters*.
+
+train_sentencepiece(dump_text_path, output_path, vocab_size=5000,
+                     character_coverage=0.9995, model_type="bpe",
+                     user_defined_symbols=[])
+    Trains a SentencePiece model with the provided configuration and
+    stores the resulting ``.model`` and ``.vocab`` files in *output_path*.
+    Additionally a ``tokens.txt`` file containing the final token list is
+    generated.
+
+add_special_tokens(tokenizer, converter, embedding, special_tokens,
+                    insert_after="<st_zho>")
+    Adds new tokens to an existing SentencePiece tokenizer, updates the
+    token-to-ID converter, and expands an ``nn.Embedding`` module
+    accordingly.  The new tokens are inserted immediately after the token
+    specified by *insert_after*.
+
+Notes
+-----
+* ``prepare_sentences`` expects each line of the dump files to be
+  ``<id> <text>``; the text part is extracted after the first space.
+
+* ``train_sentencepiece`` creates the training directory if it does not
+  exist and moves the generated ``<model_type>.model`` and
+  ``<model_type>.vocab`` files into that directory.
+
+* ``add_special_tokens`` writes a new SentencePiece model file with a
+  trailing underscore (`*_sp.model`) and returns new instances of
+  :class:`~espnet2.text.sentencepiece_tokenizer.SentencepiecesTokenizer`,
+  :class:`~espnet2.text.token_id_converter.TokenIDConverter`, and
+  ``nn.Embedding`` that are consistent with the updated vocabulary.
+
+Dependencies
+------------
+- :mod:`sentencepiece`
+- :mod:`espnet2.text.sentencepiece_tokenizer`
+- :mod:`espnet2.text.token_id_converter`
+- :mod:`torch.nn`
+- Standard library modules :mod:`os`, :mod:`shutil`, :mod:`pathlib`,
+  :mod:`typing`
+
+Example
+-------
+>>> from pathlib import Path
+>>> # Prepare training data
+>>> prepare_sentences(["dump1.txt", "dump2.txt"], Path("data/train"))
+>>> # Train a SentencePiece model
+>>> train_sentencepiece(Path("data/train/train.txt"), Path("data/spm"))
+>>> # Load the tokenizer and add special tokens
+>>> tokenizer = SentencepiecesTokenizer("data/spm/bpe.model")
+>>> converter = TokenIDConverter(tokenizer.token_list, "<unk>")
+>>> embedding = nn.Embedding(len(converter), 256)
+>>> tokenizer, converter, embedding = add_special_tokens(
+...     tokenizer, converter, embedding, ["<new_tok>"], insert_after="<s>")
+"""
+
 import os
 import shutil
 from pathlib import Path
@@ -17,9 +86,7 @@ def prepare_sentences(
     output_path: Union[str, Path],
     remove_characters: str = "",
 ):
-    """
-    Create a training text file for SentencePiece model training from the
-    provided dump text files.
+    """Create a training text file for SentencePiece model.
 
     This function consolidates multiple text files into a single `train.txt`
     file, which is formatted for use in SentencePiece training. It also
@@ -86,8 +153,7 @@ def train_sentencepiece(
     model_type: str = "bpe",
     user_defined_symbols: list = [],
 ):
-    """
-    Main function to train a SentencePiece model.
+    """Train a SentencePiece model.
 
     This function trains a SentencePiece model using the provided training
     data and saves the resulting model and vocabulary files to the specified
@@ -162,6 +228,7 @@ def add_special_tokens(
     tokenizer, converter, embedding, special_tokens, insert_after="<st_zho>"
 ):
     """Add special tokens to the tokenizer.
+
     For detailed usage, please refer to the demo notebook for ESPnetEZ with SLU task.
 
     Args:
