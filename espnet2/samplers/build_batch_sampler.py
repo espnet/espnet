@@ -308,7 +308,7 @@ def build_category_batch_sampler(
         batch_sampler = CategoryDatasetPowerSampler(**sampler_args)
     else:
         raise ValueError(
-            f"batch_type={type} is not supported"
+            f"batch_type={type} is not supported when iterator_type=category."
             f"Please specify batch_type in {CATEGORY_BATCH_TYPES.keys()}."
         )
 
