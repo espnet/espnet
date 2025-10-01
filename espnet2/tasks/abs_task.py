@@ -869,14 +869,14 @@ class AbsTask(ABC):
             "--batch_type",
             type=str,
             default="folded",
-            choices=list(BATCH_TYPES),
+            choices=list(BATCH_TYPES) + list(CATEGORY_BATCH_TYPES),
             help=_batch_type_help,
         )
         group.add_argument(
             "--valid_batch_type",
             type=str_or_none,
             default=None,
-            choices=list(BATCH_TYPES) + [None],
+            choices=list(BATCH_TYPES) + list(CATEGORY_BATCH_TYPES) + [None],
             help="If not given, the value of --batch_type is used",
         )
         group.add_argument("--fold_length", type=int, action="append", default=[])
