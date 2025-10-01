@@ -1969,7 +1969,7 @@ class AbsTask(ABC):
             #    in the case of setting iterator_type to "category".
 
             if iter_options.batch_type == "folded":
-                raise Warning(
+                logging.warning(
                     "Detected iterator_type='category' with batch_type='folded'. "
                     "In older ESPnet versions (< 202509), when iterator_type was "
                     "set to 'category', the batch_type would default to 'folded' as"
@@ -2019,7 +2019,7 @@ class AbsTask(ABC):
         elif iter_options.batch_type in BATCH_TYPES.keys():
             # If the batch_type is set to other than the category batch types,
             # folded, and unsorted, we fallback to treat it as a sequence iterator.
-            raise Warning(
+            logging.warning(
                 f"The batch type {iter_options.batch_type} is not compatible"
                 f"with iterator_type=category. Please use a category batch type."
                 f"Available category batch types: {CATEGORY_BATCH_TYPES.keys()}"
