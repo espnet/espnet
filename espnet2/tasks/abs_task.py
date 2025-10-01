@@ -1949,10 +1949,13 @@ class AbsTask(ABC):
                 "category2utt mandatory for category iterator, but not found"
             )
 
-        if iter_options.batch_type in CATEGORY_BATCH_TYPES or iter_options.batch_type == "folded":
-            # Note(qingzheng): Handle category-based batch sampling for category 
+        if (
+            iter_options.batch_type in CATEGORY_BATCH_TYPES
+            or iter_options.batch_type == "folded"
+        ):
+            # Note(qingzheng): Handle category-based batch sampling for category
             # iterator type.
-            # 
+            #
             # This covers two scenarios:
             # 1. Explicit category batch types (catbel, catpow, catpow_balance_dataset):
             #    Use the specified category sampler directly.
@@ -1978,7 +1981,11 @@ class AbsTask(ABC):
                 )
 
             batch_sampler, sampler_args = build_category_batch_sampler(
-                type=iter_options.batch_type if iter_options.batch_type != "folded" else "catbel",
+                type=(
+                    iter_options.batch_type
+                    if iter_options.batch_type != "folded"
+                    else "catbel"
+                ),
                 batch_size=iter_options.batch_size,
                 batch_bins=iter_options.batch_bins,
                 shape_files=iter_options.shape_files,
