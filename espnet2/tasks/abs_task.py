@@ -1967,10 +1967,14 @@ class AbsTask(ABC):
 
             if iter_options.batch_type == "folded":
                 raise Warning(
-                    "iterator_type=category with batch_type='folded' detected. "
-                    "Mapping to 'catbel' for backward compatibility with previous versions. "
-                    "To use folded sampler, set iterator_type='sequence' "
-                    "and batch_type='folded'."
+                    "Detected iterator_type='category' with batch_type='folded'. "
+                    "In older ESPnet versions (< 202509), when iterator_type was "
+                    "set to 'category', the batch_type would default to 'folded' as"
+                    "the older design does not require the batch_type to be specified, "
+                    "but the intended behavior was to use category-balanced sampling "
+                    "(catbel batch sampler). We map 'folded' to 'catbel' to maintain "
+                    "this behavior. If you actually want to use the folded batch sampler, "
+                    "please set iterator_type='sequence' and batch_type='folded' instead."
                 )
 
             batch_sampler, sampler_args = build_category_batch_sampler(
