@@ -21,11 +21,11 @@ See the following pages before asking the question:
 
 ## VITS Baseline @ 900 epochs (LibriTTS-R)
 
-**Setup (summary)**  
-- Model: VITS (multi-speaker with x-vector)  
-- Corpus: LibriTTS-R  
-- Sampling rate: 24 kHz  
-- Config: `conf/tuning/train_xvector_vits.yaml`  
+**Setup (summary)**
+- Model: VITS (multi-speaker with x-vector)
+- Corpus: LibriTTS-R
+- Sampling rate: 24 kHz
+- Config: `conf/tuning/train_xvector_vits.yaml`
 - Evaluation: objective metrics on held-out split; UTMOS/DNSMOS/PLC and speaker-similarity included.
 
 **Metrics**
