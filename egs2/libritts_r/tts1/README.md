@@ -19,4 +19,32 @@ See the following pages before asking the question:
 
 ## Pretrained Models
 
+## VITS Baseline @ 900 epochs (LibriTTS-R)
+
+**Setup (summary)**  
+- Model: VITS (multi-speaker with x-vector)  
+- Corpus: LibriTTS-R  
+- Sampling rate: 24 kHz  
+- Config: `conf/tuning/train_xvector_vits.yaml`  
+- Evaluation: objective metrics on held-out split; UTMOS/DNSMOS/PLC and speaker-similarity included.
+
+**Metrics**
+
+| Metric          | Value  |
+|-----------------|--------:|
+| MCD             | 7.936   |
+| F0 RMSE         | 51.51   |
+| F0 Corr         | 0.269   |
+| UTMOS           | 3.867   |
+| DNSMOS Overall  | 3.169   |
+| DNSMOS P.808    | 3.786   |
+| PLCMOS          | 4.481   |
+| Spk Similarity  | 0.717   |
+| Eval Utterances | 4807    |
+
+> Notes: Results are from the initial 900-epoch run and serve as a baseline. Exact replication may vary slightly depending on GPU/seed and preprocessing details.
+
+---
+## Pretrained Models
+
 TBA
