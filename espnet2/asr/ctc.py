@@ -226,17 +226,18 @@ class CTC(torch.nn.Module):
 
         Returns:
             alignments: Tuple(tensor, tensor):
-                - Label for each time step in the alignment path computed using forced alignment.
+                - Label for each time step in the alignment path computed 
+                using forced alignment.
                 - Log probability scores of the labels for each time step.
-            https://docs.pytorch.org/audio/main/generated/torchaudio.functional.forced_align.html
+            
         """
         import torchaudio
 
         if self.ctc_type != "builtin":
-            raise NotImplementedError("force_align is only implemented for builtin CTC")
+            raise NotImplementedError("force_align needs builtin CTC")
         log_probs = self.log_softmax(hs_pad)  # (B, Tmax, odim)
-        assert log_probs.size(0) == 1, "Forced alignment only works with batch size 1."
-        assert not (ys_pad == blank_idx).any(), "Target cannot contain blank tokens."
+        assert log_probs.size(0) == 1, "Forced alignment needs batch size 1"
+        assert not (ys_pad == blank_idx).any(), "Target has blank tokens."
         align_label, align_prob = torchaudio.functional.forced_align(
             log_probs, ys_pad, hlens, ys_lens, blank=blank_idx
         )

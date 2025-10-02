@@ -131,9 +131,10 @@ class ESPnetS2TModel(AbsESPnetModel):
             text_lengths: (Batch,)
         Returns:
             alignments: Tuple(tensor, tensor):
-                - Label for each time step in the alignment path computed using forced alignment.
-                - Log probability scores of the labels for each time step.
-            https://docs.pytorch.org/audio/main/generated/torchaudio.functional.forced_align.html
+                - Label for each time step in the alignment path
+                computed using forced alignment.
+                - Log probability scores of the labels for each time
+                step.
         """
         assert (
             self.ctc is not None
@@ -152,7 +153,7 @@ class ESPnetS2TModel(AbsESPnetModel):
             text_lengths.shape,
         )
         batch_size = speech.shape[0]
-        assert batch_size == 1, "Forced alignment only works with batch size 1."
+        assert batch_size == 1, "Forced alignment needs batch size 1."
 
         # -1 is used as padding index in collate fn
         text = torch.where(text == -1, self.ignore_id, text)
