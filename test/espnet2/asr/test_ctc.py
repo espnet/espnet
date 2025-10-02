@@ -56,8 +56,8 @@ def test_bayes_risk_ctc(ctc_args):
 
 
 def test_ctc_forced_align(ctc_args):
-    torchaudio = pytest.importorskip("torchaudio")
-
+    _ = pytest.importorskip("torchaudio")
+    
     ctc = CTC(encoder_output_size=10, odim=5, ctc_type="builtin")
     hs_pad, hlens, ys_pad, ys_lens = ctc_args
     # Forced alignment only works with batch size 1.

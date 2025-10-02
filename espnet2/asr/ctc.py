@@ -215,6 +215,7 @@ class CTC(torch.nn.Module):
 
     def forced_align(self, hs_pad, hlens, ys_pad, ys_lens, blank_idx=0):
         """Force alignment between input and target sequences (Viterbi path).
+
         Args:
             hs_pad: batch of padded hidden state sequences (B, Tmax, D)
             hlens: batch of lengths of hidden state sequences (B)
@@ -222,6 +223,7 @@ class CTC(torch.nn.Module):
             ys_lens: batch of lengths of character sequence (B)
             blank_idx: index of blank symbol
             Note: B must be 1.
+
         Returns:
             alignments: Tuple(tensor, tensor):
                 - Label for each time step in the alignment path computed using forced alignment.
