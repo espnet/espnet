@@ -19,14 +19,16 @@ Output:
 /ŋ/                   3320.00ms -  3340.00ms
 """
 
+import argparse
+
+import numpy as np
+import soundfile as sf
 import torch
 import torch.nn.functional as F
 import torchaudio
-import soundfile as sf
-import numpy as np
+
 from espnet2.bin.s2t_inference import Speech2Text
 from espnet2.torch_utils.device_funcs import to_device
-import argparse
 
 
 def load_model(config_path, model_path, bpe_model_path, device="cpu"):
