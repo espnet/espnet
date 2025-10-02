@@ -48,6 +48,7 @@ dist
 
 # recipe related
 egs*/*/*/data*
+egs*/*/*/manifest*
 egs*/*/*/db
 egs*/*/*/downloads
 egs*/*/*/dump
