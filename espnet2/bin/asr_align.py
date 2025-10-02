@@ -12,15 +12,6 @@ from typing import List, Optional, TextIO, Union
 import numpy as np
 import soundfile
 import torch
-
-# imports for CTC segmentation
-from ctc_segmentation import (
-    CtcSegmentationParameters,
-    ctc_segmentation,
-    determine_utterance_segments,
-    prepare_text,
-    prepare_token_list,
-)
 from typeguard import typechecked
 
 # imports for inference

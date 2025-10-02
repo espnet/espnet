@@ -346,6 +346,16 @@ cd "${cwd}"
 # Uninstall task-dependency
 python3 test_utils/uninstall_extra.py
 
+# [ESPnet2] test lid1 recipe
+cd ./egs2/mini_an4/lid1
+gen_dummy_coverage
+echo "==== [ESPnet2] LID ==="
+./run.sh --stage 1 --stop_stage 4 --python "${python}"
+./run.sh --stage 5 --stop_stage 8 --python "${python}"
+# Remove generated files in order to reduce the disk usage
+rm -rf exp dump data
+cd "${cwd}"
+
 # [ESPnet2] test s2t1 recipe
 # # Install s2t dependency
 python3 -m pip install -e '.[task-s2t]'
