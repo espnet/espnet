@@ -226,10 +226,10 @@ class CTC(torch.nn.Module):
 
         Returns:
             alignments: Tuple(tensor, tensor):
-                - Label for each time step in the alignment path computed 
+                - Label for each time step in the alignment path computed
                 using forced alignment.
                 - Log probability scores of the labels for each time step.
-            
+
         """
         import torchaudio
 
