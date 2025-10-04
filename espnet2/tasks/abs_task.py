@@ -1976,8 +1976,9 @@ class AbsTask(ABC):
                     "the older design does not require the batch_type to be specified, "
                     "but the intended behavior was to use category-balanced sampling "
                     "(catbel batch sampler). We map 'folded' to 'catbel' to maintain "
-                    "this behavior. If you actually want to use the folded batch sampler, "
-                    "please set iterator_type='sequence' and batch_type='folded' instead."
+                    "this behavior. If you actually want to use the folded batch "
+                    "sampler, please set iterator_type='sequence' and "
+                    "batch_type='folded' instead."
                 )
 
             batch_sampler, sampler_args = build_category_batch_sampler(

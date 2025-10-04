@@ -75,7 +75,7 @@ BATCH_TYPES = dict(
 )
 
 CATEGORY_BATCH_TYPES = dict(
-    catbel="CategoryBalancedSampler keeps equally distributed categories (i.e., classes)"
+    catbel="CategoryBalancedSampler keeps equally distributed categories (classes)"
     " within each minibatch. If the batch_size is smaller than the number of classes, "
     "all samples in the minibatch will belong to different classes. "
     "This sampler requires a 'category2utt' file which maps each category to "
@@ -96,15 +96,15 @@ CATEGORY_BATCH_TYPES = dict(
     "    category_a utterance_id_a1 utterance_id_a2\n"
     "    category_b utterance_id_b1 utterance_id_b2\n"
     "    category_c utterance_id_c1 utterance_id_c2\n",
-    catpow_balance_dataset="CategoryDatasetPowerSampler performs hierarchical sampling for "
-    "multi-category, multi-dataset training where both category imbalance and dataset "
-    "imbalance exist. It first balances categories within each dataset using "
-    "P(l | d) ∝ (n_ld / N_d)^β_L, then balances datasets themselves using "
-    "P(d) ∝ (N_d / M)^β_D. The final sampling probability is P(x) = P(d) × P(l | d) × "
-    "P(x | l, d), where P(x | l, d) = 1 / k_ld. This sampler is particularly useful "
-    "when combining heterogeneous datasets with highly imbalanced dataset size and "
-    "category distributions. Requires 'category2utt', 'dataset2utt', and 'utt2dataset' "
-    "files. "
+    catpow_balance_dataset="CategoryDatasetPowerSampler performs hierarchical"
+    " sampling for multi-category, multi-dataset training where both category"
+    " imbalance and dataset imbalance exist. It first balances categories within"
+    " each dataset using P(l | d) ∝ (n_ld / N_d)^β_L, then balances datasets"
+    " themselves using P(d) ∝ (N_d / M)^β_D. The final sampling probability is"
+    " P(x) = P(d) × P(l | d) × P(x | l, d), where P(x | l, d) = 1 / k_ld. This"
+    " sampler is particularly useful when combining heterogeneous datasets with"
+    " highly imbalanced dataset size and category distributions. Requires "
+    " 'category2utt', 'dataset2utt', and 'utt2dataset' files. "
     "\n\n"
     "Required file formats:\n"
     "category2utt_file:\n"
