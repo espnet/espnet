@@ -1972,7 +1972,7 @@ class AbsTask(ABC):
                 logging.warning(
                     "Detected iterator_type='category' with batch_type='folded'. "
                     "In older ESPnet versions (< 202509), when iterator_type was "
-                    "set to 'category', the batch_type would default to 'folded' as"
+                    "set to 'category', the batch_type would default to 'folded' as "
                     "the older design does not require the batch_type to be specified, "
                     "but the intended behavior was to use category-balanced sampling "
                     "(catbel batch sampler). We map 'folded' to 'catbel' to maintain "
