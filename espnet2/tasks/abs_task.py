@@ -2021,9 +2021,9 @@ class AbsTask(ABC):
             # If the batch_type is set to other than the category batch types,
             # folded, and unsorted, we fallback to treat it as a sequence iterator.
             logging.warning(
-                f"The batch type {iter_options.batch_type} is not compatible"
-                f"with iterator_type=category. Please use a category batch type."
-                f"Available category batch types: {CATEGORY_BATCH_TYPES.keys()}"
+                f"The batch type {iter_options.batch_type} is not compatible "
+                f"with iterator_type=category. Please use a category batch type. "
+                f"Available category batch types: {CATEGORY_BATCH_TYPES.keys()} "
                 f"Here we fallback to treat it as a sequence iterator."
             )
             sequence_iter_factory = cls.build_sequence_iter_factory(
