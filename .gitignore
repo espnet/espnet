@@ -36,6 +36,7 @@ test_spm.model
 constraints.txt
 featbin
 ubuntu16-featbin.tar.gz
+core
 
 out/config.yaml
 hub/
@@ -48,6 +49,7 @@ dist
 
 # recipe related
 egs*/*/*/data*
+egs*/*/*/manifest*
 egs*/*/*/db
 egs*/*/*/downloads
 egs*/*/*/dump
