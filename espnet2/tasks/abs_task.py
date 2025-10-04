@@ -2025,7 +2025,7 @@ class AbsTask(ABC):
                 f"Available category batch types: {CATEGORY_BATCH_TYPES.keys()}"
                 f"Here we fallback to treat it as a sequence iterator."
             )
-            sequence_iter_factory = build_sequence_iter_factory(
+            sequence_iter_factory = cls.build_sequence_iter_factory(
                 args=args,
                 iter_options=iter_options,
                 mode=mode,
