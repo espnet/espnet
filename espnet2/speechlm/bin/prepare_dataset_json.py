@@ -34,7 +34,9 @@ def validate_triplet(triplet: str):
     """
     parts = triplet.split(",")
     if len(parts) != 3:
-        raise ValueError(f"Invalid triplet format: {triplet} (expected 3 comma-separated parts)")
+        raise ValueError(
+            f"Invalid triplet format: {triplet} (expected 3 comma-separated parts)"
+        )
 
     name, path, reader = parts
 
@@ -54,9 +56,7 @@ def validate_triplet(triplet: str):
 
     # Validate reader
     if reader not in ["lhotse_audio", "text"]:
-        raise ValueError(
-            f"Invalid reader '{reader}': must be 'lhotse_audio' or 'text'"
-        )
+        raise ValueError(f"Invalid reader '{reader}': must be 'lhotse_audio' or 'text'")
 
     return name, absolute_path, reader
 
@@ -88,11 +88,7 @@ def prepare_dataset_json(
         logging.info(f"Loading {name} from {path} using {reader} reader")
 
         # Store triplet information
-        triplet_info.append({
-            "name": name,
-            "path": path,
-            "reader": reader
-        })
+        triplet_info.append({"name": name, "path": path, "reader": reader})
 
         # Create appropriate reader
         if reader == "lhotse_audio":
@@ -114,10 +110,7 @@ def prepare_dataset_json(
     logging.info(f"Found {len(valid_ids)} valid samples across all data sources")
 
     # Build output JSON
-    output = {
-        "data_entry": triplet_info,
-        "samples": sorted(valid_ids)
-    }
+    output = {"data_entry": triplet_info, "samples": sorted(valid_ids)}
 
     # Write to JSON
     logging.info(f"Writing dataset JSON to: {output_json}")

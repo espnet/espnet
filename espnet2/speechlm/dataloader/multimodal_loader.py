@@ -41,14 +41,14 @@ class LhotseAudioReader:
         elif recordings_path.exists():
             full_manifest = RecordingSet.from_file(recordings_path)
         else:
-            raise FileNotFoundError(
-                f"No manifest files found in {manifest_dir}"
-            )
+            raise FileNotFoundError(f"No manifest files found in {manifest_dir}")
 
         # Filter manifest by valid_ids
         if valid_ids is not None:
             valid_ids_set = set(valid_ids)
-            selected_items = [item for item in full_manifest if item.id in valid_ids_set]
+            selected_items = [
+                item for item in full_manifest if item.id in valid_ids_set
+            ]
         else:
             selected_items = list(full_manifest)
 
