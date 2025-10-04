@@ -69,6 +69,9 @@ class ChnAttnStatPooling(AbsPooling):
             # var = E[X^2] - (E[X])^2
             var = sum_sq_val / feat_lengths_ - mean**2
             std = torch.sqrt(var.clamp(min=1e-4))
+            # Repeat mean and std to match x's time dimension
+            mean = mean.repeat(1, 1, T)
+            std = std.repeat(1, 1, T)
             global_x = torch.cat((x, mean, std), dim=1)
         else:
             global_x = torch.cat(
