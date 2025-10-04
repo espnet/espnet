@@ -13,11 +13,12 @@ log() {
 # General configuration
 stage=1
 stop_stage=100
+nj=16
 
 # For local data usage:
 manifest_dir=./manifest
 # For data sharing within the cluster:
-# manifest_dir=/work/nvme/bbjs/shared/data_registery/manifest/GigaSpeech
+# manifest_dir=/work/nvme/bbjs/shared/data_registry/manifest/GigaSpeech
 
 # Data preparation related
 train_set="train"
@@ -67,7 +68,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             --wav_scp data/${dataset}/wav.scp \
             --segments data/${dataset}/segments \
             --output_dir ${manifest_dir}/${dataset}/audio1 \
-            --num_jobs 32
+            --num_jobs ${nj}
 
         cp data/${dataset}/text ${manifest_dir}/${dataset}/text1/text
 

@@ -19,6 +19,9 @@ from espnet2.speechlm.dataloader.multimodal_loader import (
     TextReader,
 )
 
+allowed_keys = ["speaker"]
+allowed_keys.extend([f"audio{x}" for x in range(0, 10)])
+allowed_keys.extend([f"text{x}" for x in range(0, 10)])
 
 def validate_triplet(triplet: str):
     """Validate and parse a name,path,reader triplet.
@@ -39,10 +42,8 @@ def validate_triplet(triplet: str):
     name, path, reader = parts
 
     # Validate name (audio1, audio2, ... or text1, text2, ...)
-    if not re.match(r"^(audio|text)\d+$", name):
-        raise ValueError(
-            f"Invalid name '{name}': must be audio1, audio2, ... or text1, text2, ..."
-        )
+    if name not in allowed_keys:
+        raise ValueError(f"Invalid entry name {name}")
 
     # Convert to Path and check existence
     path_obj = Path(path)

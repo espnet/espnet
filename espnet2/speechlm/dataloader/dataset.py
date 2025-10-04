@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import json
+import logging
 import os
 from typing import Any, Dict, List, Tuple
 
@@ -10,6 +11,8 @@ from espnet2.speechlm.dataloader.multimodal_loader import (
     LhotseAudioReader,
     TextReader,
 )
+
+logger = logging.getLogger(__name__)
 
 reader_types = {
     "lhotse_audio": LhotseAudioReader,
@@ -146,7 +149,7 @@ class CombinedDataset(Dataset):
 
         for registry_path in registry_paths:
             if not os.path.exists(registry_path):
-                print(f"Warning: Registry file not found: {registry_path}")
+                logger.warning(f"Registry file not found: {registry_path}")
                 continue
 
             try:
@@ -158,11 +161,11 @@ class CombinedDataset(Dataset):
                         if isinstance(dataset_info, dict) and 'path' in dataset_info:
                             # Check for duplicate dataset names across registries
                             if dataset_name in registry_data:
-                                print(f"Warning: Dataset '{dataset_name}' already exists, "
-                                      f"overriding with entry from {registry_path}")
+                                logger.warning(f"Dataset '{dataset_name}' already exists, "
+                                             f"overriding with entry from {registry_path}")
                             registry_data[dataset_name] = dataset_info['path']
             except Exception as e:
-                print(f"Error loading registry file {registry_path}: {e}")
+                logger.error(f"Error loading registry file {registry_path}: {e}")
                 continue
 
         return registry_data

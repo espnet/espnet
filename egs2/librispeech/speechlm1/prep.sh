@@ -13,11 +13,12 @@ log() {
 # General configuration
 stage=1
 stop_stage=100
+nj=16
 
 # For local data usage:
 manifest_dir=./manifest
 # For data sharing within the cluster:
-# manifest_dir=/work/nvme/bbjs/shared/data_registery/manifest/LibriSpeech
+# manifest_dir=/work/nvme/bbjs/shared/data_registry/manifest/LibriSpeech
 
 # Data preparation related
 train_set="train_960"
@@ -67,13 +68,15 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         python3 ../../../espnet2/speechlm/bin/prepare_audio_lhotse.py \
             --wav_scp data/${dataset}/wav.scp \
             --output_dir ${manifest_dir}/${dataset}/audio1 \
-            --num_jobs 16
+            --num_jobs ${nj}
 
         cp data/${dataset}/text ${manifest_dir}/${dataset}/text1/text
+        cp data/${dataset}/utt2spk ${manifest_dir}/${dataset}/text1/speaker
 
         python3 ../../../espnet2/speechlm/bin/prepare_dataset_json.py \
             --triplets audio1,${manifest_dir}/${dataset}/audio1,lhotse_audio \
                        text1,${manifest_dir}/${dataset}/text1/text,text \
+                       speaker,${manifest_dir}/${dataset}/text1/text,text \
             --output_json ${manifest_dir}/${dataset}/dataset.json
     done
 
