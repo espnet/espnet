@@ -23,6 +23,7 @@ allowed_keys = ["speaker"]
 allowed_keys.extend([f"audio{x}" for x in range(0, 10)])
 allowed_keys.extend([f"text{x}" for x in range(0, 10)])
 
+
 def validate_triplet(triplet: str):
     """Validate and parse a name,path,reader triplet.
 
