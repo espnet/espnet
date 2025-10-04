@@ -52,6 +52,7 @@ class ChnAttnStatPooling(AbsPooling):
 
         T = x.size(-1)
         if feat_lengths is not None:
+            feat_lengths = feat_lengths.to(x.device)
             # Pooling over unpadded frames
             mask = (
                 torch.arange(T, device=x.device)[None, None, :]

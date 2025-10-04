@@ -39,6 +39,7 @@ class StatsPooling(AbsPooling):
             x: Utterance-level embeddings of shape (batch_size, 2 × feature_dim)
         """
         if feat_lengths is not None:
+            feat_lengths = feat_lengths.to(x.device)
             # Pooling over unpadded frames
             max_len = x.size(-1)
             mask = torch.arange(max_len, device=x.device).expand(
