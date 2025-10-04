@@ -7,7 +7,7 @@ from typing import Tuple
 import numpy as np
 
 try:
-    from lhotse import CutSet, RecordingSet
+    from lhotse import CutSet, MonoCut, MultiCut, RecordingSet
 except ImportError:
     raise ImportError(
         "lhotse is not installed. Please install it with: pip install lhotse"
@@ -16,6 +16,13 @@ except ImportError:
 
 class LhotseAudioReader:
     """Dict-like lazy audio reader using Lhotse manifests.
+
+    This reader supports both single-channel and multi-channel audio data:
+    - Single-channel audio (MonoCut): Returns shape [1, num_samples]
+    - Multi-channel audio (MultiCut): Returns shape [num_channels, num_samples]
+
+    The output shape is consistent regardless of the input type, always returning
+    a 2D array with shape [num_channels, num_samples].
 
     Args:
         manifest_dir: Directory containing Lhotse manifest files
@@ -56,11 +63,23 @@ class LhotseAudioReader:
 
         Returns:
             Tuple of (audio_array, sample_rate) where audio_array has shape
-            [num_channels, num_samples]
+            [num_channels, num_samples]. For single-channel audio, shape will be [1, num_samples].
         """
         item = self.manifest[key]
         audio = item.load_audio()
         sample_rate = item.sampling_rate
+
+        # Ensure consistent shape [num_channels, num_samples]
+        # MonoCut.load_audio() returns 1D array, MultiCut returns 2D array
+        if audio.ndim == 1:
+            # Single-channel audio (MonoCut) - add channel dimension
+            audio = audio[np.newaxis, :]  # Shape: [1, num_samples]
+        elif audio.ndim == 2:
+            # Multi-channel audio (MultiCut) - already has correct shape
+            pass  # Shape: [num_channels, num_samples]
+        else:
+            raise ValueError(f"Unexpected audio shape: {audio.shape} for item {key}")
+
         return audio, sample_rate
 
     def __contains__(self, key: str) -> bool:

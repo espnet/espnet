@@ -14,6 +14,11 @@ log() {
 stage=1
 stop_stage=100
 
+# For local data usage:
+manifest_dir=./manifest
+# For data sharing within the cluster:
+# manifest_dir=/work/nvme/bbjs/shared/data_registery/manifest/LibriSpeech
+
 # Data preparation related
 train_set="train_960"
 valid_set="dev"
@@ -52,25 +57,25 @@ fi
 # Stage 2: Prepare audio metadata and dataset JSON files
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "Stage 2: Preparing audio metadata and dataset JSON files"
-    mkdir -p manifest
+    mkdir -p ${manifest_dir}
 
     all_sets="${valid_set} ${test_sets} ${train_set}"
     for dataset in ${all_sets}; do
         log "Processing dataset: ${dataset}"
-        mkdir -p manifest/${dataset}/audio1 manifest/${dataset}/text1
+        mkdir -p ${manifest_dir}/${dataset}/audio1 ${manifest_dir}/${dataset}/text1
 
         python3 ../../../espnet2/speechlm/bin/prepare_audio_lhotse.py \
             --wav_scp data/${dataset}/wav.scp \
-            --output_dir manifest/${dataset}/audio1 \
+            --output_dir ${manifest_dir}/${dataset}/audio1 \
             --num_jobs 16
 
-        cp data/${dataset}/text manifest/${dataset}/text1/text
+        cp data/${dataset}/text ${manifest_dir}/${dataset}/text1/text
 
         python3 ../../../espnet2/speechlm/bin/prepare_dataset_json.py \
-            --triplets audio1,manifest/${dataset}/audio1,lhotse_audio \
-                       text1,manifest/${dataset}/text1/text,text \
-            --output_json manifest/${dataset}/dataset.json
+            --triplets audio1,${manifest_dir}/${dataset}/audio1,lhotse_audio \
+                       text1,${manifest_dir}/${dataset}/text1/text,text \
+            --output_json ${manifest_dir}/${dataset}/dataset.json
     done
 
-    log "Stage 2 completed. Manifests in ./manifest/"
+    log "Stage 2 completed. Manifests in ${manifest_dir}"
 fi

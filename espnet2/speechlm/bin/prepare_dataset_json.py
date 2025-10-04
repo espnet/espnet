@@ -27,7 +27,7 @@ def validate_triplet(triplet: str):
         triplet: String in format "name,path,reader"
 
     Returns:
-        Tuple of (name, path, reader)
+        Tuple of (name, path, reader) where path is absolute
 
     Raises:
         ValueError: If triplet is invalid
@@ -44,9 +44,13 @@ def validate_triplet(triplet: str):
             f"Invalid name '{name}': must be audio1, audio2, ... or text1, text2, ..."
         )
 
-    # Validate path exists
-    if not Path(path).exists():
+    # Convert to Path and check existence
+    path_obj = Path(path)
+    if not path_obj.exists():
         raise ValueError(f"Path does not exist: {path}")
+
+    # Convert to absolute path
+    absolute_path = str(path_obj.resolve())
 
     # Validate reader
     if reader not in ["lhotse_audio", "text"]:
@@ -54,7 +58,7 @@ def validate_triplet(triplet: str):
             f"Invalid reader '{reader}': must be 'lhotse_audio' or 'text'"
         )
 
-    return name, path, reader
+    return name, absolute_path, reader
 
 
 def prepare_dataset_json(

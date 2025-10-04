@@ -16,7 +16,7 @@ import logging
 from collections import Counter
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
-from typing import Optional, List, Tuple, Dict
+from typing import Optional, List, Tuple, Dict, Union
 
 try:
     from lhotse import CutSet, MonoCut, MultiCut, Recording, RecordingSet
@@ -44,7 +44,7 @@ def create_cut_from_recording(
     recording: Recording,
     start: float,
     duration: float,
-) -> MonoCut or MultiCut:
+) -> Union[MonoCut, MultiCut]:
     """Create a cut (MonoCut or MultiCut) from a recording.
 
     Args:

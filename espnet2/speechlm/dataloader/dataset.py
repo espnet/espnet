@@ -1,17 +1,22 @@
 #!/usr/bin/env python3
 import json
+import os
 from typing import Any, Dict, List, Tuple
 
+import yaml
 from torch.utils.data import Dataset
 
 from espnet2.speechlm.dataloader.multimodal_loader import (
     LhotseAudioReader,
     TextReader,
 )
-from espnet2.speechlm.dataloader.registration import get_dataset
 
+reader_types = {
+    "lhotse_audio": LhotseAudioReader,
+    "text": TextReader,
+}
 
-class ESPnetSpeechLMDataset(Dataset):
+class SingleDataset(Dataset):
     """ESPnet Speech Language Model Dataset.
 
     Args:
@@ -41,12 +46,10 @@ class ESPnetSpeechLMDataset(Dataset):
             reader_type = entry["reader"]
 
             # Create appropriate reader with valid_ids for this rank
-            if reader_type == "lhotse_audio":
-                self.readers[name] = LhotseAudioReader(path, valid_ids=self.samples)
-            elif reader_type == "text":
-                self.readers[name] = TextReader(path, valid_ids=self.samples)
-            else:
+            if reader_type not in reader_types:
                 raise ValueError(f"Unknown reader type: {reader_type}")
+            reader_type = reader_types[reader_type]
+            self.readers[name] = reader_type(path, valid_ids=self.samples)
 
     @property
     def entries(self) -> List[str]:
@@ -79,46 +82,105 @@ class ESPnetSpeechLMDataset(Dataset):
         return item
 
 
-class CombinedESPnetSpeechLMDataset(Dataset):
+class CombinedDataset(Dataset):
     """Combined ESPnet Speech Language Model Dataset.
 
-    Combines multiple registered datasets into a single dataset.
+    Combines multiple datasets from both direct paths and registered datasets.
 
     Args:
-        dataset_names: List of registered dataset names
+        datasets: List of (name, json_path) tuples for direct dataset paths (default: [])
+        registered_datasets: List of registered dataset names to look up in registry (default: [])
         rank: Process rank for distributed training (default: 0)
         world_size: Total number of processes (default: 1)
     """
 
     def __init__(
         self,
-        dataset_names: List[str],
+        datasets: List[Tuple[str, str]] = [],
+        registered_datasets: List[str] = [],
         rank: int = 0,
         world_size: int = 1,
     ):
-        self.datasets: Dict[str, ESPnetSpeechLMDataset] = {}
+        self.datasets: Dict[str,SingleDataset] = {}
 
-        # Load all datasets from registry
-        for name in dataset_names:
-            json_path = get_dataset(name)
-            self.datasets[name] = ESPnetSpeechLMDataset(
+        # Load datasets from direct paths
+        for dataset_name, json_path in datasets:
+            if dataset_name in self.datasets:
+                raise ValueError(f"Duplicate dataset name: {dataset_name}")
+            self.datasets[dataset_name] = SingleDataset(
                 json_path, rank=rank, world_size=world_size
             )
+
+        # Load datasets from registry
+        registry_data = self._load_registry()
+
+        for dataset_name in registered_datasets:
+            if dataset_name in registry_data:
+                if dataset_name in self.datasets:
+                    raise ValueError(f"Duplicate dataset name: {dataset_name}")
+                json_path = registry_data[dataset_name]
+                self.datasets[dataset_name] =SingleDataset(
+                    json_path, rank=rank, world_size=world_size
+                )
+            else:
+                raise ValueError(
+                    f"Dataset '{dataset_name}' not found in registry. "
+                    f"Available datasets: {list(registry_data.keys())}"
+                )
+
+    def _load_registry(self) -> Dict[str, str]:
+        """Load and merge registry files from ESPNET_DATASET_REGISTRY environment variable.
+
+        Returns:
+            Dictionary mapping dataset names to JSON file paths
+        """
+        registry_data = {}
+
+        # Get registry paths from environment variable
+        registry_env = os.environ.get("ESPNET_DATASET_REGISTRY", "")
+        if not registry_env:
+            return registry_data
+
+        # Split by : and filter out empty strings
+        registry_paths = [path.strip() for path in registry_env.split(":") if path.strip()]
+
+        for registry_path in registry_paths:
+            if not os.path.exists(registry_path):
+                print(f"Warning: Registry file not found: {registry_path}")
+                continue
+
+            try:
+                with open(registry_path, 'r') as f:
+                    registry_content = yaml.safe_load(f)
+
+                    # Extract dataset names and paths from the registry
+                    for dataset_name, dataset_info in registry_content.items():
+                        if isinstance(dataset_info, dict) and 'path' in dataset_info:
+                            # Check for duplicate dataset names across registries
+                            if dataset_name in registry_data:
+                                print(f"Warning: Dataset '{dataset_name}' already exists, "
+                                      f"overriding with entry from {registry_path}")
+                            registry_data[dataset_name] = dataset_info['path']
+            except Exception as e:
+                print(f"Error loading registry file {registry_path}: {e}")
+                continue
+
+        return registry_data
 
     @property
     def dataset_names(self) -> List[str]:
         """Return list of all dataset names."""
         return list(self.datasets.keys())
 
-    def get_all_examples(self) -> List[Tuple[str, List[str]]]:
-        """Return list of all examples as (dataset_name, example_id_list) tuples.
+    def get_all_examples(self) -> Dict[str, List[str]]:
+        """Return all examples as a dictionary mapping dataset names to sample IDs.
 
         Returns:
-            List of (dataset_name, example_id_list) tuples
+            Dictionary mapping dataset names to lists of sample IDs
         """
-        examples = []
+        examples = {}
         for dataset_name, dataset in self.datasets.items():
-            examples.append((dataset_name, dataset.sample_ids))
+            examples[dataset_name] = dataset.sample_ids
         return examples
 
     def __len__(self) -> int:
