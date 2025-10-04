@@ -19,6 +19,7 @@ reader_types = {
     "text": TextReader,
 }
 
+
 class SingleDataset(Dataset):
     """ESPnet Speech Language Model Dataset.
 
@@ -104,7 +105,7 @@ class CombinedDataset(Dataset):
         rank: int = 0,
         world_size: int = 1,
     ):
-        self.datasets: Dict[str,SingleDataset] = {}
+        self.datasets: Dict[str, SingleDataset] = {}
 
         # Load datasets from direct paths
         for dataset_name, json_path in datasets:
@@ -122,7 +123,7 @@ class CombinedDataset(Dataset):
                 if dataset_name in self.datasets:
                     raise ValueError(f"Duplicate dataset name: {dataset_name}")
                 json_path = registry_data[dataset_name]
-                self.datasets[dataset_name] =SingleDataset(
+                self.datasets[dataset_name] = SingleDataset(
                     json_path, rank=rank, world_size=world_size
                 )
             else:
@@ -145,7 +146,9 @@ class CombinedDataset(Dataset):
             return registry_data
 
         # Split by : and filter out empty strings
-        registry_paths = [path.strip() for path in registry_env.split(":") if path.strip()]
+        registry_paths = [
+            path.strip() for path in registry_env.split(":") if path.strip()
+        ]
 
         for registry_path in registry_paths:
             if not os.path.exists(registry_path):
@@ -153,17 +156,25 @@ class CombinedDataset(Dataset):
                 continue
 
             try:
-                with open(registry_path, 'r') as f:
+                with open(registry_path, "r") as f:
                     registry_content = yaml.safe_load(f)
 
                     # Extract dataset names and paths from the registry
                     for dataset_name, dataset_info in registry_content.items():
-                        if isinstance(dataset_info, dict) and 'path' in dataset_info:
+                        if isinstance(dataset_info, dict) and "path" in dataset_info:
                             # Check for duplicate dataset names across registries
                             if dataset_name in registry_data:
+<<<<<<< HEAD
                                 logger.warning(f"Dataset '{dataset_name}' already exists, "
                                              f"overriding with entry from {registry_path}")
                             registry_data[dataset_name] = dataset_info['path']
+=======
+                                print(
+                                    f"Warning: Dataset '{dataset_name}' already exists, "
+                                    f"overriding with entry from {registry_path}"
+                                )
+                            registry_data[dataset_name] = dataset_info["path"]
+>>>>>>> 4d2a2ea982b33c6e5a429b81e2d6ccf5dfe44a23
             except Exception as e:
                 logger.error(f"Error loading registry file {registry_path}: {e}")
                 continue

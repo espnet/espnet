@@ -16,7 +16,7 @@ import logging
 from collections import Counter
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
-from typing import Optional, List, Tuple, Dict, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 try:
     from lhotse import CutSet, MonoCut, MultiCut, Recording, RecordingSet
@@ -85,8 +85,7 @@ def create_cut_from_recording(
 
 
 def parse_segments_file(
-    segments_path: str,
-    recording_dict: Dict[str, Recording]
+    segments_path: str, recording_dict: Dict[str, Recording]
 ) -> List[Tuple[str, Recording, float, float]]:
     """Parse and validate segments file.
 
@@ -119,24 +118,32 @@ def parse_segments_file(
                 start = float(start_str)
                 end = float(end_str)
             except ValueError:
-                logging.warning(f"Line {line_num}: Invalid time values: {start_str}, {end_str}")
+                logging.warning(
+                    f"Line {line_num}: Invalid time values: {start_str}, {end_str}"
+                )
                 invalid_count += 1
                 continue
 
             # Validate times
             if start < 0:
-                logging.warning(f"Line {line_num}: Negative start time for {segment_id}: {start}")
+                logging.warning(
+                    f"Line {line_num}: Negative start time for {segment_id}: {start}"
+                )
                 invalid_count += 1
                 continue
 
             if end <= start:
-                logging.warning(f"Line {line_num}: End time <= start time for {segment_id}: {start} -> {end}")
+                logging.warning(
+                    f"Line {line_num}: End time <= start time for {segment_id}: {start} -> {end}"
+                )
                 invalid_count += 1
                 continue
 
             # Check if recording exists
             if recording_id not in recording_dict:
-                logging.warning(f"Line {line_num}: Recording {recording_id} not found for segment {segment_id}")
+                logging.warning(
+                    f"Line {line_num}: Recording {recording_id} not found for segment {segment_id}"
+                )
                 invalid_count += 1
                 continue
 
@@ -164,15 +171,15 @@ def parse_segments_file(
 
 
 def print_statistics(
-    cut_set: CutSet,
-    recording_set: RecordingSet,
-    multi_channel_count: int
+    cut_set: CutSet, recording_set: RecordingSet, multi_channel_count: int
 ):
     """Print summary statistics for the processed data."""
     # Cut statistics
     total_duration = sum(cut.duration for cut in cut_set)
     logging.info(f"Total cuts: {len(cut_set)}")
-    logging.info(f"Total audio duration: {total_duration:.2f} seconds ({total_duration/3600:.2f} hours)")
+    logging.info(
+        f"Total audio duration: {total_duration:.2f} seconds ({total_duration/3600:.2f} hours)"
+    )
 
     if multi_channel_count > 0:
         logging.info(f"Multi-channel cuts: {multi_channel_count}")
@@ -268,7 +275,9 @@ def prepare_audio_lhotse(
     if not recordings:
         raise ValueError("No recordings could be processed successfully")
 
-    logging.info(f"Successfully processed {len(recordings)}/{len(audio_paths)} recordings")
+    logging.info(
+        f"Successfully processed {len(recordings)}/{len(audio_paths)} recordings"
+    )
 
     # Create RecordingSet
     recording_set = RecordingSet.from_recordings(recordings)
@@ -302,10 +311,7 @@ def prepare_audio_lhotse(
         # Create cuts from full recordings
         for recording in recording_set:
             cut = create_cut_from_recording(
-                recording.id,
-                recording,
-                start=0,
-                duration=recording.duration
+                recording.id, recording, start=0, duration=recording.duration
             )
             cuts.append(cut)
             if isinstance(cut, MultiCut):
