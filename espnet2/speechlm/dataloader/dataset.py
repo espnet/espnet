@@ -164,17 +164,9 @@ class CombinedDataset(Dataset):
                         if isinstance(dataset_info, dict) and "path" in dataset_info:
                             # Check for duplicate dataset names across registries
                             if dataset_name in registry_data:
-<<<<<<< HEAD
                                 logger.warning(f"Dataset '{dataset_name}' already exists, "
                                              f"overriding with entry from {registry_path}")
                             registry_data[dataset_name] = dataset_info['path']
-=======
-                                print(
-                                    f"Warning: Dataset '{dataset_name}' already exists, "
-                                    f"overriding with entry from {registry_path}"
-                                )
-                            registry_data[dataset_name] = dataset_info["path"]
->>>>>>> 4d2a2ea982b33c6e5a429b81e2d6ccf5dfe44a23
             except Exception as e:
                 logger.error(f"Error loading registry file {registry_path}: {e}")
                 continue

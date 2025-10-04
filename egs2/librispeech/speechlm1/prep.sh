@@ -76,7 +76,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         python3 ../../../espnet2/speechlm/bin/prepare_dataset_json.py \
             --triplets audio1,${manifest_dir}/${dataset}/audio1,lhotse_audio \
                        text1,${manifest_dir}/${dataset}/text1/text,text \
-                       speaker,${manifest_dir}/${dataset}/text1/text,text \
+                       speaker,${manifest_dir}/${dataset}/text1/speaker,text \
             --output_json ${manifest_dir}/${dataset}/dataset.json
     done
 
