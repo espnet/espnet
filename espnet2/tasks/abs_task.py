@@ -1842,7 +1842,7 @@ class AbsTask(ABC):
         cls.check_task_requirements(
             dataset, args.allow_variable_data_keys, train=iter_options.train
         )
-        return dataset 
+        return dataset
 
     @classmethod
     @typechecked
