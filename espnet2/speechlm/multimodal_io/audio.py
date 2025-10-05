@@ -656,3 +656,210 @@ class DiscreteAudioIO(AbsIO):
 
         return new_codes
 
+class ContinuousAudioIO(AbsIO):
+    """Continuous audio I/O for audio feature extraction.
+
+    This class handles continuous audio representations using neural encoders
+    that produce dense feature vectors instead of discrete tokens. It is designed
+    for speech language models that require continuous audio embeddings rather
+    than discrete token sequences.
+
+    Key Features:
+        - Supports various pre-trained audio encoders from HuggingFace
+        - Produces continuous feature representations for downstream tasks
+        - Handles frame-level feature extraction with configurable hop lengths
+        - Automatic device management and batch processing
+
+    Supported Models:
+        - Qwen/Qwen2.5-Omni-7B: Multimodal model with audio tower encoder
+
+    Example:
+        >>> audio_io = ContinuousAudioIO(
+        ...     encoder_choice="huggingface",
+        ...     encoder_hf_model_tag="Qwen/Qwen2.5-Omni-7B",
+        ...     device="cuda"
+        ... )
+        >>> features, lengths = audio_io.encode_batch(audio_data, audio_lengths)
+    """
+
+    def __init__(
+        self,
+        encoder_choice: str = "huggingface",
+        encoder_hf_model_tag: str = "Qwen/Qwen2.5-Omni-7B",
+        device: str = 'cpu'
+    ):
+        """Initialize continuous audio encoder.
+
+        Args:
+            encoder_choice: Type of encoder to use. Currently supports:
+                - "huggingface": Load models from HuggingFace model hub
+            encoder_hf_model_tag: HuggingFace model identifier.
+                For "huggingface" choice, currently supports:
+                - "Qwen/Qwen2.5-Omni-7B": Qwen Omni audio tower
+            device: Device for model computation ("cpu", "cuda", "cuda:0", etc.)
+
+        Raises:
+            NotImplementedError: If encoder_choice or encoder_hf_model_tag
+                is not supported
+        """
+        super().__init__(modality="audio", is_discrete=False)
+
+        self.device = device
+        self.encoder_choice = encoder_choice
+        self.encoder_hf_model_tag = encoder_hf_model_tag
+
+        self._init_encoder(encoder_choice, encoder_hf_model_tag)
+
+    def _init_encoder(self, encoder_choice: str, encoder_hf_model_tag: str):
+        """Initialize the audio encoder model.
+
+        This method loads and configures the specified audio encoder model,
+        setting up model attributes like feature dimensions, sample rates,
+        and frame shifts.
+
+        Args:
+            encoder_choice: Type of encoder to use ("huggingface")
+            encoder_hf_model_tag: Model identifier for the encoder
+
+        Raises:
+            NotImplementedError: If the encoder choice or model tag is not supported
+
+        Side Effects:
+            Sets the following attributes:
+            - self.model: The loaded encoder model
+            - self.processor: Feature extractor/preprocessor
+            - self.d_model: Feature dimension of encoder output
+            - self.n_samples: Number of samples per frame
+            - self.sample_rate: Audio sample rate (Hz)
+            - self.hop_length: Hop length in samples
+            - self.down_sample: Downsampling factor
+        """
+        if encoder_choice == "huggingface":
+            if encoder_hf_model_tag == "Qwen/Qwen2.5-Omni-7B":
+                from transformers import Qwen2_5OmniForConditionalGeneration, Qwen2_5OmniProcessor
+                qwen_omni = Qwen2_5OmniForConditionalGeneration.from_pretrained(
+                    encoder_hf_model_tag
+                )
+                self.model = qwen_omni.audio_tower.to(self.device)
+                self.processor = Qwen2_5OmniProcessor.from_pretrained(
+                    encoder_hf_model_tag
+                ).feature_extractor
+                self.d_model = self.model.embed_dim
+                self.n_samples = self.processor.n_samples
+                self.sample_rate = self.processor.sample_rate
+                self.hop_length = self.processor.hop_length
+                self.down_sample = 4  # hard code
+
+            else:
+                raise NotImplementedError(f"Model {encoder_hf_model_tag} not implemented")
+        else:
+            raise NotImplementedError(f"Encoder choice {encoder_choice} not implemented")
+        
+    def preprocess(self, data: torch.Tensor, sampling_rate: Optional[int] = None) -> torch.Tensor:
+        """Preprocess audio data for the encoder."""
+
+        raise NotImplementedError
+    
+    def encode_batch(self, data: torch.Tensor, length: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Encode a batch of audio data into continuous features.
+
+        Args:
+            data: Audio tensor of shape [batch, num_channel, num_sample]
+            length: Effective sample lengths tensor of shape [batch]
+
+        Returns:
+            Tuple of:
+                - features: Continuous features [batch, time, feature_dim]
+                - lengths: Feature frame lengths [batch]
+
+        Raises:
+            ValueError: If input dimensions are incorrect or batch sizes don't match
+        """
+        feats = self.model(input_features=data)['last_hidden_state']
+        length = length // self.hop_length // self.down_sample
+
+        return feats, length
+
+    def decode_batch(self, features: torch.Tensor, lengths: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Decode continuous features back to audio (if supported).
+
+        Args:
+            features: Feature tensor [batch, time, feature_dim]
+            lengths: Feature frame lengths [batch]
+
+        Returns:
+            Tuple of:
+                - audio: Reconstructed audio [batch, num_channel, num_sample]
+                - audio_lengths: Sample lengths [batch]
+        """
+        raise NotImplementedError("Continuous audio encoder doesn't support audio generation")
+
+    def find_length_batch(self, data: torch.Tensor, length: torch.Tensor) -> List[int]:
+        """Calculate feature frame lengths after encoding.
+
+        Args:
+            data: Audio tensor of shape [batch, num_channel, num_sample]
+            length: Effective sample lengths tensor of shape [batch]
+
+        Returns:
+            List of feature frame lengths after encoding
+
+        Raises:
+            ValueError: If input dimensions are incorrect or batch sizes don't match
+        """
+
+        return length // self.hop_length // self.down_sample
+
+    def feature_dim(self) -> Optional[int]:
+        """Get feature dimension for continuous representation.
+
+        Returns:
+            Feature dimension (e.g., 1280 for Qwen audio encoder)
+        """
+        return self.d_model
+
+    def num_stream(self) -> Optional[int]:
+        """Get number of parallel streams (None for continuous).
+
+        Returns:
+            None (continuous modality doesn't use parallel streams)
+        """
+        return None  # Continuous audio doesn't use streams
+
+    def get_vocabulary(self) -> Optional[List[str]]:
+        """Get vocabulary (None for continuous modality).
+
+        Returns:
+            None (continuous modality doesn't have vocabulary)
+        """
+        return None  # Continuous audio doesn't have vocabulary
+
+    def get_stream_interval(self) -> Optional[List[tuple]]:
+        """Get stream intervals (None for continuous modality).
+
+        Returns:
+            None (continuous modality doesn't have stream intervals)
+        """
+        return None  # Continuous audio doesn't have stream intervals
+
+    def get_stream_weight(self) -> Optional[List[float]]:
+        """Get stream weights (None for continuous modality).
+
+        Returns:
+            None (continuous modality doesn't have stream weights)
+        """
+        return None  # Continuous audio doesn't have stream weights
+
+    def set_stream_weight(self, weights: List[float]):
+        """Set stream weights (not applicable for continuous modality).
+
+        Args:
+            weights: Weight values (ignored for continuous)
+
+        Raises:
+            RuntimeError: Always raises since continuous audio doesn't support streams
+        """
+        raise RuntimeError(
+            "ContinuousAudioIO does not support stream weights "
+            "(continuous representations don't have multiple streams)"
+        )
