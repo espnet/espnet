@@ -7,7 +7,7 @@ from typing import Tuple
 import numpy as np
 
 try:
-    from lhotse import CutSet, MonoCut, MultiCut, RecordingSet
+    from lhotse import CutSet, RecordingSet
 except ImportError:
     raise ImportError(
         "lhotse is not installed. Please install it with: pip install lhotse"
@@ -63,7 +63,8 @@ class LhotseAudioReader:
 
         Returns:
             Tuple of (audio_array, sample_rate) where audio_array has shape
-            [num_channels, num_samples]. For single-channel audio, shape will be [1, num_samples].
+            [num_channels, num_samples]. For single-channel audio, shape will be
+            [1, num_samples].
         """
         item = self.manifest[key]
         audio = item.load_audio()
