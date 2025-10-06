@@ -41,7 +41,9 @@ class HuggingFaceTextIO(AbsIO):
                 - 'data': Token IDs array [1, seq_len]
         """
         if len(batch_data) != 1:
-            raise ValueError(f"Text encode_batch only accepts batch size 1, got {len(batch_data)}")
+            raise ValueError(
+                f"Text encode_batch only accepts batch size 1, got {len(batch_data)}"
+            )
 
         text = batch_data[0]
 
@@ -68,13 +70,13 @@ class HuggingFaceTextIO(AbsIO):
         token_ids = batch_encoded["data"]
 
         if token_ids.shape[0] != 1:
-            raise ValueError(f"Text decode_batch only accepts batch size 1, got {token_ids.shape[0]}")
+            raise ValueError(
+                f"Text decode_batch only accepts batch size 1, got {token_ids.shape[0]}"
+            )
 
         # Decode single sequence
         text = self.tokenizer.decode(
-            token_ids[0],
-            skip_special_tokens=True,
-            clean_up_tokenization_spaces=True
+            token_ids[0], skip_special_tokens=True, clean_up_tokenization_spaces=True
         )
 
         return [text]
@@ -89,7 +91,9 @@ class HuggingFaceTextIO(AbsIO):
             List of token counts after tokenization
         """
         if len(batch_data) != 1:
-            raise ValueError(f"Text find_length_batch only accepts batch size 1, got {len(batch_data)}")
+            raise ValueError(
+                f"Text find_length_batch only accepts batch size 1, got {len(batch_data)}"
+            )
 
         text = batch_data[0]
         # Fast tokenization without creating tensors

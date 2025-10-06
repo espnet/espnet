@@ -1,11 +1,13 @@
 """Discrete audio I/O implementation combining codec and SSL tokenization."""
 
-from typing import List, Optional, Tuple
-import torch
-import joblib
 from pathlib import Path
+from typing import List, Optional, Tuple
+
+import joblib
+import torch
 
 from espnet2.speechlm.multimodal_io.abs_io import AbsIO
+
 
 class ApplyKmeans:
     """Apply k-means clustering to quantize SSL features into discrete tokens.
@@ -42,10 +44,9 @@ class ApplyKmeans:
 
         x = x.to(self.C.device)
         # Compute squared Euclidean distance to all cluster centers
-        dist = (
-            x.pow(2).sum(-1, keepdim=True) - 2 * torch.matmul(x, self.C) + self.Cnorm
-        )
+        dist = x.pow(2).sum(-1, keepdim=True) - 2 * torch.matmul(x, self.C) + self.Cnorm
         return dist.argmin(dim=-1, keepdim=True)
+
 
 class DiscreteAudioIO(AbsIO):
     """Discrete audio I/O using combined codec and SSL tokenizers.
@@ -65,11 +66,9 @@ class DiscreteAudioIO(AbsIO):
         codec_choice: str = None,
         codec_hf_model_tag: str = None,
         codec_max_token_per_frame: int = 8,
-
         # SSL tokenizer parameters
         ssl_choice: str = None,
         ssl_hf_model_tag: str = None,
-
         # General parameters
         delay_interleave: bool = False,
         device: str = "cpu",
@@ -98,8 +97,10 @@ class DiscreteAudioIO(AbsIO):
         self.use_ssl = ssl_choice is not None
 
         if not (self.use_ssl or self.use_codec):
-            raise ValueError("At least one tokenizer must be configured. "
-                           "Provide either codec_choice or ssl_model_path.")
+            raise ValueError(
+                "At least one tokenizer must be configured. "
+                "Provide either codec_choice or ssl_model_path."
+            )
 
         self._init_codec(codec_choice, codec_hf_model_tag, codec_max_token_per_frame)
         self._init_ssl(ssl_choice, ssl_hf_model_tag)
@@ -109,7 +110,7 @@ class DiscreteAudioIO(AbsIO):
         self,
         codec_choice: str = None,
         codec_hf_model_tag: str = None,
-        codec_max_token_per_frame: int = 8
+        codec_max_token_per_frame: int = 8,
     ):
         """Initialize codec tokenizer.
 
@@ -146,20 +147,22 @@ class DiscreteAudioIO(AbsIO):
 
             # Extract codec metadata and set attributes
             meta_info = self.codec_model.meta_info()
-            self.codec_n_streams = min(meta_info["num_streams"], codec_max_token_per_frame)
-            self.codec_vocab_size = meta_info["code_size_per_stream"][:self.codec_n_streams]
+            self.codec_n_streams = min(
+                meta_info["num_streams"], codec_max_token_per_frame
+            )
+            self.codec_vocab_size = meta_info["code_size_per_stream"][
+                : self.codec_n_streams
+            ]
             self.codec_sample_rate = meta_info["fs"]
             self.codec_frame_shift = meta_info["frame_shift"]
-            self.codec_frame_per_second = self.codec_sample_rate // self.codec_frame_shift
-        
+            self.codec_frame_per_second = (
+                self.codec_sample_rate // self.codec_frame_shift
+            )
+
         else:
             raise NotImplementedError(f"Cannot support codec choice: {codec_choice}")
-    
-    def _init_ssl(
-        self,
-        ssl_choice: str = None,
-        ssl_hf_model_tag: str = None
-    ):
+
+    def _init_ssl(self, ssl_choice: str = None, ssl_hf_model_tag: str = None):
         """Initialize SSL tokenizer.
 
         Args:
@@ -187,16 +190,18 @@ class DiscreteAudioIO(AbsIO):
 
             # Download and extract model from ESPnet model zoo
             from espnet_model_zoo.downloader import ModelDownloader
+
             model_downloader = ModelDownloader()
             ssl_metadata = model_downloader.download_and_unpack(ssl_hf_model_tag)
 
             # Extract paths from metadata
-            ssl_dir = Path(ssl_metadata['ssl_train_config']).parent
+            ssl_dir = Path(ssl_metadata["ssl_train_config"]).parent
             ssl_model_path = ssl_dir / "xeus_checkpoint_old.pth"
             ssl_kmeans_path = ssl_dir / "km_opus_lm.mdl"
 
             # Load SSL model
             from espnet2.tasks.ssl import SSLTask
+
             self.ssl_model, _ = SSLTask.build_model_from_file(
                 None,
                 ssl_model_path,
@@ -279,13 +284,17 @@ class DiscreteAudioIO(AbsIO):
         # Add intervals for SSL streams (first)
         if self.use_ssl:
             for vocab_size in self.ssl_vocab_size:
-                self._stream_intervals.append((current_offset, current_offset + vocab_size))
+                self._stream_intervals.append(
+                    (current_offset, current_offset + vocab_size)
+                )
                 current_offset += vocab_size
 
         # Add intervals for codec streams (after SSL)
         if self.use_codec:
             for vocab_size in self.codec_vocab_size:
-                self._stream_intervals.append((current_offset, current_offset + vocab_size))
+                self._stream_intervals.append(
+                    (current_offset, current_offset + vocab_size)
+                )
                 current_offset += vocab_size
 
         # Build vocabulary list
@@ -307,7 +316,9 @@ class DiscreteAudioIO(AbsIO):
         self.vocabulary.append("<audio_pad>")
         self.audio_pad = len(self.vocabulary) - 1
 
-    def encode_batch(self, data: torch.Tensor, length: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def encode_batch(
+        self, data: torch.Tensor, length: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Encode a batch of audio data into discrete tokens.
 
         Args:
@@ -322,15 +333,19 @@ class DiscreteAudioIO(AbsIO):
 
         # Input validation
         if data.dim() != 3:
-            raise ValueError(f"Expected 3D tensor [batch, channel, samples], got {data.dim()}D")
+            raise ValueError(
+                f"Expected 3D tensor [batch, channel, samples], got {data.dim()}D"
+            )
         if length.size(0) != data.size(0):
-            raise ValueError(f"Batch size mismatch: data={data.size(0)}, length={length.size(0)}")
+            raise ValueError(
+                f"Batch size mismatch: data={data.size(0)}, length={length.size(0)}"
+            )
 
         # Calculate frame lengths and trim audio to frame boundaries
         frame_length = length // self.frame_shift
         length = frame_length * self.frame_shift
 
-        data = data[:, :, :max(length)]
+        data = data[:, :, : max(length)]
 
         # Encode with SSL and/or codec
         ssl_codes = self._ssl_encode_batch(data, length) if self.use_ssl else None
@@ -339,18 +354,26 @@ class DiscreteAudioIO(AbsIO):
         # Initialize codes tensor with padding
         batch_size = data.size(0)
         max_frames = max(frame_length).item()
-        codes = torch.ones(batch_size, max_frames, self.num_stream(),
-                          dtype=torch.long, device=data.device) * self.audio_pad
+        codes = (
+            torch.ones(
+                batch_size,
+                max_frames,
+                self.num_stream(),
+                dtype=torch.long,
+                device=data.device,
+            )
+            * self.audio_pad
+        )
 
         # Fill in SSL codes (first streams)
         if self.use_ssl and ssl_codes is not None:
             min_frames = min(max_frames, ssl_codes.size(1))
-            codes[:, :min_frames, :self.ssl_n_streams] = ssl_codes[:, :min_frames]
+            codes[:, :min_frames, : self.ssl_n_streams] = ssl_codes[:, :min_frames]
 
         # Fill in codec codes (after SSL streams)
         if self.use_codec and codec_codes is not None:
             min_frames = min(max_frames, codec_codes.size(1))
-            codes[:, :min_frames, self.ssl_n_streams:] = codec_codes[:, :min_frames]
+            codes[:, :min_frames, self.ssl_n_streams :] = codec_codes[:, :min_frames]
 
         # Add vocabulary offsets for each stream to map to global vocabulary
         if self.get_stream_interval():  # Only if intervals exist
@@ -358,9 +381,7 @@ class DiscreteAudioIO(AbsIO):
                 # Only add offset to non-padding tokens
                 mask = codes[..., stream_idx] != self.audio_pad
                 codes[..., stream_idx] = torch.where(
-                    mask,
-                    codes[..., stream_idx] + offset_start,
-                    codes[..., stream_idx]
+                    mask, codes[..., stream_idx] + offset_start, codes[..., stream_idx]
                 )
 
         # Apply delay interleaving if enabled
@@ -373,7 +394,9 @@ class DiscreteAudioIO(AbsIO):
 
         return codes, output_frame_length
 
-    def decode_batch(self, codes: torch.Tensor, lengths: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def decode_batch(
+        self, codes: torch.Tensor, lengths: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Decode a batch of encoded tokens back to audio.
 
         Note: Only codec tokens are used for audio reconstruction.
@@ -397,7 +420,9 @@ class DiscreteAudioIO(AbsIO):
 
         # Validate tensor dimensions
         if codes.dim() != 3:
-            raise ValueError(f"Expected 3D token tensor [batch, time, n_streams], got {codes.dim()}D")
+            raise ValueError(
+                f"Expected 3D token tensor [batch, time, n_streams], got {codes.dim()}D"
+            )
 
         # Remove delay interleaving if it was applied
         if self.delay_interleave:
@@ -406,7 +431,7 @@ class DiscreteAudioIO(AbsIO):
             lengths = lengths - self.num_stream() + 1
 
         # Extract only codec tokens (discard SSL tokens)
-        codec_codes = codes[..., self.ssl_n_streams:].clone()
+        codec_codes = codes[..., self.ssl_n_streams :].clone()
 
         # Remove vocabulary offsets to get original token indices
         for stream_idx in range(self.codec_n_streams):
@@ -418,7 +443,7 @@ class DiscreteAudioIO(AbsIO):
             codec_codes[..., stream_idx] = torch.where(
                 mask,
                 codec_codes[..., stream_idx] - offset_start,
-                codec_codes[..., stream_idx]
+                codec_codes[..., stream_idx],
             )
 
         # Decode codec tokens to audio
@@ -426,7 +451,9 @@ class DiscreteAudioIO(AbsIO):
 
         return audio, audio_lengths
 
-    def _codec_decode_batch(self, codes: torch.Tensor, lengths: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def _codec_decode_batch(
+        self, codes: torch.Tensor, lengths: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Decode codec tokens back to audio waveforms.
 
         Args:
@@ -453,11 +480,15 @@ class DiscreteAudioIO(AbsIO):
             audio_lengths = lengths * self.frame_shift
 
         else:
-            raise NotImplementedError(f"Codec choice '{self.codec_choice}' not implemented for decoding")
+            raise NotImplementedError(
+                f"Codec choice '{self.codec_choice}' not implemented for decoding"
+            )
 
         return audio, audio_lengths
 
-    def _ssl_encode_batch(self, data: torch.Tensor, length: torch.Tensor) -> torch.Tensor:
+    def _ssl_encode_batch(
+        self, data: torch.Tensor, length: torch.Tensor
+    ) -> torch.Tensor:
         """Encode audio data using SSL tokenizer.
 
         Args:
@@ -469,15 +500,19 @@ class DiscreteAudioIO(AbsIO):
         """
         if self.ssl_choice == "espnet_hubert":
             if data.size(1) > 1:
-                raise ValueError("ESPnet-Hubert SSL model doesn't support multi-channel audio")
-            feats = self.ssl_model.encode(data.squeeze(1), length)['encoder_output'][-1]
+                raise ValueError(
+                    "ESPnet-Hubert SSL model doesn't support multi-channel audio"
+                )
+            feats = self.ssl_model.encode(data.squeeze(1), length)["encoder_output"][-1]
             ssl_codes = self.km_model(feats)
         else:
             raise NotImplementedError(f"SSL choice '{self.ssl_choice}' not implemented")
 
         return ssl_codes
 
-    def _codec_encode_batch(self, data: torch.Tensor, length: torch.Tensor) -> torch.Tensor:
+    def _codec_encode_batch(
+        self, data: torch.Tensor, length: torch.Tensor
+    ) -> torch.Tensor:
         """Encode audio data using codec tokenizer.
 
         Args:
@@ -489,7 +524,9 @@ class DiscreteAudioIO(AbsIO):
         """
         if self.codec_choice == "ESPnet":
             if data.size(1) > 1:
-                raise ValueError("ESPnet codec model doesn't support multi-channel audio")
+                raise ValueError(
+                    "ESPnet codec model doesn't support multi-channel audio"
+                )
 
             # Trim audio to actual lengths to avoid encoding padding
             max_len = int(length.max().item())
@@ -497,10 +534,12 @@ class DiscreteAudioIO(AbsIO):
 
             codes = self.codec_model.encode(data_trimmed)
             # Permute from [codec_n_streams, batch, time] to [batch, time, codec_n_streams]
-            codes = codes.permute(1, 2, 0)[:, :, :self.codec_n_streams]
+            codes = codes.permute(1, 2, 0)[:, :, : self.codec_n_streams]
 
         else:
-            raise NotImplementedError(f"Codec choice '{self.codec_choice}' not implemented")
+            raise NotImplementedError(
+                f"Codec choice '{self.codec_choice}' not implemented"
+            )
 
         return codes
 
@@ -516,9 +555,13 @@ class DiscreteAudioIO(AbsIO):
         """
         # Input validation
         if data.dim() != 3:
-            raise ValueError(f"Expected 3D tensor [batch, channel, samples], got {data.dim()}D")
+            raise ValueError(
+                f"Expected 3D tensor [batch, channel, samples], got {data.dim()}D"
+            )
         if length.size(0) != data.size(0):
-            raise ValueError(f"Batch size mismatch: data={data.size(0)}, length={length.size(0)}")
+            raise ValueError(
+                f"Batch size mismatch: data={data.size(0)}, length={length.size(0)}"
+            )
         # Calculate frame counts by dividing sample lengths by frame shift
         frame_lengths = length // self.frame_shift
 
@@ -604,7 +647,7 @@ class DiscreteAudioIO(AbsIO):
             )
 
         return self._stream_weights
-    
+
     def _apply_delay_interleave(self, codes: torch.Tensor) -> torch.Tensor:
         """Apply delay interleaving to multi-stream tokens.
 
@@ -622,12 +665,16 @@ class DiscreteAudioIO(AbsIO):
         B, T, N = codes.size()
 
         # Create output tensor with extended time dimension
-        new_codes = torch.ones(B, T + self.num_stream() - 1, N,
-                              dtype=codes.dtype, device=codes.device) * self.audio_pad
+        new_codes = (
+            torch.ones(
+                B, T + self.num_stream() - 1, N, dtype=codes.dtype, device=codes.device
+            )
+            * self.audio_pad
+        )
 
         # Apply delay to each stream
         for n in range(N):
-            new_codes[:, n:n+T, n] = codes[:, :, n]
+            new_codes[:, n : n + T, n] = codes[:, :, n]
 
         return new_codes
 
@@ -650,11 +697,12 @@ class DiscreteAudioIO(AbsIO):
         # Extract each stream with proper offset and stack
         new_codes = []
         for n in range(N):
-            new_codes.append(codes[:, n:n+T_original, n])
+            new_codes.append(codes[:, n : n + T_original, n])
 
         new_codes = torch.stack(new_codes, dim=-1)
 
         return new_codes
+
 
 class ContinuousAudioIO(AbsIO):
     """Continuous audio I/O for audio feature extraction.
@@ -686,7 +734,7 @@ class ContinuousAudioIO(AbsIO):
         self,
         encoder_choice: str = "huggingface",
         encoder_hf_model_tag: str = "Qwen/Qwen2.5-Omni-7B",
-        device: str = 'cpu'
+        device: str = "cpu",
     ):
         """Initialize continuous audio encoder.
 
@@ -736,7 +784,11 @@ class ContinuousAudioIO(AbsIO):
         """
         if encoder_choice == "huggingface":
             if encoder_hf_model_tag == "Qwen/Qwen2.5-Omni-7B":
-                from transformers import Qwen2_5OmniForConditionalGeneration, Qwen2_5OmniProcessor
+                from transformers import (
+                    Qwen2_5OmniForConditionalGeneration,
+                    Qwen2_5OmniProcessor,
+                )
+
                 qwen_omni = Qwen2_5OmniForConditionalGeneration.from_pretrained(
                     encoder_hf_model_tag
                 )
@@ -751,16 +803,24 @@ class ContinuousAudioIO(AbsIO):
                 self.down_sample = 4  # hard code
 
             else:
-                raise NotImplementedError(f"Model {encoder_hf_model_tag} not implemented")
+                raise NotImplementedError(
+                    f"Model {encoder_hf_model_tag} not implemented"
+                )
         else:
-            raise NotImplementedError(f"Encoder choice {encoder_choice} not implemented")
-        
-    def preprocess(self, data: torch.Tensor, sampling_rate: Optional[int] = None) -> torch.Tensor:
+            raise NotImplementedError(
+                f"Encoder choice {encoder_choice} not implemented"
+            )
+
+    def preprocess(
+        self, data: torch.Tensor, sampling_rate: Optional[int] = None
+    ) -> torch.Tensor:
         """Preprocess audio data for the encoder."""
 
         raise NotImplementedError
-    
-    def encode_batch(self, data: torch.Tensor, length: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+
+    def encode_batch(
+        self, data: torch.Tensor, length: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Encode a batch of audio data into continuous features.
 
         Args:
@@ -775,12 +835,14 @@ class ContinuousAudioIO(AbsIO):
         Raises:
             ValueError: If input dimensions are incorrect or batch sizes don't match
         """
-        feats = self.model(input_features=data)['last_hidden_state']
+        feats = self.model(input_features=data)["last_hidden_state"]
         length = length // self.hop_length // self.down_sample
 
         return feats, length
 
-    def decode_batch(self, features: torch.Tensor, lengths: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def decode_batch(
+        self, features: torch.Tensor, lengths: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Decode continuous features back to audio (if supported).
 
         Args:
@@ -792,7 +854,9 @@ class ContinuousAudioIO(AbsIO):
                 - audio: Reconstructed audio [batch, num_channel, num_sample]
                 - audio_lengths: Sample lengths [batch]
         """
-        raise NotImplementedError("Continuous audio encoder doesn't support audio generation")
+        raise NotImplementedError(
+            "Continuous audio encoder doesn't support audio generation"
+        )
 
     def find_length_batch(self, data: torch.Tensor, length: torch.Tensor) -> List[int]:
         """Calculate feature frame lengths after encoding.

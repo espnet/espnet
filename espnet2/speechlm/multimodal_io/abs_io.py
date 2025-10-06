@@ -7,8 +7,9 @@ continuous (feature-based) representations.
 
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional
-from torch.nn import Module
+
 import numpy as np
+from torch.nn import Module
 
 
 class AbsIO(ABC, Module):
