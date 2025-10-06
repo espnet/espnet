@@ -183,7 +183,7 @@ def print_statistics(
     logging.info(f"Total cuts: {len(cut_set)}")
     logging.info(
         f"Total audio duration: {total_duration:.2f} seconds "
-        f"({total_duration/3600:.2f} hours)"
+        f"({total_duration / 3600:.2f} hours)"
     )
 
     if multi_channel_count > 0:
