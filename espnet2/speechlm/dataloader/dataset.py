@@ -22,11 +22,11 @@ reader_types = {
 # TODO(Jinchuan): revisit the CPU memory usage for large-scale training. Check official
 # information as follow:
 # After several iterations, the loader worker processes will consume the same amount of
-# CPU memory as the parent process for all Python objects in the parent process which 
-# are accessed from the worker processes. This can be problematic if the Dataset 
-# contains a lot of data (e.g., you are loading a very large list of filenames at 
+# CPU memory as the parent process for all Python objects in the parent process which
+# are accessed from the worker processes. This can be problematic if the Dataset
+# contains a lot of data (e.g., you are loading a very large list of filenames at
 # Dataset construction time) and/or you are using a lot of workers (overall memory
-# usage is number of workers * size of parent process). The simplest workaround is 
+# usage is number of workers * size of parent process). The simplest workaround is
 # to replace Python objects with non-refcounted representations such as Pandas, Numpy
 #  or PyArrow objects. Check out issue #13246 for more details on why this occurs and
 #  example code for how to workaround these problems.
@@ -125,9 +125,7 @@ class CombinedDataset(Dataset):
         for dataset_name, json_path in datasets:
             if dataset_name in self.datasets:
                 raise ValueError(f"Duplicate dataset name: {dataset_name}")
-            single_dataset = SingleDataset(
-                json_path, rank=rank, world_size=world_size
-            )
+            single_dataset = SingleDataset(json_path, rank=rank, world_size=world_size)
             self.datasets[dataset_name] = single_dataset
             logging.info(
                 f"Loaded dataset [{dataset_name}] at {json_path}. "

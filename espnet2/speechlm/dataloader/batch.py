@@ -85,7 +85,7 @@ def batchfy_pack(
 
         # Find the best active batch (minimum remaining space)
         best_batch_idx = -1
-        min_remaining = float('inf')
+        min_remaining = float("inf")
 
         for idx, total in enumerate(active_totals):
             remaining = batch_token - total
@@ -148,8 +148,7 @@ def batchfy(
         return batchfy_pack(keys, key_to_length, batch_token)
     else:
         raise ValueError(
-            f"Invalid batch_method: {batch_method}. "
-            f"Must be 'bucket' or 'pack'."
+            f"Invalid batch_method: {batch_method}. " f"Must be 'bucket' or 'pack'."
         )
 
 
@@ -187,8 +186,7 @@ def synchronize_batches(batches: List[List[T]]) -> List[List[T]]:
     n_batches = len(batches)
     n_batches_tensor = torch.Tensor([n_batches]).long().cuda()
     n_batches_list = [
-        torch.Tensor([0]).long().cuda()
-        for _ in range(dist.get_world_size())
+        torch.Tensor([0]).long().cuda() for _ in range(dist.get_world_size())
     ]
     dist.all_gather(n_batches_list, n_batches_tensor)
     tgt_n_batches = max([t.cpu().item() for t in n_batches_list])

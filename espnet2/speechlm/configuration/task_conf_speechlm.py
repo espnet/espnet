@@ -62,4 +62,3 @@ def _validate_task_consistency():
 
 _validate_task_templates()
 _validate_task_consistency()
-

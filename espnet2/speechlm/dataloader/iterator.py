@@ -1,18 +1,18 @@
 """Iterator utilities for SpeechLM data loading."""
 
-import logging
 import json
+import logging
 import random
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Tuple, TypeVar, Union
 
 from torch.utils.data import DataLoader
 
-from espnet2.speechlm.dataloader.dataset import CombinedDataset
 from espnet2.speechlm.dataloader.batch import (
     batchfy,
     synchronize_batches,
 )
+from espnet2.speechlm.dataloader.dataset import CombinedDataset
 
 T = TypeVar("T")
 
@@ -62,6 +62,7 @@ class DataIteratorFactory:
         ...     # Training loop
         ...     pass
     """
+
     def __init__(
         self,
         unregistered_specifier: str,
@@ -88,7 +89,8 @@ class DataIteratorFactory:
 
         # (1) parse data specifier
         cache_unregistered, cache_registered = _parse_data_specifier(
-            unregistered_specifier, registered_specifier,
+            unregistered_specifier,
+            registered_specifier,
         )
 
         # (2) build dataset
@@ -103,10 +105,7 @@ class DataIteratorFactory:
             f"registered={dataset_registered}"
         )
         dataset = CombinedDataset(
-            dataset_unregistered,
-            dataset_registered,
-            rank=rank,
-            world_size=world_size
+            dataset_unregistered, dataset_registered, rank=rank, world_size=world_size
         )
         logging.info("Dataset construction completed")
 
@@ -128,23 +127,17 @@ class DataIteratorFactory:
                 factor = entry[-1]  # Last element is always factor
 
                 data_list = all_subsets[data_name]
-                data_list = [
-                    (task, data_name, example_id) for example_id in data_list
-                ]
+                data_list = [(task, data_name, example_id) for example_id in data_list]
                 # Create deterministic seed for reproducible resampling
                 resample_seed = self.seed + hash((task, data_name)) % 100000
-                resampled_data_list = _resample(
-                    data_list, factor, seed=resample_seed
-                )
+                resampled_data_list = _resample(data_list, factor, seed=resample_seed)
                 all_examples.extend(resampled_data_list)
 
                 stat_file = stats_dir / f"stats_{task}_{data_name}.jsonl"
                 stat_dict = _load_stats(stat_file, task, data_name)
                 stat_dict = {key: stat_dict[key] for key in data_list}
                 all_lengths.update(stat_dict)
-                logging.info(
-                    f"Task={task}, data_name={data_name}, factor={factor}"
-                )
+                logging.info(f"Task={task}, data_name={data_name}, factor={factor}")
 
             # (4) Build batches
             batched_examples = batchfy(
@@ -155,8 +148,7 @@ class DataIteratorFactory:
             # (5) Synchronize batches across GPU ranks
             batched_examples = synchronize_batches(batched_examples)
             logging.info(
-                f"Number of batches after synchronization: "
-                f"{len(batched_examples)}"
+                f"Number of batches after synchronization: " f"{len(batched_examples)}"
             )
 
             self.batched_examples = batched_examples
@@ -165,9 +157,7 @@ class DataIteratorFactory:
             # Load batched_examples from saved state
             self.load_iterator_state(loader_state)
 
-    def get_iterator(
-        self, global_step: int, length: int
-    ) -> DataLoader:
+    def get_iterator(self, global_step: int, length: int) -> DataLoader:
         """Get a DataLoader for a specific range of batches.
 
         Supports endless epochs by wrapping around when batches are
@@ -188,17 +178,11 @@ class DataIteratorFactory:
 
         # Validate parameters
         if global_step < 0:
-            raise ValueError(
-                f"global_step must be non-negative, got {global_step}"
-            )
+            raise ValueError(f"global_step must be non-negative, got {global_step}")
         if length <= 0:
-            raise ValueError(
-                f"length must be positive, got {length}"
-            )
+            raise ValueError(f"length must be positive, got {length}")
         if total_batches == 0:
-            raise ValueError(
-                "No batches available. Cannot create iterator."
-            )
+            raise ValueError("No batches available. Cannot create iterator.")
 
         # Normalize global_step to be within range
         start_idx = global_step % total_batches
@@ -213,9 +197,7 @@ class DataIteratorFactory:
         if self.shuffle:
             rng = random.Random(self.seed + global_step)
             rng.shuffle(batch_subset)
-            logging.info(
-                f"Shuffled batches with seed {self.seed + global_step}"
-            )
+            logging.info(f"Shuffled batches with seed {self.seed + global_step}")
 
         # Calculate epoch information for logging
         start_epoch = global_step // total_batches
@@ -239,7 +221,7 @@ class DataIteratorFactory:
             self.dataset,
             batch_sampler=batch_subset,
             num_workers=self.num_workers,
-            collate_fn=self.collate_fn
+            collate_fn=self.collate_fn,
         )
 
         return dataloader
@@ -254,9 +236,7 @@ class DataIteratorFactory:
         state = {
             "batched_examples": self.batched_examples,
         }
-        logging.info(
-            f"Saved iterator state with {len(self.batched_examples)} batches"
-        )
+        logging.info(f"Saved iterator state with {len(self.batched_examples)} batches")
         return state
 
     def load_iterator_state(self, state_dict: Dict):
@@ -270,15 +250,11 @@ class DataIteratorFactory:
             KeyError: If 'batched_examples' key is missing.
         """
         if "batched_examples" not in state_dict:
-            raise KeyError(
-                "state_dict must contain 'batched_examples' key"
-            )
+            raise KeyError("state_dict must contain 'batched_examples' key")
 
         self.batched_examples = state_dict["batched_examples"]
 
-        logging.info(
-            f"Loaded iterator state with {len(self.batched_examples)} batches"
-        )
+        logging.info(f"Loaded iterator state with {len(self.batched_examples)} batches")
 
 
 def _parse_data_specifier(
@@ -339,6 +315,7 @@ def _parse_data_specifier(
 
     return cache_unregistered, cache_registered
 
+
 def _load_stats(
     stat_file: Path, task: str, data_name: str
 ) -> Dict[Tuple[str, str, str], int]:
@@ -361,9 +338,7 @@ def _load_stats(
         ValueError: If length values are not valid integers.
     """
     if not stat_file.exists():
-        raise FileNotFoundError(
-            f"Statistics file not found: {stat_file}"
-        )
+        raise FileNotFoundError(f"Statistics file not found: {stat_file}")
 
     result = {}
     try:
@@ -377,14 +352,11 @@ def _load_stats(
                     data = json.loads(line)
                 except json.JSONDecodeError as e:
                     raise json.JSONDecodeError(
-                        f"Invalid JSON at line {line_num} in {stat_file}",
-                        e.doc, e.pos
+                        f"Invalid JSON at line {line_num} in {stat_file}", e.doc, e.pos
                     )
 
                 if not isinstance(data, dict):
-                    raise ValueError(
-                        f"Line {line_num} in {stat_file} is not a dict"
-                    )
+                    raise ValueError(f"Line {line_num} in {stat_file} is not a dict")
 
                 for example_id, length in data.items():
                     if not isinstance(length, (int, float)):
@@ -398,10 +370,9 @@ def _load_stats(
         logging.error(f"Failed to load stats from {stat_file}: {e}")
         raise
 
-    logging.info(
-        f"Loaded {len(result)} examples from {stat_file}"
-    )
+    logging.info(f"Loaded {len(result)} examples from {stat_file}")
     return result
+
 
 def _resample(lst: List[T], factor: float, seed: int = 42) -> List[T]:
     """Resample a list by a given factor.
@@ -431,9 +402,7 @@ def _resample(lst: List[T], factor: float, seed: int = 42) -> List[T]:
         [1, 2, 3, 2, 1]  # Deterministic with same seed
     """
     if factor <= 0:
-        raise ValueError(
-            f"Resampling factor must be positive, got {factor}"
-        )
+        raise ValueError(f"Resampling factor must be positive, got {factor}")
 
     if not lst:
         return []  # Empty list resampled is still empty
