@@ -63,7 +63,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     all_sets="${valid_set} ${test_sets} ${train_set}"
     for dataset in ${all_sets}; do
         log "Processing dataset: ${dataset}"
-        mkdir -p ${manifest_dir}/${dataset}/audio1 
+        mkdir -p ${manifest_dir}/${dataset}/audio1
         mkdir -p ${manifest_dir}/${dataset}/text1
         mkdir -p ${manifest_dir}/${dataset}/speaker
 
