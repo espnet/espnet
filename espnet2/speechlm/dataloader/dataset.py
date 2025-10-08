@@ -92,8 +92,10 @@ class CombinedDataset(Dataset):
     Combines multiple datasets from both direct paths and registered datasets.
 
     Args:
-        datasets: List of (name, json_path) tuples for direct dataset paths (default: [])
-        registered_datasets: List of registered dataset names to look up in registry (default: [])
+        datasets: List of (name, json_path) tuples for direct dataset paths
+            (default: [])
+        registered_datasets: List of registered dataset names to look up in
+            registry (default: [])
         rank: Process rank for distributed training (default: 0)
         world_size: Total number of processes (default: 1)
     """
@@ -133,7 +135,7 @@ class CombinedDataset(Dataset):
                 )
 
     def _load_registry(self) -> Dict[str, str]:
-        """Load and merge registry files from ESPNET_DATASET_REGISTRY environment variable.
+        """Load and merge registry files from ESPNET_DATASET_REGISTRY env variable.
 
         Returns:
             Dictionary mapping dataset names to JSON file paths

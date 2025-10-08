@@ -11,7 +11,6 @@ Each data source is specified as a triplet: name,path,reader
 import argparse
 import json
 import logging
-import re
 from pathlib import Path
 
 from espnet2.speechlm.dataloader.multimodal_loader import (
@@ -133,7 +132,8 @@ def get_parser():
         type=str,
         nargs="+",
         required=True,
-        help="List of name,path,reader triplets (e.g., audio1,/path/to/audio,lhotse_audio)",
+        help="List of name,path,reader triplets "
+        "(e.g., audio1,/path/to/audio,lhotse_audio)",
     )
     parser.add_argument(
         "--output_json",
