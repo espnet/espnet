@@ -17,10 +17,7 @@ from espnet2.speechlm.dataloader.multimodal_loader import (
     LhotseAudioReader,
     TextReader,
 )
-
-allowed_keys = ["speaker"]
-allowed_keys.extend([f"audio{x}" for x in range(0, 10)])
-allowed_keys.extend([f"text{x}" for x in range(0, 10)])
+from espnet2.speechlm.configuration.task_conf import SUPPORTED_ENTRIES
 
 
 def validate_triplet(triplet: str):
@@ -44,7 +41,7 @@ def validate_triplet(triplet: str):
     name, path, reader = parts
 
     # Validate name (audio1, audio2, ... or text1, text2, ...)
-    if name not in allowed_keys:
+    if name not in SUPPORTED_ENTRIES:
         raise ValueError(f"Invalid entry name {name}")
 
     # Convert to Path and check existence
