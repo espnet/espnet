@@ -1,8 +1,5 @@
 """SpeechLM-specific task configuration module."""
 
-from dataclasses import dataclass, field
-from typing import List, Tuple
-
 from espnet2.speechlm.configuration.task_conf import (
     SUPPORTED_ENTRIES,
     TASK_CONFIGS,

@@ -38,8 +38,7 @@ class TextReader:
                     item = json.loads(line)
                     if "id" not in item or "text" not in item:
                         logging.warning(
-                            f"Skipping line {line_idx}: missing 'id' or "
-                            f"'text' key"
+                            f"Skipping line {line_idx}: missing 'id' or " f"'text' key"
                         )
                         continue
                     example_id = item["id"]

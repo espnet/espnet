@@ -1,9 +1,5 @@
 """Abstract task configuration module for SpeechLM."""
 
-from abc import ABC
-from dataclasses import dataclass, field
-from typing import List
-
 # List of supported entries for task configurations
 SUPPORTED_ENTRIES = (
     [f"audio{i}" for i in range(1, 11)]  # audio1 to audio10
