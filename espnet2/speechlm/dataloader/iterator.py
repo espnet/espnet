@@ -157,7 +157,7 @@ class DataIteratorFactory:
             # Load batched_examples from saved state
             self.load_iterator_state(loader_state)
 
-    def get_iterator(self, global_step: int, length: int) -> DataLoader:
+    def get_iterator(self, global_step: int, length: int = None) -> DataLoader:
         """Get a DataLoader for a specific range of batches.
 
         Supports endless epochs by wrapping around when batches are
@@ -175,6 +175,8 @@ class DataIteratorFactory:
             ValueError: If validation fails or no batches available.
         """
         total_batches = len(self.batched_examples)
+        if length is None:
+            length = total_batches
 
         # Validate parameters
         if global_step < 0:
