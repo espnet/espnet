@@ -13,11 +13,11 @@ import json
 import logging
 from pathlib import Path
 
+from espnet2.speechlm.configuration.task_conf import SUPPORTED_ENTRIES
 from espnet2.speechlm.dataloader.multimodal_loader import (
     LhotseAudioReader,
     TextReader,
 )
-from espnet2.speechlm.configuration.task_conf import SUPPORTED_ENTRIES
 
 
 def validate_triplet(triplet: str):
