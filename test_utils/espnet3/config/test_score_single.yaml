@@ -15,5 +15,5 @@ metrics:
     inputs:
       - ref
       - hyp
-    apply_to: 
+    apply_to:
       - test_1
