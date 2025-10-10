@@ -280,7 +280,7 @@ def pack(
     try:
         import espnet
 
-        meta_objs.update(espnet=espnet.__version__)
+        meta_objs.update(espnet=espnet2.__version__)
     except ImportError:
         pass
 

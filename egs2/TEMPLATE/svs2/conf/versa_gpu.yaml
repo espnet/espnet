@@ -1,0 +1,18 @@
+# pseudo subjective metrics
+- name: pseudo_mos
+  predictor_types: [ "singmos"]
+  predictor_args:
+    singmos:
+      fs: 16000
+
+# An overall model on MOS-bench from Sheet toolkit
+# More info in https://github.com/unilight/sheet/tree/main
+# --sheet_ssqa: the mos prediction from sheet_ssqa
+- name: sheet_ssqa
+
+# speaker related metrics
+# -- spk_similarity: speaker cosine similarity
+#                    model tag can be any ESPnet-SPK huggingface repo at
+#                    https://huggingface.co/espnet
+- name: speaker
+  model_tag: default

@@ -1,6 +1,6 @@
 import logging
 
-import lightning as L
+import lightning
 import torch
 from hydra.utils import instantiate
 from omegaconf import OmegaConf
@@ -8,13 +8,16 @@ from omegaconf import OmegaConf
 from espnet2.train.collate_fn import CommonCollateFn
 from espnet3.collect_stats import collect_stats
 from espnet3.trainer.dataloader import DataLoaderBuilder
-from espnet3.trainer.hybrid_optim import HybridOptim
-from espnet3.trainer.hybrid_scheduler import HybridLRS
+
+# Temporarily disabled for the code review.
+# from espnet3.collect_stats import collect_stats
+from espnet3.trainer.multiple_optim import MultipleOptim
+from espnet3.trainer.multiple_scheduler import MultipleScheduler
 
 logger = logging.getLogger("lightning")
 
 
-class LitESPnetModel(L.LightningModule):
+class LitESPnetModel(lightning.LightningModule):
     """
     ESPnet3-specific PyTorch LightningModule wrapper.
 
@@ -29,17 +32,22 @@ class LitESPnetModel(L.LightningModule):
         valid_dataset: Validation dataset.
         collate_fn (Callable): Collation function used in DataLoader.
         is_espnet_sampler (bool): Whether the model uses ESPnet's custom sampler.
+
+    Note:
+        This class assumes the use of a `DataOrganizer`-compatible dataset config.
+        The `data_organizer` is instantiated temporarily to access
+        `train` and `valid` datasets, but is not retained as an attribute
+        since it is no longer needed after extraction.
     """
 
     def __init__(self, model, config):
         super().__init__()
         self.config = config
         self.model = model
-        organizer = instantiate(config.dataset)
-        self.train_dataset = organizer.train
-        self.valid_dataset = organizer.valid
+        data_organizer = instantiate(config.dataset)
+        self.train_dataset = data_organizer.train
+        self.valid_dataset = data_organizer.valid
         self.nan_countdown = 0
-        # self.save_hyperparameters()  # args now in self.hparams
 
         # If user is trying to use both Pytorch dataloader and ESPnet's dataloader
         # Then raise an error here.
@@ -202,17 +210,19 @@ class LitESPnetModel(L.LightningModule):
             - optim:
                 _target_: torch.optim.Adam
                 lr: 0.001
-            params: encoder
+              params: encoder
             - optim:
                 _target_: torch.optim.SGD
                 lr: 0.01
-            params: decoder
+              params: decoder
 
         schedulers:
-            - _target_: torch.optim.lr_scheduler.StepLR
-            step_size: 10
-            - _target_: torch.optim.lr_scheduler.ReduceLROnPlateau
-            patience: 2
+            - scheduler:
+                _target_: torch.optim.lr_scheduler.StepLR
+                step_size: 10
+            - scheduler:
+                _target_: torch.optim.lr_scheduler.ReduceLROnPlateau
+                patience: 2
         ```
 
         Notes:
@@ -268,7 +278,11 @@ class LitESPnetModel(L.LightningModule):
             )
 
             optims = []
-            trainable_params = dict(self.named_parameters())  # key: name, value: param
+            trainable_params = {
+                name: param
+                for name, param in self.named_parameters()
+                if param.requires_grad
+            }  # key: name, value: param
             used_param_ids = set()
 
             for optim_cfg in self.config.optims:
@@ -279,12 +293,12 @@ class LitESPnetModel(L.LightningModule):
                 selected = [
                     p
                     for name, p in trainable_params.items()
-                    if optim_cfg["params"] in name and p.requires_grad
+                    if optim_cfg["params"] in name
                 ]
                 selected_names = [
                     name
-                    for name, p in trainable_params.items()
-                    if optim_cfg["params"] in name and p.requires_grad
+                    for name in trainable_params.keys()
+                    if optim_cfg["params"] in name
                 ]
                 assert (
                     len(selected) > 0
@@ -310,7 +324,7 @@ class LitESPnetModel(L.LightningModule):
                 not unused_param_ids
             ), f"{unused_param_ids} are not assigned to any optimizer"
 
-            optimizer = HybridOptim(optims)
+            optimizer = MultipleOptim(optims)
 
             assert (
                 getattr(self.config, "scheduler", None) is None
@@ -319,13 +333,14 @@ class LitESPnetModel(L.LightningModule):
             for i_sch, scheduler in enumerate(self.config.schedulers):
                 schedulers.append(
                     instantiate(
-                        OmegaConf.to_container(scheduler, resolve=True),
+                        OmegaConf.to_container(scheduler.scheduler, resolve=True),
                         optimizer=optims[i_sch],
                     )
                 )
 
             scheduler = [
-                HybridLRS(optimizer, sch, i_sch) for i_sch, sch in enumerate(schedulers)
+                MultipleScheduler(optimizer, sch, i_sch)
+                for i_sch, sch in enumerate(schedulers)
             ]
         else:
             raise ValueError(

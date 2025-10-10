@@ -84,8 +84,8 @@ def test_load_line_trailing_newline(tmp_txt_file):
 
 @pytest.fixture
 def write_yaml(tmp_path):
-    """
-    Fixture to create a YAML file under tmp_path and return its path.
+    """Fixture to create a YAML file under tmp_path and return its path.
+
     Usage: path = write_yaml("filename.yaml", content_as_str)
     """
 
@@ -119,7 +119,7 @@ bar: 123
 
 
 def test_config_with_one_include(write_yaml):
-    base = write_yaml("base.yaml", "a: 1\n")
+    write_yaml("base.yaml", "a: 1\n")
     main = write_yaml(
         "main.yaml",
         """
@@ -242,8 +242,8 @@ foo: bar
 
 
 def test_missing_file_raises(tmp_path):
-    """
-    Test that loading a config with a missing file in `defaults`
+    """Test that loading a config with a missing file in `defaults`
+
     raises a FileNotFoundError.
     """
     config_path = tmp_path / "main.yaml"
@@ -259,8 +259,8 @@ defaults:
 
 
 def test_invalid_yaml_raises(tmp_path):
-    """
-    Test that loading a config that points to a YAML file
+    """Test that loading a config that points to a YAML file
+
     with syntax errors raises an OmegaConf parsing exception.
     """
     bad_yaml = tmp_path / "bad.yaml"
@@ -269,7 +269,7 @@ def test_invalid_yaml_raises(tmp_path):
 
     main_path = tmp_path / "main.yaml"
     main_path.write_text(
-        f"""
+        """
 defaults:
   - bad
 """
