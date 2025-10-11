@@ -1,115 +1,155 @@
+# tests/test_stft_runner_provider.py
+from __future__ import annotations
+
+import json
+from argparse import Namespace
 from pathlib import Path
-from typing import Union
+from typing import Any, Dict, List, Union
 
 import numpy as np
 import pytest
 import soundfile as sf
 import torch
+from omegaconf import DictConfig, OmegaConf
 
-# from numpy.testing import assert_allclose
-from omegaconf import OmegaConf
-
-from espnet3.inference.inference_runner import InferenceRunner
-
-# ===============================================================
-# Test Case Summary for STFTInferenceRunner
-# ===============================================================
-#
-# Offline Processing Tests
-# | Test Name                  | Description                                                           | # noqa: E501
-# |---------------------------|-----------------------------------------------------------------------| # noqa: E501
-# | test_A1_offline_on_example| Tests running inference on a full audio file in offline mode          | # noqa: E501
-# | test_A3_read_audio_offline| Validates audio reading works for multiple files                      | # noqa: E501
-# | test_A4_read_text_offline | Confirms reading plain text input offline                            | # noqa: E501
-# | test_A5_write_output      | Ensures output is correctly written to stft.scp                      | # noqa: E501
-# | test_A6_manual_read_infer_write | Manual read, inference, and write in offline mode             | # noqa: E501
-# | test_A7_image_output_type       | Checks that image output is correctly written to PNG and scp         | # noqa: E501
-# | test_A8_audio_output_type       | Checks that audio output is correctly written to FLAC and scp        | # noqa: E501
-#
-# Streaming Processing Tests
-# | Test Name                        | Description                                                      | # noqa: E501
-# |----------------------------------|------------------------------------------------------------------| # noqa: E501
-# | test_B1_streaming_on_example     | Tests running full inference in streaming mode                  | # noqa: E501
-# | test_B2_streaming_chunked_processing | Simulates chunk-by-chunk streaming inference                | # noqa: E501
-# | test_B2_streaming_read_chunks    | Tests chunking of audio input based on duration                 | # noqa: E501
-# | test_B3_read_text_streaming_chunks | Splits text input into chunks in streaming mode              | # noqa: E501
-# | test_B4_post_inference_behavior  | Ensures last chunk's output is returned after streaming         | # noqa: E501
-# | test_B5_run_on_dataset_streaming | Full dataset processing with config injection (Hydra-style)     | # noqa: E501
+# ==== SUT imports ====
+from espnet3.runner.base_runner import BaseRunner
+from espnet3.runner.inference_provider import InferenceProvider
 
 
-# === STFT Module ===
-class StreamingSTFTModule:
-    def __init__(self, stream: bool = False, n_fft=512, hop_length=128, win_length=512):
-        self.stream = stream
-        self.n_fft = n_fft
-        self.hop_length = hop_length
-        self.win_length = win_length
-        self.window = torch.hann_window(win_length)
-        self.n_freqs = n_fft // 2 + 1
-        self.buffer = torch.zeros(n_fft - hop_length)
+class STFTProvider(InferenceProvider):
+    @staticmethod
+    def build_dataset(cfg: DictConfig):
+        dataset = []
+        for i, p in enumerate(cfg.dataset.audio_path):
+            x, sr = sf.read(p, dtype="float32")
+            dataset.append({"utt_id": f"utt{i}", "audio": x, "sr": int(sr)})
+        return dataset
 
-    def pre_inference(self, sample: dict):
-        return sample
+    @staticmethod
+    def build_model(cfg: DictConfig):
+        return {}
 
-    def inference_body(self, chunk: Union[dict, np.ndarray]) -> dict:
-        if isinstance(chunk, dict):
-            chunk = chunk["audio"]
-        chunk_tensor = torch.from_numpy(chunk).float()
-        audio = torch.cat([self.buffer, chunk_tensor], dim=0)
 
-        if audio.shape[0] < self.n_fft:
-            self.buffer = audio
+class STFTRunner(BaseRunner):
+    @staticmethod
+    def _stft_with_buffer(
+        audio_chunk: np.ndarray,
+        *,
+        n_fft: int,
+        hop_length: int,
+        win_length: int,
+        state: Dict[str, torch.Tensor],
+    ) -> Dict[str, Any]:
+        if "buffer" not in state:
+            state["buffer"] = torch.zeros(n_fft - hop_length)
+        if "window" not in state:
+            state["window"] = torch.hann_window(win_length)
+
+        buf: torch.Tensor = state["buffer"]
+        win: torch.Tensor = state["window"]
+
+        chunk_tensor = torch.from_numpy(audio_chunk).float()
+        audio = torch.cat([buf, chunk_tensor], dim=0)
+
+        if audio.shape[0] < n_fft:
+            state["buffer"] = audio
             return {"stft": {"type": "text", "value": "[]"}}
 
-        num_frames = (audio.shape[0] - self.n_fft) // self.hop_length + 1
+        num_frames = (audio.shape[0] - n_fft) // hop_length + 1
         if num_frames <= 0:
-            self.buffer = audio
+            state["buffer"] = audio
             return {"stft": {"type": "text", "value": "[]"}}
 
         stft = torch.stft(
             audio,
-            n_fft=self.n_fft,
-            hop_length=self.hop_length,
-            win_length=self.win_length,
-            window=self.window,
+            n_fft=n_fft,
+            hop_length=hop_length,
+            win_length=win_length,
+            window=win,
             center=False,
             return_complex=True,
         )
-        next_frame_start = self.hop_length * num_frames
-        self.buffer = audio[next_frame_start:]
+        next_frame_start = hop_length * num_frames
+        state["buffer"] = audio[next_frame_start:]
 
-        # just return shape info for comparison
-        return {
-            "stft": {
-                "type": "text",
-                "value": str(list(stft.shape)),
-            }
-        }
+        return {"stft": {"type": "text", "value": str(list(stft.shape))}}
 
-    def post_inference(self, outputs: list) -> dict:
+    @staticmethod
+    def _chunk_audio(x: np.ndarray, sr: int, chunk_sec: float) -> List[np.ndarray]:
+        cs = max(1, int(sr * chunk_sec))
+        return [x[i : i + cs] for i in range(0, len(x), cs)]
+
+    @staticmethod
+    def forward(idx: int, *, dataset, model, **env) -> Dict[str, Any]:
+        sample = dataset[idx]
+        x: np.ndarray = sample["audio"]
+        sr: int = int(sample.get("sr", 16000))
+
+        stream = bool(env.get("stream", False))
+        n_fft = int(env.get("n_fft", 512))
+        hop_length = int(env.get("hop_length", 128))
+        win_length = int(env.get("win_length", 512))
+        chunk_sec = sample.get("chunk_sec", env.get("chunk_sec", None))
+
+        state: Dict[str, torch.Tensor] = {}
+
+        if not stream:
+            return STFTRunner._stft_with_buffer(
+                x,
+                n_fft=n_fft,
+                hop_length=hop_length,
+                win_length=win_length,
+                state=state,
+            )
+
+        assert chunk_sec is not None, "Set chunk_sec when stream=True"
+        chunks = STFTRunner._chunk_audio(x, sr, float(chunk_sec))
+        outputs = [
+            STFTRunner._stft_with_buffer(
+                ch,
+                n_fft=n_fft,
+                hop_length=hop_length,
+                win_length=win_length,
+                state=state,
+            )
+            for ch in chunks
+        ]
+
         return outputs[-1] if outputs else {"stft": {"type": "text", "value": "[]"}}
 
 
-# === InferenceRunner Subclass ===
-class STFTInferenceRunner(InferenceRunner):
-    def __init__(self, stream: bool = False):
-        super().__init__(stream=stream)
+def write_output(utt_id: str, output: dict, out_dir: Path):
+    out_dir = Path(out_dir)
+    (out_dir / "data").mkdir(parents=True, exist_ok=True)
 
-    def initialize_model(self, device=None):
-        return StreamingSTFTModule(stream=self.stream)
+    for key, spec in output.items():
+        scp = out_dir / f"{key}.scp"
+        scp.touch(exist_ok=True)
 
-    def pre_inference(self, model, sample):
-        model.pre_inference(sample)
-        return model, sample
+        typ = spec["type"]
+        val = spec["value"]
 
-    def inference_body(self, model, chunk):
-        return model.inference_body(chunk)
+        if typ == "text":
+            # scp: "utt value"
+            with scp.open("a", encoding="utf-8") as w:
+                w.write(f"{utt_id} {val}\n")
 
-    def post_inference(self, model, outputs):
-        return model.post_inference(outputs)
+        elif typ == "audio":
+            wav_dir = out_dir / "data" / key
+            wav_dir.mkdir(parents=True, exist_ok=True)
+            path = wav_dir / f"{utt_id}.flac"
+            sf.write(path.as_posix(), val.astype(np.float32), 16000, format="FLAC")
+            with scp.open("a", encoding="utf-8") as w:
+                w.write(f"{utt_id} {path.as_posix()}\n")
+
+        else:
+            raise ValueError(f"Unknown type: {typ}")
 
 
-# === Test Fixtures ===
+# ===============================================================
+# Fixtures
+# ===============================================================
 @pytest.fixture(scope="module")
 def test_audio_paths():
     base = Path("test_utils/espnet3/audio")
@@ -119,94 +159,85 @@ def test_audio_paths():
     return paths
 
 
-def test_A1_offline_on_example(test_audio_paths):
-    path = test_audio_paths[0]
-    x, _ = sf.read(path, dtype="float32")
-    runner = STFTInferenceRunner(stream=False)
-    sample = {"audio_path": str(path), "audio": x}
-    out = runner.run_on_example("utt1", sample)
+def _make_cfg_from_samples(
+    audio_path: List[str], *, stream=False, chunk_sec: float | None = None
+):
+    ds = {"audio_path": audio_path}
+    md = {"stream": stream, "n_fft": 512, "hop_length": 128, "win_length": 512}
+    cfg = OmegaConf.create({"dataset": ds, "model": md})
+    params = {}
+    if chunk_sec is not None:
+        params["chunk_sec"] = float(chunk_sec)
+    params["stream"] = bool(stream)
+    return cfg, params
+
+
+def test_offline_on_example(test_audio_paths):
+    cfg, params = _make_cfg_from_samples(test_audio_paths, stream=False)
+    provider = STFTProvider(cfg, params=params)
+    runner = STFTRunner(provider)
+
+    out = runner([0])[0]
     assert "stft" in out and isinstance(out["stft"]["value"], str)
     assert "[]" not in out["stft"]["value"]
 
 
-@pytest.mark.parametrize("path_idx", [0, 1])
-def test_A3_read_audio_offline(test_audio_paths, path_idx):
-    if path_idx >= len(test_audio_paths):
-        pytest.skip(f"Not enough test files: {len(test_audio_paths)} < {path_idx + 1}")
-    path = str(test_audio_paths[path_idx])
-    runner = STFTInferenceRunner()
-    wav = runner.read("audio", path, stream=False)
-    print(wav)
-    assert isinstance(wav, np.ndarray)
-    assert wav.size > 0, "Audio file is empty"
-
-
-def test_A4_read_text_offline(tmp_path):
-    file_path = tmp_path / "text.txt"
-    file_path.write_text("hello world")
-    runner = STFTInferenceRunner()
-    text = runner.read("text", str(file_path), stream=False)
-    assert text == "hello world"
-
-
-def test_A5_write_output(tmp_path):
-    runner = STFTInferenceRunner()
+def test_write_output(tmp_path):
     output = {"stft": {"type": "text", "value": "test"}}
-    runner.write("utt1", output, str(tmp_path))  # str()に変換
-    scp_path = Path(tmp_path) / "stft.scp"  # "spec" -> "stft"に修正
+    write_output("utt1", output, tmp_path)
+    scp_path = Path(tmp_path) / "stft.scp"
     assert scp_path.exists()
     content = scp_path.read_text().strip()
     assert content == "utt1 test"
 
 
-def test_A6_manual_read_infer_write(test_audio_paths, tmp_path):
-    path = str(test_audio_paths[0])
-    runner = STFTInferenceRunner()
-    model = runner.initialize_model()
-    wav = runner.read("audio", path, stream=False)
-    _, sample = runner.pre_inference(model, {"audio": wav})
-    out = runner.inference_body(model, sample)
-    runner.write("utt2", out, tmp_path)
-    assert (tmp_path / "stft.scp").exists()
+def test_image_output_type_unsupported(tmp_path):
+    img = (np.zeros((10, 10)) + 255 * np.tri(10, 10)).astype(np.uint8)
+    image_output = {"img": {"type": "image", "value": img}}
+
+    with pytest.raises(ValueError, match=r"Unknown type: image"):
+        write_output("image_id1", image_output, tmp_path)
 
 
-def test_A7_image_output_type(tmp_path):
-    runner = STFTInferenceRunner()
-    image_output = {"img": {"type": "image", "value": np.zeros((10, 10))}}
-    runner.write("image_id1", image_output, tmp_path)
-    assert (tmp_path / "img.scp").exists()
-    assert (tmp_path / "data" / "img" / "image_id1.png").exists()
-
-
-def test_A8_audio_output_type(tmp_path):
-    runner = STFTInferenceRunner()
+def test_audio_output_type(tmp_path):
     audio_output = {"speech": {"type": "audio", "value": np.random.random(16000)}}
-    runner.write("speech_id1", audio_output, tmp_path)
+    write_output("speech_id1", audio_output, tmp_path)
     assert (tmp_path / "speech.scp").exists()
     assert (tmp_path / "data" / "speech" / "speech_id1.flac").exists()
 
 
-def test_B1_streaming_on_example(test_audio_paths):
-    path = test_audio_paths[0]
-    runner = STFTInferenceRunner(stream=True)
-    sample = {"audio_path": str(path)}
-    out = runner.run_on_example("utt2", sample)
+def test_streaming_on_example(test_audio_paths):
+    cfg, params = _make_cfg_from_samples(test_audio_paths, stream=True, chunk_sec=0.1)
+
+    provider = STFTProvider(cfg, params=params)
+    runner = STFTRunner(provider)
+
+    out = runner([0])[0]
     assert "stft" in out and isinstance(out["stft"]["value"], str)
     assert "[]" not in out["stft"]["value"]
 
 
-def test_B2_streaming_chunked_processing(test_audio_paths):
+def test_streaming_chunked_processing_manual(test_audio_paths):
     path = test_audio_paths[0]
     x, sr = sf.read(path, dtype="float32")
-    chunk_size = int(sr * 0.1)
-    chunks = [x[i : i + chunk_size] for i in range(0, len(x), chunk_size)]
 
-    runner = STFTInferenceRunner(stream=True)
-    model = runner.initialize_model()
+    chunk_sec = 0.1
+    cs = int(sr * chunk_sec)
+    chunks = [x[i : i + cs] for i in range(0, len(x), cs)]
 
-    runner.pre_inference(model, {})
-    outputs = [runner.inference_body(model, chunk) for chunk in chunks]
-    result = runner.post_inference(model, outputs)
+    state = {}
+
+    outs = [
+        STFTRunner._stft_with_buffer(
+            ch,
+            n_fft=512,
+            hop_length=128,
+            win_length=512,
+            state=state,
+        )
+        for ch in chunks
+    ]
+    result = outs[-1] if outs else {"stft": {"type": "text", "value": "[]"}}
 
     assert "stft" in result
     assert isinstance(result["stft"]["value"], str)
@@ -216,90 +247,128 @@ def test_B2_streaming_chunked_processing(test_audio_paths):
 @pytest.mark.parametrize(
     "chunk_sec, expected_min_chunks", [(0.01, 90), (0.1, 9), (0.5, 2)]
 )
-def test_B2_streaming_read_chunks(test_audio_paths, chunk_sec, expected_min_chunks):
-    if len(test_audio_paths) == 0:
-        pytest.skip("No test audio files available")
-
-    path = str(test_audio_paths[0])
-    runner = STFTInferenceRunner(stream=True)
-    chunks = list(runner.read("audio", path, stream=True, chunk_sec=chunk_sec))
-
+def test_streaming_chunk_count(test_audio_paths, chunk_sec, expected_min_chunks):
+    path = test_audio_paths[0]
+    x, sr = sf.read(path, dtype="float32")
+    chunks = STFTRunner._chunk_audio(x, sr, chunk_sec)
     assert isinstance(chunks, list)
-    assert (
-        len(chunks) >= expected_min_chunks
-    ), f"Got only {len(chunks)} chunks for chunk_sec={chunk_sec}"
+    assert len(chunks) >= expected_min_chunks
     assert all(isinstance(c, np.ndarray) for c in chunks)
 
 
-def test_B3_read_text_streaming_chunks(tmp_path):
-    file_path = tmp_path / "text.txt"
-    file_path.write_text("abcdefghij")  # 長さ10
-
-    runner = STFTInferenceRunner(stream=True)
-    chunks = list(runner.read("text", str(file_path), stream=True, chunk_chars=3))
-
-    assert chunks == ["abc", "def", "ghi", "j"]
-
-
-def test_B4_post_inference_behavior():
-    runner = STFTInferenceRunner(stream=True)
-    model = runner.initialize_model()
-    outputs = [
-        {"stft": {"type": "text", "value": "chunk1"}},
-        {"stft": {"type": "text", "value": "chunk2"}},
-        {"stft": {"type": "text", "value": "chunk_final"}},
-    ]
-    result = runner.post_inference(model, outputs)
-    assert result["stft"]["value"] == "chunk_final"
+def _read_jsonl_file(path: Path):
+    with path.open("r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            yield json.loads(line)
 
 
-def test_B5_run_on_dataset_streaming(test_audio_paths, tmp_path):
-    if len(test_audio_paths) == 0:
-        pytest.skip("No test audio files available")
+class _DummyFuture:
+    def __init__(self, result=None):
+        self._result = result
 
-    path = str(test_audio_paths[0])
 
-    # Hydra-compatible config with testset named 'testset'
-    dataset_config = OmegaConf.create(
-        {
-            "_target_": "espnet3.data.DataOrganizer",
-            "test": [
-                {
-                    "name": "testset",
-                    "dataset": {
-                        "_target_": "test.espnet3.test_data_organizer.DummyDataset",
-                        "path": path,
-                    },
-                    "transform": {
-                        "_target_": "test.espnet3.test_data_organizer.DummyTransform"
-                    },
-                }
-            ],
-        }
+def _make_fake_client(num_workers: int = 2):
+    class _FakeClient:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def scheduler_info(self):
+            return {"workers": {f"w{i}": {} for i in range(num_workers)}}
+
+        def submit(self, fn, *args, **kwargs):
+            result = fn(*args, **kwargs)
+            return _DummyFuture(result=result)
+
+        def gather(self, futures):
+            return [getattr(f, "_result", None) for f in futures]
+
+    return _FakeClient()
+
+
+def _patch_async_env(monkeypatch, num_workers: int = 2):
+    import espnet3.runner.base_runner as br
+
+    monkeypatch.setattr(
+        br, "get_parallel_config", lambda: Namespace(env="dask"), raising=True
+    )
+    monkeypatch.setattr(
+        br, "get_client", lambda _cfg: _make_fake_client(num_workers), raising=True
     )
 
-    # Define a runner with dataset_config injected
-    class STFTInferenceRunnerWithConfig(InferenceRunner):
-        def __init__(self, stream: bool = True):
-            super().__init__(stream=stream, dataset_config=dataset_config)
 
-        def initialize_model(self, device):
-            return StreamingSTFTModule(stream=self.stream)
+def _collect_jsonl_rows(result_dir: Path):
+    files = sorted(result_dir.glob("result-*.jsonl"))
+    all_rows = []
+    for fp in files:
+        all_rows.extend(list(_read_jsonl_file(fp)))
+    return files, all_rows
 
-        def pre_inference(self, model, sample):
-            model.pre_inference(sample)
-            return model, sample
 
-        def inference_body(self, model, chunk):
-            return model.inference_body(chunk)
+def _assert_stft_json(obj: dict):
+    assert isinstance(obj, dict)
+    assert "stft" in obj and isinstance(obj["stft"], dict)
+    assert obj["stft"].get("type") == "text"
+    val = obj["stft"].get("value")
+    assert isinstance(val, str)
+    assert "[]" not in val
 
-        def post_inference(self, model, outputs):
-            return model.post_inference(outputs)
 
-    runner = STFTInferenceRunnerWithConfig(stream=True)
-    runner.run_on_dataset("testset", tmp_path)
+def test_async_jsonl_offline_with_base_runner(test_audio_paths, tmp_path, monkeypatch):
+    _patch_async_env(monkeypatch, num_workers=2)
 
-    out_scp = tmp_path / "stft.scp"
-    assert out_scp.exists()
-    content = out_scp.read_text()
-    assert "0" in content
+    cfg, params = _make_cfg_from_samples(test_audio_paths, stream=False)
+    provider = STFTProvider(cfg, params=params)
+    runner = STFTRunner(
+        provider,
+        async_mode=True,
+        async_return_results=False,
+        async_specs_dir=tmp_path / "_specs",
+        async_result_dir=tmp_path / "_results_offline",
+    )
+
+    indices = list(range(min(4, len(test_audio_paths))))
+    ret = runner(indices)
+
+    assert ret is None
+
+    result_dir = tmp_path / "_results_offline"
+    files, rows = _collect_jsonl_rows(result_dir)
+    assert len(files) >= 1
+    assert len(rows) == len(indices)
+
+    for obj in rows:
+        _assert_stft_json(obj)
+
+
+def test_async_jsonl_streaming_with_base_runner(
+    test_audio_paths, tmp_path, monkeypatch
+):
+    _patch_async_env(monkeypatch, num_workers=3)
+
+    cfg, params = _make_cfg_from_samples(test_audio_paths, stream=True, chunk_sec=0.1)
+    provider = STFTProvider(cfg, params=params)
+    runner = STFTRunner(
+        provider,
+        async_mode=True,
+        async_return_results=False,
+        async_specs_dir=tmp_path / "_specs",
+        async_result_dir=tmp_path / "_results_stream",
+    )
+
+    indices = list(range(min(5, len(test_audio_paths))))
+    ret = runner(indices)
+    assert ret is None
+
+    result_dir = tmp_path / "_results_stream"
+    files, rows = _collect_jsonl_rows(result_dir)
+    assert len(files) >= 1
+    assert len(rows) == len(indices)
+
+    for obj in rows:
+        _assert_stft_json(obj)
