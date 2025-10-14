@@ -1,45 +1,42 @@
 #!/usr/bin/env bash
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
-# TODO: need to modify the following parameters
 set -e
 set -u
 set -o pipefail
 
-fs=24000
-n_fft=2048
-n_shift=300
-win_length=1200
+fs=22050
+n_fft=1024
+n_shift=256
+win_length=null
 
-opts=
-if [ "${fs}" -eq 24000 ]; then
-    # To suppress recreation, specify wav format
-    opts="--audio_format wav "
-else
-    opts="--audio_format flac "
-fi
+opts="--audio_format flac "
 
-train_set=train-clean-460
-valid_set=dev-clean
-test_sets="dev-clean test-clean"
+train_set=tr_no_dev
+valid_set=dev
+test_sets="dev eval"
+tts_task=gan_tts
 
 train_config=conf/train.yaml
 inference_config=conf/decode.yaml
 
 cleaner=tacotron
-g2p=g2p_en_no_space # or g2p_en
+g2p=g2p_en
 
 ./tts.sh \
     --ngpu 4 \
     --lang en \
     --feats_type raw \
+    --feats_extract linear_spectrogram \
+    --feats_normalize none \
     --fs "${fs}" \
     --n_fft "${n_fft}" \
     --n_shift "${n_shift}" \
     --win_length "${win_length}" \
     --use_spk_embed true \
-    --spk_embed_tool kaldi \
+    --spk_embed_tool python \
     --spk_embed_tag xvector \
+    --tts_task "${tts_task}" \
     --token_type phn \
     --cleaner "${cleaner}" \
     --g2p "${g2p}" \
