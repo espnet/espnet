@@ -116,7 +116,9 @@ class InferenceProvider(EnvironmentProvider):
         Example:
             >>> # Minimal sketch; actual keys depend on your subclass
             >>> from omegaconf import OmegaConf
-            >>> cfg = OmegaConf.create({"dataset": {"path": "data/test", "split": "test"}})
+            >>> cfg = OmegaConf.create({
+            >>>     "dataset": {"path": "data/test", "split": "test"}
+            >>> })
             >>> ds = MyInferenceProvider.build_dataset(cfg)
 
         Notes:
@@ -149,7 +151,9 @@ class InferenceProvider(EnvironmentProvider):
         Example:
             >>> # Minimal sketch; actual keys depend on your subclass
             >>> from omegaconf import OmegaConf
-            >>> cfg = OmegaConf.create({"model": {"checkpoint": "exp/model.pth", "device": "cpu"}})
+            >>> cfg = OmegaConf.create({
+            >>>     "model": {"checkpoint": "exp/model.pth", "device": "cpu"}
+            >>> })
             >>> model = MyInferenceProvider.build_model(cfg)  # doctest: +SKIP
 
         Notes:

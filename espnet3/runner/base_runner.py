@@ -83,11 +83,11 @@ def convert_paths(obj):
         return obj
 
 
-def get_my_job_cls(cluster, spec_path=None):
+def get_job_cls(cluster, spec_path=None):
     parent_cls = cluster.job_cls
     assert spec_path is not None
 
-    class MyJob(parent_cls):
+    class ASyncRunnerJob(parent_cls):
         def __init__(self, *args, worker_extra_args=None, **kwargs):
             self._user_worker_extra_args = worker_extra_args or []
             super().__init__(*args, worker_extra_args=worker_extra_args, **kwargs)
@@ -97,7 +97,7 @@ def get_my_job_cls(cluster, spec_path=None):
             # Update command template to submit async parallel jobs with Dask
             self._command_template = f"{python} {current_file_path} {spec_path} "
 
-    return MyJob
+    return ASyncRunnerJob
 
 
 class BaseRunner:
@@ -272,7 +272,7 @@ class BaseRunner:
                 with open(spec_path, "w", encoding="utf-8") as f:
                     json.dump(convert_paths(asdict(spec)), f, ensure_ascii=False)
 
-                client.cluster.job_cls = get_my_job_cls(client.cluster, spec_path)
+                client.cluster.job_cls = get_job_cls(client.cluster, spec_path)
 
                 with tmpfile(extension="sh") as tf:
                     with open(tf, "w", encoding="utf-8") as wtf:
