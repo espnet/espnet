@@ -56,7 +56,9 @@ def test_transformers_too_short_utt():
     if not is_torch_2_6_plus:
         return
     idim = 400
-    postencoder = HuggingFaceTransformersPostEncoder(idim, "hf-internal-testing/tiny-random-BertModel", 2)
+    postencoder = HuggingFaceTransformersPostEncoder(
+        idim, "hf-internal-testing/tiny-random-BertModel", 2
+    )
     x = torch.randn([2, 3, idim], requires_grad=True)
     x_lengths = torch.LongTensor([3, 2])
     with pytest.raises(Exception):
@@ -67,7 +69,9 @@ def test_transformers_too_short_utt():
 def test_reload_pretrained_parameters():
     if not is_torch_2_6_plus:
         return
-    postencoder = HuggingFaceTransformersPostEncoder(400, "hf-internal-testing/tiny-random-BertModel")
+    postencoder = HuggingFaceTransformersPostEncoder(
+        400, "hf-internal-testing/tiny-random-BertModel"
+    )
     saved_param = postencoder.parameters().__next__().detach().clone()
 
     postencoder.parameters().__next__().data *= 0

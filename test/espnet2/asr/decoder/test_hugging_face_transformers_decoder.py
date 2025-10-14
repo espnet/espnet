@@ -39,7 +39,9 @@ def test_HuggingFaceTransformersDecoder_backward(
 @pytest.mark.skipif(not is_torch_2_6_plus, reason="Require torch 2.6.0+")
 @pytest.mark.execution_timeout(30)
 def test_reload_pretrained_parameters():
-    decoder = HuggingFaceTransformersDecoder(5000, 32, "hf-internal-testing/tiny-random-MBartModel")
+    decoder = HuggingFaceTransformersDecoder(
+        5000, 32, "hf-internal-testing/tiny-random-MBartModel"
+    )
     saved_param = decoder.parameters().__next__().detach().clone()
 
     decoder.parameters().__next__().data *= 0
@@ -55,7 +57,10 @@ def test_reload_pretrained_parameters():
 @pytest.mark.execution_timeout(30)
 def test_skip_reload_pretrained_parameters():
     decoder = HuggingFaceTransformersDecoder(
-        5000, 32, "hf-internal-testing/tiny-random-MBartModel", load_pretrained_weights=False
+        5000,
+        32,
+        "hf-internal-testing/tiny-random-MBartModel",
+        load_pretrained_weights=False,
     )
     # 1. Parameters loaded from hf in init should not be zero.
     # 2. After zeroing them out they should remain zero post reloading.
