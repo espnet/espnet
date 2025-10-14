@@ -1,19 +1,23 @@
 # base_runner.py
+import asyncio
 import importlib
 import json
+import os
+import sys
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Sequence
+from typing import Any, Dict, Iterable, List, Sequence
 from uuid import uuid4
 
-from dask.distributed import Client, wait
+from dask.utils import tmpfile
+from omegaconf import OmegaConf
 from tqdm import tqdm
 
 from espnet3.parallel.parallel import (
     get_client,
     get_parallel_config,
-    parallel_map,
-    wrap_func_with_worker_env,
+    make_client,
+    parallel_for,
 )
 from espnet3.runner.env_provider import EnvironmentProvider
 
@@ -65,7 +69,7 @@ def _default_chunk(indices: Sequence[int], num_chunks: int) -> List[List[int]]:
         size = q + (1 if i < r else 0)
         out.append(list(indices[start : start + size]))
         start += size
-    return [c for c in out if c]  # 空チャンク除去
+    return [c for c in out if c]
 
 
 def convert_paths(obj):
@@ -77,6 +81,23 @@ def convert_paths(obj):
         return str(obj)
     else:
         return obj
+
+
+def get_my_job_cls(cluster, spec_path=None):
+    parent_cls = cluster.job_cls
+    assert spec_path is not None
+
+    class MyJob(parent_cls):
+        def __init__(self, *args, worker_extra_args=None, **kwargs):
+            self._user_worker_extra_args = worker_extra_args or []
+            super().__init__(*args, worker_extra_args=worker_extra_args, **kwargs)
+            python = sys.executable
+            current_file_path = Path(os.path.abspath(__file__)).resolve()
+
+            # Update command template to submit async parallel jobs with Dask
+            self._command_template = f"{python} {current_file_path} {spec_path} "
+
+    return MyJob
 
 
 class BaseRunner:
@@ -94,38 +115,30 @@ class BaseRunner:
           (e.g., dataset/model) for local and worker executions.
 
     Args:
-        env_provider (EnvironmentProvider): Provider that builds the runtime env.
+        provider (EnvironmentProvider): Provider that builds the runtime env.
         async_mode (bool): If True, use Dask ``submit`` with asynchronous shards.
         async_specs_dir (str | Path): Output directory for per-shard spec JSON files.
-        async_return_results (bool): If False, results are written to JSONL files
-            on workers and the driver returns ``None``.
         async_num_workers (int | None): If set, overrides detected worker count
             to decide how many shards to create.
-        async_result_dir (str | Path): Output directory for per-shard JSONL results
-            when ``async_return_results=False``.
+        async_result_dir (str | Path): Output directory for per-shard JSONL results.
 
     Notes:
         - In parallel sync mode (when a Dask cluster is configured), tasks are
           submitted via ``parallel_map`` and results are gathered in order.
-        - In async mode, the driver can return immediately if
-          ``async_return_results=False`` and results are written on workers.
+        - In async mode, the results will be written on async_result_dir.
     """
 
     def __init__(
         self,
-        env_provider: EnvironmentProvider,
+        provider: EnvironmentProvider,
         *,
         async_mode: bool = False,
         async_specs_dir: str | Path = "./_async_specs",
-        async_return_results: bool = True,
-        async_num_workers: int | None = None,
         async_result_dir: str | Path = "./_async_results",
     ):
-        self.env_provider = env_provider
+        self.provider = provider
         self.async_mode = async_mode
         self.async_specs_dir = Path(async_specs_dir)
-        self.async_return_results = async_return_results
-        self.async_num_workers = async_num_workers
         self.async_result_dir = Path(async_result_dir)
 
     @staticmethod
@@ -168,7 +181,7 @@ class BaseRunner:
         Notes:
             - Uses ``tqdm`` progress bar over the input sequence.
         """
-        env = self.env_provider.build_env_local()
+        env = self.provider.build_env_local()
         f = self.__class__.forward  # static
         return [f(i, **env) for i in tqdm(indices, total=len(indices))]
 
@@ -185,19 +198,22 @@ class BaseRunner:
             - Wraps ``forward`` with :func:`wrap_func_with_worker_env` so that
               missing keyword args are injected from the worker env.
         """
-        setup_fn = self.env_provider.make_worker_setup_fn()
-        f = wrap_func_with_worker_env(self.__class__.forward)
-        return parallel_map(f, indices, setup_fn=setup_fn)
+        setup_fn = self.provider.make_worker_setup_fn()
+        out = []
+        with get_client(get_parallel_config()) as client:
+            for res in parallel_for(
+                self.__class__.forward, indices, setup_fn=setup_fn, client=client
+            ):
+                out.append(res)
+        return out
 
-    def _run_async(self, indices: Sequence[int]) -> List[Any] | None:
+    async def _run_async(self, indices: Sequence[int]) -> List[Any] | None:
         """Submit shards to a Dask cluster and gather or write results.
 
         Workflow:
             1) Emit per-shard JSON specs to ``async_specs_dir``.
             2) Submit worker entrypoints that reconstruct runner/provider and run.
-            3) If ``async_return_results`` is True, wait & gather. Otherwise return
-               ``None`` immediately and let workers write JSONL files.
-
+            3) Write results to ``async_result_dir``.
         Args:
             indices (Sequence[int]): Indices to process.
 
@@ -213,40 +229,39 @@ class BaseRunner:
               ``async_result_dir / f"result-<job_id>.jsonl"`` on its worker.
         """
         par_cfg = get_parallel_config()
-        with get_client(par_cfg) as client:
-            n_workers = self.async_num_workers or max(
-                1, len(client.scheduler_info().get("workers", {})) or 1
-            )
+        client = make_client(par_cfg)
+        n_workers = par_cfg.get("n_workers", 1)
+        try:
             chunks = _default_chunk(indices, n_workers)
-
             self.async_specs_dir.mkdir(parents=True, exist_ok=True)
             self.async_result_dir.mkdir(parents=True, exist_ok=True)
 
             # DictConfig -> dict
-            from omegaconf import OmegaConf
+            cfg_dict = OmegaConf.to_container(self.provider.config, resolve=True)
+            main_file = Path(sys.argv[0]).resolve()
+            for p in map(Path, sys.path):
+                try:
+                    rel = main_file.relative_to(p.resolve())
+                    module_name = ".".join(rel.with_suffix("").parts)
+                    break
+                except ValueError:
+                    continue
 
-            cfg_dict = OmegaConf.to_container(self.env_provider.config, resolve=True)
+            provider_cls = f"{module_name}" f".{self.provider.__class__.__name__}"
+            runner_cls = f"{module_name}.{self.__class__.__name__}"
 
-            provider_cls = (
-                f"{self.env_provider.__class__.__module__}"
-                f".{self.env_provider.__class__.__name__}"
-            )
-            runner_cls = f"{self.__class__.__module__}.{self.__class__.__name__}"
-
-            futures = []
+            job_meta = []
             for rank, chunk in enumerate(chunks):
                 job_id = f"{uuid4().hex[:8]}-r{rank}"
                 result_path = (
-                    (self.async_result_dir / f"result-{job_id}.jsonl").as_posix()
-                    if not self.async_return_results
-                    else None
-                )
+                    self.async_result_dir / f"result-{job_id}.jsonl"
+                ).as_posix()
 
                 spec = AsyncJobSpec(
                     runner_cls=runner_cls,
                     provider_cls=provider_cls,
                     config=cfg_dict,
-                    params=getattr(self.env_provider, "params", {}) or {},
+                    params=getattr(self.provider, "params", {}) or {},
                     indices=list(chunk),
                     world_size=len(chunks),
                     world_rank=rank,
@@ -257,24 +272,33 @@ class BaseRunner:
                 with open(spec_path, "w", encoding="utf-8") as f:
                     json.dump(convert_paths(asdict(spec)), f, ensure_ascii=False)
 
-                fut = client.submit(
-                    _async_worker_entry_from_spec_path,
-                    spec_path.as_posix(),
+                client.cluster.job_cls = get_my_job_cls(client.cluster, spec_path)
+
+                with tmpfile(extension="sh") as tf:
+                    with open(tf, "w", encoding="utf-8") as wtf:
+                        wtf.write(client.cluster.job_script())
+
+                    out = await client.cluster.job_cls._submit_job(
+                        client.cluster.job_cls, tf
+                    )
+                    print(out)  # Print job submission output.
+
+                job_meta.append(
+                    {
+                        "job_id": job_id,
+                        "spec": spec_path.resolve().as_posix(),
+                        "result": result_path,
+                    }
                 )
-                futures.append(fut)
 
-        if not self.async_return_results:
-            return None
+            print(
+                "Detached async submission. Scheduler:",
+                getattr(client, "scheduler_info", lambda: {})().get("address", "?"),
+            )
+            return job_meta
 
-        # gather
-        wait(futures)
-        results = client.gather(futures)
-        flat: List[Any] = []
-        for r in results:
-            if r is None:
-                continue
-            flat.extend(r)
-        return flat
+        finally:
+            client.close()
 
     def __call__(self, indices: Iterable[int]) -> List[Any] | None:
         """Dispatch execution according to the configured parallel mode.
@@ -284,7 +308,7 @@ class BaseRunner:
 
         Returns:
             List[Any] | None: Results for local/parallel modes, or ``None`` in
-            async mode when ``async_return_results=False``.
+            async mode.
 
         Notes:
             - If no parallel config is set or ``env='local'``, run locally.
@@ -292,7 +316,7 @@ class BaseRunner:
         """
         indices = list(indices)
         if self.async_mode:
-            return self._run_async(indices)
+            return asyncio.run(self._run_async(indices))
 
         par_cfg = get_parallel_config()
         if par_cfg is None or getattr(par_cfg, "env", "local") == "local":
@@ -357,3 +381,12 @@ def _async_worker_entry_from_spec_path(spec_path: str):
         return None
 
     return results
+
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("spec", type=str, help="Path to AsyncJobSpec JSON file")
+    args = parser.parse_args()
+    _async_worker_entry_from_spec_path(args.spec)
