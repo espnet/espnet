@@ -34,7 +34,7 @@ g2p=g2p_en
     --n_shift "${n_shift}" \
     --win_length "${win_length}" \
     --use_spk_embed true \
-    --spk_embed_tool python \
+    --spk_embed_tool espnet \
     --spk_embed_tag xvector \
     --tts_task "${tts_task}" \
     --token_type phn \
