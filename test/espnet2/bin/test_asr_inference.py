@@ -344,8 +344,10 @@ def test_Speech2Text_hugging_face(
 @pytest.mark.parametrize(
     "model_name_or_path",
     [
-        "hf-internal-testing/tiny-random-LlamaForCausalLM",  # tokenizer.padding_side=="left"
-        "hf-internal-testing/tiny-random-BloomForCausalLM",  # tokenizer.padding_side=="right"
+        # test a model with tokenizer.padding_side=="left"
+        "hf-internal-testing/tiny-random-LlamaForCausalLM",
+        # test a model with tokenizer.padding_side=="right"
+        "hf-internal-testing/tiny-random-BloomForCausalLM",
     ],
 )
 @pytest.mark.parametrize("prefix", ["prefix", ""])
