@@ -243,18 +243,6 @@ def wrap_func_with_worker_env(func: Callable) -> Callable:
     return wrapped
 
 
-def _prime_client_env_keys_from_setup_fn(
-    client: Client, setup_fn: Callable[[], dict]
-) -> set:
-    """Run setup_fn once on the client to cache its keys for pre-submit checks."""
-    env = setup_fn()
-    if not isinstance(env, dict):
-        raise ValueError("setup_fn must return a dict")
-    keys = set(env.keys())
-    setattr(client, "_env_keys_hint", keys)
-    return keys
-
-
 @contextmanager
 def get_client(
     config: DictConfig = None, setup_fn: Optional[Callable[[], dict]] = None
@@ -282,7 +270,6 @@ def get_client(
                 "This Dask version lacks register_worker_plugin; please upgrade."
             )
         reg(plugin, name="env")
-        _prime_client_env_keys_from_setup_fn(client, setup_fn)
     try:
         yield client
     finally:
@@ -294,65 +281,6 @@ def get_client(
 
         if not isinstance(cluster, skip_shutdown_types):
             client.shutdown()
-
-
-def _check_conflict_client_side(
-    func: Callable,
-    kwargs: dict,
-    client: Client,
-):
-    """
-    Perform a pre-submit conflict check between explicit keyword arguments
-    and worker environment variables cached on the client.
-
-    This function inspects the signature of `func` and the keys of `kwargs`
-    to detect whether any arguments are being passed both:
-      - explicitly via `kwargs`, and
-      - implicitly via the per-worker environment (as registered by a
-        `DictReturnWorkerPlugin`).
-
-    Args:
-        func (Callable):
-            The function that will be mapped over data.
-        kwargs (dict):
-            Explicit keyword arguments passed to `func` on submission.
-        client (Client):
-            A Dask client that may have cached environment keys in
-            `_env_keys_hint`.
-
-    Raises:
-        ValueError:
-            If one or more argument names appear both in the worker environment
-            keys and in `kwargs`.
-
-    Notes:
-        - This is a **client-side** safeguard; the actual worker-side injection
-          and conflict detection is handled separately by
-          `wrap_func_with_worker_env`.
-        - If `_env_keys_hint` is not present on the client (no environment
-          setup function was registered), this function does nothing.
-
-    """
-    if not kwargs:
-        return
-
-    sig = inspect.signature(func)
-    param_names = set(sig.parameters.keys())
-    accepts_var_kw = any(
-        p.kind is inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values()
-    )
-
-    env_keys = getattr(client, "_env_keys_hint", None)
-    if not env_keys:
-        return
-
-    kw_keys = set(kwargs.keys())
-    considered = kw_keys if accepts_var_kw else (param_names & kw_keys)
-    conflict = env_keys & considered
-    if conflict:
-        raise ValueError(
-            f"Argument conflict: {conflict} passed via both kwargs and env"
-        )
 
 
 @contextmanager
@@ -380,10 +308,8 @@ def _submit_tasks(
     elif setup_fn is not None:
         plugin = DictReturnWorkerPlugin(setup_fn)
         getattr(client, "register_worker_plugin")(plugin, name="env")
-        _prime_client_env_keys_from_setup_fn(client, setup_fn)
 
     try:
-        _check_conflict_client_side(func, kwargs, client)
         wrapped_func = wrap_func_with_worker_env(func)
         futures = client.map(wrapped_func, iterable, **kwargs)
         yield client, futures
