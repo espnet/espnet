@@ -361,6 +361,10 @@ def _async_worker_entry_from_spec_path(spec_path: str):
     params = spec.get("params", {}) or {}
     provider = ProviderCls(cfg, params=params)
 
+    # Add world size and rank
+    os.environ["WORLD_SIZE"] = str(spec["world_size"])
+    os.environ["WORLD_RANK"] = str(spec["world_rank"])
+
     setup_fn = provider.make_worker_setup_fn()
     env = setup_fn()
 
