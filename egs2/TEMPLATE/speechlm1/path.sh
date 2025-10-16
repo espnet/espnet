@@ -24,7 +24,7 @@ export NCCL_SOCKET_IFNAME="^lo,docker,virbr,vmnet,vboxnet"
 
 ESPNET_DATASET_REGISTRY=
 # NOTE(Jinchuan): selectively enable this for wavlab internal usage.
-if [[ "$(hostname)" == dt-* ]] || [[ "$(hostname)" == gh-* ]]; then # For Delta/DeltaAI
+if [[ "$(hostname)" == dt* ]] || [[ "$(hostname)" == gh* ]] || [[ "$(hostname)" == gpu* ]] ; then # For Delta/DeltaAI
     ESPNET_DATASET_REGISTRY+=":/work/nvme/bbjs/shared/data_registry/train_shared.yaml"
     ESPNET_DATASET_REGISTRY+=":/work/nvme/bbjs/shared/data_registry/valid_shared.yaml"
 fi
