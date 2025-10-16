@@ -92,7 +92,7 @@ def get_job_cls(cluster, spec_path=None):
             self._user_worker_extra_args = worker_extra_args or []
             super().__init__(*args, worker_extra_args=worker_extra_args, **kwargs)
             python = sys.executable
-            current_file_path = Path(os.path.abspath(__file__)).resolve()
+            current_file_path = Path(__file__).resolve()
 
             # Update command template to submit async parallel jobs with Dask
             self._command_template = f"{python} {current_file_path} {spec_path} "
@@ -138,8 +138,8 @@ class BaseRunner:
     ):
         self.provider = provider
         self.async_mode = async_mode
-        self.async_specs_dir = Path(async_specs_dir)
-        self.async_result_dir = Path(async_result_dir)
+        self.async_specs_dir = Path(async_specs_dir).resolve()
+        self.async_result_dir = Path(async_result_dir).resolve()
 
     @staticmethod
     def forward(idx: int, *, dataset, model, **env) -> Any:
@@ -247,7 +247,7 @@ class BaseRunner:
                 except ValueError:
                     continue
 
-            provider_cls = f"{module_name}" f".{self.provider.__class__.__name__}"
+            provider_cls = f"{module_name}.{self.provider.__class__.__name__}"
             runner_cls = f"{module_name}.{self.__class__.__name__}"
 
             job_meta = []

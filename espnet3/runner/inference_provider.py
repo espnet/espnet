@@ -55,8 +55,8 @@ class InferenceProvider(EnvironmentProvider):
         """
         config = self.config
 
-        dataset = self.__class__.build_dataset(config)
-        model = self.__class__.build_model(config)
+        dataset = self.build_dataset(config)
+        model = self.build_model(config)
 
         env = {"dataset": dataset, "model": model}
         env.update(self.params)
@@ -122,8 +122,8 @@ class InferenceProvider(EnvironmentProvider):
             >>> ds = MyInferenceProvider.build_dataset(cfg)
 
         Notes:
-            - Keep dataset construction side-effect free, except for necessary
-              lazy indexing or memory mapping.
+            - Keep dataset initialization lightweight by using lazy loading or
+              memory mapping when possible.
             - Rely on fields already present in ``config`` instead of reading
               global state whenever possible.
         """
