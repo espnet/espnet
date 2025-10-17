@@ -83,6 +83,20 @@ def convert_paths(obj):
         return obj
 
 
+def get_full_class_path_from_instance(obj):
+    cls = obj.__class__
+    module = cls.__module__
+
+    # replace top actual file name if __main__
+    if module == "__main__":
+        import __main__
+
+        filename = os.path.splitext(os.path.basename(__main__.__file__))[0]
+        module = filename
+
+    return f"{module}.{cls.__qualname__}"
+
+
 def get_job_cls(cluster, spec_path=None):
     parent_cls = cluster.job_cls
     assert spec_path is not None
@@ -238,17 +252,8 @@ class BaseRunner:
 
             # DictConfig -> dict
             cfg_dict = OmegaConf.to_container(self.provider.config, resolve=True)
-            main_file = Path(sys.argv[0]).resolve()
-            for p in map(Path, sys.path):
-                try:
-                    rel = main_file.relative_to(p.resolve())
-                    module_name = ".".join(rel.with_suffix("").parts)
-                    break
-                except ValueError:
-                    continue
-
-            provider_cls = f"{module_name}.{self.provider.__class__.__name__}"
-            runner_cls = f"{module_name}.{self.__class__.__name__}"
+            provider_cls = get_full_class_path_from_instance(self.provider)
+            runner_cls = get_full_class_path_from_instance(self)
 
             job_meta = []
             for rank, chunk in enumerate(chunks):
