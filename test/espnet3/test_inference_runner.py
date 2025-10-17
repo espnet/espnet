@@ -294,8 +294,10 @@ def _patch_parallel_client_no_submit(monkeypatch, n_workers: int = 2):
     """
     - Change client.submit/map to fully local, immediate (synchronous) execution
     - Make sure to also patch any symbols already imported inside base_runner
-    - For async submission, skip actual job submission and directly call _async_worker_entry_from_spec_path locally
-    - Override _run_async to return None so it matches existing tests expecting ret is None
+    - For async submission, skip actual job submission and directly call 
+        _async_worker_entry_from_spec_path locally
+    - Override _run_async to return None so it matches existing tests expecting
+        ret is None
     """
     from omegaconf import OmegaConf
 
