@@ -12,9 +12,6 @@ from typing import List, Optional, TextIO, Union
 import numpy as np
 import soundfile
 import torch
-
-# imports for inference
-from espnet2.legacy.utils.cli_utils import get_commandline_args
 from typeguard import typechecked
 
 # imports for inference
