@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import json
-from argparse import Namespace
 from pathlib import Path
 from typing import Any, Dict, List, Union
 
@@ -291,14 +290,73 @@ def _make_fake_client(num_workers: int = 2):
     return _FakeClient()
 
 
-def _patch_async_env(monkeypatch, num_workers: int = 2):
+def _patch_parallel_client_no_submit(monkeypatch, n_workers: int = 2):
+    """
+    - Change client.submit/map to fully local, immediate (synchronous) execution
+    - Make sure to also patch any symbols already imported inside base_runner
+    - For async submission, skip actual job submission and directly call _async_worker_entry_from_spec_path locally
+    - Override _run_async to return None so it matches existing tests expecting ret is None
+    """
+    from omegaconf import OmegaConf
+
+    import espnet3.parallel.parallel as par
     import espnet3.runner.base_runner as br
 
+    class _FakeCluster:
+        def __init__(self):
+            self.job_cls = None
+
+        def job_script(self):
+            return "#!/bin/sh\necho OK\n"
+
+    class _FakeClient:
+        def __init__(self):
+            self.cluster = _FakeCluster()
+
+        def close(self):
+            pass
+
+        def scheduler_info(self):
+            return {
+                "address": "fake://scheduler",
+                "workers": {f"w{i}": {} for i in range(n_workers)},
+            }
+
+    def _fake_get_parallel_config():
+        return OmegaConf.create({"env": "slurm", "n_workers": n_workers, "options": {}})
+
+    def _fake_make_client(_cfg=None):
+        return _FakeClient()
+
     monkeypatch.setattr(
-        br, "get_parallel_config", lambda: Namespace(env="dask"), raising=True
+        par, "get_parallel_config", _fake_get_parallel_config, raising=True
     )
+    monkeypatch.setattr(par, "make_client", _fake_make_client, raising=True)
+
     monkeypatch.setattr(
-        br, "get_client", lambda _cfg: _make_fake_client(num_workers), raising=True
+        br, "get_parallel_config", _fake_get_parallel_config, raising=True
+    )
+    monkeypatch.setattr(br, "make_client", _fake_make_client, raising=True)
+
+    def _fake_get_job_cls(cluster, spec_path=None):
+        class _Job:
+            @classmethod
+            async def _submit_job(cls, _tf, *args, **kwargs):
+                br._async_worker_entry_from_spec_path(spec_path)
+                return "OK"
+
+        return _Job
+
+    monkeypatch.setattr(br, "get_job_cls", _fake_get_job_cls, raising=True)
+
+    orig_run_async = br.BaseRunner._run_async
+
+    async def _fake_run_async_return_none(self, indices):
+        await orig_run_async(self, indices)
+        return None
+
+    monkeypatch.setattr(
+        br.BaseRunner, "_run_async", _fake_run_async_return_none, raising=True
     )
 
 
@@ -320,14 +378,13 @@ def _assert_stft_json(obj: dict):
 
 
 def test_async_jsonl_offline_with_base_runner(test_audio_paths, tmp_path, monkeypatch):
-    _patch_async_env(monkeypatch, num_workers=2)
+    _patch_parallel_client_no_submit(monkeypatch, n_workers=2)
 
     cfg, params = _make_cfg_from_samples(test_audio_paths, stream=False)
     provider = STFTProvider(cfg, params=params)
     runner = STFTRunner(
         provider,
         async_mode=True,
-        async_return_results=False,
         async_specs_dir=tmp_path / "_specs",
         async_result_dir=tmp_path / "_results_offline",
     )
@@ -349,14 +406,13 @@ def test_async_jsonl_offline_with_base_runner(test_audio_paths, tmp_path, monkey
 def test_async_jsonl_streaming_with_base_runner(
     test_audio_paths, tmp_path, monkeypatch
 ):
-    _patch_async_env(monkeypatch, num_workers=3)
+    _patch_parallel_client_no_submit(monkeypatch, n_workers=3)
 
     cfg, params = _make_cfg_from_samples(test_audio_paths, stream=True, chunk_sec=0.1)
     provider = STFTProvider(cfg, params=params)
     runner = STFTRunner(
         provider,
         async_mode=True,
-        async_return_results=False,
         async_specs_dir=tmp_path / "_specs",
         async_result_dir=tmp_path / "_results_stream",
     )
