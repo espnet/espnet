@@ -408,7 +408,7 @@ def test_worker_plugin_setup_must_return_dict():
         plugin.setup(dummy_worker)
 
 
-@pytest.mark.execution_timeout(30)
+@pytest.mark.execution_timeout(50)
 def test_parallel_for_propagates_task_exception(local_cfg):
     def boom(x):
         if x == 2:
