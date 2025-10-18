@@ -282,14 +282,18 @@ def get_client(
     finally:
         # Avoid shutdown for LocalCluster and LocalCUDACluster
         cluster = getattr(client, "cluster", None)
-        skip_shutdown_types = (LocalCluster,)
-        if LocalCUDACluster is not None:
-            skip_shutdown_types += (LocalCUDACluster,)
 
-        if isinstance(cluster, skip_shutdown_types):
-            client.close()
-        else:
-            client.shutdown()
+        # always close the client first
+        client.close()
+
+        if cluster is not None:
+            close = getattr(cluster, "close", None)
+            if callable(close):
+                close()
+            else:
+                shutdown = getattr(cluster, "shutdown", None)
+                if callable(shutdown):
+                    shutdown()
 
 
 @contextmanager
