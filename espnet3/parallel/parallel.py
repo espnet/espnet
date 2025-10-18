@@ -286,7 +286,9 @@ def get_client(
         if LocalCUDACluster is not None:
             skip_shutdown_types += (LocalCUDACluster,)
 
-        if not isinstance(cluster, skip_shutdown_types):
+        if isinstance(cluster, skip_shutdown_types):
+            client.close()
+        else:
             client.shutdown()
 
 
@@ -389,7 +391,13 @@ def parallel_map(
         cli,
         futures,
     ):
-        return list(tqdm(cli.gather(futures), total=len(futures)))
+        try:
+            return list(tqdm(cli.gather(futures), total=len(futures)))
+        except Exception as e:
+            try:
+                cli.cancel(futures)
+            finally:
+                raise e
 
 
 def parallel_for(
@@ -466,5 +474,11 @@ def parallel_for(
         _,
         futures,
     ):
-        for future in as_completed(futures):
-            yield future.result()
+        try:
+            for future in as_completed(futures):
+                yield future.result()
+        except Exception as e:
+            try:
+                client.cancel(futures)
+            finally:
+                raise e

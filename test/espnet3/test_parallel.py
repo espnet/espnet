@@ -408,13 +408,13 @@ def test_worker_plugin_setup_must_return_dict():
         plugin.setup(dummy_worker)
 
 
-@pytest.mark.execution_timeout(50)
+@pytest.mark.execution_timeout(30)
 def test_parallel_for_propagates_task_exception(local_cfg):
     def boom(x):
         if x == 2:
             raise RuntimeError("boom")
         return x
 
-    with get_client(local_cfg):
+    with get_client(local_cfg) as client:
         with pytest.raises(RuntimeError, match="boom"):
-            list(parallel_for(boom, [0, 1, 2, 3]))
+            list(parallel_for(boom, [0, 1, 2, 3], client=client))
