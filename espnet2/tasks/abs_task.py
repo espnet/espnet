@@ -1939,7 +1939,7 @@ class AbsTask(ABC):
             dataset, args.allow_variable_data_keys, train=iter_options.train
         )
 
-        parent_dir = Path(iter_options.data_path_and_name_and_type[0][0]).parent
+        parent_dir = str(Path(iter_options.data_path_and_name_and_type[0][0]).parent)
 
         if Path(parent_dir, "category2utt").exists():
             category2utt_file = str(Path(parent_dir, "category2utt"))
@@ -2139,7 +2139,7 @@ class AbsTask(ABC):
             dataset, args.allow_variable_data_keys, train=iter_options.train
         )
 
-        parent_dir = Path(iter_options.data_path_and_name_and_type[0][0]).parent
+        parent_dir = str(Path(iter_options.data_path_and_name_and_type[0][0]).parent)
 
         if Path(parent_dir, "category2utt").exists():
             category2utt_file = str(Path(parent_dir, "category2utt"))
@@ -2410,7 +2410,7 @@ class AbsTask(ABC):
         Args:
             config_file: The yaml file saved when training.
             model_file: The model file saved when training.
-            device: Device type, "cpu", "cuda", or "cuda:N".
+            device: Device type, "cpu", "mps", "cuda", or "cuda:N".
 
         """
         if config_file is None:
@@ -2431,7 +2431,8 @@ class AbsTask(ABC):
             raise RuntimeError(
                 f"model must inherit {AbsESPnetModel.__name__}, but got {type(model)}"
             )
-        model.to(device)
+        if device != "mps":
+            model.to(device)
 
         # For finetuned model, create adapter
         use_adapter = getattr(args, "use_adapter", False)
@@ -2445,7 +2446,9 @@ class AbsTask(ABC):
                 device = f"cuda:{torch.cuda.current_device()}"
             try:
                 state_dict = torch.load(
-                    model_file, map_location=device, weights_only=False
+                    model_file,
+                    map_location="cpu" if device == "mps" else device,
+                    weights_only=False,
                 )
                 # for deepspeed checkpoints
                 if "module" in state_dict:
@@ -2457,7 +2460,9 @@ class AbsTask(ABC):
             except RuntimeError:
                 # Note(simpleoier): the following part is to be compatible with
                 #   pretrained model using earlier versions before `0a625088`
-                state_dict = torch.load(model_file, map_location=device)
+                state_dict = torch.load(
+                    model_file, map_location="cpu" if device == "mps" else device
+                )
                 if any(["frontend.upstream.model" in k for k in state_dict.keys()]):
                     if any(
                         [
@@ -2489,5 +2494,8 @@ class AbsTask(ABC):
                         )
                     else:
                         raise
+
+        if device == "mps":
+            model.to("mps", dtype=torch.float32)
 
         return model, args

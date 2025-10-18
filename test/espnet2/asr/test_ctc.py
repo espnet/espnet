@@ -53,3 +53,25 @@ def test_bayes_risk_ctc(ctc_args):
     bayes_risk_ctc_loss = bayes_risk_ctc(*ctc_args)
 
     assert torch.abs(builtin_ctc_loss - bayes_risk_ctc_loss) < 1e-6
+
+
+def test_ctc_forced_align(ctc_args):
+    _ = pytest.importorskip("torchaudio")
+
+    ctc = CTC(encoder_output_size=10, odim=5, ctc_type="builtin")
+    hs_pad, hlens, ys_pad, ys_lens = ctc_args
+    # Forced alignment only works with batch size 1.
+    hs_pad = hs_pad[0:1, :]
+    hlens = hlens[0:1]
+    ys_pad = ys_pad[0:1, :]
+    ys_lens = ys_lens[0:1]
+    b, t, _ = hs_pad.shape
+    blank_idx = 0
+    ys_pad[ys_pad == blank_idx] = (
+        1  # make sure there is no blank in the target sequence
+    )
+    aligns, scores = ctc.forced_align(
+        hs_pad=hs_pad, hlens=hlens, ys_pad=ys_pad, ys_lens=ys_lens, blank_idx=blank_idx
+    )
+    assert aligns.shape == (b, t)
+    assert scores.shape == (b, t)

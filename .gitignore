@@ -38,6 +38,7 @@ featbin
 ubuntu16-featbin.tar.gz
 pyproject.toml.tmp
 build/
+core
 
 out/config.yaml
 hub/
@@ -50,6 +51,7 @@ dist
 
 # recipe related
 egs*/*/*/data*
+egs*/*/*/manifest*
 egs*/*/*/db
 egs*/*/*/downloads
 egs*/*/*/dump
