@@ -1,5 +1,6 @@
 import copy
 import inspect
+import os
 import warnings
 from contextlib import contextmanager
 from typing import Any, Callable, Generator, Iterable, Optional
@@ -157,6 +158,9 @@ class DictReturnWorkerPlugin(WorkerPlugin):
         if not isinstance(env, dict):
             raise ValueError("setup_fn must return a dict")
         worker.plugins["env"] = env
+
+        # Set worker id so that users can use it for identifing workers
+        os.environ["DASK_WORKER_ID"] = str(worker.id)
 
 
 def wrap_func_with_worker_env(func: Callable) -> Callable:
