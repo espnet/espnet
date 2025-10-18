@@ -227,6 +227,7 @@ def wrap_func_with_worker_env(func: Callable) -> Callable:
 
     def wrapped(*args, **kwargs):
         from distributed.worker import get_worker
+
         worker = get_worker()
 
         env = get_worker().plugins.get("env", {})
