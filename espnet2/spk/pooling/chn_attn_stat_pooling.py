@@ -64,11 +64,11 @@ class ChnAttnStatPooling(AbsPooling):
             sum_val = masked_x.sum(dim=-1, keepdim=True)
             sum_sq_val = (masked_x**2).sum(dim=-1, keepdim=True)
             # feat_lengths might be 0, add epsilon
-            feat_lengths_ = feat_lengths.view(-1, 1, 1).clamp(min=1e-8)
+            feat_lengths_ = feat_lengths.view(-1, 1, 1).clamp(min=1)
             mean = sum_val / feat_lengths_
             # var = E[X^2] - (E[X])^2
             var = sum_sq_val / feat_lengths_ - mean**2
-            std = torch.sqrt(var.clamp(min=1e-4))
+            std = torch.sqrt(var.clamp(min=torch.finfo(var.dtype).eps))
             # Repeat mean and std to match x's time dimension
             mean = mean.repeat(1, 1, T)
             std = std.repeat(1, 1, T)
@@ -80,7 +80,7 @@ class ChnAttnStatPooling(AbsPooling):
                     torch.mean(x, dim=2, keepdim=True).repeat(1, 1, T),
                     torch.sqrt(
                         torch.var(x, dim=2, keepdim=True, unbiased=False).clamp(
-                            min=1e-4, max=1e4
+                            min=torch.finfo(x.dtype).eps
                         )
                     ).repeat(1, 1, T),
                 ),

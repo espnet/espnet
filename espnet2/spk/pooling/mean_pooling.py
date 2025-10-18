@@ -42,6 +42,7 @@ class MeanPooling(AbsPooling):
                 < feat_lengths[:, None, None]
             )
             masked_x = x.masked_fill(~mask, 0)
+            feat_lengths = feat_lengths.clamp(min=1) # avoid division by zero
             x = masked_x.sum(dim=-1) / feat_lengths[:, None]
         else:
             x = torch.mean(x, dim=-1)

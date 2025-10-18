@@ -48,6 +48,7 @@ class StatsPooling(AbsPooling):
             mask = mask.unsqueeze(1)  # (B, 1, T)
 
             # Calculate mean over the time dimension (dim=-1)
+            feat_lengths = feat_lengths.clamp(min=1) # avoid division by zero
             mu = (x * mask).sum(dim=-1) / feat_lengths.unsqueeze(1)
 
             # Calculate standard deviation over the time dimension (dim=-1)
@@ -55,7 +56,7 @@ class StatsPooling(AbsPooling):
             variance = ((x - mu.unsqueeze(-1)) ** 2 * mask).sum(
                 dim=-1
             ) / feat_lengths.unsqueeze(1)
-            st = torch.sqrt(variance.clamp(min=1e-4))
+            st = torch.sqrt(variance.clamp(min=torch.finfo(variance.dtype).eps))
         else:
             mu = torch.mean(x, dim=-1)
             st = torch.std(x, dim=-1, unbiased=False)
