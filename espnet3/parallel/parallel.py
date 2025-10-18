@@ -227,12 +227,15 @@ def wrap_func_with_worker_env(func: Callable) -> Callable:
 
     def wrapped(*args, **kwargs):
         from distributed.worker import get_worker
+        worker = get_worker()
 
         env = get_worker().plugins.get("env", {})
+        if isinstance(env, DictReturnWorkerPlugin):
+            env = env.setup_fn()
+            worker.plugins["env"] = env
 
         kw_keys = set(kwargs.keys())
         considered = kw_keys if accepts_var_kw else (param_names & kw_keys)
-
         conflict = set(env.keys()) & considered
         if conflict:
             raise ValueError(
