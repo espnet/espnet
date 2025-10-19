@@ -1,0 +1,11 @@
+# Lightning trainer configuration
+
+trainer:
+  accelerator: auto
+  devices: ${num_device}
+  max_epochs: 70
+  precision: bf16-mixed
+  log_every_n_steps: 50
+  logger: ${logging.loggers}
+  callbacks: ${callbacks.list}
+  strategy: auto

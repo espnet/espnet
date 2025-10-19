@@ -1,0 +1,51 @@
+# Decoding configuration for LibriSpeech 100h
+
+defaults:
+  - override hydra/hydra_logging: colorlog
+  - override hydra/job_logging: colorlog
+  - data: librispeech_100
+  - _self_
+
+hydra:
+  run:
+    dir: ${paths.recipe_dir}/outputs/decode/${now:%Y-%m-%d_%H-%M-%S}
+  sweep:
+    dir: ${paths.recipe_dir}/multirun/${now:%Y-%m-%d_%H-%M-%S}
+    subdir: ${hydra.job.num}
+
+paths:
+  recipe_dir: ${hydra:runtime.cwd}
+  exp_dir: ${paths.recipe_dir}/exp/asr_branchformer
+  tokenizer_dir: ${paths.recipe_dir}/sentencepiece_model
+
+expdir: ${paths.exp_dir}
+decode_dir: ${expdir}/decode
+
+runtime:
+  device: cpu
+  debug_sample: false
+  debug_test: null
+
+model:
+  _target_: espnet2.bin.asr_inference.Speech2Text
+  asr_train_config: ${expdir}/config.yaml
+  asr_model_file: ${expdir}/last.ckpt
+  beam_size: 1
+  ctc_weight: 1.0
+  device: ${runtime.device}
+
+metrics:
+  - name: wer
+    params:
+      clean_types:
+        - whisper_basic
+    apply_to:
+      - test-clean
+      - test-other
+  - name: cer
+    params:
+      clean_types:
+        - whisper_basic
+    apply_to:
+      - test-clean
+      - test-other

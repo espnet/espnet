@@ -1,0 +1,55 @@
+# Dataset and dataloader configuration for LibriSpeech 100h
+
+dataset:
+  _target_: espnet3.data.DataOrganizer
+  train:
+    - name: train-clean-100
+      dataset:
+        _target_: egs3.librispeech_100.asr1.src.data.LibriSpeechDataset
+        data_dir: ${paths.recipe_dir}/data
+        split: train-clean-100
+  valid:
+    - name: dev-clean
+      dataset:
+        _target_: egs3.librispeech_100.asr1.src.data.LibriSpeechDataset
+        data_dir: ${paths.recipe_dir}/data
+        split: dev-clean
+    - name: dev-other
+      dataset:
+        _target_: egs3.librispeech_100.asr1.src.data.LibriSpeechDataset
+        data_dir: ${paths.recipe_dir}/data
+        split: dev-other
+  test:
+    - name: test-clean
+      dataset:
+        _target_: egs3.librispeech_100.asr1.src.data.LibriSpeechDataset
+        data_dir: ${paths.recipe_dir}/data
+        split: test-clean
+    - name: test-other
+      dataset:
+        _target_: egs3.librispeech_100.asr1.src.data.LibriSpeechDataset
+        data_dir: ${paths.recipe_dir}/data
+        split: test-other
+  preprocessor:
+    _target_: espnet2.train.preprocessor.CommonPreprocessor
+    train: true
+    token_type: bpe
+    token_list: ${paths.tokenizer_dir}/tokens.txt
+    bpemodel: ${paths.tokenizer_dir}/bpe.model
+    text_cleaner:
+
+dataloader:
+  collate_fn:
+    _target_: espnet2.train.collate_fn.CommonCollateFn
+    int_pad_value: -1
+  train:
+    iter_factory:
+      num_workers: 4
+      batches:
+        batch_size: 4
+        batch_bins: 12000000
+  valid:
+    iter_factory:
+      batches:
+        batch_size: 4
+        batch_bins: 12000000

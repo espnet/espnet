@@ -1,0 +1,7 @@
+# SentencePiece tokenizer configuration
+
+tokenizer:
+  train: false
+  model_type: bpe
+  vocab_size: ${vocab_size}
+  character_coverage: 1.0
