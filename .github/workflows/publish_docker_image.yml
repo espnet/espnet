@@ -9,6 +9,9 @@ jobs:
   docker:
     runs-on: ubuntu-latest
     environment: docker
+    # Only runs if the current branch is 'master'
+    # Only runs if the current repository is espnet/espnet
+    if: github.repository == 'espnet/espnet' && github.ref == 'refs/heads/master'
     steps:
       - uses: actions/checkout@master
 
