@@ -1,5 +1,6 @@
 import copy
 import inspect
+import os
 import warnings
 from contextlib import contextmanager
 from typing import Any, Callable, Generator, Iterable, Optional
@@ -158,6 +159,9 @@ class DictReturnWorkerPlugin(WorkerPlugin):
             raise ValueError("setup_fn must return a dict")
         worker.plugins["env"] = env
 
+        # Set worker id so that users can use it for identifing workers
+        os.environ["DASK_WORKER_ID"] = str(worker.id)
+
 
 def wrap_func_with_worker_env(func: Callable) -> Callable:
     """
@@ -224,11 +228,15 @@ def wrap_func_with_worker_env(func: Callable) -> Callable:
     def wrapped(*args, **kwargs):
         from distributed.worker import get_worker
 
+        worker = get_worker()
+
         env = get_worker().plugins.get("env", {})
+        if isinstance(env, DictReturnWorkerPlugin):
+            env = env.setup_fn()
+            worker.plugins["env"] = env
 
         kw_keys = set(kwargs.keys())
         considered = kw_keys if accepts_var_kw else (param_names & kw_keys)
-
         conflict = set(env.keys()) & considered
         if conflict:
             raise ValueError(
@@ -241,18 +249,6 @@ def wrap_func_with_worker_env(func: Callable) -> Callable:
         return func(*args, **kwargs, **filtered_env)
 
     return wrapped
-
-
-def _prime_client_env_keys_from_setup_fn(
-    client: Client, setup_fn: Callable[[], dict]
-) -> set:
-    """Run setup_fn once on the client to cache its keys for pre-submit checks."""
-    env = setup_fn()
-    if not isinstance(env, dict):
-        raise ValueError("setup_fn must return a dict")
-    keys = set(env.keys())
-    setattr(client, "_env_keys_hint", keys)
-    return keys
 
 
 @contextmanager
@@ -282,77 +278,23 @@ def get_client(
                 "This Dask version lacks register_worker_plugin; please upgrade."
             )
         reg(plugin, name="env")
-        _prime_client_env_keys_from_setup_fn(client, setup_fn)
     try:
         yield client
     finally:
         # Avoid shutdown for LocalCluster and LocalCUDACluster
         cluster = getattr(client, "cluster", None)
-        skip_shutdown_types = (LocalCluster,)
-        if LocalCUDACluster is not None:
-            skip_shutdown_types += (LocalCUDACluster,)
 
-        if not isinstance(cluster, skip_shutdown_types):
-            client.shutdown()
+        # always close the client first
+        client.close()
 
-
-def _check_conflict_client_side(
-    func: Callable,
-    kwargs: dict,
-    client: Client,
-):
-    """
-    Perform a pre-submit conflict check between explicit keyword arguments
-    and worker environment variables cached on the client.
-
-    This function inspects the signature of `func` and the keys of `kwargs`
-    to detect whether any arguments are being passed both:
-      - explicitly via `kwargs`, and
-      - implicitly via the per-worker environment (as registered by a
-        `DictReturnWorkerPlugin`).
-
-    Args:
-        func (Callable):
-            The function that will be mapped over data.
-        kwargs (dict):
-            Explicit keyword arguments passed to `func` on submission.
-        client (Client):
-            A Dask client that may have cached environment keys in
-            `_env_keys_hint`.
-
-    Raises:
-        ValueError:
-            If one or more argument names appear both in the worker environment
-            keys and in `kwargs`.
-
-    Notes:
-        - This is a **client-side** safeguard; the actual worker-side injection
-          and conflict detection is handled separately by
-          `wrap_func_with_worker_env`.
-        - If `_env_keys_hint` is not present on the client (no environment
-          setup function was registered), this function does nothing.
-
-    """
-    if not kwargs:
-        return
-
-    sig = inspect.signature(func)
-    param_names = set(sig.parameters.keys())
-    accepts_var_kw = any(
-        p.kind is inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values()
-    )
-
-    env_keys = getattr(client, "_env_keys_hint", None)
-    if not env_keys:
-        return
-
-    kw_keys = set(kwargs.keys())
-    considered = kw_keys if accepts_var_kw else (param_names & kw_keys)
-    conflict = env_keys & considered
-    if conflict:
-        raise ValueError(
-            f"Argument conflict: {conflict} passed via both kwargs and env"
-        )
+        if cluster is not None:
+            close = getattr(cluster, "close", None)
+            if callable(close):
+                close()
+            else:
+                shutdown = getattr(cluster, "shutdown", None)
+                if callable(shutdown):
+                    shutdown()
 
 
 @contextmanager
@@ -380,10 +322,8 @@ def _submit_tasks(
     elif setup_fn is not None:
         plugin = DictReturnWorkerPlugin(setup_fn)
         getattr(client, "register_worker_plugin")(plugin, name="env")
-        _prime_client_env_keys_from_setup_fn(client, setup_fn)
 
     try:
-        _check_conflict_client_side(func, kwargs, client)
         wrapped_func = wrap_func_with_worker_env(func)
         futures = client.map(wrapped_func, iterable, **kwargs)
         yield client, futures
@@ -456,7 +396,13 @@ def parallel_map(
         cli,
         futures,
     ):
-        return list(tqdm(cli.gather(futures), total=len(futures)))
+        try:
+            return list(tqdm(cli.gather(futures), total=len(futures)))
+        except Exception as e:
+            try:
+                cli.cancel(futures)
+            finally:
+                raise e
 
 
 def parallel_for(
@@ -533,5 +479,11 @@ def parallel_for(
         _,
         futures,
     ):
-        for future in as_completed(futures):
-            yield future.result()
+        try:
+            for future in as_completed(futures):
+                yield future.result()
+        except Exception as e:
+            try:
+                client.cancel(futures)
+            finally:
+                raise e
