@@ -440,7 +440,7 @@ class DAC(AbsGANCodec):
             Tensor: Generated codes (T_code, N_stream).
 
         """
-        target_bw = kwargs.get('target_bw', None)
+        target_bw = kwargs.get("target_bw", None)
         return self.generator.encode(x, target_bw=target_bw)
 
     def decode(
