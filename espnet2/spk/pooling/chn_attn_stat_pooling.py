@@ -68,20 +68,22 @@ class ChnAttnStatPooling(AbsPooling):
             mean = sum_val / feat_lengths_
             # var = E[X^2] - (E[X])^2
             var = sum_sq_val / feat_lengths_ - mean**2
-            std = torch.sqrt(var.clamp(min=torch.finfo(var.dtype).eps))
+            # add max clamp to prevent gradient explosion
+            std = torch.sqrt(var.clamp(min=torch.finfo(var.dtype).eps, max=1e4))
             # Repeat mean and std to match x's time dimension
             mean = mean.repeat(1, 1, T)
             std = std.repeat(1, 1, T)
             global_x = torch.cat((x, mean, std), dim=1)
         else:
+            var = torch.var(x, dim=2, keepdim=True, unbiased=False)
             global_x = torch.cat(
                 (
                     x,
                     torch.mean(x, dim=2, keepdim=True).repeat(1, 1, T),
                     torch.sqrt(
-                        torch.var(x, dim=2, keepdim=True, unbiased=False).clamp(
-                            min=torch.finfo(x.dtype).eps
-                        )
+                        var.clamp(
+                            min=torch.finfo(x.dtype).eps, max=1e4
+                        ) # clamp max to prevent gradient explosion
                     ).repeat(1, 1, T),
                 ),
                 dim=1,
@@ -99,6 +101,7 @@ class ChnAttnStatPooling(AbsPooling):
         w = self.softmax(w)
 
         mu = torch.sum(x * w, dim=2)
+        # add max clamp to prevent gradient explosion
         sg = torch.sqrt((torch.sum((x**2) * w, dim=2) - mu**2).clamp(min=1e-4, max=1e4))
 
         x = torch.cat((mu, sg), dim=1)

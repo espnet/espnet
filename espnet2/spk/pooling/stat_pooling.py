@@ -56,10 +56,14 @@ class StatsPooling(AbsPooling):
             variance = ((x - mu.unsqueeze(-1)) ** 2 * mask).sum(
                 dim=-1
             ) / feat_lengths.unsqueeze(1)
-            st = torch.sqrt(variance.clamp(min=torch.finfo(variance.dtype).eps))
+            st = torch.sqrt(variance.clamp(
+                min=torch.finfo(variance.dtype).eps, max=1e4
+            )) # add max clamp to prevent gradient explosion
         else:
             mu = torch.mean(x, dim=-1)
-            st = torch.std(x, dim=-1, unbiased=False)
+            variance = torch.var(x, dim=-1, unbiased=False)
+            # add max clamp to prevent gradient explosion
+            st = torch.sqrt(variance.clamp(min=torch.finfo(variance.dtype).eps, max=1e4))
 
         x = torch.cat((mu, st), dim=1)
 
