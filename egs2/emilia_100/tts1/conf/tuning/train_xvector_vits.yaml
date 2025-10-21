@@ -17,7 +17,7 @@ tts_conf:
     generator_params:
         hidden_channels: 192
         spks: -1
-        spk_embed_dim: 512
+        spk_embed_dim: 192
         global_channels: 256
         segment_size: 32
         text_encoder_attention_heads: 2
