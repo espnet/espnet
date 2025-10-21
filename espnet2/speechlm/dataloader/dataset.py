@@ -7,10 +7,8 @@ from typing import Any, Dict, List, Tuple
 import yaml
 from torch.utils.data import Dataset
 
-from espnet2.speechlm.dataloader.multimodal_loader import (
-    LhotseAudioReader,
-    TextReader,
-)
+from espnet2.speechlm.dataloader.multimodal_loader.audio_loader import LhotseAudioReader
+from espnet2.speechlm.dataloader.multimodal_loader.text_loader import TextReader
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +16,18 @@ reader_types = {
     "lhotse_audio": LhotseAudioReader,
     "text": TextReader,
 }
+
+# TODO(Jinchuan): revisit the CPU memory usage for large-scale training. Check official
+# information as follow:
+# After several iterations, the loader worker processes will consume the same amount of
+# CPU memory as the parent process for all Python objects in the parent process which
+# are accessed from the worker processes. This can be problematic if the Dataset
+# contains a lot of data (e.g., you are loading a very large list of filenames at
+# Dataset construction time) and/or you are using a lot of workers (overall memory
+# usage is number of workers * size of parent process). The simplest workaround is
+# to replace Python objects with non-refcounted representations such as Pandas, Numpy
+#  or PyArrow objects. Check out issue #13246 for more details on why this occurs and
+#  example code for how to workaround these problems.
 
 
 class SingleDataset(Dataset):
@@ -113,20 +123,30 @@ class CombinedDataset(Dataset):
         for dataset_name, json_path in datasets:
             if dataset_name in self.datasets:
                 raise ValueError(f"Duplicate dataset name: {dataset_name}")
-            self.datasets[dataset_name] = SingleDataset(
-                json_path, rank=rank, world_size=world_size
+            single_dataset = SingleDataset(json_path, rank=rank, world_size=world_size)
+            self.datasets[dataset_name] = single_dataset
+            logging.info(
+                f"Loaded dataset [{dataset_name}] at {json_path}. "
+                f"Local dataset size: [{len(single_dataset)}]."
             )
 
         # Load datasets from registry
         registry_data = self._load_registry()
 
+        # TODO(Jinchuan): use multi-processing to initialize single datasets,
+        # which would accelerate the initializaiton.
         for dataset_name in registered_datasets:
             if dataset_name in registry_data:
                 if dataset_name in self.datasets:
                     raise ValueError(f"Duplicate dataset name: {dataset_name}")
                 json_path = registry_data[dataset_name]
-                self.datasets[dataset_name] = SingleDataset(
+                single_dataset = SingleDataset(
                     json_path, rank=rank, world_size=world_size
+                )
+                self.datasets[dataset_name] = single_dataset
+                logging.info(
+                    f"Loaded dataset [{dataset_name}] at {json_path}. "
+                    f"Local dataset size: [{len(single_dataset)}]."
                 )
             else:
                 raise ValueError(
