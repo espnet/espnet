@@ -39,6 +39,7 @@ class ChnAttnStatPooling(AbsPooling):
     def output_size(self):
         return self._output_size
 
+
 def forward(
     self,
     x: torch.Tensor,
@@ -63,7 +64,7 @@ def forward(
         )
 
     T = x.size()[-1]
-    
+
     # Handle masking based on available inputs
     if feat_lengths is not None:
         # Use feat_lengths approach (for spk version)
@@ -86,20 +87,20 @@ def forward(
         var = var.clamp(min=1e-4, max=1e4)
         std = torch.sqrt(var).repeat(1, 1, T)
         global_x = torch.cat((x, mean, std), dim=1)
-        
+
         # Create padding mask from feat_lengths
         padding_mask = torch.arange(T).expand(x.size(0), T).to(
             x.device
         ) >= feat_lengths.unsqueeze(1)
-        
+
     elif self.use_masking and mask is not None:
         # Use mask approach (for uni_versa.sh)
         x_masked = x.masked_fill(mask.unsqueeze(1), 0)
         sum_x = torch.sum(x_masked, dim=-1)
         mean_x = sum_x / (torch.sum(~mask, dim=1, keepdim=True) + 1e-6)
         sum_var_x = torch.sum(
-            torch.pow(x_masked - mean_x.unsqueeze(-1), 2).clamp(min=1e-4, max=1e4), 
-            dim=-1
+            torch.pow(x_masked - mean_x.unsqueeze(-1), 2).clamp(min=1e-4, max=1e4),
+            dim=-1,
         )
         var_x = sum_var_x / (torch.sum(~mask, dim=1, keepdim=True) + 1e-6)
         std_x = torch.sqrt(var_x)
@@ -112,7 +113,7 @@ def forward(
             dim=1,
         )
         padding_mask = mask
-        
+
     else:
         # No masking
         global_x = torch.cat(
@@ -131,14 +132,14 @@ def forward(
 
     # Compute attention weights
     w = self.attention(global_x)
-    
+
     # Apply masking to attention weights if available
     if padding_mask is not None:
         if padding_mask.dim() == 2:
             w = w.masked_fill(padding_mask.unsqueeze(1), torch.finfo(w.dtype).min)
         else:
             w = w.masked_fill(padding_mask, torch.finfo(w.dtype).min)
-            
+
     w = self.softmax(w)
 
     # Compute weighted statistics

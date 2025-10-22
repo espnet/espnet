@@ -23,7 +23,6 @@ class MeanPooling(AbsPooling):
     def output_size(self):
         return self._output_size
 
-
     def forward(
         self,
         x: torch.Tensor,
@@ -37,7 +36,7 @@ class MeanPooling(AbsPooling):
         Args:
             x (torch.Tensor): Input tensor of shape (#batch, feature_dim, seq_len).
             task_tokens (Optional[torch.Tensor]): Task tokens (#batch, feature_dim).
-            mask (Optional[torch.Tensor]): Boolean mask tensor (#batch, seq_len) 
+            mask (Optional[torch.Tensor]): Boolean mask tensor (#batch, seq_len)
                                            where True indicates padded positions.
             feat_lengths (Optional[torch.Tensor]): Tensor of shape (#batch,) containing
                                                   the valid length of each sequence.
@@ -57,7 +56,7 @@ class MeanPooling(AbsPooling):
             # Pooling over unpadded frames using actual sequence lengths
             x = torch.stack(
                 [
-                    torch.mean(x[i, :, :int(l.item())], dim=-1)
+                    torch.mean(x[i, :, : int(l.item())], dim=-1)
                     for i, l in enumerate(feat_lengths)
                 ],
                 dim=0,

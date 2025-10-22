@@ -24,6 +24,7 @@ class StatsPooling(AbsPooling):
     def output_size(self):
         return self._output_size
 
+
 def forward(
     self,
     x: torch.Tensor,
@@ -42,7 +43,7 @@ def forward(
     """
     if task_tokens is not None:
         raise ValueError("StatisticsPooling is not adequate for task_tokens")
-    
+
     if feat_lengths is not None:
         # Pooling over unpadded frames
         mu = torch.stack(
@@ -62,6 +63,6 @@ def forward(
     else:
         mu = torch.mean(x, dim=-1)
         st = torch.std(x, dim=-1, unbiased=False)
-    
+
     x = torch.cat((mu, st), dim=1)
     return x

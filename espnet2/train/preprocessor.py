@@ -2876,6 +2876,7 @@ class Qwen2AudioPreprocessor(AbsPreprocessor):
             "feature_attention_mask": feature_attention_mask,
         }
 
+
 class UniversaProcessor(AbsPreprocessor):
     def __init__(
         self,
