@@ -83,7 +83,7 @@ class ChnAttnStatPooling(AbsPooling):
                     torch.sqrt(
                         var.clamp(
                             min=torch.finfo(x.dtype).eps, max=1e4
-                        ) # clamp max to prevent gradient explosion
+                        )  # clamp max to prevent gradient explosion
                     ).repeat(1, 1, T),
                 ),
                 dim=1,
