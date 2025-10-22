@@ -49,18 +49,25 @@ import sys
 import configargparse
 import torch
 
-# imports for CTC segmentation
-from ctc_segmentation import (
-    CtcSegmentationParameters,
-    ctc_segmentation,
-    determine_utterance_segments,
-    prepare_text,
-)
-
 # imports for inference
 from espnet.asr.pytorch_backend.asr_init import load_trained_model
 from espnet.nets.asr_interface import ASRInterface
 from espnet.utils.io_utils import LoadInputsAndTargets
+
+try:
+    # imports for CTC segmentation
+    from ctc_segmentation import (
+        CtcSegmentationParameters,
+        ctc_segmentation,
+        determine_utterance_segments,
+        prepare_text,
+    )
+except ImportError:
+    raise ImportError(
+        "ctc_segmentation is not installed. please run "
+        "`. ./path.sh && pip install "
+        "git+https://github.com/espnet/ctc-segmentation.git@9b9ea1d`."
+    )
 
 
 # NOTE: you need this func to generate our sphinx doc

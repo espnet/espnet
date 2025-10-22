@@ -53,7 +53,9 @@ from espnet2.asr.encoder.wav2vec2_encoder import FairSeqWav2Vec2Encoder
 from espnet2.asr.encoder.whisper_encoder import OpenAIWhisperEncoder
 from espnet2.asr.espnet_model import ESPnetASRModel
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
+from espnet2.asr.frontend.cnn import CNNFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
+from espnet2.asr.frontend.espnet_ssl import ESPnetSSLFrontend
 from espnet2.asr.frontend.fused import FusedFrontends
 from espnet2.asr.frontend.huggingface import HuggingFaceFrontend
 from espnet2.asr.frontend.s3prl import S3prlFrontend
@@ -97,9 +99,11 @@ frontend_choices = ClassChoices(
         default=DefaultFrontend,
         sliding_window=SlidingWindow,
         s3prl=S3prlFrontend,
+        espnet_ssl=ESPnetSSLFrontend,
         fused=FusedFrontends,
         whisper=WhisperFrontend,
         huggingface=HuggingFaceFrontend,
+        wav2vec_cnn=CNNFrontend,
     ),  # If setting this to none, please make sure to provide input_size in the config.
     type_check=AbsFrontend,
     default="default",
@@ -501,7 +505,7 @@ class ASRTask(AbsTask):
         retval = retval + ["prompt"]
         retval = tuple(retval)
 
-        logging.info(f"Optional Data Names: {retval }")
+        logging.info(f"Optional Data Names: {retval}")
         return retval
 
     @classmethod
@@ -529,7 +533,7 @@ class ASRTask(AbsTask):
             args.token_list = token_list
 
         vocab_size = len(token_list)
-        logging.info(f"Vocabulary size: {vocab_size }")
+        logging.info(f"Vocabulary size: {vocab_size}")
 
         # 1. frontend
         if args.input_size is None:
@@ -568,12 +572,16 @@ class ASRTask(AbsTask):
             preencoder = None
 
         # 4. Encoder
-        encoder_class = encoder_choices.get_class(args.encoder)
-        encoder = encoder_class(input_size=input_size, **args.encoder_conf)
+        if getattr(args, "encoder", None) is not None:
+            encoder_class = encoder_choices.get_class(args.encoder)
+            encoder = encoder_class(input_size=input_size, **args.encoder_conf)
+            encoder_output_size = encoder.output_size()
+        else:
+            encoder = None
+            encoder_output_size = input_size
 
         # 5. Post-encoder block
         # NOTE(kan-bayashi): Use getattr to keep the compatibility
-        encoder_output_size = encoder.output_size()
         if getattr(args, "postencoder", None) is not None:
             postencoder_class = postencoder_choices.get_class(args.postencoder)
             postencoder = postencoder_class(

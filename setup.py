@@ -15,7 +15,7 @@ requirements = {
         "humanfriendly",
         "scipy>=1.4.1",
         "filelock",
-        "librosa==0.9.2",
+        "librosa>=0.10.2",
         "jamo==0.4.1",  # For kss
         "PyYAML>=5.1.2",
         "soundfile>=0.10.2",
@@ -24,16 +24,14 @@ requirements = {
         "torch>=1.11.0",
         "torch_complex",
         "nltk>=3.4.5",
-        # fix CI error due to the use of deprecated aliases
-        "numpy<1.24",
-        # https://github.com/espnet/espnet/runs/6646737793?check_suite_focus=true#step:8:7651
+        # Moving g2p_en and ctc-segmentation to makefile
+        "numpy>=2.0.0",
         "protobuf",
         "hydra-core",
         "opt-einsum",
         "lightning",
         # ASR
         "sentencepiece==0.2.0",
-        "ctc-segmentation>=1.6.6",
         # TTS
         "pyworld>=0.3.4",
         "pypinyin<=0.44.0",
@@ -105,7 +103,7 @@ requirements = {
         "isort",
     ],
     "doc": [
-        "Jinja2<3.1",
+        "Jinja2<=3.1",
         "sphinx<9.0.0",
         "sphinx-rtd-theme>=0.2.4",
         "sphinx-argparse>=0.2.5",
@@ -149,14 +147,15 @@ setup(
     setup_requires=setup_requires,
     tests_require=tests_require,
     extras_require=extras_require,
-    python_requires=">=3.7.0",
+    python_requires=">=3.9.0",
     classifiers=[
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.7",
-        "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
         "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Science/Research",
         "Operating System :: POSIX :: Linux",

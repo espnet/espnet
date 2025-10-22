@@ -1,3 +1,5 @@
+from typing import Optional
+
 import torch
 
 from espnet2.spk.pooling.abs_pooling import AbsPooling
@@ -5,13 +7,12 @@ from espnet2.spk.pooling.abs_pooling import AbsPooling
 
 class StatsPooling(AbsPooling):
     """Aggregates frame-level features to single utterance-level feature.
-    Proposed in D. Snyder et al., "X-vectors: Robust dnn embeddings for speaker
-    recognition"
-    args:
-        input_size: dimensionality of the input frame-level embeddings.
-            Determined by encoder hyperparameter.
-            For this pooling layer, the output dimensionality will be double of
-            the input_size
+    Reference:
+    X-Vectors: Robust DNN Embeddings for Speaker Recognition
+    https://www.danielpovey.com/files/2018_icassp_xvectors.pdf
+
+    Args:
+        input_size: Dimension of the input frame-level embeddings.
         **kwargs: additional keyword arguments (currently unused but accepted
             for compatibility)
     """
@@ -23,10 +24,44 @@ class StatsPooling(AbsPooling):
     def output_size(self):
         return self._output_size
 
-    def forward(self, x, task_tokens: torch.Tensor = None, **kwargs):
-        if task_tokens is not None:
-            raise ValueError("StatisticsPooling is not adequate for task_tokens")
+def forward(
+    self,
+    x: torch.Tensor,
+    task_tokens: Optional[torch.Tensor] = None,
+    feat_lengths: Optional[torch.Tensor] = None,
+    **kwargs
+) -> torch.Tensor:
+    r"""Forward pass of statistics pooling.
+    Args:
+        x: Input feature tensor of shape (batch_size, feature_dim, seq_len)
+        task_tokens: Optional task tokens (not supported by this pooling method)
+        feat_lengths: Optional tensor of shape (batch_size,) containing
+                      the valid length of each sequence before padding
+    Returns:
+        x: Utterance-level embeddings of shape (batch_size, 2 × feature_dim)
+    """
+    if task_tokens is not None:
+        raise ValueError("StatisticsPooling is not adequate for task_tokens")
+    
+    if feat_lengths is not None:
+        # Pooling over unpadded frames
+        mu = torch.stack(
+            [
+                torch.mean(x[i, :, : int(l.item())], dim=-1)
+                for i, l in enumerate(feat_lengths)
+            ],
+            dim=0,
+        )
+        st = torch.stack(
+            [
+                torch.std(x[i, :, : int(l.item())], dim=-1, unbiased=False)
+                for i, l in enumerate(feat_lengths)
+            ],
+            dim=0,
+        )  # unbiased=False (divided by N rather than N - 1)
+    else:
         mu = torch.mean(x, dim=-1)
-        st = torch.std(x, dim=-1)
-        x = torch.cat((mu, st), dim=1)
-        return x
+        st = torch.std(x, dim=-1, unbiased=False)
+    
+    x = torch.cat((mu, st), dim=1)
+    return x

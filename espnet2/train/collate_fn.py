@@ -1,11 +1,15 @@
 import logging
 import math
+import random
 from typing import Collection, Dict, List, Tuple, Union
 
 import numpy as np
+import scipy
+import soundfile
 import torch
 from typeguard import typechecked
 
+from espnet2.train.preprocessor import detect_non_silence
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 
 
@@ -130,8 +134,8 @@ class HuBERTCollateFn(CommonCollateFn):
             self.rirs = None
 
     def _read_rir_audio_(self):
-        """
-        Read RIR audio from a list of paths.
+        """Read RIR audio from a list of paths.
+
         We cache the audio in memory to reduce I/O.
         """
         rir_path = np.random.choice(self.rir_paths)
@@ -148,8 +152,8 @@ class HuBERTCollateFn(CommonCollateFn):
         return rir
 
     def _read_noise_audio_(self):
-        """
-        Read noise audio from a list of paths.
+        """Read noise audio from a list of paths.
+
         We cache the audio in memory to reduce I/O.
         """
         noise_path = np.random.choice(self.noise_paths)
@@ -164,8 +168,7 @@ class HuBERTCollateFn(CommonCollateFn):
         return noise
 
     def _get_aligned_reverb_signal(self, speech):
-        """
-        Simulate reverberant audio with a random RIR.
+        """Simulate reverberant audio with a random RIR.
 
         It is re-aligned to the original signal for
         compatability with HuBERT-style training.
@@ -193,8 +196,9 @@ class HuBERTCollateFn(CommonCollateFn):
         return speech2.flatten()
 
     def _add_noise_wavlm(self, data, speech, speech_id):
-        """
-        WavLM-style augmentation. We randomly choose one of two methods:
+        """WavLM-style augmentation.
+
+        We randomly choose one of two methods:
             - Denoising -> sample an acoustic noise
             - Separation -> sample another utterance from the batch
 
@@ -209,7 +213,6 @@ class HuBERTCollateFn(CommonCollateFn):
             while noise[0] == speech_id:
                 noise = random.choice(data)
             noise = noise[1]["speech"]
-            speech_length = speech.shape[0]
             noise_db = np.random.uniform(
                 -self.dynamic_mixing_gain_db, self.dynamic_mixing_gain_db
             )

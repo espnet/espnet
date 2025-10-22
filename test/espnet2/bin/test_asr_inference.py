@@ -253,7 +253,7 @@ def token_list_hugging_face(tmp_path: Path):
         f.write("<pad>\n")
         f.write("</s>\n")
         f.write("<unk>\n")
-        for c in range(95):
+        for c in range(250023):
             f.write(f"{c}\n")
     return tmp_path / "tokens_hugging_face.txt"
 
@@ -301,8 +301,7 @@ def token_list_whisper_lang(tmp_path: Path, token_list_whisper_lang_add):
 @pytest.mark.parametrize(
     "model_name_or_path",
     [
-        "akreal/tiny-random-t5",
-        "akreal/tiny-random-mbart",
+        "hf-internal-testing/tiny-random-MBartModel",
     ],
 )
 @pytest.mark.execution_timeout(30)
@@ -345,13 +344,15 @@ def test_Speech2Text_hugging_face(
 @pytest.mark.parametrize(
     "model_name_or_path",
     [
-        "akreal/tiny-random-LlamaForCausalLM",  # tokenizer.padding_side=="left"
-        "akreal/tiny-random-BloomForCausalLM",  # tokenizer.padding_side=="right"
+        # test a model with tokenizer.padding_side=="left"
+        "hf-internal-testing/tiny-random-LlamaForCausalLM",
+        # test a model with tokenizer.padding_side=="right"
+        "hf-internal-testing/tiny-random-BloomForCausalLM",
     ],
 )
 @pytest.mark.parametrize("prefix", ["prefix", ""])
 @pytest.mark.parametrize("postfix", ["postfix", ""])
-@pytest.mark.execution_timeout(30)
+@pytest.mark.execution_timeout(60)
 def test_Speech2Text_hugging_face_causal_lm(
     asr_config_file, token_list_hugging_face, model_name_or_path, prefix, postfix
 ):

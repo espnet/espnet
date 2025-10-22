@@ -400,7 +400,7 @@ class ResidualVectorQuantization(nn.Module):
 
             for layer in self.layers[:n_q]:
                 quantized, indices, loss = layer(residual)
-                residual = residual - quantized
+                residual = residual - quantized.detach()
                 quantized_out = quantized_out + quantized
 
                 all_indices.append(indices)
@@ -431,7 +431,7 @@ class ResidualVectorQuantization(nn.Module):
                     break
                 mask = torch.full((x.shape[0],), fill_value=i, device=x.device) < n_q
                 quantized, indices, commit_loss, quant_loss = layer(residual, mask)
-                residual = residual - quantized
+                residual = residual - quantized.detach()
                 quantized_out = quantized_out + quantized * mask[:, None, None]
 
                 all_indices.append(indices)

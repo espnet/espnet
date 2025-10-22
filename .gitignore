@@ -36,11 +36,12 @@ test_spm.model
 constraints.txt
 featbin
 ubuntu16-featbin.tar.gz
+core
 
 out/config.yaml
 hub/
 
-.devcontainer/*/*.env
+.devcontainer/*.env
 
 doc/vuepress/src/.vuepress/.temp
 doc/vuepress/src/.vuepress/.cache
@@ -48,6 +49,7 @@ dist
 
 # recipe related
 egs*/*/*/data*
+egs*/*/*/manifest*
 egs*/*/*/db
 egs*/*/*/downloads
 egs*/*/*/dump
