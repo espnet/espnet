@@ -1,6 +1,6 @@
 import torch
 import logging
-from espnet2.speechlm.net_utils import length_mask
+from espnet2.speechlm.net_utils import length_mask, multi_length_mask
 
 
 class SpeechLMCrossEntropyLoss(torch.nn.Module):
@@ -74,10 +74,13 @@ class SpeechLMCrossEntropyLoss(torch.nn.Module):
             assert logits.dim() == 4
             assert logits.size()[:2] == aux_logits.size()[:2]
             assert logits.size(2) + aux_logits.size(2) == targets.size(2)
-        
-        assert prefix_len.size() == seq_len.size()
-        assert torch.all(seq_len > prefix_len)
-        assert prefix_len.dim() == 1
+        if len(prefix_len.shape)>1:
+            assert prefix_len[:,-1].size() == seq_len.size()
+            assert torch.all(seq_len > prefix_len[:,-1])
+        else:
+            assert prefix_len.size() == seq_len.size()
+            assert torch.all(seq_len > prefix_len)
+            assert prefix_len.dim() == 1
 
         # element-wise loss
         ce_loss = torch.nn.functional.cross_entropy(
@@ -109,9 +112,13 @@ class SpeechLMCrossEntropyLoss(torch.nn.Module):
         mask = targets != self.pad
         weight = seq_len.sum().float()
         if self.loss_region == "target":
-            prefix_mask = ~length_mask(prefix_len, maxlen=targets.size(1)).unsqueeze(2)
+            if len(prefix_len.shape)>1:
+                prefix_mask = ~multi_length_mask(prefix_len, maxlen=targets.size(1)).unsqueeze(2)
+                weight = (seq_len - prefix_len[:,0] - (prefix_len[:,2]-prefix_len[:,1]) - (prefix_len[:,4]-prefix_len[:,3])).sum().float()
+            else:
+                prefix_mask = ~length_mask(prefix_len, maxlen=targets.size(1)).unsqueeze(2)
+                weight = (seq_len - prefix_len).sum().float()
             mask = torch.logical_and(mask, prefix_mask)
-            weight = (seq_len - prefix_len).sum().float()
         
         ce_loss = torch.where(mask, ce_loss, 0.0)
         ce_loss = ce_loss.sum() / weight

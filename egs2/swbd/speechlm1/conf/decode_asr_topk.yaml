@@ -1,0 +1,14 @@
+search_algo: topk_sampling
+# search_algo: teacher_force
+maxlenratio: 0.3
+minlenratio: 0.0
+sampling_temperature: 0.8
+top_k: 30
+seed: 0
+run_mt: true
+
+# offline tokenizer
+codec_conf:
+    codec_choice: ESPnet
+    codec_fs: 16000
+    hf_model_tag: ftshijt/espnet_codec_dac_large_v1.4_360epoch

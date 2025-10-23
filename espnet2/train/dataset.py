@@ -693,6 +693,7 @@ class ESPnetDataset(AbsDataset):
         retval = uid, data
         return retval
 
+import kaldiio
 
 class EspnetSpeechLMDataset(ESPnetDataset):
     """
@@ -705,6 +706,7 @@ class EspnetSpeechLMDataset(ESPnetDataset):
         self,
         example_list: List,
         task: str,
+        inference_tts: bool = False,
         **kwargs,
     ):
         super(EspnetSpeechLMDataset, self).__init__(**kwargs)
@@ -718,6 +720,15 @@ class EspnetSpeechLMDataset(ESPnetDataset):
                 if v not in self.spk2utt:
                     self.spk2utt[v] = []
                 self.spk2utt[v].append(k)
+        
+        if "tgt_utt2spk" in self.loader_dict and isinstance(
+            self.loader_dict["tgt_utt2spk"], Dict
+        ):
+            self.tgt_spk2utt = {}
+            for k, v in self.loader_dict["tgt_utt2spk"].items():
+                if v not in self.tgt_spk2utt:
+                    self.tgt_spk2utt[v] = []
+                self.tgt_spk2utt[v].append(k)
 
         # (2) keep example_list and clean some non-iterable loaders
         self.example_list = example_list
@@ -730,23 +741,52 @@ class EspnetSpeechLMDataset(ESPnetDataset):
 
         # (3) keep task
         self.task = task
+        if inference_tts:
+            reader=kaldiio.ReadHelper(f"ark:/work/nvme/bbjs/arora1/speech_lm/delta_ai/espnet/egs2/swbd/speechlm1/wav_codec_ssl_ESPnet.1.ark")
+            dict2={}
+            for key, matrix in reader:
+                dict2[key]=matrix
+            self.speaker_prompt_high_mos=dict2['1320-122612-0000']
+        self.inference_tts = inference_tts
+
 
     def dataset_level_operation(self, uid: str, data: Dict):
         # (1) select speaker prompt randomly
         if "utt2spk" in self.loader_dict:
-            spk = self.loader_dict["utt2spk"][uid]
-            if isinstance(spk, str):
-                prompt_uids = self.spk2utt[spk]
+            if self.inference_tts:
+                data["utt2spk"] = self.speaker_prompt_high_mos
+            else:
+                spk = self.loader_dict["utt2spk"][uid]
+                if isinstance(spk, str):
+                    prompt_uids = self.spk2utt[spk]
 
-                if len(prompt_uids) == 1:  # at least itself
-                    prompt_uid = prompt_uids[0]
-                else:
-                    while True:
-                        prompt_uid = random.sample(prompt_uids, 1)[0]
-                        if uid != prompt_uid:
-                            break
+                    if len(prompt_uids) == 1:  # at least itself
+                        prompt_uid = prompt_uids[0]
+                    else:
+                        while True:
+                            prompt_uid = random.sample(prompt_uids, 1)[0]
+                            if uid != prompt_uid:
+                                break
 
-                data["utt2spk"] = self.loader_dict["wav.scp"][prompt_uid]
+                    data["utt2spk"] = self.loader_dict["wav.scp"][prompt_uid]
+        if "tgt_utt2spk" in self.loader_dict:
+            if self.inference_tts:
+                data["tgt_utt2spk"] = self.speaker_prompt_high_mos
+            else:
+                spk = self.loader_dict["tgt_utt2spk"][uid]
+                if isinstance(spk, str):
+                    prompt_uids = self.tgt_spk2utt[spk]
+
+                    if len(prompt_uids) == 1:  # at least itself
+                        prompt_uid = prompt_uids[0]
+                    else:
+                        while True:
+                            prompt_uid = random.sample(prompt_uids, 1)[0]
+                            if uid != prompt_uid:
+                                break
+
+                    data["tgt_utt2spk"] = self.loader_dict["tgt_wav.scp"][prompt_uid]
+                # data["utt2spk"] = self.speaker_prompt_high_mos
 
 
 class ESPnetMultiTaskDataset(AbsDataset):
@@ -764,6 +804,7 @@ class ESPnetMultiTaskDataset(AbsDataset):
         self,
         path_name_type_list: Collection[Tuple[str, str, str]],
         key_file: str = None,
+        inference_tts: bool = False,
         **kwargs,
     ):
         if key_file is not None:
@@ -810,6 +851,7 @@ class ESPnetMultiTaskDataset(AbsDataset):
                 example_list=example_list,
                 task=json_dict["task"],
                 structured_items=["conti_feats"],
+                inference_tts=inference_tts,
                 **kwargs,
             )
             self.datasets.append(dataset)

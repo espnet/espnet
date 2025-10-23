@@ -5,27 +5,40 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train_swbd
+train_set=train_nodup
 valid_set=train_dev
 test_sets="eval2000"
 
-bpe_opts="--bpemode huggingface --bpemodel allenai/OLMo-1B-hf"
-codec_opts="--codec_choice ESPnet --codec_hf_model_tag espnet/amuse_speech_soundstream_16k"
+train_config=conf/train_s2s_lr1e-5_fisher_complete.yaml
+inference_config=conf/decode_asr_short2.yaml
 
-# NOTE(Jinchuan): This script is only to prepare data. End at stage 5
+ssl_opts="\
+  --ssl_choice espnet_hubert \
+  --ssl_nlayer 18 \
+  --ssl_checkpoint_path /work/nvme/bbjs/arora1/speech_lm/speechlm_unified_v1_1.7B/exp/kmeans/38epoch.pth \
+  --ssl_kmeans_path /work/nvme/bbjs/arora1/speech_lm/speechlm_unified_v1_1.7B/exp/kmeans/xeus_18_5000clusters/km_5000.mdl \
+  --ssl_batch_bins 9800000 \
+"
+codec_opts="--codec_choice ESPnet --codec_hf_model_tag ftshijt/espnet_codec_dac_large_v1.4_360epoch"
+bpe_opts="--subword_choice huggingface --subword_model HuggingFaceTB/SmolLM-1.7B"
+
 ./speechlm.sh \
-    --stop_stage 5 \
-    --task "bpe_tts" \
-    --data_name swbd \
+    --skip_train false \
+    --task "codec_ssl_cot_full_utt2spk" \
+    --data_name librispeech_100 \
     --fs 16000 \
-    --ngpu 8 \
-    --nj 32 \
-    --train_config conf/train_foo.yaml \
+    --ngpu 4 \
+    --nj 16 \
+    --inference_nj 16 \
+    --nbest 10 \
+    --gpu_inference true \
+    --train_config ${train_config} \
+    --inference_config ${inference_config} \
     --audio_format "flac.ark" \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
-    --min_wav_duration 3.0 \
-    --max_wav_duration 30.0 \
-    ${bpe_opts} ${codec_opts} \
+    --min_wav_duration 0.1 \
+    --max_wav_duration 60.0 \
+    ${ssl_opts} ${codec_opts} ${bpe_opts} \
     "$@"

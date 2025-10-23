@@ -55,6 +55,9 @@ class SpeechLM:
         maxlenratio: float = 0.0,
         minlenratio: float = 10.0,
         fixed_length: bool = False,
+        no_rerun: bool = False,
+        run_asr: bool = False,
+        run_mt: bool = False,
         codec_conf: dict = None,
     ):
         """Initialize SpeechLM module."""
@@ -74,6 +77,9 @@ class SpeechLM:
         self.token_bias = train_args.token_bias
         self.modalities = [triplet[1] for triplet in self.task.data_triplets]
         self.pad = self.token_list.index("<pad>")
+        self.no_rerun=no_rerun
+        self.run_asr = run_asr
+        self.run_mt =run_mt
 
         # (2) predict mask
         self.inference_nq = model.corelm.nq if inference_nq is None else inference_nq
@@ -170,17 +176,36 @@ class SpeechLM:
 
         dec_seq = data.get("dec_seq")
         prefix_len = data.get("prefix_len").squeeze(1)
+        if len(prefix_len.shape)>1:
+            if self.run_asr:
+                prefix_len=prefix_len[:,0]
+            elif self.run_mt:
+                prefix_len=prefix_len[:,2]
+            else:
+                prefix_len=prefix_len[:,-1]
+                self.inference_opts.start=34
         conti_feats = data.get("conti_feats")
         inference_length = data.get("inference_length", -1)
 
         # (1) language model inference
-        gen_tokens, _ = self.model.corelm.inference(
-            prefix=dec_seq[:, :prefix_len],
-            opts=self.inference_opts,
-            conti_feats=conti_feats,
-            suffix=dec_seq[:, prefix_len + 1 :],
-            inference_length=inference_length,
-        )
+        if self.no_rerun:
+            gen_tokens, _ = self.model.corelm.inference(
+                prefix=dec_seq[:, :prefix_len],
+                opts=self.inference_opts,
+                conti_feats=conti_feats,
+                suffix=dec_seq[:, prefix_len + 1 :],
+                inference_length=inference_length,
+                rerun=False,
+                rerun_twice=False,
+            )
+        else:
+            gen_tokens, _ = self.model.corelm.inference(
+                prefix=dec_seq[:, :prefix_len],
+                opts=self.inference_opts,
+                conti_feats=conti_feats,
+                suffix=dec_seq[:, prefix_len + 1 :],
+                inference_length=inference_length,    
+            )
 
         # (2) record the prefix segments
         retval = [[] for _ in self.modalities]
@@ -188,7 +213,14 @@ class SpeechLM:
 
         segments = self.parse_sequence(prefix)
         if len(segments) != len(self.task.conditions):
-            raise ValueError("Invalid Condition segments")
+            if self.run_asr:
+                segments=[segments[0],segments[0]]
+                segments[1]=('spk', segments[-1][1], None)
+            elif self.run_mt:
+                segments=[segments[0],segments[0]]
+                segments[1]=('spk', segments[-1][1], None)
+            else:
+                segments=[segments[0],segments[-1]]
 
         for idx, segment in enumerate(segments):
             retval[idx].append(segment)
@@ -197,12 +229,19 @@ class SpeechLM:
         start = self.inference_opts.start
         start = torch.Tensor([start] * self.inference_nq).view(1, -1).to(self.device)
         for gen_token in gen_tokens:
+
             gen_token = torch.cat([start.long(), gen_token], dim=0)
             segments = self.parse_sequence(gen_token)
 
             if len(segments) != len(self.task.targets):
                 logging.warning(f"Invalid target segments. Skip")
-                continue
+                segments=[segments[0] for i in range(len(self.task.targets))]
+                if self.run_asr or self.run_mt:
+                    segments[-1]=('codec_ssl', segments[-1][1], None)
+                else:
+                    segments[0]=('text_bpe', segments[-1][1], None)
+                    segments[1]=('text_bpe', segments[-1][1], None)
+                # continue
 
             for idx2, segment in enumerate(segments, start=len(self.task.conditions)):
                 retval[idx2].append(segment)
@@ -316,8 +355,15 @@ def inference(
     inference_nq: Optional[int] = 1,
     codec_ssl_corrupt_prob: float = 0.0,
     fixed_length: bool = False,
+    no_rerun: bool = False,
     # offline tokenizers
     codec_conf: dict = None,
+    rerun_response: bool = False,
+    run_asr: bool = False,
+    run_mt: bool = False,
+    rerun_minlenratio: float = 0.0,
+    rerun_maxlenratio: float = 10.0,
+    inference_tts: bool = False,
 ):
     """Run SpeechLM inference."""
     if batch_size > 1:
@@ -355,6 +401,9 @@ def inference(
         maxlenratio=maxlenratio,
         minlenratio=minlenratio,
         fixed_length=fixed_length,
+        no_rerun=no_rerun,
+        run_asr=run_asr,
+        run_mt=run_mt,
         task=task,
         codec_conf=codec_conf,
     )
@@ -383,6 +432,7 @@ def inference(
         allow_variable_data_keys=False,
         inference=True,
         multi_task_dataset=True,
+        inference_tts=inference_tts,
     )
 
     # 4. build writer
@@ -612,6 +662,43 @@ def get_parser():
              "E.g., inference length for speech enhancement is the same as the mix.scp "
     )
 
+    group.add_argument(
+        "--no_rerun",
+        type=str2bool,
+        default=False,
+    )
+    group.add_argument(
+        "--run_asr",
+        type=str2bool,
+        default=False,
+    )
+    group.add_argument(
+        "--run_mt",
+        type=str2bool,
+        default=False,
+    )
+    group.add_argument(
+        "--inference_tts",
+        type=str2bool,
+        default=False,
+    )
+    group.add_argument(
+        "--rerun_response",
+        type=str2bool,
+        default=False,
+    )
+    group.add_argument(
+        "--rerun_maxlenratio",
+        type=float,
+        default=10.0,
+        help="Maximum length ratio in decoding",
+    )
+    group.add_argument(
+        "--rerun_minlenratio",
+        type=float,
+        default=0.0,
+        help="Minimum length ratio in decoding",
+    )
     # Offline tokenizer configurations. The offline tokenizers are not used during
     # training and thus should be specified externally.
     for tokenizer in ["codec"]:

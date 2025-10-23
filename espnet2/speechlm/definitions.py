@@ -170,6 +170,76 @@ SPEECHLM_TASKS["codec_ssl_tts"] = SpeechLMTaskTemplate(
     targets=[("wav.scp", "codec_ssl", "kaldi_ark")],
 )
 
+SPEECHLM_TASKS["codec_ssl_st"] = SpeechLMTaskTemplate(
+    conditions=[("wav.scp", "codec_ssl", "kaldi_ark")],
+    targets=[("src_text", "text_bpe", "text"), ("text", "text_bpe", "text")],
+)
+
+SPEECHLM_TASKS["codec_ssl_st2"] = SpeechLMTaskTemplate(
+    conditions=[("wav.scp", "codec_ssl", "kaldi_ark")],
+    targets=[("src_text", "text_bpe", "text"), ("text", "text_bpe", "text")],
+)
+
+SPEECHLM_TASKS["codec_ssl_s2s"] = SpeechLMTaskTemplate(
+    conditions=[("wav.scp", "codec_ssl", "kaldi_ark")],
+    targets=[("src_text", "text_bpe", "text"), ("text", "text_bpe", "text"), ("tgt_wav.scp", "codec_ssl", "kaldi_ark")],
+)
+
+SPEECHLM_TASKS["codec_ssl_s2s_e2e_utt2spk"] = SpeechLMTaskTemplate(
+    conditions=[("wav.scp", "codec_ssl", "kaldi_ark"),  ("tgt_utt2spk", "spk", "text")],
+    targets=[("tgt_wav.scp", "codec_ssl", "kaldi_ark")],
+)
+
+SPEECHLM_TASKS["codec_ssl_cot_utt2spk"] = SpeechLMTaskTemplate(
+    conditions=[("wav.scp", "codec_ssl", "kaldi_ark"),  ("tgt_utt2spk", "spk", "text")],
+    targets=[("src_text", "text_bpe", "text"), ("text", "text_bpe", "text"), ("tgt_wav.scp", "codec_ssl", "kaldi_ark")],
+)
+
+SPEECHLM_TASKS["codec_ssl_cot_full_utt2spk"] = SpeechLMTaskTemplate(
+    conditions=[("wav.scp", "codec_ssl", "kaldi_ark"),  ("tgt_utt2spk", "spk", "text")],
+    targets=[("src_text", "text_bpe", "text"), ("text", "text_bpe", "text"), ("tgt_wav.scp", "codec_ssl", "kaldi_ark")],
+)
+
+SPEECHLM_TASKS["codec_ssl_s2s_utt2spk"] = SpeechLMTaskTemplate(
+    conditions=[("wav.scp", "codec_ssl", "kaldi_ark"),  ("tgt_utt2spk", "spk", "text")],
+    targets=[("src_text", "text_bpe", "text"), ("text", "text_bpe", "text"), ("tgt_wav.scp", "codec_ssl", "kaldi_ark")],
+)
+
+SPEECHLM_TASKS["codec_ssl_cot_2_full_utt2spk"] = SpeechLMTaskTemplate(
+    conditions=[("wav.scp", "codec_ssl", "kaldi_ark"),  ("tgt_utt2spk", "spk", "text")],
+    targets=[("src_text", "text_bpe", "text"), ("text", "text_bpe", "text"), ("tgt_wav.scp", "codec_ssl", "kaldi_ark")],
+)
+
+SPEECHLM_TASKS["codec_ssl_s2s_utt2spk_asr"] = SpeechLMTaskTemplate(
+    conditions=[("wav.scp", "codec_ssl", "kaldi_ark"),  ("tgt_utt2spk", "spk", "text")],
+    targets=[("src_text", "text_bpe", "text")],
+)
+
+SPEECHLM_TASKS["codec_ssl_s2s_utt2spk_dialogue"] = SpeechLMTaskTemplate(
+    conditions=[("wav.scp", "codec_ssl", "kaldi_ark"),  ("tgt_utt2spk", "spk", "text"), ("src_text", "text_bpe", "text")],
+    targets=[("text", "text_bpe", "text"), ("tgt_wav.scp", "codec_ssl", "kaldi_ark")],
+)
+
+SPEECHLM_TASKS["codec_ssl_s2s_utt2spk_target"] = SpeechLMTaskTemplate(
+    conditions=[("wav.scp", "codec_ssl", "kaldi_ark"),  ("tgt_utt2spk", "spk", "text"), ("src_text", "text_bpe", "text"), ("text", "text_bpe", "text")],
+    targets=[("tgt_wav.scp", "codec_ssl", "kaldi_ark")],
+)
+
+SPEECHLM_TASKS["codec_ssl_s2s_target"] = SpeechLMTaskTemplate(
+    conditions=[("wav.scp", "codec_ssl", "kaldi_ark"),("src_text", "text_bpe", "text"), ("text", "text_bpe", "text")],
+    targets=[("tgt_wav.scp", "codec_ssl", "kaldi_ark")],
+)
+
+SPEECHLM_TASKS["codec_ssl_s2s_only"] = SpeechLMTaskTemplate(
+    conditions=[("wav.scp", "codec_ssl", "kaldi_ark")],
+    targets=[("tgt_wav.scp", "codec_ssl", "kaldi_ark")],
+)
+
+SPEECHLM_TASKS["codec_ssl_mt"] = SpeechLMTaskTemplate(
+    conditions=[("wav.scp", "codec_ssl", "kaldi_ark"), ("src_text", "text_bpe", "text")],
+    targets=[("text", "text_bpe", "text")],
+)
+
 SPEECHLM_TASKS["codec_ssl_plain_tts"] = SpeechLMTaskTemplate(
     conditions=[("text", "text_bpe", "text")],
     targets=[("wav.scp", "codec_ssl", "kaldi_ark")],
