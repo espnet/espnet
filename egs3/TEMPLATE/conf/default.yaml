@@ -38,4 +38,3 @@ best_model_criterion:
   - - valid/loss
     - 3
     - min
-

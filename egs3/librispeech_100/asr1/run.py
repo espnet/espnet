@@ -3,14 +3,15 @@
 from __future__ import annotations
 
 import argparse
+import os
 import shlex
 import subprocess
+from distutils.util import strtobool
 from pathlib import Path
 from typing import List
-from distutils.util import strtobool
 
-import os
 import lightning as L
+
 from espnet3.utils.config import load_config_with_defaults
 
 
@@ -32,22 +33,35 @@ def build_eval_overrides(args: argparse.Namespace) -> List[str]:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--stage",
-                        choices=["create_dataset", "train", "evaluate", "all"],
-                        nargs="+",
-                        default=["all"]
+    parser.add_argument(
+        "--stage",
+        choices=["create_dataset", "train", "evaluate", "all"],
+        nargs="+",
+        default=["all"],
     )
 
-    parser.add_argument("--train_config", default="config", help="Hydra config name for training")
-    parser.add_argument("--eval_config", default="evaluate", help="Hydra config name for decoding")
+    parser.add_argument(
+        "--train_config", default="config", help="Hydra config name for training"
+    )
+    parser.add_argument(
+        "--eval_config", default="evaluate", help="Hydra config name for decoding"
+    )
 
-    parser.add_argument("--launcher", default="python", help="Executable used to launch training")
+    parser.add_argument(
+        "--launcher", default="python", help="Executable used to launch training"
+    )
     parser.add_argument("--dry_run", action="store_true")
 
-    parser.add_argument("--dataset_dir", type=str, help="LibriSpeech root used for dataset creation")
+    parser.add_argument(
+        "--dataset_dir", type=str, help="LibriSpeech root used for dataset creation"
+    )
 
-    parser.add_argument("--collect_stats", type=strtobool, default=True,
-                        help="Running collect-stats stage.")
+    parser.add_argument(
+        "--collect_stats",
+        type=strtobool,
+        default=True,
+        help="Running collect-stats stage.",
+    )
 
     parser.add_argument("--debug_sample", action="store_true")
 
@@ -57,7 +71,11 @@ def main() -> None:
     repo_root = recipe_root.parents[2]
     base_env = os.environ.copy()
     existing_pythonpath = base_env.get("PYTHONPATH", "")
-    pythonpath = str(repo_root) if not existing_pythonpath else os.pathsep.join([str(repo_root), existing_pythonpath])
+    pythonpath = (
+        str(repo_root)
+        if not existing_pythonpath
+        else os.pathsep.join([str(repo_root), existing_pythonpath])
+    )
     base_env["PYTHONPATH"] = pythonpath
 
     if "create_dataset" in args.stage or "all" in args.stage:

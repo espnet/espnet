@@ -39,9 +39,7 @@ class LibrispeechRunner(BaseRunner):
         data = dataset[idx]
         speech = data["speech"]
         hyp = model(speech)[0][0]
-        ref = model.tokenizer.tokens2text(
-            model.converter.ids2tokens(data['text'])
-        )
+        ref = model.tokenizer.tokens2text(model.converter.ids2tokens(data["text"]))
         return {"idx": idx, "hyp": hyp, "ref": ref}
 
 

@@ -139,7 +139,6 @@ def train_sentencepiece(
         character_coverage=character_coverage,
         user_defined_symbols=user_defined_symbols,
         input_sentence_size=100000000,
-            
     )
     if not os.path.exists(save_path):
         os.makedirs(save_path)
