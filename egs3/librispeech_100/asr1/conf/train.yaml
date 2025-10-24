@@ -8,7 +8,7 @@ defaults:
   - optim: adam
   - scheduler: warmup
   - model: e_branchformer
-  - parallel: slurm_gpu
+  - parallel: local
   - dataloader: default
   - dataset: default
   - _self_

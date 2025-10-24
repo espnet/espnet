@@ -4,7 +4,7 @@ defaults:
   - tokenizer: default
   - dataset: default
   - model: decode_beam1
-  - parallel: slurm_gpu
+  - parallel: local
 
 
 exp_tag: template

@@ -1,8 +1,8 @@
 env: slurm
 n_workers: 2
 options:
-  account: bbjs-delta-gpu
-  queue: gpuA40x4-interactive
+  account: account_name
+  queue: queue
   cores: 1
   processes: 1
   memory: 16GB
