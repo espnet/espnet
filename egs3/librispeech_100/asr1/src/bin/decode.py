@@ -65,8 +65,7 @@ if __name__ == "__main__":
             provider=provider,
             async_mode=False,
         )
-        # dataset_length = len(provider.build_dataset(config))
-        dataset_length = 20
+        dataset_length = len(provider.build_dataset(config))
         print(f"===> Processing {dataset_length} samples..")
         out = runner(list(range(dataset_length)))
 

@@ -1,7 +1,7 @@
 import os
 import shutil
 from pathlib import Path
-from typing import Union
+from typing import Union, List
 
 import sentencepiece as spm
 import sentencepiece.sentencepiece_model_pb2 as model
@@ -13,7 +13,7 @@ from espnet2.text.token_id_converter import TokenIDConverter
 
 
 def prepare_sentences(
-    dump_text_paths: Union[str, Path],
+    dump_text_paths: List[Union[str, Path]],
     output_path: Union[str, Path],
     remove_characters: str = "",
 ):
@@ -60,6 +60,9 @@ def prepare_sentences(
     # Please join the dump set before running this function.
     if not os.path.exists(output_path):
         os.makedirs(output_path)
+    
+    if isinstance(dump_text_paths, (str, Path)):
+        dump_text_paths = [dump_text_paths]
 
     lines = []
     for dump_text_path in dump_text_paths:
