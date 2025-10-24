@@ -242,8 +242,6 @@ class CollectStatsInferenceProvider(InferenceProvider):
         else:
             model = instantiate(model_config)
 
-        print(model)
-
         collect_fn = getattr(model, "collect_feats", None)
         if collect_fn is None or not callable(collect_fn):
             raise AttributeError(
