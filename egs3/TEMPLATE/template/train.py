@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from distutils.util import strtobool
 from pathlib import Path
 from typing import Any, Dict
 
@@ -9,7 +10,6 @@ import lightning as L
 import torch
 from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
-from distutils.util import strtobool
 
 from espnet3.parallel.parallel import set_parallel
 from espnet3.task import get_espnet_model, save_espnet_config
@@ -65,7 +65,6 @@ def train(cfg: DictConfig, collect_stats: bool) -> None:
         if "normalize_conf" in cfg.model:
             normalize_conf = cfg.model.pop("normalize_conf")
 
-
     trainer = _build_trainer(cfg)
 
     if collect_stats:
@@ -91,10 +90,14 @@ if __name__ == "__main__":  # pragma: no cover
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", default="config", help="Name of the Hydra config to load")
     parser.add_argument(
-        "--collect_stats", type=strtobool, default=True,
-        help="Flag to run collect-stats stage"
+        "--config", default="config", help="Name of the Hydra config to load"
+    )
+    parser.add_argument(
+        "--collect_stats",
+        type=strtobool,
+        default=True,
+        help="Flag to run collect-stats stage",
     )
     args = parser.parse_args()
     config = load_config_with_defaults(args.config)

@@ -92,4 +92,3 @@ def load_scp_fields(
         result[alias] = [d[uid] for uid in sorted_uids]
 
     return result
-

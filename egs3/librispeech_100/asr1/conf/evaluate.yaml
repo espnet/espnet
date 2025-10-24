@@ -22,7 +22,7 @@ metrics:
     inputs:
       - ref
       - hyp
-    apply_to: 
+    apply_to:
       - test-clean
       - test-other
 
@@ -32,6 +32,6 @@ metrics:
     inputs:
       - ref
       - hyp
-    apply_to: 
+    apply_to:
       - test-clean
       - test-other
