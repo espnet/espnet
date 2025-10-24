@@ -1,7 +1,6 @@
 # Model definition for Branchformer-based ASR
 
 vocab_size: ${tokenizer.vocab_size}
-# token_list: ${load_line:'${tokenizer.save_path}/tokens.txt'}
 token_list: ${tokenizer.save_path}/tokens.txt
 
 encoder: e_branchformer
