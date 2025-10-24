@@ -386,7 +386,6 @@ def inference(
         maxlenratio=maxlenratio,
         minlenratio=minlenratio,
         fixed_length=fixed_length,
-        no_rerun=no_rerun,
         run_asr=run_asr,
         run_mt=run_mt,
         task=task,
