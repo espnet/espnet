@@ -2560,14 +2560,6 @@ class SpeechLMPreprocessor(AbsPreprocessor):
                 new_data["dec_seq"] = np.concatenate(
                     [sos_eos] + [task_identifier[0]]+[seqs[0]]+[seqs[2]]+[task_identifier[1]]+seqs[2:4]+[task_identifier[2]]+[seqs[3]]+[seqs[1]]+[seqs[4]]+[sos_eos], axis=0
                 ).reshape(-1, self.codec_token_in_use)[: self.n_ctx]
-            elif "_cot_2_full" in task_name:
-                new_data["dec_seq"] = np.concatenate(
-                    [sos_eos] + [task_identifier[0]]+[seqs[0]]+[seqs[2]]+[sos_eos]+[task_identifier[1]]+seqs[2:4]+[task_identifier[2]]+[sos_eos]+[seqs[3]]+[seqs[1]]+[seqs[4]]+[sos_eos], axis=0
-                ).reshape(-1, self.codec_token_in_use)[: self.n_ctx]
-            elif "_cot" in task_name:
-                new_data["dec_seq"] = np.concatenate(
-                    [sos_eos] + task_identifier + seqs + [sos_eos], axis=0
-                ).reshape(-1, self.codec_token_in_use)[: self.n_ctx]
             else:
                 new_data["dec_seq"] = np.concatenate(
                     [sos_eos] + [task_identifier] + seqs + [sos_eos], axis=0
@@ -2585,21 +2577,9 @@ class SpeechLMPreprocessor(AbsPreprocessor):
             prefix_len3 = prefix_len2 + (len(seqs[3]) // self.codec_token_in_use)-1
             prefix_len4 = prefix_len3 + ((len(seqs[3]) + len(seqs[1])) // self.codec_token_in_use) + 2
             new_data["prefix_len"] = np.array([prefix_len, prefix_len1, prefix_len2, prefix_len3, prefix_len4])
-        elif "_cot_2_full" in task_name:
-            # import pdb;pdb.set_trace()
-            prefix_len = sum([len(seq) for seq in seqs[:1]])
-            prefix_len = prefix_len // self.codec_token_in_use + 2
-            prefix_len1 = prefix_len + (len(seqs[2]) // self.codec_token_in_use)-1
-            prefix_len2 = prefix_len1 + (len(seqs[2]) // self.codec_token_in_use)+3
-            prefix_len3 = prefix_len2 + (len(seqs[3]) // self.codec_token_in_use)-1
-            prefix_len4 = prefix_len3 + ((len(seqs[3]) + len(seqs[1])) // self.codec_token_in_use) + 3
-            new_data["prefix_len"] = np.array([prefix_len, prefix_len1, prefix_len2, prefix_len3, prefix_len4])
         else:
             prefix_len = sum([len(seq) for seq in seqs[:n_conditions]])
-            if "_cot" in task_name:
-                prefix_len = prefix_len // self.codec_token_in_use + 4
-            else:
-                prefix_len = prefix_len // self.codec_token_in_use + 2
+            prefix_len = prefix_len // self.codec_token_in_use + 2
             new_data["prefix_len"] = np.array([prefix_len])
 
         # (4) continuous features

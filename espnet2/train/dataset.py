@@ -693,6 +693,7 @@ class ESPnetDataset(AbsDataset):
         retval = uid, data
         return retval
 
+
 class EspnetSpeechLMDataset(ESPnetDataset):
     """
     Dataset object that is specifically designed for SpeechLM. It will allows
@@ -786,7 +787,6 @@ class EspnetSpeechLMDataset(ESPnetDataset):
                                 break
 
                     data["tgt_utt2spk"] = self.loader_dict["tgt_wav.scp"][prompt_uid]
-                # data["utt2spk"] = self.speaker_prompt_high_mos
 
 
 class ESPnetMultiTaskDataset(AbsDataset):
