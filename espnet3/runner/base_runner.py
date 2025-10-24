@@ -215,9 +215,12 @@ class BaseRunner:
         setup_fn = self.provider.make_worker_setup_fn()
         out = []
         with get_client(get_parallel_config()) as client:
-            for res in tqdm(parallel_for(
-                self.__class__.forward, indices, setup_fn=setup_fn, client=client
-            ), total=len(indices)):
+            for res in tqdm(
+                parallel_for(
+                    self.__class__.forward, indices, setup_fn=setup_fn, client=client
+                ),
+                total=len(indices),
+            ):
                 out.append(res)
         return out
 

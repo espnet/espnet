@@ -312,7 +312,9 @@ class CollectStatsRunner(BaseRunner):
         write_collected_feats: bool = False,
         collect_stats_kwargs: Optional[Dict[str, Any]] = None,
     ):
-        if isinstance(batch_indices, Iterable) and not isinstance(batch_indices, (str, bytes)):
+        if isinstance(batch_indices, Iterable) and not isinstance(
+            batch_indices, (str, bytes)
+        ):
             indices = [int(i) for i in batch_indices]
         else:
             indices = [int(batch_indices)]
