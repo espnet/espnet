@@ -1,0 +1,7 @@
+train:
+  iter_factory:
+    num_workers: 4
+    batches:
+      type: sorted
+      batch_size: 16
+      batch_bins: 12000000

@@ -1,0 +1,37 @@
+# Decoding configuration for LibriSpeech 100h
+
+defaults:
+  - tokenizer: default
+  - dataset: default
+  - model: decode_beam1
+  - parallel: local
+
+
+exp_tag: template
+
+recipe_dir: .
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+data_dir: ${recipe_dir}/data
+decode_dir: ${exp_dir}/decode
+
+
+metrics:
+  - metric:
+      _target_: template.metrics.wer.WER
+      clean_types: whisper_basic
+    inputs:
+      - ref
+      - hyp
+    apply_to:
+      - test-clean
+      - test-other
+
+  - metric:
+      _target_: template.metrics.cer.CER
+      clean_types: whisper_basic
+    inputs:
+      - ref
+      - hyp
+    apply_to:
+      - test-clean
+      - test-other

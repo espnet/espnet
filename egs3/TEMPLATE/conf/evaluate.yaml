@@ -1,0 +1,18 @@
+# Decoding configuration for LibriSpeech 100h
+
+defaults:
+  - tokenizer: default
+  - dataset: default
+  - model: decode
+  - parallel: local
+
+
+exp_tag: template
+
+recipe_dir: .
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+data_dir: ${recipe_dir}/data
+decode_dir: ${exp_dir}/decode
+
+
+metrics:

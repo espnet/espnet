@@ -1,0 +1,6 @@
+vocab_size: 5000
+character_coverage: 1.0
+model_type: bpe
+save_path: ${data_dir}/${tokenizer.model_type}_${tokenizer.vocab_size}
+
+# tokenizer initialization config here

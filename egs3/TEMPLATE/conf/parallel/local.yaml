@@ -1,0 +1,2 @@
+env: local
+n_workers: 1
