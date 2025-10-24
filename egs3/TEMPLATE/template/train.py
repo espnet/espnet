@@ -59,7 +59,7 @@ def train(cfg: DictConfig, collect_stats: bool) -> None:
 
     normalize = None
     normalize_conf = None
-    if args.collect_stats:
+    if collect_stats:
         if "normalize" in cfg.model:
             normalize = cfg.model.pop("normalize")
         if "normalize_conf" in cfg.model:
