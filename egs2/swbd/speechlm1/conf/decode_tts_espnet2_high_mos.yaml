@@ -6,6 +6,8 @@ minlenratio: 0.05
 top_k: 30
 seed: 0
 inference_tts: true
+inference_tts_spk_path: ark:<Librispeech_ark_file>
+inference_tts_speaker_id: 1320-122612-0000
 
 # offline tokenizer
 codec_conf:

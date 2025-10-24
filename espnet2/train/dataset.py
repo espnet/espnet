@@ -693,8 +693,6 @@ class ESPnetDataset(AbsDataset):
         retval = uid, data
         return retval
 
-import kaldiio
-
 class EspnetSpeechLMDataset(ESPnetDataset):
     """
     Dataset object that is specifically designed for SpeechLM. It will allows
@@ -707,6 +705,8 @@ class EspnetSpeechLMDataset(ESPnetDataset):
         example_list: List,
         task: str,
         inference_tts: bool = False,
+        inference_tts_spk_path=None,
+        inference_tts_speaker_id=None,
         **kwargs,
     ):
         super(EspnetSpeechLMDataset, self).__init__(**kwargs)
@@ -742,11 +742,11 @@ class EspnetSpeechLMDataset(ESPnetDataset):
         # (3) keep task
         self.task = task
         if inference_tts:
-            reader=kaldiio.ReadHelper(f"ark:/work/nvme/bbjs/arora1/speech_lm/delta_ai/espnet/egs2/swbd/speechlm1/wav_codec_ssl_ESPnet.1.ark")
-            dict2={}
+            reader=kaldiio.ReadHelper(inference_tts_spk_path)
             for key, matrix in reader:
-                dict2[key]=matrix
-            self.speaker_prompt_high_mos=dict2['1320-122612-0000']
+                if key==inference_tts_speaker_id:
+                    self.speaker_prompt_high_mos=matrix
+                    break
         self.inference_tts = inference_tts
 
 

@@ -364,6 +364,8 @@ def inference(
     rerun_minlenratio: float = 0.0,
     rerun_maxlenratio: float = 10.0,
     inference_tts: bool = False,
+    inference_tts_spk_path: Optional[str] = None,
+    inference_tts_speaker_id: Optional[str] = None,
 ):
     """Run SpeechLM inference."""
     if batch_size > 1:
@@ -433,6 +435,8 @@ def inference(
         inference=True,
         multi_task_dataset=True,
         inference_tts=inference_tts,
+        inference_tts_spk_path=inference_tts_spk_path,
+        inference_tts_speaker_id=inference_tts_speaker_id,
     )
 
     # 4. build writer
@@ -676,6 +680,16 @@ def get_parser():
         "--run_mt",
         type=str2bool,
         default=False,
+    )
+    group.add_argument(
+        "--inference_tts_spk_path",
+        type=str,
+        default=None,
+    )
+    group.add_argument(
+        "--inference_tts_speaker_id",
+        type=str,
+        default=None,
     )
     group.add_argument(
         "--inference_tts",

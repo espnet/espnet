@@ -2204,6 +2204,9 @@ class AbsTask(ABC):
         inference: bool = False,
         mode: Optional[str] = None,
         multi_task_dataset: bool = False,
+        inference_tts: bool = False,
+        inference_tts_spk_path: Optional[str] = None,
+        inference_tts_speaker_id: Optional[str] = None,
     ) -> DataLoader:
         """Build DataLoader using iterable dataset"""
         # For backward compatibility for pytorch DataLoader
@@ -2214,14 +2217,24 @@ class AbsTask(ABC):
 
         if multi_task_dataset:
             dataset_class = ESPnetMultiTaskDataset
+            dataset = dataset_class(
+                data_path_and_name_and_type,
+                float_dtype=dtype,
+                preprocess=preprocess_fn,
+                key_file=key_file,
+                inference_tts=inference_tts,
+                inference_tts_spk_path=inference_tts_spk_path,
+                inference_tts_speaker_id=inference_tts_speaker_id,
+            )
         else:
             dataset_class = IterableESPnetDataset
-        dataset = dataset_class(
-            data_path_and_name_and_type,
-            float_dtype=dtype,
-            preprocess=preprocess_fn,
-            key_file=key_file,
-        )
+            dataset = dataset_class(
+                data_path_and_name_and_type,
+                float_dtype=dtype,
+                preprocess=preprocess_fn,
+                key_file=key_file,
+            )
+        
 
         if dataset.apply_utt2category:
             kwargs.update(batch_size=1)
@@ -2291,7 +2304,7 @@ class AbsTask(ABC):
                 device = f"cuda:{torch.cuda.current_device()}"
             try:
                 model.load_state_dict(
-                    torch.load(model_file, map_location=device),
+                    torch.load(model_file, map_location=device,weights_only=False,),
                     strict=False,
                 )
             except RuntimeError:
