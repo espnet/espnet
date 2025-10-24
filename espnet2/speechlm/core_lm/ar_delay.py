@@ -87,8 +87,6 @@ class ARDelayLM(ARParallelLM):
         conti_feats = None,
         suffix: torch.Tensor = None,
         inference_length: int = -1,
-        rerun=False,
-        rerun_twice=False,
     ):
         """Delay Architecture Inference.
 
@@ -247,41 +245,7 @@ class ARDelayLM(ARParallelLM):
                 if gen_score.sum() > best_score.sum():
                     best_hypo = gen_token
                     best_score = gen_score
-            zeros_tensor = torch.zeros((best_hypo.shape[0],8), device=best_hypo.device, dtype=best_hypo.dtype)
-            best_hypo=torch.cat((best_hypo,zeros_tensor),dim=-1)
             gen_tokens = [best_hypo]
             gen_scores = [best_score]
-        
-        if rerun:
-            min_length_index = min(range(len(gen_tokens)), key=lambda i: len(gen_tokens[i]))
-            tensor_with_extra_dim = gen_tokens[min_length_index].unsqueeze(0)
-            result1 = tensor_with_extra_dim.repeat(10, 1, 1)
-            start = torch.Tensor([opts.start] + [0 for _ in range(prefix.size(2) - 1)])
-            start = start.tile(opts.nbest, 1, 1).long().to(opts.device)
-            prefix1 = torch.cat((prefix,start), dim=1)
-            prefix1 = torch.cat((prefix1, result1), dim=1)
-            suffix1=suffix[:,(gen_tokens[min_length_index].shape[0]+9):,:]
-            pad1=torch.zeros((prefix1.shape[0],8,prefix1.shape[2]), device=prefix1.device, dtype=prefix1.dtype)
-            prefix1 = torch.cat((prefix1, pad1), dim=1)
-            if rerun_twice:
-                gen_tokens1,gen_scores1=self.inference(prefix1,opts,conti_feats,suffix1,inference_length,rerun=True, rerun_twice=False)
-            else:
-                opts_copy=copy.deepcopy(opts)
-                opts_copy.search_algo="topk_sampling"
-                opts_copy.maxlenratio=10.0
-                opts_copy.sampling_temperature=0.8
-                opts_copy.minlenratio=0.05
-                opts_copy.start=34     
-                opts_copy.seed=0
-                start = torch.Tensor([opts_copy.start] + [0 for _ in range(prefix.size(2) - 1)])
-                start = start.tile(opts_copy.nbest, 1, 1).long().to(opts.device)
-                gen_tokens1,gen_scores1=self.inference(prefix1,opts_copy,conti_feats,suffix1,inference_length,rerun=False, rerun_twice=False)
-            result2=torch.cat((result1,pad1), dim=1)
-            result2=torch.cat((result2,start), dim=1)
-            result3=[]
-            for k in range(len(gen_tokens)):
-                result3.append(torch.cat((result2[0],gen_tokens1[k]), dim=0))
-            gen_tokens=result3
-            
 
         return gen_tokens, gen_scores

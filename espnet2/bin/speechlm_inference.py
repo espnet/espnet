@@ -188,24 +188,13 @@ class SpeechLM:
         inference_length = data.get("inference_length", -1)
 
         # (1) language model inference
-        if self.no_rerun:
-            gen_tokens, _ = self.model.corelm.inference(
-                prefix=dec_seq[:, :prefix_len],
-                opts=self.inference_opts,
-                conti_feats=conti_feats,
-                suffix=dec_seq[:, prefix_len + 1 :],
-                inference_length=inference_length,
-                rerun=False,
-                rerun_twice=False,
-            )
-        else:
-            gen_tokens, _ = self.model.corelm.inference(
-                prefix=dec_seq[:, :prefix_len],
-                opts=self.inference_opts,
-                conti_feats=conti_feats,
-                suffix=dec_seq[:, prefix_len + 1 :],
-                inference_length=inference_length,    
-            )
+        gen_tokens, _ = self.model.corelm.inference(
+            prefix=dec_seq[:, :prefix_len],
+            opts=self.inference_opts,
+            conti_feats=conti_feats,
+            suffix=dec_seq[:, prefix_len + 1 :],
+            inference_length=inference_length,    
+        )
 
         # (2) record the prefix segments
         retval = [[] for _ in self.modalities]
