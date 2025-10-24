@@ -1,0 +1,15 @@
+env: slurm
+n_workers: 2
+options:
+  account: bbjs-delta-gpu
+  queue: gpuA40x4-interactive
+  cores: 1
+  processes: 1
+  memory: 16GB
+  death_timeout: 300
+  job_extra_directives:
+    - "--gres=gpu:1"
+    - "--ntasks-per-node=1"
+    - "--cpus-per-task=4"
+    - "--time=1:00:00"
+    - "--output=parallel_log/%j-%x.log"

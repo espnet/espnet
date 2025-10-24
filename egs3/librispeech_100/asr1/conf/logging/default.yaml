@@ -1,11 +1,6 @@
-# Logging configuration for TensorBoard and WandB
+# Logging configuration for TensorBoard
 
 loggers:
   - _target_: lightning.pytorch.loggers.TensorBoardLogger
-    save_dir: ${expdir}/tensorboard
+    save_dir: ${exp_dir}/tensorboard
     name: tb_logger
-
-  - _target_: lightning.pytorch.loggers.WandbLogger
-    project: ESPnet3 development
-    save_dir: ${expdir}/wandb
-    name: LS_100_GPU${num_device}
