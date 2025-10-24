@@ -75,9 +75,51 @@ BATCH_TYPES = dict(
 )
 
 CATEGORY_BATCH_TYPES = dict(
-    catbel="CategoryBalancedSampler",
-    catpow="CategoryPowerSampler",
-    catpow_balance_dataset="CategoryDatasetPowerSampler",
+    catbel="CategoryBalancedSampler keeps equally distributed categories (classes)"
+    " within each minibatch. If the batch_size is smaller than the number of classes, "
+    "all samples in the minibatch will belong to different classes. "
+    "This sampler requires a 'category2utt' file which maps each category to "
+    "utterance IDs. "
+    "\n\n"
+    "    category_a utterance_id_a1 utterance_id_a2\n"
+    "    category_b utterance_id_b1 utterance_id_b2\n"
+    "    category_c utterance_id_c1 utterance_id_c2\n",
+    catpow="CategoryPowerSampler constructs mini-batches by balancing samples across "
+    "categories using a power-law distribution to control sampling frequency. "
+    "The sampling probability is P(x) = (n_l / N)^β * (1 / k_l) where β is the "
+    "upsampling factor, n_l is the total duration of category l, N is total duration "
+    "of all categories, and k_l is the number of utterances in category l. "
+    "Batches are constructed based on 'batch_bins' similar to LengthBatchSampler. "
+    "This sampler requires a 'category2utt' file which maps each category to "
+    "utterance IDs. "
+    "\n\n"
+    "    category_a utterance_id_a1 utterance_id_a2\n"
+    "    category_b utterance_id_b1 utterance_id_b2\n"
+    "    category_c utterance_id_c1 utterance_id_c2\n",
+    catpow_balance_dataset="CategoryDatasetPowerSampler performs hierarchical "
+    "sampling for multi-category, multi-dataset training where both category "
+    "imbalance and dataset imbalance exist. It first balances categories within "
+    "each dataset using P(l | d) ∝ (n_ld / N_d)^β_L, then balances datasets "
+    "themselves using P(d) ∝ (N_d / M)^β_D. The final sampling probability is "
+    "P(x) = P(d) × P(l | d) × P(x | l, d), where P(x | l, d) = 1 / k_ld. This "
+    "sampler is particularly useful when combining heterogeneous datasets with "
+    "highly imbalanced dataset size and category distributions. Requires "
+    "'category2utt', 'dataset2utt', and 'utt2dataset' files. "
+    "\n\n"
+    "Required file formats:\n"
+    "category2utt_file:\n"
+    "    category_a utterance_id_a1 utterance_id_a2\n"
+    "    category_b utterance_id_b1 utterance_id_b2\n"
+    "\n"
+    "dataset2utt_file:\n"
+    "    dataset1 utterance_id_a1 utterance_id_b2\n"
+    "    dataset2 utterance_id_b1 utterance_id_a2\n"
+    "\n"
+    "utt2dataset_file:\n"
+    "    utterance_id_a1 dataset1\n"
+    "    utterance_id_a2 dataset2\n"
+    "    utterance_id_b1 dataset2\n"
+    "    utterance_id_b2 dataset1\n",
 )
 
 
@@ -185,17 +227,17 @@ def build_category_batch_sampler(
     batch_size: Optional[int] = None,
     batch_bins: Optional[int] = None,
     shape_files: Optional[Union[Tuple[str, ...], List[str]]] = None,
-    min_batch_size: int = None,
+    min_batch_size: Optional[int] = None,
     max_batch_size: Optional[int] = None,
     upsampling_factor: Optional[float] = None,
     category_upsampling_factor: Optional[float] = None,
     dataset_upsampling_factor: Optional[float] = None,
     dataset_scaling_factor: Optional[float] = None,
     drop_last: bool = False,
-    category2utt_file: str = None,
+    category2utt_file: Optional[str] = None,
     dataset2utt_parent_dir: Optional[str] = None,
     epoch: int = 1,
-    num_batches: int = None,
+    num_batches: Optional[int] = None,
     distributed: bool = False,
 ) -> Tuple[AbsSampler, dict]:
 
@@ -266,7 +308,7 @@ def build_category_batch_sampler(
         batch_sampler = CategoryDatasetPowerSampler(**sampler_args)
     else:
         raise ValueError(
-            f"batch_type={type} is not supported"
+            f"batch_type={type} is not supported when iterator_type=category."
             f"Please specify batch_type in {CATEGORY_BATCH_TYPES.keys()}."
         )
 
