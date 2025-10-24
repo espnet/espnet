@@ -1,0 +1,6 @@
+# Logging configuration for TensorBoard
+
+loggers:
+  - _target_: lightning.pytorch.loggers.TensorBoardLogger
+    save_dir: ${exp_dir}/tensorboard
+    name: tb_logger
