@@ -14,7 +14,7 @@ from espnet2.fileio.npy_scp import NpyScpWriter
 from espnet2.train.collate_fn import CommonCollateFn
 from espnet3.parallel import set_parallel
 from espnet3.runner.base_runner import BaseRunner
-from espnet3.runner.inference_provider import InferenceProvider
+from espnet3.runner.env_provider import EnvironmentProvider
 from espnet3.task import get_espnet_model
 
 __all__ = [
@@ -22,11 +22,11 @@ __all__ = [
     "CollectStatsRunner",
     "collect_stats",
     "collect_stats_multiple_iterator",
-    "process_batch_batching",
+    "batch_collect_stats",
 ]
 
 
-def process_batch_batching(
+def batch_collect_stats(
     idxs: List[int],
     *,
     model=None,
@@ -59,9 +59,7 @@ def process_batch_batching(
             "collect_stats expects collate_fn to return a mapping for batch tensors."
         )
 
-    tensors = {
-        k: (v.to(device) if hasattr(v, "to") else v) for k, v in features.items()
-    }
+    tensors = {k: v.to(device) for k, v in features.items()}
 
     extra_kwargs = dict(collect_stats_kwargs or {})
     conflict = set(extra_kwargs).intersection(tensors)
@@ -164,6 +162,37 @@ def _build_collate_fn(dataloader_config):
         return CommonCollateFn(int_pad_value=-1)
 
 
+def _build_dataset(config: DictConfig):
+    dataset = _instantiate_dataset(config.dataset_config, config.mode)
+    shard_idx = config.get("shard_idx")
+    if shard_idx is not None:
+        if not hasattr(dataset, "shard"):
+            raise RuntimeError("Dataset does not support sharding")
+        dataset = dataset.shard(shard_idx)
+
+    if hasattr(dataset, "use_espnet_collator"):
+        dataset.use_espnet_collator = True
+    return dataset
+
+
+def _build_model(config: DictConfig):
+    model_config = config.model_config
+    if not isinstance(model_config, DictConfig):
+        model_config = OmegaConf.create(model_config)
+    task = config.get("task")
+    if task:
+        model = get_espnet_model(task, model_config)
+    else:
+        model = instantiate(model_config)
+
+    collect_fn = getattr(model, "collect_feats", None)
+    if collect_fn is None or not callable(collect_fn):
+        raise AttributeError(
+            "Model is missing required callable 'collect_feats' method."
+        )
+    return model
+
+
 def _chunk_indices(num_items: int, batch_size: int) -> List[List[int]]:
     if batch_size <= 0:
         raise ValueError("batch_size must be a positive integer")
@@ -195,7 +224,7 @@ def _dataset_length(dataset_config, mode: str, shard_idx: Optional[int] = None) 
     return len(dataset)
 
 
-class CollectStatsInferenceProvider(InferenceProvider):
+class CollectStatsInferenceProvider(EnvironmentProvider):
     """EnvironmentProvider tailored for collect-stats jobs."""
 
     def __init__(
@@ -216,81 +245,50 @@ class CollectStatsInferenceProvider(InferenceProvider):
         cfg.mode = mode
         cfg.task = task
         cfg.shard_idx = shard_idx
-        super().__init__(cfg, params=params)
-
-    @staticmethod
-    def build_dataset(config: DictConfig):
-        dataset = _instantiate_dataset(config.dataset_config, config.mode)
-        shard_idx = config.get("shard_idx")
-        if shard_idx is not None:
-            if not hasattr(dataset, "shard"):
-                raise RuntimeError("Dataset does not support sharding")
-            dataset = dataset.shard(shard_idx)
-
-        if hasattr(dataset, "use_espnet_collator"):
-            dataset.use_espnet_collator = True
-        return dataset
-
-    @staticmethod
-    def build_model(config: DictConfig):
-        model_config = config.model_config
-        if not isinstance(model_config, DictConfig):
-            model_config = OmegaConf.create(model_config)
-        task = config.get("task")
-        if task:
-            model = get_espnet_model(task, model_config)
-        else:
-            model = instantiate(model_config)
-
-        collect_fn = getattr(model, "collect_feats", None)
-        if collect_fn is None or not callable(collect_fn):
-            raise AttributeError(
-                "Model is missing required callable 'collect_feats' method."
-            )
-        return model
+        cfg.update(**params)
+        super().__init__(cfg)
 
     def build_env_local(self) -> Dict[str, Any]:
-        env = super().build_env_local()
+        env = dict()
         collate_fn = _build_collate_fn(self.config.dataloader_config)
         env["collate_fn"] = collate_fn
 
-        dataset = env.get("dataset")
+        dataset = _build_dataset(self.config)
         if hasattr(dataset, "use_espnet_collator"):
             dataset.use_espnet_collator = isinstance(collate_fn, CommonCollateFn)
-            env["dataset"] = dataset
+
+        env["dataset"] = dataset
 
         device = env.get("device")
         if device is None:
             device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-            env["device"] = device
+        env["device"] = device
 
-        env["model"] = env["model"].to(device).eval()
-        env.setdefault("write_collected_feats", False)
-        env.setdefault("collect_stats_kwargs", None)
+        env["model"] = _build_model(self.config).to(device).eval()
+        env["write_collected_feats"] = self.config.write_collected_feats
         return env
 
     def make_worker_setup_fn(self):
-        base_setup = super().make_worker_setup_fn()
         dataloader_config = self.config.dataloader_config
+        config = self.config
 
         def setup():
-            env = base_setup()
+            env = dict()
             collate_fn = _build_collate_fn(dataloader_config)
             env["collate_fn"] = collate_fn
 
-            dataset = env.get("dataset")
+            dataset = _build_dataset(config)
             if hasattr(dataset, "use_espnet_collator"):
                 dataset.use_espnet_collator = isinstance(collate_fn, CommonCollateFn)
-                env["dataset"] = dataset
+            env["dataset"] = dataset
 
             device = env.get("device")
             if device is None:
                 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-                env["device"] = device
+            env["device"] = device
 
-            env["model"] = env["model"].to(device).eval()
-            env.setdefault("write_collected_feats", False)
-            env.setdefault("collect_stats_kwargs", None)
+            env["model"] = _build_model(config).to(device).eval()
+            env["write_collected_feats"] = self.config.write_collected_feats
             return env
 
         return setup
@@ -317,7 +315,7 @@ class CollectStatsRunner(BaseRunner):
         else:
             indices = [int(batch_indices)]
 
-        return process_batch_batching(
+        return batch_collect_stats(
             indices,
             model=model,
             dataset=dataset,
