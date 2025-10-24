@@ -326,7 +326,7 @@ class ChannelAttentionTAC(nn.Module):
             LayerNormalization(input_dim, dim=-1, total_dim=5, eps=eps),
         )
 
-    @torch.cuda.amp.autocast(enabled=False)
+    @torch.amp.autocast("cuda", enabled=False)
     def forward(self, x, ref_channel=None):
         """TAttC Forward.
 
