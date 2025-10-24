@@ -1,0 +1,41 @@
+recipe_dir: .
+num_device: 1
+num_nodes: 1
+task:
+
+dataloader:
+  collate_fn:
+    _target_: espnet2.train.collate_fn.CommonCollateFn
+    int_pad_value: -1
+  train:
+    multiple_iterator: false
+    num_shards: 1
+    iter_factory:
+      _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
+      shuffle: true
+      collate_fn: ${dataloader.collate_fn}
+      batches:
+        type: numel
+        shape_files:
+          - ${stats_dir}/train/feats_shape
+        batch_size: 4
+        batch_bins: 4000000
+  valid:
+    multiple_iterator: false
+    num_shards: 1
+    iter_factory:
+      _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
+      shuffle: false
+      collate_fn: ${dataloader.collate_fn}
+      batches:
+        type: ${dataloader.train.iter_factory.batches.type}
+        shape_files:
+          - ${stats_dir}/valid/feats_shape
+        batch_size: ${dataloader.train.iter_factory.batches.batch_size}
+        batch_bins: ${dataloader.train.iter_factory.batches.batch_bins}
+
+best_model_criterion:
+  - - valid/loss
+    - 3
+    - min
+
