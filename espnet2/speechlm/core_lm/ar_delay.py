@@ -7,7 +7,6 @@
 
 import logging
 from typing import Dict, Tuple
-import copy
 import torch
 
 from espnet2.speechlm.core_lm.abs_core_lm import SpeechLMInferenceOptions
@@ -247,5 +246,5 @@ class ARDelayLM(ARParallelLM):
                     best_score = gen_score
             gen_tokens = [best_hypo]
             gen_scores = [best_score]
-
+    
         return gen_tokens, gen_scores

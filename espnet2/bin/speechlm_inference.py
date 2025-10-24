@@ -55,7 +55,6 @@ class SpeechLM:
         maxlenratio: float = 0.0,
         minlenratio: float = 10.0,
         fixed_length: bool = False,
-        no_rerun: bool = False,
         run_asr: bool = False,
         run_mt: bool = False,
         codec_conf: dict = None,
@@ -77,7 +76,6 @@ class SpeechLM:
         self.token_bias = train_args.token_bias
         self.modalities = [triplet[1] for triplet in self.task.data_triplets]
         self.pad = self.token_list.index("<pad>")
-        self.no_rerun=no_rerun
         self.run_asr = run_asr
         self.run_mt =run_mt
 
@@ -193,7 +191,7 @@ class SpeechLM:
             opts=self.inference_opts,
             conti_feats=conti_feats,
             suffix=dec_seq[:, prefix_len + 1 :],
-            inference_length=inference_length,    
+            inference_length=inference_length,
         )
 
         # (2) record the prefix segments
@@ -344,14 +342,10 @@ def inference(
     inference_nq: Optional[int] = 1,
     codec_ssl_corrupt_prob: float = 0.0,
     fixed_length: bool = False,
-    no_rerun: bool = False,
     # offline tokenizers
     codec_conf: dict = None,
-    rerun_response: bool = False,
     run_asr: bool = False,
     run_mt: bool = False,
-    rerun_minlenratio: float = 0.0,
-    rerun_maxlenratio: float = 10.0,
     inference_tts: bool = False,
     inference_tts_spk_path: Optional[str] = None,
     inference_tts_speaker_id: Optional[str] = None,
@@ -656,11 +650,6 @@ def get_parser():
     )
 
     group.add_argument(
-        "--no_rerun",
-        type=str2bool,
-        default=False,
-    )
-    group.add_argument(
         "--run_asr",
         type=str2bool,
         default=False,
@@ -684,23 +673,6 @@ def get_parser():
         "--inference_tts",
         type=str2bool,
         default=False,
-    )
-    group.add_argument(
-        "--rerun_response",
-        type=str2bool,
-        default=False,
-    )
-    group.add_argument(
-        "--rerun_maxlenratio",
-        type=float,
-        default=10.0,
-        help="Maximum length ratio in decoding",
-    )
-    group.add_argument(
-        "--rerun_minlenratio",
-        type=float,
-        default=0.0,
-        help="Minimum length ratio in decoding",
     )
     # Offline tokenizer configurations. The offline tokenizers are not used during
     # training and thus should be specified externally.
