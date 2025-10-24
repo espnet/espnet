@@ -1,15 +1,16 @@
 import argparse
 import json
 from pathlib import Path
-from omegaconf import DictConfig, OmegaConf
-from hydra.utils import instantiate
 
-from espnet3.utils.config import load_config_with_defaults
+from hydra.utils import instantiate
+from omegaconf import DictConfig, OmegaConf
 from template.metrics.abs_metric import AbsMetrics
 from template.utils.scp_utils import (
     get_class_path,
     load_scp_fields,
 )
+
+from espnet3.utils.config import load_config_with_defaults
 
 
 def run(config: DictConfig):
@@ -45,7 +46,6 @@ def run(config: DictConfig):
         json.dump(results, f, indent=2, ensure_ascii=False)
 
     return results
-
 
 
 if __name__ == "__main__":

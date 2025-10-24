@@ -1,7 +1,7 @@
 import os
 import shutil
 from pathlib import Path
-from typing import Union, List
+from typing import List, Union
 
 import sentencepiece as spm
 import sentencepiece.sentencepiece_model_pb2 as model
@@ -60,7 +60,7 @@ def prepare_sentences(
     # Please join the dump set before running this function.
     if not os.path.exists(output_path):
         os.makedirs(output_path)
-    
+
     if isinstance(dump_text_paths, (str, Path)):
         dump_text_paths = [dump_text_paths]
 
