@@ -1,0 +1,40 @@
+# ==========================================
+#  RNN-Transducer Decoding Configuration
+# ==========================================
+
+# ---------- General ----------
+batch_size: 16           # how many utterances to decode in parallel
+score_norm: true          # normalize by output length
+
+# ---------- Search Type ----------
+# Options: default | tsd | alsd | maes
+search_type: maes          # "modified Adaptive Expansion Search" (recommended)
+
+# ---------- Beam Search Settings ----------
+beam_size: 10              # number of hypotheses kept during decoding
+nstep: 2                   # max symbol expansions per frame
+expansion_gamma: 2          # additional candidates per expansion
+expansion_beta: 2.3         # pruning threshold for hypotheses
+
+# ---------- Greedy Decoding (Fast mode)
+# If you prefer speed > accuracy, override at run time:
+# --inference_config conf/decode_asr_transducer_greedy.yaml
+# This section just shows what you'd change:
+# search_type: default
+# beam_size: 1
+# score_norm: false
+
+# ---------- Output Length Constraints ----------
+maxlenratio: 0.0           # automatically determined
+minlenratio: 0.0
+
+# ---------- Misc ----------
+penalty: 0.0               # no length penalty
+report_cer: true
+report_wer: true
+
+# ---------- Streaming (optional)
+# To enable chunk-by-chunk streaming decoding, uncomment:
+# streaming: true
+# decoding_window: 640       # milliseconds per chunk
+# left_context: 32
