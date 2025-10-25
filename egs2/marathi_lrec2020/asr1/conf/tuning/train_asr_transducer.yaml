@@ -1,0 +1,100 @@
+# ===========================================
+# Marathi ASR - RNN-Transducer (ESPnet2)
+# ===========================================
+# This config trains a standalone Transducer model
+# using Conformer encoder + LSTM decoder + joint network.
+# CER/WER are computed only during decoding stage.
+
+# ===========================
+# 1. General Training Settings
+# ===========================
+batch_type: numel               # batching method
+batch_bins: 10000               # total number of frames per batch
+accum_grad: 2                   # gradient accumulation (reduce for single GPU)
+max_epoch: 40                   # number of training epochs
+init: xavier_uniform             # weight initialization
+grad_clip: 5.0                  # gradient clipping for stability
+keep_nbest_models: 3            # keep best 3 models based on validation loss
+seed: 777                       # reproducibility
+
+# ===========================
+# 2. Encoder (Conformer Backbone)
+# ===========================
+encoder_conf:
+  main_conf:
+    pos_wise_act_type: swish          # activation for FFN layers
+    pos_enc_dropout_rate: 0.1         # dropout on positional encoding
+    conv_mod_act_type: swish          # activation for CNN modules
+  input_conf:
+    block_type: conv2d                # input block: conv2d or vgg
+    conv_size: 256                    # size of convolution output
+    subsampling_factor: 4             # downsampling rate
+  body_conf:
+    - block_type: conformer           # use Conformer blocks
+      hidden_size: 256                # embedding dim for self-attention
+      linear_size: 1024               # feed-forward inner dim
+      heads: 4                        # number of attention heads
+      dropout_rate: 0.2               # main dropout
+      att_dropout_rate: 0.2           # dropout in attention module
+      conv_mod_kernel_size: 17        # kernel size in convolution module
+      num_blocks: 6                   # number of Conformer blocks
+
+# ===========================
+# 3. Decoder (Prediction Network)
+# ===========================
+decoder: rnn
+decoder_conf:
+  rnn_type: lstm                      # type of RNN cell (LSTM or GRU)
+  num_layers: 2                       # number of RNN layers
+  embed_size: 256                     # embedding dimension
+  hidden_size: 256                    # hidden size of RNN
+  dropout_rate: 0.2                   # dropout inside RNN
+  embed_dropout_rate: 0.2             # dropout on embedding layer
+
+# ===========================
+# 4. Joint Network
+# ===========================
+joint_network_conf:
+  joint_space_size: 320               # dimension of joint projection
+  
+# ===========================
+# 5. Model & Loss Configuration
+# ===========================
+model_conf:
+  transducer_weight: 1.0              # weight for main transducer loss
+  fastemit_lambda: 0.001              # FastEmit regularization (for low latency)
+  auxiliary_ctc_weight: 0.1           # optional auxiliary CTC loss weight
+  auxiliary_ctc_dropout_rate: 0.1     # dropout applied to CTC inputs
+  auxiliary_lm_loss_weight: 0.0       # disable auxiliary LM loss (set >0 to enable)
+
+  # Optional settings for advanced users:
+  # validation_nstep: 2               # enables CER/WER during validation (slower)
+  # use_k2_pruned_loss: True          # enable pruned RNN-T loss from K2
+  # k2_pruned_loss_args:
+  #   prune_range: 5
+  #   simple_loss_scaling: 0.5
+  #   lm_scale: 0.0
+  #   am_scale: 0.0
+  #   loss_type: regular
+
+# ===========================
+# 6. Optimization Settings
+# ===========================
+optim: adam
+optim_conf:
+  lr: 0.0005                         # learning rate
+scheduler: warmuplr
+scheduler_conf:
+  warmup_steps: 15000                # learning rate warm-up steps
+
+# ===========================
+# 7. Data Augmentation (SpecAugment)
+# ===========================
+specaug: specaug
+specaug_conf:
+  apply_freq_mask: true
+  num_freq_mask: 2
+  freq_mask_width_range: [0, 30]
+  apply_time_mask: true
+  num_time_mask: 2
+  time_mask_width_range: [0, 40]

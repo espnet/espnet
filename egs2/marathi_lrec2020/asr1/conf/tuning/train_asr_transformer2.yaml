@@ -1,0 +1,89 @@
+# ============================================================
+#  Marathi ASR (Conformer Encoder + Transformer Decoder)
+#  Hybrid CTC + Attention model (no external LM)
+#  This configuration is stable for 1 GPU training
+# ============================================================
+
+# ------------------------------
+# Encoder: Conformer architecture
+# ------------------------------
+encoder: conformer                # Encoder type: Conformer = Transformer + CNN
+encoder_conf:
+    output_size: 256              # Hidden dimension for attention layers
+    attention_heads: 4            # Number of attention heads per block
+    linear_units: 2048            # FFN hidden layer size (≈ 4× output_size typical)
+    num_blocks: 12                # Depth: number of Conformer blocks
+    dropout_rate: 0.1             # Global dropout for encoder layers
+    input_layer: conv2d           # Conv2D subsampling front-end (helps for raw input)
+    normalize_before: true        # Apply LayerNorm before each sublayer (improves stability)
+    pos_enc_layer_type: "rel_pos" # Relative positional encoding (better for speech)
+    selfattention_layer_type: "rel_selfattn" # Relative-position MHSA
+    activation_type: "swish"      # Smooth nonlinearity (better than ReLU)
+    macaron_style: true           # Macaron: double FFN inside each block (improves capacity)
+    use_cnn_module: true          # Enables Conformer’s convolutional module
+    cnn_module_kernel: 15         # Kernel size for convolution (captures local context)
+
+# ------------------------------
+# Decoder: Transformer architecture
+# ------------------------------
+decoder: transformer              # Decoder type
+decoder_conf:
+    attention_heads: 4            # Number of heads in decoder MHSA
+    linear_units: 2048            # FFN hidden layer size
+    num_blocks: 6                 # Number of Transformer decoder layers
+    dropout_rate: 0.1             # Dropout across all decoder layers
+
+# ------------------------------
+# Model-level configuration
+# ------------------------------
+model_conf:
+    ctc_weight: 0.3               # Hybrid CTC/Attention loss: 0.3*CTC + 0.7*Attention
+    lsm_weight: 0.1               # Label smoothing weight (regularizes overconfidence)
+    length_normalized_loss: false # Do not normalize by sequence length
+
+# ------------------------------
+# Batching and data loading
+# ------------------------------
+batch_type: numel                 # Batch based on number of feature elements
+batch_bins: 800000                # Controls max elements per batch (~GPU memory budget)
+                                  # → Lower if you get OOM on single GPU
+
+# ------------------------------
+# Optimization setup
+# ------------------------------
+optim: adam                       # Adam optimizer (default for ESPnet)
+optim_conf:
+    lr: 0.0005                    # Initial learning rate
+scheduler: warmuplr               # Linear warmup + decay scheduler
+scheduler_conf:
+    warmup_steps: 30000           # Warmup steps for LR ramp-up
+
+accum_grad: 4                     # Gradient accumulation (simulates larger batch size)
+grad_clip: 5                      # Clip gradients to prevent exploding
+max_epoch: 50                     # Train for 50 epochs total
+
+keep_nbest_models: 10             # Keep best 10 checkpoints
+best_model_criterion:
+-   - valid                       # Monitor on validation set
+    - acc                         # Metric: accuracy
+    - max                         # Direction: maximize
+
+# ------------------------------
+# Data augmentation (SpecAugment)
+# ------------------------------
+specaug: specaug                  # Enable SpecAugment
+specaug_conf:
+    apply_time_warp: true         # Random time warping
+    time_warp_window: 5           # Max warping window (in frames)
+    time_warp_mode: bicubic       # Warping interpolation mode
+    apply_freq_mask: true         # Randomly mask frequency bands
+    freq_mask_width_range: [0, 30] # Mask range in mel bins
+    num_freq_mask: 2              # Number of frequency masks
+    apply_time_mask: true         # Randomly mask time frames
+    time_mask_width_range: [0, 40] # Mask width in frames
+    num_time_mask: 2              # Number of time masks
+
+# ------------------------------
+# Initialization
+# ------------------------------
+init: xavier_uniform              # Weight initialization (Xavier uniform) → good for small/medium Transformer models

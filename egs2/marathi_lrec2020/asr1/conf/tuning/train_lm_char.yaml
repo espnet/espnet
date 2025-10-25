@@ -1,0 +1,29 @@
+# =====================================
+# Marathi Character LM (LSTM)
+# =====================================
+
+optim: adam
+optim_conf:
+    lr: 0.0005
+    weight_decay: 0.000001  # L2 regularization
+
+grad_clip: 5.0
+batch_type: folded
+batch_size: 256
+max_epoch: 30
+patience: 5  # Early stopping patience
+
+lm: seq_rnn
+lm_conf:
+    rnn_type: lstm
+    nlayers: 4
+    unit: 650
+    tie_weights: True
+    dropout_rate: 0.3  # Added dropout for regularization
+
+best_model_criterion:
+- - valid
+  - loss
+  - min
+
+keep_nbest_models: 5  # Increased to keep more good models
