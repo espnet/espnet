@@ -56,7 +56,7 @@ decoder_conf:
 # ===========================
 joint_network_conf:
   joint_space_size: 320               # dimension of joint projection
-  
+
 # ===========================
 # 5. Model & Loss Configuration
 # ===========================

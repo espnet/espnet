@@ -13,8 +13,8 @@
 
 ## Marathi ASR — `marathi_lrec2020`
 
-This recipe is for the **Marathi language** and is trained on the  
-[**IndicCorpora Marathi dataset**](https://www.cse.iitb.ac.in/~pjyothi/indiccorpora/#marathi).  
+This recipe is for the **Marathi language** and is trained on the
+[**IndicCorpora Marathi dataset**](https://www.cse.iitb.ac.in/~pjyothi/indiccorpora/#marathi).
 All experiments use **Conformer architectures** with different tokenization schemes and frontends.
 
 ---
@@ -32,13 +32,13 @@ All experiments use **Conformer architectures** with different tokenization sche
 ---
 
 ### Notes
-- The **Char Conformer** achieved the lowest validation loss (47.75) and best generalization.  
-- **BPE conformer** reached high training accuracy but tended to overfit.  
+- The **Char Conformer** achieved the lowest validation loss (47.75) and best generalization.
+- **BPE conformer** reached high training accuracy but tended to overfit.
 - **XLSR + conformer (BPE and Char)** underperformed in this setup, likely due to limited fine-tuning (also sub-sampling conv2d was disabled. I used linear for this.)
 All the above training was done without any LM model.
 
 ---
 
 ### Dataset Reference
-> P. Jyothi et al., *“IndicCorpora: A Large Multilingual Corpus for Indic Languages.”*  
+> P. Jyothi et al., *“IndicCorpora: A Large Multilingual Corpus for Indic Languages.”*
 > [IIT Bombay IndicCorpora Project – Marathi](https://www.cse.iitb.ac.in/~pjyothi/indiccorpora/#marathi)
