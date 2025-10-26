@@ -45,7 +45,7 @@ git clone https://github.com/ljn7/warp-transducer.git
 
     (
         set -euo pipefail
-        cd pytorch_binding && python3 -m pip install -e .
+        cd pytorch_binding && python3 -m pip install --no-build-isolation -e .
     )
 )
 
