@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-from glob import glob
 import importlib
 import os
+from glob import glob
 
 import configargparse
-
 
 # parser
 parser = configargparse.ArgumentParser(
