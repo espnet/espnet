@@ -20,6 +20,12 @@ ${CXX:-g++} -v
     fi
 
     . ./activate_python.sh
+    if ${USE_CONDA}; then
+        # Possible solution to `OMP: Error #15: Initializing libomp.dylib,
+        # but found libomp.dylib already initialized.`
+        conda install nomkl
+    fi
+
     # FIXME(kamo): Failed to compile pesq
     make TH_VERSION="${TH_VERSION}" WITH_OMP="${WITH_OMP-ON}" all \
         warp-transducer.done nkf.done moses.done mwerSegmenter.done \
