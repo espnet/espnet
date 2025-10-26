@@ -167,6 +167,15 @@ class Spectrogram2Waveform(object):
             self.params.update(fs=fs, n_mels=n_mels, fmin=fmin, fmax=fmax)
 
     def __repr__(self):
+        """Return string representation of the Spectrogram2Waveform instance.
+
+        Generates a string representation that includes the class name and all
+        stored parameters in the format: ClassName(param1=value1, param2=value2, ...).
+
+        Returns:
+            String representation of the instance with all configuration parameters.
+
+        """
         retval = f"{self.__class__.__name__}("
         for k, v in self.params.items():
             retval += f"{k}={v}, "

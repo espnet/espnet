@@ -1,9 +1,11 @@
+"""Utils/Build-Dataclass."""
+
 import argparse
 import dataclasses
 
 
 def build_dataclass(dataclass, args: argparse.Namespace):
-    """Helper function to build dataclass from 'args'."""
+    """Build dataclass from 'args'."""
     kwargs = {}
     for field in dataclasses.fields(dataclass):
         if not hasattr(args, field.name):
