@@ -14,6 +14,7 @@ pytest.importorskip("s3prl")
 pytest.importorskip("loralib")
 is_python_3_8_plus = sys.version_info >= (3, 8)
 is_torch_1_8_plus = V(torch.__version__) >= V("1.8.0")
+is_torch_2_9_plus = V(torch.__version__) >= V("2.9.0")
 
 
 def init_S3prl_model():
@@ -37,6 +38,9 @@ def init_decoder_model():
     )
 
 
+@pytest.mark.skipif(
+    is_torch_2_9_plus, reason="S3PRL is using unsupported attribute `set_audio_backend`."
+)
 @pytest.mark.skipif(
     not is_torch_1_8_plus or not is_python_3_8_plus, reason="Not supported"
 )
