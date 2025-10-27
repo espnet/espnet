@@ -105,10 +105,10 @@ class DataIteratorFactory:
             f"registered={dataset_registered}"
         )
         dataset = CombinedDataset(
-            dataset_unregistered, 
+            dataset_unregistered,
             dataset_registered,
             num_worker=num_workers,
-            rank=rank, 
+            rank=rank,
             world_size=world_size,
         )
         logging.info("Dataset construction completed")
