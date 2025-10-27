@@ -9,8 +9,8 @@ from typing import Callable, Dict, List, Optional, Tuple, TypeVar, Union
 from torch.utils.data import DataLoader
 
 from espnet2.speechlm.dataloader.batch import batchfy
-from espnet2.speechlm.dataloader.task_conf import TASK_CONFIGS
 from espnet2.speechlm.dataloader.dataset import CombinedDataset
+from espnet2.speechlm.dataloader.task_conf import TASK_CONFIGS
 
 T = TypeVar("T")
 
