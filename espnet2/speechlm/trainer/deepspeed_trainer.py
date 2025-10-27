@@ -2,18 +2,17 @@
 DeepSpeed Trainer for SpeechLM with clean and simple setup.
 """
 
-import logging
 import json
+import logging
 from pathlib import Path
-from typing import Dict, Optional, Any
+from typing import Any, Dict, Optional
 
+import deepspeed
 import torch
 import torch.nn as nn
-import deepspeed
 import wandb
 
 from espnet2.speechlm.utils.data import to_device
-
 
 logger = logging.getLogger(__name__)
 
