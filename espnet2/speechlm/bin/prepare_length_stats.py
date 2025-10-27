@@ -7,8 +7,8 @@ This script analyzes data lengths and generates statistics for batching.
 import argparse
 import json
 import logging
-from pathlib import Path
 from multiprocessing import Pool
+from pathlib import Path
 from typing import Dict, Tuple
 
 import yaml
