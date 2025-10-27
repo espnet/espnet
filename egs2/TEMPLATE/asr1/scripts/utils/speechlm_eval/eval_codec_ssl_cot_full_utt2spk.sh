@@ -38,7 +38,7 @@ SECONDS=0
 
 # Stage control
 stage=1
-stop_stage=4
+stop_stage=5
 
 # Parallelization options
 nj=8
@@ -74,6 +74,7 @@ cleaner=whisper_en
 hyp_cleaner=whisper_en
 
 python=python3
+gt_response_file=dump/raw_codec_ssl_cot_full_utt2spk_librispeech_100/eval2000/index_files/text
 
 log "$0 $*"
 . utils/parse_options.sh
@@ -298,5 +299,16 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     log "Final results written to: ${gen_dir}/scoring/final_result.txt"
     cat ${gen_dir}/scoring/final_result.txt
 fi
+
+# =============================================================================
+# Stage 5: ROUGE, METEOR and Perplexity results
+# =============================================================================
+if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
+    log "Stage 5: Semantic Evaluations results"
+
+    python pyscripts/text/get_rouge_score_tts_best.py ${gt_response_file} ${gen_dir}/scoring/selected_examples ${gen_dir}/scoring/eval_wer/text
+    python pyscripts/text/perplexity_speechLM_best.py ${gen_dir}/scoring/selected_examples ${gen_dir}/scoring/eval_wer/text
+fi
+
 
 log "Successfully finished all stages. [elapsed=${SECONDS}s]"

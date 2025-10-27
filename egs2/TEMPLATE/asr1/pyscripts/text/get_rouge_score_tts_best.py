@@ -1,5 +1,3 @@
-from nltk.translate.meteor_score import meteor_score
-import numpy as np
 import evaluate
 import nltk
 nltk.download('wordnet')
