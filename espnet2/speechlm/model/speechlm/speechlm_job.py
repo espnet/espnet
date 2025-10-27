@@ -1,25 +1,25 @@
 #!/usr/bin/env python3
 """SpeechLM job template for training configuration."""
 
-from typing import Any, Callable, Dict
 import re
-import torch
+from typing import Any, Callable, Dict
+
 import numpy as np
+import torch
 
 from espnet2.speechlm.model.abs_job import AbsJobTemplate
-from espnet2.speechlm.model.speechlm.task_conf_speechlm import SPEECHLM_TASK_CONFIGS
-
-# Multimodal IOs
-from espnet2.speechlm.model.speechlm.multimodal_io.abs_io import AbsIO
-from espnet2.speechlm.model.speechlm.multimodal_io.text import HuggingFaceTextIO
-from espnet2.speechlm.model.speechlm.multimodal_io.audio import (
-    DiscreteAudioIO,
-    ContinuousAudioIO,
-)
 
 # Main speechlm model
 from espnet2.speechlm.model.speechlm.lm.parallel import ParallelHFModel
 
+# Multimodal IOs
+from espnet2.speechlm.model.speechlm.multimodal_io.abs_io import AbsIO
+from espnet2.speechlm.model.speechlm.multimodal_io.audio import (
+    ContinuousAudioIO,
+    DiscreteAudioIO,
+)
+from espnet2.speechlm.model.speechlm.multimodal_io.text import HuggingFaceTextIO
+from espnet2.speechlm.model.speechlm.task_conf_speechlm import SPEECHLM_TASK_CONFIGS
 from espnet2.speechlm.utils.data import pad_list
 
 _multimodal_ios = {
