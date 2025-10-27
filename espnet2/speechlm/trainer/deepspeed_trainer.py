@@ -120,6 +120,37 @@ class DeepSpeedTrainer:
         else:
             logger.info("No checkpoint found, starting from step 0")
 
+    def _all_reduce_stats(self, stats: Dict[str, torch.Tensor]) -> None:
+        """Perform async all_reduce on statistics for efficient multi-GPU sync.
+
+        Args:
+            stats: Dictionary of statistics tensors to reduce across GPUs.
+                   Modified in-place to contain the averaged values.
+        """
+        if not torch.distributed.is_initialized():
+            return
+
+        handles = []
+        world_size = torch.distributed.get_world_size()
+
+        # Launch all async all_reduce operations (non-blocking)
+        for key in stats:
+            assert isinstance(
+                stats[key], torch.Tensor
+            ), f"Expected tensor for stat '{key}', got {type(stats[key])}"
+            handle = torch.distributed.all_reduce(
+                stats[key],
+                op=torch.distributed.ReduceOp.SUM,
+                async_op=True,  # Non-blocking for efficiency
+            )
+            handles.append((key, handle))
+
+        # Wait for all operations to complete and compute mean
+        for key, handle in handles:
+            if handle is not None:
+                handle.wait()
+            stats[key] = stats[key] / world_size
+
     def run(self) -> None:
         """Main training loop."""
         while self.global_step < self.max_step:
@@ -150,9 +181,13 @@ class DeepSpeedTrainer:
             self.model_engine.backward(out["loss"])
             self.model_engine.step()
 
-            # TODO(deepspeed): sync the stats across GPUs before logging
-            stats = {k: float(v) for k, v in out["stats"].items()}
-            stats = {f"train/{key}": value for key, value in stats.items()}
+            stats = out["stats"]
+            self._all_reduce_stats(stats)
+
+            stats = {f"train/{k}": float(v.cpu()) for k, v in stats.items()}
+            stats["train/lr"] = self.model_engine.get_lr()[0]
+            stats["train/grad_norm"] = self.model_engine.get_global_grad_norm()
+
             wandb.log(stats, step=self.global_step)
 
             self.global_step += 1
@@ -172,7 +207,10 @@ class DeepSpeedTrainer:
                     batch = to_device(batch, "cuda", dtype=self.dtype)
                     out = self.model_engine(**batch)
 
-                    stats = {k: float(v) for k, v in out["stats"].items()}
+                    stats = out["stats"]
+                    self._all_reduce_stats(stats)
+
+                    stats = {k: float(v.cpu()) for k, v in stats.items()}
                     for key, value in stats.items():
                         if key not in all_stats:
                             all_stats[key] = []
