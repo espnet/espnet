@@ -1,9 +1,10 @@
 """Data utilities for SpeechLM module."""
 
 import dataclasses
-import torch
+from typing import List, Tuple, Union
+
 import numpy as np
-from typing import List, Union, Tuple
+import torch
 
 
 def pad_list(
