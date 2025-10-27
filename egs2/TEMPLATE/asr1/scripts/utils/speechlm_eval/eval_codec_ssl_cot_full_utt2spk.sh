@@ -4,7 +4,7 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 # Combined evaluation script with 4 stages:
-# Stage 1: Basic text scoring (CER/WER using sclite)
+# Stage 1: Intermediate ASR task scoring (CER/WER using sclite)
 # Stage 2: ASR evaluation (using Whisper)
 # Stage 3: Quality evaluation (MOS/Speaker similarity using VERSA)
 # Stage 4: Audio Quality Results summarization
