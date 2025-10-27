@@ -1,13 +1,13 @@
 """Data utilities for SpeechLM module."""
 
-import torch
+from typing import List, Tuple, Union
+
 import numpy as np
-from typing import List, Union, Tuple
+import torch
 
 
 def pad_list(
-    sequences: List[Union[np.ndarray, torch.Tensor]],
-    pad_value: float = 0.0
+    sequences: List[Union[np.ndarray, torch.Tensor]], pad_value: float = 0.0
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """Pad a list of sequences to the same length and stack them.
 
@@ -57,7 +57,9 @@ def pad_list(
 
     for t in tensors[1:]:
         if t.shape[:-1] != other_dims:
-            raise ValueError("All sequences must have the same shape except for the last dimension")
+            raise ValueError(
+                "All sequences must have the same shape except for the last dimension"
+            )
 
     # Find common dtype using torch's type promotion
     dtype = tensors[0].dtype
@@ -71,7 +73,9 @@ def pad_list(
 
     # Fill sequences
     for i, t in enumerate(tensors):
-        padded[i, ..., :lengths[i]] = t.to(dtype=dtype, device=device, non_blocking=True)
+        padded[i, ..., : lengths[i]] = t.to(
+            dtype=dtype, device=device, non_blocking=True
+        )
 
     # Create length tensor
     length_tensor = torch.tensor(lengths, dtype=torch.long, device=device)
