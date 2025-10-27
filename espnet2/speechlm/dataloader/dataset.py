@@ -166,6 +166,7 @@ class CombinedDataset(Dataset):
 
         # Use ProcessPoolExecutor for parallel loading
         max_workers = min(num_worker, len(dataset_paths))
+        max_workers = max(1, max_workers)
         with ProcessPoolExecutor(max_workers=max_workers) as executor:
             # Submit all loading tasks
             futures = [
