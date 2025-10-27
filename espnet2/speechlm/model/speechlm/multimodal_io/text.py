@@ -3,7 +3,7 @@
 from typing import List, Tuple
 
 import numpy as np
-from transformers import AutoTokenizer, AutoConfig
+from transformers import AutoConfig, AutoTokenizer
 
 from .abs_io import AbsIO
 

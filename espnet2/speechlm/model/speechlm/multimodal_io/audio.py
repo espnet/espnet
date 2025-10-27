@@ -1,10 +1,11 @@
 """Audio I/O implementation for discrete and continuous representations (v2)."""
 
+from pathlib import Path
 from typing import List, Optional, Tuple
+
+import joblib
 import numpy as np
 import torch
-import joblib
-from pathlib import Path
 
 from .abs_io import AbsIO
 
