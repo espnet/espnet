@@ -169,7 +169,7 @@ class DeepSpeedTrainer:
         """Execute one training epoch."""
         self.model_engine.train()
 
-        iterator = self.train_data_factory.get_iterator(
+        iterator = self.train_data_factory.build_iter(
             global_step=self.global_step,
             length=self.save_interval,
         )
@@ -196,7 +196,7 @@ class DeepSpeedTrainer:
         self.model_engine.eval()
 
         for name, factory in self.valid_data_factories.items():
-            iterator = factory.get_iterator()
+            iterator = factory.build_iter()
 
             # Collect all batch metrics
             all_stats = {}
