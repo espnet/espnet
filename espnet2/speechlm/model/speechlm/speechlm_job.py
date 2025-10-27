@@ -172,9 +172,13 @@ class SpeechLMPreprocessor:
         self.vocab = vocab
         self.vocab_intervals = vocab_intervals
         self.pad_id = self.vocab.index("<|pad|>")
-        self.num_stream = max(
-            [io.num_stream() for io in multimodal_io.values() if io.is_discrete]
-        )
+
+        possible_num_stream = [
+            io.num_stream() for io in multimodal_io.values() if io.is_discrete
+        ]
+        if len(possible_num_stream) == 0:
+            raise ValueError("You should have at least one discrete multimodal IO")
+        self.num_stream = max(possible_num_stream)
 
     def find_length(self, key, data_dict):
         """Quickly compute sequence length without full preprocessing.
@@ -255,7 +259,7 @@ class SpeechLMPreprocessor:
         # (3) loop on each message
         # Determine where to place EOT tokens (when consecutive msgs have same role)
         apply_eots = [
-            msg1[0] == msg2[0] for msg1, msg2 in zip(messages[:1], messages[1:])
+            msg1[0] == msg2[0] for msg1, msg2 in zip(messages[:-1], messages[1:])
         ] + [False]
         for apply_eot, (role, this_io, this_data) in zip(apply_eots, messages):
             apply_loss = float(role == "assistant" or self.loss_region == "all")

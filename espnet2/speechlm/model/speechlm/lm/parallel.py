@@ -146,7 +146,7 @@ def build_parallel_hf_class(model_hf_tag):
                 if io_name == "text" or io_name == "special_token":
                     continue
 
-                cur_start, _ = intervals[0]
+                cur_start, end = intervals[0]
                 # Split intervals if they exceed max_loss_interval size
                 for _, end in intervals[1:]:
                     if end - cur_start <= max_loss_interval:
@@ -309,7 +309,7 @@ def build_parallel_hf_class(model_hf_tag):
                 if this_mask.int().sum() == 0:
                     continue
                 # Compute loss only for vocabulary subset [start:end]
-                this_logits = hidden_states[this_mask]
+                this_logits = hidden_states[:, :, 1:][this_mask]
                 this_logits = torch.matmul(
                     this_logits, self.lm_head.weight[start:end].T
                 )
@@ -322,7 +322,7 @@ def build_parallel_hf_class(model_hf_tag):
                 )
                 loss[:, :, 1:].masked_scatter_(this_mask, this_loss)
                 if not self.training:
-                    this_acc = this_logits.argmax(-1) == this_targets - start
+                    this_acc = this_logits.argmax(-1) == this_targets
                     acc[:, :, 1:].masked_scatter_(this_mask, this_acc)
 
             # Apply loss masks and compute weighted average
