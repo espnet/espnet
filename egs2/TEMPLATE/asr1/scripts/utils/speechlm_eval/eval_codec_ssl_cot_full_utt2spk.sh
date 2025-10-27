@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 
-# Copyright 2024 Jinchuan Tian
+# Copyright 2024Siddhant Arora
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 # Combined evaluation script with 4 stages:
 # Stage 1: Basic text scoring (CER/WER using sclite)
 # Stage 2: ASR evaluation (using Whisper)
 # Stage 3: Quality evaluation (MOS/Speaker similarity using VERSA)
-# Stage 4: Results summarization
+# Stage 4: Audio Quality Results summarization
+# Stage 5: Semantic Evaluation
 
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
