@@ -5,9 +5,9 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train_nodup
-valid_set=train_dev
-test_sets="eval2000"
+train_set=train_nodup_response
+valid_set=train_dev_response
+test_sets="eval2000_response"
 
 train_config=conf/train_s2s_lr1e-5_fisher_complete.yaml
 inference_config=conf/decode_asr_short2.yaml
@@ -40,5 +40,6 @@ bpe_opts="--subword_choice huggingface --subword_model HuggingFaceTB/SmolLM-1.7B
     --test_sets "${test_sets}" \
     --min_wav_duration 0.1 \
     --max_wav_duration 60.0 \
+    --local_data_opts "--speechlm_data_prep true"\
     ${ssl_opts} ${codec_opts} ${bpe_opts} \
     "$@"

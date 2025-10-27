@@ -10,6 +10,7 @@ log() {
     echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $*"
 }
 SECONDS=0
+speechlm_data_prep=False
 
 
 stage=1
@@ -87,17 +88,28 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-    if [ -n "${fisher_dir}" ]; then
-           log "Fisher LM Train Data Preparation"
-           local/fisher_data_prep.sh ${fisher_dir}
-           utils/fix_data_dir.sh data/train_fisher
-           cp data/train_fisher/text data/train_fisher/text.backup
-           sed -i 's/\._/ /g; s/\.//g; s/them_1/them/g' data/train_fisher/text
-           cat data/train_fisher/text data/train_nodup/text > data/lm_train.txt
-
-           # Note(Jinchuan): Combine train_nodup and train_fisher
-           utils/combine_data.sh data/train_swbd data/train_nodup data/train_fisher
-     fi
-
+    if [ "${speechlm_data_prep}" = true ]; then
+        log "SpeechLM Data Preparation"
+        for x in train_dev eval2000 train_nodup; do
+            python local/clean_text.py data/${x}/
+            mv data/${x}/text data/${x}/text_old
+            mv data/${x}/text_clean data/${x}/text
+            scripts/text/llm_punctuate.sh --input_dir data/${x}/
+            cp -r data/${x}/ data/${x}_response/
+            python local/create_cot_dialogue_format.py data/${x}/ data/${x}_response/
+            for f in text src_text segments tgt_segments; do
+                sort data/${x}_response/${f} -o data/${x}_response/${f}
+            done
+        done
+    else
+        if [ -n "${fisher_dir}" ]; then
+            log "Fisher LM Train Data Preparation"
+            local/fisher_data_prep.sh ${fisher_dir}
+            utils/fix_data_dir.sh data/train_fisher
+            cp data/train_fisher/text data/train_fisher/text.backup
+            sed -i 's/\._/ /g; s/\.//g; s/them_1/them/g' data/train_fisher/text
+            cat data/train_fisher/text data/train_nodup/text > data/lm_train.txt
+        fi
+    fi    
 fi
 log "Successfully finished. [elapsed=${SECONDS}s]"
