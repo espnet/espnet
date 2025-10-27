@@ -11,17 +11,13 @@ Each data source is specified as a triplet: name,path,reader
 import argparse
 import json
 import logging
-import re
 from pathlib import Path
 
+from espnet2.speechlm.configuration.task_conf import SUPPORTED_ENTRIES
 from espnet2.speechlm.dataloader.multimodal_loader import (
     LhotseAudioReader,
     TextReader,
 )
-
-allowed_keys = ["speaker"]
-allowed_keys.extend([f"audio{x}" for x in range(0, 10)])
-allowed_keys.extend([f"text{x}" for x in range(0, 10)])
 
 
 def validate_triplet(triplet: str):
@@ -45,7 +41,7 @@ def validate_triplet(triplet: str):
     name, path, reader = parts
 
     # Validate name (audio1, audio2, ... or text1, text2, ...)
-    if name not in allowed_keys:
+    if name not in SUPPORTED_ENTRIES:
         raise ValueError(f"Invalid entry name {name}")
 
     # Convert to Path and check existence
@@ -133,7 +129,8 @@ def get_parser():
         type=str,
         nargs="+",
         required=True,
-        help="List of name,path,reader triplets (e.g., audio1,/path/to/audio,lhotse_audio)",
+        help="List of name,path,reader triplets "
+        "(e.g., audio1,/path/to/audio,lhotse_audio)",
     )
     parser.add_argument(
         "--output_json",

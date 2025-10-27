@@ -869,14 +869,14 @@ class AbsTask(ABC):
             "--batch_type",
             type=str,
             default="folded",
-            choices=list(BATCH_TYPES),
+            choices=list(BATCH_TYPES) + list(CATEGORY_BATCH_TYPES),
             help=_batch_type_help,
         )
         group.add_argument(
             "--valid_batch_type",
             type=str_or_none,
             default=None,
-            choices=list(BATCH_TYPES) + [None],
+            choices=list(BATCH_TYPES) + list(CATEGORY_BATCH_TYPES) + [None],
             help="If not given, the value of --batch_type is used",
         )
         group.add_argument("--fold_length", type=int, action="append", default=[])
@@ -1949,9 +1949,44 @@ class AbsTask(ABC):
                 "category2utt mandatory for category iterator, but not found"
             )
 
-        if iter_options.batch_type in CATEGORY_BATCH_TYPES:
+        if (
+            iter_options.batch_type in CATEGORY_BATCH_TYPES
+            or iter_options.batch_type == "folded"
+        ):
+            # Note(qingzheng): Handle category-based batch sampling for category
+            # iterator type.
+            #
+            # This covers two scenarios:
+            # 1. Explicit category batch types (catbel, catpow, catpow_balance_dataset):
+            #    Use the specified category sampler directly.
+            # 2. Legacy "folded" batch type with category iterator:
+            #    In older configurations, when iterator_type=category was set,
+            #    they typically does not specify the batch_type, which makes the
+            #    batch_type default to "folded". However, the intended behavior
+            #    in the case of setting iterator_type to category, is to use
+            #    category-balanced sampler (catbel). We maintain backward
+            #    compatibility by mapping the batch_type "folded" to "catbel"
+            #    in the case of setting iterator_type to "category".
+
+            if iter_options.batch_type == "folded":
+                logging.warning(
+                    "Detected iterator_type='category' with batch_type='folded'. "
+                    "In older ESPnet versions (< 202509), when iterator_type was "
+                    "set to 'category', the batch_type would default to 'folded' as "
+                    "the older design does not require the batch_type to be specified, "
+                    "but the intended behavior was to use category-balanced sampling "
+                    "(catbel batch sampler). We map 'folded' to 'catbel' to maintain "
+                    "this behavior. If you actually want to use the folded batch "
+                    "sampler, please set iterator_type='sequence' and "
+                    "batch_type='folded' instead."
+                )
+
             batch_sampler, sampler_args = build_category_batch_sampler(
-                type=iter_options.batch_type,
+                type=(
+                    iter_options.batch_type
+                    if iter_options.batch_type != "folded"
+                    else "catbel"
+                ),
                 batch_size=iter_options.batch_size,
                 batch_bins=iter_options.batch_bins,
                 shape_files=iter_options.shape_files,
@@ -1982,6 +2017,21 @@ class AbsTask(ABC):
                 batch_size=iter_options.batch_size,
                 key_file=key_file,
             )
+        elif iter_options.batch_type in BATCH_TYPES.keys():
+            # If the batch_type is set to other than the category batch types,
+            # folded, and unsorted, we fallback to treat it as a sequence iterator.
+            logging.warning(
+                f"The batch type {iter_options.batch_type} is not compatible "
+                f"with iterator_type=category. Please use a category batch type. "
+                f"Available category batch types: {CATEGORY_BATCH_TYPES.keys()} "
+                f"Here we fallback to treat it as a sequence iterator."
+            )
+            sequence_iter_factory = cls.build_sequence_iter_factory(
+                args=args,
+                iter_options=iter_options,
+                mode=mode,
+            )
+            return sequence_iter_factory
         else:
             raise ValueError(
                 f"batch_type={iter_options.batch_type} is not supported"

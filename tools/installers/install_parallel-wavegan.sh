@@ -13,5 +13,5 @@ rm -rf ParallelWaveGAN
 git clone https://github.com/kan-bayashi/ParallelWaveGAN.git
 cd ParallelWaveGAN
 pip install "setuptools<80.0.0"
-pip install -e .
+pip install --no-build-isolation -e .
 cd ..

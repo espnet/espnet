@@ -7,8 +7,10 @@ Supports multiprocessing for efficient processing of large datasets.
 
 Multi-channel Support:
     - Single-channel audio: Creates MonoCut objects for efficiency
-    - Multi-channel audio: Creates MultiCut objects containing MonoCuts for each channel
-    This approach provides optimal performance while supporting multi-channel recordings.
+    - Multi-channel audio: Creates MultiCut objects containing MonoCuts for
+      each channel
+    This approach provides optimal performance while supporting multi-channel
+    recordings.
 """
 
 import argparse
@@ -134,7 +136,8 @@ def parse_segments_file(
 
             if end <= start:
                 logging.warning(
-                    f"Line {line_num}: End time <= start time for {segment_id}: {start} -> {end}"
+                    f"Line {line_num}: End time <= start time for {segment_id}: "
+                    f"{start} -> {end}"
                 )
                 invalid_count += 1
                 continue
@@ -142,7 +145,8 @@ def parse_segments_file(
             # Check if recording exists
             if recording_id not in recording_dict:
                 logging.warning(
-                    f"Line {line_num}: Recording {recording_id} not found for segment {segment_id}"
+                    f"Line {line_num}: Recording {recording_id} not found for "
+                    f"segment {segment_id}"
                 )
                 invalid_count += 1
                 continue
@@ -178,7 +182,8 @@ def print_statistics(
     total_duration = sum(cut.duration for cut in cut_set)
     logging.info(f"Total cuts: {len(cut_set)}")
     logging.info(
-        f"Total audio duration: {total_duration:.2f} seconds ({total_duration/3600:.2f} hours)"
+        f"Total audio duration: {total_duration:.2f} seconds "
+        f"({total_duration / 3600:.2f} hours)"
     )
 
     if multi_channel_count > 0:
