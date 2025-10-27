@@ -1,5 +1,5 @@
 import re
-
+import sys
 
 
 def remove_repeated_phrases(text, min_words=2, max_repeats=2):
@@ -76,15 +76,21 @@ def remove_trailing_repetitions(text):
 
     return " ".join(cleaned_words)
 
-# Example ASR output with repeated phrases
-asr_output = """I mean, my bags have been torn apart every time I travel. I must I must have that look or something. I don't know. Mhm. I don't know. Mhm."""
 
-cleaned_text = remove_repeated_phrases(asr_output)
-print(cleaned_text)
-file_write=open("/work/nvme/bbjs/arora1/speech_lm/delta_ai/espnet/egs2/swbd/speechlm1/exp/speechlm_codec_ssl_cot_full_utt2spk_librispeech_100_train_s2s_lr1e-5_fisher_complete/decode_asr_short2_20epoch/codec_ssl_cot_full_utt2spk_eval2000_response/src_text_new","w")
-for generated_text in open("/work/nvme/bbjs/arora1/speech_lm/delta_ai/espnet/egs2/swbd/speechlm1/exp/speechlm_codec_ssl_cot_full_utt2spk_librispeech_100_train_s2s_lr1e-5_fisher_complete/decode_asr_short2_20epoch/codec_ssl_cot_full_utt2spk_eval2000_response/src_text"):
-    filtered_text = remove_repeated_phrases(generated_text.strip())
-    filtered_text = remove_repeated_phrases(filtered_text)
-    filtered_text = remove_trailing_repetitions(filtered_text)
-    file_write.write(filtered_text+"\n")
-print(filtered_text)
+if __name__ == "__main__":
+    if len(sys.argv) != 3:
+        print("Usage: python script.py <input_file> <output_file>")
+        sys.exit(1)
+    
+    input_file = sys.argv[1]
+    output_file = sys.argv[2]
+    
+    with open(output_file, "w") as file_write:
+        with open(input_file, "r") as file_read:
+            for generated_text in file_read:
+                filtered_text = remove_repeated_phrases(generated_text.strip())
+                filtered_text = remove_repeated_phrases(filtered_text)
+                filtered_text = remove_trailing_repetitions(filtered_text)
+                file_write.write(filtered_text + "\n")
+    
+    print(f"Processing complete. Output written to {output_file}")
