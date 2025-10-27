@@ -182,7 +182,7 @@ class DataIteratorFactory:
             # loader_state is not None and exists
             self.load_iterator_state(loader_state)
 
-    def get_iterator(self, global_step: int = 0, length: int = None) -> DataLoader:
+    def build_iter(self, global_step: int = 0, length: int = None) -> DataLoader:
         """Get a DataLoader for a specific range of batches.
 
         Supports endless epochs by wrapping around when batches are
