@@ -92,7 +92,8 @@ class HuggingFaceTextIO(AbsIO):
         """
         if len(batch_data) != 1:
             raise ValueError(
-                f"Text find_length_batch only accepts batch size 1, got {len(batch_data)}"
+                f"Text find_length_batch only accepts batch size 1, "
+                f"got {len(batch_data)}"
             )
 
         text = batch_data[0]
