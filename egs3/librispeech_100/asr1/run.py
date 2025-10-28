@@ -125,7 +125,7 @@ def main() -> None:
         eval_cmd = [
             args.launcher,
             "-m",
-            "src.bin.decode",
+            "template.decoder.asr",
             "--config",
             args.eval_config,
         ]
