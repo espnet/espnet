@@ -41,8 +41,6 @@ import torch.nn.functional as F
 from einops import rearrange, reduce, repeat
 from torch import einsum, nn
 
-from espnet2.gan_codec.shared.quantizer.modules.distrib import broadcast_tensors
-
 
 def default(val: Any, d: Any) -> Any:
     return val if val is not None else d
