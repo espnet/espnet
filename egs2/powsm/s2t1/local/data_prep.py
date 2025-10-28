@@ -221,7 +221,8 @@ def clean_english(tokenised):
                 tokenised[i], tokenised[i + 1] = "t", "ʃ"
             else:
                 tokenised[i] = target_vplosives_map[phone]
-        # 3. lateral /l/ velarized at the end of syllables (i.e. word boundary or consonant)
+        # 3. lateral /l/ velarized at the end of syllables 
+        # (i.e. word boundary or consonant)
         # <=> turn "l̴" back to /l/ at word-initial and after consonant
         elif phone == "l̴" and prevp not in vowels:
             tokenised[i] = "l"

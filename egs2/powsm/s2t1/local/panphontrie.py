@@ -31,8 +31,8 @@ class TrieNode:
 def build_trie_from_file(input_path, output_pickle):
     """
     List of panphon phone entries (one per line) -> trie
-    input_path: path to file of panphon phone entries
-    (first column of https://github.com/dmort27/panphon/blob/master/panphon/data/ipa_all.csv)
+    input_path: path to file of panphon phone entries (first column of 
+        https://github.com/dmort27/panphon/blob/master/panphon/data/ipa_all.csv)
     output_pickle: path to the output trie object serialized as pickle file
     """
     root = TrieNode()
