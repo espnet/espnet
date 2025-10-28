@@ -3,7 +3,10 @@ import glob
 import json
 import logging
 import os
+import pickle
+import string
 import sys
+import unicodedata
 from collections import defaultdict
 from glob import glob
 from pathlib import Path
@@ -17,10 +20,6 @@ from ipatok import tokenise
 from lhotse import CutSet
 from scipy.io import wavfile
 from tqdm import tqdm
-
-import pickle
-import string
-import unicodedata
 
 
 def get_parser():
@@ -317,7 +316,7 @@ def clean_english(tokenised):
                 tokenised[i], tokenised[i + 1] = "t", "ʃ"
             else:
                 tokenised[i] = target_vplosives_map[phone]
-        # 3. lateral /l/ velarized at the end of syllables 
+        # 3. lateral /l/ velarized at the end of syllables
         # (i.e. word boundary or consonant)
         # <=> turn "l̴" back to /l/ at word-initial and after consonant
         elif phone == "l̴" and prevp not in vowels:
