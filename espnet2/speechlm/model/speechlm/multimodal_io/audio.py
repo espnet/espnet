@@ -13,6 +13,8 @@ import torch
 from espnet2.speechlm.model.speechlm.multimodal_io.abs_io import AbsIO
 
 
+# NOTE(Jinchuan): derived from egs2/TEMPLATE/asr1/pyscripts/feats/dump_km_label.py
+# and convert to a torch.nn.Module.
 class KmeansModel(torch.nn.Module):
     """Apply k-means clustering to quantize SSL features into discrete tokens.
 
