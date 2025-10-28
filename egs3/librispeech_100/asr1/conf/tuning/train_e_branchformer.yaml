@@ -1,0 +1,97 @@
+# Main training for LibriSpeech 100h ASR recipe
+defaults:
+  - default.yaml
+  - ../dataset.yaml
+
+
+exptag: template
+task: espnet2.tasks.asr.ASRTask
+
+
+tokenizer:
+  vocab_size: 5000
+  character_coverage: 1.0
+  model_type: bpe
+  save_path: ${data_dir}/${tokenizer.model_type}_${tokenizer.vocab_size}
+
+
+model:
+  # Model definition for Branchformer-based ASR
+  vocab_size: ${tokenizer.vocab_size}
+  token_list: ${tokenizer.save_path}/tokens.txt
+
+  encoder: e_branchformer
+  encoder_conf:
+    output_size: 256
+    attention_heads: 4
+    attention_layer_type: rel_selfattn
+    pos_enc_layer_type: rel_pos
+    rel_pos_type: latest
+    cgmlp_linear_units: 1024
+    cgmlp_conv_kernel: 31
+    use_linear_after_conv: false
+    gate_activation: identity
+    num_blocks: 12
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    attention_dropout_rate: 0.1
+    input_layer: conv2d
+    layer_drop_rate: 0.0
+    linear_units: 1024
+    positionwise_layer_type: linear
+    use_ffn: true
+    macaron_ffn: true
+    merge_conv_kernel: 31
+
+  decoder: transformer
+  decoder_conf:
+    attention_heads: 4
+    linear_units: 2048
+    num_blocks: 6
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    self_attention_dropout_rate: 0.1
+    src_attention_dropout_rate: 0.1
+    layer_drop_rate: 0.0
+
+  normalize: global_mvn
+  normalize_conf:
+    stats_file: ${stats_dir}/train/feats_stats.npz
+
+  model_conf:
+    ctc_weight: 0.3
+    lsm_weight: 0.1
+    length_normalized_loss: false
+
+  frontend: default
+  frontend_conf:
+    n_fft: 512
+    win_length: 400
+    hop_length: 160
+
+  specaug: specaug
+  specaug_conf:
+    apply_time_warp: true
+    time_warp_window: 5
+    time_warp_mode: bicubic
+    apply_freq_mask: true
+    freq_mask_width_range: [0, 27]
+    num_freq_mask: 2
+    apply_time_mask: true
+    time_mask_width_ratio_range: [0.0, 0.05]
+    num_time_mask: 5
+
+
+train:
+  iter_factory:
+    num_workers: 4
+    batches:
+      type: sorted
+      batch_size: 16
+      batch_bins: 12000000
+
+
+trainer:
+  max_epochs: 3
+  precision: bf16-mixed
+  log_every_n_steps: 100

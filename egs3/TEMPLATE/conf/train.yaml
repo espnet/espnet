@@ -1,35 +1,6 @@
 # Main training for LibriSpeech 100h ASR recipe
 defaults:
   - default.yaml
-  - trainer: default
-  - logging: default
-  - callbacks: default
-  - tokenizer: default
-  - optim: adam
-  - scheduler: warmup
-  - model: e_branchformer
-  - parallel: local
-  - dataloader: default
-  - dataset: default
-  - _self_
+  - dataset.yaml
 
 exptag: template
-seed: 2024
-num_device: 1
-
-recipe_dir: .
-data_dir: ${recipe_dir}/data
-exp_dir: ${recipe_dir}/exp/${exptag}
-stats_dir: ${recipe_dir}/exp/stats
-
-task:
-
-best_model_criterion:
-  - - valid/loss
-    - 3
-    - min
-  - - valid/cer
-    - 3
-    - min
-
-fit: {}

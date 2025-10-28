@@ -3,6 +3,19 @@ num_device: 1
 num_nodes: 1
 task:
 
+
+recipe_dir: .
+data_dir: ${recipe_dir}/data
+exp_dir: ${recipe_dir}/exp/${exptag}
+stats_dir: ${recipe_dir}/exp/stats
+decode_dir: ${exp_dir}/decode
+
+
+parallel:
+  env: local
+  n_workers: 1
+
+
 dataloader:
   collate_fn:
     _target_: espnet2.train.collate_fn.CommonCollateFn
@@ -34,7 +47,40 @@ dataloader:
         batch_size: ${dataloader.train.iter_factory.batches.batch_size}
         batch_bins: ${dataloader.train.iter_factory.batches.batch_bins}
 
+
+optim:
+  _target_: torch.optim.Adam
+  lr: 0.002
+  weight_decay: 0.000001
+
+
+scheduler:
+  _target_: espnet2.schedulers.warmup_lr.WarmupLR
+  warmup_steps: 15000
+
+
 best_model_criterion:
   - - valid/loss
     - 3
     - min
+
+
+trainer:
+  accelerator: auto
+  devices: ${num_device}
+  num_nodes: ${num_nodes}
+  accumulate_grad_batches: 1
+  check_val_every_n_epoch: 1
+  gradient_clip_val: 1.0
+  log_every_n_steps: 100
+  max_epochs: 10
+
+  logger:
+    - _target_: lightning.pytorch.loggers.TensorBoardLogger
+      save_dir: ${expdir}/tensorboard
+      name: tb_logger
+
+  strategy: auto
+
+
+fit: {}

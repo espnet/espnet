@@ -1,18 +1,17 @@
 # Decoding configuration for LibriSpeech 100h
-
 defaults:
-  - tokenizer: default
-  - dataset: default
-  - model: decode_beam1
-  - parallel: local
-
+  - default.yaml
+  - ../dataset.yaml
 
 exp_tag: template
 
-recipe_dir: .
-exp_dir: ${recipe_dir}/exp/${exp_tag}
-data_dir: ${recipe_dir}/data
-decode_dir: ${exp_dir}/decode
+
+model:
+  _target_: espnet2.bin.asr_inference.Speech2Text
+  asr_train_config: ${exp_dir}/config.yaml
+  asr_model_file: ${exp_dir}/last.ckpt
+  beam_size: 1
+  ctc_weight: 1.0
 
 
 metrics:

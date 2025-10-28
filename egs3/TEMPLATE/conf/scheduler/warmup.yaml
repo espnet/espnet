@@ -1,2 +1,0 @@
-_target_: espnet2.schedulers.warmup_lr.WarmupLR
-warmup_steps: 15000
