@@ -44,7 +44,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
-    log "stage 1: Preparing Data for IPAPack++"
+    log "stage 1: Preparing Data for IPAPack++ and Panphon vocab"
 
     python local/data_prep.py --source_dir ${IPAPACK_PLUS} --target_dir data --min_wav_length ${min_wav_duration}
 
@@ -55,6 +55,12 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         touch $dir/text.prev $dir/text.ctc
     done
     python local/fix_doreco.py
+
+    # download ipa_all.csv from panphon to use as vocab list
+    wget https://raw.githubusercontent.com/dmort27/panphon/master/panphon/data/ipa_all.csv
+    cut -d',' -f1 ipa_all.csv > local/panphon_ipas
+    sed -i '1d' local/panphon_ipas
+    rm ipa_all.csv
 fi
 
 if [ ${stage} -eq 2 ] && [ ${stop_stage} -ge 2 ]; then
