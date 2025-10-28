@@ -232,15 +232,6 @@ def build_trie_from_file(input_path, output_pickle):
     return root
 
 
-def load_trie(pickle_path):
-    """
-    Load trie object from pickle file
-    pickle_path: path to pickle file of trie object
-    return: root node of the trie
-    """
-    return PanphonTrieNode.deserialize(pickle_path)
-
-
 def clean(sequence, with_supraseg=True):
     """
     Normalize phones' unicode so that trie search can handle everything
@@ -292,8 +283,9 @@ def panphon_gsearch(seq, root, with_supraseg=True):
 
 
 if not os.path.exists("local/panphon.pkl"):
-    build_trie_from_file("local/panphon_ipas", "local/panphon.pkl")
-pptrie = load_trie("local/panphon.pkl")
+    pptrie = build_trie_from_file("local/panphon_ipas", "local/panphon.pkl")
+else:
+    pptrie = PanphonTrieNode.deserialize("local/panphon.pkl")
 
 
 def clean_english(tokenised):
