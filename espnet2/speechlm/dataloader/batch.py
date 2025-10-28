@@ -1,4 +1,7 @@
-"""Batching utilities for SpeechLM data loading."""
+# Copyright 2025 Jinchuan Tian (Carnegie Mellon University)
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
+"""Batching utilities for efficient data loading in SpeechLM training."""
 
 import logging
 from typing import Dict, List, TypeVar

@@ -1,4 +1,7 @@
-"""Data utilities for SpeechLM module."""
+# Copyright 2025 Jinchuan Tian (Carnegie Mellon University)
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
+"""Data utilities for tensor manipulation and device management in SpeechLM."""
 
 import dataclasses
 from typing import List, Tuple, Union
@@ -84,6 +87,8 @@ def pad_list(
     return padded, length_tensor
 
 
+# NOTE(Jinchuan): copy from the existing code:
+# espnet2.torch_utils.device_funcs: to_device
 def to_device(data, device=None, dtype=None, non_blocking=False, copy=False):
     """Change the device of object recursively"""
     if isinstance(data, dict):

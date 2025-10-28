@@ -1,4 +1,7 @@
-"""Iterator utilities for SpeechLM data loading."""
+# Copyright 2025 Jinchuan Tian (Carnegie Mellon University)
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
+"""Data iterator factory for creating batch iterators in SpeechLM training."""
 
 import json
 import logging

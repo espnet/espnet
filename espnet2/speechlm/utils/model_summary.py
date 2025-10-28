@@ -1,3 +1,8 @@
+# Copyright 2025 Jinchuan Tian (Carnegie Mellon University)
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
+"""Model summary utilities copied from espnet2/torch_utils/model_summary.py."""
+
 import humanfriendly
 import numpy as np
 import torch
