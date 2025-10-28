@@ -1,4 +1,3 @@
-recipe_dir: .
 num_device: 1
 num_nodes: 1
 task:
