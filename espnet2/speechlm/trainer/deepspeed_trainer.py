@@ -1,6 +1,7 @@
-"""
-DeepSpeed Trainer for SpeechLM with clean and simple setup.
-"""
+# Copyright 2025 Jinchuan Tian (Carnegie Mellon University)
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
+"""DeepSpeed trainer implementation for SpeechLM training."""
 
 import json
 import logging
