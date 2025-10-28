@@ -11,7 +11,7 @@ from espnet3.runner.inference_provider import InferenceProvider
 from espnet3.utils.config import load_config_with_defaults
 
 
-class LibrispeechOWSMProvider(InferenceProvider):
+class DecodeProvider(InferenceProvider):
     @staticmethod
     def build_dataset(config):
         # config includes test dataset
@@ -33,7 +33,7 @@ class LibrispeechOWSMProvider(InferenceProvider):
         return model
 
 
-class LibrispeechRunner(BaseRunner):
+class DecodeRunner(BaseRunner):
     @staticmethod
     def forward(idx, dataset=None, model=None, **kwargs):
         data = dataset[idx]
@@ -58,8 +58,8 @@ if __name__ == "__main__":
     for test_name in test_sets:
         print(f"===> Processing {test_name}")
         config.test_set = test_name
-        provider = LibrispeechOWSMProvider(config)
-        runner = LibrispeechRunner(
+        provider = DecodeProvider(config)
+        runner = DecodeRunner(
             provider=provider,
             async_mode=False,
         )
