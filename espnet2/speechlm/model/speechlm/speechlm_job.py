@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""SpeechLM job template for training configuration."""
+# Copyright 2025 Jinchuan Tian (Carnegie Mellon University)
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
+"""SpeechLM job template implementation for multimodal language modeling."""
 
 import re
 from typing import Any, Callable, Dict

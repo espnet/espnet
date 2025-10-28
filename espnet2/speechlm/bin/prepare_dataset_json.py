@@ -1,12 +1,8 @@
 #!/usr/bin/env python3
-"""Prepare dataset JSON from multiple data sources.
+# Copyright 2025 Jinchuan Tian (Carnegie Mellon University)
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-This script combines multiple data sources (audio and text) into a unified JSON file.
-Each data source is specified as a triplet: name,path,reader
-- name: audio1, audio2, ... or text1, text2, ...
-- path: valid path to data source
-- reader: lhotse_audio or text
-"""
+"""Script for preparing dataset JSON from multimodal data sources."""
 
 import argparse
 import json

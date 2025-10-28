@@ -1,3 +1,8 @@
+# Copyright 2025 Jinchuan Tian (Carnegie Mellon University)
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
+"""Parallel multimodal LLM implementation for HuggingFace models."""
+
 import torch
 import torch.nn as nn
 import transformers

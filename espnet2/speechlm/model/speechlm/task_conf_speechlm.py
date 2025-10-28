@@ -1,4 +1,7 @@
-"""SpeechLM-specific task configuration module."""
+# Copyright 2025 Jinchuan Tian (Carnegie Mellon University)
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
+"""Task configuration definitions specific to SpeechLM model."""
 
 from espnet2.speechlm.dataloader.task_conf import (
     SUPPORTED_ENTRIES,

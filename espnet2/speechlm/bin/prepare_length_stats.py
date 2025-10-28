@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""
-Script for preparing length statistics from training/validation data.
-This script analyzes data lengths and generates statistics for batching.
-"""
+# Copyright 2025 Jinchuan Tian (Carnegie Mellon University)
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
+"""Script for collecting sequence length statistics for efficient batching."""
 
 import argparse
 import json
