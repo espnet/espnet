@@ -21,7 +21,7 @@ if __name__ == "__main__":
     with open("data/bpe_nlsyms.txt", "w") as fp:
         for tok in special_tokens:
             fp.write(f"{tok}\n")
-        for phoneme in PHONEME_VOCABULARY:
+        for phoneme in sorted(list(PHONEME_VOCABULARY)):
             fp.write(f"/{phoneme}/\n")
 
     with open("data/nlsyms.txt", "w") as fp:
