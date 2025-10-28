@@ -9,6 +9,7 @@ import pandas as pd
 import regex as re
 from langcodes import tag_is_valid
 from tqdm import tqdm
+import shutil
 
 """
 Converts IPAPack++ into OWSM's expected format
