@@ -7,7 +7,7 @@ import joblib
 import numpy as np
 import torch
 
-from .abs_io import AbsIO
+from espnet2.speechlm.model.speechlm.multimodal_io.abs_io import AbsIO
 
 
 class KmeansModel(torch.nn.Module):
