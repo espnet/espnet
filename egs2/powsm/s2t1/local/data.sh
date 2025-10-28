@@ -57,7 +57,12 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     python local/fix_doreco.py
 
     # download ipa_all.csv from panphon to use as vocab list
-    wget https://raw.githubusercontent.com/dmort27/panphon/master/panphon/data/ipa_all.csv
+    wget -O ipa_all.csv https://raw.githubusercontent.com/dmort27/panphon/master/panphon/data/ipa_all.csv
+    if [ ! -s ipa_all.csv ] || ! head -n 1 ipa_all.csv | grep -q "syl,"; then
+        log "ERROR: Failed to download or downloaded incorrect ipa_all.csv from panphon."
+        rm -f ipa_all.csv
+        exit 1
+    fi
     cut -d',' -f1 ipa_all.csv > local/panphon_ipas
     sed -i '1d' local/panphon_ipas
     rm ipa_all.csv
