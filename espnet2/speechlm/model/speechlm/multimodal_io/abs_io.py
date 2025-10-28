@@ -1,3 +1,6 @@
+# Copyright 2025 Jinchuan Tian (Carnegie Mellon University)
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
 """Abstract class for multimodal input/output handling in SpeechLM.
 
 This module defines the base interface for handling different modalities
