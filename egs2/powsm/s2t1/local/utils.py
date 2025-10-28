@@ -108,8 +108,4 @@ LANGUAGES = {
     "<zul>": "Zulu",
 }
 
-with open("local/panphon_ipas", "r") as f:
-    # read lines and strip whitespace
-    panphon_ipas = f.readlines()
-    panphon_ipas = sorted([line.strip() for line in panphon_ipas])
-PHONEME_VOCABULARY = set(panphon_ipas)
+# PHONEME_VOCABULARY defined in local/generate_nlsyms.py

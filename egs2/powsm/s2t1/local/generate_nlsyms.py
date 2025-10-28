@@ -1,6 +1,5 @@
 from utils import (
     LANGUAGES,
-    PHONEME_VOCABULARY,
     SYMBOL_NA,
     SYMBOL_NOSPEECH,
     SYMBOLS_TIME,
@@ -17,6 +16,12 @@ if __name__ == "__main__":
         *TASK_TOKENS,
         *SYMBOLS_TIME,
     ]
+
+    with open("local/panphon_ipas", 'r') as f:
+        # read lines and strip whitespace
+        panphon_ipas = f.readlines()
+        panphon_ipas = sorted([line.strip() for line in panphon_ipas])
+    PHONEME_VOCABULARY = set(panphon_ipas)
 
     with open("data/bpe_nlsyms.txt", "w") as fp:
         for tok in special_tokens:
