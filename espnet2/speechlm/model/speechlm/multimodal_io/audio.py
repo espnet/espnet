@@ -1,7 +1,7 @@
 # Copyright 2025 Jinchuan Tian (Carnegie Mellon University)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""Audio I/O implementation for discrete and continuous representations (v2)."""
+"""Audio I/O implementation for discrete and continuous representations"""
 
 from pathlib import Path
 from typing import List, Optional, Tuple
