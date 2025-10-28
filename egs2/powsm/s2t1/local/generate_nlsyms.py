@@ -17,7 +17,7 @@ if __name__ == "__main__":
         *SYMBOLS_TIME,
     ]
 
-    with open("local/panphon_ipas", 'r') as f:
+    with open("local/panphon_ipas", "r") as f:
         # read lines and strip whitespace
         panphon_ipas = f.readlines()
         panphon_ipas = sorted([line.strip() for line in panphon_ipas])
