@@ -199,8 +199,8 @@ def main(root_dir, output_dir, lang_dist_json, draw_only=False):
             ) as p2g_ctc:
 
                 for utt_id, p in utt2phoneme_seq.items():
-                    p = '/' + '//'.join(p.split()) + '/'
-                    pctc = '/' + '//'.join(utt2phoneme_ctcseq[utt_id].split()) + '/'
+                    p = "/" + "//".join(p.split()) + "/"
+                    pctc = "/" + "//".join(utt2phoneme_ctcseq[utt_id].split()) + "/"
                     o = utt2orthography[utt_id]
                     lang = utt2lang[utt_id]
                     try:

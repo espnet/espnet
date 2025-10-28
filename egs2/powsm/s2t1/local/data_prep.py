@@ -3,11 +3,11 @@ import glob
 import json
 import logging
 import os
-from shlex import split
 import sys
 from collections import defaultdict
 from glob import glob
 from pathlib import Path
+from shlex import split
 from tarfile import ReadError
 
 import pandas as pd
@@ -15,10 +15,10 @@ import regex as re
 import webdataset as wds
 from ipatok import tokenise
 from lhotse import CutSet
+from panphontrie import build_trie_from_file, load_trie, panphon_gsearch
 from scipy.io import wavfile
 from tqdm import tqdm
 
-from panphontrie import build_trie_from_file, load_trie, panphon_gsearch
 
 def get_parser():
     parser = argparse.ArgumentParser(
@@ -187,18 +187,29 @@ def generate_df(source_dir, data_dir):
     return df
 
 
-if not os.path.exists('local/panphon.pkl'):
-    build_trie_from_file('local/panphon_ipas', 'local/panphon.pkl')
-pptrie = load_trie('local/panphon.pkl')
+if not os.path.exists("local/panphon.pkl"):
+    build_trie_from_file("local/panphon_ipas", "local/panphon.pkl")
+pptrie = load_trie("local/panphon.pkl")
+
 
 def clean_english(tokenised):
     vowels = {"i", "ɪ", "e", "ɛ", "æ", "u", "ʊ", "o", "ɔ", "ɑ", "ə", "ɜ˞", "ʌ"}
     target_vplosives_map = {"b": "p", "d": "t", "ɡ": "k"}
-    target_nasalvs_map = {"i": "ĩ", "ɪ": "ɪ̃", "e": "ẽ", "ɛ": "ɛ̃", "æ": "æ̃", 
-        "u": "ũ", "ʊ": "ʊ̃", "o": "õ", "ɔ": "ɔ̃", "ɑ": "ɑ̃"}
+    target_nasalvs_map = {
+        "i": "ĩ",
+        "ɪ": "ɪ̃",
+        "e": "ẽ",
+        "ɛ": "ɛ̃",
+        "æ": "æ̃",
+        "u": "ũ",
+        "ʊ": "ʊ̃",
+        "o": "õ",
+        "ɔ": "ɔ̃",
+        "ɑ": "ɑ̃",
+    }
     for i, phone in enumerate(tokenised):
-        prevp = tokenised[i-1] if i > 0 else None
-        nextp = tokenised[i+1] if i < len(tokenised) - 1 else None
+        prevp = tokenised[i - 1] if i > 0 else None
+        nextp = tokenised[i + 1] if i < len(tokenised) - 1 else None
         # 1. word-initial voiceless plosives (p, t, k) are aspirated
         if phone in {"p", "t", "k"} and prevp == " ":
             tokenised[i] = phone + "ʰ"
@@ -207,7 +218,7 @@ def clean_english(tokenised):
             if phone == "d" and nextp == "z":
                 continue
             elif phone == "d" and nextp == "ʒ":
-                tokenised[i], tokenised[i+1] = "t", "ʃ"
+                tokenised[i], tokenised[i + 1] = "t", "ʃ"
             else:
                 tokenised[i] = target_vplosives_map[phone]
         # 3. lateral /l/ velarized at the end of syllables (i.e. word boundary or consonant)
@@ -216,7 +227,7 @@ def clean_english(tokenised):
             tokenised[i] = "l"
         # 4. vowel nasalization before nasal consonants; ignore diphthongs problem?
         elif phone in {"m", "n", "ŋ"} and prevp in target_nasalvs_map:
-            tokenised[i-1] = target_nasalvs_map[prevp]
+            tokenised[i - 1] = target_nasalvs_map[prevp]
     return tokenised
 
 
@@ -224,7 +235,8 @@ def panphon_normalize(seq, lang, with_supraseg=True):
     # 1. tokenize sequence, keeping spaces
     seq, _ = panphon_gsearch(seq, pptrie, with_supraseg=with_supraseg)
     # 2. normalize English sequence
-    if lang in {'English', 'en', 'en_us'}: seq = clean_english(seq)
+    if lang in {"English", "en", "en_us"}:
+        seq = clean_english(seq)
     # 3. remove spaces in the list and return
     seq = [s for s in seq if s != " "]
     return seq
@@ -369,7 +381,10 @@ if __name__ == "__main__":
         lambda row: panphon_normalize(row["ipa_clean"], row["lang"]), axis=1
     )
     df["ipa_panphon_nosup"] = df.apply(
-        lambda row: panphon_normalize(row["ipa_clean"], row["lang"], with_supraseg=False), axis=1
+        lambda row: panphon_normalize(
+            row["ipa_clean"], row["lang"], with_supraseg=False
+        ),
+        axis=1,
     )
     # normalize text
     df["text"] = df.apply(lambda row: text_normalization(row["text"]), axis=1)

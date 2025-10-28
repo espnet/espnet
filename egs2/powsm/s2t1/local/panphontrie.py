@@ -1,6 +1,7 @@
 import pickle
-import unicodedata
 import string
+import unicodedata
+
 
 class TrieNode:
     def __init__(self):
@@ -18,23 +19,24 @@ class TrieNode:
         node.value = word
 
     def serialize(self, file_path):
-        with open(file_path, 'wb') as f:
+        with open(file_path, "wb") as f:
             pickle.dump(self, f)
 
     @staticmethod
     def deserialize(file_path):
-        with open(file_path, 'rb') as f:
+        with open(file_path, "rb") as f:
             return pickle.load(f)
+
 
 def build_trie_from_file(input_path, output_pickle):
     """
     List of panphon phone entries (one per line) -> trie
-    input_path: path to file of panphon phone entries 
+    input_path: path to file of panphon phone entries
     (first column of https://github.com/dmort27/panphon/blob/master/panphon/data/ipa_all.csv)
     output_pickle: path to the output trie object serialized as pickle file
     """
     root = TrieNode()
-    with open(input_path, encoding='utf-8') as f:
+    with open(input_path, encoding="utf-8") as f:
         for line in f:
             word = line.strip()
             if word:
@@ -42,6 +44,7 @@ def build_trie_from_file(input_path, output_pickle):
     root.insert(" ")  # also insert space
     root.serialize(output_pickle)
     return root
+
 
 def load_trie(pickle_path):
     """
@@ -52,24 +55,27 @@ def load_trie(pickle_path):
     return TrieNode.deserialize(pickle_path)
 
 
-removepunc = str.maketrans('', '', string.punctuation)
+removepunc = str.maketrans("", "", string.punctuation)
 customized = {"ʡ": "ʔ", "ᶑ": "ɗ", "g": "ɡ"}
 supraseg = {"ː", "ˑ", "̆", "͜"}
+
+
 def clean(sequence, with_supraseg=True):
     """
     Normalize phones' unicode so that trie search can handle everything
     Remove suprasegmental diacritics if specified
     """
-    sequence = unicodedata.normalize('NFD', sequence)
+    sequence = unicodedata.normalize("NFD", sequence)
     sequence = sequence.translate(removepunc)
-    sequence = ''.join([customized.get(c, c) for c in sequence])
-    if not with_supraseg: sequence = ''.join([c for c in sequence if c not in supraseg])
+    sequence = "".join([customized.get(c, c) for c in sequence])
+    if not with_supraseg:
+        sequence = "".join([c for c in sequence if c not in supraseg])
     return sequence
 
 
 def panphon_gsearch(seq, root, with_supraseg=True):
     """
-    Greedy longest-match-first search in panphon trie. 
+    Greedy longest-match-first search in panphon trie.
     seq: input sequence (string)
     root: root node of the trie
     with_supraseg: if False, remove suprasegmental diacritics before search
@@ -97,5 +103,5 @@ def panphon_gsearch(seq, root, with_supraseg=True):
             i += 1
         if i != last_match:
             oov.add((seq[start:i], last_value))
-    
+
     return res, oov
