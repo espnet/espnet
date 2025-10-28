@@ -87,21 +87,21 @@ def panphon_gsearch(seq, root, with_supraseg=True):
     while i < N:
         node = root
         start = i
-        last_value = None
-        last_match = i
+        last_match_value = None
+        last_match_end = i
         # Search for the longest match
         while i < N and seq[i] in node.children:
             node = node.children[seq[i]]
             i += 1
             if node.is_end_of_word:
-                last_value = node.value
-                last_match = i
-        if last_value is not None:
-            res.append(last_value)
+                last_match_value = node.value
+                last_match_end = i
+        if last_match_value is not None:
+            res.append(last_match_value)
         # Deal with possibly trailing diacritics of OOV phone
         while i < N and seq[i] not in root.children:
             i += 1
-        if i != last_match:
-            oov.add((seq[start:i], last_value))
+        if i != last_match_end:
+            oov.add((seq[start:i], last_match_value))
 
     return res, oov
