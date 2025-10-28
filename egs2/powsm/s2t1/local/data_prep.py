@@ -239,7 +239,7 @@ def panphon_normalize(seq, lang, with_supraseg=True):
         seq = clean_english(seq)
     # 3. remove spaces in the list and return
     seq = [s for s in seq if s != " "]
-    return seq
+    return " ".join(seq)
 
 
 def text_normalization(orthography):
