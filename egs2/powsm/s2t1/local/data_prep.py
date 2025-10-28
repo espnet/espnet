@@ -200,7 +200,7 @@ class PanphonTrieNode:
         node = self
         for ch in word:
             if ch not in node.children:
-                node.children[ch] = TrieNode()
+                node.children[ch] = PanphonTrieNode()
             node = node.children[ch]
         node.is_end_of_word = True
         node.value = word
