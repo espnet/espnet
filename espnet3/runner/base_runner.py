@@ -141,6 +141,7 @@ class BaseRunner:
           submitted via ``parallel_map`` and results are gathered in order.
         - In async mode, the results will be written on async_result_dir.
     """
+
     # TODO (Masao) Add detailed description on Runner/Provider in the document.
 
     def __init__(
