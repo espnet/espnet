@@ -58,13 +58,13 @@ Please refer to our paper for comprehensive evaluations, while below are selecte
 
 ```BibTex
 @article{powsm,
-      title={POWSM: A Phonetic Open Whisper-Style Speech Foundation Model}, 
+      title={POWSM: A Phonetic Open Whisper-Style Speech Foundation Model},
       author={Chin-Jou Li and Kalvin Chang and Shikhar Bharadwaj and Eunjung Yeo and Kwanghee Choi and Jian Zhu and David Mortensen and Shinji Watanabe},
       year={2025},
       eprint={2510.24992},
       archivePrefix={arXiv},
       primaryClass={cs.CL},
-      url={https://arxiv.org/abs/2510.24992}, 
+      url={https://arxiv.org/abs/2510.24992},
 }
 
 @inproceedings{zhu-etal-2025-zipa,
