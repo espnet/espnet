@@ -1,8 +1,10 @@
+"""Utils/Get-default-kwargs."""
+
 import inspect
 
 
 class Invalid:
-    """Marker object for not serializable-object"""
+    """Marker object for not serializable-object."""
 
 
 def get_default_kwargs(func):

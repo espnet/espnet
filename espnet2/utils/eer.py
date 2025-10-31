@@ -1,4 +1,5 @@
-"""
+"""EER.
+
 Source code from:
 https://github.com/clovaai/voxceleb_trainer/blob/master/tuneThreshold.py
 """
@@ -10,6 +11,25 @@ from sklearn import metrics
 
 
 def tuneThresholdfromScore(scores, labels, target_fa, target_fr=None):
+    """Tune decision threshold based on target false alarm and false rejection rates.
+
+    This function computes the Equal Error Rate (EER) and tunes the decision threshold
+    to meet specified target false alarm and false rejection rates.
+
+    Args:
+        scores: Array of match scores or similarity scores.
+        labels: Array of binary labels (1 for positive, 0 for negative).
+        target_fa: List of target false alarm rates to compute thresholds for.
+        target_fr: Optional list of target false rejection rates. Defaults to None.
+
+    Returns:
+        tuple: A tuple containing:
+            - tunedThreshold: List of [threshold, fpr, fnr] for each target rate.
+            - eer: Equal Error Rate as a percentage.
+            - fpr: Array of false positive rates.
+            - fnr: Array of false negative rates.
+
+    """
     fpr, tpr, thresholds = metrics.roc_curve(labels, scores, pos_label=1)
     fnr = 1 - tpr
 
@@ -34,6 +54,23 @@ def tuneThresholdfromScore(scores, labels, target_fa, target_fr=None):
 # Creates a list of false-negative rates, a list of false-positive rates
 # and a list of decision thresholds that give those error-rates.
 def ComputeErrorRates(scores, labels):
+    """Compute false negative and false positive rates across all thresholds.
+
+    This function computes the false-negative rates (FNR) and false-positive rates
+    (FPR) for each decision threshold. The thresholds are derived from the sorted
+    scores of the input data.
+
+    Args:
+        scores: Array of match scores or similarity scores.
+        labels: Array of binary labels (1 for positive, 0 for negative).
+
+    Returns:
+        tuple: A tuple containing:
+            - fnrs: List of false negative rates (normalized by total negatives).
+            - fprs: List of false positive rates (normalized by total positives).
+            - thresholds: Sorted decision thresholds.
+
+    """
     # Sort the scores from smallest to largest, and also get the corresponding
     # indexes of the sorted scores.  We will treat the sorted scores as the
     # thresholds at which the the error-rates are evaluated.
@@ -76,6 +113,26 @@ def ComputeErrorRates(scores, labels):
 # Computes the minimum of the detection cost function.  The comments refer to
 # equations in Section 3 of the NIST 2016 Speaker Recognition Evaluation Plan.
 def ComputeMinDcf(fnrs, fprs, thresholds, p_target, c_miss, c_fa):
+    """Compute the minimum detection cost function (minDCF).
+
+    This function computes the minimum cost for detecting targets given specified
+    cost parameters and target prior probability. It follows the NIST 2016 Speaker
+    Recognition Evaluation Plan methodology.
+
+    Args:
+        fnrs: List of false negative rates at each threshold.
+        fprs: List of false positive rates at each threshold.
+        thresholds: List of decision thresholds corresponding to fnrs and fprs.
+        p_target: Prior probability of target class.
+        c_miss: Cost of a false rejection (missing a target).
+        c_fa: Cost of a false alarm (incorrectly accepting a non-target).
+
+    Returns:
+        tuple: A tuple containing:
+            - min_dcf: Minimum normalized detection cost.
+            - min_c_det_threshold: Threshold that achieves the minimum DCF.
+
+    """
     min_c_det = float("inf")
     min_c_det_threshold = thresholds[0]
     for i in range(0, len(fnrs)):

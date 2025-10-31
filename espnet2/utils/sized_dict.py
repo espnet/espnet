@@ -22,12 +22,11 @@ from torch import multiprocessing
 
 
 def get_size(obj, seen=None):
-    """Recursively finds size of objects
+    """Recursively finds size of objects.
 
     Taken from https://github.com/bosswissam/pysize
 
     """
-
     size = sys.getsizeof(obj)
     if seen is None:
         seen = set()
@@ -52,7 +51,37 @@ def get_size(obj, seen=None):
 
 
 class SizedDict(collections.abc.MutableMapping):
+    """A mutable mapping that tracks the approximate memory size of its contents.
+
+    SizedDict is a dictionary-like object that automatically tracks the memory size
+    of stored items. It supports both standard in-memory dictionaries and
+    multiprocessing-shared dictionaries for concurrent access.
+
+    Attributes:
+        cache: The underlying dictionary storing the key-value pairs. For shared
+            mode, this is a multiprocessing-safe dictionary. For non-shared mode,
+            this is a standard Python dict.
+        size: The total approximate memory size in bytes of all keys and values
+            currently stored in the dictionary.
+
+    """
+
     def __init__(self, shared: bool = False, data: dict = None):
+        """Initialize a SizedDict instance.
+
+        Args:
+            shared: If True, uses a multiprocessing-safe dictionary that can be
+                shared across processes. If False (default), uses a standard
+                Python dictionary. Defaults to False.
+            data: Optional dictionary to initialize the SizedDict with. If None,
+                starts with an empty dictionary. Defaults to None.
+
+        Note:
+            When shared=True, the manager object is not stored as an instance
+            attribute to avoid pickling issues with the "spawn" method in
+            multiprocessing, which cannot pickle weakref objects.
+
+        """
         if data is None:
             data = {}
 
@@ -67,6 +96,18 @@ class SizedDict(collections.abc.MutableMapping):
         self.size = 0
 
     def __setitem__(self, key, value):
+        """Set a key-value pair and update the tracked memory size.
+
+        When a key is set:
+        - If the key already exists, the old value's size is subtracted before
+          adding the new value's size.
+        - If the key is new, the size of both the key and value are added.
+
+        Args:
+            key: The dictionary key.
+            value: The value to associate with the key.
+
+        """
         if key in self.cache:
             self.size -= get_size(self.cache[key])
         else:
@@ -75,18 +116,63 @@ class SizedDict(collections.abc.MutableMapping):
         self.cache[key] = value
 
     def __getitem__(self, key):
+        """Get the value associated with a key.
+
+        Args:
+            key: The dictionary key to retrieve.
+
+        Returns:
+            The value associated with the key.
+
+        Raises:
+            KeyError: If the key is not found in the dictionary.
+
+        """
         return self.cache[key]
 
     def __delitem__(self, key):
+        """Delete a key-value pair and update the tracked memory size.
+
+        Removes the key and its associated value from the dictionary, and
+        subtracts both the key and value sizes from the tracked size.
+
+        Args:
+            key: The dictionary key to delete.
+
+        Raises:
+            KeyError: If the key is not found in the dictionary.
+
+        """
         self.size -= get_size(self.cache[key])
         self.size -= sys.getsizeof(key)
         del self.cache[key]
 
     def __iter__(self):
+        """Iterate over the dictionary keys.
+
+        Returns:
+            An iterator over the keys in the dictionary.
+
+        """
         return iter(self.cache)
 
     def __contains__(self, key):
+        """Check if a key exists in the dictionary.
+
+        Args:
+            key: The key to check for.
+
+        Returns:
+            True if the key is in the dictionary, False otherwise.
+
+        """
         return key in self.cache
 
     def __len__(self):
+        """Get the number of key-value pairs in the dictionary.
+
+        Returns:
+            The number of items currently stored in the dictionary.
+
+        """
         return len(self.cache)
