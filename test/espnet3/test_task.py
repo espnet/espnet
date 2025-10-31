@@ -6,11 +6,11 @@ import pytest
 
 # Replace with your actual module path
 # Example: from espneteztask import get_task_class, save_espnet_config, get_espnet_model
-from espnet3.task import get_espnet_model, get_task_class, save_espnet_config
+from espnet3.base.task import get_espnet_model, get_task_class, save_espnet_config
 from espnet3.utils.config import load_config_with_defaults
 
 # ===============================================================
-# Test Case Summary for Task Wrapper (espnet3.task)
+# Test Case Summary for Task Wrapper (espnet3.base.task)
 # ===============================================================
 #
 # Tests for `get_task_class(task_name)`

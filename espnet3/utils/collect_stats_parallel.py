@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet3.parallel import get_client, parallel_for, set_parallel
-from espnet3.task import get_espnet_model
+from espnet3.base.task import get_espnet_model
 from espnet3.utils.collect_stats_local import (
     _accumulate_and_persist_batch,
     _build_collate_fn,

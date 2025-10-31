@@ -8,7 +8,7 @@ from omegaconf import DictConfig, ListConfig, OmegaConf
 from typeguard import typechecked
 
 from espnet2.torch_utils.initialize import initialize
-from espnet3.trainer.callbacks import get_default_callbacks
+from espnet3.base.callbacks import get_default_callbacks
 from espnet3.base.model.model import LitESPnetModel
 
 

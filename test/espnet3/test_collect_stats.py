@@ -9,7 +9,7 @@ from hydra.utils import instantiate
 from omegaconf import OmegaConf
 
 # Import the functions under test (adjust import path if your file/module path differs)
-from espnet3.collect_stats import collect_stats
+from espnet3.base.collect_stats import collect_stats
 from espnet3.utils.collect_stats_local import collect_stats_local
 from espnet3.utils.collect_stats_parallel import (
     collect_stats_multiple_iterator,
