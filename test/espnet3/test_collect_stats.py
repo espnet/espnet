@@ -9,12 +9,7 @@ from hydra.utils import instantiate
 from omegaconf import OmegaConf
 
 # Import the functions under test (adjust import path if your file/module path differs)
-from espnet3.collect_stats import collect_stats
-from espnet3.utils.collect_stats_local import collect_stats_local
-from espnet3.utils.collect_stats_parallel import (
-    collect_stats_multiple_iterator,
-    collect_stats_parallel,
-)
+from espnet3.collect_stats import collect_stats, collect_stats_multiple_iterator
 
 mp.set_start_method("fork", force=True)
 
@@ -232,99 +227,45 @@ def _load_npz_counts(dirpath: Path, feat_key: str):
 # ------------
 # The tests
 # ------------
-@pytest.mark.execution_timeout(10)
-def test_collect_stats_local_basic(tmp_path: Path):
+@pytest.mark.execution_timeout(30)
+@pytest.mark.parametrize("use_parallel", [False, True])
+def test_collect_stats_local_basic(tmp_path: Path, use_parallel):
     # Verify that local (non-parallel) path aggregates counts/sums correctly
     # and writes expected files.
     model_cfg = make_model_cfg(scale=1.0)
     ds_cfg = make_dataset_cfg(n_train=6, n_valid=0, base_len=3, dim=4)
     dl_cfg = make_dataloader_cfg(use_custom_collate=True)
+    par_cfg = make_parallel_cfg(n_workers=2) if use_parallel else None
 
     out_dir = tmp_path / "out"
     out_dir.mkdir(parents=True, exist_ok=True)
 
     # Run "train" split locally
-    sum_dict, sq_dict, count_dict = collect_stats_local(
+    collect_stats(
         model_config=model_cfg,
         dataset_config=ds_cfg,
         dataloader_config=dl_cfg,
         mode="train",
         output_dir=out_dir,
         task=None,
+        parallel_config=par_cfg,
         write_collected_feats=True,
         batch_size=3,
     )
 
-    # Save as collect_stats(...) would do
     mode_dir = out_dir / "train"
-    for k in sum_dict:
-        np.savez(
-            mode_dir / f"{k}_stats.npz",
-            count=count_dict[k],
-            sum=sum_dict[k],
-            sum_square=sq_dict[k],
-        )
-    with open(mode_dir / "stats_keys", "w") as f:
-        f.write("\n".join(sum_dict) + "\n")
-
-    # Assertions
-    ds = instantiate(ds_cfg).train
-    total_count = _expected_total_count(ds)
-
-    cnt, s, sq = _load_npz_counts(mode_dir, "mel")
-    assert int(cnt) == total_count, "Total frame count mismatch in local mode"
-    assert (mode_dir / "collect_feats" / "mel.scp").exists(), "mel.scp not written"
     assert (mode_dir / "stats_keys").exists(), "stats_keys not written"
 
+    for k in ["mel", "mel_lengths"]:
+        npz = mode_dir / f"{k}_stats.npz"
+        assert npz.exists(), f"{npz} missing"
+        scp = mode_dir / "collect_feats" / f"{k}.scp"
+        assert scp.exists(), f"{scp} missing"
 
-@pytest.mark.execution_timeout(30)
-@pytest.mark.parametrize("n_workers", [1, 2])
-def test_collect_stats_parallel_basic(tmp_path: Path, n_workers):
-    # Verify that parallel path (setup_fn + parallel_for) works and matches
-    # local aggregation logic for counts at least.
-    model_cfg = make_model_cfg(scale=2.0)  # scale to change sums
-    ds_cfg = make_dataset_cfg(n_train=7, n_valid=0, base_len=2, dim=3)
-    dl_cfg = make_dataloader_cfg(use_custom_collate=True)
-    par_cfg = make_parallel_cfg(n_workers=n_workers)
-
-    out_dir = tmp_path / "out"
-    out_dir.mkdir(parents=True, exist_ok=True)
-
-    # Run parallel on "train"
-    sum_dict, sq_dict, count_dict = collect_stats_parallel(
-        model_config=model_cfg,
-        dataset_config=ds_cfg,
-        dataloader_config=dl_cfg,
-        mode="train",
-        output_dir=out_dir,
-        task=None,
-        write_collected_feats=True,
-        batch_size=2,
-        parallel_config=par_cfg,
-    )
-
-    # Persist like collect_stats does
-    mode_dir = out_dir / "train"
-    for k in sum_dict:
-        np.savez(
-            mode_dir / f"{k}_stats.npz",
-            count=count_dict[k],
-            sum=sum_dict[k],
-            sum_square=sq_dict[k],
-        )
-    with open(mode_dir / "stats_keys", "w") as f:
-        f.write("\n".join(sum_dict) + "\n")
-
-    # Assertions
     ds = instantiate(ds_cfg).train
     total_count = _expected_total_count(ds)
-
-    cnt, _, _ = _load_npz_counts(mode_dir, "mel")
-    assert int(cnt) == total_count, "Total frame count mismatch in parallel mode"
-    # Features should be saved as well
-    assert (
-        mode_dir / "collect_feats" / "mel.scp"
-    ).exists(), "mel.scp not written (parallel)"
+    cnt, s, sq = _load_npz_counts(mode_dir, "mel")
+    assert int(cnt) == total_count, "Total frame count mismatch for mel"
 
 
 @pytest.mark.execution_timeout(30)
@@ -368,7 +309,6 @@ def test_collect_stats_multiple_iterator(tmp_path: Path):
     # Assertions
     ds = instantiate(ds_cfg).train
     total_count = _expected_total_count(ds)
-
     cnt, s, sq = _load_npz_counts(mode_dir, "mel")
     assert (
         int(cnt) == total_count

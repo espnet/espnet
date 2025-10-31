@@ -1,7 +1,7 @@
 import logging
 from pathlib import Path
 
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import DictConfig, ListConfig, OmegaConf
 
 
 def load_line(path):
@@ -22,7 +22,7 @@ def load_line(path):
     """
     try:
         with open(path, "r") as f:
-            return [line.strip() for line in f.readlines()]
+            return ListConfig([line.strip() for line in f.readlines()])
     except FileNotFoundError:
         logging.error(f"File not found: {path}")
         raise
@@ -121,6 +121,7 @@ def load_config_with_defaults(path: str) -> OmegaConf:
         merged_cfgs.append(cfg_self)
 
     final_cfg = OmegaConf.merge(*merged_cfgs)
+    OmegaConf.resolve(final_cfg)
 
     if "defaults" in final_cfg:
         del final_cfg["defaults"]

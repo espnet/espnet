@@ -142,6 +142,8 @@ class BaseRunner:
         - In async mode, the results will be written on async_result_dir.
     """
 
+    # TODO (Masao) Add detailed description on Runner/Provider in the document.
+
     def __init__(
         self,
         provider: EnvironmentProvider,
@@ -215,8 +217,11 @@ class BaseRunner:
         setup_fn = self.provider.make_worker_setup_fn()
         out = []
         with get_client(get_parallel_config()) as client:
-            for res in parallel_for(
-                self.__class__.forward, indices, setup_fn=setup_fn, client=client
+            for res in tqdm(
+                parallel_for(
+                    self.__class__.forward, indices, setup_fn=setup_fn, client=client
+                ),
+                total=len(indices),
             ):
                 out.append(res)
         return out
