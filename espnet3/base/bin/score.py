@@ -4,8 +4,8 @@ from pathlib import Path
 
 from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
-from template.metrics.abs_metric import AbsMetrics
-from template.utils.scp_utils import (
+from espnet3.asr.metrics.abs_metric import AbsMetrics
+from espnet3.asr.utils.scp_utils import (
     get_class_path,
     load_scp_fields,
 )

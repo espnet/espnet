@@ -1,4 +1,4 @@
-"""Word error rate metric utilities."""
+"""Character error rate metric utilities."""
 
 from __future__ import annotations
 
@@ -6,13 +6,13 @@ from pathlib import Path
 from typing import Dict, Iterable, List
 
 import jiwer
-from template.metrics.abs_metric import AbsMetrics
+from espnet3.asr.metrics.abs_metric import AbsMetrics
 
 from espnet2.text.cleaner import TextCleaner
 
 
-class WER(AbsMetrics):
-    """Compute WER for decoded hypotheses."""
+class CER(AbsMetrics):
+    """Compute CER for a decoded dataset."""
 
     def __init__(
         self,
@@ -37,12 +37,12 @@ class WER(AbsMetrics):
         refs = [self._clean(x) for x in data[self.ref_key]]
         hyps = [self._clean(x) for x in data[self.hyp_key]]
 
-        score = jiwer.wer(refs, hyps) * 100
-        details = jiwer.process_words(refs, hyps)
+        score = jiwer.cer(refs, hyps) * 100
+        details = jiwer.process_characters(refs, hyps)
 
         test_dir = Path(decode_dir) / test_name
         test_dir.mkdir(parents=True, exist_ok=True)
-        with (test_dir / "wer_alignment").open("w", encoding="utf-8") as f:
+        with (test_dir / "cer_alignment").open("w", encoding="utf-8") as f:
             f.write(jiwer.visualize_alignment(details))
 
-        return {"WER": round(score, 2)}
+        return {"CER": round(score, 2)}

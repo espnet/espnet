@@ -2,7 +2,7 @@ import argparse
 import os
 from pathlib import Path
 
-from template.tokenizer.sentencepiece import train_sentencepiece
+from espnet3.asr.tokenizer.sentencepiece import train_sentencepiece
 from tqdm import tqdm
 
 

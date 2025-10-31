@@ -113,7 +113,7 @@ def main() -> None:
         train_cmd = [
             args.launcher,
             "-m",
-            "template.train",
+            "espnet3.base.bin.train",
             "--config",
             args.train_config,
             "--collect_stats",
