@@ -143,6 +143,8 @@ class BaseRunner(ABC):
         - In async mode, the results will be written on async_result_dir.
     """
 
+    # TODO (Masao) Add detailed description on Runner/Provider in the document.
+
     def __init__(
         self,
         provider: EnvironmentProvider,
