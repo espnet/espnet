@@ -567,7 +567,7 @@ cd ${cwd}/egs2/mini_an4/s2st1 || exit
 rm -rf exp dump data
 gen_dummy_coverage
 echo "==== [ESPnet2] S2ST ==="
-./run.sh --ngpu 0 --stage 1 --stop_stage 5 --use_discrete_unit false --s2st_config conf/s2st_spec_debug.yaml
+./run.sh --ngpu 0 --stage 1 --stop_stage 5 --use_discrete_unit false --use_gpu_feat_extract false --s2st_config conf/s2st_spec_debug.yaml
 python -m coverage run --append ../../../test/espnetez/test_integration_espnetez.py \
     --task s2st \
     --data_path data \
@@ -589,7 +589,7 @@ python -m coverage run --append ../../../test/espnetez/test_integration_espnetez
 
 rm -rf exp dump data ckpt
 
-./run.sh --ngpu 0 --stage 1 --stop_stage 5 --python "${python}" --use_discrete_unit true \
+./run.sh --ngpu 0 --stage 1 --stop_stage 5 --python "${python}" --use_gpu_feat_extract false --use_discrete_unit true \
     --s2st_config conf/train_s2st_discrete_unit_debug.yaml --clustering_num_threads 2 --feature_num_clusters 5
 
 python -m coverage run --append ../../../test/espnetez/test_integration_espnetez.py \

@@ -20,6 +20,8 @@ ${CXX:-g++} -v
     fi
 
     . ./activate_python.sh
+    export KMP_DUPLICATE_LIB_OK=TRUE
+
     # FIXME(kamo): Failed to compile pesq
     make TH_VERSION="${TH_VERSION}" WITH_OMP="${WITH_OMP-ON}" all \
         warp-transducer.done nkf.done moses.done mwerSegmenter.done \
