@@ -10,7 +10,7 @@ valid_set=dev
 test_sets="test_aishell test_cv test_doreco test_fleurs test_kazakh test_librispeech test_mls_dutch test_mls_french test_mls_german test_mls_italian test_mls_polish test_mls_portuguese test_mls_spanish test_tamil"
 
 nbpe=40000
-# s2t config based on owsm3.1 small
+# s2t config based on owsm v3.1 small, and some modifications from owsm v4
 s2t_config=conf/tuning/train_s2t_ebf_conv2d_size768_e9_d9_piecewise_lr5e-4_warmup60k_flashattn.yaml
 inference_config=conf/decode_s2t_pr.yaml
 
