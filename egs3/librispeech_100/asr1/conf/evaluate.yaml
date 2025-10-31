@@ -17,7 +17,7 @@ model:
 metrics:
   - metric:
       _target_: template.metrics.wer.WER
-      clean_types: whisper_basic
+      clean_types: 
     inputs:
       - ref
       - hyp
@@ -27,7 +27,7 @@ metrics:
 
   - metric:
       _target_: template.metrics.cer.CER
-      clean_types: whisper_basic
+      clean_types: 
     inputs:
       - ref
       - hyp

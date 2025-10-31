@@ -18,7 +18,7 @@ class LibriSpeechDatasetConfig:
 
     data_dir: str | Path = "data"
     split: str | None = None
-    sample_rate: int = 16_000
+    sample_rate: int = 16000
     return_text: bool = True
     return_speech: bool = True
 
@@ -30,7 +30,7 @@ class LibriSpeechDataset(TorchDataset):
         self,
         data_dir: str | Path = "data",
         split: str | None = None,
-        sample_rate: int = 16_000,
+        sample_rate: int = 16000,
         return_text: bool = True,
         return_speech: bool = True,
     ) -> None:
