@@ -1,0 +1,97 @@
+# ===============================
+#  Marathi ASR - XLSR + Conformer
+# ===============================
+
+# ---------- Training settings ----------
+batch_type: numel
+batch_bins: 10000        # adjust if OOM; 8000 is safe
+accum_grad: 2            # 2–3 good for 1 GPU
+max_epoch: 60
+patience: none
+init: xavier_uniform
+best_model_criterion:
+- [valid, acc, max]
+keep_nbest_models: 5
+grad_clip: 5.0
+seed: 777
+
+# ---------- Frontend ----------
+freeze_param:
+  - "frontend.upstream"  # keep XLSR frozen for low-resource training
+
+frontend: s3prl
+frontend_conf:
+  frontend_conf:
+    upstream: xlsr_53    # pretrained SSL model (S3PRL)
+  download_dir: ./hub
+  multilayer_feature: True
+
+# ---------- Normalization ----------
+# XLSR embeddings are already normalized → skip MVN
+normalize: null
+normalize_conf: {}
+
+# ---------- Preencoder ----------
+# Projects XLSR features (1024-dim) to 80-dim for the Conformer
+preencoder: linear
+preencoder_conf:
+  input_size: 1024
+  output_size: 80
+
+# ---------- Encoder (Conformer) ----------
+encoder: conformer
+encoder_conf:
+  output_size: 512
+  attention_heads: 4
+  linear_units: 1024
+  num_blocks: 3          # small conformer → faster
+  dropout_rate: 0.3
+  positional_dropout_rate: 0.3
+  attention_dropout_rate: 0.3
+  input_layer: linear      # was conv2d made it linear becuase after 4x sub sampling the utterances were becomes very small
+  normalize_before: true
+  macaron_style: false
+  pos_enc_layer_type: rel_pos
+  selfattention_layer_type: rel_selfattn
+  activation_type: swish
+  use_cnn_module: true
+  cnn_module_kernel: 17
+
+# ---------- Decoder (Transformer) ----------
+decoder: transformer
+decoder_conf:
+  attention_heads: 4
+  linear_units: 1024
+  num_blocks: 3
+  dropout_rate: 0.3
+  positional_dropout_rate: 0.3
+  self_attention_dropout_rate: 0.3
+  src_attention_dropout_rate: 0.3
+
+# ---------- Model config ----------
+model_conf:
+  ctc_weight: 0.3
+  lsm_weight: 0.1
+  length_normalized_loss: false
+  extract_feats_in_collect_stats: false
+
+# ---------- Optimization ----------
+optim: adam
+optim_conf:
+  lr: 0.0005
+scheduler: warmuplr
+scheduler_conf:
+  warmup_steps: 20000
+
+# ---------- SpecAugment ----------
+specaug: specaug
+specaug_conf:
+  apply_time_warp: true
+  time_warp_window: 5
+  time_warp_mode: bicubic
+  apply_freq_mask: true
+  freq_mask_width_range: [0, 30]
+  num_freq_mask: 2
+  apply_time_mask: true
+  time_mask_width_range: [0, 40]
+  num_time_mask: 2

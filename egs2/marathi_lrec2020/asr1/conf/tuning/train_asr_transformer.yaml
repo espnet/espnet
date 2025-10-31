@@ -1,0 +1,77 @@
+# Training settings
+batch_type: numel
+batch_bins: 10000          # keep small for debugging, increase later
+accum_grad: 2              # reduce for single GPU
+max_epoch: 50              # train shorter first
+patience: none
+init: xavier_uniform
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+keep_nbest_models: 3
+grad_clip: 5.0
+seed: 777
+
+# Encoder: Conformer (can also switch to transformer)
+encoder: conformer
+encoder_conf:
+    output_size: 256        # smaller for faster training
+    attention_heads: 4
+    linear_units: 1024
+    num_blocks: 3
+    dropout_rate: 0.2
+    positional_dropout_rate: 0.2
+    attention_dropout_rate: 0.2
+    input_layer: conv2d
+    normalize_before: true
+    macaron_style: false
+    pos_enc_layer_type: "rel_pos"
+    selfattention_layer_type: "rel_selfattn"
+    activation_type: "swish"
+    use_cnn_module: true
+    cnn_module_kernel: 17
+
+# Decoder: Transformer
+decoder: transformer
+decoder_conf:
+    attention_heads: 4
+    linear_units: 1024
+    num_blocks: 3
+    dropout_rate: 0.2
+    positional_dropout_rate: 0.2
+    self_attention_dropout_rate: 0.2
+    src_attention_dropout_rate: 0.2
+
+# Model
+model_conf:
+    ctc_weight: 0.3
+    lsm_weight: 0.1
+    length_normalized_loss: false
+
+# Optimizer
+optim: adam
+optim_conf:
+    lr: 0.0005
+scheduler: warmuplr
+scheduler_conf:
+    warmup_steps: 20000
+
+# SpecAugment
+specaug: specaug
+specaug_conf:
+    apply_time_warp: true
+    time_warp_window: 5
+    time_warp_mode: bicubic
+    apply_freq_mask: true
+    freq_mask_width_range: [0, 30]
+    num_freq_mask: 2
+    apply_time_mask: true
+    time_mask_width_range: [0, 40]
+    num_time_mask: 2
+
+# Reporting
+model_conf:
+    ctc_weight: 0.3 # hybrid CTC/attention (default)
+    report_cer: true
+    report_wer: true
