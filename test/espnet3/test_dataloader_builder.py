@@ -7,7 +7,7 @@ from torch.utils.data import BatchSampler, Sampler
 
 from espnet3.data.data_organizer import DataOrganizer, do_nothing_transform
 from espnet3.data.dataset import ShardedDataset
-from espnet3.trainer.dataloader import DataLoaderBuilder
+from espnet3.base.dataloader.dataloader import DataLoaderBuilder
 from espnet3.utils.config import load_config_with_defaults
 
 # ===============================================================
