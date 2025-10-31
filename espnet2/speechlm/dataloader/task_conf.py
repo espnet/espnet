@@ -1,4 +1,7 @@
-"""Abstract task configuration module for SpeechLM."""
+# Copyright 2025 Jinchuan Tian (Carnegie Mellon University)
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
+"""Task configuration definitions for multimodal SpeechLM data loading."""
 
 # List of supported entries for task configurations
 SUPPORTED_ENTRIES = (

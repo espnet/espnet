@@ -1,6 +1,12 @@
-"""Batching utilities for SpeechLM data loading."""
+# Copyright 2025 Jinchuan Tian (Carnegie Mellon University)
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+"""Batching utilities for efficient data loading in SpeechLM training."""
+
+import logging
 from typing import Dict, List, TypeVar
+
+logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
 
@@ -130,26 +136,41 @@ def batchfy(
         List of batches, where each batch is a list of keys.
 
     Raises:
-        ValueError: If batch_method is invalid or if any sample
-            length exceeds batch_token.
+        ValueError: If batch_method is invalid.
+
+    Notes:
+        Samples with length exceeding batch_token are automatically
+        discarded and a warning is logged.
     """
-    # Check if any single sample exceeds batch_token
+    # Filter out samples that exceed batch_token
+    valid_keys = []
+    discarded_count = 0
+
     for key in keys:
         key_length = key_to_length[key]
         if key_length > batch_token:
-            raise ValueError(
-                f"Sample {key} has length {key_length} which "
-                f"exceeds batch_token limit {batch_token}"
-            )
+            discarded_count += 1
+        else:
+            valid_keys.append(key)
+
+    # Report discarded samples if any
+    if discarded_count > 0:
+        logger.warning(
+            f"Discarded {discarded_count} samples (out of {len(keys)}) "
+            f"that exceed batch_token limit ({batch_token})"
+        )
 
     if batch_method == "bucket":
-        return batchfy_bucket(keys, key_to_length, batch_token)
+        batches = batchfy_bucket(valid_keys, key_to_length, batch_token)
     elif batch_method == "pack":
-        return batchfy_pack(keys, key_to_length, batch_token)
+        batches = batchfy_pack(valid_keys, key_to_length, batch_token)
     else:
         raise ValueError(
             f"Invalid batch_method: {batch_method}. " f"Must be 'bucket' or 'pack'."
         )
+
+    batches = synchronize_batches(batches)
+    return batches
 
 
 def synchronize_batches(batches: List[List[T]]) -> List[List[T]]:
