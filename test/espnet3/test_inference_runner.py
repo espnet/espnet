@@ -12,8 +12,8 @@ import torch
 from omegaconf import DictConfig, OmegaConf
 
 # ==== SUT imports ====
-from espnet3.runner.base_runner import BaseRunner
-from espnet3.runner.inference_provider import InferenceProvider
+from espnet3.parallel.base_runner import BaseRunner
+from espnet3.parallel.inference_provider import InferenceProvider
 
 
 class STFTProvider(InferenceProvider):
@@ -302,7 +302,7 @@ def _patch_parallel_client_no_submit(monkeypatch, n_workers: int = 2):
     from omegaconf import OmegaConf
 
     import espnet3.parallel.parallel as par
-    import espnet3.runner.base_runner as br
+    import espnet3.parallel.base_runner as br
 
     class _FakeCluster:
         def __init__(self):

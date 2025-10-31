@@ -6,7 +6,7 @@ from typing import Any, Callable, Dict
 import torch
 from omegaconf import DictConfig
 
-from espnet3.runner.env_provider import EnvironmentProvider
+from espnet3.parallel.env_provider import EnvironmentProvider
 
 
 class InferenceProvider(EnvironmentProvider, ABC):

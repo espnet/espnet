@@ -20,7 +20,7 @@ from espnet3.parallel.parallel import (
     make_client,
     parallel_for,
 )
-from espnet3.runner.env_provider import EnvironmentProvider
+from espnet3.parallel.env_provider import EnvironmentProvider
 
 
 @dataclass(frozen=True)
