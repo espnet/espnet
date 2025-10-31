@@ -5,9 +5,9 @@ from pathlib import Path
 import torch
 from hydra.utils import instantiate
 
-from espnet3.parallel.parallel import set_parallel
 from espnet3.parallel.base_runner import BaseRunner
 from espnet3.parallel.inference_provider import InferenceProvider
+from espnet3.parallel.parallel import set_parallel
 from espnet3.utils.config import load_config_with_defaults
 
 

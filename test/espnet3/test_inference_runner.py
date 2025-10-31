@@ -301,8 +301,8 @@ def _patch_parallel_client_no_submit(monkeypatch, n_workers: int = 2):
     """
     from omegaconf import OmegaConf
 
-    import espnet3.parallel.parallel as par
     import espnet3.parallel.base_runner as br
+    import espnet3.parallel.parallel as par
 
     class _FakeCluster:
         def __init__(self):

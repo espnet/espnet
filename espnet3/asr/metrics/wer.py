@@ -6,9 +6,9 @@ from pathlib import Path
 from typing import Dict, Iterable, List
 
 import jiwer
-from espnet3.asr.metrics.abs_metric import AbsMetrics
 
 from espnet2.text.cleaner import TextCleaner
+from espnet3.asr.metrics.abs_metric import AbsMetrics
 
 
 class WER(AbsMetrics):

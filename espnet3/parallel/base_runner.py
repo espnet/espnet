@@ -14,13 +14,13 @@ from dask.utils import tmpfile
 from omegaconf import OmegaConf
 from tqdm import tqdm
 
+from espnet3.parallel.env_provider import EnvironmentProvider
 from espnet3.parallel.parallel import (
     get_client,
     get_parallel_config,
     make_client,
     parallel_for,
 )
-from espnet3.parallel.env_provider import EnvironmentProvider
 
 
 @dataclass(frozen=True)
