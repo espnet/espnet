@@ -97,7 +97,7 @@ def main() -> None:
         create_cmd = [
             "python",
             "-m",
-            "src.bin.train_tokenizer",
+            "espnet3.asr.bin.train_tokenizer",
             "--dataset_dir",
             args.dataset_dir,
             "--save_path",
@@ -125,7 +125,7 @@ def main() -> None:
         eval_cmd = [
             args.launcher,
             "-m",
-            "espnet3.bin.decoder.asr",
+            "espnet3.asr.bin.inference",
             "--config",
             args.eval_config,
         ]
@@ -133,7 +133,7 @@ def main() -> None:
         eval_cmd = [
             args.launcher,
             "-m",
-            "template.score",
+            "espnet3.base.bin.score",
             "--config",
             args.eval_config,
         ]

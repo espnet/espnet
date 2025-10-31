@@ -1,10 +1,10 @@
 # Main training for LibriSpeech 100h ASR recipe
 defaults:
   - default.yaml
-  - ../dataset.yaml
+  - dataset.yaml
 
 
-exptag: template
+exp_tag: template
 task: espnet2.tasks.asr.ASRTask
 
 

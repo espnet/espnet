@@ -5,7 +5,7 @@ task:
 
 recipe_dir: .
 data_dir: ${recipe_dir}/data
-exp_dir: ${recipe_dir}/exp/${exptag}
+exp_dir: ${recipe_dir}/exp/${exp_tag}
 stats_dir: ${recipe_dir}/exp/stats
 decode_dir: ${exp_dir}/decode
 
@@ -76,7 +76,7 @@ trainer:
 
   logger:
     - _target_: lightning.pytorch.loggers.TensorBoardLogger
-      save_dir: ${expdir}/tensorboard
+      save_dir: ${exp_dir}/tensorboard
       name: tb_logger
 
   strategy: auto
