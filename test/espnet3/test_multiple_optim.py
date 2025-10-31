@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 import torch
 from torch import nn
 
-from espnet3.trainer.multiple_optim import MultipleOptim
+from espnet3.base.trainer.multiple_optim import MultipleOptim
 
 # ===============================================================
 # Test Case Summary for MultipleOptim

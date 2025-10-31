@@ -7,7 +7,7 @@ from hydra.utils import instantiate
 from lightning.pytorch.callbacks import LearningRateMonitor, ModelCheckpoint
 from omegaconf import OmegaConf
 
-from espnet3.trainer.callbacks import AverageCheckpointsCallback, get_default_callbacks
+from espnet3.base.callbacks import AverageCheckpointsCallback, get_default_callbacks
 
 # ===============================================================
 # Test Case Summary for AverageCheckpointsCallback

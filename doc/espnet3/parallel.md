@@ -100,7 +100,7 @@ ESPnet3 supports two main options for model definition:
 
    ```python
    from espnet3.trainer import LitESPnetModel
-   from espnet3.task import get_espnet_model
+   from espnet3.base.task import get_espnet_model
 
    model = get_espnet_model(task="asr", config=config.model)
    model = LitESPnetModel(model)

@@ -1,10 +1,11 @@
 # env_provider.py
+from abc import ABC, abstractmethod
 from typing import Any, Callable, Dict
 
 from omegaconf import DictConfig
 
 
-class EnvironmentProvider:
+class EnvironmentProvider(ABC):
     """A base interface to build and inject per-process environments.
 
     This class separates responsibilities for constructing shared
@@ -27,9 +28,12 @@ class EnvironmentProvider:
           the worker setup function so each worker constructs its own copy.
     """
 
+    # TODO (Masao) Add detailed description on Runner/Provider in the document.
+
     def __init__(self, config: DictConfig):
         self.config = config
 
+    @abstractmethod
     def build_env_local(self) -> Dict[str, Any]:
         """Build the environment once on the driver for local execution.
 
@@ -53,6 +57,7 @@ class EnvironmentProvider:
         """
         raise NotImplementedError
 
+    @abstractmethod
     def make_worker_setup_fn(self) -> Callable[[], Dict[str, Any]]:
         """Create a worker setup function for distributed execution.
 

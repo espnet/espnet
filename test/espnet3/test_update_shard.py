@@ -1,4 +1,4 @@
-from espnet3.trainer.dataloader import update_shard
+from espnet3.base.dataloader.dataloader import update_shard
 
 # ===============================================================
 # Test Case Summary for update_shard
