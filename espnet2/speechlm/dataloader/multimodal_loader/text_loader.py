@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+# Copyright 2025 Jinchuan Tian (Carnegie Mellon University)
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
+"""Text data loading utilities supporting plain and JSONL formats."""
+
 import json
 import logging
 from pathlib import Path

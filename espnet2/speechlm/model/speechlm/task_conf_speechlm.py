@@ -1,6 +1,9 @@
-"""SpeechLM-specific task configuration module."""
+# Copyright 2025 Jinchuan Tian (Carnegie Mellon University)
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-from espnet2.speechlm.configuration.task_conf import (
+"""Task configuration definitions specific to SpeechLM model."""
+
+from espnet2.speechlm.dataloader.task_conf import (
     SUPPORTED_ENTRIES,
     TASK_CONFIGS,
 )
@@ -9,17 +12,17 @@ VALID_ROLES = ["assistant", "user", "system"]
 
 
 # Task template definitions for SpeechLM tasks
-SPEECHLM_TASK_TEMPLATES = {
+SPEECHLM_TASK_CONFIGS = {
     "text_to_audio": [("user", "text1"), ("assistant", "audio1")],
     "audio_to_text": [("user", "audio1"), ("assistant", "text1")],
     "text_only": [("assistant", "text1")],
 }
 
 
-# Sanity check: ensure all entries in SPEECHLM_TASK_TEMPLATES are supported
+# Sanity check: ensure all entries in SPEECHLM_TASK_CONFIGS are supported
 def _validate_task_templates():
-    """Validate entries and roles in SPEECHLM_TASK_TEMPLATES."""
-    for task_name, template in SPEECHLM_TASK_TEMPLATES.items():
+    """Validate entries and roles in SPEECHLM_TASK_CONFIGS."""
+    for task_name, template in SPEECHLM_TASK_CONFIGS.items():
         for role, entry in template:
             if role not in VALID_ROLES:
                 raise ValueError(
@@ -34,15 +37,15 @@ def _validate_task_templates():
 
 
 def _validate_task_consistency():
-    """Validate that SPEECHLM_TASK_TEMPLATES entries match TASK_CONFIGS."""
-    for task_name, template in SPEECHLM_TASK_TEMPLATES.items():
+    """Validate that SPEECHLM_TASK_CONFIGS entries match TASK_CONFIGS."""
+    for task_name, template in SPEECHLM_TASK_CONFIGS.items():
         # Extract entries from template
         template_entries = set(entry for role, entry in template)
 
         # Get required entries from TASK_CONFIGS
         if task_name not in TASK_CONFIGS:
             raise ValueError(
-                f"Task '{task_name}' in SPEECHLM_TASK_TEMPLATES not "
+                f"Task '{task_name}' in SPEECHLM_TASK_CONFIGS not "
                 f"found in TASK_CONFIGS"
             )
 
@@ -52,10 +55,12 @@ def _validate_task_consistency():
         if template_entries != config_entries:
             raise ValueError(
                 f"Entries mismatch for task '{task_name}': "
-                f"SPEECHLM_TASK_TEMPLATES has {sorted(template_entries)}, "
+                f"SPEECHLM_TASK_CONFIGS has {sorted(template_entries)}, "
                 f"TASK_CONFIGS has {sorted(config_entries)}"
             )
 
 
 _validate_task_templates()
 _validate_task_consistency()
+
+__all__ = [SPEECHLM_TASK_CONFIGS]
