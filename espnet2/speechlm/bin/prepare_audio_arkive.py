@@ -7,9 +7,10 @@
 import argparse
 import logging
 import os
-import pandas as pd
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
+
+import pandas as pd
 
 try:
     from arkive import Arkive
@@ -17,6 +18,7 @@ except ImportError:
     raise ImportError(
         "arkive is not installed. Please install at https://github.com/wanchichen/arkive"
     )
+
 
 def parse_segments_file(
     segments_path: str,
@@ -73,13 +75,13 @@ def parse_segments_file(
 
     return segments
 
+
 def prepare_audio_arkive(
     wav_scp: str,
     segments: Optional[str],
     output_dir: str,
     log_level: str,
 ):
-
     """Process Kaldi wav.scp and segments to create Arkive manifests.
 
     Args:
@@ -128,12 +130,9 @@ def prepare_audio_arkive(
 
     df = ark.data
     cols = df.columns.tolist()
-    cols.remove('original_file_path')
+    cols.remove("original_file_path")
     cols_to_add = [df[col] for col in cols]
-    data  = dict(zip(
-        df['original_file_path'],
-        zip(*cols_to_add)
-    ))
+    data = dict(zip(df["original_file_path"], zip(*cols_to_add)))
 
     new_data = []
     if segments is not None:
@@ -150,7 +149,9 @@ def prepare_audio_arkive(
             audio_path = audio_paths[recording_id]
 
             dump_data = data[audio_path]
-            dump_data = [audio_path, segment_id, recording_id,  start, end] + list(dump_data)
+            dump_data = [audio_path, segment_id, recording_id, start, end] + list(
+                dump_data
+            )
 
             new_data.append(dump_data)
 
@@ -158,12 +159,19 @@ def prepare_audio_arkive(
         for recording_id in audio_paths:
             audio_path = audio_paths[recording_id]
             dump_data = data[audio_path]
-            dump_data = [audio_path, recording_id, recording_id,  None, None] + list(dump_data)
+            dump_data = [audio_path, recording_id, recording_id, None, None] + list(
+                dump_data
+            )
 
             new_data.append(dump_data)
 
-    out_df = pd.DataFrame(new_data, columns=['original_file_path', 'utt_id', 'doc_id', 'start_time', 'end_time']+cols)
-    out_df.to_parquet(f'{output_dir}_processed.parquet')
+    out_df = pd.DataFrame(
+        new_data,
+        columns=["original_file_path", "utt_id", "doc_id", "start_time", "end_time"]
+        + cols,
+    )
+    out_df.to_parquet(f"{output_dir}_processed.parquet")
+
 
 def get_parser():
     """Get argument parser."""
@@ -209,6 +217,3 @@ def main(cmd=None):
 
 if __name__ == "__main__":
     main()
-
-        
-    

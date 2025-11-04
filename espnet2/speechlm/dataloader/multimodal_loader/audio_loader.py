@@ -30,6 +30,7 @@ except ImportError:
         "lhotse is not installed. Please install it with: pip install lhotse"
     )
 
+
 class ArkiveAudioReader:
     """Dict-like lazy audio reader using arkive parquets
 
@@ -48,25 +49,43 @@ class ArkiveAudioReader:
         world_size: used for worker partitioning
     """
 
-    def __init__(self, query: str, valid_ids: list = None, worker_id: int = None, world_size: int = None):
+    def __init__(
+        self,
+        query: str,
+        valid_ids: list = None,
+        worker_id: int = None,
+        world_size: int = None,
+    ):
 
         result = duckdb.query(query)
 
         # filter query result before loading to df
         # avoids loading the whole query result into memory
         if worker_id is not None:
-            assert world_size is not None, f"filtering by worker_id requires world_size, got {world_size}"
-            result = duckdb.query(f"""
+            assert (
+                world_size is not None
+            ), f"filtering by worker_id requires world_size, got {world_size}"
+            result = duckdb.query(
+                f"""
                 SELECT * FROM result
                 QUALIFY (row_number() OVER () - 1) % {world_size} = {worker_id}
-            """)
-        
+            """
+            )
+
         df = result.df()
 
-        data  = dict(zip(
-            df['utt_id'],
-            zip(df['path'], df['start_byte_offset'], df['file_size_bytes'], df['start_time'], df['end_time'])
-        ))
+        data = dict(
+            zip(
+                df["utt_id"],
+                zip(
+                    df["path"],
+                    df["start_byte_offset"],
+                    df["file_size_bytes"],
+                    df["start_time"],
+                    df["end_time"],
+                ),
+            )
+        )
 
         if valid_ids:
             data = {k: v for k, v in data.items() if k in valid_ids}
@@ -76,7 +95,7 @@ class ArkiveAudioReader:
     def __getitem__(self, key: str) -> Tuple[np.ndarray, int]:
         path, start_byte, file_size, start_time, end_time = self.data[key]
         data = audio_read(
-            path, 
+            path,
             start_offset=start_byte,
             file_size=file_size,
             start_time=start_time,
@@ -105,6 +124,7 @@ class ArkiveAudioReader:
         """Return iterator over (id, item) pairs."""
         for item in self.data:
             yield item, self.data[item]
+
 
 class LhotseAudioReader:
     """Dict-like lazy audio reader using Lhotse manifests.
