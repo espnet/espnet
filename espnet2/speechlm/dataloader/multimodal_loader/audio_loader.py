@@ -68,7 +68,7 @@ class ArkiveAudioReader:
             result = duckdb.query(
                 f"""
                 SELECT * FROM result
-                QUALIFY (row_number() OVER () - 1) % {world_size} = {worker_id}
+                QUALIFY (row_number() OVER (ORDER BY utt_id) - 1) % {world_size} = {worker_id}
             """
             )
 
@@ -88,7 +88,7 @@ class ArkiveAudioReader:
         )
 
         if valid_ids:
-            data = {k: v for k, v in data.items() if k in valid_ids}
+            data = {k: data[k] for k in set(valid_ids) if k in data}
 
         self.data = data
 
@@ -118,12 +118,11 @@ class ArkiveAudioReader:
 
     def values(self):
         """Return iterator over items."""
-        return iter(self.data)
+        return self.data.values()
 
     def items(self):
         """Return iterator over (id, item) pairs."""
-        for item in self.data:
-            yield item, self.data[item]
+        return self.data.items()
 
 
 class LhotseAudioReader:

@@ -170,7 +170,7 @@ def prepare_audio_arkive(
         columns=["original_file_path", "utt_id", "doc_id", "start_time", "end_time"]
         + cols,
     )
-    out_df.to_parquet(f"{output_dir}_processed.parquet")
+    out_df.to_parquet(f'{output_dir.rstrip(os.path.sep)}_processed.parquet')
 
 
 def get_parser():
