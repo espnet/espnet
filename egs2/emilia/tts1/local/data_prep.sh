@@ -3,6 +3,7 @@
 # Emilia dataset is used as training and development set
 # VCTK dataset is used as evaluation set
 
+nj=32
 num_dev=5000
 num_eval=5
 train_set="tr_no_dev"
@@ -16,7 +17,7 @@ db_vctk=$2
 
 if [ $# != 2 ]; then
     echo "Usage: $0 [Options] <emilia-db> <vctk-db>"
-    echo "e.g.: $0 downloads/emilia_100 downloads/VCTK-Corpus"
+    echo "e.g.: $0 downloads/emilia downloads/VCTK-Corpus"
     echo ""
     echo "Options:"
     echo "    --num_dev: number of development uttreances (default=${num_dev})."
@@ -24,55 +25,67 @@ if [ $# != 2 ]; then
     echo "    --train_set: name of train set (default=${train_set})."
     echo "    --dev_set: name of dev set (default=${dev_set})."
     echo "    --eval_set: name of eval set (default=${eval_set})."
+    echo "    --nj: number of parallel jobs (default=${nj})."
     exit 1
 fi
 
 set -euo pipefail
 
+# -------- Function: Preprocess Emilia Subset --------
+preprocess_emilia_subset() {
+    subset=$1
+    db_emilia=$2
+
+    subset_dir="data/${subset}_train"
+    complete_flag="${subset_dir}/.complete"
+
+    if [ -e "${complete_flag}" ]; then
+        echo "[${subset}] already processed. Skipping..."
+        return
+    fi
+
+    mkdir -p "${subset_dir}"
+    scp="${subset_dir}/wav.scp"
+    utt2spk="${subset_dir}/utt2spk"
+    text="${subset_dir}/text"
+
+    rm -f "${scp}" "${utt2spk}" "${text}"
+
+    echo "[${subset}] Processing..."
+
+    # Iterate over mp3 files and use jq for JSON parsing
+    while IFS= read -r wav; do
+        id=$(basename "${wav}" .mp3)
+        json="${db_emilia}/${subset}/${id}.json"
+
+        # Parse JSON fields
+        speaker=$(jq -r '.speaker' "${json}")
+        txt=$(jq -r '.text' "${json}")
+
+        printf "%s %s\n" "$id" "$wav" >>"${scp}"
+        printf "%s %s\n" "$id" "$speaker" >>"${utt2spk}"
+        printf "%s %s\n" "$id" "$txt" >>"${text}"
+    done < <(find "${db_emilia}/${subset}" -type f -name "*.mp3" | sort)
+
+    utils/utt2spk_to_spk2utt.pl "${utt2spk}" >"${subset_dir}/spk2utt"
+    touch "${complete_flag}"
+    echo "[${subset}] Done."
+}
+export -f preprocess_emilia_subset
+
 # Preprocess emilia data
-echo "Preprocessing emilia dataset..."
-emilia_subsets=$(find "${db_emilia}" -maxdepth 1 -name "EN-*" -exec basename {} \; | sort)
-for subset in ${emilia_subsets}; do
-    echo "Preprocessing ${subset} of emilia dataset..."
-    # create directory for each subset
-    [ ! -e data/${subset}_train ] && mkdir -p data/${subset}_train
+echo "Preprocessing Emilia dataset..."
+emilia_subsets=($(find "${db_emilia}" -maxdepth 1 -name "EN-*" -exec basename {} \; | sort))
 
-    # init filenames
-    scp=data/${subset}_train/wav.scp
-    utt2spk=data/${subset}_train/utt2spk
-    text=data/${subset}_train/text
-    spk2utt=data/${subset}_train/spk2utt
+# Run in parallel (adjust nj to your CPU cores)
+parallel -j ${nj} preprocess_emilia_subset {} "${db_emilia}" ::: "${emilia_subsets[@]}"
 
-    # check file existence. Remove them if exist.
-    [ -e "${scp}" ] && rm "${scp}"
-    [ -e "${utt2spk}" ] && rm "${utt2spk}"
-    [ -e "${text}" ] && rm "${text}"
-    [ -e "${spk2utt}" ] && rm "${spk2utt}"
-
-    # create wav.scp, utt2spk, text, spk2utt of each subset
-    find "${db_emilia}/${subset}" -follow -name "*.mp3" | sort | while read -r wav; do
-        # extract filename without extension
-        id=$(basename "${wav}" | sed -e "s/\.[^\.]*$//g")
-        json=${db_emilia}/${subset}/${id}.json
-
-        # read json
-        speaker=$(python3 -c "import json; print(json.load(open('${json}'))['speaker'])")
-        txt=$(python3 -c "import json; print(json.load(open('${json}'))['text'])")
-
-        # write to files
-        echo "${id} ${wav}" >>"${scp}"
-        echo "${id} ${speaker}" >>"${utt2spk}"
-        echo "${id} ${txt}" >>"${text}"
-
-        utils/utt2spk_to_spk2utt.pl "${utt2spk}" >"${spk2utt}"
-    done
-done
-
+echo "Combining Emilia subsets..."
 # combine all subset of emilia dataset
-utils/combine_data.sh data/traindev $(for subset in ${emilia_subsets}; do echo data/${subset}_train; done)
+utils/combine_data.sh data/traindev $(for subset in "${emilia_subsets[@]}"; do echo "data/${subset}_train"; done)
 
 # remove each subset directory
-for subset in ${emilia_subsets}; do
+for subset in ${emilia_subsets[@]}; do
     rm -rf data/${subset}_train
 done
 

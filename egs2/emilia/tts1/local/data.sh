@@ -12,6 +12,7 @@ SECONDS=0
 
 stage=-1
 stop_stage=1 
+nj=32
 
 log "$0 $*"
 . utils/parse_options.sh
@@ -48,6 +49,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
         --train_set "${train_set}" \
         --dev_set "${dev_set}" \
         --eval_set "${eval_set}" \
-        "${db_root}"/emilia_100 \
+        --nj "${nj}" \
+        "${db_root}"/emilia \
         "${db_root}"/VCTK-Corpus
 fi
