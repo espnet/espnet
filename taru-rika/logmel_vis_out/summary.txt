@@ -1,0 +1,5 @@
+Frame-wise L2 stats (after DTW alignment)
+mean=101.591965
+median=93.344879
+p95=168.477870
+max=240.295700
