@@ -73,4 +73,3 @@ CHANGES
 
 z2h and h2z allow mojimoji-like target character type determination.
 Bug fix about Half Kana conversion.
-

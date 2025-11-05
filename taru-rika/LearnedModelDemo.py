@@ -1,4 +1,5 @@
 import soundfile
+
 from espnet2.bin.tts_inference import Text2Speech
 
 # 事前学習済みの日本語音声合成モデルを読み込み

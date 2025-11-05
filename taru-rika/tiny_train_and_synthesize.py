@@ -1,28 +1,30 @@
+import glob
 import os
 import re
-import sys
-import glob
 import shutil
 import subprocess
+import sys
 from pathlib import Path
-from typing import Tuple, Optional
+from typing import Optional, Tuple
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-print("This is REPO_ROOT!!!", REPO_ROOT);
-EXP_ROOT  = REPO_ROOT / "egs2" / "jsut" / "tts1" / "exp"
+print("This is REPO_ROOT!!!", REPO_ROOT)
+EXP_ROOT = REPO_ROOT / "egs2" / "jsut" / "tts1" / "exp"
 RECIPE_DIR = REPO_ROOT / "egs2" / "jsut" / "tts1"
-CONF_DIR   = RECIPE_DIR / "conf" / "tuning"
-BASE_YAML  = CONF_DIR / "train_tacotron2.yaml"        # 既存のベース
-TINY_YAML  = CONF_DIR / "train_tacotron2_tiny.yaml"   # 生成する極小学習用YAML
-DEFAULT_TAG        = "tiny_demo"                               # exp ディレクトリ名の識別子
-#TAG        = "tiny_demo"                               # exp ディレクトリ名の識別子
-#TAG        = "tts_stats_raw_phn_tacotron_g2p_en_no_space"                               # exp ディレクトリ名の識別子
-OUT_WAV    = REPO_ROOT / "taru-rika" / "tiny_demo.wav"
-SAY_TEXT   = "落ちる"
+CONF_DIR = RECIPE_DIR / "conf" / "tuning"
+BASE_YAML = CONF_DIR / "train_tacotron2.yaml"  # 既存のベース
+TINY_YAML = CONF_DIR / "train_tacotron2_tiny.yaml"  # 生成する極小学習用YAML
+DEFAULT_TAG = "tiny_demo"  # exp ディレクトリ名の識別子
+# TAG        = "tiny_demo"                               # exp ディレクトリ名の識別子
+# TAG        = "tts_stats_raw_phn_tacotron_g2p_en_no_space"                               # exp ディレクトリ名の識別子
+OUT_WAV = REPO_ROOT / "taru-rika" / "tiny_demo.wav"
+SAY_TEXT = "落ちる"
+
 
 def run(cmd, cwd=None, check=True):
     print(f"\n[RUN] {cmd}  (cwd={cwd or os.getcwd()})")
     subprocess.run(cmd, shell=True, cwd=cwd, check=check)
+
 
 def ensure_tiny_yaml():
     """
@@ -57,17 +59,22 @@ def ensure_tiny_yaml():
     TINY_YAML.write_text(text)
     print(f"[OK] wrote tiny config: {TINY_YAML}")
 
+
 def stage_1_2_prepare():
     # LJSpeech のDLと前処理（自動）。CPU想定。
     run("./run.sh --stage 1 --stop-stage 2 --ngpu 0", cwd=RECIPE_DIR)
 
+
 def stage_3_train_tiny():
     # 超短縮学習。--tag で expdir に識別子を付ける
-    cmd = f"./run.sh --stage 3 --stop-stage 3 --ngpu 0 " \
-          f"--train_config {TINY_YAML.relative_to(RECIPE_DIR)} --tag {DEFAULT_TAG}"
+    cmd = (
+        f"./run.sh --stage 3 --stop-stage 3 --ngpu 0 "
+        f"--train_config {TINY_YAML.relative_to(RECIPE_DIR)} --tag {DEFAULT_TAG}"
+    )
     run(cmd, cwd=RECIPE_DIR)
 
-#def find_checkpoint():
+
+# def find_checkpoint():
 #    # できあがった expdir を探索して、valid.loss.ave.pth か 最新の *.pth を拾う
 #    exp_glob = RECIPE_DIR / "exp" / f"tts_train_*{TAG}*"
 #    candidates = sorted(glob.glob(str(exp_glob)))
@@ -94,12 +101,14 @@ def stage_3_train_tiny():
 #
 #    return pths[-1], expdir
 
+
 def _latest_path(paths):
     """更新時刻(=最終更新)が新しい順で最後を返す。なければ None。"""
     paths = [p for p in paths if p.exists()]
     if not paths:
         return None
     return max(paths, key=lambda p: p.stat().st_mtime)
+
 
 def find_checkpoint(tag: Optional[str] = None) -> Tuple[Path, Path]:
     """
@@ -138,7 +147,7 @@ def find_checkpoint(tag: Optional[str] = None) -> Tuple[Path, Path]:
         "checkpoint.pth.tar",
         "valid.*.pth",
         "snapshot.ep.*",
-        "*.pth",                # 保険（cls/自前保存など）
+        "*.pth",  # 保険（cls/自前保存など）
     ]
 
     # 最新更新ディレクトリ優先でスキャン
@@ -174,6 +183,7 @@ def find_checkpoint(tag: Optional[str] = None) -> Tuple[Path, Path]:
         f"  candidates: {[str(d) for d in candidates_sorted]}\n"
         "Please run training (stage) and verify outputs."
     )
+
 
 def synthesize_with_python(ckpt_path):
     # exp 配下の最終 config.yaml を使う（conf/tuning ではない）
@@ -225,14 +235,15 @@ print("Saved:", r"{OUT_WAV.as_posix()}")
         except Exception:
             pass
 
+
 #    # Python から合成（tacotron2 tiny の checkpoint + 既存ボコーダ）
 #    # vocoder は Model Zoo の PWG(LJSpeech) を使用（自動DL）
 #
 #    tok = "/Users/rikatarumi/espnet/egs2/jsut/tts1/dump/token_list/phn_jaconv_pyopenjtalk/tokens.txt"
 #
 #    code = f"""
-#import subprocess, sys
-#cmd = [
+# import subprocess, sys
+# cmd = [
 #    sys.executable, "-m", "espnet2.bin.tts_inference",
 #    "--train_config", r"{ckpt_path.with_name('config.yaml').as_posix()}",
 #    "--model_file",   r"{ckpt_path.as_posix()}",
@@ -241,11 +252,11 @@ print("Saved:", r"{OUT_WAV.as_posix()}")
 #    "--text", r"{SAY_TEXT}",
 #    "--out",  r"{OUT_WAV.as_posix()}",
 #    "--device", "cpu",
-#]
-#print("[RUN]", " ".join(cmd))
-#subprocess.run(cmd, check=True)
-#print("Saved:", r"{OUT_WAV.as_posix()}")
-#"""
+# ]
+# print("[RUN]", " ".join(cmd))
+# subprocess.run(cmd, check=True)
+# print("Saved:", r"{OUT_WAV.as_posix()}")
+# """
 ##    code = f"""
 ##from pathlib import Path
 ##from espnet2.bin.tts_inference import Text2Speech
@@ -276,6 +287,7 @@ print("Saved:", r"{OUT_WAV.as_posix()}")
 #        except Exception:
 #            pass
 
+
 def main():
     print("=== tiny train & synth demo (LJSpeech / Tacotron2 / CPU) ===")
     ensure_tiny_yaml()
@@ -286,6 +298,6 @@ def main():
     synthesize_with_python(ckpt)
     print(f"\n[DONE] listen: {OUT_WAV}")
 
+
 if __name__ == "__main__":
     main()
-

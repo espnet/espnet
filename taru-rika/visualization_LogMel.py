@@ -12,33 +12,34 @@ Log-Mel 同士を DTW でアラインし、可視化と簡易指標を出力す�
 （必要であれば main 下の設定を調整）
 """
 
-import os
-import math
 import argparse
-import numpy as np
+import math
+import os
+from pathlib import Path
+
 import librosa
 import librosa.display
 import matplotlib.pyplot as plt
-from pathlib import Path
+import numpy as np
 from scipy.spatial.distance import cdist
 
 # ====== 入出力パス（固定で使う場合はここを書き換え） ======
 REF_DEFAULT = "/Users/rikatarumi/Desktop/実験音声/sk045_1_0032.wav"  # 実音声
-SYN_DEFAULT = "/Users/rikatarumi/Desktop/実験音声/utt1.wav"          # 合成音声
+SYN_DEFAULT = "/Users/rikatarumi/Desktop/実験音声/utt1.wav"  # 合成音声
 # SYN_DEFAULT = "/Users/rikatarumi/Desktop/実験音声/utt2.wav"
 
 # ====== Log-Mel 抽出パラメータ（両者で完全一致させる） ======
-SR          = 22050
-N_FFT       = 1024
-HOP_LENGTH  = 256
-N_MELS      = 80
-FMIN        = 80
-FMAX        = 7600
-POWER       = 2.0   # パワースペクトログラム
+SR = 22050
+N_FFT = 1024
+HOP_LENGTH = 256
+N_MELS = 80
+FMIN = 80
+FMAX = 7600
+POWER = 2.0  # パワースペクトログラム
 
 # ====== 画像保存設定 ======
-OUT_DIR     = "./logmel_vis_out"
-DPI         = 180
+OUT_DIR = "./logmel_vis_out"
+DPI = 180
 
 
 def load_wav_mono(path: str, sr: int) -> np.ndarray:
@@ -66,7 +67,9 @@ def to_logmel(y: np.ndarray, sr: int) -> np.ndarray:
     return LM  # (n_mels, T)
 
 
-def dtw_align_indices(LM_ref: np.ndarray, LM_syn: np.ndarray, metric: str = "euclidean"):
+def dtw_align_indices(
+    LM_ref: np.ndarray, LM_syn: np.ndarray, metric: str = "euclidean"
+):
     """
     Log-Mel を DTW でアラインし、対応フレーム列とコスト行列を返す。
     - 入力: (n_mels, T)
@@ -98,7 +101,9 @@ def dtw_align_indices(LM_ref: np.ndarray, LM_syn: np.ndarray, metric: str = "euc
     return idx_ref, idx_syn, C
 
 
-def align_and_diff(LM_ref: np.ndarray, LM_syn: np.ndarray, idx_ref: np.ndarray, idx_syn: np.ndarray):
+def align_and_diff(
+    LM_ref: np.ndarray, LM_syn: np.ndarray, idx_ref: np.ndarray, idx_syn: np.ndarray
+):
     """
     DTWの対応フレーム列に沿って、両者のLog-Melを整列し差分を計算
     - 返り値
@@ -120,15 +125,21 @@ def align_and_diff(LM_ref: np.ndarray, LM_syn: np.ndarray, idx_ref: np.ndarray, 
     return LM_ref_aligned, LM_syn_aligned, frame_l2, diff_map
 
 
-def compute_mcd_db(y_ref: np.ndarray, y_syn: np.ndarray, sr: int, n_mfcc: int = 13) -> float:
+def compute_mcd_db(
+    y_ref: np.ndarray, y_syn: np.ndarray, sr: int, n_mfcc: int = 13
+) -> float:
     """
     簡易MCD計算（DTW非考慮の全体平均）。必要に応じてアライン後フレームに対して使ってください。
     定義: MCD [dB] = (10 / ln10) * sqrt(2) * mean_t sqrt( sum_{d=1..K} (mc_ref[d,t] - mc_syn[d,t])^2 )
     ここでは 0次MFCC含む/含まないは用途で調整（librosaのmfccは0次含む）。実装は0..(n_mfcc-1)全部を使う。
     """
     # MFCC 抽出（同一設定を担保）
-    mfcc_ref = librosa.feature.mfcc(y=y_ref, sr=sr, n_mfcc=n_mfcc, n_fft=N_FFT, hop_length=HOP_LENGTH)
-    mfcc_syn = librosa.feature.mfcc(y=y_syn, sr=sr, n_mfcc=n_mfcc, n_fft=N_FFT, hop_length=HOP_LENGTH)
+    mfcc_ref = librosa.feature.mfcc(
+        y=y_ref, sr=sr, n_mfcc=n_mfcc, n_fft=N_FFT, hop_length=HOP_LENGTH
+    )
+    mfcc_syn = librosa.feature.mfcc(
+        y=y_syn, sr=sr, n_mfcc=n_mfcc, n_fft=N_FFT, hop_length=HOP_LENGTH
+    )
 
     # 長さを短い方に揃える（簡易）
     T = min(mfcc_ref.shape[1], mfcc_syn.shape[1])
@@ -168,7 +179,15 @@ def plot_all(
 
     # 1) REF Log-Mel
     fig1 = plt.figure(figsize=(9, 3))
-    librosa.display.specshow(LM_ref, sr=SR, hop_length=HOP_LENGTH, x_axis="time", y_axis="mel", fmin=FMIN, fmax=FMAX)
+    librosa.display.specshow(
+        LM_ref,
+        sr=SR,
+        hop_length=HOP_LENGTH,
+        x_axis="time",
+        y_axis="mel",
+        fmin=FMIN,
+        fmax=FMAX,
+    )
     plt.colorbar(format="%+2.0f dB")
     plt.title(f"REF Log-Mel\n{Path(ref_path).name}")
     out1 = os.path.join(out_dir, "1_ref_logmel.png")
@@ -178,7 +197,15 @@ def plot_all(
 
     # 2) SYN Log-Mel
     fig2 = plt.figure(figsize=(9, 3))
-    librosa.display.specshow(LM_syn, sr=SR, hop_length=HOP_LENGTH, x_axis="time", y_axis="mel", fmin=FMIN, fmax=FMAX)
+    librosa.display.specshow(
+        LM_syn,
+        sr=SR,
+        hop_length=HOP_LENGTH,
+        x_axis="time",
+        y_axis="mel",
+        fmin=FMIN,
+        fmax=FMAX,
+    )
     plt.colorbar(format="%+2.0f dB")
     plt.title(f"SYN Log-Mel\n{Path(syn_path).name}")
     out2 = os.path.join(out_dir, "2_syn_logmel.png")
@@ -189,7 +216,7 @@ def plot_all(
     # 3) コスト行列 + DTWパス
     fig3 = plt.figure(figsize=(5, 5))
     plt.imshow(C.T, origin="lower", aspect="auto")  # 軸の対応をわかりやすく
-    plt.plot(idx_ref, idx_syn, linewidth=1.0)       # パス
+    plt.plot(idx_ref, idx_syn, linewidth=1.0)  # パス
     plt.xlabel("REF frame")
     plt.ylabel("SYN frame")
     plt.title("Cost matrix (cdist) with DTW path")
@@ -212,7 +239,15 @@ def plot_all(
 
     # 5) 差分ヒートマップ（SYN - REF）
     fig5 = plt.figure(figsize=(9, 3))
-    librosa.display.specshow(diff_map, sr=SR, hop_length=HOP_LENGTH, x_axis="time", y_axis="mel", fmin=FMIN, fmax=FMAX)
+    librosa.display.specshow(
+        diff_map,
+        sr=SR,
+        hop_length=HOP_LENGTH,
+        x_axis="time",
+        y_axis="mel",
+        fmin=FMIN,
+        fmax=FMAX,
+    )
     plt.colorbar()
     plt.title("Difference heatmap (SYN - REF) on aligned timeline")
     out5 = os.path.join(out_dir, "5_diff_heatmap.png")
@@ -236,20 +271,31 @@ def summarize_stats(frame_l2: np.ndarray) -> dict:
 def main():
     parser = argparse.ArgumentParser(description="Log-Mel の DTW アライン＆可視化")
     parser.add_argument("--ref", type=str, default=REF_DEFAULT, help="実音声のwavパス")
-    parser.add_argument("--syn", type=str, default=SYN_DEFAULT, help="合成音声のwavパス")
+    parser.add_argument(
+        "--syn", type=str, default=SYN_DEFAULT, help="合成音声のwavパス"
+    )
     parser.add_argument("--out", type=str, default=OUT_DIR, help="出力ディレクトリ")
-    parser.add_argument("--metric", type=str, default="euclidean", help="cdistの距離（euclidean, cosine など）")
-    parser.add_argument("--mcd", action="store_true", help="簡易MCD[dB]も計算して表示（参考値）")
+    parser.add_argument(
+        "--metric",
+        type=str,
+        default="euclidean",
+        help="cdistの距離（euclidean, cosine など）",
+    )
+    parser.add_argument(
+        "--mcd", action="store_true", help="簡易MCD[dB]も計算して表示（参考値）"
+    )
     args = parser.parse_args()
 
     ref_path = args.ref
     syn_path = args.syn
-    out_dir  = args.out
+    out_dir = args.out
 
     print("== Settings ==")
     print(f"REF: {ref_path}")
     print(f"SYN: {syn_path}")
-    print(f"SR={SR}, N_FFT={N_FFT}, HOP={HOP_LENGTH}, N_MELS={N_MELS}, FMIN={FMIN}, FMAX={FMAX}")
+    print(
+        f"SR={SR}, N_FFT={N_FFT}, HOP={HOP_LENGTH}, N_MELS={N_MELS}, FMIN={FMIN}, FMAX={FMAX}"
+    )
     print(f"cdist metric={args.metric}")
     print()
 
@@ -268,18 +314,27 @@ def main():
     print(f"DTW path length: {len(idx_ref)} frames")
 
     # 4) 整列＆差分
-    LM_ref_aln, LM_syn_aln, frame_l2, diff_map = align_and_diff(LM_ref, LM_syn, idx_ref, idx_syn)
+    LM_ref_aln, LM_syn_aln, frame_l2, diff_map = align_and_diff(
+        LM_ref, LM_syn, idx_ref, idx_syn
+    )
     stats = summarize_stats(frame_l2)
     print("== Frame-wise L2 stats (after alignment) ==")
-    print(f"mean={stats['mean']:.4f}, median={stats['median']:.4f}, p95={stats['p95']:.4f}, max={stats['max']:.4f}")
+    print(
+        f"mean={stats['mean']:.4f}, median={stats['median']:.4f}, p95={stats['p95']:.4f}, max={stats['max']:.4f}"
+    )
 
     # 5) 可視化保存
     outs = plot_all(
-        ref_path, syn_path,
-        LM_ref, LM_syn,
-        idx_ref, idx_syn,
-        C, frame_l2, diff_map,
-        out_dir
+        ref_path,
+        syn_path,
+        LM_ref,
+        LM_syn,
+        idx_ref,
+        idx_syn,
+        C,
+        frame_l2,
+        diff_map,
+        out_dir,
     )
     print("Saved figures:")
     for p in outs:
@@ -304,4 +359,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
