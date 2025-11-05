@@ -3,7 +3,7 @@
 db_root=$1
 HF_TOKEN="" # Put your HuggingFace token here
 # Define the range of files to download. If you want to download all files, set START_INDEX=0 and END_INDEX=1139.
-# For 100h subset, please set END_INDEX=99.
+# For 100h subset, please set END_INDEX=1.
 START_INDEX=0
 END_INDEX=1139
 
