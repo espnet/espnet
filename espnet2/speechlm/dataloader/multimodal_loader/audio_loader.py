@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Tuple
 
 import numpy as np
+import pandas as pd
 
 try:
     from arkive import audio_read
@@ -94,6 +95,13 @@ class ArkiveAudioReader:
 
     def __getitem__(self, key: str) -> Tuple[np.ndarray, int]:
         path, start_byte, file_size, start_time, end_time = self.data[key]
+
+        # Convert pandas NA to Python None
+        if pd.isna(start_time):
+            start_time = None
+        if pd.isna(end_time):
+            end_time = None
+
         data = audio_read(
             path,
             start_offset=start_byte,

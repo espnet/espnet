@@ -13,12 +13,13 @@ from typing import Any, Dict, List, Tuple
 import yaml
 from torch.utils.data import Dataset
 
-from espnet2.speechlm.dataloader.multimodal_loader.audio_loader import LhotseAudioReader
+from espnet2.speechlm.dataloader.multimodal_loader.audio_loader import LhotseAudioReader, ArkiveAudioReader
 from espnet2.speechlm.dataloader.multimodal_loader.text_loader import TextReader
 
 logger = logging.getLogger(__name__)
 
 reader_types = {
+    "arkive_audio": ArkiveAudioReader,
     "lhotse_audio": LhotseAudioReader,
     "text": TextReader,
 }
