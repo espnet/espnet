@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 
 db_root=$1
-HF_TOKEN="" # Put your HuggingFace token here
+# The HuggingFace token should be passed as an environment variable (HF_TOKEN).
+# You can get a token from https://huggingface.co/settings/tokens
+
 # Define the range of files to download. If you want to download all files, set START_INDEX=0 and END_INDEX=1139.
 # For 100h subset, please set END_INDEX=1.
 START_INDEX=0
@@ -14,7 +16,8 @@ if [ $# != 1 ]; then
 fi
 
 if [ -z "${HF_TOKEN}" ]; then
-    echo "Please put your HuggingFace token in local/data_download.sh"
+    echo "Error: HF_TOKEN environment variable is not set."
+    echo "Please set it to your Hugging Face read token, e.g., export HF_TOKEN=hf_..."
     exit 1
 fi
 
