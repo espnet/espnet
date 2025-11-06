@@ -9,7 +9,7 @@ Since downloading the Emilia dataset requires Hugging Face authentication, you m
 ```bash
 # local/data_download.sh
 ....
-HF_TOKEN="" # Put your Hugging Face token here 
+HF_TOKEN="" # Put your Hugging Face token here
 ....
 ```
 After that, you are ready to go!
@@ -24,4 +24,3 @@ Because the Emilia dataset is very large, creating Kaldi-format files may take a
 ./run.sh --stage 1 --stop-stage 1 --local_data_opts "--nj 32"
 ```
 where `nj` specifies the number of parallel jobs.
-

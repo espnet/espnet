@@ -11,7 +11,7 @@ log() {
 SECONDS=0
 
 stage=-1
-stop_stage=1 
+stop_stage=1
 nj=32
 
 log "$0 $*"

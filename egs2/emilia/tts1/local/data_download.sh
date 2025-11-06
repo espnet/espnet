@@ -71,4 +71,3 @@ if [ ! -e "${db_root}/VCTK-Corpus/lab" ]; then
 else
     echo "Already exists. Skipped."
 fi
-        
