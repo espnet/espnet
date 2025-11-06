@@ -5,12 +5,9 @@ For more details on how to run this recipe, please refer to the following page:
 - [How to run the recipe](../../TEMPLATE/tts1/README.md#how-to-run)
 
 # Prerequisite
-Since downloading the Emilia dataset requires Hugging Face authentication, you must first accept the conditions on the [Hugging Face Emilia dataset](https://huggingface.co/datasets/amphion/Emilia-Dataset) page. Then, add your Hugging Face token to `local/data_download.sh`:
+Since downloading the Emilia dataset requires Hugging Face authentication, you must first accept the conditions on the [Hugging Face Emilia dataset](https://huggingface.co/datasets/amphion/Emilia-Dataset) page. Then, add your Hugging Face token as an environment variable:
 ```bash
-# local/data_download.sh
-....
-HF_TOKEN="" # Put your Hugging Face token here
-....
+export HF_TOKEN=${YOUR_TOKEN}
 ```
 After that, you are ready to go!
 
