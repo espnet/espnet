@@ -404,7 +404,7 @@ def collect_stats_multiple_iterator(
     task: Optional[str],
     batch_size: int,
     parallel_config: Any,
-    write_collected_feats: bool,
+    write_collected_feats: bool = False,
 ):
     """Collect stats on sharded datasets using Dask + setup_fn."""
     set_parallel(parallel_config)
