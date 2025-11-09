@@ -83,7 +83,7 @@ else
     conda install -y conda
 fi
 
-conda install -y pip==25.2 setuptools
+conda install -y pip setuptools
 
 cat << EOF > activate_python.sh
 #!/usr/bin/env bash
