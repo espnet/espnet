@@ -12,18 +12,10 @@
 # --espnet_cer_insert: insertion errors
 # --espnet_cer_replace: replacement errors
 # --espnet_cer_equal: correct matching words/character counts
-- name: espnet_wer
+- name: whisper_wer
   model_tag: default
   beam_size: 5
   text_cleaner: whisper_basic
-
-# pesq related metrics
-# -- pesq: perceptual evaluation of speech quality
-- name: pesq
-
-# stoi related metrics
-# -- stoi: short-time objective intelligibility
-- name: stoi
 
 # mcd f0 related metrics
 #  -- mcd: mel cepstral distortion
@@ -46,7 +38,7 @@
 # -- plcmos: PLC-MOS score
 # -- aecmos: AEC-MOS score
 - name: pseudo_mos
-  predictor_types: ["utmos", "dnsmos", "plcmos", "singmos"]
+  predictor_types: ["utmos"]
   predictor_args:
     utmos:
       fs: 16000
