@@ -46,16 +46,6 @@ fi
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage 1: Preparing Data for IPAPack++ and Panphon vocab"
 
-    python local/data_prep.py --source_dir ${IPAPACK_PLUS} --target_dir data --min_wav_length ${min_wav_duration}
-
-    for dir in data/*; do
-        utils/fix_data_dir.sh --utt_extra_files "orthography" $dir
-        utils/validate_data_dir.sh --non-print --no-feats $dir || exit 1
-        # make empty files for not-yet generated extra texts
-        touch $dir/text.prev $dir/text.ctc
-    done
-    python local/fix_doreco.py
-
     # download ipa_all.csv from panphon to use as vocab list
     wget -O ipa_all.csv https://raw.githubusercontent.com/dmort27/panphon/master/panphon/data/ipa_all.csv
     if [ ! -s ipa_all.csv ] || ! head -n 1 ipa_all.csv | grep -q "syl,"; then
@@ -66,6 +56,16 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     cut -d',' -f1 ipa_all.csv > local/panphon_ipas
     sed -i '1d' local/panphon_ipas
     rm ipa_all.csv
+
+    python local/data_prep.py --source_dir ${IPAPACK_PLUS} --target_dir data --min_wav_length ${min_wav_duration}
+
+    for dir in data/*; do
+        utils/fix_data_dir.sh --utt_extra_files "orthography" $dir
+        utils/validate_data_dir.sh --non-print --no-feats $dir || exit 1
+        # make empty files for not-yet generated extra texts
+        touch $dir/text.prev $dir/text.ctc
+    done
+    python local/fix_doreco.py
 fi
 
 if [ ${stage} -eq 2 ] && [ ${stop_stage} -ge 2 ]; then
