@@ -1,1 +1,1 @@
-../../../espnet3/base/bin/run.py
+../../../espnet3/components/bin/run.py
