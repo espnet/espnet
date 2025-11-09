@@ -13,6 +13,9 @@ SECONDS=0
 stage=-1
 stop_stage=1
 nj=32
+lang="EN"
+
+VALID_LANGS=("DE" "EN" "FR" "JA" "KO" "ZH")
 
 log "$0 $*"
 . utils/parse_options.sh
@@ -25,6 +28,11 @@ fi
 . ./path.sh || exit 1;
 . ./cmd.sh || exit 1;
 . ./db.sh || exit 1;
+
+if [[ ! " ${VALID_LANGS[@]} " =~ " ${lang} " ]]; then
+    log "Error: Invalid language code '${lang}'. Valid options are: ${VALID_LANGS[*]}"
+    exit 1
+fi
 
 if [ -z "${EMILIA}" ]; then
    log "Fill the value of 'EMILIA' of db.sh"
@@ -39,7 +47,7 @@ eval_set=eval
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     log "stage -1: Data Download"
     # download the emilia and vctk corpus
-    local/data_download.sh "${db_root}"
+    local/data_download.sh "${db_root}" "${lang}"
 fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
@@ -50,6 +58,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
         --dev_set "${dev_set}" \
         --eval_set "${eval_set}" \
         --nj "${nj}" \
+        --lang "${lang}" \
         "${db_root}"/emilia \
         "${db_root}"/VCTK-Corpus
 fi

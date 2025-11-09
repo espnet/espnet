@@ -21,3 +21,12 @@ Because the Emilia dataset is very large, creating Kaldi-format files may take a
 ./run.sh --stage 1 --stop-stage 1 --local_data_opts "--nj 32"
 ```
 where `nj` specifies the number of parallel jobs.
+
+# Changing the Language
+The Emilia dataset includes six languages: English (EN), Chinese (ZH), German (DE), French (FR), Japanese (JA), and Korean (KO). You can specify the language to train with:
+
+```bash
+./run.sh --stage 1 --stop-stage 1 --local_data_opts "--lang ZH"
+```
+
+The `--lang` argument must use one of the short codes listed above. When set, the dataset download and preprocessing steps will run for that language only. If not specified, the default language is English.

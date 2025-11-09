@@ -9,6 +9,7 @@ num_eval=5
 train_set="tr_no_dev"
 dev_set="dev"
 eval_set="eval"
+lang="EN"
 
 . utils/parse_options.sh || exit 1;
 
@@ -26,6 +27,7 @@ if [ $# != 2 ]; then
     echo "    --dev_set: name of dev set (default=${dev_set})."
     echo "    --eval_set: name of eval set (default=${eval_set})."
     echo "    --nj: number of parallel jobs (default=${nj})."
+    echo "    --lang: language code of Emilia dataset (default=${lang})."
     exit 1
 fi
 
@@ -75,7 +77,7 @@ export -f preprocess_emilia_subset
 
 # Preprocess emilia data
 echo "Preprocessing Emilia dataset..."
-emilia_subsets=($(find "${db_emilia}" -maxdepth 1 -name "EN-*" -exec basename {} \; | sort))
+emilia_subsets=($(find "${db_emilia}" -maxdepth 1 -name "${lang}-*" -exec basename {} \; | sort))
 
 # Run in parallel (adjust nj to your CPU cores)
 parallel -j ${nj} preprocess_emilia_subset {} "${db_emilia}" ::: "${emilia_subsets[@]}"
