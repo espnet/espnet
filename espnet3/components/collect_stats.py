@@ -41,7 +41,12 @@ def batch_collect_stats(
     structured_items: List[Tuple[str, Any]] = []
     for i in idxs:
         item = dataset[i]
-        if isinstance(item, tuple) and len(item) == 2:
+        # We assume dataset should be DataOrganizer in espnet3.
+        if (
+            hasattr(dataset, "use_espnet_preprocessor")
+            and dataset.use_espnet_preprocessor
+        ):
+            # Then it is a tuple with (uid, dict) and type(uid) is str.
             uid, sample = item
         else:
             uid, sample = str(i), item
@@ -236,7 +241,7 @@ class CollectStatsInferenceProvider(EnvironmentProvider):
         mode: str,
         task: Optional[str] = None,
         shard_idx: Optional[int] = None,
-        params: Optional[Dict[str, Any]] = None,
+        params: Optional[Dict[str, Any]] = dict(),
     ):
         cfg = OmegaConf.create({})
         cfg.model_config = model_config
@@ -398,7 +403,8 @@ def collect_stats_multiple_iterator(
     output_dir: Path,
     task: Optional[str],
     batch_size: int,
-    parallel_config,
+    parallel_config: Any,
+    write_collected_feats: bool = False,
 ):
     """Collect stats on sharded datasets using Dask + setup_fn."""
     set_parallel(parallel_config)
@@ -420,7 +426,7 @@ def collect_stats_multiple_iterator(
             mode=mode,
             output_dir=output_dir,
             task=task,
-            write_collected_feats=False,
+            write_collected_feats=write_collected_feats,
             batch_size=batch_size,
             shard_idx=shard_idx,
             shape_key_suffix=f".shard.{shard_idx}",
@@ -440,7 +446,7 @@ def collect_stats(
     output_dir: Path,
     task: Optional[str] = None,
     parallel_config: Optional[DictConfig] = None,
-    write_collected_feats: bool = True,
+    write_collected_feats: bool = False,
     batch_size: int = 4,
 ):
     """Entry point for collecting dataset statistics used for feature normalization.
@@ -483,10 +489,6 @@ def collect_stats(
     if getattr(mode_config, "multiple_iterator", False):
         if parallel_config is None:
             raise RuntimeError("You should set parallel config with multiple iterator.")
-        if write_collected_feats:
-            raise ValueError(
-                "Currently this option is not supported in multi-iterator mode."
-            )
         sum_dict, sq_dict, count_dict = collect_stats_multiple_iterator(
             model_config,
             dataset_config,
@@ -496,6 +498,7 @@ def collect_stats(
             task,
             batch_size,
             parallel_config,
+            write_collected_feats,
         )
 
     else:

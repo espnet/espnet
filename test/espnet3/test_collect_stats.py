@@ -45,12 +45,13 @@ class DummyDataset:
     Each item has a variable time length and fixed feature dim.
     """
 
-    def __init__(self, n=10, base_len=3, dim=4):
+    def __init__(self, n=10, base_len=3, dim=4, use_espnet_preprocessor=False):
         self.n = n
         self.base_len = base_len
         self.dim = dim
         # Precompute lengths to keep things deterministic
         self.lengths = [self.base_len + (i % 3) for i in range(self.n)]
+        self.use_espnet_preprocessor = use_espnet_preprocessor
 
     def __len__(self):
         return self.n
@@ -61,7 +62,10 @@ class DummyDataset:
         # Create a simple pattern to let us verify sums deterministically
         # Shape: [T, D]
         x = torch.full((T, self.dim), float(idx), dtype=torch.float32)
-        return uid, {"x": x, "length": T}
+        if self.use_espnet_preprocessor:
+            return uid, {"x": x, "length": T}
+        else:
+            return {"x": x, "length": T}
 
     # For multiple-iterator tests: split items into shards round-robin
     def shard(self, shard_idx: int, num_shards: int = 2):
@@ -86,9 +90,21 @@ class DummyDataset:
 class DummyOrganizer:
     """Hydra-instantiable organizer that exposes .train and .valid datasets."""
 
-    def __init__(self, n_train=8, n_valid=5, base_len=3, dim=4):
-        self.train = DummyDataset(n=n_train, base_len=base_len, dim=dim)
-        self.valid = DummyDataset(n=n_valid, base_len=base_len, dim=dim)
+    def __init__(
+        self, n_train=8, n_valid=5, base_len=3, dim=4, use_espnet_preprocessor=False
+    ):
+        self.train = DummyDataset(
+            n=n_train,
+            base_len=base_len,
+            dim=dim,
+            use_espnet_preprocessor=use_espnet_preprocessor,
+        )
+        self.valid = DummyDataset(
+            n=n_valid,
+            base_len=base_len,
+            dim=dim,
+            use_espnet_preprocessor=use_espnet_preprocessor,
+        )
 
 
 class DummyCollate:
@@ -152,7 +168,9 @@ def make_model_cfg(scale: float = 1.0):
     )
 
 
-def make_dataset_cfg(n_train=8, n_valid=5, base_len=3, dim=4):
+def make_dataset_cfg(
+    n_train=8, n_valid=5, base_len=3, dim=4, use_espnet_preprocessor=False
+):
     return OmegaConf.create(
         {
             "_target_": "test.espnet3.test_collect_stats.DummyOrganizer",
@@ -160,6 +178,7 @@ def make_dataset_cfg(n_train=8, n_valid=5, base_len=3, dim=4):
             "n_valid": n_valid,
             "base_len": base_len,
             "dim": dim,
+            "use_espnet_preprocessor": use_espnet_preprocessor,
         }
     )
 
@@ -229,11 +248,20 @@ def _load_npz_counts(dirpath: Path, feat_key: str):
 # ------------
 @pytest.mark.execution_timeout(30)
 @pytest.mark.parametrize("use_parallel", [False, True])
-def test_collect_stats_local_basic(tmp_path: Path, use_parallel):
+@pytest.mark.parametrize("use_espnet_preprocessor", [False, True])
+def test_collect_stats_local_basic(
+    tmp_path: Path, use_parallel, use_espnet_preprocessor
+):
     # Verify that local (non-parallel) path aggregates counts/sums correctly
     # and writes expected files.
     model_cfg = make_model_cfg(scale=1.0)
-    ds_cfg = make_dataset_cfg(n_train=6, n_valid=0, base_len=3, dim=4)
+    ds_cfg = make_dataset_cfg(
+        n_train=6,
+        n_valid=0,
+        base_len=3,
+        dim=4,
+        use_espnet_preprocessor=use_espnet_preprocessor,
+    )
     dl_cfg = make_dataloader_cfg(use_custom_collate=True)
     par_cfg = make_parallel_cfg(n_workers=2) if use_parallel else None
 
