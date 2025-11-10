@@ -4,8 +4,8 @@ import pandas as pd
 
 data_types = ['covid', 'kss', 'stylekqc', 'zeroth']
 wavs_path = 'egs2/kosp2e/asr1/wavs'
-data_path = 'egs2/kosp2e/asr1/data'
 metadata_path = 'egs2/kosp2e/asr1/downloads/metadata'
+data_path = 'egs2/kosp2e/asr1/data'
 
 assert os.path.exists(wavs_path), "WAVS path does not exist. See https://github.com/warnikchow/kosp2e/tree/main"
 assert os.path.exists(data_path), "DATA path does not exist. See https://github.com/warnikchow/kosp2e/tree/main"
