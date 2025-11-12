@@ -2,8 +2,9 @@ import argparse
 import os
 from pathlib import Path
 
-from espnet3.asr.tokenizer.sentencepiece import train_sentencepiece
 from tqdm import tqdm
+
+from espnet3.asr.tokenizer.sentencepiece import train_sentencepiece
 
 
 def parse_transcript_file(transcript_path):

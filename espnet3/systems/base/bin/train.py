@@ -11,10 +11,10 @@ import torch
 from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
 
-from espnet3.parallel.parallel import set_parallel
-from espnet3.base.task import get_espnet_model, save_espnet_config
 from espnet3.base.model.model import LitESPnetModel
+from espnet3.base.task import get_espnet_model, save_espnet_config
 from espnet3.base.trainer.trainer import ESPnet3LightningTrainer
+from espnet3.parallel.parallel import set_parallel
 from espnet3.utils.config import load_config_with_defaults
 
 

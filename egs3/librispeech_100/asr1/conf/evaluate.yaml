@@ -24,7 +24,7 @@ tokenizer:
 metrics:
   - metric:
       _target_: espnet3.asr.metrics.wer.WER
-      clean_types: 
+      clean_types:
     inputs:
       - ref
       - hyp
@@ -34,7 +34,7 @@ metrics:
 
   - metric:
       _target_: espnet3.asr.metrics.cer.CER
-      clean_types: 
+      clean_types:
     inputs:
       - ref
       - hyp
