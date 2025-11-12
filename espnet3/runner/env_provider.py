@@ -27,6 +27,8 @@ class EnvironmentProvider:
           the worker setup function so each worker constructs its own copy.
     """
 
+    # TODO (Masao) Add detailed description on Runner/Provider in the document.
+
     def __init__(self, config: DictConfig):
         self.config = config
 
