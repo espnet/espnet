@@ -10,7 +10,7 @@ Please refer to our paper for comprehensive evaluations. Below are selected resu
 
 | Model - Codec | Model - VQ Method | Model - Bitrate | Speech - MCD↓ | Speech - PESQ↑ | Speech - STOI↑ | Speech - SPK_SIM↑ | Speech - UTMOS↑ | Sound - VISQOL↑ | Sound - Mel Dist.↓ | Sound - STFT Dist.↓ | Music - VISQOL↑ | Music - Mel Dist.↓ | Music - STFT Dist.↓ |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| EnCodec† | RVQ | 6.00 kbps | 5.94 | 2.715 | 0.939 | 0.865 | 3.038 | 4.240 | 0.485 | 0.940 | 4.410 | 0.435 | 0.980 |
+| EnCodec | RVQ | 6.00 kbps | 5.94 | 2.715 | 0.939 | 0.865 | 3.038 | 4.240 | 0.485 | 0.940 | 4.410 | 0.435 | 0.980 |
 | DAC | RVQ | 6.00 kbps | 5.40 | 2.915 | 0.934 | 0.751 | 3.356 | 4.085 | 0.452 | 0.874 | 4.201 | 0.439 | 0.974 |
 | DAC | RVQ | 4.50 kbps | 5.50 | **2.726** | **0.925** | 0.734 | 3.201 | 4.055 | 0.463 | 0.880 | 4.171 | **0.449** | 0.979 |
 | DAC | RVQ | 3.00 kbps | 5.74 | 2.397 | 0.905 | 0.686 | 2.869 | 3.990 | 0.485 | 0.893 | 4.105 | 0.472 | 0.993 |
