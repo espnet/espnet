@@ -637,7 +637,6 @@ class BandVectorQuantization(nn.Module):
         for i in range(bands):
             inp = x[:, i, :, :]
             idx = self.layers[i].encode(inp)
-            quantized = self.layers[i].decode(idx)
             all_indices.append(idx)
 
         return torch.stack(all_indices, dim=1)

@@ -1,13 +1,10 @@
 # Copyright 2025 Haoran Wang
 # Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-import math
-from typing import Any, Callable, Optional, Tuple, Union
+from typing import Optional, Tuple
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-from einops import rearrange
 
 from espnet2.gan_codec.shared.quantizer.modules.core_vq import BandVectorQuantization
 from espnet2.gan_codec.shared.quantizer.modules.simvq import SimVQ
