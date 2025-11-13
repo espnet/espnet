@@ -594,6 +594,7 @@ class ResidualVectorQuantization(nn.Module):
             quantized_out = quantized_out + quantized
         return quantized_out
 
+
 class BandVectorQuantization(nn.Module):
 
     def __init__(self, *, num_bands: int, **kwargs):
@@ -668,6 +669,6 @@ class BandVectorQuantization(nn.Module):
         recon_per = []
         B, bands, n = q_indices.shape
         for i in range(bands):
-            quant_i = self.layers[i].decode(q_indices[:,i,:])
+            quant_i = self.layers[i].decode(q_indices[:, i, :])
             recon_per.append(quant_i)
         return torch.stack(recon_per, dim=1)

@@ -528,9 +528,7 @@ class BSCodecGenerator(nn.Module):
                 codebook_dim=quantize_codebook_dim,
             )
         else:
-            raise ValueError(
-                f"Unknown quantize choice: {quantize_choice}."
-            )
+            raise ValueError(f"Unknown quantize choice: {quantize_choice}.")
 
         # Initialize decoder
         self.decoders = nn.ModuleList(
