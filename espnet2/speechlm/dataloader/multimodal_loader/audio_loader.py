@@ -14,7 +14,7 @@ try:
     from arkive import audio_read
 except ImportError:
     raise ImportError(
-        "arkive is not installed. Please install at https://github.com/wanchichen/arkive"
+        "arkive is not installed. Install at https://github.com/wanchichen/arkive"
     )
 
 try:
@@ -43,8 +43,8 @@ class ArkiveAudioReader:
     a 2D array with shape [num_channels, num_samples].
 
     Args:
-        query: SQL query to access the parquet(s). Must return the required metadata
-            columns: [utt_id, path, start_byte_offset, file_size_bytes, start_time, end_time]
+        query: SQL query to access the parquet(s). Must return the required columns:
+            [utt_id, path, start_byte_offset, file_size_bytes, start_time, end_time]
         valid_ids: List of valid IDs to keep (optional, keeps all if None)
         worker_id: partition ids by worker (optional, keeps all if None)
         world_size: used for worker partitioning
@@ -69,7 +69,8 @@ class ArkiveAudioReader:
             result = duckdb.query(
                 f"""
                 SELECT * FROM result
-                QUALIFY (row_number() OVER (ORDER BY utt_id) - 1) % {world_size} = {worker_id}
+                QUALIFY (row_number() OVER (ORDER BY utt_id) - 1) 
+                % {world_size} = {worker_id}
             """
             )
 

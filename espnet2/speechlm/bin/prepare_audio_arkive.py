@@ -16,7 +16,7 @@ try:
     from arkive import Arkive
 except ImportError:
     raise ImportError(
-        "arkive is not installed. Please install at https://github.com/wanchichen/arkive"
+        "arkive is not installed. Install at https://github.com/wanchichen/arkive"
     )
 
 
