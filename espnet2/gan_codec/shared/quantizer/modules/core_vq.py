@@ -606,14 +606,6 @@ class BandVectorQuantization(nn.Module):
         self.quantizer_dropout = kwargs.get("quantizer_dropout")
 
     def forward(self, x: torch.Tensor):
-        """
-        Args:
-            x: Tensor of shape [B, bands, d]
-        Returns:
-            quantized_per: Tensor [B, bands+1, d]
-            all_indices: LongTensor [bands+1, B, ...]
-            all_losses:  Tensor [bands+1, B, ...]
-        """
         B, bands, d, n = x.shape
         assert bands == self.num_bands, "error in input bands dim"
 
@@ -630,9 +622,7 @@ class BandVectorQuantization(nn.Module):
                 all_indices.append(indices)
                 all_loss.append(loss)
 
-            # stack → quantized_per: [B, bands+1, d]
             quantized_per = torch.stack(quantized_per, dim=1)
-            # stack → all_indices, all_losses: [bands+1, B, ...]
             all_indices = torch.stack(all_indices, dim=1)
             all_loss = torch.stack(all_loss)
             if self.training:
@@ -640,12 +630,6 @@ class BandVectorQuantization(nn.Module):
             return quantized_per, all_indices, all_loss
 
     def encode(self, x: torch.Tensor) -> torch.Tensor:
-        """
-        Args:
-            x: Tensor [B, bands, d]
-        Returns:
-            indices: Tensor [bands+1, B, *]
-        """
         B, bands, d, n = x.shape
         assert bands == self.num_bands
         all_indices = []
@@ -659,13 +643,6 @@ class BandVectorQuantization(nn.Module):
         return torch.stack(all_indices, dim=1)
 
     def decode(self, q_indices: torch.Tensor) -> torch.Tensor:
-        """
-        Args:
-            q_indices: LongTensor [bands+1, B, ...]
-        Returns:
-            quant_per_band: Tensor [B, bands+1, d]
-        """
-
         recon_per = []
         B, bands, n = q_indices.shape
         for i in range(bands):
