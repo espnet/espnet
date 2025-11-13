@@ -9,7 +9,6 @@ import torch
 import torch.distributed as dist
 import torch.nn.functional as F
 from einops import pack, rearrange, unpack
-from einx import get_at
 from torch import nn
 from torch.nn import Module
 
@@ -92,7 +91,7 @@ class SimVQ(Module):
         return self.code_transform(self.frozen_codebook)
 
     def indices_to_codes(self, indices):
-        frozen_codes = get_at("[c] d, b ... -> b ... d", self.frozen_codebook, indices)
+        frozen_codes = F.embedding(indices, self.frozen_codebook)
         quantized = self.code_transform(frozen_codes)
         if self.channel_first:
             quantized = rearrange(quantized, "b ... d -> b d ...")
@@ -106,7 +105,7 @@ class SimVQ(Module):
         with torch.no_grad():
             dist = torch.cdist(x, implicit_codebook)
             indices = dist.argmin(dim=-1)
-        quantized = get_at("[c] d, b n -> b n d", implicit_codebook, indices)
+        quantized = F.embedding(indices, implicit_codebook)
         commit_loss = (
             F.mse_loss(x.detach(), quantized)
             + F.mse_loss(x, quantized.detach())
