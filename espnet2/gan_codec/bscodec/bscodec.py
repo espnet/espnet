@@ -6,28 +6,28 @@ import logging
 import math
 import random
 import warnings
-from typing import Any, Dict, List, Tuple, Optional
-from typeguard import typechecked
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchaudio
+from typeguard import typechecked
 
 from espnet2.gan_codec.abs_gan_codec import AbsGANCodec
+from espnet2.gan_codec.dac.dac import DACDiscriminator
 from espnet2.gan_codec.shared.decoder.seanet import SEANetDecoder
 from espnet2.gan_codec.shared.encoder.seanet import SEANetEncoder
-from espnet2.gan_codec.dac.dac import DACDiscriminator
 from espnet2.gan_codec.shared.loss.freq_loss import MultiScaleMelSpectrogramLoss
-
+from espnet2.gan_codec.shared.quantizer.band_vq import BandSimVQ, BandVQ
 from espnet2.gan_tts.hifigan.loss import (
     DiscriminatorAdversarialLoss,
     FeatureMatchLoss,
     GeneratorAdversarialLoss,
 )
 from espnet2.torch_utils.device_funcs import force_gatherable
-from espnet2.gan_codec.shared.quantizer.band_vq import BandVQ, BandSimVQ
+
 
 class BSCodec(AbsGANCodec):
     """Band Codec with Band SimVQ model."""
@@ -39,10 +39,10 @@ class BSCodec(AbsGANCodec):
         generator_params: Dict[str, Any] = {
             "hidden_dim": 128,
             "bands": [
-                    (0, 500),
-                    (500, 2000),
-                    (2000, 12000),
-                ],
+                (0, 500),
+                (500, 2000),
+                (2000, 12000),
+            ],
             "encdec_channels": 1,
             "encdec_n_filters": 32,
             "encdec_n_residual_layers": 1,
@@ -60,7 +60,7 @@ class BSCodec(AbsGANCodec):
             "encdec_true_skip": False,
             "encdec_compress": 2,
             "encdec_lstm": 2,
-            "quantize_choice": "band_vq", # options: band_vq, band_simvq
+            "quantize_choice": "band_vq",  # options: band_vq, band_simvq
             "quantize_codebook_size": 1024,
             "quantize_codebook_dim": 128,
             "decoder_trim_right_ratio": 1.0,
@@ -252,19 +252,13 @@ class BSCodec(AbsGANCodec):
         reuse_cache = True
         if not self.cache_generator_outputs or self._cache is None:
             reuse_cache = False
-            audio_hat = (
-                self.generator(audio, use_dual_decoder=self.use_dual_decoder)
-            )
+            audio_hat = self.generator(audio, use_dual_decoder=self.use_dual_decoder)
         else:
-            audio_hat = (
-                self._cache
-            )
+            audio_hat = self._cache
 
         # store cache
         if self.training and self.cache_generator_outputs and not reuse_cache:
-            self._cache = (
-                audio_hat
-            )
+            self._cache = audio_hat
 
         # Use full reconstructed audio for discriminator
         p_hat = self.discriminator(audio_hat[0])
@@ -276,22 +270,25 @@ class BSCodec(AbsGANCodec):
         adv_loss = self.generator_adv_loss(p_hat)
         adv_loss = adv_loss * self.lambda_adv
         vq_loss = audio_hat[3] * self.lambda_quantization
-        
+
         subband_reconstruct_loss = 0.0
         for i in range(self.num_bands):
-            subband_reconstruct_loss += (
-                self.generator_reconstruct_loss(audio_hat[1][:, i, :].unsqueeze(1), audio_hat[2][:, i, :].unsqueeze(1))
+            subband_reconstruct_loss += self.generator_reconstruct_loss(
+                audio_hat[1][:, i, :].unsqueeze(1), audio_hat[2][:, i, :].unsqueeze(1)
             )
-        subband_reconstruct_loss = (subband_reconstruct_loss * self.lambda_reconstruct) / self.num_bands
+        subband_reconstruct_loss = (
+            subband_reconstruct_loss * self.lambda_reconstruct
+        ) / self.num_bands
         reconstruct_loss = (
-            self.generator_reconstruct_loss(audio, audio_hat[0]) * self.lambda_reconstruct
+            self.generator_reconstruct_loss(audio, audio_hat[0])
+            * self.lambda_reconstruct
         )
         loss = adv_loss + vq_loss + subband_reconstruct_loss + reconstruct_loss
         stats = dict(
             adv_loss=adv_loss.item(),
             vq_loss=vq_loss.item(),
-            subband_reconstruct_loss = subband_reconstruct_loss.item(),
-            reconstruct_loss = reconstruct_loss.item(),
+            subband_reconstruct_loss=subband_reconstruct_loss.item(),
+            reconstruct_loss=reconstruct_loss.item(),
         )
 
         if self.use_feat_match_loss:
@@ -302,16 +299,16 @@ class BSCodec(AbsGANCodec):
         if self.use_mel_loss:
             subband_mel_loss = 0.0
             for i in range(self.num_bands):
-                subband_mel_loss += (
-                    self.mel_loss(audio_hat[2][:, i, :].unsqueeze(1), audio_hat[1][:, i, :].unsqueeze(1))
+                subband_mel_loss += self.mel_loss(
+                    audio_hat[2][:, i, :].unsqueeze(1),
+                    audio_hat[1][:, i, :].unsqueeze(1),
                 )
             subband_mel_loss = (subband_mel_loss * self.lambda_mel) / self.num_bands
             mel_loss = self.mel_loss(audio_hat[0], audio)
             mel_loss = self.lambda_mel * mel_loss
             loss = loss + subband_mel_loss + mel_loss
             stats.update(
-                mel_loss=mel_loss.item(),
-                subband_mel_loss = subband_mel_loss.item()
+                mel_loss=mel_loss.item(), subband_mel_loss=subband_mel_loss.item()
             )
             if self.use_dual_decoder:
                 mel_loss_real = self.mel_loss(audio_hat[4], audio)
@@ -361,21 +358,13 @@ class BSCodec(AbsGANCodec):
         reuse_cache = True
         if not self.cache_generator_outputs or self._cache is None:
             reuse_cache = False
-            audio_hat = (
-                self.generator(
-                    audio
-                )
-            )
+            audio_hat = self.generator(audio)
         else:
-            audio_hat = (
-                self._cache
-            )
+            audio_hat = self._cache
 
         # store cache
         if self.cache_generator_outputs and not reuse_cache:
-            self._cache = (
-                audio_hat,
-            )
+            self._cache = (audio_hat,)
 
         # Use full reconstructed audio for discriminator
         p_hat = self.discriminator(audio_hat[0].detach())
@@ -465,10 +454,10 @@ class BSCodecGenerator(nn.Module):
         self,
         sample_rate: int = 24000,
         bands: List[Any] = [
-                    (0, 500),
-                    (500, 2000),
-                    (2000, 12000),
-                ],
+            (0, 500),
+            (500, 2000),
+            (2000, 12000),
+        ],
         hidden_dim: int = 128,
         encdec_channels: int = 1,
         encdec_n_filters: int = 32,
@@ -502,28 +491,31 @@ class BSCodecGenerator(nn.Module):
         self.num_bands = len(bands)
         self.frame_rate = math.ceil(sample_rate / np.prod(encdec_ratios))
 
-        self.encoders = nn.ModuleList([SEANetEncoder(
-                channels=encdec_channels,
-                dimension=hidden_dim,
-                n_filters=encdec_n_filters,
-                n_residual_layers=encdec_n_residual_layers,
-                ratios=encdec_ratios,
-                activation=encdec_activation,
-                activation_params=encdec_activation_params,
-                norm=encdec_norm,
-                norm_params=encdec_norm_params,
-                kernel_size=encdec_kernel_size,
-                residual_kernel_size=encdec_residual_kernel_size,
-                last_kernel_size=encdec_last_kernel_size,
-                dilation_base=encdec_dilation_base,
-                causal=encdec_causal,
-                pad_mode=encdec_pad_mode,
-                true_skip=encdec_true_skip,
-                compress=encdec_compress,
-                lstm=encdec_lstm,
-            )
-            for _ in bands
-        ])
+        self.encoders = nn.ModuleList(
+            [
+                SEANetEncoder(
+                    channels=encdec_channels,
+                    dimension=hidden_dim,
+                    n_filters=encdec_n_filters,
+                    n_residual_layers=encdec_n_residual_layers,
+                    ratios=encdec_ratios,
+                    activation=encdec_activation,
+                    activation_params=encdec_activation_params,
+                    norm=encdec_norm,
+                    norm_params=encdec_norm_params,
+                    kernel_size=encdec_kernel_size,
+                    residual_kernel_size=encdec_residual_kernel_size,
+                    last_kernel_size=encdec_last_kernel_size,
+                    dilation_base=encdec_dilation_base,
+                    causal=encdec_causal,
+                    pad_mode=encdec_pad_mode,
+                    true_skip=encdec_true_skip,
+                    compress=encdec_compress,
+                    lstm=encdec_lstm,
+                )
+                for _ in bands
+            ]
+        )
 
         if quantize_choice == "band_vq":
             self.quantizer = BandVQ(
@@ -540,34 +532,39 @@ class BSCodecGenerator(nn.Module):
                 codebook_dim=quantize_codebook_dim,
             )
         else:
-            raise ValueError(f"Unknown quantize_choice: {quantize_choice}. Options: band_vq, band_simvq")
+            raise ValueError(
+                f"Unknown quantize_choice: {quantize_choice}. Options: band_vq, band_simvq"
+            )
 
         # Initialize decoder
-        self.decoders = nn.ModuleList([SEANetDecoder(
-                channels=encdec_channels,
-                dimension=hidden_dim,
-                n_filters=encdec_n_filters,
-                n_residual_layers=encdec_n_residual_layers,
-                ratios=encdec_ratios,
-                activation=encdec_activation,
-                activation_params=encdec_activation_params,
-                norm=encdec_norm,
-                norm_params=encdec_norm_params,
-                kernel_size=encdec_kernel_size,
-                residual_kernel_size=encdec_residual_kernel_size,
-                last_kernel_size=encdec_last_kernel_size,
-                dilation_base=encdec_dilation_base,
-                causal=encdec_causal,
-                pad_mode=encdec_pad_mode,
-                true_skip=encdec_true_skip,
-                compress=encdec_compress,
-                lstm=encdec_lstm,
-                trim_right_ratio=decoder_trim_right_ratio,
-                final_activation=decoder_final_activation,
-                final_activation_params=decoder_final_activation_params,
-            )
-            for _ in bands
-        ])
+        self.decoders = nn.ModuleList(
+            [
+                SEANetDecoder(
+                    channels=encdec_channels,
+                    dimension=hidden_dim,
+                    n_filters=encdec_n_filters,
+                    n_residual_layers=encdec_n_residual_layers,
+                    ratios=encdec_ratios,
+                    activation=encdec_activation,
+                    activation_params=encdec_activation_params,
+                    norm=encdec_norm,
+                    norm_params=encdec_norm_params,
+                    kernel_size=encdec_kernel_size,
+                    residual_kernel_size=encdec_residual_kernel_size,
+                    last_kernel_size=encdec_last_kernel_size,
+                    dilation_base=encdec_dilation_base,
+                    causal=encdec_causal,
+                    pad_mode=encdec_pad_mode,
+                    true_skip=encdec_true_skip,
+                    compress=encdec_compress,
+                    lstm=encdec_lstm,
+                    trim_right_ratio=decoder_trim_right_ratio,
+                    final_activation=decoder_final_activation,
+                    final_activation_params=decoder_final_activation_params,
+                )
+                for _ in bands
+            ]
+        )
 
     def forward(self, x: torch.Tensor, use_dual_decoder: bool = False):
         """BSCodec forward propagation.
@@ -591,15 +588,17 @@ class BSCodecGenerator(nn.Module):
         quantized, codes, vq_loss = self.quantizer(encoder_out)
         resyn_audio_all = []
         for i, dec in enumerate(self.decoders):
-            resyn_audio_all.append(dec(quantized[:,i,:,:]).squeeze(1))
-        resyn_audio_all = torch.stack(resyn_audio_all,dim=1)
+            resyn_audio_all.append(dec(quantized[:, i, :, :]).squeeze(1))
+        resyn_audio_all = torch.stack(resyn_audio_all, dim=1)
         y_rec = reconstruct_audio_bands(resyn_audio_all)
         if use_dual_decoder:
             resyn_audio_real_all = []
             for i, dec in enumerate(self.decoders):
-                resyn_audio_real_all.append(dec(encoder_out[:,i,:,:]).squeeze(1))
+                resyn_audio_real_all.append(dec(encoder_out[:, i, :, :]).squeeze(1))
             resyn_audio_real_all = torch.stack(resyn_audio_real_all, dim=1)
-            resyn_audio_real = reconstruct_audio_bands(resyn_audio_real_all).unsqueeze(1)
+            resyn_audio_real = reconstruct_audio_bands(resyn_audio_real_all).unsqueeze(
+                1
+            )
         else:
             resyn_audio_real = None
         return y_rec.unsqueeze(1), subbands, resyn_audio_all, vq_loss, resyn_audio_real
@@ -640,12 +639,13 @@ class BSCodecGenerator(nn.Module):
         quantized = self.quantizer.decode(codes)
 
         for i, dec in enumerate(self.decoders):
-            yi = dec(quantized[:,i,:,:]).squeeze(1)
+            yi = dec(quantized[:, i, :, :]).squeeze(1)
             outputs.append(yi)
 
         stacked = torch.stack(outputs, dim=1)
         y_rec = reconstruct_audio_bands(stacked)
         return y_rec.unsqueeze(1)
+
 
 def split_audio_bands(
     y: torch.Tensor,
@@ -654,7 +654,7 @@ def split_audio_bands(
     n_fft: int = 2048,
     hop_length: int = None,
     win_length: int = None,
-    window_type: str = "hann"
+    window_type: str = "hann",
 ) -> torch.Tensor:
     """
     Split a batch of audio signals into subbands via STFT masking.
@@ -694,7 +694,7 @@ def split_audio_bands(
         win_length=win_length,
         window=window,
         return_complex=True,
-        center=True
+        center=True,
     )
 
     # frequency bins (F,)
@@ -714,15 +714,15 @@ def split_audio_bands(
                 win_length=win_length,
                 window=window,
                 length=T,
-                center=True
+                center=True,
             )  # (B, T)
         except RuntimeError as err:
-            if 'window overlap add min' in str(err):
+            if "window overlap add min" in str(err):
                 try:
                     warnings.warn(
                         "ISTFT NOLA check failed for hann window; "
                         "falling back to hamming window for this band.",
-                        UserWarning
+                        UserWarning,
                     )
                     fallback_win1 = torch.hamming_window(
                         win_length, periodic=False, device=y.device
@@ -740,9 +740,9 @@ def split_audio_bands(
                     warnings.warn(
                         "ISTFT NOLA check failed for hamming window; "
                         "falling back to Bartlett window for this band.",
-                        UserWarning
+                        UserWarning,
                     )
-                    if 'window overlap add min' in str(err2):
+                    if "window overlap add min" in str(err2):
                         fallback_win2 = torch.bartlett_window(
                             win_length, periodic=False, device=y.device
                         )
@@ -756,7 +756,7 @@ def split_audio_bands(
                             center=True,
                         )
                     else:
-                        raise    
+                        raise
             else:
                 raise
         subbands.append(yk)
@@ -765,9 +765,7 @@ def split_audio_bands(
     return torch.stack(subbands, dim=1)
 
 
-def reconstruct_audio_bands(
-    subbands: torch.Tensor
-) -> torch.Tensor:
+def reconstruct_audio_bands(subbands: torch.Tensor) -> torch.Tensor:
     """
     Reconstruct audio by summing subbands.
 
