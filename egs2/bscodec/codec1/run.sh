@@ -22,7 +22,7 @@ test_sets="test_all"
 
 model=BSCodec_band_vq_5band
 
-train_config=conf/tuning/pretrain_gan/${model}.yaml
+train_config=conf/tuning/${model}.yaml
 inference_config=conf/decode.yaml
 score_config=conf/score.yaml
 
