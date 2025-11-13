@@ -2,17 +2,13 @@
 # Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import functools
-import logging
 import math
-import random
 import warnings
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-import torchaudio
 from typeguard import typechecked
 
 from espnet2.gan_codec.abs_gan_codec import AbsGANCodec
@@ -533,7 +529,7 @@ class BSCodecGenerator(nn.Module):
             )
         else:
             raise ValueError(
-                f"Unknown quantize_choice: {quantize_choice}. Options: band_vq, band_simvq"
+                f"Unknown quantize choice: {quantize_choice}."
             )
 
         # Initialize decoder
@@ -656,8 +652,7 @@ def split_audio_bands(
     win_length: int = None,
     window_type: str = "hann",
 ) -> torch.Tensor:
-    """
-    Split a batch of audio signals into subbands via STFT masking.
+    """Split a batch of audio signals into subbands via STFT masking.
 
     Args:
         y (Tensor): Input tensor of shape (B, T) or (T,).
@@ -766,8 +761,7 @@ def split_audio_bands(
 
 
 def reconstruct_audio_bands(subbands: torch.Tensor) -> torch.Tensor:
-    """
-    Reconstruct audio by summing subbands.
+    """Reconstruct audio by summing subbands.
 
     Args:
         subbands (Tensor): Tensor of shape (B, N_bands, T).

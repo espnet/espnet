@@ -593,3 +593,81 @@ class ResidualVectorQuantization(nn.Module):
             quantized = layer.decode(indices)
             quantized_out = quantized_out + quantized
         return quantized_out
+
+class BandVectorQuantization(nn.Module):
+
+    def __init__(self, *, num_bands: int, **kwargs):
+        super().__init__()
+        self.layers = nn.ModuleList(
+            [VectorQuantization(**kwargs) for _ in range(num_bands)]
+        )
+        self.num_bands = num_bands
+        self.quantizer_dropout = kwargs.get("quantizer_dropout")
+
+    def forward(self, x: torch.Tensor):
+        """
+        Args:
+            x: Tensor of shape [B, bands, d]
+        Returns:
+            quantized_per: Tensor [B, bands+1, d]
+            all_indices: LongTensor [bands+1, B, ...]
+            all_losses:  Tensor [bands+1, B, ...]
+        """
+        B, bands, d, n = x.shape
+        assert bands == self.num_bands, "error in input bands dim"
+
+        if not self.quantizer_dropout:
+            quantized_per = []
+            all_indices = []
+            all_loss = []
+
+            for i, layer in enumerate(self.layers):
+                inp = x[:, i, :, :]
+                quantized, indices, loss = layer(inp)
+
+                quantized_per.append(quantized)
+                all_indices.append(indices)
+                all_loss.append(loss)
+
+            # stack → quantized_per: [B, bands+1, d]
+            quantized_per = torch.stack(quantized_per, dim=1)
+            # stack → all_indices, all_losses: [bands+1, B, ...]
+            all_indices = torch.stack(all_indices, dim=1)
+            all_loss = torch.stack(all_loss)
+            if self.training:
+                quantized_per = x + (quantized_per - x).detach()
+            return quantized_per, all_indices, all_loss
+
+    def encode(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Args:
+            x: Tensor [B, bands, d]
+        Returns:
+            indices: Tensor [bands+1, B, *]
+        """
+        B, bands, d, n = x.shape
+        assert bands == self.num_bands
+        all_indices = []
+
+        for i in range(bands):
+            inp = x[:, i, :, :]
+            idx = self.layers[i].encode(inp)
+            quantized = self.layers[i].decode(idx)
+            all_indices.append(idx)
+
+        return torch.stack(all_indices, dim=1)
+
+    def decode(self, q_indices: torch.Tensor) -> torch.Tensor:
+        """
+        Args:
+            q_indices: LongTensor [bands+1, B, ...]
+        Returns:
+            quant_per_band: Tensor [B, bands+1, d]
+        """
+
+        recon_per = []
+        B, bands, n = q_indices.shape
+        for i in range(bands):
+            quant_i = self.layers[i].decode(q_indices[:,i,:])
+            recon_per.append(quant_i)
+        return torch.stack(recon_per, dim=1)

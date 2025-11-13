@@ -2,17 +2,16 @@
 
 from __future__ import annotations
 
-import random
 from math import ceil
-from typing import Callable, Optional, Tuple
+from typing import Callable, Optional
 
 import torch
 import torch.distributed as dist
 import torch.nn.functional as F
 from einops import pack, rearrange, unpack
 from einx import get_at
-from torch import Tensor, nn
-from torch.nn import Module, ModuleList
+from torch import nn
+from torch.nn import Module
 
 
 def exists(val):

@@ -98,8 +98,7 @@ class BandSimVQ(nn.Module):
         self,
         x: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        """
-        Forward pass through Band Simple VQ.
+        """Forward pass through Band SimVQ.
 
         Args:
             x: Input tensor of shape [B, bands, D, T].
@@ -131,8 +130,7 @@ class BandSimVQ(nn.Module):
         return quantized_per_band, all_indices, total_loss
 
     def encode(self, x: torch.Tensor) -> torch.Tensor:
-        """
-        Encode input to indices.
+        """Encode input to indices.
 
         Args:
             x: Input tensor [B, bands, D, T].
@@ -144,8 +142,7 @@ class BandSimVQ(nn.Module):
         return indices
 
     def decode(self, indices: torch.Tensor) -> torch.Tensor:
-        """
-        Decode indices to reconstructed signal.
+        """Decode indices to reconstructed signal.
 
         Args:
             indices: Indices tensor [B, bands, T].
