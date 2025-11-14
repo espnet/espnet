@@ -1,7 +1,6 @@
 import pytest
-from packaging.version import parse as V
-
 import torch
+from packaging.version import parse as V
 
 from espnet2.gan_svs.post_frontend.fused import FusedPostFrontends
 

@@ -46,7 +46,7 @@ def init_decoder_model():
 @pytest.mark.execution_timeout(20)
 @pytest.mark.skipif(
     not is_torch_2_6_plus or not is_python_3_8_plus or is_torch_2_9_plus,
-    reason="Not supported"
+    reason="Not supported",
 )
 @pytest.mark.parametrize("model, bottleneck, target_layers", [("s3prl", 64, [])])
 def test_create_houlsby_adapter_bottleneck(
@@ -70,7 +70,7 @@ def test_create_houlsby_adapter_bottleneck(
 @pytest.mark.execution_timeout(20)
 @pytest.mark.skipif(
     not is_torch_2_6_plus or not is_python_3_8_plus or is_torch_2_9_plus,
-    reason="Not supported"
+    reason="Not supported",
 )
 @pytest.mark.parametrize(
     "model, bottleneck, target_layers",
@@ -108,7 +108,7 @@ def test_create_houlsby_adapter_hf_wav2vec2_custom_bottleneck(
 @pytest.mark.execution_timeout(20)
 @pytest.mark.skipif(
     not is_torch_2_6_plus or not is_python_3_8_plus or is_torch_2_9_plus,
-    reason="Not supported"
+    reason="Not supported",
 )
 @pytest.mark.parametrize("model, bottleneck, target_layers", [("s3prl", 64, [1, 2])])
 def test_create_houlsby_adapter_target_layers(
