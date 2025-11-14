@@ -574,7 +574,7 @@ EOF
 }
 
 
-if $(pytorch_plus 2.9.0); then
+if pytorch_plus 2.9.0; then
     # TODO(Nelson): Remove this once s3prl supports torchaudio 2.9.0
     echo "WARN: Currently, S3prl does not support pytorch/torchaudio 2.9.0. CI test related to s3prl has been disabled."
 else
