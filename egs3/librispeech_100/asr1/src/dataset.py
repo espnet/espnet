@@ -84,7 +84,7 @@ class LibriSpeechDataset(TorchDataset):
 
         if self.return_text and "text" in item:
             example["text"] = item["text"]
-        
+
         if self.prepare_s2t:
             example["text_ctc"] = item["text"]
             example["text_prev"] = "<na>"

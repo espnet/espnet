@@ -12,10 +12,10 @@ from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
 
 from espnet3.components.model import LitESPnetModel
-from espnet3.utils.task import get_espnet_model, save_espnet_config
 from espnet3.components.trainer import ESPnet3LightningTrainer
 from espnet3.parallel.parallel import set_parallel
 from espnet3.utils.config import load_config_with_defaults
+from espnet3.utils.task import get_espnet_model, save_espnet_config
 
 
 def _instantiate_model(cfg: DictConfig) -> Any:
@@ -84,4 +84,3 @@ def train(cfg: DictConfig, collect_stats: bool) -> None:
     task = cfg.get("task")
     if task:
         save_espnet_config(task, cfg, cfg.exp_dir)
-

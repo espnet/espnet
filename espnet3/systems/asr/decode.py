@@ -3,8 +3,8 @@ import os
 from pathlib import Path
 
 import torch
-from omegaconf import DictConfig
 from hydra.utils import instantiate
+from omegaconf import DictConfig
 
 from espnet3.parallel.base_runner import BaseRunner
 from espnet3.parallel.inference_provider import InferenceProvider

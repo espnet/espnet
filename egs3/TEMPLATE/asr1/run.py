@@ -4,10 +4,11 @@
 import argparse
 from pathlib import Path
 
-from espnet3.utils.config import load_config_with_defaults
 from espnet3.systems.asr.system import ASRSystem
+from espnet3.utils.config import load_config_with_defaults
 
 STAGES = ["prepare", "train", "evaluate", "decode", "score", "publish"]
+
 
 def main() -> None:
     parser = argparse.ArgumentParser()
@@ -43,7 +44,11 @@ def main() -> None:
     # Load config (OmegaConf DictConfig) and instantiate system
     # ---------------------------------------------------------
     train_config = load_config_with_defaults(args.train_config)
-    eval_config = None if args.eval_config is None else load_config_with_defaults(args.eval_config)
+    eval_config = (
+        None
+        if args.eval_config is None
+        else load_config_with_defaults(args.eval_config)
+    )
     system = ASRSystem(train_config=train_config, eval_config=eval_config)
 
     # ---------------------------------------------------------

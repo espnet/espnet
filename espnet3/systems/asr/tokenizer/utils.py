@@ -28,4 +28,3 @@ def gather_training_text(data_dir):
                     texts.append(text)
 
     return texts
-

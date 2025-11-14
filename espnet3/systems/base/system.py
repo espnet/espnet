@@ -1,34 +1,37 @@
 # system_base.py
 
-from omegaconf import DictConfig
-from pathlib import Path
 import logging
+from pathlib import Path
 
-from espnet3.systems.base.train import train
+from omegaconf import DictConfig
+
 from espnet3.systems.base.score import score
+from espnet3.systems.base.train import train
 
 logger = logging.getLogger(__name__)
 
 
 class BaseSystem:
     """Base class for all ESPnet3 systems.
-    
+
     Each system should implement the following:
       - create_dataset()
       - train()
       - decode()
       - score()
       - publish()
-    
+
     This class intentionally does NOT implement:
       - DAG
       - dependency checks
       - caching
-    
+
     All behavior is config-driven.
     """
 
-    def __init__(self, train_config: DictConfig, eval_config: DictConfig=None) -> None:
+    def __init__(
+        self, train_config: DictConfig, eval_config: DictConfig = None
+    ) -> None:
         self.train_config = train_config
         self.eval_config = eval_config
         self.exp_dir = Path(train_config.exp_dir)
@@ -49,7 +52,7 @@ class BaseSystem:
 
     def decode(self):
         raise NotImplementedError("decode() must be implemented in subclasses.")
-    
+
     def score(self):
         result = score(self.eval_config)
         logger.info("Scoring results: %s", result)
