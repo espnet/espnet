@@ -21,6 +21,7 @@ class LibriSpeechDatasetConfig:
     sample_rate: int = 16000
     return_text: bool = True
     return_speech: bool = True
+    prepare_s2t: bool = False
 
 
 class LibriSpeechDataset(TorchDataset):
@@ -33,6 +34,7 @@ class LibriSpeechDataset(TorchDataset):
         sample_rate: int = 16000,
         return_text: bool = True,
         return_speech: bool = True,
+        prepare_s2t: bool = False,
     ) -> None:
         cfg = LibriSpeechDatasetConfig(
             data_dir=data_dir,
@@ -40,6 +42,7 @@ class LibriSpeechDataset(TorchDataset):
             sample_rate=sample_rate,
             return_text=return_text,
             return_speech=return_speech,
+            prepare_s2t=prepare_s2t,
         )
 
         data_root = Path(cfg.data_dir)
@@ -66,6 +69,7 @@ class LibriSpeechDataset(TorchDataset):
         self.sample_rate = int(cfg.sample_rate)
         self.return_text = bool(cfg.return_text)
         self.return_speech = bool(cfg.return_speech)
+        self.prepare_s2t = bool(cfg.prepare_s2t)
 
     def __len__(self) -> int:
         return len(self.dataset)
@@ -80,6 +84,10 @@ class LibriSpeechDataset(TorchDataset):
 
         if self.return_text and "text" in item:
             example["text"] = item["text"]
+        
+        if self.prepare_s2t:
+            example["text_ctc"] = item["text"]
+            example["text_prev"] = "<na>"
         return example
 
     def __getitem__(self, idx: int) -> Dict:
