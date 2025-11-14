@@ -1,1 +1,1 @@
-../../../espnet3/systems/asr/bin/run.py
+../../TEMPLATE/asr1/run.py

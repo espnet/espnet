@@ -23,7 +23,7 @@ tokenizer:
 
 metrics:
   - metric:
-      _target_: espnet3.asr.metrics.wer.WER
+      _target_: espnet3.systems.asr.metrics.wer.WER
       clean_types:
     inputs:
       - ref
@@ -33,7 +33,7 @@ metrics:
       - test-other
 
   - metric:
-      _target_: espnet3.asr.metrics.cer.CER
+      _target_: espnet3.systems.asr.metrics.cer.CER
       clean_types:
     inputs:
       - ref

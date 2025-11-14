@@ -11,9 +11,9 @@ import torch
 from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
 
-from espnet3.base.model.model import LitESPnetModel
-from espnet3.base.task import get_espnet_model, save_espnet_config
-from espnet3.base.trainer.trainer import ESPnet3LightningTrainer
+from espnet3.components.model import LitESPnetModel
+from espnet3.utils.task import get_espnet_model, save_espnet_config
+from espnet3.components.trainer import ESPnet3LightningTrainer
 from espnet3.parallel.parallel import set_parallel
 from espnet3.utils.config import load_config_with_defaults
 
@@ -85,20 +85,3 @@ def train(cfg: DictConfig, collect_stats: bool) -> None:
     if task:
         save_espnet_config(task, cfg, cfg.exp_dir)
 
-
-if __name__ == "__main__":  # pragma: no cover
-    import argparse
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--config", default="config", help="Name of the Hydra config to load"
-    )
-    parser.add_argument(
-        "--collect_stats",
-        type=strtobool,
-        default=True,
-        help="Flag to run collect-stats stage",
-    )
-    args = parser.parse_args()
-    config = load_config_with_defaults(args.config)
-    train(config, args.collect_stats)

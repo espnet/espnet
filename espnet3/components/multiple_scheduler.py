@@ -6,7 +6,7 @@ from typing import Any, Dict, Iterable, List, Union
 import torch
 from typeguard import typechecked
 
-from espnet3.base.trainer.multiple_optim import MultipleOptim
+from espnet3.components.multiple_optim import MultipleOptim
 
 
 class MultipleScheduler(torch.optim.lr_scheduler._LRScheduler):

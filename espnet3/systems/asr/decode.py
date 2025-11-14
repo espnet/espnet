@@ -3,12 +3,12 @@ import os
 from pathlib import Path
 
 import torch
+from omegaconf import DictConfig
 from hydra.utils import instantiate
 
 from espnet3.parallel.base_runner import BaseRunner
 from espnet3.parallel.inference_provider import InferenceProvider
 from espnet3.parallel.parallel import set_parallel
-from espnet3.utils.config import load_config_with_defaults
 
 
 class DecodeProvider(InferenceProvider):
@@ -43,12 +43,7 @@ class DecodeRunner(BaseRunner):
         return {"idx": idx, "hyp": hyp, "ref": ref}
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--config", type=str, default="test_config.yaml")
-    args = parser.parse_args()
-
-    config = load_config_with_defaults(args.config)
+def decode(config: DictConfig):
     set_parallel(config.parallel)
 
     test_sets = [test_set.name for test_set in config.dataset.test]
