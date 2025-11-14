@@ -11,8 +11,8 @@ from lightning.pytorch.strategies import DDPStrategy, SingleDeviceStrategy
 from omegaconf import OmegaConf  # ListConfig,
 from typeguard import TypeCheckError
 
-from espnet3.base.model.model import LitESPnetModel
-from espnet3.base.trainer.trainer import ESPnet3LightningTrainer
+from espnet3.components.model import LitESPnetModel
+from espnet3.components.trainer import ESPnet3LightningTrainer
 from espnet3.utils.config import load_config_with_defaults
 
 # ===============================================================

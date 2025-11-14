@@ -4,8 +4,8 @@ from torch import nn
 from torch.optim import SGD, Adam
 from torch.optim.lr_scheduler import LinearLR, StepLR
 
-from espnet3.base.trainer.multiple_optim import MultipleOptim
-from espnet3.base.trainer.multiple_scheduler import MultipleScheduler
+from espnet3.components.multiple_optim import MultipleOptim
+from espnet3.components.multiple_scheduler import MultipleScheduler
 
 # ===============================================================
 # Test Case Summary for MultipleScheduler
