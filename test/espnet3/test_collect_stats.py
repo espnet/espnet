@@ -1,8 +1,7 @@
 # tests/test_collect_stats.py
 import multiprocessing as mp
-from pathlib import Path
-
 import os
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -326,11 +325,11 @@ def test_collect_stats_multiple_iterator(tmp_path: Path):
 
     mode_dir = out_dir / "train"
     assert (mode_dir / "stats_keys").exists(), "stats_keys not written"
-    
+
     files = os.listdir(mode_dir)  # カレントディレクトリ
     for f in files:
         print(f)
-            
+
     for k in ["mel", "mel_lengths"]:
         npz = mode_dir / f"{k}_stats.npz"
         assert npz.exists(), f"{npz} missing"
