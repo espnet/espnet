@@ -5,8 +5,9 @@ from pathlib import Path
 
 from omegaconf import DictConfig
 
+from espnet3.systems.base.inference import inference
 from espnet3.systems.base.score import score
-from espnet3.systems.base.train import train
+from espnet3.systems.base.train import collect_stats, train
 
 logger = logging.getLogger(__name__)
 
@@ -43,15 +44,18 @@ class BaseSystem:
     def create_dataset(self):
         logger.info("Running prepare() (BaseSystem stub). Nothing done.")
 
-    def train(self, collect_stats: bool = False):
-        return train(self.train_config, collect_stats=collect_stats)
+    def collect_stats(self):
+        return collect_stats(self.train_config)
+
+    def train(self):
+        return train(self.train_config)
 
     def evaluate(self):
         self.decode()
         return self.score()
 
     def decode(self):
-        raise NotImplementedError("decode() must be implemented in subclasses.")
+        return inference(self.eval_config)
 
     def score(self):
         result = score(self.eval_config)

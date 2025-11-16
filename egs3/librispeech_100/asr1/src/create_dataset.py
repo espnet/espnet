@@ -33,36 +33,24 @@ def gather_examples(data_dir):
     return examples
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--dataset_dir",
-        type=Path,
-        required=True,
-        help="Path to the raw LibriSpeech-like dataset directory",
-    )
-    parser.add_argument(
-        "--output_dir",
-        type=Path,
-        default="data/",
-        help="Directory where the HuggingFace dataset will be saved",
-    )
-    args = parser.parse_args()
-
+def create_dataset(dataset_dir: Path, output_dir: Path = "data/"):
     splits = ["train-clean-100", "dev-clean", "dev-other", "test-clean", "test-other"]
 
     dataset_dict = DatasetDict()
     for split in splits:
-        split_path = os.path.join(args.dataset_dir, split)
+        split_path = os.path.join(dataset_dir, split)
         print(f"Gathering examples from: {split_path}")
         dataset = Dataset.from_dict(gather_examples(split_path))
         # Uncomment below if you want to cast to datasets.Audio
         # dataset = dataset.cast_column("audio", datasets.Audio(decode=False))
         dataset_dict[split] = dataset
 
-    print("Saving dataset to", args.output_dir)
-    dataset_dict.save_to_disk(args.output_dir)
+    print("Saving dataset to", output_dir)
+    dataset_dict.save_to_disk(output_dir)
 
 
 if __name__ == "__main__":
-    main()
+    create_dataset(
+        dataset_dir=Path("/path/to/librispeech"),
+        output_dir=Path("data/"),
+    )

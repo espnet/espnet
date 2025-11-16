@@ -44,9 +44,7 @@ def _ensure_directories(cfg: DictConfig) -> None:
         Path(cfg.stats_dir).mkdir(parents=True, exist_ok=True)
 
 
-def train(cfg: DictConfig, collect_stats: bool) -> None:
-    """Main training loop."""
-
+def collect_stats(cfg: DictConfig) -> None:
     _ensure_directories(cfg)
 
     if cfg.get("parallel"):
@@ -57,30 +55,35 @@ def train(cfg: DictConfig, collect_stats: bool) -> None:
 
     torch.set_float32_matmul_precision("high")
 
-    normalize = None
-    normalize_conf = None
-    if collect_stats:
-        if "normalize" in cfg.model:
-            normalize = cfg.model.pop("normalize")
-        if "normalize_conf" in cfg.model:
-            normalize_conf = cfg.model.pop("normalize_conf")
+    if "normalize" in cfg.model:
+        cfg.model.pop("normalize")
+    if "normalize_conf" in cfg.model:
+        cfg.model.pop("normalize_conf")
 
     trainer = _build_trainer(cfg)
+    trainer.collect_stats()
 
-    if collect_stats:
-        trainer.collect_stats()
-        if normalize is not None:
-            cfg.model["normalize"] = normalize
-        if normalize_conf is not None:
-            cfg.model["normalize_conf"] = normalize_conf
-        trainer = _build_trainer(cfg)
+
+def train(cfg: DictConfig) -> None:
+    """Main training loop."""
+    _ensure_directories(cfg)
+
+    if cfg.get("parallel"):
+        set_parallel(cfg.parallel)
+
+    if cfg.get("seed") is not None:
+        L.seed_everything(int(cfg.seed), workers=True)
+
+    torch.set_float32_matmul_precision("high")
+
+    task = cfg.get("task")
+    if task:
+        save_espnet_config(task, cfg, cfg.exp_dir)
+
+    trainer = _build_trainer(cfg)
 
     fit_kwargs: Dict[str, Any] = {}
     if hasattr(cfg, "fit") and cfg.fit:
         fit_kwargs = OmegaConf.to_container(cfg.fit, resolve=True)
 
     trainer.fit(**fit_kwargs)
-
-    task = cfg.get("task")
-    if task:
-        save_espnet_config(task, cfg, cfg.exp_dir)

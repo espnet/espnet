@@ -406,7 +406,7 @@ class LitESPnetModel(lightning.LightningModule):
         Raises:
             AssertionError: If `config.statsdir` is not provided.
         """
-        assert hasattr(self.config, "statsdir"), "config.statsdir must be defined"
+        assert hasattr(self.config, "stats_dir"), "config.statsdir must be defined"
 
         for mode in ["train", "valid"]:
             collect_stats(
@@ -414,7 +414,7 @@ class LitESPnetModel(lightning.LightningModule):
                 dataset_config=self.config.dataset,
                 dataloader_config=self.config.dataloader,
                 mode=mode,
-                output_dir=Path(self.config.statsdir),
+                output_dir=Path(self.config.stats_dir),
                 task=getattr(self.config, "task", None),
                 parallel_config=(
                     None

@@ -7,11 +7,13 @@ from hydra.utils import instantiate
 from omegaconf import DictConfig
 
 from espnet3.parallel.base_runner import BaseRunner
-from espnet3.parallel.inference_provider import InferenceProvider
 from espnet3.parallel.parallel import set_parallel
+from espnet3.systems.base.inference_provider import (
+    InferenceProvider as BaseInferenceProvider,
+)
 
 
-class DecodeProvider(InferenceProvider):
+class InferenceProvider(BaseInferenceProvider):
     @staticmethod
     def build_dataset(config):
         # config includes test dataset
@@ -33,7 +35,7 @@ class DecodeProvider(InferenceProvider):
         return model
 
 
-class DecodeRunner(BaseRunner):
+class InferenceRunner(BaseRunner):
     @staticmethod
     def forward(idx, dataset=None, model=None, **kwargs):
         data = dataset[idx]
@@ -43,7 +45,7 @@ class DecodeRunner(BaseRunner):
         return {"idx": idx, "hyp": hyp, "ref": ref}
 
 
-def decode(config: DictConfig):
+def inference(config: DictConfig):
     set_parallel(config.parallel)
 
     test_sets = [test_set.name for test_set in config.dataset.test]
@@ -53,8 +55,8 @@ def decode(config: DictConfig):
     for test_name in test_sets:
         print(f"===> Processing {test_name}")
         config.test_set = test_name
-        provider = DecodeProvider(config)
-        runner = DecodeRunner(
+        provider = InferenceProvider(config)
+        runner = InferenceRunner(
             provider=provider,
             async_mode=False,
         )

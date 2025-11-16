@@ -2,9 +2,9 @@
 
 import logging
 import os
+from importlib import import_module
 from pathlib import Path
 
-from espnet3.systems.asr.decode import decode
 from espnet3.systems.asr.tokenizer.utils import (
     gather_training_text,
     train_sentencepiece,
@@ -14,6 +14,12 @@ from espnet3.systems.base.system import BaseSystem
 logger = logging.getLogger(__name__)
 
 
+def load_function(path):
+    module_path, func_name = path.rsplit(".", 1)
+    module = import_module(module_path)
+    return getattr(module, func_name)
+
+
 class ASRSystem(BaseSystem):
     """ASR-specific system.
 
@@ -21,7 +27,15 @@ class ASRSystem(BaseSystem):
       - Tokenizer training inside train()
     """
 
-    def train(self, collect_stats: bool = False, dataset_dir: str = None):
+    def create_dataset(self, func: str, **kwargs):
+        logger.info("ASRSystem.create_dataset(): starting dataset creation process")
+        logger.info(f"Creating dataset with function {func}")
+
+        # We assume that dataset preparation script should be implemented in src/create_dataset.py
+        fn = load_function(func)
+        return fn(**kwargs)
+
+    def train(self, dataset_dir: str = None):
         logger.info("ASRSystem.train(): starting training process")
 
         # Train tokenizer if not trained previously
@@ -30,12 +44,12 @@ class ASRSystem(BaseSystem):
             / f"{self.train_config.tokenizer.model_type}.model"
         )
         if not tokenizer_path.exists():
-            self._train_tokenizer(dataset_dir=dataset_dir)
+            self.train_tokenizer(dataset_dir=dataset_dir)
 
         # Proceed with standard training
-        return super().train(collect_stats=collect_stats)
+        return super().train()
 
-    def _train_tokenizer(self, dataset_dir: str = None):
+    def train_tokenizer(self, dataset_dir: str = None):
         assert (
             dataset_dir is not None
         ), "dataset_dir must be provided for tokenizer training"
@@ -60,9 +74,3 @@ class ASRSystem(BaseSystem):
             model_type=self.train_config.tokenizer.model_type,
         )
         logger.info("Tokenizer training completed.")
-
-    # ----------------------------
-    # Evaluate
-    # ----------------------------
-    def decode(self):
-        return decode(self.eval_config)
