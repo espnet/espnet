@@ -17,7 +17,7 @@ valid_set=dev
 test_sets="dev eval"
 tts_task=gan_tts
 
-train_config=conf/train.yaml
+train_config=conf/tuning/train_xvector_vits.yaml
 inference_config=conf/decode.yaml
 
 cleaner=tacotron

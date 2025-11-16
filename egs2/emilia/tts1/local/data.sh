@@ -29,7 +29,14 @@ fi
 . ./cmd.sh || exit 1;
 . ./db.sh || exit 1;
 
-if [[ ! " ${VALID_LANGS[@]} " =~ " ${lang} " ]]; then
+found=false
+for _l in "${VALID_LANGS[@]}"; do
+    if [[ "${_l}" == "${lang}" ]]; then
+        found=true
+        break
+    fi
+done
+if ! ${found}; then
     log "Error: Invalid language code '${lang}'. Valid options are: ${VALID_LANGS[*]}"
     exit 1
 fi
@@ -40,9 +47,9 @@ if [ -z "${EMILIA}" ]; then
 fi
 db_root=${EMILIA}
 
-train_set=tr_no_dev
-dev_set=dev
-eval_set=eval
+train_set="tr_no_dev"
+dev_set="dev"
+eval_set="eval"
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     log "stage -1: Data Download"
