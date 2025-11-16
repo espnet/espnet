@@ -192,7 +192,7 @@ class CategoryChunkIterFactory(AbsIterFactory):
                 assert fs % default_fs == 0 or default_fs % fs == 0
 
                 L = actual_lengths[sequence_keys[0]]
-                
+
                 # Select chunk length
                 chunk_lengths = [lg * fs // default_fs for lg in self.chunk_lengths]
                 chunk_lengths = [
