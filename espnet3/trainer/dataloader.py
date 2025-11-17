@@ -4,7 +4,7 @@ from typing import Union
 import numpy as np
 import torch
 from hydra.utils import instantiate
-from omegaconf import DictConfig, ListConfig, OmegaConf
+from omegaconf import DictConfig, OmegaConf
 
 from espnet2.samplers.build_batch_sampler import build_batch_sampler
 
@@ -222,7 +222,10 @@ class DataLoaderBuilder:
 
         if factory_config["iter_factory"] is not None:
             # update shape files
-            iter_factory_config = update_shard(iter_factory_config, shard_idx)
+            iter_factory_config = update_shard(
+                factory_config["iter_factory"],
+                shard_idx
+            )
             return self._build_iter_factory(iter_factory_config, dataset)
         else:
             factory_config.pop("num_shards")

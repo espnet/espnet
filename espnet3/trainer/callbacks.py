@@ -1,9 +1,8 @@
 import logging
 from pathlib import Path
-from typing import Any, List, Tuple, Union
+from typing import List, Tuple, Union
 
 import torch
-from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.callbacks import (
     Callback,
     LearningRateMonitor,

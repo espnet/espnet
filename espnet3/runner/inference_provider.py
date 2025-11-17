@@ -1,7 +1,6 @@
 # inference_provider.py
 from typing import Any, Callable, Dict
 
-import torch
 from omegaconf import DictConfig
 
 from espnet3.runner.env_provider import EnvironmentProvider

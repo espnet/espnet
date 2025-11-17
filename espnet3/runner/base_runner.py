@@ -359,7 +359,7 @@ def _async_worker_entry_from_spec_path(spec_path: str):
     Notes:
         - Non-JSON-serializable results are ``repr``-serialized when writing JSONL.
     """
-    from omegaconf import DictConfig, OmegaConf
+    from omegaconf import DictConfig
 
     with open(spec_path, "r", encoding="utf-8") as f:
         spec = json.load(f)
