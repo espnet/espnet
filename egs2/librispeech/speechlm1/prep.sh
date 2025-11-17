@@ -63,7 +63,9 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     all_sets="${valid_set} ${test_sets} ${train_set}"
     for dataset in ${all_sets}; do
         log "Processing dataset: ${dataset}"
-        mkdir -p ${manifest_dir}/${dataset}/audio1 ${manifest_dir}/${dataset}/text1
+        mkdir -p ${manifest_dir}/${dataset}/audio1
+        mkdir -p ${manifest_dir}/${dataset}/text1
+        mkdir -p ${manifest_dir}/${dataset}/speaker
 
         python3 ../../../espnet2/speechlm/bin/prepare_audio_lhotse.py \
             --wav_scp data/${dataset}/wav.scp \
@@ -71,12 +73,12 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             --num_jobs ${nj}
 
         cp data/${dataset}/text ${manifest_dir}/${dataset}/text1/text
-        cp data/${dataset}/utt2spk ${manifest_dir}/${dataset}/text1/speaker
+        cp data/${dataset}/utt2spk ${manifest_dir}/${dataset}/speaker/speaker
 
         python3 ../../../espnet2/speechlm/bin/prepare_dataset_json.py \
             --triplets audio1,${manifest_dir}/${dataset}/audio1,lhotse_audio \
                        text1,${manifest_dir}/${dataset}/text1/text,text \
-                       speaker,${manifest_dir}/${dataset}/text1/speaker,text \
+                       speaker,${manifest_dir}/${dataset}/speaker/speaker,text \
             --output_json ${manifest_dir}/${dataset}/dataset.json
     done
 
