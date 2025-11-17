@@ -9,7 +9,7 @@ exclude="egs2/TEMPLATE/asr1/utils,egs2/TEMPLATE/asr1/steps,egs2/TEMPLATE/tts1/si
 
 # flake8
 echo "=== Run test flake8 ==="
-"$(dirname $0)"/test_flake8.sh espnetez
+"$(dirname $0)"/test_flake8.sh espnet3
 
 # pycodestyle
 echo "=== Run pycodestyle tests ==="
