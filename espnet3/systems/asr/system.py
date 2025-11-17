@@ -30,8 +30,6 @@ class ASRSystem(BaseSystem):
     def create_dataset(self, func: str, **kwargs):
         logger.info("ASRSystem.create_dataset(): starting dataset creation process")
         logger.info(f"Creating dataset with function {func}")
-
-        # We assume that dataset preparation script should be implemented in src/create_dataset.py
         fn = load_function(func)
         return fn(**kwargs)
 

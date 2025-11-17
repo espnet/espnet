@@ -1,4 +1,3 @@
-import argparse
 import os
 from pathlib import Path
 
@@ -50,7 +49,7 @@ def inference(config: DictConfig):
 
     test_sets = [test_set.name for test_set in config.dataset.test]
     assert len(test_sets) > 0, "No test set found in dataset"
-    assert len(test_sets) == len(set(test_sets)), f"Duplicate test key found."
+    assert len(test_sets) == len(set(test_sets)), "Duplicate test key found."
 
     for test_name in test_sets:
         print(f"===> Processing {test_name}")

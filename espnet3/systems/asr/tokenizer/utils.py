@@ -1,10 +1,6 @@
-import argparse
 import os
-from pathlib import Path
 
 from tqdm import tqdm
-
-from espnet3.systems.asr.tokenizer.sentencepiece import train_sentencepiece
 
 
 def parse_transcript_file(transcript_path):

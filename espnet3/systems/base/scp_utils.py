@@ -1,6 +1,6 @@
 # score_runner.py
 from pathlib import Path
-from typing import Dict, List, Set, Union
+from typing import Dict, List, Union
 
 
 def read_scp(scp_file):

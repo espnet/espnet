@@ -270,7 +270,7 @@ class LitESPnetModel(lightning.LightningModule):
                 getattr(self.config, "optim", None) is None
             ), "Mixture of `optim` and `optims` is not allowed."
             assert len(self.config.optims) == len(self.config.schedulers), (
-                f"The number of optimizers and schedulers must be equal: "
+                "The number of optimizers and schedulers must be equal: "
                 + f"optims: {len(self.config.optims)}, "
                 + f"schedulers: {len(self.config.schedulers)}"
             )

@@ -1,4 +1,3 @@
-import argparse
 import json
 from pathlib import Path
 
@@ -10,7 +9,6 @@ from espnet3.systems.base.scp_utils import (
     get_class_path,
     load_scp_fields,
 )
-from espnet3.utils.config import load_config_with_defaults
 
 
 def score(config: DictConfig):

@@ -3,7 +3,6 @@
 from abc import ABC, abstractmethod
 from typing import Any, Callable, Dict
 
-import torch
 from omegaconf import DictConfig
 
 from espnet3.parallel.env_provider import EnvironmentProvider

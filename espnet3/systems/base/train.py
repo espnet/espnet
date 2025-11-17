@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from distutils.util import strtobool
 from pathlib import Path
 from typing import Any, Dict
 
@@ -14,7 +13,6 @@ from omegaconf import DictConfig, OmegaConf
 from espnet3.components.model import LitESPnetModel
 from espnet3.components.trainer import ESPnet3LightningTrainer
 from espnet3.parallel.parallel import set_parallel
-from espnet3.utils.config import load_config_with_defaults
 from espnet3.utils.task import get_espnet_model, save_espnet_config
 
 
