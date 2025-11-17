@@ -1,0 +1,39 @@
+# Dataset and dataloader configuration for LibriSpeech 100h
+dataset:
+  _target_: espnet3.components.data_organizer.DataOrganizer
+  train:
+    - name: train-clean-100
+      dataset:
+        _target_: src.dataset.LibriSpeechDataset
+        split: train-clean-100
+        prepare_s2t: true
+  valid:
+    - name: dev-clean
+      dataset:
+        _target_: src.dataset.LibriSpeechDataset
+        split: dev-clean
+        prepare_s2t: true
+    - name: dev-other
+      dataset:
+        _target_: src.dataset.LibriSpeechDataset
+        split: dev-other
+        prepare_s2t: true
+  test:
+    - name: test-clean
+      dataset:
+        _target_: src.dataset.LibriSpeechDataset
+        split: test-clean
+        prepare_s2t: true
+    - name: test-other
+      dataset:
+        _target_: src.dataset.LibriSpeechDataset
+        split: test-other
+        prepare_s2t: true
+
+  preprocessor:
+    _target_: espnet2.train.preprocessor.S2TPreprocessor
+    train: true
+    token_type: bpe
+    token_list: ${tokenizer.save_path}/tokens.txt
+    bpemodel: ${tokenizer.save_path}/bpe.model
+    text_cleaner:

@@ -1,12 +1,12 @@
 # This script is copied from
 # https://github.com/Lightning-AI/pytorch-lightning/issues/3346#issuecomment-1478556073
 
-from typing import Any, Dict, Iterable, List, Union
+from typing import Any
 
 import torch
 from typeguard import typechecked
 
-from espnet3.trainer.multiple_optim import MultipleOptim
+from espnet3.components.multiple_optim import MultipleOptim
 
 
 class MultipleScheduler(torch.optim.lr_scheduler._LRScheduler):

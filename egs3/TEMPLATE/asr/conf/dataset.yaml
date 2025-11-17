@@ -1,0 +1,5 @@
+# Dataset and dataloader configuration for LibriSpeech 100h
+
+dataset:
+  _target_: espnet3.data.DataOrganizer
+  preprocessor:

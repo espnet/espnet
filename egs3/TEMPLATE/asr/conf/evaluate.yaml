@@ -1,0 +1,10 @@
+# Decoding configuration for LibriSpeech 100h
+defaults:
+  - default.yaml
+  - dataset.yaml
+
+
+exp_tag: template
+
+
+metrics:

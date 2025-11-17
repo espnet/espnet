@@ -1,0 +1,6 @@
+# Main training for LibriSpeech 100h ASR recipe
+defaults:
+  - default.yaml
+  - dataset.yaml
+
+exp_tag: template

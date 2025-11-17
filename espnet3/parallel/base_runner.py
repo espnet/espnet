@@ -4,6 +4,7 @@ import importlib
 import json
 import os
 import sys
+from abc import ABC, abstractmethod
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Sequence
@@ -13,13 +14,13 @@ from dask.utils import tmpfile
 from omegaconf import OmegaConf
 from tqdm import tqdm
 
+from espnet3.parallel.env_provider import EnvironmentProvider
 from espnet3.parallel.parallel import (
     get_client,
     get_parallel_config,
     make_client,
     parallel_for,
 )
-from espnet3.runner.env_provider import EnvironmentProvider
 
 
 @dataclass(frozen=True)
@@ -114,7 +115,7 @@ def get_job_cls(cluster, spec_path=None):
     return ASyncRunnerJob
 
 
-class BaseRunner:
+class BaseRunner(ABC):
     """A thin orchestration layer to run static ``forward`` over indices.
 
     This class handles:
@@ -158,6 +159,7 @@ class BaseRunner:
         self.async_result_dir = Path(async_result_dir).resolve()
 
     @staticmethod
+    @abstractmethod
     def forward(idx: int, *, dataset, model, **env) -> Any:
         """Compute one item for the given index (to be implemented by subclasses).
 
@@ -359,7 +361,7 @@ def _async_worker_entry_from_spec_path(spec_path: str):
     Notes:
         - Non-JSON-serializable results are ``repr``-serialized when writing JSONL.
     """
-    from omegaconf import DictConfig, OmegaConf
+    from omegaconf import DictConfig
 
     with open(spec_path, "r", encoding="utf-8") as f:
         spec = json.load(f)

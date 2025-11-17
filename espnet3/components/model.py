@@ -7,10 +7,10 @@ from hydra.utils import instantiate
 from omegaconf import OmegaConf
 
 from espnet2.train.collate_fn import CommonCollateFn
-from espnet3.collect_stats import collect_stats
-from espnet3.trainer.dataloader import DataLoaderBuilder
-from espnet3.trainer.multiple_optim import MultipleOptim
-from espnet3.trainer.multiple_scheduler import MultipleScheduler
+from espnet3.components.collect_stats import collect_stats
+from espnet3.components.dataloader import DataLoaderBuilder
+from espnet3.components.multiple_optim import MultipleOptim
+from espnet3.components.multiple_scheduler import MultipleScheduler
 
 logger = logging.getLogger("lightning")
 
@@ -270,7 +270,7 @@ class LitESPnetModel(lightning.LightningModule):
                 getattr(self.config, "optim", None) is None
             ), "Mixture of `optim` and `optims` is not allowed."
             assert len(self.config.optims) == len(self.config.schedulers), (
-                f"The number of optimizers and schedulers must be equal: "
+                "The number of optimizers and schedulers must be equal: "
                 + f"optims: {len(self.config.optims)}, "
                 + f"schedulers: {len(self.config.schedulers)}"
             )
@@ -406,7 +406,7 @@ class LitESPnetModel(lightning.LightningModule):
         Raises:
             AssertionError: If `config.statsdir` is not provided.
         """
-        assert hasattr(self.config, "statsdir"), "config.statsdir must be defined"
+        assert hasattr(self.config, "stats_dir"), "config.statsdir must be defined"
 
         for mode in ["train", "valid"]:
             collect_stats(
@@ -414,7 +414,7 @@ class LitESPnetModel(lightning.LightningModule):
                 dataset_config=self.config.dataset,
                 dataloader_config=self.config.dataloader,
                 mode=mode,
-                output_dir=Path(self.config.statsdir),
+                output_dir=Path(self.config.stats_dir),
                 task=getattr(self.config, "task", None),
                 parallel_config=(
                     None

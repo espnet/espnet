@@ -1,0 +1,32 @@
+# Main training for LibriSpeech 100h ASR recipe
+defaults:
+  - default.yaml
+  - dataset_owsm.yaml
+
+
+exp_tag: template_3
+data_dir: ${recipe_dir}/data
+
+tokenizer:
+  vocab_size: 5000
+  character_coverage: 1.0
+  model_type: bpe
+  save_path: ${data_dir}/pretrained_owsm_tokenizer
+
+model:
+  _target_: src.custom_model.OWSMFinetuneModel
+
+
+dataloader:
+  train:
+    iter_factory:
+      batches:
+        type: sorted
+        batch_size: 4
+        batch_bins: 4000000
+
+
+trainer:
+  max_epochs: 3
+  precision: bf16-mixed
+  log_every_n_steps: 100
