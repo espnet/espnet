@@ -6,12 +6,28 @@ defaults:
 exp_tag: template
 
 
+# parallel:
+#   env: slurm
+#   n_workers: 4
+#   options:
+#     account: bbjs-delta-gpu
+#     queue: gpuA40x4
+#     cores: 4
+#     processes: 1
+#     memory: 16GB
+#     death_timeout: 180
+#     # walltime: 1:00:00
+#     log_directory: logs/
+#     job_extra_directives:
+#       - "--time=1:00:00"
+#       - "--gres=gpu:1"
+
 model:
   _target_: espnet2.bin.asr_inference.Speech2Text
   asr_train_config: ${exp_dir}/config.yaml
   asr_model_file: ${exp_dir}/last.ckpt
   beam_size: 1
-  ctc_weight: 1.0
+  ctc_weight: 0.3
 
 
 tokenizer:
