@@ -114,7 +114,7 @@ def test_batch_beam_search_equal(
     lm = TransformerLM(len(token_list), **lm_args.lm_conf)
     lm.eval()
 
-    root = os.path.dirname(os.path.abspath(__file__))
+    # root = os.path.dirname(os.path.abspath(__file__))
     # ngram = NgramFullScorer(os.path.join(root, "beam_search_test.arpa"), token_list)
 
     recog_args = Namespace(

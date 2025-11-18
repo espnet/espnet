@@ -277,8 +277,11 @@ def test_average_checkpoint_with_no_checkpoints(tmp_path):
 
 
 def test_duplicate_learning_rate_monitor_from_config():
-    """Verify that if a LearningRateMonitor is defined both by default and in the config
-    duplicates are created (no warning or deduplication in current behavior).
+    """Test duplicate LearningRateMonitor creation.
+
+    Verify that when a LearningRateMonitor is provided both by default and in the user
+    configuration, two separate instances are created. The current behavior does not
+    emit a warning or perform any deduplication of these callbacks.
     """
     # First, get the default callbacks (contains exactly one LearningRateMonitor)
     callbacks = get_default_callbacks(

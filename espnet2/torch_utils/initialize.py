@@ -3,7 +3,6 @@
 """Initialize modules for espnet2 neural networks."""
 
 import logging
-import math
 
 import torch
 from typeguard import typechecked

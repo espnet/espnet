@@ -1,12 +1,10 @@
 from argparse import Namespace
 
-import numpy
 import pytest
 import torch
 
 from espnet2.legacy.nets.beam_search import BeamSearch
 from espnet2.legacy.nets.scorers.length_bonus import LengthBonus
-from espnet2.lm.espnet_model import ESPnetLanguageModel
 from espnet2.lm.transformer_lm import TransformerLM
 from espnet2.tasks.asr import ASRTask
 

@@ -291,7 +291,8 @@ def _make_fake_client(num_workers: int = 2):
 
 
 def _patch_parallel_client_no_submit(monkeypatch, n_workers: int = 2):
-    """
+    """Patch client.submit/map to Run Locally and Synchronously
+    
     - Change client.submit/map to fully local, immediate (synchronous) execution
     - Make sure to also patch any symbols already imported inside base_runner
     - For async submission, skip actual job submission and directly call

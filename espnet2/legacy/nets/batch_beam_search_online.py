@@ -11,8 +11,8 @@ import torch
 from espnet2.asr.transducer.beam_search_transducer_streaming import (
     BeamSearchTransducerStreaming,
 )
-from espnet2.legacy.nets.batch_beam_search import BatchBeamSearch  # noqa: H301
-from espnet2.legacy.nets.batch_beam_search import BatchHypothesis  # noqa: H301
+from espnet2.legacy.nets.batch_beam_search import BatchBeamSearch
+from espnet2.legacy.nets.batch_beam_search import BatchHypothesis
 from espnet2.legacy.nets.beam_search import Hypothesis
 from espnet2.legacy.nets.beam_search_timesync_streaming import (
     BeamSearchTimeSyncStreaming,

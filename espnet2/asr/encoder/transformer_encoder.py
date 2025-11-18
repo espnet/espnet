@@ -14,7 +14,7 @@ from espnet2.legacy.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet2.legacy.nets.pytorch_backend.transformer.attention import (
     MultiHeadedAttention,
 )
-from espnet2.legacy.nets.pytorch_backend.transformer.embedding import (  # noqa: H301
+from espnet2.legacy.nets.pytorch_backend.transformer.embedding import (
     ConvolutionalPositionalEmbedding,
     PositionalEncoding,
 )
