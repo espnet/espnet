@@ -1,4 +1,3 @@
-import os
 from argparse import Namespace
 from test.espnet2.legacy.test_beam_search import prepare, transformer_args
 
