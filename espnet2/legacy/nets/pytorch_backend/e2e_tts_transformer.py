@@ -8,7 +8,9 @@ import torch
 
 from espnet2.legacy.nets.pytorch_backend.e2e_tts_tacotron2 import (
     GuidedAttentionLoss,
-    Tacotron2Loss as TransformerLoss,  # noqa: F401
+)
+from espnet2.legacy.nets.pytorch_backend.e2e_tts_tacotron2 import (  # noqa: F401
+    Tacotron2Loss as TransformerLoss,
 )
 
 
