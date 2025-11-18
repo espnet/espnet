@@ -69,7 +69,7 @@ class ArkiveAudioReader:
             result = duckdb.query(
                 f"""
                 SELECT * FROM result
-                QUALIFY (row_number() OVER (ORDER BY utt_id) - 1) 
+                QUALIFY (row_number() OVER (ORDER BY utt_id) - 1)
                 % {world_size} = {worker_id}
             """
             )
