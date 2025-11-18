@@ -223,8 +223,7 @@ class DataLoaderBuilder:
         if factory_config["iter_factory"] is not None:
             # update shape files
             iter_factory_config = update_shard(
-                factory_config["iter_factory"],
-                shard_idx
+                factory_config["iter_factory"], shard_idx
             )
             return self._build_iter_factory(iter_factory_config, dataset)
         else:
