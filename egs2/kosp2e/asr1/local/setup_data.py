@@ -75,7 +75,8 @@ def main():
             if split is None:
                 continue
 
-            # IMPORTANT: Replace 'speaker_id' with the actual column name for speaker ID in your metadata
+            # IMPORTANT: Replace 'speaker_id' with the actual column name
+            # for speaker ID in your metadata.
             # Using utt_id as spk_id is generally incorrect for multi-speaker data.
             row = meta_df.loc[utt_id]
             spk_id = row.get(
