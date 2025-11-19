@@ -1,3 +1,5 @@
+"""Wrapper to step multiple optimizers at once in Lightning."""
+
 # This script is copied from
 # https://github.com/Lightning-AI/pytorch-lightning/issues/3346#issuecomment-1478556073
 
@@ -8,7 +10,8 @@ from typeguard import typechecked
 
 
 class MultipleOptim(torch.optim.Optimizer):
-    """
+    """Wrapper to step multiple optimizers at once in Lightning.
+
     Wrapper around multiple optimizers that should be stepped together at a single
     time. This is a hack to avoid PyTorch Lightning calling ``training_step`` once
     for each optimizer, which increases training time and is not always necessary.
@@ -16,14 +19,14 @@ class MultipleOptim(torch.optim.Optimizer):
     Modified from the reply in a GitHub Issue thread here:
     https://github.com/Lightning-AI/lightning/issues/3346#issuecomment-1036063687
 
-    Parameters
-    ----------
-    optimizers: list of optimizers
+    Args:
+        optimizers: list of optimizers
 
     """
 
     @typechecked
     def __init__(self, optimizers: Iterable[torch.optim.Optimizer]) -> None:
+        """Initialize MultipleOptim object."""
         self.optimizers = optimizers
 
     @property
@@ -37,8 +40,7 @@ class MultipleOptim(torch.optim.Optimizer):
 
     @property
     def param_groups(self) -> List[Dict[str, Union[torch.Tensor, float, bool, Any]]]:
-        """Return the combined parameter groups for each optimizer in
-        ``self.optimizers``."""
+        """Return the combined parameters for each optimizer in ``self.optimizers``."""
         return [
             element
             for optimizer in self.optimizers
@@ -55,15 +57,11 @@ class MultipleOptim(torch.optim.Optimizer):
         }
 
     def __getstate__(self) -> List[torch.optim.Optimizer]:
-        """Return ``self.optimizers`` for pickling purposes."""
+        """Return optimizers."""
         return self.optimizers
 
     def __setstate__(self, optimizers: List[torch.optim.Optimizer]) -> None:
-        """
-        Load ``optimizers`` into ``self.optimizers`` for pickling purposes and call
-        ``__setstate__``.
-
-        """
+        """Set optimizers."""
         self.optimizers = optimizers
 
         # call remaining lines of the ``torch.optim.Optimizer.__setstate__`` method.
@@ -74,8 +72,7 @@ class MultipleOptim(torch.optim.Optimizer):
             optimizer.defaults.setdefault("differentiable", False)
 
     def __repr__(self) -> str:
-        """Call and concatenate ``__repr__`` for each optimizer in
-        ``self.optimizers``."""
+        """Return the string representation of the MultipleOptim object."""
         repr_str = (
             f"``{self.__class__.__name__}`` "
             + f"containing {len(self.optimizers)} optimizers:\n"
@@ -99,8 +96,7 @@ class MultipleOptim(torch.optim.Optimizer):
             Union[torch.Tensor, List[Dict[str, Union[torch.Tensor, float, bool, Any]]]],
         ]
     ]:
-        """
-        Returns the state of the optimizer as a dictionary.
+        """Return the state of the optimizer as a dictionary.
 
         It contains two entries:
 
@@ -123,13 +119,10 @@ class MultipleOptim(torch.optim.Optimizer):
             ]
         ],
     ) -> None:
-        """
-        Loads the optimizer state.
+        """Load the optimizer state.
 
-        Parameters
-        ----------
-        state_dict: dict
-            Optimizer state. Should be an object returned from a call to
+        Args:
+        state_dict (dict): Optimizer state. Should be an object returned from a call to
             ``state_dict()``
 
         """
@@ -137,47 +130,41 @@ class MultipleOptim(torch.optim.Optimizer):
             optimizer.load_state_dict(state)
 
     def zero_grad(self, set_to_none: bool = False) -> None:
-        """
-        Sets the gradients of all optimized ``torch.Tensor``s to zero.
+        """Set the gradients of all optimized ``torch.Tensor``s to zero.
 
-        Parameters
-        ----------
-        set_to_none: bool
-            Instead of setting to zero, set the grads to ``None``. This will in
-            general have lower memory footprint, and can modestly improve performance.
-            However, it changes certain behaviors. For example:
+        Args:
+            set_to_none: Instead of setting to zero, set the grads to ``None``.
+                This will in general have lower memory footprint, and can modestly
+                improve performance. However, it changes certain behaviors. For example:
 
-                1. When the user tries to access a gradient and perform manual ops
-                    on it, a ``None`` attribute or a ``torch.Tensor`` full of ``0``s
-                    will behave differently.
+                    1. When the user tries to access a gradient and perform manual ops
+                        on it, a ``None`` attribute or a ``torch.Tensor`` full of ``0``s
+                        will behave differently.
 
-                2. If the user requests ``zero_grad(set_to_none=True)`` followed by
-                    a backward pass, ``.grad``s are guaranteed to be ``None`` for
-                    params that did not receive a gradient.
+                    2. If the user requests ``zero_grad(set_to_none=True)`` followed by
+                        a backward pass, ``.grad``s are guaranteed to be ``None`` for
+                        params that did not receive a gradient.
 
-                3. ``torch.optim`` optimizers have a different behavior if the
-                    gradient is ``0`` or ``None`` (in one case it does the step
-                    with a gradient of ``0`` and in the other it skips the step
-                    altogether).
+                    3. ``torch.optim`` optimizers have a different behavior if the
+                        gradient is ``0`` or ``None`` (in one case it does the step
+                        with a gradient of ``0`` and in the other it skips the step
+                        altogether).
 
         """
         for optimizer in self.optimizers:
             optimizer.zero_grad(set_to_none=set_to_none)
 
     def step(self, closure: Callable[[], torch.Tensor] = None) -> torch.Tensor:
-        """
-        Performs a single optimization step (parameter update).
+        """Perform a single optimization step.
 
-        Parameters
-        ----------
-        closure: function
-            A closure that reevaluates the model and returns the loss. Optional
-            for most optimizers.
+        Args:
+            closure: function
+                A closure that reevaluates the model and returns the loss. Optional
+                for most optimizers.
 
-        Notes
-        -----
-        Unless otherwise specified, this function should not modify the ``.grad``
-        field of the parameters.
+        Notes:
+            Unless otherwise specified, this function should not modify the ``.grad``
+            field of the parameters.
 
         """
         loss = None

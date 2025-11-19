@@ -1,4 +1,5 @@
-# base_runner.py
+"""BaseRunner class for orchestrating local, parallel, and async executions."""
+
 import asyncio
 import importlib
 import json
@@ -73,6 +74,7 @@ def _default_chunk(indices: Sequence[int], num_chunks: int) -> List[List[int]]:
 
 
 def convert_paths(obj):
+    """Recursively convert Path objects to strings in the given object."""
     if isinstance(obj, dict):
         return {k: convert_paths(v) for k, v in obj.items()}
     elif isinstance(obj, list):
@@ -84,6 +86,7 @@ def convert_paths(obj):
 
 
 def get_full_class_path_from_instance(obj):
+    """Return the full import path of the given object's class."""
     cls = obj.__class__
     module = cls.__module__
 
@@ -98,6 +101,7 @@ def get_full_class_path_from_instance(obj):
 
 
 def get_job_cls(cluster, spec_path=None):
+    """Dask Job class that submits async runner jobs with the given spec path."""
     parent_cls = cluster.job_cls
     assert spec_path is not None
 
@@ -142,7 +146,7 @@ class BaseRunner:
         - In async mode, the results will be written on async_result_dir.
     """
 
-    # TODO (Masao) Add detailed description on Runner/Provider in the document.
+    # TODO(Masao) Add detailed description on Runner/Provider in the document.
 
     def __init__(
         self,
@@ -152,6 +156,7 @@ class BaseRunner:
         async_specs_dir: str | Path = "./_async_specs",
         async_result_dir: str | Path = "./_async_results",
     ):
+        """Initialize BaseRunner object."""
         self.provider = provider
         self.async_mode = async_mode
         self.async_specs_dir = Path(async_specs_dir).resolve()

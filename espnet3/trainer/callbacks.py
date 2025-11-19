@@ -1,3 +1,5 @@
+"""Callbacks for ESPnet3 trainer."""
+
 import logging
 from pathlib import Path
 from typing import List, Tuple, Union
@@ -14,9 +16,7 @@ from typeguard import typechecked
 
 @typechecked
 class AverageCheckpointsCallback(Callback):
-    """
-    A custom PyTorch Lightning callback that performs weight averaging over the top-K
-    checkpoints (according to specified metrics) at the end of training.
+    """A custom callback for weight averaging over the top-K checkpoints.
 
     This can be useful to smooth out fluctuations in weights across the best-performing
     models and can lead to improved generalization performance at inference time.
@@ -52,10 +52,12 @@ class AverageCheckpointsCallback(Callback):
     """
 
     def __init__(self, output_dir, best_ckpt_callbacks):
+        """Initialize AverageCheckpointsCallback object."""
         self.output_dir = output_dir
         self.best_ckpt_callbacks = best_ckpt_callbacks
 
     def on_validation_end(self, trainer, pl_module):
+        """At the end of validation, average the top-K checkpoints and save."""
         if trainer.is_global_zero:
             for ckpt_callback in self.best_ckpt_callbacks:
                 checkpoints = list(ckpt_callback.best_k_models.keys())
@@ -128,9 +130,7 @@ def get_default_callbacks(
         ("valid/loss", 3, "min")
     ],
 ) -> List[Callback]:
-    """
-    Returns a list of standard PyTorch Lightning callbacks tailored for most
-    training workflows.
+    """Return a list of callbacks tailored for most training workflows.
 
     Includes:
         - `ModelCheckpoint` for saving the last model checkpoint (`save_last`)

@@ -1,4 +1,5 @@
-# env_provider.py
+"""Base interface for environment providers in ESPnet3 runners."""
+
 from typing import Any, Callable, Dict
 
 from omegaconf import DictConfig
@@ -27,9 +28,10 @@ class EnvironmentProvider:
           the worker setup function so each worker constructs its own copy.
     """
 
-    # TODO (Masao) Add detailed description on Runner/Provider in the document.
+    # TODO(Masao) Add detailed description on Runner/Provider in the document.
 
     def __init__(self, config: DictConfig):
+        """Initialize EnvironmentProvider object."""
         self.config = config
 
     def build_env_local(self) -> Dict[str, Any]:

@@ -1,4 +1,5 @@
-# inference_provider.py
+"""InferenceProvider for dataset/model inference setup."""
+
 from typing import Any, Callable, Dict
 
 from omegaconf import DictConfig
@@ -32,9 +33,10 @@ class InferenceProvider(EnvironmentProvider):
           intended.
     """
 
-    # TODO (Masao) Add detailed description on Runner/Provider in the document.
+    # TODO(Masao) Add detailed description on Runner/Provider in the document.
 
     def __init__(self, config: DictConfig, *, params: Dict[str, Any] | None = None):
+        """Initialize InferenceProvider object."""
         super().__init__(config)
         self.params = params or {}
         self.config.update(self.params)

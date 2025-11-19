@@ -1,3 +1,5 @@
+"""Dataset classes for ESPnet3."""
+
 import copy
 from abc import ABC
 from typing import Any, Callable, List, Tuple
@@ -6,8 +8,7 @@ from torch.utils.data.dataset import Dataset
 
 
 class CombinedDataset:
-    """
-    Combines multiple datasets into a single unified dataset-like interface.
+    """Combines multiple datasets into a single unified dataset-like interface.
 
     This class supports seamless access to multiple datasets as if they were one.
     Each dataset can be paired with a transform and a global preprocessor, which are
@@ -62,6 +63,7 @@ class CombinedDataset:
         transforms: List[Tuple[Callable, Callable]],
         use_espnet_preprocessor: bool = False,
     ):
+        """Initialize CombinedDataset object."""
         self.datasets = datasets
         self.transforms = transforms
         self.lengths = [len(ds) for ds in datasets]
@@ -110,16 +112,20 @@ class CombinedDataset:
 
     @property
     def use_espnet_collator(self):
+        """Get the flag indicating whether to use ESPnet collator."""
         return self._use_espnet_collator
 
     @use_espnet_collator.setter
     def use_espnet_collator(self, value: bool):
+        """Set the flag indicating whether to use ESPnet collator."""
         self._use_espnet_collator = value
 
     def __len__(self):
+        """Return the total number of samples in the combined dataset."""
         return self.cumulative_lengths[-1] if self.cumulative_lengths else 0
 
     def __getitem__(self, idx):
+        """Retrieve and process a sample by index."""
         if isinstance(idx, str):
             try:
                 idx = int(idx)
@@ -154,8 +160,7 @@ class CombinedDataset:
         raise IndexError("Index out of range in CombinedDataset")
 
     def get_text(self, idx):
-        """
-        Retrieve the target text string for a given index.
+        """Retrieve the target text string for a given index.
 
         This method delegates to the underlying dataset's `get_text(idx)` method.
         It is typically used for extracting text sequences for purposes such as
@@ -179,8 +184,7 @@ class CombinedDataset:
                 return self.datasets[i].get_text(ds_idx)
 
     def shard(self, shard_idx: int):
-        """
-        Return a sharded version of the combined dataset.
+        """Return a sharded version of the combined dataset.
 
         This is used when handling large datasets that are split into shards
         for efficiency and distributed processing (ESPnet multiple-iterator mode).
@@ -252,6 +256,7 @@ class DatasetWithTransform:
     """
 
     def __init__(self, dataset, transform, preprocessor, use_espnet_preprocessor=False):
+        """Initialize DatasetWithTransform."""
         assert callable(transform), "transform must be callable."
         assert callable(preprocessor), "preprocessor must be callable."
         self.dataset = dataset
@@ -260,9 +265,11 @@ class DatasetWithTransform:
         self.use_espnet_preprocessor = use_espnet_preprocessor
 
     def __len__(self):
+        """Return the total number of samples in the dataset."""
         return len(self.dataset)
 
     def __getitem__(self, idx):
+        """Retrieve and process a sample by index."""
         sample = self.dataset[idx]
         transformed = self.transform(sample)  # apply transform
         if self.use_espnet_preprocessor:
@@ -272,12 +279,12 @@ class DatasetWithTransform:
         return transformed
 
     def __call__(self, idx):
+        """Alias for __getitem__ to allow callable access."""
         return self.__getitem__(idx)
 
 
 class ShardedDataset(ABC, Dataset):
-    """
-    Abstract base class for datasets that support sharding.
+    """Abstract base class for datasets that support sharding.
 
     This interface is used in ESPnet's multiple-iterator mode, where datasets are split
     into shards for parallel or distributed data loading. Any dataset subclassing

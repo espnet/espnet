@@ -1,3 +1,5 @@
+"""Custom `load_line` resolver and `defaults`-based config loader."""
+
 import logging
 from pathlib import Path
 
@@ -5,8 +7,7 @@ from omegaconf import DictConfig, ListConfig, OmegaConf
 
 
 def load_line(path):
-    """
-    Load lines from a text file and return as a list of strings.
+    """Load lines from a text file and return as a list of strings.
 
     This function is used as a custom resolver in OmegaConf,
     allowing YAML files to reference external text line files
@@ -40,10 +41,6 @@ for name, resolver in OMEGACONF_ESPNET3_RESOLVER.items():
 
 
 def _process_dict_config_entry(entry: DictConfig, base_path: Path) -> list:
-    """
-    Process a dictionary-style entry in the `defaults` list and return a list
-    of partial configs to be merged.
-    """
     results = []
     for key, val in entry.items():
         # Skip null entries (can be used for disabling config entries)
@@ -59,9 +56,7 @@ def _process_dict_config_entry(entry: DictConfig, base_path: Path) -> list:
 
 
 def load_config_with_defaults(path: str) -> OmegaConf:
-    """
-    Load an OmegaConf YAML config file with support for recursive `_self_` merging
-    based on Hydra-style `defaults` lists.
+    """Load an YAML config with recursive `_self_` merging via Hydra-style `defaults`.
 
     This function recursively loads and merges dependent YAML files specified
     in the `defaults` key of the given config. It mimics Hydra’s composition mechanism

@@ -1,5 +1,4 @@
-# ESPnet-EZ Task class
-# This class is a wrapper for Task classes to support custom datasets.
+"""ESPnet-3 Task class."""
 import sys
 from argparse import Namespace
 from pathlib import Path
@@ -14,6 +13,7 @@ from espnet2.train.abs_espnet_model import AbsESPnetModel
 
 
 def get_task_class(task_path: str):
+    """Get the ESPnet-2 Task class from the given task path."""
     try:
         ez_task = get_class(task_path)
     except Exception as e:
@@ -23,6 +23,7 @@ def get_task_class(task_path: str):
 
 @typechecked
 def get_espnet_model(task: str, config: Union[Dict, DictConfig]) -> AbsESPnetModel:
+    """Build and return an ESPnet model from the given task and config."""
     ez_task = get_task_class(task)
 
     # workaround for calling get_default_config
@@ -45,6 +46,7 @@ def get_espnet_model(task: str, config: Union[Dict, DictConfig]) -> AbsESPnetMod
 def save_espnet_config(
     task: str, config: Union[Dict, DictConfig], output_dir: str
 ) -> None:
+    """Save the ESPnet config used for training to the output directory."""
     ez_task = get_task_class(task)
 
     # workaround for calling get_default_config
