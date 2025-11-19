@@ -10,7 +10,6 @@ set -o pipefail
     --asr_config conf/train_asr_conformer.yaml \
     --lm_config conf/train_lm_transformer.yaml \
     --inference_config conf/decode_asr.yaml \
-    --stage 2 \
     --train_set train \
     --valid_set val \
     --test_sets "test" \

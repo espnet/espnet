@@ -60,17 +60,9 @@ kosp2e/asr1/
 └── asr.sh
 ```
 
-### Step 2. Prepare data
-
-Run the setup script to preprocess the dataset:
-
-```
-python setup_data.py
-```
-
 ---
 
-# 3. Training
+# 2. Training
 
 To start ASR training:
 
@@ -82,7 +74,7 @@ This script runs the standard ESPnet2 training pipeline with the Conformer model
 
 ---
 
-# 4. Results
+# 3. Results
 
 Environment
 * Date: Mon Nov 10 20:35:20 UTC 2025
