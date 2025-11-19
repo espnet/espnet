@@ -146,6 +146,7 @@ doc = [
   "myst-parser",
   "sphinx-argparse>=0.2.5",
   "sphinx-markdown-builder",
+  "sphinx-markdown-tables"
 ]
 
 all = [
