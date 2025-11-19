@@ -70,7 +70,7 @@ parallel_gpu:
 ```
 
 ```python
-from espnet3.parallel import get_client
+from espnet3.parallel.parallel import get_client
 
 # Submit 4 jobs, each has 16 cpus and 4 parallel jobs.
 # i.e. each worker will use 4 cpus.
