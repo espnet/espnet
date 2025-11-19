@@ -7,8 +7,14 @@ from collections import defaultdict
 
 def main():
     parser = argparse.ArgumentParser(description="Prepare kosp2e data for ESPnet.")
-    parser.add_argument("--kosp2e_root", type=Path, required=True, help="Path to the root of the kosp2e dataset, containing wavs/ and downloads/metadata/.")
-    parser.add_argument("--output_dir", type=Path, required=True, help="Path to the output data directory.")
+    parser.add_argument("--kosp2e_root",
+                        type=Path,
+                        required=True,
+                        help="Path to the root of the kosp2e dataset, containing wavs/ and downloads/metadata/.")
+    parser.add_argument("--output_dir",
+                        type=Path,
+                        required=True,
+                        help="Path to the output data directory.")
     args = parser.parse_args()
 
     data_types = ['covid', 'kss', 'stylekqc', 'zeroth']
@@ -55,7 +61,8 @@ def main():
             if split is None:
                 continue
 
-            # IMPORTANT: Replace 'speaker_id' with the actual column name for speaker ID in your metadata
+            # IMPORTANT: Replace 'speaker_id' with the actual column name
+            # for speaker ID in your metadata.
             # Using utt_id as spk_id is generally incorrect for multi-speaker data.
             row = meta_df.loc[utt_id]
             spk_id = row.get('speaker_id', utt_id) # Fallback to utt_id if no speaker_id column
