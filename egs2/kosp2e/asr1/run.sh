@@ -6,8 +6,6 @@ set -u
 set -o pipefail
 
 ./asr.sh \
-    --nj 8 \
-    --inference_nj 8 \
     --lang ko \
     --asr_config conf/train_asr_conformer.yaml \
     --lm_config conf/train_lm_transformer.yaml \
@@ -17,7 +15,5 @@ set -o pipefail
     --valid_set val \
     --test_sets "test" \
     --nbpe 2000 \
-    --ngpu 4 \
-    --batch_size 1 \
     --gpu_inference true \
     --lm_train_text "data/train/text" "$@" \
