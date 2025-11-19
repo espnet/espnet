@@ -37,4 +37,3 @@ python3 local/setup_data.py \
     --output_dir "${output_dir}"
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
-
