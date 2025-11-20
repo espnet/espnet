@@ -13,7 +13,8 @@ def main():
         "--kosp2e_root",
         type=Path,
         required=True,
-        help="Path to the root of the kosp2e dataset, containing wavs/ and downloads/metadata/.",
+        help="Path to the root of the kosp2e dataset, \
+        containing wavs/ and downloads/metadata/.",
     )
     parser.add_argument(
         "--output_dir",
