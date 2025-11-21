@@ -1,0 +1,38 @@
+# ============================================
+#  Marathi ASR Decoding (with LM Fusion)
+# ============================================
+
+# ---------- Beam search ----------
+batch_size: 16
+beam_size: 20
+penalty: 0.0
+maxlenratio: 0.0
+minlenratio: 0.0
+
+# ---------- Scoring weights ----------
+ctc_weight: 0.5        # 0.0 → pure attention; 1.0 → pure CTC
+lm_weight: 0.4         # weight for neural LM (LSTM Transformer LM)
+ngram_weight: 0.2      # weight for 3-gram KenLM fusion
+
+# ---------- Search options ----------
+# If you want to limit the number of hypotheses kept at each step
+# nbest: 1 means only output the best hypothesis.
+nbest: 1
+
+# ---------- Optional tweaks ----------
+# temperature: 1.0
+# decoding_mode: full  # (other options: ctc_greedy, ctc_prefix)
+# length_penalty: 0.0  # adjust if long utterances get cut off
+
+# ---------- Streaming / HuggingFace decoder (disabled) ----------
+streaming: false
+hugging_face_decoder: false
+hugging_face_decoder_conf: {}
+
+# ---------- Notes ----------
+# - 'lm_weight' and 'ngram_weight' jointly balance neural + statistical LMs.
+# - Typical ratios:
+#       ctc_weight: 0.3–0.5
+#       lm_weight:  0.3–0.5
+#       ngram_weight: 0.1–0.3
+# - Tune them on dev set for best WER/CER.
