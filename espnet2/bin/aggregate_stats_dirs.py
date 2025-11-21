@@ -7,7 +7,7 @@ from typing import Iterable, Union
 
 import numpy as np
 
-from espnet.utils.cli_utils import get_commandline_args
+from espnet2.legacy.utils.cli_utils import get_commandline_args
 
 
 def aggregate_stats_dirs(

@@ -11,7 +11,7 @@ import logging
 
 import torch
 
-from espnet.nets.pytorch_backend.nets_utils import pad_list
+from espnet2.legacy.nets.pytorch_backend.nets_utils import pad_list
 
 
 class LengthRegulator(torch.nn.Module):

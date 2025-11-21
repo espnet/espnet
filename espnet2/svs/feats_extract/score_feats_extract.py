@@ -3,8 +3,8 @@ from typing import Any, Dict, Optional, Tuple, Union
 import torch
 from typeguard import typechecked
 
+from espnet2.legacy.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 
 
 def ListsToTensor(xs):

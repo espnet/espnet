@@ -18,6 +18,7 @@ from espnet2.enh.loss.criterions.time_domain import SISNRLoss
 from espnet2.enh.loss.wrappers.pit_solver import PITSolver
 from espnet2.fileio.npy_scp import NpyScpWriter
 from espnet2.fileio.sound_scp import SoundScpWriter
+from espnet2.legacy.utils.cli_utils import get_commandline_args
 from espnet2.tasks.diar import DiarizationTask
 from espnet2.tasks.enh_s2t import EnhS2TTask
 from espnet2.torch_utils.device_funcs import to_device
@@ -30,7 +31,6 @@ from espnet2.utils.types import (
     str2triple_str,
     str_or_none,
 )
-from espnet.utils.cli_utils import get_commandline_args
 
 
 class DiarizeSpeech:

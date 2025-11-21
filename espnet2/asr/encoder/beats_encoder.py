@@ -38,7 +38,7 @@ except ImportError:
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.specaug.specaug import SpecAug
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask, roll_tensor
+from espnet2.legacy.nets.pytorch_backend.nets_utils import make_pad_mask, roll_tensor
 
 if V(torch.__version__) >= V("1.6.0"):
     from torch.cuda.amp import autocast

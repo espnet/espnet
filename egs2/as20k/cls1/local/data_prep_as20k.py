@@ -90,9 +90,11 @@ for dataset, name in [(train_set, "train"), (val_set, "val"), (eval_set, "eval")
     os.makedirs(os.path.dirname(wav_scp_write_path), exist_ok=True)
     os.makedirs(os.path.dirname(utt2spk_write_path), exist_ok=True)
 
-    with open(text_write_path, "w") as text_f, open(
-        wav_scp_write_path, "w"
-    ) as wav_f, open(utt2spk_write_path, "w") as utt2spk_f:
+    with (
+        open(text_write_path, "w") as text_f,
+        open(wav_scp_write_path, "w") as wav_f,
+        open(utt2spk_write_path, "w") as utt2spk_f,
+    ):
         for uttid, item in enumerate(tqdm(dataset, desc=f"Processing {name} set")):
             wav_directory = "balance_wav" if name == "train" else "eval_wav"
             wav_path = os.path.join(

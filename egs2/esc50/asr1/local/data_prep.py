@@ -28,9 +28,11 @@ split_df["train"], split_df["valid"] = train_test_split(
 )
 dir_dict = split_df
 for x in dir_dict:
-    with open(os.path.join("data", x, "wav.scp"), "w") as wav_scp_f, open(
-        os.path.join("data", x, "utt2spk"), "w"
-    ) as utt2spk_f, open(os.path.join("data", x, "text"), "w") as text_f:
+    with (
+        open(os.path.join("data", x, "wav.scp"), "w") as wav_scp_f,
+        open(os.path.join("data", x, "utt2spk"), "w") as utt2spk_f,
+        open(os.path.join("data", x, "text"), "w") as text_f,
+    ):
         filename = dir_dict[x]["filename"].values.tolist()
         label = dir_dict[x]["target"].values.tolist()
         for line_count in range(len(filename)):

@@ -17,9 +17,9 @@ from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.diar.attractor.abs_attractor import AbsAttractor
 from espnet2.diar.decoder.abs_decoder import AbsDecoder
 from espnet2.layers.abs_normalize import AbsNormalize
+from espnet2.legacy.nets.pytorch_backend.nets_utils import to_device
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
-from espnet.nets.pytorch_backend.nets_utils import to_device
 
 if V(torch.__version__) >= V("1.6.0"):
     from torch.cuda.amp import autocast

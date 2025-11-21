@@ -26,7 +26,7 @@ ${CXX:-g++} -v
         pyopenjtalk.done py3mmseg.done s3prl.done transformers.done \
         phonemizer.done fairseq.done k2.done longformer.done \
         parallel-wavegan.done muskits.done lora.done sph2pipe \
-        torcheval.done whisper.done
+        versa.done torcheval.done whisper.done
     rm -rf kaldi
 )
 . tools/activate_python.sh
@@ -51,8 +51,7 @@ python3 -m pip uninstall -y typing
 python3 -m pip install "hacking>=2.0.0" "flake8>=3.7.8"
 
 # install espnet
-python3 -m pip install -e ".[test]"
-python3 -m pip install -e ".[doc]"
+python3 -m pip install -e ".[test,doc,all]"
 
 # log
 python3 -m pip freeze

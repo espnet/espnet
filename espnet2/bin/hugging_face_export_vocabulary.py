@@ -7,7 +7,7 @@ from typing import List
 
 from typeguard import typechecked
 
-from espnet.utils.cli_utils import get_commandline_args
+from espnet2.legacy.utils.cli_utils import get_commandline_args
 
 try:
     from transformers import AutoTokenizer

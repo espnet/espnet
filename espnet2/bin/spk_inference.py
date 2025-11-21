@@ -10,12 +10,12 @@ import torch
 from typeguard import typechecked
 
 from espnet2.fileio.npy_scp import NpyScpWriter
+from espnet2.legacy.utils.cli_utils import get_commandline_args
 from espnet2.tasks.spk import SpeakerTask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
 from espnet2.utils.types import str2triple_str, str_or_none
-from espnet.utils.cli_utils import get_commandline_args
 
 
 class Speech2Embedding:

@@ -19,6 +19,7 @@ from typeguard import typechecked
 
 from espnet2.fileio.npy_scp import NpyScpWriter
 from espnet2.gan_svs.vits import VITS
+from espnet2.legacy.utils.cli_utils import get_commandline_args
 from espnet2.svs.singing_tacotron.singing_tacotron import singing_tacotron
 from espnet2.tasks.gan_svs import GANSVSTask
 from espnet2.tasks.svs import SVSTask
@@ -27,7 +28,6 @@ from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.tts.utils import DurationCalculator
 from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
-from espnet.utils.cli_utils import get_commandline_args
 
 
 class SingingGenerate:
@@ -504,20 +504,19 @@ def inference(
     import matplotlib.pyplot as plt
     from matplotlib.ticker import MaxNLocator
 
-    with NpyScpWriter(
-        output_dir / "norm",
-        output_dir / "norm/feats.scp",
-    ) as norm_writer, NpyScpWriter(
-        output_dir / "denorm", output_dir / "denorm/feats.scp"
-    ) as denorm_writer, open(
-        output_dir / "speech_shape/speech_shape", "w"
-    ) as shape_writer, open(
-        output_dir / "durations/durations", "w"
-    ) as duration_writer, open(
-        output_dir / "focus_rates/focus_rates", "w"
-    ) as focus_rate_writer, open(
-        output_dir / "wav/wav.scp", "w"
-    ) as wavscp_writer:
+    with (
+        NpyScpWriter(
+            output_dir / "norm",
+            output_dir / "norm/feats.scp",
+        ) as norm_writer,
+        NpyScpWriter(
+            output_dir / "denorm", output_dir / "denorm/feats.scp"
+        ) as denorm_writer,
+        open(output_dir / "speech_shape/speech_shape", "w") as shape_writer,
+        open(output_dir / "durations/durations", "w") as duration_writer,
+        open(output_dir / "focus_rates/focus_rates", "w") as focus_rate_writer,
+        open(output_dir / "wav/wav.scp", "w") as wavscp_writer,
+    ):
         for idx, (keys, batch) in enumerate(loader, 1):
             assert isinstance(batch, dict), type(batch)
             assert all(isinstance(s, str) for s in keys), keys

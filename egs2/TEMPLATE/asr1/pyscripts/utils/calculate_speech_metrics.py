@@ -14,8 +14,8 @@ from espnet2.enh.encoder.stft_encoder import STFTEncoder
 from espnet2.enh.espnet_model import ESPnetEnhancementModel
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.fileio.sound_scp import SoundScpReader
+from espnet2.legacy.utils.cli_utils import get_commandline_args
 from espnet2.utils import config_argparse
-from espnet.utils.cli_utils import get_commandline_args
 
 
 @typechecked

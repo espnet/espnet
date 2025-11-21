@@ -10,9 +10,11 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-with open(f"{args.data_dir}/text", "r", encoding="utf-8") as in_file, open(
-    f"{args.data_dir}/lid_utt", "w", encoding="utf-8"
-) as utt_file, open(f"{args.data_dir}/lid_tok", "w", encoding="utf-8") as tok_file:
+with (
+    open(f"{args.data_dir}/text", "r", encoding="utf-8") as in_file,
+    open(f"{args.data_dir}/lid_utt", "w", encoding="utf-8") as utt_file,
+    open(f"{args.data_dir}/lid_tok", "w", encoding="utf-8") as tok_file,
+):
     lines = in_file.readlines()
     for line in lines:
         utt_id = line.split()[0]

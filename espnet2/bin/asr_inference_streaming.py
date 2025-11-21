@@ -17,6 +17,13 @@ from espnet2.asr.encoder.contextual_block_transformer_encoder import (  # noqa: 
     ContextualBlockTransformerEncoder,
 )
 from espnet2.fileio.datadir_writer import DatadirWriter
+from espnet2.legacy.nets.batch_beam_search_online import BatchBeamSearchOnline
+from espnet2.legacy.nets.beam_search import Hypothesis
+from espnet2.legacy.nets.pytorch_backend.transformer.subsampling import TooShortUttError
+from espnet2.legacy.nets.scorer_interface import BatchScorerInterface
+from espnet2.legacy.nets.scorers.ctc import CTCPrefixScorer
+from espnet2.legacy.nets.scorers.length_bonus import LengthBonus
+from espnet2.legacy.utils.cli_utils import get_commandline_args
 from espnet2.tasks.asr import ASRTask
 from espnet2.tasks.lm import LMTask
 from espnet2.text.build_tokenizer import build_tokenizer
@@ -25,13 +32,6 @@ from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
-from espnet.nets.batch_beam_search_online import BatchBeamSearchOnline
-from espnet.nets.beam_search import Hypothesis
-from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
-from espnet.nets.scorer_interface import BatchScorerInterface
-from espnet.nets.scorers.ctc import CTCPrefixScorer
-from espnet.nets.scorers.length_bonus import LengthBonus
-from espnet.utils.cli_utils import get_commandline_args
 
 
 class Speech2TextStreaming:

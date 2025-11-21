@@ -43,28 +43,18 @@ def test_extract_embed_lid_basic_logic(tmp_path):
     mock_args.output_dir = str(tmp_path)
     mock_args.save_tsne_plot = False
 
-    with patch(
-        "espnet2.bin.lid_inference.build_dataclass"
-    ) as mock_build_dataclass, patch(
-        "espnet2.bin.lid_inference.LIDTask"
-    ) as mock_lid_task, patch(
-        "espnet2.bin.lid_inference.set_all_random_seed"
-    ), patch(
-        "espnet2.bin.lid_inference.model_summary"
-    ), patch(
-        "builtins.open", mock_open(read_data="eng 0\nfra 1\n")
-    ), patch(
-        "espnet2.bin.lid_inference.Reporter"
-    ) as mock_reporter, patch(
-        "espnet2.bin.lid_inference.glob"
-    ) as mock_glob, patch(
-        "espnet2.bin.lid_inference.np.load"
-    ), patch(
-        "espnet2.bin.lid_inference.np.savez"
-    ), patch(
-        "espnet2.bin.lid_inference.os.remove"
-    ), patch(
-        "espnet2.bin.lid_inference.os.path.exists", return_value=False
+    with (
+        patch("espnet2.bin.lid_inference.build_dataclass") as mock_build_dataclass,
+        patch("espnet2.bin.lid_inference.LIDTask") as mock_lid_task,
+        patch("espnet2.bin.lid_inference.set_all_random_seed"),
+        patch("espnet2.bin.lid_inference.model_summary"),
+        patch("builtins.open", mock_open(read_data="eng 0\nfra 1\n")),
+        patch("espnet2.bin.lid_inference.Reporter") as mock_reporter,
+        patch("espnet2.bin.lid_inference.glob") as mock_glob,
+        patch("espnet2.bin.lid_inference.np.load"),
+        patch("espnet2.bin.lid_inference.np.savez"),
+        patch("espnet2.bin.lid_inference.os.remove"),
+        patch("espnet2.bin.lid_inference.os.path.exists", return_value=False),
     ):
 
         mock_distributed_option = MagicMock()

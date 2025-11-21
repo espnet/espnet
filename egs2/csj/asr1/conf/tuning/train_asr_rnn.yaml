@@ -35,7 +35,7 @@ optim_conf:
     rho: 0.95
     eps: 1.0e-08
     weight_decay: 0
-init: chainer
+init: normal
 max_epoch: 8
 patience: 3
 

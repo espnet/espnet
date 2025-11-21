@@ -9,12 +9,14 @@ import torch
 import torch.nn.functional as F
 from typeguard import typechecked
 
+from espnet2.legacy.nets.pytorch_backend.nets_utils import make_non_pad_mask
+from espnet2.legacy.nets.pytorch_backend.tacotron2.decoder import Postnet
+from espnet2.legacy.nets.pytorch_backend.tacotron2.encoder import (
+    Encoder as EncoderPrenet,
+)
 from espnet2.svs.abs_svs import AbsSVS
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.torch_utils.initialize import initialize
-from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
-from espnet.nets.pytorch_backend.tacotron2.decoder import Postnet
-from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder as EncoderPrenet
 
 
 class NaiveRNNLoss(torch.nn.Module):

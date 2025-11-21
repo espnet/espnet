@@ -1,0 +1,70 @@
+recipedir: .
+num_device: 1
+seed: 2024
+task:
+
+parallel:
+  env: local
+  n_workers: 1
+
+
+optim:
+  _target_: torch.optim.Adam
+  lr: 0.001
+  weight_decay: 0.000001
+
+scheduler:
+  _target_: espnet2.schedulers.warmup_lr.WarmupLR
+  warmup_steps: 15000
+
+
+dataloader:
+  collate_fn:
+    _target_: espnet2.train.collate_fn.CommonCollateFn
+    int_pad_value: -1
+  train:
+    iter_factory:
+      _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
+      shuffle: true
+      collate_fn: ${dataloader.collate_fn}
+      batches:
+        type: numel
+        shape_files:
+          - ${statsdir}/train/feats_shape
+        batch_size: 4
+        batch_bins: 4000000
+        min_batch_size: ${num_device}
+  valid:
+    iter_factory:
+      _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
+      shuffle: false
+      collate_fn: ${dataloader.collate_fn}
+      batches:
+        type: numel
+        shape_files:
+          - ${statsdir}/valid/feats_shape
+        batch_size: 4
+        batch_bins: ${dataloader.train.iter_factory.batches.batch_bins}
+        min_batch_size: ${num_device}
+
+best_model_criterion:
+  - - valid/loss
+    - 3
+    - min
+
+trainer:
+  accelerator: gpu
+  devices: ${num_device}
+  num_nodes: 1
+  accumulate_grad_batches: 1
+  check_val_every_n_epoch: 1
+  gradient_clip_val: 1.0
+  log_every_n_steps: 100
+  max_epochs: 10
+
+  logger:
+    - _target_: lightning.pytorch.loggers.TensorBoardLogger
+      save_dir: ${expdir}/tensorboard
+      name: tb_logger
+
+  strategy: auto

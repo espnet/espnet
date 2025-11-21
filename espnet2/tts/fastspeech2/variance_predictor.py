@@ -8,7 +8,7 @@
 import torch
 from typeguard import typechecked
 
-from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
+from espnet2.legacy.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 
 
 class VariancePredictor(torch.nn.Module):

@@ -9,8 +9,8 @@ import sys
 import uuid
 from pathlib import Path
 
+from espnet2.legacy.utils.cli_utils import get_commandline_args
 from espnet2.utils.types import str2bool, str_or_none
-from espnet.utils.cli_utils import get_commandline_args
 
 
 def get_parser():

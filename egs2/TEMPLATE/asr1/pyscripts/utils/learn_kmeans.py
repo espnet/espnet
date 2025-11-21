@@ -16,7 +16,7 @@ import joblib
 import numpy as np
 from sklearn.cluster import MiniBatchKMeans
 
-from espnet.utils.cli_readers import file_reader_helper
+from espnet2.legacy.utils.cli_readers import file_reader_helper
 
 logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",

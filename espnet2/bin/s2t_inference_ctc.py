@@ -14,6 +14,15 @@ import torch.quantization
 from typeguard import typechecked
 
 from espnet2.fileio.datadir_writer import DatadirWriter
+from espnet2.legacy.nets.batch_beam_search import BatchBeamSearch
+from espnet2.legacy.nets.batch_beam_search_online_sim import BatchBeamSearchOnlineSim
+from espnet2.legacy.nets.beam_search import BeamSearch, Hypothesis
+from espnet2.legacy.nets.pytorch_backend.nets_utils import pad_list
+from espnet2.legacy.nets.pytorch_backend.transformer.subsampling import TooShortUttError
+from espnet2.legacy.nets.scorer_interface import BatchScorerInterface
+from espnet2.legacy.nets.scorers.ctc import CTCPrefixScorer
+from espnet2.legacy.nets.scorers.length_bonus import LengthBonus
+from espnet2.legacy.utils.cli_utils import get_commandline_args
 from espnet2.tasks.lm import LMTask
 from espnet2.tasks.s2t_ctc import S2TTask
 from espnet2.text.build_tokenizer import build_tokenizer
@@ -23,15 +32,6 @@ from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
-from espnet.nets.batch_beam_search import BatchBeamSearch
-from espnet.nets.batch_beam_search_online_sim import BatchBeamSearchOnlineSim
-from espnet.nets.beam_search import BeamSearch, Hypothesis
-from espnet.nets.pytorch_backend.nets_utils import pad_list
-from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
-from espnet.nets.scorer_interface import BatchScorerInterface
-from espnet.nets.scorers.ctc import CTCPrefixScorer
-from espnet.nets.scorers.length_bonus import LengthBonus
-from espnet.utils.cli_utils import get_commandline_args
 
 # Alias for typing
 ListOfHypothesis = List[
@@ -126,11 +126,11 @@ class Speech2Text:
         # 3. Build ngram model
         if ngram_file is not None:
             if ngram_scorer == "full":
-                from espnet.nets.scorers.ngram import NgramFullScorer
+                from espnet2.legacy.nets.scorers.ngram import NgramFullScorer
 
                 ngram = NgramFullScorer(ngram_file, token_list)
             else:
-                from espnet.nets.scorers.ngram import NgramPartScorer
+                from espnet2.legacy.nets.scorers.ngram import NgramPartScorer
 
                 ngram = NgramPartScorer(ngram_file, token_list)
             scorers["ngram"] = ngram

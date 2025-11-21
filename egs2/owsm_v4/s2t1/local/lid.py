@@ -16,7 +16,7 @@ import torch
 from speechbrain.inference.classifiers import EncoderClassifier
 from tqdm import tqdm
 
-from espnet.nets.pytorch_backend.nets_utils import pad_list
+from espnet2.legacy.nets.pytorch_backend.nets_utils import pad_list
 
 logging.basicConfig()
 logging.getLogger().setLevel(level=logging.ERROR)

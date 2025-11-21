@@ -8,9 +8,9 @@ from typing import Optional
 
 from typeguard import typechecked
 
+from espnet2.legacy.utils.cli_utils import get_commandline_args
 from espnet2.text.whisper_tokenizer import LANGUAGES_CODE_MAPPING
 from espnet2.utils.types import str2bool
-from espnet.utils.cli_utils import get_commandline_args
 
 dirname = os.path.dirname(__file__)
 

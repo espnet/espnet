@@ -1,0 +1,161 @@
+recipedir: .
+num_device: 1
+expdir: ${recipedir}/exp/train_ctc
+statsdir:  ${recipedir}/exp/stats
+vocab_size: 6500
+seed: 2024
+task: espnet2.tasks.asr.ASRTask
+
+# load default config
+defaults:
+  - ./default.yaml
+
+dataset:
+  _target_: espnet3.data.DataOrganizer
+  train:
+    - name: train-clean-100
+      dataset:
+        _target_: egs3.librispeech_100.asr1.dataset.LibriSpeechDataset
+        split: train-clean-100
+  valid:
+    - name: dev-clean
+      dataset:
+        _target_: egs3.librispeech_100.asr1.dataset.LibriSpeechDataset
+        split: dev-clean
+    - name: dev-other
+      dataset:
+        _target_: egs3.librispeech_100.asr1.dataset.LibriSpeechDataset
+        split: dev-other
+  test:
+    - name: test-clean
+      dataset:
+        _target_: egs3.librispeech_100.asr1.dataset.LibriSpeechDataset
+        split: test-clean
+    - name: test-other
+      dataset:
+        _target_: egs3.librispeech_100.asr1.dataset.LibriSpeechDataset
+        split: test-other
+
+  preprocessor:
+    _target_: espnet2.train.preprocessor.CommonPreprocessor
+    train: true
+    token_type: bpe
+    token_list: ${recipedir}/sentencepiece_model/tokens.txt
+    bpemodel: ${recipedir}/sentencepiece_model/bpe.model
+    text_cleaner:
+
+
+parallel:
+  env: local
+  n_workers: 2
+
+
+model:
+  vocab_size: ${vocab_size}
+
+  # Please run with `--train_tokenizer` to get tokenizer model.
+  # Otherwise set your token list here.
+  token_list: ${load_line:'test_utils/espnet3/sentencepiece_model/tokens.txt'}
+
+  input_size:
+  encoder: e_branchformer
+  encoder_conf:
+    output_size: 256
+    attention_heads: 4
+    attention_layer_type: rel_selfattn
+    pos_enc_layer_type: rel_pos
+    rel_pos_type: latest
+    cgmlp_linear_units: 1024
+    cgmlp_conv_kernel: 31
+    use_linear_after_conv: false
+    gate_activation: identity
+    num_blocks: 12
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    attention_dropout_rate: 0.1
+    input_layer: conv2d
+    layer_drop_rate: 0.0
+    linear_units: 1024
+    positionwise_layer_type: linear
+    use_ffn: true
+    macaron_ffn: true
+    merge_conv_kernel: 31
+
+  normalize: global_mvn
+  normalize_conf:
+    stats_file: ${recipedir}/exp/stats/train/feats_stats.npz
+
+  model_conf:
+    ctc_weight: 1.0 # For CTC model
+    lsm_weight: 0.1
+    length_normalized_loss: false
+
+  frontend: default
+  frontend_conf:
+    n_fft: 512
+    win_length: 400
+    hop_length: 160
+
+  specaug: specaug
+  specaug_conf:
+    apply_time_warp: true
+    time_warp_window: 5
+    time_warp_mode: bicubic
+    apply_freq_mask: true
+    freq_mask_width_range:
+    - 0
+    - 27
+    num_freq_mask: 2
+    apply_time_mask: true
+    time_mask_width_ratio_range:
+    - 0.
+    - 0.05
+    num_time_mask: 5
+
+optim:
+  _target_: torch.optim.Adam
+  lr: 0.002
+  weight_decay: 0.000001
+
+scheduler:
+  _target_: espnet2.schedulers.warmup_lr.WarmupLR
+  warmup_steps: 15000
+
+dataloader:
+  train:
+    iter_factory:
+      num_workers: 8
+      batches:
+        type: numel
+        shape_files:
+          - ${statsdir}/train/feats_shape
+        batch_bins: 1500000
+  valid:
+    iter_factory:
+      num_workers: 8
+      batches:
+        type: numel
+        shape_files:
+          - ${statsdir}/valid/feats_shape
+
+trainer:
+  max_epochs: 70
+  precision: bf16-mixed
+  accumulate_grad_batches: 4
+  log_every_n_steps: 500
+
+  logger:
+    - _target_: lightning.pytorch.loggers.TensorBoardLogger
+      save_dir: ${expdir}/tensorboard
+      name: tb_logger
+
+    - _target_: lightning.pytorch.loggers.WandbLogger
+      project: ESPnet3 development
+      save_dir: ${expdir}/wandb
+      name: LS_100_GPU1
+
+  strategy: auto
+
+# If you want to resume training use the following config.
+# fit:
+#   ckpt_path: ${expdir}/last.ckpt
