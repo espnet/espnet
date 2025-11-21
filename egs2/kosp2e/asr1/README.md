@@ -9,6 +9,9 @@ This is the ESPnet2 recipe for the **KoSP2E (Korean Speech Perception and Produc
 The **KoSP2E dataset** is a large-scale Korean speech corpus designed for speech perception and production experiments.
 This recipe provides a full ASR pipeline using ESPnet2 with both Transformer and Conformer architectures.
 
+## Hugginface Model Link
+* https://huggingface.co/espnet/kosp2e-asr-ko
+
 ---
 
 ## 2. Dataset Preparation
