@@ -202,7 +202,6 @@ def kmeans(
 
 class EuclideanCodebook(nn.Module):
     """Codebook with Euclidean distance.
-
     Args:
         dim (int): Dimension.
         codebook_size (int): Codebook size.
@@ -379,7 +378,6 @@ class EuclideanCodebook(nn.Module):
 
 class VectorQuantization(nn.Module):
     """Vector quantization implementation.
-
     Currently supports only euclidean distance.
     Args:
         dim (int): Dimension
@@ -511,13 +509,16 @@ class ResidualVectorQuantization(nn.Module):
         )
         self.quantizer_dropout = kwargs.get("quantizer_dropout")
 
-    def forward(self, x, n_q: Optional[int] = None):
+    def forward(
+        self, x, n_q: Optional[int] = None, return_list: Optional[bool] = False
+    ):
         quantized_out = 0.0
         residual = x
 
         if not self.quantizer_dropout:
             all_losses = []
             all_indices = []
+            all_quantized_out = []
 
             n_q = n_q or len(self.layers)
 
@@ -525,6 +526,7 @@ class ResidualVectorQuantization(nn.Module):
                 quantized, indices, loss = layer(residual)
                 residual = residual - quantized.detach()
                 quantized_out = quantized_out + quantized
+                all_quantized_out.append(quantized)
 
                 all_indices.append(indices)
                 all_losses.append(loss)
@@ -540,6 +542,7 @@ class ResidualVectorQuantization(nn.Module):
             all_commit_losses = []
             all_quant_losses = []
             all_indices = []
+            all_quantized_out = []
 
             n_q = n_q or len(self.layers)
             if self.training:
@@ -557,6 +560,7 @@ class ResidualVectorQuantization(nn.Module):
                 residual = residual - quantized.detach()
                 quantized_out = quantized_out + quantized * mask[:, None, None]
 
+                all_quantized_out.append(quantized_out)
                 all_indices.append(indices)
                 all_commit_losses.append(commit_loss)
                 all_quant_losses.append(quant_loss)
@@ -569,6 +573,13 @@ class ResidualVectorQuantization(nn.Module):
             out_commit_losses, out_quant_losses, out_indices = map(
                 torch.stack, (all_commit_losses, all_quant_losses, all_indices)
             )
+            if return_list:
+                return (
+                    all_quantized_out,
+                    out_indices,
+                    out_commit_losses,
+                    out_quant_losses,
+                )
             return quantized_out, out_indices, out_commit_losses, out_quant_losses
 
     def encode(
