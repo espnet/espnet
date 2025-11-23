@@ -1,6 +1,7 @@
-import os  # noqa
 import glob
+import os  # noqa
 import re
+
 import configargparse
 
 ALL_HTML_TAGS = [
@@ -154,7 +155,7 @@ def get_parser():
 
 def replace_custom_tags(content):
     # Regex to find tags and their content
-    tag_pattern = re.compile(r'<(?!!--)([^>]+)>')
+    tag_pattern = re.compile(r"<(?!!--)([^>]+)>")
 
     def replace_tag(match):
         tag_name = match.group(1)
@@ -164,19 +165,17 @@ def replace_custom_tags(content):
             # in base64 format.
             return match.group(0)
 
-        if (
-            tag_name.split()[0] not in ALL_HTML_TAGS
-            or (
-                len(tag_name.split()) > 1 and "=" not in tag_name
-            )
+        if tag_name.split()[0] not in ALL_HTML_TAGS or (
+            len(tag_name.split()) > 1 and "=" not in tag_name
         ):
             return f"&lt;{tag_name}&gt;"
 
-        end_tag_pattern = re.compile(f'</{tag_name.split()[0]}>')
+        end_tag_pattern = re.compile(f"</{tag_name.split()[0]}>")
         end_tag_match = end_tag_pattern.search(content, match.end())
         if not end_tag_match:
             return f"&lt;{tag_name}&gt;"
         return match.group(0)
+
     return tag_pattern.sub(replace_tag, content)
 
 
@@ -191,24 +190,22 @@ def replace_string_tags(content):
             # This might occur with image tags, since they have image data
             # in base64 format.
             return match.group(0)
-        if (
-            tag_name.split()[0] not in ALL_HTML_TAGS
-            or (
-                len(tag_name.split()) > 1 and "=" not in tag_name
-            )
+        if tag_name.split()[0] not in ALL_HTML_TAGS or (
+            len(tag_name.split()) > 1 and "=" not in tag_name
         ):
             return f"'&lt;{tag_name}&gt;'"
 
-        end_tag_pattern = re.compile(f'</{tag_name.split()[0]}>')
+        end_tag_pattern = re.compile(f"</{tag_name.split()[0]}>")
         end_tag_match = end_tag_pattern.search(content, match.end())
         if not end_tag_match:
             return f"'&lt;{tag_name}&gt;'"
         return match.group(0)
+
     return tag_pattern.sub(replace_tag, content)
 
 
 def replace_language_tags(content):
-    for (label, lang) in LANGUAGE_TAG_SET:
+    for label, lang in LANGUAGE_TAG_SET:
         content = content.replace(f"```{label}", f"```{lang}")
 
     return content

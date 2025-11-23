@@ -1,1 +1,3 @@
-from .dump import *
+"""ESPnetez Data submodule."""
+
+from .dump import *  # noqa

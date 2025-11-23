@@ -99,6 +99,8 @@ or https://github.com/espnet/espnet/blob/master/egs2/README.md + `db.sh` if it's
 - [ ] large meta-information (e.g., the keyword list) for a corpus should be maintained elsewhere other than in the recipe itself
 - [ ] also recommend including results and pre-trained models with the recipe
 - Note that we recommend the users to use the latest `black` and `isort` formattings. However, these formattings are automatically performed by `pre-commit.ci` and are no longer a requirement.
+- Verify codestyle issues. You can run `utils/apply_code_fixes.py <folder>` to automatically fix the related issues
+(almost all of the issues).
 
 ## 2 Pull Request
 If your proposed feature or bugfix is ready, please open a Pull Request (PR) at https://github.com/espnet/espnet

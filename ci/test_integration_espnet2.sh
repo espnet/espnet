@@ -301,6 +301,16 @@ echo "==== [ESPnet2] SPK ==="
 rm -rf exp dump data
 cd "${cwd}"
 
+# [ESPnet2] test lid1 recipe
+cd ./egs2/mini_an4/lid1
+gen_dummy_coverage
+echo "==== [ESPnet2] LID ==="
+./run.sh --stage 1 --stop_stage 4 --python "${python}"
+./run.sh --stage 5 --stop_stage 8 --python "${python}"
+# Remove generated files in order to reduce the disk usage
+rm -rf exp dump data
+cd "${cwd}"
+
 # [ESPnet2] test s2t1 recipe
 cd ./egs2/mini_an4/s2t1
 gen_dummy_coverage
@@ -310,17 +320,33 @@ echo "==== [ESPnet2] S2T ==="
 rm -rf exp dump data
 cd "${cwd}"
 
-# [ESPnet2] test s2st1 recipe
-cd ./egs2/mini_an4/s2st1
-gen_dummy_coverage
-echo "==== [ESPnet2] S2ST ==="
-./run.sh --ngpu 0 --stage 1 --stop_stage 8 --use_discrete_unit false --s2st_config conf/s2st_spec_debug.yaml --python "${python}"
-if python3 -c "import s3prl" &> /dev/null; then
-    ./run.sh --ngpu 0 --stage 1 --stop_stage 8 --python "${python}" --use_discrete_unit true --s2st_config conf/train_s2st_discrete_unit_debug.yaml --clustering_num_threads 2 --feature_num_clusters 5
+pytorch_plus(){
+    python3 <<EOF
+from packaging.version import parse as L
+import torch
+if L(torch.__version__) >= L('$1'):
+    print("true")
+else:
+    print("false")
+EOF
+}
+
+if pytorch_plus 2.9.0; then
+    # TODO(Nelson): Remove this once s3prl supports torchaudio 2.9.0
+    echo "WARN: Currently, S3prl does not support pytorch/torchaudio 2.9.0. CI test related to s3prl has been disabled."
+else
+    # [ESPnet2] test s2st1 recipe
+    cd ./egs2/mini_an4/s2st1
+    gen_dummy_coverage
+    echo "==== [ESPnet2] S2ST ==="
+    ./run.sh --ngpu 0 --stage 1 --stop_stage 8 --use_discrete_unit false --s2st_config conf/s2st_spec_debug.yaml --python "${python}"
+    if python3 -c "import s3prl" &> /dev/null; then
+        ./run.sh --ngpu 0 --stage 1 --stop_stage 8 --python "${python}" --use_discrete_unit true --s2st_config conf/train_s2st_discrete_unit_debug.yaml --clustering_num_threads 2 --feature_num_clusters 5
+    fi
+    # Remove generated files in order to reduce the disk usage
+    rm -rf exp dump data ckpt .cache
+    cd "${cwd}"
 fi
-# Remove generated files in order to reduce the disk usage
-rm -rf exp dump data ckpt .cache
-cd "${cwd}"
 
 # [ESPnet2] test lm1 recipe
 cd ./egs2/mini_an4/lm1

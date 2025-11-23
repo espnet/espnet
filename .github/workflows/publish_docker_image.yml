@@ -1,19 +1,17 @@
 name: publish docker image
 
 on:
-  pull_request:
-    types: [closed]
-    branches:
-      - master
-    paths:
-      - 'tools/**'
-      - setup.py
+  schedule:
+    # Runs every Monday at midnight UTC
+    - cron: "0 0 * * 1"
 
 jobs:
   docker:
     runs-on: ubuntu-latest
-    if: github.event.pull_request.merged == true
     environment: docker
+    # Only runs if the current branch is 'master'
+    # Only runs if the current repository is espnet/espnet
+    if: github.repository == 'espnet/espnet' && github.ref == 'refs/heads/master'
     steps:
       - uses: actions/checkout@master
 

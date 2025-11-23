@@ -110,7 +110,7 @@ if __name__ == "__main__":
         user_defined_symbols = ["<sos>", "<eos>", "<sop>", "<na>"]
         # add timestamps
         user_defined_symbols += ["<notimestamps>"]
-        user_defined_symbols += [f"<{i*0.02:.2f}>" for i in range(1501)]
+        user_defined_symbols += [f"<{i * 0.02:.2f}>" for i in range(1501)]
     else:
         user_defined_symbols = []
 
@@ -125,7 +125,7 @@ if __name__ == "__main__":
     # set data_info for specific tasks
     if args.task == "enh":
         data_info = {
-            f"speech_ref{i+1}": [f"spk{i+1}.scp", "sound"]
+            f"speech_ref{i + 1}": [f"spk{i + 1}.scp", "sound"]
             for i in range(training_config["separator_conf"]["num_spk"])
         }
         data_info["speech_mix"] = ["wav.scp", "sound"]
