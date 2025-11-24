@@ -884,7 +884,7 @@ class ContinuousAudioIO(AbsIO):
                 full_model = Qwen3OmniMoeForConditionalGeneration.from_pretrained(
                     self.encoder_hf_model_tag,
                     attn_implementation=self.attn_implementation,
-                    dtype=self.dtype,
+                    torch_dtype=self.dtype,
                 )
 
                 # Remove unnecessary components, keep only audio tower
