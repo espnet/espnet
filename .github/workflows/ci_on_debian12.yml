@@ -22,7 +22,7 @@ jobs:
         # To avoid UnicodeEncodeError for python<=3.6
         LC_ALL: en_US.UTF-8
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: check OS
         run: cat /etc/os-release
       - name: install dependencies
