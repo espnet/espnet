@@ -1062,8 +1062,7 @@ class ContinuousAudioIO(AbsIO):
         if dilations is None:
             dilations = [1] * len(kernel_sizes)
 
-        assert (
-            len(kernel_sizes) == len(strides) == len(paddings) == len(dilations),
+        assert len(kernel_sizes) == len(strides) == len(paddings) == len(dilations), (
             "kernel_sizes, strides, paddings, and dilations must have the same length",
         )
         for kernel_size, stride, padding, dilation in zip(
