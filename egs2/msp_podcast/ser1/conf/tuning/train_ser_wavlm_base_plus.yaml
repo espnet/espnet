@@ -1,3 +1,6 @@
+# Configuration for CI testing with smaller WavLM model
+# This config uses wavlm_base_plus which is smaller than wavlm_large
+
 specaug: specaug
 specaug_conf:
     apply_time_warp: true
@@ -21,13 +24,13 @@ model_conf:
 frontend: s3prl
 frontend_conf:
     frontend_conf:
-        upstream: wavlm_base_plus  # Note: If the upstream is changed, please change the input_size in the preencoder.
+        upstream: wavlm_base_plus  # Note: Smaller model for CI testing (768 dims vs 1024 for wavlm_large)
     download_dir: ./hub
     multilayer_feature: true
 
 preencoder: linear
 preencoder_conf:
-    input_size: 768  # Note: If the upstream is changed, please change this value accordingly. (wavlm_base_plus: 768, wavlm_large: 1024)
+    input_size: 768  # Note: wavlm_base_plus output size
     output_size: 128
 
 # Pooling
