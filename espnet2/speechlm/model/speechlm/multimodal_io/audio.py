@@ -1,8 +1,6 @@
-# Copyright 2025 Jinchuan Tian (Carnegie Mellon University)
-#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+"""Audio I/O implementation for discrete and continuous representations (v2)."""
 
-"""Audio I/O implementation for discrete and continuous representations"""
-
+import math
 from pathlib import Path
 from typing import List, Optional, Tuple
 
@@ -12,9 +10,11 @@ import torch
 
 from espnet2.speechlm.model.speechlm.multimodal_io.abs_io import AbsIO
 
+import logging
 
-# NOTE(Jinchuan): derived from egs2/TEMPLATE/asr1/pyscripts/feats/dump_km_label.py
-# and convert to a torch.nn.Module.
+logger = logging.getLogger(__name__)
+
+
 class KmeansModel(torch.nn.Module):
     """Apply k-means clustering to quantize SSL features into discrete tokens.
 
@@ -178,6 +178,31 @@ class DiscreteAudioIO(AbsIO):
             self.codec_frame_per_second = (
                 self.codec_sample_rate // self.codec_frame_shift
             )
+        
+        elif codec_choice == "Xcodec":
+            try:
+                from transformers import XcodecModel, AutoFeatureExtractor
+            except ImportError as e:
+                raise ImportError(f"Could not import 'transformers': {e}")
+            
+            # checkpoint for general audio is: hf-audio/xcodec-hubert-general
+            self.codec_model = XcodecModel.from_pretrained(codec_hf_model_tag)
+            self.codec_n_streams = min(
+                self.codec_model.config.num_quantizers, codec_max_token_per_frame
+            )
+            self.codec_vocab_size = [self.codec_model.config.codebook_size] * self.codec_n_streams
+            self.codec_sample_rate = self.codec_model.config.sample_rate
+            self.codec_frame_shift = self.codec_model.config.hop_length
+            self.codec_frame_per_second = self.codec_model.config.frame_rate
+            bandwidth_per_quantizer = (
+                math.log2(self.codec_model.config.codebook_size) * self.codec_frame_per_second / 1000
+            ) # kbps
+            codec_bandwidth = bandwidth_per_quantizer * self.codec_n_streams
+            
+            # Select the closest target bandwidth from available options
+            # Xcodec encode requires bandwidth to be in config.target_bandwidths
+            target_bandwidths = self.codec_model.config.target_bandwidths
+            self.codec_bandwidth = min(target_bandwidths, key=lambda x: abs(x - codec_bandwidth))
 
         else:
             raise NotImplementedError(f"Cannot support codec choice: {codec_choice}")
@@ -517,8 +542,17 @@ class DiscreteAudioIO(AbsIO):
                 audio = audio.unsqueeze(1)
 
             # Calculate audio sample lengths from frame lengths
+            # Is this correct?
             audio_lengths = lengths * self.frame_shift
-
+        
+        elif self.codec_choice == "Xcodec":
+            codes = codes.permute(0, 2, 1) # [batch, codec_n_streams, time]
+            audio = self.codec_model.decode(codes).audio_values # [batch, num_channels, num_samples]
+            # Ensure audio has channel dimension [batch, 1, num_samples]
+            if audio.dim() == 2:
+                audio = audio.unsqueeze(1)
+            
+            audio_lengths = lengths * self.frame_shift
         else:
             raise NotImplementedError(
                 f"Codec choice '{self.codec_choice}' not implemented for decoding"
@@ -576,6 +610,19 @@ class DiscreteAudioIO(AbsIO):
             # Permute from [codec_n_streams, batch, time]
             # to [batch, time, codec_n_streams]
             codes = codes.permute(1, 2, 0)[:, :, : self.codec_n_streams]
+        elif self.codec_choice == "Xcodec":
+            max_len = int(length.max().item())
+            data_trimmed = data[:, :, :max_len]
+            # Skip feature_extractor to avoid inefficient GPU-CPU-GPU transfers.
+            # We manually trim the data above (which is already on GPU), so using
+            # feature_extractor for padding/trimming would be redundant and cause
+            # unnecessary data movement: GPU tensor -> CPU numpy -> GPU tensor.
+            codes = self.codec_model.encode(
+                data_trimmed,
+                bandwidth=self.codec_bandwidth,
+                return_dict=False,
+            ) # [batch, num_quantizers, time]
+            codes = codes.permute(0, 2, 1)[:, :, : self.codec_n_streams]
 
         else:
             raise NotImplementedError(
@@ -807,7 +854,10 @@ class ContinuousAudioIO(AbsIO):
                 del full_model.thinker.model  # Remove language model
                 del full_model.thinker.visual  # Remove vision components
                 del full_model.thinker.lm_head  # Remove output head
-                self.model = full_model.thinker.to(self.device)
+                self.model = full_model.thinker.to(
+                    dtype=self.dtype,
+                    device=self.device
+                )
 
                 # Load processor for audio preprocessing
                 self.processor = Qwen2_5OmniProcessor.from_pretrained(
@@ -819,6 +869,40 @@ class ContinuousAudioIO(AbsIO):
                 self.sample_rate = self.processor.sampling_rate
                 self.hop_length = self.processor.hop_length
                 self.n_samples = self.processor.n_samples
+            
+            elif self.encoder_hf_model_tag == "Qwen/Qwen3-Omni-30B-A3B-Instruct":
+                from transformers import (
+                    Qwen3OmniMoeForConditionalGeneration,
+                    Qwen3OmniMoeProcessor
+                )
+
+                # Load full Qwen multimodal model
+                full_model = Qwen3OmniMoeForConditionalGeneration.from_pretrained(
+                    self.encoder_hf_model_tag,
+                    attn_implementation=self.attn_implementation,
+                    dtype=self.dtype,
+                )
+
+                # Remove unnecessary components, keep only audio tower
+                del full_model.thinker.model  # Remove language model
+                del full_model.thinker.visual  # Remove vision components
+                del full_model.thinker.lm_head  # Remove output head
+                self.model = full_model.thinker.to(dtype=self.dtype, device=self.device)
+
+                # Load processor for audio preprocessing
+                self.processor = Qwen3OmniMoeProcessor.from_pretrained(
+                    self.encoder_hf_model_tag
+                ).feature_extractor
+
+                # Set model attributes
+                self.d_model = self.model.audio_tower.config.output_dim
+                self.sample_rate = self.processor.sampling_rate
+                self.hop_length = self.processor.hop_length
+                self.n_samples = self.processor.n_samples
+                # Qwen3 Omni split input into chunks of 100 frames, then
+                # process each chunk separately, for the last chunk less 
+                # than 100 frames, process it without padding.
+                self.chunk_length = self.model.audio_tower.config.n_window * 2
 
             else:
                 raise NotImplementedError(
@@ -855,7 +939,11 @@ class ContinuousAudioIO(AbsIO):
         wav = wav[0]
 
         if wav.shape[0] > self.n_samples:
-            raise ValueError("Input audio is too long to process")
+            logger.warning(
+                f"Input audio with length {wav.shape[0]} is over the maximum "
+                f"length of encoder, truncate to {self.n_samples}"
+            )
+            wav = wav[:self.n_samples]
 
         # Extract mel-spectrogram features using processor
         output = self.processor(
@@ -872,9 +960,7 @@ class ContinuousAudioIO(AbsIO):
         before_length = output["attention_mask"].sum()
         feat = output["input_features"][0, :, :before_length].T
 
-        # Calculate output length after model's two-layer downsampling
-        after_length = (before_length - 1) // 2 + 1  # First downsample
-        after_length = (after_length - 2) // 2 + 1  # Second downsample
+        after_length = self._encoder_output_length(before_length)
 
         paddings = np.zeros((after_length, 1)).astype(np.int32)
 
@@ -906,12 +992,80 @@ class ContinuousAudioIO(AbsIO):
             feature_attention_mask=mask,
         )
         # Calculate output lengths after model's downsampling
-        output_length = (length - 1) // 2 + 1
-        output_length = (output_length - 2) // 2 + 1
+        output_length = self._encoder_output_length(length)
+
         # Split concatenated features back into individual samples
         audio_features = audio_features.split(output_length.tolist(), dim=0)
 
         return audio_features
+    
+    def _encoder_output_length(
+        self,
+        length: torch.Tensor,
+    ) -> torch.Tensor:
+        """
+        Calculate audio encoder output length.
+        """
+        if self.encoder_hf_model_tag == "Qwen/Qwen2.5-Omni-7B":
+            output_length = self._downsampling_length(
+                length,
+                kernel_sizes=[3, 3, 2],
+                strides=[1, 2, 2],
+                paddings=[1, 1, 0],
+                dilations=[1, 1, 1]
+            )
+        elif self.encoder_hf_model_tag == "Qwen/Qwen3-Omni-30B-A3B-Instruct":
+            input_length_leave = length % self.chunk_length
+            output_length_leave = self._downsampling_length(
+                input_length_leave,
+                kernel_sizes=[3, 3, 3],
+                strides=[2, 2, 2],
+                paddings=[1, 1, 1],
+                dilations=[1, 1, 1]
+            )
+
+            chunk_num = length // self.chunk_length
+            chunk_output_length = self._downsampling_length(
+                self.chunk_length,
+                kernel_sizes=[3, 3, 3],
+                strides=[2, 2, 2],
+                paddings=[1, 1, 1],
+                dilations=[1, 1, 1]
+            )
+
+            output_length = chunk_num * chunk_output_length + output_length_leave
+
+        else:
+            raise NotImplementedError(f"Model {self.encoder_hf_model_tag} not implemented")
+        
+        return output_length
+    
+    def _downsampling_length(
+        self,
+        length: torch.Tensor,
+        kernel_sizes: List[int],
+        strides: List[int] = None,
+        paddings: List[int] = None,
+        dilations: List[int] = None
+    ) -> torch.Tensor:
+        """Calculate output length after convolution/pooling downsampling.
+        """
+        if strides is None:
+            strides = [1] * len(kernel_sizes)
+        if paddings is None:
+            paddings = [0] * len(kernel_sizes)
+        if dilations is None:
+            dilations = [1] * len(kernel_sizes)
+        
+        assert (
+            len(kernel_sizes) == len(strides) == len(paddings) == len(dilations),
+            "kernel_sizes, strides, paddings, and dilations must have the same length"
+        )
+        for kernel_size, stride, padding, dilation in zip(kernel_sizes, strides, paddings, dilations):
+            effective_kernel_size = dilation * (kernel_size - 1) + 1
+            length = (length + 2 * padding - effective_kernel_size) // stride + 1
+            
+        return length
 
     def find_length(self, data: Tuple[np.ndarray, int]) -> int:
         """Calculate frame length after encoding.
