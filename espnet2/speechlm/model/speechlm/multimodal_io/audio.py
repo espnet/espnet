@@ -1060,7 +1060,7 @@ class ContinuousAudioIO(AbsIO):
         dilations: List[int] = None,
     ) -> torch.Tensor:
         """Calculate output length after convolution/pooling downsampling.
-        
+
         Args:
             length: Input length tensor of shape [batch]
             kernel_sizes: List of kernel sizes
