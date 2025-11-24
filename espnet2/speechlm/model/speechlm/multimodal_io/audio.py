@@ -1007,8 +1007,13 @@ class ContinuousAudioIO(AbsIO):
         self,
         length: torch.Tensor,
     ) -> torch.Tensor:
-        """
-        Calculate audio encoder output length.
+        """Calculate audio encoder output length.
+
+        Args:
+            length: Input length tensor of shape [batch]
+
+        Returns:
+            Output length tensor of shape [batch]
         """
         if self.encoder_hf_model_tag == "Qwen/Qwen2.5-Omni-7B":
             output_length = self._downsampling_length(
@@ -1054,7 +1059,18 @@ class ContinuousAudioIO(AbsIO):
         paddings: List[int] = None,
         dilations: List[int] = None,
     ) -> torch.Tensor:
-        """Calculate output length after convolution/pooling downsampling."""
+        """Calculate output length after convolution/pooling downsampling.
+        
+        Args:
+            length: Input length tensor of shape [batch]
+            kernel_sizes: List of kernel sizes
+            strides: List of strides
+            paddings: List of paddings
+            dilations: List of dilations
+
+        Returns:
+            Output length tensor of shape [batch]
+        """
         if strides is None:
             strides = [1] * len(kernel_sizes)
         if paddings is None:
