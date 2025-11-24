@@ -88,6 +88,7 @@ class LongShortDataset:
     def __getitem__(self, item):
         return item, {"speech": self.data[item]}
 
+
 def test_CategoryChunkIterFactory_uses_actual_lengths():
     dataset = LongShortDataset()
     collatefn = CommonCollateFn()
