@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Tuple
 
 import numpy as np
-import pandas as pd
+import polars as pl
 
 try:
     from arkive import audio_read
@@ -86,20 +86,16 @@ class ArkiveAudioReader:
         self.index = {utt_id: idx for idx, utt_id in enumerate(self.data['utt_id'].to_list())}
 
     def __getitem__(self, key: str) -> Tuple[np.ndarray, int]:
-        path, start_byte, file_size, start_time, end_time = self.data[key]
-
-        # Convert pandas NA to Python None
-        if pd.isna(start_time):
-            start_time = None
-        if pd.isna(end_time):
-            end_time = None
-
+        # Get entire row as tuple (fastest)
+        idx = self.index[key]
+        row = self.data.row(idx, named=True)
+        
         data = audio_read(
-            path,
-            start_offset=start_byte,
-            file_size=file_size,
-            start_time=start_time,
-            end_time=end_time,
+            row['path'], 
+            start_offset=row['start_byte_offset'],
+            file_size=row['file_size_bytes'],
+            start_time=row['start_time'],
+            end_time=row['end_time'],
         )
 
         return data.array.T, data.sample_rate
