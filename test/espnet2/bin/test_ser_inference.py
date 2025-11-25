@@ -102,7 +102,7 @@ def test_speech2emotion_from_pretrained_without_model_tag():
 def test_speech2emotion_from_pretrained_with_model_tag():
     """Test Speech2Emotion.from_pretrained with model_tag."""
     with patch("espnet2.bin.ser_inference.SERTask") as mock_task, patch(
-        "espnet2.bin.ser_inference.ModelDownloader"
+        "espnet_model_zoo.downloader.ModelDownloader"
     ) as mock_downloader:
         mock_model = MagicMock()
         mock_train_args = MagicMock()
