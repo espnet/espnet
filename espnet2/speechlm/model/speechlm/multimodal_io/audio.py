@@ -847,12 +847,12 @@ class ContinuousAudioIO(AbsIO):
             if self.encoder_hf_model_tag in QWEN_MODELS:
                 model_info = QWEN_MODELS[self.encoder_hf_model_tag]
 
-                # Dynamic import
                 try:
-                    from transformers import __dict__ as transformers_dict
-
-                    model_class = transformers_dict[model_info["model_class"]]
-                    processor_class = transformers_dict[model_info["processor_class"]]
+                    import transformers
+                    model_class = getattr(transformers, model_info["model_class"])
+                    processor_class = getattr(transformers, model_info["processor_class"])
+                except (ImportError, AttributeError) as e:
+                    raise ImportError(f"Error loading Qwen model classes: {e}")
                 except Exception as e:
                     raise ImportError(f"Error loading Qwen model: {e}")
 
