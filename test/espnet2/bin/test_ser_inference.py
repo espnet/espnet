@@ -167,9 +167,7 @@ def test_inference_basic_flow(tmp_path):
 
     with patch("espnet2.bin.ser_inference.Speech2Emotion") as mock_s2e_class, patch(
         "espnet2.bin.ser_inference.SERTask"
-    ) as mock_task, patch(
-        "espnet2.bin.ser_inference.set_all_random_seed"
-    ), patch(
+    ) as mock_task, patch("espnet2.bin.ser_inference.set_all_random_seed"), patch(
         "espnet2.bin.ser_inference.DatadirWriter"
     ) as mock_writer:
 
@@ -181,7 +179,13 @@ def test_inference_basic_flow(tmp_path):
 
         # Mock data loader
         mock_loader = [
-            (["key1"], {"speech": torch.randn(1, 16000), "speech_lengths": torch.tensor([16000])})
+            (
+                ["key1"],
+                {
+                    "speech": torch.randn(1, 16000),
+                    "speech_lengths": torch.tensor([16000]),
+                },
+            )
         ]
         mock_task.build_streaming_iterator.return_value = mock_loader
         mock_task.build_preprocess_fn.return_value = lambda x: x

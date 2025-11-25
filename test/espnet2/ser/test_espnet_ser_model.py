@@ -181,7 +181,9 @@ def test_ser_encode(setup_ser_components):
         loss=components["xent_loss"],
     )
 
-    encoder_out, encoder_out_lens = ser_model.encode(speech=inputs, speech_lengths=ilens)
+    encoder_out, encoder_out_lens = ser_model.encode(
+        speech=inputs, speech_lengths=ilens
+    )
     assert encoder_out.shape[0] == 2
     assert encoder_out.shape[2] == components["preencoder"].output_size()
 
@@ -194,9 +196,7 @@ def test_ser_without_preencoder(setup_ser_components):
     emotion_labels = torch.randint(0, 4, (2, 1))
 
     pooling = MeanPooling(input_size=components["frontend"].output_size())
-    linear_projector = LinearProjector(
-        input_size=pooling.output_size(), output_size=4
-    )
+    linear_projector = LinearProjector(input_size=pooling.output_size(), output_size=4)
     xent_loss = Xnt(nout=linear_projector.output_size(), nclasses=4)
 
     ser_model = ESPnetSERModel(
