@@ -180,7 +180,7 @@ class DiscreteAudioIO(AbsIO):
 
         elif codec_choice == "Xcodec":
             try:
-                from transformers import AutoFeatureExtractor, XcodecModel
+                from transformers import XcodecModel
             except ImportError as e:
                 raise ImportError(f"Could not import 'transformers': {e}")
 
