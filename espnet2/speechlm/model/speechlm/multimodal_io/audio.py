@@ -3,7 +3,6 @@
 
 """Audio I/O implementation for discrete and continuous representations"""
 
-import logging
 import math
 from pathlib import Path
 from typing import List, Optional, Tuple
@@ -14,9 +13,9 @@ import torch
 
 from espnet2.speechlm.model.speechlm.multimodal_io.abs_io import AbsIO
 
-logger = logging.getLogger(__name__)
 
-
+# NOTE(Jinchuan): derived from egs2/TEMPLATE/asr1/pyscripts/feats/dump_km_label.py
+# and convert to a torch.nn.Module.
 class KmeansModel(torch.nn.Module):
     """Apply k-means clustering to quantize SSL features into discrete tokens.
 
@@ -185,7 +184,7 @@ class DiscreteAudioIO(AbsIO):
             try:
                 from transformers import XcodecModel
             except ImportError as e:
-                raise ImportError(f"Could not import 'transformers': {e}")
+                raise ImportError(f"Failed to import 'transformers': {e}")
 
             # checkpoint for general audio is: hf-audio/xcodec-hubert-general
             self.codec_model = XcodecModel.from_pretrained(codec_hf_model_tag)
@@ -864,7 +863,7 @@ class ContinuousAudioIO(AbsIO):
                 del full_model.thinker.model  # Remove language model
                 del full_model.thinker.visual  # Remove vision components
                 del full_model.thinker.lm_head  # Remove output head
-                self.model = full_model.thinker.to(dtype=self.dtype, device=self.device)
+                self.model = full_model.thinker.to(self.device)
 
                 # Load processor for audio preprocessing
                 self.processor = Qwen2_5OmniProcessor.from_pretrained(
@@ -876,40 +875,6 @@ class ContinuousAudioIO(AbsIO):
                 self.sample_rate = self.processor.sampling_rate
                 self.hop_length = self.processor.hop_length
                 self.n_samples = self.processor.n_samples
-
-            elif self.encoder_hf_model_tag == "Qwen/Qwen3-Omni-30B-A3B-Instruct":
-                from transformers import (
-                    Qwen3OmniMoeForConditionalGeneration,
-                    Qwen3OmniMoeProcessor,
-                )
-
-                # Load full Qwen multimodal model
-                full_model = Qwen3OmniMoeForConditionalGeneration.from_pretrained(
-                    self.encoder_hf_model_tag,
-                    attn_implementation=self.attn_implementation,
-                    torch_dtype=self.dtype,
-                )
-
-                # Remove unnecessary components, keep only audio tower
-                del full_model.thinker.model  # Remove language model
-                del full_model.thinker.visual  # Remove vision components
-                del full_model.thinker.lm_head  # Remove output head
-                self.model = full_model.thinker.to(dtype=self.dtype, device=self.device)
-
-                # Load processor for audio preprocessing
-                self.processor = Qwen3OmniMoeProcessor.from_pretrained(
-                    self.encoder_hf_model_tag
-                ).feature_extractor
-
-                # Set model attributes
-                self.d_model = self.model.audio_tower.config.output_dim
-                self.sample_rate = self.processor.sampling_rate
-                self.hop_length = self.processor.hop_length
-                self.n_samples = self.processor.n_samples
-                # Qwen3 Omni split input into chunks of 100 frames, then
-                # process each chunk separately, for the last chunk less
-                # than 100 frames, process it without padding.
-                self.chunk_length = self.model.audio_tower.config.n_window * 2
 
             else:
                 raise NotImplementedError(
@@ -946,11 +911,7 @@ class ContinuousAudioIO(AbsIO):
         wav = wav[0]
 
         if wav.shape[0] > self.n_samples:
-            logger.warning(
-                f"Input audio with length {wav.shape[0]} is over the maximum "
-                f"length of encoder, truncate to {self.n_samples}"
-            )
-            wav = wav[: self.n_samples]
+            raise ValueError("Input audio is too long to process")
 
         # Extract mel-spectrogram features using processor
         output = self.processor(
@@ -967,7 +928,9 @@ class ContinuousAudioIO(AbsIO):
         before_length = output["attention_mask"].sum()
         feat = output["input_features"][0, :, :before_length].T
 
-        after_length = self._encoder_output_length(before_length)
+        # Calculate output length after model's two-layer downsampling
+        after_length = (before_length - 1) // 2 + 1  # First downsample
+        after_length = (after_length - 2) // 2 + 1  # Second downsample
 
         paddings = np.zeros((after_length, 1)).astype(np.int32)
 
@@ -999,98 +962,12 @@ class ContinuousAudioIO(AbsIO):
             feature_attention_mask=mask,
         )
         # Calculate output lengths after model's downsampling
-        output_length = self._encoder_output_length(length)
-
+        output_length = (length - 1) // 2 + 1
+        output_length = (output_length - 2) // 2 + 1
         # Split concatenated features back into individual samples
         audio_features = audio_features.split(output_length.tolist(), dim=0)
 
         return audio_features
-
-    def _encoder_output_length(
-        self,
-        length: torch.Tensor,
-    ) -> torch.Tensor:
-        """Calculate audio encoder output length.
-
-        Args:
-            length: Input length tensor of shape [batch]
-
-        Returns:
-            Output length tensor of shape [batch]
-        """
-        if self.encoder_hf_model_tag == "Qwen/Qwen2.5-Omni-7B":
-            output_length = self._downsampling_length(
-                length,
-                kernel_sizes=[3, 3, 2],
-                strides=[1, 2, 2],
-                paddings=[1, 1, 0],
-                dilations=[1, 1, 1],
-            )
-        elif self.encoder_hf_model_tag == "Qwen/Qwen3-Omni-30B-A3B-Instruct":
-            input_length_leave = length % self.chunk_length
-            output_length_leave = self._downsampling_length(
-                input_length_leave,
-                kernel_sizes=[3, 3, 3],
-                strides=[2, 2, 2],
-                paddings=[1, 1, 1],
-                dilations=[1, 1, 1],
-            )
-
-            chunk_num = length // self.chunk_length
-            chunk_output_length = self._downsampling_length(
-                self.chunk_length,
-                kernel_sizes=[3, 3, 3],
-                strides=[2, 2, 2],
-                paddings=[1, 1, 1],
-                dilations=[1, 1, 1],
-            )
-
-            output_length = chunk_num * chunk_output_length + output_length_leave
-
-        else:
-            raise NotImplementedError(
-                f"Model {self.encoder_hf_model_tag} not implemented"
-            )
-
-        return output_length
-
-    def _downsampling_length(
-        self,
-        length: torch.Tensor,
-        kernel_sizes: List[int],
-        strides: List[int] = None,
-        paddings: List[int] = None,
-        dilations: List[int] = None,
-    ) -> torch.Tensor:
-        """Calculate output length after convolution/pooling downsampling.
-
-        Args:
-            length: Input length tensor of shape [batch]
-            kernel_sizes: List of kernel sizes
-            strides: List of strides
-            paddings: List of paddings
-            dilations: List of dilations
-
-        Returns:
-            Output length tensor of shape [batch]
-        """
-        if strides is None:
-            strides = [1] * len(kernel_sizes)
-        if paddings is None:
-            paddings = [0] * len(kernel_sizes)
-        if dilations is None:
-            dilations = [1] * len(kernel_sizes)
-
-        assert len(kernel_sizes) == len(strides) == len(paddings) == len(dilations), (
-            "kernel_sizes, strides, paddings, and dilations must have the same length",
-        )
-        for kernel_size, stride, padding, dilation in zip(
-            kernel_sizes, strides, paddings, dilations
-        ):
-            effective_kernel_size = dilation * (kernel_size - 1) + 1
-            length = (length + 2 * padding - effective_kernel_size) // stride + 1
-
-        return length
 
     def find_length(self, data: Tuple[np.ndarray, int]) -> int:
         """Calculate frame length after encoding.
