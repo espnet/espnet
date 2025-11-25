@@ -3,10 +3,14 @@ import glob
 import json
 import logging
 import os
+import pickle
+import string
 import sys
+import unicodedata
 from collections import defaultdict
 from glob import glob
 from pathlib import Path
+from shlex import split
 from tarfile import ReadError
 
 import pandas as pd
@@ -35,8 +39,6 @@ def get_parser():
 
 
 def get_split(source_dir, dataset, orig_split):
-    TEST_SETS = {"librispeech", "mls", "aishell"}
-
     # use the splits Jian already created
     if dataset == "doreco":
         # all of DoReCo is a test set
@@ -52,8 +54,6 @@ def get_split(source_dir, dataset, orig_split):
 
 
 def generate_train_dev_test_splits(source_dir, dataset_shards):
-    train_dev_test_splits = {}
-
     # the subdirectories of shard_name are the original splits from Jian
     splits = defaultdict(list)  # split -> dataset name
     for shard in dataset_shards:
@@ -189,35 +189,153 @@ def generate_df(source_dir, data_dir):
     return df
 
 
-with open("local/ipa_mapping.json", "r") as f:
-    mapping = json.load(f)
+class PanphonTrieNode:
+    def __init__(self):
+        self.children = {}
+        self.is_end_of_word = False
+        self.value = None
+
+    def insert(self, word):
+        node = self
+        for ch in word:
+            if ch not in node.children:
+                node.children[ch] = PanphonTrieNode()
+            node = node.children[ch]
+        node.is_end_of_word = True
+        node.value = word
+
+    def serialize(self, file_path):
+        with open(file_path, "wb") as f:
+            pickle.dump(self, f)
+
+    @staticmethod
+    def deserialize(file_path):
+        with open(file_path, "rb") as f:
+            return pickle.load(f)
 
 
-def normalize_phones(transcription):
-    # remove long vowels
-    # use IPA ɡ
-    transcription = transcription.replace("ː", "").replace("g", "ɡ")
+def build_trie_from_file(input_path, output_pickle):
+    """
+    List of panphon phone entries (one per line) -> trie
+    input_path: path to file of panphon phone entries (local/panphon_ipas)
+    output_pickle: path to the output trie object serialized as pickle file
+    """
+    root = PanphonTrieNode()
+    with open(input_path, encoding="utf-8") as f:
+        for line in f:
+            word = line.strip()
+            if word:
+                root.insert(word)
+    root.insert(" ")  # also insert space
+    root.serialize(output_pickle)
+    return root
 
-    # remove whitespace
-    ipa = "".join(transcription.split())
-    # phone(me) tokenizer (ipatok)
-    # affricates without tie bar (e.g. ts) are broken into 2 segments: ts -> t s
-    ipa_tokens = tokenise(ipa)
-    # reduce phonemes
-    # remove vowel and consonant length b/c it's inconsistently marked
-    # not all keys will be used
-    ipa_tokens = [mapping.get(token, token) for token in ipa_tokens]
-    # re-introduce spaces (like TIMIT)
-    ipa_tokens = " ".join(ipa_tokens).replace("  ", " ")
-    # split dipthongs
-    for dipthong in ["ɑj", "aj", "ɛj", "oj", "uj", "ʌj"]:
-        ipa_tokens = ipa_tokens.replace(dipthong, dipthong[0] + " " + dipthong[1])
 
-    # filter out too short / long ones
-    if len(ipa_tokens.split()) < 3 or len(ipa_tokens.split()) > 300:
-        return None
-    else:
-        return ipa_tokens
+def clean(sequence, with_supraseg=True):
+    """
+    Normalize phones' unicode so that trie search can handle everything
+    Remove suprasegmental diacritics if specified
+    """
+    removepunc = str.maketrans("", "", string.punctuation)
+    customized = {"ʡ": "ʔ", "ᶑ": "ɗ", "g": "ɡ"}
+    supraseg = {"ː", "ˑ", "̆", "͜"}
+    sequence = unicodedata.normalize("NFD", sequence)
+    sequence = sequence.translate(removepunc)
+    sequence = "".join([customized.get(c, c) for c in sequence])
+    if not with_supraseg:
+        sequence = "".join([c for c in sequence if c not in supraseg])
+    return sequence
+
+
+def panphon_gsearch(seq, root, with_supraseg=True):
+    """
+    Greedy longest-match-first search in panphon trie.
+    seq: input sequence (string)
+    root: root node of the trie
+    with_supraseg: if False, remove suprasegmental diacritics before search
+    return: list of phones and set of OOV phones
+    """
+    seq = clean(seq, with_supraseg)  # fix unicode and remove punctuations
+    res, oov = [], set()
+    i, N = 0, len(seq)
+    while i < N:
+        node = root
+        start = i
+        last_match_value = None
+        last_match_end = i
+        # Search for the longest match
+        while i < N and seq[i] in node.children:
+            node = node.children[seq[i]]
+            i += 1
+            if node.is_end_of_word:
+                last_match_value = node.value
+                last_match_end = i
+        if last_match_value is not None:
+            res.append(last_match_value)
+        # Deal with possibly trailing diacritics of OOV phone
+        while i < N and seq[i] not in root.children:
+            i += 1
+        if i != last_match_end:
+            oov.add((seq[start:i], last_match_value))
+
+    return res, oov
+
+
+if not os.path.exists("local/panphon.pkl"):
+    pptrie = build_trie_from_file("local/panphon_ipas", "local/panphon.pkl")
+else:
+    pptrie = PanphonTrieNode.deserialize("local/panphon.pkl")
+
+
+def clean_english(tokenised):
+    vowels = {"i", "ɪ", "e", "ɛ", "æ", "u", "ʊ", "o", "ɔ", "ɑ", "ə", "ɜ˞", "ʌ"}
+    target_vplosives_map = {"b": "p", "d": "t", "ɡ": "k"}
+    target_nasalvs_map = {
+        "i": "ĩ",
+        "ɪ": "ɪ̃",
+        "e": "ẽ",
+        "ɛ": "ɛ̃",
+        "æ": "æ̃",
+        "u": "ũ",
+        "ʊ": "ʊ̃",
+        "o": "õ",
+        "ɔ": "ɔ̃",
+        "ɑ": "ɑ̃",
+    }
+    for i, phone in enumerate(tokenised):
+        prevp = tokenised[i - 1] if i > 0 else None
+        nextp = tokenised[i + 1] if i < len(tokenised) - 1 else None
+        # 1. word-initial voiceless plosives (p, t, k) are aspirated
+        if phone in {"p", "t", "k"} and prevp == " ":
+            tokenised[i] = phone + "ʰ"
+        # 2. word-initial voiced plosives (b, d, ɡ) are voiceless
+        elif phone in target_vplosives_map and prevp == " ":
+            if phone == "d" and nextp == "z":
+                continue
+            elif phone == "d" and nextp == "ʒ":
+                tokenised[i], tokenised[i + 1] = "t", "ʃ"
+            else:
+                tokenised[i] = target_vplosives_map[phone]
+        # 3. lateral /l/ velarized at the end of syllables
+        # (i.e. word boundary or consonant)
+        # <=> turn "l̴" back to /l/ at word-initial and after consonant
+        elif phone == "l̴" and prevp not in vowels:
+            tokenised[i] = "l"
+        # 4. vowel nasalization before nasal consonants; ignore diphthongs problem?
+        elif phone in {"m", "n", "ŋ"} and prevp in target_nasalvs_map:
+            tokenised[i - 1] = target_nasalvs_map[prevp]
+    return tokenised
+
+
+def panphon_normalize(seq, lang, with_supraseg=True):
+    # 1. tokenize sequence, keeping spaces
+    seq, _ = panphon_gsearch(seq, pptrie, with_supraseg=with_supraseg)
+    # 2. normalize English sequence
+    if lang in {"English", "en", "en_us"}:
+        seq = clean_english(seq)
+    # 3. remove spaces in the list and return
+    seq = [s for s in seq if s != " "]
+    return " ".join(seq)
 
 
 def text_normalization(orthography):
@@ -243,38 +361,56 @@ def write_dir(source_dir, target_dir, transcripts):
     #       while the orthography is stored in "orthography."
     #       What might be confusing is that the "text" column in the df
     #       stores the orthography.
+    if "test" in target_dir.name:
+        not_train_val = True
+    else:
+        not_train_val = False
     wavscp = open(target_dir / "wav.scp", "w", encoding="utf-8")
-    text = open(target_dir / "text", "w", encoding="utf-8")
+    if not_train_val:
+        # use unnormalized IPA for test sets; doesn't need to be in OWSM format
+        text_original = open(target_dir / "text.raw", "w", encoding="utf-8")
+    else:
+        text = open(target_dir / "text", "w", encoding="utf-8")
+        text_ctc = open(target_dir / "text.ctc", "w", encoding="utf-8")
     utt2spk = open(target_dir / "utt2spk", "w", encoding="utf-8")
     utt_id_mapping = open(target_dir / "uttid_map", "w", encoding="utf-8")
     prompt = open(target_dir / "orthography", "w", encoding="utf-8")
 
     for _, row in transcripts.iterrows():
-        utt_id, path, dataset, ipa, orthography = (
+        utt_id, old_utt_id, path, ipa_original, ipa, ipa_nosup, orthography = (
             row["utt_id"],
+            row["old_utt_id"],
             row["path"],
-            row["dataset"],
-            row["ipa_clean"],
+            row["ipa_original"],
+            row["ipa_panphon"],
+            row["ipa_panphon_nosup"],
             row["text"],
         )
 
-        old_utt_id = row["old_utt_id"]
         # map original utt_id to new utt_id (note: not required by kaldi)
         utt_id_mapping.write(f"{old_utt_id} {utt_id}\n")
-        split = row["split"]
 
         # {source_dir}/{dataset}/{split}/{old_utt_id}.flac
         wavscp.write(f"{utt_id} {path}\n")
-        text.write(f"{utt_id} {ipa}\n")
-        # ESPnet does not use speaker info for ASR anymore
-        utt2spk.write(f"{utt_id} aaaaa\n")
+
+        if not_train_val:
+            text_original.write(f"{utt_id} {ipa_original}\n")
+        else:
+            text.write(f"{utt_id} {ipa}\n")
+            text_ctc.write(f"{utt_id} {ipa_nosup}\n")
+            # ESPnet does not use speaker info for ASR anymore
+            utt2spk.write(f"{utt_id} aaaaa\n")
 
         if pd.isna(orthography):
             orthography = ""
         prompt.write(f"{utt_id} {orthography}\n")
 
     wavscp.close()
-    text.close()
+    if not_train_val:
+        text_original.close()
+    else:
+        text.close()
+        text_ctc.close()
     utt2spk.close()
     utt_id_mapping.close()
     prompt.close()
@@ -336,9 +472,16 @@ if __name__ == "__main__":
     # drop empty rows
     df = df.dropna(subset=["ipa_clean"])
 
-    # normalize phones
-    df["ipa_clean"] = df.apply(lambda row: normalize_phones(row["ipa_clean"]), axis=1)
-    df = df.dropna(subset=["ipa_clean"])
+    # normalize phones, nosup = version without length and break marks for text.ctc
+    df["ipa_panphon"] = df.apply(
+        lambda row: panphon_normalize(row["ipa_clean"], row["lang"]), axis=1
+    )
+    df["ipa_panphon_nosup"] = df.apply(
+        lambda row: panphon_normalize(
+            row["ipa_clean"], row["lang"], with_supraseg=False
+        ),
+        axis=1,
+    )
     # normalize text
     df["text"] = df.apply(lambda row: text_normalization(row["text"]), axis=1)
 
