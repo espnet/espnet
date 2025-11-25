@@ -77,25 +77,27 @@ class ArkiveAudioReader:
             result = duckdb.query(
                 f"""
                 SELECT * FROM result
-                QUALIFY (row_number() OVER (ORDER BY utt_id) - 1) 
+                QUALIFY (row_number() OVER (ORDER BY utt_id) - 1)
                 % {world_size} = {worker_id}
             """
             )
 
         self.data = pl.from_arrow(result.arrow())
-        self.index = {utt_id: idx for idx, utt_id in enumerate(self.data['utt_id'].to_list())}
+        self.index = {
+            utt_id: idx for idx, utt_id in enumerate(self.data["utt_id"].to_list())
+        }
 
     def __getitem__(self, key: str) -> Tuple[np.ndarray, int]:
         # Get entire row as tuple (fastest)
         idx = self.index[key]
         row = self.data.row(idx, named=True)
-        
+
         data = audio_read(
-            row['path'], 
-            start_offset=row['start_byte_offset'],
-            file_size=row['file_size_bytes'],
-            start_time=row['start_time'],
-            end_time=row['end_time'],
+            row["path"],
+            start_offset=row["start_byte_offset"],
+            file_size=row["file_size_bytes"],
+            start_time=row["start_time"],
+            end_time=row["end_time"],
         )
 
         return data.array.T, data.sample_rate
