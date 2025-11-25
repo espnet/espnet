@@ -23,6 +23,7 @@ from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
 from espnet2.asr.encoder.vgg_rnn_encoder import VGGRNNEncoder
 from espnet2.asr.encoder.wav2vec2_encoder import FairSeqWav2Vec2Encoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
+from espnet2.asr.frontend.cnn import CNNFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
 from espnet2.asr.frontend.fused import FusedFrontends
 from espnet2.asr.frontend.s3prl import S3prlFrontend
@@ -59,6 +60,7 @@ frontend_choices = ClassChoices(
         sliding_window=SlidingWindow,
         s3prl=S3prlFrontend,
         fused=FusedFrontends,
+        cnn=CNNFrontend,
     ),
     type_check=AbsFrontend,
     default="default",
