@@ -62,6 +62,14 @@ class ArkiveAudioReader:
 
         # filter query result before loading to df
         # avoids loading the whole query result into memory
+        if valid_ids is not None:
+            result = duckdb.query(
+                f"""
+                SELECT * FROM result
+                WHERE utt_id IN ({','.join(f"'{id}'" for id in valid_ids)})
+                 """
+            )
+
         if worker_id is not None:
             assert (
                 world_size is not None
@@ -74,25 +82,8 @@ class ArkiveAudioReader:
             """
             )
 
-        df = result.df()
-
-        data = dict(
-            zip(
-                df["utt_id"],
-                zip(
-                    df["path"],
-                    df["start_byte_offset"],
-                    df["file_size_bytes"],
-                    df["start_time"],
-                    df["end_time"],
-                ),
-            )
-        )
-
-        if valid_ids:
-            data = {k: data[k] for k in set(valid_ids) if k in data}
-
-        self.data = data
+        self.data = pl.from_arrow(result.arrow())
+        self.index = {utt_id: idx for idx, utt_id in enumerate(self.data['utt_id'].to_list())}
 
     def __getitem__(self, key: str) -> Tuple[np.ndarray, int]:
         path, start_byte, file_size, start_time, end_time = self.data[key]
