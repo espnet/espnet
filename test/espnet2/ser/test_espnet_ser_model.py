@@ -217,9 +217,8 @@ def test_ser_without_preencoder(setup_ser_components):
     assert loss is not None
 
 
-def test_ser_without_frontend(setup_ser_components):
+def test_ser_without_frontend():
     """Test SER model without frontend."""
-    components = setup_ser_components
     # Use feature input instead of raw audio
     inputs = torch.randn(2, 100, 80)  # (batch, time, feat_dim)
     ilens = torch.LongTensor([80, 100])
