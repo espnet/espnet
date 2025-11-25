@@ -3,6 +3,8 @@
 
 """Audio I/O implementation for discrete and continuous representations"""
 
+import logging
+import math
 from pathlib import Path
 from typing import List, Optional, Tuple
 
@@ -12,6 +14,7 @@ import torch
 
 from espnet2.speechlm.model.speechlm.multimodal_io.abs_io import AbsIO
 
+logger = logging.getLogger(__name__)
 
 # NOTE(Jinchuan): derived from egs2/TEMPLATE/asr1/pyscripts/feats/dump_km_label.py
 # and convert to a torch.nn.Module.
@@ -786,40 +789,85 @@ class ContinuousAudioIO(AbsIO):
 
         # Initialize the encoder
         self._init_encoder()
+    
+    def _load_qwen_audio_tower(self, model_class, processor_class):
+        """Load Qwen audio tower from multimodal model.
+        
+        Args:
+            model_class: Qwen model class (e.g., Qwen2_5OmniForConditionalGeneration)
+            processor_class: Qwen processor class (e.g., Qwen2_5OmniProcessor)
+        
+        Returns:
+            Tuple of (model, processor, additional_config_dict)
+        """
+        # Load full Qwen multimodal model
+        full_model = model_class.from_pretrained(
+            self.encoder_hf_model_tag,
+            attn_implementation=self.attn_implementation,
+            torch_dtype=self.dtype,
+        )
+
+        # Remove unnecessary components, keep only audio tower
+        del full_model.thinker.model  # Remove language model
+        del full_model.thinker.visual  # Remove vision components
+        del full_model.thinker.lm_head  # Remove output head
+        model = full_model.thinker.to(dtype=self.dtype, device=self.device)
+
+        # Load processor for audio preprocessing
+        processor = processor_class.from_pretrained(
+            self.encoder_hf_model_tag
+        ).feature_extractor
+
+        # Collect common attributes
+        additional_config = {
+            'd_model': model.audio_tower.config.output_dim,
+            'sample_rate': processor.sampling_rate,
+            'hop_length': processor.hop_length,
+            'n_samples': processor.n_samples,
+        }
+        
+        return model, processor, additional_config
 
     def _init_encoder(self):
         """Initialize the audio encoder model."""
         if self.encoder_choice == "huggingface":
-            if self.encoder_hf_model_tag == "Qwen/Qwen2.5-Omni-7B":
-                from transformers import (
-                    Qwen2_5OmniForConditionalGeneration,
-                    Qwen2_5OmniProcessor,
+            # Model registry
+            QWEN_MODELS = {
+                "Qwen/Qwen2.5-Omni-7B": {
+                    "model_class": "Qwen2_5OmniForConditionalGeneration",
+                    "processor_class": "Qwen2_5OmniProcessor",
+                },
+                "Qwen/Qwen3-Omni-30B-A3B-Instruct": {
+                    "model_class": "Qwen3OmniMoeForConditionalGeneration",
+                    "processor_class": "Qwen3OmniMoeProcessor",
+                },
+            }
+            
+            if self.encoder_hf_model_tag in QWEN_MODELS:
+                model_info = QWEN_MODELS[self.encoder_hf_model_tag]
+                
+                # Dynamic import
+                try:
+                    from transformers import __dict__ as transformers_dict
+                    model_class = transformers_dict[model_info["model_class"]]
+                    processor_class = transformers_dict[model_info["processor_class"]]
+                except Exception as e:
+                    raise ImportError(f"Error loading Qwen model: {e}")
+                
+                # Load model
+                self.model, self.processor, config = self._load_qwen_audio_tower(
+                    model_class, processor_class
                 )
-
-                # Load full Qwen multimodal model
-                full_model = Qwen2_5OmniForConditionalGeneration.from_pretrained(
-                    self.encoder_hf_model_tag,
-                    attn_implementation=self.attn_implementation,
-                    torch_dtype=self.dtype,
-                )
-
-                # Remove unnecessary components, keep only audio tower
-                del full_model.thinker.model  # Remove language model
-                del full_model.thinker.visual  # Remove vision components
-                del full_model.thinker.lm_head  # Remove output head
-                self.model = full_model.thinker.to(self.device)
-
-                # Load processor for audio preprocessing
-                self.processor = Qwen2_5OmniProcessor.from_pretrained(
-                    self.encoder_hf_model_tag
-                ).feature_extractor
-
-                # Set model attributes
-                self.d_model = self.model.audio_tower.config.output_dim
-                self.sample_rate = self.processor.sampling_rate
-                self.hop_length = self.processor.hop_length
-                self.n_samples = self.processor.n_samples
-
+                
+                # Set common attributes
+                self.d_model = config['d_model']
+                self.sample_rate = config['sample_rate']
+                self.hop_length = config['hop_length']
+                self.n_samples = config['n_samples']
+                
+                # Set model-specific attributes
+                if model_info["model_class"] == "Qwen3OmniMoeForConditionalGeneration":
+                    self.chunk_length = self.model.audio_tower.config.n_window * 2
             else:
                 raise NotImplementedError(
                     f"Model {self.encoder_hf_model_tag} not implemented"
@@ -855,7 +903,11 @@ class ContinuousAudioIO(AbsIO):
         wav = wav[0]
 
         if wav.shape[0] > self.n_samples:
-            raise ValueError("Input audio is too long to process")
+            logger.warning(
+                f"Input audio with length {wav.shape[0]} is over the maximum "
+                f"length of encoder, truncate to {self.n_samples}"
+            )
+            wav = wav[: self.n_samples]
 
         # Extract mel-spectrogram features using processor
         output = self.processor(
@@ -872,9 +924,7 @@ class ContinuousAudioIO(AbsIO):
         before_length = output["attention_mask"].sum()
         feat = output["input_features"][0, :, :before_length].T
 
-        # Calculate output length after model's two-layer downsampling
-        after_length = (before_length - 1) // 2 + 1  # First downsample
-        after_length = (after_length - 2) // 2 + 1  # Second downsample
+        after_length = self._encoder_output_length(before_length)
 
         paddings = np.zeros((after_length, 1)).astype(np.int32)
 
@@ -906,12 +956,98 @@ class ContinuousAudioIO(AbsIO):
             feature_attention_mask=mask,
         )
         # Calculate output lengths after model's downsampling
-        output_length = (length - 1) // 2 + 1
-        output_length = (output_length - 2) // 2 + 1
+        output_length = self._encoder_output_length(length)
+
         # Split concatenated features back into individual samples
         audio_features = audio_features.split(output_length.tolist(), dim=0)
 
         return audio_features
+
+    def _encoder_output_length(
+        self,
+        length: torch.Tensor,
+    ) -> torch.Tensor:
+        """Calculate audio encoder output length.
+
+        Args:
+            length: Input length tensor of shape [batch]
+
+        Returns:
+            Output length tensor of shape [batch]
+        """
+        if self.encoder_hf_model_tag == "Qwen/Qwen2.5-Omni-7B":
+            output_length = self._downsampling_length(
+                length,
+                kernel_sizes=[3, 3, 2],
+                strides=[1, 2, 2],
+                paddings=[1, 1, 0],
+                dilations=[1, 1, 1],
+            )
+        elif self.encoder_hf_model_tag == "Qwen/Qwen3-Omni-30B-A3B-Instruct":
+            input_length_leave = length % self.chunk_length
+            output_length_leave = self._downsampling_length(
+                input_length_leave,
+                kernel_sizes=[3, 3, 3],
+                strides=[2, 2, 2],
+                paddings=[1, 1, 1],
+                dilations=[1, 1, 1],
+            )
+
+            chunk_num = length // self.chunk_length
+            chunk_output_length = self._downsampling_length(
+                self.chunk_length,
+                kernel_sizes=[3, 3, 3],
+                strides=[2, 2, 2],
+                paddings=[1, 1, 1],
+                dilations=[1, 1, 1],
+            )
+
+            output_length = chunk_num * chunk_output_length + output_length_leave
+
+        else:
+            raise NotImplementedError(
+                f"Model {self.encoder_hf_model_tag} not implemented"
+            )
+
+        return output_length
+
+    def _downsampling_length(
+        self,
+        length: torch.Tensor,
+        kernel_sizes: List[int],
+        strides: List[int] = None,
+        paddings: List[int] = None,
+        dilations: List[int] = None,
+    ) -> torch.Tensor:
+        """Calculate output length after convolution/pooling downsampling.
+
+        Args:
+            length: Input length tensor of shape [batch]
+            kernel_sizes: List of kernel sizes
+            strides: List of strides
+            paddings: List of paddings
+            dilations: List of dilations
+
+        Returns:
+            Output length tensor of shape [batch]
+        """
+        if strides is None:
+            strides = [1] * len(kernel_sizes)
+        if paddings is None:
+            paddings = [0] * len(kernel_sizes)
+        if dilations is None:
+            dilations = [1] * len(kernel_sizes)
+
+        assert len(kernel_sizes) == len(strides) == len(paddings) == len(dilations), (
+            "kernel_sizes, strides, paddings, and dilations must have the same length",
+        )
+        for kernel_size, stride, padding, dilation in zip(
+            kernel_sizes, strides, paddings, dilations
+        ):
+            effective_kernel_size = dilation * (kernel_size - 1) + 1
+            length = (length + 2 * padding - effective_kernel_size) // stride + 1
+
+        return length
 
     def find_length(self, data: Tuple[np.ndarray, int]) -> int:
         """Calculate frame length after encoding.
