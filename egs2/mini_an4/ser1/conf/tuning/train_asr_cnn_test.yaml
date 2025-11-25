@@ -31,7 +31,6 @@ frontend_conf:
     fs: 16000
     normalize_audio: false
     normalize_output: true
-    layer_norm_cls: transposed
 
 preencoder: linear
 preencoder_conf:
