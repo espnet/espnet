@@ -16,6 +16,7 @@ from espnet2.speechlm.model.speechlm.multimodal_io.abs_io import AbsIO
 
 logger = logging.getLogger(__name__)
 
+
 # NOTE(Jinchuan): derived from egs2/TEMPLATE/asr1/pyscripts/feats/dump_km_label.py
 # and convert to a torch.nn.Module.
 class KmeansModel(torch.nn.Module):
@@ -789,14 +790,14 @@ class ContinuousAudioIO(AbsIO):
 
         # Initialize the encoder
         self._init_encoder()
-    
+
     def _load_qwen_audio_tower(self, model_class, processor_class):
         """Load Qwen audio tower from multimodal model.
-        
+
         Args:
             model_class: Qwen model class (e.g., Qwen2_5OmniForConditionalGeneration)
             processor_class: Qwen processor class (e.g., Qwen2_5OmniProcessor)
-        
+
         Returns:
             Tuple of (model, processor, additional_config_dict)
         """
@@ -820,12 +821,12 @@ class ContinuousAudioIO(AbsIO):
 
         # Collect common attributes
         additional_config = {
-            'd_model': model.audio_tower.config.output_dim,
-            'sample_rate': processor.sampling_rate,
-            'hop_length': processor.hop_length,
-            'n_samples': processor.n_samples,
+            "d_model": model.audio_tower.config.output_dim,
+            "sample_rate": processor.sampling_rate,
+            "hop_length": processor.hop_length,
+            "n_samples": processor.n_samples,
         }
-        
+
         return model, processor, additional_config
 
     def _init_encoder(self):
@@ -842,29 +843,30 @@ class ContinuousAudioIO(AbsIO):
                     "processor_class": "Qwen3OmniMoeProcessor",
                 },
             }
-            
+
             if self.encoder_hf_model_tag in QWEN_MODELS:
                 model_info = QWEN_MODELS[self.encoder_hf_model_tag]
-                
+
                 # Dynamic import
                 try:
                     from transformers import __dict__ as transformers_dict
+
                     model_class = transformers_dict[model_info["model_class"]]
                     processor_class = transformers_dict[model_info["processor_class"]]
                 except Exception as e:
                     raise ImportError(f"Error loading Qwen model: {e}")
-                
+
                 # Load model
                 self.model, self.processor, config = self._load_qwen_audio_tower(
                     model_class, processor_class
                 )
-                
+
                 # Set common attributes
-                self.d_model = config['d_model']
-                self.sample_rate = config['sample_rate']
-                self.hop_length = config['hop_length']
-                self.n_samples = config['n_samples']
-                
+                self.d_model = config["d_model"]
+                self.sample_rate = config["sample_rate"]
+                self.hop_length = config["hop_length"]
+                self.n_samples = config["n_samples"]
+
                 # Set model-specific attributes
                 if model_info["model_class"] == "Qwen3OmniMoeForConditionalGeneration":
                     self.chunk_length = self.model.audio_tower.config.n_window * 2
