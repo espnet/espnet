@@ -1,4 +1,7 @@
-"""Audio I/O implementation for discrete and continuous representations (v2)."""
+# Copyright 2025 Jinchuan Tian (Carnegie Mellon University)
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
+"""Audio I/O implementation for discrete and continuous representations"""
 
 import logging
 import math
