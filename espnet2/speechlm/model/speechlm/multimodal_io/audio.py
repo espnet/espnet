@@ -849,8 +849,11 @@ class ContinuousAudioIO(AbsIO):
 
                 try:
                     import transformers
+
                     model_class = getattr(transformers, model_info["model_class"])
-                    processor_class = getattr(transformers, model_info["processor_class"])
+                    processor_class = getattr(
+                        transformers, model_info["processor_class"]
+                    )
                 except (ImportError, AttributeError) as e:
                     raise ImportError(f"Error loading Qwen model classes: {e}")
                 except Exception as e:
