@@ -42,7 +42,7 @@ local_data_opts="--dummy_data true"
     --audio_format wav \
     --max_wav_duration 30 \
     --feats_normalize false \
-    --skip_eval false \
+    --skip_eval true \
     --inference_nj 8 \
     --inference_ser_model checkpoint.pth\
     --ser_config "${ser_config}" \

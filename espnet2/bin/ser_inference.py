@@ -186,7 +186,7 @@ def inference(
 
             # N-best list of (text, token, token_int, hyp_object)
             # try:
-            pred_emo = speech2emotion(**batch)
+            pred_emo = speech2emotion(batch["speech"])
 
             # Only supporting batch_size==1
             key = keys[0]
