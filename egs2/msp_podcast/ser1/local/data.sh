@@ -33,7 +33,7 @@ convert_to_sentiment=false
 # Neutral: neu
 
 #data
-datadir=/ocean/projects/cis210027p/shared/corpora/msp_podcast_v1.12
+datadir=
 # msp_podcast
 #  |_ readme.txt
 #  |_ Partitions.txt
@@ -58,6 +58,11 @@ log "$0 $*"
 
 . ./path.sh
 . ./cmd.sh
+
+if [ -z "${datadir}" ]; then
+    log "Error: --datadir is not set. Please set it to the path of MSP-Podcast corpus, e.g. via --local_data_opts '--datadir /path/to/data' in run.sh"
+    exit 1
+fi
 
 if [ "$dummy_data" = true ]; then
     log "Stage 1 (dummy): Generating 10 random dummy samples for unit tests"

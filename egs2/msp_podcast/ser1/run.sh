@@ -11,7 +11,7 @@ test_sets="test test1 test2 valid"
 
 ser_config=conf/train_ser.yaml
 inference_config=conf/decode_asr.yaml
-local_data_opts=""
+local_data_opts="--datadir /path/to/MSP-Podcast"
 # local_data_opts: 5 following options can be set (default=false)
 #--lowercase
 #   Convert transcripts into lowercase if "true".
@@ -34,6 +34,7 @@ local_data_opts=""
 
 ./ser.sh \
     --lang en \
+    --emotions "A S H U F D C N O X" \
     --ngpu 1 \
     --use_lm false \
     --nbpe 5000 \

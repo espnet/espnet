@@ -5,8 +5,10 @@ import torch
 from packaging.version import parse as V
 from typeguard import typechecked
 
+from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.espnet_model import ESPnetASRModel
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
+from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
 from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.ser.loss.abs_loss import AbsLoss
@@ -33,6 +35,8 @@ class ESPnetSERModel(ESPnetASRModel):
         frontend: Optional[AbsFrontend],
         specaug: Optional[AbsSpecAug],
         preencoder: Optional[AbsPreEncoder],
+        encoder: Optional[AbsEncoder],
+        postencoder: Optional[AbsPostEncoder],
         pooling: Optional[AbsPooling],
         projector: Optional[AbsProjector],
         loss: Optional[AbsLoss],
@@ -45,6 +49,8 @@ class ESPnetSERModel(ESPnetASRModel):
         self.frontend = frontend
         self.specaug = specaug
         self.preencoder = preencoder
+        self.encoder = encoder
+        self.postencoder = postencoder
         self.pooling = pooling
         self.projector = projector
         self.loss = loss
@@ -151,5 +157,13 @@ class ESPnetSERModel(ESPnetASRModel):
         # Pre-encoder, e.g. used for raw input data
         if self.preencoder is not None:
             feats, feats_lengths = self.preencoder(feats, feats_lengths)
+
+        # Encoder
+        if self.encoder is not None:
+            feats, feats_lengths = self.encoder(feats, feats_lengths)
+
+        # Post-encoder
+        if self.postencoder is not None:
+            feats, feats_lengths = self.postencoder(feats, feats_lengths)
 
         return feats, feats_lengths

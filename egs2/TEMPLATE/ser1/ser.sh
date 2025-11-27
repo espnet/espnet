@@ -675,8 +675,6 @@ if ! "${skip_data_prep}"; then
                     awk ' { if( NF != 1 ) print $0; } ' > "${data_feats}/${dset}/${utt_extra_file}"
             done
 
-            # fix_data_dir.sh leaves only utts which exist in all files
-            # utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files}" "${data_feats}/${dset}"
             for utt_extra_file in ${utt_extra_files}; do
                 python pyscripts/utils/remove_duplicate_keys.py ${data_feats}/${dset}/${utt_extra_file} \
                     > ${data_feats}/${dset}/${utt_extra_file}.tmp
