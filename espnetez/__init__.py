@@ -1,6 +1,8 @@
-from .config import *
-from .data import *
-from .dataset import *
-from .preprocess import *
-from .task import *
-from .trainer import Trainer
+"""ESpnetez Package."""
+
+from .config import *  # noqa
+from .data import *  # noqa
+from .dataset import *  # noqa
+from .preprocess import *  # noqa
+from .task import *  # noqa
+from .trainer import Trainer  # noqa

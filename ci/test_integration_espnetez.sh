@@ -562,60 +562,77 @@ python -m coverage run --append ../../../test/espnetez/test_integration_espnetez
 rm -rf exp dump data
 
 
-# [ESPnet Easy] test s2st1 recipe with coverage
-cd ${cwd}/egs2/mini_an4/s2st1 || exit
-rm -rf exp dump data
-gen_dummy_coverage
-echo "==== [ESPnet2] S2ST ==="
-./run.sh --ngpu 0 --stage 1 --stop_stage 5 --use_discrete_unit false --s2st_config conf/s2st_spec_debug.yaml
-python -m coverage run --append ../../../test/espnetez/test_integration_espnetez.py \
-    --task s2st \
-    --data_path data \
-    --train_dump_path dump/raw/train_nodev \
-    --valid_dump_path dump/raw/train_dev \
-    --exp_path ./exp \
-    --config_path ./conf/s2st_spec_debug.yaml \
-    --run_collect_stats \
-    --run_train
-
-python -m coverage run --append ../../../test/espnetez/test_integration_espnetez_ft.py \
-    --task s2st \
-    --data_path data \
-    --train_dump_path dump/raw/train_nodev \
-    --valid_dump_path dump/raw/train_dev \
-    --exp_path ./exp \
-    --config_path ./conf/s2st_spec_debug.yaml \
-    --run_finetune
-
-rm -rf exp dump data ckpt
-
-./run.sh --ngpu 0 --stage 1 --stop_stage 5 --python "${python}" --use_discrete_unit true \
-    --s2st_config conf/train_s2st_discrete_unit_debug.yaml --clustering_num_threads 2 --feature_num_clusters 5
-
-python -m coverage run --append ../../../test/espnetez/test_integration_espnetez.py \
-    --task s2st \
-    --data_path data \
-    --train_dump_path dump/raw/train_nodev \
-    --valid_dump_path dump/raw/train_dev \
-    --exp_path ./exp \
-    --config_path ./conf/train_s2st_discrete_unit_debug.yaml \
-    --run_collect_stats \
-    --run_train \
-    --use_discrete_unit
-
-python -m coverage run --append ../../../test/espnetez/test_integration_espnetez_ft.py \
-    --task s2st \
-    --data_path data \
-    --train_dump_path dump/raw/train_nodev \
-    --valid_dump_path dump/raw/train_dev \
-    --exp_path ./exp \
-    --config_path ./conf/train_s2st_discrete_unit_debug.yaml \
-    --run_finetune \
-    --use_discrete_unit
+pytorch_plus(){
+    python3 <<EOF
+from packaging.version import parse as L
+import torch
+if L(torch.__version__) >= L('$1'):
+    print("true")
+else:
+    print("false")
+EOF
+}
 
 
-# Remove generated files in order to reduce the disk usage
-rm -rf exp dump data ckpt .cache
+if pytorch_plus 2.9.0; then
+    # TODO(Nelson): Remove this once s3prl supports torchaudio 2.9.0
+    echo "WARN: Currently, S3prl does not support pytorch/torchaudio 2.9.0. CI test related to s3prl has been disabled."
+else
+    # [ESPnet Easy] test s2st1 recipe with coverage
+    cd ${cwd}/egs2/mini_an4/s2st1 || exit
+    rm -rf exp dump data
+    gen_dummy_coverage
+    echo "==== [ESPnet2] S2ST ==="
+    ./run.sh --ngpu 0 --stage 1 --stop_stage 5 --use_discrete_unit false --use_gpu_feat_extract false --s2st_config conf/s2st_spec_debug.yaml
+    python -m coverage run --append ../../../test/espnetez/test_integration_espnetez.py \
+        --task s2st \
+        --data_path data \
+        --train_dump_path dump/raw/train_nodev \
+        --valid_dump_path dump/raw/train_dev \
+        --exp_path ./exp \
+        --config_path ./conf/s2st_spec_debug.yaml \
+        --run_collect_stats \
+        --run_train
+
+    python -m coverage run --append ../../../test/espnetez/test_integration_espnetez_ft.py \
+        --task s2st \
+        --data_path data \
+        --train_dump_path dump/raw/train_nodev \
+        --valid_dump_path dump/raw/train_dev \
+        --exp_path ./exp \
+        --config_path ./conf/s2st_spec_debug.yaml \
+        --run_finetune
+
+    rm -rf exp dump data ckpt
+
+    ./run.sh --ngpu 0 --stage 1 --stop_stage 5 --python "${python}" --use_gpu_feat_extract false --use_discrete_unit true \
+        --s2st_config conf/train_s2st_discrete_unit_debug.yaml --clustering_num_threads 2 --feature_num_clusters 5
+
+    python -m coverage run --append ../../../test/espnetez/test_integration_espnetez.py \
+        --task s2st \
+        --data_path data \
+        --train_dump_path dump/raw/train_nodev \
+        --valid_dump_path dump/raw/train_dev \
+        --exp_path ./exp \
+        --config_path ./conf/train_s2st_discrete_unit_debug.yaml \
+        --run_collect_stats \
+        --run_train \
+        --use_discrete_unit
+
+    python -m coverage run --append ../../../test/espnetez/test_integration_espnetez_ft.py \
+        --task s2st \
+        --data_path data \
+        --train_dump_path dump/raw/train_nodev \
+        --valid_dump_path dump/raw/train_dev \
+        --exp_path ./exp \
+        --config_path ./conf/train_s2st_discrete_unit_debug.yaml \
+        --run_finetune \
+        --use_discrete_unit
+
+
+    # Remove generated files in order to reduce the disk usage
+    rm -rf exp dump data ckpt .cache
+fi
 
 # [ESPnet Easy] test spk recipe with coverage
 cd ${cwd}/egs2/mini_an4/spk1 || exit
