@@ -82,7 +82,7 @@ class ArkiveAudioReader:
             """
             )
 
-        self.data = pl.from_arrow(result.arrow())
+        self.data = result.pl()
         self.index = {
             utt_id: idx for idx, utt_id in enumerate(self.data["utt_id"].to_list())
         }
