@@ -1,4 +1,6 @@
+import pytest
 import torch
+from packaging.version import parse as V
 
 from espnet2.gan_svs.post_frontend.fused import FusedPostFrontends
 
@@ -18,7 +20,13 @@ frontend2 = {
 
 list_frontends = [frontend1, frontend2]
 
+is_torch_2_9_plus = V(torch.__version__) >= V("2.9.0")
 
+
+@pytest.mark.skipif(
+    is_torch_2_9_plus,
+    reason="S3PRL is using unsupported attribute `set_audio_backend`.",
+)
 def test_frontend_init():
     frontend = FusedPostFrontends(
         fs="16k",
@@ -31,6 +39,10 @@ def test_frontend_init():
     assert len(frontend.factors) == len(frontend.postfrontends)
 
 
+@pytest.mark.skipif(
+    is_torch_2_9_plus,
+    reason="S3PRL is using unsupported attribute `set_audio_backend`.",
+)
 def test_frontend_output_size():
     frontend = FusedPostFrontends(
         fs="16k",
@@ -42,6 +54,10 @@ def test_frontend_output_size():
     assert frontend.output_size() == 100 * len(list_frontends)
 
 
+@pytest.mark.skipif(
+    is_torch_2_9_plus,
+    reason="S3PRL is using unsupported attribute `set_audio_backend`.",
+)
 def test_frontend_backward():
     frontend = FusedPostFrontends(
         fs="16k",
