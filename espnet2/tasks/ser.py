@@ -364,9 +364,7 @@ class SERTask(ASRTask):
         pooling_class = pooling_choices.get_class(args.pooling)
         # Use encoder_output_size which accounts for encoder/postencoder if they exist,
         # or falls back to preencoder/input_size if they don't
-        pooling = pooling_class(
-            input_size=encoder_output_size, **args.pooling_conf
-        )
+        pooling = pooling_class(input_size=encoder_output_size, **args.pooling_conf)
         pooling_output_size = pooling.output_size()
         # 7. Projector
         projector_class = projector_choices.get_class(args.projector)
