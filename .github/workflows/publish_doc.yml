@@ -38,7 +38,7 @@ jobs:
         with:
           path: ~/.cache/pip
           key: pip-${{ hashFiles('**/setup.py') }}
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.10'
           architecture: "x64"
@@ -51,7 +51,7 @@ jobs:
       - name: install espnet
         env:
           ESPNET_PYTHON_VERSION: 3.10
-          TH_VERSION: 2.1.2
+          TH_VERSION: 2.5.1
           CHAINER_VERSION: 6.0.0
           USE_CONDA: false
         run: ./ci/install.sh
@@ -59,7 +59,7 @@ jobs:
         run: ./ci/doc.sh
       - name: deploy
         if: github.ref == 'refs/heads/master'
-        uses: peaceiris/actions-gh-pages@v3
+        uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./dist
