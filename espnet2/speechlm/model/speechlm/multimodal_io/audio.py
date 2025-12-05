@@ -3,6 +3,7 @@
 
 """Audio I/O implementation for discrete and continuous representations"""
 
+import math
 from pathlib import Path
 from typing import List, Optional, Tuple
 
@@ -177,6 +178,37 @@ class DiscreteAudioIO(AbsIO):
             self.codec_frame_shift = meta_info["frame_shift"]
             self.codec_frame_per_second = (
                 self.codec_sample_rate // self.codec_frame_shift
+            )
+
+        elif codec_choice == "Xcodec":
+            try:
+                from transformers import XcodecModel
+            except ImportError as e:
+                raise ImportError(f"Failed to import 'transformers': {e}")
+
+            # checkpoint for general audio is: hf-audio/xcodec-hubert-general
+            self.codec_model = XcodecModel.from_pretrained(codec_hf_model_tag)
+            self.codec_n_streams = min(
+                self.codec_model.config.num_quantizers, codec_max_token_per_frame
+            )
+            self.codec_vocab_size = [
+                self.codec_model.config.codebook_size
+            ] * self.codec_n_streams
+            self.codec_sample_rate = self.codec_model.config.sample_rate
+            self.codec_frame_shift = self.codec_model.config.hop_length
+            self.codec_frame_per_second = self.codec_model.config.frame_rate
+            bandwidth_per_quantizer = (
+                math.log2(self.codec_model.config.codebook_size)
+                * self.codec_frame_per_second
+                / 1000
+            )  # kbps
+            codec_bandwidth = bandwidth_per_quantizer * self.codec_n_streams
+
+            # Select the closest target bandwidth from available options
+            # Xcodec encode requires bandwidth to be in config.target_bandwidths
+            target_bandwidths = self.codec_model.config.target_bandwidths
+            self.codec_bandwidth = min(
+                target_bandwidths, key=lambda x: abs(x - codec_bandwidth)
             )
 
         else:
@@ -488,7 +520,7 @@ class DiscreteAudioIO(AbsIO):
         # Decode codec tokens to audio
         audio, audio_lengths = self._codec_decode_batch(codec_codes, lengths)
 
-        return audio, audio_lengths
+        return audio, audio_lengths, self.sample_rate
 
     def _codec_decode_batch(
         self, codes: torch.Tensor, lengths: torch.Tensor
@@ -519,6 +551,16 @@ class DiscreteAudioIO(AbsIO):
             # Calculate audio sample lengths from frame lengths
             audio_lengths = lengths * self.frame_shift
 
+        elif self.codec_choice == "Xcodec":
+            codes = codes.permute(0, 2, 1)  # [batch, codec_n_streams, time]
+            audio = self.codec_model.decode(
+                codes
+            ).audio_values  # [batch, num_channels, num_samples]
+            # Ensure audio has channel dimension [batch, 1, num_samples]
+            if audio.dim() == 2:
+                audio = audio.unsqueeze(1)
+
+            audio_lengths = lengths * self.frame_shift
         else:
             raise NotImplementedError(
                 f"Codec choice '{self.codec_choice}' not implemented for decoding"
@@ -543,7 +585,7 @@ class DiscreteAudioIO(AbsIO):
                 raise ValueError(
                     "ESPnet-Hubert SSL model doesn't support multi-channel audio"
                 )
-            feats = self.ssl_model.encode(data.squeeze(1), length)["encoder_output"][-1]
+            feats = self.ssl_model.inference_encode(data.squeeze(1), length)[0]
             ssl_codes = self.km_model(feats)
         else:
             raise NotImplementedError(f"SSL choice '{self.ssl_choice}' not implemented")
@@ -576,6 +618,19 @@ class DiscreteAudioIO(AbsIO):
             # Permute from [codec_n_streams, batch, time]
             # to [batch, time, codec_n_streams]
             codes = codes.permute(1, 2, 0)[:, :, : self.codec_n_streams]
+        elif self.codec_choice == "Xcodec":
+            max_len = int(length.max().item())
+            data_trimmed = data[:, :, :max_len]
+            # Skip feature_extractor to avoid inefficient GPU-CPU-GPU transfers.
+            # We manually trim the data above (which is already on GPU), so using
+            # feature_extractor for padding/trimming would be redundant and cause
+            # unnecessary data movement: GPU tensor -> CPU numpy -> GPU tensor.
+            codes = self.codec_model.encode(
+                data_trimmed,
+                bandwidth=self.codec_bandwidth,
+                return_dict=False,
+            )  # [batch, num_quantizers, time]
+            codes = codes.permute(0, 2, 1)[:, :, : self.codec_n_streams]
 
         else:
             raise NotImplementedError(
@@ -594,8 +649,9 @@ class DiscreteAudioIO(AbsIO):
         Returns:
             Frame length after encoding (number of frames)
         """
-        wav, _ = data
-        frame_length = wav.shape[-1] // self.frame_shift
+        wav, sr = data
+        num_samples = wav.shape[-1] * self.sample_rate / sr
+        frame_length = num_samples // self.frame_shift
 
         if self.delay_interleave:
             frame_length = frame_length + self.num_stream() - 1
@@ -620,7 +676,9 @@ class DiscreteAudioIO(AbsIO):
                 - conti_feat: Tuple of (length, transposed_audio) for GPU encoding
                 - loss_mask: Stream weights broadcasted to [length, num_stream]
         """
-        wav, _ = data
+        wav, sr = data
+        if sr != self.sample_rate:
+            raise ValueError("Sample rate is not compatible for discrete audio")
         length = self.find_length(data)
 
         ones = np.ones((length, self.num_stream())).astype(np.int32)
@@ -863,6 +921,7 @@ class ContinuousAudioIO(AbsIO):
             truncation=False,
             return_tensors="np",
             do_normalize=True,
+            max_length=wav.shape[0],
             return_token_stamps=True,
             return_attention_mask=True,
             sampling_rate=self.sample_rate,

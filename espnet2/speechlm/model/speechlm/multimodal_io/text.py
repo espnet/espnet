@@ -5,6 +5,7 @@
 
 from typing import List, Tuple
 
+import torch
 import numpy as np
 from transformers import AutoConfig, AutoTokenizer
 
@@ -55,7 +56,7 @@ class HuggingFaceTextIO(AbsIO):
 
         return tokens, conti_feat, loss_mask
 
-    def decode(self, tokens: np.ndarray) -> str:
+    def decode_batch(self, tokens: torch.Tensor, lengths: torch.Tensor) -> str:
         """Decode a 1D tensor of token IDs to text string.
 
         Args:
@@ -64,17 +65,21 @@ class HuggingFaceTextIO(AbsIO):
         Returns:
             Decoded text string
         """
-        # Ensure 1D array
-        if tokens.ndim != 1:
-            raise ValueError(f"Expected 1D tensor, got shape {tokens.shape}")
 
-        # Convert numpy array to list and decode
-        text = self.tokenizer.decode(
-            tokens.tolist(),
-            skip_special_tokens=True,
-            clean_up_tokenization_spaces=True,
-        )
-        return text
+        assert tokens.ndim == 3
+        tokens = tokens[..., 0].cpu().tolist()
+
+        ret_vals = list()
+        for token, length in zip(tokens, lengths):
+            token = token[:length]
+            text = self.tokenizer.decode(
+                token,
+                skip_special_tokens=True,
+                clean_up_tokenization_spaces=True,
+            )
+            ret_vals.append(text)
+
+        return ret_vals
 
     def find_length(self, data: str) -> int:
         """Get token count for length statistics.
