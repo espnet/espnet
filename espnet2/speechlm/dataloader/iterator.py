@@ -66,8 +66,8 @@ class DataIteratorFactory:
 
     def __init__(
         self,
-        unregistered_specifier: str,
-        registered_specifier: str,
+        unregistered_specifier: str = "",
+        registered_specifier: str = "",
         stats_dir: Union[str, Path] = None,
         loader_state: Optional[Path] = None,
         collate_fn: Optional[Callable] = None,
@@ -78,6 +78,7 @@ class DataIteratorFactory:
         world_size: int = 1,
         shuffle: bool = False,
         sequential_load: bool = False,
+        save_loader_state: bool = False,
         seed: int = 42,
     ):
         self.collate_fn = collate_fn
@@ -120,7 +121,9 @@ class DataIteratorFactory:
         self.dataset = dataset
 
         if self.sequential_load:
-            assert self.num_workers == 0, "No multiple workers during collect_stats"
+            assert (
+                self.num_workers == 0
+            ), "No multiple workers during sequential loading"
 
             all_subsets = dataset.get_all_examples()
             self.batched_examples = []
@@ -176,16 +179,37 @@ class DataIteratorFactory:
                 all_examples, all_lengths, batch_size, batchfy_method
             )
             self.batched_examples = batched_examples
-            logging.info(f"Overall number of batches: {len(batched_examples)}")
 
             # Only save state if loader_state path was provided
-            if loader_state is not None:
+            if loader_state is not None and save_loader_state:
                 self.save_iterator_state(loader_state)
         else:
             # loader_state is not None and exists
-            self.load_iterator_state(loader_state)
+            self.batched_examples = self.load_iterator_state(loader_state)
 
-    def build_iter(self, global_step: int = 0, length: int = None) -> DataLoader:
+        logging.info(f"Overall number of batches: {len(self.batched_examples)}")
+
+    def build_index(self, seed: int) -> List[int]:
+        """Build a batch index ordering for a given seed.
+
+        Args:
+            seed: Random seed for shuffling. Different seeds produce
+                different orderings.
+
+        Returns:
+            List of batch indices, shuffled if self.shuffle is True.
+        """
+        index = list(range(len(self.batched_examples)))
+
+        if self.shuffle:
+            rng = random.Random(seed)
+            rng.shuffle(index)
+
+        return index
+
+    def build_iter(
+        self, global_step: int = 0, length: Optional[int] = None
+    ) -> DataLoader:
         """Get a DataLoader for a specific range of batches.
 
         Supports endless epochs by wrapping around when batches are
@@ -195,6 +219,7 @@ class DataIteratorFactory:
         Args:
             global_step: Starting batch index (must be non-negative).
             length: Number of batches to include (must be positive).
+                If None, defaults to total number of batches.
 
         Returns:
             DataLoader that iterates over the specified batch range.
@@ -204,31 +229,27 @@ class DataIteratorFactory:
         """
         total_batches = len(self.batched_examples)
 
-        if length is None:
-            length = total_batches
-
-        # Validate parameters
+        if total_batches == 0:
+            raise ValueError("No batches available")
         if global_step < 0:
             raise ValueError(f"global_step must be non-negative, got {global_step}")
-        if length <= 0:
+        if length is not None and length <= 0:
             raise ValueError(f"length must be positive, got {length}")
-        if total_batches == 0:
-            raise ValueError("No batches available. Cannot create iterator.")
 
-        # Normalize global_step to be within range
-        start_idx = global_step % total_batches
+        length = total_batches if length is None else length
 
-        # Build batch subset with wrapping
-        batch_subset = [
-            self.batched_examples[(start_idx + i) % total_batches]
-            for i in range(length)
-        ]
+        index = None
 
-        # Shuffle if needed
-        if self.shuffle:
-            rng = random.Random(self.seed + global_step)
-            rng.shuffle(batch_subset)
-            logging.info(f"Shuffled batches with seed {self.seed + global_step}")
+        batch_index = []
+        for n in range(global_step, global_step + length):
+            # Enter a new epoch, regenerate the index
+            if n % total_batches == 0 or index is None:
+                real_epoch = n // total_batches
+                index = self.build_index(self.seed + real_epoch)
+
+            batch_index.append(index[n % total_batches])
+
+        batch_subset = [self.batched_examples[n] for n in batch_index]
 
         # Calculate epoch information for logging
         start_epoch = global_step // total_batches
@@ -238,13 +259,13 @@ class DataIteratorFactory:
         if start_epoch == end_epoch:
             logging.info(
                 f"Created DataLoader with {length} batches "
-                f"(epoch {start_epoch}, steps {global_step} to {end_step})"
+                f"(epoch {start_epoch}, steps {global_step} to {end_step - 1})"
             )
         else:
             logging.info(
                 f"Created DataLoader with {length} batches "
                 f"(epochs {start_epoch} to {end_epoch}, "
-                f"steps {global_step} to {end_step})"
+                f"steps {global_step} to {end_step - 1})"
             )
 
         # Create DataLoader with batch_sampler
@@ -253,6 +274,9 @@ class DataIteratorFactory:
             batch_sampler=batch_subset,
             num_workers=self.num_workers,
             collate_fn=self.collate_fn,
+            prefetch_factor=10 if self.num_workers > 0 else None,
+            pin_memory=True,
+            persistent_workers=True if self.num_workers > 0 else False,
         )
 
         return dataloader
@@ -292,14 +316,16 @@ class DataIteratorFactory:
 
         # Convert nested lists back to proper structure:
         # Each batch is a list of tuples (converted from lists by JSON)
-        self.batched_examples = [
+        batched_examples = [
             [tuple(example) for example in batch] for batch in state["batched_examples"]
         ]
 
         logging.info(
             f"Loaded iterator state from {loader_state} "
-            f"with {len(self.batched_examples)} batches"
+            f"with {len(batched_examples)} batches"
         )
+
+        return batched_examples
 
 
 def _parse_data_specifier(

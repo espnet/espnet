@@ -13,15 +13,9 @@ from typing import Any, Dict, List, Tuple
 import yaml
 from torch.utils.data import Dataset
 
-from espnet2.speechlm.dataloader.multimodal_loader.audio_loader import LhotseAudioReader
-from espnet2.speechlm.dataloader.multimodal_loader.text_loader import TextReader
+from espnet2.speechlm.dataloader.multimodal_loader import ALL_DATA_LOADERS
 
 logger = logging.getLogger(__name__)
-
-reader_types = {
-    "lhotse_audio": LhotseAudioReader,
-    "text": TextReader,
-}
 
 # TODO(Jinchuan): revisit the CPU memory usage for large-scale training. Check official
 # information as follow:
@@ -80,9 +74,9 @@ class SingleDataset(Dataset):
             reader_type = entry["reader"]
 
             # Create appropriate reader with valid_ids for this rank
-            if reader_type not in reader_types:
+            if reader_type not in ALL_DATA_LOADERS:
                 raise ValueError(f"Unknown reader type: {reader_type}")
-            reader_class = reader_types[reader_type]
+            reader_class = ALL_DATA_LOADERS[reader_type]
             self.readers[name] = reader_class(path, valid_ids=self.samples)
 
     @property
@@ -172,16 +166,12 @@ class CombinedDataset(Dataset):
         # Use ProcessPoolExecutor for parallel loading
         max_workers = min(num_worker, len(dataset_paths))
         max_workers = max(1, max_workers)
-        with ProcessPoolExecutor(max_workers=max_workers) as executor:
-            # Submit all loading tasks
-            futures = [
-                executor.submit(_load_dataset_worker, args) for args in worker_args
-            ]
 
-            # Collect results as they complete
-            for future in as_completed(futures):
+        if max_workers == 1:
+            # Load sequentially when max_workers is 1 to avoid process pool overhead
+            for args in worker_args:
                 try:
-                    dataset_name, dataset, dataset_len = future.result()
+                    dataset_name, dataset, dataset_len = _load_dataset_worker(args)
                     self.datasets[dataset_name] = dataset
                     logging.info(
                         f"Loaded dataset [{dataset_name}]. "
@@ -189,6 +179,25 @@ class CombinedDataset(Dataset):
                     )
                 except Exception as e:
                     raise RuntimeError(f"Failed to load dataset: {e}") from e
+        else:
+            # Use ProcessPoolExecutor for parallel loading
+            with ProcessPoolExecutor(max_workers=max_workers) as executor:
+                # Submit all loading tasks
+                futures = [
+                    executor.submit(_load_dataset_worker, args) for args in worker_args
+                ]
+
+                # Collect results as they complete
+                for future in as_completed(futures):
+                    try:
+                        dataset_name, dataset, dataset_len = future.result()
+                        self.datasets[dataset_name] = dataset
+                        logging.info(
+                            f"Loaded dataset [{dataset_name}]. "
+                            f"Local dataset size: [{dataset_len}]."
+                        )
+                    except Exception as e:
+                        raise RuntimeError(f"Failed to load dataset: {e}") from e
 
     def _load_registry(self) -> Dict[str, str]:
         """Load and merge registry files from ESPNET_DATASET_REGISTRY env variable.
