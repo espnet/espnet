@@ -6,9 +6,9 @@
 
 import argparse
 import logging
+import os
 import shutil
 import sys
-import os
 from pathlib import Path
 
 import deepspeed
