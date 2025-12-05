@@ -13,14 +13,13 @@ import deepspeed
 import torch
 import torch.nn as nn
 import wandb
+from deepspeed.moe.utils import split_params_into_different_moe_groups_for_optimizer
 
-from espnet2.speechlm.utils.data import to_device
-from espnet2.speechlm.utils.model_summary import model_summary
 from espnet2.speechlm.model.speechlm.moe_utils.replace_moe_layer import (
     replace_qwen3_moe_layer,
 )
-
-from deepspeed.moe.utils import split_params_into_different_moe_groups_for_optimizer
+from espnet2.speechlm.utils.data import to_device
+from espnet2.speechlm.utils.model_summary import model_summary
 
 logger = logging.getLogger(__name__)
 
