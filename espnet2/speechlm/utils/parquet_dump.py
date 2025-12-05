@@ -1,8 +1,9 @@
-from arkive import Arkive
 import multiprocessing as mp
 from pathlib import Path
-import pyarrow.parquet as pq
+
 import pyarrow as pa
+import pyarrow.parquet as pq
+from arkive import Arkive
 
 
 def dump_arkive_singleprocess(

@@ -1,7 +1,7 @@
 ### Latest code:
-The latest codebase is always under this Github branch. ```https://github.com/jctian98/espnet/tree/speechlm_main```  
-Codebase: ```<espnet_root>/espnet2/speechlm```   
-Recipe: ```<espnet_root>/egs2/librispeech/speechlm```   
+The latest codebase is always under this Github branch. ```https://github.com/jctian98/espnet/tree/speechlm_main```
+Codebase: ```<espnet_root>/espnet2/speechlm```
+Recipe: ```<espnet_root>/egs2/librispeech/speechlm```
 Please Note: The whole ESPnet project is very large, but the codebase itself is totally self-consistent: it contains zero dependency to any other folders. The codebase folder itself is small and clean.
 
 ### Installation
@@ -30,7 +30,7 @@ pip install -r requirement.txt
 (5) Install Flash attention. Recommend to build from source
 ```bash
 # from pre-built wheel
-pip install flash-attn --no-build-isolation 
+pip install flash-attn --no-build-isolation
 # or from source
 git clone https://github.com/Dao-AILab/flash-attention.git
 cd flash-attention
@@ -43,7 +43,7 @@ python setup.py install
 cd <espnet_root>/egs2/librispeech/speechlm
 ```
 
-(2) Remember to activate your Python environment  
+(2) Remember to activate your Python environment
 
 (3) Prepare the dataset in the designed format.
 ```bash
