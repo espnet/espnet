@@ -8,12 +8,15 @@ def uninstall_task_extras(pyproject_path="pyproject.toml"):
         data = toml.load(f)
 
     optional_deps = data.get("project", {}).get("optional-dependencies", {})
+    target_names = {"asr", "tts", "enh", "st", "s2t", "s2st", "spk"}
     task_extras = {
-        name: deps for name, deps in optional_deps.items() if name.startswith("task-")
+        name: deps
+        for name, deps in optional_deps.items()
+        if name in target_names
     }
 
     if not task_extras:
-        print("No [task-*] extras found.")
+        print("No task extras found.")
         return
 
     packages = set()
@@ -22,7 +25,7 @@ def uninstall_task_extras(pyproject_path="pyproject.toml"):
             pkg = dep.split()[0].split("=")[0].split("<")[0].split(">")[0]
             packages.add(pkg)
 
-    print("[*] Uninstalling the following task-* dependencies:")
+    print("[*] Uninstalling the following task extras dependencies:")
     for pkg in sorted(packages):
         print(f" - {pkg}")
 

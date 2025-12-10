@@ -224,7 +224,7 @@ class TransposedLinear(nn.Module):
 
         if contract is None:
             raise RuntimeError(
-                "Please install espnet with `pip install espnet[task-asr]`"
+                "Please install espnet with `pip install espnet[asr]`"
             )
 
         self.weight = nn.Parameter(torch.empty(d_output, d_input))

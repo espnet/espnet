@@ -99,9 +99,7 @@ class CISDRLoss(TimeDomainLoss):
             is_dereverb_loss=is_dereverb_loss,
         )
         if ci_sdr is None:
-            raise RuntimeError(
-                "Please install espnet with `pip install espnet[task-enh]`"
-            )
+            raise RuntimeError("Please install espnet with `pip install espnet[enh]`")
 
         self.filter_length = filter_length
 
@@ -192,7 +190,7 @@ class SDRLoss(TimeDomainLoss):
         )
         if fast_bss_eval is None:
             raise RuntimeError(
-                "Please install espnet with `pip install espnet[task-enh]`"
+                "Please install espnet with `pip install espnet[enh]`"
             )
 
         self.filter_length = filter_length
@@ -262,7 +260,7 @@ class SISNRLoss(TimeDomainLoss):
         )
         if fast_bss_eval is None:
             raise RuntimeError(
-                "Please install espnet with `pip install espnet[task-enh]`"
+                "Please install espnet with `pip install espnet[enh]`"
             )
 
         self.clamp_db = clamp_db

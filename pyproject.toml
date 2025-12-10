@@ -74,13 +74,13 @@ include = ["espnet*"]
 
 
 [project.optional-dependencies]
-task-asr = [
+asr = [
   "ctc-segmentation @ git+https://github.com/espnet/ctc-segmentation.git@9b9ea1d",
   "editdistance",
   "opt_einsum",
 ]
 
-task-tts = [
+tts = [
   "pyworld>=0.3.4",
   "pypinyin<=0.44.0",
   "espnet_tts_frontend",
@@ -89,30 +89,30 @@ task-tts = [
   "jaconv",
 ]
 
-task-enh = [
+enh = [
   "ci_sdr",
   "fast-bss-eval==0.1.3",
 ]
 
-task-asr2 = [
+asr2 = [
   "editdistance",
 ]
 
 # We didn't specify s3prl version as it should be installed via github.
-task-s2st = [
+s2st = [
   "editdistance",
   "s3prl",
 ]
 
-task-st = [
+st = [
   "editdistance",
 ]
 
-task-s2t = [
+s2t = [
   "editdistance",
 ]
 
-task-spk = [
+spk = [
   "asteroid_filterbanks==0.4.0"
 ]
 
@@ -150,10 +150,10 @@ doc = [
 ]
 
 all = [
-  "espnet[task-asr]",
-  "espnet[task-tts]",
-  "espnet[task-enh]",
-  "espnet[task-spk]",
+  "espnet[asr]",
+  "espnet[tts]",
+  "espnet[enh]",
+  "espnet[spk]",
   "fairscale",
   "transformers",
   "evaluate",
