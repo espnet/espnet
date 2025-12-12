@@ -51,7 +51,10 @@ class LibriSpeechDataset(TorchDataset):
                 f"Dataset directory not found: {data_root.resolve().as_posix()}"
             )
         if cfg.split is None:
-            raise ValueError("Please specify the Hugging Face dataset split name.")
+            raise ValueError(
+                "Please specify the Hugging Face dataset split name. "
+                f"Available: {list(dataset.keys())}"
+            )
 
         dataset = load_from_disk(str(data_root))
         if isinstance(dataset, DatasetDict):
