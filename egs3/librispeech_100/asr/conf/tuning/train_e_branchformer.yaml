@@ -9,19 +9,8 @@ task: espnet3.systems.asr.task.ASRTask
 
 
 parallel:
-  env: slurm
-  n_workers: 16
-  options:
-    account: bbjs-delta-cpu
-    queue: cpu
-    cores: 4
-    processes: 1
-    memory: 16GB
-    death_timeout: 180
-    # walltime: 1:00:00
-    log_directory: logs/
-    job_extra_directives:
-      - "--time=1:00:00"
+  env: local
+  n_workers: 1
 
 
 
