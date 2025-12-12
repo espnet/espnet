@@ -10,9 +10,7 @@ def uninstall_task_extras(pyproject_path="pyproject.toml"):
     optional_deps = data.get("project", {}).get("optional-dependencies", {})
     target_names = {"asr", "tts", "enh", "st", "s2t", "s2st", "spk"}
     task_extras = {
-        name: deps
-        for name, deps in optional_deps.items()
-        if name in target_names
+        name: deps for name, deps in optional_deps.items() if name in target_names
     }
 
     if not task_extras:
