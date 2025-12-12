@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 import pytest
 from yaml.parser import ParserError
@@ -6,41 +7,46 @@ from yaml.parser import ParserError
 from espnet3.utils.config import load_config_with_defaults, load_line
 
 # ===============================================================
-# Test Case Summary for Config Utilities
+# Test Case Summary for Config Utilities 
 # ===============================================================
 #
 # Tests for `load_line(path)`
-# | Test Name                         | Description                                                    | # noqa: E501
-# |----------------------------------|----------------------------------------------------------------| # noqa: E501
-# | test_load_line_basic             | Reads a file with multiple lines like `"a\\nb\\nc"`            | # noqa: E501
-# | test_load_line_with_whitespace   | Strips leading/trailing whitespace from each line              | # noqa: E501
-# | test_load_line_empty_file        | Returns an empty list for an empty file                        | # noqa: E501
-# | test_load_line_single_line       | Handles file with only one line, no newline                    | # noqa: E501
-# | test_load_line_trailing_newline  | Handles file ending with a newline character                   | # noqa: E501
+# | Test Name                  | Description                      |
+# |----------------------------|----------------------------------|
+# | test_load_line_basic       | Reads multiline like "a\nb\nc" |
+# | test_load_line_with_whitespace | Strips surrounding whitespace   |
+# | test_load_line_empty_file  | Empty file → empty list          |
+# | test_load_line_single_line | Handles single-line file         |
+# | test_load_line_trailing_newline | Handles trailing newline        |
 #
 # Simple Tests for `load_config_with_defaults`
-# | Test Name                          | Description                                                    | # noqa: E501
-# |-----------------------------------|----------------------------------------------------------------| # noqa: E501
-# | test_config_without_defaults       | Config with no `defaults` key, should load as-is               | # noqa: E501
-# | test_config_with_self_only         | `defaults: [_self_]` merges config with itself                 | # noqa: E501
-# | test_config_with_one_include       | Includes one external config file via `defaults`              | # noqa: E501
-# | test_config_with_key_value         | Loads config with `defaults: [{opt: adam}]` → opt/adam.yaml    | # noqa: E501
-# | test_config_update_with_key_value  | Adds extra fields to a nested dict loaded from `defaults`      | # noqa: E501
-# | test_config_ignore_none_entry      | Skips null entries in the `defaults` list                      | # noqa: E501
-# | test_defaults_removed_after_merge  | Ensures `defaults` is not present in the final config          | # noqa: E501
+# | Test Name                      | Description                  |
+# |--------------------------------|------------------------------|
+# | test_config_without_defaults   | Loads config as-is           |
+# | test_config_with_self_only     | defaults: [_self_] merges    |
+# | test_config_with_one_include   | Includes one external file   |
+# | test_config_with_key_value     | defaults: [{opt: adam}]      |
+# | test_config_update_with_key_value | Merges extra nested fields   |
+# | test_config_ignore_none_entry  | Skips null defaults entries  |
+# | test_defaults_removed_after_merge | Drops defaults key           |
 #
 # Complex/Recursive Merging
-# | Test Name                          | Description                                                    | # noqa: E501
-# |-----------------------------------|----------------------------------------------------------------| # noqa: E501
-# | test_config_with_nested_defaults   | Nested includes (config includes another config that has its own defaults) | # noqa: E501
-# | test_config_with_self_in_middle    | `_self_` appears in the middle of the `defaults` list          | # noqa: E501
+# | Test Name                      | Description                  |
+# |--------------------------------|------------------------------|
+# | test_config_with_nested_defaults | Resolves nested defaults      |
+# | test_config_with_self_in_middle | `_self_` in middle respected |
+#
+# Dataset auto-resolution
+# | Test Name                               | Description            |
+# |-----------------------------------------|------------------------|
+# | test_config_auto_infers_dataset_target  | Fills organizer + ds   |
+# | test_config_infers_dataset_requires_single_class | Errors on multiple classes |
 #
 # Error Cases
-# | Test Name                          | Description                                                    | Expected Exception       | # noqa: E501
-# |-----------------------------------|----------------------------------------------------------------|--------------------------| # noqa: E501
-# | test_missing_file_raises           | Missing file in `defaults`                                     | FileNotFoundError        | # noqa: E501
-# | test_invalid_yaml_raises           | YAML parse error in included file                              | ParserError              | # noqa: E501
-
+# | Test Name                 | Expected Exception        |
+# |---------------------------|---------------------------|
+# | test_missing_file_raises  | FileNotFoundError         |
+# | test_invalid_yaml_raises  | ParserError               |
 
 @pytest.fixture
 def tmp_txt_file(tmp_path):
@@ -277,3 +283,68 @@ defaults:
 
     with pytest.raises(ParserError):
         load_config_with_defaults(str(main_path))
+
+
+def test_config_auto_infers_dataset_target(tmp_path):
+    recipe_root = tmp_path / "recipe"
+    conf_dir = recipe_root / "conf"
+    src_dir = recipe_root / "src"
+    conf_dir.mkdir(parents=True)
+    src_dir.mkdir()
+    (src_dir / "dataset.py").write_text(
+        """
+class MyDataset:
+    pass
+"""
+    )
+
+    config_path = conf_dir / "config.yaml"
+    config_path.write_text(
+        """
+defaults:
+  - _self_
+dataset:
+  train:
+    - name: train
+      dataset:
+        split: train
+"""
+    )
+
+    cfg = load_config_with_defaults(str(config_path))
+    assert cfg.dataset._target_ == "espnet3.components.data_organizer.DataOrganizer"
+    assert Path(cfg.dataset.dataset_module) == src_dir / "dataset.py"
+    assert cfg.dataset.train[0].dataset._target_ == "src.dataset.MyDataset"
+
+
+def test_config_infers_dataset_requires_single_class(tmp_path):
+    recipe_root = tmp_path / "recipe"
+    conf_dir = recipe_root / "conf"
+    src_dir = recipe_root / "src"
+    conf_dir.mkdir(parents=True)
+    src_dir.mkdir()
+    (src_dir / "dataset.py").write_text(
+        """
+class FirstDataset:
+    pass
+
+class SecondDataset:
+    pass
+"""
+    )
+
+    config_path = conf_dir / "config.yaml"
+    config_path.write_text(
+        """
+defaults:
+  - _self_
+dataset:
+  train:
+    - name: train
+      dataset:
+        split: train
+"""
+    )
+
+    with pytest.raises(ValueError):
+        load_config_with_defaults(str(config_path))

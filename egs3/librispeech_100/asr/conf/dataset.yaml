@@ -1,28 +1,24 @@
 # Dataset and dataloader configuration for LibriSpeech 100h
 dataset:
-  _target_: espnet3.components.data_organizer.DataOrganizer
+  dataset_module: src/dataset.py
+  # _target_ is optional; defaults to espnet3.components.data_organizer.DataOrganizer
   train:
     - name: train-clean-100
       dataset:
-        _target_: src.dataset.LibriSpeechDataset
         split: train-clean-100
   valid:
     - name: dev-clean
       dataset:
-        _target_: src.dataset.LibriSpeechDataset
         split: dev-clean
     - name: dev-other
       dataset:
-        _target_: src.dataset.LibriSpeechDataset
         split: dev-other
   test:
     - name: test-clean
       dataset:
-        _target_: src.dataset.LibriSpeechDataset
         split: test-clean
     - name: test-other
       dataset:
-        _target_: src.dataset.LibriSpeechDataset
         split: test-other
 
   preprocessor:

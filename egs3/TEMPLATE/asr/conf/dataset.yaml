@@ -1,5 +1,21 @@
-# Dataset and dataloader configuration for LibriSpeech 100h
-
+# Dataset configuration example (auto-resolves DataOrganizer + dataset class)
 dataset:
-  _target_: espnet3.data.DataOrganizer
+  dataset_module: src/dataset.py
+  # _target_ can be omitted; it defaults to
+  # espnet3.components.data_organizer.DataOrganizer
+  train:
+    - name: train-split
+      dataset:
+        # When _target_ is omitted, the loader will try to infer it from src/dataset.py
+        split: train-clean-100
+  valid:
+    - name: valid-split
+      dataset:
+        split: dev-clean
+  test:
+    - name: test-split
+      dataset:
+        split: test-clean
+
+  # Optional global preprocessor; can also be omitted
   preprocessor:

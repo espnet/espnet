@@ -3,4 +3,4 @@ defaults:
   - default.yaml
   - dataset.yaml
 
-exp_tag: template
+exp_tag: asr_template_train

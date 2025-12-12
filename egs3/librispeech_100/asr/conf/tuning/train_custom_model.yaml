@@ -4,7 +4,7 @@ defaults:
   - dataset_owsm.yaml
 
 
-exp_tag: template_3
+exp_tag: librispeech100_asr_custom_model
 data_dir: ${recipe_dir}/data
 
 tokenizer:

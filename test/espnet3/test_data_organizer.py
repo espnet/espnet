@@ -36,6 +36,8 @@ from espnet3.components.dataset import (
 # | test_data_organizer_preprocessor_only| Applies only preprocessor to data    |
 # | test_data_organizer_transform_and_preprocessor | Applies both transform and |
 # |                                      | preprocessor                         |
+# | test_data_organizer_accepts_raw_configs | Instantiates dict configs for     |
+# |                                      | dataset/transform/preprocessor       |
 # | test_espnet_preprocessor_without_transform | Uses only ESPnet-style preprocessor   |
 # |                                      | (UID-based)                          |
 # | test_espnet_preprocessor_with_transform    | Combines transform with ESPnet |
@@ -376,6 +378,42 @@ def test_data_organizer_preprocessor_only():
         preprocessor=DummyPreprocessor(),
     )
     assert organizer.train[0]["text"] == "[dummy] hello"
+    assert organizer.valid[0]["text"] == "[dummy] hello"
+
+
+def test_data_organizer_accepts_raw_configs():
+    config = OmegaConf.create(
+        {
+            "train": [
+                {
+                    "name": "train_dummy",
+                    "dataset": {
+                        "_target_": "test.espnet3.test_data_organizer.DummyDataset"
+                    },
+                    "transform": {
+                        "_target_": "test.espnet3.test_data_organizer.DummyTransform"
+                    },
+                }
+            ],
+            "valid": [
+                {
+                    "name": "valid_dummy",
+                    "dataset": {
+                        "_target_": "test.espnet3.test_data_organizer.DummyDataset"
+                    },
+                }
+            ],
+            "preprocessor": {
+                "_target_": "test.espnet3.test_data_organizer.DummyPreprocessor"
+            },
+        }
+    )
+    organizer = DataOrganizer(
+        train=config["train"],
+        valid=config["valid"],
+        preprocessor=config["preprocessor"],
+    )
+    assert organizer.train[0]["text"] == "[dummy] HELLO"
     assert organizer.valid[0]["text"] == "[dummy] hello"
 
 

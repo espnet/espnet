@@ -3,7 +3,7 @@ defaults:
   - default.yaml
   - dataset.yaml
 
-exp_tag: template
+exp_tag: librispeech100_asr_eval
 
 
 # parallel:
