@@ -51,7 +51,13 @@ from espnet3.utils.task import get_espnet_model, get_task_class, save_espnet_con
 )
 @pytest.mark.execution_timeout(30)
 def test_get_task_class_returns_correct_class(task_path, expected_cls_name):
-    cls = get_task_class(task_path)
+    try:
+        cls = get_task_class(task_path)
+    except RuntimeError as e:
+        # Skip when optional dependencies pull in broken binary wheels (e.g., sklearn)
+        if "numpy.dtype size changed" in str(e):
+            pytest.skip("Skipped due to incompatible optional dependencies in test env.")
+        raise
     assert cls.__name__ == expected_cls_name
 
 
