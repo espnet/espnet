@@ -82,7 +82,12 @@ class LibriSpeechDataset(TorchDataset):
         speech_path = item.get("speech", {}).get("path")
 
         if self.return_speech:
-            array = sf.read(speech_path)[0]
+            array, sr = sf.read(speech_path)
+            if sr != self.sample_rate:
+                raise ValueError(
+                    f"Sample rate mismatch for {speech_path}: got {sr}, "
+                    f"expected {self.sample_rate}"
+                )
             example["speech"] = np.asarray(array, dtype=np.float32)
 
         if self.return_text and "text" in item:
