@@ -24,13 +24,12 @@ dir_dict = {
 }
 
 for x in dir_dict:
-    with open(os.path.join("data", x, "text"), "w") as text_f, open(
-        os.path.join("data", x, "wav.scp"), "w"
-    ) as wav_scp_f, open(
-        os.path.join("data", x, "transcript"), "w"
-    ) as transcript_f, open(
-        os.path.join("data", x, "utt2spk"), "w"
-    ) as utt2spk_f:
+    with (
+        open(os.path.join("data", x, "text"), "w") as text_f,
+        open(os.path.join("data", x, "wav.scp"), "w") as wav_scp_f,
+        open(os.path.join("data", x, "transcript"), "w") as transcript_f,
+        open(os.path.join("data", x, "utt2spk"), "w") as utt2spk_f,
+    ):
         text_f.truncate()
         wav_scp_f.truncate()
         utt2spk_f.truncate()
