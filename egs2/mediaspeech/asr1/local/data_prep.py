@@ -91,11 +91,12 @@ for setname in ["train", "dev", "test", "validated"]:
     else:
         raise RuntimeError
 
-    with open(os.path.join(dest_dir, "text"), "w") as text_f, open(
-        os.path.join(dest_dir, "wav.scp"), "w"
-    ) as wav_scp_f, open(os.path.join(dest_dir, "utt2spk"), "w") as utt2spk_f, open(
-        os.path.join(dest_dir, "utt2gender"), "w"
-    ) as utt2gndr_f:
+    with (
+        open(os.path.join(dest_dir, "text"), "w") as text_f,
+        open(os.path.join(dest_dir, "wav.scp"), "w") as wav_scp_f,
+        open(os.path.join(dest_dir, "utt2spk"), "w") as utt2spk_f,
+        open(os.path.join(dest_dir, "utt2gender"), "w") as utt2gndr_f,
+    ):
         for sample in sample_list:
             text_f.write(f"{int(sample['id']):08d} {sample['text']}\n")
             wav_scp_f.write(f"{int(sample['id']):08d} {sample['abs_path']}\n")

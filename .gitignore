@@ -36,6 +36,8 @@ test_spm.model
 constraints.txt
 featbin
 ubuntu16-featbin.tar.gz
+pyproject.toml.tmp
+build/
 core
 
 out/config.yaml

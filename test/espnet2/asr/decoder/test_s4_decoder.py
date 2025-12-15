@@ -3,7 +3,7 @@ import torch
 from packaging.version import parse as V
 
 from espnet2.asr.decoder.s4_decoder import S4Decoder
-from espnet.nets.batch_beam_search import BatchBeamSearch
+from espnet2.legacy.nets.batch_beam_search import BatchBeamSearch
 
 # Check to have torch.linalg
 is_torch_1_10_plus = V(torch.__version__) >= V("1.10.0")

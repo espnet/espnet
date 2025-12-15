@@ -28,9 +28,11 @@ if __name__ == "__main__":
         for key, (rate, numpy_array) in reader:
             utt2dur[key] = numpy_array.shape[-1] / rate
 
-    with (args.data_dir / "text.ctc").open("r") as f_text_ctc, (
-        args.data_dir / "text"
-    ).open("w") as f_text, (args.data_dir / "text.prev").open("w") as f_text_prev:
+    with (
+        (args.data_dir / "text.ctc").open("r") as f_text_ctc,
+        (args.data_dir / "text").open("w") as f_text,
+        (args.data_dir / "text.prev").open("w") as f_text_prev,
+    ):
         for line in f_text_ctc:
             uttid, raw_text = line.strip().split(maxsplit=1)
             f_text.write(
