@@ -66,9 +66,11 @@ for original_partition_name, data_partition_name in zip(
 
         count += 1
         if count == cache_size:
-            with open(text_file, "a") as tf, open(utt2spk_file, "a") as uf, open(
-                wav_scp_file, "a"
-            ) as wf:
+            with (
+                open(text_file, "a") as tf,
+                open(utt2spk_file, "a") as uf,
+                open(wav_scp_file, "a") as wf,
+            ):
                 tf.write(text_data)
                 uf.write(utt2spk_data)
                 wf.write(wav_scp_data)
@@ -79,9 +81,11 @@ for original_partition_name, data_partition_name in zip(
 
     # clear cache
     if count > 0:
-        with open(text_file, "a") as tf, open(utt2spk_file, "a") as uf, open(
-            wav_scp_file, "a"
-        ) as wf:
+        with (
+            open(text_file, "a") as tf,
+            open(utt2spk_file, "a") as uf,
+            open(wav_scp_file, "a") as wf,
+        ):
             tf.write(text_data)
             uf.write(utt2spk_data)
             wf.write(wav_scp_data)

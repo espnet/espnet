@@ -14,24 +14,24 @@ from espnet2.asr.ctc import CTC
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.layers.cgmlp import ConvolutionalGatingMLP
 from espnet2.asr.layers.fastformer import FastSelfAttention
-from espnet.nets.pytorch_backend.nets_utils import get_activation, make_pad_mask
-from espnet.nets.pytorch_backend.transformer.attention import (  # noqa: H301
+from espnet2.legacy.nets.pytorch_backend.nets_utils import get_activation, make_pad_mask
+from espnet2.legacy.nets.pytorch_backend.transformer.attention import (
     LegacyRelPositionMultiHeadedAttention,
     MultiHeadedAttention,
     RelPositionMultiHeadedAttention,
 )
-from espnet.nets.pytorch_backend.transformer.embedding import (  # noqa: H301
+from espnet2.legacy.nets.pytorch_backend.transformer.embedding import (
     LegacyRelPositionalEncoding,
     PositionalEncoding,
     RelPositionalEncoding,
     ScaledPositionalEncoding,
 )
-from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
-from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
+from espnet2.legacy.nets.pytorch_backend.transformer.layer_norm import LayerNorm
+from espnet2.legacy.nets.pytorch_backend.transformer.positionwise_feed_forward import (
     PositionwiseFeedForward,
 )
-from espnet.nets.pytorch_backend.transformer.repeat import repeat
-from espnet.nets.pytorch_backend.transformer.subsampling import (
+from espnet2.legacy.nets.pytorch_backend.transformer.repeat import repeat
+from espnet2.legacy.nets.pytorch_backend.transformer.subsampling import (
     Conv1dSubsampling1,
     Conv1dSubsampling2,
     Conv1dSubsampling3,
