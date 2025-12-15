@@ -17,14 +17,14 @@ from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.asr.transducer.error_calculator import ErrorCalculatorTransducer
 from espnet2.asr_transducer.utils import get_transducer_task_io
 from espnet2.layers.abs_normalize import AbsNormalize
-from espnet2.torch_utils.device_funcs import force_gatherable
-from espnet2.train.abs_espnet_model import AbsESPnetModel
-from espnet.nets.e2e_asr_common import ErrorCalculator
-from espnet.nets.pytorch_backend.nets_utils import th_accuracy
-from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
-from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import (  # noqa: H301
+from espnet2.legacy.nets.e2e_asr_common import ErrorCalculator
+from espnet2.legacy.nets.pytorch_backend.nets_utils import th_accuracy
+from espnet2.legacy.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
+from espnet2.legacy.nets.pytorch_backend.transformer.label_smoothing_loss import (
     LabelSmoothingLoss,
 )
+from espnet2.torch_utils.device_funcs import force_gatherable
+from espnet2.train.abs_espnet_model import AbsESPnetModel
 
 autocast_type = torch.float16
 if V(torch.__version__) >= V("1.6.0"):

@@ -7,8 +7,8 @@ from typing import List, Optional
 
 import numpy as np
 
+from espnet2.legacy.utils.cli_utils import get_commandline_args
 from espnet2.utils.types import str2bool
-from espnet.utils.cli_utils import get_commandline_args
 
 
 def get_parser() -> argparse.ArgumentParser:

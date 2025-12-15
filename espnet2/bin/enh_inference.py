@@ -22,6 +22,7 @@ from espnet2.enh.separator.bsrnn_separator import BSRNNSeparator
 from espnet2.enh.separator.tfgridnetv3_separator import TFGridNetV3
 from espnet2.enh.separator.uses_separator import USESSeparator
 from espnet2.fileio.sound_scp import SoundScpWriter
+from espnet2.legacy.utils.cli_utils import get_commandline_args
 from espnet2.tasks.enh import EnhancementTask
 from espnet2.tasks.enh_s2t import EnhS2TTask
 from espnet2.torch_utils.device_funcs import to_device
@@ -29,7 +30,6 @@ from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
-from espnet.utils.cli_utils import get_commandline_args
 
 EPS = torch.finfo(torch.get_default_dtype()).eps
 
