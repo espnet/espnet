@@ -19,7 +19,7 @@ else:
 
 
 failed_imports = []
-for dirname in ["espnet", "espnet2"]:
+for dirname in ["espnet2", "espnet3"]:
     for f in glob.glob(f"{dirname}/**/*.py"):
         module_name = f.replace("/", ".")[:-3]
 

@@ -4,12 +4,17 @@ import warnings
 from pathlib import Path
 from typing import Iterable, List, Optional, Union
 
-import g2p_en
-import jamo
 from packaging.version import parse as V
 from typeguard import typechecked
 
 from espnet2.text.abs_tokenizer import AbsTokenizer
+
+try:
+    import g2p_en
+    import jamo
+except ImportError:
+    g2p_en = None
+    jamo = None
 
 g2p_choices = [
     None,
@@ -250,6 +255,8 @@ class G2p_en:
     """
 
     def __init__(self, no_space: bool = False):
+        if g2p_en is None:
+            raise RuntimeError("Please install espnet with `pip install espnet[tts]`")
         self.no_space = no_space
         self.g2p = None
 
@@ -325,6 +332,10 @@ class Jaso:
     VALID_CHARS = JAMO_LEADS + JAMO_VOWELS + JAMO_TAILS + PUNC + SPACE
 
     def __init__(self, space_symbol=" ", no_space=False):
+        if jamo is None:
+            raise RuntimeError(
+                "Please install espnet with " "`pip install espnet[tts]`"
+            )
         self.space_symbol = space_symbol
         self.no_space = no_space
 

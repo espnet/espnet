@@ -26,9 +26,10 @@ if __name__ == "__main__":
             key, value = line.strip().split(maxsplit=1)
             reference_len_dict[key] = float(value)
 
-    with open(args.vocab, "r", encoding="utf-8") as vocab_f, open(
-        args.tokens, "r", encoding="utf-8"
-    ) as tokens_f:
+    with (
+        open(args.vocab, "r", encoding="utf-8") as vocab_f,
+        open(args.tokens, "r", encoding="utf-8") as tokens_f,
+    ):
 
         if args.bitrate_details is not None:
             bitrate_details_f = open(args.bitrate_details, "w", encoding="utf-8")

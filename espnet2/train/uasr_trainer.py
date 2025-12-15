@@ -53,12 +53,7 @@ class UASRTrainerOptions(TrainerOptions):
 
 
 class UASRTrainer(Trainer):
-    """Trainer for GAN-based UASR training.
-
-    If you'd like to use this trainer, the model must inherit
-    espnet.train.abs_gan_espnet_model.AbsGANESPnetModel.
-
-    """
+    """Trainer for GAN-based UASR training."""
 
     @classmethod
     @typechecked
