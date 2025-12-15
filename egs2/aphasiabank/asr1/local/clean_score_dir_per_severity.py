@@ -11,9 +11,10 @@ from data import severity2spks, utt2spk
 
 
 def filter_text(in_file: str, out_file: str, spks: Iterable[str]):
-    with open(in_file, encoding="utf-8") as f, open(
-        out_file, "w", encoding="utf-8"
-    ) as of:
+    with (
+        open(in_file, encoding="utf-8") as f,
+        open(out_file, "w", encoding="utf-8") as of,
+    ):
         for line in f:
             utt = line.split()[-1].replace("(", "").replace(")", "")
             spk = utt2spk(utt)

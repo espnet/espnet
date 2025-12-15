@@ -12,7 +12,7 @@ import logging
 import sys
 from distutils.util import strtobool
 
-from espnet.utils.cli_utils import get_commandline_args
+from espnet2.legacy.utils.cli_utils import get_commandline_args
 
 is_python2 = sys.version_info[0] == 2
 

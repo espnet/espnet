@@ -10,6 +10,7 @@ import numpy as np
 import torch
 from torch.multiprocessing.spawn import ProcessContext
 
+from espnet2.legacy.utils.cli_utils import get_commandline_args
 from espnet2.samplers.build_batch_sampler import BATCH_TYPES
 from espnet2.tasks.spk import SpeakerTask
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
@@ -32,7 +33,6 @@ from espnet2.utils.types import (
     str2triple_str,
     str_or_none,
 )
-from espnet.utils.cli_utils import get_commandline_args
 
 
 def extract_embed(args):
