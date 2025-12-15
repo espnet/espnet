@@ -51,7 +51,7 @@ class CTC(torch.nn.Module):
             self.ctc_loss = torch.nn.CTCLoss(reduction="none")
 
         elif self.ctc_type == "gtnctc":
-            from espnet.nets.pytorch_backend.gtn_ctc import GTNCTCLossFunction
+            from espnet2.legacy.nets.pytorch_backend.gtn_ctc import GTNCTCLossFunction
 
             self.ctc_loss = GTNCTCLossFunction.apply
 
