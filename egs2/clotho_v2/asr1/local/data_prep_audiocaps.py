@@ -23,7 +23,7 @@ if __name__ == "__main__":
     with open(os.path.join(ROOT_DATA_DIR, TRAIN_FILES)) as f:
         train_meta = json.load(f)
         all_train_ids = train_meta["audiocap_ids"]
-    assert all_train_ids is not None, f"Could not read {ROOT_DATA_DIR/TRAIN_FILES}"
+    assert all_train_ids is not None, f"Could not read {ROOT_DATA_DIR / TRAIN_FILES}"
 
     output_wav_scp_path = os.path.join(LOCAL_DATA_DIR, "wav.scp")
     output_utt2spk_path = os.path.join(LOCAL_DATA_DIR, "utt2spk")
@@ -38,9 +38,11 @@ if __name__ == "__main__":
     N_ZERO_LENGTH_AUDIO = 0
     N_VERY_LONG_AUDIO = 0
     AUDIO_LENGTH_THRESHOLD = 30  # seconds
-    with open(output_txt_path, "w") as text_f, open(
-        output_wav_scp_path, "w"
-    ) as wav_scp_f, open(output_utt2spk_path, "w") as utt2spk_f:
+    with (
+        open(output_txt_path, "w") as text_f,
+        open(output_wav_scp_path, "w") as wav_scp_f,
+        open(output_utt2spk_path, "w") as utt2spk_f,
+    ):
         for train_id in all_train_ids:
             uttid = f"audiocaps_train_{train_id}"
             audio_path = os.path.join(ROOT_DATA_DIR, DATA_DIR, train_id, "audio.wav")

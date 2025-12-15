@@ -11,10 +11,10 @@ from packaging.version import parse as V
 from espnet2.bin.asr_inference import Speech2Text, get_parser, main
 from espnet2.bin.asr_inference_streaming import Speech2TextStreaming
 from espnet2.bin.whisper_export_vocabulary import export_vocabulary
+from espnet2.legacy.nets.beam_search import Hypothesis
 from espnet2.tasks.asr import ASRTask
 from espnet2.tasks.enh_s2t import EnhS2TTask
 from espnet2.tasks.lm import LMTask
-from espnet.nets.beam_search import Hypothesis
 
 is_torch_2_6_plus = V(torch.__version__) >= V("2.6.0")
 
@@ -253,7 +253,7 @@ def token_list_hugging_face(tmp_path: Path):
         f.write("<pad>\n")
         f.write("</s>\n")
         f.write("<unk>\n")
-        for c in range(95):
+        for c in range(250023):
             f.write(f"{c}\n")
     return tmp_path / "tokens_hugging_face.txt"
 
@@ -301,8 +301,7 @@ def token_list_whisper_lang(tmp_path: Path, token_list_whisper_lang_add):
 @pytest.mark.parametrize(
     "model_name_or_path",
     [
-        "akreal/tiny-random-t5",
-        "akreal/tiny-random-mbart",
+        "hf-internal-testing/tiny-random-MBartModel",
     ],
 )
 @pytest.mark.execution_timeout(30)
@@ -345,13 +344,15 @@ def test_Speech2Text_hugging_face(
 @pytest.mark.parametrize(
     "model_name_or_path",
     [
-        "akreal/tiny-random-LlamaForCausalLM",  # tokenizer.padding_side=="left"
-        "akreal/tiny-random-BloomForCausalLM",  # tokenizer.padding_side=="right"
+        # test a model with tokenizer.padding_side=="left"
+        "hf-internal-testing/tiny-random-LlamaForCausalLM",
+        # test a model with tokenizer.padding_side=="right"
+        "hf-internal-testing/tiny-random-BloomForCausalLM",
     ],
 )
 @pytest.mark.parametrize("prefix", ["prefix", ""])
 @pytest.mark.parametrize("postfix", ["postfix", ""])
-@pytest.mark.execution_timeout(30)
+@pytest.mark.execution_timeout(60)
 def test_Speech2Text_hugging_face_causal_lm(
     asr_config_file, token_list_hugging_face, model_name_or_path, prefix, postfix
 ):

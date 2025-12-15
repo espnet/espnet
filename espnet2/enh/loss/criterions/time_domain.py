@@ -2,14 +2,19 @@ import logging
 import math
 from abc import ABC
 
-import ci_sdr
-import fast_bss_eval
 import torch
 from packaging.version import parse as V
 from torch_complex.tensor import ComplexTensor
 
 from espnet2.enh.loss.criterions.abs_loss import AbsEnhLoss
 from espnet2.layers.stft import Stft
+
+try:
+    import ci_sdr
+    import fast_bss_eval
+except ImportError:
+    ci_sdr = None
+    fast_bss_eval = None
 
 is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 
@@ -93,6 +98,8 @@ class CISDRLoss(TimeDomainLoss):
             is_noise_loss=is_noise_loss,
             is_dereverb_loss=is_dereverb_loss,
         )
+        if ci_sdr is None:
+            raise RuntimeError("Please install espnet with `pip install espnet[enh]`")
 
         self.filter_length = filter_length
 
@@ -181,6 +188,8 @@ class SDRLoss(TimeDomainLoss):
             is_noise_loss=is_noise_loss,
             is_dereverb_loss=is_dereverb_loss,
         )
+        if fast_bss_eval is None:
+            raise RuntimeError("Please install espnet with `pip install espnet[enh]`")
 
         self.filter_length = filter_length
         self.use_cg_iter = use_cg_iter
@@ -247,6 +256,8 @@ class SISNRLoss(TimeDomainLoss):
             is_noise_loss=is_noise_loss,
             is_dereverb_loss=is_dereverb_loss,
         )
+        if fast_bss_eval is None:
+            raise RuntimeError("Please install espnet with `pip install espnet[enh]`")
 
         self.clamp_db = clamp_db
         self.zero_mean = zero_mean
@@ -463,8 +474,12 @@ class MultiResL1SpecLoss(TimeDomainLoss):
             target = target.float()
             estimate = estimate.float()
         if self.normalize_variance:
-            target = target / torch.std(target, dim=1, keepdim=True)
-            estimate = estimate / torch.std(estimate, dim=1, keepdim=True)
+            target = target / torch.sqrt(
+                torch.var(target, dim=1, keepdim=True, unbiased=False) + self.eps
+            )
+            estimate = estimate / torch.sqrt(
+                torch.var(estimate, dim=1, keepdim=True, unbiased=False) + self.eps
+            )
         # shape bsz, samples
         scaling_factor = torch.sum(estimate * target, -1, keepdim=True) / (
             torch.sum(estimate**2, -1, keepdim=True) + self.eps

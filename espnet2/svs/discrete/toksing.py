@@ -11,28 +11,35 @@ from typing import Dict, Optional, Tuple
 import torch
 import torch.nn.functional as F
 
+from espnet2.legacy.nets.pytorch_backend.conformer.encoder import (
+    Encoder as ConformerEncoder,
+)
+from espnet2.legacy.nets.pytorch_backend.e2e_tts_fastspeech import (
+    FeedForwardTransformerLoss as XiaoiceSingLoss,  # NOQA
+)
+from espnet2.legacy.nets.pytorch_backend.fastspeech.duration_predictor import (
+    DurationPredictor,
+)
+from espnet2.legacy.nets.pytorch_backend.fastspeech.length_regulator import (
+    LengthRegulator,
+)
+from espnet2.legacy.nets.pytorch_backend.nets_utils import (
+    make_non_pad_mask,
+    make_pad_mask,
+)
+from espnet2.legacy.nets.pytorch_backend.tacotron2.decoder import Postnet
+from espnet2.legacy.nets.pytorch_backend.transformer.embedding import (
+    PositionalEncoding,
+    ScaledPositionalEncoding,
+)
+from espnet2.legacy.nets.pytorch_backend.transformer.encoder import (
+    Encoder as TransformerEncoder,
+)
 from espnet2.svs.abs_svs import AbsSVS
 from espnet2.svs.discrete.loss import DiscreteLoss
 from espnet2.svs.xiaoice.loss import XiaoiceSing2Loss
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.torch_utils.initialize import initialize
-from espnet.nets.pytorch_backend.conformer.encoder import (  # noqa: H301
-    Encoder as ConformerEncoder,
-)
-from espnet.nets.pytorch_backend.e2e_tts_fastspeech import (
-    FeedForwardTransformerLoss as XiaoiceSingLoss,  # NOQA
-)
-from espnet.nets.pytorch_backend.fastspeech.duration_predictor import DurationPredictor
-from espnet.nets.pytorch_backend.fastspeech.length_regulator import LengthRegulator
-from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask, make_pad_mask
-from espnet.nets.pytorch_backend.tacotron2.decoder import Postnet
-from espnet.nets.pytorch_backend.transformer.embedding import (
-    PositionalEncoding,
-    ScaledPositionalEncoding,
-)
-from espnet.nets.pytorch_backend.transformer.encoder import (  # noqa: H301
-    Encoder as TransformerEncoder,
-)
 
 # from espnet2.gan_svs.vits.pitch_predictor import Decoder
 

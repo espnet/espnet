@@ -64,6 +64,7 @@ class ESPnetSpeakerModel(AbsESPnetModel):
     def forward(
         self,
         speech: torch.Tensor,
+        speech_lengths: Optional[torch.Tensor] = None,
         spk_labels: Optional[torch.Tensor] = None,
         task_tokens: Optional[torch.Tensor] = None,
         extract_embd: bool = False,
@@ -71,19 +72,20 @@ class ESPnetSpeakerModel(AbsESPnetModel):
     ) -> Union[
         Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor], torch.Tensor
     ]:
-        """Feed-forward through encoder layers and aggregate into utterance-level
-
-        feature.
+        """Feed-forward pass of the speaker model.
 
         Args:
-            speech: (Batch, samples)
-            speech_lengths: (Batch,)
-            extract_embd: a flag which doesn't go through the classification
-                head when set True
-            spk_labels: (Batch, )
-            one-hot speaker labels used in the train phase
-            task_tokens: (Batch, )
-            task tokens used in case of token-based trainings
+            speech: (Batch, samples), Input speech tensor
+            speech_lengths: (Batch,), optional, Length of each speech sequence
+                            in the batch. Required when speech is padded to
+                            ensure proper pooling over unpadded frames.
+            extract_embd: bool, If True, returns speaker embeddings without
+                          computing loss. Used for inference or feature
+                          extraction.
+            spk_labels: (Batch,), Speaker labels for training. One-hot encoded
+                        speaker identifiers used during the training phase.
+            task_tokens: (Batch,), Task-specific tokens for multi-task learning
+                         scenarios.
         """
         if spk_labels is not None:
             assert speech.shape[0] == spk_labels.shape[0], (
@@ -99,12 +101,12 @@ class ESPnetSpeakerModel(AbsESPnetModel):
 
         # 1. extract low-level feats (e.g., mel-spectrogram or MFCC)
         # Will do nothing for raw waveform-based models (e.g., RawNets)
-        feats, _ = self.extract_feats(speech, None)
+        feats, feat_lengths = self.extract_feats(speech, speech_lengths)
 
         frame_level_feats = self.encode_frame(feats)
 
         # 2. aggregation into utterance-level
-        utt_level_feat = self.pooling(frame_level_feats, task_tokens)
+        utt_level_feat = self.pooling(frame_level_feats, feat_lengths=feat_lengths)
 
         # 3. (optionally) go through further projection(s)
         spk_embd = self.project_spk_embd(utt_level_feat)
@@ -114,21 +116,24 @@ class ESPnetSpeakerModel(AbsESPnetModel):
 
         # 4. calculate loss
         assert spk_labels is not None, "spk_labels is None, cannot compute loss"
-        loss = self.loss(spk_embd, spk_labels.squeeze())
+        loss, accuracy, _ = self.loss(spk_embd, spk_labels.squeeze())
 
         stats = dict(loss=loss.detach())
+        if accuracy is not None:
+            stats["accuracy"] = accuracy.detach()
 
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
         return loss, stats, weight
 
     def extract_feats(
-        self, speech: torch.Tensor, speech_lengths: torch.Tensor
+        self, speech: torch.Tensor, speech_lengths: Optional[torch.Tensor] = None
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         batch_size = speech.shape[0]
         speech_lengths = (
             speech_lengths
             if speech_lengths is not None
-            else torch.ones(batch_size).int() * speech.shape[1]
+            else torch.ones(batch_size, device=speech.device, dtype=torch.int)
+            * speech.shape[1]
         )
 
         # 1. extract feats

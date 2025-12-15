@@ -255,7 +255,6 @@ class SLUTask(ASRTask):
             default=None,
             help="The initialization method",
             choices=[
-                "chainer",
                 "xavier_uniform",
                 "xavier_normal",
                 "kaiming_uniform",
@@ -449,7 +448,7 @@ class SLUTask(ASRTask):
                 else:
                     raise RuntimeError(" Transcript token_list must be str or list")
         vocab_size = len(token_list)
-        logging.info(f"Vocabulary size: {vocab_size }")
+        logging.info(f"Vocabulary size: {vocab_size}")
 
         # 1. frontend
         if args.input_size is None:

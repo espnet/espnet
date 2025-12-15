@@ -47,7 +47,9 @@ echo "cuda_version=${cuda_version}"
 # hash of tested commit: 9e653bd0ea0f1e9493cb4939733e9de249493cfb
 
 if "${torch_17_plus}" && "${python_38_plus}"; then
-    python -m pip install openai-whisper==20230308
+    # NOTE(nelson): Workaround for whisper installation.
+    # There is no triton version < 2.2.0 supported on Python 3.12.
+    python -m pip install git+https://github.com/espnet/whisper.git
 else
     echo "[ERROR] whisper does not work with pytorch<1.7.0, python<3.8"
 fi

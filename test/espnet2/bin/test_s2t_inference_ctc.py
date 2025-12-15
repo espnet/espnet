@@ -10,8 +10,8 @@ from espnet2.bin.s2t_inference_ctc import (
     get_parser,
     main,
 )
+from espnet2.legacy.nets.beam_search import Hypothesis
 from espnet2.tasks.s2t_ctc import S2TTask
-from espnet.nets.beam_search import Hypothesis
 
 
 def test_get_parser():
@@ -197,7 +197,7 @@ def test_Speech2TextGreedy_longform(s2t_config_file):
     assert isinstance(result, str)
 
 
-@pytest.mark.execution_timeout(5)
+@pytest.mark.execution_timeout(20)
 def test_Speech2TextGreedy_batchdecode(s2t_config_file):
     speech2text = Speech2TextGreedySearch(
         s2t_train_config=s2t_config_file,

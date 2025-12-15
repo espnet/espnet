@@ -36,15 +36,33 @@
 from typing import Any, Callable, Optional, Union
 
 import torch
+import torch.distributed as distributed
 import torch.nn.functional as F
-from einops import rearrange, repeat
-from torch import nn
-
-from espnet2.gan_codec.shared.quantizer.modules.distrib import broadcast_tensors
+from einops import rearrange, reduce, repeat
+from torch import einsum, nn
 
 
 def default(val: Any, d: Any) -> Any:
     return val if val is not None else d
+
+
+def noop(*args, **kwargs):
+    pass
+
+
+def l2norm(t, dim=-1, eps=1e-6):
+    return F.normalize(t, p=2, dim=dim, eps=eps)
+
+
+def cdist(x, y, eps=1e-8):
+    x2 = reduce(x**2, "n d -> n", "sum")
+    y2 = reduce(y**2, "c d -> c", "sum")
+    xy = einsum("n d, c d -> n c", x, y) * -2
+    return (
+        (rearrange(x2, "n -> n 1") + rearrange(y2, "c -> 1 c") + xy)
+        .clamp(min=eps)
+        .sqrt()
+    )
 
 
 def ema_inplace(moving_avg, new, decay: float):
@@ -72,27 +90,113 @@ def sample_vectors(samples, num: int):
     return samples[indices]
 
 
-def kmeans(samples, num_clusters: int, num_iters: int = 10):
-    dim, dtype = samples.shape[-1], samples.dtype
+def pad_shape(shape, size, dim=0):
+    return [size if i == dim else s for i, s in enumerate(shape)]
 
-    means = sample_vectors(samples, num_clusters)
+
+def sample_multinomial(total_count, probs):
+    device = probs.device
+    probs = probs.cpu()
+
+    total_count = probs.new_full((), total_count)
+    remainder = probs.new_ones(())
+    sample = torch.empty_like(probs, dtype=torch.long)
+
+    num_probs = len(probs)
+
+    for i, prob in enumerate(probs):
+        is_last = i == (num_probs - 1)
+
+        s = (
+            torch.binomial(total_count, prob / remainder)
+            if not is_last
+            else total_count
+        )
+        sample[i] = s
+        total_count -= s
+        remainder -= prob
+
+    assert total_count == 0, f"invalid total count {total_count}"
+
+    return sample.to(device)
+
+
+def all_gather_sizes(x, dim):
+    size = torch.tensor(x.shape[dim], dtype=torch.long, device=x.device)
+    all_sizes = [torch.empty_like(size) for _ in range(distributed.get_world_size())]
+    distributed.all_gather(all_sizes, size)
+    return torch.stack(all_sizes)
+
+
+def all_gather_variably_sized(x, sizes, dim=0):
+    rank = distributed.get_rank()
+    all_x = []
+
+    for i, size in enumerate(sizes):
+        t = x if i == rank else x.new_empty(pad_shape(x.shape, size, dim))
+        distributed.broadcast(t, src=i, async_op=True)
+        all_x.append(t)
+
+    distributed.barrier()
+    return all_x
+
+
+def sample_vectors_distributed(local_samples, num):
+    rank = distributed.get_rank()
+    all_num_samples = all_gather_sizes(local_samples, dim=0)
+
+    if rank == 0:
+        samples_per_rank = sample_multinomial(
+            num, all_num_samples / all_num_samples.sum()
+        )
+    else:
+        samples_per_rank = torch.empty_like(all_num_samples)
+
+    distributed.broadcast(samples_per_rank, src=0)
+    samples_per_rank = samples_per_rank.tolist()
+
+    local_samples = sample_vectors(local_samples, samples_per_rank[rank])
+    all_samples = all_gather_variably_sized(local_samples, samples_per_rank, dim=0)
+    out = torch.cat(all_samples, dim=0)
+
+    return out
+
+
+def kmeans(
+    samples,
+    num_clusters,
+    num_iters=10,
+    use_cosine_sim=False,
+    sample_fn=sample_vectors,
+    all_reduce_fn=noop,
+):
+    dim, dtype = samples.shape[-1], samples.dtype
+    means = sample_fn(samples, num_clusters)
 
     for _ in range(num_iters):
-        diffs = rearrange(samples, "n d -> n () d") - rearrange(means, "c d -> () c d")
-        dists = -(diffs**2).sum(dim=-1)
+        if use_cosine_sim:
+            dists = samples @ rearrange(means, "h n d -> h d n")
+        else:
+            dists = -cdist(samples, means)
 
-        buckets = dists.max(dim=-1).indices
+        buckets = torch.argmax(dists, dim=-1)
         bins = torch.bincount(buckets, minlength=num_clusters)
+        all_reduce_fn(bins)
+
         zero_mask = bins == 0
         bins_min_clamped = bins.masked_fill(zero_mask, 1)
 
         new_means = buckets.new_zeros(num_clusters, dim, dtype=dtype)
+
         new_means.scatter_add_(0, repeat(buckets, "n -> n d", d=dim), samples)
-        new_means = new_means / bins_min_clamped[..., None]
+        new_means = new_means / rearrange(bins_min_clamped, "... -> ... 1")
+        all_reduce_fn(new_means)
 
-        means = torch.where(zero_mask[..., None], means, new_means)
+        if use_cosine_sim:
+            new_means = l2norm(new_means)
 
-    # Cluster centroids and number of frames per cluster
+        means = torch.where(rearrange(zero_mask, "... -> ... 1"), means, new_means)
+
     return means, bins
 
 
@@ -138,6 +242,15 @@ class EuclideanCodebook(nn.Module):
         self.epsilon = epsilon
         self.threshold_ema_dead_code = threshold_ema_dead_code
 
+        use_ddp = (
+            distributed.is_available()
+            and distributed.is_initialized()
+            and distributed.get_world_size() > 1
+        )
+        self.all_reduce_fn = distributed.all_reduce if use_ddp else noop
+        self.sample_fn = sample_vectors_distributed if use_ddp else sample_vectors
+        self.kmeans_all_reduce_fn = distributed.all_reduce if use_ddp else noop
+
         self.register_buffer("inited", torch.Tensor([not kmeans_init]))
         self.register_buffer("cluster_size", torch.zeros(codebook_size))
         self.register_buffer("embed", embed)
@@ -148,19 +261,26 @@ class EuclideanCodebook(nn.Module):
         if self.inited:
             return
 
-        embed, cluster_size = kmeans(data, self.codebook_size, self.kmeans_iters)
-        self.embed.data.copy_(embed)
-        self.embed_avg.data.copy_(embed.clone())
+        embed, cluster_size = kmeans(
+            data,
+            self.codebook_size,
+            self.kmeans_iters,
+            sample_fn=self.sample_fn,
+            all_reduce_fn=self.kmeans_all_reduce_fn,
+        )
+
+        embed_sum = embed * rearrange(cluster_size, "... -> ... 1")
+
+        self.embed_avg.data.copy_(embed_sum)
         self.cluster_size.data.copy_(cluster_size)
+        self.update_ema()
         self.inited.data.copy_(torch.Tensor([True]))
-        # Make sure all buffers across workers are in sync after initialization
-        broadcast_tensors(self.buffers())
 
     def replace_(self, samples, mask):
-        modified_codebook = torch.where(
-            mask[..., None], sample_vectors(samples, self.codebook_size), self.embed
-        )
-        self.embed.data.copy_(modified_codebook)
+        sampled = self.sample_fn(samples, mask.sum().item())
+        self.embed.data[mask] = sampled
+        self.cluster_size.data[mask] = self.threshold_ema_dead_code
+        self.embed_avg.data[mask] = sampled * self.threshold_ema_dead_code
 
     def expire_codes_(self, batch_samples):
         if self.threshold_ema_dead_code == 0:
@@ -172,7 +292,14 @@ class EuclideanCodebook(nn.Module):
 
         batch_samples = rearrange(batch_samples, "... d -> (...) d")
         self.replace_(batch_samples, mask=expired_codes)
-        broadcast_tensors(self.buffers())
+
+    def update_ema(self):
+        cluster_size = laplace_smoothing(
+            self.cluster_size, self.codebook_size, self.epsilon
+        ) * self.cluster_size.sum(dim=-1, keepdim=True)
+
+        embed_normalized = self.embed_avg / rearrange(cluster_size, "... -> ... 1")
+        self.embed.data.copy_(embed_normalized)
 
     def preprocess(self, x):
         x = rearrange(x, "... d -> (...) d")
@@ -232,24 +359,20 @@ class EuclideanCodebook(nn.Module):
         quantize = self.dequantize(embed_ind)  # (B, T, D)
 
         if self.training:
-            # We do the expiry of code at that point as buffers are in sync
-            # and all the workers will take the same decision.
-            self.expire_codes_(x)
-
             # ema update number of frames per cluster
-            ema_inplace(self.cluster_size, embed_onehot.sum(0), self.decay)
+            cluster_size = embed_onehot.sum(0)
+            self.all_reduce_fn(cluster_size)
+            ema_inplace(self.cluster_size, cluster_size, self.decay)
 
             # Use encoder embedding to update ema with assignments
             embed_sum = x.t() @ embed_onehot  # (D, BxT) @ (BxT, V) -> (D, V)
+            self.all_reduce_fn(embed_sum)
 
-            # ema udpate embedding
+            # ema update embedding
             ema_inplace(self.embed_avg, embed_sum.t(), self.decay)
-            cluster_size = (
-                laplace_smoothing(self.cluster_size, self.codebook_size, self.epsilon)
-                * self.cluster_size.sum()
-            )
-            embed_normalized = self.embed_avg / cluster_size.unsqueeze(1)
-            self.embed.data.copy_(embed_normalized)
+            self.update_ema()
+
+            self.expire_codes_(x)
 
         return quantize, embed_ind
 
@@ -400,7 +523,7 @@ class ResidualVectorQuantization(nn.Module):
 
             for layer in self.layers[:n_q]:
                 quantized, indices, loss = layer(residual)
-                residual = residual - quantized
+                residual = residual - quantized.detach()
                 quantized_out = quantized_out + quantized
 
                 all_indices.append(indices)
@@ -431,7 +554,7 @@ class ResidualVectorQuantization(nn.Module):
                     break
                 mask = torch.full((x.shape[0],), fill_value=i, device=x.device) < n_q
                 quantized, indices, commit_loss, quant_loss = layer(residual, mask)
-                residual = residual - quantized
+                residual = residual - quantized.detach()
                 quantized_out = quantized_out + quantized * mask[:, None, None]
 
                 all_indices.append(indices)
