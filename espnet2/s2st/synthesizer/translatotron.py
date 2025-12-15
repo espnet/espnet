@@ -11,15 +11,15 @@ import torch
 import torch.nn.functional as F
 from typeguard import typechecked
 
-from espnet2.s2st.synthesizer.abs_synthesizer import AbsSynthesizer
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
-from espnet.nets.pytorch_backend.rnn.attentions import (
+from espnet2.legacy.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet2.legacy.nets.pytorch_backend.rnn.attentions import (
     AttForward,
     AttForwardTA,
     AttLoc,
     AttMultiHeadAdd,
 )
-from espnet.nets.pytorch_backend.tacotron2.decoder import Decoder
+from espnet2.legacy.nets.pytorch_backend.tacotron2.decoder import Decoder
+from espnet2.s2st.synthesizer.abs_synthesizer import AbsSynthesizer
 
 
 class Translatotron(AbsSynthesizer):
