@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+# Copyright 2025 Jinchuan Tian (Carnegie Mellon University)
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
+"""Audio data loading utilities using Lhotse library for efficient audio processing."""
+
 from pathlib import Path
 from typing import Tuple
 
