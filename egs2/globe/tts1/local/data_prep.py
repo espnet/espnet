@@ -20,9 +20,12 @@ def write_kaldi_dir(items, outdir: Path):
     spk2utt = defaultdict(list)
 
     # open all Kaldi files
-    with (outdir / "wav.scp").open("w") as wscp, (outdir / "text").open("w") as txtf, (
-        outdir / "utt2spk"
-    ).open("w") as u2s, (outdir / "utt2dur").open("w") as u2d:
+    with (
+        (outdir / "wav.scp").open("w") as wscp,
+        (outdir / "text").open("w") as txtf,
+        (outdir / "utt2spk").open("w") as u2s,
+        (outdir / "utt2dur").open("w") as u2d,
+    ):
 
         for utt, spk, wav_path, text, dur in items:
             wscp.write(f"{utt} {wav_path}\n")
