@@ -44,11 +44,12 @@ for subset in [
     odir = os.path.join("data", subset)
     os.makedirs(odir, exist_ok=True)
 
-    with open(os.path.join(odir, "text"), "w", encoding="utf-8") as text, open(
-        os.path.join(odir, "spk1.scp"), "w"
-    ) as spkscp, open(os.path.join(odir, "wav.scp"), "w") as wavscp, open(
-        os.path.join(odir, "utt2spk"), "w"
-    ) as utt2spk:
+    with (
+        open(os.path.join(odir, "text"), "w", encoding="utf-8") as text,
+        open(os.path.join(odir, "spk1.scp"), "w") as spkscp,
+        open(os.path.join(odir, "wav.scp"), "w") as wavscp,
+        open(os.path.join(odir, "utt2spk"), "w") as utt2spk,
+    ):
         # preparing LibriTrans-S data
         if subset in libritrans_dirs:
             for subdir in libritrans_dirs[subset]:

@@ -31,7 +31,7 @@ batch_type: folded
 batch_size: 30
 
 # optimization related
-init: chainer
+init: normal
 max_epoch: 10
 optim: adadelta
 optim_conf:
