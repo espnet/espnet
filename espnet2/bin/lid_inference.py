@@ -12,6 +12,7 @@ import torch.nn.functional as F
 from sklearn.manifold import TSNE
 from torch.multiprocessing.spawn import ProcessContext
 
+from espnet2.legacy.utils.cli_utils import get_commandline_args
 from espnet2.samplers.build_batch_sampler import BATCH_TYPES
 from espnet2.tasks.lid import LIDTask
 from espnet2.torch_utils.model_summary import model_summary
@@ -34,7 +35,6 @@ from espnet2.utils.types import (
     str2triple_str,
     str_or_none,
 )
-from espnet.utils.cli_utils import get_commandline_args
 
 
 def extract_embed_lid(args):

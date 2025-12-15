@@ -84,7 +84,7 @@ else
     conda install -y conda
 fi
 
-conda install -y pip setuptools
+conda install -y pip==25.2 setuptools
 
 if [ "${unamem}" = "x86_64" ]; then
     conda install -y mkl=2024.0
