@@ -29,9 +29,10 @@ def time_to_hash(time_str):
 
 def stm_to_kaldi(st_stm, asr_stm, dst):
     data = {"F": [], "C": [], "S": [], "BT": [], "ET": [], "text_en": [], "text_ta": []}
-    with open(st_stm, "r", encoding="utf-8") as st_stm, open(
-        asr_stm, "r", encoding="utf-8"
-    ) as asr_stm:
+    with (
+        open(st_stm, "r", encoding="utf-8") as st_stm,
+        open(asr_stm, "r", encoding="utf-8") as asr_stm,
+    ):
         st_lines = st_stm.readlines()
         asr_lines = asr_stm.readlines()
         for i, (st_li, asr_li) in enumerate(zip(st_lines, asr_lines)):
@@ -47,15 +48,14 @@ def stm_to_kaldi(st_stm, asr_stm, dst):
             data["text_en"].append(text_en)
             data["text_ta"].append(text_ta)
 
-    with open(dst + "/wav.scp", "w", encoding="utf-8") as wav_scp, open(
-        dst + "/utt2spk", "w", encoding="utf-8"
-    ) as utt2spk, open(dst + "/segments", "w", encoding="utf-8") as segments, open(
-        dst + "/text.en", "w", encoding="utf-8"
-    ) as text_en, open(
-        dst + "/text.ta", "w", encoding="utf-8"
-    ) as text_ta, open(
-        dst + "/reco2file_and_channel", "w", encoding="utf-8"
-    ) as reco2file:
+    with (
+        open(dst + "/wav.scp", "w", encoding="utf-8") as wav_scp,
+        open(dst + "/utt2spk", "w", encoding="utf-8") as utt2spk,
+        open(dst + "/segments", "w", encoding="utf-8") as segments,
+        open(dst + "/text.en", "w", encoding="utf-8") as text_en,
+        open(dst + "/text.ta", "w", encoding="utf-8") as text_ta,
+        open(dst + "/reco2file_and_channel", "w", encoding="utf-8") as reco2file,
+    ):
         for i in range(len(data["F"])):
             recid = data["F"][i].split("/")[-1].split(".")[0]
             uttid = (
