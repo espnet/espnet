@@ -10,7 +10,7 @@ import torch
 from typeguard import typechecked
 
 from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
-from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
+from espnet2.legacy.nets.pytorch_backend.transformer.subsampling import TooShortUttError
 
 
 class LengthAdaptorPostEncoder(AbsPostEncoder):

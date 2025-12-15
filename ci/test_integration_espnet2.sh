@@ -17,7 +17,16 @@ gen_dummy_coverage(){
 #### Make sure chainer-independent ####
 python3 -m pip uninstall -y chainer
 
+# First uninstall all espnet-related dependencies including all extras.
+# I use toml and load the pyproject.toml
+python3 -m pip install toml
+python3 test_utils/uninstall_extra.py
+
 # [ESPnet2] test asr recipe
+# Install ASR dependency
+python3 -m pip install -e '.[asr]'
+
+# Run tests
 cd ./egs2/mini_an4/asr1
 gen_dummy_coverage
 echo "==== [ESPnet2] ASR ==="
@@ -148,7 +157,14 @@ done
 rm -rf exp dump data
 cd "${cwd}"
 
+# Uninstall extra dependency
+python3 test_utils/uninstall_extra.py
+
 # [ESPnet2] test tts recipe
+# Install TTS dependency
+python3 -m pip install -e '.[tts]'
+
+# Run tests
 cd ./egs2/mini_an4/tts1
 gen_dummy_coverage
 echo "==== [ESPnet2] TTS ==="
@@ -167,8 +183,31 @@ if python3 -c 'import torch as t; from packaging.version import parse as L; asse
     rm -rf exp dump data
 fi
 cd "${cwd}"
+# Uninstall extra dependency
+python3 test_utils/uninstall_extra.py
+
+
+# [ESPnet2] test asr2 recipe
+# Install ASR2 dependency
+python3 -m pip install -e '.[asr]'
+cd ./egs2/mini_an4/asr2
+gen_dummy_coverage
+echo "==== [ESPnet2] ASR2 ==="
+./run.sh --ngpu 0 --stage 1 --stop-stage 15 --skip-packing false --use-lm false --python "${python}" --asr-args "--num_workers 0"
+# Remove generated files in order to reduce the disk usage
+rm -rf exp dump data
+cd "${cwd}"
+# Uninstall extra dependency
+python3 test_utils/uninstall_extra.py
+
 
 # [ESPnet2] test enh recipe
+# Install ENH dependency
+# ENH + Speech2Text requires s2t dependency
+python3 -m pip install -e '.[enh]'
+python3 -m pip install -e '.[st]'
+
+# Run tests
 if python -c 'import torch as t; from packaging.version import parse as L; assert L(t.__version__) >= L("1.2.0")' &> /dev/null; then
     cd ./egs2/mini_an4/enh1
     gen_dummy_coverage
@@ -220,6 +259,20 @@ if python -c 'import torch as t; from packaging.version import parse as L; asser
     cd "${cwd}"
 fi
 
+# [ESPnet2] test enh_asr1 recipe
+python3 -m pip install -e '.[asr]'
+if python -c 'import torch as t; from packaging.version import parse as L; assert L(t.__version__) >= L("1.2.0")' &> /dev/null; then
+    cd ./egs2/mini_an4/enh_asr1
+    gen_dummy_coverage
+    echo "==== [ESPnet2] ENH_ASR ==="
+    ./run.sh --ngpu 0 --stage 0 --stop-stage 15 --skip-packing false --skip-upload_hf false --feats-type "raw" --spk-num 1 --enh_asr_args "--enh_separator_conf num_spk=1 --num_workers 0" --python "${python}"
+    # Remove generated files in order to reduce the disk usage
+    rm -rf exp dump data
+    cd "${cwd}"
+fi
+# Uninstall extra dependency
+python3 test_utils/uninstall_extra.py
+
 # [ESPnet2] test ssl1 recipe
 if python3 -c 'import torch as t; from packaging.version import parse as L; assert L(t.__version__) >= L("1.12.0")' &> /dev/null; then
     cd ./egs2/mini_an4/ssl1
@@ -231,18 +284,11 @@ if python3 -c 'import torch as t; from packaging.version import parse as L; asse
     cd "${cwd}"
 fi
 
-# [ESPnet2] test enh_asr1 recipe
-if python -c 'import torch as t; from packaging.version import parse as L; assert L(t.__version__) >= L("1.2.0")' &> /dev/null; then
-    cd ./egs2/mini_an4/enh_asr1
-    gen_dummy_coverage
-    echo "==== [ESPnet2] ENH_ASR ==="
-    ./run.sh --ngpu 0 --stage 0 --stop-stage 15 --skip-packing false --skip-upload_hf false --feats-type "raw" --spk-num 1 --enh_asr_args "--enh_separator_conf num_spk=1 --num_workers 0" --python "${python}"
-    # Remove generated files in order to reduce the disk usage
-    rm -rf exp dump data
-    cd "${cwd}"
-fi
-
 # [ESPnet2] test st recipe
+# Install ST dependency
+python3 -m pip install -e '.[st]'
+
+# Run tests
 cd ./egs2/mini_an4/st1
 echo "==== [ESPnet2] ST ==="
 ./run.sh --stage 1 --stop-stage 1
@@ -274,17 +320,14 @@ echo "==== use_streaming, feats_type=raw, token_types=bpe, model_conf.extract_fe
 # Remove generated files in order to reduce the disk usage
 rm -rf exp dump data
 cd "${cwd}"
-
-# [ESPnet2] test asr2 recipe
-cd ./egs2/mini_an4/asr2
-gen_dummy_coverage
-echo "==== [ESPnet2] ASR2 ==="
-./run.sh --ngpu 0 --stage 1 --stop-stage 15 --skip-packing false --use-lm false --python "${python}" --asr-args "--num_workers 0"
-# Remove generated files in order to reduce the disk usage
-rm -rf exp dump data
-cd "${cwd}"
+# Uninstall extra dependency
+python3 test_utils/uninstall_extra.py
 
 # [ESPnet2] test spk1 recipe
+# Install SPK dependency
+python3 -m pip install -e '.[spk]'
+
+# Run tests
 cd ./egs2/mini_an4/spk1
 gen_dummy_coverage
 echo "==== [ESPnet2] SPK ==="
@@ -300,6 +343,8 @@ echo "==== [ESPnet2] SPK ==="
 # Remove generated files in order to reduce the disk usage
 rm -rf exp dump data
 cd "${cwd}"
+# Uninstall extra dependency
+python3 test_utils/uninstall_extra.py
 
 # [ESPnet2] test lid1 recipe
 cd ./egs2/mini_an4/lid1
@@ -312,6 +357,9 @@ rm -rf exp dump data
 cd "${cwd}"
 
 # [ESPnet2] test s2t1 recipe
+# # Install s2t dependency
+python3 -m pip install -e '.[s2t]'
+
 cd ./egs2/mini_an4/s2t1
 gen_dummy_coverage
 echo "==== [ESPnet2] S2T ==="
@@ -319,6 +367,12 @@ echo "==== [ESPnet2] S2T ==="
 # Remove generated files in order to reduce the disk usage
 rm -rf exp dump data
 cd "${cwd}"
+# Uninstall extra dependency
+python3 test_utils/uninstall_extra.py
+
+# [ESPnet2] test s2st1 recipe
+# # Install s2st dependency
+python3 -m pip install -e '.[s2st]'
 
 pytorch_plus(){
     python3 <<EOF
@@ -347,6 +401,11 @@ else
     rm -rf exp dump data ckpt .cache
     cd "${cwd}"
 fi
+# Remove generated files in order to reduce the disk usage
+rm -rf exp dump data ckpt .cache
+cd "${cwd}"
+# Uninstall extra dependency
+python3 test_utils/uninstall_extra.py
 
 # [ESPnet2] test lm1 recipe
 cd ./egs2/mini_an4/lm1

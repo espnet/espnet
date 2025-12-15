@@ -10,20 +10,20 @@ from typeguard import typechecked
 
 from espnet2.asr.ctc import CTC
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
-from espnet.nets.pytorch_backend.conformer.convolution import ConvolutionModule
-from espnet.nets.pytorch_backend.conformer.encoder_layer import EncoderLayer
-from espnet.nets.pytorch_backend.nets_utils import get_activation, make_pad_mask
-from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
-from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
-from espnet.nets.pytorch_backend.transformer.multi_layer_conv import (
+from espnet2.legacy.nets.pytorch_backend.conformer.convolution import ConvolutionModule
+from espnet2.legacy.nets.pytorch_backend.conformer.encoder_layer import EncoderLayer
+from espnet2.legacy.nets.pytorch_backend.nets_utils import get_activation, make_pad_mask
+from espnet2.legacy.nets.pytorch_backend.transformer.embedding import PositionalEncoding
+from espnet2.legacy.nets.pytorch_backend.transformer.layer_norm import LayerNorm
+from espnet2.legacy.nets.pytorch_backend.transformer.multi_layer_conv import (
     Conv1dLinear,
     MultiLayeredConv1d,
 )
-from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
+from espnet2.legacy.nets.pytorch_backend.transformer.positionwise_feed_forward import (
     PositionwiseFeedForward,
 )
-from espnet.nets.pytorch_backend.transformer.repeat import repeat
-from espnet.nets.pytorch_backend.transformer.subsampling import (
+from espnet2.legacy.nets.pytorch_backend.transformer.repeat import repeat
+from espnet2.legacy.nets.pytorch_backend.transformer.subsampling import (
     Conv2dSubsampling,
     Conv2dSubsampling1,
     Conv2dSubsampling2,
@@ -236,7 +236,7 @@ class LongformerEncoder(ConformerEncoder):
             assert pos_enc_layer_type == "abs_pos"
             from longformer.longformer import LongformerConfig
 
-            from espnet.nets.pytorch_backend.transformer.longformer_attention import (
+            from espnet2.legacy.nets.pytorch_backend.transformer.longformer_attention import (  # noqa: E501
                 LongformerAttention,
             )
 

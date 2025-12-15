@@ -30,9 +30,11 @@ for subset in subsets.keys():
     subset_dir = os.path.join(odir, subset)
     os.makedirs(subset_dir, exist_ok=True)
 
-    with open(os.path.join(subset_dir, "wav.scp"), "w") as wavscp, open(
-        os.path.join(subset_dir, "utt2spk"), "w"
-    ) as utt2spk, open(os.path.join(subset_dir, "text"), "w", encoding="utf-8") as text:
+    with (
+        open(os.path.join(subset_dir, "wav.scp"), "w") as wavscp,
+        open(os.path.join(subset_dir, "utt2spk"), "w") as utt2spk,
+        open(os.path.join(subset_dir, "text"), "w", encoding="utf-8") as text,
+    ):
         for file in subsets[subset]:
             file_id = file.split("/")[-1][:-4]
             turn_id = 0

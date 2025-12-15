@@ -8,8 +8,8 @@ import soundfile
 import torch
 from typeguard import typechecked
 
+from espnet2.legacy.nets.pytorch_backend.nets_utils import pad_list
 from espnet2.train.preprocessor import detect_non_silence
-from espnet.nets.pytorch_backend.nets_utils import pad_list
 
 
 class CommonCollateFn:
