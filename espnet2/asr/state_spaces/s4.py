@@ -11,16 +11,12 @@ from functools import wraps
 from typing import Any, Callable, Optional
 
 import numpy as np
-import opt_einsum as oe
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from einops import rearrange, repeat
 
 from espnet2.asr.state_spaces.components import Activation, DropoutNd, LinearActivation
-
-contract = oe.contract
-contract_expression = oe.contract_expression
 
 
 def rank_zero_only(fn: Callable) -> Callable:
@@ -77,6 +73,21 @@ def get_logger(name=__name__, level=logging.INFO) -> logging.Logger:
 
 
 log = get_logger(__name__)
+
+"""opt_einsum"""
+
+try:
+    import opt_einsum as oe
+
+    contract = oe.contract
+    contract_expression = oe.contract_expression
+except ImportError:
+    log.warning(
+        "If you are running state-space model, run `pip install espnet['asr']`."
+    )
+    contract = None
+    contract_expression = None
+
 
 """ Cauchy and Vandermonde kernels """
 
