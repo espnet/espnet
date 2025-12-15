@@ -3,10 +3,10 @@ import argparse
 import logging
 from distutils.util import strtobool
 
-from espnet.transform.transformation import Transformation
-from espnet.utils.cli_readers import file_reader_helper
-from espnet.utils.cli_utils import get_commandline_args, is_scipy_wav_style
-from espnet.utils.cli_writers import file_writer_helper
+from espnet2.legacy.transform.transformation import Transformation
+from espnet2.legacy.utils.cli_readers import file_reader_helper
+from espnet2.legacy.utils.cli_utils import get_commandline_args, is_scipy_wav_style
+from espnet2.legacy.utils.cli_writers import file_writer_helper
 
 
 def get_parser():
