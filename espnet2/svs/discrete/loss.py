@@ -5,10 +5,10 @@
 
 import torch
 
-from espnet.nets.pytorch_backend.fastspeech.duration_predictor import (  # noqa: H301
+from espnet2.legacy.nets.pytorch_backend.fastspeech.duration_predictor import (
     DurationPredictorLoss,
 )
-from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
+from espnet2.legacy.nets.pytorch_backend.nets_utils import make_non_pad_mask
 
 
 class DiscreteLoss(torch.nn.Module):

@@ -10,7 +10,7 @@ import torch
 from typeguard import typechecked
 
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
-from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
+from espnet2.legacy.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 
 
 class Embedding(AbsFrontend):
