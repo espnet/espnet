@@ -173,8 +173,76 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
         $ cd <espnet-root>/tools
         $ rm -f activate_python.sh && touch activate_python.sh
         ```
-1. Install ESPnet
 
+1. Install ESPnet via `pyproject.toml`
+
+    ESPnet adopts the modern Python packaging standard using `pyproject.toml`.
+    You can install ESPnet with a simple pip command `pip install -e .`,
+    but the required dependencies vary depending on the task you want to run.
+    Therefore, we recommend installing the appropriate extra dependencies
+    for your specific task. For example:
+
+    * For ASR:
+
+        ```sh
+        $ cd <espnet-root>
+        $ pip install -e ".[asr]"
+        ```
+
+    * For TTS:
+
+        ```sh
+        $ cd <espnet-root>
+        $ pip install -e ".[tts]"
+        ```
+
+    * For all tasks (ASR, TTS, enhancement, speaker tasks):
+
+        ```sh
+        $ cd <espnet-root>
+        $ pip install -e ".[all]"
+        ```
+
+        You can also install development tools (linters, test runners) or documentation tools:
+
+        ```sh
+        $ cd <espnet-root>
+        $ pip install -e ".[dev,test,doc]"
+        ```
+
+    2. Check installation
+        Run the following to validate your installation:
+
+        ```sh
+        cd tools
+        bash -c ". ./activate_python.sh; python3 check_install.py"
+        ```
+
+    3. [Optional] How dependency groups are organized
+        The ESPnet `pyproject.toml` defines optional dependency groups:
+
+        | Group      | Purpose                       |
+        | ---------- | ----------------------------- |
+        | `asr`      | ASR-specific dependencies     |
+        | `asr2`     | ASR2-specific dependencies    |
+        | `tts`      | TTS-specific dependencies     |
+        | `enh`      | Speech enhancement            |
+        | `st`       | Speech Translation            |
+        | `s2t`      | Speech to Text (e.g., OWSM)   |
+        | `spk`      | Speaker recognition           |
+        | `dev`      | Code formatting and linting   |
+        | `test`     | Unit test dependencies        |
+        | `doc`      | Documentation generation      |
+        | `all`      | All of the above (except dev) |
+
+        You can mix and match groups as needed:
+
+        ```sh
+        pip install -e ".[asr,tts,test]"
+        ```
+
+
+2. Install ESPnet (Legacy)
     ```sh
     $ cd <espnet-root>/tools
     $ make

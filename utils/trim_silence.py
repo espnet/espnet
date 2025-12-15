@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 import numpy
 import resampy
 
-from espnet.utils.cli_utils import get_commandline_args
+from espnet2.legacy.utils.cli_utils import get_commandline_args
 
 
 def _time_to_str(time_idx):
@@ -108,9 +108,10 @@ def main():
 
     os.makedirs(args.figdir, exist_ok=True)
 
-    with kaldiio.ReadHelper(args.rspecifier) as reader, codecs.open(
-        args.wspecifier, "w", encoding="utf-8"
-    ) as f:
+    with (
+        kaldiio.ReadHelper(args.rspecifier) as reader,
+        codecs.open(args.wspecifier, "w", encoding="utf-8") as f,
+    ):
         for utt_id, (rate, array) in reader:
             array = array.astype(numpy.float32)
             if args.normalize is not None and args.normalize != 1:

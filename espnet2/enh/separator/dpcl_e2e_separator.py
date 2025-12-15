@@ -6,7 +6,7 @@ from torch_complex.tensor import ComplexTensor
 
 from espnet2.enh.layers.complex_utils import is_complex
 from espnet2.enh.separator.abs_separator import AbsSeparator
-from espnet.nets.pytorch_backend.rnn.encoders import RNN
+from espnet2.legacy.nets.pytorch_backend.rnn.encoders import RNN
 
 
 class DPCLE2ESeparator(AbsSeparator):
