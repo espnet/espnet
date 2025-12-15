@@ -9,7 +9,7 @@ from typeguard import typechecked
 
 from espnet2.enh.layers.complex_utils import to_complex
 from espnet2.layers.inversible_interface import InversibleInterface
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet2.legacy.nets.pytorch_backend.nets_utils import make_pad_mask
 
 is_torch_1_10_plus = V(torch.__version__) >= V("1.10.0")
 

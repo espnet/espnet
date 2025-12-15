@@ -39,11 +39,12 @@ idir = sys.argv[1]
 odir = "data/train_gamayun"
 os.makedirs(odir, exist_ok=True)
 
-with open(odir + "/text", "w", encoding="utf-8") as text, open(
-    odir + "/wav.scp", "w"
-) as wavscp, open(odir + "/utt2spk", "w") as utt2spk, open(
-    os.path.join(idir, "swahili_minikit.csv")
-) as meta:
+with (
+    open(odir + "/text", "w", encoding="utf-8") as text,
+    open(odir + "/wav.scp", "w") as wavscp,
+    open(odir + "/utt2spk", "w") as utt2spk,
+    open(os.path.join(idir, "swahili_minikit.csv")) as meta,
+):
     reader = csv.reader(meta, delimiter="\t")
     for row in reader:
         uttid = "gamayun_" + row[0]

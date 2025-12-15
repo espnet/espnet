@@ -16,8 +16,10 @@ exclude="egs2/TEMPLATE/asr1/utils,egs2/TEMPLATE/asr1/steps,egs2/TEMPLATE/tts1/si
 echo "=== Run pycodestyle tests ==="
 pycodestyle --exclude "${exclude}" --show-source --show-pep8
 
-echo "=== Run pytest tests ==="
-pytest -q test/espnet2
+# It will set default timeout to 10.0 seconds for each test.
+# If the test is marked with @pytest.mark.execution_timeout,
+# the value in the mark will be used as the timeout value.
+pytest -q --execution-timeout 10.0 --timeouts-order moi test/espnet2
 
 echo "=== report ==="
 coverage report
