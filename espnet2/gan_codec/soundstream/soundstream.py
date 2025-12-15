@@ -450,7 +450,7 @@ class SoundStream(AbsGANCodec):
                 * codec (Tensor): Generated neural codec (T_code, N_stream).
 
         """
-        codec = self.generator.encode(x)
+        codec = self.generator.encode(x, **kwargs)
         wav = self.generator.decode(codec)
 
         return {"wav": wav, "codec": codec}
@@ -469,7 +469,8 @@ class SoundStream(AbsGANCodec):
             Tensor: Generated codes (T_code, N_stream).
 
         """
-        return self.generator.encode(x)
+        target_bw = kwargs.get("target_bw", None)
+        return self.generator.encode(x, target_bw=target_bw)
 
     def decode(
         self,

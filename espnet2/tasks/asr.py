@@ -265,7 +265,6 @@ class ASRTask(AbsTask):
             default=None,
             help="The initialization method",
             choices=[
-                "chainer",
                 "xavier_uniform",
                 "xavier_normal",
                 "kaiming_uniform",
@@ -505,7 +504,7 @@ class ASRTask(AbsTask):
         retval = retval + ["prompt"]
         retval = tuple(retval)
 
-        logging.info(f"Optional Data Names: {retval }")
+        logging.info(f"Optional Data Names: {retval}")
         return retval
 
     @classmethod
@@ -533,7 +532,7 @@ class ASRTask(AbsTask):
             args.token_list = token_list
 
         vocab_size = len(token_list)
-        logging.info(f"Vocabulary size: {vocab_size }")
+        logging.info(f"Vocabulary size: {vocab_size}")
 
         # 1. frontend
         if args.input_size is None:

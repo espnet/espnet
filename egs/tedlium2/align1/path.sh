@@ -19,6 +19,6 @@ export PYTHONIOENCODING=UTF-8
 if ! python3 -c "import ctc_segmentation" > /dev/null; then
     echo "Error: ctc_segmentation is not installed." >&2
     echo "Error: please install ctc_segmentation as follows:" >&2
-    echo "Error: . ${MAIN_ROOT}/tools/activate_python.sh && pip3 install ctc-segmentation" >&2
+    echo "Error: . ${MAIN_ROOT}/tools/activate_python.sh && pip3 install git+https://github.com/espnet/ctc-segmentation.git@9b9ea1d" >&2
     return 1
 fi

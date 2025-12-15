@@ -374,11 +374,11 @@ class SVSTask(AbsTask):
             raise RuntimeError("token_list must be str or dict")
 
         vocab_size = len(token_list)
-        logging.info(f"Vocabulary size: {vocab_size }")
+        logging.info(f"Vocabulary size: {vocab_size}")
 
         kwargs = dict()
 
-        raw_model_type = args.model_type
+        raw_model_type = getattr(args, "model_type", "svs")
         # 1. feats_extract
         if args.odim is None:
             # Extract features in the model
@@ -488,7 +488,7 @@ class SVSTask(AbsTask):
         kwargs.update(energy_normalize=energy_normalize)
 
         # 5. Build model
-        model_class = model_type_choices.get_class(args.model_type)
+        model_class = model_type_choices.get_class(raw_model_type)
         model = model_class(
             **kwargs,
             **args.model_conf,

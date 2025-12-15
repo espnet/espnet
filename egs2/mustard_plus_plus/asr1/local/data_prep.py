@@ -34,9 +34,11 @@ dir_dict = {
     "test": test_fnames,
 }
 for x in dir_dict:
-    with open(os.path.join("data", x, "wav.scp"), "w") as wav_scp_f, open(
-        os.path.join("data", x, "utt2spk"), "w"
-    ) as utt2spk_f, open(os.path.join("data", x, "text"), "w") as text_f:
+    with (
+        open(os.path.join("data", x, "wav.scp"), "w") as wav_scp_f,
+        open(os.path.join("data", x, "utt2spk"), "w") as utt2spk_f,
+        open(os.path.join("data", x, "text"), "w") as text_f,
+    ):
         for line in dir_dict[x]:
             utt_id = line.split("/")[-1].replace(".wav", "")
             if data.loc[utt_id, "Sarcasm"]:

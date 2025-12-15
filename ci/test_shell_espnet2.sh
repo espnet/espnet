@@ -4,7 +4,9 @@ if [ ! -e tools/kaldi ]; then
     git clone https://github.com/kaldi-asr/kaldi --depth 1 tools/kaldi
 fi
 
-PATH=$(pwd)/test_utils/bats-core/bin:$(pwd)/shellcheck-stable:$PATH
+# Workaround to avoid issue introduces in v0.11.0
+# PATH=$(pwd)/test_utils/bats-core/bin:$(pwd)/shellcheck-stable:$PATH
+PATH=$(pwd)/test_utils/bats-core/bin:$(pwd)/shellcheck-v0.10.0:$PATH
 if ! [ -x "$(command -v bats)" ]; then
     echo "=== install bats ==="
     git clone https://github.com/bats-core/bats-core.git "$(pwd)"/test_utils/bats-core
@@ -13,8 +15,12 @@ if ! [ -x "$(command -v bats)" ]; then
 fi
 if ! [ -x "$(command -v shellcheck)" ]; then
     echo "=== install shellcheck ==="
-    wget https://github.com/koalaman/shellcheck/releases/download/stable/shellcheck-stable.linux.x86_64.tar.xz
-    tar -xvf shellcheck-stable.linux.x86_64.tar.xz
+    # wget https://github.com/koalaman/shellcheck/releases/download/stable/shellcheck-stable.linux.x86_64.tar.xz
+    # tar -xvf shellcheck-stable.linux.x86_64.tar.xz
+
+    # Workaround to avoid issue introduces in v0.11.0
+    wget https://github.com/koalaman/shellcheck/releases/download/v0.10.0/shellcheck-v0.10.0.linux.x86_64.tar.xz
+    tar -xvf shellcheck-v0.10.0.linux.x86_64.tar.xz
 fi
 . tools/activate_python.sh
 . tools/extra_path.sh
@@ -24,7 +30,7 @@ set -euo pipefail
 echo "=== run shellcheck ==="
 rm -fv tools/Miniconda*.sh  # exclude from schellcheck
 rm -fv tools/Miniforge*.sh  # exclude from schellcheck
-find ci doc egs2/TEMPLATE/*/scripts egs2/TEMPLATE/*/setup.sh tools/*.sh -name "*.sh" -printf "=> %p\n" -execdir shellcheck -Calways -x -e SC2001 -e SC1091 -e SC2086 {} \; | tee check_shellcheck
+find utils ci doc egs2/TEMPLATE/*/scripts egs2/TEMPLATE/*/setup.sh tools/*.sh -name "*.sh" -printf "=> %p\n" -execdir shellcheck -Calways -x -e SC2001 -e SC1091 -e SC2086 {} \; | tee check_shellcheck
 find egs2/*/*/local/data.sh -printf "=> %p\n" -execdir sh -c 'cd .. ; shellcheck -Calways -x -e SC2001 -e SC1091 -e SC2086 local/$1 ; ' -- {} \; | tee -a check_shellcheck
 find egs2 \( -name "run.sh" -o -name asr.sh -o -name tts.sh -o -name enh.sh \) -printf "=> %p\n" -execdir shellcheck -Calways -x -e SC2001 -e SC1091 -e SC2086 {} \; | tee -a check_shellcheck
 
