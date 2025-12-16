@@ -593,3 +593,58 @@ class ResidualVectorQuantization(nn.Module):
             quantized = layer.decode(indices)
             quantized_out = quantized_out + quantized
         return quantized_out
+
+
+class BandVectorQuantization(nn.Module):
+
+    def __init__(self, *, num_bands: int, **kwargs):
+        super().__init__()
+        self.layers = nn.ModuleList(
+            [VectorQuantization(**kwargs) for _ in range(num_bands)]
+        )
+        self.num_bands = num_bands
+        self.quantizer_dropout = kwargs.get("quantizer_dropout")
+
+    def forward(self, x: torch.Tensor):
+        B, bands, d, n = x.shape
+        assert bands == self.num_bands, "error in input bands dim"
+
+        if not self.quantizer_dropout:
+            quantized_per = []
+            all_indices = []
+            all_loss = []
+
+            for i, layer in enumerate(self.layers):
+                inp = x[:, i, :, :]
+                quantized, indices, loss = layer(inp)
+
+                quantized_per.append(quantized)
+                all_indices.append(indices)
+                all_loss.append(loss)
+
+            quantized_per = torch.stack(quantized_per, dim=1)
+            all_indices = torch.stack(all_indices, dim=1)
+            all_loss = torch.stack(all_loss)
+            if self.training:
+                quantized_per = x + (quantized_per - x).detach()
+            return quantized_per, all_indices, all_loss
+
+    def encode(self, x: torch.Tensor) -> torch.Tensor:
+        B, bands, d, n = x.shape
+        assert bands == self.num_bands
+        all_indices = []
+
+        for i in range(bands):
+            inp = x[:, i, :, :]
+            idx = self.layers[i].encode(inp)
+            all_indices.append(idx)
+
+        return torch.stack(all_indices, dim=1)
+
+    def decode(self, q_indices: torch.Tensor) -> torch.Tensor:
+        recon_per = []
+        B, bands, n = q_indices.shape
+        for i in range(bands):
+            quant_i = self.layers[i].decode(q_indices[:, i, :])
+            recon_per.append(quant_i)
+        return torch.stack(recon_per, dim=1)
