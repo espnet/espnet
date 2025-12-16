@@ -4,7 +4,12 @@
 """Batching utilities for efficient data loading in SpeechLM training."""
 
 import logging
+import multiprocessing as mp
 from typing import Dict, List, TypeVar
+
+import torch
+import torch.distributed as dist
+from sortedcontainers import SortedList
 
 logger = logging.getLogger(__name__)
 
@@ -60,15 +65,35 @@ def batchfy_bucket(
     return buckets
 
 
+_NUM_WORKERS = 8  # Fixed for reproducibility
+_FINISH_RATIO = 0.99  # Batch is "complete" when >= 99% full
+
+
+def _bfd_worker(items: List[tuple], batch_token: int) -> List[List[tuple]]:
+    """Worker: sort (length, key) items and run Best Fit Decreasing."""
+    sorted_items = sorted(items, key=lambda x: x[0], reverse=True)
+    batches, active = [], SortedList()
+    min_remaining = int((1.0 - _FINISH_RATIO) * batch_token)
+
+    for length, key in sorted_items:
+        idx = active.bisect_left((length, -1))
+        if idx < len(active):
+            rem, bid = active.pop(idx)
+            batches[bid].append((length, key))
+            if rem - length > min_remaining:
+                active.add((rem - length, bid))
+        else:
+            if batch_token - length > min_remaining:
+                active.add((batch_token - length, len(batches)))
+            batches.append([(length, key)])
+
+    return batches
+
+
 def batchfy_pack(
     keys: List[T], key_to_length: Dict[T, int], batch_token: int
 ) -> List[List[T]]:
-    """Create batches using pack batching strategy.
-
-    Uses Best Fit Decreasing algorithm to maximize batch utilization.
-    Samples are sorted by length (descending) and packed into batches
-    by finding the batch with minimum remaining space that can fit
-    each sample. Batches at 99% capacity are marked as finished.
+    """Create batches using Best Fit Decreasing (parallel with 8 workers).
 
     Args:
         keys: List of sample keys to batch.
@@ -78,44 +103,39 @@ def batchfy_pack(
     Returns:
         List of batches, where each batch is a list of keys.
     """
-    # Sort keys by length in descending order (largest first)
-    sorted_keys = sorted(keys, key=lambda k: key_to_length[k], reverse=True)
 
-    finished_batches = []
-    active_batches = []
-    active_totals = []
-    threshold = 0.99 * batch_token
+    # NOTE(Jinchuan): we observe some blocky loss fluctuation during training,
+    # why may suggest the batchfy_pack would potentially have some issue. We
+    # should revisit this issue a bit later.
 
-    for key in sorted_keys:
-        key_length = key_to_length[key]
+    # Convert to (length, key) tuples - avoids copying dict to workers
+    items = [(key_to_length[k], k) for k in keys]
 
-        # Find the best active batch (minimum remaining space)
-        best_batch_idx = -1
-        min_remaining = float("inf")
+    # Skip multiprocessing for small inputs
+    if len(keys) < _NUM_WORKERS:
+        batches = _bfd_worker(items, batch_token)
+        return [[key for _, key in batch] for batch in batches]
 
-        for idx, total in enumerate(active_totals):
-            remaining = batch_token - total
-            if remaining >= key_length and remaining < min_remaining:
-                best_batch_idx = idx
-                min_remaining = remaining
+    # Split items → parallel (sort + pack) → merge
+    chunks = [items[i::_NUM_WORKERS] for i in range(_NUM_WORKERS)]
 
-        if best_batch_idx >= 0:
-            # Add to existing active batch
-            active_batches[best_batch_idx].append(key)
-            active_totals[best_batch_idx] += key_length
+    with mp.Pool(_NUM_WORKERS) as pool:
+        results = pool.starmap(_bfd_worker, [(c, batch_token) for c in chunks])
 
-            # Check if batch is now finished (>= 99% full)
-            if active_totals[best_batch_idx] >= threshold:
-                finished_batches.append(active_batches[best_batch_idx])
-                del active_batches[best_batch_idx]
-                del active_totals[best_batch_idx]
-        else:
-            # Create new active batch
-            active_batches.append([key])
-            active_totals.append(key_length)
+    # Merge: keep complete batches, re-pack incomplete ones
+    min_filled = int(_FINISH_RATIO * batch_token)
+    complete, redo = [], []
+    for batches in results:
+        for b in batches:
+            total = sum(length for length, _ in b)
+            (complete if total >= min_filled else redo).append(b)
 
-    # Combine finished and remaining active batches
-    return finished_batches + active_batches
+    if redo:
+        redo_items = [item for b in redo for item in b]
+        complete.extend(_bfd_worker(redo_items, batch_token))
+
+    # Extract keys only (discard lengths)
+    return [[key for _, key in batch] for batch in complete]
 
 
 def batchfy(
@@ -192,29 +212,21 @@ def synchronize_batches(batches: List[List[T]]) -> List[List[T]]:
         - If CUDA is not available, returns batches unchanged
         - Duplicates are taken from the end of the batch list
     """
-    try:
-        import logging
-
-        import torch
-        import torch.distributed as dist
-    except ImportError:
-        # torch not available, return batches as-is
-        return batches
-
     if not torch.cuda.is_available() or not dist.is_initialized():
         return batches
 
     n_batches = len(batches)
-    n_batches_tensor = torch.Tensor([n_batches]).long().cuda()
+    n_batches_tensor = torch.tensor([n_batches], dtype=torch.long, device="cuda")
     n_batches_list = [
-        torch.Tensor([0]).long().cuda() for _ in range(dist.get_world_size())
+        torch.tensor([0], dtype=torch.long, device="cuda")
+        for _ in range(dist.get_world_size())
     ]
     dist.all_gather(n_batches_list, n_batches_tensor)
-    tgt_n_batches = max([t.cpu().item() for t in n_batches_list])
+    tgt_n_batches = max(t.item() for t in n_batches_list)
 
     if tgt_n_batches > n_batches:
         batches = batches + batches[-(tgt_n_batches - n_batches) :]
-        logging.info("Synchronize sharded dataset across all process")
-        logging.info(f"#Batches: {n_batches} -> {tgt_n_batches}")
+        logger.info("Synchronize sharded dataset across all process")
+        logger.info(f"#Batches: {n_batches} -> {tgt_n_batches}")
 
     return batches
