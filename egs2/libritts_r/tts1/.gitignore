@@ -1,0 +1,15 @@
+# heavy/generated
+exp/
+dump/
+data/
+downloads/
+versa_cache/
+checkpoints/
+test-clean/
+
+# logs
+*.log
+run_*.log
+
+# do not include this local helper
+local/sort_spk_embed_scp.sh
