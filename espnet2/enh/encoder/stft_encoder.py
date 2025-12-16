@@ -76,7 +76,7 @@ class STFTEncoder(AbsEncoder):
     def output_dim(self) -> int:
         return self._output_dim
 
-    @torch.cuda.amp.autocast(enabled=False)
+    @torch.amp.autocast("cuda", enabled=False)
     def forward(self, input: torch.Tensor, ilens: torch.Tensor, fs: int = None):
         """Forward.
 
