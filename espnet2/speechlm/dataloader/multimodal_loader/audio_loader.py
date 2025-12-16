@@ -5,9 +5,23 @@
 """Audio data loading utilities using Lhotse library for efficient audio processing."""
 
 from pathlib import Path
-from typing import Tuple
+from typing import Iterator, Tuple
 
 import numpy as np
+
+try:
+    from arkive import audio_read
+except ImportError:
+    raise ImportError(
+        "arkive is not installed. Install at https://github.com/wanchichen/arkive"
+    )
+
+try:
+    import duckdb
+except ImportError:
+    raise ImportError(
+        "duckdb is not installed. Please install it with: pip install duckdb"
+    )
 
 try:
     from lhotse import CutSet, RecordingSet
@@ -15,6 +29,99 @@ except ImportError:
     raise ImportError(
         "lhotse is not installed. Please install it with: pip install lhotse"
     )
+
+
+class ArkiveAudioReader:
+    """Dict-like lazy audio reader using arkive parquets.
+
+    Reads audio data from arkive parquet files. Audio is accessed via byte
+    offsets and time boundaries stored in the parquet metadata.
+
+    Returns:
+        Tuple of (audio_array, sample_rate) where audio_array has shape
+        [num_samples, num_channels].
+
+    Args:
+        parquet_path: Path to the parquet file containing audio metadata.
+        valid_ids: List of valid IDs to keep (optional, keeps all if None).
+        worker_id: Partition IDs by worker (optional, keeps all if None).
+        world_size: Used for worker partitioning.
+    """
+
+    def __init__(
+        self,
+        parquet_path: str,
+        valid_ids: list = None,
+        worker_id: int = None,
+        world_size: int = None,
+    ):
+
+        query = f"SELECT * FROM read_parquet('{parquet_path}')"
+        result = duckdb.query(query)
+
+        # filter query result before loading to df
+        # avoids loading the whole query result into memory
+        if valid_ids is not None:
+            result = duckdb.query(
+                f"""
+                SELECT * FROM result
+                WHERE utt_id IN ({','.join(f"'{id}'" for id in valid_ids)})
+                 """
+            )
+
+        if worker_id is not None:
+            assert (
+                world_size is not None
+            ), f"filtering by worker_id requires world_size, got {world_size}"
+            result = duckdb.query(
+                f"""
+                SELECT * FROM result
+                QUALIFY (row_number() OVER (ORDER BY utt_id) - 1)
+                % {world_size} = {worker_id}
+            """
+            )
+
+        self.data = result.pl()
+        self.index = {
+            utt_id: idx for idx, utt_id in enumerate(self.data["utt_id"].to_list())
+        }
+
+    def __getitem__(self, key: str) -> Tuple[np.ndarray, int]:
+        """Get audio by ID. Returns (audio_array, sample_rate)."""
+        idx = self.index[key]
+        row = self.data.row(idx, named=True)
+
+        data = audio_read(
+            row["path"],
+            start_offset=row["start_byte_offset"],
+            file_size=row["file_size_bytes"],
+            start_time=row["start_time"],
+            end_time=row["end_time"],
+        )
+
+        return data.array.T, data.sample_rate
+
+    def __contains__(self, key: str) -> bool:
+        """Check if ID exists in manifest."""
+        return key in self.index
+
+    def __len__(self) -> int:
+        """Return number of items in manifest."""
+        return len(self.data)
+
+    def keys(self) -> Iterator[str]:
+        """Return iterator over IDs."""
+        return iter(self.index.keys())
+
+    def values(self) -> Iterator[Tuple[np.ndarray, int]]:
+        """Return iterator over (audio_array, sample_rate) tuples."""
+        for key in self.index:
+            yield self[key]
+
+    def items(self) -> Iterator[Tuple[str, Tuple[np.ndarray, int]]]:
+        """Return iterator over (id, (audio_array, sample_rate)) pairs."""
+        for key in self.index:
+            yield key, self[key]
 
 
 class LhotseAudioReader:
