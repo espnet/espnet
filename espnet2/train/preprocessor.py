@@ -638,6 +638,66 @@ class SLUPreprocessor(CommonPreprocessor):
         return data
 
 
+class SERPreprocessor(CommonPreprocessor):
+    def __init__(
+        self,
+        train: bool,
+        rir_scp: Optional[str] = None,
+        rir_apply_prob: float = 1.0,
+        noise_scp: Optional[str] = None,
+        noise_apply_prob: float = 1.0,
+        noise_db_range: str = "3_10",
+        short_noise_thres: float = 0.5,
+        speech_volume_normalize: float = None,
+        speech_name: str = "speech",
+        text_name: str = "text",
+        emotions: List[str] = None,
+        fs: int = 0,
+        data_aug_effects: List = None,
+        data_aug_num: List[int] = [1, 1],
+        data_aug_prob: float = 0.0,
+    ):
+        super().__init__(
+            train=train,
+            rir_scp=rir_scp,
+            rir_apply_prob=rir_apply_prob,
+            noise_scp=noise_scp,
+            noise_apply_prob=noise_apply_prob,
+            noise_db_range=noise_db_range,
+            short_noise_thres=short_noise_thres,
+            speech_volume_normalize=speech_volume_normalize,
+            speech_name=speech_name,
+            text_name=text_name,
+            fs=fs,
+            data_aug_effects=data_aug_effects,
+            data_aug_num=data_aug_num,
+            data_aug_prob=data_aug_prob,
+        )
+        self.emotions = emotions
+        self._make_label_mapping()
+
+    def _make_label_mapping(self):
+        self.emo2label = {emo: idx for idx, emo in enumerate(self.emotions.split("_"))}
+
+    def _text_process(
+        self, data: Dict[str, Union[str, np.ndarray]]
+    ) -> Dict[str, np.ndarray]:
+        if self.text_name in data and self.tokenizer is not None:
+            text = data[self.text_name]
+            text = self.text_cleaner(text)
+            tokens = self.tokenizer.text2tokens(text)
+            text_ints = self.token_id_converter.tokens2ids(tokens)
+            data[self.text_name] = np.array(text_ints, dtype=np.int64)
+        # Take care of the emotion labels in SER task
+        # Create the mapping for the emotions as well
+        if "emo" in data:
+            emo = data["emo"]
+            emo_ints = self.emo2label[emo]
+            data["emotion_labels"] = np.array([emo_ints], dtype=np.int64)
+            del data["emo"]
+        return data
+
+
 class CommonPreprocessor_multi(CommonPreprocessor):
     def __init__(
         self,

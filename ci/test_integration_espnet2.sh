@@ -429,3 +429,12 @@ echo "=== report ==="
 coverage combine egs2/*/*/.coverage
 coverage report -i
 coverage xml -i
+
+# [ESPnet2] test ser1 recipe
+cd ./egs2/mini_an4/ser1
+gen_dummy_coverage
+echo "==== [ESPnet2] SER ==="
+./run.sh --ngpu 0 --stage 1 --stop_stage 12 --python "${python}"
+# Remove generated files in order to reduce the disk usage
+rm -rf exp dump data
+cd "${cwd}"
