@@ -1,1 +1,201 @@
-tuning/train_e_branchformer.yaml
+# Main training for LibriSpeech 100h ASR recipe (Branchformer).
+# This config is self-contained; all defaults were inlined to avoid includes.
+
+
+# DDP/Lightning runtime parameters.
+num_device: 1
+num_nodes: 1
+task: espnet3.systems.asr.task.ASRTask
+
+
+# Path scaffold relative to the recipe root.
+recipe_dir: .
+data_dir: ${recipe_dir}/data
+exp_tag: librispeech100_asr_branchformer
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+stats_dir: ${recipe_dir}/exp/stats
+decode_dir: ${exp_dir}/decode
+dataset_dir: /path/to/LibriSpeech
+
+# Dataset creation function and arguments.
+create_dataset:
+  func: src.create_dataset.create_dataset
+
+# Dataset definition for training/validation splits.
+dataset:
+  dataset_module: src/dataset.py
+  train:
+    - name: train-clean-100
+      dataset:
+        split: train-clean-100
+  valid:
+    - name: dev-clean
+      dataset:
+        split: dev-clean
+    - name: dev-other
+      dataset:
+        split: dev-other
+
+  preprocessor:
+    _target_: espnet2.train.preprocessor.CommonPreprocessor
+    train: true
+    token_type: bpe
+    token_list: ${tokenizer.save_path}/tokens.txt
+    bpemodel: ${tokenizer.save_path}/bpe.model
+    text_cleaner:
+
+
+# Parallel execution settings used by espnet3.parallel (local by default).
+parallel:
+  env: local
+  n_workers: 1
+
+
+# DataLoader setup: CommonCollate, train uses sorted batching over shapes.
+dataloader:
+  collate_fn:
+    _target_: espnet2.train.collate_fn.CommonCollateFn
+    int_pad_value: -1
+  train:
+    multiple_iterator: false
+    num_shards: 1
+    iter_factory:
+      _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
+      shuffle: true
+      collate_fn: ${dataloader.collate_fn}
+      num_workers: 4
+      batches:
+        type: sorted
+        shape_files:
+          - ${stats_dir}/train/feats_shape
+        batch_size: 16
+        batch_bins: 12000000
+  valid:
+    multiple_iterator: false
+    num_shards: 1
+    iter_factory:
+      _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
+      shuffle: false
+      collate_fn: ${dataloader.collate_fn}
+      batches:
+        type: ${dataloader.train.iter_factory.batches.type}
+        shape_files:
+          - ${stats_dir}/valid/feats_shape
+        batch_size: ${dataloader.train.iter_factory.batches.batch_size}
+        batch_bins: ${dataloader.train.iter_factory.batches.batch_bins}
+
+
+# Optimizer and scheduler follow the template defaults.
+optim:
+  _target_: torch.optim.Adam
+  lr: 0.002
+  weight_decay: 0.000001
+
+
+scheduler:
+  _target_: espnet2.schedulers.warmup_lr.WarmupLR
+  warmup_steps: 15000
+
+
+best_model_criterion:
+  - - valid/loss
+    - 3
+    - min
+
+
+# Lightning Trainer knobs: BF16 mixed precision, long training schedule.
+trainer:
+  accelerator: auto
+  devices: ${num_device}
+  num_nodes: ${num_nodes}
+  accumulate_grad_batches: 1
+  check_val_every_n_epoch: 1
+  gradient_clip_val: 1.0
+  log_every_n_steps: 100
+  max_epochs: 70
+  precision: bf16-mixed
+
+  logger:
+    - _target_: lightning.pytorch.loggers.TensorBoardLogger
+      save_dir: ${exp_dir}/tensorboard
+      name: tb_logger
+
+  strategy: auto
+
+
+# Tokenizer config for 5k BPE vocabulary.
+tokenizer:
+  vocab_size: 5000
+  character_coverage: 1.0
+  model_type: bpe
+  save_path: ${data_dir}/${tokenizer.model_type}_${tokenizer.vocab_size}
+
+
+model:
+  # Model definition for Branchformer-based ASR.
+  vocab_size: ${tokenizer.vocab_size}
+  token_list: ${tokenizer.save_path}/tokens.txt
+
+  encoder: e_branchformer
+  encoder_conf:
+    output_size: 256
+    attention_heads: 4
+    attention_layer_type: rel_selfattn
+    pos_enc_layer_type: rel_pos
+    rel_pos_type: latest
+    cgmlp_linear_units: 1024
+    cgmlp_conv_kernel: 31
+    use_linear_after_conv: false
+    gate_activation: identity
+    num_blocks: 12
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    attention_dropout_rate: 0.1
+    input_layer: conv2d
+    layer_drop_rate: 0.0
+    linear_units: 1024
+    positionwise_layer_type: linear
+    use_ffn: true
+    macaron_ffn: true
+    merge_conv_kernel: 31
+
+  decoder: transformer
+  decoder_conf:
+    attention_heads: 4
+    linear_units: 2048
+    num_blocks: 6
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    self_attention_dropout_rate: 0.1
+    src_attention_dropout_rate: 0.1
+    layer_drop_rate: 0.0
+
+  normalize: global_mvn
+  normalize_conf:
+    stats_file: ${stats_dir}/train/feats_stats.npz
+
+  model_conf:
+    ctc_weight: 0.3
+    lsm_weight: 0.1
+    length_normalized_loss: false
+
+  frontend: default
+  frontend_conf:
+    n_fft: 512
+    win_length: 400
+    hop_length: 160
+
+  specaug: specaug
+  specaug_conf:
+    apply_time_warp: true
+    time_warp_window: 5
+    time_warp_mode: bicubic
+    apply_freq_mask: true
+    freq_mask_width_range: [0, 27]
+    num_freq_mask: 2
+    apply_time_mask: true
+    time_mask_width_ratio_range: [0.0, 0.05]
+    num_time_mask: 5
+
+
+fit: {}

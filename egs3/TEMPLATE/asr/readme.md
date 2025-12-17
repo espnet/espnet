@@ -6,24 +6,23 @@ latest `espnet3` package utilities.
 ## Quick start
 
 ```bash
+# 0) Edit configs to set paths (e.g., conf/train.yaml: dataset_dir, create_dataset.func)
+
 # 1) Convert LibriSpeech to Hugging Face format (run once)
-python run.py --stage create_dataset --input_dir /path/to/LibriSpeech --output_dir data
+python run.py --stages create_dataset --train_config conf/train.yaml
 
 # 2) Train with the default Branchformer configuration
-python run.py --stage train --train_tokenizer --collect_stats
+python run.py --stages train --train_tokenizer --collect_stats --train_config conf/train.yaml
 
-# 3) Decode and score
-python run.py --stage evaluate
+# 3) Decode
+python run.py --stages infer --infer_config conf/infer.yaml
+
+# 4) Score
+python run.py --stages metric --metric_config conf/metric.yaml
 ```
 
 All hyper-parameters are stored in `configs/` and can be overridden using Hydra syntax. For example:
 
 ```bash
-python run.py --stage train --train_overrides trainer.max_epochs=10 runtime.device=cuda
-```
-
-To debug a single decoding sample:
-
-```bash
-python run.py --stage evaluate --debug_sample --eval_overrides runtime.debug_test=test-other
+python run.py --stages train --train_overrides trainer.max_epochs=10 runtime.device=cuda --train_config conf/train.yaml
 ```

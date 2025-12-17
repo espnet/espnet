@@ -1,4 +1,4 @@
-from egs3.TEMPLATE.asr1.run import (
+from egs3.TEMPLATE.asr.run import (
     DEFAULT_STAGES,
     build_parser,
     main,
@@ -11,13 +11,10 @@ if __name__ == "__main__":
         stages=DEFAULT_STAGES,
         add_arguments=None,  # You can create your parser and put here if needed
     )
-    args, stage_configs, stages_to_run = parse_cli_and_stage_args(
-        parser, stages=DEFAULT_STAGES
-    )
+    args, stages_to_run = parse_cli_and_stage_args(parser, stages=DEFAULT_STAGES)
 
     main(
         args=args,
         system_cls=ASRSystem,
         stages=stages_to_run,
-        stage_configs=stage_configs,
     )

@@ -31,36 +31,60 @@ class BaseSystem:
     """
 
     def __init__(
-        self, train_config: DictConfig, eval_config: DictConfig = None
+        self,
+        *,
+        train_config: DictConfig | None = None,
+        infer_config: DictConfig | None = None,
+        metric_config: DictConfig | None = None,
     ) -> None:
         self.train_config = train_config
-        self.eval_config = eval_config
-        self.exp_dir = Path(train_config.exp_dir)
-        self.exp_dir.mkdir(parents=True, exist_ok=True)
+        self.infer_config = infer_config
+        self.metric_config = metric_config
+        if train_config is not None:
+            self.exp_dir = Path(train_config.exp_dir)
+            self.exp_dir.mkdir(parents=True, exist_ok=True)
+        else:
+            self.exp_dir = None
+
+    @staticmethod
+    def _reject_stage_args(stage: str, args, kwargs) -> None:
+        if args or kwargs:
+            raise TypeError(
+                f"Stage '{stage}' does not accept arguments. "
+                "Put all settings in the YAML config."
+            )
 
     # ---------------------------------------------------------
     # Stage stubs (override in subclasses if needed)
     # ---------------------------------------------------------
-    def create_dataset(self):
+    def create_dataset(self, *args, **kwargs):
+        self._reject_stage_args("create_dataset", args, kwargs)
         logger.info("Running prepare() (BaseSystem stub). Nothing done.")
 
-    def collect_stats(self):
+    def collect_stats(self, *args, **kwargs):
+        self._reject_stage_args("collect_stats", args, kwargs)
         return collect_stats(self.train_config)
 
-    def train(self):
+    def train(self, *args, **kwargs):
+        self._reject_stage_args("train", args, kwargs)
         return train(self.train_config)
 
-    def evaluate(self):
-        self.decode()
-        return self.score()
+    def evaluate(self, *args, **kwargs):
+        self._reject_stage_args("evaluate", args, kwargs)
+        # Backward-compat shim if someone calls evaluate directly.
+        self.infer()
+        return self.metric()
 
-    def decode(self):
-        return inference(self.eval_config)
+    def infer(self, *args, **kwargs):
+        self._reject_stage_args("infer", args, kwargs)
+        return inference(self.infer_config)
 
-    def score(self):
-        result = score(self.eval_config)
+    def metric(self, *args, **kwargs):
+        self._reject_stage_args("metric", args, kwargs)
+        result = score(self.metric_config)
         logger.info("Scoring results: %s", result)
         return result
 
-    def publish(self):
+    def publish(self, *args, **kwargs):
+        self._reject_stage_args("publish", args, kwargs)
         logger.info("Running publish() (BaseSystem stub). Nothing done.")

@@ -1,0 +1,43 @@
+# Metric/scoring configuration for LibriSpeech 100h.
+# Consumes decode outputs under decode_dir and reports metrics.
+
+# Path scaffold relative to the recipe root; keep aligned with infer.yaml.
+recipe_dir: .
+data_dir: ${recipe_dir}/data
+exp_tag: librispeech100_asr_eval
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+stats_dir: ${recipe_dir}/exp/stats
+decode_dir: ${exp_dir}/decode
+
+# Dataset definition for test splits only (used to enumerate test names).
+dataset:
+  dataset_module: src/dataset.py
+  test:
+    - name: test-clean
+      dataset:
+        split: test-clean
+    - name: test-other
+      dataset:
+        split: test-other
+
+# Metrics to compute on test splits: WER and CER.
+metrics:
+  - metric:
+      _target_: espnet3.systems.asr.metrics.wer.WER
+      clean_types:
+    inputs:
+      - ref
+      - hyp
+    apply_to:
+      - test-clean
+      - test-other
+
+  - metric:
+      _target_: espnet3.systems.asr.metrics.cer.CER
+      clean_types:
+    inputs:
+      - ref
+      - hyp
+    apply_to:
+      - test-clean
+      - test-other

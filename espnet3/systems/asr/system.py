@@ -27,14 +27,26 @@ class ASRSystem(BaseSystem):
       - Tokenizer training inside train()
     """
 
-    def create_dataset(self, func: str, **kwargs):
+    def create_dataset(self, *args, **kwargs):
+        self._reject_stage_args("create_dataset", args, kwargs)
         logger.info("ASRSystem.create_dataset(): starting dataset creation process")
-        logger.info(f"Creating dataset with function {func}")
-        fn = load_function(func)
-        return fn(**kwargs)
+        cfg = getattr(self.train_config, "create_dataset", None)
+        if cfg is None or not getattr(cfg, "func", None):
+            raise RuntimeError(
+                "train_config.create_dataset.func must be set to run create_dataset"
+            )
+        fn = load_function(cfg.func)
+        extra = {k: v for k, v in cfg.items() if k != "func"}
+        logger.info(f"Creating dataset with function {cfg.func}")
+        return fn(**extra)
 
-    def train(self, dataset_dir: str = None):
+    def train(self, *args, **kwargs):
+        self._reject_stage_args("train", args, kwargs)
         logger.info("ASRSystem.train(): starting training process")
+
+        dataset_dir = getattr(self.train_config, "dataset_dir", None)
+        if dataset_dir is None:
+            raise RuntimeError("train_config.dataset_dir must be set for training.")
 
         # Train tokenizer if not trained previously
         tokenizer_path = (
@@ -42,15 +54,16 @@ class ASRSystem(BaseSystem):
             / f"{self.train_config.tokenizer.model_type}.model"
         )
         if not tokenizer_path.exists():
-            self.train_tokenizer(dataset_dir=dataset_dir)
+            self.train_tokenizer()
 
         # Proceed with standard training
         return super().train()
 
-    def train_tokenizer(self, dataset_dir: str = None):
-        assert (
-            dataset_dir is not None
-        ), "dataset_dir must be provided for tokenizer training"
+    def train_tokenizer(self, *args, **kwargs):
+        self._reject_stage_args("train_tokenizer", args, kwargs)
+        dataset_dir = getattr(self.train_config, "dataset_dir", None)
+        if dataset_dir is None:
+            raise RuntimeError("train_config.dataset_dir must be set for tokenizer training.")
 
         split_path = os.path.join(dataset_dir, "train-clean-100")
         output_path = Path(self.train_config.tokenizer.save_path)

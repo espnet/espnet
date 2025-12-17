@@ -1,20 +1,35 @@
+# Inference/decoding configuration for LibriSpeech 100h.
+# Keeps only inference pieces and mirrors the training paths.
+
+# Minimal runtime scaffold; inference uses Speech2Text, so no task needed.
 num_device: 1
 num_nodes: 1
-task:
 
-
+# Path scaffold relative to the recipe root.
 recipe_dir: .
 data_dir: ${recipe_dir}/data
+exp_tag: librispeech100_asr_eval
 exp_dir: ${recipe_dir}/exp/${exp_tag}
 stats_dir: ${recipe_dir}/exp/stats
 decode_dir: ${exp_dir}/decode
 
+# Dataset definition for test splits only.
+dataset:
+  dataset_module: src/dataset.py
+  test:
+    - name: test-clean
+      dataset:
+        split: test-clean
+    - name: test-other
+      dataset:
+        split: test-other
 
+# Parallel execution used during data loading / scoring (defaults to local).
 parallel:
   env: local
   n_workers: 1
 
-
+# DataLoader defaults; small batch/numel settings keep decoding light.
 dataloader:
   collate_fn:
     _target_: espnet2.train.collate_fn.CommonCollateFn
@@ -46,40 +61,17 @@ dataloader:
         batch_size: ${dataloader.train.iter_factory.batches.batch_size}
         batch_bins: ${dataloader.train.iter_factory.batches.batch_bins}
 
+# Inference model: load the trained config/checkpoint and beam search params.
+model:
+  _target_: espnet2.bin.asr_inference.Speech2Text
+  asr_train_config: ${exp_dir}/config.yaml
+  asr_model_file: ${exp_dir}/last.ckpt
+  beam_size: 1
+  ctc_weight: 0.3
 
-optim:
-  _target_: torch.optim.Adam
-  lr: 0.002
-  weight_decay: 0.000001
-
-
-scheduler:
-  _target_: espnet2.schedulers.warmup_lr.WarmupLR
-  warmup_steps: 15000
-
-
-best_model_criterion:
-  - - valid/loss
-    - 3
-    - min
-
-
-trainer:
-  accelerator: auto
-  devices: ${num_device}
-  num_nodes: ${num_nodes}
-  accumulate_grad_batches: 1
-  check_val_every_n_epoch: 1
-  gradient_clip_val: 1.0
-  log_every_n_steps: 100
-  max_epochs: 10
-
-  logger:
-    - _target_: lightning.pytorch.loggers.TensorBoardLogger
-      save_dir: ${exp_dir}/tensorboard
-      name: tb_logger
-
-  strategy: auto
-
-
-fit: {}
+# Tokenizer config mirrors the training side for BPE-5k.
+tokenizer:
+  vocab_size: 5000
+  character_coverage: 1.0
+  model_type: bpe
+  save_path: ${data_dir}/${tokenizer.model_type}_${tokenizer.vocab_size}
