@@ -12,6 +12,7 @@ exp_tag: librispeech100_asr_eval
 exp_dir: ${recipe_dir}/exp/${exp_tag}
 stats_dir: ${recipe_dir}/exp/stats
 decode_dir: ${exp_dir}/decode
+dataset_dir: /path/to/LibriSpeech
 
 # Dataset definition for test splits only.
 dataset:
@@ -19,9 +20,13 @@ dataset:
   test:
     - name: test-clean
       dataset:
+        _target_: src.dataset.LibriSpeechDataset
+        data_dir: ${dataset_dir}
         split: test-clean
     - name: test-other
       dataset:
+        _target_: src.dataset.LibriSpeechDataset
+        data_dir: ${dataset_dir}
         split: test-other
 
 # Parallel execution used during data loading / scoring (defaults to local).

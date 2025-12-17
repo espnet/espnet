@@ -8,6 +8,7 @@ exp_tag: asr_template_eval
 exp_dir: ${recipe_dir}/exp/${exp_tag}
 stats_dir: ${recipe_dir}/exp/stats
 decode_dir: ${exp_dir}/decode
+dataset_dir: /path/to/your/dataset
 
 # Dataset definition for test splits only (used to enumerate test names).
 dataset:
@@ -15,6 +16,8 @@ dataset:
   test:
     - name: test-clean
       dataset:
+        _target_: src.dataset.LibriSpeechDataset
+        data_dir: ${dataset_dir}
         split: test-clean
 
 # Metrics block intentionally empty in template; fill with WER/CER, etc.

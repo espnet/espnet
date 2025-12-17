@@ -19,6 +19,8 @@ dataset:
   test:
     - name: test-clean
       dataset:
+        _target_: src.dataset.LibriSpeechDataset
+        data_dir: ${dataset_dir}
         split: test-clean
 
 # Parallel execution used during data loading / scoring (defaults to local).
