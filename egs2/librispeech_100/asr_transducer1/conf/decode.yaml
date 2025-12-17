@@ -1,0 +1,14 @@
+beam_size: 10 # 5 is almost equivalent.
+beam_search_config:
+    search_type: default
+
+    # ALSD (search-type: alsd)
+    u_max: 150
+
+    # TSD (search-type: tsd)
+    max_sym_exp: 3
+
+    # mAES (search-type: maes)
+    nstep: 2
+    expansion_gamma: 1.5
+    expansion_beta: 1
