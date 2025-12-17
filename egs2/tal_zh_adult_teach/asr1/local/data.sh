@@ -87,4 +87,3 @@ utils/validate_data_dir.sh --no-feats data/test
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
 exit 0;
-
