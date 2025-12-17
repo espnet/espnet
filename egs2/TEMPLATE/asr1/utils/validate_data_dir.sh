@@ -126,7 +126,7 @@ fi
 num_utts=`cat $tmpdir/utts | wc -l`
 if ! $no_text; then
   if ! $non_print; then
-    if locale -a | grep "C.UTF-8" >/dev/null; then
+    if locale -a | grep -qE "^C\.(UTF-8|utf8)$"; then
       L=C.UTF-8
     else
       L=en_US.UTF-8
