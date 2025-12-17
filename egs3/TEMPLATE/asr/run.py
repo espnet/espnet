@@ -1,4 +1,3 @@
-# espnet3/utils/run_template.py
 #!/usr/bin/env python3
 """Generic runner template for System-based experiments."""
 
@@ -18,7 +17,7 @@ DEFAULT_STAGES: List[str] = [
     "collect_stats",
     "train",
     "infer",
-    "metric",
+    "measure",
     "publish",
 ]
 
@@ -54,10 +53,10 @@ def build_parser(
         help="Hydra config for inference/decoding stage.",
     )
     parser.add_argument(
-        "--metric_config",
+        "--measure_config",
         default=None,
         type=Path,
-        help="Hydra config for metric/scoring stage.",
+        help="Hydra config for measure/scoring stage.",
     )
     parser.add_argument(
         "--dry_run",
@@ -106,10 +105,10 @@ def main(
         if args.infer_config is None
         else load_config_with_defaults(args.infer_config)
     )
-    metric_config = (
+    measure_config = (
         None
-        if args.metric_config is None
-        else load_config_with_defaults(args.metric_config)
+        if args.measure_config is None
+        else load_config_with_defaults(args.measure_config)
     )
 
     # -----------------------------------------
@@ -118,7 +117,7 @@ def main(
     system = system_cls(
         train_config=train_config,
         infer_config=infer_config,
-        metric_config=metric_config,
+        measure_config=measure_config,
     )
 
     # -----------------------------------------
@@ -130,14 +129,14 @@ def main(
     required_configs = {
         "train": train_config,
         "infer": infer_config,
-        "metric": metric_config,
+        "measure": measure_config,
     }
     missing = [s for s in stages_to_run if s in required_configs and required_configs[s] is None]
     if missing:
         missing_str = ", ".join(missing)
         raise ValueError(
             f"Config not provided for stage(s): {missing_str}. "
-            "Use --dataset_config/--train_config/--infer_config/--metric_config."
+            "Use --train_config/--infer_config/--measure_config."
         )
     run_stages(system=system, stages_to_run=stages_to_run, dry_run=args.dry_run)
 

@@ -35,11 +35,11 @@ class BaseSystem:
         *,
         train_config: DictConfig | None = None,
         infer_config: DictConfig | None = None,
-        metric_config: DictConfig | None = None,
+        measure_config: DictConfig | None = None,
     ) -> None:
         self.train_config = train_config
         self.infer_config = infer_config
-        self.metric_config = metric_config
+        self.metric_config = measure_config
         if train_config is not None:
             self.exp_dir = Path(train_config.exp_dir)
             self.exp_dir.mkdir(parents=True, exist_ok=True)
@@ -73,14 +73,14 @@ class BaseSystem:
         self._reject_stage_args("evaluate", args, kwargs)
         # Backward-compat shim if someone calls evaluate directly.
         self.infer()
-        return self.metric()
+        return self.measure()
 
     def infer(self, *args, **kwargs):
         self._reject_stage_args("infer", args, kwargs)
         return inference(self.infer_config)
 
-    def metric(self, *args, **kwargs):
-        self._reject_stage_args("metric", args, kwargs)
+    def measure(self, *args, **kwargs):
+        self._reject_stage_args("measure", args, kwargs)
         result = score(self.metric_config)
         logger.info("Scoring results: %s", result)
         return result
