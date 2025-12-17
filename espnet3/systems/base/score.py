@@ -5,10 +5,7 @@ from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
 
 from espnet3.components.abs_metric import AbsMetrics
-from espnet3.systems.base.scp_utils import (
-    get_class_path,
-    load_scp_fields,
-)
+from espnet3.utils.scp_utils import get_class_path, load_scp_fields
 
 
 def score(config: DictConfig):
