@@ -24,4 +24,3 @@
 |decode_asr_branchformer_lm_lm_train_lm_transformer_zh_char_valid.loss.ave_asr_model_valid.acc.ave/test|6072|160057|89.2|8.2|2.7|1.1|11.9|78.5|
 |decode_asr_branchformer_asr_model_valid.acc.ave/org/dev|3208|77334|91.3|7.2|1.5|0.8|9.6|72.8|
 |decode_asr_branchformer_lm_lm_train_lm_transformer_zh_char_valid.loss.ave_asr_model_valid.acc.ave/org/dev|3208|77334|90.9|7.4|1.7|1.0|10.1|72.5|
-
