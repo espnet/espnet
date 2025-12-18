@@ -6,7 +6,7 @@ log() {
   echo "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $*"
 }
 
-log $0 $*
+log "$0" "$@"
 
 downloads_dir=
 
@@ -17,7 +17,7 @@ downloads_dir=
 
 if [ $# -ne 0 ]; then
   log "Error: Unknown argument $*"
-  echo <<EOF
+  cat <<EOF
   Usage: local/data.sh [--downloads_dir <path>]
 
   Options:
@@ -32,8 +32,8 @@ if [ -z "${TAL_ZH_ADULT_TEACH}" ]; then
 fi
 
 log "Download data to ${TAL_ZH_ADULT_TEACH}"
-TAL_ZH_ADULT_TEACH=$(cd ${TAL_ZH_ADULT_TEACH}; pwd)
-. ./local/download_and_untar.sh ${TAL_ZH_ADULT_TEACH} ${downloads_dir}
+TAL_ZH_ADULT_TEACH=$(cd "${TAL_ZH_ADULT_TEACH}"; pwd)
+. ./local/download_and_untar.sh "${TAL_ZH_ADULT_TEACH}" "${downloads_dir}"
 
 prepare_kaldi() {
   name=$1
@@ -42,30 +42,30 @@ prepare_kaldi() {
   num_wav=$4
   dir=data/${name}
   log "Data Preparation for partition: data/${name}"
-  mkdir -p $dir
+  mkdir -p "$dir"
 
-  find ${wav_dir} -name "*.wav" > $dir/wav.flist
+  find "${wav_dir}" -name "*.wav" > "$dir"/wav.flist
 
-  sed -e 's/\.wav//' $dir/wav.flist | awk -F '/' '{print $NF}' > $dir/utt.list
-  sed -e 's/\.wav//' $dir/wav.flist | awk -F '/' '{print $NF, "TALASR"$(NF-1)"-"$NF}' > $dir/utt_uttid
-  sed -e 's/\.wav//' $dir/wav.flist | awk -F '/' '{print "TALASR"$(NF-1)"-"$NF, "TALASR"$(NF-1)}' > $dir/utt2spk
-  paste -d ' ' <(awk '{print $2}' $dir/utt_uttid) $dir/wav.flist > $dir/wav.scp
-  utils/filter_scp.pl -f 1 $dir/utt.list $trans | \
+  sed -e 's/\.wav//' "$dir"/wav.flist | awk -F '/' '{print $NF}' > "$dir"/utt.list
+  sed -e 's/\.wav//' "$dir"/wav.flist | awk -F '/' '{print $NF, "TALASR"$(NF-1)"-"$NF}' > "$dir"/utt_uttid
+  sed -e 's/\.wav//' "$dir"/wav.flist | awk -F '/' '{print "TALASR"$(NF-1)"-"$NF, "TALASR"$(NF-1)}' > "$dir"/utt2spk
+  paste -d ' ' <(awk '{print $2}' "$dir"/utt_uttid) "$dir"/wav.flist > "$dir"/wav.scp
+  utils/filter_scp.pl -f 1 "$dir"/utt.list "$trans" | \
     sed 's/Ａ/A/g' | sed 's/#//g' | sed 's/=//g' | sed 's/、//g' | \
     sed 's/，//g' | sed 's/？//g' | sed 's/。//g' | sed 's/[ ][ ]*$//g'\
-    > $dir/transcripts.txt
-  awk '{print $1}' $dir/transcripts.txt > $dir/utt.list
-  paste -d " " <(sort -u -k 1 $dir/utt_uttid | awk '{print $2}') \
-    <(sort -u -k 1 $dir/transcripts.txt | awk '{for(i=2;i<NF;i++) {printf($i" ")}printf($NF"\n") }') \
-    > $dir/text
-  utils/utt2spk_to_spk2utt.pl $dir/utt2spk > $dir/spk2utt
+    > "$dir"/transcripts.txt
+  awk '{print $1}' "$dir"/transcripts.txt > "$dir"/utt.list
+  paste -d " " <(sort -u -k 1 "$dir"/utt_uttid | awk '{print $2}') \
+    <(sort -u -k 1 "$dir"/transcripts.txt | awk '{for(i=2;i<NF;i++) {printf($i" ")}printf($NF"\n") }') \
+    > "$dir"/text
+  utils/utt2spk_to_spk2utt.pl "$dir"/utt2spk > "$dir"/spk2utt
 
-  if [ $(wc -l < $dir/text) -ne $num_wav ]; then
-    log "Error: The number of utterances in $dir/text ($((wc -l < $dir/text))) does not match the expected number ($num_wav)."
+  if [ "$(wc -l < "$dir/text")" -ne "$num_wav" ]; then
+    log "Error: The number of utterances in $dir/text ($(wc -l < "$dir/text")) does not match the expected number ($num_wav)."
     exit 1
   fi
 
-  utils/fix_data_dir.sh $dir
+  utils/fix_data_dir.sh "$dir"
 
 }
 

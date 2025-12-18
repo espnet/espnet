@@ -11,7 +11,7 @@ if ! command -v unzip >/dev/null; then
 fi
 
 if [ $# -lt 1 ] || [ $# -gt 2 ]; then
-  echo <<EOF
+  cat <<EOF
 Usage: local/download_and_untar.sh <extract-dir> [<zip-dir>]
 
 <extract-dir> : Destination directory for the extracted TAL ASR folders.
