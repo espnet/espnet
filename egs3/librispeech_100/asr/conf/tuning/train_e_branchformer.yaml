@@ -16,13 +16,11 @@ exp_dir: ${recipe_dir}/exp/${exp_tag}
 stats_dir: ${recipe_dir}/exp/stats
 decode_dir: ${exp_dir}/decode
 dataset_dir: /path/to/LibriSpeech
-data_store_dir: ${dataset_dir}/hf_cache  # where Hugging Face dataset is stored
 
-# Dataset creation function and arguments.
+# Dataset creation function and arguments (downloads into dataset_dir cache).
 create_dataset:
   func: src.create_dataset.create_dataset
-  dataset_dir: ${data_store_dir}
-  output_dir: ${data_dir}
+  dataset_dir: ${dataset_dir}
 
 # Dataset definition for training/validation splits. Each dataset entry passes
 # the root LibriSpeech path and split name into src.dataset:LibriSpeechDataset.

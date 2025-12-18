@@ -1,56 +1,129 @@
+"""LibriSpeech downloader for the egs3 LibriSpeech 100h ASR recipe.
+
+This module is used in two ways:
+  1) As an ESPnet3 stage function via config (`create_dataset.func`), where the
+     caller invokes :func:`create_dataset` directly with keyword arguments.
+  2) As a standalone script (`python src/create_dataset.py ...`) for quick manual
+     downloads during development.
+
+The implementation intentionally only downloads/extracts the original LibriSpeech
+archives into the specified directory (no preprocessing, no dataset conversion).
+"""
+
+from __future__ import annotations
+
 import argparse
-import os
 from pathlib import Path
 
-from datasets import Dataset, DatasetDict
-from tqdm import tqdm
+from espnet3.utils.download import download_url, extract_targz, setup_logger
+
+OPENSLR_BASE_URL = "https://www.openslr.org/resources/12"
+
+SPLITS = {
+    "train.clean.100": "train-clean-100.tar.gz",
+    "validation.clean": "dev-clean.tar.gz",
+    "validation.other": "dev-other.tar.gz",
+    "test.clean": "test-clean.tar.gz",
+    "test.other": "test-other.tar.gz",
+}
 
 
-def parse_transcript_file(transcript_path):
-    transcript_dict = {}
-    with open(transcript_path, "r", encoding="utf-8") as f:
-        for line in f:
-            utt_id, *words = line.strip().split()
-            transcript_dict[utt_id] = " ".join(words)
-    return transcript_dict
+def download_and_extract_if_needed(
+    *,
+    split: str,
+    url: str,
+    dataset_dir: Path,
+    extracted_dir: Path,
+    archive_name: str,
+    logger,
+    step_percent: int = 5,
+) -> None:
+    """Download and extract one split if not already present."""
+    if extracted_dir.exists():
+        logger.info(f"Skip split '{split}' (already exists): {extracted_dir}")
+        return
+
+    dataset_dir.mkdir(parents=True, exist_ok=True)
+    archive_path = dataset_dir / archive_name
+
+    logger.info(f"Start processing split: {split}")
+
+    if not archive_path.exists():
+        download_url(
+            url=url,
+            dst_path=archive_path,
+            logger=logger,
+            step_percent=step_percent,
+        )
+    else:
+        logger.info(f"Archive exists, skip download: {archive_name}")
+
+    extract_targz(archive_path, dataset_dir, logger)
+    logger.info(f"Finished split: {split}")
 
 
-def gather_examples(data_dir):
-    examples = {"id": [], "speech": [], "text": []}
-    for root, dirs, files in tqdm(os.walk(data_dir)):
-        for file in files:
-            if file.endswith(".trans.txt"):
-                transcript_path = os.path.join(root, file)
-                transcript_dict = parse_transcript_file(transcript_path)
+def create_dataset(
+    dataset_dir: Path,
+    *,
+    step_percent: int = 5,
+    splits: list[str] | None = None,
+) -> None:
+    """Download (and extract) requested LibriSpeech splits into ``dataset_dir``.
 
-                for utt_id, text in transcript_dict.items():
-                    flac_path = os.path.join(root, utt_id + ".flac")
-                    if not os.path.exists(flac_path):
-                        continue
-                    examples["id"].append(utt_id)
-                    examples["speech"].append({"path": flac_path})
-                    examples["text"].append(text)
-    return examples
+    Args:
+        dataset_dir: Destination directory. Archives are stored under this
+            directory and extracted into ``dataset_dir / "LibriSpeech"``.
+        step_percent: Logging granularity for download progress.
+        splits: Optional subset of keys from :data:`SPLITS`. If omitted, all
+            splits in :data:`SPLITS` are processed.
+    """
+    logger = setup_logger(
+        name="create_dataset",
+        log_dir=dataset_dir / "logs",
+    )
 
+    librispeech_root = dataset_dir / "LibriSpeech"
 
-def create_dataset(dataset_dir: Path, output_dir: Path = "data/"):
-    splits = ["train-clean-100", "dev-clean", "dev-other", "test-clean", "test-other"]
+    requested = list(SPLITS.keys()) if splits is None else list(splits)
+    unknown = [s for s in requested if s not in SPLITS]
+    if unknown:
+        raise ValueError(f"Unknown split(s): {unknown}. Valid: {list(SPLITS.keys())}")
 
-    dataset_dict = DatasetDict()
-    for split in splits:
-        split_path = os.path.join(dataset_dir, split)
-        print(f"Gathering examples from: {split_path}")
-        dataset = Dataset.from_dict(gather_examples(split_path))
-        # Uncomment below if you want to cast to datasets.Audio
-        # dataset = dataset.cast_column("audio", datasets.Audio(decode=False))
-        dataset_dict[split] = dataset
+    for split in requested:
+        filename = SPLITS[split]
+        extracted_dir = librispeech_root / filename.replace(".tar.gz", "")
+        url = f"{OPENSLR_BASE_URL}/{filename}"
 
-    print("Saving dataset to", output_dir)
-    dataset_dict.save_to_disk(output_dir)
+        download_and_extract_if_needed(
+            split=split,
+            url=url,
+            dataset_dir=dataset_dir,
+            extracted_dir=extracted_dir,
+            archive_name=filename,
+            logger=logger,
+            step_percent=step_percent,
+        )
+
+    logger.info("All requested splits processed.")
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Download LibriSpeech to a directory.")
+    parser.add_argument(
+        "--dataset_dir",
+        type=Path,
+        required=True,
+        help="Target directory to store archives and extracted files.",
+    )
+    parser.add_argument(
+        "--step_percent",
+        type=int,
+        default=5,
+        help="Progress logging granularity (percent per log).",
+    )
+
+    args = parser.parse_args()
     create_dataset(
-        dataset_dir=Path("/path/to/librispeech"),
-        output_dir=Path("data/"),
+        args.dataset_dir,
+        step_percent=args.step_percent,
     )

@@ -15,10 +15,10 @@ exp_dir: ${recipe_dir}/exp/${exp_tag}
 stats_dir: ${recipe_dir}/exp/stats
 decode_dir: ${exp_dir}/decode
 dataset_dir: /path/to/your/dataset
-
-# Dataset creation function and arguments (keep func pointing to your builder).
+# Dataset creation function (downloads into dataset_dir cache).
 create_dataset:
   func: src.create_dataset.create_dataset
+  dataset_dir: ${dataset_dir}
 
 # Dataset definition for training/validation splits.
 dataset:
