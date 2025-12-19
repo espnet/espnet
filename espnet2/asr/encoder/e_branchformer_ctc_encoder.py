@@ -15,12 +15,12 @@ from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.layers.cgmlp import ConvolutionalGatingMLP
 from espnet2.asr.layers.fastformer import FastSelfAttention
 from espnet2.legacy.nets.pytorch_backend.nets_utils import get_activation, make_pad_mask
-from espnet2.legacy.nets.pytorch_backend.transformer.attention import (  # noqa: H301
+from espnet2.legacy.nets.pytorch_backend.transformer.attention import (
     LegacyRelPositionMultiHeadedAttention,
     MultiHeadedAttention,
     RelPositionMultiHeadedAttention,
 )
-from espnet2.legacy.nets.pytorch_backend.transformer.embedding import (  # noqa: H301
+from espnet2.legacy.nets.pytorch_backend.transformer.embedding import (
     LegacyRelPositionalEncoding,
     PositionalEncoding,
     RelPositionalEncoding,

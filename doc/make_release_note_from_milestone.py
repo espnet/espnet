@@ -9,12 +9,11 @@ python doc/make_release_note_from_milestone.py <git_key> \
 
 import argparse
 import json
-import requests
 import sys
-
 from collections import defaultdict
 
 import github
+import requests
 
 
 def make_request(prompt, llm_ip, llm_model, client_type):
@@ -30,7 +29,7 @@ def make_request(prompt, llm_ip, llm_model, client_type):
             json={
                 "messages": [
                     {"role": "system", "content": "You are a helpful assistant."},
-                    {"role": "user", "content": prompt}
+                    {"role": "user", "content": prompt},
                 ],
                 "model": llm_model,
                 "max_tokens": 2048,
@@ -38,7 +37,7 @@ def make_request(prompt, llm_ip, llm_model, client_type):
                 "stream": False,
             },
             headers={"Content-Type": "application/json"},
-            timeout=180
+            timeout=180,
         )
 
         # Check if the request was successful
@@ -61,7 +60,7 @@ def generate_llm_summary(
     client_type: str,
     milestone: str,
     pull_request_dict,
-    contributors
+    contributors,
 ):
     """Generate a summary of the release using an LLM.
 
@@ -80,13 +79,15 @@ def generate_llm_summary(
     for label, prs in pull_request_dict.items():
         pr_data[label] = []
         for pr in prs:
-            pr_data[label].append({
-                "title": pr.title,
-                "body": pr.body,
-                "number": pr.number,
-                "author": pr.user.login,
-                "url": pr.html_url
-            })
+            pr_data[label].append(
+                {
+                    "title": pr.title,
+                    "body": pr.body,
+                    "number": pr.number,
+                    "author": pr.user.login,
+                    "url": pr.html_url,
+                }
+            )
 
     # Create the prompt
     prompt = f"""
@@ -114,18 +115,18 @@ def main():
     parser.add_argument(
         "--llm-ip",
         default=None,
-        help="IP address of the LLM API for generating summary"
+        help="IP address of the LLM API for generating summary",
     )
     parser.add_argument(
         "--llm-model",
         default="gpt-oss:20b",
-        help="Model of the LLM API for generating summary"
+        help="Model of the LLM API for generating summary",
     )
     parser.add_argument(
         "--llm-type",
         default="ollama",
         choices=["ollama", "v1"],
-        help="Model of the LLM API for generating summary"
+        help="Model of the LLM API for generating summary",
     )
     parser.add_argument("token", default=None, type=str)
     parser.add_argument("milestone", default=None, type=str)
@@ -184,7 +185,7 @@ def main():
             args.llm_type,
             args.milestone,
             pull_request_dict,
-            contributors
+            contributors,
         )
         if llm_summary:
             print(llm_summary)

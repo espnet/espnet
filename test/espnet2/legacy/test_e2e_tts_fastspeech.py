@@ -4,7 +4,6 @@
 # Copyright 2019 Tomoki Hayashi
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-import numpy as np
 import torch
 
 from espnet2.legacy.nets.pytorch_backend.fastspeech.length_regulator import (

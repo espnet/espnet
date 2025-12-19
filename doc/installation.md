@@ -186,14 +186,14 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
 
         ```sh
         $ cd <espnet-root>
-        $ pip install -e ".[task-asr]"
+        $ pip install -e ".[asr]"
         ```
 
     * For TTS:
 
         ```sh
         $ cd <espnet-root>
-        $ pip install -e ".[task-tts]"
+        $ pip install -e ".[tts]"
         ```
 
     * For all tasks (ASR, TTS, enhancement, speaker tasks):
@@ -223,13 +223,13 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
 
         | Group      | Purpose                       |
         | ---------- | ----------------------------- |
-        | `task-asr` | ASR-specific dependencies     |
-        | `task-asr2`| ASR2-specific dependencies    |
-        | `task-tts` | TTS-specific dependencies     |
-        | `task-enh` | Speech enhancement            |
-        | `task-st`  | Speech Translation            |
-        | `task-s2t` | Speech to Text (e.g., OWSM)   |
-        | `task-spk` | Speaker recognition           |
+        | `asr`      | ASR-specific dependencies     |
+        | `asr2`     | ASR2-specific dependencies    |
+        | `tts`      | TTS-specific dependencies     |
+        | `enh`      | Speech enhancement            |
+        | `st`       | Speech Translation            |
+        | `s2t`      | Speech to Text (e.g., OWSM)   |
+        | `spk`      | Speaker recognition           |
         | `dev`      | Code formatting and linting   |
         | `test`     | Unit test dependencies        |
         | `doc`      | Documentation generation      |
@@ -238,7 +238,7 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
         You can mix and match groups as needed:
 
         ```sh
-        pip install -e ".[task-asr,task-tts,test]"
+        pip install -e ".[asr,tts,test]"
         ```
 
 

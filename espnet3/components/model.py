@@ -1,3 +1,5 @@
+"""ESPnet3-specific PyTorch LightningModule wrapper."""
+
 import logging
 from pathlib import Path
 
@@ -16,8 +18,7 @@ logger = logging.getLogger("lightning")
 
 
 class LitESPnetModel(lightning.LightningModule):
-    """
-    ESPnet3-specific PyTorch LightningModule wrapper.
+    """ESPnet3-specific PyTorch LightningModule wrapper.
 
     This class handles model training, validation, optimizer/scheduler setup,
     ESPnet-specific dataloader construction, NaN/Inf loss detection across
@@ -39,6 +40,7 @@ class LitESPnetModel(lightning.LightningModule):
     """
 
     def __init__(self, model, config):
+        """Initialize LitESPnetModel."""
         super().__init__()
         self.config = config
         self.model = model
@@ -75,8 +77,7 @@ class LitESPnetModel(lightning.LightningModule):
             self.collate_fn = instantiate(self.config.dataloader.collate_fn)
 
     def _sync2skip(self, flag_skip):
-        """
-        Synchronize a skip flag across all DDP workers.
+        """Synchronize a skip flag across all DDP workers.
 
         Args:
             flag_skip (torch.Tensor): Boolean scalar indicating whether this worker
@@ -102,8 +103,7 @@ class LitESPnetModel(lightning.LightningModule):
         return any_invalid
 
     def _check_nan_inf_loss(self, loss, batch_id):
-        """
-        Check for NaN or Inf in loss and synchronize across all workers.
+        """Check for NaN or Inf in loss and synchronize across all workers.
 
         Args:
             loss (torch.Tensor): The computed loss tensor.
@@ -139,8 +139,7 @@ class LitESPnetModel(lightning.LightningModule):
         return any_invalid
 
     def _step(self, batch, batch_idx, mode):
-        """
-        Shared logic for training and validation steps.
+        """Shared logic for training and validation steps.
 
         Args:
             batch (Tuple): Tuple of (id, inputs), passed to model.
@@ -175,16 +174,17 @@ class LitESPnetModel(lightning.LightningModule):
         return loss
 
     def training_step(self, batch, batch_idx):
+        """Training step logic."""
         return self._step(batch, batch_idx, mode="train")
 
     def validation_step(self, batch, batch_idx):
+        """Validate step."""
         return self._step(batch, batch_idx, mode="valid")
 
     def configure_optimizers(self):
-        """
-        Configure optimizers and schedulers for training.
+        """Configure optimizers and schedulers for training.
 
-        This method supports two modes of configuration:
+        This method supports two modes of configuration.
 
         1. Single Optimizer + Scheduler:
         Use when the entire model is trained with a single optimizer.
@@ -224,16 +224,15 @@ class LitESPnetModel(lightning.LightningModule):
         ```
 
         Notes:
-
-        * Only one of `optim` or `optims` may be specified. Mixing both is not allowed.
-        * Likewise, `scheduler` and `schedulers` must not be used together.
-        * When using `optims`, each `params` must uniquely match a subset of trainable
-            parameters.
-        * It is an error if:
-            * A trainable parameter is assigned to multiple optimizers
-                (overlapping `params`)
-            * A trainable parameter is not assigned to any optimizer (missing coverage)
-            * Any optimizer block is missing `params` or nested `optim`
+            * Only one of `optim` or `optims` may be specified. Mixing is not allowed.
+            * Likewise, `scheduler` and `schedulers` must not be used together.
+            * When using `optims`, each `params` must uniquely match a subset of
+                trainable parameters.
+            * It is an error if:
+                * A trainable parameter is assigned to multiple optimizers
+                    (overlapping `params`)
+                * A trainable parameter is not assigned to any optimizer
+                * Any optimizer block is missing `params` or nested `optim`
 
         Returns:
             dict: A dictionary with keys `"optimizer"` and `"lr_scheduler"`
@@ -354,8 +353,7 @@ class LitESPnetModel(lightning.LightningModule):
         }
 
     def train_dataloader(self):
-        """
-        Build the training DataLoader using ESPnet's DataLoaderBuilder.
+        """Build the training DataLoader using ESPnet's DataLoaderBuilder.
 
         Returns:
             DataLoader: The training DataLoader.
@@ -373,8 +371,7 @@ class LitESPnetModel(lightning.LightningModule):
         return builder.build(mode="train")
 
     def val_dataloader(self):
-        """
-        Build the validation DataLoader using ESPnet's DataLoaderBuilder.
+        """Build the validation DataLoader using ESPnet's DataLoaderBuilder.
 
         Returns:
             DataLoader: The validation DataLoader.
@@ -392,14 +389,15 @@ class LitESPnetModel(lightning.LightningModule):
         return builder.build(mode="valid")
 
     def state_dict(self, *args, **kwargs):
+        """Return the state dict of the model."""
         return self.model.state_dict(*args, **kwargs)
 
     def load_state_dict(self, state_dict, strict=True):
+        """Load state dict into the model."""
         return self.model.load_state_dict(state_dict, strict=strict)
 
     def collect_stats(self):
-        """
-        Collect training and validation statistics using ESPnet's collect_stats.
+        """Collect training and validation statistics using ESPnet's collect_stats.
 
         Requires `config.statsdir` to be defined. Saves stats under this directory.
 

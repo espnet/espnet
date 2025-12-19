@@ -27,7 +27,7 @@ EOF
 echo
 
 python3 << EOF
-import sys, 2, torch
+import sys, espnet2, torch
 pyversion = sys.version.replace('\n', ' ')
 
 print(f"""- python version: \`{pyversion}\`

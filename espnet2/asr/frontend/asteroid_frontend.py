@@ -51,9 +51,7 @@ class AsteroidFrontend(AbsFrontend):
         try:
             from asteroid_filterbanks import Encoder, ParamSincFB
         except ImportError:
-            raise RuntimeError(
-                "Please install espnet with 'pip install espnet[task-spk]'"
-            )
+            raise RuntimeError("Please install espnet with 'pip install espnet[spk]'")
 
         super().__init__()
 

@@ -1,3 +1,5 @@
+"""Collect statistics over a dataset using a model's feature extraction."""
+
 from __future__ import annotations
 
 from collections import defaultdict
@@ -37,7 +39,6 @@ def batch_collect_stats(
     collect_stats_kwargs: Optional[Dict[str, Any]] = None,
 ):
     """Process a batch of dataset indices and compute feature statistics."""
-
     structured_items: List[Tuple[str, Any]] = []
     for i in idxs:
         item = dataset[i]
@@ -243,6 +244,7 @@ class CollectStatsInferenceProvider(EnvironmentProvider):
         shard_idx: Optional[int] = None,
         params: Optional[Dict[str, Any]] = dict(),
     ):
+        """Initialize CollectStatsInferenceProvider object."""
         cfg = OmegaConf.create({})
         cfg.model_config = model_config
         cfg.dataset_config = dataset_config
@@ -254,6 +256,7 @@ class CollectStatsInferenceProvider(EnvironmentProvider):
         super().__init__(cfg)
 
     def build_env_local(self) -> Dict[str, Any]:
+        """Build the environment once on the driver for local inference."""
         env = dict()
         collate_fn = _build_collate_fn(self.config.dataloader_config)
         env["collate_fn"] = collate_fn
@@ -274,6 +277,7 @@ class CollectStatsInferenceProvider(EnvironmentProvider):
         return env
 
     def make_worker_setup_fn(self):
+        """Return a Dask worker setup function that builds dataset/model."""
         dataloader_config = self.config.dataloader_config
         config = self.config
 
@@ -313,6 +317,7 @@ class CollectStatsRunner(BaseRunner):
         write_collected_feats: bool = False,
         collect_stats_kwargs: Optional[Dict[str, Any]] = None,
     ):
+        """Process a batch of dataset indices and compute feature statistics."""
         if isinstance(batch_indices, Iterable) and not isinstance(
             batch_indices, (str, bytes)
         ):

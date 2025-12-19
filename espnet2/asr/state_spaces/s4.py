@@ -83,7 +83,7 @@ try:
     contract_expression = oe.contract_expression
 except ImportError:
     log.warning(
-        "If you are running state-space model, run `pip install espnet['task-asr']`."
+        "If you are running state-space model, run `pip install espnet['asr']`."
     )
     contract = None
     contract_expression = None

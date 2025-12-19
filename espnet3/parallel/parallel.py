@@ -1,3 +1,5 @@
+"""Dask-based parallel processing utilities for ESPnet3."""
+
 import copy
 import inspect
 import os
@@ -79,8 +81,7 @@ def _ensure_dask():
 
 
 def make_local_gpu_cluster(n_workers: int, options: dict) -> Client:
-    """
-    Create a Dask LocalCUDACluster using available GPUs.
+    """Create a Dask LocalCUDACluster using available GPUs.
 
     This requires `dask_cuda` package.
 
@@ -158,8 +159,7 @@ def _make_client(config: DictConfig = None) -> Client:
 
 
 def make_client(config: DictConfig = None) -> Client:
-    """
-    Create or retrieve a Dask client using the provided or global configuration.
+    """Create or retrieve a Dask client using the provided or global configuration.
 
     Args:
         config (DictConfig, optional): Cluster config. If None, uses global one.
@@ -180,15 +180,18 @@ def make_client(config: DictConfig = None) -> Client:
 
 
 class DictReturnWorkerPlugin(WorkerPlugin):
-    """
+    """A plugin worker for easily returning a dictionary from a setup function.
+
     A WorkerPlugin that calls a user-defined setup function once per worker,
     and stores the returned dictionary in `worker.plugins["env"]`.
     """
 
     def __init__(self, setup_fn: Callable[[], dict]):
+        """Initialize the DictReturnWorkerPlugin with a setup function."""
         self.setup_fn = setup_fn
 
     def setup(self, worker):
+        """Set up the worker by calling the user-defined setup function."""
         env = self.setup_fn()
         if not isinstance(env, dict):
             raise ValueError("setup_fn must return a dict")
@@ -199,9 +202,7 @@ class DictReturnWorkerPlugin(WorkerPlugin):
 
 
 def wrap_func_with_worker_env(func: Callable) -> Callable:
-    """
-    Wrap a user-defined function so that it can transparently consume
-    per-worker environment variables registered via a WorkerPlugin.
+    """Wrap a user-defined function for a WorkerPlugin.
 
     This wrapper inspects the function's signature and automatically
     supplies keyword arguments from the worker's environment (`worker.plugins["env"]`)
@@ -340,8 +341,7 @@ def _submit_tasks(
     setup_fn: Optional[Callable[[], dict]] = None,
     **kwargs: Any,
 ):
-    """
-    Common submission path used by parallel_map and parallel_for.
+    """Submit job for parallel_map and parallel_for.
 
     - Creates/reuses a client (and handles its lifecycle if internal).
     - Registers the setup plugin (client- and worker-side).
@@ -376,8 +376,7 @@ def parallel_map(
     setup_fn: Optional[Callable[[], dict]] = None,
     **kwargs: Any,
 ) -> list:
-    """
-    Apply a function to an iterable of inputs in parallel using Dask.
+    """Apply a function to an iterable of inputs in parallel using Dask.
 
     This helper takes care of:
       - Creating (or reusing) a Dask client according to the global or
@@ -448,8 +447,7 @@ def parallel_for(
     setup_fn: Optional[Callable[[], dict]] = None,
     **kwargs: Any,
 ) -> Generator:
-    """
-    Dispatch tasks to Dask and iterate over results as they complete.
+    """Dispatch tasks to Dask and iterate over results as they complete.
 
     This helper:
       - Creates (or reuses) a Dask client based on the global/explicit config.

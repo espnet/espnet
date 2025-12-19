@@ -8,7 +8,7 @@ from torch_complex.tensor import ComplexTensor
 from espnet2.enh.layers.complex_utils import is_complex
 from espnet2.enh.separator.abs_separator import AbsSeparator
 from espnet2.legacy.nets.pytorch_backend.nets_utils import make_non_pad_mask
-from espnet2.legacy.nets.pytorch_backend.transformer.embedding import (  # noqa: H301
+from espnet2.legacy.nets.pytorch_backend.transformer.embedding import (
     PositionalEncoding,
     ScaledPositionalEncoding,
 )

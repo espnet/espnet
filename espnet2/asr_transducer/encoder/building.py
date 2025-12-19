@@ -8,16 +8,16 @@ from espnet2.asr_transducer.encoder.blocks.conformer import Conformer
 from espnet2.asr_transducer.encoder.blocks.conv1d import Conv1d
 from espnet2.asr_transducer.encoder.blocks.conv_input import ConvInput
 from espnet2.asr_transducer.encoder.blocks.ebranchformer import EBranchformer
-from espnet2.asr_transducer.encoder.modules.attention import (  # noqa: H301
+from espnet2.asr_transducer.encoder.modules.attention import (
     RelPositionMultiHeadedAttention,
 )
-from espnet2.asr_transducer.encoder.modules.convolution import (  # noqa: H301
+from espnet2.asr_transducer.encoder.modules.convolution import (
     ConformerConvolution,
     ConvolutionalSpatialGatingUnit,
     DepthwiseConvolution,
 )
 from espnet2.asr_transducer.encoder.modules.multi_blocks import MultiBlocks
-from espnet2.asr_transducer.encoder.modules.positional_encoding import (  # noqa: H301
+from espnet2.asr_transducer.encoder.modules.positional_encoding import (
     RelPositionalEncoding,
 )
 from espnet2.asr_transducer.normalization import get_normalization

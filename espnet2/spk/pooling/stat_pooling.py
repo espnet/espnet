@@ -39,6 +39,7 @@ class StatsPooling(AbsPooling):
             x: Utterance-level embeddings of shape (batch_size, 2 × feature_dim)
         """
         if feat_lengths is not None:
+            feat_lengths = feat_lengths.to(x.device)
             # Pooling over unpadded frames
             max_len = x.size(-1)
             mask = torch.arange(max_len, device=x.device).expand(
@@ -47,6 +48,7 @@ class StatsPooling(AbsPooling):
             mask = mask.unsqueeze(1)  # (B, 1, T)
 
             # Calculate mean over the time dimension (dim=-1)
+            feat_lengths = feat_lengths.clamp(min=1)  # avoid division by zero
             mu = (x * mask).sum(dim=-1) / feat_lengths.unsqueeze(1)
 
             # Calculate standard deviation over the time dimension (dim=-1)
@@ -54,10 +56,16 @@ class StatsPooling(AbsPooling):
             variance = ((x - mu.unsqueeze(-1)) ** 2 * mask).sum(
                 dim=-1
             ) / feat_lengths.unsqueeze(1)
-            st = torch.sqrt(variance.clamp(min=1e-4))
+            st = torch.sqrt(
+                variance.clamp(min=torch.finfo(variance.dtype).eps, max=1e4)
+            )  # add max clamp to prevent gradient explosion
         else:
             mu = torch.mean(x, dim=-1)
-            st = torch.std(x, dim=-1, unbiased=False)
+            variance = torch.var(x, dim=-1, unbiased=False)
+            # add max clamp to prevent gradient explosion
+            st = torch.sqrt(
+                variance.clamp(min=torch.finfo(variance.dtype).eps, max=1e4)
+            )
 
         x = torch.cat((mu, st), dim=1)
 

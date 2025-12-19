@@ -1,3 +1,5 @@
+"""Trainer class for the espnet3 package."""
+
 import warnings
 from argparse import Namespace
 from typing import Any, Dict, Union
@@ -12,7 +14,7 @@ from espnet3.components.callbacks import get_default_callbacks
 from espnet3.components.model import LitESPnetModel
 
 
-def get_or_initialize(config, item_name: str = None, default=None) -> Any:
+def _get_or_initialize(config, item_name: str = None, default=None) -> Any:
     if item_name is not None:
         item = getattr(config, item_name, default)
     else:
@@ -21,14 +23,13 @@ def get_or_initialize(config, item_name: str = None, default=None) -> Any:
     if isinstance(item, DictConfig):
         return instantiate(item)
     elif isinstance(item, ListConfig):
-        return [get_or_initialize(c) for c in item]
+        return [_get_or_initialize(c) for c in item]
     else:
         return item
 
 
 class ESPnet3LightningTrainer:
-    """
-    A wrapper around Lightning's Trainer to provide ESPnet3-specific integration.
+    """A wrapper around Lightning's Trainer to provide ESPnet3-specific integration.
 
     This trainer ensures compatibility with ESPnet's dataloader, callbacks,
     and configuration system. It initializes the model, handles weight
@@ -49,6 +50,18 @@ class ESPnet3LightningTrainer:
         config: Union[DictConfig, Namespace, Dict[str, Any]] = None,
         best_model_criterion=None,
     ):
+        """Initialize the trainer with model, configuration, and training setup.
+
+        Sets up weight initialization, accelerator/strategy/logger/profiler/plugins,
+        applies ESPnet-specific dataloader constraints, prepares callbacks, and finally
+        constructs the underlying Lightning Trainer.
+
+        Args:
+            model (LitESPnetModel, optional): Lightning model to train.
+            expdir (str, optional): Experiment directory for logs and checkpoints.
+            config (DictConfig | Namespace | Dict[str, Any], optional): Training config.
+            best_model_criterion (ListConfig, optional): Criteria for selecting ckpt.
+        """
         if best_model_criterion is None:
             best_model_criterion = ListConfig([("valid/loss", 3, "min")])
 
@@ -61,27 +74,27 @@ class ESPnet3LightningTrainer:
             initialize(self.model, self.config.init)
 
         # Accelerator
-        accelerator = get_or_initialize(self.config, "accelerator", "auto")
+        accelerator = _get_or_initialize(self.config, "accelerator", "auto")
         if hasattr(self.config, "accelerator"):
             self._del_config_key("accelerator")
 
         # strategy
-        strategy = get_or_initialize(self.config, "strategy", "auto")
+        strategy = _get_or_initialize(self.config, "strategy", "auto")
         if hasattr(self.config, "strategy"):
             self._del_config_key("strategy")
 
         # logger
-        logger = get_or_initialize(self.config, "logger")
+        logger = _get_or_initialize(self.config, "logger")
         if logger is not None:
             self._del_config_key("logger")
 
         # profiler
-        profiler = get_or_initialize(self.config, "profiler")
+        profiler = _get_or_initialize(self.config, "profiler")
         if profiler is not None:
             self._del_config_key("profiler")
 
         # plugins
-        plugins = get_or_initialize(self.config, "plugins")
+        plugins = _get_or_initialize(self.config, "plugins")
         if plugins is not None:
             self._del_config_key("plugins")
 
@@ -150,8 +163,7 @@ class ESPnet3LightningTrainer:
             self.config.pop(key)
 
     def fit(self, *args, **kwargs):
-        """
-        Start the training loop using Lightning's fit method.
+        """Start the training loop using Lightning's fit method.
 
         Args:
             *args: Positional arguments passed to `trainer.fit()`.
@@ -167,8 +179,7 @@ class ESPnet3LightningTrainer:
         )
 
     def validate(self, *args, **kwargs):
-        """
-        Run validation using Lightning's validate method.
+        """Run validation using Lightning's validate method.
 
         Args:
             *args: Positional arguments passed to `trainer.validate()`.
@@ -184,8 +195,7 @@ class ESPnet3LightningTrainer:
         )
 
     def collect_stats(self, *args, **kwargs):
-        """
-        Collect dataset statistics with the espnet-3's parallel package.
+        """Collect dataset statistics with the espnet-3's parallel package.
 
         Args:
             *args: Positional arguments passed to `model.collect_stats()`.

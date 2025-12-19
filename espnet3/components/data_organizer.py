@@ -1,3 +1,5 @@
+"""DataOrganizer class for managing datasets in ESPnet3."""
+
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional, Union
 
@@ -9,8 +11,7 @@ from espnet3.components.dataset import CombinedDataset, DatasetWithTransform
 
 @dataclass
 class DatasetConfig:
-    """
-    Configuration class for dataset metadata and construction.
+    """Configuration class for dataset metadata and construction.
 
     This class encapsulates the necessary fields to define and instantiate a dataset.
     Used with Hydra to allow modular and flexible configuration via YAML or
@@ -42,8 +43,7 @@ class DatasetConfig:
 
     @staticmethod
     def from_dict(cfg: Dict[str, Any]) -> "DatasetConfig":
-        """
-        Create a DatasetConfig instance from a plain dictionary.
+        """Create a DatasetConfig instance from a plain dictionary.
 
         Args:
             cfg (Dict[str, Any]): Dictionary containing keys matching DatasetConfig
@@ -56,8 +56,7 @@ class DatasetConfig:
 
 
 def do_nothing_transform(*x):
-    """Identity transform
-    Returns input as-is.
+    """Return input as-is.
 
     Args:
         x: Any object.
@@ -138,6 +137,7 @@ class DataOrganizer:
         test: Optional[List[Union[DatasetConfig, Dict[str, Any]]]] = None,
         preprocessor: Optional[Callable[[dict], dict]] = None,
     ):
+        """Initialize DataOrganizer object."""
         self.preprocessor = preprocessor or do_nothing_transform
         if isinstance(self.preprocessor, (dict, DictConfig)):
             self.preprocessor = instantiate(self.preprocessor)
@@ -212,4 +212,5 @@ class DataOrganizer:
 
     @property
     def test(self):
+        """Get the dictionary of test datasets."""
         return self.test_sets

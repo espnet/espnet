@@ -34,9 +34,10 @@ class InferenceProvider(EnvironmentProvider, ABC):
           intended.
     """
 
-    # TODO (Masao) Add detailed description on Runner/Provider in the document.
+    # TODO(Masao) Add detailed description on Runner/Provider in the document.
 
     def __init__(self, config: DictConfig, *, params: Dict[str, Any] | None = None):
+        """Initialize InferenceProvider object."""
         super().__init__(config)
         self.params = params or {}
         self.config.update(self.params)
