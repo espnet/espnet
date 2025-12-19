@@ -66,10 +66,10 @@ def dummy_dataset_config():
             {
                 "name": "train_dummy",
                 "dataset": {
-                    "_target_": "test.espnet3.test_data_organizer.DummyDataset"
+                    "_target_": "test.espnet3.components.test_data_organizer.DummyDataset"
                 },
                 "transform": {
-                    "_target_": "test.espnet3.test_data_organizer.DummyTransform"
+                    "_target_": "test.espnet3.components.test_data_organizer.DummyTransform"
                 },
             }
         ],
@@ -77,7 +77,7 @@ def dummy_dataset_config():
             {
                 "name": "valid_dummy",
                 "dataset": {
-                    "_target_": "test.espnet3.test_data_organizer.DummyDataset"
+                    "_target_": "test.espnet3.components.test_data_organizer.DummyDataset"
                 },
             }
         ],
@@ -85,7 +85,7 @@ def dummy_dataset_config():
             {
                 "name": "test_dummy",
                 "dataset": {
-                    "_target_": "test.espnet3.test_data_organizer.DummyDataset"
+                    "_target_": "test.espnet3.components.test_data_organizer.DummyDataset"
                 },
             }
         ],

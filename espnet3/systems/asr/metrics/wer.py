@@ -5,7 +5,10 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Dict, Iterable, List
 
-import jiwer
+try:
+    import jiwer
+except ImportError:
+    jiwer = None
 
 from espnet2.text.cleaner import TextCleaner
 from espnet3.components.abs_metric import AbsMetrics
@@ -28,12 +31,20 @@ class WER(AbsMetrics):
         cleaned = self.cleaner(text).strip()
         return cleaned if cleaned else "."
 
+    def _ensure_jiwer(self) -> None:
+        if jiwer is None:
+            raise RuntimeError(
+                "jiwer is required to compute WER. "
+                "Please install it with `pip install espnet[asr]`."
+            )
+
     def __call__(
         self,
         data: Dict[str, List[str]],
         test_name: str,
         decode_dir: Path,
     ) -> Dict[str, float]:
+        self._ensure_jiwer()
         refs = [self._clean(x) for x in data[self.ref_key]]
         hyps = [self._clean(x) for x in data[self.hyp_key]]
 

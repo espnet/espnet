@@ -165,7 +165,10 @@ class DummyModel:
 def make_model_cfg(scale: float = 1.0):
     # Use a direct class reference to avoid import path brittleness
     return OmegaConf.create(
-        {"_target_": "test.espnet3.test_collect_stats.DummyModel", "scale": scale}
+        {
+            "_target_": "test.espnet3.components.test_collect_stats.DummyModel",
+            "scale": scale,
+        }
     )
 
 
@@ -174,7 +177,7 @@ def make_dataset_cfg(
 ):
     return OmegaConf.create(
         {
-            "_target_": "test.espnet3.test_collect_stats.DummyOrganizer",
+            "_target_": "test.espnet3.components.test_collect_stats.DummyOrganizer",
             "n_train": n_train,
             "n_valid": n_valid,
             "base_len": base_len,
@@ -201,7 +204,7 @@ def make_dataloader_cfg(
                     "num_shards": num_shards,
                 },
                 "collate_fn": {
-                    "_target_": "test.espnet3.test_collect_stats.DummyCollate",
+                    "_target_": "test.espnet3.components.test_collect_stats.DummyCollate",
                     "int_pad_value": -1,
                 },
             }
