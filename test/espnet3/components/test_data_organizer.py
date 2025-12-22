@@ -5,11 +5,11 @@ from hydra.utils import instantiate
 from omegaconf import OmegaConf
 
 from espnet2.train.preprocessor import AbsPreprocessor
+from espnet3.components.data.data_organizer import DataOrganizer, do_nothing_transform
 from espnet3.components.data.dataset import (
     CombinedDataset,
     ShardedDataset,
 )
-from espnet3.components.data.data_organizer import DataOrganizer, do_nothing_transform
 
 # ===============================================================
 # Test Case Summary for DataOrganizer & CombinedDataset

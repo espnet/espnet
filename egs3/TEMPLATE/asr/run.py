@@ -146,7 +146,8 @@ def main(
         )
     if measure_config is not None:
         logger.info(
-            "Measure config content:\n%s", OmegaConf.to_yaml(measure_config, resolve=True)
+            "Measure config content:\n%s",
+            OmegaConf.to_yaml(measure_config, resolve=True),
         )
 
     # -----------------------------------------

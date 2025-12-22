@@ -4,7 +4,7 @@ import os
 import torch
 from hydra.utils import instantiate
 
-from espnet3.parallel.base_runner import BaseRunner
+from espnet3.systems.base.inference_runner import AbsInferenceRunner
 from espnet3.systems.base.inference_provider import (
     InferenceProvider as BaseInferenceProvider,
 )
@@ -40,7 +40,7 @@ class InferenceProvider(BaseInferenceProvider):
         return model
 
 
-class InferenceRunner(BaseRunner):
+class InferenceRunner(AbsInferenceRunner):
     @staticmethod
     def forward(idx, dataset=None, model=None, **kwargs):
         data = dataset[idx]

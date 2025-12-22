@@ -5,9 +5,9 @@ from hydra.utils import instantiate
 from omegaconf import OmegaConf
 from torch.utils.data import BatchSampler, Sampler
 
+from espnet3.components.data.data_organizer import DataOrganizer, do_nothing_transform
 from espnet3.components.data.dataloader import DataLoaderBuilder
 from espnet3.components.data.dataset import ShardedDataset
-from espnet3.components.data.data_organizer import DataOrganizer, do_nothing_transform
 from espnet3.utils.config import load_config_with_defaults
 
 # ===============================================================
