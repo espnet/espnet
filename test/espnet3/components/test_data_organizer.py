@@ -9,7 +9,7 @@ from espnet3.components.data_organizer import (
     DataOrganizer,
     do_nothing_transform,
 )
-from espnet3.components.dataset import (
+from espnet3.components.data.dataset import (
     CombinedDataset,
     ShardedDataset,
 )

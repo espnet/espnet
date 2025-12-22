@@ -9,10 +9,10 @@ from hydra.utils import instantiate
 from omegaconf import OmegaConf
 
 from espnet2.train.collate_fn import CommonCollateFn
-from espnet3.components.collect_stats import collect_stats
-from espnet3.components.dataloader import DataLoaderBuilder
-from espnet3.components.multiple_optim import MultipleOptim
-from espnet3.components.multiple_scheduler import MultipleScheduler
+from espnet3.components.data.collect_stats import collect_stats
+from espnet3.components.data.dataloader import DataLoaderBuilder
+from espnet3.components.optim.multiple_optim import MultipleOptim
+from espnet3.components.optim.multiple_scheduler import MultipleScheduler
 
 logger = logging.getLogger("lightning")
 

@@ -3,7 +3,7 @@ import pytest
 import torch
 from omegaconf import OmegaConf
 
-from espnet3.components.model import LitESPnetModel
+from espnet3.components.modeling.model import LitESPnetModel
 
 # ===============================================================
 # Test Case Summary for LitESPnetModel

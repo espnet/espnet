@@ -8,7 +8,7 @@ from typing import Any
 import torch
 from typeguard import typechecked
 
-from espnet3.components.multiple_optim import MultipleOptim
+from espnet3.components.optim.multiple_optim import MultipleOptim
 
 
 class MultipleScheduler(torch.optim.lr_scheduler._LRScheduler):

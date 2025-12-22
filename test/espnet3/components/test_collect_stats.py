@@ -10,7 +10,7 @@ from hydra.utils import instantiate
 from omegaconf import OmegaConf
 
 # Import the functions under test (adjust import path if your file/module path differs)
-from espnet3.components.collect_stats import collect_stats
+from espnet3.components.data.collect_stats import collect_stats
 
 mp.set_start_method("fork", force=True)
 

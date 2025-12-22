@@ -11,7 +11,7 @@ except ImportError:
     jiwer = None
 
 from espnet2.text.cleaner import TextCleaner
-from espnet3.components.abs_metric import AbsMetrics
+from espnet3.components.metrics.abs_metric import AbsMetrics
 
 
 class WER(AbsMetrics):
