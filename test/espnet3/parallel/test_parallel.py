@@ -165,7 +165,9 @@ def test_parallel_map_internal_client(local_cfg, monkeypatch):
             self.client.close()
 
     cli = make_client(local_cfg)
-    monkeypatch.setattr("espnet3.parallel.parallel.get_client", lambda *a, **k: _Ctx(cli))
+    monkeypatch.setattr(
+        "espnet3.parallel.parallel.get_client", lambda *a, **k: _Ctx(cli)
+    )
     res = parallel_map(lambda x: x * 2, [1, 2, 3])
     assert res == [2, 4, 6]
 

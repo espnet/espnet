@@ -132,4 +132,3 @@ def _build_config_path(base_path: Path, entry: str) -> Path:
     if not entry_path.suffix:
         entry += ".yaml"
     return base_path / entry
-

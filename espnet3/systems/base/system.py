@@ -46,7 +46,8 @@ class BaseSystem:
         else:
             self.exp_dir = None
         logger.info(
-            "Initialized %s with train_config=%s infer_config=%s measure_config=%s exp_dir=%s",
+            "Initialized %s with train_config=%s infer_config=%s "
+            "measure_config=%s exp_dir=%s",
             self.__class__.__name__,
             train_config is not None,
             infer_config is not None,

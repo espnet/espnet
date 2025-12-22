@@ -77,7 +77,7 @@ class DownloadProgress:
             _log(
                 self.logger,
                 f"Downloading {self.name}: {percent}% "
-                f"({downloaded/1024/1024:.1f}MB / {total_size/1024/1024:.1f}MB)"
+                f"({downloaded/1024/1024:.1f}MB / {total_size/1024/1024:.1f}MB)",
             )
 
 

@@ -1,9 +1,9 @@
 import contextlib
+import importlib.machinery
 import os
 import sys
 import tempfile
 import types
-import importlib.machinery
 
 
 def _install_stub(name: str, module: types.ModuleType) -> None:
@@ -48,9 +48,7 @@ def pytest_configure():
 
         vnm.vietnamese_cleaner = vietnamese_cleaner
         vnm.vietnamese_cleaners = vietnamese_cleaners
-        vnm.__spec__ = importlib.machinery.ModuleSpec(
-            "vietnamese_cleaner", loader=None
-        )
+        vnm.__spec__ = importlib.machinery.ModuleSpec("vietnamese_cleaner", loader=None)
         _install_stub("vietnamese_cleaner", vnm)
 
     # ---- dask.utils.tmpfile fallback (used by async runner path) ----

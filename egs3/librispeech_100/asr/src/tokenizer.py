@@ -17,7 +17,9 @@ def _parse_transcript_file(transcript_path: Path) -> list[str]:
     return texts
 
 
-def gather_training_text(dataset_dir: Path, split: str = "train-clean-100") -> List[str]:
+def gather_training_text(
+    dataset_dir: Path, split: str = "train-clean-100"
+) -> List[str]:
     """Collect transcript text from a LibriSpeech split for tokenizer training."""
     split_path = Path(dataset_dir) / "LibriSpeech" / split
     if not split_path.exists():

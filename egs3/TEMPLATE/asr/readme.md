@@ -1,7 +1,8 @@
 # LibriSpeech 100h ESPnet3 recipe
 
-This recipe follows the [lightning-hydra-template](https://github.com/ashleve/lightning-hydra-template) layout and uses the
-latest `espnet3` package utilities.
+This recipe follows the [lightning-hydra-template](
+https://github.com/ashleve/lightning-hydra-template
+) layout and uses the latest `espnet3` package utilities.
 
 ## Quick start
 
@@ -12,7 +13,8 @@ latest `espnet3` package utilities.
 python run.py --stages create_dataset --train_config conf/train.yaml
 
 # 2) Train with the default Branchformer configuration
-python run.py --stages train --train_tokenizer --collect_stats --train_config conf/train.yaml
+python run.py --stages train --train_tokenizer --collect_stats \
+  --train_config conf/train.yaml
 
 # 3) Decode
 python run.py --stages infer --infer_config conf/infer.yaml
@@ -21,8 +23,11 @@ python run.py --stages infer --infer_config conf/infer.yaml
 python run.py --stages measure --measure_config conf/measure.yaml
 ```
 
-All hyper-parameters are stored in `configs/` and can be overridden using Hydra syntax. For example:
+All hyper-parameters are stored in `configs/` and can be overridden using
+Hydra syntax. For example:
 
 ```bash
-python run.py --stages train --train_overrides trainer.max_epochs=10 runtime.device=cuda --train_config conf/train.yaml
+python run.py --stages train \
+  --train_overrides trainer.max_epochs=10 runtime.device=cuda \
+  --train_config conf/train.yaml
 ```

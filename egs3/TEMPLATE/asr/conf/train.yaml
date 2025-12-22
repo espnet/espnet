@@ -40,7 +40,8 @@ dataset:
   preprocessor:
 
 tokenizer:
-  # Recipe should provide a text_builder that returns tokenizer text (list[str] or path).
+  # Recipe should provide a text_builder that returns tokenizer text
+  # (list[str] or path).
   text_builder:
     func: src.tokenizer.gather_training_text
     dataset_dir: ${dataset_dir}

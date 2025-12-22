@@ -2,9 +2,9 @@
 
 import logging
 import os
+import time
 from importlib import import_module
 from pathlib import Path
-import time
 from typing import Iterable
 
 from espnet3.systems.asr.tokenizer.sentencepiece import train_sentencepiece
@@ -71,10 +71,13 @@ class ASRSystem(BaseSystem):
         output_path = Path(self.train_config.tokenizer.save_path)
         output_path.mkdir(parents=True, exist_ok=True)
         tokenizer_cfg = getattr(self.train_config, "tokenizer", None)
-        builder_cfg = getattr(tokenizer_cfg, "text_builder", None) if tokenizer_cfg else None
+        builder_cfg = (
+            getattr(tokenizer_cfg, "text_builder", None) if tokenizer_cfg else None
+        )
         if builder_cfg is None or not getattr(builder_cfg, "func", None):
             raise RuntimeError(
-                "train_config.tokenizer.text_builder.func must be set to build tokenizer text."
+                "train_config.tokenizer.text_builder.func must be set to build "
+                "tokenizer text."
             )
         builder = load_function(builder_cfg.func)
         builder_kwargs = {k: v for k, v in builder_cfg.items() if k != "func"}
@@ -90,7 +93,8 @@ class ASRSystem(BaseSystem):
             texts = [str(t) for t in built]
         else:
             raise RuntimeError(
-                f"text_builder must return a path or iterable of strings (got {type(built)})."
+                "text_builder must return a path or iterable of strings "
+                f"(got {type(built)})."
             )
 
         if len(texts) == 0:
@@ -111,4 +115,6 @@ class ASRSystem(BaseSystem):
             self.train_config.tokenizer.vocab_size,
             model_type=self.train_config.tokenizer.model_type,
         )
-        logger.info("Tokenizer training completed in %.2fs", time.perf_counter() - start)
+        logger.info(
+            "Tokenizer training completed in %.2fs", time.perf_counter() - start
+        )

@@ -5,9 +5,9 @@ from hydra.utils import instantiate
 from omegaconf import OmegaConf
 from torch.utils.data import BatchSampler, Sampler
 
-from espnet3.components.data_organizer import DataOrganizer, do_nothing_transform
 from espnet3.components.data.dataloader import DataLoaderBuilder
 from espnet3.components.data.dataset import ShardedDataset
+from espnet3.components.data_organizer import DataOrganizer, do_nothing_transform
 from espnet3.utils.config import load_config_with_defaults
 
 # ===============================================================
@@ -41,6 +41,23 @@ from espnet3.utils.config import load_config_with_defaults
 # - All `DataLoaderBuilder.build(mode)` modes are exercised: standard, iter_factory,
 # and multiple_iterator
 
+
+DUMMY_DATASET_TARGET = (
+    "test.espnet3.components.test_dataloader_builder."
+    "DummyDataset"
+)
+DUMMY_SAMPLER_TARGET = (
+    "test.espnet3.components.test_dataloader_builder."
+    "DummySampler"
+)
+DUMMY_BATCH_SAMPLER_TARGET = (
+    "test.espnet3.components.test_dataloader_builder."
+    "DummyBatchSampler"
+)
+DUMMY_SHARDED_DATASET_TARGET = (
+    "test.espnet3.components.test_dataloader_builder."
+    "DummyShardedDataset"
+)
 
 # -------- Dummy components for testing --------
 
@@ -118,7 +135,7 @@ def test_batch_sampler_only():
     dataset = DummyDataset()
     config = make_standard_dataloader_config(
         batch_sampler={
-            "_target_": "test.espnet3.components.test_dataloader_builder.DummyBatchSampler"
+            "_target_": DUMMY_BATCH_SAMPLER_TARGET
         }
     )
     # We don't need batch size for batch sampler
@@ -132,7 +149,9 @@ def test_batch_sampler_only():
 def test_sampler_only():
     dataset = DummyDataset()
     config = make_standard_dataloader_config(
-        sampler={"_target_": "test.espnet3.components.test_dataloader_builder.DummySampler"}
+        sampler={
+            "_target_": DUMMY_SAMPLER_TARGET
+        }
     )
     builder = DataLoaderBuilder(dataset, config, collate_fn=None, num_device=1, epoch=0)
     loader = builder.build("train")
@@ -157,7 +176,7 @@ def test_common_collate_fn():
             {
                 "name": "train_dummy",
                 "dataset": {
-                    "_target_": "test.espnet3.components.test_dataloader_builder.DummyDataset"
+                    "_target_": DUMMY_DATASET_TARGET
                 },
             }
         ],
@@ -196,9 +215,11 @@ def test_custom_collate_fn():
 def test_sampler_and_batch_sampler_conflict():
     dataset = DummyDataset()
     config = make_standard_dataloader_config(
-        sampler={"_target_": "test.espnet3.components.test_dataloader_builder.DummySampler"},
+        sampler={
+            "_target_": DUMMY_SAMPLER_TARGET
+        },
         batch_sampler={
-            "_target_": "test.espnet3.components.test_dataloader_builder.DummyBatchSampler"
+            "_target_": DUMMY_BATCH_SAMPLER_TARGET
         },
     )
     builder = DataLoaderBuilder(dataset, config, collate_fn=None, num_device=1, epoch=0)
@@ -217,7 +238,7 @@ def test_iter_factory_from_default_yaml_with_organizer(tmp_path):
             {
                 "name": "train_dummy",
                 "dataset": {
-                    "_target_": "test.espnet3.components.test_dataloader_builder.DummyDataset"
+                    "_target_": DUMMY_DATASET_TARGET
                 },
             }
         ],
@@ -271,7 +292,7 @@ def test_iter_factory_with_collate_fn(tmp_path):
             {
                 "name": "train_dummy",
                 "dataset": {
-                    "_target_": "test.espnet3.components.test_dataloader_builder.DummyDataset"
+                    "_target_": DUMMY_DATASET_TARGET
                 },
             }
         ],
@@ -351,7 +372,7 @@ def dummy_multiple_iterator_dataset(tmp_path):
             {
                 "name": "shard0",
                 "dataset": {
-                    "_target_": "test.espnet3.components.test_dataloader_builder.DummyShardedDataset",  # noqa: E501
+                    "_target_": DUMMY_SHARDED_DATASET_TARGET,
                 },
             },
         ],
@@ -359,7 +380,7 @@ def dummy_multiple_iterator_dataset(tmp_path):
             {
                 "name": "valid",
                 "dataset": {
-                    "_target_": "test.espnet3.components.test_dataloader_builder.DummyShardedDataset",  # noqa: E501
+                    "_target_": DUMMY_SHARDED_DATASET_TARGET,
                 },
             }
         ],

@@ -56,7 +56,9 @@ def test_get_task_class_returns_correct_class(task_path, expected_cls_name):
     except RuntimeError as e:
         # Skip when optional dependencies pull in broken binary wheels (e.g., sklearn)
         if "numpy.dtype size changed" in str(e):
-            pytest.skip("Skipped due to incompatible optional dependencies in test env.")
+            pytest.skip(
+                "Skipped due to incompatible optional dependencies in test env."
+            )
         raise
     assert cls.__name__ == expected_cls_name
 

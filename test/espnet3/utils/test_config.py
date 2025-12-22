@@ -7,7 +7,7 @@ from yaml.parser import ParserError
 from espnet3.utils.config import load_config_with_defaults, load_line
 
 # ===============================================================
-# Test Case Summary for Config Utilities 
+# Test Case Summary for Config Utilities
 # ===============================================================
 #
 # Tests for `load_line(path)`
@@ -46,6 +46,7 @@ from espnet3.utils.config import load_config_with_defaults, load_line
 # |---------------------------|---------------------------|
 # | test_missing_file_raises  | FileNotFoundError         |
 # | test_invalid_yaml_raises  | ParserError               |
+
 
 @pytest.fixture
 def tmp_txt_file(tmp_path):

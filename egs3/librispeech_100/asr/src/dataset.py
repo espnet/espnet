@@ -169,7 +169,8 @@ class LibriSpeechDataset(TorchDataset):
             data_dir = os.environ.get("LIBRISPEECH")
             if not data_dir:
                 raise FileNotFoundError(
-                    "LibriSpeech data_dir not provided and env var LIBRISPEECH is not set."
+                    "LibriSpeech data_dir not provided and env var "
+                    "LIBRISPEECH is not set."
                 )
         self.librispeech_root = _resolve_librispeech_root(data_dir)
         self.split = str(split)
@@ -197,4 +198,3 @@ class LibriSpeechDataset(TorchDataset):
             "speech": np.asarray(array, dtype=np.float32),
             "text": ex.text,
         }
-
