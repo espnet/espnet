@@ -15,7 +15,7 @@ decode_dir: ${exp_dir}/decode
 
 # Dataset definition for test splits only.
 dataset:
-  dataset_module: src/dataset.py
+  _target_: espnet3.components.data_organizer.DataOrganizer
   test:
     - name: test-clean
       dataset:

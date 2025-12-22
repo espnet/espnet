@@ -94,7 +94,9 @@ def make_local_gpu_cluster(n_workers: int, options: dict) -> Client:
     """
     _ensure_dask()
     if LocalCUDACluster is None:
-        raise RuntimeError("Please install dask_cuda.")
+        raise RuntimeError(
+            "Please install dask_cuda along with cuda-python and cuda-bindings."
+        )
 
     num_gpus = torch.cuda.device_count()
     if n_workers > num_gpus:

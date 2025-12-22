@@ -12,7 +12,7 @@ dataset_dir: /path/to/LibriSpeech
 
 # Dataset definition for test splits only (used to enumerate test names).
 dataset:
-  dataset_module: src/dataset.py
+  _target_: espnet3.components.data_organizer.DataOrganizer
   test:
     - name: test-clean
       dataset:

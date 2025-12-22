@@ -25,7 +25,7 @@ create_dataset:
 # Dataset definition for training/validation splits. Each dataset entry passes
 # the root LibriSpeech path and split name into src.dataset:LibriSpeechDataset.
 dataset:
-  dataset_module: src/dataset.py
+  _target_: espnet3.components.data_organizer.DataOrganizer
   train:
     - name: train-clean-100
       dataset:

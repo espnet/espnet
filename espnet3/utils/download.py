@@ -21,10 +21,7 @@ def setup_logger(
     logger.propagate = False
 
     formatter = logging.Formatter(
-        fmt=(
-            "%(asctime)s | %(levelname)s | %(name)s | "
-            "%(pathname)s:%(lineno)d | %(message)s"
-        ),
+        fmt="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
 
@@ -100,6 +97,7 @@ def download_url(
     )
 
     _log(logger, f"Start download: {dst_path.name}")
+    _log(logger, f"Target directory: {dst_path.parent.resolve()}")
     urllib.request.urlretrieve(url, dst_path, reporthook=progress)
     _log(logger, f"Download completed: {dst_path.name}")
 

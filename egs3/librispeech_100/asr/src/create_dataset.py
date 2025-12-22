@@ -77,9 +77,9 @@ def create_dataset(
         splits: Optional subset of keys from :data:`SPLITS`. If omitted, all
             splits in :data:`SPLITS` are processed.
     """
+    dataset_dir = Path(dataset_dir)
     logger = setup_logger(
         name="create_dataset",
-        log_dir=dataset_dir / "logs",
     )
 
     librispeech_root = dataset_dir / "LibriSpeech"

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+import time
 from pathlib import Path
 from typing import Any, Dict
 
@@ -15,6 +17,8 @@ from espnet3.components.trainer import ESPnet3LightningTrainer
 from espnet3.parallel.parallel import set_parallel
 from espnet3.utils.task import get_espnet_model, save_espnet_config
 
+logger = logging.getLogger(__name__)
+
 
 def _instantiate_model(cfg: DictConfig) -> Any:
     task = cfg.get("task")
@@ -26,6 +30,7 @@ def _instantiate_model(cfg: DictConfig) -> Any:
 
 def _build_trainer(cfg: DictConfig) -> ESPnet3LightningTrainer:
     model = _instantiate_model(cfg)
+    logger.info("Model:\n%s", model)
     lit_model = LitESPnetModel(model, cfg)
     trainer = ESPnet3LightningTrainer(
         model=lit_model,
@@ -44,6 +49,7 @@ def _ensure_directories(cfg: DictConfig) -> None:
 
 def collect_stats(cfg: DictConfig) -> None:
     _ensure_directories(cfg)
+    start = time.perf_counter()
 
     if cfg.get("parallel"):
         set_parallel(cfg.parallel)
@@ -60,11 +66,18 @@ def collect_stats(cfg: DictConfig) -> None:
 
     trainer = _build_trainer(cfg)
     trainer.collect_stats()
+    logger.info(
+        "Collect stats finished in %.2fs | exp_dir=%s stats_dir=%s",
+        time.perf_counter() - start,
+        cfg.exp_dir,
+        getattr(cfg, "stats_dir", None),
+    )
 
 
 def train(cfg: DictConfig) -> None:
     """Main training loop."""
     _ensure_directories(cfg)
+    start = time.perf_counter()
 
     if cfg.get("parallel"):
         set_parallel(cfg.parallel)
@@ -85,3 +98,9 @@ def train(cfg: DictConfig) -> None:
         fit_kwargs = OmegaConf.to_container(cfg.fit, resolve=True)
 
     trainer.fit(**fit_kwargs)
+    logger.info(
+        "Training finished in %.2fs | exp_dir=%s model=%s",
+        time.perf_counter() - start,
+        cfg.exp_dir,
+        cfg.model.get("_target_", None) if isinstance(cfg.model, DictConfig) else None,
+    )

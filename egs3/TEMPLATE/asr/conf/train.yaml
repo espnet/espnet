@@ -22,19 +22,29 @@ create_dataset:
 
 # Dataset definition for training/validation splits.
 dataset:
-  dataset_module: src/dataset.py
-  # _target_ can be omitted; defaults to espnet3.components.data_organizer.DataOrganizer
+  _target_: espnet3.components.data_organizer.DataOrganizer
   train:
     - name: train-split
       dataset:
+        _target_: src.dataset.LibriSpeechDataset
+        data_dir: ${dataset_dir}
         split: train
   valid:
     - name: valid-split
       dataset:
+        _target_: src.dataset.LibriSpeechDataset
+        data_dir: ${dataset_dir}
         split: dev
 
   # Optional global preprocessor; can also be omitted
   preprocessor:
+
+tokenizer:
+  # Recipe should provide a text_builder that returns tokenizer text (list[str] or path).
+  text_builder:
+    func: src.tokenizer.gather_training_text
+    dataset_dir: ${dataset_dir}
+    split: train
 
 # Parallel execution settings used by espnet3.parallel (defaults to local).
 parallel:

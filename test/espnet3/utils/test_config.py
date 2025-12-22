@@ -36,11 +36,10 @@ from espnet3.utils.config import load_config_with_defaults, load_line
 # | test_config_with_nested_defaults | Resolves nested defaults      |
 # | test_config_with_self_in_middle | `_self_` in middle respected |
 #
-# Dataset auto-resolution
+# Dataset target behavior
 # | Test Name                               | Description            |
 # |-----------------------------------------|------------------------|
-# | test_config_auto_infers_dataset_target  | Fills organizer + ds   |
-# | test_config_infers_dataset_requires_single_class | Errors on multiple classes |
+# | test_config_does_not_infer_dataset_target | No implicit targets |
 #
 # Error Cases
 # | Test Name                 | Expected Exception        |
@@ -285,7 +284,7 @@ defaults:
         load_config_with_defaults(str(main_path))
 
 
-def test_config_auto_infers_dataset_target(tmp_path):
+def test_config_does_not_infer_dataset_target(tmp_path):
     recipe_root = tmp_path / "recipe"
     conf_dir = recipe_root / "conf"
     src_dir = recipe_root / "src"
@@ -312,39 +311,6 @@ dataset:
     )
 
     cfg = load_config_with_defaults(str(config_path))
-    assert cfg.dataset._target_ == "espnet3.components.data_organizer.DataOrganizer"
-    assert Path(cfg.dataset.dataset_module) == src_dir / "dataset.py"
-    assert cfg.dataset.train[0].dataset._target_ == "src.dataset.MyDataset"
-
-
-def test_config_infers_dataset_requires_single_class(tmp_path):
-    recipe_root = tmp_path / "recipe"
-    conf_dir = recipe_root / "conf"
-    src_dir = recipe_root / "src"
-    conf_dir.mkdir(parents=True)
-    src_dir.mkdir()
-    (src_dir / "dataset.py").write_text(
-        """
-class FirstDataset:
-    pass
-
-class SecondDataset:
-    pass
-"""
-    )
-
-    config_path = conf_dir / "config.yaml"
-    config_path.write_text(
-        """
-defaults:
-  - _self_
-dataset:
-  train:
-    - name: train
-      dataset:
-        split: train
-"""
-    )
-
-    with pytest.raises(ValueError):
-        load_config_with_defaults(str(config_path))
+    assert "_target_" not in cfg.dataset
+    assert "dataset_module" not in cfg.dataset
+    assert "_target_" not in cfg.dataset.train[0].dataset

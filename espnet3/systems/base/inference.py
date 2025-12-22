@@ -1,58 +1,31 @@
-import os
+import logging
+import time
 from pathlib import Path
 
-import torch
-from hydra.utils import instantiate
 from omegaconf import DictConfig
 
-from espnet3.parallel.base_runner import BaseRunner
 from espnet3.parallel.parallel import set_parallel
-from espnet3.systems.base.inference_provider import (
-    InferenceProvider as BaseInferenceProvider,
-)
+from espnet3.systems.asr.inference import InferenceProvider, InferenceRunner
 
-
-class InferenceProvider(BaseInferenceProvider):
-    @staticmethod
-    def build_dataset(config):
-        # config includes test dataset
-        organizer = instantiate(config.dataset)
-        test_set = config.test_set
-        return organizer.test[test_set]
-
-    @staticmethod
-    def build_model(config):
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        if device == "cuda":
-            device_id = os.getenv("CUDA_VISIBLE_DEVICES", "0").split(",")[0].strip()
-            device = f"cuda:{device_id}"
-
-        # config includes model
-        model = instantiate(
-            config.model, device=device
-        )  # In this recipe we assume this to be espnet2.bin.asr_inference.Speech2Text
-        return model
-
-
-class InferenceRunner(BaseRunner):
-    @staticmethod
-    def forward(idx, dataset=None, model=None, **kwargs):
-        data = dataset[idx]
-        speech = data["speech"]
-        hyp = model(speech)[0][0]
-        ref = model.tokenizer.tokens2text(model.converter.ids2tokens(data["text"]))
-        return {"idx": idx, "hyp": hyp, "ref": ref}
+logger = logging.getLogger(__name__)
 
 
 def inference(config: DictConfig):
+    start = time.perf_counter()
     set_parallel(config.parallel)
 
     test_sets = [test_set.name for test_set in config.dataset.test]
     assert len(test_sets) > 0, "No test set found in dataset"
     assert len(test_sets) == len(set(test_sets)), "Duplicate test key found."
 
+    logger.info(
+        "Starting inference | decode_dir=%s test_sets=%s",
+        getattr(config, "decode_dir", None),
+        test_sets,
+    )
+
     for test_name in test_sets:
-        print(f"===> Processing {test_name}")
+        logger.info("===> Processing test set: %s", test_name)
         config.test_set = test_name
         provider = InferenceProvider(config)
         runner = InferenceRunner(
@@ -60,7 +33,7 @@ def inference(config: DictConfig):
             async_mode=False,
         )
         dataset_length = len(provider.build_dataset(config))
-        print(f"===> Processing {dataset_length} samples..")
+        logger.info("===> Processing %d samples..", dataset_length)
         out = runner(list(range(dataset_length)))
 
         # create scp files
@@ -70,3 +43,10 @@ def inference(config: DictConfig):
 
         with open(Path(config.decode_dir) / test_name / "hyp.scp", "w") as f:
             f.write("\n".join([f"{result['idx']} {result['hyp']}" for result in out]))
+        logger.info(
+            "Finished test set %s | outputs=%s",
+            test_name,
+            Path(config.decode_dir) / test_name,
+        )
+
+    logger.info("Inference finished in %.2fs", time.perf_counter() - start)
