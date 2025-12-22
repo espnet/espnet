@@ -75,7 +75,7 @@ def dummy_model():
 def dummy_dataset_config():
     return OmegaConf.create(
         {
-            "_target_": "espnet3.components.data_organizer.DataOrganizer",
+            "_target_": "espnet3.components.data.data_organizer.DataOrganizer",
             "train": [
                 {
                     "name": "dummy_train",

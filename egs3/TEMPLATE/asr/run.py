@@ -137,11 +137,17 @@ def main(
     )
     log_env_metadata(logger)
     if train_config is not None:
-        logger.info("Train config content:\n%s", OmegaConf.to_yaml(train_config))
+        logger.info(
+            "Train config content:\n%s", OmegaConf.to_yaml(train_config, resolve=True)
+        )
     if infer_config is not None:
-        logger.info("Infer config content:\n%s", OmegaConf.to_yaml(infer_config))
+        logger.info(
+            "Infer config content:\n%s", OmegaConf.to_yaml(infer_config, resolve=True)
+        )
     if measure_config is not None:
-        logger.info("Measure config content:\n%s", OmegaConf.to_yaml(measure_config))
+        logger.info(
+            "Measure config content:\n%s", OmegaConf.to_yaml(measure_config, resolve=True)
+        )
 
     # -----------------------------------------
     # Instantiate system

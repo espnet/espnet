@@ -78,7 +78,7 @@ def test_single_optim_and_scheduler():
                 "step_size": 10,
             },
             "dataset": {
-                "_target_": "espnet3.components.data_organizer.DataOrganizer",
+                "_target_": "espnet3.components.data.data_organizer.DataOrganizer",
                 "train": [],
                 "valid": [],
             },
@@ -120,7 +120,7 @@ def test_multiple_optims_and_schedulers():
                 },
             ],
             "dataset": {
-                "_target_": "espnet3.components.data_organizer.DataOrganizer",
+                "_target_": "espnet3.components.data.data_organizer.DataOrganizer",
                 "train": [],
                 "valid": [],
             },
@@ -143,7 +143,7 @@ def test_custom_scheduler_interval():
                 "step_size": 5,
             },
             "dataset": {
-                "_target_": "espnet3.components.data_organizer.DataOrganizer",
+                "_target_": "espnet3.components.data.data_organizer.DataOrganizer",
                 "train": [],
                 "valid": [],
             },
@@ -166,7 +166,7 @@ def test_reduce_on_plateau_with_config_adam():
                 "factor": 0.5,
             },
             "dataset": {
-                "_target_": "espnet3.components.data_organizer.DataOrganizer",
+                "_target_": "espnet3.components.data.data_organizer.DataOrganizer",
                 "train": [],
                 "valid": [],
             },
@@ -199,7 +199,7 @@ def test_missing_both_optim_and_optims():
     config = OmegaConf.create(
         {
             "dataset": {
-                "_target_": "espnet3.components.data_organizer.DataOrganizer",
+                "_target_": "espnet3.components.data.data_organizer.DataOrganizer",
                 "train": [],
                 "valid": [],
             },
@@ -230,7 +230,7 @@ def test_mixed_optim_and_optims():
                 {"_target_": "torch.optim.lr_scheduler.StepLR", "step_size": 10}
             ],
             "dataset": {
-                "_target_": "espnet3.components.data_organizer.DataOrganizer",
+                "_target_": "espnet3.components.data.data_organizer.DataOrganizer",
                 "train": [],
                 "valid": [],
             },
@@ -262,7 +262,7 @@ def test_mixed_scheduler_and_schedulers():
                 }
             ],
             "dataset": {
-                "_target_": "espnet3.components.data_organizer.DataOrganizer",
+                "_target_": "espnet3.components.data.data_organizer.DataOrganizer",
                 "train": [],
                 "valid": [],
             },
@@ -299,7 +299,7 @@ def test_optims_and_schedulers_length_mismatch():
                 }
             ],
             "dataset": {
-                "_target_": "espnet3.components.data_organizer.DataOrganizer",
+                "_target_": "espnet3.components.data.data_organizer.DataOrganizer",
                 "train": [],
                 "valid": [],
             },
@@ -329,7 +329,7 @@ def test_optimizer_missing_params_key():
                 }
             ],
             "dataset": {
-                "_target_": "espnet3.components.data_organizer.DataOrganizer",
+                "_target_": "espnet3.components.data.data_organizer.DataOrganizer",
                 "train": [],
                 "valid": [],
             },
@@ -360,7 +360,7 @@ def test_optimizer_params_not_matching_model():
                 }
             ],
             "dataset": {
-                "_target_": "espnet3.components.data_organizer.DataOrganizer",
+                "_target_": "espnet3.components.data.data_organizer.DataOrganizer",
                 "train": [],
                 "valid": [],
             },
@@ -401,7 +401,7 @@ def test_optimizer_duplicate_params():
                 },
             ],
             "dataset": {
-                "_target_": "espnet3.components.data_organizer.DataOrganizer",
+                "_target_": "espnet3.components.data.data_organizer.DataOrganizer",
                 "train": [],
                 "valid": [],
             },
@@ -444,7 +444,7 @@ def test_optimizer_missing_coverage():
                 },
             ],
             "dataset": {
-                "_target_": "espnet3.components.data_organizer.DataOrganizer",
+                "_target_": "espnet3.components.data.data_organizer.DataOrganizer",
                 "train": [],
                 "valid": [],
             },
