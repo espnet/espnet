@@ -1,5 +1,3 @@
-"""Custom `load_line` resolver and `defaults`-based config loader."""
-
 import logging
 from pathlib import Path
 
