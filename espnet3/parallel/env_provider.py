@@ -1,11 +1,11 @@
-"""Base interface for environment providers in ESPnet3 runners."""
-
+# env_provider.py
+from abc import ABC, abstractmethod
 from typing import Any, Callable, Dict
 
 from omegaconf import DictConfig
 
 
-class EnvironmentProvider:
+class EnvironmentProvider(ABC):
     """A base interface to build and inject per-process environments.
 
     This class separates responsibilities for constructing shared
@@ -34,6 +34,7 @@ class EnvironmentProvider:
         """Initialize EnvironmentProvider object."""
         self.config = config
 
+    @abstractmethod
     def build_env_local(self) -> Dict[str, Any]:
         """Build the environment once on the driver for local execution.
 
@@ -57,6 +58,7 @@ class EnvironmentProvider:
         """
         raise NotImplementedError
 
+    @abstractmethod
     def make_worker_setup_fn(self) -> Callable[[], Dict[str, Any]]:
         """Create a worker setup function for distributed execution.
 
