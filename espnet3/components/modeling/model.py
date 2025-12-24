@@ -404,15 +404,24 @@ class LitESPnetModel(lightning.LightningModule):
         Raises:
             AssertionError: If `config.statsdir` is not provided.
         """
-        assert hasattr(self.config, "statsdir"), "config.statsdir must be defined"
+        assert hasattr(self.config, "stats_dir"), "config.statsdir must be defined"
+
+        # Detach dataset/dataloader configs from the root so interpolations like
+        # ${dataset_dir} remain resolved when used standalone during collection.
+        dataset_config = OmegaConf.create(
+            OmegaConf.to_container(self.config.dataset, resolve=True)
+        )
+        dataloader_config = OmegaConf.create(
+            OmegaConf.to_container(self.config.dataloader, resolve=True)
+        )
 
         for mode in ["train", "valid"]:
             collect_stats(
                 model_config=OmegaConf.to_container(self.config.model, resolve=True),
-                dataset_config=self.config.dataset,
-                dataloader_config=self.config.dataloader,
+                dataset_config=dataset_config,
+                dataloader_config=dataloader_config,
                 mode=mode,
-                output_dir=Path(self.config.statsdir),
+                output_dir=Path(self.config.stats_dir),
                 task=getattr(self.config, "task", None),
                 parallel_config=(
                     None
