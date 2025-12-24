@@ -4,10 +4,10 @@ import os
 import torch
 from hydra.utils import instantiate
 
-from espnet3.systems.base.inference_runner import AbsInferenceRunner
 from espnet3.systems.base.inference_provider import (
     InferenceProvider as BaseInferenceProvider,
 )
+from espnet3.systems.base.inference_runner import AbsInferenceRunner
 
 logger = logging.getLogger(__name__)
 
