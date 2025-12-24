@@ -188,8 +188,9 @@ class CombinedDataset:
 
         This is used when handling large datasets that are split into shards
         for efficiency and distributed processing (ESPnet multiple-iterator mode).
-        All datasets must be subclasses of `espnet3.components.data.dataset.ShardedDataset`,
-        and implement a `shard()` method.
+        All datasets must be subclasses of
+        `espnet3.components.data.dataset.ShardedDataset` and implement
+        a `shard()` method.
 
         Args:
             shard_idx (int): Index of the shard to retrieve.

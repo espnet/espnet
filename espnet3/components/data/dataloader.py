@@ -203,9 +203,10 @@ class DataLoaderBuilder:
         return iter_factory.build_iter(self.epoch, shuffle=False)
 
     def _build_multiple_iterator(self, factory_config):
-        assert (
-            self.dataset.multiple_iterator
-        ), "All dataset must be a subclass of espnet3.components.data.dataset.ShardedDataset"
+        assert self.dataset.multiple_iterator, (
+            "All dataset must be a subclass of"
+            "espnet3.components.data.dataset.ShardedDataset"
+        )
 
         assert hasattr(
             factory_config, "num_shards"
