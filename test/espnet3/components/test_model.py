@@ -188,7 +188,9 @@ def test_use_espnet_collator_flag_false(tmp_path, dummy_model, dummy_dataset_con
             "expdir": str(tmp_path / "exp"),
             "dataset": dummy_dataset_config,
             "dataloader": {
-                "collate_fn": {"_target_": "test.espnet3.components.test_model.CustomCollate"},
+                "collate_fn": {
+                    "_target_": "test.espnet3.components.test_model.CustomCollate"
+                },
                 "train": {"iter_factory": None},
                 "valid": {"iter_factory": None},
             },

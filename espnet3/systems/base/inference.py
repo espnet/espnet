@@ -51,9 +51,7 @@ def _collect_scp_lines(results, *, idx_key: str, hyp_keys, ref_keys):
                     )
                 for i, entry in enumerate(value):
                     if isinstance(entry, (list, tuple)):
-                        raise TypeError(
-                            f"Nested list is not allowed for '{field_key}'"
-                        )
+                        raise TypeError(f"Nested list is not allowed for '{field_key}'")
                     scp_key = f"{field_key}{i}"
                     scp_lines.setdefault(scp_key, []).append(f"{idx_value} {entry}")
             else:
