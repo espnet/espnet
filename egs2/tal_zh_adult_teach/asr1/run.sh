@@ -13,6 +13,8 @@ asr_config=conf/train_asr_branchformer_e24_amp.yaml
 inference_config=conf/decode_asr_branchformer.yaml
 
 lm_config=conf/train_lm_transformer.yaml
+use_lm=false
+use_wordlm=false
 
 # speed perturbation related
 # (train_set will be "${train_set}_sp" if speed_perturb_factors is specified)
@@ -20,15 +22,14 @@ speed_perturb_factors="0.9 1.0 1.1"
 
 ./asr.sh \
     --nj 64 \
-    --inference_nj 8 \
-    --gpu_inference true \
+    --inference_nj 32 \
     --ngpu 4 \
     --lang zh \
     --audio_format "flac.ark" \
     --feats_type raw \
     --token_type char \
-    --use_lm true                                      \
-    --use_word_lm false                                \
+    --use_lm ${use_lm}                                 \
+    --use_word_lm ${use_wordlm}                        \
     --lm_config "${lm_config}"                         \
     --asr_config "${asr_config}"                       \
     --inference_config "${inference_config}"           \
