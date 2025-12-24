@@ -68,28 +68,20 @@ def dummy_dataset_config():
         "train": [
             {
                 "name": "train_dummy",
-                "dataset": {
-                    "_target_": DUMMY_DATASET_TARGET
-                },
-                "transform": {
-                    "_target_": DUMMY_TRANSFORM_TARGET
-                },
+                "dataset": {"_target_": DUMMY_DATASET_TARGET},
+                "transform": {"_target_": DUMMY_TRANSFORM_TARGET},
             }
         ],
         "valid": [
             {
                 "name": "valid_dummy",
-                "dataset": {
-                    "_target_": DUMMY_DATASET_TARGET
-                },
+                "dataset": {"_target_": DUMMY_DATASET_TARGET},
             }
         ],
         "test": [
             {
                 "name": "test_dummy",
-                "dataset": {
-                    "_target_": DUMMY_DATASET_TARGET
-                },
+                "dataset": {"_target_": DUMMY_DATASET_TARGET},
             }
         ],
     }
