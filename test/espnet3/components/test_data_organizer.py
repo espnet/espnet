@@ -69,6 +69,9 @@ from espnet3.components.data.dataset import (
 # | test_data_organizer_invalid_preprocessor_type | AssertionError     |
 # | test_combined_dataset_sharded_consistency_error | RuntimeError       |
 
+DUMMY_DATASET_TARGET = "test.espnet3.components.test_data_organizer." "DummyDataset"
+DUMMY_TRANSFORM_TARGET = "test.espnet3.components.test_data_organizer." "DummyTransform"
+
 
 # Dummy classes
 class DummyTransform:
@@ -136,28 +139,20 @@ def dummy_dataset_config():
         "train": [
             {
                 "name": "train_dummy",
-                "dataset": {
-                    "_target_": "test.espnet3.components.test_data_organizer.DummyDataset"
-                },
-                "transform": {
-                    "_target_": "test.espnet3.components.test_data_organizer.DummyTransform"
-                },
+                "dataset": {"_target_": DUMMY_DATASET_TARGET},
+                "transform": {"_target_": DUMMY_TRANSFORM_TARGET},
             }
         ],
         "valid": [
             {
                 "name": "valid_dummy",
-                "dataset": {
-                    "_target_": "test.espnet3.components.test_data_organizer.DummyDataset"
-                },
+                "dataset": {"_target_": DUMMY_DATASET_TARGET},
             }
         ],
         "test": [
             {
                 "name": "test_dummy",
-                "dataset": {
-                    "_target_": "test.espnet3.components.test_data_organizer.DummyDataset"
-                },
+                "dataset": {"_target_": DUMMY_DATASET_TARGET},
             }
         ],
     }
@@ -201,20 +196,14 @@ def test_data_organizer_without_test():
         "train": [
             {
                 "name": "train_dummy",
-                "dataset": {
-                    "_target_": "test.espnet3.components.test_data_organizer.DummyDataset"
-                },
-                "transform": {
-                    "_target_": "test.espnet3.components.test_data_organizer.DummyTransform"
-                },
+                "dataset": {"_target_": DUMMY_DATASET_TARGET},
+                "transform": {"_target_": DUMMY_TRANSFORM_TARGET},
             }
         ],
         "valid": [
             {
                 "name": "valid_dummy",
-                "dataset": {
-                    "_target_": "test.espnet3.components.test_data_organizer.DummyDataset"
-                },
+                "dataset": {"_target_": DUMMY_DATASET_TARGET},
             }
         ],
         # No "test" field
@@ -238,12 +227,8 @@ def test_data_organizer_test_only():
         "test": [
             {
                 "name": "test_dummy",
-                "dataset": {
-                    "_target_": "test.espnet3.components.test_data_organizer.DummyDataset"
-                },
-                "transform": {
-                    "_target_": "test.espnet3.components.test_data_organizer.DummyTransform"
-                },
+                "dataset": {"_target_": DUMMY_DATASET_TARGET},
+                "transform": {"_target_": DUMMY_TRANSFORM_TARGET},
             }
         ],
     }
@@ -264,21 +249,15 @@ def test_data_organizer_train_valid_multiple(train_count, valid_count):
         "train": [
             {
                 "name": f"train{i}",
-                "dataset": {
-                    "_target_": "test.espnet3.components.test_data_organizer.DummyDataset"
-                },
-                "transform": {
-                    "_target_": "test.espnet3.components.test_data_organizer.DummyTransform"
-                },
+                "dataset": {"_target_": DUMMY_DATASET_TARGET},
+                "transform": {"_target_": DUMMY_TRANSFORM_TARGET},
             }
             for i in range(train_count)
         ],
         "valid": [
             {
                 "name": f"valid{i}",
-                "dataset": {
-                    "_target_": "test.espnet3.components.test_data_organizer.DummyDataset"
-                },
+                "dataset": {"_target_": DUMMY_DATASET_TARGET},
             }
             for i in range(valid_count)
         ],
@@ -299,18 +278,12 @@ def test_data_organizer_test_multiple_sets():
         "test": [
             {
                 "name": "test_clean",
-                "dataset": {
-                    "_target_": "test.espnet3.components.test_data_organizer.DummyDataset"
-                },
+                "dataset": {"_target_": DUMMY_DATASET_TARGET},
             },
             {
                 "name": "test_other",
-                "dataset": {
-                    "_target_": "test.espnet3.components.test_data_organizer.DummyDataset"
-                },
-                "transform": {
-                    "_target_": "test.espnet3.components.test_data_organizer.DummyTransform"
-                },
+                "dataset": {"_target_": DUMMY_DATASET_TARGET},
+                "transform": {"_target_": DUMMY_TRANSFORM_TARGET},
             },
         ]
     }
@@ -326,20 +299,14 @@ def test_data_organizer_transform_only():
         "train": [
             {
                 "name": "train_dummy",
-                "dataset": {
-                    "_target_": "test.espnet3.components.test_data_organizer.DummyDataset"
-                },
-                "transform": {
-                    "_target_": "test.espnet3.components.test_data_organizer.DummyTransform"
-                },
+                "dataset": {"_target_": DUMMY_DATASET_TARGET},
+                "transform": {"_target_": DUMMY_TRANSFORM_TARGET},
             }
         ],
         "valid": [
             {
                 "name": "valid_dummy",
-                "dataset": {
-                    "_target_": "test.espnet3.components.test_data_organizer.DummyDataset"
-                },
+                "dataset": {"_target_": DUMMY_DATASET_TARGET},
             }
         ],
     }
@@ -356,17 +323,13 @@ def test_data_organizer_preprocessor_only():
         "train": [
             {
                 "name": "train_dummy",
-                "dataset": {
-                    "_target_": "test.espnet3.components.test_data_organizer.DummyDataset"
-                },
+                "dataset": {"_target_": DUMMY_DATASET_TARGET},
             }
         ],
         "valid": [
             {
                 "name": "valid_dummy",
-                "dataset": {
-                    "_target_": "test.espnet3.components.test_data_organizer.DummyDataset"
-                },
+                "dataset": {"_target_": DUMMY_DATASET_TARGET},
             }
         ],
     }
@@ -384,20 +347,14 @@ def test_data_organizer_transform_and_preprocessor():
         "train": [
             {
                 "name": "train_dummy",
-                "dataset": {
-                    "_target_": "test.espnet3.components.test_data_organizer.DummyDataset"
-                },
-                "transform": {
-                    "_target_": "test.espnet3.components.test_data_organizer.DummyTransform"
-                },
+                "dataset": {"_target_": DUMMY_DATASET_TARGET},
+                "transform": {"_target_": DUMMY_TRANSFORM_TARGET},
             }
         ],
         "valid": [
             {
                 "name": "valid_dummy",
-                "dataset": {
-                    "_target_": "test.espnet3.components.test_data_organizer.DummyDataset"
-                },
+                "dataset": {"_target_": DUMMY_DATASET_TARGET},
             }
         ],
     }
@@ -415,9 +372,7 @@ def test_data_organizer_train_only_assertion():
         "train": [
             {
                 "name": "train_dummy",
-                "dataset": {
-                    "_target_": "test.espnet3.components.test_data_organizer.DummyDataset"
-                },
+                "dataset": {"_target_": DUMMY_DATASET_TARGET},
             }
         ]
         # valid is missing
@@ -475,17 +430,13 @@ def test_data_organizer_invalid_preprocessor_type():
         "train": [
             {
                 "name": "train_dummy",
-                "dataset": {
-                    "_target_": "test.espnet3.components.test_data_organizer.DummyDataset"
-                },
+                "dataset": {"_target_": DUMMY_DATASET_TARGET},
             }
         ],
         "valid": [
             {
                 "name": "valid_dummy",
-                "dataset": {
-                    "_target_": "test.espnet3.components.test_data_organizer.DummyDataset"
-                },
+                "dataset": {"_target_": DUMMY_DATASET_TARGET},
             }
         ],
     }
@@ -502,18 +453,14 @@ def test_espnet_preprocessor_without_transform():
         "train": [
             {
                 "name": "train_dummy",
-                "dataset": {
-                    "_target_": "test.espnet3.components.test_data_organizer.DummyDataset"
-                },
+                "dataset": {"_target_": DUMMY_DATASET_TARGET},
                 # transform is omitted
             }
         ],
         "valid": [
             {
                 "name": "valid_dummy",
-                "dataset": {
-                    "_target_": "test.espnet3.components.test_data_organizer.DummyDataset"
-                },
+                "dataset": {"_target_": DUMMY_DATASET_TARGET},
             }
         ],
     }
@@ -533,20 +480,14 @@ def test_espnet_preprocessor_with_transform():
         "train": [
             {
                 "name": "train_dummy",
-                "dataset": {
-                    "_target_": "test.espnet3.components.test_data_organizer.DummyDataset"
-                },
-                "transform": {
-                    "_target_": "test.espnet3.components.test_data_organizer.DummyTransform"
-                },
+                "dataset": {"_target_": DUMMY_DATASET_TARGET},
+                "transform": {"_target_": DUMMY_TRANSFORM_TARGET},
             }
         ],
         "valid": [
             {
                 "name": "valid_dummy",
-                "dataset": {
-                    "_target_": "test.espnet3.components.test_data_organizer.DummyDataset"
-                },
+                "dataset": {"_target_": DUMMY_DATASET_TARGET},
             }
         ],
     }
