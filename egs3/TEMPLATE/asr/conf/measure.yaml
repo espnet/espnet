@@ -1,0 +1,24 @@
+# Metric/scoring configuration template for ESPnet3 ASR.
+# Consumes decode outputs under decode_dir and reports metrics.
+
+# Path scaffold relative to the recipe root; keep aligned with infer.yaml.
+recipe_dir: .
+data_dir: ${recipe_dir}/data
+exp_tag: asr_template_eval
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+stats_dir: ${recipe_dir}/exp/stats
+decode_dir: ${exp_dir}/decode
+dataset_dir: /path/to/your/dataset
+
+# Dataset definition for test splits only (used to enumerate test names).
+dataset:
+  _target_: espnet3.components.data_organizer.DataOrganizer
+  test:
+    - name: test-clean
+      dataset:
+        _target_: src.dataset.LibriSpeechDataset
+        data_dir: ${dataset_dir}
+        split: test-clean
+
+# Metrics block intentionally empty in template; fill with WER/CER, etc.
+metrics:

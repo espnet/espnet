@@ -1,0 +1,26 @@
+# Mini AN4 ASR scoring config for ESPnet3 integration tests.
+
+recipe_dir: .
+data_dir: ${recipe_dir}/data
+exp_tag: mini_an4_asr_debug
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+stats_dir: ${recipe_dir}/exp/stats
+decode_dir: ${exp_dir}/decode
+dataset_dir: ${data_dir}/mini_an4
+
+dataset:
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
+  test:
+    - name: test
+      dataset:
+        _target_: src.dataset.MiniAN4Dataset
+        manifest_path: ${dataset_dir}/manifest/test.tsv
+
+metrics:
+  - metric:
+      _target_: espnet3.systems.asr.metrics.wer.WER
+      clean_types:
+
+  - metric:
+      _target_: espnet3.systems.asr.metrics.cer.CER
+      clean_types:
