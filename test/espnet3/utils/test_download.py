@@ -1,8 +1,6 @@
 from pathlib import Path
 from unittest import mock
 
-import pytest
-
 from espnet3.utils import download
 
 
