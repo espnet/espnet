@@ -23,9 +23,21 @@ def configure_logging(
     level: int = logging.INFO,
     filename: str = "run.log",
 ) -> logging.Logger:
-    """Configure a root logger with console + optional file output.
+    """Configure logging for an ESPnet3 run.
 
-    This is intentionally light-weight so it can be reused by recipes.
+    This sets up:
+      - A root logger with a stream handler (console).
+      - An optional file handler at `log_dir/filename`.
+      - Warning capture into the logging system.
+
+    Args:
+        log_dir (Path | None): Directory to store the log file.
+            If None, only console logging is configured.
+        level (int): Logging level (e.g., logging.INFO).
+        filename (str): Log file name when `log_dir` is provided.
+
+    Returns:
+        logging.Logger: Logger instance named "espnet3".
     """
     root = logging.getLogger()
     root.setLevel(level)
@@ -56,6 +68,7 @@ def configure_logging(
 
 
 def _run_git_command(cmd: list[str], cwd: Path | None) -> str | None:
+    """Run a git command and return stdout, or None on failure."""
     try:
         completed = subprocess.run(
             cmd,
@@ -70,7 +83,21 @@ def _run_git_command(cmd: list[str], cwd: Path | None) -> str | None:
 
 
 def get_git_metadata(cwd: Path | None = None) -> dict[str, str]:
-    """Return commit/branch/dirty metadata for the repo if available."""
+    """Return git metadata for the current repository.
+
+    This attempts to read commit hash, short hash, branch name, and worktree
+    status from the git repository rooted at `cwd`.
+
+    Args:
+        cwd (Path | None): Directory within the target git repo.
+
+    Returns:
+        dict[str, str]: Collected metadata keys, possibly including:
+            - "commit": Full commit hash.
+            - "short_commit": Abbreviated commit hash.
+            - "branch": Current branch name.
+            - "worktree": "clean", "dirty", or "unknown".
+    """
     cwd = cwd or Path.cwd()
     head = _run_git_command(["git", "rev-parse", "HEAD"], cwd)
     branch = _run_git_command(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd)
@@ -95,6 +122,7 @@ def get_git_metadata(cwd: Path | None = None) -> dict[str, str]:
 
 
 def format_command(argv: Iterable[str] | None = None) -> str:
+    """Format command arguments into a shell-escaped string."""
     argv = list(argv) if argv is not None else sys.argv
     return " ".join(shlex.quote(str(a)) for a in argv)
 
@@ -106,7 +134,21 @@ def log_run_metadata(
     workdir: Path | None = None,
     configs: Mapping[str, Path | None] | None = None,
 ) -> None:
-    """Log runtime metadata such as command, cwd, configs, and git info."""
+    """Log runtime metadata for the current run.
+
+    Logged fields include:
+      - Start timestamp.
+      - Python executable and command-line arguments.
+      - Working directory.
+      - Config paths (if provided).
+      - Git metadata (commit/branch/dirty), when available.
+
+    Args:
+        logger (logging.Logger): Logger used to emit metadata.
+        argv (Iterable[str] | None): Command arguments; defaults to sys.argv.
+        workdir (Path | None): Working directory to report.
+        configs (Mapping[str, Path | None] | None): Named config paths to log.
+    """
     logger.info("=== ESPnet3 run started: %s ===", datetime.now().isoformat())
     logger.info("Command: %s %s", sys.executable, format_command(argv))
 
@@ -130,6 +172,15 @@ def _collect_env(
     prefixes: Iterable[str] | None = None,
     keys: Iterable[str] | None = None,
 ) -> dict[str, str]:
+    """Collect environment variables matching prefixes or explicit keys.
+
+    Args:
+        prefixes (Iterable[str] | None): Prefixes to match (e.g., "CUDA_").
+        keys (Iterable[str] | None): Exact variable names to include.
+
+    Returns:
+        dict[str, str]: Sorted environment variables that match.
+    """
     prefixes = tuple(prefixes or ())
     key_set = {k for k in (keys or ())}
     collected: dict[str, str] = {}
@@ -146,6 +197,18 @@ def log_env_metadata(
     runtime_prefixes: Iterable[str] | None = None,
     runtime_keys: Iterable[str] | None = None,
 ) -> None:
+    """Log selected cluster and runtime environment variables.
+
+    The output includes two blocks:
+      - Cluster environment variables (scheduler/runtime IDs).
+      - Runtime environment variables (CUDA/NCCL/OMP/PATH, etc.).
+
+    Args:
+        logger (logging.Logger): Logger used to emit metadata.
+        cluster_prefixes (Iterable[str] | None): Prefixes for cluster variables.
+        runtime_prefixes (Iterable[str] | None): Prefixes for runtime variables.
+        runtime_keys (Iterable[str] | None): Explicit runtime keys to include.
+    """
     cluster_prefixes = cluster_prefixes or (
         "SLURM_",
         "PBS_",
