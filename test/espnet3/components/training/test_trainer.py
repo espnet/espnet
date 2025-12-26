@@ -47,8 +47,8 @@ from espnet3.utils.config import load_config_with_defaults
 # | test_missing_expdir_raises  | Raises `TypeCheckError` if `expdir` is None                                  | # noqa: E501
 # | test_missing_config_raises  | Raises `TypeCheckError` if `config` is None                                  | # noqa: E501
 
-DUMMY_DATASET_TARGET = "test.espnet3.components.test_data_organizer." "DummyDataset"
-DUMMY_TRANSFORM_TARGET = "test.espnet3.components.test_data_organizer." "DummyTransform"
+DUMMY_DATASET_TARGET = "test.espnet3.components.data.test_data_organizer.DummyDataset"
+DUMMY_TRANSFORM = "test.espnet3.components.data.test_data_organizer.DummyTransform"
 
 
 class DummyDataset(torch.utils.data.Dataset):
@@ -69,7 +69,7 @@ def dummy_dataset_config():
             {
                 "name": "train_dummy",
                 "dataset": {"_target_": DUMMY_DATASET_TARGET},
-                "transform": {"_target_": DUMMY_TRANSFORM_TARGET},
+                "transform": {"_target_": DUMMY_TRANSFORM},
             }
         ],
         "valid": [
