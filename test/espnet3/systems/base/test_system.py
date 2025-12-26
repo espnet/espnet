@@ -1,0 +1,66 @@
+import pytest
+from omegaconf import OmegaConf
+
+import espnet3.systems.base.system as sysmod
+from espnet3.systems.base.system import BaseSystem
+
+
+def test_base_system_rejects_args():
+    system = BaseSystem()
+    with pytest.raises(TypeError):
+        system.create_dataset(1)
+
+
+def test_base_system_invokes_helpers(tmp_path, monkeypatch):
+    train_cfg = OmegaConf.create({"exp_dir": str(tmp_path / "exp"), "model": {}})
+    infer_cfg = OmegaConf.create({"decode_dir": str(tmp_path / "decode")})
+    measure_cfg = OmegaConf.create({"decode_dir": str(tmp_path / "decode")})
+
+    calls = {}
+
+    def fake_collect(cfg):
+        calls["collect"] = cfg
+        return "collect"
+
+    def fake_train(cfg):
+        calls["train"] = cfg
+        return "train"
+
+    def fake_infer(cfg):
+        calls["infer"] = cfg
+        return "infer"
+
+    def fake_score(cfg):
+        calls["score"] = cfg
+        return {"metric": 1.0}
+
+    monkeypatch.setattr(sysmod, "collect_stats", fake_collect)
+    monkeypatch.setattr(sysmod, "train", fake_train)
+    monkeypatch.setattr(sysmod, "inference", fake_infer)
+    monkeypatch.setattr(sysmod, "score", fake_score)
+
+    system = BaseSystem(
+        train_config=train_cfg,
+        infer_config=infer_cfg,
+        measure_config=measure_cfg,
+    )
+
+    assert system.exp_dir.is_dir()
+    assert system.collect_stats() == "collect"
+    assert system.train() == "train"
+    assert system.infer() == "infer"
+    assert system.measure() == {"metric": 1.0}
+    assert calls["collect"] is train_cfg
+    assert calls["train"] is train_cfg
+    assert calls["infer"] is infer_cfg
+    assert calls["score"] is measure_cfg
+
+
+def test_base_system_rejects_subclass_args():
+    class CustomSystem(BaseSystem):
+        def train(self, *, extra=None):
+            return super().train(extra=extra)
+
+    system = CustomSystem()
+    with pytest.raises(TypeError):
+        system.train(extra="oops")
