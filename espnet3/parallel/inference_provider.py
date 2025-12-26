@@ -1,3 +1,5 @@
+"""Inference-time provider helpers for dataset/model construction."""
+
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
 
@@ -7,9 +9,19 @@ from espnet3.parallel.env_provider import EnvironmentProvider
 
 
 class InferenceProvider(EnvironmentProvider, ABC):
-    """Provider base class tailored for inference-time datasets/models."""
+    """Provider base class tailored for inference-time datasets/models.
+
+    Subclasses implement dataset/model creation for local execution or
+    per-worker setup. Instances cache a local environment for reuse.
+    """
 
     def __init__(self, config: DictConfig, *, params: Optional[Dict[str, Any]] = None):
+        """Initialize the provider and prebuild the local environment.
+
+        Args:
+            config: Configuration for dataset/model construction.
+            params: Optional extra entries merged into the environment.
+        """
         super().__init__(config)
         self.params = params or {}
         # Build once for local execution to avoid redundant IO
@@ -22,21 +34,43 @@ class InferenceProvider(EnvironmentProvider, ABC):
     @staticmethod
     @abstractmethod
     def build_dataset(cfg: DictConfig):
-        """Create a dataset object from config."""
+        """Create a dataset object from config.
+
+        Args:
+            cfg: Configuration for dataset construction.
+
+        Returns:
+            Dataset-like object used for inference.
+        """
         raise NotImplementedError
 
     @staticmethod
     @abstractmethod
     def build_model(cfg: DictConfig):
-        """Create a model object from config."""
+        """Create a model object from config.
+
+        Args:
+            cfg: Configuration for model construction.
+
+        Returns:
+            Model-like object used for inference.
+        """
         raise NotImplementedError
 
     def build_env_local(self) -> Dict[str, Any]:
-        """Return the already constructed local environment."""
+        """Return the already constructed local environment.
+
+        Returns:
+            Mapping with dataset/model and any extra params.
+        """
         return dict(self._local_env)
 
     def make_worker_setup_fn(self):
-        """Return a setup function that rebuilds the env per worker."""
+        """Return a setup function that rebuilds the env per worker.
+
+        Returns:
+            Callable that constructs a fresh environment when invoked.
+        """
         cfg = self.config
         params = dict(self.params)
 

@@ -1,5 +1,3 @@
-# system_base.py
-
 import logging
 from pathlib import Path
 

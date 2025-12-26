@@ -1,4 +1,3 @@
-# score_runner.py
 from pathlib import Path
 from typing import Dict, List, Union
 

@@ -65,6 +65,11 @@ def _collect_scp_lines(results, *, idx_key: str, hyp_keys, ref_keys):
 
 
 def inference(config: DictConfig):
+    """Run inference over all configured test sets and write SCP outputs.
+
+    Args:
+        config: Hydra/omegaconf configuration with dataset and decode settings.
+    """
     start = time.perf_counter()
     set_parallel(config.parallel)
 
