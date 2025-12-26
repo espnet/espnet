@@ -221,6 +221,8 @@ preprocessor_choices = ClassChoices(
 
 
 class ASRTask(AbsTask):
+    """ASR task definition for argument wiring and model construction."""
+
     # If you need more than one optimizers, change this value
     num_optimizers: int = 1
 
@@ -251,6 +253,7 @@ class ASRTask(AbsTask):
 
     @classmethod
     def add_task_arguments(cls, parser: argparse.ArgumentParser):
+        """Add ASR-specific task arguments to the parser."""
         group = parser.add_argument_group(description="Task related")
 
         # NOTE(kamo): add_arguments(..., required=True) can't be used
@@ -427,6 +430,7 @@ class ASRTask(AbsTask):
         [Collection[Tuple[str, Dict[str, np.ndarray]]]],
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
+        """Build the collate function for ASR batches."""
         # NOTE(kamo): int value = 0 is reserved by CTC-blank symbol
         return CommonCollateFn(float_pad_value=0.0, int_pad_value=-1)
 
@@ -435,6 +439,7 @@ class ASRTask(AbsTask):
     def build_preprocess_fn(
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
+        """Build the preprocessing function for ASR inputs."""
         if args.use_preprocessor:
             try:
                 _ = getattr(args, "preprocessor")
@@ -492,6 +497,7 @@ class ASRTask(AbsTask):
     def required_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
+        """Return required data field names for the task."""
         if not inference:
             retval = ("speech", "text")
         else:
@@ -503,6 +509,7 @@ class ASRTask(AbsTask):
     def optional_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
+        """Return optional data field names for the task."""
         MAX_REFERENCE_NUM = 4
 
         retval = ["text_spk{}".format(n) for n in range(2, MAX_REFERENCE_NUM + 1)]
@@ -515,6 +522,7 @@ class ASRTask(AbsTask):
     @classmethod
     @typechecked
     def build_model(cls, args: argparse.Namespace) -> ESPnetASRModel:
+        """Build the ESPnet ASR model from parsed arguments."""
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
                 token_list = [line.rstrip() for line in f]

@@ -1,3 +1,5 @@
+"""Inference entrypoint for ESPnet3 systems."""
+
 import logging
 import time
 from pathlib import Path

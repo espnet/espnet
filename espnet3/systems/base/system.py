@@ -1,3 +1,5 @@
+"""Base system class and stage entrypoints for ESPnet3."""
+
 import logging
 from pathlib import Path
 
@@ -35,6 +37,7 @@ class BaseSystem:
         infer_config: DictConfig | None = None,
         measure_config: DictConfig | None = None,
     ) -> None:
+        """Initialize the system with optional stage configs."""
         self.train_config = train_config
         self.infer_config = infer_config
         self.metric_config = measure_config
@@ -55,6 +58,7 @@ class BaseSystem:
 
     @staticmethod
     def _reject_stage_args(stage: str, args, kwargs) -> None:
+        """Reject unexpected positional/keyword arguments for stages."""
         if args or kwargs:
             raise TypeError(
                 f"Stage '{stage}' does not accept arguments. "
@@ -65,10 +69,12 @@ class BaseSystem:
     # Stage stubs (override in subclasses if needed)
     # ---------------------------------------------------------
     def create_dataset(self, *args, **kwargs):
+        """Create datasets using the configured stage."""
         self._reject_stage_args("create_dataset", args, kwargs)
         logger.info("Running prepare() (BaseSystem stub). Nothing done.")
 
     def collect_stats(self, *args, **kwargs):
+        """Collect statistics needed for training."""
         self._reject_stage_args("collect_stats", args, kwargs)
         logger.info(
             "Collecting stats | exp_dir=%s stats_dir=%s",
@@ -78,6 +84,7 @@ class BaseSystem:
         return collect_stats(self.train_config)
 
     def train(self, *args, **kwargs):
+        """Train the system model."""
         self._reject_stage_args("train", args, kwargs)
         model_target = None
         if self.train_config is not None and hasattr(self.train_config, "model"):
@@ -92,12 +99,14 @@ class BaseSystem:
         return train(self.train_config)
 
     def evaluate(self, *args, **kwargs):
+        """Run inference and measurement in sequence."""
         self._reject_stage_args("evaluate", args, kwargs)
         # Backward-compat shim if someone calls evaluate directly.
         self.infer()
         return self.measure()
 
     def infer(self, *args, **kwargs):
+        """Run inference on the configured datasets."""
         self._reject_stage_args("infer", args, kwargs)
         logger.info(
             "Inference start | decode_dir=%s",
@@ -106,6 +115,7 @@ class BaseSystem:
         return inference(self.infer_config)
 
     def measure(self, *args, **kwargs):
+        """Compute evaluation metrics from inference outputs."""
         self._reject_stage_args("measure", args, kwargs)
         logger.info(
             "Scoring start | metric_config=%s",
@@ -116,5 +126,6 @@ class BaseSystem:
         return result
 
     def publish(self, *args, **kwargs):
+        """Publish artifacts from the experiment."""
         self._reject_stage_args("publish", args, kwargs)
         logger.info("Running publish() (BaseSystem stub). Nothing done.")

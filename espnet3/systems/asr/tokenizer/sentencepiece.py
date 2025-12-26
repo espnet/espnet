@@ -1,3 +1,5 @@
+"""SentencePiece tokenizer utilities for ESPnet3 ASR."""
+
 import os
 import shutil
 from pathlib import Path
@@ -17,9 +19,7 @@ def prepare_sentences(
     output_path: Union[str, Path],
     remove_characters: str = "",
 ):
-    """
-    Create a training text file for SentencePiece model training from the
-    provided dump text files.
+    """Create a SentencePiece training text file from dump text files.
 
     This function consolidates multiple text files into a single `train.txt`
     file, which is formatted for use in SentencePiece training. It also
@@ -89,8 +89,7 @@ def train_sentencepiece(
     model_type: str = "bpe",
     user_defined_symbols: list = [],
 ):
-    """
-    Main function to train a SentencePiece model.
+    """Train a SentencePiece model.
 
     This function trains a SentencePiece model using the provided training
     data and saves the resulting model and vocabulary files to the specified
@@ -166,6 +165,7 @@ def add_special_tokens(
     tokenizer, converter, embedding, special_tokens, insert_after="<st_zho>"
 ):
     """Add special tokens to the tokenizer.
+
     For detailed usage, please refer to the demo notebook for espnet3 with SLU task.
 
     Args:
