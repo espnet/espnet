@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
 
 from omegaconf import DictConfig
@@ -5,7 +6,7 @@ from omegaconf import DictConfig
 from espnet3.parallel.env_provider import EnvironmentProvider
 
 
-class InferenceProvider(EnvironmentProvider):
+class InferenceProvider(EnvironmentProvider, ABC):
     """Provider base class tailored for inference-time datasets/models."""
 
     def __init__(self, config: DictConfig, *, params: Optional[Dict[str, Any]] = None):
@@ -19,11 +20,13 @@ class InferenceProvider(EnvironmentProvider):
         }
 
     @staticmethod
+    @abstractmethod
     def build_dataset(cfg: DictConfig):
         """Create a dataset object from config."""
         raise NotImplementedError
 
     @staticmethod
+    @abstractmethod
     def build_model(cfg: DictConfig):
         """Create a model object from config."""
         raise NotImplementedError
