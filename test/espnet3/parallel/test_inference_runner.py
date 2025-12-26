@@ -13,7 +13,7 @@ from omegaconf import DictConfig, OmegaConf
 
 # ==== SUT imports ====
 from espnet3.parallel.base_runner import BaseRunner
-from espnet3.parallel.inference_provider import InferenceProvider
+from espnet3.systems.base.inference_provider import InferenceProvider
 
 
 class STFTProvider(InferenceProvider):

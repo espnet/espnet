@@ -1,1 +1,1 @@
-"""ESPnet3 component tests package."""
+"""Component tests for ESPnet3."""

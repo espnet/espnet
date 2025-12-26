@@ -10,9 +10,7 @@ from hydra.utils import instantiate
 from omegaconf import OmegaConf
 
 # Import the functions under test (adjust import path if your file/module path differs)
-from espnet3.components.data.collect_stats import (
-    collect_stats,
-)
+from espnet3.components.data.collect_stats import collect_stats
 
 mp.set_start_method("fork", force=True)
 
@@ -41,6 +39,7 @@ TEST_ORGANIZER_TARGET = (
     "test.espnet3.components.data.test_collect_stats." "DummyOrganizer"
 )
 TEST_COLLATE_TARGET = "test.espnet3.components.data.test_collect_stats." "DummyCollate"
+
 
 # -----------------------------
 # Dummy components for testing
