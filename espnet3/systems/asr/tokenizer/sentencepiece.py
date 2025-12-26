@@ -212,7 +212,7 @@ def add_special_tokens(
         m.pieces.insert(insert_position, p)
 
     new_model_path = (
-        Path(tokenizer.model).parent / f"{Path(tokenizer.model).stem} _sp.model"
+        Path(tokenizer.model).parent / f"{Path(tokenizer.model).stem}_sp.model"
     )
     with open(new_model_path, "wb") as f:
         f.write(m.SerializeToString())
