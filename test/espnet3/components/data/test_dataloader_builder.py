@@ -41,13 +41,17 @@ from espnet3.utils.config import load_config_with_defaults
 # - All `DataLoaderBuilder.build(mode)` modes are exercised: standard, iter_factory,
 # and multiple_iterator
 
-DUMMY_DATASET_TARGET = "test.espnet3.components.test_dataloader_builder." "DummyDataset"
-DUMMY_SAMPLER_TARGET = "test.espnet3.components.test_dataloader_builder." "DummySampler"
+DUMMY_DATASET_TARGET = (
+    "test.espnet3.components.data.test_dataloader_builder." "DummyDataset"
+)
+DUMMY_SAMPLER_TARGET = (
+    "test.espnet3.components.data.test_dataloader_builder." "DummySampler"
+)
 DUMMY_BATCH_SAMPLER_TARGET = (
-    "test.espnet3.components.test_dataloader_builder." "DummyBatchSampler"
+    "test.espnet3.components.data.test_dataloader_builder." "DummyBatchSampler"
 )
 DUMMY_SHARDED_DATASET_TARGET = (
-    "test.espnet3.components.test_dataloader_builder." "DummyShardedDataset"
+    "test.espnet3.components.data.test_dataloader_builder." "DummyShardedDataset"
 )
 
 

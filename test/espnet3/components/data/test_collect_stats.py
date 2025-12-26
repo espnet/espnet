@@ -36,9 +36,11 @@ mp.set_start_method("fork", force=True)
 # |                                      | works for different modes and produces      |
 # |                                      | correct aggregated results                  |
 
-TEST_MODEL_TARGET = "test.espnet3.components.test_collect_stats." "DummyModel"
-TEST_ORGANIZER_TARGET = "test.espnet3.components.test_collect_stats." "DummyOrganizer"
-TEST_COLLATE_TARGET = "test.espnet3.components.test_collect_stats." "DummyCollate"
+TEST_MODEL_TARGET = "test.espnet3.components.data.test_collect_stats." "DummyModel"
+TEST_ORGANIZER_TARGET = (
+    "test.espnet3.components.data.test_collect_stats." "DummyOrganizer"
+)
+TEST_COLLATE_TARGET = "test.espnet3.components.data.test_collect_stats." "DummyCollate"
 
 
 # -----------------------------

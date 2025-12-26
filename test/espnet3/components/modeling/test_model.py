@@ -29,6 +29,8 @@ from espnet3.components.modeling.model import LitESPnetModel
 
 # ---------------------- Dummy Components ----------------------
 
+COMMON_COLLATE = "test.espnet3.components.modeling.test_model.CustomCollate"
+
 
 class DummyDataset:
     def __init__(self, path=None):
@@ -75,7 +77,7 @@ def dummy_model():
 def dummy_dataset_config():
     return OmegaConf.create(
         {
-            "_target_": "espnet3.components.data.DataOrganizer",
+            "_target_": "espnet3.components.data.data_organizer.DataOrganizer",
             "train": [
                 {
                     "name": "dummy_train",
@@ -189,7 +191,7 @@ def test_use_espnet_collator_flag_false(tmp_path, dummy_model, dummy_dataset_con
             "dataset": dummy_dataset_config,
             "dataloader": {
                 "collate_fn": {
-                    "_target_": "test.espnet3.components.test_model.CustomCollate"
+                    "_target_": COMMON_COLLATE,
                 },
                 "train": {"iter_factory": None},
                 "valid": {"iter_factory": None},
