@@ -33,7 +33,9 @@ def is_gzip(path: Path) -> bool:
     return path.is_file() and path.read_bytes()[:2] == b"\x1f\x8b"
 
 
-def ensure_extracted(archive: Path, dataset_dir: Path, *, logger: logging.Logger) -> Path:
+def ensure_extracted(
+    archive: Path, dataset_dir: Path, *, logger: logging.Logger
+) -> Path:
     downloads_dir = dataset_dir / "downloads"
     an4_root = downloads_dir / "an4"
     if an4_root.exists():
@@ -95,7 +97,9 @@ def sph_to_wav(sph2pipe: str, sph: Path, wav: Path) -> None:
         subprocess.run(cmd, stdout=f, check=True)
 
 
-def prepare_split(an4_root: Path, dataset_dir: Path, split: str, sph2pipe: str) -> list[Entry]:
+def prepare_split(
+    an4_root: Path, dataset_dir: Path, split: str, sph2pipe: str
+) -> list[Entry]:
     wav_dir = dataset_dir / "wav" / split
     sph_dir = an4_root / "wav" / SPH_DIRS[split]
 
