@@ -1,4 +1,8 @@
-# system_asr.py
+"""ASR system implementation and tokenizer training helpers.
+
+This module adds ASR-specific stages on top of the base system, including
+tokenizer training and dataset creation hooks.
+"""
 
 import logging
 import os
@@ -14,6 +18,17 @@ logger = logging.getLogger(__name__)
 
 
 def load_function(path):
+    """Load a callable from a dotted module path.
+
+    Args:
+        path: Dotted module path (e.g., ``package.module:function``).
+
+    Returns:
+        Callable referenced by the path.
+
+    Raises:
+        (Exception): Propagated import or attribute lookup errors.
+    """
     module_path, func_name = path.rsplit(".", 1)
     module = import_module(module_path)
     return getattr(module, func_name)
@@ -27,6 +42,14 @@ class ASRSystem(BaseSystem):
     """
 
     def create_dataset(self, *args, **kwargs):
+        """Create datasets using the configured helper function.
+
+        The callable is resolved from ``train_config.create_dataset.func`` and
+        invoked with the remaining configuration values.
+
+        Raises:
+            RuntimeError: If the configuration does not specify a function.
+        """
         self._reject_stage_args("create_dataset", args, kwargs)
         logger.info("ASRSystem.create_dataset(): starting dataset creation process")
         start = time.perf_counter()
@@ -47,6 +70,14 @@ class ASRSystem(BaseSystem):
         return result
 
     def train(self, *args, **kwargs):
+        """Train the model, training the tokenizer first if needed.
+
+        This stage checks for a cached tokenizer model and runs tokenizer
+        training before delegating to the base training routine.
+
+        Raises:
+            RuntimeError: If ``train_config.dataset_dir`` is not set.
+        """
         self._reject_stage_args("train", args, kwargs)
         logger.info("ASRSystem.train(): starting training process")
 
@@ -66,6 +97,15 @@ class ASRSystem(BaseSystem):
         return super().train()
 
     def train_tokenizer(self, *args, **kwargs):
+        """Train a SentencePiece tokenizer based on configured text.
+
+        The text builder configured in ``train_config.tokenizer.text_builder``
+        is used to generate training text, which is then saved and consumed
+        by the SentencePiece trainer.
+
+        Raises:
+            RuntimeError: If required tokenizer config is missing or invalid.
+        """
         self._reject_stage_args("train_tokenizer", args, kwargs)
         start = time.perf_counter()
         output_path = Path(self.train_config.tokenizer.save_path)

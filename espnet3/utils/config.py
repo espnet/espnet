@@ -1,3 +1,5 @@
+"""Configuration helpers and OmegaConf resolvers for ESPnet3."""
+
 import logging
 from pathlib import Path
 

@@ -39,10 +39,12 @@ except ImportError:
         """Lightweight placeholder used when Dask is unavailable."""
 
         def __init__(self, *args, **kwargs):
+            """Create a placeholder WorkerPlugin when Dask is missing."""
             pass
 
     class _MissingCluster:
         def __init__(self, *args, **kwargs):
+            """Raise a helpful error when a Dask cluster type is unavailable."""
             raise RuntimeError(
                 "Dask is required for espnet3.parallel; please install dask "
                 "and dask_jobqueue to enable parallel features."

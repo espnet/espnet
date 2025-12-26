@@ -48,6 +48,7 @@ def _ensure_directories(cfg: DictConfig) -> None:
 
 
 def collect_stats(cfg: DictConfig) -> None:
+    """Collect statistics required by the training pipeline."""
     _ensure_directories(cfg)
     start = time.perf_counter()
 
@@ -75,7 +76,7 @@ def collect_stats(cfg: DictConfig) -> None:
 
 
 def train(cfg: DictConfig) -> None:
-    """Main training loop."""
+    """Run the training loop."""
     _ensure_directories(cfg)
     start = time.perf_counter()
 
