@@ -6,8 +6,8 @@ from omegaconf import OmegaConf
 from torch.utils.data import BatchSampler, Sampler
 
 from espnet3.components.data.data_organizer import DataOrganizer, do_nothing_transform
-from espnet3.components.data.dataset import ShardedDataset
 from espnet3.components.data.dataloader import DataLoaderBuilder
+from espnet3.components.data.dataset import ShardedDataset
 from espnet3.utils.config import load_config_with_defaults
 
 # ===============================================================
@@ -132,7 +132,9 @@ def test_batch_sampler_only():
 def test_sampler_only():
     dataset = DummyDataset()
     config = make_standard_dataloader_config(
-        sampler={"_target_": "test.espnet3.components.test_dataloader_builder.DummySampler"}
+        sampler={
+            "_target_": "test.espnet3.components.test_dataloader_builder.DummySampler"
+        }
     )
     builder = DataLoaderBuilder(dataset, config, collate_fn=None, num_device=1, epoch=0)
     loader = builder.build("train")
@@ -196,7 +198,9 @@ def test_custom_collate_fn():
 def test_sampler_and_batch_sampler_conflict():
     dataset = DummyDataset()
     config = make_standard_dataloader_config(
-        sampler={"_target_": "test.espnet3.components.test_dataloader_builder.DummySampler"},
+        sampler={
+            "_target_": "test.espnet3.components.test_dataloader_builder.DummySampler"
+        },
         batch_sampler={
             "_target_": "test.espnet3.components.test_dataloader_builder.DummyBatchSampler"
         },

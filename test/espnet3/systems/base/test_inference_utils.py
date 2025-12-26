@@ -12,7 +12,9 @@ def test_collect_scp_lines_with_list_outputs():
         {"idx": 0, "hyp": ["h1", "h2"], "ref": "r0"},
         {"idx": 1, "hyp": ["h3", "h4"], "ref": "r1"},
     ]
-    scp_lines = _collect_scp_lines(results, idx_key="idx", hyp_keys="hyp", ref_keys="ref")
+    scp_lines = _collect_scp_lines(
+        results, idx_key="idx", hyp_keys="hyp", ref_keys="ref"
+    )
     assert scp_lines["hyp"] == ["0 h1 ||| h2", "1 h3 ||| h4"]
     assert scp_lines["ref"] == ["0 r0", "1 r1"]
 
