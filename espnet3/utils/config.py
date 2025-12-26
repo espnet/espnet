@@ -1,4 +1,4 @@
-"""Custom `load_line` resolver and `defaults`-based config loader."""
+"""Configuration helpers and OmegaConf resolvers for ESPnet3."""
 
 import logging
 from pathlib import Path
