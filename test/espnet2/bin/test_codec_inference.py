@@ -30,20 +30,17 @@ def config_file(tmp_path: Path):
     )
     return tmp_path / "gan_codec" / "config.yaml"
 
+
 @pytest.mark.execution_timeout(5)
 def test_AudioCoding(config_file):
-    audio_coding = AudioCoding(
-        train_config=config_file
-    )
+    audio_coding = AudioCoding(train_config=config_file)
     wav = torch.rand(1, 16000)
     audio_coding(wav)
 
 
 @pytest.mark.execution_timeout(5)
 def test_AudioCoding_decode(config_file):
-    audio_coding = AudioCoding(
-        train_config=config_file
-    )
+    audio_coding = AudioCoding(train_config=config_file)
     wav = torch.rand(1, 16000)
     codes = audio_coding(wav, encode_only=True)["codes"]
     audio_coding.decode(codes)
