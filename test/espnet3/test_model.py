@@ -101,7 +101,7 @@ def make_standard_dataloader_config():
     )
     config = dict(
         collate_fn={
-            "_target_": "espnet2.train.collate_fn.CommonCollateFn",
+            "_target_": "espnet3.wrapper.train.CommonCollateFn",
             "int_pad_value": -1,
         },
         train=dataloader_config,

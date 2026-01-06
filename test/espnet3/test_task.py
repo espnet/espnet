@@ -23,29 +23,29 @@ from espnet3.utils.config import load_config_with_defaults
 @pytest.mark.parametrize(
     "task_path, expected_cls_name",
     [
-        ("espnet2.tasks.asr.ASRTask", "ASRTask"),
-        ("espnet2.tasks.asr_transducer.ASRTransducerTask", "ASRTransducerTask"),
-        ("espnet2.tasks.asvspoof.ASVSpoofTask", "ASVSpoofTask"),
-        ("espnet2.tasks.diar.DiarizationTask", "DiarizationTask"),
-        ("espnet2.tasks.enh.EnhancementTask", "EnhancementTask"),
-        ("espnet2.tasks.enh_s2t.EnhS2TTask", "EnhS2TTask"),
+        ("espnet3.wrapper.tasks.ASRTask", "ASRTask"),
+        ("espnet3.wrapper.tasks.ASRTransducerTask", "ASRTransducerTask"),
+        ("espnet3.wrapper.tasks.ASVSpoofTask", "ASVSpoofTask"),
+        ("espnet3.wrapper.tasks.DiarizationTask", "DiarizationTask"),
+        ("espnet3.wrapper.tasks.EnhancementTask", "EnhancementTask"),
+        ("espnet3.wrapper.tasks.EnhS2TTask", "EnhS2TTask"),
         (
-            "espnet2.tasks.enh_tse.TargetSpeakerExtractionTask",
+            "espnet3.wrapper.tasks.TargetSpeakerExtractionTask",
             "TargetSpeakerExtractionTask",
         ),
-        ("espnet2.tasks.gan_svs.GANSVSTask", "GANSVSTask"),
-        ("espnet2.tasks.gan_tts.GANTTSTask", "GANTTSTask"),
-        ("espnet2.tasks.hubert.HubertTask", "HubertTask"),
-        ("espnet2.tasks.lm.LMTask", "LMTask"),
-        ("espnet2.tasks.mt.MTTask", "MTTask"),
-        ("espnet2.tasks.s2st.S2STTask", "S2STTask"),
-        ("espnet2.tasks.s2t.S2TTask", "S2TTask"),
-        ("espnet2.tasks.slu.SLUTask", "SLUTask"),
-        ("espnet2.tasks.spk.SpeakerTask", "SpeakerTask"),
-        ("espnet2.tasks.st.STTask", "STTask"),
-        ("espnet2.tasks.svs.SVSTask", "SVSTask"),
-        ("espnet2.tasks.tts.TTSTask", "TTSTask"),
-        ("espnet2.tasks.uasr.UASRTask", "UASRTask"),
+        ("espnet3.wrapper.tasks.GANSVSTask", "GANSVSTask"),
+        ("espnet3.wrapper.tasks.GANTTSTask", "GANTTSTask"),
+        ("espnet3.wrapper.tasks.HubertTask", "HubertTask"),
+        ("espnet3.wrapper.tasks.LMTask", "LMTask"),
+        ("espnet3.wrapper.tasks.MTTask", "MTTask"),
+        ("espnet3.wrapper.tasks.S2STTask", "S2STTask"),
+        ("espnet3.wrapper.tasks.S2TTask", "S2TTask"),
+        ("espnet3.wrapper.tasks.SLUTask", "SLUTask"),
+        ("espnet3.wrapper.tasks.SpeakerTask", "SpeakerTask"),
+        ("espnet3.wrapper.tasks.STTask", "STTask"),
+        ("espnet3.wrapper.tasks.SVSTask", "SVSTask"),
+        ("espnet3.wrapper.tasks.TTSTask", "TTSTask"),
+        ("espnet3.wrapper.tasks.UASRTask", "UASRTask"),
     ],
 )
 @pytest.mark.execution_timeout(30)
@@ -55,13 +55,13 @@ def test_get_task_class_returns_correct_class(task_path, expected_cls_name):
 
 
 def test_get_espnet_model():
-    from espnet2.tasks.asr import ASRTask
+    from espnet3.wrapper.tasks import ASRTask
 
     default_config = ASRTask.get_default_config()
     default_config["token_list"] = ["<blank>", "a", "b", "c"]
     default_config["model_conf"]["ctc_weight"] = 1.0
     model = ASRTask.build_model(Namespace(**default_config))
-    model_espnet3 = get_espnet_model("espnet2.tasks.asr.ASRTask", default_config)
+    model_espnet3 = get_espnet_model("espnet3.wrapper.tasks.ASRTask", default_config)
     assert str(model) == str(model_espnet3)  # Check all attributes are the same
 
 
@@ -69,6 +69,6 @@ def test_save_espnet_config(tmp_path):
     config_path = Path("test_utils") / "espnet3" / "config" / "model_ctc.yaml"
     output_file = tmp_path / "config.yaml"
     save_espnet_config(
-        "espnet2.tasks.asr.ASRTask", load_config_with_defaults(config_path), output_file
+        "espnet3.wrapper.tasks.ASRTask", load_config_with_defaults(config_path), output_file
     )
     assert output_file.exists()

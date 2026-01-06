@@ -123,7 +123,7 @@ def model_config():
                 "train": {"batch_size": 2, "num_workers": 0, "shuffle": True},
                 "valid": {"batch_size": 2, "num_workers": 0, "shuffle": False},
                 "collate_fn": {
-                    "_target_": "espnet2.train.collate_fn.CommonCollateFn",
+                    "_target_": "espnet3.wrapper.train.CommonCollateFn",
                     "int_pad_value": -1,
                 },
             },
@@ -137,13 +137,13 @@ def model_config_espnet_sampler(tmp_path):
 dataloader:
   train:
     iter_factory:
-      _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
+      _target_: espnet3.wrapper.iterators.SequenceIterFactory
       shuffle: true
       collate_fn:
-        _target_: espnet2.train.collate_fn.CommonCollateFn
+        _target_: espnet3.wrapper.train.CommonCollateFn
         int_pad_value: -1
       batches:
-        _target_: espnet2.samplers.build_batch_sampler.build_batch_sampler
+        _target_: espnet3.wrapper.samplers.build_batch_sampler
         shape_files:
           - test_utils/espnet3/stats/stats_dummy
         type: unsorted
@@ -151,13 +151,13 @@ dataloader:
         batch_bins: 4000000
   valid:
     iter_factory:
-      _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
+      _target_: espnet3.wrapper.iterators.SequenceIterFactory
       shuffle: true
       collate_fn:
-        _target_: espnet2.train.collate_fn.CommonCollateFn
+        _target_: espnet3.wrapper.train.CommonCollateFn
         int_pad_value: -1
       batches:
-        _target_: espnet2.samplers.build_batch_sampler.build_batch_sampler
+        _target_: espnet3.wrapper.samplers.build_batch_sampler
         shape_files:
           - test_utils/espnet3/stats/stats_dummy
         type: unsorted

@@ -150,7 +150,7 @@ def test_collate_fn_none():
 
 
 def test_common_collate_fn():
-    from espnet2.train.collate_fn import CommonCollateFn
+    from espnet3.wrapper.train import CommonCollateFn
 
     config = {
         "train": [
@@ -232,10 +232,10 @@ def test_iter_factory_from_default_yaml_with_organizer(tmp_path):
 dataloader:
   train:
     iter_factory:
-      _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
+      _target_: espnet3.wrapper.iterators.SequenceIterFactory
       shuffle: true
       collate_fn:
-        _target_: espnet2.train.collate_fn.CommonCollateFn
+        _target_: espnet3.wrapper.train.CommonCollateFn
         int_pad_value: -1
       batches:
         shape_files:
@@ -286,10 +286,10 @@ def test_iter_factory_with_collate_fn(tmp_path):
 dataloader:
   train:
     iter_factory:
-      _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
+      _target_: espnet3.wrapper.iterators.SequenceIterFactory
       shuffle: true
       collate_fn:
-        _target_: espnet2.train.collate_fn.CommonCollateFn
+        _target_: espnet3.wrapper.train.CommonCollateFn
         int_pad_value: -1
       batches:
         shape_files:
