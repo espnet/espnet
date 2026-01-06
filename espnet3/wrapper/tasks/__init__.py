@@ -20,7 +20,6 @@ from espnet2.tasks.svs import SVSTask
 from espnet2.tasks.tts import TTSTask
 from espnet2.tasks.uasr import UASRTask
 
-
 __all__ = [
     "ASRTask",
     "ASRTransducerTask",
