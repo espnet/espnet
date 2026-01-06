@@ -11,13 +11,14 @@ import torch
 from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
 
-from espnet2.fileio.datadir_writer import DatadirWriter
-from espnet2.fileio.npy_scp import NpyScpWriter
-from espnet2.train.collate_fn import CommonCollateFn
 from espnet3.parallel.parallel import set_parallel
 from espnet3.runner.base_runner import BaseRunner
 from espnet3.runner.env_provider import EnvironmentProvider
 from espnet3.task import get_espnet_model
+from espnet3.wrapper.fileio import DatadirWriter
+from espnet3.wrapper.fileio import NpyScpWriter
+from espnet3.wrapper.train import CommonCollateFn
+
 
 __all__ = [
     "CollectStatsInferenceProvider",

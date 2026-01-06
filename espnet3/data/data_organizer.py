@@ -3,8 +3,8 @@
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional, Union
 
-from espnet2.train.preprocessor import AbsPreprocessor
 from espnet3.data.dataset import CombinedDataset, DatasetWithTransform
+from espnet3.wrapper.train import AbsPreprocessor
 
 
 @dataclass

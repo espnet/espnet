@@ -10,7 +10,7 @@ from hydra.utils import get_class
 from omegaconf import DictConfig, OmegaConf
 from typeguard import typechecked
 
-from espnet2.train.abs_espnet_model import AbsESPnetModel
+from espnet3.wrapper.train import AbsESPnetModel
 
 
 def get_task_class(task_path: str):

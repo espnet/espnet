@@ -8,7 +8,7 @@ import torch
 from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
 
-from espnet2.samplers.build_batch_sampler import build_batch_sampler
+from espnet3.wrapper.samplers import build_batch_sampler
 
 
 def update_shard(config: Union[dict, list], shard_idx: int) -> Union[dict, list]:
@@ -112,11 +112,11 @@ class DataLoaderBuilder:
             dataloader:
             train:
                 iter_factory:
-                _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
+                _target_: espnet3.wrapper.iterators.SequenceIterFactory
                 shuffle: true
                 collate_fn: ${dataloader.collate_fn}
                 batches:
-                    _target_: espnet2.samplers.build_batch_sampler.build_batch_sampler
+                    _target_: espnet3.wrapper.samplers.build_batch_sampler
                     type: numel
                     shape_files:
                     - stats/train/split.12/speech_shape.{shard_idx}
