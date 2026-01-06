@@ -138,7 +138,7 @@ E.g., simple configuration
 ```yaml
 dataloader:
   collate_fn:
-    _target_: espnet2.train.collate_fn.CommonCollateFn
+    _target_: espnet3.wrapper.train.CommonCollateFn
     int_pad_value: -1
 
   train:
@@ -156,7 +156,7 @@ E.g., using lhotse as dataset
 ```yaml
 dataloader:
   collate_fn:
-    _target_: espnet2.train.collate_fn.CommonCollateFn
+    _target_: espnet3.wrapper.train.CommonCollateFn
     int_pad_value: -1
 
   train:
