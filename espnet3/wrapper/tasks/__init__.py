@@ -14,6 +14,7 @@ from espnet2.tasks.lm import LMTask
 from espnet2.tasks.mt import MTTask
 from espnet2.tasks.s2st import S2STTask
 from espnet2.tasks.s2t import S2TTask
+from espnet2.tasks.slu import SLUTask
 from espnet2.tasks.spk import SpeakerTask
 from espnet2.tasks.st import STTask
 from espnet2.tasks.svs import SVSTask
@@ -35,6 +36,7 @@ __all__ = [
     "MTTask",
     "S2STTask",
     "S2TTask",
+    "SLUTask",
     "SpeakerTask",
     "STTask",
     "SVSTask",
