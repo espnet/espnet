@@ -4,7 +4,7 @@ expdir: ${recipedir}/exp/train_ctc
 statsdir:  ${recipedir}/exp/stats
 vocab_size: 6500
 seed: 2024
-task: espnet2.tasks.asr.ASRTask
+task: espnet3.wrapper.tasks.ASRTask
 
 # load default config
 defaults:
@@ -37,7 +37,7 @@ dataset:
         split: test-other
 
   preprocessor:
-    _target_: espnet2.train.preprocessor.CommonPreprocessor
+    _target_: espnet3.wrapper.train.CommonPreprocessor
     train: true
     token_type: bpe
     token_list: ${recipedir}/sentencepiece_model/tokens.txt
@@ -118,7 +118,7 @@ optim:
   weight_decay: 0.000001
 
 scheduler:
-  _target_: espnet2.schedulers.warmup_lr.WarmupLR
+  _target_: espnet3.wrapper.schedulers.WarmupLR
   warmup_steps: 15000
 
 dataloader:

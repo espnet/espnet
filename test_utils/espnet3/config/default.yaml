@@ -14,17 +14,17 @@ optim:
   weight_decay: 0.000001
 
 scheduler:
-  _target_: espnet2.schedulers.warmup_lr.WarmupLR
+  _target_: espnet3.wrapper.schedulers.WarmupLR
   warmup_steps: 15000
 
 
 dataloader:
   collate_fn:
-    _target_: espnet2.train.collate_fn.CommonCollateFn
+    _target_: espnet3.wrapper.train.CommonCollateFn
     int_pad_value: -1
   train:
     iter_factory:
-      _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
+      _target_: espnet3.wrapper.iterators.SequenceIterFactory
       shuffle: true
       collate_fn: ${dataloader.collate_fn}
       batches:
@@ -36,7 +36,7 @@ dataloader:
         min_batch_size: ${num_device}
   valid:
     iter_factory:
-      _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
+      _target_: espnet3.wrapper.iterators.SequenceIterFactory
       shuffle: false
       collate_fn: ${dataloader.collate_fn}
       batches:
