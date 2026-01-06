@@ -69,6 +69,8 @@ def test_save_espnet_config(tmp_path):
     config_path = Path("test_utils") / "espnet3" / "config" / "model_ctc.yaml"
     output_file = tmp_path / "config.yaml"
     save_espnet_config(
-        "espnet3.wrapper.tasks.ASRTask", load_config_with_defaults(config_path), output_file
+        "espnet3.wrapper.tasks.ASRTask",
+        load_config_with_defaults(config_path),
+        output_file,
     )
     assert output_file.exists()
