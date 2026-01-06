@@ -1,3 +1,5 @@
+"""Wrappers for tasks related modules."""
+
 from espnet2.tasks.asr import ASRTask
 from espnet2.tasks.asr_transducer import ASRTransducerTask
 from espnet2.tasks.asvspoof import ASVSpoofTask

@@ -1,3 +1,5 @@
+"""Wrappers for samplers related modules."""
+
 from espnet2.samplers.build_batch_sampler import build_batch_sampler
 
 
