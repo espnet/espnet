@@ -5,9 +5,7 @@ import espnet3.systems.asr.inference as asr_infer
 
 
 def test_build_dataset_uses_test_set(monkeypatch):
-    cfg = OmegaConf.create(
-        {"dataset": {"_target_": "dummy"}, "test_set": "dev"}
-    )
+    cfg = OmegaConf.create({"dataset": {"_target_": "dummy"}, "test_set": "dev"})
     organizer = type("Org", (), {"test": {"dev": ["item"]}})()
     calls = {}
 

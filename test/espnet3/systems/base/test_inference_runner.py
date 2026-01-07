@@ -15,7 +15,9 @@ class DummyRunner(AbsInferenceRunner):
 
 
 def test_validate_output_accepts_expected_keys():
-    runner = DummyRunner(DummyProvider(), idx_key="idx", hyp_key=["hyp", "alt"], ref_key="ref")
+    runner = DummyRunner(
+        DummyProvider(), idx_key="idx", hyp_key=["hyp", "alt"], ref_key="ref"
+    )
     output = {"idx": 1, "hyp": "h", "alt": "a", "ref": "r"}
 
     runner._validate_output(output)
@@ -49,7 +51,10 @@ def test_call_async_returns_raw(monkeypatch):
 
 def test_call_flattens_and_validates(monkeypatch):
     def fake_base_call(self, indices):
-        return [{"idx": 0, "hyp": "h0", "ref": "r0"}, [{"idx": 1, "hyp": "h1", "ref": "r1"}]]
+        return [
+            {"idx": 0, "hyp": "h0", "ref": "r0"},
+            [{"idx": 1, "hyp": "h1", "ref": "r1"}],
+        ]
 
     monkeypatch.setattr(BaseRunner, "__call__", fake_base_call)
     runner = DummyRunner(DummyProvider())
@@ -68,7 +73,9 @@ def test_call_returns_none(monkeypatch):
 
 
 def test_call_propagates_validation_error(monkeypatch):
-    monkeypatch.setattr(BaseRunner, "__call__", lambda self, indices: [{"idx": 0, "hyp": "h"}])
+    monkeypatch.setattr(
+        BaseRunner, "__call__", lambda self, indices: [{"idx": 0, "hyp": "h"}]
+    )
     runner = DummyRunner(DummyProvider())
 
     with pytest.raises(ValueError, match="missing=\\['ref'\\]"):
