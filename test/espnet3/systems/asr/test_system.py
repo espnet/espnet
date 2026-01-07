@@ -1,3 +1,5 @@
+"""Tests for ESPnet3 ASR system stage hooks."""
+
 from pathlib import Path
 
 from omegaconf import OmegaConf
@@ -8,6 +10,7 @@ from espnet3.systems.asr.system import ASRSystem
 
 
 def test_asr_system_create_dataset_invokes_helper(tmp_path, monkeypatch):
+    """Ensure create_dataset resolves and calls the configured function."""
     train_cfg = OmegaConf.create(
         {
             "exp_dir": str(tmp_path / "exp"),
@@ -28,6 +31,7 @@ def test_asr_system_create_dataset_invokes_helper(tmp_path, monkeypatch):
 
 
 def test_asr_system_train_runs_tokenizer_then_train(tmp_path, monkeypatch):
+    """Ensure train triggers tokenizer training when needed."""
     train_cfg = OmegaConf.create(
         {
             "exp_dir": str(tmp_path / "exp"),
@@ -57,6 +61,7 @@ def test_asr_system_train_runs_tokenizer_then_train(tmp_path, monkeypatch):
 
 
 def test_asr_system_train_tokenizer_trains_sentencepiece(tmp_path, monkeypatch):
+    """Ensure train_tokenizer builds text and calls sentencepiece."""
     train_cfg = OmegaConf.create(
         {
             "exp_dir": str(tmp_path / "exp"),

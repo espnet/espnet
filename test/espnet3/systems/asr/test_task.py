@@ -1,3 +1,5 @@
+"""Tests for ESPnet3 ASR task wiring."""
+
 from argparse import Namespace
 
 import pytest
@@ -6,31 +8,37 @@ from espnet3.systems.asr.task import ASRTask
 
 
 def test_add_arguments():
+    """Ensure parser construction succeeds."""
     ASRTask.get_parser()
 
 
 def test_add_arguments_help():
+    """Ensure parser help exits cleanly."""
     parser = ASRTask.get_parser()
     with pytest.raises(SystemExit):
         parser.parse_args(["--help"])
 
 
 def test_main_help():
+    """Ensure main help exits cleanly."""
     with pytest.raises(SystemExit):
         ASRTask.main(cmd=["--help"])
 
 
 def test_main_print_config():
+    """Ensure main print_config exits cleanly."""
     with pytest.raises(SystemExit):
         ASRTask.main(cmd=["--print_config"])
 
 
 def test_main_with_no_args():
+    """Ensure main without args exits with usage."""
     with pytest.raises(SystemExit):
         ASRTask.main(cmd=[])
 
 
 def test_print_config_and_load_it(tmp_path):
+    """Ensure printed config can be parsed back."""
     config_file = tmp_path / "config.yaml"
     with config_file.open("w") as f:
         ASRTask.print_config(f)
@@ -40,12 +48,14 @@ def test_print_config_and_load_it(tmp_path):
 
 @pytest.mark.parametrize("inference", [True, False])
 def test_optional_data_names(inference):
+    """Ensure optional data names include prompt for ASR."""
     retval = ASRTask.optional_data_names(True, inference)
 
     assert "prompt" in retval
 
 
 def get_dummy_namespace():
+    """Build a minimal ASR config namespace for preprocess tests."""
     pytest.importorskip("whisper")
     return Namespace(
         token_type="whisper_multilingual",
@@ -75,6 +85,7 @@ def get_dummy_namespace():
 
 
 def test_build_preprocess_fn_prompt():
+    """Ensure preprocess handles lang prompt input."""
     pytest.importorskip("whisper")
     args = get_dummy_namespace()
 
@@ -97,6 +108,7 @@ def test_build_preprocess_fn_prompt():
 
 
 def test_build_preprocess_fn_nlp_prompt():
+    """Ensure preprocess handles NLP prompt input."""
     pytest.importorskip("whisper")
     args = get_dummy_namespace()
 
