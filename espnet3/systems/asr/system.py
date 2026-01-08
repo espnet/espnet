@@ -86,15 +86,18 @@ class ASRSystem(BaseSystem):
             raise RuntimeError("train_config.dataset_dir must be set for training.")
 
         # Train tokenizer if not trained previously
-        tokenizer_path = (
-            Path(self.train_config.tokenizer.save_path)
-            / f"{self.train_config.tokenizer.model_type}.model"
-        )
-        if not tokenizer_path.exists():
+        if not self._tokenizer_exists():
             self.train_tokenizer()
 
         # Proceed with standard training
         return super().train()
+
+    def _tokenizer_exists(self) -> bool:
+        tokenizer_cfg = self.train_config.tokenizer
+        output_path = Path(tokenizer_cfg.save_path)
+        model = output_path / f"{tokenizer_cfg.model_type}.model"
+        vocab = output_path / f"{tokenizer_cfg.model_type}.vocab"
+        return model.exists() and vocab.exists()
 
     def train_tokenizer(self, *args, **kwargs):
         """Train a SentencePiece tokenizer based on configured text.
@@ -107,6 +110,10 @@ class ASRSystem(BaseSystem):
             RuntimeError: If required tokenizer config is missing or invalid.
         """
         self._reject_stage_args("train_tokenizer", args, kwargs)
+
+        if self._tokenizer_exists():
+            logger.info("Tokenizer already exists. Skipping train_tokenizer().")
+            return
         start = time.perf_counter()
         output_path = Path(self.train_config.tokenizer.save_path)
         output_path.mkdir(parents=True, exist_ok=True)
