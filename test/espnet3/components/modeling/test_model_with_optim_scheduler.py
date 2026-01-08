@@ -16,6 +16,8 @@ from espnet3.components.modeling.model import LitESPnetModel
 # | test_multiple_optims_and_schedulers| Validates multiple optimizers and schedulers with param-based mapping   | # noqa: E501
 # | test_custom_scheduler_interval     | Ensures scheduler interval is correctly set to "step"                   | # noqa: E501
 # | test_reduce_on_plateau_with_config_adam | Tests ReduceLROnPlateau scheduler integration with manual stepping | # noqa: E501
+# | test_reduce_on_plateau_monitor_from_config | Ensures ReduceLROnPlateau gets monitor key from config | # noqa: E501
+# | test_val_scheduler_criterion_sets_epoch | Ensures val_scheduler_criterion switches to epoch | # noqa: E501
 #
 # Invalid Configuration Tests
 # | Test Name                              | Description                                                             | # noqa: E501
@@ -37,33 +39,6 @@ class DummyModel(nn.Module):
         self.linear1 = nn.Linear(10, 10)
         self.linear2 = nn.Linear(10, 5)
 
-
-class ReduceLROnPlateauModel(LitESPnetModel):
-    def __init__(self, model, config):
-        super().__init__(model, config)
-        self.favorite_metric = 1.0
-
-    def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=0.01)
-        self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-            optimizer, patience=2, factor=0.5
-        )
-        return optimizer
-
-    def optimizer_step(
-        self,
-        epoch_nb,
-        batch_nb,
-        optimizer,
-    ):
-        if batch_nb == 0:
-            self.scheduler.step(self.favorite_metric)
-            print(
-                f"metric: {self.favorite_metric}, best: {self.scheduler.best}, "
-                f"num_bad_epochs: {self.scheduler.num_bad_epochs}"
-            )
-        optimizer.step()
-        optimizer.zero_grad()
 
 
 # ========== VALID CASES ==========
@@ -131,7 +106,8 @@ def test_multiple_optims_and_schedulers():
     model = LitESPnetModel(DummyModel(), config)
     out = model.configure_optimizers()
     assert hasattr(out["optimizer"], "optimizers")  # HybridOptim
-    assert isinstance(out["lr_scheduler"]["scheduler"], list)
+    assert isinstance(out["lr_scheduler"], list)
+    assert all("scheduler" in item for item in out["lr_scheduler"])
 
 
 def test_custom_scheduler_interval():
@@ -156,7 +132,7 @@ def test_custom_scheduler_interval():
     assert out["lr_scheduler"]["interval"] == "step"
 
 
-def test_reduce_on_plateau_with_config_adam():
+def test_reduce_on_plateau_monitor_from_config():
     config = OmegaConf.create(
         {
             "optim": {"_target_": "torch.optim.Adam", "lr": 0.01},
@@ -165,6 +141,7 @@ def test_reduce_on_plateau_with_config_adam():
                 "patience": 1,
                 "factor": 0.5,
             },
+            "val_scheduler_criterion": "valid/loss",
             "dataset": {
                 "_target_": "espnet3.components.data.data_organizer.DataOrganizer",
                 "train": [],
@@ -175,21 +152,35 @@ def test_reduce_on_plateau_with_config_adam():
         }
     )
 
-    model = DummyModel()
-    lit_model = ReduceLROnPlateauModel(model, config)
-    optimizer = lit_model.configure_optimizers()
+    model = LitESPnetModel(DummyModel(), config)
+    out = model.configure_optimizers()
+    assert out["lr_scheduler"]["interval"] == "epoch"
+    assert out["lr_scheduler"]["monitor"] == "valid/loss"
 
-    # mimic training loop
-    for epoch in range(3):
-        for batch in range(1):  # we step scheduler at batch 0
-            lit_model.favorite_metric = (
-                1.0 - 0.1 * epoch
-            )  # simulate val_loss decreasing
-            lit_model.optimizer_step(
-                epoch_nb=epoch,
-                batch_nb=batch,
-                optimizer=optimizer,
-            )
+
+def test_val_scheduler_criterion_sets_epoch():
+    config = OmegaConf.create(
+        {
+            "optim": {"_target_": "torch.optim.Adam", "lr": 0.01},
+            "scheduler": {
+                "_target_": "torch.optim.lr_scheduler.StepLR",
+                "step_size": 5,
+            },
+            "val_scheduler_criterion": "valid/acc",
+            "dataset": {
+                "_target_": "espnet3.components.data.data_organizer.DataOrganizer",
+                "train": [],
+                "valid": [],
+            },
+            "dataloader": {"train": {}, "valid": {}},
+            "num_device": 1,
+        }
+    )
+
+    model = LitESPnetModel(DummyModel(), config)
+    out = model.configure_optimizers()
+    assert out["lr_scheduler"]["interval"] == "epoch"
+    assert out["lr_scheduler"]["monitor"] == "valid/acc"
 
 
 # ========== INVALID CASES ==========
