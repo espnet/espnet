@@ -9,10 +9,11 @@ import time
 from pathlib import Path
 
 from omegaconf import DictConfig
+
 from espnet3.parallel.parallel import set_parallel
 from espnet3.systems.asr.inference import InferenceProvider, TransducerInferenceRunner
 from espnet3.systems.asr.system import ASRSystem
-from espnet3.systems.base.inference import (_collect_scp_lines, _flatten_results)
+from espnet3.systems.base.inference import _collect_scp_lines, _flatten_results
 from espnet3.systems.base.inference_runner import AbsInferenceRunner
 
 logger = logging.getLogger(__name__)
@@ -24,6 +25,7 @@ class ASRTransducerSystem(ASRSystem):
     This system adds:
       - Tokenizer training inside train()
     """
+
     def infer(self, *args, **kwargs):
         """Run inference on the configured datasets."""
         self._reject_stage_args("infer", args, kwargs)

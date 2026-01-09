@@ -239,7 +239,6 @@ class ASRTransducerTask(AbsTask):
             : Callable collate function.
 
         """
-
         return CommonCollateFn(float_pad_value=0.0, int_pad_value=-1)
 
     @classmethod
@@ -258,7 +257,6 @@ class ASRTransducerTask(AbsTask):
             : Callable pre-processing function.
 
         """
-
         if args.use_preprocessor:
             retval = CommonPreprocessor(
                 train=train,
@@ -292,7 +290,7 @@ class ASRTransducerTask(AbsTask):
     def required_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
-        """Required data depending on task mode.
+        """Determine required data based on the task mode.
 
         Args:
             cls: ASRTransducerTask object.
@@ -314,7 +312,7 @@ class ASRTransducerTask(AbsTask):
     def optional_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
-        """Optional data depending on task mode.
+        """Specify optional data based on the task mode.
 
         Args:
             cls: ASRTransducerTask object.
@@ -332,7 +330,7 @@ class ASRTransducerTask(AbsTask):
     @classmethod
     @typechecked
     def build_model(cls, args: argparse.Namespace) -> ESPnetASRTransducerModel:
-        """Required data depending on task mode.
+        """Require data based on the task mode.
 
         Args:
             cls: ASRTransducerTask object.
@@ -342,7 +340,6 @@ class ASRTransducerTask(AbsTask):
             model: ASR Transducer model.
 
         """
-
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
                 token_list = [line.rstrip() for line in f]

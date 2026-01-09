@@ -1,5 +1,4 @@
 import pytest
-import torch
 import torch.nn as nn
 from omegaconf import OmegaConf
 
@@ -38,7 +37,6 @@ class DummyModel(nn.Module):
         super().__init__()
         self.linear1 = nn.Linear(10, 10)
         self.linear2 = nn.Linear(10, 5)
-
 
 
 # ========== VALID CASES ==========
