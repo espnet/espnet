@@ -108,3 +108,40 @@ class InferenceRunner(AbsInferenceRunner):
         hyp = model(speech)[0][0]
         ref = data["text"]
         return {"idx": idx, "hyp": hyp, "ref": ref}
+
+
+
+class TransducerInferenceRunner(AbsInferenceRunner):
+    """Inference runner that produces hypotheses and references.
+
+    This runner expects dataset items to contain ``speech`` and ``text``
+    fields and returns decoded hypotheses alongside references.
+
+    It is designed around ``espnet3.systems.asr.task.ASRTask`` outputs; when
+    using a custom model outside that task, implement your own inference
+    runner and decoding logic.
+    """
+
+    @staticmethod
+    def forward(idx, dataset=None, model=None, **kwargs):
+        """Run inference for one dataset item and return hypothesis/ref.
+
+        Args:
+            idx: Integer index into the dataset.
+            dataset: Dataset providing speech/text entries.
+            model: ASR inference model callable on speech input.
+            **kwargs: Unused keyword arguments reserved for compatibility.
+
+        Returns:
+            Dict with index, hypothesis string, and reference string.
+
+        Raises:
+            AssertionError: If required fields are missing from dataset items.
+        """
+        data = dataset[idx]
+        assert "speech" in data, "ASR inference requires 'speech' in dataset item."
+        assert "text" in data, "ASR inference requires 'text' in dataset item."
+        speech = data["speech"]
+        hyp = model(speech)[0]
+        ref = data["text"]
+        return {"idx": idx, "hyp": hyp, "ref": ref}
