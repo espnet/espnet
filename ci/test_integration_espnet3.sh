@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# set -euo pipefail
+set -euo pipefail
 
 . tools/activate_python.sh
 . tools/extra_path.sh
@@ -13,8 +13,7 @@ gen_dummy_coverage(){
     ${python} empty.py
 }
 
-# python3 -m pip install -e '.[asr]'
-uv pip install -e '.[asr]'
+python3 -m pip install -e '.[asr]'
 
 cd ./egs3/mini_an4/asr
 gen_dummy_coverage
