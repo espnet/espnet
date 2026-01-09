@@ -110,7 +110,6 @@ class InferenceRunner(AbsInferenceRunner):
         return {"idx": idx, "hyp": hyp, "ref": ref}
 
 
-
 class TransducerInferenceRunner(AbsInferenceRunner):
     """Inference runner that produces hypotheses and references.
 

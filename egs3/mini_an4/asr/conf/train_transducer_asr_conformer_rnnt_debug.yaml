@@ -136,4 +136,3 @@ model:
 
   joint_network_conf:
     joint_space_size: 4
-

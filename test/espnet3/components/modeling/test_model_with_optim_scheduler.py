@@ -40,7 +40,6 @@ class DummyModel(nn.Module):
         self.linear2 = nn.Linear(10, 5)
 
 
-
 # ========== VALID CASES ==========
 
 

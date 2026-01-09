@@ -242,12 +242,15 @@ class LitESPnetModel(lightning.LightningModule):
             AssertionError: If configuration rules are violated.
             ValueError: If neither optimizer configuration is provided.
         """
+
         def _get_val_scheduler_monitor():
             criterion = getattr(self.config, "val_scheduler_criterion", None)
             if criterion is None:
                 return None
             if not isinstance(criterion, str):
-                raise ValueError("val_scheduler_criterion must be a string like 'valid/loss'")
+                raise ValueError(
+                    "val_scheduler_criterion must be a string like 'valid/loss'"
+                )
             return criterion
 
         if getattr(self.config, "optim", None) and getattr(
