@@ -10,7 +10,7 @@ from omegaconf import DictConfig, ListConfig, OmegaConf
 from typeguard import typechecked
 
 from espnet2.torch_utils.initialize import initialize
-from espnet3.components.callbacks.callbacks import get_default_callbacks
+from espnet3.components.callbacks.default_callbacks import get_default_callbacks
 from espnet3.components.modeling.model import LitESPnetModel
 
 
