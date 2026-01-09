@@ -107,7 +107,7 @@ class CombinedDataset:
                     " then all dataset should be a subclass of ShardedDataset."
                 )
 
-        # This flag will be overrode by LitESPnetModel when initializing dataloader.
+        # This flag will be overrode by ESPnetLightningModule when initializing dataloader.
         self._use_espnet_collator = False
 
     @property

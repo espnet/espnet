@@ -3,10 +3,10 @@ import torch
 import torch.nn as nn
 from omegaconf import OmegaConf
 
-from espnet3.components.modeling.model import LitESPnetModel
+from espnet3.components.modeling.lightning_module import ESPnetLightningModule
 
 # ===============================================================
-# Test Case Summary for LitESPnetModel.configure_optimizers
+# Test Case Summary for ESPnetLightningModule.configure_optimizers
 # ===============================================================
 #
 # Valid Configuration Tests
@@ -38,7 +38,7 @@ class DummyModel(nn.Module):
         self.linear2 = nn.Linear(10, 5)
 
 
-class ReduceLROnPlateauModel(LitESPnetModel):
+class ReduceLROnPlateauModel(ESPnetLightningModule):
     def __init__(self, model, config):
         super().__init__(model, config)
         self.favorite_metric = 1.0
@@ -86,7 +86,7 @@ def test_single_optim_and_scheduler():
             "num_device": 1,
         }
     )
-    model = LitESPnetModel(DummyModel(), config)
+    model = ESPnetLightningModule(DummyModel(), config)
     out = model.configure_optimizers()
     assert "optimizer" in out
     assert "lr_scheduler" in out
@@ -128,7 +128,7 @@ def test_multiple_optims_and_schedulers():
             "num_device": 1,
         }
     )
-    model = LitESPnetModel(DummyModel(), config)
+    model = ESPnetLightningModule(DummyModel(), config)
     out = model.configure_optimizers()
     assert hasattr(out["optimizer"], "optimizers")  # HybridOptim
     assert isinstance(out["lr_scheduler"]["scheduler"], list)
@@ -151,7 +151,7 @@ def test_custom_scheduler_interval():
             "num_device": 1,
         }
     )
-    model = LitESPnetModel(DummyModel(), config)
+    model = ESPnetLightningModule(DummyModel(), config)
     out = model.configure_optimizers()
     assert out["lr_scheduler"]["interval"] == "step"
 
@@ -207,7 +207,7 @@ def test_missing_both_optim_and_optims():
             "num_device": 1,
         }
     )
-    model = LitESPnetModel(DummyModel(), config)
+    model = ESPnetLightningModule(DummyModel(), config)
     with pytest.raises(
         ValueError,
         match="Must specify either `optim` or `optims` and `scheduler` or"
@@ -238,7 +238,7 @@ def test_mixed_optim_and_optims():
             "num_device": 1,
         }
     )
-    model = LitESPnetModel(DummyModel(), config)
+    model = ESPnetLightningModule(DummyModel(), config)
     with pytest.raises(
         AssertionError, match="Mixture of `optim` and `optims` is not allowed"
     ):
@@ -270,7 +270,7 @@ def test_mixed_scheduler_and_schedulers():
             "num_device": 1,
         }
     )
-    model = LitESPnetModel(DummyModel(), config)
+    model = ESPnetLightningModule(DummyModel(), config)
     with pytest.raises(
         AssertionError, match="Mixture of `scheduler` and `schedulers` is not allowed"
     ):
@@ -307,7 +307,7 @@ def test_optims_and_schedulers_length_mismatch():
             "num_device": 1,
         }
     )
-    model = LitESPnetModel(DummyModel(), config)
+    model = ESPnetLightningModule(DummyModel(), config)
     with pytest.raises(
         AssertionError, match="The number of optimizers and schedulers must be equal"
     ):
@@ -337,7 +337,7 @@ def test_optimizer_missing_params_key():
             "num_device": 1,
         }
     )
-    model = LitESPnetModel(DummyModel(), config)
+    model = ESPnetLightningModule(DummyModel(), config)
     with pytest.raises(AssertionError, match="missing 'params' in optim config"):
         model.configure_optimizers()
 
@@ -368,7 +368,7 @@ def test_optimizer_params_not_matching_model():
             "num_device": 1,
         }
     )
-    model = LitESPnetModel(DummyModel(), config)
+    model = ESPnetLightningModule(DummyModel(), config)
     with pytest.raises(AssertionError, match="No trainable parameters found for"):
         model.configure_optimizers()
 
@@ -409,7 +409,7 @@ def test_optimizer_duplicate_params():
             "num_device": 1,
         }
     )
-    model = LitESPnetModel(DummyModel(), config)
+    model = ESPnetLightningModule(DummyModel(), config)
     with pytest.raises(
         AssertionError,
         match="Parameter model.linear1.weight is assigned to multiple optimizers",
@@ -452,7 +452,7 @@ def test_optimizer_missing_coverage():
             "num_device": 1,
         }
     )
-    model = LitESPnetModel(PartialModel(), config)
+    model = ESPnetLightningModule(PartialModel(), config)
     with pytest.raises(AssertionError) as excinfo:
         model.configure_optimizers()
     assert "model.linear2.bias" in str(excinfo.value)

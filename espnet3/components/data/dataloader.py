@@ -59,7 +59,7 @@ class DataLoaderBuilder:
     - Sequence-based batch sampling with batch_bins or batch_size
     - Dynamic handling of DDP-compatible iteration strategies
 
-    Typically used by LitESPnetModel to instantiate training and validation DataLoaders
+    Typically used by ESPnetLightningModule to instantiate training and validation DataLoaders
     with consistent behavior across single-GPU, multi-GPU, and distributed training.
 
     Args:
