@@ -1,4 +1,4 @@
-"""ESPnet3-specific PyTorch LightningModule wrapper."""
+"""ESPnet3 PyTorch LightningModule for training and data integration."""
 
 import logging
 from pathlib import Path
@@ -17,16 +17,17 @@ from espnet3.components.optim.multiple_scheduler import MultipleScheduler
 logger = logging.getLogger("lightning")
 
 
-class LitESPnetModel(lightning.LightningModule):
-    """ESPnet3-specific PyTorch LightningModule wrapper.
+class ESPnetLightningModule(lightning.LightningModule):
+    """ESPnet3 LightningModule wrapper for model training and data integration.
 
-    This class handles model training, validation, optimizer/scheduler setup,
-    ESPnet-specific dataloader construction, NaN/Inf loss detection across
-    distributed setups, and statistics collection.
+    This module follows Lightning best practices by defining the training/validation
+    steps, optimizer/scheduler configuration, and dataloader hooks on the
+    LightningModule itself. It also integrates ESPnet-specific dataset handling,
+    distributed NaN/Inf loss skipping, and statistics collection.
 
     Attributes:
         model (torch.nn.Module): The main ESPnet model.
-        config (DictConfig): The training configuration.
+        config (DictConfig): Training configuration for model and data setup.
         train_dataset: Training dataset organized by the ESPnet data organizer.
         valid_dataset: Validation dataset.
         collate_fn (Callable): Collation function used in DataLoader.
@@ -40,7 +41,7 @@ class LitESPnetModel(lightning.LightningModule):
     """
 
     def __init__(self, model, config):
-        """Initialize LitESPnetModel."""
+        """Initialize the ESPnet LightningModule wrapper."""
         super().__init__()
         self.config = config
         self.model = model
