@@ -83,6 +83,54 @@ def configure_logging(
     return logging.getLogger("espnet3")
 
 
+def set_stage_log_handler(
+    logger: logging.Logger,
+    log_dir: Path | None,
+    *,
+    filename: str,
+) -> Path | None:
+    """Attach a file handler for a stage log, replacing any prior stage handler.
+
+    This function adds a new file handler to the root logger and removes any
+    previously installed stage handler (identified via ``_espnet3_stage_log``).
+    If a log file already exists at the target path, it is rotated (e.g.,
+    ``train.log`` -> ``train1.log``) before creating the new handler.
+
+    Args:
+        logger (logging.Logger): Logger used to emit logs.
+            The handler is attached to the root logger so the logger hierarchy
+            continues to work as expected.
+        log_dir (Path | None): Directory that should receive the stage log.
+            If None, no handler is installed and None is returned.
+        filename (str): Log filename to create within ``log_dir``.
+
+    Returns:
+        Path | None: Resolved log file path when installed, otherwise None.
+    """
+    if log_dir is None:
+        return None
+
+    log_dir.mkdir(parents=True, exist_ok=True)
+    target = (log_dir / filename).resolve()
+
+    root = logging.getLogger()
+    for handler in list(root.handlers):
+        if getattr(handler, "_espnet3_stage_log", False):
+            root.removeHandler(handler)
+            handler.close()
+
+    formatter = logging.Formatter(fmt=LOG_FORMAT, datefmt=DATE_FORMAT)
+    if target.exists():
+        rotated = _next_rotated_log_path(target)
+        os.replace(target, rotated)
+    file_handler = logging.FileHandler(target)
+    file_handler.setFormatter(formatter)
+    file_handler._espnet3_stage_log = True
+    root.addHandler(file_handler)
+
+    return target
+
+
 def _run_git_command(cmd: list[str], cwd: Path | None) -> str | None:
     """Run a git command and return stdout, or None on failure."""
     try:

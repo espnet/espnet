@@ -63,3 +63,40 @@ def test_run_stages_reraises_exception():
     system = CrashSystem()
     with pytest.raises(ValueError, match="boom"):
         run_stages(system, ["stage_a"])
+
+
+def test_run_stages_writes_stage_logs(tmp_path):
+    class LoggingSystem:
+        def __init__(self, log_dir):
+            self.log_dir = log_dir
+
+        def get_stage_log_dir(self, stage):
+            return self.log_dir
+
+        def stage_a(self):
+            pass
+
+        def stage_b(self):
+            pass
+
+    system = LoggingSystem(tmp_path)
+    logger = logging.getLogger("espnet3.test_stages")
+    root = logging.getLogger()
+    previous_level = root.level
+    root.setLevel(logging.INFO)
+    try:
+        run_stages(system, ["stage_a", "stage_b"], log=logger)
+    finally:
+        root.setLevel(previous_level)
+
+    stage_a_log = tmp_path / "stage_a.log"
+    stage_b_log = tmp_path / "stage_b.log"
+    assert stage_a_log.exists()
+    assert stage_b_log.exists()
+
+    stage_a_text = stage_a_log.read_text(encoding="utf-8")
+    stage_b_text = stage_b_log.read_text(encoding="utf-8")
+    assert "stage: stage_a" in stage_a_text
+    assert "stage: stage_b" not in stage_a_text
+    assert "stage: stage_b" in stage_b_text
+    assert "stage: stage_a" not in stage_b_text
