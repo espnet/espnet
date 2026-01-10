@@ -7,14 +7,12 @@ import os
 import shlex
 import subprocess
 import sys
-from shutil import which
 from datetime import datetime
 from pathlib import Path
+from shutil import which
 from typing import Iterable, Mapping
 
-LOG_FORMAT = (
-    "%(asctime)s | %(levelname)s | %(name)s | %(message)s"
-)
+LOG_FORMAT = "%(asctime)s | %(levelname)s | %(name)s | %(message)s"
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 
