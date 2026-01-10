@@ -1,0 +1,37 @@
+# Mini AN4 ASR inference config for ESPnet3 integration tests.
+
+num_device: 1
+num_nodes: 1
+
+recipe_dir: .
+data_dir: ${recipe_dir}/data
+exp_tag: ${load_yaml:conf/train.yaml,exp_tag}
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+stats_dir: ${recipe_dir}/exp/stats
+decode_dir: ${exp_dir}/decode
+dataset_dir: ${data_dir}/mini_an4
+
+dataset:
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
+  test:
+    - name: test
+      dataset:
+        _target_: src.dataset.MiniAN4Dataset
+        manifest_path: ${dataset_dir}/manifest/test.tsv
+
+parallel:
+  env: local
+  n_workers: 1
+
+model:
+  _target_: espnet2.bin.asr_inference.Speech2Text
+  asr_train_config: ${exp_dir}/config.yaml
+  asr_model_file: ${exp_dir}/last.ckpt
+  beam_size: 1
+  ctc_weight: 0.3
+
+tokenizer:
+  vocab_size: 30
+  character_coverage: 1.0
+  model_type: bpe
+  save_path: ${data_dir}/${tokenizer.model_type}_${tokenizer.vocab_size}

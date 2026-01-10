@@ -78,6 +78,7 @@ asr = [
   "ctc-segmentation @ git+https://github.com/espnet/ctc-segmentation.git@9b9ea1d",
   "editdistance",
   "opt_einsum",
+  "jiwer",
 ]
 
 tts = [

@@ -11,7 +11,7 @@ defaults:
   - ./default.yaml
 
 dataset:
-  _target_: espnet3.data.DataOrganizer
+  _target_: espnet3.components.data.DataOrganizer
   train:
     - name: train-clean-100
       dataset:

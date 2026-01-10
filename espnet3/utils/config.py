@@ -1,4 +1,4 @@
-"""Custom `load_line` resolver and `defaults`-based config loader."""
+"""Configuration helpers and OmegaConf resolvers for ESPnet3."""
 
 import logging
 from pathlib import Path
@@ -32,8 +32,40 @@ def load_line(path):
         raise
 
 
+def load_yaml(path, key=None):
+    """Load a YAML file and optionally return a nested key.
+
+    This resolver is intended for pulling a single value from another config,
+    e.g., `${load_yaml:conf/train.yaml,exp_tag}`.
+
+    Args:
+        path (str or Path): Path to the YAML file.
+        key (str, optional): Dot-delimited key to select.
+
+    Returns:
+        Any: The selected value or the full config if key is None.
+    """
+    try:
+        cfg = OmegaConf.load(path)
+    except FileNotFoundError:
+        logging.error(f"File not found: {path}")
+        raise
+    except PermissionError:
+        logging.error(f"Permission denied when accessing file: {path}")
+        raise
+
+    if key is None or str(key).strip() == "":
+        return cfg
+
+    value = OmegaConf.select(cfg, str(key), default=None)
+    if value is None:
+        raise KeyError(f"Key not found in YAML: {key}")
+    return value
+
+
 OMEGACONF_ESPNET3_RESOLVER = {
     "load_line": load_line,
+    "load_yaml": load_yaml,
 }
 for name, resolver in OMEGACONF_ESPNET3_RESOLVER.items():
     OmegaConf.register_new_resolver(name, resolver)
@@ -121,7 +153,19 @@ def load_config_with_defaults(path: str) -> OmegaConf:
     if "defaults" in final_cfg:
         del final_cfg["defaults"]
 
+    _ensure_target_convert_all(final_cfg)
     return final_cfg
+
+
+def _ensure_target_convert_all(cfg) -> None:
+    if isinstance(cfg, DictConfig):
+        if "_target_" in cfg:
+            cfg["_convert_"] = "all"
+        for value in cfg.values():
+            _ensure_target_convert_all(value)
+    elif isinstance(cfg, ListConfig):
+        for value in cfg:
+            _ensure_target_convert_all(value)
 
 
 def _build_config_path(base_path: Path, entry: str) -> Path:
