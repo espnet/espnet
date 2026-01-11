@@ -15,7 +15,7 @@ from espnet3.utils.task_utils import (
 )
 
 # ===============================================================
-# Test Case Summary for Task Wrapper (espnet3.utils.task_utils
+# Test Case Summary for Task Wrapper (espnet3.utils.task_utils)
 # ===============================================================
 #
 # Tests for `get_task_class(task_name)`
