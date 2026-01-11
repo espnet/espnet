@@ -1,3 +1,5 @@
+"""Metric scoring entrypoint for decoded outputs."""
+
 import json
 from pathlib import Path
 
@@ -9,6 +11,14 @@ from espnet3.utils.scp_utils import get_class_path, load_scp_fields
 
 
 def score(config: DictConfig):
+    """Compute metrics for each test set and write a scores JSON file.
+
+    Args:
+        config: Hydra/omegaconf configuration with decode and metric settings.
+
+    Returns:
+        Nested dict keyed by metric class path and test set name.
+    """
     test_sets = [t.name for t in config.dataset.test]
     results = {}
     assert hasattr(config, "metrics"), "Please specify metrics!"

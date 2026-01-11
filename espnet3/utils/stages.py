@@ -1,4 +1,5 @@
-# espnet3/utils/stages.py
+"""Helpers for selecting and running stage methods on system objects."""
+
 from __future__ import annotations
 
 import logging
@@ -12,6 +13,12 @@ def resolve_stages(
     requested: Sequence[str],
     stages: Sequence[str],
 ) -> List[str]:
+    """Resolve a requested stage list against the available stages.
+
+    The special token ``"all"`` expands to all known stages in order.
+    Otherwise, the returned list preserves the order of ``stages`` and
+    includes only those present in ``requested``.
+    """
     if "all" in requested:
         return list(stages)
     requested_set = set(requested)
@@ -25,6 +32,19 @@ def run_stages(
     dry_run: bool = False,
     log: logging.Logger | None = None,
 ) -> None:
+    """Invoke stage methods on ``system`` in order with logging and timing.
+
+    Args:
+        system: Object providing stage methods named in ``stages_to_run``.
+        stages_to_run: Iterable of stage method names to execute.
+        dry_run: If True, log intended stages without executing them.
+        log: Optional logger instance; defaults to module logger.
+
+    Raises:
+        AttributeError: If a named stage method is missing on ``system``.
+        TypeError: If a stage method rejects CLI-provided arguments.
+        Exception: Re-raises any exception from a stage method.
+    """
     log = log or logger
     for stage in stages_to_run:
         fn = getattr(system, stage, None)

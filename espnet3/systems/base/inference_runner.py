@@ -1,3 +1,5 @@
+"""Inference runner abstractions with output validation."""
+
 from __future__ import annotations
 
 from abc import ABC
@@ -33,6 +35,7 @@ class AbsInferenceRunner(BaseRunner, ABC):
         ref_key: str | Sequence[str] = "ref",
         **kwargs,
     ) -> None:
+        """Initialize the inference runner with output key settings."""
         super().__init__(provider, **kwargs)
         self.idx_key = idx_key
         self.hyp_key = list(hyp_key) if isinstance(hyp_key, (list, tuple)) else hyp_key
@@ -71,6 +74,7 @@ class AbsInferenceRunner(BaseRunner, ABC):
             )
 
     def __call__(self, indices: Iterable[int]) -> List[Any] | None:
+        """Run inference and validate output formats."""
         results = super().__call__(indices)
         if self.async_mode:
             return results
