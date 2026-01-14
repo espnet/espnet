@@ -22,7 +22,7 @@ from espnet2.legacy.nets.pytorch_backend.fastspeech.length_regulator import (
 from espnet2.legacy.nets.pytorch_backend.nets_utils import (
     make_non_pad_mask,
     make_pad_mask,
-    pad_list
+    pad_list,
 )
 from espnet2.legacy.nets.pytorch_backend.tacotron2.decoder import Postnet
 from espnet2.legacy.nets.pytorch_backend.transformer.embedding import (
@@ -663,7 +663,9 @@ class FastSpeech2(AbsTTS):
             e_outs = self.energy_predictor(hs, d_masks.unsqueeze(-1))
 
         if is_inference:
-            d_outs = self.duration_predictor.inference(hs, d_masks.unsqueeze(-1))  # (B, T_text)
+            d_outs = self.duration_predictor.inference(
+                hs, d_masks.unsqueeze(-1)
+            )  # (B, T_text)
             # use prediction in inference
             if p_outs.device.type == "xpu":
                 # Workaround for XPU Conv1d accuracy issue
@@ -852,13 +854,13 @@ class FastSpeech2(AbsTTS):
 
         """
         # Compute text lengths from the list
-        text_lengths = torch.tensor([len(t) for t in text], dtype=torch.long, device=text[0].device)
-        
+        text_lengths = torch.tensor(
+            [len(t) for t in text], dtype=torch.long, device=text[0].device
+        )
+
         # Add EOS to each sequence first
-        text_list_with_eos = [
-            F.pad(t, [0, 1], "constant", self.eos) for t in text
-        ]
-        
+        text_list_with_eos = [F.pad(t, [0, 1], "constant", self.eos) for t in text]
+
         # Then pad all sequences
         xs = pad_list(text_list_with_eos, pad_value=0)
         ilens = text_lengths + 1  # account for eos

@@ -371,7 +371,9 @@ class ESPnetTTSModel(AbsESPnetModel):
 
         if decode_config.get("use_teacher_forcing"):
             if durations is not None:
-                input_dict.update(durations=durations, durations_lengths=durations_lengths)
+                input_dict.update(
+                    durations=durations, durations_lengths=durations_lengths
+                )
 
             if self.pitch_extract is not None and speech is not None:
                 pitch, pitch_lengths = self.pitch_extract(
@@ -395,7 +397,9 @@ class ESPnetTTSModel(AbsESPnetModel):
                     durations_lengths=durations_lengths,
                 )
                 if self.energy_normalize is not None:
-                    energy, energy_lengths = self.energy_normalize(energy, energy_lengths)
+                    energy, energy_lengths = self.energy_normalize(
+                        energy, energy_lengths
+                    )
             if energy is not None:
                 input_dict.update(energy=energy, energy_lengths=energy_lengths)
 

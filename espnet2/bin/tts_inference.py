@@ -272,16 +272,23 @@ class Text2Speech:
             if all(isinstance(t, str) for t in text):
                 # Convert list of strings to list of tensors (no padding here)
                 text = [
-                    torch.tensor(self.preprocess_fn("<dummy>", dict(text=t))["text"], dtype=torch.long)
+                    torch.tensor(
+                        self.preprocess_fn("<dummy>", dict(text=t))["text"],
+                        dtype=torch.long,
+                    )
                     for t in text
                 ]
                 # Pass as list of tensors - model will handle padding and EOS
-            elif isinstance(text, list) and all(isinstance(t, np.ndarray) for t in text):
+            elif isinstance(text, list) and all(
+                isinstance(t, np.ndarray) for t in text
+            ):
                 text = [torch.from_numpy(t) for t in text]
             elif isinstance(text, list) and isinstance(text, torch.Tensor):
                 text = text
             else:
-                raise ValueError("batch_call expects text as a list of strings or tensors.")
+                raise ValueError(
+                    "batch_call expects text as a list of strings or tensors."
+                )
         else:
             raise ValueError("batch_call expects text as a list of strings or tensors.")
 
@@ -330,14 +337,11 @@ class Text2Speech:
         if self.vocoder is not None:
             feat_gen_list = output_dict.get("feat_gen")
             feat_gen_denorm_list = output_dict.get("feat_gen_denorm")
-            
+
             if feat_gen_list is not None:
                 wav_list = []
                 for i, feat_gen in enumerate(feat_gen_list):
-                    if (
-                        self.prefer_normalized_feats
-                        or feat_gen_denorm_list is None
-                    ):
+                    if self.prefer_normalized_feats or feat_gen_denorm_list is None:
                         input_feat = feat_gen
                     else:
                         input_feat = feat_gen_denorm_list[i]
@@ -610,17 +614,13 @@ def inference(
                     elif wav_list is not None:
                         wav = wav_list[i]
                         total_frames += wav.size(0)
-                        insize = batch['text'][i].size(0) + 1
-                        logging.info(
-                            f"{key} (size:{insize}->{wav.size(0)})"
-                        )
+                        insize = batch["text"][i].size(0) + 1
+                        logging.info(f"{key} (size:{insize}->{wav.size(0)})")
 
                     if duration is not None:
                         duration_writer.write(
                             f"{key} "
-                            + " ".join(
-                                map(str, duration[i].long().cpu().numpy())
-                            )
+                            + " ".join(map(str, duration[i].long().cpu().numpy()))
                             + "\n"
                         )
 
