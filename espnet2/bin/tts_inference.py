@@ -218,7 +218,6 @@ class Text2Speech:
     def batch_call(
         self,
         text: Union[List[str], torch.Tensor, np.ndarray],
-        text_lengths: Optional[Union[torch.Tensor, np.ndarray]] = None,
         speech: Union[torch.Tensor, np.ndarray, None] = None,
         speech_lengths: Optional[Union[torch.Tensor, np.ndarray]] = None,
         durations: Union[torch.Tensor, np.ndarray, None] = None,
@@ -233,8 +232,7 @@ class Text2Speech:
         This method enables batch inference for non-autoregressive TTS models.
 
         Args:
-            text: List of input text strings or batched text tensor (B, T_text).
-            text_lengths: Length tensor for batched text (B,).
+            text: List of input text strings (will be converted to list of tensors).
             speech: Batched speech tensor for teacher forcing (B, T_wav).
             speech_lengths: Length tensor for batched speech (B,).
             durations: Batched duration tensor (B, T_text).
@@ -253,8 +251,6 @@ class Text2Speech:
                 And other model-specific outputs.
 
         """
-        from espnet2.legacy.nets.pytorch_backend.nets_utils import pad_list
-
         # Check if batch inference is supported
         if not hasattr(self.model, "batch_inference"):
             raise NotImplementedError(
@@ -272,29 +268,24 @@ class Text2Speech:
             raise RuntimeError("Missing required argument: 'spembs'")
 
         # prepare batch - handle list of strings
-        if isinstance(text, list) and all(isinstance(t, str) for t in text):
-            # Convert list of strings to padded tensor
-            text_list = [
-                self.preprocess_fn("<dummy>", dict(text=t))["text"] for t in text
-            ]
-            text_lengths = torch.tensor(
-                [len(t) for t in text_list], dtype=torch.long
-            )
-            text = pad_list(
-                [torch.tensor(t, dtype=torch.long) for t in text_list],
-                pad_value=0,
-            )
-        elif isinstance(text, np.ndarray):
-            text = torch.from_numpy(text)
-        
-        if text_lengths is None:
-            raise RuntimeError(
-                "text_lengths is required for batch inference when text is a tensor"
-            )
-        if isinstance(text_lengths, np.ndarray):
-            text_lengths = torch.from_numpy(text_lengths)
+        if isinstance(text, list):
+            if all(isinstance(t, str) for t in text):
+                # Convert list of strings to list of tensors (no padding here)
+                text = [
+                    torch.tensor(self.preprocess_fn("<dummy>", dict(text=t))["text"], dtype=torch.long)
+                    for t in text
+                ]
+                # Pass as list of tensors - model will handle padding and EOS
+            elif isinstance(text, list) and all(isinstance(t, np.ndarray) for t in text):
+                text = [torch.from_numpy(t) for t in text]
+            elif isinstance(text, list) and isinstance(text, torch.Tensor):
+                text = text
+            else:
+                raise ValueError("batch_call expects text as a list of strings or tensors.")
+        else:
+            raise ValueError("batch_call expects text as a list of strings or tensors.")
 
-        batch = dict(text=text, text_lengths=text_lengths)
+        batch = dict(text=text)
         if speech is not None:
             if isinstance(speech, np.ndarray):
                 speech = torch.from_numpy(speech)

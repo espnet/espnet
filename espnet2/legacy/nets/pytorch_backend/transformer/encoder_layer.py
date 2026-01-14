@@ -109,7 +109,7 @@ class EncoderLayer(nn.Module):
         residual = x
         if self.normalize_before:
             x = self.norm2(x)
-        x = residual + stoch_layer_coeff * self.dropout(self.feed_forward(x))
+        x = residual + stoch_layer_coeff * self.dropout(self.feed_forward(x, mask))
         if not self.normalize_before:
             x = self.norm2(x)
 

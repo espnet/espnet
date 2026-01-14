@@ -308,7 +308,6 @@ class ESPnetTTSModel(AbsESPnetModel):
     def batch_inference(
         self,
         text: torch.Tensor,
-        text_lengths: torch.Tensor,
         speech: Optional[torch.Tensor] = None,
         speech_lengths: Optional[torch.Tensor] = None,
         spembs: Optional[torch.Tensor] = None,
@@ -328,8 +327,7 @@ class ESPnetTTSModel(AbsESPnetModel):
         like FastSpeech and FastSpeech2.
 
         Args:
-            text (Tensor): Batched text index tensor (B, T_text).
-            text_lengths (Tensor): Text length tensor (B,).
+            text (Tensor): List of 1D tensors with variable lengths.
             speech (Optional[Tensor]): Batched speech waveform tensor (B, T_wav).
             speech_lengths (Optional[Tensor]): Speech length tensor (B,).
             spembs (Optional[Tensor]): Batched speaker embedding tensor (B, D).
@@ -354,7 +352,7 @@ class ESPnetTTSModel(AbsESPnetModel):
                 "Only FastSpeech and FastSpeech2 support batch inference."
             )
 
-        input_dict = dict(text=text, text_lengths=text_lengths)
+        input_dict = dict(text=text)
 
         # Handle feature extraction for teacher forcing or GST
         if decode_config.get("use_teacher_forcing") or getattr(
