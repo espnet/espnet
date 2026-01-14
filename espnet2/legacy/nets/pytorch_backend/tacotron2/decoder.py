@@ -254,8 +254,10 @@ class Postnet(torch.nn.Module):
         """Calculate forward propagation.
 
         Args:
-            xs (Tensor): Batch of the sequences of padded input tensors (B, idim, Tmax).
-            masks (Tensor, optional): Batch of the masks indicating padded part (B, 1, Tmax).
+            xs (Tensor): Batch of the sequences of padded input tensors
+                (B, idim, Tmax).
+            masks (Tensor, optional): Batch of the masks indicating padded
+                part (B, 1, Tmax).
 
         Returns:
             Tensor: Batch of padded output tensor. (B, odim, Tmax).

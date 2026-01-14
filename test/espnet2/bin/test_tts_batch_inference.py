@@ -40,8 +40,14 @@ def token_list(tmp_path: Path):
 
 @pytest.fixture()
 def fastspeech2_config_file(tmp_path: Path, token_list):
-    """Create a FastSpeech2 configuration file for batch inference
-    testing.
+    """Create a FastSpeech2 configuration file for batch inference.
+
+    Args:
+        tmp_path: Temporary directory path.
+        token_list: Path to token list file.
+
+    Returns:
+        Path to the FastSpeech2 configuration file.
     """
     TTSTask.main(
         cmd=[
@@ -72,8 +78,7 @@ def fastspeech2_config_file(tmp_path: Path, token_list):
 
 @pytest.mark.execution_timeout(20)
 def test_batch_call_vs_single_call(fastspeech2_config_file):
-    """Test that batch_call produces the same output as multiple
-    single calls.
+    """Test that batch_call produces same output as multiple calls.
 
     This test validates that:
     1. batch_call handles multiple sentences correctly
@@ -146,7 +151,7 @@ def test_batch_call_vs_single_call(fastspeech2_config_file):
             f"max_diff={max_diff}, mean_diff={mean_diff}"
         )
 
-        print(f"  ✓ Outputs match!")
+        print("  ✓ Outputs match!")
 
 
 @pytest.mark.execution_timeout(10)
