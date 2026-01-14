@@ -4,7 +4,7 @@
 """Text-to-speech abstrast class."""
 
 from abc import ABC, abstractmethod
-from typing import Dict, Optional, Tuple
+from typing import Dict, Tuple
 
 import torch
 

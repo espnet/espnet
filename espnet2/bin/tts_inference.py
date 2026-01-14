@@ -254,7 +254,7 @@ class Text2Speech:
         # Check if batch inference is supported
         if not hasattr(self.model, "batch_inference"):
             raise NotImplementedError(
-                "Batch inference is only supported for FastSpeech and FastSpeech2 models."
+                "Batch inference is only supported FastSpeech2 models"
             )
 
         # check inputs
@@ -610,7 +610,10 @@ def inference(
                     elif wav_list is not None:
                         wav = wav_list[i]
                         total_frames += wav.size(0)
-                        logging.info(f"{key} (size:{batch['text'][i].size(0) + 1}->{wav.size(0)})")
+                        insize = batch['text'][i].size(0) + 1
+                        logging.info(
+                            f"{key} (size:{insize}->{wav.size(0)})"
+                        )
 
                     if duration is not None:
                         duration_writer.write(

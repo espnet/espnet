@@ -4,7 +4,7 @@
 """Fastspeech2 related modules for ESPnet2."""
 
 import logging
-from typing import Dict, List, Optional, Sequence, Tuple, Union
+from typing import Dict, List, Optional, Sequence, Tuple
 
 import torch
 import torch.nn.functional as F
