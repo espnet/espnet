@@ -36,11 +36,13 @@ class BaseSystem:
         train_config: DictConfig | None = None,
         infer_config: DictConfig | None = None,
         measure_config: DictConfig | None = None,
+        publish_config: DictConfig | None = None,
     ) -> None:
         """Initialize the system with optional stage configs."""
         self.train_config = train_config
         self.infer_config = infer_config
         self.metric_config = measure_config
+        self.publish_config = publish_config
         if train_config is not None:
             self.exp_dir = Path(train_config.exp_dir)
             self.exp_dir.mkdir(parents=True, exist_ok=True)
@@ -48,11 +50,12 @@ class BaseSystem:
             self.exp_dir = None
         logger.info(
             "Initialized %s with train_config=%s infer_config=%s "
-            "measure_config=%s exp_dir=%s",
+            "measure_config=%s publish_config=%s exp_dir=%s",
             self.__class__.__name__,
             train_config is not None,
             infer_config is not None,
             measure_config is not None,
+            publish_config is not None,
             self.exp_dir,
         )
 
@@ -148,4 +151,23 @@ class BaseSystem:
     def publish(self, *args, **kwargs):
         """Publish artifacts from the experiment."""
         self._reject_stage_args("publish", args, kwargs)
-        logger.info("Running publish() (BaseSystem stub). Nothing done.")
+        logger.info("Running publish(): pack_model -> upload_model")
+        self.pack_model()
+        return self.upload_model()
+
+    # ---------------------------------------------------------
+    # Publication stages (optional overrides)
+    # ---------------------------------------------------------
+    def pack_model(self, *args, **kwargs):
+        """Pack model artifacts into an espnet3 bundle."""
+        self._reject_stage_args("pack_model", args, kwargs)
+        from espnet3.utils.publish import pack_model
+
+        return pack_model(self)
+
+    def upload_model(self, *args, **kwargs):
+        """Upload model bundle to HuggingFace."""
+        self._reject_stage_args("upload_model", args, kwargs)
+        from espnet3.utils.publish import upload_model
+
+        return upload_model(self)

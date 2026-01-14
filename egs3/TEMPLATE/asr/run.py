@@ -22,6 +22,8 @@ DEFAULT_STAGES: List[str] = [
     "train",
     "infer",
     "measure",
+    "pack_model",
+    "upload_model",
     "publish",
 ]
 
@@ -64,6 +66,12 @@ def build_parser(
         default=None,
         type=Path,
         help="Hydra config for measure/scoring stage.",
+    )
+    parser.add_argument(
+        "--publish_config",
+        default=None,
+        type=Path,
+        help="Hydra config for pack/upload stages.",
     )
     parser.add_argument(
         "--dry_run",
@@ -128,7 +136,11 @@ def main(
         if args.measure_config is None
         else load_config_with_defaults(args.measure_config)
     )
-
+    publish_config = (
+        None
+        if args.publish_config is None
+        else load_config_with_defaults(args.publish_config)
+    )
     logger = configure_logging()
 
     # -----------------------------------------
@@ -138,6 +150,7 @@ def main(
         train_config=train_config,
         infer_config=infer_config,
         measure_config=measure_config,
+        publish_config=publish_config,
     )
 
     # -----------------------------------------
@@ -157,6 +170,12 @@ def main(
     required_configs = {}
     required_configs.update({stage: train_config for stage in pretrain_stages})
     required_configs.update({"infer": infer_config, "measure": measure_config})
+    required_configs.update(
+        {
+            "pack_model": train_config,
+            "upload_model": publish_config,
+        }
+    )
     missing = [
         s
         for s in stages_to_run
@@ -179,6 +198,7 @@ def main(
             train_config=train_config,
             infer_config=infer_config,
             measure_config=measure_config,
+            publish_config=publish_config,
         ),
     )
 
@@ -190,6 +210,7 @@ def _log_stage_metadata(
     train_config,
     infer_config,
     measure_config,
+    publish_config,
 ) -> None:
     log_run_metadata(
         logger,
@@ -198,6 +219,7 @@ def _log_stage_metadata(
             "train": Path(args.train_config) if args.train_config else None,
             "infer": Path(args.infer_config) if args.infer_config else None,
             "measure": Path(args.measure_config) if args.measure_config else None,
+            "publish": Path(args.publish_config) if args.publish_config else None,
         },
         write_requirements=args.write_requirements,
     )
@@ -214,6 +236,11 @@ def _log_stage_metadata(
         logger.info(
             "Measure config content:\n%s",
             OmegaConf.to_yaml(measure_config, resolve=True),
+        )
+    if publish_config is not None:
+        logger.info(
+            "Publish config content:\n%s",
+            OmegaConf.to_yaml(publish_config, resolve=True),
         )
 
 

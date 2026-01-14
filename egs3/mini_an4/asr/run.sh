@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -euo pipefail
+#set -euo pipefail
 
 python=python3
 
@@ -9,7 +9,7 @@ python=python3
 
 ${python} run.py \
     --stages all \
-    --train_config conf/train.yaml \
+    --train_config conf/train_asr_transformer_debug.yaml \
     --infer_config conf/infer.yaml \
     --measure_config conf/measure.yaml \
     "$@"
