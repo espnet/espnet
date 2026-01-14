@@ -1,1 +1,1 @@
-"""Modeling components for espnet3."""
+"""Modeling components for ESPnet3."""

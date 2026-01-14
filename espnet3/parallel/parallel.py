@@ -32,7 +32,9 @@ try:
 
     _DASK_AVAILABLE = True
 except ImportError:
-    Client = LocalCluster = SSHCluster = None
+    Client = None
+    LocalCluster = None
+    SSHCluster = None
     as_completed = None
 
     class WorkerPlugin:
@@ -50,9 +52,13 @@ except ImportError:
                 "and dask_jobqueue to enable parallel features."
             )
 
-    HTCondorCluster = LSFCluster = MoabCluster = OARCluster = PBSCluster = (
-        SGECluster
-    ) = SLURMCluster = _MissingCluster
+    HTCondorCluster = _MissingCluster
+    LSFCluster = _MissingCluster
+    MoabCluster = _MissingCluster
+    OARCluster = _MissingCluster
+    PBSCluster = _MissingCluster
+    SGECluster = _MissingCluster
+    SLURMCluster = _MissingCluster
     _DASK_AVAILABLE = False
 
 try:

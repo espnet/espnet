@@ -1,1 +1,3 @@
-"""Data pipeline components for espnet3."""
+"""Data components for ESPnet3."""
+
+from .data_organizer import DataOrganizer  # noqa: F401

@@ -1,1 +1,1 @@
-"""Callback components for espnet3 training workflows."""
+"""Callback components for ESPnet3."""

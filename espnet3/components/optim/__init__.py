@@ -1,1 +1,1 @@
-"""Optimization components for espnet3."""
+"""Optimization components for ESPnet3."""

@@ -172,7 +172,7 @@ class CombinedDataset:
         if not self.multiple_iterator:
             raise RuntimeError(
                 "All dataset should be the subclass of "
-                "espnet3.data.dataset.ShardedDataset."
+                "espnet3.components.data.dataset.ShardedDataset."
             )
         sharded_datasets = [dataset.shard(shard_idx) for dataset in self.datasets]
         return CombinedDataset(
