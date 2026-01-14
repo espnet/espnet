@@ -1,5 +1,4 @@
 import os
-from pathlib import Path
 
 import pytest
 from yaml.parser import ParserError

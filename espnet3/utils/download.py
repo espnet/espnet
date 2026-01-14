@@ -62,9 +62,11 @@ class DownloadProgress:
     step_percent: int = 5
 
     def __post_init__(self) -> None:
+        """Initialize the internal progress bucket."""
         self._last_bucket: int | None = None
 
     def __call__(self, block_num: int, block_size: int, total_size: int) -> None:
+        """Log progress for the current urllib download callback."""
         if total_size <= 0:
             return
 

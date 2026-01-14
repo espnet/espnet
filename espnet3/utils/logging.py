@@ -95,6 +95,7 @@ def get_git_metadata(cwd: Path | None = None) -> dict[str, str]:
 
 
 def format_command(argv: Iterable[str] | None = None) -> str:
+    """Return a shell-escaped command line string."""
     argv = list(argv) if argv is not None else sys.argv
     return " ".join(shlex.quote(str(a)) for a in argv)
 
@@ -146,6 +147,7 @@ def log_env_metadata(
     runtime_prefixes: Iterable[str] | None = None,
     runtime_keys: Iterable[str] | None = None,
 ) -> None:
+    """Log cluster/runtime environment variables for reproducibility."""
     cluster_prefixes = cluster_prefixes or (
         "SLURM_",
         "PBS_",
