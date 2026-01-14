@@ -5,8 +5,8 @@ import pytest
 from omegaconf import OmegaConf
 
 from espnet3.components.metrics.abs_metric import AbsMetrics
-from espnet3.utils.scp_utils import get_class_path
 from espnet3.systems.base.score import score
+from espnet3.utils.scp_utils import get_class_path
 
 
 class DummyMetric(AbsMetrics):

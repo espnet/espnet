@@ -3,10 +3,10 @@ import pytest
 import torch
 from omegaconf import OmegaConf
 
-from espnet3.components.modeling.lightning_module import ESPnetLightningModule
+from espnet3.components.modeling.model import LitESPnetModel
 
 # ===============================================================
-# Test Case Summary for ESPnetLightningModule
+# Test Case Summary for LitESPnetModel
 # ===============================================================
 #
 # Normal Cases
@@ -124,7 +124,7 @@ def test_training_step_runs(tmp_path, dummy_model, dummy_dataset_config):
             "num_device": 1,
         }
     )
-    model = ESPnetLightningModule(dummy_model, config)
+    model = LitESPnetModel(dummy_model, config)
     batch = next(iter(model.train_dataloader()))
     out = model.training_step(batch, 0)
     assert np.allclose(out.item(), 0.123)
@@ -139,7 +139,7 @@ def test_validation_step_runs(tmp_path, dummy_model, dummy_dataset_config):
             "num_device": 1,
         }
     )
-    model = ESPnetLightningModule(dummy_model, config)
+    model = LitESPnetModel(dummy_model, config)
     batch = next(iter(model.val_dataloader()))
     out = model.validation_step(batch, 0)
     assert torch.is_tensor(out)
@@ -157,7 +157,7 @@ def test_is_espnet_sampler_flag(tmp_path, dummy_model, dummy_dataset_config):
             "num_device": 1,
         }
     )
-    model = ESPnetLightningModule(dummy_model, config)
+    model = LitESPnetModel(dummy_model, config)
     assert model.is_espnet_sampler is False
 
 
@@ -170,7 +170,7 @@ def test_state_dict_and_load(tmp_path, dummy_model, dummy_dataset_config):
             "num_device": 1,
         }
     )
-    model = ESPnetLightningModule(dummy_model, config)
+    model = LitESPnetModel(dummy_model, config)
     state = model.state_dict()
     model.load_state_dict(state)
 
@@ -199,7 +199,7 @@ def test_use_espnet_collator_flag_false(tmp_path, dummy_model, dummy_dataset_con
             "num_device": 1,
         }
     )
-    model = ESPnetLightningModule(dummy_model, config)
+    model = LitESPnetModel(dummy_model, config)
     _ = model.train_dataloader()
     _ = model.val_dataloader()
     assert model.train_dataset.use_espnet_collator is False
@@ -228,7 +228,7 @@ def test_nan_loss_skip(tmp_path, dummy_dataset_config):
             "num_device": 1,
         }
     )
-    model = ESPnetLightningModule(dummy_model, config)
+    model = LitESPnetModel(dummy_model, config)
     batch = next(iter(model.train_dataloader()))
     out = model.training_step(batch, 0)
     assert out is None
@@ -249,7 +249,7 @@ def test_dataloader_mismatch_raises(tmp_path, dummy_model, dummy_dataset_config)
     with pytest.raises(
         AssertionError, match="Train and valid should have the same type of dataloader"
     ):
-        _ = ESPnetLightningModule(dummy_model, config)
+        _ = LitESPnetModel(dummy_model, config)
 
 
 def test_mixed_optim_scheduler_raises(tmp_path, dummy_model, dummy_dataset_config):
@@ -264,7 +264,7 @@ def test_mixed_optim_scheduler_raises(tmp_path, dummy_model, dummy_dataset_confi
             "num_device": 1,
         }
     )
-    model = ESPnetLightningModule(dummy_model, config)
+    model = LitESPnetModel(dummy_model, config)
     with pytest.raises(
         AssertionError, match="Mixture of `optim` and `optims` is not allowed."
     ):
@@ -283,7 +283,7 @@ def test_missing_optimizer_and_scheduler_raises(
             # intentionally omit both `optim`, `optims`, and `scheduler`, `schedulers`
         }
     )
-    model = ESPnetLightningModule(dummy_model, config)
+    model = LitESPnetModel(dummy_model, config)
     with pytest.raises(
         ValueError, match="Must specify either `optim` or `optims` and `scheduler` or"
     ):

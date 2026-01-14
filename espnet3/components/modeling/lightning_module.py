@@ -1,4 +1,4 @@
-"""ESPnet3-specific PyTorch LightningModule wrapper."""
+"""ESPnet3 PyTorch LightningModule for training and data integration."""
 
 import logging
 from pathlib import Path
@@ -17,16 +17,17 @@ from espnet3.components.optim.multiple_scheduler import MultipleScheduler
 logger = logging.getLogger("lightning")
 
 
-class LitESPnetModel(lightning.LightningModule):
-    """ESPnet3-specific PyTorch LightningModule wrapper.
+class ESPnetLightningModule(lightning.LightningModule):
+    """ESPnet3 LightningModule wrapper for model training and data integration.
 
-    This class handles model training, validation, optimizer/scheduler setup,
-    ESPnet-specific dataloader construction, NaN/Inf loss detection across
-    distributed setups, and statistics collection.
+    This module follows Lightning best practices by defining the training/validation
+    steps, optimizer/scheduler configuration, and dataloader hooks on the
+    LightningModule itself. It also integrates ESPnet-specific dataset handling,
+    distributed NaN/Inf loss skipping, and statistics collection.
 
     Attributes:
         model (torch.nn.Module): The main ESPnet model.
-        config (DictConfig): The training configuration.
+        config (DictConfig): Training configuration for model and data setup.
         train_dataset: Training dataset organized by the ESPnet data organizer.
         valid_dataset: Validation dataset.
         collate_fn (Callable): Collation function used in DataLoader.
@@ -40,7 +41,7 @@ class LitESPnetModel(lightning.LightningModule):
     """
 
     def __init__(self, model, config):
-        """Initialize LitESPnetModel."""
+        """Initialize the ESPnet LightningModule wrapper."""
         super().__init__()
         self.config = config
         self.model = model
@@ -404,15 +405,24 @@ class LitESPnetModel(lightning.LightningModule):
         Raises:
             AssertionError: If `config.statsdir` is not provided.
         """
-        assert hasattr(self.config, "statsdir"), "config.statsdir must be defined"
+        assert hasattr(self.config, "stats_dir"), "config.statsdir must be defined"
+
+        # Detach dataset/dataloader configs from the root so interpolations like
+        # ${dataset_dir} remain resolved when used standalone during collection.
+        dataset_config = OmegaConf.create(
+            OmegaConf.to_container(self.config.dataset, resolve=True)
+        )
+        dataloader_config = OmegaConf.create(
+            OmegaConf.to_container(self.config.dataloader, resolve=True)
+        )
 
         for mode in ["train", "valid"]:
             collect_stats(
                 model_config=OmegaConf.to_container(self.config.model, resolve=True),
-                dataset_config=self.config.dataset,
-                dataloader_config=self.config.dataloader,
+                dataset_config=dataset_config,
+                dataloader_config=dataloader_config,
                 mode=mode,
-                output_dir=Path(self.config.statsdir),
+                output_dir=Path(self.config.stats_dir),
                 task=getattr(self.config, "task", None),
                 parallel_config=(
                     None

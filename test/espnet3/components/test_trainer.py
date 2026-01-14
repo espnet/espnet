@@ -11,7 +11,7 @@ from lightning.pytorch.strategies import DDPStrategy, SingleDeviceStrategy
 from omegaconf import OmegaConf  # ListConfig,
 from typeguard import TypeCheckError
 
-from espnet3.components.modeling.lightning_module import ESPnetLightningModule
+from espnet3.components.modeling.model import LitESPnetModel
 from espnet3.components.training.trainer import ESPnet3LightningTrainer
 from espnet3.utils.config import load_config_with_defaults
 
@@ -206,7 +206,7 @@ def test_logger_variants(
         trainer_config.logger = logger_cfg
 
     model = nn.Linear(10, 1)
-    lit = ESPnetLightningModule(model, model_config)
+    lit = LitESPnetModel(model, model_config)
     wrapper = ESPnet3LightningTrainer(model=lit, config=trainer_config, expdir=EXPDIR)
 
     assert isinstance(wrapper.trainer.logger, expect_logger_type)
@@ -238,7 +238,7 @@ def test_accelerator_variants(
         trainer_config.accelerator = accelerator
 
     model = nn.Linear(10, 1)
-    lit = ESPnetLightningModule(model, model_config)
+    lit = LitESPnetModel(model, model_config)
     wrapper = ESPnet3LightningTrainer(model=lit, config=trainer_config, expdir=EXPDIR)
 
     assert isinstance(wrapper.trainer.accelerator, expect_type)
@@ -266,7 +266,7 @@ def test_strategy_variants(
         trainer_config.strategy = strategy
 
     model = nn.Linear(10, 1)
-    lit = ESPnetLightningModule(model, model_config)
+    lit = LitESPnetModel(model, model_config)
     wrapper = ESPnet3LightningTrainer(model=lit, config=trainer_config, expdir=EXPDIR)
 
     assert isinstance(wrapper.trainer.strategy, expect_type)
@@ -297,7 +297,7 @@ def test_profiler_variants(
         trainer_config.profiler = profiler
 
     model = nn.Linear(10, 1)
-    lit = ESPnetLightningModule(model, model_config)
+    lit = LitESPnetModel(model, model_config)
     wrapper = ESPnet3LightningTrainer(model=lit, config=trainer_config, expdir=EXPDIR)
 
     if isinstance(wrapper.trainer.profiler, list):
@@ -330,7 +330,7 @@ def test_plugins_variants(
         trainer_config.plugins = plugin
 
     model = nn.Linear(10, 1)
-    lit = ESPnetLightningModule(model, model_config)
+    lit = LitESPnetModel(model, model_config)
     wrapper = ESPnet3LightningTrainer(model=lit, config=trainer_config, expdir=EXPDIR)
 
     if plugin is None:
@@ -346,7 +346,7 @@ def test_reload_dataloaders_enforced(
 ):
     model_config_espnet_sampler.dataset = dummy_dataset_config
     base_trainer_config.reload_dataloaders_every_n_epochs = 5
-    model = ESPnetLightningModule(nn.Linear(1, 1), model_config_espnet_sampler)
+    model = LitESPnetModel(nn.Linear(1, 1), model_config_espnet_sampler)
 
     wrapper = ESPnet3LightningTrainer(
         model=model, config=base_trainer_config, expdir="exp"
@@ -359,7 +359,7 @@ def test_distributed_sampler_disabled_if_espnet_sampler(
     base_trainer_config, model_config_espnet_sampler, dummy_dataset_config
 ):
     model_config_espnet_sampler.dataset = dummy_dataset_config
-    model = ESPnetLightningModule(nn.Linear(1, 1), model_config_espnet_sampler)
+    model = LitESPnetModel(nn.Linear(1, 1), model_config_espnet_sampler)
 
     wrapper = ESPnet3LightningTrainer(
         model=model, config=base_trainer_config, expdir="exp"
@@ -372,7 +372,7 @@ def test_fit_calls_trainer_fit(
     monkeypatch, base_trainer_config, model_config, dummy_dataset_config
 ):
     model_config.dataset = dummy_dataset_config
-    model = ESPnetLightningModule(nn.Linear(1, 1), model_config)
+    model = LitESPnetModel(nn.Linear(1, 1), model_config)
 
     wrapper = ESPnet3LightningTrainer(
         model=model, config=base_trainer_config, expdir="exp"
@@ -387,7 +387,7 @@ def test_validate_calls_trainer_validate(
     monkeypatch, base_trainer_config, model_config, dummy_dataset_config
 ):
     model_config.dataset = dummy_dataset_config
-    model = ESPnetLightningModule(nn.Linear(1, 1), model_config)
+    model = LitESPnetModel(nn.Linear(1, 1), model_config)
 
     wrapper = ESPnet3LightningTrainer(
         model=model, config=base_trainer_config, expdir="exp"

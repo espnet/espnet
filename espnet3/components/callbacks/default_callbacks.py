@@ -157,7 +157,7 @@ def get_default_callbacks(
             Trainer.
 
     Example:
-        >>> from callbacks import get_default_callbacks
+        >>> from default_callbacks import get_default_callbacks
         >>> callbacks = get_default_callbacks(
         ...     expdir="./exp",
         ...     log_interval=100,

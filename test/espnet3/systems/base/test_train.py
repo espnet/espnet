@@ -53,7 +53,9 @@ def test_collect_stats_runs_pipeline(tmp_path, monkeypatch):
     monkeypatch.setattr(train_mod, "_build_trainer", lambda _cfg: trainer)
     monkeypatch.setattr(train_mod, "set_parallel", fake_set_parallel)
     monkeypatch.setattr(train_mod.L, "seed_everything", fake_seed_everything)
-    monkeypatch.setattr(train_mod.torch, "set_float32_matmul_precision", fake_set_precision)
+    monkeypatch.setattr(
+        train_mod.torch, "set_float32_matmul_precision", fake_set_precision
+    )
 
     train_mod.collect_stats(cfg)
 
@@ -94,7 +96,9 @@ def test_train_saves_config_and_calls_fit(tmp_path, monkeypatch):
     monkeypatch.setattr(train_mod, "_build_trainer", lambda _cfg: trainer)
     monkeypatch.setattr(train_mod, "set_parallel", fake_set_parallel)
     monkeypatch.setattr(train_mod.L, "seed_everything", fake_seed_everything)
-    monkeypatch.setattr(train_mod.torch, "set_float32_matmul_precision", fake_set_precision)
+    monkeypatch.setattr(
+        train_mod.torch, "set_float32_matmul_precision", fake_set_precision
+    )
     monkeypatch.setattr(train_mod, "save_espnet_config", fake_save_config)
 
     train_mod.train(cfg)
