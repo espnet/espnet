@@ -1,1 +1,1 @@
-../../asr1/local//find_transcripts.pl
+../../asr1/local/find_transcripts.pl
