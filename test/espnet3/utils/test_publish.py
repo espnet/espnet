@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
+
 from omegaconf import OmegaConf
 
 from espnet3.utils import publish
@@ -46,7 +47,7 @@ def test_pack_model_excludes_decode_and_copies_scores(tmp_path):
     decode_dir.mkdir()
     (decode_dir / "hyp.scp").write_text("utt1 foo\n", encoding="utf-8")
     scores_path = decode_dir / "scores.json"
-    scores_path.write_text("{\"wer\": 0.1}\n", encoding="utf-8")
+    scores_path.write_text('{"wer": 0.1}\n', encoding="utf-8")
     out_dir = tmp_path / "model_pack"
     publish_config = OmegaConf.create(
         {"pack_model": {"out_dir": str(out_dir), "decode_dir": str(decode_dir)}}

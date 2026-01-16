@@ -4,19 +4,19 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import re
 import shutil
 import subprocess
 import sys
-from string import Template
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional
+from string import Template
+from typing import Dict, List, Optional
 
-import espnet2
 import torch
 from omegaconf import DictConfig, OmegaConf
+
+import espnet2
 from espnet2.main_funcs.pack_funcs import pack as espnet2_pack
 
 logger = logging.getLogger(__name__)
@@ -259,7 +259,8 @@ def pack_model(
         system: ESPnet3 system instance providing configs and helper paths.
     Args:
         system: Object with ``train_config`` and optional ``publish_config``.
-        include: Optional explicit include paths (defaults to exp_dir and config includes).
+        include: Optional explicit include paths
+            (defaults to exp_dir and config includes).
         extra: Optional explicit extra paths (defaults to config extras).
     Returns:
         Path to the packed output directory.
@@ -495,7 +496,9 @@ def upload_model(system) -> None:
         Add optional README or metadata generation if needed.
     """
     if system.publish_config is None:
-        raise RuntimeError("upload_model requires publish_config (publish_config.upload_model).")
+        raise RuntimeError(
+            "upload_model requires publish_config (publish_config.upload_model)."
+        )
     publish_cfg = system.publish_config
     upload_cfg = getattr(publish_cfg, "upload_model", None)
     if upload_cfg is None:
