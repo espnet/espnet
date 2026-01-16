@@ -60,7 +60,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     python local/data_prep.py --source_dir ${IPAPACK_PLUS} --target_dir data --min_wav_length ${min_wav_duration}
 
     for dir in data/*; do
-        utils/fix_data_dir.sh --utt_extra_files "orthography" $dir
+        utils/fix_data_dir.sh --utt_extra_files "text.asr" $dir
         utils/validate_data_dir.sh --non-print --no-feats $dir || exit 1
         # make empty files for not-yet generated extra texts
         touch $dir/text.prev $dir/text.ctc
@@ -70,10 +70,8 @@ fi
 
 if [ ${stage} -eq 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "data prep stage 2: Additional data processing - called after stage 4"
-    # generate OWSM text files for different tasks
+    # generate OWSM-style multitasking files in dump/raw
     python local/process_ipapack.py --root_dir . --output_dir $feat_dir
-    # combine text files and wav.scp for different tasks
-    python local/subset.py
     for dir in $feat_dir/train $feat_dir/dev; do
         utils/fix_data_dir.sh --utt_extra_files "text.ctc text.prev" $dir
         utils/validate_data_dir.sh --non-print --no-feats $dir || exit 1
