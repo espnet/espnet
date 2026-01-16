@@ -279,11 +279,9 @@ class Text2Speech:
                     for t in text
                 ]
                 # Pass as list of tensors - model will handle padding and EOS
-            elif isinstance(text, list) and all(
-                isinstance(t, np.ndarray) for t in text
-            ):
+            elif all(isinstance(t, np.ndarray) for t in text):
                 text = [torch.from_numpy(t) for t in text]
-            elif isinstance(text, list) and isinstance(text, torch.Tensor):
+            elif all(isinstance(t, torch.Tensor) for t in text):
                 text = text
             else:
                 raise ValueError(

@@ -307,7 +307,7 @@ class ESPnetTTSModel(AbsESPnetModel):
 
     def batch_inference(
         self,
-        text: torch.Tensor,
+        text: List[torch.Tensor],
         speech: Optional[torch.Tensor] = None,
         speech_lengths: Optional[torch.Tensor] = None,
         spembs: Optional[torch.Tensor] = None,
@@ -324,10 +324,10 @@ class ESPnetTTSModel(AbsESPnetModel):
         """Calculate features for a batch and return them as a dict.
 
         This method supports batch inference for non-autoregressive models
-        like FastSpeech and FastSpeech2.
+        like FastSpeech2.
 
         Args:
-            text (Tensor): List of 1D tensors with variable lengths.
+            text: List of 1D tensors with variable lengths (List[Tensor]).
             speech (Optional[Tensor]): Batched speech waveform tensor (B, T_wav).
             speech_lengths (Optional[Tensor]): Speech length tensor (B,).
             spembs (Optional[Tensor]): Batched speaker embedding tensor (B, D).
@@ -349,7 +349,7 @@ class ESPnetTTSModel(AbsESPnetModel):
         if not hasattr(self.tts, "batch_inference"):
             raise NotImplementedError(
                 f"{type(self.tts).__name__} does not support batch inference. "
-                "Only FastSpeech and FastSpeech2 support batch inference."
+                "Only FastSpeech2 support batch inference."
             )
 
         input_dict = dict(text=text)
