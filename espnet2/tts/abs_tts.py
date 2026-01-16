@@ -33,6 +33,30 @@ class AbsTTS(torch.nn.Module, ABC):
         """Return predicted output as a dict."""
         raise NotImplementedError
 
+    def batch_inference(
+        self,
+        text: torch.Tensor,
+        text_lengths: torch.Tensor,
+        **kwargs,
+    ) -> Dict[str, torch.Tensor]:
+        """Return predicted output for a batch as a dict.
+
+        This is an optional method for non-autoregressive models that support
+        batch inference (e.g., FastSpeech, FastSpeech2).
+
+        Args:
+            text: Batched input text tensor (B, T_text).
+            text_lengths: Length tensor for batched text (B,).
+            **kwargs: Additional arguments.
+
+        Returns:
+            Dict containing batched outputs.
+
+        """
+        raise NotImplementedError(
+            f"{type(self).__name__} does not support batch inference."
+        )
+
     @property
     def require_raw_speech(self):
         """Return whether or not raw_speech is required."""

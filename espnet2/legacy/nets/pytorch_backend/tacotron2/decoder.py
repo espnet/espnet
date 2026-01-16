@@ -250,17 +250,22 @@ class Postnet(torch.nn.Module):
                 )
             ]
 
-    def forward(self, xs):
+    def forward(self, xs, masks=None):
         """Calculate forward propagation.
 
         Args:
-            xs (Tensor): Batch of the sequences of padded input tensors (B, idim, Tmax).
+            xs (Tensor): Batch of the sequences of padded input tensors
+                (B, idim, Tmax).
+            masks (Tensor, optional): Batch of the masks indicating padded
+                part (B, 1, Tmax).
 
         Returns:
             Tensor: Batch of padded output tensor. (B, odim, Tmax).
 
         """
+
         for i in range(len(self.postnet)):
+            xs = xs.masked_fill(~masks, 0.0) if masks is not None else xs
             xs = self.postnet[i](xs)
         return xs
 
