@@ -68,6 +68,9 @@ class CTCPrefixScoreTH(object):
         self.idx_b = torch.arange(self.batch, device=self.device)
         self.idx_bo = (self.idx_b * self.odim).unsqueeze(1)
 
+        # For LF inference trick with Gaussian Mask
+        self.latest_time_scores = None
+
     def __call__(self, y, state, scoring_ids=None, att_w=None):
         """Compute CTC prefix scores for next labels.
 
@@ -187,6 +190,25 @@ class CTCPrefixScoreTH(object):
         if self.eos != self.blank:
             # exclude blank probs
             log_psi[:, self.blank] = self.logzero
+
+        # helper for Long-form inference trick with Gaussian Mask
+        with torch.no_grad():
+            # r: (T, 2, n_bh, snum)
+            T = r.size(0)
+            n_bh = r.size(2)
+
+            # initialize with very negative values
+            lts = torch.full((T, n_bh), -1e10, device=r.device)
+
+            # Only scores between start:end were updated
+            # So compute prefix score only for this region
+            prefix_region = torch.logsumexp(
+                r[start:end], dim=(1, 3)
+            )  # (end-start, n_bh)
+
+            lts[start:end] = prefix_region
+
+            self.latest_time_scores = lts
 
         return (log_psi - s_prev), (r, log_psi, f_min, f_max, scoring_idmap)
 
