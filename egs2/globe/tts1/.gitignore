@@ -1,0 +1,9 @@
+logs/
+downloads/
+exp/
+dump/
+data/logs/
+*.log
+*.txt
+data/
+*.wav
