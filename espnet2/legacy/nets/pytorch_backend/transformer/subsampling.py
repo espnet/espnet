@@ -246,17 +246,81 @@ class Conv2dSubsampling(torch.nn.Module):
             torch.nn.Conv2d(odim, odim, 3, 2),
             torch.nn.ReLU(),
         )
-        self.out = torch.nn.Sequential(
-            torch.nn.Linear(odim * (((idim - 1) // 2 - 1) // 2), odim),
-            pos_enc if pos_enc is not None else PositionalEncoding(odim, dropout_rate),
+        self.out = torch.nn.Linear(odim * (((idim - 1) // 2 - 1) // 2), odim)
+        self.pos_enc = (
+            pos_enc if pos_enc is not None else PositionalEncoding(odim, dropout_rate)
         )
 
-    def forward(self, x, x_mask):
+    def _load_from_state_dict(
+        self,
+        state_dict,
+        prefix,
+        local_metadata,
+        strict,
+        missing_keys,
+        unexpected_keys,
+        error_msgs,
+    ):
+        """Backward-compatible state_dict loading.
+
+        Older checkpoints may store `Conv2dSubsampling.out` as nn.Sequential where the
+        Linear layer is `out.0` and the positional encoding is `out.1`, yielding keys:
+          - {prefix}out.0.weight / {prefix}out.0.bias
+          - {prefix}out.1.*
+
+        Current implementation uses:
+          - {prefix}out.weight / {prefix}out.bias
+          - {prefix}pos_enc.*
+
+        To support both, remap legacy keys to the current ones.
+        """
+        # Map legacy Linear keys: out.0.{weight,bias} -> out.{weight,bias}
+        w_new = prefix + "out.weight"
+        b_new = prefix + "out.bias"
+        w_old = prefix + "out.0.weight"
+        b_old = prefix + "out.0.bias"
+
+        # Prefer current keys; drop legacy duplicates if both are present.
+        if w_new not in state_dict and w_old in state_dict:
+            state_dict[w_new] = state_dict.pop(w_old)
+        elif w_new in state_dict and w_old in state_dict:
+            state_dict.pop(w_old)
+
+        if b_new not in state_dict and b_old in state_dict:
+            state_dict[b_new] = state_dict.pop(b_old)
+        elif b_new in state_dict and b_old in state_dict:
+            state_dict.pop(b_old)
+
+        # Map legacy positional encoding keys: out.1.* -> pos_enc.*
+        old_pos_prefix = prefix + "out.1."
+        new_pos_prefix = prefix + "pos_enc."
+        for k in list(state_dict.keys()):
+            if not k.startswith(old_pos_prefix):
+                continue
+            new_k = new_pos_prefix + k[len(old_pos_prefix) :]
+            if new_k not in state_dict:
+                state_dict[new_k] = state_dict[k]
+            # Drop legacy key regardless (avoid unexpected_keys if strict=False)
+            state_dict.pop(k, None)
+
+        super()._load_from_state_dict(
+            state_dict,
+            prefix,
+            local_metadata,
+            strict,
+            missing_keys,
+            unexpected_keys,
+            error_msgs,
+        )
+
+    def forward(self, x, x_mask, prefix_embeds=None):
         """Subsample x.
 
         Args:
             x (torch.Tensor): Input tensor (#batch, time, idim).
             x_mask (torch.Tensor): Input mask (#batch, 1, time).
+            prefix_embeds (torch.Tensor or None): Prefix token embeddings
+                (#batch, prefix_len, odim).
 
         Returns:
             torch.Tensor: Subsampled tensor (#batch, time', odim),
@@ -269,20 +333,40 @@ class Conv2dSubsampling(torch.nn.Module):
         x = self.conv(x)
         b, c, t, f = x.size()
         x = self.out(x.transpose(1, 2).contiguous().view(b, t, c * f))
-        if x_mask is None:
-            return x, None
-        return x, x_mask[:, :, :-2:2][:, :, :-2:2]
+        if x_mask is not None:
+            x_mask = x_mask[:, :, :-2:2][:, :, :-2:2]
 
-    def __getitem__(self, key):
-        """Get item.
+        if prefix_embeds is not None:
+            x = torch.cat([prefix_embeds, x], dim=1)
+            if x_mask is not None:
+                x_mask = torch.cat(
+                    [
+                        torch.ones(
+                            x_mask.shape[0],
+                            1,
+                            prefix_embeds.size(1),
+                            dtype=x_mask.dtype,
+                            device=x_mask.device,
+                        ),
+                        x_mask,
+                    ],
+                    dim=-1,
+                )
+        
+        x = self.pos_enc(x)
 
-        When reset_parameters() is called, if use_scaled_pos_enc is used,
-            return the positioning encoding.
+        return x, x_mask
 
-        """
-        if key != -1:
-            raise NotImplementedError("Support only `-1` (for `reset_parameters`).")
-        return self.out[key]
+    # def __getitem__(self, key):
+    #     """Get item.
+
+    #     When reset_parameters() is called, if use_scaled_pos_enc is used,
+    #         return the positioning encoding.
+
+    #     """
+    #     if key != -1:
+    #         raise NotImplementedError("Support only `-1` (for `reset_parameters`).")
+    #     return self.out[key]
 
 
 class Conv2dSubsampling1(torch.nn.Module):
@@ -476,6 +560,57 @@ class Conv2dSubsampling8(torch.nn.Module):
         self.out = torch.nn.Linear(odim * ((((idim - 1) // 2 - 1) // 2 - 1) // 2), odim)
         self.pos_enc = (
             pos_enc if pos_enc is not None else PositionalEncoding(odim, dropout_rate)
+        )
+
+    def _load_from_state_dict(
+        self,
+        state_dict,
+        prefix,
+        local_metadata,
+        strict,
+        missing_keys,
+        unexpected_keys,
+        error_msgs,
+    ):
+        """Backward-compatible state_dict loading for legacy `out.0.*` keys.
+
+        Some older checkpoints may store `out` as nn.Sequential(Linear, pos_enc),
+        which yields keys like `{prefix}out.0.*` and `{prefix}out.1.*`.
+        This implementation uses `{prefix}out.*` and `{prefix}pos_enc.*`.
+        """
+        w_new = prefix + "out.weight"
+        b_new = prefix + "out.bias"
+        w_old = prefix + "out.0.weight"
+        b_old = prefix + "out.0.bias"
+
+        if w_new not in state_dict and w_old in state_dict:
+            state_dict[w_new] = state_dict.pop(w_old)
+        elif w_new in state_dict and w_old in state_dict:
+            state_dict.pop(w_old)
+
+        if b_new not in state_dict and b_old in state_dict:
+            state_dict[b_new] = state_dict.pop(b_old)
+        elif b_new in state_dict and b_old in state_dict:
+            state_dict.pop(b_old)
+
+        old_pos_prefix = prefix + "out.1."
+        new_pos_prefix = prefix + "pos_enc."
+        for k in list(state_dict.keys()):
+            if not k.startswith(old_pos_prefix):
+                continue
+            new_k = new_pos_prefix + k[len(old_pos_prefix) :]
+            if new_k not in state_dict:
+                state_dict[new_k] = state_dict[k]
+            state_dict.pop(k, None)
+
+        super()._load_from_state_dict(
+            state_dict,
+            prefix,
+            local_metadata,
+            strict,
+            missing_keys,
+            unexpected_keys,
+            error_msgs,
         )
 
     def forward(self, x, x_mask, prefix_embeds=None):
