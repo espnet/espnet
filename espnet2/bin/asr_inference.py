@@ -105,6 +105,7 @@ class Speech2Text:
         lm_weight: float = 1.0,
         ngram_weight: float = 0.9,
         penalty: float = 0.0,
+        inference_lf_trick: float = False,
         nbest: int = 1,
         normalize_length: bool = False,
         streaming: bool = False,
@@ -370,6 +371,7 @@ class Speech2Text:
                     token_list=token_list,
                     pre_beam_score_key=None if ctc_weight == 1.0 else "full",
                     normalize_length=normalize_length,
+                    inference_lf_trick=inference_lf_trick,
                 )
 
                 # TODO(karita): make all scorers batchfied
@@ -731,6 +733,7 @@ def inference(
     lm_weight: float,
     ngram_weight: float,
     penalty: float,
+    inference_lf_trick: bool,
     nbest: int,
     normalize_length: bool,
     num_workers: int,
@@ -806,6 +809,7 @@ def inference(
         lm_weight=lm_weight,
         ngram_weight=ngram_weight,
         penalty=penalty,
+        inference_lf_trick=inference_lf_trick,
         nbest=nbest,
         normalize_length=normalize_length,
         streaming=streaming,
@@ -1059,6 +1063,16 @@ def get_parser():
     group.add_argument("--nbest", type=int, default=1, help="Output N-best hypotheses")
     group.add_argument("--beam_size", type=int, default=20, help="Beam size")
     group.add_argument("--penalty", type=float, default=0.0, help="Insertion penalty")
+    group.add_argument(
+        "--inference_lf_trick",
+        type=str2bool,
+        default=False,
+        help=(
+            "Use the Long-Form inference trick from "
+            "'Improving Cross-Attention based on Positional Alignment during Inference "
+            "for Robust Long-form Speech Recognition' (INTERSPEECH 2025)."
+        ),
+    )
     group.add_argument(
         "--maxlenratio",
         type=float,
