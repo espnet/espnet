@@ -8,11 +8,11 @@ import torch
 from hydra.utils import instantiate
 from omegaconf import OmegaConf
 
-from espnet2.train.collate_fn import CommonCollateFn
 from espnet3.components.data.collect_stats import collect_stats
 from espnet3.components.data.dataloader import DataLoaderBuilder
 from espnet3.components.optim.multiple_optim import MultipleOptim
 from espnet3.components.optim.multiple_scheduler import MultipleScheduler
+from espnet3.wrapper.train import CommonCollateFn
 
 logger = logging.getLogger("lightning")
 
