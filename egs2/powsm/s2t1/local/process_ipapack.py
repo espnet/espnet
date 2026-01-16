@@ -1,6 +1,6 @@
 import argparse
-import json
 import csv
+import json
 import os
 import shutil
 from collections import defaultdict
@@ -79,7 +79,7 @@ def main(root_dir, output_dir):
             path = row["path"]
             ipa_panphon = row["ipa_panphon"]
             ipa_panphon_nosup = row["ipa_panphon_nosup"]
-            
+
             # phone tokens are surrounded by slashes (/p/)
             ipa_panphon = "/" + "//".join(ipa_panphon.split()) + "/"
             ipa_panphon_nosup = "/" + "//".join(ipa_panphon_nosup.split()) + "/"
