@@ -110,7 +110,7 @@ def main(root_dir, output_dir):
     # ========== Get wav.scp and additional files  ==========
     print("Generating wav.scp and additional files...")
     for split in splits_to_process:
-        # wav.scp, utt2num_samples: add task name to the original uttID to get unique IDs
+        # wav.scp, utt2num_samples: add task name to get unique IDs
         for filename in ["wav.scp", "utt2num_samples"]:
             oldfile = os.path.join(ROOT_DATA_DIR, split, filename)
             newfile = os.path.join(output_dir, split, filename)
