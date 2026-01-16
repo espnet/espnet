@@ -42,20 +42,26 @@ def _run(cmd: List[str], cwd: Optional[Path] = None) -> str:
 
 def _resolve_espnet2_spec(pack_cfg: DictConfig) -> dict:
     """Return espnet2 pack spec from config."""
-    spec = getattr(pack_cfg, "espnet2", None)
+    if isinstance(pack_cfg, DictConfig):
+        pack_cfg = OmegaConf.to_container(pack_cfg, resolve=True) or {}
+    if not isinstance(pack_cfg, dict):
+        raise RuntimeError("pack_model.pack_cfg must be a mapping.")
+    spec = pack_cfg.get("espnet2")
     if spec is None:
         raise RuntimeError("pack_model.strategy=espnet2 requires pack_model.espnet2.")
-    if not _spec_get(spec, "task"):
+    if not isinstance(spec, dict):
+        raise RuntimeError("pack_model.espnet2 must be a mapping.")
+    if not spec.get("task"):
         raise RuntimeError(
             "pack_model.strategy=espnet2 requires pack_model.espnet2.task."
         )
-    files_cfg = _spec_get(spec, "files")
-    yaml_files_cfg = _spec_get(spec, "yaml_files")
-    option_cfg = _spec_get(spec, "option", default=[])
+    files_cfg = spec.get("files") or {}
+    yaml_files_cfg = spec.get("yaml_files") or {}
+    option_cfg = spec.get("option") or []
     return {
-        "files": dict(files_cfg or {}),
-        "yaml_files": dict(yaml_files_cfg or {}),
-        "option": list(option_cfg or []),
+        "files": dict(files_cfg),
+        "yaml_files": dict(yaml_files_cfg),
+        "option": list(option_cfg),
     }
 
 
@@ -120,14 +126,6 @@ def _write_meta(pack_cfg: DictConfig, out_dir: Path) -> None:
     )
     (out_dir / "meta.yaml").write_text(OmegaConf.to_yaml(meta), encoding="utf-8")
 
-
-def _spec_get(spec, key: str, default=None):
-    """Return a value from a dict or DictConfig."""
-    if isinstance(spec, DictConfig):
-        spec = OmegaConf.to_container(spec, resolve=True) or {}
-    if isinstance(spec, dict):
-        return spec.get(key, default)
-    return getattr(spec, key, default)
 
 def _build_meta(files: Dict[str, Path], yaml_files: Dict[str, Path]) -> dict:
     """Build espnet2-style meta.yaml contents."""
