@@ -42,7 +42,7 @@ def get_lang(lang_name):
         return "<unk>"
 
 
-def main(root_dir, output_dir, lang_dist_json):
+def main(root_dir, output_dir):
     # source directories
     ROOT_DATA_DIR = os.path.join(root_dir, "data")
     ROOT_DF_DIR = os.path.join(root_dir, "downloads")
