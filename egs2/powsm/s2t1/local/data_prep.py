@@ -26,9 +26,7 @@ def get_parser():
     parser = argparse.ArgumentParser(
         description="Convert downloaded data to Kaldi format"
     )
-    parser.add_argument(
-        "--source_dir", type=Path, default=Path("downloads")
-    )
+    parser.add_argument("--source_dir", type=Path, default=Path("downloads"))
     parser.add_argument("--target_dir", type=Path, default=Path("data"))
     return parser
 

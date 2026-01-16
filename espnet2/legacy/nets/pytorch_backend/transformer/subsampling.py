@@ -352,7 +352,7 @@ class Conv2dSubsampling(torch.nn.Module):
                     ],
                     dim=-1,
                 )
-        
+
         x = self.pos_enc(x)
 
         return x, x_mask

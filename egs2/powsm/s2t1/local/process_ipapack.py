@@ -24,7 +24,7 @@ NO_TIME = "<notimestamps>"
 SAMPLE_RATE = 16000
 LANG = "<LANG>"  # Should be mapping from utt_id to language code
 UNK_LANG = "<unk>"
-remove_space_lang = ['<cmn>', '<yue>', '<jpn>', '<tha>', '<lao>']
+remove_space_lang = ["<cmn>", "<yue>", "<jpn>", "<tha>", "<lao>"]
 
 
 def get_lang(lang_name):
@@ -43,7 +43,7 @@ def get_lang(lang_name):
 
 
 def main(root_dir, output_dir, lang_dist_json):
-    # source directories   
+    # source directories
     ROOT_DATA_DIR = os.path.join(root_dir, "data")
     ROOT_DF_DIR = os.path.join(root_dir, "downloads")
     # target directory
@@ -59,7 +59,9 @@ def main(root_dir, output_dir, lang_dist_json):
     for split in splits_to_process:
         texts[split] = {}
         for filename in ["text", "text.ctc", "text.prev"]:
-            texts[split][filename] = open(os.path.join(output_dir, split, filename), "w")
+            texts[split][filename] = open(
+                os.path.join(output_dir, split, filename), "w"
+            )
 
     # Write to text files
     ntt = "<notimestamps>"
@@ -67,31 +69,52 @@ def main(root_dir, output_dir, lang_dist_json):
         reader = csv.reader(f)
         next(reader)  # skip header
         for row in reader:
-            utt_id,_,_,split,_,_,lang,_,text,_,_,path,ipa_panphon,ipa_panphon_nosup = row
+            (
+                utt_id,
+                _,
+                _,
+                split,
+                _,
+                _,
+                lang,
+                _,
+                text,
+                _,
+                _,
+                path,
+                ipa_panphon,
+                ipa_panphon_nosup,
+            ) = row
             if split not in splits_to_process:
                 continue
             lang = get_lang(lang)
             # phone tokens are surrounded by slashes (/p/)
             ipa_panphon = "/" + "//".join(ipa_panphon.split()) + "/"
             ipa_panphon_nosup = "/" + "//".join(ipa_panphon_nosup.split()) + "/"
-            if lang in remove_space_lang: text = text.replace(" ", "")
+            if lang in remove_space_lang:
+                text = text.replace(" ", "")
 
             for task in tasks:
                 # text: pr, g2p -> pr; asr, p2g -> orthography
                 content = ipa_panphon if task in ["pr", "g2p"] else text
-                texts[split]["text"].write(f"{utt_id}_{task} {lang}<{task}>{ntt} {content}\n")
+                texts[split]["text"].write(
+                    f"{utt_id}_{task} {lang}<{task}>{ntt} {content}\n"
+                )
                 # text.ctc: all tasks -> reduced pr
                 texts[split]["text.ctc"].write(f"{utt_id}_{task} {ipa_panphon_nosup}\n")
                 # text.prev: pr, asr -> <na>; g2p -> orthography; p2g -> pr
-                if task in ["pr", "asr"]: prev_content = "<na>"
-                elif task == "g2p": prev_content = text
-                else: prev_content = ipa_panphon
+                if task in ["pr", "asr"]:
+                    prev_content = "<na>"
+                elif task == "g2p":
+                    prev_content = text
+                else:
+                    prev_content = ipa_panphon
                 texts[split]["text.prev"].write(f"{utt_id}_{task} {prev_content}\n")
 
     for split in texts:
         for filename in texts[split]:
             texts[split][filename].close()
-    
+
     # ========== Get wav.scp and additional files  ==========
     print("Generating wav.scp and additional files...")
     for split in splits_to_process:
@@ -117,7 +140,7 @@ def main(root_dir, output_dir, lang_dist_json):
             oldfile = os.path.join(ROOT_DATA_DIR, split, filename)
             newfile = os.path.join(output_dir, split, filename)
             shutil.copy2(oldfile, newfile)
-    
+
     # utils/fix_data_dir.sh will help with sorting and filtering text entries
     print("Finish generating train & dev set!")
 
