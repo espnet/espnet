@@ -37,12 +37,16 @@ class BaseSystem:
         infer_config: DictConfig | None = None,
         measure_config: DictConfig | None = None,
         publish_config: DictConfig | None = None,
+        demo_config: DictConfig | None = None,
+        demo_config_path: Path | None = None,
     ) -> None:
         """Initialize the system with optional stage configs."""
         self.train_config = train_config
         self.infer_config = infer_config
         self.metric_config = measure_config
         self.publish_config = publish_config
+        self.demo_config = demo_config
+        self.demo_config_path = demo_config_path
         if train_config is not None:
             self.exp_dir = Path(train_config.exp_dir)
             self.exp_dir.mkdir(parents=True, exist_ok=True)
@@ -50,12 +54,13 @@ class BaseSystem:
             self.exp_dir = None
         logger.info(
             "Initialized %s with train_config=%s infer_config=%s "
-            "measure_config=%s publish_config=%s exp_dir=%s",
+            "measure_config=%s publish_config=%s demo_config=%s exp_dir=%s",
             self.__class__.__name__,
             train_config is not None,
             infer_config is not None,
             measure_config is not None,
             publish_config is not None,
+            demo_config is not None,
             self.exp_dir,
         )
 
@@ -171,3 +176,17 @@ class BaseSystem:
         from espnet3.utils.publish import upload_model
 
         return upload_model(self)
+
+    def pack_demo(self, *args, **kwargs):
+        """Pack demo artifacts into a runnable demo bundle."""
+        self._reject_stage_args("pack_demo", args, kwargs)
+        from espnet3.demo.pack import pack_demo
+
+        return pack_demo(self)
+
+    def upload_demo(self, *args, **kwargs):
+        """Upload demo bundle to HuggingFace Spaces (stub)."""
+        self._reject_stage_args("upload_demo", args, kwargs)
+        from espnet3.demo.pack import upload_demo
+
+        return upload_demo(self)

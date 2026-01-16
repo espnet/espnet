@@ -78,34 +78,41 @@ def _write_readme(
     out_dir: Path,
     publish_cfg: DictConfig,
     pack_cfg: DictConfig,
-    exp_dir: Path,
+    exp_dir: Path | None,
     strategy: str,
     system,
     scores_path: Optional[Path],
+    minimal: bool = False,
 ) -> None:
     """Render README template into output directory if present."""
     if not readme_template:
         return
     git_info = _git_info()
+    publish_hf_repo = ""
+    if not minimal:
+        publish_hf_repo = getattr(
+            getattr(publish_cfg, "upload_model", None), "hf_repo", ""
+        )
     context = {
-        "hf_repo": getattr(getattr(publish_cfg, "upload_model", None), "hf_repo", ""),
+        "hf_repo": publish_hf_repo,
         "system": system.__class__.__name__,
         "recipe": _resolve_recipe(system),
         "creator": _hf_username(),
         "pack_name": out_dir.name,
         "pack_strategy": strategy,
-        "exp_dir": str(exp_dir),
-        "created_at": datetime.now().isoformat(),
+        "exp_dir": str(exp_dir) if exp_dir else "",
+        "created_at": "" if minimal else datetime.now().isoformat(),
         "git_head": git_info.get("head", ""),
         "git_dirty": git_info.get("dirty", ""),
         "train_config": (
             OmegaConf.to_yaml(system.train_config, resolve=True)
-            if system.train_config is not None
+            if getattr(system, "train_config", None) is not None
             else ""
         ),
-        "results_section": _resolve_results_section(scores_path),
+        "results_section": "" if minimal else _resolve_results_section(scores_path),
     }
-    context.update(dict(getattr(pack_cfg, "readme_context", {}) or {}))
+    if not minimal:
+        context.update(dict(getattr(pack_cfg, "readme_context", {}) or {}))
     readme_text = _render_readme(readme_template, context)
     (out_dir / "README.md").write_text(readme_text, encoding="utf-8")
 
