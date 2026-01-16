@@ -360,52 +360,41 @@ def write_dir(target_dir, transcripts):
         not_train_val = True
     else:
         not_train_val = False
-    if not_train_val:
-        # use unnormalized IPA for test sets; doesn't need to be in OWSM format
-        text_original = open(target_dir / "text.raw", "w", encoding="utf-8")
-    else:
-        text = open(target_dir / "text", "w", encoding="utf-8")
-        text_ctc = open(target_dir / "text.ctc", "w", encoding="utf-8")
-    wavscp = open(target_dir / "wav.scp", "w", encoding="utf-8")
-    utt2spk = open(target_dir / "utt2spk", "w", encoding="utf-8")
-    spk2utt = open(target_dir / "spk2utt", "w", encoding="utf-8")
-    prompt = open(target_dir / "text.asr", "w", encoding="utf-8")
 
-    for _, row in transcripts.iterrows():
-        utt_id, old_utt_id, path, ipa_original, ipa, ipa_nosup, orthography = (
-            row["utt_id"],
-            row["old_utt_id"],
-            row["path"],
-            row["ipa_original"],
-            row["ipa_panphon"],
-            row["ipa_panphon_nosup"],
-            row["text"],
-        )
-
-        # {source_dir}/{dataset}/{split}/{old_utt_id}.flac
-        wavscp.write(f"{utt_id} {path}\n")
-
-        if not_train_val:
-            text_original.write(f"{utt_id} {ipa_original}\n")
-        else:
-            text.write(f"{utt_id} {ipa}\n")
-            text_ctc.write(f"{utt_id} {ipa_nosup}\n")
-            utt2spk.write(f"{utt_id} {utt_id}\n")
-            spk2utt.write(f"{utt_id} {utt_id}\n")
-
-        if pd.isna(orthography):
-            orthography = ""
-        prompt.write(f"{utt_id} {orthography}\n")
-
-    if not_train_val:
-        text_original.close()
-    else:
-        text.close()
-        text_ctc.close()
-    wavscp.close()
-    utt2spk.close()
-    spk2utt.close()
-    prompt.close()
+    with (
+        open(target_dir / "text.raw", "w", encoding="utf-8") as text_original, # use unnormalized IPA for test sets
+        open(target_dir / "text", "w", encoding="utf-8") as text,
+        open(target_dir / "text.ctc", "w", encoding="utf-8") as text_ctc,
+        open(target_dir / "wav.scp", "w", encoding="utf-8") as wavscp,
+        open(target_dir / "utt2spk", "w", encoding="utf-8") as utt2spk,
+        open(target_dir / "spk2utt", "w", encoding="utf-8") as spk2utt,
+        open(target_dir / "text.asr", "w", encoding="utf-8") as prompt,
+    ):
+        for _, row in transcripts.iterrows():
+            utt_id, old_utt_id, path, ipa_original, ipa, ipa_nosup, orthography = (
+                row["utt_id"],
+                row["old_utt_id"],
+                row["path"],
+                row["ipa_original"],
+                row["ipa_panphon"],
+                row["ipa_panphon_nosup"],
+                row["text"],
+            )
+    
+            # {source_dir}/{dataset}/{split}/{old_utt_id}.flac
+            wavscp.write(f"{utt_id} {path}\n")
+    
+            if not_train_val:
+                text_original.write(f"{utt_id} {ipa_original}\n")
+            else:
+                text.write(f"{utt_id} {ipa}\n")
+                text_ctc.write(f"{utt_id} {ipa_nosup}\n")
+                utt2spk.write(f"{utt_id} {utt_id}\n")
+                spk2utt.write(f"{utt_id} {utt_id}\n")
+    
+            if pd.isna(orthography):
+                orthography = ""
+            prompt.write(f"{utt_id} {orthography}\n")
 
     logging.info(
         f"{target_dir}: {len(transcripts)} lines" + f"written to {str(target_dir)}."
