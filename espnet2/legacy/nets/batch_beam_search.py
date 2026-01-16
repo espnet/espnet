@@ -181,14 +181,14 @@ class BatchBeamSearch(BeamSearch):
                 and state values of `self.full_scorers`
 
         """
-        
+
         # -----------------------------------------------------------
         # Implementation of "Improving Cross-Attention based on Positional Alignment during Inference for Robust Long-form Speech Recognition"
         # from Interspeech 2025 paper (Section 3.2.2)
         # κ(0) = 0.
         # -----------------------------------------------------------
 
-        SIGMA = 20.0   # fixed, value from paper
+        SIGMA = 20.0  # fixed, value from paper
 
         xattn_logit_bias = None
 
@@ -201,14 +201,18 @@ class BatchBeamSearch(BeamSearch):
                 B = 1
                 x = x.unsqueeze(0)  # (1, T_enc, D)
             else:
-                raise RuntimeError(f"[Inference LF cross-attention trick] Unexpected x shape: {tuple(x.shape)}")
+                raise RuntimeError(
+                    f"[Inference LF cross-attention trick] Unexpected x shape: {tuple(x.shape)}"
+                )
 
             # ---- literal κ(i) definition (Eq. 5) ----
             # κ(0) = 0
             # For i >= 1: κ(i) = argmax_j CTC_prefix_score(j)
             ctc_scorer = self.part_scorers.get("ctc", None)
             if ctc_scorer is None or not hasattr(ctc_scorer, "impl"):
-                raise RuntimeError("[GAUSS] CTC scorer missing (literal implementation assumes it exists)")
+                raise RuntimeError(
+                    "[GAUSS] CTC scorer missing (literal implementation assumes it exists)"
+                )
 
             lts = getattr(ctc_scorer.impl, "latest_time_scores", None)
             if lts is None:
@@ -221,34 +225,43 @@ class BatchBeamSearch(BeamSearch):
                 elif lts.dim() == 1:
                     ps_time = lts
                 else:
-                    raise RuntimeError(f"Unexpected latest_time_scores shape: {tuple(lts.shape)}")
+                    raise RuntimeError(
+                        f"Unexpected latest_time_scores shape: {tuple(lts.shape)}"
+                    )
 
                 # Eq (5): κ(i) = argmax_j p_ctc(prefix | X)
                 kappa = int(ps_time.argmax().item())
 
             # ---- Gaussian mask (Eq. 4) ----
             pos = torch.arange(T_enc, device=x.device, dtype=torch.float32)
-            bias_t = -((pos - float(kappa)) ** 2) / (2.0 * SIGMA ** 2)
+            bias_t = -((pos - float(kappa)) ** 2) / (2.0 * SIGMA**2)
 
             # reshape to broadcast over heads/query positions exactly as paper assumes
             # (B, 1, 1, T_enc)
             xattn_logit_bias = bias_t.view(1, 1, 1, T_enc).to(x.dtype)
             xattn_logit_bias = xattn_logit_bias.expand(B, 1, 1, T_enc)
 
-        # -----------------------------------------------------------        
-
+        # -----------------------------------------------------------
 
         scores = dict()
         states = dict()
         for k, d in self.full_scorers.items():
             if "decoder" in k and self.return_hs:
                 (scores[k], hs), states[k] = d.batch_score(
-                    hyp.yseq, hyp.states[k], x, return_hs=self.return_hs, xattn_logit_bias=xattn_logit_bias
+                    hyp.yseq,
+                    hyp.states[k],
+                    x,
+                    return_hs=self.return_hs,
+                    xattn_logit_bias=xattn_logit_bias,
                 )
             elif "decoder" in k and pre_x is not None:
-                scores[k], states[k] = d.batch_score(hyp.yseq, hyp.states[k], x, pre_x, xattn_logit_bias=xattn_logit_bias)
+                scores[k], states[k] = d.batch_score(
+                    hyp.yseq, hyp.states[k], x, pre_x, xattn_logit_bias=xattn_logit_bias
+                )
             else:
-                scores[k], states[k] = d.batch_score(hyp.yseq, hyp.states[k], x, xattn_logit_bias=xattn_logit_bias)
+                scores[k], states[k] = d.batch_score(
+                    hyp.yseq, hyp.states[k], x, xattn_logit_bias=xattn_logit_bias
+                )
 
         if self.return_hs:
             return hs, scores, states
