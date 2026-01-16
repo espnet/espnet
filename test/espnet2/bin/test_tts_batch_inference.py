@@ -127,7 +127,7 @@ def test_batch_call_vs_single_call(fastspeech2_config_file):
     ):
         single_feat = single_output["feat_gen"]
 
-        print(f"\nSentence {i+1}: '{test_sentences[i]}'")
+        print(f"\nSentence {i + 1}: '{test_sentences[i]}'")
         print(f"  Batch output shape:  {batch_feat.shape}")
         print(f"  Single output shape: {single_feat.shape}")
 
