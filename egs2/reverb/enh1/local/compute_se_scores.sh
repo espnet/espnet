@@ -1,1 +1,1 @@
-../../../../egs/reverb/asr1/local/compute_se_scores.sh
+../../asr1/local/compute_se_scores.sh

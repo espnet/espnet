@@ -1,9 +1,0 @@
-layer: 1         # 2 for character LMs
-unit: 1000       # 650 for character LMs
-opt: sgd          # adam for character LMs
-sortagrad: 0 # Feed samples from shortest to longest ; -1: enabled for all epochs, 0: disabled, other: enabled for 'other' epochs
-batchsize: 300    # 1024 for character LMs
-epoch: 20        # number of epochs
-patience: 3
-maxlen: 40        # 150 for character LMs
-model-module: seq_rnn
