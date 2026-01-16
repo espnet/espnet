@@ -1,1 +1,0 @@
-../../../../tools/kaldi/egs/babel/s5d/local/prepare_acoustic_training_data.pl
