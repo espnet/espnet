@@ -15,8 +15,7 @@ from espnet3.parallel.base_runner import BaseRunner
 from espnet3.parallel.env_provider import EnvironmentProvider
 from espnet3.parallel.parallel import set_parallel
 from espnet3.utils.task_utils import get_espnet_model
-from espnet3.wrapper.fileio import DatadirWriter
-from espnet3.wrapper.fileio import NpyScpWriter
+from espnet3.wrapper.fileio import DatadirWriter, NpyScpWriter
 from espnet3.wrapper.train import CommonCollateFn
 
 __all__ = [
