@@ -127,7 +127,7 @@ def main(root_dir, output_dir):
                 os.system(
                     (
                         f'awk \'{{ $1 = $1 "_{task}"; print }}\' OFS=" " '
-                        f"{oldfile} >> f{newfile}"
+                        f"{oldfile} >> {newfile}"
                     )
                 )
         # spk2utt, utt2spk: write first column of wav.scp twice
