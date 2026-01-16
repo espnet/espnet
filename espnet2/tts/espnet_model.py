@@ -4,7 +4,7 @@
 """Text-to-speech ESPnet model."""
 
 from contextlib import contextmanager
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple, List
 
 import torch
 from packaging.version import parse as V
