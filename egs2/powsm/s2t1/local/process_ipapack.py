@@ -1,5 +1,6 @@
 import argparse
 import json
+import csv
 import os
 import shutil
 from collections import defaultdict
@@ -37,7 +38,7 @@ def get_lang(lang_name):
             return "<cmn>"
         else:
             return f"<{langcode}>"
-    except:
+    except LookupError:
         print(f"Unknown language: {lang_name}")
         return "<unk>"
 
@@ -66,28 +67,19 @@ def main(root_dir, output_dir):
     # Write to text files
     ntt = "<notimestamps>"
     with open(os.path.join(ROOT_DF_DIR, "transcript_normalized.csv"), "r") as f:
-        reader = csv.reader(f)
+        reader = csv.DictReader(f)
         next(reader)  # skip header
         for row in reader:
-            (
-                utt_id,
-                _,
-                _,
-                split,
-                _,
-                _,
-                lang,
-                _,
-                text,
-                _,
-                _,
-                path,
-                ipa_panphon,
-                ipa_panphon_nosup,
-            ) = row
+            split = row["split"]
             if split not in splits_to_process:
                 continue
-            lang = get_lang(lang)
+            utt_id = row["utt_id"]
+            lang = get_lang(row["lang"])
+            text = row["text"]
+            path = row["path"]
+            ipa_panphon = row["ipa_panphon"]
+            ipa_panphon_nosup = row["ipa_panphon_nosup"]
+            
             # phone tokens are surrounded by slashes (/p/)
             ipa_panphon = "/" + "//".join(ipa_panphon.split()) + "/"
             ipa_panphon_nosup = "/" + "//".join(ipa_panphon_nosup.split()) + "/"
