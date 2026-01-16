@@ -362,7 +362,9 @@ def write_dir(target_dir, transcripts):
         not_train_val = False
 
     with (
-        open(target_dir / "text.raw", "w", encoding="utf-8") as text_original, # use unnormalized IPA for test sets
+        open(
+            target_dir / "text.raw", "w", encoding="utf-8"
+        ) as text_original,  # use unnormalized IPA for test sets
         open(target_dir / "text", "w", encoding="utf-8") as text,
         open(target_dir / "text.ctc", "w", encoding="utf-8") as text_ctc,
         open(target_dir / "wav.scp", "w", encoding="utf-8") as wavscp,
@@ -380,10 +382,10 @@ def write_dir(target_dir, transcripts):
                 row["ipa_panphon_nosup"],
                 row["text"],
             )
-    
+
             # {source_dir}/{dataset}/{split}/{old_utt_id}.flac
             wavscp.write(f"{utt_id} {path}\n")
-    
+
             if not_train_val:
                 text_original.write(f"{utt_id} {ipa_original}\n")
             else:
@@ -391,7 +393,7 @@ def write_dir(target_dir, transcripts):
                 text_ctc.write(f"{utt_id} {ipa_nosup}\n")
                 utt2spk.write(f"{utt_id} {utt_id}\n")
                 spk2utt.write(f"{utt_id} {utt_id}\n")
-    
+
             if pd.isna(orthography):
                 orthography = ""
             prompt.write(f"{utt_id} {orthography}\n")
