@@ -105,7 +105,7 @@ class Speech2Text:
         lm_weight: float = 1.0,
         ngram_weight: float = 0.9,
         penalty: float = 0.0,
-        inference_lf_trick: float = False,
+        inference_lf_trick: bool = False,
         nbest: int = 1,
         normalize_length: bool = False,
         streaming: bool = False,
