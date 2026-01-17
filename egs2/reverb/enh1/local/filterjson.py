@@ -1,1 +1,1 @@
-../../../../egs/reverb/asr1/local/filterjson.py
+../../asr1/local/filterjson.py

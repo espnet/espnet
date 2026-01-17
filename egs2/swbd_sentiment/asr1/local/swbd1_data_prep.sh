@@ -1,1 +1,1 @@
-../../../../egs/swbd/asr1/local/swbd1_data_prep.sh
+../../../swbd/asr1/local/swbd1_data_prep.sh

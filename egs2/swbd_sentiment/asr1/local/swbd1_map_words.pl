@@ -1,1 +1,1 @@
-../../../../egs/swbd/asr1/local/swbd1_map_words.pl
+../../../swbd/asr1/local/swbd1_map_words.pl
