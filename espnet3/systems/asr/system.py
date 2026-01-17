@@ -120,8 +120,6 @@ class ASRSystem(BaseSystem):
             return
 
         start = time.perf_counter()
-        output_path = Path(self.train_config.tokenizer.save_path)
-        output_path.mkdir(parents=True, exist_ok=True)
         tokenizer_cfg = getattr(self.train_config, "tokenizer", None)
         builder_cfg = (
             getattr(tokenizer_cfg, "text_builder", None) if tokenizer_cfg else None
@@ -153,8 +151,22 @@ class ASRSystem(BaseSystem):
             raise RuntimeError(
                 "Tokenizer text_builder returned no text. Check dataset preparation."
             )
-        logger.info("Collected %d transcript lines for tokenizer training", len(texts))
-        with open(output_path / "train.txt", "w", encoding="utf-8") as f:
+        output_path = Path(self.train_config.tokenizer.save_path)
+        output_path.mkdir(parents=True, exist_ok=True)
+        train_text_path = getattr(tokenizer_cfg, "train_file", None)
+        if train_text_path:
+            train_text_path = Path(train_text_path)
+        else:
+            train_text_path = output_path / "train.txt"
+        if train_text_path.exists():
+            raise RuntimeError(
+                f"Tokenizer training text already exists: {train_text_path}"
+            )
+        train_text_path.parent.mkdir(parents=True, exist_ok=True)
+        logger.info(
+            "Collected %d transcript lines for tokenizer training", len(texts)
+        )
+        with open(train_text_path, "w", encoding="utf-8") as f:
             f.write("\n".join(texts))
 
         logger.info(f"Training tokenizer: {self.train_config.tokenizer.model_type}")
@@ -162,7 +174,7 @@ class ASRSystem(BaseSystem):
 
         # Example placeholder:
         train_sentencepiece(
-            output_path / "train.txt",
+            train_text_path,
             output_path,
             self.train_config.tokenizer.vocab_size,
             model_type=self.train_config.tokenizer.model_type,

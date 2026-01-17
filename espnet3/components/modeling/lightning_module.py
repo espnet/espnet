@@ -400,12 +400,12 @@ class ESPnetLightningModule(lightning.LightningModule):
     def collect_stats(self):
         """Collect training and validation statistics using ESPnet's collect_stats.
 
-        Requires `config.statsdir` to be defined. Saves stats under this directory.
+        Requires `config.stats_dir` to be defined. Saves stats under this directory.
 
         Raises:
-            AssertionError: If `config.statsdir` is not provided.
+            AssertionError: If `config.stats_dir` is not provided.
         """
-        assert hasattr(self.config, "stats_dir"), "config.statsdir must be defined"
+        assert hasattr(self.config, "stats_dir"), "config.stats_dir must be defined"
 
         # Detach dataset/dataloader configs from the root so interpolations like
         # ${dataset_dir} remain resolved when used standalone during collection.

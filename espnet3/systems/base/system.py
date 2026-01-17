@@ -98,13 +98,6 @@ class BaseSystem:
         )
         return train(self.train_config)
 
-    def evaluate(self, *args, **kwargs):
-        """Run inference and measurement in sequence."""
-        self._reject_stage_args("evaluate", args, kwargs)
-        # Backward-compat shim if someone calls evaluate directly.
-        self.infer()
-        return self.measure()
-
     def infer(self, *args, **kwargs):
         """Run inference on the configured datasets."""
         self._reject_stage_args("infer", args, kwargs)
