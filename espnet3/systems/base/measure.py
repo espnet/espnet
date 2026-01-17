@@ -1,4 +1,4 @@
-"""Metric scoring entrypoint for hypothesis/reference outputs."""
+"""Metric measurement entrypoint for hypothesis/reference outputs."""
 
 import json
 from pathlib import Path
@@ -10,8 +10,8 @@ from espnet3.components.metrics.abs_metric import AbsMetrics
 from espnet3.utils.scp_utils import get_class_path, load_scp_fields
 
 
-def score(config: DictConfig):
-    """Compute metrics for each test set and write a scores JSON file.
+def measure(config: DictConfig):
+    """Compute metrics for each test set and write a measures JSON file.
 
     Args:
         config: Hydra/omegaconf configuration with inference and metric settings.
@@ -49,7 +49,7 @@ def score(config: DictConfig):
             metric_result = metric(data, test_name, config.infer_dir)
             results[get_class_path(metric)].update({test_name: metric_result})
 
-    out_path = Path(config.infer_dir) / "scores.json"
+    out_path = Path(config.infer_dir) / "measures.json"
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(results, f, indent=2, ensure_ascii=False)
 

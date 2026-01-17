@@ -5,7 +5,7 @@ import pytest
 from omegaconf import OmegaConf
 
 from espnet3.components.metrics.abs_metric import AbsMetrics
-from espnet3.systems.base.score import score
+from espnet3.systems.base.measure import measure
 from espnet3.utils.scp_utils import get_class_path
 
 
@@ -30,7 +30,7 @@ def _write_scp(path: Path, entries):
     path.write_text("\n".join(entries), encoding="utf-8")
 
 
-def test_score_uses_metric_keys_and_writes_json(tmp_path):
+def test_measure_uses_metric_keys_and_writes_json(tmp_path):
     infer_dir = tmp_path / "infer"
     test_name = "test_a"
     task_dir = infer_dir / test_name
@@ -46,16 +46,16 @@ def test_score_uses_metric_keys_and_writes_json(tmp_path):
         }
     )
 
-    results = score(cfg)
+    results = measure(cfg)
 
     expected_key = get_class_path(DummyMetric())
     assert results[expected_key][test_name] == {"count": 2}
-    scores_path = infer_dir / "scores.json"
-    assert scores_path.is_file()
-    assert json.loads(scores_path.read_text(encoding="utf-8")) == results
+    measures_path = infer_dir / "measures.json"
+    assert measures_path.is_file()
+    assert json.loads(measures_path.read_text(encoding="utf-8")) == results
 
 
-def test_score_uses_config_inputs_mapping(tmp_path):
+def test_measure_uses_config_inputs_mapping(tmp_path):
     infer_dir = tmp_path / "infer"
     test_name = "test_a"
     task_dir = infer_dir / test_name
@@ -76,13 +76,13 @@ def test_score_uses_config_inputs_mapping(tmp_path):
         }
     )
 
-    results = score(cfg)
+    results = measure(cfg)
 
     expected_key = get_class_path(NoKeyMetric())
     assert results[expected_key][test_name] == {"ok": True}
 
 
-def test_score_rejects_non_metric_instance(tmp_path):
+def test_measure_rejects_non_metric_instance(tmp_path):
     cfg = OmegaConf.create(
         {
             "infer_dir": str(tmp_path),
@@ -92,10 +92,10 @@ def test_score_rejects_non_metric_instance(tmp_path):
     )
 
     with pytest.raises(TypeError, match="not a valid AbsMetrics instance"):
-        score(cfg)
+        measure(cfg)
 
 
-def test_score_requires_inputs_when_metric_has_no_keys(tmp_path):
+def test_measure_requires_inputs_when_metric_has_no_keys(tmp_path):
     cfg = OmegaConf.create(
         {
             "infer_dir": str(tmp_path),
@@ -105,4 +105,4 @@ def test_score_requires_inputs_when_metric_has_no_keys(tmp_path):
     )
 
     with pytest.raises(ValueError, match="requires inputs in config"):
-        score(cfg)
+        measure(cfg)
