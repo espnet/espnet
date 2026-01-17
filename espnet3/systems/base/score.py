@@ -1,4 +1,4 @@
-"""Metric scoring entrypoint for decoded outputs."""
+"""Metric scoring entrypoint for hypothesis/reference outputs."""
 
 import json
 from pathlib import Path
@@ -14,7 +14,7 @@ def score(config: DictConfig):
     """Compute metrics for each test set and write a scores JSON file.
 
     Args:
-        config: Hydra/omegaconf configuration with decode and metric settings.
+        config: Hydra/omegaconf configuration with inference and metric settings.
 
     Returns:
         Nested dict keyed by metric class path and test set name.
@@ -41,15 +41,15 @@ def score(config: DictConfig):
                     )
                 inputs = [ref_key, hyp_key]
             data = load_scp_fields(
-                decode_dir=Path(config.decode_dir),
+                infer_dir=Path(config.infer_dir),
                 test_name=test_name,
                 inputs=inputs,
                 file_suffix=".scp",
             )
-            metric_result = metric(data, test_name, config.decode_dir)
+            metric_result = metric(data, test_name, config.infer_dir)
             results[get_class_path(metric)].update({test_name: metric_result})
 
-    out_path = Path(config.decode_dir) / "scores.json"
+    out_path = Path(config.infer_dir) / "scores.json"
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(results, f, indent=2, ensure_ascii=False)
 

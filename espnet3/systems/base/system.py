@@ -18,7 +18,7 @@ class BaseSystem:
     Each system should implement the following:
       - create_dataset()
       - train()
-      - decode()
+      - infer()
       - score()
       - publish()
 
@@ -109,13 +109,13 @@ class BaseSystem:
         """Run inference on the configured datasets."""
         self._reject_stage_args("infer", args, kwargs)
         logger.info(
-            "Inference start | decode_dir=%s",
-            getattr(self.infer_config, "decode_dir", None),
+            "Inference start | infer_dir=%s",
+            getattr(self.infer_config, "infer_dir", None),
         )
         return inference(self.infer_config)
 
     def measure(self, *args, **kwargs):
-        """Compute evaluation metrics from inference outputs."""
+        """Compute evaluation metrics from hypothesis/reference outputs."""
         self._reject_stage_args("measure", args, kwargs)
         logger.info(
             "Scoring start | metric_config=%s",

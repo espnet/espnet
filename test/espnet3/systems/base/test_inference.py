@@ -36,7 +36,7 @@ def test_inference_writes_scp_outputs(tmp_path, monkeypatch):
     cfg = OmegaConf.create(
         {
             "parallel": {"env": "local"},
-            "decode_dir": str(tmp_path / "decode"),
+            "infer_dir": str(tmp_path / "infer"),
             "dataset": {"test": [{"name": "test_a"}, {"name": "test_b"}]},
             "mock_dataset_length": 2,
         }
@@ -61,7 +61,7 @@ def test_inference_writes_scp_outputs(tmp_path, monkeypatch):
 
     assert calls["parallel"] == {"env": "local"}
     for test_name in ("test_a", "test_b"):
-        base = tmp_path / "decode" / test_name
+        base = tmp_path / "infer" / test_name
         assert _read_scp(base / "hyp.scp") == ["0 h0", "1 h1"]
         assert _read_scp(base / "ref.scp") == ["0 r0", "1 r1"]
 
@@ -70,7 +70,7 @@ def test_inference_rejects_async_results(tmp_path, monkeypatch):
     cfg = OmegaConf.create(
         {
             "parallel": {"env": "local"},
-            "decode_dir": str(tmp_path / "decode"),
+            "infer_dir": str(tmp_path / "infer"),
             "dataset": {"test": [{"name": "test_a"}]},
             "mock_dataset_length": 1,
         }

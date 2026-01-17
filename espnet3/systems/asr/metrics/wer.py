@@ -15,10 +15,10 @@ from espnet3.components.metrics.abs_metric import AbsMetrics
 
 
 class WER(AbsMetrics):
-    """Compute WER for decoded hypotheses.
+    """Compute WER for hypotheses.
 
-    This metric expects decoded hypothesis and reference strings and produces
-    a percentage score along with alignment visualization output.
+    This metric expects hypothesis and reference strings and produces a
+    percentage score along with alignment visualization output.
     """
 
     def __init__(
@@ -66,16 +66,16 @@ class WER(AbsMetrics):
         self,
         data: Dict[str, List[str]],
         test_name: str,
-        decode_dir: Path,
+        infer_dir: Path,
     ) -> Dict[str, float]:
         """Compute WER, write alignment details, and return the metric.
 
         Args:
             data: Mapping of field names to lists of strings. This is built
-                from inference-time SCP outputs, e.g.
+                from inference-time SCP files, e.g.
                 ``{"ref": [str1, str2, ...], "hyp": [str1, str2, ...]}``.
             test_name: Test set name used for output directory naming.
-            decode_dir: Base decode directory for alignment outputs.
+            infer_dir: Base hypothesis/reference directory for alignment outputs.
 
         Returns:
             Dict containing WER in percentage points.
@@ -90,7 +90,7 @@ class WER(AbsMetrics):
         score = jiwer.wer(refs, hyps) * 100
         details = jiwer.process_words(refs, hyps)
 
-        test_dir = Path(decode_dir) / test_name
+        test_dir = Path(infer_dir) / test_name
         test_dir.mkdir(parents=True, exist_ok=True)
         with (test_dir / "wer_alignment").open("w", encoding="utf-8") as f:
             f.write(jiwer.visualize_alignment(details))

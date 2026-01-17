@@ -1,7 +1,7 @@
 """ASR inference provider and runner implementations.
 
 This module wires dataset/model construction and per-sample inference for
-automatic speech recognition (ASR) evaluation and decoding.
+automatic speech recognition (ASR) evaluation and inference.
 """
 
 import logging
@@ -78,11 +78,11 @@ class InferenceRunner(AbsInferenceRunner):
     """Inference runner that produces hypotheses and references.
 
     This runner expects dataset items to contain ``speech`` and ``text``
-    fields and returns decoded hypotheses alongside references.
+    fields and returns hypotheses alongside references.
 
-    It is designed around ``espnet3.systems.asr.task.ASRTask`` outputs; when
+    It is designed around ``espnet3.systems.asr.task.ASRTask`` hypotheses; when
     using a custom model outside that task, implement your own inference
-    runner and decoding logic.
+    runner and inference logic.
     """
 
     @staticmethod

@@ -13,8 +13,8 @@ def test_base_system_rejects_args():
 
 def test_base_system_invokes_helpers(tmp_path, monkeypatch):
     train_cfg = OmegaConf.create({"exp_dir": str(tmp_path / "exp"), "model": {}})
-    infer_cfg = OmegaConf.create({"decode_dir": str(tmp_path / "decode")})
-    measure_cfg = OmegaConf.create({"decode_dir": str(tmp_path / "decode")})
+    infer_cfg = OmegaConf.create({"infer_dir": str(tmp_path / "infer")})
+    measure_cfg = OmegaConf.create({"infer_dir": str(tmp_path / "infer")})
 
     calls = {}
 

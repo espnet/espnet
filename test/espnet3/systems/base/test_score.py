@@ -13,12 +13,12 @@ class DummyMetric(AbsMetrics):
     ref_key = "ref"
     hyp_key = "hyp"
 
-    def __call__(self, data, test_name, decode_dir):
+    def __call__(self, data, test_name, infer_dir):
         return {"count": len(data["utt_id"])}
 
 
 class NoKeyMetric(AbsMetrics):
-    def __call__(self, data, test_name, decode_dir):
+    def __call__(self, data, test_name, infer_dir):
         return {"ok": True}
 
 
@@ -31,16 +31,16 @@ def _write_scp(path: Path, entries):
 
 
 def test_score_uses_metric_keys_and_writes_json(tmp_path):
-    decode_dir = tmp_path / "decode"
+    infer_dir = tmp_path / "infer"
     test_name = "test_a"
-    task_dir = decode_dir / test_name
+    task_dir = infer_dir / test_name
     task_dir.mkdir(parents=True)
     _write_scp(task_dir / "ref.scp", ["utt1 r1", "utt2 r2"])
     _write_scp(task_dir / "hyp.scp", ["utt1 h1", "utt2 h2"])
 
     cfg = OmegaConf.create(
         {
-            "decode_dir": str(decode_dir),
+            "infer_dir": str(infer_dir),
             "dataset": {"test": [{"name": test_name}]},
             "metrics": [{"metric": {"_target_": f"{__name__}.DummyMetric"}}],
         }
@@ -50,22 +50,22 @@ def test_score_uses_metric_keys_and_writes_json(tmp_path):
 
     expected_key = get_class_path(DummyMetric())
     assert results[expected_key][test_name] == {"count": 2}
-    scores_path = decode_dir / "scores.json"
+    scores_path = infer_dir / "scores.json"
     assert scores_path.is_file()
     assert json.loads(scores_path.read_text(encoding="utf-8")) == results
 
 
 def test_score_uses_config_inputs_mapping(tmp_path):
-    decode_dir = tmp_path / "decode"
+    infer_dir = tmp_path / "infer"
     test_name = "test_a"
-    task_dir = decode_dir / test_name
+    task_dir = infer_dir / test_name
     task_dir.mkdir(parents=True)
     _write_scp(task_dir / "text.scp", ["utt1 r1"])
     _write_scp(task_dir / "hypothesis.scp", ["utt1 h1"])
 
     cfg = OmegaConf.create(
         {
-            "decode_dir": str(decode_dir),
+            "infer_dir": str(infer_dir),
             "dataset": {"test": [{"name": test_name}]},
             "metrics": [
                 {
@@ -85,7 +85,7 @@ def test_score_uses_config_inputs_mapping(tmp_path):
 def test_score_rejects_non_metric_instance(tmp_path):
     cfg = OmegaConf.create(
         {
-            "decode_dir": str(tmp_path),
+            "infer_dir": str(tmp_path),
             "dataset": {"test": [{"name": "test_a"}]},
             "metrics": [{"metric": {"_target_": f"{__name__}.NotMetric"}}],
         }
@@ -98,7 +98,7 @@ def test_score_rejects_non_metric_instance(tmp_path):
 def test_score_requires_inputs_when_metric_has_no_keys(tmp_path):
     cfg = OmegaConf.create(
         {
-            "decode_dir": str(tmp_path),
+            "infer_dir": str(tmp_path),
             "dataset": {"test": [{"name": "test_a"}]},
             "metrics": [{"metric": {"_target_": f"{__name__}.NoKeyMetric"}}],
         }

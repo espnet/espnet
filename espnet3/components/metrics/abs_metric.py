@@ -13,14 +13,14 @@ class AbsMetrics(ABC):
 
     @abstractmethod
     def __call__(
-        self, data: Dict[str, List[str]], test_name: str, decode_dir: Path
+        self, data: Dict[str, List[str]], test_name: str, infer_dir: Path
     ) -> Dict[str, float]:
-        """Compute metrics for a decoded test set.
+        """Compute metrics for an inference test set.
 
         Args:
-            data (Dict[str, List[str]]): Aligned fields from decode outputs.
+            data (Dict[str, List[str]]): Aligned fields from hypothesis/reference files.
             test_name (str): Name of the test dataset (e.g., "test-other").
-            decode_dir (Path): Root path where decode results are stored.
+            infer_dir (Path): Root path where hypothesis/reference files are stored.
 
         Returns:
             Dict[str, float]: Computed metric result(s).
