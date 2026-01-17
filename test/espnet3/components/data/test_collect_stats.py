@@ -335,7 +335,7 @@ def test_collect_stats_multiple_iterator(tmp_path: Path):
     mode_dir = out_dir / "train"
     assert (mode_dir / "stats_keys").exists(), "stats_keys not written"
 
-    files = os.listdir(mode_dir)  # カレントディレクトリ
+    files = os.listdir(mode_dir)
     for f in files:
         print(f)
 
