@@ -70,7 +70,9 @@ def load_scp_fields(
         - Useful as direct input to `AbsMetrics.__call__()`.
     """
     task_dir = infer_dir / test_name
-    assert task_dir.exists(), f"Missing hypothesis/reference files in infer_dir: {task_dir}"
+    assert (
+        task_dir.exists()
+    ), f"Missing hypothesis/reference files in infer_dir: {task_dir}"
 
     input_map = {k: k for k in inputs} if isinstance(inputs, list) else dict(inputs)
 

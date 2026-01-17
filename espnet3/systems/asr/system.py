@@ -163,9 +163,7 @@ class ASRSystem(BaseSystem):
                 f"Tokenizer training text already exists: {train_text_path}"
             )
         train_text_path.parent.mkdir(parents=True, exist_ok=True)
-        logger.info(
-            "Collected %d transcript lines for tokenizer training", len(texts)
-        )
+        logger.info("Collected %d transcript lines for tokenizer training", len(texts))
         with open(train_text_path, "w", encoding="utf-8") as f:
             f.write("\n".join(texts))
 
