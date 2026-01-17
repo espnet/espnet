@@ -67,10 +67,10 @@ def _collect_scp_lines(results, *, idx_key: str, hyp_keys, ref_keys):
 
 
 def inference(config: DictConfig):
-    """Run inference over all configured test sets and write SCP outputs.
+    """Run inference over all configured test sets and write SCP files.
 
     Args:
-        config: Hydra/omegaconf configuration with dataset and decode settings.
+        config: Hydra/omegaconf configuration with dataset and inference settings.
     """
     start = time.perf_counter()
     set_parallel(config.parallel)
@@ -80,8 +80,8 @@ def inference(config: DictConfig):
     assert len(test_sets) == len(set(test_sets)), "Duplicate test key found."
 
     logger.info(
-        "Starting inference | decode_dir=%s test_sets=%s",
-        getattr(config, "decode_dir", None),
+        "Starting inference | infer_dir=%s test_sets=%s",
+        getattr(config, "infer_dir", None),
         test_sets,
     )
 
@@ -108,7 +108,7 @@ def inference(config: DictConfig):
         )
 
         # create scp files
-        output_dir = Path(config.decode_dir) / test_name
+        output_dir = Path(config.infer_dir) / test_name
         output_dir.mkdir(parents=True, exist_ok=True)
         for key, lines in scp_lines.items():
             with open(output_dir / f"{key}.scp", "w", encoding="utf-8") as f:

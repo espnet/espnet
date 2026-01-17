@@ -16,16 +16,16 @@ def test_get_class_path_reports_module_and_class():
 
 
 def test_load_scp_fields_reads_and_aligns(tmp_path: Path):
-    decode_dir = tmp_path / "exp" / "decode"
+    infer_dir = tmp_path / "exp" / "infer"
     test_name = "test-clean"
-    task_dir = decode_dir / test_name
+    task_dir = infer_dir / test_name
     task_dir.mkdir(parents=True, exist_ok=True)
 
     (task_dir / "ref.scp").write_text("utt2 ref2\nutt1 ref1\n", encoding="utf-8")
     (task_dir / "hyp.scp").write_text("utt1 hyp1\nutt2 hyp2\n", encoding="utf-8")
 
     data = load_scp_fields(
-        decode_dir=decode_dir,
+        infer_dir=infer_dir,
         test_name=test_name,
         inputs={"ref": "ref", "hyp": "hyp"},
     )
@@ -36,8 +36,8 @@ def test_load_scp_fields_reads_and_aligns(tmp_path: Path):
 
 
 def test_load_scp_fields_missing_file_raises(tmp_path: Path):
-    decode_dir = tmp_path
-    (decode_dir / "test-other").mkdir(parents=True, exist_ok=True)
+    infer_dir = tmp_path
+    (infer_dir / "test-other").mkdir(parents=True, exist_ok=True)
 
     with pytest.raises(AssertionError):
-        load_scp_fields(decode_dir=decode_dir, test_name="test-other", inputs=["ref"])
+        load_scp_fields(infer_dir=infer_dir, test_name="test-other", inputs=["ref"])
