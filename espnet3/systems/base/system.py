@@ -6,7 +6,7 @@ from pathlib import Path
 from omegaconf import DictConfig
 
 from espnet3.systems.base.inference import inference
-from espnet3.systems.base.score import score
+from espnet3.systems.base.measure import measure
 from espnet3.systems.base.train import collect_stats, train
 
 logger = logging.getLogger(__name__)
@@ -19,7 +19,7 @@ class BaseSystem:
       - create_dataset()
       - train()
       - infer()
-      - score()
+      - measure()
       - publish()
 
     This class intentionally does NOT implement:
@@ -118,11 +118,11 @@ class BaseSystem:
         """Compute evaluation metrics from hypothesis/reference outputs."""
         self._reject_stage_args("measure", args, kwargs)
         logger.info(
-            "Scoring start | metric_config=%s",
+            "Measurement start | metric_config=%s",
             self.metric_config is not None,
         )
-        result = score(self.metric_config)
-        logger.info("Scoring results: %s", result)
+        result = measure(self.metric_config)
+        logger.info("Measurement results: %s", result)
         return result
 
     def publish(self, *args, **kwargs):

@@ -30,14 +30,14 @@ def test_base_system_invokes_helpers(tmp_path, monkeypatch):
         calls["infer"] = cfg
         return "infer"
 
-    def fake_score(cfg):
-        calls["score"] = cfg
+    def fake_measure(cfg):
+        calls["measure"] = cfg
         return {"metric": 1.0}
 
     monkeypatch.setattr(sysmod, "collect_stats", fake_collect)
     monkeypatch.setattr(sysmod, "train", fake_train)
     monkeypatch.setattr(sysmod, "inference", fake_infer)
-    monkeypatch.setattr(sysmod, "score", fake_score)
+    monkeypatch.setattr(sysmod, "measure", fake_measure)
 
     system = BaseSystem(
         train_config=train_cfg,
@@ -53,7 +53,7 @@ def test_base_system_invokes_helpers(tmp_path, monkeypatch):
     assert calls["collect"] is train_cfg
     assert calls["train"] is train_cfg
     assert calls["infer"] is infer_cfg
-    assert calls["score"] is measure_cfg
+    assert calls["measure"] is measure_cfg
 
 
 def test_base_system_rejects_subclass_args():
