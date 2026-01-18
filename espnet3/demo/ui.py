@@ -45,7 +45,9 @@ def build_ui_from_config(ui_cfg) -> UiSpec:
     )
 
 
-def _build_components(cfgs: Iterable[Any], *, is_input: bool) -> Tuple[List[Any], List[str]]:
+def _build_components(
+    cfgs: Iterable[Any], *, is_input: bool
+) -> Tuple[List[Any], List[str]]:
     """Build Gradio components and their names from config entries.
 
     Args:
@@ -104,7 +106,9 @@ def _build_component(cfg, *, is_input: bool | None = None):
         )
     if comp_type == "dropdown":
         choices = list(getattr(cfg, "choices", []) or [])
-        return gr.Dropdown(label=label, choices=choices, value=getattr(cfg, "value", None))
+        return gr.Dropdown(
+            label=label, choices=choices, value=getattr(cfg, "value", None)
+        )
     if comp_type == "number":
         return gr.Number(label=label, value=getattr(cfg, "value", None))
     if comp_type == "slider":

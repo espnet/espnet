@@ -1,10 +1,7 @@
 from __future__ import annotations
 
-from pathlib import Path
-
 import numpy as np
 import pytest
-from omegaconf import OmegaConf
 
 from espnet3.demo.runtime import DemoRuntime, run_inference
 

@@ -6,6 +6,7 @@ import logging
 import os
 import shutil
 from pathlib import Path
+
 from omegaconf import DictConfig, OmegaConf
 
 from espnet3.demo.resolve import (
@@ -56,7 +57,9 @@ def upload_demo(system) -> None:
     raise RuntimeError("upload_demo is not implemented yet.")
 
 
-def _prepare_demo_config(demo_cfg, demo_dir: Path, infer_path: Path | None) -> DictConfig:
+def _prepare_demo_config(
+    demo_cfg, demo_dir: Path, infer_path: Path | None
+) -> DictConfig:
     cfg = OmegaConf.create(OmegaConf.to_container(demo_cfg, resolve=True))
     cfg.demo_dir = str(demo_dir)
     if infer_path is not None:
@@ -163,4 +166,3 @@ def _strip_top_tag_block(template_text: str) -> str:
             if lines[idx].strip() == "---":
                 return "\n".join(lines[idx + 1 :]).lstrip()
     return template_text
-

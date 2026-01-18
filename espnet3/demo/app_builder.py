@@ -7,11 +7,11 @@ from pathlib import Path
 from typing import Any
 
 import gradio as gr
+from omegaconf import DictConfig, OmegaConf
 
+from espnet3.demo.resolve import load_demo_config
 from espnet3.demo.runtime import build_runtime, run_inference
 from espnet3.demo.ui import UiSpec, build_ui_from_config
-from espnet3.demo.resolve import load_demo_config
-from omegaconf import DictConfig, OmegaConf
 
 
 def build_demo_app(demo_dir: Path) -> gr.Blocks:

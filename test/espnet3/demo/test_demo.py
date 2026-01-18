@@ -29,6 +29,7 @@ def test_run_inference_with_output_keys() -> None:
     )
     assert outputs == ["hello"]
 
+
 def test_build_ui_from_config_smoke() -> None:
     gr = pytest.importorskip("gradio")
     from espnet3.demo.ui import build_ui_from_config

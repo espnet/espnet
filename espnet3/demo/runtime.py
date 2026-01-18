@@ -79,7 +79,9 @@ def run_inference(
     return _map_outputs(result, output_names, runtime.output_keys)
 
 
-def _run_runner(runtime: DemoRuntime, dataset: SingleItemDataset, extras: Dict[str, Any]):
+def _run_runner(
+    runtime: DemoRuntime, dataset: SingleItemDataset, extras: Dict[str, Any]
+):
     if runtime.runner_cls is None:
         if callable(runtime.model):
             primary = dataset[0]
@@ -148,5 +150,3 @@ def _load_infer_config(demo_cfg, demo_dir: Path) -> DictConfig | None:
     if not path.is_absolute():
         path = demo_dir / path
     return load_infer_config(path)
-
-
