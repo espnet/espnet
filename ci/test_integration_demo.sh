@@ -6,6 +6,7 @@ set -euo pipefail
 . tools/extra_path.sh
 
 cwd=$(pwd)
+export PYTHONPATH=${cwd}${PYTHONPATH:-}
 
 source ./path.sh
 
@@ -24,10 +25,14 @@ run_with_train_config() {
 
 debug_configs=train_asr_transformer_debug.yaml
 
-echo "==== [ESPnet3] ASR Demo pack + UI ===="
+echo "==== [ESPnet3] ASR Demo pack ===="
+python -m pip install -e '.[asr]'
 cd ./egs3/mini_an4/asr
 run_with_train_config "${debug_configs}" run.py conf/infer.yaml
 ${python} run.py --stages pack_demo --demo_config conf/demo_ci.yaml
+
+
+echo "==== [ESPnet3] Demo UI test ===="
 ${python} -m pytest ../../../ci/test_demo_ui.py
 
 cd "${cwd}"

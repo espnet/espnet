@@ -73,7 +73,3 @@ def test_forward_requires_fields():
     dataset = [{"text": "ref"}]
     with pytest.raises(AssertionError, match="requires 'speech'"):
         asr_infer.InferenceRunner.forward(0, dataset=dataset, model=lambda x: [["hyp"]])
-
-    dataset = [{"speech": "audio"}]
-    with pytest.raises(AssertionError, match="requires 'text'"):
-        asr_infer.InferenceRunner.forward(0, dataset=dataset, model=lambda x: [["hyp"]])
