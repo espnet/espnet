@@ -3,6 +3,9 @@
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional, Union
 
+from hydra.utils import instantiate
+from omegaconf import DictConfig
+
 from espnet2.train.preprocessor import AbsPreprocessor
 from espnet3.components.data.dataset import CombinedDataset, DatasetWithTransform
 
@@ -137,6 +140,8 @@ class DataOrganizer:
     ):
         """Initialize DataOrganizer object."""
         self.preprocessor = preprocessor or do_nothing_transform
+        if isinstance(self.preprocessor, (dict, DictConfig)):
+            self.preprocessor = instantiate(self.preprocessor)
         assert callable(self.preprocessor), "Preprocessor should be callable."
         is_espnet_preprocessor = isinstance(self.preprocessor, AbsPreprocessor)
 
@@ -147,10 +152,14 @@ class DataOrganizer:
                 if isinstance(cfg, dict):
                     cfg = DatasetConfig.from_dict(cfg)
                 dataset = cfg.dataset
+                if isinstance(dataset, (dict, DictConfig)):
+                    dataset = instantiate(dataset)
                 if hasattr(cfg, "transform"):
                     transform = cfg.transform
                 else:
                     transform = do_nothing_transform
+                if isinstance(transform, (dict, DictConfig)):
+                    transform = instantiate(transform)
 
                 datasets.append(dataset)
                 transforms.append((transform, self.preprocessor))

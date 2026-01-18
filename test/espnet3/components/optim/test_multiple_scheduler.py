@@ -1,5 +1,3 @@
-# import pytest
-# import torch
 from torch import nn
 from torch.optim import SGD, Adam
 from torch.optim.lr_scheduler import LinearLR, StepLR

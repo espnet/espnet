@@ -1,1 +1,1 @@
-"""ESPnet3 systems package."""
+"""System definitions and entrypoints for ESPnet3."""

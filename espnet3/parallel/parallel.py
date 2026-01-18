@@ -8,25 +8,58 @@ from contextlib import contextmanager
 from typing import Any, Callable, Generator, Iterable, Optional
 
 import torch
-from dask.distributed import (
-    Client,
-    LocalCluster,
-    SSHCluster,
-    WorkerPlugin,
-    as_completed,
-)
-from dask_jobqueue import (
-    HTCondorCluster,
-    LSFCluster,
-    MoabCluster,
-    OARCluster,
-    PBSCluster,
-    SGECluster,
-    SLURMCluster,
-)
 from omegaconf import DictConfig
 from tqdm import tqdm
 from typeguard import typechecked
+
+try:
+    from dask.distributed import (
+        Client,
+        LocalCluster,
+        SSHCluster,
+        WorkerPlugin,
+        as_completed,
+    )
+    from dask_jobqueue import (
+        HTCondorCluster,
+        LSFCluster,
+        MoabCluster,
+        OARCluster,
+        PBSCluster,
+        SGECluster,
+        SLURMCluster,
+    )
+
+    _DASK_AVAILABLE = True
+except ImportError:
+    Client = None
+    LocalCluster = None
+    SSHCluster = None
+    as_completed = None
+
+    class WorkerPlugin:
+        """Lightweight placeholder used when Dask is unavailable."""
+
+        def __init__(self, *args, **kwargs):
+            """Create a placeholder WorkerPlugin when Dask is missing."""
+            pass
+
+    class _MissingCluster:
+        def __init__(self, *args, **kwargs):
+            """Raise a helpful error when a Dask cluster type is unavailable."""
+            raise RuntimeError(
+                "Dask is required for espnet3.parallel; please install dask "
+                "and dask_jobqueue to enable parallel features."
+            )
+
+    HTCondorCluster = _MissingCluster
+    LSFCluster = _MissingCluster
+    MoabCluster = _MissingCluster
+    OARCluster = _MissingCluster
+    PBSCluster = _MissingCluster
+    SGECluster = _MissingCluster
+    SLURMCluster = _MissingCluster
+    _DASK_AVAILABLE = False
 
 try:
     from dask_cuda import LocalCUDACluster
@@ -47,6 +80,14 @@ CLUSTER_MAP = {
 }
 
 
+def _ensure_dask():
+    if not _DASK_AVAILABLE:
+        raise RuntimeError(
+            "Dask is not available. Install dask[distributed] and "
+            "dask_jobqueue to use espnet3.parallel."
+        )
+
+
 def make_local_gpu_cluster(n_workers: int, options: dict) -> Client:
     """Create a Dask LocalCUDACluster using available GPUs.
 
@@ -59,8 +100,11 @@ def make_local_gpu_cluster(n_workers: int, options: dict) -> Client:
     Returns:
         Client: Dask client connected to the GPU cluster.
     """
+    _ensure_dask()
     if LocalCUDACluster is None:
-        raise RuntimeError("Please install dask_cuda.")
+        raise RuntimeError(
+            "Please install dask_cuda along with cuda-python and cuda-bindings."
+        )
 
     num_gpus = torch.cuda.device_count()
     if n_workers > num_gpus:
@@ -99,6 +143,7 @@ def get_parallel_config() -> Optional[DictConfig]:
 
 def _make_client(config: DictConfig = None) -> Client:
     """Create a Dask client tied to the global singleton cluster."""
+    _ensure_dask()
     if config.env == "local":
         return Client(LocalCluster(n_workers=config.n_workers, **config.options))
 
@@ -314,6 +359,7 @@ def _submit_tasks(
     - Wraps the function to inject worker env.
     - Submits tasks and yields (client, futures).
     """
+    _ensure_dask()
     internal = client is None
     if internal:
         ctx = get_client(setup_fn=setup_fn)

@@ -1,5 +1,6 @@
 # tests/test_collect_stats.py
 import multiprocessing as mp
+import os
 from pathlib import Path
 
 import numpy as np
@@ -9,10 +10,7 @@ from hydra.utils import instantiate
 from omegaconf import OmegaConf
 
 # Import the functions under test (adjust import path if your file/module path differs)
-from espnet3.components.data.collect_stats import (
-    collect_stats,
-    collect_stats_multiple_iterator,
-)
+from espnet3.components.data.collect_stats import collect_stats
 
 mp.set_start_method("fork", force=True)
 
@@ -323,7 +321,7 @@ def test_collect_stats_multiple_iterator(tmp_path: Path):
     out_dir = tmp_path / "out"
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    sum_dict, sq_dict, count_dict = collect_stats_multiple_iterator(
+    collect_stats(
         model_config=model_cfg,
         dataset_config=ds_cfg,
         dataloader_config=dl_cfg,
@@ -334,38 +332,25 @@ def test_collect_stats_multiple_iterator(tmp_path: Path):
         parallel_config=par_cfg,
     )
 
-    # Persist like collect_stats does
     mode_dir = out_dir / "train"
-    for k in sum_dict:
-        np.savez(
-            mode_dir / f"{k}_stats.npz",
-            count=count_dict[k],
-            sum=sum_dict[k],
-            sum_square=sq_dict[k],
-        )
-    with open(mode_dir / "stats_keys", "w") as f:
-        f.write("\n".join(sum_dict) + "\n")
+    assert (mode_dir / "stats_keys").exists(), "stats_keys not written"
 
-    # Assertions
+    files = os.listdir(mode_dir)
+    for f in files:
+        print(f)
+
+    for k in ["mel", "mel_lengths"]:
+        npz = mode_dir / f"{k}_stats.npz"
+        assert npz.exists(), f"{npz} missing"
+        scp0 = mode_dir / f"{k}_shape.shard.0"
+        assert scp0.exists(), f"{scp0} missing"
+        scp1 = mode_dir / f"{k}_shape.shard.1"
+        assert scp1.exists(), f"{scp1} missing"
+
     ds = instantiate(ds_cfg).train
     total_count = _expected_total_count(ds)
     cnt, s, sq = _load_npz_counts(mode_dir, "mel")
-    assert (
-        int(cnt) == total_count
-    ), "Total frame count mismatch in multiple-iterator mode"
-
-    # Shape files with shard suffix should exist (at least for one key)
-    # We don't know exact uids, but file creation per shard is enough signal.
-    # Look for any file starting with "mel_shape.shard."
-    shard_shape_files = (
-        list((mode_dir / "db").glob("mel_shape.shard.*"))
-        if (mode_dir / "db").exists()
-        else []
-    )
-    # If your DatadirWriter writes into mode_dir directly (not "db"), adjust:
-    if not shard_shape_files:
-        shard_shape_files = list(mode_dir.glob("mel_shape.shard.*"))
-    assert shard_shape_files != [], "No shard shape files found"
+    assert int(cnt) == total_count, "Total frame count mismatch for mel"
 
 
 # ----------------------------

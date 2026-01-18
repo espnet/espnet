@@ -1,5 +1,6 @@
-"""InferenceProvider for dataset/model inference setup."""
+"""Inference environment providers for ESPnet3 systems."""
 
+from abc import ABC, abstractmethod
 from typing import Any, Callable, Dict
 
 from omegaconf import DictConfig
@@ -7,7 +8,7 @@ from omegaconf import DictConfig
 from espnet3.parallel.env_provider import EnvironmentProvider
 
 
-class InferenceProvider(EnvironmentProvider):
+class InferenceProvider(EnvironmentProvider, ABC):
     """EnvironmentProvider specialized for dataset/model inference setup.
 
     This implementation focuses on constructing just the ``dataset`` and
@@ -98,6 +99,7 @@ class InferenceProvider(EnvironmentProvider):
 
     # Implement the following functions in the subclass
     @staticmethod
+    @abstractmethod
     def build_dataset(config: DictConfig):
         """Construct and return the dataset instance.
 
@@ -135,6 +137,7 @@ class InferenceProvider(EnvironmentProvider):
         )
 
     @staticmethod
+    @abstractmethod
     def build_model(config: DictConfig):
         """Construct and return the model instance.
 

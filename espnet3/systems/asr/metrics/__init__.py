@@ -1,1 +1,1 @@
-"""ASR metric components for ESPnet3."""
+"""ASR metric implementations for inference and evaluation."""
