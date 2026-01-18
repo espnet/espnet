@@ -17,6 +17,15 @@ DEMO_DIR = Path(__file__).resolve().parent
 
 def create_app():
     return build_demo_app(DEMO_DIR)
+
+
+def main():
+    app = create_app()
+    app.launch()
+
+
+if __name__ == "__main__":
+    main()
 """
 
 

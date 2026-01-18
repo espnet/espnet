@@ -236,6 +236,7 @@ def _log_stage_metadata(
     infer_config,
     measure_config,
     publish_config,
+    demo_config,
 ) -> None:
     log_run_metadata(
         logger,

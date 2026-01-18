@@ -103,11 +103,12 @@ class InferenceRunner(AbsInferenceRunner):
         """
         data = dataset[idx]
         assert "speech" in data, "ASR inference requires 'speech' in dataset item."
-        assert "text" in data, "ASR inference requires 'text' in dataset item."
         speech = data["speech"]
         hyp = model(speech)[0][0]
-        ref = data["text"]
-        return {"idx": idx, "hyp": hyp, "ref": ref}
+        if "text" in data:
+            ref = data["text"]
+            return {"idx": idx, "hyp": hyp, "ref": ref}
+        return {"idx": idx, "hyp": hyp}
 
 
 class TransducerInferenceRunner(AbsInferenceRunner):
@@ -139,8 +140,9 @@ class TransducerInferenceRunner(AbsInferenceRunner):
         """
         data = dataset[idx]
         assert "speech" in data, "ASR inference requires 'speech' in dataset item."
-        assert "text" in data, "ASR inference requires 'text' in dataset item."
         speech = data["speech"]
         hyp = model(speech)[0]
-        ref = data["text"]
-        return {"idx": idx, "hyp": hyp, "ref": ref}
+        if "text" in data:
+            ref = data["text"]
+            return {"idx": idx, "hyp": hyp, "ref": ref}
+        return {"idx": idx, "hyp": hyp}
