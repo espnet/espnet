@@ -78,7 +78,8 @@ class DownloadProgress:
             self._last_bucket = bucket
             _log(
                 self.logger,
-                f"Downloading {self.name}: {percent}% "(
+                (
+                    f"Downloading {self.name}: {percent}% "
                     f"({downloaded / 1024 / 1024:.1f}MB / "
                     f"{total_size / 1024 / 1024:.1f}MB)"
                 ),
