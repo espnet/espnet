@@ -166,6 +166,41 @@ jobs:
         with:
           flags: test_integration_espnet3
 
+  integration_test_demo_ui:
+    runs-on: ubuntu-latest
+    needs: process_labels
+    if: |
+      github.event.pull_request.draft == false
+    steps:
+      - uses: actions/checkout@master
+      - uses: actions/cache@v5
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-demo-ui-3.10-2.7.1-${{ hashFiles('**/pyproject.toml') }}-${{ hashFiles('**/Makefile') }}
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.10"
+          architecture: 'x64'
+      - name: install dependencies
+        run: |
+          sudo apt-get update -qq
+          # NOTE(kamo): g++-7 doesn't exist in ubuntu-latest
+          sudo apt-get install -qq -y cmake libsndfile1-dev bc sox ffmpeg libjpeg-dev
+      - name: install espnet
+        env:
+          ESPNET_PYTHON_VERSION: "3.10"
+          TH_VERSION: "2.7.1"
+          USE_CONDA: false
+        run: |
+          ./ci/install.sh
+      - name: install playwright
+        run: |
+          source tools/activate_python.sh
+          python -m pip install playwright
+          python -m playwright install --with-deps
+      - name: test demo UI
+        run: ./ci/test_integration_demo.sh
+
   test_configuration_espnet2:
     runs-on: ${{ matrix.os }}
     needs: process_labels

@@ -16,12 +16,13 @@ SYSTEM_CONFIGS = {
         "demo_dir": "egs3/mini_an4/asr/demo",
         "input_keys": ["speech"],
         "output_keys": ["text"],
+        "run_label": "Run",
     },
 }
 
 
 def _repo_root() -> Path:
-    return Path(__file__).resolve().parents[3]
+    return Path(__file__).resolve().parents[1]
 
 
 def _wait_for_url(proc: subprocess.Popen, port: int, timeout: float = 60.0) -> str:
@@ -79,7 +80,9 @@ def _stop_demo_app(proc: subprocess.Popen) -> None:
 )
 def test_demo_ui_labels(system_name: str, config: dict) -> None:
     demo_dir = _repo_root() / config["demo_dir"]
-    expected_keys = set(config["input_keys"]) | set(config["output_keys"])
+    expected_keys = set(config.get("input_keys", [])) | set(
+        config.get("output_keys", [])
+    )
 
     proc, url = _start_demo_app(demo_dir, port=7860)
     try:
@@ -95,6 +98,8 @@ def test_demo_ui_labels(system_name: str, config: dict) -> None:
                     key for key in expected_keys if key.lower() not in label_text
                 ]
                 assert not missing, f"{system_name} missing labels: {missing}"
+                run_label = config.get("run_label", "Run")
+                page.get_by_role("button", name=re.compile(run_label, re.I)).click()
             finally:
                 browser.close()
     finally:
