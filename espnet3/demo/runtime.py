@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 import numpy as np
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import DictConfig
 
 from espnet3.demo.resolve import (
     load_infer_config,
@@ -23,6 +23,8 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class DemoRuntime:
+    """Container for demo inference runtime state."""
+
     infer_config: DictConfig | None
     model: Any
     runner_cls: Any | None
@@ -31,19 +33,25 @@ class DemoRuntime:
 
 
 class SingleItemDataset:
+    """Minimal dataset that exposes a single sample."""
+
     def __init__(self, item: Dict[str, Any]):
+        """Store a single dataset item."""
         self._item = item
 
     def __len__(self) -> int:
+        """Return dataset length."""
         return 1
 
     def __getitem__(self, idx: int) -> Dict[str, Any]:
+        """Return the item when ``idx`` is 0."""
         if idx != 0:
             raise IndexError(idx)
         return self._item
 
 
 def build_runtime(demo_cfg, demo_dir: Path) -> DemoRuntime:
+    """Build demo runtime from config and demo directory."""
     infer_cfg = _load_infer_config(demo_cfg, demo_dir)
     provider_cls = resolve_provider_class(demo_cfg)
     runner_cls = resolve_runner_class(demo_cfg)
@@ -71,6 +79,7 @@ def run_inference(
     ui_values: List[Any],
     output_names: List[str],
 ) -> List[Any]:
+    """Run a single inference pass and map outputs for the UI."""
     inputs = dict(zip(ui_names, ui_values))
     item = _build_dataset_item(inputs)
     extras = dict(runtime.extra_kwargs)

@@ -10,6 +10,8 @@ import gradio as gr
 
 @dataclass(frozen=True)
 class UiSpec:
+    """Typed UI spec extracted from demo config."""
+
     inputs: List[Any]
     outputs: List[Any]
     input_names: List[str]
@@ -29,6 +31,7 @@ _AUDIO_SOURCE_MAP = {
 
 
 def build_ui_from_config(ui_cfg) -> UiSpec:
+    """Build a UI spec from the demo UI configuration."""
     inputs_cfg = list(getattr(ui_cfg, "inputs", []) or [])
     outputs_cfg = list(getattr(ui_cfg, "outputs", []) or [])
     inputs, input_names = _build_components(inputs_cfg, is_input=True)

@@ -32,6 +32,7 @@ def setup_demo_assets(
     requirements: Iterable[str] | None = None,
     ui_templates: Dict[str, dict] | None = None,
 ) -> None:
+    """Create demo app files, requirements, and optional UI templates."""
     demo_dir.mkdir(parents=True, exist_ok=True)
     _write_app_py(demo_dir)
     _write_requirements(demo_dir, demo_config, requirements)
@@ -54,7 +55,7 @@ def _write_requirements(
         if cfg_reqs:
             reqs = list(cfg_reqs)
     if not reqs:
-        reqs = ["gradio"]
+        reqs = ["gradio", "torch", "torchaudio", "espnet"]
     (demo_dir / "requirements.txt").write_text("\n".join(reqs) + "\n", encoding="utf-8")
 
 

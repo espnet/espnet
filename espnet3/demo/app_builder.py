@@ -15,6 +15,7 @@ from espnet3.demo.ui import UiSpec, build_ui_from_config
 
 
 def build_demo_app(demo_dir: Path) -> gr.Blocks:
+    """Build a Gradio demo app from a demo directory."""
     demo_cfg = load_demo_config(demo_dir)
     runtime = build_runtime(demo_cfg, demo_dir)
     ui = _load_ui_spec(demo_cfg, demo_dir)
