@@ -9,3 +9,10 @@ pack:
   files:
     - exp/your_exp_dir/last.ckpt  # override in recipe
     - exp/your_exp_dir/config.yaml
+
+upload_demo:
+  hf_username: your-hf-username
+  repo_name: your-demo
+  repo_type: space
+  space_sdk: gradio
+  # organization: your-org

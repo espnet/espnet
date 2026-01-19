@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 def pack_demo(system) -> Path:
+    """Package demo assets and configs into a demo directory."""
     demo_cfg = system.demo_config
     if demo_cfg is None:
         raise RuntimeError("pack_demo requires demo_config.")
@@ -54,7 +55,52 @@ def pack_demo(system) -> Path:
 
 
 def upload_demo(system) -> None:
-    raise RuntimeError("upload_demo is not implemented yet.")
+    """Upload demo assets to a remote destination (not implemented)."""
+    demo_cfg = system.demo_config
+    if demo_cfg is None:
+        raise RuntimeError("upload_demo requires demo_config.")
+    upload_cfg = getattr(demo_cfg, "upload_demo", None)
+    if upload_cfg is None:
+        raise RuntimeError("upload_demo requires demo_config.upload_demo.")
+    repo, create_repo_name = _resolve_demo_repo(upload_cfg)
+    if not repo:
+        raise RuntimeError(
+            "upload_demo requires demo_config.upload_demo.hf_repo or "
+            "upload_demo.hf_username + upload_demo.repo_name"
+        )
+    repo_type = getattr(upload_cfg, "repo_type", "space")
+    create_cfg = getattr(upload_cfg, "create", None)
+    create_opts = (
+        OmegaConf.to_container(create_cfg, resolve=True) if create_cfg else {}
+    )
+    if "organization" not in create_opts:
+        organization = getattr(upload_cfg, "organization", None)
+        if organization:
+            create_opts["organization"] = organization
+    if "space_sdk" not in create_opts:
+        space_sdk = getattr(upload_cfg, "space_sdk", None)
+        if space_sdk:
+            create_opts["space_sdk"] = space_sdk
+    if "yes" not in create_opts and hasattr(upload_cfg, "yes"):
+        create_opts["yes"] = bool(getattr(upload_cfg, "yes"))
+
+    pack_cfg = getattr(demo_cfg, "pack", None)
+    demo_dir = _resolve_demo_out_dir(
+        getattr(pack_cfg, "out_dir", None) if pack_cfg else None,
+        system,
+    )
+    if not demo_dir.exists():
+        raise RuntimeError(f"Demo pack not found: {demo_dir}")
+
+    from espnet3.utils.publish import _upload_common
+
+    _upload_common(
+        repo,
+        demo_dir,
+        repo_type=repo_type,
+        create_options=create_opts,
+        create_repo_name=create_repo_name,
+    )
 
 
 def _prepare_demo_config(
@@ -139,8 +185,7 @@ def _write_readme_if_missing(system, demo_dir: Path, infer_cfg) -> None:
         return
     pack_cfg = getattr(getattr(system, "publish_config", None), "pack_model", None)
     pack_cfg = pack_cfg or OmegaConf.create({})
-    template = _load_readme_template(pack_cfg)
-    template = _strip_top_tag_block(template)
+    template = _load_demo_readme_template(system.demo_config, pack_cfg)
     exp_dir = None
     if infer_cfg is not None:
         exp_dir_value = getattr(infer_cfg, "exp_dir", None)
@@ -159,10 +204,35 @@ def _write_readme_if_missing(system, demo_dir: Path, infer_cfg) -> None:
     )
 
 
-def _strip_top_tag_block(template_text: str) -> str:
-    lines = template_text.splitlines()
-    if len(lines) >= 3 and lines[0].strip() == "---":
-        for idx in range(1, len(lines)):
-            if lines[idx].strip() == "---":
-                return "\n".join(lines[idx + 1 :]).lstrip()
-    return template_text
+def _load_demo_readme_template(demo_cfg, pack_cfg) -> str:
+    template = None
+    if demo_cfg is not None:
+        pack = getattr(demo_cfg, "pack", None)
+        if pack is not None:
+            template = getattr(pack, "readme_template", None)
+        if not template:
+            template = getattr(demo_cfg, "readme_template", None)
+    if template:
+        template_path = Path(template)
+        if not template_path.is_absolute():
+            template_path = Path(__file__).resolve().parents[2] / template_path
+        return template_path.read_text(encoding="utf-8")
+    try:
+        from egs3.TEMPLATE.asr.src.get_readme import get_demo_readme
+
+        return get_demo_readme()
+    except Exception:
+        return _load_readme_template(pack_cfg)
+
+
+
+
+def _resolve_demo_repo(upload_cfg) -> tuple[str | None, str | None]:
+    repo = getattr(upload_cfg, "hf_repo", None)
+    if repo:
+        return repo, None
+    username = getattr(upload_cfg, "hf_username", None)
+    repo_name = getattr(upload_cfg, "repo_name", None)
+    if username and repo_name:
+        return f"{username}/{repo_name}", repo_name
+    return None, repo_name

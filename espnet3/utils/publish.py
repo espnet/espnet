@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import re
 import shutil
 import subprocess
@@ -12,7 +11,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 from string import Template
-from typing import Dict, Iterable, List, Optional
+from typing import Dict, List, Optional
 
 import torch
 from omegaconf import DictConfig, OmegaConf
@@ -39,6 +38,65 @@ def _run(cmd: List[str], cwd: Optional[Path] = None) -> str:
             f"stderr:\n{result.stderr}"
         )
     return result.stdout.strip()
+
+
+def _run_allow_repo_exists(cmd: List[str], cwd: Optional[Path] = None) -> str:
+    """Run a subprocess command, allowing repo-exists errors."""
+    result = subprocess.run(
+        cmd,
+        cwd=str(cwd) if cwd else None,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        combined = f"{result.stdout}\n{result.stderr}".lower()
+        if "already exists" in combined or "409" in combined or "conflict" in combined:
+            logger.info("Repo already exists; skipping create.")
+            return result.stdout.strip()
+        raise RuntimeError(
+            f"Command failed: {' '.join(cmd)}\nstdout:\n{result.stdout}\n"
+            f"stderr:\n{result.stderr}"
+        )
+    return result.stdout.strip()
+
+
+def _repo_exists(repo: str, repo_type: str) -> Optional[bool]:
+    """Check if a Hugging Face repo exists; returns None when unavailable."""
+    try:
+        from huggingface_hub import HfApi
+        from huggingface_hub.utils import RepositoryNotFoundError
+    except Exception:
+        logger.warning("huggingface_hub not available; skipping repo check.")
+        return None
+    api = HfApi()
+    try:
+        api.repo_info(repo_id=repo, repo_type=repo_type)
+        return True
+    except RepositoryNotFoundError:
+        return False
+    except Exception as exc:
+        logger.warning("Failed to check repo existence: %s", exc)
+        return None
+
+
+def _create_repo(
+    repo: str,
+    *,
+    repo_type: str,
+    organization: Optional[str] = None,
+    space_sdk: Optional[str] = None,
+    yes: bool = True,
+) -> None:
+    cmd = ["huggingface-cli", "repo", "create", repo, "--type", repo_type]
+    if organization:
+        cmd += ["--organization", organization]
+    if repo_type == "space" and space_sdk:
+        cmd += ["--space_sdk", space_sdk]
+    if yes:
+        cmd += ["-y"]
+    _run_allow_repo_exists(cmd)
 
 
 def _resolve_espnet2_spec(pack_cfg: DictConfig) -> dict:
@@ -270,7 +328,8 @@ def pack_model(
         system: ESPnet3 system instance providing configs and helper paths.
     Args:
         system: Object with ``train_config`` and optional ``publish_config``.
-        include: Optional explicit include paths (defaults to exp_dir and config includes).
+        include: Optional explicit include paths (defaults to exp_dir and config
+            includes).
         extra: Optional explicit extra paths (defaults to config extras).
     Returns:
         Path to the packed output directory.
@@ -457,21 +516,23 @@ def _upload_common(
     src_dir: Path,
     *,
     repo_type: str,
+    create_options: Optional[dict] = None,
+    create_repo_name: Optional[str] = None,
 ) -> None:
     """Upload artifacts to a Hugging Face repo via huggingface-cli."""
     if shutil.which("huggingface-cli") is None:
         raise RuntimeError("huggingface-cli is required for upload.")
 
-    repo_create_cmd = [
-        "huggingface-cli",
-        "repo",
-        "create",
-        repo,
-        "--type",
-        repo_type,
-        "--exist-ok",
-    ]
-    _run(repo_create_cmd)
+    create_options = dict(create_options or {})
+    exists = _repo_exists(repo, repo_type)
+    if exists is False or exists is None:
+        _create_repo(
+            create_repo_name or repo,
+            repo_type=repo_type,
+            organization=create_options.get("organization"),
+            space_sdk=create_options.get("space_sdk"),
+            yes=create_options.get("yes", True),
+        )
 
     upload_cmd = [
         "huggingface-cli",
