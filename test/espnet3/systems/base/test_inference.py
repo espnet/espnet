@@ -44,7 +44,6 @@ def test_inference_writes_scp_outputs(tmp_path, monkeypatch):
             "dataset": {"test": [{"name": "test_a"}, {"name": "test_b"}]},
             "input_key": "speech",
             "output_fn": f"{__name__}.dummy_output_fn",
-            "output_keys": ["hyp", "ref"],
             "idx_key": "idx",
             "mock_dataset_length": 2,
         }
@@ -82,7 +81,6 @@ def test_inference_rejects_async_results(tmp_path, monkeypatch):
             "dataset": {"test": [{"name": "test_a"}]},
             "input_key": "speech",
             "output_fn": f"{__name__}.dummy_output_fn",
-            "output_keys": ["hyp", "ref"],
             "idx_key": "idx",
             "mock_dataset_length": 1,
         }

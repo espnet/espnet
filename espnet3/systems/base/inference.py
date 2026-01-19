@@ -98,14 +98,13 @@ def inference(config: DictConfig):
         if isinstance(input_key, (list, tuple)) and not input_key:
             raise RuntimeError("infer_config.input_key must not be empty.")
         output_keys = getattr(config, "output_keys", None)
-        if output_keys is None:
-            raise RuntimeError("infer_config.output_keys must be set.")
-        if isinstance(output_keys, str):
-            output_keys = [output_keys]
-        elif not isinstance(output_keys, (list, tuple)):
-            output_keys = list(output_keys)
-        if not output_keys:
-            raise RuntimeError("infer_config.output_keys must not be empty.")
+        if output_keys is not None:
+            if isinstance(output_keys, str):
+                output_keys = [output_keys]
+            elif not isinstance(output_keys, (list, tuple)):
+                output_keys = list(output_keys)
+            if not output_keys:
+                raise RuntimeError("infer_config.output_keys must not be empty.")
         idx_key = getattr(config, "idx_key", "uttid")
 
         provider = InferenceProvider(
@@ -115,16 +114,16 @@ def inference(config: DictConfig):
                 "output_fn_path": output_fn_path,
             },
         )
+        hyp_keys = output_keys if output_keys is not None else []
         runner = InferenceRunner(
             provider=provider,
             async_mode=False,
             idx_key=idx_key,
-            hyp_key=output_keys,
-            ref_key=[],
+            hyp_key=hyp_keys,
         )
-        if not isinstance(runner, InferenceRunner):
+        if not hasattr(runner, "idx_key"):
             raise TypeError(
-                f"{type(runner).__name__} must inherit from InferenceRunner"
+                f"{type(runner).__name__} must provide inference runner attributes"
             )
         dataset_length = len(provider.build_dataset(config))
         logger.info("===> Processing %d samples..", dataset_length)
@@ -132,11 +131,19 @@ def inference(config: DictConfig):
         if out is None:
             raise RuntimeError("Async inference is not supported in this entrypoint.")
         results = _flatten_results(out)
+        if output_keys is None:
+            if not results:
+                raise RuntimeError("No inference results available.")
+            first = results[0]
+            output_keys = [key for key in first.keys() if key != runner.idx_key]
+            if not output_keys:
+                raise RuntimeError("No output keys found in inference results.")
+
         scp_lines = _collect_scp_lines(
             results,
             idx_key=runner.idx_key,
-            hyp_keys=runner.hyp_key,
-            ref_keys=runner.ref_key,
+            hyp_keys=output_keys,
+            ref_keys=[],
         )
 
         # create scp files
