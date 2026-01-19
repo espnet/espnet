@@ -377,7 +377,7 @@ def pack_model(
             excludes.append(str(exclude_cfg))
 
     effective = list(excludes)
-    effective.extend(["decode", "decode_*", "decode_dir", "publish"])
+    effective.extend(["decode", "decode_*", "decode_dir"])
     if out_dir.name:
         effective.append(out_dir.name)
 

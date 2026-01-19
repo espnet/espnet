@@ -20,7 +20,6 @@ class BaseSystem:
       - train()
       - decode()
       - score()
-      - publish()
 
     This class intentionally does NOT implement:
       - DAG
@@ -147,13 +146,6 @@ class BaseSystem:
         result = score(self.metric_config)
         logger.info("Scoring results: %s", result)
         return result
-
-    def publish(self, *args, **kwargs):
-        """Publish artifacts from the experiment."""
-        self._reject_stage_args("publish", args, kwargs)
-        logger.info("Running publish(): pack_model -> upload_model")
-        self.pack_model()
-        return self.upload_model()
 
     # ---------------------------------------------------------
     # Publication stages (optional overrides)

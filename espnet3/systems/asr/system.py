@@ -77,7 +77,7 @@ class ASRSystem(BaseSystem):
             ``train_config.dataset_dir`` or ``train_config.data_dir``.
           - ``train_tokenizer``: ``train_config.tokenizer.save_path``.
           - ``collect_stats``: ``train_config.stats_dir``.
-          - ``train``/``publish``: ``train_config.exp_dir``.
+          - ``train``: ``train_config.exp_dir``.
           - ``infer``: ``infer_config.decode_dir``.
           - ``measure``: ``metric_config.decode_dir`` or ``infer_config.decode_dir``.
 
@@ -114,7 +114,7 @@ class ASRSystem(BaseSystem):
             stats_dir = getattr(self.train_config, "stats_dir", None)
             if stats_dir:
                 return Path(stats_dir)
-        elif stage in {"train", "publish", "pack_model", "upload_model"}:
+        elif stage in {"train", "pack_model", "upload_model"}:
             exp_dir = getattr(self.train_config, "exp_dir", None)
             if exp_dir:
                 return Path(exp_dir)
