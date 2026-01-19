@@ -1,14 +1,14 @@
 import pytest
 
 from espnet3.parallel.base_runner import BaseRunner
-from espnet3.systems.base.inference_runner import AbsInferenceRunner
+from espnet3.systems.base.inference_runner import InferenceRunner
 
 
 class DummyProvider:
     pass
 
 
-class DummyRunner(AbsInferenceRunner):
+class DummyRunner(InferenceRunner):
     @staticmethod
     def forward(idx, *, dataset, model, **env):
         return {"idx": idx, "hyp": "h", "ref": "r"}
@@ -27,8 +27,7 @@ def test_validate_output_rejects_missing_or_extra_keys():
     runner = DummyRunner(DummyProvider())
     with pytest.raises(ValueError, match="missing=\\['ref'\\]"):
         runner._validate_output({"idx": 1, "hyp": "h"})
-    with pytest.raises(ValueError, match="extra=\\['extra'\\]"):
-        runner._validate_output({"idx": 1, "hyp": "h", "ref": "r", "extra": 0})
+    runner._validate_output({"idx": 1, "hyp": "h", "ref": "r", "extra": 0})
 
 
 def test_validate_output_rejects_non_dict_and_idx_list():

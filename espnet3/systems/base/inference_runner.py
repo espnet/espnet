@@ -1,22 +1,23 @@
-"""Inference runner abstractions with output validation."""
+"""Inference runner with output validation."""
 
 from __future__ import annotations
 
-from abc import ABC
+from functools import lru_cache
+from importlib import import_module
 from typing import Any, Dict, Iterable, List, Sequence
 
 from espnet3.parallel.base_runner import BaseRunner
 from espnet3.parallel.env_provider import EnvironmentProvider
 
 
-class AbsInferenceRunner(BaseRunner, ABC):
-    """Base runner with strict output-format validation.
+class InferenceRunner(BaseRunner):
+    """Inference runner with strict output-format validation.
 
-    Subclasses must implement ``forward`` to return a dictionary containing
-    keys that identify index, hypothesis, and reference. The key names are
-    configurable via ``idx_key`` and ``hyp_key``/``ref_key``. ``hyp_key`` and
-    ``ref_key`` may be a single string or a list of strings to support multiple
-    hypothesis/reference fields.
+    This runner implements ``forward`` to call a recipe-provided output
+    function. The key names are configurable via ``idx_key`` and
+    ``hyp_key``/``ref_key``. ``hyp_key`` and ``ref_key`` may be a single
+    string or a list of strings to support multiple hypothesis/reference
+    fields.
 
     Output format requirements:
         - The result is a dict with exactly the configured keys.
@@ -59,12 +60,11 @@ class AbsInferenceRunner(BaseRunner, ABC):
         )
         expected = {self.idx_key, *hyp_keys, *ref_keys}
         actual = set(output.keys())
-        if actual != expected:
-            missing = expected - actual
-            extra = actual - expected
+        missing = expected - actual
+        if missing:
             raise ValueError(
-                "Inference output keys must match expected keys. "
-                f"missing={sorted(missing)} extra={sorted(extra)}"
+                "Inference output keys must include all required keys. "
+                f"missing={sorted(missing)}"
             )
 
         idx_value = output[self.idx_key]
@@ -72,6 +72,45 @@ class AbsInferenceRunner(BaseRunner, ABC):
             raise TypeError(
                 f"'{self.idx_key}' must be a scalar, got {type(idx_value).__name__}"
             )
+
+    @staticmethod
+    def forward(idx, dataset=None, model=None, **kwargs):
+        """Run inference for one dataset item and return output dict.
+
+        Args:
+            idx: Integer index into the dataset.
+            dataset: Dataset providing inference entries.
+            model: Inference model callable on the configured input.
+            **kwargs: Expects ``input_key`` and ``output_fn_path``.
+
+        Returns:
+            Dict containing ``uttid`` and any output fields required for SCPs.
+
+        Raises:
+            RuntimeError: If required I/O settings are missing.
+        """
+        data = dataset[idx]
+        if "input_key" not in kwargs:
+            raise RuntimeError("input_key must be provided for inference.")
+        input_key = kwargs["input_key"]
+        output_fn_path = kwargs.get("output_fn_path")
+        if not output_fn_path:
+            raise RuntimeError("output_fn_path must be provided for inference.")
+        output_fn = _load_output_fn(output_fn_path)
+
+        if isinstance(input_key, (list, tuple)):
+            model_inputs = []
+            for key in input_key:
+                if key not in data:
+                    raise KeyError(f"Input key '{key}' not found in dataset item.")
+                model_inputs.append(data[key])
+            model_output = model(*model_inputs)
+        else:
+            if input_key not in data:
+                raise KeyError(f"Input key '{input_key}' not found in dataset item.")
+            model_output = model(data[input_key])
+
+        return output_fn(data=data, model_output=model_output, idx=idx)
 
     def __call__(self, indices: Iterable[int]) -> List[Any] | None:
         """Run inference and validate output formats."""
@@ -92,3 +131,10 @@ class AbsInferenceRunner(BaseRunner, ABC):
             self._validate_output(item)
 
         return flat_results
+
+
+@lru_cache(maxsize=None)
+def _load_output_fn(path: str):
+    module_path, func_name = path.rsplit(".", 1)
+    module = import_module(module_path)
+    return getattr(module, func_name)

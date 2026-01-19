@@ -4,18 +4,22 @@ import pytest
 from omegaconf import OmegaConf
 
 import espnet3.systems.base.inference as inference_mod
-from espnet3.systems.base.inference_runner import AbsInferenceRunner
+
+
+def dummy_output_fn(*, data, model_output, idx):
+    return {"idx": idx, "hyp": "h", "ref": "r"}
+from espnet3.systems.base.inference_runner import InferenceRunner
 
 
 class DummyProvider:
-    def __init__(self, config):
+    def __init__(self, config, **kwargs):
         self.config = config
 
     def build_dataset(self, _config):
         return [None] * self.config.mock_dataset_length
 
 
-class DummyRunner(AbsInferenceRunner):
+class DummyRunner(InferenceRunner):
     def __init__(self, provider, *, async_mode=False, results=None):
         super().__init__(provider, async_mode=async_mode)
         self._results = results if results is not None else None
@@ -38,6 +42,10 @@ def test_inference_writes_scp_outputs(tmp_path, monkeypatch):
             "parallel": {"env": "local"},
             "infer_dir": str(tmp_path / "infer"),
             "dataset": {"test": [{"name": "test_a"}, {"name": "test_b"}]},
+            "input_key": "speech",
+            "output_fn": f"{__name__}.dummy_output_fn",
+            "output_keys": ["hyp", "ref"],
+            "idx_key": "idx",
             "mock_dataset_length": 2,
         }
     )
@@ -50,7 +58,7 @@ def test_inference_writes_scp_outputs(tmp_path, monkeypatch):
     def fake_set_parallel(arg):
         calls["parallel"] = arg
 
-    def runner_factory(provider, *, async_mode=False):
+    def runner_factory(provider, *, async_mode=False, **_kwargs):
         return DummyRunner(provider, async_mode=async_mode, results=results)
 
     monkeypatch.setattr(inference_mod, "set_parallel", fake_set_parallel)
@@ -72,11 +80,15 @@ def test_inference_rejects_async_results(tmp_path, monkeypatch):
             "parallel": {"env": "local"},
             "infer_dir": str(tmp_path / "infer"),
             "dataset": {"test": [{"name": "test_a"}]},
+            "input_key": "speech",
+            "output_fn": f"{__name__}.dummy_output_fn",
+            "output_keys": ["hyp", "ref"],
+            "idx_key": "idx",
             "mock_dataset_length": 1,
         }
     )
 
-    def runner_factory(provider, *, async_mode=False):
+    def runner_factory(provider, *, async_mode=False, **_kwargs):
         return DummyRunner(provider, async_mode=async_mode, results=None)
 
     monkeypatch.setattr(inference_mod, "set_parallel", lambda arg: None)

@@ -7,8 +7,8 @@ from pathlib import Path
 from omegaconf import DictConfig
 
 from espnet3.parallel.parallel import set_parallel
-from espnet3.systems.asr.inference import InferenceProvider, InferenceRunner
-from espnet3.systems.base.inference_runner import AbsInferenceRunner
+from espnet3.systems.base.inference_provider import InferenceProvider
+from espnet3.systems.base.inference_runner import InferenceRunner, _load_output_fn
 
 logger = logging.getLogger(__name__)
 
@@ -88,11 +88,43 @@ def inference(config: DictConfig):
     for test_name in test_sets:
         logger.info("===> Processing test set: %s", test_name)
         config.test_set = test_name
-        provider = InferenceProvider(config)
-        runner = InferenceRunner(provider=provider, async_mode=False)
-        if not isinstance(runner, AbsInferenceRunner):
+        output_fn_path = getattr(config, "output_fn", None)
+        if not output_fn_path:
+            raise RuntimeError("infer_config.output_fn must be set.")
+        _load_output_fn(output_fn_path)
+        input_key = getattr(config, "input_key", None)
+        if input_key is None:
+            raise RuntimeError("infer_config.input_key must be set.")
+        if isinstance(input_key, (list, tuple)) and not input_key:
+            raise RuntimeError("infer_config.input_key must not be empty.")
+        output_keys = getattr(config, "output_keys", None)
+        if output_keys is None:
+            raise RuntimeError("infer_config.output_keys must be set.")
+        if isinstance(output_keys, str):
+            output_keys = [output_keys]
+        elif not isinstance(output_keys, (list, tuple)):
+            output_keys = list(output_keys)
+        if not output_keys:
+            raise RuntimeError("infer_config.output_keys must not be empty.")
+        idx_key = getattr(config, "idx_key", "uttid")
+
+        provider = InferenceProvider(
+            config,
+            params={
+                "input_key": input_key,
+                "output_fn_path": output_fn_path,
+            },
+        )
+        runner = InferenceRunner(
+            provider=provider,
+            async_mode=False,
+            idx_key=idx_key,
+            hyp_key=output_keys,
+            ref_key=[],
+        )
+        if not isinstance(runner, InferenceRunner):
             raise TypeError(
-                f"{type(runner).__name__} must inherit from AbsInferenceRunner"
+                f"{type(runner).__name__} must inherit from InferenceRunner"
             )
         dataset_length = len(provider.build_dataset(config))
         logger.info("===> Processing %d samples..", dataset_length)

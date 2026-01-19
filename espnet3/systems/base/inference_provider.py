@@ -1,11 +1,19 @@
 """Inference environment providers for ESPnet3 systems."""
 
-from abc import ABC, abstractmethod
+import logging
+import os
+from abc import ABC
 from typing import Any, Callable, Dict
+
+import torch
+from hydra.utils import instantiate
 
 from omegaconf import DictConfig
 
 from espnet3.parallel.env_provider import EnvironmentProvider
+
+
+logger = logging.getLogger(__name__)
 
 
 class InferenceProvider(EnvironmentProvider, ABC):
@@ -97,9 +105,7 @@ class InferenceProvider(EnvironmentProvider, ABC):
 
         return setup_fn
 
-    # Implement the following functions in the subclass
     @staticmethod
-    @abstractmethod
     def build_dataset(config: DictConfig):
         """Construct and return the dataset instance.
 
@@ -132,12 +138,12 @@ class InferenceProvider(EnvironmentProvider, ABC):
             - Rely on fields already present in ``config`` instead of reading
               global state whenever possible.
         """
-        raise NotImplementedError(
-            "Implement build_dataset(config=self.config) in subclass."
-        )
+        organizer = instantiate(config.dataset)
+        test_set = config.test_set
+        logger.info("Building dataset for test set: %s", test_set)
+        return organizer.test[test_set]
 
     @staticmethod
-    @abstractmethod
     def build_model(config: DictConfig):
         """Construct and return the model instance.
 
@@ -168,4 +174,13 @@ class InferenceProvider(EnvironmentProvider, ABC):
             - Do not perform training/optimization here, this is for inference
               setup only.
         """
-        raise NotImplementedError("Implement build_model(self.config) in subclass.")
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        if device == "cuda":
+            device_id = os.getenv("CUDA_VISIBLE_DEVICES", "0").split(",")[0].strip()
+            device = f"cuda:{device_id}"
+        logger.info(
+            "Instantiating model %s on %s",
+            getattr(config.model, "_target_", None),
+            device,
+        )
+        return instantiate(config.model, device=device)
