@@ -7,11 +7,9 @@ from typing import Any, Callable, Dict
 
 import torch
 from hydra.utils import instantiate
-
 from omegaconf import DictConfig
 
 from espnet3.parallel.env_provider import EnvironmentProvider
-
 
 logger = logging.getLogger(__name__)
 

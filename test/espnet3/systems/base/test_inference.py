@@ -4,11 +4,11 @@ import pytest
 from omegaconf import OmegaConf
 
 import espnet3.systems.base.inference as inference_mod
+from espnet3.systems.base.inference_runner import InferenceRunner
 
 
 def dummy_output_fn(*, data, model_output, idx):
     return {"idx": idx, "hyp": "h", "ref": "r"}
-from espnet3.systems.base.inference_runner import InferenceRunner
 
 
 class DummyProvider:
