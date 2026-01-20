@@ -27,8 +27,9 @@ def test_batch_size_rejects_non_positive():
     with pytest.raises(ValueError, match="batch_size must be a positive integer"):
         runner([0])
 
+
 def test_batch_size_rejects_None():
     runner = DummyRunner(DummyProvider(), batch_size=None)
-    
+
     # No error should be raised here
-    out = runner([0])
+    runner([0])

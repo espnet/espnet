@@ -148,7 +148,9 @@ class InferenceRunner(BaseRunner):
         else:
             for data in data_batch:
                 if input_key not in data:
-                    raise KeyError(f"Input key '{input_key}' not found in dataset item.")
+                    raise KeyError(
+                        f"Input key '{input_key}' not found in dataset item."
+                    )
             inputs_dict = {input_key: [data[input_key] for data in data_batch]}
 
         if hasattr(model, "batch_forward") and callable(model.batch_forward):

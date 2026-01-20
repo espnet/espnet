@@ -130,7 +130,8 @@ class BaseRunner(ABC):
     Subclass contract:
         - Implement ``@staticmethod forward(idx, *, dataset, model, **env) -> Any``
           without capturing ``self``.
-        - Optionally implement ``@classmethod batch_forward(indices, *, dataset, model, **env)``
+        - Optionally implement
+          ``@classmethod batch_forward(indices, *, dataset, model, **env)``
           to handle batched indices explicitly.
         - Provide an :class:`EnvironmentProvider` that builds the required env
           (e.g., dataset/model) for local and worker executions.
@@ -201,6 +202,7 @@ class BaseRunner(ABC):
     @classmethod
     def batch_forward(cls, indices: Iterable[int], *, dataset, model, **env) -> Any:
         """Compute a batch by delegating to ``forward`` per index as a default.
+
         This should be overridden by subclasses that can handle batched inputs.
 
         Args:
@@ -256,9 +258,7 @@ class BaseRunner(ABC):
         )
         with get_client(get_parallel_config()) as client:
             for res in tqdm(
-                parallel_for(
-                    func, indices, setup_fn=setup_fn, client=client
-                ),
+                parallel_for(func, indices, setup_fn=setup_fn, client=client),
                 total=len(indices),
             ):
                 out.append(res)
