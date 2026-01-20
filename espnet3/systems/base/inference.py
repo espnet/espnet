@@ -115,11 +115,13 @@ def inference(config: DictConfig):
             },
         )
         hyp_keys = output_keys if output_keys is not None else []
+        batch_size = getattr(config, "batch_size", None)
         runner = InferenceRunner(
             provider=provider,
             async_mode=False,
             idx_key=idx_key,
             hyp_key=hyp_keys,
+            batch_size=batch_size,
         )
         if not hasattr(runner, "idx_key"):
             raise TypeError(

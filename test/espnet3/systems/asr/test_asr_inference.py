@@ -9,6 +9,17 @@ def _output_fn(*, data, model_output, idx):
     return {"uttid": data["uttid"], "hyp": model_output[0][0], "ref": data["text"]}
 
 
+def _batch_output_fn(*, data, model_output, idx):
+    return [
+        {
+            "uttid": sample["uttid"],
+            "hyp": output[0][0],
+            "ref": sample["text"],
+        }
+        for sample, output in zip(data, model_output)
+    ]
+
+
 def test_build_dataset_uses_test_set(monkeypatch):
     cfg = OmegaConf.create({"dataset": {"_target_": "dummy"}, "test_set": "dev"})
     organizer = type("Org", (), {"test": {"dev": ["item"]}})()
@@ -85,6 +96,57 @@ def test_forward_returns_hyp_and_ref():
     )
 
     assert out == {"uttid": "utt1", "hyp": "hyp", "ref": "ref"}
+
+
+def test_forward_batch_with_batch_forward():
+    dataset = [
+        {"uttid": "utt1", "speech": "audio1", "text": "ref1"},
+        {"uttid": "utt2", "speech": "audio2", "text": "ref2"},
+    ]
+
+    class DummyModel:
+        def batch_forward(self, **inputs):
+            assert inputs == {"speech": ["audio1", "audio2"]}
+            return [[["hyp1"]], [["hyp2"]]]
+
+    output_path = f"{__name__}._batch_output_fn"
+    out = InferenceRunner.batch_forward(
+        [0, 1],
+        dataset=dataset,
+        model=DummyModel(),
+        input_key="speech",
+        output_fn_path=output_path,
+    )
+
+    assert out == [
+        {"uttid": "utt1", "hyp": "hyp1", "ref": "ref1"},
+        {"uttid": "utt2", "hyp": "hyp2", "ref": "ref2"},
+    ]
+
+
+def test_forward_batch_falls_back_to_single_calls():
+    dataset = [
+        {"uttid": "utt1", "speech": "audio1", "text": "ref1"},
+        {"uttid": "utt2", "speech": "audio2", "text": "ref2"},
+    ]
+
+    class DummyModel:
+        def __call__(self, speech):
+            return [[f"hyp-{speech}"]]
+
+    output_path = f"{__name__}._output_fn"
+    out = InferenceRunner.batch_forward(
+        [0, 1],
+        dataset=dataset,
+        model=DummyModel(),
+        input_key="speech",
+        output_fn_path=output_path,
+    )
+
+    assert out == [
+        {"uttid": "utt1", "hyp": "hyp-audio1", "ref": "ref1"},
+        {"uttid": "utt2", "hyp": "hyp-audio2", "ref": "ref2"},
+    ]
 
 
 def test_forward_requires_fields():

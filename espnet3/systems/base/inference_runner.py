@@ -112,6 +112,61 @@ class InferenceRunner(BaseRunner):
 
         return output_fn(data=data, model_output=model_output, idx=idx)
 
+    @classmethod
+    def batch_forward(cls, indices, *, dataset=None, model=None, **kwargs):
+        """Run inference for a batch of dataset items and return output dicts.
+
+        Args:
+            indices: Iterable of integer indices into the dataset.
+            dataset: Dataset providing inference entries.
+            model: Inference model callable on the configured input.
+            **kwargs: Expects ``input_key`` and ``output_fn_path``.
+
+        Returns:
+            List of dicts containing ``uttid`` and any output fields required
+            for SCPs.
+
+        Raises:
+            RuntimeError: If required I/O settings are missing.
+        """
+        data_batch = [dataset[i] for i in indices]
+        if "input_key" not in kwargs:
+            raise RuntimeError("input_key must be provided for inference.")
+        input_key = kwargs["input_key"]
+        output_fn_path = kwargs.get("output_fn_path")
+        if not output_fn_path:
+            raise RuntimeError("output_fn_path must be provided for inference.")
+        output_fn = _load_output_fn(output_fn_path)
+
+        if isinstance(input_key, (list, tuple)):
+            inputs_dict = {}
+            for key in input_key:
+                for data in data_batch:
+                    if key not in data:
+                        raise KeyError(f"Input key '{key}' not found in dataset item.")
+                inputs_dict[key] = [data[key] for data in data_batch]
+        else:
+            for data in data_batch:
+                if input_key not in data:
+                    raise KeyError(f"Input key '{input_key}' not found in dataset item.")
+            inputs_dict = {input_key: [data[input_key] for data in data_batch]}
+
+        if hasattr(model, "batch_forward") and callable(model.batch_forward):
+            model_output = model.batch_forward(**inputs_dict)
+            return output_fn(
+                data=data_batch, model_output=model_output, idx=list(indices)
+            )
+
+        outputs = []
+        for i, data in zip(indices, data_batch):
+            if isinstance(input_key, (list, tuple)):
+                model_output = model(*[data[key] for key in input_key])
+            else:
+                model_output = model(data[input_key])
+            outputs.append(output_fn(data=data, model_output=model_output, idx=i))
+
+        return outputs
+
     def __call__(self, indices: Iterable[int]) -> List[Any] | None:
         """Run inference and validate output formats."""
         results = super().__call__(indices)
