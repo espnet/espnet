@@ -1,5 +1,6 @@
 """Trainer class for the espnet3 package."""
 
+import copy
 import warnings
 from argparse import Namespace
 from typing import Any, Dict, Union
@@ -75,28 +76,18 @@ class ESPnet3LightningTrainer:
 
         # Accelerator
         accelerator = _get_or_initialize(self.config, "accelerator", "auto")
-        if hasattr(self.config, "accelerator"):
-            self._del_config_key("accelerator")
 
         # strategy
         strategy = _get_or_initialize(self.config, "strategy", "auto")
-        if hasattr(self.config, "strategy"):
-            self._del_config_key("strategy")
 
         # logger
         logger = _get_or_initialize(self.config, "logger")
-        if logger is not None:
-            self._del_config_key("logger")
 
         # profiler
         profiler = _get_or_initialize(self.config, "profiler")
-        if profiler is not None:
-            self._del_config_key("profiler")
 
         # plugins
         plugins = _get_or_initialize(self.config, "plugins")
-        if plugins is not None:
-            self._del_config_key("plugins")
 
         # Callbacks
         callbacks = get_default_callbacks(
@@ -110,7 +101,6 @@ class ESPnet3LightningTrainer:
             ), "callbacks should be a list"
             for callback in self.config.callbacks:
                 callbacks.append(instantiate(callback))
-            self._del_config_key("callbacks")
 
         # Since espnet's sampler requires to set the following configs:
         # Reload dataloaders every epoch to reuse ESPnet's dataloader
@@ -144,6 +134,17 @@ class ESPnet3LightningTrainer:
         if self.model.is_espnet_sampler:
             self.config.use_distributed_sampler = False
 
+        trainer_config = copy.deepcopy(self.config)
+        for key in (
+            "accelerator",
+            "strategy",
+            "logger",
+            "profiler",
+            "plugins",
+            "callbacks",
+        ):
+            self._del_config_key_on(trainer_config, key)
+
         # Set up the trainer
         self.trainer = lightning.Trainer(
             accelerator=accelerator,
@@ -153,7 +154,7 @@ class ESPnet3LightningTrainer:
             logger=logger,
             profiler=profiler,
             plugins=plugins,
-            **self.config,
+            **trainer_config,
         )
 
     def _del_config_key(self, key):
@@ -161,6 +162,14 @@ class ESPnet3LightningTrainer:
             delattr(self.config, key)
         elif isinstance(self.config, dict):
             self.config.pop(key)
+
+    @staticmethod
+    def _del_config_key_on(config, key):
+        if isinstance(config, DictConfig) or isinstance(config, Namespace):
+            if hasattr(config, key):
+                delattr(config, key)
+        elif isinstance(config, dict):
+            config.pop(key, None)
 
     def fit(self, *args, **kwargs):
         """Start the training loop using Lightning's fit method.
