@@ -14,6 +14,25 @@ class DummyRunner(BaseRunner):
         return idx
 
 
+class TrackingProvider:
+    def build_env_local(self):
+        return {"dataset": ["a", "b", "c"], "model": "m"}
+
+
+class TrackingRunner(BaseRunner):
+    calls = {"forward": [], "batch_forward": []}
+
+    @staticmethod
+    def forward(idx, *, dataset, model, **env):
+        TrackingRunner.calls["forward"].append((idx, dataset, model))
+        return idx
+
+    @classmethod
+    def batch_forward(cls, indices, *, dataset, model, **env):
+        TrackingRunner.calls["batch_forward"].append((list(indices), dataset, model))
+        return list(indices)
+
+
 def test_batch_size_chunks_indices():
     runner = DummyRunner(DummyProvider(), batch_size=2)
     out = runner([0, 1, 2, 3, 4])
@@ -33,3 +52,32 @@ def test_batch_size_rejects_None():
 
     # No error should be raised here
     runner([0])
+
+
+def test_batch_forward_used_when_batch_size_set():
+    TrackingRunner.calls = {"forward": [], "batch_forward": []}
+
+    runner = TrackingRunner(TrackingProvider(), batch_size=2)
+    out = runner([0, 1, 2])
+
+    assert out == [[0, 1], [2]]
+    assert TrackingRunner.calls["forward"] == []
+    assert TrackingRunner.calls["batch_forward"] == [
+        ([0, 1], ["a", "b", "c"], "m"),
+        ([2], ["a", "b", "c"], "m"),
+    ]
+
+
+def test_forward_used_when_batch_size_is_none():
+    TrackingRunner.calls = {"forward": [], "batch_forward": []}
+
+    runner = TrackingRunner(TrackingProvider(), batch_size=None)
+    out = runner([0, 1, 2])
+
+    assert out == [0, 1, 2]
+    assert TrackingRunner.calls["batch_forward"] == []
+    assert TrackingRunner.calls["forward"] == [
+        (0, ["a", "b", "c"], "m"),
+        (1, ["a", "b", "c"], "m"),
+        (2, ["a", "b", "c"], "m"),
+    ]
