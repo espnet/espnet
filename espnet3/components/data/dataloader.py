@@ -198,7 +198,12 @@ class DataLoaderBuilder:
                     )
             batches = [batch[rank::world_size] for batch in batches]
 
-        iter_factory = instantiate(factory_config, dataset, batches=batches)
+        # Avoid OmegaConf merge errors when passing list batches via kwargs.
+        factory_kwargs = factory_config
+        if isinstance(factory_config, dict):
+            factory_kwargs = dict(factory_config)
+            factory_kwargs.pop("batches", None)
+        iter_factory = instantiate(factory_kwargs, dataset, batches=batches)
 
         return iter_factory.build_iter(self.epoch, shuffle=False)
 
