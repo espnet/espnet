@@ -70,8 +70,10 @@ version = {attr = "espnet2.__version__"}
 readme = {file = ["README.md"], content-type = "text/markdown"}
 
 [tool.setuptools.packages.find]
-include = ["espnet*"]
+include = ["espnet*", "egs3*"]
 
+[tool.setuptools.package-data]
+egs3 = ["**/*.yaml", "**/*.yml", "**/*.md", "**/*.sh"]
 
 
 [project.optional-dependencies]
