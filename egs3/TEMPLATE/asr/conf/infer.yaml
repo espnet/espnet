@@ -1,61 +1,25 @@
-# Inference/decoding configuration template for ESPnet3 ASR.
-# Mirrors the training paths but keeps only inference-relevant knobs.
+# Inference configuration template for ESPnet3 ASR.
 
-# Minimal runtime scaffold; fill in task in derived configs if needed.
-num_device: 1
-num_nodes: 1
+# Root output directory for .scp files written by the infer stage.
+infer_dir: exp/asr_template_eval/infer
 
-# Path scaffold relative to the recipe root.
-recipe_dir: .
-data_dir: ${recipe_dir}/data
-exp_tag: asr_template_eval
-exp_dir: ${recipe_dir}/exp/${exp_tag}
-stats_dir: ${recipe_dir}/exp/stats
-decode_dir: ${exp_dir}/decode
-
-# Dataset definition for test splits only.
+# Dataset definition for test splits only (names become output subfolders).
 dataset:
-  _target_: espnet3.components.data_organizer.DataOrganizer
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
   test:
     - name: test-clean
       dataset:
         _target_: src.dataset.LibriSpeechDataset
-        data_dir: ${dataset_dir}
+        # Override this in your recipe.
+        data_dir: data/dataset
         split: test-clean
 
-# Parallel execution used during data loading / scoring (defaults to local).
-parallel:
-  env: local
-  n_workers: 1
+# Inference model entrypoint.
+model:
+  _target_: espnet2.bin.asr_inference.Speech2Text
+  asr_train_config: exp/asr_template_eval/config.yaml
+  asr_model_file: exp/asr_template_eval/last.ckpt
 
-# DataLoader defaults; keep small batch settings for lightweight decoding.
-dataloader:
-  collate_fn:
-    _target_: espnet2.train.collate_fn.CommonCollateFn
-    int_pad_value: -1
-  train:
-    multiple_iterator: false
-    num_shards: 1
-    iter_factory:
-      _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
-      shuffle: true
-      collate_fn: ${dataloader.collate_fn}
-      batches:
-        type: numel
-        shape_files:
-          - ${stats_dir}/train/feats_shape
-        batch_size: 4
-        batch_bins: 4000000
-  valid:
-    multiple_iterator: false
-    num_shards: 1
-    iter_factory:
-      _target_: espnet2.iterators.sequence_iter_factory.SequenceIterFactory
-      shuffle: false
-      collate_fn: ${dataloader.collate_fn}
-      batches:
-        type: ${dataloader.train.iter_factory.batches.type}
-        shape_files:
-          - ${stats_dir}/valid/feats_shape
-        batch_size: ${dataloader.train.iter_factory.batches.batch_size}
-        batch_bins: ${dataloader.train.iter_factory.batches.batch_bins}
+# Generic ESPnet3 inference entrypoint settings.
+input_key: speech
+output_fn: src.infer.output_fn

@@ -8,7 +8,7 @@ from contextlib import contextmanager
 from typing import Any, Callable, Generator, Iterable, Optional
 
 import torch
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 from tqdm import tqdm
 from typeguard import typechecked
 
@@ -80,6 +80,17 @@ def _ensure_dask():
             "Dask is not available. Install dask[distributed] and "
             "dask_jobqueue to use espnet3.parallel."
         )
+
+
+def _normalize_parallel_config(config: DictConfig | None) -> DictConfig:
+    """Return a valid parallel config, defaulting to local single-worker."""
+    if config is None:
+        if parallel_config is not None:
+            config = parallel_config
+        else:
+            config = OmegaConf.create({"env": "local", "n_workers": 1, "options": {}})
+
+    return config
 
 
 def make_local_gpu_cluster(n_workers: int, options: dict) -> Client:
@@ -171,16 +182,10 @@ def make_client(config: DictConfig = None) -> Client:
     Returns:
         Client: Dask client instance.
     """
-    if config is not None:
-        set_parallel(config)
-        return _make_client(config)
-
-    if parallel_config is None:
-        raise ValueError(
-            "Parallel configuration not set. Use `set_parallel` to set it."
-        )
-
-    return _make_client(parallel_config)
+    _ensure_dask()
+    config = _normalize_parallel_config(config)
+    set_parallel(config)
+    return _make_client(config)
 
 
 class DictReturnWorkerPlugin(WorkerPlugin):
@@ -309,7 +314,7 @@ def get_client(
         >>> with get_client() as client:
         ...     results = client.map(lambda x: x**2, range(10))
     """
-    client = make_client(config)
+    client = make_client(_normalize_parallel_config(config))
     if setup_fn is not None:
         plugin = DictReturnWorkerPlugin(setup_fn)
         reg = getattr(client, "register_worker_plugin", None)

@@ -287,7 +287,7 @@ class BaseRunner(ABC):
         """
         par_cfg = get_parallel_config()
         client = make_client(par_cfg)
-        n_workers = par_cfg.get("n_workers", 1)
+        n_workers = getattr(par_cfg, "n_workers", 1) if par_cfg is not None else 1
         try:
             chunks = _default_chunk(indices, n_workers)
             self.async_specs_dir.mkdir(parents=True, exist_ok=True)
