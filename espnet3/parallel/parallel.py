@@ -124,11 +124,12 @@ def make_local_gpu_cluster(n_workers: int, options: dict) -> Client:
 
 
 @typechecked
-def set_parallel(config: DictConfig) -> None:
+def set_parallel(config: Optional[DictConfig]) -> None:
     """Set the global Dask cluster using the provided configuration.
 
     Args:
-        config (DictConfig): Configuration object with 'env' and cluster options.
+        config (DictConfig | None): Configuration object with 'env' and cluster
+            options. If None, defaults to a local single-worker configuration.
 
     Example:
         >>> from omegaconf import OmegaConf
@@ -136,6 +137,7 @@ def set_parallel(config: DictConfig) -> None:
         >>> set_parallel(config)
     """
     global parallel_config
+    config = _normalize_parallel_config(config)
     options = dict(config.options) if hasattr(config, "options") else {}
     config.options = options
     parallel_config = copy.copy(config)

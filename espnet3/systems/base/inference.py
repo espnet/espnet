@@ -73,7 +73,7 @@ def inference(config: DictConfig):
         config: Hydra/omegaconf configuration with dataset and inference settings.
     """
     start = time.perf_counter()
-    set_parallel(config.parallel)
+    set_parallel(getattr(config, "parallel", None))
 
     test_sets = [test_set.name for test_set in config.dataset.test]
     assert len(test_sets) > 0, "No test set found in dataset"
