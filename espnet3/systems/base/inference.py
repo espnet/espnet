@@ -71,6 +71,19 @@ def inference(config: DictConfig):
 
     Args:
         config: Hydra/omegaconf configuration with dataset and inference settings.
+
+    Returns:
+        None
+
+    Raises:
+        RuntimeError: If required inference config fields are missing.
+        TypeError: If the inference runner does not expose expected attributes.
+        AssertionError: If no test sets exist or duplicate names are present.
+
+    Example:
+        >>> from omegaconf import OmegaConf
+        >>> cfg = OmegaConf.load(\"conf/infer.yaml\")  # doctest: +SKIP
+        >>> inference(cfg)  # writes scp files under cfg.infer_dir  # doctest: +SKIP
     """
     start = time.perf_counter()
     set_parallel(getattr(config, "parallel", None))

@@ -48,7 +48,26 @@ def _ensure_directories(cfg: DictConfig) -> None:
 
 
 def collect_stats(cfg: DictConfig) -> None:
-    """Collect statistics required by the training pipeline."""
+    """Collect dataset statistics required by the training pipeline.
+
+    This stage prepares output directories, configures parallel execution and
+    seeding (if requested), instantiates the model/trainer, and then runs the
+    trainer's ``collect_stats`` routine.
+
+    Args:
+        cfg (DictConfig): Training configuration (typically Hydra/OmegaConf).
+
+    Returns:
+        None
+
+    Raises:
+        Exception: Propagates errors from model/trainer instantiation or collection.
+
+    Example:
+        >>> from omegaconf import OmegaConf
+        >>> cfg = OmegaConf.load(\"conf/train.yaml\")  # doctest: +SKIP
+        >>> collect_stats(cfg)  # doctest: +SKIP
+    """
     _ensure_directories(cfg)
     start = time.perf_counter()
 
@@ -76,7 +95,26 @@ def collect_stats(cfg: DictConfig) -> None:
 
 
 def train(cfg: DictConfig) -> None:
-    """Run the training loop."""
+    """Run the model training loop.
+
+    This stage prepares output directories, configures parallel execution and
+    seeding (if requested), optionally writes an ESPnet2-compatible snapshot of
+    the training config, then instantiates and runs the Lightning trainer.
+
+    Args:
+        cfg (DictConfig): Training configuration (typically Hydra/OmegaConf).
+
+    Returns:
+        None
+
+    Raises:
+        Exception: Propagates errors from training setup or the trainer backend.
+
+    Example:
+        >>> from omegaconf import OmegaConf
+        >>> cfg = OmegaConf.load(\"conf/train.yaml\")  # doctest: +SKIP
+        >>> train(cfg)  # doctest: +SKIP
+    """
     _ensure_directories(cfg)
     start = time.perf_counter()
 

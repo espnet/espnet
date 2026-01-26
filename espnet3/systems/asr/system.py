@@ -28,6 +28,11 @@ def load_function(path):
 
     Raises:
         (Exception): Propagated import or attribute lookup errors.
+
+    Example:
+        >>> fn = load_function(\"math.sqrt\")
+        >>> fn(9)
+        3.0
     """
     module_path, func_name = path.rsplit(".", 1)
     module = import_module(module_path)

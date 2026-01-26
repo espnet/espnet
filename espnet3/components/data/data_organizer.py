@@ -61,6 +61,12 @@ def do_nothing_transform(*x):
 
     Returns:
         The input object unchanged.
+
+    Example:
+        >>> do_nothing_transform(1)
+        1
+        >>> do_nothing_transform(1, 2)
+        (1, 2)
     """
     if len(x) == 1:
         return x[0]

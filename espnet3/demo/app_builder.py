@@ -15,7 +15,29 @@ from espnet3.demo.ui import UiSpec, build_ui_from_config
 
 
 def build_demo_app(demo_dir: Path) -> gr.Blocks:
-    """Build a Gradio demo app from a demo directory."""
+    """Build a Gradio demo app from a demo directory.
+
+    This loads ``demo.yaml`` from ``demo_dir``, builds an inference runtime, and
+    constructs a Gradio UI based on the config (or system defaults).
+
+    Args:
+        demo_dir (Path): Directory containing ``demo.yaml`` (and optional assets).
+
+    Returns:
+        gr.Blocks: A configured Gradio ``Blocks`` app instance.
+
+    Raises:
+        FileNotFoundError: If ``demo.yaml`` cannot be found under ``demo_dir``.
+        ValueError: If UI config is missing and no system defaults are available.
+
+    Example:
+        >>> import gradio as gr
+        >>> from pathlib import Path
+        >>> app = build_demo_app(Path(\"exp/demo\"))
+        >>> isinstance(app, gr.Blocks)
+        True
+        >>> # app.launch()  # run the UI
+    """
     demo_cfg = load_demo_config(demo_dir)
     runtime = build_runtime(demo_cfg, demo_dir)
     ui = _load_ui_spec(demo_cfg, demo_dir)

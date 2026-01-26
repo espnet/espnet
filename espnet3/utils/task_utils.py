@@ -14,7 +14,23 @@ from espnet2.train.abs_espnet_model import AbsESPnetModel
 
 
 def get_task_class(task_path: str):
-    """Get the ESPnet-2 Task class from the given task path."""
+    """Resolve and return an ESPnet2 Task class from a dotted class path.
+
+    Args:
+        task_path (str): Dotted path to an ESPnet2 Task class (Hydra-style),
+            e.g., ``"espnet2.tasks.asr.ASRTask"``.
+
+    Returns:
+        type: The resolved Task class.
+
+    Raises:
+        RuntimeError: If the class cannot be imported/resolved.
+
+    Example:
+        >>> cls = get_task_class(\"espnet2.tasks.asr.ASRTask\")  # doctest: +SKIP
+        >>> cls.__name__  # doctest: +SKIP
+        'ASRTask'
+    """
     try:
         ez_task = get_class(task_path)
     except Exception as e:
@@ -24,7 +40,29 @@ def get_task_class(task_path: str):
 
 @typechecked
 def get_espnet_model(task: str, config: Union[Dict, DictConfig]) -> AbsESPnetModel:
-    """Build and return an ESPnet model from the given task and config."""
+    """Build and return an ESPnet2 model from a task class and config.
+
+    This is a thin wrapper around ``Task.get_default_config()`` and
+    ``Task.build_model(...)``. It temporarily overrides ``sys.argv`` to satisfy
+    some task implementations that rely on argument parsing.
+
+    Args:
+        task (str): Dotted path to an ESPnet2 Task class.
+        config (Union[Dict, DictConfig]): Model/config overrides merged into the
+            task default config.
+
+    Returns:
+        AbsESPnetModel: Instantiated ESPnet2 model.
+
+    Raises:
+        RuntimeError: If the task class cannot be resolved.
+
+    Example:
+        >>> model = get_espnet_model(
+        ...     "espnet2.tasks.asr.ASRTask",
+        ...     {"frontend": "default"},
+        ... )  # doctest: +SKIP
+    """
     ez_task = get_task_class(task)
 
     # workaround for calling get_default_config
@@ -47,7 +85,29 @@ def get_espnet_model(task: str, config: Union[Dict, DictConfig]) -> AbsESPnetMod
 def save_espnet_config(
     task: str, config: Union[Dict, DictConfig], output_dir: str
 ) -> None:
-    """Save the ESPnet config used for training to the output directory."""
+    """Save an ESPnet2-compatible training config snapshot to disk.
+
+    This builds the full config by merging:
+      - The task's default config
+      - The resolved model config (flattened into root keys)
+      - Selected dataset preprocessor config (flattened into root keys)
+      - Any remaining user-provided config keys
+
+    Args:
+        task (str): Dotted path to an ESPnet2 Task class.
+        config (Union[Dict, DictConfig]): Training config (OmegaConf or dict).
+        output_dir (str): Output directory where ``config.yaml`` is written.
+
+    Returns:
+        None
+
+    Raises:
+        RuntimeError: If the task class cannot be resolved.
+        OSError: If the output directory cannot be created or written.
+
+    Example:
+        >>> save_espnet_config(\"espnet2.tasks.asr.ASRTask\", cfg, \"exp\")  # doctest: +SKIP
+    """
     ez_task = get_task_class(task)
 
     # workaround for calling get_default_config

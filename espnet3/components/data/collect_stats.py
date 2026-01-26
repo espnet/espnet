@@ -38,7 +38,47 @@ def batch_collect_stats(
     write_collected_feats: bool = False,
     collect_stats_kwargs: Optional[Dict[str, Any]] = None,
 ):
-    """Process a batch of dataset indices and compute feature statistics."""
+    """Compute feature statistics for a batch of dataset items.
+
+    This helper:
+      - Materializes a list of dataset items for the given indices.
+      - Collates them into a mini-batch using ``collate_fn``.
+      - Runs ``model.collect_feats(...)`` under ``torch.no_grad()``.
+      - Accumulates per-feature sums, squared sums, and counts, and records
+        per-utterance feature shapes for writing ``*_shape`` files.
+
+    Args:
+        idxs (List[int]): Dataset indices to process as one batch.
+        model: Model instance that provides a callable ``collect_feats`` method.
+        dataset: Dataset providing ``__getitem__``.
+        collate_fn: Collate function returning ``(uids, batch_dict)``.
+        device (torch.device, optional): Device to move batch tensors to.
+        write_collected_feats (bool): If ``True``, also returns raw collected
+            feature arrays for writing (e.g., via ``NpyScpWriter``).
+        collect_stats_kwargs (Dict[str, Any], optional): Extra keyword arguments
+            forwarded to ``model.collect_feats`` (must not collide with batch keys).
+
+    Returns:
+        Tuple[dict, dict] | Tuple[dict, dict, dict]:
+            ``(stats, shape_info)`` when ``write_collected_feats=False``, otherwise
+            ``(stats, shape_info, feats)`` where:
+              - ``stats`` maps feature-key -> ``{"sum": ..., "sq": ..., "count": ...}``
+              - ``shape_info`` maps feature-key -> ``{uid: "shape_csv"}``
+              - ``feats`` maps feature-key -> numpy array batch outputs
+
+    Raises:
+        RuntimeError: If ``collate_fn`` does not return ``(uids, batch_dict)``.
+        ValueError: If ``collect_stats_kwargs`` overlaps with batch tensor keys.
+
+    Example:
+        >>> stats, shapes = batch_collect_stats(
+        ...     [0, 1, 2, 3],
+        ...     model=model,
+        ...     dataset=dataset,
+        ...     collate_fn=collate_fn,
+        ...     device=torch.device("cpu"),
+        ... )
+    """
     structured_items: List[Tuple[str, Any]] = []
     for i in idxs:
         item = dataset[i]
@@ -411,7 +451,46 @@ def collect_stats_multiple_iterator(
     parallel_config: Any,
     write_collected_feats: bool = False,
 ):
-    """Collect stats on sharded datasets using Dask + setup_fn."""
+    """Collect statistics on sharded datasets (multiple-iterator mode).
+
+    This function iterates over shards and runs the common collect-stats loop for
+    each shard. It requires a Dask parallel configuration because each shard is
+    processed using a Dask worker setup function provided by the environment
+    provider.
+
+    Args:
+        model_config: Model configuration passed to the provider/model builder.
+        dataset_config: Dataset organizer configuration.
+        dataloader_config: Dataloader configuration; must define ``num_shards`` for
+            ``dataloader_config.<mode>``.
+        mode (str): Split name (e.g., ``"train"`` or ``"valid"``).
+        output_dir (Path): Output directory for stats/shapes (under ``output_dir/mode``).
+        task (str | None): ESPnet2 task path. If set, the model is built via task.
+        batch_size (int): Number of dataset items per batch.
+        parallel_config: Parallel configuration used by :func:`espnet3.parallel.set_parallel`.
+        write_collected_feats (bool): If ``True``, also persist collected features.
+
+    Returns:
+        Tuple[dict, dict, dict]: ``(sum_dict, sq_dict, count_dict)`` aggregated over
+        all shards.
+
+    Raises:
+        AttributeError: If the expected shard configuration is missing.
+
+    Example:
+        >>> from omegaconf import OmegaConf
+        >>> parallel_cfg = OmegaConf.create({"env": "local", "n_workers": 2})
+        >>> sums, sqs, counts = collect_stats_multiple_iterator(
+        ...     model_config=model_cfg,
+        ...     dataset_config=dataset_cfg,
+        ...     dataloader_config=dataloader_cfg,
+        ...     mode="train",
+        ...     output_dir=Path("exp/stats"),
+        ...     task=None,
+        ...     batch_size=4,
+        ...     parallel_config=parallel_cfg,
+        ... )
+    """
     set_parallel(parallel_config)
 
     sum_dict, sq_dict, count_dict = (
@@ -489,6 +568,18 @@ def collect_stats(
 
     Returns:
         None: Aggregated statistics are saved under ``output_dir / mode``.
+
+    Example:
+        >>> collect_stats(
+        ...     model_config=model_cfg,
+        ...     dataset_config=dataset_cfg,
+        ...     dataloader_config=dataloader_cfg,
+        ...     mode="train",
+        ...     output_dir=Path("exp/stats"),
+        ...     task=None,
+        ...     parallel_config=None,
+        ...     batch_size=4,
+        ... )
     """
     mode_config = getattr(dataloader_config, mode)
     if getattr(mode_config, "multiple_iterator", False):

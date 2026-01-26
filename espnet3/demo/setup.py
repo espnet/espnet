@@ -32,7 +32,27 @@ def setup_demo_assets(
     requirements: Iterable[str] | None = None,
     ui_templates: Dict[str, dict] | None = None,
 ) -> None:
-    """Create demo app files, requirements, and optional UI templates."""
+    """Create demo app scaffolding under a demo directory.
+
+    This writes:
+      - ``app.py``: a small launcher that calls :func:`espnet3.demo.app_builder.build_demo_app`.
+      - ``requirements.txt``: either from the config, explicit ``requirements``,
+        or a minimal default list.
+      - Optional UI template YAMLs under ``ui_templates/``.
+
+    Args:
+        demo_dir (Path): Target directory to populate.
+        demo_config: Demo configuration (used to infer requirements defaults).
+        requirements (Iterable[str] | None): Additional explicit requirements to write.
+        ui_templates (Dict[str, dict] | None): Named UI templates to write as YAML.
+
+    Returns:
+        None
+
+    Example:
+        >>> from pathlib import Path
+        >>> setup_demo_assets(demo_dir=Path(\"exp/demo\"), demo_config={})
+    """
     demo_dir.mkdir(parents=True, exist_ok=True)
     _write_app_py(demo_dir)
     _write_requirements(demo_dir, demo_config, requirements)

@@ -22,7 +22,30 @@ logger = logging.getLogger(__name__)
 
 
 def pack_demo(system) -> Path:
-    """Package demo assets and configs into a demo directory."""
+    """Package demo assets and configs into a runnable demo directory.
+
+    This stage prepares a self-contained directory suitable for launching a
+    Gradio demo (e.g., on Hugging Face Spaces). It writes:
+      - ``demo.yaml`` (resolved and rewritten for the packaged directory)
+      - ``config/infer.yaml`` (resolved inference config)
+      - ``app.py`` and ``requirements.txt`` (via :func:`setup_demo_assets`)
+      - Optional extra files configured in ``demo.yaml``.
+
+    Args:
+        system: System instance that exposes ``demo_config`` and related paths.
+
+    Returns:
+        Path: The created demo directory.
+
+    Raises:
+        RuntimeError: If the system has no ``demo_config`` or required fields.
+        ValueError: If an inference provider cannot be resolved or configs are missing.
+
+    Example:
+        >>> demo_dir = pack_demo(system)
+        >>> (demo_dir / \"app.py\").exists()
+        True
+    """
     demo_cfg = system.demo_config
     if demo_cfg is None:
         raise RuntimeError("pack_demo requires demo_config.")
@@ -55,7 +78,23 @@ def pack_demo(system) -> Path:
 
 
 def upload_demo(system) -> None:
-    """Upload demo assets to a remote destination (not implemented)."""
+    """Upload packaged demo assets to a remote destination.
+
+    Currently, this uses a common upload helper to push the packaged demo
+    directory to a Hugging Face repository when configured.
+
+    Args:
+        system: System instance that exposes ``demo_config`` and paths.
+
+    Returns:
+        None
+
+    Raises:
+        RuntimeError: If the upload configuration is missing or invalid.
+
+    Example:
+        >>> upload_demo(system)  # requires demo_config.upload_demo to be set
+    """
     demo_cfg = system.demo_config
     if demo_cfg is None:
         raise RuntimeError("upload_demo requires demo_config.")

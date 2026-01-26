@@ -37,6 +37,11 @@ def update_shard(config: Union[dict, list], shard_idx: int) -> Union[dict, list]
     Returns:
         Union[dict, list]: A new config structure with all "{shard_idx}"
             placeholders replaced by the given shard index.
+
+    Example:
+        >>> cfg = {"shape_files": ["stats/speech_shape.{shard_idx}"]}
+        >>> update_shard(cfg, shard_idx=3)
+        {'shape_files': ['stats/speech_shape.3']}
     """
     if isinstance(config, dict):
         return {k: update_shard(v, shard_idx) for k, v in config.items()}

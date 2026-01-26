@@ -104,6 +104,13 @@ def make_local_gpu_cluster(n_workers: int, options: dict) -> Client:
 
     Returns:
         Client: Dask client connected to the GPU cluster.
+
+    Raises:
+        RuntimeError: If Dask or ``dask_cuda`` is unavailable.
+        ValueError: If ``n_workers`` exceeds the available GPU count.
+
+    Example:
+        >>> client = make_local_gpu_cluster(1, options={})  # doctest: +SKIP
     """
     _ensure_dask()
     if LocalCUDACluster is None:
@@ -135,6 +142,9 @@ def set_parallel(config: Optional[DictConfig]) -> None:
         >>> from omegaconf import OmegaConf
         >>> config = OmegaConf.create({'env': 'local', 'n_workers': 2})
         >>> set_parallel(config)
+
+    Returns:
+        None
     """
     global parallel_config
     config = _normalize_parallel_config(config)
@@ -144,7 +154,19 @@ def set_parallel(config: Optional[DictConfig]) -> None:
 
 
 def get_parallel_config() -> Optional[DictConfig]:
-    """Return the global Dask cluster configuration."""
+    """Return the global Dask cluster configuration.
+
+    Args:
+        None
+
+    Returns:
+        Optional[DictConfig]: Currently configured cluster config (or ``None``).
+
+    Example:
+        >>> cfg = get_parallel_config()
+        >>> cfg is None or hasattr(cfg, \"env\")
+        True
+    """
     return parallel_config
 
 
@@ -183,6 +205,13 @@ def make_client(config: DictConfig = None) -> Client:
 
     Returns:
         Client: Dask client instance.
+
+    Raises:
+        RuntimeError: If Dask is not installed.
+        ValueError: If the configuration requests an unknown cluster environment.
+
+    Example:
+        >>> client = make_client()  # doctest: +SKIP
     """
     _ensure_dask()
     config = _normalize_parallel_config(config)
@@ -311,6 +340,9 @@ def get_client(
 
     Yields:
         Client: A Dask client instance tied to the global cluster.
+
+    Returns:
+        Generator[Client, None, None]: Context manager yielding a client.
 
     Example:
         >>> with get_client() as client:
@@ -493,6 +525,9 @@ def parallel_for(
 
     Yields:
         Each task's result as soon as it finishes.
+
+    Returns:
+        Generator: An iterator over results in completion order.
 
     Raises:
         ValueError:

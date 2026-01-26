@@ -29,6 +29,11 @@ def setup_logger(
 
     Returns:
         logging.Logger: Configured logger instance.
+
+    Example:
+        >>> logger = setup_logger(\"espnet3.download\")
+        >>> logger.name
+        'espnet3.download'
     """
     logger = logging.getLogger(name)
     logger.setLevel(level)
@@ -120,9 +125,16 @@ def download_url(
             If None, messages are printed to stdout.
         step_percent (int): Percentage step for progress logging.
 
+    Returns:
+        None
+
     Raises:
         URLError: If the download fails.
         HTTPError: If the server returns an error response.
+
+    Example:
+        >>> from pathlib import Path
+        >>> download_url(\"https://example.com/file.tgz\", Path(\"./data/file.tgz\"))  # doctest: +SKIP
     """
     dst_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -150,8 +162,19 @@ def extract_targz(
         dst_dir (Path): Directory to extract files into.
         logger (logging.Logger | None): Logger to emit progress messages.
 
+    Returns:
+        None
+
     Raises:
         tarfile.TarError: If the archive is invalid or extraction fails.
+
+    Notes:
+        - This uses :meth:`tarfile.TarFile.extractall`, which may be unsafe for
+          untrusted archives (path traversal). Only extract archives from trusted
+          sources.
+
+    Example:
+        >>> extract_targz(Path(\"./data/file.tgz\"), Path(\"./data/out\"))  # doctest: +SKIP
     """
     _log(logger, f"Extracting: {archive_path.name}")
     with tarfile.open(archive_path, "r:gz") as tar:

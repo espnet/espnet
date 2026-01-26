@@ -41,6 +41,18 @@ def inference(config: DictConfig):
 
     Args:
         config: Hydra/omegaconf configuration with dataset and decode settings.
+
+    Returns:
+        None
+
+    Raises:
+        RuntimeError: If async inference is requested (unsupported here).
+        AssertionError: If no test sets exist or duplicate names are present.
+
+    Example:
+        >>> from omegaconf import OmegaConf
+        >>> cfg = OmegaConf.load(\"conf/infer.yaml\")  # doctest: +SKIP
+        >>> inference(cfg)  # writes scp files under cfg.decode_dir  # doctest: +SKIP
     """
     start = time.perf_counter()
     set_parallel(getattr(config, "parallel", None))

@@ -31,7 +31,36 @@ _AUDIO_SOURCE_MAP = {
 
 
 def build_ui_from_config(ui_cfg) -> UiSpec:
-    """Build a UI spec from the demo UI configuration."""
+    """Build a :class:`UiSpec` from a demo UI configuration object.
+
+    The input config is expected to provide:
+      - ``inputs``: list of component configs (each with at least ``name`` and ``type``)
+      - ``outputs``: list of component configs
+      - Optional UI metadata such as ``title``/``description``/``article``.
+
+    Args:
+        ui_cfg: UI configuration (OmegaConf config, dict-like, or attribute object).
+
+    Returns:
+        UiSpec: A typed UI spec containing instantiated Gradio components and
+            aligned input/output name lists.
+
+    Raises:
+        ValueError: If a component is missing a non-empty ``name`` or has an
+            unsupported ``type``.
+
+    Example:
+        >>> from omegaconf import OmegaConf
+        >>> ui_cfg = OmegaConf.create(
+        ...     {
+        ...         "inputs": [{"name": "speech", "type": "audio"}],
+        ...         "outputs": [{"name": "text", "type": "textbox"}],
+        ...     }
+        ... )
+        >>> spec = build_ui_from_config(ui_cfg)
+        >>> spec.input_names
+        ['speech']
+    """
     inputs_cfg = list(getattr(ui_cfg, "inputs", []) or [])
     outputs_cfg = list(getattr(ui_cfg, "outputs", []) or [])
     inputs, input_names = _build_components(inputs_cfg, is_input=True)

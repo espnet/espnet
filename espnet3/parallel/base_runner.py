@@ -75,7 +75,22 @@ def _default_chunk(indices: Sequence[int], num_chunks: int) -> List[List[int]]:
 
 
 def convert_paths(obj):
-    """Recursively convert Path objects to strings in the given object."""
+    """Recursively convert :class:`pathlib.Path` objects to strings.
+
+    This is primarily used to make configs and environment objects JSON
+    serializable before sending them to Dask workers.
+
+    Args:
+        obj: Arbitrary nested structure containing dict/list/Path leaves.
+
+    Returns:
+        Any: A new structure where all ``Path`` instances are converted to ``str``.
+
+    Example:
+        >>> from pathlib import Path
+        >>> convert_paths({\"p\": Path(\"a/b\")})
+        {'p': 'a/b'}
+    """
     if isinstance(obj, dict):
         return {k: convert_paths(v) for k, v in obj.items()}
     elif isinstance(obj, list):
@@ -87,7 +102,23 @@ def convert_paths(obj):
 
 
 def get_full_class_path_from_instance(obj):
-    """Return the full import path of the given object's class."""
+    """Return the full import path for an instance's class.
+
+    Args:
+        obj: Any Python object.
+
+    Returns:
+        str: Dotted class path in the form ``<module>.<qualname>``.
+
+    Notes:
+        - When running under ``__main__``, the module name is rewritten to the
+          current script filename so that workers can import it by module path.
+
+    Example:
+        >>> class Foo: ...
+        >>> get_full_class_path_from_instance(Foo()).endswith(\"Foo\")
+        True
+    """
     cls = obj.__class__
     module = cls.__module__
 
@@ -102,7 +133,24 @@ def get_full_class_path_from_instance(obj):
 
 
 def get_job_cls(cluster, spec_path=None):
-    """Dask Job class that submits async runner jobs with the given spec path."""
+    """Create a Dask Job class that runs an async runner spec file.
+
+    This wraps the cluster's ``job_cls`` and injects a command template that
+    executes this module as a script with the given spec file path.
+
+    Args:
+        cluster: Dask cluster instance that provides a ``job_cls`` attribute.
+        spec_path: Path to a JSON spec file consumed by the worker entrypoint.
+
+    Returns:
+        type: A dynamically created job class that submits async runner jobs.
+
+    Raises:
+        AssertionError: If ``spec_path`` is not provided.
+
+    Example:
+        >>> job_cls = get_job_cls(cluster, spec_path=\"spec.json\")  # doctest: +SKIP
+    """
     parent_cls = cluster.job_cls
     assert spec_path is not None
 

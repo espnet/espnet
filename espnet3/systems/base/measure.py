@@ -18,6 +18,16 @@ def measure(config: DictConfig):
 
     Returns:
         Nested dict keyed by metric class path and test set name.
+
+    Raises:
+        AssertionError: If ``config.metrics`` is missing.
+        TypeError: If an instantiated metric is not an :class:`AbsMetrics`.
+        ValueError: If inputs cannot be inferred for a metric.
+
+    Example:
+        >>> from omegaconf import OmegaConf
+        >>> cfg = OmegaConf.load(\"conf/measure.yaml\")  # doctest: +SKIP
+        >>> results = measure(cfg)  # writes cfg.infer_dir/measures.json  # doctest: +SKIP
     """
     test_sets = [t.name for t in config.dataset.test]
     results = {}

@@ -38,6 +38,12 @@ def load_demo_config(demo_dir: Path) -> DictConfig:
         DictConfig produced by load_config_with_defaults.
     Raises:
         FileNotFoundError: When demo.yaml does not exist.
+
+    Example:
+        >>> from pathlib import Path
+        >>> cfg = load_demo_config(Path("exp/demo"))
+        >>> cfg.system  # doctest: +SKIP
+        'asr'
     """
     return load_config_with_defaults(str(demo_dir / "demo.yaml"))
 
@@ -50,6 +56,11 @@ def resolve_infer_path(infer_config, demo_cfg_path: Path | None) -> Path | None:
         demo_cfg_path: Path to the demo.yaml file, if available.
     Returns:
         Absolute Path to the inference config, or None if infer_config is empty.
+
+    Example:
+        >>> from pathlib import Path
+        >>> resolve_infer_path("infer.yaml", Path("exp/demo/demo.yaml"))
+        Path('.../exp/demo/infer.yaml')  # doctest: +ELLIPSIS
     """
     if not infer_config:
         return None
@@ -66,6 +77,11 @@ def load_infer_config(infer_path: Path) -> DictConfig:
         infer_path: Absolute path to an inference YAML file.
     Returns:
         DictConfig with all OmegaConf interpolations resolved.
+
+    Example:
+        >>> cfg = load_infer_config(Path("exp/demo/config/infer.yaml"))
+        >>> isinstance(cfg, DictConfig)
+        True
     """
     return OmegaConf.create(
         OmegaConf.to_container(load_config_with_defaults(str(infer_path)), resolve=True)
@@ -82,6 +98,11 @@ def resolve_absolute_path(path_value, *, base: Path) -> Path:
         Absolute Path.
     Raises:
         ValueError: If path_value is None.
+
+    Example:
+        >>> from pathlib import Path
+        >>> resolve_absolute_path("infer.yaml", base=Path("exp/demo"))
+        Path('.../exp/demo/infer.yaml')  # doctest: +ELLIPSIS
     """
     if path_value is None:
         raise ValueError("absolute path could not be resolved.")
@@ -101,6 +122,12 @@ def resolve_output_keys(demo_cfg) -> Dict[str, str]:
         demo_cfg: Demo configuration object.
     Returns:
         Mapping of UI output names to result dict keys. Empty when unset.
+
+    Example:
+        >>> from omegaconf import OmegaConf
+        >>> demo_cfg = OmegaConf.create({"output_keys": {"text": "hyp"}})
+        >>> resolve_output_keys(demo_cfg)
+        {'text': 'hyp'}
     """
     mapping = getattr(demo_cfg, "output_keys", None)
     if mapping is not None:
@@ -124,6 +151,12 @@ def resolve_extra_kwargs(demo_cfg) -> Dict[str, Any]:
         demo_cfg: Demo configuration object.
     Returns:
         Mapping of keyword arguments to pass into runner.forward.
+
+    Example:
+        >>> from omegaconf import OmegaConf
+        >>> demo_cfg = OmegaConf.create({"extra_kwargs": {"beam_size": 10}})
+        >>> resolve_extra_kwargs(demo_cfg)
+        {'beam_size': 10}
     """
     mapping = getattr(demo_cfg, "extra_kwargs", None)
     if mapping is not None:
@@ -150,6 +183,11 @@ def resolve_provider_class(demo_cfg):
         demo_cfg: Demo configuration object.
     Returns:
         Provider class object, or None if no system is defined.
+
+    Example:
+        >>> from omegaconf import OmegaConf
+        >>> cfg = OmegaConf.create({"system": "asr"})
+        >>> resolve_provider_class(cfg)  # doctest: +SKIP
     """
     path = getattr(getattr(demo_cfg, "inference", None), "provider_class", None)
     if path:
@@ -174,6 +212,11 @@ def resolve_runner_class(demo_cfg):
         demo_cfg: Demo configuration object.
     Returns:
         Runner class object, or None if no system is defined.
+
+    Example:
+        >>> from omegaconf import OmegaConf
+        >>> cfg = OmegaConf.create({"system": "asr"})
+        >>> resolve_runner_class(cfg)  # doctest: +SKIP
     """
     path = getattr(getattr(demo_cfg, "inference", None), "runner_class", None)
     if path:
