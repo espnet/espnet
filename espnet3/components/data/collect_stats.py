@@ -17,7 +17,7 @@ from espnet2.train.collate_fn import CommonCollateFn
 from espnet3.parallel.base_runner import BaseRunner
 from espnet3.parallel.env_provider import EnvironmentProvider
 from espnet3.parallel.parallel import set_parallel
-from espnet3.utils.task import get_espnet_model
+from espnet3.utils.task_utils import get_espnet_model
 
 __all__ = [
     "CollectStatsInferenceProvider",

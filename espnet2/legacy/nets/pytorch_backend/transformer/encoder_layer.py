@@ -32,6 +32,7 @@ class EncoderLayer(nn.Module):
         stochastic_depth_rate (float): Proability to skip this layer.
             During training, the layer may skip residual computation and return input
             as-is with given probability.
+        apply_ff_mask (bool): Whether to apply mask in feed-forward layer.
     """
 
     def __init__(
@@ -43,6 +44,7 @@ class EncoderLayer(nn.Module):
         normalize_before=True,
         concat_after=False,
         stochastic_depth_rate=0.0,
+        apply_ff_mask=False,
     ):
         """Construct an EncoderLayer object."""
         super(EncoderLayer, self).__init__()
@@ -57,6 +59,7 @@ class EncoderLayer(nn.Module):
         if self.concat_after:
             self.concat_linear = nn.Linear(size + size, size)
         self.stochastic_depth_rate = stochastic_depth_rate
+        self.apply_ff_mask = apply_ff_mask
 
     def forward(self, x, mask, cache=None):
         """Compute encoded features.
@@ -109,7 +112,11 @@ class EncoderLayer(nn.Module):
         residual = x
         if self.normalize_before:
             x = self.norm2(x)
-        x = residual + stoch_layer_coeff * self.dropout(self.feed_forward(x))
+        if self.apply_ff_mask:
+            ff_out = self.feed_forward(x, mask)
+        else:
+            ff_out = self.feed_forward(x)
+        x = residual + stoch_layer_coeff * self.dropout(ff_out)
         if not self.normalize_before:
             x = self.norm2(x)
 
