@@ -6,6 +6,7 @@ exp_tag: ${load_yaml:conf/train.yaml,exp_tag}
 exp_dir: ${recipe_dir}/exp/${exp_tag}
 stats_dir: ${recipe_dir}/exp/stats
 decode_dir: ${exp_dir}/decode
+infer_dir: ${exp_dir}/infer
 dataset_dir: ${data_dir}/mini_an4
 
 dataset:

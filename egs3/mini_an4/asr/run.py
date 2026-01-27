@@ -11,10 +11,10 @@ if __name__ == "__main__":
         stages=DEFAULT_STAGES,
         add_arguments=None,
     )
-    args, stages_to_run = parse_cli_and_stage_args(parser, stages=DEFAULT_STAGES)
+    args, _ = parse_cli_and_stage_args(parser, stages=DEFAULT_STAGES)
 
     main(
         args=args,
         system_cls=ASRSystem,
-        stages=stages_to_run,
+        stages=DEFAULT_STAGES,
     )
