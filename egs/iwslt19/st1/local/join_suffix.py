@@ -1,1 +1,0 @@
-../../../tedlium2/asr1/local/join_suffix.py

@@ -1,1 +1,1 @@
-../../../../egs/reverb/asr1/local/find_transcripts_txt.pl
+../../asr1/local/find_transcripts_txt.pl
