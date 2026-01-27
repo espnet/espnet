@@ -352,7 +352,7 @@ def dummy_multiple_iterator_dataset(tmp_path):
             {
                 "name": "shard0",
                 "dataset": {
-                    "_target_": DUMMY_SHARDED_DATASET_TARGET,  # noqa: E501
+                    "_target_": DUMMY_SHARDED_DATASET_TARGET,
                 },
             },
         ],
@@ -360,7 +360,7 @@ def dummy_multiple_iterator_dataset(tmp_path):
             {
                 "name": "valid",
                 "dataset": {
-                    "_target_": DUMMY_SHARDED_DATASET_TARGET,  # noqa: E501
+                    "_target_": DUMMY_SHARDED_DATASET_TARGET,
                 },
             }
         ],

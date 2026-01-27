@@ -1,5 +1,0 @@
-batchsize: 0
-beam-size: 10
-penalty: 1.0
-maxlenratio: 1.5
-minlenratio: 0.0

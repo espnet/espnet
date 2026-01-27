@@ -25,11 +25,7 @@ class InferenceProvider(EnvironmentProvider, ABC):
         super().__init__(config)
         self.params = params or {}
         # Build once for local execution to avoid redundant IO
-        self._local_env = {
-            "dataset": self.build_dataset(config),
-            "model": self.build_model(config),
-            **self.params,
-        }
+        self._local_env = self.make_worker_setup_fn()()
 
     @staticmethod
     @abstractmethod

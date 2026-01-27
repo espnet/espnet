@@ -1,1 +1,1 @@
-../../../../egs/swbd/asr1/local/format_acronyms_dict.py
+../../../swbd/asr1/local/format_acronyms_dict.py

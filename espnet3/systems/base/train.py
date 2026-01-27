@@ -12,10 +12,10 @@ import torch
 from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
 
-from espnet3.components.modeling.model import LitESPnetModel
+from espnet3.components.modeling.lightning_module import ESPnetLightningModule
 from espnet3.components.training.trainer import ESPnet3LightningTrainer
 from espnet3.parallel.parallel import set_parallel
-from espnet3.utils.task import get_espnet_model, save_espnet_config
+from espnet3.utils.task_utils import get_espnet_model, save_espnet_config
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +31,7 @@ def _instantiate_model(cfg: DictConfig) -> Any:
 def _build_trainer(cfg: DictConfig) -> ESPnet3LightningTrainer:
     model = _instantiate_model(cfg)
     logger.info("Model:\n%s", model)
-    lit_model = LitESPnetModel(model, cfg)
+    lit_model = ESPnetLightningModule(model, cfg)
     trainer = ESPnet3LightningTrainer(
         model=lit_model,
         expdir=cfg.exp_dir,

@@ -1,8 +1,0 @@
-# decoding parameters
-batch: 0
-beam-size: 5
-search-type: maes
-nstep: 3
-prefix-alpha: 1
-expansion-gamma: 0.3
-expansion-beta: 0

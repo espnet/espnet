@@ -59,8 +59,9 @@ class DataLoaderBuilder:
     - Sequence-based batch sampling with batch_bins or batch_size
     - Dynamic handling of DDP-compatible iteration strategies
 
-    Typically used by LitESPnetModel to instantiate training and validation DataLoaders
-    with consistent behavior across single-GPU, multi-GPU, and distributed training.
+    Typically used by ESPnetLightningModule to instantiate training and validation
+    DataLoaders with consistent behavior across single-GPU, multi-GPU, and distributed
+    training.
 
     Args:
         dataset (torch.utils.data.Dataset): Dataset instance wrapped by DataLoader.
@@ -184,7 +185,7 @@ class DataLoaderBuilder:
         if dataset is None:
             dataset = self.dataset
 
-        batches = build_batch_sampler(**factory_config["batches"])
+        batches = build_batch_sampler(**factory_config.pop("batches"))
 
         if self.num_device > 1:
             batches = list(batches)

@@ -198,6 +198,7 @@ VOXPOPULI=downloads
 HARPERVALLEY=downloads
 TALROMUR=downloads
 TALROMUR2=downloads
+TAL_ZH_ADULT_TEACH=downloads
 DCASE=
 TEDX_SPANISH=downloads
 IAM=downloads

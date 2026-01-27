@@ -1,8 +1,0 @@
-layer: 2
-unit: 650
-opt: sgd        # or adam
-sortagrad: 0 # Feed samples from shortest to longest ; -1: enabled for all epochs, 0: disabled, other: enabled for 'other' epochs
-batchsize: 256  # batch size in LM training
-epoch: 20      # if the data size is large, we can reduce this
-patience: 3
-maxlen: 150     # if sentence length > lm_maxlen, lm_batchsize is automatically reduced

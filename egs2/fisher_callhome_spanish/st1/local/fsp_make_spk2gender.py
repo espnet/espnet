@@ -1,1 +1,1 @@
-../../../../egs/fisher_callhome_spanish/st1/local/fsp_make_spk2gender.py
+../../asr1/local/fsp_make_spk2gender.py

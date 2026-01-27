@@ -10,8 +10,8 @@ from omegaconf import DictConfig, ListConfig, OmegaConf
 from typeguard import typechecked
 
 from espnet2.torch_utils.initialize import initialize
-from espnet3.components.callbacks.callbacks import get_default_callbacks
-from espnet3.components.modeling.model import LitESPnetModel
+from espnet3.components.callbacks.default_callbacks import get_default_callbacks
+from espnet3.components.modeling.lightning_module import ESPnetLightningModule
 
 
 def _get_or_initialize(config, item_name: str = None, default=None) -> Any:
@@ -38,14 +38,14 @@ class ESPnet3LightningTrainer:
 
     Attributes:
         config (Union[DictConfig, Namespace, Dict[str, Any]]): Training configuration.
-        model (LitESPnetModel): ESPnet3 Lightning model instance.
+        model (ESPnetLightningModule): ESPnet3 LightningModule instance.
         trainer (lightning.Trainer): Underlying PyTorch Lightning trainer object.
     """
 
     @typechecked
     def __init__(
         self,
-        model: LitESPnetModel = None,
+        model: ESPnetLightningModule = None,
         expdir: str = None,
         config: Union[DictConfig, Namespace, Dict[str, Any]] = None,
         best_model_criterion=None,
@@ -57,7 +57,7 @@ class ESPnet3LightningTrainer:
         constructs the underlying Lightning Trainer.
 
         Args:
-            model (LitESPnetModel, optional): Lightning model to train.
+            model (ESPnetLightningModule, optional): LightningModule to train.
             expdir (str, optional): Experiment directory for logs and checkpoints.
             config (DictConfig | Namespace | Dict[str, Any], optional): Training config.
             best_model_criterion (ListConfig, optional): Criteria for selecting ckpt.

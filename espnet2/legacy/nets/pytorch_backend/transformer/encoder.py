@@ -93,6 +93,7 @@ class Encoder(torch.nn.Module):
             indices start from 1.
             if not None, intermediate outputs are returned (which changes return type
             signature.)
+        apply_ff_mask (bool): Whether to apply mask in feed-forward layer.
 
     """
 
@@ -121,6 +122,7 @@ class Encoder(torch.nn.Module):
         intermediate_layers=None,
         ctc_softmax=None,
         conditioning_layer_dim=None,
+        apply_ff_mask=False,
     ):
         """Construct an Encoder object."""
         super(Encoder, self).__init__()
@@ -267,6 +269,7 @@ class Encoder(torch.nn.Module):
                 normalize_before,
                 concat_after,
                 stochastic_depth_rate * float(1 + lnum) / num_blocks,
+                apply_ff_mask,
             ),
         )
         if self.normalize_before:

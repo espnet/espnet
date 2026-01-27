@@ -4,7 +4,7 @@
 """Text-to-speech ESPnet model."""
 
 from contextlib import contextmanager
-from typing import Dict, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import torch
 from packaging.version import parse as V
@@ -302,5 +302,124 @@ class ESPnetTTSModel(AbsESPnetModel):
                 output_dict["feat_gen"].clone()[None]
             )[0][0]
             output_dict.update(feat_gen_denorm=feat_gen_denorm)
+
+        return output_dict
+
+    def batch_inference(
+        self,
+        text: List[torch.Tensor],
+        speech: Optional[torch.Tensor] = None,
+        speech_lengths: Optional[torch.Tensor] = None,
+        spembs: Optional[torch.Tensor] = None,
+        sids: Optional[torch.Tensor] = None,
+        lids: Optional[torch.Tensor] = None,
+        durations: Optional[torch.Tensor] = None,
+        durations_lengths: Optional[torch.Tensor] = None,
+        pitch: Optional[torch.Tensor] = None,
+        pitch_lengths: Optional[torch.Tensor] = None,
+        energy: Optional[torch.Tensor] = None,
+        energy_lengths: Optional[torch.Tensor] = None,
+        **decode_config,
+    ) -> Dict[str, torch.Tensor]:
+        """Calculate features for a batch and return them as a dict.
+
+        This method supports batch inference for non-autoregressive models
+        like FastSpeech2.
+
+        Args:
+            text: List of 1D tensors with variable lengths (List[Tensor]).
+            speech (Optional[Tensor]): Batched speech waveform tensor (B, T_wav).
+            speech_lengths (Optional[Tensor]): Speech length tensor (B,).
+            spembs (Optional[Tensor]): Batched speaker embedding tensor (B, D).
+            sids (Optional[Tensor]): Batched speaker ID tensor (B,).
+            lids (Optional[Tensor]): Batched language ID tensor (B,).
+            durations (Optional[Tensor]): Batched duration tensor (B, T_text).
+            durations_lengths (Optional[Tensor]): Duration length tensor (B,).
+            pitch (Optional[Tensor]): Batched pitch tensor (B, T_text).
+            pitch_lengths (Optional[Tensor]): Pitch length tensor (B,).
+            energy (Optional[Tensor]): Batched energy tensor (B, T_text).
+            energy_lengths (Optional[Tensor]): Energy length tensor (B,).
+            decode_config: Additional decoding configuration.
+
+        Returns:
+            Dict[str, Tensor]: Dict of outputs.
+
+        """
+        # Check if the TTS model supports batch inference
+        if not hasattr(self.tts, "batch_inference"):
+            raise NotImplementedError(
+                f"{type(self.tts).__name__} does not support batch inference. "
+                "Only FastSpeech2 support batch inference."
+            )
+
+        input_dict = dict(text=text)
+
+        # Handle feature extraction for teacher forcing or GST
+        if decode_config.get("use_teacher_forcing") or getattr(
+            self.tts, "use_gst", False
+        ):
+            if speech is None:
+                raise RuntimeError("missing required argument: 'speech'")
+            if self.feats_extract is not None:
+                feats, feats_lengths = self.feats_extract(speech, speech_lengths)
+            else:
+                # Use precalculated feats (feats_type != raw case)
+                feats, feats_lengths = speech, speech_lengths
+            if self.normalize is not None:
+                feats, feats_lengths = self.normalize(feats, feats_lengths)
+            input_dict.update(feats=feats, feats_lengths=feats_lengths)
+
+        if decode_config.get("use_teacher_forcing"):
+            if durations is not None:
+                input_dict.update(
+                    durations=durations, durations_lengths=durations_lengths
+                )
+
+            if self.pitch_extract is not None and speech is not None:
+                pitch, pitch_lengths = self.pitch_extract(
+                    speech,
+                    speech_lengths,
+                    feats_lengths=feats_lengths,
+                    durations=durations,
+                    durations_lengths=durations_lengths,
+                )
+                if self.pitch_normalize is not None:
+                    pitch, pitch_lengths = self.pitch_normalize(pitch, pitch_lengths)
+            if pitch is not None:
+                input_dict.update(pitch=pitch, pitch_lengths=pitch_lengths)
+
+            if self.energy_extract is not None and speech is not None:
+                energy, energy_lengths = self.energy_extract(
+                    speech,
+                    speech_lengths,
+                    feats_lengths=feats_lengths,
+                    durations=durations,
+                    durations_lengths=durations_lengths,
+                )
+                if self.energy_normalize is not None:
+                    energy, energy_lengths = self.energy_normalize(
+                        energy, energy_lengths
+                    )
+            if energy is not None:
+                input_dict.update(energy=energy, energy_lengths=energy_lengths)
+
+        if spembs is not None:
+            input_dict.update(spembs=spembs)
+        if sids is not None:
+            input_dict.update(sids=sids)
+        if lids is not None:
+            input_dict.update(lids=lids)
+
+        output_dict = self.tts.batch_inference(**input_dict, **decode_config)
+
+        # Denormalize the generated features
+        if self.normalize is not None and output_dict.get("feat_gen") is not None:
+            feat_gen_list = output_dict["feat_gen"]
+            feat_gen_denorm_list = []
+            for feat_gen in feat_gen_list:
+                # NOTE: normalize.inverse is in-place operation
+                feat_gen_denorm = self.normalize.inverse(feat_gen.clone()[None])[0][0]
+                feat_gen_denorm_list.append(feat_gen_denorm)
+            output_dict.update(feat_gen_denorm=feat_gen_denorm_list)
 
         return output_dict

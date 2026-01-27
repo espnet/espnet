@@ -1,1 +1,1 @@
-../../../../egs/fisher_callhome_spanish/st1/local/concat_short_utt.py
+../../asr1/local/concat_short_utt.py
