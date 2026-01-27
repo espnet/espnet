@@ -4,7 +4,7 @@ recipe_dir: .
 data_dir: ${recipe_dir}/data
 exp_tag: ${load_yaml:conf/train.yaml,exp_tag}
 exp_dir: ${recipe_dir}/exp/${exp_tag}
-decode_dir: ${exp_dir}/decode
+infer_dir: ${exp_dir}/infer
 dataset_dir: ${data_dir}/mini_an4
 
 dataset:
@@ -25,3 +25,6 @@ model:
   asr_model_file: ${exp_dir}/last.ckpt
   beam_size: 1
   ctc_weight: 0.3
+
+input_key: speech
+output_fn: src.infer.output_fn

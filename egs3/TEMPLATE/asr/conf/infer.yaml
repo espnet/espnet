@@ -7,7 +7,7 @@ data_dir: ${recipe_dir}/data
 dataset_dir: /path/to/your/dataset
 exp_tag: asr_template_eval
 exp_dir: ${recipe_dir}/exp/${exp_tag}
-decode_dir: ${exp_dir}/decode
+infer_dir: ${exp_dir}/infer
 
 # Dataset definition for test splits only.
 dataset:
@@ -24,6 +24,10 @@ model:
   _target_: espnet2.bin.asr_inference.Speech2Text
   asr_train_config: ${exp_dir}/config.yaml
   asr_model_file: ${exp_dir}/last.ckpt
+
+# Inference I/O.
+input_key: speech
+output_fn: src.infer.output_fn
 
 # Parallel execution used during data loading / scoring (defaults to local).
 parallel:
