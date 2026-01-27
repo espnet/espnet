@@ -77,11 +77,11 @@ class DownloadProgress:
     step_percent: int = 5
 
     def __post_init__(self) -> None:
-        """Initialize internal state for step-based progress logging."""
+        """Initialize the internal progress bucket."""
         self._last_bucket: int | None = None
 
     def __call__(self, block_num: int, block_size: int, total_size: int) -> None:
-        """Log progress updates for urllib downloads."""
+        """Log progress for the current urllib download callback."""
         if total_size <= 0:
             return
 
@@ -93,9 +93,11 @@ class DownloadProgress:
             self._last_bucket = bucket
             _log(
                 self.logger,
-                f"Downloading {self.name}: {percent}% "
-                f"({downloaded / 1024 / 1024:.1f}MB / "
-                f"{total_size / 1024 / 1024:.1f}MB)",
+                (
+                    f"Downloading {self.name}: {percent}% "
+                    f"({downloaded / 1024 / 1024:.1f}MB / "
+                    f"{total_size / 1024 / 1024:.1f}MB)"
+                ),
             )
 
 
