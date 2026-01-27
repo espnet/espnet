@@ -150,7 +150,7 @@ def test_reduce_on_plateau_monitor_from_config():
         }
     )
 
-    model = LitESPnetModel(DummyModel(), config)
+    model = ESPnetLightningModule(DummyModel(), config)
     out = model.configure_optimizers()
     assert out["lr_scheduler"]["interval"] == "epoch"
     assert out["lr_scheduler"]["monitor"] == "valid/loss"
@@ -175,7 +175,7 @@ def test_val_scheduler_criterion_sets_epoch():
         }
     )
 
-    model = LitESPnetModel(DummyModel(), config)
+    model = ESPnetLightningModule(DummyModel(), config)
     out = model.configure_optimizers()
     assert out["lr_scheduler"]["interval"] == "epoch"
     assert out["lr_scheduler"]["monitor"] == "valid/acc"
