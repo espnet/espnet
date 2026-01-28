@@ -30,8 +30,6 @@ class CombinedDataset:
 
     Attributes:
         get_text_available (bool): True if all datasets implement `get_text(idx)`.
-        multiple_iterator (bool): True if any dataset is a subclass of `ShardedDataset`.
-
     Note:
         At initialization, the first sample from each dataset is passed through
         its associated transform to check that all datasets produce dictionaries
@@ -97,15 +95,14 @@ class CombinedDataset:
                 self.get_text_available = False
 
         # Check if dataset is a subclass of ShardedDataset.
-        self.multiple_iterator = False
-        for dataset in self.datasets:
-            if isinstance(dataset, ShardedDataset):
-                self.multiple_iterator = True
-            if self.multiple_iterator and not isinstance(dataset, ShardedDataset):
-                raise RuntimeError(
-                    "If any dataset is a subclass of ShardedDataset,"
-                    " then all dataset should be a subclass of ShardedDataset."
-                )
+        has_sharded = any(isinstance(dataset, ShardedDataset) for dataset in self.datasets)
+        if has_sharded and not all(
+            isinstance(dataset, ShardedDataset) for dataset in self.datasets
+        ):
+            raise RuntimeError(
+                "If any dataset is a subclass of ShardedDataset,"
+                " then all dataset should be a subclass of ShardedDataset."
+            )
 
         # This flag will be overrode by ESPnetLightningModule.
         self._use_espnet_collator = False
@@ -187,7 +184,7 @@ class CombinedDataset:
         """Return a sharded version of the combined dataset.
 
         This is used when handling large datasets that are split into shards
-        for efficiency and distributed processing (ESPnet multiple-iterator mode).
+        for efficiency and distributed processing.
         All datasets must be subclasses of
         `espnet3.components.data.dataset.ShardedDataset` and implement
         a `shard()` method.
@@ -201,7 +198,7 @@ class CombinedDataset:
         Raises:
             RuntimeError: If any dataset does not support sharding.
         """
-        if not self.multiple_iterator:
+        if not all(isinstance(dataset, ShardedDataset) for dataset in self.datasets):
             raise RuntimeError(
                 "All dataset should be the subclass of "
                 "espnet3.components.data.dataset.ShardedDataset."
