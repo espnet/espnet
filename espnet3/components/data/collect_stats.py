@@ -23,7 +23,6 @@ __all__ = [
     "CollectStatsInferenceProvider",
     "CollectStatsRunner",
     "collect_stats",
-    "collect_stats_multiple_iterator",
     "batch_collect_stats",
 ]
 
@@ -440,88 +439,6 @@ def _collect_stats_common(
     return sum_dict, sq_dict, count_dict
 
 
-def collect_stats_multiple_iterator(
-    model_config,
-    dataset_config,
-    dataloader_config,
-    mode: str,
-    output_dir: Path,
-    task: Optional[str],
-    batch_size: int,
-    parallel_config: Any,
-    write_collected_feats: bool = False,
-):
-    """Collect statistics on sharded datasets (multiple-iterator mode).
-
-    This function iterates over shards and runs the common collect-stats loop for
-    each shard. It requires a Dask parallel configuration because each shard is
-    processed using a Dask worker setup function provided by the environment
-    provider.
-
-    Args:
-        model_config: Model configuration passed to the provider/model builder.
-        dataset_config: Dataset organizer configuration.
-        dataloader_config: Dataloader configuration; must define ``num_shards`` for
-            ``dataloader_config.<mode>``.
-        mode (str): Split name (e.g., ``"train"`` or ``"valid"``).
-        output_dir (Path): Output directory for stats/shapes (under ``output_dir/mode``).
-        task (str | None): ESPnet2 task path. If set, the model is built via task.
-        batch_size (int): Number of dataset items per batch.
-        parallel_config: Parallel configuration used by :func:`espnet3.parallel.set_parallel`.
-        write_collected_feats (bool): If ``True``, also persist collected features.
-
-    Returns:
-        Tuple[dict, dict, dict]: ``(sum_dict, sq_dict, count_dict)`` aggregated over
-        all shards.
-
-    Raises:
-        AttributeError: If the expected shard configuration is missing.
-
-    Example:
-        >>> from omegaconf import OmegaConf
-        >>> parallel_cfg = OmegaConf.create({"env": "local", "n_workers": 2})
-        >>> sums, sqs, counts = collect_stats_multiple_iterator(
-        ...     model_config=model_cfg,
-        ...     dataset_config=dataset_cfg,
-        ...     dataloader_config=dataloader_cfg,
-        ...     mode="train",
-        ...     output_dir=Path("exp/stats"),
-        ...     task=None,
-        ...     batch_size=4,
-        ...     parallel_config=parallel_cfg,
-        ... )
-    """
-    set_parallel(parallel_config)
-
-    sum_dict, sq_dict, count_dict = (
-        defaultdict(lambda: 0),
-        defaultdict(lambda: 0),
-        defaultdict(lambda: 0),
-    )
-
-    mode_cfg = getattr(dataloader_config, mode)
-    num_shards = mode_cfg.num_shards
-
-    for shard_idx in range(num_shards):
-        sum_dict, sq_dict, count_dict = _collect_stats_common(
-            model_config=model_config,
-            dataset_config=dataset_config,
-            dataloader_config=dataloader_config,
-            mode=mode,
-            output_dir=output_dir,
-            task=task,
-            write_collected_feats=write_collected_feats,
-            batch_size=batch_size,
-            shard_idx=shard_idx,
-            shape_key_suffix=f".shard.{shard_idx}",
-            sum_dict=sum_dict,
-            sq_dict=sq_dict,
-            count_dict=count_dict,
-        )
-
-    return sum_dict, sq_dict, count_dict
-
-
 def collect_stats(
     model_config,
     dataset_config,
@@ -535,36 +452,24 @@ def collect_stats(
 ):
     """Entry point for collecting dataset statistics used for feature normalization.
 
-    Depending on ``dataloader_config`` this function either:
-
-    - Runs the runner-based collection once, optionally configuring parallel
-      execution via :func:`espnet3.parallel.set_parallel` when ``parallel_config``
-      is provided.
-    - Handles multi-iterator (sharded) datasets by iterating over shards.
+    Runs the runner-based collection once, optionally configuring parallel
+    execution via :func:`espnet3.parallel.set_parallel` when ``parallel_config``
+    is provided.
 
     Args:
         model_config: Configuration object used to instantiate the model that
             extracts features from the input examples.
         dataset_config: Configuration of the dataset organizer providing the
             split specified by ``mode``.
-        dataloader_config: Dataloader configuration. The attribute matching
-            ``mode`` may include the ``multiple_iterator`` flag.
+        dataloader_config: Dataloader configuration.
         mode: Name of the dataset split to process (``train`` or ``valid``).
         output_dir: Directory where aggregated statistics and optionally
             collected features are written.
         task: Name of the ESPnet task. If ``None``, ``model_config`` should be
             directly instantiable.
-        parallel_config: Configuration for parallel execution. Required when
-            ``multiple_iterator`` is enabled.
+        parallel_config: Configuration for parallel execution.
         write_collected_feats: Whether to persist the raw collected features.
-            This option is unsupported in multi-iterator mode.
         batch_size: Number of dataset items processed per batch.
-
-    Raises:
-        RuntimeError: If ``multiple_iterator`` is ``True`` but
-            ``parallel_config`` is not provided.
-        ValueError: If ``write_collected_feats`` is ``True`` when running in
-            multi-iterator mode.
 
     Returns:
         None: Aggregated statistics are saved under ``output_dir / mode``.
@@ -581,35 +486,26 @@ def collect_stats(
         ...     batch_size=4,
         ... )
     """
-    mode_config = getattr(dataloader_config, mode)
-    if getattr(mode_config, "multiple_iterator", False):
-        if parallel_config is None:
-            raise RuntimeError("You should set parallel config with multiple iterator.")
-        sum_dict, sq_dict, count_dict = collect_stats_multiple_iterator(
-            model_config,
-            dataset_config,
-            dataloader_config,
-            mode,
-            output_dir,
-            task,
-            batch_size,
-            parallel_config,
-            write_collected_feats,
+    mode_config = getattr(dataloader_config, mode, None)
+    if mode_config is not None and hasattr(mode_config, "multiple_iterator"):
+        raise RuntimeError(
+            "ESPnet3 does not support multiple_iterator. "
+            "If you need sharding, select a shard explicitly "
+            "(e.g., point the dataset/shape files to split.*) "
+            "and run collect_stats on that shard."
         )
-
-    else:
-        if parallel_config is not None:
-            set_parallel(parallel_config)
-        sum_dict, sq_dict, count_dict = _collect_stats_common(
-            model_config=model_config,
-            dataset_config=dataset_config,
-            dataloader_config=dataloader_config,
-            mode=mode,
-            output_dir=output_dir,
-            task=task,
-            write_collected_feats=write_collected_feats,
-            batch_size=batch_size,
-        )
+    if parallel_config is not None:
+        set_parallel(parallel_config)
+    sum_dict, sq_dict, count_dict = _collect_stats_common(
+        model_config=model_config,
+        dataset_config=dataset_config,
+        dataloader_config=dataloader_config,
+        mode=mode,
+        output_dir=output_dir,
+        task=task,
+        write_collected_feats=write_collected_feats,
+        batch_size=batch_size,
+    )
 
     for key in sum_dict:
         (output_dir / mode).mkdir(parents=True, exist_ok=True)

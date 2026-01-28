@@ -1,56 +1,12 @@
 """DataLoader builder for ESPnet3 trainer."""
 
 import copy
-from typing import Union
 
-import numpy as np
 import torch
 from hydra.utils import instantiate
 from omegaconf import DictConfig, OmegaConf
 
 from espnet2.samplers.build_batch_sampler import build_batch_sampler
-
-
-def update_shard(config: Union[dict, list], shard_idx: int) -> Union[dict, list]:
-    """Replace all "{shard_idx}" in a nested config with the actual shard index.
-
-    This function is typically used when a config dictionary or list (e.g.,
-    from OmegaConf.to_container) includes placeholders like "{shard_idx}"
-    in file paths (e.g., shape_files), which need to be resolved dynamically
-    based on the current shard index before initializing a data loader or
-    training process.
-
-    For example, a config entry like:
-        shape_files:
-          - stats/train/split.12/speech_shape.{shard_idx}
-    will be updated to:
-        shape_files:
-          - stats/train/split.12/speech_shape.3
-    when initializing shard_idx=3.
-
-    Args:
-        config (Union[dict, list]): A nested configuration structure containing
-            dictionaries, lists, or strings possibly including "{shard_idx}".
-        shard_idx (int): The shard index to be substituted into all relevant
-            strings within the config.
-
-    Returns:
-        Union[dict, list]: A new config structure with all "{shard_idx}"
-            placeholders replaced by the given shard index.
-
-    Example:
-        >>> cfg = {"shape_files": ["stats/speech_shape.{shard_idx}"]}
-        >>> update_shard(cfg, shard_idx=3)
-        {'shape_files': ['stats/speech_shape.3']}
-    """
-    if isinstance(config, dict):
-        return {k: update_shard(v, shard_idx) for k, v in config.items()}
-    elif isinstance(config, list):
-        return [update_shard(v, shard_idx) for v in config]
-    elif isinstance(config, str) and "{shard_idx}" in config:
-        return config.format(shard_idx=shard_idx)
-    else:
-        return config
 
 
 class DataLoaderBuilder:
@@ -60,7 +16,6 @@ class DataLoaderBuilder:
     DataLoaders based on the configuration. It supports advanced features such as:
 
     - Custom collate functions (e.g., CommonCollateFn)
-    - Sharded sampling using `{shard_idx}`-formatted shape files
     - Sequence-based batch sampling with batch_bins or batch_size
     - Dynamic handling of DDP-compatible iteration strategies
 
@@ -125,7 +80,6 @@ class DataLoaderBuilder:
                     _target_: espnet2.samplers.build_batch_sampler.build_batch_sampler
                     type: numel
                     shape_files:
-                    - stats/train/split.12/speech_shape.{shard_idx}
                     batch_bins: 4000000
                     min_batch_size: 2
             ```
@@ -141,18 +95,30 @@ class DataLoaderBuilder:
               shuffle: true
             ```
 
-        Notes:
-            - For Case 1, all placeholder strings like "{shard_idx}" are resolved
-            when initializing shards. (e.g., via `update_shard()`).
-
         Raises:
             ValueError: If the provided mode is neither "train" nor "valid".
         """
         mode_config = getattr(self.config.dataloader, mode, DictConfig({}))
 
         config = copy.copy(mode_config)
-        if hasattr(config, "multiple_iterator") and config.multiple_iterator:
-            return self._build_multiple_iterator(config)
+        if hasattr(config, "multiple_iterator"):
+            raise RuntimeError(
+                "ESPnet3 does not support multiple_iterator. "
+                "If you need sharding, select a shard explicitly "
+                "(e.g., point the dataset/shape files to split.*) "
+                "and use a standard iter_factory."
+            )
+        target = None
+        if config.iter_factory is not None:
+            target = getattr(config.iter_factory, "_target_", None)
+            if target is None and isinstance(config.iter_factory, dict):
+                target = config.iter_factory.get("_target_")
+        if target == "espnet2.iterators.multiple_iter_factory.MultipleIterFactory":
+            raise RuntimeError(
+                "MultipleIterFactory is not supported in ESPnet3. "
+                "Use a standard iter_factory (Sequence/Chunk/Category*) and "
+                "select a single shard explicitly if needed."
+            )
         if config.iter_factory is not None:
             factory_config = OmegaConf.to_container(config.iter_factory, resolve=True)
             return self._build_iter_factory(factory_config)
@@ -212,32 +178,3 @@ class DataLoaderBuilder:
         iter_factory = instantiate(factory_kwargs, dataset, batches=batches)
 
         return iter_factory.build_iter(self.epoch, shuffle=False)
-
-    def _build_multiple_iterator(self, factory_config):
-        assert self.dataset.multiple_iterator, (
-            "All dataset must be a subclass of"
-            "espnet3.components.data.dataset.ShardedDataset"
-        )
-
-        assert hasattr(
-            factory_config, "num_shards"
-        ), "When using multiple iterator, please specify the number of shards."
-
-        num_shards = factory_config.num_shards
-        shuffle = factory_config.get("shuffle", False)
-        seed = self.config.get("seed", 0)
-        rng = np.random.RandomState(self.epoch + seed)
-        shard_idx = rng.choice(num_shards) if shuffle else self.epoch % num_shards
-
-        dataset = self.dataset.shard(shard_idx)
-
-        if factory_config["iter_factory"] is not None:
-            # update shape files
-            iter_factory_config = update_shard(
-                factory_config["iter_factory"], shard_idx
-            )
-            return self._build_iter_factory(iter_factory_config, dataset)
-        else:
-            factory_config.pop("num_shards")
-            factory_config.pop("multiple_iterator")
-            return self._build_standard_dataloader(factory_config, dataset)
