@@ -7,7 +7,6 @@ from torch.utils.data import BatchSampler, Sampler
 
 from espnet3.components.data.data_organizer import DataOrganizer, do_nothing_transform
 from espnet3.components.data.dataloader import DataLoaderBuilder
-from espnet3.components.data.dataset import ShardedDataset
 from espnet3.utils.config import load_config_with_defaults
 
 # ===============================================================
@@ -30,16 +29,9 @@ from espnet3.utils.config import load_config_with_defaults
 # | test_iter_factory_from_default_yaml_with_organizer | Uses a real YAML config with iter_factory and verifies batch structure | # noqa: E501
 # | test_iter_factory_with_collate_fn | Confirms config-defined collate_fn takes precedence over argument       | # noqa: E501
 #
-# Multiple Iterator Mode (Sharded Dataset)
-# | Test Name                              | Description                                                              | # noqa: E501
-# |---------------------------------------|--------------------------------------------------------------------------| # noqa: E501
-# | test_multiple_iterator_shard_initialization | Checks correct shard is selected based on epoch                         | # noqa: E501
-# | test_multiple_iterator_epoch_shard_switching | Ensures different shard is selected as epoch changes                  | # noqa: E501
-#
 # Note:
-# - DummyDataset and DummyShardedDataset are used to simulate real-world data layout
-# - All `DataLoaderBuilder.build(mode)` modes are exercised: standard, iter_factory,
-# and multiple_iterator
+# - DummyDataset and DummyDatasetSameLength are used to simulate real-world data layout
+# - All `DataLoaderBuilder.build(mode)` modes are exercised: standard, iter_factory
 
 DUMMY_DATASET_TARGET = (
     "test.espnet3.components.data.test_dataloader_builder." "DummyDataset"
@@ -49,9 +41,6 @@ DUMMY_SAMPLER_TARGET = (
 )
 DUMMY_BATCH_SAMPLER_TARGET = (
     "test.espnet3.components.data.test_dataloader_builder." "DummyBatchSampler"
-)
-DUMMY_SHARDED_DATASET_TARGET = (
-    "test.espnet3.components.data.test_dataloader_builder." "DummyShardedDataset"
 )
 
 
@@ -319,110 +308,11 @@ dataloader:
     assert "audio_lengths" in batch[1]
 
 
-# --- Multiple Iterator Mode (Sharded Dataset) ---
-
-
-# Dummy sharded dataset that returns shard-specific samples
-class DummyShardedDataset(ShardedDataset):
-    def __init__(self, shard_id: int = None):
-        if shard_id is None:
-            self.samples = []
-        else:
-            self.samples = [
-                {"text": f"shard{shard_id}_sample0"},
-                {"text": f"shard{shard_id}_sample1"},
-            ]
-        self.shard_id = shard_id
-
-    def __len__(self):
-        return len(self.samples)
-
-    def __getitem__(self, idx):
-        return self.samples[idx]
-
-    def shard(self, idx: int):
-        return DummyShardedDataset(idx)
-
-
-@pytest.fixture
-def dummy_multiple_iterator_dataset(tmp_path):
-    # YAML-style instantiation config for 3 shards
-    dataset_config = {
-        "train": [
-            {
-                "name": "shard0",
-                "dataset": {
-                    "_target_": DUMMY_SHARDED_DATASET_TARGET,
-                },
-            },
-        ],
-        "valid": [
-            {
-                "name": "valid",
-                "dataset": {
-                    "_target_": DUMMY_SHARDED_DATASET_TARGET,
-                },
-            }
-        ],
-    }
-    return OmegaConf.create(dataset_config)
-
-
-def make_multiple_iterator_config(num_shards: int, shuffle: bool):
-    return OmegaConf.create(
-        {
-            "dataloader": {
-                "train": {
-                    "multiple_iterator": True,
-                    "num_shards": num_shards,
-                    "shuffle": shuffle,
-                    "iter_factory": None,
-                    "batch_size": 1,
-                    "num_workers": 0,
-                }
-            },
-            "num_device": 1,
-        }
-    )
-
-
-def test_multiple_iterator_shard_initialization(dummy_multiple_iterator_dataset):
-    organizer = DataOrganizer(
-        train=instantiate(dummy_multiple_iterator_dataset.train),
-        valid=instantiate(dummy_multiple_iterator_dataset.valid),
-    )
-    config = make_multiple_iterator_config(num_shards=3, shuffle=False)
-    builder = DataLoaderBuilder(
-        dataset=organizer.train,
-        config=config,
-        collate_fn=None,
-        num_device=1,
-        epoch=0,
-    )
-    loader = builder.build("train")
-    batch = next(iter(loader))
-    assert "text" in batch
-    assert batch["text"][0].startswith("shard0_")
-
-
-@pytest.mark.parametrize(
-    "epoch,expected_shard", [(0, "shard0"), (1, "shard1"), (2, "shard2")]
-)
-def test_multiple_iterator_epoch_shard_switching(
-    dummy_multiple_iterator_dataset, epoch, expected_shard
-):
-    organizer = DataOrganizer(
-        train=instantiate(dummy_multiple_iterator_dataset["train"]),
-        valid=instantiate(dummy_multiple_iterator_dataset["valid"]),
-    )
-    config = make_multiple_iterator_config(num_shards=3, shuffle=False)
-    builder = DataLoaderBuilder(
-        dataset=organizer.train,
-        config=config,
-        collate_fn=None,
-        num_device=1,
-        epoch=epoch,
-    )
-    loader = builder.build("train")
-    batch = next(iter(loader))
-    assert expected_shard in batch["text"][0]
+@pytest.mark.parametrize("flag", [True, False])
+def test_multiple_iterator_is_rejected(flag):
+    dataset = DummyDataset()
+    config = make_standard_dataloader_config()
+    config.dataloader.train.multiple_iterator = flag
+    builder = DataLoaderBuilder(dataset, config, collate_fn=None, num_device=1, epoch=0)
+    with pytest.raises(RuntimeError, match="multiple_iterator"):
+        builder.build("train")
