@@ -162,7 +162,7 @@ def train_sentencepiece(
 
 
 def add_special_tokens(
-    tokenizer, converter, embedding, special_tokens, insert_after="<st_zho>"
+    tokenizer, converter, embedding, special_tokens, insert_after=None
 ):
     """Add special tokens to the tokenizer.
 
@@ -173,6 +173,9 @@ def add_special_tokens(
         converter: Sentencepiece converter.
         embedding: nn.Embedding object.
         special_tokens (list): List of special tokens.
+        insert_after (str | None): If provided and found in the current token
+            list, insert new tokens right after it. If None or not found,
+            append new tokens to the end of the list.
 
     Returns:
         Tuple(
@@ -191,7 +194,10 @@ def add_special_tokens(
             add_token_list.append(token)
 
     # Then append tokens into the token_list and sentencepiece model.
-    insert_position = token_list.index(insert_after) + 1
+    if insert_after is None or insert_after not in token_list:
+        insert_position = len(token_list)
+    else:
+        insert_position = token_list.index(insert_after) + 1
     new_token_list = (
         token_list[:insert_position] + add_token_list + token_list[insert_position:]
     )
