@@ -15,10 +15,11 @@ def test_resolve_absolute_path(tmp_path: Path) -> None:
         resolve.resolve_absolute_path(None, base=tmp_path)
 
 
-def test_resolve_infer_path(tmp_path: Path) -> None:
+def test_resolve_infer_path(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     demo_cfg_path = tmp_path / "demo.yaml"
     demo_cfg_path.write_text("system: asr\n", encoding="utf-8")
-    path = resolve.resolve_infer_path("conf/infer.yaml", demo_cfg_path)
+    monkeypatch.chdir(tmp_path)
+    path = resolve.resolve_infer_path("conf/infer.yaml")
     assert path == (tmp_path / "conf" / "infer.yaml").resolve()
 
 
