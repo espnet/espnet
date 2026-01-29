@@ -7,6 +7,7 @@ from torch.utils.data import BatchSampler, Sampler
 
 from espnet3.components.data.data_organizer import DataOrganizer, do_nothing_transform
 from espnet3.components.data.dataloader import DataLoaderBuilder
+from espnet3.components.data.dataset import ShardedDataset
 from espnet3.utils.config import load_config_with_defaults
 
 # ===============================================================
@@ -93,6 +94,42 @@ class DummyBatchSampler(BatchSampler):
 
 def dummy_collate_fn(batch):
     return {"custom_collated": batch}
+
+
+class DummyShardedDataset(ShardedDataset):
+    def __init__(self, shard_id: int = 0, num_shards: int = 2, world_shard_size: int = 1):
+        self.shard_id = shard_id
+        self.num_shards = num_shards
+        self.world_shard_size = world_shard_size
+        self.data = [
+            {"text": f"shard{shard_id}_sample0"},
+            {"text": f"shard{shard_id}_sample1"},
+        ]
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        return self.data[idx]
+
+    def shard(self, idx: int):
+        return DummyShardedDataset(
+            shard_id=idx,
+            num_shards=self.num_shards,
+            world_shard_size=self.world_shard_size,
+        )
+
+
+class DummyMissingShardMethod:
+    def __init__(self, num_shards=2, world_shard_size=1):
+        self.num_shards = num_shards
+        self.world_shard_size = world_shard_size
+
+    def __len__(self):
+        return 0
+
+    def __getitem__(self, idx):
+        raise IndexError
 
 
 # -------- Config mocks --------
@@ -315,4 +352,134 @@ def test_multiple_iterator_is_rejected(flag):
     config.dataloader.train.multiple_iterator = flag
     builder = DataLoaderBuilder(dataset, config, collate_fn=None, num_device=1, epoch=0)
     with pytest.raises(RuntimeError, match="multiple_iterator"):
+        builder.build("train")
+
+
+def _collect_shard_ids(loader):
+    shard_ids = set()
+    for batch in loader:
+        text = batch["text"][0] if isinstance(batch, dict) else batch[0]["text"]
+        shard_ids.add(text.split("_")[0])
+        if len(shard_ids) >= 4:
+            break
+    return shard_ids
+
+
+def _first_shard_id(loader):
+    batch = next(iter(loader))
+    text = batch["text"][0] if isinstance(batch, dict) else batch[0]["text"]
+    return text.split("_")[0]
+
+
+def test_sharded_dataset_single_gpu_multiple_shards():
+    dataset = DummyShardedDataset(num_shards=2, world_shard_size=1)
+    config = make_standard_dataloader_config()
+    config.dataloader.train.batch_size = 1
+    builder = DataLoaderBuilder(dataset, config, collate_fn=None, num_device=1, epoch=0)
+    loader = builder.build("train")
+    shard_ids = _collect_shard_ids(loader)
+    assert shard_ids == {"shard0", "shard1"}
+
+
+@pytest.mark.parametrize(
+    "world_size,num_shards,rank,expected",
+    [
+        (2, 2, 0, {"shard0"}),
+        (2, 2, 1, {"shard1"}),
+        (2, 4, 0, {"shard0", "shard2"}),
+        (2, 4, 1, {"shard1", "shard3"}),
+    ],
+)
+def test_sharded_dataset_multi_gpu_assignment(
+    monkeypatch, world_size, num_shards, rank, expected
+):
+    def _get_world_size():
+        return world_size
+
+    def _get_rank():
+        return rank
+
+    monkeypatch.setattr(torch.distributed, "get_world_size", _get_world_size)
+    monkeypatch.setattr(torch.distributed, "get_rank", _get_rank)
+
+    dataset = DummyShardedDataset(
+        num_shards=num_shards, world_shard_size=world_size
+    )
+    config = make_standard_dataloader_config()
+    config.dataloader.train.batch_size = 1
+    builder = DataLoaderBuilder(dataset, config, collate_fn=None, num_device=world_size, epoch=0)
+    loader = builder.build("train")
+    shard_ids = _collect_shard_ids(loader)
+    assert shard_ids == expected
+
+
+def test_sharded_dataset_multi_gpu_rotates_with_epoch(monkeypatch):
+    def _get_world_size():
+        return 2
+
+    def _get_rank():
+        return 0
+
+    monkeypatch.setattr(torch.distributed, "get_world_size", _get_world_size)
+    monkeypatch.setattr(torch.distributed, "get_rank", _get_rank)
+
+    dataset = DummyShardedDataset(num_shards=4, world_shard_size=2)
+    config = make_standard_dataloader_config()
+    config.dataloader.train.batch_size = 1
+
+    builder_epoch0 = DataLoaderBuilder(
+        dataset, config, collate_fn=None, num_device=2, epoch=0
+    )
+    first_epoch0 = _first_shard_id(builder_epoch0.build("train"))
+
+    builder_epoch1 = DataLoaderBuilder(
+        dataset, config, collate_fn=None, num_device=2, epoch=1
+    )
+    first_epoch1 = _first_shard_id(builder_epoch1.build("train"))
+
+    assert first_epoch0 == "shard0"
+    assert first_epoch1 == "shard2"
+
+
+@pytest.mark.parametrize("num_shards", [1, 3])
+def test_sharded_dataset_invalid_shard_count(monkeypatch, num_shards):
+    def _get_world_size():
+        return 2
+
+    def _get_rank():
+        return 0
+
+    monkeypatch.setattr(torch.distributed, "get_world_size", _get_world_size)
+    monkeypatch.setattr(torch.distributed, "get_rank", _get_rank)
+
+    dataset = DummyShardedDataset(num_shards=num_shards, world_shard_size=2)
+    config = make_standard_dataloader_config()
+    config.dataloader.train.batch_size = 1
+    builder = DataLoaderBuilder(dataset, config, collate_fn=None, num_device=2, epoch=0)
+    with pytest.raises(RuntimeError, match="num_shards must be divisible by world_size"):
+        builder.build("train")
+
+
+def test_sharded_dataset_missing_shard_method():
+    dataset = DummyMissingShardMethod(num_shards=2, world_shard_size=1)
+    config = make_standard_dataloader_config()
+    builder = DataLoaderBuilder(dataset, config, collate_fn=None, num_device=1, epoch=0)
+    with pytest.raises(RuntimeError, match="shard\\(\\) is not implemented"):
+        builder.build("train")
+
+
+def test_sharded_dataset_world_size_mismatch(monkeypatch):
+    def _get_world_size():
+        return 2
+
+    def _get_rank():
+        return 0
+
+    monkeypatch.setattr(torch.distributed, "get_world_size", _get_world_size)
+    monkeypatch.setattr(torch.distributed, "get_rank", _get_rank)
+
+    dataset = DummyShardedDataset(num_shards=2, world_shard_size=1)
+    config = make_standard_dataloader_config()
+    builder = DataLoaderBuilder(dataset, config, collate_fn=None, num_device=2, epoch=0)
+    with pytest.raises(RuntimeError, match="world_shard_size must match"):
         builder.build("train")
