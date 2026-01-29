@@ -7,6 +7,21 @@ from typing import Any, Callable, List, Tuple
 from torch.utils.data.dataset import Dataset
 
 
+def do_nothing_transform(*x):
+    """Return input as-is.
+
+    Args:
+        x: Any object.
+
+    Returns:
+        The input object unchanged.
+    """
+    if len(x) == 1:
+        return x[0]
+    else:
+        return x
+
+
 class CombinedDataset:
     """Combines multiple datasets into a single unified dataset-like interface.
 
@@ -63,10 +78,19 @@ class CombinedDataset:
     ):
         """Initialize CombinedDataset object."""
         self.datasets = datasets
-        self.transforms = transforms
+        self.transforms = []
         self.lengths = [len(ds) for ds in datasets]
         self.cumulative_lengths = []
         self.use_espnet_preprocessor = use_espnet_preprocessor
+
+        for transform, preprocessor in transforms:
+            if transform is None:
+                transform = do_nothing_transform
+            if preprocessor is None:
+                preprocessor = do_nothing_transform
+            assert callable(transform), "transform must be callable."
+            assert callable(preprocessor), "preprocessor must be callable."
+            self.transforms.append((transform, preprocessor))
 
         total = 0
         for length in self.lengths:
@@ -275,7 +299,11 @@ class DatasetWithTransform:
 
     def __init__(self, dataset, transform, preprocessor, use_espnet_preprocessor=False):
         """Initialize DatasetWithTransform."""
+        if transform is None:
+            transform = do_nothing_transform
         assert callable(transform), "transform must be callable."
+        if preprocessor is None:
+            preprocessor = do_nothing_transform
         assert callable(preprocessor), "preprocessor must be callable."
         self.dataset = dataset
         self.transform = transform
