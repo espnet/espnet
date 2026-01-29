@@ -127,9 +127,6 @@ class ASRSystem(BaseSystem):
             infer_dir = getattr(self.infer_config, "infer_dir", None)
             if infer_dir:
                 return Path(infer_dir)
-            decode_dir = getattr(self.infer_config, "decode_dir", None)
-            if decode_dir:
-                return Path(decode_dir)
         elif stage == "measure":
             infer_dir = getattr(self.metric_config, "infer_dir", None)
             if infer_dir:
@@ -137,12 +134,6 @@ class ASRSystem(BaseSystem):
             infer_dir = getattr(self.infer_config, "infer_dir", None)
             if infer_dir:
                 return Path(infer_dir)
-            decode_dir = getattr(self.metric_config, "decode_dir", None)
-            if decode_dir:
-                return Path(decode_dir)
-            decode_dir = getattr(self.infer_config, "decode_dir", None)
-            if decode_dir:
-                return Path(decode_dir)
         return super().get_stage_log_dir(stage)
 
     def train(self, *args, **kwargs):
