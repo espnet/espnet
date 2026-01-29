@@ -47,7 +47,7 @@ done
 
 run_with_train_config \
     train_transducer_asr_conformer_rnnt_debug.yaml \
-    run_transducer.py \
+    run.py \
     conf/infer_transducer.yaml
 
 cd "${cwd}"
