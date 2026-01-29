@@ -4,11 +4,11 @@ import logging
 import time
 from pathlib import Path
 
-from omegaconf import DictConfig
+from hydra.utils import instantiate
+from omegaconf import DictConfig, OmegaConf
 
 from espnet3.parallel.parallel import set_parallel
-from espnet3.systems.base.inference_provider import InferenceProvider
-from espnet3.systems.base.inference_runner import InferenceRunner, _load_output_fn
+from espnet3.systems.base.inference_runner import _load_output_fn
 
 logger = logging.getLogger(__name__)
 
@@ -88,15 +88,20 @@ def inference(config: DictConfig):
     for test_name in test_sets:
         logger.info("===> Processing test set: %s", test_name)
         config.test_set = test_name
+
         output_fn_path = getattr(config, "output_fn", None)
         if not output_fn_path:
             raise RuntimeError("infer_config.output_fn must be set.")
+
         _load_output_fn(output_fn_path)
+
         input_key = getattr(config, "input_key", None)
         if input_key is None:
             raise RuntimeError("infer_config.input_key must be set.")
+
         if isinstance(input_key, (list, tuple)) and not input_key:
             raise RuntimeError("infer_config.input_key must not be empty.")
+
         output_keys = getattr(config, "output_keys", None)
         if output_keys is not None:
             if isinstance(output_keys, str):
@@ -105,24 +110,38 @@ def inference(config: DictConfig):
                 output_keys = list(output_keys)
             if not output_keys:
                 raise RuntimeError("infer_config.output_keys must not be empty.")
+
         idx_key = getattr(config, "idx_key", "uttid")
 
-        provider = InferenceProvider(
-            config,
-            params={
-                "input_key": input_key,
-                "output_fn_path": output_fn_path,
-            },
-        )
-        hyp_keys = output_keys if output_keys is not None else []
         batch_size = getattr(config, "batch_size", None)
-        runner = InferenceRunner(
-            provider=provider,
-            async_mode=False,
-            idx_key=idx_key,
-            hyp_key=hyp_keys,
-            batch_size=batch_size,
+        provider_config = getattr(config, "provider", None)
+        if provider_config is None:
+            raise RuntimeError("infer_config.provider must be set.")
+        if getattr(provider_config, "params", None) is None:
+            provider_config.params = {}
+        provider_config.params["input_key"] = input_key
+        provider_config.params["output_fn_path"] = output_fn_path
+        provider_params = OmegaConf.to_container(provider_config.params, resolve=True)
+
+        provider = instantiate(
+            provider_config,
+            config=config,
+            params=provider_params,
         )
+
+        hyp_keys = output_keys if output_keys is not None else []
+        runner_config = getattr(config, "runner", None)
+        if runner_config is None:
+            raise RuntimeError("infer_config.runner must be set.")
+
+        runner_kwargs = {
+            "provider": provider,
+            "async_mode": False,
+            "idx_key": idx_key,
+            "hyp_key": hyp_keys,
+            "batch_size": batch_size,
+        }
+        runner = instantiate(runner_config, **runner_kwargs)
         if not hasattr(runner, "idx_key"):
             raise TypeError(
                 f"{type(runner).__name__} must provide inference runner attributes"
@@ -132,6 +151,7 @@ def inference(config: DictConfig):
         out = runner(list(range(dataset_length)))
         if out is None:
             raise RuntimeError("Async inference is not supported in this entrypoint.")
+        # Runner can return nested lists. normalize to flat list.
         results = _flatten_results(out)
         if output_keys is None:
             if not results:
@@ -141,6 +161,7 @@ def inference(config: DictConfig):
             if not output_keys:
                 raise RuntimeError("No output keys found in inference results.")
 
+        # Convert output dicts into per-key SCP lines (uttid + value).
         scp_lines = _collect_scp_lines(
             results,
             idx_key=runner.idx_key,
