@@ -29,9 +29,12 @@ class ASRTransducerSystem(ASRSystem):
     def infer(self, *args, **kwargs):
         """Run inference on the configured datasets."""
         self._reject_stage_args("infer", args, kwargs)
+        infer_dir = getattr(self.infer_config, "infer_dir", None)
+        if infer_dir is None:
+            infer_dir = getattr(self.infer_config, "decode_dir", None)
         logger.info(
-            "Inference start | decode_dir=%s",
-            getattr(self.infer_config, "decode_dir", None),
+            "Inference start | infer_dir=%s",
+            infer_dir,
         )
         return inference(self.infer_config)
 
@@ -61,9 +64,12 @@ def inference(config: DictConfig):
     assert len(test_sets) > 0, "No test set found in dataset"
     assert len(test_sets) == len(set(test_sets)), "Duplicate test key found."
 
+    infer_dir = getattr(config, "infer_dir", None)
+    if infer_dir is None:
+        infer_dir = getattr(config, "decode_dir", None)
     logger.info(
-        "Starting inference | decode_dir=%s test_sets=%s",
-        getattr(config, "decode_dir", None),
+        "Starting inference | infer_dir=%s test_sets=%s",
+        infer_dir,
         test_sets,
     )
 
@@ -90,7 +96,9 @@ def inference(config: DictConfig):
         )
 
         # create scp files
-        output_dir = Path(config.decode_dir) / test_name
+        if infer_dir is None:
+            raise RuntimeError("infer_dir must be set for inference outputs.")
+        output_dir = Path(infer_dir) / test_name
         output_dir.mkdir(parents=True, exist_ok=True)
         for key, lines in scp_lines.items():
             with open(output_dir / f"{key}.scp", "w", encoding="utf-8") as f:
