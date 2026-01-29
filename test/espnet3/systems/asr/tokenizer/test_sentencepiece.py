@@ -81,3 +81,12 @@ def test_train_sentencepiece_and_add_special_tokens(tmp_path, monkeypatch):
         "<intent>",
         "<speaker>",
     ]
+
+    new_tokenizer2, new_converter2, new_embedding2 = add_special_tokens(
+        tokenizer,
+        converter,
+        embedding,
+        ["<domain>"],
+    )
+    assert new_embedding2.num_embeddings == len(tokens) + 1
+    assert new_converter2.token_list[-1] == "<domain>"
