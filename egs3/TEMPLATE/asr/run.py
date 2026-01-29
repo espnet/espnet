@@ -172,7 +172,6 @@ def main(
         measure_config=measure_config,
         publish_config=publish_config,
         demo_config=demo_config,
-        demo_config_path=args.demo_config,
     )
 
     # -----------------------------------------

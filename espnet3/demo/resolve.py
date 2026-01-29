@@ -42,12 +42,11 @@ def load_demo_config(demo_dir: Path) -> DictConfig:
     return load_config_with_defaults(str(demo_dir / "demo.yaml"))
 
 
-def resolve_infer_path(infer_config, demo_cfg_path: Path | None) -> Path | None:
-    """Resolve infer_config path relative to the demo config directory.
+def resolve_infer_path(infer_config) -> Path | None:
+    """Resolve infer_config path relative to the current working directory.
 
     Args:
         infer_config: Value of demo_cfg.infer_config (string or Path-like).
-        demo_cfg_path: Path to the demo.yaml file, if available.
     Returns:
         Absolute Path to the inference config, or None if infer_config is empty.
     """
@@ -55,7 +54,7 @@ def resolve_infer_path(infer_config, demo_cfg_path: Path | None) -> Path | None:
         return None
     return resolve_absolute_path(
         infer_config,
-        base=demo_cfg_path.parent if demo_cfg_path is not None else Path.cwd(),
+        base=Path.cwd(),
     )
 
 

@@ -38,7 +38,6 @@ class BaseSystem:
         measure_config: DictConfig | None = None,
         publish_config: DictConfig | None = None,
         demo_config: DictConfig | None = None,
-        demo_config_path: Path | None = None,
     ) -> None:
         """Initialize the system with optional stage configs."""
         self.train_config = train_config
@@ -46,7 +45,6 @@ class BaseSystem:
         self.metric_config = measure_config
         self.publish_config = publish_config
         self.demo_config = demo_config
-        self.demo_config_path = demo_config_path
         if train_config is not None:
             self.exp_dir = Path(train_config.exp_dir)
             self.exp_dir.mkdir(parents=True, exist_ok=True)

@@ -27,7 +27,6 @@ def test_pack_demo_writes_assets(tmp_path: Path) -> None:
 
     class DummySystem:
         demo_config = demo_cfg
-        demo_config_path = None
         exp_dir = None
         publish_config = None
 
