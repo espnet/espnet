@@ -95,7 +95,9 @@ class CombinedDataset:
                 self.get_text_available = False
 
         # Check if dataset is a subclass of ShardedDataset.
-        has_sharded = any(isinstance(dataset, ShardedDataset) for dataset in self.datasets)
+        has_sharded = any(
+            isinstance(dataset, ShardedDataset) for dataset in self.datasets
+        )
         if has_sharded and not all(
             isinstance(dataset, ShardedDataset) for dataset in self.datasets
         ):
@@ -103,6 +105,24 @@ class CombinedDataset:
                 "If any dataset is a subclass of ShardedDataset,"
                 " then all dataset should be a subclass of ShardedDataset."
             )
+        if has_sharded:
+            num_shards_set = {
+                getattr(dataset, "num_shards", None) for dataset in self.datasets
+            }
+            world_shard_size_set = {
+                getattr(dataset, "world_shard_size", None) for dataset in self.datasets
+            }
+            if None in num_shards_set or None in world_shard_size_set:
+                raise RuntimeError(
+                    "ShardedDataset requires num_shards and world_shard_size to be set."
+                )
+            if len(num_shards_set) != 1 or len(world_shard_size_set) != 1:
+                raise RuntimeError(
+                    "All sharded datasets must share the same num_shards and "
+                    "world_shard_size."
+                )
+            self.num_shards = num_shards_set.pop()
+            self.world_shard_size = world_shard_size_set.pop()
 
         # This flag will be overrode by ESPnetLightningModule.
         self._use_espnet_collator = False
@@ -284,9 +304,13 @@ class DatasetWithTransform:
 class ShardedDataset(ABC, Dataset):
     """Abstract base class for datasets that support sharding.
 
-    This interface is used in ESPnet's multiple-iterator mode, where datasets are split
-    into shards for parallel or distributed data loading. Any dataset subclassing
-    `ShardedDataset` must implement the `shard()` method.
+    This interface is used when datasets are split into shards for parallel or
+    distributed data loading. Any dataset subclassing `ShardedDataset` must
+    implement the `shard()` method.
+
+    Attributes:
+        num_shards (int): Total number of shards in the dataset.
+        world_shard_size (int): Expected distributed world size when sharding.
 
     Note:
         - This class is intended to be used with `CombinedDataset` in ESPnet.
@@ -294,6 +318,9 @@ class ShardedDataset(ABC, Dataset):
 
     Example:
         >>> class MyDataset(ShardedDataset):
+        ...     def __init__(self):
+        ...         self.num_shards = 8
+        ...         self.world_shard_size = 4
         ...     def shard(self, idx):
         ...         return Subset(self, shard_indices[idx])
 
