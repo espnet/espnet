@@ -49,6 +49,54 @@ class DataLoaderBuilder:
         self.num_device = num_device
         self.epoch = epoch
 
+    def _get_world_info(self):
+        if self.num_device > 1:
+            world_size = torch.distributed.get_world_size()
+            rank = torch.distributed.get_rank()
+        else:
+            world_size = 1
+            rank = 0
+        return rank, world_size
+
+    def _maybe_shard_dataset(self, dataset):
+        if not hasattr(dataset, "num_shards"):
+            return dataset
+        if not hasattr(dataset, "shard"):
+            raise RuntimeError("num_shards is set but shard() is not implemented.")
+        num_shards = getattr(dataset, "num_shards")
+        world_shard_size = getattr(dataset, "world_shard_size", None)
+        if world_shard_size is None:
+            raise RuntimeError(
+                "ShardedDataset requires world_shard_size to be set when used "
+                "with DataLoaderBuilder."
+            )
+        if not isinstance(world_shard_size, int) or world_shard_size < 1:
+            raise RuntimeError("world_shard_size must be an integer >= 1.")
+        rank, world_size = self._get_world_info()
+        if world_shard_size != world_size:
+            raise RuntimeError(
+                "world_shard_size must match the distributed world_size."
+            )
+        if not isinstance(num_shards, int) or num_shards < 1:
+            raise RuntimeError("num_shards must be an integer >= 1.")
+        if num_shards % world_size != 0:
+            raise RuntimeError(
+                "num_shards must be divisible by world_size for sharded training."
+            )
+        shards_per_rank = num_shards // world_size
+        start = (self.epoch * world_size) % num_shards
+        shard_indices = [
+            (start + rank + world_size * i) % num_shards
+            for i in range(shards_per_rank)
+        ]
+        if len(shard_indices) == 1:
+            return dataset.shard(shard_indices[0])
+        shards = [dataset.shard(i) for i in shard_indices]
+        concat = torch.utils.data.ConcatDataset(shards)
+        if hasattr(shards[0], "use_espnet_collator"):
+            concat.use_espnet_collator = shards[0].use_espnet_collator
+        return concat
+
     def build(self, mode: str):
         """Build and return a DataLoader for the specified mode ("train" or "valid").
 
@@ -101,6 +149,7 @@ class DataLoaderBuilder:
         mode_config = getattr(self.config.dataloader, mode, DictConfig({}))
 
         config = copy.copy(mode_config)
+        dataset = self._maybe_shard_dataset(self.dataset)
         if hasattr(config, "multiple_iterator"):
             raise RuntimeError(
                 "ESPnet3 does not support multiple_iterator. "
@@ -113,7 +162,7 @@ class DataLoaderBuilder:
             target = getattr(config.iter_factory, "_target_", None)
             if target is None and isinstance(config.iter_factory, dict):
                 target = config.iter_factory.get("_target_")
-        if target == "espnet2.iterators.multiple_iter_factory.MultipleIterFactory":
+        if target is not None and "MultipleIterFactory" in target:
             raise RuntimeError(
                 "MultipleIterFactory is not supported in ESPnet3. "
                 "Use a standard iter_factory (Sequence/Chunk/Category*) and "
@@ -121,8 +170,8 @@ class DataLoaderBuilder:
             )
         if config.iter_factory is not None:
             factory_config = OmegaConf.to_container(config.iter_factory, resolve=True)
-            return self._build_iter_factory(factory_config)
-        return self._build_standard_dataloader(config)
+            return self._build_iter_factory(factory_config, dataset)
+        return self._build_standard_dataloader(config, dataset)
 
     def _build_standard_dataloader(self, dataloader_config, dataset=None):
         if dataset is None:
