@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import pytest
-from hydra.utils import instantiate as hydra_instantiate
 from omegaconf import OmegaConf
 
 import espnet3.systems.base.inference as inference_mod
@@ -13,17 +12,22 @@ def dummy_output_fn(*, data, model_output, idx):
 
 
 class DummyProvider:
-    def __init__(self, config, **kwargs):
-        self.config = config
+    def __init__(self, *, params):
+        self.params = params
 
     def build_dataset(self, _config):
-        return [None] * self.config.mock_dataset_length
+        return [None] * _config.mock_dataset_length
 
 
 class DummyRunner(InferenceRunner):
-    def __init__(self, provider, *, async_mode=False, results=None):
+    results = None
+
+    def __init__(self, provider, *, async_mode=False, results=None, **_kwargs):
         super().__init__(provider, async_mode=async_mode)
-        self._results = results if results is not None else None
+        if results is not None:
+            self._results = results
+        else:
+            self._results = DummyRunner.results
 
     @staticmethod
     def forward(idx, *, dataset, model, **env):
@@ -33,22 +37,14 @@ class DummyRunner(InferenceRunner):
         return self._results
 
 
-runner_factory_results = None
-
-
-def runner_factory(provider, *, async_mode=False, **_kwargs):
-    return DummyRunner(provider, async_mode=async_mode, results=runner_factory_results)
-
-
 class CaptureProvider:
     last_params = None
 
-    def __init__(self, config, *, params):
+    def __init__(self, *, params):
         CaptureProvider.last_params = params
-        self.config = config
 
     def build_dataset(self, _config):
-        return [None] * self.config.mock_dataset_length
+        return [None] * _config.mock_dataset_length
 
 
 class CaptureRunner:
@@ -61,19 +57,6 @@ class CaptureRunner:
         return CaptureRunner.results
 
     idx_key = "idx"
-
-
-def _instantiate_without_config(*args, **kwargs):
-    if not args:
-        raise RuntimeError("instantiate requires a config argument")
-    config = args[0]
-    rest_args = args[1:]
-    if "config" in kwargs:
-        cfg = kwargs.pop("config")
-        return DummyProvider(cfg, **kwargs)
-    if "provider" in kwargs:
-        return runner_factory(kwargs["provider"], async_mode=kwargs.get("async_mode"))
-    return hydra_instantiate(config, *rest_args, **kwargs)
 
 
 def _read_scp(path: Path):
@@ -103,11 +86,9 @@ def test_inference_writes_scp_outputs(tmp_path, monkeypatch):
     def fake_set_parallel(arg):
         calls["parallel"] = arg
 
-    global runner_factory_results
-    runner_factory_results = results
+    DummyRunner.results = results
 
     monkeypatch.setattr(inference_mod, "set_parallel", fake_set_parallel)
-    monkeypatch.setattr(inference_mod, "instantiate", _instantiate_without_config)
 
     inference_mod.inference(cfg)
 
@@ -133,11 +114,9 @@ def test_inference_rejects_async_results(tmp_path, monkeypatch):
         }
     )
 
-    global runner_factory_results
-    runner_factory_results = None
+    DummyRunner.results = None
 
     monkeypatch.setattr(inference_mod, "set_parallel", lambda arg: None)
-    monkeypatch.setattr(inference_mod, "instantiate", _instantiate_without_config)
 
     with pytest.raises(RuntimeError, match="Async inference is not supported"):
         inference_mod.inference(cfg)
@@ -164,13 +143,7 @@ def test_inference_passes_provider_params(tmp_path, monkeypatch):
     CaptureProvider.last_params = None
     CaptureRunner.results = results
 
-    def fake_instantiate(obj, **kwargs):
-        if "config" in kwargs:
-            return CaptureProvider(kwargs["config"], params=kwargs["params"])
-        return CaptureRunner(kwargs["provider"])
-
     monkeypatch.setattr(inference_mod, "set_parallel", lambda arg: None)
-    monkeypatch.setattr(inference_mod, "instantiate", fake_instantiate)
 
     inference_mod.inference(cfg)
 
