@@ -41,7 +41,9 @@ class DummyProvider(InferenceProvider):
 class ParamRunner(InferenceRunner):
     @staticmethod
     def forward(idx, *, dataset=None, model=None, flip=False, **kwargs):
-        output = InferenceRunner.forward(idx, dataset=dataset, model=model, **kwargs)
+        output = InferenceRunner.forward(
+            idx, dataset=dataset, model=model, **kwargs
+        )
         output["hyp"] = "flip" if flip else "base"
         return output
 
