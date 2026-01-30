@@ -34,6 +34,12 @@ def test_resolve_extra_kwargs_from_config() -> None:
     assert mapping == {"beam_size": 1}
 
 
+def test_resolve_infer_kwargs_from_config() -> None:
+    infer_cfg = OmegaConf.create({"input_key": "speech", "output_fn": "src.infer.fn"})
+    mapping = resolve.resolve_infer_kwargs(infer_cfg)
+    assert mapping == {"input_key": "speech", "output_fn_path": "src.infer.fn"}
+
+
 def test_resolve_provider_runner_class_from_system() -> None:
     cfg = OmegaConf.create({"system": "asr"})
     provider_cls = resolve.resolve_provider_class(cfg)

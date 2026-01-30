@@ -139,6 +139,9 @@ def inference(config: DictConfig):
         provider_params["input_key"] = input_key
         provider_params["output_fn_path"] = output_fn_path
 
+        print("provider_config:", provider_config)
+        print("provider_params:", provider_params)
+        print("config:", config)
         provider = instantiate(
             provider_config,
             infer_config=config,
