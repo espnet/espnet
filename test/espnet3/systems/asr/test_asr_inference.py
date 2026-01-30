@@ -1,6 +1,7 @@
 import pytest
 from omegaconf import OmegaConf
 
+from espnet3.systems.base.inference import inference
 from espnet3.systems.base.inference_provider import InferenceProvider
 from espnet3.systems.base.inference_runner import InferenceRunner
 
@@ -18,6 +19,33 @@ def _batch_output_fn(*, data, model_output, idx):
         }
         for sample, output in zip(data, model_output)
     ]
+
+
+def _param_output_fn(*, data, model_output, idx):
+    return {"uttid": data["uttid"], "hyp": model_output, "ref": "ref"}
+
+
+class DummyProvider(InferenceProvider):
+    @staticmethod
+    def build_dataset(config):
+        return config.dataset.data
+
+    @staticmethod
+    def build_model(config):
+        def model(speech):
+            return f"base-{speech}"
+
+        return model
+
+
+class ParamRunner(InferenceRunner):
+    @staticmethod
+    def forward(idx, *, dataset=None, model=None, flip=False, **kwargs):
+        output = InferenceRunner.forward(
+            idx, dataset=dataset, model=model, **kwargs
+        )
+        output["hyp"] = "flip" if flip else "base"
+        return output
 
 
 def test_build_dataset_uses_test_set(monkeypatch):
@@ -169,3 +197,45 @@ def test_forward_requires_fields():
             input_key="speech",
             output_fn_path=f"{__name__}._output_fn",
         )
+
+
+def test_inference_requires_provider_config():
+    cfg = OmegaConf.create(
+        {
+            "infer_dir": "unused",
+            "dataset": {"test": [{"name": "test"}]},
+            "input_key": "speech",
+            "output_fn": f"{__name__}._output_fn",
+            "runner": {"_target_": f"{__name__}.ParamRunner"},
+            "parallel": {"env": "local", "n_workers": 1},
+        }
+    )
+    with pytest.raises(RuntimeError, match="infer_config.provider must be set"):
+        inference(cfg)
+
+
+@pytest.mark.parametrize("flip,expected", [(False, "base"), (True, "flip")])
+def test_inference_params_affect_runner_forward(tmp_path, flip, expected):
+    cfg = OmegaConf.create(
+        {
+            "infer_dir": str(tmp_path),
+            "dataset": {
+                "test": [{"name": "test"}],
+                "data": [{"uttid": "utt1", "speech": "s1"}],
+            },
+            "input_key": "speech",
+            "output_fn": f"{__name__}._param_output_fn",
+            "provider": {
+                "_target_": f"{__name__}.DummyProvider",
+                "params": {"flip": flip},
+            },
+            "runner": {"_target_": f"{__name__}.ParamRunner"},
+            "parallel": {"env": "local", "n_workers": 1},
+        }
+    )
+
+    inference(cfg)
+
+    scp_path = tmp_path / "test" / "hyp.scp"
+    assert scp_path.exists()
+    assert scp_path.read_text().strip() == f"utt1 {expected}"

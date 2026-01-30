@@ -122,11 +122,16 @@ def inference(config: DictConfig):
             provider_params = OmegaConf.to_container(raw_params, resolve=True)
         else:
             provider_params = dict(raw_params)
+
         provider_params["input_key"] = input_key
         provider_params["output_fn_path"] = output_fn_path
-        provider_config.params = provider_params
 
-        provider = instantiate(provider_config)
+        provider = instantiate(
+            provider_config,
+            infer_config=config,
+            params=provider_params,
+            _recursive_=False,
+        )
 
         hyp_keys = output_keys if output_keys is not None else []
         runner_config = getattr(config, "runner", None)
