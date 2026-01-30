@@ -27,3 +27,8 @@ model:
 
 input_key: speech
 output_fn: src.infer.output_fn_transducer
+
+provider:
+  _target_: espnet3.systems.base.inference_provider.InferenceProvider
+runner:
+  _target_: espnet3.systems.base.inference_runner.InferenceRunner

@@ -21,12 +21,15 @@ resolver can load the correct implementation.
 from __future__ import annotations
 
 from pathlib import Path
+import logging
 from typing import Any, Dict
 
 from hydra.utils import get_class, get_method
 from omegaconf import DictConfig, OmegaConf
 
 from espnet3.utils.config import load_config_with_defaults
+
+logger = logging.getLogger(__name__)
 
 
 def load_demo_config(demo_dir: Path) -> DictConfig:
@@ -135,6 +138,29 @@ def resolve_extra_kwargs(demo_cfg) -> Dict[str, Any]:
     return {}
 
 
+def resolve_infer_kwargs(infer_cfg: DictConfig | None) -> Dict[str, Any]:
+    """Resolve inference runner kwargs derived from infer_config.
+
+    This extracts inference-required settings like input keys and the output
+    function path so demos can reuse the same infer.yaml configuration.
+
+    Args:
+        infer_cfg: Loaded inference config, or None.
+    Returns:
+        Mapping of keyword arguments to pass into runner.forward.
+    """
+    if infer_cfg is None:
+        return {}
+    mapping: Dict[str, Any] = {}
+    input_key = getattr(infer_cfg, "input_key", None)
+    if input_key is not None:
+        mapping["input_key"] = input_key
+    output_fn = getattr(infer_cfg, "output_fn", None)
+    if output_fn:
+        mapping["output_fn_path"] = output_fn
+    return mapping
+
+
 def resolve_provider_class(demo_cfg):
     """Resolve inference provider class from demo.yaml or system convention.
 
@@ -156,7 +182,14 @@ def resolve_provider_class(demo_cfg):
     system = str(getattr(demo_cfg, "system", "")).lower()
     if not system:
         return None
-    return get_class(f"espnet3.systems.{system}.inference.InferenceProvider")
+    try:
+        return get_class(f"espnet3.systems.{system}.inference.InferenceProvider")
+    except Exception:
+        logger.warning(
+            "Provider class for system '%s' not found; using base InferenceProvider.",
+            system,
+        )
+        return get_class("espnet3.systems.base.inference_provider.InferenceProvider")
 
 
 def resolve_runner_class(demo_cfg):
@@ -180,7 +213,14 @@ def resolve_runner_class(demo_cfg):
     system = str(getattr(demo_cfg, "system", "")).lower()
     if not system:
         return None
-    return get_class(f"espnet3.systems.{system}.inference.InferenceRunner")
+    try:
+        return get_class(f"espnet3.systems.{system}.inference.InferenceRunner")
+    except Exception:
+        logger.warning(
+            "Runner class for system '%s' not found; using base InferenceRunner.",
+            system,
+        )
+        return get_class("espnet3.systems.base.inference_runner.InferenceRunner")
 
 
 def _load_system_inference_defaults(demo_cfg):

@@ -29,6 +29,12 @@ model:
 input_key: speech
 output_fn: src.infer.output_fn
 
+# Provider/runner definitions.
+provider:
+  _target_: espnet3.systems.base.inference_provider.InferenceProvider
+runner:
+  _target_: espnet3.systems.base.inference_runner.InferenceRunner
+
 # Parallel execution used during data loading / scoring (defaults to local).
 parallel:
   env: local

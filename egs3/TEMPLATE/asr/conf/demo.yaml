@@ -1,8 +1,10 @@
-system: asr
+system: base
 infer_config: conf/infer.yaml
 
 output_keys:
   text: hyp
+
+# Inference runner kwargs (input_key/output_fn_path) are derived from infer_config.
 
 pack:
   out_dir: demo

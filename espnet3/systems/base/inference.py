@@ -123,6 +123,9 @@ def inference(config: DictConfig):
         provider_config.params["output_fn_path"] = output_fn_path
         provider_params = OmegaConf.to_container(provider_config.params, resolve=True)
 
+        print("provider_config:", provider_config)
+        print("provider_params:", provider_params)
+        print("config:", config)
         provider = instantiate(
             provider_config,
             config=config,

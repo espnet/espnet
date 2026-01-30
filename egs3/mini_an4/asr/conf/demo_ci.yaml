@@ -1,10 +1,12 @@
-system: asr
-infer_config: infer.yaml
+system: base
+infer_config: conf/infer.yaml
 
 output_keys:
   text: hyp
 
 inference:
+
+# input_key/output_fn_path are sourced from infer_config.
 
 pack:
   out_dir: demo

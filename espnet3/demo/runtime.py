@@ -13,6 +13,7 @@ from omegaconf import DictConfig
 from espnet3.demo.resolve import (
     load_infer_config,
     resolve_extra_kwargs,
+    resolve_infer_kwargs,
     resolve_output_keys,
     resolve_provider_class,
     resolve_runner_class,
@@ -63,12 +64,14 @@ def build_runtime(demo_cfg, demo_dir: Path) -> DemoRuntime:
             raise RuntimeError("infer_config is required to build the demo model.")
         model = provider_cls.build_model(infer_cfg)
     output_keys = resolve_output_keys(demo_cfg)
+    extra_kwargs = resolve_infer_kwargs(infer_cfg)
+    extra_kwargs.update(resolve_extra_kwargs(demo_cfg))
     return DemoRuntime(
         infer_config=infer_cfg,
         model=model,
         runner_cls=runner_cls,
         output_keys=output_keys,
-        extra_kwargs=resolve_extra_kwargs(demo_cfg),
+        extra_kwargs=extra_kwargs,
     )
 
 
