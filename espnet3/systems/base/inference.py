@@ -117,17 +117,16 @@ def inference(config: DictConfig):
         provider_config = getattr(config, "provider", None)
         if provider_config is None:
             raise RuntimeError("infer_config.provider must be set.")
-        if getattr(provider_config, "params", None) is None:
-            provider_config.params = {}
-        provider_config.params["input_key"] = input_key
-        provider_config.params["output_fn_path"] = output_fn_path
-        provider_params = OmegaConf.to_container(provider_config.params, resolve=True)
+        raw_params = getattr(provider_config, "params", {}) or {}
+        if OmegaConf.is_config(raw_params):
+            provider_params = OmegaConf.to_container(raw_params, resolve=True)
+        else:
+            provider_params = dict(raw_params)
+        provider_params["input_key"] = input_key
+        provider_params["output_fn_path"] = output_fn_path
+        provider_config.params = provider_params
 
-        provider = instantiate(
-            provider_config,
-            config=config,
-            params=provider_params,
-        )
+        provider = instantiate(provider_config)
 
         hyp_keys = output_keys if output_keys is not None else []
         runner_config = getattr(config, "runner", None)
