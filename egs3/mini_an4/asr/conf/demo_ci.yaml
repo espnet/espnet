@@ -1,15 +1,21 @@
-system: base
+system: asr
 infer_config: conf/infer.yaml
+
+exp_dir: ${load_yaml:conf/train.yaml,exp_dir}
+data_dir: ${load_yaml:conf/train.yaml,data_dir}
 
 output_keys:
   text: hyp
-
-inference:
 
 # input_key/output_fn_path are sourced from infer_config.
 
 pack:
   out_dir: demo
+  files:
+    - ${exp_dir}/config.yaml
+    - ${exp_dir}/last.ckpt
+    - ${data_dir}/bpe_30
+
 
 upload_demo:
   hf_username: ms180
