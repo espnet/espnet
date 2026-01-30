@@ -5,14 +5,16 @@ from omegaconf import OmegaConf
 
 import espnet3.systems.base.inference as inference_mod
 from espnet3.systems.base.inference_runner import InferenceRunner
+from espnet3.systems.base.inference_provider import InferenceProvider
 
 
 def dummy_output_fn(*, data, model_output, idx):
     return {"idx": idx, "hyp": "h", "ref": "r"}
 
 
-class DummyProvider:
-    def __init__(self, *, params):
+class DummyProvider(InferenceProvider):
+    def __init__(self, infer_config, params):
+        super().__init__(infer_config)
         self.params = params
 
     def build_dataset(self, _config):
@@ -37,10 +39,11 @@ class DummyRunner(InferenceRunner):
         return self._results
 
 
-class CaptureProvider:
+class CaptureProvider(InferenceRunner):
     last_params = None
 
-    def __init__(self, *, params):
+    def __init__(self, infer_config, *, params):
+        super().__init__(infer_config)
         CaptureProvider.last_params = params
 
     def build_dataset(self, _config):
