@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import sys
 
 import pytest
 from omegaconf import OmegaConf
@@ -14,6 +15,9 @@ class DummyProvider:
 
 class DummyRunner:
     pass
+
+
+sys.modules.setdefault("test.espnet3.demo.test_resolve", sys.modules[__name__])
 
 
 def test_resolve_absolute_path(tmp_path: Path) -> None:
