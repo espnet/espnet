@@ -32,7 +32,14 @@ def test_build_demo_app_with_custom_provider(tmp_path: Path) -> None:
     demo_dir = tmp_path / "demo"
     demo_dir.mkdir()
     (demo_dir / "config").mkdir()
-    (demo_dir / "config" / "infer.yaml").write_text("model: {}\n", encoding="utf-8")
+    (demo_dir / "config" / "infer.yaml").write_text(
+        "model: {}\n"
+        "provider:\n"
+        "  _target_: test.espnet3.demo.test_app_builder.DummyProvider\n"
+        "runner:\n"
+        "  _target_: test.espnet3.demo.test_app_builder.DummyRunner\n",
+        encoding="utf-8",
+    )
     (demo_dir / "demo.yaml").write_text(
         "system: dummy\n"
         "infer_config: config/infer.yaml\n"
@@ -44,10 +51,7 @@ def test_build_demo_app_with_custom_provider(tmp_path: Path) -> None:
         "    - name: text\n"
         "      type: textbox\n"
         "output_keys:\n"
-        "  text: hyp\n"
-        "inference:\n"
-        "  provider_class: test.espnet3.demo.test_app_builder.DummyProvider\n"
-        "  runner_class: test.espnet3.demo.test_app_builder.DummyRunner\n",
+        "  text: hyp\n",
         encoding="utf-8",
     )
     app = build_demo_app(demo_dir)

@@ -13,9 +13,9 @@ Expected module path conventions (by system name):
   - Inference defaults function:
       ``espnet3.systems.<system>.demo.build_inference_default``
 
-If a system does not follow these conventions, demo.yaml must set explicit
-``inference.provider_class`` and/or ``inference.runner_class`` so the
-resolver can load the correct implementation.
+If a system does not follow these conventions, infer.yaml must set explicit
+``provider._target_`` and/or ``runner._target_`` so the resolver can load the
+correct implementation.
 """
 
 from __future__ import annotations
@@ -161,11 +161,11 @@ def resolve_infer_kwargs(infer_cfg: DictConfig | None) -> Dict[str, Any]:
     return mapping
 
 
-def resolve_provider_class(demo_cfg):
-    """Resolve inference provider class from demo.yaml or system convention.
+def resolve_provider_class(demo_cfg, infer_cfg: DictConfig | None = None):
+    """Resolve inference provider class from infer.yaml or convention.
 
     Resolution order:
-      1) demo_cfg.inference.provider_class if present.
+      1) infer_cfg.provider._target_ (or provider_class) if present.
       2) Convention-based path using demo_cfg.system.
 
     Conventions assume:
@@ -173,12 +173,18 @@ def resolve_provider_class(demo_cfg):
 
     Args:
         demo_cfg: Demo configuration object.
+        infer_cfg: Inference config object (optional).
     Returns:
         Provider class object, or None if no system is defined.
     """
-    path = getattr(getattr(demo_cfg, "inference", None), "provider_class", None)
-    if path:
-        return get_class(str(path))
+    if infer_cfg is not None:
+        provider_cfg = getattr(infer_cfg, "provider", None)
+        if provider_cfg is not None:
+            path = getattr(provider_cfg, "_target_", None) or getattr(
+                provider_cfg, "provider_class", None
+            )
+            if path:
+                return get_class(str(path))
     system = str(getattr(demo_cfg, "system", "")).lower()
     if not system:
         return None
@@ -192,11 +198,11 @@ def resolve_provider_class(demo_cfg):
         return get_class("espnet3.systems.base.inference_provider.InferenceProvider")
 
 
-def resolve_runner_class(demo_cfg):
-    """Resolve inference runner class from demo.yaml or system convention.
+def resolve_runner_class(demo_cfg, infer_cfg: DictConfig | None = None):
+    """Resolve inference runner class from infer.yaml or convention.
 
     Resolution order:
-      1) demo_cfg.inference.runner_class if present.
+      1) infer_cfg.runner._target_ (or runner_class) if present.
       2) Convention-based path using demo_cfg.system.
 
     Conventions assume:
@@ -204,12 +210,18 @@ def resolve_runner_class(demo_cfg):
 
     Args:
         demo_cfg: Demo configuration object.
+        infer_cfg: Inference config object (optional).
     Returns:
         Runner class object, or None if no system is defined.
     """
-    path = getattr(getattr(demo_cfg, "inference", None), "runner_class", None)
-    if path:
-        return get_class(str(path))
+    if infer_cfg is not None:
+        runner_cfg = getattr(infer_cfg, "runner", None)
+        if runner_cfg is not None:
+            path = getattr(runner_cfg, "_target_", None) or getattr(
+                runner_cfg, "runner_class", None
+            )
+            if path:
+                return get_class(str(path))
     system = str(getattr(demo_cfg, "system", "")).lower()
     if not system:
         return None

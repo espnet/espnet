@@ -54,8 +54,8 @@ class SingleItemDataset:
 def build_runtime(demo_cfg, demo_dir: Path) -> DemoRuntime:
     """Build demo runtime from config and demo directory."""
     infer_cfg = _load_infer_config(demo_cfg, demo_dir)
-    provider_cls = resolve_provider_class(demo_cfg)
-    runner_cls = resolve_runner_class(demo_cfg)
+    provider_cls = resolve_provider_class(demo_cfg, infer_cfg)
+    runner_cls = resolve_runner_class(demo_cfg, infer_cfg)
     if provider_cls is None:
         raise RuntimeError("inference provider is not configured for this system.")
     model = None
@@ -99,7 +99,7 @@ def _run_runner(
             primary = dataset[0]
             if len(primary) != 1:
                 raise ValueError(
-                    "Demo runner is missing; provide inference.runner_class or "
+                    "Demo runner is missing; provide runner in infer_config or "
                     "reduce inputs to a single entry."
                 )
             value = list(primary.values())[0]
