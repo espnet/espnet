@@ -4,8 +4,8 @@ import pytest
 from omegaconf import OmegaConf
 
 import espnet3.systems.base.inference as inference_mod
-from espnet3.systems.base.inference_runner import InferenceRunner
 from espnet3.systems.base.inference_provider import InferenceProvider
+from espnet3.systems.base.inference_runner import InferenceRunner
 
 
 def dummy_output_fn(*, data, model_output, idx):
