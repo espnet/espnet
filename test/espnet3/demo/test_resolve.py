@@ -8,6 +8,14 @@ from omegaconf import OmegaConf
 from espnet3.demo import resolve
 
 
+class DummyProvider:
+    pass
+
+
+class DummyRunner:
+    pass
+
+
 def test_resolve_absolute_path(tmp_path: Path) -> None:
     rel = resolve.resolve_absolute_path("file.txt", base=tmp_path)
     assert rel == (tmp_path / "file.txt").resolve()
@@ -46,3 +54,21 @@ def test_resolve_provider_runner_class_from_system() -> None:
     runner_cls = resolve.resolve_runner_class(cfg)
     assert provider_cls.__name__ == "InferenceProvider"
     assert runner_cls.__name__ == "InferenceRunner"
+
+
+def test_resolve_provider_runner_class_from_infer_cfg() -> None:
+    demo_cfg = OmegaConf.create({"system": "dummy"})
+    infer_cfg = OmegaConf.create(
+        {
+            "provider": {
+                "_target_": "test.espnet3.demo.test_resolve.DummyProvider",
+            },
+            "runner": {
+                "_target_": "test.espnet3.demo.test_resolve.DummyRunner",
+            },
+        }
+    )
+    provider_cls = resolve.resolve_provider_class(demo_cfg, infer_cfg)
+    runner_cls = resolve.resolve_runner_class(demo_cfg, infer_cfg)
+    assert provider_cls is DummyProvider
+    assert runner_cls is DummyRunner

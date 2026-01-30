@@ -51,8 +51,6 @@ def pack_demo(system) -> Path:
         raise RuntimeError("pack_demo requires demo_config.")
     demo_cfg_path = system.demo_config_path
     pack_cfg = getattr(demo_cfg, "pack", None)
-    if resolve_provider_class(demo_cfg) is None:
-        raise ValueError("inference provider is not configured for this system.")
     demo_dir = _resolve_demo_out_dir(
         getattr(pack_cfg, "out_dir", None) if pack_cfg else None,
         system,
@@ -66,6 +64,8 @@ def pack_demo(system) -> Path:
     if infer_path is None:
         raise ValueError("infer_config is required for demo setup.")
     infer_cfg = load_infer_config(infer_path)
+    if resolve_provider_class(demo_cfg, infer_cfg) is None:
+        raise ValueError("inference provider is not configured for this system.")
     updated_cfg = _prepare_demo_config(demo_cfg, demo_dir, infer_path)
     _write_demo_config(demo_dir, updated_cfg)
 
