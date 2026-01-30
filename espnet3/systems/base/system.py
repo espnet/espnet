@@ -6,7 +6,7 @@ from pathlib import Path
 from omegaconf import DictConfig
 
 from espnet3.systems.base.inference import inference
-from espnet3.systems.base.score import score
+from espnet3.systems.base.measure import measure
 from espnet3.systems.base.train import collect_stats, train
 
 logger = logging.getLogger(__name__)
@@ -18,8 +18,8 @@ class BaseSystem:
     Each system should implement the following:
       - create_dataset()
       - train()
-      - decode()
-      - score()
+      - infer()
+      - measure()
       - publish()
 
     This class intentionally does NOT implement:
@@ -124,31 +124,24 @@ class BaseSystem:
         )
         return train(self.train_config)
 
-    def evaluate(self, *args, **kwargs):
-        """Run inference and measurement in sequence."""
-        self._reject_stage_args("evaluate", args, kwargs)
-        # Backward-compat shim if someone calls evaluate directly.
-        self.infer()
-        return self.measure()
-
     def infer(self, *args, **kwargs):
         """Run inference on the configured datasets."""
         self._reject_stage_args("infer", args, kwargs)
         logger.info(
-            "Inference start | decode_dir=%s",
-            getattr(self.infer_config, "decode_dir", None),
+            "Inference start | infer_dir=%s",
+            getattr(self.infer_config, "infer_dir", None),
         )
         return inference(self.infer_config)
 
     def measure(self, *args, **kwargs):
-        """Compute evaluation metrics from inference outputs."""
+        """Compute evaluation metrics from hypothesis/reference outputs."""
         self._reject_stage_args("measure", args, kwargs)
         logger.info(
-            "Scoring start | metric_config=%s",
+            "Measurement start | metric_config=%s",
             self.metric_config is not None,
         )
-        result = score(self.metric_config)
-        logger.info("Scoring results: %s", result)
+        result = measure(self.metric_config)
+        logger.info("Measurement results: %s", result)
         return result
 
     def publish(self, *args, **kwargs):

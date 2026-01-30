@@ -36,6 +36,8 @@ from espnet3.components.data.dataset import (
 # | test_data_organizer_preprocessor_only| Applies only preprocessor to data    |
 # | test_data_organizer_transform_and_preprocessor | Applies both transform and |
 # |                                      | preprocessor                         |
+# | test_data_organizer_accepts_raw_configs | Instantiates dict configs for     |
+# |                                      | dataset/transform/preprocessor       |
 # | test_espnet_preprocessor_without_transform | Uses only ESPnet-style preprocessor   |
 # |                                      | (UID-based)                          |
 # | test_espnet_preprocessor_with_transform    | Combines transform with ESPnet |
@@ -74,6 +76,11 @@ DUMMY_DATASET_TARGET = (
 )
 DUMMY_TRANSFORM_TARGET = (
     "test.espnet3.components.data.test_data_organizer." "DummyTransform"
+)
+
+
+DUMMY_PREPROCESSOR_TARGET = (
+    "test.espnet3.components.data.test_data_organizer." "DummyPreprocessor"
 )
 
 
@@ -343,6 +350,34 @@ def test_data_organizer_preprocessor_only():
         preprocessor=DummyPreprocessor(),
     )
     assert organizer.train[0]["text"] == "[dummy] hello"
+    assert organizer.valid[0]["text"] == "[dummy] hello"
+
+
+def test_data_organizer_accepts_raw_configs():
+    config = OmegaConf.create(
+        {
+            "train": [
+                {
+                    "name": "train_dummy",
+                    "dataset": {"_target_": DUMMY_DATASET_TARGET},
+                    "transform": {"_target_": DUMMY_TRANSFORM_TARGET},
+                }
+            ],
+            "valid": [
+                {
+                    "name": "valid_dummy",
+                    "dataset": {"_target_": DUMMY_DATASET_TARGET},
+                }
+            ],
+            "preprocessor": {"_target_": DUMMY_PREPROCESSOR_TARGET},
+        }
+    )
+    organizer = DataOrganizer(
+        train=config["train"],
+        valid=config["valid"],
+        preprocessor=config["preprocessor"],
+    )
+    assert organizer.train[0]["text"] == "[dummy] HELLO"
     assert organizer.valid[0]["text"] == "[dummy] hello"
 
 

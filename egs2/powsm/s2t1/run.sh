@@ -42,7 +42,7 @@ inference_config=conf/decode_s2t_pr.yaml
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
-    --bpe_train_text "dump/raw/${train_set}/text" \
+    --bpe_train_text "data/train/text.asr" \
     --bpe_nlsyms data/bpe_nlsyms.txt \
     --nlsyms_txt data/nlsyms.txt \
-    --lm_train_text "dump/raw/${train_set}/text" "$@"
+    --lm_train_text "data/train/text.asr" "$@"

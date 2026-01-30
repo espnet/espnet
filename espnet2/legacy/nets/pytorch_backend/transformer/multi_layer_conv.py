@@ -30,6 +30,7 @@ class MultiLayeredConv1d(torch.nn.Module):
             hidden_chans (int): Number of hidden channels.
             kernel_size (int): Kernel size of conv1d.
             dropout_rate (float): Dropout rate.
+            mask (torch.Tensor): Mask tensor.
 
         """
         super(MultiLayeredConv1d, self).__init__()
@@ -49,17 +50,22 @@ class MultiLayeredConv1d(torch.nn.Module):
         )
         self.dropout = torch.nn.Dropout(dropout_rate)
 
-    def forward(self, x):
+    def forward(self, x, mask=None):
         """Calculate forward propagation.
 
         Args:
             x (torch.Tensor): Batch of input tensors (B, T, in_chans).
+            mask (torch.Tensor): Mask tensor.
 
         Returns:
             torch.Tensor: Batch of output tensors (B, T, hidden_chans).
 
         """
+        if mask is not None:
+            x = x.masked_fill(~mask.transpose(-1, 1), 0)
         x = torch.relu(self.w_1(x.transpose(-1, 1))).transpose(-1, 1)
+        if mask is not None:
+            x = x.masked_fill(~mask.transpose(-1, 1), 0)
         return self.w_2(self.dropout(x).transpose(-1, 1)).transpose(-1, 1)
 
 

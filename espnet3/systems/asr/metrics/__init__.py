@@ -1,1 +1,1 @@
-"""ASR metric implementations for decoding and evaluation."""
+"""ASR metric implementations for inference and evaluation."""

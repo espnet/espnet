@@ -15,10 +15,10 @@ from espnet3.components.metrics.abs_metric import AbsMetrics
 
 
 class CER(AbsMetrics):
-    """Compute CER for a decoded dataset.
+    """Compute CER for a dataset.
 
-    This metric expects decoded hypothesis and reference strings and produces
-    a percentage score along with alignment visualization output.
+    This metric expects hypothesis and reference strings and produces a
+    percentage score along with alignment visualization output.
     """
 
     def __init__(
@@ -66,16 +66,16 @@ class CER(AbsMetrics):
         self,
         data: Dict[str, List[str]],
         test_name: str,
-        decode_dir: Path,
+        infer_dir: Path,
     ) -> Dict[str, float]:
         """Compute CER, write alignment details, and return the metric.
 
         Args:
             data: Mapping of field names to lists of strings. This is built
-                from inference-time SCP outputs, e.g.
+                from inference-time SCP files, e.g.
                 ``{"ref": [str1, str2, ...], "hyp": [str1, str2, ...]}``.
             test_name: Test set name used for output directory naming.
-            decode_dir: Base decode directory for alignment outputs.
+            infer_dir: Base hypothesis/reference directory for alignment outputs.
 
         Returns:
             Dict containing CER in percentage points.
@@ -90,7 +90,7 @@ class CER(AbsMetrics):
         score = jiwer.cer(refs, hyps) * 100
         details = jiwer.process_characters(refs, hyps)
 
-        test_dir = Path(decode_dir) / test_name
+        test_dir = Path(infer_dir) / test_name
         test_dir.mkdir(parents=True, exist_ok=True)
         with (test_dir / "cer_alignment").open("w", encoding="utf-8") as f:
             f.write(jiwer.visualize_alignment(details))

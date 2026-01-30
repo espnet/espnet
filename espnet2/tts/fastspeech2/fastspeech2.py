@@ -4,7 +4,7 @@
 """Fastspeech2 related modules for ESPnet2."""
 
 import logging
-from typing import Dict, Optional, Sequence, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple
 
 import torch
 import torch.nn.functional as F
@@ -22,6 +22,7 @@ from espnet2.legacy.nets.pytorch_backend.fastspeech.length_regulator import (
 from espnet2.legacy.nets.pytorch_backend.nets_utils import (
     make_non_pad_mask,
     make_pad_mask,
+    pad_list,
 )
 from espnet2.legacy.nets.pytorch_backend.tacotron2.decoder import Postnet
 from espnet2.legacy.nets.pytorch_backend.transformer.embedding import (
@@ -138,6 +139,7 @@ class FastSpeech2(AbsTTS):
         init_dec_alpha: float = 1.0,
         use_masking: bool = False,
         use_weighted_masking: bool = False,
+        apply_ff_mask: bool = False,
     ):
         """Initialize FastSpeech2 module.
 
@@ -232,6 +234,7 @@ class FastSpeech2(AbsTTS):
                 calculation.
             use_weighted_masking (bool): Whether to apply weighted masking in loss
                 calculation.
+            apply_ff_mask (bool): Whether to apply mask in feed-forward layer.
 
         """
         super().__init__()
@@ -300,6 +303,7 @@ class FastSpeech2(AbsTTS):
                 concat_after=encoder_concat_after,
                 positionwise_layer_type=positionwise_layer_type,
                 positionwise_conv_kernel_size=positionwise_conv_kernel_size,
+                apply_ff_mask=apply_ff_mask,
             )
         elif encoder_type == "conformer":
             self.encoder = ConformerEncoder(
@@ -432,6 +436,7 @@ class FastSpeech2(AbsTTS):
                 concat_after=decoder_concat_after,
                 positionwise_layer_type=positionwise_layer_type,
                 positionwise_conv_kernel_size=positionwise_conv_kernel_size,
+                apply_ff_mask=apply_ff_mask,
             )
         elif decoder_type == "conformer":
             self.decoder = ConformerEncoder(
@@ -664,9 +669,23 @@ class FastSpeech2(AbsTTS):
         if is_inference:
             d_outs = self.duration_predictor.inference(hs, d_masks)  # (B, T_text)
             # use prediction in inference
-            p_embs = self.pitch_embed(p_outs.transpose(1, 2)).transpose(1, 2)
-            e_embs = self.energy_embed(e_outs.transpose(1, 2)).transpose(1, 2)
+            if p_outs.device.type == "xpu":
+                # Workaround for XPU Conv1d accuracy issue
+                p_embs = self.pitch_embed(p_outs.transpose(1, 2))
+                batch, rows, cols = p_embs.size()
+                p_embs = p_embs.view(batch, cols, rows)
+            else:
+                p_embs = self.pitch_embed(p_outs.transpose(1, 2)).transpose(1, 2)
+            if e_outs.device.type == "xpu":
+                # Workaround for XPU Conv1d accuracy issue
+                e_embs = self.energy_embed(e_outs.transpose(1, 2))
+                batch, rows, cols = e_embs.size()
+                e_embs = e_embs.view(batch, cols, rows)
+            else:
+                e_embs = self.energy_embed(e_outs.transpose(1, 2)).transpose(1, 2)
             hs = hs + e_embs + p_embs
+            if d_masks is not None:
+                d_outs[d_masks] = 0
             hs = self.length_regulator(hs, d_outs, alpha)  # (B, T_feats, adim)
         else:
             d_outs = self.duration_predictor(hs, d_masks)
@@ -688,6 +707,8 @@ class FastSpeech2(AbsTTS):
             else:
                 olens_in = olens
             h_masks = self._source_mask(olens_in)
+        elif is_inference and d_masks is not None:
+            h_masks = self._source_mask(torch.sum(d_outs, dim=-1))
         else:
             h_masks = None
         zs, _ = self.decoder(hs, h_masks)  # (B, T_feats, adim)
@@ -699,8 +720,13 @@ class FastSpeech2(AbsTTS):
         if self.postnet is None:
             after_outs = before_outs
         else:
+            if h_masks is not None and before_outs.size(1) == h_masks.size(2):
+                postnet_masks = h_masks
+            else:
+                # skip masking if mismatch in length
+                postnet_masks = None
             after_outs = before_outs + self.postnet(
-                before_outs.transpose(1, 2)
+                before_outs.transpose(1, 2), postnet_masks
             ).transpose(1, 2)
 
         return before_outs, after_outs, d_outs, p_outs, e_outs
@@ -786,6 +812,117 @@ class FastSpeech2(AbsTTS):
             duration=d_outs[0],
             pitch=p_outs[0],
             energy=e_outs[0],
+        )
+
+    def batch_inference(
+        self,
+        text: List[torch.Tensor],
+        text_lengths: Optional[torch.Tensor] = None,
+        feats: Optional[torch.Tensor] = None,
+        feats_lengths: Optional[torch.Tensor] = None,
+        durations: Optional[torch.Tensor] = None,
+        durations_lengths: Optional[torch.Tensor] = None,
+        spembs: Optional[torch.Tensor] = None,
+        sids: Optional[torch.Tensor] = None,
+        lids: Optional[torch.Tensor] = None,
+        pitch: Optional[torch.Tensor] = None,
+        pitch_lengths: Optional[torch.Tensor] = None,
+        energy: Optional[torch.Tensor] = None,
+        energy_lengths: Optional[torch.Tensor] = None,
+        alpha: float = 1.0,
+        use_teacher_forcing: bool = False,
+    ) -> Dict[str, torch.Tensor]:
+        """Generate the sequence of features given batched sequences of characters.
+
+        Args:
+            text: List of 1D tensors with variable lengths (List[Tensor]).
+            text_lengths: Not used. Computed automatically from the list.
+            feats (Optional[Tensor]): Batched feature sequences (B, N, idim).
+            feats_lengths (Optional[LongTensor]): Batch of feature lengths (B,).
+            durations (Optional[Tensor]): Batched groundtruth durations (B, T_text + 1).
+            durations_lengths (Optional[LongTensor]): Batch of duration lengths (B,).
+            spembs (Optional[Tensor]): Batched speaker embeddings (B, spk_embed_dim).
+            sids (Optional[Tensor]): Batched speaker IDs (B,).
+            lids (Optional[Tensor]): Batched language IDs (B,).
+            pitch (Optional[Tensor]): Batched groundtruth pitch (B, T_text + 1, 1).
+            pitch_lengths (Optional[LongTensor]): Batch of pitch lengths (B,).
+            energy (Optional[Tensor]): Batched groundtruth energy (B, T_text + 1, 1).
+            energy_lengths (Optional[LongTensor]): Batch of energy lengths (B,).
+            alpha (float): Alpha to control the speed.
+            use_teacher_forcing (bool): Whether to use teacher forcing.
+
+        Returns:
+            Dict[str, Tensor]: Output dict including the following items:
+                * feat_gen (List[Tensor]): List of output feature sequences.
+                * feat_gen_lengths (Tensor): Lengths of output feature sequences (B,).
+                * duration (Tensor): Batched duration sequences (B, T_text + 1).
+                * pitch (Tensor): Batched pitch sequences (B, T_text + 1).
+                * energy (Tensor): Batched energy sequences (B, T_text + 1).
+
+        """
+        # Compute text lengths from the list
+        text_lengths = torch.tensor(
+            [len(t) for t in text], dtype=torch.long, device=text[0].device
+        )
+
+        # Add EOS to each sequence first
+        text_list_with_eos = [F.pad(t, [0, 1], "constant", self.eos) for t in text]
+
+        # Then pad all sequences
+        xs = pad_list(text_list_with_eos, pad_value=0)
+        ilens = text_lengths + 1  # account for eos
+
+        ys = feats  # can be None
+
+        if use_teacher_forcing:
+            # use groundtruth of duration, pitch, and energy
+            _, outs, d_outs, p_outs, e_outs = self._forward(
+                xs,
+                ilens,
+                ys,
+                ds=durations,
+                ps=pitch,
+                es=energy,
+                spembs=spembs,
+                sids=sids,
+                lids=lids,
+            )  # (B, T_feats, odim)
+        else:
+            _, outs, d_outs, p_outs, e_outs = self._forward(
+                xs,
+                ilens,
+                ys,
+                spembs=spembs,
+                sids=sids,
+                lids=lids,
+                is_inference=True,
+                alpha=alpha,
+            )  # (B, T_feats, odim)
+
+        # Calculate output lengths from predicted durations
+        # d_outs: (B, T_text + 1)
+        if use_teacher_forcing and durations is not None:
+            # Use groundtruth durations for length calculation
+            olens = durations.sum(dim=1).long()
+        else:
+            # Use predicted durations
+            olens = d_outs.sum(dim=1).long()
+
+        # Apply alpha scaling to output lengths if needed
+        if alpha != 1.0 and not use_teacher_forcing:
+            olens = torch.round(olens.float() * alpha).long()
+
+        # Return unbatched outputs as list for variable length handling
+        feat_gen_list = []
+        for i, olen in enumerate(olens):
+            feat_gen_list.append(outs[i, :olen])
+
+        return dict(
+            feat_gen=feat_gen_list,
+            feat_gen_lengths=olens,
+            duration=d_outs,
+            pitch=p_outs,
+            energy=e_outs,
         )
 
     def _integrate_with_spk_embed(

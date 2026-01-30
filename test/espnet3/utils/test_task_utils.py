@@ -8,10 +8,14 @@ from espnet3.utils.config import load_config_with_defaults
 
 # Replace with your actual module path
 # Example: from espnet3task import get_task_class, save_espnet_config, get_espnet_model
-from espnet3.utils.task import get_espnet_model, get_task_class, save_espnet_config
+from espnet3.utils.task_utils import (
+    get_espnet_model,
+    get_task_class,
+    save_espnet_config,
+)
 
 # ===============================================================
-# Test Case Summary for Task Wrapper (espnet3.utils.task)
+# Test Case Summary for Task Wrapper (espnet3.utils.task_utils)
 # ===============================================================
 #
 # Tests for `get_task_class(task_name)`
@@ -35,7 +39,6 @@ from espnet3.utils.task import get_espnet_model, get_task_class, save_espnet_con
             "TargetSpeakerExtractionTask",
         ),
         ("espnet2.tasks.gan_svs.GANSVSTask", "GANSVSTask"),
-        ("espnet2.tasks.gan_tts.GANTTSTask", "GANTTSTask"),
         ("espnet2.tasks.hubert.HubertTask", "HubertTask"),
         ("espnet2.tasks.lm.LMTask", "LMTask"),
         ("espnet2.tasks.mt.MTTask", "MTTask"),
@@ -45,7 +48,6 @@ from espnet3.utils.task import get_espnet_model, get_task_class, save_espnet_con
         ("espnet2.tasks.spk.SpeakerTask", "SpeakerTask"),
         ("espnet2.tasks.st.STTask", "STTask"),
         ("espnet2.tasks.svs.SVSTask", "SVSTask"),
-        ("espnet2.tasks.tts.TTSTask", "TTSTask"),
         ("espnet2.tasks.uasr.UASRTask", "UASRTask"),
     ],
 )

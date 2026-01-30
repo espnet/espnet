@@ -99,13 +99,13 @@ def train_sentencepiece(
     Args:
         dump_text_path (Union[str, Path]): Path to the `train.txt` file
             containing the training data for the SentencePiece model.
-        output_path (Union[str, Path]): Output directory where the trained
+        save_path (Union[str, Path]): Output directory where the trained
             SentencePiece model and vocabulary list will be stored.
         vocab_size (int, optional): The size of the vocabulary to be generated
             by the SentencePiece model. Defaults to 5000.
         character_coverage (float, optional): The character coverage rate
             for the model, which indicates the percentage of characters in
-            the training data that should be covered. Defaults to 0.9995.
+            the training data that should be covered. Defaults to 1.0.
         model_type (str, optional): The type of model to be trained.
             Options include 'bpe' (Byte Pair Encoding), 'unigram',
             'char', and 'word'. Defaults to "bpe".
@@ -162,7 +162,7 @@ def train_sentencepiece(
 
 
 def add_special_tokens(
-    tokenizer, converter, embedding, special_tokens, insert_after="<st_zho>"
+    tokenizer, converter, embedding, special_tokens, insert_after=None
 ):
     """Add special tokens to the tokenizer.
 
@@ -173,6 +173,9 @@ def add_special_tokens(
         converter: Sentencepiece converter.
         embedding: nn.Embedding object.
         special_tokens (list): List of special tokens.
+        insert_after (str | None): If provided and found in the current token
+            list, insert new tokens right after it. If None or not found,
+            append new tokens to the end of the list.
 
     Returns:
         Tuple(
@@ -191,7 +194,10 @@ def add_special_tokens(
             add_token_list.append(token)
 
     # Then append tokens into the token_list and sentencepiece model.
-    insert_position = token_list.index(insert_after) + 1
+    if insert_after is None or insert_after not in token_list:
+        insert_position = len(token_list)
+    else:
+        insert_position = token_list.index(insert_after) + 1
     new_token_list = (
         token_list[:insert_position] + add_token_list + token_list[insert_position:]
     )
