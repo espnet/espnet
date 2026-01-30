@@ -7,6 +7,7 @@ from importlib import import_module
 from typing import Any, Dict, Iterable, List, Sequence
 
 from omegaconf import ListConfig
+
 from espnet3.parallel.base_runner import BaseRunner
 from espnet3.parallel.env_provider import EnvironmentProvider
 
@@ -41,9 +42,7 @@ class InferenceRunner(BaseRunner):
         super().__init__(provider, **kwargs)
         self.idx_key = idx_key
         self.hyp_key = (
-            list(hyp_key)
-            if isinstance(hyp_key, (list, tuple, ListConfig))
-            else hyp_key
+            list(hyp_key) if isinstance(hyp_key, (list, tuple, ListConfig)) else hyp_key
         )
         self.ref_key = (
             list(ref_key) if isinstance(ref_key, (list, tuple, ListConfig)) else ref_key
