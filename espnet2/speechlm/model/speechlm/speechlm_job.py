@@ -4,9 +4,10 @@
 
 """SpeechLM job template implementation for multimodal language modeling."""
 
+import random
 import re
 from typing import Any, Callable, Dict
-import random
+
 import numpy as np
 import torch
 
