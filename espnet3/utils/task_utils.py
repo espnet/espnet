@@ -35,7 +35,7 @@ def get_espnet_model(task: str, config: Union[Dict, DictConfig]) -> AbsESPnetMod
     finally:
         sys.argv = original_argv
 
-    if isinstance(config, OmegaConf):
+    if OmegaConf.is_config(config):
         default_config.update(OmegaConf.to_container(config, resolve=True))
     else:
         default_config.update(config)
@@ -56,7 +56,11 @@ def save_espnet_config(
     default_config = ez_task.get_default_config()
     sys.argv = original_argv
 
-    resolved_config = OmegaConf.to_container(config, resolve=True)
+    resolved_config = (
+        OmegaConf.to_container(config, resolve=True)
+        if OmegaConf.is_config(config)
+        else config
+    )
 
     # set model config at the root level
     model_config = resolved_config.pop("model")
@@ -65,8 +69,9 @@ def save_espnet_config(
     default_config.update(model_config)
 
     # set the preprocessor config at the root level
-    if config.dataset is not None and "preprocessor" in config.dataset:
-        preprocess_config = resolved_config["dataset"].pop("preprocessor")
+    dataset_config = resolved_config.get("dataset")
+    if dataset_config is not None and "preprocessor" in dataset_config:
+        preprocess_config = dataset_config.pop("preprocessor")
         if "_target_" in preprocess_config:
             preprocess_config.pop("_target_")
         default_config.update(preprocess_config)

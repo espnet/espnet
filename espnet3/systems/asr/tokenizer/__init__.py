@@ -1,1 +1,1 @@
-"""ASR tokenizer components for ESPnet3."""
+"""Tokenizer helpers for ASR systems."""

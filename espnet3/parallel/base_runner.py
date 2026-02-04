@@ -5,6 +5,7 @@ import importlib
 import json
 import os
 import sys
+from abc import ABC, abstractmethod
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Sequence
@@ -118,7 +119,7 @@ def get_job_cls(cluster, spec_path=None):
     return ASyncRunnerJob
 
 
-class BaseRunner:
+class BaseRunner(ABC):
     """A thin orchestration layer to run static ``forward`` over indices.
 
     This class handles:
@@ -129,11 +130,16 @@ class BaseRunner:
     Subclass contract:
         - Implement ``@staticmethod forward(idx, *, dataset, model, **env) -> Any``
           without capturing ``self``.
+        - Optionally implement
+          ``@classmethod batch_forward(indices, *, dataset, model, **env)``
+          to handle batched indices explicitly.
         - Provide an :class:`EnvironmentProvider` that builds the required env
           (e.g., dataset/model) for local and worker executions.
 
     Args:
         provider (EnvironmentProvider): Provider that builds the runtime env.
+        batch_size (int | None): If set, chunk indices into batches of this size
+            before dispatching to ``forward``.
         async_mode (bool): If True, use Dask ``submit`` with asynchronous shards.
         async_specs_dir (str | Path): Output directory for per-shard spec JSON files.
         async_num_workers (int | None): If set, overrides detected worker count
@@ -152,17 +158,20 @@ class BaseRunner:
         self,
         provider: EnvironmentProvider,
         *,
+        batch_size: int | None = None,
         async_mode: bool = False,
         async_specs_dir: str | Path = "./_async_specs",
         async_result_dir: str | Path = "./_async_results",
     ):
         """Initialize BaseRunner object."""
         self.provider = provider
+        self.batch_size = batch_size
         self.async_mode = async_mode
         self.async_specs_dir = Path(async_specs_dir).resolve()
         self.async_result_dir = Path(async_result_dir).resolve()
 
     @staticmethod
+    @abstractmethod
     def forward(idx: int, *, dataset, model, **env) -> Any:
         """Compute one item for the given index (to be implemented by subclasses).
 
@@ -190,6 +199,23 @@ class BaseRunner:
         """
         raise NotImplementedError
 
+    @classmethod
+    def batch_forward(cls, indices: Iterable[int], *, dataset, model, **env) -> Any:
+        """Compute a batch by delegating to ``forward`` per index as a default.
+
+        This should be overridden by subclasses that can handle batched inputs.
+
+        Args:
+            indices (Iterable[int]): Indices to process as a batch.
+            dataset: Dataset object provided via the environment.
+            model: Model object provided via the environment.
+            **env: Any additional environment entries injected by the provider.
+
+        Returns:
+            Any: Batch result from the runner.
+        """
+        return [cls.forward(i, dataset=dataset, model=model, **env) for i in indices]
+
     def _run_local(self, indices: Sequence[int]) -> List[Any]:
         """Run sequentially on the driver using a locally built environment.
 
@@ -203,7 +229,11 @@ class BaseRunner:
             - Uses ``tqdm`` progress bar over the input sequence.
         """
         env = self.provider.build_env_local()
-        f = self.__class__.forward  # static
+        f = (
+            self.__class__.batch_forward
+            if self.batch_size is not None
+            else self.__class__.forward
+        )
         return [f(i, **env) for i in tqdm(indices, total=len(indices))]
 
     def _run_parallel(self, indices: Sequence[int]) -> List[Any]:
@@ -221,11 +251,14 @@ class BaseRunner:
         """
         setup_fn = self.provider.make_worker_setup_fn()
         out = []
+        func = (
+            self.__class__.batch_forward
+            if self.batch_size is not None
+            else self.__class__.forward
+        )
         with get_client(get_parallel_config()) as client:
             for res in tqdm(
-                parallel_for(
-                    self.__class__.forward, indices, setup_fn=setup_fn, client=client
-                ),
+                parallel_for(func, indices, setup_fn=setup_fn, client=client),
                 total=len(indices),
             ):
                 out.append(res)
@@ -281,7 +314,7 @@ class BaseRunner:
                     world_size=len(chunks),
                     world_rank=rank,
                     result_path=str(result_path),
-                    extras={},
+                    extras={"batched": self.batch_size is not None},
                 )
                 spec_path = self.async_specs_dir / f"spec-{job_id}.json"
                 with open(spec_path, "w", encoding="utf-8") as f:
@@ -330,6 +363,10 @@ class BaseRunner:
             - Otherwise, run in parallel with environment injection.
         """
         indices = list(indices)
+        if self.batch_size is not None:
+            if self.batch_size <= 0:
+                raise ValueError("batch_size must be a positive integer.")
+            indices = _chunk_indices(indices, self.batch_size)
         if self.async_mode:
             return asyncio.run(self._run_async(indices))
 
@@ -337,6 +374,14 @@ class BaseRunner:
         if par_cfg is None or getattr(par_cfg, "env", "local") == "local":
             return self._run_local(indices)
         return self._run_parallel(indices)
+
+
+def _chunk_indices(indices: Sequence[int], batch_size: int) -> List[List[int]]:
+    """Split a sequence of indices into fixed-size chunks."""
+    batches = []
+    for i in range(0, len(indices), batch_size):
+        batches.append(list(indices[i : i + batch_size]))
+    return [b for b in batches if b]
 
 
 def _async_worker_entry_from_spec_path(spec_path: str):
@@ -383,7 +428,9 @@ def _async_worker_entry_from_spec_path(spec_path: str):
     setup_fn = provider.make_worker_setup_fn()
     env = setup_fn()
 
-    f = RunnerCls.forward  # staticmethod
+    extras = spec.get("extras", {}) or {}
+    use_batch = bool(extras.get("batched", False))
+    f = RunnerCls.batch_forward if use_batch else RunnerCls.forward
     results = []
     for idx in spec["indices"]:
         results.append(f(idx, **env))
