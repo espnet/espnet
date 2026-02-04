@@ -7,6 +7,21 @@ from typing import Any, Callable, List, Tuple
 from torch.utils.data.dataset import Dataset
 
 
+def do_nothing_transform(*x):
+    """Return input as-is.
+
+    Args:
+        x: Any object.
+
+    Returns:
+        The input object unchanged.
+    """
+    if len(x) == 1:
+        return x[0]
+    else:
+        return x
+
+
 class CombinedDataset:
     """Combines multiple datasets into a single unified dataset-like interface.
 
@@ -30,8 +45,6 @@ class CombinedDataset:
 
     Attributes:
         get_text_available (bool): True if all datasets implement `get_text(idx)`.
-        multiple_iterator (bool): True if any dataset is a subclass of `ShardedDataset`.
-
     Note:
         At initialization, the first sample from each dataset is passed through
         its associated transform to check that all datasets produce dictionaries
@@ -65,10 +78,19 @@ class CombinedDataset:
     ):
         """Initialize CombinedDataset object."""
         self.datasets = datasets
-        self.transforms = transforms
+        self.transforms = []
         self.lengths = [len(ds) for ds in datasets]
         self.cumulative_lengths = []
         self.use_espnet_preprocessor = use_espnet_preprocessor
+
+        for transform, preprocessor in transforms:
+            if transform is None:
+                transform = do_nothing_transform
+            if preprocessor is None:
+                preprocessor = do_nothing_transform
+            assert callable(transform), "transform must be callable."
+            assert callable(preprocessor), "preprocessor must be callable."
+            self.transforms.append((transform, preprocessor))
 
         total = 0
         for length in self.lengths:
@@ -97,15 +119,34 @@ class CombinedDataset:
                 self.get_text_available = False
 
         # Check if dataset is a subclass of ShardedDataset.
-        self.multiple_iterator = False
-        for dataset in self.datasets:
-            if isinstance(dataset, ShardedDataset):
-                self.multiple_iterator = True
-            if self.multiple_iterator and not isinstance(dataset, ShardedDataset):
+        has_sharded = any(
+            isinstance(dataset, ShardedDataset) for dataset in self.datasets
+        )
+        if has_sharded and not all(
+            isinstance(dataset, ShardedDataset) for dataset in self.datasets
+        ):
+            raise RuntimeError(
+                "If any dataset is a subclass of ShardedDataset,"
+                " then all dataset should be a subclass of ShardedDataset."
+            )
+        if has_sharded:
+            num_shards_set = {
+                getattr(dataset, "num_shards", None) for dataset in self.datasets
+            }
+            world_shard_size_set = {
+                getattr(dataset, "world_shard_size", None) for dataset in self.datasets
+            }
+            if None in num_shards_set or None in world_shard_size_set:
                 raise RuntimeError(
-                    "If any dataset is a subclass of ShardedDataset,"
-                    " then all dataset should be a subclass of ShardedDataset."
+                    "ShardedDataset requires num_shards and world_shard_size to be set."
                 )
+            if len(num_shards_set) != 1 or len(world_shard_size_set) != 1:
+                raise RuntimeError(
+                    "All sharded datasets must share the same num_shards and "
+                    "world_shard_size."
+                )
+            self.num_shards = num_shards_set.pop()
+            self.world_shard_size = world_shard_size_set.pop()
 
         # This flag will be overrode by ESPnetLightningModule.
         self._use_espnet_collator = False
@@ -187,7 +228,7 @@ class CombinedDataset:
         """Return a sharded version of the combined dataset.
 
         This is used when handling large datasets that are split into shards
-        for efficiency and distributed processing (ESPnet multiple-iterator mode).
+        for efficiency and distributed processing.
         All datasets must be subclasses of
         `espnet3.components.data.dataset.ShardedDataset` and implement
         a `shard()` method.
@@ -201,7 +242,7 @@ class CombinedDataset:
         Raises:
             RuntimeError: If any dataset does not support sharding.
         """
-        if not self.multiple_iterator:
+        if not all(isinstance(dataset, ShardedDataset) for dataset in self.datasets):
             raise RuntimeError(
                 "All dataset should be the subclass of "
                 "espnet3.components.data.dataset.ShardedDataset."
@@ -258,7 +299,11 @@ class DatasetWithTransform:
 
     def __init__(self, dataset, transform, preprocessor, use_espnet_preprocessor=False):
         """Initialize DatasetWithTransform."""
+        if transform is None:
+            transform = do_nothing_transform
         assert callable(transform), "transform must be callable."
+        if preprocessor is None:
+            preprocessor = do_nothing_transform
         assert callable(preprocessor), "preprocessor must be callable."
         self.dataset = dataset
         self.transform = transform
@@ -287,9 +332,13 @@ class DatasetWithTransform:
 class ShardedDataset(ABC, Dataset):
     """Abstract base class for datasets that support sharding.
 
-    This interface is used in ESPnet's multiple-iterator mode, where datasets are split
-    into shards for parallel or distributed data loading. Any dataset subclassing
-    `ShardedDataset` must implement the `shard()` method.
+    This interface is used when datasets are split into shards for parallel or
+    distributed data loading. Any dataset subclassing `ShardedDataset` must
+    implement the `shard()` method.
+
+    Attributes:
+        num_shards (int): Total number of shards in the dataset.
+        world_shard_size (int): Expected distributed world size when sharding.
 
     Note:
         - This class is intended to be used with `CombinedDataset` in ESPnet.
@@ -297,6 +346,9 @@ class ShardedDataset(ABC, Dataset):
 
     Example:
         >>> class MyDataset(ShardedDataset):
+        ...     def __init__(self):
+        ...         self.num_shards = 8
+        ...         self.world_shard_size = 4
         ...     def shard(self, idx):
         ...         return Subset(self, shard_indices[idx])
 

@@ -1,0 +1,19 @@
+system: base
+infer_config: conf/infer.yaml
+
+output_keys:
+  text: hyp
+
+inference:
+
+# input_key/output_fn_path are sourced from infer_config.
+
+pack:
+  out_dir: demo
+
+upload_demo:
+  hf_username: ms180
+  repo_name: minian4_asr_integration_test
+  repo_type: space
+  space_sdk: gradio
+  # organization: your-org

@@ -11,6 +11,7 @@ from espnet3.components.data.data_organizer import (
 )
 from espnet3.components.data.dataset import (
     CombinedDataset,
+    DatasetWithTransform,
     ShardedDataset,
 )
 
@@ -69,11 +70,12 @@ from espnet3.components.data.dataset import (
 # | test_data_organizer_invalid_preprocessor_type | AssertionError     |
 # | test_combined_dataset_sharded_consistency_error | RuntimeError       |
 
-DUMMY_DATASET_TARGET = (
-    "test.espnet3.components.data.test_data_organizer." "DummyDataset"
-)
+DUMMY_DATASET_TARGET = "test.espnet3.components.data.test_data_organizer.DummyDataset"
 DUMMY_TRANSFORM_TARGET = (
-    "test.espnet3.components.data.test_data_organizer." "DummyTransform"
+    "test.espnet3.components.data.test_data_organizer.DummyTransform"
+)
+DUMMY_PREPROCESSOR_TARGET = (
+    "test.espnet3.components.data.test_data_organizer.DummyPreprocessor"
 )
 
 
@@ -120,10 +122,19 @@ class DummyDataset:
 
 
 class DummyShardedDataset(ShardedDataset):
-    def __init__(self, path=None):
+    def __init__(
+        self,
+        path=None,
+        shard_id: int = 0,
+        num_shards: int = 2,
+        world_shard_size: int = 1,
+    ):
+        self.shard_id = shard_id
+        self.num_shards = num_shards
+        self.world_shard_size = world_shard_size
         self.data = [
-            {"audio": np.random.random(16000), "text": "hello"},
-            {"audio": np.random.random(16000), "text": "world"},
+            {"audio": np.random.random(16000), "text": f"shard{shard_id}_hello"},
+            {"audio": np.random.random(16000), "text": f"shard{shard_id}_world"},
         ]
 
     def __len__(self):
@@ -133,7 +144,26 @@ class DummyShardedDataset(ShardedDataset):
         return self.data[idx]
 
     def shard(self, idx):
-        return self  # dummy
+        return DummyShardedDataset(
+            shard_id=idx,
+            num_shards=self.num_shards,
+            world_shard_size=self.world_shard_size,
+        )
+
+
+class DummyBrokenShardedDataset(ShardedDataset):
+    def __init__(self, num_shards=None, world_shard_size=None):
+        self.num_shards = num_shards
+        self.world_shard_size = world_shard_size
+
+    def __len__(self):
+        return 0
+
+    def __getitem__(self, idx):
+        raise IndexError
+
+    def shard(self, idx):
+        return self
 
 
 # Fixtures
@@ -322,6 +352,29 @@ def test_data_organizer_transform_only():
     assert organizer.valid[0]["text"] == "hello"
 
 
+def test_data_organizer_no_preprocessor_config():
+    config = {
+        "train": [
+            {
+                "name": "train_dummy",
+                "dataset": {"_target_": DUMMY_DATASET_TARGET},
+            }
+        ],
+        "valid": [
+            {
+                "name": "valid_dummy",
+                "dataset": {"_target_": DUMMY_DATASET_TARGET},
+            }
+        ],
+    }
+    organizer = DataOrganizer(
+        train=instantiate(OmegaConf.create(config)["train"]),
+        valid=instantiate(OmegaConf.create(config)["valid"]),
+    )
+    assert organizer.train[0]["text"] == "hello"
+    assert organizer.valid[0]["text"] == "hello"
+
+
 def test_data_organizer_preprocessor_only():
     config = {
         "train": [
@@ -429,6 +482,18 @@ def test_data_organizer_transform_none():
         CombinedDataset([ds], [(BrokenTransform(), do_nothing_transform)])
 
 
+def test_combined_dataset_allows_missing_preprocessor():
+    ds = DummyDataset()
+    combined = CombinedDataset([ds], [(do_nothing_transform, None)])
+    assert combined[0]["text"] == "hello"
+
+
+def test_dataset_with_transform_allows_missing_preprocessor():
+    ds = DummyDataset()
+    wrapped = DatasetWithTransform(ds, do_nothing_transform, None)
+    assert wrapped[0]["text"] == "hello"
+
+
 def test_data_organizer_invalid_preprocessor_type():
     config = {
         "train": [
@@ -514,6 +579,47 @@ def test_combined_dataset_sharded_consistency_error():
     # This should raise a RuntimeError due to inconsistency
     with pytest.raises(
         RuntimeError, match="If any dataset is a subclass of ShardedDataset"
+    ):
+        CombinedDataset(
+            datasets=[ds1, ds2],
+            transforms=[(DummyTransform(), DummyPreprocessor())] * 2,
+            use_espnet_preprocessor=False,
+        )
+
+
+def test_combined_dataset_shard_returns_sharded_dataset():
+    ds1 = DummyShardedDataset(shard_id=0)
+    ds2 = DummyShardedDataset(shard_id=0)
+    combined = CombinedDataset(
+        [ds1, ds2],
+        [
+            (DummyTransform(), do_nothing_transform),
+            (DummyTransform(), do_nothing_transform),
+        ],
+    )
+    sharded = combined.shard(2)
+    assert len(sharded) == 4
+    assert sharded[0]["text"] == "SHARD2_HELLO"
+
+
+def test_combined_dataset_sharded_missing_metadata():
+    ds1 = DummyBrokenShardedDataset(num_shards=None, world_shard_size=1)
+    ds2 = DummyBrokenShardedDataset(num_shards=None, world_shard_size=1)
+    with pytest.raises(
+        RuntimeError, match="ShardedDataset requires num_shards and world_shard_size"
+    ):
+        CombinedDataset(
+            datasets=[ds1, ds2],
+            transforms=[(DummyTransform(), DummyPreprocessor())] * 2,
+            use_espnet_preprocessor=False,
+        )
+
+
+def test_combined_dataset_sharded_metadata_mismatch():
+    ds1 = DummyBrokenShardedDataset(num_shards=2, world_shard_size=1)
+    ds2 = DummyBrokenShardedDataset(num_shards=3, world_shard_size=1)
+    with pytest.raises(
+        RuntimeError, match="must share the same num_shards and world_shard_size"
     ):
         CombinedDataset(
             datasets=[ds1, ds2],

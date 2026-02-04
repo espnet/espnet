@@ -243,6 +243,17 @@ class ESPnetLightningModule(lightning.LightningModule):
             AssertionError: If configuration rules are violated.
             ValueError: If neither optimizer configuration is provided.
         """
+
+        def _get_val_scheduler_monitor():
+            criterion = getattr(self.config, "val_scheduler_criterion", None)
+            if criterion is None:
+                return None
+            if not isinstance(criterion, str):
+                raise ValueError(
+                    "val_scheduler_criterion must be a string like 'valid/loss'"
+                )
+            return criterion
+
         if getattr(self.config, "optim", None) and getattr(
             self.config, "scheduler", None
         ):
@@ -345,12 +356,23 @@ class ESPnetLightningModule(lightning.LightningModule):
                 "Must specify either `optim` or `optims` and `scheduler` or"
                 "`schedulers`"
             )
+
+        def _build_lr_scheduler_config(sch):
+            config = {"scheduler": sch, "interval": "step"}
+            monitor = _get_val_scheduler_monitor()
+            if monitor is not None:
+                config["interval"] = "epoch"
+                config["monitor"] = monitor
+            return config
+
+        if isinstance(scheduler, list):
+            lr_scheduler = [_build_lr_scheduler_config(sch) for sch in scheduler]
+        else:
+            lr_scheduler = _build_lr_scheduler_config(scheduler)
+
         return {
             "optimizer": optimizer,
-            "lr_scheduler": {
-                "scheduler": scheduler,
-                "interval": "step",  # assuming lr scheduler is updated per step
-            },
+            "lr_scheduler": lr_scheduler,
         }
 
     def train_dataloader(self):
@@ -400,20 +422,35 @@ class ESPnetLightningModule(lightning.LightningModule):
     def collect_stats(self):
         """Collect training and validation statistics using ESPnet's collect_stats.
 
-        Requires `config.statsdir` to be defined. Saves stats under this directory.
+        Requires `config.stats_dir` to be defined. Saves stats under this directory.
 
         Raises:
-            AssertionError: If `config.statsdir` is not provided.
+            AssertionError: If `config.stats_dir` is not provided.
         """
-        assert hasattr(self.config, "statsdir"), "config.statsdir must be defined"
+        assert hasattr(self.config, "stats_dir"), "config.stats_dir must be defined"
+
+        # Detach dataset/dataloader configs from the root so interpolations like
+        # ${dataset_dir} remain resolved when used standalone during collection.
+        dataset_config = OmegaConf.create(
+            OmegaConf.to_container(self.config.dataset, resolve=True)
+        )
+        dataloader_config = OmegaConf.create(
+            OmegaConf.to_container(self.config.dataloader, resolve=True)
+        )
 
         for mode in ["train", "valid"]:
+            print(dataset_config)
+            if mode == "train":
+                dataset_config.preprocessor.train = True
+            else:
+                dataset_config.preprocessor.train = False
+
             collect_stats(
                 model_config=OmegaConf.to_container(self.config.model, resolve=True),
-                dataset_config=self.config.dataset,
-                dataloader_config=self.config.dataloader,
+                dataset_config=dataset_config,
+                dataloader_config=dataloader_config,
                 mode=mode,
-                output_dir=Path(self.config.statsdir),
+                output_dir=Path(self.config.stats_dir),
                 task=getattr(self.config, "task", None),
                 parallel_config=(
                     None

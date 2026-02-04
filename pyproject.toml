@@ -55,6 +55,7 @@ dependencies = [
     "dask_jobqueue",
     "torch>=2.3.1",
     "torchaudio>=2.3.1",
+    "huggingface_hub",
 ]
 
 [project.urls]
@@ -78,6 +79,7 @@ asr = [
   "ctc-segmentation @ git+https://github.com/espnet/ctc-segmentation.git@9b9ea1d",
   "editdistance",
   "opt_einsum",
+  "jiwer",
 ]
 
 tts = [

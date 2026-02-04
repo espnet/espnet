@@ -30,16 +30,9 @@ from espnet3.utils.config import load_config_with_defaults
 # | test_iter_factory_from_default_yaml_with_organizer | Uses a real YAML config with iter_factory and verifies batch structure | # noqa: E501
 # | test_iter_factory_with_collate_fn | Confirms config-defined collate_fn takes precedence over argument       | # noqa: E501
 #
-# Multiple Iterator Mode (Sharded Dataset)
-# | Test Name                              | Description                                                              | # noqa: E501
-# |---------------------------------------|--------------------------------------------------------------------------| # noqa: E501
-# | test_multiple_iterator_shard_initialization | Checks correct shard is selected based on epoch                         | # noqa: E501
-# | test_multiple_iterator_epoch_shard_switching | Ensures different shard is selected as epoch changes                  | # noqa: E501
-#
 # Note:
-# - DummyDataset and DummyShardedDataset are used to simulate real-world data layout
-# - All `DataLoaderBuilder.build(mode)` modes are exercised: standard, iter_factory,
-# and multiple_iterator
+# - DummyDataset and DummyDatasetSameLength are used to simulate real-world data layout
+# - All `DataLoaderBuilder.build(mode)` modes are exercised: standard, iter_factory
 
 DUMMY_DATASET_TARGET = (
     "test.espnet3.components.data.test_dataloader_builder." "DummyDataset"
@@ -49,9 +42,6 @@ DUMMY_SAMPLER_TARGET = (
 )
 DUMMY_BATCH_SAMPLER_TARGET = (
     "test.espnet3.components.data.test_dataloader_builder." "DummyBatchSampler"
-)
-DUMMY_SHARDED_DATASET_TARGET = (
-    "test.espnet3.components.data.test_dataloader_builder." "DummyShardedDataset"
 )
 
 
@@ -104,6 +94,44 @@ class DummyBatchSampler(BatchSampler):
 
 def dummy_collate_fn(batch):
     return {"custom_collated": batch}
+
+
+class DummyShardedDataset(ShardedDataset):
+    def __init__(
+        self, shard_id: int = 0, num_shards: int = 2, world_shard_size: int = 1
+    ):
+        self.shard_id = shard_id
+        self.num_shards = num_shards
+        self.world_shard_size = world_shard_size
+        self.data = [
+            {"text": f"shard{shard_id}_sample0"},
+            {"text": f"shard{shard_id}_sample1"},
+        ]
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        return self.data[idx]
+
+    def shard(self, idx: int):
+        return DummyShardedDataset(
+            shard_id=idx,
+            num_shards=self.num_shards,
+            world_shard_size=self.world_shard_size,
+        )
+
+
+class DummyMissingShardMethod:
+    def __init__(self, num_shards=2, world_shard_size=1):
+        self.num_shards = num_shards
+        self.world_shard_size = world_shard_size
+
+    def __len__(self):
+        return 0
+
+    def __getitem__(self, idx):
+        raise IndexError
 
 
 # -------- Config mocks --------
@@ -319,110 +347,143 @@ dataloader:
     assert "audio_lengths" in batch[1]
 
 
-# --- Multiple Iterator Mode (Sharded Dataset) ---
+@pytest.mark.parametrize("flag", [True, False])
+def test_multiple_iterator_is_rejected(flag):
+    dataset = DummyDataset()
+    config = make_standard_dataloader_config()
+    config.dataloader.train.multiple_iterator = flag
+    builder = DataLoaderBuilder(dataset, config, collate_fn=None, num_device=1, epoch=0)
+    with pytest.raises(RuntimeError, match="multiple_iterator"):
+        builder.build("train")
 
 
-# Dummy sharded dataset that returns shard-specific samples
-class DummyShardedDataset(ShardedDataset):
-    def __init__(self, shard_id: int = None):
-        if shard_id is None:
-            self.samples = []
-        else:
-            self.samples = [
-                {"text": f"shard{shard_id}_sample0"},
-                {"text": f"shard{shard_id}_sample1"},
-            ]
-        self.shard_id = shard_id
-
-    def __len__(self):
-        return len(self.samples)
-
-    def __getitem__(self, idx):
-        return self.samples[idx]
-
-    def shard(self, idx: int):
-        return DummyShardedDataset(idx)
+def _collect_shard_ids(loader):
+    shard_ids = set()
+    for batch in loader:
+        text = batch["text"][0] if isinstance(batch, dict) else batch[0]["text"]
+        shard_ids.add(text.split("_")[0])
+        if len(shard_ids) >= 4:
+            break
+    return shard_ids
 
 
-@pytest.fixture
-def dummy_multiple_iterator_dataset(tmp_path):
-    # YAML-style instantiation config for 3 shards
-    dataset_config = {
-        "train": [
-            {
-                "name": "shard0",
-                "dataset": {
-                    "_target_": DUMMY_SHARDED_DATASET_TARGET,  # noqa: E501
-                },
-            },
-        ],
-        "valid": [
-            {
-                "name": "valid",
-                "dataset": {
-                    "_target_": DUMMY_SHARDED_DATASET_TARGET,  # noqa: E501
-                },
-            }
-        ],
-    }
-    return OmegaConf.create(dataset_config)
-
-
-def make_multiple_iterator_config(num_shards: int, shuffle: bool):
-    return OmegaConf.create(
-        {
-            "dataloader": {
-                "train": {
-                    "multiple_iterator": True,
-                    "num_shards": num_shards,
-                    "shuffle": shuffle,
-                    "iter_factory": None,
-                    "batch_size": 1,
-                    "num_workers": 0,
-                }
-            },
-            "num_device": 1,
-        }
-    )
-
-
-def test_multiple_iterator_shard_initialization(dummy_multiple_iterator_dataset):
-    organizer = DataOrganizer(
-        train=instantiate(dummy_multiple_iterator_dataset.train),
-        valid=instantiate(dummy_multiple_iterator_dataset.valid),
-    )
-    config = make_multiple_iterator_config(num_shards=3, shuffle=False)
-    builder = DataLoaderBuilder(
-        dataset=organizer.train,
-        config=config,
-        collate_fn=None,
-        num_device=1,
-        epoch=0,
-    )
-    loader = builder.build("train")
+def _first_shard_id(loader):
     batch = next(iter(loader))
-    assert "text" in batch
-    assert batch["text"][0].startswith("shard0_")
+    text = batch["text"][0] if isinstance(batch, dict) else batch[0]["text"]
+    return text.split("_")[0]
+
+
+def test_sharded_dataset_single_gpu_multiple_shards():
+    dataset = DummyShardedDataset(num_shards=2, world_shard_size=1)
+    config = make_standard_dataloader_config()
+    config.dataloader.train.batch_size = 1
+    builder = DataLoaderBuilder(dataset, config, collate_fn=None, num_device=1, epoch=0)
+    loader = builder.build("train")
+    shard_ids = _collect_shard_ids(loader)
+    assert shard_ids == {"shard0", "shard1"}
 
 
 @pytest.mark.parametrize(
-    "epoch,expected_shard", [(0, "shard0"), (1, "shard1"), (2, "shard2")]
+    "world_size,num_shards,rank,expected",
+    [
+        (2, 2, 0, {"shard0"}),
+        (2, 2, 1, {"shard1"}),
+        (2, 4, 0, {"shard0", "shard2"}),
+        (2, 4, 1, {"shard1", "shard3"}),
+    ],
 )
-def test_multiple_iterator_epoch_shard_switching(
-    dummy_multiple_iterator_dataset, epoch, expected_shard
+def test_sharded_dataset_multi_gpu_assignment(
+    monkeypatch, world_size, num_shards, rank, expected
 ):
-    organizer = DataOrganizer(
-        train=instantiate(dummy_multiple_iterator_dataset["train"]),
-        valid=instantiate(dummy_multiple_iterator_dataset["valid"]),
-    )
-    config = make_multiple_iterator_config(num_shards=3, shuffle=False)
+    def _get_world_size():
+        return world_size
+
+    def _get_rank():
+        return rank
+
+    monkeypatch.setattr(torch.distributed, "get_world_size", _get_world_size)
+    monkeypatch.setattr(torch.distributed, "get_rank", _get_rank)
+
+    dataset = DummyShardedDataset(num_shards=num_shards, world_shard_size=world_size)
+    config = make_standard_dataloader_config()
+    config.dataloader.train.batch_size = 1
     builder = DataLoaderBuilder(
-        dataset=organizer.train,
-        config=config,
-        collate_fn=None,
-        num_device=1,
-        epoch=epoch,
+        dataset, config, collate_fn=None, num_device=world_size, epoch=0
     )
     loader = builder.build("train")
-    batch = next(iter(loader))
-    assert expected_shard in batch["text"][0]
+    shard_ids = _collect_shard_ids(loader)
+    assert shard_ids == expected
+
+
+def test_sharded_dataset_multi_gpu_rotates_with_epoch(monkeypatch):
+    def _get_world_size():
+        return 2
+
+    def _get_rank():
+        return 0
+
+    monkeypatch.setattr(torch.distributed, "get_world_size", _get_world_size)
+    monkeypatch.setattr(torch.distributed, "get_rank", _get_rank)
+
+    dataset = DummyShardedDataset(num_shards=4, world_shard_size=2)
+    config = make_standard_dataloader_config()
+    config.dataloader.train.batch_size = 1
+
+    builder_epoch0 = DataLoaderBuilder(
+        dataset, config, collate_fn=None, num_device=2, epoch=0
+    )
+    first_epoch0 = _first_shard_id(builder_epoch0.build("train"))
+
+    builder_epoch1 = DataLoaderBuilder(
+        dataset, config, collate_fn=None, num_device=2, epoch=1
+    )
+    first_epoch1 = _first_shard_id(builder_epoch1.build("train"))
+
+    assert first_epoch0 == "shard0"
+    assert first_epoch1 == "shard2"
+
+
+@pytest.mark.parametrize("num_shards", [1, 3])
+def test_sharded_dataset_invalid_shard_count(monkeypatch, num_shards):
+    def _get_world_size():
+        return 2
+
+    def _get_rank():
+        return 0
+
+    monkeypatch.setattr(torch.distributed, "get_world_size", _get_world_size)
+    monkeypatch.setattr(torch.distributed, "get_rank", _get_rank)
+
+    dataset = DummyShardedDataset(num_shards=num_shards, world_shard_size=2)
+    config = make_standard_dataloader_config()
+    config.dataloader.train.batch_size = 1
+    builder = DataLoaderBuilder(dataset, config, collate_fn=None, num_device=2, epoch=0)
+    with pytest.raises(
+        RuntimeError, match="num_shards must be divisible by world_size"
+    ):
+        builder.build("train")
+
+
+def test_sharded_dataset_missing_shard_method():
+    dataset = DummyMissingShardMethod(num_shards=2, world_shard_size=1)
+    config = make_standard_dataloader_config()
+    builder = DataLoaderBuilder(dataset, config, collate_fn=None, num_device=1, epoch=0)
+    with pytest.raises(RuntimeError, match="shard\\(\\) is not implemented"):
+        builder.build("train")
+
+
+def test_sharded_dataset_world_size_mismatch(monkeypatch):
+    def _get_world_size():
+        return 2
+
+    def _get_rank():
+        return 0
+
+    monkeypatch.setattr(torch.distributed, "get_world_size", _get_world_size)
+    monkeypatch.setattr(torch.distributed, "get_rank", _get_rank)
+
+    dataset = DummyShardedDataset(num_shards=2, world_shard_size=1)
+    config = make_standard_dataloader_config()
+    builder = DataLoaderBuilder(dataset, config, collate_fn=None, num_device=2, epoch=0)
+    with pytest.raises(RuntimeError, match="world_shard_size must match"):
+        builder.build("train")
