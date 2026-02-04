@@ -185,7 +185,7 @@ class DataLoaderBuilder:
         if dataset is None:
             dataset = self.dataset
 
-        batches = build_batch_sampler(**factory_config["batches"])
+        batches = build_batch_sampler(**factory_config.pop("batches"))
 
         if self.num_device > 1:
             batches = list(batches)

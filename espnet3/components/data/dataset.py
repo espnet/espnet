@@ -29,7 +29,6 @@ class CombinedDataset:
             compatible pipelines.
 
     Attributes:
-        get_text_available (bool): True if all datasets implement `get_text(idx)`.
         multiple_iterator (bool): True if any dataset is a subclass of `ShardedDataset`.
 
     Note:
@@ -41,7 +40,7 @@ class CombinedDataset:
     Raises:
         IndexError: If a requested index is outside the range of the combined dataset.
         ValueError: If index is a non-integer string or cannot be cast to int.
-        RuntimeError: If `get_text()` or `shard()` is called but not supported.
+        RuntimeError: If `shard()` is called but not supported.
         AssertionError: If output keys from different datasets are inconsistent.
 
     Example:
@@ -89,12 +88,6 @@ class CombinedDataset:
                     f"Inconsistent output keys in dataset {i}: "
                     f"{keys} != {sample_keys}"
                 )
-
-        # Check if get_text is available
-        self.get_text_available = True
-        for dataset in self.datasets:
-            if not hasattr(dataset, "get_text"):
-                self.get_text_available = False
 
         # Check if dataset is a subclass of ShardedDataset.
         self.multiple_iterator = False
@@ -159,38 +152,13 @@ class CombinedDataset:
 
         raise IndexError("Index out of range in CombinedDataset")
 
-    def get_text(self, idx):
-        """Retrieve the target text string for a given index.
-
-        This method delegates to the underlying dataset's `get_text(idx)` method.
-        It is typically used for extracting text sequences for purposes such as
-        training tokenizers or language models.
-
-        Raises:
-            RuntimeError: If not all datasets implement `get_text(idx)`.
-        """
-        if not self.get_text_available:
-            raise RuntimeError(
-                "Please define `get_text` function to all datasets."
-                "It should receive index of data and return target text."
-                "E.g., \n"
-                "def get_text(self, idx):\n"
-                "   return text\n"
-            )
-
-        for i, cum_len in enumerate(self.cumulative_lengths):
-            if idx < cum_len:
-                ds_idx = idx if i == 0 else idx - self.cumulative_lengths[i - 1]
-                return self.datasets[i].get_text(ds_idx)
-
     def shard(self, shard_idx: int):
         """Return a sharded version of the combined dataset.
 
         This is used when handling large datasets that are split into shards
         for efficiency and distributed processing (ESPnet multiple-iterator mode).
-        All datasets must be subclasses of
-        `espnet3.components.data.dataset.ShardedDataset` and implement
-        a `shard()` method.
+        All datasets must be subclasses of `espnet3.data.dataset.ShardedDataset`,
+        and implement a `shard()` method.
 
         Args:
             shard_idx (int): Index of the shard to retrieve.
@@ -236,7 +204,7 @@ class DatasetWithTransform:
         ...         "text": sample["text"].upper()
         ...     }
         >>>
-        >>> def preprocessor(uid, sample):
+        >>> def preprocess(uid, sample):
         ...     return {
         ...         "text": f"[uid={uid}] " + sample["text"]
         ...     }
@@ -244,7 +212,7 @@ class DatasetWithTransform:
         >>> wrapped = DatasetWithTransform(
         ...     my_dataset,
         ...     transform,
-        ...     preprocessor,
+        ...     preprocess,
         ...     use_espnet_preprocessor=True
         ... )
         >>> uid_sample = wrapped[0]

@@ -5,6 +5,7 @@ import importlib
 import json
 import os
 import sys
+from abc import ABC, abstractmethod
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Sequence
@@ -16,9 +17,9 @@ from tqdm import tqdm
 
 from espnet3.parallel.env_provider import EnvironmentProvider
 from espnet3.parallel.parallel import (
+    build_client,
     get_client,
     get_parallel_config,
-    make_client,
     parallel_for,
 )
 
@@ -55,8 +56,8 @@ class AsyncJobSpec:
     extras: Dict | None
 
 
-def _import_obj(class_path: str):
-    mod, _, name = class_path.rpartition(".")
+def _import_obj(cls_path: str):
+    mod, _, name = cls_path.rpartition(".")
     return getattr(importlib.import_module(mod), name)
 
 
@@ -85,7 +86,7 @@ def convert_paths(obj):
         return obj
 
 
-def get_full_class_path_from_instance(obj):
+def get_full_cls_path_from_instance(obj):
     """Return the full import path of the given object's class."""
     cls = obj.__class__
     module = cls.__module__
@@ -118,7 +119,7 @@ def get_job_cls(cluster, spec_path=None):
     return ASyncRunnerJob
 
 
-class BaseRunner:
+class BaseRunner(ABC):
     """A thin orchestration layer to run static ``forward`` over indices.
 
     This class handles:
@@ -128,12 +129,15 @@ class BaseRunner:
 
     Subclass contract:
         - Implement ``@staticmethod forward(idx, *, dataset, model, **env) -> Any``
-          without capturing ``self``.
+          without capturing ``self``. ``idx`` may be a single index or a batch
+          of indices depending on ``batch_size``.
         - Provide an :class:`EnvironmentProvider` that builds the required env
           (e.g., dataset/model) for local and worker executions.
 
     Args:
         provider (EnvironmentProvider): Provider that builds the runtime env.
+        batch_size (int | None): If set, chunk indices into batches of this size
+            before dispatching to ``forward``.
         async_mode (bool): If True, use Dask ``submit`` with asynchronous shards.
         async_specs_dir (str | Path): Output directory for per-shard spec JSON files.
         async_num_workers (int | None): If set, overrides detected worker count
@@ -152,31 +156,34 @@ class BaseRunner:
         self,
         provider: EnvironmentProvider,
         *,
+        batch_size: int | None = None,
         async_mode: bool = False,
         async_specs_dir: str | Path = "./_async_specs",
         async_result_dir: str | Path = "./_async_results",
     ):
         """Initialize BaseRunner object."""
         self.provider = provider
+        self.batch_size = batch_size
         self.async_mode = async_mode
         self.async_specs_dir = Path(async_specs_dir).resolve()
         self.async_result_dir = Path(async_result_dir).resolve()
 
     @staticmethod
-    def forward(idx: int, *, dataset, model, **env) -> Any:
-        """Compute one item for the given index (to be implemented by subclasses).
+    @abstractmethod
+    def forward(idx: int | Iterable[int], *, dataset, model, **env) -> Any:
+        """Compute items for the given index or batch (to be implemented by subclasses).
 
         Keep this as a ``@staticmethod`` so that it is pickle-safe for Dask
         and does not capture ``self``.
 
         Args:
-            idx (int): The input index to process.
+            idx (int | Iterable[int]): The input index or batch of indices to process.
             dataset: Dataset object provided via the environment.
             model: Model object provided via the environment.
             **env: Any additional environment entries injected by the provider.
 
         Returns:
-            Any: Result for the given index.
+            Any: Result for the given index or batch.
 
         Raises:
             NotImplementedError: Always in the base class; implement in subclass.
@@ -185,8 +192,11 @@ class BaseRunner:
             >>> class MyRunner(BaseRunner):
             ...     @staticmethod
             ...     def forward(idx, *, dataset, model, **env):
-            ...         x = dataset[idx]
-            ...         return model(x)
+            ...         if isinstance(idx, int):
+            ...             x = dataset[idx]
+            ...             return model(x)
+            ...         xs = [dataset[i] for i in idx]
+            ...         return model(xs)
         """
         raise NotImplementedError
 
@@ -203,8 +213,9 @@ class BaseRunner:
             - Uses ``tqdm`` progress bar over the input sequence.
         """
         env = self.provider.build_env_local()
-        f = self.__class__.forward  # static
-        return [f(i, **env) for i in tqdm(indices, total=len(indices))]
+        return [
+            self.__class__.forward(i, **env) for i in tqdm(indices, total=len(indices))
+        ]
 
     def _run_parallel(self, indices: Sequence[int]) -> List[Any]:
         """Run with synchronous Dask mapping using per-worker environments.
@@ -219,12 +230,15 @@ class BaseRunner:
             - Wraps ``forward`` with :func:`wrap_func_with_worker_env` so that
               missing keyword args are injected from the worker env.
         """
-        setup_fn = self.provider.make_worker_setup_fn()
+        setup_fn = self.provider.build_worker_setup_fn()
         out = []
         with get_client(get_parallel_config()) as client:
             for res in tqdm(
                 parallel_for(
-                    self.__class__.forward, indices, setup_fn=setup_fn, client=client
+                    self.__class__.forward,
+                    indices,
+                    setup_fn=setup_fn,
+                    client=client,
                 ),
                 total=len(indices),
             ):
@@ -252,18 +266,18 @@ class BaseRunner:
             - When not gathering, each shard writes to
               ``async_result_dir / f"result-<job_id>.jsonl"`` on its worker.
         """
-        par_cfg = get_parallel_config()
-        client = make_client(par_cfg)
-        n_workers = par_cfg.get("n_workers", 1)
+        par_config = get_parallel_config()
+        client = build_client(par_config)
+        n_workers = par_config.get("n_workers", 1)
         try:
             chunks = _default_chunk(indices, n_workers)
             self.async_specs_dir.mkdir(parents=True, exist_ok=True)
             self.async_result_dir.mkdir(parents=True, exist_ok=True)
 
             # DictConfig -> dict
-            cfg_dict = OmegaConf.to_container(self.provider.config, resolve=True)
-            provider_cls = get_full_class_path_from_instance(self.provider)
-            runner_cls = get_full_class_path_from_instance(self)
+            config_dict = OmegaConf.to_container(self.provider.config, resolve=True)
+            provider_cls = get_full_cls_path_from_instance(self.provider)
+            runner_cls = get_full_cls_path_from_instance(self)
 
             job_meta = []
             for rank, chunk in enumerate(chunks):
@@ -275,13 +289,13 @@ class BaseRunner:
                 spec = AsyncJobSpec(
                     runner_cls=runner_cls,
                     provider_cls=provider_cls,
-                    config=cfg_dict,
+                    config=config_dict,
                     params=getattr(self.provider, "params", {}) or {},
                     indices=list(chunk),
                     world_size=len(chunks),
                     world_rank=rank,
                     result_path=str(result_path),
-                    extras={},
+                    extras={"batched": self.batch_size is not None},
                 )
                 spec_path = self.async_specs_dir / f"spec-{job_id}.json"
                 with open(spec_path, "w", encoding="utf-8") as f:
@@ -330,13 +344,25 @@ class BaseRunner:
             - Otherwise, run in parallel with environment injection.
         """
         indices = list(indices)
+        if self.batch_size is not None:
+            if self.batch_size <= 0:
+                raise ValueError("batch_size must be a positive integer.")
+            indices = _chunk_indices(indices, self.batch_size)
         if self.async_mode:
             return asyncio.run(self._run_async(indices))
 
-        par_cfg = get_parallel_config()
-        if par_cfg is None or getattr(par_cfg, "env", "local") == "local":
+        par_config = get_parallel_config()
+        if par_config is None or getattr(par_config, "env", "local") == "local":
             return self._run_local(indices)
         return self._run_parallel(indices)
+
+
+def _chunk_indices(indices: Sequence[int], batch_size: int) -> List[List[int]]:
+    """Split a sequence of indices into fixed-size chunks."""
+    batches = []
+    for i in range(0, len(indices), batch_size):
+        batches.append(list(indices[i : i + batch_size]))
+    return [b for b in batches if b]
 
 
 def _async_worker_entry_from_spec_path(spec_path: str):
@@ -372,21 +398,20 @@ def _async_worker_entry_from_spec_path(spec_path: str):
     RunnerCls = _import_obj(spec["runner_cls"])
     ProviderCls = _import_obj(spec["provider_cls"])
 
-    cfg = DictConfig(spec["config"])
+    config = DictConfig(spec["config"])
     params = spec.get("params", {}) or {}
-    provider = ProviderCls(cfg, params=params)
+    provider = ProviderCls(config, params=params)
 
     # Add world size and rank
     os.environ["WORLD_SIZE"] = str(spec["world_size"])
     os.environ["WORLD_RANK"] = str(spec["world_rank"])
 
-    setup_fn = provider.make_worker_setup_fn()
+    setup_fn = provider.build_worker_setup_fn()
     env = setup_fn()
 
-    f = RunnerCls.forward  # staticmethod
     results = []
     for idx in spec["indices"]:
-        results.append(f(idx, **env))
+        results.append(RunnerCls.forward(idx, **env))
 
     result_path = spec.get("result_path")
     if result_path:
