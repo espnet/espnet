@@ -124,7 +124,7 @@ class AverageCheckpointsCallback(Callback):
 
 @typechecked
 def get_default_callbacks(
-    expdir: str = "./exp",
+    exp_dir: str = "./exp",
     log_interval: int = 500,
     best_model_criterion: Union[List[Tuple[str, int, str]], List[List]] = [
         ("valid/loss", 3, "min")
@@ -142,15 +142,15 @@ def get_default_callbacks(
         - `TQDMProgressBar` to show a rich progress bar during training
 
     Args:
-        expdir (str): Directory to store checkpoints and logs.
+        exp_dir (str): Directory to store checkpoints and logs.
         log_interval (int): Frequency (in training steps) to refresh the progress bar.
         best_model_criterion (List[Tuple[str, int, str]]): A list of criteria for
             saving top-K checkpoints.
-            Each item is a tuple: (metric_name, top_k, mode), where:
-            - `metric_name` (str): The name of the validation metric to monitor
+            Each item is a tuple: (name, top_k, mode), where:
+            - `name` (str): The name of the validation value to monitor
                 (e.g., "val/loss").
             - `top_k` (int): Number of best models to keep.
-            - `mode` (str): "min" to keep models with lowest metric, "max" for highest.
+            - `mode` (str): "min" to keep models with lowest value, "max" for highest.
 
     Returns:
         List[Callback]: A list of callbacks to be passed to the PyTorch Lightning
@@ -159,14 +159,14 @@ def get_default_callbacks(
     Example:
         >>> from default_callbacks import get_default_callbacks
         >>> callbacks = get_default_callbacks(
-        ...     expdir="./exp",
+        ...     exp_dir="./exp",
         ...     log_interval=100,
         ...     best_model_criterion=[("val/loss", 5, "min"), ("val/acc", 3, "max")]
         ... )
         >>> trainer = Trainer(callbacks=callbacks, ...)
     """
     last_ckpt_callback = ModelCheckpoint(
-        dirpath=expdir,
+        dirpath=exp_dir,
         save_last="link",
         filename="step{step}",
         auto_insert_metric_name=False,
@@ -181,7 +181,7 @@ def get_default_callbacks(
                 save_top_k=nbest,
                 monitor=monitor,
                 mode=mode,  # "min" or "max"
-                dirpath=expdir,
+                dirpath=exp_dir,
                 save_last=False,
                 # Add monitor to filename to avoid overwriting
                 # when multiple metrics are used
@@ -193,7 +193,7 @@ def get_default_callbacks(
             )
         )
     ave_ckpt_callback = AverageCheckpointsCallback(
-        output_dir=expdir, best_ckpt_callbacks=best_ckpt_callbacks
+        output_dir=exp_dir, best_ckpt_callbacks=best_ckpt_callbacks
     )
 
     # Monitor learning rate

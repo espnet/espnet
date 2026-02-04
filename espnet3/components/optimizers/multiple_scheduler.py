@@ -8,7 +8,7 @@ from typing import Any
 import torch
 from typeguard import typechecked
 
-from espnet3.components.optim.multiple_optim import MultipleOptim
+from espnet3.components.optimizers.multiple_optimizer import MultipleOptimizer
 
 
 class MultipleScheduler(torch.optim.lr_scheduler._LRScheduler):
@@ -18,10 +18,10 @@ class MultipleScheduler(torch.optim.lr_scheduler._LRScheduler):
     https://github.com/Lightning-AI/lightning/issues/3346#issuecomment-1036063687
 
     Args:
-        multiple_optim: MultipleOptim
+        multiple_optim: MultipleOptimizer
         lr_scheduler: torch.optim.lr_scheduler._LRScheduler
-        optimizer_idx: int
-            Index of the optimizer in ``multiple_optimizer`` the learning rate scheduler
+        optim_idx: int
+            Index of the optimizer in ``multiple_optim`` the learning rate scheduler
             ``lr_scheduler`` is assigned to
 
     """
@@ -29,18 +29,18 @@ class MultipleScheduler(torch.optim.lr_scheduler._LRScheduler):
     @typechecked
     def __init__(
         self,
-        multiple_optimizer: MultipleOptim,
+        multiple_optimizer: MultipleOptimizer,
         lr_scheduler: torch.optim.lr_scheduler.LRScheduler,
-        optimizer_idx: int,
+        optim_idx: int,
     ) -> None:
         """Initialize MultipleScheduler object."""
-        assert 0 <= optimizer_idx < len(multiple_optimizer.optimizers), (
-            f"optimizer_idx {optimizer_idx} is out of range for "
-            f"multiple_optimizer with {len(multiple_optimizer.optimizers)} optimizers."
+        assert 0 <= optim_idx < len(multiple_optimizer.optimizers), (
+            f"optim_idx {optim_idx} is out of range for "
+            f"multiple_optim with {len(multiple_optimizer.optimizers)} optimizers."
         )
         self.optimizer = multiple_optimizer
         self.lr_scheduler = lr_scheduler
-        self.idx = optimizer_idx
+        self.idx = optim_idx
 
     def __getattr__(self, name: str) -> Any:
         """Delegate attribute access to either self or self.lr_scheduler."""

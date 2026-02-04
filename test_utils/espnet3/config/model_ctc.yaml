@@ -11,7 +11,7 @@ defaults:
   - ./default.yaml
 
 dataset:
-  _target_: espnet3.components.data.DataOrganizer
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
   train:
     - name: train-clean-100
       dataset:
@@ -38,7 +38,6 @@ dataset:
 
   preprocessor:
     _target_: espnet2.train.preprocessor.CommonPreprocessor
-    train: true
     token_type: bpe
     token_list: ${recipedir}/sentencepiece_model/tokens.txt
     bpemodel: ${recipedir}/sentencepiece_model/bpe.model
