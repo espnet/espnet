@@ -8,25 +8,58 @@ from contextlib import contextmanager
 from typing import Any, Callable, Generator, Iterable, Optional
 
 import torch
-from dask.distributed import (
-    Client,
-    LocalCluster,
-    SSHCluster,
-    WorkerPlugin,
-    as_completed,
-)
-from dask_jobqueue import (
-    HTCondorCluster,
-    LSFCluster,
-    MoabCluster,
-    OARCluster,
-    PBSCluster,
-    SGECluster,
-    SLURMCluster,
-)
 from omegaconf import DictConfig
 from tqdm import tqdm
 from typeguard import typechecked
+
+try:
+    from dask.distributed import (
+        Client,
+        LocalCluster,
+        SSHCluster,
+        WorkerPlugin,
+        as_completed,
+    )
+    from dask_jobqueue import (
+        HTCondorCluster,
+        LSFCluster,
+        MoabCluster,
+        OARCluster,
+        PBSCluster,
+        SGECluster,
+        SLURMCluster,
+    )
+
+    _DASK_AVAILABLE = True
+except ImportError:
+    Client = None
+    LocalCluster = None
+    SSHCluster = None
+    as_completed = None
+
+    class WorkerPlugin:
+        """Lightweight placeholder used when Dask is unavailable."""
+
+        def __init__(self, *args, **kwargs):
+            """Create a placeholder WorkerPlugin when Dask is missing."""
+            pass
+
+    class _MissingCluster:
+        def __init__(self, *args, **kwargs):
+            """Raise a helpful error when a Dask cluster type is unavailable."""
+            raise RuntimeError(
+                "Dask is required for espnet3.parallel; please install dask "
+                "and dask_jobqueue to enable parallel features."
+            )
+
+    HTCondorCluster = _MissingCluster
+    LSFCluster = _MissingCluster
+    MoabCluster = _MissingCluster
+    OARCluster = _MissingCluster
+    PBSCluster = _MissingCluster
+    SGECluster = _MissingCluster
+    SLURMCluster = _MissingCluster
+    _DASK_AVAILABLE = False
 
 try:
     from dask_cuda import LocalCUDACluster
@@ -47,7 +80,15 @@ CLUSTER_MAP = {
 }
 
 
-def make_local_gpu_cluster(n_workers: int, options: dict) -> Client:
+def _ensure_dask():
+    if not _DASK_AVAILABLE:
+        raise RuntimeError(
+            "Dask is not available. Install dask[distributed] and "
+            "dask_jobqueue to use espnet3.parallel."
+        )
+
+
+def build_local_gpu_cluster(n_workers: int, options: dict) -> Client:
     """Create a Dask LocalCUDACluster using available GPUs.
 
     This requires `dask_cuda` package.
@@ -59,8 +100,11 @@ def make_local_gpu_cluster(n_workers: int, options: dict) -> Client:
     Returns:
         Client: Dask client connected to the GPU cluster.
     """
+    _ensure_dask()
     if LocalCUDACluster is None:
-        raise RuntimeError("Please install dask_cuda.")
+        raise RuntimeError(
+            "Please install dask_cuda along with cuda-python and cuda-bindings."
+        )
 
     num_gpus = torch.cuda.device_count()
     if n_workers > num_gpus:
@@ -97,13 +141,14 @@ def get_parallel_config() -> Optional[DictConfig]:
     return parallel_config
 
 
-def _make_client(config: DictConfig = None) -> Client:
+def _build_client(config: DictConfig = None) -> Client:
     """Create a Dask client tied to the global singleton cluster."""
+    _ensure_dask()
     if config.env == "local":
         return Client(LocalCluster(n_workers=config.n_workers, **config.options))
 
     elif config.env == "local_gpu":
-        return make_local_gpu_cluster(config.n_workers, config.options)
+        return build_local_gpu_cluster(config.n_workers, config.options)
 
     elif config.env == "kube":
         try:
@@ -123,7 +168,7 @@ def _make_client(config: DictConfig = None) -> Client:
         raise ValueError(f"Unknown env: {config.env}")
 
 
-def make_client(config: DictConfig = None) -> Client:
+def build_client(config: DictConfig = None) -> Client:
     """Create or retrieve a Dask client using the provided or global configuration.
 
     Args:
@@ -134,14 +179,14 @@ def make_client(config: DictConfig = None) -> Client:
     """
     if config is not None:
         set_parallel(config)
-        return _make_client(config)
+        return _build_client(config)
 
     if parallel_config is None:
         raise ValueError(
             "Parallel configuration not set. Use `set_parallel` to set it."
         )
 
-    return _make_client(parallel_config)
+    return _build_client(parallel_config)
 
 
 class DictReturnWorkerPlugin(WorkerPlugin):
@@ -210,7 +255,7 @@ def wrap_func_with_worker_env(func: Callable) -> Callable:
         >>> def add_bias(x, bias):
         ...     return x + bias
         ...
-        >>> with get_client(local_cfg, setup_fn=setup_fn) as client:
+        >>> with get_client(local_config, setup_fn=setup_fn) as client:
         ...     # 'bias' comes from worker env, no need to pass it explicitly
         ...     futs = client.map(add_bias, [1, 2])
         ...     print(client.gather(futs))
@@ -270,7 +315,7 @@ def get_client(
         >>> with get_client() as client:
         ...     results = client.map(lambda x: x**2, range(10))
     """
-    client = make_client(config)
+    client = build_client(config)
     if setup_fn is not None:
         plugin = DictReturnWorkerPlugin(setup_fn)
         reg = getattr(client, "register_worker_plugin", None)
@@ -314,6 +359,7 @@ def _submit_tasks(
     - Wraps the function to inject worker env.
     - Submits tasks and yields (client, futures).
     """
+    _ensure_dask()
     internal = client is None
     if internal:
         ctx = get_client(setup_fn=setup_fn)
