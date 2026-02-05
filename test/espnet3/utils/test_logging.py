@@ -4,7 +4,7 @@ import io
 import logging as py_logging
 from pathlib import Path
 
-from espnet3.utils import logging as elog
+from espnet3.utils import logging_utils as elog
 
 
 def _reset_logger(logger: py_logging.Logger, handlers, level, propagate: bool) -> None:
