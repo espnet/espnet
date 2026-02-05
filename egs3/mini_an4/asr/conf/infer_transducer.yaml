@@ -4,7 +4,7 @@ recipe_dir: .
 data_dir: ${recipe_dir}/data
 exp_tag: ${load_yaml:conf/train.yaml,exp_tag}
 exp_dir: ${recipe_dir}/exp/${exp_tag}
-infer_dir: ${exp_dir}/infer
+inference_dir: ${exp_dir}/infer
 dataset_dir: ${data_dir}/mini_an4
 
 dataset:

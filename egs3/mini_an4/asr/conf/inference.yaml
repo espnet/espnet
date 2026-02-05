@@ -4,7 +4,7 @@ recipe_dir: .
 data_dir: ${recipe_dir}/data
 exp_tag: ${load_yaml:conf/train.yaml,exp_tag}
 exp_dir: ${recipe_dir}/exp/${exp_tag}
-infer_dir: ${exp_dir}/infer
+inference_dir: ${exp_dir}/inference
 dataset_dir: ${data_dir}/mini_an4
 
 dataset:
@@ -27,4 +27,9 @@ model:
   ctc_weight: 0.3
 
 input_key: speech
-output_fn: src.infer.output_fn
+output_fn: src.inference.output_fn
+
+provider:
+  _target_: espnet3.systems.base.inference_provider.InferenceProvider
+runner:
+  _target_: espnet3.systems.base.inference_runner.InferenceRunner
