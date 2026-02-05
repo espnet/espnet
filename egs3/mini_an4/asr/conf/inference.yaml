@@ -1,7 +1,11 @@
 # Mini AN4 ASR inference config for ESPnet3 integration tests.
 
-# Root output directory for .scp files written by the infer stage.
-infer_dir: exp/${load_yaml:conf/train.yaml,exp_tag}/infer
+recipe_dir: .
+data_dir: ${recipe_dir}/data
+exp_tag: ${load_yaml:conf/train.yaml,exp_tag}
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+inference_dir: ${exp_dir}/inference
+dataset_dir: ${data_dir}/mini_an4
 
 dataset:
   _target_: espnet3.components.data.data_organizer.DataOrganizer
@@ -9,12 +13,18 @@ dataset:
     - name: test
       dataset:
         _target_: src.dataset.MiniAN4Dataset
-        manifest_path: data/mini_an4/manifest/test.tsv
+        manifest_path: ${dataset_dir}/manifest/test.tsv
+
+parallel:
+  env: local
+  n_workers: 1
 
 model:
   _target_: espnet2.bin.asr_inference.Speech2Text
-  asr_train_config: exp/${load_yaml:conf/train.yaml,exp_tag}/config.yaml
-  asr_model_file: exp/${load_yaml:conf/train.yaml,exp_tag}/last.ckpt
+  asr_train_config: ${exp_dir}/config.yaml
+  asr_model_file: ${exp_dir}/last.ckpt
+  beam_size: 1
+  ctc_weight: 0.3
 
 input_key: speech
 output_fn: src.inference.output_fn
