@@ -1,30 +1,34 @@
-# Inference configuration template for ESPnet3 ASR.
+# Inference/decoding configuration template for ESPnet3 ASR.
+# Keep only inference-relevant knobs.
 
-# Root output directory for .scp files written by the infer stage.
-infer_dir: exp/asr_template_eval/infer
+# Path scaffold relative to the recipe root.
+recipe_dir: .
+data_dir: ${recipe_dir}/data
+dataset_dir: /path/to/your/dataset
+exp_tag: asr_template_eval
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+inference_dir: ${exp_dir}/inference
 
-# Dataset definition for test splits only (names become output subfolders).
+# Dataset definition for test splits only.
 dataset:
   _target_: espnet3.components.data.data_organizer.DataOrganizer
   test:
     - name: test-clean
       dataset:
         _target_: src.dataset.LibriSpeechDataset
-        # Override this in your recipe.
-        data_dir: data/dataset
+        data_dir: ${dataset_dir}
         split: test-clean
 
 # Inference model entrypoint.
 model:
   _target_: espnet2.bin.asr_inference.Speech2Text
-  asr_train_config: exp/asr_template_eval/config.yaml
-  asr_model_file: exp/asr_template_eval/last.ckpt
+  asr_train_config: ${exp_dir}/config.yaml
+  asr_model_file: ${exp_dir}/last.ckpt
 
-# Generic ESPnet3 inference entrypoint settings.
+# Inference I/O.
 input_key: speech
 output_fn: src.infer.output_fn
 
-# Provider/runner definitions.
 provider:
   _target_: espnet3.systems.base.inference_provider.InferenceProvider
 runner:

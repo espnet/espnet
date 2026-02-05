@@ -124,19 +124,19 @@ def test_forward_returns_hyp_and_ref():
     assert out == {"uttid": "utt1", "hyp": "hyp", "ref": "ref"}
 
 
-def test_forward_batch_with_batch_forward():
+def test_forward_batch_with_batched_inputs():
     dataset = [
         {"uttid": "utt1", "speech": "audio1", "text": "ref1"},
         {"uttid": "utt2", "speech": "audio2", "text": "ref2"},
     ]
 
     class DummyModel:
-        def batch_forward(self, **inputs):
+        def __call__(self, **inputs):
             assert inputs == {"speech": ["audio1", "audio2"]}
             return [[["hyp1"]], [["hyp2"]]]
 
     output_path = f"{__name__}._batch_output_fn"
-    out = InferenceRunner.batch_forward(
+    out = InferenceRunner.forward(
         [0, 1],
         dataset=dataset,
         model=DummyModel(),
@@ -150,7 +150,7 @@ def test_forward_batch_with_batch_forward():
     ]
 
 
-def test_forward_batch_falls_back_to_single_calls():
+def test_forward_batch_requires_batched_model():
     dataset = [
         {"uttid": "utt1", "speech": "audio1", "text": "ref1"},
         {"uttid": "utt2", "speech": "audio2", "text": "ref2"},
@@ -161,18 +161,14 @@ def test_forward_batch_falls_back_to_single_calls():
             return [[f"hyp-{speech}"]]
 
     output_path = f"{__name__}._output_fn"
-    out = InferenceRunner.batch_forward(
-        [0, 1],
-        dataset=dataset,
-        model=DummyModel(),
-        input_key="speech",
-        output_fn_path=output_path,
-    )
-
-    assert out == [
-        {"uttid": "utt1", "hyp": "hyp-audio1", "ref": "ref1"},
-        {"uttid": "utt2", "hyp": "hyp-audio2", "ref": "ref2"},
-    ]
+    with pytest.raises(RuntimeError, match="Batched inference failed"):
+        InferenceRunner.forward(
+            [0, 1],
+            dataset=dataset,
+            model=DummyModel(),
+            input_key="speech",
+            output_fn_path=output_path,
+        )
 
 
 def test_forward_requires_fields():
@@ -181,7 +177,7 @@ def test_forward_requires_fields():
         InferenceRunner.forward(
             0,
             dataset=dataset,
-            model=lambda x: [["hyp"]],
+            model=lambda **kwargs: [["hyp"]],
             input_key="speech",
             output_fn_path=f"{__name__}._output_fn",
         )
@@ -191,7 +187,7 @@ def test_forward_requires_fields():
         InferenceRunner.forward(
             0,
             dataset=dataset,
-            model=lambda x: [["hyp"]],
+            model=lambda **kwargs: [["hyp"]],
             input_key="speech",
             output_fn_path=f"{__name__}._output_fn",
         )
@@ -200,7 +196,7 @@ def test_forward_requires_fields():
 def test_inference_requires_provider_config():
     cfg = OmegaConf.create(
         {
-            "infer_dir": "unused",
+            "inference_dir": "unused",
             "dataset": {"test": [{"name": "test"}]},
             "input_key": "speech",
             "output_fn": f"{__name__}._output_fn",
@@ -216,7 +212,7 @@ def test_inference_requires_provider_config():
 def test_inference_params_affect_runner_forward(tmp_path, flip, expected):
     cfg = OmegaConf.create(
         {
-            "infer_dir": str(tmp_path),
+            "inference_dir": str(tmp_path),
             "dataset": {
                 "test": [{"name": "test"}],
                 "data": [{"uttid": "utt1", "speech": "s1"}],

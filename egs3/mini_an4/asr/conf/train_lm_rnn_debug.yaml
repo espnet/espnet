@@ -10,7 +10,7 @@ data_dir: ${recipe_dir}/data
 exp_tag: train_lm_rnn_debug
 exp_dir: ${recipe_dir}/exp/${exp_tag}
 stats_dir: ${recipe_dir}/exp/stats
-infer_dir: ${exp_dir}/infer
+inference_dir: ${exp_dir}/infer
 dataset_dir: ${data_dir}/mini_an4
 
 create_dataset:
@@ -70,7 +70,7 @@ dataloader:
         batch_size: ${dataloader.train.iter_factory.batches.batch_size}
         batch_bins: ${dataloader.train.iter_factory.batches.batch_bins}
 
-optim:
+optimizer:
   _target_: torch.optim.Adam
   lr: 0.005
 

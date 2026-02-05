@@ -16,5 +16,5 @@ if __name__ == "__main__":
     main(
         args=args,
         system_cls=ASRSystem,
-        stages=stages_to_run,
+        stages=ALL_STAGES,
     )

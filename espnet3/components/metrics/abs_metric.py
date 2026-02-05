@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Dict, List
 
 
-class AbsMetrics(ABC):
+class AbsMetric(ABC):
     """Abstract base class for metrics used in inference evaluation.
 
     Subclasses must implement `__call__` and can return any JSON-serializable result.
@@ -46,7 +46,7 @@ class AbsMetrics(ABC):
                           hyp: hyp
                           prompt: prompt
 
-                This loads ``infer_dir/<test_name>/prompt.scp`` into
+                This loads ``inference_dir/<test_name>/prompt.scp`` into
                 ``data["prompt"]`` for use by the metric.
             test_name (str): Name of the test dataset (e.g., "test-other"). This
                 corresponds to the test set name defined by the data organizer.

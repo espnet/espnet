@@ -32,7 +32,9 @@ try:
 
     _DASK_AVAILABLE = True
 except ImportError:
-    Client = LocalCluster = SSHCluster = None
+    Client = None
+    LocalCluster = None
+    SSHCluster = None
     as_completed = None
 
     class WorkerPlugin:
@@ -50,9 +52,13 @@ except ImportError:
                 "and dask_jobqueue to enable parallel features."
             )
 
-    HTCondorCluster = LSFCluster = MoabCluster = OARCluster = PBSCluster = (
-        SGECluster
-    ) = SLURMCluster = _MissingCluster
+    HTCondorCluster = _MissingCluster
+    LSFCluster = _MissingCluster
+    MoabCluster = _MissingCluster
+    OARCluster = _MissingCluster
+    PBSCluster = _MissingCluster
+    SGECluster = _MissingCluster
+    SLURMCluster = _MissingCluster
     _DASK_AVAILABLE = False
 
 try:
@@ -93,7 +99,7 @@ def _normalize_parallel_config(config: DictConfig | None) -> DictConfig:
     return config
 
 
-def make_local_gpu_cluster(n_workers: int, options: dict) -> Client:
+def build_local_gpu_cluster(n_workers: int, options: dict) -> Client:
     """Create a Dask LocalCUDACluster using available GPUs.
 
     This requires `dask_cuda` package.
@@ -170,14 +176,14 @@ def get_parallel_config() -> Optional[DictConfig]:
     return parallel_config
 
 
-def _make_client(config: DictConfig = None) -> Client:
+def _build_client(config: DictConfig = None) -> Client:
     """Create a Dask client tied to the global singleton cluster."""
     _ensure_dask()
     if config.env == "local":
         return Client(LocalCluster(n_workers=config.n_workers, **config.options))
 
     elif config.env == "local_gpu":
-        return make_local_gpu_cluster(config.n_workers, config.options)
+        return build_local_gpu_cluster(config.n_workers, config.options)
 
     elif config.env == "kube":
         try:
@@ -197,7 +203,7 @@ def _make_client(config: DictConfig = None) -> Client:
         raise ValueError(f"Unknown env: {config.env}")
 
 
-def make_client(config: DictConfig = None) -> Client:
+def build_client(config: DictConfig = None) -> Client:
     """Create or retrieve a Dask client using the provided or global configuration.
 
     Args:
@@ -213,10 +219,16 @@ def make_client(config: DictConfig = None) -> Client:
     Example:
         >>> client = make_client()  # doctest: +SKIP
     """
-    _ensure_dask()
-    config = _normalize_parallel_config(config)
-    set_parallel(config)
-    return _make_client(config)
+    if config is not None:
+        set_parallel(config)
+        return _build_client(config)
+
+    if parallel_config is None:
+        raise ValueError(
+            "Parallel configuration not set. Use `set_parallel` to set it."
+        )
+
+    return _build_client(parallel_config)
 
 
 class DictReturnWorkerPlugin(WorkerPlugin):
@@ -285,7 +297,7 @@ def wrap_func_with_worker_env(func: Callable) -> Callable:
         >>> def add_bias(x, bias):
         ...     return x + bias
         ...
-        >>> with get_client(local_cfg, setup_fn=setup_fn) as client:
+        >>> with get_client(local_config, setup_fn=setup_fn) as client:
         ...     # 'bias' comes from worker env, no need to pass it explicitly
         ...     futs = client.map(add_bias, [1, 2])
         ...     print(client.gather(futs))
@@ -348,7 +360,7 @@ def get_client(
         >>> with get_client() as client:
         ...     results = client.map(lambda x: x**2, range(10))
     """
-    client = make_client(_normalize_parallel_config(config))
+    client = build_client(config)
     if setup_fn is not None:
         plugin = DictReturnWorkerPlugin(setup_fn)
         reg = getattr(client, "register_worker_plugin", None)

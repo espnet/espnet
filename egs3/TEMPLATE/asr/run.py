@@ -10,9 +10,13 @@ from typing import Any, Callable, List, Optional, Sequence, Tuple, Type
 
 from omegaconf import OmegaConf
 
-from espnet3.utils.config import load_config_with_defaults
-from espnet3.utils.logging import configure_logging, log_env_metadata, log_run_metadata
-from espnet3.utils.stages import resolve_stages, run_stages
+from espnet3.utils.config_utils import load_config_with_defaults
+from espnet3.utils.logging_utils import (
+    configure_logging,
+    log_env_metadata,
+    log_run_metadata,
+)
+from espnet3.utils.stages_utils import resolve_stages, run_stages
 
 # Default stage list (can be extended/overridden by callers)
 DEFAULT_STAGES: List[str] = [
@@ -21,10 +25,9 @@ DEFAULT_STAGES: List[str] = [
     "collect_stats",
     "train",
     "infer",
-    "measure",
+    "metric",
     "pack_model",
     "upload_model",
-    "publish",
 ]
 
 DEMO_STAGES: List[str] = [
@@ -71,10 +74,10 @@ def build_parser(
         help="Hydra config for inference/decoding stage.",
     )
     parser.add_argument(
-        "--measure_config",
+        "--metric_config",
         default=None,
         type=Path,
-        help="Hydra config for measure/scoring stage.",
+        help="Hydra config for metric/scoring stage.",
     )
     parser.add_argument(
         "--publish_config",
@@ -146,10 +149,10 @@ def main(
         if args.infer_config is None
         else load_config_with_defaults(args.infer_config)
     )
-    measure_config = (
+    metric_config = (
         None
-        if args.measure_config is None
-        else load_config_with_defaults(args.measure_config)
+        if args.metric_config is None
+        else load_config_with_defaults(args.metric_config)
     )
     publish_config = (
         None
@@ -169,7 +172,7 @@ def main(
     system = system_cls(
         train_config=train_config,
         infer_config=infer_config,
-        measure_config=measure_config,
+        metric_config=metric_config,
         publish_config=publish_config,
         demo_config=demo_config,
         demo_config_path=args.demo_config,
@@ -191,7 +194,7 @@ def main(
     }
     required_configs = {}
     required_configs.update({stage: train_config for stage in pretrain_stages})
-    required_configs.update({"infer": infer_config, "measure": measure_config})
+    required_configs.update({"infer": infer_config, "metric": metric_config})
     required_configs.update(
         {
             "pack_model": train_config,
@@ -209,7 +212,7 @@ def main(
         missing_str = ", ".join(missing)
         raise ValueError(
             f"Config not provided for stage(s): {missing_str}. "
-            "Use --train_config/--infer_config/--measure_config."
+            "Use --train_config/--infer_config/--metric_config."
         )
     run_stages(
         system=system,
@@ -221,7 +224,7 @@ def main(
             args=args,
             train_config=train_config,
             infer_config=infer_config,
-            measure_config=measure_config,
+            metric_config=metric_config,
             publish_config=publish_config,
             demo_config=demo_config,
         ),
@@ -234,7 +237,7 @@ def _log_stage_metadata(
     args: argparse.Namespace,
     train_config,
     infer_config,
-    measure_config,
+    metric_config,
     publish_config,
     demo_config,
 ) -> None:
@@ -244,7 +247,7 @@ def _log_stage_metadata(
         configs={
             "train": Path(args.train_config) if args.train_config else None,
             "infer": Path(args.infer_config) if args.infer_config else None,
-            "measure": Path(args.measure_config) if args.measure_config else None,
+            "metric": Path(args.metric_config) if args.metric_config else None,
             "publish": Path(args.publish_config) if args.publish_config else None,
             "demo": Path(args.demo_config) if args.demo_config else None,
         },
@@ -259,10 +262,10 @@ def _log_stage_metadata(
         logger.info(
             "Infer config content:\n%s", OmegaConf.to_yaml(infer_config, resolve=True)
         )
-    if measure_config is not None:
+    if metric_config is not None:
         logger.info(
-            "Measure config content:\n%s",
-            OmegaConf.to_yaml(measure_config, resolve=True),
+            "metric config content:\n%s",
+            OmegaConf.to_yaml(metric_config, resolve=True),
         )
     if publish_config is not None:
         logger.info(

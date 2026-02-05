@@ -93,8 +93,8 @@ def inference(config: DictConfig):
     assert len(test_sets) == len(set(test_sets)), "Duplicate test key found."
 
     logger.info(
-        "Starting inference | infer_dir=%s test_sets=%s",
-        getattr(config, "infer_dir", None),
+        "Starting inference | inference_dir=%s test_sets=%s",
+        getattr(config, "inference_dir", None),
         test_sets,
     )
 
@@ -187,7 +187,7 @@ def inference(config: DictConfig):
         )
 
         # create scp files
-        output_dir = Path(config.infer_dir) / test_name
+        output_dir = Path(config.inference_dir) / test_name
         output_dir.mkdir(parents=True, exist_ok=True)
         for key, lines in scp_lines.items():
             with open(output_dir / f"{key}.scp", "w", encoding="utf-8") as f:

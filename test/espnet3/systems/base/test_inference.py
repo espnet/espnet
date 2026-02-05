@@ -70,7 +70,7 @@ def test_inference_writes_scp_outputs(tmp_path, monkeypatch):
     cfg = OmegaConf.create(
         {
             "parallel": {"env": "local"},
-            "infer_dir": str(tmp_path / "infer"),
+            "inference_dir": str(tmp_path / "infer"),
             "dataset": {"test": [{"name": "test_a"}, {"name": "test_b"}]},
             "input_key": "speech",
             "output_fn": f"{__name__}.dummy_output_fn",
@@ -93,7 +93,7 @@ def test_inference_writes_scp_outputs(tmp_path, monkeypatch):
 
     monkeypatch.setattr(inference_mod, "set_parallel", fake_set_parallel)
 
-    inference_mod.inference(cfg)
+    inference_mod.infer(cfg)
 
     assert calls["parallel"] == {"env": "local"}
     for test_name in ("test_a", "test_b"):
@@ -106,7 +106,7 @@ def test_inference_rejects_async_results(tmp_path, monkeypatch):
     cfg = OmegaConf.create(
         {
             "parallel": {"env": "local"},
-            "infer_dir": str(tmp_path / "infer"),
+            "inference_dir": str(tmp_path / "infer"),
             "dataset": {"test": [{"name": "test_a"}]},
             "input_key": "speech",
             "output_fn": f"{__name__}.dummy_output_fn",
@@ -122,14 +122,14 @@ def test_inference_rejects_async_results(tmp_path, monkeypatch):
     monkeypatch.setattr(inference_mod, "set_parallel", lambda arg: None)
 
     with pytest.raises(RuntimeError, match="Async inference is not supported"):
-        inference_mod.inference(cfg)
+        inference_mod.infer(cfg)
 
 
 def test_inference_passes_provider_params(tmp_path, monkeypatch):
     cfg = OmegaConf.create(
         {
             "parallel": {"env": "local"},
-            "infer_dir": str(tmp_path / "infer"),
+            "inference_dir": str(tmp_path / "infer"),
             "dataset": {"test": [{"name": "test_a"}]},
             "input_key": "speech",
             "output_fn": f"{__name__}.dummy_output_fn",
@@ -148,7 +148,7 @@ def test_inference_passes_provider_params(tmp_path, monkeypatch):
 
     monkeypatch.setattr(inference_mod, "set_parallel", lambda arg: None)
 
-    inference_mod.inference(cfg)
+    inference_mod.infer(cfg)
 
     assert CaptureProvider.last_params == {
         "beam": 5,

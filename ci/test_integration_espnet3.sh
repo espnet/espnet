@@ -26,10 +26,10 @@ run_with_train_config() {
 
     ln -sfn "${train_config}" conf/train.yaml
     ${python} "${runner}" \
-        --stages create_dataset train_tokenizer collect_stats train infer measure \
+        --stages create_dataset train_tokenizer collect_stats train infer metric \
         --train_config conf/train.yaml \
         --infer_config "${infer_config}" \
-        --measure_config conf/measure.yaml
+        --metric_config conf/metric.yaml
     rm -rf exp data
 }
 
@@ -42,12 +42,12 @@ debug_configs=(
 )
 
 for train_config in "${debug_configs[@]}"; do
-    run_with_train_config "${train_config}" run.py conf/infer.yaml
+    run_with_train_config "${train_config}" run.py conf/inference.yaml
 done
 
 run_with_train_config \
     train_transducer_asr_conformer_rnnt_debug.yaml \
-    run_transducer.py \
-    conf/infer_transducer.yaml
+    run.py \
+    conf/inference_transducer.yaml
 
 cd "${cwd}"

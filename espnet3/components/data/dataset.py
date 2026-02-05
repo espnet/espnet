@@ -277,7 +277,7 @@ class DatasetWithTransform:
         ...         "text": sample["text"].upper()
         ...     }
         >>>
-        >>> def preprocessor(uid, sample):
+        >>> def preprocess(uid, sample):
         ...     return {
         ...         "text": f"[uid={uid}] " + sample["text"]
         ...     }
@@ -285,7 +285,7 @@ class DatasetWithTransform:
         >>> wrapped = DatasetWithTransform(
         ...     my_dataset,
         ...     transform,
-        ...     preprocessor,
+        ...     preprocess,
         ...     use_espnet_preprocessor=True
         ... )
         >>> uid_sample = wrapped[0]

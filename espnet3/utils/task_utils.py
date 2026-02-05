@@ -13,7 +13,7 @@ from typeguard import typechecked
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 
 
-def get_task_class(task_path: str):
+def get_task_cls(task_path: str):
     """Resolve and return an ESPnet2 Task class from a dotted class path.
 
     Args:
@@ -63,7 +63,7 @@ def get_espnet_model(task: str, config: Union[Dict, DictConfig]) -> AbsESPnetMod
         ...     {"frontend": "default"},
         ... )  # doctest: +SKIP
     """
-    ez_task = get_task_class(task)
+    ez_task = get_task_cls(task)
 
     # workaround for calling get_default_config
     original_argv = sys.argv
@@ -108,7 +108,7 @@ def save_espnet_config(
     Example:
         >>> save_espnet_config(\"espnet2.tasks.asr.ASRTask\", cfg, \"exp\")  # doctest: +SKIP
     """
-    ez_task = get_task_class(task)
+    ez_task = get_task_cls(task)
 
     # workaround for calling get_default_config
     original_argv = sys.argv

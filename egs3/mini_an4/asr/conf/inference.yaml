@@ -16,9 +16,8 @@ model:
   asr_train_config: exp/${load_yaml:conf/train.yaml,exp_tag}/config.yaml
   asr_model_file: exp/${load_yaml:conf/train.yaml,exp_tag}/last.ckpt
 
-# Generic ESPnet3 inference entrypoint settings.
 input_key: speech
-output_fn: src.infer.output_fn
+output_fn: src.inference.output_fn
 
 provider:
   _target_: espnet3.systems.base.inference_provider.InferenceProvider

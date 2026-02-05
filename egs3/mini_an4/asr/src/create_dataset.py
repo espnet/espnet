@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
 
-from espnet3.utils.download import extract_targz, setup_logger
+from espnet3.utils.download_utils import extract_targz, setup_logger
 
 LOGGER = logging.getLogger(__name__)
 
