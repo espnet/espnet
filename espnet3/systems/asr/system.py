@@ -11,7 +11,7 @@ from importlib import import_module
 from pathlib import Path
 from typing import Iterable
 
-from espnet3.systems.asr.tokenizer.sentencepiece import train_sentencepiece
+from espnet3.systems.asr.tokenizers.sentencepiece import train_sentencepiece
 from espnet3.systems.base.system import BaseSystem
 
 logger = logging.getLogger(__name__)
@@ -21,7 +21,7 @@ def load_function(path):
     """Load a callable from a dotted module path.
 
     Args:
-        path: Dotted module path (e.g., ``package.module:function``).
+        path: Dotted module path (e.g., ``package.module.function``).
 
     Returns:
         Callable referenced by the path.
@@ -53,19 +53,19 @@ class ASRSystem(BaseSystem):
         self._reject_stage_args("create_dataset", args, kwargs)
         logger.info("ASRSystem.create_dataset(): starting dataset creation process")
         start = time.perf_counter()
-        cfg = getattr(self.train_config, "create_dataset", None)
-        if cfg is None or not getattr(cfg, "func", None):
+        config = getattr(self.train_config, "create_dataset", None)
+        if config is None or not getattr(config, "func", None):
             raise RuntimeError(
                 "train_config.create_dataset.func must be set to run create_dataset"
             )
-        fn = load_function(cfg.func)
-        extra = {k: v for k, v in cfg.items() if k != "func"}
-        logger.info("Creating dataset with function %s", cfg.func)
+        fn = load_function(config.func)
+        extra = {k: v for k, v in config.items() if k != "func"}
+        logger.info("Creating dataset with function %s", config.func)
         result = fn(**extra)
         logger.info(
             "Dataset creation completed in %.2fs using %s",
             time.perf_counter() - start,
-            cfg.func,
+            config.func,
         )
         return result
 
@@ -154,11 +154,11 @@ class ASRSystem(BaseSystem):
         # Proceed with standard training
         return super().train()
 
-    def _tokenizer_exists(self) -> bool:
-        tokenizer_cfg = self.train_config.tokenizer
-        output_path = Path(tokenizer_cfg.save_path)
-        model = output_path / f"{tokenizer_cfg.model_type}.model"
-        vocab = output_path / f"{tokenizer_cfg.model_type}.vocab"
+    def _has_tokenizer(self) -> bool:
+        tokenizer_config = self.train_config.tokenizer
+        output_path = Path(tokenizer_config.save_path)
+        model = output_path / f"{tokenizer_config.model_type}.model"
+        vocab = output_path / f"{tokenizer_config.model_type}.vocab"
         return model.exists() and vocab.exists()
 
     def train_tokenizer(self, *args, **kwargs):
@@ -173,22 +173,24 @@ class ASRSystem(BaseSystem):
         """
         self._reject_stage_args("train_tokenizer", args, kwargs)
 
-        if self._tokenizer_exists():
+        if self._has_tokenizer():
             logger.info("Tokenizer already exists. Skipping train_tokenizer().")
             return
         start = time.perf_counter()
-        tokenizer_cfg = getattr(self.train_config, "tokenizer", None)
-        builder_cfg = (
-            getattr(tokenizer_cfg, "text_builder", None) if tokenizer_cfg else None
+        tokenizer_config = getattr(self.train_config, "tokenizer", None)
+        builder_config = (
+            getattr(tokenizer_config, "text_builder", None)
+            if tokenizer_config
+            else None
         )
-        if builder_cfg is None or not getattr(builder_cfg, "func", None):
+        if builder_config is None or not getattr(builder_config, "func", None):
             raise RuntimeError(
                 "train_config.tokenizer.text_builder.func must be set to build "
                 "tokenizer text."
             )
-        builder = load_function(builder_cfg.func)
-        builder_kwargs = {k: v for k, v in builder_cfg.items() if k != "func"}
-        logger.info("Building tokenizer training text via %s", builder_cfg.func)
+        builder = load_function(builder_config.func)
+        builder_kwargs = {k: v for k, v in builder_config.items() if k != "func"}
+        logger.info("Building tokenizer training text via %s", builder_config.func)
         built = builder(**builder_kwargs)
         texts: list[str]
         if isinstance(built, (str, os.PathLike)):
@@ -210,7 +212,7 @@ class ASRSystem(BaseSystem):
             )
         output_path = Path(self.train_config.tokenizer.save_path)
         output_path.mkdir(parents=True, exist_ok=True)
-        train_text_path = getattr(tokenizer_cfg, "train_file", None)
+        train_text_path = getattr(tokenizer_config, "train_file", None)
         if train_text_path:
             train_text_path = Path(train_text_path)
         else:

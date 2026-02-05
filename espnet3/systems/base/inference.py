@@ -66,7 +66,7 @@ def _collect_scp_lines(results, *, idx_key: str, hyp_keys, ref_keys):
     return scp_lines
 
 
-def inference(config: DictConfig):
+def infer(config: DictConfig):
     """Run inference over all configured test sets and write SCP files.
 
     Args:
@@ -80,8 +80,8 @@ def inference(config: DictConfig):
     assert len(test_sets) == len(set(test_sets)), "Duplicate test key found."
 
     logger.info(
-        "Starting inference | infer_dir=%s test_sets=%s",
-        getattr(config, "infer_dir", None),
+        "Starting inference | inference_dir=%s test_sets=%s",
+        getattr(config, "inference_dir", None),
         test_sets,
     )
 
@@ -122,11 +122,16 @@ def inference(config: DictConfig):
             provider_params = OmegaConf.to_container(raw_params, resolve=True)
         else:
             provider_params = dict(raw_params)
+
         provider_params["input_key"] = input_key
         provider_params["output_fn_path"] = output_fn_path
-        provider_config.params = provider_params
 
-        provider = instantiate(provider_config)
+        provider = instantiate(
+            provider_config,
+            infer_config=config,
+            params=provider_params,
+            _recursive_=False,
+        )
 
         hyp_keys = output_keys if output_keys is not None else []
         runner_config = getattr(config, "runner", None)
@@ -169,7 +174,7 @@ def inference(config: DictConfig):
         )
 
         # create scp files
-        output_dir = Path(config.infer_dir) / test_name
+        output_dir = Path(config.inference_dir) / test_name
         output_dir.mkdir(parents=True, exist_ok=True)
         for key, lines in scp_lines.items():
             with open(output_dir / f"{key}.scp", "w", encoding="utf-8") as f:

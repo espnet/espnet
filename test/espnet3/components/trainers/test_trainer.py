@@ -12,8 +12,8 @@ from omegaconf import OmegaConf  # ListConfig,
 from typeguard import TypeCheckError
 
 from espnet3.components.modeling.lightning_module import ESPnetLightningModule
-from espnet3.components.training.trainer import ESPnet3LightningTrainer
-from espnet3.utils.config import load_config_with_defaults
+from espnet3.components.trainers.trainer import ESPnet3LightningTrainer
+from espnet3.utils.config_utils import load_config_with_defaults
 
 # ===============================================================
 # Test Case Summary for ESPnet3LightningTrainer
@@ -44,7 +44,7 @@ from espnet3.utils.config import load_config_with_defaults
 # | Test Name                    | Description                                                                  | # noqa: E501
 # |-----------------------------|------------------------------------------------------------------------------| # noqa: E501
 # | test_missing_model_raises   | Raises `TypeCheckError` if `model` is None                                   | # noqa: E501
-# | test_missing_expdir_raises  | Raises `TypeCheckError` if `expdir` is None                                  | # noqa: E501
+# | test_missing_exp_dir_raises  | Raises `TypeCheckError` if `exp_dir` is None                                  | # noqa: E501
 # | test_missing_config_raises  | Raises `TypeCheckError` if `config` is None                                  | # noqa: E501
 
 DUMMY_DATASET_TARGET = "test.espnet3.components.data.test_data_organizer.DummyDataset"
@@ -59,7 +59,7 @@ class DummyDataset(torch.utils.data.Dataset):
         return 4
 
 
-EXPDIR = "test_utils/espnet3"
+exp_dir = "test_utils/espnet3"
 
 
 @pytest.fixture
@@ -108,7 +108,7 @@ def base_trainer_config(tmp_path):
 def model_config():
     return OmegaConf.create(
         {
-            "expdir": EXPDIR,
+            "exp_dir": exp_dir,
             "optim": {"_target_": "torch.optim.Adam", "lr": 0.001},
             "scheduler": {
                 "_target_": "torch.optim.lr_scheduler.StepLR",
@@ -165,7 +165,7 @@ dataloader:
     cfg = load_config_with_defaults(str(config_path))
     return OmegaConf.create(
         {
-            "expdir": EXPDIR,
+            "exp_dir": exp_dir,
             "optim": {"_target_": "torch.optim.Adam", "lr": 0.001},
             "scheduler": {
                 "_target_": "torch.optim.lr_scheduler.StepLR",
@@ -207,7 +207,7 @@ def test_logger_variants(
 
     model = nn.Linear(10, 1)
     lit = ESPnetLightningModule(model, model_config)
-    wrapper = ESPnet3LightningTrainer(model=lit, config=trainer_config, expdir=EXPDIR)
+    wrapper = ESPnet3LightningTrainer(model=lit, config=trainer_config, exp_dir=exp_dir)
 
     assert isinstance(wrapper.trainer.logger, expect_logger_type)
 
@@ -239,7 +239,7 @@ def test_accelerator_variants(
 
     model = nn.Linear(10, 1)
     lit = ESPnetLightningModule(model, model_config)
-    wrapper = ESPnet3LightningTrainer(model=lit, config=trainer_config, expdir=EXPDIR)
+    wrapper = ESPnet3LightningTrainer(model=lit, config=trainer_config, exp_dir=exp_dir)
 
     assert isinstance(wrapper.trainer.accelerator, expect_type)
 
@@ -267,7 +267,7 @@ def test_strategy_variants(
 
     model = nn.Linear(10, 1)
     lit = ESPnetLightningModule(model, model_config)
-    wrapper = ESPnet3LightningTrainer(model=lit, config=trainer_config, expdir=EXPDIR)
+    wrapper = ESPnet3LightningTrainer(model=lit, config=trainer_config, exp_dir=exp_dir)
 
     assert isinstance(wrapper.trainer.strategy, expect_type)
 
@@ -280,7 +280,7 @@ def test_strategy_variants(
             [
                 {
                     "_target_": "lightning.pytorch.profilers.SimpleProfiler",
-                    "dirpath": EXPDIR,
+                    "dirpath": exp_dir,
                 }
             ],
             SimpleProfiler,
@@ -298,7 +298,7 @@ def test_profiler_variants(
 
     model = nn.Linear(10, 1)
     lit = ESPnetLightningModule(model, model_config)
-    wrapper = ESPnet3LightningTrainer(model=lit, config=trainer_config, expdir=EXPDIR)
+    wrapper = ESPnet3LightningTrainer(model=lit, config=trainer_config, exp_dir=exp_dir)
 
     if isinstance(wrapper.trainer.profiler, list):
         assert isinstance(wrapper.trainer.profiler[0], expect_type)
@@ -331,7 +331,7 @@ def test_plugins_variants(
 
     model = nn.Linear(10, 1)
     lit = ESPnetLightningModule(model, model_config)
-    wrapper = ESPnet3LightningTrainer(model=lit, config=trainer_config, expdir=EXPDIR)
+    wrapper = ESPnet3LightningTrainer(model=lit, config=trainer_config, exp_dir=exp_dir)
 
     if plugin is None:
         assert wrapper.trainer._accelerator_connector._precision_plugin_flag is None
@@ -349,7 +349,7 @@ def test_reload_dataloaders_enforced(
     model = ESPnetLightningModule(nn.Linear(1, 1), model_config_espnet_sampler)
 
     wrapper = ESPnet3LightningTrainer(
-        model=model, config=base_trainer_config, expdir="exp"
+        model=model, config=base_trainer_config, exp_dir="exp"
     )
 
     assert wrapper.config.reload_dataloaders_every_n_epochs == 1
@@ -362,7 +362,7 @@ def test_distributed_sampler_disabled_if_espnet_sampler(
     model = ESPnetLightningModule(nn.Linear(1, 1), model_config_espnet_sampler)
 
     wrapper = ESPnet3LightningTrainer(
-        model=model, config=base_trainer_config, expdir="exp"
+        model=model, config=base_trainer_config, exp_dir="exp"
     )
 
     assert wrapper.config.use_distributed_sampler is False
@@ -375,7 +375,7 @@ def test_fit_calls_trainer_fit(
     model = ESPnetLightningModule(nn.Linear(1, 1), model_config)
 
     wrapper = ESPnet3LightningTrainer(
-        model=model, config=base_trainer_config, expdir="exp"
+        model=model, config=base_trainer_config, exp_dir="exp"
     )
     wrapper.trainer.fit = MagicMock()
     wrapper.fit("a", b="b")
@@ -390,7 +390,7 @@ def test_validate_calls_trainer_validate(
     model = ESPnetLightningModule(nn.Linear(1, 1), model_config)
 
     wrapper = ESPnet3LightningTrainer(
-        model=model, config=base_trainer_config, expdir="exp"
+        model=model, config=base_trainer_config, exp_dir="exp"
     )
     wrapper.trainer.validate = MagicMock(return_value=[{"acc": 0.9}])
     result = wrapper.validate("x")
@@ -401,16 +401,16 @@ def test_validate_calls_trainer_validate(
 
 def test_missing_model_raises(base_trainer_config):
     with pytest.raises(TypeCheckError):
-        ESPnet3LightningTrainer(model=None, config=base_trainer_config, expdir="exp")
+        ESPnet3LightningTrainer(model=None, config=base_trainer_config, exp_dir="exp")
 
 
-def test_missing_expdir_raises(base_trainer_config, model_config):
+def test_missing_exp_dir_raises(base_trainer_config, model_config):
     with pytest.raises(TypeCheckError):
         ESPnet3LightningTrainer(
-            model=MagicMock(), config=base_trainer_config, expdir=None
+            model=MagicMock(), config=base_trainer_config, exp_dir=None
         )
 
 
 def test_missing_config_raises(model_config):
     with pytest.raises(TypeCheckError):
-        ESPnet3LightningTrainer(model=MagicMock(), config=None, expdir="exp")
+        ESPnet3LightningTrainer(model=MagicMock(), config=None, exp_dir="exp")

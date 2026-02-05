@@ -7,7 +7,7 @@ import torch
 
 from espnet2.text.sentencepiece_tokenizer import SentencepiecesTokenizer
 from espnet2.text.token_id_converter import TokenIDConverter
-from espnet3.systems.asr.tokenizer.sentencepiece import (
+from espnet3.systems.asr.tokenizers.sentencepiece import (
     add_special_tokens,
     prepare_sentences,
     train_sentencepiece,

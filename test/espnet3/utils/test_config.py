@@ -3,7 +3,7 @@ import os
 import pytest
 from yaml.parser import ParserError
 
-from espnet3.utils.config import load_config_with_defaults, load_line
+from espnet3.utils.config_utils import load_config_with_defaults, load_line
 
 # ===============================================================
 # Test Case Summary for Config Utilities

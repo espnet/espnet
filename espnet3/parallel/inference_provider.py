@@ -25,15 +25,15 @@ class InferenceProvider(EnvironmentProvider, ABC):
         super().__init__(config)
         self.params = params or {}
         # Build once for local execution to avoid redundant IO
-        self._local_env = self.make_worker_setup_fn()()
+        self._local_env = self.build_worker_setup_fn()()
 
     @staticmethod
     @abstractmethod
-    def build_dataset(cfg: DictConfig):
+    def build_dataset(config: DictConfig):
         """Create a dataset object from config.
 
         Args:
-            cfg: Configuration for dataset construction.
+            config: Configuration for dataset construction.
 
         Returns:
             Dataset-like object used for inference.
@@ -42,11 +42,11 @@ class InferenceProvider(EnvironmentProvider, ABC):
 
     @staticmethod
     @abstractmethod
-    def build_model(cfg: DictConfig):
+    def build_model(config: DictConfig):
         """Create a model object from config.
 
         Args:
-            cfg: Configuration for model construction.
+            config: Configuration for model construction.
 
         Returns:
             Model-like object used for inference.
@@ -61,19 +61,19 @@ class InferenceProvider(EnvironmentProvider, ABC):
         """
         return dict(self._local_env)
 
-    def make_worker_setup_fn(self):
+    def build_worker_setup_fn(self):
         """Return a setup function that rebuilds the env per worker.
 
         Returns:
             Callable that constructs a fresh environment when invoked.
         """
-        cfg = self.config
+        config = self.config
         params = dict(self.params)
 
         def setup() -> Dict[str, Any]:
             env = {
-                "dataset": self.build_dataset(cfg),
-                "model": self.build_model(cfg),
+                "dataset": self.build_dataset(config),
+                "model": self.build_model(config),
             }
             env.update(params)
             return env

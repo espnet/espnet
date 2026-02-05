@@ -1,6 +1,6 @@
 from omegaconf import OmegaConf
 
-import espnet3.systems.base.train as train_mod
+import espnet3.systems.base.training as train_mod
 
 
 class DummyTrainer:

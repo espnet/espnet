@@ -4,6 +4,7 @@ import pytest
 from omegaconf import OmegaConf
 
 import espnet3.systems.base.inference as inference_mod
+from espnet3.systems.base.inference_provider import InferenceProvider
 from espnet3.systems.base.inference_runner import InferenceRunner
 
 
@@ -11,8 +12,9 @@ def dummy_output_fn(*, data, model_output, idx):
     return {"idx": idx, "hyp": "h", "ref": "r"}
 
 
-class DummyProvider:
-    def __init__(self, *, params):
+class DummyProvider(InferenceProvider):
+    def __init__(self, infer_config, params):
+        super().__init__(infer_config)
         self.params = params
 
     def build_dataset(self, _config):
@@ -37,10 +39,11 @@ class DummyRunner(InferenceRunner):
         return self._results
 
 
-class CaptureProvider:
+class CaptureProvider(InferenceRunner):
     last_params = None
 
-    def __init__(self, *, params):
+    def __init__(self, infer_config, *, params):
+        super().__init__(infer_config)
         CaptureProvider.last_params = params
 
     def build_dataset(self, _config):
@@ -67,7 +70,7 @@ def test_inference_writes_scp_outputs(tmp_path, monkeypatch):
     cfg = OmegaConf.create(
         {
             "parallel": {"env": "local"},
-            "infer_dir": str(tmp_path / "infer"),
+            "inference_dir": str(tmp_path / "infer"),
             "dataset": {"test": [{"name": "test_a"}, {"name": "test_b"}]},
             "input_key": "speech",
             "output_fn": f"{__name__}.dummy_output_fn",
@@ -90,7 +93,7 @@ def test_inference_writes_scp_outputs(tmp_path, monkeypatch):
 
     monkeypatch.setattr(inference_mod, "set_parallel", fake_set_parallel)
 
-    inference_mod.inference(cfg)
+    inference_mod.infer(cfg)
 
     assert calls["parallel"] == {"env": "local"}
     for test_name in ("test_a", "test_b"):
@@ -103,7 +106,7 @@ def test_inference_rejects_async_results(tmp_path, monkeypatch):
     cfg = OmegaConf.create(
         {
             "parallel": {"env": "local"},
-            "infer_dir": str(tmp_path / "infer"),
+            "inference_dir": str(tmp_path / "infer"),
             "dataset": {"test": [{"name": "test_a"}]},
             "input_key": "speech",
             "output_fn": f"{__name__}.dummy_output_fn",
@@ -119,14 +122,14 @@ def test_inference_rejects_async_results(tmp_path, monkeypatch):
     monkeypatch.setattr(inference_mod, "set_parallel", lambda arg: None)
 
     with pytest.raises(RuntimeError, match="Async inference is not supported"):
-        inference_mod.inference(cfg)
+        inference_mod.infer(cfg)
 
 
 def test_inference_passes_provider_params(tmp_path, monkeypatch):
     cfg = OmegaConf.create(
         {
             "parallel": {"env": "local"},
-            "infer_dir": str(tmp_path / "infer"),
+            "inference_dir": str(tmp_path / "infer"),
             "dataset": {"test": [{"name": "test_a"}]},
             "input_key": "speech",
             "output_fn": f"{__name__}.dummy_output_fn",
@@ -145,7 +148,7 @@ def test_inference_passes_provider_params(tmp_path, monkeypatch):
 
     monkeypatch.setattr(inference_mod, "set_parallel", lambda arg: None)
 
-    inference_mod.inference(cfg)
+    inference_mod.infer(cfg)
 
     assert CaptureProvider.last_params == {
         "beam": 5,
