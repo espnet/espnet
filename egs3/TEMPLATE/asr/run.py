@@ -11,7 +11,11 @@ from typing import Any, Callable, List, Optional, Sequence, Tuple, Type
 from omegaconf import OmegaConf
 
 from espnet3.utils.config_utils import load_config_with_defaults
-from espnet3.utils.logging_utils import configure_logging, log_env_metadata, log_run_metadata
+from espnet3.utils.logging_utils import (
+    configure_logging,
+    log_env_metadata,
+    log_run_metadata,
+)
 from espnet3.utils.stages_utils import resolve_stages, run_stages
 
 # Default stage list (can be extended/overridden by callers)
@@ -23,7 +27,7 @@ DEFAULT_STAGES: List[str] = [
     "infer",
     "metric",
     "pack_model",
-    "upload_model"
+    "upload_model",
 ]
 
 # Type alias for a System class
