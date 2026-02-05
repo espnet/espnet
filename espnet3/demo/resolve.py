@@ -27,7 +27,7 @@ from typing import Any, Dict
 from hydra.utils import get_class, get_method
 from omegaconf import DictConfig, OmegaConf
 
-from espnet3.utils.config import load_config_with_defaults
+from espnet3.utils.config_utils import load_config_with_defaults
 
 logger = logging.getLogger(__name__)
 

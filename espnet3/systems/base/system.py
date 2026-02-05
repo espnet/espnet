@@ -5,7 +5,7 @@ from pathlib import Path
 
 from omegaconf import DictConfig
 
-from espnet3.systems.base.inference import infer
+from espnet3.systems.base.inference import inference
 from espnet3.systems.base.metric import metric
 from espnet3.systems.base.training import collect_stats, train
 
