@@ -15,7 +15,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from espnet3.utils.download import download_url, extract_targz, setup_logger
+from espnet3.utils.download_utils import download_url, extract_targz, setup_logger
 
 OPENSLR_BASE_URL = "https://www.openslr.org/resources/12"
 
