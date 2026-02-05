@@ -159,7 +159,7 @@ def test_reduce_on_plateau_monitor_from_config():
 def test_val_scheduler_criterion_sets_epoch():
     config = OmegaConf.create(
         {
-            "optim": {"_target_": "torch.optim.Adam", "lr": 0.01},
+            "optimizer": {"_target_": "torch.optim.Adam", "lr": 0.01},
             "scheduler": {
                 "_target_": "torch.optim.lr_scheduler.StepLR",
                 "step_size": 5,

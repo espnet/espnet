@@ -68,7 +68,7 @@ def run_stages(
             continue
 
         if stage_log_dir_fn is not None:
-            from espnet3.utils.logging import set_stage_log_handler
+            from espnet3.utils.logging_utils import set_stage_log_handler
 
             log_dir = stage_log_dir_fn(stage)
             set_stage_log_handler(

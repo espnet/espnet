@@ -148,7 +148,7 @@ class ASRSystem(BaseSystem):
             raise RuntimeError("train_config.dataset_dir must be set for training.")
 
         # Train tokenizer if not trained previously
-        if not self._tokenizer_exists():
+        if not self._has_tokenizer():
             self.train_tokenizer()
 
         # Proceed with standard training
