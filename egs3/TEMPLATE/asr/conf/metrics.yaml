@@ -8,12 +8,12 @@ exp_tag: asr_template_eval
 exp_dir: ${recipe_dir}/exp/${exp_tag}
 stats_dir: ${recipe_dir}/exp/stats
 decode_dir: ${exp_dir}/decode
-infer_dir: ${exp_dir}/infer
+inference_dir: ${exp_dir}/inference
 dataset_dir: /path/to/your/dataset
 
 # Dataset definition for test splits only (used to enumerate test names).
 dataset:
-  _target_: espnet3.components.data_organizer.DataOrganizer
+  _target_: espnet3.components.data.data_organizer.DataOrganizer
   test:
     - name: test-clean
       dataset:

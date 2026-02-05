@@ -7,7 +7,7 @@ data_dir: ${recipe_dir}/data
 dataset_dir: /path/to/your/dataset
 exp_tag: asr_template_eval
 exp_dir: ${recipe_dir}/exp/${exp_tag}
-infer_dir: ${exp_dir}/infer
+inference_dir: ${exp_dir}/inference
 
 # Dataset definition for test splits only.
 dataset:
@@ -28,6 +28,11 @@ model:
 # Inference I/O.
 input_key: speech
 output_fn: src.infer.output_fn
+
+provider:
+  _target_: espnet3.systems.base.inference_provider.InferenceProvider
+runner:
+  _target_: espnet3.systems.base.inference_runner.InferenceRunner
 
 # Parallel execution used during data loading / scoring (defaults to local).
 parallel:

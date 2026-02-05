@@ -43,20 +43,6 @@ def configure_logging(
       - An optional file handler at `log_dir/filename`.
       - Warning capture into the logging system.
 
-    Example usage:
-        ```python
-        from pathlib import Path
-        from espnet3.utils.logging_utils import configure_logging
-
-        logger = configure_logging(log_dir=Path("exp/run1"), level=logging.INFO)
-        logger.info("hello")
-        ```
-
-    Example log output:
-        ```
-        2026-02-04 10:15:22 | INFO | espnet3 | hello
-        ```
-
     Args:
         log_dir (Path | None): Directory to store the log file.
             If None, only console logging is configured.
@@ -95,6 +81,54 @@ def configure_logging(
 
     logging.captureWarnings(True)
     return logging.getLogger("espnet3")
+
+
+def set_stage_log_handler(
+    logger: logging.Logger,
+    log_dir: Path | None,
+    *,
+    filename: str,
+) -> Path | None:
+    """Attach a file handler for a stage log, replacing any prior stage handler.
+
+    This function adds a new file handler to the root logger and removes any
+    previously installed stage handler (identified via ``_espnet3_stage_log``).
+    If a log file already exists at the target path, it is rotated (e.g.,
+    ``train.log`` -> ``train1.log``) before creating the new handler.
+
+    Args:
+        logger (logging.Logger): Logger used to emit logs.
+            The handler is attached to the root logger so the logger hierarchy
+            continues to work as expected.
+        log_dir (Path | None): Directory that should receive the stage log.
+            If None, no handler is installed and None is returned.
+        filename (str): Log filename to create within ``log_dir``.
+
+    Returns:
+        Path | None: Resolved log file path when installed, otherwise None.
+    """
+    if log_dir is None:
+        return None
+
+    log_dir.mkdir(parents=True, exist_ok=True)
+    target = (log_dir / filename).resolve()
+
+    root = logging.getLogger()
+    for handler in list(root.handlers):
+        if getattr(handler, "_espnet3_stage_log", False):
+            root.removeHandler(handler)
+            handler.close()
+
+    formatter = logging.Formatter(fmt=LOG_FORMAT, datefmt=DATE_FORMAT)
+    if target.exists():
+        rotated = _next_rotated_log_path(target)
+        os.replace(target, rotated)
+    file_handler = logging.FileHandler(target)
+    file_handler.setFormatter(formatter)
+    file_handler._espnet3_stage_log = True
+    root.addHandler(file_handler)
+
+    return target
 
 
 def _run_git_command(cmd: list[str], cwd: Path | None) -> str | None:
@@ -236,34 +270,6 @@ def log_run_metadata(
       - Git metadata (commit/branch/dirty), when available.
       - Optional requirements snapshot (pip freeze).
 
-    Example usage:
-        ```python
-        from pathlib import Path
-        from espnet3.utils.logging_utils import configure_logging, log_run_metadata
-
-        logger = configure_logging(log_dir=Path("exp/run1"))
-        log_run_metadata(
-            logger,
-            argv=["espnet3-train", "--config", "conf/train.yaml"],
-            workdir=Path("/home/user/espnet3"),
-            configs={"train": Path("conf/train.yaml")},
-        )
-        ```
-
-    Example log output (wrapped for readability, <= 88 chars):
-        ```
-        2026-02-04 10:15:22 | INFO | espnet3 | === ESPnet3 run started: \
-            2026-02-04T10:15:22 ===
-        2026-02-04 10:15:22 | INFO | espnet3 | Command: /usr/bin/python3 \
-            espnet3-train --config conf/train.yaml
-        2026-02-04 10:15:22 | INFO | espnet3 | Python: 3.10.12 (GCC 11.4.0)
-        2026-02-04 10:15:22 | INFO | espnet3 | Working directory: /home/user/espnet3
-        2026-02-04 10:15:22 | INFO | espnet3 | train config: /home/user/espnet3/conf/\
-            train.yaml
-        2026-02-04 10:15:22 | INFO | espnet3 | Git: commit=0123456789abcdef, \
-            short_commit=0123456, branch=main, worktree=clean
-        ```
-
     Args:
         logger (logging.Logger): Logger used to emit metadata.
         argv (Iterable[str] | None): Command arguments; defaults to sys.argv.
@@ -329,26 +335,6 @@ def log_env_metadata(
     The output includes two blocks:
       - Cluster environment variables (scheduler/runtime IDs).
       - Runtime environment variables (CUDA/NCCL/OMP/PATH, etc.).
-
-    Example usage:
-        ```python
-        from pathlib import Path
-        from espnet3.utils.logging_utils import configure_logging, log_env_metadata
-
-        logger = configure_logging(log_dir=Path("exp/run1"))
-        log_env_metadata(logger)
-        ```
-
-    Example log output:
-        ```
-        2026-02-04 10:15:22 | INFO | espnet3 | Cluster env:
-        SLURM_JOB_ID=12345
-        SLURM_PROCID=0
-        2026-02-04 10:15:22 | INFO | espnet3 | Runtime env:
-        CUDA_VISIBLE_DEVICES=0
-        NCCL_DEBUG=INFO
-        PATH=/usr/local/bin:/usr/bin:/bin
-        ```
 
     Args:
         logger (logging.Logger): Logger used to emit metadata.
