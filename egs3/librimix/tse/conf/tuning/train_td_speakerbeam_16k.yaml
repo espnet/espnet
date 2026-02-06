@@ -1,0 +1,184 @@
+# Main training for LibriMix mix_both TSE recipe (Time-Domain SpeakerBeam tuning).
+# Same as the base train config; kept separate for tuning variants.
+
+
+# DDP/Lightning runtime parameters.
+num_device: 1
+num_nodes: 1
+task: espnet3.systems.tse.task.TSETask
+
+
+# Path scaffold relative to the recipe root.
+recipe_dir: .
+data_dir: ${recipe_dir}/data
+exp_tag: librimix_tse_td_speakerbeam
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+stats_dir: ${recipe_dir}/exp/stats
+infer_dir: ${exp_dir}/infer 
+dataset_dir: /path/to/LibriMix
+
+# Dataset creation function and arguments (downloads into dataset_dir cache).
+create_dataset:
+  func: src.create_dataset.create_dataset
+  dataset_dir: ${dataset_dir}
+
+# Dataset definition for training/validation splits. Each dataset entry passes
+# the root LibriSpeech path and split name into src.dataset:LibriSpeechDataset.
+dataset:
+  _target_: espnet3.components.data_organizer.DataOrganizer
+  train:
+    - name: train-mix-both
+      dataset:
+        _target_: src.dataset.LibriMixTSEDataset
+        data_dir: ${dataset_dir}
+        split: train-mix-both
+  valid:
+    - name: dev-mix-both
+      dataset:
+        _target_: src.dataset.LibriMixTSEDataset
+        data_dir: ${dataset_dir}
+        split: dev-mix-both
+
+  preprocessor:
+    _target_: espnet2.train.preprocessor.TSEPreprocessor
+    train_spk2enroll: ${data_dir}/train-100/spk2enroll.json
+    enroll_segment: 48000
+    load_spk_embedding: false
+    load_all_speakers: true
+    num_spk: ${model.model_conf.num_spk}
+
+# Parallel execution settings used by espnet3.parallel (local by default).
+parallel:
+  env: local
+  n_workers: 1
+
+
+# DataLoader setup: CommonCollate, train uses sorted batching over shapes.
+dataloader:
+  collate_fn:
+    _target_: espnet2.train.collate_fn.CommonCollateFn
+    int_pad_value: -1
+  train:
+    multiple_iterator: false
+    num_shards: 1
+    iter_factory:
+      _target_: espnet2.iterators.chunk_iter_factory.ChunkIterFactory
+      shuffle: true
+      collate_fn: ${dataloader.collate_fn}
+      chunk_length: 48000
+      chunk_shift_ratio: 0.5
+      # exclude keys "enroll_ref", "enroll_ref1", "enroll_ref2", ...
+      # from the length consistency check in ChunkIterFactory
+      excluded_key_prefixes:
+        - "enroll_ref"
+      num_workers: 4
+      batches:
+        type: folded
+        shape_files:
+          - ${stats_dir}/train/feats_shape
+        fold_lengths:
+          - 80000
+        batch_size: 16
+        batch_bins: -1
+  valid:
+    multiple_iterator: false
+    num_shards: 1
+    iter_factory:
+      _target_: espnet2.iterators.chunk_iter_factory.ChunkIterFactory
+      shuffle: false
+      collate_fn: ${dataloader.collate_fn}
+      chunk_length: ${dataloader.train.iter_factory.chunk_length}
+      chunk_shift_ratio: ${dataloader.train.iter_factory.chunk_shift_ratio}
+      excluded_key_prefixes: ${dataloader.train.iter_factory.excluded_key_prefixes}
+      num_workers: ${dataloader.train.iter_factory.num_workers}
+      batches:
+        type: ${dataloader.train.iter_factory.batches.type}
+        shape_files:
+          - ${stats_dir}/valid/feats_shape
+        fold_lengths:
+          - 80000
+        batch_size: ${dataloader.train.iter_factory.batches.batch_size}
+        batch_bins: ${dataloader.train.iter_factory.batches.batch_bins}
+
+
+# Optimizer and scheduler follow the template defaults.
+optim:
+  _target_: torch.optim.Adam
+  lr: 1.0e-03
+  eps: 1.0e-08
+  weight_decay: 0
+
+
+scheduler:
+  _target_: torch.optim.lr_scheduler.ReduceLROnPlateau
+  mode: min
+  factor: 0.7
+  patience: 3
+
+
+best_model_criterion:
+  - - valid/loss
+    - 3
+    - min
+
+
+# Lightning Trainer knobs: BF16 mixed precision, long training schedule.
+trainer:
+  accelerator: auto
+  devices: ${num_device}
+  num_nodes: ${num_nodes}
+  accumulate_grad_batches: 1
+  check_val_every_n_epoch: 1
+  gradient_clip_val: 5.0
+  log_every_n_steps: 100
+  max_epochs: 100
+  precision: 32 # https://lightning.ai/docs/pytorch/stable/common/trainer.html#precision
+
+  logger:
+    - _target_: lightning.pytorch.loggers.TensorBoardLogger
+      save_dir: ${exp_dir}/tensorboard
+      name: tb_logger
+
+  strategy: ddp_find_unused_parameters_true
+
+
+model:
+  # Model definition for TD-SpeakerBeam based TSE
+  encoder: conv
+  encoder_conf:
+      channel: 256
+      kernel_size: 32
+      stride: 16
+  decoder: conv
+  decoder_conf:
+      channel: 256
+      kernel_size: 32
+      stride: 16
+  extractor: td_speakerbeam
+  extractor_conf:
+      layer: 8
+      stack: 4
+      bottleneck_dim: 256
+      hidden_dim: 512
+      skip_dim: 256
+      kernel: 3
+      causal: False
+      norm_type: gLN
+      pre_nonlinear: prelu
+      nonlinear: relu
+      # enrollment related
+      i_adapt_layer: 7
+      adapt_layer_type: mul
+      adapt_enroll_dim: 256
+      use_spk_emb: false
+
+  normalize: global_mvn
+  normalize_conf:
+    stats_file: ${stats_dir}/train/feats_stats.npz
+
+  model_conf:
+    num_spk: 2
+    share_encoder: true
+
+
+fit: {}

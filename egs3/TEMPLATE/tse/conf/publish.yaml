@@ -1,0 +1,20 @@
+pack_model:
+  strategy: auto  # auto|espnet2|espnet3
+  out_dir: exp/model_pack
+  decode_dir: ${exp_dir}/decode
+  include: []
+  extra: []
+  exclude:
+    - "**/*.log"
+    - "**/tensorboard/**"
+    - "**/wandb/**"
+  files: {}
+  yaml_files: {}
+  espnet2:
+    task: asr
+    yaml_files: {}
+    files: {}
+    option: []
+
+upload_model:
+  hf_repo: yourname/your-model-repo
