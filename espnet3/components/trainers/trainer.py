@@ -46,7 +46,7 @@ class ESPnet3LightningTrainer:
     def __init__(
         self,
         model: ESPnetLightningModule = None,
-        expdir: str = None,
+        exp_dir: str = None,
         config: Union[DictConfig, Namespace, Dict[str, Any]] = None,
         best_model_criterion=None,
     ):
@@ -58,7 +58,7 @@ class ESPnet3LightningTrainer:
 
         Args:
             model (ESPnetLightningModule, optional): LightningModule to train.
-            expdir (str, optional): Experiment directory for logs and checkpoints.
+            exp_dir (str, optional): Experiment directory for logs and checkpoints.
             config (DictConfig | Namespace | Dict[str, Any], optional): Training config.
             best_model_criterion (ListConfig, optional): Criteria for selecting ckpt.
         """
@@ -100,7 +100,7 @@ class ESPnet3LightningTrainer:
 
         # Callbacks
         callbacks = get_default_callbacks(
-            expdir,
+            exp_dir,
             self.config.log_every_n_steps,
             OmegaConf.to_container(best_model_criterion),
         )

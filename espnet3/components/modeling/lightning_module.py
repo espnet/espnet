@@ -11,8 +11,8 @@ from omegaconf import OmegaConf
 from espnet2.train.collate_fn import CommonCollateFn
 from espnet3.components.data.collect_stats import collect_stats
 from espnet3.components.data.dataloader import DataLoaderBuilder
-from espnet3.components.optim.multiple_optim import MultipleOptim
-from espnet3.components.optim.multiple_scheduler import MultipleScheduler
+from espnet3.components.optimizers.multiple_optimizer import MultipleOptimizer
+from espnet3.components.optimizers.multiple_scheduler import MultipleScheduler
 
 logger = logging.getLogger("lightning")
 
@@ -190,7 +190,7 @@ class ESPnetLightningModule(lightning.LightningModule):
         1. Single Optimizer + Scheduler:
         Use when the entire model is trained with a single optimizer.
         ```yaml
-        optim:
+        optimizer:
             _target_: torch.optim.Adam
             lr: 0.001
 
@@ -205,12 +205,12 @@ class ESPnetLightningModule(lightning.LightningModule):
         key indicating a substring to match parameter names.
 
         ```yaml
-        optims:
-            - optim:
+        optimizers:
+            - optimizer:
                 _target_: torch.optim.Adam
                 lr: 0.001
               params: encoder
-            - optim:
+            - optimizer:
                 _target_: torch.optim.SGD
                 lr: 0.01
               params: decoder
@@ -225,15 +225,16 @@ class ESPnetLightningModule(lightning.LightningModule):
         ```
 
         Notes:
-            * Only one of `optim` or `optims` may be specified. Mixing is not allowed.
+            * Only one of `optimizer` or `optimizers` may be specified.
+                Mixing is not allowed.
             * Likewise, `scheduler` and `schedulers` must not be used together.
-            * When using `optims`, each `params` must uniquely match a subset of
+            * When using `optimizers`, each `params` must uniquely match a subset of
                 trainable parameters.
             * It is an error if:
                 * A trainable parameter is assigned to multiple optimizers
                     (overlapping `params`)
                 * A trainable parameter is not assigned to any optimizer
-                * Any optimizer block is missing `params` or nested `optim`
+                * Any optimizer block is missing `params` or nested `optimizer`
 
         Returns:
             dict: A dictionary with keys `"optimizer"` and `"lr_scheduler"`
@@ -243,16 +244,16 @@ class ESPnetLightningModule(lightning.LightningModule):
             AssertionError: If configuration rules are violated.
             ValueError: If neither optimizer configuration is provided.
         """
-        if getattr(self.config, "optim", None) and getattr(
+        if getattr(self.config, "optimizer", None) and getattr(
             self.config, "scheduler", None
         ):
             # setup optimizer and scheduler
             assert (
-                getattr(self.config, "optims", None) is None
-            ), "Mixture of `optim` and `optims` is not allowed."
+                getattr(self.config, "optimizers", None) is None
+            ), "Mixture of `optimizer` and `optimizers` is not allowed."
             params = filter(lambda p: p.requires_grad, self.parameters())
             optimizer = instantiate(
-                OmegaConf.to_container(self.config.optim, resolve=True), params
+                OmegaConf.to_container(self.config.optimizer, resolve=True), params
             )
 
             assert (
@@ -263,19 +264,19 @@ class ESPnetLightningModule(lightning.LightningModule):
                 optimizer=optimizer,
             )
 
-        elif getattr(self.config, "optims", None) and getattr(
+        elif getattr(self.config, "optimizers", None) and getattr(
             self.config, "schedulers", None
         ):
             assert (
-                getattr(self.config, "optim", None) is None
-            ), "Mixture of `optim` and `optims` is not allowed."
-            assert len(self.config.optims) == len(self.config.schedulers), (
+                getattr(self.config, "optimizer", None) is None
+            ), "Mixture of `optimizer` and `optimizers` is not allowed."
+            assert len(self.config.optimizers) == len(self.config.schedulers), (
                 "The number of optimizers and schedulers must be equal: "
-                + f"optims: {len(self.config.optims)}, "
+                + f"optimizers: {len(self.config.optimizers)}, "
                 + f"schedulers: {len(self.config.schedulers)}"
             )
 
-            optims = []
+            optimizers = []
             trainable_params = {
                 name: param
                 for name, param in self.named_parameters()
@@ -283,24 +284,24 @@ class ESPnetLightningModule(lightning.LightningModule):
             }  # key: name, value: param
             used_param_ids = set()
 
-            for optim_cfg in self.config.optims:
-                assert "params" in optim_cfg, "missing 'params' in optim config"
-                assert "optim" in optim_cfg, "missing nested 'optim' block"
+            for optim_config in self.config.optimizers:
+                assert "params" in optim_config, "missing 'params' in optimizer config"
+                assert "optimizer" in optim_config, "missing nested 'optimizer' block"
 
                 # filter parameters whose name contains the 'params' keyword
                 selected = [
                     p
                     for name, p in trainable_params.items()
-                    if optim_cfg["params"] in name
+                    if optim_config["params"] in name
                 ]
                 selected_names = [
                     name
                     for name in trainable_params.keys()
-                    if optim_cfg["params"] in name
+                    if optim_config["params"] in name
                 ]
                 assert (
                     len(selected) > 0
-                ), f"No trainable parameters found for: {optim_cfg['params']}"
+                ), f"No trainable parameters found for: {optim_config['params']}"
 
                 for n in selected_names:
                     assert (
@@ -308,10 +309,11 @@ class ESPnetLightningModule(lightning.LightningModule):
                     ), f"Parameter {n} is assigned to multiple optimizers"
                     used_param_ids.add(n)
 
-                optim = instantiate(
-                    OmegaConf.to_container(optim_cfg["optim"], resolve=True), selected
+                optimizer = instantiate(
+                    OmegaConf.to_container(optim_config["optimizer"], resolve=True),
+                    selected,
                 )
-                optims.append(optim)
+                optimizers.append(optimizer)
 
             # Check for uncovered parameters
             all_param_ids = {
@@ -322,7 +324,7 @@ class ESPnetLightningModule(lightning.LightningModule):
                 not unused_param_ids
             ), f"{unused_param_ids} are not assigned to any optimizer"
 
-            optimizer = MultipleOptim(optims)
+            optimizer = MultipleOptimizer(optimizers)
 
             assert (
                 getattr(self.config, "scheduler", None) is None
@@ -332,7 +334,7 @@ class ESPnetLightningModule(lightning.LightningModule):
                 schedulers.append(
                     instantiate(
                         OmegaConf.to_container(scheduler.scheduler, resolve=True),
-                        optimizer=optims[i_sch],
+                        optimizer=optimizers[i_sch],
                     )
                 )
 
@@ -342,7 +344,7 @@ class ESPnetLightningModule(lightning.LightningModule):
             ]
         else:
             raise ValueError(
-                "Must specify either `optim` or `optims` and `scheduler` or"
+                "Must specify either `optimizer` or `optimizers` and `scheduler` or"
                 "`schedulers`"
             )
         return {
@@ -400,20 +402,29 @@ class ESPnetLightningModule(lightning.LightningModule):
     def collect_stats(self):
         """Collect training and validation statistics using ESPnet's collect_stats.
 
-        Requires `config.statsdir` to be defined. Saves stats under this directory.
+        Requires `config.stats_dir` to be defined. Saves stats under this directory.
 
         Raises:
-            AssertionError: If `config.statsdir` is not provided.
+            AssertionError: If `config.stats_dir` is not provided.
         """
-        assert hasattr(self.config, "statsdir"), "config.statsdir must be defined"
+        assert hasattr(self.config, "stats_dir"), "config.stats_dir must be defined"
+
+        # Detach dataset/dataloader configs from the root so interpolations like
+        # ${dataset_dir} remain resolved when used standalone during collection.
+        dataset_config = OmegaConf.create(
+            OmegaConf.to_container(self.config.dataset, resolve=True)
+        )
+        dataloader_config = OmegaConf.create(
+            OmegaConf.to_container(self.config.dataloader, resolve=True)
+        )
 
         for mode in ["train", "valid"]:
             collect_stats(
                 model_config=OmegaConf.to_container(self.config.model, resolve=True),
-                dataset_config=self.config.dataset,
-                dataloader_config=self.config.dataloader,
+                dataset_config=dataset_config,
+                dataloader_config=dataloader_config,
                 mode=mode,
-                output_dir=Path(self.config.statsdir),
+                output_dir=Path(self.config.stats_dir),
                 task=getattr(self.config, "task", None),
                 parallel_config=(
                     None

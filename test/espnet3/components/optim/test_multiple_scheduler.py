@@ -1,11 +1,9 @@
-# import pytest
-# import torch
 from torch import nn
 from torch.optim import SGD, Adam
 from torch.optim.lr_scheduler import LinearLR, StepLR
 
-from espnet3.components.optim.multiple_optim import MultipleOptim
-from espnet3.components.optim.multiple_scheduler import MultipleScheduler
+from espnet3.components.optimizers.multiple_optimizer import MultipleOptimizer
+from espnet3.components.optimizers.multiple_scheduler import MultipleScheduler
 
 # ===============================================================
 # Test Case Summary for MultipleScheduler
@@ -25,7 +23,7 @@ def create_optimizers_and_schedulers():
 
     opt1 = SGD(model1.parameters(), lr=0.1)
     opt2 = Adam(model2.parameters(), lr=0.01)
-    mopts = MultipleOptim([opt1, opt2])
+    mopts = MultipleOptimizer([opt1, opt2])
 
     sched1 = StepLR(opt1, step_size=5, gamma=0.1)
     sched2 = LinearLR(opt2)
@@ -40,7 +38,7 @@ def test_multiple_lrs_basic_attributes():
     """
     mopts, scheds = create_optimizers_and_schedulers()
     schedulers = [
-        MultipleScheduler(multiple_optimizer=mopts, lr_scheduler=sch, optimizer_idx=idx)
+        MultipleScheduler(multiple_optimizer=mopts, lr_scheduler=sch, optim_idx=idx)
         for idx, sch in enumerate(scheds)
     ]
 

@@ -68,10 +68,12 @@ class ArkiveAudioReader:
             conn.register("valid_ids_tbl", valid_ids_table)
 
             # Use semi-join for efficient filtering
-            result = conn.execute(f"""
+            result = conn.execute(
+                f"""
                 SELECT p.* FROM read_parquet('{parquet_path}') p
                 SEMI JOIN valid_ids_tbl v ON p.utt_id = v.utt_id
-                """)
+                """
+            )
         else:
             result = conn.execute(f"SELECT * FROM read_parquet('{parquet_path}')")
 

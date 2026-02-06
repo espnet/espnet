@@ -1,6 +1,6 @@
-from .audio_loader import LhotseAudioReader, ArkiveAudioReader, KaldiAudioReader
-from .text_loader import TextReader, ArkiveTextReader
-from .dialogue_loader import DialogueReader, ArkiveDialogueLoader
+from .audio_loader import ArkiveAudioReader, KaldiAudioReader, LhotseAudioReader
+from .dialogue_loader import ArkiveDialogueLoader, DialogueReader
+from .text_loader import ArkiveTextReader, TextReader
 
 ALL_DATA_LOADERS = {
     "lhotse_audio": LhotseAudioReader,

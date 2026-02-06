@@ -1,1 +1,1 @@
-"""Base system components for ESPnet3."""
+"""Base system interfaces and helpers for ESPnet3."""
