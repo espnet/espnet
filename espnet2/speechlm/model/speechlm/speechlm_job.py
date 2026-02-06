@@ -71,18 +71,18 @@ class SpeechLMJobTemplate(AbsJobTemplate):
         # (1) Initial special token. We keep a fixed number of slots
         vocab_intervals = {"special_token": [(0, num_special_tokens)]}
         vocab = [
-            "<|pad|>",  # 0
-            "<|bos|>",  # 1
-            "<|eos|>",  # 2
-            "<|eot|>",  # 3
-            "<|system|>",  # 4
-            "<|user|>",  # 5
-            "<|assistant|>",  # 6
-            "<|text|>",  # 7
-            "<|audio|>",  # 8
-            "<|image|>",  # 9
-            "<|video|>",  # 10
-            "<|toolcall|>",  # 11
+            "<|pad|>",  # 0: padding
+            "<|bos|>",  # 1: begin of sequence
+            "<|eos|>",  # 2: end of sequence
+            "<|eot|>",  # 3: end of turn
+            "<|system|>",  # 4: system role
+            "<|user|>",  # 5: user role
+            "<|assistant|>",  # 6: assistant role
+            "<|text|>",  # 7: text modality
+            "<|audio|>",  # 8: audio modality
+            "<|image|>",  # 9: image modality
+            "<|video|>",  # 10: video modality
+            "<|toolcall|>",  # 11: tool call modality
         ]
         while len(vocab) < num_special_tokens:
             vocab.append(f"<|unused_{len(vocab)}|>")

@@ -91,9 +91,6 @@ def build_parallel_hf_class(model_hf_tag):
                 new_embed_tokens = nn.Embedding(vocab_size, embed_dim, padding_idx=0)
                 new_lm_head = nn.Linear(embed_dim, vocab_size, bias=False)
 
-                nn.init.normal_(new_embed_tokens.weight, mean=0.0, std=0.02)
-                nn.init.normal_(new_lm_head.weight, mean=0.0, std=0.02)
-
                 # Preserve pretrained text embeddings if text modality exists
                 if "text" in vocab_intervals:
 
@@ -428,6 +425,29 @@ def build_parallel_hf_class(model_hf_tag):
         # Below are all inference logics
         @torch.no_grad()
         def inference(self, inference_config: dict, cache: list = None, **kwargs):
+            """Run full multi-turn autoregressive inference.
+
+            Performs prefill on the input context, then iteratively predicts
+            modality tokens and decodes segment-by-segment until an EOS token
+            is produced or no more enforced modalities remain.
+
+            Args:
+                inference_config: Dict keyed by modality name, each containing
+                    decoding parameters (temperature, topk, max_step, min_step,
+                    num_hypo, cfg). Also supports an "enforce_modality" key with
+                    a list of modality names to force the generation order.
+                cache: Optional pre-existing KV cache (DynamicCache) to resume
+                    generation from a previous context.
+                **kwargs: Must include "seqs" (input token sequences) and may
+                    include modality features/indices/lengths for encoding.
+
+            Returns:
+                Tuple of (messages, cache) where:
+                    - messages: List of [role, modality, content] triples, with
+                      content decoded by the corresponding modality IO handler.
+                    - cache: Updated KV cache for potential continuation.
+            """
+            self.eval()
 
             # (1) Prefill input_ids
             input_ids = kwargs.get("seqs")
@@ -507,6 +527,37 @@ def build_parallel_hf_class(model_hf_tag):
             prev_token: torch.Tensor,
             mask: torch.Tensor,
         ):
+            """Decode a single modality segment autoregressively.
+
+            Runs a token-by-token generation loop for one segment (e.g., one
+            audio utterance or one text response). Supports multi-hypothesis
+            decoding and classifier-free guidance (CFG).
+
+            Args:
+                config: Decoding configuration dict containing:
+                    - max_step (int): Maximum number of decoding steps.
+                    - min_step (int, optional): Minimum steps before allowing
+                      EOS/EOT tokens. Defaults to 1.
+                    - temperature (float): Sampling temperature (0 for greedy).
+                    - topk (int): Top-k filtering value for sampling.
+                    - num_hypo (int, optional): Number of parallel hypotheses
+                      to decode. Defaults to 1.
+                    - cfg (float, optional): Classifier-free guidance scale.
+                      Values > 1 enable CFG. Defaults to 1.
+                cache: KV cache (DynamicCache) from prior context.
+                prev_token: Starting token tensor of shape
+                    [batch, 1, num_stream] (typically the modality token).
+                mask: Boolean logit mask of shape [1, 1, num_stream, vocab_size]
+                    restricting which tokens can be predicted per stream.
+
+            Returns:
+                Tuple of (hypo_lst, cache, last_logits) where:
+                    - hypo_lst: List of decoded token tensors per hypothesis,
+                      each of shape [steps, num_stream].
+                    - cache: Updated KV cache after decoding.
+                    - last_logits: Logits from the final prefill step, usable
+                      for the next segment prediction.
+            """
             device = prev_token.device
 
             # (1) preprocess for multi-hypothesis inference and CFG
@@ -586,6 +637,19 @@ def build_parallel_hf_class(model_hf_tag):
             return hypo_lst, cache, last_logits
 
         def prepare_inference(self):
+            """Prepare model for inference by registering special tokens and masks.
+
+            Sets up three categories of inference buffers:
+                1. Special token tensors (assistant, audio, text, eos, eot) as
+                   registered buffers with shape [1, 1, num_stream].
+                2. A modality mask that restricts the first decoding step to only
+                   predict valid modality tokens (audio, text, image, etc.).
+                3. Per-modality decoding masks that restrict each stream to only
+                   predict tokens within its assigned vocabulary interval.
+
+            Must be called before `inference()`. All buffers are registered via
+            `register_buffer` so they automatically move with the model device.
+            """
             # (1) the special tokens for prefill
             tokens = ["assistant", "audio", "text", "eos", "eot"]
             for token in tokens:
@@ -623,7 +687,30 @@ def build_parallel_hf_class(model_hf_tag):
         def _step(
             self, input_ids=None, input_embeds=None, past_key_values=None, mask=None
         ):
+            """Run a single forward step through the model and produce logits.
 
+            Accepts either token IDs or precomputed embeddings (exactly one must
+            be provided). Runs the transformer with KV caching enabled, adds
+            stream embeddings, projects to vocabulary logits, and optionally
+            applies a logit mask.
+
+            Args:
+                input_ids: Token IDs of shape [batch, seq_len, num_stream].
+                    Mutually exclusive with input_embeds.
+                input_embeds: Precomputed embeddings of shape
+                    [batch, seq_len, hidden_dim]. Mutually exclusive with
+                    input_ids.
+                past_key_values: Optional KV cache (DynamicCache) for
+                    incremental decoding.
+                mask: Optional boolean logit mask of shape
+                    [1, 1, num_stream, vocab_size]. True positions are filled
+                    with -inf to prevent sampling.
+
+            Returns:
+                Tuple of (logits, past_key_values) where:
+                    - logits: Shape [batch, seq_len, num_stream, vocab_size].
+                    - past_key_values: Updated KV cache.
+            """
             assert (input_ids is None) != (
                 input_embeds is None
             ), "Either input_ids or input_embeds should be None"
@@ -657,6 +744,19 @@ def build_parallel_hf_class(model_hf_tag):
             return logits, past_key_values
 
         def _logits_to_token(self, logits, temperature, topk):
+            """Convert logits to token predictions via greedy or top-k sampling.
+
+            Args:
+                logits: Raw logit tensor of shape
+                    [batch, seq_len, num_stream, vocab_size].
+                temperature: Sampling temperature. Use 0 for greedy decoding
+                    (argmax). Higher values increase randomness.
+                topk: Number of top candidates to consider when sampling.
+                    Only used when temperature > 0.
+
+            Returns:
+                Predicted token IDs of shape [batch, seq_len, num_stream].
+            """
             if temperature == 0:  # greedy
                 return logits.argmax(-1)
             else:
@@ -668,6 +768,23 @@ def build_parallel_hf_class(model_hf_tag):
                 return torch.gather(topk_indices, -1, inner_indices).squeeze(-1)
 
         def _prepare_cfg_cache(self, cache):
+            """Build a combined KV cache for classifier-free guidance (CFG).
+
+            Creates an unconditional cache by running a forward pass with
+            all-zero (empty) input tokens, then concatenates it with the
+            conditional cache along the batch dimension. This allows a single
+            forward pass to compute both conditional and unconditional logits
+            for CFG scoring.
+
+            Args:
+                cache: Conditional KV cache (DynamicCache) from the real
+                    context prefill.
+
+            Returns:
+                Combined DynamicCache with batch dimension doubled: the first
+                half contains the conditional cache and the second half
+                contains the unconditional (zero-context) cache.
+            """
             assert isinstance(cache, DynamicCache)
 
             device = cache.layers[0].keys.device
