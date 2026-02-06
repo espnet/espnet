@@ -37,7 +37,7 @@ class OWSMCTCModel(AbsASR):
             tag,
             device=device,
             generate_interctc_outputs=False,
-            lang_sym="<nolang>",
+            lang_sym="<eng>",
             task_sym="<asr>",
         )
         self.device = device
