@@ -1,11 +1,12 @@
-"""Base interface for environment providers in ESPnet3 runners."""
+"""Environment providers for local and distributed execution."""
 
+from abc import ABC, abstractmethod
 from typing import Any, Callable, Dict
 
 from omegaconf import DictConfig
 
 
-class EnvironmentProvider:
+class EnvironmentProvider(ABC):
     """A base interface to build and inject per-process environments.
 
     This class separates responsibilities for constructing shared
@@ -13,7 +14,7 @@ class EnvironmentProvider:
     either once on the driver or once per worker process.
 
     Subclasses should implement ``build_env_local`` and
-    ``make_worker_setup_fn`` to define how the environment is built
+    ``build_worker_setup_fn`` to define how the environment is built
     in local (driver) execution and distributed (worker) execution.
 
     Args:
@@ -34,6 +35,7 @@ class EnvironmentProvider:
         """Initialize EnvironmentProvider object."""
         self.config = config
 
+    @abstractmethod
     def build_env_local(self) -> Dict[str, Any]:
         """Build the environment once on the driver for local execution.
 
@@ -57,7 +59,8 @@ class EnvironmentProvider:
         """
         raise NotImplementedError
 
-    def make_worker_setup_fn(self) -> Callable[[], Dict[str, Any]]:
+    @abstractmethod
+    def build_worker_setup_fn(self) -> Callable[[], Dict[str, Any]]:
         """Create a worker setup function for distributed execution.
 
         The returned callable will be executed **once per worker** to build
@@ -74,11 +77,11 @@ class EnvironmentProvider:
 
         Example:
             >>> class MyProvider(EnvironmentProvider):
-            ...     def make_worker_setup_fn(self):
-            ...         cfg = self.config
+            ...     def build_worker_setup_fn(self):
+            ...         config = self.config
             ...         def setup():
-            ...             ds = build_dataset(cfg)
-            ...             md = build_model(cfg)
+            ...             ds = build_dataset(config)
+            ...             md = build_model(config)
             ...             return {"dataset": ds, "model": md}
             ...         return setup  # return setup function!
         """

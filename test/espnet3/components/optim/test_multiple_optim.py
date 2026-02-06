@@ -1,13 +1,12 @@
 from unittest.mock import MagicMock
 
-# import pytest
 import torch
 from torch import nn
 
-from espnet3.components.optim.multiple_optim import MultipleOptim
+from espnet3.components.optimizers.multiple_optimizer import MultipleOptimizer
 
 # ===============================================================
-# Test Case Summary for MultipleOptim
+# Test Case Summary for MultipleOptimizer
 # ===============================================================
 #
 # Basic Functionality Tests
@@ -40,7 +39,7 @@ def create_simple_model_and_optim():
 def test_zero_grad_called():
     opt1 = MagicMock()
     opt2 = MagicMock()
-    mopts = MultipleOptim([opt1, opt2])
+    mopts = MultipleOptimizer([opt1, opt2])
     mopts.zero_grad(set_to_none=True)
     opt1.zero_grad.assert_called_once_with(set_to_none=True)
     opt2.zero_grad.assert_called_once_with(set_to_none=True)
@@ -49,7 +48,7 @@ def test_zero_grad_called():
 def test_step_called_and_loss_returned():
     opt1 = MagicMock()
     opt2 = MagicMock()
-    mopts = MultipleOptim([opt1, opt2])
+    mopts = MultipleOptimizer([opt1, opt2])
 
     def closure():
         return torch.tensor(1.23)
@@ -63,7 +62,7 @@ def test_step_called_and_loss_returned():
 
 def test_state_dict_and_load_state_dict_roundtrip():
     optimizers = create_simple_model_and_optim()
-    mopts = MultipleOptim(optimizers)
+    mopts = MultipleOptimizer(optimizers)
 
     # dummy gradient + step
     for p in optimizers[0].param_groups[0]["params"]:
@@ -76,7 +75,7 @@ def test_state_dict_and_load_state_dict_roundtrip():
 
 def test_repr_contains_optimizer_info():
     optimizers = create_simple_model_and_optim()
-    mopts = MultipleOptim(optimizers)
+    mopts = MultipleOptimizer(optimizers)
     rep = repr(mopts)
     assert "SGD" in rep
     assert "Adam" in rep
@@ -84,7 +83,7 @@ def test_repr_contains_optimizer_info():
 
 def test_combined_properties():
     optimizers = create_simple_model_and_optim()
-    mopts = MultipleOptim(optimizers)
+    mopts = MultipleOptimizer(optimizers)
 
     # Make sure all properties return flattened lists/dicts
     assert isinstance(mopts.param_groups, list)

@@ -118,7 +118,7 @@ def make_standard_dataloader_config():
 def test_training_step_runs(tmp_path, dummy_model, dummy_dataset_config):
     config = OmegaConf.create(
         {
-            "expdir": str(tmp_path / "exp"),
+            "exp_dir": str(tmp_path / "exp"),
             "dataset": dummy_dataset_config,
             "dataloader": make_standard_dataloader_config(),
             "num_device": 1,
@@ -133,7 +133,7 @@ def test_training_step_runs(tmp_path, dummy_model, dummy_dataset_config):
 def test_validation_step_runs(tmp_path, dummy_model, dummy_dataset_config):
     config = OmegaConf.create(
         {
-            "expdir": str(tmp_path / "exp"),
+            "exp_dir": str(tmp_path / "exp"),
             "dataset": dummy_dataset_config,
             "dataloader": make_standard_dataloader_config(),
             "num_device": 1,
@@ -148,7 +148,7 @@ def test_validation_step_runs(tmp_path, dummy_model, dummy_dataset_config):
 def test_is_espnet_sampler_flag(tmp_path, dummy_model, dummy_dataset_config):
     config = OmegaConf.create(
         {
-            "expdir": str(tmp_path / "exp"),
+            "exp_dir": str(tmp_path / "exp"),
             "dataset": dummy_dataset_config,
             "dataloader": {
                 "train": {"iter_factory": None},
@@ -164,7 +164,7 @@ def test_is_espnet_sampler_flag(tmp_path, dummy_model, dummy_dataset_config):
 def test_state_dict_and_load(tmp_path, dummy_model, dummy_dataset_config):
     config = OmegaConf.create(
         {
-            "expdir": str(tmp_path / "exp"),
+            "exp_dir": str(tmp_path / "exp"),
             "dataset": dummy_dataset_config,
             "dataloader": make_standard_dataloader_config(),
             "num_device": 1,
@@ -187,7 +187,7 @@ def test_use_espnet_collator_flag_false(tmp_path, dummy_model, dummy_dataset_con
 
     config = OmegaConf.create(
         {
-            "expdir": str(tmp_path / "exp"),
+            "exp_dir": str(tmp_path / "exp"),
             "dataset": dummy_dataset_config,
             "dataloader": {
                 "collate_fn": {
@@ -222,7 +222,7 @@ def test_nan_loss_skip(tmp_path, dummy_dataset_config):
 
     config = OmegaConf.create(
         {
-            "expdir": str(tmp_path / "exp"),
+            "exp_dir": str(tmp_path / "exp"),
             "dataset": dummy_dataset_config,
             "dataloader": make_standard_dataloader_config(),
             "num_device": 1,
@@ -237,7 +237,7 @@ def test_nan_loss_skip(tmp_path, dummy_dataset_config):
 def test_dataloader_mismatch_raises(tmp_path, dummy_model, dummy_dataset_config):
     config = OmegaConf.create(
         {
-            "expdir": str(tmp_path / "exp"),
+            "exp_dir": str(tmp_path / "exp"),
             "dataset": dummy_dataset_config,
             "dataloader": {
                 "train": {"iter_factory": None},
@@ -255,10 +255,10 @@ def test_dataloader_mismatch_raises(tmp_path, dummy_model, dummy_dataset_config)
 def test_mixed_optim_scheduler_raises(tmp_path, dummy_model, dummy_dataset_config):
     config = OmegaConf.create(
         {
-            "expdir": str(tmp_path / "exp"),
+            "exp_dir": str(tmp_path / "exp"),
             "dataset": dummy_dataset_config,
-            "optim": {"_target_": "torch.optim.Adam"},
-            "optims": [{"_target_": "torch.optim.SGD"}],
+            "optimizer": {"_target_": "torch.optim.Adam"},
+            "optimizers": [{"_target_": "torch.optim.SGD"}],
             "scheduler": {"_target_": "torch.optim.lr_scheduler.StepLR"},
             "dataloader": make_standard_dataloader_config(),
             "num_device": 1,
@@ -266,7 +266,7 @@ def test_mixed_optim_scheduler_raises(tmp_path, dummy_model, dummy_dataset_confi
     )
     model = ESPnetLightningModule(dummy_model, config)
     with pytest.raises(
-        AssertionError, match="Mixture of `optim` and `optims` is not allowed."
+        AssertionError, match="Mixture of `optimizer` and `optimizers` is not allowed."
     ):
         model.configure_optimizers()
 
@@ -276,7 +276,7 @@ def test_missing_optimizer_and_scheduler_raises(
 ):
     config = OmegaConf.create(
         {
-            "expdir": str(tmp_path / "exp"),
+            "exp_dir": str(tmp_path / "exp"),
             "dataset": dummy_dataset_config,
             "dataloader": make_standard_dataloader_config(),
             "num_device": 1,
@@ -285,6 +285,8 @@ def test_missing_optimizer_and_scheduler_raises(
     )
     model = ESPnetLightningModule(dummy_model, config)
     with pytest.raises(
-        ValueError, match="Must specify either `optim` or `optims` and `scheduler` or"
+        ValueError,
+        match="Must specify either `optimizer` or `optimizers` and `scheduler` or"
+        "`schedulers`",
     ):
         model.configure_optimizers()

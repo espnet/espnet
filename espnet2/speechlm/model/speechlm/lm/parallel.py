@@ -474,7 +474,7 @@ def build_parallel_hf_class(model_hf_tag):
                 try:
                     modality = enforce_modalities[num_msg]
                     modality_token = getattr(self, f"{modality}_token")
-                except Exception:
+                except (IndexError, AttributeError):
                     modality_token = logits.argmax(3)
                     modality = modality_token.flatten()[0].item()
                     modality = self.vocab[modality].replace("<|", "").replace("|>", "")

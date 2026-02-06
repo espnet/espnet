@@ -8,9 +8,10 @@ from omegaconf import OmegaConf
 
 from espnet3.parallel.parallel import (
     DictReturnWorkerPlugin,
+    build_client,
+    build_local_gpu_cluster,
     get_client,
-    make_client,
-    make_local_gpu_cluster,
+    get_parallel_config,
     parallel_for,
     parallel_map,
     set_parallel,
@@ -28,7 +29,7 @@ mp.set_start_method("fork", force=True)
 # | test_set_and_get_parallel_config                 | Sets and retrieves global config|
 # | test_set_parallel_copies_options_dict            | Copies options dict, ignores    |
 # |                                                  | external mutations              |
-# | test_make_client_local                           | Creates LocalCluster client and |
+# | test_build_client_local                           | Creates LocalCluster client and|
 # |                                                  | verifies distributed mapping    |
 # | test_get_client_context_manager_and_parallel_map | Uses get_client with global     |
 # |                                                  | config to run parallel_map      |
@@ -57,9 +58,9 @@ mp.set_start_method("fork", force=True)
 # |--------------------------------------------------|---------------------------------|
 # | test_worker_env_conflict_detection               | ValueError on args conflict     |
 # | test_worker_env_conflict_detection_parallel_for  | ValueError on args conflict     |
-# | test_make_local_gpu_cluster_import_guard         | RuntimeError when dask_cuda miss|
-# | test_make_client_unknown_env_raises              | ValueError on unknown env       |
-# | test_make_client_kube_import_guard               | RuntimeError when dask_kube miss|
+# | test_build_local_gpu_cluster_import_guard        | RuntimeError when dask_cuda miss|
+# | test_build_client_unknown_env_raises             | ValueError on unknown env       |
+# | test_build_client_kube_import_guard              | RuntimeError when dask_kube miss|
 # | test_worker_plugin_setup_must_return_dict        | ValueError when setup_fn != dict|
 # | test_parallel_for_propagates_task_exception      | Propagates exception from task  |
 
@@ -68,9 +69,9 @@ mp.set_start_method("fork", force=True)
 # |--------------------------------------------------|---------------------------------|
 # | test_worker_env_conflict_detection               | ValueError                      |
 # | test_worker_env_conflict_detection_parallel_for  | ValueError                      |
-# | test_make_local_gpu_cluster_import_guard         | RuntimeError                    |
-# | test_make_client_unknown_env_raises              | ValueError                      |
-# | test_make_client_kube_import_guard               | RuntimeError                    |
+# | test_build_local_gpu_cluster_import_guard        | RuntimeError                    |
+# | test_build_client_unknown_env_raises             | ValueError                      |
+# | test_build_client_kube_import_guard              | RuntimeError                    |
 # | test_worker_plugin_setup_must_return_dict        | ValueError                      |
 # | test_parallel_for_propagates_task_exception      | RuntimeError                    |
 
@@ -113,10 +114,7 @@ def set_global_parallel(local_cfg):
 def test_set_parallel_copies_options_dict(local_cfg):
     cfg = local_cfg
     set_parallel(cfg)
-    got = getattr(
-        __import__("espnet3.parallel.parallel", fromlist=["get_parallel_config"]),
-        "get_parallel_config",
-    )()
+    got = get_parallel_config()
     # mutate original options
     cfg.options["threads_per_worker"] = 999
     # The held object of get_parallel_config should not be affected
@@ -136,8 +134,8 @@ def test_set_and_get_parallel_config(local_cfg):
 # ------------------------------------------------------------
 
 
-def test_make_client_local(local_cfg):
-    client = make_client(local_cfg)
+def test_build_client_local(local_cfg):
+    client = build_client(local_cfg)
     try:
         futs = client.map(lambda x: x * x, range(5))
         out = client.gather(futs)
@@ -166,7 +164,7 @@ def test_parallel_map_internal_client(local_cfg, monkeypatch):
         def __exit__(self, exc_type, exc, tb):
             self.client.close()
 
-    cli = make_client(local_cfg)
+    cli = build_client(local_cfg)
     monkeypatch.setattr(
         "espnet3.parallel.parallel.get_client", lambda *a, **k: _Ctx(cli)
     )
@@ -181,7 +179,7 @@ def test_parallel_map_internal_client(local_cfg, monkeypatch):
 
 def test_parallel_for_streaming_yields_results(local_cfg):
     # parallel_for should yield results in streaming fashion (order not guaranteed)
-    client = make_client(local_cfg)
+    client = build_client(local_cfg)
     try:
 
         def work(x):
@@ -343,19 +341,19 @@ def test_worker_env_conflict_detection_parallel_for(local_cfg):
             list(parallel_for(add_bias, [1, 2], client=client, bias=5))
 
 
-def test_make_local_gpu_cluster_import_guard(monkeypatch):
-    # If dask_cuda is not installed, make_local_gpu_cluster should raise RuntimeError
+def test_build_local_gpu_cluster_import_guard(monkeypatch):
+    # If dask_cuda is not installed, build_local_gpu_cluster should raise RuntimeError
     if "dask_cuda" in sys.modules:
         pytest.skip("dask_cuda is installed; skipping import-guard test")
     with pytest.raises(RuntimeError):
-        make_local_gpu_cluster(n_workers=1, options={})
+        build_local_gpu_cluster(n_workers=1, options={})
 
 
 @pytest.mark.execution_timeout(30)
 def test_get_client_context_auto_shutdown(local_cfg, monkeypatch):
     # Ensure get_client shuts down or closes the client without raising exceptions
     calls = {"shutdown": 0, "close": 0}
-    cli = make_client(local_cfg)
+    cli = build_client(local_cfg)
 
     class _ClientProxy:
         def __init__(self, real):
@@ -376,7 +374,9 @@ def test_get_client_context_auto_shutdown(local_cfg, monkeypatch):
             return self._real.close()
 
     proxy = _ClientProxy(cli)
-    monkeypatch.setattr("espnet3.parallel.parallel.make_client", lambda cfg=None: proxy)
+    monkeypatch.setattr(
+        "espnet3.parallel.parallel.build_client", lambda cfg=None: proxy
+    )
 
     with get_client(local_cfg):
         pass
@@ -384,14 +384,14 @@ def test_get_client_context_auto_shutdown(local_cfg, monkeypatch):
     assert True
 
 
-def test_make_client_unknown_env_raises(local_cfg):
+def test_build_client_unknown_env_raises(local_cfg):
     cfg = local_cfg.copy()
     cfg.env = "unknown_env"
     with pytest.raises(ValueError, match="Unknown env"):
-        make_client(cfg)
+        build_client(cfg)
 
 
-def test_make_client_kube_import_guard(monkeypatch, local_cfg):
+def test_build_client_kube_import_guard(monkeypatch, local_cfg):
     if "dask_kubernetes" in sys.modules:
         monkeypatch.delitem(sys.modules, "dask_kubernetes", raising=False)
 
@@ -399,7 +399,7 @@ def test_make_client_kube_import_guard(monkeypatch, local_cfg):
     cfg.env = "kube"
     cfg.options = {"whatever": "x"}
     with pytest.raises(RuntimeError, match="Please install dask_kubernetes"):
-        make_client(cfg)
+        build_client(cfg)
 
 
 def test_worker_plugin_setup_must_return_dict():

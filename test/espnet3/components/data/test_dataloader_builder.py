@@ -5,10 +5,10 @@ from hydra.utils import instantiate
 from omegaconf import OmegaConf
 from torch.utils.data import BatchSampler, Sampler
 
-from espnet3.components.data.data_organizer import DataOrganizer, do_nothing_transform
+from espnet3.components.data.data_organizer import DataOrganizer, do_nothing
 from espnet3.components.data.dataloader import DataLoaderBuilder
 from espnet3.components.data.dataset import ShardedDataset
-from espnet3.utils.config import load_config_with_defaults
+from espnet3.utils.config_utils import load_config_with_defaults
 
 # ===============================================================
 # Test Case Summary for DataLoaderBuilder
@@ -173,7 +173,7 @@ def test_common_collate_fn():
     dataset = DataOrganizer(
         train=instantiate(config["train"]),
         valid=instantiate(config["train"]),
-        preprocessor=do_nothing_transform,
+        preprocessor=do_nothing,
     )
     config = make_standard_dataloader_config()
     collate_fn = CommonCollateFn(int_pad_value=-1)
@@ -229,7 +229,7 @@ def test_iter_factory_from_default_yaml_with_organizer(tmp_path):
     dataset = DataOrganizer(
         train=instantiate(config["train"]),
         valid=instantiate(config["train"]),
-        preprocessor=do_nothing_transform,
+        preprocessor=do_nothing,
     )
     yaml_text = """
 dataloader:
@@ -281,7 +281,7 @@ def test_iter_factory_with_collate_fn(tmp_path):
     dataset = DataOrganizer(
         train=instantiate(config["train"]),
         valid=instantiate(config["train"]),
-        preprocessor=do_nothing_transform,
+        preprocessor=do_nothing,
     )
     yaml_text = """
 dataloader:
@@ -352,7 +352,7 @@ def dummy_multiple_iterator_dataset(tmp_path):
             {
                 "name": "shard0",
                 "dataset": {
-                    "_target_": DUMMY_SHARDED_DATASET_TARGET,  # noqa: E501
+                    "_target_": DUMMY_SHARDED_DATASET_TARGET,
                 },
             },
         ],
@@ -360,7 +360,7 @@ def dummy_multiple_iterator_dataset(tmp_path):
             {
                 "name": "valid",
                 "dataset": {
-                    "_target_": DUMMY_SHARDED_DATASET_TARGET,  # noqa: E501
+                    "_target_": DUMMY_SHARDED_DATASET_TARGET,
                 },
             }
         ],

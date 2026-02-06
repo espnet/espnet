@@ -64,7 +64,7 @@ trainer:
 
   logger:
     - _target_: lightning.pytorch.loggers.TensorBoardLogger
-      save_dir: ${expdir}/tensorboard
+      save_dir: ${exp_dir}/tensorboard
       name: tb_logger
 
   strategy: auto
