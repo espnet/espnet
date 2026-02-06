@@ -4,8 +4,15 @@
 import functools
 from typing import Callable, Mapping, Sequence
 
-import hydra
-from omegaconf import DictConfig, ListConfig
+try:
+    import hydra
+    from omegaconf import DictConfig, ListConfig
+except ImportError:
+    import logging
+
+    logging.warning(
+        "If you are running state-space model, run `pip install espnet['asr']`."
+    )
 
 
 def is_list(x):

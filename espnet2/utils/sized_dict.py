@@ -1,3 +1,20 @@
+"""Sized Dict.
+
+This module provides a utility for tracking the memory size of dictionary-like objects.
+
+Classes:
+    SizedDict: A mutable mapping that tracks the approximate memory size of its
+    contents.
+        - Supports both standard and multiprocessing-shared dictionaries.
+        - Updates the tracked size on item insertion, update, and deletion.
+
+Functions:
+    get_size(obj, seen=None): Recursively computes the memory size of an object,
+    including nested containers.
+        - Handles self-referential objects gracefully to avoid infinite recursion.
+        - Supports dicts, lists, sets, tuples, and objects with __dict__ attributes.
+"""
+
 import collections
 import sys
 

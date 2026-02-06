@@ -1,0 +1,89 @@
+# ResNet221 reproduce recipe configuration.
+
+# Frontend
+frontend: melspec_torch
+frontend_conf:
+    preemp: true
+    n_fft: 512
+    log: true
+    win_length: 400
+    hop_length: 160
+    n_mels: 80
+    normalize: mn
+
+# Encoder
+encoder: resnet
+encoder_conf:
+  resnet_type: resnet221
+
+# Pooling
+pooling: stats
+
+# Projector
+projector: rawnet3
+projector_conf:
+  output_size: 256
+
+# Preprocessor
+preprocessor: spk
+preprocessor_conf:
+  target_duration: 3.0  # seconds
+  sample_rate: 16000
+  num_eval: 5
+  noise_apply_prob: 0.5
+  noise_info:
+  - [1.0, 'dump/raw/musan_speech.scp', [4, 7], [13, 20]]
+  - [1.0, 'dump/raw/musan_noise.scp', [1, 1], [0, 15]]
+  - [1.0, 'dump/raw/musan_music.scp', [1, 1], [5, 15]]
+  rir_apply_prob: 0.5
+  rir_scp: dump/raw/rirs.scp
+
+# Model conf
+model_conf:
+  extract_feats_in_collect_stats: false
+
+# Loss
+loss: aamsoftmax_sc_topk
+loss_conf:
+  margin: 0.3
+  scale: 30
+  K: 3
+  mp: 0.06
+  k_top: 5
+
+# Training related
+max_epoch: 40
+num_att_plot: 0
+num_workers: 8
+cudnn_deterministic: False
+cudnn_benchmark: True
+drop_last_iter: True
+iterator_type: category
+valid_iterator_type: sequence
+shuffle_within_batch: False
+log_interval: 100
+batch_size: 256
+valid_batch_size: 40
+use_amp: True
+keep_nbest_models: 3
+grad_clip: 9999
+best_model_criterion:
+- - valid
+  - eer
+  - min
+
+# Optimizer
+optim: sgd
+optim_conf:
+  lr: 0.1
+  momentum: 0.9
+  weight_decay: 0.0001
+
+# Scheduler
+scheduler: ExponentialDecayWarmup
+scheduler_conf:
+  max_lr: 0.1
+  min_lr: 0.00005
+  total_steps: 290720
+  warmup_steps: 36340  # 5 epochs
+  warm_from_zero: True

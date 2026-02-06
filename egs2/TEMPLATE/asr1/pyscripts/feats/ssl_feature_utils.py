@@ -13,10 +13,10 @@ import torchaudio
 
 from espnet2.asr.frontend.s3prl import S3prlFrontend
 from espnet2.iterators.sequence_iter_factory import SequenceIterFactory
+from espnet2.legacy.utils.cli_writers import file_writer_helper
 from espnet2.samplers.num_elements_batch_sampler import NumElementsBatchSampler
 from espnet2.train.collate_fn import CommonCollateFn
 from espnet2.train.dataset import ESPnetDataset
-from espnet.utils.cli_writers import file_writer_helper
 
 logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
@@ -357,6 +357,86 @@ class S3PRLFeatureReader(BaseFeatureReader):
                 x_lens = x_lens * self.sample_rate // self.audio_sample_rate
             x = x.to(self.device)
 
+            feats, feats_lens = self.model(x, x_lens)
+        feats = feats.cpu()
+        feats_lens = feats_lens.cpu()
+        return feats, feats_lens
+
+
+class MERTFeatureReader(BaseFeatureReader):
+    def __init__(
+        self,
+        fs: Union[int, str] = 24000,
+        mert_conf: Optional[dict] = None,
+        download_path: str = None,
+        save_dir: str = None,
+        multilayer_feature: bool = False,
+        layer: int = -1,
+        use_gpu: bool = True,
+    ):
+        from espnet2.svs.discrete.frontend import MERTFrontend
+
+        self.model = MERTFrontend(
+            fs=fs,
+            frontend_conf=mert_conf,
+            download_path=download_path,
+            save_dir=save_dir,
+            multilayer_feature=multilayer_feature,
+            layer=layer,
+        )
+        self.device = "cuda" if use_gpu and torch.cuda.is_available() else "cpu"
+        self.model = self.model.to(self.device)
+
+    def get_feats(
+        self,
+        data: torch.Tensor,
+        data_lens: torch.Tensor,
+        ref_len: Optional[int] = None,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        with torch.no_grad():
+            x, x_lens = self.preprocess_data(data, data_lens)
+            x = x.to(self.device)
+            x_lens = x_lens.to(self.device)
+            feats, feats_lens = self.model(x, x_lens)
+        feats = feats.cpu()
+        feats_lens = feats_lens.cpu()
+        return feats, feats_lens
+
+
+class EnCodecFeatureReader(BaseFeatureReader):
+    def __init__(
+        self,
+        fs: Union[int, str] = 48000,
+        bandwidth: Union[int, str] = 12,
+        encodec_conf: Optional[dict] = None,
+        download_path: str = None,
+        multilayer_feature: bool = False,
+        layer: int = -1,
+        use_gpu: bool = True,
+    ):
+        from espnet2.svs.discrete.frontend import EnCodecFrontend
+
+        self.model = EnCodecFrontend(
+            fs=fs,
+            bandwidth=bandwidth,
+            frontend_conf=encodec_conf,
+            download_path=download_path,
+            multilayer_feature=multilayer_feature,
+            layer=layer,
+        )
+        self.device = "cuda" if use_gpu and torch.cuda.is_available() else "cpu"
+        self.model = self.model.to(self.device)
+
+    def get_feats(
+        self,
+        data: torch.Tensor,
+        data_lens: torch.Tensor,
+        ref_len: Optional[int] = None,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        with torch.no_grad():
+            x, x_lens = self.preprocess_data(data, data_lens)
+            x = x.to(self.device)
+            x_lens = x_lens.to(self.device)
             feats, feats_lens = self.model(x, x_lens)
         feats = feats.cpu()
         feats_lens = feats_lens.cpu()

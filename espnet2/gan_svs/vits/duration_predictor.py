@@ -2,12 +2,11 @@
 # Copyright 2022 Yifeng Yu
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""Duration predictor modules in VISinger.
-"""
+"""Duration predictor modules in VISinger."""
 
 import torch
 
-from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
+from espnet2.legacy.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 
 
 class DurationPredictor(torch.nn.Module):

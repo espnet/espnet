@@ -109,10 +109,10 @@ def test_vits_generator_forward(model_dict):
     outputs = model(**inputs)
     for i, output in enumerate(outputs):
         if not isinstance(output, tuple):
-            print(f"{i+1}: {output.shape}")
+            print(f"{i + 1}: {output.shape}")
         else:
             for j, output_ in enumerate(output):
-                print(f"{i+j+1}: {output_.shape}")
+                print(f"{i + j + 1}: {output_.shape}")
 
     # check inference
     inputs = dict(
@@ -133,10 +133,10 @@ def test_vits_generator_forward(model_dict):
     outputs = model.inference(**inputs)
     for i, output in enumerate(outputs):
         if not isinstance(output, tuple):
-            print(f"{i+1}: {output.shape}")
+            print(f"{i + 1}: {output.shape}")
         else:
             for j, output_ in enumerate(output):
-                print(f"{i+j+1}: {output_.shape}")
+                print(f"{i + j + 1}: {output_.shape}")
 
     # check inference with predifined duration
     inputs = dict(
@@ -159,10 +159,10 @@ def test_vits_generator_forward(model_dict):
     assert outputs[0].size(1) == inputs["dur"].sum() * model.upsample_factor
     for i, output in enumerate(outputs):
         if not isinstance(output, tuple):
-            print(f"{i+1}: {output.shape}")
+            print(f"{i + 1}: {output.shape}")
         else:
             for j, output_ in enumerate(output):
-                print(f"{i+j+1}: {output_.shape}")
+                print(f"{i + j + 1}: {output_.shape}")
 
     # check inference with teacher forcing
     inputs = dict(
@@ -186,10 +186,10 @@ def test_vits_generator_forward(model_dict):
     assert outputs[0].size(1) == inputs["feats"].size(2) * model.upsample_factor
     for i, output in enumerate(outputs):
         if not isinstance(output, tuple):
-            print(f"{i+1}: {output.shape}")
+            print(f"{i + 1}: {output.shape}")
         else:
             for j, output_ in enumerate(output):
-                print(f"{i+j+1}: {output_.shape}")
+                print(f"{i + j + 1}: {output_.shape}")
 
 
 @pytest.mark.skipif(
@@ -246,10 +246,10 @@ def test_multi_speaker_vits_generator_forward(model_dict):
     outputs = model(**inputs)
     for i, output in enumerate(outputs):
         if not isinstance(output, tuple):
-            print(f"{i+1}: {output.shape}")
+            print(f"{i + 1}: {output.shape}")
         else:
             for j, output_ in enumerate(output):
-                print(f"{i+j+1}: {output_.shape}")
+                print(f"{i + j + 1}: {output_.shape}")
 
     # check inference
     inputs = dict(
@@ -271,10 +271,10 @@ def test_multi_speaker_vits_generator_forward(model_dict):
     outputs = model.inference(**inputs)
     for i, output in enumerate(outputs):
         if not isinstance(output, tuple):
-            print(f"{i+1}: {output.shape}")
+            print(f"{i + 1}: {output.shape}")
         else:
             for j, output_ in enumerate(output):
-                print(f"{i+j+1}: {output_.shape}")
+                print(f"{i + j + 1}: {output_.shape}")
 
     # check inference with predefined duration
     inputs = dict(
@@ -298,10 +298,10 @@ def test_multi_speaker_vits_generator_forward(model_dict):
     assert outputs[0].size(1) == inputs["dur"].sum() * model.upsample_factor
     for i, output in enumerate(outputs):
         if not isinstance(output, tuple):
-            print(f"{i+1}: {output.shape}")
+            print(f"{i + 1}: {output.shape}")
         else:
             for j, output_ in enumerate(output):
-                print(f"{i+j+1}: {output_.shape}")
+                print(f"{i + j + 1}: {output_.shape}")
 
     # check inference with teacher forcing
     inputs = dict(
@@ -326,7 +326,7 @@ def test_multi_speaker_vits_generator_forward(model_dict):
     assert outputs[0].size(1) == inputs["feats"].size(2) * model.upsample_factor
     for i, output in enumerate(outputs):
         if not isinstance(output, tuple):
-            print(f"{i+1}: {output.shape}")
+            print(f"{i + 1}: {output.shape}")
         else:
             for j, output_ in enumerate(output):
-                print(f"{i+j+1}: {output_.shape}")
+                print(f"{i + j + 1}: {output_.shape}")

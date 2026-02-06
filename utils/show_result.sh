@@ -29,11 +29,11 @@ cat << EOF
 EOF
 
 python3 << EOF
-import sys, espnet, chainer, torch
+import sys, espnet2, chainer, torch
 pyversion = sys.version.replace('\n', ' ')
 
 print(f"""- python version: \`{pyversion}\`
-- espnet version: \`espnet {espnet.__version__}\`
+- espnet2 version: \`espnet2 {espnet2.__version__}\`
 - chainer version: \`chainer {chainer.__version__}\`
 - pytorch version: \`pytorch {torch.__version__}\`""")
 EOF

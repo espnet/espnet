@@ -1,6 +1,5 @@
 import base64
 import io
-import os
 import tempfile
 from typing import Tuple
 
@@ -27,8 +26,8 @@ class MiniOmniE2EModel(AbsE2E):
         device: str = "cuda",
         dtype: str = "float16",
     ):
-        """
-        A class to initialize and manage the OmniInference client
+        """A class to initialize and manage the OmniInference client
+
         for end-to-end dialogue systems.
 
         Args:
@@ -71,8 +70,8 @@ class MiniOmniE2EModel(AbsE2E):
         self.dtype = dtype
 
     def warmup(self):
-        """
-        Perform a single forward pass with dummy input to
+        """Perform a single forward pass with dummy input to
+
         pre-load and warm up the model.
         """
         dummy_input = (
@@ -113,8 +112,8 @@ class MiniOmniE2EModel(AbsE2E):
         array: np.ndarray,
         orig_sr: int,
     ) -> Tuple[str, bytes]:
-        """
-        Processes audio input to generate synthesized speech
+        """Processes audio input to generate synthesized speech
+
         and the corresponding text response.
 
         Args:

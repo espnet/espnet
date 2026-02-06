@@ -178,7 +178,6 @@ class MTTask(AbsTask):
             default=None,
             help="The initialization method",
             choices=[
-                "chainer",
                 "xavier_uniform",
                 "xavier_normal",
                 "kaiming_uniform",
@@ -344,7 +343,7 @@ class MTTask(AbsTask):
         else:
             raise RuntimeError("token_list must be str or list")
         vocab_size = len(token_list)
-        logging.info(f"Vocabulary size: {vocab_size }")
+        logging.info(f"Vocabulary size: {vocab_size}")
 
         if args.src_token_list is not None:
             if isinstance(args.src_token_list, str):
@@ -358,7 +357,7 @@ class MTTask(AbsTask):
             else:
                 raise RuntimeError("token_list must be str or list")
             src_vocab_size = len(src_token_list)
-            logging.info(f"Source vocabulary size: {src_vocab_size }")
+            logging.info(f"Source vocabulary size: {src_vocab_size}")
         else:
             src_token_list, src_vocab_size = None, None
 

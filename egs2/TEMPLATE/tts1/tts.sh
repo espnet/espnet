@@ -72,6 +72,12 @@ spk_embed_gpu_inference=false # Whether to use gpu to inference speaker embeddin
 spk_embed_tool=espnet    # Toolkit for extracting x-vector (speechbrain, rawnet, espnet, kaldi).
 spk_embed_model=espnet/voxcelebs12_rawnet3  # For only espnet, speechbrain, or rawnet.
 
+# Parallel speaker-embedding extraction (NEW)
+spk_embed_parallel=true        # if true, use extract_spk_embed_parallel.py
+spk_embed_num_workers=8        # dataloader workers for parallel extractor
+spk_embed_batch_size=8         # batch size for parallel extractor
+spk_embed_prefetch=64          # prefetch queue length (if supported)
+
 # Vocabulary related
 oov="<unk>"         # Out of vocabrary symbol.
 blank="<blank>"     # CTC blank symbol.
@@ -116,6 +122,11 @@ lang=noinfo      # The language type of corpus.
 text_fold_length=150   # fold_length for text data.
 speech_fold_length=800 # fold_length for speech data.
 
+# VERSA eval related
+skip_scoring=false # Skip scoring stages.
+versa_config=conf/versa.yaml # VERSA evaluation configuration.
+
+
 # Upload model related
 hf_repo=
 
@@ -153,6 +164,10 @@ Options:
     --spk_embed_gpu_inference # Whether to use gpu to inference speaker embedding (default="${spk_embed_gpu_inference}").
     --spk_embed_tool   # Toolkit for generating the speaker embedding (default="${spk_embed_tool}").
     --spk_embed_model  # Pretrained model to generate the speaker embedding (default="${spk_embed_model}").
+	--spk_embed_parallel     # Use parallel extractor (default="${spk_embed_parallel}").
+    --spk_embed_num_workers  # Num workers for parallel extractor (default="${spk_embed_num_workers}").
+    --spk_embed_batch_size   # Batch size for parallel extractor (default="${spk_embed_batch_size}").
+    --spk_embed_prefetch     # Prefetch for parallel extractor (default="${spk_embed_prefetch}").
     --use_sid          # Whether to use speaker id as the inputs (default="${use_sid}").
     --use_lid          # Whether to use language id as the inputs (default="${use_lid}").
     --feats_extract    # On the fly feature extractor (default="${feats_extract}").
@@ -196,6 +211,10 @@ Options:
                         # If set to none, Griffin-Lim vocoder will be used.
     --download_model    # Download a model from Model Zoo and use it for decoding (default="${download_model}").
 
+    # VERSA scoring related
+    --skip_scoring      # Skip scoring stages (default="${skip_scoring}").
+    --versa_config      # VERSA evaluation configuration (default="${versa_config}").
+
     # [Task dependent] Set the datadir name created by local/data.sh.
     --train_set          # Name of training set (required).
     --valid_set          # Name of validation set used for monitoring/tuning network training (required).
@@ -217,6 +236,11 @@ log "$0 $*"
 # Save command line args for logging (they will be lost after utils/parse_options.sh)
 run_args=$(scripts/utils/print_args.sh $0 "$@")
 . utils/parse_options.sh
+
+if [[ ${use_sid:-false} = true && ${use_spk_embed:-false} = true ]]; then
+    log "Error: --use_sid and --use_spk_embed cannot both be true; pick one."
+    exit 2
+fi
 
 if [ $# -ne 0 ]; then
     log "${help_message}"
@@ -426,17 +450,33 @@ if ! "${skip_data_prep}"; then
                     else
                         _suf=""
                     fi
+
+                    # RawNet convenience name
                     if [ "${spk_embed_tool}" = "rawnet" ]; then
                         spk_embed_model="RawNet"
                     fi
 
-                    ${_cmd} --gpu "${_ngpu}" ${dumpdir}/${spk_embed_tag}/${dset}/spk_embed_extract.log \
-                    pyscripts/utils/extract_spk_embed.py \
-                        --pretrained_model ${spk_embed_model} \
-                        --toolkit ${spk_embed_tool} \
-			--spk_embed_tag ${spk_embed_tag} \
-                        ${data_feats}${_suf}/${dset} \
-                        ${dumpdir}/${spk_embed_tag}/${dset}
+                    # Choose extractor (sequential vs parallel)
+                    _script="pyscripts/utils/extract_spk_embed.py"
+                    _extra=""
+                    if "${spk_embed_parallel}"; then
+                        _script="pyscripts/utils/extract_spk_embed_parallel.py"
+                        _extra+=" --num_workers ${spk_embed_num_workers}"
+                        _extra+=" --batch_size ${spk_embed_batch_size}"
+                        _extra+=" --prefetch ${spk_embed_prefetch}"
+                    fi
+
+                    _device=$([ "${spk_embed_gpu_inference}" = true ] && echo cuda || echo cpu)
+
+                    ${_cmd} --gpu "${_ngpu}" "${dumpdir}/${spk_embed_tag}/${dset}/spk_embed_extract.log" \
+                        ${python} "${_script}" \
+                            --pretrained_model "${spk_embed_model}" \
+                            --toolkit "${spk_embed_tool}" \
+                            --spk_embed_tag "${spk_embed_tag}" \
+                            --device "${_device}" \
+                            ${_extra} \
+                            "${data_feats}${_suf}/${dset}" \
+                            "${dumpdir}/${spk_embed_tag}/${dset}"
                 done
             fi
         else
@@ -489,12 +529,19 @@ if ! "${skip_data_prep}"; then
                     > "${data_feats}${_suf}/${dset}/utt2lid"
             done
         fi
+		if "${use_spk_embed}"; then
+		    if ls "${dumpdir}/${spk_embed_tag}"/**/"${spk_embed_tag}.scp" >/dev/null 2>&1; then
+		        log "Fixing order of speaker-embed scp to match text"
+		        scripts/utils/sort_spk_embed_scp.sh "${dumpdir}" "${spk_embed_tag}"
+		    else
+		        log "WARN: no speaker-embed scp files found; skip sorting"
+		    fi
+		fi
     fi
 
 
     if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         log "Stage 4: Remove long/short data: ${data_feats}/org -> ${data_feats}"
-
         # NOTE(kamo): Not applying to test_sets to keep original data
         for dset in "${train_set}" "${valid_set}"; do
             # Copy data dir
@@ -1111,12 +1158,85 @@ else
     log "Skip the evaluation stages"
 fi
 
+if ! "${skip_scoring}"; then
+    if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
+        _gen_dir=${tts_exp}/${inference_tag}/${test_sets}
+        log "Stage 9: Scoring: TTS scoring via versa logs on ${_gen_dir}"
+        _data=${data_feats}/${test_sets}
+
+        log "Scoring TTS evaluation via VERSA, using default ${versa_config}. You can visit https://github.com/shinjiwlab/versa?tab=readme-ov-file#list-of-metrics for more supported metrics."
+        _opts=
+        _eval_dir=${_gen_dir}/scoring/versa_eval
+        mkdir -p ${_eval_dir}
+
+        _pred_file=${_gen_dir}/wav/wav_test.scp
+        _score_config=${versa_config}
+        _gt_file=${_data}/wav_test.scp
+
+        _nj=$(( inference_nj < $(wc -l < "${_pred_file}") ? inference_nj : $(wc -l < "${_pred_file}") ))
+
+        _split_files=""
+        for n in $(seq ${_nj}); do
+            _split_files+="${_eval_dir}/pred.${n} "
+        done
+        utils/split_scp.pl ${_pred_file} ${_split_files}
+
+        if [ -n "${_gt_file}" ]; then
+            _split_files=""
+            for n in $(seq ${_nj}); do
+                _split_files+="${_eval_dir}/gt.${n} "
+            done
+            utils/split_scp.pl ${_gt_file} ${_split_files}
+            _opts+="--gt ${_eval_dir}/gt.JOB"
+        fi
+
+        if ${gpu_inference}; then
+            _cmd="${cuda_cmd}"
+            _ngpu=1
+			use_gpu_flag="--use_gpu"
+        else
+            _cmd="${decode_cmd}"
+            _ngpu=0
+			use_gpu_flag=""
+        fi
+
+        ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_eval_dir}"/versa_eval.JOB.log \
+            python -m versa.bin.scorer \
+                --pred ${_eval_dir}/pred.JOB \
+                --score_config ${_score_config} \
+                --cache_folder ${_eval_dir}/cache \
+				--gt ${_gt_file} \
+                --text ${_data}/text \
+                ${use_gpu_flag} \
+                --output_file ${_eval_dir}/result.JOB.txt \
+                --io soundfile \
+                ${_opts} 2>&1;
+
+
+        python pyscripts/utils/aggregate_eval.py \
+            --logdir ${_eval_dir} \
+            --scoredir ${_eval_dir} \
+            --nj ${_nj}
+
+        _log_dir="${_eval_dir}"
+        _count=0
+        for f in "${_log_dir}"/result.*.txt; do
+            if [ -f "$f" ]; then
+                c=$(wc -l < "$f")
+                _count=$(( _count + c ))
+            fi
+        done
+        echo "sentences: ${_count}" >> "${_eval_dir}/avg_result.txt"
+        ./scripts/utils/show_tts_results.sh ${_gen_dir}
+        log "Finished scoring evaluation, results are in ${_eval_dir}"
+    fi
+fi
 
 packed_model="${tts_exp}/${tts_exp##*/}_${inference_model%.*}.zip"
 if ! "${skip_packing}" && [ -z "${download_model}" ]; then
     # Skip pack preparation if using a downloaded model or skip_packing is true
-    if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
-        log "Stage 9: Pack model: ${packed_model}"
+    if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
+        log "Stage 10: Pack model: ${packed_model}"
 
         _opts=""
         if [ -e "${tts_stats_dir}/train/feats_stats.npz" ]; then
@@ -1156,11 +1276,11 @@ else
 fi
 
 if ! "${skip_upload_hf}"; then
-    if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
+    if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
         [ -z "${hf_repo}" ] && \
             log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace" && \
             exit 1
-        log "Stage 10: Upload model to HuggingFace: ${hf_repo}"
+        log "Stage 11: Upload model to HuggingFace: ${hf_repo}"
 
     if [ ! -f "${packed_model}" ]; then
         log "ERROR: ${packed_model} does not exist. Please run stage 9 first."

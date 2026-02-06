@@ -28,7 +28,7 @@ def get_new_manifests(input_dir, output_filename):
         speaker = c_cut.supervisions[0].speaker
         gss_id = (
             f"{c_cut.recording_id}-{speaker}-"
-            f"{round(100*c_cut.start):06d}_{round(100*c_cut.end):06d}"
+            f"{round(100 * c_cut.start):06d}_{round(100 * c_cut.end):06d}"
         )
         try:
             enhanced_audio = id2wav[gss_id]

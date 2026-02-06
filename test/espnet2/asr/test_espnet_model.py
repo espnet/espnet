@@ -10,13 +10,17 @@ from espnet2.asr.espnet_model import ESPnetASRModel
 from espnet2.asr_transducer.joint_network import JointNetwork
 
 
-@pytest.mark.parametrize("encoder_arch", [TransformerEncoder, ConformerEncoder])
+@pytest.mark.parametrize("encoder_arch", [TransformerEncoder, ConformerEncoder, None])
 @pytest.mark.parametrize("decoder_arch", [TransformerDecoder, None])
 @pytest.mark.parametrize("aux_ctc", [None, {"0": "lid"}])
 def test_espnet_model(encoder_arch, decoder_arch, aux_ctc):
     vocab_size = 5
-    enc_out = 4
-    encoder = encoder_arch(20, output_size=enc_out, linear_units=4, num_blocks=2)
+    if encoder_arch is not None:
+        enc_out = 4
+        encoder = encoder_arch(20, output_size=enc_out, linear_units=4, num_blocks=2)
+    else:
+        enc_out = 20
+        encoder = None
     decoder = TransformerDecoder(vocab_size, enc_out, linear_units=4, num_blocks=2)
     ctc = CTC(odim=vocab_size, encoder_output_size=enc_out)
 

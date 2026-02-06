@@ -7,11 +7,9 @@ This code is modified from https://github.com/kan-bayashi/ParallelWaveGAN.
 
 """
 
-import copy
-import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, List
 
-import numpy as np
+import numpy as np  # noqa
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -82,15 +80,22 @@ class ComplexSTFTDiscriminator(nn.Module):
     def __init__(
         self,
         *,
-        in_channels=1,
-        channels=32,
-        strides=[[1, 2], [2, 2], [1, 2], [2, 2], [1, 2], [2, 2]],
-        chan_mults=[1, 2, 4, 4, 8, 8],
-        n_fft=1024,
-        hop_length=256,
-        win_length=1024,
-        stft_normalized=False,
-        logits_abs=True,
+        in_channels: int = 1,
+        channels: int = 32,
+        strides: Any = [
+            [1, 2],
+            [2, 2],
+            [1, 2],
+            [2, 2],
+            [1, 2],
+            [2, 2],
+        ],
+        chan_mults: List[int] = [1, 2, 4, 4, 8, 8],
+        n_fft: int = 1024,
+        hop_length: int = 256,
+        win_length: int = 1024,
+        stft_normalized: bool = False,
+        logits_abs: bool = True,
     ):
         """Initialize Complex STFT Discriminator used in SoundStream.
 
@@ -130,7 +135,7 @@ class ComplexSTFTDiscriminator(nn.Module):
         self.hop_length = hop_length
         self.win_length = win_length
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor):
         """Calculate forward propagation.
 
         Args:

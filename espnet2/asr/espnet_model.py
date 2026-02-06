@@ -8,6 +8,7 @@ from typeguard import typechecked
 
 from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
+from espnet2.asr.decoder.linear_decoder import LinearDecoder
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
@@ -16,17 +17,25 @@ from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.asr.transducer.error_calculator import ErrorCalculatorTransducer
 from espnet2.asr_transducer.utils import get_transducer_task_io
 from espnet2.layers.abs_normalize import AbsNormalize
-from espnet2.torch_utils.device_funcs import force_gatherable
-from espnet2.train.abs_espnet_model import AbsESPnetModel
-from espnet.nets.e2e_asr_common import ErrorCalculator
-from espnet.nets.pytorch_backend.nets_utils import th_accuracy
-from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
-from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import (  # noqa: H301
+from espnet2.legacy.nets.e2e_asr_common import ErrorCalculator
+from espnet2.legacy.nets.pytorch_backend.nets_utils import th_accuracy
+from espnet2.legacy.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
+from espnet2.legacy.nets.pytorch_backend.transformer.label_smoothing_loss import (
     LabelSmoothingLoss,
 )
+from espnet2.torch_utils.device_funcs import force_gatherable
+from espnet2.train.abs_espnet_model import AbsESPnetModel
 
+autocast_type = torch.float16
 if V(torch.__version__) >= V("1.6.0"):
     from torch.cuda.amp import autocast
+
+    if (
+        V(torch.__version__) >= V("1.10.0")
+        and torch.cuda.is_available()
+        and torch.cuda.is_bf16_supported()
+    ):
+        autocast_type = torch.bfloat16
 else:
     # Nothing to do if torch<1.6.0
     @contextmanager
@@ -46,7 +55,7 @@ class ESPnetASRModel(AbsESPnetModel):
         specaug: Optional[AbsSpecAug],
         normalize: Optional[AbsNormalize],
         preencoder: Optional[AbsPreEncoder],
-        encoder: AbsEncoder,
+        encoder: Optional[AbsEncoder],
         postencoder: Optional[AbsPostEncoder],
         decoder: Optional[AbsDecoder],
         ctc: CTC,
@@ -67,6 +76,7 @@ class ESPnetASRModel(AbsESPnetModel):
         # Pretrained HF Tokenizer needs custom sym_sos and sym_eos
         sym_sos: str = "<sos/eos>",
         sym_eos: str = "<sos/eos>",
+        autocast_frontend: bool = False,
         extract_feats_in_collect_stats: bool = True,
         lang_token_id: int = -1,
     ):
@@ -102,14 +112,15 @@ class ESPnetASRModel(AbsESPnetModel):
         self.postencoder = postencoder
         self.encoder = encoder
 
-        if not hasattr(self.encoder, "interctc_use_conditioning"):
-            self.encoder.interctc_use_conditioning = False
-        if self.encoder.interctc_use_conditioning:
+        self.autocast_frontend = autocast_frontend
+
+        if self.encoder and getattr(self.encoder, "interctc_use_conditioning", False):
             self.encoder.conditioning_layer = torch.nn.Linear(
                 vocab_size, self.encoder.output_size()
             )
 
         self.use_transducer_decoder = joint_network is not None
+        self.use_linear_decoder = isinstance(decoder, LinearDecoder)
 
         self.error_calculator = None
 
@@ -155,6 +166,12 @@ class ESPnetASRModel(AbsESPnetModel):
                     self.error_calculator = ErrorCalculator(
                         token_list, sym_space, sym_blank, report_cer, report_wer
                     )
+        elif self.use_linear_decoder:
+            assert ctc_weight == 0.0, "CTC is not supported with LinearDecoder."
+            self.decoder = decoder
+            self.criterion_classif = torch.nn.CrossEntropyLoss(
+                ignore_index=ignore_id, label_smoothing=lsm_weight
+            )
         else:
             # we set self.decoder = None in the CTC mode since
             # self.decoder parameters were never used and PyTorch complained
@@ -189,7 +206,10 @@ class ESPnetASRModel(AbsESPnetModel):
 
         self.extract_feats_in_collect_stats = extract_feats_in_collect_stats
 
-        self.is_encoder_whisper = "Whisper" in type(self.encoder).__name__
+        if self.encoder is not None:
+            self.is_encoder_whisper = "Whisper" in type(self.encoder).__name__
+        else:
+            self.is_encoder_whisper = False
 
         if self.is_encoder_whisper:
             assert (
@@ -243,6 +263,7 @@ class ESPnetASRModel(AbsESPnetModel):
         loss_att, acc_att, cer_att, wer_att = None, None, None, None
         loss_ctc, cer_ctc = None, None
         loss_transducer, cer_transducer, wer_transducer = None, None, None
+        loss_classif, acc_classif = None, None  # noqa
         stats = dict()
 
         # 1. CTC branch
@@ -325,8 +346,13 @@ class ESPnetASRModel(AbsESPnetModel):
             stats["cer_transducer"] = cer_transducer
             stats["wer_transducer"] = wer_transducer
 
+        elif self.use_linear_decoder:
+            # 2b. Linear decoder branch for classification tasks
+            loss, acc = self._calc_classif_loss(encoder_out, encoder_out_lens, text)
+            stats["loss"] = loss
+            stats["acc"] = acc
         else:
-            # 2b. Attention decoder branch
+            # 2c. Attention decoder branch
             if self.ctc_weight != 1.0:
                 loss_att, acc_att, cer_att, wer_att = self._calc_att_loss(
                     encoder_out, encoder_out_lens, text, text_lengths
@@ -373,7 +399,7 @@ class ESPnetASRModel(AbsESPnetModel):
             speech: (Batch, Length, ...)
             speech_lengths: (Batch, )
         """
-        with autocast(False):
+        with autocast(self.autocast_frontend, dtype=autocast_type):
             # 1. Extract feats
             feats, feats_lengths = self._extract_feats(speech, speech_lengths)
 
@@ -392,14 +418,19 @@ class ESPnetASRModel(AbsESPnetModel):
         # 4. Forward encoder
         # feats: (Batch, Length, Dim)
         # -> encoder_out: (Batch, Length2, Dim2)
-        if self.encoder.interctc_use_conditioning or getattr(
-            self.encoder, "ctc_trim", False
-        ):
-            encoder_out, encoder_out_lens, _ = self.encoder(
-                feats, feats_lengths, ctc=self.ctc
-            )
+        if self.encoder is None:
+            encoder_out, encoder_out_lens = feats, feats_lengths
         else:
-            encoder_out, encoder_out_lens, _ = self.encoder(feats, feats_lengths)
+
+            if getattr(self.encoder, "interctc_use_conditioning", False) or getattr(
+                self.encoder, "ctc_trim", False
+            ):
+                encoder_out, encoder_out_lens, _ = self.encoder(
+                    feats, feats_lengths, ctc=self.ctc
+                )
+            else:
+                encoder_out, encoder_out_lens, _ = self.encoder(feats, feats_lengths)
+
         intermediate_outs = None
         if isinstance(encoder_out, tuple):
             intermediate_outs = encoder_out[1]
@@ -415,7 +446,7 @@ class ESPnetASRModel(AbsESPnetModel):
             encoder_out.size(),
             speech.size(0),
         )
-        if (
+        if self.encoder is not None and (
             getattr(self.encoder, "selfattention_layer_type", None) != "lf_selfattn"
             and not self.is_encoder_whisper
         ):
@@ -672,3 +703,30 @@ class ESPnetASRModel(AbsESPnetModel):
         loss_ctc = self.ctc(encoder_out, encoder_out_lens, text, text_lengths)
         self.ctc.reduce = do_reduce
         return loss_ctc
+
+    def _calc_classif_loss(
+        self,
+        encoder_out: torch.Tensor,
+        encoder_out_lens: torch.Tensor,
+        labels: torch.Tensor,
+    ):
+        """Compute classification loss.
+
+        Args:
+            encoder_out: Encoder output sequences. (B, T, D_enc)
+            encoder_out_lens: Encoder output sequences lengths. (B,)
+            labels: Label ID sequences. (B, 1)
+        Return:
+            loss_classif: Classification loss value.
+            acc_classif: Classification accuracy.
+        """
+        # Calc classification loss
+        assert labels.dim() == 2, labels.shape
+        assert labels.shape[1] == 1, labels.shape
+        logits = self.decoder(encoder_out, encoder_out_lens)  # (B, n_class)
+        assert logits.shape[1] == self.vocab_size - 3, logits.shape
+        # Shift up labels to remove blank and unk.
+        labels = labels - 2
+        loss_classif = self.criterion_classif(logits, labels.squeeze(-1))
+        acc_classif = th_accuracy(logits, labels, ignore_label=self.ignore_id)
+        return loss_classif, acc_classif

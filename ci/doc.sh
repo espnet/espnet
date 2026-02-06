@@ -6,7 +6,6 @@ set -euo pipefail
 
 clean_outputs() {
     rm -rf dist
-    rm -rf espnet_bin
     rm -rf espnet2_bin
     rm -rf utils_py
 
@@ -55,13 +54,6 @@ mkdir utils_py
     ./utils/*.py
 mv utils_py ./doc/_gen/tools
 
-mkdir espnet_bin
-./doc/argparse2rst.py \
-    --title espnet_bin \
-    --output_dir espnet_bin \
-    ./espnet/bin/*.py
-mv espnet_bin ./doc/_gen/tools
-
 mkdir espnet2_bin
 ./doc/argparse2rst.py \
     --title espnet2_bin \
@@ -81,7 +73,6 @@ build_and_convert "tools/sentencepiece_commands/spm_encode" spm
 python ./doc/recipe2md.py --src ./egs2/TEMPLATE --dst ./doc/recipe
 
 # generate package doc
-python ./doc/members2rst.py --root espnet --dst ./doc/_gen/guide --exclude espnet.bin
 python ./doc/members2rst.py --root espnet2 --dst ./doc/_gen/guide --exclude espnet2.bin
 python ./doc/members2rst.py --root espnetez --dst ./doc/_gen/guide
 
@@ -105,10 +96,12 @@ cp -r ./doc/image ./doc/vuepress/src/
 # And convert custom tags to &lt; and &gt;, as <custom tag> can be recognized a html tag.
 python ./doc/convert_custom_tags_to_html.py ./doc/vuepress/src/guide
 python ./doc/convert_custom_tags_to_html.py ./doc/vuepress/src/tools
+python ./doc/convert_custom_tags_to_html.py ./doc/vuepress/src/recipe
 
 # Convert API document to specific html tags to display sphinx style
 python ./doc/convert_md_to_homepage.py ./doc/vuepress/src/guide/
 python ./doc/convert_md_to_homepage.py ./doc/vuepress/src/tools/
+python ./doc/convert_md_to_homepage.py ./doc/vuepress/src/recipe
 
 # Create navbar and sidebar.
 cd ./doc/vuepress

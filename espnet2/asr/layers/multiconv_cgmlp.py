@@ -8,8 +8,8 @@ References:
 
 import torch
 
-from espnet.nets.pytorch_backend.nets_utils import get_activation
-from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
+from espnet2.legacy.nets.pytorch_backend.nets_utils import get_activation
+from espnet2.legacy.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 
 
 class MultiConvolutionalSpatialGatingUnit(torch.nn.Module):
@@ -132,7 +132,7 @@ class MultiConvolutionalSpatialGatingUnit(torch.nn.Module):
 
         x_i = self.norm(x_i).transpose(1, 2)  # (N, D/2, T)
 
-        # TODO: Parallelize this convolution computation
+        # TODO(gituser): Parallelize this convolution computation
         xs = []
         for conv in self.convs:
             xi = conv(x_i).transpose(1, 2)  # (N, T, D/2)

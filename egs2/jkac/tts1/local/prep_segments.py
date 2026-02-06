@@ -134,11 +134,12 @@ if __name__ == "__main__":
     args = get_parser().parse_args(sys.argv[1:])
     sample_rate = None if args.sample_rate == "48000" else args.sample_rate
 
-    with open(args.wav_scp_path, "w") as wav_scp_f, open(
-        args.utt2spk_path, "w"
-    ) as utt2spk_f, open(args.text_path, "w") as text_f, open(
-        args.segments_path, "w"
-    ) as segments_f:
+    with (
+        open(args.wav_scp_path, "w") as wav_scp_f,
+        open(args.utt2spk_path, "w") as utt2spk_f,
+        open(args.text_path, "w") as text_f,
+        open(args.segments_path, "w") as segments_f,
+    ):
         paths = list(list_labels(args.input_dir))
         paths.sort(key=lambda p: p.recording_id())
         for path in paths:

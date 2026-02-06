@@ -21,8 +21,8 @@ from filelock import FileLock
 from typeguard import typechecked
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
-from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
+from espnet2.legacy.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet2.legacy.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 
 
 class TorchAudioHuBERTPretrainEncoder(AbsEncoder):
@@ -182,7 +182,7 @@ class TorchAudioHuBERTPretrainEncoder(AbsEncoder):
         if finetuning:
             for p in self.hubert_pretrain_model.wav2vec2.feature_extractor.parameters():
                 p.requires_grad = False
-        self.register_buffer("global_step", torch.LongTensor([0]))
+        self.register_buffer("global_step", torch.tensor([0], dtype=torch.long))
         self.freeze_encoder_updates = freeze_encoder_updates
 
     def output_size(self) -> int:
@@ -429,7 +429,7 @@ class FairseqHubertEncoder(AbsEncoder):
             self.output_layer = None
 
         self.freeze_finetune_updates = freeze_finetune_updates
-        self.register_buffer("num_updates", torch.LongTensor([0]))
+        self.register_buffer("num_updates", torch.tensor([0], dtype=torch.long))
 
     def output_size(self) -> int:
         return self._output_size

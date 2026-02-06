@@ -117,14 +117,17 @@ def create_data_dir(args, exist_ok=False):
                 writer["utt2dur"][uttid] = f"{num_samples / sample_rate:.2f}"
                 for spk in range(info["num_speakers"]):
                     if args.use_reverb_reference:
-                        writer[f"spk{spk+1}.scp"][uttid] = paths["speech_image"][spk]
+                        writer[f"spk{spk + 1}.scp"][uttid] = paths["speech_image"][spk]
                     else:
-                        writer[f"spk{spk+1}.scp"][uttid] = paths["speech_source"][spk]
-                    writer[f"rir{spk+1}.scp"][uttid] = paths["rir"][spk]
-                    writer[f"dereverb{spk+1}.scp"][uttid] = paths[
+                        writer[f"spk{spk + 1}.scp"][uttid] = paths["speech_source"][spk]
+                    writer[f"rir{spk + 1}.scp"][uttid] = paths["rir"][spk]
+                    writer[f"dereverb{spk + 1}.scp"][uttid] = paths[
                         "speech_reverberation_early"
                     ][spk]
-                    writer[f"text_spk{spk+1}"][uttid] = info["kaldi_transcription"][spk]
+                    writer[
+                        f"text_spk{spk
+                                   + 1}"
+                    ][uttid] = info["kaldi_transcription"][spk]
 
 
 def get_parser():

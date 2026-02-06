@@ -1,2 +1,2 @@
-docker_cuda=11.7
-docker_os=22.04
+docker_cuda=12.6
+docker_os=24.04

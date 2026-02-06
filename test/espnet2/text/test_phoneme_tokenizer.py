@@ -2,7 +2,21 @@ import pytest
 
 from espnet2.text.phoneme_tokenizer import PhonemeTokenizer
 
-params = [None, "g2p_en", "g2p_en_no_space"]
+params = [None]
+
+try:
+    import g2p_en
+
+    params.extend(
+        [
+            "g2p_en",
+            "g2p_en_no_space",
+        ]
+    )
+    del g2p_en
+
+except ImportError:
+    pass
 try:
     import pyopenjtalk
 

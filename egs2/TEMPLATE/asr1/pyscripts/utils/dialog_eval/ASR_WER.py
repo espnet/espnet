@@ -156,10 +156,10 @@ def handle_espnet_ASR_WER(
         + dict1["whisper_cer_equal"]
     )
     return (
-        f"ESPnet WER: {espnet_wer*100:.2f}\n"
-        f"ESPnet CER: {espnet_cer*100:.2f}\n"
-        f"OWSM WER: {owsm_wer*100:.2f}\n"
-        f"OWSM CER: {owsm_cer*100:.2f}\n"
-        f"Whisper WER: {whisper_wer*100:.2f}\n"
-        f"Whisper CER: {whisper_cer*100:.2f}"
+        f"ESPnet WER: {espnet_wer * 100:.2f}\n"
+        f"ESPnet CER: {espnet_cer * 100:.2f}\n"
+        f"OWSM WER: {owsm_wer * 100:.2f}\n"
+        f"OWSM CER: {owsm_cer * 100:.2f}\n"
+        f"Whisper WER: {whisper_wer * 100:.2f}\n"
+        f"Whisper CER: {whisper_cer * 100:.2f}"
     )

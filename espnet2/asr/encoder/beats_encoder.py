@@ -13,7 +13,7 @@
 import logging
 import math
 import warnings
-from copy import deepcopy
+from contextlib import contextmanager
 from typing import Dict, Optional, Tuple
 
 import numpy as np
@@ -38,7 +38,7 @@ except ImportError:
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.specaug.specaug import SpecAug
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet2.legacy.nets.pytorch_backend.nets_utils import make_pad_mask, roll_tensor
 
 if V(torch.__version__) >= V("1.6.0"):
     from torch.cuda.amp import autocast
@@ -133,6 +133,9 @@ class BeatsEncoder(AbsEncoder):
         add_positional_information: Add learned positional embeddings.
         max_positions: Maximum number of positions for positional embeddings.
             Required if `add_positional_information` is True.
+        roll_augment: Apply roll augmentation to the input.
+        roll_interval: Interval for roll augmentation. All rolling is
+            quantized to this interval.
     """
 
     def __init__(
@@ -143,17 +146,23 @@ class BeatsEncoder(AbsEncoder):
         downsampling_rate: int = 1,
         adapter_config: str = "",
         use_weighted_representation: bool = False,
-        beats_config: Optional[BeatsConfig] = None,
+        beats_config: Optional[Dict] = None,
         specaug_config: Optional[Dict] = None,
         add_positional_information: bool = False,
         max_positions: Optional[int] = None,
+        fbank_mean: float = 15.41663,
+        fbank_std: float = 6.55582,
+        roll_augment: bool = False,
+        roll_interval: int = 1600,
     ) -> None:
         super().__init__()
 
-        self.fbank_mean = 15.41663
-        self.fbank_std = 6.55582
+        self.fbank_mean = fbank_mean
+        self.fbank_std = fbank_std
         self.max_layer = max_layer
         self.beats_ckpt_path = beats_ckpt_path
+        self.roll_augment = roll_augment
+        self.roll_interval = roll_interval
 
         # Four cases for loading Beats config:
         # 1. No checkpoint and no config: Default config
@@ -184,7 +193,7 @@ class BeatsEncoder(AbsEncoder):
             logging.info(f"Loaded Beats pretrained config from {beats_ckpt_path}.")
             config = BeatsConfig(self.loaded_state_dict_["cfg"])
         if beats_config is not None:
-            config.update(vars(beats_config))
+            config.update(beats_config)
             logging.info("Overriding Beats config with user-provided config.")
 
         self.specaug = None
@@ -218,7 +227,7 @@ class BeatsEncoder(AbsEncoder):
             if self.max_layer is None:
                 logging.warning(
                     f"max_layer must be provided when using weighted"
-                    f" representations. Set to {config.encoder_layers-1}."
+                    f" representations. Set to {config.encoder_layers - 1}."
                 )
                 self.max_layer = config.encoder_layers - 1  # 0 based index
             self.layer_weights = nn.Parameter(
@@ -258,6 +267,10 @@ class BeatsEncoder(AbsEncoder):
             self.cross_embed_positions = BartLearnedPositionalEmbedding(
                 max_positions, learned_pos_dim
             )
+        # FIXME(shikhar): This is a hack to make the model compatible with
+        # small audio inputs, without this the window sizes become larger
+        # than audio. We should add an option to use this via the config.
+        self.min_input_length_at_16khz = 3200
 
     def reload_pretrained_parameters(self):
         """Initialization function for Beats.
@@ -292,7 +305,7 @@ class BeatsEncoder(AbsEncoder):
                 f" in your custom model: {load_info.missing_keys}. "
                 f"Follwing keys could not be loaded from the pretrained"
                 f"checkpoint: {load_info.unexpected_keys}."
-                "It is expected to have 'predictor' listed above if you are"
+                "It is expected to have 'predictor' listed above if you are "
                 "fine-tuning with only the Beats backbone."
             )
 
@@ -339,8 +352,9 @@ class BeatsEncoder(AbsEncoder):
         prev_states: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
         """Wrapper for compatibility with ESPnets' AbsEncoder Interface.
+
         Args:
-            xs_pad: (B, T, D)
+            xs_pad: (B, T)
             ilens: (B,)
             prev_states: None
         Returns:
@@ -348,7 +362,10 @@ class BeatsEncoder(AbsEncoder):
             output_lens: (B,)
             masks: None
         """
-
+        if self.roll_augment and self.training:
+            xs_pad = roll_tensor(
+                xs_pad.unsqueeze(-1), ilens, fixed_intervals=self.roll_interval
+            ).squeeze(-1)
         # NOTE(shikhar): If xs is not provided then the operation is costly,
         # because this function tries to create a tensor of size maxlen x maxlen.
         # Therfore, we unsqueeze and then squeeze tensors.
@@ -356,8 +373,7 @@ class BeatsEncoder(AbsEncoder):
             lengths=ilens, xs=xs_pad.unsqueeze(-1).unsqueeze(-1), length_dim=1
         ).to(xs_pad.device)
         # Adjust shapes to be compatible with Beats code
-        xs_pad, mask = xs_pad.squeeze(-1).squeeze(-1), mask.squeeze(-1).squeeze(-1)
-        # masks = None
+        mask = mask.squeeze(-1).squeeze(-1)
         audio_representation, mask = self.extract_features(
             xs_pad,
             mask,
@@ -373,6 +389,17 @@ class BeatsEncoder(AbsEncoder):
         max_layer: Optional[int] = None,
     ):
         """Extract features from raw audio."""
+
+        if source.size(1) < self.min_input_length_at_16khz:
+            logging.warning(
+                f"Input shape: {source.shape}. This is less than"
+                f" the minimum size of {self.min_input_length_at_16khz}."
+            )
+            # repeat the input to make it at least min_length
+            source = torch.cat(
+                [source] * (self.min_input_length_at_16khz // source.size(1) + 1), dim=1
+            )
+
         with autocast(False):
             fbank = self.preprocess(source)
 
@@ -1216,8 +1243,8 @@ class MultiheadAttention(nn.Module):
 
 
 def init_bert_params(module):
-    """
-    Initialize the weights specific to the BERT Model.
+    """Initialize the weights specific to the BERT Model.
+
     This overrides the default initializations depending on the specified arguments.
         1. If normal_init_linear_weights is set then weights of linear
            layer will be initialized using the normal distribution and
@@ -1375,8 +1402,8 @@ def get_activation_fn(activation: str):
 
 
 def quant_noise(module, p, block_size):
-    """
-    Wraps modules and applies quantization noise to the weights for
+    """Wraps modules and applies quantization noise to the weights for
+
     subsequent quantization with Iterative Product Quantization as
     described in "Training with Quantization Noise for Extreme Model Compression"
 

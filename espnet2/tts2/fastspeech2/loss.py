@@ -1,17 +1,17 @@
 # Copyright 2020 Nagoya University (Tomoki Hayashi)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""Fastspeech2 related loss module for ESPnet2. Speech Target are discrete units """
+"""Fastspeech2 related loss module for ESPnet2. Speech Target are discrete units"""
 
 from typing import Tuple
 
 import torch
 from typeguard import typechecked
 
-from espnet.nets.pytorch_backend.fastspeech.duration_predictor import (  # noqa: H301
+from espnet2.legacy.nets.pytorch_backend.fastspeech.duration_predictor import (
     DurationPredictorLoss,
 )
-from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
+from espnet2.legacy.nets.pytorch_backend.nets_utils import make_non_pad_mask
 
 
 class FastSpeech2LossDiscrete(torch.nn.Module):

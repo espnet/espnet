@@ -4,6 +4,7 @@ import torch
 from espnet2.svs.singing_tacotron.singing_tacotron import singing_tacotron
 
 
+@pytest.mark.execution_timeout(30)
 @pytest.mark.parametrize("prenet_layers", [0, 1])
 @pytest.mark.parametrize("postnet_layers", [0, 1])
 @pytest.mark.parametrize("reduction_factor", [1, 3])
@@ -198,7 +199,7 @@ def test_singing_tacotron(
             **inputs,
             maxlenratio=1.0,
             use_att_constraint=use_att_constraint,
-            use_dynamic_filter=use_dynamic_filter
+            use_dynamic_filter=use_dynamic_filter,
         )
 
         # teacher forcing
@@ -272,5 +273,5 @@ def test_singing_tacotron(
             **inputs,
             use_teacher_forcing=True,
             use_att_constraint=use_att_constraint,
-            use_dynamic_filter=use_dynamic_filter
+            use_dynamic_filter=use_dynamic_filter,
         )

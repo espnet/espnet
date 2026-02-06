@@ -1,4 +1,4 @@
-"""Prepare VoxPopuil data for multilingual ASR & ST. """
+"""Prepare VoxPopuil data for multilingual ASR & ST."""
 
 import csv
 import gzip

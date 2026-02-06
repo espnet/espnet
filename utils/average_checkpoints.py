@@ -70,7 +70,32 @@ def main():
 
         # sum
         for path in last:
-            states = torch.load(path, map_location=torch.device("cpu"))["model"]
+            # Validate checkpoint path for security
+            if not os.path.exists(path):
+                raise FileNotFoundError(f"Checkpoint file not found: {path}")
+
+            # Check file extension and size for basic validation
+            if not path.endswith((".pt", ".pth", ".bin")):
+                print(f"Warning: Untrusted file extension: {path}")
+                # Currently, snapshots do not have any extension so it is not possible
+                # to raise error when files do not have a pytorch-file extension
+                # TODO(nelson): Add extension to snapshots.
+                # raise ValueError(f"Untrusted file extension: {path}")
+
+            file_size = os.path.getsize(path)
+            if file_size > 10 * 1024 * 1024 * 1024:  # 10GB limit
+                raise ValueError(f"File too large (>10GB): {path}")
+
+            try:
+                states = torch.load(
+                    path, map_location=torch.device("cpu"), weights_only=True
+                )["model"]
+            except Exception as e:
+                # Fallback for older checkpoints that may contain custom objects
+                print(f"Warning: Loading {path} with weights_only=False due to: {e}")
+                states = torch.load(
+                    path, map_location=torch.device("cpu"), weights_only=False
+                )["model"]
             if avg is None:
                 avg = states
             else:

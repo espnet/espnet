@@ -1,0 +1,160 @@
+[project]
+name = "espnet"
+dynamic = ["version", "readme"]
+authors = [
+    {name="Shinji Watanabe", email="shinjiw@ieee.org"}
+]
+description = "ESPnet: end-to-end speech processing toolkit"
+classifiers = [
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Science/Research",
+    "Operating System :: POSIX :: Linux",
+    "License :: OSI Approved :: Apache Software License",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+requires-python = ">=3.10"
+license = { "text" = "Apache Software License" }
+
+# We can use newer setuptools after removing chainer support.
+# We didn't specify torch-related packages as it highly depends on environment.
+dependencies = [
+    # ESPnet-2 and ESPnet-3 dependencies
+    "setuptools>=38.5.1,<74.0.0",
+    "configargparse>=1.2.1",
+    "packaging",
+    "typeguard",
+    "humanfriendly",
+    "scipy>=1.4.1",
+    "numpy>=2.0.0",
+    "PyYAML>=5.1.2",
+    "soundfile>=0.10.2",
+    "torch_optimizer",
+    "kaldiio>=2.18.0",
+    "sentencepiece==0.2.0",
+    "librosa>=0.10.2",
+    "lightning",
+    "torch_complex",
+    "tensorboard>=1.14",
+    "einops",
+    "lhotse",
+    "espnet_model_zoo",
+    "matplotlib",
+    "nltk>=3.4.5",
+
+    # ESPnet-3 related
+    "hydra-core",
+    "omegaconf",
+    "datasets",
+    "dask[distributed]",
+    "dask_jobqueue",
+    "torch>=2.3.1",
+    "torchaudio>=2.3.1",
+]
+
+[project.urls]
+Homepage = "http://github.com/espnet/espnet"
+
+[build-system]
+requires = ["setuptools>=38.5.1,<74.0.0", "wheel", "setuptools-scm>=8.0,<9.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.dynamic]
+version = {attr = "espnet2.__version__"}
+readme = {file = ["README.md"], content-type = "text/markdown"}
+
+[tool.setuptools.packages.find]
+include = ["espnet*"]
+
+
+
+[project.optional-dependencies]
+asr = [
+  "ctc-segmentation @ git+https://github.com/espnet/ctc-segmentation.git@9b9ea1d",
+  "editdistance",
+  "opt_einsum",
+]
+
+tts = [
+  "pyworld>=0.3.4",
+  "pypinyin<=0.44.0",
+  "espnet_tts_frontend",
+  "g2p_en @ git+https://github.com/espnet/g2p.git@master",
+  "jamo==0.4.1",
+  "jaconv",
+]
+
+enh = [
+  "ci_sdr",
+  "fast-bss-eval==0.1.3",
+]
+
+asr2 = [
+  "editdistance",
+]
+
+# We didn't specify s3prl version as it should be installed via github.
+s2st = [
+  "editdistance",
+  "s3prl",
+]
+
+st = [
+  "editdistance",
+]
+
+s2t = [
+  "editdistance",
+]
+
+spk = [
+  "asteroid_filterbanks==0.4.0"
+]
+
+dev = [
+  "black",
+  "flake8>=3.7.8",
+  "pytest>=7.0.0,<8.4.0",
+  "pytest-cov>=2.7.1",
+  "isort",
+]
+
+test = [
+  "pytest>=7.0.0,<8.4.0",
+  "pytest-timeouts>=1.2.1",
+  "pytest-pythonpath>=0.7.3",
+  "pytest-cov>=2.7.1",
+  "hacking>=2.0.0",
+  "mock>=2.0.0",
+  "pycodestyle",
+  "jsondiff>=2.0.0",
+  "flake8>=3.7.8",
+  "flake8-docstrings>=1.3.1",
+  "black",
+  "isort",
+  "h5py>=2.10.0",
+]
+
+doc = [
+  "sphinx<9.0.0",
+  "sphinx-rtd-theme>=0.2.4",
+  "myst-parser",
+  "sphinx-argparse>=0.2.5",
+  "sphinx-markdown-builder",
+  "sphinx-markdown-tables"
+]
+
+all = [
+  "espnet[asr]",
+  "espnet[tts]",
+  "espnet[enh]",
+  "espnet[spk]",
+  "fairscale",
+  "transformers",
+  "evaluate",
+]

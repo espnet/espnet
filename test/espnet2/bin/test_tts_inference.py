@@ -52,8 +52,17 @@ def config_file(tmp_path: Path, token_list):
     return tmp_path / "config.yaml"
 
 
-@pytest.mark.execution_timeout(10)
+@pytest.mark.execution_timeout(30)  # Increase timeout for Numba compilation
 def test_Text2Speech(config_file):
     text2speech = Text2Speech(train_config=config_file)
+
+    # Add a warm-up call to trigger Numba compilation
+    try:
+        text2speech("test")
+    except Exception:
+        # Ignore errors in warm-up
+        pass
+
+    # Actual test
     text = "aiueo"
     text2speech(text)

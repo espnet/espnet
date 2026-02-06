@@ -579,7 +579,7 @@ if ! "${skip_eval}"; then
                     ${scoring_args} || { cat $(grep -l -i error "${_logdir}"/codec_evaluate.*.log) ; exit 1; }
 
             # 4. Aggregate the results
-            ${python} pyscripts/utils/aggregate_codec_eval.py \
+            ${python} pyscripts/utils/aggregate_eval.py \
                 --logdir "${_logdir}" \
                 --scoredir "${_scoredir}" \
                 --nj "${_nj}"
@@ -587,7 +587,8 @@ if ! "${skip_eval}"; then
         done
 
         # 5. Show results
-        # TODO(jiatong)
+        echo "Result saved at ${_scoredir}/avg_result.txt"
+        cat "${_scoredir}/avg_result.txt"
 
     fi
 else

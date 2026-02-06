@@ -4,8 +4,7 @@ import numpy as np
 
 
 def int2float(sound: Union[np.ndarray, list]) -> np.ndarray:
-    """
-    Converts an integer PCM audio signal to a floating-point representation.
+    """Converts an integer PCM audio signal to a floating-point representation.
 
     This function scales an integer PCM audio
     waveform (typically `int16`)

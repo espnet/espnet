@@ -84,14 +84,20 @@ class OpenAIWhisperTokenizer(AbsTokenizer):
 
         self.tokenizer = copy.deepcopy(self.tokenizer)
         # Whisper uses discrete tokens (20ms) to encode timestamp
-        timestamps = [f"<|{i*0.02:.2f}|>" for i in range(0, 1501)]
+        timestamps = [f"<|{i * 0.02:.2f}|>" for i in range(0, 1501)]
         sc = [speaker_change_symbol] if sot else []
-        special_tokens = (
-            self.tokenizer.tokenizer.additional_special_tokens + timestamps + sc
-        )
-        self.tokenizer.tokenizer.add_special_tokens(
-            dict(additional_special_tokens=special_tokens)
-        )
+
+        # workaround for transformers v5
+        if hasattr(self.tokenizer.tokenizer, "additional_special_tokens"):
+            # For transformer < V5
+            self.tokenizer.tokenizer.add_special_tokens(
+                dict(additional_special_tokens=timestamps + sc)
+            )
+        else:
+            # For transformer >= V5
+            self.tokenizer.tokenizer.add_special_tokens(
+                dict(extra_special_tokens=timestamps + sc)
+            )
 
     def __repr__(self):
         return (

@@ -2,3 +2,11 @@ _gen/
 _build/
 build/
 notebook/
+recipe/
+vuepress/node_modules/
+vuepress/src/guide/
+vuepress/src/image/
+vuepress/src/tools/
+vuepress/src/*.md
+vuepress/navbars.yml
+vuepress/sidebars.yml

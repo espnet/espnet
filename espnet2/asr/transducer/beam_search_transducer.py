@@ -9,13 +9,13 @@ import torch
 
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.asr_transducer.joint_network import JointNetwork
-from espnet2.lm.transformer_lm import TransformerLM
-from espnet.nets.pytorch_backend.transducer.utils import (
+from espnet2.legacy.nets.pytorch_backend.transducer.utils import (
     is_prefix,
     recombine_hyps,
     select_k_expansions,
     subtract,
 )
+from espnet2.lm.transformer_lm import TransformerLM
 
 
 @dataclass
@@ -335,9 +335,10 @@ class BeamSearchTransducer:
                 if self.use_lm:
                     if tuple(max_hyp.yseq) not in cache_lm:
                         lm_scores, lm_state = self.lm.score(
-                            torch.LongTensor(
+                            torch.tensor(
                                 [self.sos] + max_hyp.yseq[1:],
                                 device=self.decoder.device,
+                                dtype=torch.long,
                             ),
                             max_hyp.lm_state,
                             None,

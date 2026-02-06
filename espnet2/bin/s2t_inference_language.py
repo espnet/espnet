@@ -12,13 +12,13 @@ import torch.quantization
 from typeguard import typechecked
 
 from espnet2.fileio.datadir_writer import DatadirWriter
+from espnet2.legacy.nets.pytorch_backend.transformer.subsampling import TooShortUttError
+from espnet2.legacy.utils.cli_utils import get_commandline_args
 from espnet2.tasks.s2t import S2TTask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
-from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
-from espnet.utils.cli_utils import get_commandline_args
 
 
 class Speech2Language:
@@ -36,6 +36,7 @@ class Speech2Language:
         quantize_dtype: str = "qint8",
         first_lang_sym: str = "<abk>",
         last_lang_sym: str = "<zul>",
+        use_flash_attn: bool = False,
     ):
 
         qconfig_spec = set([getattr(torch.nn, q) for q in quantize_modules])
@@ -45,6 +46,11 @@ class Speech2Language:
             s2t_train_config, s2t_model_file, device
         )
         s2t_model.to(dtype=getattr(torch, dtype)).eval()
+
+        # Set flash_attn
+        for m in s2t_model.modules():
+            if hasattr(m, "use_flash_attn"):
+                setattr(m, "use_flash_attn", use_flash_attn)
 
         if quantize_s2t_model:
             logging.info("Use quantized s2t model for decoding.")

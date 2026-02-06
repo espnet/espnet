@@ -8,9 +8,9 @@ from typing import Optional
 
 from typeguard import typechecked
 
+from espnet2.legacy.utils.cli_utils import get_commandline_args
 from espnet2.text.whisper_tokenizer import LANGUAGES_CODE_MAPPING
 from espnet2.utils.types import str2bool
-from espnet.utils.cli_utils import get_commandline_args
 
 dirname = os.path.dirname(__file__)
 
@@ -86,7 +86,7 @@ def export_vocabulary(
     full_vocab_size = 51865 if whisper_model == "whisper_multilingual" else 51864
 
     for i in range(full_vocab_size - vocab_size):
-        fout.write(f"<|{i*0.02:.2f}|>" + "\n")
+        fout.write(f"<|{i * 0.02:.2f}|>" + "\n")
 
     if sot_asr:
         full_vocab_size += 1

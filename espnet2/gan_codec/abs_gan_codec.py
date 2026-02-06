@@ -34,7 +34,7 @@ class AbsGANCodec(ABC, torch.nn.Module):
         **kwargs,
     ) -> torch.Tensor:
         """Return encoded codecs from waveform."""
-        raise NotImplemented
+        raise NotImplementedError
 
     @abstractmethod
     def decode(
@@ -43,4 +43,4 @@ class AbsGANCodec(ABC, torch.nn.Module):
         **kwargs,
     ) -> torch.Tensor:
         """Return decoded waveform from codecs."""
-        raise NotImplemented
+        raise NotImplementedError

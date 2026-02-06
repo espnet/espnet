@@ -63,7 +63,7 @@ class USESSeparator(AbsSeparator):
             memory_types (int): numbre of memory token groups.
                 Each group corresponds to a different type of processing, i.e.,
                     the first group is used for denoising without dereverberation,
-                    the second group is used for denoising with dereverberation,
+                    the second group is used for denoising with dereverberation.
             rnn_type: string, select from 'RNN', 'LSTM' and 'GRU'.
             bidirectional (bool): whether the inter-chunk RNN layers are bidirectional.
             hidden_size (int): dimension of the hidden state.
@@ -183,7 +183,7 @@ class USESSeparator(AbsSeparator):
             elif mode == "dereverb":
                 processed = self.uses(feature, ref_channel=self.ref_channel, mem_idx=1)
             elif mode == "both":
-                # For training with multii-condition data
+                # For training with multi-condition data
                 # 1. denoised output without dereverberation
                 processed = self.uses(feature, ref_channel=self.ref_channel, mem_idx=0)
 

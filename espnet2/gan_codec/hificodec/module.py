@@ -1,8 +1,8 @@
-import math
+import math  # noqa
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import Optional
 
-import numpy as np
+import numpy as np  # noqa
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -184,7 +184,7 @@ class GroupResidualVectorQuantization(nn.Module):
         quantizer_kmeans_init,
         quantizer_kmeans_iters,
         quantizer_threshold_ema_dead_code,
-        **kwargs
+        **kwargs,
     ):
         super().__init__()
 

@@ -18,6 +18,7 @@ data_url=www.openslr.org/resources/12
 train_set="train"
 train_dev="dev"
 
+# shellcheck disable=SC2218
 log "$0 $*"
 . ./utils/parse_options.sh || exit 1;
 
@@ -28,6 +29,7 @@ log "$0 $*"
 
 ls100_datadir="data/librispeech_100"
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
+    # shellcheck disable=SC2218
     log "Prepare LibriSpeech_100"
     . local/data_ls100.sh --stage 1 --stop-stage 3 || exit 1
 
@@ -40,6 +42,7 @@ fi
 
 mlsuperb_datadir="data/ml_superb"
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
+    # shellcheck disable=SC2218
     log "Prepare ML_SUPERB"
     . local/data_mlsuperb.sh --duration "1h" || exit 1
 
@@ -52,6 +55,7 @@ fi
 
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
+    # shellcheck disable=SC2218
     log "Combine the training and valid sets"
     mkdir -p data/${train_set}
     mkdir -p data/${train_dev}

@@ -8,7 +8,8 @@
 
 """Encodec SEANet-based encoder and decoder implementation."""
 
-from typing import Any, Dict, List, Optional, Tuple, Union
+import warnings
+from typing import Any, Dict, List, Tuple, Union
 
 import numpy as np
 import torch
@@ -23,11 +24,12 @@ from espnet2.gan_codec.shared.encoder.seanet import (
     get_extra_padding_for_conv1d,
     get_norm_module,
 )
+from espnet2.gan_codec.shared.encoder.snake_activation import Snake1d
 
 if V(torch.__version__) >= V("2.1.0"):
     from torch.nn.utils.parametrizations import weight_norm
 else:
-    from torch.nn.utils import weight_norm
+    from torch.nn.utils import weight_norm  # noqa
 
 
 def get_activation(activation: str = None, channels=None, **kwargs):
@@ -41,6 +43,7 @@ def get_activation(activation: str = None, channels=None, **kwargs):
 
 class NormConv2d(nn.Module):
     """Wrapper around Conv2d and normalization applied to this conv
+
     to provide a uniform interface across normalization approaches.
     """
 
@@ -79,6 +82,7 @@ def pad2d(
     value: float = 0.0,
 ):
     """Tiny wrapper around F.pad, just to allow for reflect padding on small input.
+
     If this is the case, we insert extra 0 padding to the right before
     the reflection happen.
     """
@@ -104,6 +108,7 @@ def pad2d(
 
 class SConv2d(nn.Module):
     """Conv1d with some builtin handling of asymmetric or causal padding
+
     and normalization. Note: causal padding only make sense on time (the last) axis.
     Frequency (the second last) axis are always non-causally padded.
     """
@@ -202,6 +207,7 @@ class SConv2d(nn.Module):
 
 class SEANetResnetBlock2d(nn.Module):
     """Residual block from SEANet model.
+
     Args:
         dim (int): Dimension of the input/output
         kernel_sizes (list): List of kernel sizes for the convolutions.
@@ -303,6 +309,7 @@ class ReshapeModule(nn.Module):
 # 48HZ -> channels = 2, norm = time_group_norm, causal = False
 class SEANetEncoder2d(nn.Module):
     """SEANet encoder.
+
     Args:
         input_size (int): Audio channels.
         dimension (int): Intermediate representation dimension.

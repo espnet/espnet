@@ -62,19 +62,50 @@ GigaST_YOU0000009624_002208970_002218840_en_st_zh 与员工和同事一起，这
 
 ## Pre-trained Model
 
-**IMPORTANT: Our model is trained on 16kHz audio with fixed duration 30s. When using the pre-trained model, please ensure the input speech is 16kHz and pad or truncate it to 30s.**
+Pre-trained models are available on Hugging Face:
+- https://huggingface.co/espnet/owsm_ctc_v3.1_1B
+- https://huggingface.co/espnet/owsm_ctc_v3.2_ft_1B
 
-The pre-trained model is available at: https://huggingface.co/espnet/owsm_ctc_v3.1_1B
-
-The model is trained with this config: [conf/train_s2t_multitask-ctc_ebf27_conv2d8_size1024.yaml](conf/train_s2t_multitask-ctc_ebf27_conv2d8_size1024.yaml)
+The v3.1 model is trained with this config: [conf/train_s2t_multitask-ctc_ebf27_conv2d8_size1024.yaml](conf/train_s2t_multitask-ctc_ebf27_conv2d8_size1024.yaml)
 
 
-### Example script for short-form ASR/ST
+### Example script for batched inference
+
+`Speech2TextGreedySearch` now provides a unified batched inference method `batch_decode`. It performs CTC greedy decoding for a batch of short-form or long-form audios. If an audio is shorter than 30s, it will be padded to 30s; otherwise it will be split into overlapped segments (same as the "long-form ASR/ST" method below).
+
+```python
+from espnet2.bin.s2t_inference_ctc import Speech2TextGreedySearch
+
+s2t = Speech2TextGreedySearch.from_pretrained(
+    "espnet/owsm_ctc_v3.1_1B",
+    device="cuda",
+    use_flash_attn=False,   # set to True for better efficiency if flash attn is installed and dtype is float16 or bfloat16
+    lang_sym='<eng>',
+    task_sym='<asr>',
+)
+
+res = s2t.batch_decode(
+    "audio.wav",    # a single audio (path or 1-D array/tensor) as input
+    batch_size=16,
+    context_len_in_secs=4,
+)   # res is a single str, i.e., the predicted text without special tokens
+
+res = s2t.batch_decode(
+    ["audio1.wav", "audio2.wav", "audio3.wav"], # a list of audios as input
+    batch_size=16,
+    context_len_in_secs=4,
+)   # res is a list of str
+
+# Please check the code of `batch_decode` for all supported inputs
+```
+
+### Example script for short-form ASR/ST/LID
+
+Our models are trained on 16kHz audio with a fixed duration of 30s. When using the pre-trained model, please ensure the input speech is 16kHz and pad or truncate it to 30s.
 
 ```python
 import librosa
 from espnet2.bin.s2t_inference_ctc import Speech2TextGreedySearch
-
 
 s2t = Speech2TextGreedySearch.from_pretrained(
     "espnet/owsm_ctc_v3.1_1B",
@@ -98,7 +129,6 @@ print(res)
 import soundfile as sf
 import torch
 from espnet2.bin.s2t_inference_ctc import Speech2TextGreedySearch
-
 
 context_len_in_secs = 4   # left and right context when doing buffered inference
 batch_size = 32   # depends on the GPU memory
@@ -130,7 +160,6 @@ CTC segmentation can be efficiently applied to audio of an arbitrary length.
 import soundfile as sf
 from espnet2.bin.s2t_ctc_align import CTCSegmentation
 from espnet_model_zoo.downloader import ModelDownloader
-
 
 # Download model first
 d = ModelDownloader()

@@ -4,7 +4,7 @@ import math
 
 import torch
 
-from espnet.nets.pytorch_backend.transformer.embedding import _pre_hook
+from espnet2.legacy.nets.pytorch_backend.transformer.embedding import _pre_hook
 
 
 class RelPositionalEncoding(torch.nn.Module):

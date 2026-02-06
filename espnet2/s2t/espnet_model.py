@@ -13,13 +13,13 @@ from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
 from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.layers.abs_normalize import AbsNormalize
-from espnet2.torch_utils.device_funcs import force_gatherable
-from espnet2.train.abs_espnet_model import AbsESPnetModel
-from espnet.nets.e2e_asr_common import ErrorCalculator
-from espnet.nets.pytorch_backend.nets_utils import pad_list, th_accuracy
-from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import (  # noqa: H301
+from espnet2.legacy.nets.e2e_asr_common import ErrorCalculator
+from espnet2.legacy.nets.pytorch_backend.nets_utils import pad_list, th_accuracy
+from espnet2.legacy.nets.pytorch_backend.transformer.label_smoothing_loss import (
     LabelSmoothingLoss,
 )
+from espnet2.torch_utils.device_funcs import force_gatherable
+from espnet2.train.abs_espnet_model import AbsESPnetModel
 
 
 class ESPnetS2TModel(AbsESPnetModel):
@@ -120,6 +120,65 @@ class ESPnetS2TModel(AbsESPnetModel):
             assert (
                 self.frontend is None
             ), "frontend should be None when using full Whisper model"
+
+    def forced_align(self, speech, speech_lengths, text, text_lengths):
+        """Calculate frame-wise alignment from CTC probabilities.
+
+        Args:
+            speech: (Batch, Length, ...)
+            speech_lengths: (Batch,)
+            text: (Batch, Length)
+            text_lengths: (Batch,)
+        Returns:
+            alignments: Tuple(tensor, tensor):
+                - Label for each time step in the alignment path
+                computed using forced alignment.
+                - Log probability scores of the labels for each time
+                step.
+        """
+        assert (
+            self.ctc is not None
+        ), "CTC is not used in this model. Cannot compute forced alignment."
+        assert text_lengths.dim() == 1, text_lengths.shape
+        # Check that batch_size is unified
+        assert (
+            speech.shape[0]
+            == speech_lengths.shape[0]
+            == text.shape[0]
+            == text_lengths.shape[0]
+        ), (
+            speech.shape,
+            speech_lengths.shape,
+            text.shape,
+            text_lengths.shape,
+        )
+        batch_size = speech.shape[0]
+        assert batch_size == 1, "Forced alignment needs batch size 1."
+
+        # -1 is used as padding index in collate fn
+        text = torch.where(text == -1, self.ignore_id, text)
+
+        # for data-parallel
+        text = text[:, : text_lengths.max()]
+
+        batch = {
+            "speech": speech,
+            "speech_lengths": speech_lengths,
+            "text_ctc": text,
+            "text_ctc_lengths": text_lengths,
+        }
+        with torch.no_grad():
+            encoder_out, encoder_out_lens = self.encode(
+                batch["speech"], batch["speech_lengths"]
+            )
+            alignments = self.ctc.forced_align(
+                encoder_out,
+                encoder_out_lens,
+                batch["text_ctc"],
+                batch["text_ctc_lengths"],
+                blank_idx=self.blank_id,
+            )
+        return alignments
 
     def forward(
         self,

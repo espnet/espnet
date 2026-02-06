@@ -81,7 +81,6 @@ class LMTask(AbsTask):
             default=None,
             help="The initialization method",
             choices=[
-                "chainer",
                 "xavier_uniform",
                 "xavier_normal",
                 "kaiming_uniform",
@@ -196,7 +195,7 @@ class LMTask(AbsTask):
             raise RuntimeError("token_list must be str or dict")
 
         vocab_size = len(token_list)
-        logging.info(f"Vocabulary size: {vocab_size }")
+        logging.info(f"Vocabulary size: {vocab_size}")
 
         # 1. Build LM model
         lm_class = lm_choices.get_class(args.lm)

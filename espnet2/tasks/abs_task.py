@@ -2,6 +2,7 @@
 
 import argparse
 import functools
+import itertools
 import logging
 import os
 import sys
@@ -9,7 +10,7 @@ import tempfile
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Sequence, Set, Tuple, Union
 
 import humanfriendly
 import numpy as np
@@ -22,7 +23,7 @@ from packaging.version import parse as V
 from torch.utils.data import DataLoader
 from typeguard import typechecked
 
-from espnet import __version__
+from espnet2 import __version__
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
 from espnet2.iterators.category_chunk_iter_factory import CategoryChunkIterFactory
 from espnet2.iterators.category_iter_factory import CategoryIterFactory
@@ -30,17 +31,24 @@ from espnet2.iterators.chunk_iter_factory import ChunkIterFactory
 from espnet2.iterators.multiple_iter_factory import MultipleIterFactory
 from espnet2.iterators.sequence_iter_factory import SequenceIterFactory
 from espnet2.layers.create_adapter import create_adapter
+from espnet2.legacy.utils.cli_utils import get_commandline_args
 from espnet2.main_funcs.collect_stats import collect_stats
 from espnet2.optimizers.optim_groups import configure_optimizer
 from espnet2.optimizers.sgd import SGD
-from espnet2.samplers.build_batch_sampler import BATCH_TYPES, build_batch_sampler
-from espnet2.samplers.category_balanced_sampler import CategoryBalancedSampler
+from espnet2.samplers.build_batch_sampler import (
+    BATCH_TYPES,
+    CATEGORY_BATCH_TYPES,
+    build_batch_sampler,
+    build_category_batch_sampler,
+)
 from espnet2.samplers.unsorted_batch_sampler import UnsortedBatchSampler
 from espnet2.schedulers.cosine_anneal_warmup_restart import (
     CosineAnnealingWarmupRestarts,
 )
+from espnet2.schedulers.exponential_decay_warmup import ExponentialDecayWarmup
 from espnet2.schedulers.noam_lr import NoamLR
 from espnet2.schedulers.piecewise_linear_warmup_lr import PiecewiseLinearWarmupLR
+from espnet2.schedulers.tristage_lr import TristageLR
 from espnet2.schedulers.warmup_lr import WarmupLR
 from espnet2.schedulers.warmup_reducelronplateau import WarmupReduceLROnPlateau
 from espnet2.schedulers.warmup_step_lr import WarmupStepLR
@@ -64,7 +72,7 @@ from espnet2.train.distributed_utils import (
     get_num_nodes,
     resolve_distributed_mode,
 )
-from espnet2.train.iterable_dataset import (
+from espnet2.train.iterable_dataset import (  # noqa
     IterableESPnetDataset,
     SplicedIterableESPnetDataset,
 )
@@ -82,7 +90,6 @@ from espnet2.utils.types import (
     str_or_none,
 )
 from espnet2.utils.yaml_no_alias_safe_dump import yaml_no_alias_safe_dump
-from espnet.utils.cli_utils import get_commandline_args
 
 try:
     import wandb
@@ -171,6 +178,8 @@ scheduler_classes = dict(
     onecyclelr=torch.optim.lr_scheduler.OneCycleLR,
     CosineAnnealingWarmRestarts=torch.optim.lr_scheduler.CosineAnnealingWarmRestarts,
     CosineAnnealingWarmupRestarts=CosineAnnealingWarmupRestarts,
+    tristagelr=TristageLR,
+    ExponentialDecayWarmup=ExponentialDecayWarmup,
 )
 # To lower keys
 optim_classes = {k.lower(): v for k, v in optim_classes.items()}
@@ -460,6 +469,20 @@ class AbsTask(ABC):
             default=None,
             type=str,
             help="deepspeed training config",
+        )
+        group.add_argument(
+            "--gradient_as_bucket_view",
+            default=True,
+            type=str2bool,
+            help="Enable gradient_as_bucket_view in DDP",
+        )
+        group.add_argument(
+            "--ddp_comm_hook",
+            default=None,
+            type=str_or_none,
+            choices=["none", "fp16_compress_hook", "bf16_compress_hook"],
+            help="DDP communication hook from "
+            "torch.distributed.algorithms.ddp_comm_hooks.default_hooks",
         )
 
         group = parser.add_argument_group("cudnn mode related")
@@ -786,6 +809,54 @@ class AbsTask(ABC):
             default=10,
             help="The sample size for category chunk iterator",
         )
+        group.add_argument(
+            "--upsampling_factor",
+            type=float,
+            default=0.5,
+            help="Upsampling factor for low-resource categories when using "
+            "batch_type='catpow' (CategoryPowerSampler). "
+            "Lower values (-> 0) increase sampling of rare categories, "
+            "higher values (-> 1.0) reduce upsampling. Default: 0.5",
+        )
+        group.add_argument(
+            "--category_upsampling_factor",
+            type=float,
+            default=0.5,
+            help="Upsampling factor for datasets with fewer samples when using "
+            "batch_type='catpow_balance_dataset' (CategoryDatasetPowerSampler). "
+            "Lower values (-> 0) increase sampling of rare categories, "
+            "higher values (-> 1.0) reduce upsampling. Default: 0.5",
+        )
+        group.add_argument(
+            "--dataset_upsampling_factor",
+            type=float,
+            default=0.5,
+            help="Upsampling factor for low-resource datasets when using "
+            "batch_type='catpow_balance_dataset' (CategoryDatasetPowerSampler). "
+            "Lower values (-> 0) increase sampling of rare datasets, "
+            "higher values (-> 1.0) reduce upsampling. Default: 0.5",
+        )
+        group.add_argument(
+            "--dataset_scaling_factor",
+            type=float,
+            default=1.2,
+            help="Used when batch_type='catpow' (CategoryPowerSampler) or "
+            "'catpow_balance_dataset' (CategoryDatasetPowerSampler), "
+            "control the scaled dataset size after upsampling",
+        )
+        group.add_argument(
+            "--max_batch_size",
+            type=int_or_none,
+            default=None,
+            help="Max batch size for CategoryPowerSampler "
+            "and CategoryDatasetPowerSampler",
+        )
+        group.add_argument(
+            "--min_batch_size",
+            type=int,
+            default=1,
+            help="Min batch size for batch samplers.",
+        )
 
         group.add_argument("--train_shape_file", type=str, action="append", default=[])
         group.add_argument("--valid_shape_file", type=str, action="append", default=[])
@@ -798,14 +869,14 @@ class AbsTask(ABC):
             "--batch_type",
             type=str,
             default="folded",
-            choices=list(BATCH_TYPES),
+            choices=list(BATCH_TYPES) + list(CATEGORY_BATCH_TYPES),
             help=_batch_type_help,
         )
         group.add_argument(
             "--valid_batch_type",
             type=str_or_none,
             default=None,
-            choices=list(BATCH_TYPES) + [None],
+            choices=list(BATCH_TYPES) + list(CATEGORY_BATCH_TYPES) + [None],
             help="If not given, the value of --batch_type is used",
         )
         group.add_argument("--fold_length", type=int, action="append", default=[])
@@ -1236,7 +1307,8 @@ class AbsTask(ABC):
             node_rank = get_node_rank(args.dist_rank, args.dist_launcher)
 
             # The following block is copied from:
-            # https://github.com/pytorch/pytorch/blob/master/torch/multiprocessing/spawn.py
+            # https://github.com/pytorch/pytorch/blob/master/torch/
+            # multiprocessing/spawn.py
             error_files = []
             processes = []
             mp = torch.multiprocessing.get_context("spawn")
@@ -1328,7 +1400,7 @@ class AbsTask(ABC):
             assert not args.use_amp, "amp is not compatible with tf32"
             torch.backends.cuda.matmul.allow_tf32 = True
             torch.backends.cudnn.allow_tf32 = True
-            logging.info(f"Using TensorFloat32 at the cost of matmul precision")
+            logging.info("Using TensorFloat32 at the cost of matmul precision")
 
         if (
             args.collect_stats
@@ -1747,10 +1819,12 @@ class AbsTask(ABC):
 
     @classmethod
     @typechecked
-    def build_sequence_iter_factory(
-        cls, args: argparse.Namespace, iter_options: IteratorOptions, mode: str
-    ) -> AbsIterFactory:
-
+    def build_dataset(
+        cls,
+        args: argparse.Namespace,
+        iter_options: IteratorOptions,
+        keys_to_load: Optional[Set[Union[int, str]]] = None,
+    ) -> AbsDataset:
         if args.multi_task_dataset:
             dataset_class = ESPnetMultiTaskDataset
         else:
@@ -1763,20 +1837,24 @@ class AbsTask(ABC):
             max_cache_size=iter_options.max_cache_size,
             max_cache_fd=iter_options.max_cache_fd,
             allow_multi_rates=iter_options.allow_multi_rates,
+            keys_to_load=keys_to_load,
         )
         cls.check_task_requirements(
             dataset, args.allow_variable_data_keys, train=iter_options.train
         )
+        return dataset
 
-        if Path(
-            Path(iter_options.data_path_and_name_and_type[0][0]).parent, "utt2category"
-        ).exists():
-            utt2category_file = str(
-                Path(
-                    Path(iter_options.data_path_and_name_and_type[0][0]).parent,
-                    "utt2category",
-                )
-            )
+    @classmethod
+    @typechecked
+    def build_sequence_iter_factory(
+        cls, args: argparse.Namespace, iter_options: IteratorOptions, mode: str
+    ) -> AbsIterFactory:
+
+        utt2category_file = (
+            Path(iter_options.data_path_and_name_and_type[0][0]).parent / "utt2category"
+        )
+        if utt2category_file.exists():
+            utt2category_file = str(utt2category_file)
             logging.warning("Reading " + utt2category_file)
         else:
             utt2category_file = None
@@ -1791,7 +1869,9 @@ class AbsTask(ABC):
             sort_batch=args.sort_batch,
             drop_last=args.drop_last_iter,
             min_batch_size=(
-                torch.distributed.get_world_size() if iter_options.distributed else 1
+                torch.distributed.get_world_size()
+                if iter_options.distributed
+                else args.min_batch_size
             ),
             utt2category_file=utt2category_file,
         )
@@ -1802,13 +1882,13 @@ class AbsTask(ABC):
 
         bs_list = [len(batch) for batch in batches]
 
-        logging.info(f"[{mode}] dataset:\n{dataset}")
         logging.info(f"[{mode}] Batch sampler: {batch_sampler}")
         logging.info(
             f"[{mode}] mini-batch sizes summary: N-batch={len(bs_list)}, "
             f"mean={np.mean(bs_list):.1f}, min={np.min(bs_list)}, max={np.max(bs_list)}"
         )
 
+        # Shard mini-batches for distributed training
         if iter_options.distributed:
             world_size = torch.distributed.get_world_size()
             rank = torch.distributed.get_rank()
@@ -1819,6 +1899,15 @@ class AbsTask(ABC):
                         f"{len(batch)} < {world_size}"
                     )
             batches = [batch[rank::world_size] for batch in batches]
+
+        # Build dataset after sharding to reduce memory usage
+        # This is very helpful for large-scale training
+        dataset = cls.build_dataset(
+            args,
+            iter_options,
+            set(itertools.chain(*batches)),
+        )
+        logging.info(f"[{mode}] dataset:\n{dataset}")
 
         return SequenceIterFactory(
             dataset=dataset,
@@ -1850,34 +1939,105 @@ class AbsTask(ABC):
             dataset, args.allow_variable_data_keys, train=iter_options.train
         )
 
-        if Path(
-            Path(iter_options.data_path_and_name_and_type[0][0]).parent, "category2utt"
-        ).exists():
-            category2utt_file = str(
-                Path(
-                    Path(iter_options.data_path_and_name_and_type[0][0]).parent,
-                    "category2utt",
-                )
-            )
-            logging.warning("Reading " + category2utt_file)
+        parent_dir = str(Path(iter_options.data_path_and_name_and_type[0][0]).parent)
+
+        if Path(parent_dir, "category2utt").exists():
+            category2utt_file = str(Path(parent_dir, "category2utt"))
         else:
             category2utt_file = None
             raise ValueError(
                 "category2utt mandatory for category iterator, but not found"
             )
 
-        sampler_args = dict(
-            batch_size=iter_options.batch_size,
-            min_batch_size=(
-                torch.distributed.get_world_size() if iter_options.distributed else 1
-            ),
-            drop_last=args.drop_last_iter,
-            category2utt_file=category2utt_file,
-            epoch=1,
-            num_batches=iter_options.num_batches,
-            distributed=iter_options.distributed,
-        )
-        batch_sampler = CategoryBalancedSampler(**sampler_args)
+        if (
+            iter_options.batch_type in CATEGORY_BATCH_TYPES
+            or iter_options.batch_type == "folded"
+        ):
+            # Note(qingzheng): Handle category-based batch sampling for category
+            # iterator type.
+            #
+            # This covers two scenarios:
+            # 1. Explicit category batch types (catbel, catpow, catpow_balance_dataset):
+            #    Use the specified category sampler directly.
+            # 2. Legacy "folded" batch type with category iterator:
+            #    In older configurations, when iterator_type=category was set,
+            #    they typically does not specify the batch_type, which makes the
+            #    batch_type default to "folded". However, the intended behavior
+            #    in the case of setting iterator_type to category, is to use
+            #    category-balanced sampler (catbel). We maintain backward
+            #    compatibility by mapping the batch_type "folded" to "catbel"
+            #    in the case of setting iterator_type to "category".
+
+            if iter_options.batch_type == "folded":
+                logging.warning(
+                    "Detected iterator_type='category' with batch_type='folded'. "
+                    "In older ESPnet versions (< 202509), when iterator_type was "
+                    "set to 'category', the batch_type would default to 'folded' as "
+                    "the older design does not require the batch_type to be specified, "
+                    "but the intended behavior was to use category-balanced sampling "
+                    "(catbel batch sampler). We map 'folded' to 'catbel' to maintain "
+                    "this behavior. If you actually want to use the folded batch "
+                    "sampler, please set iterator_type='sequence' and "
+                    "batch_type='folded' instead."
+                )
+
+            batch_sampler, sampler_args = build_category_batch_sampler(
+                type=(
+                    iter_options.batch_type
+                    if iter_options.batch_type != "folded"
+                    else "catbel"
+                ),
+                batch_size=iter_options.batch_size,
+                batch_bins=iter_options.batch_bins,
+                shape_files=iter_options.shape_files,
+                min_batch_size=(
+                    torch.distributed.get_world_size()
+                    if iter_options.distributed
+                    else args.min_batch_size
+                ),
+                max_batch_size=args.max_batch_size,
+                upsampling_factor=args.upsampling_factor,
+                category_upsampling_factor=args.category_upsampling_factor,
+                dataset_upsampling_factor=args.dataset_upsampling_factor,
+                dataset_scaling_factor=args.dataset_scaling_factor,
+                drop_last=args.drop_last_iter,
+                category2utt_file=category2utt_file,
+                dataset2utt_parent_dir=parent_dir,
+                epoch=1,
+                num_batches=iter_options.num_batches,
+                distributed=iter_options.distributed,
+            )
+        elif iter_options.batch_type == "unsorted":
+            # For plot attention
+            if len(iter_options.shape_files) == 0:
+                key_file = iter_options.data_path_and_name_and_type[0][0]
+            else:
+                key_file = iter_options.shape_files[0]
+            batch_sampler = UnsortedBatchSampler(
+                batch_size=iter_options.batch_size,
+                key_file=key_file,
+            )
+        elif iter_options.batch_type in BATCH_TYPES.keys():
+            # If the batch_type is set to other than the category batch types,
+            # folded, and unsorted, we fallback to treat it as a sequence iterator.
+            logging.warning(
+                f"The batch type {iter_options.batch_type} is not compatible "
+                f"with iterator_type=category. Please use a category batch type. "
+                f"Available category batch types: {CATEGORY_BATCH_TYPES.keys()} "
+                f"Here we fallback to treat it as a sequence iterator."
+            )
+            sequence_iter_factory = cls.build_sequence_iter_factory(
+                args=args,
+                iter_options=iter_options,
+                mode=mode,
+            )
+            return sequence_iter_factory
+        else:
+            raise ValueError(
+                f"batch_type={iter_options.batch_type} is not supported"
+                f"Please specify batch_type in {CATEGORY_BATCH_TYPES.keys()}, "
+                "unsorted."
+            )
 
         batches = list(batch_sampler)
 
@@ -1904,17 +2064,32 @@ class AbsTask(ABC):
                     )
             batches = [batch[rank::world_size] for batch in batches]
 
-        return CategoryIterFactory(
-            dataset=dataset,
-            batches=batches,
-            seed=args.seed,
-            num_iters_per_epoch=iter_options.num_iters_per_epoch,
-            sampler_args=sampler_args,
-            shuffle=iter_options.train,
-            num_workers=args.num_workers,
-            collate_fn=iter_options.collate_fn,
-            pin_memory=args.ngpu > 0,
-        )
+        if iter_options.batch_type == "unsorted":
+            # For plot attention
+            return SequenceIterFactory(
+                dataset=dataset,
+                batches=batches,
+                seed=args.seed,
+                num_iters_per_epoch=iter_options.num_iters_per_epoch,
+                shuffle=iter_options.train,
+                shuffle_within_batch=args.shuffle_within_batch,
+                num_workers=args.num_workers,
+                collate_fn=iter_options.collate_fn,
+                pin_memory=args.ngpu > 0,
+            )
+        else:
+            return CategoryIterFactory(
+                dataset=dataset,
+                batches=batches,
+                seed=args.seed,
+                num_iters_per_epoch=iter_options.num_iters_per_epoch,
+                sampler_args=sampler_args,
+                batch_type=iter_options.batch_type,
+                shuffle=iter_options.train,
+                num_workers=args.num_workers,
+                collate_fn=iter_options.collate_fn,
+                pin_memory=args.ngpu > 0,
+            )
 
     @classmethod
     @typechecked
@@ -2014,31 +2189,36 @@ class AbsTask(ABC):
             dataset, args.allow_variable_data_keys, train=iter_options.train
         )
 
-        if Path(
-            Path(iter_options.data_path_and_name_and_type[0][0]).parent, "category2utt"
-        ).exists():
-            category2utt_file = str(
-                Path(
-                    Path(iter_options.data_path_and_name_and_type[0][0]).parent,
-                    "category2utt",
-                )
-            )
+        parent_dir = str(Path(iter_options.data_path_and_name_and_type[0][0]).parent)
+
+        if Path(parent_dir, "category2utt").exists():
+            category2utt_file = str(Path(parent_dir, "category2utt"))
             logging.warning("Reading " + category2utt_file)
         else:
             category2utt_file = None
 
-        sampler_args = dict(
+        batch_sampler, _ = build_category_batch_sampler(
+            type=iter_options.batch_type,
             batch_size=args.category_sample_size,
+            batch_bins=iter_options.batch_bins,
+            shape_files=iter_options.shape_files,
             min_batch_size=(
-                torch.distributed.get_world_size() if iter_options.distributed else 1
+                torch.distributed.get_world_size()
+                if iter_options.distributed
+                else args.min_batch_size
             ),
+            max_batch_size=args.max_batch_size,
+            upsampling_factor=args.upsampling_factor,
+            category_upsampling_factor=args.category_upsampling_factor,
+            dataset_upsampling_factor=args.dataset_upsampling_factor,
+            dataset_scaling_factor=args.dataset_scaling_factor,
             drop_last=args.drop_last_iter,
             category2utt_file=category2utt_file,
+            dataset2utt_parent_dir=parent_dir,
             epoch=1,
             num_batches=iter_options.num_batches,
             distributed=iter_options.distributed,
         )
-        batch_sampler = CategoryBalancedSampler(**sampler_args)
 
         batches = list(batch_sampler)
         if iter_options.num_batches is not None:
@@ -2221,7 +2401,7 @@ class AbsTask(ABC):
         collate_fn,
         key_file: Optional[str] = None,
         batch_size: int = 1,
-        dtype: str = np.float32,
+        dtype: Optional[Any] = np.float32,
         num_workers: int = 1,
         allow_variable_data_keys: bool = False,
         ngpu: int = 0,
@@ -2280,7 +2460,7 @@ class AbsTask(ABC):
         Args:
             config_file: The yaml file saved when training.
             model_file: The model file saved when training.
-            device: Device type, "cpu", "cuda", or "cuda:N".
+            device: Device type, "cpu", "mps", "cuda", or "cuda:N".
 
         """
         if config_file is None:
@@ -2301,7 +2481,8 @@ class AbsTask(ABC):
             raise RuntimeError(
                 f"model must inherit {AbsESPnetModel.__name__}, but got {type(model)}"
             )
-        model.to(device)
+        if device != "mps":
+            model.to(device)
 
         # For finetuned model, create adapter
         use_adapter = getattr(args, "use_adapter", False)
@@ -2314,14 +2495,24 @@ class AbsTask(ABC):
                 #   in PyTorch<=1.4
                 device = f"cuda:{torch.cuda.current_device()}"
             try:
+                state_dict = torch.load(
+                    model_file,
+                    map_location="cpu" if device == "mps" else device,
+                    weights_only=False,
+                )
+                # for deepspeed checkpoints
+                if "module" in state_dict:
+                    state_dict = state_dict["module"]
                 model.load_state_dict(
-                    torch.load(model_file, map_location=device),
+                    state_dict,
                     strict=False,
                 )
             except RuntimeError:
                 # Note(simpleoier): the following part is to be compatible with
                 #   pretrained model using earlier versions before `0a625088`
-                state_dict = torch.load(model_file, map_location=device)
+                state_dict = torch.load(
+                    model_file, map_location="cpu" if device == "mps" else device
+                )
                 if any(["frontend.upstream.model" in k for k in state_dict.keys()]):
                     if any(
                         [
@@ -2353,5 +2544,8 @@ class AbsTask(ABC):
                         )
                     else:
                         raise
+
+        if device == "mps":
+            model.to("mps", dtype=torch.float32)
 
         return model, args

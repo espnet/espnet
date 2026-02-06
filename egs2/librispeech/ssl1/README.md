@@ -1,13 +1,36 @@
-## INTRODUCTION
+# INTRODUCTION
 
-This recipe trains a [Hubert](https://arxiv.org/pdf/2106.07447.pdf)pretrain model, using data Librispeech 960hr data, including the k-means-based pseudo label generation and mask-prediction training.
+This recipe trains a speech encoder with self-supervised learning on LibriSpeech 960h.
+
+## Installation
+
+To get the most out of this recipe, we recommend installing [Flash Attention](https://github.com/Dao-AILab/flash-attention) and [DeepSpeed](https://www.deepspeed.ai/tutorials/advanced-install/).
+
+For a minimal install, run the following commands:
+
+```
+. ./path.sh
+DS_BUILD_FUSED_ADAM=1 pip install deepspeed
+pip install flash-attn --no-build-isolation
+```
+
+Note that both libraries require custom CUDA-kernels, which may complicate the dependency setup. For more detailed guidance, please refer to the instructions in the library-specific links above.
+
+Many configurations in this recipe use `bfloat16` half precision to reduce compute costs while maintaining accurracy. This will require Nvidia Ampere or higher grade GPUs. To disable this, you can replace the `bf16` entry in `conf/deepspeed.json` with
+
+```
+"fp16": {
+    "enabled": true
+  }
+```
+
+for `fp16` half-precision training. Note that this change may require re-tuning hyper-parameters.
 
 ================================================
 
 ## RESULTS
-Detailed information, e.g. kmeans performance, accuracies, training curves, etc, can be found in the [PR page](https://github.com/espnet/espnet/pull/4747) and the following HuggingFace repos.
 
-### iteration 0 pretrained model:
+### HuBERT:
 #### Environments
 - date: `Wed Jan 4 08:48:57 EST 2023`
 - python version: `3.9.15 (main, Nov 24 2022, 14:31:59) [GCC 11.2.0]`

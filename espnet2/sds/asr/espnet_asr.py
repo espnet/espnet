@@ -1,6 +1,4 @@
-import os
-
-import librosa
+import librosa  # noqa
 import numpy as np
 import torch
 from typeguard import typechecked
@@ -23,7 +21,8 @@ class ESPnetASRModel(AbsASR):
         device: str = "cuda",
         dtype: str = "float16",
     ):
-        """
+        """Initializer method.
+
         Args:
         tag (str, optional):
             The pre-trained model tag (on Hugging Face).
@@ -48,8 +47,8 @@ class ESPnetASRModel(AbsASR):
         self.dtype = dtype
 
     def warmup(self):
-        """
-        Perform a single forward pass with dummy input to
+        """Perform a single forward pass with dummy input to
+
         pre-load and warm up the model.
         """
         with torch.no_grad():
@@ -65,8 +64,8 @@ class ESPnetASRModel(AbsASR):
             _ = self.s2t(dummy_input)[0][0]
 
     def forward(self, array: np.ndarray) -> str:
-        """
-        Perform a forward pass on the given audio data,
+        """Perform a forward pass on the given audio data,
+
         returning the transcribed text prompt.
 
         Args:

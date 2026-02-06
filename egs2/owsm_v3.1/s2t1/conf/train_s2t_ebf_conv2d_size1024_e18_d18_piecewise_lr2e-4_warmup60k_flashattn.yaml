@@ -1,3 +1,11 @@
+# Medium (1.02B parameters)
+# Base (101M params): https://huggingface.co/espnet/owsm_v3.1_ebf_base/
+#    blob/main/exp/s2t_train_s2t_ebf_conv2d_size384_e6_d6_
+#    piecewise_lr1e-3_warmup60k_flashattn_lessreg_raw_bpe50000/config.yaml
+# Small (367M params): https://huggingface.co/espnet/owsm_v3.1_ebf_small/
+#    blob/main/exp/s2t_train_s2t_ebf_conv2d_size768_e9_d9_
+#    piecewise_lr5e-4_warmup60k_flashattn_raw_bpe50000/config.yaml
+
 preprocessor: s2t
 preprocessor_conf:
     text_prev_name: text_prev
@@ -41,7 +49,7 @@ encoder_conf:
     attention_layer_type: selfattn
     pos_enc_layer_type: abs_pos
     rel_pos_type: latest
-    attention_qk_norm: false    # qk norm
+    qk_norm: false    # qk norm
     use_flash_attn: true    # flash attn
     cgmlp_linear_units: 4096
     cgmlp_conv_kernel: 31
@@ -68,10 +76,7 @@ decoder_conf:
     positional_dropout_rate: 0.1
     self_attention_dropout_rate: 0.1
     src_attention_dropout_rate: 0.1
-    self_attention_qk_norm: false   # qk norm
-    src_attention_qk_norm: false    # qk norm
-    self_attention_use_flash_attn: true
-    src_attention_use_flash_attn: true
+    use_flash_attn: true
 
 model_conf:
     ctc_weight: 0.3

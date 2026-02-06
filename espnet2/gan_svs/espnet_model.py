@@ -497,7 +497,8 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
         """
         label_lengths = torch.tensor([len(label)])
         midi_lengths = torch.tensor([len(midi)])
-        duration_phn_lengths = torch.tensor([len(duration_phn)])
+        if duration_phn is not None:
+            duration_phn_lengths = torch.tensor([len(duration_phn)])
         duration_ruled_phn_lengths = torch.tensor([len(duration_ruled_phn)])
         duration_syb_lengths = torch.tensor([len(duration_syb)])
         slur_lengths = torch.tensor([len(slur)])
@@ -508,7 +509,8 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
 
         label = label.unsqueeze(0)
         midi = midi.unsqueeze(0)
-        duration_phn = duration_phn.unsqueeze(0)
+        if duration_phn is not None:
+            duration_phn = duration_phn.unsqueeze(0)
         duration_ruled_phn = duration_ruled_phn.unsqueeze(0)
         duration_syb = duration_syb.unsqueeze(0)
         phn_cnt = phn_cnt.unsqueeze(0)
@@ -563,7 +565,10 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
             # Remove unused paddings at end
             label_lab = label[:, : label_lengths.max()]
             midi_lab = midi[:, : midi_lengths.max()]
-            duration_lab = duration_phn[:, : duration_phn_lengths.max()]
+            if duration_phn is not None:
+                duration_lab = duration_phn[:, : duration_phn_lengths.max()]
+            else:
+                duration_lab = None
 
             label_score = label[:, : label_lengths.max()]
             midi_score = midi[:, : midi_lengths.max()]
@@ -590,7 +595,7 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
             if self.pitch_extract is not None:
                 pitch = self.pitch_extract(
                     singing[None],
-                    feats_lengths=torch.LongTensor([len(feats)]),
+                    feats_lengths=torch.tensor([len(feats)], dtype=torch.long),
                 )[0][0]
             if self.pitch_normalize is not None:
                 pitch = self.pitch_normalize(pitch[None])[0][0]
@@ -600,7 +605,7 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
             if self.energy_extract is not None:
                 energy = self.energy_extract(
                     singing[None],
-                    feats_lengths=torch.LongTensor([len(feats)]),
+                    feats_lengths=torch.tensor([len(feats)], dtype=torch.long),
                 )[0][0]
             if self.energy_normalize is not None:
                 energy = self.energy_normalize(energy[None])[0][0]

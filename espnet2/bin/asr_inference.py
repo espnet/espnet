@@ -19,14 +19,24 @@ from espnet2.asr.decoder.hugging_face_transformers_decoder import (
 )
 from espnet2.asr.decoder.s4_decoder import S4Decoder
 from espnet2.asr.partially_AR_model import PartiallyARInference
-from espnet2.asr.transducer.beam_search_transducer import BeamSearchTransducer
+from espnet2.asr.transducer.beam_search_transducer import (
+    BeamSearchTransducer,
+)
 from espnet2.asr.transducer.beam_search_transducer import (
     ExtendedHypothesis as ExtTransHypothesis,
 )
 from espnet2.asr.transducer.beam_search_transducer import Hypothesis as TransHypothesis
 from espnet2.fileio.datadir_writer import DatadirWriter
+from espnet2.legacy.nets.batch_beam_search import BatchBeamSearch
+from espnet2.legacy.nets.batch_beam_search_online_sim import BatchBeamSearchOnlineSim
+from espnet2.legacy.nets.beam_search import BeamSearch, Hypothesis
+from espnet2.legacy.nets.beam_search_timesync import BeamSearchTimeSync
+from espnet2.legacy.nets.pytorch_backend.transformer.subsampling import TooShortUttError
+from espnet2.legacy.nets.scorer_interface import BatchScorerInterface
+from espnet2.legacy.nets.scorers.ctc import CTCPrefixScorer
+from espnet2.legacy.nets.scorers.length_bonus import LengthBonus
+from espnet2.legacy.utils.cli_utils import get_commandline_args
 from espnet2.tasks.asr import ASRTask
-from espnet2.tasks.enh_s2t import EnhS2TTask
 from espnet2.tasks.lm import LMTask
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.hugging_face_token_id_converter import HuggingFaceTokenIDConverter
@@ -37,15 +47,6 @@ from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
-from espnet.nets.batch_beam_search import BatchBeamSearch
-from espnet.nets.batch_beam_search_online_sim import BatchBeamSearchOnlineSim
-from espnet.nets.beam_search import BeamSearch, Hypothesis
-from espnet.nets.beam_search_timesync import BeamSearchTimeSync
-from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
-from espnet.nets.scorer_interface import BatchScorerInterface
-from espnet.nets.scorers.ctc import CTCPrefixScorer
-from espnet.nets.scorers.length_bonus import LengthBonus
-from espnet.utils.cli_utils import get_commandline_args
 
 try:
     from transformers import AutoModelForCausalLM, AutoModelForSeq2SeqLM
@@ -64,6 +65,10 @@ ListOfHypothesis = List[
         Union[Hypothesis, ExtTransHypothesis, TransHypothesis],
     ]
 ]
+
+logger = logging.getLogger(__name__)
+# NOTE(shikhar): We use contextual logging here because
+# RTF calculation looks for "INFO: " as a prefix in the logs.
 
 
 class Speech2Text:
@@ -121,8 +126,15 @@ class Speech2Text:
         max_seq_len: int = 5,
         max_mask_parallel: int = -1,
     ):
+        if enh_s2t_task:
+            try:
+                from espnet2.tasks.enh_s2t import EnhS2TTask
 
-        task = ASRTask if not enh_s2t_task else EnhS2TTask
+                task = EnhS2TTask
+            except ImportError:
+                raise RuntimeError("Please install espnet['st']")
+        else:
+            task = ASRTask
 
         if quantize_asr_model or quantize_lm:
             if quantize_dtype == "float16" and torch.__version__ < LooseVersion(
@@ -157,7 +169,7 @@ class Speech2Text:
         asr_model.to(dtype=getattr(torch, dtype)).eval()
 
         if quantize_asr_model:
-            logging.info("Use quantized asr model for decoding.")
+            logger.info("Use quantized asr model for decoding.")
 
             asr_model = torch.quantization.quantize_dynamic(
                 asr_model, qconfig_spec=qconfig_spec, dtype=quantize_dtype
@@ -180,7 +192,7 @@ class Speech2Text:
             )
 
             if quantize_lm:
-                logging.info("Use quantized lm for decoding.")
+                logger.info("Use quantized lm for decoding.")
 
                 lm = torch.quantization.quantize_dynamic(
                     lm, qconfig_spec=qconfig_spec, dtype=quantize_dtype
@@ -191,11 +203,11 @@ class Speech2Text:
         # 3. Build ngram model
         if ngram_file is not None:
             if ngram_scorer == "full":
-                from espnet.nets.scorers.ngram import NgramFullScorer
+                from espnet2.legacy.nets.scorers.ngram import NgramFullScorer
 
                 ngram = NgramFullScorer(ngram_file, token_list)
             else:
-                from espnet.nets.scorers.ngram import NgramPartScorer
+                from espnet2.legacy.nets.scorers.ngram import NgramPartScorer
 
                 ngram = NgramPartScorer(ngram_file, token_list)
         else:
@@ -337,7 +349,7 @@ class Speech2Text:
                     raise NotImplementedError(
                         "BeamSearchTimeSync with batching is not yet supported."
                     )
-                logging.info("BeamSearchTimeSync implementation is selected.")
+                logger.info("BeamSearchTimeSync implementation is selected.")
 
                 scorers["ctc"] = asr_model.ctc
                 beam_search = BeamSearchTimeSync(
@@ -371,14 +383,14 @@ class Speech2Text:
                         if streaming:
                             beam_search.__class__ = BatchBeamSearchOnlineSim
                             beam_search.set_streaming_config(asr_train_config)
-                            logging.info(
+                            logger.info(
                                 "BatchBeamSearchOnlineSim implementation is selected."
                             )
                         else:
                             beam_search.__class__ = BatchBeamSearch
-                            logging.info("BatchBeamSearch implementation is selected.")
+                            logger.info("BatchBeamSearch implementation is selected.")
                     else:
-                        logging.warning(
+                        logger.warning(
                             f"As non-batch scorers {non_batch} are found, "
                             f"fall back to non-batch implementation."
                         )
@@ -387,8 +399,8 @@ class Speech2Text:
             for scorer in scorers.values():
                 if isinstance(scorer, torch.nn.Module):
                     scorer.to(device=device, dtype=getattr(torch, dtype)).eval()
-            logging.info(f"Beam_search: {beam_search}")
-            logging.info(f"Decoding device={device}, dtype={dtype}")
+            logger.info(f"Beam_search: {beam_search}")
+            logger.info(f"Decoding device={device}, dtype={dtype}")
 
         # 5. [Optional] Build Text converter: e.g. bpe-sym -> Text
         if token_type is None:
@@ -466,7 +478,7 @@ class Speech2Text:
                 beam_search.set_hyp_primer(
                     list(converter.tokenizer.tokenizer.convert_tokens_to_ids(a1))
                 )
-        logging.info(f"Text tokenizer: {tokenizer}")
+        logger.info(f"Text tokenizer: {tokenizer}")
 
         self.asr_model = asr_model
         self.asr_train_args = asr_train_args
@@ -513,7 +525,7 @@ class Speech2Text:
         # lengths: (1,)
         lengths = speech.new_full([1], dtype=torch.long, fill_value=speech.size(1))
         batch = {"speech": speech, "speech_lengths": lengths}
-        logging.info("speech length: " + str(speech.size(1)))
+        logger.info("speech length: " + str(speech.size(1)))
 
         # a. To device
         batch = to_device(batch, device=self.device)

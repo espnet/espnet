@@ -347,9 +347,11 @@ assert results is not None
 
 N_ERROR = 0
 N_PROCESSED = 0
-with open(output_txt_path, "w") as text_f, open(
-    output_wav_scp_path, "w"
-) as wav_scp_f, open(output_utt2spk_path, "w") as utt2spk_f:
+with (
+    open(output_txt_path, "w") as text_f,
+    open(output_wav_scp_path, "w") as wav_scp_f,
+    open(output_utt2spk_path, "w") as utt2spk_f,
+):
     for i in range(len(dset)):
         uttid, audio_path, text = results[i]
         if uttid is None or len(uttid) == 0:
@@ -362,7 +364,7 @@ with open(output_txt_path, "w") as text_f, open(
         print(f"{uttid} dummy", file=utt2spk_f)
         N_PROCESSED += 1
         if (i + 1) % 1000 == 0:
-            print(f"Processed {i+1} mixup samples.")
+            print(f"Processed {i + 1} mixup samples.")
 
 print(f"Number of files skipped {N_ERROR}")
 print(f"Number of files processed {N_PROCESSED}")

@@ -7,8 +7,56 @@ This is a recipe to reproduce the baseline model for the [Interspeech 2024 ML-SU
 The baseline uses frozen SSL features from [MMS 1B](https://www.jmlr.org/papers/v25/23-1318.html), which are input into a 2-layer Transformer trained using CTC loss. It takes roughly 2 days to train on a single H100 GPU.
 We recommend allocating at least 4 CPUs and at least 32GB of RAM. If GPU OOM occurs (such as when using a 40GB VRAM GPU), you can halve the batch size and double the gradiant accumulation.
 
+## Scoring
 
 The challenge will use a custom scoring script, which considers worst language performance and CER standard deviation in addition to the typical multilingual ASR metrics of language identification accuracy and ASR CER. The exact implementation can be found in `local/score.py`, which also creates a `challenge_results.md` under your experimental directory with scores that correspond to the challenge system.
+
+If you want to use the scoring script with a non-ESPnet, here is breakdown of the expected file format.
+The script assumes that the reference and hypothesis are stored in a kaldi style text file:
+```
+uttid00 [langid0] this is a sample text
+uttid01 [langid1] this is a sample text1
+uttid02 [langid2] this is a sample text2
+```
+The script will look for the ref/hyp under this structure:
+```
+    root/
+      - data/dev # kaldi style folder
+            - text # ref file for standard dev set
+      - data/dev_dialect # kaldi style folder
+            - text # ref file for dialect dev set
+
+      - exp/asr_train_asr_raw_char # your model folder
+            - decode_asr_asr_model_valid.loss.ave # inference results
+                - org/dev
+                    - text # hyp file for standard dev set
+                - dev_dialect
+                    - text # hyp file for dialect dev set
+            - challenge_results.md # generated results file
+```
+The script can be used directly with the following:
+```
+  python local/score.py --exp_dir <your model folder as shown above>
+  # example
+  python local/score.py --exp_dir exp/asr_train_asr_raw_char
+```
+
+You can also use the scoring functions `score()` and `score_dialect()`for the standard/dialect sets directly, which will normalize the text and calculate the challenge metrics for you.
+Both functions have the following input parameters:
+```
+  references: list of reference text strings. Each string should be in format "[lid] asr reference text".
+  lids: list of reference language id strings. Each string should be in format "[lid]" Note that we always assume a 3-character ISO string for the LID target.
+  hyps: list of hypothesis text strings. Each string should be in format "[lid] asr reference text".
+```
+Such that `references[i]`, `lids[i]`, and `hyps[i]` should all correspond to the respective data for the ith utterance.
+```
+  from local.score import score, score_dialect
+  reference = ["[eng] here is a sample reference", "[fra] another utterance"]
+  reference_lid = ["[eng]", "[fra]"]
+  hypothesis = ["[eng] here is a sample reference from asr", "[eng] another one"]
+  lid_result, cer_result, worst_result, std_result = score(reference, reference_lid, hypothesis)
+  lid_dialect, cer_dialect, = score_dialect(reference, reference_lid, hypothesis)
+```
 
 ## RESULTS
 
@@ -25,4 +73,4 @@ The challenge will use a custom scoring script, which considers worst language p
 
 |decode_dir|Standard CER|Standard LID|Worst 15 CER|CER StD|Dialect CER|Dialect LID|
 |---|---|---|---|---|---|---|
-decode_asr_asr_model_valid.loss.ave|0.24|0.74|0.71|0.26|0.54|0.33|
+decode_asr_asr_model_valid.loss.ave|24.0|74.0|71.0|25.5|32.7|54.0|

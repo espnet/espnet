@@ -18,6 +18,11 @@ from typeguard import typechecked
 
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.fileio.npy_scp import NpyScpWriter
+from espnet2.legacy.nets.batch_beam_search import BatchBeamSearch
+from espnet2.legacy.nets.beam_search import BeamSearch, Hypothesis
+from espnet2.legacy.nets.scorer_interface import BatchScorerInterface
+from espnet2.legacy.nets.scorers.length_bonus import LengthBonus
+from espnet2.legacy.utils.cli_utils import get_commandline_args
 from espnet2.tasks.s2st import S2STTask
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.token_id_converter import TokenIDConverter
@@ -25,11 +30,6 @@ from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
-from espnet.nets.batch_beam_search import BatchBeamSearch
-from espnet.nets.beam_search import BeamSearch, Hypothesis
-from espnet.nets.scorer_interface import BatchScorerInterface
-from espnet.nets.scorers.length_bonus import LengthBonus
-from espnet.utils.cli_utils import get_commandline_args
 
 
 class Speech2Speech:
@@ -628,18 +628,18 @@ def inference(
     import matplotlib.pyplot as plt
     from matplotlib.ticker import MaxNLocator
 
-    with NpyScpWriter(
-        output_dir / "norm",
-        output_dir / "norm/feats.scp",
-    ) as norm_writer, NpyScpWriter(
-        output_dir / "denorm", output_dir / "denorm/feats.scp"
-    ) as denorm_writer, open(
-        output_dir / "speech_shape/speech_shape", "w"
-    ) as shape_writer, open(
-        output_dir / "focus_rates/focus_rates", "w"
-    ) as focus_rate_writer, DatadirWriter(
-        output_dir / "st_subtask"
-    ) as st_subtask_wrtier:
+    with (
+        NpyScpWriter(
+            output_dir / "norm",
+            output_dir / "norm/feats.scp",
+        ) as norm_writer,
+        NpyScpWriter(
+            output_dir / "denorm", output_dir / "denorm/feats.scp"
+        ) as denorm_writer,
+        open(output_dir / "speech_shape/speech_shape", "w") as shape_writer,
+        open(output_dir / "focus_rates/focus_rates", "w") as focus_rate_writer,
+        DatadirWriter(output_dir / "st_subtask") as st_subtask_wrtier,
+    ):
         for idx, (keys, batch) in enumerate(loader, 1):
             assert isinstance(batch, dict), type(batch)
             assert all(isinstance(s, str) for s in keys), keys

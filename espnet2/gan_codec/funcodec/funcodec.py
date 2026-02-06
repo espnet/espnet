@@ -2,12 +2,10 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """FunCodec Modules."""
-import copy
 import functools
-import logging
 import math
 import random
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
@@ -17,7 +15,7 @@ import torchaudio
 from typeguard import typechecked
 
 from espnet2.gan_codec.abs_gan_codec import AbsGANCodec
-from espnet2.gan_codec.shared.decoder.seanet import SEANetDecoder
+from espnet2.gan_codec.shared.decoder.seanet import SEANetDecoder  # noqa
 from espnet2.gan_codec.shared.decoder.seanet_2d import SEANetDecoder2d
 from espnet2.gan_codec.shared.discriminator.stft_discriminator import (
     ComplexSTFTDiscriminator,
@@ -38,7 +36,7 @@ from espnet2.torch_utils.device_funcs import force_gatherable
 
 
 class FunCodec(AbsGANCodec):
-    """ "FunCodec model."""
+    """FunCodec model."""
 
     @typechecked
     def __init__(
@@ -550,7 +548,7 @@ class FunCodecGenerator(nn.Module):
             )
         elif codec_domain[0] == "mel":
             self.enc_trans_func = torchaudio.transforms.MelSpectrogram(
-                sample_rate=target_sample_hz,
+                sample_rate=target_sample_hz,  # noqa
                 n_fft=domain_conf.get("n_fft", 512),
                 hop_length=domain_conf.get("hop_length", 160),
                 n_mels=80,

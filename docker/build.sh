@@ -11,11 +11,11 @@ log() {
 SCRIPTPATH="$( cd "$(dirname "$0")" ; pwd -P )"
 
 # Default values
-ubuntu_ver=22.04
-cuda_ver=11.7
+ubuntu_ver=24.04
+cuda_ver=12.6
 build_ver=cpu
 build_cores=24
-th_ver=1.13.1
+th_ver=2.8.0
 
 
 cmd_usage() {
@@ -291,8 +291,8 @@ done
 
 
 mode=$1
-default_ubuntu_ver=22.04
-default_cuda_ver=11.7
+default_ubuntu_ver=24.04
+default_cuda_ver=12.6
 
 check=true
 [ "${default_ubuntu_ver}" != "${ubuntu_ver}" ] || [ "${default_cuda_ver}" != "${cuda_ver}" ] && check=false

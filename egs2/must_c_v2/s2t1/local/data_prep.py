@@ -116,8 +116,8 @@ def prepare_single(
                 "prev_tgt": " ".join(prev_tgt) if prev_tgt else "<na>",
             }
             long_utt["utt_id"] = (
-                f"{wav_id}_{round(1000*long_utt['start']):07d}"
-                f"_{round(1000*long_utt['end']):07d}"
+                f"{wav_id}_{round(1000 * long_utt['start']):07d}"
+                f"_{round(1000 * long_utt['end']):07d}"
             )
 
             if long_utt["utt_id"] not in uttids:

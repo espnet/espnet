@@ -1,4 +1,3 @@
-import os
 from typing import Optional
 
 import librosa
@@ -29,9 +28,7 @@ class WebrtcVADModel(AbsVAD):
         max_speech_ms: float = float("inf"),
         target_sr: int = 16000,
     ):
-        """
-        This class uses WebRTC VAD to detect speech
-        in an audio stream.
+        """This class uses WebRTC VAD to detect speech in an audio stream.
 
         Args:
             speakup_threshold (int, optional):
@@ -79,8 +76,7 @@ class WebrtcVADModel(AbsVAD):
         sample_rate: int,
         binary: bool = False,
     ) -> Optional[np.ndarray]:
-        """
-        Process an audio stream and detect speech using WebRTC VAD.
+        """Process an audio stream and detect speech using WebRTC VAD.
 
         Args:
             speech:

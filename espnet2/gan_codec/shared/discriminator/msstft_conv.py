@@ -10,6 +10,7 @@ from espnet2.gan_codec.shared.encoder.seanet import (
 
 class NormConv2d(nn.Module):
     """Wrapper around Conv2d and normalization applied to this conv
+
     to provide a uniform interface across normalization approaches.
     """
 
@@ -33,6 +34,7 @@ class NormConv2d(nn.Module):
 
 class NormConvTranspose2d(nn.Module):
     """Wrapper around ConvTranspose2d and normalization applied to this conv
+
     to provide a uniform interface across normalization approaches.
     """
 

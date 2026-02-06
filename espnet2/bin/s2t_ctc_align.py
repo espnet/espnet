@@ -12,24 +12,30 @@ from typing import List, Optional, TextIO, Union
 import numpy as np
 import soundfile
 import torch
-
-# imports for CTC segmentation
-from ctc_segmentation import (
-    CtcSegmentationParameters,
-    ctc_segmentation,
-    determine_utterance_segments,
-    prepare_text,
-    prepare_token_list,
-)
 from typeguard import typechecked
 
+# imports for inference
+from espnet2.legacy.utils.cli_utils import get_commandline_args
 from espnet2.tasks.s2t_ctc import S2TTask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool, str_or_none
 
-# imports for inference
-from espnet.utils.cli_utils import get_commandline_args
+try:
+    # imports for CTC segmentation
+    from ctc_segmentation import (
+        CtcSegmentationParameters,
+        ctc_segmentation,
+        determine_utterance_segments,
+        prepare_text,
+        prepare_token_list,
+    )
+except ImportError:
+    raise ImportError(
+        "ctc_segmentation is not installed. please run "
+        "`. ./path.sh && pip install "
+        "git+https://github.com/espnet/ctc-segmentation.git@9b9ea1d`."
+    )
 
 
 class CTCSegmentationTask:
@@ -431,7 +437,7 @@ class CTCSegmentation:
                 buffer_list.append(cur_buffer)
 
         speech = torch.tensor(np.array(buffer_list)).to(getattr(torch, self.dtype))
-        buffer_frames = int(frames_per_sec * buffer_len_in_secs)
+        buffer_frames = int(frames_per_sec * buffer_len_in_secs)  # noqa
         context_frames = int(frames_per_sec * context_len_in_secs)
 
         valid_speech_samples = speech.size(0) * chunk_len

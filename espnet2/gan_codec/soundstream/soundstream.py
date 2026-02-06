@@ -2,9 +2,7 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """SoundStream Modules."""
-import copy
 import functools
-import logging
 import math
 import random
 from typing import Any, Dict, List, Optional
@@ -12,7 +10,7 @@ from typing import Any, Dict, List, Optional
 import numpy as np
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
+import torch.nn.functional as F  # noqa
 from typeguard import typechecked
 
 from espnet2.gan_codec.abs_gan_codec import AbsGANCodec
@@ -34,7 +32,7 @@ from espnet2.torch_utils.device_funcs import force_gatherable
 
 
 class SoundStream(AbsGANCodec):
-    """ "SoundStream model."""
+    """SoundStream model."""
 
     @typechecked
     def __init__(
@@ -452,7 +450,7 @@ class SoundStream(AbsGANCodec):
                 * codec (Tensor): Generated neural codec (T_code, N_stream).
 
         """
-        codec = self.generator.encode(x)
+        codec = self.generator.encode(x, **kwargs)
         wav = self.generator.decode(codec)
 
         return {"wav": wav, "codec": codec}
@@ -471,7 +469,8 @@ class SoundStream(AbsGANCodec):
             Tensor: Generated codes (T_code, N_stream).
 
         """
-        return self.generator.encode(x)
+        target_bw = kwargs.get("target_bw", None)
+        return self.generator.encode(x, target_bw=target_bw)
 
     def decode(
         self,

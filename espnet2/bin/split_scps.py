@@ -7,7 +7,7 @@ from itertools import zip_longest
 from pathlib import Path
 from typing import List, Optional
 
-from espnet.utils.cli_utils import get_commandline_args
+from espnet2.legacy.utils.cli_utils import get_commandline_args
 
 
 def split_scps(
