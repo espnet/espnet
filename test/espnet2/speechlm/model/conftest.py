@@ -9,7 +9,6 @@ import os
 import sys
 import types
 
-import torch
 import torch.nn as nn
 
 

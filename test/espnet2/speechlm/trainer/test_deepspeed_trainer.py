@@ -1,9 +1,6 @@
 """Tests for espnet2/speechlm/trainer/deepspeed_trainer.py — DeepSpeedTrainer."""
 
 import json
-import os
-import tempfile
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -117,7 +114,7 @@ class TestInit:
         args = _make_trainer_args(tmp_dir)
         args["freeze_param"] = ["freeze_me"]
 
-        trainer = DeepSpeedTrainer(
+        DeepSpeedTrainer(
             train_data_factory=_MockDataFactory(),
             valid_data_factories={},
             model=model,
@@ -314,7 +311,6 @@ class TestTrainStep:
         import wandb
 
         logged = []
-        original_log = wandb.log
 
         def capture_log(data, step=None):
             logged.append(data)
@@ -360,7 +356,6 @@ class TestRun:
     def test_run_saves_checkpoint(self, trainer):
         """run() should call save_checkpoint after train+valid."""
         save_calls = []
-        original_save = trainer.model_engine.save_checkpoint
 
         def capture_save(path, client_state=None):
             save_calls.append(path)

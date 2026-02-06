@@ -4,8 +4,6 @@ Tests ParallelHFModel factory, build_parallel_hf_class, and ParallelLLM
 with mock HuggingFace architectures. Uses the transformers stub from conftest.
 """
 
-from unittest.mock import MagicMock, patch
-
 import numpy as np
 import pytest
 import torch
