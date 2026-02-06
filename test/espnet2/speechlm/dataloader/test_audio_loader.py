@@ -67,8 +67,9 @@ class TestKaldiAudioReader:
 
     def test_kaldi_getitem_shape(self, tmp_path):
         """Verify audio returned has shape [num_channels, num_samples]."""
-        import numpy as np
         from unittest.mock import patch
+
+        import numpy as np
 
         from espnet2.speechlm.dataloader.multimodal_loader.audio_loader import (
             KaldiAudioReader,
@@ -100,8 +101,9 @@ class TestLhotseAudioReader:
 
     def test_lhotse_with_recordings(self, tmp_path):
         """Test loading from recordings manifest (mocked)."""
-        import numpy as np
         from unittest.mock import MagicMock, patch
+
+        import numpy as np
 
         from espnet2.speechlm.dataloader.multimodal_loader.audio_loader import (
             LhotseAudioReader,
