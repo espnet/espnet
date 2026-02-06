@@ -4,6 +4,7 @@
 """Batching utilities for efficient data loading in SpeechLM training."""
 
 import logging
+import random
 import multiprocessing as mp
 from typing import Dict, List, TypeVar
 
@@ -100,7 +101,6 @@ def _diverse_bfd_worker(items: List[tuple], batch_token: int) -> List[List[tuple
     This ensures each batch contains items from diverse length ranges while
     maintaining high packing efficiency.
     """
-    import random
 
     if not items:
         return []
