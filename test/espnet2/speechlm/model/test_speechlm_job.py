@@ -427,7 +427,7 @@ class TestPreprocessing:
         assert loss_mask[0, 0] == 0.0
 
         # The user message region (first message) should have 0 loss
-        # user message starts at position 1 (role), 2 (modality), 3-5 (content), 6 (eot/eos)
+        # user msg: pos 1 (role), 2 (modality), 3-5 (content), 6 (eot)
         # All user tokens should be 0
         for i in range(1, 7):  # positions 1..6 = user message
             assert loss_mask[i, 0] == 0.0
