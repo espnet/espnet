@@ -423,7 +423,6 @@ def build_parallel_hf_class(model_hf_tag):
             return loss, stats
 
         # Below are all inference logics
-        @torch.no_grad()
         def inference(self, inference_config: dict, cache: list = None, **kwargs):
             """Run full multi-turn autoregressive inference.
 
