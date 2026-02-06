@@ -7,8 +7,8 @@ dataset creation hooks.
 import logging
 import time
 
-from espnet3.systems.base.system import BaseSystem
 from espnet3.systems.asr.system import load_function
+from espnet3.systems.base.system import BaseSystem
 
 logger = logging.getLogger(__name__)
 

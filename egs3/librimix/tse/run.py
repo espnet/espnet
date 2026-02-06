@@ -6,7 +6,6 @@ from egs3.TEMPLATE.tse.run import (
 )
 from espnet3.systems.tse.system import TSESystem
 
-
 if __name__ == "__main__":
     parser = build_parser(
         stages=DEFAULT_STAGES,
