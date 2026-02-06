@@ -68,10 +68,10 @@ class TestBfdWorker:
     def test_bfd_worker_basic(self):
         items = [(10, "a"), (20, "b"), (30, "c"), (15, "d")]
         batches = _bfd_worker(items, batch_token=50)
-        flat = [(l, k) for b in batches for l, k in b]
+        flat = [(ln, k) for b in batches for ln, k in b]
         assert sorted(flat) == sorted(items)
         for b in batches:
-            assert sum(l for l, _ in b) <= 50
+            assert sum(ln for ln, _ in b) <= 50
 
     def test_bfd_worker_packing(self):
         # 30 + 20 = 50, should fit in one batch
@@ -98,10 +98,10 @@ class TestDiverseBfdWorker:
     def test_diverse_bfd_basic(self):
         items = [(10, "a"), (20, "b"), (30, "c"), (15, "d"), (25, "e")]
         batches = _diverse_bfd_worker(items, batch_token=50)
-        flat = {(l, k) for b in batches for l, k in b}
+        flat = {(ln, k) for b in batches for ln, k in b}
         assert flat == set(items)
         for b in batches:
-            assert sum(l for l, _ in b) <= 50
+            assert sum(ln for ln, _ in b) <= 50
 
     def test_diverse_bfd_deterministic(self):
         items = [(i, f"k{i}") for i in range(1, 21)]

@@ -1,4 +1,4 @@
-"""Tests for espnet2/speechlm/dataloader/dataset.py — SingleDataset & CombinedDataset."""
+"""Tests for espnet2/speechlm/dataloader/dataset.py."""
 
 import json
 import os

@@ -1,4 +1,4 @@
-"""Tests for espnet2/speechlm/dataloader/multimodal_loader/text_loader.py — TextReader."""
+"""Tests for text_loader.py — TextReader."""
 
 import json
 
