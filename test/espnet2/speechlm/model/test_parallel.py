@@ -1,8 +1,11 @@
 """Tests for espnet2/speechlm/model/speechlm/lm/parallel.py.
 
 Tests ParallelHFModel factory, build_parallel_hf_class, and ParallelLLM
-with mock HuggingFace architectures. Uses the transformers stub from conftest.
+with mock HuggingFace architectures. Patches transformers so tests work
+both with the conftest stub and with real transformers installed (CI).
 """
+
+from unittest.mock import patch
 
 import numpy as np
 import pytest
@@ -10,6 +13,73 @@ import torch
 import torch.nn as nn
 
 from espnet2.speechlm.model.speechlm.multimodal_io.abs_io import AbsIO
+
+
+# ---------------------------------------------------------------------------
+# Mock HF model components (used to patch transformers in CI)
+# ---------------------------------------------------------------------------
+class _MockConfig:
+    architectures = ["MockModel"]
+    vocab_size = 100
+    hidden_size = 64
+
+
+class _MockInnerModel(nn.Module):
+    def __init__(self, config):
+        super().__init__()
+        self.embed_tokens = nn.Embedding(config.vocab_size, config.hidden_size)
+
+    def forward(self, inputs_embeds=None, position_ids=None, **kwargs):
+        class _Out:
+            pass
+
+        out = _Out()
+        out.last_hidden_state = inputs_embeds
+        out.past_key_values = None
+
+        def get(key, default=None):
+            return default
+
+        out.get = get
+        return out
+
+
+class _MockHFModel(nn.Module):
+    config_class = _MockConfig
+
+    def __init__(self, config=None):
+        super().__init__()
+        if config is None:
+            config = _MockConfig()
+        self.config = config
+        self.model = _MockInnerModel(config)
+        self.lm_head = nn.Linear(config.hidden_size, config.vocab_size, bias=False)
+
+    @classmethod
+    def from_pretrained(cls, *args, **kwargs):
+        config = _MockConfig()
+        return cls(config)
+
+
+@pytest.fixture(autouse=True)
+def _patch_transformers():
+    """Patch transformers to avoid network access in CI."""
+    import transformers
+
+    old = getattr(transformers, "MockModel", None)
+    transformers.MockModel = _MockHFModel
+
+    with patch.object(
+        transformers.AutoConfig,
+        "from_pretrained",
+        return_value=_MockConfig(),
+    ):
+        yield
+
+    if old is None:
+        delattr(transformers, "MockModel")
+    else:
+        transformers.MockModel = old
 
 
 # ---------------------------------------------------------------------------
@@ -106,21 +176,8 @@ def _build_continuous_io():
     return _MockContinuousIO(feat_dim=80)
 
 
-def _make_multimodal_io(include_continuous=False):
-    ios = nn.ModuleDict(
-        {
-            "text": _build_text_io(),
-            "discrete_audio": _build_audio_io(),
-        }
-    )
-    if include_continuous:
-        ios["continuous_audio"] = _build_continuous_io()
-    return ios
-
-
 def _make_vocab_and_intervals(text_io, audio_io):
-    """Build vocab and intervals matching how SpeechLMJobTemplate does it."""
-    # Special tokens
+    """Build vocab and intervals matching SpeechLMJobTemplate."""
     vocab = [
         "<|pad|>",
         "<|bos|>",
@@ -140,7 +197,6 @@ def _make_vocab_and_intervals(text_io, audio_io):
 
     intervals = {"special_token": [(0, 256)]}
 
-    # Text IO
     start = 256
     vocab.extend(text_io.get_vocabulary())
     intervals["text"] = [
@@ -148,7 +204,6 @@ def _make_vocab_and_intervals(text_io, audio_io):
     ]
     start = len(vocab)
 
-    # Audio IO
     vocab.extend(audio_io.get_vocabulary())
     intervals["discrete_audio"] = [
         (start + s, start + e) for s, e in audio_io.get_stream_interval()
@@ -170,7 +225,9 @@ def model_components():
 @pytest.fixture
 def parallel_model(model_components):
     """Build a ParallelLLM model using mock architecture."""
-    from espnet2.speechlm.model.speechlm.lm.parallel import build_parallel_hf_class
+    from espnet2.speechlm.model.speechlm.lm.parallel import (
+        build_parallel_hf_class,
+    )
 
     multimodal_io, vocab, intervals = model_components
     cls = build_parallel_hf_class("mock-model")
@@ -196,14 +253,12 @@ class TestBuildParallelHFClass:
         assert isinstance(cls, type)
 
     def test_parallel_llm_is_subclass(self):
-        import transformers
-
         from espnet2.speechlm.model.speechlm.lm.parallel import (
             build_parallel_hf_class,
         )
 
         cls = build_parallel_hf_class("mock-model")
-        assert issubclass(cls, transformers.MockModel)
+        assert issubclass(cls, _MockHFModel)
 
 
 # ---------------------------------------------------------------------------
@@ -234,7 +289,11 @@ class TestFromPretrained:
         audio_io = _build_audio_io()
         cont_io = _build_continuous_io()
         multimodal_io = nn.ModuleDict(
-            {"text": text_io, "discrete_audio": audio_io, "continuous_audio": cont_io}
+            {
+                "text": text_io,
+                "discrete_audio": audio_io,
+                "continuous_audio": cont_io,
+            }
         )
         vocab, intervals = _make_vocab_and_intervals(text_io, audio_io)
         cls = build_parallel_hf_class("mock-model")
@@ -250,11 +309,9 @@ class TestFromPretrained:
 
     def test_loss_intervals(self, parallel_model, model_components):
         _, _, intervals = model_components
-        # loss_intervals should cover discrete_audio but not text or special_token
         assert len(parallel_model.loss_intervals) > 0
         for start, end in parallel_model.loss_intervals:
             assert start < end
-            # Should not include special_token or text intervals
             assert start >= intervals["text"][0][1]
 
     def test_no_discrete_raises(self):
@@ -313,10 +370,14 @@ class TestEmbed:
         input_ids = torch.zeros(batch_size, seq_len, num_stream, dtype=torch.long)
         kwargs = {"seqs": input_ids}
         embeds = parallel_model._embed(input_ids, kwargs)
-        assert embeds.shape == (batch_size, seq_len, parallel_model.config.hidden_size)
+        assert embeds.shape == (
+            batch_size,
+            seq_len,
+            parallel_model.config.hidden_size,
+        )
 
     def test_embed_continuous_features(self):
-        """Continuous features should be projected through adaptor."""
+        """Continuous features projected through adaptor."""
         from espnet2.speechlm.model.speechlm.lm.parallel import (
             build_parallel_hf_class,
         )
@@ -325,7 +386,11 @@ class TestEmbed:
         audio_io = _build_audio_io()
         cont_io = _build_continuous_io()
         multimodal_io = nn.ModuleDict(
-            {"text": text_io, "discrete_audio": audio_io, "continuous_audio": cont_io}
+            {
+                "text": text_io,
+                "discrete_audio": audio_io,
+                "continuous_audio": cont_io,
+            }
         )
         vocab, intervals = _make_vocab_and_intervals(text_io, audio_io)
         cls = build_parallel_hf_class("mock-model")
@@ -346,7 +411,11 @@ class TestEmbed:
             "continuous_audio_lengths": torch.tensor([3]),
         }
         embeds = model._embed(input_ids, kwargs)
-        assert embeds.shape == (batch_size, seq_len, model.config.hidden_size)
+        assert embeds.shape == (
+            batch_size,
+            seq_len,
+            model.config.hidden_size,
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -354,7 +423,7 @@ class TestEmbed:
 # ---------------------------------------------------------------------------
 class TestLoss:
     def test_loss_next_token_prediction(self, parallel_model):
-        """Hidden states should be shifted by 1 for next-token prediction."""
+        """Hidden states shifted by 1 for next-token prediction."""
         batch_size, seq_len = 1, 6
         num_stream = parallel_model.num_stream
         hidden_dim = parallel_model.config.hidden_size
@@ -380,7 +449,6 @@ class TestLoss:
         hidden_dim = parallel_model.config.hidden_size
 
         hidden_states = torch.randn(batch_size, seq_len, num_stream, hidden_dim)
-        # Use tokens in the audio interval
         start, end = parallel_model.loss_intervals[0]
         input_ids = torch.full(
             (batch_size, seq_len, num_stream), start, dtype=torch.long
@@ -409,7 +477,11 @@ class TestPrepareInference:
         assert hasattr(parallel_model, "eos_token")
         assert hasattr(parallel_model, "eot_token")
         assert hasattr(parallel_model, "modality_mask")
-        assert parallel_model.assistant_token.shape == (1, 1, parallel_model.num_stream)
+        assert parallel_model.assistant_token.shape == (
+            1,
+            1,
+            parallel_model.num_stream,
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -427,7 +499,6 @@ class TestLogitsToToken:
         logits = torch.randn(1, 1, parallel_model.num_stream, len(parallel_model.vocab))
         tokens = parallel_model._logits_to_token(logits, temperature=1.0, topk=10)
         assert tokens.shape == (1, 1, parallel_model.num_stream)
-        # Tokens should be valid indices
         assert (tokens >= 0).all()
         assert (tokens < len(parallel_model.vocab)).all()
 
@@ -436,21 +507,26 @@ class TestLogitsToToken:
 # train_dtype (static method-like behavior via ds_config)
 # ---------------------------------------------------------------------------
 class TestTrainDtype:
-    def test_bf16(self, parallel_model):
-        # train_dtype is on the trainer, but we test the logic directly
-        from espnet2.speechlm.trainer.deepspeed_trainer import DeepSpeedTrainer
+    def test_bf16(self):
+        from espnet2.speechlm.trainer.deepspeed_trainer import (
+            DeepSpeedTrainer,
+        )
 
         ds_config = {"bf16": {"enabled": True}}
         assert DeepSpeedTrainer.train_dtype(None, ds_config) == torch.bfloat16
 
-    def test_fp16(self, parallel_model):
-        from espnet2.speechlm.trainer.deepspeed_trainer import DeepSpeedTrainer
+    def test_fp16(self):
+        from espnet2.speechlm.trainer.deepspeed_trainer import (
+            DeepSpeedTrainer,
+        )
 
         ds_config = {"fp16": {"enabled": True}}
         assert DeepSpeedTrainer.train_dtype(None, ds_config) == torch.float16
 
-    def test_default(self, parallel_model):
-        from espnet2.speechlm.trainer.deepspeed_trainer import DeepSpeedTrainer
+    def test_default(self):
+        from espnet2.speechlm.trainer.deepspeed_trainer import (
+            DeepSpeedTrainer,
+        )
 
         ds_config = {}
         assert DeepSpeedTrainer.train_dtype(None, ds_config) == torch.float
