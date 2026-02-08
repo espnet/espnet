@@ -5,7 +5,6 @@ joblib, humanfriendly) so that tests can run in CI without those packages.
 """
 
 import importlib.machinery
-import os
 import sys
 import types
 
@@ -18,7 +17,6 @@ def _install_stub(name, module):
 
 def pytest_configure():
     """Inject stubs before any test module is collected."""
-    os.environ.setdefault("CUDA_VISIBLE_DEVICES", "")
 
     # ---- transformers stub ----
     if "transformers" not in sys.modules:
