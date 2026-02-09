@@ -246,7 +246,7 @@ def _log_stage_metadata(
         argv=sys.argv,
         configs={
             "train": Path(args.train_config) if args.train_config else None,
-            "infer": Path(args.infer_config) if args.infer_config else None,
+            "inference": Path(args.infer_config) if args.infer_config else None,
             "metric": Path(args.metric_config) if args.metric_config else None,
             "publish": Path(args.publish_config) if args.publish_config else None,
             "demo": Path(args.demo_config) if args.demo_config else None,
@@ -260,11 +260,12 @@ def _log_stage_metadata(
         )
     if infer_config is not None:
         logger.info(
-            "Infer config content:\n%s", OmegaConf.to_yaml(infer_config, resolve=True)
+            "Inference config content:\n%s",
+            OmegaConf.to_yaml(infer_config, resolve=True)
         )
     if metric_config is not None:
         logger.info(
-            "metric config content:\n%s",
+            "Metric config content:\n%s",
             OmegaConf.to_yaml(metric_config, resolve=True),
         )
     if publish_config is not None:
