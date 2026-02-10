@@ -3,11 +3,45 @@
 from __future__ import annotations
 
 import logging
+import os
 import time
 from pathlib import Path
 from typing import Any, Callable, Iterable, List, Sequence
 
 logger = logging.getLogger(__name__)
+
+_RANK_ENV_KEYS = (
+    "RANK",
+    "LOCAL_RANK",
+    "SLURM_PROCID",
+    "OMPI_COMM_WORLD_RANK",
+    "PMI_RANK",
+    "MPI_RANK",
+)
+
+
+def _get_process_rank() -> int:
+    try:
+        import torch.distributed as dist
+
+        if dist.is_available() and dist.is_initialized():
+            return int(dist.get_rank())
+    except Exception:
+        pass
+
+    for key in _RANK_ENV_KEYS:
+        value = os.environ.get(key)
+        if value is not None and value.isdigit():
+            return int(value)
+    return 0
+
+
+def _get_stage_log_mode(system: Any) -> str:
+    mode = "rank0"
+    train_config = getattr(system, "train_config", None)
+    if train_config is not None:
+        mode = getattr(train_config, "stage_log_mode", mode)
+    return str(mode).lower()
 
 
 def resolve_stages(
@@ -91,10 +125,26 @@ def run_stages(
             from espnet3.utils.logging_utils import set_stage_log_handler
 
             log_dir = stage_log_dir_fn(stage)
+            stage_log_mode = _get_stage_log_mode(system)
+            rank = _get_process_rank()
+            if stage_log_mode not in {"rank0", "per_rank"}:
+                log.error(
+                    "Unknown stage_log_mode=%r (expected 'rank0' or 'per_rank'); "
+                    "falling back to 'rank0'.",
+                    stage_log_mode,
+                )
+
+            if stage_log_mode == "rank0" and rank != 0:
+                log_dir = None
+            filename = (
+                f"{stage}.log"
+                if stage_log_mode == "rank0"
+                else f"{stage}_rank{rank}.log"
+            )
             set_stage_log_handler(
                 log,
                 Path(log_dir) if log_dir else None,
-                filename=f"{stage}.log",
+                filename=filename,
             )
             if on_stage_start is not None:
                 on_stage_start(stage, log)
