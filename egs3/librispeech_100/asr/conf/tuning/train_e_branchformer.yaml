@@ -6,6 +6,7 @@
 num_device: 1
 num_nodes: 1
 task: espnet3.systems.asr.task.ASRTask
+stage_log_mode: rank0  # rank0 | per_rank
 
 
 # Path scaffold relative to the recipe root.

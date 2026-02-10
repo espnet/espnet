@@ -3,6 +3,7 @@
 num_device: 1
 num_nodes: 1
 task: espnet3.systems.asr.transducer_task.ASRTransducerTask
+stage_log_mode: rank0  # rank0 | per_rank
 
 recipe_dir: .
 data_dir: ${recipe_dir}/data
