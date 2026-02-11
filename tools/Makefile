@@ -30,7 +30,7 @@ WITH_OMP=ON
 all: showenv conda_packages.done python ffmpeg.done sctk check_install
 
 python: activate_python.sh setuptools.done packaging.done espnet.done pytorch.done fairscale.done torch_optimizer.done flash_attn.done lightning.done
-extra: warp-transducer.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done fairseq.done s3prl.done k2.done transformers.done phonemizer.done longformer.done muskits.done whisper.done rvad_fast.done sounfile_test parallel-wavegan.done lora.done sph2pipe torcheval.done
+extra: warp-transducer.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done fairseq.done s3prl.done k2.done transformers.done phonemizer.done longformer.done muskits.done rvad_fast.done sounfile_test parallel-wavegan.done lora.done sph2pipe torcheval.done
 
 activate_python.sh:
 	test -f activate_python.sh || { echo "Error: Run ./setup_python.sh or ./setup_miniforge.sh"; exit 1; }
@@ -214,10 +214,6 @@ fairseq.done: espnet.done
 s3prl.done: espnet.done
 	. ./activate_python.sh && ./installers/install_s3prl.sh
 	touch s3prl.done
-
-whisper.done: espnet.done
-	. ./activate_python.sh && ./installers/install_whisper.sh
-	touch whisper.done
 
 lora.done: espnet.done
 	. ./activate_python.sh && ./installers/install_lora.sh
