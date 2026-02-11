@@ -12,7 +12,7 @@ class FixedOrderSolver(AbsLossWrapper):
         self.criterion = criterion
         self.weight = weight
 
-    def forward(self, ref, inf, others={}):
+    def forward(self, ref, inf, others=None):
         """An naive fixed-order solver
 
         Args:
@@ -24,6 +24,8 @@ class FixedOrderSolver(AbsLossWrapper):
             stats: dict, for collecting training status
             others: reserved
         """
+        if others is None:
+            others = {}
         assert len(ref) == len(inf), (len(ref), len(inf))
         num_spk = len(ref)
 
