@@ -97,7 +97,9 @@ def dummy_collate_fn(batch):
 
 
 class DummyShardedDataset(ShardedDataset):
-    def __init__(self, shard_id: int = 0, num_shards: int = 2, world_shard_size: int = 1):
+    def __init__(
+        self, shard_id: int = 0, num_shards: int = 2, world_shard_size: int = 1
+    ):
         self.shard_id = shard_id
         self.num_shards = num_shards
         self.world_shard_size = world_shard_size
@@ -402,8 +404,11 @@ def test_sharded_dataset_multi_gpu_assignment(
     monkeypatch.setattr(torch.distributed, "get_world_size", _get_world_size)
     monkeypatch.setattr(torch.distributed, "get_rank", _get_rank)
 
-    dataset = DummyShardedDataset(
-        num_shards=num_shards, world_shard_size=world_size
+    dataset = DummyShardedDataset(num_shards=num_shards, world_shard_size=world_size)
+    config = make_standard_dataloader_config()
+    config.dataloader.train.batch_size = 1
+    builder = DataLoaderBuilder(
+        dataset, config, collate_fn=None, num_device=world_size, epoch=0
     )
     config = make_standard_dataloader_config()
     config.dataloader.train.batch_size = 1
@@ -456,7 +461,9 @@ def test_sharded_dataset_invalid_shard_count(monkeypatch, num_shards):
     config = make_standard_dataloader_config()
     config.dataloader.train.batch_size = 1
     builder = DataLoaderBuilder(dataset, config, collate_fn=None, num_device=2, epoch=0)
-    with pytest.raises(RuntimeError, match="num_shards must be divisible by world_size"):
+    with pytest.raises(
+        RuntimeError, match="num_shards must be divisible by world_size"
+    ):
         builder.build("train")
 
 

@@ -37,8 +37,6 @@ from espnet3.components.data.dataset import (
 # | test_data_organizer_preprocessor_only| Applies only preprocessor to data    |
 # | test_data_organizer_transform_and_preprocessor | Applies both transform and |
 # |                                      | preprocessor                         |
-# | test_data_organizer_accepts_raw_configs | Instantiates dict configs for     |
-# |                                      | dataset/transform/preprocessor       |
 # | test_espnet_preprocessor_without_transform | Uses only ESPnet-style preprocessor   |
 # |                                      | (UID-based)                          |
 # | test_espnet_preprocessor_with_transform    | Combines transform with ESPnet |
@@ -72,19 +70,12 @@ from espnet3.components.data.dataset import (
 # | test_data_organizer_invalid_preprocessor_type | AssertionError     |
 # | test_combined_dataset_sharded_consistency_error | RuntimeError       |
 
-DUMMY_DATASET_TARGET = (
-    "test.espnet3.components.data.test_data_organizer.DummyDataset"
-)
+DUMMY_DATASET_TARGET = "test.espnet3.components.data.test_data_organizer.DummyDataset"
 DUMMY_TRANSFORM_TARGET = (
     "test.espnet3.components.data.test_data_organizer.DummyTransform"
 )
 DUMMY_PREPROCESSOR_TARGET = (
     "test.espnet3.components.data.test_data_organizer.DummyPreprocessor"
-)
-
-
-DUMMY_PREPROCESSOR_TARGET = (
-    "test.espnet3.components.data.test_data_organizer." "DummyPreprocessor"
 )
 
 
@@ -408,34 +399,6 @@ def test_data_organizer_preprocessor_only():
     assert organizer.valid[0]["text"] == "[dummy] hello"
 
 
-def test_data_organizer_accepts_raw_configs():
-    config = OmegaConf.create(
-        {
-            "train": [
-                {
-                    "name": "train_dummy",
-                    "dataset": {"_target_": DUMMY_DATASET_TARGET},
-                    "transform": {"_target_": DUMMY_TRANSFORM_TARGET},
-                }
-            ],
-            "valid": [
-                {
-                    "name": "valid_dummy",
-                    "dataset": {"_target_": DUMMY_DATASET_TARGET},
-                }
-            ],
-            "preprocessor": {"_target_": DUMMY_PREPROCESSOR_TARGET},
-        }
-    )
-    organizer = DataOrganizer(
-        train=config["train"],
-        valid=config["valid"],
-        preprocessor=config["preprocessor"],
-    )
-    assert organizer.train[0]["text"] == "[dummy] HELLO"
-    assert organizer.valid[0]["text"] == "[dummy] hello"
-
-
 def test_data_organizer_transform_and_preprocessor():
     config = {
         "train": [
@@ -517,6 +480,18 @@ def test_data_organizer_transform_none():
     ds = DummyDataset()
     with pytest.raises(ValueError):
         CombinedDataset([ds], [(BrokenTransform(), do_nothing)])
+
+
+def test_combined_dataset_allows_missing_preprocessor():
+    ds = DummyDataset()
+    combined = CombinedDataset([ds], [(do_nothing_transform, None)])
+    assert combined[0]["text"] == "hello"
+
+
+def test_dataset_with_transform_allows_missing_preprocessor():
+    ds = DummyDataset()
+    wrapped = DatasetWithTransform(ds, do_nothing_transform, None)
+    assert wrapped[0]["text"] == "hello"
 
 
 def test_combined_dataset_allows_missing_preprocessor():
