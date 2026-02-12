@@ -55,7 +55,7 @@ dataloader:
 
 A collate function takes a list of dataset samples and turns them into a single
 batch (padding, stacking, and length bookkeeping). In ESPnet3 you can provide a
-custom collate function, or use ESPnet2's `CommonCollateFn`. 
+custom collate function, or use ESPnet2's `CommonCollateFn`.
 
 For `CommonCollateFn`, see the
 [CommonCollateFn implementation](https://espnet.github.io/espnet/guide/espnet2/train/CommonCollateFn.html).

@@ -16,7 +16,13 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 try:
-    from lhotse import CutSet, Recording, RecordingSet, SupervisionSegment, SupervisionSet
+    from lhotse import (
+        CutSet,
+        Recording,
+        RecordingSet,
+        SupervisionSegment,
+        SupervisionSet,
+    )
     from lhotse.recipes.utils import read_manifests_if_cached
     from lhotse.serialization import SequentialJsonlWriter
 except ImportError:
@@ -83,7 +89,9 @@ def read_rttm(rttm_path: Path) -> Dict[str, List[SupervisionSegment]]:
                 supervisions[recording_id] = []
             supervisions[recording_id].append(supervision)
 
-    logger.info(f"Read {sum(len(v) for v in supervisions.values())} segments from {rttm_path}")
+    logger.info(
+        f"Read {sum(len(v) for v in supervisions.values())} segments from {rttm_path}"
+    )
     return supervisions
 
 

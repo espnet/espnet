@@ -9,9 +9,10 @@ Uses Hungarian algorithm (Munkres) for optimal permutation finding in O(N³) tim
 which is much more efficient than brute-force O(N!) enumeration.
 """
 
+from typing import Callable, Optional, Tuple
+
 import torch
 import torch.nn as nn
-from typing import Optional, Tuple, Callable
 from scipy.optimize import linear_sum_assignment
 
 
@@ -49,13 +50,16 @@ class PITLoss(nn.Module):
 
         if loss_fn is None:
             # Default: binary cross-entropy with logits (no reduction)
-            loss_fn = nn.BCEWithLogitsLoss(reduction='none')
+            loss_fn = nn.BCEWithLogitsLoss(reduction="none")
 
         self.loss_fn = loss_fn
         self.pit_mode = pit_mode
 
-        assert pit_mode in ["pairwise", "utterance", "frame"], \
-            f"Invalid pit_mode: {pit_mode}. Must be 'pairwise', 'utterance', or 'frame'."
+        assert pit_mode in [
+            "pairwise",
+            "utterance",
+            "frame",
+        ], f"Invalid pit_mode: {pit_mode}. Must be 'pairwise', 'utterance', or 'frame'."
 
     def compute_pairwise_losses(
         self,
@@ -79,15 +83,19 @@ class PITLoss(nn.Module):
         # Compute loss for all pairs of (predicted speaker, target speaker)
         # Shape: (batch, num_speakers_pred, num_speakers_target, num_frames)
         pairwise_losses = torch.zeros(
-            batch_size, num_speakers, num_speakers, num_frames,
-            device=predictions.device, dtype=predictions.dtype
+            batch_size,
+            num_speakers,
+            num_speakers,
+            num_frames,
+            device=predictions.device,
+            dtype=predictions.dtype,
         )
 
         for i in range(num_speakers):
             for j in range(num_speakers):
                 # Compare predicted speaker i with target speaker j
                 pred_i = predictions[:, :, i]  # (batch, frames)
-                target_j = targets[:, :, j]    # (batch, frames)
+                target_j = targets[:, :, j]  # (batch, frames)
 
                 # Compute frame-level loss
                 frame_loss = self.loss_fn(pred_i, target_j)  # (batch, frames)
@@ -96,15 +104,22 @@ class PITLoss(nn.Module):
         # Average over frames (considering lengths if provided)
         if lengths is not None:
             # Create mask for valid frames
-            mask = torch.arange(num_frames, device=predictions.device)[None, None, None, :] < lengths[:, None, None, None]
+            mask = (
+                torch.arange(num_frames, device=predictions.device)[None, None, None, :]
+                < lengths[:, None, None, None]
+            )
             pairwise_losses = pairwise_losses * mask.float()
 
             # Sum over frames and divide by actual length
-            pairwise_losses = pairwise_losses.sum(dim=-1)  # (batch, num_speakers, num_speakers)
+            pairwise_losses = pairwise_losses.sum(
+                dim=-1
+            )  # (batch, num_speakers, num_speakers)
             pairwise_losses = pairwise_losses / lengths[:, None, None].clamp(min=1)
         else:
             # Simple average over all frames
-            pairwise_losses = pairwise_losses.mean(dim=-1)  # (batch, num_speakers, num_speakers)
+            pairwise_losses = pairwise_losses.mean(
+                dim=-1
+            )  # (batch, num_speakers, num_speakers)
 
         return pairwise_losses
 
@@ -124,8 +139,12 @@ class PITLoss(nn.Module):
         """
         batch_size, num_speakers, _ = pairwise_losses.shape
 
-        best_permutations = torch.zeros(batch_size, num_speakers, dtype=torch.long, device=pairwise_losses.device)
-        best_losses = torch.zeros(batch_size, device=pairwise_losses.device, dtype=pairwise_losses.dtype)
+        best_permutations = torch.zeros(
+            batch_size, num_speakers, dtype=torch.long, device=pairwise_losses.device
+        )
+        best_losses = torch.zeros(
+            batch_size, device=pairwise_losses.device, dtype=pairwise_losses.dtype
+        )
 
         # Solve assignment problem for each batch item
         for b in range(batch_size):
@@ -136,7 +155,9 @@ class PITLoss(nn.Module):
 
             # row_ind is always [0, 1, 2, ..., num_speakers-1]
             # col_ind is the optimal permutation
-            best_permutations[b] = torch.tensor(col_ind, dtype=torch.long, device=pairwise_losses.device)
+            best_permutations[b] = torch.tensor(
+                col_ind, dtype=torch.long, device=pairwise_losses.device
+            )
 
             # Compute total loss for this permutation
             for i, j in zip(row_ind, col_ind):
@@ -192,7 +213,9 @@ class PITLoss(nn.Module):
         pairwise_losses = self.compute_pairwise_losses(predictions, targets, lengths)
 
         # Find optimal permutation using Hungarian algorithm
-        best_permutations, best_losses = self.find_best_permutation_hungarian(pairwise_losses)
+        best_permutations, best_losses = self.find_best_permutation_hungarian(
+            pairwise_losses
+        )
 
         # Average loss over batch
         loss = best_losses.mean()
@@ -241,8 +264,7 @@ class PITLossWithPowersetEncoding(nn.Module):
             # For PIT, we need to work in multi-label space
             # Use BCE loss for each speaker
             self.pit_loss = PITLoss(
-                loss_fn=nn.BCEWithLogitsLoss(reduction='none'),
-                pit_mode='pairwise'
+                loss_fn=nn.BCEWithLogitsLoss(reduction="none"), pit_mode="pairwise"
             )
 
     def forward(
@@ -277,9 +299,14 @@ class PITLossWithPowersetEncoding(nn.Module):
 
             if lengths is not None:
                 # Mask and average
-                mask = torch.arange(num_frames, device=logits.device)[None, :] < lengths[:, None]
+                mask = (
+                    torch.arange(num_frames, device=logits.device)[None, :]
+                    < lengths[:, None]
+                )
                 mask_flat = mask.view(-1)
-                loss = (frame_losses * mask_flat.float()).sum() / lengths.sum().clamp(min=1)
+                loss = (frame_losses * mask_flat.float()).sum() / lengths.sum().clamp(
+                    min=1
+                )
             else:
                 loss = frame_losses.mean()
 
@@ -289,7 +316,9 @@ class PITLossWithPowersetEncoding(nn.Module):
             # With PIT: find optimal speaker permutation first
             # Convert logits to multi-label space for PIT
             # Use softmax over powerset classes, then convert back to multi-label probs
-            probs_powerset = torch.softmax(logits, dim=-1)  # (batch, frames, num_classes)
+            probs_powerset = torch.softmax(
+                logits, dim=-1
+            )  # (batch, frames, num_classes)
 
             # Convert powerset probs to multi-label probs
             # For each powerset class, get the corresponding speaker combination
@@ -298,8 +327,11 @@ class PITLossWithPowersetEncoding(nn.Module):
 
             # Compute expected speaker activations
             probs_multilabel = torch.zeros(
-                batch_size, num_frames, num_speakers,
-                device=logits.device, dtype=logits.dtype
+                batch_size,
+                num_frames,
+                num_speakers,
+                device=logits.device,
+                dtype=logits.dtype,
             )
 
             for class_idx in range(num_classes):
@@ -308,7 +340,9 @@ class PITLossWithPowersetEncoding(nn.Module):
 
                 # Add probability mass to active speakers
                 for speaker_idx in speaker_combination:
-                    probs_multilabel[:, :, speaker_idx] += probs_powerset[:, :, class_idx]
+                    probs_multilabel[:, :, speaker_idx] += probs_powerset[
+                        :, :, class_idx
+                    ]
 
             # Convert to logits for BCE loss (inverse sigmoid)
             # Note: This is approximate since we're going prob -> logit
@@ -317,16 +351,15 @@ class PITLossWithPowersetEncoding(nn.Module):
 
             # Apply PIT in multi-label space
             pit_loss, best_permutations = self.pit_loss(
-                logits_multilabel,
-                targets,
-                lengths=lengths,
-                return_permutation=True
+                logits_multilabel, targets, lengths=lengths, return_permutation=True
             )
 
             # Now compute actual loss with optimal permutation
             # Apply permutation to targets
             if best_permutations is not None:
-                targets_permuted = self.pit_loss.apply_permutation(targets, best_permutations)
+                targets_permuted = self.pit_loss.apply_permutation(
+                    targets, best_permutations
+                )
             else:
                 targets_permuted = targets
 
@@ -340,9 +373,14 @@ class PITLossWithPowersetEncoding(nn.Module):
             frame_losses = self.base_loss_fn(logits_flat, target_flat)
 
             if lengths is not None:
-                mask = torch.arange(num_frames, device=logits.device)[None, :] < lengths[:, None]
+                mask = (
+                    torch.arange(num_frames, device=logits.device)[None, :]
+                    < lengths[:, None]
+                )
                 mask_flat = mask.view(-1)
-                loss = (frame_losses * mask_flat.float()).sum() / lengths.sum().clamp(min=1)
+                loss = (frame_losses * mask_flat.float()).sum() / lengths.sum().clamp(
+                    min=1
+                )
             else:
                 loss = frame_losses.mean()
 
@@ -384,8 +422,12 @@ def test_pit_loss():
     print(f"Loss without PIT (wrong order): {loss_no_pit.item():.4f}")
 
     # With PIT: should find correct permutation
-    pit_loss = PITLoss(loss_fn=nn.BCEWithLogitsLoss(reduction='none'), pit_mode='pairwise')
-    loss_with_pit, best_perm = pit_loss(predictions, targets_permuted, return_permutation=True)
+    pit_loss = PITLoss(
+        loss_fn=nn.BCEWithLogitsLoss(reduction="none"), pit_mode="pairwise"
+    )
+    loss_with_pit, best_perm = pit_loss(
+        predictions, targets_permuted, return_permutation=True
+    )
     print(f"Loss with PIT (optimal order): {loss_with_pit.item():.4f}")
     print(f"Best permutation: {best_perm}")
 
@@ -394,7 +436,9 @@ def test_pit_loss():
     print("-" * 80)
 
     lengths = torch.tensor([80, 60])  # Different valid lengths per batch
-    loss_with_lengths, best_perm = pit_loss(predictions, targets_permuted, lengths=lengths, return_permutation=True)
+    loss_with_lengths, best_perm = pit_loss(
+        predictions, targets_permuted, lengths=lengths, return_permutation=True
+    )
     print(f"Loss with variable lengths: {loss_with_lengths.item():.4f}")
     print(f"Lengths: {lengths}")
     print(f"Best permutation: {best_perm}")
@@ -412,8 +456,10 @@ def test_pit_loss():
 
     # Hungarian (our implementation)
     start = time.time()
-    pit_loss_small = PITLoss(loss_fn=nn.BCEWithLogitsLoss(reduction='none'))
-    loss_hungarian, perm_hungarian = pit_loss_small(predictions_small, targets_small, return_permutation=True)
+    pit_loss_small = PITLoss(loss_fn=nn.BCEWithLogitsLoss(reduction="none"))
+    loss_hungarian, perm_hungarian = pit_loss_small(
+        predictions_small, targets_small, return_permutation=True
+    )
     time_hungarian = time.time() - start
 
     print(f"Hungarian algorithm:")

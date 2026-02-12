@@ -175,10 +175,8 @@ def make_dataloader_cfg(use_custom_collate: bool = True):
     if use_custom_collate:
         return OmegaConf.create(
             {
-                "train": {
-                },
-                "valid": {
-                },
+                "train": {},
+                "valid": {},
                 "collate_fn": {
                     "_target_": TEST_COLLATE_TARGET,
                     "int_pad_value": -1,
@@ -189,10 +187,8 @@ def make_dataloader_cfg(use_custom_collate: bool = True):
         # Fallback path to CommonCollateFn (not used here)
         return OmegaConf.create(
             {
-                "train": {
-                },
-                "valid": {
-                },
+                "train": {},
+                "valid": {},
             }
         )
 
@@ -355,4 +351,3 @@ def test_collect_stats_entrypoint_valid(tmp_path: Path, use_parallel):
     for k in ["mel", "mel_lengths"]:
         assert (mode_dir / f"{k}_stats.npz").exists()
         assert (mode_dir / "collect_feats" / f"{k}.scp").exists()
-

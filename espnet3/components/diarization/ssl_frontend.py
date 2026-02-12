@@ -51,7 +51,9 @@ class SSLFrontend(nn.Module):
         self.use_s3prl = use_s3prl
 
         # Load SSL model
-        if model_name.lower() == "xeus" or (model_path and "xeus" in model_path.lower()):
+        if model_name.lower() == "xeus" or (
+            model_path and "xeus" in model_path.lower()
+        ):
             self._load_xeus_from_checkpoint(model_path)
             self.is_xeus = True
         elif use_s3prl:
@@ -92,8 +94,7 @@ class SSLFrontend(nn.Module):
             from s3prl.nn import S3PRLUpstream
         except ImportError:
             raise ImportError(
-                "s3prl is not installed. Please install it with: "
-                "pip install s3prl"
+                "s3prl is not installed. Please install it with: " "pip install s3prl"
             )
 
         self.upstream = S3PRLUpstream(
@@ -105,7 +106,7 @@ class SSLFrontend(nn.Module):
     def _load_from_huggingface(self, model_name: str, model_path: Optional[str]):
         """Load SSL model from HuggingFace transformers."""
         try:
-            from transformers import AutoModel, AutoFeatureExtractor
+            from transformers import AutoFeatureExtractor, AutoModel
         except ImportError:
             raise ImportError(
                 "transformers is not installed. Please install it with: "
@@ -162,7 +163,9 @@ class SSLFrontend(nn.Module):
         """Infer number of layers from model."""
         # XEUS specific
         if self.is_xeus:
-            if hasattr(self.upstream, "encoder") and hasattr(self.upstream.encoder, "encoders"):
+            if hasattr(self.upstream, "encoder") and hasattr(
+                self.upstream.encoder, "encoders"
+            ):
                 return len(self.upstream.encoder.encoders) + 1  # +1 for CNN
             return 25  # XEUS default: 24 transformer layers + 1 CNN
 
@@ -182,7 +185,9 @@ class SSLFrontend(nn.Module):
         """Infer hidden size from model."""
         # XEUS specific
         if self.is_xeus:
-            if hasattr(self.upstream, "encoder") and hasattr(self.upstream.encoder, "output_size"):
+            if hasattr(self.upstream, "encoder") and hasattr(
+                self.upstream.encoder, "output_size"
+            ):
                 return self.upstream.encoder.output_size()
             return 1024  # XEUS default: 1024-dim
 
@@ -204,8 +209,7 @@ class SSLFrontend(nn.Module):
         logging.info("SSL model parameters frozen")
 
     def _extract_features_huggingface(
-        self,
-        waveform: torch.Tensor
+        self, waveform: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Extract features using HuggingFace model.
 
@@ -242,18 +246,13 @@ class SSLFrontend(nn.Module):
         wav_length = waveform.shape[1]
         feat_length = features.shape[1]
         lengths = torch.full(
-            (batch_size,),
-            feat_length,
-            dtype=torch.long,
-            device=waveform.device
+            (batch_size,), feat_length, dtype=torch.long, device=waveform.device
         )
 
         return features, lengths
 
     def _extract_features_s3prl(
-        self,
-        waveform: torch.Tensor,
-        lengths: torch.Tensor
+        self, waveform: torch.Tensor, lengths: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Extract features using s3prl model.
 
@@ -278,9 +277,7 @@ class SSLFrontend(nn.Module):
         return features, lengths
 
     def _extract_features_xeus(
-        self,
-        waveform: torch.Tensor,
-        lengths: torch.Tensor
+        self, waveform: torch.Tensor, lengths: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Extract features using XEUS model.
 
@@ -305,8 +302,10 @@ class SSLFrontend(nn.Module):
             waveform,
             lengths,
             use_mask=False,  # Don't use masking during fine-tuning
-            use_final_output=False  # Get all layer outputs, not just final
-        )[0]  # First element contains the layer outputs
+            use_final_output=False,  # Get all layer outputs, not just final
+        )[
+            0
+        ]  # First element contains the layer outputs
 
         # Stack all layers: (batch, time, hidden_size, num_layers)
         features = torch.stack(all_layer_outputs, dim=-1)
@@ -315,18 +314,13 @@ class SSLFrontend(nn.Module):
         # Typically 320x subsampling (16kHz -> 50Hz)
         feat_length = features.shape[1]
         lengths = torch.full(
-            (waveform.shape[0],),
-            feat_length,
-            dtype=torch.long,
-            device=waveform.device
+            (waveform.shape[0],), feat_length, dtype=torch.long, device=waveform.device
         )
 
         return features, lengths
 
     def forward(
-        self,
-        waveform: torch.Tensor,
-        lengths: Optional[torch.Tensor] = None
+        self, waveform: torch.Tensor, lengths: Optional[torch.Tensor] = None
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Extract SSL features from waveform.
 
@@ -353,7 +347,7 @@ class SSLFrontend(nn.Module):
                     (waveform.shape[0],),
                     waveform.shape[-1],
                     dtype=torch.long,
-                    device=waveform.device
+                    device=waveform.device,
                 )
             features, lengths = self._extract_features_xeus(waveform, lengths)
         elif self.use_s3prl:
@@ -362,7 +356,7 @@ class SSLFrontend(nn.Module):
                     (waveform.shape[0],),
                     waveform.shape[-1],
                     dtype=torch.long,
-                    device=waveform.device
+                    device=waveform.device,
                 )
             features, lengths = self._extract_features_s3prl(waveform, lengths)
         else:

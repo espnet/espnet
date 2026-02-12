@@ -55,8 +55,7 @@ class Powerset(nn.Module):
         # mapping_matrix: (num_powerset_classes, num_classes)
         # Each row indicates which speakers are active for that powerset class
         mapping_matrix = np.zeros(
-            (self.num_powerset_classes, num_classes),
-            dtype=np.float32
+            (self.num_powerset_classes, num_classes), dtype=np.float32
         )
 
         for k, val in enumerate(self.mapping):
@@ -64,10 +63,7 @@ class Powerset(nn.Module):
                 mapping_matrix[k, v] = 1.0
 
         # Register as buffer (will be moved to GPU automatically)
-        self.register_buffer(
-            "mapping_matrix",
-            torch.from_numpy(mapping_matrix)
-        )
+        self.register_buffer("mapping_matrix", torch.from_numpy(mapping_matrix))
 
     def _build_mapping(self):
         """Build mapping from powerset index to speaker sets.
@@ -85,10 +81,7 @@ class Powerset(nn.Module):
 
         return mapping
 
-    def to_multilabel(
-        self,
-        powerset: torch.Tensor
-    ) -> torch.Tensor:
+    def to_multilabel(self, powerset: torch.Tensor) -> torch.Tensor:
         """Convert powerset logits/predictions to multi-label format.
 
         Args:
@@ -113,22 +106,18 @@ class Powerset(nn.Module):
                 powerset_probs = powerset  # Already probabilities
 
             # Matrix multiplication: (B, T, P) x (P, C) -> (B, T, C)
-            multilabel = torch.matmul(
-                powerset_probs,
-                self.mapping_matrix
-            )
+            multilabel = torch.matmul(powerset_probs, self.mapping_matrix)
         else:
             # Hard assignment: use argmax to get powerset class
             powerset_class = torch.argmax(powerset, dim=-1)  # (batch, frames)
             # Index into mapping matrix
-            multilabel = self.mapping_matrix[powerset_class]  # (batch, frames, num_classes)
+            multilabel = self.mapping_matrix[
+                powerset_class
+            ]  # (batch, frames, num_classes)
 
         return multilabel
 
-    def to_powerset(
-        self,
-        multilabel: torch.Tensor
-    ) -> torch.Tensor:
+    def to_powerset(self, multilabel: torch.Tensor) -> torch.Tensor:
         """Convert multi-label format to powerset labels (hard labels).
 
         Args:
@@ -139,8 +128,9 @@ class Powerset(nn.Module):
             Powerset class indices of shape (batch, frames)
         """
         batch_size, num_frames, num_classes = multilabel.shape
-        assert num_classes == self.num_classes, \
-            f"Expected {self.num_classes} classes, got {num_classes}"
+        assert (
+            num_classes == self.num_classes
+        ), f"Expected {self.num_classes} classes, got {num_classes}"
 
         # Flatten for processing
         multilabel_flat = multilabel.reshape(-1, num_classes)  # (B*T, C)
@@ -150,9 +140,7 @@ class Powerset(nn.Module):
         # Distance = number of mismatches
         # Shape: (B*T, num_powerset_classes)
         distances = torch.cdist(
-            multilabel_flat.float(),
-            self.mapping_matrix.float(),
-            p=1  # L1 distance
+            multilabel_flat.float(), self.mapping_matrix.float(), p=1  # L1 distance
         )
 
         # Find closest powerset class
@@ -163,10 +151,7 @@ class Powerset(nn.Module):
 
         return powerset
 
-    def get_cardinality_weights(
-        self,
-        weight_type: str = "linear"
-    ) -> torch.Tensor:
+    def get_cardinality_weights(self, weight_type: str = "linear") -> torch.Tensor:
         """Get weights for each powerset class based on cardinality.
 
         Useful for weighted loss to handle class imbalance.
@@ -182,13 +167,13 @@ class Powerset(nn.Module):
         cardinalities = torch.tensor(
             [len(s) for s in self.mapping],
             dtype=torch.float32,
-            device=self.mapping_matrix.device
+            device=self.mapping_matrix.device,
         )
 
         if weight_type == "linear":
             weights = 1.0 + cardinalities
         elif weight_type == "quadratic":
-            weights = 1.0 + cardinalities ** 2
+            weights = 1.0 + cardinalities**2
         elif weight_type == "uniform":
             weights = torch.ones_like(cardinalities)
         else:
@@ -219,12 +204,17 @@ def test_powerset():
     print(f"Mapping matrix:\n{powerset.mapping_matrix}")
 
     # Test multilabel -> powerset -> multilabel
-    multilabel = torch.tensor([
-        [[1, 0, 0],  # Speaker 0 only
-         [0, 1, 0],  # Speaker 1 only
-         [1, 1, 0],  # Speakers 0 and 1
-         [0, 0, 0]]  # No speakers
-    ], dtype=torch.float32)
+    multilabel = torch.tensor(
+        [
+            [
+                [1, 0, 0],  # Speaker 0 only
+                [0, 1, 0],  # Speaker 1 only
+                [1, 1, 0],  # Speakers 0 and 1
+                [0, 0, 0],
+            ]  # No speakers
+        ],
+        dtype=torch.float32,
+    )
 
     print(f"\nInput multilabel:\n{multilabel}")
 

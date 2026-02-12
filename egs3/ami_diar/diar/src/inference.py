@@ -90,7 +90,9 @@ class DiarizationInference:
                 "speaker_embedding_model must be specified when use_speaker_embeddings=True"
             )
 
-        logger.info(f"Loading speaker embedding model from {self.speaker_embedding_model_path}")
+        logger.info(
+            f"Loading speaker embedding model from {self.speaker_embedding_model_path}"
+        )
 
         # Import espnet2 speaker model
         from espnet2.bin.spk_inference import Speech2Embedding
@@ -129,7 +131,9 @@ class DiarizationInference:
         segmentations = speaker_activities.cpu().numpy()[0]  # Remove batch dim
 
         if not soft:
-            segmentations = (segmentations >= self.binarization_threshold).astype(np.float32)
+            segmentations = (segmentations >= self.binarization_threshold).astype(
+                np.float32
+            )
 
         return segmentations
 
@@ -152,8 +156,7 @@ class DiarizationInference:
 
         for spk_idx in range(num_speakers):
             filtered[:, spk_idx] = medfilt(
-                segmentations[:, spk_idx],
-                kernel_size=kernel_size
+                segmentations[:, spk_idx], kernel_size=kernel_size
             )
 
         return filtered
@@ -198,7 +201,9 @@ class DiarizationInference:
             Embeddings: (num_speakers, embedding_dim) array
         """
         if not self.use_speaker_embeddings:
-            raise ValueError("use_speaker_embeddings must be True to extract embeddings")
+            raise ValueError(
+                "use_speaker_embeddings must be True to extract embeddings"
+            )
 
         num_frames, num_speakers = segmentations.shape
         embeddings_list = []
@@ -368,8 +373,7 @@ class DiarizationInference:
         for local_spk in range(num_speakers):
             global_spk = cluster_labels[local_spk]
             global_activities[:, global_spk] = np.maximum(
-                global_activities[:, global_spk],
-                segmentations[:, local_spk]
+                global_activities[:, global_spk], segmentations[:, local_spk]
             )
 
         # Extract segments for each global speaker
@@ -426,12 +430,13 @@ class DiarizationInference:
         # 2. Apply median filtering
         if self.apply_median_filtering:
             segmentations = self.apply_median_filter(
-                segmentations,
-                kernel_size=self.median_filter_size
+                segmentations, kernel_size=self.median_filter_size
             )
 
         # 3. Binarize
-        binary_segmentations = (segmentations >= self.binarization_threshold).astype(np.float32)
+        binary_segmentations = (segmentations >= self.binarization_threshold).astype(
+            np.float32
+        )
 
         # 4. Count speakers
         num_speakers = self.count_speakers(binary_segmentations)
@@ -502,6 +507,7 @@ if __name__ == "__main__":
 
     # Load audio
     import torchaudio
+
     logger.info(f"Loading audio from {audio_path}")
     waveform, sample_rate = torchaudio.load(audio_path)
 

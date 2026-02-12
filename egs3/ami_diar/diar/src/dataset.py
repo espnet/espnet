@@ -134,7 +134,9 @@ class DiarizationDataset(TorchDataset):
         # Get speaker segments that overlap with this chunk
         if cut.supervisions:
             # Map speaker IDs to indices
-            speaker_ids = sorted(set(sup.speaker for sup in cut.supervisions if sup.speaker))
+            speaker_ids = sorted(
+                set(sup.speaker for sup in cut.supervisions if sup.speaker)
+            )
 
             # Limit to max_speakers (keep most active speakers)
             if len(speaker_ids) > self.max_speakers:
@@ -152,8 +154,8 @@ class DiarizationDataset(TorchDataset):
                 speaker_ids = sorted(
                     speaker_durations.keys(),
                     key=lambda x: speaker_durations[x],
-                    reverse=True
-                )[:self.max_speakers]
+                    reverse=True,
+                )[: self.max_speakers]
 
             speaker_to_idx = {spk: idx for idx, spk in enumerate(speaker_ids)}
 
@@ -233,6 +235,7 @@ class DiarizationDataset(TorchDataset):
         # Resample if needed
         if cut.sampling_rate != self.sample_rate:
             from lhotse.audio import resample_audio
+
             audio = resample_audio(
                 audio,
                 from_sr=cut.sampling_rate,

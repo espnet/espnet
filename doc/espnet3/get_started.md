@@ -7,7 +7,7 @@ date: 2025-11-26
 
 # 🚀 Getting Started with ESPnet3
 
-This guide provides the fastest way to start using ESPnet3.  
+This guide provides the fastest way to start using ESPnet3.
 Choose the workflow that fits your environment and follow the examples below.
 
 # ⚡ Quick Start (ASR Example)
@@ -27,7 +27,7 @@ pip install espnet
 git clone https://github.com/espnet/espnet.git
 cd espnet/tools
 
-# Recommended: setup_uv.sh  
+# Recommended: setup_uv.sh
 # Installs pixi + uv and sets up all dependencies much faster than conda.
 . setup_uv.sh
 ```

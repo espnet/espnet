@@ -15,9 +15,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
+from espnet3.components.diarization.pit_loss import PITLossWithPowersetEncoding
 from espnet3.components.diarization.powerset import Powerset
 from espnet3.components.diarization.ssl_frontend import SSLFrontend
-from espnet3.components.diarization.pit_loss import PITLossWithPowersetEncoding
 
 
 class PowersetDiarizationModel(nn.Module):
@@ -126,10 +126,7 @@ class PowersetDiarizationModel(nn.Module):
         )
 
         # Classifier
-        self.classifier = nn.Linear(
-            projection_size,
-            self.powerset.num_powerset_classes
-        )
+        self.classifier = nn.Linear(projection_size, self.powerset.num_powerset_classes)
 
         # Training parameters
         self.num_speakers = num_speakers
@@ -141,14 +138,14 @@ class PowersetDiarizationModel(nn.Module):
         # Get cardinality weights for loss
         self.register_buffer(
             "cardinality_weights",
-            self.powerset.get_cardinality_weights(cardinality_weight_type)
+            self.powerset.get_cardinality_weights(cardinality_weight_type),
         )
 
         # Initialize PIT loss with Hungarian algorithm
         if loss_type == "nll":
-            base_loss_fn = nn.NLLLoss(reduction='none')
+            base_loss_fn = nn.NLLLoss(reduction="none")
         else:
-            base_loss_fn = nn.CrossEntropyLoss(reduction='none')
+            base_loss_fn = nn.CrossEntropyLoss(reduction="none")
 
         self.pit_loss_fn = PITLossWithPowersetEncoding(
             powerset_encoder=self.powerset,
@@ -232,10 +229,7 @@ class PowersetDiarizationModel(nn.Module):
 
         # Use Hungarian-based PIT loss
         loss, best_permutations = self.pit_loss_fn(
-            logits,
-            targets,
-            lengths=lengths,
-            return_permutation=True
+            logits, targets, lengths=lengths, return_permutation=True
         )
 
         # Compute statistics
@@ -257,8 +251,11 @@ class PowersetDiarizationModel(nn.Module):
             # Frame-level accuracy
             if lengths is not None:
                 from espnet2.legacy.nets.pytorch_backend.nets_utils import make_pad_mask
+
                 mask = ~make_pad_mask(lengths)
-                accuracy = ((pred_powerset == target_powerset) & mask).sum().float() / lengths.sum()
+                accuracy = (
+                    (pred_powerset == target_powerset) & mask
+                ).sum().float() / lengths.sum()
             else:
                 accuracy = (pred_powerset == target_powerset).float().mean()
 
@@ -310,9 +307,7 @@ def make_pad_mask(lengths: torch.Tensor, max_len: Optional[int] = None) -> torch
     if max_len is None:
         max_len = lengths.max()
 
-    seq_range = torch.arange(
-        0, max_len, dtype=lengths.dtype, device=lengths.device
-    )
+    seq_range = torch.arange(0, max_len, dtype=lengths.dtype, device=lengths.device)
     seq_range = seq_range.unsqueeze(0).expand(batch_size, max_len)
 
     mask = seq_range >= lengths.unsqueeze(1)

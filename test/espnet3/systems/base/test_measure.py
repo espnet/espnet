@@ -12,6 +12,7 @@ from espnet3.utils.scp_utils import get_cls_path
 class DummyMetric(AbsMetric):
     ref_key = "ref"
     hyp_key = "hyp"
+
     def __call__(self, data, test_name, inference_dir):
         return {"count": len(data["utt_id"])}
 

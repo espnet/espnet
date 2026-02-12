@@ -19,7 +19,6 @@ from espnet3.systems.diarization.system import DiarizationSystem
 sys.path.insert(0, str(recipe_dir.parent.parent / "TEMPLATE" / "asr"))
 from run import DEFAULT_STAGES, build_parser, main, parse_cli_and_stage_args
 
-
 if __name__ == "__main__":
     # Parse arguments
     parser = build_parser()

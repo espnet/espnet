@@ -109,9 +109,7 @@ def upload_demo(system) -> None:
         )
     repo_type = getattr(upload_cfg, "repo_type", "space")
     create_cfg = getattr(upload_cfg, "create", None)
-    create_opts = (
-        OmegaConf.to_container(create_cfg, resolve=True) if create_cfg else {}
-    )
+    create_opts = OmegaConf.to_container(create_cfg, resolve=True) if create_cfg else {}
     if "organization" not in create_opts:
         organization = getattr(upload_cfg, "organization", None)
         if organization:
@@ -262,8 +260,6 @@ def _load_demo_readme_template(demo_cfg, pack_cfg) -> str:
         return get_demo_readme()
     except Exception:
         return _load_readme_template(pack_cfg)
-
-
 
 
 def _resolve_demo_repo(upload_cfg) -> tuple[str | None, str | None]:
