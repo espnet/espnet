@@ -1,0 +1,149 @@
+# Debug configuration for quick testing
+# Minimal settings for fast iteration
+
+# Runtime settings
+task: diarization
+num_device: 1
+num_nodes: 1
+
+# Path scaffold
+recipe_dir: /Users/samco/Projects/ESPnet3/espnet/egs3/ami_diar/diar
+data_dir: ${recipe_dir}/data/ami_debug
+exp_tag: debug_run
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+stats_dir: ${exp_dir}/stats
+
+# Dataset definition (using lhotse manifests)
+dataset:
+  train:
+    _target_: egs3.ami_diar.diar.src.dataset.DiarizationDataset
+    manifest_path: ${data_dir}/train_cuts.jsonl.gz
+    chunk_duration: 4.0  # Shorter chunks for debug (4 seconds)
+    chunk_shift: 3.0     # 3 seconds shift = 1 second overlap
+    frame_shift: 0.02    # 50 Hz (20ms frame shift)
+    max_speakers: 4
+    sample_rate: 16000
+
+  valid:
+    _target_: egs3.ami_diar.diar.src.dataset.DiarizationDataset
+    manifest_path: ${data_dir}/dev_cuts.jsonl.gz
+    chunk_duration: null  # Use whole recordings for validation
+    chunk_shift: null
+    frame_shift: 0.02
+    max_speakers: 4
+    sample_rate: 16000
+
+# Data augmentation
+# preprocessor: null
+
+# DataLoader settings
+collate_fn:
+  _target_: egs3.ami_diar.diar.src.dataset.collate_fn
+
+dataloader:
+  train:
+    batch_size: 2  # Small batch for debug
+    shuffle: true
+    num_workers: 0  # No multiprocessing for debug
+    pin_memory: false
+    drop_last: true
+
+  valid:
+    batch_size: 1
+    shuffle: false
+    num_workers: 0
+    pin_memory: false
+
+# Model architecture (simplified for debug)
+model:
+  _target_: espnet3.components.diarization.segmentation_model.PowersetDiarizationModel
+
+  # SSL Frontend - using WavLM Base (smaller/faster than XEUS for debug)
+  ssl_model_name: wavlm_base
+  ssl_model_path: null
+  ssl_freeze: true  # Freeze SSL for faster debug
+  ssl_num_layers: 13
+  ssl_hidden_size: 768
+  ssl_layer_weights: true
+  ssl_feature_grad_mult: 1.0  # No gradient scaling when frozen
+
+  # Projection layer
+  projection_size: 128  # Smaller for debug (vs 256)
+
+  # Conformer encoder (reduced size)
+  conformer_num_blocks: 2  # Fewer blocks for debug (vs 4)
+  conformer_attention_heads: 4
+  conformer_ffn_units: 512  # Smaller FFN (vs 1024)
+  conformer_kernel_size: 31
+  conformer_dropout: 0.1
+
+  # Powerset classification
+  num_speakers: 4
+  max_speakers_per_frame: 2
+
+  # Training settings
+  loss_type: nll
+  cardinality_weight_type: uniform
+
+# Optimizer (only one since SSL is frozen)
+optimizer:
+  _target_: torch.optim.AdamW
+  lr: 0.001
+  weight_decay: 0.01
+  betas: [0.9, 0.999]
+
+# Learning rate scheduler
+scheduler:
+  _target_: torch.optim.lr_scheduler.CosineAnnealingLR
+  T_max: 3  # Only 3 epochs for debug
+  eta_min: 0.0001
+
+# Lightning Trainer configuration
+trainer:
+  _target_: lightning.Trainer
+  max_epochs: 3  # Just 3 epochs for debug
+  accelerator: auto
+  devices: 1
+  num_nodes: 1
+  gradient_clip_val: 5.0
+  gradient_clip_algorithm: norm
+  accumulate_grad_batches: 1
+  val_check_interval: 1.0
+  check_val_every_n_epoch: 1
+  log_every_n_steps: 10
+  enable_checkpointing: true
+  enable_progress_bar: true
+  enable_model_summary: true
+  deterministic: false
+  precision: 32  # Full precision for debug (faster on CPU/simpler)
+  limit_train_batches: 20  # Only 20 batches per epoch for debug
+  limit_val_batches: 5     # Only 5 validation batches
+
+  # Callbacks
+  callbacks:
+    - _target_: lightning.callbacks.ModelCheckpoint
+      dirpath: ${exp_dir}/checkpoints
+      filename: epoch{epoch:03d}
+      monitor: val/loss
+      mode: min
+      save_top_k: 1
+      save_last: true
+      verbose: true
+
+# Logging
+logger:
+  _target_: lightning.loggers.TensorBoardLogger
+  save_dir: ${exp_dir}/logs
+  name: debug
+  version: null
+
+# Seed
+seed: 42
+
+# Stats collection
+collect_stats: false
+
+# Model saving
+save_model:
+  save_dir: ${exp_dir}/final_model
+  save_filename: model.pth

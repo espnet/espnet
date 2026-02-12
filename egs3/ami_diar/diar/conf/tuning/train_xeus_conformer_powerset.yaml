@@ -1,0 +1,196 @@
+# Training configuration for diarization with XEUS/WavLM + Conformer + Powerset
+# Based on DiariZen architecture
+
+# Runtime settings
+task: diarization
+num_device: 1
+num_nodes: 1
+
+# Path scaffold
+recipe_dir: ???  # Set automatically by run.py
+data_dir: ${recipe_dir}/data
+exp_tag: xeus_conformer_powerset
+exp_dir: ${recipe_dir}/exp/${exp_tag}
+stats_dir: ${exp_dir}/stats
+dataset_dir: ${data_dir}/lhotse_manifests
+
+# Dataset creation
+create_dataset:
+  func: egs3.ami_diar.diar.src.create_dataset.create_dataset
+  data_dir: ${dataset_dir}
+  output_dir: ${dataset_dir}
+  dataset_name: ami
+
+# Dataset definition (using lhotse manifests)
+dataset:
+  train:
+    _target_: egs3.ami_diar.diar.src.dataset.DiarizationDataset
+    manifest_path: ${dataset_dir}/train_cuts.jsonl.gz
+    chunk_duration: 8.0  # 8 seconds per chunk
+    chunk_shift: 6.0     # 6 seconds shift = 2 seconds overlap
+    frame_shift: 0.02    # 50 Hz (20ms frame shift)
+    max_speakers: 4
+    sample_rate: 16000
+
+  valid:
+    _target_: egs3.ami_diar.diar.src.dataset.DiarizationDataset
+    manifest_path: ${dataset_dir}/dev_cuts.jsonl.gz
+    chunk_duration: null  # Use whole recordings for validation
+    chunk_shift: null
+    frame_shift: 0.02
+    max_speakers: 4
+    sample_rate: 16000
+
+# Data augmentation (optional preprocessor)
+# preprocessor: null  # Can add SpecAugment or other augmentations
+
+# DataLoader settings
+collate_fn:
+  _target_: egs3.ami_diar.diar.src.dataset.collate_fn
+
+dataloader:
+  train:
+    batch_size: 16
+    shuffle: true
+    num_workers: 4
+    pin_memory: true
+    drop_last: true
+
+  valid:
+    batch_size: 1  # One full recording at a time
+    shuffle: false
+    num_workers: 2
+    pin_memory: true
+
+# Model architecture
+model:
+  _target_: espnet3.components.diarization.segmentation_model.PowersetDiarizationModel
+
+  # SSL Frontend (XEUS or WavLM)
+  ssl_model_name: wavlm_base  # Options: "xeus", "wavlm_base", "wavlm_base_plus", "wavlm_large"
+  ssl_model_path: null  # Set to checkpoint path if using local model
+  ssl_freeze: false  # Set to true for faster training (frozen SSL)
+  ssl_num_layers: 13  # WavLM Base has 13 layers (12 + 1 CNN)
+  ssl_hidden_size: 768  # WavLM Base hidden dim
+  ssl_layer_weights: true  # Learn weights for combining layers
+  ssl_feature_grad_mult: 0.1  # Scale gradients for SSL features
+
+  # Projection layer
+  projection_size: 256  # Hidden dim for conformer
+
+  # Conformer encoder
+  conformer_num_blocks: 4
+  conformer_attention_heads: 4
+  conformer_ffn_units: 1024
+  conformer_kernel_size: 31
+  conformer_dropout: 0.1
+
+  # Powerset classification
+  num_speakers: 4  # Maximum number of speakers
+  max_speakers_per_frame: 2  # Maximum simultaneous speakers
+
+  # Training settings
+  loss_type: nll  # "nll" or "cross_entropy"
+  cardinality_weight_type: uniform  # "uniform", "linear", or "quadratic"
+
+# Optimizer configuration (dual optimizer for SSL vs non-SSL parameters)
+optimizer:
+  # For non-SSL parameters (Conformer, Classifier)
+  _target_: torch.optim.AdamW
+  lr: 0.001
+  weight_decay: 0.01
+  betas: [0.9, 0.999]
+
+optimizer_ssl:
+  # For SSL parameters (WavLM/XEUS)
+  _target_: torch.optim.AdamW
+  lr: 0.00002  # Lower LR for SSL fine-tuning
+  weight_decay: 0.01
+  betas: [0.9, 0.999]
+
+# Learning rate scheduler
+scheduler:
+  _target_: torch.optim.lr_scheduler.CosineAnnealingLR
+  T_max: 100  # Total epochs
+  eta_min: 0.00001
+
+scheduler_ssl:
+  _target_: torch.optim.lr_scheduler.CosineAnnealingLR
+  T_max: 100
+  eta_min: 0.000001
+
+# Lightning Trainer configuration
+trainer:
+  _target_: lightning.Trainer
+  max_epochs: 100
+  accelerator: auto
+  devices: ${num_device}
+  num_nodes: ${num_nodes}
+  gradient_clip_val: 5.0
+  gradient_clip_algorithm: norm
+  accumulate_grad_batches: 1
+  val_check_interval: 1.0  # Validate every epoch
+  check_val_every_n_epoch: 1
+  log_every_n_steps: 50
+  enable_checkpointing: true
+  enable_progress_bar: true
+  enable_model_summary: true
+  deterministic: false  # Set to true for reproducibility
+  precision: 16-mixed  # Use mixed precision training
+
+  # Callbacks
+  callbacks:
+    - _target_: lightning.callbacks.ModelCheckpoint
+      dirpath: ${exp_dir}/checkpoints
+      filename: epoch{epoch:03d}-val_loss{val/loss:.4f}
+      monitor: val/loss
+      mode: min
+      save_top_k: 3
+      save_last: true
+      verbose: true
+
+    - _target_: lightning.callbacks.EarlyStopping
+      monitor: val/loss
+      patience: 10
+      mode: min
+      verbose: true
+
+    - _target_: lightning.callbacks.LearningRateMonitor
+      logging_interval: step
+
+# Logging
+logger:
+  _target_: lightning.loggers.TensorBoardLogger
+  save_dir: ${exp_dir}/logs
+  name: diarization
+  version: null
+
+# Seed for reproducibility
+seed: 42
+
+# Stats collection (for normalization)
+collect_stats: false  # Set to true if using global MVN normalization
+stats_dir: ${exp_dir}/stats
+
+# Model saving
+save_model:
+  save_dir: ${exp_dir}/final_model
+  save_filename: model.pth
+
+# Inference settings (reference for inference.yaml)
+inference:
+  chunk_duration: null  # Use whole recordings
+  apply_median_filtering: true
+  median_filter_size: 11
+  speaker_embedding_model: null  # Path to ESPnet2 speaker embedding model
+  clustering_backend: vbx  # "vbx" or "ahc" (agglomerative hierarchical clustering)
+  min_speakers: 1
+  max_speakers: 20
+
+# Metrics
+metrics:
+  - diarization_error_rate
+  - jaccard_error_rate
+  - speaker_confusion
+  - false_alarm
+  - missed_detection

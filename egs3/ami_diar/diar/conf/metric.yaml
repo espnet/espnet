@@ -1,0 +1,23 @@
+# Metric computation configuration for diarization
+
+# Paths
+infer_dir: ???  # Path to inference results
+predictions_dir: ${infer_dir}/predictions
+ground_truth_dir: ???  # Path to ground truth RTTM files
+
+# Metrics to compute
+metrics:
+  - name: der  # Diarization Error Rate
+    collar: 0.25  # Collar in seconds for forgiveness region
+    skip_overlap: false  # Whether to skip overlapping speech regions
+
+  - name: jer  # Jaccard Error Rate
+    collar: 0.25
+
+# Output
+output_file: ${infer_dir}/metrics.txt
+detailed_output: ${infer_dir}/detailed_metrics.json
+
+# Per-file metrics
+compute_per_file_metrics: true
+per_file_output: ${infer_dir}/per_file_metrics.csv
