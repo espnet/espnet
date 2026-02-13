@@ -402,7 +402,9 @@ class SLUTask(ASRTask):
                 noise_apply_prob=getattr(args, "noise_apply_prob", 1.0),
                 noise_db_range=getattr(args, "noise_db_range", "13_15"),
                 short_noise_thres=getattr(args, "short_noise_thres", 0.5),
-                speech_volume_normalize=getattr(args, "rir_scp", None),
+                speech_volume_normalize=(
+                    args.speech_volume_normalize if hasattr(args, "rir_scp") else None
+                ),
                 **getattr(args, "preprocessor_conf", {}),
             )
         else:
@@ -448,7 +450,7 @@ class SLUTask(ASRTask):
 
                     # Overwriting token_list to keep it as "portable".
                     args.transcript_token_list = list(transcript_token_list)
-                elif isinstance(args.token_list, (tuple, list)):
+                elif isinstance(args.transcript_token_list, (tuple, list)):
                     transcript_token_list = list(args.transcript_token_list)
                 else:
                     raise RuntimeError(" Transcript token_list must be str or list")
