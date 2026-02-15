@@ -2,7 +2,8 @@
 
 import copy
 from abc import ABC
-from typing import Any, Callable, List, Tuple
+from collections.abc import Mapping
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from torch.utils.data.dataset import Dataset
 
@@ -30,6 +31,13 @@ class CombinedDataset:
     applied sequentially to each sample. It also supports optional UID handling for
     ESPnet-style preprocessing.
 
+    CombinedDataset supports two indexing modes:
+        * Numeric mode (default): every underlying dataset accepts integer indices
+          and the combined dataset behaves like a contiguous sequence.
+        * String mode: if any dataset requires string-based utterance IDs, the
+          organizer builds a lookup table mapping every UID to its source dataset
+          while preserving DataLoader-friendly integer access.
+
     Args:
         datasets (List[Any]): A list of dataset instances. Each must implement
             `__getitem__` and `__len__`.
@@ -53,7 +61,8 @@ class CombinedDataset:
 
     Raises:
         IndexError: If a requested index is outside the range of the combined dataset.
-        ValueError: If index is a non-integer string or cannot be cast to int.
+        ValueError: If index is a non-integer string that none of the underlying
+            datasets accept as an utterance ID.
         RuntimeError: If `get_text()` or `shard()` is called but not supported.
         AssertionError: If output keys from different datasets are inconsistent.
 
@@ -97,12 +106,21 @@ class CombinedDataset:
             total += length
             self.cumulative_lengths.append(total)
 
+        self._string_index_mode = False
+        self._uid_to_dataset: Dict[str, Tuple[int, Any]] = {}
+        self._dataset_supports_int: List[bool] = []
+        self._dataset_key_lists: List[Optional[List[str]]] = []
+
+        self._initialize_index_mode()
+
         # Check the first sample from all dataset to ensure they all have the same keys
         sample_keys = None
         for i, (dataset, transform) in enumerate(zip(self.datasets, self.transforms)):
             if len(dataset) == 0:
                 continue  # Skip empty datasets
-            sample = transform[0](copy.deepcopy(dataset[0]))
+
+            reference_key = self._select_reference_key_for_dataset(i)
+            sample = transform[0](copy.deepcopy(dataset[reference_key]))
             keys = set(sample.keys())
             if sample_keys is None:
                 sample_keys = keys
@@ -166,14 +184,16 @@ class CombinedDataset:
         return self.cumulative_lengths[-1] if self.cumulative_lengths else 0
 
     def __getitem__(self, idx):
-        """Retrieve and process a sample by index."""
+        if self._string_index_mode:
+            return self._getitem_string_mode(idx)
+
         if isinstance(idx, str):
             try:
-                idx = int(idx)
+                numerical_idx = int(idx)
             except (ValueError, TypeError):
-                raise ValueError(
-                    "ESPnet-3 expects the utterance ID to be an " "integer index"
-                )
+                return self._getitem_by_utterance_id(idx)
+            else:
+                idx = numerical_idx
 
         for i, cum_len in enumerate(self.cumulative_lengths):
             if idx < cum_len:
@@ -200,6 +220,32 @@ class CombinedDataset:
 
         raise IndexError("Index out of range in CombinedDataset")
 
+    def _getitem_by_utterance_id(self, uid: str):
+        if self._string_index_mode:
+            return self._getitem_string_mode(uid)
+
+        last_error = None
+        for dataset, (transform, preprocessor) in zip(self.datasets, self.transforms):
+            try:
+                sample = dataset[uid]
+            except (KeyError, TypeError, ValueError, IndexError) as err:
+                last_error = err
+                continue
+
+            transformed = transform(sample)
+            if self.use_espnet_preprocessor:
+                transformed = preprocessor(uid, transformed)
+            else:
+                transformed = preprocessor(transformed)
+
+            if self.use_espnet_collator:
+                return uid, transformed
+            return transformed
+
+        raise ValueError(
+            f"Utterance ID '{uid}' is not supported by the underlying datasets."
+        ) from last_error
+
     def get_text(self, idx):
         """Retrieve the target text string for a given index.
 
@@ -219,10 +265,136 @@ class CombinedDataset:
                 "   return text\n"
             )
 
+        if self._string_index_mode:
+            uid, dataset_idx, dataset_key = self._resolve_string_mode_index(idx)
+            dataset = self.datasets[dataset_idx]
+            return dataset.get_text(dataset_key)
+
         for i, cum_len in enumerate(self.cumulative_lengths):
             if idx < cum_len:
                 ds_idx = idx if i == 0 else idx - self.cumulative_lengths[i - 1]
                 return self.datasets[i].get_text(ds_idx)
+
+    # ------------------------------------------------------------------
+    # Internal helpers for string-index mode
+    # ------------------------------------------------------------------
+    def _initialize_index_mode(self):
+        """Determine whether datasets should be accessed via string keys."""
+        def supports_integer_index(dataset):
+            try:
+                dataset[0]
+            except Exception:
+                return False
+            else:
+                return True
+
+        self._dataset_supports_int = []
+        for dataset in self.datasets:
+            self._dataset_supports_int.append(supports_integer_index(dataset))
+
+        all_integer_addressable = all(self._dataset_supports_int)
+        self._dataset_key_lists = [None] * len(self.datasets)
+
+        if all_integer_addressable:
+            return
+
+        self._string_index_mode = True
+
+        for dataset_idx, dataset in enumerate(self.datasets):
+            if self._dataset_supports_int[dataset_idx]:
+                continue
+            keys = self._collect_string_keys(dataset)
+            self._dataset_key_lists[dataset_idx] = keys
+            self._register_dataset_keys(dataset_idx, keys)
+
+    def _collect_string_keys(self, dataset):
+        if isinstance(dataset, Mapping):
+            keys_iter = dataset.keys()
+        elif hasattr(dataset, "keys") and callable(getattr(dataset, "keys")):
+            keys_iter = dataset.keys()
+        else:
+            try:
+                keys_iter = iter(dataset)
+            except TypeError as err:
+                raise TypeError(
+                    "Datasets with string indices must be iterable to expose keys."
+                ) from err
+
+        keys = list(keys_iter)
+        for key in keys:
+            if not isinstance(key, str):
+                raise TypeError(
+                    "Datasets operating in string-index mode must provide string keys."
+                )
+        return keys
+
+    def _register_dataset_keys(self, dataset_idx: int, keys: List[str]):
+        for key in keys:
+            if key in self._uid_to_dataset:
+                raise ValueError(
+                    f"Duplicate utterance ID '{key}' detected across datasets."
+                )
+            self._uid_to_dataset[key] = (dataset_idx, key)
+
+    def _select_reference_key_for_dataset(self, dataset_idx: int):
+        if not self._string_index_mode or self._dataset_supports_int[dataset_idx]:
+            return 0
+
+        keys = self._dataset_key_lists[dataset_idx]
+        if not keys:
+            raise RuntimeError("Unable to locate reference key for dataset.")
+        return keys[0]
+
+    def _resolve_string_mode_index(self, idx):
+        if isinstance(idx, int):
+            if idx < 0:
+                raise IndexError("Index out of range in CombinedDataset")
+            dataset_idx = 0
+            for i, cum_len in enumerate(self.cumulative_lengths):
+                if idx < cum_len:
+                    dataset_idx = i
+                    break
+            else:
+                raise IndexError("Index out of range in CombinedDataset")
+
+            ds_idx = idx if dataset_idx == 0 else idx - self.cumulative_lengths[dataset_idx - 1]
+            if self._dataset_supports_int[dataset_idx]:
+                uid = str(idx)
+                dataset_key = ds_idx
+            else:
+                keys = self._dataset_key_lists[dataset_idx]
+                if keys is None:
+                    raise RuntimeError("String dataset keys are not initialized.")
+                dataset_key = keys[ds_idx]
+                uid = dataset_key
+            return uid, dataset_idx, dataset_key
+
+        if isinstance(idx, str):
+            try:
+                dataset_idx, dataset_key = self._uid_to_dataset[idx]
+            except KeyError as err:
+                raise ValueError(
+                    f"Utterance ID '{idx}' is not supported by the underlying datasets."
+                ) from err
+            return idx, dataset_idx, dataset_key
+
+        raise TypeError("Index must be an integer or string utterance ID.")
+
+    def _getitem_string_mode(self, idx):
+        uid, dataset_idx, dataset_key = self._resolve_string_mode_index(idx)
+        dataset = self.datasets[dataset_idx]
+        transform, preprocessor = self.transforms[dataset_idx]
+
+        sample = dataset[dataset_key]
+        transformed = transform(sample)
+        if self.use_espnet_preprocessor:
+            transformed = preprocessor(uid, transformed)
+        else:
+            transformed = preprocessor(transformed)
+
+        if self.use_espnet_collator:
+            return uid, transformed
+        return transformed
 
     def shard(self, shard_idx: int):
         """Return a sharded version of the combined dataset.

@@ -121,6 +121,25 @@ class DummyDataset:
         return self.data[idx]
 
 
+class DummyStringKeyDataset:
+    def __init__(self, path=None):
+        self.data = {
+            "utt0": {"audio": np.random.random(16000), "text": "hello"},
+            "utt1": {"audio": np.random.random(16000), "text": "world"},
+        }
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        if not isinstance(idx, str):
+            raise KeyError("This dataset expects string-based utterance IDs.")
+        return self.data[idx]
+
+    def keys(self):
+        return self.data.keys()
+
+
 class DummyShardedDataset(ShardedDataset):
     def __init__(
         self,
@@ -210,6 +229,74 @@ def test_combined_dataset():
     assert combined[3]["text"] == "WORLD"
 
 
+def test_combined_dataset_with_string_id():
+    ds = DummyStringKeyDataset()
+    combined = CombinedDataset(
+        [ds],
+        [(do_nothing_transform, do_nothing_transform)],
+    )
+    assert len(combined) == 2
+    # Access via integer index (DataLoader compatibility)
+    assert combined[0]["text"] == "hello"
+    assert combined[1]["text"] == "world"
+    # Access via utterance ID
+    assert combined["utt0"]["text"] == "hello"
+    assert combined["utt1"]["text"] == "world"
+
+
+def test_combined_dataset_with_missing_string_id():
+    ds = DummyDataset()
+    combined = CombinedDataset(
+        [ds],
+        [(do_nothing_transform, do_nothing_transform)],
+    )
+    with pytest.raises(ValueError, match="Utterance ID 'unknown'"):
+        combined["unknown"]
+
+
+def test_combined_dataset_mixed_index_types():
+    numeric = DummyDataset()
+    stringy = DummyStringKeyDataset()
+    combined = CombinedDataset(
+        [numeric, stringy],
+        [
+            (do_nothing_transform, do_nothing_transform),
+            (do_nothing_transform, do_nothing_transform),
+        ],
+    )
+
+    assert len(combined) == 4
+    # First two items come from numeric dataset
+    assert combined[0]["text"] == "hello"
+    assert combined[1]["text"] == "world"
+    # Next two items from string dataset
+    assert combined[2]["text"] == "hello"
+    assert combined[3]["text"] == "world"
+    # Direct string lookup hits the string-backed dataset
+    assert combined["utt1"]["text"] == "world"
+
+
+def test_combined_dataset_duplicate_string_ids_error():
+    class AnotherStringDataset(DummyStringKeyDataset):
+        def __init__(self):
+            super().__init__()
+            self.data = {
+                "utt1": {"audio": np.random.random(16000), "text": "duplicate"},
+            }
+
+    ds1 = DummyStringKeyDataset()
+    ds2 = AnotherStringDataset()
+
+    with pytest.raises(ValueError, match="Duplicate utterance ID 'utt1'"):
+        CombinedDataset(
+            [ds1, ds2],
+            [
+                (do_nothing_transform, do_nothing_transform),
+                (do_nothing_transform, do_nothing_transform),
+            ],
+        )
+
+
 def test_data_organizer_init(dummy_dataset_config):
     config = dummy_dataset_config
     organizer = DataOrganizer(
@@ -223,6 +310,38 @@ def test_data_organizer_init(dummy_dataset_config):
     assert len(organizer.valid) == 2
     assert organizer.valid[0]["text"] == "[dummy] hello"
     assert "test_dummy" in organizer.test
+
+
+def test_data_organizer_with_string_ids():
+    config = {
+        "train": [
+            {
+                "name": "train_dummy",
+                "dataset": {
+                    "_target_": "test.espnet3.test_data_organizer.DummyStringKeyDataset"
+                },
+            }
+        ],
+        "valid": [
+            {
+                "name": "valid_dummy",
+                "dataset": {
+                    "_target_": "test.espnet3.test_data_organizer.DummyStringKeyDataset"
+                },
+            }
+        ],
+    }
+
+    organizer = DataOrganizer(
+        train=instantiate(config["train"]),
+        valid=instantiate(config["valid"]),
+    )
+
+    assert len(organizer.train) == 2
+    assert organizer.train["utt0"]["text"] == "hello"
+    assert organizer.train[0]["text"] == "hello"
+    assert organizer.valid["utt1"]["text"] == "world"
+    assert organizer.valid[1]["text"] == "world"
 
 
 def test_data_organizer_without_test():
