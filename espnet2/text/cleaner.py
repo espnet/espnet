@@ -9,7 +9,7 @@ except ImportError:
     tacotron_cleaners = None
     jaconv = None
 
-# We removed underthesea from task-tts extra requirement because it
+# We removed underthesea from tts extra requirement because it
 # causes installation issues with pyproject.toml (See #6239 for details).
 try:
     from vietnamese_cleaner import vietnamese_cleaners
@@ -57,13 +57,13 @@ class TextCleaner:
             if t == "tacotron":
                 if tacotron_cleaners is None:
                     raise RuntimeError(
-                        "Please install espnet with `pip install espnet[task-tts]`"
+                        "Please install espnet with `pip install espnet[tts]`"
                     )
                 text = tacotron_cleaners.custom_english_cleaners(text)
             elif t == "jaconv":
                 if jaconv is None:
                     raise RuntimeError(
-                        "Please install espnet with `pip install espnet[task-tts]`"
+                        "Please install espnet with `pip install espnet[tts]`"
                     )
                 text = jaconv.normalize(text)
             elif t == "vietnamese":

@@ -13,12 +13,12 @@ from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
 from espnet2.legacy.nets.pytorch_backend.conformer.convolution import ConvolutionModule
 from espnet2.legacy.nets.pytorch_backend.conformer.encoder_layer import EncoderLayer
 from espnet2.legacy.nets.pytorch_backend.nets_utils import get_activation, make_pad_mask
-from espnet2.legacy.nets.pytorch_backend.transformer.attention import (  # noqa: H301
+from espnet2.legacy.nets.pytorch_backend.transformer.attention import (
     LegacyRelPositionMultiHeadedAttention,
     MultiHeadedAttention,
     RelPositionMultiHeadedAttention,
 )
-from espnet2.legacy.nets.pytorch_backend.transformer.embedding import (  # noqa: H301
+from espnet2.legacy.nets.pytorch_backend.transformer.embedding import (
     LegacyRelPositionalEncoding,
     PositionalEncoding,
     RelPositionalEncoding,

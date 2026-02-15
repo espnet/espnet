@@ -11,7 +11,7 @@ from typing import Dict, Optional, Tuple
 import torch
 import torch.nn.functional as F
 
-from espnet2.legacy.nets.pytorch_backend.conformer.encoder import (  # noqa: H301
+from espnet2.legacy.nets.pytorch_backend.conformer.encoder import (
     Encoder as ConformerEncoder,
 )
 from espnet2.legacy.nets.pytorch_backend.e2e_tts_fastspeech import (
@@ -32,7 +32,7 @@ from espnet2.legacy.nets.pytorch_backend.transformer.embedding import (
     PositionalEncoding,
     ScaledPositionalEncoding,
 )
-from espnet2.legacy.nets.pytorch_backend.transformer.encoder import (  # noqa: H301
+from espnet2.legacy.nets.pytorch_backend.transformer.encoder import (
     Encoder as TransformerEncoder,
 )
 from espnet2.svs.abs_svs import AbsSVS

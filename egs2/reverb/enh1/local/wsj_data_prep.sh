@@ -1,1 +1,1 @@
-../../../../egs/reverb/asr1/local/wsj_data_prep.sh
+../../asr1/local/wsj_data_prep.sh

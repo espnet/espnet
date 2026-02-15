@@ -9,7 +9,7 @@ from espnet2.legacy.nets.pytorch_backend.nets_utils import (
     pad_list,
     th_accuracy,
 )
-from espnet2.legacy.nets.pytorch_backend.transformer.label_smoothing_loss import (  # noqa: H301
+from espnet2.legacy.nets.pytorch_backend.transformer.label_smoothing_loss import (
     LabelSmoothingLoss,
 )
 from espnet2.lm.abs_model import AbsLM

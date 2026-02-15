@@ -70,7 +70,7 @@ parallel_gpu:
 ```
 
 ```python
-from espnet3.parallel import get_client
+from espnet3.parallel.parallel import get_client
 
 # Submit 4 jobs, each has 16 cpus and 4 parallel jobs.
 # i.e. each worker will use 4 cpus.
@@ -99,11 +99,11 @@ ESPnet3 supports two main options for model definition:
    - Simply copy the model config and specify the ESPnet3 task to retain compatibility
 
    ```python
-   from espnet3.trainer import LitESPnetModel
-   from espnet3.base.task import get_espnet_model
+   from espnet3.components.modeling.lightning_module import ESPnetLightningModule
+   from espnet3.task import get_espnet_model
 
    model = get_espnet_model(task="asr", config=config.model)
-   model = LitESPnetModel(model)
+   model = ESPnetLightningModule(model)
    trainer = Trainer(model, ...)
    ```
 
@@ -112,10 +112,10 @@ ESPnet3 supports two main options for model definition:
    - Hydra will instantiate it at runtime
 
    ```python
-   from espnet3.trainer import LitESPnetModel
+   from espnet3.components.modeling.lightning_module import ESPnetLightningModule
 
    model = hydra.utils.instantiate(config.model)
-   model = LitESPnetModel(model)
+   model = ESPnetLightningModule(model)
    trainer = Trainer(model, ...)
    ```
 

@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 import importlib.machinery as imm
 import logging
+import os
 import pathlib
 import re
-import os
 import subprocess
 
 import configargparse
 
 
 def get_git_revision_hash() -> str:
-    return subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode('ascii').strip()
+    return subprocess.check_output(["git", "rev-parse", "HEAD"]).decode("ascii").strip()
 
 
 class ModuleInfo:
@@ -64,11 +64,13 @@ if __name__ == "__main__":
         except Exception as e:
             logging.error(f"Error processing {p}: {str(e)}")
 
-    print(f"""
+    print(
+        f"""
 {args.title}
 {"=" * len(args.title)}
 
-""")
+"""
+    )
 
     for m in modinfo:
         logging.info(f"processing: {m.path.name}")
@@ -83,13 +85,20 @@ if __name__ == "__main__":
     # print argparse to each files
     for m in modinfo:
         cmd = m.path.name
-        sourceurl = "https://github.com/espnet/espnet/blob/" \
-            + get_git_revision_hash() + "/" + str(m.path.parent / m.path.stem) + ".py"
+        sourceurl = (
+            "https://github.com/espnet/espnet/blob/"
+            + get_git_revision_hash()
+            + "/"
+            + str(m.path.parent / m.path.stem)
+            + ".py"
+        )
         sep = "~" * len(cmd)
-        mname = m.name if m.name.startswith("espnet") \
-            else ".".join(m.name.split(".")[1:])
+        mname = (
+            m.name if m.name.startswith("espnet") else ".".join(m.name.split(".")[1:])
+        )
         with open(f"{args.output_dir}/{cmd[:-3]}.rst", "w") as writer:  # remove .py
-            writer.write(f""".. _{cmd}
+            writer.write(
+                f""".. _{cmd}
 {cmd}
 {sep}
 
@@ -100,4 +109,5 @@ if __name__ == "__main__":
    :func: get_parser
    :prog: {cmd}
 
-""")
+"""
+            )

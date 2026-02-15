@@ -1,3 +1,5 @@
+"""Configuration helpers and OmegaConf resolvers for ESPnet3."""
+
 import logging
 from pathlib import Path
 
@@ -5,8 +7,7 @@ from omegaconf import DictConfig, ListConfig, OmegaConf
 
 
 def load_line(path):
-    """
-    Load lines from a text file and return as a list of strings.
+    """Load lines from a text file and return as a list of strings.
 
     This function is used as a custom resolver in OmegaConf,
     allowing YAML files to reference external text line files
@@ -31,8 +32,40 @@ def load_line(path):
         raise
 
 
+def load_yaml(path, key=None):
+    """Load a YAML file and optionally return a nested key.
+
+    This resolver is intended for pulling a single value from another config,
+    e.g., `${load_yaml:conf/train.yaml,exp_tag}`.
+
+    Args:
+        path (str or Path): Path to the YAML file.
+        key (str, optional): Dot-delimited key to select.
+
+    Returns:
+        Any: The selected value or the full config if key is None.
+    """
+    try:
+        cfg = OmegaConf.load(path)
+    except FileNotFoundError:
+        logging.error(f"File not found: {path}")
+        raise
+    except PermissionError:
+        logging.error(f"Permission denied when accessing file: {path}")
+        raise
+
+    if key is None or str(key).strip() == "":
+        return cfg
+
+    value = OmegaConf.select(cfg, str(key), default=None)
+    if value is None:
+        raise KeyError(f"Key not found in YAML: {key}")
+    return value
+
+
 OMEGACONF_ESPNET3_RESOLVER = {
     "load_line": load_line,
+    "load_yaml": load_yaml,
 }
 for name, resolver in OMEGACONF_ESPNET3_RESOLVER.items():
     OmegaConf.register_new_resolver(name, resolver)
@@ -40,10 +73,6 @@ for name, resolver in OMEGACONF_ESPNET3_RESOLVER.items():
 
 
 def _process_dict_config_entry(entry: DictConfig, base_path: Path) -> list:
-    """
-    Process a dictionary-style entry in the `defaults` list and return a list
-    of partial configs to be merged.
-    """
     results = []
     for key, val in entry.items():
         # Skip null entries (can be used for disabling config entries)
@@ -59,9 +88,7 @@ def _process_dict_config_entry(entry: DictConfig, base_path: Path) -> list:
 
 
 def load_config_with_defaults(path: str) -> OmegaConf:
-    """
-    Load an OmegaConf YAML config file with support for recursive `_self_` merging
-    based on Hydra-style `defaults` lists.
+    """Load an YAML config with recursive `_self_` merging via Hydra-style `defaults`.
 
     This function recursively loads and merges dependent YAML files specified
     in the `defaults` key of the given config. It mimics Hydra’s composition mechanism
@@ -126,7 +153,19 @@ def load_config_with_defaults(path: str) -> OmegaConf:
     if "defaults" in final_cfg:
         del final_cfg["defaults"]
 
+    _ensure_target_convert_all(final_cfg)
     return final_cfg
+
+
+def _ensure_target_convert_all(cfg) -> None:
+    if isinstance(cfg, DictConfig):
+        if "_target_" in cfg:
+            cfg["_convert_"] = "all"
+        for value in cfg.values():
+            _ensure_target_convert_all(value)
+    elif isinstance(cfg, ListConfig):
+        for value in cfg:
+            _ensure_target_convert_all(value)
 
 
 def _build_config_path(base_path: Path, entry: str) -> Path:

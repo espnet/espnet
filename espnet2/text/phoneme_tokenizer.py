@@ -256,9 +256,7 @@ class G2p_en:
 
     def __init__(self, no_space: bool = False):
         if g2p_en is None:
-            raise RuntimeError(
-                "Please install espnet with `pip install espnet[task-tts]`"
-            )
+            raise RuntimeError("Please install espnet with `pip install espnet[tts]`")
         self.no_space = no_space
         self.g2p = None
 
@@ -336,7 +334,7 @@ class Jaso:
     def __init__(self, space_symbol=" ", no_space=False):
         if jamo is None:
             raise RuntimeError(
-                "Please install espnet with " "`pip install espnet[task-tts]`"
+                "Please install espnet with " "`pip install espnet[tts]`"
             )
         self.space_symbol = space_symbol
         self.no_space = no_space

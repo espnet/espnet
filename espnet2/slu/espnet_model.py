@@ -16,7 +16,7 @@ from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.asr.transducer.error_calculator import ErrorCalculatorTransducer
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.legacy.nets.e2e_asr_common import ErrorCalculator
-from espnet2.legacy.nets.pytorch_backend.transformer.label_smoothing_loss import (  # noqa: H301
+from espnet2.legacy.nets.pytorch_backend.transformer.label_smoothing_loss import (
     LabelSmoothingLoss,
 )
 from espnet2.slu.postdecoder.abs_postdecoder import AbsPostDecoder

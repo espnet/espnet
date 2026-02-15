@@ -1,17 +1,8 @@
 #!/usr/bin/env python3
-"""Prepare audio metadata from Kaldi wav.scp and segments files using Lhotse.
+# Copyright 2025 Jinchuan Tian (Carnegie Mellon University)
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-This script processes Kaldi format wav.scp and optional segments files to extract
-audio metadata (sampling rate, duration, etc.) and save it using Lhotse manifests.
-Supports multiprocessing for efficient processing of large datasets.
-
-Multi-channel Support:
-    - Single-channel audio: Creates MonoCut objects for efficiency
-    - Multi-channel audio: Creates MultiCut objects containing MonoCuts for
-      each channel
-    This approach provides optimal performance while supporting multi-channel
-    recordings.
-"""
+"""Script for preparing audio metadata from Kaldi format using Lhotse."""
 
 import argparse
 import logging

@@ -1,1 +1,0 @@
-../../../espnet3/asr/bin/run.py
